@@ -14,6 +14,7 @@ const PROP_LAYER = {
 export const LAYERS = [
   { id: "ground", name: "Ground", icon: "ground", tags: ["ground", "embank"], desc: "Terrain grid, embankments and cuttings" },
   { id: "roads", name: "Road network", icon: "road", tags: ["roads"], desc: "Carriageways and merged junction slabs" },
+  { id: "blocks", name: "City blocks", icon: "grid", tags: ["blocks"], desc: "Plots bounded by the footway backs (no buildings)" },
   { id: "kits", name: "Curbs & footways", icon: "grid", tags: ["kits"], desc: "Kerbs, pavements, planting strips" },
   { id: "markings", name: "Road markings", icon: "marking", tags: ["markings"], desc: "Lines, arrows, zebras, gores" },
   { id: "furniture", name: "Medians & bumps", icon: "ruler", tags: ["furniture", "furnish-paint"], desc: "Raised medians, speed bumps, parking paint" },
@@ -92,11 +93,12 @@ export class Scene {
   setBuild(B) {
     this.clear();
     this.build = B;
-    const { net, plan, mk, F, rails, st } = B;
+    const { net, plan, mk, F, rails, st, blocks } = B;
     // ground
     if (st?.ground) this._addBatches(st.ground, (b) => (b.owner === "ground-xray" ? "ground-xray" : "ground"), { pick: false, decals: false });
     // roads: split kit materials into their own layer
     this._addBatches(plan.mesh, (b) => (KIT_MATERIALS.has(b.material) ? "kits" : "roads"), { wear: 0.6 });
+    if (blocks?.mesh) this._addBatches(blocks.mesh, "blocks", { wear: 0.3, decals: false });
     // markings (paint, depth-biased)
     if (mk) this._addBatches(mk, "markings", { flags: FLAG_PAINT, wear: B.settings?.markings?.wear ?? 0.45, castShadow: false, pick: false });
     if (F) {

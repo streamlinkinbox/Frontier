@@ -6,6 +6,7 @@ import { PROFILES } from "../core/profile.js";
 import { PAVING_PATTERNS } from "../core/textures.js";
 import { BOLLARD_STYLES } from "../core/props.js";
 import { MAX_VEHICLES } from "../core/traffic.js";
+import { PLOT_STYLES } from "../core/blocks.js";
 
 const $ = (s) => document.querySelector(s);
 const TOOLS = [
@@ -154,6 +155,7 @@ export class Panels {
     if (sel.kind === "road") return this.inspectRoad(root, A.net.roads.get(sel.id));
     if (sel.kind === "rail") return this.inspectRail(root, A.net.rails.get(sel.id));
     if (sel.kind === "layer") return this.inspectLayer(root, sel.id);
+    if (sel.kind === "block") return this.inspectBlock(root, sel.id);
     if (sel.kind === "material") return this.inspectMaterial(root, sel.id);
   }
   inspectProject(root) {
@@ -224,6 +226,16 @@ export class Panels {
     cards.append(el("div", { class: "btnrow", style: { gridColumn: "1 / -1" } }, [button(icon("trash", 13) + "Delete line", () => A.deleteSelection(), "btn danger")]));
     root.append(cards);
   }
+  inspectBlock(root, id) {
+    const A = this.app, plot = A.build?.blocks?.plots.find((b) => b.id === id);
+    if (!plot) return this.inspectProject(root);
+    root.append(objHead("City block", `Plot ${id.replace("blk", "")}`, "grid"));
+    const cards = el("div", { class: "cards" });
+    cards.append(card("Plot", "grid", [metric(fmt(plot.area, 0), " m²", "plot area"), metric(fmt(Math.sqrt(plot.area), 1), " m", "equivalent side")]));
+    cards.append(card("Surface", "texture", [select("Style", plot.style, PLOT_STYLES.map((s) => [s, s === "grass" ? "park (grass)" : s]), (v) => { A.settings.blocks.overrides[id] = v; A.rebuild("block"); }), el("div", { class: "cap", text: "Plots follow the back of the footway kits exactly; grass plots leave the ground visible." })], true));
+    cards.append(card("Actions", "pointer", [button("Frame", () => { A.cam.target = [...plot.centre]; A.cam.distance = Math.max(40, Math.sqrt(plot.area) * 1.6); })]));
+    root.append(cards);
+  }
   inspectLayer(root, id) {
     const A = this.app, S = A.settings, L = LAYERS.find((l) => l.id === id);
     root.append(objHead("Content layer", L.name, L.icon));
@@ -233,6 +245,7 @@ export class Panels {
     cards.append(card("Layer", L.icon, [vis, el("div", { class: "cap", text: L.desc })], true));
     const M = S.markings, F = S.furnish, ST = S.structures, RL = S.rail, T = S.traffic;
     switch (id) {
+      case "blocks": { const BK = S.blocks; cards.append(card("Plots", "grid", [toggle("Generate plots", BK.enabled, (v) => { BK.enabled = v; rb(); }), slider("Inset from footway", BK.inset, 0, 2, 0.1, (v, f) => { BK.inset = v; rb(f); }, { unit: " m" }), slider("Seed", BK.seed, 1, 99, 1, (v, f) => { BK.seed = v; rb(f); }), ...PLOT_STYLES.map((st) => toggle(st === "grass" ? "park (grass)" : st, BK.styles.includes(st), (v) => { BK.styles = v ? [...new Set([...BK.styles, st])] : BK.styles.filter((x) => x !== st); if (!BK.styles.length) BK.styles = ["grass"]; rb(); })), button("Clear overrides", () => { BK.overrides = {}; rb(); })], true)); break; }
       case "ground": cards.append(card("Terrain", "ground", [slider("Extent beyond roads", ST.groundExtent, 40, 600, 10, (v, f) => { ST.groundExtent = v; rb(f); }, { unit: " m" }), slider("Cell size", ST.groundCell, 4, 30, 1, (v, f) => { ST.groundCell = v; rb(f); }, { unit: " m" })], true)); break;
       case "roads": cards.append(card("Sweep", "road", [slider("Station step", S.build.step, 1, 4, 0.5, (v, f) => { S.build.step = v; rb(f); }, { unit: " m" })], true)); break;
       case "markings": cards.append(card("Standard", "marking", [select("Scheme", M.standard, [["eu", "Europe (white centre)"], ["us", "US (yellow centre)"]], (v) => { M.standard = v; rb(); }), slider("Line width", M.lineWidth, 0.1, 0.2, 0.01, (v, f) => { M.lineWidth = v; rb(f); }, { unit: " m" }), slider("Dash length", M.dashLength, 1, 6, 0.5, (v, f) => { M.dashLength = v; rb(f); }, { unit: " m" }), slider("Dash gap", M.dashGap, 2, 12, 0.5, (v, f) => { M.dashGap = v; rb(f); }, { unit: " m" }), slider("Paint wear", M.wear, 0, 1, 0.05, (v, f) => { M.wear = v; rb(f); })]), card("Elements", "grid", [toggle("Stop lines", M.stopLine, (v) => { M.stopLine = v; rb(); }), toggle("Zebra crossings", M.zebra, (v) => { M.zebra = v; rb(); }), toggle("Turn arrows", M.arrows, (v) => { M.arrows = v; rb(); }), toggle("Bike symbols", M.bikeSymbols, (v) => { M.bikeSymbols = v; rb(); }), toggle("Parking bays", M.parkingBays, (v) => { M.parkingBays = v; rb(); }), toggle("Gore chevrons", M.goreChevrons, (v) => { M.goreChevrons = v; rb(); })])); break;

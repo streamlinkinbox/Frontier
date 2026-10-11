@@ -7,6 +7,7 @@ import { buildMarkings, defaultMarkingSettings } from "../core/markings.js";
 import { furnish, defaultFurnishSettings } from "../core/furnish.js";
 import { buildRails, defaultRailSettings } from "../core/rail.js";
 import { buildStructures, defaultStructureSettings } from "../core/structures.js";
+import { buildBlocks, defaultBlockSettings } from "../core/blocks.js";
 import { Traffic, defaultTrafficSettings } from "../core/traffic.js";
 import { generateCity, defaultCitySettings } from "../core/city.js";
 import { defaultStacks, bakeMaterial, bakeDecalAtlas, materialParams } from "../core/textures.js";
@@ -24,7 +25,7 @@ class App {
   constructor() {
     this.settings = {
       build: { step: 2.0, quality: "high" },
-      markings: defaultMarkingSettings(), furnish: defaultFurnishSettings(), rail: defaultRailSettings(), structures: defaultStructureSettings(),
+      markings: defaultMarkingSettings(), furnish: defaultFurnishSettings(), rail: defaultRailSettings(), structures: defaultStructureSettings(), blocks: defaultBlockSettings(),
       traffic: defaultTrafficSettings(), city: { ...defaultCitySettings(), preset: "demo" }, textureSize: 256,
       env: { azimuth: 52, elevation: 48, intensity: 3.2, exposure: 1.0, fog: 0.0012, ambient: 1.0 },
     };
@@ -121,7 +122,8 @@ class App {
       const rails = S.rail.enabled ? buildRails(this.net, plan, S.rail) : null;
       this.setStatus("Structures…", true); this.setProgress(0.8); await nextFrame();
       const st = buildStructures(plan, S.structures, rails ? rails.lines : []);
-      this.build = { net: this.net, plan, mk, F, rails, st, settings: S, audit: auditMesh(plan.mesh) };
+      const blocks = S.blocks.enabled ? buildBlocks(plan, S.blocks) : null;
+      this.build = { net: this.net, plan, mk, F, rails, st, blocks, settings: S, audit: auditMesh(plan.mesh) };
       this.setStatus("Uploading…", true); this.setProgress(0.92); await nextFrame();
       this.scene.setBuild(this.build);
       this.traffic = S.traffic.enabled ? new Traffic(plan, F, rails ? rails.lines : [], S.traffic) : null;
@@ -325,6 +327,7 @@ class App {
     if (owner && this.net.nodes.has(owner)) this.select({ kind: "node", id: owner });
     else if (owner && this.net.roads.has(owner)) this.select({ kind: "road", id: owner });
     else if (owner && this.net.rails.has(owner)) this.select({ kind: "rail", id: owner });
+    else if (owner && this.build?.blocks?.plots.some((b) => b.id === owner)) this.select({ kind: "block", id: owner });
     else this.select(null);
   }
   onContext(p, e) {

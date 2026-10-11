@@ -11,6 +11,7 @@ import { Traffic, MAX_VEHICLES } from "../src/core/traffic.js";
 import { prop, VEHICLE_KINDS, BOLLARD_STYLES } from "../src/core/props.js";
 import { defaultStacks, bakeMaterial } from "../src/core/textures.js";
 import { Network } from "../src/core/network.js";
+import { buildBlocks, traceFaces } from "../src/core/blocks.js";
 
 function pipeline(preset) {
   const net = generateCity({ preset });
@@ -102,4 +103,25 @@ test("network JSON round-trip preserves roads, rails and node moves rebuild clea
   const plan = buildRoadNetwork(net2, { step: 2 });
   const a = auditMesh(plan.mesh);
   assert.equal(a.nonManifoldEdges, 0); assert.ok(a.quadRatio > 0.97);
+});
+
+test("city blocks: every bounded face of the grid becomes a plot hugging the footway backs", () => {
+  const net = generateCity({ preset: "grid" });
+  const plan = buildRoadNetwork(net, { step: 2 });
+  const faces = traceFaces(plan);
+  const { mesh, plots } = buildBlocks(plan, { styles: ["paving", "concrete", "gravel"] });
+  assert.ok(plots.length >= 10, `plots ${plots.length}`);
+  assert.equal(plots.length, faces.length - 1, "all faces except the unbounded one");
+  const a = auditMesh(mesh);
+  assert.equal(a.nonManifoldEdges, 0); assert.equal(a.nan, 0);
+  // the triangulated slab area equals the polygon area for every plot (no dropped ears)
+  const per = new Map();
+  for (const f of mesh.faces) if (f.i.length === 3) { const [p, q, r] = f.i.map((i) => mesh.position(i)); per.set(f.g, (per.get(f.g) || 0) + Math.abs((q[0] - p[0]) * (r[2] - p[2]) - (q[2] - p[2]) * (r[0] - p[0])) / 2); }
+  for (const pl of plots) assert.ok(Math.abs(per.get(pl.id) - pl.area) < 0.5, `${pl.id} area ${per.get(pl.id)} vs ${pl.area}`);
+  // style overrides are honoured
+  const o = buildBlocks(plan, { overrides: { [plots[0].id]: "grass" } });
+  assert.equal(o.plots.find((p) => p.id === plots[0].id).style, "grass");
+  // a dead-end-only network (no cycles) yields no plots, and the elevated diamond yields none either
+  const d = buildBlocks(buildRoadNetwork(generateCity({ preset: "diamond" }), { step: 2 }), {});
+  assert.equal(d.plots.length, 0);
 });

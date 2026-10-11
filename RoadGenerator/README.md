@@ -3,7 +3,7 @@
 A standalone, dependency-free WebGPU web app that generates high-fidelity road networks:
 spline-drawn roads, single-mesh quad-topology intersections, motorway interchanges, bridges,
 underpasses, railways and subways, precise road markings, street furniture, damage and
-construction zones, on-street parking, city blocks and a small AI traffic simulation.
+construction zones, on-street parking, city block plots (no buildings) and a small AI traffic simulation.
 
 ```
 npm install            # esbuild + naga-wasm (dev only)
@@ -60,6 +60,7 @@ RoadGenerator/
     primitives.js     box, lathe, loft, sweep, bevel box
     props.js          streetlights, signals, bollards (5 styles), guardrails, barriers, billboards, vehicles, trains
     furnish.js        placement: signals, lights, bollards, barriers, parking, construction, damage decals
+    blocks.js         city blocks: planar faces of the road graph → plots hugging the footway backs (no buildings)
     structures.js     bridges (box girder, hammerhead piers, parapets), viaduct decks under elevated
                       junctions, retaining walls, underpass trenches, ground with cut-outs
     rail.js           ballast, sleepers, rails, level crossings (booms, crossbucks), subway tunnels

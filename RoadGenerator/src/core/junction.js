@@ -463,7 +463,9 @@ export function earClip(pts) {
     for (let k = 0; k < idx.length; k++) {
       const i0 = idx[(k - 1 + idx.length) % idx.length], i1 = idx[k], i2 = idx[(k + 1) % idx.length];
       const a = pts[i0], b = pts[i1], c = pts[i2];
-      if (area(a, b, c) * sign <= 1e-9) continue;
+      const ar = area(a, b, c) * sign;
+      if (Math.abs(ar) <= 1e-7) { idx.splice(k, 1); clipped = true; break; } // collinear vertex: drop without a triangle
+      if (ar < 0) continue;
       let inside = false;
       for (const m of idx) {
         if (m === i0 || m === i1 || m === i2) continue;
