@@ -143,7 +143,7 @@
   }
   function sleeperPart() {
     const key = 'sleeper';
-    const b = new MB('concrete'); prim.box(b, [SLEEPER.w, SLEEPER.h, SLEEPER.d], { center: [0, SLEEPER.h / 2, 0], bevel: 0.02 });
+    const b = new MB('concrete'); prim.box(b, [SLEEPER.w, SLEEPER.h, SLEEPER.d], { center: [0, SLEEPER.h / 2, 0] }); // plain box: thousands of instances, bevels would cost ~150 quads each
     const mesh = b.build(); void key;
     return [{ material: 'concrete', mesh }];
   }

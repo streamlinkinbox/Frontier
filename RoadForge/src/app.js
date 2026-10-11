@@ -79,7 +79,7 @@
       bar.append(tools);
       const views = h('div', { class: 'tools' });
       this.viewBtns = {};
-      const vb = (id, icon, label, key, fn) => { const b = h('button', { class: 'tbtn', title: `${label} (${key})`, html: icon + `<span>${label}</span>`, onclick: fn }); views.append(b); this.viewBtns[id] = b; return b; };
+      const vb = (id, icon, label, key, fn) => { const b = h('button', { class: 'tbtn', 'data-view': id, title: `${label} (${key})`, html: icon + `<span>${label}</span>`, onclick: fn }); views.append(b); this.viewBtns[id] = b; return b; };
       vb('plan', I.plan, 'Plan', 'P', () => this.togglePlan());
       vb('xray', I.xray, 'X-ray', 'X', () => { this.view.xray = !this.view.xray; this.updateViewBtns(); });
       vb('wire', I.wire, 'Topology', 'W', () => { this.view.wire = !this.view.wire; this.updateViewBtns(); });
@@ -87,10 +87,10 @@
       bar.append(views, h('div', { class: 'spacer' }));
       this.statsEl = h('div', { class: 'stats' }); bar.append(this.statsEl);
       const hist = h('div', { class: 'tools' });
-      this.undoBtn = h('button', { class: 'tbtn', title: 'Undo (Ctrl+Z)', html: I.undo, onclick: () => this.undo() }); this.redoBtn = h('button', { class: 'tbtn', title: 'Redo (Ctrl+Shift+Z)', html: I.redo, onclick: () => this.redo() });
+      this.undoBtn = h('button', { class: 'tbtn', id: 'btn-undo', title: 'Undo (Ctrl+Z)', html: I.undo, onclick: () => this.undo() }); this.redoBtn = h('button', { class: 'tbtn', id: 'btn-redo', title: 'Redo (Ctrl+Shift+Z)', html: I.redo, onclick: () => this.redo() });
       hist.append(this.undoBtn, this.redoBtn);
-      const exp = h('button', { class: 'tbtn', html: I.export + '<span>Export</span>', onclick: (e) => this.exportMenu(e.currentTarget) });
-      const help = h('button', { class: 'tbtn', html: I.help, title: 'Help', onclick: () => this.showHelp() });
+      const exp = h('button', { class: 'tbtn', id: 'btn-export', html: I.export + '<span>Export</span>', onclick: (e) => this.exportMenu(e.currentTarget) });
+      const help = h('button', { class: 'tbtn', id: 'btn-help', html: I.help, title: 'Help', onclick: () => this.showHelp() });
       bar.append(hist, h('div', { class: 'tools' }, exp, help));
       this.updateViewBtns(); this.setTool('select');
     },
@@ -148,11 +148,11 @@
         const rs = h('div', { class: 'rows' }); for (const r of rows) rs.append(r); g.append(rs); O.append(g);
       };
       // templates
-      group('templates', 'Templates', Object.entries(RF.templates.list).map(([id, t]) => h('div', { class: 'row tpl', onclick: () => { this.loadProject(t.make()); this.frameAll(); this.toast(`Loaded “${t.name}”`); } }, h('div', { class: 'ico', style: 'color:var(--accent-b)', html: I.tpl }), h('div', { class: 'name' }, t.name, h('div', { class: 'blurb' }, t.blurb)))));
+      group('templates', 'Templates', Object.entries(RF.templates.list).map(([id, t]) => h('div', { class: 'row tpl', 'data-template': id, onclick: () => { this.loadProject(t.make()); this.frameAll(); this.toast(`Loaded “${t.name}”`); } }, h('div', { class: 'ico', style: 'color:var(--accent-b)', html: I.tpl }), h('div', { class: 'name' }, t.name, h('div', { class: 'blurb' }, t.blurb)))));
       const sel = this.selection;
       const row = (type, id, icon, color, name, meta) => {
         const isSel = sel && sel.type === type && sel.id === id; const hidden = this.hidden.has(type + ':' + id);
-        return h('div', { class: 'row' + (isSel ? ' sel' : ''), onclick: () => this.select({ type, id }), ondblclick: () => this.frameSelection() },
+        return h('div', { class: 'row' + (isSel ? ' sel' : ''), 'data-type': type, 'data-id': id, onclick: () => this.select({ type, id }), ondblclick: () => this.frameSelection() },
           h('div', { class: 'ico', style: `color:${color}`, html: icon }), h('div', { class: 'name' }, name), h('div', { class: 'meta' }, meta || ''),
           h('button', { class: 'eye' + (hidden ? ' off' : ''), html: hidden ? I.eyeoff : I.eye, title: 'Toggle visibility', onclick: (e) => { e.stopPropagation(); this.toggleHidden(type, id); } }));
       };
@@ -178,7 +178,7 @@
     /* ---------------- right: layer stack + inspector ---------------- */
     buildRight() {
       const Ls = $('#layers'); Ls.innerHTML = '';
-      Ls.append(h('div', { class: 'ph' }, h('span', { class: 'title' }, 'Layer stack'), h('span', { class: 'count' }, 'generate → texture → dress')));
+      Ls.append(h('div', { class: 'ph' }, h('span', { class: 'title' }, 'Layer stack'), h('span', { class: 'count' }, 'generate · texture · dress')));
       this.layerList = h('div', { class: 'scroll' }); Ls.append(this.layerList);
       const Ins = $('#inspector'); Ins.innerHTML = '';
       Ins.append(h('div', { class: 'ph' }, h('span', { class: 'title' }, 'Inspector'), h('span', { class: 'count', id: 'insp-sub' })));
@@ -195,7 +195,7 @@
       const L = this.layerList; L.innerHTML = '';
       for (const ly of this.LAYERS) {
         const on = this.layerEnabled(ly.id);
-        L.append(h('div', { class: 'layer' + (this.selectedLayer === ly.id ? ' sel' : ''), onclick: () => { this.selectedLayer = ly.id; this.selection = null; this.renderLayers(); this.renderOutliner(); this.renderInspector(); this.updateHandles(); } },
+        L.append(h('div', { class: 'layer' + (this.selectedLayer === ly.id ? ' sel' : ''), 'data-id': ly.id, onclick: () => { this.selectedLayer = ly.id; this.selection = null; this.renderLayers(); this.renderOutliner(); this.renderInspector(); this.updateHandles(); } },
           h('div', { class: 'ico', style: `color:${ly.color}`, html: I[ly.icon] }), h('div', { class: 'lname' }, ly.name, h('div', { class: 'lsub' }, ly.sub)),
           h('button', { class: 'toggle' + (on ? ' on' : ''), title: 'Enable layer', onclick: (e) => { e.stopPropagation(); this.setLayerEnabled(ly.id, !on); } })));
       }
@@ -497,6 +497,7 @@
       }
     },
     onKey(e) {
+      if (e.key === 'Escape') { const m = document.querySelector('.modal-bg'); if (m) { m.remove(); return; } const menu = document.querySelector('.menu'); if (menu) { menu.remove(); return; } }
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
       const k = e.key.toLowerCase();
       if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) this.redo(); else this.undo(); return; }
@@ -630,10 +631,12 @@
     const tile = (i, fn) => { g.save(); g.translate((i % 4) * T, Math.floor(i / 4) * T); g.beginPath(); g.rect(0, 0, T, T); g.clip(); fn(); g.restore(); };
     const ads = [['#1b2a49', '#f2c14e', 'NORTHWIND', 'electric · from 36 990'], ['#f4f1ea', '#1a1a1a', 'OPEN LATE', 'coffee roasters · 5th & main'], ['#8a1c2b', '#ffffff', 'SUMMER SALE', 'everything must go'], ['#0e3b2e', '#d9f2e6', 'BREATHE', 'city parks initiative'], ['#f26b1d', '#1a1a1a', 'FAST LANE', 'tyres fitted while you wait'], ['#1a1a1a', '#e8e8e8', 'JAZZ NIGHTS', 'every friday · the vault'], ['#2f6fed', '#ffffff', 'FIBRE 10G', 'now in your street'], ['#e8dcc4', '#3a2a1a', 'OLD TOWN MARKET', 'saturdays · 7am']];
     ads.forEach(([bg, fg, big, small], i) => tile(i, () => {
-      const grd = g.createLinearGradient(0, 0, T, T); grd.addColorStop(0, bg); grd.addColorStop(1, shade(bg, -25)); g.fillStyle = grd; g.fillRect(0, 0, T, T);
-      g.fillStyle = fg; g.globalAlpha = 0.12; for (let k = 0; k < 6; k++) { g.beginPath(); g.arc(80 + k * 90, 380 + (k % 2) * 40, 60 + (k % 3) * 20, 0, 7); g.fill(); } g.globalAlpha = 1;
-      g.font = `700 ${big.length > 9 ? 64 : 88}px "DM Sans", sans-serif`; g.textBaseline = 'middle'; g.fillText(big, 36, 180);
-      g.font = '400 30px "DM Sans", sans-serif'; g.fillText(small, 38, 250); g.fillRect(36, 290, 140, 4);
+      // adverts are composed on a 3:1 (1536 × 512) canvas squeezed into the square tile; the 12 × 4 m face stretches it back
+      const W = T * 3; g.scale(1 / 3, 1);
+      const grd = g.createLinearGradient(0, 0, W, T); grd.addColorStop(0, bg); grd.addColorStop(1, shade(bg, -25)); g.fillStyle = grd; g.fillRect(0, 0, W, T);
+      g.fillStyle = fg; g.globalAlpha = 0.12; for (let k = 0; k < 9; k++) { g.beginPath(); g.arc(120 + k * 160, 400 + (k % 2) * 50, 70 + (k % 3) * 25, 0, 7); g.fill(); } g.globalAlpha = 1;
+      g.font = `700 ${big.length > 9 ? 150 : 190}px "DM Sans", sans-serif`; g.textBaseline = 'middle'; g.fillText(big, 80, 200);
+      g.font = '400 56px "DM Sans", sans-serif'; g.fillText(small, 84, 345); g.fillRect(80, 400, 300, 6);
     }));
     tile(8, () => { g.fillStyle = '#b11a1a'; g.fillRect(0, 0, T, T); g.fillStyle = '#fff'; g.font = '700 150px "DM Sans", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('STOP', T / 2, T / 2); g.lineWidth = 14; g.strokeStyle = '#fff'; g.strokeRect(20, 20, T - 40, T - 40); });
     tile(9, () => { g.fillStyle = '#fff'; g.fillRect(0, 0, T, T); g.fillStyle = '#c8271c'; g.beginPath(); g.moveTo(16, 60); g.lineTo(T - 16, 60); g.lineTo(T / 2, T - 30); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(90, 100); g.lineTo(T - 90, 100); g.lineTo(T / 2, T - 110); g.closePath(); g.fill(); });

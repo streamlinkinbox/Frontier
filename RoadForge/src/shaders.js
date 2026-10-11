@@ -512,7 +512,7 @@ fn shade(in : VSOut, s : Surf) -> vec3<f32> {
   // derivative-dependent work happens here, in uniform control flow
   let fw = fwidth(in.wpos.xz) * 1.2;
   let tile = select(f32(M.ids.z), in.iext.y, in.iext.z > 0.5); let tiles = 4.0;
-  let tuv = vec2<f32>((fract(in.uv.x) + (tile % tiles)) / tiles, 1.0 - (fract(in.uv.y) + floor(tile / tiles)) / tiles);
+  let tuv = vec2<f32>((fract(in.uv.x) + (tile % tiles)) / tiles, (floor(tile / tiles) + 1.0 - fract(in.uv.y)) / tiles); // canvas atlas: row 0 at the top, uv.y up
   let atlasCol = textureSample(atlasTex, atlasSamp, tuv);
   var s : Surf;
   switch (id) {

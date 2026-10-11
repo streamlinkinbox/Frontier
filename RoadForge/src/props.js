@@ -302,7 +302,8 @@
         const t = side * ((side > 0 ? lay.outerR : lay.outerL) + 10);
         const p = [f.p[0] + f.n[0] * t, RF.structures ? RF.structures.GROUND_Y : 0, f.p[2] + f.n[2] * t];
         const fwd = V.norm(V.add(V.mul(f.d, bb.facing || -1), V.mul(f.n, -side * 0.45)));
-        add('billboard', get('billboard'), p, fwd, R.id, null, null);
+        const tile = bb.ad != null ? bb.ad % 8 : (RF.hashStr(R.id) + bbs.indexOf(bb) * 3) % 8; // per-instance advert from the 4x4 atlas (tiles 0-7)
+        add('billboard', get('billboard'), p, fwd, R.id, null, [1, tile, 1, 0]);
         ctx.pick.push({ type: 'billboard', owner: R.id, index: bbs.indexOf(bb), p, r: 7 });
       }
       // -- construction zones: cones + barrier boards + sign
