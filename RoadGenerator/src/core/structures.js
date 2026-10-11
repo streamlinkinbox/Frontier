@@ -7,6 +7,7 @@ import { box, loft, lathe } from "./primitives.js";
 import { lerp, clamp, madd, mul, add, sub, norm, rightXZ, pointInPolygonXZ, mat4 } from "./math.js";
 import { basisAlong } from "./furnish.js";
 import { earClip } from "./junction.js";
+import { buildTerrain, footprintField, buildGroundMesh, junctionRing, cornerBack } from "./terrain.js";
 
 export const GROUND_Y = -0.02;
 export const CLEARANCE = 5.2;
@@ -97,6 +98,7 @@ export function buildStructures(plan, S = defaultStructureSettings(), rails = []
     }
   }
   const segments = classifyRoads(plan, crossings);
+  const terrain = buildTerrain(plan, S);
   const mb = new MeshBuilder("structures");
   const concrete = mb.material("concrete"), steel = mb.material("metalPainted"), galv = mb.material("steelGalv"), lamp = mb.material("lamp"), grass = mb.material("grass");
   const instances = new Map();
@@ -106,24 +108,25 @@ export function buildStructures(plan, S = defaultStructureSettings(), rails = []
   for (const [R, segs] of segments) {
     const fp = footprint(R);
     for (const sg of segs) {
-      if (sg.kind === "bridge" && S.bridges) buildBridge(mb, R, sg, fp, S, inst, concrete, steel, galv);
+      if (sg.kind === "bridge" && S.bridges) buildBridge(mb, R, sg, fp, S, inst, concrete, steel, galv, terrain);
       if ((sg.kind === "trench" || sg.kind === "tunnel") && S.trenches) {
-        buildTrench(mb, R, sg, fp, sg.kind === "tunnel", concrete, lamp);
+        buildTrench(mb, R, sg, fp, sg.kind === "tunnel", concrete, lamp, terrain);
         const poly = corridor(R, sg.s0 - 1, sg.s1 + 1, fp.left - 0.6, fp.right + 0.6);
         if (sg.kind === "trench") holes.push(poly); else xrayHoles.push(poly);
       }
-      if (sg.kind === "ground") buildEmbankment(mb, R, sg, fp, grass);
+      if (sg.kind === "ground") buildEmbankment(mb, R, sg, fp, grass, terrain);
     }
   }
   // junction slabs: viaduct decks when any arm arrives on a bridge (or the node is high), grass skirts otherwise
   for (const J of plan.junctions || []) {
     const onBridge = J.node.p[1] > 6.5 || J.arms.some((arm) => { const R = arm.R, s = arm.isStart ? R.cutA + 0.5 : R.length - R.cutB - 0.5; return (segments.get(R) || []).some((sg) => sg.kind === "bridge" && s >= sg.s0 - 1 && s <= sg.s1 + 1); });
-    if (onBridge && S.bridges) buildJunctionDeck(mb, J, concrete, galv, inst); else buildJunctionSkirt(mb, J, grass);
+    if (onBridge && S.bridges) buildJunctionDeck(mb, J, concrete, galv, inst, terrain); else buildJunctionSkirt(mb, J, grass, terrain);
   }
   for (const rl of rails) if (rl.tunnel) xrayHoles.push(corridorSpline(rl.spline, rl.length, rl.halfWidth + 1.5));
-  const ground = S.ground ? buildGround(plan, S, holes, xrayHoles) : null;
+  const field = footprintField(plan, terrain, holes);
+  const ground = S.ground ? buildGroundMesh(plan, terrain, field, xrayHoles, S) : null;
   mb.compact();
-  return { solid: mb, ground, instances, segments, crossings };
+  return { solid: mb, ground, instances, segments, crossings, terrain, field };
 }
 
 function corridor(R, s0, s1, xl, xr) {
@@ -139,32 +142,8 @@ function corridorSpline(spline, length, hw) {
   return [...left, ...right.reverse()];
 }
 
-/** Ground: grid of cells (quads) covering the network bounds; cells overlapping holes are removed; cells over tunnels tagged for X-ray. */
-function buildGround(plan, S, holes, xrayHoles) {
-  const g = new MeshBuilder("ground");
-  const grass = g.material("grass");
-  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-  for (const R of plan.roads.values()) for (const F of R.frames) { minX = Math.min(minX, F.p[0]); maxX = Math.max(maxX, F.p[0]); minZ = Math.min(minZ, F.p[2]); maxZ = Math.max(maxZ, F.p[2]); }
-  if (!isFinite(minX)) { minX = minZ = -100; maxX = maxZ = 100; }
-  const E = S.groundExtent, cell = S.groundCell;
-  minX = Math.floor((minX - E) / cell) * cell; minZ = Math.floor((minZ - E) / cell) * cell; maxX = Math.ceil((maxX + E) / cell) * cell; maxZ = Math.ceil((maxZ + E) / cell) * cell;
-  const nx = Math.round((maxX - minX) / cell), nz = Math.round((maxZ - minZ) / cell);
-  const grid = [];
-  for (let j = 0; j <= nz; j++) { const row = []; for (let i = 0; i <= nx; i++) row.push(g.vertex([minX + i * cell, GROUND_Y, minZ + j * cell], [minX + i * cell, minZ + j * cell], [0, 1, 0.5, 0])); grid.push(row); }
-  const xray = g.material("grass"); // same material, separate group so the app can toggle it
-  const cellHit = (polys, x0, z0) => { const c = [x0 + cell / 2, 0, z0 + cell / 2]; for (const poly of polys) { if (pointInPolygonXZ(c, poly)) return true; for (const p of poly) if (p[0] >= x0 && p[0] <= x0 + cell && p[2] >= z0 && p[2] <= z0 + cell) return true; } return false; };
-  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
-    const x0 = minX + i * cell, z0 = minZ + j * cell;
-    if (cellHit(holes, x0, z0)) continue;
-    const grp = cellHit(xrayHoles, x0, z0) ? "ground-xray" : "ground";
-    g.quad(grass, grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i], grp);
-  }
-  g.compact();
-  return g;
-}
-
 /** Grass embankment / cutting skirts (1:2 slope) where a ground segment sits above or below grade. */
-function buildEmbankment(mb, R, sg, fp, grass) {
+function buildEmbankment(mb, R, sg, fp, grass, terrain) {
   const n = Math.max(1, Math.ceil((sg.s1 - sg.s0) / 4));
   for (const side of [-1, 1]) {
     const edge = side > 0 ? fp.right + 0.02 : fp.left - 0.02;
@@ -173,35 +152,21 @@ function buildEmbankment(mb, R, sg, fp, grass) {
     for (let i = 0; i <= n; i++) {
       const s = lerp(sg.s0, sg.s1, i / n);
       const top = roadPoint(R, s, edge, -0.03);
-      const h = top[1] - GROUND_Y;
-      if (Math.abs(h) > 0.08) any = true;
+      const h = top[1] - terrain.heightAt(top[0], top[2]);
+      if (Math.abs(h) > 0.02) any = true;
       const run = Math.max(0.05, Math.abs(h) * 2);
-      const toe = roadPoint(R, s, edge + side * run, 0); toe[1] = GROUND_Y - 0.01;
-      const mid = roadPoint(R, s, edge + side * run * 0.5, 0); mid[1] = lerp(top[1], GROUND_Y - 0.01, 0.5);
+      const toe = roadPoint(R, s, edge + side * run, 0); toe[1] = terrain.heightAt(toe[0], toe[2]) - 0.01;
+      const mid = roadPoint(R, s, edge + side * run * 0.5, 0); mid[1] = lerp(top[1], toe[1], 0.5);
       rows.push([top, mid, toe].map((q) => mb.vertex(q, [q[0], q[2]], [0, 1, 0.5, 0])));
     }
     if (any) mb.gridAuto(grass, rows, R.road.id);
   }
 }
 
-/** Outline of a junction slab at the back of the footway kits: concatenated offset corner paths (closed polygon). */
-function junctionOutline(J) {
-  const out = [];
-  for (const c of J.corners || []) {
-    if (!c.path) continue;
-    const kitW = Math.max(c.A.kitRight ? c.A.kitRight.width : 0, c.B.kitLeft ? c.B.kitLeft.width : 0);
-    const h = c.A.kitRight ? c.A.kitRight.curbHeight || 0 : 0;
-    const P = c.path.pts, Nn = c.path.normals;
-    for (let k = 0; k < P.length; k++) { const q = madd(P[k], Nn[k], kitW + 0.05); q[1] = P[k][1] + h; out.push(q); }
-  }
-  // drop near-duplicate consecutive points
-  const clean = [];
-  for (const q of out) if (!clean.length || Math.hypot(q[0] - clean[clean.length - 1][0], q[2] - clean[clean.length - 1][2]) > 0.05) clean.push(q);
-  if (clean.length > 2 && Math.hypot(clean[0][0] - clean[clean.length - 1][0], clean[0][2] - clean[clean.length - 1][2]) < 0.05) clean.pop();
-  return clean;
-}
+/** Outline of a junction slab 5 cm outside the back of the footway kits (closed polygon). */
+function junctionOutline(J) { return junctionRing(J, 0.05); }
 /** Viaduct deck under an elevated junction: outline wall (box girder depth), ear-clipped soffit, parapet rail, central pier. */
-function buildJunctionDeck(mb, J, concrete, galv, inst) {
+function buildJunctionDeck(mb, J, concrete, galv, inst, terrain) {
   const ring = junctionOutline(J); if (ring.length < 4) return;
   const depth = 1.8, owner = J.node.id;
   const top = ring.map((q) => [q[0], q[1] - 0.02, q[2]]);
@@ -223,7 +188,7 @@ function buildJunctionDeck(mb, J, concrete, galv, inst) {
     if (len > 1.5) inst("guardrailPanel", "", basisAlong(madd(a0, [0, 1, 0], 0.45), sub(b0, a0)));
   }
   // pier under the centre + one per 30 m of outline perimeter spread over the slab
-  const groundY = GROUND_Y - 0.5, deckY = J.node.p[1] - depth;
+  const groundY = terrain.heightAt(centroid[0], centroid[2]) - 0.5, deckY = J.node.p[1] - depth;
   if (deckY - groundY > 1.5) {
     const pier = new MeshBuilder("pier");
     box(pier, pier.material("concrete"), [0, deckY - 0.6, 0], [4.5, 1.2, 4.5], { bevel: 0.05 });
@@ -233,25 +198,24 @@ function buildJunctionDeck(mb, J, concrete, galv, inst) {
     mb.append(pier);
   }
 }
-function buildJunctionSkirt(mb, J, grass) {
+function buildJunctionSkirt(mb, J, grass, terrain) {
   for (const c of J.corners || []) {
-    if (!c.path) continue;
-    const kitW = Math.max(c.A.kitRight ? c.A.kitRight.width : 0, c.B.kitLeft ? c.B.kitLeft.width : 0);
-    const P = c.path.pts, Nn = c.path.normals;
+    const back = cornerBack(c, 0.02); if (!back.length) continue;
+    const Nn = c.path.normals;
     const rows = []; let any = false;
-    for (let k = 0; k < P.length; k++) {
-      const top = madd(P[k], Nn[k], kitW + 0.02); top[1] = P[k][1] + (c.A.kitRight ? c.A.kitRight.curbHeight || 0 : 0) - 0.03;
-      const h = top[1] - GROUND_Y; if (Math.abs(h) > 0.08) any = true;
+    for (let k = 0; k < back.length; k++) {
+      const top = [back[k][0], back[k][1] - 0.03, back[k][2]];
+      const h = top[1] - terrain.heightAt(top[0], top[2]); if (Math.abs(h) > 0.02) any = true;
       const run = Math.max(0.05, Math.abs(h) * 2);
-      const toe = madd(top, Nn[k], run); toe[1] = GROUND_Y - 0.01;
-      const mid = madd(top, Nn[k], run * 0.5); mid[1] = lerp(top[1], GROUND_Y - 0.01, 0.5);
+      const toe = madd(top, Nn[k], run); toe[1] = terrain.heightAt(toe[0], toe[2]) - 0.01;
+      const mid = madd(top, Nn[k], run * 0.5); mid[1] = lerp(top[1], toe[1], 0.5);
       rows.push([top, mid, toe].map((q) => mb.vertex(q, [q[0], q[2]], [0, 1, 0.5, 0])));
     }
     if (any) mb.gridAuto(grass, rows, J.node.id);
   }
 }
 
-function buildBridge(mb, R, sg, fp, S, inst, concrete, steel, galv) {
+function buildBridge(mb, R, sg, fp, S, inst, concrete, steel, galv, terrain) {
   const L = sg.s1 - sg.s0; if (L < 4) return;
   const sec = R.section;
   const edgeL = fp.left - 0.05, edgeR = fp.right + 0.05;
@@ -284,11 +248,11 @@ function buildBridge(mb, R, sg, fp, S, inst, concrete, steel, galv) {
     const s = sg.s0 + (L - (count - 1) * spacing) / 2 + (k - 1) * spacing;
     const F = R.frameAt(s);
     const deckY = roadPoint(R, s, 0, -depth)[1];
-    const groundY = GROUND_Y - 0.5;
-    if (deckY - groundY < 1.5) continue;
     const capW = width - 2.4, capH = 1.2, capD = 1.6;
     const cx = (edgeL + edgeR) / 2;
     const pc = roadPoint(R, s, cx, 0);
+    const groundY = terrain.heightAt(pc[0], pc[2]) - 0.5;
+    if (deckY - groundY < 1.5) continue;
     const m = basisAlong([pc[0], 0, pc[2]], F.dxz);
     // pier cap
     const cap = new MeshBuilder("cap"); box(cap, cap.material("concrete"), [0, deckY - capH / 2, 0], [capW, capH, capD], { bevel: 0.05 });
@@ -303,16 +267,17 @@ function buildBridge(mb, R, sg, fp, S, inst, concrete, steel, galv) {
   // abutments / wing walls at the span ends when the deck is still above ground there
   for (const end of [sg.s0, sg.s1]) {
     const y = roadPoint(R, end, 0, 0)[1];
-    if (y < 1.5) continue;
     const F = R.frameAt(end);
     const pc = roadPoint(R, end, (edgeL + edgeR) / 2, 0);
+    const gy = terrain.heightAt(pc[0], pc[2]);
+    if (y - gy < 1.5) continue;
     const m = basisAlong([pc[0], 0, pc[2]], F.dxz);
-    const ab = new MeshBuilder("ab"); box(ab, ab.material("concrete"), [0, (y - depth + GROUND_Y) / 2, 0], [width + 0.6, y - depth - GROUND_Y + 0.05, 1.2]);
+    const ab = new MeshBuilder("ab"); box(ab, ab.material("concrete"), [0, (y - depth + gy) / 2, 0], [width + 0.6, y - depth - gy + 0.05, 1.2]);
     ab.transform((p) => mat4.transformPoint(m, p)); mb.append(ab);
   }
 }
 
-function buildTrench(mb, R, sg, fp, covered, concrete, lamp) {
+function buildTrench(mb, R, sg, fp, covered, concrete, lamp, terrain) {
   const L = sg.s1 - sg.s0; if (L < 3) return;
   const n = Math.max(2, Math.ceil(L / 3));
   for (const side of [-1, 1]) {
@@ -321,7 +286,7 @@ function buildTrench(mb, R, sg, fp, covered, concrete, lamp) {
     for (let i = 0; i <= n; i++) {
       const s = lerp(sg.s0, sg.s1, i / n);
       const base = roadPoint(R, s, x, -0.3);
-      const topY = covered ? roadPoint(R, s, 0, CLEARANCE + 0.6)[1] : Math.max(GROUND_Y, base[1] + 1.0);
+      const topY = covered ? roadPoint(R, s, 0, CLEARANCE + 0.6)[1] : Math.max(terrain.heightAt(base[0], base[2]), base[1] + 1.0);
       const inner = roadPoint(R, s, x, 0);
       // wall face (inner), cope (top), back face (outer)
       const row = [[inner[0], base[1], inner[2]], [inner[0], topY, inner[2]], [inner[0] + side * 0.4 * (R.frameAt(s).r[0]), topY + (covered ? 0 : 0.9), inner[2] + side * 0.4 * R.frameAt(s).r[2]], [inner[0] + side * 0.5 * R.frameAt(s).r[0], base[1], inner[2] + side * 0.5 * R.frameAt(s).r[2]]];

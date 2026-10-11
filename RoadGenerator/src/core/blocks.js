@@ -4,7 +4,6 @@
 import { MeshBuilder } from "./mesh.js";
 import { roadPoint, footprint, stationRange } from "./query.js";
 import { earClip } from "./junction.js";
-import { GROUND_Y } from "./structures.js";
 import { madd, makeRng } from "./math.js";
 
 export const PLOT_STYLES = ["paving", "concrete", "gravel", "grass"];
@@ -109,11 +108,11 @@ export function buildBlocks(plan, S = {}) {
     plots.push({ id, area, style, centre: [cx, 0, cz] });
     if (style === "grass") return; // park: the ground shows through
     const mat = mb.material(style);
-    const top = poly.map((p) => [p[0], p[1] - 0.015, p[2]]);
+    const top = poly.map((p) => [p[0], p[1] + 0.04, p[2]]); // a 4 cm upstand above the kit back keeps the slab clear of the terrain
     const ids = top.map((q) => mb.vertex(q, [q[0], q[2]], [0, 1, 0.5, 0]));
     for (const [a, b, c] of earClip(top)) mb.tri(mat, ids[a], ids[b], ids[c], id);
     // skirt down to the grass so the slab reads as a raised plot
-    const bot = top.map((q) => [q[0], GROUND_Y - 0.01, q[2]]);
+    const bot = top.map((q) => [q[0], q[1] - 0.45, q[2]]);
     const bids = bot.map((q) => mb.vertex(q, [q[0], q[2]], [0, 1, 0.5, 0]));
     const rowT = [...ids, ids[0]], rowB = [...bids, bids[0]];
     mb.gridFacing(mb.material("concrete"), [rowT, rowB], id, (c) => [c[0] - cx, 0, c[2] - cz]);

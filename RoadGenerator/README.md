@@ -61,8 +61,10 @@ RoadGenerator/
     props.js          streetlights, signals, bollards (5 styles), guardrails, barriers, billboards, vehicles, trains
     furnish.js        placement: signals, lights, bollards, barriers, parking, construction, damage decals
     blocks.js         city blocks: planar faces of the road graph → plots hugging the footway backs (no buildings)
+    terrain.js        terrain height field hugging the footway backs + ground mesh cut exactly along the
+                      network footprint (two-level adaptive marching squares, trench holes, X-ray tagging)
     structures.js     bridges (box girder, hammerhead piers, parapets), viaduct decks under elevated
-                      junctions, retaining walls, underpass trenches, ground with cut-outs
+                      junctions, retaining walls, underpass trenches, embankment / cutting skirts
     rail.js           ballast, sleepers, rails, level crossings (booms, crossbucks), subway tunnels
     traffic.js        lane graph, car-following, signal phases, trains (≤ 25 vehicles)
     city.js           presets: grid, organic, diamond, cloverleaf (rotated quadrant template), demo
@@ -76,6 +78,7 @@ RoadGenerator/
                       real app against a validating WebGPU mock (tools/gpu-mock.mjs)
 tools/
   serve.mjs           static dev server · build.mjs single-file bundle · check-wgsl.mjs (naga) · wire-png.mjs
+                      (top-down plan renders) · iso-png.mjs (software perspective z-buffer renders for 3D QA)
   gpu-mock.mjs        headless WebGPU API mock enforcing bind-group/layout compatibility, attachment vs
                       binding conflicts, texture–sampler pair rules, usage flags and buffer bounds
 ```

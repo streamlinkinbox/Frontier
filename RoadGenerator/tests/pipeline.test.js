@@ -12,6 +12,7 @@ import { prop, VEHICLE_KINDS, BOLLARD_STYLES } from "../src/core/props.js";
 import { defaultStacks, bakeMaterial } from "../src/core/textures.js";
 import { Network } from "../src/core/network.js";
 import { buildBlocks, traceFaces } from "../src/core/blocks.js";
+import { footprint, roadPoint } from "../src/core/query.js";
 
 function pipeline(preset) {
   const net = generateCity({ preset });
@@ -124,4 +125,43 @@ test("city blocks: every bounded face of the grid becomes a plot hugging the foo
   // a dead-end-only network (no cycles) yields no plots, and the elevated diamond yields none either
   const d = buildBlocks(buildRoadNetwork(generateCity({ preset: "diamond" }), { step: 2 }), {});
   assert.equal(d.plots.length, 0);
+});
+
+test("terrain: the ground never shows through a road — no ground face inside any carriageway, ground meets the kit backs", () => {
+  const { plan, st } = pipeline("demo");
+  // 1. every ground face centroid lies outside the cut footprint (strict: carriageway + kerb + footway)
+  const g = st.ground, P = g.positions;
+  let inside = 0, total = 0, maxAbove = -Infinity;
+  for (const f of g.faces) {
+    let cx = 0, cz = 0; for (const i of f.i) { cx += P[i * 3] / f.i.length; cz += P[i * 3 + 2] / f.i.length; }
+    total++;
+    for (const R of plan.roads.values()) {
+      const q = R.spline.closestStation([cx, 0, cz]); if (!q) continue;
+      const s = q.s; if (s < R.cutA || s > R.length - R.cutB) continue;
+      const F = R.frameAt(s), r = F.r, lat = (cx - F.p[0]) * r[0] + (cz - F.p[2]) * r[2];
+      if (Math.hypot(cx - F.p[0] - r[0] * lat, cz - F.p[2] - r[2] * lat) > 0.05) continue; // closestStation clamped to an end
+      const fp = footprint(R); // the cut line sits 5 cm under the kit back; anything deeper than the back strip would be visible
+      if (lat <= fp.left + 0.4 || lat >= fp.right - 0.4) continue;
+      let cy = 0; for (const i of f.i) cy += P[i * 3 + 1] / f.i.length;
+      if (cy < roadPoint(R, s, lat, 0)[1] - 0.01) continue; // hidden under an embankment / bridge deck
+      inside++; break;
+    }
+  }
+  assert.ok(total > 5000, "ground has geometry");
+  assert.equal(inside, 0, "no ground face at or above the road surface inside a road footprint");
+  // 2. the terrain under the kit backs sits within a few cm below them for at-grade roads, so nothing pokes through
+  for (const R of plan.roads.values()) {
+    const fp = footprint(R);
+    for (let s = R.cutA + 1; s < R.length - R.cutB - 1; s += 7) for (const x of [fp.left - 0.02, fp.right + 0.02]) {
+      const kb = roadPoint(R, s, x, 0); const t = st.terrain.heightAt(kb[0], kb[2]);
+      if (Math.abs(kb[1]) < 0.3) { maxAbove = Math.max(maxAbove, t - kb[1]); assert.ok(t - kb[1] < 0.05, `terrain ${t.toFixed(3)} above kit back ${kb[1].toFixed(3)} on ${R.road.id} @ ${s}`); }
+    }
+  }
+  // 3. the field is negative (cut) at the carriageway centre and positive beyond the kit back
+  for (const R of plan.roads.values()) {
+    const s = (R.cutA + R.length - R.cutB) / 2, c = roadPoint(R, s, 0, 0), fp = footprint(R), o = roadPoint(R, s, fp.right + 1.5, 0);
+    assert.ok(st.field.distance(c[0], c[2]) < 0, "centre is cut");
+    const lonely = [...plan.roads.values()].every((Q) => Q === R || Q.frames.every((F) => Math.hypot(F.p[0] - o[0], F.p[2] - o[2]) > 20));
+    if (Math.abs(o[1]) < 0.3 && lonely) assert.ok(st.field.distance(o[0], o[2]) > 0, "1.5 m beyond the kit back is ground");
+  }
 });

@@ -23,7 +23,7 @@ export function sectionY(section, x) {
 /** Kerb/footway kit height at lateral distance d beyond the kerb line (side: -1 left, +1 right). */
 export function kitY(kit, d) {
   let last = 0;
-  for (const strip of kit.strips) for (const v of strip.verts) { if (d <= v.d) return v.h; last = v.h; }
+  for (const strip of kit.strips) { if (strip.kind === "skirt") break; for (const v of strip.verts) { if (d <= v.d) return v.h; last = v.h; } }
   return last;
 }
 /** World point on/above the road surface. x: lateral (right positive). lift: metres above the surface. */

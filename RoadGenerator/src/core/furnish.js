@@ -2,7 +2,7 @@
 // and extra solid/paint geometry (raised medians, speed bumps). All dimensions in metres.
 import { MeshBuilder } from "./mesh.js";
 import { roadPoint, roadFrame, lanes, trafficLanes, stationRange, approachSide, footprint } from "./query.js";
-import { mat4, madd, mul, add, sub, norm, rightXZ, makeRng, lerp, clamp, rotXZ } from "./math.js";
+import { mat4, madd, mul, add, sub, norm, cross, rightXZ, makeRng, lerp, clamp, rotXZ } from "./math.js";
 import { VEHICLE_KINDS, VEHICLE_LENGTH } from "./props.js";
 import { DECALS } from "./textures.js";
 
@@ -22,6 +22,16 @@ export function basis(p, forward, scale = 1) {
 }
 /** Prop that runs along +X local (rails, barriers): forward = rightXZ(along). */
 export function basisAlong(p, along, scale = 1) { return basis(p, rightXZ(along), scale); }
+/** Like basis() but keeps the pitch of `forward`, so run-length props (barriers) follow the road gradient without steps. */
+export function basisSloped(p, forward, scale = 1) {
+  const f = norm(forward), left = mul(norm(rightXZ(f)), -1), up = cross(f, left); // left is horizontal, up tilts with the pitch
+  return mat4.fromBasis(mul(left, scale), mul(up, scale), mul(f, scale), p);
+}
+/** Like basisAlong() but with the local +X following the 3D `along` direction (sloped guardrails / W-beams). */
+export function basisAlongSloped(p, along, scale = 1) {
+  const X = norm(along), Z = norm(rightXZ(X)), Y = cross(Z, X);
+  return mat4.fromBasis(mul(X, scale), mul(Y, scale), mul(Z, scale), p);
+}
 /** Decal box: unit cube → oriented box of size [w, h, l] centred at p with forward direction. */
 export function decalBox(p, forward, w, l, h = 0.6) {
   const f = norm([forward[0], 0, forward[2]]); const r = rightXZ(f);
@@ -77,14 +87,14 @@ export function furnish(plan, S = defaultFurnishSettings()) {
           for (let s = s0 + 2; s + 4 <= s1 - 2; s += 4) {
             const a = roadPoint(R, s, x), b = roadPoint(R, s + 4, x);
             const along = side > 0 ? sub(b, a) : sub(a, b);
-            if (kind === "wbeam") out.add("wbeamSection", "", basisAlong(side > 0 ? a : b, along));
-            else out.add("jerseyBarrier", "", basis(a, sub(b, a)));
+            if (kind === "wbeam") out.add("wbeamSection", "", basisAlongSloped(side > 0 ? a : b, along));
+            else out.add("jerseyBarrier", "", basisSloped(a, sub(b, a)));
           }
         }
       }
       if (prof.medianType === "barrier" && sec.halfMedian > 0) {
         const xs = prof.median > 2.4 ? [-sec.halfMedian + 0.45, sec.halfMedian - 0.45] : [0];
-        for (const x of xs) for (let s = s0 + 1; s + 4 <= s1 - 1; s += 4) { const a = roadPoint(R, s, x), b = roadPoint(R, s + 4, x); out.add("jerseyBarrier", "", basis(a, sub(b, a))); }
+        for (const x of xs) for (let s = s0 + 1; s + 4 <= s1 - 1; s += 4) { const a = roadPoint(R, s, x), b = roadPoint(R, s + 4, x); out.add("jerseyBarrier", "", basisSloped(a, sub(b, a))); }
       }
     }
     // ---- raised medians (kerb + top surface + rounded noses) ---------------------------------
@@ -100,7 +110,7 @@ export function furnish(plan, S = defaultFurnishSettings()) {
             const sA = from + dir * k * 2, sB = sA + dir * 2;
             if (sB < s0 + 1 || sB > s1 - 1) break;
             const a = roadPoint(R, sA, x), b = roadPoint(R, sB, x);
-            out.add("guardrailPanel", "", basisAlong(a, sub(b, a)));
+            out.add("guardrailPanel", "", basisAlongSloped(a, sub(b, a)));
           }
         }
       }

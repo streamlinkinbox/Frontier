@@ -202,14 +202,33 @@ export function buildMarkings(plan, settings = defaultMarkingSettings()) {
       const rows = [];
       for (let k = 0; k < m; k++) { const inw = mul(Nn[k], -1); rows.push([vtx(madd(Q[k], inw, inset)), vtx(madd(Q[k], inw, inset + lineW))]); }
       mb.gridAuto(P.white, rows, J.node.id);
-      // chevron bars linking the two sides (pointing at the nose); skip the first pair so the nose stays open
-      for (let k = 2; k <= K; k += 2) {
-        const a = madd(Q[K - k], mul(Nn[K - k], -1), inset + lineW), b = madd(Q[K + k], mul(Nn[K + k], -1), inset + lineW);
-        const a1 = madd(Q[K - k + 1], mul(Nn[K - k + 1], -1), inset + lineW), b1 = madd(Q[K + k - 1], mul(Nn[K + k - 1], -1), inset + lineW);
-        if (distXZ(a, b) < lineW * 2) continue;
-        const mid = mix(a, b, 0.5), mid1 = mix(a1, b1, 0.5);
-        const apex = madd(mid, normXZ(sub(Q[K], mid)), lineW * 1.2), apex1 = madd(mid1, normXZ(sub(Q[K], mid1)), lineW * 1.2);
-        mb.gridAuto(P.white, [[vtx(a1), vtx(apex1), vtx(b1)], [vtx(a), vtx(apex), vtx(b)]], J.node.id);
+      // painted gore: a hatched triangle on the carriageway in front of the physical nose (never on the island)
+      // base = the two edge lines just past the fillet arc, apex = where the two edges would meet towards the node
+      let j = 1; while (j < K - 1 && distXZ(Q[K - j], Q[K + j]) < 3.0) j++; // where the island is ~3 m wide the paint stops
+      const TA = madd(Q[K - j], mul(Nn[K - j], -1), inset + lineW), TB = madd(Q[K + j], mul(Nn[K + j], -1), inset + lineW);
+      // the through-lane edge continues straight back from the nose; the ramp-side edge tapers in to meet it at the
+      // apex (a 1:8…1:15 taper), so the hatched triangle lies on the carriageway between the two departing lanes
+      // direction of an arm's carriageway pointing into the junction (towards the node)
+      const intoNode = (arm) => { const R = arm.R, F = R.frameAt(arm.isStart ? R.cutA : R.length - R.cutB); const d = normXZ(F.dxz); return arm.isStart ? mul(d, -1) : d; };
+      const base = distXZ(TA, TB);
+      if (base < lineW * 2) continue;
+      const widthOf = (arm) => arm.R.section.widthL + arm.R.section.widthR;
+      const straightB = widthOf(c.B) > widthOf(c.A) + 0.01; // the wider carriageway is the through road
+      const T0 = straightB ? TB : TA, d0 = intoNode(straightB ? c.B : c.A);
+      if (!isFinite(d0[0])) continue;
+      const g = clamp(base * 10, 12, 36);
+      const apex = madd(T0, d0, g); apex[1] = T0[1];
+      // boundary lines base-corner -> apex
+      for (const T of [TA, TB]) {
+        const dir = normXZ(sub(apex, T)), side = rightXZ(dir), flip = T === TA ? -1 : 1;
+        mb.gridAuto(P.white, [[vtx(T), vtx(madd(T, side, flip * lineW))], [vtx(apex), vtx(madd(apex, side, flip * lineW))]], J.node.id);
+      }
+      // hatch bars every 2.4 m, spanning the triangle width at that station, stopping 1.5 m short of the apex
+      for (let t = 1.2; t < g - 1.5; t += 2.4) {
+        const f0 = t / g, f1 = Math.min((t + 0.3) / g, 1);
+        const a0 = mix(TA, apex, f0), b0 = mix(TB, apex, f0), a1 = mix(TA, apex, f1), b1 = mix(TB, apex, f1);
+        if (distXZ(a0, b0) < lineW * 2.5) break;
+        mb.gridAuto(P.white, [[vtx(a0), vtx(b0)], [vtx(a1), vtx(b1)]], J.node.id);
       }
     }
   }

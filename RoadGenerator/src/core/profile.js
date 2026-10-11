@@ -137,7 +137,7 @@ export function refineSection(section, count) {
 
 /**
  * Edge kit: strips outside the kerb line, each defined by vertices { d: distance from kerb line, h: height rel. gutter }.
- * Always three strips [kerb, walk, back] so corner sweeps can blend any two kits column-for-column.
+ * Always four strips [kerb, walk, back, skirt] so corner sweeps can blend any two kits column-for-column.
  */
 export function edgeKit(profile) {
   const P = profile;
@@ -159,7 +159,10 @@ export function edgeKit(profile) {
   if (P.backType === "planting") back.verts = [{ d: kerbW + walkW, h: backTop }, { d: kerbW + walkW + 0.08, h: backTop - 0.08 }, { d: kerbW + walkW + backW, h: backTop - 0.08 }];
   else if (P.backType === "slope") back.verts = [{ d: kerbW + walkW, h: backTop }, { d: kerbW + walkW + backW * 0.5, h: backTop - backW * 0.2 }, { d: kerbW + walkW + backW, h: backTop - backW * 0.4 }];
   else back.verts = [{ d: kerbW + walkW, h: backTop }, { d: kerbW + walkW + backW * 0.5, h: backTop }, { d: kerbW + walkW + backW, h: backTop }];
-  return { strips: [kerb, walk, back], width: kerbW + walkW + backW, curbHeight: h, kerbTop };
+  // skirt: a battered earth face dropping from the back edge into the terrain so no gap can open between kit and ground
+  const bEnd = back.verts[back.verts.length - 1];
+  const skirt = { kind: "skirt", material: backMat === "grass" ? "grass" : "soil", verts: [{ d: bEnd.d, h: bEnd.h }, { d: bEnd.d + 0.06, h: bEnd.h - 0.6 }] };
+  return { strips: [kerb, walk, back, skirt], width: kerbW + walkW + backW, curbHeight: h, kerbTop };
 }
 
 /** Blend two kits column-for-column (kits always have the same strip/vertex structure). */

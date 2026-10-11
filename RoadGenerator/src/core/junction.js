@@ -509,7 +509,15 @@ function buildCornerKit(mb, c, owner, startRows, endRows) {
       stripsIds[si].push(r);
     });
   }
-  kitA.strips.forEach((strip, si) => mb.gridAuto(mb.material(strip.material), stripsIds[si], owner));
+  // material switches from kit A's to kit B's at the middle of the corner (planting strip → concrete etc.)
+  kitA.strips.forEach((strip, si) => {
+    const matA = strip.material, matB = kitB.strips[si] ? kitB.strips[si].material : matA;
+    const rows = stripsIds[si];
+    if (matA === matB || rows.length < 3) { mb.gridAuto(mb.material(matA), rows, owner); return; }
+    const mid = Math.floor(rows.length / 2);
+    mb.gridAuto(mb.material(matA), rows.slice(0, mid + 1), owner);
+    mb.gridAuto(mb.material(matB), rows.slice(mid), owner);
+  });
   c.kitRows = stripsIds;
 }
 
