@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Frontier Road Generator · WebGPU</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <div><strong>Frontier Road Generator</strong><small>WebGPU · standalone</small></div>
+    </div>
+    <input id="proj-name" class="proj-name" type="text" value="Untitled city" aria-label="Project name">
+    <nav class="toolgroup" aria-label="Tools">
+      <button data-tool="select" title="Select (V)">Select<kbd>V</kbd></button>
+      <button data-tool="road" title="Draw road (R)">Road<kbd>R</kbd></button>
+      <button data-tool="node" title="Intersection (N)">Intersection<kbd>N</kbd></button>
+      <button data-tool="prop" title="Place prop (P)">Prop<kbd>P</kbd></button>
+    </nav>
+    <div class="pick-row">
+      <select id="new-road-class" title="Class for new roads" aria-label="New road class"></select>
+      <select id="new-prop-kind" title="Prop kind" aria-label="Prop kind"></select>
+    </div>
+    <nav class="toggles" aria-label="Scene toggles">
+      <button data-toggle="snap" class="toggle" aria-pressed="false">Snap</button>
+      <button data-toggle="markingsOn" class="toggle" aria-pressed="true">Markings</button>
+      <button data-toggle="trafficOn" class="toggle" aria-pressed="true">Traffic</button>
+    </nav>
+    <div class="file-row">
+      <button id="btn-frame" title="Frame all (F)">Frame</button>
+      <button id="btn-delete" title="Delete selection (Del)">Delete</button>
+      <button id="btn-new">New</button>
+      <button id="btn-sample">Sample</button>
+      <button id="btn-load">Open</button>
+      <button id="btn-save">Save</button>
+      <input id="file-load" type="file" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <div class="shell">
+    <aside class="outliner" aria-label="Outliner">
+      <div class="panel-title">Outliner</div>
+      <div id="outliner" class="outliner-body"></div>
+    </aside>
+
+    <main class="viewport">
+      <canvas id="view" aria-label="3D road network"></canvas>
+      <div id="hud-hint" class="hud-hint"></div>
+      <div id="hud-stats" class="hud-stats"></div>
+      <div id="fatal" class="fatal" hidden>
+        <h2>WebGPU is required</h2>
+        <p></p>
+        <small>Open this page in a current Chrome, Edge or Safari Technology Preview on a machine with GPU acceleration.</small>
+      </div>
+    </main>
+
+    <aside class="right" aria-label="Inspector and texture layers">
+      <div class="tabs" role="tablist">
+        <button data-tab="inspector" class="active" role="tab">Inspector</button>
+        <button data-tab="materials" role="tab">Texture layers</button>
+      </div>
+      <div id="panel-inspector" class="panel"></div>
+      <div id="panel-materials" class="panel" hidden></div>
+    </aside>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
