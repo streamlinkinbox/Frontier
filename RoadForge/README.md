@@ -53,7 +53,7 @@ drawn through another road.
 * Viewport: left-drag gizmo / handles, right-drag orbit, shift/middle-drag pan, wheel zoom, double-click a
   road to insert a control point, `F` frame, `Del` delete, `P` plan, `W` topology, `X` x-ray.
 
-Templates: *Downtown crossroads*, *Downtown grid* (roundabout + city blocks), *Diamond interchange*,
+Templates: *Downtown crossroads*, *Downtown grid* (boulevard, one-way pair, city blocks), *Diamond interchange*,
 *Cloverleaf* (parametric, R 62 m loops / R 400 m connectors), *Rail district* (level crossing, underpass,
 overbridge, subway), *Rural motorway* (embankment, overbridge, works zone, billboards), *Street works*.
 
