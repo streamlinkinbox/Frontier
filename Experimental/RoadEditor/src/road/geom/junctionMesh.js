@@ -59,6 +59,28 @@ export function buildJunction(net, J, ctx) {
     polyWall(out, 'curb', g.outer, GROUND, H, -1);
   }
 
+  // --- gore hatching: an acute merge gets chevron-style white stripes filling the gore between the
+  // two curb lines, so the traffic-separating area reads as a no-go zone rather than plain asphalt.
+  if (J.node) {
+    const N = J.node;
+    for (const g of J.gaps) {
+      if (!g.acute || g.curb.length < 3) continue;
+      const y = N.y + 0.02;
+      const n = g.curb.length;
+      for (let k = 1; k < n - 1; k += 2) {
+        const C = g.curb[k];
+        const dx = C[0] - N.x, dz = C[2] - N.z, L = Math.hypot(dx, dz);
+        if (L < 4) continue;
+        const px = -dz / L * 0.18, pz = dx / L * 0.18;
+        const P0 = [N.x + dx * 0.55, N.z + dz * 0.55], P1 = [N.x + dx * 0.9, N.z + dz * 0.9];
+        const q = [[P0[0] - px, y, P0[1] - pz], [P0[0] + px, y, P0[1] + pz], [P1[0] + px, y, P1[1] + pz], [P1[0] - px, y, P1[1] - pz]];
+        // ensure upward facing winding
+        const cr = (q[1][0] - q[0][0]) * (q[2][2] - q[0][2]) - (q[1][2] - q[0][2]) * (q[2][0] - q[0][0]);
+        polygon(out, 'markWhite', q, cr < 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2]);
+      }
+    }
+  }
+
   // --- roundabout island
   if (J.kind === 'roundabout' && J.hole) {
     const N = J.node, ring = J.hole.slice().reverse(); // CCW

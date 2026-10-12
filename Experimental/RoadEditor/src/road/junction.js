@@ -34,6 +34,11 @@ function endInfo(net, edge, nodeId) {
     curbRight: atA ? lay.hasCurbR : lay.hasCurbL,
     rank: RANK[edge.profile] ?? 3,
     setback: 0,
+    // Setbacks are per side: the right of d (sbR) and the left of d (sbL) each have to clear the
+    // corner that lies on that side. A road that meets another at a sharp angle is only consumed on
+    // the acute side; its far side keeps its own short setback instead of being cut back with it.
+    sbR: 0, sbL: 0,
+    acute: false,
     len: c.length,
   };
 }
@@ -78,6 +83,9 @@ export function computeJunction(net, nodeId) {
   }
   J.kind = 'junction';
   const R = N.radius || autoRadius(ends);
+  // Sharp corners (under ~50°) are fillets of a much smaller radius: a 6–12 m fillet at a 12° corner
+  // would need a 60–90 m tangent run, which cuts the through road to a sliver.
+  const RACUTE = 2.5, ACUTE = 0.87;
   J.radius = R;
   const n = ends.length;
   const gaps = [];
@@ -87,8 +95,10 @@ export function computeJunction(net, nodeId) {
     if (n === 1) phi = TAU;
     const swA = A.sr, swB = B.sl;
     const hasCurb = A.curbRight || B.curbLeft;
+    const acute = n > 2 && phi < ACUTE;
+    if (acute) { if (A.rank < B.rank) A.acute = true; else if (B.rank < A.rank) B.acute = true; }
     if (phi < Math.PI * 0.94) {
-      const Reff = Math.max(R, (hasCurb ? Math.max(swA, swB) : 0) + 0.6);
+      const Reff = acute ? Math.max(RACUTE, swA + 0.6, swB + 0.6) : Math.max(R, (hasCurb ? Math.max(swA, swB) : 0) + 0.6);
       const sol = lineIntersect(N.x + A.rx * (A.wr + Reff), N.z + A.rz * (A.wr + Reff), A.dx, A.dz,
         N.x - B.rx * (B.wl + Reff), N.z - B.rz * (B.wl + Reff), B.dx, B.dz);
       if (sol) {
@@ -98,19 +108,23 @@ export function computeJunction(net, nodeId) {
         const TA = P(N, A, tA, A.wr), TB = P(N, B, sB, -B.wl);
         const a0 = Math.atan2(TA[1] - O[1], TA[0] - O[0]);
         const a1 = Math.atan2(TB[1] - O[1], TB[0] - O[0]);
-        gaps.push({ type: 'arc', A, B, O, R: Reff, tA, sB, a0, sweep: wrapPi(a1 - a0), swA, swB, hasCurb });
-        A.setback = Math.max(A.setback, tA); B.setback = Math.max(B.setback, sB);
+        gaps.push({ type: 'arc', A, B, O, R: Reff, tA, sB, a0, sweep: wrapPi(a1 - a0), swA, swB, hasCurb, phi, acute });
+        A.sbR = Math.max(A.sbR, tA); B.sbL = Math.max(B.sbL, sB);
         continue;
       }
     }
-    gaps.push({ type: 'straight', A, B, swA, swB, hasCurb, phi });
+    gaps.push({ type: 'straight', A, B, swA, swB, hasCurb, phi, acute });
   }
   // Straight / reflex gaps between near-opposite roads: keep a small transition so the two
   // end cross-sections never overlap.
   for (const g of gaps) if (g.type === 'straight') {
-    g.A.setback = Math.max(g.A.setback, 1.0); g.B.setback = Math.max(g.B.setback, 1.0);
+    g.A.sbR = Math.max(g.A.sbR, 1.0); g.B.sbL = Math.max(g.B.sbL, 1.0);
   }
-  for (const e of ends) e.setback = Math.min(e.setback, Math.max(0, e.len * 0.48));
+  for (const e of ends) {
+    const lim = Math.max(0, e.len * 0.48);
+    e.sbR = Math.min(Math.max(e.sbR, 0), lim); e.sbL = Math.min(Math.max(e.sbL, 0), lim);
+    e.setback = Math.max(e.sbR, e.sbL);
+  }
   J.gaps = gaps.map(g => buildGap(N, g));
   J.polygon = J.gaps.flatMap(g => g.curb);
   return J;
@@ -125,12 +139,12 @@ function yAt(N, e, t) {
 function buildGap(N, g) {
   const { A, B } = g;
   const curb = [], outer = [];
-  const yA = yAt(N, A, A.setback), yB = yAt(N, B, B.setback);
   const push = (pc, po, y) => { curb.push([pc[0], y, pc[1]]); outer.push([po[0], y, po[1]]); };
-  // A right side from its end inward
-  push(P(N, A, A.setback, A.wr), P(N, A, A.setback, A.wr + g.swA), yA);
+  const yA = yAt(N, A, A.sbR), yB = yAt(N, B, B.sbL);
+  // A right side from its end inward (A's right-side setback, B's left-side setback)
+  push(P(N, A, A.sbR, A.wr), P(N, A, A.sbR, A.wr + g.swA), yA);
   if (g.type === 'arc') {
-    if (A.setback - g.tA > 0.02) push(P(N, A, g.tA, A.wr), P(N, A, g.tA, A.wr + g.swA), yAt(N, A, g.tA));
+    if (A.sbR - g.tA > 0.02) push(P(N, A, g.tA, A.wr), P(N, A, g.tA, A.wr + g.swA), yAt(N, A, g.tA));
     const pts = arcPts(g.O[0], g.O[1], g.R, g.a0, g.sweep);
     const n = pts.length - 1;
     for (let k = 1; k < n; k++) {
@@ -138,10 +152,10 @@ function buildGap(N, g) {
       const a = g.a0 + g.sweep * t, r = Math.max(0.05, g.R - sw);
       push(pts[k], [g.O[0] + Math.cos(a) * r, g.O[1] + Math.sin(a) * r], N.y);
     }
-    if (B.setback - g.sB > 0.02) push(P(N, B, g.sB, -B.wl), P(N, B, g.sB, -B.wl - g.swB), yAt(N, B, g.sB));
+    if (B.sbL - g.sB > 0.02) push(P(N, B, g.sB, -B.wl), P(N, B, g.sB, -B.wl - g.swB), yAt(N, B, g.sB));
   }
-  push(P(N, B, B.setback, -B.wl), P(N, B, B.setback, -B.wl - g.swB), yB);
-  return { curb, outer, swA: g.swA, swB: g.swB, hasCurb: g.hasCurb, type: g.type, A: A.id, B: B.id };
+  push(P(N, B, B.sbL, -B.wl), P(N, B, B.sbL, -B.wl - g.swB), yB);
+  return { curb, outer, swA: g.swA, swB: g.swB, hasCurb: g.hasCurb, type: g.type, A: A.id, B: B.id, acute: !!g.acute };
 }
 
 // Roundabout / cul-de-sac: roads join an outer circle of radius Rc through fillets.
@@ -157,6 +171,7 @@ function circular(J, N, ends, Rc, Ri) {
     e._rfR = rfR; e._rfL = rfL;
     e._tR = tan(e, e.wr, rfR); e._tL = tan(e, e.wl, rfL);
     e.setback = Math.max(e._tR, e._tL) + 0.5;
+    e.sbR = e.sbL = e.setback;
   }
   const gaps = [];
   for (let i = 0; i < n; i++) {
@@ -164,8 +179,8 @@ function circular(J, N, ends, Rc, Ri) {
     const swA = A.sr, swB = B.sl, hasCurb = A.curbRight || B.curbLeft;
     const curb = [], outer = [];
     const push = (pc, po, y) => { curb.push([pc[0], y, pc[1]]); outer.push([po[0], y, po[1]]); };
-    const yA = yAt(N, A, A.setback), yB = yAt(N, B, B.setback);
-    push(P(N, A, A.setback, A.wr), P(N, A, A.setback, A.wr + swA), yA);
+    const yA = yAt(N, A, A.sbR), yB = yAt(N, B, B.sbL);
+    push(P(N, A, A.sbR, A.wr), P(N, A, A.sbR, A.wr + swA), yA);
     // fillet A (right side of A)
     const CA = P(N, A, A._tR, A.wr + A._rfR);
     const TA = P(N, A, A._tR, A.wr);
@@ -196,7 +211,7 @@ function circular(J, N, ends, Rc, Ri) {
       }
     }
     fillet(CB, B._rfL, QB, TB, swB, swB);
-    push(P(N, B, B.setback, -B.wl), P(N, B, B.setback, -B.wl - swB), yB);
+    push(P(N, B, B.sbL, -B.wl), P(N, B, B.sbL, -B.wl - swB), yB);
     gaps.push({ curb, outer, swA, swB, hasCurb, type: 'circle', A: A.id, B: B.id });
   }
   J.gaps = gaps;

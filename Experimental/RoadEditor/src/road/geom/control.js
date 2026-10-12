@@ -29,5 +29,7 @@ export function endControl(J, end, net) {
   } else if (kind === 'yield') { res.yield = true; res.crosswalk = false; }
   else if (kind === 'stop') { res.stop = true; res.crosswalk = sidewalks; }
   else if (kind === 'none' && J.kind === 'junction' && J.ends.length >= 3) { res.crosswalk = false; }
+  // The minor road at an acute merge yields to the through flow, whatever the node's signing.
+  if (end.acute && kind !== 'continuation') { res.yield = true; res.signal = false; res.stop = false; res.crosswalk = false; }
   return res;
 }

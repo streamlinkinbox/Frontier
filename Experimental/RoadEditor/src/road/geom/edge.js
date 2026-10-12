@@ -31,6 +31,22 @@ export function buildEdge(net, edge, JA, JB, ctx) {
   const s0 = eA ? eA.setback : 0, s1 = L - (eB ? eB.setback : 0);
   out.range = [s0, s1];
   if (s1 - s0 < 0.4) { out.warning = 'Segment too short for its junctions'; return out; }
+  // Setbacks are per side (see junction.js). A lane centred at offset oc is cut back by the setback
+  // of the corner on its own side: at an acute merge only the acute side gives up its length.
+  const sideRange = oc => {
+    if (Math.abs(oc) < 0.02) return [s0, s1];
+    const pos = oc > 0;
+    const a = eA ? (pos ? eA.sbR : eA.sbL) : 0;
+    const b = eB ? (pos ? eB.sbL : eB.sbR) : 0;
+    return [eA ? Math.max(a, 0) : 0, L - (eB ? Math.max(b, 0) : 0)];
+  };
+  const frameCache = new Map();
+  const framesFor = (a, b) => {
+    if (Math.abs(a - s0) < 1e-6 && Math.abs(b - s1) < 1e-6) return frames;
+    const key = a.toFixed(2) + ':' + b.toFixed(2);
+    if (!frameCache.has(key)) frameCache.set(key, b - a < 0.3 ? [] : c.stations(a, b, extra).map(s => c.frameAt(s)));
+    return frameCache.get(key);
+  };
   const lanes = lay.lanes;
   const isPathProfile = prof.category === 'active';
 
@@ -102,11 +118,14 @@ export function buildEdge(net, edge, JA, JB, ctx) {
   lanes.forEach((ln, i) => {
     const left = lanes[i - 1], right = lanes[i + 1];
     const isMedian = ln.level === 'raised' && i > lay.roadFrom && i < lay.roadTo;
+    const [la, lb] = sideRange((ln.o0 + ln.o1) / 2);
+    const lframes = isMedian ? frames : framesFor(la, lb);
+    if (!lframes.length) return;
     if (ln.level === 'raised') {
       const nbL = left ? left.h : GROUND, nbR = right ? right.h : GROUND;
       const curbL = left && left.level !== 'raised', curbR = right && right.level !== 'raised';
       const a = ln.o0 + (curbL ? CURB_W : 0), b = ln.o1 - (curbR ? CURB_W : 0);
-      let fr = frames;
+      let fr = lframes;
       if (isMedian && (pullA > 0 || pullB > 0)) {
         const r = ln.width / 2;
         const m0 = s0 + pullA + (pullA > 0 ? r : 0), m1 = s1 - pullB - (pullB > 0 ? r : 0);
@@ -128,14 +147,14 @@ export function buildEdge(net, edge, JA, JB, ctx) {
       if (!left && !anyElevated) wl(out, 'curb', fr, ln.o0, GROUND, ln.h, -1);
       if (!right && !anyElevated) wl(out, 'curb', fr, ln.o1, GROUND, ln.h, +1);
     } else {
-      rib(out, ln.mat === 'surface' ? surfaceMat : ln.mat, frames, ln.o0, ln.o1, ln.h);
+      rib(out, ln.mat === 'surface' ? surfaceMat : ln.mat, lframes, ln.o0, ln.o1, ln.h);
       // tiny step between ground-level verges and the paved surface
-      if (left && left.level === 'ground' && ln.level === 'road') wl(out, surfaceMat, frames, ln.o0, left.h, ln.h, -1);
-      if (right && right.level === 'ground' && ln.level === 'road') wl(out, surfaceMat, frames, ln.o1, right.h, ln.h, +1);
-      if (!left && !anyElevated) wl(out, 'curb', frames, ln.o0, GROUND, ln.h, -1);
-      if (!right && !anyElevated) wl(out, 'curb', frames, ln.o1, GROUND, ln.h, +1);
-      if (ln.type === 'barrier') barrierRuns(out, frames, ln, edge, i);
-      if (ln.type === 'tram') tramRails(out, frames, (ln.o0 + ln.o1) / 2, ln.h);
+      if (left && left.level === 'ground' && ln.level === 'road') wl(out, surfaceMat, lframes, ln.o0, left.h, ln.h, -1);
+      if (right && right.level === 'ground' && ln.level === 'road') wl(out, surfaceMat, lframes, ln.o1, right.h, ln.h, +1);
+      if (!left && !anyElevated) wl(out, 'curb', lframes, ln.o0, GROUND, ln.h, -1);
+      if (!right && !anyElevated) wl(out, 'curb', lframes, ln.o1, GROUND, ln.h, +1);
+      if (ln.type === 'barrier') barrierRuns(out, lframes, ln, edge, i);
+      if (ln.type === 'tram') tramRails(out, lframes, (ln.o0 + ln.o1) / 2, ln.h);
     }
   });
 
@@ -149,7 +168,7 @@ export function buildEdge(net, edge, JA, JB, ctx) {
   // --- paint
   if (ctx.markings !== false && !isPathProfile) {
     const pa = clip ? Math.max(s0, clip[1]) : s0, pb = clip ? Math.min(s1, clip[0]) : s1;
-    if (pb - pa > 4) paint(out, net, edge, c, lay, prof, pa, pb, ctlA, ctlB, JA, JB, ctx);
+    if (pb - pa > 4) paint(out, net, edge, c, lay, prof, pa, pb, ctlA, ctlB, JA, JB, ctx, sideRange);
   }
   if (isPathProfile && prof.lanes.length > 1 && ctx.markings !== false) {
     for (let i = 0; i < lanes.length - 1; i++) if (lanes[i].type === 'bike' && lanes[i + 1].type === 'bike') dashed(out, 'markWhite', c, s0, s1, lanes[i].o1, 0.1, 1.5, 2.5, 0);
@@ -356,7 +375,7 @@ function incomingLanes(lay, atA) {
   return lay.lanes.filter(l => l.meta.traffic && (atA ? (l.dir === -1) : (l.dir === 1)) || (l.meta.traffic && (l.dir || 0) === 0));
 }
 
-function paint(out, net, edge, c, lay, prof, s0, s1, ctlA, ctlB, JA, JB, ctx) {
+function paint(out, net, edge, c, lay, prof, s0, s1, ctlA, ctlB, JA, JB, ctx, sideRange = null) {
   const lanes = lay.lanes, style = net.meta.markingStyle || 'us';
   const CW = 3.2;
   const endInfo = (ctl, J, atA) => {
@@ -369,11 +388,20 @@ function paint(out, net, edge, c, lay, prof, s0, s1, ctlA, ctlB, JA, JB, ctx) {
   const lineStart = s0 + (A.cont ? 0 : Math.max(0.4, A.stopOff));
   const lineEnd = s1 - (B.cont ? 0 : Math.max(0.4, B.stopOff));
   const yh = l => l.h;
+  // each divider is painted over its own side's extent (an acute merge trims only its acute side)
+  const rangeAt = o => {
+    const r = sideRange ? sideRange(o) : [s0, s1];
+    return [Math.max(r[0], s0), Math.min(r[1], s1)];
+  };
   for (let i = 0; i < lanes.length - 1; i++) {
     const a = lanes[i], b = lanes[i + 1];
     const r = laneLineRule(a, b, prof, style);
     if (!r) continue;
     const o = a.o1, h = Math.max(yh(a), yh(b));
+    const [ra, rb] = rangeAt(o);
+    const lineStart = ra + (A.cont ? 0 : Math.max(0.4, A.stopOff));
+    const lineEnd = rb - (B.cont ? 0 : Math.max(0.4, B.stopOff));
+    if (lineEnd - lineStart < 0.05) continue;
     if (r.kind === 'solid') line(out, r.mat, c, lineStart, lineEnd, o, r.w, h);
     else if (r.kind === 'double') { line(out, r.mat, c, lineStart, lineEnd, o - 0.11, r.w, h); line(out, r.mat, c, lineStart, lineEnd, o + 0.11, r.w, h); }
     else if (r.kind === 'dashed') {
@@ -386,13 +414,15 @@ function paint(out, net, edge, c, lay, prof, s0, s1, ctlA, ctlB, JA, JB, ctx) {
       } else dashed(out, r.mat, c, lineStart, lineEnd, o, r.w, r.dash, r.gap, h);
     }
   }
+  const lineStartAll = s0 + (A.cont ? 0 : Math.max(0.4, A.stopOff));
+  const lineEndAll = s1 - (B.cont ? 0 : Math.max(0.4, B.stopOff));
   // median-adjacent yellow edge lines on divided roads
   lanes.forEach((ln, i) => {
     if (!(ln.level === 'raised' && i > lay.roadFrom && i < lay.roadTo)) return;
     const l = lanes[i - 1], r = lanes[i + 1];
     const Y = style === 'eu' ? 'markWhite' : 'markYellow';
-    if (l && l.meta.traffic) line(out, Y, c, lineStart, lineEnd, ln.o0 - 0.25, 0.12, 0);
-    if (r && r.meta.traffic) line(out, Y, c, lineStart, lineEnd, ln.o1 + 0.25, 0.12, 0);
+    if (l && l.meta.traffic) line(out, Y, c, lineStartAll, lineEndAll, ln.o0 - 0.25, 0.12, 0);
+    if (r && r.meta.traffic) line(out, Y, c, lineStartAll, lineEndAll, ln.o1 + 0.25, 0.12, 0);
   });
 
   // parking bays and hatched no-parking zones near ends
@@ -457,7 +487,12 @@ function paint(out, net, edge, c, lay, prof, s0, s1, ctlA, ctlB, JA, JB, ctx) {
     if (!inc.length) return;
     const oMin = Math.min(...inc.map(l => l.o0)), oMax = Math.max(...inc.map(l => l.o1));
     if (E.ctl.yield) {
-      for (const l of inc) for (let o = l.o0 + 0.4; o < l.o1 - 0.3; o += 0.9) tooth(out, 'markWhite', c, at(0.9), o + 0.3, -dirIn, 0.55, 0.85, 0);
+      for (const l of inc) {
+        // each lane's teeth sit at its own side's setback (acute merges cut back one side only)
+        const [ra, rb] = sideRange((l.o0 + l.o1) / 2);
+        const ty = atA ? ra + 0.9 : rb - 0.9;
+        for (let o = l.o0 + 0.4; o < l.o1 - 0.3; o += 0.9) tooth(out, 'markWhite', c, ty, o + 0.3, -dirIn, 0.55, 0.85, 0);
+      }
       return;
     }
     if (E.ctl.stop || E.ctl.signal) {
