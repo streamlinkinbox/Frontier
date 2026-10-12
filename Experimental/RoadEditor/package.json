@@ -7,7 +7,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test:gen": "node scripts/smoke-generate.mjs"
+    "test:gen": "node scripts/smoke-generate.mjs",
+    "test:topology": "node scripts/topology-test.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

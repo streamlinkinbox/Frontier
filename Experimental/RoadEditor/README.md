@@ -22,21 +22,21 @@ npm run test:gen       # headless generator smoke test (node only, no browser)
 | **Cross-sections** | 26 road profiles in 6 categories (highway · arterial · urban · residential · rural · active), assembled from 15 composable lane types: `drive, bus, bike, cycletrack, parking, shoulder, sidewalk, planter, median, buffer, tram, barrier, verge, gravel, path` |
 | **Road edge** | raised curb built as granite top + face strips, sidewalk and frontage ribbon, speed humps and raised crossing tables (a real elevation profile, not paint), bus stops with shelter + yellow curbside box, painted parking bays and hatched no-parking zones near junctions, storm-drain inlets and manhole covers |
 | **Markings** | dashed/solid lane rules per adjacent lane pair (US yellow centre / EU white), edge lines, stop bars, continental (zebra) crosswalks with tactile paving at the curb ramps, give-way teeth, hatched channelisation, turn arrows (`arrowS/L/R/SL/SR`), word decals (`BUS`, `ONLY`, `STOP`, `SLOW`, `KEEP CLEAR`, `BUS STOP`, `RXR`, tram and bike glyphs), zebra- and chevron-painted crossing tables |
-| **Junctions** | auto-classified as `junction · roundabout · flush T · cul-de-sac · continuation`; corner fillets and radii fitted from each approach's width and rank; paved apron with a triangulated surface that absorbs all approaches; roundabouts get a central island with curb ring, truck-mountable cobble apron, grass centre and trees, plus the circulating edge line; tram rails run straight through opposing approaches; per-approach traffic control (signals, stop or yield) with mast arms, three-lamp signal heads and pedestrian signals |
-| **Bridges & water** | elevated decks with concrete side walls down to the ground, parapets/railings, pier columns and caps placed clear of the carriageway below (piers are refused where they would land in a live lane); river with stone quay walls, coping and railing (skipped where roads and rail cross), riverbed, and an animated water-normal surface, with the terrain hole cut along the channel |
-| **Railway** | ballast section, concrete sleepers, twin rails, overhead-line masts and cantilever arms, lineside fencing, paved crossing panels, crossbucks, gate posts and striped gate arms, advance `RXR` warnings, and through-tram rails embedded in the carriageway |
+| **Junctions** | auto-classified as `junction · roundabout · flush T · cul-de-sac · continuation`; corner fillets and radii fitted from each approach's width and rank; paved apron with a triangulated surface that absorbs all approaches; the **Repair intersections** pass splits and welds every at-grade crossing into a shared graph node while keeping crossings separated by more than 2.5 m as bridges/underpasses; roundabouts get a central island with curb ring, truck-mountable cobble apron, grass centre and trees, plus the circulating edge line; tram rails run straight through opposing approaches; per-approach traffic control (signals, stop or yield) with mast arms, three-lamp signal heads and pedestrian signals |
+| **Bridges & water** | extra mid-block river corridors produce multiple named road bridges; elevated decks have concrete side walls down to the ground, parapets/railings, pier columns and caps placed clear of the carriageway below (piers are refused where they would land in a live lane); river with stone quay walls, coping and railing (skipped where roads and rail cross), riverbed, and an animated water-normal surface, with the terrain hole cut along the channel |
+| **Railway** | a two-track freight/commuter line plus a single-track regional branch, both with ballast, concrete sleepers, rails, overhead-line masts and cantilever arms, lineside fencing, paved crossing panels, crossbucks, gate posts and striped gate arms, advance `RXR` warnings, water bridges, and through-tram rails embedded in the carriageway |
 | **Subway** | cut-and-cover box tunnel with twin tracks, station boxes with side platforms, platform-edge walls and yellow caution strips, station columns, and up to 4 street entrances per station snapped onto nearby sidewalks |
 | **Props** | 56 039 instanced placements: `lamp, lampPost, lampDouble, lampHigh` (with arms and luminaire), `signalPole / signalArm / signalHead / pedSignal`, `signStop, signYield, signHump, signCrossing, signRail, crossbuck`, `bollard, bollardSign, delineator, hydrant, bin, bench, busShelter`, `treeA, treeB`, bridge `pierCol / pierColWide / pierCap`, rail `sleeper, catenaryMast, catenaryArm, fencePost, gatePost, gateArm` (half-barriers are split into ≤ 7 m arms with a cabinet at each pivot, and each arm gets a counterweight housing behind it), subway `stationColumn, subwayEntrance` |
 
 ### Reference build — seed 1337, 4 × 4 km
 
 ```
-1192 nodes · 1629 edges · 224 km of road · 519 lane-km
-792 junctions · 18 roundabouts · 196 cul-de-sacs · 71 flush T · 115 continuations
-4.5 km railway (level crossings) · 5.1 km subway (2 lines × 5 stations)
+1229 nodes · 1703 edges · 232 km of road · 536 lane-km
+824 junctions · 18 roundabouts · 194 cul-de-sacs · 77 flush T · 116 continuations
+9.1 km railway (2 lines with level crossings and water bridges) · 5.1 km subway (2 lines × 5 stations)
 20.1 km bus lanes · 57.8 km cycle lanes · 97.9 km parking lanes
-1.20 M triangles · 0 warnings · 0 non-finite values
-generate 1.3 s · mesh build 0.9 s (single node thread)
+1.24 M triangles · 0 warnings · 0 non-finite values
+generate ≈2.2 s · mesh build ≈1.1 s (single node thread)
 ```
 
 ---
@@ -64,7 +64,10 @@ Unreal-style free camera: `W A S D` fly, `Q`/`E` down/up, `Shift` boost ×4, `RM
 | `double-click` a road | Insert a bend point at the cursor |
 
 Drawing snaps to existing nodes within 9 m and to an existing centreline within 0.5 m, so streets
-connect and junctions form automatically; with snap on, free clicks round to the metre grid.
+connect and junctions form automatically; with snap on, free clicks round to the metre grid. Selecting
+a road or junction exposes a **red X / green Y / blue Z transform gizmo**: drag Y to raise or lower
+the complete road (or node) and drag X/Z to translate it. Dropping a moved road automatically welds
+new at-grade crossings; use **Repair** in the viewport for a full topology pass.
 
 ## Panels
 
@@ -72,9 +75,10 @@ connect and junctions form automatically; with snap on, free clicks round to the
   expand/collapse, and click-to-focus selection. Long groups cap at 120 streets with a "+N more" row
   that asks you to refine the search.
 * **Viewport** — tool strip (Select · Draw · Bulldoze, the active draw profile, new-point elevation,
-  undo/redo, snap), view-mode switch (Lit · Topology · Underground), a day/night toggle, the controls
-  cheat-sheet, a live perf HUD (speed · altitude · heading · FPS · draws · triangles) and a minimap with
-  the camera frustum wedge. The elevation field is how bridges happen: draw at +12 m over an existing
+  **Repair topology**, undo/redo, snap), view-mode switch (Lit · Topology · Underground), a day/night toggle,
+  the controls cheat-sheet, a live perf HUD (speed · altitude · heading · FPS · draws · triangles) and a minimap
+  with the camera frustum wedge. The selected-road **XYZ gizmo** moves a road as a unit; its green Y arrow changes
+  elevation in 0.5 m snapped increments. The elevation field is how bridges happen: draw at +12 m over an existing
   road and the crossing resolves as an elevated deck with piers.
 * **Inspector** — *City*: network metrics (length, intersections, roundabouts, cul-de-sacs, bus/cycle/
   parking/railway/subway km), the generator (seed, map size 2–8 km, street density, toggles for river,
@@ -143,6 +147,8 @@ from acne-ing themselves.
 
 * `scripts/smoke-generate.mjs` — generate + build headlessly, print triangle/prop/material counts,
   assert no NaN and no missing materials.
+* `scripts/topology-test.mjs` — proves the repair pass splits and welds an at-grade X crossing while
+  preserving a grade-separated bridge/underpass crossing.
 * `scripts/winding-test.mjs` — checks every swept quad and arc strip is CCW when seen from outside,
   so the merged mesh can never show a flipped face.
 

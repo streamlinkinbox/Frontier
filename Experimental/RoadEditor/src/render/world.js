@@ -42,6 +42,9 @@ export class World {
     this.overlay = new THREE.Group(); this.overlay.renderOrder = 10; this.scene.add(this.overlay);
     this.hoverGroup = new THREE.Group(); this.scene.add(this.hoverGroup);
     this.previewGroup = new THREE.Group(); this.scene.add(this.previewGroup);
+    // This is deliberately separate from the selection overlay: selection rebuilds often while
+    // dragging, while the transform gizmo needs a stable, pickable set of axis handles.
+    this.gizmoGroup = new THREE.Group(); this.gizmoGroup.renderOrder = 30; this.scene.add(this.gizmoGroup);
     this.topoGroup = new THREE.Group(); this.topoGroup.visible = false; this.scene.add(this.topoGroup);
 
     this.chunks = new Map();     // key -> {elements:Set, group, roadGroup, markGroup, propGroup, center}
@@ -381,9 +384,59 @@ export class World {
     m.position.set(x, y + 0.4, z); m.renderOrder = 18;
     return m;
   }
+  clearGizmo() {
+    this.gizmoGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose?.(); });
+    this.gizmoGroup.clear();
+    this.gizmoGroup.userData.origin = null;
+  }
+  // A small but fully pickable XYZ transform gizmo. X/Z translate on the ground plane, while
+  // the green Y handle changes the selected road or junction elevation.
+  setMoveGizmo(origin) {
+    this.clearGizmo();
+    if (!origin) return;
+    const g = this.gizmoGroup;
+    const size = 7;
+    const mat = color => new THREE.MeshBasicMaterial({ color, depthTest: false, depthWrite: false, transparent: true, opacity: 0.94 });
+    const axis = (name, color, rotate, pos) => {
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, size, 8), mat(color));
+      shaft.rotation.copy(rotate); shaft.position.copy(pos.clone().multiplyScalar(size * 0.5)); shaft.userData.gizmoAxis = name;
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.48, 1.35, 12), mat(color));
+      tip.rotation.copy(rotate); tip.position.copy(pos.clone().multiplyScalar(size)); tip.userData.gizmoAxis = name;
+      g.add(shaft, tip);
+    };
+    // Geometry is Y-aligned by default. The cone tip points in local +Y.
+    axis('x', 0xff5b5b, new THREE.Euler(0, 0, -Math.PI / 2), new THREE.Vector3(1, 0, 0));
+    axis('y', 0x56e39a, new THREE.Euler(), new THREE.Vector3(0, 1, 0));
+    axis('z', 0x62a7ff, new THREE.Euler(Math.PI / 2, 0, 0), new THREE.Vector3(0, 0, 1));
+    const hub = new THREE.Mesh(new THREE.SphereGeometry(0.45, 14, 10), mat(0xf3f5f7));
+    hub.userData.gizmoAxis = 'free'; g.add(hub);
+    g.position.set(origin.x, origin.y + 0.8, origin.z);
+    g.scale.setScalar(1);
+    g.userData.origin = { x: origin.x, y: origin.y, z: origin.z };
+  }
+  pickGizmo(clientX, clientY) {
+    if (!this.gizmoGroup.children.length) return null;
+    this.ray(clientX, clientY);
+    const hit = this.raycaster.intersectObjects(this.gizmoGroup.children, false).find(h => h.object.userData.gizmoAxis);
+    if (!hit) return null;
+    return { axis: hit.object.userData.gizmoAxis, origin: this.gizmoGroup.userData.origin };
+  }
+  gizmoOriginFor(sel) {
+    if (!sel || !this.net) return null;
+    if (sel.type === 'node') {
+      const n = this.net.nodes.get(sel.id); return n && { x: n.x, y: n.y, z: n.z };
+    }
+    if (sel.type === 'edge') {
+      const e = this.net.edges.get(sel.id); if (!e) return null;
+      const f = this.net.centerline(e).frameAt(this.net.centerline(e).length * 0.5);
+      return { x: f.x, y: f.y, z: f.z };
+    }
+    return null;
+  }
   // selection: {type:'edge'|'node'|'street'|'rail'|'subway', id, ids?}
   setSelection(sel, accent = 0x4fd8e0) {
     this.clearGroup(this.overlay);
+    this.setMoveGizmo(this.gizmoOriginFor(sel));
     if (!sel || !this.net) return;
     const g = this.overlay;
     if (sel.type === 'edge' || sel.type === 'street') {
@@ -484,6 +537,11 @@ export class World {
     this.sun.target.position.set(sx, 0, sz);
     this.sun.position.set(sx + this.sunDir.x * 700, this.sunDir.y * 700 + 1, sz + this.sunDir.z * 700);
     this.sky.position.copy(cam);
+    if (this.gizmoGroup.userData.origin) {
+      const o = this.gizmoGroup.userData.origin;
+      const s = THREE.MathUtils.clamp(this.camera.position.distanceTo(new THREE.Vector3(o.x, o.y, o.z)) / 85, 0.72, 5);
+      this.gizmoGroup.scale.setScalar(s);
+    }
     this.M.water.normalMap && this.M.water.normalMap.offset.set(this.clock.elapsedTime * 0.004, this.clock.elapsedTime * 0.006);
     this._vis = (this._vis || 0) + 1;
     if (this._vis % 8 === 0) for (const ch of this.allChunks()) this.applyChunkVisibility(ch);

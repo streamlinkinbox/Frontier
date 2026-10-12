@@ -123,7 +123,7 @@ function EdgeInspector({ id, st }) {
         </div>
 
         <div className="card">
-          <div className="card-heading"><span><Ruler size={14} />Geometry</span>{maxY > 2 ? <span className="small-pill accent">Bridge · {maxY.toFixed(1)} m</span> : <span className="small-pill">At grade</span>}</div>
+          <div className="card-heading"><span><Ruler size={14} />Geometry</span>{maxY > 0.35 || e.flags?.bridge ? <span className="small-pill accent">Bridge · {maxY.toFixed(1)} m</span> : <span className="small-pill">At grade</span>}</div>
           <div className="metric-row">
             <div className="metric">{c.length.toFixed(0)}<small>m</small></div>
             <div className="metric-caption">{lay.total.toFixed(1)} m wide<br />{e.pts.length} bend point{e.pts.length === 1 ? '' : 's'} · {grade.toFixed(1)}% grade</div>
@@ -131,6 +131,7 @@ function EdgeInspector({ id, st }) {
           <CommitSlider label="Start elevation" unit=" m" min={-2} max={24} step={0.5} value={A.y} onCommit={v => editor.setNodeField(A.id, { y: v }, 'Elevation')} />
           <CommitSlider label="End elevation" unit=" m" min={-2} max={24} step={0.5} value={B.y} onCommit={v => editor.setNodeField(B.id, { y: v }, 'Elevation')} />
           {e.pts.length > 0 && <CommitSlider label="Bend elevation" unit=" m" min={-2} max={24} step={0.5} value={e.pts[0].y ?? 0} onCommit={v => editor.op('Elevation', () => { net.touchEdge(id); e.pts = e.pts.map(p => ({ ...p, y: v })); })} />}
+          <div className="gizmo-note"><ArrowUpDown size={13} /><span><b>3-axis transform</b> · drag the red X, green Y or blue Z arrow in the viewport. The Y handle raises or lowers the whole road; new at-grade crossings are welded automatically.</span></div>
           <div className="btn-row">
             <button className="ibtn" onClick={() => editor.reverseEdge(id)}><ArrowLeftRight size={12} />Reverse</button>
             <button className="ibtn" onClick={() => editor.splitEdge(id)}><Scissors size={12} />Split</button>
@@ -341,6 +342,12 @@ function CityInspector({ st }) {
             <div>Cycle lanes<b>{stats.bike.toFixed(1)} km</b></div><div>Parking lanes<b>{stats.park.toFixed(1)} km</b></div>
             <div>Railway<b>{stats.railKm.toFixed(1)} km</b></div><div>Subway<b>{stats.subKm.toFixed(1)} km</b></div>
           </div>
+        </div>
+
+        <div className="card">
+          <div className="card-heading"><span><Spline size={14} />Topology</span><small>at-grade graph</small></div>
+          <p className="empty-note">Repair welds coincident at-grade road crossings into real shared junction nodes, then rebuilds their curb returns and controls. Crossings more than 2.5 m apart remain bridges or underpasses.</p>
+          <div className="btn-row"><button className="ibtn wide" onClick={() => editor.repairTopology()}><Spline size={13} />Repair intersections</button></div>
         </div>
 
         <div className="card">

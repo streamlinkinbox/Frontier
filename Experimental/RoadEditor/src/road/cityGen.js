@@ -74,6 +74,9 @@ export function generateCity(options = {}) {
 
   // ---------------------------------------------------------------- districts
   const railU = o.rail ? pickRailU() : null;
+  // A second line on the opposite side turns the railway from a single scenery strip into a
+  // usable regional network. It is intentionally offset from the primary industrial corridor.
+  const railSecondaryU = railU === null ? null : -Math.sign(railU || 1) * half * R.range(0.42, 0.57);
   function pickRailU() {
     // middle of a column ~35-55% out from the centre on one side
     const side = R.chance(0.5) ? 1 : -1;
@@ -122,6 +125,22 @@ export function generateCity(options = {}) {
     const prof = pickArterial(k, V.length, 'v', v);
     add(seg([-P - 1, v], [P + 1, v], 25), prof, { name: NAMES[(nameIdx++) % NAMES.length], cls: 'arterial', axis: 'v', at: v, ruralProfile: 'rural2' });
   });
+  // Add two mid-block cross-town corridors. They deliberately sit between the lattice arterials,
+  // so the river gets more than one obvious road bridge and the city has additional long routes.
+  if (riverUV && U.length > 2) {
+    const candidates = [];
+    for (let k = 0; k < U.length - 1; k++) {
+      const u = (U[k] + U[k + 1]) * 0.5;
+      if (Math.abs(u - railU) < 95 || Math.abs(u) > P - 220) continue;
+      candidates.push(u);
+    }
+    candidates.sort((a, b) => Math.abs(Math.abs(a) - half * 0.38) - Math.abs(Math.abs(b) - half * 0.38));
+    const bridgeNames = ['Rivergate', 'Foundry', 'Quayside'];
+    for (let k = 0; k < Math.min(2, candidates.length); k++) {
+      const u = candidates[k];
+      add(seg([u, -P - 1], [u, P + 1], 20), k ? 'collector' : 'arterial4', { name: bridgeNames[k] + ' Link', cls: 'arterial', axis: 'u', at: u, ruralProfile: 'rural2', bridgeLink: true });
+    }
+  }
   // diagonal boulevard through the quadrant opposite the railway
   let diagSeg = null;
   if (o.density >= 0.6) {
@@ -368,11 +387,13 @@ export function generateCity(options = {}) {
       }
     }
   }
-  // rail exclusion: no parallel locals in band (already filtered); rail line itself
-  let railPts = null;
+  // rail exclusion: no parallel locals in band (already filtered); two regional rail corridors.
+  let railPts = null, railSecondaryPts = null;
   if (railU !== null) {
     railPts = [];
     for (let v = -half - 200; v <= half + 200; v += 20) railPts.push([railU + 25 * Math.sin(v / 900), v]);
+    railSecondaryPts = [];
+    for (let v = -half - 200; v <= half + 200; v += 20) railSecondaryPts.push([railSecondaryU + 18 * Math.sin(v / 760 + 1.7), v]);
   }
 
   // ---------------------------------------------------------------- clip locals in exclusion zones / river band
@@ -602,6 +623,10 @@ export function generateCity(options = {}) {
   if (railPts) {
     const pts = railPts.map(([u, v]) => { const [x, z] = warp(u, v); return { x, z }; });
     net.rails.set('rail1', { id: 'rail1', kind: 'rail', tracks: 2, pts, name: 'Harbor Line (Freight & Commuter)' });
+  }
+  if (railSecondaryPts) {
+    const pts = railSecondaryPts.map(([u, v]) => { const [x, z] = warp(u, v); return { x, z }; });
+    net.rails.set('rail2', { id: 'rail2', kind: 'rail', tracks: 1, pts, name: 'Riverside Regional Branch' });
   }
   if (o.subway) {
     const lineAlong = (axis, at, color, name, depth) => {

@@ -244,8 +244,11 @@ export class Editor {
   removeFeature(id, i) { this.op('Remove feature', () => { const e = this.net.edges.get(id); this.net.touchEdge(id); e.features = e.features.filter((_, k) => k !== i); }); }
   updateFeature(id, i, patch) { this.op('Edit feature', () => { const e = this.net.edges.get(id); this.net.touchEdge(id); e.features = e.features.map((f, k) => (k === i ? { ...f, ...patch } : f)); }); }
 
-  // ------------------------------------------------------------------ drag (node / control point)
-  startDrag(kind, ref) { this.begin(); this.drag = { kind, ...ref }; if (kind === 'node') this.net.touchNode(ref.id); else this.net.touchEdge(ref.edge); }
+  // ------------------------------------------------------------------ drag + transform gizmo
+  startDrag(kind, ref) {
+    this.begin(); this.drag = { kind, ...ref };
+    if (kind === 'node') this.net.touchNode(ref.id); else this.net.touchEdge(ref.edge);
+  }
   dragTo(p) {
     const d = this.drag; if (!d) return;
     const net = this.net;
@@ -259,6 +262,76 @@ export class Editor {
       this.liveRebuild([], [e.id]);
     }
   }
+  // Start an axis-constrained transform. Moving an edge moves its two junctions and the
+  // intermediate bend points together; adjoining approaches stay welded to those junctions.
+  startGizmoDrag(axis, origin, clientX, clientY) {
+    const sel = this.state.selection;
+    if (!sel || !origin || (sel.type !== 'edge' && sel.type !== 'node')) return false;
+    const net = this.net;
+    this.begin();
+    const nodes = new Map(), edges = new Map();
+    const rememberNode = id => {
+      const n = net.nodes.get(id); if (!n || nodes.has(id)) return;
+      net.touchNode(id); nodes.set(id, { x: n.x, y: n.y, z: n.z });
+      for (const e of net.nodeEdges(id)) { net.touchEdge(e.id); edges.set(e.id, e); }
+    };
+    if (sel.type === 'node') rememberNode(sel.id);
+    else {
+      const e = net.edges.get(sel.id); if (!e) return false;
+      const c = net.centerline(e);
+      net.touchEdge(e.id); edges.set(e.id, e);
+      rememberNode(e.a); rememberNode(e.b);
+      // Keep a sampled elevation for controls that inherited their height from the spline.
+      const controls = e.pts.map(p => {
+        const f = c.frameAt(c.nearest(p.x, p.z).s);
+        return { x: p.x, y: p.y ?? f.y, z: p.z };
+      });
+      this.drag = { kind: 'gizmo', axis, origin: { ...origin }, start: { x: clientX, y: clientY }, nodes, edges, edge: e.id, controls, changedNodes: [...nodes.keys()], changedEdges: [...edges.keys()] };
+      return true;
+    }
+    this.drag = { kind: 'gizmo', axis, origin: { ...origin }, start: { x: clientX, y: clientY }, nodes, edges, changedNodes: [...nodes.keys()], changedEdges: [...edges.keys()] };
+    return true;
+  }
+  gizmoDelta(clientX, clientY) {
+    const d = this.drag; if (!d || d.kind !== 'gizmo') return null;
+    const { axis, origin, start } = d;
+    if (axis === 'y') {
+      const rect = this.world.canvas.getBoundingClientRect();
+      const dist = this.world.camera.position.distanceTo({ x: origin.x, y: origin.y, z: origin.z });
+      const unitsPerPx = 2 * Math.tan(this.world.camera.fov * Math.PI / 360) * dist / Math.max(1, rect.height);
+      return -((clientY - start.y) * unitsPerPx);
+    }
+    const p = this.world.planePoint(this.world.ray(clientX, clientY), origin.y);
+    if (!p) return null;
+    if (axis === 'free') return { x: p.x - origin.x, y: 0, z: p.z - origin.z };
+    return p[axis] - origin[axis];
+  }
+  dragGizmo(clientX, clientY) {
+    const d = this.drag, delta = this.gizmoDelta(clientX, clientY); if (delta == null) return;
+    const net = this.net, grid = this.state.snap ? (d.axis === 'y' ? 0.5 : 1) : 0;
+    const snap = (base, value) => grid ? Math.round((base + value) / grid) * grid - base : value;
+    const move = (base, axis) => {
+      if (d.axis === 'free') return { x: snap(base.x, delta.x), y: 0, z: snap(base.z, delta.z) };
+      const q = snap(base[axis], delta);
+      return { x: axis === 'x' ? q : 0, y: axis === 'y' ? q : 0, z: axis === 'z' ? q : 0 };
+    };
+    for (const [id, base] of d.nodes) {
+      const n = net.nodes.get(id); if (!n) continue;
+      const q = move(base, d.axis); n.x = base.x + q.x; n.y = base.y + q.y; n.z = base.z + q.z;
+      for (const e of net.nodeEdges(id)) net.touchEdge(e.id);
+    }
+    if (d.edge) {
+      const e = net.edges.get(d.edge);
+      if (e) {
+        e.pts = d.controls.map(base => {
+          const q = move(base, d.axis);
+          return { x: base.x + q.x, y: base.y + q.y, z: base.z + q.z };
+        });
+        net.touchEdge(e.id);
+      }
+    }
+    this.liveRebuild(d.changedNodes, d.changedEdges);
+  }
   liveRebuild(nodes, edges) {
     this._live = { nodes, edges };
     if (this._liveRaf) return;
@@ -269,7 +342,108 @@ export class Editor {
       this.world.setSelection(this.state.selection);
     });
   }
-  endDrag() { if (!this.drag) return; const k = this.drag.kind; this.drag = null; this.commit(k === 'node' ? 'Move junction' : 'Bend road'); }
+  endDrag() {
+    if (!this.drag) return;
+    const d = this.drag, k = d.kind;
+    this.drag = null;
+    // A moved road may cross another at grade. Weld and split those crossings before committing,
+    // while preserving height-separated bridges/underpasses as independent geometry.
+    if (k === 'gizmo' || k === 'node' || k === 'ctrl') this.repairTopology(k === 'gizmo' ? d.changedEdges : k === 'node' ? this.net.nodeEdges(d.id).map(e => e.id) : [d.edge], { quiet: true });
+    this.commit(k === 'node' ? 'Move junction' : k === 'gizmo' ? 'Transform road' : 'Bend road');
+  }
+
+  // Split and weld every at-grade geometric crossing touched by a road edit. The graph is the
+  // source of truth for junction meshes, so this prevents a visual X from remaining as two
+  // disconnected edges after handles or the transform gizmo move a road.
+  repairTopology(seedEdges = null, { quiet = false } = {}) {
+    if (!this.net || !this.builder) return 0;
+    const ownTx = !this.tx;
+    if (ownTx) this.begin();
+    const net = this.net;
+    // A pointer can be released between two animation-frame rebuilds; make the spatial index
+    // authoritative before looking for the freshly moved edge's new neighbours.
+    this.builder.index.rebuild();
+    const selected = seedEdges?.length ? seedEdges.filter(id => net.edges.has(id)) : [...net.edges.keys()];
+    const pairs = new Map();
+    const candidateIds = new Set();
+    for (const id of selected) {
+      const e = net.edges.get(id); if (!e || getProfile(e).category === 'active') continue;
+      const c = net.centerline(e);
+      for (let i = 0; i < c.X.length - 1; i += 8) {
+        const j = Math.min(c.X.length - 1, i + 8);
+        const mx = (c.X[i] + c.X[j]) * 0.5, mz = (c.Z[i] + c.Z[j]) * 0.5;
+        for (const other of this.builder.index.query(mx, mz, Math.hypot(c.X[j] - c.X[i], c.Z[j] - c.Z[i]) * 0.5 + 9)) {
+          if (other.id !== e.id && getProfile(other).category !== 'active') candidateIds.add(e.id < other.id ? e.id + '|' + other.id : other.id + '|' + e.id);
+        }
+      }
+    }
+    const hasSharedNode = (a, b) => a.a === b.a || a.a === b.b || a.b === b.a || a.b === b.b;
+    const addHits = (a, b) => {
+      if (!a || !b || hasSharedNode(a, b)) return;
+      const A = net.centerline(a), B = net.centerline(b);
+      const key = a.id < b.id ? a.id + '|' + b.id : b.id + '|' + a.id;
+      for (let i = 0; i < A.X.length - 1; i += 4) {
+        const i2 = Math.min(A.X.length - 1, i + 4);
+        const minAx = Math.min(A.X[i], A.X[i2]) - 1, maxAx = Math.max(A.X[i], A.X[i2]) + 1, minAz = Math.min(A.Z[i], A.Z[i2]) - 1, maxAz = Math.max(A.Z[i], A.Z[i2]) + 1;
+        for (let j = 0; j < B.X.length - 1; j += 4) {
+          const j2 = Math.min(B.X.length - 1, j + 4);
+          if (Math.max(minAx, Math.min(B.X[j], B.X[j2]) - 1) > Math.min(maxAx, Math.max(B.X[j], B.X[j2]) + 1) || Math.max(minAz, Math.min(B.Z[j], B.Z[j2]) - 1) > Math.min(maxAz, Math.max(B.Z[j], B.Z[j2]) + 1)) continue;
+          const hit = segIntersect(A.X[i], A.Z[i], A.X[i2], A.Z[i2], B.X[j], B.Z[j], B.X[j2], B.Z[j2]);
+          if (!hit) continue;
+          const sA = A.S[i] + (A.S[i2] - A.S[i]) * hit[0], sB = B.S[j] + (B.S[j2] - B.S[j]) * hit[1];
+          const fA = A.frameAt(sA), fB = B.frameAt(sB);
+          const dot = Math.abs(fA.tx * fB.tx + fA.tz * fB.tz);
+          if (dot > 0.985 || Math.abs(fA.y - fB.y) > 2.5) continue; // overlap or bridge/underpass
+          const x = (fA.x + fB.x) * 0.5, z = (fA.z + fB.z) * 0.5;
+          const list = pairs.get(key) || [];
+          if (!list.some(q => Math.hypot(q.x - x, q.z - z) < 5)) list.push({ x, z, a: { id: a.id, profile: a.profile, name: a.name }, b: { id: b.id, profile: b.profile, name: b.name } });
+          pairs.set(key, list);
+        }
+      }
+    };
+    for (const pair of candidateIds) { const [a, b] = pair.split('|'); addHits(net.edges.get(a), net.edges.get(b)); }
+    const nearestCurrent = sig => {
+      if (net.edges.has(sig.id)) return net.edges.get(sig.id);
+      let best = null;
+      for (const e of net.edges.values()) {
+        if (e.profile !== sig.profile || e.name !== sig.name) continue;
+        const q = net.centerline(e).nearest(sig.x, sig.z);
+        if (q.d < 1.2 && (!best || q.d < best.q.d)) best = { e, q };
+      }
+      return best?.e || null;
+    };
+    const weldNodes = (keep, remove) => {
+      if (!keep || !remove || keep.id === remove.id) return keep;
+      net.touchNode(keep.id); net.touchNode(remove.id);
+      keep.x = (keep.x + remove.x) * 0.5; keep.z = (keep.z + remove.z) * 0.5; keep.y = (keep.y + remove.y) * 0.5;
+      for (const e of [...net.nodeEdges(remove.id)]) {
+        net.touchEdge(e.id);
+        if (e.a === remove.id) e.a = keep.id;
+        if (e.b === remove.id) e.b = keep.id;
+        net.adj.get(keep.id).add(e.id);
+        if (e.a === e.b) net.removeEdge(e.id);
+      }
+      net.adj.delete(remove.id); net.nodes.delete(remove.id);
+      return keep;
+    };
+    let fixed = 0;
+    for (const list of pairs.values()) for (const hit of list) {
+      // Once an edge is split, find the descendant segment at this exact crossing point.
+      const a = nearestCurrent({ ...hit.a, x: hit.x, z: hit.z }), b = nearestCurrent({ ...hit.b, x: hit.x, z: hit.z });
+      if (!a || !b || a.id === b.id || hasSharedNode(a, b)) continue;
+      const qa = net.centerline(a).nearest(hit.x, hit.z), qb = net.centerline(b).nearest(hit.x, hit.z);
+      if (qa.d > 1.2 || qb.d > 1.2) continue;
+      const fa = net.centerline(a).frameAt(qa.s), fb = net.centerline(b).frameAt(qb.s);
+      if (Math.abs(fa.y - fb.y) > 2.5) continue;
+      const na = splitEdgeAt(net, a, qa.s), nb = splitEdgeAt(net, b, qb.s);
+      weldNodes(na, nb); fixed++;
+    }
+    if (ownTx) {
+      this.commit('Repair topology');
+      if (!quiet) this.toast(fixed ? `Topology repaired · ${fixed} intersection${fixed === 1 ? '' : 's'} welded` : 'Topology already clean');
+    }
+    return fixed;
+  }
 
   // ------------------------------------------------------------------ draw tool
   snapPoint(cx, cy, forDraw = true) {
@@ -408,6 +582,10 @@ export class Editor {
     if (t === 'select') {
       const sel = this.state.selection;
       if (sel && (sel.type === 'node' || sel.type === 'edge')) {
+        // The XYZ arrows are tested before the legacy point handles, so vertical transforms
+        // never get mistaken for a selection click through the gizmo.
+        const gizmo = this.world.pickGizmo(e.clientX, e.clientY);
+        if (gizmo && this.startGizmoDrag(gizmo.axis, gizmo.origin, e.clientX, e.clientY)) return true;
         // handles first
         const p = this.world.planePoint(this.world.ray(e.clientX, e.clientY), sel.type === 'node' ? this.net.nodes.get(sel.id).y : 0);
         if (p && sel.type === 'node') { const n = this.net.nodes.get(sel.id); if (Math.hypot(n.x - p.x, n.z - p.z) < 4.5) { this.startDrag('node', { id: n.id, y: n.y }); return true; } }
@@ -424,8 +602,11 @@ export class Editor {
   pointerMove(e) {
     if (!this.net) return;
     if (this.drag) {
-      const p = this.world.planePoint(this.world.ray(e.clientX, e.clientY), this.drag.y || 0);
-      if (p) { if (this.state.snap) { p.x = Math.round(p.x); p.z = Math.round(p.z); } this.dragTo(p); }
+      if (this.drag.kind === 'gizmo') this.dragGizmo(e.clientX, e.clientY);
+      else {
+        const p = this.world.planePoint(this.world.ray(e.clientX, e.clientY), this.drag.y || 0);
+        if (p) { if (this.state.snap) { p.x = Math.round(p.x); p.z = Math.round(p.z); } this.dragTo(p); }
+      }
       return;
     }
     if (this.world.controls.mode) return;

@@ -52,6 +52,7 @@ export function Viewport() {
           </label>
         )}
         <button className={'vbtn icon' + (st.snap ? ' on' : '')} onClick={() => editor.set({ snap: !st.snap })} title="Snap to 1 m grid · Shift = 15° angles (G)"><Magnet size={13} /></button>
+        <button className="vbtn" onClick={() => editor.repairTopology()} title="Split and weld every at-grade crossing; bridges and underpasses stay separate"><Network size={13} />Repair</button>
         <div className="sep" />
         <button className="vbtn icon" disabled={!st.canUndo} onClick={() => editor.undo()} title="Undo (Ctrl+Z)"><Undo2 size={13} /></button>
         <button className="vbtn icon" disabled={!st.canRedo} onClick={() => editor.redo()} title="Redo (Ctrl+Shift+Z)"><Redo2 size={13} /></button>
@@ -84,6 +85,7 @@ export function Viewport() {
               <kbd>Wheel</kbd><span>Dolly to cursor</span>
               <kbd>F</kbd><span>Focus selection</span>
               <kbd>Dbl-click road</kbd><span>Add bend point</span>
+              <kbd>XYZ gizmo</kbd><span>Move road / elevation</span>
             </div>
           </div>
         )}
@@ -131,7 +133,7 @@ function Footer() {
   const c = editor.cursorPos;
   const hover = st.hover && editor.net ? (st.hover.type === 'edge' ? (() => { const e = editor.net.edges.get(st.hover.id); return e ? `${e.name || 'Road'} · ${getProfile(e).name}` : ''; })() : st.hover.type === 'node' ? 'Junction ' + st.hover.id : st.hover.type === 'rail' ? 'Railway' : '') : '';
   const hints = {
-    select: <>Click to select · drag handles to move · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+click multi-select</>,
+    select: <>Click to select · drag <span className="axis-x">X</span>/<span className="axis-y">Y</span>/<span className="axis-z">Z</span> gizmo arrows to move or raise a road · <kbd>Del</kbd> delete</>,
     draw: <>Snaps to junctions <span style={{ color: '#22c55e' }}>●</span> and roads <span style={{ color: '#f59e0b' }}>●</span> · crossings become junctions, different heights become bridges</>,
     bulldoze: <>Click a road or junction to remove it</>,
     place: <>Click on a road to place the feature</>,
