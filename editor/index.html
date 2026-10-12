@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frontier — Road Editor</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="view"></canvas>
+
+      <aside id="toolbar">
+        <div class="brand">FRONTIER <span>Road Editor</span></div>
+        <div class="group">
+          <button data-tool="select" title="Select (1)">Select <kbd>1</kbd></button>
+          <button data-tool="draw" title="Draw road (2)">Draw road <kbd>2</kbd></button>
+          <button data-tool="bridge" title="Place bridge span (3)">Bridge span <kbd>3</kbd></button>
+          <button data-tool="delete" title="Delete road (4)">Delete <kbd>4</kbd></button>
+        </div>
+        <div class="group">
+          <label>Road profile
+            <select id="profile"></select>
+          </label>
+          <label>Bridge type
+            <select id="bridgeType"></select>
+          </label>
+          <label>Span length <span id="spanLenVal">46</span> m
+            <input id="spanLen" type="range" min="12" max="200" value="46" />
+          </label>
+        </div>
+        <div class="group">
+          <button id="generate" class="primary">Generate city map</button>
+          <label>Map seed <input id="seed" type="number" value="42" /></label>
+          <button id="clear">Clear map</button>
+        </div>
+        <div class="group">
+          <button id="undo">Undo <kbd>Ctrl+Z</kbd></button>
+          <button id="export">Export JSON</button>
+          <button id="import">Import JSON</button>
+          <input id="importFile" type="file" accept="application/json" hidden />
+        </div>
+        <div class="help">
+          <b>Camera</b> WASD move · Q/E down/up · hold RMB to look · Shift boost · wheel = speed<br />
+          <b>Draw</b> click to place points · double-click or Enter to finish · Backspace removes last · Esc cancels<br />
+          <b>Bridge</b> click a road to add a span · Shift-click removes nearest span
+        </div>
+      </aside>
+
+      <aside id="inspector">
+        <h3>Selection</h3>
+        <div id="selInfo" class="muted">Nothing selected.</div>
+        <div id="selActions" hidden>
+          <label>Profile
+            <select id="selProfile"></select>
+          </label>
+          <div class="row">
+            <button id="reseed">Re-roll variation</button>
+            <button id="removeRoad" class="danger">Delete road</button>
+          </div>
+          <h4>Lanes</h4>
+          <table id="lanes"></table>
+          <h4>Bridge spans</h4>
+          <ul id="spans"></ul>
+        </div>
+        <h3>Map</h3>
+        <table id="stats"></table>
+        <h3>Display</h3>
+        <label class="check"><input id="showMarkings" type="checkbox" checked /> Road markings</label>
+        <label class="check"><input id="showRoads" type="checkbox" checked /> Road surfaces</label>
+        <label class="check"><input id="showProps" type="checkbox" checked /> Props (bollards, bumps, trees, rails)</label>
+      </aside>
+
+      <div id="status"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+* { box-sizing: border-box; }
+html, body, #app { margin: 0; height: 100%; width: 100%; overflow: hidden; background: #0b0f14; color: #d8dee9; font: 13px/1.4 Inter, system-ui, sans-serif; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+aside { position: absolute; top: 0; bottom: 0; width: 280px; padding: 12px; background: rgba(12,16,22,.92); border-right: 1px solid #1e2632; overflow-y: auto; }
+#toolbar { left: 0; }
+#inspector { right: 0; border-right: 0; border-left: 1px solid #1e2632; }
+.brand { font-weight: 800; letter-spacing: .08em; font-size: 15px; margin-bottom: 10px; }
+.brand span { color: #6ea8fe; font-weight: 400; }
+.group { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px solid #1e2632; }
+button { background: #1a2330; color: #d8dee9; border: 1px solid #2b3747; border-radius: 6px; padding: 6px 9px; cursor: pointer; text-align: left; }
+button:hover { background: #223043; }
+button.active { background: #2f6fd6; border-color: #4d8ff0; color: #fff; }
+button.primary { background: #2f6fd6; border-color: #4d8ff0; color: #fff; }
+button.danger { background: #5a2226; border-color: #8a3a40; }
+kbd { float: right; font: 11px ui-monospace, monospace; opacity: .6; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9aa8bb; }
+label.check { flex-direction: row; align-items: center; gap: 6px; color: #d8dee9; margin: 4px 0; }
+select, input[type=number] { background: #0f141b; color: #d8dee9; border: 1px solid #2b3747; border-radius: 6px; padding: 5px; }
+input[type=range] { width: 100%; }
+.row { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+.help { font-size: 11.5px; color: #7f8ca0; line-height: 1.6; padding-top: 10px; }
+h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #7f8ca0; margin: 8px 0 6px; }
+h4 { font-size: 12px; margin: 10px 0 4px; color: #9aa8bb; }
+.muted { color: #7f8ca0; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+td, th { padding: 3px 4px; border-bottom: 1px solid #1a2330; text-align: left; }
+th { color: #7f8ca0; font-weight: 500; }
+ul { padding-left: 16px; margin: 0; font-size: 12px; }
+li { margin: 4px 0; }
+#status { position: absolute; left: 290px; right: 290px; bottom: 10px; text-align: center; font-size: 12px; color: #c9d4e3; pointer-events: none; }
+#status .pill { display: inline-block; background: rgba(12,16,22,.8); border: 1px solid #2b3747; border-radius: 999px; padding: 4px 12px; margin: 0 3px; }
+#cross { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px; border: 1px solid rgba(255,255,255,.5); border-radius: 50%; pointer-events: none; }
