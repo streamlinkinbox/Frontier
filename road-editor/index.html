@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>FRONTIER · Road Editor</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand"><span class="logo">FRONTIER</span><span class="sub">Road Editor · Experimental</span></div>
+      <div class="group">
+        <button id="btnNew" class="btn" title="New empty project">New</button>
+        <button id="btnOpen" class="btn" title="Open a project JSON">Open</button>
+        <button id="btnSave" class="btn" title="Download the project JSON">Save</button>
+        <input id="fileOpen" type="file" accept="application/json,.json" hidden />
+      </div>
+      <div class="group">
+        <button id="btnUndo" class="btn ghost" title="Undo (Ctrl+Z)">Undo</button>
+        <button id="btnRedo" class="btn ghost" title="Redo (Ctrl+Y)">Redo</button>
+      </div>
+      <div class="group city">
+        <label class="mini">Seed</label>
+        <input id="seed" type="number" value="2026" min="1" step="1" />
+        <button id="btnGen" class="btn primary" title="Generate a city, countryside, rivers, bridges, subways">Generate city</button>
+      </div>
+      <div class="group">
+        <button id="btnXray" class="btn ghost toggle" title="Show the underground (G)">Underground view</button>
+      </div>
+      <div class="stats" id="stats"></div>
+    </header>
+
+    <aside class="left">
+      <section class="card">
+        <h3>Tools</h3>
+        <div class="tools" id="tools">
+          <button class="tool" data-tool="select" title="Select (V)"><b>V</b> Select</button>
+          <button class="tool" data-tool="draw" title="Draw road (R)"><b>R</b> Draw road</button>
+          <button class="tool" data-tool="props" title="Place props (P)"><b>P</b> Props</button>
+          <button class="tool" data-tool="delete" title="Delete (X)"><b>X</b> Delete</button>
+        </div>
+        <p class="hint" id="toolHint"></p>
+      </section>
+
+      <section class="card" id="drawCard">
+        <h3>Layer for new roads</h3>
+        <div class="seg" id="layerSeg">
+          <button data-layer="ground" class="on">Ground</button>
+          <button data-layer="bridge">Bridge</button>
+          <button data-layer="subway">Subway</button>
+        </div>
+        <div class="row" id="bridgeRow">
+          <label>Bridge type</label>
+          <select id="drawBridge"></select>
+        </div>
+        <div class="row" id="clearRow">
+          <label>Deck clearance (m)</label>
+          <input id="drawClear" type="number" min="4" max="40" step="1" value="9" />
+        </div>
+        <div class="row" id="depthRow" hidden>
+          <label>Depth below ground (m)</label>
+          <input id="drawDepth" type="number" min="3" max="60" step="1" value="8" />
+        </div>
+      </section>
+
+      <section class="card grow">
+        <h3>Road types</h3>
+        <div class="presets" id="presets"></div>
+      </section>
+
+      <section class="card" id="propCard">
+        <h3>Props</h3>
+        <div class="props" id="propKinds"></div>
+      </section>
+
+      <section class="card grow">
+        <h3>Roads <span class="count" id="roadCount"></span></h3>
+        <input id="filter" class="search" placeholder="Filter roads…" />
+        <div class="list" id="roadList"></div>
+      </section>
+    </aside>
+
+    <main class="viewport" id="viewport">
+      <div class="crosshair" id="crosshair"></div>
+      <div class="badge" id="modeBadge"></div>
+      <div class="overlayLabel" id="labels"></div>
+      <div class="help">
+        <b>RMB</b> look · <b>W A S D</b> move · <b>Q / E</b> down / up · <b>Shift</b> boost · <b>Wheel</b> speed
+      </div>
+    </main>
+
+    <aside class="right">
+      <section class="card" id="inspector"></section>
+      <section class="card" id="topology">
+        <h3>Topology</h3>
+        <div class="kv" id="topoKV"></div>
+        <div class="warnings" id="warnings"></div>
+      </section>
+      <section class="card">
+        <h3>Shortcuts</h3>
+        <dl class="keys">
+          <dt>V R P X</dt><dd>Select / draw / props / delete</dd>
+          <dt>Enter</dt><dd>Finish road</dd>
+          <dt>Backspace</dt><dd>Remove last point (draw) · delete selection</dd>
+          <dt>Esc</dt><dd>Cancel draw / deselect</dd>
+          <dt>Double-click road</dt><dd>Insert a control point (select)</dd>
+          <dt>Drag handle</dt><dd>Move a control point (select)</dd>
+          <dt>F</dt><dd>Focus selection</dd>
+          <dt>G</dt><dd>Underground view</dd>
+          <dt>Ctrl+Z / Ctrl+Y</dt><dd>Undo / redo</dd>
+        </dl>
+      </section>
+    </aside>
+
+    <footer class="status">
+      <span id="cursor">—</span>
+      <span id="fps"></span>
+      <span class="msg" id="msg"></span>
+    </footer>
+    <div class="toast" id="toast"></div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
