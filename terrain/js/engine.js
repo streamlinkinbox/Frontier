@@ -55,10 +55,24 @@ export class Engine {
 
   // ------------------------------------------------------------------ setup
   async init() {
-    if (!navigator.gpu) throw new Error('WebGPU is not available in this browser.');
-    const adapter = await navigator.gpu.requestAdapter(this.adapterOptions);
-    if (!adapter) throw new Error('No WebGPU adapter found.');
+    const fail = (code, msg) => Object.assign(new Error(msg), { code });
+    if (!navigator.gpu) throw fail('no-api', 'This browser does not expose WebGPU (navigator.gpu is missing).');
+    // try the GPU first, then any adapter, then the browser's software fallback (e.g. SwiftShader)
+    const attempts = this.adapterOptions ? [this.adapterOptions] : [{ powerPreference: 'high-performance' }, { powerPreference: 'low-power' }, {}, { forceFallbackAdapter: true }];
+    let adapter = null;
+    for (const o of attempts) {
+      try { adapter = await navigator.gpu.requestAdapter(o); } catch (e) { console.warn('requestAdapter failed', o, e); }
+      if (adapter) break;
+    }
+    if (!adapter) throw fail('no-adapter', 'The browser supports WebGPU but could not get a GPU adapter.');
+    const info = adapter.info || {};
+    this.isFallback = !!(adapter.isFallbackAdapter || info.isFallbackAdapter);
+    this.adapterLabel = [info.vendor, info.architecture, info.description].filter(Boolean).join(' · ') || 'unknown GPU';
+    console.info('WebGPU adapter:', this.adapterLabel, this.isFallback ? '(software fallback)' : '');
     const L = adapter.limits;
+    if (L.maxStorageBuffersPerShaderStage < 10 || L.maxComputeInvocationsPerWorkgroup < 64) {
+      throw fail('limits', `This GPU's WebGPU limits are too low (storage buffers per stage: ${L.maxStorageBuffersPerShaderStage}, need 10).`);
+    }
     this.device = await adapter.requestDevice({
       requiredLimits: {
         maxStorageBufferBindingSize: L.maxStorageBufferBindingSize,
@@ -66,7 +80,8 @@ export class Engine {
         maxStorageBuffersPerShaderStage: Math.min(L.maxStorageBuffersPerShaderStage, 10),
         maxStorageTexturesPerShaderStage: Math.min(L.maxStorageTexturesPerShaderStage, 4),
       },
-    });
+    }).catch((e) => { throw fail('device', `Could not create a WebGPU device: ${e.message || e}`); });
+    if (!this.device) throw fail('device', 'Could not create a WebGPU device.');
     const d = this.device;
     d.lost.then((info) => { console.warn('GPU device lost', info.reason, info.message); this.onError?.(`GPU device lost: ${info.message}`); });
     d.addEventListener?.('uncapturederror', (e) => { console.error(e.error.message); this.onError?.(e.error.message); });
@@ -76,6 +91,7 @@ export class Engine {
 
     if (this.canvas) {
       this.context = this.canvas.getContext('webgpu');
+      if (!this.context) throw fail('context', 'The canvas could not create a WebGPU context (the browser GPU process may have failed).');
       this.format = navigator.gpu.getPreferredCanvasFormat();
       this.context.configure({ device: d, format: this.format, alphaMode: 'opaque' });
     }

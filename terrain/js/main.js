@@ -22,7 +22,7 @@ class App {
   }
 
   async start() {
-    try { await this.engine.init(); } catch (e) { return this.fatal(e.message); }
+    try { await this.engine.init(); } catch (e) { console.error(e); return this.fatal(e.message, e.code); }
     this.engine.camera = this.camera;
     this.engine.onStats = (s) => { this.updateStats(); this.needsRender = true; if (this.inspector.tab === 'volume') this.refreshHybridInfo(); };
     this.engine.onError = (m) => this.toast(m.split('\n')[0], true);
@@ -37,6 +37,13 @@ class App {
     }
     if (!st) { this.presetName = 'Alpine Range'; st = PRESETS[this.presetName](); }
     const q = new URLSearchParams(location.search);
+    if (this.engine.isFallback) {
+      // software rasteriser: start light so it stays usable (the user can raise these in World ▸ Resolution/Render)
+      st.world.resolution = Math.min(st.world.resolution, 256);
+      st.render.scale = Math.min(st.render.scale, 0.5); st.render.msaa = false;
+      this.still = true;
+      setTimeout(() => this.toast('No hardware GPU — running on the software fallback at reduced quality. Enable hardware acceleration for full speed.', true), 1200);
+    }
     if (q.get('res')) st.world.resolution = +q.get('res');
     if (q.get('tab')) { const t = q.get('tab').toLowerCase(); this._tab = t === 'surface' ? 'materials' : t; }
     if (q.has('still')) this.still = true;           // render only on change (debug / slow GPUs)
@@ -191,9 +198,45 @@ class App {
     t.textContent = msg; t.classList.toggle('err', err); t.classList.add('show');
     clearTimeout(this._toastT); this._toastT = setTimeout(() => t.classList.remove('show'), err ? 5000 : 2200);
   }
-  fatal(msg) {
-    document.body.append(h('div', { class: 'fatal' }, h('div', { class: 'panel-msg' }, h('h2', {}, 'WebGPU is required'),
-      h('p', {}, msg), h('p', {}, 'Use a recent Chrome, Edge, or Safari 26+ (or Firefox 141+ on Windows), with hardware acceleration enabled.'))));
+  fatal(msg, code = '') {
+    const ua = navigator.userAgent;
+    const edge = /Edg\//.test(ua), chrome = !edge && /Chrome\//.test(ua), firefox = /Firefox\//.test(ua);
+    const safari = !chrome && !edge && /Safari\//.test(ua);
+    const scheme = edge ? 'edge' : 'chrome';
+    let webgl = false;
+    try { const c = document.createElement('canvas'); webgl = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch {}
+    let framed = false; try { framed = window.top !== window.self; } catch { framed = true; }
+    const copyable = (txt) => {
+      const b = h('button', { class: 'btn sm', onclick: async () => { try { await navigator.clipboard.writeText(txt); b.textContent = 'Copied'; } catch { b.textContent = 'Select & copy'; } } }, 'Copy');
+      return h('span', { class: 'url' }, h('code', {}, txt), b);
+    };
+    const steps = [];
+    let cause;
+    if (code === 'no-api') {
+      cause = 'This browser doesn\'t support WebGPU (or it is switched off).';
+      if (firefox) steps.push(['Use Firefox 141+ on Windows, or enable it at', copyable('about:config'), '→ dom.webgpu.enabled = true']);
+      else if (safari) steps.push(['Update to Safari 26 or newer (macOS / iOS 26).']);
+      else steps.push(['Use an up-to-date Chrome or Edge (version 113 or newer).']);
+    } else if (!webgl) {
+      cause = 'Hardware acceleration looks switched off — not even WebGL is available, so the browser has no access to your GPU.';
+    } else {
+      cause = 'WebGPU exists, but the browser couldn\'t start it on your GPU (blocklisted driver, GPU process failure, or a remote/virtual session).';
+    }
+    if (chrome || edge) {
+      steps.push(['Open', copyable(`${scheme}://settings/system`), 'turn on “Use graphics acceleration when available”, then click Relaunch (also finish any pending browser update).']);
+      steps.push(['Check', copyable(`${scheme}://gpu`), '— “WebGPU” should say Hardware accelerated.']);
+      steps.push(['If it says blocklisted / disabled: open', copyable(`${scheme}://flags/#ignore-gpu-blocklist`), 'set it to Enabled and relaunch.']);
+      steps.push(['Still failing? Update your graphics driver. Remote Desktop and some VMs don\'t expose a GPU.']);
+    }
+    const msgEl = h('div', { class: 'panel-msg' },
+      h('h2', {}, 'WebGPU couldn\'t start'),
+      h('p', { class: 'cause' }, cause),
+      steps.length ? h('ol', { class: 'fix' }, steps.map((s) => h('li', {}, s.map((x) => (typeof x === 'string' ? ' ' + x + ' ' : x))))) : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn primary', onclick: () => location.reload() }, 'Retry'),
+        framed ? h('a', { class: 'btn', href: location.href, target: '_blank', rel: 'noopener' }, 'Open in new tab') : null),
+      h('p', { class: 'tech' }, `Details: ${msg}${code ? ` [${code}]` : ''} · WebGL: ${webgl ? 'yes' : 'no'}${framed ? ' · embedded' : ''}`));
+    document.body.append(h('div', { class: 'fatal' }, msgEl));
   }
 
   // ------------------------------------------------------------------ loop
