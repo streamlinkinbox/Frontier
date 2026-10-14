@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontier · Terrain</title>
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<main id="viewport">
+  <canvas id="gfx"></canvas>
+</main>
+
+<aside id="inspector">
+  <header class="insp-head">
+    <span class="logo">FRNT</span>
+    <div>
+      <div class="ph-title">Terrain</div>
+      <div class="ph-sub" id="presetName">Hybrid heightfield · SDF</div>
+    </div>
+    <span class="spacer"></span>
+    <div class="dd" id="presetDD"></div>
+  </header>
+  <div id="insp-body"></div>
+  <footer class="insp-foot">
+    <button class="btn icon ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
+    <button class="btn icon ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
+    <span class="spacer"></span>
+    <button class="btn" id="regenBtn" title="Regenerate everything">Regenerate</button>
+    <button class="btn primary" id="shotBtn">Screenshot</button>
+  </footer>
+</aside>
+
+<div class="hud-top" id="hudTop"></div>
+<div class="hud-bot">
+  <div class="keys glass"><span><kbd>LMB</kbd>orbit</span><span><kbd>RMB</kbd>pan</span><span><kbd>Wheel</kbd>zoom</span><span><kbd>WASD</kbd>move</span><span><kbd>F</kbd>frame</span></div>
+  <span class="spacer"></span>
+  <div class="stats glass" id="stats"><span class="dot"></span><span>Starting…</span></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
