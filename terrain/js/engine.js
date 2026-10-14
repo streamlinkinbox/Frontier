@@ -417,7 +417,7 @@ export class Engine {
           await cost(N * N * 4 * Math.min(96, L.p.radius / texel));
         } else if (T.pass === 'thermal') {
           const its = Math.round(Math.min(600, Math.max(1, L.p.iterations * N / 512)));
-          const u = genUni(0, 0, [L.p.talus, L.p.strength], mask, op);
+          const u = genUni(0, 0, [L.p.talus, L.p.strength, L.p.hard ?? 0], mask, op);
           for (let i = 0; i < its; i++) { run2d(P.thermal, [u, cur, oth, R.depo]); swap(); await cost(N * N * 10); }
         } else if (T.pass === 'erosion') {
           const u = genUni(0, 0, [], mask, op);

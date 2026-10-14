@@ -106,7 +106,7 @@ export const HEIGHT_TYPES = {
       R('batches', 'Passes', 1, 12, 4, { int: true, adv: true }), SEED('seed'),
     ] },
   thermal: { label: 'Thermal erosion', group: 'Erosion', glyph: 'θ', filter: true, pass: 'thermal', sim: true,
-    params: [R('talus', 'Talus angle', 5, 80, 36, deg), R('strength', 'Strength', 0, 1, 0.7, { step: 0.01 }),
+    params: [R('talus', 'Talus angle', 5, 80, 36, deg), R('strength', 'Strength', 0, 1, 0.7, { step: 0.01 }), R('hard', 'Cliff hardness', 0, 1, 0, { step: 0.01, hint: 'Faces far steeper than the talus angle resist collapse (caprock / bedrock walls)' }),
       R('iterations', 'Iterations', 1, 200, 40, { int: true })] },
   rivers: { label: 'Rivers (flow carve)', group: 'Erosion', glyph: '≋', filter: true, pass: 'rivers', sim: true,
     params: [R('depth', 'Depth', 0, 120, 18, m), R('threshold', 'Threshold', 0, 1, 0.42, { step: 0.005 }),

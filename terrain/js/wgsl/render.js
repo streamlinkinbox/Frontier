@@ -353,14 +353,15 @@ fn waves(xz: vec2f, t: f32, fp: f32) -> vec3f {
   if (outside > 0.0) { depth = max(depth, 0.0) + outside * 0.25 + 1.0; }
   if (depth < 0.0) { discard; }
   let dist = length(F.cam.xyz - p);
-  let fp = dist * F.res.z;
+  let V = normalize(F.cam.xyz - p);
+  // anisotropic footprint: at grazing angles one pixel spans fp/|V.y| metres along the view ray
+  let fp = dist * F.res.z / max(abs(V.y), 0.04);
   let wv = waves(p.xz, t, fp);
   let r1 = gnoise3d(vec3f(p.x * 0.32, t * 0.45, p.z * 0.32), 11u);
   let r2 = gnoise3d(vec3f(p.x * 1.3, t * 0.9, p.z * 1.3), 12u);
   let rf1 = 1.0 - smoothstep(0.12, 0.4, fp * 0.32); let rf2 = 1.0 - smoothstep(0.12, 0.4, fp * 1.3);
   let g = wv.yz + vec2f(r1.y, r1.w) * 0.032 * rf1 + vec2f(r2.y, r2.w) * 0.018 * rf2;
   let n = normalize(vec3f(-g.x, 1.0, -g.y));
-  let V = normalize(F.cam.xyz - p);
   let L = normalize(F.sun.xyz);
   let sunC = F.sunCol.rgb * F.sun.w;
   let clarity = max(F.oc1.w, 0.1);

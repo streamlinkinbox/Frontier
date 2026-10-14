@@ -16,13 +16,13 @@ The **inspector** (left panel) has four tabs:
 
 | Tab | What it holds |
 |---|---|
-| **Terrain** | Height layer stack: generators (fBm, ridged, billow, Voronoi, mountain, dunes, island, canyon, coast, erosive noise, constant), filters (domain warp, terraces, curve/levels, smooth), SDF primitives (spires, arches) and simulation (hydraulic droplet erosion, thermal erosion, flow/rivers). Each layer has a blend mode (replace, add, subtract, multiply, max, min), opacity and a mask (height, slope or noise). |
+| **Terrain** | Height layer stack: generators (fBm, ridged, billow, Voronoi, mountain, dunes, island, canyon, coast, erosive noise, constant), filters (domain warp, terraces, curve/levels, smooth), SDF primitives (spires, arches) and simulation (hydraulic droplet erosion, thermal erosion with cliff hardness, flow/rivers). Each layer has a blend mode (replace, add, subtract, multiply, max, min), opacity and a mask (height, slope or noise). |
 | **Volume** | Hybrid settings (heightfield → voxel threshold, voxel size, transition width, region preview), plus volumetric detail that only exists in voxel regions: strata, overhangs/undercuts, roughness, rills and fractures. |
 | **Surface** | Material stack. Each layer is driven by height, slope, curvature, protrusion, AO, flow, wear and deposition masks, with noise breakup, a detail "stamp" type (rock, sand ripples, vegetation, snow, scree, soil), bump and roughness. |
 | **World** | Resolution (256 to 2K heightfield, plus a lower preview resolution while dragging), world size, height scale, seed, render scale, MSAA, shadows, diorama skirts, sun and sky, ocean, post, and **export**. |
 
 Other controls:
-- **Layer stacks:** drag to reorder, eye icon to toggle, double-click to rename, and duplicate/delete from the row menu.
+- **Layer stacks:** drag to reorder, switch to enable/disable, double-click the name to rename, and hover a row for duplicate/delete.
 - **Undo/redo:** Ctrl+Z / Ctrl+Shift+Z.
 - **Persistence:** state is autosaved to `localStorage`.
 - **Viewport:** LMB orbit, RMB pan, wheel zoom, WASD move, F frames the terrain.

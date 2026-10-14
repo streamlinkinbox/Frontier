@@ -2,7 +2,7 @@ import { Engine, halfToFloat } from './engine.js';
 import { Camera } from './camera.js';
 import { Inspector, h, segCtl } from './ui.js';
 import { PRESETS, defaultState } from './presets.js';
-import { LEVEL, VIEW_MODES, VOLUME_TYPES, WORLD_SECTIONS, HYBRID_PARAMS, defaultsFor } from './schema.js';
+import { LEVEL, VIEW_MODES, HEIGHT_TYPES, VOLUME_TYPES, MATERIAL_TYPES, MATERIAL_PARAMS, WORLD_SECTIONS, HYBRID_PARAMS, defaultsFor } from './schema.js';
 import { encodePNG, download } from './png.js';
 
 const STORE = 'frontier.terrain.v1';
@@ -56,6 +56,11 @@ class App {
     for (const sec of WORLD_SECTIONS) s[sec.key] = { ...d[sec.key], ...(s[sec.key] || {}) };
     s.hybrid = { ...defaultsFor(HYBRID_PARAMS), ...(s.hybrid || {}) };
     s.view ??= 0;
+    // back-fill parameters added in newer versions; drop layers of unknown type
+    const fill = (arr, TYPES, params) => (arr || []).filter((it) => TYPES[it.type]).map((it) => ({ ...it, p: { ...defaultsFor(params || TYPES[it.type].params), ...(it.p || {}) } }));
+    s.layers = fill(s.layers, HEIGHT_TYPES);
+    s.volume = fill(s.volume, VOLUME_TYPES);
+    s.materials = fill(s.materials, MATERIAL_TYPES, MATERIAL_PARAMS);
     return s;
   }
 
@@ -265,34 +270,91 @@ class App {
   }
   async exportOBJ() {
     await this.engine.whenIdle();
+    this.toast('Building OBJ…');
     const e = this.engine, N = e.N, st = this.state;
     const hgt = await e.readHeight();
     const mv = new Float32Array(await e.readBuffer(e.R.mVox, N * N * 4));
     const vox = await e.readVoxelMesh();
     const M = Math.min(N, 1024), S = st.world.size, Hs = st.world.heightScale;
-    const lines = [`# Frontier terrain — ${this.presetName || 'custom'}`, `# heightfield ${M}x${M}, voxel tris ${vox.length / 24}`, 'o heightfield'];
+    // streamed writer: compact ~4 MB string chunks instead of millions of tiny strings (avoids OOM on big meshes)
+    const parts = []; let buf = '';
+    const w = (line) => { buf += line + '\n'; if (buf.length > 4e6) { parts.push(buf); buf = ''; } };
+    const breathe = () => new Promise((r) => setTimeout(r, 0));
     const samp = (u, v) => { const x = Math.round(u * (N - 1)), y = Math.round(v * (N - 1)); return y * N + x; };
     const useMask = st.hybrid.mode > 0;
-    for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) {
-      const u = i / (M - 1), v = j / (M - 1);
-      lines.push(`v ${(u * S).toFixed(2)} ${(hgt[samp(u, v)] * Hs).toFixed(2)} ${(v * S).toFixed(2)}`);
-    }
-    for (let j = 0; j < M - 1; j++) for (let i = 0; i < M - 1; i++) {
-      const a = j * M + i + 1, b = a + 1, c = a + M, d = c + 1;
-      if (useMask) {
-        const u = (i + 0.5) / (M - 1), v = (j + 0.5) / (M - 1);
-        if (mv[samp(u, v)] >= 0.5) continue;
+
+    // weld the voxel triangle soup (MC emits 3 unique vertices per triangle) with a typed-array hash grid
+    const nv = vox.length / 8;
+    let vPos = null, vNrm = null, vCount = 0, tri = null, triCount = 0;
+    if (nv) {
+      let cap = 1; while (cap < nv * 2) cap <<= 1;
+      const keys = new Int32Array(cap * 3), slot = new Int32Array(cap).fill(-1), mask = cap - 1;
+      const remap = new Int32Array(nv);
+      vPos = new Float32Array(nv * 3); vNrm = new Float32Array(nv * 3);
+      const q = 1 / 0.005; // 5 mm weld tolerance
+      for (let k = 0; k < nv; k++) {
+        const x = Math.round(vox[k * 8] * q), y = Math.round(vox[k * 8 + 1] * q), z = Math.round(vox[k * 8 + 2] * q);
+        let hsh = (Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(z, 83492791)) & mask;
+        for (;;) {
+          const id = slot[hsh];
+          if (id < 0) {
+            slot[hsh] = vCount; keys.set([x, y, z], hsh * 3);
+            vPos.set([vox[k * 8], vox[k * 8 + 1], vox[k * 8 + 2]], vCount * 3);
+            remap[k] = vCount++; break;
+          }
+          if (keys[hsh * 3] === x && keys[hsh * 3 + 1] === y && keys[hsh * 3 + 2] === z) { remap[k] = id; break; }
+          hsh = (hsh + 1) & mask;
+        }
+        const o = remap[k] * 3;
+        vNrm[o] += vox[k * 8 + 4]; vNrm[o + 1] += vox[k * 8 + 5]; vNrm[o + 2] += vox[k * 8 + 6];
       }
-      lines.push(`f ${a} ${c} ${b}`, `f ${b} ${c} ${d}`);
+      tri = new Int32Array(nv);
+      for (let t = 0; t < nv / 3; t++) {
+        const a = remap[t * 3], b = remap[t * 3 + 1], c = remap[t * 3 + 2];
+        if (a === b || b === c || a === c) continue; // degenerate after welding
+        tri[triCount * 3] = a; tri[triCount * 3 + 1] = c; tri[triCount * 3 + 2] = b; triCount++;
+      }
     }
-    if (vox.length) {
-      lines.push('o voxel_surface');
-      const base = M * M, nv = vox.length / 8;
-      for (let k = 0; k < nv; k++) lines.push(`v ${vox[k * 8].toFixed(2)} ${vox[k * 8 + 1].toFixed(2)} ${vox[k * 8 + 2].toFixed(2)}`);
-      for (let k = 0; k < nv; k++) lines.push(`vn ${vox[k * 8 + 4].toFixed(3)} ${vox[k * 8 + 5].toFixed(3)} ${vox[k * 8 + 6].toFixed(3)}`);
-      for (let t = 0; t < nv / 3; t++) { const a = base + t * 3 + 1, n = t * 3 + 1; lines.push(`f ${a}//${n} ${a + 2}//${n + 2} ${a + 1}//${n + 1}`); }
+
+    w(`# Frontier terrain — ${this.presetName || 'custom'}`);
+    w(`# heightfield ${M}x${M} (${S} m, height scale ${Hs} m), voxel surface ${vCount} verts / ${triCount} tris`);
+    w('o heightfield');
+    for (let j = 0; j < M; j++) {
+      for (let i = 0; i < M; i++) {
+        const u = i / (M - 1), v = j / (M - 1);
+        w(`v ${(u * S).toFixed(2)} ${(hgt[samp(u, v)] * Hs).toFixed(2)} ${(v * S).toFixed(2)}`);
+      }
+      if ((j & 63) === 63) await breathe();
     }
-    download(new Blob([lines.join('\n')], { type: 'text/plain' }), this.fname('obj'));
+    for (let j = 0; j < M - 1; j++) {
+      for (let i = 0; i < M - 1; i++) {
+        const a = j * M + i + 1, b = a + 1, c = a + M, d = c + 1;
+        if (useMask && mv[samp((i + 0.5) / (M - 1), (j + 0.5) / (M - 1))] >= 0.5) continue;
+        w(`f ${a} ${c} ${b}`); w(`f ${b} ${c} ${d}`);
+      }
+      if ((j & 63) === 63) await breathe();
+    }
+    if (triCount) {
+      w('o voxel_surface');
+      const base = M * M;
+      for (let k = 0; k < vCount; k++) {
+        w(`v ${vPos[k * 3].toFixed(3)} ${vPos[k * 3 + 1].toFixed(3)} ${vPos[k * 3 + 2].toFixed(3)}`);
+        if ((k & 0xffff) === 0xffff) await breathe();
+      }
+      for (let k = 0; k < vCount; k++) {
+        const x = vNrm[k * 3], y = vNrm[k * 3 + 1], z = vNrm[k * 3 + 2], l = Math.hypot(x, y, z) || 1;
+        w(`vn ${(x / l).toFixed(3)} ${(y / l).toFixed(3)} ${(z / l).toFixed(3)}`);
+        if ((k & 0xffff) === 0xffff) await breathe();
+      }
+      for (let t = 0; t < triCount; t++) {
+        const a = tri[t * 3] + 1, b = tri[t * 3 + 1] + 1, c = tri[t * 3 + 2] + 1;
+        w(`f ${base + a}//${a} ${base + b}//${b} ${base + c}//${c}`);
+        if ((t & 0xffff) === 0xffff) await breathe();
+      }
+    }
+    parts.push(buf);
+    download(new Blob(parts, { type: 'text/plain' }), this.fname('obj'));
+    this.toast(`OBJ exported · ${(parts.reduce((s, p) => s + p.length, 0) / 1e6).toFixed(1)} MB`);
   }
   screenshot() {
     this.engine.render(0);

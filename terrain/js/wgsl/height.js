@@ -208,6 +208,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   if (x >= n || y >= n) { return; }
   let h = ld(x, y);
   let T = tan(radians(G.p0.x)) * G.world.z / G.world.y;
+  // cliff hardness: faces much steeper than the talus angle behave as bedrock (they shed little),
+  // so walls survive while moderate slopes relax into talus aprons
+  let Tc = tan(radians(min(G.p0.x + 22.0, 88.0))) * G.world.z / G.world.y;
   var ds = 0.0;
   for (var j = -1; j <= 1; j++) {
     for (var i = -1; i <= 1; i++) {
@@ -215,7 +218,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let dist = length(vec2f(f32(i), f32(j)));
       let d = ld(x + i, y + j) - h;
       let ex = abs(d) - T * dist;
-      if (ex > 0.0) { ds += sign(d) * ex * 0.5; }
+      let hard = 1.0 - G.p0.z * smoothstep(Tc * 0.75, Tc * 1.25, abs(d) / dist);
+      if (ex > 0.0) { ds += sign(d) * ex * 0.5 * hard; }
     }
   }
   let o = G.m1.x * maskAt(x, y, worldP(x, y));
