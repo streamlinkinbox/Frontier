@@ -135,9 +135,15 @@ assert.match(appSource, /function scheduleSurfaceCardUpdates\(\)/, 'world-space 
 assert.match(appSource, /state\.gdfReadyMask !== 0b111/, 'mesh-card GI caching waits for all three full-mesh clipmaps to be ready');
 assert.match(appSource, /SURFACE_CACHE_UPDATE_LIMIT = 64/, 'mesh-card radiance work is bounded per frame');
 assert.match(appSource, /state\.surfaceCacheUpdateCount \* SURFACE_CARD_TEXELS \/ 64/, 'each scheduled quad updates its 4×4 cache tile');
-assert.match(appSource, /FINE · 12 m.*MID · 36 m.*FAR · 108 m/s, 'wireframes label the cascade extents');
-assert.doesNotMatch(htmlSource, /clipmapPlan|clipmapViewToggle/, 'the old top-down map inset and toggle are removed');
+assert.doesNotMatch(appSource, /const labels = \['FINE · 12 m'/, 'clipmap bounds remain wireframe-only without overlay labels');
+assert.doesNotMatch(htmlSource, /fieldCanvas|field-card|fieldCard/, 'the 2D distance-field preview is not present in the UI');
 assert.match(htmlSource, /id="clipmapOverlay"/, 'the viewport retains the camera-facing clipmap box overlay');
+const copyLogPosition = htmlSource.indexOf('id="copyGpuTimingLog"');
+const panelPosition = htmlSource.indexOf('id="controlPanel"');
+const metricsPosition = htmlSource.indexOf('class="metrics"');
+assert.ok(copyLogPosition > panelPosition && copyLogPosition < metricsPosition, 'the copyable timing log is in the right control panel');
+assert.match(htmlSource, /id="panelCollapse"/, 'the right control panel can be collapsed');
+assert.match(htmlSource, /<small>FPS<\/small>[\s\S]*?<small>GPU PASS SUM<\/small>/, 'the bottom bar contains FPS and the GPU pass sum only');
 
 const bvh = buildBvh(vehicle.triangles);
 assert.equal(bvh.triangles.length, vehicle.triangleCount);

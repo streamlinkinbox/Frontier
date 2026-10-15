@@ -10,214 +10,24 @@
 </head>
 <body>
   <main class="viewport">
-    <canvas id="viewCanvas" aria-label="WebGPU global distance-field diffuse GI preview"></canvas>
+    <canvas id="viewCanvas" aria-label="WebGPU global distance-field GI scene"></canvas>
     <canvas id="clipmapOverlay" aria-hidden="true"></canvas>
-    <div class="scene-vignette" aria-hidden="true"></div>
 
-    <header class="topbar">
-      <a class="brand" href="#" aria-label="Frontier SDF transport lab">
-        <span class="brand-mark"><i></i><i></i><i></i></span>
-        <span class="brand-name">FRONTIER<span class="brand-slash"> / </span><span class="brand-sub">SDF TRANSPORT</span></span>
-      </a>
-      <div class="topbar-right">
-        <span class="engine-pill"><span class="pulse"></span> WEBGPU · WGSL</span>
-        <span class="gpu-status" id="gpuStatus" data-state="loading">STARTING</span>
-        <span class="adapter-name" id="adapterName" title="Active WebGPU adapter"></span>
-      </div>
-    </header>
-
-    <section class="intro" aria-label="Experiment overview">
-      <div class="eyebrow"><span>EXPERIMENT 07</span><b></b><span>GLOBAL DISTANCE FIELD</span></div>
-      <h1>Light finds<br>the whole road.</h1>
-      <p class="intro-copy">Drive the Project Drive ControlVehicle through a streamed 100 km × 10 km city. Distance-field clipmaps follow the car while emissive streetlights carry soft penumbrae through multi-bounce diffuse transport.</p>
-      <div class="intro-stats">
-        <span><b>100×10</b><small>KM WORLD</small></span>
-        <span><b>03</b><small>CLIPMAPS</small></span>
-        <span><b>64³</b><small>VOXELS / LEVEL</small></span>
-      </div>
-      <div class="asset-note"><span class="asset-dot"></span><span>Project Drive · ControlVehicle mesh</span></div>
-    </section>
-
-    <aside class="control-panel" aria-label="Rendering controls">
+    <aside class="control-panel" id="controlPanel" aria-label="Renderer controls">
       <div class="panel-heading">
-        <div>
-          <span class="panel-kicker">RENDER LAB / 01</span>
-          <h2>Distance field GI</h2>
-        </div>
-        <span class="live-mark"><i></i> LIVE</span>
+        <h1>Controls</h1>
+        <button id="panelCollapse" class="panel-collapse" type="button" aria-expanded="true"
+          aria-controls="controlPanelBody" aria-label="Collapse control panel" title="Collapse panel">−</button>
       </div>
 
-      <section class="control-section">
-        <label class="section-label" for="renderMode">View mode <span>01 — 08</span></label>
-        <select id="renderMode">
-          <option value="gi" selected>Diffuse GI · multi-bounce</option>
-          <option value="field">Global distance field</option>
-          <option value="influence">Cascade influence · GDF level</option>
-          <option value="direct">Direct light + shadows</option>
-          <option value="indirect">Indirect transport only</option>
-          <option value="normals">World-space normals</option>
-          <option value="albedo">Base colour</option>
-          <option value="ao">Distance-field AO</option>
-        </select>
-      </section>
-
-      <section class="control-section">
-        <div class="toggle-line">
-          <div><b>Clipmap bounds</b><small>Camera-view wireframes · 3 snapped cascades</small></div>
-          <label class="switch" aria-label="Show clipmap bounds relative to the camera">
-            <input id="clipmapBounds" type="checkbox" checked>
-            <span></span>
-          </label>
-        </div>
-        <p class="control-hint">X-ray outlines show all three snapped volumes; the influence view colors surfaces by the GDF cascade blend.</p>
-      </section>
-
-      <section class="control-section">
-        <label class="section-label" for="quality">Compute budget <span>RESOLVE</span></label>
-        <select id="quality">
-          <option value="fast">Fast · 0.38× render scale</option>
-          <option value="balanced" selected>Balanced · 0.56× render scale</option>
-          <option value="high">High · 0.70× render scale</option>
-        </select>
-        <div class="range-block">
-          <div class="control-row"><label for="giRays">GI rays per pixel</label><output id="giRaysValue">4 rays / pixel</output></div>
-          <input id="giRays" type="range" min="1" max="6" step="1" value="4">
-        </div>
-        <div class="control-row compact-row">
-          <label for="bounceCount">Max diffuse bounces</label>
-          <select id="bounceCount" class="inline-select">
-            <option value="1">1 bounce</option>
-            <option value="2" selected>2 bounces</option>
-            <option value="3">3 bounces</option>
-          </select>
-        </div>
-      </section>
-
-      <section class="control-section">
-        <div class="toggle-line">
-          <div><b>Temporal surface cache</b><small>Raster visibility IDs + camera/object motion vectors</small></div>
-          <label class="switch" aria-label="Enable temporal surface-cache accumulation">
-            <input id="temporalCache" type="checkbox" checked>
-            <span></span>
-          </label>
-        </div>
-        <p class="control-hint">Moving-car and road lighting uses fresh samples each frame; temporal reuse stays on stable geometry.</p>
-      </section>
-
-      <section class="control-section">
-        <div class="toggle-line">
-          <div><b>Auto-cruise</b><small>Optional straight cruise · live field updates</small></div>
-          <label class="switch" aria-label="Enable automatic vehicle movement">
-            <input id="autoDrive" type="checkbox">
-            <span></span>
-          </label>
-        </div>
-        <div class="range-block">
-          <div class="control-row"><label for="driveSpeed">Vehicle speed</label><output id="driveSpeedValue">8.0 m/s</output></div>
-          <input id="driveSpeed" type="range" min="2" max="18" step="0.5" value="8">
-        </div>
-        <div class="drive-buttons">
-          <button id="pauseButton" class="button quiet" type="button">Pause drive</button>
-          <button id="resetButton" class="button quiet" type="button">Reset drive</button>
-        </div>
-        <p class="control-hint">Drive: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows · <kbd>Space</kbd> brake. City props are pass-through; world edges stay bounded.</p>
-      </section>
-
-      <section class="control-section">
-        <label class="section-label" for="giStrength">Diffuse transport <span>GI / AO</span></label>
-        <div class="range-block">
-          <div class="control-row"><label for="giStrength">GI bounce strength</label><output id="giStrengthValue">1.15×</output></div>
-          <input id="giStrength" type="range" min="0" max="2.5" step="0.05" value="1.15">
-        </div>
-        <div class="range-block">
-          <div class="control-row"><label for="skyStrength">Sky fill</label><output id="skyStrengthValue">0.32×</output></div>
-          <input id="skyStrength" type="range" min="0" max="1.5" step="0.01" value="0.32">
-        </div>
-        <div class="range-block range-last">
-          <div class="control-row"><label for="aoStrength">Distance-field AO</label><output id="aoStrengthValue">0.45×</output></div>
-          <input id="aoStrength" type="range" min="0" max="2" step="0.01" value="0.45">
-        </div>
-      </section>
-
-      <section class="control-section">
-        <label class="section-label" for="sunIntensity">Direct light controls <span>EMISSIVE / SUN / POINT</span></label>
-        <div class="range-block">
-          <div class="control-row"><label for="sunIntensity">Sun intensity</label><output id="sunIntensityValue">1.0</output></div>
-          <input id="sunIntensity" type="range" min="0" max="8" step="0.1" value="1.0">
-        </div>
-        <div class="range-block">
-          <div class="control-row"><label for="sunAngularRadius">Sun angular radius</label><output id="sunAngularRadiusValue">0.90°</output></div>
-          <input id="sunAngularRadius" type="range" min="0.05" max="3" step="0.05" value="0.9">
-          <p class="control-hint">Increase angular radius to widen the directional sun penumbra.</p>
-        </div>
-        <div class="range-block">
-          <div class="control-row"><label for="pointLightIntensity">Point-light intensity</label><output id="pointLightIntensityValue">0</output></div>
-          <input id="pointLightIntensity" type="range" min="0" max="400" step="2" value="0">
-        </div>
-        <div class="range-block">
-          <div class="control-row"><label for="pointLightRadius">Point source radius</label><output id="pointLightRadiusValue">0.80 m</output></div>
-          <input id="pointLightRadius" type="range" min="0" max="2.5" step="0.05" value="0.8">
-          <p class="control-hint">Actual point-light component; radius softens its SDF shadow independently of emissive-panel GI.</p>
-        </div>
-        <div class="range-block">
-          <div class="control-row"><label for="emissiveIntensity">Emissive intensity</label><output id="emissiveIntensityValue">2.50×</output></div>
-          <input id="emissiveIntensity" type="range" min="0" max="3" step="0.05" value="2.5">
-          <p class="control-hint">Scales the six actual panel surfaces and their finite-area lighting contribution.</p>
-        </div>
-        <div class="range-block">
-          <div class="control-row"><label for="emitterSize">Emitter surface size</label><output id="emitterSizeValue">1.35×</output></div>
-          <input id="emitterSize" type="range" min="0.2" max="2.5" step="0.05" value="1.35">
-          <p class="control-hint">Scales the visible emitter panels and sampled area; SDF visibility creates the penumbra.</p>
-        </div>
-        <div class="range-block range-last">
-          <div class="control-row"><label for="emissiveSamples">Emissive area samples</label><output id="emissiveSamplesValue">8 samples / pixel</output></div>
-          <input id="emissiveSamples" type="range" min="1" max="16" step="1" value="8">
-          <p class="control-hint">More stratified surface samples smooth the finite-area visibility and its penumbrae.</p>
-        </div>
-      </section>
-
-      <section class="pipeline-list">
-        <div class="section-label">Frame sequence <span>GPU</span></div>
-        <div><i>01</i><span>BVH-baked object SDF</span><b>ONCE</b></div>
-        <div><i>02</i><span>Dirty snapped GDF cascade update</span><b>ON SNAP</b></div>
-        <div><i>03</i><span>Raster G-buffer + area-light sampling</span><b>WGSL</b></div>
-        <div><i>04</i><span>Multi-bounce GI + composition</span><b>WGSL</b></div>
-        <div><i>05</i><span>Temporal surface-cache resolve</span><b>REPROJECT</b></div>
-        <div><i>06</i><span>Cascade blend + edge-aware denoise</span><b>POST</b></div>
-      </section>
-
-      <div class="panel-foot">
-        <span class="status-ring"></span>
-        <span id="loadingText">Requesting a WebGPU adapter…</span>
-      </div>
-    </aside>
-
-    <section class="field-card" id="fieldCard" aria-label="Live signed-distance field slice">
-      <div class="field-card-head">
-        <div><span class="panel-kicker" id="fieldCardKicker">LIVE VOLUME / FINE CASCADE</span><b id="fieldCardTitle">Global distance slice</b></div>
-        <div class="field-card-actions">
-          <button id="fieldToggle" class="field-toggle active" type="button" aria-label="Hide debug inset" aria-pressed="true" title="Hide debug inset">×</button>
-        </div>
-      </div>
-      <canvas id="fieldCanvas" width="320" height="320" aria-label="Top-down signed distance field slice"></canvas>
-      <div class="field-card-foot" id="fieldSliceLegend">
-        <span><i class="legend-positive"></i>free space</span>
-        <span><i class="legend-surface"></i>surface</span>
-        <span><i class="legend-negative"></i>inside</span>
-      </div>
-      <div class="field-meta" id="fieldLegend">64³ × 3 full-mesh clipmaps · streamed static triangles · vehicle SDF</div>
-    </section>
-
-    <section class="metrics" aria-label="Live renderer statistics">
-      <div class="metric"><small>FRAME RATE</small><b id="fpsValue">—</b><i>FPS</i></div>
-      <div class="metric" title="RequestAnimationFrame cadence; this is not GPU execution time."><small>RAF CADENCE</small><b id="frameValue">—</b></div>
-      <div class="metric"><small>VEHICLE SPEED</small><b id="hudSpeed">0.0 m/s</b></div>
-      <div class="metric"><small>WORLD X / Z</small><b id="hudPosition">-3.2 / -6.0</b></div>
-      <div class="metric"><small>FINE CLIPMAP</small><b id="fieldCells">64³ × 3</b><i id="fieldVoxel">0.19 m</i></div>
-      <details class="metric gpu-timing" id="gpuTimingPanel">
-        <summary aria-label="Show per-pass GPU timings"><small>GPU PASS SUM</small><b id="gpuTimeValue">—</b><i id="gpuTimingStatus">checking</i></summary>
-        <div class="gpu-timing-popover">
-          <div class="gpu-timing-heading">PER-PASS GPU TIMESTAMPS · MS</div>
+      <div class="control-panel-body" id="controlPanelBody">
+        <section class="gpu-timing-panel" id="gpuTimingPanel" aria-label="GPU pass timings"
+          title="GPU pass durations in milliseconds; pass sum excludes CPU time and queue idle.">
+          <div class="gpu-timing-heading-row">
+            <h2>GPU TIMINGS</h2>
+            <button id="copyGpuTimingLog" type="button">COPY LOG</button>
+          </div>
+          <span id="gpuTimingLogStatus" data-state="collecting" aria-live="polite">Waiting for samples…</span>
           <div class="gpu-timing-rows">
             <div><span>GDF update</span><b data-gpu-pass="gdf">—</b></div>
             <div><span>Surface cache</span><b data-gpu-pass="surfaceCache">—</b></div>
@@ -229,25 +39,148 @@
             <div><span>Temporal</span><b data-gpu-pass="temporal">—</b></div>
             <div><span>Denoise</span><b data-gpu-pass="denoise">—</b></div>
             <div><span>Present</span><b data-gpu-pass="present">—</b></div>
-            <div><span>Field slice</span><b data-gpu-pass="fieldMap">—</b></div>
-          </div>
-          <p>Async GPU pass sum, not full-frame time; excludes CPU/queue idle. — means skipped.</p>
-          <div class="gpu-timing-log-actions">
-            <button id="copyGpuTimingLog" type="button">COPY LOG</button>
-            <span id="gpuTimingLogStatus" data-state="collecting" aria-live="polite">Waiting for samples…</span>
           </div>
           <textarea id="gpuTimingLog" class="gpu-timing-log-text" rows="6" readonly hidden aria-label="GPU timing CSV log"></textarea>
-          <p class="gpu-timing-log-hint">Copies up to 120 recent sampled frames as CSV.</p>
-        </div>
-      </details>
-      <div class="drive-badge" id="driveMode" data-mode="manual">MANUAL DRIVE</div>
+        </section>
+
+        <section class="control-section">
+          <label class="section-label" for="renderMode">View mode</label>
+          <select id="renderMode">
+            <option value="gi" selected>Diffuse GI · multi-bounce</option>
+            <option value="field">Global distance field</option>
+            <option value="influence">Cascade influence</option>
+            <option value="direct">Direct light + shadows</option>
+            <option value="indirect">Indirect transport only</option>
+            <option value="normals">World-space normals</option>
+            <option value="albedo">Base colour</option>
+            <option value="ao">Distance-field AO</option>
+          </select>
+        </section>
+
+        <section class="control-section toggle-section">
+          <div class="toggle-line">
+            <b>Clipmap bounds</b>
+            <label class="switch" aria-label="Show clipmap bounds">
+              <input id="clipmapBounds" type="checkbox" checked>
+              <span></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <label class="section-label" for="quality">Quality</label>
+          <select id="quality">
+            <option value="fast">Fast · 0.38×</option>
+            <option value="balanced" selected>Balanced · 0.56× render scale</option>
+            <option value="high">High · 0.70×</option>
+          </select>
+          <div class="range-block">
+            <div class="control-row"><label for="giRays">GI rays per pixel</label><output id="giRaysValue">4 rays / pixel</output></div>
+            <input id="giRays" type="range" min="1" max="6" step="1" value="4">
+          </div>
+          <div class="control-row compact-row">
+            <label for="bounceCount">Diffuse bounces</label>
+            <select id="bounceCount" class="inline-select">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="control-section toggle-section">
+          <div class="toggle-line">
+            <b>Temporal cache</b>
+            <label class="switch" aria-label="Enable temporal surface-cache accumulation">
+              <input id="temporalCache" type="checkbox" checked>
+              <span></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <label class="section-label" for="autoDrive">Vehicle</label>
+          <div class="toggle-line">
+            <b>Auto-cruise</b>
+            <label class="switch" aria-label="Enable automatic vehicle movement">
+              <input id="autoDrive" type="checkbox">
+              <span></span>
+            </label>
+          </div>
+          <div class="range-block">
+            <div class="control-row"><label for="driveSpeed">Cruise speed</label><output id="driveSpeedValue">8.0 m/s</output></div>
+            <input id="driveSpeed" type="range" min="2" max="18" step="0.5" value="8">
+          </div>
+          <div class="drive-buttons">
+            <button id="pauseButton" class="button quiet" type="button">Pause</button>
+            <button id="resetButton" class="button quiet" type="button">Reset</button>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <label class="section-label" for="giStrength">Diffuse transport</label>
+          <div class="range-block">
+            <div class="control-row"><label for="giStrength">GI strength</label><output id="giStrengthValue">1.15×</output></div>
+            <input id="giStrength" type="range" min="0" max="2.5" step="0.05" value="1.15">
+          </div>
+          <div class="range-block">
+            <div class="control-row"><label for="skyStrength">Sky fill</label><output id="skyStrengthValue">0.32×</output></div>
+            <input id="skyStrength" type="range" min="0" max="1.5" step="0.01" value="0.32">
+          </div>
+          <div class="range-block range-last">
+            <div class="control-row"><label for="aoStrength">Distance-field AO</label><output id="aoStrengthValue">0.45×</output></div>
+            <input id="aoStrength" type="range" min="0" max="2" step="0.01" value="0.45">
+          </div>
+        </section>
+
+        <section class="control-section">
+          <label class="section-label" for="sunIntensity">Lighting</label>
+          <div class="range-block">
+            <div class="control-row"><label for="sunIntensity">Sun intensity</label><output id="sunIntensityValue">1.0</output></div>
+            <input id="sunIntensity" type="range" min="0" max="8" step="0.1" value="1.0">
+          </div>
+          <div class="range-block">
+            <div class="control-row"><label for="sunAngularRadius">Sun radius</label><output id="sunAngularRadiusValue">0.90°</output></div>
+            <input id="sunAngularRadius" type="range" min="0.05" max="3" step="0.05" value="0.9">
+          </div>
+          <div class="range-block">
+            <div class="control-row"><label for="pointLightIntensity">Point-light intensity</label><output id="pointLightIntensityValue">0</output></div>
+            <input id="pointLightIntensity" type="range" min="0" max="400" step="2" value="0">
+          </div>
+          <div class="range-block">
+            <div class="control-row"><label for="pointLightRadius">Point source radius</label><output id="pointLightRadiusValue">0.80 m</output></div>
+            <input id="pointLightRadius" type="range" min="0" max="2.5" step="0.05" value="0.8">
+          </div>
+          <div class="range-block">
+            <div class="control-row"><label for="emissiveIntensity">Emissive intensity</label><output id="emissiveIntensityValue">2.50×</output></div>
+            <input id="emissiveIntensity" type="range" min="0" max="3" step="0.05" value="2.5">
+          </div>
+          <div class="range-block">
+            <div class="control-row"><label for="emitterSize">Emitter size</label><output id="emitterSizeValue">1.35×</output></div>
+            <input id="emitterSize" type="range" min="0.2" max="2.5" step="0.05" value="1.35">
+          </div>
+          <div class="range-block range-last">
+            <div class="control-row"><label for="emissiveSamples">Emissive samples</label><output id="emissiveSamplesValue">8 samples / pixel</output></div>
+            <input id="emissiveSamples" type="range" min="1" max="16" step="1" value="8">
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <section class="metrics" aria-label="Performance stats">
+      <div class="metric"><small>FPS</small><b id="fpsValue">—</b></div>
+      <div class="metric" title="GPU pass sum, not end-to-end frame time."><small>GPU PASS SUM</small><b id="gpuTimeValue">—</b><i id="gpuTimingStatus">checking</i></div>
     </section>
 
-    <div class="camera-hint">DRAG TO ORBIT <span>·</span> WHEEL TO ZOOM <span>·</span> FIELD ORIGIN SNAPS TO VOXELS</div>
+    <div class="runtime-meta" hidden aria-hidden="true">
+      <span id="gpuStatus" data-state="loading">STARTING</span>
+      <span id="adapterName"></span>
+      <span id="loadingText"></span>
+    </div>
 
     <section class="error-panel" id="errorPanel" hidden role="alert">
       <div class="error-icon">!</div>
-      <div><h2 id="errorTitle">WebGPU unavailable</h2><p id="errorDetails"></p><small>This experiment requires WebGPU in a secure browser context. There is deliberately no WebGL or native SDF fallback.</small></div>
+      <div><h2 id="errorTitle">WebGPU unavailable</h2><p id="errorDetails"></p><small>This experiment requires WebGPU in a secure browser context.</small></div>
     </section>
   </main>
   <script type="module" src="./app.mjs"></script>

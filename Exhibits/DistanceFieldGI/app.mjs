@@ -21,7 +21,6 @@ import {
   BAKE_WGSL,
   COMPOSE_WGSL,
   DENOISE_WGSL,
-  FIELD_MAP_WGSL,
   GI_WGSL,
   GBUFFER_WGSL,
   PRESENT_WGSL,
@@ -70,7 +69,6 @@ const GPU_TIMING_PASSES = [
   { key: 'temporal', label: 'Temporal' },
   { key: 'denoise', label: 'Denoise' },
   { key: 'present', label: 'Present' },
-  { key: 'fieldMap', label: 'Field slice' },
 ];
 const GPU_TIMING_PASS_INDEX = Object.fromEntries(GPU_TIMING_PASSES.map((pass, index) => [pass.key, index]));
 const GPU_TIMING_QUERY_COUNT = GPU_TIMING_PASSES.length * 2;
@@ -82,7 +80,6 @@ const $ = selector => document.querySelector(selector);
 const ui = {
   canvas: $('#viewCanvas'),
   clipmapOverlay: $('#clipmapOverlay'),
-  fieldCanvas: $('#fieldCanvas'),
   status: $('#gpuStatus'),
   adapter: $('#adapterName'),
   loading: $('#loadingText'),
@@ -91,9 +88,6 @@ const ui = {
   errorDetails: $('#errorDetails'),
   renderMode: $('#renderMode'),
   clipmapBounds: $('#clipmapBounds'),
-  fieldCardKicker: $('#fieldCardKicker'),
-  fieldCardTitle: $('#fieldCardTitle'),
-  fieldSliceLegend: $('#fieldSliceLegend'),
   quality: $('#quality'),
   temporalCache: $('#temporalCache'),
   autoDrive: $('#autoDrive'),
@@ -124,17 +118,10 @@ const ui = {
   emissiveSamplesValue: $('#emissiveSamplesValue'),
   pauseButton: $('#pauseButton'),
   resetButton: $('#resetButton'),
-  fieldToggle: $('#fieldToggle'),
-  fieldCard: $('#fieldCard'),
   fps: $('#fpsValue'),
-  frameMs: $('#frameValue'),
-  speed: $('#hudSpeed'),
-  position: $('#hudPosition'),
-  fieldCells: $('#fieldCells'),
-  fieldVoxel: $('#fieldVoxel'),
-  driveMode: $('#driveMode'),
-  fieldLegend: $('#fieldLegend'),
   gpuTimingPanel: $('#gpuTimingPanel'),
+  controlPanel: $('#controlPanel'),
+  panelCollapse: $('#panelCollapse'),
   gpuTimeValue: $('#gpuTimeValue'),
   gpuTimingStatus: $('#gpuTimingStatus'),
   gpuTimingRows: [...document.querySelectorAll('[data-gpu-pass]')],
@@ -148,7 +135,6 @@ const state = {
   device: null,
   canvasContext: null,
   overlayContext: null,
-  fieldContext: null,
   format: null,
   gpuTimingSupported: false,
   gpuTimingQuerySet: null,
@@ -232,8 +218,6 @@ const state = {
   emitterSize: 1.35,
   emissiveSamples: 8,
   paused: false,
-  showField: true,
-  fieldSlice: 0.92,
   frameIndex: 0,
   lastFrameTime: 0,
   elapsed: 0,
@@ -538,7 +522,7 @@ async function shaderModule(device, label, code) {
 }
 
 async function buildPipelines(device, format) {
-  const [bakeModule, updateModule, gbufferModule, shadeModule, giModule, surfaceCacheModule, composeModule, temporalModule, denoiseModule, presentModule, fieldModule] = await Promise.all([
+  const [bakeModule, updateModule, gbufferModule, shadeModule, giModule, surfaceCacheModule, composeModule, temporalModule, denoiseModule, presentModule] = await Promise.all([
     shaderModule(device, 'ControlVehicle SDF bake', BAKE_WGSL),
     shaderModule(device, 'Global distance-field update', UPDATE_GDF_WGSL),
     shaderModule(device, 'World-space G-buffer', GBUFFER_WGSL),
@@ -549,7 +533,6 @@ async function buildPipelines(device, format) {
     shaderModule(device, 'Reprojected temporal surface cache', TEMPORAL_WGSL),
     shaderModule(device, 'Edge-aware GI denoiser', DENOISE_WGSL),
     shaderModule(device, 'Final image presentation', PRESENT_WGSL),
-    shaderModule(device, 'Global distance-field slice', FIELD_MAP_WGSL),
   ]);
   // Keep the heavy direct-light and multi-bounce workloads in separate pipelines.
   // This avoids a single monolithic shader frame exceeding compiler stack limits,
@@ -658,14 +641,7 @@ async function buildPipelines(device, format) {
     fragment: { module: presentModule, entryPoint: 'fragmentMain', targets: [{ format }] },
     primitive: { topology: 'triangle-list' },
   });
-  const fieldMap = await device.createRenderPipelineAsync({
-    label: 'Live top-down GDF slice',
-    layout: 'auto',
-    vertex: { module: fieldModule, entryPoint: 'vertexMain' },
-    fragment: { module: fieldModule, entryPoint: 'fragmentMain', targets: [{ format }] },
-    primitive: { topology: 'triangle-list' },
-  });
-  return { bake, update, gbuffer, cardId, shade, gi, surfaceCache, compose, temporal, denoise, present, fieldMap };
+  return { bake, update, gbuffer, cardId, shade, gi, surfaceCache, compose, temporal, denoise, present };
 }
 
 function createTexture(device, label, width, height, depth, format, usage) {
@@ -837,7 +813,6 @@ function installStreamedWorld(world, worldDistanceBvh = null) {
     );
   }
   ui.loading.textContent = `${state.vehicle.triangleCount.toLocaleString()} ControlVehicle triangles · ${state.worldTriangleCount.toLocaleString()} streamed static mesh triangles · ${state.surfaceCacheCardCount.toLocaleString()} surface cards`;
-  ui.fieldLegend.textContent = `${GRID_RESOLUTION}³ × 3 full-mesh clipmaps · ${state.worldTriangleCount.toLocaleString()} static tris · vehicle ${VEHICLE_SDF_DIMS.join(' × ')}`;
   state.worldGdfRebuildPending = false;
   state.gdfReadyMask = 0;
   state.gdfPendingMask = 0;
@@ -991,7 +966,7 @@ function createGlobalFieldUpdateBindGroup(device) {
 }
 
 function createPersistentBindGroups(device) {
-  const { bake, gbuffer, cardId, present, fieldMap, surfaceCache } = state.pipelines;
+  const { bake, gbuffer, cardId, present, surfaceCache } = state.pipelines;
   state.bindGroups.bake = device.createBindGroup({
     label: 'Triangle-to-SDF bake bindings',
     layout: bake.getBindGroupLayout(0),
@@ -1034,17 +1009,6 @@ function createPersistentBindGroups(device) {
     label: 'Surface-card visibility frame data',
     layout: cardId.getBindGroupLayout(0),
     entries: [{ binding: 0, resource: { buffer: state.buffers.frame } }],
-  });
-  state.bindGroups.fieldMap = device.createBindGroup({
-    label: 'GDF inspection slice bindings',
-    layout: fieldMap.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: state.buffers.frame } },
-      { binding: 1, resource: state.views.globalDistance },
-      { binding: 2, resource: state.views.vehicleDistance },
-      { binding: 3, resource: { buffer: state.buffers.assetParams } },
-      { binding: 4, resource: { buffer: state.buffers.shapes } },
-    ],
   });
   state.bindGroups.presentSampler = device.createSampler({
     label: 'Bilinear upscale sampler',
@@ -1310,14 +1274,6 @@ function resizeClipmapOverlay() {
   state.overlayHeight = bounds.height;
 }
 
-function setFieldCardVisible(visible) {
-  state.showField = visible;
-  ui.fieldCard.classList.toggle('hidden', !visible);
-  ui.fieldToggle.classList.toggle('active', visible);
-  ui.fieldToggle.setAttribute('aria-pressed', String(visible));
-  ui.fieldToggle.setAttribute('aria-label', visible ? 'Hide debug inset' : 'Show debug inset');
-  ui.fieldToggle.title = visible ? 'Hide debug inset' : 'Show debug inset';
-}
 
 function transformToClip(point) {
   const matrix = state.viewProjection;
@@ -1392,15 +1348,6 @@ function drawClipmapOverlay() {
       context.lineTo(end[0], end[1]);
       context.stroke();
     }
-    const label = projectClipPoint(corners[0]);
-    const labels = ['FINE · 12 m', 'MID · 36 m', 'FAR · 108 m'];
-    context.setLineDash([]);
-    context.globalAlpha = 0.96;
-    context.shadowBlur = 3;
-    context.font = '700 10px ui-monospace, monospace';
-    context.fillStyle = CLIPMAP_COLORS[level];
-    context.fillText(labels[level], Math.max(6, Math.min(state.overlayWidth - 92, label[0] + 5)),
-      Math.max(12, Math.min(state.overlayHeight - 6, label[1] - 5)));
   }
   context.restore();
 }
@@ -1556,7 +1503,7 @@ function updateCameraAndField(dt) {
   data.set([sun[0], sun[1], sun[2], state.sunIntensity], 56);
   data.set([0.30, 0.43, 0.56, state.skyStrength], 60);
   data.set([state.giStrength, state.surfaceCacheGeneration, state.aoStrength, state.shapeCount], 64);
-  data.set([state.fieldSlice, ui.fieldCanvas.width, ui.fieldCanvas.height, 1.05], 68);
+  data.set([0, 0, 0, 1.05], 68);
   data.set([state.emissiveIntensity, state.emitterSize, state.sunAngularRadius, state.emissiveSamples], 72);
   data.set([state.emissiveSourceCount, state.historyValid ? 1 : 0, state.temporalEnabled ? 1 : 0, state.surfaceCacheUpdateCount], 76);
   data.set([...state.pointLightPosition, state.pointLightIntensity], 80);
@@ -1644,13 +1591,6 @@ function updateHud(now) {
   if (now - state.lastHudUpdate < 180) return;
   state.lastHudUpdate = now;
   ui.fps.textContent = state.fps ? state.fps.toFixed(0) : '—';
-  ui.frameMs.textContent = state.fps ? `${(1000 / state.fps).toFixed(1)} ms` : '—';
-  ui.speed.textContent = `${state.car.speed.toFixed(1)} m/s`;
-  ui.position.textContent = `${state.car.x.toFixed(1)} / ${state.car.z.toFixed(1)}`;
-  ui.fieldCells.textContent = `${GRID_RESOLUTION}³ × 3`;
-  ui.fieldVoxel.textContent = `${(CASCADE_EXTENTS[0] / GRID_RESOLUTION).toFixed(2)} m`;
-  ui.driveMode.textContent = state.autoDrive ? 'AUTO CRUISE' : 'MANUAL DRIVE';
-  ui.driveMode.dataset.mode = state.autoDrive ? 'auto' : 'manual';
   updateGpuTimingHud();
 }
 
@@ -1828,22 +1768,6 @@ function renderFrame(now) {
   presentPass.draw(3);
   presentPass.end();
 
-  if (state.showField) {
-    const fieldPass = encoder.beginRenderPass({
-      label: 'Visualize the live fine-cascade signed-distance slice',
-      timestampWrites: gpuTimestampWrites('fieldMap'),
-      colorAttachments: [{
-        view: state.fieldContext.getCurrentTexture().createView(),
-        clearValue: { r: 0.01, g: 0.02, b: 0.03, a: 1 },
-        loadOp: 'clear',
-        storeOp: 'store',
-      }],
-    });
-    fieldPass.setPipeline(state.pipelines.fieldMap);
-    fieldPass.setBindGroup(0, state.bindGroups.fieldMap);
-    fieldPass.draw(3);
-    fieldPass.end();
-  }
 
   const gpuTimingSubmission = encodeGpuTimingReadback(encoder);
   device.queue.submit([encoder.finish()]);
@@ -1877,6 +1801,14 @@ function invalidateSurfaceCache() {
 
 function bindInput() {
   ui.copyGpuTimingLog.addEventListener('click', copyGpuTimingLog);
+  ui.panelCollapse.addEventListener('click', () => {
+    const expanded = ui.panelCollapse.getAttribute('aria-expanded') === 'true';
+    ui.controlPanel.classList.toggle('collapsed', expanded);
+    ui.panelCollapse.setAttribute('aria-expanded', String(!expanded));
+    ui.panelCollapse.setAttribute('aria-label', expanded ? 'Expand control panel' : 'Collapse control panel');
+    ui.panelCollapse.title = expanded ? 'Expand panel' : 'Collapse panel';
+    ui.panelCollapse.textContent = expanded ? '+' : '−';
+  });
   ui.renderMode.addEventListener('change', () => {
     state.mode = ui.renderMode.value;
     if (state.mode !== state.lastMode) invalidateSurfaceHistory();
@@ -1884,12 +1816,10 @@ function bindInput() {
     if (state.mode === 'influence') {
       state.showClipmapBounds = true;
       ui.clipmapBounds.checked = true;
-      setFieldCardVisible(true);
     }
   });
   ui.clipmapBounds.addEventListener('change', () => {
     state.showClipmapBounds = ui.clipmapBounds.checked;
-    if (state.showClipmapBounds) setFieldCardVisible(true);
   });
   ui.temporalCache.addEventListener('change', () => {
     state.temporalEnabled = ui.temporalCache.checked;
@@ -1970,9 +1900,6 @@ function bindInput() {
     ui.pauseButton.classList.toggle('active', state.paused);
   });
   ui.resetButton.addEventListener('click', resetView);
-  ui.fieldToggle.addEventListener('click', () => {
-    setFieldCardVisible(!state.showField);
-  });
   ui.canvas.addEventListener('pointerdown', event => {
     if (event.button !== 0) return;
     state.drag = { x: event.clientX, y: event.clientY };
@@ -2054,14 +1981,12 @@ async function initialize() {
     const adapterInfo = state.adapter.info || {};
     ui.adapter.textContent = adapterInfo.description || adapterInfo.device || 'WebGPU adapter';
     state.canvasContext = ui.canvas.getContext('webgpu');
-    state.fieldContext = ui.fieldCanvas.getContext('webgpu');
     state.overlayContext = ui.clipmapOverlay.getContext('2d');
-    if (!state.canvasContext || !state.fieldContext || !state.overlayContext) {
+    if (!state.canvasContext || !state.overlayContext) {
       throw new Error('Unable to create the WebGPU scene and distance-field debug canvases.');
     }
     state.format = navigator.gpu.getPreferredCanvasFormat();
     state.canvasContext.configure({ device: state.device, format: state.format, alphaMode: 'opaque' });
-    state.fieldContext.configure({ device: state.device, format: state.format, alphaMode: 'opaque' });
 
     state.buffers.frame = makeUniformBuffer(state.device, FRAME_BYTES, 'Frame and clipmap uniforms');
     createVolumeResources(state.device);
@@ -2076,8 +2001,7 @@ async function initialize() {
     state.fpsStart = performance.now();
     ui.status.textContent = 'WEBGPU · LIVE';
     ui.status.dataset.state = 'ready';
-    ui.fieldLegend.textContent = `${GRID_RESOLUTION}³ × 3 full-mesh clipmaps · ${state.worldTriangleCount.toLocaleString()} static tris · vehicle ${VEHICLE_SDF_DIMS.join(' × ')}`;
-    ui.loading.textContent = `${state.vehicle.triangleCount.toLocaleString()} ControlVehicle triangles · ${state.worldTriangleCount.toLocaleString()} streamed static mesh triangles in the GDF · ${state.surfaceCacheCardCount.toLocaleString()} surface cards`;
+      ui.loading.textContent = `${state.vehicle.triangleCount.toLocaleString()} ControlVehicle triangles · ${state.worldTriangleCount.toLocaleString()} streamed static mesh triangles in the GDF · ${state.surfaceCacheCardCount.toLocaleString()} surface cards`;
     requestAnimationFrame(renderFrame);
   } catch (error) {
     console.error(error);
