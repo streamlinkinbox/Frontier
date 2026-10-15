@@ -1,0 +1,90 @@
+{
+  "source": "Projects/Project-Zero/Content/Scenes/Vehicle.gltf",
+  "sourceSHA256": "4324b29b73e2af226965c5623f81267ddda4581845b120bc203936130ab96051",
+  "glbSHA256": "cd3c759111479262f82a80d5831e3d3e15554c4b2abe45c3bacc0fd7999a580e",
+  "glbBytes": 1687352,
+  "nodes": [
+    "ControlVehicle \u2014 paint / glass / plastic",
+    "Tyre FL",
+    "Tyre FR",
+    "Tyre RL",
+    "Tyre RR"
+  ],
+  "materials": [
+    {
+      "name": "MetalicCoat",
+      "baseColor": [
+        0.680005014,
+        0.800458014,
+        0.0
+      ]
+    },
+    {
+      "name": "Glass",
+      "baseColor": [
+        0.0250000004,
+        0.0350000001,
+        0.0450000018
+      ]
+    },
+    {
+      "name": "Plastic",
+      "baseColor": [
+        0.0120000001,
+        0.0140000004,
+        0.0179999992
+      ]
+    },
+    {
+      "name": "StandardRubber",
+      "baseColor": [
+        0.0374099985,
+        0.0374099985,
+        0.0374099985
+      ]
+    },
+    {
+      "name": "Plastic2",
+      "baseColor": [
+        0.800000012,
+        0.800000012,
+        0.800000012
+      ]
+    },
+    {
+      "name": "FrontLight",
+      "baseColor": [
+        0.800000012,
+        0.800000012,
+        0.800000012
+      ]
+    },
+    {
+      "name": "RearLight",
+      "baseColor": [
+        0.754100025,
+        0.00999999978,
+        0.0199999996
+      ]
+    },
+    {
+      "name": "Material.016",
+      "baseColor": [
+        0.800000012,
+        0.800000012,
+        0.800000012
+      ]
+    },
+    {
+      "name": "Material.024",
+      "baseColor": [
+        0.0599999987,
+        0.219999999,
+        0.620000005
+      ]
+    }
+  ],
+  "facets": 19948,
+  "authoredBy": "Projects/Project-Drive/Source/DriveSceneAuthor.cpp (ControlVehicleStructure.inl body, ControlWheelStructure.inl rims, tread lattice)",
+  "statement": "Byte-identical geometry and materials of the Drive-authored ControlVehicle; the proving ground is omitted. Visual preview only."
+}
