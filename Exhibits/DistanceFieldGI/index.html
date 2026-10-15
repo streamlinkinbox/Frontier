@@ -232,6 +232,12 @@
             <div><span>Field slice</span><b data-gpu-pass="fieldMap">—</b></div>
           </div>
           <p>Async GPU pass sum, not full-frame time; excludes CPU/queue idle. — means skipped.</p>
+          <div class="gpu-timing-log-actions">
+            <button id="copyGpuTimingLog" type="button">COPY LOG</button>
+            <span id="gpuTimingLogStatus" data-state="collecting" aria-live="polite">Waiting for samples…</span>
+          </div>
+          <textarea id="gpuTimingLog" class="gpu-timing-log-text" rows="6" readonly hidden aria-label="GPU timing CSV log"></textarea>
+          <p class="gpu-timing-log-hint">Copies up to 120 recent sampled frames as CSV.</p>
         </div>
       </details>
       <div class="drive-badge" id="driveMode" data-mode="manual">MANUAL DRIVE</div>

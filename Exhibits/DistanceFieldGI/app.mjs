@@ -76,6 +76,7 @@ const GPU_TIMING_PASS_INDEX = Object.fromEntries(GPU_TIMING_PASSES.map((pass, in
 const GPU_TIMING_QUERY_COUNT = GPU_TIMING_PASSES.length * 2;
 const GPU_TIMING_BUFFER_SIZE = GPU_TIMING_QUERY_COUNT * BigUint64Array.BYTES_PER_ELEMENT;
 const GPU_TIMING_RING_SIZE = 3;
+const GPU_TIMING_LOG_LIMIT = 120;
 
 const $ = selector => document.querySelector(selector);
 const ui = {
@@ -137,6 +138,9 @@ const ui = {
   gpuTimeValue: $('#gpuTimeValue'),
   gpuTimingStatus: $('#gpuTimingStatus'),
   gpuTimingRows: [...document.querySelectorAll('[data-gpu-pass]')],
+  copyGpuTimingLog: $('#copyGpuTimingLog'),
+  gpuTimingLogStatus: $('#gpuTimingLogStatus'),
+  gpuTimingLog: $('#gpuTimingLog'),
 };
 
 const state = {
@@ -154,6 +158,7 @@ const state = {
   gpuTimingPassUsed: new Uint8Array(GPU_TIMING_PASSES.length),
   gpuTimingLatest: null,
   gpuTimingLatestFrame: 0,
+  gpuTimingHistory: [],
   pipelines: {},
   bindGroups: {},
   textures: {},
@@ -253,6 +258,8 @@ function showError(title, details) {
   ui.status.dataset.state = 'error';
   ui.gpuTimeValue.textContent = '—';
   ui.gpuTimingStatus.textContent = 'unavailable';
+  ui.gpuTimingLogStatus.dataset.state = 'unavailable';
+  ui.gpuTimingLogStatus.textContent = 'WebGPU unavailable';
   ui.gpuTimingPanel.title = 'GPU timing is unavailable because WebGPU could not be initialized.';
 }
 
@@ -285,6 +292,8 @@ function makeUniformBuffer(device, size, label) {
 function initializeGpuTiming(device) {
   if (!device.features?.has('timestamp-query')) {
     ui.gpuTimingStatus.textContent = 'unsupported';
+    ui.gpuTimingLogStatus.dataset.state = 'unavailable';
+    ui.gpuTimingLogStatus.textContent = 'timestamp-query unavailable';
     ui.gpuTimingPanel.title = 'This adapter does not expose the optional timestamp-query feature.';
     return;
   }
@@ -316,6 +325,8 @@ function initializeGpuTiming(device) {
     state.gpuTimingQuerySet = null;
     state.gpuTimingSlots = [];
     ui.gpuTimingStatus.textContent = 'unavailable';
+    ui.gpuTimingLogStatus.dataset.state = 'unavailable';
+    ui.gpuTimingLogStatus.textContent = 'GPU timing unavailable';
     ui.gpuTimingPanel.title = 'Timestamp query setup failed on this adapter.';
   }
 }
@@ -358,11 +369,27 @@ function encodeGpuTimingReadback(encoder) {
     encoder.resolveQuerySet(state.gpuTimingQuerySet, firstQuery, 2, slot.resolveBuffer, 0);
     encoder.copyBufferToBuffer(slot.resolveBuffer, 0, slot.readBuffer, byteOffset, 2 * BigUint64Array.BYTES_PER_ELEMENT);
   }
-  return { slot, usedPasses, frame: state.frameIndex };
+  return {
+    slot,
+    usedPasses,
+    frame: state.frameIndex,
+    snapshot: {
+      mode: state.mode,
+      quality: state.quality,
+      giRays: state.giRays,
+      bounces: state.bounces,
+      renderWidth: state.renderWidth,
+      renderHeight: state.renderHeight,
+      targetWidth: state.targetWidth,
+      targetHeight: state.targetHeight,
+      rafFps: state.fps || null,
+      rafCadenceMs: state.fps ? 1000 / state.fps : null,
+    },
+  };
 }
 
 function readGpuTimingResults(submission) {
-  const { slot, usedPasses, frame } = submission;
+  const { slot, usedPasses, frame, snapshot } = submission;
   slot.busy = true;
   slot.readBuffer.mapAsync(GPUMapMode.READ).then(() => {
     const timestamps = new BigUint64Array(slot.readBuffer.getMappedRange());
@@ -374,6 +401,16 @@ function readGpuTimingResults(submission) {
       if (end >= start) timings[pass.key] = Number(end - start) / 1_000_000;
     }
     slot.readBuffer.unmap();
+    const gpuPassSumMs = Object.values(timings).reduce((sum, milliseconds) => sum + milliseconds, 0);
+    state.gpuTimingHistory.push({ frame, ...snapshot, timings, gpuPassSumMs });
+    if (state.gpuTimingHistory.length > GPU_TIMING_LOG_LIMIT) {
+      state.gpuTimingHistory.sort((a, b) => a.frame - b.frame);
+      state.gpuTimingHistory.splice(0, state.gpuTimingHistory.length - GPU_TIMING_LOG_LIMIT);
+    }
+    if (ui.gpuTimingLogStatus.dataset.state === 'collecting') {
+      ui.gpuTimingLogStatus.dataset.state = 'ready';
+      ui.gpuTimingLogStatus.textContent = 'GPU timing log ready';
+    }
     if (frame >= state.gpuTimingLatestFrame) {
       state.gpuTimingLatest = timings;
       state.gpuTimingLatestFrame = frame;
@@ -382,6 +419,8 @@ function readGpuTimingResults(submission) {
     console.warn('GPU timestamp readback failed; disabling per-pass timing:', error);
     state.gpuTimingSupported = false;
     ui.gpuTimingStatus.textContent = 'unavailable';
+    ui.gpuTimingLogStatus.dataset.state = 'unavailable';
+    ui.gpuTimingLogStatus.textContent = 'GPU timing readback failed';
     ui.gpuTimingPanel.title = 'GPU timestamp readback failed; see the console for details.';
     if (slot.readBuffer.mapState === 'mapped') slot.readBuffer.unmap();
   }).finally(() => {
@@ -405,6 +444,86 @@ function updateGpuTimingHud() {
   ui.gpuTimeValue.textContent = total.toFixed(2);
   ui.gpuTimingStatus.textContent = 'ms';
   ui.gpuTimingPanel.title = `Asynchronous GPU pass sum from frame ${state.gpuTimingLatestFrame}; queue idle and CPU time are excluded.`;
+}
+
+function formatGpuTimingLog() {
+  const samples = state.gpuTimingHistory
+    .slice()
+    .sort((a, b) => a.frame - b.frame)
+    .slice(-GPU_TIMING_LOG_LIMIT);
+  const passColumns = GPU_TIMING_PASSES.map(({ key }) => `${key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)}_ms`);
+  const columns = [
+    'frame', 'mode', 'quality', 'render_width', 'render_height', 'target_width', 'target_height',
+    'gi_rays', 'bounces', 'raf_fps', 'raf_cadence_ms', 'gpu_pass_sum_ms', ...passColumns,
+  ];
+  const csvCell = value => `"${String(value ?? 'NA').replace(/"/g, '""')}"`;
+  const fixed = (value, digits) => Number.isFinite(value) ? value.toFixed(digits) : 'NA';
+  const rows = samples.map(sample => [
+    sample.frame,
+    sample.mode,
+    sample.quality,
+    sample.renderWidth,
+    sample.renderHeight,
+    sample.targetWidth,
+    sample.targetHeight,
+    sample.giRays,
+    sample.bounces,
+    fixed(sample.rafFps, 1),
+    fixed(sample.rafCadenceMs, 2),
+    fixed(sample.gpuPassSumMs, 3),
+    ...GPU_TIMING_PASSES.map(pass => fixed(sample.timings[pass.key], 3)),
+  ].map(csvCell).join(','));
+  const adapter = (ui.adapter.textContent || 'unknown').replace(/[\r\n]+/g, ' ');
+  return [
+    '# Frontier GPU timing log',
+    `# generated_utc=${new Date().toISOString()}`,
+    `# adapter=${JSON.stringify(adapter)}`,
+    '# GPU times are pass durations in ms; pass sum excludes CPU time and queue idle, and is not end-to-end frame time.',
+    '# RAF fields are browser cadence, not GPU time. NA means the pass was skipped; frame gaps can occur during async readback.',
+    `# samples=${samples.length}; maximum_recent_samples=${GPU_TIMING_LOG_LIMIT}`,
+    ...(samples.length ? [] : ['# No GPU timing samples captured yet.']),
+    columns.join(','),
+    ...rows,
+  ].join('\n');
+}
+
+async function copyGpuTimingLog() {
+  if (!state.gpuTimingHistory.length) {
+    ui.gpuTimingLogStatus.dataset.state = state.gpuTimingSupported ? 'collecting' : 'unavailable';
+    ui.gpuTimingLogStatus.textContent = state.gpuTimingSupported
+      ? 'Waiting for the first GPU sample.'
+      : 'GPU timestamp-query is unavailable.';
+    return;
+  }
+  const log = formatGpuTimingLog();
+  const sampleCount = Math.min(state.gpuTimingHistory.length, GPU_TIMING_LOG_LIMIT);
+  ui.gpuTimingLog.value = log;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable.');
+    await navigator.clipboard.writeText(log);
+    ui.gpuTimingLog.hidden = true;
+    ui.gpuTimingLogStatus.dataset.state = 'copied';
+    ui.gpuTimingLogStatus.textContent = `Copied ${sampleCount} samples. Paste into chat.`;
+  } catch (error) {
+    console.warn('Clipboard write failed; exposing the GPU timing log for manual copy:', error);
+    ui.gpuTimingLog.hidden = false;
+    ui.gpuTimingLog.focus();
+    ui.gpuTimingLog.select();
+    let copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } catch {
+      // Manual selection remains available if clipboard access is denied.
+    }
+    if (copied) {
+      ui.gpuTimingLog.hidden = true;
+      ui.gpuTimingLogStatus.dataset.state = 'copied';
+      ui.gpuTimingLogStatus.textContent = `Copied ${sampleCount} samples. Paste into chat.`;
+    } else {
+      ui.gpuTimingLogStatus.dataset.state = 'manual';
+      ui.gpuTimingLogStatus.textContent = 'Log selected below; copy it and paste into chat.';
+    }
+  }
 }
 
 async function shaderModule(device, label, code) {
@@ -1757,6 +1876,7 @@ function invalidateSurfaceCache() {
 }
 
 function bindInput() {
+  ui.copyGpuTimingLog.addEventListener('click', copyGpuTimingLog);
   ui.renderMode.addEventListener('change', () => {
     state.mode = ui.renderMode.value;
     if (state.mode !== state.lastMode) invalidateSurfaceHistory();

@@ -132,6 +132,12 @@ kbd { padding: 1px 3px; border: 1px solid rgba(255,255,255,.13); border-radius: 
 .gpu-timing-rows > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; color: #a7b5ab; font: 8px var(--mono); }
 .gpu-timing-rows b { color: #e2ebe3; font: 9px var(--mono); font-weight: 500; }
 .gpu-timing-popover p { margin: 9px 0 0; color: #74847a; font: 7px/1.5 var(--mono); }
+.gpu-timing-log-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.gpu-timing-log-actions button { flex: none; padding: 5px 8px; border: 1px solid rgba(201,250,120,.32); border-radius: 3px; background: rgba(201,250,120,.07); color: var(--accent); font: 7px var(--mono); letter-spacing: .07em; cursor: pointer; }
+.gpu-timing-log-actions button:hover { background: rgba(201,250,120,.15); }
+.gpu-timing-log-actions span { color: #84948b; font: 7px/1.4 var(--mono); }
+.gpu-timing-log-text { display: block; width: 100%; max-height: 180px; margin-top: 8px; padding: 7px; resize: vertical; border: 1px solid rgba(216,237,222,.14); border-radius: 3px; background: rgba(2,7,8,.85); color: #c2d0c5; font: 7px/1.45 var(--mono); white-space: pre; }
+.gpu-timing-log-text[hidden] { display: none; }
 .drive-badge { margin-left: auto; white-space: nowrap; color: var(--accent); font: 8px var(--mono); letter-spacing: .08em; }
 .drive-badge[data-mode="manual"] { color: var(--orange); }
 .camera-hint { position: absolute; z-index: 3; right: 370px; bottom: 6px; color: #6f8175; font: 7px var(--mono); letter-spacing: .08em; pointer-events: none; }
