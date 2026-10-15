@@ -59,6 +59,23 @@ const WORLD_BOUNDARY_MARGIN = 3.0;
 const MAX_FORWARD_SPEED = 32;
 const MAX_REVERSE_SPEED = 8;
 const TAU = Math.PI * 2;
+const GPU_TIMING_PASSES = [
+  { key: 'gdf', label: 'GDF update' },
+  { key: 'surfaceCache', label: 'Surface cache' },
+  { key: 'gbuffer', label: 'Primary G-buffer' },
+  { key: 'cardId', label: 'Card-ID pass' },
+  { key: 'direct', label: 'Direct lighting' },
+  { key: 'gi', label: 'Diffuse GI' },
+  { key: 'compose', label: 'Compose' },
+  { key: 'temporal', label: 'Temporal' },
+  { key: 'denoise', label: 'Denoise' },
+  { key: 'present', label: 'Present' },
+  { key: 'fieldMap', label: 'Field slice' },
+];
+const GPU_TIMING_PASS_INDEX = Object.fromEntries(GPU_TIMING_PASSES.map((pass, index) => [pass.key, index]));
+const GPU_TIMING_QUERY_COUNT = GPU_TIMING_PASSES.length * 2;
+const GPU_TIMING_BUFFER_SIZE = GPU_TIMING_QUERY_COUNT * BigUint64Array.BYTES_PER_ELEMENT;
+const GPU_TIMING_RING_SIZE = 3;
 
 const $ = selector => document.querySelector(selector);
 const ui = {
@@ -116,6 +133,10 @@ const ui = {
   fieldVoxel: $('#fieldVoxel'),
   driveMode: $('#driveMode'),
   fieldLegend: $('#fieldLegend'),
+  gpuTimingPanel: $('#gpuTimingPanel'),
+  gpuTimeValue: $('#gpuTimeValue'),
+  gpuTimingStatus: $('#gpuTimingStatus'),
+  gpuTimingRows: [...document.querySelectorAll('[data-gpu-pass]')],
 };
 
 const state = {
@@ -125,6 +146,14 @@ const state = {
   overlayContext: null,
   fieldContext: null,
   format: null,
+  gpuTimingSupported: false,
+  gpuTimingQuerySet: null,
+  gpuTimingSlots: [],
+  gpuTimingSlotCursor: 0,
+  gpuTimingCurrentSlot: null,
+  gpuTimingPassUsed: new Uint8Array(GPU_TIMING_PASSES.length),
+  gpuTimingLatest: null,
+  gpuTimingLatestFrame: 0,
   pipelines: {},
   bindGroups: {},
   textures: {},
@@ -222,6 +251,9 @@ function showError(title, details) {
   ui.loading.textContent = 'WebGPU initialization failed';
   ui.status.textContent = 'UNAVAILABLE';
   ui.status.dataset.state = 'error';
+  ui.gpuTimeValue.textContent = '—';
+  ui.gpuTimingStatus.textContent = 'unavailable';
+  ui.gpuTimingPanel.title = 'GPU timing is unavailable because WebGPU could not be initialized.';
 }
 
 function setLoading(message) {
@@ -248,6 +280,131 @@ function makeUniformBuffer(device, size, label) {
     size: alignTo(size, 16),
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
+}
+
+function initializeGpuTiming(device) {
+  if (!device.features?.has('timestamp-query')) {
+    ui.gpuTimingStatus.textContent = 'unsupported';
+    ui.gpuTimingPanel.title = 'This adapter does not expose the optional timestamp-query feature.';
+    return;
+  }
+  try {
+    state.gpuTimingQuerySet = device.createQuerySet({
+      label: 'Per-pass GPU timestamp queries',
+      type: 'timestamp',
+      count: GPU_TIMING_QUERY_COUNT,
+    });
+    state.gpuTimingSlots = Array.from({ length: GPU_TIMING_RING_SIZE }, (_, index) => ({
+      busy: false,
+      resolveBuffer: device.createBuffer({
+        label: `GPU timing resolve buffer ${index}`,
+        size: GPU_TIMING_BUFFER_SIZE,
+        usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
+      }),
+      readBuffer: device.createBuffer({
+        label: `GPU timing asynchronous readback ${index}`,
+        size: GPU_TIMING_BUFFER_SIZE,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+      }),
+    }));
+    state.gpuTimingSupported = true;
+    ui.gpuTimingStatus.textContent = 'waiting';
+    ui.gpuTimingPanel.title = 'Asynchronous GPU timestamps; pass sum excludes queue idle and CPU time.';
+  } catch (error) {
+    console.warn('GPU timestamp queries could not be initialized:', error);
+    state.gpuTimingSupported = false;
+    state.gpuTimingQuerySet = null;
+    state.gpuTimingSlots = [];
+    ui.gpuTimingStatus.textContent = 'unavailable';
+    ui.gpuTimingPanel.title = 'Timestamp query setup failed on this adapter.';
+  }
+}
+
+function prepareGpuTimingFrame() {
+  state.gpuTimingPassUsed.fill(0);
+  state.gpuTimingCurrentSlot = null;
+  if (!state.gpuTimingSupported) return;
+  for (let offset = 0; offset < state.gpuTimingSlots.length; offset++) {
+    const index = (state.gpuTimingSlotCursor + offset) % state.gpuTimingSlots.length;
+    const slot = state.gpuTimingSlots[index];
+    if (slot.busy) continue;
+    state.gpuTimingCurrentSlot = slot;
+    state.gpuTimingSlotCursor = (index + 1) % state.gpuTimingSlots.length;
+    return;
+  }
+}
+
+function gpuTimestampWrites(passKey) {
+  if (!state.gpuTimingCurrentSlot) return undefined;
+  const passIndex = GPU_TIMING_PASS_INDEX[passKey];
+  if (passIndex === undefined) return undefined;
+  state.gpuTimingPassUsed[passIndex] = 1;
+  return {
+    querySet: state.gpuTimingQuerySet,
+    beginningOfPassWriteIndex: passIndex * 2,
+    endOfPassWriteIndex: passIndex * 2 + 1,
+  };
+}
+
+function encodeGpuTimingReadback(encoder) {
+  const slot = state.gpuTimingCurrentSlot;
+  state.gpuTimingCurrentSlot = null;
+  if (!slot) return null;
+  const usedPasses = GPU_TIMING_PASSES.filter((pass, index) => state.gpuTimingPassUsed[index]);
+  if (!usedPasses.length) return null;
+  for (const pass of usedPasses) {
+    const firstQuery = GPU_TIMING_PASS_INDEX[pass.key] * 2;
+    const byteOffset = firstQuery * BigUint64Array.BYTES_PER_ELEMENT;
+    encoder.resolveQuerySet(state.gpuTimingQuerySet, firstQuery, 2, slot.resolveBuffer, 0);
+    encoder.copyBufferToBuffer(slot.resolveBuffer, 0, slot.readBuffer, byteOffset, 2 * BigUint64Array.BYTES_PER_ELEMENT);
+  }
+  return { slot, usedPasses, frame: state.frameIndex };
+}
+
+function readGpuTimingResults(submission) {
+  const { slot, usedPasses, frame } = submission;
+  slot.busy = true;
+  slot.readBuffer.mapAsync(GPUMapMode.READ).then(() => {
+    const timestamps = new BigUint64Array(slot.readBuffer.getMappedRange());
+    const timings = {};
+    for (const pass of usedPasses) {
+      const queryIndex = GPU_TIMING_PASS_INDEX[pass.key] * 2;
+      const start = timestamps[queryIndex];
+      const end = timestamps[queryIndex + 1];
+      if (end >= start) timings[pass.key] = Number(end - start) / 1_000_000;
+    }
+    slot.readBuffer.unmap();
+    if (frame >= state.gpuTimingLatestFrame) {
+      state.gpuTimingLatest = timings;
+      state.gpuTimingLatestFrame = frame;
+    }
+  }).catch(error => {
+    console.warn('GPU timestamp readback failed; disabling per-pass timing:', error);
+    state.gpuTimingSupported = false;
+    ui.gpuTimingStatus.textContent = 'unavailable';
+    ui.gpuTimingPanel.title = 'GPU timestamp readback failed; see the console for details.';
+    if (slot.readBuffer.mapState === 'mapped') slot.readBuffer.unmap();
+  }).finally(() => {
+    slot.busy = false;
+  });
+}
+
+function updateGpuTimingHud() {
+  if (!state.gpuTimingSupported) {
+    ui.gpuTimeValue.textContent = '—';
+    for (const row of ui.gpuTimingRows) row.textContent = '—';
+    return;
+  }
+  if (!state.gpuTimingLatest) return;
+  let total = 0;
+  for (const row of ui.gpuTimingRows) {
+    const milliseconds = state.gpuTimingLatest[row.dataset.gpuPass];
+    row.textContent = Number.isFinite(milliseconds) ? milliseconds.toFixed(2) : '—';
+    if (Number.isFinite(milliseconds)) total += milliseconds;
+  }
+  ui.gpuTimeValue.textContent = total.toFixed(2);
+  ui.gpuTimingStatus.textContent = 'ms';
+  ui.gpuTimingPanel.title = `Asynchronous GPU pass sum from frame ${state.gpuTimingLatestFrame}; queue idle and CPU time are excluded.`;
 }
 
 async function shaderModule(device, label, code) {
@@ -1375,10 +1532,12 @@ function updateHud(now) {
   ui.fieldVoxel.textContent = `${(CASCADE_EXTENTS[0] / GRID_RESOLUTION).toFixed(2)} m`;
   ui.driveMode.textContent = state.autoDrive ? 'AUTO CRUISE' : 'MANUAL DRIVE';
   ui.driveMode.dataset.mode = state.autoDrive ? 'auto' : 'manual';
+  updateGpuTimingHud();
 }
 
 function renderFrame(now) {
   if (!state.started) return;
+  prepareGpuTimingFrame();
   const dt = state.lastFrameTime ? Math.min((now - state.lastFrameTime) / 1000, 0.05) : 1 / 60;
   state.lastFrameTime = now;
   if (!state.paused) {
@@ -1398,7 +1557,10 @@ function renderFrame(now) {
   const encoder = device.createCommandEncoder({ label: `SDF GI frame ${state.frameIndex}` });
 
   if (state.gdfDirtyMask !== 0) {
-    const updatePass = encoder.beginComputePass({ label: 'Update dirty snapped global distance-field cascades' });
+    const updatePass = encoder.beginComputePass({
+      label: 'Update dirty snapped global distance-field cascades',
+      timestampWrites: gpuTimestampWrites('gdf'),
+    });
     updatePass.setPipeline(state.pipelines.update);
     updatePass.setBindGroup(0, state.bindGroups.update);
     updatePass.dispatchWorkgroups(
@@ -1410,7 +1572,10 @@ function renderFrame(now) {
   }
 
   if (state.surfaceCacheUpdateCount > 0) {
-    const cachePass = encoder.beginComputePass({ label: 'Update visible world-space mesh-card radiance' });
+    const cachePass = encoder.beginComputePass({
+      label: 'Update visible world-space mesh-card radiance',
+      timestampWrites: gpuTimestampWrites('surfaceCache'),
+    });
     cachePass.setPipeline(state.pipelines.surfaceCache);
     cachePass.setBindGroup(0, state.bindGroups.surfaceCache);
     cachePass.dispatchWorkgroups(
@@ -1423,6 +1588,7 @@ function renderFrame(now) {
 
   const gbufferPass = encoder.beginRenderPass({
     label: 'Rasterize scene and project-accurate ControlVehicle mesh',
+    timestampWrites: gpuTimestampWrites('gbuffer'),
     colorAttachments: [
       state.views.gbuffer.position,
       state.views.gbuffer.normal,
@@ -1446,6 +1612,7 @@ function renderFrame(now) {
 
   const cardIdPass = encoder.beginRenderPass({
     label: 'Rasterize compact world-space surface-card IDs',
+    timestampWrites: gpuTimestampWrites('cardId'),
     colorAttachments: [{
       view: state.views.gbuffer.cardId,
       clearValue: { r: 0, g: 0, b: 0, a: 0 },
@@ -1467,21 +1634,30 @@ function renderFrame(now) {
   const renderGroupsX = Math.ceil(state.renderWidth / 8);
   const renderGroupsY = Math.ceil(state.renderHeight / 8);
   if (state.mode === 'gi' || state.mode === 'direct') {
-    const directPass = encoder.beginComputePass({ label: 'Alias-sampled finite-emitter and sun direct lighting' });
+    const directPass = encoder.beginComputePass({
+      label: 'Alias-sampled finite-emitter and sun direct lighting',
+      timestampWrites: gpuTimestampWrites('direct'),
+    });
     directPass.setPipeline(state.pipelines.shade);
     directPass.setBindGroup(0, state.bindGroups.shade);
     directPass.dispatchWorkgroups(renderGroupsX, renderGroupsY, 1);
     directPass.end();
   }
   if (state.mode === 'gi' || state.mode === 'indirect') {
-    const giPass = encoder.beginComputePass({ label: 'Multi-bounce distance-field diffuse transport' });
+    const giPass = encoder.beginComputePass({
+      label: 'Multi-bounce distance-field diffuse transport',
+      timestampWrites: gpuTimestampWrites('gi'),
+    });
     giPass.setPipeline(state.pipelines.gi);
     giPass.setBindGroup(0, state.bindGroups.gi);
     giPass.dispatchWorkgroups(renderGroupsX, renderGroupsY, 1);
     giPass.end();
   }
 
-  const composePass = encoder.beginComputePass({ label: 'Compose lighting and render-mode output' });
+  const composePass = encoder.beginComputePass({
+    label: 'Compose lighting and render-mode output',
+    timestampWrites: gpuTimestampWrites('compose'),
+  });
   composePass.setPipeline(state.pipelines.compose);
   composePass.setBindGroup(0, state.bindGroups.compose);
   composePass.dispatchWorkgroups(renderGroupsX, renderGroupsY, 1);
@@ -1489,7 +1665,10 @@ function renderFrame(now) {
 
   const historyReadIndex = state.historyReadIndex;
   const historyWriteIndex = 1 - historyReadIndex;
-  const temporalPass = encoder.beginComputePass({ label: 'Reproject lighting into the temporal surface cache' });
+  const temporalPass = encoder.beginComputePass({
+    label: 'Reproject lighting into the temporal surface cache',
+    timestampWrites: gpuTimestampWrites('temporal'),
+  });
   temporalPass.setPipeline(state.pipelines.temporal);
   temporalPass.setBindGroup(0, state.bindGroups.temporal[historyReadIndex]);
   temporalPass.dispatchWorkgroups(renderGroupsX, renderGroupsY, 1);
@@ -1506,7 +1685,10 @@ function renderFrame(now) {
     [state.renderWidth, state.renderHeight, 1],
   );
 
-  const denoisePass = encoder.beginComputePass({ label: 'Denoise temporally accumulated lighting without crossing scene edges' });
+  const denoisePass = encoder.beginComputePass({
+    label: 'Denoise temporally accumulated lighting without crossing scene edges',
+    timestampWrites: gpuTimestampWrites('denoise'),
+  });
   denoisePass.setPipeline(state.pipelines.denoise);
   denoisePass.setBindGroup(0, state.bindGroups.denoise[historyWriteIndex]);
   denoisePass.dispatchWorkgroups(Math.ceil(state.renderWidth / 8), Math.ceil(state.renderHeight / 8), 1);
@@ -1514,6 +1696,7 @@ function renderFrame(now) {
 
   const presentPass = encoder.beginRenderPass({
     label: 'Display the edge-aware SDF GI resolve',
+    timestampWrites: gpuTimestampWrites('present'),
     colorAttachments: [{
       view: state.canvasContext.getCurrentTexture().createView(),
       clearValue: { r: 0.01, g: 0.02, b: 0.03, a: 1 },
@@ -1529,6 +1712,7 @@ function renderFrame(now) {
   if (state.showField) {
     const fieldPass = encoder.beginRenderPass({
       label: 'Visualize the live fine-cascade signed-distance slice',
+      timestampWrites: gpuTimestampWrites('fieldMap'),
       colorAttachments: [{
         view: state.fieldContext.getCurrentTexture().createView(),
         clearValue: { r: 0.01, g: 0.02, b: 0.03, a: 1 },
@@ -1542,7 +1726,9 @@ function renderFrame(now) {
     fieldPass.end();
   }
 
+  const gpuTimingSubmission = encodeGpuTimingReadback(encoder);
   device.queue.submit([encoder.finish()]);
+  if (gpuTimingSubmission) readGpuTimingResults(gpuTimingSubmission);
   if (state.gdfDirtyMask !== 0) {
     const level = Math.log2(state.gdfDirtyMask);
     state.gdfCenters ||= Array(CASCADE_EXTENTS.length).fill(null);
@@ -1730,7 +1916,15 @@ async function initialize() {
     setLoading('Requesting a WebGPU adapter…');
     state.adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
     if (!state.adapter) throw new Error('No WebGPU adapter was returned by the browser.');
-    state.device = await state.adapter.requestDevice();
+    const timingFeatures = state.adapter.features?.has('timestamp-query') ? ['timestamp-query'] : [];
+    try {
+      state.device = await state.adapter.requestDevice({ requiredFeatures: timingFeatures });
+    } catch (error) {
+      if (!timingFeatures.length) throw error;
+      console.warn('Adapter exposed timestamp-query but declined it; retrying without GPU timing:', error);
+      state.device = await state.adapter.requestDevice();
+    }
+    initializeGpuTiming(state.device);
     state.device.addEventListener('uncapturederror', event => {
       console.error(`WebGPU validation error: ${event.error.message}`);
     });

@@ -210,10 +210,30 @@
 
     <section class="metrics" aria-label="Live renderer statistics">
       <div class="metric"><small>FRAME RATE</small><b id="fpsValue">—</b><i>FPS</i></div>
-      <div class="metric"><small>FRAME TIME</small><b id="frameValue">—</b></div>
+      <div class="metric" title="RequestAnimationFrame cadence; this is not GPU execution time."><small>RAF CADENCE</small><b id="frameValue">—</b></div>
       <div class="metric"><small>VEHICLE SPEED</small><b id="hudSpeed">0.0 m/s</b></div>
       <div class="metric"><small>WORLD X / Z</small><b id="hudPosition">-3.2 / -6.0</b></div>
       <div class="metric"><small>FINE CLIPMAP</small><b id="fieldCells">64³ × 3</b><i id="fieldVoxel">0.19 m</i></div>
+      <details class="metric gpu-timing" id="gpuTimingPanel">
+        <summary aria-label="Show per-pass GPU timings"><small>GPU PASS SUM</small><b id="gpuTimeValue">—</b><i id="gpuTimingStatus">checking</i></summary>
+        <div class="gpu-timing-popover">
+          <div class="gpu-timing-heading">PER-PASS GPU TIMESTAMPS · MS</div>
+          <div class="gpu-timing-rows">
+            <div><span>GDF update</span><b data-gpu-pass="gdf">—</b></div>
+            <div><span>Surface cache</span><b data-gpu-pass="surfaceCache">—</b></div>
+            <div><span>Primary G-buffer</span><b data-gpu-pass="gbuffer">—</b></div>
+            <div><span>Card-ID pass</span><b data-gpu-pass="cardId">—</b></div>
+            <div><span>Direct lighting</span><b data-gpu-pass="direct">—</b></div>
+            <div><span>Diffuse GI</span><b data-gpu-pass="gi">—</b></div>
+            <div><span>Compose</span><b data-gpu-pass="compose">—</b></div>
+            <div><span>Temporal</span><b data-gpu-pass="temporal">—</b></div>
+            <div><span>Denoise</span><b data-gpu-pass="denoise">—</b></div>
+            <div><span>Present</span><b data-gpu-pass="present">—</b></div>
+            <div><span>Field slice</span><b data-gpu-pass="fieldMap">—</b></div>
+          </div>
+          <p>Async GPU pass sum, not full-frame time; excludes CPU/queue idle. — means skipped.</p>
+        </div>
+      </details>
       <div class="drive-badge" id="driveMode" data-mode="manual">MANUAL DRIVE</div>
     </section>
 

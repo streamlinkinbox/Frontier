@@ -121,6 +121,17 @@ kbd { padding: 1px 3px; border: 1px solid rgba(255,255,255,.13); border-radius: 
 .metric small { display: block; align-self: center; color: #6c7c72; font: 7px var(--mono); letter-spacing: .08em; }
 .metric b { color: #dce7dd; font: 11px var(--mono); font-weight: 500; }
 .metric i { color: #809089; font: normal 7px var(--mono); }
+.gpu-timing { position: relative; }
+.gpu-timing > summary { display: flex; align-items: baseline; gap: 5px; cursor: pointer; list-style: none; }
+.gpu-timing > summary::-webkit-details-marker { display: none; }
+.gpu-timing > summary::marker { content: ''; }
+.gpu-timing[open] > summary b { color: var(--accent); }
+.gpu-timing-popover { position: absolute; z-index: 12; right: -8px; bottom: calc(100% + 10px); width: min(300px, 80vw); padding: 12px; border: 1px solid rgba(216,237,222,.16); border-radius: 5px; background: rgba(7,13,14,.96); box-shadow: 0 12px 36px rgba(0,0,0,.38); backdrop-filter: blur(14px); white-space: normal; }
+.gpu-timing-heading { margin-bottom: 8px; color: #718278; font: 7px var(--mono); letter-spacing: .10em; }
+.gpu-timing-rows { display: grid; gap: 5px; }
+.gpu-timing-rows > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; color: #a7b5ab; font: 8px var(--mono); }
+.gpu-timing-rows b { color: #e2ebe3; font: 9px var(--mono); font-weight: 500; }
+.gpu-timing-popover p { margin: 9px 0 0; color: #74847a; font: 7px/1.5 var(--mono); }
 .drive-badge { margin-left: auto; white-space: nowrap; color: var(--accent); font: 8px var(--mono); letter-spacing: .08em; }
 .drive-badge[data-mode="manual"] { color: var(--orange); }
 .camera-hint { position: absolute; z-index: 3; right: 370px; bottom: 6px; color: #6f8175; font: 7px var(--mono); letter-spacing: .08em; pointer-events: none; }
@@ -190,6 +201,10 @@ kbd { padding: 1px 3px; border: 1px solid rgba(255,255,255,.13); border-radius: 
   .field-meta { font-size: 6px; }
   .metrics { top: 62px; bottom: auto; left: auto; right: 9px; width: 138px; min-height: 62px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 7px; padding: 7px; }
   .metric { display: flex; flex-wrap: wrap; gap: 2px 4px; }
+  .metrics:has(.gpu-timing[open]) { z-index: 6; }
+  .gpu-timing > summary { flex-wrap: wrap; gap: 2px 4px; }
+  .gpu-timing > summary small { width: 100%; }
+  .gpu-timing-popover { top: calc(100% + 8px); right: 0; bottom: auto; max-height: calc(100vh - 130px); overflow-y: auto; }
   .metric:nth-child(4) { display: none; }
   .metric small { width: 100%; font-size: 5px; }
   .metric b { font-size: 9px; }
