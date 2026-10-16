@@ -2497,3 +2497,96 @@
   display: block;
   opacity: 1;
 }
+
+/* Paint strokes recorded on a layer + live layer composite */
+.tp-stroke-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.tp-stroke-list li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  border: 1px solid #ffffff12;
+  border-radius: 9px;
+  background: #ffffff07;
+}
+.tp-stroke-list img {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 6px;
+  object-fit: contain;
+  background: repeating-conic-gradient(#77786b 0% 25%, #999a8a 0% 50%) 0 0/8px 8px;
+}
+.tp-stroke-list li > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.tp-stroke-list strong {
+  font-size: 9px;
+  font-weight: 500;
+  color: #e8e6da;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tp-stroke-list small {
+  font-size: 7.5px;
+  color: #8a8f79;
+}
+.tp-stroke-list button {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: #b9bfae;
+}
+.tp-stroke-list button:hover:not(:disabled) {
+  background: #ffffff14;
+  color: #eec9a8;
+}
+.tp-stroke-list button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.tp-composite-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+}
+.tp-composite-preview img,
+.tp-composite-preview .tp-composite-empty {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: repeating-conic-gradient(#77786b 0% 25%, #999a8a 0% 50%) 0 0/10px
+    10px;
+}
+.tp-composite-preview figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tp-composite-preview strong {
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #d8d5c6;
+}
+.tp-composite-preview span {
+  font-size: 7.5px;
+  color: #8a8f79;
+  max-width: 150px;
+  line-height: 1.5;
+}

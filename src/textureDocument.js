@@ -5,7 +5,12 @@ import {
   DECAL_LIMIT,
 } from "./decalModel.js";
 import { normalizeStampPreset, stampId } from "./stampDocument.js";
-import { normalizeSourceStroke } from "./textureStrokes.js";
+import {
+  normalizeSourceStroke,
+  normalizeLayerStrokes,
+  layerStrokes,
+  LAYER_STROKE_LIMIT,
+} from "./textureStrokes.js";
 import { normalizeTextureMask } from "./textureMasks.js";
 import {
   PAINT_CHANNELS,
@@ -152,6 +157,14 @@ function normalizeLayer(raw) {
     ]),
     mask: normalizeTextureMask(raw.mask),
     decals: raw.kind === "folder" ? [] : normalizeLayerDecals(raw.decals),
+    // Paint strokes exist only once a layer has been painted on; unwritten
+    // layers carry no stroke storage at all.
+    ...(raw.kind === "folder"
+      ? {}
+      : (() => {
+          const strokes = normalizeLayerStrokes(raw.strokes, raw.id);
+          return strokes.length ? { strokes } : {};
+        })()),
   };
 }
 export function createTextureLayer(kind = "paint", options = {}) {
@@ -347,6 +360,57 @@ export function patchTextureLayer(doc, id, patch) {
     ? doc
     : { ...doc, layers: doc.layers.map((l) => (l.id === id ? next : l)) };
 }
+// Record one finished paint gesture on its layer. Returns the next document,
+// or null when the stroke cannot be recorded (unknown/folder/locked owner,
+// channel not enabled or not in Texture mode, malformed record, layer full).
+// The caller commits the returned document as a single history step together
+// with the rebuilt channel texture.
+export function appendTextureStroke(doc, rawStroke) {
+  const record = normalizeSourceStroke(rawStroke);
+  if (!record) return null;
+  const owner = doc.layers.find((l) => l.id === record.layerId);
+  if (
+    !owner ||
+    owner.kind === "folder" ||
+    isTextureLayerLocked(doc, owner.id) ||
+    !owner.channels.includes(record.channelId) ||
+    owner.channelSettings[record.channelId]?.mode !== "texture" ||
+    layerStrokes(owner).length >= LAYER_STROKE_LIMIT
+  )
+    return null;
+  return {
+    doc: {
+      ...doc,
+      layers: doc.layers.map((l) =>
+        l.id === owner.id
+          ? { ...l, strokes: [...layerStrokes(l), record] }
+          : l,
+      ),
+    },
+    record,
+  };
+}
+export function removeTextureStroke(doc, layerId, strokeId) {
+  const owner = doc.layers.find((l) => l.id === layerId);
+  if (
+    !owner ||
+    owner.kind === "folder" ||
+    isTextureLayerLocked(doc, layerId) ||
+    !layerStrokes(owner).some((s) => s.id === strokeId)
+  )
+    return doc;
+  const strokes = layerStrokes(owner).filter((s) => s.id !== strokeId);
+  return {
+    ...doc,
+    layers: doc.layers.map((l) => {
+      if (l.id !== layerId) return l;
+      const next = { ...l };
+      if (strokes.length) next.strokes = strokes;
+      else delete next.strokes;
+      return next;
+    }),
+  };
+}
 export function insertTextureLayer(doc, kind, aboveId) {
   if (doc.layers.length >= TEXTURE_LAYER_LIMIT)
     throw new Error(`The ${TEXTURE_LAYER_LIMIT}-layer limit has been reached.`);
@@ -374,15 +438,24 @@ export function duplicateTextureLayer(doc, id) {
   if (doc.layers.length + subtree.length > TEXTURE_LAYER_LIMIT)
     throw new Error(`The ${TEXTURE_LAYER_LIMIT}-layer limit has been reached.`);
   const identities = new Map(subtree.map((l) => [l.id, nextId()]));
-  const copies = subtree.map((l) =>
-    createTextureLayer(l.kind, {
+  const copies = subtree.map((l) => {
+    const copy = createTextureLayer(l.kind, {
       ...structuredClone(l),
       id: identities.get(l.id),
       parentId: l.id === id ? l.parentId : identities.get(l.parentId),
       name: l.id === id ? `${l.name} copy`.slice(0, 80) : l.name,
       decals: (l.decals || []).map((d) => ({ ...d, id: stampId() })),
-    }),
-  );
+    });
+    // A copy owns its strokes independently: fresh stroke identities owned
+    // by the copy, so deleting a stroke never reaches the original layer.
+    if (copy.strokes)
+      copy.strokes = copy.strokes.map((s) => ({
+        ...s,
+        id: nextId(),
+        layerId: copy.id,
+      }));
+    return copy;
+  });
   const layers = [...doc.layers];
   layers.splice(layers.indexOf(root), 0, ...copies);
   return {

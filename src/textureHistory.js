@@ -114,6 +114,19 @@ export function describeTextureChange(before, after) {
         detail: `${layer.name} · ${afterDecals.length} components`,
       };
     }
+    if (!equal(old.strokes || [], layer.strokes || [])) {
+      const beforeStrokes = old.strokes || [],
+        afterStrokes = layer.strokes || [];
+      return {
+        ...info,
+        kind: "stroke",
+        label:
+          afterStrokes.length > beforeStrokes.length
+            ? "Paint stroke"
+            : "Delete paint stroke",
+        detail: `${layer.name} · ${afterStrokes.length} recorded`,
+      };
+    }
     if (!equal(old.mask, layer.mask))
       return {
         ...info,

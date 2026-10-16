@@ -13,7 +13,7 @@
     "test:standalone": "npm run build:githack && playwright test --config playwright.standalone.config.js",
     "verify:published": "node scripts/verify-published.mjs",
     "test:editor": "playwright test tests/shape-editor tests/pattern-editor.spec.js tests/patterns.spec.js",
-    "test:texture": "playwright test tests/texture-document.spec.js tests/texture-studio.spec.js tests/texture-folders-model.spec.js tests/texture-folders-studio.spec.js tests/texture-history-model.spec.js tests/texture-history-studio.spec.js tests/point-gradient-model.spec.js tests/point-gradient-studio.spec.js",
+    "test:texture": "playwright test tests/texture-document.spec.js tests/texture-studio.spec.js tests/texture-folders-model.spec.js tests/texture-folders-studio.spec.js tests/texture-history-model.spec.js tests/texture-history-studio.spec.js tests/texture-strokes-model.spec.js tests/texture-strokes-studio.spec.js tests/point-gradient-model.spec.js tests/point-gradient-studio.spec.js",
     "test:baking": "playwright test tests/baking-geometry.spec.js tests/baking-studio.spec.js tests/mesh-map-library.spec.js",
     "studio": "npm run build && vite preview --host 0.0.0.0 --port 5173 --strictPort",
     "test:runtime": "playwright test tests/workspace-runtime.spec.js",
@@ -22,7 +22,7 @@
     "test:sdf": "playwright test tests/volume-sdf.spec.js tests/surface-bake-tiles.spec.js",
     "audit:teapot": "node scripts/audit-teapot-bakes.mjs",
     "audit:sdf": "node scripts/audit-teapot-sdf.mjs",
-    "test:painting": "playwright test tests/paint-authoring-model.spec.js tests/paint-authoring-studio.spec.js tests/texture-document.spec.js tests/texture-studio.spec.js tests/texture-folders-model.spec.js tests/texture-folders-studio.spec.js tests/texture-history-model.spec.js tests/texture-history-studio.spec.js tests/point-gradient-model.spec.js tests/point-gradient-studio.spec.js",
+    "test:painting": "playwright test tests/paint-authoring-model.spec.js tests/paint-authoring-studio.spec.js tests/texture-document.spec.js tests/texture-studio.spec.js tests/texture-folders-model.spec.js tests/texture-folders-studio.spec.js tests/texture-history-model.spec.js tests/texture-history-studio.spec.js tests/texture-strokes-model.spec.js tests/texture-strokes-studio.spec.js tests/point-gradient-model.spec.js tests/point-gradient-studio.spec.js",
     "test:stamps": "playwright test tests/stamp-decal-model.spec.js tests/stamp-decal-studio.spec.js"
   },
   "dependencies": {

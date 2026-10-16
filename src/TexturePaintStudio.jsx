@@ -17,7 +17,11 @@ import {
 import {
   normalizeChannelSettings,
   normalizeGenerator,
+  PAINT_CHANNELS,
 } from "./paintChannelModel.js";
+import { rebuildChannelTexture } from "./textureStrokeReplay.js";
+import { compositeContributors } from "./textureComposite.js";
+import LayerCompositePreview from "./LayerCompositePreview.jsx";
 import React, { useEffect, useId, useRef, useState } from "react";
 import {
   Box,
@@ -45,6 +49,8 @@ import Viewport from "./Viewport.jsx";
 import { materials, normalizeMaterial } from "./materials.js";
 import useTextureDocument from "./useTextureDocument.js";
 import {
+  appendTextureStroke,
+  removeTextureStroke,
   duplicateTextureLayer,
   insertTextureLayer,
   parseTextureDocument,
@@ -506,10 +512,8 @@ export default function TexturePaintStudio({
   }
   function sourceStroke(stroke, texture, expectedSource) {
     const current = history.docRef.current,
-      owner = current.layers.find((l) => l.id === stroke.layerId),
-      record = normalizeSourceStroke(stroke);
+      owner = current.layers.find((l) => l.id === stroke.layerId);
     if (
-      !record ||
       !owner ||
       owner.kind === "folder" ||
       isTextureLayerLocked(current, owner.id) ||
@@ -524,16 +528,83 @@ export default function TexturePaintStudio({
       settings.texture?.dataUrl !== expectedSource
     )
       return false;
-    const next = patchTextureLayer(current, owner.id, {
+    // First stroke on this channel over an existing raster: snapshot that
+    // raster as the stroke's replay base, so deleting strokes later can
+    // rebuild the channel exactly instead of guessing what was underneath.
+    const firstOnChannel = !(owner.strokes || []).some(
+      (s) => s.channelId === stroke.channelId,
+    );
+    const appended = appendTextureStroke(current, {
+      ...stroke,
+      ...(firstOnChannel && settings.texture
+        ? { base: settings.texture }
+        : {}),
+    });
+    if (!appended) {
+      history.setError(
+        "That stroke could not be recorded. The layer may be locked or already hold the maximum number of strokes.",
+      );
+      return false;
+    }
+    const next = patchTextureLayer(appended.doc, owner.id, {
       channelSettings: {
         ...owner.channelSettings,
         [stroke.channelId]: { ...settings, texture },
       },
     });
+    // lastStroke keeps its historical meaning (most recent gesture, for the
+    // History preview) but does not duplicate the replay-base snapshot.
+    const { base: _base, ...lastStroke } = appended.record;
     return history.commit(
-      { ...next, lastStroke: record },
-      { selection: { id: owner.id } },
+      { ...next, lastStroke: normalizeSourceStroke(lastStroke) },
+      { selection: { id: owner.id }, label: "Paint stroke" },
     );
+  }
+  async function removeStroke(layerId, strokeId) {
+    const current = history.docRef.current,
+      owner = current.layers.find((l) => l.id === layerId),
+      stroke = (owner?.strokes || []).find((s) => s.id === strokeId);
+    if (!owner || !stroke || isTextureLayerLocked(current, layerId)) return;
+    const remaining = (owner.strokes || []).filter((s) => s.id !== strokeId),
+      label =
+        PAINT_CHANNELS.find((c) => c.id === stroke.channelId)?.label ||
+        stroke.channelId;
+    let texture;
+    try {
+      texture = await rebuildChannelTexture(
+        owner,
+        stroke.channelId,
+        remaining,
+        label,
+      );
+    } catch {
+      history.setError("The painted source could not be rebuilt.");
+      return;
+    }
+    // Nothing may have changed under us while the base image decoded.
+    const latest = history.docRef.current,
+      latestOwner = latest.layers.find((l) => l.id === layerId);
+    if (
+      !latestOwner ||
+      isTextureLayerLocked(latest, layerId) ||
+      JSON.stringify(latestOwner.strokes || []) !==
+        JSON.stringify(owner.strokes || [])
+    )
+      return;
+    const removed = removeTextureStroke(latest, layerId, strokeId);
+    if (removed === latest) return;
+    const settings = latestOwner.channelSettings[stroke.channelId];
+    const next = patchTextureLayer(removed, layerId, {
+      channelSettings: {
+        ...latestOwner.channelSettings,
+        [stroke.channelId]: { ...settings, texture },
+      },
+    });
+    history.commit(next, {
+      selection: { id: layerId },
+      label: "Delete paint stroke",
+    });
+    setToast("Stroke deleted. Remaining strokes replayed.");
   }
   function closePaintMenu() {
     setPaintMenuOpen(false);
@@ -1039,6 +1110,7 @@ export default function TexturePaintStudio({
         <span className="tp-viewport-hint">Drag to orbit · scroll to zoom</span>
       </div>
       <footer className="tp-viewport-footer">
+        <LayerCompositePreview doc={doc} />
         <span>
           <span className={`tp-little-dot ${ready ? "ready" : ""}`} />
           {ready ? "Three.js · WebGL" : "Preparing scene"}
@@ -1046,9 +1118,11 @@ export default function TexturePaintStudio({
         <span className="tp-scope-indicator">
           {surfaceGradient
             ? "Selected fill / mask + decals · not a full UV stack"
-            : doc.layers.some((l) => l.decals.length)
-              ? "Surface decals live · source strokes are 2D"
-              : "Layer setup only · preview is not composited"}
+            : compositeContributors(doc, "baseColor").length
+              ? "2D layer composite live · not teapot UV painting"
+              : doc.layers.some((l) => l.decals.length)
+                ? "Surface decals live · source strokes are 2D"
+                : "Layer setup only · preview is not composited"}
         </span>
       </footer>
     </>
@@ -1242,6 +1316,7 @@ export default function TexturePaintStudio({
               gradientContext={gradientContext}
               onGradientActivate={activateGradient}
               onStroke={sourceStroke}
+              onRemoveStroke={removeStroke}
               onOpenTools={() => setPaintMenuOpen(true)}
               layer={layer}
               doc={doc}

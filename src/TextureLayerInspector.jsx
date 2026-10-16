@@ -5,6 +5,7 @@ import { defaultPointGradient } from "./pointGradient.js";
 import { Slider, ColorField } from "./MaterialControls.jsx";
 import ColourMaskPreview from "./ColourMaskPreview.jsx";
 import ChannelPropertyPanel from "./ChannelPropertyPanel.jsx";
+import TextureStrokeList from "./TextureStrokeList.jsx";
 import React from "react";
 import {
   Check,
@@ -52,6 +53,7 @@ export default function TextureLayerInspector({
   showTab = true,
   painting,
   onStroke,
+  onRemoveStroke,
   onOpenTools,
   materialWorkspace,
   gradientContext,
@@ -476,6 +478,13 @@ export default function TextureLayerInspector({
                       onPatch={onPatch}
                     />
                   </>
+                )}
+                {layer.kind !== "folder" && onRemoveStroke && (
+                  <TextureStrokeList
+                    layer={layer}
+                    disabled={locked}
+                    onRemoveStroke={onRemoveStroke}
+                  />
                 )}
                 <section className="tp-property-card tp-source-card">
                   <h2>

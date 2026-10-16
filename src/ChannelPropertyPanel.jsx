@@ -388,8 +388,9 @@ export default function ChannelPropertyPanel({
                         )}
                         <p className="chan-note">
                           PNG, JPEG or WebP · portable source up to 256 px.
-                          Round-tip source strokes are recorded in History;
-                          layer / teapot compositing is not active.
+                          Round-tip strokes are recorded on the layer and in
+                          History; the 2D layer composite is live below the
+                          viewport, teapot compositing is not active.
                         </p>
                       </div>
                     ) : value.mode === "generator" ? (

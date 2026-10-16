@@ -7,6 +7,14 @@ import { PAINT_CHANNELS } from "./paintChannelModel.js";
 import { normalizeTextureSource } from "./textureSource.js";
 export const SOURCE_STROKE_POINT_LIMIT = 1024;
 export const SOURCE_STROKE_SCHEMA = "alloy.source-stroke.v1";
+// Paint strokes are first-class, replayable records stored on their layer.
+// A layer only carries a `strokes` key once it actually has strokes, so an
+// unwritten layer still allocates nothing (see docs/texture-painting-plan.md).
+export const LAYER_STROKE_LIMIT = 48;
+export const layerStrokes = (layer) =>
+  Array.isArray(layer?.strokes) ? layer.strokes : [];
+export const channelStrokes = (layer, channelId) =>
+  layerStrokes(layer).filter((s) => s.channelId === channelId);
 const validId = (id) =>
   typeof id === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(id);
 export function normalizeSourceStroke(raw) {
@@ -43,6 +51,15 @@ export function normalizeSourceStroke(raw) {
     });
   }
   const settings = normalizePaintSettings(raw.settings);
+  // Optional snapshot of the channel raster as it was before the layer's
+  // first stroke on that channel. It is the replay base: deleting strokes
+  // replays the remaining ones over exactly this content, never over a
+  // guess. An invalid base invalidates the record rather than dropping it.
+  let base;
+  if (raw.base != null) {
+    base = normalizeTextureSource(raw.base);
+    if (!base) return null;
+  }
   return {
     schema: SOURCE_STROKE_SCHEMA,
     id: raw.id,
@@ -57,7 +74,36 @@ export function normalizeSourceStroke(raw) {
     operation: paintTool(settings.toolId).key === "eraser" ? "erase" : "paint",
     points,
     image,
+    ...(base ? { base } : {}),
   };
+}
+// The strokes recorded on one layer, normalized against their container.
+// The container is authoritative for `layerId`: a record's identity is its
+// owning layer, so duplicating a layer remaps its strokes to the copy.
+// Malformed records are rejected loudly (throw), never silently dropped —
+// dropping a stroke would lose user painting on project open.
+export function normalizeLayerStrokes(raw, layerId) {
+  if (raw == null) return [];
+  if (!Array.isArray(raw))
+    throw new Error("A layer's paint strokes must be a stroke list.");
+  if (raw.length > LAYER_STROKE_LIMIT)
+    throw new Error(
+      `A layer supports up to ${LAYER_STROKE_LIMIT} recorded paint strokes.`,
+    );
+  return raw.map((entry) => {
+    const stroke = normalizeSourceStroke({ ...entry, layerId });
+    if (!stroke)
+      throw new Error(
+        "A layer contains an invalid or unbounded paint stroke record.",
+      );
+    return stroke;
+  });
+}
+// What a channel's raster is rebuilt from: the first recorded stroke's
+// pre-stroke base snapshot (if any) plus every stroke in recorded order.
+export function strokeReplayPlan(strokes, channelId) {
+  const ordered = (strokes || []).filter((s) => s.channelId === channelId);
+  return { base: ordered[0]?.base || null, strokes: ordered };
 }
 export function sourceStrokeOptions(raw) {
   const settings = normalizePaintSettings(raw),
@@ -123,6 +169,26 @@ export function drawSourceStroke(ctx, points, raw) {
   }
   ctx.restore();
   return true;
+}
+// Rebuild a channel raster from its recorded strokes: start from `base`
+// (a canvas holding the replay-plan base snapshot, or null for transparent)
+// and re-apply every stroke in recorded order with the same round-tip
+// rasterizer that produced the live painting, so replay is deterministic.
+// `target`, `scratch` and `mark` are caller-owned canvases of equal size.
+export function replayChannelStrokes(target, scratch, mark, list, baseCanvas = null) {
+  const tctx = target.getContext("2d"),
+    sctx = scratch.getContext("2d");
+  sctx.clearRect(0, 0, scratch.width, scratch.height);
+  if (baseCanvas)
+    sctx.drawImage(baseCanvas, 0, 0, scratch.width, scratch.height);
+  tctx.clearRect(0, 0, target.width, target.height);
+  tctx.drawImage(scratch, 0, 0);
+  for (const stroke of list) {
+    paintSourceStroke(target, scratch, mark, stroke.points, stroke.settings);
+    sctx.clearRect(0, 0, scratch.width, scratch.height);
+    sctx.drawImage(target, 0, 0);
+  }
+  return target;
 }
 export function paintSourceStroke(target, base, mark, points, settings) {
   const opts = sourceStrokeOptions(settings),

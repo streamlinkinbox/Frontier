@@ -624,6 +624,8 @@ export default function TextureLayerStack({
                       ? `${doc.layers.filter((l) => l.parentId === layer.id).length} ${doc.layers.filter((l) => l.parentId === layer.id).length === 1 ? "item" : "items"}`
                       : TEXTURE_KINDS[layer.kind].label}{" "}
                     · {layer.blend} · {layer.opacity}%
+                    {(layer.strokes || []).length > 0 &&
+                      ` · ${(layer.strokes || []).length} stroke${(layer.strokes || []).length === 1 ? "" : "s"}`}
                   </small>
                 </span>
               </button>

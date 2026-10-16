@@ -88,13 +88,20 @@ export default function TextureSourceCanvas({
   }, [layerId, channelId, texture?.dataUrl, disabled]);
   const sample = (event) => {
     const bounds = canvas.current.getBoundingClientRect();
+    // Pens routinely report pressure 0 on the first contact sample (and some
+    // drivers report 0 for a whole stroke). A dab at pressure 0 paints
+    // nothing, which made pen taps and such strokes silently vanish; while
+    // the pen is actually down, fall back to a mid contact pressure instead.
+    const penPressure =
+      event.pressure > 0
+        ? Math.min(1, Math.max(0, event.pressure))
+        : event.buttons > 0
+          ? 0.5
+          : 0;
     return {
       x: Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width)),
       y: Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height)),
-      pressure:
-        event.pointerType === "pen"
-          ? Math.min(1, Math.max(0, event.pressure))
-          : 1,
+      pressure: event.pointerType === "pen" ? penPressure : 1,
     };
   };
   function draw() {
@@ -289,9 +296,10 @@ export default function TextureSourceCanvas({
         }}
       />
       <p>
-        Draw directly on the source. One gesture = one undo step. Basic
-        round-tip paint / erase; instrument-specific simulation and teapot UV
-        compositing are not active.
+        Draw directly on the source. One gesture = one paint stroke recorded
+        on this layer and one undo step. Strokes replay in order in the layer
+        composite below the viewport. Basic round-tip paint / erase;
+        teapot UV painting is not active.
       </p>
       {!ready && !error && <small>Preparing source…</small>}
       {error && (
