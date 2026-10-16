@@ -1,7 +1,6 @@
 // Exercise populated transient records, rigid shredded-wheel draws, marks and all Garage modes.
 // HOOKS=Tools/VehicleEffectsHooks.mjs node Tools/HeadlessHarness.mjs . 36 '?capture=1'
 import assert from 'node:assert/strict';
-import { BuildTransientLights } from '../Source/TransientLights.js';
 let Started = false, SawLight = false, SawSpark = false;
 export default {
     BeforeFrame(Host, Frame) {
@@ -19,7 +18,7 @@ export default {
         const P = Host.Vehicle.Position;
         Host.Sparks.Emit([{ Point: [P[0],P[1],0.05], Velocity: [15,0,1], Normal: [0,0,1], Strength: 1 }], 1/60);
         SawSpark ||= Host.Sparks.Live > 0;
-        SawLight ||= BuildTransientLights(Host.Sparks, Host.Effects).some((Value, I) => I % 8 >= 4 && Value > 0);
+        SawLight ||= Host.Lighting.Build(Host.CameraEye || Host.Vehicle.Position, Host.Vehicle.QueryBodyTransform(), Host.Sparks, Host.Effects).some((Value, I) => I % 16 >= 4 && I % 16 < 7 && Value > 0);
         // The harness has no real cabin Canvas UI. Explicitly record the preview to exercise its shaders/draws.
         const Encoder = Host.Exchange.Device.createCommandEncoder();
         Host.Cabin.RecordPreview(Encoder, Host.Scene, Host.VertexRecords, Host.Vehicle.QueryBodyTransform());

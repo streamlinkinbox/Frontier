@@ -7,7 +7,7 @@
 //                                                     FRAME RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
-struct TransientLight { PositionReach: vec4f, Colour: vec4f, }
+struct ClusteredLight { PositionReach: vec4f, ColourType: vec4f, DirectionOuter: vec4f, Parameters: vec4f, }
 
 struct FrameRecord
 {
@@ -45,7 +45,7 @@ struct FrameRecord
     FireLightIntensity               : f32,       // [-]    point intensity; 0 when nothing burns
     FireLightColour                  : vec3f,     // [-]    chromaticity of the flame light
     FireLightReach                   : f32,       // [m]    influence radius
-    TransientLights                  : array<TransientLight, 8>,
+    ClusteredLights                  : array<ClusteredLight, 24>,
 }
 
 // 📝 FeatureBit — the toggles the control panel exposes, read by the programs that honour them.

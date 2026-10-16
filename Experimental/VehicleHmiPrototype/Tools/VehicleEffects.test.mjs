@@ -6,7 +6,7 @@ import { SparkSequence, ResolveSparkRadiance } from '../Source/SparkSequence.js'
 import { TyreMarkDepot } from '../Source/TyreMarkDepot.js';
 import { VehicleVisualState, VehicleRecordBytes } from '../Source/VehicleVisualState.js';
 import { DriverInputIntegrator, ResolveCountersteer } from '../Source/DriverInputIntegrator.js';
-import { BuildTransientLights } from '../Source/TransientLights.js';
+import { ClusteredLighting, AutomotiveLightModes, ClusteredLightFloats } from '../Source/ClusteredLighting.js';
 import { CourseConstants } from '../Source/CourseStructure.js';
 globalThis.GPUBufferUsage = { VERTEX: 1, COPY_DST: 2 };
 globalThis.GPUTextureUsage = { TEXTURE_BINDING: 1, COPY_DST: 2 };
@@ -100,26 +100,23 @@ test('countersteer is symmetric, bounded, optional and yields to manual input; r
     assert.equal(Driver.Advance(new Set(), 1/120, F, { Enabled: false }).Steer, 0);
     Driver.Reset(); assert.equal(Driver.Correction, 0);
 });
-test('pooled HDR lights are bounded, decay and extinguish; debris never glows', () => {
-    const Sparks = { Settings: { Enabled: true, Brightness: 1 }, Particles: Array.from({length: 100}, (_, I) =>
-        ({ Position: [I * 0.5,0,1], Kelvin: 3000, Size: 1 })) };
-    const Settings = { Intensity: 1, Faces: false, GlowStrength: 6, Glow: '#35d6ff', Drag: 0.4 };
-    const Emitter = { Start: 0, End: 3, Kind: 0, Centre: [0,0,0], Velocity: [1,0,0], Transform: [1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,1] };
-    const Effects = { Clock: 0.5, Settings, Emitters: Array(8).fill(Emitter) };
-    const Light = BuildTransientLights(Sparks, Effects);
-    assert.equal(Light.length, 64); assert.ok([...Light].every(Number.isFinite));
-    let Energy = 0;
-    for (let I = 0; I < 64; I += 8) Energy += Light[I+4] * 0.2126 + Light[I+5] * 0.7152 + Light[I+6] * 0.0722;
-    assert.ok(Energy <= 100.001);
-    Sparks.Settings.Enabled = false;
-    Effects.Emitters = [Emitter];
-    const Before = BuildTransientLights(Sparks, Effects)[5];
-    Effects.Clock = 2.95;
-    assert.ok(BuildTransientLights(Sparks, Effects)[5] < Before);
-    Effects.Clock = 3;
-    assert.ok(BuildTransientLights(Sparks, Effects).every(V => V === 0));
-    Effects.Clock = 1; Effects.Emitters = [{ ...Emitter, Kind: 4 }];
-    assert.ok(BuildTransientLights(Sparks, Effects).every(V => V === 0));
+test('clustered photometric lights encode scene, automotive and roof profiles', () => {
+    const System = new ClusteredLighting();
+    const Identity = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+    const Empty = { Settings: { Enabled: false }, Particles: [] };
+    const Effects = { Clock: 0, Emitters: [] };
+    const Low = System.Build([0,0,2], Identity, Empty, Effects);
+    assert.equal(Low.length, ClusteredLightFloats);
+    assert.ok([...Low].every(Number.isFinite));
+    const Types=[]; for(let I=0;I<Low.length;I+=16) if(Low[I+3]>0) Types.push(Low[I+7]);
+    assert.ok(Types.includes(2) && Types.includes(3) && Types.includes(4));
+    assert.equal(System.CycleAutomotive(), 'High beam');
+    assert.equal(System.CycleAutomotive(), 'Fog');
+    assert.equal(System.CycleAutomotive(), 'Off');
+    const Off=System.Build([0,0,2],Identity,Empty,Effects);
+    const OffTypes=[]; for(let I=0;I<Off.length;I+=16) if(Off[I+3]>0) OffTypes.push(Off[I+7]);
+    assert.ok(!OffTypes.includes(3) && !OffTypes.includes(4));
+    assert.deepEqual(AutomotiveLightModes, ['Off','Low beam','High beam','Fog']);
 });
 test('assisted left/right slide recovery stays grounded, finite and symmetric on the flat pad', async () => {
     const { VehicleSolver } = await import('../Source/VehicleSolver.js');

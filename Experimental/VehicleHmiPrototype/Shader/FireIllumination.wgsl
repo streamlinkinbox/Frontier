@@ -50,26 +50,37 @@ fn ResolveFireArrival(Position: vec3f, Normal: vec3f) -> FireArrival
     return Arrival;
 }
 
-// Pooled sparks/derez: bounded inverse-square falloff, distance-field occlusion,
-// evaluated by both the direct screen pass and the card cache for bounced light.
-fn ResolveTransientArrival(Position: vec3f, Normal: vec3f, Index: u32) -> FireArrival {
-    let Light = Frame.TransientLights[Index];
+// Unified clustered point/spot/IES arrival. Functional lamps, automotive beams and
+// effects share one shadowed path, so card irradiance naturally carries them into GI.
+fn ResolveClusteredArrival(Position: vec3f, Normal: vec3f, Index: u32) -> FireArrival {
+    let Light = Frame.ClusteredLights[Index];
     var Arrival: FireArrival;
     Arrival.Direction = vec3f(0.0, 0.0, 1.0);
     Arrival.Illuminance = vec3f(0.0);
     let Toward = Light.PositionReach.xyz - Position;
     let Squared = dot(Toward, Toward);
     let Reach = Light.PositionReach.w;
-    if (Reach <= 0.0 || Squared >= Reach * Reach || all(Light.Colour.rgb <= vec3f(0.0))) { return Arrival; }
+    if (Reach <= 0.0 || Squared >= Reach * Reach) { return Arrival; }
     let Range = sqrt(Squared);
     Arrival.Direction = Toward / max(Range, 0.0001);
     if (dot(Normal, Arrival.Direction) <= 0.0) { return Arrival; }
+    var Profile = 1.0;
+    if (Light.ColourType.w > 0.5) {
+        let FromLight = -Arrival.Direction;
+        let Cone = dot(normalize(Light.DirectionOuter.xyz), FromLight);
+        Profile = smoothstep(Light.DirectionOuter.w, Light.Parameters.x, Cone);
+        // Compact IES-like distributions: pole batwing, asymmetric road beam, wide LED flood.
+        if (Light.ColourType.w > 1.5 && Light.ColourType.w < 2.5) { Profile *= 0.72 + 0.28 * (1.0 - abs(FromLight.z)); }
+        if (Light.ColourType.w > 2.5 && Light.ColourType.w < 3.5) { Profile *= pow(max(Cone, 0.0), 3.0); }
+        if (Light.ColourType.w > 3.5) { Profile *= 0.85 + 0.15 * cos(FromLight.y * 9.0); }
+    }
+    if (Profile <= 0.0001) { return Arrival; }
     let Window = pow(1.0 - Squared / (Reach * Reach), 2.0);
     var Visibility = 1.0;
     if (FeatureEnabled(Frame, FeatureDirectShadow)) {
         let Bias = ResolveSurfaceBias(Position);
         Visibility = TraverseSceneShadow(Position + Normal * Bias, Arrival.Direction, Bias * 0.5, max(Range - 0.15, 0.0), 4.0);
     }
-    Arrival.Illuminance = Light.Colour.rgb * Frame.EmissionScale * Window * Visibility / max(Squared, 0.16);
+    Arrival.Illuminance = Light.ColourType.rgb * Profile * Window * Visibility / max(Squared, 0.16);
     return Arrival;
 }

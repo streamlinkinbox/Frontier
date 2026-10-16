@@ -58,8 +58,8 @@ fn IntegrateCardDirect(@builtin(workgroup_id) Group: vec3u, @builtin(local_invoc
     }
     let Fire = ResolveFireArrival(Position, Normal);
     Irradiance += Fire.Illuminance * max(dot(Normal, Fire.Direction), 0.0);
-    for (var Index = 0u; Index < 8u; Index++) {
-        let Light = ResolveTransientArrival(Position, Normal, Index);
+    for (var Index = 0u; Index < 24u; Index++) {
+        let Light = ResolveClusteredArrival(Position, Normal, Index);
         Irradiance += Light.Illuminance * max(dot(Normal, Light.Direction), 0.0);
     }
     textureStore(CardDirectTarget, Texel, vec4f(Irradiance, 1.0));

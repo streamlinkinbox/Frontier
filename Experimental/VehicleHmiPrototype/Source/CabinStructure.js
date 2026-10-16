@@ -209,6 +209,14 @@ export function ConstructCabinFacets()
             Normals: Group.map(V => Normalize(TransformDirection(Pose, V.N))) });
     }
 
+    // Roof-mounted automotive flood pod: powder-coated aluminium body, bracket and LED optic.
+    // It is part of the cabin/body occupant, so it follows physics, shadows, cards and reflections.
+    const RoofAxes = [[1,0,0],[0,1,0],[0,0,1]];
+    Box(Facets, Body(0.15, 0.0, 1.79), [0.18, 0.62, 0.09], RoofAxes, F.SteelDark);
+    Box(Facets, Body(0.245, 0.0, 1.79), [0.012, 0.55, 0.065], RoofAxes, F.Headlight);
+    for (const Side of [-1, 1])
+        Box(Facets, Body(0.08, Side * 0.55, 1.66), [0.035, 0.035, 0.12], RoofAxes, F.SteelDark);
+
     // ⑥ mirrors: door housings on short arms, the header mount of the rear-view mirror, silvered glass
     for (const Mirror of CabinLayout.Mirrors)
     {

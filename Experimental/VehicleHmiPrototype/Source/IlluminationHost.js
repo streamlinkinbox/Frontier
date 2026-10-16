@@ -1,7 +1,7 @@
 import { VehicleOrbitCamera } from "./VehicleOrbitCamera.js";
 import { DrivingCameraMotion } from "./DrivingCameraMotion.js";
 import { ResolveHudStyle } from "./HudLayout.js";
-import { BuildTransientLights, TransientLightFloats } from "./TransientLights.js";
+import { ClusteredLighting, ClusteredLightFloats } from "./ClusteredLighting.js";
 import { VehicleAppearance } from "./VehicleAppearance.js";
 //============================================================================================================================================
 //                                                           ILLUMINATIONHOST.JS
@@ -82,7 +82,7 @@ const TemporalRestartBit = 2048;   // [-] FeatureTemporalRestart in SceneRecords
 const PassNames = ["Distance union", "Card lighting", "Shadow", "Surface", "Direct", "ReSTIR GI", "Diffuse reconstruction",
                    "Reflection", "Glossy reconstruction", "Resolve", "Smoke transport", "Smoke render"];
 
-const FrameRecordExtent = 512 + TransientLightFloats * 4;   // [B] FrameRecord in SceneRecords.wgsl
+const FrameRecordExtent = 512 + ClusteredLightFloats * 4;   // [B] FrameRecord in SceneRecords.wgsl
 const FireLightReach    = 14.0;  // [m] influence radius of a tyre fire's light
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -130,6 +130,7 @@ class IlluminationHost
         this.FrameDurations = new Float32Array(240);
         this.FrameDurationCursor = 0;
         this.Keys = new Set();
+        this.Lighting = new ClusteredLighting();
         this.FrameIndex = 0;
         this.FreeCamera = false;
         this.Ready = false;
@@ -580,6 +581,13 @@ class IlluminationHost
                 this.ToggleCamera();
             if (Event.code === "KeyM" && !Event.repeat && !Event.ctrlKey && !Event.metaKey)
                 this.AssignCameraMode(this.Settings.CameraMode === "HMI" ? "Cockpit" : "HMI");
+            if (Event.code === "KeyI" && !Event.repeat && !Event.ctrlKey && !Event.metaKey)
+            {
+                const Mode = this.Lighting.CycleAutomotive();
+                this.Settings.AutomotiveLightMode = Mode;
+                this.Cards.InvalidateLighting();
+                console.info(`Automotive lights: ${Mode}`);
+            }
             if (Event.code === "KeyR" && !Event.repeat)
                 this.RespawnVehicle();
             if (Event.code === "KeyT" && !Event.repeat)
@@ -976,7 +984,7 @@ class IlluminationHost
         Scalars.set(Fire.Colour, 124);
         Scalars[127] = FireLightReach;
         this.Effects.LightAlbedo = this.Materials[CourseMaterial.BodyCoat].Albedo;
-        Scalars.set(BuildTransientLights(this.Sparks, this.Effects), 128);
+        Scalars.set(this.Lighting.Build(Camera.Position, this.Vehicle.QueryBodyTransform(), this.Sparks, this.Effects), 128);
         this.Exchange.Device.queue.writeBuffer(this.FrameRecords, 0, Bytes);
     }
 

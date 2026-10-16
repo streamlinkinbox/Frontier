@@ -486,3 +486,16 @@ Validation: 37 tests pass, including seeded reproducibility, fragment proportion
 property diversity, irregular emission counts, pulse cleanup, cooling/retirement
 and lifetime fade. Populated 36-frame effects validation reports no GPU errors or
 warnings. Appearance still needs real-browser review.
+
+## Clustered and automotive lighting
+
+The former eight-slot transient proxy implementation has been replaced by one 24-slot
+clustered photometric light path. The host selects the nearest scene-light cluster;
+the GPU applies bounded range, distance-field shadows and compact IES distributions
+for warm lamp posts, asymmetric road beams and LED floods. The same evaluated lights
+feed direct shading and surface-card relighting, so they participate in multi-bounce GI.
+
+The car now carries a modelled roof flood pod with aluminium housing, brackets and an
+emissive LED optic. Press **I** to cycle **Low beam → High beam → Fog → Off**. Low/high
+beam have different reach, cutoff and dip; fog uses a short wide profile. The roof LED
+uses its own wide flood profile. All fixtures follow the rigid vehicle transform.
