@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tyre XPBD · WebGPU</title>
+<style>
+  :root {
+    --bg: #07080a; --panel: rgba(16,18,22,.92); --line: #262a31; --text: #e8eaee; --dim: #8a909b;
+    --accent: #ff7a2e; --ok: #39d98a; --bad: #ff5a5a; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
+    font: 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow: hidden; }
+  #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+  #view:active { cursor: grabbing; }
+  .panel { position: fixed; top: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; width: 300px; max-height: calc(100% - 28px); overflow: auto; backdrop-filter: blur(6px); }
+  #controls { left: 14px; }
+  #telemetry { right: 14px; width: 330px; }
+  h1 { font-size: 15px; margin: 0 0 2px; letter-spacing: .02em; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--dim); margin: 16px 0 8px; font-weight: 600; }
+  .sub { color: var(--dim); font-size: 12px; margin-bottom: 8px; }
+  .badge { display: inline-block; font-size: 10.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line);
+    color: var(--ok); margin-right: 4px; margin-top: 4px; }
+  .badge.warn { color: var(--accent); }
+  label.row { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; margin: 8px 0 2px; font-size: 12px; color: var(--dim); }
+  label.row b { color: var(--text); font-weight: 600; font-family: var(--mono); font-size: 12px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  select, button { background: #15181d; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font: inherit; }
+  select { width: 100%; }
+  button { cursor: pointer; }
+  button:hover { border-color: #3a404a; }
+  button.primary { background: var(--accent); color: #140a03; border-color: transparent; font-weight: 600; }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  td { padding: 4px 0; border-bottom: 1px solid #1c2026; vertical-align: top; }
+  td.k { color: var(--dim); width: 56%; }
+  td.v { text-align: right; font-family: var(--mono); }
+  .good { color: var(--ok); } .bad { color: var(--bad); }
+  .note { font-size: 11.5px; color: var(--dim); margin-top: 6px; }
+  #fatal { display: none; position: fixed; inset: 0; background: #07080a; padding: 40px; font-size: 15px; line-height: 1.6; z-index: 10; }
+  #fatal code { font-family: var(--mono); color: var(--accent); }
+  .bench td { font-family: var(--mono); font-size: 11.5px; }
+  .hint { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); color: var(--dim); font-size: 12px;
+    background: rgba(0,0,0,.45); border-radius: 999px; padding: 6px 14px; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="fatal"></div>
+
+<section id="controls" class="panel">
+  <h1>Tyre physics · GPU solver</h1>
+  <div class="sub">Membrane tyre simulated entirely in WebGPU compute shaders.</div>
+  <div>
+    <span class="badge">GPU only · no CPU physics path</span>
+    <span class="badge" id="tsBadge">GPU timestamps: …</span>
+  </div>
+
+  <h2>Solver</h2>
+  <select id="solver">
+    <option value="xpbd">XPBD · coloured Gauss-Seidel</option>
+    <option value="shape">Shape matching · clusters (alternative)</option>
+  </select>
+  <label class="row">Resolution <b id="presetOut"></b></label>
+  <select id="preset">
+    <option value="low">Low · 32×24 (768 particles)</option>
+    <option value="medium">Medium · 48×32 (1.5k)</option>
+    <option value="high" selected>High · 96×64 (6.1k)</option>
+    <option value="ultra">Ultra · 128×96 (12.3k)</option>
+  </select>
+  <label class="row">Solver iterations per substep <b id="itersOut">4</b></label>
+  <input id="iters" type="range" min="1" max="12" step="1" value="4" />
+
+  <h2>Vehicle &amp; road</h2>
+  <label class="row">Speed <b id="speedOut">36 km/h</b></label>
+  <input id="speed" type="range" min="0" max="120" step="1" value="36" />
+  <label class="row">Slip angle <b id="slipOut">0.0°</b></label>
+  <input id="slip" type="range" min="-10" max="10" step="0.5" value="0" />
+  <label class="row">Payload on this corner <b id="payloadOut">400 kg</b></label>
+  <input id="payload" type="range" min="100" max="800" step="10" value="400" />
+  <label class="row">Road friction μ <b id="muOut">0.90</b></label>
+  <input id="mu" type="range" min="0.2" max="1.2" step="0.05" value="0.9" />
+
+  <h2>Tyre</h2>
+  <label class="row">Inflation pressure (gauge) <b id="barOut">2.3 bar</b></label>
+  <input id="bar" type="range" min="1.0" max="3.5" step="0.05" value="2.3" />
+  <label class="row">Membrane stiffness <b id="stiffOut">1.00×</b></label>
+  <input id="stiff" type="range" min="-1" max="1" step="0.05" value="0" />
+  <div class="btns">
+    <label class="note"><input id="strain" type="checkbox" checked /> colour by membrane strain</label>
+  </div>
+
+  <div class="btns">
+    <button id="pause">Pause</button>
+    <button id="reset">Reset</button>
+    <button id="bench" class="primary">Benchmark both solvers</button>
+  </div>
+  <div class="note">Drag to orbit · wheel to zoom.</div>
+
+  <h2>Benchmark</h2>
+  <div id="benchOut" class="note">Runs each solver for 90 frames of 8 substeps at the current resolution, then settles
+    1.5 s of simulated time to check the load.</div>
+</section>
+
+<section id="telemetry" class="panel">
+  <h1>Telemetry</h1>
+  <div class="sub">Computed on the GPU, read back asynchronously (never blocks rendering).</div>
+  <table>
+    <tr><td class="k">Vertical load Fz (contact)</td><td class="v" id="fz">–</td></tr>
+    <tr><td class="k">Target load (payload + tyre)</td><td class="v" id="fzT">–</td></tr>
+    <tr><td class="k">Load error</td><td class="v" id="fzErr">–</td></tr>
+    <tr><td class="k">Road force Fx (longitudinal)</td><td class="v" id="fx">–</td></tr>
+    <tr><td class="k">Road force Fy (lateral)</td><td class="v" id="fy">–</td></tr>
+    <tr><td class="k">Contact particles (avg)</td><td class="v" id="contacts">–</td></tr>
+    <tr><td class="k">Approx. contact patch</td><td class="v" id="patch">–</td></tr>
+  </table>
+  <h2>Inflation &amp; deformation</h2>
+  <table>
+    <tr><td class="k">Enclosed volume</td><td class="v" id="vol">–</td></tr>
+    <tr><td class="k">Volume error vs rest</td><td class="v" id="volErr">–</td></tr>
+    <tr><td class="k">Gauge pressure (from gas law)</td><td class="v" id="pres">–</td></tr>
+    <tr><td class="k">Mean membrane strain</td><td class="v" id="strain">–</td></tr>
+  </table>
+  <h2>Vehicle</h2>
+  <table>
+    <tr><td class="k">Hub height / speed</td><td class="v" id="hub">–</td></tr>
+    <tr><td class="k">Hub forward speed</td><td class="v" id="hubV">–</td></tr>
+    <tr><td class="k">Wheel spin (rad/s)</td><td class="v" id="omega">–</td></tr>
+    <tr><td class="k">Slip ratio (wheel vs road)</td><td class="v" id="slipR">–</td></tr>
+  </table>
+  <h2>Performance</h2>
+  <table>
+    <tr><td class="k">Simulated time per second</td><td class="v" id="rtf">–</td></tr>
+    <tr><td class="k">GPU time per frame</td><td class="v" id="gpuMs">–</td></tr>
+    <tr><td class="k">Substeps per frame</td><td class="v" id="subs">–</td></tr>
+    <tr><td class="k">Readback latency (async)</td><td class="v" id="rbLat">–</td></tr>
+    <tr><td class="k">Readback age</td><td class="v" id="rbAge">–</td></tr>
+  </table>
+  <h2>Load return (how the CPU sees the physics)</h2>
+  <div class="note">
+    The reduction and the hub integration run on the GPU, so the load never has to come back to the CPU for
+    physics. The host copies one 128-byte block per frame into a 3-slot staging ring and maps it asynchronously.
+    The render loop never waits on it, so the readback age above is the telemetry delay.
+  </div>
+  <h2>Benchmark results</h2>
+  <table class="bench" id="benchTable"><tr><td class="k">Run the benchmark to fill this table.</td><td></td></tr></table>
+</section>
+
+<div class="hint">Shape matching (alternative) reuses the rim, contact and telemetry stages; only the membrane solver differs.</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
