@@ -62,12 +62,5 @@ fn IntegrateCardDirect(@builtin(workgroup_id) Group: vec3u, @builtin(local_invoc
         let Light = ResolveTransientArrival(Position, Normal, Index);
         Irradiance += Light.Illuminance * max(dot(Normal, Light.Direction), 0.0);
     }
-    var LocalMask=LocalLightMask(Position);
-    while(LocalMask!=0u) {
-        let Index=firstTrailingBit(LocalMask);LocalMask &= LocalMask-1u;
-        if(Index>=u32(Frame.LocalLightMetadata.x)){continue;}
-        let L=ResolveShadowedLocalArrival(Position,Normal,Index);
-        Irradiance+=L.Illuminance*max(dot(Normal,L.Direction),0.0);
-    }
     textureStore(CardDirectTarget, Texel, vec4f(Irradiance, 1.0));
 }

@@ -109,12 +109,5 @@ fn IntegrateDirectRadiance(@builtin(global_invocation_id) Invocation: vec3u)
         let Light = ResolveTransientArrival(Position, Normal, Index);
         Radiance += Light.Illuminance * ResolveDirectReflectance(Surface, Normal, View, Light.Direction);
     }
-    var LocalMask=LocalLightMask(Position);
-    while(LocalMask!=0u) {
-        let Index=firstTrailingBit(LocalMask);LocalMask &= LocalMask-1u;
-        if(Index>=u32(Frame.LocalLightMetadata.x)){continue;}
-        let L=ResolveShadowedLocalArrival(Position,Normal,Index);
-        Radiance+=L.Illuminance*ResolveDirectReflectance(Surface,Normal,View,L.Direction);
-    }
     textureStore(DirectTarget, vec2i(Pixel), vec4f(Radiance, 1.0));
 }

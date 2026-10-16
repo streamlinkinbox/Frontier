@@ -449,24 +449,3 @@ an old error page is still open, reload the preview once to load the updated mod
 Validation for this change: 30 tests pass; 36-frame effects and 48-frame active
 plume/HMI runs report zero errors and warnings. Dawn null validation does not prove
 rendered appearance or subjective camera comfort.
-
-## Clustered automotive / scene lights
-
-A GitHub recovery checkpoint was pushed **before** this feature: `8c375ce` on
-`arena/cabcd69d-frontier`.
-
-- Press **I**: **Off → Low → High → Fog** (front headlights + attached roof LED box).
-- Open **Lights · automotive** in the outliner for output, aim, width, separate
-  front/roof switches, roof output share, Point/Spot/Automotive/IES profiles and
-  local `.ies` import. Default vehicle lights are Off.
-- Use **Night lighting preview** there to see beam patterns and scene illumination;
-  **Daylight preview** restores the normal sun/sky settings.
-- A new LED lamp post stands beside the starting area. Existing street heads and
-  tunnel luminaires now have opaque housings, reflectors and individual LED boards,
-  not emissive boxes. The roof box has brackets, a finned housing and eight LED cells.
-- Direct lighting and bounced GI share the same clustered light records/profiles.
-  The main view/cards use distance-field shadows; mirrors use unshadowed local lights.
-- The old distance-slice hotkey is **O** now, leaving **I** for vehicle lights.
-
-See [LIGHTING.md](LIGHTING.md) for limits, units, IES support and validation. These
-are configurable rendering profiles, not certified road-light photometry.

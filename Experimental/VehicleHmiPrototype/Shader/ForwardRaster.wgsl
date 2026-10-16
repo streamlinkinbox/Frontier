@@ -20,7 +20,6 @@
 //! include "FrameDescriptor.wgsl"
 //! include "SurfaceReflectance.wgsl"
 //! include "SkyProjection.wgsl"
-//! include "LocalLighting.wgsl"
 //! include "EffectRecords.wgsl"
 //! include "VehicleVisual.wgsl"
 //! include "CabinVolume.wgsl"
@@ -195,13 +194,6 @@ fn ForwardFragment(Varying: ForwardVarying) -> @location(0) vec4f
             let Energy = Light.Colour.rgb * Frame.EmissionScale * pow(1.0 - D2 / (Reach * Reach), 2.0) / max(D2, 0.16);
             Radiance += Energy * ResolveDirectReflectance(Surface, Normal, ViewDirection, Toward / max(sqrt(D2), 0.0001));
         }
-    }
-    var LocalMask=LocalLightMask(Varying.WorldPosition);
-    while(LocalMask!=0u) {
-        let Index=firstTrailingBit(LocalMask);LocalMask &= LocalMask-1u;
-        if(Index>=u32(Frame.LocalLightMetadata.x)){continue;}
-        let L=ResolveLocalArrival(Varying.WorldPosition,Normal,Index);
-        Radiance+=L.Illuminance*ResolveDirectReflectance(Surface,Normal,ViewDirection,L.Direction);
     }
     // 📝 Scene: the sun with its cascaded shadow, the sky over the normal's hemisphere, the ground's bounce.
     let Visibility = ResolveSunVisibility(Varying.WorldPosition, Normal);

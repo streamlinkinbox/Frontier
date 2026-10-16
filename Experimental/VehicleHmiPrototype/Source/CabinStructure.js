@@ -1,4 +1,3 @@
-import { ConstructRoofLightFacets } from "./LightingFixtures.js";
 import { CabinLayout as SlateLayout, ConstructCabinTransform, ConstructCabinFacets as SlateCabinFacets } from './SlateCabinLayout.js';
 import { ConstructSlateFittings } from './SlateCabinFittings.js';
 import { TransformPoint, TransformDirection } from './TransformProjection.js';
@@ -196,7 +195,7 @@ export const ClusterHexagon = [[-0.62, -1], [0.62, -1], [1, 0], [0.62, 1], [-0.6
 
 export function ConstructCabinFacets()
 {
-    const Facets = [...SlateCabinFacets().map(Facet => ({ ...Facet, Family: CourseMaterial.CabinTrim })), ...ConstructRoofLightFacets()];
+    const Facets = SlateCabinFacets().map(Facet => ({ ...Facet, Family: CourseMaterial.CabinTrim }));
     const F = CourseMaterial;
     const WheelPose = ConstructCabinTransform(SlateLayout.Wheel, SlateLayout.WheelTilt);
     const TabletPose = ConstructCabinTransform(SlateLayout.Tablet, SlateLayout.TabletTilt);

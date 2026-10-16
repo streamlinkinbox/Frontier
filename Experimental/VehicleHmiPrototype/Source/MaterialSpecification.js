@@ -96,11 +96,6 @@ export const CourseMaterial = Object.freeze({
     CabinCarpet:     77,
     MirrorTrim:      78,
     TabletHousing:   80,
-    LightHousing:    82,
-    LightReflector:  83,
-    RoofLed:         84,
-    StreetLed:       85,
-    TunnelLed:       86,
     RimBase:         81, // original MatTyre finish on METAL geometry; never shredded
     RimScrape:       79     // the rear-view mirror's housing and stem: CabinTrim's finish, fixed to the shell, not the cockpit
 });
@@ -156,14 +151,6 @@ export function ConstructMaterialSpecification()
     // Separate identity keeps that authored dark finish without rubber damage collapse.
     Materials[CourseMaterial.RimBase] = Dielectric(0.03741, 0.03741, 0.03741, 0.76087);
 
-    Materials[CourseMaterial.LightHousing] = Dielectric(0.018,0.021,0.024,0.42);
-    const Reflector = Dielectric(0.72,0.74,0.77,0.16); Reflector.Metalness=1;
-    Materials[CourseMaterial.LightReflector] = Reflector;
-    Materials[CourseMaterial.RoofLed] = Dielectric(0.035,0.04,0.045,0.12);
-    const StreetLed = Dielectric(0.72,0.66,0.53,0.25); StreetLed.Emission=[5,4.1,3.1];
-    Materials[CourseMaterial.StreetLed] = StreetLed;
-    const TunnelLed = Dielectric(0.66,0.70,0.74,0.25); TunnelLed.Emission=[4.1,4.5,5];
-    Materials[CourseMaterial.TunnelLed] = TunnelLed;
     const Hub = Dielectric(0.06, 0.22, 0.62, 0.22);
     Hub.Metalness = 1.0;
     Hub.Emission  = [0.0, 0.03327756, 0.12];

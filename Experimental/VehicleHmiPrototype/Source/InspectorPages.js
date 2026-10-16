@@ -1,4 +1,3 @@
-import { ParseIES } from "./Photometry.js";
 //============================================================================================================================================
 //                                                             INSPECTORPAGES.JS
 //============================================================================================================================================
@@ -100,9 +99,6 @@ export function ConstructEntities(Host)
           Description: "Rubber laid by sliding work", Meta: () => `${Host.Marks.Metrics.LaidMetres.toFixed(0)} m`, State: () => (S.TyreMarks ? "live" : ""),
           Build: (C, B) => BuildMarks(Host, C, B),
           Toggle: { Read: () => S.TyreMarks, Write: (On) => { S.TyreMarks = On; } } },
-        { Id: "lights", Group: "Environment", Name: "Lights · automotive", Type: "Clustered local lighting", Glyph: "Sun", Colour: Accent.Vehicle,
-          Description: "LED fixtures, beam profiles, spots and IES · direct + GI", Meta: () => S.LightMode,
-          Build: (C,B) => BuildLighting(Host,C,B), Toggle: { Read: () => S.LocalLights, Write: On => { S.LocalLights=On; } } },
         { Id: "gas", Group: "Effects", Name: "Smoke & fire", Type: "Gas domain", Glyph: "Flame", Colour: Accent.Effects,
           Description: "Eulerian smoke · combustion · tyre sources", Meta: () => (Host.Smoke.Resident ? "resident" : "idle"),
           State: () => (Host.Smoke.Resident ? "live" : ""), Build: (C, B) => BuildGas(Host, C, B),
@@ -208,7 +204,7 @@ function BuildRender(Host, C, Body)
     C.Select(Debug, S, "Inspection", InspectionModes, { Label: "Display" });
     C.Select(Debug, S, "DistanceInspection", DistanceInspections, { Label: "Distance-field view" });
     C.Switch(Debug, S, "HudVisible", { Label: "Readout overlay", Detail: "H" });
-    C.Switch(Debug, S, "InsetEnabled", { Label: "Distance slice inset", Detail: "O" });
+    C.Switch(Debug, S, "InsetEnabled", { Label: "Distance slice inset", Detail: "I" });
     Slider(C, Debug, S, "SliceHeight", "Slice height", 0.05, 4.0, 0.05, "m", 2);
 
     const Timing = C.Card(Body, "Frame timing", "Activity", { Accent: Accent.Render, Index: 5 });
@@ -927,42 +923,4 @@ function BuildDerez(Host, C, Body)
 function Distance(Left, Right)
 {
     return Math.hypot(Left[0] - Right[0], Left[1] - Right[1]);
-}
-
-function BuildLighting(Host,C,Body) {
-    const S=Host.Settings;
-    const Beam=C.Card(Body,"Roof LED flood / headlights","Sun",{Accent:Accent.Vehicle,Index:1});
-    C.Muted(Beam,"I cycles Off → Low → High → Fog. Roof-mounted eight-cell LED box follows the vehicle. Authored beam patterns are not road-certified photometry.");
-    C.Switch(Beam,S,"LocalLights",{Label:"Local lights + GI"});
-    C.Switch(Beam,S,"FrontLights",{Label:"Front headlights"});
-    C.Switch(Beam,S,"RoofLights",{Label:"Attached roof LED box"});
-    Slider(C,Beam,S,"RoofPower","Roof output share",0,2,0.05,"×",2);
-    C.Select(Beam,S,"LightMode",["Off","Low","High","Fog"].map(N=>[N,N]),{Label:"Automotive mode (I)"});
-    C.Select(Beam,S,"RoofProfile",["Automotive","Spot","Point","IES"].map(N=>[N,N]),{Label:"Distribution"});
-    Slider(C,Beam,S,"LightIntensity","Intensity multiplier",0,3,0.05,"×",2);
-    Slider(C,Beam,S,"BeamPitch","Downward aim",-5,12,0.25,"°",2);
-    Slider(C,Beam,S,"BeamWidth","Horizontal spread",0.5,2,0.05,"×",2);
-    for(const Mode of ["Low","High","Fog"]) Slider(C,Beam,S,Mode+"Candela",Mode+" peak intensity",1000,120000,1000,"cd",0);
-    const IES=C.Card(Body,"Spot / IES photometry","Sun",{Accent:Accent.Vehicle,Index:2});
-    C.Muted(IES,"Import a local LM-63 Type C IES file (TILT=NONE). One normalized 16×16 angular table is used by the roof projector; the mode's candela slider sets peak output. IES mode uses Automotive until a file is loaded.");
-    C.Readout(IES,()=>Host.LocalLighting.IES ? [Host.LocalLighting.IES.Name,`File peak ${Host.LocalLighting.IES.PeakCandela.toFixed(0)} cd · normalized for runtime`] : ["No measured IES loaded · built-in profiles are analytic"]);
-    const Row=C.ActionRow(IES);
-    C.Button(Row,"Import .ies","Sun",()=>{
-        const Input=document.createElement("input");Input.type="file";Input.accept=".ies,text/plain";
-        Input.onchange=async()=>{try{
-            if(!Input.files?.[0])return;
-            if(Input.files[0].size>4*1024*1024)throw new Error("IES file exceeds 4 MB limit");
-            Host.LocalLighting.IES=ParseIES(await Input.files[0].text());S.RoofProfile="IES";Host.PriorLocalLightKey=null;
-            Host.Shell.Announce("IES profile loaded");C.Synchronise();
-        }catch(E){Host.Shell.Announce(`IES rejected: ${E.message}`);}};
-        Input.click();
-    });
-    C.Button(Row,"Clear IES","RotateCcw",()=>{Host.LocalLighting.IES=null;S.RoofProfile="Automotive";Host.PriorLocalLightKey=null;C.Synchronise();});
-    const Scene=C.Card(Body,"Street / tunnel luminaires","Sun",{Accent:Accent.Vehicle,Index:3});
-    C.Switch(Scene,S,"StreetLights",{Label:"Scene luminaires"});
-    Slider(C,Scene,S,"StreetPower","Scene light output",0,4,0.1,"×",1);
-    C.Button(C.ActionRow(Scene),"Night lighting preview","Moon",()=>{S.SunElevation=-8;S.SkyScale=0.2;C.Synchronise();});
-    C.Button(C.ActionRow(Scene),"Daylight preview","Sun",()=>{S.SunElevation=38;S.SkyScale=1;C.Synchronise();});
-    C.Stats(Scene,[["Lights",()=>Host.LocalLighting.Metrics.Count],["Occupied clusters",()=>Host.LocalLighting.Metrics.Clusters],["Grid",()=>"8×8×4"]]);
-    C.Muted(Scene,"32 local lights maximum; CPU-built world-space cluster masks shared by screen, cards and mirrors. Cards bounce light into GI. Distance-field shadows in main view/cards; mirrors use unshadowed local lighting. Distance-slice debug hotkey is now O.");
 }
