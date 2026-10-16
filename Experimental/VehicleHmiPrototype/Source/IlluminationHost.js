@@ -1,7 +1,9 @@
 import { VehicleOrbitCamera } from "./VehicleOrbitCamera.js";
 import { DrivingCameraMotion } from "./DrivingCameraMotion.js";
 import { ResolveHudStyle } from "./HudLayout.js";
-import { BuildTransientLights, TransientLightFloats } from "./TransientLights.js";
+import { LightRig, CycleLightMode } from "./LightRig.js";
+import { ClusteredLighting, ClusterConfiguration } from "./ClusteredLighting.js";
+import { PhotometrySize } from "./Photometry.js";
 import { VehicleAppearance } from "./VehicleAppearance.js";
 //============================================================================================================================================
 //                                                           ILLUMINATIONHOST.JS
@@ -59,9 +61,9 @@ const ShaderSources = [
     "AtmosphereScattering.wgsl", "SurfaceReflectance.wgsl", "ShadowRaster.wgsl", "SurfaceRaster.wgsl", "DirectRadiance.wgsl",
     "ReservoirRecords.wgsl", "ReservoirTemporal.wgsl", "ReservoirSpatial.wgsl", "ReflectionTraversal.wgsl", "VarianceTemporal.wgsl",
     "VarianceWavelet.wgsl", "VarianceUpsample.wgsl", "InspectionMarch.wgsl", "DisplayRecombination.wgsl", "DisplayAntialias.wgsl",
-    "DisplayExposure.wgsl", "DisplayPresent.wgsl", "FireIllumination.wgsl", "PlumeRecords.wgsl", "PlumeAdvection.wgsl", "PlumePressure.wgsl", "PlumeVorticity.wgsl", "PlumeMarch.wgsl",
+    "DisplayExposure.wgsl", "DisplayPresent.wgsl", "PlumeRecords.wgsl", "PlumeAdvection.wgsl", "PlumePressure.wgsl", "PlumeVorticity.wgsl", "PlumeMarch.wgsl",
     "FragmentDistance.wgsl", "EffectRecords.wgsl", "EffectRaster.wgsl", "VehicleVisual.wgsl", "SparkRaster.wgsl", "ForwardRaster.wgsl",
-    "CabinOverlay.wgsl", "CabinVolume.wgsl"
+    "CabinOverlay.wgsl", "CabinVolume.wgsl", "LightRecords.wgsl", "LightTransport.wgsl", "ClusterBuild.wgsl"
 ];
 
 // 📝 Quality grades trade cascade resolution, card density and traversal length; selected with ?quality=low|medium|high.
@@ -82,8 +84,7 @@ const TemporalRestartBit = 2048;   // [-] FeatureTemporalRestart in SceneRecords
 const PassNames = ["Distance union", "Card lighting", "Shadow", "Surface", "Direct", "ReSTIR GI", "Diffuse reconstruction",
                    "Reflection", "Glossy reconstruction", "Resolve", "Smoke transport", "Smoke render"];
 
-const FrameRecordExtent = 512 + TransientLightFloats * 4;   // [B] FrameRecord in SceneRecords.wgsl
-const FireLightReach    = 14.0;  // [m] influence radius of a tyre fire's light
+const FrameRecordExtent = 480; // [B] FrameRecord in SceneRecords.wgsl; local lights have their own storage buffer
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       BRING-UP
@@ -111,6 +112,9 @@ class IlluminationHost
             Antialias: true, TraceScale: 2, FreezeDistance: false, CardRadiosity: true, CardTileBudget: this.Grade.TileBudget,
             Quality: ["low", "medium", "high"].indexOf(this.GradeName),
             RenderScale: this.Grade.RenderScale, LightingPreset: "Custom", TestPlume: 0,
+            LampMode: "Off", SceneLightsEnabled: true, AutoSceneLights: true, SceneLightPower: 1.0,
+            LowBeamPower: 1.0, HighBeamPower: 1.0, FogBeamPower: 1.0,
+            RoofEnabled: true, RoofBeamPower: 1.0, RoofProfile: "Flood", BeamAim: -2.0, RoofAim: -4.0,
             // 📝 Tyres: cold pressures per axle [kPa], wear, failure and optional keyboard countersteer.
             TyrePressureFront: 220, TyrePressureRear: 220, SteeringAssist: true, SteeringAssistStrength: 0.45,
             TyreWear: true, WearScale: 1.0, TyreFailure: true, Sparks: true,
@@ -208,6 +212,10 @@ class IlluminationHost
         this.Scene.ConstructDrawRuns();
         this.Constants = {
             MaximumTraversalSteps: { Type: "u32", Value: this.Grade.Steps },
+            ClusterTilePixels:     { Type: "u32", Value: ClusterConfiguration.Tile },
+            ClusterMaxPerCell:     { Type: "u32", Value: ClusterConfiguration.PerCluster },
+            PhotometryAzimuthBins: { Type: "u32", Value: PhotometrySize.Azimuth },
+            PhotometryPolarBins:   { Type: "u32", Value: PhotometrySize.Polar },
             GroundPadMinimumX:     { Type: "f32", Value: GroundLayout.PadMinimum[0] },
             GroundPadMinimumY:     { Type: "f32", Value: GroundLayout.PadMinimum[1] },
             GroundTileExtent:      { Type: "f32", Value: GroundLayout.TileExtent },
@@ -267,7 +275,13 @@ class IlluminationHost
         await this.Atmosphere.ConstructResources();
         this.Shadow = new ShadowProjection(this.Exchange, this.Shaders, this.Grade.ShadowExtent);
         await this.Shadow.ConstructResources(this.OccupantRecords);
-        await this.Cards.ConstructResources(this.FrameRecords, this.OccupantRecords, this.MaterialRecords, this.Distance.TraversalLayout);
+        this.Lighting = new ClusteredLighting(this.Exchange, this.Shaders, this.FrameRecords);
+        await this.Lighting.ConstructResources();
+        this.LightRig = new LightRig(this.Materials, this.MaterialRecords, this.Exchange, this.Settings);
+        this.LightRig.SynchroniseMaterials();
+        this.LightRig.LastKey = this.LightRig.QueryLightingKey();
+        await this.Cards.ConstructResources(this.FrameRecords, this.OccupantRecords, this.MaterialRecords,
+                                            this.Distance.TraversalLayout, this.Lighting.Layout);
         this.SamplingGroup = this.Cards.ConstructSamplingGroup(this.OccupantRecords, this.Atmosphere.SkyView, this.Atmosphere.SkySampler);
         this.ReportProgress("Compiling surface and resampling programs", 0.84);
         this.Marks = new TyreMarkDepot(this.Exchange);
@@ -282,7 +296,8 @@ class IlluminationHost
         await this.Shadow.ConstructMaskedProgram(this.OccupantRecords, this.Effects, this.VehicleRecords);
         this.Recovery = new RecoveryDirector(this);
         this.Surface = new SurfaceProjection(this.Exchange, this.Shaders);
-        await this.Surface.ConstructPrograms(this.FrameRecords, this.OccupantRecords, this.MaterialRecords, this.Distance.TraversalLayout, this.Marks,
+        await this.Surface.ConstructPrograms(this.FrameRecords, this.OccupantRecords, this.MaterialRecords,
+                                             this.Distance.TraversalLayout, this.Lighting.Layout, this.Marks,
                                              this.Effects, this.VehicleRecords);
         this.Resampling = new ResamplingSequence(this.Exchange, this.Shaders);
         await this.Resampling.ConstructPrograms(this.FrameRecords, this.MaterialRecords, this.Distance.TraversalLayout, this.Cards.SamplingLayout);
@@ -302,7 +317,8 @@ class IlluminationHost
         this.Cabin.AssignPressure(this.Settings.TyrePressureFront);
         await this.Cabin.ConstructResources({ FrameRecords: this.FrameRecords, OccupantRecords: this.OccupantRecords, MaterialRecords: this.MaterialRecords,
                                               EffectRecords: this.Effects.Records, VehicleRecords: this.VehicleRecords, Shadow: this.Shadow,
-                                              Atmosphere: this.Atmosphere, Scene: this.Scene, AdaptationRecords: this.Display.AdaptationRecords });
+                                              Atmosphere: this.Atmosphere, Scene: this.Scene, AdaptationRecords: this.Display.AdaptationRecords,
+                                              Distance: this.Distance, Lighting: this.Lighting });
         this.ReportProgress("Compiling drift smoke programs", 0.91);
         this.Thermal = new TyreThermalSolver(4);
         this.BurstPuffs = [];
@@ -586,8 +602,15 @@ class IlluminationHost
                 this.ResetArena();
             if (Event.code === "KeyC" && !Event.repeat && !Event.ctrlKey && !Event.metaKey)
                 this.CycleCamera(Event.shiftKey ? -1 : 1);
+            if (Event.code === "KeyI" && !Event.shiftKey && !Event.repeat && !Event.ctrlKey && !Event.metaKey && !Event.altKey)
+            {
+                this.Settings.LampMode = CycleLightMode(this.Settings.LampMode);
+                this.Shell.Controls.Synchronise();
+                this.Shell.Announce(`Vehicle lights: ${this.Settings.LampMode}`);
+            }
             for (const [Name, Code] of Object.entries(OverlayKeys))
-                if (Event.code === Code && !Event.repeat && !Event.ctrlKey && !Event.metaKey && !Event.altKey)
+                if (Event.code === Code && (Name !== "Inset" || Event.shiftKey) && !Event.repeat
+                    && !Event.ctrlKey && !Event.metaKey && !Event.altKey)
                     this.Dock.Toggle(Name);
             this.Keys.add(Event.code);
         });
@@ -791,6 +814,7 @@ class IlluminationHost
         this.ScreenExtent = [Width, Height];
         this.TraceScaleUsed = Scale;
         this.TraceExtent = [Math.ceil(Width / Scale), Math.ceil(Height / Scale)];
+        this.Lighting.Resize(Width, Height);
         this.Surface.ConstructTargets(Width, Height, this.Shadow, this.Atmosphere);
         this.Resampling.ConstructTargets(this.TraceExtent, this.Surface);
         this.Diffuse.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
@@ -970,13 +994,6 @@ class IlluminationHost
         Integers[115] = this.Settings.DistanceInspection;
         Scalars.set(this.Focus, 116);
         Integers[119] = (this.Dock ? this.Dock.InsetDrawn : this.Settings.InsetEnabled) ? 1 : 0;
-        const Fire = this.Smoke.FireLight;
-        Scalars.set(Fire.Position, 120);
-        Scalars[123] = this.Settings.SmokeEnabled ? Fire.Intensity : 0.0;
-        Scalars.set(Fire.Colour, 124);
-        Scalars[127] = FireLightReach;
-        this.Effects.LightAlbedo = this.Materials[CourseMaterial.BodyCoat].Albedo;
-        Scalars.set(BuildTransientLights(this.Sparks, this.Effects), 128);
         this.Exchange.Device.queue.writeBuffer(this.FrameRecords, 0, Bytes);
     }
 
@@ -1075,6 +1092,19 @@ class IlluminationHost
         this.Smoke.Advance(this.FixedStep ? this.FixedStep : Δτ, {
             Enabled: this.Settings.SmokeEnabled, Emissions, Vehicle: this.Vehicle, Light, SkyScale: this.Settings.SkyScale,
             Gas: this.Settings.Gas, Readings, Thermal: this.Thermal });
+        const LightingKey = this.LightRig.QueryLightingKey();
+        const EmissionChanged = this.LightRig.SynchroniseMaterials();
+        if (LightingKey !== this.LightRig.LastKey)
+        {
+            this.Cards.InvalidateLighting();
+            this.PriorValid = false;
+            this.LightRig.LastKey = LightingKey;
+        }
+        if (EmissionChanged)
+            this.Cards.CaptureCards(this.Scene, this.VertexRecords);
+        this.Effects.LightAlbedo = this.Materials[CourseMaterial.BodyCoat].Albedo;
+        const LocalLights = this.LightRig.Resolve(this.Vehicle.QueryBodyTransform(), this.Sparks, this.Effects, this.Smoke, this.Vehicle.Hidden);
+        this.Lighting.Upload(LocalLights, Camera);
         this.EncodeFrameRecord(Camera, Light);
         Device.queue.writeBuffer(this.OccupantRecords, 0, this.Scene.EncodeOccupantRecords(this.Volumes, this.Scene.DynamicCount));
 
@@ -1082,6 +1112,7 @@ class IlluminationHost
         if (this.Scene.ConstructDistanceList())
             this.Distance.UploadDistanceList(this.Scene.DistanceList);
         this.Distance.ScheduleInvalidation(this.Focus, ResolveMovedBounds(this.Scene, this.Distance.Frozen));
+        this.Cards.PrioritizeLocalLights(this.Scene, this.LightRig.DynamicLights);
         this.Cards.ScheduleTiles(this.Settings.CardTileBudget);
         this.Shadow.ResolveCascades(Camera, Light.Direction);
 
@@ -1093,18 +1124,19 @@ class IlluminationHost
         this.Volumes.RecordFragments(Encoder);
         if (Included("Union"))
             this.Distance.RecordUnion(Encoder, this.Scene.QueryUnionCount(), this.FrameIndex, this.Metrics.QueryWrites("Distance union"));
+        this.Lighting.RecordClusters(Encoder);
         if (Included("Smoke"))
             this.Smoke.RecordTransport(Encoder, this.Distance.TraversalGroup, this.Metrics.QueryWrites("Smoke transport"));
         if (Included("Shadow"))
             this.Shadow.RecordCascades(Encoder, this.Scene, this.VertexRecords, this.Metrics.QueryWrites("Shadow"));
         if (Included("Cards"))
-            this.Cards.RecordLighting(Encoder, this.Distance.TraversalGroup, this.SamplingGroup, this.Settings.CardRadiosity,
-                                      this.Metrics.QueryWrites("Card lighting"));
+            this.Cards.RecordLighting(Encoder, this.Distance.TraversalGroup, this.SamplingGroup, this.Lighting.Group,
+                                      this.Settings.CardRadiosity, this.Metrics.QueryWrites("Card lighting"));
         this.Surface.RecordSurface(Encoder, this.Scene, this.VertexRecords, this.Metrics.QueryWrites("Surface"));
         if (Included("Cabin"))
             this.Cabin.RecordViews(Encoder, this.Scene, this.VertexRecords, this.Vehicle.QueryBodyTransform(), this.QueryMirrorsVisible());
         if (Included("Direct"))
-            this.Surface.RecordDirect(Encoder, this.Distance.TraversalGroup, this.Metrics.QueryWrites("Direct"));
+            this.Surface.RecordDirect(Encoder, this.Distance.TraversalGroup, this.Lighting.Group, this.Metrics.QueryWrites("Direct"));
         if (this.Settings.Indirect && Included("Resampling"))
         {
             this.Resampling.RecordResampling(Encoder, Parity, this.Distance.TraversalGroup, this.SamplingGroup, this.Metrics.QueryWrites("ReSTIR GI"));
@@ -1197,7 +1229,8 @@ class IlluminationHost
             `${Rate} fps · ${(this.FrameSeconds * 1000).toFixed(1)} ms · 1% low ${this.LowRate} fps · ${Screen} · trace ${Trace}`,
             `ControlVehicle  ${Speed} km/h · gear ${Telemetry.Gear} · ${Telemetry.EngineRPM.toFixed(0)} rpm · ${Telemetry.Contacts}/4 contact`
                 + (Telemetry.Burnout ? ` · BURNOUT ${(Math.abs(Telemetry.RearSpin) * 3.6).toFixed(0)} km/h wheelspin` : ""),
-            `GDF bricks rewritten  ${Rewritten}${this.Distance.Frozen ? "  (frozen)" : ""} · card tiles ${this.Cards.ScheduledTiles}`
+            `GDF bricks rewritten  ${Rewritten}${this.Distance.Frozen ? "  (frozen)" : ""} · card tiles ${this.Cards.ScheduledTiles}`,
+            `Lighting  ${this.Settings.LampMode} beam · ${this.Lighting.Count} local lights · ${this.Lighting.ClusterCount} clusters`
         ];
         if (this.Stress.QueryActive() > 0)
             Lines.push(`Stress objects  ${this.Stress.QueryActive()} (${this.Stress.Moving.length} moving) · ${this.Scene.DrawRuns.length} draw runs`);
@@ -1223,7 +1256,7 @@ class IlluminationHost
         if (Pressures.some((Line) => /burst|rim|leak/.test(Line)) || this.Sparks.Live > 0)
             Lines.push(`Tyres  ${Pressures.join("  ")}${this.Sparks.Live > 0 ? `  · ${this.Sparks.Live} sparks` : ""}`);
         Lines.push("W/S throttle·brake  W+S burnout  A/D steer  Space handbrake  R respawn  T reset arena  F8 free camera  C camera rigs");
-        Lines.push("H readout  I distance slice  P editor  V clean view");
+        Lines.push("I lights (off → low → high + roof → fog)  Shift+I distance slice  H readout  P editor  V clean view");
         this.Shell.Present(Now, Lines);
     }
 

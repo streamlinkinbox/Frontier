@@ -8,6 +8,51 @@ The source patch is not retained. Vehicle `.facet` binaries were regenerated wit
 under the included OFL license. The separate reference configurator is preserved
 in `../interactive-vehicle-hmi-configurator`.
 
+## Clustered photometric lighting · vehicle beams · emissive fixtures
+
+This update replaces the old transient-light path with **one local-light transport**
+for authored fixtures, body-attached car lamps, spark/derez effects and fire. The 21
+street poles have separate faceted columns, arms, sealed housings, reflector cups,
+prismatic lenses and eight warm LED dies per head. The hangar, tunnel and gantry have
+48 more sources. Metal, gasket, glass, diffuser and emissive materials are distinct;
+fixture bulbs and their physical light records share a switch. A low-profile sealed
+roof flood bar follows the vehicle chassis: brackets, dark bezel, chrome reflectors,
+cover glass and nine LED dies sit just above the authored 1.35 m roof.
+
+**I** cycles **Off → Low → High + roof → Fog → Off**. Low is a dipped asymmetric
+road beam with a left-verge upsweep; High throws farther; Fog is broad, low and
+cut off above the horizon. High can include three roof sources (Flood or Spot).
+The car's faceted headlight, fog-lens and roof emitters track their respective modes.
+**Shift+I** now opens the distance-field inset (formerly I). In **Vehicle → Lights**,
+adjust the source strengths, aim angles, roof profile and roof enable. The **Scene
+lights** inspector enables street/hangar/tunnel/gantry fixtures and adjusts global
+power. Automatic dusk switching (default on) turns them on at sun elevation ≤ 5°;
+turn it off to force them on in daylight. Start with `?preset=Night` to inspect
+fixture lighting immediately. Daylight Off mode still permits effects/fire lighting.
+
+Seven generated **LM-63 Type C** files in `Profiles/` describe roadway, area, low,
+high, fog, roof-flood and roof-spot distribution. These are illustrative engineered
+patterns, **not measured or certified automotive photometry**. The parser validates
+and resamples their candela tables into an eight-layer atlas (layer 0 is isotropic).
+Regenerate them with `python3 Tools/AuthorLightingProfiles.py` to change a curve.
+`LightRig.js` resolves/mounts bounded sources, `ClusteredLighting.js` uploads 64-byte
+light records and builds 32 px × 16-log-depth screen clusters (up to 128 lights,
+32 per cluster); `LightTransport.wgsl` evaluates the same photometry, distance
+falloff, spot aperture and distance-field occlusion in direct surface shading,
+GI-card relighting and the cockpit/mirrors. The card pass tests all bounded lights
+against each surface sample (the screen clusters are camera-space), so lamps also
+light the *indirect* bounce. Dynamic lights prioritize nearby card tiles within a
+bounded refresh budget. Switching a lamp updates its emissive materials, recaptures
+the cards and invalidates lighting history. Per-cluster overflow is bounded: very
+dense overlapping lights may be omitted from a screen cell; the HUD shows the total
+uploaded-light and cluster counts.
+
+`Tools/Lighting.test.mjs` covers profiles, geometry, modes, uploads and GI shader
+wiring; `npm --prefix Tools run validate:lights` scripts all four modes, scene
+switching and a roof-profile change through the live host. The Dawn null backend
+validates passes and bindings but **does not render pixels**; check appearance and
+performance in a WebGPU browser.
+
 ## Added Garage functionality
 
 The cockpit/dashboard, steering wheel, integrated hexagonal cluster and centre tablet
@@ -73,6 +118,7 @@ npm --prefix Tools run test:stability
 npm --prefix Tools run validate
 npm --prefix Tools run validate:effects
 npm --prefix Tools run validate:slate
+npm --prefix Tools run validate:lights
 ```
 
 Dawn's null backend checks shader/pipeline/command validity, not rendered pixels.
@@ -120,6 +166,7 @@ groups the scene; selecting an entry rebuilds the inspector (`Source/InspectorPa
 | **Render settings** | resolution & quality grade, trace resolution, render scale; ReSTIR temporal/spatial reuse, visibility validation, M limit, indirect intensity; exposure, shadows, reflections, SVGF, TAA; debug views; frame timing and GPU pass timings |
 | Global distance field · Surface cache | cascade state and freezing, slice inset; card radiosity and relighting budget |
 | Sun & sky | presets (Noon · Golden · Dusk · Night), sun direction, solar / sky / emitter intensity |
+| **Scene lights** | dusk automation, fixture enable and global power, active-light and cluster readouts |
 | ControlVehicle · Tyre marks | telemetry, **burnout / line lock**, **tyres** (pressures per axle, rigid tyre visuals and **countersteer assist**, wear, failure, puncture / blowout / shred buttons, physical deflection · tread readouts), ignition, thermal grip, **camera rigs**; rubber/rim deposits |
 | **Cabin · HMI** | the TabletPanel HMI live in the car (screens, brightness, open an app), **HUD size/position** (no physical cockpit movement), see-through glass and its transmission, mirror views, interior cameras |
 | **Smoke & fire** | the Smoke + Fire editor: Domain, Source, Simulation, Appearance, Fire, Presets — every gas quantity as a slider, plus a test emitter |
@@ -143,7 +190,8 @@ Edits apply live. The eye toggles switch an entity off (smoke, fracture, a singl
 | T | reset the arena: knocked cones rez back onto their marks, broken props are rebuilt |
 | F or F8 | free camera (WASD, Q/E, Shift) |
 | drag / wheel | orbit / zoom the chase camera; inside the car drag to look around, click the tablet to use it |
-| H · I · P | readout · distance-slice inset · editor columns |
+| I / Shift+I | cycle Off → Low → High + roof → Fog / distance-slice inset |
+| H · P | readout · editor columns |
 | V | clean view — hides every overlay; V again restores exactly what was open |
 
 ## The proving grounds
@@ -419,11 +467,10 @@ path data, ISC License (notice in the file).
   boxes and current convex debris hulls. Bounces lose normal/tangential energy and heat;
   settled/cold particles retire. Blackbody chromaticity and size-dependent cooling fade
   smoothly to red; reduced HDR energy avoids the previous overbright yellow clipping.
-- **Lighting:** at most eight transient proxy lights shared across spark clusters and
-  derez/rez emitters, with per-cluster and whole-pool energy limits, distance falloff,
-  distance-field shadows in screen/card direct lighting, and decay to zero. Card lighting
-  feeds GI. Mirrors use unshadowed proxy lights. Proxies approximate the bulk of the effect,
-  not individual particle lights; the card/temporal caches retain their normal update lag.
+- **Lighting:** the previous transient-light implementation was removed. Bounded spark
+  clusters, derez/rez groups and fire now contribute to the shared light rig and
+  photometric/shadow transport described above. Proxy sources approximate the bulk of
+  the effect, not each particle; card/temporal caches retain their normal update lag.
 - **Countersteer:** Vehicle → Telemetry exposes an on/off switch and strength (default 0.45).
   It steers toward lateral travel and damps yaw, fades in from 3–12 m/s, yields at manual
   lock, and disables in reverse/airborne. Scripted input bypasses it for deterministic tests.
@@ -480,9 +527,10 @@ render frame or expanding the previous thin-particle footprint cap.
 **Vehicle → Spark variation** controls the added variation (default 1, applied to
 new particles). Swept collisions, monotonic thermal cooling, particle limits and
 bounded pooled lighting remain; visual and proxy-light intensity share the same
-per-particle gain. No additional light system or GPU bindings were introduced.
+per-particle gain. The new shared clustered-light transport consumes those bounded
+spark sources without recreating the old transient-light bindings.
 
-Validation: 37 tests pass, including seeded reproducibility, fragment proportions,
+The earlier spark-change baseline passed 37 tests, including seeded reproducibility, fragment proportions,
 property diversity, irregular emission counts, pulse cleanup, cooling/retirement
 and lifetime fade. Populated 36-frame effects validation reports no GPU errors or
 warnings. Appearance still needs real-browser review.

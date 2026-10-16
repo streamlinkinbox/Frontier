@@ -97,7 +97,10 @@ export const CourseMaterial = Object.freeze({
     MirrorTrim:      78,
     TabletHousing:   80,
     RimBase:         81, // original MatTyre finish on METAL geometry; never shredded
-    RimScrape:       79     // the rear-view mirror's housing and stem: CabinTrim's finish, fixed to the shell, not the cockpit
+    RimScrape:       79, // metal transfer from a shredded tyre
+    LampPole:        82, LampHousing: 83, LampGasket: 84, LampReflector: 85, LampDiffuser: 86,
+    RoofMount:       87, RoofHousing: 88, RoofReflector: 89, RoofLens: 90, RoofLED: 91,
+    FogHousing:      92, FogLens: 93
 });
 
 export const MarkedFamilyFirst = CourseMaterial.Asphalt;   // [-]
@@ -162,12 +165,14 @@ export function ConstructMaterialSpecification()
 
     Materials[CourseMaterial.VehicleTrim] = Dielectric(0.8, 0.8, 0.8, 0.50);
 
-    const Headlight = Dielectric(0.8, 0.8, 0.8, 0.10);
-    Headlight.Emission = [48.699997, 48.699997, 48.699997];
+    const Headlight = Dielectric(0.35, 0.42, 0.48, 0.10);
+    Headlight.SpecularLevel = 0.07;
+    // The light rig sets emission together with the actual beam. Off means off.
+    Headlight.Emission = [0.0, 0.0, 0.0];
     Materials[CourseMaterial.Headlight] = Headlight;
 
-    const Taillight = Dielectric(0.8, 0.8, 0.8, 0.10);
-    Taillight.Emission = [6.5 * 1.0, 6.5 * 0.0, 6.5 * 0.016442];
+    const Taillight = Dielectric(0.48, 0.025, 0.035, 0.18);
+    Taillight.Emission = [0.0, 0.0, 0.0];
     Materials[CourseMaterial.Taillight] = Taillight;
 
     Materials[CourseMaterial.VehicleDefault] = Dielectric(0.8, 0.8, 0.8, 0.50);
@@ -216,6 +221,34 @@ export function ConstructMaterialSpecification()
     const Cool = Dielectric(0.90, 0.92, 0.95, 0.30);
     Cool.Emission = [7.0, 8.4, 10.0];
     Materials[CourseMaterial.LampCool]        = Cool;
+    const Pole = Dielectric(0.20, 0.23, 0.25, 0.43);
+    Pole.Metalness = 0.92;
+    Materials[CourseMaterial.LampPole] = Pole;
+    const Housing = Dielectric(0.075, 0.083, 0.09, 0.37);
+    Housing.Metalness = 0.78;
+    Materials[CourseMaterial.LampHousing] = Housing;
+    Materials[CourseMaterial.LampGasket] = Dielectric(0.018, 0.022, 0.024, 0.86);
+    const Reflector = Dielectric(0.72, 0.76, 0.80, 0.16);
+    Reflector.Metalness = 1.0;
+    Materials[CourseMaterial.LampReflector] = Reflector;
+    const Diffuser = Dielectric(0.64, 0.67, 0.69, 0.24);
+    Diffuser.SpecularLevel = 0.07;
+    Diffuser.Emission = [2.5, 1.9, 1.15];
+    Materials[CourseMaterial.LampDiffuser] = Diffuser;
+    const Mount = Dielectric(0.19, 0.20, 0.22, 0.46);
+    Mount.Metalness = 0.9;
+    Materials[CourseMaterial.RoofMount] = Mount;
+    const Bar = Dielectric(0.025, 0.031, 0.035, 0.37);
+    Bar.Metalness = 0.55;
+    Materials[CourseMaterial.RoofHousing] = Bar;
+    Materials[CourseMaterial.RoofReflector] = Reflector;
+    const Lens = Dielectric(0.12, 0.15, 0.18, 0.12);
+    Lens.SpecularLevel = 0.07;
+    Materials[CourseMaterial.RoofLens] = Lens;
+    const Die = Dielectric(0.78, 0.83, 0.86, 0.22);
+    Materials[CourseMaterial.RoofLED] = Die;
+    Materials[CourseMaterial.FogHousing] = Bar;
+    Materials[CourseMaterial.FogLens] = Dielectric(0.66, 0.70, 0.73, 0.13);
     Materials[CourseMaterial.BarrierConcrete] = Dielectric(0.60, 0.60, 0.57, 0.85);
     Materials[CourseMaterial.SeatBlue]        = Dielectric(0.05, 0.20, 0.55, 0.50);
 

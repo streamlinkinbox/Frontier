@@ -1,0 +1,7 @@
+# Local dependencies and generated validation output
+node_modules/
+*.log
+__pycache__/
+.pytest_cache/
+Experimental/VehicleHmiPrototype/Tools/*.png
+Experimental/VehicleHmiPrototype/capture*.png

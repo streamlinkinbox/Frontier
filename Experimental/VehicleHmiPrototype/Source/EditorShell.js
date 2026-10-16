@@ -330,7 +330,7 @@ export class EditorShell
             return Button;
         };
         this.HudButton = Icon("Activity", "Readout (H)", () => Host.Dock.Toggle("Hud"));
-        this.InsetButton = Icon("GridLattice", "Distance slice (I)", () => Host.Dock.Toggle("Inset"));
+        this.InsetButton = Icon("GridLattice", "Distance slice (Shift+I)", () => Host.Dock.Toggle("Inset"));
         Icon("RotateCcw", "Respawn (R)", () => Host.RespawnVehicle());
         Icon("Undo2", "Reassemble every prop", () => Host.Fracture.ReassembleAll());
         Icon("Scan", "Clean view (V)", () => Host.Dock.ToggleClean());

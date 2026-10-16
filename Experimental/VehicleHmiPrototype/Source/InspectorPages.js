@@ -17,9 +17,10 @@ import { ArenaZones, TrainingDrills } from "./LevelStructure.js";
 import { DerezPresets } from "./EffectSequence.js";
 import { FormatPrimary } from "./TrainingSequence.js";
 import { CameraRigs } from "./CabinStructure.js";
+import { LightModes } from "./LightRig.js";
 
 export const InspectionModes = [
-    ["Final image", 0], ["Direct sun only", 1], ["Indirect diffuse (GI)", 2], ["Indirect irradiance (denoised)", 3],
+    ["Final image", 0], ["Direct lights only", 1], ["Indirect diffuse (GI)", 2], ["Indirect irradiance (denoised)", 3],
     ["ReSTIR irradiance (raw, no denoise)", 4], ["Glossy reflections", 5], ["Global distance field", 6],
     ["Surface cards (texel space)", 7], ["Normals", 8], ["Albedo", 9]
 ];
@@ -83,12 +84,20 @@ export function ConstructEntities(Host)
           Description: "Light, direction & atmosphere", Meta: () => `${S.SunElevation.toFixed(0)}°`, State: () => (S.SunElevation > 0 ? "live" : "warm"),
           Build: (C, B) => BuildSun(Host, C, B),
           Switches: () => [Feature("Shadows", "Sun", S, "DirectShadow"), Feature("Auto exposure", "Aperture", S, "AutoExposure")] },
+        { Id: "local-lights", Group: "Environment", Name: "Street & area lights", Type: "Clustered · IES", Glyph: "Lightbulb", Colour: Accent.Environment,
+          Description: "Photometric poles, hangar, tunnel and gantry fixtures", Meta: () => `${Host.LightRig.SceneLights.length}`,
+          State: () => (Host.LightRig.SceneActive() ? "live" : "warm"), Build: (C, B) => BuildSceneLights(Host, C, B),
+          Toggle: { Read: () => S.SceneLightsEnabled, Write: (On) => { S.SceneLightsEnabled = On; } } },
         { Id: "vehicle", Group: "Vehicle", Name: "ControlVehicle", Type: "Vehicle", Glyph: "Car", Colour: Accent.Vehicle,
           Description: "Telemetry, burnout, tyres & camera", Meta: () => `${Math.abs(Host.Vehicle.QueryTelemetry().Speed * 3.6).toFixed(0)} km/h`,
           State: () => (Host.Vehicle.Burnout ? "warm" : "live"), Build: (C, B) => BuildVehicle(Host, C, B),
           Switches: () => [Feature("Line lock", "Flame", S, "LineLock"), Feature("Thermal grip", "Thermometer", S, "ThermalGrip"),
                            Feature("Tyre marks", "CircleDot", S, "TyreMarks"),
                            Feature("Sparks", "Zap", S, "Sparks")] },
+        { Id: "vehicle-lights", Group: "Vehicle", Name: "Vehicle lights", Type: "Automotive · LED", Glyph: "Lightbulb", Colour: Accent.Vehicle,
+          Parent: "vehicle", Description: "Low · high + roof flood · fog · off", Meta: () => S.LampMode,
+          State: () => (S.LampMode === "Off" ? "warm" : "live"), Build: (C, B) => BuildVehicleLights(Host, C, B),
+          Switches: () => [Feature("Roof flood in high beam", "Zap", S, "RoofEnabled")] },
         { Id: "cabin", Group: "Vehicle", Name: "Cabin · HMI", Type: "Interior", Glyph: "Monitor", Colour: Accent.Vehicle, Parent: "vehicle",
           Description: "Tablet & cluster, mirrors, glass, interior cameras", Meta: () => S.CameraMode,
           State: () => (Host.Cabin && Host.Cabin.Screen ? "live" : "warm"), Build: (C, B) => BuildCabin(Host, C, B),
@@ -241,6 +250,56 @@ function BuildCards(Host, C, Body)
     C.Switch(Cards, S, "CardRadiosity", { Label: "Card radiosity", Detail: "Multi-bounce inside the cache" });
     Slider(C, Cards, S, "CardTileBudget", "Static tiles per frame", 0, 8192, 64, "", 0, ["Lazy", "Eager"]);
     C.Readout(Cards, () => Host.QueryDepotLines());
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                          PHOTOMETRIC & AUTOMOTIVE LIGHTS
+//------------------------------------------------------------------------------------------------------------------------
+
+function BuildSceneLights(Host, C, Body)
+{
+    const S = Host.Settings;
+    const Fixtures = C.Card(Body, "Photometric fixtures", "Lightbulb", { Accent: Accent.Environment, Index: 1,
+        Subtitle: "One clustered light system · direct + surface-card GI" });
+    C.Metric(Fixtures, () => Host.Lighting.Count, "active lights", 0,
+             () => [Host.LightRig.SceneActive() ? "scene live" : "daylight / off", Host.LightRig.SceneActive() ? "live" : "warm"]);
+    C.Switch(Fixtures, S, "SceneLightsEnabled", { Label: "Street, hangar, tunnel & gantry lights" });
+    C.Switch(Fixtures, S, "AutoSceneLights", { Label: "Automatic dusk switch", Detail: "Below 5° sun elevation; turn off to force lamps on by day" });
+    Slider(C, Fixtures, S, "SceneLightPower", "Fixture intensity", 0, 3, 0.05, "×", 2, ["Dark", "Bright"]);
+    C.Muted(Fixtures, "Die-cast poles with recessed LED arrays, rubber seals, silver reflectors and frosted diffusers. "
+        + "Their LM-63 Type C intensity profiles aim down onto the road; meshes, direct shadows and bounced GI share the switch.");
+    const Budget = C.Card(Body, "Cluster budget", "GridLattice", { Accent: Accent.Environment, Index: 2 });
+    C.Readout(Budget, () => Host.Lighting.QueryReadout());
+    C.Muted(Budget, "Screen lights use conservative 32-pixel tiles and logarithmic depth slices. World-space surface cards "
+        + "evaluate all nearby lights, so a headlamp pool bleeds onto the road and nearby walls even outside the camera.");
+}
+
+function BuildVehicleLights(Host, C, Body)
+{
+    const S = Host.Settings;
+    const Switch = C.Card(Body, "Beam selector", "Lightbulb", { Accent: Accent.Vehicle, Index: 1 });
+    C.Metric(Switch, () => S.LampMode, "", 0, () => [S.LampMode === "Off" ? "unlit" : "LED active", S.LampMode === "Off" ? "warm" : "live"]);
+    C.Segmented(Switch, S, "LampMode", LightModes.map((Mode) => [Mode, Mode]), { Label: "Off · dipped · full + roof · fog" });
+    C.Muted(Switch, "Press I to cycle modes. Shift+I now toggles the distance-field inset. "
+        + "Off extinguishes the headlamp lenses and roof dies, not just their beams.");
+
+    const Beams = C.Card(Body, "Headlamp optics", "Sun", { Accent: Accent.Vehicle, Index: 2 });
+    Slider(C, Beams, S, "LowBeamPower", "Dipped / low beam", 0, 3, 0.05, "×", 2);
+    Slider(C, Beams, S, "HighBeamPower", "High beam", 0, 3, 0.05, "×", 2);
+    Slider(C, Beams, S, "FogBeamPower", "Bumper fog beam", 0, 3, 0.05, "×", 2);
+    Slider(C, Beams, S, "BeamAim", "Headlamp pitch", -10, 4, 0.5, "°", 1, ["Down", "Up"]);
+    C.Muted(Beams, "Distinct IES angular distributions: low has a dipped cutoff and a left-verge upsweep "
+        + "(left-hand traffic), high is a long throw, fog is wide and low. Clear air does not show a solid cone; "
+        + "the light is visible on illuminated surfaces and in reflections.");
+
+    const Bar = C.Card(Body, "Roof flood bar", "Zap", { Accent: Accent.Vehicle, Index: 3,
+        Subtitle: "Body-mounted housing · nine projector cells" });
+    C.Switch(Bar, S, "RoofEnabled", { Label: "Enable roof flood with high beam" });
+    C.Segmented(Bar, S, "RoofProfile", [["Wide flood", "Flood"], ["Spot throw", "Spot"]], { Label: "IES distribution" });
+    Slider(C, Bar, S, "RoofBeamPower", "Roof LED intensity", 0, 3, 0.05, "×", 2);
+    Slider(C, Bar, S, "RoofAim", "Roof bar pitch", -16, 8, 0.5, "°", 1, ["Road", "Far"]);
+    C.Muted(Bar, "The bar is fixed to the rigid car body, enters the distance field and cards, casts shadows and "
+        + "is visible in mirrors and the Garage. High beam turns on its three photometric sources and nine visible LED dies.");
 }
 
 //------------------------------------------------------------------------------------------------------------------------

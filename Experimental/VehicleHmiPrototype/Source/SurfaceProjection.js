@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                           SURFACEPROJECTION.JS
 //============================================================================================================================================
-// 🧩 Primary visibility (depth, attributes, motion) and the direct sun radiance resolved over it, sized to the screen.
+// 🧩 Primary visibility and direct sun + clustered local-light radiance, sized to the screen.
 
 import { VertexStride } from "./FacetStructure.js";
 
@@ -17,7 +17,7 @@ export class SurfaceProjection
     // 📝 TyreMarks: the TyreMarkDepot whose deposit the raster reads for the road families.
     // 📝 Effects (EffectSequence) shares this pass: its record masks the car here, and its cubes draw after the runs.
     // 📝 VehicleRecords: the VehicleRecord the vertex stage deforms the tyres and turns the steering wheel by.
-    async ConstructPrograms(FrameRecords, OccupantRecords, MaterialRecords, DistanceLayout, TyreMarks, Effects, VehicleRecords)
+    async ConstructPrograms(FrameRecords, OccupantRecords, MaterialRecords, DistanceLayout, LightingLayout, TyreMarks, Effects, VehicleRecords)
     {
         this.FrameRecords    = FrameRecords;
         this.OccupantRecords = OccupantRecords;
@@ -41,9 +41,9 @@ export class SurfaceProjection
         this.DirectLayout = this.Exchange.ConstructDescriptorLayout(
             ["Uniform", "StorageRead", "Texture2D", "TextureDepth2D", "TextureDepth2DLayered", "SamplerComparison", "Uniform", "Texture2D",
              "Sampler", "StorageTexture2D:rgba16float"], GPUShaderStage.COMPUTE, "Direct radiance");
-        // 📝 The direct pass traverses the scene distance field only to shadow a tyre fire's light (FireIllumination.wgsl).
+        // 📝 Local lights share the distance field for occlusion and the clustered list for primary visibility.
         this.DirectProgram = await this.Shaders.ConstructComputeProgram("DirectRadiance.wgsl", "IntegrateDirectRadiance",
-                                                                        [this.DirectLayout, DistanceLayout]);
+                                                                        [this.DirectLayout, DistanceLayout, LightingLayout]);
     }
 
     ConstructTargets(Width, Height, Shadow, Atmosphere)
@@ -91,12 +91,13 @@ export class SurfaceProjection
         Pass.end();
     }
 
-    RecordDirect(Encoder, DistanceGroup, TimestampWrites)
+    RecordDirect(Encoder, DistanceGroup, LightingGroup, TimestampWrites)
     {
         const Pass = Encoder.beginComputePass({ label: "Direct radiance", timestampWrites: TimestampWrites });
         Pass.setPipeline(this.DirectProgram);
         Pass.setBindGroup(0, this.DirectGroup);
         Pass.setBindGroup(1, DistanceGroup);
+        Pass.setBindGroup(2, LightingGroup);
         Pass.dispatchWorkgroups(Math.ceil(this.Extent[0] / 8), Math.ceil(this.Extent[1] / 8));
         Pass.end();
     }

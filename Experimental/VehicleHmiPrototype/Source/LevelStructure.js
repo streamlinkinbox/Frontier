@@ -25,6 +25,7 @@
 //    Large structures take coarse volumes and sparse cards: the global field's finest voxel is 12.5 cm anyway.
 
 import { CourseMaterial } from "./MaterialSpecification.js";
+import { ConstructStreetPoleFacets, ConstructStreetHeadFacets } from "./LightingFixtures.js";
 import { CourseConstants, KerbConstants, SpawnPoint, EmitQuad, EmitBoxFacets, EmitPanelFacets, EmitPrismFacets,
          EmitExtrusionFacets, EmitConeFacets, EmitRampFacets, EmitTyreBarrierFacets, EmitCornerBoxFacets } from "./CourseStructure.js";
 
@@ -79,8 +80,8 @@ export const LevelShapes = Object.freeze({
     TowerRoof:    { Emit: () => EmitBoxFacets(7.5, 7.5, 0.4, CourseMaterial.SteelDark), Voxel: 0.15, Cards: 6 },
     Jersey:       { Emit: () => EmitExtrusionFacets(JerseyProfile, 2.0, CourseMaterial.BarrierConcrete), Voxel: 0.05, Cards: 14 },
     TyreStack:    { Emit: () => EmitPrismFacets(0.33, 1.2, 12, CourseMaterial.Tyre), Voxel: 0.06, Cards: 16 },
-    Pole:         { Emit: () => EmitBoxFacets(0.3, 0.3, 11.0, CourseMaterial.SteelDark), Voxel: 0.25, Cards: 0, Distance: false },
-    PoleHead:     { Emit: () => EmitBoxFacets(1.8, 0.6, 0.3, CourseMaterial.LampWarm), Voxel: 0.05, Cards: 16 },
+    Pole:         { Emit: ConstructStreetPoleFacets, Voxel: 0.25, Cards: 0, Distance: false },
+    PoleHead:     { Emit: ConstructStreetHeadFacets, Voxel: 0.05, Cards: 16 },
     FramePost:    { Emit: () => EmitBoxFacets(0.12, 0.12, 2.3, CourseMaterial.SteelDark), Voxel: 0.1, Cards: 0, Distance: false },
     // 📝 The training arena: tyre barrier sections, the launch gantries (rastered posts, a beam and a lamp strip in
     //    the field) and the station signs (rastered: double-sided boards with raised, faintly lit letters).
@@ -210,15 +211,15 @@ export function ResolveLevelPlacements()
     }
 
     // ⑨ light poles (rastered) with their lamp heads (in the field: they light the night)
-    const Poles = [[-45.0, 10.0, -90.0], [-15.0, 10.0, -90.0], [15.0, 10.0, -90.0], [45.0, 10.0, -90.0],
+    const Poles = [[-38.0, 8.0, -90.0], [-45.0, 10.0, -90.0], [-15.0, 10.0, -90.0], [15.0, 10.0, -90.0], [45.0, 10.0, -90.0],
                    [-30.0, -10.0, 90.0], [0.0, -10.0, 90.0], [30.0, -10.0, 90.0], [-48.0, 30.0, 0.0],
                    [-12.0, 44.0, 180.0], [-56.0, -24.0, 0.0], [20.0, -38.0, 90.0], [8.0, 30.0, 0.0],
                    [90.0, -36.0, 180.0], [90.0, 8.0, 180.0], [90.0, 46.0, 180.0], [110.0, -36.0, 0.0], [110.0, 8.0, 0.0],
                    [128.0, 30.0, 0.0], [154.0, -32.0, 180.0], [128.0, -4.0, -45.0]];
     Poles.forEach(([X, Y, Facing], Index) =>
     {
-        Place("Pole", `Light pole ${Index}`, X, Y);
         const Angle = Facing * Degrees;
+        Place("Pole", `Light pole ${Index}`, X, Y, 0.0, Angle);
         Place("PoleHead", `Light pole head ${Index}`, X + 0.7 * Math.cos(Angle), Y + 0.7 * Math.sin(Angle), 10.8, Angle);
     });
     return List;

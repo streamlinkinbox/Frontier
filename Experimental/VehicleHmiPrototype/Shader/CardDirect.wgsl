@@ -1,13 +1,13 @@
 //============================================================================================================================================
 //                                                             CARDDIRECT.WGSL
 //============================================================================================================================================
-// 🧩 Direct sun irradiance on every scheduled card texel, shadowed by a penumbra traversal of the scene distance field.
+// 🧩 Direct sun + every local light on scheduled card texels; the GI cache receives the same shadowed beams as the screen.
 
 //! include "FrameDescriptor.wgsl"
 //! include "DistanceTraversal.wgsl"
 //! include "CardProjection.wgsl"
 //! include "CardIrradiance.wgsl"
-//! include "FireIllumination.wgsl"
+//! include "LightTransport.wgsl"
 
 @group(0) @binding(1) var<storage, read> Cards     : array<CardRecord>;
 @group(0) @binding(2) var<storage, read> Occupants : array<OccupantRecord>;
@@ -56,11 +56,10 @@ fn IntegrateCardDirect(@builtin(workgroup_id) Group: vec3u, @builtin(local_invoc
         }
         Irradiance = Frame.SunIlluminance * Cosine * Visibility;
     }
-    let Fire = ResolveFireArrival(Position, Normal);
-    Irradiance += Fire.Illuminance * max(dot(Normal, Fire.Direction), 0.0);
-    for (var Index = 0u; Index < 8u; Index++) {
-        let Light = ResolveTransientArrival(Position, Normal, Index);
-        Irradiance += Light.Illuminance * max(dot(Normal, Light.Direction), 0.0);
+    for (var Index = 0u; Index < Cluster.LightCount; Index++)
+    {
+        let Arrival = ResolveLocalArrival(Position, Normal, Index, true);
+        Irradiance += Arrival.Illuminance * max(dot(Normal, Arrival.Direction), 0.0);
     }
     textureStore(CardDirectTarget, Texel, vec4f(Irradiance, 1.0));
 }

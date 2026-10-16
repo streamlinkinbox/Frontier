@@ -71,11 +71,14 @@ export class CabinSequence
     //                                                  BRING-UP
     //--------------------------------------------------------------------------------------------------------------------
 
-    async ConstructResources({ FrameRecords, OccupantRecords, MaterialRecords, EffectRecords, VehicleRecords, Shadow, Atmosphere, Scene, AdaptationRecords })
+    async ConstructResources({ FrameRecords, OccupantRecords, MaterialRecords, EffectRecords, VehicleRecords, Shadow, Atmosphere, Scene, AdaptationRecords,
+                               Distance, Lighting })
     {
         const Exchange = this.Exchange;
         const Device = Exchange.Device;
         this.Scene = Scene;
+        this.Distance = Distance;
+        this.Lighting = Lighting;
         this.Preview.Pick = (U, V) => PickVehicle(Scene, this.PreviewInverse, U, V);
         this.Preview.Facets = Scene.FacetSets[Scene.VehicleBodySet].Facets.length
                             + 4 * Scene.FacetSets[Scene.Occupants[Scene.VehicleOccupants.Wheels[0]].FacetSet].Facets.length;
@@ -163,8 +166,9 @@ export class CabinSequence
             DepthStencil: { format: "depth32float", depthWriteEnabled: true, depthCompare: "less" },
             Targets: [{ format: Format }]
         });
-        this.MirrorProgram  = await this.Shaders.ConstructRasterProgram("ForwardRaster.wgsl", ForwardDescriptor("rgba16float"), [this.ForwardLayout]);
-        this.PreviewProgram = await this.Shaders.ConstructRasterProgram("ForwardRaster.wgsl", ForwardDescriptor("rgba8unorm-srgb"), [this.ForwardLayout]);
+        this.MirrorProgram  = await this.Shaders.ConstructRasterProgram("ForwardRaster.wgsl", ForwardDescriptor("rgba16float"), [this.ForwardLayout, Distance.TraversalLayout, Lighting.Layout]);
+        this.PreviewProgram = await this.Shaders.ConstructRasterProgram("ForwardRaster.wgsl", ForwardDescriptor("rgba8unorm-srgb"),
+                                                                        [this.ForwardLayout, Distance.TraversalLayout, Lighting.Layout]);
 
         // ⑤ the HMI itself, when this host can draw 2D canvases (the headless harness cannot)
         this.ConstructHmi().catch((Failure) => { this.Metrics.Hmi = `unavailable: ${Failure && Failure.message ? Failure.message : Failure}`; });
@@ -364,6 +368,8 @@ export class CabinSequence
         });
         Pass.setPipeline(this.MirrorProgram);
         Pass.setBindGroup(0, this.ForwardGroup, [Index * ViewStride]);
+        Pass.setBindGroup(1, this.Distance.TraversalGroup);
+        Pass.setBindGroup(2, this.Lighting.Group);
         Pass.setVertexBuffer(0, VertexRecords);
         for (const Run of Scene.DrawRuns)
         {
@@ -400,6 +406,8 @@ export class CabinSequence
         });
         Pass.setPipeline(this.PreviewProgram);
         Pass.setBindGroup(0, this.ForwardGroup, [3 * ViewStride]);
+        Pass.setBindGroup(1, this.Distance.TraversalGroup);
+        Pass.setBindGroup(2, this.Lighting.Group);
         Pass.setVertexBuffer(0, VertexRecords);
         for (const Run of Scene.DrawRuns)
         {

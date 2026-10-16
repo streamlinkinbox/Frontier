@@ -4,6 +4,7 @@
 // 🧩 The surface cache: oriented cards per occupant in one texel space, captured once, relit by a scheduled tile budget.
 
 import { OccupantRole, VertexStride } from "./FacetStructure.js";
+import { TransformPoint } from "./TransformProjection.js";
 
 const MinimumCardTexels = 4;     // [texel] - shortest card edge
 const MaximumCardTexels = 256;   // [texel] - longest card edge
@@ -26,6 +27,8 @@ export class SurfaceCardDepot
         this.OccupantTiles = [];
         this.PriorityTiles = [];
         this.PriorityFrames = 0;
+        this.LocalTiles = [];
+        this.LocalCursor = 0;
         this.ScheduledTiles = 0;
         this.OccupiedTexels = 0;
     }
@@ -192,7 +195,7 @@ export class SurfaceCardDepot
     //                                                  RESOURCES
     //--------------------------------------------------------------------------------------------------------------------
 
-    async ConstructResources(FrameRecords, OccupantRecords, MaterialRecords, DistanceLayout)
+    async ConstructResources(FrameRecords, OccupantRecords, MaterialRecords, DistanceLayout, LightingLayout)
     {
         const Extent = this.Configuration.Extent;
         const Usage = GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING;
@@ -242,7 +245,7 @@ export class SurfaceCardDepot
             [FrameRecords, this.CardRecords, this.TileRecords, this.WorkRecords, this.Views.Albedo, this.Views.Emission, this.Views.Direct,
              this.Views.Depth, this.SiteRecords, this.Views.Final]);
 
-        this.DirectProgram    = await this.Shaders.ConstructComputeProgram("CardDirect.wgsl", "IntegrateCardDirect", [this.DirectLayout, DistanceLayout]);
+        this.DirectProgram    = await this.Shaders.ConstructComputeProgram("CardDirect.wgsl", "IntegrateCardDirect", [this.DirectLayout, DistanceLayout, LightingLayout]);
         this.RadiosityProgram = await this.Shaders.ConstructComputeProgram("CardRadiosity.wgsl", "IntegrateCardRadiosity",
                                                                            [this.RadiosityLayout, DistanceLayout, this.SamplingLayout]);
         this.FinalProgram     = await this.Shaders.ConstructComputeProgram("CardFinal.wgsl", "IntegrateCardFinal", [this.FinalLayout]);
@@ -313,31 +316,83 @@ export class SurfaceCardDepot
         this.WarmFrames = Math.max(this.WarmFrames, 3);
     }
 
-    // 📝 Moving occupants' tiles every frame; static tiles round-robin within the budget. The first WarmFrames relight
-    //    everything so the depot starts lit and its radiosity has taken several bounces before the first image.
+    // Relight the road and walls near moving headlights every frame. Without
+    // this, the global static-tile round robin leaves a travelling GI pool many
+    // seconds behind the car. Ground sites use their real 8×8 card-tile centres;
+    // for other surfaces the oriented card bounds give a conservative radius.
+    PrioritizeLocalLights(Scene, Lights)
+    {
+        this.LocalTiles = [];
+        const Active = Lights.filter((Light) => Light.Dynamic && Light.Colour.some((C) => C > 0.01)).slice(0, 9);
+        if (!Active.length) return;
+        const Candidates = [];
+        for (const Assignment of this.StaticTiles)
+        {
+            const Card = this.Cards[Assignment[0]], Occupant = Scene.Occupants[Card.Occupant];
+            const Axis = Card.Axis >> 1, U = (Axis + 1) % 3, V = (Axis + 2) % 3;
+            const X = Assignment[1] & 65535, Y = Assignment[1] >>> 16;
+            const Local = Card.LocalMinimum.map((Minimum, I) => 0.5 * (Minimum + Card.LocalMaximum[I]));
+            Local[U] = Card.LocalMinimum[U] + Math.min(1, (X * 8 + 4) / Card.TexelExtent[0]) * (Card.LocalMaximum[U] - Card.LocalMinimum[U]);
+            Local[V] = Card.LocalMinimum[V] + Math.min(1, (Y * 8 + 4) / Card.TexelExtent[1]) * (Card.LocalMaximum[V] - Card.LocalMinimum[V]);
+            const Centre = TransformPoint(Occupant.Transform, Local);
+            const Radius = (Occupant.Roles & OccupantRole.Distance)
+                ? 0.5 * Math.hypot(...Card.LocalMaximum.map((Maximum, I) => Maximum - Card.LocalMinimum[I])) : 0;
+            let Score = Infinity;
+            for (const Light of Active)
+            {
+                const Distance = Math.hypot(...Centre.map((C, I) => C - Light.Position[I]));
+                if (Distance < Math.min(Light.Reach, 24) + Radius)
+                    Score = Math.min(Score, Distance);
+            }
+            if (Number.isFinite(Score)) Candidates.push({ Assignment, Score });
+        }
+        Candidates.sort((A, B) => A.Score - B.Score);
+        const Nearest = Candidates.slice(0, 96);
+        const Outer = Candidates.slice(96);
+        const Rotating = Math.min(160, Outer.length);
+        const Start = this.LocalCursor % Math.max(Outer.length, 1);
+        this.LocalTiles = Nearest.map((Item) => Item.Assignment);
+        for (let I = 0; I < Rotating; I++)
+            this.LocalTiles.push(Outer[(Start + I) % Outer.length].Assignment);
+        this.LocalCursor += Rotating;
+    }
+
+    // Dynamic geometry + moving-light neighbours + the ordinary static budget.
+    // No tile may be scheduled twice: its radiosity estimate is folded in place.
     ScheduleTiles(TileBudget)
     {
-        const Scheduled = this.DynamicTiles.slice();
+        const Scheduled = [];
+        const Claimed = new Set();
+        const Admit = (Assignment) =>
+        {
+            const Key = Assignment[0] * 4194304 + Assignment[1];
+            if (Claimed.has(Key)) return false;
+            Claimed.add(Key);
+            Scheduled.push(Assignment);
+            return true;
+        };
+        this.DynamicTiles.forEach(Admit);
         if (this.WarmFrames > 0)
         {
-            Scheduled.push(...this.StaticTiles);
+            this.StaticTiles.forEach(Admit);
             this.WarmFrames--;
         }
         else
         {
-            // 📝 A tile must not be scheduled twice in one frame: the radiosity pass folds into its sites in place.
-            const Priority = this.PriorityFrames > 0 ? this.PriorityTiles : [];
-            const Claimed = new Set(Priority.map((Assignment) => Assignment[0] * 4194304 + Assignment[1]));
-            Scheduled.push(...Priority);
             if (this.PriorityFrames > 0)
+            {
+                this.PriorityTiles.forEach(Admit);
                 this.PriorityFrames--;
+            }
+            this.LocalTiles.forEach(Admit);
             const Budget = Math.min(this.StaticTiles.length, Math.max(0, TileBudget));
-            for (let Index = 0; Index < Budget; ++Index)
+            let Added = 0, Visited = 0;
+            while (Added < Budget && Visited < this.StaticTiles.length)
             {
                 const Assignment = this.StaticTiles[this.Cursor];
                 this.Cursor = (this.Cursor + 1) % this.StaticTiles.length;
-                if (!Claimed.has(Assignment[0] * 4194304 + Assignment[1]))
-                    Scheduled.push(Assignment);
+                Visited++;
+                if (Admit(Assignment)) Added++;
             }
         }
         const Packed = new Uint32Array(Scheduled.length * 2);
@@ -356,7 +411,7 @@ export class SurfaceCardDepot
         Device.queue.writeBuffer(this.WorkRecords, 0, Work);
     }
 
-    RecordLighting(Encoder, DistanceGroup, SamplingGroup, RadiosityEnabled, TimestampWrites)
+    RecordLighting(Encoder, DistanceGroup, SamplingGroup, LightingGroup, RadiosityEnabled, TimestampWrites)
     {
         if (this.ScheduledTiles === 0)
             return;
@@ -366,6 +421,7 @@ export class SurfaceCardDepot
         Pass.setPipeline(this.DirectProgram);
         Pass.setBindGroup(0, this.DirectGroup);
         Pass.setBindGroup(1, DistanceGroup);
+        Pass.setBindGroup(2, LightingGroup);
         Pass.dispatchWorkgroups(GroupsX, GroupsY);
         if (RadiosityEnabled)
         {

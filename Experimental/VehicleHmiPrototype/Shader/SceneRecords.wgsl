@@ -7,8 +7,6 @@
 //                                                     FRAME RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
-struct TransientLight { PositionReach: vec4f, Colour: vec4f, }
-
 struct FrameRecord
 {
     ViewProjection                   : mat4x4f,   // [-]    jittered, this frame
@@ -41,11 +39,6 @@ struct FrameRecord
     DistanceInspection               : u32,       // [-]    distance inspection selector
     FocusPosition                    : vec3f,     // [m]    centre of the scene distance field cascades
     InsetEnabled                     : u32,       // [-]    draw the distance slice inset
-    FireLightPosition                : vec3f,     // [m]    power-weighted centre of the burning tyres
-    FireLightIntensity               : f32,       // [-]    point intensity; 0 when nothing burns
-    FireLightColour                  : vec3f,     // [-]    chromaticity of the flame light
-    FireLightReach                   : f32,       // [m]    influence radius
-    TransientLights                  : array<TransientLight, 8>,
 }
 
 // 📝 FeatureBit — the toggles the control panel exposes, read by the programs that honour them.

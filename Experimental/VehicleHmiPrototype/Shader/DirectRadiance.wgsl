@@ -1,13 +1,13 @@
 //============================================================================================================================================
 //                                                           DIRECTRADIANCE.WGSL
 //============================================================================================================================================
-// 🧩 Direct sun radiance at every primary surface with cascaded shadow depth, and the sky behind the course.
+// 🧩 Direct sun and clustered local lights at every primary surface, with the sky behind the course.
 
 //! include "FrameDescriptor.wgsl"
 //! include "SurfaceReflectance.wgsl"
 //! include "PackingCodec.wgsl"
 //! include "SkyProjection.wgsl"
-//! include "FireIllumination.wgsl"
+//! include "LightTransport.wgsl"
 
 struct CascadeReceiver
 {
@@ -100,14 +100,16 @@ fn IntegrateDirectRadiance(@builtin(global_invocation_id) Invocation: vec3u)
         Visibility = ResolveCascadeVisibility(Position, Normal);
     }
     var Radiance = Frame.SunIlluminance * Visibility * ResolveDirectReflectance(Surface, Normal, View, Frame.SunDirection);
-    let Fire = ResolveFireArrival(Position, Normal);
-    if (any(Fire.Illuminance > vec3f(0.0)))
+    let Cell = ResolveClusterIndex(Pixel, Position);
+    if (Cell != 0xFFFFFFFFu)
     {
-        Radiance += Fire.Illuminance * ResolveDirectReflectance(Surface, Normal, View, Fire.Direction);
-    }
-    for (var Index = 0u; Index < 8u; Index++) {
-        let Light = ResolveTransientArrival(Position, Normal, Index);
-        Radiance += Light.Illuminance * ResolveDirectReflectance(Surface, Normal, View, Light.Direction);
+        let Base = Cell * (ClusterMaxPerCell + 1u);
+        let Count = min(ClusterMembers[Base], ClusterMaxPerCell);
+        for (var Member = 0u; Member < Count; Member++)
+        {
+            let Arrival = ResolveLocalArrival(Position, Normal, ClusterMembers[Base + 1u + Member], true);
+            Radiance += Arrival.Illuminance * ResolveDirectReflectance(Surface, Normal, View, Arrival.Direction);
+        }
     }
     textureStore(DirectTarget, vec2i(Pixel), vec4f(Radiance, 1.0));
 }

@@ -6,6 +6,7 @@ import { CourseMaterial } from "./MaterialSpecification.js";
 
 import { RetrieveFacetStream } from "./FacetCodec.js";
 import { ConstructCabinFacets } from "./CabinStructure.js";
+import { ConstructVehicleLightingFacets } from "./LightingFixtures.js";
 import { LevelShapes, ResolveLevelPlacements, ResolveConePlacements, ResolveBreakables, EmitLevelGroundFacets } from "./LevelStructure.js";
 import { ConstructSolid, TriangulateFace, FractureMaterials, FragmentTriangleBudget } from "./FractureStructure.js";
 import { VehicleGeometry, ResolveCoMAuthoredZ } from "./VehicleSpecification.js";
@@ -81,7 +82,8 @@ export class SceneStructure
 
         // ① facet sets ------------------------------------------------------------------------------------------------
         // 📝 The cabin (CabinStructure.js) is part of the body: it moves, shades, derezzes and enters the field with it.
-        const BodySet       = this.ConstructFacetSet("ControlVehicle body", [...ProjectBodyFacets(Body), ...ConstructCabinFacets()], 0.05, 40.0);
+        const BodySet       = this.ConstructFacetSet("ControlVehicle body", [...ProjectBodyFacets(Body), ...ConstructCabinFacets(),
+                                                                            ...ConstructVehicleLightingFacets()], 0.05, 40.0);
         this.VehicleBodySet = BodySet;
         const WheelLeftSet  = this.ConstructFacetSet("ControlVehicle wheel (left)", ProjectWheelFacets(Tyre, Rim, false), 0.025, 40.0);
         const WheelRightSet = this.ConstructFacetSet("ControlVehicle wheel (right)", ProjectWheelFacets(Tyre, Rim, true), 0.025, 40.0);
