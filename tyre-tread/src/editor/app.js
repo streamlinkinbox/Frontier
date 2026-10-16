@@ -261,6 +261,7 @@ canvas.addEventListener('mouseleave', () => { state.hover = null; draw(); });
 
 canvas.addEventListener('mousedown', (ev) => {
     if (ev.button === 1 || ev.altKey) {
+        state.zoom = null;
         state.drag = { kind: 'pan', sx: ev.clientX, sy: ev.clientY, cx: state.view.cx, cy: state.view.cy };
         return;
     }
@@ -496,7 +497,7 @@ $('exportObj').addEventListener('click', () => {
 });
 $('resolution').addEventListener('change', () => scheduleMesh());
 $('wire').addEventListener('change', (e) => { ensureView3d().then((v) => { if (v) v.setWireframe(e.target.checked); }); });
-$('fit').addEventListener('click', () => { state.view.cx = state.pattern.pitchMm / 2; state.view.cy = 0; state.view.scale = 3; draw(); });
+$('fit').addEventListener('click', () => { state.zoom = null; state.view.cx = state.pattern.pitchMm / 2; state.view.cy = 0; state.view.scale = 3; draw(); });
 
 function slug(s) { return (s || 'tread').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tread'; }
 function download(name, text, type) {
@@ -506,16 +507,62 @@ function download(name, text, type) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/* ---------- smooth zoom ----------
+ * Each wheel/pinch event moves a target scale. A frame loop eases the real scale toward it
+ * (exponential in log-scale, so zoom in and out feel equal), while the mm point under the cursor
+ * at the start of the zoom stays fixed on screen.
+ */
+const ZOOM_MIN = 1, ZOOM_MAX = 30;
+const ZOOM_RATE = 12;      // 1/s, higher = snappier
+const ZOOM_SENSITIVITY = 0.0012;
+
+function wheelDeltaPx(ev) {
+    // Normalise line- and page-based wheels to pixel-like units.
+    if (ev.deltaMode === 1) return ev.deltaY * 16;
+    if (ev.deltaMode === 2) return ev.deltaY * 400;
+    return ev.deltaY;
+}
+
 canvas.addEventListener('wheel', (ev) => {
     ev.preventDefault();
     const m = toMm(ev);
-    const f = Math.exp(-ev.deltaY * 0.001);
-    state.view.scale = Math.min(30, Math.max(1, state.view.scale * f));
-    // Keep the point under the cursor fixed.
-    state.view.cx = m.x - (m.sx - canvas.clientWidth / 2) / state.view.scale;
-    state.view.cy = m.y - (m.sy - canvas.clientHeight / 2) / state.view.scale;
-    draw();
+    const factor = Math.exp(-wheelDeltaPx(ev) * ZOOM_SENSITIVITY);
+    const current = state.zoom ? state.zoom.target : state.view.scale;
+    // Anchor: keep the mm point under the cursor fixed. Reuse the anchor of a zoom in progress.
+    if (!state.zoom) {
+        state.zoom = { ax: m.x, ay: m.y, sx: m.sx, sy: m.sy, target: current, last: null };
+    } else {
+        // Re-anchor to the cursor's current position so the zoom centres where the user points.
+        Object.assign(state.zoom, { ax: m.x, ay: m.y, sx: m.sx, sy: m.sy });
+    }
+    state.zoom.target = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, current * factor));
+    if (!state.zoom.running) {
+        state.zoom.running = true;
+        requestAnimationFrame(stepZoom);
+    }
 }, { passive: false });
+
+function stepZoom(now) {
+    const z = state.zoom;
+    if (!z) return;
+    const dt = z.last === null ? 1 / 60 : Math.min(0.25, (now - z.last) / 1000);
+    z.last = now;
+    const k = 1 - Math.exp(-ZOOM_RATE * dt);
+    const logS = Math.log(state.view.scale) + (Math.log(z.target) - Math.log(state.view.scale)) * k;
+    let scale = Math.exp(logS);
+    const settled = Math.abs(Math.log(scale / z.target)) < 1e-4;
+    if (settled) scale = z.target;
+    state.view.scale = scale;
+    // Keep the anchored mm point under the cursor.
+    state.view.cx = z.ax - (z.sx - canvas.clientWidth / 2) / scale;
+    state.view.cy = z.ay - (z.sy - canvas.clientHeight / 2) / scale;
+    draw();
+    if (settled) {
+        state.zoom = null;
+    } else {
+        requestAnimationFrame(stepZoom);
+    }
+}
 
 /* ---------- mesh stats and 3D preview ---------- */
 
