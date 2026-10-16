@@ -1,3 +1,4 @@
+import { ConstructStreetHeadFacets, ConstructTunnelHeadFacets } from "./LightingFixtures.js";
 //============================================================================================================================================
 //                                                            LEVELSTRUCTURE.JS
 //============================================================================================================================================
@@ -73,14 +74,14 @@ export const LevelShapes = Object.freeze({
     Container20:  { Emit: () => EmitBoxFacets(6.1, 2.44, 2.6, CourseMaterial.ContainerBlue), Voxel: 0.12, Cards: 6 },
     TunnelWall:   { Emit: () => EmitBoxFacets(4.0, 0.5, 4.5, CourseMaterial.TunnelConcrete), Voxel: 0.15, Cards: 10 },
     TunnelRoof:   { Emit: () => EmitBoxFacets(9.0, 4.0, 0.5, CourseMaterial.TunnelConcrete), Voxel: 0.12, Cards: 8 },
-    TunnelLamp:   { Emit: () => EmitBoxFacets(3.0, 0.12, 0.16, CourseMaterial.LampCool), Voxel: 0.04, Cards: 16 },
+    TunnelLamp:   { Emit: () => ConstructTunnelHeadFacets(), Voxel: 0.04, Cards: 16 },
     Tower:        { Emit: () => EmitBoxFacets(5.0, 5.0, 9.0, CourseMaterial.BarrierConcrete), Voxel: 0.3, Cards: 6 },
     TowerCabin:   { Emit: () => EmitBoxFacets(6.5, 6.5, 2.6, CourseMaterial.Glass), Voxel: 0.15, Cards: 8 },
     TowerRoof:    { Emit: () => EmitBoxFacets(7.5, 7.5, 0.4, CourseMaterial.SteelDark), Voxel: 0.15, Cards: 6 },
     Jersey:       { Emit: () => EmitExtrusionFacets(JerseyProfile, 2.0, CourseMaterial.BarrierConcrete), Voxel: 0.05, Cards: 14 },
     TyreStack:    { Emit: () => EmitPrismFacets(0.33, 1.2, 12, CourseMaterial.Tyre), Voxel: 0.06, Cards: 16 },
-    Pole:         { Emit: () => EmitBoxFacets(0.3, 0.3, 11.0, CourseMaterial.SteelDark), Voxel: 0.25, Cards: 0, Distance: false },
-    PoleHead:     { Emit: () => EmitBoxFacets(1.8, 0.6, 0.3, CourseMaterial.LampWarm), Voxel: 0.05, Cards: 16 },
+    Pole:         { Emit: () => EmitBoxFacets(0.3, 0.3, 11.0, CourseMaterial.SteelDark), Voxel: 0.15, Cards: 0 },
+    PoleHead:     { Emit: () => ConstructStreetHeadFacets(), Voxel: 0.05, Cards: 16 },
     FramePost:    { Emit: () => EmitBoxFacets(0.12, 0.12, 2.3, CourseMaterial.SteelDark), Voxel: 0.1, Cards: 0, Distance: false },
     // 📝 The training arena: tyre barrier sections, the launch gantries (rastered posts, a beam and a lamp strip in
     //    the field) and the station signs (rastered: double-sided boards with raised, faintly lit letters).
@@ -210,7 +211,8 @@ export function ResolveLevelPlacements()
     }
 
     // ⑨ light poles (rastered) with their lamp heads (in the field: they light the night)
-    const Poles = [[-45.0, 10.0, -90.0], [-15.0, 10.0, -90.0], [15.0, 10.0, -90.0], [45.0, 10.0, -90.0],
+    const Poles = [[-42.0, -8.0, 90.0], // new LED demonstration post beside the starting area
+                   [-45.0, 10.0, -90.0], [-15.0, 10.0, -90.0], [15.0, 10.0, -90.0], [45.0, 10.0, -90.0],
                    [-30.0, -10.0, 90.0], [0.0, -10.0, 90.0], [30.0, -10.0, 90.0], [-48.0, 30.0, 0.0],
                    [-12.0, 44.0, 180.0], [-56.0, -24.0, 0.0], [20.0, -38.0, 90.0], [8.0, 30.0, 0.0],
                    [90.0, -36.0, 180.0], [90.0, 8.0, 180.0], [90.0, 46.0, 180.0], [110.0, -36.0, 0.0], [110.0, 8.0, 0.0],

@@ -9,6 +9,8 @@
 
 struct TransientLight { PositionReach: vec4f, Colour: vec4f, }
 
+struct LocalLight { PositionReach:vec4f, DirectionType:vec4f, ColourOuter:vec4f, UpInner:vec4f, }
+
 struct FrameRecord
 {
     ViewProjection                   : mat4x4f,   // [-]    jittered, this frame
@@ -46,6 +48,11 @@ struct FrameRecord
     FireLightColour                  : vec3f,     // [-]    chromaticity of the flame light
     FireLightReach                   : f32,       // [m]    influence radius
     TransientLights                  : array<TransientLight, 8>,
+    LightClusterOrigin               : vec4f,
+    LocalLightMetadata               : vec4f,
+    LocalLights                      : array<LocalLight,32>,
+    LightClusters                    : array<vec4u,256>,
+    IESProfile                       : array<vec4f,64>,
 }
 
 // 📝 FeatureBit — the toggles the control panel exposes, read by the programs that honour them.

@@ -57,7 +57,7 @@ fn CaptureFragment(Varying: CaptureVarying) -> CaptureTargets
     var Targets: CaptureTargets;
     Targets.Albedo   = vec4f(Material.Albedo * (1.0 - Material.Metalness), 1.0);
     Targets.Normal   = vec4f(Normal * 0.5 + 0.5, 1.0);
-    Targets.Emission = vec4f(Material.Emission, 1.0);
+    Targets.Emission = vec4f(Material.Emission, f32(Varying.Family));
     Targets.Depth    = vec4f(Varying.Position.z, 0.0, 0.0, 1.0);
     return Targets;
 }

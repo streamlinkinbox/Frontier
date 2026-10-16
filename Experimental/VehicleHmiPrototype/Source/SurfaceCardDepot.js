@@ -229,7 +229,7 @@ export class SurfaceCardDepot
             ["Uniform", "StorageRead", "Uniform", "Texture2D", "Storage"], Compute, "Card radiosity");
         this.FinalLayout = this.Exchange.ConstructDescriptorLayout(
             ["Uniform", "StorageRead", "StorageRead", "Uniform", "Texture2D", "Texture2D", "Texture2D", "Texture2D", "StorageRead",
-             "StorageTexture2D:rgba16float"], Compute, "Card final");
+             "StorageTexture2D:rgba16float", "StorageRead"], Compute, "Card final");
         this.SamplingLayout = this.Exchange.ConstructDescriptorLayout(
             ["StorageRead", "StorageRead", "Texture2D", "Texture2D", "Texture2D", "Sampler"], Compute | GPUShaderStage.FRAGMENT, "Card sampling");
         this.EmptyLayout = this.Exchange.ConstructDescriptorLayout([], Compute, "Empty");
@@ -240,7 +240,7 @@ export class SurfaceCardDepot
             [FrameRecords, this.TileRecords, this.WorkRecords, this.Views.Normal, this.SiteRecords]);
         this.FinalGroup = this.Exchange.ConstructDescriptorGroup(this.FinalLayout,
             [FrameRecords, this.CardRecords, this.TileRecords, this.WorkRecords, this.Views.Albedo, this.Views.Emission, this.Views.Direct,
-             this.Views.Depth, this.SiteRecords, this.Views.Final]);
+             this.Views.Depth, this.SiteRecords, this.Views.Final, MaterialRecords]);
 
         this.DirectProgram    = await this.Shaders.ConstructComputeProgram("CardDirect.wgsl", "IntegrateCardDirect", [this.DirectLayout, DistanceLayout]);
         this.RadiosityProgram = await this.Shaders.ConstructComputeProgram("CardRadiosity.wgsl", "IntegrateCardRadiosity",
@@ -326,7 +326,13 @@ export class SurfaceCardDepot
         else
         {
             // 📝 A tile must not be scheduled twice in one frame: the radiosity pass folds into its sites in place.
-            const Priority = this.PriorityFrames > 0 ? this.PriorityTiles : [];
+            const LightTiles = this.LightingTiles || [];
+            const LightBudget = Math.min(LightTiles.length, Math.max(0, TileBudget));
+            this.LightCursor ??= 0;
+            const LightPriority = Array.from({length:LightBudget}, (_,I)=>LightTiles[(this.LightCursor+I)%LightTiles.length]);
+            this.LightCursor = (this.LightCursor+LightBudget)%Math.max(1,LightTiles.length);
+            const Requested = [...(this.PriorityFrames > 0 ? this.PriorityTiles : []), ...LightPriority];
+            const Priority = [...new Map(Requested.map(A => [A[0]*4194304+A[1],A])).values()];
             const Claimed = new Set(Priority.map((Assignment) => Assignment[0] * 4194304 + Assignment[1]));
             Scheduled.push(...Priority);
             if (this.PriorityFrames > 0)

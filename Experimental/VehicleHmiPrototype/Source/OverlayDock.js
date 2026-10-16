@@ -10,9 +10,9 @@
 
 const StorageKey = "IlluminationExhibit.Overlays";
 
-export const OverlayKeys = Object.freeze({ Hud: "KeyH", Inset: "KeyI", Panel: "KeyP", Clean: "KeyV" });
+export const OverlayKeys = Object.freeze({ Hud: "KeyH", Inset: "KeyO", Panel: "KeyP", Clean: "KeyV" });
 
-const OverlayCaptions = Object.freeze({ Hud: "Readout (H)", Inset: "Distance slice (I)", Panel: "Editor (P)" });
+const OverlayCaptions = Object.freeze({ Hud: "Readout (H)", Inset: "Distance slice (O)", Panel: "Editor (P)" });
 
 export class OverlayDock
 {

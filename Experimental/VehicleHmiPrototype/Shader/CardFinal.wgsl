@@ -16,6 +16,8 @@
 @group(0) @binding(8) var<storage, read> Sites : array<vec4f>;
 @group(0) @binding(9) var CardFinalTarget      : texture_storage_2d<rgba16float, write>;
 
+@group(0) @binding(10) var<storage, read> LiveMaterials : array<MaterialRecord>;
+
 // 📐 Radiosity sites are spatially filtered as they are interpolated: a Gaussian (σ = 0.9 site) over the 4×4 sites
 //    around the texel, restricted to the texel's own card and to sites that have gathered at all. Indirect irradiance
 //    is low-frequency, and 16 rays per site per gather is otherwise visible as a 4×4-texel speckle.
@@ -69,8 +71,10 @@ fn IntegrateCardFinal(@builtin(workgroup_id) Group: vec3u, @builtin(local_invoca
         textureStore(CardFinalTarget, vec2i(Texel), vec4f(0.0));
         return;
     }
-    let Albedo   = textureLoad(CardAlbedo, vec2i(Texel), 0).rgb;
-    let Emission = textureLoad(CardEmission, vec2i(Texel), 0).rgb * Frame.EmissionScale;
+    let Family = u32(textureLoad(CardEmission, vec2i(Texel), 0).w + 0.5);
+    let Material = LiveMaterials[Family];
+    let Albedo = Material.Albedo * (1.0 - Material.Metalness);
+    let Emission = Material.Emission * Frame.EmissionScale;
     let Direct   = textureLoad(CardDirect, vec2i(Texel), 0).rgb;
     var Indirect = vec3f(0.0);
     if (FeatureEnabled(Frame, FeatureCardRadiosity))

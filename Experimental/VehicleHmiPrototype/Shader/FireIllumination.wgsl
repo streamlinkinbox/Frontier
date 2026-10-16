@@ -73,3 +73,14 @@ fn ResolveTransientArrival(Position: vec3f, Normal: vec3f, Index: u32) -> FireAr
     Arrival.Illuminance = Light.Colour.rgb * Frame.EmissionScale * Window * Visibility / max(Squared, 0.16);
     return Arrival;
 }
+
+//! include "LocalLighting.wgsl"
+fn ResolveShadowedLocalArrival(Position:vec3f,Normal:vec3f,Index:u32)->LocalArrival {
+    var A=ResolveLocalArrival(Position,Normal,Index);
+    if(any(A.Illuminance>vec3f(0)) && FeatureEnabled(Frame,FeatureDirectShadow)) {
+        let Bias=ResolveSurfaceBias(Position);
+        let Range=distance(Frame.LocalLights[Index].PositionReach.xyz,Position);
+        A.Illuminance*=TraverseSceneShadow(Position+Normal*Bias,A.Direction,Bias*0.5,max(Range-0.12,0.0),4.0);
+    }
+    return A;
+}

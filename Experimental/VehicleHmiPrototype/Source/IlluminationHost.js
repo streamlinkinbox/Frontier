@@ -1,3 +1,4 @@
+import { ClusteredLights, LocalLightingFloats, LightDefaults, LightModes } from "./ClusteredLights.js";
 import { DrivingCameraMotion } from "./DrivingCameraMotion.js";
 import { ResolveHudStyle } from "./HudLayout.js";
 import { BuildTransientLights, TransientLightFloats } from "./TransientLights.js";
@@ -58,7 +59,7 @@ const ShaderSources = [
     "AtmosphereScattering.wgsl", "SurfaceReflectance.wgsl", "ShadowRaster.wgsl", "SurfaceRaster.wgsl", "DirectRadiance.wgsl",
     "ReservoirRecords.wgsl", "ReservoirTemporal.wgsl", "ReservoirSpatial.wgsl", "ReflectionTraversal.wgsl", "VarianceTemporal.wgsl",
     "VarianceWavelet.wgsl", "VarianceUpsample.wgsl", "InspectionMarch.wgsl", "DisplayRecombination.wgsl", "DisplayAntialias.wgsl",
-    "DisplayExposure.wgsl", "DisplayPresent.wgsl", "FireIllumination.wgsl", "PlumeRecords.wgsl", "PlumeAdvection.wgsl", "PlumePressure.wgsl", "PlumeVorticity.wgsl", "PlumeMarch.wgsl",
+    "DisplayExposure.wgsl", "DisplayPresent.wgsl", "FireIllumination.wgsl", "LocalLighting.wgsl", "PlumeRecords.wgsl", "PlumeAdvection.wgsl", "PlumePressure.wgsl", "PlumeVorticity.wgsl", "PlumeMarch.wgsl",
     "FragmentDistance.wgsl", "EffectRecords.wgsl", "EffectRaster.wgsl", "VehicleVisual.wgsl", "SparkRaster.wgsl", "ForwardRaster.wgsl",
     "CabinOverlay.wgsl", "CabinVolume.wgsl"
 ];
@@ -81,7 +82,7 @@ const TemporalRestartBit = 2048;   // [-] FeatureTemporalRestart in SceneRecords
 const PassNames = ["Distance union", "Card lighting", "Shadow", "Surface", "Direct", "ReSTIR GI", "Diffuse reconstruction",
                    "Reflection", "Glossy reconstruction", "Resolve", "Smoke transport", "Smoke render"];
 
-const FrameRecordExtent = 512 + TransientLightFloats * 4;   // [B] FrameRecord in SceneRecords.wgsl
+const FrameRecordExtent = 512 + TransientLightFloats * 4 + LocalLightingFloats * 4;   // [B] FrameRecord in SceneRecords.wgsl
 const FireLightReach    = 14.0;  // [m] influence radius of a tyre fire's light
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -114,6 +115,7 @@ class IlluminationHost
             TyrePressureFront: 220, TyrePressureRear: 220, SteeringAssist: true, SteeringAssistStrength: 0.45,
             TyreWear: true, WearScale: 1.0, TyreFailure: true, Sparks: true,
             HudScale: 1, HudAcross: 0, HudDown: 0,
+            ...LightDefaults,
             CameraShake: true, CameraShakeStrength: 0.5, SpeedFov: true, SpeedFovBoost: 14,
             HmiScale: 1, HmiZoom: 1, CockpitFov: 70,
             CameraMode: Query.get("camera") || "Chase"
@@ -302,6 +304,7 @@ class IlluminationHost
         await this.Cabin.ConstructResources({ FrameRecords: this.FrameRecords, OccupantRecords: this.OccupantRecords, MaterialRecords: this.MaterialRecords,
                                               EffectRecords: this.Effects.Records, VehicleRecords: this.VehicleRecords, Shadow: this.Shadow,
                                               Atmosphere: this.Atmosphere, Scene: this.Scene, AdaptationRecords: this.Display.AdaptationRecords });
+        this.LocalLighting = new ClusteredLights();
         this.ReportProgress("Compiling drift smoke programs", 0.91);
         this.Thermal = new TyreThermalSolver(4);
         this.BurstPuffs = [];
@@ -576,6 +579,11 @@ class IlluminationHost
                 Event.preventDefault();
             if (Event.code === "F8" || (Event.code === "KeyF" && !Event.repeat))
                 this.ToggleCamera();
+            if (Event.code === "KeyI" && !Event.repeat && !Event.ctrlKey && !Event.metaKey) {
+                this.Settings.LightMode = LightModes[(LightModes.indexOf(this.Settings.LightMode)+1)%LightModes.length];
+                this.Shell?.Announce(`Vehicle lights: ${this.Settings.LightMode}`);
+                this.Shell?.Controls.Synchronise();
+            }
             if (Event.code === "KeyM" && !Event.repeat && !Event.ctrlKey && !Event.metaKey)
                 this.AssignCameraMode(this.Settings.CameraMode === "HMI" ? "Cockpit" : "HMI");
             if (Event.code === "KeyR" && !Event.repeat)
@@ -963,7 +971,39 @@ class IlluminationHost
         Scalars[127] = FireLightReach;
         this.Effects.LightAlbedo = this.Materials[CourseMaterial.BodyCoat].Albedo;
         Scalars.set(BuildTransientLights(this.Sparks, this.Effects), 128);
+        // Copy bytes, not float values: cluster masks contain arbitrary bit patterns.
+        const Local = this.LocalLighting.Build(this.Vehicle,this.Settings,Camera.Position);
+        new Uint8Array(Bytes).set(new Uint8Array(Local.buffer),768);
         this.Exchange.Device.queue.writeBuffer(this.FrameRecords, 0, Bytes);
+    }
+
+    UpdateLocalLightMaterials() {
+        const S=this.Settings, On=S.LocalLights && (S.RoofLights||S.FrontLights) && S.LightMode!=="Off" && !this.Vehicle.Hidden;
+        const Key=JSON.stringify([S.LocalLights,S.StreetLights,S.LightMode,S.LightIntensity,S.StreetPower,S.RoofProfile,
+            S.RoofLights,S.FrontLights,S.RoofPower,S.BeamPitch,S.BeamWidth,S.LowCandela,S.HighCandela,S.FogCandela,this.Vehicle.Hidden,this.LocalLighting.IES?.Name]);
+        if(Key!==this.PriorLocalLightKey) {
+            this.PriorLocalLightKey=Key;
+            const Roof=this.Materials[CourseMaterial.RoofLed];
+            Roof.Emission=(S.LightMode==='Fog'?[1,0.72,0.35]:[0.88,0.94,1]).map(C=>On&&S.RoofLights?C*8*S.LightIntensity*S.RoofPower:0);
+            this.Materials[CourseMaterial.Headlight].Emission=(S.LightMode==='Fog'?[1,0.72,0.35]:[0.88,0.94,1]).map(C=>On&&S.FrontLights?C*8*S.LightIntensity:0);
+            const Street=this.Materials[CourseMaterial.StreetLed];
+            Street.Emission=[5,4.1,3.1].map(C=>S.LocalLights&&S.StreetLights?C*S.StreetPower:0);
+            this.Materials[CourseMaterial.TunnelLed].Emission=[4.1,4.5,5].map(C=>S.LocalLights&&S.StreetLights?C*S.StreetPower:0);
+            for(const Family of [CourseMaterial.RoofLed,CourseMaterial.StreetLed,CourseMaterial.Headlight,CourseMaterial.TunnelLed])
+                this.Exchange.Device.queue.writeBuffer(this.MaterialRecords,Family*48,EncodeMaterialRecords([this.Materials[Family]]));
+            this.Cards.InvalidateLighting();this.PriorValid=false;
+        }
+        // Moving beams must refresh direct-card irradiance and subsequent radiosity too.
+        this.Cards.LightingTiles=[];
+        if(On) {
+            const Reach=S.LightMode==='High'?110:S.LightMode==='Fog'?35:70;
+            this.Scene.Occupants.forEach((O,I)=>{
+                if(O.Inactive || ((O.Roles & 8) && O.Moving!==false))return;
+                const B=this.Scene.QueryWorldBounds(I);
+                const D=this.Vehicle.Position.reduce((Sum,P,A)=>Sum+Math.max(B.Minimum[A]-P,0,P-B.Maximum[A])**2,0);
+                if(D<(Reach+4)**2)this.Cards.LightingTiles.push(...this.Cards.OccupantTiles[I]);
+            });
+        }
     }
 
     AdvanceFrame(Now)
@@ -1061,6 +1101,7 @@ class IlluminationHost
         this.Smoke.Advance(this.FixedStep ? this.FixedStep : Δτ, {
             Enabled: this.Settings.SmokeEnabled, Emissions, Vehicle: this.Vehicle, Light, SkyScale: this.Settings.SkyScale,
             Gas: this.Settings.Gas, Readings, Thermal: this.Thermal });
+        this.UpdateLocalLightMaterials();
         this.EncodeFrameRecord(Camera, Light);
         Device.queue.writeBuffer(this.OccupantRecords, 0, this.Scene.EncodeOccupantRecords(this.Volumes, this.Scene.DynamicCount));
 
