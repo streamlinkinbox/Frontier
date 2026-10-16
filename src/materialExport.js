@@ -1,5 +1,6 @@
 import patternGeometrySource from "./patternGeometry.js?raw";
 import geometricModuleSource from "./geometricConstructions.js?raw";
+import heritageModuleSource from "./heritagePatterns.js?raw";
 import weaveModuleSource from "./patternWeaves.js?raw";
 import ornamentDrawingSource from "./ornamentDrawing.js?raw";
 import ornamentalSource from "./ornamentalConstructions.js?raw";
@@ -21,6 +22,8 @@ import architectureModuleSource from "./architecturalKernels.js?raw";
 import sandModuleSource from "./sandKernels.js?raw";
 const shaderSource =
   geometricModuleSource +
+  "\n" +
+  heritageModuleSource +
   "\n" +
   weaveModuleSource +
   "\n" +

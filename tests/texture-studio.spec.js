@@ -65,7 +65,7 @@ test("texture studio renders a real teapot with layer stack left and inspector r
   await expect(page.getByRole("button", { name: /^Bake/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Wireframe", exact: true }).click();
   await expect(canvas).toHaveAttribute("data-wireframe", "true");
-  await page.getByRole("button", { name: "Shaded", exact: true }).click();
+  await page.getByRole("button", { name: "Lit", exact: true }).click();
   await expect(canvas).toHaveAttribute("data-wireframe", "false");
   await page
     .getByRole("button", { name: "Toggle viewport grid", exact: true })

@@ -1,6 +1,12 @@
 # Texture studio — layer setup and engine-specific painting plan
 
-## Current scope: bounded 2D sources, history, layer documents and shared asset editing
+> **Implementation checkpoint:** bounded digital layer/mask Paint / Erase / Fill, per-channel shader consumers and lower-only raw-field inheritance are now implemented. See [current workflow and limits](digital-painting.md). This planning document remains historical guidance for later imported-source composition, interchange and PBR atlas export.
+
+> **Layer-stack extension (10 October 2026):** existing native material snapshots and decals now share bottom-to-top Normal alpha-over surface evaluation, an automatic locked white Layer 0 and genuine compatible AO / normal / bevel support. The packed UV preview renders the same lit appearance. See [layer evaluation](texture-layer-evaluation.md). This does not implement ordinary source brush deposition, general source-layer/channel blending or composited PBR texture export.
+>
+> **Previous extension (10 October 2026):** part-scoped native materials, geometry-backed UV / UDIM decals, and actual mask painting / region selection are implemented. See [part materials and UV authoring](texture-parts-uv.md) and [mask painting and authoring modes](texture-mask-painting.md). The roadmap below still describes the separate, not-yet-implemented full source-stroke UV deposition/compositing engine; it must not be read as saying current materials/decals are only metadata.
+
+## Previous source-only phase (historical): bounded 2D sources, history, layer documents and shared asset editing
 
 Open **Texture studio** from the material workspace, or `/?studio=texture`.
 
@@ -16,13 +22,13 @@ This pass provides:
 - **Inspector / History** tabs share the existing document snapshots, with named edit/stroke states, inspection without mutation, restore, undo/redo and an 80-step session cap. **Paint texture** opens a bounded round-tip source canvas: real pressure-aware 2D paint/erase strokes become PNG sources and layer thumbnails. History shows the actual last gesture footprint, not a representative tool mark. Zero controls, cancel, locks and changed sources cannot commit a late stroke. The saved last gesture has at most 1024 normalized points and a bounded PNG; it is not a mesh/UV stroke record.
 - Existing material and pattern workspaces remain available in the same application. The root all-material thumbnail job is suspended during authoring; the open browser renders a bounded visible-material subset on demand.
 
-**Not implemented in the painting engine:** mesh/UV brush deposition, instrument-specific simulation, fill/generator evaluation, evaluated material sources on layers, UV/teapot mask evaluation, layer compositing or composited texture-layer export. Mesh baking and true 3D SDF have their own Baking workspace. The painting-tool and asset-assignment UI stores configuration; raster import and basic round-tip paint/erase store actual bounded 2D source pixels; colour masks evaluate only their labeled source preview. General source/stroke layers are not composited onto the teapot. A selected base-colour point-gradient fill or value/gradient fill with Fill/Gradient masks now has an actual object-space surface preview; arbitrary layer/UV composition is still not implemented. The UI states this explicitly. No painting atlases or composited teapot mask textures are allocated by the layer document.
+**Not implemented at that previous checkpoint (see the digital update above):** ordinary material/channel mesh/UV brush deposition, instrument-specific simulation, fill/generator evaluation, general texture-source evaluation on layers, weighted per-channel PBR compositing or composited texture-layer export. Mesh baking and true 3D SDF have their own Baking workspace. The painting-tool and asset-assignment UI stores configuration; raster import and basic round-tip paint/erase store actual bounded 2D source pixels; colour masks evaluate only their labeled source preview. General source/stroke layers are not composited onto the teapot. A selected base-colour point-gradient fill or value/gradient fill with Fill/Gradient masks now has an actual object-space surface preview; arbitrary layer/UV composition is still not implemented. The UI states this explicitly. The layer document stores no painted PBR atlases. Temporary, geometry-backed mask textures are now evaluated by the renderer; see the mask-painting extension for its actual coverage and bounds.
 
 ### Shortcuts and safeguards
 
 - `Ctrl/⌘ Z`: undo; `Ctrl/⌘ Shift Z` or `Ctrl Y`: redo.
 - `Ctrl/⌘ D`: duplicate selected unlocked layer; `Alt ↑/↓`: reorder.
-- `Ctrl/⌘ S`: save a **layer-project JSON file**, including bounded imported sources, not composited textures or baked maps. Within the browser's Material pane, this opens the shared material-preset save dialog instead.
+- `Ctrl/⌘ S`: save a **layer-project JSON file**, including bounded imported sources, not composited textures; the optional bounded genuine mesh-support maps now persist in this JSON. Within the browser's Material pane, this opens the shared material-preset save dialog instead.
 - `F` / `R`: frame/reset the teapot. Native typing shortcuts remain with text/number fields.
 - Arrow keys navigate layer selection; left/right fold a row. The add menu supports arrow keys and Escape.
 - Locks on ancestor folders also protect their contents. Locked layers cannot be renamed, reordered, duplicated, deleted, or have their content settings changed. Their visibility and lock remain editable.

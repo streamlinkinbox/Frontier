@@ -17,6 +17,18 @@ If an already-open preview reports an invalid hook or null `useState`, **reload 
 npm run test:runtime
 ```
 
+## Texture layer evaluation and mesh support
+
+Materials and decals, including native glass/wax transmission, now follow the same **bottom-to-top live layer order**: an upper material covers a lower stamp; masks, opacity and visibility reveal the lower result. A library drop on a Material row saves a global snapshot, while mesh drops stay part-scoped. **Layer 0** is an automatic locked, hidden, white system fallback outside editable user layers. Open Baking from Texture for matching **512** high/low AO, tangent-normal and bevel-normal support; actual compatible maps persist in the portable project and remain active after the white color is replaced. Optical surfaces sample only the already evaluated lower linear lit history, keeping native transmission/IOR/attenuation rather than substituting fake alpha. The UV view shows the same evaluated **lit appearance**, not exported channel atlases or nested-volume refraction.
+
+**Digital Paint / Erase / Fill now works on layers and masks in Lit and packed UV view.** Hover for an unclipped, screen-space **size/texture footprint** at pointer X/Y; a round tip stays circular through perspective/UV distortion and writes all visible touched triangles across chart/UDIM seams. Explicit selections, part targets and locks remain restrictions; high-DPI rendering and stabilized stroke endpoints remain aligned with the cursor. Open the brush studio for channel toggles, section-card properties and a real shared-engine stroke preview. See [digital painting](docs/digital-painting.md) and [layer evaluation](docs/texture-layer-evaluation.md). Physical-media simulation, general imported-source composition and composited PBR atlas export remain outside this phase.
+
+The digital suite now contains **53 focused painting/cursor/DPI/device cases**. The earlier digital phase passed **198 distinct selected model/Canvas/UI/runtime/offline regressions**; latest cursor verification is documented separately. Both normal and embedded offline builds succeed; see the [verified scope and artifact](docs/digital-painting.md#verification).
+
+```sh
+npm run test:stack
+```
+
 ## Continue the Slate material editor
 
 Imported from [`unassignedinbox/Slate`, `arena/835eeb10-slate`](https://github.com/unassignedinbox/Slate/tree/arena%2F835eeb10-slate), source commit `a6df214c54bf51963846fc685794548199e2f010`. This workspace adds a real 2D vector authoring canvas to the existing pattern generator and preserves its material renderer, pattern catalogue, textile controls and export/bake pipeline.
@@ -41,6 +53,26 @@ npm run test:standalone
 ```
 
 This repository has not been published to GitHack as part of the editor work. Links or artifact checksums in older Slate reference documents describe upstream versions, not the current build.
+
+## Islamic and African traditional pattern additions
+
+The existing **Pattern collection** picker now includes **Islamic geometry** (10 new vector presets) and **African traditional** (10 new vector presets), bringing the library to **103 cards including Blank**. These are editable, named-tradition-inspired vector studies, not raster images or duplicate colourways. They support the existing 2D tools, Design palette, stitch overlays, 3D material preview, apply/save/SVG/PNG and portable material exports. See [the twenty-pattern catalogue and usage guide](docs/heritage-patterns.md).
+
+```sh
+npm run test:heritage
+```
+
+## Part-scoped Texture materials and UV / UDIM authoring
+
+In **Texture**, drag a Material card onto **Body / Lid / Handle / Spout**: the actual hit part receives an embedded native material snapshot, not a whole-teapot recolour. The matching right-side Material recipe controls edit that part; assignments respect history, locks, visibility and inherited opacity.
+
+**UV / Texture** joins Shaded and Wireframe. Its geometry-backed **Authoring UDIMs 1001–1004** contain 32 non-overlapping charts; unchanged **Source UV0** is available for read-only overlap inspection. Click or drop Stamp artwork onto a UV island to create a real part-clipped 3D decal. UV components have U/V and UV-unit size controls, move/rotate/scale, safe re-anchoring and single-transaction confirm/cancel. The shared browser still overlays an invariant scene.
+
+This is live part material / UV decal authoring, **not** a full source-layer compositor, imported UDIM texture set or baked decal atlas. Existing Material/Pattern exports, source painting and audited baking remain separate. See [Texture part materials and UVs](docs/texture-parts-uv.md).
+
+```sh
+npm run test:parts-uv
+```
 
 ## Stamp workspace, surface decals and layer drag/drop
 
@@ -76,9 +108,9 @@ Open **Texture studio**, or `/?studio=texture`. Material, Pattern and Texture wo
 
 The layout follows the **newer `Experimental/ProjectZeroEditor`** in the requested Frontier reference, rather than the older `FrontierEditor` design: docked tabs, charcoal panels, pill controls and rounded inspector cards. **Layer stack is on the left and the inspector on the right** of a real Three.js teapot viewport. Tablet docks retain this order with narrower widths; phone docks use tabs below the scene.
 
-Layers support add, selection, reorder, search, inherited visibility/locking, subtree duplicate/delete, **nested folders**, channel targets, layer/folder **Fill and Colour masks**, undo/redo, local draft recovery and validated `.texture.json` project files. Imported and painted 2D rasters have real bounded source thumbnails and source-only colour-mask previews. The right dock's **Inspector / History** tabs expose actual edit states, undo/redo/restore and an actual last source-stroke preview; phones keep all three Layers/Inspector/History views in the same dock. The scene supports orbit, zoom, frame, grid and wireframe controls.
+Layers support add, selection, reorder, search, inherited visibility/locking, subtree duplicate/delete, **nested folders**, channel targets, layer/folder **Fill and Colour masks**, undo/redo, local draft recovery and validated `.texture.json` project files. Imported and painted 2D rasters have real bounded source thumbnails and source-only colour-mask previews. The right dock's **Inspector / History** tabs expose actual edit states, undo/redo/restore and actual last digital/mask or 2D source-operation footprints; phones keep all three Layers/Inspector/History views in the same dock. The scene supports orbit, zoom, frame, grid and wireframe controls.
 
-**This pass provides layer/source configuration and basic round-tip 2D source painting, not mesh/UV painting or layer compositing.** Imported texture sources are portable project content, not evaluated painted UV atlases. Composited texture export is not added; mesh baking remains a separate workspace. General paint/source layers still do not composite onto the teapot. The selected base-colour point-gradient fill and its Fill/Gradient masks now have a real object-space surface preview; this is not whole-stack composition. Saving writes a layer-project document (including imported sources), not painted maps.
+**Digital layer and mask painting is now implemented** with sparse ordered surface passes, channel-specific erasing, real geometry-scoped fills, pressure/dynamics/shape/grain and per-gesture undo. Native Material rows retain their native recipe; empty Paint/Fill rows produce physical digital coatings that inherit bounded raw PBR fields from lower rows. Read [the workflow, channel consumers and limits](docs/digital-painting.md). The old 2D source-painting workflow remains separate: imported Texture/Generator sources are not automatically deposited onto the mesh, and a project save is not an exported set of composited PBR maps. Mesh baking remains a separate workspace.
 
 The older repository's PBR-channel plan and painting prototypes were reviewed. The **[revised engine-specific painting plan](docs/texture-painting-plan.md)** records their useful lessons and sequences chart validation, shader consumers, composition, future strokes and later interchange against our current Three.js engine. In particular, the stock teapot's repeated patch UVs must be fixed before painting.
 
@@ -331,7 +363,7 @@ The remote mode confirms GitHack's notice if present. Connection failures **fail
 
 ## Painting tools and draggable content browser
 
-In **Texture**, the right inspector now uses the supplied channel-card pattern: all **14 channel targets**, chip removal/clear/add, retained values, **Value / Texture / Generator** sources and grouped generators. Channel cards share the editor's rounded cards, sliders and pill controls. PNG/JPEG/WebP Texture imports store actual portable PNG sources, bounded to 256 px per edge. The top-bar instrument button (or right-clicking the viewport) opens all **102 instruments / 10 families**, with circular icon wells, centred SVG artwork, separate labels below, seeded/conditional property controls, ink colours and swatches. Tool/channel/source changes are project metadata with local save, JSON round-trip, undo/redo and locked-layer protection.
+In **Texture**, the right inspector now uses the supplied channel-card pattern: all **14 channel targets**, chip removal/clear/add, retained values, **Value / Texture / Generator** sources and grouped generators. Channel cards share the editor's rounded cards, sliders and pill controls. PNG/JPEG/WebP Texture imports store actual portable PNG sources, bounded to 256 px per edge. The top-bar brush button or viewport context menu opens the **Digital brush studio**: Paint / Erase / Fill, five basic digital presets, channel toggles, brush section cards and a real live stroke canvas. The separately marked **Instrument catalogue** retains all **102 configured instruments / 10 families** for legacy source authoring, not mesh simulation. Brush/channel/source settings and real digital operations have local save, JSON round-trip, undo/redo and inherited-lock protection.
 
 Drag the **Content browser overlay** upward for **Outliner | asset grid/list | preview + inspector together**. The material pane reuses the existing renderer, full Material inspector, controls, shared library/favorites/preset service and portable JSON/shader exporters—different layout, not a second editor or bundled prototype app. Browse materials, brushes and generators; assign a source link or drag it onto an unlocked layer. The scene/dock bounds remain unchanged under the overlay. The left Asset library uses tree rows; the full grid scrolls with fixed-size contained previews instead of pagination or height-driven cropping. Only visible/prefetch assets request bounded real shader thumbnail batches; pending thumbnails are labeled.
 
@@ -339,7 +371,7 @@ Layer folders support nesting, collapse/search, inherited locks/visibility, sibl
 
 Choose **Texture → Paint texture** to draw into a bounded 2D channel source. Pointer gestures use a basic round tip (including paint/erase, opacity/flow/strength and pressure); each completed gesture is one undo step. The saved source appears in the layer stack and **History → Last stroke** previews the actual isolated footprint. Cancellation, zero controls and inherited locks do not write pixels/history. The last gesture and source survive project-file save/reopen; the 80-step undo timeline is session-only.
 
-**Scope:** material asset preview/editing/export, bounded raster import, basic round-tip 2D source painting and source-only colour matching are real. Family-specific instrument simulation, mesh/UV stroke deposition, paint atlases and whole-stack layer composition are **not** implemented. Surface hit-testing is implemented specifically for gradient point placement/dragging. Mesh baking and volume SDF remain separate.
+**Scope:** digital mesh/UV layer and mask painting, region fills, enabled-channel PBR consumers, real brush previews, material asset preview/editing/export and legacy bounded 2D source authoring are implemented. Physical-media instrument simulation, general imported-source composition and composited PBR atlas export are **not** implemented. Native material/decal/paint surfaces share ordered live evaluation. See [digital painting](docs/digital-painting.md) for precise channel, coating, subsurface-tint and resolution limits. Mesh baking and volume SDF remain separate.
 
 See [reference provenance, workflow and authoring model](docs/paint-tools-and-content-browser.md). Run `npm run test:painting`; production and standalone builds include the same UI.
 
@@ -354,3 +386,11 @@ Choose **Base color → Gradient → Edit in viewport / Place point** for a live
 Layer/folder **Mask type → Gradient** uses the same editable point field. Point-colour luminance defines black/white coverage; enable, inversion and zero strength are evaluated in the selected gradient/value-fill surface preview, including ancestor folder masks and opacity. Inspector/stack thumbnails are explicitly labeled XY field slices, not a UV bake. This is a narrow selected-field preview—not a compositor for arbitrary painted layers or all blend modes.
 
 Verification for this follow-up: **66 painting/Texture cases pass** and **11 offline standalone cases pass**. Production and single-file builds pass; `site/index.html` is **3.47 MB**.
+
+## Texture mask painting and preview modes
+
+Texture now has independent **Material / Mask** previews and **Lit / Wireframe / UV / Texture** views. Select a layer/folder mask to enter **Mask mode** and paint actual black/white UV coverage in Lit or packed UV space. **Face / UV Island / Object** selections use real teapot triangles/charts/components; **UV Tile** selection is available in UV mode. Object means **Body, Lid, Handle or Spout**, not the whole teapot. Fill a picked region or brush within it. New digital Paint/Erase uses a screen-space footprint across visible surface components when no region/part target is selected; the legacy UV mask brush retains its hit-component scope.
+
+The selected mask has genuine grayscale feedback for Fill/Paint, object-space gradients, source-RGB colour fields, and decal masks. Undo/redo, cancel, locks, JSON saving and local recovery apply to mask records. On phones, Brush settings expand separately to preserve a useful canvas. Ordinary **Material / Paint / Fill layer** selection stores **Paint mode** only — it does not enable ordinary mesh/channel deposition. Existing decal placement/transforms remain functional. This is not a full PBR UV-stack compositor or a change to audited Baking.
+
+See [mask painting, preview semantics and limits](docs/texture-mask-painting.md). Run `npm run test:masks`.

@@ -1,3 +1,19 @@
+import { normalizeDigitalBrush } from "./digitalBrush.js";
+import {
+  normalizeDigitalPaint,
+  validateDigitalPaintGeometry,
+  normalizeLastDigitalStroke,
+  paintedChannelIds,
+  PAINT_CHANNEL_SLICE_LIMIT,
+} from "./textureDigitalPaint.js";
+import { normalizeTextureMeshMaps } from "./textureMeshMaps.js";
+import { validateMaskPaintGeometry } from "./textureMaskPaint.js";
+import {
+  normalizeSurfaceTarget,
+  normalizeSurfaceMaterial,
+  texturePart,
+  createTextureTeapotGeometry,
+} from "./textureSurfaceModel.js";
 import {
   normalizeLayerDecals,
   normalizeDocumentStamps,
@@ -12,8 +28,8 @@ import {
   normalizeChannelSettings,
 } from "./paintChannelModel.js";
 import { normalizePaintSettings } from "./paintToolCatalogue.js";
-// Texture authoring starts as a small, portable document. This UI pass deliberately
-// allocates no texture atlases and does not composite layers into the material.
+// Portable Texture document: ordered live material/decal passes and bounded
+// mask operations and replayable digital UV/channel strokes.
 export const TEXTURE_SCHEMA = "alloy.texture.v1";
 export const TEXTURE_DRAFT_KEY = "alloy-texture-project-v1";
 export const TEXTURE_LAYER_LIMIT = 64;
@@ -35,17 +51,19 @@ export const TEXTURE_KINDS = {
   paint: {
     label: "Paint",
     description:
-      "A hand-painted or imported 2D texture source; not yet composited onto the mesh.",
+      "A sparse digital paint layer with editable UV strokes and per-channel values.",
     color: "#d79564",
   },
   fill: {
     label: "Fill",
-    description: "A layer for future uniform channel values.",
+    description:
+      "Digital channel fills, scoped to real faces, islands or mesh components.",
     color: "#779cd1",
   },
   material: {
     label: "Material",
-    description: "A layer for a future material assignment.",
+    description:
+      "A native material snapshot covering the whole object or one part.",
     color: "#aa98d0",
   },
   generator: {
@@ -131,6 +149,14 @@ function normalizeLayer(raw) {
     channelSettings: normalizeChannelSettings(raw.channelSettings),
     sourceAsset:
       raw.kind === "folder" ? null : normalizeSourceAsset(raw.sourceAsset),
+    ...(raw.kind === "material" && (raw.surfaceTarget || raw.surfaceMaterial)
+      ? {
+          ...(raw.surfaceTarget
+            ? { surfaceTarget: normalizeSurfaceTarget(raw.surfaceTarget) }
+            : {}),
+          surfaceMaterial: normalizeSurfaceMaterial(raw.surfaceMaterial),
+        }
+      : {}),
     channels: normalizeEnabledChannels([
       ...new Set(
         (Array.isArray(raw.channels)
@@ -150,6 +176,7 @@ function normalizeLayer(raw) {
           .filter((id) => channelIds.has(id)),
       ),
     ]),
+    ...(raw.paint ? { paint: normalizeDigitalPaint(raw.paint) } : {}),
     mask: normalizeTextureMask(raw.mask),
     decals: raw.kind === "folder" ? [] : normalizeLayerDecals(raw.decals),
   };
@@ -163,9 +190,11 @@ export function createTextureDocument() {
     name: "Teapot study",
     stamps: [],
     painting: normalizePaintSettings(),
+    digitalPainting: normalizeDigitalBrush(),
+    lastDigitalStroke: null,
     lastStroke: null,
     scene: "teapot",
-    // Topmost first, everywhere: the UI, history, files, and future compositor.
+    // Topmost first, everywhere: the UI, history, files, and compositor.
     layers: [
       createTextureLayer("paint", {
         id: "surface-detail",
@@ -190,6 +219,7 @@ export function createTextureDocument() {
     ],
   };
 }
+let maskAuthoringGeometry;
 export function validateTextureDocument(input) {
   if (!input || typeof input !== "object" || input.schema !== TEXTURE_SCHEMA)
     throw new Error("Choose an Alloy texture-layer project (.texture.json).");
@@ -198,6 +228,39 @@ export function validateTextureDocument(input) {
       `A layer project supports up to ${TEXTURE_LAYER_LIMIT} layers.`,
     );
   const layers = orderTextureLayers(input.layers.map(normalizeLayer));
+  for (const layer of layers)
+    if (layer.mask?.paint) {
+      maskAuthoringGeometry ||= createTextureTeapotGeometry(20);
+      validateMaskPaintGeometry(layer.mask.paint, maskAuthoringGeometry);
+    }
+  for (const layer of layers)
+    if (layer.paint) {
+      if (layer.kind === "folder")
+        throw new Error("Folders can paint their mask, not colour channels.");
+      maskAuthoringGeometry ||= createTextureTeapotGeometry(20);
+      validateDigitalPaintGeometry(layer.paint, maskAuthoringGeometry);
+      if (
+        layer.surfaceTarget &&
+        layer.paint.operations.some(
+          (op) => op.region.partId !== layer.surfaceTarget.partId,
+        )
+      )
+        throw new Error(
+          "Digital strokes must stay on their layer's target component.",
+        );
+    }
+  const paintSlices = layers.reduce(
+    (n, layer) =>
+      n +
+      (paintedChannelIds(layer).length
+        ? paintedChannelIds(layer).length + 1
+        : 0),
+    0,
+  );
+  if (paintSlices > PAINT_CHANNEL_SLICE_LIMIT)
+    throw new Error(
+      "The project's 64 digital channel-slice budget is full. Disable unused channels or remove an unused paint layer.",
+    );
   if (new Set(layers.map((l) => l.id)).size !== layers.length)
     throw new Error("Layer identities must be unique.");
   const stroke = input.lastStroke
@@ -208,6 +271,17 @@ export function validateTextureDocument(input) {
       "The recorded source stroke is invalid or exceeds its preview/point limit.",
     );
   const allStamps = normalizeDocumentStamps(input.stamps);
+  for (const layer of layers) {
+    if (
+      layer.surfaceTarget &&
+      layer.decals.some(
+        (d) => !d.target || d.target.partId !== layer.surfaceTarget.partId,
+      )
+    )
+      throw new Error(
+        "Part-scoped decal components must stay on their layer's target.",
+      );
+  }
   const components = layers.flatMap((l) => l.decals);
   if (components.length > DECAL_LIMIT)
     throw new Error(
@@ -226,7 +300,16 @@ export function validateTextureDocument(input) {
     stamps,
     name: text(input.name, "Untitled surface"),
     scene: "teapot",
+    ...(input.meshMaps
+      ? { meshMaps: normalizeTextureMeshMaps(input.meshMaps) }
+      : {}),
     painting: normalizePaintSettings(input.painting),
+    digitalPainting: normalizeDigitalBrush(input.digitalPainting),
+    lastDigitalStroke:
+      input.lastDigitalStroke &&
+      layers.some((l) => l.id === input.lastDigitalStroke.layerId)
+        ? normalizeLastDigitalStroke(input.lastDigitalStroke)
+        : null,
     lastStroke:
       stroke &&
       layers.some((l) => l.id === stroke.layerId && l.kind !== "folder")
@@ -534,8 +617,23 @@ export function addTextureDecal(doc, layerId, rawPreset, placement = {}) {
     return { doc, id: null };
   if (doc.layers.flatMap((l) => l.decals || []).length >= DECAL_LIMIT)
     throw new Error(`The ${DECAL_LIMIT}-decal project limit has been reached.`);
+  if (placement.target && isTexturePartLocked(doc, placement.target.partId))
+    throw new Error(
+      "Unlock this part's material layer before dropping a stamp onto it.",
+    );
   const { preset, stamps } = embedTextureStamp(doc, rawPreset);
-  const component = createDecal(preset, placement);
+  if (
+    layer.surfaceTarget &&
+    placement.target &&
+    layer.surfaceTarget.partId !== placement.target.partId
+  )
+    throw new Error(
+      `This layer targets ${texturePart(layer.surfaceTarget.partId).name}. Select a layer for that part first.`,
+    );
+  const component = createDecal(preset, {
+    ...placement,
+    target: placement.target || layer.surfaceTarget,
+  });
   const next = validateTextureDocument({
     ...doc,
     stamps,
@@ -551,6 +649,9 @@ export function patchTextureDecal(doc, layerId, componentId, patch) {
   if (
     !component ||
     isTextureLayerLocked(doc, layerId) ||
+    (((component.target && isTexturePartLocked(doc, component.target.partId)) ||
+      (patch.target && isTexturePartLocked(doc, patch.target.partId))) &&
+      !Object.keys(patch).every((k) => ["locked", "visible"].includes(k))) ||
     (component.locked &&
       !Object.keys(patch).every((k) => ["locked", "visible"].includes(k)))
   )
@@ -582,7 +683,12 @@ export function removeTextureDecal(doc, layerId, componentId) {
   if (
     !layer ||
     isTextureLayerLocked(doc, layerId) ||
-    layer.decals?.find((d) => d.id === componentId)?.locked
+    layer.decals?.find((d) => d.id === componentId)?.locked ||
+    (layer.decals?.find((d) => d.id === componentId)?.target &&
+      isTexturePartLocked(
+        doc,
+        layer.decals.find((d) => d.id === componentId).target.partId,
+      ))
   )
     return doc;
   const layers = doc.layers.map((l) =>
@@ -603,7 +709,12 @@ export function removeTextureDecal(doc, layerId, componentId) {
 export function replaceTextureDecalStamp(doc, layerId, componentId, rawPreset) {
   const layer = doc.layers.find((l) => l.id === layerId),
     component = layer?.decals.find((d) => d.id === componentId);
-  if (!component || component.locked || isTextureLayerLocked(doc, layerId))
+  if (
+    !component ||
+    component.locked ||
+    isTextureLayerLocked(doc, layerId) ||
+    (component.target && isTexturePartLocked(doc, component.target.partId))
+  )
     return doc;
   const without = {
     ...doc,
@@ -635,4 +746,90 @@ export function replaceTextureDecalStamp(doc, layerId, componentId, rawPreset) {
         : l,
     ),
   });
+}
+
+// A viewport drop changes one real material region, never the whole specimen.
+// Preset data is embedded so editing/removing a library entry cannot rewrite it.
+export function assignTexturePartMaterial(
+  doc,
+  target,
+  material,
+  asset = material,
+) {
+  const scope = normalizeSurfaceTarget(target);
+  if (!scope)
+    throw new Error(
+      "Choose an existing teapot part before assigning a material.",
+    );
+  const part = texturePart(scope.partId),
+    previous = activeTexturePartMaterials(doc).get(scope.partId)?.layer;
+  if (
+    doc.layers.some(
+      (l) =>
+        l.surfaceTarget?.partId === scope.partId &&
+        l.surfaceMaterial &&
+        isTextureLayerLocked(doc, l.id),
+    )
+  )
+    throw new Error(
+      `${part.name} has a locked material assignment. Unlock its layer before replacing it.`,
+    );
+  const snapshot = normalizeSurfaceMaterial(material),
+    sourceAsset = {
+      type: "material",
+      id: asset.id,
+      name: asset.name || snapshot.name || "Material",
+    };
+  if (previous) {
+    const next = patchTextureLayer(doc, previous.id, {
+      surfaceTarget: scope,
+      surfaceMaterial: snapshot,
+      sourceAsset,
+      name: previous.name.startsWith(`${part.name} · `)
+        ? `${part.name} · ${sourceAsset.name}`
+        : previous.name,
+    });
+    return { doc: validateTextureDocument(next), id: previous.id };
+  }
+  if (doc.layers.length >= TEXTURE_LAYER_LIMIT)
+    throw new Error("The 64-layer limit has been reached.");
+  const layer = createTextureLayer("material", {
+    name: `${part.name} · ${sourceAsset.name}`,
+    surfaceTarget: scope,
+    surfaceMaterial: snapshot,
+    sourceAsset,
+  });
+  return {
+    doc: validateTextureDocument({ ...doc, layers: [layer, ...doc.layers] }),
+    id: layer.id,
+  };
+}
+export function activeTexturePartMaterials(doc) {
+  const result = new Map();
+  for (const layer of doc.layers) {
+    const partId = layer.surfaceTarget?.partId;
+    if (
+      !partId ||
+      !layer.surfaceMaterial ||
+      result.has(partId) ||
+      !isTextureLayerVisible(doc, layer.id)
+    )
+      continue;
+    const ancestors = [...textureAncestors(doc, layer.id), layer],
+      opacity = ancestors.reduce(
+        (value, owner) => (value * owner.opacity) / 100,
+        1,
+      );
+    if (opacity > 0) result.set(partId, { layer, ancestors, opacity });
+  }
+  return result;
+}
+
+export function isTexturePartLocked(doc, partId) {
+  return doc.layers.some(
+    (l) =>
+      l.surfaceMaterial &&
+      l.surfaceTarget?.partId === partId &&
+      isTextureLayerLocked(doc, l.id),
+  );
 }

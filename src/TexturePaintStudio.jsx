@@ -1,3 +1,17 @@
+import useDigitalPainting from "./useDigitalPainting.js";
+import DigitalPaintMenu, { DigitalPaintToolbar } from "./DigitalPaintMenu.jsx";
+import { DIGITAL_BRUSH_PRESETS } from "./digitalBrush.js";
+import useMaskEditing from "./useMaskEditing.js";
+import { evaluateTextureStack } from "./textureStackEvaluation.js";
+import TextureMaskToolbar from "./TextureMaskToolbar.jsx";
+import { maskHasPaint } from "./textureMaskPaint.js";
+import TextureUVView from "./TextureUVView.jsx";
+import {
+  createTextureTeapotGeometry,
+  TEXTURE_PARTS,
+  texturePart,
+  readAssetDrop,
+} from "./textureSurfaceModel.js";
 import useDecalEditing from "./useDecalEditing.js";
 import {
   GRADIENT_POINT_LIMIT,
@@ -7,7 +21,6 @@ import "./pointGradient.css";
 import TextureHistoryPanel from "./TextureHistoryPanel.jsx";
 import { normalizeSourceStroke } from "./textureStrokes.js";
 import AssetContentBrowser from "./AssetContentBrowser.jsx";
-import PaintToolMenu from "./PaintToolMenu.jsx";
 import {
   paintTool,
   normalizePaintSettings,
@@ -18,7 +31,7 @@ import {
   normalizeChannelSettings,
   normalizeGenerator,
 } from "./paintChannelModel.js";
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState, useMemo } from "react";
 import {
   Box,
   Brush,
@@ -56,6 +69,8 @@ import {
   textureSubtree,
   isTextureLayerLocked,
   isTextureLayerVisible,
+  assignTexturePartMaterial,
+  isTexturePartLocked,
   textureAncestors,
   TEXTURE_FILE_LIMIT,
 } from "./textureDocument.js";
@@ -65,16 +80,16 @@ import { StudioHeader } from "./StudioUI.jsx";
 import "./textureStudio.css";
 
 const PREVIEW_MATERIAL = normalizeMaterial({
-  ...materials.find((m) => m.id === "porcelain-grid-tiles"),
-  recipeId: "pottery",
-  potterySurface: 1,
-  id: "texture-neutral-preview",
-  name: "Neutral ceramic",
-  color: "#bfc1b8",
+  id: "texture-system-white",
+  name: "Layer 0 · white mesh base",
+  type: 1,
+  color: "#ffffff",
   metalness: 0,
-  roughness: 0.42,
-  coat: 0.08,
-  coatRoughness: 0.3,
+  roughness: 0.55,
+  flakes: 0,
+  coat: 0,
+  depth: 0,
+  wear: 0,
 });
 function readLayout() {
   try {
@@ -147,6 +162,7 @@ export default function TexturePaintStudio({
   onEditStamp,
 }) {
   const history = useTextureDocument();
+  const digitalPaintingRef = useRef(null);
   const { doc, selection, select } = history;
   const layer = doc.layers.find((l) => l.id === selection.id);
   const disabled = !layer || isTextureLayerLocked(doc, layer.id);
@@ -155,11 +171,24 @@ export default function TexturePaintStudio({
   const [mobilePanel, setMobilePanel] = useState("layers");
   const [rightPanel, setRightPanel] = useState("inspector"),
     panelId = useId();
-  const [wireframe, setWireframe] = useState(false);
+  const [viewMode, setViewMode] = useState("shaded"),
+    [uvSource, setUVSource] = useState(false),
+    [selectedPart, setSelectedPart] = useState(null),
+    [dropPart, setDropPart] = useState(null);
+  const [surfaceGeometry] = useState(() => createTextureTeapotGeometry(20)),
+    surfaceAPI = useRef(null);
+  const wireframe = viewMode === "wireframe";
+  useEffect(() => () => surfaceGeometry.dispose(), [surfaceGeometry]);
   const [grid, setGrid] = useState(true);
-  const [resetToken, setResetToken] = useState(0);
-  const [zoom, setZoom] = useState(null),
-    [zoomLevel, setZoomLevel] = useState(100);
+  const [reset3D, setReset3D] = useState(0),
+    [resetUV, setResetUV] = useState(0),
+    [zoom3D, setZoom3D] = useState(null),
+    [zoomUV, setZoomUV] = useState(null),
+    [zoomLevel3D, setZoomLevel3D] = useState(100),
+    [zoomLevelUV, setZoomLevelUV] = useState(100);
+  const zoomLevel = viewMode === "uv" ? zoomLevelUV : zoomLevel3D;
+  const setResetToken = viewMode === "uv" ? setResetUV : setReset3D;
+  const setZoom = viewMode === "uv" ? setZoomUV : setZoom3D;
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState("");
   const [help, setHelp] = useState(false);
@@ -211,6 +240,8 @@ export default function TexturePaintStudio({
     });
   }
   function activateGradient(target) {
+    digitalPaintingRef.current?.deactivate();
+    maskEditing.change({ tool: "navigate" });
     decalEditing.deactivate();
     gradientGesture.current = null;
     setGradientDraft(null);
@@ -379,13 +410,85 @@ export default function TexturePaintStudio({
     initialStamp,
     onStampConsumed,
     onEditStamp,
-    previewLayerId: sourceLayer?.id,
+    previewLayerId: sourceLayer?.surfaceMaterial ? null : sourceLayer?.id,
+    space: viewMode === "uv" ? "uv" : "object-sphere",
+    placementAvailable: !(viewMode === "uv" && uvSource),
+    onRequestSpace: (space) => {
+      if (space === "uv") setUVSource(false);
+      chooseView(
+        space === "uv" ? "uv" : viewMode === "uv" ? "shaded" : viewMode,
+      );
+    },
     onDeactivateGradient: () => {
       gradientGesture.current = null;
       setGradientDraft(null);
       setGradientTarget((old) => (old ? { ...old, active: false } : null));
     },
   });
+  const selectedDecal = layer?.decals.find(
+      (d) => d.id === decalEditing.context.id,
+    ),
+    [maskAtlas, setMaskAtlas] = useState(null);
+  const [surfaceAtlas, setSurfaceAtlas] = useState(null);
+  const maskEditing = useMaskEditing(history, {
+    geometry: surfaceGeometry,
+    viewMode,
+    source: uvSource,
+    suspended: decalEditing.editor.active
+      ? "decal"
+      : activeGradient
+        ? "gradient"
+        : false,
+    decalId: selectedDecal?.asMask ? selectedDecal.id : null,
+    onActivate: () => {
+      digitalPaintingRef.current?.deactivate();
+      decalEditing.deactivate();
+      gradientGesture.current = null;
+      setGradientDraft(null);
+      setGradientTarget((old) => (old ? { ...old, active: false } : null));
+    },
+  });
+  const digitalPainting = useDigitalPainting(history, {
+    geometry: surfaceGeometry,
+    viewMode,
+    source: uvSource,
+    suspended: decalEditing.editor.active || !!activeGradient,
+    maskRegion: maskEditing.region,
+    maskValue: maskEditing.state.value,
+    onActivate: () => {
+      maskEditing.cancel();
+      decalEditing.deactivate();
+      gradientGesture.current = null;
+      setGradientDraft(null);
+      setGradientTarget((old) => (old ? { ...old, active: false } : null));
+    },
+  });
+  digitalPaintingRef.current = digitalPainting;
+  const surfaceEditing = digitalPainting.active
+    ? digitalPainting.editor
+    : maskEditing.editor;
+  const maskPreview = useMemo(
+    () => ({
+      ...maskEditing.preview,
+      ...(digitalPainting.draft?.mask
+        ? { mask: digitalPainting.draft.mask }
+        : {}),
+      ...(activeGradient && gradientTarget.mask && selection.mask
+        ? { mask: { ...layer.mask, gradient: liveGradient } }
+        : {}),
+      doc: decalEditing.document,
+    }),
+    [
+      maskEditing.preview,
+      digitalPainting.draft,
+      activeGradient,
+      gradientTarget,
+      liveGradient,
+      selection.mask,
+      layer?.mask,
+      decalEditing.document,
+    ],
+  );
   const selectLayer = (id, mask = false) => {
     decalEditing.clearSelection();
     select(id, mask);
@@ -403,11 +506,14 @@ export default function TexturePaintStudio({
       : [],
     previewMasks = maskOwners
       .map((l) => l.mask)
-      .filter((m) => m && ["fill", "gradient"].includes(m.kind));
+      .filter(
+        (m) => m && !maskHasPaint(m) && ["fill", "gradient"].includes(m.kind),
+      );
   let surfaceGradient =
     sourceLayer &&
+    !sourceLayer.surfaceMaterial &&
     (fillGradient ||
-      previewMasks.some((m) => m.kind === "gradient") ||
+      maskOwners.some((l) => l.mask?.kind === "gradient") ||
       (sourceLayer.kind !== "decal" &&
         sourceLayer.decals.some((d) => d.asMask && d.visible && d.opacity > 0)))
       ? {
@@ -417,6 +523,8 @@ export default function TexturePaintStudio({
           opacity: maskOwners.reduce((a, l) => (a * l.opacity) / 100, 1),
         }
       : null;
+  // The legacy selected-source preview cannot override authored stack materials.
+  if (evaluateTextureStack(doc).surfaces.length) surfaceGradient = null;
   if (surfaceGradient && !isTextureLayerVisible(doc, sourceLayer.id))
     surfaceGradient = null;
   if (surfaceGradient && activeGradient && gradientDraft) {
@@ -424,7 +532,12 @@ export default function TexturePaintStudio({
       surfaceGradient = {
         ...surfaceGradient,
         masks: maskOwners
-          .filter((l) => l.mask && ["fill", "gradient"].includes(l.mask.kind))
+          .filter(
+            (l) =>
+              l.mask &&
+              !maskHasPaint(l.mask) &&
+              ["fill", "gradient"].includes(l.mask.kind),
+          )
           .map((l) =>
             l.id === gradientTarget.layerId
               ? { ...l.mask, gradient: liveGradient }
@@ -434,6 +547,7 @@ export default function TexturePaintStudio({
     else surfaceGradient = { ...surfaceGradient, fill: liveGradient };
   }
 
+  const [paintMenuCatalogue, setPaintMenuCatalogue] = useState(false);
   const [paintMenuOpen, setPaintMenuOpen] = useState(false),
     [browserOpen, setBrowserOpen] = useState(false);
   const toolButton = useRef(null);
@@ -479,7 +593,7 @@ export default function TexturePaintStudio({
     const fields = Object.keys(changes);
     // Coalesce continuous controls, never discrete target toggles / clear-all.
     const continuous = fields.every((field) =>
-      ["name", "opacity", "channelSettings"].includes(field),
+      ["name", "opacity", "channelSettings", "surfaceMaterial"].includes(field),
     );
     history.commit(patchTextureLayer(history.docRef.current, id, changes), {
       key: discrete
@@ -531,13 +645,116 @@ export default function TexturePaintStudio({
       },
     });
     return history.commit(
-      { ...next, lastStroke: record },
+      { ...next, lastStroke: record, lastDigitalStroke: null },
       { selection: { id: owner.id } },
     );
+  }
+  function openDigitalMenu() {
+    surfaceAPI.current?.navigate();
+    digitalPainting.cancel();
+    maskEditing.cancel();
+    setPaintMenuCatalogue(false);
+    setPaintMenuOpen(true);
+  }
+  function openSourceTools() {
+    surfaceAPI.current?.navigate();
+    digitalPainting.cancel();
+    maskEditing.cancel();
+    setPaintMenuCatalogue(true);
+    setPaintMenuOpen(true);
   }
   function closePaintMenu() {
     setPaintMenuOpen(false);
     toolButton.current?.focus();
+  }
+  function chooseView(mode) {
+    if (mode !== viewMode) decalEditing.deactivate();
+    gradientGesture.current = null;
+    setGradientDraft(null);
+    setGradientTarget((old) => (old ? { ...old, active: false } : null));
+    setDropPart(null);
+    surfaceAPI.current?.hover(selectedPart);
+    maskEditing.cancel();
+    digitalPainting.cancel();
+    surfaceAPI.current?.navigate();
+    setViewMode(mode);
+  }
+  function selectPart(id) {
+    setSelectedPart(id);
+    surfaceAPI.current?.hover(id);
+  }
+  function dropOnSurface(asset, hit) {
+    setDropPart(null);
+    surfaceAPI.current?.hover(hit?.target?.partId || selectedPart);
+    if (!hit?.target || !asset || !["material", "stamp"].includes(asset.type))
+      return false;
+    const current = history.docRef.current,
+      part = texturePart(hit.target.partId);
+    if (isTexturePartLocked(current, part.id)) {
+      history.setError(
+        `${part.name} has a locked material layer. Unlock it before dropping assets onto this part.`,
+      );
+      return false;
+    }
+    if (asset.type === "stamp") {
+      const added = decalEditing.dropStamp(asset.id, hit);
+      if (added) {
+        selectPart(part.id);
+        setToast(
+          `Decal placed on ${part.name} · ${hit.space === "uv" ? "UV" : "surface"} coordinates`,
+        );
+      }
+      return added;
+    }
+    const definition = materialWorkspace.materials.find(
+      (m) => m.id === asset.id,
+    );
+    if (!definition) {
+      history.setError("That material is not in the shared library.");
+      return false;
+    }
+    const snapshot =
+      materialWorkspace.params?.id === asset.id
+        ? materialWorkspace.params
+        : definition;
+    try {
+      const result = assignTexturePartMaterial(
+        current,
+        hit.target,
+        snapshot,
+        definition,
+      );
+      if (
+        !history.commit(result.doc, {
+          selection: { id: result.id },
+          label: `Assign ${definition.name} to ${part.name}`,
+        })
+      )
+        return false;
+      decalEditing.deactivate();
+      selectPart(part.id);
+      setRightPanel("inspector");
+      setToast(
+        `${definition.name} → ${part.name} only · other parts unchanged`,
+      );
+      return true;
+    } catch (error) {
+      history.setError(error.message);
+      return false;
+    }
+  }
+  function sceneDragOver(e) {
+    if (
+      viewMode === "uv" ||
+      !Array.from(e.dataTransfer.types).includes("application/x-alloy-asset")
+    )
+      return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    const hit = surfaceAPI.current?.pick(e.clientX, e.clientY),
+      partId = hit?.target?.partId || null;
+    setDropPart(partId);
+    surfaceAPI.current?.hover(partId);
   }
   function assignAsset(asset, targetId = selection.id) {
     let current = history.docRef.current,
@@ -614,6 +831,11 @@ export default function TexturePaintStudio({
               : asset.name,
       },
     };
+    if (asset.type === "material" && target.kind === "material")
+      changes.surfaceMaterial =
+        materialWorkspace.params?.id === asset.id
+          ? materialWorkspace.params
+          : definition;
     if (asset.type === "generator") {
       const channel =
           target.channels.find((id) => id !== "normal") || "baseColor",
@@ -640,7 +862,7 @@ export default function TexturePaintStudio({
       owner = current.layers.find((l) => l.id === id);
     if (!owner) return;
     if (changes === null) {
-      select(id, true);
+      selectLayer(id, true);
       setMobilePanel("inspector");
       setRightPanel("inspector");
       return;
@@ -834,6 +1056,35 @@ export default function TexturePaintStudio({
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   });
+  const editedDocument = digitalPainting.draft
+    ? {
+        ...decalEditing.document,
+        layers: decalEditing.document.layers.map((l) =>
+          l.id === digitalPainting.draft.layerId
+            ? {
+                ...l,
+                ...(digitalPainting.draft.mask
+                  ? { mask: digitalPainting.draft.mask }
+                  : { paint: digitalPainting.draft.paint }),
+              }
+            : l,
+        ),
+      }
+    : decalEditing.document;
+  const surfaceDocument =
+    sourceLayer?.surfaceMaterial &&
+    activeGradient &&
+    gradientDraft &&
+    gradientTarget.mask
+      ? {
+          ...editedDocument,
+          layers: editedDocument.layers.map((l) =>
+            l.id === gradientTarget.layerId
+              ? { ...l, mask: { ...l.mask, gradient: liveGradient } }
+              : l,
+          ),
+        }
+      : editedDocument;
   const viewport = (
     <>
       <DockTab icon={Box}>
@@ -849,7 +1100,9 @@ export default function TexturePaintStudio({
             <small>
               {surfaceGradient
                 ? "Object-space gradient field · selected source"
-                : "Default scene · neutral ceramic"}
+                : viewMode === "uv"
+                  ? "UV charts · four part UDIMs"
+                  : "Part-scoped materials + decals"}
             </small>
           </div>
           <span className="tp-preview-badge">PREVIEW</span>
@@ -859,28 +1112,43 @@ export default function TexturePaintStudio({
             aria-label="Viewport shading"
           >
             <button
-              aria-pressed={!wireframe}
-              onClick={() => setWireframe(false)}
+              aria-pressed={viewMode === "shaded"}
+              onClick={() => chooseView("shaded")}
             >
-              Shaded
+              Lit
             </button>
-            <button aria-pressed={wireframe} onClick={() => setWireframe(true)}>
+            <button
+              aria-pressed={wireframe}
+              onClick={() => chooseView("wireframe")}
+            >
               Wireframe
+            </button>
+            <button
+              aria-label="UV / texture space"
+              aria-pressed={viewMode === "uv"}
+              onClick={() => chooseView("uv")}
+            >
+              UV / Texture
             </button>
           </div>
         </div>
         <div className="tp-viewport-actions">
           <button
             className="tp-frame-button"
-            aria-label="Frame teapot"
-            title="Frame teapot · F"
+            aria-label={viewMode === "uv" ? "Frame UVs" : "Frame teapot"}
+            title={
+              viewMode === "uv"
+                ? "Frame selected UV tile or all tiles · F"
+                : "Frame teapot · F"
+            }
             onClick={() => setResetToken((p) => p + 1)}
           >
             <Maximize2 size={14} /> Frame <kbd>F</kbd>
           </button>
           <span className="tp-action-divider" />
           <span className="tp-perspective">
-            <Box size={12} /> Perspective
+            <Box size={12} />{" "}
+            {viewMode === "uv" ? "UV orthographic" : "Perspective"}
           </span>
           <div className="tp-viewport-end">
             <button
@@ -901,41 +1169,160 @@ export default function TexturePaintStudio({
           </div>
         </div>
       </div>
+      <DigitalPaintToolbar
+        painting={digitalPainting}
+        onOpen={() => openDigitalMenu()}
+        mask={selection.mask}
+      />
+      <TextureMaskToolbar
+        editing={maskEditing}
+        viewMode={viewMode}
+        source={uvSource}
+        layer={layer}
+        decalMask={!!selectedDecal?.asMask}
+        digitalPainting={digitalPainting}
+      />
       <div
-        className={`tp-scene-viewport ${pointEditor?.placing ? "tp-gradient-placing" : ""} ${decalEditing.editor.active && ["brush", "place"].includes(decalEditing.editor.mode) ? "tp-decal-placing" : ""}`}
+        className="tp-part-toolbar"
+        role="group"
+        aria-label="Texture mesh parts"
+      >
+        <span>Target</span>
+        <button
+          aria-label="Inspect all teapot parts"
+          aria-pressed={!selectedPart}
+          onClick={() => selectPart(null)}
+        >
+          All parts
+        </button>
+        {TEXTURE_PARTS.map((part) => (
+          <button
+            key={part.id}
+            aria-label={`Inspect teapot ${part.name}`}
+            aria-pressed={selectedPart === part.id}
+            onClick={() => selectPart(part.id)}
+            style={{ "--part-color": part.color }}
+          >
+            <i />
+            {part.name}
+          </button>
+        ))}
+        {viewMode === "uv" ? (
+          <select
+            aria-label="UV coordinate set"
+            value={uvSource ? "source" : "authoring"}
+            onChange={(e) => {
+              decalEditing.deactivate();
+              setUVSource(e.target.value === "source");
+            }}
+          >
+            <option value="authoring">Authoring UDIMs · 1001–1004</option>
+            <option value="source">Source UV0 · overlapping</option>
+          </select>
+        ) : (
+          <small>Drop materials onto the part you want</small>
+        )}
+      </div>
+      <div
+        data-view-mode={viewMode}
+        data-selected-part={selectedPart || ""}
+        className={`tp-scene-viewport ${digitalPainting.active ? "tp-digital-editing" : ""} ${surfaceEditing.active ? "tp-mask-editing" : ""} ${pointEditor?.placing ? "tp-gradient-placing" : ""} ${decalEditing.editor.active && ["brush", "place"].includes(decalEditing.editor.mode) ? "tp-decal-placing" : ""}`}
         ref={viewportRef}
         aria-label="Teapot viewport"
+        onDragOver={sceneDragOver}
+        onDragLeave={(e) => {
+          if (e.currentTarget.contains(e.relatedTarget)) return;
+          setDropPart(null);
+          surfaceAPI.current?.hover(selectedPart);
+        }}
+        onDrop={(e) => {
+          if (viewMode === "uv") return;
+          e.preventDefault();
+          const asset = readAssetDrop(e.dataTransfer),
+            hit = surfaceAPI.current?.pick(e.clientX, e.clientY);
+          dropOnSurface(asset, hit);
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
-          setPaintMenuOpen(true);
+          openDigitalMenu();
         }}
       >
         <Viewport
           pointGradient={surfaceGradient}
-          gradientEditor={pointEditor}
-          decalDocument={doc}
+          gradientEditor={viewMode === "uv" ? null : pointEditor}
+          decalDocument={surfaceDocument}
           decalEditor={decalEditing.editor}
           params={PREVIEW_MATERIAL}
-          paused={browserOpen || paintMenuOpen}
+          systemBase
+          paused={browserOpen || paintMenuOpen || viewMode === "uv"}
+          renderEnabled={viewMode !== "uv"}
           shape="Teapot"
           environment="Studio softbox"
           rotate={false}
           wireframe={wireframe}
-          resetToken={resetToken}
-          zoom={zoom}
-          onZoomChange={setZoomLevel}
+          surfaceGeometry={surfaceGeometry}
+          surfaceAPI={surfaceAPI}
+          maskPreview={maskPreview}
+          maskEditor={viewMode === "uv" ? null : surfaceEditing}
+          onSurfaceAtlas={setSurfaceAtlas}
+          onMaskAtlas={(atlas) =>
+            setMaskAtlas((old) =>
+              old?.canvas === atlas?.canvas && old?.revision === atlas?.revision
+                ? old
+                : atlas,
+            )
+          }
+          selectedPart={selectedPart}
+          onPartSelect={selectPart}
+          resetToken={reset3D}
+          zoom={zoom3D}
+          onZoomChange={setZoomLevel3D}
           onReady={() => setReady(true)}
           gridVisible={grid}
           studioLayout
         />
+        {viewMode === "uv" && (
+          <TextureUVView
+            geometry={surfaceGeometry}
+            doc={surfaceDocument}
+            editor={decalEditing.editor}
+            maskEditor={surfaceEditing}
+            appearanceAtlas={surfaceAtlas}
+            maskAtlas={maskPreview.preview === "mask" ? maskAtlas : null}
+            selectedPart={selectedPart}
+            onPartSelect={selectPart}
+            onAssetDrop={dropOnSurface}
+            source={uvSource}
+            resetToken={resetUV}
+            zoom={zoomUV}
+            grid={grid}
+            onZoomChange={setZoomLevelUV}
+            onError={history.setError}
+            onOpenPaintTools={openDigitalMenu}
+          />
+        )}
+        {dropPart && (
+          <span className="tp-part-drop-note">
+            Drop → {texturePart(dropPart).name} only
+          </span>
+        )}
         <div
           className="tp-decal-toolbar"
           aria-label="Surface decal placement tools"
         >
           <button
             aria-label="Navigate teapot"
-            aria-pressed={!decalEditing.editor.active}
-            onClick={decalEditing.context.onNavigate}
+            aria-pressed={
+              !decalEditing.editor.active &&
+              !maskEditing.editor.active &&
+              !digitalPainting.active &&
+              !pointEditor?.active
+            }
+            onClick={() => {
+              digitalPainting.deactivate();
+              maskEditing.change({ tool: "navigate" });
+              decalEditing.context.onNavigate();
+            }}
           >
             <MousePointer2 size={12} /> Navigate
           </button>
@@ -947,7 +1334,8 @@ export default function TexturePaintStudio({
             disabled={
               disabled ||
               layer?.kind === "folder" ||
-              !decalEditing.context.preset
+              !decalEditing.context.preset ||
+              !decalEditing.context.placementAvailable
             }
             onClick={() => decalEditing.context.onArm("brush")}
           >
@@ -962,7 +1350,8 @@ export default function TexturePaintStudio({
             disabled={
               disabled ||
               layer?.kind === "folder" ||
-              !decalEditing.context.preset
+              !decalEditing.context.preset ||
+              !decalEditing.context.placementAvailable
             }
             onClick={() => decalEditing.context.onArm("transform")}
           >
@@ -978,11 +1367,17 @@ export default function TexturePaintStudio({
         </div>
         {decalEditing.editor.active && (
           <span className="tp-decal-mode-note">
-            {decalEditing.editor.mode === "brush"
-              ? "Aim at the surface · click to stamp · Escape / Navigate to orbit"
-              : decalEditing.editor.mode === "place"
-                ? "Click to anchor the decal to the surface"
-                : "Drag 3D handles · move / rotate / scale · Re-anchor to snap to the surface"}
+            {viewMode === "uv"
+              ? decalEditing.editor.mode === "brush"
+                ? "Click a UV island to stamp · gutters do not accept placement"
+                : decalEditing.editor.mode === "place"
+                  ? "Click a UV island to re-anchor this UV decal"
+                  : "Drag artwork to move / rotate / scale · Shift snaps · Escape cancels"
+              : decalEditing.editor.mode === "brush"
+                ? "Aim at the surface · click to stamp · Escape / Navigate to orbit"
+                : decalEditing.editor.mode === "place"
+                  ? "Click to anchor the decal to the surface"
+                  : "Drag 3D handles · move / rotate / scale · Re-anchor to snap to the surface"}
           </span>
         )}
         {!ready && <span className="tp-scene-loading">Preparing teapot…</span>}
@@ -1001,14 +1396,16 @@ export default function TexturePaintStudio({
         </div>
         <div className="tp-scene-nav">
           <button
-            aria-label="Zoom out teapot"
+            aria-label={viewMode === "uv" ? "Zoom out UVs" : "Zoom out teapot"}
             onClick={() => setZoom({ direction: -1, token: Date.now() })}
           >
             <Minus size={13} />
           </button>
-          <output aria-label="Teapot zoom">{zoomLevel}%</output>
+          <output aria-label={viewMode === "uv" ? "UV zoom" : "Teapot zoom"}>
+            {zoomLevel}%
+          </output>
           <button
-            aria-label="Zoom in teapot"
+            aria-label={viewMode === "uv" ? "Zoom in UVs" : "Zoom in teapot"}
             onClick={() => setZoom({ direction: 1, token: Date.now() })}
           >
             <Plus size={13} />
@@ -1044,11 +1441,17 @@ export default function TexturePaintStudio({
           {ready ? "Three.js · WebGL" : "Preparing scene"}
         </span>
         <span className="tp-scope-indicator">
-          {surfaceGradient
-            ? "Selected fill / mask + decals · not a full UV stack"
-            : doc.layers.some((l) => l.decals.length)
-              ? "Surface decals live · source strokes are 2D"
-              : "Layer setup only · preview is not composited"}
+          {viewMode === "uv"
+            ? "Ordered lit UV appearance · not exported PBR maps"
+            : doc.layers.some(
+                  (l) => l.surfaceMaterial || l.paint?.operations.length,
+                )
+              ? "Layer stack live · top layers cover lower decals"
+              : surfaceGradient
+                ? "Selected fill / mask + decals · not a full UV stack"
+                : doc.layers.some((l) => l.decals.length)
+                  ? "Layer stack live · decals follow layer order"
+                  : "Layer 0 · white fallback · digital tools available"}
         </span>
       </footer>
     </>
@@ -1058,6 +1461,8 @@ export default function TexturePaintStudio({
       className="tp-studio"
       aria-label="Texture studio"
       data-mobile-panel={mobilePanel}
+      data-mask-authoring={maskEditing.maskSelected ? "mask" : "paint"}
+      data-digital-painting={digitalPainting.active}
     >
       <StudioHeader
         workspace="texture"
@@ -1071,12 +1476,18 @@ export default function TexturePaintStudio({
           className="tp-paint-tool-button"
           ref={toolButton}
           aria-label="Open paint tool menu"
-          title="Paint instruments · also right-click the viewport"
+          title="Digital Paint / Erase / Fill · also right-click the viewport"
           aria-expanded={paintMenuOpen}
-          onClick={() => setPaintMenuOpen(true)}
+          onClick={() => openDigitalMenu()}
         >
           <Brush size={14} />
-          <span>{paintTool(doc.painting.toolId).label}</span>
+          <span>
+            {
+              DIGITAL_BRUSH_PRESETS.find(
+                (p) => p.id === doc.digitalPainting.preset,
+              )?.name
+            }
+          </span>
         </button>
         <button
           aria-label="Open layer project"
@@ -1151,6 +1562,7 @@ export default function TexturePaintStudio({
             decalContext={decalEditing.context}
             disabled={disabled}
             onAction={action}
+            onBake={() => onWorkspace?.("baking", "mesh")}
             onDrop={dropLayer}
             onMove={moveLayer}
             onFolderDrop={(id, parentId) => moveLayer(id, parentId)}
@@ -1242,7 +1654,8 @@ export default function TexturePaintStudio({
               gradientContext={gradientContext}
               onGradientActivate={activateGradient}
               onStroke={sourceStroke}
-              onOpenTools={() => setPaintMenuOpen(true)}
+              onOpenTools={openSourceTools}
+              onOpenDigitalTools={openDigitalMenu}
               layer={layer}
               doc={doc}
               thumbs={materialWorkspace.thumbs}
@@ -1303,9 +1716,23 @@ export default function TexturePaintStudio({
         onStampPreset={decalEditing.context.onPreset}
         onEditStamp={onEditStamp}
       />
-      <PaintToolMenu
-        settings={doc.painting}
-        onChange={painting}
+      <DigitalPaintMenu
+        painting={digitalPainting}
+        initialCatalogue={paintMenuCatalogue}
+        layer={layer}
+        mask={!!selection.mask}
+        ink={maskEditing.state.value}
+        onInk={(value) => {
+          digitalPainting.cancel();
+          maskEditing.change({ value });
+        }}
+        onPatch={(changes) => {
+          digitalPainting.cancel();
+          patch(layer.id, changes, { discrete: true });
+        }}
+        disabled={disabled || !isTextureLayerVisible(doc, layer?.id)}
+        legacySettings={doc.painting}
+        onLegacyChange={painting}
         open={paintMenuOpen}
         onClose={closePaintMenu}
         onSave={saveProject}
@@ -1343,7 +1770,7 @@ export default function TexturePaintStudio({
             <FileJson size={12} /> Layer document
           </button>
         </div>
-        <span className="tp-stage-label">CHANNELS / TOOL CONFIGURATION</span>
+        <span className="tp-stage-label">DIGITAL PAINT / LAYERS</span>
       </footer>
       {help && (
         <div
@@ -1357,25 +1784,28 @@ export default function TexturePaintStudio({
           >
             <X size={14} />
           </button>
-          <h2>Surface authoring · first pass</h2>
+          <h2>Part materials & UV authoring</h2>
           <p>
-            The teapot uses the existing material engine. Layers and masks are
-            editable project metadata only; they do not change its shading yet.
+            Drag a material from the shared browser directly onto Body, Lid,
+            Handle or Spout. Only the hit part receives its native material; its
+            editable snapshot is saved in a material layer.
           </p>
           <p>
-            Use the + menu to add layers. Drag rows to reorder, or use ↑ / ↓ in
-            the layer toolbar. Masks have their own inspector. Changes are saved
-            locally.
+            Choose UV / Texture to see the actual authoring charts in UDIMs
+            1001–1004. Click a UV island with Stamp or drop a stamp there; it
+            appears on the correct 3D part. Source UV0 is available for
+            read-only inspection because its patches overlap.
           </p>
           <p>
             <kbd>Ctrl/⌘ Z</kbd> Undo · <kbd>Ctrl/⌘ D</kbd> Duplicate ·{" "}
             <kbd>Ctrl/⌘ S</kbd> Save project JSON · <kbd>F</kbd> Frame teapot.
           </p>
           <small>
-            Texture sources can store imported rasters and recorded round-tip 2D
-            strokes. History shows their actual previews. The neutral teapot is
-            not composited from these sources. Open the content browser for
-            shared Material editing/export; mesh baking stays separate.
+            Digital Paint / Erase / Fill works on the selected layer or mask in
+            Lit and packed UV views. Brush settings and channel targets live in
+            the popup brush studio; History shows actual operation footprints.
+            Imported 2D source textures remain a separate authoring workflow.
+            Physical-media instruments are configuration only, not simulated.
           </small>
         </div>
       )}

@@ -17,7 +17,7 @@ import { createMaterial, materials } from "../src/materials.js";
 import { createLeatherSwatchGeometry } from "../src/leatherGeometry.js";
 
 test("all ten collections are bounded editable vectors, including maximum-density fades", () => {
-  expect(patternStarterNames).toHaveLength(83);
+  expect(patternStarterNames).toHaveLength(103);
   for (const p of collectionPatterns) {
     const raw = collectionPattern(p.name),
       doc = patternStarter(p.name);
@@ -170,13 +170,11 @@ test("Legacy saved fade: controls, undo, border export and JSON reload", async (
   await page.goto(
     "/?material=natural-cotton&studio=pattern&pattern=golden-cube-fade",
   );
-  await page
-    .locator('input[accept=".json"]')
-    .setInputFiles({
-      name: "fade.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(patternStarter("Golden Cube Fade"))),
-    });
+  await page.locator('input[accept=".json"]').setInputFiles({
+    name: "fade.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(patternStarter("Golden Cube Fade"))),
+  });
   await page.getByLabel("Motif color", { exact: true }).fill("#cf1234");
   await page.getByLabel("Fade direction").selectOption("left");
   await page.getByLabel("Motif density").fill("18");
@@ -225,15 +223,13 @@ test("Legacy saved rug live preview renders a wool surface and applies the dedic
   await page.goto(
     "/?material=natural-cotton&studio=pattern&pattern=african-diamond-carpet&view=3d",
   );
-  await page
-    .locator('input[accept=".json"]')
-    .setInputFiles({
-      name: "legacy.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify(patternStarter("African Diamond Carpet")),
-      ),
-    });
+  await page.locator('input[accept=".json"]').setInputFiles({
+    name: "legacy.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify(patternStarter("African Diamond Carpet")),
+    ),
+  });
   await ready(page);
   await expect(page.getByLabel("Pattern preview object")).toHaveValue("Rug");
   await page.getByLabel("Pattern preview zoom").fill("180");
@@ -243,15 +239,13 @@ test("Legacy saved rug live preview renders a wool surface and applies the dedic
       new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
   );
   await page.screenshot({ path: ".playwright/final-african-rug.png" });
-  await page
-    .locator('input[accept=".json"]')
-    .setInputFiles({
-      name: "legacy.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify(patternStarter("Azure Arabesque Medallion")),
-      ),
-    });
+  await page.locator('input[accept=".json"]').setInputFiles({
+    name: "legacy.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify(patternStarter("Azure Arabesque Medallion")),
+    ),
+  });
   await ready(page);
   await page.screenshot({ path: ".playwright/final-islamic-rug.png" });
   await page.getByRole("button", { name: /Apply to material/ }).click();

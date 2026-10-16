@@ -1,3 +1,12 @@
+import {
+  installSurfaceCoordinates,
+  texturePart,
+} from "./textureSurfaceModel.js";
+import {
+  projectArtworkGeometry,
+  uvDecalProjector,
+  surfaceHitDetails,
+} from "./textureUVGeometry.js";
 import * as THREE from "three";
 import { DecalGeometry } from "three/addons/geometries/DecalGeometry.js";
 import { DECAL_LIMIT } from "./decalModel.js";
@@ -26,6 +35,12 @@ export function decalLocalProjector(specimen, decal) {
   );
 }
 export function projectDecalGeometry(specimen, decal) {
+  if (decal.space === "uv" || specimen.geometry.attributes.uvAuthoring)
+    return projectArtworkGeometry(
+      specimen.geometry,
+      decal,
+      decal.space === "uv" ? null : decalLocalProjector(specimen, decal),
+    );
   specimen.updateWorldMatrix(true, false);
   specimen.geometry.computeBoundingSphere();
   const local = decalLocalProjector(specimen, decal),
@@ -108,7 +123,11 @@ export function decalSurfaceHit(engine, x, y) {
     new THREE.Vector3(0, 0, 1),
     normal.normalize(),
   );
-  return { position: position.toArray(), quaternion: quaternion.toArray() };
+  return {
+    position: position.toArray(),
+    quaternion: quaternion.toArray(),
+    ...surfaceHitDetails(engine.specimen, hit),
+  };
 }
 export function createSurfaceMaskUniforms() {
   const data = new Float32Array(7 * DECAL_LIMIT * 4);
@@ -146,7 +165,13 @@ export function updateSurfaceMaskUniforms(
   for (let i = 0; i < masks.length; i++) {
     const { decal, layerIndex, stamp } = masks[i],
       offset = i * 7 * 4;
-    data.set(decalLocalProjector(specimen, decal).invert().elements, offset);
+    data.set(
+      (decal.space === "uv"
+        ? uvDecalProjector(decal)
+        : decalLocalProjector(specimen, decal)
+      ).invert().elements,
+      offset,
+    );
     const index = stampOrder.indexOf(stamp.id),
       row = Math.floor(index / 4),
       col = index % 4;
@@ -164,7 +189,8 @@ export function updateSurfaceMaskUniforms(
         stamp.project.maskMode === "luminance" ? 1 : 0,
         decal.inverted ? 1 : 0,
         decal.opacity,
-        1,
+        (decal.space === "uv" ? -1 : 1) *
+          ((texturePart(decal.target?.partId)?.index || 0) + 1),
       ],
       offset + 20,
     );
@@ -199,12 +225,14 @@ float surfaceStampCoverage(vec3 position,vec3 normal){
    if(int(facing.w+.1)!=uSurfaceStampOwners[owner])continue;
    hasMask=true;vec4 info=surfaceStampRow(i,5.);
    mat4 projector=mat4(surfaceStampRow(i,0.),surfaceStampRow(i,1.),surfaceStampRow(i,2.),surfaceStampRow(i,3.));
-   vec3 p=(projector*vec4(position,1.)).xyz;float value=0.;
-   if(all(lessThanEqual(abs(p),vec3(.5)))&&dot(normalize(normal),facing.xyz)>.05){
+   bool uvSpace=info.w<-.5;float targetPart=abs(info.w)-1.;
+   bool inPart=targetPart<.5||abs(vSurfacePart-targetPart)<.25;
+   vec3 p=(projector*vec4(uvSpace?vec3(vAuthoringUv,0.):position,1.)).xyz;float value=0.;
+   if(inPart&&all(lessThanEqual(abs(p),vec3(.5)))&&(uvSpace||dot(normalize(normal),facing.xyz)>.05)){
     vec4 rect=surfaceStampRow(i,4.);vec4 ink=texture2D(uSurfaceStampAtlas,rect.xy+(p.xy+.5)*rect.zw);
     value=ink.a;if(info.x>.5)value*=dot(ink.rgb,vec3(.2126,.7152,.0722));
    }
-   if(info.y>.5)value=1.-value;
+   if(info.y>.5&&inPart)value=1.-value;
    unionCoverage=max(unionCoverage,value*info.z);
   }
   if(hasMask)coverage*=unionCoverage;
@@ -236,5 +264,22 @@ export function installSelectedStampMask(material, uniforms, ownerUniforms) {
       "float coverage=uPointGradientOpacity*surfaceStampCoverage(vProcPosition,vProcNormal);",
     );
   };
-  material.customProgramCacheKey = () => cache() + "|surface-stamp-mask-v1";
+  material.customProgramCacheKey = () => cache() + "|surface-stamp-mask-v2";
+  installSurfaceCoordinates(material);
+}
+
+export function installPartStampCoverage(material, uniforms, owners) {
+  const original = material.onBeforeCompile,
+    cache = material.customProgramCacheKey.bind(material);
+  material.onBeforeCompile = (shader) => {
+    original.call(material, shader);
+    Object.assign(shader.uniforms, uniforms, owners);
+    shader.fragmentShader = SURFACE_MASK_GLSL + shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <alphatest_fragment>",
+      "diffuseColor.a*=surfaceStampCoverage(vProcPosition,vProcNormal);\n#include <alphatest_fragment>",
+    );
+  };
+  material.customProgramCacheKey = () => cache() + "|part-stamp-coverage-v2";
+  installSurfaceCoordinates(material);
 }

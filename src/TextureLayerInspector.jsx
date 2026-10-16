@@ -1,3 +1,8 @@
+import RecipeInspector from "./RecipeInspector.jsx";
+import {
+  texturePart,
+  normalizeSurfaceMaterial,
+} from "./textureSurfaceModel.js";
 import NameField from "./AuthoringNameField.jsx";
 import DecalComponentsPanel from "./DecalComponentsPanel.jsx";
 import PointGradientEditor from "./PointGradientEditor.jsx";
@@ -8,6 +13,7 @@ import ChannelPropertyPanel from "./ChannelPropertyPanel.jsx";
 import React from "react";
 import {
   Check,
+  Brush,
   CircleHelp,
   Eye,
   EyeOff,
@@ -53,6 +59,7 @@ export default function TextureLayerInspector({
   painting,
   onStroke,
   onOpenTools,
+  onOpenDigitalTools,
   materialWorkspace,
   gradientContext,
   onGradientActivate,
@@ -186,6 +193,7 @@ export default function TextureLayerInspector({
                           enabled: true,
                           kind: layer.mask.kind,
                           fill: 1,
+                          paint: null,
                           inverted: false,
                           strength: 100,
                           color: "#b87333",
@@ -207,6 +215,7 @@ export default function TextureLayerInspector({
                   >
                     {[
                       ["fill", "Fill"],
+                      ["paint", "Paint"],
                       ["color", "Colour"],
                       ["gradient", "Gradient"],
                     ].map(([kind, label]) => (
@@ -304,7 +313,7 @@ export default function TextureLayerInspector({
                             {layer.mask.inverted
                               ? "Inverted fill"
                               : "Uniform fill"}{" "}
-                            · source setting
+                            · mask background
                           </small>
                         </div>
                       </div>
@@ -323,6 +332,24 @@ export default function TextureLayerInspector({
                         </select>
                       </label>
                     </>
+                  )}
+                  {!!layer.mask.paint?.operations.length && (
+                    <div className="tp-mask-record-summary">
+                      <strong>
+                        Paint overlay · {layer.mask.paint.operations.length}{" "}
+                        records
+                      </strong>
+                      <small>
+                        UV brush strokes / region fills over this mask's source.
+                        White includes; black excludes.
+                      </small>
+                      <button
+                        disabled={locked}
+                        onClick={() => onMask({ paint: null })}
+                      >
+                        Clear painted mask overlay
+                      </button>
+                    </div>
                   )}
                   <label className="tp-toggle-row">
                     <span>Mask enabled</span>
@@ -357,7 +384,11 @@ export default function TextureLayerInspector({
                     {layer.mask.kind === "color"
                       ? "Colour matching uses normalized sRGB RGB distance; the preview evaluates source pixels only. "
                       : "White includes and black excludes. "}
-                    These masks do not composite the teapot yet.
+                    Paint mask in Lit or packed UV space; strokes and region
+                    fills affect native part-material and decal coverage. Colour
+                    previews sample the source texture per UV tile, not the
+                    final shaded material. Digital Paint / Erase / Fill also
+                    edits this mask with pressure, shape and grain controls.
                   </p>
                 </section>
                 <div className="tp-inspector-mask-actions">
@@ -376,7 +407,14 @@ export default function TextureLayerInspector({
                 <section className="tp-property-card">
                   <h2>
                     <i />
-                    Composition <small>Setup only</small>
+                    Composition{" "}
+                    <small>
+                      {layer.surfaceMaterial
+                        ? layer.surfaceTarget
+                          ? "Part assignment"
+                          : "Stack material"
+                        : "Layer setup"}
+                    </small>
                   </h2>
                   <label className="tp-name-field">
                     <span>Name</span>
@@ -443,11 +481,102 @@ export default function TextureLayerInspector({
                     onChange={(opacity) => onPatch({ opacity })}
                   />
                   <p className="tp-card-note">
-                    Decal opacity and inherited coverage affect the real surface
-                    preview. Source strokes and blend modes are not a full
-                    UV-stack compositor.
+                    Digital strokes, native materials and decals follow stack
+                    order, layer opacity and inherited masks. Brush channels
+                    evaluate before PBR lighting. Digital colour blends are
+                    supported; native material blend modes remain metadata.
                   </p>
                 </section>
+                {layer.kind !== "folder" && (
+                  <section
+                    className="tp-property-card"
+                    aria-label="Layer digital painting"
+                  >
+                    <h2>
+                      <i className="warm" />
+                      Digital painting
+                      <small>
+                        {layer.paint?.operations.length || 0} segments / fills
+                      </small>
+                    </h2>
+                    <p className="tp-card-note">
+                      Paint or erase enabled channels in Lit or packed UV view.
+                      Fill a real mesh component, island or face. Digital
+                      strokes are portable and undoable.
+                    </p>
+                    <div className="tp-inspector-mask-actions">
+                      <button onClick={onOpenDigitalTools}>
+                        <Brush size={13} />
+                        Brush studio
+                      </button>
+                      <button
+                        aria-label="Clear layer digital paint"
+                        disabled={locked || !layer.paint?.operations.length}
+                        onClick={() => onPatch({ paint: null })}
+                      >
+                        <RotateCcw size={13} />
+                        Clear paint
+                      </button>
+                    </div>
+                  </section>
+                )}
+                {layer.surfaceMaterial && (
+                  <section
+                    className="tp-property-card tp-part-material-card tp-shared-controls"
+                    aria-label={
+                      layer.surfaceTarget
+                        ? "Assigned part material"
+                        : "Assigned stack material"
+                    }
+                  >
+                    <h2>
+                      <i className="warm" />
+                      {layer.surfaceTarget
+                        ? `${texturePart(layer.surfaceTarget.partId).name} only`
+                        : "Whole object"}
+                      <small>Native PBR</small>
+                    </h2>
+                    <p className="tp-part-material-summary">
+                      {layer.surfaceMaterial.name || layer.sourceAsset?.name} ·
+                      {layer.surfaceTarget
+                        ? `UDIM ${texturePart(layer.surfaceTarget.partId).tile}`
+                        : "All teapot parts"}
+                    </p>
+                    <p className="tp-card-note">
+                      {layer.surfaceTarget
+                        ? `This material affects only the ${texturePart(layer.surfaceTarget.partId).name.toLowerCase()} region. Body, lid, handle and spout stay independently assignable.`
+                        : "This material covers lower layers on all teapot parts. Move it below a stamp to put that stamp on top. Opacity and masks reveal the layers underneath."}{" "}
+                      The material snapshot is saved in this project.
+                    </p>
+                    <fieldset disabled={locked}>
+                      <RecipeInspector
+                        key={layer.id}
+                        params={layer.surfaceMaterial}
+                        update={(key, value) =>
+                          onPatch(
+                            {
+                              surfaceMaterial: normalizeSurfaceMaterial({
+                                ...layer.surfaceMaterial,
+                                [key]: value,
+                              }),
+                            },
+                            { key: `part-${layer.id}-${key}` },
+                          )
+                        }
+                        setParams={(value) => {
+                          const next =
+                            typeof value === "function"
+                              ? value(layer.surfaceMaterial)
+                              : value;
+                          onPatch(
+                            { surfaceMaterial: normalizeSurfaceMaterial(next) },
+                            { key: `part-${layer.id}-properties` },
+                          );
+                        }}
+                      />
+                    </fieldset>
+                  </section>
+                )}
                 {layer.kind !== "folder" && decalContext && (
                   <DecalComponentsPanel
                     key={layer.id}
@@ -457,26 +586,27 @@ export default function TextureLayerInspector({
                     context={decalContext}
                   />
                 )}
-                {!["folder", "decal"].includes(layer.kind) && (
-                  <>
-                    <div className="tp-section-label">
-                      <span>CHANNEL TARGETS</span>
-                      <small>{layer.channels.length} enabled</small>
-                    </div>
-                    <ChannelPropertyPanel
-                      key={layer.id}
-                      layer={layer}
-                      disabled={locked}
-                      painting={painting}
-                      materialWorkspace={materialWorkspace}
-                      gradientContext={gradientContext}
-                      onGradientActivate={onGradientActivate}
-                      onStroke={onStroke}
-                      onOpenTools={onOpenTools}
-                      onPatch={onPatch}
-                    />
-                  </>
-                )}
+                {!layer.surfaceMaterial &&
+                  !["folder", "decal"].includes(layer.kind) && (
+                    <>
+                      <div className="tp-section-label">
+                        <span>CHANNEL TARGETS</span>
+                        <small>{layer.channels.length} enabled</small>
+                      </div>
+                      <ChannelPropertyPanel
+                        key={layer.id}
+                        layer={layer}
+                        disabled={locked}
+                        painting={painting}
+                        materialWorkspace={materialWorkspace}
+                        gradientContext={gradientContext}
+                        onGradientActivate={onGradientActivate}
+                        onStroke={onStroke}
+                        onOpenTools={onOpenTools}
+                        onPatch={onPatch}
+                      />
+                    </>
+                  )}
                 <section className="tp-property-card tp-source-card">
                   <h2>
                     <i className="warm" />
@@ -512,6 +642,7 @@ export default function TextureLayerInspector({
                         onMask({
                           enabled: true,
                           fill: 1,
+                          paint: null,
                           inverted: false,
                           strength: 100,
                         })
@@ -537,9 +668,10 @@ export default function TextureLayerInspector({
             <div className="tp-stage-note">
               <CircleHelp size={13} />
               <p>
-                Real surface-projected decals and selected fill / mask previews.
-                2D source strokes remain separate; whole-stack UV texture-atlas
-                compositing is not active.
+                Materials and decals evaluate bottom to top. Locked Layer 0
+                supplies white fallback and baked AO / normal support. 2D source
+                paint is not deposited onto the mesh; this live surface stack is
+                not a baked UV atlas.
               </p>
             </div>
           </>

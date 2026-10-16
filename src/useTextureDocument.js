@@ -41,7 +41,21 @@ export default function useTextureDocument() {
   const [initial] = useState(restore);
   const [state, setState] = useState(() =>
     createTextureHistory(
-      { doc: initial.doc, selection: validSelection(initial.doc) },
+      {
+        doc: initial.doc,
+        selection: validSelection(
+          initial.doc,
+          (() => {
+            try {
+              return JSON.parse(
+                localStorage.getItem("alloy-texture-authoring-v1"),
+              )?.selection;
+            } catch {
+              return null;
+            }
+          })(),
+        ),
+      },
       initial.restored ? "Reopened local project" : "New project",
     ),
   );

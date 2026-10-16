@@ -1,3 +1,5 @@
+import { texturePart } from "./textureSurfaceModel.js";
+import { uvTile } from "./textureUVGeometry.js";
 import AuthoringNameField from "./AuthoringNameField.jsx";
 import React, { useEffect, useState } from "react";
 import {
@@ -28,7 +30,10 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
   const stamp = component
     ? doc.stamps.find((s) => s.id === component.stampId)
     : context.preset;
-  const readOnly = locked || component?.locked;
+  const readOnly = locked || component?.locked || context.partLocked;
+  const isUV = component?.space === "uv",
+    brushUV = context.space === "uv",
+    part = texturePart(component?.target?.partId);
   const patch = (changes, key) => context.onPatch(changes, key);
   return (
     <section
@@ -50,7 +55,7 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
       {!open && (
         <button
           className="tp-add-decal"
-          disabled={locked || !context.preset}
+          disabled={locked || !context.preset || !context.placementAvailable}
           onClick={() => {
             setOpen(true);
             context.onArm("brush");
@@ -103,7 +108,9 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
             <button
               aria-label="Stamp decal brush"
               aria-pressed={context.active && context.mode === "brush"}
-              disabled={locked || !context.preset}
+              disabled={
+                locked || !context.preset || !context.placementAvailable
+              }
               onClick={() => context.onArm("brush")}
             >
               <Stamp size={15} /> Stamp brush
@@ -128,11 +135,12 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
             />
           </label>
           <Slider
-            label="Stamp size"
+            label={brushUV ? "Stamp size · UV" : "Stamp size"}
             ariaLabel="Decal brush size"
-            min={0.05}
+            min={brushUV ? 0.001 : 0.05}
             max={2}
-            step={0.01}
+            step={brushUV ? 0.001 : 0.01}
+            unit={brushUV ? "UV" : ""}
             disabled={locked}
             value={context.brush.size[0]}
             onChange={(size) => context.onBrush({ size: [size, size] })}
@@ -157,13 +165,15 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
             onChange={(roll) => context.onBrush({ roll })}
           />
           <p className="tp-card-note">
-            {context.active
-              ? context.mode === "brush"
-                ? "Aim at the surface and click once per stamp. Dragging does not spray or orbit; choose Navigate to orbit."
-                : context.mode === "place"
-                  ? "Click the surface once to place a decal, then use its 3D transform handles."
-                  : "Drag the 3D handles to move, rotate or scale. Re-anchor snaps the projector to a new surface hit."
-              : "Stamp onto the teapot, or create a surface placement and adjust it with transform handles."}
+            {brushUV
+              ? "Stamp onto a UV island in Authoring UDIMs. UV decals map onto the real 3D surface; move, rotate or scale by dragging artwork in that view."
+              : context.active
+                ? context.mode === "brush"
+                  ? "Aim at the surface and click once per stamp. Dragging does not spray or orbit; choose Navigate to orbit."
+                  : context.mode === "place"
+                    ? "Click the surface once to place a decal, then use its 3D transform handles."
+                    : "Drag the 3D handles to move, rotate or scale. Re-anchor snaps the projector to a new surface hit."
+                : "Stamp onto the teapot, or create a surface placement and adjust it with transform handles."}
           </p>
           <div
             className="tp-decal-component-list"
@@ -189,7 +199,11 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
                         {decal.asMask
                           ? "Surface mask"
                           : `${decal.channels.length} channels`}{" "}
-                        · {Math.round(decal.opacity * 100)}%
+                        · {Math.round(decal.opacity * 100)}% ·{" "}
+                        {decal.space === "uv" ? "UV" : "3D"}
+                        {decal.target
+                          ? ` · ${texturePart(decal.target.partId).name}`
+                          : ""}
                       </small>
                     </span>
                   </button>
@@ -208,17 +222,22 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
           </div>
           <button
             className="tp-add-decal"
-            disabled={locked || !context.preset}
+            disabled={locked || !context.preset || !context.placementAvailable}
             onClick={() => context.onArm("brush")}
           >
-            <Plus size={13} /> Add decal component <span>Click surface</span>
+            <Plus size={13} /> Add decal component{" "}
+            <span>{brushUV ? "Click UV island" : "Click surface"}</span>
           </button>
           {component && (
             <div className="tp-decal-properties">
               <div className="tp-decal-identity">
                 <Stamp size={16} />
                 <strong>
-                  {component.asMask ? "Stamp mask" : "Surface decal"}
+                  {component.asMask
+                    ? "Stamp mask"
+                    : isUV
+                      ? "UV decal"
+                      : "Surface decal"}
                 </strong>
                 <button
                   aria-label={
@@ -236,6 +255,12 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
                   )}
                 </button>
               </div>
+              <p className="tp-card-note">
+                {isUV
+                  ? `Authoring UV coordinates · UDIM ${uvTile(...component.uvPosition)?.id}`
+                  : "Object-space projector"}
+                {part ? ` · ${part.name} only` : ""}
+              </p>
               <label className="tp-field-row">
                 <span>Name</span>
                 <AuthoringNameField
@@ -289,15 +314,17 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
                 disabled={readOnly}
                 onClick={() => context.onArm("place")}
               >
-                <MousePointer2 size={12} /> Re-anchor to surface
+                <MousePointer2 size={12} />{" "}
+                {isUV ? "Re-anchor in UV space" : "Re-anchor to surface"}
               </button>
               <div className="tp-shared-controls">
                 <Slider
                   label="Width"
                   ariaLabel="Decal width"
-                  min={0.01}
+                  min={isUV ? 0.001 : 0.01}
                   max={4}
-                  step={0.01}
+                  step={isUV ? 0.001 : 0.01}
+                  unit={isUV ? "UV" : ""}
                   disabled={readOnly}
                   value={component.size[0]}
                   onChange={(width) =>
@@ -307,25 +334,28 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
                 <Slider
                   label="Height"
                   ariaLabel="Decal height"
-                  min={0.01}
+                  min={isUV ? 0.001 : 0.01}
                   max={4}
-                  step={0.01}
+                  step={isUV ? 0.001 : 0.01}
+                  unit={isUV ? "UV" : ""}
                   disabled={readOnly}
                   value={component.size[1]}
                   onChange={(height) =>
                     patch({ size: [component.size[0], height] }, "height")
                   }
                 />
-                <Slider
-                  label="Projection depth"
-                  ariaLabel="Decal projection depth"
-                  min={0.01}
-                  max={2}
-                  step={0.01}
-                  disabled={readOnly}
-                  value={component.depth}
-                  onChange={(depth) => patch({ depth }, "depth")}
-                />
+                {!isUV && (
+                  <Slider
+                    label="Projection depth"
+                    ariaLabel="Decal projection depth"
+                    min={0.01}
+                    max={2}
+                    step={0.01}
+                    disabled={readOnly}
+                    value={component.depth}
+                    onChange={(depth) => patch({ depth }, "depth")}
+                  />
+                )}
                 <Slider
                   label="Rotation"
                   ariaLabel="Decal rotation"
@@ -345,28 +375,55 @@ export default function DecalComponentsPanel({ layer, doc, context, locked }) {
                   value={component.opacity}
                   onChange={(opacity) => patch({ opacity }, "opacity")}
                 />
-                {["X", "Y", "Z"].map((axis, index) => (
-                  <Slider
-                    key={axis}
-                    label={`Position ${axis}`}
-                    ariaLabel={`Decal position ${axis}`}
-                    min={-4}
-                    max={4}
-                    step={0.01}
-                    disabled={readOnly}
-                    value={component.position[index]}
-                    onChange={(value) =>
-                      patch(
-                        {
-                          position: component.position.map((v, i) =>
-                            i === index ? value : v,
-                          ),
-                        },
-                        `position-${axis}`,
-                      )
-                    }
-                  />
-                ))}
+                {isUV &&
+                  ["U", "V"].map((axis, i) => (
+                    <Slider
+                      key={axis}
+                      label={`Position ${axis}`}
+                      ariaLabel={`Decal UV ${axis}`}
+                      min={i === 0 ? part?.u || 0 : 0}
+                      max={
+                        i === 0 ? (part ? part.u + 0.99999 : 9.99999) : 0.99999
+                      }
+                      step={0.001}
+                      unit="UV"
+                      disabled={readOnly}
+                      value={component.uvPosition[i]}
+                      onChange={(value) =>
+                        patch(
+                          {
+                            uvPosition: component.uvPosition.map((n, j) =>
+                              j === i ? value : n,
+                            ),
+                          },
+                          `uv-${axis}`,
+                        )
+                      }
+                    />
+                  ))}
+                {!isUV &&
+                  ["X", "Y", "Z"].map((axis, index) => (
+                    <Slider
+                      key={axis}
+                      label={`Position ${axis}`}
+                      ariaLabel={`Decal position ${axis}`}
+                      min={-4}
+                      max={4}
+                      step={0.01}
+                      disabled={readOnly}
+                      value={component.position[index]}
+                      onChange={(value) =>
+                        patch(
+                          {
+                            position: component.position.map((v, i) =>
+                              i === index ? value : v,
+                            ),
+                          },
+                          `position-${axis}`,
+                        )
+                      }
+                    />
+                  ))}
               </div>
               {!component.asMask && (
                 <StampChannelControls

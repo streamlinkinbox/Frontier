@@ -1,9 +1,10 @@
+import { normalizeMaskPaint } from "./textureMaskPaint.js";
 import {
   normalizePointGradient,
   defaultPointGradient,
 } from "./pointGradient.js";
-// Mask authoring is separate from the paint compositor. Colour matches can be
-// inspected against imported source pixels; no teapot coverage is fabricated.
+// Declarative coverage masks. Surface mask painting is separate from ordinary
+// channel/material painting and uses the packed teapot authoring UVs.
 export function normalizeTextureMask(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const bounded = (value, fallback, min, max) =>
@@ -11,7 +12,8 @@ export function normalizeTextureMask(raw) {
       ? Math.min(max, Math.max(min, Number(value)))
       : fallback;
   return {
-    kind: ["color", "gradient"].includes(raw.kind) ? raw.kind : "fill",
+    kind: ["color", "gradient", "paint"].includes(raw.kind) ? raw.kind : "fill",
+    ...(raw.paint ? { paint: normalizeMaskPaint(raw.paint) } : {}),
     enabled: raw.enabled !== false,
     fill: raw.fill === 0 ? 0 : 1,
     inverted: raw.inverted === true,
@@ -34,7 +36,7 @@ const rgbOf = (hex) =>
   [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
 // Explicit sRGB RGB distance, not a claimed perceptual / mesh-ID selection.
 export function colourMaskMatch(rgb, mask) {
-  const settings = normalizeTextureMask(mask);
+  const settings = normalizeTextureMask(mask ? { ...mask, paint: null } : null);
   if (
     !settings ||
     !Array.isArray(rgb) ||

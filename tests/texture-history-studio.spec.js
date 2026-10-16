@@ -77,6 +77,12 @@ async function opacity(page, value) {
   await page
     .getByRole("button", { name: "Open paint tool menu", exact: true })
     .click();
+  await page
+    .getByRole("button", {
+      name: "Instrument catalogue configuration only",
+      exact: true,
+    })
+    .click();
   const menu = page.getByRole("dialog", {
     name: "Paint tool menu",
     exact: true,
@@ -104,6 +110,12 @@ test("instrument cards have equal circular icon wells, centred artwork and label
     await page.setViewportSize({ width, height: 900 });
     await page
       .getByRole("button", { name: "Open paint tool menu", exact: true })
+      .click();
+    await page
+      .getByRole("button", {
+        name: "Instrument catalogue configuration only",
+        exact: true,
+      })
       .click();
     const menu = page.getByRole("dialog", {
       name: "Paint tool menu",
@@ -344,6 +356,12 @@ test("source erase is a real undoable pixel operation and phone History tab pres
   const painted = await project(page);
   await page
     .getByRole("button", { name: "Open paint tool menu", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Instrument catalogue configuration only",
+      exact: true,
+    })
     .click();
   const menu = page.getByRole("dialog", {
     name: "Paint tool menu",

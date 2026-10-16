@@ -4,11 +4,12 @@ import {
   geometricSetFour,
 } from "../src/geometricConstructions.js";
 import { patternStarter } from "../src/patternDocument.js";
+import { heritagePatternCatalog } from "../src/heritagePatterns.js";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import * as THREE from "three";
 import { unzipSync, strFromU8 } from "fflate";
-import { materials } from "../src/materials.js";
+import { materials, normalizeMaterial } from "../src/materials.js";
 
 const htmlPath = new URL("../site/index.html", import.meta.url);
 const publicURL = process.env.ALLOY_PUBLIC_URL;
@@ -889,9 +890,7 @@ test("standalone texture-layer workspace renders a teapot and saves editable met
     { kind: "fill", opacity: 37, mask: { inverted: true } },
   );
   await expect(
-    page.getByText("Layer setup only · preview is not composited", {
-      exact: true,
-    }),
+    page.getByText(/2D source paint is not deposited onto the mesh/),
   ).toBeVisible();
   expect(unexpectedRequests).toEqual([]);
   expect(errors).toEqual([]);
@@ -1139,6 +1138,12 @@ test("standalone paint instruments, channel targets and embedded Material worksp
   );
   await page
     .getByRole("button", { name: "Open paint tool menu", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Instrument catalogue configuration only",
+      exact: true,
+    })
     .click();
   const menu = page.getByRole("dialog", {
     name: "Paint tool menu",
@@ -1509,6 +1514,12 @@ test("standalone shared colour picker, Material-studio generators and surface-an
   await page
     .getByRole("button", { name: "Open paint tool menu", exact: true })
     .click();
+  await page
+    .getByRole("button", {
+      name: "Instrument catalogue configuration only",
+      exact: true,
+    })
+    .click();
   const menu = page.getByRole("dialog", {
     name: "Paint tool menu",
     exact: true,
@@ -1566,6 +1577,67 @@ test("offline Stamp rich text and reusable surface decals/masks use only embedde
     .getByLabel("Stamp text font", { exact: true })
     .selectOption("DM Sans");
   await page.getByLabel("Stamp text size", { exact: true }).fill("48");
+  const composition = page.getByRole("region", {
+    name: "Stamp composition canvas",
+    exact: true,
+  });
+  await page.locator(".stamp-canvas-object.selected").hover();
+  await expect(page.locator(".stamp-canvas-object.selected")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  const square = await composition.boundingBox();
+  await composition.focus();
+  await page.mouse.move(
+    square.x + square.width * 0.7,
+    square.y + square.height * 0.45,
+  );
+  await page.keyboard.press("g");
+  await expect(composition).toHaveAttribute("data-transform-mode", "move");
+  await page.mouse.move(
+    square.x + square.width * 0.8,
+    square.y + square.height * 0.45,
+  );
+  await expect(
+    page.getByLabel("Stamp position X value", { exact: true }),
+  ).toHaveValue("307.2");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("r");
+  await expect(composition).toHaveAttribute("data-transform-mode", "rotate");
+  await page.mouse.move(
+    square.x + square.width * 0.6,
+    square.y + square.height * 0.65,
+  );
+  await expect
+    .poll(async () =>
+      Number(
+        await page
+          .getByLabel("Stamp rotation value", { exact: true })
+          .inputValue(),
+      ),
+    )
+    .toBeGreaterThan(60);
+  await page.keyboard.press("Enter");
+  const widthBeforeScale = Number(
+    await page.getByLabel("Stamp width value", { exact: true }).inputValue(),
+  );
+  await page.keyboard.press("s");
+  await expect(composition).toHaveAttribute("data-transform-mode", "scale");
+  await page.mouse.move(
+    square.x + square.width * 0.6,
+    square.y + square.height * 0.72,
+  );
+  await expect
+    .poll(async () =>
+      Number(
+        await page
+          .getByLabel("Stamp width value", { exact: true })
+          .inputValue(),
+      ),
+    )
+    .toBeGreaterThan(widthBeforeScale);
+  await page.keyboard.press("Enter");
+  await expect(composition).toHaveAttribute("data-transform-mode", "");
   const pending = page.waitForEvent("download");
   await page
     .locator(".stamp-canvas-toolbar")
@@ -1597,4 +1669,813 @@ test("offline Stamp rich text and reusable surface decals/masks use only embedde
   await expect(canvas).toHaveAttribute("data-decal-mask-count", "1");
   expect(requests).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test("offline part materials and authoring UDIM decals use the actual teapot with no external resources", async ({
+  page,
+}) => {
+  test.setTimeout(240000);
+  const html = await readFile(htmlPath, "utf8"),
+    url = localURL + "?studio=texture",
+    errors = [],
+    requests = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  await page.route("**/*", (route) => {
+    if (route.request().isNavigationRequest() && route.request().url() === url)
+      return route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: html,
+      });
+    if (!/^https?:/.test(route.request().url())) return route.continue();
+    requests.push(route.request().url());
+    return route.abort("blockedbyclient");
+  });
+  await page.goto(url);
+  const canvas = page
+    .locator(".tp-scene-viewport > .canvas-host canvas")
+    .first();
+  await expect(canvas).toHaveAttribute("data-material-ready", "true");
+  await canvas.evaluate((element) => {
+    const rect = element.getBoundingClientRect(),
+      data = new DataTransfer();
+    data.setData(
+      "application/x-alloy-asset",
+      JSON.stringify({
+        type: "material",
+        id: "carbon-ceramic",
+        name: "Carbon Ceramic",
+      }),
+    );
+    element.dispatchEvent(
+      new DragEvent("drop", {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: data,
+        clientX: rect.x + rect.width * 0.5,
+        clientY: rect.y + rect.height * 0.35,
+      }),
+    );
+  });
+  await expect(canvas).toHaveAttribute("data-part-material-count", "1");
+  await expect(canvas).toHaveAttribute("data-material-ready", "true");
+  expect(
+    JSON.parse(await canvas.getAttribute("data-part-materials"))[0].partId,
+  ).toBe("lid");
+  await page
+    .getByRole("button", { name: "UV / texture space", exact: true })
+    .click();
+  const uv = page.getByLabel("UV texture-space canvas", { exact: true });
+  await expect(uv).toHaveAttribute("data-uv-tiles", "1001,1002,1003,1004");
+  await expect(uv).toHaveAttribute("data-uv-charts", "32");
+  await page
+    .getByRole("button", { name: "Viewport stamp brush", exact: true })
+    .click();
+  const probes = JSON.parse(await uv.getAttribute("data-uv-probes")),
+    point = probes.find((p) => p.chartId === 25),
+    rect = await uv.boundingBox();
+  await page.mouse.click(rect.x + point.x, rect.y + point.y);
+  await expect(uv).not.toHaveAttribute("data-uv-artwork-triangles", "0");
+  await expect(canvas).toHaveAttribute("data-decal-count", "1");
+  const waiting = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save project", exact: true }).click();
+  const chunks = [];
+  for await (const chunk of await (await waiting).createReadStream())
+    chunks.push(chunk);
+  const saved = JSON.parse(Buffer.concat(chunks).toString()),
+    layer = saved.layers.find((l) => l.surfaceMaterial);
+  expect(layer.surfaceTarget).toEqual({ objectId: "teapot", partId: "lid" });
+  expect(layer.decals[0]).toMatchObject({
+    space: "uv",
+    uvSet: "teapot-part-udim-v1",
+    target: { objectId: "teapot", partId: "lid" },
+  });
+  await page.getByRole("button", { name: "Lit", exact: true }).click();
+  await expect(canvas).toHaveAttribute("data-material-ready", "true");
+  expect(
+    Number(await canvas.getAttribute("data-decal-triangles")),
+  ).toBeGreaterThan(100);
+  await expect(canvas).toHaveAttribute("data-decal-gizmo", "off");
+  await page
+    .getByRole("checkbox", { name: "Use decal as mask", exact: true })
+    .check();
+  await expect(canvas).toHaveAttribute("data-decal-mask-count", "1");
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("offline Islamic and African traditional collections contain twenty editable vectors and export the same portable factories", async ({
+  page,
+}) => {
+  test.setTimeout(240000);
+  const html = await readFile(htmlPath, "utf8"),
+    url =
+      localURL +
+      "?studio=pattern&material=natural-cotton&pattern=zellige-eight-point-stars",
+    errors = [],
+    requests = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  await page.route("**/*", (route) => {
+    if (route.request().isNavigationRequest() && route.request().url() === url)
+      return route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: html,
+      });
+    if (!/^https?:/.test(route.request().url())) return route.continue();
+    requests.push(route.request().url());
+    return route.abort("blockedbyclient");
+  });
+  await page.goto(url);
+  await expect(page.getByLabel("Pattern name", { exact: true })).toHaveValue(
+    "Zellige Eight-Point Stars",
+  );
+  const collection = page.getByLabel("Pattern collection", { exact: true });
+  for (const group of ["Islamic geometry", "African traditional"]) {
+    await collection.selectOption(group);
+    await expect(page.locator(".pe-starters button")).toHaveCount(10);
+    await expect(
+      page.getByLabel("Textile family colorway", { exact: true }),
+    ).toHaveCount(0);
+  }
+  await page
+    .getByRole("button", { name: "Yoruba Adire Rings", exact: true })
+    .click();
+  await page.getByLabel("Motif color", { exact: true }).fill("#2c5976");
+  const getText = async (name) => {
+    const wait = page.waitForEvent("download");
+    await page.getByRole("button", { name, exact: true }).click();
+    const chunks = [];
+    for await (const chunk of await (await wait).createReadStream())
+      chunks.push(chunk);
+    return Buffer.concat(chunks).toString();
+  };
+  const doc = JSON.parse(await getText("Save document"));
+  expect(doc.construction).toBe("yoruba-adire-rings");
+  expect(doc.layers[0].color).toBe("#2c5976");
+  const svg = await getText("Export seamless SVG");
+  expect(svg).toContain("#2c5976");
+  expect(svg).not.toMatch(/<image|<script|href=/);
+  await page.locator('input[accept=".json"]').setInputFiles({
+    name: "offline-adire.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(doc)),
+  });
+  expect(JSON.parse(await getText("Save document"))).toEqual(doc);
+  await page.getByRole("button", { name: "3D material", exact: true }).click();
+  await expect(
+    page.getByRole("status", { name: "Material preview status" }),
+  ).toContainText("Live material · ready");
+  await expect(
+    page
+      .getByRole("region", { name: "Pattern material preview" })
+      .locator("canvas"),
+  ).toHaveAttribute("data-material-ready", "true");
+  await page.getByRole("button", { name: /Apply to material/ }).click();
+  const source = await downloadText(page, /Three.js procedural shader/);
+  const factory = source
+    .replace(/import \* as THREE from ['"]three['"];?/, "")
+    .replace(
+      /export default createMaterial\(preset\);/,
+      "return {material:createMaterial(preset), make:patternStarter, catalog:patternStarterCatalog};",
+    )
+    .replace(/export /g, "");
+  const exported = new Function("THREE", factory)(THREE);
+  expect(exported.material.userData.params.pattern).toEqual(doc);
+  expect(exported.catalog).toHaveLength(103);
+  for (const spec of heritagePatternCatalog)
+    expect(exported.make(spec.name)).toEqual(patternStarter(spec.name));
+  exported.material.dispose();
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("offline mask previews, native component selection and Lit painting save without enabling ordinary material paint", async ({
+  page,
+}) => {
+  const html = await readFile(htmlPath, "utf8"),
+    url = localURL + "?studio=texture",
+    errors = [],
+    requests = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  await page.route("**/*", (route) => {
+    if (route.request().isNavigationRequest() && route.request().url() === url)
+      return route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: html,
+      });
+    if (!/^https?:/.test(route.request().url())) return route.continue();
+    requests.push(route.request().url());
+    return route.abort("blockedbyclient");
+  });
+  await page.goto(url);
+  const native = page
+      .locator(".tp-scene-viewport > .canvas-host canvas")
+      .first(),
+    uv = page.getByLabel("UV texture-space canvas", { exact: true });
+  await expect(native).toHaveAttribute("data-material-ready", "true");
+  await expect(page.getByLabel("Texture editing mode")).toHaveText(
+    "Paint mode · Digital tools available",
+  );
+  await page
+    .getByRole("button", { name: "Add layer mask", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "UV / texture space", exact: true })
+    .click();
+  await expect(uv).toHaveAttribute("data-mask-preview", "mask");
+  await page
+    .getByRole("button", { name: "Select mask Object", exact: true })
+    .click();
+  const camera = JSON.parse(await uv.getAttribute("data-uv-camera")),
+    probes = JSON.parse(await uv.getAttribute("data-uv-probes")),
+    lid = probes.find((p) => p.partId === "lid" && p.chartId === 25),
+    rect = await uv.boundingBox();
+  await page.mouse.click(rect.x + lid.x, rect.y + lid.y);
+  await expect(
+    page.getByLabel("Selected mask region", { exact: true }),
+  ).toHaveText("Lid · Object");
+  await page
+    .getByRole("button", { name: "Black mask ink", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Fill selected mask region", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Clear mask selection", exact: true })
+    .click();
+  const save = async () => {
+      const wait = page.waitForEvent("download");
+      await page
+        .getByRole("button", { name: "Save project", exact: true })
+        .click();
+      const chunks = [];
+      for await (const c of await (await wait).createReadStream())
+        chunks.push(c);
+      return JSON.parse(Buffer.concat(chunks).toString());
+    },
+    first = await save();
+  expect(first.layers.at(-1).mask.paint.operations[0]).toMatchObject({
+    kind: "region",
+    region: { kind: "object", partId: "lid" },
+    value: 0,
+  });
+  await page.getByRole("button", { name: "Lit", exact: true }).click();
+  await page.getByRole("button", { name: "Paint mask", exact: true }).click();
+  const box = await native.boundingBox();
+  const whitePixels = async () => {
+    await page.evaluate(
+      () =>
+        new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(r)),
+        ),
+    );
+    return native.evaluate((c) => {
+      const image = document.createElement("canvas");
+      image.width = 320;
+      image.height = 200;
+      const ctx = image.getContext("2d");
+      ctx.drawImage(c, 0, 0, 320, 200);
+      const data = ctx.getImageData(0, 0, 320, 200).data;
+      let count = 0;
+      for (let i = 0; i < data.length; i += 4)
+        // Antialiased white wire edges can have RGB=255 but almost no alpha.
+        if (
+          data[i] > 245 &&
+          data[i + 1] > 245 &&
+          data[i + 2] > 245 &&
+          data[i + 3] > 230
+        )
+          count++;
+      return count;
+    });
+  };
+  const solidWhite = await whitePixels();
+  expect(solidWhite).toBeGreaterThan(1000);
+  await page.getByLabel("Mask brush opacity", { exact: true }).fill("0");
+  await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.48);
+  expect(await save()).toEqual(first);
+  await page.getByLabel("Mask brush opacity", { exact: true }).fill("100");
+  await page.getByRole("button", { name: "Wireframe", exact: true }).click();
+  await expect.poll(whitePixels).toBeLessThan(solidWhite * 0.95);
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.48);
+  await page.mouse.down();
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await page.mouse.up();
+  expect(await save()).toEqual(first);
+  expect(
+    await native.evaluate((c) => c.parentElement.hasPointerCapture(1)),
+  ).toBe(false);
+  await page.getByRole("button", { name: "Lit", exact: true }).click();
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.48);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.52, box.y + box.height * 0.52, {
+    steps: 3,
+  });
+  await page.mouse.up();
+  const painted = await save();
+  expect(
+    painted.layers
+      .at(-1)
+      .mask.paint.operations.some(
+        (op) => op.kind === "brush" && op.region.partId === "body",
+      ),
+  ).toBe(true);
+  await page
+    .getByRole("button", { name: "Undo layer edit", exact: true })
+    .click();
+  expect(await save()).toEqual(first);
+  await page
+    .getByRole("button", { name: "Redo layer edit", exact: true })
+    .click();
+  expect(await save()).toEqual(painted);
+  await page
+    .getByRole("button", { name: "Select Surface detail", exact: true })
+    .click();
+  await expect(page.getByLabel("Texture editing mode")).toHaveText(
+    "Paint mode · Digital tools available",
+  );
+  expect(await save()).toEqual(painted);
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("offline ordered layer evaluation covers lower stamps with car paint and keeps embedded AO / normal / bevel support on the real native passes", async ({
+  page,
+}) => {
+  const { createTextureLayer, validateTextureDocument } =
+    await import("../src/textureDocument.js");
+  const png = JSON.parse(
+    await readFile(
+      new URL("./fixtures/texture-mesh-map-pngs.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const html = await readFile(htmlPath, "utf8"),
+    url = localURL + "?studio=texture",
+    errors = [],
+    requests = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  await page.route("**/*", (route) => {
+    if (route.request().isNavigationRequest() && route.request().url() === url)
+      return route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: html,
+      });
+    if (!/^https?:/.test(route.request().url())) return route.continue();
+    requests.push(route.request().url());
+    return route.abort("blockedbyclient");
+  });
+  await page.goto(url);
+  const canvas = page
+    .locator(".tp-scene-viewport > .canvas-host canvas")
+    .first();
+  const ready = async () => {
+    await expect(canvas).toHaveAttribute("data-material-ready", "true");
+    await expect(canvas).toHaveAttribute("data-layer-stack-ready", "true");
+    await page.evaluate(
+      () =>
+        new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(r)),
+        ),
+    );
+  };
+  await ready();
+  await page
+    .getByRole("button", { name: "Viewport stamp brush", exact: true })
+    .click();
+  const rect = await canvas.boundingBox();
+  await page.mouse.click(rect.x + rect.width * 0.5, rect.y + rect.height * 0.5);
+  await expect(canvas).toHaveAttribute("data-decal-count", "1");
+  await page
+    .getByRole("button", { name: "Navigate teapot", exact: true })
+    .click();
+  const base = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("alloy-texture-project-v1")),
+  );
+  const recipe = materials.find((m) => m.id === "racing-green"),
+    upper = createTextureLayer("material", {
+      id: "offline-upper-coat",
+      name: "Offline upper coat",
+      surfaceMaterial: recipe,
+    }),
+    map = (dataUrl) => ({ dataUrl, width: 16, height: 16 }),
+    doc = validateTextureDocument({
+      ...base,
+      layers: [upper, ...base.layers],
+      meshMaps: {
+        schema: "alloy.texture-mesh-support.v1",
+        target: "teapot",
+        uvSet: "teapot-bake-8x4-v1",
+        maps: {
+          occlusion: map(png.whiteAO),
+          normal: map(png.tiltNormal),
+          "bevel-normal": map(png.bevelNormal),
+        },
+      },
+    });
+  const load = async (value) => {
+    await page.getByLabel("Open texture layer JSON").setInputFiles({
+      name: "offline-stack.texture.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(value)),
+    });
+    await ready();
+  };
+  const pixels = async () => {
+    await page.evaluate(
+      () =>
+        new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(r)),
+        ),
+    );
+    return canvas.evaluate((c) => {
+      const p = document.createElement("canvas");
+      p.width = 320;
+      p.height = 200;
+      const ctx = p.getContext("2d");
+      ctx.drawImage(c, 0, 0, 320, 200);
+      return Array.from(ctx.getImageData(0, 0, 320, 200).data);
+    });
+  };
+  const difference = (a, b) =>
+    a.reduce((n, v, i) => n + Math.abs(v - b[i]), 0) / a.length;
+  await load(doc);
+  await expect(canvas).toHaveAttribute(
+    "data-mesh-support-maps",
+    '["occlusion","normal","bevel-normal"]',
+  );
+  await expect(canvas).toHaveAttribute("data-system-base-parts", "[]");
+  const covered = await pixels();
+  await load(
+    validateTextureDocument({
+      ...doc,
+      layers: doc.layers.map((l) => ({ ...l, decals: [] })),
+    }),
+  );
+  expect(difference(covered, await pixels())).toBeLessThan(0.12);
+  await load(doc);
+  await page
+    .getByRole("button", { name: "Hide Offline upper coat", exact: true })
+    .click();
+  await ready();
+  await expect(canvas).toHaveAttribute(
+    "data-system-base-parts",
+    '["body","lid","handle","spout"]',
+  );
+  expect(difference(covered, await pixels())).toBeGreaterThan(0.1);
+  await expect(page.getByLabel("Texture editing mode")).toHaveText(
+    "Paint mode · Digital tools available",
+  );
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("offline glass reads only the lower ordered lit stack, preserves native transmission and refreshes UV without external requests", async ({
+  page,
+}) => {
+  const { createTextureDocument, createTextureLayer, validateTextureDocument } =
+      await import("../src/textureDocument.js"),
+    base = createTextureDocument(),
+    metal = createTextureLayer("material", {
+      id: "offline-metal",
+      name: "Offline metal",
+      surfaceMaterial: materials.find((m) => m.id === "racing-green"),
+    }),
+    glass = createTextureLayer("material", {
+      id: "offline-glass",
+      name: "Offline glass",
+      surfaceMaterial: {
+        ...materials.find((m) => m.id === "crystal-glass"),
+        color: "#963650",
+        roughness: 0.18,
+        ior: 1.3,
+      },
+    }),
+    doc = validateTextureDocument({
+      ...base,
+      layers: [glass, metal, ...base.layers],
+    }),
+    html = await readFile(htmlPath, "utf8"),
+    url = localURL + "?studio=texture",
+    errors = [],
+    requests = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  await page.addInitScript(
+    (doc) =>
+      localStorage.setItem("alloy-texture-project-v1", JSON.stringify(doc)),
+    doc,
+  );
+  await page.route("**/*", (route) => {
+    if (route.request().isNavigationRequest() && route.request().url() === url)
+      return route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: html,
+      });
+    if (!/^https?:/.test(route.request().url())) return route.continue();
+    requests.push(route.request().url());
+    return route.abort("blockedbyclient");
+  });
+  await page.goto(url);
+  const canvas = page
+      .locator(".tp-scene-viewport > .canvas-host canvas")
+      .first(),
+    ready = async (count) => {
+      await expect(canvas).toHaveAttribute("data-material-ready", "true");
+      await expect(canvas).toHaveAttribute("data-layer-stack-ready", "true");
+      await expect(canvas).toHaveAttribute(
+        "data-optical-stack-pass-count",
+        String(count),
+      );
+      await page.evaluate(
+        () =>
+          new Promise((r) =>
+            requestAnimationFrame(() => requestAnimationFrame(r)),
+          ),
+      );
+    },
+    pixels = () =>
+      canvas.evaluate((c) => {
+        const p = document.createElement("canvas");
+        p.width = 320;
+        p.height = 200;
+        const ctx = p.getContext("2d");
+        ctx.drawImage(c, 0, 0, 320, 200);
+        return Array.from(ctx.getImageData(0, 0, 320, 200).data);
+      }),
+    difference = (a, b) =>
+      a.reduce((n, v, i) => n + Math.abs(v - b[i]), 0) / a.length;
+  await ready(1);
+  const withGlass = await pixels();
+  const params = JSON.parse(
+    await canvas.getAttribute("data-optical-stack-materials"),
+  );
+  expect(params[0].transmission).toBe(0.97);
+  expect(params[0].ior).toBe(normalizeMaterial(glass.surfaceMaterial).ior);
+  await page
+    .getByRole("button", { name: "Hide Offline glass", exact: true })
+    .click();
+  await ready(0);
+  const opaque = await pixels();
+  expect(difference(opaque, withGlass)).toBeGreaterThan(0.15);
+  await page
+    .getByRole("button", { name: "Show Offline glass", exact: true })
+    .click();
+  await ready(1);
+  await page
+    .getByRole("button", { name: "Select Offline glass", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Move layer down", exact: true })
+    .click();
+  await ready(0);
+  expect(difference(opaque, await pixels())).toBeLessThan(0.15);
+  await page
+    .getByRole("button", { name: "Undo layer edit", exact: true })
+    .click();
+  await ready(1);
+  expect(difference(withGlass, await pixels())).toBeLessThan(0.15);
+  await page
+    .getByRole("button", { name: "UV / texture space", exact: true })
+    .click();
+  await expect(canvas).toHaveAttribute("data-optical-stack-uv-pass-count", "1");
+  await expect(
+    page.getByLabel("UV texture-space canvas", { exact: true }),
+  ).toHaveAttribute("data-layer-atlas", "ordered-lit-appearance");
+  const state = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("alloy-texture-project-v1")),
+  );
+  expect(
+    state.layers.find((l) => l.id === "offline-glass").surfaceMaterial.type,
+  ).toBe(5);
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test.describe("high-DPI offline digital painting", () => {
+  test.use({ deviceScaleFactor: 2 });
+  test("offline digital brush studio paints, erases and fills layers and masks with no external assets", async ({
+    page,
+  }) => {
+    test.setTimeout(600000);
+    page.setDefaultTimeout(30000);
+    const { createTextureDocument, createTextureLayer } =
+      await import("../src/textureDocument.js");
+    const { normalizeDigitalBrush } = await import("../src/digitalBrush.js");
+    const doc = createTextureDocument();
+    doc.layers = [
+      createTextureLayer("paint", {
+        id: "offline-ink",
+        name: "Offline ink",
+        mask: { kind: "fill", fill: 1 },
+      }),
+    ];
+    doc.digitalPainting = normalizeDigitalBrush({
+      color: "#ed253c",
+      size: 32,
+      sizePressure: 0,
+      hardness: 1,
+    });
+    const html = await readFile(htmlPath, "utf8"),
+      url = localURL + "?studio=texture",
+      errors = [],
+      requests = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    page.on("console", (m) => {
+      if (m.type() === "error") errors.push(m.text());
+    });
+    await page.addInitScript((doc) => {
+      if (localStorage.getItem("offline-digital-seed")) return;
+      localStorage.setItem("offline-digital-seed", "yes");
+      localStorage.setItem("alloy-texture-project-v1", JSON.stringify(doc));
+    }, doc);
+    await page.route("**/*", (route) => {
+      if (
+        route.request().isNavigationRequest() &&
+        route.request().url() === url
+      )
+        return route.fulfill({
+          status: 200,
+          contentType: "text/html; charset=utf-8",
+          body: html,
+        });
+      if (!/^https?:/.test(route.request().url())) return route.continue();
+      requests.push(route.request().url());
+      return route.abort("blockedbyclient");
+    });
+    await page.goto(url);
+    const canvas = page
+        .locator(".tp-scene-viewport > .canvas-host canvas")
+        .first(),
+      uv = page.getByLabel("UV texture-space canvas", { exact: true });
+    const saved = () =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("alloy-texture-project-v1")),
+      );
+    const menu = async () => {
+      await page
+        .getByRole("button", { name: "Open paint tool menu", exact: true })
+        .click();
+      return page.getByRole("dialog", {
+        name: "Digital brush studio",
+        exact: true,
+      });
+    };
+    const point = async (p) => {
+      const camera = JSON.parse(await uv.getAttribute("data-uv-camera")),
+        rect = await uv.boundingBox(),
+        size = await uv.evaluate((c) => ({
+          width: c.width / Math.min(devicePixelRatio, 2),
+          height: c.height / Math.min(devicePixelRatio, 2),
+        }));
+      return {
+        x:
+          rect.x + ((camera.x + p[0] * camera.scale) * rect.width) / size.width,
+        y:
+          rect.y +
+          ((camera.y - p[1] * camera.scale) * rect.height) / size.height,
+      };
+    };
+    const sample = (p) =>
+      uv.evaluate(
+        (c, p) =>
+          Array.from(
+            c
+              .getContext("2d")
+              .getImageData(
+                Math.floor(
+                  (p.x - c.getBoundingClientRect().x) *
+                    (c.width / c.getBoundingClientRect().width),
+                ),
+                Math.floor(
+                  (p.y - c.getBoundingClientRect().y) *
+                    (c.height / c.getBoundingClientRect().height),
+                ),
+                1,
+                1,
+              ).data,
+          ),
+        p,
+      );
+    await expect(canvas).toHaveAttribute("data-material-ready", "true");
+    await page
+      .getByRole("button", { name: "UV / texture space", exact: true })
+      .click();
+    await expect(uv).toHaveAttribute("data-uv-charts", "32");
+    const lid = await point([1.12, 0.56]),
+      body = await point([0.12, 0.12]);
+    const studio = await menu();
+    const preview = studio.getByLabel("Digital brush stroke preview canvas", {
+      exact: true,
+    });
+    await expect(preview).toHaveAttribute("data-preview-hash", /\d/);
+    await studio
+      .getByRole("button", { name: "Digital tool Fill", exact: true })
+      .click();
+    await studio.getByRole("button", { name: "Use fill", exact: true }).click();
+    await page.mouse.move(lid.x, lid.y);
+    const cursor = page.locator(".digital-uv-cursor");
+    await expect(cursor).toHaveAttribute("data-brush-cursor", /"kind":"fill"/);
+    expect(
+      JSON.parse(await cursor.getAttribute("data-brush-cursor")).region,
+    ).toMatchObject({ kind: "object", partId: "lid" });
+    await page.mouse.click(lid.x, lid.y);
+    await expect
+      .poll(async () => (await sample(lid))[0] - (await sample(lid))[1], {
+        timeout: 120000,
+      })
+      .toBeGreaterThan(35);
+    expect((await saved()).layers[0].paint.operations.at(-1)).toMatchObject({
+      kind: "fill",
+      region: { kind: "object", partId: "lid" },
+    });
+    const beforeErase = await sample(lid);
+    await page
+      .getByRole("button", { name: "Erase layer channels", exact: true })
+      .click();
+    await page.mouse.move(lid.x, lid.y);
+    await page.mouse.down();
+    await page.mouse.move(lid.x + 2, lid.y);
+    await page.mouse.up();
+    await expect
+      .poll(async () => (await sample(lid))[0] - (await sample(lid))[1], {
+        timeout: 120000,
+      })
+      .toBeLessThan(5);
+    expect((await saved()).layers[0].paint.operations.at(-1).kind).toBe(
+      "erase",
+    );
+    await page
+      .getByRole("button", { name: "Undo layer edit", exact: true })
+      .click();
+    await expect
+      .poll(() => sample(lid), { timeout: 120000 })
+      .toEqual(beforeErase);
+    await page
+      .getByRole("button", { name: "Select mask of Offline ink", exact: true })
+      .click();
+    await expect(uv).toHaveAttribute("data-mask-preview", "mask");
+    await page.evaluate(
+      () =>
+        new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(r)),
+        ),
+    );
+    const maskBody = await point([0.12, 0.12]),
+      maskLid = await point([1.12, 0.56]);
+    const maskMenu = await menu();
+    await maskMenu
+      .getByRole("button", { name: "Black digital mask ink", exact: true })
+      .click();
+    await maskMenu
+      .getByRole("button", { name: "Digital tool Paint", exact: true })
+      .click();
+    await maskMenu
+      .getByRole("button", { name: "Use paint", exact: true })
+      .click();
+    await page.mouse.move(maskBody.x, maskBody.y);
+    await expect(cursor).toHaveAttribute("data-brush-cursor", /"mask":true/);
+    const tip = JSON.parse(await cursor.getAttribute("data-brush-cursor"));
+    expect(tip.color).toBe("#000000");
+    expect(tip.dab.radius).toBe(16);
+    expect(tip.uvPosition[0]).toBeCloseTo(0.12, 5);
+    expect(tip.uvPosition[1]).toBeCloseTo(0.12, 5);
+    await page.mouse.down();
+    await page.mouse.move(maskBody.x + 2, maskBody.y);
+    await page.mouse.up();
+    await expect
+      .poll(async () => (await sample(maskBody))[0], { timeout: 120000 })
+      .toBeLessThan(5);
+    expect((await sample(maskLid))[0]).toBeGreaterThan(245);
+    const painted = await saved();
+    expect(
+      painted.layers[0].mask.paint.operations.at(-1).digital.operation,
+    ).toBe("paint");
+    await page.reload();
+    await expect(canvas).toHaveAttribute("data-material-ready", "true");
+    expect((await saved()).layers[0].paint).toEqual(painted.layers[0].paint);
+    expect((await saved()).layers[0].mask.paint).toEqual(
+      painted.layers[0].mask.paint,
+    );
+    expect(requests).toEqual([]);
+    expect(errors).toEqual([]);
+  });
 });

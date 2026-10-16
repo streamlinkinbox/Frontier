@@ -1,3 +1,4 @@
+import { DIGITAL_BRUSH_PRESETS } from "./digitalBrush.js";
 import { paintTool } from "./paintToolCatalogue.js";
 import { PAINT_CHANNELS } from "./paintChannelModel.js";
 export const TEXTURE_HISTORY_LIMIT = 80;
@@ -8,6 +9,29 @@ const channelLabel = (id) =>
   PAINT_CHANNELS.find((c) => c.id === id)?.label || id;
 // Descriptors are derived from validated snapshots, never supplied HTML/scripts.
 export function describeTextureChange(before, after) {
+  const digital = after.lastDigitalStroke;
+  if (digital && digital.id !== before.lastDigitalStroke?.id)
+    return {
+      kind: "stroke",
+      label: `${title(digital.operation)} ${digital.mask ? "mask" : "channels"}`,
+      detail: `${digital.layerName} · ${digital.mask ? "Mask coverage" : digital.channels.map(channelLabel).join(", ")} · ${DIGITAL_BRUSH_PRESETS.find((p) => p.id === digital.brush.preset)?.name}`,
+      layerId: digital.layerId,
+    };
+  if (!equal(before.digitalPainting, after.digitalPainting)) {
+    const changed = Object.keys(after.digitalPainting).filter(
+      (key) => before.digitalPainting?.[key] !== after.digitalPainting[key],
+    );
+    return {
+      kind: "tool",
+      label:
+        changed.length === 1
+          ? `Digital ${title(changed[0]).toLowerCase()}`
+          : "Digital brush settings",
+      detail:
+        DIGITAL_BRUSH_PRESETS.find((p) => p.id === after.digitalPainting.preset)
+          ?.name || "Digital brush",
+    };
+  }
   const stroke = after.lastStroke;
   if (stroke && stroke.id !== before.lastStroke?.id)
     return {
@@ -98,6 +122,16 @@ export function describeTextureChange(before, after) {
       return {
         ...info,
         label: layer.visible ? "Show layer / folder" : "Hide layer / folder",
+      };
+    if (
+      !equal(old.surfaceTarget, layer.surfaceTarget) ||
+      !equal(old.surfaceMaterial, layer.surfaceMaterial)
+    )
+      return {
+        ...info,
+        kind: "source",
+        label: "Part material assignment",
+        detail: `${layer.name} · ${layer.surfaceTarget?.partId || "removed"}`,
       };
     if (!equal(old.decals, layer.decals)) {
       const beforeDecals = old.decals || [],
@@ -291,6 +325,7 @@ export function textureHistoryTimeline(history) {
     current: index === history.past.length,
     undone: index > history.past.length,
     lastStroke: frame.doc.lastStroke || null,
+    lastDigitalStroke: frame.doc.lastDigitalStroke || null,
   }));
 }
 export function restoreTextureHistory(history, id) {

@@ -1,3 +1,10 @@
+import { textureLayerRenderOrder } from "./textureStackEvaluation.js";
+import { maskHasPaint } from "./textureMaskPaint.js";
+import {
+  createMaskCoverageTexture,
+  installMaskPaintCoverage,
+} from "./maskPaintRaster.js";
+import { installSurfaceCoordinates } from "./textureSurfaceModel.js";
 import * as THREE from "three";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
 import {
@@ -90,7 +97,11 @@ function decalMaterial(engine, record, textures, masks, owners, pointCoverage) {
   const decal = record.decal,
     on = (id) => decal.channels.includes(id),
     value = decal.channelValues;
-  const base = engine.specimen.material;
+  const base =
+    engine.surfaceAssignments?.materialAt(
+      decal.target?.partId,
+      record.layerId,
+    ) || engine.specimen.material;
   const material = new THREE.MeshPhysicalMaterial({
     color: on("baseColor") ? "#ffffff" : base.color,
     map: on("baseColor") ? textures.colour : null,
@@ -161,7 +172,8 @@ function decalMaterial(engine, record, textures, masks, owners, pointCoverage) {
     installPointGradient(material, engine.pointUniforms);
   installPointGradientAlpha(material, pointCoverage);
   material.customProgramCacheKey = () =>
-    `alloy-surface-decal-v1-${on("baseColor") ? "art" : "underlay"}`;
+    `alloy-surface-decal-v2-${on("baseColor") ? "art" : "underlay"}`;
+  installSurfaceCoordinates(material);
   return material;
 }
 export function createSurfaceDecalController(
@@ -184,6 +196,7 @@ export function createSurfaceDecalController(
   transform.setSpace("local");
   transform.setSize(0.7);
   transform.enabled = false;
+  transform.getHelper().userData.textureStackOverlay = true;
   engine.scene.add(transform.getHelper());
   const meshes = new Map(),
     cache = new Map();
@@ -238,6 +251,7 @@ export function createSurfaceDecalController(
     value.mesh.geometry.dispose();
     releaseMaterial(value.mesh.material);
     value.pointCoverage.uPointGradientData.value.dispose();
+    value.paintCoverage?.dispose();
   }
   function clearGhost(cancelPending = true) {
     if (cancelPending) {
@@ -409,6 +423,7 @@ export function createSurfaceDecalController(
       editor?.active &&
       editor.mode === "transform" &&
       selected &&
+      selected.decal.space !== "uv" &&
       !selected.decal.locked;
     transform.enabled = !!gizmo;
     if (gizmo) {
@@ -461,14 +476,47 @@ export function createSurfaceDecalController(
           opacity = ancestors.reduce((v, l) => (v * l.opacity) / 100, 1);
         const legacyMasks = ancestors
           .map((l) => l.mask)
-          .filter((m) => m && ["fill", "gradient"].includes(m.kind));
+          .filter(
+            (m) =>
+              m && !maskHasPaint(m) && ["fill", "gradient"].includes(m.kind),
+          );
+        const materialSignature = JSON.stringify([
+          record.decal.opacity,
+          record.decal.channels,
+          record.decal.channelValues,
+          opacity,
+          legacyMasks,
+          ancestors.filter((l) => maskHasPaint(l.mask)).map((l) => l.mask),
+          ancestors.map((l) => doc.layers.indexOf(l)),
+          (
+            engine.surfaceAssignments?.materialAt(
+              record.decal.target?.partId,
+              record.layerId,
+            ) || engine.specimen.material
+          ).uuid,
+        ]);
         const signature = JSON.stringify([
           record.decal,
           opacity,
           legacyMasks,
+          ancestors.filter((l) => maskHasPaint(l.mask)).map((l) => l.mask),
           ancestors.map((l) => l.id),
           record.layerIndex,
           record.componentIndex,
+          (
+            engine.surfaceAssignments?.materialAt(
+              record.decal.target?.partId,
+              record.layerId,
+            ) || engine.specimen.material
+          ).uuid,
+          doc.layers
+            .filter((l) => l.surfaceMaterial)
+            .map((l) => [
+              l.surfaceTarget,
+              l.surfaceMaterial,
+              l.visible,
+              l.opacity,
+            ]),
         ]);
         const previous = meshes.get(record.decal.id);
         if (
@@ -476,6 +524,23 @@ export function createSurfaceDecalController(
           previous.artwork === record.stamp.raster.dataUrl
         )
           continue;
+        if (
+          previous?.materialSignature === materialSignature &&
+          previous.artwork === record.stamp.raster.dataUrl
+        ) {
+          previous.mesh.geometry.dispose();
+          previous.mesh.geometry = projectDecalGeometry(
+            engine.specimen,
+            record.decal,
+          );
+          previous.signature = signature;
+          previous.mesh.renderOrder = textureLayerRenderOrder(
+            doc,
+            record.layerId,
+            record.componentIndex,
+          );
+          continue;
+        }
         if (previous) releaseMesh(previous);
         const textures = resources[order.indexOf(record.stamp.id)];
         if (!textures) continue;
@@ -493,6 +558,20 @@ export function createSurfaceDecalController(
           surfaceMaskOwners(doc, record.layerId),
           pointCoverage,
         );
+        const paintCoverage = createMaskCoverageTexture(
+          engine.specimen.geometry,
+        );
+        await paintCoverage.update(ancestors, doc);
+        if (destroyed || job !== ticket) {
+          paintCoverage.dispose();
+          material.dispose();
+          pointCoverage.uPointGradientData.value.dispose();
+          continue;
+        }
+        installMaskPaintCoverage(material, paintCoverage.uniforms);
+        engine.meshSupport?.install(material);
+        engine.digitalPaint?.install(material);
+        engine.stackUV?.install(material);
         material.opacity *= opacity;
         const mesh = new THREE.Mesh(
           projectDecalGeometry(engine.specimen, record.decal),
@@ -500,16 +579,20 @@ export function createSurfaceDecalController(
         );
         mesh.name = `decal-${record.decal.id}`;
         mesh.receiveShadow = true;
-        mesh.renderOrder =
-          100 +
-          (doc.layers.length - record.layerIndex) * 65 +
-          record.componentIndex;
+        mesh.userData.textureStackPass = true;
+        mesh.renderOrder = textureLayerRenderOrder(
+          doc,
+          record.layerId,
+          record.componentIndex,
+        );
         mesh.frustumCulled = false;
         group.add(mesh);
         meshes.set(record.decal.id, {
           mesh,
           signature,
+          materialSignature,
           pointCoverage,
+          paintCoverage,
           artwork: record.stamp.raster.dataUrl,
         });
       }
@@ -523,6 +606,7 @@ export function createSurfaceDecalController(
       canvas.dataset.decalMaskCount = String(
         records.filter((r) => r.decal.asMask).length,
       );
+      engine.maskPreview?.refreshStamps();
       engine.dirty = true;
       const keep = new Set(doc.stamps.map(textureKey));
       if (editor?.active && editor.preset) {
@@ -538,6 +622,7 @@ export function createSurfaceDecalController(
     const editor = editorRef.current;
     if (
       !editor?.active ||
+      editor.brush?.space === "uv" ||
       !["brush", "place"].includes(editor.mode) ||
       !editor.preset
     ) {
@@ -546,7 +631,11 @@ export function createSurfaceDecalController(
     }
     const aim = ++aimTicket;
     const hit = decalSurfaceHit(engine, x, y);
-    if (!hit) {
+    if (
+      !hit ||
+      (editor.surfaceTarget &&
+        hit.target?.partId !== editor.surfaceTarget.partId)
+    ) {
       clearGhost();
       return;
     }

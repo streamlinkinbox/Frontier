@@ -1,3 +1,5 @@
+import { evaluateTextureStack } from "./textureStackEvaluation.js";
+import { texturePart } from "./textureSurfaceModel.js";
 import GradientSliceImage from "./GradientSliceImage.jsx";
 import { toolArtURL } from "./paintToolCatalogue.js";
 import React, { useEffect, useRef, useState } from "react";
@@ -126,8 +128,16 @@ export function LayerThumbnail({
         className="tp-layer-thumbnail tp-empty-texture"
         style={{ width: size, height: size }}
         role="img"
-        aria-label={`${layer.name} empty texture`}
-        title="Empty texture source · no painted pixels"
+        aria-label={
+          layer.paint?.operations.length
+            ? `${layer.name} digital paint target`
+            : `${layer.name} empty texture`
+        }
+        title={
+          layer.paint?.operations.length
+            ? `${layer.paint.operations.length} digital operations · evaluated in Lit / UV`
+            : "Empty digital paint target"
+        }
       />
     );
   return <LayerKindIcon kind={layer.kind} size={size} open={open} />;
@@ -155,6 +165,9 @@ export function MaskIcon({ mask, size = 26 }) {
     >
       <i />
       {mask.kind === "color" && <b />}
+      {!!mask.paint?.operations.length && (
+        <span className="tp-mask-painted-mark">✎</span>
+      )}
     </span>
   );
 }
@@ -174,6 +187,7 @@ export default function TextureLayerStack({
   selection,
   select,
   onAction,
+  onBake,
   onDrop,
   onVisibility,
   onLock,
@@ -185,6 +199,8 @@ export default function TextureLayerStack({
   thumbs = {},
   disabled,
 }) {
+  const [systemOpen, setSystemOpen] = useState(false);
+  const stackPlan = evaluateTextureStack(doc);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [addOpen, setAddOpen] = useState(false);
@@ -471,8 +487,10 @@ export default function TextureLayerStack({
                         : kind === "decal"
                           ? "Surface stamps · multiple components"
                           : kind === "paint"
-                            ? "Empty · no brush content yet"
-                            : "Source setup · evaluation later"}
+                            ? "Digital strokes · Paint / Erase"
+                            : kind === "fill"
+                              ? "Digital channel region fills"
+                              : "Source and material setup"}
                     </small>
                   </span>
                   <Plus size={13} />
@@ -630,11 +648,7 @@ export default function TextureLayerStack({
               <button
                 className="tp-layer-eye"
                 aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
-                title={
-                  layer.visible
-                    ? "Hide layer (metadata only)"
-                    : "Show layer (metadata only)"
-                }
+                title={layer.visible ? "Hide layer" : "Show layer"}
                 onClick={() => onVisibility(layer.id)}
               >
                 {layer.visible ? <Eye size={13} /> : <EyeOff size={13} />}
@@ -755,30 +769,56 @@ export default function TextureLayerStack({
             )}
             {isOpen(layer) && layer.kind !== "folder" && (
               <div className="tp-layer-expanded" role="group">
-                <small>CHANNEL TARGETS</small>
+                <small>
+                  {layer.surfaceMaterial
+                    ? layer.surfaceTarget
+                      ? "PART MATERIAL"
+                      : "MATERIAL"
+                    : "CHANNEL TARGETS"}
+                </small>
                 <div>
-                  {TEXTURE_CHANNELS.filter((c) =>
-                    layer.channels.includes(c.id),
-                  ).map((c) => (
-                    <span
-                      key={c.id}
-                      title={c.label}
-                      style={{ "--channel-color": c.color }}
-                    >
-                      {c.short}
-                    </span>
-                  ))}
-                  {!layer.channels.length && <em>No channels enabled</em>}
+                  {layer.surfaceMaterial && (
+                    <em>
+                      {layer.surfaceTarget
+                        ? `${texturePart(layer.surfaceTarget.partId).name} · UDIM ${texturePart(layer.surfaceTarget.partId).tile}`
+                        : "All teapot parts · live stack material"}
+                    </em>
+                  )}
+                  {!layer.surfaceMaterial &&
+                    TEXTURE_CHANNELS.filter((c) =>
+                      layer.channels.includes(c.id),
+                    ).map((c) => (
+                      <span
+                        key={c.id}
+                        title={c.label}
+                        style={{ "--channel-color": c.color }}
+                      >
+                        {c.short}
+                      </span>
+                    ))}
+                  {!layer.surfaceMaterial && !layer.channels.length && (
+                    <em>No channels enabled</em>
+                  )}
                 </div>
                 <p>
-                  {layer.kind === "paint"
-                    ? layer.channels.some(
-                        (id) => layer.channelSettings[id]?.texture,
-                      )
-                      ? "Stored texture source"
-                      : "Empty texture source"
-                    : "Unevaluated source"}{" "}
-                  · setup only
+                  {layer.surfaceMaterial ? (
+                    layer.surfaceTarget ? (
+                      "Native material · live on this part only"
+                    ) : (
+                      "Native material · covers lower layers"
+                    )
+                  ) : (
+                    <>
+                      {layer.kind === "paint"
+                        ? layer.channels.some(
+                            (id) => layer.channelSettings[id]?.texture,
+                          )
+                          ? "Stored texture source"
+                          : "Empty texture source"
+                        : "Unevaluated source"}{" "}
+                      · setup only
+                    </>
+                  )}
                 </p>
               </div>
             )}
@@ -889,6 +929,58 @@ export default function TextureLayerStack({
         >
           <Trash2 size={14} />
         </button>
+      </div>
+      <div
+        className="tp-system-base"
+        aria-label="System Layer 0"
+        data-base-active={stackPlan.fallbackParts.length > 0}
+      >
+        <button
+          type="button"
+          aria-label="Inspect locked system Layer 0"
+          aria-expanded={systemOpen}
+          onClick={() => setSystemOpen(!systemOpen)}
+        >
+          <i className="tp-system-white" />
+          <LockKeyhole size={12} />
+          <span>Layer 0 · Mesh base</span>
+          <small>{stackPlan.fallbackParts.length ? "Auto" : "Replaced"}</small>
+          <ChevronDown size={12} />
+        </button>
+        {systemOpen && (
+          <div className="tp-system-base-info">
+            <strong>Locked · hidden from editable stack</strong>
+            <p>
+              White fallback
+              {stackPlan.fallbackParts.length
+                ? ` for ${stackPlan.fallbackParts.map((id) => texturePart(id).name).join(", ")}`
+                : " automatically replaced by opaque materials"}
+              . Masks, hidden layers or zero opacity restore it where needed.
+            </p>
+            <p>
+              {doc.meshMaps
+                ? Object.keys(doc.meshMaps.maps)
+                    .map((key) =>
+                      key === "occlusion"
+                        ? "AO · indirect-light multiply"
+                        : key === "normal"
+                          ? "Baked normal · RNM"
+                          : "Bevel normal · RNM",
+                    )
+                    .join(" · ")
+                : "No baked mesh maps attached. Bake the built-in teapot to attach AO / normal support."}
+            </p>
+            {onBake && (
+              <button type="button" className="tp-system-bake" onClick={onBake}>
+                Bake matching teapot support · 512
+              </button>
+            )}
+            <p>
+              Mesh support survives material replacement. This system row cannot
+              be painted, moved, deleted or unlocked.
+            </p>
+          </div>
+        )}
       </div>
       <footer className="tp-pane-footer">
         <span>

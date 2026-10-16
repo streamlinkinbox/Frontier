@@ -1,8 +1,25 @@
+import { litScreenProjection, screenPointer } from "./screenPaintProjection.js";
+import { createDigitalBrushCursorController } from "./digitalBrushCursorController.js";
+import { digitalCursorLabel } from "./digitalBrushCursor.js";
+import { createDigitalPaintSurfaceController } from "./digitalPaintSurface.js";
+import { createTextureOpticalStackController } from "./textureOpticalStackController.js";
+import { createTextureSystemBaseMaterial } from "./textureSystemBaseMaterial.js";
+import { createTextureStackUVController } from "./textureStackUVController.js";
+import { createTextureMeshSupportController } from "./textureMeshSupportController.js";
+import { createMaskPreviewController } from "./maskPreviewController.js";
+import {
+  createMaskCoverageTexture,
+  installMaskPaintCoverage,
+} from "./maskPaintRaster.js";
+import { textureAncestors } from "./textureDocument.js";
+import { createSurfaceAssignmentController } from "./textureSurfaceController.js";
+import { ensureSurfaceCoordinates } from "./textureSurfaceModel.js";
 import { createSurfaceDecalController } from "./decalSurfaceController.js";
 import {
   createSurfaceMaskUniforms,
   surfaceMaskOwners,
   installSelectedStampMask,
+  decalSurfaceHit,
 } from "./decalProjection.js";
 import {
   createPointGradientUniforms,
@@ -192,6 +209,16 @@ export default function Viewport({
   gradientEditor,
   decalDocument,
   decalEditor,
+  surfaceGeometry,
+  systemBase = false,
+  surfaceAPI,
+  selectedPart,
+  onPartSelect,
+  maskPreview,
+  maskEditor,
+  onMaskAtlas,
+  onSurfaceAtlas,
+  renderEnabled = true,
 }) {
   const host = useRef(null),
     engine = useRef(null),
@@ -202,7 +229,20 @@ export default function Viewport({
     pointRef = useRef(pointGradient),
     editorRef = useRef(gradientEditor),
     gradientGesture = useRef(null),
-    decalEditorRef = useRef(decalEditor);
+    decalEditorRef = useRef(decalEditor),
+    partSelectRef = useRef(onPartSelect),
+    maskEditorRef = useRef(maskEditor),
+    maskPreviewRef = useRef(maskPreview),
+    maskGesture = useRef(null),
+    brushCursorMarker = useRef(null),
+    brushCursorReadout = useRef(null),
+    maskAtlasRef = useRef(onMaskAtlas),
+    surfaceAtlasRef = useRef(onSurfaceAtlas);
+  maskEditorRef.current = maskEditor;
+  maskPreviewRef.current = maskPreview;
+  maskAtlasRef.current = onMaskAtlas;
+  surfaceAtlasRef.current = onSurfaceAtlas;
+  partSelectRef.current = onPartSelect;
   pointRef.current = pointGradient;
   editorRef.current = gradientEditor;
   decalEditorRef.current = decalEditor;
@@ -211,6 +251,8 @@ export default function Viewport({
   latest.current = params;
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
+  const renderEnabledRef = useRef(renderEnabled);
+  renderEnabledRef.current = renderEnabled;
   const wireframeRef = useRef(wireframe);
   wireframeRef.current = wireframe;
   const zoomCallback = useRef(onZoomChange);
@@ -315,7 +357,9 @@ export default function Viewport({
     scene.add(grid);
     const group = new THREE.Group();
     scene.add(group);
-    const material = createMaterial(latest.current);
+    const material = systemBase
+      ? createTextureSystemBaseMaterial()
+      : createMaterial(latest.current);
     const pointUniforms = supportsGradient
       ? createPointGradientUniforms()
       : null;
@@ -328,6 +372,7 @@ export default function Viewport({
     if (decalMasks && pointUniforms)
       installSelectedStampMask(material, decalMasks, decalOwners);
     const specimen = new THREE.Mesh(createBallGeometry(), material);
+    if (supportsDecals) ensureSurfaceCoordinates(specimen.geometry);
     specimen.position.y = 1.65;
     specimen.rotation.z = -0.27;
     specimen.rotation.y = -0.4;
@@ -412,6 +457,55 @@ export default function Viewport({
     state.compiling = true;
     state.compileTicket = 0;
     engine.current = state;
+    if (surfaceGeometry) {
+      state.brushCursor = createDigitalBrushCursorController(
+        state,
+        () => maskEditorRef.current,
+        (cursor, pointer) => {
+          const marker = brushCursorMarker.current,
+            readout = brushCursorReadout.current;
+          host.current?.classList.toggle("digital-cursor-visible", !!cursor);
+          if (marker) marker.hidden = !cursor;
+          if (readout) readout.hidden = !cursor;
+          if (!cursor || !pointer) return;
+          const rect = renderer.domElement.getBoundingClientRect();
+          const x = ((pointer.clientX - rect.left) / rect.width) * 100,
+            y = ((pointer.clientY - rect.top) / rect.height) * 100;
+          if (marker) {
+            marker.style.left = `${x}%`;
+            marker.style.top = `${y}%`;
+          }
+          if (readout) {
+            readout.textContent = digitalCursorLabel(cursor);
+            readout.style.left = `${Math.min(x, 70)}%`;
+            readout.style.top = `${Math.min(y, 90)}%`;
+          }
+        },
+      );
+      state.opticalStack = createTextureOpticalStackController(state);
+      state.stackUV = createTextureStackUVController(
+        state,
+        (atlas) => surfaceAtlasRef.current?.(atlas),
+        (message) => decalEditorRef.current?.onError?.(message),
+      );
+      state.stackUV.install(material);
+      state.digitalPaint = createDigitalPaintSurfaceController(
+        state,
+        (message) => decalEditorRef.current?.onError?.(message),
+      );
+      if (decalDocument) state.digitalPaint.update(decalDocument);
+      state.meshSupport = createTextureMeshSupportController(state, (message) =>
+        decalEditorRef.current?.onError?.(message),
+      );
+      state.surfaceAssignments = createSurfaceAssignmentController(
+        state,
+        (m) => releaseAfterCompilation(state, m),
+        decalEditorRef,
+      );
+      state.surfaceAssignments.installBase(material);
+      state.meshSupport.install(material);
+      state.digitalPaint.install(material);
+    }
     if (decalMasks)
       state.decals = createSurfaceDecalController(
         state,
@@ -420,6 +514,17 @@ export default function Viewport({
         decalEditorRef,
         (m) => releaseAfterCompilation(state, m),
       );
+    if (surfaceGeometry && decalMasks) {
+      state.maskPreview = createMaskPreviewController(state, (atlas) =>
+        maskAtlasRef.current?.(atlas),
+      );
+      state.maskCoverage = createMaskCoverageTexture(surfaceGeometry);
+      installMaskPaintCoverage(
+        material,
+        state.maskCoverage.uniforms,
+        "gradient",
+      );
+    }
     state.setZoom = (factor) => {
       state.magnification = THREE.MathUtils.clamp(factor, 0.1, 100);
       camera.zoom = state.fitZoom * state.magnification;
@@ -433,6 +538,7 @@ export default function Viewport({
       zoomCallback.current?.(percent);
     };
     const wheel = (e) => {
+      maskPointerEnd({ pointerId: maskGesture.current?.pointerId }, true);
       e.preventDefault();
       e.stopImmediatePropagation();
       state.setZoom(
@@ -466,11 +572,14 @@ export default function Viewport({
     renderer.domElement.addEventListener("dblclick", inspect);
     let pinch = 0;
     const touchstart = (e) => {
-      if (e.touches.length === 2)
+      if (e.touches.length === 2) {
+        // Navigation must not alter the camera underneath an unfinished stroke.
+        maskPointerEnd({ pointerId: maskGesture.current?.pointerId }, true);
         pinch = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY,
         );
+      }
     };
     const touchmove = (e) => {
       if (e.touches.length === 2) {
@@ -495,6 +604,8 @@ export default function Viewport({
       // last visible frame. Refit/redraw once it has a drawable size again.
       state.visible = width > 0 && height > 0;
       if (!state.visible) return;
+      if (maskGesture.current)
+        maskPointerEnd({ pointerId: maskGesture.current.pointerId }, true);
       renderer.setSize(width, height);
       camera.aspect = width / height;
       state.fitZoom = Math.min(0.86, width / height / 0.9);
@@ -508,11 +619,28 @@ export default function Viewport({
     });
     const tick = () => {
       state.frame = requestAnimationFrame(tick);
-      if (state.visible === false) return;
+      if (state.visible === false || !renderEnabledRef.current) {
+        if (state.dirty && !state.compiling && state.stackUV) {
+          state.stackUV.refresh();
+          state.dirty = false;
+        }
+        return;
+      }
       // Paused previews still redraw a dirty frame after dock resizing. Clearing
       // the framebuffer on resize and skipping this made a visible teapot blank.
-      if (pausedRef.current && !state.dirty) return;
-      controls.update();
+      if (
+        pausedRef.current &&
+        !state.dirty &&
+        !state.cursorDirty &&
+        !state.brushCursor?.pending
+      )
+        return;
+      // enabled=false only gates OrbitControls' DOM events, not damping or
+      // auto-rotation in update(). Do not move the camera under a paint gesture.
+      if (!maskGesture.current && (!pausedRef.current || state.dirty))
+        controls.update();
+      state.cursorDirty =
+        state.brushCursor?.update(state.dirty) || state.cursorDirty;
       const editor = editorRef.current;
       if (editor?.active && pointUniforms) {
         state.specimen.updateMatrixWorld();
@@ -544,8 +672,12 @@ export default function Viewport({
         handleSignature.current = "";
         setGradientHandles([]);
       }
-      if (state.dirty && !state.compiling) {
-        renderer.render(scene, camera);
+      if ((state.dirty || state.cursorDirty) && !state.compiling) {
+        if (state.dirty) state.digitalPaint?.prepare();
+        if (state.opticalStack) state.opticalStack.render();
+        else renderer.render(scene, camera);
+        if (state.dirty) state.stackUV?.refresh();
+        state.cursorDirty = false;
         state.dirty = false;
         renderer.domElement.dataset.materialReady = "true";
       }
@@ -554,6 +686,15 @@ export default function Viewport({
     return () => {
       cancelAnimationFrame(state.frame);
       observer.disconnect();
+      state.brushCursor?.dispose();
+      state.maskPreview?.dispose();
+      state.maskCoverage?.dispose();
+      state.surfaceAssignments?.dispose();
+      state.meshSupport?.dispose();
+      state.digitalPaint?.dispose();
+      state.stackUV?.dispose();
+      state.opticalStack?.dispose();
+      if (surfaceAPI) surfaceAPI.current = null;
       state.decals?.dispose();
       controls.dispose();
       renderer.domElement.removeEventListener("wheel", wheel, true);
@@ -590,10 +731,12 @@ export default function Viewport({
       await previous;
       if (engine.current !== e || ticket !== e.compileTicket) return;
       const old = e.specimen.material;
-      e.specimen.material = createMaterial({
-        ...params,
-        clothMapping: shape === "Draped cloth",
-      });
+      e.specimen.material = systemBase
+        ? createTextureSystemBaseMaterial()
+        : createMaterial({
+            ...params,
+            clothMapping: shape === "Draped cloth",
+          });
       if (e.pointUniforms) {
         installPointGradient(e.specimen.material, e.pointUniforms);
         if (e.decalMasks)
@@ -608,6 +751,16 @@ export default function Viewport({
           e.specimen.geometry,
         );
       }
+      e.surfaceAssignments?.installBase(e.specimen.material);
+      e.meshSupport?.install(e.specimen.material);
+      e.digitalPaint?.install(e.specimen.material);
+      e.stackUV?.install(e.specimen.material);
+      if (e.maskCoverage)
+        installMaskPaintCoverage(
+          e.specimen.material,
+          e.maskCoverage.uniforms,
+          "gradient",
+        );
       e.specimen.material.wireframe = wireframeRef.current;
       e.scene.background =
         params.type === 5 ? new THREE.Color("#25272b") : null;
@@ -642,6 +795,7 @@ export default function Viewport({
     if (engine.current) {
       engine.current.renderer.domElement.dataset.wireframe = String(wireframe);
       engine.current.specimen.material.wireframe = wireframe;
+      engine.current.maskPreview?.setWireframe(wireframe);
       engine.current.dirty = true;
     }
   }, [wireframe]);
@@ -683,7 +837,9 @@ export default function Viewport({
       e.specimen.geometry = new THREE.SphereGeometry(1.4, 128, 96);
     }
     if (shape === "Teapot") {
-      e.specimen.geometry = new TeapotGeometry(1.05, 20);
+      e.specimen.geometry = surfaceGeometry
+        ? surfaceGeometry.clone()
+        : new TeapotGeometry(1.05, 20);
       e.specimen.position.y = 1.4;
     }
     if (e.previousShape === "Rug" && shape !== "Rug") {
@@ -707,6 +863,20 @@ export default function Viewport({
       (e.specimen.geometry.index?.count ||
         e.specimen.geometry.attributes.position.count) / 3,
     );
+    if (supportsDecals) ensureSurfaceCoordinates(e.specimen.geometry);
+    if (surfaceAPI)
+      surfaceAPI.current = {
+        pick: (x, y) => decalSurfaceHit(e, x, y),
+        hover: (id) => e.surfaceAssignments?.setHighlight(id),
+        canvas: e.renderer.domElement,
+        navigate: () => {
+          maskPointerEnd({ pointerId: maskGesture.current?.pointerId }, true);
+        },
+      };
+    if (surfaceGeometry)
+      e.renderer.domElement.dataset.surfaceParts = JSON.stringify(
+        surfaceGeometry.userData.surfaceParts,
+      );
     e.previousShape = shape;
     if (shape === "Rug") {
       e.camera.position.set(1.6, 2.4, 6.8);
@@ -776,7 +946,13 @@ export default function Viewport({
       e.specimen.rotation.x = 0.06;
       e.specimen.position.y = 1.68;
     }
-  }, [shape, params.plantRibs, params.pattern?.designAspect, studioLayout]);
+  }, [
+    shape,
+    params.plantRibs,
+    params.pattern?.designAspect,
+    studioLayout,
+    surfaceGeometry,
+  ]);
   useEffect(() => {
     const e = engine.current;
     if (!e) return;
@@ -982,7 +1158,134 @@ export default function Viewport({
     const e = engine.current;
     if (e?.decals && decalDocument) e.decals.update(decalDocument, decalEditor);
   }, [decalDocument, decalEditor, shape]);
+  useEffect(() => {
+    const e = engine.current;
+    if (e?.surfaceAssignments && decalDocument) {
+      e.meshSupport?.update(decalDocument.meshMaps);
+      e.digitalPaint?.update(decalDocument);
+      e.surfaceAssignments.update(decalDocument, wireframe);
+    }
+  }, [decalDocument, wireframe, surfaceGeometry]);
+  useEffect(() => {
+    engine.current?.surfaceAssignments?.setHighlight(selectedPart);
+  }, [selectedPart]);
+  useEffect(() => {
+    const state = engine.current;
+    state?.maskPreview
+      ?.update(maskPreview)
+      .catch((error) =>
+        decalEditorRef.current?.onError?.(`Mask preview: ${error.message}`),
+      );
+    if (state?.maskCoverage && decalDocument) {
+      const owner = decalDocument.layers.find(
+        (l) => l.id === decalEditor?.previewLayerId,
+      );
+      state.maskCoverage
+        .update(
+          owner ? [...textureAncestors(decalDocument, owner.id), owner] : [],
+          decalDocument,
+        )
+        .then(() => {
+          state.dirty = true;
+        })
+        .catch((error) => decalEditorRef.current?.onError?.(error.message));
+    }
+  }, [maskPreview, decalDocument, decalEditor?.previewLayerId, shape]);
+  useEffect(() => {
+    if (!maskEditor?.active && maskGesture.current)
+      maskPointerEnd({ pointerId: maskGesture.current.pointerId }, true);
+  }, [maskEditor?.active]);
+  useEffect(() => {
+    const cancelMask = () => {
+      maskPointerEnd({ pointerId: maskGesture.current?.pointerId }, true);
+      engine.current?.brushCursor?.clear();
+    };
+    const visibility = () => {
+      if (document.visibilityState === "hidden") cancelMask();
+    };
+    const escape = (e) => {
+      if (e.key === "Escape") cancelMask();
+    };
+    window.addEventListener("keydown", escape);
+    window.addEventListener("blur", cancelMask);
+    document.addEventListener("visibilitychange", visibility);
+    return () => {
+      window.removeEventListener("keydown", escape);
+      window.removeEventListener("blur", cancelMask);
+      document.removeEventListener("visibilitychange", visibility);
+      cancelMask();
+    };
+  }, []);
+  useEffect(() => {
+    if (!maskEditor?.active || !renderEnabled)
+      engine.current?.brushCursor?.clear();
+    else engine.current?.brushCursor?.invalidate();
+  }, [maskEditor, renderEnabled]);
+  function paintingPointer(e) {
+    const state = engine.current;
+    if (
+      !state ||
+      !maskEditorRef.current?.digital ||
+      !Number.isFinite(e.clientX)
+    )
+      return e;
+    const rect = state.renderer.domElement.getBoundingClientRect();
+    return screenPointer(e, litScreenProjection(state, rect), rect);
+  }
+  function maskPointerEnd(e, cancelled = false) {
+    const g = maskGesture.current;
+    if (!g) {
+      if (e.pointerType === "touch") engine.current?.brushCursor?.clear();
+      return;
+    }
+    if (g.pointerId !== e.pointerId) return;
+    e.preventDefault?.();
+    e.stopPropagation?.();
+    maskGesture.current = null;
+    if (engine.current) engine.current.controls.enabled = true;
+    const editor = maskEditorRef.current;
+    const hit =
+      !cancelled && editor?.digital && Number.isFinite(e.clientX)
+        ? surfaceAPI?.current?.pick(e.clientX, e.clientY)
+        : null;
+    editor?.onEnd(cancelled, hit, paintingPointer(e));
+    if (e.pointerType === "touch" || cancelled)
+      engine.current?.brushCursor?.clear();
+    else engine.current?.brushCursor?.move(e);
+    if (host.current?.hasPointerCapture(g.pointerId))
+      host.current.releasePointerCapture(g.pointerId);
+  }
   function surfacePointerDown(e) {
+    const mask = maskEditorRef.current;
+    if (mask?.active && (maskGesture.current || e.isPrimary === false)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (e.target.tagName === "CANVAS") engine.current?.brushCursor?.move(e);
+    if (
+      e.button === 0 &&
+      e.target.tagName === "CANVAS" &&
+      mask?.active &&
+      !e.altKey &&
+      !e.ctrlKey &&
+      !e.metaKey
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.currentTarget.focus();
+      if (
+        mask.onStart(
+          surfaceAPI?.current?.pick(e.clientX, e.clientY),
+          paintingPointer(e),
+        )
+      ) {
+        maskGesture.current = { pointerId: e.pointerId };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        if (engine.current) engine.current.controls.enabled = false;
+      }
+      return;
+    }
     const editor = decalEditorRef.current;
     if (
       e.button === 0 &&
@@ -995,9 +1298,41 @@ export default function Viewport({
       engine.current?.decals?.stamp(e.clientX, e.clientY);
       return;
     }
+    if (
+      e.button === 0 &&
+      e.target.tagName === "CANVAS" &&
+      !editorRef.current?.active &&
+      !editor?.active
+    ) {
+      const hit = surfaceAPI?.current?.pick(e.clientX, e.clientY);
+      if (hit?.target) partSelectRef.current?.(hit.target.partId);
+    }
     gradientPointerDown(e);
   }
   function surfacePointerMove(e) {
+    const g = maskGesture.current;
+    // A pen and mouse can both be primary pointers. Gesture ownership, not
+    // isPrimary alone, protects both the live dab and its exact-input marker.
+    if (g && g.pointerId !== e.pointerId) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (
+      (e.target.tagName === "CANVAS" || g) &&
+      (g || e.pointerType !== "touch")
+    )
+      engine.current?.brushCursor?.move(e);
+    else engine.current?.brushCursor?.clear();
+    if (g) {
+      e.preventDefault();
+      e.stopPropagation();
+      maskEditorRef.current?.onMove(
+        surfaceAPI?.current?.pick(e.clientX, e.clientY),
+        paintingPointer(e),
+      );
+      return;
+    }
     const editor = decalEditorRef.current;
     if (
       editor?.active &&
@@ -1011,14 +1346,31 @@ export default function Viewport({
     <div
       className="canvas-host"
       ref={host}
+      tabIndex={maskEditor ? 0 : undefined}
       onPointerDownCapture={surfacePointerDown}
       onPointerMoveCapture={surfacePointerMove}
-      onPointerLeave={() => engine.current?.decals?.clearGhost()}
-      onPointerUpCapture={(e) => gradientPointerEnd(e)}
-      onPointerCancelCapture={(e) => gradientPointerEnd(e, true)}
-      onLostPointerCapture={(e) => gradientPointerEnd(e, true)}
+      onPointerLeave={() => {
+        engine.current?.decals?.clearGhost();
+        if (!maskGesture.current) engine.current?.brushCursor?.clear();
+      }}
+      onPointerUpCapture={(e) => {
+        maskPointerEnd(e);
+        gradientPointerEnd(e);
+      }}
+      onPointerCancelCapture={(e) => {
+        maskPointerEnd(e, true);
+        gradientPointerEnd(e, true);
+      }}
+      onLostPointerCapture={(e) => {
+        maskPointerEnd(e, true);
+        gradientPointerEnd(e, true);
+      }}
       onKeyDown={(e) => {
-        if (e.key === "Escape") engine.current?.decals?.cancel();
+        if (e.key === "Escape") {
+          maskPointerEnd({ pointerId: maskGesture.current?.pointerId }, true);
+          engine.current?.brushCursor?.clear();
+          engine.current?.decals?.cancel();
+        }
         if (e.key === "Escape" && gradientGesture.current) {
           e.preventDefault();
           e.stopPropagation();
@@ -1028,6 +1380,18 @@ export default function Viewport({
         }
       }}
     >
+      <span
+        ref={brushCursorMarker}
+        className="digital-cursor-anchor"
+        aria-hidden="true"
+        hidden
+      />
+      <span
+        ref={brushCursorReadout}
+        className="digital-cursor-readout"
+        aria-hidden="true"
+        hidden
+      />
       {gradientEditor?.active && (
         <div className="point-gradient-handles">
           {gradientHandles

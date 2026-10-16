@@ -20,11 +20,14 @@ import {
   FolderOpen,
   Download,
   Move,
+  RotateCw,
+  Scaling,
   MousePointer2,
 } from "lucide-react";
 import { StudioHeader, StudioDockTab } from "./StudioUI.jsx";
 import { Slider, ColorField } from "./MaterialControls.jsx";
 import StampRichTextEditor from "./StampRichTextEditor.jsx";
+import useStampTransform from "./useStampTransform.js";
 import { PAINT_CHANNELS } from "./paintChannelModel.js";
 import { importTextureSource } from "./textureSource.js";
 import { sanitizePatternSVG } from "./patternImport.js";
@@ -48,6 +51,7 @@ import {
   stampId,
 } from "./stampDocument.js";
 import "./stampStudio.css";
+import "./channelPropertyPanel.css";
 
 const kindIcon = (kind) =>
   kind === "text" ? Type : kind === "svg" ? Code2 : ImagePlus;
@@ -158,11 +162,24 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
   const [presets, setPresets] = useState(readStampPresets);
   const [preview, setPreview] = useState(""),
     [fontWarning, setFontWarning] = useState("");
-  const [draft, setDraft] = useState(null),
-    draftRef = useRef(null),
-    gesture = useRef(null),
-    board = useRef(null);
-  draftRef.current = draft;
+  const transform = useStampTransform({
+    documentRef: current,
+    selectionRef,
+    onSelect: choose,
+    onHistory: travel,
+    onCommit: (changes, id) =>
+      commit(
+        {
+          ...current.current,
+          layers: current.current.layers.map((layer) =>
+            layer.id === id ? { ...layer, ...changes } : layer,
+          ),
+        },
+        null,
+        id,
+      ),
+  });
+  const { board, draft } = transform;
   const input = useRef(null),
     previewURLs = useRef(new Set()),
     previewWanted = useRef(null),
@@ -187,6 +204,7 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
       const next = normalizeStampDocument(input);
       if (JSON.stringify(next) === JSON.stringify(current.current))
         return false;
+      transform.cancel();
       if (!key || coalesce.current !== key)
         undo.current = [
           ...undo.current,
@@ -227,15 +245,13 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
     );
   }
   function choose(id) {
+    if (id !== selectionRef.current) transform.cancel();
     setSelectedId(id);
     selectionRef.current = id;
     coalesce.current = null;
   }
   function travel(direction) {
-    if (gesture.current) {
-      endGesture(true);
-      return;
-    }
+    if (transform.cancel()) return;
     const source = direction === "undo" ? undo : redo,
       target = direction === "undo" ? redo : undo;
     if (!source.current.length) return;
@@ -246,6 +262,7 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
     const next = source.current.pop();
     current.current = next.doc;
     setDoc(next.doc);
+    selectionRef.current = next.selection;
     setSelectedId(next.selection);
     coalesce.current = null;
     setRevision((n) => n + 1);
@@ -317,17 +334,6 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
       }
     };
   }, []);
-  useEffect(() => {
-    const key = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        travel(e.shiftKey ? "redo" : "undo");
-      }
-      if (e.key === "Escape") endGesture(true);
-    };
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
-  }, []);
   function add(kind, options = {}) {
     if (current.current.layers.length >= STAMP_LAYER_LIMIT) {
       setError("The 24-component limit has been reached.");
@@ -338,61 +344,6 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
       { ...current.current, layers: [component, ...current.current.layers] },
       null,
       component.id,
-    );
-  }
-  function startGesture(e, layer, mode = "move") {
-    if (e.button !== 0 || layer.locked) return;
-    e.preventDefault();
-    e.stopPropagation();
-    choose(layer.id);
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const rect = board.current.getBoundingClientRect();
-    gesture.current = {
-      id: layer.id,
-      before: JSON.stringify(layer),
-      layer,
-      mode,
-      pointerId: e.pointerId,
-      x: e.clientX,
-      y: e.clientY,
-      factor: 512 / rect.width,
-    };
-  }
-  function moveGesture(e) {
-    const g = gesture.current;
-    if (!g || e.pointerId !== g.pointerId) return;
-    const dx = (e.clientX - g.x) * g.factor,
-      dy = (e.clientY - g.y) * g.factor;
-    const snap = (v) => (e.shiftKey ? Math.round(v / 8) * 8 : v);
-    const next =
-      g.mode === "resize"
-        ? {
-            id: g.id,
-            width: Math.max(1, snap(g.layer.width + dx * 2)),
-            height: Math.max(1, snap(g.layer.height + dy * 2)),
-          }
-        : { id: g.id, x: snap(g.layer.x + dx), y: snap(g.layer.y + dy) };
-    draftRef.current = next;
-    setDraft(next);
-  }
-  function endGesture(cancel = false) {
-    const g = gesture.current,
-      next = draftRef.current;
-    gesture.current = null;
-    draftRef.current = null;
-    setDraft(null);
-    if (!g || !next || cancel) return;
-    const owner = current.current.layers.find((l) => l.id === g.id);
-    if (!owner || owner.locked || JSON.stringify(owner) !== g.before) return;
-    commit(
-      {
-        ...current.current,
-        layers: current.current.layers.map((l) =>
-          l.id === g.id ? { ...l, ...next } : l,
-        ),
-      },
-      null,
-      g.id,
     );
   }
   function pickFile(kind) {
@@ -564,7 +515,10 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
           <button
             key={id}
             aria-pressed={mobilePanel === id}
-            onClick={() => setMobilePanel(id)}
+            onClick={() => {
+              transform.cancel();
+              setMobilePanel(id);
+            }}
           >
             {id}
           </button>
@@ -757,19 +711,71 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
             Stamp canvas <span className="stamp-canvas-size">512 × 512</span>
           </StudioDockTab>
           <div className="stamp-canvas-toolbar">
-            <span>
-              <Move size={13} /> Drag components · Shift snaps
-            </span>
-            <button onClick={() => exportArtwork("svg")}>SVG</button>
-            <button onClick={() => exportArtwork("png")}>
-              PNG <Download size={12} />
-            </button>
+            <div
+              className="stamp-transform-tools"
+              role="group"
+              aria-label="Stamp transform tools"
+            >
+              {[
+                ["move", "Move", "G", Move],
+                ["rotate", "Rotate", "R", RotateCw],
+                ["scale", "Scale", "S", Scaling],
+              ].map(([mode, label, shortcut, Icon]) => (
+                <button
+                  key={mode}
+                  aria-label={`${label} stamp component`}
+                  aria-keyshortcuts={shortcut}
+                  aria-pressed={transform.active?.mode === mode}
+                  disabled={!selected || selected.locked || !selected.visible}
+                  title={`${label} (${shortcut}) · click/Enter confirms · Esc cancels`}
+                  onClick={() => transform.startModal(mode)}
+                >
+                  <Icon size={13} /> {label} <kbd>{shortcut}</kbd>
+                </button>
+              ))}
+            </div>
+            <div className="stamp-canvas-exports">
+              <button onClick={() => exportArtwork("svg")}>SVG</button>
+              <button onClick={() => exportArtwork("png")}>
+                PNG <Download size={12} />
+              </button>
+            </div>
           </div>
-          <div className="stamp-canvas-surround">
+          <div
+            className="stamp-transform-help"
+            role="status"
+            aria-live="polite"
+          >
+            {transform.active?.source === "modal" ? (
+              <>
+                {transform.active.mode === "move"
+                  ? "Move"
+                  : transform.active.mode === "rotate"
+                    ? "Rotate"
+                    : "Scale"}
+                {transform.active.axis &&
+                  ` · ${transform.active.axis.toUpperCase()} axis`}
+                {transform.active.mode !== "rotate" && " · X/Y constrain"}
+                {
+                  " · Shift snaps · Click/Enter confirms · Esc/right-click cancels"
+                }
+              </>
+            ) : (
+              "Drag to move · G move · R rotate · S scale · Shift snaps"
+            )}
+          </div>
+          <div
+            className={`stamp-canvas-surround ${transform.active ? `stamp-transform-${transform.active.mode}` : ""}`}
+          >
             <div
               className="stamp-canvas"
               ref={board}
               aria-label="Stamp composition canvas"
+              role="region"
+              tabIndex={0}
+              data-transform-mode={transform.active?.mode || ""}
+              data-transform-axis={transform.active?.axis || ""}
+              data-transform-source={transform.active?.source || ""}
             >
               {preview && (
                 <img
@@ -796,12 +802,9 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
                         doc.layers.findIndex((l) => l.id === component.id),
                     }}
                     onClick={() => choose(component.id)}
-                    onPointerDown={(e) => startGesture(e, component)}
-                    onPointerMove={moveGesture}
-                    onPointerUp={() => endGesture()}
-                    onPointerCancel={() => endGesture(true)}
-                    onLostPointerCapture={() => endGesture(true)}
+                    onPointerDown={(e) => transform.startDrag(e, component)}
                     onKeyDown={(e) => {
+                      if (transform.gesture.current) return;
                       if (
                         [
                           "ArrowLeft",
@@ -852,7 +855,7 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
                           aria-label="Resize selected stamp component"
                           className="stamp-resize-handle"
                           onPointerDown={(e) =>
-                            startGesture(e, component, "resize")
+                            transform.startDrag(e, component, "resize")
                           }
                         />
                       </>
@@ -872,7 +875,7 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
             </span>
           </div>
         </section>
-        <aside className="stamp-right">
+        <aside className="stamp-right tp-shared-controls">
           <StudioDockTab icon={Type}>Stamp inspector</StudioDockTab>
           <div className="stamp-inspector-scroll">
             <div className="stamp-identity">
@@ -1026,8 +1029,8 @@ export default function StampStudio({ initial, onWorkspace, onClose, onUse }) {
                   <Slider
                     label="Rotation"
                     ariaLabel="Stamp rotation"
-                    min={-180}
-                    max={180}
+                    min={-360}
+                    max={360}
                     step={1}
                     unit="°"
                     value={shown.rotation}

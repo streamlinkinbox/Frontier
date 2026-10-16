@@ -34,7 +34,7 @@ const signature = (d) =>
 
 test("108 legacy blueprints: bounds, determinism, complete serialization", () => {
   expect(rugDesignCatalog).toHaveLength(108);
-  expect(patternStarterCatalog).toHaveLength(83);
+  expect(patternStarterCatalog).toHaveLength(103);
   for (const group of [
     "African compositions",
     "Islamic carpets",
@@ -176,15 +176,13 @@ test("Retired saved composition: controls, undo, SVG/JSON and rug preview", asyn
   await page.goto(
     "/?material=natural-cotton&studio=pattern&pattern=chromatic-diamond-tapestry",
   );
-  await page
-    .locator('input[accept=".json"]')
-    .setInputFiles({
-      name: "legacy.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify(patternStarter("Saffron Rosette Court")),
-      ),
-    });
+  await page.locator('input[accept=".json"]').setInputFiles({
+    name: "legacy.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify(patternStarter("Saffron Rosette Court")),
+    ),
+  });
   const before = JSON.parse(await download(page, "Save document"));
   await page.getByLabel("Rug detail level").selectOption("3");
   await page.getByLabel("Rug border width").fill("60");
@@ -215,15 +213,13 @@ test("Retired saved composition: controls, undo, SVG/JSON and rug preview", asyn
   await page.locator(".pe-inspector").evaluate((e) => (e.scrollTop = 0));
   await page.screenshot({ path: ".playwright/final-ornate-islamic-rug.png" });
   await page.getByRole("button", { name: "Design tile", exact: true }).click();
-  await page
-    .locator('input[accept=".json"]')
-    .setInputFiles({
-      name: "legacy.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify(patternStarter("Chromatic Diamond Tapestry")),
-      ),
-    });
+  await page.locator('input[accept=".json"]').setInputFiles({
+    name: "legacy.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify(patternStarter("Chromatic Diamond Tapestry")),
+    ),
+  });
   await page.locator(".pe-inspector").evaluate((e) => (e.scrollTop = 0));
   await page.screenshot({
     path: ".playwright/final-detailed-african-design.png",

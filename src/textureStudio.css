@@ -2497,3 +2497,329 @@
   display: block;
   opacity: 1;
 }
+
+/* Same Texture runtime; the third view is a geometry-backed 2D authoring canvas. */
+.tp-part-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 12px 7px;
+  min-height: 29px;
+  flex: none;
+  min-width: 0;
+}
+.tp-part-toolbar > span {
+  color: #666b67;
+  font-size: 9px;
+  margin-right: 4px;
+}
+.tp-part-toolbar > button {
+  font-size: 9px;
+  padding: 4px 8px;
+  min-height: 25px;
+  background: #111414;
+  border: 1px solid #ffffff0a;
+  border-radius: 15px;
+  white-space: nowrap;
+}
+.tp-part-toolbar > button[aria-pressed="true"] {
+  background: #29302d;
+  border-color: #829c7155;
+  color: #d4ddcc;
+}
+.tp-part-toolbar button > i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--part-color);
+  margin-right: 4px;
+}
+.tp-part-toolbar > small {
+  margin-left: auto;
+  color: #757a75;
+  white-space: nowrap;
+}
+.tp-part-toolbar > select {
+  margin-left: auto;
+  height: 26px;
+  font-size: 9px;
+  max-width: 220px;
+}
+.tp-part-drop-note {
+  position: absolute;
+  z-index: 9;
+  left: 50%;
+  top: 54px;
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border-radius: 15px;
+  border: 1px solid #aecc9060;
+  background: #243125ed;
+  color: #d4e9c5;
+  font-size: 10px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.tp-scene-viewport[data-view-mode="uv"] > .canvas-host {
+  visibility: hidden;
+  pointer-events: none;
+}
+.tp-scene-viewport[data-view-mode="uv"] > .tp-view-axis,
+.tp-scene-viewport[data-view-mode="uv"] > .tp-scene-caption,
+.tp-scene-viewport[data-view-mode="uv"] > .tp-viewport-hint {
+  display: none;
+}
+.tp-uv-view {
+  position: absolute;
+  inset: 0;
+  background: #141719;
+}
+.tp-uv-view > .tp-uv-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tp-uv-info {
+  position: absolute;
+  left: 18px;
+  top: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+.tp-uv-info > strong {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #a2acaa;
+}
+.tp-uv-info > span {
+  font-size: 8px;
+  color: #767f82;
+}
+.tp-uv-source-notice {
+  position: absolute;
+  left: 18px;
+  right: 16px;
+  top: 117px;
+  font-size: 9px !important;
+  color: #c0ab83 !important;
+  max-width: 430px;
+  pointer-events: none;
+}
+.tp-uv-readout {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 13px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.tp-uv-readout > span {
+  font-size: 9px;
+  color: #a7b0b0;
+}
+.tp-uv-readout > small {
+  font-size: 7px;
+  color: #666f75;
+}
+.tp-part-material-card fieldset {
+  border: 0;
+  padding: 0;
+  margin-top: 12px;
+  min-width: 0;
+}
+.tp-part-material-card .recipe-section {
+  border-radius: 12px;
+  margin-top: 9px;
+  border: 1px solid #ffffff09;
+  padding: 0;
+}
+.tp-part-material-card .section-content {
+  padding: 10px;
+}
+.tp-part-material-card .section-title {
+  width: 100%;
+  border: 0;
+  background: #202320;
+}
+.tp-part-material-card .recipe-intro {
+  margin: 0 0 10px;
+}
+.tp-part-material-card .color-picker {
+  z-index: 20;
+}
+.tp-part-material-summary {
+  color: #bdc6af !important;
+}
+@media (max-width: 1100px) {
+  .tp-part-toolbar > small {
+    display: none;
+  }
+  .tp-viewport-heading {
+    flex-wrap: wrap;
+  }
+  .tp-viewport-heading > .tp-view-modes {
+    flex-shrink: 0;
+  }
+  .tp-viewport-heading > .tp-preview-badge {
+    display: none;
+  }
+}
+@media (max-width: 780px) {
+  .tp-viewport-heading > .tp-view-modes {
+    margin-left: auto;
+  }
+  .tp-viewport-heading > div:nth-child(2) {
+    flex: 1;
+  }
+  .tp-part-toolbar {
+    margin: 0 7px 5px;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .tp-part-toolbar > button {
+    padding: 3px 6px;
+    font-size: 8px;
+    min-height: 23px;
+  }
+  .tp-part-toolbar > span {
+    font-size: 8px;
+  }
+  .tp-part-toolbar > select {
+    height: 23px;
+    font-size: 8px;
+    max-width: 100%;
+  }
+  .tp-uv-info {
+    top: 80px;
+    left: 11px;
+  }
+  .tp-uv-source-notice {
+    top: 106px;
+    left: 11px;
+    font-size: 8px !important;
+  }
+  .tp-uv-readout {
+    left: 11px;
+    right: 9px;
+    bottom: 10px;
+  }
+  .tp-uv-readout > span {
+    font-size: 8px;
+  }
+  .tp-uv-readout > small {
+    font-size: 6px;
+  }
+}
+
+/* Give the phone's authoring canvas real drawing room, not thumbnail-size tiles. */
+.tp-uv-view[data-compact="true"] .tp-uv-info {
+  top: 48px;
+  flex-direction: row;
+  gap: 8px;
+}
+.tp-uv-view[data-compact="true"] .tp-uv-info > strong,
+.tp-uv-view[data-compact="true"] .tp-uv-info > span {
+  font-size: 6px;
+  letter-spacing: 0;
+}
+@media (max-width: 680px) {
+  .tp-studio:has(.tp-scene-viewport[data-view-mode="uv"]) .tp-layout {
+    grid-template-rows: minmax(350px, 51%) minmax(0, 1fr);
+  }
+  .tp-scene-viewport[data-view-mode="uv"] .tp-decal-toolbar {
+    gap: 2px;
+    padding: 3px;
+    max-width: calc(100% - 16px);
+  }
+  .tp-scene-viewport[data-view-mode="uv"] .tp-decal-toolbar > button {
+    white-space: nowrap;
+    padding: 4px 5px;
+    font-size: 8px;
+    gap: 4px;
+    min-height: 24px;
+  }
+  .tp-scene-viewport[data-view-mode="uv"] .tp-decal-toolbar > span {
+    margin: 0 2px;
+  }
+  .tp-scene-viewport[data-view-mode="uv"]
+    .tp-decal-toolbar
+    > button:last-child {
+    font-size: 7px;
+  }
+  .tp-scene-viewport[data-view-mode="uv"] .tp-decal-mode-note {
+    display: none;
+  }
+  .tp-scene-viewport[data-view-mode="uv"] .tp-uv-source-notice {
+    top: 63px;
+  }
+}
+
+/* Mesh support is a derived, locked system row, never a draggable user layer. */
+.tp-system-base {
+  position: relative;
+  border-top: 1px solid #ffffff10;
+  padding: 6px 10px;
+}
+.tp-system-base > button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 3px 0;
+  color: #93978d;
+  font-size: 10px;
+  text-align: left;
+}
+.tp-system-base > button span {
+  flex: 1;
+}
+.tp-system-base > button small {
+  color: #adad99;
+  font-size: 9px;
+}
+.tp-system-white {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 0 0 3px #ffffff0b;
+}
+.tp-system-base-info {
+  position: absolute;
+  z-index: 80;
+  left: 9px;
+  right: 9px;
+  bottom: calc(100% + 5px);
+  padding: 14px;
+  background: #252722;
+  border: 1px solid #ffffff1a;
+  border-radius: 13px;
+  box-shadow: 0 12px 40px #0008;
+  font-size: 10px;
+  color: #b0b3a7;
+}
+.tp-system-base-info strong {
+  color: #deded0;
+  font-size: 11px;
+}
+.tp-system-base-info p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+.tp-system-bake {
+  background: #bfc19b;
+  color: #252720;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 10px;
+  margin-top: 10px;
+  cursor: pointer;
+}

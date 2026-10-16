@@ -149,13 +149,17 @@ function App() {
   const [stampEdit, setStampEdit] = useState(null);
   const [stampRequest, setStampRequest] = useState(null);
   const [bakeMode, setBakeMode] = useState("mesh");
+  const [textureBakeTarget, setTextureBakeTarget] = useState(false);
   const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
   function openWorkspace(value, mode = "mesh") {
     const next = normalizeStudioWorkspace(value);
     if (next !== "stamp" && workspace === "stamp") setStampEdit(null);
     setModal(null);
     setWorkspace(next);
-    if (next === "baking") setBakeMode(mode);
+    if (next === "baking") {
+      setBakeMode(mode);
+      setTextureBakeTarget(workspace === "texture");
+    }
     try {
       const url = new URL(window.location.href);
       if (next === "material") url.searchParams.delete("studio");
@@ -467,6 +471,7 @@ function App() {
               params={params}
               currentShape={shape}
               initialMode={bakeMode}
+              textureTarget={textureBakeTarget}
               onClose={() => openWorkspace("material")}
               onWorkspace={openWorkspace}
             />

@@ -112,6 +112,12 @@ test("all instrument families browse safely, tool properties persist with undo, 
     exact: true,
   });
   await opener.click();
+  await page
+    .getByRole("button", {
+      name: "Instrument catalogue configuration only",
+      exact: true,
+    })
+    .click();
   const menu = page.getByRole("dialog", {
     name: "Paint tool menu",
     exact: true,
@@ -173,6 +179,12 @@ test("all instrument families browse safely, tool properties persist with undo, 
   await project(page);
   await page.reload();
   await opener.click();
+  await page
+    .getByRole("button", {
+      name: "Instrument catalogue configuration only",
+      exact: true,
+    })
+    .click();
   await menu
     .getByRole("button", {
       name: `Select paint tool ${tool.label}`,
@@ -189,6 +201,12 @@ test("all instrument families browse safely, tool properties persist with undo, 
     .getByRole("button", { name: "Close paint tool menu", exact: true })
     .click();
   await page.locator(".tp-scene-viewport canvas").click({ button: "right" });
+  await page
+    .getByRole("button", {
+      name: "Instrument catalogue configuration only",
+      exact: true,
+    })
+    .click();
   await expect(menu).toBeVisible();
   await menu
     .getByRole("button", { name: "Close paint tool menu", exact: true })

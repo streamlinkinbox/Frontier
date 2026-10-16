@@ -18,9 +18,9 @@ test("texture document has stable ordered identities, no image allocation and a 
   expect(doc.layers.map((l) => l.kind)).toEqual(["paint", "fill", "material"]);
   expect(new Set(doc.layers.map((l) => l.id)).size).toBe(3);
   expect(validateTextureDocument(JSON.parse(JSON.stringify(doc)))).toEqual(doc);
-  expect(JSON.stringify(doc)).not.toMatch(
-    /data:image|stroke|atlas|textureData/,
-  );
+  expect(JSON.stringify(doc)).not.toMatch(/data:image|atlas|textureData/);
+  expect(doc.lastDigitalStroke).toBeNull();
+  expect(doc.layers.every((layer) => !layer.paint)).toBe(true);
 });
 test("texture document validation rejects foreign schemas, duplicate identities, unknown kinds and large files", () => {
   const doc = createTextureDocument();

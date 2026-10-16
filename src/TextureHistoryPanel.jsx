@@ -1,3 +1,4 @@
+import { DIGITAL_BRUSH_PRESETS } from "./digitalBrush.js";
 import React, { useEffect, useState } from "react";
 import {
   History,
@@ -33,7 +34,11 @@ export default function TextureHistoryPanel({ history }) {
   const entries = history.entries,
     selected =
       entries.find((e) => e.id === chosen) || entries.find((e) => e.current),
-    stroke = selected?.lastStroke;
+    digitalStroke = selected?.lastDigitalStroke,
+    sourceStroke = selected?.lastStroke,
+    stroke = digitalStroke
+      ? { ...digitalStroke, settings: { color: digitalStroke.brush.color } }
+      : sourceStroke;
   const darkInk =
     stroke &&
     parseInt(stroke.settings.color.slice(1, 3), 16) * 0.299 +
@@ -80,7 +85,14 @@ export default function TextureHistoryPanel({ history }) {
         >
           <h2>
             <i />
-            Last stroke <small>2D source</small>
+            Last stroke{" "}
+            <small>
+              {digitalStroke
+                ? digitalStroke.mask
+                  ? "Mask coverage"
+                  : "Surface channels"
+                : "2D source"}
+            </small>
           </h2>
           {stroke ? (
             <>
@@ -107,15 +119,30 @@ export default function TextureHistoryPanel({ history }) {
                 />
               </div>
               <div className="tp-history-stroke-info">
-                <img src={toolArtURL(stroke.settings.toolId, true)} alt="" />
+                {!digitalStroke && (
+                  <img src={toolArtURL(stroke.settings.toolId, true)} alt="" />
+                )}
                 <div>
-                  <strong>{paintTool(stroke.settings.toolId).label}</strong>
+                  <strong>
+                    {digitalStroke
+                      ? DIGITAL_BRUSH_PRESETS.find(
+                          (p) => p.id === digitalStroke.brush.preset,
+                        )?.name
+                      : paintTool(stroke.settings.toolId).label}
+                  </strong>
                   <span>
                     {stroke.layerName} ·{" "}
-                    {
-                      PAINT_CHANNELS.find((c) => c.id === stroke.channelId)
-                        ?.label
-                    }
+                    {digitalStroke
+                      ? digitalStroke.mask
+                        ? "Mask coverage"
+                        : digitalStroke.channels
+                            .map(
+                              (id) =>
+                                PAINT_CHANNELS.find((c) => c.id === id)?.label,
+                            )
+                            .join(", ")
+                      : PAINT_CHANNELS.find((c) => c.id === stroke.channelId)
+                          ?.label}
                   </span>
                 </div>
               </div>
@@ -123,8 +150,10 @@ export default function TextureHistoryPanel({ history }) {
                 {stroke.operation === "erase"
                   ? "Actual eraser footprint"
                   : "Actual recorded stroke"}{" "}
-                at this history state. Source pixels only, not painted teapot
-                coverage.
+                at this history state.{" "}
+                {digitalStroke
+                  ? "Rendered footprint of the committed UV operation, not a tool-setting illustration."
+                  : "Source pixels only, not painted teapot coverage."}
               </p>
             </>
           ) : (
@@ -132,8 +161,8 @@ export default function TextureHistoryPanel({ history }) {
               <Brush size={21} />
               <strong>No recorded stroke</strong>
               <span>
-                Use Paint texture in a channel's Texture source. Tool-setting
-                illustrations are not stroke history.
+                Use digital Paint / Erase / Fill on a layer or mask, or Paint
+                texture in a channel's Texture source.
               </span>
             </div>
           )}
@@ -175,9 +204,13 @@ export default function TextureHistoryPanel({ history }) {
                   onClick={() => setChosen(entry.id)}
                 >
                   <span className="tp-history-entry-icon">
-                    {entry.kind === "stroke" && entry.lastStroke ? (
+                    {entry.kind === "stroke" &&
+                    (entry.lastDigitalStroke || entry.lastStroke) ? (
                       <img
-                        src={entry.lastStroke.image.dataUrl}
+                        src={
+                          (entry.lastDigitalStroke || entry.lastStroke).image
+                            .dataUrl
+                        }
                         alt="Stroke history thumbnail"
                       />
                     ) : (

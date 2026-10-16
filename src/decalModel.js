@@ -1,4 +1,9 @@
 import {
+  AUTHORING_UV_SET,
+  TEXTURE_PARTS,
+  normalizeSurfaceTarget,
+} from "./textureSurfaceModel.js";
+import {
   normalizeStampChannels,
   normalizeStampValues,
   normalizeStampPreset,
@@ -23,8 +28,41 @@ export function normalizeDecal(raw) {
     !/^[\w-]{1,80}$/.test(raw.stampId)
   )
     throw new Error("A decal has an invalid component or stamp identity.");
-  if (raw.space && raw.space !== DECAL_SPACE)
-    throw new Error("Decals use object-space surface coordinates.");
+  if (raw.space && ![DECAL_SPACE, "uv"].includes(raw.space))
+    throw new Error("Decals use object-space or authoring UV coordinates.");
+  const isUV = raw.space === "uv";
+  if (
+    isUV &&
+    (raw.uvSet !== AUTHORING_UV_SET ||
+      !Array.isArray(raw.uvPosition) ||
+      raw.uvPosition.length !== 2 ||
+      raw.uvPosition.some(
+        (v, i) => !Number.isFinite(v) || v < 0 || v > (i === 0 ? 10 : 100),
+      ))
+  )
+    throw new Error(
+      "A UV decal must use the authoring UV set and finite UDIM coordinates.",
+    );
+  const target = raw.target
+    ? normalizeSurfaceTarget(raw.target)
+    : isUV
+      ? normalizeSurfaceTarget({
+          objectId: "teapot",
+          partId: TEXTURE_PARTS.find(
+            (p) => p.u === Math.floor(raw.uvPosition[0]),
+          )?.id,
+        })
+      : null;
+  if (
+    isUV &&
+    (raw.uvPosition[0] < TEXTURE_PARTS.find((p) => p.id === target.partId).u ||
+      raw.uvPosition[0] >=
+        TEXTURE_PARTS.find((p) => p.id === target.partId).u + 1 ||
+      raw.uvPosition[1] > 1)
+  )
+    throw new Error(
+      "A UV decal centre must stay within its part's authoring tile.",
+    );
   let quaternion = vector(raw.quaternion, [0, 0, 0, 1], -1, 1);
   const length = Math.hypot(...quaternion);
   quaternion =
@@ -37,12 +75,21 @@ export function normalizeDecal(raw) {
     id: raw.id,
     stampId: raw.stampId,
     name: stampName(raw.name, "Decal component"),
-    space: DECAL_SPACE,
+    space: isUV ? "uv" : DECAL_SPACE,
+    ...(target ? { target } : {}),
+    ...(isUV
+      ? { uvSet: AUTHORING_UV_SET, uvPosition: [...raw.uvPosition] }
+      : {}),
     visible: raw.visible !== false,
     locked: raw.locked === true,
     position: vector(raw.position, [0, 0, 1], -4, 4),
     quaternion,
-    size: vector(raw.size, [0.65, 0.65], 0.01, 4),
+    size: vector(
+      raw.size,
+      isUV ? [0.18, 0.18] : [0.65, 0.65],
+      isUV ? 0.001 : 0.01,
+      4,
+    ),
     depth: stampNumber(raw.depth ?? 0.35, 0.35, 0.01, 2),
     roll: stampNumber(raw.roll ?? 0, 0, -180, 180),
     opacity: stampNumber(raw.opacity ?? 1, 1, 0, 1),

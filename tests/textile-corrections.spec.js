@@ -189,7 +189,7 @@ test("preview shadows never enter exported albedo SVG", () => {
     expect(patternSVG(doc, "params")).not.toContain("feDropShadow");
   }
 });
-test("public UI removes rejected filters, exposes one yarn control and saves draft choice", async ({
+test("public UI keeps retired rug filters absent, adds requested heritage collections and preserves yarn controls/draft choice", async ({
   page,
 }) => {
   const errors = [];
@@ -200,13 +200,15 @@ test("public UI removes rejected filters, exposes one yarn control and saves dra
   await expect(page.getByLabel("Pattern collection")).toHaveValue(
     "Geometric constructions",
   );
-  await expect(page.locator(".pe-starters button")).toHaveCount(22);
+  await expect(page.locator(".pe-starters button")).toHaveCount(24);
   const options = await page
     .getByLabel("Pattern collection")
     .locator("option")
     .allTextContents();
+  expect(options).toContain("Islamic geometry");
+  expect(options).toContain("African traditional");
   expect(options.join(" ")).not.toMatch(
-    /African|Islamic|carpet|rug|200|Reference|Legacy/i,
+    /carpet|rug|200|Reference|Legacy|African inlay|Islamic networks/i,
   );
   await page.getByLabel("Pattern collection").selectOption("Fabric weaves");
   await page.getByRole("button", { name: "Basket weave", exact: true }).click();

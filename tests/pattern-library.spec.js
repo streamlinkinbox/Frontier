@@ -23,8 +23,8 @@ import {
 import { rebuildCollectionFade } from "../src/patternCollections.js";
 
 test("Public families are bounded and palette options do not multiply constructions", () => {
-  expect(patternStarterCatalog).toHaveLength(83);
-  expect(new Set(patternStarterCatalog.map((p) => p.name)).size).toBe(83);
+  expect(patternStarterCatalog).toHaveLength(103);
+  expect(new Set(patternStarterCatalog.map((p) => p.name)).size).toBe(103);
   expect(textileLibraryEntries).toHaveLength(132);
   const structures = new Map();
   for (const p of textileLibraryEntries) {

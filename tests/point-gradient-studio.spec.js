@@ -174,13 +174,17 @@ test("gradient masks affect actual mesh shading, honour inversion/zero strength 
     .click();
   const canvas = page.locator(".tp-scene-viewport canvas");
   const frame = () => canvas.evaluate((c) => c.toDataURL());
-  const unmasked = await frame();
   await page
     .getByRole("button", { name: "Add layer mask", exact: true })
     .click();
   await page
     .getByRole("group", { name: "Mask type", exact: true })
     .getByRole("button", { name: "Gradient", exact: true })
+    .click();
+  // This test checks material shading, not the newly independent grayscale
+  // mask preview. Keep the same mask editor/canvas bounds for the baseline.
+  await page
+    .getByRole("button", { name: "Material preview", exact: true })
     .click();
   const mask = page.getByRole("region", {
     name: "Mask gradient editor",
@@ -195,6 +199,9 @@ test("gradient masks affect actual mesh shading, honour inversion/zero strength 
   await mask
     .getByLabel("Mask gradient point colour", { exact: true })
     .fill("#000000");
+  await page.getByLabel("Mask strength value", { exact: true }).fill("0");
+  await page.waitForTimeout(600);
+  const unmasked = await frame();
   await page.getByLabel("Mask strength value", { exact: true }).fill("100");
   await expect.poll(frame).not.toBe(unmasked);
   const masked = await frame();

@@ -23,7 +23,12 @@
     "audit:teapot": "node scripts/audit-teapot-bakes.mjs",
     "audit:sdf": "node scripts/audit-teapot-sdf.mjs",
     "test:painting": "playwright test tests/paint-authoring-model.spec.js tests/paint-authoring-studio.spec.js tests/texture-document.spec.js tests/texture-studio.spec.js tests/texture-folders-model.spec.js tests/texture-folders-studio.spec.js tests/texture-history-model.spec.js tests/texture-history-studio.spec.js tests/point-gradient-model.spec.js tests/point-gradient-studio.spec.js",
-    "test:stamps": "playwright test tests/stamp-decal-model.spec.js tests/stamp-decal-studio.spec.js"
+    "test:stamps": "playwright test tests/stamp-decal-model.spec.js tests/stamp-decal-studio.spec.js tests/stamp-transform-model.spec.js tests/stamp-transform-studio.spec.js",
+    "test:parts-uv": "playwright test tests/texture-parts-uv-model.spec.js tests/texture-parts-uv-studio.spec.js",
+    "test:heritage": "playwright test tests/heritage-patterns-model.spec.js tests/heritage-patterns-studio.spec.js",
+    "test:masks": "playwright test tests/texture-mask-paint-model.spec.js tests/texture-mask-paint-studio.spec.js",
+    "test:stack": "playwright test tests/texture-stack-evaluation-model.spec.js tests/texture-optical-stack-model.spec.js tests/texture-stack-evaluation-studio.spec.js",
+    "test:digital-paint": "playwright test tests/digital-paint-model.spec.js tests/digital-paint-raster.spec.js tests/digital-paint-studio.spec.js tests/digital-brush-cursor-model.spec.js tests/digital-brush-cursor-raster.spec.js tests/digital-brush-cursor-studio.spec.js tests/render-target-dpi.spec.js tests/screen-paint-model.spec.js tests/screen-paint-raster.spec.js tests/screen-paint-depth-mask.spec.js tests/screen-paint-studio.spec.js"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",

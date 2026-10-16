@@ -1,3 +1,4 @@
+import { AUTHORING_UV_SET, texturePart } from "./textureSurfaceModel.js";
 import { useEffect, useRef, useState } from "react";
 import {
   createStampDocument,
@@ -12,6 +13,7 @@ import {
   replaceTextureDecalStamp,
   isTextureLayerLocked,
   isTextureLayerVisible,
+  isTexturePartLocked,
 } from "./textureDocument.js";
 export default function useDecalEditing(
   history,
@@ -21,6 +23,9 @@ export default function useDecalEditing(
     onEditStamp,
     previewLayerId,
     onDeactivateGradient,
+    space = "object-sphere",
+    placementAvailable = true,
+    onRequestSpace,
   },
 ) {
   const { doc, selection } = history;
@@ -33,13 +38,24 @@ export default function useDecalEditing(
       mode: "brush",
       gizmo: "translate",
     });
-  const [brush, setBrush] = useState({
-    size: [0.75, 0.75],
-    depth: 0.35,
-    opacity: 1,
-    roll: 0,
-    asMask: false,
+  const [brushes, setBrushes] = useState({
+    "object-sphere": {
+      size: [0.75, 0.75],
+      depth: 0.35,
+      opacity: 1,
+      roll: 0,
+      asMask: false,
+    },
+    uv: { size: [0.18, 0.18], depth: 0.35, opacity: 1, roll: 0, asMask: false },
   });
+  const brush = {
+    ...brushes[space],
+    space,
+    ...(space === "uv" ? { uvSet: AUTHORING_UV_SET } : {}),
+  };
+  const [draft, setDraft] = useState(null),
+    draftRef = useRef(null);
+  draftRef.current = draft;
   const incoming = useRef(initialStamp),
     requestedSelection = useRef(null);
   const available = [
@@ -54,8 +70,13 @@ export default function useDecalEditing(
     component = owner?.decals.find((d) => d.id === componentId);
   const locked =
     !owner || owner.kind === "folder" || isTextureLayerLocked(doc, owner.id);
+  const partLocked =
+    !!component?.target && isTexturePartLocked(doc, component.target.partId);
   const active =
     operation.active &&
+    (!partLocked || operation.mode === "brush") &&
+    placementAvailable &&
+    (operation.mode === "brush" || !component || component.space === space) &&
     !locked &&
     !selection.mask &&
     isTextureLayerVisible(doc, owner.id) &&
@@ -119,7 +140,8 @@ export default function useDecalEditing(
     }
   }, [componentId, !!component]);
   function arm(mode) {
-    if (locked || !preset) return;
+    if (locked || !preset || !placementAvailable) return;
+    if (mode !== "brush" && component) onRequestSpace?.(component.space);
     onDeactivateGradient();
     setOperation((old) => ({
       ...old,
@@ -150,6 +172,45 @@ export default function useDecalEditing(
       return false;
     }
   }
+  useEffect(() => {
+    const stored = doc.layers
+      .find((l) => l.id === draft?.layerId)
+      ?.decals.find((d) => d.id === draft?.id);
+    if (
+      draft &&
+      (!active || JSON.stringify(stored) !== draft.expected || space !== "uv")
+    ) {
+      draftRef.current = null;
+      setDraft(null);
+    }
+  }, [doc, active, space]);
+  function previewTransform(patch, expected) {
+    if (
+      !active ||
+      component?.space !== "uv" ||
+      component.locked ||
+      JSON.stringify(component) !== expected
+    )
+      return;
+    const value = { id: component.id, layerId: selection.id, patch, expected };
+    draftRef.current = value;
+    setDraft(value);
+  }
+  function endTransform(cancelled) {
+    const value = draftRef.current;
+    draftRef.current = null;
+    setDraft(null);
+    if (value && !cancelled)
+      return patchId(
+        value.id,
+        value.patch,
+        null,
+        value.expected,
+        "Transform UV decal",
+        value.layerId,
+      );
+    return false;
+  }
   function stamp(hit) {
     const current = history.docRef.current,
       layer = current.layers.find((l) => l.id === selection.id);
@@ -161,6 +222,7 @@ export default function useDecalEditing(
     )
       return;
     if (operation.mode === "place" && component) {
+      if ((hit.space || "object-sphere") !== component.space) return;
       if (
         patchId(
           component.id,
@@ -199,6 +261,53 @@ export default function useDecalEditing(
       }
     }
   }
+  function dropStamp(id, hit) {
+    const source = available.find((s) => s.id === id),
+      current = history.docRef.current,
+      target = current.layers.find((l) => l.id === selection.id);
+    if (!source || !hit?.target) {
+      history.setError("Choose an existing stamp and a mesh surface.");
+      return false;
+    }
+    if (
+      !target ||
+      target.kind === "folder" ||
+      selection.mask ||
+      isTextureLayerLocked(current, target.id) ||
+      !isTextureLayerVisible(current, target.id)
+    ) {
+      history.setError(
+        "Select a visible, unlocked surface or decal layer before dropping a stamp.",
+      );
+      return false;
+    }
+    if (!brush.asMask && !source.project.channels.length) {
+      history.setError("Enable a stamp channel, or use the stamp as a mask.");
+      return false;
+    }
+    if (!brush.opacity) return false;
+    try {
+      const result = addTextureDecal(current, target.id, source, {
+        ...brush,
+        ...hit,
+      });
+      if (
+        !result.id ||
+        !history.commit(result.doc, {
+          label: hit.space === "uv" ? "Drop UV decal" : "Drop surface decal",
+        })
+      )
+        return false;
+      onDeactivateGradient();
+      setPresetId(id);
+      setComponentId(result.id);
+      setOperation((old) => ({ ...old, active: true, mode: "transform" }));
+      return true;
+    } catch (error) {
+      history.setError(error.message);
+      return false;
+    }
+  }
   const context = {
     id: componentId,
     preset,
@@ -207,10 +316,18 @@ export default function useDecalEditing(
     mode: operation.mode,
     gizmo: operation.gizmo,
     brush,
+    space,
+    placementAvailable,
+    partLocked,
     onArm: arm,
-    onNavigate: () => setOperation((old) => ({ ...old, active: false })),
-    onBrush: (changes) => setBrush((old) => ({ ...old, ...changes })),
+    onNavigate: () => {
+      endTransform(true);
+      setOperation((old) => ({ ...old, active: false }));
+    },
+    onBrush: (changes) =>
+      setBrushes((old) => ({ ...old, [space]: { ...old[space], ...changes } })),
     onGizmo: (gizmo) => {
+      if (component) onRequestSpace?.(component.space);
       onDeactivateGradient();
       setOperation((old) => ({
         ...old,
@@ -241,6 +358,10 @@ export default function useDecalEditing(
       setOperation((old) => ({ ...old, active: true, mode: "brush" }));
     },
     onSelect: (id, layerId = selection.id) => {
+      const chosen = history.docRef.current.layers
+        .find((l) => l.id === layerId)
+        ?.decals.find((d) => d.id === id);
+      if (chosen) onRequestSpace?.(chosen.space);
       if (layerId !== selection.id) {
         requestedSelection.current = { layerId, id };
         history.select(layerId);
@@ -261,7 +382,21 @@ export default function useDecalEditing(
         const result = addTextureDecal(current, selection.id, source, {
           ...decal,
           id: undefined,
-          position: decal.position.map((v, i) => (i === 0 ? v + 0.05 : v)),
+          ...(decal.space === "uv"
+            ? {
+                uvPosition: [
+                  Math.min(
+                    (texturePart(decal.target?.partId)?.u ?? 9) + 0.99999,
+                    decal.uvPosition[0] + 0.01,
+                  ),
+                  decal.uvPosition[1],
+                ],
+              }
+            : {
+                position: decal.position.map((v, i) =>
+                  i === 0 ? v + 0.05 : v,
+                ),
+              }),
         });
         if (history.commit(result.doc, { label: "Duplicate decal component" }))
           setComponentId(result.id);
@@ -302,8 +437,31 @@ export default function useDecalEditing(
     },
     onEditStamp: (project) => onEditStamp?.(project),
   };
+  const previewDocument =
+    draft &&
+    doc.layers
+      .find((l) => l.id === draft.layerId)
+      ?.decals.some(
+        (d) => d.id === draft.id && JSON.stringify(d) === draft.expected,
+      )
+      ? {
+          ...doc,
+          layers: doc.layers.map((l) =>
+            l.id === draft.layerId
+              ? {
+                  ...l,
+                  decals: l.decals.map((d) =>
+                    d.id === draft.id ? { ...d, ...draft.patch } : d,
+                  ),
+                }
+              : l,
+          ),
+        }
+      : doc;
   return {
     context,
+    document: previewDocument,
+    dropStamp,
     deactivate: context.onNavigate,
     clearSelection: () => {
       setComponentId(null);
@@ -316,12 +474,16 @@ export default function useDecalEditing(
       layerId: selection.id,
       id: componentId,
       previewLayerId,
+      surfaceTarget: owner?.surfaceTarget,
       preset:
         operation.mode === "place" && component
           ? doc.stamps.find((s) => s.id === component.stampId)
           : preset,
       brush: operation.mode === "place" && component ? component : brush,
       onStamp: stamp,
+      onPreviewTransform: previewTransform,
+      onTransformEnd: endTransform,
+      onSelect: context.onSelect,
       onTransform: (patch, expected) =>
         patchId(componentId, patch, null, expected, "Transform surface decal"),
       onError: history.setError,

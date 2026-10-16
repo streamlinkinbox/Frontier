@@ -9,6 +9,7 @@ import {
   geometricCatalog,
   geometricPattern,
 } from "./geometricConstructions.js";
+import { heritagePatternCatalog, heritagePattern } from "./heritagePatterns.js";
 import { normalizeWeave } from "./patternWeaves.js";
 import { ornamentalPattern } from "./ornamentalConstructions.js";
 import {
@@ -332,6 +333,7 @@ export const patternStarterCatalog = [
       "Retained geometric size fade: density changes motif size, not opacity.",
   },
   ...canonicalTextileEntries,
+  ...heritagePatternCatalog,
   ...[
     "Diamond weave",
     "Painted blossoms",
@@ -388,7 +390,7 @@ export function patternStarter(name = "Diamond weave", colorway = "Indigo") {
         ? { name, collection: "African-inspired" }
         : {}),
     });
-  const geometry = geometricPattern(name);
+  const geometry = geometricPattern(name) || heritagePattern(name);
   if (geometry) return validatePattern(geometry);
   const family = canonicalTextileEntries.find((p) => p.name === name);
   if (family?.colorways.length)

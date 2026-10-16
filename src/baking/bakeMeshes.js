@@ -1,3 +1,4 @@
+import { TEXTURE_BAKE_UV_SET } from "../textureMeshMaps.js";
 import * as THREE from "three";
 import { TeapotGeometry } from "three/addons/geometries/TeapotGeometry.js";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
@@ -32,6 +33,8 @@ export function packTeapotUVs(geometry, segments) {
   uv.needsUpdate = true;
   geometry.setAttribute("bakeChartId", new THREE.BufferAttribute(chart, 1));
   geometry.setAttribute("bakePartId", new THREE.BufferAttribute(part, 1));
+  geometry.userData.textureBakeUVSet = TEXTURE_BAKE_UV_SET;
+  geometry.userData.teapotSegments = segments;
   return geometry;
 }
 function packedBox(segments = 1) {
@@ -56,13 +59,17 @@ function packedBox(segments = 1) {
   g.setAttribute("bakePartId", new THREE.BufferAttribute(parts, 1));
   return g;
 }
-export function createDemoBakeAssets(shape = "Teapot") {
+export function createDemoBakeAssets(
+  shape = "Teapot",
+  { textureTarget = false } = {},
+) {
+  const segments = textureTarget ? 20 : 8;
   const low =
     shape === "Cube"
       ? packedBox(1)
       : shape === "Sphere"
         ? new THREE.SphereGeometry(1.05, 16, 12)
-        : packTeapotUVs(new TeapotGeometry(1.05, 8), 8);
+        : packTeapotUVs(new TeapotGeometry(1.05, segments), segments);
   const high =
     shape === "Cube"
       ? packedBox(1)

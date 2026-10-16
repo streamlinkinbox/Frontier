@@ -216,24 +216,49 @@
 }
 .stamp-canvas-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 10px 15px;
   border-bottom: 1px solid #ffffff08;
   flex: none;
 }
-.stamp-canvas-toolbar > span {
+.stamp-transform-tools,
+.stamp-canvas-exports {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-right: auto;
-  color: #929283;
-  font-size: 10px;
+  gap: 5px;
 }
-.stamp-canvas-toolbar > button {
+.stamp-transform-tools {
+  flex-wrap: wrap;
+}
+.stamp-canvas-exports {
+  margin-left: auto;
+}
+.stamp-studio .stamp-canvas-toolbar button {
   min-height: 25px;
   padding: 4px 9px;
+  border-radius: 999px;
   font-size: 9px;
+}
+.stamp-studio .stamp-transform-tools button[aria-pressed="true"] {
+  background: #3b3022;
+  border-color: #d9b28166;
+  color: #e8cba2;
+}
+.stamp-transform-tools kbd {
+  font: inherit;
+  color: #9f9988;
+  padding: 1px 4px;
+  border: 1px solid #ffffff12;
+  border-radius: 4px;
+}
+.stamp-transform-help {
+  flex: none;
+  padding: 7px 15px;
+  color: #929283;
+  font-size: 9px;
+  line-height: 1.7;
 }
 .stamp-canvas-surround {
   flex: 1;
@@ -265,7 +290,7 @@
   object-fit: contain;
   pointer-events: none;
 }
-.stamp-canvas .stamp-canvas-object {
+.stamp-studio .stamp-canvas .stamp-canvas-object {
   position: absolute;
   border: 1px solid transparent;
   border-radius: 0;
@@ -274,14 +299,33 @@
   min-height: 0;
   touch-action: none;
   cursor: move;
+  transition: border-color 0.12s;
 }
-.stamp-canvas .stamp-canvas-object:hover {
-  background: #d9b28105;
+/* These buttons are transparent hit areas, not UI cards. Never let a shared
+   button hover/active background obscure the composed SVG underneath them. */
+.stamp-studio .stamp-canvas .stamp-canvas-object:hover,
+.stamp-studio .stamp-canvas .stamp-canvas-object:active {
+  background: transparent;
   border-color: #d9b28166;
 }
-.stamp-canvas .stamp-canvas-object.selected {
+.stamp-studio .stamp-canvas .stamp-canvas-object.selected {
   border-color: #d9b281;
-  background: none;
+  background: transparent;
+}
+.stamp-transform-move,
+.stamp-transform-move .stamp-canvas,
+.stamp-studio .stamp-transform-move .stamp-canvas-object {
+  cursor: move;
+}
+.stamp-transform-rotate,
+.stamp-transform-rotate .stamp-canvas,
+.stamp-studio .stamp-transform-rotate .stamp-canvas-object {
+  cursor: crosshair;
+}
+.stamp-transform-scale,
+.stamp-transform-scale .stamp-canvas,
+.stamp-studio .stamp-transform-scale .stamp-canvas-object {
+  cursor: nwse-resize;
 }
 .stamp-object-label {
   position: absolute;

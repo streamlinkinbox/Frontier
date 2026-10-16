@@ -1294,9 +1294,12 @@ export default function PatternEditor({
               value={librarySearch}
               onChange={(e) => setLibrarySearch(e.target.value)}
             />
-            {!["Fabric weaves", "Stitch patterns"].includes(
-              collectionFilter,
-            ) && (
+            {![
+              "Fabric weaves",
+              "Stitch patterns",
+              "Islamic geometry",
+              "African traditional",
+            ].includes(collectionFilter) && (
               <>
                 <span className="pe-hint">
                   Print palette · not a separate pattern
@@ -1312,6 +1315,14 @@ export default function PatternEditor({
                   ))}
                 </select>
               </>
+            )}
+            {["Islamic geometry", "African traditional"].includes(
+              collectionFilter,
+            ) && (
+              <p className="pe-hint pe-heritage-note">
+                Original vector studies inspired by named traditions, not
+                historical reproductions. Edit colours in Design palette.
+              </p>
             )}
             <p className="pe-library-count" aria-live="polite">
               {libraryMatches.length} results · one card per family

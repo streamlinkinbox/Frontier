@@ -1,3 +1,8 @@
+import {
+  isTextureBakeTarget,
+  textureMeshMapsFromBake,
+  publishTextureMeshMaps,
+} from "./textureMeshMapBridge.js";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
@@ -59,12 +64,23 @@ export default function BakingStudio({
   params,
   currentShape,
   initialMode = "mesh",
+  textureTarget = false,
   onWorkspace,
   onClose,
 }) {
   const [initial] = useState(initialRecipe),
-    [settings, setSettings] = useState(initial.settings);
-  const [assets, setAssets] = useState(() => createDemoBakeAssets()),
+    [settings, setSettings] = useState(
+      textureTarget
+        ? {
+            ...initial.settings,
+            resolution: 512,
+            channels: ["occlusion", "normal", "bevel-normal"],
+          }
+        : initial.settings,
+    );
+  const [assets, setAssets] = useState(() =>
+      createDemoBakeAssets("Teapot", { textureTarget }),
+    ),
     [demo, setDemo] = useState("Teapot"),
     [mode, setMode] = useState(initialMode);
   const [view, setView] = useState("mesh"),
@@ -80,7 +96,9 @@ export default function BakingStudio({
     [info, setInfo] = useState(
       initial.legacy
         ? "Legacy recipe settings recovered. Node effects are no longer applied; choose map tiles instead."
-        : "Source meshes stay in this session. Recipes contain settings, not geometry.",
+        : textureTarget
+          ? "Texture support: matching 20-segment teapot low mesh, genuine high/low AO + normal + bevel bake at 512. Compatible results attach to locked Layer 0 without replacing user layers."
+          : "Source meshes stay in this session. Recipes contain settings, not geometry.",
     );
   const [results, setResults] = useState([]),
     [previews, setPreviews] = useState([]),
@@ -317,7 +335,7 @@ export default function BakingStudio({
     if (busy) return;
     importEpoch.current++;
     setImporting("");
-    const next = createDemoBakeAssets(name);
+    const next = createDemoBakeAssets(name, { textureTarget });
     disposeBakeParts(assetsRef.current.low);
     disposeBakeParts(assetsRef.current.high);
     assetsRef.current = next;
@@ -371,9 +389,24 @@ export default function BakingStudio({
       setPreviewSet(raw[0]?.name || "");
       setPreviewMap(settings.channels[0]);
       setView("maps");
+      let supportInfo = "";
+      if (targets.length === 1 && isTextureBakeTarget(targets[0])) {
+        try {
+          const support = await textureMeshMapsFromBake(raw[0]);
+          if (support) {
+            publishTextureMeshMaps(support);
+            supportInfo =
+              " AO / normal support attached to Texture's locked Layer 0 (AO multiplies indirect light; normals use reoriented blending).";
+          }
+        } catch (e) {
+          // A portable-support budget/storage failure never discards the real
+          // completed bake ZIP or replaces the user's previous Texture project.
+          supportInfo = ` Texture mesh support was not attached: ${e.message}`;
+        }
+      }
       const misses = raw.reduce((n, r) => n + r.stats.misses, 0);
       setInfo(
-        `${raw.length} texture set${raw.length === 1 ? "" : "s"} baked. ${misses.toLocaleString()} missed projections${misses ? " — check ray distance/alignment" : ""}. Download the ZIP when ready.`,
+        `${raw.length} texture set${raw.length === 1 ? "" : "s"} baked. ${misses.toLocaleString()} missed projections${misses ? " — check ray distance/alignment" : ""}. Download the ZIP when ready.${supportInfo}`,
       );
     } catch (e) {
       if (mounted.current)
