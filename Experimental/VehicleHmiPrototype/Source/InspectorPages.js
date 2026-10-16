@@ -349,6 +349,9 @@ function BuildVehicle(Host, C, Body)
     C.Button(Row, "Inspect FL", "Camera", () => Host.AssignCameraMode("Tyre FL"));
     C.Button(Row, "Respawn", "RotateCcw", () => Host.RespawnVehicle());
 
+    const SparkStyle = C.Card(Body, "Spark variation", "Zap", { Accent: Accent.Vehicle, Index: 5 });
+    Slider(C, SparkStyle, Host.Sparks.Settings, "Variation", "Fragment / burst variation", 0, 1, 0.05, "×", 2);
+    C.Muted(SparkStyle, "Mostly fine filings, occasional heavier chips, irregular contact bursts and varied streaks. Applies to newly emitted sparks; collision and cooling remain active.");
     const Camera = C.Card(Body, "Camera", "Camera", { Accent: Accent.Vehicle, Index: 4 });
     C.Segmented(Camera, { Free: Host.FreeCamera }, "Free", [["Car rigs", false], ["Free (F8)", true]], { OnChange: (Free) => Host.AssignCamera(Free) });
     C.Select(Camera, S, "CameraMode", Object.keys(CameraRigs).map((Name) => [Name, Name]), { Label: "Rig (C cycles)", OnChange: (Mode) => Host.AssignCameraMode(Mode) });

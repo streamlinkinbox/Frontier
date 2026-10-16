@@ -466,3 +466,23 @@ camera, not free-flight, and does not provide arbitrary-obstacle camera collisio
 Validation: 33 unit tests pass; a 30-frame Orbit integration run exercises rotation,
 zoom and persistent angles with zero GPU errors/warnings (Dawn null backend, not a
 rendered visual review).
+
+## Spark variation
+
+Sparks now mix mostly fine filings (72%), medium fragments (22%) and occasional
+heavier chips (6%). Each keeps its own temperature, size, drag, cooling, lifetime,
+bounce retention, intensity, width and shutter fraction. Fine filings disappear
+quickly; heavier orange chips travel/cool differently. Contact emission arrives in
+short irregular packets rather than a constant stream. Tapered streaks have varied
+length/width and subtle age-driven brightness modulation, without re-rolling every
+render frame or expanding the previous thin-particle footprint cap.
+
+**Vehicle → Spark variation** controls the added variation (default 1, applied to
+new particles). Swept collisions, monotonic thermal cooling, particle limits and
+bounded pooled lighting remain; visual and proxy-light intensity share the same
+per-particle gain. No additional light system or GPU bindings were introduced.
+
+Validation: 37 tests pass, including seeded reproducibility, fragment proportions,
+property diversity, irregular emission counts, pulse cleanup, cooling/retirement
+and lifetime fade. Populated 36-frame effects validation reports no GPU errors or
+warnings. Appearance still needs real-browser review.

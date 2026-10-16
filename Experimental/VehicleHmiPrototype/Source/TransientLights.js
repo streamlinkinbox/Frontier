@@ -1,6 +1,6 @@
 // Eight reusable light slots, never one light/shadow per particle. Same record feeds
 // screen direct lighting and surface-card direct lighting (and hence indirect GI).
-import { ResolveSparkRadiance } from './SparkSequence.js';
+import { ResolveSparkRadiance, ResolveSparkGain } from './SparkSequence.js';
 export const TransientLightCapacity = 8;
 export const TransientLightFloats = TransientLightCapacity * 8;
 const Luma = RGB => RGB[0] * 0.2126 + RGB[1] * 0.7152 + RGB[2] * 0.0722;
@@ -11,7 +11,7 @@ const LinearHex = Hex => [1,3,5].map(Start => {
 export function BuildTransientLights(Sparks, Effects) {
     const Lights = [], Bins = new Map();
     if (Sparks.Settings.Enabled) for (const Spark of Sparks.Particles) {
-        const RGB = ResolveSparkRadiance(Spark.Kelvin).map(C => C * Sparks.Settings.Brightness * Spark.Size * Spark.Size * 0.012);
+        const RGB = ResolveSparkRadiance(Spark.Kelvin).map(C => C * Sparks.Settings.Brightness * Spark.Size * Spark.Size * ResolveSparkGain(Spark) * 0.012);
         const Energy = Luma(RGB);
         if (!(Energy > 0)) continue;
         const Key = Spark.Position.map(Value => Math.floor(Value / 1.5)).join(',');
