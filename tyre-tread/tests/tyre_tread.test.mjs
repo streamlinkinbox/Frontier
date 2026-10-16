@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createPattern, depthAt, parsePattern, serialisePattern, fitPitch } from '../src/tread/pattern.js';
-import { buildQuadTyre, buildCrossSectionLoop, RESOLUTION, TYRE_DEFAULTS } from '../src/mesh/quadTyre.js';
+import { buildQuadTyre, buildCrossSectionLoop, BUDGET, TYRE_DEFAULTS } from '../src/mesh/quadTyre.js';
+import { patternBreakpoints } from '../src/tread/pattern.js';
 import { checkQuadMesh, signedVolume } from '../src/mesh/quadCheck.js';
 import { quadMeshToObj } from '../src/io/obj.js';
 import { PRESET_PATTERNS } from '../src/tread/presets.js';
@@ -69,8 +70,8 @@ test('pattern: fitPitch gives whole repeats around the circumference', () => {
 });
 
 test('loop: cross-section is a simple closed curve (no self-intersections)', () => {
-    for (const res of [RESOLUTION.draft, RESOLUTION.standard]) {
-        const loop = buildCrossSectionLoop(TYRE_DEFAULTS, res);
+    for (const b of [BUDGET.low, BUDGET.medium, BUDGET.fine]) {
+        const loop = buildCrossSectionLoop(TYRE_DEFAULTS, b);
         const n = loop.length;
         const seg = (j) => [loop[j], loop[(j + 1) % n]];
         const cross = (o, a, b) => (a.x - o.x) * (b.r - o.r) - (a.r - o.r) * (b.x - o.x);
@@ -81,13 +82,13 @@ test('loop: cross-section is a simple closed curve (no self-intersections)', () 
             const d1 = cross(a, b, c), d2 = cross(a, b, d), d3 = cross(c, d, a), d4 = cross(c, d, b);
             if (d1 * d2 < 0 && d3 * d4 < 0) bad++;
         }
-        assert.equal(bad, 0, `self-intersections at ${JSON.stringify(res)}`);
+        assert.equal(bad, 0, `self-intersections at ${JSON.stringify(b)}`);
     }
 });
 
 test('mesh: smooth tyre is pure closed quad torus', () => {
-    for (const preset of ['draft', 'standard']) {
-        const m = buildQuadTyre({ resolution: preset });
+    for (const preset of ['low', 'medium']) {
+        const m = buildQuadTyre({ budget: preset });
         const r = checkQuadMesh(m.positions, m.quads);
         assert.equal(r.ok, true, JSON.stringify(r));
         assert.equal(r.triangles, 0);
@@ -99,37 +100,67 @@ test('mesh: smooth tyre is pure closed quad torus', () => {
 
 test('mesh: tread pattern keeps the mesh a clean closed quad torus', () => {
     const pattern = PRESET_PATTERNS[0].pattern;
-    const m = buildQuadTyre({ pattern, resolution: 'draft' });
+    const m = buildQuadTyre({ pattern, budget: 'low' });
     const r = checkQuadMesh(m.positions, m.quads);
     assert.equal(r.ok, true, JSON.stringify(r));
     assert.equal(r.nonManifoldEdges, 0);
     assert.equal(r.degenerateFaces, 0);
 });
 
-test('mesh: groove vertices are displaced inward, non-groove vertices are not', () => {
-    const smooth = buildQuadTyre({ resolution: 'draft' });
-    const pat = buildQuadTyre({ pattern: straightGroove, resolution: 'draft' });
-    const loop = buildCrossSectionLoop(TYRE_DEFAULTS, RESOLUTION.draft);
-    const L = loop.length;
-    let moved = 0, notMoved = 0, wrong = 0;
-    const NA = RESOLUTION.draft.around;
+test('mesh: groove walls land on mesh edges and floors are at full depth', () => {
+    // Single 8 mm circumferential groove on the centre line.
+    const groove = createPattern({ pitchMm: 200, shapes: [
+        { kind: 'stroke', pts: [[0, 0], [200, 0]], closed: true, width: 8, depth: 1 },
+    ] });
+    const m = buildQuadTyre({ pattern: groove, budget: 'low' });
+    // Grid lines exist at the groove edges (y = +/-4 mm).
+    assert.ok(m.treadLines.some((y) => Math.abs(y - 4) < 1e-6), 'grid line at +4 mm');
+    const L = m.loopLength;
+    const R = TYRE_DEFAULTS.treadDepth;
+    // Undisplaced loop for the same grid lines, so each vertex is compared with its own rest radius.
+    const rest = buildCrossSectionLoop(TYRE_DEFAULTS, BUDGET.low, m.treadLines.map((y) => y / 1000));
+    const NA = m.aroundCount;
+    let floorOk = 0, wallOk = 0, landOk = 0, bad = 0;
     for (let i = 0; i < NA; i++) for (let j = 0; j < L; j++) {
         const v = i * L + j;
-        const dr = Math.hypot(pat.positions[3 * v + 1], pat.positions[3 * v + 2]) - Math.hypot(smooth.positions[3 * v + 1], smooth.positions[3 * v + 2]);
-        const theta = (2 * Math.PI * i) / NA;
-        const xMm = theta * TYRE_DEFAULTS.rOut * 1000;
-        const yMm = loop[j].x * 1000;
-        const d = depthAt({ ...straightGroove, pitchMm: pat.pitch.pitchMm }, xMm, yMm);
-        const expected = loop[j].outer && loop[j].w > 0 ? d * TYRE_DEFAULTS.treadDepth * loop[j].w : 0;
-        if (Math.abs(-dr - expected) > 1e-6) wrong++;
-        if (expected > 0) moved++; else notMoved++;
+        const p = rest[j];
+        if (!p.outer || p.w === 0) continue;               // inner liner and bead are not displaced
+        const r = Math.hypot(m.positions[3 * v + 1], m.positions[3 * v + 2]);
+        const dr = p.r - r;
+        const yMm = p.x * 1000;                            // across position of this vertex
+        if (Math.abs(Math.abs(yMm) - 4) < 1e-6) { if (Math.abs(dr - R / 2) < 1e-7) wallOk++; else bad++; }
+        else if (Math.abs(yMm) < 4 - 1e-6) { if (Math.abs(dr - R) < 1e-7) floorOk++; else bad++; }
+        else if (Math.abs(yMm) > 4 + 1e-6) { if (Math.abs(dr) < 1e-7) landOk++; else bad++; }
     }
-    assert.equal(wrong, 0, 'displacement must match the pattern depth at every vertex');
-    assert.ok(moved > 0 && notMoved > 0);
+    assert.ok(floorOk > 0 && landOk > 0 && wallOk > 0, `counts floor=${floorOk} land=${landOk} wall=${wallOk}`);
+    assert.equal(bad, 0, 'depth must be full in the groove, half on the wall edge, zero on the land');
+});
+
+test('mesh: budget holds — low pattern and smooth tyre stay low-poly', () => {
+    const low = buildQuadTyre({ pattern: PRESET_PATTERNS[0].pattern, budget: 'low' });
+    const smooth = buildQuadTyre({ budget: 'low' });
+    assert.ok(low.quadCount <= 5000, `pattern quads ${low.quadCount}`);
+    assert.ok(smooth.quadCount <= 500, `smooth quads ${smooth.quadCount}`);
+});
+
+test('mesh: low budget keeps the tyre volume within 5 % of the fine reference', () => {
+    const ref = buildQuadTyre({ budget: 'fine' });
+    const low = buildQuadTyre({ budget: 'low' });
+    const err = Math.abs(signedVolume(low.positions, low.quads) / signedVolume(ref.positions, ref.quads) - 1);
+    assert.ok(err < 0.05, `volume error ${(100 * err).toFixed(2)} %`);
+});
+
+test('pattern breakpoints include groove edges and skip straight loop ends', () => {
+    const bp = patternBreakpoints(createPattern({ pitchMm: 240, shapes: [
+        { kind: 'stroke', pts: [[0, -34], [240, -34]], closed: true, width: 8, depth: 1 },
+    ] }));
+    assert.ok(bp.ys.some((y) => Math.abs(y + 30) < 1e-9) && bp.ys.some((y) => Math.abs(y + 38) < 1e-9), 'edges at -30 and -38');
+    assert.ok(!bp.ys.some((y) => Math.abs(y + 34) < 1e-9), 'no centre line');
+    assert.equal(bp.xs.length, 0, 'straight closed loop adds no around lines');
 });
 
 test('mesh: OBJ export has only quad faces with valid indices', () => {
-    const m = buildQuadTyre({ resolution: 'draft' });
+    const m = buildQuadTyre({ budget: 'low' });
     const text = quadMeshToObj(m, { name: 'test' });
     const lines = text.split('\n');
     const faces = lines.filter((l) => l.startsWith('f '));

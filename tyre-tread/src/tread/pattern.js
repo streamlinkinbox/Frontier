@@ -117,3 +117,66 @@ export function fitPitch(pattern, circumferenceMm) {
     const repeats = Math.max(1, Math.round(circumferenceMm / pattern.pitchMm));
     return { repeats, pitchMm: circumferenceMm / repeats };
 }
+
+/**
+ * Coordinates where the pattern changes, for placing mesh grid lines.
+ *   y (across): the edges of every stroke (y +/- width/2), every fill vertex, every dimple extent.
+ *   x (around): corners and open ends of strokes (not the straight middle of a closed loop, which
+ *               is not a feature boundary), every fill vertex, and dimple extents.
+ * A stroke's centre line is never added: only its edges form walls. Diagonal segments are covered
+ * by their vertices and the mesh's base grid.
+ */
+export function patternBreakpoints(pattern) {
+    const pitch = pattern.pitchMm;
+    const xs = [], ys = [];
+    const addX = (x) => xs.push(mod(x, pitch));
+    const addY = (y) => { ys.push(y); if (pattern.mirror) ys.push(-y); };
+    for (const s of pattern.shapes) {
+        if (s.kind === 'dimple') {
+            addX(s.c[0] - s.r); addX(s.c[0] + s.r);
+            addY(s.c[1] - s.r); addY(s.c[1] + s.r);
+            continue;
+        }
+        if (s.kind === 'fill') {
+            for (const [x, y] of s.pts) { addX(x); addY(y); }
+            continue;
+        }
+        const hw = s.width / 2;
+        const n = s.pts.length;
+        for (let i = 0; i < n; i++) {
+            const [x, y] = s.pts[i];
+            for (const dy of [-hw, hw]) addY(y + dy);
+            const isEnd = !s.closed && (i === 0 || i === n - 1);
+            // Ends and corners on the pitch seam are not features: the pattern tiles across them.
+            if ((isEnd || isCorner(s.pts, i, s.closed)) && !onSeam(x, pitch)) for (const dx of [-hw, hw]) addX(x + dx);
+        }
+    }
+    return { xs: uniqueSorted(xs, 1e-6), ys: uniqueSorted(ys, 1e-6) };
+}
+
+/** Is vertex i a real direction change of the polyline (not collinear with its neighbours)? */
+function isCorner(pts, i, closed) {
+    const n = pts.length;
+    const prevI = closed ? (i - 1 + n) % n : i - 1;
+    const nextI = closed ? (i + 1) % n : i + 1;
+    if (prevI < 0 || nextI >= n) return false;
+    const [px, py] = pts[prevI], [x, y] = pts[i], [nx, ny] = pts[nextI];
+    const ax = x - px, ay = y - py, bx = nx - x, by = ny - y;
+    const la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
+    if (la < 1e-9 || lb < 1e-9) return false;
+    return Math.abs(ax * by - ay * bx) / (la * lb) > 1e-6 || ax * bx + ay * by < 0;
+}
+
+function mod(a, m) { return ((a % m) + m) % m; }
+
+function onSeam(x, pitch) {
+    const r = mod(x, pitch);
+    return r < 1e-6 || pitch - r < 1e-6;
+}
+
+function uniqueSorted(values, eps) {
+    const v = [...values].sort((a, b) => a - b);
+    const out = [];
+    for (const x of v) if (!out.length || x - out[out.length - 1] > eps) out.push(x);
+    return out;
+}

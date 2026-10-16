@@ -19,18 +19,22 @@ The generator here avoids that. The cross-section is a single closed loop (tread
 - Euler characteristic V − E + F = 0 (torus).
 - Enclosed volume positive, so faces point outward.
 - Cross-section loop is simple (no self-intersections).
-- Groove displacement equals the pattern depth at every vertex.
+- Groove walls sit on mesh edges: floor vertices get full depth, wall-edge vertices half, land zero.
 
 The editor shows the same checks live in its Mesh panel.
 
-## Resolution trade-off
+## Poly budget
 
-| Preset   | Around | Across (half tread) | Quads | Grid spacing (around / across) |
-|----------|-------:|--------------------:|------:|--------------------------------|
-| draft    | 256    | 16 samples          | 19,968 | ~7.8 mm / ~4 mm |
-| standard | 512    | 32 samples          | 76,800 | ~3.9 mm / ~2 mm |
+Grid lines are placed on the pattern's own breakpoints (groove and sipe edges, corners), plus a small uniform base grid. Quads = around lines × cross-section loop segments.
 
-Groove edges are stair-stepped at the grid pitch. Resolving an 8 mm groove crisply needs roughly 4 mm of grid spacing around the tyre (the standard preset), so the quad count has a floor set by the groove size. Going below that needs adaptive or pattern-aligned quads. That is the next step if the count is still too high.
+| Budget | Smooth tyre | Demo pattern (channels + sipes) | Notes |
+|--------|------------:|--------------------------------:|-------|
+| low    | 384 quads   | 4,416 quads                     | Default. Smooth volume within 2.9 % of the fine reference. |
+| medium | ~1,800      | ~7,000                          | For checking whether the pattern needs more lines. |
+
+The pattern cost comes from the number of repeats around the tyre times the features per repeat. A structured grid needs a full ring of lines for each feature, so a 240 mm pitch (eight repeats) costs about eight times one repeat. Dimple patterns are the worst case, since round features need several lines each.
+
+Diagonal features (chevrons) are represented by their corner vertices and the base grid, not by their full length. Thin sipes cost four lines per repeat. Going lower than the low budget breaks the shape: a coarse inner liner (stride 6) put the smooth-tyre volume 218 % off, which is why it's not used.
 
 ## Not included yet
 
@@ -49,10 +53,10 @@ three.js is loaded from jsDelivr (`three@0.160.0`) through the import map in `in
 
 ## Files
 
-- `src/tread/pattern.js`: shape model, `depthAt`, JSON, validation.
+- `src/tread/pattern.js`: shape model, `depthAt`, `patternBreakpoints`, JSON, validation.
 - `src/tread/presets.js`: three starter patterns.
-- `src/mesh/quadTyre.js`: cross-section loop, quad sweep, `TYRE_DEFAULTS` (205/55 R16 class, metres), `RESOLUTION`.
+- `src/mesh/quadTyre.js`: cross-section loop, pattern-aligned quad grid, `TYRE_DEFAULTS` (205/55 R16 class, metres), `BUDGET` (low, medium, fine reference).
 - `src/mesh/quadCheck.js`: topology report and signed volume.
 - `src/io/obj.js`: quad-only OBJ writer.
 - `src/editor/app.js`, `view3d.js`, `index.html`: editor UI and 3D preview.
-- `tests/tyre_tread.test.mjs`: 13 Node tests.
+- `tests/tyre_tread.test.mjs`: 16 Node tests.

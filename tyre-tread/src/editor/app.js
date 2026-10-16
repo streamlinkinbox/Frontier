@@ -5,7 +5,7 @@
  */
 import { createPattern, depthAt, shapeCovers, serialisePattern, parsePattern, fitPitch } from '../tread/pattern.js';
 import { PRESET_PATTERNS } from '../tread/presets.js';
-import { buildQuadTyre, TYRE_DEFAULTS, RESOLUTION } from '../mesh/quadTyre.js';
+import { buildQuadTyre, TYRE_DEFAULTS, BUDGET } from '../mesh/quadTyre.js';
 import { checkQuadMesh, signedVolume } from '../mesh/quadCheck.js';
 import { quadMeshToObj } from '../io/obj.js';
 
@@ -492,7 +492,7 @@ $('load').addEventListener('change', async (e) => {
 });
 $('exportObj').addEventListener('click', () => {
     const res = $('resolution').value;
-    const mesh = buildQuadTyre({ pattern: state.pattern, resolution: res });
+    const mesh = buildQuadTyre({ pattern: state.pattern, budget: res });
     download(`${slug(state.pattern.name)}-${res}.obj`, quadMeshToObj(mesh, { name: slug(state.pattern.name) }), 'text/plain');
 });
 $('resolution').addEventListener('change', () => scheduleMesh());
@@ -589,7 +589,7 @@ async function ensureView3d() {
 function rebuildMesh() {
     const res = $('resolution').value;
     const t0 = performance.now();
-    const mesh = buildQuadTyre({ pattern: state.pattern, resolution: res });
+    const mesh = buildQuadTyre({ pattern: state.pattern, budget: res });
     const report = checkQuadMesh(mesh.positions, mesh.quads);
     const vol = signedVolume(mesh.positions, mesh.quads);
     const ms = performance.now() - t0;
@@ -621,8 +621,8 @@ for (const [i, p] of PRESET_PATTERNS.entries()) {
     o.textContent = p.name;
     $('presets').appendChild(o);
 }
-$('resolution').innerHTML = Object.keys(RESOLUTION).map((k) => `<option value="${k}">${k}</option>`).join('');
-$('resolution').value = 'standard';
+$('resolution').innerHTML = ['low', 'medium'].map((k) => `<option value="${k}">${k} (${BUDGET[k].aroundBase} around base)</option>`).join('');
+$('resolution').value = 'low';
 state.view.cx = state.pattern.pitchMm / 2;
 setTool('select');
 updateProps();
