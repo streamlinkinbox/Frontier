@@ -44,8 +44,8 @@ export const KerbConstants = Object.freeze({
     Depth:  0.300,
     SegmentLength: 4.0,
     Strips: Object.freeze([
-        Object.freeze([-52.0, 52.0, 6.00, 6.30]),
-        Object.freeze([-52.0, 52.0, -6.30, -6.00])
+        Object.freeze([-52.0, 20.0, 6.00, 6.30]),
+        Object.freeze([-52.0, 20.0, -6.30, -6.00])
     ])
 });
 
@@ -64,11 +64,14 @@ export function WithinKerb(PositionX, PositionY)
     return false;
 }
 
-// 📝 CourseHeight(): kerbs only - the training ground is flat tarmac elsewhere (no jump ramp).
+// 📝 CourseHeight(): kerbs, then the ramp wedge (dropping to zero past the crest so the car launches); flat elsewhere.
 export function ResolveCourseHeight(PositionX, PositionY)
 {
+    const C = CourseConstants;
     if (WithinKerb(PositionX, PositionY))
         return KerbConstants.Height;
+    if (PositionX >= C.RampNearX && PositionX <= C.RampNearX + C.RampRunX && Math.abs(PositionY - C.RampCentreY) <= C.RampHalfWidth)
+        return C.RampRise * (PositionX - C.RampNearX) / C.RampRunX;
     return 0.0;
 }
 

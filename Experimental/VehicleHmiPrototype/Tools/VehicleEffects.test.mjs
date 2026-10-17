@@ -7,6 +7,7 @@ import { TyreMarkDepot } from '../Source/TyreMarkDepot.js';
 import { VehicleVisualState, VehicleRecordBytes } from '../Source/VehicleVisualState.js';
 import { DriverInputIntegrator, ResolveCountersteer } from '../Source/DriverInputIntegrator.js';
 import { BuildTransientLights } from '../Source/TransientLights.js';
+import { CourseConstants } from '../Source/CourseStructure.js';
 globalThis.GPUBufferUsage = { VERTEX: 1, COPY_DST: 2 };
 globalThis.GPUTextureUsage = { TEXTURE_BINDING: 1, COPY_DST: 2 };
 function Exchange() {
@@ -14,7 +15,7 @@ function Exchange() {
         ConstructSampler: () => ({}), Device: { queue: { writeBuffer() {}, writeTexture() {} } } };
 }
 const Wall = { Minimum: [0, -1, 0], Maximum: [0.01, 1, 3] };
-test('swept sparks hit a thin wall, ground, kerb and convex debris without endpoint overlap', () => {
+test('swept sparks hit a thin wall, ground, ramp and convex debris without endpoint overlap', () => {
     const Hit = SweepSpark([-2,0,1], [2,0,1], [Wall]);
     assert.ok(Hit && Hit.Time > 0.49 && Hit.Time < 0.51);
     assert.deepEqual(Hit.Normal, [-1,0,0]);
@@ -24,9 +25,9 @@ test('swept sparks hit a thin wall, ground, kerb and convex debris without endpo
     assert.ok(SweepSpark([0,0,1], [0,0,-1]).Time < 0.5);
     const Body = { Position: [0,0,1.5], Radius: 2, WorldPlanes: new Float32Array(BoxPlanes(Wall)) };
     assert.ok(SweepSpark([-2,0,1], [2,0,1], [], [Body]));
-    // the training ground is flat: a spark dropped on the kerb strip lands on its raised top face
-    const Kerb = SweepSpark([0,6.15,1], [0,6.15,0]);
-    assert.ok(Kerb && Kerb.Normal[2] > 0.9 && Kerb.Time < 0.95);
+    const C = CourseConstants, X = C.RampNearX + C.RampRunX * 0.5;
+    const Ramp = SweepSpark([X,C.RampCentreY,C.RampRise + 1], [X,C.RampCentreY,0]);
+    assert.ok(Ramp && Ramp.Normal[0] < 0 && Ramp.Normal[2] > 0);
 });
 test('spark integration bounces, cools monotonically, retires particles and clears GPU draw count', () => {
     const Sparks = new SparkSequence(Exchange(), null);

@@ -13,8 +13,9 @@ import { GasParameterCatalogue, ConstructGasParameters } from "./SmokeSequence.j
 import { FractureMaterials, FractureMaterialOrder } from "./FractureStructure.js";
 import { FractureModes } from "./FractureSequence.js";
 import { VehicleGeometry } from "./VehicleSpecification.js";
-import { LevelZones } from "./LevelStructure.js";
+import { ArenaZones, TrainingDrills } from "./LevelStructure.js";
 import { DerezPresets } from "./EffectSequence.js";
+import { FormatPrimary } from "./TrainingSequence.js";
 import { CameraRigs } from "./CabinStructure.js";
 
 export const InspectionModes = [
@@ -38,8 +39,8 @@ export const LightingPresets = {
     Night:  { SunElevation: -14, SunAzimuth: 172, SolarIlluminance: 12, EmissionScale: 1.0 }
 };
 
-// 📝 Places R can't reach: the editor drops the car at each feature (LevelStructure's LevelZones).
-// (LevelZones imported from LevelStructure.js above)
+// 📝 Places R can't reach: the editor drops the car at the start of each feature (LevelStructure's ArenaZones).
+export const LevelZones = ArenaZones;
 
 // 📝 Look presets for the gas: each a partial override of the catalogue defaults.
 export const GasPresets = {
@@ -133,9 +134,9 @@ export function ConstructEntities(Host)
           Description: "Particle Editor presets · recovery & respawn", Meta: () => Host.Effects.Settings.Preset,
           State: () => (Host.Recovery.Busy || Host.Effects.Metrics.Live > 0 ? "warm" : "live"), Build: (C, B) => BuildDerez(Host, C, B),
           Switches: () => [Feature("Auto recovery", "Shield", Host.Recovery.Settings, "Enabled")] },
-        { Id: "training", Group: "Level", Name: "Training ground", Type: "Free play", Glyph: "Flag", Colour: Accent.Level,
-          Description: "No drills, no timers · free driving", Meta: () => `${LevelZones.length} zones`,
-          State: () => "live", Build: (C, B) => BuildTrainingGround(Host, C, B) },
+        { Id: "training", Group: "Level", Name: "Training arena", Type: "Drills", Glyph: "Flag", Colour: Accent.Level,
+          Description: "Ten timed stations · best times", Meta: () => (Host.Training.Active ? Host.Training.Active.Drill.Name : `${TrainingDrills.length} drills`),
+          State: () => (Host.Training.Active && Host.Training.Active.Phase === "running" ? "warm" : "live"), Build: (C, B) => BuildTraining(Host, C, B) },
         { Id: "cones", Group: "Level", Name: "Cones", Type: "Rigid bodies", Glyph: "TrafficCone", Colour: Accent.Level, Parent: "training",
           Description: "Knockable cones · rez back on reset", Meta: () => `${Host.Cones.Cones.length}`,
           State: () => (Host.Cones.Metrics.Moving > 0 ? "warm" : "live"), Build: (C, B) => BuildCones(Host, C, B) },
@@ -794,7 +795,7 @@ function HexToRgb(Hex)
 function BuildLevel(Host, C, Body)
 {
     const Zones = C.Card(Body, "Proving grounds", "Map", { Accent: Accent.Level, Index: 1, Subtitle: "Teleport the car" });
-    C.Muted(Zones, "A 216 x 120 m asphalt pad in a grass surround, fenced by a concrete boundary barrier. Main straight and start grid, painted perimeter loop, garage/hangar, lit tunnel with traffic lights, and a free east apron (slalom, rings, parking, breakables).");
+    C.Muted(Zones, "A 216 × 120 m asphalt pad in a grass surround. West: the main straight with kerbs and a jump, a skidpad, a concrete burnout box, a smash alley of breakable props, a slatted hangar for bounce light, a container yard and a lit tunnel. East: the training arena — launch strip, slalom, moose test, cone bowling, spin box and a figure-8.");
     for (const Zone of LevelZones)
         C.LinkButton(Zones, `${Zone.Name} · ${Zone.Note}`, () => Host.TeleportVehicle(Zone));
 
@@ -826,17 +827,41 @@ function BuildStress(Host, C, Body)
 //                                                  TRAINING ARENA
 //------------------------------------------------------------------------------------------------------------------------
 
-function BuildTrainingGround(Host, C, Body)
+function BuildTraining(Host, C, Body)
 {
-    const Zones = C.Card(Body, "Training ground", "Flag", { Accent: Accent.Level, Index: 1, Subtitle: "Free driving - no drills, no timers" });
-    C.Muted(Zones, "One large fenced tarmac: main straight and start grid, a painted perimeter loop, garage, lit tunnel, traffic lights, and an east apron with slalom cones, rings, parking bays and a breakable lane. Drive anywhere; the boundary barrier keeps the car on the grounds.");
-    for (const Zone of LevelZones)
-        C.LinkButton(Zones, `${Zone.Name} - ${Zone.Note}`, () => Host.TeleportVehicle(Zone));
-    const Row = C.ActionRow(Zones);
-    C.Button(Row, "Reset ground", "RotateCcw", () => Host.ResetArena());
-    const Cones = C.Card(Body, "Cones & props", "TrafficCone", { Accent: Accent.Level, Index: 2 });
-    C.Metric(Cones, () => Host.Cones.Metrics.Displaced, `/ ${Host.Cones.Cones.length} cones displaced`, 0, () => [`${Host.Cones.Metrics.Moving} moving`, Host.Cones.Metrics.Moving ? "warm" : ""]);
-    C.Readout(Cones, () => Host.Cones.QueryReadout());
+    const T = Host.Training;
+    const Live = C.Card(Body, "Now running", "Timer", { Accent: Accent.Level, Index: 1 });
+    C.Readout(Live, () => T.QueryReadout());
+    C.Muted(Live, "Drive into any station and its drill starts on its own; or start one here — the car derezzes to the start and the cones the last run knocked over rez back onto their marks. R returns to the running drill's start, T resets the whole arena.");
+    const Row = C.ActionRow(Live);
+    C.Button(Row, "Reset arena", "RotateCcw", () => Host.ResetArena());
+    C.Button(Row, "Stop drill", "Pause", () => T.Cancel());
+
+    const List = C.Card(Body, "Stations", "Flag", { Accent: Accent.Level, Index: 2, Subtitle: "Best times are kept in this browser" });
+    for (const Drill of TrainingDrills)
+    {
+        const Row = document.createElement("div");
+        Row.className = "drill-row";
+        const Title = document.createElement("div");
+        Title.className = "drill-title";
+        Title.textContent = Drill.Name;
+        const Note = document.createElement("div");
+        Note.className = "drill-note";
+        Note.textContent = Drill.Note;
+        const Best = document.createElement("div");
+        Best.className = "drill-best";
+        Row.append(Title, Note, Best);
+        C.Button(Row, "Start", Drill.Glyph in { Gauge: 1 } ? "Gauge" : "Play", () => T.StartDrill(Drill.Id));
+        List.appendChild(Row);
+        C.Live.push(() =>
+        {
+            const Record = T.Best[Drill.Id];
+            const Last = (T.Results[Drill.Id] || [])[0];
+            Best.textContent = [Record ? `best ${FormatPrimary(Record)}` : "", Last ? `last ${FormatPrimary(Last)}` : ""].filter(Boolean).join("  ·  ");
+        });
+    }
+    const Clear = C.ActionRow(List);
+    C.Button(Clear, "Clear best times", "Trash2", () => T.ClearBest(), "danger");
 }
 
 function BuildCones(Host, C, Body)

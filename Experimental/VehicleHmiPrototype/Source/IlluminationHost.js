@@ -33,6 +33,7 @@ import { JoltWorld } from "./JoltWorld.js";
 import { ConeSequence } from "./ConeSequence.js";
 import { EffectSequence } from "./EffectSequence.js";
 import { RecoveryDirector, RecoveryReasons } from "./RecoveryDirector.js";
+import { TrainingSequence } from "./TrainingSequence.js";
 import { SpawnPoint, ResolveCourseHeight } from "./CourseStructure.js";
 import { TyreThermalSolver, IgnitionModes } from "./TyreThermalSolver.js";
 import { SmokeSequence, ConstructGasParameters } from "./SmokeSequence.js";
@@ -317,6 +318,7 @@ class IlluminationHost
         this.Chase = new ChaseCameraSolver();
         this.Orbit = new VehicleOrbitCamera();
         this.Flight = new FreeCameraSolver();
+        this.Training = new TrainingSequence(this);
         this.ConstructPanel();
         this.ConstructInput();
         this.ReconstructScreenTargets();
@@ -732,12 +734,14 @@ class IlluminationHost
             this.Shell.Controls.Synchronise();
     }
 
-    // 📝 R: derez, and rez back at the start grid.
+    // 📝 R: derez, and rez at the active drill's start (or the spawn).
     RespawnVehicle(Instant = false)
     {
-        const Destination = { Position: SpawnPoint.Position.slice(0, 2), Yaw: SpawnPoint.Yaw };
+        const Drill = this.Training ? this.Training.QueryActiveDrill() : null;
+        const Destination = Drill ? { Position: Drill.Teleport.Position.slice(), Yaw: Drill.Teleport.Yaw * Math.PI / 180.0 }
+                                  : { Position: SpawnPoint.Position.slice(0, 2), Yaw: SpawnPoint.Yaw };
         // 📝 The rez puts fresh tyres on (RecoveryDirector → RestoreTyres); an instant respawn does it here.
-        if (!Instant && this.Recovery && this.Recovery.Begin(RecoveryReasons.Respawn, Destination))
+        if (!Instant && this.Recovery && this.Recovery.Begin(RecoveryReasons.Respawn, Destination, () => { if (this.Training) this.Training.OnRespawn(); }))
             return;
         if (Instant || !this.Recovery || !this.Recovery.Busy)
         {
@@ -758,7 +762,7 @@ class IlluminationHost
                 this.Fracture.ReassembleProp(Prop);
                 Props++;
             }
-        this.Shell.Announce(`Training ground reset — ${Cones} cones, ${Props} props`);
+        this.Shell.Announce(`Arena reset — ${Cones} cones, ${Props} props`);
     }
 
     //--------------------------------------------------------------------------------------------------------------------
@@ -1018,6 +1022,7 @@ class IlluminationHost
         this.Cones.Advance(Step);
         this.Stress.Advance(Step);
         this.Effects.Advance(Step);
+        this.Training.Advance(Step);
 
         // ①b tyres: sliding heat into tread, carcass and gas; ignition; the wheels' smoke and fire sources
         const Readings = this.Vehicle.DrainWheelReadings();

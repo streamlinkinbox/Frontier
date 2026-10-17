@@ -85,7 +85,8 @@ Use a WebGPU-capable browser to assess appearance, interaction and hardware perf
 A self-contained WebGPU exhibit inside the **Frontier Editor** UI: one scene distance field (four camera-centred
 toroidal cascades), a surface cache of oriented cards with multi-bounce radiosity, a ReSTIR GI final gather traced
 through that field, SVGF reconstruction, glossy reflections — and the Project-Drive ControlVehicle (a port of its
-struts, MF6.1 tyres and GT-R powertrain) on the **Frontier training ground** (free driving, knockable cones - no drills or timers), with GPU drift smoke and tyre fire, burnouts that lay sharp-edged rubber, breakable
+struts, MF6.1 tyres and GT-R powertrain) on the **Frontier proving grounds** and its **training arena** (timed
+drills, 136 knockable cones), with GPU drift smoke and tyre fire, burnouts that lay sharp-edged rubber, breakable
 props whose debris are convex rigid bodies in the distance field, and a derez / rez effect for every respawn.
 
 **Provenance.** Imported verbatim from `SultanAladin/Slate`, branch `arena/c6cba543-slate`, commit
@@ -124,8 +125,8 @@ groups the scene; selecting an entry rebuilds the inspector (`Source/InspectorPa
 | **Smoke & fire** | the Smoke + Fire editor: Domain, Source, Simulation, Appearance, Fire, Presets — every gas quantity as a slider, plus a test emitter |
 | **Derez · VFX** | the Particle Editor's Derez cube · Reverse derez · Glitch dissolve presets, cube timing and motion, **the car's own colours or the palette**, face glow, **momentum**, recovery triggers, test buttons |
 | **Fracture** · each breakable prop | debris (rigid bodies, distance-field admission, respawn); per prop the Fracture editor: Material, Impact, Fragment quality, Bake, Geometry receipt |
-| **Training ground** · Cones | free-play zones and teleports (no drills, no timers); ground reset; the cones |
-| Training ground · Stress test | zone teleports and the scene budget; the stress pool |
+| **Training arena** · Cones | the ten drills with Start buttons, last result and best time; arena reset; the cones |
+| Proving grounds · Stress test | zone teleports and the scene budget; the stress pool |
 
 Edits apply live. The eye toggles switch an entity off (smoke, fracture, a single prop, tyre marks).
 
@@ -137,45 +138,61 @@ Edits apply live. The eye toggles switch an entity off (smoke, fracture, a singl
 | **W + S** | burnout — line lock holds the front brakes, the rears spin on the limiter; lift S to launch |
 | A / D | steer |
 | Space | handbrake |
-| R | derez and rez at the start grid (the rez brings fresh tyres) |
+| R | derez and rez at the running drill's start, or the start grid (the rez brings fresh tyres) |
 | **C** / Shift+C | camera rigs: chase → cockpit → HMI → passenger → hood → tyre FL → tyre RL |
-| T | reset the training ground: knocked cones rez back onto their marks, broken props are rebuilt |
+| T | reset the arena: knocked cones rez back onto their marks, broken props are rebuilt |
 | F or F8 | free camera (WASD, Q/E, Shift) |
 | drag / wheel | orbit / zoom the chase camera; inside the car drag to look around, click the tablet to use it |
 | H · I · P | readout · distance-slice inset · editor columns |
 | V | clean view — hides every overlay; V again restores exactly what was open |
 
-## The training ground
+## The proving grounds
 
-`Source/LevelStructure.js` declares the level, `Source/CourseStructure.js` its analytic relief (kerbs only - the
-ground is flat tarmac), which the tyres, the fragments and the smoke all read. One 216 x 120 m asphalt pad in a
-grass surround, ringed by a concrete **boundary barrier** on all four sides so the car cannot leave the grounds.
-There are **no timed drills or exercises** - it is a free training ground:
+`Source/LevelStructure.js` declares the level, `Source/CourseStructure.js` its analytic relief (kerbs, the jump ramp),
+which the tyres, the fragments and the smoke all read. A 216 × 120 m asphalt pad in a grass surround — the original
+120 m square in the west, the training arena in the east:
 
-- **main straight** (west) with red-and-white kerbs, a chequered start strip, three painted grid slots, a start
-  gantry and FRONTIER / TRAINING GROUND painted on the road;
-- **perimeter loop** - a painted rectangle inset 10 m from the boundary (edge lines + dashed centreline) for
-  continuous laps;
-- **garage / hangar** - 28 x 16 x 8 m, open to the south, crimson back wall, slatted roof and lamp strips (the
-  bounce-light showcase), with cabinets, tyre stacks and a couple of breakable crates outside;
-- **lit tunnel** along the south edge, SLOW / TUNNEL road paint, guide cones and a **traffic light** at its
-  portal; a second traffic light guards the junction where the straight meets the east apron (stop line +
-  crosswalk stripes). Both signals are static (green lit) - cycling them is a future per-frame emissive rewrite;
-- **east apron** - a large open handling area: a free slalom cone line, two painted rings to circle, painted
-  parking bays, and a **breakable lane** (wooden crates, glass panes, concrete pillars, ABS barriers, a stone
-  wall) between jersey barriers;
-- **cones and lamps everywhere**: 34 knockable cones in free-play sets and 20 lamp poles whose emissive heads
-  light the night through the surface cards.
+- **main straight** with red-and-white kerbs, a jump ramp, a start strip, FRONTIER painted on the road and a gravel
+  run-off with a tyre wall;
+- **skidpad** — a painted 14 m drift ring with cones;
+- **burnout box** — a concrete apron with its outline and BURNOUT painted, a tyre wall behind;
+- **smash alley** — thirteen breakable props between jersey barriers: wooden crates, an annealed and a tempered
+  glass pane in steel frames, octagonal concrete pillars, ABS barriers, a stone wall, a concrete block;
+- **hangar** — 28 × 16 × 8 m, open to the south, crimson back wall, a slatted roof that lets sun stripes in and lamp
+  strips that light it at night: the bounce-light showcase;
+- **container yard**, a **control tower**, a **lit tunnel**, and light poles whose emissive heads light the night
+  through the surface cards.
 
-**Level page -> Training ground** teleports the car (Start grid, Garage, Tunnel, Junction, East apron, Loop
-north); **T** rezzes every cone and rebuilds every broken prop. Pad dimensions are unchanged from the previous
-proving grounds - they are baked into the ground lattice, card and tyre-mark constants.
+Shapes are authored long-side-on-x and turned into place, tall thin poles, gantry posts and signs are rastered only,
+and large structures take coarse volumes and sparse cards, so the occupant distance space stays near 70 MB.
 
-**Cones** (`Source/ConeSequence.js`): 34 of the 70 cm cone - a fluorescent PVC body with a rounded tip and two
+## The training arena
+
+The east wing is Apex Legends' Firing Range for driving (`TrainingDrills` in `Source/LevelStructure.js`,
+`Source/TrainingSequence.js`). Every station is live: drive through its start gate (or into its zone) and the drill
+starts, the HUD at the top of the viewport runs it, and the result — with a best time kept in the browser — lands
+in the HUD and on the Training page. Starting a drill from the page derezzes the car to its start and rezzes the
+cones the last run knocked over back onto their marks.
+
+| Station | Drill |
+| --- | --- |
+| **Launch** | three lanes under green and red gantries: 60 ft and 0–100 splits, the 62 m sprint and trap speed, then stop in the box (22–32 m past the brake line) for the time to count |
+| **Slalom** | eight cones 11 m apart, gate to gate, +1 s per displaced cone |
+| **Moose test** | the ISO 3888-2 double lane change, coned on both sides: entry speed, clean or failed |
+| **Cone bowling** | fifteen pins at the end of a run-up lane, counted 3 s after the foul line |
+| **Spin box** | full turns inside an 18 m box without touching a cone or leaving it |
+| **Figure-8 drift** · **Skidpad** | angle × speed × time while sliding, chained with a multiplier that grows every 2 s; a cone hit loses the chain |
+| **Jump** | airtime and distance past the lip, read off painted 5 m lines |
+| **Smash alley** · **Burnout box** | props smashed; seconds of held burnout and the hottest tyre |
+
+Station names are painted on the road and on double-sided signs with lit letters (a 5 × 7 block font covering
+A–Z and 0–9).
+
+**Cones** (`Source/ConeSequence.js`): 136 of a new 70 cm cone — a fluorescent PVC body with a rounded tip and two
 retroreflective collars on a chamfered rubber base, weighted low (3.2 kg, centre of mass 15 cm up) so it rocks
 before it topples. A cone at rest is a *sleeping* rigid body and a static occupant (in the distance field, carded,
-relit round-robin), so they cost nothing until the car arrives; a knocked cone follows its body every frame until
-it settles. Reset (T, or the Level page) bursts it into cubes where it lies and assembles it on its mark.
+relit round-robin), so they cost nothing until the car arrives; a knocked cone follows its body every frame until it
+settles. Reset (T, or a drill start) bursts it into cubes where it lies and assembles it on its mark.
 
 ## Smoke and fire
 
@@ -382,7 +399,7 @@ Frame timing card shows the average frame rate, the **1 % low** over the last 24
 `Tools/HeadlessHarness.mjs` runs the real bring-up and frame loop — editor included — under Node with Dawn (the
 `webgpu` package): on the null backend it validates every WGSL module, pipeline layout and command; with a
 SwiftShader Vulkan ICD it renders real frames and writes PNG captures. A `HOOKS` module can script input (the
-burnout, a run down the breakable lane) and report from the host. See the file header for usage.
+burnout, a run down the smash alley) and report from the host. See the file header for usage.
 `Tools/VehicleStability.mjs` needs nothing installed: it steps the vehicle, thermal and carcass solvers in the frame
 loop's order on the open pad and fails on a bouncing body, a left–right asymmetry, a car leaving the ground or a
 runaway wheel (see *Soft tyres, pressure and failure*).
