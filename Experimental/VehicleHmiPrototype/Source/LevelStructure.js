@@ -6,11 +6,11 @@
 // 📝 The layout (metres; +X down the main straight, +Y left, +Z up):
 //
 //        y +60 ┌── container yard ─────────────────────────────┬──── TRAINING ARENA (east wing) ──────────────────────┐
-//              │  skidpad: 14 m ring,      hangar 28 × 16 m    │ ▲ ▲ ▲     ▲          ▲   bowling   ┌ spin box ┐        │
+//              │  skidpad: 14 m ring,      hangar 28 × 16 m    │ launch  ══ slalom (north band, →) ══  ┌ spin box ┐       │
 //              │  32 cones                                     │ launch   slalom    moose  15 pins  │ 18×18 m  │        │
 //        y  +6 │═ kerb ═ START ▸ FRONTIER ═ JUMP ═ ramp ═ gravel│ 3 lanes  8 cones   ISO     ·        └──────────┘        │
 //        y  −6 │═ kerb ═                                       ║ brake    11 m      3888-2           ◯ figure-8 drift ◯  │
-//              │  tower   burnout box    SMASH alley (13 props)│ line,    pitch     lane                 two 12 m rings   │
+//              │  tower   burnout box    SMASH alley (13 props)│ moose↑ bowling↑ (east lane)  figure-8 ○○ (east-mid)   │
 //        y −60 └── lit tunnel ────────────────────────────────┴──────────────────────────────────────────────────────┘
 //            x −60                                          x +60                                                x +156
 //
@@ -38,11 +38,11 @@ const JerseyProfile = [[-0.30, 0.0], [0.30, 0.0], [0.30, 0.08], [0.12, 0.30], [0
 // 📝 Station signs: { Text, Position [x, y] (board centre), Yaw [°] (0: the board runs along x, read from ±y) }.
 const ArenaSigns = [
     { Text: "LAUNCH",  Position: [76.0, -58.6],   Yaw: 0.0 },
-    { Text: "SLALOM",  Position: [100.0, -58.6],  Yaw: 0.0 },
-    { Text: "MOOSE",   Position: [120.0, -58.6],  Yaw: 0.0 },
-    { Text: "DRIFT",   Position: [142.0, -59.0],  Yaw: 0.0 },
-    { Text: "SPIN",    Position: [142.0, 50.5],   Yaw: 0.0 },
-    { Text: "BOWLING", Position: [119.0, 57.6],   Yaw: 0.0 },
+    { Text: "SLALOM",  Position: [121.0, 55.4],   Yaw: 0.0 },
+    { Text: "MOOSE",   Position: [104.0, -55.4],  Yaw: 0.0 },
+    { Text: "DRIFT",   Position: [132.0, -10.6],  Yaw: 0.0 },
+    { Text: "SPIN",    Position: [99.0, 29.4],    Yaw: 0.0 },
+    { Text: "BOWLING", Position: [146.0, -55.4],  Yaw: 0.0 },
     { Text: "SKIDPAD", Position: [-30.0, 48.6],   Yaw: 0.0 },
     { Text: "SMASH",   Position: [-10.0, -38.0],  Yaw: 90.0 },
     { Text: "FRONTIER RANGE", Position: [61.6, 30.0], Yaw: 90.0 }
@@ -260,18 +260,18 @@ export function ResolveLevelPlacements()
 //    section 3 (11 m, W + 1, offset so its left edge is 1 m past section 1's right edge), a 12.5 m gap, section 5
 //    (12 m, min(1.3·W + 0.25, 3)). Cones every three metres or so down both sides of each gated section.
 export const MooseLayout = Object.freeze({
-    EntryX: 120.0, EntryY: -42.0,
+    EntryX: 104.0, EntryY: -48.0,
     Sections: Object.freeze([
-        Object.freeze({ Y0: -42.0, Y1: -30.0, Centre: 120.0,   Width: 2.45 }),
-        Object.freeze({ Y0: -16.5, Y1: -5.5,  Centre: 123.725, Width: 3.0 }),
-        Object.freeze({ Y0: 7.0,   Y1: 19.0,  Centre: 120.0,   Width: 2.85 })
+        Object.freeze({ Y0: -48.0, Y1: -37.0, Centre: 104.0,   Width: 2.45 }),
+        Object.freeze({ Y0: -24.0, Y1: -14.0, Centre: 107.725, Width: 3.0 }),
+        Object.freeze({ Y0: -4.0,  Y1: 4.0,   Centre: 104.0,   Width: 2.85 })
     ])
 });
 
-export const SpinBox    = Object.freeze({ Minimum: [133.0, 27.0], Maximum: [151.0, 45.0] });
-export const DriftRings = Object.freeze({ Centres: Object.freeze([[140.0, -44.0], [140.0, -20.0]]), Radius: 12.0 });
+export const SpinBox    = Object.freeze({ Minimum: [90.0, 8.0], Maximum: [108.0, 26.0] });
+export const DriftRings = Object.freeze({ Centres: Object.freeze([[132.0, 4.0], [132.0, 26.0]]), Radius: 11.0 });
 export const SkidpadRing = Object.freeze({ Centre: [-30.0, 30.0], Radius: 14.0 });
-export const BowlingPins = Object.freeze({ Head: [119.0, 46.0], Rows: 5, Pitch: 0.95 });
+export const BowlingPins = Object.freeze({ Head: [146.0, -34.0], Rows: 5, Pitch: 0.95 });
 
 // 📝 { Name, Position [x, y], Yaw [rad], Group } — Group names the drill a cone belongs to, so a drill can count the
 //    cones it disturbed and rez them back into place when it restarts.
@@ -304,11 +304,11 @@ export function ResolveConePlacements()
     for (const X of [70.0, 76.0, 82.0])
         for (const Offset of [-2.1, 2.1])
             Cone("launch", X + Offset, 44.6);
-    // ⑤ slalom: eight cones on one line, 11 m apart, gate cones at both ends
+    // ⑤ slalom (redesigned: horizontal, along the north band): eight cones on one line, gate cones at both ends
     for (let Index = 0; Index < 8; ++Index)
-        Cone("slalom", 100.0, -30.0 + 11.0 * Index);
-    for (const Y of [-42.0, 55.0])
-        for (const X of [94.0, 106.0])
+        Cone("slalom", 94.0 + 8.0 * Index, 42.0);
+    for (const X of [90.0, 152.0])
+        for (const Y of [38.4, 45.6])
             Cone("slalom", X, Y);
     // ⑥ moose test: both sides of each gated section
     for (const Section of MooseLayout.Sections)
@@ -348,7 +348,7 @@ export function ResolveConePlacements()
             const Angle = 2.0 * Math.PI * Index / 8;
             const TowardCrossing = Ring === 0 ? Math.sin(Angle) > 0.5 : Math.sin(Angle) < -0.5;
             if (!TowardCrossing)
-                Cone("drift", CX + 13.6 * Math.cos(Angle), CY + 13.6 * Math.sin(Angle), Angle);
+                Cone("drift", CX + 12.6 * Math.cos(Angle), CY + 12.6 * Math.sin(Angle), Angle);
         }
     });
     // ⑨ cone bowling: fifteen pins in a triangle at the end of a run-up lane
@@ -621,41 +621,41 @@ export function EmitLevelGroundFacets()
     Text("LAUNCH", [76.0, -55.2], ReadNorth, 0.36, 0.56, 0.5, White);
     Text("BRAKE", [76.0, 15.0], ReadNorth, 0.22, 0.34, 0.3, Yellow);
 
-    // ⑨ slalom: dashed lane edges, start and finish lines, the name
-    for (const X of [93.0, 107.0])
-        for (let Y = -46.0; Y < 58.0; Y += 4.0)
-            Paint(X - 0.06, Y, X + 0.06, Y + 2.0, White);
-    Paint(93.0, -42.2, 107.0, -41.8, Green);
+    // ⑨ slalom (redesigned, horizontal): dashed lane edges, start and finish lines, the name
+    for (const Y of [38.4, 45.6])
+        for (let X = 88.0; X < 154.0; X += 4.0)
+            Paint(X, Y - 0.06, X + 2.0, Y + 0.06, White);
+    Paint(89.8, 38.4, 90.2, 45.6, Green);
     for (let Square = 0; Square < 24; ++Square)
         for (let Rank = 0; Rank < 2; ++Rank)
             if ((Square + Rank) % 2 === 0)
-                Paint(93.0 + 0.5833 * Square, 54.8 + 0.3 * Rank, 93.0 + 0.5833 * (Square + 1), 55.1 + 0.3 * Rank, White);
-    Text("SLALOM", [100.0, -55.0], ReadNorth, 0.3, 0.56, 0.45, White);
+                Paint(151.8 + 0.3 * Rank, 38.4 + 0.2916 * Square, 152.1 + 0.3 * Rank, 38.4 + 0.2916 * (Square + 1), White);
+    Text("SLALOM", [121.0, 48.6], ReadEast, 0.3, 0.56, 0.45, White);
 
-    // ⑩ moose test: the approach lane, entry and exit lines, the name
-    for (const X of [118.775, 121.225])
-        for (let Y = -58.0; Y < -42.0; Y += 3.0)
+    // ⑩ moose test (redesigned, x=104): the approach lane, entry and exit lines, the name
+    for (const X of [MooseLayout.EntryX - 1.225, MooseLayout.EntryX + 1.225])
+        for (let Y = -58.0; Y < -48.0; Y += 3.0)
             Paint(X - 0.06, Y, X + 0.06, Y + 1.5, White);
-    Paint(118.7, -42.2, 121.3, -41.8, Green);
-    Paint(118.0, 18.8, 122.0, 19.2, White);
-    Text("MOOSE", [120.0, -51.0], ReadNorth, 0.3, 0.56, 0.45, White);
+    Paint(102.7, -48.2, 105.3, -47.8, Green);
+    Paint(101.0, 3.8, 107.0, 4.2, White);
+    Text("MOOSE", [104.0, -52.0], ReadNorth, 0.3, 0.56, 0.45, White);
 
-    // ⑪ cone bowling: the run-up lane, the foul line, the name
-    for (const X of [114.5, 123.5])
-        for (let Y = 24.0; Y < 44.0; Y += 4.0)
+    // ⑪ cone bowling (redesigned, far-east lane): the run-up lane, the foul line, the name
+    for (const X of [143.0, 149.0])
+        for (let Y = -56.0; Y < -36.0; Y += 4.0)
             Paint(X - 0.06, Y, X + 0.06, Y + 2.0, White);
-    Paint(114.5, 39.85, 123.5, 40.15, Yellow);
-    Text("BOWLING", [119.0, 28.0], ReadNorth, 0.18, 0.34, 0.24, White);
+    Paint(143.0, -38.15, 149.0, -37.85, Yellow);
+    Text("BOWLING", [146.0, -50.0], ReadNorth, 0.18, 0.34, 0.24, White);
 
     // ⑫ spin box: the outline, a dashed circle inside, the name
     PaintOutline(Paint, SpinBox.Minimum[0], SpinBox.Minimum[1], SpinBox.Maximum[0], SpinBox.Maximum[1], 0.2, Yellow);
     PaintRing(Paint, Facets, 0.5 * (SpinBox.Minimum[0] + SpinBox.Maximum[0]), 0.5 * (SpinBox.Minimum[1] + SpinBox.Maximum[1]), 6.0, 0.16, 40, 0.5, White);
-    Text("SPIN", [142.0, 23.2], ReadNorth, 0.3, 0.56, 0.45, White);
+    Text("SPIN", [99.0, 4.6], ReadNorth, 0.3, 0.56, 0.45, White);
 
     // ⑬ figure-8: two blue rings touching at the crossing, the name read driving south into it
     for (const [CX, CY] of DriftRings.Centres)
         PaintRing(Paint, Facets, CX, CY, DriftRings.Radius, 0.3, 80, 1.0, Blue);
-    Text("DRIFT", [140.0, -4.4], ReadSouth, 0.3, 0.56, 0.45, Blue);
+    Text("DRIFT", [132.0, -9.6], ReadSouth, 0.3, 0.56, 0.45, Blue);
 
     // ⑭ the boundary fence line (redesign addition) and the arena's edge
     Paint(-56.0, 57.3, 152.0, 57.5, White);
@@ -723,21 +723,21 @@ export const TrainingDrills = Object.freeze([
       Teleport: { Position: [76.0, -54.5], Yaw: 90.0 },
       Start: { Axis: "y", At: -50.0, From: 67.0, To: 85.0 }, SixtyFoot: -31.71, Brake: 12.0, StopBox: [34.0, 44.0],
       Lanes: [70.0, 76.0, 82.0], LaneHalf: 2.2, Groups: ["launch"] },
-    { Id: "slalom", Name: "Slalom", Glyph: "Waves", Note: "8 cones, 11 m · +1 s per cone",
-      Teleport: { Position: [100.0, -53.0], Yaw: 90.0 },
-      Start: { Axis: "y", At: -42.0, From: 93.0, To: 107.0 }, Finish: { Axis: "y", At: 55.0, From: 93.0, To: 107.0 },
+    { Id: "slalom", Name: "Slalom", Glyph: "Waves", Note: "8 cones, 8 m · +1 s per cone",
+      Teleport: { Position: [86.0, 42.0], Yaw: 0.0 },
+      Start: { Axis: "x", At: 90.0, From: 38.0, To: 46.0 }, Finish: { Axis: "x", At: 152.0, From: 38.0, To: 46.0 },
       Groups: ["slalom"] },
     { Id: "moose", Name: "Moose test", Glyph: "Route", Note: "ISO 3888-2 double lane change",
-      Teleport: { Position: [120.0, -58.0], Yaw: 90.0 },
-      Start: { Axis: "y", At: -42.0, From: 118.0, To: 122.0 }, Finish: { Axis: "y", At: 19.0, From: 116.0, To: 126.0 },
+      Teleport: { Position: [104.0, -56.0], Yaw: 90.0 },
+      Start: { Axis: "y", At: -48.0, From: 102.0, To: 106.0 }, Finish: { Axis: "y", At: 4.0, From: 100.0, To: 110.0 },
       Groups: ["moose"] },
     { Id: "bowling", Name: "Cone bowling", Glyph: "Target", Note: "15 pins · strike them all",
-      Teleport: { Position: [119.0, 25.0], Yaw: 90.0 },
-      Start: { Axis: "y", At: 40.0, From: 114.5, To: 123.5 }, Groups: ["bowling"] },
+      Teleport: { Position: [146.0, -54.0], Yaw: 90.0 },
+      Start: { Axis: "y", At: -38.0, From: 143.0, To: 149.0 }, Groups: ["bowling"] },
     { Id: "spin", Name: "Spin box", Glyph: "RotateCcw", Note: "360s inside the box, cones untouched",
-      Teleport: { Position: [142.0, 21.0], Yaw: 90.0 }, Box: SpinBox, Groups: ["spin"] },
+      Teleport: { Position: [99.0, 4.0], Yaw: 90.0 }, Box: SpinBox, Groups: ["spin"] },
     { Id: "drift", Name: "Figure-8 drift", Glyph: "Wind", Note: "Angle × speed × time, chained",
-      Teleport: { Position: [129.0, -32.0], Yaw: 0.0 }, Zone: { Minimum: [124.0, -60.0], Maximum: [156.0, -6.0] }, Groups: ["drift"] },
+      Teleport: { Position: [117.0, 15.0], Yaw: 0.0 }, Zone: { Minimum: [118.0, -10.0], Maximum: [146.0, 40.0] }, Groups: ["drift"] },
     { Id: "skidpad", Name: "Skidpad", Glyph: "CircleDot", Note: "Hold the 14 m ring",
       Teleport: { Position: [-30.0, 18.5], Yaw: 0.0 }, Zone: { Minimum: [-47.0, 13.0], Maximum: [-13.0, 47.0] }, Groups: ["skidpad"] },
     { Id: "jump", Name: "Jump", Glyph: "TrendingUp", Note: "Airtime and distance past the lip",
