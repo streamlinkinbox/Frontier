@@ -22,7 +22,7 @@ import { AutomotiveMode, RoofFixtureType } from "./LightingSystem.js";
 export const InspectionModes = [
     ["Final image", 0], ["Direct sun only", 1], ["Indirect diffuse (GI)", 2], ["Indirect irradiance (denoised)", 3],
     ["ReSTIR irradiance (raw, no denoise)", 4], ["Glossy reflections", 5], ["Global distance field", 6],
-    ["Surface cards (texel space)", 7], ["Normals", 8], ["Albedo", 9]
+    ["Surface cards (texel space)", 7], ["Normals", 8], ["Albedo", 9], ["ReSTIR DI irradiance (ray traced)", 10]
 ];
 
 export const DistanceInspections = [
@@ -183,7 +183,30 @@ function BuildRender(Host, C, Body)
     C.Segmented(Quality, S, "TraceScale", [["Full", 1], ["Half", 2], ["Quarter", 4]], { Label: "Trace resolution" });
     Slider(C, Quality, S, "RenderScale", "Render scale", 0.25, 2.0, 0.05, "×", 2, ["Faster", "Sharper"]);
 
-    const Gather = C.Card(Body, "Global illumination · ReSTIR", "Sparkles", { Accent: Accent.Render, Index: 2 });
+    const Renderer = C.Card(Body, "Lighting renderer", "Sparkles", { Accent: Accent.Render, Index: 2 });
+    C.Segmented(Renderer, S, "Renderer", [["Ray traced · RTX", "PathTraced"], ["Distance field · GTX", "DistanceField"]],
+                { Label: "Renderer", OnChange: () => Host.ApplySetting("Renderer") });
+    C.Muted(Renderer, "Ray traced: ReSTIR DI and a ReSTIR path tracer over a triangle BVH (compute, every light kind, reconnection shift). " +
+                      "Distance field: card-cached GI gathered through the signed distance field.");
+    C.Readout(Renderer, () => Host.QueryTraceLines());
+    Slider(C, Renderer, S, "PathBounces", "Path bounces", 1, 8, 1, "", 0);
+    Slider(C, Renderer, S, "DirectCandidates", "Light candidates (DI)", 1, 32, 1, "", 0);
+    Slider(C, Renderer, S, "DirectSpatialCount", "DI spatial neighbours", 0, 8, 1, "", 0);
+    Slider(C, Renderer, S, "DirectSpatialRadius", "DI spatial radius", 2, 48, 1, "px", 0);
+    Slider(C, Renderer, S, "DirectTallyLimit", "DI temporal M limit", 1, 40, 1, "", 0, ["Responsive", "Stable"]);
+    Slider(C, Renderer, S, "PathSpatialCount", "PT spatial neighbours", 0, 4, 1, "", 0);
+    Slider(C, Renderer, S, "PathSpatialRadius", "PT spatial radius", 2, 48, 1, "px", 0);
+    Slider(C, Renderer, S, "PathTallyLimit", "PT temporal M limit", 1, 40, 1, "", 0, ["Responsive", "Stable"]);
+    Slider(C, Renderer, S, "ReconnectionRoughness", "Reconnection roughness", 0.0, 1.0, 0.01, "", 2, ["Random replay", "Reconnect"]);
+    Slider(C, Renderer, S, "ReconnectionDistance", "Reconnection distance", 0.0, 3.0, 0.05, "m", 2);
+    Slider(C, Renderer, S, "FireflyClamp", "Firefly clamp", 1, 100, 1, "", 0);
+    C.Switch(Renderer, S, "PathReplay", { Label: "Random replay shift", Detail: "Hybrid shift replays the prefix before the reconnection" });
+    C.Switch(Renderer, S, "PairwiseMis", { Label: "Pairwise MIS", Detail: "Unbiased reuse weights (off: M-proportional)" });
+    C.Switch(Renderer, S, "DirectBsdfCandidate", { Label: "BSDF light candidate", Detail: "Adds one BSDF-sampled candidate to the DI stream" });
+    C.Switch(Renderer, S, "MisVisibility", { Label: "Trace MIS visibility", Detail: "Shadow rays inside the reverse shift" });
+    C.Switch(Renderer, S, "RussianRoulette", { Label: "Russian roulette" });
+
+    const Gather = C.Card(Body, "Global illumination · ReSTIR", "Sparkles", { Accent: Accent.Render, Index: 3 });
     C.Switch(Gather, S, "TemporalReuse", { Label: "Temporal reuse", Detail: "Reservoirs carried through motion vectors" });
     C.Switch(Gather, S, "SpatialReuse", { Label: "Spatial reuse", Detail: "Neighbouring reservoirs merged per pixel" });
     C.Switch(Gather, S, "VisibilityReuse", { Label: "Visibility validation", Detail: "Reused samples re-traced for occlusion" });
@@ -193,7 +216,7 @@ function BuildRender(Host, C, Body)
     Slider(C, Gather, S, "TemporalTallyLimit", "Temporal M limit", 1, 40, 1, "", 0, ["Responsive", "Stable"]);
     Slider(C, Gather, S, "IndirectScale", "Indirect intensity", 0, 3, 0.05, "×", 2);
 
-    const Image = C.Card(Body, "Exposure & image", "Aperture", { Accent: Accent.Render, Index: 3 });
+    const Image = C.Card(Body, "Exposure & image", "Aperture", { Accent: Accent.Render, Index: 4 });
     C.Switch(Image, S, "AutoExposure", { Label: "Auto exposure" });
     Slider(C, Image, S, "ExposureCompensation", "Exposure compensation", -4, 4, 0.1, "EV", 1, ["Darker", "Brighter"]);
     C.Switch(Image, S, "DirectShadow", { Label: "Sun shadows", Detail: "Cascaded shadow depth" });
@@ -201,14 +224,14 @@ function BuildRender(Host, C, Body)
     C.Switch(Image, S, "VarianceKernel", { Label: "Denoiser (SVGF)" });
     C.Switch(Image, S, "Antialias", { Label: "Temporal antialiasing", Detail: "Also resolves dithered tyre marks" });
 
-    const Debug = C.Card(Body, "Debug views", "Bug", { Accent: Accent.Render, Index: 4 });
+    const Debug = C.Card(Body, "Debug views", "Bug", { Accent: Accent.Render, Index: 5 });
     C.Select(Debug, S, "Inspection", InspectionModes, { Label: "Display" });
     C.Select(Debug, S, "DistanceInspection", DistanceInspections, { Label: "Distance-field view" });
     C.Switch(Debug, S, "HudVisible", { Label: "Readout overlay", Detail: "H" });
     C.Switch(Debug, S, "InsetEnabled", { Label: "Distance slice inset", Detail: "J" });
     Slider(C, Debug, S, "SliceHeight", "Slice height", 0.05, 4.0, 0.05, "m", 2);
 
-    const Timing = C.Card(Body, "Frame timing", "Activity", { Accent: Accent.Render, Index: 5 });
+    const Timing = C.Card(Body, "Frame timing", "Activity", { Accent: Accent.Render, Index: 6 });
     C.Metric(Timing, () => 1.0 / Math.max(Host.FrameSeconds || 1, 1.0e-4), "fps", 0, () => [`1% low ${Host.LowRate || "–"}`, ""]);
     C.Stats(Timing, [["Frame", () => (Host.FrameSeconds || 0) * 1000.0, "ms", 1], ["Draw runs", () => Host.Scene.DrawRuns.length],
                      ["Bricks / frame", () => Host.Distance.FrameBricks.length / 4]]);

@@ -20,7 +20,7 @@ export class DisplayProjection
         const Compute = GPUShaderStage.COMPUTE;
         this.RecombineLayout = this.Exchange.ConstructDescriptorLayout(
             ["Uniform", "StorageRead", "Texture2D", "TextureDepth2D", "Texture2D", "Texture2D", "Texture2D", "Texture2D", "Texture2D",
-             "Texture2D", "StorageTexture2D:rgba16float", "StorageRead", "Texture2D", "Sampler"], Compute, "Display recombination");
+             "Texture2D", "StorageTexture2D:rgba16float", "StorageRead", "Texture2D", "Sampler", "Texture2D"], Compute, "Display recombination");
         this.AntialiasLayout = this.Exchange.ConstructDescriptorLayout(
             ["Uniform", "Texture2D", "Texture2D", "Texture2D", "Sampler", "StorageTexture2D:rgba16float"], Compute, "Display antialias");
         this.ExposureLayout = this.Exchange.ConstructDescriptorLayout(["Uniform", "Texture2D", "Storage"], Compute, "Display exposure");
@@ -42,7 +42,9 @@ export class DisplayProjection
                                                                 "Eye adaptation");
     }
 
-    ConstructTargets(ScreenExtent, Surface, Resampling, Diffuse, Glossy, Cards)
+    // 📝 RawIndirect: the trace-resolution indirect irradiance the inspector shows (card gather or path tracer);
+    //    DirectDiffuse: the reconstructed ReSTIR DI irradiance, or null when the lighting is not path traced.
+    ConstructTargets(ScreenExtent, Surface, Resampling, Diffuse, Glossy, Cards, RawIndirect = null, DirectDiffuse = null)
     {
         for (const Texture of this.Textures || [])
             Texture.destroy();
@@ -62,7 +64,8 @@ export class DisplayProjection
                        Post: Post.createView() };
         if (!this.EmptySmoke) this.EmptySmoke = this.Exchange.ConstructTexture({ label: "Idle plume", size: [1,1], format: "rgba16float", usage: GPUTextureUsage.TEXTURE_BINDING });
         this.RecombineResources = [this.FrameRecords, this.MaterialRecords, Surface.Views.Attributes, Surface.Views.Depth, Surface.Views.Direct, Diffuse.Views.Screen,
-             Glossy.Views.Screen, Resampling.Views.Irradiance, this.Views.Inspection, Cards.Views.Final, this.Views.Recombined, this.OccupantRecords, this.EmptySmoke.createView(), this.LinearClamp];
+             Glossy.Views.Screen, RawIndirect || Resampling.Views.Irradiance, this.Views.Inspection, Cards.Views.Final, this.Views.Recombined, this.OccupantRecords,
+             this.EmptySmoke.createView(), this.LinearClamp, DirectDiffuse || this.EmptySmoke.createView()];
         this.AssignSmoke(this.EmptySmoke.createView());
         this.AntialiasGroups = [0, 1].map((Parity) => this.Exchange.ConstructDescriptorGroup(this.AntialiasLayout,
             [this.FrameRecords, this.Views.Recombined, this.Views.Resolved[1 - Parity], Surface.Views.Motion, this.LinearClamp, this.Views.Resolved[Parity]]));

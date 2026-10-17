@@ -22,6 +22,8 @@ import { AtmosphereIntegrator } from "./AtmosphereIntegrator.js";
 import { ShadowProjection } from "./ShadowProjection.js";
 import { SurfaceProjection } from "./SurfaceProjection.js";
 import { ResamplingSequence } from "./ResamplingSequence.js";
+import { TraceStructure } from "./TraceStructure.js";
+import { PathTracingSequence } from "./PathTracingSequence.js";
 import { VarianceIntegrator } from "./VarianceIntegrator.js";
 import { DisplayProjection } from "./DisplayProjection.js";
 import { HardwareMetrics } from "./HardwareMetrics.js";
@@ -62,8 +64,15 @@ const ShaderSources = [
     "VarianceWavelet.wgsl", "VarianceUpsample.wgsl", "InspectionMarch.wgsl", "DisplayRecombination.wgsl", "DisplayAntialias.wgsl",
     "DisplayExposure.wgsl", "DisplayPresent.wgsl", "FireIllumination.wgsl", "PlumeRecords.wgsl", "PlumeAdvection.wgsl", "PlumePressure.wgsl", "PlumeVorticity.wgsl", "PlumeMarch.wgsl",
     "FragmentDistance.wgsl", "EffectRecords.wgsl", "EffectRaster.wgsl", "VehicleVisual.wgsl", "SparkRaster.wgsl", "ForwardRaster.wgsl",
-    "CabinOverlay.wgsl", "CabinVolume.wgsl", "ClusteredLights.wgsl"
+    "CabinOverlay.wgsl", "CabinVolume.wgsl", "ClusteredLights.wgsl",
+    "TraceRecords.wgsl", "TraceTraversal.wgsl", "PathReflectance.wgsl", "LightSampling.wgsl", "DirectReservoir.wgsl",
+    "DirectReservoirTemporal.wgsl", "DirectReservoirSpatial.wgsl", "PathReservoirs.wgsl", "PathTraceTemporal.wgsl", "PathTraceSpatial.wgsl"
 ];
+
+// 📝 Renderers: PathTraced is the ray-traced path (ReSTIR DI + ReSTIR PT over the triangle BVH, for RTX-class hardware);
+//    DistanceField is the distance-field GI with surface cards (the GTX path). Selected with ?renderer=pathtraced|restir|cards.
+const RendererNames = { pathtraced: "PathTraced", rt: "PathTraced", restir: "DistanceField", cards: "DistanceField", sdf: "DistanceField" };
+const MaterialCapacity = 128;   // [-] MaterialRecord slots the trace programs read as a uniform array
 
 // 📝 Quality grades trade cascade resolution, card density and traversal length; selected with ?quality=low|medium|high.
 const QualityGrades = {
@@ -79,9 +88,11 @@ const FeatureBits = { Indirect: 1, TemporalReuse: 2, SpatialReuse: 4, Visibility
                       CardRadiosity: 64, Antialias: 128, DirectShadow: 256, AutoExposure: 512, RadianceRefresh: 1024 };
 
 const TemporalRestartBit = 2048;   // [-] FeatureTemporalRestart in SceneRecords.wgsl
+const PathTracedBit      = 8192;   // [-] FeaturePathTraced in SceneRecords.wgsl
 
 const PassNames = ["Distance union", "Card lighting", "Shadow", "Surface", "Direct", "ReSTIR GI", "Diffuse reconstruction",
-                   "Reflection", "Glossy reconstruction", "Resolve", "Smoke transport", "Smoke render"];
+                   "Reflection", "Glossy reconstruction", "Resolve", "Smoke transport", "Smoke render", "ReSTIR DI", "ReSTIR PT",
+                   "Direct reconstruction"];
 
 const FrameRecordExtent = 512;   // [B] FrameRecord in SceneRecords.wgsl (128 floats)
 const FireLightReach    = 14.0;  // [m] influence radius of a tyre fire's light
@@ -118,7 +129,12 @@ class IlluminationHost
             HudScale: 1, HudAcross: 0, HudDown: 0,
             CameraShake: true, CameraShakeStrength: 0.5, SpeedFov: true, SpeedFovBoost: 14,
             HmiScale: 1, HmiZoom: 1, CockpitFov: 70,
-            CameraMode: Query.get("camera") || "Chase"
+            CameraMode: Query.get("camera") || "Chase",
+            // 📝 The ray-traced lighting path (ReSTIR DI + ReSTIR PT): bounces, candidates, reuse, the reconnection shift.
+            Renderer: RendererNames[(Query.get("renderer") || "").toLowerCase()] || "PathTraced",
+            PathBounces: 3, DirectCandidates: 8, DirectSpatialCount: 2, PathSpatialCount: 2, DirectSpatialRadius: 12, PathSpatialRadius: 10,
+            DirectTallyLimit: 12, PathTallyLimit: 20, ReconnectionRoughness: 0.25, ReconnectionDistance: 0.5, FireflyClamp: 20.0,
+            PathReplay: true, PairwiseMis: true, DirectBsdfCandidate: true, MisVisibility: false, RussianRoulette: true, SpecularLobeFloor: 0.0
         };
         if (Query.has("preset"))
             this.PendingPreset = Query.get("preset");
@@ -159,6 +175,11 @@ class IlluminationHost
         this.ReportProgress("Negotiating the WebGPU device", 0.02);
         this.Exchange = new DeviceExchange();
         const Device = await this.Exchange.ConstructDevice();
+        // 📝 Software and fallback adapters cannot carry the path tracer in real time: they start on the distance-field
+        //    path unless ?renderer= asked for one explicitly.
+        this.RendererRequested = new URLSearchParams(location.search).has("renderer");
+        if (!this.RendererRequested && this.QuerySoftwareAdapter())
+            this.Settings.Renderer = "DistanceField";
         this.Exchange.ErrorListeners.push((Message) => this.ReportFailure(Message, false));
         this.Canvas = document.getElementById("viewport");
         if (this.Capture)
@@ -190,7 +211,11 @@ class IlluminationHost
         this.VertexRecords   = this.Exchange.ConstructRecordsFrom(this.Scene.EncodeVertexRecords(), GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST, "Facet vertices");
         this.Materials = Materials;
         // 📝 COPY_DST: the derez palette (VFX editor) rewrites its three glow records in place.
-        this.MaterialRecords = this.Exchange.ConstructRecordsFrom(EncodeMaterialRecords(Materials), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, "Materials");
+        //    UNIFORM and a padded capacity: the trace programs read the same records as a fixed-size uniform array.
+        const MaterialBytes = new Uint8Array(MaterialCapacity * 48);
+        const MaterialData = EncodeMaterialRecords(Materials);
+        MaterialBytes.set(new Uint8Array(MaterialData.buffer, MaterialData.byteOffset, Math.min(MaterialData.byteLength, MaterialBytes.byteLength)));
+        this.MaterialRecords = this.Exchange.ConstructRecordsFrom(MaterialBytes, GPUBufferUsage.STORAGE | GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, "Materials");
         this.FrameRecords    = this.Exchange.ConstructRecords(FrameRecordExtent, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, "Frame record");
         this.LightRecords    = this.Exchange.ConstructRecords(LightBufferBytes, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, "Clustered light records");
         this.OccupantRecords = this.Exchange.ConstructRecords(this.Scene.Occupants.length * OccupantStride,
@@ -209,6 +234,10 @@ class IlluminationHost
             this.Cards.WarmFrames = Number(new URLSearchParams(location.search).get("warm"));
         Device.queue.writeBuffer(this.OccupantRecords, 0, this.Scene.EncodeOccupantRecords(this.Volumes));
         this.Scene.ConstructDrawRuns();
+        // 📝 The ray tracer's acceleration structure: a BVH per facet set, a TLAS over the occupants rebuilt every frame.
+        this.ReportProgress("Building the ray-tracing hierarchy", 0.70);
+        this.Trace = new TraceStructure(this.Exchange);
+        this.Trace.ConstructStructure(this.Scene, Materials);
 
         this.StreetLampPoles = ResolveLevelPlacements()
             .filter((P) => P.Shape === "PoleHead")
@@ -297,6 +326,11 @@ class IlluminationHost
         await this.Diffuse.ConstructPrograms(this.FrameRecords);
         this.Glossy = new VarianceIntegrator(this.Exchange, this.Shaders, "Glossy", { MinimumWeight: 0.12, TallyLimit: 12, WaveletIterations: 2, ColourSigma: 3.0 });
         await this.Glossy.ConstructPrograms(this.FrameRecords);
+        this.ReportProgress("Compiling the ReSTIR path tracer", 0.86);
+        this.PathTracing = new PathTracingSequence(this.Exchange, this.Shaders, this.Trace);
+        await this.PathTracing.ConstructPrograms(this.FrameRecords, this.MaterialRecords, this.OccupantRecords, this.Atmosphere);
+        this.DirectDiffuse = new VarianceIntegrator(this.Exchange, this.Shaders, "DirectDiffuse", { MinimumWeight: 0.1, TallyLimit: 10, WaveletIterations: 2, ColourSigma: 3.0 });
+        await this.DirectDiffuse.ConstructPrograms(this.FrameRecords);
         this.Display = new DisplayProjection(this.Exchange, this.Shaders);
         await this.Display.ConstructPrograms(this.FrameRecords, this.MaterialRecords, this.Distance.TraversalLayout, this.Cards.SamplingLayout,
                                              this.OccupantRecords);
@@ -361,12 +395,41 @@ class IlluminationHost
 
     // 📝 Every editor edit lands here once its value is written: most settings are read each frame and need nothing;
     //    these rebuild something or act.
+    QueryPathTraced()
+    {
+        return this.Settings.Renderer === "PathTraced" && !!this.PathTracing;
+    }
+
+    QuerySoftwareAdapter()
+    {
+        const Information = (this.Exchange.Adapter && this.Exchange.Adapter.info) || {};
+        const Text = `${Information.vendor || ""} ${Information.architecture || ""} ${Information.device || ""} ${Information.description || ""}`.toLowerCase();
+        return !!Information.isFallbackAdapter || /swiftshader|llvmpipe|lavapipe|software|warp|null/.test(Text);
+    }
+
+    QueryTraceLines()
+    {
+        if (!this.Trace)
+            return ["ray-tracing hierarchy not built"];
+        return [this.QueryPathTraced() ? "renderer · ReSTIR path tracer (DI + PT)" : "renderer · distance-field GI + surface cards", ...this.Trace.QueryLines()];
+    }
+
     ApplySetting(Key)
     {
         if (Key === "HudVisible" || Key === "InsetEnabled")
             this.Dock.Synchronise();
         else if (Key === "TraceScale")
             this.ReconstructScreenTargets();
+        else if (Key === "Renderer")
+        {
+            // 📝 Both lighting paths stay resident; the reconstruction retargets and every history restarts.
+            if (this.RendererUsed !== this.Settings.Renderer)
+            {
+                this.ReconstructScreenTargets(true);
+                if (this.Cards)
+                    this.Cards.InvalidateLighting();
+            }
+        }
         else if (Key === "RenderScale")
         {
             this.Grade.RenderScale = this.Settings.RenderScale;
@@ -822,11 +885,19 @@ class IlluminationHost
         this.TraceExtent = [Math.ceil(Width / Scale), Math.ceil(Height / Scale)];
         this.Surface.ConstructTargets(Width, Height, this.Shadow, this.Atmosphere, this.LightRecords);
         this.Resampling.ConstructTargets(this.TraceExtent, this.Surface);
-        this.Diffuse.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
-                                      [this.Resampling.Views.Irradiance, this.Resampling.Views.Irradiance], this.Resampling.Views.Guides);
-        this.Glossy.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
-                                     [this.Resampling.Views.Reflection, this.Resampling.Views.Reflection], this.Resampling.Views.Guides);
-        this.Display.ConstructTargets(this.ScreenExtent, this.Surface, this.Resampling, this.Diffuse, this.Glossy, this.Cards);
+        this.PathTracing.ConstructTargets(this.TraceExtent, this.Surface);
+        // 📝 The reconstruction reads whichever lighting path is live; switching the renderer rebuilds these targets.
+        const Traced = this.QueryPathTraced();
+        this.RendererUsed = this.Settings.Renderer;
+        const Guides = Traced ? this.PathTracing.Views.Guides : this.Resampling.Views.Guides;
+        const Irradiance = Traced ? this.PathTracing.Views.Indirect : this.Resampling.Views.Irradiance;
+        const Reflection = Traced ? this.PathTracing.Views.Specular : this.Resampling.Views.Reflection;
+        this.Diffuse.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface, [Irradiance, Irradiance], Guides);
+        this.Glossy.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface, [Reflection, Reflection], Guides);
+        this.DirectDiffuse.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
+                                            [this.PathTracing.Views.DirectDiffuse, this.PathTracing.Views.DirectDiffuse], this.PathTracing.Views.Guides);
+        this.Display.ConstructTargets(this.ScreenExtent, this.Surface, this.Resampling, this.Diffuse, this.Glossy, this.Cards,
+                                      Traced ? this.PathTracing.Views.Indirect : null, Traced ? this.DirectDiffuse.Views.Screen : null);
         this.Smoke.ConstructScreenTargets(this.ScreenExtent, this.Surface, this.Display, this.Settings.SmokeResolution, this.TraceExtent);
         this.PriorValid = false;
         if (this.Capture)
@@ -986,6 +1057,7 @@ class IlluminationHost
             Features |= TemporalRestartBit;
         }
         if (this.Smoke.Resident && this.Settings.SmokeEnabled && !this.Omitted.has("Smoke")) Features |= 4096;
+        if (this.QueryPathTraced()) Features |= PathTracedBit;
         Integers[103] = Features;
         Integers[104] = this.Settings.Inspection;
         Scalars[105] = this.Settings.TemporalTallyLimit;
@@ -1106,10 +1178,20 @@ class IlluminationHost
         this.EncodeFrameRecord(Camera, Light);
         Device.queue.writeBuffer(this.OccupantRecords, 0, this.Scene.EncodeOccupantRecords(this.Volumes, this.Scene.DynamicCount));
 
+        let LightData = null;
         if (this.Lighting && this.LightRecords)
         {
-            const LightData = this.Lighting.Update(this.Vehicle.QueryBodyTransform(), this.StreetLampPoles);
+            LightData = this.Lighting.Update(this.Vehicle.QueryBodyTransform(), this.StreetLampPoles);
             Device.queue.writeBuffer(this.LightRecords, 0, LightData);
+        }
+        const Traced = this.QueryPathTraced();
+        if (Traced)
+        {
+            // 📝 The ray tracer's frame: the TLAS over every live occupant, the light table and the trace record.
+            this.Trace.AdvanceFrame(this.Scene, this.Vehicle);
+            if (LightData)
+                this.Trace.UploadPointLights(LightData, this.Lighting.Lights.length);
+            this.Trace.EncodeTraceRecord(this.Settings, Light.Direction[2] > 0.0, this.FrameIndex);
         }
 
         // ③ invalidation and relighting schedules; the union's active list follows activity
@@ -1131,7 +1213,7 @@ class IlluminationHost
             this.Smoke.RecordTransport(Encoder, this.Distance.TraversalGroup, this.Metrics.QueryWrites("Smoke transport"));
         if (Included("Shadow"))
             this.Shadow.RecordCascades(Encoder, this.Scene, this.VertexRecords, this.Metrics.QueryWrites("Shadow"));
-        if (Included("Cards"))
+        if (Included("Cards") && !Traced)
             this.Cards.RecordLighting(Encoder, this.Distance.TraversalGroup, this.SamplingGroup, this.Settings.CardRadiosity,
                                       this.Metrics.QueryWrites("Card lighting"));
         this.Surface.RecordSurface(Encoder, this.Scene, this.VertexRecords, this.Metrics.QueryWrites("Surface"));
@@ -1139,7 +1221,22 @@ class IlluminationHost
             this.Cabin.RecordViews(Encoder, this.Scene, this.VertexRecords, this.Vehicle.QueryBodyTransform(), this.QueryMirrorsVisible());
         if (Included("Direct"))
             this.Surface.RecordDirect(Encoder, this.Distance.TraversalGroup, this.Metrics.QueryWrites("Direct"));
-        if (this.Settings.Indirect && Included("Resampling"))
+        if (Traced && Included("Resampling"))
+        {
+            // 📝 ReSTIR DI → its reconstruction; ReSTIR PT → the indirect and specular reconstructions.
+            this.PathTracing.RecordDirect(Encoder, Parity, this.Metrics.QueryWrites("ReSTIR DI"));
+            if (Included("Diffuse"))
+                this.DirectDiffuse.Record(Encoder, Parity, this.Settings.VarianceKernel, this.Metrics.QueryWrites("Direct reconstruction"));
+            if (this.Settings.Indirect)
+            {
+                this.PathTracing.RecordPaths(Encoder, Parity, this.Metrics.QueryWrites("ReSTIR PT"));
+                if (Included("Diffuse"))
+                    this.Diffuse.Record(Encoder, Parity, this.Settings.VarianceKernel, this.Metrics.QueryWrites("Diffuse reconstruction"));
+                if (Included("Reflection"))
+                    this.Glossy.Record(Encoder, Parity, this.Settings.VarianceKernel, this.Metrics.QueryWrites("Glossy reconstruction"));
+            }
+        }
+        else if (this.Settings.Indirect && Included("Resampling"))
         {
             this.Resampling.RecordResampling(Encoder, Parity, this.Distance.TraversalGroup, this.SamplingGroup, this.Metrics.QueryWrites("ReSTIR GI"));
             if (Included("Diffuse"))

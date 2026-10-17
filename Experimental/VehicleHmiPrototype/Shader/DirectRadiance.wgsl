@@ -91,6 +91,12 @@ fn IntegrateDirectRadiance(@builtin(global_invocation_id) Invocation: vec3u)
         textureStore(DirectTarget, vec2i(Pixel), vec4f(ResolveBackgroundRadiance(normalize(Far - Frame.CameraPosition)), 0.0));
         return;
     }
+    // 📝 Under the path tracer the ReSTIR DI passes own every surface's direct light; only the background is drawn here.
+    if (FeatureEnabled(Frame, FeaturePathTraced))
+    {
+        textureStore(DirectTarget, vec2i(Pixel), vec4f(0.0, 0.0, 0.0, 1.0));
+        return;
+    }
     let Position   = ReconstructWorldPosition(Centre, Depth);
     let Attributes = textureLoad(SurfaceAttributes, vec2i(Pixel), 0);
     let Normal     = DecodeOctahedral(Attributes.xy);

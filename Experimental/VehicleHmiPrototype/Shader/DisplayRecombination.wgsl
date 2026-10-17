@@ -27,6 +27,8 @@
 
 @group(0) @binding(12) var TyrePlume : texture_2d<f32>;
 @group(0) @binding(13) var PlumeSampler : sampler;
+// 📝 Path-traced mode: the reconstructed ReSTIR DI diffuse irradiance (per unit albedo); zero-sized binding otherwise.
+@group(0) @binding(14) var DirectIrradiance : texture_2d<f32>;
 fn CompositePlume(Colour: vec3f, Pixel: vec2i) -> vec3f {
     if ((Frame.Features & 4096u) == 0u || Frame.InspectionMode != 0u) { return Colour; }
     let Sample = textureSampleLevel(TyrePlume, PlumeSampler, (vec2f(Pixel) + 0.5) * Frame.InverseScreenExtent, 0.0);
@@ -89,6 +91,42 @@ fn ResolveRecombination(@builtin(global_invocation_id) Invocation: vec3u)
     let View = normalize(Frame.CameraPosition - Position);
     let NdotV = max(dot(Normal, View), 1.0e-3);
 
+    // 📝 Attributes.w carries 1 + glow: a derezzing car's cells and cubes glow in their own facet's colour.
+    let Emission = (Surface.Emission + Surface.Albedo * max(Attributes.w - 1.0, 0.0)) * Frame.EmissionScale;
+
+    // 📝 The ray-traced path: every signal is already a physically measured estimate; the diffuse albedo demodulates
+    //    the direct and indirect irradiance, the specular radiance (ReSTIR DI + PT lobes) is added as it is.
+    if (FeatureEnabled(Frame, FeaturePathTraced))
+    {
+        let DirectIrradianceValue = textureLoad(DirectIrradiance, Pixel, 0).rgb;
+        var IndirectIrradianceValue = vec3f(0.0);
+        if (FeatureEnabled(Frame, FeatureIndirect))
+        {
+            IndirectIrradianceValue = textureLoad(IndirectIrradiance, Pixel, 0).rgb * Frame.IndirectScale;
+        }
+        let Albedo = ResolveDiffuseAlbedo(Surface) * InversePi;
+        let TracedSpecular = textureLoad(ReflectionRadiance, Pixel, 0).rgb;
+        var Traced = Direct.rgb + Albedo * (DirectIrradianceValue + IndirectIrradianceValue) + TracedSpecular + Emission;
+        switch (Frame.InspectionMode)
+        {
+            case 1u: { Traced = Direct.rgb + Albedo * DirectIrradianceValue + Emission; }
+            case 2u: { Traced = Albedo * IndirectIrradianceValue; }
+            case 3u: { Traced = (DirectIrradianceValue + IndirectIrradianceValue) * InversePi; }
+            case 4u:
+            {
+                let TracePixel = min(Pixel / i32(Frame.TraceScale), vec2i(Frame.TraceExtent) - vec2i(1));
+                Traced = textureLoad(ResampledIrradiance, TracePixel, 0).rgb * InversePi;
+            }
+            case 5u: { Traced = TracedSpecular; }
+            case 8u: { Traced = Normal * 0.5 + 0.5; }
+            case 9u: { Traced = Surface.Albedo; }
+            case 10u: { Traced = DirectIrradianceValue * InversePi; }
+            default: { }
+        }
+        textureStore(RecombinedTarget, Pixel, vec4f(CompositePlume(Traced, Pixel), 1.0));
+        return;
+    }
+
     // 📝 Inside the car's cabin the traced light is the body's own sunlit exterior seen from within: keep a twentieth.
     let Enclosure = mix(1.0, CabinIndirectShare, ResolveCabinShare((Occupants[0].WorldToLocal * vec4f(Position, 1.0)).xyz));
     var Irradiance = vec3f(0.0);
@@ -116,9 +154,6 @@ fn ResolveRecombination(@builtin(global_invocation_id) Invocation: vec3u)
         Indirect = Indirect * (1.0 - CoatReflectance) + Glossy * CoatReflectance;
         Specular = Specular * (1.0 - CoatReflectance) + Glossy * CoatReflectance;
     }
-    // 📝 Attributes.w carries 1 + glow: a derezzing car's cells and cubes glow in their own facet's colour.
-    let Emission = (Surface.Emission + Surface.Albedo * max(Attributes.w - 1.0, 0.0)) * Frame.EmissionScale;
-
     var Colour = Direct.rgb + Indirect + Emission;
     switch (Frame.InspectionMode)
     {

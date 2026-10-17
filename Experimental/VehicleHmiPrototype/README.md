@@ -386,7 +386,8 @@ palette, glow, momentum) and the triggers.
 | `stress=N` | enable N stress objects at start |
 | `stressmotion=0\|1\|2` | stress objects static, one in ten moving, all moving |
 | `stresspool=K` | reserve K stress objects at bring-up (default 1536, clamped to the identity ceiling) |
-| `inspection=0…9` | start in a debug display |
+| `renderer=pathtraced\|restir\|cards` | lighting renderer: the ReSTIR path tracer (default on hardware adapters) or the distance-field GI (`restir`/`cards`, default on software adapters) |
+| `inspection=0…10` | start in a debug display (10: the ray-traced ReSTIR DI irradiance) |
 | `omit=Union,Cards,Shadow,Direct,Resampling,Diffuse,Reflection,Inspection,Resolve,Present,Smoke` | diagnostic: leave stages out |
 | `camera=Chase\|Cockpit\|Passenger\|Hood\|Tyre FL\|Tyre RL` | camera rig at start |
 | `hudscale=0.6…1.8` | on-screen diagnostic HUD scale (physical cockpit stays fixed) |
@@ -401,6 +402,56 @@ the cards join the relighting lists, the vehicle gains colliders and the bricks 
 The layout is seeded, so `?quality=high&stress=1024&stressmotion=1` reproduces the same scene on every machine. The
 Frame timing card shows the average frame rate, the **1 % low** over the last 240 frames and per-pass GPU timings
 (where `timestamp-query` is available).
+
+## Ray-traced lighting · ReSTIR DI + ReSTIR PT (RTX path)
+
+The default lighting renderer on hardware adapters is a ray tracer: **ReSTIR DI** for every light kind and a
+**ReSTIR path tracer** (GRIS with the hybrid shift) for the indirect light, both in WebGPU compute over a two-level
+triangle BVH. WebGPU exposes no hardware ray-tracing API, so the acceleration structure is built by the host and the
+traversal is a compute kernel; on RTX-class hardware it runs in real time at the trace resolution (half by default)
+and the same SVGF reconstructions and the temporal antialiasing resolve it. The distance-field GI with surface cards
+(the GTX path) stays resident behind the *Lighting renderer* switch of the Render settings inspector and is chosen
+automatically on software and fallback adapters.
+
+**Acceleration structure** (`Source/TraceStructure.js`, `Shader/TraceTraversal.wgsl`). A binned-SAH BVH per facet
+set (built once by the host; the fragments of a breakable get theirs when it breaks, inside the composite set's
+reserved range) and a TLAS over every live occupant rebuilt every frame from the same transforms the raster and the
+distance field use: the car and its wheels, the stress objects, the cones, the debris, the derezzing car's cells.
+Instances carry world↔local, the BLAS root and flags (vehicle, shredded tyre, fragment); the traversal is a
+stackful two-level walk with closest-hit and any-hit (shadow) variants, consistent offsets along the geometric normal,
+and a unit test (`Tools/TraceStructure.test.mjs`) that checks the builder and the walk against a brute-force cast.
+
+**Lights** (`Shader/LightSampling.wgsl`). One light table per frame: the sun (a disc of 0.268°, sampled in solid
+angle), the sky (the atmosphere's sky view, cosine-weighted), the clustered point and spot lights of the car, the
+street lamps and the tyre fires (delta lights) and every emissive triangle of the scene (sampled by power, in area
+measure). Each kind keeps its own measure; the pdf conversions are explicit, so mixing light sampling with a
+BSDF-sampled candidate is multiple-importance weighted without bias.
+
+**ReSTIR DI** (`Shader/DirectReservoir*.wgsl`). Per trace pixel: *N* light candidates plus one BSDF candidate
+streamed by the unshadowed target, temporal reuse through the motion vectors with the prior surface validated
+(depth class and normal), pairwise MIS, spatial reuse over similar neighbours, and the final shadow ray. The sample
+is stored by identity (triangle + occupant + barycentrics, octahedral direction, point-light index) and rebuilt at
+the receiver, so a moving light or emitter re-evaluates rather than stales. Outputs: a demodulated diffuse
+irradiance (reconstructed by its own SVGF) and the specular radiance.
+
+**ReSTIR PT** (`Shader/PathReservoirs.wgsl`, `Shader/PathTrace*.wgsl`). One path per pixel per frame (next-event
+estimation at every vertex, Russian roulette on a fixed schedule so replays agree), streamed into a path reservoir
+whose sample is the path's random-number seed, its reconnection vertex (position, normal, occupant and family —
+carried with the occupant when it moves — the outgoing direction and the radiance beyond it) and its contribution
+split into a diffuse and a specular part. Reuse is by the **hybrid shift**: random replay up to the first vertex
+that passes the reconnection criterion (distance and roughness of both ends), reconnection from there; shifts
+that would reconnect earlier on the shifted path are rejected, keeping the mapping invertible. Temporal and spatial
+reuse use pairwise MIS with the forward shift (visibility traced) and the reverse shift of the canonical sample
+(visibility optional, *Trace MIS visibility*), M is clamped per stage, and the final contribution needs no further
+rays because every reservoir holds its path's throughput at the holding pixel. A firefly clamp on luminance bounds
+the rare long-path outliers before the reconstruction.
+
+**Composition**. In this mode `DirectRadiance` draws only the background; the display demodulates the diffuse
+albedo over the direct and indirect irradiance and adds the traced specular and the surface's own emission. The
+Render settings inspector exposes the bounces, candidate counts, reuse radii and M limits, the reconnection
+thresholds, the firefly clamp and the shift options; the readout under the renderer switch lists the BVH, instance
+and light counts and the build time per frame. Debug displays 4 (raw indirect), 5 (specular) and 10 (ReSTIR DI
+irradiance) show the signals before the display.
 
 ## Headless validation
 

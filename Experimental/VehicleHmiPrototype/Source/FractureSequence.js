@@ -276,6 +276,9 @@ export class FractureSequence
         }
         Set.VertexCount = Cursor;
         this.Host.Exchange.Device.queue.writeBuffer(this.Host.VertexRecords, Set.FirstVertex * VertexStride, Bytes, 0, Math.max(4, Cursor * VertexStride));
+        // 📝 The ray tracer's view of the same pieces: a BVH per fragment in the composite set's reserved range.
+        if (this.Host.Trace)
+            this.Host.Trace.AssignFragments(Prop, Written, Prop.Definition.CompositeSet);
         return Written;
     }
 
