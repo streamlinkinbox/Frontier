@@ -76,6 +76,13 @@ fn ResolveRecombination(@builtin(global_invocation_id) Invocation: vec3u)
         textureStore(RecombinedTarget, Pixel, vec4f(Colour, 1.0));
         return;
     }
+    if (FeatureEnabled(Frame, FeatureTrianglePathTracing))
+    {
+        // Already contains every transport term, including emission, specular and
+        // transmission. Never add legacy direct/cards/split-sum/cabin attenuation.
+        textureStore(RecombinedTarget, Pixel, vec4f(CompositePlume(textureLoad(IndirectIrradiance, Pixel, 0).rgb, Pixel), 1.0));
+        return;
+    }
     let Depth = textureLoad(SurfaceDepth, Pixel, 0);
     if (Depth <= 0.0)
     {

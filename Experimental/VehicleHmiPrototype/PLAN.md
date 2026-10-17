@@ -1,5 +1,11 @@
 # Vehicle physics and effects — implementation status
 
+**Renderer update:** the game now defaults to compute triangle ReSTIR GI/path
+tracing. See [RESTIR_WEBGPU.md](RESTIR_WEBGPU.md). Distance-field/card lighting
+described in this historical plan is retained with `renderer=distance`. Current
+visual tyre deformation follows the shared Slate vehicle record/shader, including
+for triangle-BVH refits; the earlier rigid-visual note below is historical.
+
 All six scoped changes are implemented in the JavaScript/WebGPU prototype.
 
 1. **Visual tyre deformation removed.** Deleted the 96-node visual ring solver and its WGSL deformation code. A 144-byte rigid visual record now carries cabin articulation and wheel damage flags. Removed deformation/exaggeration controls and obsolete patch/wave readouts. Shredded rubber is hidden in world, sun shadows, mirrors and Garage; steering/spin/suspension and pressure/contact/wear/puncture physics remain active.

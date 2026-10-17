@@ -9,7 +9,7 @@
 //    eye toggles where an entity can be switched off; selecting one rebuilds the inspector from InspectorPages.
 //    P hides both columns (the viewport takes the window), V hides everything, as before.
 
-import { ConstructEntities, InspectionModes } from "./InspectorPages.js";
+import { ConstructEntities, ResolveInspectionModes } from "./InspectorPages.js";
 import { EditorControls, ClearElement, AssignStyle } from "./EditorControls.js";
 import { ConstructGlyph } from "./EditorIcons.js";
 
@@ -119,7 +119,7 @@ export class EditorShell
         const World = Construct("div", "world-icon");
         World.appendChild(ConstructGlyph("Box", 18, 1.5));
         const Text = Construct("div");
-        Text.append(Construct("strong", "", "IlluminationHost"), Construct("span", "", "Distance-field GI exhibit"));
+        Text.append(Construct("strong", "", "IlluminationHost"), Construct("span", "", this.Host.PathTracer ? "Triangle path tracing" : "Distance-field GI exhibit"));
         Bottom.append(World, Text, Construct("span", "status-dot"));
         Body.appendChild(Bottom);
         this.RenderTree();
@@ -294,7 +294,7 @@ export class EditorShell
         const Bar = document.getElementById("viewport-bar");
         ClearElement(Bar);
         const Heading = Construct("div", "scene-heading");
-        Heading.append(Construct("strong", "", "Scene"), Construct("span", "", "WebGPU · distance-field GI · ReSTIR"));
+        Heading.append(Construct("strong", "", "Scene"), Construct("span", "", this.Host.PathTracer ? "WebGPU · triangle path tracing" : "WebGPU · distance-field GI · ReSTIR"));
         Bar.append(Heading, Construct("span", "live-pill", "LIVE"));
         const Host = this.Host;
         const Camera = Construct("div", "segmented");
@@ -310,7 +310,7 @@ export class EditorShell
         const Display = document.createElement("select");
         Display.className = "select-field";
         Display.style.width = "210px";
-        for (const [Caption, Value] of InspectionModes)
+        for (const [Caption, Value] of ResolveInspectionModes(this.Host))
         {
             const Choice = document.createElement("option");
             Choice.value = String(Value);

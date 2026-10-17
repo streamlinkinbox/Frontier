@@ -178,6 +178,8 @@ if (Host && Host.Exchange && Host.Exchange.Device)
     await Host.Exchange.Device.queue.onSubmittedWorkDone();
 await new Promise((Resolve) => setTimeout(Resolve, 50));
 const Failure = document.getElementById("failure");
+if (Host?.Failed || Failure.children.length) Errors.push("renderer entered its failure state");
+if (FramesRun < FrameLimit && Errors.length === 0) Errors.push(`only ${FramesRun}/${FrameLimit} requested frames completed`);
 console.log(`\n=== harness: ${FramesRun} frames, ${Errors.length} errors, ${Warnings.length} warnings, ${((performance.now() - Started) / 1000).toFixed(1)} s`);
 if (Hooks.Report && Host)
     await Hooks.Report(Host);

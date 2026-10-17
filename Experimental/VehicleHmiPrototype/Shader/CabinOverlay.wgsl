@@ -133,6 +133,12 @@ fn ResolveWellCoverage(Coordinates: vec2f) -> f32
 @fragment
 fn OverlayFragment(Varying: OverlayVarying) -> @location(0) vec4f
 {
+    // Traced glazing and mirror paths are already in the physical image. Keep
+    // the interactive display overlay, but do not double-add sky/glass/mirrors.
+    if (FeatureEnabled(Frame, FeatureTrianglePathTracing) && (Varying.Kind == KindGlass || Varying.Kind == KindMirror))
+    {
+        discard;
+    }
     if (ClassifyMasked(Varying.BodyLocal))
     {
         discard;

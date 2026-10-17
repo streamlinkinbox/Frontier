@@ -60,6 +60,7 @@ const FeatureDirectShadow      : u32 = 256u;
 const FeatureAutoExposure      : u32 = 512u;
 const FeatureRadianceRefresh   : u32 = 1024u;
 const FeatureTemporalRestart      : u32 = 2048u;   // [-] set for one frame: every temporal history restarts
+const FeatureTrianglePathTracing  : u32 = 8192u;   // complete camera-path radiance in the shared indirect binding
 
 fn FeatureEnabled(Frame: FrameRecord, Bit: u32) -> bool
 {

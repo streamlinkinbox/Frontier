@@ -57,6 +57,8 @@ export class DeviceExchange
         });
         this.Device.lost.then((Loss) =>
         {
+            if (Loss.reason === "destroyed") return; // deliberate shutdown/test teardown
+            this.Lost = true;
             console.error("[WebGPU] device lost:", Loss.reason, Loss.message);
             for (const Listener of this.ErrorListeners)
                 Listener(`Device lost: ${Loss.message}`);

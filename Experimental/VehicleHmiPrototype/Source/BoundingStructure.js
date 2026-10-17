@@ -188,5 +188,5 @@ export function ConstructBoundingStructure(Corners)
             Ordered[Index * 12 + Corner * 4 + 2] = Corners[Facet * 9 + Corner * 3 + 2];
         }
     }
-    return { NodeScalars, NodeCount: Nodes.length, FacetCorners: Ordered, FacetCount };
+    return { NodeScalars, NodeCount: Nodes.length, FacetCorners: Ordered, FacetCount, FacetOrder: Order };
 }

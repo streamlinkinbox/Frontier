@@ -1,5 +1,32 @@
 # Vehicle HMI Prototype — JavaScript/WebGPU + Jolt WebAssembly
 
+## Default renderer: WebGPU triangle ReSTIR GI / path tracing
+
+The **same vehicle game** now starts in `renderer=restir`, not the distance-field
+renderer. Multi-bounce paths intersect the actual triangle scene through compute
+BLAS/TLAS structures. Temporal/spatial reservoirs, triangle visibility, deforming
+tyres, fractured geometry and an independent path-tracing reference are integrated
+with the existing vehicle, Jolt physics, cockpit/HMI, marks, smoke and effects.
+
+- Default: `http://localhost:8080/` or `?renderer=restir`.
+- Independent, unfiltered comparison: `?renderer=reference`.
+- Retained GTX distance-field/card GI: `?renderer=distance`.
+- Choose the backend under **Render settings → Renderer** (reloads intentionally).
+- Start with `npm ci && npm run serve`; WebGPU requires localhost or HTTPS.
+
+**Important RTX boundary:** standard browser WebGPU does not expose RTX ray queries
+or ray-pipeline acceleration. This is real triangle path tracing in WGSL compute,
+not RTX-core acceleration, DLSS or a native C++/DXR backend. GPU vendor names are not
+used as fake capability detection. There are no measured RTX frame-rate claims.
+
+See **[RESTIR_WEBGPU.md](RESTIR_WEBGPU.md)** for algorithms, settings, memory guards,
+executed-GPU correctness tests and explicit hybrid/production limitations. ReSTIR
+**GI** resamples a first-bounce connection with a replayed multi-bounce suffix; it
+is not arbitrary all-vertex ReSTIR PT path-space shifting.
+
+The older distance-field/card architecture below remains available explicitly with
+`renderer=distance`; its descriptions are not the default ray tracer's algorithm.
+
 Reconstructed from `Experimental/01a141bc-a4a3-72ce-8295-398724231feb.patch`
 on `SultanAladin/Frontier-`, supplied branch `arena/9440f4d0-frontier`.
 The source patch is not retained. Vehicle `.facet` binaries were regenerated with
@@ -69,6 +96,10 @@ normal viewing. Scene emission strength does not boost the UI.
 npm ci
 npm --prefix Tools ci
 npm test
+npm run validate:restir
+npm run validate:reference
+npm run validate:distance
+# With an executing WebGPU adapter (NOT BACKEND=null): npm run test:gpu
 npm --prefix Tools run test:stability
 npm --prefix Tools run validate
 npm --prefix Tools run validate:effects
@@ -80,7 +111,7 @@ Use a WebGPU-capable browser to assess appearance, interaction and hardware perf
 
 ---
 
-# IlluminationHost — distance-field GI · surface cards · ReSTIR GI (WebGPU)
+# Retained GTX renderer — distance-field GI · surface cards · ReSTIR GI (WebGPU)
 
 A self-contained WebGPU exhibit inside the **Frontier Editor** UI: one scene distance field (four camera-centred
 toroidal cascades), a surface cache of oriented cards with multi-bounce radiosity, a ReSTIR GI final gather traced

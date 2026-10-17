@@ -272,6 +272,11 @@ export class FractureSequence
                     ++Cursor;
                 }
             }
+            // The composite raster stream is not a proxy for ray tracing: each
+            // physical fragment exposes its actual local triangles and identity.
+            const RayOccupant = Scene.Occupants[Prop.Definition.PieceFirst + Written.length];
+            RayOccupant.RayFacets = Fragment.Triangles;
+            RayOccupant.RayGeometryVersion = (RayOccupant.RayGeometryVersion || 0) + 1;
             Written.push(Fragment);
         }
         Set.VertexCount = Cursor;

@@ -21,6 +21,8 @@ import { SurfaceCardDepot } from "./SurfaceCardDepot.js";
 import { AtmosphereIntegrator } from "./AtmosphereIntegrator.js";
 import { ShadowProjection } from "./ShadowProjection.js";
 import { SurfaceProjection } from "./SurfaceProjection.js";
+import { ReSTIRPathTracer, PathTracerSources } from "./ReSTIRPathTracer.js";
+import { ResolvePathSettings, ResolvePathTraceScale, RendererModes, PathTracingFeature } from "./PathTracingSettings.js";
 import { ResamplingSequence } from "./ResamplingSequence.js";
 import { VarianceIntegrator } from "./VarianceIntegrator.js";
 import { DisplayProjection } from "./DisplayProjection.js";
@@ -62,7 +64,7 @@ const ShaderSources = [
     "VarianceWavelet.wgsl", "VarianceUpsample.wgsl", "InspectionMarch.wgsl", "DisplayRecombination.wgsl", "DisplayAntialias.wgsl",
     "DisplayExposure.wgsl", "DisplayPresent.wgsl", "FireIllumination.wgsl", "PlumeRecords.wgsl", "PlumeAdvection.wgsl", "PlumePressure.wgsl", "PlumeVorticity.wgsl", "PlumeMarch.wgsl",
     "FragmentDistance.wgsl", "EffectRecords.wgsl", "EffectRaster.wgsl", "VehicleVisual.wgsl", "SparkRaster.wgsl", "ForwardRaster.wgsl",
-    "CabinOverlay.wgsl", "CabinVolume.wgsl", "ClusteredLights.wgsl"
+    "CabinOverlay.wgsl", "CabinVolume.wgsl", "ClusteredLights.wgsl", ...PathTracerSources
 ];
 
 // 📝 Quality grades trade cascade resolution, card density and traversal length; selected with ?quality=low|medium|high.
@@ -81,7 +83,8 @@ const FeatureBits = { Indirect: 1, TemporalReuse: 2, SpatialReuse: 4, Visibility
 const TemporalRestartBit = 2048;   // [-] FeatureTemporalRestart in SceneRecords.wgsl
 
 const PassNames = ["Distance union", "Card lighting", "Shadow", "Surface", "Direct", "ReSTIR GI", "Diffuse reconstruction",
-                   "Reflection", "Glossy reconstruction", "Resolve", "Smoke transport", "Smoke render"];
+                   "Reflection", "Glossy reconstruction", "Resolve", "Smoke transport", "Smoke render",
+                   "Triangle BVH refit", "Triangle path tracing", "Path reconstruction"];
 
 const FrameRecordExtent = 512;   // [B] FrameRecord in SceneRecords.wgsl (128 floats)
 const FireLightReach    = 14.0;  // [m] influence radius of a tyre fire's light
@@ -97,9 +100,10 @@ class IlluminationHost
         const Query = new URLSearchParams(location.search);
         this.GradeName = QualityGrades[Query.get("quality")] ? Query.get("quality") : "high";
         this.Grade = { ...QualityGrades[this.GradeName] };
-        if (Query.has("scale"))
+        if (Query.has("scale") && Number.isFinite(Number(Query.get("scale"))))
             this.Grade.RenderScale = Math.max(0.25, Math.min(2.0, Number(Query.get("scale"))));
         this.Settings = {
+            ...ResolvePathSettings(Query, this.GradeName),
             Inspection: Number(Query.get("inspection") || 0), DistanceInspection: 1, InsetEnabled: false, SliceHeight: 0.6,
             HudVisible: false, PanelVisible: true,
             SmokeEnabled: true, SmokeResolution: 2, IgnitionMode: 0, ThermalGrip: false, LineLock: true,
@@ -108,7 +112,7 @@ class IlluminationHost
             SunElevation: 38.0, SunAzimuth: 145.0, SolarIlluminance: 12.0, SkyScale: 1.0, EmissionScale: 1.0,
             ExposureCompensation: 0.0, AutoExposure: true, DirectShadow: true,
             Indirect: true, TemporalReuse: true, SpatialReuse: true, VisibilityReuse: true, RadianceRefresh: true,
-            SpatialCount: 5, SpatialRadius: 20, TemporalTallyLimit: 20, IndirectScale: 1.0, VarianceKernel: true, Reflection: true,
+            SpatialCount: Query.get("renderer") === "distance" ? 5 : 2, SpatialRadius: 20, TemporalTallyLimit: 20, IndirectScale: 1.0, VarianceKernel: true, Reflection: true,
             Antialias: true, TraceScale: 2, FreezeDistance: false, CardRadiosity: true, CardTileBudget: this.Grade.TileBudget,
             Quality: ["low", "medium", "high"].indexOf(this.GradeName),
             RenderScale: this.Grade.RenderScale, LightingPreset: "Custom", TestPlume: 0,
@@ -120,6 +124,13 @@ class IlluminationHost
             HmiScale: 1, HmiZoom: 1, CockpitFov: 70,
             CameraMode: Query.get("camera") || "Chase"
         };
+        if (this.Settings.Renderer === RendererModes.Reference) {
+            this.Settings.Antialias = false; this.Settings.TraceScale = 1;
+        }
+        if (Query.has("trace")) {
+            const Scale = Number(Query.get("trace"));
+            if ([1, 2, 4, 8].includes(Scale)) this.Settings.TraceScale = Scale;
+        }
         if (Query.has("preset"))
             this.PendingPreset = Query.get("preset");
         // 📝 Stress test: ?stresspool=K reserves K objects at bring-up (default 1536, clamped to the identity ceiling),
@@ -159,7 +170,7 @@ class IlluminationHost
         this.ReportProgress("Negotiating the WebGPU device", 0.02);
         this.Exchange = new DeviceExchange();
         const Device = await this.Exchange.ConstructDevice();
-        this.Exchange.ErrorListeners.push((Message) => this.ReportFailure(Message, false));
+        this.Exchange.ErrorListeners.push((Message) => this.ReportFailure(Message, true));
         this.Canvas = document.getElementById("viewport");
         if (this.Capture)
         {
@@ -292,11 +303,14 @@ class IlluminationHost
         await this.Surface.ConstructPrograms(this.FrameRecords, this.OccupantRecords, this.MaterialRecords, this.Distance.TraversalLayout, this.Marks,
                                              this.Effects, this.VehicleRecords);
         this.Resampling = new ResamplingSequence(this.Exchange, this.Shaders);
-        await this.Resampling.ConstructPrograms(this.FrameRecords, this.MaterialRecords, this.Distance.TraversalLayout, this.Cards.SamplingLayout);
+        if (this.Settings.Renderer === RendererModes.DistanceField)
+            await this.Resampling.ConstructPrograms(this.FrameRecords, this.MaterialRecords, this.Distance.TraversalLayout, this.Cards.SamplingLayout);
         this.Diffuse = new VarianceIntegrator(this.Exchange, this.Shaders, "Diffuse", { MinimumWeight: 0.08, TallyLimit: 24, WaveletIterations: 3, ColourSigma: 4.0 });
-        await this.Diffuse.ConstructPrograms(this.FrameRecords);
+        if (this.Settings.Renderer === RendererModes.DistanceField)
+            await this.Diffuse.ConstructPrograms(this.FrameRecords);
         this.Glossy = new VarianceIntegrator(this.Exchange, this.Shaders, "Glossy", { MinimumWeight: 0.12, TallyLimit: 12, WaveletIterations: 2, ColourSigma: 3.0 });
-        await this.Glossy.ConstructPrograms(this.FrameRecords);
+        if (this.Settings.Renderer === RendererModes.DistanceField)
+            await this.Glossy.ConstructPrograms(this.FrameRecords);
         this.Display = new DisplayProjection(this.Exchange, this.Shaders);
         await this.Display.ConstructPrograms(this.FrameRecords, this.MaterialRecords, this.Distance.TraversalLayout, this.Cards.SamplingLayout,
                                              this.OccupantRecords);
@@ -304,13 +318,20 @@ class IlluminationHost
         this.Sparks = new SparkSequence(this.Exchange, this.Shaders);
         await this.Sparks.ConstructPrograms(this.FrameRecords);
         this.Cabin = new CabinSequence(this.Exchange, this.Shaders);
-        this.Cabin.Appearance = new VehicleAppearance(this.Materials, (Offset, Data) =>
-            this.Exchange.Device.queue.writeBuffer(this.MaterialRecords, Offset, Data));
+        this.Cabin.Appearance = new VehicleAppearance(this.Materials, (Offset, Data) => {
+            this.Exchange.Device.queue.writeBuffer(this.MaterialRecords, Offset, Data);
+            this.PriorValid = false;
+        });
         this.Cabin.AssignPressure(this.Settings.TyrePressureFront);
         await this.Cabin.ConstructResources({ FrameRecords: this.FrameRecords, OccupantRecords: this.OccupantRecords, MaterialRecords: this.MaterialRecords,
                                               EffectRecords: this.Effects.Records, VehicleRecords: this.VehicleRecords, Shadow: this.Shadow,
                                               Atmosphere: this.Atmosphere, Scene: this.Scene, AdaptationRecords: this.Display.AdaptationRecords });
         this.ReportProgress("Compiling drift smoke programs", 0.91);
+        if (this.Settings.Renderer !== RendererModes.DistanceField) {
+            this.ReportProgress("Building triangle acceleration and compiling the ReSTIR path tracer", 0.925);
+            this.PathTracer = new ReSTIRPathTracer(this);
+            await this.PathTracer.ConstructPrograms();
+        }
         this.Thermal = new TyreThermalSolver(4);
         this.BurstPuffs = [];
         this.HeadYaw = 0.0;
@@ -363,9 +384,16 @@ class IlluminationHost
     //    these rebuild something or act.
     ApplySetting(Key)
     {
+        this.PriorValid = false;
+        if (Key === "Renderer") {
+            const Query = new URLSearchParams(location.search);
+            Query.set("renderer", this.Settings.Renderer);
+            location.search = Query.toString();
+            return;
+        }
         if (Key === "HudVisible" || Key === "InsetEnabled")
             this.Dock.Synchronise();
-        else if (Key === "TraceScale")
+        else if (Key === "TraceScale" || Key === "PathMemoryBudgetMiB")
             this.ReconstructScreenTargets();
         else if (Key === "RenderScale")
         {
@@ -800,6 +828,15 @@ class IlluminationHost
 
     ReconstructScreenTargets(Force = false)
     {
+        try { return this.AllocateScreenTargets(Force); }
+        catch (Failure) {
+            if (!this.Ready) throw Failure; // startup already has a fatal handler
+            this.ReportFailure(Failure.stack || String(Failure), true);
+        }
+    }
+
+    AllocateScreenTargets(Force = false)
+    {
         if (!this.Surface)
             return;
         if (Force)
@@ -808,11 +845,16 @@ class IlluminationHost
         const Pixels = this.Canvas.clientWidth * this.Canvas.clientHeight * Ratio * Ratio;
         if (Pixels > this.Grade.PixelLimit)
             Ratio *= Math.sqrt(this.Grade.PixelLimit / Pixels);
+        const TextureLimit = this.Exchange.Device.limits.maxTextureDimension2D;
+        Ratio = Math.min(Ratio, TextureLimit / Math.max(1,this.Canvas.clientWidth), TextureLimit / Math.max(1,this.Canvas.clientHeight));
         const Width  = Math.max(64, Math.floor(this.Canvas.clientWidth * Ratio));
         const Height = Math.max(64, Math.floor(this.Canvas.clientHeight * Ratio));
         if (this.Dock)
             this.Dock.PlaceInset(this.Canvas, [Width, Height]);
-        const Scale = this.Settings.TraceScale;
+        const RequestedScale = this.Settings.TraceScale;
+        const Scale = this.PathTracer ? ResolvePathTraceScale([Width, Height], RequestedScale, this.Exchange.Device.limits,
+            this.Settings.PathMemoryBudgetMiB) : RequestedScale;
+        this.PathScaleLimited = Scale !== RequestedScale;
         if (this.ScreenExtent && this.ScreenExtent[0] === Width && this.ScreenExtent[1] === Height && this.TraceScaleUsed === Scale)
             return;
         this.Canvas.width = Width;
@@ -821,11 +863,20 @@ class IlluminationHost
         this.TraceScaleUsed = Scale;
         this.TraceExtent = [Math.ceil(Width / Scale), Math.ceil(Height / Scale)];
         this.Surface.ConstructTargets(Width, Height, this.Shadow, this.Atmosphere, this.LightRecords);
-        this.Resampling.ConstructTargets(this.TraceExtent, this.Surface);
-        this.Diffuse.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
-                                      [this.Resampling.Views.Irradiance, this.Resampling.Views.Irradiance], this.Resampling.Views.Guides);
-        this.Glossy.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
-                                     [this.Resampling.Views.Reflection, this.Resampling.Views.Reflection], this.Resampling.Views.Guides);
+        if (this.PathTracer) {
+            this.PathTracer.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface);
+            // Display's shared bindings remain filterable float16. Legacy GI
+            // targets are NOT allocated in RT mode (hundreds of MiB saved).
+            const Screen = this.PathTracer.Views.Screen;
+            this.Resampling.Views = { Irradiance: Screen, Reflection: Screen };
+            this.Diffuse.Views = { Screen }; this.Glossy.Views = { Screen };
+        } else {
+            this.Resampling.ConstructTargets(this.TraceExtent, this.Surface);
+            this.Diffuse.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
+                                          [this.Resampling.Views.Irradiance, this.Resampling.Views.Irradiance], this.Resampling.Views.Guides);
+            this.Glossy.ConstructTargets(this.TraceExtent, this.ScreenExtent, this.Surface,
+                                         [this.Resampling.Views.Reflection, this.Resampling.Views.Reflection], this.Resampling.Views.Guides);
+        }
         this.Display.ConstructTargets(this.ScreenExtent, this.Surface, this.Resampling, this.Diffuse, this.Glossy, this.Cards);
         this.Smoke.ConstructScreenTargets(this.ScreenExtent, this.Surface, this.Display, this.Settings.SmokeResolution, this.TraceExtent);
         this.PriorValid = false;
@@ -838,6 +889,7 @@ class IlluminationHost
                                                                    viewFormats: ["rgba8unorm-srgb"] });
             this.CaptureView = this.CaptureTexture.createView({ format: "rgba8unorm-srgb" });
             this.CaptureStride = Math.ceil(Width * 4 / 256) * 256;
+            if (this.CaptureRecords && this.CaptureRecords !== this.PendingCaptureRecords) this.CaptureRecords.destroy();
             this.CaptureRecords = this.Exchange.ConstructRecords(this.CaptureStride * Height, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST, "Capture readback");
             this.CapturePending = false;
         }
@@ -948,10 +1000,13 @@ class IlluminationHost
     EncodeFrameRecord(Camera, Light)
     {
         const [Width, Height] = this.ScreenExtent;
-        const Jittered = this.Settings.Antialias;
+        const Jittered = this.Settings.Antialias && !(this.PathTracer && this.Settings.Inspection === 4);
         const Sequence = (this.FrameIndex % 16) + 1;
         const JitterX = Jittered ? (ProjectRadicalInverse(Sequence, 2) - 0.5) * 2.0 / Width : 0.0;
         const JitterY = Jittered ? (ProjectRadicalInverse(Sequence, 3) - 0.5) * 2.0 / Height : 0.0;
+        const PriorJitter = this.PreviousJitter || [JitterX,JitterY];
+        this.PathJitterDelta = [(JitterX-PriorJitter[0])*Width*0.5, -(JitterY-PriorJitter[1])*Height*0.5];
+        this.PreviousJitter = [JitterX,JitterY];
         const View = ConstructViewTransform(Camera.Position, Camera.Target, Camera.Up || [0.0, 0.0, 1.0]);
         const Projection = ConstructPerspectiveTransform(Camera.VerticalFieldOfView, Camera.Aspect, Camera.Near, JitterX, JitterY);
         const Unjittered = MultiplyTransform(ConstructPerspectiveTransform(Camera.VerticalFieldOfView, Camera.Aspect, Camera.Near), View);
@@ -986,6 +1041,10 @@ class IlluminationHost
             Features |= TemporalRestartBit;
         }
         if (this.Smoke.Resident && this.Settings.SmokeEnabled && !this.Omitted.has("Smoke")) Features |= 4096;
+        if (this.PathTracer) {
+            Features |= PathTracingFeature;
+            if (this.Settings.Inspection === 4) Features &= ~FeatureBits.Antialias;
+        }
         Integers[103] = Features;
         Integers[104] = this.Settings.Inspection;
         Scalars[105] = this.Settings.TemporalTallyLimit;
@@ -1009,6 +1068,12 @@ class IlluminationHost
     }
 
     AdvanceFrame(Now)
+    {
+        try { this.RenderFrame(Now); }
+        catch (Failure) { this.ReportFailure(Failure.stack || String(Failure), true); }
+    }
+
+    RenderFrame(Now)
     {
         if (this.Failed)
             return;
@@ -1103,7 +1168,6 @@ class IlluminationHost
         this.Smoke.Advance(this.FixedStep ? this.FixedStep : Δτ, {
             Enabled: this.Settings.SmokeEnabled, Emissions, Vehicle: this.Vehicle, Light, SkyScale: this.Settings.SkyScale,
             Gas: this.Settings.Gas, Readings, Thermal: this.Thermal });
-        this.EncodeFrameRecord(Camera, Light);
         Device.queue.writeBuffer(this.OccupantRecords, 0, this.Scene.EncodeOccupantRecords(this.Volumes, this.Scene.DynamicCount));
 
         if (this.Lighting && this.LightRecords)
@@ -1112,11 +1176,28 @@ class IlluminationHost
             Device.queue.writeBuffer(this.LightRecords, 0, LightData);
         }
 
+        if (this.PathTracer) {
+            if (this.PathTracer.UpdateScene(this.FrameIndex)) this.PriorValid = false;
+        }
+        this.EncodeFrameRecord(Camera, Light);
+        if (this.PathTracer) this.PathTracer.UploadConfiguration();
+
         // ③ invalidation and relighting schedules; the union's active list follows activity
         if (this.Scene.ConstructDistanceList())
             this.Distance.UploadDistanceList(this.Scene.DistanceList);
-        this.Distance.ScheduleInvalidation(this.Focus, ResolveMovedBounds(this.Scene, this.Distance.Frozen));
-        this.Cards.ScheduleTiles(this.Settings.CardTileBudget);
+        const NeedDistance = !this.PathTracer || this.Smoke.Resident || this.Settings.Inspection === 6
+            || (this.Dock ? this.Dock.InsetDrawn : this.Settings.InsetEnabled);
+        if (NeedDistance) {
+            // A dormant field must rebuild its complete windows when smoke/debug
+            // needs it again; never resume from partially stale toroidal bricks.
+            if (!this.DistanceNeeded) for (const Clip of this.Distance.Clips) Clip.OriginBrick = null;
+            this.Distance.ScheduleInvalidation(this.Focus, ResolveMovedBounds(this.Scene, this.Distance.Frozen));
+        } else {
+            this.Distance.FrameBricks = []; this.Distance.FrameLevelCounts = [0, 0, 0, 0];
+            this.Distance.PendingBounds = [];
+        }
+        this.DistanceNeeded = NeedDistance;
+        if (!this.PathTracer) this.Cards.ScheduleTiles(this.Settings.CardTileBudget);
         this.Shadow.ResolveCascades(Camera, Light.Direction);
 
         // ④ record
@@ -1125,21 +1206,26 @@ class IlluminationHost
         this.Atmosphere.RecordSkyView(Encoder, this.Settings.SolarIlluminance);
         // 📝 Fragments born this frame get their distance volumes before the union reads them.
         this.Volumes.RecordFragments(Encoder);
-        if (Included("Union"))
+        if (NeedDistance && Included("Union"))
             this.Distance.RecordUnion(Encoder, this.Scene.QueryUnionCount(), this.FrameIndex, this.Metrics.QueryWrites("Distance union"));
         if (Included("Smoke"))
             this.Smoke.RecordTransport(Encoder, this.Distance.TraversalGroup, this.Metrics.QueryWrites("Smoke transport"));
         if (Included("Shadow"))
             this.Shadow.RecordCascades(Encoder, this.Scene, this.VertexRecords, this.Metrics.QueryWrites("Shadow"));
-        if (Included("Cards"))
+        if (!this.PathTracer && Included("Cards"))
             this.Cards.RecordLighting(Encoder, this.Distance.TraversalGroup, this.SamplingGroup, this.Settings.CardRadiosity,
                                       this.Metrics.QueryWrites("Card lighting"));
         this.Surface.RecordSurface(Encoder, this.Scene, this.VertexRecords, this.Metrics.QueryWrites("Surface"));
         if (Included("Cabin"))
-            this.Cabin.RecordViews(Encoder, this.Scene, this.VertexRecords, this.Vehicle.QueryBodyTransform(), this.QueryMirrorsVisible());
-        if (Included("Direct"))
+            this.Cabin.RecordViews(Encoder, this.Scene, this.VertexRecords, this.Vehicle.QueryBodyTransform(), !this.PathTracer && this.QueryMirrorsVisible());
+        if (Included("Direct") && (!this.PathTracer || this.Effects.Metrics.Live > 0))
             this.Surface.RecordDirect(Encoder, this.Distance.TraversalGroup, this.Metrics.QueryWrites("Direct"));
-        if (this.Settings.Indirect && Included("Resampling"))
+        if (this.PathTracer) {
+            this.PathTracer.Acceleration.RecordRefit(Encoder, this.Metrics.QueryWrites("Triangle BVH refit"));
+            this.PathTracer.RecordTrace(Encoder, Parity, this.Metrics.QueryWrites("Triangle path tracing"));
+            this.PathTracer.RecordReconstruction(Encoder, Parity, this.Metrics.QueryWrites("Path reconstruction"));
+        }
+        else if (this.Settings.Indirect && Included("Resampling"))
         {
             this.Resampling.RecordResampling(Encoder, Parity, this.Distance.TraversalGroup, this.SamplingGroup, this.Metrics.QueryWrites("ReSTIR GI"));
             if (Included("Diffuse"))
@@ -1180,7 +1266,10 @@ class IlluminationHost
         const Timed = this.Metrics.RecordResolve(Encoder);
         Device.queue.submit([Encoder.finish()]);
         this.FramesInFlight = (this.FramesInFlight || 0) + 1;
-        Device.queue.onSubmittedWorkDone().then(() => { this.FramesInFlight--; });
+        Device.queue.onSubmittedWorkDone().then(() => { this.FramesInFlight--; }, (Failure) => {
+            this.FramesInFlight--;
+            if (!this.Failed) this.ReportFailure(`GPU submission failed: ${Failure.message}`, true);
+        });
         if (Timed)
             this.Metrics.CollectDurations();
         if (CaptureReady)
@@ -1197,21 +1286,30 @@ class IlluminationHost
     {
         this.CapturePending = true;
         const [Width, Height] = this.ScreenExtent;
-        const Records = this.CaptureRecords;
-        await Records.mapAsync(GPUMapMode.READ);
-        if (Records !== this.CaptureRecords)
-            return;
-        const Source = new Uint8Array(Records.getMappedRange());
-        const Pixels = new Uint8ClampedArray(Width * Height * 4);
-        for (let Row = 0; Row < Height; ++Row)
-            Pixels.set(Source.subarray(Row * this.CaptureStride, Row * this.CaptureStride + Width * 4), Row * Width * 4);
-        Records.unmap();
-        const Canvas = document.getElementById("capture");
-        Canvas.width = Width;
-        Canvas.height = Height;
-        Canvas.getContext("2d").putImageData(new ImageData(Pixels, Width, Height), 0, 0);
-        this.CapturedFrame = CapturedFrame;
-        this.CapturePending = false;
+        const Records = this.CaptureRecords, Stride = this.CaptureStride;
+        this.PendingCaptureRecords = Records;
+        try {
+            await Records.mapAsync(GPUMapMode.READ);
+            if (Records !== this.CaptureRecords) { Records.unmap(); return; }
+            const Source = new Uint8Array(Records.getMappedRange());
+            const Pixels = new Uint8ClampedArray(Width * Height * 4);
+            for (let Row = 0; Row < Height; ++Row)
+                Pixels.set(Source.subarray(Row * Stride, Row * Stride + Width * 4), Row * Width * 4);
+            Records.unmap();
+            const Canvas = document.getElementById("capture");
+            Canvas.width = Width; Canvas.height = Height;
+            Canvas.getContext("2d").putImageData(new ImageData(Pixels, Width, Height), 0, 0);
+            this.CapturedFrame = CapturedFrame;
+        } catch (Failure) {
+            if (!this.Exchange.Lost) this.ReportFailure(`Capture readback: ${Failure.message}`, false);
+        } finally {
+            // A resize may retire a mapped/in-flight buffer. Release it AFTER
+            // mapping completes and always clear the pending flag, even on loss.
+            if (Records !== this.CaptureRecords) Records.destroy();
+            if (this.PendingCaptureRecords === Records) {
+                this.PendingCaptureRecords = null; this.CapturePending = false;
+            }
+        }
     }
 
     PresentMeasurements(Now, Light)
@@ -1228,11 +1326,16 @@ class IlluminationHost
         const Slowest = Durations.length ? Durations[Math.min(Durations.length - 1, Math.floor(0.99 * Durations.length))] : 0.0;
         this.LowRate = Slowest > 0.0 ? (1000.0 / Slowest).toFixed(0) : "–";
         const Lines = [
+            this.PathTracer ? `${this.Settings.Renderer === "reference" ? "Reference PT" : "ReSTIR GI PT"} · compute triangle BVH (not RTX cores)` : "GTX · distance-field/card GI",
             `${Rate} fps · ${(this.FrameSeconds * 1000).toFixed(1)} ms · 1% low ${this.LowRate} fps · ${Screen} · trace ${Trace}`,
             `ControlVehicle  ${Speed} km/h · gear ${Telemetry.Gear} · ${Telemetry.EngineRPM.toFixed(0)} rpm · ${Telemetry.Contacts}/4 contact`
                 + (Telemetry.Burnout ? ` · BURNOUT ${(Math.abs(Telemetry.RearSpin) * 3.6).toFixed(0)} km/h wheelspin` : ""),
             `GDF bricks rewritten  ${Rewritten}${this.Distance.Frozen ? "  (frozen)" : ""} · card tiles ${this.Cards.ScheduledTiles}`
         ];
+        if (this.PathTracer) {
+            Lines.push(...this.PathTracer.Acceleration.Describe());
+            if (this.PathScaleLimited) Lines.push(`Trace scale limited to 1/${this.TraceScaleUsed} by the buffer/memory budget`);
+        }
         if (this.Stress.QueryActive() > 0)
             Lines.push(`Stress objects  ${this.Stress.QueryActive()} (${this.Stress.Moving.length} moving) · ${this.Scene.DrawRuns.length} draw runs`);
         if (this.Fracture.Metrics.ActiveFragments > 0)
@@ -1285,8 +1388,15 @@ class IlluminationHost
         const Line = document.createElement("div");
         Line.textContent = Message;
         Panel.appendChild(Line);
-        if (Fatal)
+        if (Fatal) {
             this.Failed = true;
+            if (!this.FallbackOffered && this.Settings.Renderer !== RendererModes.DistanceField) {
+                const Retry = document.createElement("a");
+                const Query = new URLSearchParams(location.search); Query.set("renderer", "distance");
+                Retry.href = `?${Query.toString()}`; Retry.textContent = "Reload with GTX distance-field GI";
+                Retry.style.color = "#9fb4d6"; Panel.appendChild(Retry); this.FallbackOffered = true;
+            }
+        }
     }
 }
 

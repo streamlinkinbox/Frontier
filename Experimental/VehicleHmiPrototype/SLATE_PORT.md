@@ -1,5 +1,13 @@
 # Slate cockpit/smoke and browser Jolt integration
 
+**Rendering integration:** [RESTIR_WEBGPU.md](RESTIR_WEBGPU.md) documents the new
+default WebGPU triangle path tracer. Slate's vehicle deformation drives raster
+paths and dynamic ray geometry identically. Existing forward mirror/glass world
+overlays are suppressed in ray-traced mode (to avoid double shading), while the
+live HMI/cluster and Garage preview remain forward-composited. Slate plume
+simulation/marching remains hybrid; `renderer=distance` retains the original
+world-overlay renderer. Jolt and gameplay are unchanged.
+
 ## Reference and provenance
 
 Requested source: https://github.com/unassignedinbox/Slate/commit/3c987f33c71c2477bd73ca29c69d5bd0ee484d1a,

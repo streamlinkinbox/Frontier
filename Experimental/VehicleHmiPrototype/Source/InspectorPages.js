@@ -17,6 +17,7 @@ import { ArenaZones, TrainingDrills } from "./LevelStructure.js";
 import { DerezPresets } from "./EffectSequence.js";
 import { FormatPrimary } from "./TrainingSequence.js";
 import { CameraRigs } from "./CabinStructure.js";
+import { RendererModes } from "./PathTracingSettings.js";
 import { AutomotiveMode, RoofFixtureType } from "./LightingSystem.js";
 
 export const InspectionModes = [
@@ -24,6 +25,14 @@ export const InspectionModes = [
     ["ReSTIR irradiance (raw, no denoise)", 4], ["Glossy reflections", 5], ["Global distance field", 6],
     ["Surface cards (texel space)", 7], ["Normals", 8], ["Albedo", 9]
 ];
+
+export const RayTracingInspectionModes = [
+    ["Final path-traced image", 0], ["Primary NEE / emission / transmission", 1],
+    ["Resampled transport", 2], ["Reconstructed radiance", 3], ["Raw path radiance (unfiltered)", 4],
+    ["Distance field (smoke/debug only)", 6], ["Traced normals", 8], ["Traced albedo", 9],
+    ["Reservoir M", 10], ["Reservoir weight", 11], ["Traced instance identities", 12]
+];
+export const ResolveInspectionModes = (Host) => Host.PathTracer ? RayTracingInspectionModes : InspectionModes;
 
 export const DistanceInspections = [
     ["Field normals · cascades · rewritten bricks", 1], ["Traversal step heat", 2], ["Surface cache as the tracer sees it", 3]
@@ -70,15 +79,15 @@ export function ConstructEntities(Host)
     const S = Host.Settings;
     const Entities = [
         { Id: "render", Group: "Render", Name: "Render settings", Type: "Renderer", Glyph: "Monitor", Colour: Accent.Render,
-          Description: "Resolution, final gather, reflections & debug views",
-          Meta: () => `${Host.GradeName}`, State: () => "live", Build: (C, B) => BuildRender(Host, C, B),
-          Switches: () => [Feature("Indirect", "Sparkles", S, "Indirect"), Feature("Reflections", "Aperture", S, "Reflection"),
+          Description: "WebGPU triangle path tracing or GTX distance-field GI",
+          Meta: () => S.Renderer === "distance" ? "GTX GI" : S.Renderer === "reference" ? "Reference PT" : "ReSTIR GI", State: () => "live", Build: (C, B) => BuildRender(Host, C, B),
+          Switches: () => [Feature(Host.PathTracer ? "Multi-bounce" : "Indirect", "Sparkles", S, "Indirect"), ...(Host.PathTracer ? [] : [Feature("Reflections", "Aperture", S, "Reflection")]),
                            Feature("Denoiser", "Layers", S, "VarianceKernel"), Feature("TAA", "Scan", S, "Antialias")] },
         { Id: "field", Group: "Render", Name: "Global distance field", Type: "Scene distance field", Glyph: "GridLattice", Colour: Accent.Render,
           Description: "Four toroidal cascades rewritten by brick", Meta: () => `${Host.Grade.ClipResolution}³`,
-          State: () => (S.FreezeDistance ? "warm" : "live"), Build: (C, B) => BuildField(Host, C, B) },
+          State: () => (S.FreezeDistance || (Host.PathTracer && !Host.DistanceNeeded) ? "warm" : "live"), Build: (C, B) => BuildField(Host, C, B) },
         { Id: "cards", Group: "Render", Name: "Surface cache", Type: "Surface cards", Glyph: "LayoutGrid", Colour: Accent.Render,
-          Description: "Card radiosity & relighting budget", Meta: () => `${Host.Cards.Cards.length}`, State: () => "live",
+          Description: "Card radiosity & relighting budget", Meta: () => Host.PathTracer ? "GTX only" : `${Host.Cards.Cards.length}`, State: () => Host.PathTracer ? "warm" : "live",
           Build: (C, B) => BuildCards(Host, C, B) },
         { Id: "sun", Group: "Environment", Name: "Sun & sky", Type: "Directional light", Glyph: "Sun", Colour: Accent.Environment,
           Description: "Light, direction & atmosphere", Meta: () => `${S.SunElevation.toFixed(0)}°`, State: () => (S.SunElevation > 0 ? "live" : "warm"),
@@ -175,10 +184,24 @@ function GasSlider(C, Parent, Gas, Key, Labels = null)
 function BuildRender(Host, C, Body)
 {
     const S = Host.Settings;
+    const Backend = C.Card(Body, "Rendering backend", "Aperture", { Accent: Accent.Render, Index: 0 });
+    C.Select(Backend, S, "Renderer", [["Ray tracing · ReSTIR GI (default)", RendererModes.RayTracing],
+        ["GTX · distance-field GI", RendererModes.DistanceField], ["Reference path tracer · no reuse/filter", RendererModes.Reference]],
+        { Label: "Renderer · reloads" });
+    C.Muted(Backend, "Standard WebGPU has no RTX ray-query/pipeline API. Triangle rays run in WGSL compute on the selected GPU, not RTX cores. No vendor-string capability guesses.");
+    if (Host.PathTracer) {
+        C.Readout(Backend, () => Host.PathTracer.Describe());
+        Slider(C, Backend, S, "PathBounces", "Maximum path vertices", 2, 16, 1, "", 0);
+        Slider(C, Backend, S, "PathCandidates", "Fresh candidates / pixel", 1, 8, 1, "", 0);
+        Slider(C, Backend, S, "PathRRStart", "Russian roulette from vertex", 2, 8, 1, "", 0);
+        Slider(C, Backend, S, "PathSpatialPasses", "SVGF wavelet iterations", 1, 5, 1, "", 0);
+        Slider(C, Backend, S, "PathMemoryBudgetMiB", "RT target budget (not total VRAM)", 64, 1024, 32, " MiB", 0);
+        C.Readout(Backend, () => Host.PathScaleLimited ? [`Trace scale limited to 1/${Host.TraceScaleUsed} by buffer/memory limits.`] : []);
+    }
     const Quality = C.Card(Body, "Resolution & quality", "Monitor", { Accent: Accent.Render, Index: 1 });
     C.Metric(Quality, () => (Host.ScreenExtent ? `${Host.ScreenExtent[0]}×${Host.ScreenExtent[1]}` : "–"), "px", 0,
              () => [`trace ${Host.TraceExtent ? Host.TraceExtent.join("×") : "–"}`, "live"]);
-    C.Muted(Quality, "Render target after the scale and the pixel ceiling of the quality grade; ReSTIR GI and reflections trace at the trace resolution.");
+    C.Muted(Quality, "Trace resolution applies to complete camera paths in ray-tracing mode. Edge-aware reconstruction returns to display resolution. Full resolution costs substantially more GPU time/memory.");
     C.Segmented(Quality, S, "Quality", [["Low", 0], ["Medium", 1], ["High", 2]], { Label: "Quality grade · reloads" });
     C.Segmented(Quality, S, "TraceScale", [["Full", 1], ["Half", 2], ["Quarter", 4]], { Label: "Trace resolution" });
     Slider(C, Quality, S, "RenderScale", "Render scale", 0.25, 2.0, 0.05, "×", 2, ["Faster", "Sharper"]);
@@ -186,23 +209,26 @@ function BuildRender(Host, C, Body)
     const Gather = C.Card(Body, "Global illumination · ReSTIR", "Sparkles", { Accent: Accent.Render, Index: 2 });
     C.Switch(Gather, S, "TemporalReuse", { Label: "Temporal reuse", Detail: "Reservoirs carried through motion vectors" });
     C.Switch(Gather, S, "SpatialReuse", { Label: "Spatial reuse", Detail: "Neighbouring reservoirs merged per pixel" });
-    C.Switch(Gather, S, "VisibilityReuse", { Label: "Visibility validation", Detail: "Reused samples re-traced for occlusion" });
-    C.Switch(Gather, S, "RadianceRefresh", { Label: "Refresh reused radiance" });
+    if (!Host.PathTracer) {
+        C.Switch(Gather, S, "VisibilityReuse", { Label: "Visibility validation", Detail: "Reused samples re-traced for occlusion" });
+        C.Switch(Gather, S, "RadianceRefresh", { Label: "Refresh reused radiance" });
+    } else C.Muted(Gather, "Every reconnection validates triangle visibility and replays the full path suffix. Spatial reservoirs persist into temporal history. These correctness checks cannot be disabled.");
     Slider(C, Gather, S, "SpatialCount", "Spatial candidates", 0, 8, 1, "", 0);
     Slider(C, Gather, S, "SpatialRadius", "Spatial radius", 2, 48, 1, "px", 0);
     Slider(C, Gather, S, "TemporalTallyLimit", "Temporal M limit", 1, 40, 1, "", 0, ["Responsive", "Stable"]);
-    Slider(C, Gather, S, "IndirectScale", "Indirect intensity", 0, 3, 0.05, "×", 2);
+    Slider(C, Gather, S, "IndirectScale", Host.PathTracer ? "Resampled transport intensity" : "Indirect intensity", 0, 3, 0.05, "×", 2);
 
     const Image = C.Card(Body, "Exposure & image", "Aperture", { Accent: Accent.Render, Index: 3 });
     C.Switch(Image, S, "AutoExposure", { Label: "Auto exposure" });
     Slider(C, Image, S, "ExposureCompensation", "Exposure compensation", -4, 4, 0.1, "EV", 1, ["Darker", "Brighter"]);
-    C.Switch(Image, S, "DirectShadow", { Label: "Sun shadows", Detail: "Cascaded shadow depth" });
-    C.Switch(Image, S, "Reflection", { Label: "Glossy reflections", Detail: "Distance-field traced, denoised" });
+    C.Switch(Image, S, "DirectShadow", { Label: "Light visibility", Detail: Host.PathTracer ? "Triangle shadows + tinted glass transmittance" : "Cascaded shadow depth" });
+    if (!Host.PathTracer) C.Switch(Image, S, "Reflection", { Label: "Glossy reflections", Detail: "Distance-field traced, denoised" });
+    else C.Muted(Image, "Metallic, rough glossy, clear-coat and thin-glass paths are integrated by the BSDF, not a split-sum reflection approximation. Smoke, particles and HMI remain game overlays.");
     C.Switch(Image, S, "VarianceKernel", { Label: "Denoiser (SVGF)" });
     C.Switch(Image, S, "Antialias", { Label: "Temporal antialiasing", Detail: "Also resolves dithered tyre marks" });
 
     const Debug = C.Card(Body, "Debug views", "Bug", { Accent: Accent.Render, Index: 4 });
-    C.Select(Debug, S, "Inspection", InspectionModes, { Label: "Display" });
+    C.Select(Debug, S, "Inspection", ResolveInspectionModes(Host), { Label: "Display" });
     C.Select(Debug, S, "DistanceInspection", DistanceInspections, { Label: "Distance-field view" });
     C.Switch(Debug, S, "HudVisible", { Label: "Readout overlay", Detail: "H" });
     C.Switch(Debug, S, "InsetEnabled", { Label: "Distance slice inset", Detail: "J" });
@@ -225,8 +251,11 @@ function BuildField(Host, C, Body)
 {
     const S = Host.Settings;
     const Field = C.Card(Body, "Cascades", "GridLattice", { Accent: Accent.Render, Index: 1 });
-    C.Metric(Field, () => Host.Distance.TotalBricks, "bricks", 0, () => [S.FreezeDistance ? "frozen" : "updating", S.FreezeDistance ? "warm" : "live"]);
-    C.Muted(Field, "Bricks rewritten since start: scrolling windows and moving occupants only.");
+    C.Metric(Field, () => Host.Distance.TotalBricks, "bricks", 0, () => {
+        const Dormant=Host.PathTracer && !Host.DistanceNeeded;
+        return [Dormant ? "dormant" : S.FreezeDistance ? "frozen" : "updating", Dormant || S.FreezeDistance ? "warm" : "live"];
+    });
+    C.Muted(Field, Host.PathTracer ? "Smoke/debug only. Triangle GI uses its own BLAS/TLAS; dormant field windows rebuild when needed." : "Bricks rewritten since start: scrolling windows and moving occupants only.");
     C.Switch(Field, S, "FreezeDistance", { Label: "Freeze field updates" });
     C.Select(Field, S, "DistanceInspection", DistanceInspections, { Label: "Field view (display: global distance field)" });
     C.Switch(Field, S, "InsetEnabled", { Label: "Distance slice inset" });
@@ -238,6 +267,10 @@ function BuildCards(Host, C, Body)
 {
     const S = Host.Settings;
     const Cards = C.Card(Body, "Surface cache", "LayoutGrid", { Accent: Accent.Render, Index: 1 });
+    if (Host.PathTracer) {
+        C.Muted(Cards, "GTX renderer only. Card relighting is dormant; the triangle path tracer never samples cached GI.");
+        C.Readout(Cards, () => Host.QueryDepotLines()); return;
+    }
     C.Metric(Cards, () => Host.Cards.ScheduledTiles, "tiles", 0, () => ["relit this frame", ""]);
     C.Switch(Cards, S, "CardRadiosity", { Label: "Card radiosity", Detail: "Multi-bounce inside the cache" });
     Slider(C, Cards, S, "CardTileBudget", "Static tiles per frame", 0, 8192, 64, "", 0, ["Lazy", "Eager"]);
@@ -254,7 +287,7 @@ function BuildSun(Host, C, Body)
     const Preset = C.Card(Body, "Lighting preset", "Sunrise", { Accent: Accent.Environment, Index: 1 });
     C.Segmented(Preset, S, "LightingPreset", Object.keys(LightingPresets).map((Name) => [Name, Name]),
                 { OnChange: (Name) => Host.ApplyPreset(Name) });
-    C.Muted(Preset, "Night drops the sun below the horizon: the lamps, the hangar strips and the tunnel light the course through the cards.");
+    C.Muted(Preset, Host.PathTracer ? "At night, lamps and emissive scene triangles light the course via path transport." : "Night drops the sun below the horizon: the lamps, the hangar strips and the tunnel light the course through the cards.");
 
     const Direction = C.Card(Body, "Sun direction", "Orbit", { Accent: Accent.Environment, Index: 2 });
     C.Metric(Direction, () => S.SunElevation, "°", 1, () => [S.SunElevation < 0 ? "below horizon" : "above horizon", S.SunElevation < 0 ? "warm" : "live"]);
