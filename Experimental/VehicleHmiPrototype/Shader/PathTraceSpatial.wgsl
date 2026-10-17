@@ -134,6 +134,6 @@ fn ResamplePathSpatial(@builtin(global_invocation_id) Invocation: vec3u)
         Specular += Split.Specular;
     }
     FinalReservoirs[Index] = PackPath(Result);
-    textureStore(IndirectTarget, vec2i(TracePixel), vec4f(Indirect, 1.0));
-    textureStore(SpecularTarget, vec2i(TracePixel), vec4f(Specular, 1.0));
+    textureStore(IndirectTarget, vec2i(TracePixel), vec4f(SanitiseRadiance(Indirect), 1.0));
+    textureStore(SpecularTarget, vec2i(TracePixel), vec4f(SanitiseRadiance(Specular), 1.0));
 }

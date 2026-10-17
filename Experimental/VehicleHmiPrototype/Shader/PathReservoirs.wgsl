@@ -62,7 +62,7 @@ struct PathReservoir
     Weight     : f32,
 }
 
-struct PathRecord   // 80 B
+struct PathRecord   // 96 B
 {
     Seed       : u32,
     Flags      : u32,    // Rc | Terminal << 8 | flag bits
@@ -72,14 +72,18 @@ struct PathRecord   // 80 B
     RcNormal   : u32,
     RcOut      : u32,
     Omega      : u32,
-    Radiance   : vec2u,
-    Rest       : vec2u,
     LightPdf   : f32,
     Weight     : f32,
+    // 📝 Radiance and Rest stay f32: the solar disc's radiance (illuminance / 6.9e-5 sr) and the hybrid-measure
+    //    throughput (the ordinary estimate × the non-replayed pdf) overflow half floats.
+    Radiance   : vec3f,
     Tally      : f32,
+    Rest       : vec3f,
     TargetPdf  : f32,
     Pad0       : u32,
     Pad1       : u32,
+    Pad2       : u32,
+    Pad3       : u32,
 }
 
 struct PathVertex
@@ -141,14 +145,16 @@ fn PackPath(Reservoir: PathReservoir) -> PathRecord
     Record.RcNormal = PackOctahedral(S.RcNormal);
     Record.RcOut = PackOctahedral(S.RcOut);
     Record.Omega = PackOctahedral(S.Omega);
-    Record.Radiance = PackHalfTriple(S.Radiance, 0.0);
-    Record.Rest = PackHalfTriple(S.Rest, 0.0);
+    Record.Radiance = S.Radiance;
+    Record.Rest = S.Rest;
     Record.LightPdf = S.LightPdf;
     Record.Weight = Reservoir.Weight;
     Record.Tally = Reservoir.Tally;
     Record.TargetPdf = Reservoir.TargetPdf;
     Record.Pad0 = 0u;
     Record.Pad1 = 0u;
+    Record.Pad2 = 0u;
+    Record.Pad3 = 0u;
     return Record;
 }
 
@@ -165,12 +171,18 @@ fn UnpackPath(Record: PathRecord) -> PathReservoir
     Reservoir.Sample.RcNormal = UnpackOctahedral(Record.RcNormal);
     Reservoir.Sample.RcOut = UnpackOctahedral(Record.RcOut);
     Reservoir.Sample.Omega = UnpackOctahedral(Record.Omega);
-    Reservoir.Sample.Radiance = UnpackHalfTriple(Record.Radiance).xyz;
-    Reservoir.Sample.Rest = UnpackHalfTriple(Record.Rest).xyz;
+    Reservoir.Sample.Radiance = Record.Radiance;
+    Reservoir.Sample.Rest = Record.Rest;
     Reservoir.Sample.LightPdf = Record.LightPdf;
     Reservoir.Weight = Record.Weight;
     Reservoir.Tally = Record.Tally;
     Reservoir.TargetPdf = Record.TargetPdf;
+    if (!IsFiniteScalar(Reservoir.Weight) || !IsFiniteScalar(Reservoir.TargetPdf) || !IsFiniteScalar(Reservoir.Tally))
+    {
+        Reservoir.Weight = 0.0;
+        Reservoir.TargetPdf = 0.0;
+        Reservoir.Tally = 0.0;
+    }
     return Reservoir;
 }
 
@@ -194,7 +206,10 @@ fn StreamPath(Reservoir: ptr<function, PathReservoir>, Candidate: PathSample, We
 
 fn FinalisePath(Reservoir: ptr<function, PathReservoir>)
 {
-    (*Reservoir).Weight = select(0.0, (*Reservoir).SumWeights / (*Reservoir).TargetPdf, (*Reservoir).TargetPdf > 0.0);
+    let Weight = select(0.0, (*Reservoir).SumWeights / (*Reservoir).TargetPdf, (*Reservoir).TargetPdf > 0.0);
+    let Sample = (*Reservoir).Sample;
+    let Finite = IsFiniteScalar(Weight) && IsFiniteScalar((*Reservoir).TargetPdf) && all(Sample.Rest == Sample.Rest) && all(Sample.Radiance == Sample.Radiance);
+    (*Reservoir).Weight = select(0.0, Weight, Finite);
 }
 
 // 📝 A reconnection vertex riding a moving occupant is carried from where it was last frame to where it is now.

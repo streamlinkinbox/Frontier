@@ -158,6 +158,18 @@ fn ResolveEscapeRadiance(Direction: vec3f) -> vec3f
     return Radiance;
 }
 
+// 📝 Guards against a NaN or an overflow reaching a history (the reconstruction and the antialiasing would spread it).
+fn IsFiniteScalar(Value: f32) -> bool
+{
+    return Value == Value && abs(Value) < 1.0e30;
+}
+
+fn SanitiseRadiance(Value: vec3f) -> vec3f
+{
+    let Finite = all(Value == Value) && all(abs(Value) < vec3f(1.0e30));
+    return select(vec3f(0.0), clamp(Value, vec3f(0.0), vec3f(6.0e4)), Finite);
+}
+
 fn TraceFlag(Bit: u32) -> bool
 {
     return (Trace.Flags & Bit) != 0u;

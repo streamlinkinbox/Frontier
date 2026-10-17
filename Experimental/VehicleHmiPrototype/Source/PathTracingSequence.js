@@ -13,7 +13,7 @@
 //    Group 1 of every program is the scene trace group (TraceRecords.wgsl) the TraceStructure maintains.
 
 const DirectStride = 32;   // [B] DirectRecord
-const PathStride   = 80;   // [B] PathRecord
+const PathStride   = 96;   // [B] PathRecord
 
 export class PathTracingSequence
 {

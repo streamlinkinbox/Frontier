@@ -136,6 +136,6 @@ fn ResampleDirectSpatial(@builtin(global_invocation_id) Invocation: vec3u)
         }
     }
     FinalReservoirs[Index] = PackDirect(Result);
-    textureStore(DiffuseTarget, vec2i(TracePixel), vec4f(Diffuse, 1.0));
-    textureStore(SpecularTarget, vec2i(TracePixel), vec4f(Specular, 1.0));
+    textureStore(DiffuseTarget, vec2i(TracePixel), vec4f(SanitiseRadiance(Diffuse), 1.0));
+    textureStore(SpecularTarget, vec2i(TracePixel), vec4f(SanitiseRadiance(Specular), 1.0));
 }

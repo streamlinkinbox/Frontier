@@ -73,6 +73,12 @@ fn UnpackDirect(Record: DirectRecord) -> DirectReservoir
     Reservoir.Weight = Record.Weight;
     Reservoir.Tally = Record.Tally;
     Reservoir.TargetPdf = Record.TargetPdf;
+    if (!IsFiniteScalar(Reservoir.Weight) || !IsFiniteScalar(Reservoir.TargetPdf) || !IsFiniteScalar(Reservoir.Tally))
+    {
+        Reservoir.Weight = 0.0;
+        Reservoir.TargetPdf = 0.0;
+        Reservoir.Tally = 0.0;
+    }
     Reservoir.Occupant = Record.Occupant;
     Reservoir.Triangle = Record.Triangle;
     Reservoir.SumWeights = 0.0;
@@ -147,21 +153,25 @@ fn StreamDirect(Reservoir: ptr<function, DirectReservoir>, Candidate: DirectRese
 
 fn FinaliseDirect(Reservoir: ptr<function, DirectReservoir>)
 {
-    (*Reservoir).Weight = select(0.0, (*Reservoir).SumWeights / (*Reservoir).TargetPdf, (*Reservoir).TargetPdf > 0.0);
+    let Weight = select(0.0, (*Reservoir).SumWeights / (*Reservoir).TargetPdf, (*Reservoir).TargetPdf > 0.0);
+    (*Reservoir).Weight = select(0.0, Weight, IsFiniteScalar(Weight) && IsFiniteScalar((*Reservoir).TargetPdf));
 }
 
-// 📝 Pairwise MIS canonical weight share for one neighbour (Bitterli 2020 §4 / Lin 2022): with k neighbours,
-//    m_i(y) = M_i p̂_i(y) / (M_i p̂_i(y) + (M_c / k) p̂_c(y)) and the canonical sample collects the complements.
+// 📝 Pairwise MIS (Bitterli 2020 §9.1.3, Lin 2022) with k neighbours and the canonical sample c:
+//    m_i(y) = M_i p̂_i(y) / (k M_i p̂_i(y) + M_c p̂_c(y))  for neighbour i's sample,
+//    m_c(y) = (1/k) Σ_i M_c p̂_c(y) / (k M_i p̂_i(y) + M_c p̂_c(y))  for the canonical sample;
+//    Σ m = 1 for every y, and a neighbour whose p̂_c(y) vanishes still contributes at most 1/k.
 fn ResolvePairwiseNeighbour(NeighbourTally: f32, NeighbourTarget: f32, CanonicalTally: f32, CanonicalTarget: f32, Count: f32) -> f32
 {
-    let Denominator = NeighbourTally * NeighbourTarget + (CanonicalTally / Count) * CanonicalTarget;
+    let Denominator = Count * NeighbourTally * NeighbourTarget + CanonicalTally * CanonicalTarget;
     return select(0.0, NeighbourTally * NeighbourTarget / Denominator, Denominator > 0.0);
 }
 
+// 📝 One of the k terms of m_c (the caller sums them and divides by k).
 fn ResolvePairwiseCanonical(NeighbourTally: f32, NeighbourTarget: f32, CanonicalTally: f32, CanonicalTarget: f32, Count: f32) -> f32
 {
-    let Denominator = NeighbourTally * NeighbourTarget + (CanonicalTally / Count) * CanonicalTarget;
-    return select(1.0, (CanonicalTally / Count) * CanonicalTarget / Denominator, Denominator > 0.0);
+    let Denominator = Count * NeighbourTally * NeighbourTarget + CanonicalTally * CanonicalTarget;
+    return select(1.0, CanonicalTally * CanonicalTarget / Denominator, Denominator > 0.0);
 }
 
 // 📝 The surface at a trace pixel, from the guide (normal, view depth, validity) and position (world, family) textures.
