@@ -50,6 +50,16 @@ the way, not paint or arrows.
 - Exactly **one route** is open at a time; each district is entered once. No laps, no
   backtracking requirement.
 
+## Build v2 note (after playtest: "there is no path")
+
+v1 scattered independent slabs and the route was unreadable — scrapped, not patched.
+v2's path is **one designed centreline per district** (`route.js`, unit-tested):
+drawn as a continuous kerbed deck with centre dashes, distance posts every 50 m, a
+live minimap and a metres-to-portal readout. `route.test.mjs` proves the centreline
+is continuous, District I exceeds 470 m, neighbouring pieces drift together (<2 cm
+relative motion), and a simulated pure-pursuit drive with the game's own kerb clamp
+reaches every portal without leaving the deck.
+
 ## Greybox construction notes (this build)
 
 - Everything is untextured boxes: `slabs[]` are drivable (the car samples the *same*
@@ -74,7 +84,7 @@ the way, not paint or arrows.
 ## Greybox sign-off checklist
 
 - [x] Route is point-to-point, portal to portal — no laps
-- [x] District I alone drives ≥30 s at cautious pace
+- [x] District I alone drives 30+ s (500 m class route, simulated drive reaches Portal 1)
 - [x] Path is town-stuff (roads + roofs), visibly fractured, gently moving, never breaks
 - [x] Furniture & rubble adrift; buildings fractured (and fracture-ready)
 - [x] Tone: stone/brick/slate/timber only — zero neon/cyberpunk
