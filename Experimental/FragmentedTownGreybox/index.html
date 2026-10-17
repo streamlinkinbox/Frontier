@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Fragmented Town — Greybox Level</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#9aa0a2;font-family:Georgia,'Times New Roman',serif}
+  #gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .hud{position:fixed;left:18px;top:16px;color:#2e2c28;background:rgba(238,234,226,.88);border:1px solid #8a8378;
+       padding:12px 16px;max-width:340px;box-shadow:0 4px 18px rgba(40,38,32,.25)}
+  .hud h1{font-size:17px;margin:0 0 4px;font-weight:600;letter-spacing:.04em}
+  .hud p{margin:3px 0;font-size:13px;line-height:1.45;color:#55504a}
+  .hud b{color:#2e2c28}
+  #stats{position:fixed;right:18px;top:16px;text-align:right;color:#35322d;background:rgba(238,234,226,.85);
+         border:1px solid #8a8378;padding:9px 13px;font-size:13px;line-height:1.5;min-width:170px}
+  #msg{position:fixed;left:50%;bottom:9%;transform:translateX(-50%);color:#f2efe8;text-shadow:0 1px 8px rgba(0,0,0,.55);
+       font-size:19px;letter-spacing:.06em;text-align:center;pointer-events:none}
+  #fade{position:fixed;inset:0;background:#e8e4dc;opacity:0;pointer-events:none;transition:opacity .45s}
+  #end{position:fixed;inset:0;display:none;place-items:center;background:rgba(46,44,40,.55)}
+  #end div{background:#eeeae2;border:1px solid #8a8378;padding:26px 34px;text-align:center;color:#2e2c28;max-width:420px}
+  button{font:inherit;background:#5a554d;color:#f2efe8;border:0;padding:8px 18px;cursor:pointer;margin-top:10px}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="hud">
+  <h1>THE FRAGMENTED TOWN</h1>
+  <p>Greybox level — a broken town adrift in open air. The roofs and torn roads
+     <b>are</b> the way through. Follow them from portal to portal.</p>
+  <p><b>W A S D / arrows</b> drive &nbsp;·&nbsp; <b>R</b> return to last portal &nbsp;·&nbsp; <b>Space</b> brake</p>
+  <p id="district">District I — The Fragmented Town</p>
+</div>
+<div id="stats">—</div>
+<div id="msg"></div><div id="fade"></div>
+<div id="end"><div><h2 style="margin-top:0">The far shore</h2>
+  <p>You crossed the whole of the broken town — town, causeway and roofline — portal to portal, no laps.</p>
+  <p id="endtime"></p><button onclick="location.reload()">Drive it again</button></div></div>
+
+<script>
+"use strict";
+/* =====================================================================================
+   FRAGMENTED TOWN — greybox level (see DESIGN.md)
+   One level, three districts joined by stone portals (teleports inside one world,
+   no level loads). The drivable path is made of the town itself: torn road slabs and
+   flat roofs, fractured and adrift, each moving slightly — but moving together, the
+   way wreckage drifts, so the path breathes without ever breaking.
+   Section I route: ≈430 m of path. At a cautious 12–14 m/s that is 30+ seconds of
+   driving from the first portal to the second, as briefed. No laps.
+   Palette: stone, brick, slate, timber, dust. Deliberately no neon / cyberpunk.
+   ===================================================================================== */
+
+// ---------- tiny seeded RNG so the town is the same town every visit ----------
+let seed = 1877;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const rr = (a, b) => a + rnd() * (b - a);
+
+// ---------- palette (muted, material, sun-bleached) ----------
+const C = {
+  stone:[0.62,0.59,0.53], stoneDark:[0.48,0.45,0.40], brick:[0.55,0.38,0.30], brickPale:[0.66,0.50,0.40],
+  slate:[0.38,0.40,0.42], timber:[0.45,0.34,0.22], plaster:[0.74,0.70,0.62], road:[0.32,0.31,0.30],
+  roadEdge:[0.68,0.65,0.58], roof:[0.50,0.36,0.28], roofGrey:[0.45,0.45,0.44], crack:[0.16,0.15,0.14],
+  grassDead:[0.52,0.52,0.36], metal:[0.42,0.43,0.44], cloth:[0.58,0.52,0.44], carBody:[0.36,0.40,0.44]
+};
+
+// ---------- world objects ----------
+// box: {p:[x,y,z] centre, s:[sx,sy,sz], yaw, pitch, roll, c:colour, motion:{amp,speed,phase,sway}}
+const boxes = [];
+const slabs = [];   // drivable path pieces {p,s,yaw, motion} — top surface is the road
+const movers = [];  // floating furniture/debris
+function box(p, s, c, o = {}) {
+  const b = { p:[...p], s:[...s], c, yaw:o.yaw||0, pitch:o.pitch||0, roll:o.roll||0, motion:o.motion||null, baseYaw:o.yaw||0 };
+  boxes.push(b); if (o.mover) movers.push(b); return b;
+}
+function slab(p, s, yaw, c = C.road) {
+  const b = { p:[...p], s:[...s], yaw, pitch:0, roll:0, c,
+              motion:{ amp: rr(0.10,0.30), speed: rr(0.14,0.30), phase: rr(0,6.28), sway: rr(0.002,0.010) } };
+  boxes.push(b); slabs.push(b); return b;
+}
+// current (animated) pose of a path slab at time t — the car samples exactly this
+function slabPose(b, t) {
+  const m = b.motion;
+  return { x:b.p[0], y:b.p[1] + Math.sin(t*m.speed + m.phase)*m.amp, z:b.p[2], yaw:b.yaw + Math.sin(t*m.speed*0.7 + m.phase)*m.sway };
+}
+
+// ---------- fractured building: a house broken into leaning, separated pieces ----------
+// Not decoration off to the side: buildings flank the path and their roofs ARE path pieces.
+function fracturedHouse(x, y, z, yaw, w, d, h, palette, roofPath) {
+  const cos = Math.cos(yaw), sin = Math.sin(yaw);
+  const L = (lx, lz) => [x + lx*cos - lz*sin, z + lx*sin + lz*cos];
+  // fractured body: main block + a sheared-off corner chunk, leaning, with a crack gap
+  let p = L(-w*0.08, 0); box([p[0], y+h*0.5, p[1]], [w*0.8, h, d*0.8], palette, { yaw });
+  p = L(w*0.42, d*0.18); box([p[0], y+h*0.34, p[1]], [w*0.3, h*0.68, d*0.34], palette, { yaw:yaw+0.06, roll:0.045 });
+  p = L(-w*0.2, -d*0.1); box([p[0], y+h+0.5, p[1]], [w*0.55, 1.0, d*0.5], C.crack, { yaw:yaw+rr(-0.1,0.1) }); // dark split cap
+  // roof: either a flat roof slab the player drives on, or a broken pitched pair left as scenery
+  p = L(0, 0);
+  if (roofPath) slab([p[0], y+h+0.35, p[1]], [w+1.2, 0.7, d+1.2], yaw, C.roofGrey);
+  else {
+    box([p[0], y+h+0.7, p[1]], [w*0.62, 1.5, d*0.9], C.roof, { yaw, pitch: 0.5 });
+    const q = L(w*0.24, 0.3); box([q[0], y+h+0.45, q[1]], [w*0.5, 1.3, d*0.8], C.roof, { yaw:yaw+0.15, pitch:-0.55, roll:0.1 });
+  }
+  // a few loose bricks/shards hovering off the break, as if the fracture just happened and stayed
+  for (let i = 0; i < 4; i++) {
+    const q = L(rr(-w, w)*0.8, rr(-d, d)*0.8);
+    box([q[0], y + rr(0.5, h+2), q[1]], [rr(0.3,0.9), rr(0.2,0.5), rr(0.3,0.8)], palette,
+        { yaw:rr(0,3), mover:true, motion:{ amp:rr(0.3,0.9), speed:rr(0.2,0.5), phase:rr(0,6.3), sway:rr(0.1,0.4) } });
+  }
+}
+// furniture set adrift: table, chairs, a wardrobe, a lamp-post — household things where sky should be
+function floatingFurniture(x, y, z) {
+  const g = [];
+  const add = (p,s,c)=>box(p,s,c,{mover:true, motion:{amp:rr(0.4,1.1), speed:rr(0.15,0.4), phase:rr(0,6.3), sway:rr(0.15,0.5)}});
+  add([x,y,z],[1.6,0.08,0.9],C.timber); add([x-0.6,y-0.45,z-0.3],[0.08,0.8,0.08],C.timber); add([x+0.6,y-0.45,z+0.3],[0.08,0.8,0.08],C.timber);
+  add([x+1.8,y-0.3,z+0.8],[0.5,0.7,0.5],C.cloth); add([x-1.7,y+0.2,z-1.0],[0.9,1.6,0.4],C.timber);
+  add([x+0.4,y+1.2,z-1.6],[0.12,1.8,0.12],C.metal); add([x+0.4,y+2.1,z-1.6],[0.4,0.25,0.4],C.plaster);
+}
+// torn road between two points: overlapping slabs (overlap is what keeps the moving path unbroken)
+function roadRun(points, width = 7) {
+  for (let i = 0; i + 1 < points.length; i++) {
+    const [ax, ay, az] = points[i], [bx, by, bz] = points[i+1];
+    const dx = bx-ax, dy = by-ay, dz = bz-az, len = Math.hypot(dx, dz), yaw = Math.atan2(dz, dx);
+    const n = Math.max(1, Math.round(len / 9));
+    for (let j = 0; j < n; j++) {
+      const f = (j + 0.5) / n;
+      slab([ax+dx*f, ay+dy*f - 0.35, az+dz*f], [len/n + 3.2, 0.7, width], yaw, C.road);
+      // broken kerb shards on alternating edges
+      if ((i + j) % 2 === 0) slab([ax+dx*f - Math.sin(yaw)*(width/2+0.3), ay+dy*f - 0.55, az+dz*f + Math.cos(yaw)*(width/2+0.3)], [2.2,0.5,0.6], yaw, C.roadEdge);
+    }
+  }
+}
+
+// ---------- portals: plain stone arches. Walking through one moves you within the one level. ----------
+const portals = [];
+function portal(x, y, z, yaw, name, to) {
+  const cos = Math.cos(yaw), sin = Math.sin(yaw);
+  const post = (s) => box([x - sin*2.6*s, y+2.6, z + cos*2.6*s], [0.8, 5.2, 0.8], C.stoneDark, { yaw });
+  post(-1); post(1);
+  box([x, y+5.6, z], [0.9, 0.9, 6.4], C.stone, { yaw });
+  box([x, y+3.4, z], [0.3, 2.6, 3.4], [0.78,0.72,0.60], { yaw }); // pale hanging keystone-cloth, the only marker
+  portals.push({ p:[x,y,z], name, to });
+}
+
+// =====================================================================================
+//  DISTRICT I — THE FRAGMENTED TOWN   (≈430 m of winding path, roofs included)
+// =====================================================================================
+const townPath = [
+  [0,8,0],[52,10,-22],[98,14,10],[144,18,-26],[190,22,4],[236,26,-16],[282,30,8],[326,34,-6],[368,38,0],[404,40,14]
+];
+roadRun(townPath, 7.5);
+// the town itself: fractured houses flanking the road, every third roof joining the path
+let roofCount = 0;
+for (let i = 0; i + 1 < townPath.length; i++) {
+  const [ax,,az] = townPath[i], [bx,,bz] = townPath[i+1];
+  for (const side of [-1, 1]) for (let j = 0; j < 3; j++) {
+    const f = (j + rr(0.1,0.25)) / 3, x = ax+(bx-ax)*f, z = az+(bz-az)*f, y = townPath[i][1]+(townPath[i+1][1]-townPath[i][1])*f;
+    const yaw = Math.atan2(bz-az, bx-ax), off = side * rr(10, 22);
+    roofCount++;
+    fracturedHouse(x - Math.sin(yaw)*off, y - rr(4,9), z + Math.cos(yaw)*off, yaw + rr(-0.3,0.3),
+                   rr(7,11), rr(6,9), rr(5,9), rnd()<0.5?C.brick:(rnd()<0.5?C.plaster:C.stone), false);
+  }
+}
+// three roof-houses whose roofs are ON the path (the road climbs over the town)
+for (const [hx, hy, hz, hyaw] of [[98,9.5,26],[236,21.5,2],[326,29.5,-22]])
+  fracturedHouse(hx, hy, hz, hyaw, 10, 9, 5.5, C.brickPale, true);
+for (let i = 0; i < 9; i++) floatingFurniture(rr(10,390), rr(12,44), rr(-46,40));
+for (let i = 0; i < 130; i++)  // drifting rubble field
+  box([rr(-30,440), rr(-4,52), rr(-70,70)], [rr(0.3,2.4),rr(0.3,1.6),rr(0.3,2.2)], rnd()<0.6?C.stoneDark:C.brick,
+      { yaw:rr(0,3), mover:true, motion:{amp:rr(0.3,1.4), speed:rr(0.1,0.35), phase:rr(0,6.3), sway:rr(0.05,0.3)} });
+
+// =====================================================================================
+//  DISTRICT II — THE SHATTERED CAUSEWAY  (a broken viaduct: long spans, missing middles)
+// =====================================================================================
+const causeBase = [452, 44, 14];
+const causePath = [[452,44,14],[505,46,30],[560,49,22],[612,52,36],[662,55,26],[712,58,38],[758,60,30]];
+roadRun(causePath, 6);
+// viaduct piers sinking into nothing, snapped columns beside the spans
+for (let i = 0; i < causePath.length; i++) {
+  const [x,y,z] = causePath[i];
+  box([x, y-14, z], [3.2, 26, 3.2], C.stoneDark, {});
+  box([x+rr(-16,16), y-rr(8,20), z+rr(-16,16)], [2.2, rr(8,18), 2.2], C.stoneDark, { roll:rr(-0.2,0.2), mover:true, motion:{amp:0.5,speed:0.16,phase:rr(0,6),sway:0.08} });
+}
+for (let i = 0; i < 5; i++) floatingFurniture(rr(470,740), rr(48,72), rr(0,60));
+
+// =====================================================================================
+//  DISTRICT III — THE ROOFLINE  (the way home is across the roofs themselves)
+// =====================================================================================
+const roofPathPts = [[806,62,30],[846,58,12],[884,54,26],[922,50,8],[958,46,20],[992,42,4],[1024,38,14]];
+roadRun(roofPathPts, 6.5);
+for (let i = 0; i + 1 < roofPathPts.length; i++) {
+  const [ax, ay, az] = roofPathPts[i], [bx, by, bz] = roofPathPts[i+1];
+  for (let j = 0; j < 4; j++) {
+    const f = (j+0.5)/4, x = ax+(bx-ax)*f, z = az+(bz-az)*f + rr(-16,16), y = ay+(by-ay)*f;
+    fracturedHouse(x, y-rr(6,10), z, rr(0,3), rr(7,10), rr(6,9), rr(6,9), rnd()<0.5?C.plaster:C.stone, rnd()<0.4);
+  }
+}
+// chimneys and gables adrift above the roofline
+for (let i = 0; i < 40; i++)
+  box([rr(790,1050), rr(36,70), rr(-20,50)], [rr(0.8,1.6),rr(1.5,3.5),rr(0.8,1.6)], C.brick,
+      { yaw:rr(0,3), mover:true, motion:{amp:rr(0.3,1), speed:rr(0.12,0.3), phase:rr(0,6.3), sway:rr(0.05,0.25)} });
+
+// ---------- portals between districts (one level, three places) ----------
+portal(416, 40.6, 16, Math.PI/2, "The Causeway",   { p:[458,45.2,15], yaw:0.25, district:"District II — The Shattered Causeway" });
+portal(770, 60.6, 29, Math.PI/2, "The Roofline",   { p:[812,63.2,29], yaw:-0.2, district:"District III — The Roofline" });
+portal(1036, 38.6, 15, Math.PI/2, "The far shore", null); // end gate
+
+// =====================================================================================
+//  RENDERING — plain WebGL, one unit box, per-object transform. Greybox on purpose.
+// =====================================================================================
+const canvas = document.getElementById('gl'), gl = canvas.getContext('webgl');
+if (!gl) document.getElementById('msg').textContent = "WebGL is not available in this browser.";
+const vs = `attribute vec3 aPos; attribute vec3 aNorm;
+uniform mat4 uMVP, uModel; uniform vec3 uColour; uniform vec3 uSun;
+varying float vLight; varying float vFog;
+void main(){ vec3 n = normalize(mat3(uModel) * aNorm);
+  vLight = 0.55 + 0.45 * max(dot(n, normalize(uSun)), 0.0);
+  vec4 w = uModel * vec4(aPos,1.0); vFog = clamp((length(w.xz - uSun.xy*0.0) )*0.0 + (gl_Position = uMVP * w).w * 0.0045, 0.0, 0.85);
+  }`;
+const fs = `precision mediump float; uniform vec3 uColour; varying float vLight; varying float vFog;
+void main(){ vec3 c = uColour * vLight; c = mix(c, vec3(0.72,0.73,0.72), vFog); gl_FragColor = vec4(c,1.0); }`;
+function shader(type, src){ const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+const prog = gl.createProgram();
+gl.attachShader(prog, shader(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, fs));
+gl.linkProgram(prog); gl.useProgram(prog);
+// unit box with normals
+const verts = [], norms = [];
+const F = [
+  [[0,0,1],[ -0.5,-0.5,0.5,  0.5,-0.5,0.5,  0.5,0.5,0.5,  -0.5,0.5,0.5 ]],
+  [[0,0,-1],[ 0.5,-0.5,-0.5, -0.5,-0.5,-0.5, -0.5,0.5,-0.5,  0.5,0.5,-0.5 ]],
+  [[1,0,0],[ 0.5,-0.5,0.5,  0.5,-0.5,-0.5,  0.5,0.5,-0.5,  0.5,0.5,0.5 ]],
+  [[-1,0,0],[ -0.5,-0.5,-0.5, -0.5,-0.5,0.5, -0.5,0.5,0.5, -0.5,0.5,-0.5 ]],
+  [[0,1,0],[ -0.5,0.5,0.5,  0.5,0.5,0.5,  0.5,0.5,-0.5,  -0.5,0.5,-0.5 ]],
+  [[0,-1,0],[ -0.5,-0.5,-0.5,  0.5,-0.5,-0.5,  0.5,-0.5,0.5,  -0.5,-0.5,0.5 ]]];
+for (const [n, q] of F) { const idx=[0,1,2,0,2,3]; for (const i of idx){ verts.push(q[i*3],q[i*3+1],q[i*3+2]); norms.push(...n); } }
+const buf = (data, loc, size) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0); };
+buf(verts, gl.getAttribLocation(prog,'aPos'), 3); buf(norms, gl.getAttribLocation(prog,'aNorm'), 3);
+const U = { mvp: gl.getUniformLocation(prog,'uMVP'), model: gl.getUniformLocation(prog,'uModel'),
+            colour: gl.getUniformLocation(prog,'uColour'), sun: gl.getUniformLocation(prog,'uSun') };
+gl.enable(gl.DEPTH_TEST);
+
+// minimal mat4 helpers
+const M = {
+  mul(a,b){ const o=new Array(16).fill(0); for(let r=0;r<4;r++)for(let c=0;c<4;c++)for(let k=0;k<4;k++)o[c*4+r]+=a[k*4+r]*b[c*4+k]; return o; },
+  persp(fov,asp,n,f){ const t=1/Math.tan(fov/2); return [t/asp,0,0,0, 0,t,0,0, 0,0,(f+n)/(n-f),-1, 0,0,2*f*n/(n-f),0]; },
+  look(eye,at,up){ const z=norm(sub(eye,at)), x=norm(cross(up,z)), y=cross(z,x);
+    return [x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0, -dot(x,eye),-dot(y,eye),-dot(z,eye),1]; },
+  model(p,s,yaw,pitch,roll){ let m=[s[0],0,0,0, 0,s[1],0,0, 0,0,s[2],0, p[0],p[1],p[2],1];
+    const cy=Math.cos(yaw),sy=Math.sin(yaw); m=M.mul([cy,0,-sy,0, 0,1,0,0, sy,0,cy,0, 0,0,0,1],m);
+    const cp=Math.cos(pitch),sp=Math.sin(pitch); m=M.mul([1,0,0,0, 0,cp,sp,0, 0,-sp,cp,0, 0,0,0,1],m);
+    const cr=Math.cos(roll),sr=Math.sin(roll); m=M.mul([cr,sr,0,0, -sr,cr,0,0, 0,0,1,0, 0,0,0,1],m); return m; }
+};
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+      cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
+      norm=a=>{const l=Math.hypot(...a)||1;return a.map(v=>v/l);};
+
+// =====================================================================================
+//  DRIVING — the car reads the same animated slab poses the renderer draws.
+// =====================================================================================
+const car = { p:[2,9.2,0], yaw:0.1, speed:0, vy:0, grounded:true, airTime:0 };
+let checkpoint = { p:[2,9.2,0], yaw:0.1, name:"District I — The Fragmented Town" };
+const keys = {};
+addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if (e.key===' ') e.preventDefault(); });
+addEventListener('keyup',   e => keys[e.key.toLowerCase()] = false);
+function groundAt(x, z, t) {
+  let best = -Infinity;
+  for (const b of slabs) {
+    const s = slabPose(b, t), dx = x-s.x, dz = z-s.z, c = Math.cos(-s.yaw), sn = Math.sin(-s.yaw);
+    const lx = dx*c - dz*sn, lz = dx*sn + dz*c;
+    if (Math.abs(lx) <= b.s[0]/2 && Math.abs(lz) <= b.s[2]/2) best = Math.max(best, s.y + b.s[1]/2);
+  }
+  return best;
+}
+let startTime = performance.now(), msgTimer = 0;
+function showMsg(text, secs=3){ const m=document.getElementById('msg'); m.textContent=text; msgTimer=secs; }
+function resetToCheckpoint(){ car.p=[...checkpoint.p]; car.yaw=checkpoint.yaw; car.speed=0; car.vy=0; showMsg("Back to the last portal"); }
+
+const fadeEl = document.getElementById('fade');
+let fading = 0, pendingPortal = null;
+function step(dt, t) {
+  // input
+  const fwd = (keys['w']||keys['arrowup']?1:0) - (keys['s']||keys['arrowdown']?1:0);
+  const steer = (keys['a']||keys['arrowleft']?1:0) - (keys['d']||keys['arrowright']?1:0);
+  if (keys['r']) { keys['r']=false; resetToCheckpoint(); }
+  if (car.grounded) {
+    car.speed += fwd * (fwd>0?9:6) * dt; car.speed -= car.speed * (keys[' ']?2.2:0.35) * dt;
+    car.speed = Math.max(-8, Math.min(24, car.speed));
+    car.yaw += steer * dt * 1.15 * Math.min(1, Math.abs(car.speed)/6) * Math.sign(car.speed||1);
+  } else car.speed -= car.speed * 0.05 * dt;
+  const nx = car.p[0] + Math.cos(car.yaw)*car.speed*dt, nz = car.p[2] - Math.sin(car.yaw)*car.speed*dt;
+  const g = groundAt(nx, nz, t), stepUp = g - car.p[1];
+  if (g > -Infinity && stepUp < 1.1 && car.vy <= 0.1) {
+    car.p = [nx, g + (car.grounded?0:0), nz]; car.vy = 0; car.grounded = true; car.airTime = 0;
+    if (stepUp < -2.5) car.grounded = true;
+  } else {
+    car.airTime += dt; car.vy -= 15*dt; car.p = [nx, car.p[1] + car.vy*dt, nz]; car.grounded = car.vy===0;
+    if (car.airTime > 0.25) car.grounded = false;
+    if (car.p[1] < checkpoint.p[1] - 45) { resetToCheckpoint(); showMsg("The town let go of you. Back to the last portal."); }
+  }
+  if (car.grounded) car.p[1] = groundAt(car.p[0], car.p[2], t) === -Infinity ? car.p[1] : groundAt(car.p[0], car.p[2], t);
+  // portals
+  for (const P of portals) {
+    const d = Math.hypot(car.p[0]-P.p[0], car.p[2]-P.p[2]);
+    if (d < 3.4 && Math.abs(car.p[1]-P.p[1]) < 5 && !fading) {
+      if (!P.to) { document.getElementById('end').style.display='grid';
+        document.getElementById('endtime').textContent = `Crossing time: ${((performance.now()-startTime)/1000).toFixed(1)} s · ${boxes.length} greybox pieces, one level, no laps.`;
+        return; }
+      fading = 1; pendingPortal = P; fadeEl.style.opacity = 1;
+    }
+  }
+  if (fading && fadeEl.style.opacity === '1' && pendingPortal) {
+    const P = pendingPortal; pendingPortal = null;
+    car.p = [...P.to.p]; car.yaw = P.to.yaw; car.speed = 6;
+    checkpoint = { p:[...P.to.p], yaw:P.to.yaw, name:P.to.district };
+    document.getElementById('district').textContent = P.to.district;
+    showMsg(P.name, 3.5);
+    setTimeout(()=>{ fadeEl.style.opacity = 0; fading = 0; }, 450);
+  }
+}
+let last = performance.now();
+function frame(now) {
+  const t = now/1000, dt = Math.min(0.05, (now-last)/1000); last = now;
+  canvas.width = innerWidth; canvas.height = innerHeight; gl.viewport(0,0,canvas.width,canvas.height);
+  gl.clearColor(0.66,0.68,0.68,1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  step(dt, t);
+  // camera: a patient chase, slightly high — surveyor's view of a broken place
+  const back = 13, eye = [car.p[0]-Math.cos(car.yaw)*back, car.p[1]+6.5, car.p[2]+Math.sin(car.yaw)*back];
+  const vp = M.mul(M.persp(1.05, canvas.width/canvas.height, 0.1, 900), M.look(eye, [car.p[0],car.p[1]+1.2,car.p[2]], [0,1,0]));
+  gl.uniform3f(U.sun, -0.45, 0.75, 0.35);
+  for (const b of boxes) {
+    let p = b.p, yaw = b.baseYaw ?? b.yaw;
+    if (b.motion && movers.includes(b)) { p = [b.p[0], b.p[1]+Math.sin(t*b.motion.speed+b.motion.phase)*b.motion.amp, b.p[2]]; yaw = b.yaw + Math.sin(t*0.3+b.motion.phase)*b.motion.sway*0.3; }
+    const m = M.model(p, b.s, yaw, b.pitch, b.roll);
+    gl.uniformMatrix4fv(U.model, false, m); gl.uniformMatrix4fv(U.mvp, false, M.mul(vp, m)); gl.uniform3fv(U.colour, b.c);
+    gl.drawArrays(gl.TRIANGLES, 0, 36);
+  }
+  // the car (body, cabin, wheels — greybox too)
+  const carParts = [
+    [[0,0.55,0],[2.3,0.62,1.15], C.carBody], [[-0.15,1.05,0],[1.25,0.5,1.05], C.slate],
+    [[0.85,0.28,0.55],[0.5,0.5,0.24], C.crack], [[0.85,0.28,-0.55],[0.5,0.5,0.24], C.crack],
+    [[-0.85,0.28,0.55],[0.5,0.5,0.24], C.crack], [[-0.85,0.28,-0.55],[0.5,0.5,0.24], C.crack]];
+  for (const [off, s, c] of carParts) {
+    const c1 = Math.cos(car.yaw), s1 = Math.sin(car.yaw);
+    const p = [car.p[0]+off[0]*c1+off[2]*s1, car.p[1]+off[1], car.p[2]-off[0]*s1+off[2]*c1];
+    const m = M.model(p, s, car.yaw, 0, 0);
+    gl.uniformMatrix4fv(U.model, false, m); gl.uniformMatrix4fv(U.mvp, false, M.mul(vp, m)); gl.uniform3fv(U.colour, c);
+    gl.drawArrays(gl.TRIANGLES, 0, 36);
+  }
+  // HUD
+  const elapsed = ((now-startTime)/1000).toFixed(1);
+  document.getElementById('stats').innerHTML =
+    `${checkpoint.name}<br>route time <b>${elapsed} s</b> · speed <b>${Math.abs(car.speed*3.6).toFixed(0)} km/h</b>` +
+    `<br><span style="color:#7a756c">${boxes.length} greybox pieces · 3 districts · 1 level</span>`;
+  if (msgTimer > 0) { msgTimer -= dt; if (msgTimer<=0) document.getElementById('msg').textContent=''; }
+  requestAnimationFrame(frame);
+}
+showMsg("District I — follow the broken road", 4);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
