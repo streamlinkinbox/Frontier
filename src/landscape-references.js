@@ -1,0 +1,40 @@
+export const LANDSCAPE_REFERENCES = [
+  {
+    image: "planted-medians.jpg",
+    title: "Planted boulevard & refuges",
+    credit: "User-supplied photograph",
+    note: "Generated: a 3.2 m median, clear crossing cut-throughs, low shrubs and regularly spaced trees.",
+    mode: "garden",
+    url: "https://nacto.org/publication/urban-street-design-guide/intersection-design-elements/crosswalks-and-crossings/pedestrian-safety-islands/",
+  },
+  {
+    image: "urban-plan.jpg",
+    title: "Landscape as part of the street",
+    credit: "User-supplied landscape plan",
+    note: "Generated: planting belongs to the road cross-section, not scattered over the sidewalk. Buffers open at crossings.",
+    mode: "cycle",
+    url: "https://nacto.org/publication/urban-street-design-guide/streets/downtown-thoroughfare/",
+  },
+  {
+    image: "green-tram-reference.jpg",
+    title: "Reserved green tramway",
+    credit: "Web research thumbnail · source discussion linked below",
+    note: "Generated: a 7 m grass reservation, two track pairs at 1.435 m gauge, separate traffic lanes and cycling. Matching straight approaches connect through junctions; curved routing, turnouts and services are not simulated.",
+    mode: "tram",
+    url: "https://www.reddit.com/r/MelbourneTrains/comments/1jky4qf/how_come_none_of_our_tram_tracks_are_green_tracks/",
+  },
+  {
+    image: "protected-roundabout.jpg",
+    title: "Protected roundabout reference",
+    credit: "User-supplied design illustration",
+    note: "Reference study: separated cycle circulation, yield controls and channelizing islands. The starter roundabout is a simpler circulating ring; this full protected layout is not generated.",
+    url: "https://nacto.org/publication/urban-street-design-guide/streets/transit-corridor/",
+  },
+  {
+    image: "continuous-footway.jpg",
+    title: "Dutch continuous footway",
+    credit: "User-supplied Infra CGI illustration",
+    note: "Reference study: vehicles ramp over a continuous walking/cycling surface. Not the same as a zebra crossing. Automatic continuous-footway side-road junctions are not generated in this release.",
+    url: "https://www.transport.gov.scot/publication/cycling-by-design-2026/junctions/",
+  },
+];

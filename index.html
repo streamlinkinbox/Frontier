@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem("frontier-theme-v1") || "dark";
+      } catch {}
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8f5" />
+    <title>Frontier — Road & World Studio</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <section
+      id="boot-screen"
+      aria-label="Editor startup"
+      style="
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: #181818;
+        color: #dedede;
+        display: grid;
+        place-content: center;
+        font: 14px system-ui;
+        padding: 24px;
+      "
+    >
+      <div style="max-width: 560px">
+        <h1 id="boot-title">Frontier</h1>
+        <p id="boot-message" role="status">Downloading the editor…</p>
+        <progress
+          id="boot-progress"
+          max="6"
+          value="0"
+          aria-label="Startup stage"
+          style="width: 100%; accent-color: #c58b60"
+        ></progress>
+        <p id="boot-elapsed" style="color: #aaa; font-size: 12px">
+          Your saved map is kept in this browser.
+        </p>
+        <pre
+          id="boot-error"
+          hidden
+          style="white-space: pre-wrap; overflow-wrap: anywhere; color: #e9bda0"
+        ></pre>
+        <div style="display: flex; gap: 12px; margin-top: 24px">
+          <button
+            id="boot-retry"
+            style="
+              padding: 10px 16px;
+              background: #383838;
+              color: #eee;
+              border: 1px solid #666;
+              border-radius: 5px;
+            "
+          >
+            Retry loading
+          </button>
+          <button
+            id="boot-backup"
+            style="
+              padding: 10px 16px;
+              background: #383838;
+              color: #eee;
+              border: 1px solid #666;
+              border-radius: 5px;
+            "
+          >
+            Download saved map
+          </button>
+        </div>
+      </div>
+    </section>
+    <script type="module" src="/src/bootstrap.js"></script>
+  </body>
+</html>
