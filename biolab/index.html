@@ -65,6 +65,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 @keyframes chipIn{from{transform:scale(.85);opacity:0}}
 .chip.spore{color:var(--spore);border-color:var(--spore)}
 .chip.sap{color:var(--sap);border-color:var(--sap)}
+.chip.chem{color:#7dff4d;border-color:#7dff4d}
 .chip.door{color:var(--amber);border-color:var(--amber)}
 .chip.hurt{color:var(--danger);border-color:var(--danger)}
 
@@ -164,6 +165,7 @@ body.touch #touch.on{display:flex}
   <div id="chips">
     <div class="chip spore" id="chipSpore">◉ SPORES — ENGINE CHOKED</div>
     <div class="chip sap" id="chipSap">◉ STUCK IN SAP</div>
+    <div class="chip chem" id="chipChem">☣ CHEM SLICK — NO GRIP</div>
     <div class="chip door" id="chipDoor">◉ BLAST DOOR — HOLD</div>
     <div class="chip hurt" id="chipHurt">◉ HULL BREACH</div>
   </div>
@@ -203,9 +205,9 @@ body.touch #touch.on{display:flex}
 <!-- ============ START ============ -->
 <div class="screen on" id="startScreen">
   <div class="wrap">
-    <div class="logoRow"><span class="logo">FRONTIER</span><span class="tag">LEVEL C · GREYBOX v1</span><span class="tag grey">SHADOW-BOX PROTOTYPE</span></div>
+    <div class="logoRow"><span class="logo">FRONTIER</span><span class="tag">LEVEL C · GREYBOX v2</span><span class="tag grey">SHADOW-BOX PROTOTYPE</span></div>
     <h1 class="title">OVERGROWN BIO-LAB<br /><em>CARNIVOROUS JUNGLE CANOPY</em></h1>
-    <p class="lede">The lab grew teeth. Race the <b>Pack Runner</b> from the Airlock to the Extraction Pad through 1.4&nbsp;km of hostile greenhouse — while every plant, spore vent and blast door in the facility tries to <b>stop, grab, choke and stall your vehicle</b> before the finish. Reach extraction with your hull intact.</p>
+    <p class="lede">The lab grew teeth. Race the <b>Pack Runner</b> down a dead-straight service causeway the jungle has spent twenty years reclaiming — specimen beds spilling into the road, chemical drums on their sides, blast doors still cycling, and corridors branching off into the dark. Every plant, spore vent and piece of failing lab equipment tries to <b>stop, grab, choke and stall your vehicle</b> before the finish. Some of the flowers are just flowers. <b>You won't know which until one bites.</b></p>
 
     <div class="grid">
       <div class="card">
@@ -213,10 +215,12 @@ body.touch #touch.on{display:flex}
         <canvas id="mapCanvas" width="980" height="430"></canvas>
         <div class="legend">
           <span><i style="background:#ff3b47"></i>SNAPPER</span>
+          <span><i style="background:#ff5fa3"></i>BLOOM (friendly …or not)</span>
           <span><i style="background:#37e08b"></i>VINE GRABBER</span>
           <span><i style="background:#d8e64a"></i>SPORE PUFFER</span>
           <span><i style="background:#b46bff"></i>SAP POOL</span>
-          <span><i style="background:#ffb020"></i>BRAMBLE / DOOR</span>
+          <span><i style="background:#7dff4d"></i>CHEM SLICK</span>
+          <span><i style="background:#ffb020"></i>BRAMBLE / DOOR / FORK</span>
           <span><i style="background:#ff2f7e"></i>MOTHER MAW</span>
           <span><i style="background:#1f5eff"></i>PICKUP / PAD</span>
         </div>
@@ -227,7 +231,7 @@ body.touch #touch.on{display:flex}
         <div class="ctrlRow"><span>Steer</span><span><span class="kbd">◀</span> <span class="kbd">▶</span> or <span class="kbd">A</span> <span class="kbd">D</span></span></div>
         <div class="ctrlRow"><span>Boost <i style="color:var(--faint);font-style:normal">(burns through vines!)</i></span><span><span class="kbd">W</span> / <span class="kbd">▲</span> / <span class="kbd">SHIFT</span></span></div>
         <div class="ctrlRow"><span>Brake <i style="color:var(--faint);font-style:normal">(time doors &amp; jaws)</i></span><span><span class="kbd">S</span> / <span class="kbd">▼</span></span></div>
-        <div class="ctrlRow"><span><b style="color:var(--bio2)">Cutter Pulse</b> — mash to escape grabs · stuns nearby plants (costs boost)</span><span class="kbd">SPACE</span></div>
+        <div class="ctrlRow"><span><b style="color:var(--bio2)">Cutter Pulse</b> — mash to escape grabs · stuns plants · <b>makes hungry blooms flinch</b> (costs boost)</span><span class="kbd">SPACE</span></div>
         <div class="ctrlRow"><span>Pause / Restart</span><span><span class="kbd">P</span> · <span class="kbd">R</span></span></div>
         <p class="medals" style="margin-top:12px">That's the whole scheme: <b style="color:#fff">steer, boost, brake, cut.</b> The Pack Runner handles the driving — you handle the jungle.<br /><br />
         MEDALS — <b class="g">◆ GOLD ≤ 1:20</b> · <b class="s">◆ SILVER ≤ 1:45</b> · <b class="b">◆ BRONZE = SURVIVE</b><br />Hull hits 0% = the canopy keeps the vehicle.</p>
@@ -243,6 +247,9 @@ body.touch #touch.on{display:flex}
         <div class="plant"><b><span class="dot" style="background:#b46bff;color:#b46bff"></span>SAP POOL</b><p>Living glue. Heavy slow + sluggish steering while you're in it. Boost partially powers through. Edges are usually clean.</p></div>
         <div class="plant"><b><span class="dot" style="background:#ffb020;color:#ffb020"></span>BRAMBLE WALL &amp; BLAST DOORS</b><p>Thorn barriers block half the track (some grow/shrink). Lab blast doors cycle shut and hold you at a standstill — time them or wait them out.</p></div>
         <div class="plant"><b><span class="dot" style="background:#ff2f7e;color:#ff2f7e"></span>THE MOTHER MAW</b><p>Apex specimen in the Heart Chamber. Sweeps living tentacle walls across the whole road. Read the sweep, thread the gap, don't stop underneath her.</p></div>
+        <div class="plant"><b><span class="dot" style="background:#ff5fa3;color:#ff5fa3"></span>DISGUISED BLOOM</b><p>Showy garden flowers in planters and rail boxes — <b>grown in identical beds, some of them carnivorous</b>. A hungry one slowly turns to follow you as you close, then folds shut on the car for 9 hull and a hard speed loss. Decoys never react. The Cutter Pulse makes nearby mimics flinch and wilt — <b>that's how you find out</b>.</p></div>
+        <div class="plant"><b><span class="dot" style="background:#7dff4d;color:#7dff4d"></span>CHEM SLICK</b><p>Toppled drums leaking reactor coolant. Almost no drag — but your steering is nearly gone. Straighten up before you enter, or wash it off with a Cutter Pulse.</p></div>
+        <div class="plant"><b><span class="dot" style="background:#ffb020;color:#ffb020"></span>FORKS &amp; SIDE PASSAGES</b><p>The causeway opens around a specimen island, a collapsed column or a fallen truss — pick a passage, each has its own trouble. Side corridors branch off into the lab; plants grow out of them onto the road.</p></div>
       </div>
     </div>
 

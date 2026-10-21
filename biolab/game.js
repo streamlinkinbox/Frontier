@@ -18,6 +18,9 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = t => t * t * (3 - 2 * t);
 const rand = (a, b) => a + Math.random() * (b - a);
 const damp = (a, b, lambda, dt) => lerp(a, b, 1 - Math.exp(-lambda * dt));
+/* stable pseudo-random in [0,1) keyed off a number — keeps prop layout
+   identical between reloads while still looking scattered */
+const hashRnd = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 function fmtTime(t) {
   if (!isFinite(t)) return '—';
   const m = Math.floor(t / 60), s = t - m * 60;
@@ -25,27 +28,47 @@ function fmtTime(t) {
 }
 
 /* --------------------------- level definition ---------------------------- */
-/* Track runs along +s (world -Z). centreX(s) bends it gently like a vine.  */
+/* The lab drove a DEAD STRAIGHT service causeway through the canopy. The road
+   is flat and true; everything interesting is what has grown and spilled onto
+   it. Track-space = distance s (world -Z) + lateral offset.                    */
 const TRACK_LEN = 1440;
 const FINISH_S = 1400;
 
+function centerX() { return 0; }                       // straight road, on purpose
+
 const ZONES = [
-  { name: 'AIRLOCK · DECON',    sub: 'Auto-drive engaged. Learn the wheel — nothing bites. Yet.',        from: 0,    to: 200,  half: 8.0 },
-  { name: 'SPECIMEN HALL',      sub: 'Snapper Jaws line the tanks. Watch for the red telegraph.',        from: 200,  to: 460,  half: 7.5 },
-  { name: 'CANOPY BRIDGE',      sub: 'Narrow deck. Vines overhead — boost through or get grabbed.',      from: 460,  to: 700,  half: 4.6 },
-  { name: 'SPORE GREENHOUSE',   sub: 'Puffer country. Stay out of the yellow clouds.',                   from: 700,  to: 950,  half: 7.5 },
-  { name: 'HEART CHAMBER',      sub: 'The Mother Maw. Thread her tentacles. Do not stop.',               from: 950,  to: 1180, half: 8.5 },
-  { name: 'EXTRACTION SPRINT',  sub: 'Everything at once. The pad is close — burn the cell.',            from: 1180, to: 1440, half: 7.0 },
+  { name: 'AIRLOCK · DECON',   sub: 'Loading apron. Auto-drive holds the line — just steer.',              from: 0,    to: 200,  half: 8.0 },
+  { name: 'CONTAINMENT WING',  sub: 'Specimen beds crowd the tarmac. Some of the flowers are awake.',      from: 200,  to: 470,  half: 8.6 },
+  { name: 'RAVINE BRIDGE',     sub: 'Narrow span. Vines hang low over the gap — boost through or be taken.', from: 470, to: 710,  half: 4.8 },
+  { name: 'SPORE GREENHOUSE',  sub: 'Vents, spills and toppled drums. Stay out of the yellow clouds.',      from: 710,  to: 960,  half: 8.4 },
+  { name: 'HEART CHAMBER',     sub: 'The Mother Maw. Thread her tentacles. Do not stop.',                  from: 960,  to: 1190, half: 8.5 },
+  { name: 'EXTRACTION SPRINT', sub: 'Debris everywhere. The pad is close — burn the cell.',                 from: 1190, to: 1440, half: 7.0 },
 ];
 
-function centerX(s) { return 11 * Math.sin(s * 0.0038) + 6.5 * Math.sin(s * 0.0105 + 1.7); }
+/* Local widenings: the causeway opens out and a mass in the middle splits it
+   into TWO passages. Pick a side; each has its own trouble.                   */
+const WIDENS = [
+  { s: 300,  len: 92, add: 3.5 },   // Z2 · specimen island
+  { s: 800,  len: 82, add: 3.2 },   // Z4 · collapsed ceiling column
+  { s: 1225, len: 84, add: 3.6 },   // Z6 · collapsed truss
+];
+function widenAdd(s) {
+  let a = 0;
+  for (const w of WIDENS) {
+    const d = Math.abs(s - w.s) / (w.len / 2);
+    if (d < 1) a = Math.max(a, w.add * smooth(clamp((1 - d) * 2.4, 0, 1)));
+  }
+  return a;
+}
+
 function halfAt(s) {
+  const sc = clamp(s, 0, TRACK_LEN);
   for (let i = 0; i < ZONES.length; i++) {
     const z = ZONES[i];
     if (s < z.to || i === ZONES.length - 1) {
       const blend = 26;
-      if (i > 0 && s < z.from + blend) return lerp(ZONES[i - 1].half, z.half, smooth(clamp((s - z.from) / blend, 0, 1)));
-      return z.half;
+      if (i > 0 && s < z.from + blend) return lerp(ZONES[i - 1].half, z.half, smooth(clamp((s - z.from) / blend, 0, 1))) + widenAdd(sc);
+      return z.half + widenAdd(sc);
     }
   }
   return 7;
@@ -70,37 +93,70 @@ function trackPos(s, lat, y, out) {
 }
 
 /* Hazard / pickup placement table — the "shadow-box" in data form.
-   type: snapper | grabber | puffer | sap | bramble | growbar | door |
-         tentacle | pad | nitro | repair                                        */
+   type: snapper | flower | grabber | puffer | sap | chem | bramble | growbar |
+         door | divider | tentacle | pad | nitro | repair
+   Plants are NOT laid out in neat rows: they grow out of beds, cracks, drums
+   and toppled tanks, at whatever angle the jungle put them.
+   flower.mimic = true  -> carnivorous bloom disguised as garden flora         */
 const PLACEMENTS = [
-  // Z1 · Airlock — teach: pads & steering only
-  { type: 'pad', s: 60, lat: 0 }, { type: 'nitro', s: 120, lat: -3 }, { type: 'pad', s: 165, lat: 3 },
-  // Z2 · Specimen Hall — teach snappers + sap
-  { type: 'snapper', s: 250, side: -1 }, { type: 'sap', s: 300, lat: 2, r: 3.4 },
-  { type: 'snapper', s: 342, side: 1 }, { type: 'nitro', s: 372, lat: 0 },
-  { type: 'snapper', s: 402, side: -1 }, { type: 'sap', s: 430, lat: -2.5, r: 3.2 },
-  { type: 'repair', s: 448, lat: 4 },
-  // Z3 · Canopy Bridge — narrow, grabs & bramble
-  { type: 'grabber', s: 512 }, { type: 'bramble', s: 560, side: -1 },
-  { type: 'puffer', s: 600, side: 1 }, { type: 'nitro', s: 618, lat: 0 },
-  { type: 'grabber', s: 648 }, { type: 'bramble', s: 680, side: 1 },
-  // Z4 · Spore Greenhouse — puffers, sap slalom, first door
-  { type: 'puffer', s: 732, side: -1 }, { type: 'sap', s: 762, lat: -2, r: 3.4 },
-  { type: 'puffer', s: 792, side: 1 }, { type: 'snapper', s: 822, side: -1 },
-  { type: 'sap', s: 848, lat: 3, r: 3.2 }, { type: 'sap', s: 868, lat: -3.4, r: 3.2 },
-  { type: 'puffer', s: 892, side: -1 }, { type: 'snapper', s: 916, side: 1 },
+  // Z1 · Airlock apron — steering only. Flowers here are all DECOYS (that's the trick).
+  { type: 'pad', s: 60, lat: 0 }, { type: 'nitro', s: 120, lat: -3.2 },
+  { type: 'flower', s: 118, side: -1, mimic: false },
+  { type: 'flower', s: 152, side: 1, mimic: false }, { type: 'pad', s: 168, lat: 3.2 },
+  { type: 'flower', s: 186, side: -1, mimic: false },
+
+  // Z2 · Containment Wing — first snapper, first mimic, first fork
+  { type: 'flower', s: 224, side: -1, mimic: false },
+  { type: 'snapper', s: 248, side: 1 },
+  { type: 'flower', s: 264, side: 1, mimic: true },        // you are *told* flowers are safe here
+  { type: 'sap', s: 276, lat: -3.4, r: 2.9 },
+  { type: 'divider', s: 300, len: 54, latA: -1.8, latB: 1.8, name: 'SPECIMEN ISLAND' },
+  { type: 'flower', s: 284, lat: -1.45, mimic: true, onIsland: true },   // planted on the island
+  { type: 'flower', s: 316, lat: 1.45, mimic: false, onIsland: true },
+  { type: 'chem', s: 336, lat: -4.8, r: 2.7 },
+  { type: 'flower', s: 352, side: -1, mimic: true },
+  { type: 'snapper', s: 366, side: 1 },
+  { type: 'nitro', s: 388, lat: 3.6 },
+  { type: 'flower', s: 404, side: 1, mimic: false },
+  { type: 'snapper', s: 420, side: -1 },
+  { type: 'sap', s: 442, lat: 2.8, r: 3.0 },
+  { type: 'repair', s: 458, lat: -4.2 },
+
+  // Z3 · Ravine Bridge — narrow span, grabbers, bramble
+  { type: 'grabber', s: 512 }, { type: 'bramble', s: 556, side: -1 },
+  { type: 'puffer', s: 586, side: 1 }, { type: 'nitro', s: 606, lat: 0 },
+  { type: 'flower', s: 622, side: -1, mimic: true },       // rail planter, leaning in
+  { type: 'grabber', s: 648 }, { type: 'bramble', s: 682, side: 1 },
+
+  // Z4 · Spore Greenhouse — puffers, spills, fork through a collapsed column
+  { type: 'puffer', s: 730, side: -1 }, { type: 'chem', s: 750, lat: -2.6, r: 3.2 },
+  { type: 'flower', s: 768, side: 1, mimic: true },
+  { type: 'divider', s: 800, len: 50, latA: -1.6, latB: 1.6, name: 'COLLAPSED COLUMN' },
+  { type: 'sap', s: 788, lat: -4.2, r: 2.9 },
+  { type: 'flower', s: 814, lat: 1.45, mimic: false, onIsland: true },
+  { type: 'snapper', s: 832, side: 1 }, { type: 'puffer', s: 856, side: -1 },
+  { type: 'chem', s: 872, lat: 3.2, r: 3.0 },
+  { type: 'flower', s: 886, side: -1, mimic: true },
+  { type: 'puffer', s: 906, side: 1 },
   { type: 'repair', s: 928, lat: 0 }, { type: 'door', s: 945, phase: 0 },
-  // Z5 · Heart Chamber — Mother Maw
-  { type: 'repair', s: 968, lat: -4 }, { type: 'nitro', s: 988, lat: 4 },
+
+  // Z5 · Heart Chamber — the Maw
+  { type: 'repair', s: 968, lat: -4.2 }, { type: 'nitro', s: 988, lat: 4.2 },
+  { type: 'flower', s: 1002, side: 1, mimic: false },
   { type: 'tentacle', s: 1032, phase: 0 }, { type: 'tentacle', s: 1064, phase: 2.2 },
   { type: 'snapper', s: 1088, side: 1, big: true },
   { type: 'tentacle', s: 1098, phase: 4.1 },
   { type: 'grabber', s: 1132 }, { type: 'growbar', s: 1158, side: -1 },
-  // Z6 · Extraction Sprint — everything, then glory
-  { type: 'door', s: 1215, phase: 2.8 }, { type: 'snapper', s: 1252, side: 1 },
-  { type: 'sap', s: 1278, lat: 0, r: 3.8 }, { type: 'puffer', s: 1302, side: -1 },
-  { type: 'grabber', s: 1326 }, { type: 'snapper', s: 1350, side: -1 },
-  { type: 'pad', s: 1368, lat: 0 }, { type: 'pad', s: 1386, lat: 0 },
+
+  // Z6 · Extraction Sprint — debris fork, then the glory run
+  { type: 'divider', s: 1225, len: 50, latA: -1.7, latB: 1.7, name: 'COLLAPSED TRUSS' },
+  { type: 'flower', s: 1208, lat: -1.45, mimic: true, onIsland: true },
+  { type: 'snapper', s: 1250, side: 1 }, { type: 'chem', s: 1266, lat: -3.2, r: 2.8 },
+  { type: 'flower', s: 1282, side: -1, mimic: true },
+  { type: 'puffer', s: 1298, side: -1 }, { type: 'grabber', s: 1318 },
+  { type: 'flower', s: 1334, side: 1, mimic: false },
+  { type: 'snapper', s: 1356, side: -1 },
+  { type: 'pad', s: 1372, lat: 0 }, { type: 'pad', s: 1390, lat: 0 },
 ];
 
 /* ------------------------------ three setup ------------------------------ */
@@ -153,6 +209,27 @@ const M = {
   cross: new THREE.MeshStandardMaterial({ color: 0x2fe07a, emissive: 0x17b356, emissiveIntensity: 1.2 }),
   ground: new THREE.MeshStandardMaterial({ color: 0x0d2314, roughness: 1 }),
   apron: new THREE.MeshStandardMaterial({ color: 0x27313a, roughness: .95 }),
+  concrete: new THREE.MeshStandardMaterial({ color: 0x6d7479, roughness: .95, flatShading: true }),
+  concreteDark: new THREE.MeshStandardMaterial({ color: 0x3d4348, roughness: .98, flatShading: true }),
+  slab: new THREE.MeshStandardMaterial({ color: 0x4a5157, roughness: .96 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0x6c7681, roughness: .45, metalness: .65 }),
+  rust: new THREE.MeshStandardMaterial({ color: 0x7a4b2a, roughness: .95 }),
+  soil: new THREE.MeshStandardMaterial({ color: 0x2c2118, roughness: 1 }),
+  islandSoil: new THREE.MeshStandardMaterial({ color: 0x3b2c1f, roughness: 1 }),
+  bark: new THREE.MeshStandardMaterial({ color: 0x3a2b1d, roughness: 1, flatShading: true }),
+  chem: new THREE.MeshStandardMaterial({ color: 0x7dff4d, transparent: true, opacity: .82, roughness: .1, emissive: 0x2f9a12, emissiveIntensity: 1.1 }),
+  chemGlow: new THREE.MeshStandardMaterial({ color: 0xa6ff7a, emissive: 0x74ff3a, emissiveIntensity: 1.6 }),
+  petalA: new THREE.MeshStandardMaterial({ color: 0xff5fa3, roughness: .7, emissive: 0x5a0b2c, emissiveIntensity: .35, flatShading: true, side: THREE.DoubleSide }),
+  petalB: new THREE.MeshStandardMaterial({ color: 0xf7e6c4, roughness: .78, emissive: 0x3a2f1c, emissiveIntensity: .25, flatShading: true, side: THREE.DoubleSide }),
+  petalC: new THREE.MeshStandardMaterial({ color: 0xb47bff, roughness: .7, emissive: 0x2a0f52, emissiveIntensity: .3, flatShading: true, side: THREE.DoubleSide }),
+  throat: new THREE.MeshStandardMaterial({ color: 0x5b0d22, roughness: .5, emissive: 0x2a0310, emissiveIntensity: .8 }),
+  gore: new THREE.MeshStandardMaterial({ color: 0x8c1230, roughness: .6 }),
+  lightStrip: new THREE.MeshStandardMaterial({ color: 0xdff3ff, emissive: 0xa8e4ff, emissiveIntensity: 1.5 }),
+  screenGreen: new THREE.MeshStandardMaterial({ color: 0x0a2418, emissive: 0x37e08b, emissiveIntensity: 1.2 }),
+  screenBlue: new THREE.MeshStandardMaterial({ color: 0x0a1c30, emissive: 0x4d9dff, emissiveIntensity: 1.1 }),
+  drumBlue: new THREE.MeshStandardMaterial({ color: 0x2f6fa8, roughness: .5, metalness: .45 }),
+  drumRed: new THREE.MeshStandardMaterial({ color: 0xa8342f, roughness: .5, metalness: .4 }),
+  drumYellow: new THREE.MeshStandardMaterial({ color: 0xc8a52b, roughness: .55, metalness: .35 }),
 };
 
 /* --------------------------- geometry helpers ---------------------------- */
@@ -211,17 +288,37 @@ function makeSign(text, sub, fg, bg, wide) {
 }
 
 /* ------------------------------- the road -------------------------------- */
+/* Poured concrete causeway. Dead straight — the lab built it, the jungle is
+   eating it: expansion joints, hairline cracks, moss in the low spots.       */
 function roadTexture() {
-  const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512;
   const g = c.getContext('2d');
-  g.fillStyle = '#272d32'; g.fillRect(0, 0, 256, 256);
-  g.fillStyle = '#2e353b'; g.fillRect(4, 4, 248, 248);
-  g.strokeStyle = '#1b2024'; g.lineWidth = 3; g.strokeRect(2, 2, 252, 252);
-  g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(8, 0, 5, 256); g.fillRect(243, 0, 5, 256);
-  g.fillStyle = '#1f5eff';                                   // Frontier-blue guidance dash
-  if (g.roundRect) { g.beginPath(); g.roundRect(124, 34, 8, 76, 4); g.fill(); } else g.fillRect(124, 34, 8, 76);
-  g.fillStyle = 'rgba(55,224,139,.055)';                     // faint moss creeping in
-  for (let i = 0; i < 11; i++) { g.beginPath(); g.arc(rand(0, 256), rand(0, 256), rand(3, 9), 0, 7); g.fill(); }
+  g.fillStyle = '#2a3034'; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = '#2f363b'; g.fillRect(6, 6, 500, 500);
+  /* poured slab joints */
+  g.strokeStyle = '#1d2327'; g.lineWidth = 4;
+  g.beginPath(); g.moveTo(0, 132); g.lineTo(512, 132); g.moveTo(0, 388); g.lineTo(512, 388); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.045)'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(0, 136); g.lineTo(512, 136); g.moveTo(0, 392); g.lineTo(512, 392); g.stroke();
+  /* hairline cracks */
+  g.strokeStyle = 'rgba(13,17,19,.85)';
+  for (let i = 0; i < 10; i++) {
+    g.lineWidth = rand(0.7, 2.1);
+    let x = rand(0, 512), y = rand(0, 512);
+    g.beginPath(); g.moveTo(x, y);
+    for (let k = 0; k < 5; k++) { x += rand(-40, 40); y += rand(-40, 40); g.lineTo(x, y); }
+    g.stroke();
+  }
+  /* half-worn guidance dashes */
+  g.fillStyle = 'rgba(31,94,255,.42)';
+  for (let y = 46; y < 512; y += 128) {
+    if (g.roundRect) { g.beginPath(); g.roundRect(251, y, 11, 54, 5); g.fill(); } else g.fillRect(251, y, 11, 54);
+  }
+  /* moss in the joints + old oil */
+  g.fillStyle = 'rgba(48,196,120,.05)';
+  for (let i = 0; i < 14; i++) { g.beginPath(); g.arc(rand(0, 512), rand(0, 512), rand(9, 34), 0, 7); g.fill(); }
+  g.fillStyle = 'rgba(7,9,11,.3)';
+  for (let i = 0; i < 6; i++) { g.beginPath(); g.ellipse(rand(0, 512), rand(0, 512), rand(7, 22), rand(4, 13), rand(0, 3), 0, 7); g.fill(); }
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
@@ -251,141 +348,449 @@ function buildRibbon(y, extraFn, mat, vScale) {
   mesh.receiveShadow = true;
   return mesh;
 }
-const roadMat = new THREE.MeshStandardMaterial({ map: roadTexture(), roughness: .85 });
-scene.add(buildRibbon(0, () => 0.7, roadMat, 10));
-const inBridge = s => s > 455 && s < 705;
-scene.add(buildRibbon(-0.06, s => inBridge(s) ? 1.6 : 8.5, M.apron, 14));
+const roadMat = new THREE.MeshStandardMaterial({ map: roadTexture(), roughness: .82, metalness: .06 });
+scene.add(buildRibbon(0, () => 0.7, roadMat, 11));
+const inBridge = s => s > 470 && s < 710;
+/* concrete apron = the lab's hard-standing, cracked and half-swallowed */
+scene.add(buildRibbon(-0.08, s => inBridge(s) ? 1.7 : 8.6, M.apron, 13));
 
 const jungleFloor = new THREE.Mesh(new THREE.PlaneGeometry(700, TRACK_LEN + 500), M.ground);
 jungleFloor.rotation.x = -Math.PI / 2; jungleFloor.position.set(0, -7, -(TRACK_LEN / 2));
 jungleFloor.receiveShadow = true; scene.add(jungleFloor);
 
-/* ------------------------- lab shell & canopy decor ---------------------- */
+/* ------------------- overgrowth, lab props & passages -------------------- */
 const worldGroup = new THREE.Group(); scene.add(worldGroup);
+/* side passages: real corridors branching off the causeway (set dressing, but
+   you can see the lab is a whole building, not a corridor painted on a wall) */
+const PASSAGES = [
+  { s: 96, side: 1, len: 20, name: 'INTAKE 1' },
+  { s: 262, side: -1, len: 24, name: 'SPECIMEN STORE' },
+  { s: 424, side: 1, len: 18, name: 'COOLANT LOOP' },
+  { s: 742, side: -1, len: 22, name: 'CHEM STORE B' },
+  { s: 872, side: 1, len: 26, name: 'WARD 4' },
+  { s: 1108, side: -1, len: 20, name: 'MAINTENANCE' },
+  { s: 1330, side: 1, len: 18, name: 'EXIT 9' },
+];
 {
-  const p = new THREE.Vector3(), dummy = new THREE.Object3D();
+  const p = new THREE.Vector3(), p2 = new THREE.Vector3(), dummy = new THREE.Object3D();
+  let _seed = 20261021;
+  const srnd = () => ((_seed = (Math.imul(_seed, 1103515245) + 12345) & 0x7fffffff) / 0x7fffffff);
+  const sr = (a, b) => a + srnd() * (b - a);
+  const pick = arr => arr[Math.floor(srnd() * arr.length)];
+  const col = new THREE.Color();
 
-  /* curbs (instanced) */
-  const curbGeo = new THREE.BoxGeometry(0.65, 0.55, 5.7);
-  const steps = [];
-  for (let s = -12; s < TRACK_LEN + 12; s += 6) steps.push(s);
-  const curbs = new THREE.InstancedMesh(curbGeo, M.labDark, steps.length * 2);
-  let ci = 0;
-  for (const s of steps) for (const side of [-1, 1]) {
-    const f = frameAt(s);
-    trackPos(s, side * (halfAt(clamp(s, 0, TRACK_LEN)) + 0.45), 0.27, p);
-    dummy.position.copy(p); dummy.rotation.set(0, f.yaw, 0); dummy.scale.setScalar(1);
-    dummy.updateMatrix(); curbs.setMatrixAt(ci++, dummy.matrix);
+  /* ---------------- shared prop meshes ---------------- */
+  const drumGeo = new THREE.CylinderGeometry(0.42, 0.42, 1.12, 12);
+  const hoopGeo = new THREE.TorusGeometry(0.44, 0.05, 4, 10);
+  const drumMats = { blue: M.drumBlue, red: M.drumRed, yellow: M.drumYellow, rust: M.rust };
+  function drum(parent, x, y, z, key, tipped, rot) {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(drumGeo, drumMats[key]); body.castShadow = body.receiveShadow = true;
+    g.add(body);
+    for (const yy of [-0.22, 0.22]) {
+      const hp = new THREE.Mesh(hoopGeo, M.rust); hp.rotation.x = Math.PI / 2; hp.position.y = yy; g.add(hp);
+    }
+    g.position.set(x, y + (tipped ? 0.42 : 0.56), z);
+    if (tipped) { g.rotation.z = Math.PI / 2; g.rotation.y = rot || 0; }
+    else g.rotation.y = rot || 0;
+    parent.add(g);
+    return g;
   }
-  curbs.receiveShadow = true; worldGroup.add(curbs);
+  function crate(parent, x, z, s) {
+    const c = box(s, s * 0.8, s * 0.9, pick([M.labGrey, M.rust, M.concreteDark]), x, s * 0.4, z);
+    c.rotation.y = sr(0, 3.1); parent.add(c);
+    if (srnd() < .5) parent.add(box(s * 0.9, 0.06, s * 0.7, M.labDark, x, s * 0.81, z));
+    return c;
+  }
+  function consoleUnit(parent, x, z, rotY, screenMat) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotY;
+    g.add(box(1.15, 1.3, 0.68, M.labGrey, 0, 0.65, 0));
+    g.add(box(1.28, 0.1, 0.82, M.labDark, 0, 1.34, 0));
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.52), screenMat || M.screenGreen);
+    scr.position.set(0, 0.98, 0.35); g.add(scr);
+    g.add(box(0.54, 0.05, 0.26, M.labDark, 0, 0.86, 0.42));
+    parent.add(g); return g;
+  }
+  function gurney(parent, x, z, rot) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot;
+    g.add(box(0.86, 0.1, 1.9, M.steel, 0, 0.78, 0));
+    for (const dx of [-0.35, 0.35]) for (const dz of [-0.8, 0.8]) g.add(box(0.06, 0.76, 0.06, M.steel, dx, 0.38, dz));
+    const body = sph(0.44, M.gore, 0, 0.92, sr(-0.2, 0.2), 0.85, 0.5, 2.0);
+    g.add(body);
+    parent.add(g); return g;
+  }
+  function gasCyl(parent, x, z) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = sr(0, 3.1);
+    g.add(cyl(0.19, 0.19, 1.35, pick([M.drumBlue, M.drumRed]), 0, 0.68, 0, 10));
+    g.add(cyl(0.06, 0.06, 0.22, M.steel, 0, 1.45, 0, 6));
+    g.add(sph(0.12, M.amberGlow, 0, 1.58, 0));
+    parent.add(g); return g;
+  }
+  function specimenTank(parent, x, z, rot, broken) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot;
+    g.add(box(2.3, 0.42, 2.3, M.labDark, 0, 0.21, 0));
+    if (!broken) {
+      const glass = cyl(1.05, 1.05, 3.2, M.glass, 0, 2.0, 0, 16); g.add(glass);
+      g.add(cyl(0.13, 0.2, 2.0, M.stem, 0, 1.5, 0, 6));
+      g.add(blob(0.85, M.leaf, sr(-.2, .2), sr(2.4, 2.9), 0, 1));
+    }
+    g.add(box(2.3, 0.3, 2.3, M.labGrey, 0, 3.7, 0));
+    g.add(sph(0.1, M.amberGlow, 0, 3.95, 0));
+    if (broken) {                                    // it got out
+      for (let i = 0; i < 4; i++) g.add(blob(sr(.6, 1.2), pick([M.leaf, M.leafDark, M.stem]), sr(-1.3, 1.3), sr(.4, 1.6), sr(-1.3, 1.3), 1));
+      g.add(cyl(0.11, 0.17, sr(2, 3.4), M.stem, sr(-.5, .5), sr(1.6, 2.2), sr(-.5, .5), 6));
+    }
+    parent.add(g); return g;
+  }
 
-  /* wall panels + windows + bridge rails/piers */
-  const winMat = new THREE.MeshStandardMaterial({ color: 0x8fd8ff, emissive: 0x2f7fd8, emissiveIntensity: .9 });
-  for (let s = 0; s < TRACK_LEN; s += 24) {
-    const f = frameAt(s + 12), half = halfAt(s + 12);
+  /* ---------------- broken concrete shoulders ---------------- */
+  const NSL = 300;
+  const slabMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), M.concrete, NSL);
+  for (let i = 0; i < NSL; i++) {
+    const s = sr(-20, TRACK_LEN + 20), half = halfAt(clamp(s, 0, TRACK_LEN));
+    const side = srnd() < .5 ? -1 : 1;
+    trackPos(s, side * (half + sr(0.5, 8.2)), sr(-0.17, 0.05), p);
+    dummy.position.copy(p);
+    dummy.rotation.set(sr(-.05, .05), sr(0, 6.28), sr(-.05, .05));
+    dummy.scale.set(sr(0.8, 3.2), sr(0.14, 0.38), sr(0.8, 3.8));
+    dummy.updateMatrix(); slabMesh.setMatrixAt(i, dummy.matrix);
+    slabMesh.setColorAt(i, col.setHSL(0.55, 0.05, sr(0.22, 0.42)));
+  }
+  slabMesh.receiveShadow = true; worldGroup.add(slabMesh);
+
+  /* ---------------- cracks & puddles on the tarmac ---------------- */
+  const crackTex = (() => {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+    const g = c.getContext('2d'); g.clearRect(0, 0, 256, 256);
+    g.strokeStyle = 'rgba(10,13,15,.9)';
+    for (let i = 0; i < 5; i++) {
+      g.lineWidth = rand(1, 3.2); g.beginPath();
+      let x = rand(30, 226), y = rand(30, 226); g.moveTo(x, y);
+      for (let k = 0; k < 5; k++) { x += rand(-52, 52); y += rand(-52, 52); g.lineTo(x, y); }
+      g.stroke();
+    }
+    g.fillStyle = 'rgba(55,224,139,.14)';
+    for (let i = 0; i < 14; i++) { g.beginPath(); g.arc(rand(0, 256), rand(0, 256), rand(3, 11), 0, 7); g.fill(); }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  })();
+  const crackMat = new THREE.MeshBasicMaterial({ map: crackTex, transparent: true, depthWrite: false, opacity: .85 });
+  const crackGeo = new THREE.PlaneGeometry(1, 1); crackGeo.rotateX(-Math.PI / 2);
+  for (let i = 0; i < 34; i++) {
+    const s = sr(10, FINISH_S), lat = sr(-4.5, 4.5);
+    const m = new THREE.Mesh(crackGeo, crackMat);
+    m.position.set(0, 0.022, 0); const g = new THREE.Group();
+    trackPos(s, lat, 0.022, p); g.position.copy(p); g.rotation.y = sr(0, 6.28);
+    m.scale.set(sr(5, 13), 1, sr(5, 13)); g.add(m); worldGroup.add(g);
+  }
+  const puddleMat = new THREE.MeshStandardMaterial({ color: 0x18322c, roughness: .04, metalness: .35, transparent: true, opacity: .85 });
+  const puddleGeo = new THREE.CircleGeometry(1, 18); puddleGeo.rotateX(-Math.PI / 2);
+  for (let i = 0; i < 16; i++) {
+    const s = sr(30, FINISH_S), lat = sr(-5, 5), r = sr(0.9, 2.6);
+    const m = new THREE.Mesh(puddleGeo, puddleMat);
+    trackPos(s, lat, 0.015, p); m.position.copy(p);
+    m.scale.set(r, 1, r * sr(.5, .9)); m.rotation.y = sr(0, 3.1);
+    worldGroup.add(m);
+  }
+
+  /* ---------------- grass pushing through the cracks ---------------- */
+  const bladeGeo = new THREE.ConeGeometry(0.075, 1, 4);
+  const NBLADE = 420;
+  const blades = new THREE.InstancedMesh(bladeGeo, M.leafDark, NBLADE);
+  for (let i = 0; i < NBLADE; i++) {
+    const s = sr(-10, TRACK_LEN + 10), half = halfAt(clamp(s, 0, TRACK_LEN));
+    const edge = srnd() < .55;
+    const lat = edge ? (srnd() < .5 ? -1 : 1) * (half + sr(-1.4, 3.4)) : sr(-half + 1, half - 1);
+    trackPos(s, lat, 0, p);
+    dummy.position.set(p.x, sr(0, 0.05), p.z);
+    dummy.rotation.set(sr(-.25, .25), sr(0, 6.28), sr(-.25, .25));
+    dummy.scale.set(sr(.7, 1.5), sr(.35, 1.2), sr(.7, 1.5));
+    dummy.updateMatrix(); blades.setMatrixAt(i, dummy.matrix);
+    blades.setColorAt(i, col.setHSL(sr(.24, .34), sr(.45, .8), sr(.16, .34)));
+  }
+  worldGroup.add(blades);
+
+  /* ---------------- the jungle itself, beyond the walls ---------------- */
+  const jungleGeo = new THREE.IcosahedronGeometry(1, 0);
+  const NJ = 180;
+  const jungle = new THREE.InstancedMesh(jungleGeo, M.leafDark, NJ);
+  for (let i = 0; i < NJ; i++) {
+    const s = sr(-30, TRACK_LEN + 30), half = halfAt(clamp(s, 0, TRACK_LEN));
+    const side = srnd() < .5 ? -1 : 1;
+    const lat = side * (half + sr(9, 34));
+    trackPos(s, lat, sr(-6, 11), p);
+    dummy.position.copy(p);
+    dummy.rotation.set(sr(0, 3), sr(0, 3), sr(0, 3));
+    dummy.scale.set(sr(3, 9), sr(2, 6), sr(3, 9));
+    dummy.updateMatrix(); jungle.setMatrixAt(i, dummy.matrix);
+    jungle.setColorAt(i, col.setHSL(sr(.27, .36), sr(.4, .7), sr(.10, .24)));
+  }
+  worldGroup.add(jungle);
+
+  /* ---------------- wall segments, broken and overgrown ---------------- */
+  const winMat = new THREE.MeshStandardMaterial({ color: 0x8fd8ff, emissive: 0x2f7fd8, emissiveIntensity: .85 });
+  const roomMat = new THREE.MeshStandardMaterial({ color: 0x070e12, roughness: 1 });
+  const stopper = (s, side) => PASSAGES.some(pg => pg.side === side && Math.abs(pg.s - s) < 15);
+  const STEP = 20;
+  for (let s0 = -20; s0 < TRACK_LEN + 26; s0 += STEP) {
+    const s = s0 + sr(-2, 2), mid = s + STEP / 2;
+    const half = halfAt(clamp(mid, 0, TRACK_LEN)), f = frameAt(mid);
     for (const side of [-1, 1]) {
-      if (inBridge(s + 12)) {
+      if (inBridge(mid)) {
+        /* bridge: steel rail + pier, jungle below */
         const rail = new THREE.Group();
-        trackPos(s + 12, side * (half + 1.1), 0, p); rail.position.copy(p); rail.rotation.y = f.yaw;
-        rail.add(box(0.18, 0.18, 24, M.labGrey, 0, 1.15, 0));
-        rail.add(box(0.12, 0.12, 24, M.labGrey, 0, 0.6, 0));
-        for (let k = -10; k <= 10; k += 5) rail.add(box(0.14, 1.2, 0.14, M.labDark, 0, 0.6, k));
-        const pier = box(1.4, 8, 1.4, M.labGrey, 0, -4, 0); rail.add(pier);
+        trackPos(mid, side * (half + 1.4), 0, p); rail.position.copy(p); rail.rotation.y = f.yaw;
+        rail.add(box(0.2, 0.2, STEP - 1, M.steel, 0, 1.15, 0));
+        rail.add(box(0.13, 0.13, STEP - 1, M.steel, 0, 0.62, 0));
+        for (let k = -8; k <= 8; k += 4) rail.add(box(0.15, 1.25, 0.15, M.labDark, 0, 0.62, k));
+        rail.add(box(1.7, 8, 1.7, M.concreteDark, 0, -4.1, 0));
+        /* railing planters — where the epiphyte blooms sit */
+        if (srnd() < .6) rail.add(box(1.0, 0.4, 1.5, M.rust, -side * 0.2, 1.35, sr(-6, 6)));
+        if (srnd() < .5) for (let k = 0; k < 3; k++) rail.add(blob(sr(.3, .7), pick([M.leaf, M.leafDark]), sr(-.3, .3), sr(1.4, 2.1), sr(-8, 8), 1));
         worldGroup.add(rail);
-      } else {
-        const wall = new THREE.Group();
-        trackPos(s + 12, side * (half + 6.8), 0, p); wall.position.copy(p); wall.rotation.y = f.yaw;
-        const panel = box(0.9, 6.4, 23.4, Math.random() < .5 ? M.labWhite : M.labGrey, 0, 3.2, 0);
-        wall.add(panel);
-        if (Math.random() < .65) {
-          const win = new THREE.Mesh(new THREE.PlaneGeometry(rand(6, 13), rand(1.4, 2.2)), winMat);
-          win.position.set(-side * 0.48, rand(3.4, 4.6), rand(-5, 5));
-          win.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
-          wall.add(win);
-        }
-        if (Math.random() < .5) wall.add(blob(rand(1.6, 3), Math.random() < .5 ? M.leaf : M.leafDark, rand(-.5, .5), 6.6, rand(-9, 9), 1));
-        if (Math.random() < .45) { const v = cyl(0.07, 0.1, rand(2, 4.4), M.vine, -side * 0.7, rand(3.6, 4.6), rand(-10, 10), 6); wall.add(v); }
-        worldGroup.add(wall);
+        continue;
       }
+      if (stopper(mid, side)) continue;               // passage punches a hole here
+      const g = new THREE.Group();
+      trackPos(mid, side * (half + 6.8), 0, p); g.position.copy(p); g.rotation.y = f.yaw;
+      const kind = srnd();
+      if (kind < .5) {
+        /* intact lab wall: panel, pipe run, window into a dark room */
+        const hgt = sr(5.6, 7.4);
+        g.add(box(0.85, hgt, STEP - 1.4, srnd() < .55 ? M.labWhite : M.labGrey, 0, hgt / 2, 0));
+        const pipe = cyl(0.13, 0.13, STEP - 1.2, M.steel, -side * 0.55, hgt * .74, 0, 6);
+        pipe.rotation.x = Math.PI / 2; g.add(pipe);
+        if (srnd() < .62) {
+          const w = sr(6, 14), y = sr(3.1, 4.5);
+          g.add(box(w + 0.5, 2.5, 0.3, M.labDark, -side * 0.42, y, 0));
+          const glass = new THREE.Mesh(new THREE.PlaneGeometry(w, 2.1), winMat);
+          glass.position.set(-side * 0.56, y, 0); glass.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+          g.add(glass);
+          const back = new THREE.Mesh(new THREE.PlaneGeometry(w, 2.4), roomMat);
+          back.position.set(-side * 0.5, y - 0.1, 0); back.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+          back.position.y = y;
+          g.add(back);
+        }
+        if (srnd() < .55) g.add(blob(sr(1.2, 2.8), pick([M.leaf, M.leafDark]), sr(-.5, .5), hgt + sr(-.3, .5), sr(-8, 8), 1));
+        if (srnd() < .5) { const v = cyl(0.07, 0.1, sr(2, 4.6), M.vine, -side * 0.7, sr(3.4, 4.6), sr(-9, 9), 6); g.add(v); }
+        if (srnd() < .35) consoleUnit(g, -side * 0.7, sr(-7, 7), side > 0 ? -Math.PI / 2 : Math.PI / 2, srnd() < .5 ? M.screenGreen : M.screenBlue);
+      } else if (kind < .82) {
+        /* the wall is half-eaten: a low broken stub with jungle pouring over it */
+        const hgt = sr(1.2, 3.4);
+        g.add(box(0.9, hgt, STEP - 2.2, M.concreteDark, 0, hgt / 2, 0));
+        for (let k = 0; k < 5; k++) g.add(blob(sr(.8, 1.9), pick([M.leafDark, M.leaf, M.stem]), sr(-.6, .6), hgt + sr(-.2, 2.2), sr(-8, 8), 1));
+        for (let k = 0; k < 2; k++) g.add(cyl(0.1, 0.16, sr(2, 4.2), M.stem, sr(-.5, .5), hgt + 1.4, sr(-7, 7), 6));
+        if (srnd() < .5) g.add(box(sr(1.4, 2.6), 0.5, sr(1.4, 2.6), M.concreteDark, sr(-.4, .4), hgt + 0.2, sr(-6, 6)));
+      } else {
+        /* fully collapsed: only a doorway frame and hanging cables remain */
+        for (const dz of [-1, 1]) g.add(box(0.6, sr(4, 6.4), 0.6, M.labDark, 0, 2.4, dz * (STEP / 2 - 2)));
+        g.add(box(0.55, 0.4, STEP - 3.5, M.labDark, 0, 5.2, 0));
+        for (let k = 0; k < 3; k++) g.add(cyl(0.05, 0.05, sr(2, 5), M.labDark, sr(-.4, .4), sr(3.4, 4.8), sr(-8, 8), 5));
+        for (let k = 0; k < 4; k++) g.add(blob(sr(1, 2.4), pick([M.leaf, M.leafDark]), sr(-1, 1), sr(.4, 3.6), sr(-9, 9), 1));
+      }
+      worldGroup.add(g);
     }
   }
 
-  /* overhead canopy beams */
-  for (let s = 15; s < TRACK_LEN; s += 30) {
-    const f = frameAt(s), half = halfAt(s);
-    trackPos(s, 0, 9.2, p);
-    const beam = box((half + 7) * 2, 0.5, 0.9, M.labDark, p.x, p.y, p.z);
-    beam.rotation.y = f.yaw; worldGroup.add(beam);
+  /* ---------------- lab props scattered along the apron ---------------- */
+  const screenKeys = ['green', 'blue'];
+  for (let s = 40; s < FINISH_S - 30; s += sr(26, 44)) {
+    const half = halfAt(s), side = srnd() < .5 ? -1 : 1;
+    const lat = side * (half + sr(1.4, 6.2));
+    const f = frameAt(s);
+    const g = new THREE.Group(); trackPos(s, lat, 0, p); g.position.copy(p); g.rotation.y = f.yaw;
+    const kind = srnd();
+    if (kind < .34) {
+      /* drum cluster, one tipped and leaking */
+      drum(g, sr(-.5, .5), 0, sr(-1.4, 1.4), pick(['blue', 'red', 'yellow']), false, sr(0, 3));
+      drum(g, sr(-1.4, 1.4), 0, sr(-1.6, 1.6), pick(['rust', 'yellow', 'blue']), srnd() < .5, sr(0, 3));
+      if (srnd() < .5) drum(g, sr(-1, 1), 0, sr(-2, 2), 'red', true, sr(0, 3));
+      if (srnd() < .4) g.add(box(1.1, 0.7, 1.0, M.rust, sr(-.8, .8), .35, sr(-1.2, 1.2)));
+    } else if (kind < .55) {
+      crate(g, sr(-1, 1), sr(-1.5, 1.5), sr(.9, 1.7));
+      crate(g, sr(-1.4, 1.4), sr(-1.5, 1.5), sr(.7, 1.3));
+      if (srnd() < .5) gasCyl(g, sr(-1, 1), sr(-1.5, 1.5));
+    } else if (kind < .72) {
+      consoleUnit(g, 0, 0, sr(-.4, .4), srnd() < .5 ? M.screenGreen : M.screenBlue);
+      if (srnd() < .6) gurney(g, side * sr(1.5, 3), sr(-2, 2), sr(0, 3.1));
+    } else if (kind < .88) {
+      specimenTank(g, 0, 0, f.yaw + sr(-.3, .3), srnd() < .55);
+    } else {
+      gurney(g, 0, 0, sr(0, 3.1));
+      if (srnd() < .6) gurney(g, side * sr(1.6, 3.2), sr(-2.2, 2.2), sr(0, 3.1));
+      for (let k = 0; k < 3; k++) g.add(box(sr(.3, .7), sr(.2, .8), sr(.3, .7), M.labDark, sr(-2, 2), .3, sr(-2, 2)));
+    }
+    worldGroup.add(g);
   }
 
-  /* instanced canopy leaves + jungle bushes + hanging vines */
+  /* ---------------- side passages ---------------- */
+  function sidePassage(pg) {
+    const f = frameAt(pg.s), half = halfAt(pg.s), side = pg.side, len = pg.len;
+    const g = new THREE.Group();
+    trackPos(pg.s, side * (half + 6.8), 0, p);
+    g.position.copy(p); g.rotation.y = f.yaw; worldGroup.add(g);
+    const midX = side * len / 2;
+    /* slab floor + walls + ceiling running away from the causeway */
+    g.add(box(len, 0.5, 8.1, M.concrete, midX, -0.25, 0));
+    for (const dz of [-4, 4]) g.add(box(len, 4.4, 0.55, M.labGrey, midX, 2.2, dz));
+    g.add(box(len, 0.45, 8.3, M.labDark, midX, 4.5, 0));
+    /* ceiling light strips */
+    for (let i = 0; i < 3; i++) g.add(box(len * .22, 0.07, 0.42, M.lightStrip, side * (len * (0.2 + i * 0.28)), 4.24, 0));
+    /* supports down into the ravine */
+    for (const dz of [-3, 3]) g.add(box(0.8, 7, 0.8, M.concreteDark, side * (len - 1.2), -3.5, dz));
+    /* doorway frame + hazard chevrons at the mouth */
+    for (const dz of [-4.2, 4.2]) g.add(box(0.5, 5.0, 0.5, M.labDark, 0, 2.5, dz));
+    g.add(box(0.55, 0.6, 9, M.labDark, 0, 5.2, 0));
+    const stripeTex = (() => {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 32;
+      const gg = c.getContext('2d'); gg.fillStyle = '#ffb020'; gg.fillRect(0, 0, 128, 32);
+      gg.fillStyle = '#141414';
+      for (let x = -32; x < 128; x += 24) { gg.beginPath(); gg.moveTo(x, 32); gg.lineTo(x + 12, 0); gg.lineTo(x + 24, 0); gg.lineTo(x + 12, 32); gg.fill(); }
+      const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.repeat.x = 4; return t;
+    })();
+    const stripe = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 0.5), new THREE.MeshBasicMaterial({ map: stripeTex }));
+    stripe.position.set(side * 0.3, 0.42, 0); stripe.rotation.y = -side * Math.PI / 2; g.add(stripe);
+    /* hanging sign over the mouth, angled to the driver */
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 1.5), makeSign(pg.name, 'AUTHORISED PERSONNEL', '#ffb020', '#101418'));
+    sign.position.set(-side * 1.3, 4.3, 0); g.add(sign);
+    /* contents: a lit room, equipment piled inside, roots coming through the roof */
+    g.add(box(0.2, 3.6, 7.4, roomMat, side * (len - 0.4), 1.9, 0));
+    if (hashRnd(pg.s) < 0.5) {
+      const lamp = new THREE.PointLight(0x9fe6ff, 26, 34, 2);
+      lamp.position.set(side * (len * 0.6), 3.4, 0); g.add(lamp);
+    }
+    for (let i = 0; i < 3; i++) drum(g, side * sr(3, len - 2), 0, sr(-2.6, 2.6), pick(['blue', 'yellow', 'rust']), srnd() < .35, sr(0, 3));
+    if (srnd() < .8) consoleUnit(g, side * sr(4, len - 3), sr(-2, 2), side * Math.PI / 2, M.screenGreen);
+    if (srnd() < .7) specimenTank(g, side * sr(5, len - 3), sr(-2.2, 2.2), sr(0, 3), srnd() < .6);
+    if (srnd() < .6) gurney(g, side * sr(6, len - 4), sr(-2.0, 2.0), sr(0, 3.1));
+    for (let i = 0; i < 5; i++) {
+      const rz = sr(-3.8, 3.8), rx = side * sr(1, len - 1);
+      const root = cyl(0.08, 0.14, sr(1.5, 4), M.stem, rx, 4.1 - sr(0, 1.5), rz, 5);
+      root.rotation.x = sr(-.3, .3); root.rotation.z = sr(-.3, .3); g.add(root);
+    }
+    for (let i = 0; i < 4; i++) g.add(blob(sr(.7, 1.6), pick([M.leaf, M.leafDark]), sr(-2, 2) + side * sr(0, 2), sr(0, .8), sr(-3.6, 3.6), 1));
+    return g;
+  }
+  PASSAGES.forEach(sidePassage);
+
+  /* ---------------- overhead canopy, cables, lamps, light shafts ---------------- */
   const leafGeo = new THREE.IcosahedronGeometry(1, 0);
   const leafMat = new THREE.MeshStandardMaterial({ roughness: .95, flatShading: true });
-  const NL = 420, leaves = new THREE.InstancedMesh(leafGeo, leafMat, NL);
-  const col = new THREE.Color();
+  const NL = 620, leaves = new THREE.InstancedMesh(leafGeo, leafMat, NL);
   for (let i = 0; i < NL; i++) {
-    const s = rand(-10, TRACK_LEN + 10), half = halfAt(clamp(s, 0, TRACK_LEN));
-    const overhead = Math.random() < .62;
-    const lat = rand(-1, 1) * (overhead ? half + 7 : 0) + (overhead ? 0 : Math.sign(rand(-1, 1)) * (half + rand(7.6, 19)));
-    const onApron = Math.abs(lat) <= half + 8.4 && !inBridge(s);
-    const y = overhead ? rand(7.6, 12.6) : (onApron ? rand(0.2, 1.2) : rand(-6.3, -4.2)); // apron-top or jungle canopy below
+    const s = sr(-10, TRACK_LEN + 10), half = halfAt(clamp(s, 0, TRACK_LEN));
+    const overhead = srnd() < .7;
+    const lat = overhead ? sr(-half - 3, half + 3) : (srnd() < .5 ? -1 : 1) * (half + sr(4, 16));
+    const y = overhead ? sr(7.4, 13.2) : sr(-6.2, -3.4);
     trackPos(s, lat, y, p);
     dummy.position.copy(p);
-    dummy.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3));
-    dummy.scale.set(rand(1.1, 3.2), rand(0.55, 1.1), rand(1.1, 3.2));
+    dummy.rotation.set(sr(0, 3), sr(0, 3), sr(0, 3));
+    dummy.scale.set(sr(1.2, 3.4), sr(.5, 1.1), sr(1.2, 3.4));
     dummy.updateMatrix(); leaves.setMatrixAt(i, dummy.matrix);
-    leaves.setColorAt(i, col.setHSL(rand(0.26, 0.38), rand(0.5, 0.8), rand(0.2, 0.42)));
+    leaves.setColorAt(i, col.setHSL(sr(.26, .38), sr(.5, .8), sr(.18, .4)));
   }
   worldGroup.add(leaves);
 
-  const vineGeo = new THREE.CylinderGeometry(0.06, 0.09, 1, 5);
-  const NV = 170, vines = new THREE.InstancedMesh(vineGeo, M.vine, NV);
+  /* hanging vines — some thick enough to grab you (that's the grabbers) */
+  const vineGeo = new THREE.CylinderGeometry(0.07, 0.1, 1, 5);
+  const NV = 230, vines = new THREE.InstancedMesh(vineGeo, M.vine, NV);
   for (let i = 0; i < NV; i++) {
-    const s = rand(0, TRACK_LEN), half = halfAt(s);
-    const lat = Math.sign(rand(-1, 1)) * rand(half - 1.5, half + 5);
-    const len = rand(2, 5.5);
-    trackPos(s, lat, 9.4 - len / 2, p);
-    dummy.position.copy(p); dummy.rotation.set(rand(-.06, .06), 0, rand(-.06, .06));
+    const s = sr(0, TRACK_LEN), half = halfAt(s);
+    const lat = (srnd() < .5 ? -1 : 1) * sr(half - 2.2, half + 6);
+    const len = sr(1.6, 6);
+    trackPos(s, lat, 9.6 - len / 2, p);
+    dummy.position.copy(p); dummy.rotation.set(sr(-.08, .08), 0, sr(-.08, .08));
     dummy.scale.set(1, len, 1); dummy.updateMatrix(); vines.setMatrixAt(i, dummy.matrix);
   }
   worldGroup.add(vines);
 
-  /* specimen tanks (Specimen Hall + Greenhouse) */
-  for (const [s0, s1] of [[225, 450], [720, 935]]) {
-    for (let s = s0; s < s1; s += rand(30, 42)) {
-      const side = Math.random() < .5 ? -1 : 1, f = frameAt(s), half = halfAt(s);
-      const tank = new THREE.Group();
-      trackPos(s, side * (half + 3.4), 0, p); tank.position.copy(p); tank.rotation.y = f.yaw;
-      tank.add(box(3.4, 0.5, 3.4, M.labDark, 0, 0.25, 0));
-      const glass = cyl(1.55, 1.55, 4.6, M.glass, 0, 2.8, 0, 18); glass.castShadow = false; tank.add(glass);
-      tank.add(blob(1.1, M.leaf, rand(-.3, .3), rand(1.6, 3), rand(-.3, .3), rand(.7, 1.2)));
-      tank.add(cyl(0.16, 0.28, 2.6, M.stem, 0, 1.6, 0));
-      tank.add(box(3.4, 0.35, 3.4, M.labGrey, 0, 5.25, 0));
-      const lightDot = sph(0.13, M.amberGlow, 0, 5.5, 0); tank.add(lightDot);
-      worldGroup.add(tank);
+  /* roots crossing the verge, cracking the apron */
+  const NR = 70, roots = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.16, 0.26, 1, 6), M.bark, NR);
+  for (let i = 0; i < NR; i++) {
+    const s = sr(0, TRACK_LEN), half = halfAt(s), side = srnd() < .5 ? -1 : 1;
+    trackPos(s, side * (half + sr(1.5, 5.5)), 0.16, p);
+    dummy.position.copy(p);
+    dummy.rotation.set(0, sr(0, 3.14), Math.PI / 2 + sr(-.12, .12));
+    dummy.scale.set(1, sr(2, 5.5), 1);
+    dummy.updateMatrix(); roots.setMatrixAt(i, dummy.matrix);
+  }
+  worldGroup.add(roots);
+
+  /* ceiling trusses: every span intact, plus a handful that came down */
+  for (let s = 14; s < TRACK_LEN; s += sr(24, 36)) {
+    const half = halfAt(s), f = frameAt(s);
+    trackPos(s, 0, 9.3 + sr(-.4, .5), p);
+    const beam = box((half + 7) * 2, 0.5, 0.9, M.labDark, p.x, p.y, p.z);
+    beam.rotation.y = f.yaw; worldGroup.add(beam);
+    if (srnd() < .5) {
+      const lampGrp = new THREE.Group();
+      trackPos(s, sr(-half * .5, half * .5), 9.0, p2); lampGrp.position.copy(p2);
+      lampGrp.add(cyl(0.035, 0.035, 1.6, M.labDark, 0, 0.8, 0, 4));
+      const shade = cyl(0.55, 0.22, 0.35, M.labDark, 0, 0, 0, 10);
+      lampGrp.add(shade);
+      const bulb = sph(0.3, M.amberGlow, 0, -0.18, 0); bulb.castShadow = false; lampGrp.add(bulb);
+      lampGrp.rotation.z = sr(-.16, .16);
+      worldGroup.add(lampGrp);
     }
   }
+  /* four collpased spans, hand-placed so they never overlap a fork or a door */
+  const FALLEN = [
+    { s: 348, side: 1, tilt: 0.62 },
+    { s: 612, side: -1, tilt: 0.78 },
+    { s: 1004, side: 1, tilt: 0.55 },
+    { s: 1291, side: -1, tilt: 0.7 },
+  ];
+  for (const fb of FALLEN) {
+    const half = halfAt(fb.s), f = frameAt(fb.s);
+    trackPos(fb.s, fb.side * (half - 1.5), 0.32, p);           // resting on the shoulder
+    trackPos(fb.s - 4.5, fb.side * (half + 1.6), 6.4, p2);     // torn from the ceiling
+    const g = new THREE.Group();
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1, 0.85), M.rust);
+    beam.castShadow = beam.receiveShadow = true;
+    stemBetween(beam, p2.clone(), p);                          // point b -> point a
+    worldGroup.add(beam);
+    g.position.copy(p);
+    for (let k = 0; k < 5; k++) {                              // debris where it hit
+      const chunk = box(sr(.5, 1.3), sr(.2, .5), sr(.5, 1.2), M.concreteDark, sr(-1.4, 1.4), sr(.08, .2), sr(-1.6, 1.6));
+      chunk.rotation.y = sr(0, 3); g.add(chunk);
+    }
+    for (let k = 0; k < 3; k++) {                              // snapped cable whipping about
+      const c2 = cyl(0.035, 0.035, sr(2.4, 5), M.labDark, sr(-.4, .4), sr(0.3, 1.6), sr(-.6, .6), 4);
+      c2.rotation.set(sr(-1.2, 1.2), 0, sr(-.6, .6)); g.add(c2);
+    }
+    g.add(sph(0.14, M.amberGlow, 0, 0.2, 0));
+    worldGroup.add(g);
+  }
 
-  /* gantries: start + finish */
+  /* shafts of daylight through the broken roof */
+  const shaftMat = new THREE.MeshBasicMaterial({ color: 0xd6ffe6, transparent: true, opacity: .026, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  for (let i = 0; i < 12; i++) {
+    const s = sr(40, FINISH_S), half = halfAt(s);
+    const h = sr(12, 19);
+    const shaft = new THREE.Mesh(new THREE.ConeGeometry(sr(2.2, 4.4), h, 9, 1, true), shaftMat);
+    trackPos(s, sr(-half * .7, half * .7), h / 2 + 1.5, p);
+    shaft.position.copy(p); shaft.rotation.z = sr(-.07, .07);
+    worldGroup.add(shaft);
+  }
+
+  /* ---------------- gantries, finish pad, zone signs ---------------- */
   function gantry(s, title, sub, fg, bg) {
     const g = new THREE.Group(), f = frameAt(s), half = halfAt(s);
     trackPos(s, 0, 0, p); g.position.copy(p); g.rotation.y = f.yaw;
     for (const side of [-1, 1]) g.add(box(0.9, 7.6, 0.9, M.labGrey, side * (half + 1.4), 3.8, 0));
     g.add(box((half + 1.4) * 2 + 1, 1.9, 0.7, M.labDark, 0, 7.4, 0));
     const sign = new THREE.Mesh(new THREE.PlaneGeometry((half + 1.4) * 2, 1.7), makeSign(title, sub, fg, bg, true));
-    sign.position.set(0, 7.4, 0.38); g.add(sign); // plane faces +Z local = back down-track toward the approaching driver
+    sign.position.set(0, 7.4, 0.38); g.add(sign);        // faces back down-track at the driver
+    for (let k = 0; k < 4; k++) g.add(blob(sr(.8, 1.8), pick([M.leaf, M.leafDark]), sr(-half, half), 7.6 + sr(0, .6), sr(-.5, .5), 1));
     worldGroup.add(g);
   }
   gantry(4, 'BIO-LAB · C', 'CARNIVOROUS CANOPY — AUTHORISED VEHICLES ONLY', '#8dff57', '#0a140d');
   gantry(FINISH_S, '✦ EXTRACTION ✦', 'DECONTAMINATION BEYOND THIS POINT', '#ffffff', '#1f5eff');
-  /* finish pad */
   {
     const f = frameAt(FINISH_S + 8);
     trackPos(FINISH_S + 8, 0, 0.05, p);
     const pad = box(halfAt(FINISH_S) * 2, 0.1, 14, M.blueGlow, p.x, p.y, p.z);
     pad.rotation.y = f.yaw; pad.castShadow = false; worldGroup.add(pad);
   }
-  /* zone entry signs */
   ZONES.forEach((z, i) => {
     if (i === 0) return;
     const s = z.from + 6, f = frameAt(s), half = halfAt(s);
@@ -393,9 +798,25 @@ const worldGroup = new THREE.Group(); scene.add(worldGroup);
     const g = new THREE.Group(); g.position.copy(p); g.rotation.y = f.yaw;
     g.add(box(0.25, 4.6, 0.25, M.labDark, 0, 2.3, 0));
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 1.35), makeSign('ZONE ' + (i + 1), z.name, '#8dff57', '#0a140d'));
-    sign.position.set(-0.2, 4.4, 0); sign.rotation.y = -Math.PI / 2 + 0.5; g.add(sign); // angled toward road + approaching driver
+    sign.position.set(-0.2, 4.4, 0); sign.rotation.y = -Math.PI / 2 + 0.5; g.add(sign);
     worldGroup.add(g);
   });
+}
+
+/* keep only the part of the causeway near the camera in the render list —
+   with a dead-straight road three would otherwise submit the whole level */
+const CULLABLES = [];
+for (const o of worldGroup.children) {
+  if (o.isInstancedMesh) continue;
+  o.userData.cullS = -o.position.z;
+  CULLABLES.push(o);
+}
+function cullWorld() {
+  for (let i = 0; i < CULLABLES.length; i++) {
+    const o = CULLABLES[i];
+    const d = o.userData.cullS - P.s;
+    o.visible = d > -70 && d < 185;
+  }
 }
 
 /* ------------------------------ the vehicle ------------------------------ */
@@ -449,6 +870,48 @@ let wheels = [], frontAxleL, frontAxleR, brakeMat, vineWrap, cutterRing, cutterT
   cutterRing.rotation.x = Math.PI / 2; cutterRing.position.y = 0.5; car.add(cutterRing);
 }
 
+/* ------------- disguised blooms: showy flowers, some of them hungry ------ */
+function buildBloom(petalMat, big, throatMat) {
+  const grp = new THREE.Group();
+  const k = big ? 1.24 : 0.9;
+  const stemH = (big ? 1.9 : 1.45) * (0.86 + rand(0, 0.35));
+  const stem = cyl(0.07 * k, 0.11 * k, stemH, M.stem, 0, stemH / 2, 0, 6);
+  stem.rotation.z = rand(-0.13, 0.13);
+  grp.add(stem);
+  for (let i = 0; i < 2; i++) {
+    const leaf = blob(rand(0.28, 0.46) * k, i % 2 ? M.leaf : M.leafDark,
+      rand(-0.4, 0.4) * k, rand(0.3, stemH * 0.75), rand(-0.4, 0.4) * k, 1);
+    leaf.scale.set(1, 0.32, 1.7); leaf.rotation.y = rand(0, 3);
+    grp.add(leaf);
+  }
+  const head = new THREE.Group(); head.position.y = stemH; grp.add(head);
+  /* six cupped outer petals — purely decorative */
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const petal = sph(0.44 * k, petalMat, Math.cos(a) * 0.34 * k, -0.02, Math.sin(a) * 0.34 * k, 1.15, 0.3, 1.6);
+    petal.rotation.y = -a + Math.PI / 2; petal.rotation.z = 0.42;
+    petal.castShadow = false;
+    head.add(petal);
+  }
+  const throat = sph(0.33 * k, throatMat || M.throat, 0, 0.02, 0, 1, 0.62, 1);
+  head.add(throat);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 + 0.4;
+    const t = cone(0.055 * k, 0.2 * k, M.teeth, Math.cos(a) * 0.25 * k, 0.08, Math.sin(a) * 0.25 * k);
+    t.rotation.x = Math.PI; t.castShadow = false; head.add(t);
+  }
+  /* inner petal jaw — folds shut when it bites */
+  const jaw = new THREE.Group(); jaw.position.y = 0.06; head.add(jaw);
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + 0.5;
+    const p = sph(0.32 * k, petalMat, Math.cos(a) * 0.24 * k, 0.1, Math.sin(a) * 0.24 * k, 1, 0.26, 1.2);
+    p.rotation.y = -a + Math.PI / 2; p.rotation.z = 0.3; p.castShadow = false;
+    jaw.add(p);
+  }
+  grp.userData = { head, jaw, throat, k };
+  return grp;
+}
+
 /* ------------------------- hazard factory -------------------------------- */
 const hazards = [];
 const _p = new THREE.Vector3(), _p2 = new THREE.Vector3();
@@ -475,7 +938,7 @@ function buildJawHead(k) {
 function thornBar(len, r, mat) {
   const g = new THREE.Group();
   const log = cyl(r, r * 1.15, len, mat || M.vine, 0, 0, 0, 8); log.rotation.z = Math.PI / 2; g.add(log);
-  const n = Math.floor(len / 0.8);
+  const n = Math.max(3, Math.floor(len / 1.5));
   for (let i = 0; i < n; i++) {
     const t = cone(0.13, rand(0.5, 0.9), M.thorn, -len / 2 + (i + .5) * (len / n), rand(-.1, .3), rand(-.15, .15));
     t.rotation.set(rand(-.5, .5), 0, rand(-.5, .5)); g.add(t);
@@ -492,15 +955,31 @@ function buildHazards() {
 
     if (h.type === 'snapper') {
       const k = h.big ? 2.15 : 1;
-      h.k = k; h.lat = h.side * (half + 2.6);
-      trackPos(h.s, h.side * (half + 3.4), 0, _p);
+      h.k = k;
+      /* It grew wherever the jungle could get a root in — a burst planter, a
+         cracked slab, a rusted drum — and leans in over the tarmac from there.
+         Layout is keyed to h.s so it is the same every run.                     */
+      const r1 = hashRnd(h.s), r2 = hashRnd(h.s + 17.3), r3 = hashRnd(h.s + 41.7);
+      const baseLat = h.side * (half + (h.big ? 4.4 : 2.2 + r1 * 2.9));
+      h.lat = h.side * (half + 0.2 + r2 * 1.9);            // strike line hugs the verge
+      const f0 = frameAt(h.s);
+      trackPos(h.s, baseLat, 0, _p);
       const base = new THREE.Group(); base.position.copy(_p);
-      base.add(sph(1.1 * k, M.leafDark, 0, 0.5 * k, 0, 1, 0.6, 1));
-      base.add(blob(0.9 * k, M.leaf, 0.7 * k, 0.4 * k, 0.5 * k, 1));
-      base.add(blob(0.7 * k, M.leaf, -0.7 * k, 0.35 * k, -0.4 * k, 1));
+      base.rotation.set((r3 - .5) * .16, f0.yaw + (r2 - .5) * 1.1, (r1 - .5) * .2);
+      base.add(sph(1.05 * k, M.leafDark, 0, 0.45 * k, 0, 1, 0.6, 1));
+      base.add(blob(0.85 * k, M.leaf, 0.7 * k, 0.35 * k, 0.5 * k, 1));
+      base.add(blob(0.7 * k, M.leaf, -0.7 * k, 0.3 * k, -0.4 * k, 1));
+      if (r3 < 0.6) base.add(box(1.5 * k, 0.45, 1.5 * k, M.concreteDark, 0, 0.06, 0));   // burst planter
+      else if (r3 < 0.85) base.add(cyl(0.42, 0.42, 1.1, M.rust, 0.5, 0.3, 0, 10));      // old drum
+      for (let rr = 0; rr < 4; rr++) {
+        const root = cyl(0.06, 0.14, 0.9 + hashRnd(h.s + rr * 7) * 1.6, M.bark,
+          (hashRnd(h.s + rr * 3.1) - .5) * 2.2 * k, 0.12, (hashRnd(h.s + rr * 5.7) - .5) * 2.2 * k, 5);
+        root.rotation.set(Math.PI / 2 + (hashRnd(h.s + rr) - .5) * .5, hashRnd(h.s + rr * 9) * 6.28, 0);
+        base.add(root);
+      }
       scene.add(base);
       h.basePos = _p.clone().setY(0.8 * k);
-      trackPos(h.s, h.lat, (h.big ? 3.4 : 1.9), _p2);
+      trackPos(h.s, h.lat, (h.big ? 3.4 : 1.9) + (r2 - .5) * 0.5, _p2);
       h.homePos = _p2.clone();
       const { head, jawTop, mouthMat } = buildJawHead(k);
       head.position.copy(h.homePos);
@@ -511,6 +990,87 @@ function buildHazards() {
       h.stemMesh.castShadow = true; scene.add(h.stemMesh);
       h.strikeLat = 0; h.hitDone = false;
       if (h.big) buildMaw(h);
+    }
+    else if (h.type === 'flower') {
+      /* Showy garden bloom. Identical to its harmless neighbours — until it
+         turns to follow you and folds shut on your wing mirror.              */
+      const onIsland = !!h.onIsland;
+      const f = frameAt(h.s);
+      h.mimic = !!h.mimic; h.spent = 0; h.biting = 0; h.hitCd = 0;
+      if (!onIsland) h.lat = h.side * (half - 0.35 - hashRnd(h.s) * 0.35);
+      const baseY = onIsland ? 1.6 : 0;
+      trackPos(h.s, h.lat, baseY, _p);
+      grp.position.copy(_p); grp.rotation.y = f.yaw + (hashRnd(h.s + 3) - .5) * 0.5;
+      if (onIsland) {
+        grp.add(box(2.1, 0.1, 1.9, M.islandSoil, 0, 0.02, 0));       // planted into the island bed
+      } else if (inBridge(h.s)) {
+        grp.add(box(1.8, 0.62, 1.5, M.rust, 0, 0.31, 0));            // rail planter
+        grp.add(box(1.6, 0.12, 1.25, M.soil, 0, 0.66, 0));
+      } else {
+        grp.add(box(1.8, 0.55, 2.2, M.concreteDark, 0, 0.275, 0));   // verge planter
+        grp.add(box(1.6, 0.14, 1.95, M.soil, 0, 0.59, 0));
+      }
+      for (let i = 0; i < 4; i++) {
+        grp.add(blob(rand(0.32, 0.82), i % 2 ? M.leaf : M.leafDark,
+          rand(-0.9, 0.9), 0.55 + (onIsland ? 0.1 : 0) + rand(0, 0.25), rand(-1.0, 1.0), 1));
+      }
+      const petalMat = [M.petalA, M.petalB, M.petalC][Math.floor(Math.random() * 3)];
+      const throatMat = M.throat.clone();
+      h.blooms = [];
+      for (let i = 0; i < 2; i++) {
+        const b = buildBloom(petalMat, i === 1 && !onIsland, throatMat);
+        if (onIsland) b.scale.setScalar(0.92);
+        b.position.set(i ? 0.34 : -0.34, onIsland ? 0.16 : 0.56, i ? 0.18 : -0.2);
+        b.rotation.y = rand(0, 6.28);
+        grp.add(b); h.blooms.push(b);
+      }
+      const big = h.blooms[1];
+      h.head = big.userData.head;
+      h.jaw = big.userData.jaw;
+      h.throat = big.userData.throat;
+      scene.add(grp); h.grp = grp;
+    }
+    else if (h.type === 'divider') {
+      /* A mass in the middle of the causeway: specimen island, collapsed slab
+         or fallen truss. It splits the road into two passages.               */
+      const f = frameAt(h.s);
+      const w = h.latB - h.latA, midLat = (h.latA + h.latB) / 2;
+      trackPos(h.s, midLat, 0, _p);
+      grp.position.copy(_p); grp.rotation.y = f.yaw;
+      grp.add(box(w + 0.4, 1.5, h.len, M.concrete, 0, 0.75, 0));
+      grp.add(box(w + 0.7, 0.3, h.len + 0.3, M.concreteDark, 0, 1.5, 0));
+      grp.add(box(w - 0.5, 0.16, h.len - 0.8, M.soil, 0, 1.62, 0));
+      /* rounded-off noses so neither end is a hole you can see under */
+      for (const end of [-1, 1]) {
+        const nose = box(w + 0.4, 1.5, w + 0.4, M.concrete, 0, 0.75, end * h.len / 2);
+        nose.rotation.y = Math.PI / 4; grp.add(nose);
+        const noseCap = box(w + 0.7, 0.3, w + 0.7, M.concreteDark, 0, 1.5, end * h.len / 2);
+        noseCap.rotation.y = Math.PI / 4; grp.add(noseCap);
+        for (let k = 0; k < 4; k++) {
+          grp.add(blob(rand(.4, 1.0), k % 2 ? M.leaf : M.leafDark,
+            rand(-w / 2, w / 2), 1.55 + rand(0, .5), end * (h.len / 2 - rand(0, .9)), 1));
+        }
+      }
+      /* rubble and jungle spilling out of it */
+      for (let i = 0; i < 12; i++) {
+        const zz = rand(-h.len / 2 + 1.5, h.len / 2 - 1.5), xx = rand(-w / 2 + .3, w / 2 - .3);
+        grp.add(blob(rand(0.5, 1.5), i % 3 === 0 ? M.leafDark : i % 3 === 1 ? M.leaf : M.stem,
+          xx, 1.62 + rand(0, 0.75), zz, 1));
+        if (i % 4 === 0) grp.add(box(rand(.4, 1.1), rand(.3, .75), rand(.4, 1.1), M.concreteDark, xx, 1.62, zz));
+        if (i % 6 === 0) {
+          const root = cyl(0.08, 0.17, rand(1.4, 2.6), M.bark, xx, 1.9, zz, 5);
+          root.rotation.set(rand(-1.4, 1.4), rand(0, 3), rand(-1.4, 1.4)); grp.add(root);
+        }
+      }
+      /* a broken pipe and a dead light stack so it reads as lab wreckage */
+      const pipe = cyl(0.16, 0.16, w + 0.6, M.steel, 0, 2.1, rand(-h.len / 4, h.len / 4), 6);
+      pipe.rotation.z = Math.PI / 2; grp.add(pipe);
+      const plaque = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.5, 1.5), makeSign(h.name || 'KEEP CLEAR', 'PASS EITHER SIDE', '#ffb020', '#101418'));
+      plaque.position.set(0, 2.75, h.len / 2 + 0.15);          // faces back at the driver
+      grp.add(plaque);
+      const post = box(0.16, 1.5, 0.16, M.labDark, 0, 1.9, h.len / 2 - 0.15);
+      grp.add(post);
+      scene.add(grp); h.grp = grp; h.hitCd = 0;
     }
     else if (h.type === 'grabber') {
       const f = frameAt(h.s);
@@ -549,16 +1109,32 @@ function buildHazards() {
       h.cloud.visible = false; scene.add(h.cloud);
       h.cycleT = rand(0, 5.4); h.cloudOn = false;
     }
-    else if (h.type === 'sap') {
+    else if (h.type === 'sap' || h.type === 'chem') {
+      const isChem = h.type === 'chem';
+      const mat = isChem ? M.chem : M.sap;
       const f = frameAt(h.s);
       trackPos(h.s, h.lat, 0.04, _p); grp.position.copy(_p); grp.rotation.y = f.yaw;
-      const disc = new THREE.Mesh(new THREE.CircleGeometry(h.r, 26), M.sap);
+      const disc = new THREE.Mesh(new THREE.CircleGeometry(h.r, 26), mat);
       disc.rotation.x = -Math.PI / 2; disc.receiveShadow = true; grp.add(disc);
       h.disc = disc;
       for (let i = 0; i < 7; i++) {
         const a = rand(0, Math.PI * 2), rr = rand(h.r * .55, h.r * 1.05);
-        const b = sph(rand(.3, .7), M.sap, Math.cos(a) * rr, 0.08, Math.sin(a) * rr, 1, 0.35, 1);
+        const b = sph(rand(.3, .7), mat, Math.cos(a) * rr, 0.08, Math.sin(a) * rr, 1, 0.35, 1);
         b.castShadow = false; grp.add(b);
+      }
+      if (isChem) {
+        /* the drum it came out of, on its side, still dribbling */
+        const drumGrp = new THREE.Group();
+        const body = cyl(0.42, 0.42, 1.12, M.drumYellow, 0, 0, 0, 12);
+        body.rotation.z = Math.PI / 2; drumGrp.add(body);
+        drumGrp.add(sph(0.1, M.chemGlow, 0.62, 0.05, 0.3));
+        drumGrp.position.set(h.r * 0.85, 0.42, -h.r * 0.25);
+        drumGrp.rotation.y = rand(0, 3);
+        grp.add(drumGrp);
+        for (let i = 0; i < 5; i++) {
+          const g2 = sph(rand(.12, .26), M.chemGlow, rand(-h.r, h.r) * .8, 0.28, rand(-h.r, h.r) * .8);
+          g2.castShadow = false; grp.add(g2);
+        }
       }
       scene.add(grp); h.grp = grp;
     }
@@ -798,7 +1374,7 @@ const P = {                        // player in track-space
   s: 2, lat: 0, latVel: 0, speed: 0,
   hull: 100, boost: 60,
   chokedT: 0, padT: 0, invulnT: 0, pulseCd: 0,
-  grabbed: false, grabH: null, grabProg: 0, inSap: false, doorHeld: false,
+  grabbed: false, grabH: null, grabProg: 0, inSap: false, inChem: false, doorHeld: false,
 };
 const CRUISE = 27, BOOSTV = 42, BRAKEV = 9;
 const GRAB_NEED = 6;
@@ -813,7 +1389,7 @@ resetStats();
 function resetRun() {
   P.s = 2; P.lat = 0; P.latVel = 0; P.speed = 0; P.hull = 100; P.boost = 60;
   P.chokedT = P.padT = P.invulnT = P.pulseCd = 0;
-  P.grabbed = false; P.grabH = null; P.grabProg = 0; P.inSap = false; P.doorHeld = false;
+  P.grabbed = false; P.grabH = null; P.grabProg = 0; P.inSap = false; P.inChem = false; P.doorHeld = false;
   raceTime = 0; zoneIdx = -1; shake = 0; resetStats();
   vineWrap.visible = false; grabVine.visible = false;
   for (const h of hazards) {
@@ -823,6 +1399,11 @@ function resetRun() {
     if (h.type === 'grabber') h.disabledT = 0;
     if (h.type === 'nitro' || h.type === 'repair') { h.taken = false; h.grp.visible = true; }
     if (h.type === 'pad') h.padMat.emissiveIntensity = 1.1;
+    if (h.type === 'flower') {
+      h.spent = 0; h.biting = 0; h.hitCd = 0;
+      if (h.head) { h.head.rotation.x = 0; h.head.rotation.y = 0; h.jaw.scale.setScalar(1); h.throat.scale.setScalar(1); }
+    }
+    if (h.type === 'divider') h.hitCd = 0;
   }
   $('grabPrompt').classList.remove('on');
   $('grabFx').style.opacity = 0;
@@ -839,7 +1420,7 @@ const el = {
   boostFill: $('boostFill'), boostVal: $('boostVal'), fx: $('fxLine'), vitals: $('vitals'),
   speed: $('speedVal'), gear: $('gear'), banner: $('banner'), bKick: $('bKick'), bTitle: $('bTitle'), bSub: $('bSub'),
   toast: $('toast'), cd: $('countDown'), grab: $('grabPrompt'), pips: $('pips'),
-  chipSpore: $('chipSpore'), chipSap: $('chipSap'), chipDoor: $('chipDoor'), chipHurt: $('chipHurt'),
+  chipSpore: $('chipSpore'), chipSap: $('chipSap'), chipChem: $('chipChem'), chipDoor: $('chipDoor'), chipHurt: $('chipHurt'),
   sporeFx: $('sporeFx'), dmgFx: $('dmgFx'), grabFx: $('grabFx'),
 };
 for (const z of ZONES.slice(1)) {
@@ -893,6 +1474,7 @@ function endGrab(escaped) {
 }
 function pulsePressed() {
   if (state !== 'race') return;
+  const pulseFromP = { s: P.s };              // frozen for the whole pulse
   if (P.grabbed) {
     P.grabProg = Math.min(GRAB_NEED, P.grabProg + 1);
     updatePips(); AU.chop(); cutterT = 0;
@@ -905,13 +1487,18 @@ function pulsePressed() {
   if (P.boost < 15) { toast('⚠ CUTTER NEEDS 15% BOOST', '#ffb020'); return; }
   P.boost -= 15; P.pulseCd = 1.2; cutterT = 0;
   P.chokedT = 0;
-  let stunnedAny = false;
+  let stunnedAny = false, wokeAny = false;
   for (const h of hazards) {
     if (h.type === 'snapper' && Math.abs(h.s - P.s) < 17 && h.state !== 'stunned') {
       h.state = 'stunned'; h.t = 3.5; stunnedAny = true; stats.stuns++;
     }
+    /* the cutter is also your detector: hungry blooms thrash when it fires */
+    if (h.type === 'flower' && h.mimic && h.spent <= 0 && Math.abs(h.s - pulseFromP.s) < 22) {
+      h.spent = 9; h.biting = 0.5; h.throat.material.emissiveIntensity = 2.6; wokeAny = true; stats.stuns++;
+      trackPos(h.s, h.lat, 1.8, _p); burst(_p, 0xff5fa3, 10, 2.4, 4);
+    }
   }
-  toast(stunnedAny ? '✂ CUTTER PULSE — PLANT STUNNED!' : '✂ CUTTER PULSE', '#8dff57');
+  toast(wokeAny ? '✂ CUTTER PULSE — A BLOOM FLINCHED!' : stunnedAny ? '✂ CUTTER PULSE — PLANT STUNNED!' : '✂ CUTTER PULSE', '#8dff57');
   AU.free();
 }
 function barrierCheck(h, latA, latB, thick, dmg) {
@@ -1071,6 +1658,55 @@ function updateHazards(dt, time, playing) {
       }
       stemBetween(h.stemMesh, h.basePos, h.head.position);
     }
+    else if (h.type === 'flower') {
+      if (h.hitCd > 0) h.hitCd -= dt;
+      if (h.biting > 0) h.biting = Math.max(0, h.biting - dt);
+      if (h.spent > 0) h.spent -= dt;
+      h.grp.visible = Math.abs(ds) < 165;
+      /* every bloom sways in the same wind. Nothing to read here. */
+      if (Math.abs(ds) < 70) for (let i = 0; i < h.blooms.length; i++) {
+        const b = h.blooms[i];
+        b.rotation.z = Math.sin(time * 1.25 + h.s * 0.7 + i) * 0.05;
+        b.rotation.x = Math.sin(time * 0.9 + i * 2.1) * 0.03;
+      }
+      if (!h.mimic) continue;
+      /* the tell is behavioural and last-second: a hungry bloom tracks the car */
+      if (Math.abs(ds) < 24) {
+        const aim = clamp((P.lat - h.lat) * 0.2, -0.5, 0.5) + (h.side > 0 ? -0.12 : 0.12);
+        h.head.rotation.y = damp(h.head.rotation.y, aim, 2.2, dt);
+        const shut = h.spent > 0;
+        h.head.rotation.x = damp(h.head.rotation.x, shut ? 0.5 : Math.sin(time * 2.6) * 0.025, 3, dt);
+        h.throat.scale.setScalar(damp(h.throat.scale.x, shut ? 0.7 : 1.12, 3, dt));
+        if (h.biting > 0) {
+          const q = Math.sin((1 - h.biting / 0.5) * Math.PI);
+          h.jaw.scale.setScalar(1 + q * 0.6);
+          h.throat.material.emissiveIntensity = 2.4;
+        } else {
+          h.jaw.scale.setScalar(damp(h.jaw.scale.x, shut ? 0.5 : 1, 6, dt));
+          h.throat.material.emissiveIntensity = damp(h.throat.material.emissiveIntensity, 0.8, 4, dt);
+        }
+      }
+      if (!playing || h.spent > 0 || h.hitCd > 0 || P.invulnT > 0 || P.grabbed || P.speed < 4) continue;
+      const dl = Math.abs(P.lat - h.lat);
+      if (Math.abs(ds) < 2.9 && dl < 2.9) {
+        h.spent = 8; h.biting = 0.5; h.hitCd = 1;
+        const away = P.lat >= h.lat ? 1 : -1;
+        trackPos(h.s, h.lat, 1.8, _p);
+        if (dl < 2.2) {
+          P.speed *= 0.42;
+          damage(9, away * 0.9);
+          toast('🌺 IT WAS A MIMIC!', '#ff5fa3');
+          burst(_p, 0xff5fa3, 20, 3.6, 6); AU.snap();
+        } else {
+          stats.nearMiss++;
+          toast('🌺 MIMIC — IT MISSED +150', '#ffd24d');
+          burst(_p, 0xff5fa3, 9, 2.4, 4); AU.snap();
+        }
+      }
+    }
+    else if (h.type === 'divider') {
+      if (h.hitCd > 0) h.hitCd -= dt;
+    }
     else if (h.type === 'grabber') {
       if (h.disabledT > 0) h.disabledT -= dt;
       const retracted = h.disabledT > 0;
@@ -1103,8 +1739,11 @@ function updateHazards(dt, time, playing) {
         }
       }
     }
-    else if (h.type === 'sap') {
-      if (near && h.disc) { const p = 1 + Math.sin(time * 2.2 + h.s) * 0.05; h.disc.scale.set(p, p, 1); }
+    else if (h.type === 'sap' || h.type === 'chem') {
+      if (near && h.disc) {
+        const p = 1 + Math.sin(time * (h.type === 'chem' ? 3.4 : 2.2) + h.s) * 0.05;
+        h.disc.scale.set(p, p, 1);
+      }
     }
     else if (h.type === 'bramble') {
       if (playing) barrierCheck(h, h.latA, h.latB, 1.7, 8);
@@ -1163,16 +1802,17 @@ function updateHazards(dt, time, playing) {
   }
 }
 
-/* sap + grabber-trigger + door-blocking tests that affect motion */
-function checkSap() {
-  let inSap = false;
+/* sap / chem pools + grabber trigger, all in track-space */
+function checkPools() {
+  let inSap = false, inChem = false;
   for (const h of hazards) {
-    if (h.type !== 'sap') continue;
+    if (h.type !== 'sap' && h.type !== 'chem') continue;
     const ds = P.s - h.s, dl = P.lat - h.lat;
-    if (ds * ds + dl * dl < h.r * h.r) { inSap = true; break; }
+    if (ds * ds + dl * dl < h.r * h.r) { if (h.type === 'chem') inChem = true; else inSap = true; }
   }
   if (inSap && !P.inSap && state === 'race') toast('◉ SAP! BOOST TO POWER THROUGH', '#b46bff');
-  P.inSap = inSap;
+  if (inChem && !P.inChem && state === 'race') toast('☣ CHEM SLICK — NO GRIP', '#7dff4d');
+  P.inSap = inSap; P.inChem = inChem;
 }
 function checkGrabbers(prevS) {
   if (P.grabbed) return;
@@ -1212,8 +1852,9 @@ function updatePlayer(dt, time) {
   else if (keys.brake) target = BRAKEV;
   if (!wantBoost && P.padT <= 0) P.boost = Math.min(100, P.boost + 3.2 * dt);   // slow regen
   if (P.chokedT > 0) target *= 0.45;                                            // spores choke engine
-  checkSap();
+  checkPools();
   if (P.inSap) target *= (wantBoost || P.padT > 0) ? 0.58 : 0.33;               // sap drag
+  if (P.inChem) target *= 0.8;                                                  // slick: little drag…
   if (P.grabbed) {
     target = 0;
     P.hull = Math.max(0, P.hull - 1.1 * dt);                                   // it's digesting you…
@@ -1225,13 +1866,27 @@ function updatePlayer(dt, time) {
   if (P.speed < 0.02 && target === 0) P.speed = 0;
 
   /* steering — lateral velocity, sluggish in sap */
-  const maxLat = 13.5 * clamp(P.speed / CRUISE, 0.3, 1.12) * (P.inSap ? 0.55 : 1);
+  const maxLat = 13.5 * clamp(P.speed / CRUISE, 0.3, 1.12) * (P.inSap ? 0.55 : 1) * (P.inChem ? 0.32 : 1);  // …but no grip
   const steerRate = P.grabbed ? 0 : maxLat;
   P.latVel = damp(P.latVel, steer * steerRate, P.inSap ? 5 : 9, dt);
   P.lat += P.latVel * dt;
   const latLim = half - 1.15;
   if (P.lat > latLim) { if (P.latVel > 6) shake = Math.min(1, shake + .18); P.lat = latLim; P.latVel = Math.min(P.latVel, 0); }
   if (P.lat < -latLim) { if (P.latVel < -6) shake = Math.min(1, shake + .18); P.lat = -latLim; P.latVel = Math.max(P.latVel, 0); }
+
+  /* central islands fork the causeway — clipping one shoves you into a passage */
+  for (const h of hazards) {
+    if (h.type !== 'divider') continue;
+    const hs = h.len / 2 + 1.2;
+    if (P.s < h.s - hs || P.s > h.s + hs) continue;
+    if (P.lat <= h.latA - 0.8 || P.lat >= h.latB + 0.8) continue;
+    const dir = (P.lat - h.latA) < (h.latB - P.lat) ? -1 : 1;
+    P.lat = dir < 0 ? h.latA - 1.0 : h.latB + 1.0;
+    P.latVel = dir * 4.5;
+    P.speed *= 0.6;
+    shake = Math.min(1, shake + 0.3);
+    if (h.hitCd <= 0) { h.hitCd = 1.4; damage(7, dir); toast('▮ ISLAND CLIP!', '#ffb020'); }
+  }
 
   /* advance + blast-door blocking (the lab literally holds you still) */
   let nextS = P.s + P.speed * dt;
@@ -1343,11 +1998,13 @@ function updateHUD(wantBoost) {
   else if (keys.brake) { gear = 'BRAKE ▼'; gc = 'brake'; }
   else if (P.chokedT > 0) { gear = 'CHOKED'; gc = 'brake'; }
   else if (P.inSap) { gear = 'IN SAP'; gc = 'brake'; }
+  else if (P.inChem) { gear = 'SLIDING'; gc = 'brake'; }
   el.gear.textContent = gear; el.gear.className = gc;
-  el.fx.textContent = P.grabbed ? 'GRABBED' : P.inSap ? 'SAP DRAG' : P.chokedT > 0 ? 'SPORE CHOKE' : P.doorHeld ? 'HELD BY DOOR' : 'CLEAR';
-  el.fx.style.color = P.grabbed ? '#ff5b64' : P.inSap ? '#b46bff' : P.chokedT > 0 ? '#d8e64a' : P.doorHeld ? '#ffb020' : '#37e08b';
+  el.fx.textContent = P.grabbed ? 'GRABBED' : P.inSap ? 'SAP DRAG' : P.inChem ? 'CHEM SLICK' : P.chokedT > 0 ? 'SPORE CHOKE' : P.doorHeld ? 'HELD BY DOOR' : 'CLEAR';
+  el.fx.style.color = P.grabbed ? '#ff5b64' : P.inSap ? '#b46bff' : P.inChem ? '#7dff4d' : P.chokedT > 0 ? '#d8e64a' : P.doorHeld ? '#ffb020' : '#37e08b';
   el.chipSpore.classList.toggle('on', P.chokedT > 0);
   el.chipSap.classList.toggle('on', P.inSap);
+  el.chipChem.classList.toggle('on', P.inChem);
   el.chipDoor.classList.toggle('on', P.doorHeld);
   el.chipHurt.classList.toggle('on', hurtChipT > 0);
   el.sporeFx.style.opacity = P.chokedT > 0 ? 1 : 0;
@@ -1384,19 +2041,41 @@ function drawMap() {
   for (let s = 0; s <= TRACK_LEN; s += 8) { const x = X(s), y = Y(s, 0); s === 0 ? g.moveTo(x, y) : g.lineTo(x, y); }
   g.strokeStyle = 'rgba(31,94,255,.65)'; g.setLineDash([7, 6]); g.stroke(); g.setLineDash([]);
   /* hazards */
-  const COLORS = { snapper: '#ff3b47', grabber: '#37e08b', puffer: '#d8e64a', sap: '#b46bff', bramble: '#ffb020', growbar: '#ffb020', door: '#ffb020', tentacle: '#ff2f7e', pad: '#4d80ff', nitro: '#35c8ff', repair: '#2fe07a' };
+  const COLORS = { snapper: '#ff3b47', flower: '#ff5fa3', grabber: '#37e08b', puffer: '#d8e64a', sap: '#b46bff', chem: '#7dff4d', bramble: '#ffb020', growbar: '#ffb020', door: '#ffb020', tentacle: '#ff2f7e', pad: '#4d80ff', nitro: '#35c8ff', repair: '#2fe07a' };
   for (const h of hazards) {
     const half = halfAt(Math.min(h.s, TRACK_LEN));
-    const lat = h.type === 'snapper' || h.type === 'puffer' ? h.side * (half + 2.4)
-      : h.type === 'bramble' || h.type === 'growbar' ? h.side * (half * 0.5)
-        : h.type === 'grabber' || h.type === 'door' || h.type === 'tentacle' ? 0 : (h.lat || 0);
+    if (h.type === 'divider') {                     // playable fork: two passages
+      const x = X(h.s - h.len / 2), w = Math.max(4, X(h.s + h.len / 2) - x);
+      const y0 = Y(h.s, h.latA), y1 = Y(h.s, h.latB);
+      g.fillStyle = 'rgba(255,176,32,.8)'; g.fillRect(x, y0, w, y1 - y0);
+      g.strokeStyle = '#ffb020'; g.lineWidth = 1.5; g.strokeRect(x, y0, w, y1 - y0);
+      g.fillStyle = 'rgba(255,255,255,.65)'; g.font = '600 9px ui-monospace, monospace'; g.textAlign = 'center';
+      g.fillText('FORK', x + w / 2, y0 - 5);
+      continue;
+    }
+    const lat = h.type === 'snapper' ? h.lat
+      : h.type === 'puffer' ? h.side * (half + 2.4)
+        : h.type === 'bramble' || h.type === 'growbar' ? h.side * (half * 0.5)
+          : h.type === 'grabber' || h.type === 'door' || h.type === 'tentacle' ? 0 : (h.lat || 0);
     const x = X(h.s), y = Y(h.s, lat);
     g.fillStyle = COLORS[h.type] || '#fff';
     if (h.type === 'door' || h.type === 'grabber') { g.fillRect(x - 2, Y(h.s, -half), 4, Y(h.s, half) - Y(h.s, -half)); }
-    else if (h.type === 'sap') { g.beginPath(); g.arc(x, y, h.r * latScale * .8, 0, 7); g.globalAlpha = .55; g.fill(); g.globalAlpha = 1; }
+    else if (h.type === 'sap' || h.type === 'chem') { g.beginPath(); g.arc(x, y, h.r * latScale * .8, 0, 7); g.globalAlpha = .55; g.fill(); g.globalAlpha = 1; }
+    else if (h.type === 'flower') {                 // all blooms identical — that's the point
+      g.beginPath(); g.arc(x, y, 4.6, 0, 7); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = 1; g.stroke();
+    }
     else { g.beginPath(); g.arc(x, y, h.big ? 9 : 5.5, 0, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1.5; g.stroke(); }
     if (h.big) { g.fillStyle = '#ff2f7e'; g.font = '800 13px ui-monospace, monospace'; g.textAlign = 'center'; g.fillText('★ MOTHER MAW', x, Y(h.s, -half) - 12); }
   }
+  /* side passages branching off the causeway */
+  g.strokeStyle = 'rgba(255,176,32,.5)'; g.lineWidth = 2;
+  for (const pg of PASSAGES) {
+    const half = halfAt(pg.s), y0 = Y(pg.s, pg.side * half), y1 = Y(pg.s, pg.side * (half + 7));
+    g.beginPath(); g.moveTo(X(pg.s), y0); g.lineTo(X(pg.s) + 10, y1); g.stroke();
+  }
+  g.fillStyle = 'rgba(255,176,32,.7)'; g.font = '600 10px ui-monospace, monospace'; g.textAlign = 'left';
+  g.fillText('↗ SIDE PASSAGES', W - 232, H - 42);
   /* start / finish */
   g.font = '800 15px ui-monospace, monospace'; g.textAlign = 'center';
   g.fillStyle = '#fff'; g.fillText('▶ START · AIRLOCK', X(0) + 54, Y(0, 0) - 34);
@@ -1459,6 +2138,7 @@ function animate() {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) el.toast.classList.remove('on'); }
   if (hurtChipT > 0) hurtChipT -= dt;
 
+  cullWorld();
   sporeGroup.userData.update(dt, time);
   updateParticles(state === 'pause' ? 0 : dt);
   renderer.render(scene, camera);
@@ -1474,4 +2154,8 @@ addEventListener('contextmenu', e => { if (state === 'race') e.preventDefault();
 
 /* Debug / tuning hook — e.g. in devtools: __BIOLAB__.P.s = 1050 (jump to the Maw),
    __BIOLAB__.P.hull = 100, __BIOLAB__.hazards.filter(h=>h.type==='snapper')        */
-window.__BIOLAB__ = { P, hazards, ZONES, startRun, get state() { return state; }, get time() { return raceTime; }, get gameTime() { return gameTime; } };
+window.__BIOLAB__ = {
+  P, hazards, ZONES, startRun,
+  get state() { return state; }, get time() { return raceTime; }, get gameTime() { return gameTime; },
+  get info() { return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, culled: CULLABLES.length }; },
+};
