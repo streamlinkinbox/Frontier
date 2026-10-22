@@ -1,0 +1,32 @@
+[build] g++ 12.2 -std=c++20 -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion  -> no diagnostics
+
+[FacetClusterValidation] compiler g++
+FacetClusterValidation - virtualized-geometry build K1
+  triangle cap 128  vertex cap 256  transmissive classes none (single opaque class, as the reference default)
+
+  corpus sphere
+    facets 5120  welded vertices 2562  clusters 48
+    sharp edges 0  uv seams 0  open-boundary edges 0
+    largest cluster 128 facets / 87 vertices  (caps 128 / 256)
+    build 7.31341 ms  violations 0
+  corpus heightfield
+    facets 18432  welded vertices 9409  clusters 159
+    sharp edges 0  uv seams 0  open-boundary edges 384
+    largest cluster 128 facets / 100 vertices  (caps 128 / 256)
+    build 21.6469 ms  violations 0
+  corpus seam-cylinder
+    facets 1920  welded vertices 1008  clusters 16
+    sharp edges 144  uv seams 20  open-boundary edges 96
+    largest cluster 128 facets / 108 vertices  (caps 128 / 256)
+    build 2.13939 ms  violations 0
+
+  checks
+    sphere matches the reference weld and cluster count (5120 / 2562 / 48)   PASS
+    heightfield matches the reference weld (18432 facets / 9409 vertices)     PASS
+    seam cylinder exposes UV seams and marked sharp edges                    PASS
+    every cluster inside the facet and welded-vertex caps                     PASS
+    partition invariants hold on all corpora                                 PASS
+
+  result PASS
+
+[exit] 0

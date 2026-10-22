@@ -1,0 +1,19 @@
+Reference parity — native K1 against the HTML geometry reference
+  native build:   g++ 12.2, -std=c++20 -O2 -Wall -Wextra, Engine/Geometry/FacetClusterBuild.cpp @ this branch
+  reference:      Experimental/VehicleHmiPrototype/Source/GeometryHierarchy.js @ c4ef131 (Node v22.22.3)
+  corpora:        icosphere(4) and heightfield(96 x 96 quads, extent 40) — both reference corpora, unmodified
+
+[1] reference replay
+  sphere: 5120 facets, 2562 welded vertices, 48 level-0 clusters, 0 sharp, 0 uv seams
+  heightfield: 18432 facets, 9409 welded vertices, 159 level-0 clusters, 0 sharp, 0 uv seams
+  wrote /tmp/ref/level0-reference.json
+
+[2] comparison, native --dump versus reference replay
+Reference parity - native K1 against HTML GeometryHierarchy.js
+  sphere: 48 clusters, 2562 welded vertices, 0 membership mismatches
+    max |delta| vs reference  centre=1.110e-16  radius=1.110e-16  axis=6.661e-16  cutoff=6.661e-16  minimum=1.110e-16  maximum=1.110e-16
+  heightfield: 159 clusters, 9409 welded vertices, 0 membership mismatches
+    max |delta| vs reference  centre=4.441e-16  radius=8.882e-16  axis=1.055e-15  cutoff=6.661e-16  minimum=2.220e-16  maximum=1.776e-15
+  result PASS
+
+[3] exit 0
