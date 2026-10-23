@@ -1,0 +1,41 @@
+========================================================================
+ Project-Tractrix — Phase 2 XPBD soft-tyre vs Pacejka cross-validation
+========================================================================
+
+[1] Build & numerical stability
+  [PASS] Tyre builds with the expected node count
+  [PASS] Loaded carcass settles to finite state (no blow-up)
+  [PASS] Contact patch resolves multiple nodes
+
+[2] Vertical load capacity
+  [PASS] Load positive and increases with penetration
+    operating Fz=4065 N, free-roll Omega*=44.03 rad/s, residual Fx=-945 N
+  [FAIL] Free-rolling residual |Fx| small vs load   Fx=-945.413896 Fz=4065.433840
+
+[3] Longitudinal Fx(kappa) vs Pacejka @ Fz=4065
+    k=0.03  XPBD Fx=   +8307   Pacejka=   +2049
+    k=0.06  XPBD Fx=   +9539   Pacejka=   +3885
+    k=0.10  XPBD Fx=  +10345   Pacejka=   +5765
+    k=0.16  XPBD Fx=  +10736   Pacejka=   +7293
+    k=0.22  XPBD Fx=  +10992   Pacejka=   +7712
+  [PASS] Fx positive for drive slip (correct sign)
+  [FAIL] Fx peak within 0.5-1.3x Pacejka peak   XPBD=10992.177229 Pac=7711.874023
+  [PASS] Fx peak at plausible slip (0.05-0.30)
+  [FAIL] Longitudinal slip stiffness within 0.4-1.6x Pacejka   XPBD=8307.093293 Pac=2049.057861
+
+[4] Lateral Fy(alpha) & Mz vs Pacejka @ Fz=4065
+    a=2 deg  XPBD Fy=   +8413 Mz=  +67.3   Pacejka Fy=   +2928 Mz=-1251.5
+    a=4 deg  XPBD Fy=   +9736 Mz=  +97.3   Pacejka Fy=   +5563 Mz=-1483.0
+    a=6 deg  XPBD Fy=   +9965 Mz= +107.6   Pacejka Fy=   +7620 Mz= -988.0
+    a=8 deg  XPBD Fy=  +10105 Mz= +113.6   Pacejka Fy=   +8933 Mz= -416.9
+  [PASS] Fy positive for positive slip angle (correct sign)
+  [PASS] Fy peak within 0.5-1.3x Pacejka peak
+  [FAIL] Cornering stiffness within 0.4-1.6x Pacejka   XPBD=8413.481196 Pac=2927.941895
+  [FAIL] Self-aligning torque has Pacejka sign (opposes slip angle; magnitude under-resolved — see header note)   XPBD Mz=67.315484 Pac Mz=-1251.534912
+
+[5] Load sensitivity
+  [PASS] Peak Fx grows with vertical load
+
+------------------------------------------------------------------------
+ RESULT: 9 passed, 5 failed
+------------------------------------------------------------------------
