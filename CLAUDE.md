@@ -188,3 +188,11 @@ Full demo path: `Experimental/VehicleHmiPrototype/`. GPU XPBD implementation: `8
   7 commits `60b64db..d99f5e5` on shared base `38e6215` (44 added files + `CMakeLists.txt` + 2 Docs).
 - Owner direction retained: cabin HMI display deferred; do not fixate on Jolt/vehicle physics ahead of
   the ReSTIR + ray-tracing SDK phase; improve on the demo where C++/Vulkan allows, with evidence.
+
+## Foliage / vegetation source ledger (2026-10-23)
+
+- Import #1 for the one-editor foliage merge: `unassignedinbox/Slate` `arena/01a096c9-slate`
+  (`3b1172f78b07`) demo only → `Experimental/ProceduralVegetation/` (41 files, blob-identical,
+  170/170 tests). Provenance: its `IMPORT.md`; plan: `Documentation/Plans/Ongoing/ProceduralVegetation.md`.
+- Import each further foliage/plant implementation the same pinned way; never copy a whole engine tree
+  for a demo. Imported names stay verbatim until graduation out of `Experimental/`.

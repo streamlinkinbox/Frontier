@@ -1,0 +1,30 @@
+
+> frontier-tree-generator@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 22 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                     0.71 kB │ gzip:   0.44 kB
+dist/bark-lab.html                                                  4.23 kB │ gzip:   1.42 kB
+dist/assets/jetbrains-mono-vietnamese-wght-normal-Bt-aOZkq.woff2    7.50 kB
+dist/assets/jetbrains-mono-greek-wght-normal-Bw9x6K1M.woff2         9.00 kB
+dist/assets/jetbrains-mono-cyrillic-wght-normal-D73BlboJ.woff2     12.11 kB
+dist/assets/outfit-latin-ext-wght-normal-DdQaqQDo.woff2            14.81 kB
+dist/assets/jetbrains-mono-latin-ext-wght-normal-DBQx-q_a.woff2    15.20 kB
+dist/assets/outfit-latin-wght-normal-Bc-8i84L.woff2                32.29 kB
+dist/assets/jetbrains-mono-latin-wght-normal-B9CIFXIH.woff2        40.40 kB
+dist/assets/tree.worker-CU7Hr2BA.js                               117.69 kB
+dist/assets/barkLab-CRzwFOv6.css                                    4.25 kB │ gzip:   1.54 kB
+dist/assets/main-Bf1z-gYA.css                                      26.89 kB │ gzip:   8.01 kB
+dist/assets/barkLab-0S3AnjpC.js                                    10.33 kB │ gzip:   4.47 kB
+dist/assets/main-DBhvfmNA.js                                      113.86 kB │ gzip:  34.42 kB
+dist/assets/OrbitControls-eSGQcDUx.js                             555.69 kB │ gzip: 138.60 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.55s

@@ -1,0 +1,101 @@
+
+> frontier-tree-generator@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /home/user/Frontier/Experimental/ProceduralVegetation
+
+ ✓ tests/topology.test.ts (167 tests) 101636ms
+   ✓ welded branch mesh is a single closed manifold > English Oak seed 1  669ms
+   ✓ welded branch mesh is a single closed manifold > English Oak seed 7  636ms
+   ✓ welded branch mesh is a single closed manifold > English Oak seed 42  885ms
+   ✓ welded branch mesh is a single closed manifold > Quaking Aspen seed 1  695ms
+   ✓ welded branch mesh is a single closed manifold > Quaking Aspen seed 7  598ms
+   ✓ welded branch mesh is a single closed manifold > Quaking Aspen seed 42  634ms
+   ✓ welded branch mesh is a single closed manifold > Black Tupelo seed 1  3398ms
+   ✓ welded branch mesh is a single closed manifold > Black Tupelo seed 7  3277ms
+   ✓ welded branch mesh is a single closed manifold > Black Tupelo seed 42  3739ms
+   ✓ welded branch mesh is a single closed manifold > California Black Oak seed 1  589ms
+   ✓ welded branch mesh is a single closed manifold > California Black Oak seed 7  525ms
+   ✓ welded branch mesh is a single closed manifold > California Black Oak seed 42  666ms
+   ✓ welded branch mesh is a single closed manifold > Southern Live Oak seed 1  1428ms
+   ✓ welded branch mesh is a single closed manifold > Southern Live Oak seed 7  1253ms
+   ✓ welded branch mesh is a single closed manifold > Southern Live Oak seed 42  1280ms
+   ✓ welded branch mesh is a single closed manifold > White Oak seed 1  1565ms
+   ✓ welded branch mesh is a single closed manifold > White Oak seed 7  1418ms
+   ✓ welded branch mesh is a single closed manifold > White Oak seed 42  1384ms
+   ✓ welded branch mesh is a single closed manifold > Northern Red Oak seed 1  326ms
+   ✓ welded branch mesh is a single closed manifold > Northern Red Oak seed 7  467ms
+   ✓ welded branch mesh is a single closed manifold > Northern Red Oak seed 42  407ms
+   ✓ welded branch mesh is a single closed manifold > Valley Oak seed 1  904ms
+   ✓ welded branch mesh is a single closed manifold > Valley Oak seed 7  818ms
+   ✓ welded branch mesh is a single closed manifold > Valley Oak seed 42  578ms
+   ✓ welded branch mesh is a single closed manifold > Pin Oak seed 1  1132ms
+   ✓ welded branch mesh is a single closed manifold > Pin Oak seed 7  1021ms
+   ✓ welded branch mesh is a single closed manifold > Pin Oak seed 42  1107ms
+   ✓ welded branch mesh is a single closed manifold > Cork Oak seed 1  446ms
+   ✓ welded branch mesh is a single closed manifold > Cork Oak seed 7  338ms
+   ✓ welded branch mesh is a single closed manifold > Silver Birch seed 1  1134ms
+   ✓ welded branch mesh is a single closed manifold > Silver Birch seed 7  1044ms
+   ✓ welded branch mesh is a single closed manifold > Silver Birch seed 42  1109ms
+   ✓ welded branch mesh is a single closed manifold > Weeping Willow seed 1  3914ms
+   ✓ welded branch mesh is a single closed manifold > Weeping Willow seed 7  2603ms
+   ✓ welded branch mesh is a single closed manifold > Weeping Willow seed 42  3772ms
+   ✓ welded branch mesh is a single closed manifold > Scots Pine seed 1  337ms
+   ✓ welded branch mesh is a single closed manifold > Scots Pine seed 7  332ms
+   ✓ welded branch mesh is a single closed manifold > Scots Pine seed 42  438ms
+   ✓ welded branch mesh is a single closed manifold > Coast Redwood seed 1  932ms
+   ✓ welded branch mesh is a single closed manifold > Coast Redwood seed 7  816ms
+   ✓ welded branch mesh is a single closed manifold > Coast Redwood seed 42  1024ms
+   ✓ welded branch mesh is a single closed manifold > Norway Spruce seed 1  2024ms
+   ✓ welded branch mesh is a single closed manifold > Norway Spruce seed 7  1727ms
+   ✓ welded branch mesh is a single closed manifold > Norway Spruce seed 42  1791ms
+   ✓ welded branch mesh is a single closed manifold > Umbrella Thorn seed 1  747ms
+   ✓ welded branch mesh is a single closed manifold > Umbrella Thorn seed 7  1010ms
+   ✓ welded branch mesh is a single closed manifold > Umbrella Thorn seed 42  750ms
+   ✓ welded branch mesh is a single closed manifold > European Beech seed 1  660ms
+   ✓ welded branch mesh is a single closed manifold > European Beech seed 7  736ms
+   ✓ welded branch mesh is a single closed manifold > European Beech seed 42  702ms
+   ✓ welded branch mesh is a single closed manifold > Sugar Maple seed 1  593ms
+   ✓ welded branch mesh is a single closed manifold > Sugar Maple seed 7  688ms
+   ✓ welded branch mesh is a single closed manifold > Sugar Maple seed 42  651ms
+   ✓ welded branch mesh is a single closed manifold > Douglas Fir seed 1  917ms
+   ✓ welded branch mesh is a single closed manifold > Douglas Fir seed 7  847ms
+   ✓ welded branch mesh is a single closed manifold > Douglas Fir seed 42  913ms
+   ✓ welded branch mesh is a single closed manifold > Kapok seed 1  1548ms
+   ✓ welded branch mesh is a single closed manifold > Kapok seed 7  1522ms
+   ✓ welded branch mesh is a single closed manifold > Kapok seed 42  1663ms
+   ✓ welded branch mesh is a single closed manifold > Rain-Forest Fig seed 1  1117ms
+   ✓ welded branch mesh is a single closed manifold > Rain-Forest Fig seed 7  1124ms
+   ✓ welded branch mesh is a single closed manifold > Rain-Forest Fig seed 42  808ms
+   ✓ welded branch mesh is a single closed manifold > Desert Ironwood seed 1  337ms
+   ✓ welded branch mesh is a single closed manifold > Desert Ironwood seed 42  388ms
+   ✓ welded branch mesh is a single closed manifold > Rowan seed 1  393ms
+   ✓ welded branch mesh is a single closed manifold > Rowan seed 7  358ms
+   ✓ welded branch mesh is a single closed manifold > Japanese Maple seed 1  340ms
+   ✓ welded branch mesh is a single closed manifold > Japanese Maple seed 42  342ms
+   ✓ welded grass plant is a single closed manifold > Fountain Grass seed 1  768ms
+   ✓ welded grass plant is a single closed manifold > Fountain Grass seed 7  787ms
+   ✓ welded grass plant is a single closed manifold > Fountain Grass seed 42  817ms
+   ✓ welded grass plant is a single closed manifold > Chinese Silver Grass seed 1  621ms
+   ✓ welded grass plant is a single closed manifold > Chinese Silver Grass seed 7  621ms
+   ✓ welded grass plant is a single closed manifold > Chinese Silver Grass seed 42  657ms
+   ✓ welded grass plant is a single closed manifold > Pampas Grass seed 1  1028ms
+   ✓ welded grass plant is a single closed manifold > Pampas Grass seed 7  1023ms
+   ✓ welded grass plant is a single closed manifold > Pampas Grass seed 42  1009ms
+   ✓ welded grass plant is a single closed manifold > Elephant Grass seed 1  640ms
+   ✓ welded grass plant is a single closed manifold > Elephant Grass seed 7  658ms
+   ✓ welded grass plant is a single closed manifold > Elephant Grass seed 42  630ms
+   ✓ stress configurations > very low radial resolution stays manifold  396ms
+   ✓ stress configurations > high radial resolution stays manifold  1303ms
+   ✓ stress configurations > heavy splitting (maple-like) stays manifold  2381ms
+   ✓ stress configurations > whorled branching (conifer) stays manifold  723ms
+   ✓ stress configurations > is deterministic for a given seed  825ms
+   ✓ wind attributes > are in range and continuous at junctions  4963ms
+ ✓ tests/bark-lab.test.ts (3 tests) 41ms
+
+ Test Files  2 passed (2)
+      Tests  170 passed (170)
+   Start at  12:23:23
+   Duration  103.25s (transform 787ms, setup 0ms, collect 1.15s, tests 101.68s, environment 0ms, prepare 129ms)
+

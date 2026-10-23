@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0d0d0d" />
+    <title>Frontier · Bark Cluster Laboratory</title>
+  </head>
+  <body>
+    <div class="lab">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <div>
+            <div class="eyebrow">Frontier / isolated study</div>
+            <h1>Bark Cluster Laboratory</h1>
+          </div>
+        </div>
+        <div class="header-note">small trunk · mesh pieces · procedural bake</div>
+      </header>
+
+      <main class="lab-grid">
+        <aside class="card sidebar">
+          <div class="section-label">Bark species</div>
+          <p class="help">A contained experiment. The production vegetation app is not imported here: every visible plate is an independent closed mesh piece wrapped around a small trunk.</p>
+
+          <div class="field">
+            <label for="profileSelect">Pattern profile</label>
+            <select id="profileSelect"></select>
+          </div>
+          <div class="field">
+            <label for="seedInput">Seed <output id="seedValue"></output></label>
+            <input id="seedInput" type="number" min="1" max="999999" step="1" value="17" />
+          </div>
+          <div class="field">
+            <label for="heightInput">Trunk height <output id="heightValue"></output></label>
+            <input id="heightInput" type="range" min="1.4" max="3.6" step="0.05" value="2.4" />
+          </div>
+          <div class="field">
+            <label for="radiusInput">Trunk radius <output id="radiusValue"></output></label>
+            <input id="radiusInput" type="range" min="0.38" max="0.86" step="0.01" value="0.62" />
+          </div>
+
+          <div class="button-row">
+            <button class="primary" id="regenerateButton">Regenerate</button>
+            <button id="randomiseButton">Random seed</button>
+          </div>
+
+          <div class="specimen-note">
+            <strong id="profileDescription">Deep vertical fissures between thick, irregular cork plates.</strong>
+            <span id="clusterValue">— independent pieces</span>
+          </div>
+        </aside>
+
+        <section class="card viewport-card">
+          <canvas id="barkViewport"></canvas>
+          <div class="viewport-label"><span>01</span> / mesh specimen</div>
+          <div class="viewport-foot"><span>orbit · zoom · inspect seams</span><span>core + cluster shell</span></div>
+        </section>
+
+        <aside class="card maps">
+          <div class="section-label">Procedural maps</div>
+          <div class="map-stack">
+            <div class="map-card albedo">
+              <header><span>Albedo</span><span>SRGB</span></header>
+              <canvas id="albedoPreview" width="420" height="255"></canvas>
+            </div>
+            <div class="map-card normal">
+              <header><span>Normal</span><span>tangent</span></header>
+              <canvas id="normalPreview" width="420" height="255"></canvas>
+            </div>
+            <div class="map-card">
+              <header><span>Roughness</span><span>linear</span></header>
+              <canvas id="roughnessPreview" width="420" height="255"></canvas>
+            </div>
+          </div>
+          <div class="bake-box">
+            <div class="section-label">Bake hand-off</div>
+            <p>Exports the current procedural albedo, tangent normal and roughness maps as separate PNGs. These are mapped to the same cluster UV layout visible in the specimen.</p>
+            <button class="primary" id="bakeButton">Bake texture maps</button>
+            <div id="status" aria-live="polite"></div>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="footer"><span>isolated from the main generator · no production files are imported</span><strong>mesh-first bark study</strong></footer>
+    </div>
+    <script type="module" src="/src/bark-lab/main.ts"></script>
+  </body>
+</html>
