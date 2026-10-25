@@ -18,6 +18,7 @@
     "test:sim": "node test/launch.mjs test/sim.test.mjs",
     "validate": "node test/launch.mjs test/validate.mjs demo/shaders.js",
     "test:render": "node test/launch.mjs test/render.test.mjs",
+    "render:foam": "node test/launch.mjs test/foam.render.mjs",
     "test:browser": "node test/browser.test.mjs",
     "demo": "cd ../.. && python3 -m http.server 8080 --bind 0.0.0.0"
   },

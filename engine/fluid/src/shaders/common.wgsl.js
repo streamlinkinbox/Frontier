@@ -22,6 +22,9 @@ struct Sim {
 `;
 
 export const PART_STRUCT = /* wgsl */ `
+// Foam particles (rafts of bubbles) carry no water and no vertical velocity, so for them
+// vel.y = foam thickness at birth (1 = breaking-wave whitewater, less for droplet impacts) and
+// vol = rotation picked up from the flow's vorticity (radians).
 struct Particle {
   pos: vec3f, life: f32,
   vel: vec3f, maxLife: f32,
@@ -37,8 +40,8 @@ struct PartParams {
   spraySize: f32, foamSize: f32, mistSize: f32, mistFraction: f32,  // 24
   foamDecayTurb: f32, foamStrandDecay: f32, foamDiffusion: f32, surfaceDrift: f32, // 28
   windX: f32, windY: f32, windZ: f32, impactFoamProb: f32,        // 32
-  rainRate: f32, rainRadius: f32, rainCenterX: f32, rainCenterZ: f32, // 36
-  rainHeight: f32, rainVolume: f32, rainSize: f32, sprayUp: f32,  // 40
+  foamEmitProb: f32, impactFoamAmount: f32, pad36: f32, pad37: f32, // 36
+  pad38: f32, pad39: f32, pad40: f32, sprayUp: f32,                // 40
 };                                                                // 44 words
 const KIND_SPRAY: u32 = 1u;
 const KIND_FOAM: u32 = 2u;

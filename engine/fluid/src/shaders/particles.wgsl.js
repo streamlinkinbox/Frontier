@@ -4,8 +4,9 @@
 //    colliding flow), wave-crest (convex surface moving along its normal) and kinetic energy.
 //  * Spray carries real water volume: it is removed from the grid on emission and deposited back
 //    (into water or onto dry ground) when it lands, so splashes genuinely move water around.
-//  * Spray hitting water turns into foam; foam rides and is advected by the simulated surface flow
-//    and decays (faster when stranded on dry ground).
+//  * Spray hitting water turns into foam; foam rides and is advected by the simulated surface flow,
+//    turns with its vorticity and decays (faster in turbulence and when stranded on dry ground).
+//    Foam particles are rafts of bubbles rendered as a continuous surface (FOAM_SPLAT/COMPOSITE).
 import { SIM_STRUCT, PART_STRUCT, HELPERS, IDX, VEL_ACCESS, STATE_ACCESS } from './common.wgsl.js';
 
 const ALLOC = /* wgsl */ `
@@ -99,11 +100,13 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let wx = S.originX; let wz = S.originZ;
   var thrown = 0.0;
   for (var e = 0; e < count; e++) {
+    let isSpray = rnd(&seed) < mix(1.0 - PP.foamFraction, 0.97, sprayBias) && vlen > 0.25;
+    // foam rafts are large: only a share of the foam emissions spawn one
+    if (!isSpray && rnd(&seed) >= PP.foamEmitProb) { continue; }
     let idx = allocParticle();
     if (idx < 0) { break; }
     let lp = (vec2f(f32(i), f32(j)) + vec2f(rnd(&seed), rnd(&seed))) * S.dx;
     var p: Particle;
-    let isSpray = rnd(&seed) < mix(1.0 - PP.foamFraction, 0.97, sprayBias) && vlen > 0.25;
     if (isSpray) {
       let isMist = rnd(&seed) < PP.mistFraction;
       let spread = (vec2f(rnd(&seed), rnd(&seed)) - 0.5) * (0.45 * vlen + 0.3);
@@ -126,7 +129,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     } else {
       p.kind = KIND_FOAM; p.vol = 0.0; p.mud = d.y;
       p.pos = vec3f(wx + lp.x, eta + 0.01, wz + lp.y);
-      p.vel = vec3f(U.x, 0.0, U.y);
+      p.vel = vec3f(U.x, 1.0, U.y);   // vel.y: full-thickness whitewater
       p.size = PP.foamSize * (0.5 + rnd(&seed));
       p.maxLife = PP.foamLife * (0.4 + 0.9 * rnd(&seed));
     }
@@ -199,6 +202,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       p.kind = kind;
       p.size = E.prm.x * (0.6 + 0.8 * rnd(&seed));
       p.vol = E.prm.y;
+      // foam carries no water: vel.y = full thickness, vol = rotation (see PART_STRUCT)
+      if (kind == KIND_FOAM) { p.vel.y = 1.0; p.vol = 0.0; }
       p.mud = mud;
       p.maxLife = E.prm.z * (0.6 + 0.8 * rnd(&seed));
       p.life = p.maxLife;
@@ -261,12 +266,17 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     decay += PP.foamDecayTurb * length(U);
     let jit = (vec2f(rnd(&seed), rnd(&seed)) - 0.5) * PP.foamDiffusion * sqrt(dt) * 3.46;
     let drift = U * PP.surfaceDrift + vec2f(PP.windX, PP.windZ) * 0.015;
+    // a raft turns with the local fluid rotation (half the vorticity), so foam swirls in eddies.
+    // Foam carries no water, so its vol field holds this accumulated angle (radians).
+    let ex = vec2f(S.dx, 0.0); let ez = vec2f(0.0, S.dx);
+    let curl = ((sampleVel(lp + ex).y - sampleVel(lp - ex).y) - (sampleVel(lp + ez).x - sampleVel(lp - ez).x)) / (2.0 * S.dx);
+    p.vol = p.vol + 0.5 * clamp(curl, -20.0, 20.0) * dt;
     p.pos.x += drift.x * dt + jit.x;
     p.pos.z += drift.y * dt + jit.y;
     lp = vec2f(p.pos.x - S.originX, p.pos.z - S.originZ);
     let st2 = sampleState(lp);
     p.pos.y = st2.w + 0.012;
-    p.vel = vec3f(drift.x, (st2.w - st.w) / max(dt, 1e-4), drift.y);
+    p.vel = vec3f(drift.x, p.vel.y, drift.y);   // vel.y keeps the raft's birth thickness
     p.life -= dt * decay;
   } else {
     // ballistic droplet with quadratic air drag relative to the wind
@@ -294,7 +304,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         p.kind = KIND_FOAM;
         p.vol = 0.0;
         p.pos.y = st.w + 0.012;
-        p.vel = vec3f(p.vel.x * 0.3, 0.0, p.vel.z * 0.3);
+        p.vel = vec3f(p.vel.x * 0.3, PP.impactFoamAmount, p.vel.z * 0.3);   // a thin film of droplet foam
         p.size = PP.foamSize * (0.35 + 0.6 * rnd(&seed));
         p.maxLife = PP.foamLife * (0.25 + 0.6 * rnd(&seed));
         p.life = p.maxLife;

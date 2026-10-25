@@ -401,8 +401,11 @@ export class App {
     this._updateCamera(dt, input?.camera ?? null);
     const vp = this._viewParams();
     this.fluidR.updateView(vp.view);
-    this.renderer.setInstances(this._instances());
-    this.renderer.render(enc, outputView, { lightVP: vp.lightVP, time: this.time, srgbOutput: this.srgbOutput });
+    // outputView = null: simulate only (headless tools step the world without the render cost)
+    if (outputView) {
+      this.renderer.setInstances(this._instances());
+      this.renderer.render(enc, outputView, { lightVP: vp.lightVP, time: this.time, srgbOutput: this.srgbOutput });
+    }
     this.device.queue.submit([enc.finish()]);
     sim.afterSubmit();
     if (sim.frame % 15 === 0) sim.requestStats();

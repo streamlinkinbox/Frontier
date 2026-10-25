@@ -12,6 +12,7 @@ engine/fluid/
   src/                 the module (vanilla ES modules, no dependencies, no build step)
     FluidSim.js        shallow-water + mud solver, object coupling, queries, stats
     FluidParticles.js  spray / mist / foam / rain particles coupled to the grid
+    FoamPattern.js     procedural foam micro-structure carried by the foam particles
     FluidRenderer.js   water surface, caustics, particle rendering, ground-shader hooks
     Buoyancy.js        RigidBody, BuoyancyProbe, FluidQueryBatch (CPU side)
     RiverPath.js       carve a river (or a track) along a spline, fill it, add the inflow
@@ -77,7 +78,7 @@ section with the mode, fly speed, FOV and optional mouse lock. `?ui=hidden` star
 | No fake waves | Swell enters through an *ocean* boundary (relaxation-zone wave maker with physical amplitude/period/direction) and then propagates, shoals, refracts, steepens and breaks as bores purely in the solver. Wakes, bow waves, splashes, wind gust forcing — all solver dynamics |
 | River along a path | `RiverPath` carves a channel along a spline into the bed and adds a volume source at the head; the water flows downhill under gravity, speeds up over the rapids, pools, crosses fords and enters the sea |
 | Interactive vehicles | Car body + wheels are rasterised into the grid every frame as solid volumes: they push water away (bow wave, wake, trough behind each tyre), drag it along, leave persistent ruts in mud (yield stress) and get pushed back (buoyancy, drag, current) |
-| Splash, spray & foam | GPU particles emitted where the simulated surface breaks (Ihmsen et al. potentials: wave crest, trapped air, kinetic energy) and by wheel / bow emitters. Spray removes water from the grid and returns it where it lands; spray hitting water turns into foam that rides the simulated current, streaks, erodes and dies (faster on land) |
+| Splash, spray & foam | GPU particles emitted where the simulated surface breaks (Ihmsen et al. potentials: wave crest, trapped air, kinetic energy) and by wheel / bow emitters. Spray removes water from the grid and returns it where it lands; spray hitting water leaves thin droplet foam. Foam particles are rafts of bubbles that ride the simulated current, turn with its vorticity, thin out and burst (faster in turbulence and on land). They are rendered as one continuous foam surface that carries a bubble-raft micro-structure along with the particles, not as sprites (see *Particle foam* below) |
 | Caustics | Sun rays refracted through the simulated surface onto the bed; intensity = change of projected triangle area, with absorption and chromatic dispersion |
 | Buoyancy | Async GPU point queries (pressure head, depth, flow, mud) feed CPU rigid bodies (Archimedes + quadratic/linear drag + density of mud) |
 
@@ -118,13 +119,50 @@ Kinds: spray, mist, foam, rain. Ballistic droplets with size-dependent drag rela
 wind; volume exchange through fixed-point atomics so splashes genuinely move water (test: total
 volume returns to 2e-6 after all spray has landed).
 
+### Particle foam (`FoamPattern.js`, `FOAM_SPLAT` / `FOAM_COMPOSITE` in `shaders/render.wgsl.js`)
+The foam is the simulated foam particles. Each one is a *raft* of bubbles, 0.3 m in radius, that
+spreads as it ages. Breaking waves and trapped air make full-thickness whitewater, while landing
+droplets leave a thin film. Every raft is advected by the surface current and turned by the local
+vorticity. Its thickness decays as its bubbles burst.
+
+The rafts are drawn as one continuous surface, not as sprites:
+
+1. **Splat.** Each raft is drawn as a small patch lying on the water surface. The patch adds its
+   kernel weight w, w² and its pattern values into two screen-space rgba16f buffers. The opaque
+   depth is used for the depth test.
+2. **Lagrangian texture advection** (Yu, Neyret, Bruneton & Holzschuch 2011). Every raft carries
+   its own randomly placed and rotated window of a procedural foam micro-structure, so the
+   structure moves exactly with the particles. Where rafts overlap, their patterns are combined
+   with the variance-preserving blend `P = ½ + Σw(Pᵢ − ½) / √Σw²`. This keeps the structure crisp
+   however many rafts overlap.
+3. **Coverage = P(pattern < density).** Foam is drawn where the blended pattern is lower than the
+   local foam density. The pattern channels are histogram-equalised, so mean coverage equals
+   density. Fresh whitewater is solid with a frothy rim. As foam thins, it opens up into lace
+   along the bubble-raft walls, then breaks into fragments and specks.
+4. **Shading.**
+   - Reflectance runs from about 0.5 for thin foam to about 0.85 for thick fresh foam.
+   - Thin foam is translucent and tinted by the water underneath.
+   - Lighting uses wrapped diffuse light with relief from screen-space derivatives, the sun shadow
+     map and sky light.
+   - Muddy water makes tan foam.
+   - Fresh foam has wet glints.
+   - Water under fresh foam turns milky aquamarine from the submerged bubbles.
+5. **Level of detail.** When the fine lace becomes smaller than a pixel, the threshold switches to
+   the coarser marbling. When that is unresolved too, the expected coverage is drawn instead. The
+   foam doesn't shimmer, and its average brightness is kept.
+
+The micro-structure is a 512² texture generated on the CPU at start-up (about 0.4 s), with no image
+assets. It holds marbling, two-scale domain-warped Voronoi raft walls of varying thickness,
+fine bubbles and clumps. Settings are `foam*` and `bubbleScatter` in `renderer.settings`.
+
 ### Rendering (`shaders/render.wgsl.js`)
 Surface mesh displaced by the simulated height (shoreline handled per pixel from the true water
 thickness), screen-space refraction along the refracted ray, Beer–Lambert absorption + single
 scattering (water and suspended sediment), Fresnel sky reflection, GGX sun glints, opaque wet mud
 with micro-relief, fog, shadows. An outer ocean ring outside the domain shows the same incident
-swell the wave maker injects (linear theory). Particles: velocity-stretched spray billboards,
-streaked lacy foam patches, soft-particle depth fade, premultiplied alpha.
+swell the wave maker injects (linear theory). Spray and mist are soft, velocity-stretched droplet
+clusters with forward scattering and a soft-particle depth fade. Foam is the continuous particle
+surface described above.
 
 ## Integrating into your engine
 
@@ -143,7 +181,7 @@ river.addSource(sim, { flow: 2.6 /* m³/s */ });
 
 // 2. rendering (your HDR color target must be filterable, e.g. rgba16float; reverse-Z depth)
 const water = new FluidRenderer(sim, { colorFormat: 'rgba16float', depthFormat: 'depth32float' });
-water.setSceneTextures(sceneColorCopyView, sceneDepthView, shadowMapView /* optional */);
+water.setSceneTextures(sceneColorCopyView, sceneDepthView, shadowMapView /* optional */, [width, height]);
 
 // 3. every frame
 sim.setPrimitives([...car.primitives(), ...props]);   // displacement + drag
@@ -156,9 +194,10 @@ water.updateView({ viewProj, invViewProj, camPos, near, width, height, camRight,
 water.renderCaustics(enc);                           // before your opaque pass
 //   ...your opaque pass (terrain/material shaders call fluidGround(worldPos), see below)...
 enc.copyTextureToTexture({ texture: sceneColor }, { texture: sceneColorCopy }, size);
+water.renderFoam(enc);                               // splat the foam particles (tests the opaque depth)
 const pass = enc.beginRenderPass({ colorAttachments: [{ view: sceneColorView, loadOp: 'load', storeOp: 'store' }],
                                    depthStencilAttachment: { view: sceneDepthView, depthReadOnly: true } });
-water.drawWater(pass); water.drawParticles(pass); pass.end();
+water.drawWater(pass); water.drawFoam(pass); water.drawParticles(pass); pass.end();
 device.queue.submit([enc.finish()]);
 sim.afterSubmit();                                   // kicks off async query / stats readback
 ```
@@ -195,6 +234,8 @@ mud-roost emitters that only fire where there is real water.
 | `emitScale`, `ta/wc/ke Min/Max` | `sim.particles.params` | how readily breaking water makes spray & foam |
 | `sprayVolume` | `sim.particles.params` | water carried per spray particle (mass exchange) |
 | `absorb`, `scatter`, `mudAbsorb`, `mudScatter` | `renderer.settings` | water / sediment optics (1/m) |
+| `foamLife`, `foamSize`, `foamEmitProb`, `impactFoamProb`, `impactFoamAmount` | `sim.particles.params` | how much foam is made and how long rafts last |
+| `foamDensity`, `foamLace`, `foamThinning`, `foamFresh`, `foamAlbedo` | `renderer.settings` | how dense, lacy, long-lived and bright the foam looks |
 
 ## Performance
 
@@ -222,6 +263,8 @@ npm test            # vehicle + editor-camera checks (CPU), WGSL validation, GPU
 npm run test:render # headless render of the demo to test/out/*.png
 npm run test:browser # demo page in headless Chromium + WebGPU: real mouse/keyboard input
                      # (menu hide, game view, RMB fly, pan, orbit, dolly, focus, select), screenshots
+npm run render:foam  # foam close-ups (ford, beach, rapids) + foam-buffer statistics; with
+                     # TAG=before/after and node test/compare.mjs for a side-by-side sheet
 ```
 
 Runs on machines without a GPU: the launcher falls back to SwiftShader (CPU Vulkan). Current
@@ -244,5 +287,6 @@ displacement, exact source volume, particle volume exchange, ocean boundary stab
 
 Stelling & Duinmeijer 2003 (momentum-conservative staggered scheme) · Audusse et al. 2004
 (hydrostatic reconstruction) · O'Brien & Julien 1988 (mudflow rheology) · Ihmsen et al. 2012
-(spray/foam potentials) · Chentanez & Müller 2010 (heightfield water with rigid-body coupling) ·
+(spray/foam potentials) · Yu, Neyret, Bruneton & Holzschuch 2011 (Lagrangian texture advection,
+variance-preserving blending) · Chentanez & Müller 2010 (heightfield water with rigid-body coupling) ·
 Ritter 1892 (dam break) · Evan Wallace 2011 (WebGL caustics) · Horne & Dreher 1963 (aquaplaning).

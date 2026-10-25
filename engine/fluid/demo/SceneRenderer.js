@@ -234,7 +234,7 @@ export class SceneRenderer {
     this.depth = d.createTexture({ label: 'demo.depth', size: sz, format: 'depth32float', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
     this.selMask = d.createTexture({ label: 'demo.selectionMask', size: sz, format: 'rg8unorm', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
     this.hdrView = this.hdr.createView(); this.depthView = this.depth.createView(); this.selView = this.selMask.createView();
-    this.fr.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView);
+    this.fr.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView, [this.width, this.height]);
     this.postBG = d.createBindGroup({ layout: this.postBGL, entries: [{ binding: 0, resource: this.hdrView }, { binding: 1, resource: { buffer: this.postBuf } }, { binding: 2, resource: this.selView }] });
   }
 
@@ -320,7 +320,10 @@ export class SceneRenderer {
       pass.end();
     }
 
-    // water + particles (read-only depth, sampled for refraction & soft particles)
+    // particle foam: splat the foam rafts into screen-space buffers (depth-tested against the opaque scene)
+    this.fr.renderFoam(encoder);
+
+    // water + foam + spray particles (read-only depth, sampled for refraction & soft particles)
     {
       const pass = encoder.beginRenderPass({
         label: 'demo.water',
@@ -328,6 +331,7 @@ export class SceneRenderer {
         depthStencilAttachment: { view: this.depthView, depthReadOnly: true },
       });
       this.fr.drawWater(pass);
+      this.fr.drawFoam(pass);
       this.fr.drawParticles(pass);
       pass.end();
     }

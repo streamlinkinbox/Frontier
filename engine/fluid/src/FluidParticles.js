@@ -26,13 +26,15 @@ export class FluidParticles {
       minDepth: 0.015,
       sprayLife: 3.0, foamLife: 14, mistLife: 1.6,
       foamFraction: 0.55,        // share of trapped-air emission that becomes surface foam
-      spraySize: 0.03, foamSize: 0.11, mistSize: 0.32,
+      spraySize: 0.024, foamSize: 0.3, mistSize: 0.32,   // foamSize: radius of a foam raft (m)
       mistFraction: 0.12,
       foamDecayTurb: 0.12,       // extra foam decay per (m/s) of flow speed
       foamStrandDecay: 5.0,      // decay multiplier for foam left on dry land
       foamDiffusion: 0.05,       // random walk m/sqrt(s)
       surfaceDrift: 1.05,        // foam moves slightly faster than depth-averaged flow (surface current)
-      impactFoamProb: 0.7,
+      impactFoamProb: 0.45,      // chance that a landing spray droplet leaves a (thin) raft of foam
+      impactFoamAmount: 0.25,    // thickness of droplet foam relative to breaking-wave foam
+      foamEmitProb: 0.35,        // share of surface foam emissions that spawn a raft (rafts are large)
       sprayUp: 0.35,
       wind: [0, 0, 0],
     };
@@ -104,6 +106,7 @@ export class FluidParticles {
     f[24] = P.spraySize; f[25] = P.foamSize; f[26] = P.mistSize; f[27] = P.mistFraction;
     f[28] = P.foamDecayTurb; f[29] = P.foamStrandDecay; f[30] = P.foamDiffusion; f[31] = P.surfaceDrift;
     f[32] = P.wind[0]; f[33] = P.wind[1]; f[34] = P.wind[2]; f[35] = P.impactFoamProb;
+    f[36] = P.foamEmitProb; f[37] = P.impactFoamAmount;
     f[43] = P.sprayUp;
     // emitters
     const n = this._emitters.length;
