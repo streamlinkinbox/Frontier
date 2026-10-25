@@ -20,7 +20,7 @@
     "test:render": "node test/launch.mjs test/render.test.mjs",
     "render:foam": "node test/launch.mjs test/foam.render.mjs",
     "test:browser": "node test/browser.test.mjs",
-    "demo": "cd ../.. && python3 -m http.server 8080 --bind 0.0.0.0"
+    "demo": "node demo/serve.mjs 8080"
   },
   "devDependencies": {
     "webgpu": "^0.6.2",

@@ -7,6 +7,10 @@ const params = new URLSearchParams(location.search);
 const quality = QUALITY[params.get('q')] ? params.get('q') : 'medium';
 const renderScale = Math.min(2, Math.max(0.25, +(params.get('scale') ?? 1)));
 const DEG = Math.PI / 180;
+// build stamp: the dev server (demo/serve.mjs) serves each build under /b/<id>/ – shown in the menu
+// so it is obvious which version is running (stale caches show an old id or none at all)
+const BUILD = location.pathname.match(/\/b\/([0-9a-z]+)\//)?.[1] ?? 'dev';
+console.info(`Frontier Fluid demo · build ${BUILD} · Unreal camera · particle foam v2`);
 
 // ---- persisted UI preferences (localStorage can be blocked in sandboxed iframes) ----------------
 const PREFS_KEY = 'frontier.fluid.demo';
@@ -108,7 +112,7 @@ async function main() {
   await device.queue.onSubmittedWorkDone();
   $('overlay').style.opacity = 0;
   setTimeout(() => ($('overlay').style.display = 'none'), 500);
-  $('sub').textContent = `Shallow-water sim · ${app.sim.nx}×${app.sim.ny} cells · ${app.sim.dx.toFixed(2)} m · ${(app.sim.size[0]).toFixed(0)} m domain`;
+  $('sub').textContent = `Shallow-water sim · ${app.sim.nx}×${app.sim.ny} cells · ${app.sim.dx.toFixed(2)} m · ${(app.sim.size[0]).toFixed(0)} m domain · build ${BUILD}`;
 
   // ---- input -----------------------------------------------------------------------------
   const input = new ViewportInput(canvas, app, { onToast: (m) => toast(m), onChange: () => syncCameraUI() });

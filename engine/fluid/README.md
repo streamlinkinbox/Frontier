@@ -23,12 +23,18 @@ engine/fluid/
 
 ## Run the demo
 
-Serve the **repository root** with any static server and open `engine/fluid/demo/`:
+Run the bundled dev server and open the root URL. It redirects to the demo:
 
 ```bash
-python3 -m http.server 8080          # from the repo root
-# open http://localhost:8080/engine/fluid/demo/          (?q=low|medium|high|ultra)
+node engine/fluid/demo/serve.mjs 8080    # or: cd engine/fluid && npm run demo
+# open http://localhost:8080/            (?q=low|medium|high|ultra)
 ```
+
+The server sends `Cache-Control: no-store` and puts every build under `/b/<build>/`. After an edit,
+every module has a new URL, so neither the browser nor a proxy can keep serving stale JavaScript.
+The build id is shown in the menu's subtitle. Any static server works too, but plain ones such as
+`python3 -m http.server` send no cache headers, so you may see old code after an update until you
+hard-reload (Ctrl+Shift+R).
 
 Needs a WebGPU browser: Chrome / Edge 113+ (desktop), Safari 26, Firefox 141+ (Windows).
 
