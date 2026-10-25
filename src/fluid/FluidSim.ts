@@ -250,7 +250,7 @@ export class FluidSim {
     this.countersBuf = buf(16, ST | GPUBufferUsage.COPY_DST, 'counters');
     this.splashBuf = buf(this.settings.maxSplashParticles * 32, ST | GPUBufferUsage.VERTEX, 'splashPool');
     this.foamParticleBuf = buf(this.settings.maxFoamParticles * 32, ST | GPUBufferUsage.VERTEX, 'foamPool');
-    this.causticAccumBuf = buf(res * res * 4, ST, 'causticAccum');
+    this.causticAccumBuf = buf(res * res * 4, ST | GPUBufferUsage.COPY_DST, 'causticAccum'); // COPY_DST: cleared via clearBuffer each frame
     this.readbackBuf = buf(READBACK_RES * READBACK_RES * 16, ST | GPUBufferUsage.COPY_SRC, 'readback');
     this.staging = [0, 1].map((i) => ({
       buf: buf(READBACK_RES * READBACK_RES * 16, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST, `staging${i}`),
