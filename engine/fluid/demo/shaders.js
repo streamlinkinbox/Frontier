@@ -123,7 +123,9 @@ struct MOut {
   var albedo = in.color.rgb;
   var rough = in.params.x;
   var metal = in.params.y;
-  let pattern = i32(in.params.z + 0.5);
+  // pattern ids >= 10 mark the editor selection (outlined in the post pass, see SELECT)
+  let selected = in.params.z > 9.5;
+  let pattern = i32(select(in.params.z, in.params.z - 10.0, selected) + 0.5);
   if (pattern == 1) {
     // wooden crate: planks + frame
     let q = abs(in.lpos);
@@ -219,10 +221,26 @@ export const SHADOW = /* wgsl */ `
 }
 `;
 
+// Editor selection mask (Unreal-style outline): selected instances (pattern id >= 10) are drawn
+// into an rg8 target; R = visible parts (depth-tested against the scene), G = full silhouette.
+export const SELECT = /* wgsl */ `
+${VIEW_STRUCT}
+@group(0) @binding(0) var<uniform> V: View;
+@vertex fn vs(@location(0) p: vec3f, @location(2) m0: vec4f, @location(3) m1: vec4f, @location(4) m2: vec4f, @location(5) m3: vec4f,
+              @location(7) params: vec4f) -> @builtin(position) vec4f {
+  if (params.z < 9.5) { return vec4f(2.0, 2.0, 2.0, 1.0); } // not selected: outside the clip volume
+  let wp = mat4x4f(m0, m1, m2, m3) * vec4f(p, 1.0);
+  return V.viewProj * wp;
+}
+@fragment fn fsHidden() -> @location(0) vec4f { return vec4f(0.0, 1.0, 0.0, 1.0); }
+@fragment fn fsVisible() -> @location(0) vec4f { return vec4f(1.0, 1.0, 0.0, 1.0); }
+`;
+
 export const POST = /* wgsl */ `
-struct Post { exposure: f32, srgb: f32, vignette: f32, time: f32 };
+struct Post { exposure: f32, srgb: f32, vignette: f32, time: f32, outline: f32, outlinePx: f32, pad0: f32, pad1: f32 };
 @group(0) @binding(0) var hdr: texture_2d<f32>;
 @group(0) @binding(1) var<uniform> P: Post;
+@group(0) @binding(2) var selMask: texture_2d<f32>;
 @vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
   var p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
   return vec4f(p[vi], 0.0, 1.0);
@@ -247,6 +265,23 @@ fn aces(x: vec3f) -> vec3f {
   c = aces(c);
   let uv = fc.xy / dims - 0.5;
   c *= 1.0 - P.vignette * dot(uv, uv) * 1.2;
+  if (P.outline > 0.5) {
+    // selection outline drawn just outside the silhouette; dimmer where the object is hidden
+    let ip = vec2i(fc.xy);
+    let hi = vec2i(dims) - 1;
+    let m0 = textureLoad(selMask, ip, 0).rg;
+    var mx = vec2f(0.0);
+    for (var k = 0; k < 12; k++) {
+      let a = f32(k) * 0.5235988;
+      let r = select(P.outlinePx, P.outlinePx * 0.5, (k & 1) == 1);
+      let o = vec2i(round(vec2f(cos(a), sin(a)) * r));
+      mx = max(mx, textureLoad(selMask, clamp(ip + o, vec2i(0), hi), 0).rg);
+    }
+    let edge = max(mx.r * (1.0 - m0.r) * (1.0 - m0.g * 0.6), 0.45 * mx.g * (1.0 - m0.g));
+    let orange = vec3f(1.0, 0.42, 0.04);
+    c = mix(c, orange, 0.07 * m0.r);
+    c = mix(c, orange, clamp(edge, 0.0, 1.0));
+  }
   if (P.srgb > 0.5) { c = pow(c, vec3f(1.0 / 2.2)); }
   // dither against banding
   let n = fract(sin(dot(fc.xy + P.time, vec2f(12.9898, 78.233))) * 43758.5453) - 0.5;

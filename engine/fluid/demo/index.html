@@ -12,16 +12,51 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--black); color: var(--ink); overflow: hidden; }
-  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; outline: none; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; outline: none; touch-action: none; }
   .panel {
     position: fixed; top: 16px; left: 16px; width: 316px; max-height: calc(100vh - 32px); overflow: auto;
     background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     border: 1px solid var(--line); border-radius: 14px; padding: 14px 14px 12px; font-size: 12.5px; line-height: 1.35;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); user-select: none;
+    transition: transform .25s ease, opacity .25s ease, visibility 0s linear 0s;
   }
   .panel.collapsed .body { display: none; }
+  body.menu-hidden .panel { transform: translateX(calc(-100% - 32px)); opacity: 0; visibility: hidden; transition: transform .25s ease, opacity .25s ease, visibility 0s linear .25s; }
+  .panel.settled { transition: none !important; }
+  @media (prefers-reduced-motion: reduce) { .panel, .toast { transition: none !important; } }
+  .hdr { display: flex; gap: 0; align-items: center; flex: none; }
+  .hdr .chip { margin-right: 4px; }
+  button.icon { background: none; border: 1px solid transparent; color: var(--mute); padding: 4px 5px; border-radius: 7px; font-size: 15px; line-height: 1; min-width: 25px; }
+  button.icon:hover { color: var(--ink); background: rgba(255, 255, 255, 0.09); }
+  button.icon svg { width: 15px; height: 15px; display: block; }
+  .menu-btn { position: fixed; top: 16px; left: 16px; display: none; align-items: center; gap: 8px; padding: 8px 11px; z-index: 2;
+    background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line); border-radius: 11px;
+    font-weight: 600; font-size: 12px; opacity: .6; transition: opacity .15s; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3); }
+  .menu-btn:hover, .menu-btn:focus-visible { opacity: 1; background: var(--panel); }
+  .menu-btn svg { width: 15px; height: 15px; }
+  body.menu-hidden .menu-btn { display: flex; }
+  .camhud { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 10px; align-items: baseline; pointer-events: none;
+    font-size: 11.5px; color: #cfd6e6; text-shadow: 0 1px 8px rgba(0, 0, 0, .7); white-space: nowrap; max-width: calc(100vw - 260px); overflow: hidden; text-overflow: ellipsis; }
+  .camhud .mode { font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #a9c0ff; font-size: 10.5px; }
+  .toast { position: fixed; top: 18px; left: 50%; transform: translate(-50%, -8px); z-index: 6; pointer-events: none; white-space: nowrap;
+    background: rgba(10, 10, 12, .84); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 12px; opacity: 0; transition: opacity .18s, transform .18s; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  body.game-view .panel, body.game-view .menu-btn, body.game-view .speedo, body.game-view .camhud { display: none !important; }
+  .sheet { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .5); z-index: 8; padding: 16px; }
+  .sheet[hidden] { display: none; }
+  .sheet .box { background: rgba(14, 15, 19, .96); border: 1px solid var(--line); border-radius: 14px; width: min(860px, 100%); max-height: 88vh; overflow: auto; padding: 16px 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
+  .sheet .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .sheet .head b { letter-spacing: .14em; font-size: 12px; }
+  .sheet .cols { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .sheet .cols { grid-template-columns: 1fr; } }
+  .sheet h5 { margin: 10px 0 4px; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--blue-2); }
+  .sheet table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  .sheet td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; color: #c9d0de; }
+  .sheet td:first-child { white-space: nowrap; color: #e8edf8; font-weight: 600; width: 1%; }
+  .sheet .note { color: var(--mute); font-size: 11px; margin-top: 10px; }
+  .help .links { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .logo { font-weight: 800; letter-spacing: 0.16em; font-size: 13px; }
+  .logo { font-weight: 800; letter-spacing: 0.15em; font-size: 13px; white-space: nowrap; }
   .logo b { color: var(--blue-2); font-weight: 800; }
   .chip { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 7px; border-radius: 999px; background: rgba(31, 94, 255, 0.18); color: #a9c0ff; border: 1px solid rgba(31, 94, 255, 0.45); }
   .sub { color: var(--mute); margin: 4px 0 10px; font-size: 11.5px; }
@@ -57,7 +92,6 @@
   .bar { width: 260px; height: 3px; background: rgba(255,255,255,.1); border-radius: 3px; margin: 18px auto 0; overflow: hidden; }
   .bar i { display: block; height: 100%; width: 30%; background: var(--blue); border-radius: 3px; animation: load 1.1s ease-in-out infinite; }
   @keyframes load { 0% { transform: translateX(-100%); } 100% { transform: translateX(330%); } }
-  .collapse { background: none; border: none; color: var(--mute); padding: 2px 4px; font-size: 16px; line-height: 1; }
 </style>
 </head>
 <body>
@@ -66,7 +100,7 @@
 <div class="panel" id="panel">
   <div class="brand">
     <div class="logo">FRONTIER <b>·</b> FLUID</div>
-    <div style="display:flex;gap:6px;align-items:center"><span class="chip">WEBGPU</span><button class="collapse" id="collapse" title="Collapse (H)">–</button></div>
+    <div class="hdr"><span class="chip">WEBGPU</span><button class="icon" id="collapse" title="Minimise to the title bar">–</button><button class="icon" id="hideMenu" title="Hide the menu (H)" aria-label="Hide the menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M16 10l-2 2 2 2"/></svg></button></div>
   </div>
   <div class="body">
     <div class="sub" id="sub">Shallow-water simulation · particles · caustics</div>
@@ -82,6 +116,12 @@
       <button data-s="beach">Beach</button><button data-s="ford">River ford</button><button data-s="mud">Mud pit</button><button data-s="rapids">Rapids</button><button data-s="puddles">Puddles</button>
     </div>
 
+    <h4>Camera</h4>
+    <div class="seg" id="camModes"><button data-c="chase">Chase</button><button data-c="low">Low</button><button data-c="orbit">Orbit</button><button data-c="free" title="Unreal Engine viewport controls">Free · Unreal</button></div>
+    <div class="row"><label for="camSpeed">Fly speed</label><input id="camSpeed" type="range" min="1" max="8" step="1" value="5" /><output id="camSpeedO">5</output></div>
+    <div class="row"><label for="camFov">Field of view</label><input id="camFov" type="range" min="30" max="110" step="1" value="62" /><output id="camFovO">62°</output></div>
+    <div class="toggles"><button id="tFocus" title="Frame the selection (or the car) with the free camera">Focus car (F)</button><button id="tLock" title="Hide the cursor and allow unlimited mouse travel while a mouse button is held (Pointer Lock). Some embedded previews block it.">Mouse lock</button></div>
+
     <h4>Environment</h4>
     <div class="row"><label for="swell">Ocean swell</label><input id="swell" type="range" min="0" max="1.2" step="0.02" value="0.32" /><output id="swellO">0.32 m</output></div>
     <div class="row"><label for="period">Swell period</label><input id="period" type="range" min="3" max="12" step="0.1" value="7.5" /><output id="periodO">7.5 s</output></div>
@@ -96,20 +136,72 @@
     <div class="seg" id="views"><button data-v="0" class="on">Shaded</button><button data-v="1">Depth</button><button data-v="2">Speed</button><button data-v="3">Mud</button><button data-v="4">Normals</button></div>
 
     <h4>Actions</h4>
-    <div class="seg"><button id="aCrates" class="primary">Drop crates (F)</button><button id="aBall">Cannonball (G)</button><button id="aReset">Reset water</button></div>
+    <div class="seg"><button id="aCrates" class="primary">Drop crates (X)</button><button id="aBall" title="Free camera: lands where you are looking">Cannonball (B)</button><button id="aReset">Reset water</button></div>
 
     <h4>Quality <span style="text-transform:none;letter-spacing:0;color:#6f7890">(reloads)</span></h4>
     <div class="seg" id="quality"><button data-q="low">Low 256²</button><button data-q="medium">Med 512²</button><button data-q="high">High 768²</button><button data-q="ultra">Ultra 1024²</button></div>
 
     <div class="help">
-      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive · <kbd>Space</kbd> handbrake · <kbd>R</kbd> reset car · <kbd>C</kbd> camera<br />
-      drag = orbit · wheel = zoom · <kbd>1</kbd>–<kbd>5</kbd> scenarios · <kbd>T</kbd> rain · <kbd>V</kbd> view · <kbd>P</kbd> pause<br />
-      Gamepad: RT throttle · LT brake · A handbrake
+      <b style="color:#dfe6ff">Camera (Unreal):</b> <kbd>RMB</kbd> drag look · <kbd>RMB</kbd>+<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly · <kbd>Q</kbd>/<kbd>E</kbd> down/up · <kbd>RMB</kbd>+wheel speed ·
+      <kbd>LMB</kbd> drag move · <kbd>MMB</kbd> pan · <kbd>Alt</kbd>+drag orbit / dolly / track · click select · <kbd>F</kbd> focus<br />
+      <b style="color:#dfe6ff">Car:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive · <kbd>Space</kbd> handbrake · <kbd>R</kbd> reset · <kbd>C</kbd> camera · <kbd>1</kbd>–<kbd>5</kbd> scenarios<br />
+      <kbd>H</kbd> hide menu · <kbd>G</kbd> game view · <kbd>T</kbd> rain · <kbd>V</kbd> view · <kbd>P</kbd> pause · <kbd>?</kbd> all controls
+      <div class="links"><button id="bHelp">All controls (?)</button><button id="bHide">Hide menu (H)</button><button id="bGame">Game view (G)</button></div>
     </div>
   </div>
 </div>
 
+<button class="menu-btn" id="menuBtn" title="Show the menu (H)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menu <kbd style="font:600 10px/1 ui-monospace,monospace;opacity:.75">H</kbd></button>
+
 <div class="speedo"><div class="num" id="spd">0</div><div class="unit">KM/H</div><div class="tag" id="surf">—</div></div>
+<div class="camhud" id="camhud"><span class="mode" id="hudMode">Chase camera</span><span id="hudInfo"></span></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="sheet" id="sheet" hidden><div class="box">
+  <div class="head"><b>CONTROLS</b><button class="icon" id="sheetClose" title="Close (Esc)">✕</button></div>
+  <div class="cols">
+    <section>
+      <h5>Unreal viewport camera</h5>
+      <table>
+        <tr><td>RMB + drag</td><td>Look around (switches to the free camera)</td></tr>
+        <tr><td>RMB + W A S D</td><td>Fly forward / left / back / right (also arrows, numpad 8 4 2 6)</td></tr>
+        <tr><td>RMB + Q / E</td><td>Down / up in world space (also PgDn / PgUp)</td></tr>
+        <tr><td>RMB + F / R</td><td>Down / up in camera space</td></tr>
+        <tr><td>RMB + Z / C</td><td>Zoom out / in (FOV); snaps back when RMB is released</td></tr>
+        <tr><td>RMB or LMB + wheel</td><td>Camera speed 1–8</td></tr>
+        <tr><td>RMB + Shift</td><td>Fly 3× faster (extra, not in UE)</td></tr>
+        <tr><td>LMB + drag</td><td>Move forward / back, turn left / right</td></tr>
+        <tr><td>MMB drag · LMB+RMB drag</td><td>Pan up / down / left / right</td></tr>
+        <tr><td>Wheel</td><td>Move forward / back (car cameras: zoom)</td></tr>
+        <tr><td>Alt + LMB drag</td><td>Orbit around what's at the screen centre</td></tr>
+        <tr><td>Alt + RMB drag</td><td>Dolly toward / away from that pivot</td></tr>
+        <tr><td>Alt + MMB drag</td><td>Track in the screen plane</td></tr>
+        <tr><td>LMB click</td><td>Select the car / a crate / barrel · <b>Esc</b> clears · <b>Delete</b> / <b>Backspace</b> removes a prop</td></tr>
+        <tr><td>F</td><td>Focus the selection (or the car)</td></tr>
+        <tr><td>C · F8</td><td>Cycle cameras · toggle free camera ↔ car camera</td></tr>
+      </table>
+    </section>
+    <section>
+      <h5>Driving &amp; world</h5>
+      <table>
+        <tr><td>W A S D / arrows</td><td>Drive (whenever RMB isn't held)</td></tr>
+        <tr><td>Space · R</td><td>Handbrake · reset / flip the car</td></tr>
+        <tr><td>1 – 5</td><td>Beach · river ford · mud pit · rapids · puddles</td></tr>
+        <tr><td>X · B</td><td>Drop crates · cannonball (free camera: where you look)</td></tr>
+        <tr><td>T · V · P</td><td>Rain · debug view · pause</td></tr>
+        <tr><td>Gamepad</td><td>RT throttle, LT brake, A handbrake, left stick steer</td></tr>
+      </table>
+      <h5>Interface</h5>
+      <table>
+        <tr><td>H</td><td>Hide / show the menu</td></tr>
+        <tr><td>G</td><td>Game view: hide all UI (as in UE)</td></tr>
+        <tr><td>?</td><td>This sheet</td></tr>
+        <tr><td>F11</td><td>Browser full screen</td></tr>
+      </table>
+      <div class="note">On some Linux desktops Alt + drag moves the window; change the window manager's modifier key if it does. "Mouse lock" hides the cursor during drags (Pointer Lock); embedded previews may block it.</div>
+    </section>
+  </div>
+</div></div>
 
 <div id="overlay"><div class="box">
   <div class="t">FRONTIER <b>·</b> FLUID</div>

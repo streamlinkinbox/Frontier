@@ -1,6 +1,6 @@
 // Minimal "engine" renderer for the demo: HDR targets, shadow map, sky, terrain, instanced meshes
 // and tone mapping, with the FluidRenderer slotted in between the opaque and post passes.
-import { TERRAIN, MESH, SKY, SHADOW, POST } from './shaders.js';
+import { TERRAIN, MESH, SKY, SHADOW, POST, SELECT } from './shaders.js';
 import { mat4, v3 } from '../src/math.js';
 import { naturalHeight } from './scene.js';
 
@@ -101,9 +101,27 @@ export class SceneRenderer {
       vertex: { module: shm, entryPoint: 'vsMesh', buffers: [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }, meshVB[1]] },
       primitive: { topology: 'triangle-list', cullMode: 'none' }, depthStencil: sdepth,
     });
+    // ---- editor selection mask (outlined in the post pass)
+    const selm = d.createShaderModule({ code: SELECT, label: 'demo.select' });
+    const selLayout = d.createPipelineLayout({ bindGroupLayouts: [this.viewBGL] });
+    const maxBlend = { color: { operation: 'max', srcFactor: 'one', dstFactor: 'one' }, alpha: { operation: 'max', srcFactor: 'one', dstFactor: 'one' } };
+    const selPipe = (entryPoint, depthCompare) => d.createRenderPipeline({
+      label: 'demo.' + entryPoint, layout: selLayout,
+      vertex: { module: selm, entryPoint: 'vs', buffers: [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }, meshVB[1]] },
+      fragment: { module: selm, entryPoint, targets: [{ format: 'rg8unorm', blend: maxBlend }] },
+      primitive: { topology: 'triangle-list', cullMode: 'back', frontFace: 'ccw' },
+      // a small bias toward the camera so the visible pass re-hits the depth the opaque pass wrote
+      depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare, depthBias: depthCompare === 'always' ? 0 : 16, depthBiasSlopeScale: depthCompare === 'always' ? 0 : 1 },
+    });
+    this.selHiddenPipe = selPipe('fsHidden', 'always');
+    this.selVisiblePipe = selPipe('fsVisible', 'greater-equal');
     // ---- post
-    this.postBuf = d.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    this.postBGL = d.createBindGroupLayout({ entries: [{ binding: 0, visibility: F, texture: { sampleType: 'unfilterable-float' } }, { binding: 1, visibility: F, buffer: { type: 'uniform' } }] });
+    this.postBuf = d.createBuffer({ size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    this.postBGL = d.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: F, texture: { sampleType: 'unfilterable-float' } },
+      { binding: 1, visibility: F, buffer: { type: 'uniform' } },
+      { binding: 2, visibility: F, texture: { sampleType: 'float' } },
+    ] });
     const pm = d.createShaderModule({ code: POST, label: 'demo.post' });
     this.postPipe = d.createRenderPipeline({
       label: 'demo.post', layout: d.createPipelineLayout({ bindGroupLayouts: [this.postBGL] }),
@@ -209,14 +227,15 @@ export class SceneRenderer {
   resize(w, h) {
     this.width = Math.max(1, w | 0); this.height = Math.max(1, h | 0);
     const d = this.device;
-    for (const t of [this.hdr, this.hdrCopy, this.depth]) t?.destroy();
+    for (const t of [this.hdr, this.hdrCopy, this.depth, this.selMask]) t?.destroy();
     const sz = [this.width, this.height];
     this.hdr = d.createTexture({ label: 'demo.hdr', size: sz, format: 'rgba16float', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC });
     this.hdrCopy = d.createTexture({ label: 'demo.hdrCopy', size: sz, format: 'rgba16float', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
     this.depth = d.createTexture({ label: 'demo.depth', size: sz, format: 'depth32float', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
-    this.hdrView = this.hdr.createView(); this.depthView = this.depth.createView();
+    this.selMask = d.createTexture({ label: 'demo.selectionMask', size: sz, format: 'rg8unorm', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
+    this.hdrView = this.hdr.createView(); this.depthView = this.depth.createView(); this.selView = this.selMask.createView();
     this.fr.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView);
-    this.postBG = d.createBindGroup({ layout: this.postBGL, entries: [{ binding: 0, resource: this.hdrView }, { binding: 1, resource: { buffer: this.postBuf } }] });
+    this.postBG = d.createBindGroup({ layout: this.postBGL, entries: [{ binding: 0, resource: this.hdrView }, { binding: 1, resource: { buffer: this.postBuf } }, { binding: 2, resource: this.selView }] });
   }
 
   /** list of { mesh: 'box'|'cylinder'|'sphere', matrix: Float32Array(16), color: [r,g,b], params: [rough, metal, pattern, emissive] } */
@@ -248,7 +267,9 @@ export class SceneRenderer {
       d.queue.writeBuffer(this.instanceBuf, 0, data);
     }
     d.queue.writeBuffer(this.lightBuf, 0, lightVP);
-    d.queue.writeBuffer(this.postBuf, 0, new Float32Array([this.exposure, srgbOutput ? 1 : 0, 0.35, time % 100]));
+    const selected = this.instances.some((it) => it.params && it.params[2] > 9.5);
+    const outlinePx = Math.min(4, Math.max(1.5, this.height / 360));
+    d.queue.writeBuffer(this.postBuf, 0, new Float32Array([this.exposure, srgbOutput ? 1 : 0, 0.35, time % 100, selected ? 1 : 0, outlinePx, 0, 0]));
 
     // caustics light map (sampled by terrain + meshes)
     this.fr.renderCaustics(encoder);
@@ -285,6 +306,19 @@ export class SceneRenderer {
       pass.end();
     }
     encoder.copyTextureToTexture({ texture: this.hdr }, { texture: this.hdrCopy }, [this.width, this.height]);
+
+    // editor selection mask: full silhouette (G) + depth-tested visible part (R)
+    if (selected) {
+      const pass = encoder.beginRenderPass({
+        label: 'demo.selection',
+        colorAttachments: [{ view: this.selView, loadOp: 'clear', storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 0 } }],
+        depthStencilAttachment: { view: this.depthView, depthReadOnly: true },
+      });
+      pass.setBindGroup(0, this.viewBG);
+      this._drawMeshes(pass, this.selHiddenPipe, true);
+      this._drawMeshes(pass, this.selVisiblePipe, true);
+      pass.end();
+    }
 
     // water + particles (read-only depth, sampled for refraction & soft particles)
     {

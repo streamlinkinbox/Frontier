@@ -12,8 +12,9 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node test/vehicle.test.mjs && node test/launch.mjs test/validate.mjs demo/shaders.js && node test/launch.mjs test/sim.test.mjs",
+    "test": "node test/vehicle.test.mjs && node test/camera.test.mjs && node test/launch.mjs test/validate.mjs demo/shaders.js && node test/launch.mjs test/sim.test.mjs",
     "test:vehicle": "node test/vehicle.test.mjs",
+    "test:camera": "node test/camera.test.mjs",
     "test:sim": "node test/launch.mjs test/sim.test.mjs",
     "validate": "node test/launch.mjs test/validate.mjs demo/shaders.js",
     "test:render": "node test/launch.mjs test/render.test.mjs",

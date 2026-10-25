@@ -31,17 +31,43 @@ python3 -m http.server 8080          # from the repo root
 
 Needs a WebGPU browser: Chrome / Edge 113+ (desktop), Safari 26, Firefox 141+ (Windows).
 
-| Control | |
+**Camera: Unreal Engine viewport controls.** Grabbing the view with the right or middle mouse
+button (or with `Alt`) takes over from the car camera and puts you in the free camera. Press `C` or `F8` to go back to the car.
+
+| Camera (free / Unreal) | |
 |---|---|
-| `W A S D` / arrows | drive (AWD, ABS-less, handbrake on `Space`) |
+| `RMB` drag | look around |
+| `RMB` + `W A S D` | fly forward / left / back / right (also arrows and numpad `8 4 2 6`) |
+| `RMB` + `Q` / `E` | down / up in world space (also `PgDn` / `PgUp`, numpad `7` / `9`) |
+| `RMB` + `F` / `R` | down / up in camera space |
+| `RMB` + `Z` / `C` | zoom out / in (FOV); snaps back when `RMB` is released (numpad `1` / `3`) |
+| `RMB` (or `LMB`) + wheel | camera speed 1–8 (0.5 → 64 m/s); `Shift` while flying = ×3 |
+| `LMB` drag | move forward / back on the ground plane and turn left / right |
+| `MMB` drag, `LMB`+`RMB` drag | pan up / down / left / right |
+| wheel | dolly forward / back (car cameras: zoom) |
+| `Alt` + `LMB` / `RMB` / `MMB` drag | orbit / dolly / track around the pivot: whatever is under the screen centre, or the last focused object |
+| `LMB` click | select the car or a prop (orange outline) · `Esc` deselect · `Delete` removes a prop |
+| `F` | focus: frame the selection, or the car |
+| `C` · `F8` | cycle chase → low → orbit → free · toggle free ↔ car camera |
+
+The free camera can't go below the terrain or water surface, and it stays near the world. The camera
+is engine-agnostic: `demo/EditorCamera.js` holds the camera maths with no DOM or GPU code,
+`demo/input.js` maps mouse and keys to it, and `demo/picking.js` handles ray picking against
+bodies and the heightfield.
+
+| Driving & world | |
+|---|---|
+| `W A S D` / arrows | drive (AWD, ABS-less, handbrake on `Space`). Not while `RMB` is held, when they fly the camera |
 | `R` | reset / flip the car upright |
-| `C` | camera: chase → low → orbit; mouse drag orbits, wheel zooms |
 | `1`–`5` | beach · river ford · mud pit · rapids · puddles |
-| `F` / `G` | drop crates / drop a 2-tonne cannonball (big splash) |
-| `T` `V` `P` `H` | rain · debug view (depth / speed / mud / normals) · pause · hide UI |
+| `X` / `B` | drop crates / drop a 2-tonne cannonball (free camera: where you look) |
+| `T` `V` `P` | rain · debug view (depth / speed / mud / normals) · pause |
+| `H` · `G` · `?` | hide / show the menu · game view (hide all UI, as in UE) · controls sheet |
 | Gamepad | RT throttle, LT brake, A handbrake, left stick steer |
 
-The panel also has live sliders for swell height & period, river flow and wind.
+The panel also has live sliders for swell height and period, river flow and wind. It also has a Camera
+section with the mode, fly speed, FOV and optional mouse lock. `?ui=hidden` starts with the menu hidden and
+`?ui=game` starts in game view. The menu state, camera speed and FOV are remembered between visits.
 
 ## What is simulated
 
@@ -192,9 +218,10 @@ caustics resolution are the main knobs.
 
 ```bash
 cd engine/fluid && npm install
-npm test            # vehicle checks (CPU), WGSL validation, GPU numerical tests
+npm test            # vehicle + editor-camera checks (CPU), WGSL validation, GPU numerical tests
 npm run test:render # headless render of the demo to test/out/*.png
-npm run test:browser # demo page in headless Chromium + WebGPU, screenshots
+npm run test:browser # demo page in headless Chromium + WebGPU: real mouse/keyboard input
+                     # (menu hide, game view, RMB fly, pan, orbit, dolly, focus, select), screenshots
 ```
 
 Runs on machines without a GPU: the launcher falls back to SwiftShader (CPU Vulkan). Current

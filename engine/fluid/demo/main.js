@@ -1,10 +1,75 @@
 // Browser bootstrap for the fluid demo: WebGPU device, canvas, input, UI and the frame loop.
 import { App, QUALITY } from './App.js';
+import { ViewportInput, FLY_CODES } from './input.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const quality = QUALITY[params.get('q')] ? params.get('q') : 'medium';
 const renderScale = Math.min(2, Math.max(0.25, +(params.get('scale') ?? 1)));
+const DEG = Math.PI / 180;
+
+// ---- persisted UI preferences (localStorage can be blocked in sandboxed iframes) ----------------
+const PREFS_KEY = 'frontier.fluid.demo';
+const prefs = (() => { try { return JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') ?? {}; } catch { return {}; } })();
+const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* not persisted */ } };
+
+// ---- menu visibility ------------------------------------------------------------------------------
+// 'open' | 'collapsed' (title bar only) | 'hidden' (slid away, a small Menu button remains).
+// G = Unreal-style "game view": hides every overlay (menu, HUD, speedometer).
+// URL: ?ui=hidden starts with the menu hidden, ?ui=game in game view.
+let menuState = ['open', 'collapsed', 'hidden'].includes(prefs.menu) ? prefs.menu : 'open';
+let lastVisible = prefs.lastVisible === 'collapsed' ? 'collapsed' : 'open';
+let gameView = false;
+const uiParam = params.get('ui');
+if (uiParam === '0' || uiParam === 'hidden') menuState = 'hidden';
+if (uiParam === 'game' || uiParam === 'none') gameView = true;
+
+let settleTimer = 0;
+function applyMenu() {
+  const panel = $('panel');
+  // animate this change, then pin the end state (also ends a slide the compositor never started)
+  panel.classList.remove('settled');
+  void panel.offsetWidth;
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(() => panel.classList.add('settled'), 320);
+  document.body.classList.toggle('menu-hidden', menuState === 'hidden');
+  document.body.classList.toggle('game-view', gameView);
+  $('panel').classList.toggle('collapsed', menuState === 'collapsed');
+  $('collapse').textContent = menuState === 'collapsed' ? '+' : '–';
+  $('collapse').title = menuState === 'collapsed' ? 'Expand the menu' : 'Minimise to the title bar';
+}
+function setMenu(state) {
+  menuState = state;
+  if (state !== 'hidden') lastVisible = state;
+  prefs.menu = state; prefs.lastVisible = lastVisible;
+  savePrefs();
+  applyMenu();
+}
+const toggleMenu = () => setMenu(menuState === 'hidden' ? lastVisible : 'hidden');
+function setGameView(on) {
+  gameView = on;
+  applyMenu();
+  if (on) toast('Game view: all UI hidden. Press G to bring it back.', 2200);
+}
+let toastTimer = 0;
+function toast(msg, ms = 1500) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+const toggleSheet = (on = $('sheet').hidden) => { $('sheet').hidden = !on; };
+
+applyMenu();
+$('collapse').addEventListener('click', () => setMenu(menuState === 'collapsed' ? 'open' : 'collapsed'));
+$('hideMenu').addEventListener('click', () => setMenu('hidden'));
+$('menuBtn').addEventListener('click', () => setMenu(lastVisible));
+$('bHide').addEventListener('click', () => setMenu('hidden'));
+$('bGame').addEventListener('click', () => setGameView(true));
+$('bHelp').addEventListener('click', () => toggleSheet(true));
+$('sheetClose').addEventListener('click', () => toggleSheet(false));
+$('sheet').addEventListener('click', (e) => { if (e.target === $('sheet')) toggleSheet(false); });
 
 function fail(msg) {
   $('msg').innerHTML = msg;
@@ -46,50 +111,60 @@ async function main() {
   $('sub').textContent = `Shallow-water sim · ${app.sim.nx}×${app.sim.ny} cells · ${app.sim.dx.toFixed(2)} m · ${(app.sim.size[0]).toFixed(0)} m domain`;
 
   // ---- input -----------------------------------------------------------------------------
-  const keys = new Set();
-  const isTyping = () => document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+  const input = new ViewportInput(canvas, app, { onToast: (m) => toast(m), onChange: () => syncCameraUI() });
+  window.viewportInput = input;
+  const isTyping = () => {
+    const a = document.activeElement;
+    if (!a) return false;
+    if (a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable) return true;
+    return a.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button'].includes(a.type);
+  };
+  const NO_DEFAULT = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Slash', 'Quote', 'F8']);
+  const SCENARIOS = { Digit1: 'beach', Digit2: 'ford', Digit3: 'mud', Digit4: 'rapids', Digit5: 'puddles' };
+  const CAM_NAMES = { chase: 'Chase camera', low: 'Low camera', orbit: 'Orbit camera', free: 'Free camera (Unreal controls)' };
+
   window.addEventListener('keydown', (e) => {
     if (isTyping()) return;
-    keys.add(e.code);
-    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+    input.alt = e.altKey;
+    if (e.ctrlKey || e.metaKey || e.code === 'F5' || e.code === 'F11' || e.code === 'F12') return; // browser shortcuts
+    if (e.key === 'Alt') { e.preventDefault(); return; } // keep Alt (orbit modifier) from focusing the browser menu
+    input.keyDown(e);
+    if (NO_DEFAULT.has(e.code)) e.preventDefault();
+    if (input.flying && FLY_CODES.has(e.code)) { e.preventDefault(); return; } // RMB held: the camera owns these keys
     if (e.repeat) return;
+    if (SCENARIOS[e.code]) { app.teleport(SCENARIOS[e.code]); return; }
     switch (e.code) {
       case 'KeyR': app.vehicle.reset(app.vehicle.body.position, headingOf(app)); break;
-      case 'KeyC': app.cam.mode = { chase: 'low', low: 'orbit', orbit: 'chase' }[app.cam.mode]; break;
-      case 'KeyF': app.dropCrates(); break;
-      case 'KeyG': app.cannonball(); break;
+      case 'KeyC': app.cycleCamera(); toast(CAM_NAMES[app.cam.mode]); syncCameraUI(); break;
+      case 'F8': app.toggleFreeCamera(); toast(CAM_NAMES[app.cam.mode]); syncCameraUI(); break;
+      case 'KeyF': app.focusSelection(); syncCameraUI(); break;
+      case 'KeyX': app.dropCrates(); break;
+      case 'KeyB': app.cannonball(); break;
       case 'KeyT': toggle('tRain'); break;
-      case 'KeyP': app.paused = !app.paused; break;
+      case 'KeyP': app.paused = !app.paused; toast(app.paused ? 'Paused (P)' : 'Running'); break;
       case 'KeyV': setView((app.fluidR.settings.debugMode + 1) % 5); break;
-      case 'KeyH': $('panel').classList.toggle('collapsed'); break;
-      case 'Digit1': app.teleport('beach'); break;
-      case 'Digit2': app.teleport('ford'); break;
-      case 'Digit3': app.teleport('mud'); break;
-      case 'Digit4': app.teleport('rapids'); break;
-      case 'Digit5': app.teleport('puddles'); break;
+      case 'KeyH': toggleMenu(); break;
+      case 'KeyG': setGameView(!gameView); break;
+      case 'Delete': case 'Backspace': if (app.deleteSelection()) syncCameraUI(); break; // Backspace: Mac laptops
+      case 'Escape': app.select(null); toggleSheet(false); syncCameraUI(); break;
+      default:
+        if (e.key === '?') toggleSheet();
     }
   });
-  window.addEventListener('keyup', (e) => keys.delete(e.code));
-  window.addEventListener('blur', () => keys.clear());
-  let drag = null;
-  canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; app.cam.dragging = true; canvas.setPointerCapture(e.pointerId); canvas.focus(); });
-  canvas.addEventListener('pointerup', () => { drag = null; app.cam.dragging = false; });
-  canvas.addEventListener('pointermove', (e) => {
-    if (!drag) return;
-    const dx = (e.clientX - drag.x) * 0.006, dy = (e.clientY - drag.y) * 0.004;
-    drag = { x: e.clientX, y: e.clientY };
-    if (app.cam.mode === 'orbit') { app.cam.orbitYaw -= dx; app.cam.orbitPitch += dy; }
-    else { app.cam.userYaw -= dx; app.cam.userPitch = Math.max(-0.2, Math.min(1.0, app.cam.userPitch + dy)); }
+  window.addEventListener('keyup', (e) => {
+    input.keyUp(e);
+    if (e.key === 'Alt') e.preventDefault();
   });
-  canvas.addEventListener('wheel', (e) => { app.cam.dist = Math.max(4, Math.min(40, app.cam.dist * Math.exp(e.deltaY * 0.001))); e.preventDefault(); }, { passive: false });
+  window.addEventListener('blur', () => input.reset());
 
   function readInput() {
-    const k = (...c) => c.some((x) => keys.has(x));
+    // while flying (RMB held) the movement keys belong to the camera
+    const k = (...c) => !input.flying && c.some((x) => input.isDown(x));
     let throttle = k('KeyW', 'ArrowUp') ? 1 : 0;
     let brake = k('KeyS', 'ArrowDown') ? 1 : 0;
     // car local +X is its left side
     let steer = (k('KeyA', 'ArrowLeft') ? 1 : 0) - (k('KeyD', 'ArrowRight') ? 1 : 0);
-    let handbrake = k('Space') ? 1 : 0;
+    let handbrake = input.isDown('Space') ? 1 : 0;
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     for (const p of pads) {
       if (!p) continue;
@@ -99,7 +174,7 @@ async function main() {
       brake = Math.max(brake, p.buttons[6]?.value ?? 0);
       if (p.buttons[0]?.pressed) handbrake = 1;
     }
-    return { throttle, brake, steer, handbrake };
+    return { throttle, brake, steer, handbrake, camera: input.cameraInput() };
   }
 
   // ---- UI ----------------------------------------------------------------------------------
@@ -126,7 +201,7 @@ async function main() {
     for (const b of $('views').children) b.classList.toggle('on', +b.dataset.v === v);
   }
   for (const b of $('views').children) b.addEventListener('click', () => setView(+b.dataset.v));
-  for (const b of $('scenarios').children) b.addEventListener('click', () => { app.teleport(b.dataset.s); canvas.focus(); });
+  for (const b of $('scenarios').children) b.addEventListener('click', () => app.teleport(b.dataset.s));
   for (const b of $('quality').children) {
     b.classList.toggle('on', b.dataset.q === quality);
     b.addEventListener('click', () => { params.set('q', b.dataset.q); location.search = params.toString(); });
@@ -134,7 +209,52 @@ async function main() {
   $('aCrates').addEventListener('click', () => app.dropCrates());
   $('aBall').addEventListener('click', () => app.cannonball());
   $('aReset').addEventListener('click', () => app.resetWater());
-  $('collapse').addEventListener('click', () => $('panel').classList.toggle('collapsed'));
+
+  // camera
+  for (const b of $('camModes').children) b.addEventListener('click', () => { app.setCameraMode(b.dataset.c); syncCameraUI(); });
+  $('camSpeed').value = prefs.camSpeed ?? app.editorCam.speedSetting;
+  bindRange('camSpeed', (v) => `${v} · ${app.editorCam.speed} m/s`, (v) => {
+    app.editorCam.speedSetting = v;
+    $('camSpeedO').textContent = `${v} · ${app.editorCam.speed} m/s`;
+    prefs.camSpeed = v; savePrefs();
+  });
+  $('camFov').value = prefs.fov ?? 62;
+  bindRange('camFov', (v) => `${v}°`, (v) => { app.setFov(v * DEG); prefs.fov = v; savePrefs(); });
+  input.setPointerLock(!!prefs.mouseLock);
+  $('tLock').addEventListener('click', () => {
+    input.setPointerLock(!(input.pointerLock && !input.lockUnavailable));
+    prefs.mouseLock = input.pointerLock; savePrefs();
+    syncCameraUI();
+  });
+  $('tFocus').addEventListener('click', () => { app.focusSelection(); syncCameraUI(); });
+
+  // give keyboard focus back to the viewport after using the panel
+  $('panel').addEventListener('click', (e) => { if (e.target.closest('button')) canvas.focus({ preventScroll: true }); });
+  for (const el of document.querySelectorAll('input[type=range]')) el.addEventListener('change', () => canvas.focus({ preventScroll: true }));
+
+  function syncCameraUI() {
+    const ec = app.editorCam, mode = app.cam.mode;
+    for (const b of $('camModes').children) b.classList.toggle('on', b.dataset.c === mode);
+    if (+$('camSpeed').value !== ec.speedSetting) $('camSpeed').value = ec.speedSetting;
+    $('camSpeedO').textContent = `${ec.speedSetting} · ${ec.speed} m/s`;
+    $('tLock').classList.toggle('on', input.pointerLock && !input.lockUnavailable);
+    $('tFocus').textContent = app.selection ? `Focus ${app.selectionName().toLowerCase()} (F)` : 'Focus car (F)';
+    let info;
+    if (mode === 'free') {
+      const fov = Math.abs(ec.fov - ec.baseFov) > 0.5 * DEG ? ` · FOV ${Math.round(ec.fov / DEG)}°` : '';
+      info = input.flying
+        ? `flying · speed ${ec.speedSetting} (${ec.speed} m/s)${fov} · wheel = speed`
+        : `speed ${ec.speedSetting} (${ec.speed} m/s) · RMB + WASD fly · F focus · C / F8 back to the car`;
+    } else {
+      info = 'hold RMB to fly (Unreal controls) · F focus · C cycle';
+    }
+    const sel = app.selectionName();
+    if (sel) info += ` · selected: ${sel}`;
+    const name = mode === 'free' ? 'Free camera' : CAM_NAMES[mode];
+    if ($('hudMode').textContent !== name) $('hudMode').textContent = name;
+    if ($('hudInfo').textContent !== info) $('hudInfo').textContent = info;
+  }
+  syncCameraUI();
 
   new ResizeObserver(() => {
     const [nw, nh] = size();
@@ -142,15 +262,17 @@ async function main() {
   }).observe(canvas);
 
   // ---- loop ----------------------------------------------------------------------------------
-  let last = performance.now(), acc = 0, frames = 0, fps = 0, statT = 0;
+  let last = performance.now(), acc = 0, frames = 0, fps = 0, statT = 0, wasFlying = false;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     app.frame(dt, readInput(), ctx.getCurrentTexture().createView());
     frames++; acc += dt; statT += dt;
     if (acc > 0.5) { fps = frames / acc; frames = 0; acc = 0; }
+    if (input.flying !== wasFlying) { wasFlying = input.flying; syncCameraUI(); }
     if (statT > 0.25) {
       statT = 0;
+      syncCameraUI();
       const st = app.sim.stats;
       $('sFps').textContent = fps.toFixed(0);
       $('sParts').textContent = st.particles != null ? (st.particles / 1000).toFixed(1) + 'k' : '–';

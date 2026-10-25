@@ -1,10 +1,15 @@
 // Demo application core (browser-independent so it also runs headless in Node for tests).
 import { FluidSim, FluidRenderer, FluidQueryBatch } from '../src/index.js';
 import { mat4, v3, quat, clamp } from '../src/math.js';
-import { buildScene } from './scene.js';
+import { buildScene, sampleBilinear } from './scene.js';
 import { SceneRenderer } from './SceneRenderer.js';
 import { Vehicle } from './vehicle.js';
 import { Props } from './props.js';
+import { EditorCamera, CAMERA_SPEEDS } from './EditorCamera.js';
+import { screenRay, pickScene, rayHeightfield, objectBounds } from './picking.js';
+
+export const CAMERA_MODES = ['chase', 'low', 'orbit', 'free'];
+export { CAMERA_SPEEDS };
 
 export const QUALITY = {
   low: { res: 256, particles: 131072 },
@@ -49,7 +54,28 @@ export class App {
       fogDensity: 0.0026,
       fogHeight: 0.03,
     };
-    this.cam = { mode: 'chase', yaw: 0, pitch: 0.24, dist: 8.5, fov: (62 * Math.PI) / 180, near: 0.1, pos: null, target: null, orbitYaw: 0, orbitPitch: 0, userYaw: 0, userPitch: 0 };
+    const fov = (62 * Math.PI) / 180;
+    this.cam = { mode: 'chase', yaw: 0, pitch: 0.24, dist: 8.5, fov, baseFov: fov, near: 0.1, pos: null, target: null, orbitYaw: 0, orbitPitch: 0, userYaw: 0, userPitch: 0 };
+    this.lastFollowMode = 'chase';
+    // Unreal-style free camera ('free' mode). It never goes below the terrain or the simulated water surface.
+    const pad = 260;
+    this.editorCam = new EditorCamera({
+      fov,
+      floor: (x, z) => this.cameraFloor(x, z),
+      bounds: { min: [sc.origin[0] - pad, -40, sc.origin[1] - pad], max: [sc.origin[0] + sc.size + pad, 400, sc.origin[1] + sc.size + pad] },
+    });
+    /** selected object: null | { kind: 'vehicle' } | { kind: 'prop', item } */
+    this.selection = null;
+    // one GPU query point under the camera → water height for the camera floor (async, 1–3 frames old)
+    this._camWater = null;
+    this._camProbeXZ = [0, 0];
+    this.camProbe = { count: 1, writeQueryPoints: (out, off) => {
+      const p = this.cam.pos ?? this.vehicle.body.position;
+      out[off * 2] = this._camProbeXZ[0] = p[0];
+      out[off * 2 + 1] = this._camProbeXZ[1] = p[2];
+    } };
+    this.surfaceAt = (x, z) => Math.max(this.scene.heightAt(x, z), this._staticWater(x, z));
+    this.lastInput = null;
     this.rain = false;
     this.wind = 0;
     this.time = 0;
@@ -103,9 +129,17 @@ export class App {
 
   /** heavy ball dropped into the nearest water in front of the camera – big physical splash */
   cannonball() {
-    const t = this.cam.target ?? this.vehicle.body.position;
-    const fwd = v3.norm(v3.sub(t, this.cam.pos ?? v3.add(t, [0, 3, -8])));
-    const p = v3.madd(t, [fwd[0], 0, fwd[2]], 10);
+    let p = null;
+    if (this.cam.mode === 'free' && this.cam.pos) {
+      // free camera: drop it where the camera is looking
+      const hit = this.pickAt(0, 0, { objects: false, maxDist: 220 });
+      if (hit) p = hit.point;
+    }
+    if (!p) {
+      const t = this.cam.target ?? this.vehicle.body.position;
+      const fwd = v3.norm(v3.sub(t, this.cam.pos ?? v3.add(t, [0, 3, -8])));
+      p = v3.madd(t, [fwd[0], 0, fwd[2]], 10);
+    }
     const it = this.props.spawn('ball', [p[0], this.scene.heightAt(p[0], p[2]) + 9, p[2]], { velocity: [0, -6, 0] });
     this.balls.push({ it, t: 0 });
   }
@@ -118,7 +152,116 @@ export class App {
 
   teleport(name) {
     const s = this.scene.scenarios[name];
-    if (s) { this.vehicle.reset(s.position, s.heading); this.cam.pos = null; }
+    if (!s) return;
+    this.vehicle.reset(s.position, s.heading);
+    if (this.cam.mode === 'free') this.focusOn({ kind: 'vehicle' });
+    else this.cam.pos = null;
+  }
+
+  // ---- camera modes, selection, picking ---------------------------------------------------------
+
+  /** 'chase' | 'low' | 'orbit' follow the car; 'free' is the Unreal-style editor camera. */
+  setCameraMode(mode) {
+    const c = this.cam;
+    if (!CAMERA_MODES.includes(mode) || mode === c.mode) return;
+    if (mode === 'free') {
+      // take over the current view so the switch is seamless
+      if (c.pos && c.target) this.editorCam.setLookAt(c.pos, c.target);
+      else this.editorCam.setLookAt(v3.add(this.vehicle.body.position, [0, 4, -9]), this.vehicle.body.position);
+      this.editorCam.fov = this.editorCam.baseFov = c.baseFov;
+    } else {
+      this.lastFollowMode = mode;
+      c.userYaw = c.userPitch = 0;
+    }
+    c.mode = mode;
+  }
+  /** F8: toggle between the free camera and the last car camera (Unreal's eject / possess). */
+  toggleFreeCamera() { this.setCameraMode(this.cam.mode === 'free' ? this.lastFollowMode : 'free'); }
+  cycleCamera() { this.setCameraMode(CAMERA_MODES[(CAMERA_MODES.indexOf(this.cam.mode) + 1) % CAMERA_MODES.length]); }
+  setFov(rad) {
+    this.cam.baseFov = rad;
+    this.editorCam.baseFov = rad;
+    this.editorCam.fov = rad;
+  }
+
+  /** LMB drag in the car camera modes: look around the car. */
+  followDrag(dx, dy) {
+    const c = this.cam;
+    dx *= 0.006; dy *= 0.004;
+    if (c.mode === 'orbit') { c.orbitYaw -= dx; c.orbitPitch += dy; }
+    else { c.userYaw -= dx; c.userPitch = clamp(c.userPitch + dy, -0.2, 1.0); }
+  }
+  /** wheel in the car camera modes (deltaY > 0 = zoom out) */
+  followZoom(deltaY) { this.cam.dist = clamp(this.cam.dist * Math.exp(deltaY * 0.001), 4, 40); }
+
+  get aspect() { return this.renderer.width / this.renderer.height; }
+
+  /** Ray cast through normalised device coords (x right, y up) of the current view. */
+  pickAt(ndcX, ndcY, opts) {
+    const c = this.cam;
+    if (!c.pos || !c.target) return null;
+    const { origin, dir } = screenRay(c.pos, c.target, c.fov, this.aspect, ndcX, ndcY);
+    return pickScene(this, origin, dir, opts);
+  }
+  /** LMB click: select the car / prop under the cursor, or clear the selection. */
+  selectAt(ndcX, ndcY) {
+    const hit = this.pickAt(ndcX, ndcY);
+    this.selection = hit?.object ?? null;
+    return this.selection;
+  }
+  select(obj) { this.selection = obj ?? null; }
+  selectionName(sel = this.selection) {
+    if (!sel) return null;
+    return sel.kind === 'vehicle' ? 'Car' : sel.item.type[0].toUpperCase() + sel.item.type.slice(1);
+  }
+  deleteSelection() {
+    const sel = this.selection;
+    if (sel?.kind !== 'prop') return false;
+    this.props.remove(sel.item);
+    this.balls = this.balls.filter((b) => b.it !== sel.item);
+    this.selection = null;
+    return true;
+  }
+  /** F: frame an object with the free camera (the selection, or the car when nothing is selected). */
+  focusOn(obj = this.selection ?? { kind: 'vehicle' }, { animate = true } = {}) {
+    this.setCameraMode('free');
+    const b = objectBounds(obj, this.vehicle);
+    this.editorCam.focus(() => objectBounds(obj, this.vehicle).center, b.radius, { aspect: this.aspect, duration: animate ? 0.35 : 0 });
+  }
+  focusSelection(opts) { this.focusOn(undefined, opts); }
+
+  /**
+   * Pivot for Alt+drag orbit / dolly / track: whatever is under the screen centre (the centre of a
+   * car / prop, or the terrain / water point). Falls back to the camera's own point of interest.
+   */
+  pivotAtScreenCenter() {
+    const hit = this.pickAt(0, 0, { maxDist: 150 });
+    if (!hit) return null;
+    return hit.object ? objectBounds(hit.object, this.vehicle).center : hit.point;
+  }
+
+  /** lowest eye height for the free camera: above the terrain and the (simulated) water surface */
+  cameraFloor(x, z) {
+    let water = this._staticWater(x, z);
+    const w = this._camWater;
+    if (w && Math.hypot(w.x - x, w.z - z) < 3) water = w.surface;
+    return Math.max(this.scene.heightAt(x, z) + 0.35, water + 0.25);
+  }
+
+  // water surface of the initial state (sea + river + puddles) – used where no GPU sample exists
+  _staticWater(x, z) {
+    const sc = this.scene;
+    const inside = x > sc.origin[0] && z > sc.origin[1] && x < sc.origin[0] + sc.size && z < sc.origin[1] + sc.size;
+    if (!inside) return sc.heightAt(x, z) < sc.seaLevel ? sc.seaLevel : -Infinity;
+    const d = sampleBilinear(sc.depth, sc.nx, sc.ny, sc.dx, sc.origin, x, z);
+    return d > 0.01 ? sc.heightAt(x, z) + d : -Infinity;
+  }
+
+  _readCameraProbe() {
+    const r = this.batch.resultsFor(this.camProbe);
+    if (!r) return;
+    const k = r.offset * 8, depth = r.data[k + 1], surf = r.data[k + 6];
+    this._camWater = { x: this._camProbeXZ[0], z: this._camProbeXZ[1], surface: depth > 0.003 && surf > -1e3 ? surf : -Infinity };
   }
 
   /** advance the simulation without rendering (settles the river after load) */
@@ -136,8 +279,17 @@ export class App {
 
   resize(w, h) { this.renderer.resize(w, h); }
 
-  _updateCamera(dt) {
+  _updateCamera(dt, fly = null) {
     const c = this.cam, b = this.vehicle.body;
+    if (c.mode === 'free') {
+      const ec = this.editorCam;
+      ec.update(dt, fly);
+      c.pos = ec.position.slice();
+      c.target = ec.target(10);
+      c.fov = ec.fov;
+      return;
+    }
+    c.fov += (c.baseFov - c.fov) * (1 - Math.exp(-dt * 8));
     const fwd = b.dirToWorld([0, 0, 1]);
     const flat = v3.norm([fwd[0], 0, fwd[2]]);
     let target, pos;
@@ -173,7 +325,7 @@ export class App {
     const fwd = v3.norm(v3.sub(c.target, c.pos));
     const right = v3.norm(v3.cross(fwd, [0, 1, 0]));
     const up = v3.cross(right, fwd);
-    const lightVP = r.lightMatrix(L.sunDir, v3.madd(this.vehicle.body.position, fwd, 25), 75);
+    const lightVP = r.lightMatrix(L.sunDir, c.mode === 'free' ? this._freeShadowFocus(fwd) : v3.madd(this.vehicle.body.position, fwd, 25), 75);
     return {
       lightVP,
       view: {
@@ -184,13 +336,39 @@ export class App {
     };
   }
 
+  // centre of the sun shadow map for the free camera: ground point up to 35 m ahead of the camera
+  _freeShadowFocus(fwd) {
+    const c = this.cam;
+    let flat = [fwd[0], 0, fwd[2]];
+    flat = Math.hypot(flat[0], flat[2]) < 1e-3 ? [0, 0, 1] : v3.norm(flat);
+    let dist = 30;
+    const t = rayHeightfield(c.pos, fwd, this.surfaceAt, 400);
+    if (t !== null) dist = Math.min(35, Math.hypot(fwd[0] * t, fwd[2] * t));
+    const x = c.pos[0] + flat[0] * dist, z = c.pos[2] + flat[2] * dist;
+    return [x, Math.max(this.scene.heightAt(x, z), this.scene.seaLevel), z];
+  }
+
+  _instances() {
+    // a selected prop can be culled (e.g. washed out of the world)
+    if (this.selection?.kind === 'prop' && !this.props.items.includes(this.selection.item)) this.selection = null;
+    const sel = this.selection;
+    const veh = this.vehicle.instances(), props = this.props.instances();
+    // selection: pattern id + 10 puts the instance into the outline mask (SceneRenderer / SELECT)
+    const mark = (it) => { it.params = [...(it.params ?? [0.5, 0, 0, 0])]; it.params[2] += 10; };
+    if (sel?.kind === 'vehicle') veh.forEach(mark);
+    else if (sel?.kind === 'prop') { const i = this.props.items.indexOf(sel.item); if (i >= 0) mark(props[i]); }
+    return [...veh, ...props].sort((a, b) => (a.mesh < b.mesh ? -1 : a.mesh > b.mesh ? 1 : 0));
+  }
+
   /**
    * One frame: physics -> fluid coupling -> GPU sim -> render into outputView.
-   * input = { throttle, brake, steer, handbrake } in [0..1] / [-1..1]
+   * input = { throttle, brake, steer, handbrake } in [0..1] / [-1..1], plus optional
+   * input.camera = FlyInput (see EditorCamera.js) while the free camera is flying (RMB held).
    */
   frame(dt, input, outputView) {
     dt = Math.min(Math.max(dt, 0.0005), 1 / 20);
     const sim = this.sim, veh = this.vehicle;
+    this.lastInput = input;
     if (!this.paused) {
       this.time += dt;
       // 1) rigid bodies using the latest (async) fluid samples
@@ -199,6 +377,7 @@ export class App {
       const rv = this.batch.resultsFor(veh.probe);
       veh.update(dt, input, rv);
       this.props.update(dt, veh, this.batch);
+      this._readCameraProbe();
       for (const b of this.balls) b.t += dt;
       const old = this.balls.filter((b) => b.t > 14);
       for (const b of old) this.props.remove(b.it);
@@ -212,17 +391,17 @@ export class App {
         sim.emit({ position: [this.cam.pos[0], this.cam.pos[1] + 14, this.cam.pos[2]], velocity: [w[0], -7.5, w[2]], spread: 0.3, radius: [32, 32], rate: 5200, kind: 'rain', size: 0.006, volume: 2e-6, life: 4, fromWater: false, mud: 0 });
       }
       sim.params.rain = this.rain ? 3e-6 : 0;
-      this.batch.setProbes([veh.probe, veh.wheelProbe, ...this.props.items.map((i) => i.probe)]);
+      this.batch.setProbes([veh.probe, veh.wheelProbe, this.camProbe, ...this.props.items.map((i) => i.probe)]);
       this.batch.submit(0.035);
     }
 
     // 3) GPU
     const enc = this.device.createCommandEncoder({ label: 'demo.frame' });
     if (!this.paused) sim.step(enc, dt);
-    this._updateCamera(dt);
+    this._updateCamera(dt, input?.camera ?? null);
     const vp = this._viewParams();
     this.fluidR.updateView(vp.view);
-    this.renderer.setInstances([...veh.instances(), ...this.props.instances()].sort((a, b) => (a.mesh < b.mesh ? -1 : a.mesh > b.mesh ? 1 : 0)));
+    this.renderer.setInstances(this._instances());
     this.renderer.render(enc, outputView, { lightVP: vp.lightVP, time: this.time, srgbOutput: this.srgbOutput });
     this.device.queue.submit([enc.finish()]);
     sim.afterSubmit();
