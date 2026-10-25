@@ -31,6 +31,23 @@ interface Prop {
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+/** Surface GPU errors in-app (the preview runs in an iframe whose console
+ *  the user can't see — a hidden validation error would look like a black
+ *  screen with "no errors"). Visible text = a bug report we can act on. */
+const shownGpuErrors = new Set<string>();
+export function showGpuError(msg: string): void {
+  const key = msg.slice(0, 160);
+  if (shownGpuErrors.has(key) || shownGpuErrors.size > 6) return;
+  shownGpuErrors.add(key);
+  console.error('[gpu]', msg);
+  const box = document.getElementById('gpuerr');
+  const text = document.getElementById('gpuerr-text');
+  if (box && text) {
+    box.style.display = 'block';
+    text.textContent += (text.textContent ? '\n— — —\n' : '') + msg;
+  }
+}
+
 export class Demo {
   private device: GPUDevice;
   private renderer: Renderer;
@@ -56,6 +73,8 @@ export class Demo {
   private baseSplashRate = 900;
   private baseWind: [number, number] = [0.6, 0.25];
   private lastT = 0;
+  /** Frames remaining under a validation error scope (startup/scene loads). */
+  private errorScopeFrames = 90;
   private fpsEMA = 60;
   private msEMA = 16;
   private statT = 0;
@@ -84,8 +103,11 @@ export class Demo {
       if (el) el.style.display = 'flex';
       if (msg) msg.textContent = `GPU device lost: ${info.message}. Reload the page to restart.`;
     });
+    // Route shader-compile errors (FluidSim/Renderer modules) + uncaptured
+    // GPU errors to the on-screen overlay.
+    (globalThis as unknown as { __gpuErr?: (m: string) => void }).__gpuErr = showGpuError;
     device.addEventListener?.('uncapturederror', (e) => {
-      console.error('[webgpu]', (e as GPUUncapturedErrorEvent).error.message);
+      showGpuError((e as GPUUncapturedErrorEvent).error.message);
     });
     const demo = new Demo(device, canvas);
     demo.wireInput(canvas);
@@ -96,6 +118,7 @@ export class Demo {
 
   // ------------------------------------------------------------------ scenes
   loadScene(def: SceneDef, resOverride?: number): void {
+    this.errorScopeFrames = Math.max(this.errorScopeFrames, 60);
     this.scene = def;
     const res = resOverride ?? def.preset.resolution;
     const settings: FluidSettings = { ...def.preset, resolution: res };
@@ -420,6 +443,11 @@ export class Demo {
 
   private frame(tMs: number): void {
     requestAnimationFrame((t) => this.frame(t));
+    const scoped = this.errorScopeFrames > 0;
+    if (scoped) {
+      this.errorScopeFrames--;
+      this.device.pushErrorScope('validation');
+    }
     const t0 = performance.now();
     const dt = this.lastT === 0 ? 1 / 60 : Math.min((tMs - this.lastT) / 1000, 0.1);
     this.lastT = tMs;
@@ -554,6 +582,11 @@ export class Demo {
     this.renderer.present(encoder);
     this.device.queue.submit([encoder.finish()]);
     this.sim.pollReadback();
+    if (scoped) {
+      this.device.popErrorScope().then((err) => {
+        if (err) showGpuError(err.message);
+      }).catch(() => undefined);
+    }
 
     // stats
     const ms = performance.now() - t0;

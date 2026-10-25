@@ -96,8 +96,8 @@ fn velocityUpdate(@builtin(global_invocation_id) id : vec3<u32>) {
     // --- ocean swell injection on the west strip
     if (P.boundaryMode == 1u && xy.x < 5) {
       let phase = 6.2831853 * P.edgeWaveFreq * P.time + wpos.y * 0.045;
-      let target = P.edgeWaveAmp * sin(phase);
-      vel.x = mix(vel.x, target, 0.55);
+      let swellTarget = P.edgeWaveAmp * sin(phase);
+      vel.x = mix(vel.x, swellTarget, 0.55);
     }
 
     // --- solid domain walls

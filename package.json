@@ -1,19 +1,23 @@
 {
   "name": "frontier-fluid",
   "version": "1.0.0",
-  "description": "Frontier Fluid — real-time WebGPU shallow-water fluid simulation (ocean, rivers, puddles, mud) with particle foam/splash, computed caustics and buoyancy. FluidNinja-style, engine-agnostic.",
+  "description": "Frontier Fluid \u2014 real-time WebGPU shallow-water fluid simulation (ocean, rivers, puddles, mud) with particle foam/splash, computed caustics and buoyancy. FluidNinja-style, engine-agnostic.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
+    "build": "node tools/validate-wgsl.mjs && tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "validate-wgsl": "node tools/validate-wgsl.mjs"
   },
   "devDependencies": {
     "@webgpu/types": "^0.1.60",
+    "naga-wasm": "^30.2.0",
     "typescript": "^5.6.0",
     "vite": "^5.4.0",
     "wgsl_reflect": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

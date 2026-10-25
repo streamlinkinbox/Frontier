@@ -33,7 +33,11 @@ function makeModule(device: GPUDevice, src: string, label: string): GPUShaderMod
   const mod = device.createShaderModule({ code, label });
   mod.getCompilationInfo().then((info) => {
     for (const m of info.messages) {
-      if (m.type === 'error') console.error(`[fluid] shader ${label} (${m.lineNum}:${m.linePos}) ${m.message}`);
+      if (m.type === 'error') {
+        const msg = `[fluid] shader "${label}" line ${m.lineNum}:${m.linePos} — ${m.message}`;
+        console.error(msg);
+        (globalThis as unknown as { __gpuErr?: (s: string) => void }).__gpuErr?.(msg);
+      }
     }
   }).catch(() => undefined);
   return mod;

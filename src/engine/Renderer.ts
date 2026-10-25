@@ -35,7 +35,11 @@ export function makeRenderModule(device: GPUDevice, src: string, label: string):
   const mod = device.createShaderModule({ code: loadRenderWGSL(src), label });
   mod.getCompilationInfo().then((info) => {
     for (const m of info.messages) {
-      if (m.type === 'error') console.error(`[render] shader ${label} (${m.lineNum}:${m.linePos}) ${m.message}`);
+      if (m.type === 'error') {
+        const msg = `[render] shader "${label}" line ${m.lineNum}:${m.linePos} — ${m.message}`;
+        console.error(msg);
+        (globalThis as unknown as { __gpuErr?: (s: string) => void }).__gpuErr?.(msg);
+      }
     }
   }).catch(() => undefined);
   return mod;

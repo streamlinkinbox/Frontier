@@ -76,7 +76,10 @@ fn noiseGrad(p : vec2<f32>) -> vec2<f32> {
 }
 
 @fragment
-fn fsMain(in : VSOut, @builtin(position) fragPos : vec4<f32>) -> @location(0) vec4<f32> {
+fn fsMain(in : VSOut) -> @location(0) vec4<f32> {
+  // NOTE: @builtin(position) already arrives via VSOut.clipPos — declaring it
+  // again as a separate parameter is a duplicate built-in (illegal WGSL).
+  let fragPos = in.clipPos;
   if (in.depth < 0.0012) { discard; }
   let texel = 1.0 / W.simRes;
 

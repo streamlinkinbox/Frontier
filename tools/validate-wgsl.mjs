@@ -1,8 +1,11 @@
-// Validates every WGSL shader with the wgsl_reflect parser.
+// Validates every WGSL shader with the REAL Naga compiler (wgpu's shader
+// frontend, compiled to WASM) — full semantic validation, not just syntax.
+// This catches type errors, duplicate builtins, bad bindings, etc. — the
+// same class of errors a browser would reject at pipeline creation.
 // Usage: npm run validate-wgsl
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { WgslReflect } from 'wgsl_reflect/wgsl_reflect.module.js';
+import { parseWgsl, validate } from 'naga-wasm';
 
 const shaderDirs = ['src/fluid/shaders', 'src/engine/shaders'];
 const commonPath = 'src/fluid/shaders/common.wgsl';
@@ -23,19 +26,21 @@ for (const dir of shaderDirs) {
     if (src.includes('//@@COMMON@@')) src = src.replace('//@@COMMON@@', common);
     if (src.includes('//@@FRAME@@')) src = src.replace('//@@FRAME@@', frame);
     checked++;
+    let mod = null;
+    let info = null;
     try {
-      const reflect = new WgslReflect(src);
-      const eps = [
-        ...reflect.entry.compute.map((e) => `compute:${e.name}`),
-        ...reflect.entry.vertex.map((e) => `vertex:${e.name}`),
-        ...reflect.entry.fragment.map((e) => `fragment:${e.name}`),
-      ];
-      console.log(`  OK  ${path}  [${eps.join(', ')}]`);
+      mod = parseWgsl(src);
+      info = validate(mod);
+      console.log(`  OK  ${path}`);
     } catch (err) {
       failed++;
-      console.error(`FAIL  ${path}\n      ${String(err.message ?? err).split('\n')[0]}`);
+      const msg = err.formatted ?? err.message ?? String(err);
+      console.error(`FAIL  ${path}\n${msg.split('\n').map((l) => '      ' + l).join('\n')}\n`);
+    } finally {
+      info?.free?.();
+      mod?.free?.();
     }
   }
 }
-console.log(`\n${checked - failed}/${checked} shaders valid`);
+console.log(`\n${checked - failed}/${checked} shaders valid (Naga semantic validation)`);
 process.exit(failed ? 1 : 0);

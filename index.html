@@ -48,6 +48,13 @@
   #help { left: 14px; bottom: 14px; max-width: 340px; color: var(--dim); font-size: 12px; }
   #help b { color: var(--ink); }
   kbd { background: #1a2e3c; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font: 11px inherit; color: var(--ink); }
+  #gpuerr {
+    left: 50%; transform: translateX(-50%); bottom: 70px; width: min(680px, 92vw);
+    display: none; border-color: rgba(255, 110, 90, 0.55); color: #ffc9bf;
+    font: 11.5px/1.5 Consolas, monospace; white-space: pre-wrap; word-break: break-word;
+    max-height: 34vh; overflow-y: auto; z-index: 30;
+  }
+  #gpuerr b { color: #ff8a75; display: block; font-size: 12.5px; margin-bottom: 4px; }
   #blurb { right: 14px; bottom: 14px; max-width: 330px; color: var(--dim); font-size: 12.5px; }
   #blurb b { color: var(--acc); display: block; margin-bottom: 3px; font-size: 13px; }
   #fatal {
@@ -140,6 +147,8 @@
 </div>
 
 <div class="panel" id="blurb"><b id="blurb-title"></b><span id="blurb-text"></span></div>
+
+<div class="panel" id="gpuerr"><b>⚠ GPU error (please report this text)</b><span id="gpuerr-text"></span></div>
 
 <div id="loading"><div class="spin"></div><div>Initialising WebGPU fluid…</div></div>
 
