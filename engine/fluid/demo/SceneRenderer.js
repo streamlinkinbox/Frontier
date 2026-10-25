@@ -236,6 +236,13 @@ export class SceneRenderer {
     this.hdrView = this.hdr.createView(); this.depthView = this.depth.createView(); this.selView = this.selMask.createView();
     this.fr.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView, [this.width, this.height]);
     this.postBG = d.createBindGroup({ layout: this.postBGL, entries: [{ binding: 0, resource: this.hdrView }, { binding: 1, resource: { buffer: this.postBuf } }, { binding: 2, resource: this.selView }] });
+    this.splashR?.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView, [this.width, this.height]);
+  }
+
+  /** Volumetric splash water (SplashRenderer), drawn after the water surface so it refracts it. */
+  attachSplash(splashR) {
+    this.splashR = splashR;
+    splashR.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView, [this.width, this.height]);
   }
 
   /** list of { mesh: 'box'|'cylinder'|'sphere', matrix: Float32Array(16), color: [r,g,b], params: [rough, metal, pattern, emissive] } */
@@ -323,7 +330,8 @@ export class SceneRenderer {
     // particle foam: splat the foam rafts into screen-space buffers (depth-tested against the opaque scene)
     this.fr.renderFoam(encoder);
 
-    // water + foam + spray particles (read-only depth, sampled for refraction & soft particles)
+    // water + foam (+ spray particles) (read-only depth, sampled for refraction & soft particles)
+    const splash = this.splashR?.active;
     {
       const pass = encoder.beginRenderPass({
         label: 'demo.water',
@@ -332,6 +340,19 @@ export class SceneRenderer {
       });
       this.fr.drawWater(pass);
       this.fr.drawFoam(pass);
+      if (!splash) this.fr.drawParticles(pass);
+      pass.end();
+    }
+    // volumetric splash water: rendered after the water so it refracts the surface behind it
+    if (splash) {
+      this.splashR.render(encoder);
+      encoder.copyTextureToTexture({ texture: this.hdr }, { texture: this.hdrCopy }, [this.width, this.height]);
+      const pass = encoder.beginRenderPass({
+        label: 'demo.splash',
+        colorAttachments: [{ view: this.hdrView, loadOp: 'load', storeOp: 'store' }],
+        depthStencilAttachment: { view: this.depthView, depthReadOnly: true },
+      });
+      this.splashR.draw(pass);
       this.fr.drawParticles(pass);
       pass.end();
     }

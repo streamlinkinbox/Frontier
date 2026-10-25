@@ -3,12 +3,16 @@ import { getDevice } from './gpu.mjs';
 import * as SIM from '../src/shaders/sim.wgsl.js';
 import * as PART from '../src/shaders/particles.wgsl.js';
 import * as REND from '../src/shaders/render.wgsl.js';
+import * as SPLASH from '../src/shaders/splash.wgsl.js';
+import * as SPLASHR from '../src/shaders/splashRender.wgsl.js';
 
 const { device } = await getDevice({ verbose: false });
 const modules = [];
 for (const [k, v] of Object.entries(SIM)) if (typeof v === 'string') modules.push(['sim.' + k, v]);
 for (const [k, v] of Object.entries(PART)) if (typeof v === 'string') modules.push(['particles.' + k, v]);
 for (const [k, v] of Object.entries(REND)) if (typeof v === 'string' && /@(vertex|fragment|compute)/.test(v)) modules.push(['render.' + k, v]);
+for (const [k, v] of Object.entries(SPLASH)) if (typeof v === 'string' && /@(vertex|fragment|compute)/.test(v)) modules.push(['splash.' + k, v]);
+for (const [k, v] of Object.entries(SPLASHR)) if (typeof v === 'string' && /@(vertex|fragment|compute)/.test(v)) modules.push(['splashRender.' + k, v]);
 // extra modules registered by other files (demo shaders) can be validated by passing paths
 for (const extra of process.argv.slice(2)) {
   const m = await import(new URL(extra, `file://${process.cwd()}/`).href);

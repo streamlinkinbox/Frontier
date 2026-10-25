@@ -107,6 +107,36 @@ if (SHOTS.includes('beach')) {
   const c = carFrame();
   await shot('beach', at(c, 6, 4, 2.4), at(c, -14, -2, -1.5));
 }
+if (SHOTS.includes('splash')) {
+  // volumetric splashes: the car charging into the ford (with a run-up), then a cannonball crown
+  const road = app.scene.road, ford = app.scene.fords[1];
+  const st = road.pointAt(ford.t - Number(process.env.RUNUP ?? 0.085));
+  app.vehicle.reset([st.point[0], app.scene.heightAt(st.point[0], st.point[1]) + 0.9, st.point[1]], Math.atan2(st.tangent[0], st.tangent[1]));
+  await simulate(6);
+  let n = 0;
+  while (n < 240 && !app.vehicle.wheels.some((w) => w.depth > 0.12)) { await simulate(4, { throttle: 1 }); n += 4; }
+  console.log(`    reached the water after ${n} frames at ${(app.vehicle.speed * 3.6).toFixed(0)} km/h`);
+  await simulate(Number(process.env.CHARGE ?? 10), { throttle: 1 });
+  console.log('    splash particles alive:', await app.splash.readAlive(), ' car', (app.vehicle.speed * 3.6).toFixed(0), 'km/h, in water', (app.vehicle.inWater * 100).toFixed(0) + '%');
+  let c = carFrame();
+  await shot('splash_car', at(c, -4.2, 3.6, 1.3), at(c, -0.6, 0.9, -0.3));
+  await simulate(6, { throttle: 1 });
+  c = carFrame();
+  await shot('splash_car_side', at(c, 0.5, 5.5, 1.6), at(c, 0.3, 0.6, -0.2));
+  // cannonball into the ford in front of the car, shot ~0.2 s after it hits the water
+  await simulate(40);   // let the car's splash settle
+  c = carFrame();
+  const drop = [c.p[0] + c.fwd[0] * 6, 0, c.p[2] + c.fwd[2] * 6];
+  const ws = app.surfaceAt(drop[0], drop[2]);
+  const ball = app.props.spawn('ball', [drop[0], app.scene.heightAt(drop[0], drop[2]) + 9, drop[2]], { velocity: [0, -6, 0] });
+  app.balls.push({ it: ball, t: 0 });
+  let k = 0;
+  while (k < 90 && !app.balls.find((b) => b.it === ball)?.splashed) { await simulate(1, idle, 1 / 60); k++; }
+  await simulate(Number(process.env.BALL ?? 12), idle, 1 / 60);
+  console.log(`    ball hit the water after ${k} frames; splash particles alive:`, await app.splash.readAlive());
+  const eye = [drop[0] + c.left[0] * 6.5 - c.fwd[0] * 2.5, ws + 2.4, drop[2] + c.left[2] * 6.5 - c.fwd[2] * 2.5];
+  await shot('splash_cannonball', eye, [drop[0], ws + 0.7, drop[2]]);
+}
 if (SHOTS.includes('rapids')) {
   // boulder rapids (river s = 0.30–0.42): from the bank just below them, looking upstream
   await simulate(Number(process.env.RAPIDS ?? 60));

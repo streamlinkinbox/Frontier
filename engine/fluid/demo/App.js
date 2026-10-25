@@ -1,5 +1,5 @@
 // Demo application core (browser-independent so it also runs headless in Node for tests).
-import { FluidSim, FluidRenderer, FluidQueryBatch } from '../src/index.js';
+import { FluidSim, FluidRenderer, FluidQueryBatch, SplashFluid, SplashRenderer } from '../src/index.js';
 import { mat4, v3, quat, clamp } from '../src/math.js';
 import { buildScene, sampleBilinear } from './scene.js';
 import { SceneRenderer } from './SceneRenderer.js';
@@ -12,10 +12,10 @@ export const CAMERA_MODES = ['chase', 'low', 'orbit', 'free'];
 export { CAMERA_SPEEDS };
 
 export const QUALITY = {
-  low: { res: 256, particles: 131072 },
-  medium: { res: 512, particles: 262144 },
-  high: { res: 768, particles: 393216 },
-  ultra: { res: 1024, particles: 524288 },
+  low: { res: 256, particles: 131072, splash: 32768 },
+  medium: { res: 512, particles: 262144, splash: 32768 },
+  high: { res: 768, particles: 393216, splash: 65536 },
+  ultra: { res: 1024, particles: 524288, splash: 65536 },
 };
 
 export class App {
@@ -41,6 +41,10 @@ export class App {
 
     this.fluidR = new FluidRenderer(sim, { colorFormat: 'rgba16float', depthFormat: 'depth32float' });
     this.renderer = new SceneRenderer(device, this.fluidR, sc, { outputFormat, width, height });
+    // volumetric splash water (PBF liquid, screen-space rendered), coupled to the shallow-water grid
+    this.splash = new SplashFluid(sim, { maxParticles: q.splash });
+    this.splashVolume = 2.0;   // thrown splash water relative to the old spray emitter volumes
+    this.renderer.attachSplash(new SplashRenderer(this.splash, this.fluidR));
     this.vehicle = new Vehicle(sc);
     this.props = new Props(sc);
     this.batch = new FluidQueryBatch(sim);
@@ -148,6 +152,52 @@ export class App {
     const sc = this.scene;
     this.sim.setWater(sc.depth, sc.mud, sc.vel);
     this.sim.particles.reset();
+    this.splash.reset();
+  }
+
+  /**
+   * Route the car's water emitters: thrown water (tyre sheets, rooster tails, bow splash, mud roost)
+   * becomes volumetric splash liquid; a share stays as fine droplet spray around it, and water
+   * dripping off the body stays as droplets.
+   */
+  _emitVehicleWater(list) {
+    const sprayVol = this.sim.particles.params.sprayVolume;
+    for (const e of list) {
+      if (this.splash.params.enabled && e.kind === 'spray' && e.fromWater !== false) {
+        // a tyre throws a coherent sheet from a narrow region: tight nozzle, little velocity jitter
+        // dense sheets (tyre spray): more of the water becomes liquid; the bow splash stays sheet
+        const volRate = (e.rate ?? 0) * (e.volume ?? sprayVol) * this.splashVolume * (e.sheet ? 2.0 : 1.0);
+        const r = Array.isArray(e.radius) ? e.radius : [e.radius ?? 0.1, e.radius ?? 0.1];
+        // sheets are thickest close to the tyre, then stretch and break up into droplets
+        const off = (e.sheet ? 1.3 : 0.0) * Math.random();
+        const vel = e.velocity ?? [0, 0, 0], sp = Math.hypot(vel[0], vel[1], vel[2]) || 1;
+        const pos = [e.position[0] + (vel[0] / sp) * off, e.position[1] + (vel[1] / sp) * off, e.position[2] + (vel[2] / sp) * off];
+        this.splash.emit({ position: pos, velocity: vel, spread: (e.spread ?? 0.5) * 0.1, radius: r.map((x) => Math.max(0.05, x * 0.4)), rate: volRate, fromWater: true, mud: e.mud ?? -1 });
+        // plus a little fine droplet spray around the sheets
+        this.sim.emit({ ...e, rate: (e.rate ?? 0) * 0.05, size: (e.size ?? this.sim.particles.params.spraySize) * 0.4 });
+      } else {
+        this.sim.emit(e);
+      }
+    }
+  }
+
+  /** Crown splash when a heavy ball hits the water (volumetric, thrown out of the water itself). */
+  _ballSplashes() {
+    for (const b of this.balls) {
+      const it = b.it, body = it.body;
+      const r = this.batch.resultsFor(it.probe);
+      if (!r) continue;
+      const surf = r.data[r.offset * 8 + 6], depth = r.data[r.offset * 8 + 1];
+      const bottom = body.position[1] - it.T.half[1];
+      const vy = body.linVel[1];
+      if (!b.splashed && depth > 0.15 && bottom <= surf && vy < -3) {
+        b.splashed = true;
+        const speed = -vy, R = it.T.half[0];
+        const vol = Math.min(0.35, 0.025 * speed * speed * R);
+        this.splash.emit({ position: [body.position[0], surf, body.position[2]], velocity: [0, 0.55 * speed, 0], spread: 0.6, radius: R * 1.05, volume: vol, ring: true, radialSpeed: 0.32 * speed, fromWater: true });
+        this.splash.emit({ position: [body.position[0], surf, body.position[2]], velocity: [0, 0.25 * speed, 0], spread: 1.2, radius: R * 0.9, volume: vol * 0.3, ring: true, radialSpeed: 0.6 * speed, fromWater: true });
+      }
+    }
   }
 
   teleport(name) {
@@ -385,7 +435,8 @@ export class App {
 
       // 2) bodies -> fluid
       sim.setPrimitives([...veh.primitives(), ...this.props.primitives()]);
-      for (const e of veh.emitters(sim)) sim.emit(e);
+      this._emitVehicleWater(veh.emitters(sim));
+      this._ballSplashes();
       if (this.rain && this.cam.pos) {
         const w = sim.particles.params.wind;
         sim.emit({ position: [this.cam.pos[0], this.cam.pos[1] + 14, this.cam.pos[2]], velocity: [w[0], -7.5, w[2]], spread: 0.3, radius: [32, 32], rate: 5200, kind: 'rain', size: 0.006, volume: 2e-6, life: 4, fromWater: false, mud: 0 });
@@ -397,7 +448,7 @@ export class App {
 
     // 3) GPU
     const enc = this.device.createCommandEncoder({ label: 'demo.frame' });
-    if (!this.paused) sim.step(enc, dt);
+    if (!this.paused) { sim.step(enc, dt); this.splash.step(enc, dt); }
     this._updateCamera(dt, input?.camera ?? null);
     const vp = this._viewParams();
     this.fluidR.updateView(vp.view);

@@ -13,6 +13,8 @@ engine/fluid/
     FluidSim.js        shallow-water + mud solver, object coupling, queries, stats
     FluidParticles.js  spray / mist / foam / rain particles coupled to the grid
     FoamPattern.js     procedural foam micro-structure carried by the foam particles
+    SplashFluid.js     volumetric splash water: GPU Position Based Fluids, two-way coupled
+    SplashRenderer.js  screen-space fluid rendering of the splash water
     FluidRenderer.js   water surface, caustics, particle rendering, ground-shader hooks
     Buoyancy.js        RigidBody, BuoyancyProbe, FluidQueryBatch (CPU side)
     RiverPath.js       carve a river (or a track) along a spline, fill it, add the inflow
@@ -84,6 +86,7 @@ section with the mode, fly speed, FOV and optional mouse lock. `?ui=hidden` star
 | No fake waves | Swell enters through an *ocean* boundary (relaxation-zone wave maker with physical amplitude/period/direction) and then propagates, shoals, refracts, steepens and breaks as bores purely in the solver. Wakes, bow waves, splashes, wind gust forcing — all solver dynamics |
 | River along a path | `RiverPath` carves a channel along a spline into the bed and adds a volume source at the head; the water flows downhill under gravity, speeds up over the rapids, pools, crosses fords and enters the sea |
 | Interactive vehicles | Car body + wheels are rasterised into the grid every frame as solid volumes: they push water away (bow wave, wake, trough behind each tyre), drag it along, leave persistent ruts in mud (yield stress) and get pushed back (buoyancy, drag, current) |
+| Volumetric splashes | Tyre sheets, rooster tails, bow splashes, mud roost and impact crowns are a real 3D liquid. A GPU Position Based Fluid (incompressible, with cohesion) collides with the car and is rendered as one continuous refracting body of water. Every parcel is water taken out of the river and put back exactly where it lands, leaving foam (see *Volumetric splashes* below) |
 | Splash, spray & foam | GPU particles emitted where the simulated surface breaks (Ihmsen et al. potentials: wave crest, trapped air, kinetic energy) and by wheel / bow emitters. Spray removes water from the grid and returns it where it lands; spray hitting water leaves thin droplet foam. Foam particles are rafts of bubbles that ride the simulated current, turn with its vorticity, thin out and burst (faster in turbulence and on land). They are rendered as one continuous foam surface that carries a bubble-raft micro-structure along with the particles, not as sprites (see *Particle foam* below) |
 | Caustics | Sun rays refracted through the simulated surface onto the bed; intensity = change of projected triangle area, with absorption and chromatic dispersion |
 | Buoyancy | Async GPU point queries (pressure head, depth, flow, mud) feed CPU rigid bodies (Archimedes + quadratic/linear drag + density of mud) |
@@ -124,6 +127,46 @@ Pool of up to 512k particles (48 B each) with a GPU dead-list allocator and indi
 Kinds: spray, mist, foam, rain. Ballistic droplets with size-dependent drag relative to the
 wind; volume exchange through fixed-point atomics so splashes genuinely move water (test: total
 volume returns to 2e-6 after all spray has landed).
+
+### Volumetric splashes (`SplashFluid.js`, `shaders/splash.wgsl.js`, `SplashRenderer.js`)
+Splash water is a 3D particle liquid that uses **Position Based Fluids** (Macklin & Müller 2013, the
+method behind NVIDIA FleX). Each particle is a 43 ml parcel of water, spaced 3.5 cm apart, with a
+kernel radius of 7 cm.
+
+**Each substep, on the GPU:**
+1. Particles are inserted into a hashed uniform grid: a counting sort, a 3-pass prefix scan and a
+   scatter. Neighbour loops visit each hash bucket only once.
+2. Density constraints are solved with Jacobi iterations, using the artificial pressure `s_corr`
+   against clumping. Each position correction is capped, so overlaps relax instead of exploding.
+3. Particles collide with the solver's primitives: the car body boxes, the wheel cylinders and the
+   props.
+4. XSPH viscosity and Akinci cohesion (surface tension) hold the water together in sheets,
+   ligaments and blobs until it breaks up.
+
+**Coupling with the river.** Emitters reserve real water from the column they throw it out of,
+backing off rather than running a cell dry. When a parcel falls back below the surface it merges
+into the water body and returns its water and mud to that cell, sometimes leaving a raft of foam.
+On dry ground it soaks in. Test: 72 l thrown and 72 l returned, with the volume conserved to 3e-8.
+
+**Rendering: screen-space fluid rendering** (NVIDIA GDC 2010):
+1. Particles are drawn as spheres into an eye-depth map and an additive thickness map. The
+   thickness map also carries mud and aeration.
+2. A narrow-range filter (Truong & Yuksel 2018) smooths the depth into one continuous surface while
+   keeping silhouettes sharp.
+3. A composite pass shades it as water, using normals from the smoothed depth:
+   - Fresnel reflection of the sky and GGX sun glints.
+   - Refraction of the scene behind it, including the water surface.
+   - Beer–Lambert absorption by thickness.
+   - Milky white where the water is broken up and aerated, brown when it carries mud.
+
+**Parcels vs. droplets.** A rendering classification pass (`SPLASH_CLASSIFY`) measures the
+smoothed neighbourhood of every parcel and splits the water into coherent liquid and broken-up
+droplets, with hysteresis. This is deliberately not the density solve's kernel, which spikes near
+zero at rest contacts. Coherent parcels form the screen-space surface, drawn as subdivided spheres
+so it resolves finer than the simulation grid. Droplets and everything outside the sheet are drawn
+as soft, motion-blurred spray, so the splash frays into droplets instead of beads.
+
+When nothing has been thrown recently, both the simulation and the rendering are skipped entirely.
 
 ### Particle foam (`FoamPattern.js`, `FOAM_SPLAT` / `FOAM_COMPOSITE` in `shaders/render.wgsl.js`)
 The foam is the simulated foam particles. Each one is a *raft* of bubbles, 0.3 m in radius, that
@@ -208,6 +251,26 @@ device.queue.submit([enc.finish()]);
 sim.afterSubmit();                                   // kicks off async query / stats readback
 ```
 
+**Volumetric splashes** (optional, recommended):
+
+```js
+const splash = new SplashFluid(sim, { maxParticles: 32768 });
+const splashR = new SplashRenderer(splash, water);
+splashR.setSceneTextures(sceneColorCopyView, sceneDepthView, shadowMapView, [width, height]);
+// every frame
+splash.emit({ position, velocity, spread: 0.3, radius: 0.08, rate: 0.12 /* m³/s */, fromWater: true });
+sim.step(enc, dt); splash.step(enc, dt);
+//   ...opaque pass, water pass (drawWater + drawFoam)...
+splashR.render(enc);                                         // sphere depth/thickness + smoothing
+enc.copyTextureToTexture({ texture: sceneColor }, { texture: sceneColorCopy }, size);   // now with water
+const p2 = enc.beginRenderPass({ colorAttachments: [{ view: sceneColorView, loadOp: 'load', storeOp: 'store' }],
+                                 depthStencilAttachment: { view: sceneDepthView, depthReadOnly: true } });
+splashR.draw(p2); water.drawParticles(p2); p2.end();
+```
+
+`splash.emit` also takes `volume` (m³ this frame) instead of `rate`, `mud`, `life`, and
+`ring: true` + `radialSpeed` for impact crowns.
+
 **Ground & object shaders** — add `FluidRenderer.groundWGSL(group, firstBinding)` to your WGSL,
 `water.groundLayoutEntries(first)` to your bind group layout and `water.groundBindEntries(first)`
 to the bind group, then:
@@ -242,6 +305,9 @@ mud-roost emitters that only fire where there is real water.
 | `absorb`, `scatter`, `mudAbsorb`, `mudScatter` | `renderer.settings` | water / sediment optics (1/m) |
 | `foamLife`, `foamSize`, `foamEmitProb`, `impactFoamProb`, `impactFoamAmount` | `sim.particles.params` | how much foam is made and how long rafts last |
 | `foamDensity`, `foamLace`, `foamThinning`, `foamFresh`, `foamAlbedo` | `renderer.settings` | how dense, lacy, long-lived and bright the foam looks |
+| `spacing`, `substepDt`, `iterations`, `xsph`, `cohesion`, `maxCorr` | `sim.splash.params` | splash liquid: resolution, solver effort, how much the water holds together |
+| `radius`, `alphaThick`, `refract`, `whiteness`, `sprayRadius` | `splashR.settings` | splash look: droplet size, how opaque, refraction, spray |
+| `splashVolume` | `app` (demo) | how much of the car's spray becomes volumetric liquid |
 
 ## Performance
 
@@ -265,7 +331,8 @@ caustics resolution are the main knobs.
 
 ```bash
 cd engine/fluid && npm install
-npm test            # vehicle + editor-camera checks (CPU), WGSL validation, GPU numerical tests
+npm test            # vehicle + editor-camera checks (CPU), WGSL validation, GPU solver + splash tests
+npm run test:splash   # GPU splash-liquid tests: mass exchange, stability, collision, foam
 npm run test:render # headless render of the demo to test/out/*.png
 npm run test:browser # demo page in headless Chromium + WebGPU: real mouse/keyboard input
                      # (menu hide, game view, RMB fly, pan, orbit, dolly, focus, select), screenshots
@@ -274,7 +341,9 @@ npm run render:foam  # foam close-ups (ford, beach, rapids) + foam-buffer statis
 ```
 
 Runs on machines without a GPU: the launcher falls back to SwiftShader (CPU Vulkan). Current
-results: 30/30 solver checks — Ritter dam break, √(gh) wave speed, lake at rest with wet/dry
+results: 11/11 splash-liquid checks (72 l thrown and returned with volume conserved to 4e-8,
+incompressible under a dense stream, never inside a solid, foam left on landing) and 30/30 solver
+checks — Ritter dam break, √(gh) wave speed, lake at rest with wet/dry
 islands, run-up, Bingham equilibrium of a mud mound, floating-box buoyancy, moving-wheel
 displacement, exact source volume, particle volume exchange, ocean boundary stability.
 
@@ -294,5 +363,8 @@ displacement, exact source volume, particle volume exchange, ocean boundary stab
 Stelling & Duinmeijer 2003 (momentum-conservative staggered scheme) · Audusse et al. 2004
 (hydrostatic reconstruction) · O'Brien & Julien 1988 (mudflow rheology) · Ihmsen et al. 2012
 (spray/foam potentials) · Yu, Neyret, Bruneton & Holzschuch 2011 (Lagrangian texture advection,
-variance-preserving blending) · Chentanez & Müller 2010 (heightfield water with rigid-body coupling) ·
+variance-preserving blending) · Macklin & Müller 2013 (Position Based Fluids) · Akinci et al. 2013
+(cohesion) · van der Laan, Green & Sainz 2009 and Green 2010 (screen-space fluid rendering) · Truong &
+Yuksel 2018 (narrow-range filter) · Hoetzlein 2014 (fast fixed-radius neighbours, counting sort) ·
+Chentanez & Müller 2010 (heightfield water with rigid-body coupling) ·
 Ritter 1892 (dam break) · Evan Wallace 2011 (WebGL caustics) · Horne & Dreher 1963 (aquaplaning).
