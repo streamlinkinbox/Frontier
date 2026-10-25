@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FRONTIER · Fluid — real-time WebGPU water</title>
+<style>
+  :root {
+    --blue: #1f5eff; --blue-2: #4f82ff; --black: #0a0a0a; --ink: #f4f6fb; --mute: #9aa3b5;
+    --panel: rgba(10, 10, 12, 0.74); --line: rgba(255, 255, 255, 0.09);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--black); color: var(--ink); overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; outline: none; }
+  .panel {
+    position: fixed; top: 16px; left: 16px; width: 316px; max-height: calc(100vh - 32px); overflow: auto;
+    background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--line); border-radius: 14px; padding: 14px 14px 12px; font-size: 12.5px; line-height: 1.35;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); user-select: none;
+  }
+  .panel.collapsed .body { display: none; }
+  .brand { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .logo { font-weight: 800; letter-spacing: 0.16em; font-size: 13px; }
+  .logo b { color: var(--blue-2); font-weight: 800; }
+  .chip { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 7px; border-radius: 999px; background: rgba(31, 94, 255, 0.18); color: #a9c0ff; border: 1px solid rgba(31, 94, 255, 0.45); }
+  .sub { color: var(--mute); margin: 4px 0 10px; font-size: 11.5px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .stat { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); border-radius: 9px; padding: 6px 8px; }
+  .stat .k { color: var(--mute); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .stat .v { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+  h4 { margin: 12px 0 6px; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); font-weight: 700; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0; }
+  .row label { color: #d9deea; }
+  .row output { color: var(--mute); font-variant-numeric: tabular-nums; min-width: 54px; text-align: right; }
+  input[type=range] { flex: 1; accent-color: var(--blue); height: 18px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 5px; }
+  button, .seg button {
+    font: inherit; font-size: 11.5px; color: var(--ink); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 9px; cursor: pointer; transition: background .12s, border-color .12s;
+  }
+  button:hover { background: rgba(255, 255, 255, 0.12); }
+  button.on, .seg button.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+  button.primary { background: var(--blue); border-color: var(--blue); font-weight: 600; }
+  .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .help { color: var(--mute); font-size: 11px; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .help kbd { font: 600 10.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: #dfe6ff; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 2px 5px; }
+  .speedo { position: fixed; right: 22px; bottom: 18px; text-align: right; pointer-events: none; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+  .speedo .num { font-size: 54px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .speedo .unit { font-size: 12px; letter-spacing: .2em; color: #cfd6e6; }
+  .speedo .tag { margin-top: 6px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #a9c0ff; }
+  #overlay { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(1200px 600px at 50% 40%, #12182a 0%, #0a0a0a 70%); z-index: 10; transition: opacity .5s; }
+  #overlay .box { text-align: center; max-width: 560px; padding: 24px; }
+  #overlay .t { font-weight: 800; letter-spacing: .22em; font-size: 22px; }
+  #overlay .t b { color: var(--blue-2); }
+  #overlay .m { color: var(--mute); margin-top: 10px; font-size: 13.5px; line-height: 1.5; }
+  .bar { width: 260px; height: 3px; background: rgba(255,255,255,.1); border-radius: 3px; margin: 18px auto 0; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 30%; background: var(--blue); border-radius: 3px; animation: load 1.1s ease-in-out infinite; }
+  @keyframes load { 0% { transform: translateX(-100%); } 100% { transform: translateX(330%); } }
+  .collapse { background: none; border: none; color: var(--mute); padding: 2px 4px; font-size: 16px; line-height: 1; }
+</style>
+</head>
+<body>
+<canvas id="gfx" tabindex="0"></canvas>
+
+<div class="panel" id="panel">
+  <div class="brand">
+    <div class="logo">FRONTIER <b>·</b> FLUID</div>
+    <div style="display:flex;gap:6px;align-items:center"><span class="chip">WEBGPU</span><button class="collapse" id="collapse" title="Collapse (H)">–</button></div>
+  </div>
+  <div class="body">
+    <div class="sub" id="sub">Shallow-water simulation · particles · caustics</div>
+    <div class="stats">
+      <div class="stat"><div class="k">FPS</div><div class="v" id="sFps">–</div></div>
+      <div class="stat"><div class="k">Particles</div><div class="v" id="sParts">–</div></div>
+      <div class="stat"><div class="k">Grid · substeps</div><div class="v" id="sGrid">–</div></div>
+      <div class="stat"><div class="k">Water volume</div><div class="v" id="sVol">–</div></div>
+    </div>
+
+    <h4>Scenario</h4>
+    <div class="seg" id="scenarios">
+      <button data-s="beach">Beach</button><button data-s="ford">River ford</button><button data-s="mud">Mud pit</button><button data-s="rapids">Rapids</button><button data-s="puddles">Puddles</button>
+    </div>
+
+    <h4>Environment</h4>
+    <div class="row"><label for="swell">Ocean swell</label><input id="swell" type="range" min="0" max="1.2" step="0.02" value="0.32" /><output id="swellO">0.32 m</output></div>
+    <div class="row"><label for="period">Swell period</label><input id="period" type="range" min="3" max="12" step="0.1" value="7.5" /><output id="periodO">7.5 s</output></div>
+    <div class="row"><label for="river">River flow</label><input id="river" type="range" min="0" max="10" step="0.1" value="2.6" /><output id="riverO">2.6 m³/s</output></div>
+    <div class="row"><label for="wind">Wind</label><input id="wind" type="range" min="0" max="25" step="0.5" value="0" /><output id="windO">0 m/s</output></div>
+    <div class="toggles" style="margin-top:8px">
+      <button id="tCaustics" class="on">Caustics</button><button id="tParticles" class="on">Particles</button>
+      <button id="tShadows" class="on">Shadows</button><button id="tRain">Rain</button>
+    </div>
+
+    <h4>Debug view</h4>
+    <div class="seg" id="views"><button data-v="0" class="on">Shaded</button><button data-v="1">Depth</button><button data-v="2">Speed</button><button data-v="3">Mud</button><button data-v="4">Normals</button></div>
+
+    <h4>Actions</h4>
+    <div class="seg"><button id="aCrates" class="primary">Drop crates (F)</button><button id="aBall">Cannonball (G)</button><button id="aReset">Reset water</button></div>
+
+    <h4>Quality <span style="text-transform:none;letter-spacing:0;color:#6f7890">(reloads)</span></h4>
+    <div class="seg" id="quality"><button data-q="low">Low 256²</button><button data-q="medium">Med 512²</button><button data-q="high">High 768²</button><button data-q="ultra">Ultra 1024²</button></div>
+
+    <div class="help">
+      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive · <kbd>Space</kbd> handbrake · <kbd>R</kbd> reset car · <kbd>C</kbd> camera<br />
+      drag = orbit · wheel = zoom · <kbd>1</kbd>–<kbd>5</kbd> scenarios · <kbd>T</kbd> rain · <kbd>V</kbd> view · <kbd>P</kbd> pause<br />
+      Gamepad: RT throttle · LT brake · A handbrake
+    </div>
+  </div>
+</div>
+
+<div class="speedo"><div class="num" id="spd">0</div><div class="unit">KM/H</div><div class="tag" id="surf">—</div></div>
+
+<div id="overlay"><div class="box">
+  <div class="t">FRONTIER <b>·</b> FLUID</div>
+  <div class="m" id="msg">Building terrain and compiling GPU kernels…</div>
+  <div class="bar" id="bar"><i></i></div>
+</div></div>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>

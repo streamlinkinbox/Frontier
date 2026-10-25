@@ -1,0 +1,33 @@
+{
+  "name": "@frontier/fluid",
+  "version": "0.1.0",
+  "description": "Real-time WebGPU shallow-water simulation for Frontier: ocean, rivers, puddles, mud, caustics, particle spray & foam, buoyancy.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node test/vehicle.test.mjs && node test/launch.mjs test/validate.mjs demo/shaders.js && node test/launch.mjs test/sim.test.mjs",
+    "test:vehicle": "node test/vehicle.test.mjs",
+    "test:sim": "node test/launch.mjs test/sim.test.mjs",
+    "validate": "node test/launch.mjs test/validate.mjs demo/shaders.js",
+    "test:render": "node test/launch.mjs test/render.test.mjs",
+    "test:browser": "node test/browser.test.mjs",
+    "demo": "cd ../.. && python3 -m http.server 8080 --bind 0.0.0.0"
+  },
+  "devDependencies": {
+    "webgpu": "^0.6.2",
+    "pngjs": "^7.0.0"
+  },
+  "optionalDependencies": {
+    "@sparticuz/chromium": "^153.0.0",
+    "puppeteer-core": "^24.0.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
