@@ -276,7 +276,7 @@ fn interact(@builtin(global_invocation_id) id : vec3<u32>) {
   // ---- rain: stochastic depth bumps become expanding rings via the solver
   if (P.rainRate > 0.0) {
     let cellId = u32(xy.x) + u32(xy.y) * P.res.x;
-    let h = hashF(cellId * 2654435761u ^ (P.frame * 40503u));
+    let h = hashF((cellId * 2654435761u) ^ (P.frame * 40503u));
     let prob = clamp(P.rainRate * 220.0 * dt, 0.0, 0.6);
     if (h < prob) {
       d += 0.006 + 0.01 * hashF(cellId ^ 0x9e3779b9u ^ P.frame);

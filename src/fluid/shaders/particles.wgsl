@@ -95,7 +95,7 @@ fn splashUpdate(@builtin(global_invocation_id) id : vec3<u32>) {
 // tracks the physics. P.splashRate scales how many candidates TS dispatches.
 @compute @workgroup_size(128)
 fn splashEmit(@builtin(global_invocation_id) id : vec3<u32>) {
-  let seed = id.x * 2654435761u ^ (P.frame * 40503u) ^ 0x51ab3u;
+  let seed = ((id.x * 2654435761u) ^ (P.frame * 40503u)) ^ 0x51ab3u;
   let r0 = rand2(seed);
   let r1 = rand2(seed ^ 0x9e3779b9u);
   let r2 = rand2(seed ^ 0x27d4eb2du);
@@ -149,7 +149,7 @@ fn foamParticleUpdate(@builtin(global_invocation_id) id : vec3<u32>) {
 
   if (f.x > 0.003) {
     // carried by the simulated flow (+ gentle jitter so sheets break up)
-    let jit = (rand2(i * 1973u ^ P.frame * 9277u) - 0.5) * 0.35 * dt;
+    let jit = (rand2((i * 1973u) ^ (P.frame * 9277u)) - 0.5) * 0.35 * dt;
     p.pos.x += (f.y + jit.x) * dt;
     p.pos.z += (f.z + jit.y) * dt;
     p.pos.y = bed + f.x + 0.012;
@@ -170,7 +170,7 @@ fn foamParticleUpdate(@builtin(global_invocation_id) id : vec3<u32>) {
 // ----------------------------------------------------------------- foam emit
 @compute @workgroup_size(128)
 fn foamEmit(@builtin(global_invocation_id) id : vec3<u32>) {
-  let seed = id.x * 2246822519u ^ (P.frame * 3266489917u) ^ 0xf00du;
+  let seed = ((id.x * 2246822519u) ^ (P.frame * 3266489917u)) ^ 0xf00du;
   let r0 = rand2(seed);
   let r1 = rand2(seed ^ 0x85ebca6bu);
   let r2 = rand2(seed ^ 0xc2b2ae35u);

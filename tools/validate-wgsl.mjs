@@ -16,6 +16,22 @@ const frame = readFileSync(framePath, 'utf8');
 let failed = 0;
 let checked = 0;
 
+// Tint (Chrome's WGSL compiler) rejects `a * b ^ c` / `a ^ b * c` without
+// parentheses ("mixing '*' and '^' requires parenthesis") — Naga accepts
+// them. Lint for exactly that shape: a '*' and '^' separated only by a
+// simple operand (no intervening parenthesis).
+const TINT_MIX_RE = /\*\s*[\w.]+\s*\^|\^\s*[\w.]+\s*\*/;
+function tintPrecedenceLint(path, src) {
+  const problems = [];
+  src.split('\n').forEach((line, i) => {
+    const s = line.replace(/\/\/.*$/, '');
+    if (TINT_MIX_RE.test(s)) {
+      problems.push(`  ${path}:${i + 1}  unparenthesised '*'/'^' mix (Tint rejects): ${line.trim()}`);
+    }
+  });
+  return problems;
+}
+
 for (const dir of shaderDirs) {
   let files = [];
   try { files = readdirSync(dir).filter((f) => f.endsWith('.wgsl')); } catch { continue; }
@@ -26,6 +42,11 @@ for (const dir of shaderDirs) {
     if (src.includes('//@@COMMON@@')) src = src.replace('//@@COMMON@@', common);
     if (src.includes('//@@FRAME@@')) src = src.replace('//@@FRAME@@', frame);
     checked++;
+    const lint = tintPrecedenceLint(path, src);
+    if (lint.length) {
+      failed++;
+      console.error(`FAIL  ${path} (Tint precedence lint)\n${lint.join('\n')}\n`);
+    }
     let mod = null;
     let info = null;
     try {
