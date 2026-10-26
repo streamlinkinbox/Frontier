@@ -1,0 +1,1363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Frontier — Precipitation Physics Lab</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --panel: rgba(9, 13, 20, .82);
+    --panel2: rgba(16, 24, 36, .78);
+    --line: rgba(160, 190, 220, .18);
+    --text: #eef6ff;
+    --muted: #a9bccd;
+    --accent: #8fd3ff;
+    --accent2: #b9f2ff;
+    --good: #8ff0c3;
+    --warn: #ffd48f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #0a1018; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--text); }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+  #scene:active { cursor: grabbing; }
+  .panel {
+    position: fixed; top: 16px; right: 16px; width: min(392px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+    overflow: auto; padding: 18px; border: 1px solid var(--line); border-radius: 22px;
+    background: linear-gradient(165deg, var(--panel), rgba(8, 14, 24, .68)); backdrop-filter: blur(18px) saturate(1.25);
+    box-shadow: 0 22px 70px rgba(0,0,0,.42); z-index: 5;
+  }
+  .eyebrow { letter-spacing: .18em; font-size: 10px; text-transform: uppercase; color: var(--accent); font-weight: 800; }
+  h1 { margin: 5px 0 8px; font-size: clamp(25px, 4vw, 38px); line-height: .98; letter-spacing: -.045em; }
+  .sub { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+  button, select {
+    border: 1px solid var(--line); color: var(--text); background: rgba(255,255,255,.055);
+    border-radius: 12px; padding: 9px 10px; font: inherit; font-size: 12px; font-weight: 750;
+  }
+  button { cursor: pointer; transition: .16s ease; }
+  button:hover, button.active { background: rgba(143,211,255,.18); border-color: rgba(143,211,255,.55); transform: translateY(-1px); }
+  .section { margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--line); }
+  .section h2 { margin: 0 0 9px; font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: #d7ebff; }
+  .control { margin: 10px 0; }
+  .control-line { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: #dcebf8; margin-bottom: 5px; }
+  .control-line output { color: var(--accent2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); height: 20px; }
+  select { width: 100%; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .toggle-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .note { font-size: 11.5px; line-height: 1.55; color: var(--muted); background: rgba(143,211,255,.07); border: 1px solid rgba(143,211,255,.13); padding: 10px; border-radius: 14px; }
+  .note strong { color: #eaf7ff; }
+  #hud {
+    position: fixed; left: 16px; bottom: 16px; z-index: 4; max-width: min(980px, calc(100vw - 32px));
+    display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none;
+  }
+  .stat { min-width: 118px; padding: 9px 11px; border-radius: 14px; border: 1px solid var(--line); background: rgba(5,9,15,.72); backdrop-filter: blur(14px); }
+  .stat span { display: block; font-size: 9.5px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
+  .stat strong { display: block; margin-top: 3px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  #badge {
+    position: fixed; top: 16px; left: 16px; z-index: 4; padding: 11px 13px; border: 1px solid var(--line); border-radius: 16px;
+    background: rgba(5,9,15,.66); backdrop-filter: blur(14px); max-width: 410px;
+  }
+  #badge .title { font-weight: 900; letter-spacing: -.02em; }
+  #badge .hint { color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 4px; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #0a1018; z-index: 20; transition: opacity .5s ease; }
+  #loading.done { opacity: 0; pointer-events: none; }
+  .loader { text-align: center; color: var(--muted); }
+  .loader i { display: block; width: 58px; height: 58px; margin: 0 auto 14px; border-radius: 50%; border: 2px solid rgba(143,211,255,.18); border-top-color: var(--accent); animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 760px) {
+    #badge { display: none; }
+    .panel { top: auto; bottom: 12px; right: 12px; max-height: 58vh; }
+    #hud { bottom: auto; top: 12px; left: 12px; }
+    .stat { min-width: 96px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="badge">
+  <div class="title">Precipitation Physics Lab</div>
+  <div class="hint">Drag to orbit · wheel to zoom · right-drag to pan. Rain becomes surface water, snow becomes a growing snowpack, hail bounces, rolls, settles and melts.</div>
+</div>
+
+<aside class="panel" aria-label="Precipitation controls">
+  <div class="eyebrow">Separate HTML · Particle → surface simulation</div>
+  <h1>Snow, rain & hail that stay in the world.</h1>
+  <p class="sub">A hard particle budget drives falling precipitation parcels. Their water mass is conserved into geometric snowpack, flowing puddles/runoff, object caps, roof drips, hail layers, soil moisture or outflow — not a ground texture swap.</p>
+
+  <div class="presets">
+    <button data-preset="snow" class="active">Snowfall</button>
+    <button data-preset="blizzard">Blizzard</button>
+    <button data-preset="rain">Cold rain</button>
+    <button data-preset="storm">Thunderstorm</button>
+    <button data-preset="hail">Hailstorm</button>
+    <button data-preset="sleet">Sleet</button>
+  </div>
+
+  <div class="section">
+    <h2>Precipitation</h2>
+    <div class="control"><div class="control-line"><label for="mode">Mode</label></div>
+      <select id="mode">
+        <option value="snow">Snow</option><option value="rain">Rain</option><option value="hail">Hail</option><option value="sleet">Sleet / mixed</option><option value="auto">Auto by temperature</option>
+      </select>
+    </div>
+    <div class="control"><div class="control-line"><label>Hard particle budget</label><output id="budgetOut"></output></div><input id="budget" type="range" min="3000" max="60000" step="1000"></div>
+    <div class="control"><div class="control-line"><label>Intensity (water equivalent)</label><output id="intensityOut"></output></div><input id="intensity" type="range" min="0" max="90" step="1"></div>
+    <div class="row">
+      <div class="control"><div class="control-line"><label>Air temperature</label><output id="tempOut"></output></div><input id="temp" type="range" min="-18" max="24" step="0.5"></div>
+      <div class="control"><div class="control-line"><label>Time speed</label><output id="timeScaleOut"></output></div><input id="timeScale" type="range" min="0.25" max="12" step="0.25"></div>
+    </div>
+    <div class="row">
+      <div class="control"><div class="control-line"><label>Rain/flake size</label><output id="sizeOut"></output></div><input id="size" type="range" min="0.45" max="2.4" step="0.05"></div>
+      <div class="control"><div class="control-line"><label>Hail diameter</label><output id="hailSizeOut"></output></div><input id="hailSize" type="range" min="4" max="38" step="1"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Wind & surface</h2>
+    <div class="row">
+      <div class="control"><div class="control-line"><label>Wind</label><output id="windOut"></output></div><input id="wind" type="range" min="0" max="24" step="0.5"></div>
+      <div class="control"><div class="control-line"><label>Direction</label><output id="windDirOut"></output></div><input id="windDir" type="range" min="0" max="359" step="1"></div>
+    </div>
+    <div class="row">
+      <div class="control"><div class="control-line"><label>Gusts / turbulence</label><output id="gustOut"></output></div><input id="gust" type="range" min="0" max="1.5" step="0.05"></div>
+      <div class="control"><div class="control-line"><label>Solar melt</label><output id="meltOut"></output></div><input id="melt" type="range" min="0" max="3" step="0.1"></div>
+    </div>
+    <div class="control"><div class="control-line"><label>Drainage & infiltration</label><output id="drainOut"></output></div><input id="drain" type="range" min="0" max="3" step="0.1"></div>
+    <div class="toggle-row">
+      <button id="pauseBtn">Pause</button>
+      <button id="resetParticlesBtn">Clear particles</button>
+      <button id="resetAllBtn">Reset accumulations</button>
+      <button id="cameraBtn">Reset camera</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>What happens on impact?</h2>
+    <div class="note">
+      <strong>Snow</strong> sticks, slides on steep faces, compacts by density, avalanches past its repose angle and drifts leeward. <strong>Rain</strong> splashes, runs downhill as droplets, infiltrates soil, is held by snow, then flows into puddles. <strong>Hail</strong> reflects with surface restitution/friction, rolls, settles as individual stones, merges into a granular ice layer only under budget pressure, then melts into the water field. Roofs shed snow and drip; tree canopies intercept and unload.
+    </div>
+  </div>
+</aside>
+
+<div id="hud"></div>
+<div id="loading"><div class="loader"><i></i>Building terrain, colliders and precipitation fields…</div></div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ============================================================
+   Precipitation Physics Lab
+   - CPU particle parcels with a strict allocation budget
+   - Snow = SWE + density on a 161² node field -> real displaced snow mesh
+   - Rain = surface-water depth field -> flow, infiltration, puddle mesh
+   - Hail = ballistic rigid particles -> bounce/roll/settle/melt
+   - Objects = analytic colliders + geometric snow/water caps
+   ============================================================ */
+const WORLD = 96;
+const GRID = 160;
+const NODES = GRID + 1;
+const CELL = WORLD / GRID;
+const CELL_AREA = CELL * CELL;
+const NN = NODES * NODES;
+const MAX_PARTICLES = 60000;
+const MAX_RIPPLES = 1200;
+const TAU = Math.PI * 2;
+const KIND = { RAIN: 0, SNOW: 1, HAIL: 2, SLEET: 3 };
+const STATE = { FALL: 0, SURFACE: 1, SETTLED: 2, STUCK: 3 };
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const clamp01 = (x) => clamp(x, 0, 1);
+const lerp = (a, b, t) => a + (b - a) * t;
+const smoothstep = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+let seed = 1379;
+function rand() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+function randRange(a, b) { return a + rand() * (b - a); }
+
+const params = {
+  mode: 'snow', budget: 30000, intensity: 18, temp: -4, timeScale: 5,
+  size: 1, hailSize: 16, wind: 7, windDir: 38, gust: 0.55, melt: 0.7, drain: 1,
+  paused: false,
+};
+const PRESETS = {
+  snow:     { mode:'snow', intensity:18, temp:-4, wind:6,  windDir:38,  gust:.45, size:1.05, hailSize:14, timeScale:5, melt:.55, drain:1 },
+  blizzard: { mode:'snow', intensity:42, temp:-9, wind:17, windDir:62,  gust:1.2, size:.85,  hailSize:12, timeScale:6, melt:.25, drain:.8 },
+  rain:     { mode:'rain', intensity:24, temp:7,  wind:5,  windDir:120, gust:.35, size:1.0,  hailSize:12, timeScale:5, melt:1.0, drain:1 },
+  storm:    { mode:'rain', intensity:72, temp:15, wind:13, windDir:205, gust:1.0, size:1.35, hailSize:18, timeScale:5, melt:1.2, drain:.75 },
+  hail:     { mode:'hail', intensity:34, temp:13, wind:9,  windDir:250, gust:.8,  size:1.0,  hailSize:24, timeScale:4, melt:1.0, drain:1 },
+  sleet:    { mode:'sleet', intensity:26, temp:0.5, wind:8, windDir:95, gust:.6,  size:.95,  hailSize:10, timeScale:5, melt:1.1, drain:1 },
+};
+
+/* ---------------- terrain + fields ---------------- */
+const groundH = new Float32Array(NN);
+const swe = new Float32Array(NN);               // metres water equivalent
+const snowDensity = new Float32Array(NN).fill(0.13); // density / water density
+const snowDepth = new Float32Array(NN);          // derived geometric depth
+const snowLiquid = new Float32Array(NN);         // liquid water held in pack, metres
+const waterDepth = new Float32Array(NN);         // free surface water, metres
+const hailDepth = new Float32Array(NN);          // merged granular hail/ice layer, metres
+const soilMoisture = new Float32Array(NN).fill(0.25);
+const deltaA = new Float32Array(NN);
+const deltaB = new Float32Array(NN);
+const cellSlope = new Float32Array(NN);
+const cellInfil = new Float32Array(NN);
+const cellRough = new Float32Array(NN);
+const cellZone = new Uint8Array(NN); // 0 grass/soil, 1 road, 2 rock, 3 basin silt
+const nodeIndex = (ix, iz) => iz * NODES + ix;
+const nodeX = (ix) => -WORLD / 2 + ix * CELL;
+const nodeZ = (iz) => -WORLD / 2 + iz * CELL;
+function roadCenterZ(x) { return -5 + 4.2 * Math.sin(x * 0.035) + 1.4 * Math.sin(x * 0.011 + 1.2); }
+function baseHeight(x, z) {
+  let y = 1.4 + 1.8 * Math.sin(x * 0.055 + 1.7) * Math.cos(z * 0.047 - 0.6)
+        + 1.1 * Math.sin((x - z) * 0.031) + 0.45 * Math.sin(x * 0.17) * Math.sin(z * 0.13);
+  y += 10.5 * Math.exp(-(((x + 31) ** 2) / (2 * 16 ** 2) + ((z + 17) ** 2) / (2 * 20 ** 2)));
+  y += 6.0 * Math.exp(-(((x - 29) ** 2) / (2 * 13 ** 2) + ((z + 27) ** 2) / (2 * 15 ** 2)));
+  y += 3.8 * Math.exp(-(((x + 8) ** 2) / (2 * 9 ** 2) + ((z - 31) ** 2) / (2 * 12 ** 2)));
+  const channel = z - (13 + 6 * Math.sin(x * 0.045));
+  y -= 2.7 * Math.exp(-(channel * channel) / (2 * 5.5 * 5.5));
+  const basinR2 = (x - 20) ** 2 + (z - 20) ** 2;
+  y -= 3.1 * Math.exp(-basinR2 / (2 * 11 * 11));
+  y += 0.9 * Math.exp(-((Math.sqrt(basinR2) - 14) ** 2) / (2 * 3 * 3)); // low rim
+  y += -x * 0.018 + z * 0.008;
+  const rd = Math.abs(z - roadCenterZ(x));
+  const roadY = 1.15 + 0.55 * Math.sin(x * 0.04) - x * 0.008;
+  y = lerp(y, roadY, smoothstep(4.8, 1.9, rd));
+  return y;
+}
+for (let iz = 0; iz < NODES; iz++) for (let ix = 0; ix < NODES; ix++) groundH[nodeIndex(ix, iz)] = baseHeight(nodeX(ix), nodeZ(iz));
+function sampleArray(arr, x, z) {
+  const u = clamp((x + WORLD / 2) / CELL, 0, NODES - 1.00001);
+  const v = clamp((z + WORLD / 2) / CELL, 0, NODES - 1.00001);
+  const ix = u | 0, iz = v | 0, fx = u - ix, fz = v - iz;
+  const i = iz * NODES + ix;
+  return lerp(lerp(arr[i], arr[i + 1], fx), lerp(arr[i + NODES], arr[i + NODES + 1], fx), fz);
+}
+function topHeight(x, z, includeWater = false) {
+  let y = sampleArray(groundH, x, z) + sampleArray(snowDepth, x, z) + sampleArray(hailDepth, x, z);
+  if (includeWater) y += sampleArray(waterDepth, x, z);
+  return y;
+}
+function surfaceNormal(x, z, out) {
+  const e = CELL;
+  const hx = topHeight(x + e, z) - topHeight(x - e, z);
+  const hz = topHeight(x, z + e) - topHeight(x, z - e);
+  out[0] = -hx / (2 * e); out[1] = 1; out[2] = -hz / (2 * e);
+  const l = Math.hypot(out[0], out[1], out[2]) || 1;
+  out[0] /= l; out[1] /= l; out[2] /= l;
+  return out;
+}
+for (let iz = 0; iz < NODES; iz++) for (let ix = 0; ix < NODES; ix++) {
+  const i = nodeIndex(ix, iz), x = nodeX(ix), z = nodeZ(iz);
+  const n = [0, 1, 0]; surfaceNormal(x, z, n);
+  const slope = Math.acos(clamp(n[1], -1, 1)) * 180 / Math.PI;
+  cellSlope[i] = slope;
+  const rd = Math.abs(z - roadCenterZ(x));
+  const basin = Math.hypot(x - 20, z - 20) < 13;
+  let zone = 0, infil = 16, rough = 0.055; // mm/h, Manning-ish roughness
+  if (rd < 2.7) { zone = 1; infil = 0.7; rough = 0.018; }
+  else if (slope > 30) { zone = 2; infil = 2.2; rough = 0.035; }
+  else if (basin) { zone = 3; infil = 5.5; rough = 0.045; }
+  cellZone[i] = zone; cellInfil[i] = infil; cellRough[i] = rough;
+}
+function addDepthKernel(arr, x, z, volume, radiusM = CELL) {
+  if (!(volume > 0)) return;
+  const cx = (x + WORLD / 2) / CELL, cz = (z + WORLD / 2) / CELL;
+  const r = Math.max(0, Math.ceil(radiusM / CELL));
+  let wsum = 0;
+  const weights = [];
+  for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+    const ix = Math.round(cx) + dx, iz = Math.round(cz) + dz;
+    if (ix < 0 || iz < 0 || ix >= NODES || iz >= NODES) continue;
+    const d2 = dx * dx + dz * dz;
+    const w = Math.exp(-d2 / Math.max(0.65, (r * 0.72) ** 2));
+    weights.push([iz * NODES + ix, w]); wsum += w;
+  }
+  if (!wsum) return;
+  const depthTotal = volume / CELL_AREA;
+  for (const [i, w] of weights) arr[i] += depthTotal * w / wsum;
+}
+function addSnowSWE(x, z, volume, freshDensity = 0.13, radiusM = CELL * 1.2) {
+  if (!(volume > 0)) return;
+  const before = new Map();
+  const cx = (x + WORLD / 2) / CELL, cz = (z + WORLD / 2) / CELL;
+  const r = Math.max(0, Math.ceil(radiusM / CELL));
+  const cells = []; let wsum = 0;
+  for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+    const ix = Math.round(cx) + dx, iz = Math.round(cz) + dz;
+    if (ix < 0 || iz < 0 || ix >= NODES || iz >= NODES) continue;
+    const w = Math.exp(-(dx * dx + dz * dz) / Math.max(0.65, (r * 0.72) ** 2));
+    const i = iz * NODES + ix; cells.push([i, w]); before.set(i, swe[i]); wsum += w;
+  }
+  if (!wsum) return;
+  for (const [i, w] of cells) {
+    const ds = volume / CELL_AREA * w / wsum;
+    const old = before.get(i) || 0;
+    snowDensity[i] = old + ds > 1e-9 ? (old * snowDensity[i] + ds * freshDensity) / (old + ds) : freshDensity;
+    swe[i] += ds;
+  }
+}
+function addWater(x, z, volume, radiusM = CELL * 1.1, allowSnowHold = true) {
+  if (!(volume > 0)) return;
+  if (!allowSnowHold) { addDepthKernel(waterDepth, x, z, volume, radiusM); return; }
+  // Split first into snowpack pore storage at the impact cell, excess becomes free water.
+  const ix = clamp(Math.round((x + WORLD / 2) / CELL), 0, NODES - 1);
+  const iz = clamp(Math.round((z + WORLD / 2) / CELL), 0, NODES - 1);
+  const i = iz * NODES + ix;
+  let remaining = volume;
+  if (swe[i] > 0.0005) {
+    const capacityDepth = Math.max(0, swe[i] * 0.055 - snowLiquid[i]);
+    const held = Math.min(remaining, capacityDepth * CELL_AREA);
+    if (held > 0) { snowLiquid[i] += held / CELL_AREA; remaining -= held; snowDensity[i] = Math.min(0.55, snowDensity[i] + 0.025); }
+  }
+  if (remaining > 0) addDepthKernel(waterDepth, x, z, remaining, radiusM);
+}
+function addHailLayer(x, z, waterVolume, radiusM = 1.1) {
+  // waterVolume is meltwater-equivalent; granular ice layer is slightly thicker.
+  addDepthKernel(hailDepth, x, z, waterVolume / 0.92, radiusM);
+}
+function refreshSnowDepth() {
+  for (let i = 0; i < NN; i++) snowDepth[i] = swe[i] > 0 ? swe[i] / Math.max(0.045, snowDensity[i]) : 0;
+}
+refreshSnowDepth();
+
+/* ---------------- Three scene ---------------- */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.02;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xaebfd0);
+scene.fog = new THREE.FogExp2(0xaebfd0, 0.0055);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
+const hemi = new THREE.HemisphereLight(0xdcecf8, 0x35402f, 1.75); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff2da, 2.2);
+sun.position.set(-38, 58, 24); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -62; sun.shadow.camera.right = 62; sun.shadow.camera.top = 62; sun.shadow.camera.bottom = -62;
+sun.shadow.camera.far = 160; sun.shadow.bias = -0.00025;
+scene.add(sun);
+
+function makeGridGeometry(withColors = false) {
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(NN * 3);
+  const col = withColors ? new Float32Array(NN * 3) : null;
+  for (let iz = 0; iz < NODES; iz++) for (let ix = 0; ix < NODES; ix++) {
+    const i = nodeIndex(ix, iz); pos[i * 3] = nodeX(ix); pos[i * 3 + 1] = groundH[i]; pos[i * 3 + 2] = nodeZ(iz);
+  }
+  const idx = new Uint32Array(GRID * GRID * 6); let k = 0;
+  for (let iz = 0; iz < GRID; iz++) for (let ix = 0; ix < GRID; ix++) {
+    const a = nodeIndex(ix, iz), b = a + 1, c = a + NODES, d = c + 1;
+    idx[k++] = a; idx[k++] = c; idx[k++] = b; idx[k++] = b; idx[k++] = c; idx[k++] = d;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  if (col) geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.setIndex(new THREE.BufferAttribute(idx, 1));
+  geo.computeVertexNormals();
+  return geo;
+}
+const terrainGeo = makeGridGeometry(true);
+{
+  const col = terrainGeo.getAttribute('color');
+  const cGrass = new THREE.Color(0x5d7f4c), cDry = new THREE.Color(0x8a8458), cSoil = new THREE.Color(0x6d5942);
+  const cRock = new THREE.Color(0x777d83), cRoad = new THREE.Color(0x3d4147), cSilt = new THREE.Color(0x93846d);
+  const tmp = new THREE.Color();
+  for (let i = 0; i < NN; i++) {
+    const zone = cellZone[i];
+    tmp.copy(zone === 1 ? cRoad : zone === 2 ? cRock : zone === 3 ? cSilt : cGrass);
+    if (zone === 0) tmp.lerp(cDry, clamp01((groundH[i] - 3) / 12) * 0.55).lerp(cSoil, clamp01(cellSlope[i] / 55) * 0.35);
+    const v = 0.92 + 0.14 * Math.sin(i * 12.9898) * Math.cos(i * 0.731);
+    col.setXYZ(i, tmp.r * v, tmp.g * v, tmp.b * v);
+  }
+}
+const terrain = new THREE.Mesh(terrainGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94, metalness: 0 }));
+terrain.receiveShadow = true; scene.add(terrain);
+
+const snowGeo = makeGridGeometry(false);
+const snowMesh = new THREE.Mesh(snowGeo, new THREE.MeshStandardMaterial({ color: 0xf7fbff, roughness: 0.58, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2 }));
+snowMesh.receiveShadow = true; snowMesh.castShadow = false; scene.add(snowMesh);
+const hailGeo = makeGridGeometry(false);
+const hailMesh = new THREE.Mesh(hailGeo, new THREE.MeshStandardMaterial({ color: 0xd9f4ff, roughness: 0.32, metalness: 0, transparent: true, opacity: 0.9, polygonOffset: true, polygonOffsetFactor: -3 }));
+hailMesh.receiveShadow = true; scene.add(hailMesh);
+const waterGeo = makeGridGeometry(false);
+const waterMesh = new THREE.Mesh(waterGeo, new THREE.MeshPhysicalMaterial({ color: 0x2d6f96, roughness: 0.08, metalness: 0, transparent: true, opacity: 0.72, clearcoat: 0.65, clearcoatRoughness: 0.22, polygonOffset: true, polygonOffsetFactor: -4 }));
+waterMesh.receiveShadow = true; scene.add(waterMesh);
+function updateFieldMesh(geo, kind) {
+  const p = geo.getAttribute('position');
+  for (let i = 0; i < NN; i++) {
+    let y;
+    if (kind === 'snow') y = snowDepth[i] > 0.0015 ? groundH[i] + snowDepth[i] + 0.006 : groundH[i] - 0.08;
+    else if (kind === 'hail') y = hailDepth[i] > 0.0015 ? groundH[i] + snowDepth[i] + hailDepth[i] + 0.004 : groundH[i] - 0.09;
+    else y = waterDepth[i] > 0.0012 ? groundH[i] + snowDepth[i] + hailDepth[i] + waterDepth[i] + 0.003 : groundH[i] - 0.1;
+    p.setY(i, y);
+  }
+  p.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere();
+}
+
+/* ---------------- colliders + environment objects ---------------- */
+const colliders = [];
+const interceptors = [];
+function qConjugate(q) { return [-q[0], -q[1], -q[2], q[3]]; }
+function qRotate(q, x, y, z, out) {
+  const [qx, qy, qz, qw] = q;
+  const ix = qw * x + qy * z - qz * y;
+  const iy = qw * y + qz * x - qx * z;
+  const iz = qw * z + qx * y - qy * x;
+  const iw = -qx * x - qy * y - qz * z;
+  out[0] = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+  out[1] = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+  out[2] = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+  return out;
+}
+function addOBB(mesh, center, half, quatObj, opts = {}) {
+  const q = [quatObj.x, quatObj.y, quatObj.z, quatObj.w];
+  const col = { kind: 'obb', mesh, center: [center.x, center.y, center.z], half: [half.x, half.y, half.z], q, iq: qConjugate(q),
+    material: opts.material || 'stone', name: opts.name || 'object', area: opts.area || (4 * half.x * half.z), snowVolume: 0, waterVolume: 0,
+    capMesh: null, capKind: opts.capKind || 'box', eaves: opts.eaves || [], slopeDeg: opts.slopeDeg || 0, group: opts.group || null };
+  const tmp = [0,0,0]; col.min = [Infinity,Infinity,Infinity]; col.max = [-Infinity,-Infinity,-Infinity];
+  for (const sx of [-1,1]) for (const sy of [-1,1]) for (const sz of [-1,1]) {
+    qRotate(q, sx * half.x, sy * half.y, sz * half.z, tmp);
+    for (let a = 0; a < 3; a++) { const v = col.center[a] + tmp[a]; col.min[a] = Math.min(col.min[a], v - 0.4); col.max[a] = Math.max(col.max[a], v + 0.4); }
+  }
+  colliders.push(col); return col;
+}
+function addSphereCollider(mesh, center, radius, opts = {}) {
+  const col = { kind:'sphere', mesh, center:[center.x,center.y,center.z], radius, material:opts.material||'stone', name:opts.name||'sphere', area:opts.area||Math.PI*radius*radius,
+    snowVolume:0, waterVolume:0, capMesh:null, capKind:opts.capKind||'sphere', eaves:opts.eaves||[], slopeDeg:0, group:opts.group||null,
+    min:[center.x-radius-.4,center.y-radius-.4,center.z-radius-.4], max:[center.x+radius+.4,center.y+radius+.4,center.z+radius+.4] };
+  colliders.push(col); return col;
+}
+function addCylinderCollider(mesh, center, radius, y0, y1, opts = {}) {
+  const col = { kind:'cylinder', mesh, center:[center.x,center.y,center.z], radius, y0, y1, material:opts.material||'metal', name:opts.name||'cylinder', area:opts.area||Math.PI*radius*radius,
+    snowVolume:0, waterVolume:0, capMesh:null, capKind:opts.capKind||'disc', eaves:opts.eaves||[], slopeDeg:0, group:opts.group||null,
+    min:[center.x-radius-.4,y0-.2,center.z-radius-.4], max:[center.x+radius+.4,y1+.4,center.z+radius+.4] };
+  colliders.push(col); return col;
+}
+const MAT = {
+  wood: new THREE.MeshStandardMaterial({ color: 0x8a6544, roughness: .82 }),
+  darkWood: new THREE.MeshStandardMaterial({ color: 0x5d4130, roughness: .9 }),
+  roof: new THREE.MeshStandardMaterial({ color: 0x51383a, roughness: .72 }),
+  stone: new THREE.MeshStandardMaterial({ color: 0x7d858d, roughness: .9 }),
+  metal: new THREE.MeshStandardMaterial({ color: 0x51606c, roughness: .38, metalness: .55 }),
+  leaf: new THREE.MeshStandardMaterial({ color: 0x2f5d38, roughness: .95 }),
+  trunk: new THREE.MeshStandardMaterial({ color: 0x5b4030, roughness: .95 }),
+  snowCap: new THREE.MeshStandardMaterial({ color: 0xf8fcff, roughness: .6 }),
+  waterCap: new THREE.MeshPhysicalMaterial({ color: 0x2e719e, roughness: .07, transparent: true, opacity: .68, clearcoat: .5 }),
+};
+function boxMesh(w, h, d, mat, x, y, z, quat = null) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z); if (quat) m.quaternion.copy(quat);
+  m.castShadow = true; m.receiveShadow = true; scene.add(m); return m;
+}
+function groundAt(x, z) { return sampleArray(groundH, x, z); }
+// House with two OBB roof slabs and eaves.
+{
+  const hx = -18, hz = -18, gy = groundAt(hx, hz);
+  const base = boxMesh(12, 4.6, 8.6, MAT.wood, hx, gy + 2.3, hz);
+  addOBB(base, base.position, new THREE.Vector3(6, 2.3, 4.3), base.quaternion, { material:'wood', name:'house wall', capKind:'none' });
+  const roofAngle = THREE.MathUtils.degToRad(34);
+  for (const side of [-1, 1]) {
+    const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), side * roofAngle);
+    // Slab local X is down-slope width, Z is house length after a Y-rotation baked into center placement.
+    const len = 12.6, slopeLen = 5.6;
+    const center = new THREE.Vector3(hx, gy + 6.15, hz + side * 2.05);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(len, 0.28, slopeLen), MAT.roof);
+    roof.position.copy(center);
+    roof.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), side * roofAngle));
+    roof.castShadow = roof.receiveShadow = true; scene.add(roof);
+    const eaves = [];
+    for (let s = -5; s <= 5; s += 2.5) eaves.push([hx + s, gy + 4.95, hz + side * 4.55]);
+    const col = addOBB(roof, roof.position, new THREE.Vector3(len/2, .14, slopeLen/2), roof.quaternion, { material:'roof', name:'roof', area: len * slopeLen, slopeDeg:34, eaves });
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(len * .98, 1, slopeLen * .96), MAT.snowCap);
+    cap.quaternion.copy(roof.quaternion); cap.castShadow = cap.receiveShadow = true; cap.visible = false; scene.add(cap); col.capMesh = cap;
+    const wet = new THREE.Mesh(new THREE.BoxGeometry(len * .98, 1, slopeLen * .96), MAT.waterCap);
+    wet.quaternion.copy(roof.quaternion); wet.visible = false; scene.add(wet); col.waterCapMesh = wet;
+  }
+}
+// Crates, ramp, barrel, rock, fence.
+function addCapForBox(col, w, d, yTop) {
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(w, 1, d), MAT.snowCap);
+  cap.position.set(col.center[0], yTop, col.center[2]); cap.castShadow = cap.receiveShadow = true; cap.visible = false; scene.add(cap); col.capMesh = cap;
+  const wet = new THREE.Mesh(new THREE.BoxGeometry(w, 1, d), MAT.waterCap);
+  wet.position.copy(cap.position); wet.visible = false; scene.add(wet); col.waterCapMesh = wet;
+}
+{
+  let gy = groundAt(9, -12); let m = boxMesh(4.8, 2.4, 3.6, MAT.darkWood, 9, gy + 1.2, -12);
+  let c = addOBB(m, m.position, new THREE.Vector3(2.4,1.2,1.8), m.quaternion, { material:'wood', name:'crate' }); addCapForBox(c, 4.7, 3.5, gy + 2.4);
+  gy = groundAt(12, -8); m = boxMesh(3.2, 1.7, 3.2, MAT.wood, 12.6, gy + .85, -8);
+  c = addOBB(m, m.position, new THREE.Vector3(1.6,.85,1.6), m.quaternion, { material:'wood', name:'crate' }); addCapForBox(c, 3.1, 3.1, gy + 1.7);
+  const rampQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1), THREE.MathUtils.degToRad(-27));
+  gy = groundAt(18, -1); m = boxMesh(8.4, .35, 3.4, MAT.darkWood, 18, gy + 1.9, -1, rampQ);
+  c = addOBB(m, m.position, new THREE.Vector3(4.2,.175,1.7), rampQ, { material:'wood', name:'ramp', slopeDeg:27, area:8.4*3.4, eaves:[[21.8, gy+.5, -2.2],[21.8,gy+.5,.2]] });
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(8.2,1,3.25), MAT.snowCap); cap.quaternion.copy(rampQ); cap.visible=false; cap.castShadow=cap.receiveShadow=true; scene.add(cap); c.capMesh=cap;
+  const bx = -4, bz = 16, by = groundAt(bx,bz);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.05,2.5,24), MAT.metal); barrel.position.set(bx,by+1.25,bz); barrel.castShadow=barrel.receiveShadow=true; scene.add(barrel);
+  c = addCylinderCollider(barrel, barrel.position, 1.05, by, by+2.5, { material:'metal', name:'barrel' });
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.0,1.08,1,24), MAT.snowCap); disc.visible=false; disc.castShadow=disc.receiveShadow=true; scene.add(disc); c.capMesh=disc;
+  const rock = new THREE.Mesh(new THREE.SphereGeometry(2.25, 28, 18), MAT.stone); const ry=groundAt(26,7); rock.position.set(26,ry+1.15,7); rock.scale.set(1,.72,.88); rock.castShadow=rock.receiveShadow=true; scene.add(rock);
+  c = addSphereCollider(rock, rock.position, 2.1, { material:'stone', name:'boulder', area:10 });
+  const scap = new THREE.Mesh(new THREE.SphereGeometry(1.7,24,12), MAT.snowCap); scap.visible=false; scap.castShadow=scap.receiveShadow=true; scene.add(scap); c.capMesh=scap;
+  gy = groundAt(-27, 15); m = boxMesh(13,2.4,.35,MAT.stone,-27,gy+1.2,15,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),.35));
+  c = addOBB(m,m.position,new THREE.Vector3(6.5,1.2,.175),m.quaternion,{material:'stone',name:'wall',area:4.6});
+  const wcap = new THREE.Mesh(new THREE.BoxGeometry(12.8,1,.55),MAT.snowCap); wcap.quaternion.copy(m.quaternion); wcap.visible=false; wcap.castShadow=wcap.receiveShadow=true; scene.add(wcap); c.capMesh=wcap;
+}
+// Pine trees: cone meshes, sphere-canopy colliders, shared snow-load caps.
+function addTree(x, z, s = 1) {
+  const gy = groundAt(x,z);
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.22*s,.34*s,3.4*s,10), MAT.trunk);
+  trunk.position.set(x,gy+1.7*s,z); trunk.castShadow=trunk.receiveShadow=true; scene.add(trunk);
+  addCylinderCollider(trunk, trunk.position, .32*s, gy, gy+3.4*s, { material:'wood', name:'trunk', capKind:'none' });
+  const group = { snowVolume:0, waterVolume:0, area: 18*s*s, x, z, gy, s, caps:[] };
+  interceptors.push(group);
+  for (let level=0; level<3; level++) {
+    const r=(3.1-level*.72)*s, h=(3.5-level*.35)*s, cy=gy+(3.7+level*1.55)*s;
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(r,h,18), MAT.leaf); cone.position.set(x,cy,z); cone.castShadow=cone.receiveShadow=true; scene.add(cone);
+    const col = addSphereCollider(cone, new THREE.Vector3(x,cy-.2*s,z), r*.82, { material:'foliage', name:'pine canopy', area:Math.PI*r*r, group, capKind:'none' });
+    col.group = group;
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(r*.94, h*.58, 18), MAT.snowCap);
+    cap.position.set(x,cy+h*.17,z); cap.visible=false; cap.castShadow=cap.receiveShadow=true; scene.add(cap);
+    group.caps.push({ mesh:cap, baseY:cy+h*.17, level });
+  }
+}
+addTree(-34, 4, 1.15); addTree(31, -18, 1.0); addTree(-9, 27, .9); addTree(35, 24, 1.2); addTree(4, -29, .85);
+// Clouds as geometry blobs (not a sky texture).
+const cloudGroup = new THREE.Group();
+{
+  const cm = new THREE.MeshStandardMaterial({ color:0x8796a8, roughness:1, transparent:true, opacity:.78 });
+  for (let i=0;i<46;i++) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(randRange(5,13), 12, 8), cm);
+    m.position.set(randRange(-80,80), randRange(43,55), randRange(-80,80)); m.scale.y=.28; cloudGroup.add(m);
+  }
+  scene.add(cloudGroup);
+}
+const SURFACE = {
+  grass:{rest:.12,friction:.55,absorb:.72}, soil:{rest:.16,friction:.5,absorb:.68}, road:{rest:.32,friction:.28,absorb:.48},
+  rock:{rest:.42,friction:.34,absorb:.5}, stone:{rest:.45,friction:.32,absorb:.5}, wood:{rest:.28,friction:.42,absorb:.55},
+  roof:{rest:.34,friction:.3,absorb:.42}, metal:{rest:.52,friction:.22,absorb:.45}, snow:{rest:.045,friction:.72,absorb:.9},
+  water:{rest:.02,friction:.12,absorb:.94}, ice:{rest:.38,friction:.18,absorb:.58}, foliage:{rest:.08,friction:.65,absorb:.82},
+};
+function segmentHitsAabb(min,max,x0,y0,z0,x1,y1,z1) {
+  return !(Math.max(x0,x1)<min[0]||Math.min(x0,x1)>max[0]||Math.max(y0,y1)<min[1]||Math.min(y0,y1)>max[1]||Math.max(z0,z1)<min[2]||Math.min(z0,z1)>max[2]);
+}
+const hitTmpA=[0,0,0], hitTmpB=[0,0,0], hitTmpN=[0,1,0];
+function hitOBB(col,x0,y0,z0,x1,y1,z1,r,out) {
+  if (!segmentHitsAabb(col.min,col.max,x0,y0,z0,x1,y1,z1)) return false;
+  qRotate(col.iq,x0-col.center[0],y0-col.center[1],z0-col.center[2],hitTmpA);
+  qRotate(col.iq,x1-x0,y1-y0,z1-z0,hitTmpB);
+  let tmin=0,tmax=1,axis=-1,sign=1;
+  for (let a=0;a<3;a++) {
+    const h=col.half[a]+r, o=hitTmpA[a], d=hitTmpB[a];
+    if (Math.abs(d)<1e-12) { if (o<-h||o>h) return false; continue; }
+    let t1=(-h-o)/d, t2=(h-o)/d, s=-1;
+    if (t1>t2) { const tt=t1; t1=t2; t2=tt; s=1; }
+    if (t1>tmin) { tmin=t1; axis=a; sign=s; }
+    tmax=Math.min(tmax,t2); if (tmin>tmax) return false;
+  }
+  if (axis<0) { // started inside: push along smallest penetration axis
+    let best=Infinity; for(let a=0;a<3;a++){ const p=col.half[a]+r-Math.abs(hitTmpA[a]); if(p<best){best=p;axis=a;sign=hitTmpA[a]>=0?1:-1;} } tmin=0;
+  }
+  hitTmpN[0]=hitTmpN[1]=hitTmpN[2]=0; hitTmpN[axis]=sign;
+  qRotate(col.q,hitTmpN[0],hitTmpN[1],hitTmpN[2],out.normal);
+  out.t=tmin; out.x=lerp(x0,x1,tmin); out.y=lerp(y0,y1,tmin); out.z=lerp(z0,z1,tmin); out.object=col; out.material=col.material;
+  return true;
+}
+function hitSphere(col,x0,y0,z0,x1,y1,z1,r,out) {
+  if (!segmentHitsAabb(col.min,col.max,x0,y0,z0,x1,y1,z1)) return false;
+  const dx=x1-x0,dy=y1-y0,dz=z1-z0, ox=x0-col.center[0],oy=y0-col.center[1],oz=z0-col.center[2], R=col.radius+r;
+  const a=dx*dx+dy*dy+dz*dz, b=2*(ox*dx+oy*dy+oz*dz), c=ox*ox+oy*oy+oz*oz-R*R;
+  const disc=b*b-4*a*c; if (disc<0||a<1e-12) return false;
+  const t=(-b-Math.sqrt(disc))/(2*a); if (t<0||t>1) return false;
+  out.t=t; out.x=x0+dx*t; out.y=y0+dy*t; out.z=z0+dz*t;
+  out.normal[0]=(out.x-col.center[0])/R; out.normal[1]=(out.y-col.center[1])/R; out.normal[2]=(out.z-col.center[2])/R;
+  out.object=col; out.material=col.material; return true;
+}
+function hitCylinder(col,x0,y0,z0,x1,y1,z1,r,out) {
+  if (!segmentHitsAabb(col.min,col.max,x0,y0,z0,x1,y1,z1)) return false;
+  let best=Infinity, nx=0,ny=1,nz=0;
+  const dx=x1-x0,dz=z1-z0, ox=x0-col.center[0],oz=z0-col.center[2], R=col.radius+r;
+  const a=dx*dx+dz*dz, b=2*(ox*dx+oz*dz), c=ox*ox+oz*oz-R*R, disc=b*b-4*a*c;
+  if (disc>=0&&a>1e-12) {
+    const t=(-b-Math.sqrt(disc))/(2*a), y=lerp(y0,y1,t);
+    if (t>=0&&t<=1&&y>=col.y0&&y<=col.y1) { best=t; nx=(x0+dx*t-col.center[0])/R; ny=0; nz=(z0+dz*t-col.center[2])/R; }
+  }
+  if (Math.abs(y1-y0)>1e-12) {
+    const t=(col.y1+r-y0)/(y1-y0), x=lerp(x0,x1,t), z=lerp(z0,z1,t);
+    if (t>=0&&t<best&&Math.hypot(x-col.center[0],z-col.center[2])<=R) { best=t; nx=0;ny=1;nz=0; }
+  }
+  if (!isFinite(best)) return false;
+  out.t=best; out.x=lerp(x0,x1,best); out.y=lerp(y0,y1,best); out.z=lerp(z0,z1,best); out.normal[0]=nx;out.normal[1]=ny;out.normal[2]=nz; out.object=col; out.material=col.material; return true;
+}
+const testHit = { t:1,x:0,y:0,z:0,normal:[0,1,0],object:null,material:'grass' };
+function findObjectHit(x0,y0,z0,x1,y1,z1,r,best) {
+  for (const col of colliders) {
+    const ok = col.kind==='obb' ? hitOBB(col,x0,y0,z0,x1,y1,z1,r,testHit)
+      : col.kind==='sphere' ? hitSphere(col,x0,y0,z0,x1,y1,z1,r,testHit)
+      : hitCylinder(col,x0,y0,z0,x1,y1,z1,r,testHit);
+    if (ok && testHit.t < best.t) {
+      best.t=testHit.t; best.x=testHit.x; best.y=testHit.y; best.z=testHit.z;
+      best.normal[0]=testHit.normal[0]; best.normal[1]=testHit.normal[1]; best.normal[2]=testHit.normal[2];
+      best.object=testHit.object; best.material=testHit.material;
+    }
+  }
+  return best.object !== null || best.t < 1;
+}
+
+/* ---------------- ripples ---------------- */
+const rippleMesh = new THREE.InstancedMesh(new THREE.RingGeometry(0.72, 1, 24), new THREE.MeshBasicMaterial({ color:0xdff5ff, transparent:true, opacity:.42, depthWrite:false, side:THREE.DoubleSide }), MAX_RIPPLES);
+rippleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); rippleMesh.frustumCulled=false; scene.add(rippleMesh);
+const rippleData = Array.from({length:MAX_RIPPLES},()=>({age:9,life:1,x:0,y:-99,z:0,max:.5}));
+let rippleCursor=0;
+function addRipple(x,y,z,strength=1) {
+  const r=rippleData[rippleCursor]; rippleCursor=(rippleCursor+1)%MAX_RIPPLES;
+  r.age=0; r.life=randRange(.45,.9); r.x=x; r.y=y+.012; r.z=z; r.max=randRange(.22,.55)*strength;
+}
+const dummy = new THREE.Object3D();
+function updateRipples(dt) {
+  let count=0;
+  for (const r of rippleData) {
+    if (r.age>r.life) continue;
+    r.age+=dt; const t=clamp01(r.age/r.life), s=.05+r.max*t;
+    dummy.position.set(r.x,r.y,r.z); dummy.rotation.set(-Math.PI/2,0,0); dummy.scale.set(s,s,s); dummy.updateMatrix();
+    rippleMesh.setMatrixAt(count++,dummy.matrix);
+  }
+  rippleMesh.count=count; rippleMesh.instanceMatrix.needsUpdate=true;
+}
+
+/* ---------------- particles ---------------- */
+const px=new Float32Array(MAX_PARTICLES), py=new Float32Array(MAX_PARTICLES), pz=new Float32Array(MAX_PARTICLES);
+const vx=new Float32Array(MAX_PARTICLES), vy=new Float32Array(MAX_PARTICLES), vz=new Float32Array(MAX_PARTICLES);
+const pRadius=new Float32Array(MAX_PARTICLES), pVolume=new Float32Array(MAX_PARTICLES), pTimer=new Float32Array(MAX_PARTICLES), pAge=new Float32Array(MAX_PARTICLES), pSeed=new Float32Array(MAX_PARTICLES);
+const pKind=new Uint8Array(MAX_PARTICLES), pState=new Uint8Array(MAX_PARTICLES), pGen=new Uint8Array(MAX_PARTICLES), pBounces=new Uint8Array(MAX_PARTICLES);
+const pObject=new Int16Array(MAX_PARTICLES).fill(-1);
+const active=new Int32Array(MAX_PARTICLES), activePos=new Int32Array(MAX_PARTICLES).fill(-1), freeStack=new Int32Array(MAX_PARTICLES);
+let activeCount=0, freeCount=MAX_PARTICLES;
+for (let i=0;i<MAX_PARTICLES;i++) freeStack[i]=MAX_PARTICLES-1-i;
+let spawnAcc=0, unspawnedVolume=0, inputVolume=0, infiltratedVolume=0, evaporatedVolume=0, outflowVolume=0;
+let totalBounces=0, totalImpacts=0, budgetBlockedSeconds=0, simTime=0;
+function allocParticle() {
+  if (activeCount >= params.budget || freeCount<=0) {
+    if (!mergeOldestSettled(10)) return -1;
+  }
+  if (freeCount<=0 || activeCount>=params.budget) return -1;
+  const i=freeStack[--freeCount]; activePos[i]=activeCount; active[activeCount++]=i; return i;
+}
+function releaseParticle(i) {
+  const ap=activePos[i]; if (ap<0) return;
+  const last=active[--activeCount]; active[ap]=last; activePos[last]=ap; activePos[i]=-1; freeStack[freeCount++]=i;
+}
+function forceMergeParticle(i) {
+  const x=px[i], z=pz[i], vol=pVolume[i];
+  if (vol>0) {
+    if (pKind[i]===KIND.SNOW) addSnowSWE(x,z,vol, params.temp>-1?.28:.12, .55);
+    else if (pKind[i]===KIND.HAIL) addHailLayer(x,z,vol,1.15);
+    else if (pKind[i]===KIND.SLEET) { addSnowSWE(x,z,vol*.55,.38,.55); addWater(x,z,vol*.45,.6); }
+    else addWater(x,z,vol,.65);
+  }
+  releaseParticle(i);
+}
+function mergeOldestSettled(limit=8) {
+  let merged=0;
+  for (let ai=activeCount-1; ai>=0 && merged<limit; ai--) {
+    const i=active[ai];
+    if (pState[i]===STATE.SETTLED || pState[i]===STATE.STUCK) { forceMergeParticle(i); merged++; }
+  }
+  return merged>0;
+}
+function enforceBudget() {
+  let guard=0;
+  while (activeCount>params.budget && guard++<MAX_PARTICLES) {
+    if (mergeOldestSettled(24)) continue;
+    let merged=false;
+    for (let ai=activeCount-1; ai>=0; ai--) { const i=active[ai]; if (pState[i]===STATE.SURFACE) { forceMergeParticle(i); merged=true; break; } }
+    if (merged) continue;
+    // Last resort: keep the falling parcel's mass in the input reservoir for a future spawn.
+    const i=active[activeCount-1]; unspawnedVolume += pVolume[i]; inputVolume -= pVolume[i]; releaseParticle(i);
+  }
+}
+function windAt(x,y,z,t,out) {
+  const dir=params.windDir*Math.PI/180;
+  const wx=Math.sin(dir), wz=-Math.cos(dir); // compass-ish direction the wind blows toward
+  const h=Math.max(0,y-topHeight(x,z));
+  const profile=clamp(.18+.82*Math.log1p(h)/Math.log(43),.18,1.15);
+  const gust=1+params.gust*(.38*Math.sin(t*.43+x*.025)+.27*Math.sin(t*1.13+z*.041)+.2*Math.sin(t*2.2+(x+z)*.013));
+  const sp=params.wind*profile*Math.max(.15,gust);
+  out[0]=wx*sp + params.gust*1.15*Math.sin(t*1.7+y*.21+z*.11);
+  out[1]=params.gust*.42*Math.sin(t*1.35+x*.16+z*.09);
+  out[2]=wz*sp + params.gust*1.15*Math.cos(t*1.45+x*.09-y*.17);
+  return out;
+}
+function chooseKind() {
+  if (params.mode==='rain') return params.temp<=-.5 && rand()<.35 ? KIND.SLEET : KIND.RAIN;
+  if (params.mode==='snow') return params.temp>=2.5 ? (rand()<.55?KIND.SLEET:KIND.RAIN) : KIND.SNOW;
+  if (params.mode==='hail') return KIND.HAIL;
+  if (params.mode==='sleet') return rand()<.48?KIND.SLEET:(rand()<.55?KIND.SNOW:KIND.RAIN);
+  if (params.temp<=-1) return KIND.SNOW;
+  if (params.temp<=1.5) return KIND.SLEET;
+  return params.intensity>48&&rand()<.18?KIND.HAIL:KIND.RAIN;
+}
+function precipitationFlow() { return params.intensity/1000/3600*WORLD*WORLD; } // m³/s
+function spawnRateFor(kindHint) {
+  const life = kindHint===KIND.SNOW?19:kindHint===KIND.HAIL?7:5.2;
+  const frac = clamp(.16+params.intensity/70,.18,.78) * (kindHint===KIND.SNOW?.9:.72);
+  return Math.max(0, params.budget*frac/life);
+}
+function spawnPrecipitation(dt) {
+  if (params.intensity<=0 || dt<=0) return;
+  const hint=chooseKind();
+  const rate=spawnRateFor(hint);
+  if (rate<=0) return;
+  const Q=precipitationFlow();
+  const parcelBase=Q/rate;
+  spawnAcc += rate*dt;
+  const maxY=40; // just under the cloud deck; keeps wind drift during the fall inside a sane inflow fetch
+  const dir=params.windDir*Math.PI/180, wx=Math.sin(dir), wz=-Math.cos(dir);
+  while (spawnAcc>=1) {
+    spawnAcc-=1;
+    const extra=Math.min(unspawnedVolume, parcelBase*3);
+    const volume=(parcelBase+extra)*randRange(.65,1.35);
+    const i=allocParticle();
+    if (i<0) { unspawnedVolume += parcelBase; budgetBlockedSeconds += 1/Math.max(1,rate); break; }
+    unspawnedVolume-=extra;
+    const kind=chooseKind();
+    // Aim upwind using the same quadratic-drag terminal velocity the integrator will produce:
+    // fall time from the spawn deck, discounted for the near-ground wind profile.
+    const kDrag=kind===KIND.SNOW?3.2/Math.max(.5,params.size):kind===KIND.HAIL?.012:kind===KIND.SLEET?.11:.055/Math.max(.45,params.size);
+    const fallTime=(34/Math.sqrt(9.81/kDrag)+.7)*.85;
+    const x=randRange(-WORLD/2,WORLD/2)-wx*params.wind*fallTime;
+    const z=randRange(-WORLD/2,WORLD/2)-wz*params.wind*fallTime;
+    px[i]=clamp(x,-190,190); pz[i]=clamp(z,-190,190); py[i]=maxY+randRange(0,5);
+    const w=[0,0,0]; windAt(px[i],py[i],pz[i],simTime,w);
+    vx[i]=w[0]*.85; vz[i]=w[2]*.85;
+    vy[i]=kind===KIND.SNOW?randRange(-1.7,-.8):kind===KIND.HAIL?randRange(-19,-13):kind===KIND.SLEET?randRange(-6,-3.5):randRange(-8.5,-5.5);
+    pKind[i]=kind; pState[i]=STATE.FALL; pGen[i]=0; pBounces[i]=0; pAge[i]=0; pTimer[i]=0; pObject[i]=-1; pSeed[i]=rand()*1000;
+    pVolume[i]=volume; inputVolume+=volume;
+    if (kind===KIND.RAIN) pRadius[i]=Math.max(.012,.0011*params.size*randRange(.7,1.5));
+    else if (kind===KIND.SNOW) pRadius[i]=randRange(.025,.065)*params.size;
+    else if (kind===KIND.HAIL) pRadius[i]=Math.max(.018,(params.hailSize*randRange(.65,1.35))/2000);
+    else pRadius[i]=randRange(.012,.028)*params.size;
+  }
+}
+function spawnManual(kind,x,y,z,vx0,vy0,vz0,volume,radius=.03) {
+  const i=allocParticle(); if(i<0) return -1;
+  px[i]=x;py[i]=y;pz[i]=z;vx[i]=vx0;vy[i]=vy0;vz[i]=vz0;pKind[i]=kind;pState[i]=STATE.FALL;pGen[i]=0;pBounces[i]=0;pAge[i]=0;pTimer[i]=0;pObject[i]=-1;pSeed[i]=rand()*1000;pVolume[i]=volume;pRadius[i]=radius;inputVolume+=volume;return i;
+}
+function surfaceMaterialAt(x,z,hit) {
+  if (hit.object) return hit.material;
+  if (sampleArray(waterDepth,x,z)>.0025) return 'water';
+  if (sampleArray(snowDepth,x,z)>.008) return 'snow';
+  if (sampleArray(hailDepth,x,z)>.006) return 'ice';
+  const ix=clamp(Math.round((x+WORLD/2)/CELL),0,NODES-1), iz=clamp(Math.round((z+WORLD/2)/CELL),0,NODES-1);
+  const zone=cellZone[iz*NODES+ix];
+  return zone===1?'road':zone===2?'rock':zone===3?'soil':'grass';
+}
+function depositSnowSmart(x,z,volume,normalY=1) {
+  if (!(volume>0)) return;
+  const slopeDeg=Math.acos(clamp(normalY,-1,1))*180/Math.PI;
+  const wet=params.temp>-1.5;
+  const stick=clamp01(1-smoothstep(wet?38:32, wet?58:52, slopeDeg));
+  let remaining=volume;
+  if (stick>0) { addSnowSWE(x,z,volume*stick, wet?.3:.115, .55); remaining*=1-stick; }
+  let cx=x, cz=z;
+  for (let hop=0; hop<5 && remaining>volume*.015; hop++) {
+    // Move one cell toward the lowest neighbouring snow surface; this is a tiny avalanche.
+    let best=topHeight(cx,cz), bx=cx,bz=cz;
+    for (let dz=-1;dz<=1;dz++) for(let dx=-1;dx<=1;dx++) { const nx=cx+dx*CELL,nz=cz+dz*CELL,h=topHeight(nx,nz); if(h<best){best=h;bx=nx;bz=nz;} }
+    if (bx===cx&&bz===cz) break;
+    cx=bx;cz=bz;
+  }
+  if (remaining>0) addSnowSWE(cx,cz,remaining, wet?.34:.16, .65);
+}
+function addObjectSnow(col, volume, hit) {
+  if (!col || !(volume>0)) return 0;
+  const target=col.group||col;
+  const slopeDeg=col.slopeDeg || Math.acos(clamp(hit.normal[1],-1,1))*180/Math.PI;
+  const stick=clamp01(1-smoothstep(params.temp>-1?40:34,60,slopeDeg)) * (hit.normal[1]>.25?1:.2);
+  target.snowVolume += volume*stick;
+  return stick;
+}
+function addObjectWater(col, volume) { if (col) (col.group||col).waterVolume += volume; }
+function handleRainImpact(i,hit) {
+  totalImpacts++;
+  const mat=SURFACE[hit.material]||SURFACE.grass;
+  const n=hit.normal;
+  const vn=-(vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2]);
+  const vol=pVolume[i];
+  if (hit.material==='water' || sampleArray(waterDepth,hit.x,hit.z)>.002 || ['road','roof','metal','stone','rock'].includes(hit.material)) addRipple(hit.x,hit.y,hit.z,clamp(.5+vn/9,.5,1.6));
+  let depositFrac=mat.absorb;
+  if (params.temp<=-.5 && !hit.object) { // freezing rain becomes clear ice on cold ground
+    addHailLayer(hit.x,hit.z,vol*.68,.5); addWater(hit.x,hit.z,vol*.12,.5); depositFrac=.8;
+  } else if (hit.object) addObjectWater(hit.object, vol*depositFrac);
+  else addWater(hit.x,hit.z,vol*depositFrac,.62);
+  const remaining=vol*(1-depositFrac);
+  if (pGen[i]>=2 || remaining<vol*.08 || vn<1.1) {
+    pVolume[i]=remaining; pState[i]=STATE.SURFACE; pTimer[i]=0; pObject[i]=hit.object?colliders.indexOf(hit.object):-1;
+    // Surface droplet: keep it visible while it runs downhill and gradually feeds the field.
+    const tx=vx[i]- (vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2])*n[0];
+    const ty=vy[i]- (vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2])*n[1];
+    const tz=vz[i]- (vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2])*n[2];
+    vx[i]=tx*.22; vy[i]=ty*.22; vz[i]=tz*.22;
+  } else {
+    pVolume[i]=remaining; pGen[i]++; pBounces[i]++; totalBounces++;
+    const dn=vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2];
+    let tx=vx[i]-dn*n[0], ty=vy[i]-dn*n[1], tz=vz[i]-dn*n[2];
+    const spray=randRange(.25,1.25), ang=rand()*TAU;
+    vx[i]=tx*.28+n[0]*clamp(vn*.16,.45,2.1)+Math.cos(ang)*spray;
+    vy[i]=ty*.28+n[1]*clamp(vn*.16,.45,2.1)+randRange(.25,1.1);
+    vz[i]=tz*.28+n[2]*clamp(vn*.16,.45,2.1)+Math.sin(ang)*spray;
+    pState[i]=STATE.FALL;
+  }
+}
+function handleSnowImpact(i,hit,sleet=false) {
+  totalImpacts++;
+  const vol=pVolume[i], n=hit.normal;
+  const slopeDeg=Math.acos(clamp(n[1],-1,1))*180/Math.PI;
+  const onWater=!hit.object && sampleArray(waterDepth,hit.x,hit.z)>.003;
+  if (hit.object) {
+    const stick=addObjectSnow(hit.object, vol*(sleet?.55:.72), hit);
+    if (sleet) addObjectWater(hit.object, vol*.28);
+    if (stick>.18 && n[1]>.42) {
+      pVolume[i]=vol*Math.max(0,1-(sleet?.55:.72)*stick-(sleet?.28:0)); pState[i]=STATE.SETTLED; pTimer[i]=randRange(.7,2.6); pObject[i]=colliders.indexOf(hit.object);
+      vx[i]=vy[i]=vz[i]=0; return;
+    }
+    pVolume[i]=vol*Math.max(0,1-(sleet?.55:.72)*stick-(sleet?.28:0)); // whatever stuck stays on the object; only the rest keeps falling
+    pState[i]=STATE.FALL; pObject[i]=-1;
+    const dn=vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2];
+    vx[i]=(vx[i]-dn*n[0])*.72+n[0]*.08; vy[i]=(vy[i]-dn*n[1])*.72+n[1]*.08-.25; vz[i]=(vz[i]-dn*n[2])*.72+n[2]*.08;
+    return;
+  }
+  if (onWater) {
+    addWater(hit.x,hit.z,vol*.3,.55,false); pVolume[i]=vol*.7; pState[i]=STATE.SETTLED; pTimer[i]=randRange(.35,1.1); vx[i]=vy[i]=vz[i]=0; return;
+  }
+  if (slopeDeg < (params.temp>-1?46:39)) {
+    depositSnowSmart(hit.x,hit.z,vol*(sleet?.34:.62),n[1]);
+    if (sleet) addWater(hit.x,hit.z,vol*.28,.55);
+    pVolume[i]=vol*(sleet?.38:.38); pState[i]=STATE.SETTLED; pTimer[i]=randRange(.8,3.2)/(params.temp>0?2.2:1); vx[i]=vy[i]=vz[i]=0;
+  } else {
+    depositSnowSmart(hit.x,hit.z,vol*.18,n[1]);
+    pVolume[i]=vol*.82; pState[i]=STATE.SURFACE; pTimer[i]=0;
+    const dn=vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2];
+    vx[i]=(vx[i]-dn*n[0])*.78; vy[i]=(vy[i]-dn*n[1])*.78; vz[i]=(vz[i]-dn*n[2])*.78;
+  }
+}
+function handleHailImpact(i,hit) {
+  totalImpacts++;
+  const n=hit.normal, mat=SURFACE[hit.material]||SURFACE.stone;
+  const dn=vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2];
+  const impact=Math.max(0,-dn);
+  if (hit.material==='water' || sampleArray(waterDepth,hit.x,hit.z)>.003) addRipple(hit.x,hit.y,hit.z,1.4);
+  // A little fracture/splash mass enters the surface; the stone itself remains in play.
+  if (impact>13 && !hit.object) { const chip=pVolume[i]*.018; addHailLayer(hit.x,hit.z,chip,.35); pVolume[i]-=chip; }
+  const rest=mat.rest*clamp(1-impact/85,.35,1);
+  let tx=vx[i]-dn*n[0], ty=vy[i]-dn*n[1], tz=vz[i]-dn*n[2];
+  tx*=1-mat.friction*.55; ty*=1-mat.friction*.55; tz*=1-mat.friction*.55;
+  vx[i]=tx-dn*rest*n[0]; vy[i]=ty-dn*rest*n[1]; vz[i]=tz-dn*rest*n[2];
+  pBounces[i]++; totalBounces++;
+  const postNormal=Math.abs(vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2]);
+  const speed=Math.hypot(vx[i],vy[i],vz[i]);
+  if (hit.object && n[1]<.82 && speed>.35) {
+    pState[i]=STATE.FALL; pObject[i]=-1; // too steep to rest on: keep tumbling/sliding off via repeated contact
+  } else if (postNormal<1.05 || speed<1.55) {
+    pState[i]=hit.object?STATE.SETTLED:STATE.SURFACE; pTimer[i]=0; pObject[i]=hit.object?colliders.indexOf(hit.object):-1;
+    if (hit.object) { vx[i]*=.2; vy[i]*=.2; vz[i]*=.2; }
+  } else pState[i]=STATE.FALL;
+}
+function handleImpact(i,hit) {
+  if (pKind[i]===KIND.RAIN) handleRainImpact(i,hit);
+  else if (pKind[i]===KIND.SNOW) handleSnowImpact(i,hit,false);
+  else if (pKind[i]===KIND.SLEET) { if (rand()<.45) handleRainImpact(i,hit); else handleSnowImpact(i,hit,true); }
+  else handleHailImpact(i,hit);
+}
+const fallingHit={t:1,x:0,y:0,z:0,normal:[0,1,0],object:null,material:'grass'};
+function updateFalling(i,dt) {
+  const kind=pKind[i];
+  const w=[0,0,0]; windAt(px[i],py[i],pz[i],simTime+pSeed[i]*.001,w);
+  let ax=0, ay=-9.81, az=0;
+  const rvx=vx[i]-w[0], rvy=vy[i]-w[1], rvz=vz[i]-w[2];
+  const rsp=Math.hypot(rvx,rvy,rvz);
+  let k=kind===KIND.SNOW?.55:kind===KIND.HAIL?.012:kind===KIND.SLEET?.11:.075;
+  if (kind===KIND.RAIN) k=.055/Math.max(.45,params.size);
+  if (kind===KIND.SNOW) { // high drag + flutter; terminal velocity emerges instead of being scripted (~1.7 m/s, like real aggregates)
+    k=3.2/Math.max(.5,params.size);
+    const s=pSeed[i], t=simTime*2+s;
+    ax += Math.sin(t*1.7)*.85 + Math.sin(t*.43+s)*.35;
+    az += Math.cos(t*1.45+s)*.8;
+    ay += Math.sin(t*2.3+s)*.22;
+  }
+  ax -= k*rsp*rvx; ay -= k*rsp*rvy; az -= k*rsp*rvz;
+  vx[i]+=ax*dt; vy[i]+=ay*dt; vz[i]+=az*dt;
+  const x0=px[i],y0=py[i],z0=pz[i];
+  const x1=x0+vx[i]*dt, y1=y0+vy[i]*dt, z1=z0+vz[i]*dt;
+  fallingHit.t=1; fallingHit.object=null; fallingHit.material='grass'; fallingHit.normal[0]=0;fallingHit.normal[1]=1;fallingHit.normal[2]=0;
+  findObjectHit(x0,y0,z0,x1,y1,z1,pRadius[i],fallingHit);
+  // Terrain swept crossing by clearance interpolation.
+  if (x1>-WORLD/2-2&&x1<WORLD/2+2&&z1>-WORLD/2-2&&z1<WORLD/2+2) {
+    const c0=y0-topHeight(x0,z0,true), c1=y1-topHeight(x1,z1,true);
+    if (c0>=0&&c1<=0) {
+      const t=c0/Math.max(1e-9,c0-c1);
+      if (t<fallingHit.t) {
+        fallingHit.t=t; fallingHit.x=lerp(x0,x1,t); fallingHit.y=lerp(y0,y1,t); fallingHit.z=lerp(z0,z1,t); fallingHit.object=null;
+        surfaceNormal(fallingHit.x,fallingHit.z,fallingHit.normal);
+      }
+    }
+  }
+  if (fallingHit.t<1 || fallingHit.object) {
+    if (!fallingHit.object && fallingHit.t>=1) { px[i]=x1;py[i]=y1;pz[i]=z1; }
+    else {
+      if (fallingHit.t<1) { px[i]=fallingHit.x; py[i]=fallingHit.y; pz[i]=fallingHit.z; }
+      fallingHit.material=surfaceMaterialAt(px[i],pz[i],fallingHit);
+      px[i]+=fallingHit.normal[0]*(pRadius[i]+.003); py[i]+=fallingHit.normal[1]*(pRadius[i]+.003); pz[i]+=fallingHit.normal[2]*(pRadius[i]+.003);
+      handleImpact(i,fallingHit);
+    }
+  } else { px[i]=x1;py[i]=y1;pz[i]=z1; }
+  if (activePos[i]>=0 && (Math.abs(px[i])>200||Math.abs(pz[i])>200||py[i]<-20||((Math.abs(px[i])>WORLD/2+2||Math.abs(pz[i])>WORLD/2+2)&&py[i]<topHeight(px[i],pz[i],true)-.5))) { outflowVolume+=pVolume[i]; releaseParticle(i); }
+}
+function updateSurface(i,dt) {
+  const kind=pKind[i];
+  const x=px[i], z=pz[i];
+  if (Math.abs(x)>WORLD/2||Math.abs(z)>WORLD/2) { outflowVolume+=pVolume[i]; releaseParticle(i); return; }
+  const n=[0,1,0]; surfaceNormal(x,z,n);
+  const yTop=topHeight(x,z,true);
+  // Gravity projected onto the surface: droplets, snow clumps and hail genuinely run/roll downhill.
+  const gDotN=-9.81*n[1];
+  let ax=-gDotN*n[0], ay=-9.81-gDotN*n[1], az=-gDotN*n[2];
+  vx[i]+=ax*dt; vy[i]+=ay*dt; vz[i]+=az*dt;
+  const dn=vx[i]*n[0]+vy[i]*n[1]+vz[i]*n[2];
+  vx[i]-=dn*n[0]; vy[i]-=dn*n[1]; vz[i]-=dn*n[2];
+  const friction=kind===KIND.HAIL?.55:kind===KIND.SNOW?2.4:1.35;
+  const damp=Math.exp(-friction*dt); vx[i]*=damp; vy[i]*=damp; vz[i]*=damp;
+  px[i]+=vx[i]*dt; pz[i]+=vz[i]*dt; py[i]=topHeight(px[i],pz[i],true)+pRadius[i]*(kind===KIND.HAIL?1:.45);
+  const speed=Math.hypot(vx[i],vy[i],vz[i]);
+  const slopeDeg=Math.acos(clamp(n[1],-1,1))*180/Math.PI;
+  if (kind===KIND.RAIN) {
+    const transfer=pVolume[i]*Math.min(1,dt*2.4);
+    addWater(px[i],pz[i],transfer,.45); pVolume[i]-=transfer;
+    if (pVolume[i]<=1e-12 || (speed<.03&&pTimer[i]>.8)) { addWater(px[i],pz[i],pVolume[i],.45); releaseParticle(i); return; }
+  } else if (kind===KIND.SNOW || kind===KIND.SLEET) {
+    const transfer=pVolume[i]*Math.min(1,dt*.32);
+    depositSnowSmart(px[i],pz[i],transfer,n[1]); pVolume[i]-=transfer;
+    if (slopeDeg<38&&speed<.35) { pState[i]=STATE.SETTLED; pTimer[i]=randRange(.5,2.2); vx[i]=vy[i]=vz[i]=0; }
+    if (pVolume[i]<=1e-12) releaseParticle(i);
+  } else if (kind===KIND.HAIL) {
+    if (speed<.14) { pTimer[i]+=dt; if (pTimer[i]>.35) { pState[i]=STATE.SETTLED; pTimer[i]=0; vx[i]=vy[i]=vz[i]=0; } }
+    else pTimer[i]=0;
+    if (yTop - topHeight(px[i],pz[i],true) > pRadius[i]*2.2) pState[i]=STATE.FALL;
+  }
+}
+function updateSettled(i,dt) {
+  pTimer[i]-=dt;
+  if (pObject[i]<0) py[i]=topHeight(px[i],pz[i],true)+pRadius[i]*(pKind[i]===KIND.HAIL?1:.35);
+  if (pKind[i]===KIND.HAIL) {
+    const meltMMH=Math.max(0,params.temp)*.55*params.melt + Math.max(0,params.temp+2)*.08;
+    if (meltMMH>0 && pRadius[i]>0) {
+      const oldR=pRadius[i];
+      const newR=Math.max(.004, oldR - (meltMMH/1000/3600)*dt*.5);
+      const ratio=(newR/oldR)**3;
+      const melted=pVolume[i]*(1-ratio);
+      if (pObject[i]>=0) addObjectWater(colliders[pObject[i]], melted); else addWater(px[i],pz[i],melted,.35,false);
+      pVolume[i]*=ratio; pRadius[i]=newR;
+      if (newR<=.0045) { if(pObject[i]>=0) addObjectWater(colliders[pObject[i]],pVolume[i]); else addWater(px[i],pz[i],pVolume[i],.35,false); releaseParticle(i); return; }
+    }
+    return;
+  }
+  if (pTimer[i]<=0) {
+    if (pObject[i]>=0) {
+      const col=colliders[pObject[i]];
+      if (pKind[i]===KIND.SNOW||pKind[i]===KIND.SLEET) (col.group||col).snowVolume += pVolume[i];
+      else addObjectWater(col,pVolume[i]);
+      releaseParticle(i); return;
+    }
+    forceMergeParticle(i);
+  }
+}
+function stepParticles(dt) {
+  spawnPrecipitation(dt);
+  const sub=Math.max(1,Math.min(12,Math.ceil(dt/.018)));
+  const h=dt/sub;
+  for (let s=0;s<sub;s++) {
+    for (let ai=activeCount-1; ai>=0; ai--) {
+      const i=active[ai]; if (activePos[i]<0) continue;
+      pAge[i]+=h;
+      if (pState[i]===STATE.FALL) updateFalling(i,h);
+      else if (pState[i]===STATE.SURFACE) updateSurface(i,h);
+      else updateSettled(i,h);
+    }
+  }
+  enforceBudget();
+}
+
+/* ---------------- snow / water / hail field processes ---------------- */
+function updateSnow(dt) {
+  if (dt<=0) return;
+  const warm=Math.max(0,params.temp);
+  const meltRate=(warm*2.2e-6*params.melt + Math.max(0,params.temp+3)*1.5e-7*params.melt); // m SWE/s — degree-day melt (~8× accelerated so it is watchable)
+  for (let i=0;i<NN;i++) {
+    if (swe[i]<=0) continue;
+    const load=swe[i];
+    const tau=lerp(7200,900,clamp01(load/.18)) / (params.temp>-2?2.2:1);
+    snowDensity[i]+= (0.46-snowDensity[i])*(1-Math.exp(-dt/Math.max(60,tau)));
+    if (meltRate>0) {
+      const melt=Math.min(swe[i], meltRate*dt*(0.75+0.5*clamp01(cellSlope[i]/60)));
+      swe[i]-=melt;
+      const cap=swe[i]*.055;
+      const held=Math.min(melt,Math.max(0,cap-snowLiquid[i]));
+      snowLiquid[i]+=held;
+      if (melt-held>0) waterDepth[i]+=(melt-held);
+      snowDensity[i]=Math.min(.58,snowDensity[i]+melt*1.7);
+    }
+    // Liquid above holding capacity drains out of the pack.
+    const excess=snowLiquid[i]-swe[i]*.055;
+    if (excess>0) { const drain=Math.min(excess,excess*dt*.25+.000002*dt); snowLiquid[i]-=drain; waterDepth[i]+=drain; }
+    if (swe[i]<=1e-7) { if (snowLiquid[i]>0){waterDepth[i]+=snowLiquid[i];snowLiquid[i]=0;} swe[i]=0; }
+  }
+  refreshSnowDepth();
+  // Angle-of-repose relaxation (pairwise, mass-conserving SWE transfers).
+  deltaA.fill(0);
+  const reposeTan=Math.tan((params.temp>-1?42:36)*Math.PI/180);
+  const relaxPair=(a,b,dist)=>{
+    if (swe[a]<=0&&swe[b]<=0) return;
+    const ha=groundH[a]+snowDepth[a], hb=groundH[b]+snowDepth[b];
+    const dh=ha-hb, allow=reposeTan*dist;
+    if (Math.abs(dh)<=allow) return;
+    const src=dh>0?a:b, dst=dh>0?b:a;
+    const excessDepth=(Math.abs(dh)-allow)*.38;
+    const move=Math.min(swe[src]*.16, excessDepth*Math.max(.05,snowDensity[src])); // ≤16% per pair: a cell feeds up to 4 pairs, so the source can never be overdrawn
+    if (move>0) { deltaA[src]-=move; deltaA[dst]+=move; }
+  };
+  for (let iz=0;iz<NODES;iz++) for(let ix=0;ix<NODES;ix++) {
+    const i=iz*NODES+ix;
+    if (ix<GRID) relaxPair(i,i+1,CELL);
+    if (iz<GRID) relaxPair(i,i+NODES,CELL);
+  }
+  for (let i=0;i<NN;i++) if (deltaA[i]) {
+    if (deltaA[i]>0) { const old=swe[i]; snowDensity[i]=old+deltaA[i]>0?(old*snowDensity[i]+deltaA[i]*.22)/(old+deltaA[i]):.22; }
+    swe[i]=Math.max(0,swe[i]+deltaA[i]);
+  }
+  // Wind drift: erode exposed snow and carry it one downwind node; sheltered nodes keep it.
+  if (params.wind>4.5 && params.temp<2.5) {
+    deltaA.fill(0);
+    const dir=params.windDir*Math.PI/180, wx=Math.sin(dir), wz=-Math.cos(dir);
+    const stepX=Math.round(wx), stepZ=Math.round(wz);
+    const strength=clamp01((params.wind-4.5)/16)*dt*.018;
+    const n=[0,1,0];
+    for (let iz=1;iz<GRID;iz++) for(let ix=1;ix<GRID;ix++) {
+      const i=iz*NODES+ix; if (swe[i]<=.0002) continue;
+      const jx=ix+stepX,jz=iz+stepZ; if(jx<0||jz<0||jx>=NODES||jz>=NODES) continue;
+      surfaceNormal(nodeX(ix),nodeZ(iz),n);
+      const facing=-(n[0]*wx+n[2]*wz); // >0 windward/exposed
+      const move=swe[i]*strength*clamp(.25+facing*1.6,0,1.4);
+      if (move>0) { deltaA[i]-=move; deltaA[jz*NODES+jx]+=move; }
+    }
+    for (let i=0;i<NN;i++) swe[i]=Math.max(0,swe[i]+deltaA[i]);
+  }
+  refreshSnowDepth();
+}
+function updateWater(dt) {
+  if (dt<=0) return;
+  // Infiltration + evaporation first.
+  for (let i=0;i<NN;i++) {
+    if (waterDepth[i]<=0) continue;
+    const snowBlock=swe[i]>.002?.35:1;
+    const infilRate=cellInfil[i]/1000/3600*params.drain*(1-soilMoisture[i]*.82)*snowBlock;
+    const infil=Math.min(waterDepth[i], infilRate*dt);
+    if (infil>0) { waterDepth[i]-=infil; infiltratedVolume+=infil*CELL_AREA; soilMoisture[i]=clamp01(soilMoisture[i]+infil/.07); }
+    const evap=Math.min(waterDepth[i], Math.max(0,params.temp-2)*.00000012*params.melt*dt);
+    if (evap>0) { waterDepth[i]-=evap; evaporatedVolume+=evap*CELL_AREA; }
+  }
+  soilMoisture.forEach((v,i)=>{ soilMoisture[i]=Math.max(.04,v-dt*.000012*params.drain); });
+  // Pairwise shallow flow on total head. This makes genuine runoff paths and level ponds.
+  const passes=dt>.12?2:1;
+  for (let pass=0;pass<passes;pass++) {
+    deltaA.fill(0);
+    const flowPair=(a,b)=>{
+      const ha=groundH[a]+snowDepth[a]+hailDepth[a]+waterDepth[a];
+      const hb=groundH[b]+snowDepth[b]+hailDepth[b]+waterDepth[b];
+      const diff=ha-hb; if (Math.abs(diff)<1e-7) return;
+      const src=diff>0?a:b, dst=diff>0?b:a;
+      if (waterDepth[src]<=0) return;
+      const rough=(cellRough[src]+cellRough[dst])*.5;
+      const speed=clamp(.18+dt*1.9/Math.max(.012,rough*18),.18,.48);
+      const move=Math.min(waterDepth[src]*.18, Math.abs(diff)*speed); // ≤18% per pair keeps 4-neighbour outflow mass-conserving
+      if (move>0) { deltaA[src]-=move; deltaA[dst]+=move; }
+    };
+    for (let iz=0;iz<NODES;iz++) for(let ix=0;ix<NODES;ix++) {
+      const i=iz*NODES+ix;
+      if (ix<GRID) flowPair(i,i+1);
+      if (iz<GRID) flowPair(i,i+NODES);
+    }
+    for (let i=0;i<NN;i++) waterDepth[i]=Math.max(0,waterDepth[i]+deltaA[i]);
+  }
+  // Edge outflow is tracked, not silently deleted from the ledger.
+  for (let ix=0;ix<NODES;ix++) for (const iz of [0,GRID]) { const i=iz*NODES+ix; const out=waterDepth[i]*Math.min(1,dt*.22); waterDepth[i]-=out; outflowVolume+=out*CELL_AREA; }
+  for (let iz=0;iz<NODES;iz++) for (const ix of [0,GRID]) { const i=iz*NODES+ix; const out=waterDepth[i]*Math.min(1,dt*.22); waterDepth[i]-=out; outflowVolume+=out*CELL_AREA; }
+  // Granular hail layer melts into surface water and compacts a little under load/warmth.
+  const hailMelt=Math.max(0,params.temp)*2.5e-7*params.melt*dt;
+  if (hailMelt>0) for (let i=0;i<NN;i++) if (hailDepth[i]>0) { const m=Math.min(hailDepth[i],hailMelt*(0.6+soilMoisture[i])); hailDepth[i]-=m; waterDepth[i]+=m*.92; }
+}
+function updateObjectCaps(dt) {
+  const updateCap=(col)=>{
+    const snowT=col.snowVolume>0?col.snowVolume/Math.max(.1,col.area)/.18:0;
+    const waterT=col.waterVolume>0?Math.min(.035,col.waterVolume/Math.max(.1,col.area)):0;
+    if (col.capMesh) {
+      const show=snowT>.004; col.capMesh.visible=show;
+      if (show) {
+        if (col.kind==='obb') {
+          const up=[0,0,0]; qRotate(col.q,0,1,0,up);
+          col.capMesh.position.set(col.center[0]+up[0]*(col.half[1]+snowT/2), col.center[1]+up[1]*(col.half[1]+snowT/2), col.center[2]+up[2]*(col.half[1]+snowT/2));
+          col.capMesh.scale.set(1,snowT,1);
+        } else if (col.kind==='cylinder') { col.capMesh.position.set(col.center[0],col.y1+snowT/2,col.center[2]); col.capMesh.scale.set(1,snowT,1); }
+        else if (col.kind==='sphere') { col.capMesh.position.set(col.center[0],col.center[1]+col.radius*.62+snowT*.3,col.center[2]); col.capMesh.scale.set(1,.24+snowT*.7,1); }
+      }
+    }
+    if (col.waterCapMesh) {
+      const show=waterT>.0015; col.waterCapMesh.visible=show;
+      if (show&&col.kind==='obb') { const up=[0,0,0]; qRotate(col.q,0,1,0,up); col.waterCapMesh.position.set(col.center[0]+up[0]*(col.half[1]+snowT+waterT/2),col.center[1]+up[1]*(col.half[1]+snowT+waterT/2),col.center[2]+up[2]*(col.half[1]+snowT+waterT/2)); col.waterCapMesh.scale.set(1,waterT,1); }
+    }
+    // Roof shedding and drips.
+    if (col.eaves && col.eaves.length) {
+      const maxSnow=(col.slopeDeg>28?.055:.22)*(params.temp>-1?.65:1);
+      if (snowT>maxSnow) {
+        const shedVol=(snowT-maxSnow)*col.area*.18; col.snowVolume-=shedVol;
+        const e=col.eaves[(rand()*col.eaves.length)|0];
+        const idx=spawnManual(KIND.SNOW,e[0],e[1],e[2],randRange(-.3,.3),-.4,randRange(-.3,.3),0,.075);
+        if (idx>=0) { pVolume[idx]=shedVol; /* transfer, not new input */ }
+        else addSnowSWE(e[0],e[2],shedVol,.25,.8);
+      }
+      if (col.waterVolume>.002) {
+        const dripVol=Math.min(col.waterVolume, .0009+col.waterVolume*.04);
+        const e=col.eaves[(rand()*col.eaves.length)|0];
+        const idx=spawnManual(KIND.RAIN,e[0],e[1],e[2],0,-.3,0,0,.018);
+        col.waterVolume-=dripVol;
+        if (idx>=0) pVolume[idx]=dripVol; else addWater(e[0],e[2],dripVol,.35,false);
+      }
+    }
+    if (params.temp>0&&col.snowVolume>0) { const melt=Math.min(col.snowVolume, col.snowVolume*dt*.002*params.temp*params.melt); col.snowVolume-=melt; col.waterVolume+=melt; }
+    if (!col.eaves?.length&&col.waterVolume>.08) { // flat tops spill over time to the ground below their centre
+      const spill=col.waterVolume*Math.min(1,dt*.12); col.waterVolume-=spill; addWater(col.center[0],col.center[2],spill,.8,false);
+    }
+  };
+  for (const col of colliders) if (!col.group) updateCap(col);
+  for (const tree of interceptors) {
+    const load=tree.snowVolume/Math.max(1,tree.area)/.16;
+    for (const cap of tree.caps) {
+      const show=load>.006; cap.mesh.visible=show;
+      if (show) { const s=clamp(.25+load*2.2,.25,1.08); cap.mesh.scale.set(s,clamp(.18+load*1.1,.18,.72),s); cap.mesh.position.y=cap.baseY+load*.22; }
+    }
+    if (tree.snowVolume>2.2*tree.s && (params.wind>9||params.temp>-1) && rand()<dt*.25) {
+      const shed=tree.snowVolume*.22; tree.snowVolume-=shed;
+      const idx=spawnManual(KIND.SNOW,tree.x+randRange(-1,1),tree.gy+5.2*tree.s,tree.z+randRange(-1,1),randRange(-.4,.4),-.5,randRange(-.4,.4),0,.08);
+      if (idx>=0) pVolume[idx]=shed; else addSnowSWE(tree.x,tree.z,shed,.2,.9);
+    }
+    if (tree.waterVolume>.01&&rand()<dt*2) {
+      const drip=Math.min(tree.waterVolume,.002); tree.waterVolume-=drip;
+      const idx=spawnManual(KIND.RAIN,tree.x+randRange(-1.5,1.5),tree.gy+4.6*tree.s,tree.z+randRange(-1.5,1.5),0,-.2,0,0,.016);
+      if (idx>=0) pVolume[idx]=drip; else addWater(tree.x,tree.z,drip,.5,false);
+    }
+    if (params.temp>0&&tree.snowVolume>0) { const melt=Math.min(tree.snowVolume,tree.snowVolume*dt*.003*params.temp*params.melt); tree.snowVolume-=melt; tree.waterVolume+=melt; }
+  }
+}
+
+/* ---------------- particle rendering ---------------- */
+const snowPointGeo=new THREE.BufferGeometry();
+const snowPos=new Float32Array(MAX_PARTICLES*3), snowSize=new Float32Array(MAX_PARTICLES), snowKind=new Float32Array(MAX_PARTICLES), snowAlpha=new Float32Array(MAX_PARTICLES);
+snowPointGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3).setUsage(THREE.DynamicDrawUsage));
+snowPointGeo.setAttribute('aSize',new THREE.BufferAttribute(snowSize,1).setUsage(THREE.DynamicDrawUsage));
+snowPointGeo.setAttribute('aKind',new THREE.BufferAttribute(snowKind,1).setUsage(THREE.DynamicDrawUsage));
+snowPointGeo.setAttribute('aAlpha',new THREE.BufferAttribute(snowAlpha,1).setUsage(THREE.DynamicDrawUsage));
+const snowPointMat=new THREE.ShaderMaterial({
+  transparent:true, depthWrite:false,
+  uniforms:{ uScale:{value:innerHeight*.5} },
+  vertexShader:`attribute float aSize; attribute float aKind; attribute float aAlpha; varying float vKind; varying float vAlpha; uniform float uScale;
+    void main(){ vKind=aKind; vAlpha=aAlpha; vec4 mv=modelViewMatrix*vec4(position,1.); gl_PointSize=clamp(aSize*uScale/max(1.,-mv.z),1.,34.); gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`precision highp float; varying float vKind; varying float vAlpha;
+    void main(){ vec2 q=gl_PointCoord-.5; float d=length(q)*2.; float a=1.-smoothstep(.72,1.,d);
+      vec3 col=vec3(.96,.99,1.);
+      if(vKind>2.5){ col=vec3(.72,.88,1.); a*= .9; } // sleet / droplet
+      else if(vKind>1.5){ col=vec3(.82,.94,1.); }
+      else { float ang=atan(q.y,q.x); float arm=smoothstep(.16,.0,abs(sin(ang*3.)))*smoothstep(1.,.15,d); a=max(a,arm*.7); }
+      if(a*vAlpha<.015) discard; gl_FragColor=vec4(col,a*vAlpha); }`
+});
+const snowPoints=new THREE.Points(snowPointGeo,snowPointMat); snowPoints.frustumCulled=false; scene.add(snowPoints);
+const rainGeo=new THREE.BufferGeometry();
+const rainPos=new Float32Array(MAX_PARTICLES*6);
+rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPos,3).setUsage(THREE.DynamicDrawUsage));
+const rainLines=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0xb9dcff,transparent:true,opacity:.58})); rainLines.frustumCulled=false; scene.add(rainLines);
+const hailMeshInst=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0xe7f7ff,roughness:.24,metalness:0,transparent:true,opacity:.94}),MAX_PARTICLES);
+hailMeshInst.instanceMatrix.setUsage(THREE.DynamicDrawUsage); hailMeshInst.castShadow=true; hailMeshInst.frustumCulled=false; scene.add(hailMeshInst);
+const hailDummy=new THREE.Object3D();
+function updateParticleBuffers() {
+  let sp=0, rp=0, hi=0;
+  for (let ai=0;ai<activeCount;ai++) {
+    const i=active[ai], kind=pKind[i];
+    if (kind===KIND.HAIL) {
+      hailDummy.position.set(px[i],py[i],pz[i]);
+      hailDummy.rotation.set(pSeed[i]+pAge[i]*2.1,pSeed[i]*.7,pAge[i]*1.3);
+      const s=Math.max(.012,pRadius[i]); hailDummy.scale.set(s,s,s); hailDummy.updateMatrix(); hailMeshInst.setMatrixAt(hi++,hailDummy.matrix);
+      continue;
+    }
+    if (kind===KIND.RAIN&&pState[i]===STATE.FALL&&pGen[i]<2) {
+      const tail=.032;
+      rainPos[rp++]=px[i]-vx[i]*tail; rainPos[rp++]=py[i]-vy[i]*tail; rainPos[rp++]=pz[i]-vz[i]*tail;
+      rainPos[rp++]=px[i]; rainPos[rp++]=py[i]; rainPos[rp++]=pz[i];
+      continue;
+    }
+    snowPos[sp*3]=px[i]; snowPos[sp*3+1]=py[i]; snowPos[sp*3+2]=pz[i];
+    snowSize[sp]=kind===KIND.SNOW?pRadius[i]*.9:Math.max(.018,pRadius[i]*1.7);
+    snowKind[sp]=kind===KIND.RAIN?3:kind; snowAlpha[sp]=pState[i]===STATE.SETTLED?.92:.96; sp++;
+  }
+  snowPointGeo.setDrawRange(0,sp);
+  snowPointGeo.getAttribute('position').needsUpdate=true; snowPointGeo.getAttribute('aSize').needsUpdate=true; snowPointGeo.getAttribute('aKind').needsUpdate=true; snowPointGeo.getAttribute('aAlpha').needsUpdate=true;
+  rainGeo.setDrawRange(0,rp/3); rainGeo.getAttribute('position').needsUpdate=true;
+  hailMeshInst.count=hi; hailMeshInst.instanceMatrix.needsUpdate=true;
+}
+
+/* ---------------- camera controls ---------------- */
+const cam={target:new THREE.Vector3(0,4,0), radius:72, theta:.72, phi:1.02};
+function resetCamera(){cam.target.set(0,4,0);cam.radius=72;cam.theta=.72;cam.phi=1.02;}
+function applyCamera(){
+  cam.phi=clamp(cam.phi,.12,1.48); cam.radius=clamp(cam.radius,8,170);
+  camera.position.set(cam.target.x+cam.radius*Math.sin(cam.phi)*Math.sin(cam.theta),cam.target.y+cam.radius*Math.cos(cam.phi),cam.target.z+cam.radius*Math.sin(cam.phi)*Math.cos(cam.theta));
+  camera.lookAt(cam.target);
+}
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,b:e.button};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{
+  if(!drag)return; const dx=e.clientX-drag.x,dy=e.clientY-drag.y; drag.x=e.clientX;drag.y=e.clientY;
+  if(drag.b===2){ const s=cam.radius*.0016; const right=new THREE.Vector3(Math.cos(cam.theta),0,-Math.sin(cam.theta)); const fwd=new THREE.Vector3(-Math.sin(cam.theta),0,-Math.cos(cam.theta)); cam.target.addScaledVector(right,-dx*s).addScaledVector(fwd,dy*s); }
+  else { cam.theta-=dx*.005; cam.phi-=dy*.004; }
+});
+canvas.addEventListener('pointerup',()=>drag=null);
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('wheel',e=>{e.preventDefault();cam.radius*=Math.exp(e.deltaY*.001);},{passive:false});
+resetCamera(); applyCamera();
+
+/* ---------------- UI ---------------- */
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>Number(v).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+function syncUI(){
+  $('mode').value=params.mode;
+  for (const id of ['budget','intensity','temp','timeScale','size','hailSize','wind','windDir','gust','melt','drain']) $(id).value=params[id];
+  $('budgetOut').textContent=`${params.budget.toLocaleString()} max`;
+  $('intensityOut').textContent=`${fmt(params.intensity,0)} mm/h`;
+  $('tempOut').textContent=`${fmt(params.temp,1)} °C`;
+  $('timeScaleOut').textContent=`${fmt(params.timeScale,2)}×`;
+  $('sizeOut').textContent=`${fmt(params.size,2)}×`;
+  $('hailSizeOut').textContent=`${fmt(params.hailSize,0)} mm`;
+  $('windOut').textContent=`${fmt(params.wind,1)} m/s`;
+  $('windDirOut').textContent=`${fmt(params.windDir,0)}°`;
+  $('gustOut').textContent=fmt(params.gust,2);
+  $('meltOut').textContent=`${fmt(params.melt,1)}×`;
+  $('drainOut').textContent=`${fmt(params.drain,1)}×`;
+  $('pauseBtn').textContent=params.paused?'Resume':'Pause';
+}
+for (const id of ['budget','intensity','temp','timeScale','size','hailSize','wind','windDir','gust','melt','drain']) {
+  $(id).addEventListener('input',e=>{params[id]=Number(e.target.value); if(id==='budget')enforceBudget(); syncUI();});
+}
+$('mode').addEventListener('change',e=>{params.mode=e.target.value; syncUI();});
+document.querySelectorAll('[data-preset]').forEach(btn=>btn.addEventListener('click',()=>{
+  Object.assign(params,PRESETS[btn.dataset.preset]);
+  document.querySelectorAll('[data-preset]').forEach(b=>b.classList.toggle('active',b===btn));
+  syncUI();
+}));
+$('pauseBtn').addEventListener('click',()=>{params.paused=!params.paused;syncUI();});
+$('cameraBtn').addEventListener('click',resetCamera);
+function clearParticles(countInput=false){
+  while(activeCount){ const i=active[activeCount-1]; if(countInput) inputVolume-=pVolume[i]; releaseParticle(i); }
+  spawnAcc=0;
+}
+function resetAccumulations(){
+  swe.fill(0);snowDepth.fill(0);snowLiquid.fill(0);waterDepth.fill(0);hailDepth.fill(0);snowDensity.fill(.13);soilMoisture.fill(.25);
+  for(const c of colliders){c.snowVolume=0;c.waterVolume=0;}
+  for(const t of interceptors){t.snowVolume=0;t.waterVolume=0;}
+  inputVolume=infiltratedVolume=evaporatedVolume=outflowVolume=unspawnedVolume=0;
+  refreshSnowDepth(); updateFieldMesh(snowGeo,'snow'); updateFieldMesh(waterGeo,'water'); updateFieldMesh(hailGeo,'hail');
+}
+$('resetParticlesBtn').addEventListener('click',()=>clearParticles(true));
+$('resetAllBtn').addEventListener('click',()=>{clearParticles(false);resetAccumulations();});
+syncUI();
+
+/* ---------------- stats / HUD ---------------- */
+const hud=$('hud');
+const statDefs=['Particles','Falling','Surface / settled','Snowpack max','Snow water','Puddle/runoff water','Hail settled','Bounces','Budget pressure','Mass ledger'];
+hud.innerHTML=statDefs.map(k=>`<div class="stat"><span>${k}</span><strong id="stat-${k.replaceAll(/[^a-z]/gi,'')}">—</strong></div>`).join('');
+function setStat(key,val){const el=document.getElementById('stat-'+key.replaceAll(/[^a-z]/gi,'')); if(el)el.textContent=val;}
+let fpsEMA=60, statTimer=0;
+function updateStats(dt){
+  statTimer-=dt; if(statTimer>0)return; statTimer=.25;
+  let falling=0,surface=0,settled=0,settledHail=0,airVol=0;
+  for(let ai=0;ai<activeCount;ai++){const i=active[ai]; airVol+=pVolume[i]; if(pState[i]===STATE.FALL)falling++; else if(pState[i]===STATE.SURFACE)surface++; else settled++; if(pKind[i]===KIND.HAIL&&pState[i]===STATE.SETTLED)settledHail++;}
+  let snowVol=0,waterVol=0,hailVol=0,maxSnow=0,maxWater=0;
+  for(let i=0;i<NN;i++){snowVol+=(swe[i]+snowLiquid[i])*CELL_AREA; waterVol+=waterDepth[i]*CELL_AREA; hailVol+=hailDepth[i]*CELL_AREA*.92; if(snowDepth[i]>maxSnow)maxSnow=snowDepth[i]; if(waterDepth[i]>maxWater)maxWater=waterDepth[i];}
+  let objVol=0; for(const c of colliders)if(!c.group)objVol+=c.snowVolume+c.waterVolume; for(const t of interceptors)objVol+=t.snowVolume+t.waterVolume;
+  const accounted=airVol+snowVol+waterVol+hailVol+objVol+infiltratedVolume+evaporatedVolume+outflowVolume;
+  const err=inputVolume>0.001?Math.abs(inputVolume-accounted)/inputVolume*100:0;
+  setStat('Particles',`${activeCount.toLocaleString()} / ${params.budget.toLocaleString()}`);
+  setStat('Falling',falling.toLocaleString());
+  setStat('Surface / settled',`${surface.toLocaleString()} / ${settled.toLocaleString()}`);
+  setStat('Snowpack max',`${fmt(maxSnow*100,1)} cm`);
+  setStat('Snow water',`${fmt(snowVol,2)} m³`);
+  setStat('Puddle/runoff water',`${fmt(waterVol,2)} m³ · ${fmt(maxWater*1000,0)} mm`);
+  setStat('Hail settled',settledHail.toLocaleString());
+  setStat('Bounces',totalBounces.toLocaleString());
+  setStat('Budget pressure',unspawnedVolume>.0001?`${fmt(unspawnedVolume,3)} m³ queued`:'none');
+  setStat('Mass ledger',`${fmt(inputVolume,2)} in · ${fmt(err,1)}% err · ${fmt(fpsEMA,0)} fps`);
+}
+
+/* ---------------- main loop ---------------- */
+updateFieldMesh(snowGeo,'snow'); updateFieldMesh(waterGeo,'water'); updateFieldMesh(hailGeo,'hail');
+let last=performance.now(), fieldTimer=0, firstFrame=true;
+function animate(now){
+  requestAnimationFrame(animate);
+  const realDt=Math.min(.05,(now-last)/1000||.016); last=now;
+  fpsEMA=lerp(fpsEMA,1/Math.max(.001,realDt),.05);
+  const dt=params.paused?0:Math.min(.22,realDt*params.timeScale);
+  if(dt>0){
+    simTime+=dt;
+    stepParticles(dt);
+    updateSnow(dt);
+    updateWater(dt);
+    updateObjectCaps(dt);
+    updateRipples(dt);
+    fieldTimer-=dt;
+    if(fieldTimer<=0){ fieldTimer=.14; updateFieldMesh(snowGeo,'snow'); updateFieldMesh(waterGeo,'water'); updateFieldMesh(hailGeo,'hail'); }
+    const wdir=params.windDir*Math.PI/180;
+    cloudGroup.position.x=Math.sin(wdir)*params.wind*simTime*.18%24;
+    cloudGroup.position.z=-Math.cos(wdir)*params.wind*simTime*.18%24;
+    const stormGrey=clamp01(params.intensity/80);
+    scene.background.setRGB(lerp(.72,.43,stormGrey),lerp(.78,.5,stormGrey),lerp(.86,.6,stormGrey));
+    scene.fog.color.copy(scene.background);
+    sun.intensity=lerp(2.3,.85,stormGrey)*(params.temp<0?.92:1.05);
+    hemi.intensity=lerp(1.8,1.15,stormGrey);
+  }
+  updateParticleBuffers();
+  updateStats(realDt);
+  applyCamera();
+  renderer.render(scene,camera);
+  if(firstFrame){firstFrame=false;document.getElementById('loading')?.classList.add('done');}
+}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);snowPointMat.uniforms.uScale.value=innerHeight*.5;});
+
+/* Deterministic-ish self-test hook: precipitation.html?selftest=1 */
+window.PrecipSim={params,fields:{swe,snowDepth,waterDepth,hailDepth},spawnManual,step:(dt)=>{stepParticles(dt);updateSnow(dt);updateWater(dt);},sample:topHeight,activeCount:()=>activeCount};
+if (new URLSearchParams(location.search).has('selftest')) {
+  setTimeout(()=>{
+    const beforeSnow=swe.reduce((a,b)=>a+b,0), beforeWater=waterDepth.reduce((a,b)=>a+b,0);
+    spawnManual(KIND.SNOW,0,topHeight(0,0)+6,0,0,-1,0,.006,.05);
+    spawnManual(KIND.RAIN,20,topHeight(20,20)+8,20,0,-7,0,.006,.02);
+    spawnManual(KIND.HAIL,9,topHeight(9,-12)+8,-12,0,-16,0,.002,.025);
+    for(let s=0;s<360;s++){ stepParticles(1/30); updateSnow(1/30); updateWater(1/30); }
+    const ok=swe.reduce((a,b)=>a+b,0)>beforeSnow && waterDepth.reduce((a,b)=>a+b,0)>beforeWater && totalBounces>0;
+    document.title=ok?'PRECIP_SELFTEST_PASS':'PRECIP_SELFTEST_FAIL';
+    console.log(document.title,{snow:swe.reduce((a,b)=>a+b,0),water:waterDepth.reduce((a,b)=>a+b,0),bounces:totalBounces,active:activeCount});
+  },50);
+}
+</script>
+</body>
+</html>
