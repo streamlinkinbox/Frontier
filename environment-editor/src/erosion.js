@@ -514,3 +514,128 @@ export async function brushErode(volume, center, radius, opts = {}) {
   if (drops > 0) dropStats = await hydraulicDroplets(volume, { ...opts, droplets: drops, center, brushRadius: radius });
   return { weatheredNodes: entries.length / 2, dropStats };
 }
+
+// ------------------------------------------------------ rocks & outcrops (SDF scatter)
+/**
+ * Scatter joint-bounded outcrops and rounded boulders as true SDF unions.
+ * Placement is deterministic and filtered by surface slope, minimum spacing,
+ * and an optional stratigraphic horizon (favouring one elevation band, as a
+ * resistant bed cropping out). Added rock carries the bed under its base.
+ */
+export function scatterOutcrops(volume, opts = {}) {
+  const count = Math.max(0, Math.round(opts.count ?? 48));
+  const rng = mulberry32((opts.seed ?? 1234) * 7919 + 17);
+  const maxSlope = (opts.maxSlopeDeg ?? 38) * Math.PI / 180;
+  const minSpacing = Math.max(1, opts.minSpacing ?? 7);
+  const scale = Math.max(0.3, opts.rockScale ?? 1.7);
+  const stretch = Math.max(0.4, opts.rockStretch ?? 1.35);
+  const sharp = clamp(opts.rockSharpness ?? 0.68, 0, 1);
+  const boulderShare = clamp(opts.boulderShare ?? 0.38, 0, 1);
+  const cover = clamp(opts.cover ?? 0.34, 0, 1);
+  const horizonOn = !!opts.preferHorizon;
+  const horizonY = opts.horizonY ?? 24;
+  const horizonWidth = Math.max(1, opts.horizonWidth ?? 5);
+  const accepted = [];
+  const normal = [0, 1, 0];
+  let attempts = 0;
+  while (accepted.length < count && attempts < Math.max(80, count * 18)) {
+    attempts++;
+    const x = -43 + rng() * 86, z = -43 + rng() * 86;
+    const y = volume.topHeight(x, z);
+    if (!Number.isFinite(y) || y < 3) continue;
+    volume.normalAt(x, y, z, normal);
+    const slope = Math.acos(clamp(normal[1], -1, 1));
+    if (slope > maxSlope) continue;
+    if (horizonOn) {
+      const p = 0.18 + 0.82 * Math.exp(-Math.pow((y - horizonY) / horizonWidth, 2));
+      if (rng() > p) continue;
+    }
+    let clear = true;
+    for (const a of accepted) if (Math.hypot(x - a[0], z - a[2]) < minSpacing) { clear = false; break; }
+    if (!clear) continue;
+    const s = scale * (0.35 + 1.65 * Math.pow(rng(), 2.3));
+    const ix = clamp(Math.round((x - volume.origin[0]) / volume.spacing), 0, volume.nx - 1);
+    const iy = clamp(Math.round((y - 0.5 - volume.origin[1]) / volume.spacing), 0, volume.ny - 1);
+    const iz = clamp(Math.round((z - volume.origin[2]) / volume.spacing), 0, volume.nz - 1);
+    const bed = volume.bed[volume.index(ix, iy, iz)];
+    const sediment = cover * 0.75;
+    if (rng() < boulderShare) {
+      const r = Math.max(volume.spacing * 0.75, s * (0.65 + rng() * 0.5));
+      volume.brushAdd([x, y + r * 0.28, z], r, 1, lerp(0.9, 0.16, sharp), { bed, sediment });
+    } else {
+      const yaw = rng() * Math.PI * 2, c = Math.cos(yaw), sn = Math.sin(yaw);
+      const half = [
+        Math.max(volume.spacing * 0.55, s * stretch * (0.75 + rng() * 0.55)),
+        Math.max(volume.spacing * 0.45, s * (0.42 + rng() * 0.42)),
+        Math.max(volume.spacing * 0.55, s * (0.62 + rng() * 0.5)),
+      ];
+      volume.brushAddBox(
+        [x, y + half[1] * 0.34, z], half,
+        [[c, 0, -sn], [0, 1, 0], [sn, 0, c]],
+        lerp(0.55, 0.08, sharp), { bed, sediment });
+    }
+    accepted.push([x, y, z]);
+  }
+  volume.markAllDirty();
+  return { placed: accepted.length, attempts, points: accepted };
+}
+
+// ------------------------------------------------------ drawn rivers & roads (SDF ribbons)
+/**
+ * Carve or build a ribbon through the volume along a drawn polyline.
+ * The longitudinal profile is smoothed from the picked surface points; river
+ * mode then forces it monotonically downhill and cuts a channel, road mode
+ * flattens a bench (cut uphill / fill downhill). Both are real SDF edits, so
+ * they remain editable/erodible and show up in the fluid bed.
+ */
+export function carvePath(volume, points, opts = {}) {
+  if (!points || points.length < 2) return { samples: 0, length: 0, drop: 0 };
+  const mode = opts.mode ?? 'river';
+  const width = Math.max(1.2, opts.width ?? 4.5);
+  const bankWidth = Math.max(0, opts.bankWidth ?? 2.5);
+  const radius = width / 2 + bankWidth;
+  const depth = Math.max(0, opts.depth ?? 1.1);
+  const embankment = opts.embankment ?? 0.18;
+  const flatten = clamp(opts.flatten ?? 0.9, 0.05, 1);
+  const sediment = clamp(opts.sediment ?? 0.75, 0, 1.5);
+  const levee = Math.max(0, opts.levee ?? 0);
+  const minSlope = Math.max(0, opts.minSlope ?? 0.018); // m drop per m along a river
+
+  const ctrl = points.map((p) => [p[0], volume.topHeight(p[0], p[2]), p[2]]);
+  const cum = [0];
+  for (let i = 1; i < ctrl.length; i++) cum.push(cum[i - 1] + Math.hypot(ctrl[i][0] - ctrl[i - 1][0], ctrl[i][2] - ctrl[i - 1][2]));
+  const length = cum[cum.length - 1] || 0;
+  const ys = ctrl.map((p) => p[1]);
+  for (let pass = 0; pass < 5; pass++) {
+    const old = ys.slice();
+    for (let i = 1; i < ys.length - 1; i++) ys[i] = (old[i - 1] + old[i] * 2 + old[i + 1]) / 4;
+  }
+  if (mode === 'river') for (let i = 1; i < ys.length; i++) ys[i] = Math.min(ys[i], ys[i - 1] - minSlope * Math.max(0.1, cum[i] - cum[i - 1]));
+
+  const step = Math.max(0.7, volume.spacing * 0.65);
+  const nSamples = Math.max(2, Math.ceil(length / step) + 1);
+  let seg = 1;
+  for (let s = 0; s < nSamples; s++) {
+    const dist = length * s / (nSamples - 1);
+    while (seg < cum.length - 1 && cum[seg] < dist) seg++;
+    const segLen = Math.max(1e-6, cum[seg] - cum[seg - 1]);
+    const f = clamp((dist - cum[seg - 1]) / segLen, 0, 1);
+    const x = lerp(ctrl[seg - 1][0], ctrl[seg][0], f);
+    const z = lerp(ctrl[seg - 1][2], ctrl[seg][2], f);
+    const targetY = lerp(ys[seg - 1], ys[seg], f) + (mode === 'river' ? -depth : embankment);
+    volume.brushFlatten([x, targetY, z], radius, flatten, [x, targetY, z], [0, 1, 0], 0.55);
+    if (sediment > 0) volume.brushPaintSediment([x, targetY, z], width * 0.62, sediment * 0.16, false, 0.7);
+    if (levee > 0) {
+      let tx = ctrl[seg][0] - ctrl[seg - 1][0], tz = ctrl[seg][2] - ctrl[seg - 1][2];
+      const tl = Math.hypot(tx, tz) || 1; tx /= tl; tz /= tl;
+      const off = width / 2 + bankWidth * 0.45;
+      for (const side of [-1, 1]) {
+        const bx = x - tz * side * off, bz = z + tx * side * off;
+        volume.stampDelta([bx, volume.topHeight(bx, bz), bz], Math.max(1, bankWidth * 0.55), -levee * 0.22, { sediment: sediment * 0.7 });
+      }
+    }
+  }
+  volume.redistance();
+  volume.markAllDirty();
+  return { samples: nSamples, length, drop: ys[0] - ys[ys.length - 1], startY: ys[0], endY: ys[ys.length - 1] };
+}

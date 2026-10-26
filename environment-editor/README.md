@@ -25,7 +25,7 @@ python3 -m http.server 5173 --bind 0.0.0.0
 Core checks (pure JS, no browser needed):
 
 ```sh
-npm run check        # 36 checks: geology, SDF ops, erosion invariants, mesher seams, fluid-bed contract
+npm run check        # 47 checks: geology, SDF ops, resolutions/landforms, features, erosion, AO seams, fluid bed
 ```
 
 ## Why SDF, and why the cliffs are not noise
@@ -66,6 +66,70 @@ plan meander, folding, pinch-out and persistence masks (`src/noise.js`
 documents this rule). The renderer contains no cliff detail noise — set
 *View → Matte grain* to 0 and the relief is unchanged, because the relief is
 geometry.
+
+## The terrain studio around the volume
+
+### Real SDF resolution control
+
+*Terrain SDF → Patch & SDF resolution* has preset buttons and a slider from
+48 to 192 cells across the 96 m patch. Generate rebuilds the field arrays and
+meshing chunks at that spacing; it is not an LOD or a rendered-mesh setting.
+Vertical cells follow isotropically over 64 m:
+
+| Cells across | Node grid | Voxel | Approx. field arrays* | Fluid bed |
+|---:|---:|---:|---:|---:|
+| 48 | 49×33×49 | 2.00 m | ~1 MB | 48×48 |
+| 72 | 73×49×73 | 1.33 m | ~3 MB | 72×72 |
+| 96 | 97×65×97 | 1.00 m | ~6 MB | 96×96 |
+| 120 | 121×81×121 | 0.80 m | ~12 MB | 120×120 |
+| 144 | 145×97×145 | 0.67 m | ~21 MB | 144×144 |
+| 168 | 169×113×169 | 0.57 m | ~34 MB | 168×168 |
+| 192 | 193×129×193 | 0.50 m | ~53 MB | 192×192 |
+
+\*SDF + sediment Float32 and bed/hardness/joint Uint8 fields only; meshes,
+temporary erosion arrays and the eight-step undo history use substantially
+more. At 2 m voxels the generated cave radius is raised to the minimum tunnel
+the grid can represent, and the checks verify that a 48-cell cave remains
+open. Treat 168–192 as offline/detail resolutions on a typical laptop.
+
+### Presets and landforms
+
+Nine deterministic starting points (escarpment, coastal stacks, mesa, canyon,
+rock fin/arch, tower field, dunes, benched quarry and a faulted escarpment)
+feed eight SDF base landforms. Landform controls cover high/low ground,
+face position/transition, relief frequency/contrast, planform warp, ridge
+sharpness and the feature sizes each form uses (mesa radius, canyon
+width/depth, tower spacing/height, dune height/wavelength/direction). All
+forms share the same bed stack, joint fields, cave placement where the form
+can host one, brushes and erosion processes.
+
+### Rivers, roads, rocks and outcrops
+
+*Features* adds two drawn path tools and a deterministic SDF scatter:
+
+- **River path (9)** — click surface points, then Enter/double-click. The
+  picked long profile is smoothed and forced downhill by the chosen minimum
+  fall; width, banks, channel depth, levees and bed sediment are adjustable.
+- **Road path (0)** — the same polyline becomes a smoothed cut-and-fill bench
+  with embankment and shoulder controls.
+- **Rocks & outcrops** — slope/spacing-filtered oriented boxes and rounded
+  boulders are unioned into the SDF, inherit the bed beneath their base, and
+  can favour a chosen elevation band as a resistant bed cropping out.
+
+Because these are volume edits, they remesh, erode, undo and enter the fluid
+bed like hand-sculpted terrain.
+
+### Material, views and project I/O
+
+The mesher now bakes **SDF ambient occlusion** into every vertex by probing
+the distance deficit in a small hemisphere around the surface point; *View →
+Baked SDF AO* inspects it directly. *Material* exposes soil/rock colours,
+strata contrast, wet/dry response, joint shading, AO strength, hemisphere
+fill, exposure and saturation. *View* adds camera bookmarks, fly speed and a
+sea-level guide plane with submerged-bed tinting (a planning guide, not the
+Phase 2 sim)—and *Project & Export* saves/loads complete deterministic
+project parameters, plus OBJ, raw Float32 SDF + header, fluid bed and PNG
+height/moisture/suitability/sediment maps.
 
 ## Erosion: the heightfield algorithms, re-derived on the volume
 
@@ -120,12 +184,16 @@ src/
   volume.js    SdfVolume: fields, CSG brush stamps (sphere/box), redistancing,
                sphere-traced raycast, column queries, fluid-bed export, opening scene
   erosion.js   differential weathering, block fall, thermal, surface droplets,
-               drainage + fluvial incision, suitability, brush erosion
-  mesher.js    chunked marching tetrahedra (watertight chunk seams), OBJ export
-  renderer.js  raw WebGPU: sky, geology-shaded terrain + debug modes, brush gizmo
+               drainage + fluvial incision, suitability, brush erosion,
+               outcrop scatter and drawn river/road ribbons
+  mesher.js    chunked marching tetrahedra (watertight chunk seams), baked
+               SDF AO, OBJ export
+  renderer.js  raw WebGPU: sky, geology/material-shaded terrain + field/AO
+               debug modes, brush/path/water-level overlays
   camera.js    orbit + fly editor camera
   ui.js        Frontier Editor chrome (outliner · viewport · inspector cards)
-  main.js      state, inspector schemas, brush strokes, erosion runs, undo, boot
+  main.js      state/presets, inspector schemas, resolution generation, brush
+               and path strokes, erosion runs, project/map/SDF I/O, undo, boot
 scripts/check.mjs   Node checks for the pure core
 docs/               verification screenshots (headless Chromium, SwiftShader WebGPU)
 ```

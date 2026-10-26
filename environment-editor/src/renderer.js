@@ -16,6 +16,9 @@ struct Uniforms {
   sunColor: vec3<f32>, caveFill: f32,
   fogColor: vec3<f32>, fogDensity: f32,
   params: vec4<f32>, // sedimentStrength, moistureDarken, jointShade, grain
+  material: vec4<f32>, // aoStrength, exposure, saturation, strataContrast
+  soilColor: vec3<f32>, hemiStrength: f32,
+  tintColor: vec3<f32>, waterLevel: f32,
 }
 @group(0) @binding(0) var<uniform> U: Uniforms;
 
@@ -24,12 +27,13 @@ struct VsOut {
   @location(0) world: vec3<f32>,
   @location(1) normal: vec3<f32>,
   @location(2) color: vec3<f32>,
-  @location(3) data: vec4<f32>,
+  @location(3) data: vec4<f32>, // hardness, joint, sediment, baked AO
+  @location(4) moisture: f32,
 }
-@vertex fn vs(@location(0) pos: vec3<f32>, @location(1) nrm: vec3<f32>, @location(2) col: vec3<f32>, @location(3) data: vec4<f32>) -> VsOut {
+@vertex fn vs(@location(0) pos: vec3<f32>, @location(1) nrm: vec3<f32>, @location(2) col: vec3<f32>, @location(3) data: vec4<f32>, @location(4) moisture: f32) -> VsOut {
   var o: VsOut;
   o.clip = U.viewProj * vec4<f32>(pos, 1.0);
-  o.world = pos; o.normal = nrm; o.color = col; o.data = data;
+  o.world = pos; o.normal = nrm; o.color = col; o.data = data; o.moisture = moisture;
   return o;
 }
 
@@ -55,7 +59,8 @@ fn rampHardness(h: f32) -> vec3<f32> {
   let hardness = in.data.x;
   let joint = in.data.y;
   let sediment = clamp(in.data.z, 0.0, 1.5);
-  let moisture = clamp(in.data.w, 0.0, 1.0);
+  let ao = clamp(in.data.w, 0.0, 1.0);
+  let moisture = clamp(in.moisture, 0.0, 1.0);
   let mode = i32(U.mode + 0.5);
 
   if (mode == 1) { // strata (flat bed colour, mild orientation cue)
@@ -72,27 +77,31 @@ fn rampHardness(h: f32) -> vec3<f32> {
     return vec4<f32>(tonemap(mix(vec3<f32>(0.07), vec3<f32>(0.25, 0.9, 0.3), suit)), 1.0);
   }
   if (mode == 7) { return vec4<f32>(tonemap(n * 0.5 + 0.5), 1.0); }
+  if (mode == 8) { return vec4<f32>(tonemap(vec3<f32>(ao)), 1.0); } // baked SDF occlusion
 
   // ---- shaded
-  var albedo = in.color;
+  var albedo = clamp(vec3<f32>(0.5) + (in.color - vec3<f32>(0.5)) * U.material.w, vec3<f32>(0.0), vec3<f32>(1.0)) * U.tintColor;
   let upFacing = smoothstep(0.05, 0.75, n.y);
   let soilMix = clamp(sediment * U.params.x, 0.0, 1.0) * (0.3 + 0.7 * upFacing);
-  albedo = mix(albedo, vec3<f32>(0.115, 0.082, 0.052), soilMix); // linear-space soil (renderer gamma-encodes later)
+  albedo = mix(albedo, U.soilColor, soilMix);
   albedo *= (1.0 - U.params.y * moisture * 0.38);            // wet darkening
   albedo *= (1.0 - U.params.z * joint * 0.32);               // fracture seams (geometry does the heavy lifting)
   albedo *= (1.0 + (hash3(floor(in.world * 5.0)) - 0.5) * U.params.w);
+  if (in.world.y < U.waterLevel) { albedo = mix(albedo, vec3<f32>(0.015, 0.07, 0.11), 0.55); } // submerged-bed guide tint
+  let lum = dot(albedo, vec3<f32>(0.2126, 0.7152, 0.0722));
+  albedo = mix(vec3<f32>(lum), albedo, U.material.z);
 
   let sunDir = normalize(U.sunDir);
   let ndl = dot(n, sunDir);
   let diffuse = clamp((ndl + 0.18) / 1.18, 0.0, 1.0);        // slight wrap so faces read in an editor
   let hemi = mix(vec3<f32>(0.20, 0.17, 0.14), vec3<f32>(0.42, 0.52, 0.68), n.y * 0.5 + 0.5);
-  var light = hemi * 0.55 + U.sunColor * diffuse;
+  var light = hemi * U.hemiStrength + U.sunColor * diffuse;
   // camera fill so cave interiors stay editable (editor aid, user-adjustable)
   let dist = length(U.camPos - in.world);
   let fill = U.caveFill * max(dot(n, viewDir), 0.0) / (1.0 + dist * 0.045);
   light += vec3<f32>(0.75, 0.82, 1.0) * fill;
 
-  var col = albedo * light;
+  var col = albedo * light * mix(1.0, ao, U.material.x) * U.material.y;
   let halfDir = normalize(sunDir + viewDir);
   let spec = pow(max(dot(n, halfDir), 0.0), mix(10.0, 42.0, hardness)) * mix(0.015, 0.08, hardness) * max(ndl, 0.0);
   col += U.sunColor * spec;
@@ -129,8 +138,14 @@ struct Out { @builtin(position) clip: vec4<f32>, @location(0) ndc: vec2<f32> }
 const LINE_WGSL = /* wgsl */`
 struct LineU { viewProj: mat4x4<f32>, color: vec4<f32> }
 @group(0) @binding(0) var<uniform> U: LineU;
-@vertex fn vs(@location(0) pos: vec3<f32>) -> @builtin(position) vec4<f32> { return U.viewProj * vec4<f32>(pos, 1.0); }
-@fragment fn fs() -> @location(0) vec4<f32> { return U.color; }`;
+struct LineOut { @builtin(position) clip: vec4<f32>, @location(0) color: vec4<f32> }
+@vertex fn vs(@location(0) pos: vec3<f32>, @location(1) col: vec4<f32>) -> LineOut {
+  var o: LineOut;
+  o.clip = U.viewProj * vec4<f32>(pos, 1.0);
+  o.color = col;
+  return o;
+}
+@fragment fn fs(in: LineOut) -> @location(0) vec4<f32> { return in.color; }`;
 
 export class Renderer {
   constructor(canvas) {
@@ -140,7 +155,13 @@ export class Renderer {
       mode: 0, sunAzimuth: 135, sunElevation: 42, sunIntensity: 1.65,
       caveFill: 0.55, fogDensity: 0.0016, sedimentStrength: 1.0,
       moistureDarken: 0.8, jointShade: 0.8, grain: 0.05,
+      aoStrength: 0.85, exposure: 1.0, saturation: 1.0, strataContrast: 1.0,
+      soilColor: [0.115, 0.082, 0.052], hemiStrength: 0.55,
+      tintColor: [1, 1, 1], waterLevel: -100,
     };
+    this.overlayLines = null;
+    this.overlayColor = [0.35, 0.75, 1.0];
+    this.overlaySets = [];
     this.time = 0;
   }
 
@@ -160,7 +181,7 @@ export class Renderer {
     this.context.configure({ device: this.device, format: this.format, alphaMode: 'opaque' });
     const d = this.device;
 
-    this.uniformBuffer = d.createBuffer({ size: 144, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, label: 'terrain.uniforms' });
+    this.uniformBuffer = d.createBuffer({ size: 192, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, label: 'terrain.uniforms' });
     this.skyUniformBuffer = d.createBuffer({ size: 64, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, label: 'sky.uniforms' });
     this.lineUniformBuffer = d.createBuffer({ size: 80, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, label: 'line.uniforms' });
     const mkLayout = (frag = true) => d.createBindGroupLayout({
@@ -185,6 +206,7 @@ export class Renderer {
             { shaderLocation: 1, offset: 12, format: 'float32x3' },
             { shaderLocation: 2, offset: 24, format: 'float32x3' },
             { shaderLocation: 3, offset: 36, format: 'float32x4' },
+            { shaderLocation: 4, offset: 52, format: 'float32' },
           ],
         }],
       },
@@ -205,12 +227,15 @@ export class Renderer {
     const lineModule = d.createShaderModule({ code: LINE_WGSL, label: 'lines' });
     this.linePipeline = d.createRenderPipeline({
       layout: d.createPipelineLayout({ bindGroupLayouts: [this.lineLayout] }),
-      vertex: { module: lineModule, entryPoint: 'vs', buffers: [{ arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }] },
+      vertex: { module: lineModule, entryPoint: 'vs', buffers: [{ arrayStride: 28, attributes: [
+        { shaderLocation: 0, offset: 0, format: 'float32x3' },
+        { shaderLocation: 1, offset: 12, format: 'float32x4' },
+      ] }] },
       fragment: { module: lineModule, entryPoint: 'fs', targets: [{ format: this.format, blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } } }] },
       primitive: { topology: 'line-list' },
       depthStencil: { format: 'depth24plus', depthWriteEnabled: false, depthCompare: 'less-equal' },
     });
-    this.lineBuffer = d.createBuffer({ size: 8192 * 12, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST, label: 'lines.vtx' });
+    this.lineBuffer = d.createBuffer({ size: 8192 * 28, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST, label: 'lines.vtx' });
     this._depth = null;
     this.resize();
   }
@@ -274,7 +299,7 @@ export class Renderer {
     const sun = this.sunDirection();
     const s = this.settings;
 
-    const u = new Float32Array(36);
+    const u = new Float32Array(48);
     u.set(viewProj, 0);
     u[16] = pos[0]; u[17] = pos[1]; u[18] = pos[2]; u[19] = s.mode;
     u[20] = sun[0]; u[21] = sun[1]; u[22] = sun[2]; u[23] = this.time;
@@ -282,6 +307,11 @@ export class Renderer {
     u[24] = 1.0 * si; u[25] = 0.94 * si; u[26] = 0.84 * si; u[27] = s.caveFill;
     u[28] = 0.55; u[29] = 0.62; u[30] = 0.72; u[31] = s.fogDensity;
     u[32] = s.sedimentStrength; u[33] = s.moistureDarken; u[34] = s.jointShade; u[35] = s.grain;
+    u[36] = s.aoStrength; u[37] = s.exposure; u[38] = s.saturation; u[39] = s.strataContrast;
+    const soil = s.soilColor ?? [0.115, 0.082, 0.052];
+    u[40] = soil[0]; u[41] = soil[1]; u[42] = soil[2]; u[43] = s.hemiStrength;
+    const tint = s.tintColor ?? [1, 1, 1];
+    u[44] = tint[0]; u[45] = tint[1]; u[46] = tint[2]; u[47] = s.waterLevel ?? -100;
     d.queue.writeBuffer(this.uniformBuffer, 0, u);
 
     const tanY = Math.tan(camera.fov / 2);
@@ -308,18 +338,32 @@ export class Renderer {
       pass.draw(chunk.count);
     }
 
-    if (brush && brush.visible && brush.center) {
-      const lines = this._brushLines(brush);
-      d.queue.writeBuffer(this.lineBuffer, 0, lines);
+    // One combined, vertex-coloured line draw for brush + path + guide-plane
+    // overlays. (Separate queue.writeBuffer calls into one shared buffer
+    // before a single submit would overwrite each other.)
+    const lineVerts = [];
+    const appendLines = (lines, color, alpha) => {
+      if (!lines) return;
+      const c = color ?? [1, 1, 1];
+      for (let i = 0; i + 2 < lines.length && lineVerts.length < 8192 * 7; i += 3) {
+        lineVerts.push(lines[i], lines[i + 1], lines[i + 2], c[0], c[1], c[2], alpha);
+      }
+    };
+    if (brush && brush.visible && brush.center) appendLines(this._brushLines(brush), brush.color, 0.95);
+    const overlaySets = (this.overlaySets && this.overlaySets.length)
+      ? this.overlaySets
+      : (this.overlayLines ? [{ lines: this.overlayLines, color: this.overlayColor }] : []);
+    for (const set of overlaySets) appendLines(set.lines, set.color, 0.9);
+    if (lineVerts.length) {
+      const data = new Float32Array(lineVerts);
+      d.queue.writeBuffer(this.lineBuffer, 0, data);
       const lu = new Float32Array(20);
       lu.set(viewProj, 0);
-      const col = brush.color ?? [1, 1, 1];
-      lu[16] = col[0]; lu[17] = col[1]; lu[18] = col[2]; lu[19] = 0.95;
       d.queue.writeBuffer(this.lineUniformBuffer, 0, lu);
       pass.setPipeline(this.linePipeline);
       pass.setBindGroup(0, this.lineBind);
       pass.setVertexBuffer(0, this.lineBuffer);
-      pass.draw(lines.length / 3);
+      pass.draw(data.length / 7);
     }
     pass.end();
     d.queue.submit([encoder.finish()]);

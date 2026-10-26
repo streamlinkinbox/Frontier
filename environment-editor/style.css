@@ -164,4 +164,12 @@ input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 0 5px #ffffff14}
 .toast{position:fixed;top:18px;left:50%;transform:translate(-50%,-8px);z-index:50;pointer-events:none;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;background:#101012e8;border:1px solid #ffffff1c;border-radius:999px;padding:8px 15px;font-size:12px;color:#f0f0f0;opacity:0;transition:opacity .18s,transform .18s;box-shadow:0 14px 40px #0009}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
+.color-line{gap:9px}
+.color-hex{margin-left:auto;font-size:10px}
+.color-input{width:48px;height:30px;border:1px solid #3a3a3a;border-radius:9px;background:#191919;padding:3px;cursor:pointer}
+.number-input{width:100%;height:34px;background:#191919;color:#e8e8e8;border:1px solid #3a3a3a;border-radius:10px;padding:0 10px;margin-top:5px}
+.patch-summary{white-space:normal;line-height:1.35}
+#resolution-summary{background:#1b1b1b;border:1px solid #303030;border-radius:12px;padding:10px 11px;margin:10px 0}
+.ctl-head output{white-space:normal;text-align:right}
+
 @media (max-width:1180px){.shell{grid-template-columns:224px minmax(0,1fr) 352px}.inspector-content{padding:24px 22px 36px}h1{font-size:26px}.progress-phase{display:none}}

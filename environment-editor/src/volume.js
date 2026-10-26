@@ -16,6 +16,24 @@ import { clamp, lerp, smoothstep, smin, smax, mulberry32, fbm2, value2 } from '.
 
 export const DEFAULT_DIMS = { nx: 97, ny: 65, nz: 97, spacing: 1, origin: [-48, 0, -48], chunk: 16 };
 
+/**
+ * Grid dimensions for a horizontal resolution in cells across the 96 m patch.
+ * The vertical cell count follows at the same (isotropic) voxel size:
+ *   48 cells → 2.00 m voxels · 96 → 1.00 m · 144 → 0.67 m · 192 → 0.50 m.
+ * Multiples of 24 keep both horizontal and vertical cell counts divisible
+ * by the 16-cell meshing chunk.
+ */
+export function dimsForResolution(cellsXZ = 96, size = [96, 64, 96], chunk = 16) {
+  const cx = Math.max(24, Math.round(cellsXZ));
+  const spacing = size[0] / cx;
+  const cy = Math.max(8, Math.round(size[1] / spacing));
+  const cz = Math.max(24, Math.round(size[2] / spacing));
+  return {
+    nx: cx + 1, ny: cy + 1, nz: cz + 1, spacing, chunk,
+    origin: [-size[0] / 2, 0, -size[2] / 2],
+  };
+}
+
 export class SdfVolume {
   constructor(dims = DEFAULT_DIMS) {
     this.nx = dims.nx; this.ny = dims.ny; this.nz = dims.nz;
@@ -207,28 +225,28 @@ export class SdfVolume {
   brushAddBox(center, half, axes, smooth = 0.25, opts = {}) { this.brushBox(center, half, axes, false, smooth, opts); }
 
   /** Blend the field towards a plane inside the brush (flatten / terrace). */
-  brushFlatten(center, r, strength, planePoint, planeNormal) {
+  brushFlatten(center, r, strength, planePoint, planeNormal, falloffPower = 1) {
     this._nodesInSphere(center, r, (idx, px, py, pz, d) => {
-      const fall = 0.5 + 0.5 * Math.cos(Math.PI * clamp(d / r, 0, 1));
+      const fall = Math.pow(0.5 + 0.5 * Math.cos(Math.PI * clamp(d / r, 0, 1)), falloffPower);
       const planeD = (px - planePoint[0]) * planeNormal[0] + (py - planePoint[1]) * planeNormal[1] + (pz - planePoint[2]) * planeNormal[2];
       this.sdf[idx] = lerp(this.sdf[idx], planeD, clamp(strength * fall, 0, 1));
     });
   }
-  brushSmooth(center, r, strength) {
+  brushSmooth(center, r, strength, falloffPower = 1) {
     const old = this.sdf.slice();
     const { nx, ny } = this;
     this._nodesInSphere(center, r, (idx, px, py, pz, d, ix, iy, iz) => {
       if (ix < 1 || iy < 1 || iz < 1 || ix >= nx - 1 || iy >= ny - 1 || iz >= this.nz - 1) return;
       const avg = (old[idx - 1] + old[idx + 1] + old[idx - nx] + old[idx + nx] + old[idx - nx * ny] + old[idx + nx * ny]) / 6;
-      const fall = 0.5 + 0.5 * Math.cos(Math.PI * clamp(d / r, 0, 1));
+      const fall = Math.pow(0.5 + 0.5 * Math.cos(Math.PI * clamp(d / r, 0, 1)), falloffPower);
       this.sdf[idx] = lerp(old[idx], avg, clamp(strength * fall, 0, 1));
     });
   }
   /** Paint/erase loose soil on surface nodes (drives talus + vegetation suitability). */
-  brushPaintSediment(center, r, strength, erase = false) {
+  brushPaintSediment(center, r, strength, erase = false, falloffPower = 1) {
     this._nodesInSphere(center, r, (idx, px, py, pz, d) => {
-      if (Math.abs(this.sdf[idx]) > 1.6) return;
-      const fall = 0.5 + 0.5 * Math.cos(Math.PI * clamp(d / r, 0, 1));
+      if (Math.abs(this.sdf[idx]) > Math.max(1.6, this.spacing * 1.6)) return;
+      const fall = Math.pow(0.5 + 0.5 * Math.cos(Math.PI * clamp(d / r, 0, 1)), falloffPower);
       this.sediment[idx] = clamp(this.sediment[idx] + (erase ? -1 : 1) * strength * fall, 0, 1.5);
     });
   }
@@ -416,37 +434,120 @@ export async function buildEscarpmentScene(volume, geology, p, onProgress = null
   const report = async (phase, f) => { if (onProgress) onProgress(phase, f); if (yieldFn) await yieldFn(); };
   await report('Base relief (SDF solid)', 0);
 
-  // reference relief, used solely to seed the solid
+  // reference relief, used solely to seed the solid. Several landforms share
+  // the same geological volume and erosion; only the starting solid differs.
+  const landform = p.landform ?? 'escarpment';
+  const freq = p.reliefFrequency ?? 1;
+  const contrast = p.reliefContrast ?? 0.65;
+  const warpAmt = (p.warpStrength ?? 0.45) * 11;
+  const ridgeSharp = Math.max(0.35, p.ridgeSharpness ?? 1);
+  const stackPts = [];
+  if (landform === 'stacks') {
+    const rngS = mulberry32(seed * 97 + 13);
+    const spacingS = Math.max(9, p.stackScale ?? 17);
+    for (let gz = -48 + spacingS * 0.5; gz < 48; gz += spacingS) for (let gx = -48 + spacingS * 0.5; gx < 48; gx += spacingS) {
+      if (rngS() < 0.18) continue;
+      stackPts.push({
+        x: gx + (rngS() - 0.5) * spacingS * 0.9,
+        z: gz + (rngS() - 0.5) * spacingS * 0.9,
+        r: spacingS * (0.32 + rngS() * 0.42),
+        h: (p.stackHeight ?? 16) * (0.35 + Math.pow(rngS(), 1.6) * 1.15),
+      });
+    }
+  }
   const H = new Float32Array(nx * nz);
   for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) {
     const x = volume.nodeX(ix), z = volume.nodeZ(iz);
-    const xc = cliffLineX(z, p);
-    const plain = (p.plainHeight ?? 12) + 6.4 * (fbm2(x * 0.030, z * 0.030, 3, seed + 3) - 0.5) - 0.018 * (x + 48);
-    const broadRidge = 3.4 * Math.exp(-(Math.pow((x + 28) / 30, 2) + Math.pow((z - 6) / 34, 2)));
-    const plateau = (p.plateauHeight ?? 40) + 8.0 * (fbm2(x * 0.026 + 8.0, z * 0.026 - 3.0, 3, seed + 7) - 0.5) + broadRidge;
+    // Domain warp in plan only: it bends landform/cliff lines, never stripes faces.
+    const wx = x + warpAmt * (fbm2(x * 0.023, z * 0.023, 3, seed + 41) - 0.5);
+    const wz = z + warpAmt * (fbm2(x * 0.023 + 9.1, z * 0.023 - 4.4, 3, seed + 43) - 0.5);
+    const xc = cliffLineX(wz, p);
+    const plain = (p.plainHeight ?? 12) + (3.5 + 7 * contrast) * (fbm2(wx * 0.030 * freq, wz * 0.030 * freq, 3, seed + 3) - 0.5) - 0.018 * (x + 48);
+    const broadRidge = 3.4 * Math.exp(-(Math.pow((wx + 28) / 30, 2) + Math.pow((wz - 6) / 34, 2)));
+    const plateau = (p.plateauHeight ?? 40) + (4.5 + 7 * contrast) * (fbm2(wx * 0.026 * freq + 8.0, wz * 0.026 * freq - 3.0, 3, seed + 7) - 0.5) + broadRidge;
     // Face steepness varies along strike: hard headlands are near-vertical,
-    // embayments open into wider slopes. This is plan/strike variation of the
-    // starting solid; erosion then cuts the actual cornices and slots.
-    const localWidth = (p.cliffWidth ?? 4.8) * (0.78 + 0.62 * value2(z * 0.058, 7.9, seed + 17));
-    const tEsc = smoothstep(localWidth / 2, -localWidth / 2, x - xc);
-    // The massif dies away towards the north/south patch edges instead of
-    // ending in two more quarry-straight cut faces.
-    const t = tEsc * (1 - 0.72 * smoothstep(30, 47, Math.abs(z)));
-    let h = lerp(plain, plateau, t);
-    // dry channels leaving the cliff foot across the plain (future river beds)
-    const chanMask = (1 - tEsc) * smoothstep(xc + 2, xc + 10, x);
-    const channels = [
-      { base: 16, depth: 2.4, width: 3.6, phase: 0.6 },
-      { base: -27, depth: 1.9, width: 3.1, phase: 2.1 },
-      { base: 31, depth: 1.6, width: 2.8, phase: 4.0 },
-    ];
-    for (const ch of channels) {
-      const zc = ch.base + 5 * Math.sin(x * 0.045 + ch.phase) + 4 * (fbm2(x * 0.04, ch.phase, 2, seed + 31) - 0.5);
-      h -= ch.depth * Math.exp(-Math.pow((z - zc) / ch.width, 2)) * chanMask;
+    // embayments open into wider slopes. Erosion cuts the actual cornices.
+    const localWidth = ((p.cliffWidth ?? 4.8) * (0.78 + 0.62 * value2(wz * 0.058, 7.9, seed + 17))) / ridgeSharp;
+    const tEsc = smoothstep(localWidth / 2, -localWidth / 2, wx - xc);
+    const tProm = tEsc * (1 - 0.72 * smoothstep(30, 47, Math.abs(wz)));
+    let h = lerp(plain, plateau, tProm);
+    let channelT = tEsc;
+
+    if (landform === 'mesa') {
+      const R = Math.max(12, p.mesaRadius ?? 29);
+      const q = Math.sqrt(Math.pow((wx + 3) / R, 2) + Math.pow(wz / (R * 0.8), 2)) * (0.90 + 0.20 * fbm2(wx * 0.025, wz * 0.025, 2, seed + 51));
+      const dIn = (1 - q) * R;
+      const t = smoothstep(-localWidth / 2, localWidth / 2, dIn);
+      h = lerp(plain, plateau, t);
+      channelT = t;
+    } else if (landform === 'canyon') {
+      const centreX = -5 + 13 * Math.sin(wz * 0.045 + 0.7) + 9 * (fbm2(wz * 0.030, 2.4, 2, seed + 53) - 0.5);
+      const dist = Math.abs(wx - centreX);
+      const W = Math.max(4, p.canyonWidth ?? 13);
+      const incision = (p.canyonDepth ?? 24) * (0.72 * Math.exp(-Math.pow(dist / (W * 0.55), 2)) + 0.38 * Math.exp(-Math.pow(dist / (W * 1.15), 2)));
+      h = Math.max(plain + 1.5, plateau - incision);
+      channelT = 1;
+    } else if (landform === 'arch') {
+      const d = Math.abs(wx - xc);
+      const ridge = Math.exp(-Math.pow(d / (11 / ridgeSharp), 2));
+      h = lerp(plain, plateau, ridge);
+      channelT = ridge;
+    } else if (landform === 'stacks') {
+      h = plain;
+      for (const sp of stackPts) {
+        const d = Math.hypot(wx - sp.x, wz - sp.z);
+        if (d > sp.r * 1.5) continue;
+        const profile = smoothstep(1, 0.56, d / sp.r);
+        const levels = 5;
+        const tier = (Math.floor(profile * levels) + smoothstep(0.72, 1, (profile * levels) % 1)) / levels;
+        const pedestal = 2.2 * Math.exp(-Math.pow(d / (sp.r * 1.25), 2));
+        h = Math.max(h, plain + pedestal + sp.h * tier);
+      }
+      channelT = 0;
+    } else if (landform === 'dunes') {
+      const dir = (p.duneDirection ?? 30) * Math.PI / 180;
+      const across = -wx * Math.sin(dir) + wz * Math.cos(dir);
+      const along = wx * Math.cos(dir) + wz * Math.sin(dir) + 4.5 * (fbm2(across * 0.035, 6.6, 2, seed + 57) - 0.5);
+      const wavelength = Math.max(6, p.duneWavelength ?? 18);
+      const phase = (((along / wavelength) % 1) + 1) % 1;
+      // concave windward rise to a brink, straight slip face down
+      const profile = phase < 0.72 ? Math.pow(smoothstep(0, 0.72, phase), 1.45) : 1 - (phase - 0.72) / 0.28;
+      const crestVar = 0.65 + 0.55 * fbm2(across * 0.028, along * 0.012, 2, seed + 59);
+      h = plain + (p.duneHeight ?? 6) * profile * crestVar;
+      channelT = 0;
+    } else if (landform === 'quarry') {
+      const base = lerp(plain, plateau, 0.48);
+      const qx = Math.abs(wx + 2) - 27, qz = Math.abs(wz) - 21;
+      const rectD = Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0);
+      const depth = clamp(-rectD / 24, 0, 1);
+      const levels = 6;
+      const bench = (p.plainHeight ?? 12) - 3 + (levels - Math.floor(depth * levels)) * 3.1;
+      h = lerp(base, bench, smoothstep(1.5, -1.5, rectD));
+      channelT = 1;
+    } else if (landform === 'coastal') {
+      const seaMask = (1 - tEsc) * smoothstep(xc + 11, xc + 32, wx);
+      h = lerp(h, 2.6 + 1.6 * fbm2(wx * 0.04, wz * 0.04, 2, seed + 61), seaMask * 0.88);
+      const stacks = [[29, -19, 15, 6.5], [37, 5, 20, 5], [26, 25, 12, 5.5]];
+      for (const [sx, sz, sh, sr] of stacks) {
+        const d = Math.hypot(wx - sx, wz - sz);
+        h = Math.max(h, 2.4 + sh * Math.exp(-Math.pow(d / sr, 2)));
+      }
     }
-    // small knoll on the plain, south-east
-    h += 3.2 * Math.exp(-(Math.pow((x - 26) / 13, 2) + Math.pow((z + 26) / 11, 2))) * (1 - tEsc);
-    H[iz * nx + ix] = h;
+
+    if (landform === 'escarpment' || landform === 'coastal' || landform === 'mesa') {
+      const chanMask = (1 - channelT) * smoothstep(xc + 2, xc + 10, wx);
+      const channels = [
+        { base: 16, depth: 2.4, width: 3.6, phase: 0.6 },
+        { base: -27, depth: 1.9, width: 3.1, phase: 2.1 },
+        { base: 31, depth: 1.6, width: 2.8, phase: 4.0 },
+      ];
+      for (const ch of channels) {
+        const zc = ch.base + 5 * Math.sin(wx * 0.045 + ch.phase) + 4 * (fbm2(wx * 0.04, ch.phase, 2, seed + 31) - 0.5);
+        h -= ch.depth * Math.exp(-Math.pow((wz - zc) / ch.width, 2)) * chanMask;
+      }
+      h += 3.2 * Math.exp(-(Math.pow((wx - 26) / 13, 2) + Math.pow((wz + 26) / 11, 2))) * (1 - channelT);
+    }
+    H[iz * nx + ix] = clamp(h, 2.4, 60);
   }
   const heightAt = (x, z) => {
     const ix = clamp(Math.round((x - volume.origin[0]) / volume.spacing), 0, nx - 1);
@@ -462,26 +563,42 @@ export async function buildEscarpmentScene(volume, geology, p, onProgress = null
   }
 
   // ---- cave: capsule chain hosted in a soft bed, two mouths in the escarpment
-  if (p.cave ?? 1) {
+  if ((p.cave ?? 1) && ['escarpment', 'coastal', 'mesa', 'arch'].includes(landform)) {
     await report('Carving cave (SDF subtraction)', 0.3);
     const xc0 = cliffLineX(-6, p), xc1 = cliffLineX(13, p);
     const soft = geology.findSoftBed(xc0, -6, (p.plainHeight ?? 12) + 8);
     // host the tunnel in that bed, but keep a real roof under the plateau and a floor above the plain
-    const caveY = soft
+    let caveY = soft
       ? clamp(soft.centreY, (p.plainHeight ?? 12) + 3, Math.max((p.plainHeight ?? 12) + 4, (p.plateauHeight ?? 40) - 7))
       : (p.plainHeight ?? 12) + 8;
-    const cr = (p.caveRadius ?? 2.4);
-    const path = [
-      [xc0 + 5, caveY, -6], [xc0 - 1, caveY, -6], [xc0 - 8, caveY + 0.6, -3.5],
-      [xc0 - 14, caveY + 0.8, 1.5], [xc1 - 9, caveY + 0.2, 7], [xc1 - 2, caveY - 0.6, 11], [xc1 + 5, caveY - 1.2, 13],
-    ];
-    const chamber = [xc0 - 14, caveY + 0.8, 1.5];
-    volume.landmarks.cave = { entrance: [xc0 + 7, caveY + 0.5, -6], chamber, exit: path[path.length - 1], path, bedIndex: soft?.index ?? -1, y: caveY };
+    // A cave needs several voxels across; at coarse resolution the radius is
+    // raised to the smallest tunnel the grid can represent.
+    const cr = Math.max(p.caveRadius ?? 2.4, volume.spacing * 1.55);
+    let path, chamber;
+    if (landform === 'arch') {
+      caveY = (p.plainHeight ?? 12) + 7;
+      const xa = cliffLineX(0, p);
+      path = [[xa + 17, caveY, 0], [xa + 7, caveY, 0], [xa, caveY + 0.5, 0], [xa - 7, caveY, 0], [xa - 17, caveY, 0]];
+      chamber = [xa, caveY + 0.5, 0];
+    } else if (landform === 'mesa') {
+      caveY = clamp((p.plainHeight ?? 12) + 8, (p.plainHeight ?? 12) + 4, (p.plateauHeight ?? 40) - 8);
+      const faceX = -3 + (p.mesaRadius ?? 29);
+      path = [[faceX + 5, caveY, 0], [faceX, caveY, 0], [faceX - 7, caveY + 0.4, 0], [faceX - 13, caveY + 0.5, 1]];
+      chamber = [faceX - 13, caveY + 0.5, 1];
+    } else {
+      path = [
+        [xc0 + 5, caveY, -6], [xc0 - 1, caveY, -6], [xc0 - 8, caveY + 0.6, -3.5],
+        [xc0 - 14, caveY + 0.8, 1.5], [xc1 - 9, caveY + 0.2, 7], [xc1 - 2, caveY - 0.6, 11], [xc1 + 5, caveY - 1.2, 13],
+      ];
+      chamber = [xc0 - 14, caveY + 0.8, 1.5];
+    }
+    const entrance = (landform === 'arch' || landform === 'mesa') ? [path[0][0] + 2, caveY + 0.5, path[0][2]] : [xc0 + 7, caveY + 0.5, -6];
+    volume.landmarks.cave = { entrance, chamber, exit: path[path.length - 1], path, bedIndex: soft?.index ?? -1, y: caveY };
     const xs = path.map((q) => q[0]), ys = path.map((q) => q[1]), zs = path.map((q) => q[2]);
-    const pad = 7;
-    const ix0 = clamp(Math.floor((Math.min(...xs) - pad - volume.origin[0])), 0, nx - 1), ix1 = clamp(Math.ceil(Math.max(...xs) + pad - volume.origin[0]), 0, nx - 1);
-    const iy0 = clamp(Math.floor(Math.min(...ys) - pad), 0, ny - 1), iy1 = clamp(Math.ceil(Math.max(...ys) + pad), 0, ny - 1);
-    const iz0 = clamp(Math.floor((Math.min(...zs) - pad - volume.origin[2])), 0, nz - 1), iz1 = clamp(Math.ceil(Math.max(...zs) + pad - volume.origin[2]), 0, nz - 1);
+    const pad = 7, sp = volume.spacing;
+    const ix0 = clamp(Math.floor((Math.min(...xs) - pad - volume.origin[0]) / sp), 0, nx - 1), ix1 = clamp(Math.ceil((Math.max(...xs) + pad - volume.origin[0]) / sp), 0, nx - 1);
+    const iy0 = clamp(Math.floor((Math.min(...ys) - pad - volume.origin[1]) / sp), 0, ny - 1), iy1 = clamp(Math.ceil((Math.max(...ys) + pad - volume.origin[1]) / sp), 0, ny - 1);
+    const iz0 = clamp(Math.floor((Math.min(...zs) - pad - volume.origin[2]) / sp), 0, nz - 1), iz1 = clamp(Math.ceil((Math.max(...zs) + pad - volume.origin[2]) / sp), 0, nz - 1);
     for (let iz = iz0; iz <= iz1; iz++) for (let iy = iy0; iy <= iy1; iy++) for (let ix = ix0; ix <= ix1; ix++) {
       const px = volume.nodeX(ix), py = volume.nodeY(iy), pz = volume.nodeZ(iz);
       // The passage widens where the host rock is soft or jointed and pinches
@@ -496,10 +613,12 @@ export async function buildEscarpmentScene(volume, geology, p, onProgress = null
       const idx = volume.index(ix, iy, iz);
       volume.sdf[idx] = smax(volume.sdf[idx], -d, 0.5);
     }
-    // shallow rock shelter (alcove) further north, same horizon
-    const xa = cliffLineX(-26, p);
-    volume.brushRemove([xa - 0.5, caveY - 1, -26], cr * 1.5, 1, 0.6);
-    volume.landmarks.shelter = [xa + 5, caveY, -26];
+    if (landform === 'escarpment' || landform === 'coastal') {
+      // shallow rock shelter (alcove) further north, same horizon
+      const xa = cliffLineX(-26, p);
+      volume.brushRemove([xa - 0.5, caveY - 1, -26], cr * 1.5, 1, 0.6);
+      volume.landmarks.shelter = [xa + 5, caveY, -26];
+    }
   }
 
   // ---- fallen joint blocks at the foot (rounded-box unions, now part of the volume)

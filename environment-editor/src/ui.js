@@ -18,6 +18,11 @@ const ICONS = {
   frame: '<path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/>',
   cave: '<path d="M4 21V11a8 8 0 0 1 16 0v10"/><path d="M9 21v-6a3 3 0 0 1 6 0v6"/>',
   move: '<path d="M12 3v18"/><path d="M3 12h18"/><path d="m8 7 4-4 4 4"/><path d="m8 17 4 4 4-4"/>',
+  grid: '<path d="M4 4h16v16H4Z"/><path d="M4 9.3h16M4 14.6h16M9.3 4v16M14.6 4v16"/>',
+  route: '<circle cx="5" cy="19" r="2.2"/><circle cx="19" cy="5" r="2.2"/><path d="M7 17.5C11 14 7.5 10.5 12 8.5c1.8-.8 3.2-1 4.5-1.2"/>',
+  rock: '<path d="M4 18 6.5 8.5 11 5l6 2 3 6-2 5H4Z"/><path d="M6.5 8.5 11 11l2.5 7M11 11l6-4"/>',
+  palette: '<path d="M12 3a9 9 0 1 0 2.2 17.8c1.1.2 1.8-.5 1.8-1.4v-1.1a2.3 2.3 0 0 1 2.3-2.3H19a2 2 0 0 0 2-2C21 7 17 3 12 3Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/>',
+  sliders: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   check: '<path d="m4 12 5 5L20 6"/>',
 };
 export const icon = (name, size = 15, sw = 1.7) =>
@@ -51,6 +56,14 @@ export class EditorUI {
     this.setTool(this.tool);
   }
 
+  _registerControl(key, rec) {
+    const old = this.controls.get(key);
+    if (!old) { this.controls.set(key, rec); return; }
+    const list = old._multi ?? [old];
+    list.push(rec);
+    this.controls.set(key, { _multi: list, ctrl: rec.ctrl, sync: () => { for (const r of list) r.sync?.(); } });
+  }
+
   buildShell() {
     this.root.innerHTML = '';
     const shell = el('main', 'shell');
@@ -65,7 +78,8 @@ export class EditorUI {
     this.tree = el('div', 'outliner-tree');
     outliner.append(this.tree);
     const bottom = el('div', 'outliner-bottom',
-      `<div class="world-icon">${icon('mountain', 19)}</div><div><strong>Escarpment study</strong><span>SDF patch · 96 × 64 × 96 m</span></div><span class="little-dot"></span>`);
+      `<div class="world-icon">${icon('mountain', 19)}</div><div><strong>Terrain studio</strong><span class="patch-summary">SDF patch · 96 × 64 × 96 m</span></div><span class="little-dot"></span>`);
+    this.patchSummary = bottom.querySelector('.patch-summary');
     outliner.append(bottom);
 
     // ---- viewport
@@ -222,7 +236,7 @@ export class EditorUI {
         paint();
         wrap.append(head, input);
         if (ctrl.minLabel || ctrl.maxLabel) wrap.append(el('div', 'range-labels', `<span>${ctrl.minLabel ?? ''}</span><span>${ctrl.maxLabel ?? ''}</span>`));
-        this.controls.set(ctrl.key, { ctrl, input, output: out, sync: () => { input.value = H.getValue(ctrl.key); paint(); } });
+        this._registerControl(ctrl.key, { ctrl, input, output: out, sync: () => { input.value = H.getValue(ctrl.key); paint(); } });
         return wrap;
       }
       case 'toggle': {
@@ -236,7 +250,7 @@ export class EditorUI {
           H.setValue(ctrl.key, v, ctrl, true);
         });
         row.append(btn);
-        this.controls.set(ctrl.key, { ctrl, sync: () => btn.classList.toggle('on', !!H.getValue(ctrl.key)) });
+        this._registerControl(ctrl.key, { ctrl, sync: () => btn.classList.toggle('on', !!H.getValue(ctrl.key)) });
         return row;
       }
       case 'select': {
@@ -250,7 +264,7 @@ export class EditorUI {
         sel.value = H.getValue(ctrl.key);
         sel.addEventListener('change', () => H.setValue(ctrl.key, sel.value, ctrl, true));
         wrap.append(head, sel);
-        this.controls.set(ctrl.key, { ctrl, input: sel, sync: () => { sel.value = H.getValue(ctrl.key); } });
+        this._registerControl(ctrl.key, { ctrl, input: sel, sync: () => { sel.value = H.getValue(ctrl.key); } });
         return wrap;
       }
       case 'segmented': {
@@ -266,7 +280,36 @@ export class EditorUI {
         }
         const syncSeg = () => { for (const [v, b] of buttons) b.classList.toggle('on', v === String(H.getValue(ctrl.key))); };
         wrap.append(seg);
-        this.controls.set(ctrl.key, { ctrl, sync: syncSeg });
+        this._registerControl(ctrl.key, { ctrl, sync: syncSeg });
+        return wrap;
+      }
+      case 'color': {
+        const row = el('div', 'control-line color-line');
+        row.append(el('span', '', ctrl.label));
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.className = 'color-input';
+        input.value = H.getValue(ctrl.key) ?? '#ffffff';
+        input.addEventListener('input', () => H.setValue(ctrl.key, input.value, ctrl, false));
+        input.addEventListener('change', () => H.setValue(ctrl.key, input.value, ctrl, true));
+        const hex = el('code', 'color-hex', input.value);
+        input.addEventListener('input', () => { hex.textContent = input.value; });
+        row.append(hex, input);
+        this._registerControl(ctrl.key, { ctrl, input, sync: () => { input.value = H.getValue(ctrl.key) ?? '#ffffff'; hex.textContent = input.value; } });
+        return row;
+      }
+      case 'number': {
+        const wrap = el('div', 'ctl');
+        const head = el('div', 'ctl-head'); head.append(el('label', '', ctrl.label));
+        const input = document.createElement('input');
+        input.type = 'number'; input.className = 'number-input';
+        if (ctrl.min != null) input.min = ctrl.min;
+        if (ctrl.max != null) input.max = ctrl.max;
+        input.step = ctrl.step ?? 1;
+        input.value = H.getValue(ctrl.key);
+        input.addEventListener('change', () => H.setValue(ctrl.key, Number(input.value), ctrl, true));
+        wrap.append(head, input);
+        this._registerControl(ctrl.key, { ctrl, input, sync: () => { input.value = H.getValue(ctrl.key); } });
         return wrap;
       }
       case 'button': {
@@ -313,6 +356,12 @@ export class EditorUI {
 
   syncControl(key) { this.controls.get(key)?.sync?.(); }
   syncAllControls() { for (const c of this.controls.values()) c.sync?.(); }
+  refreshInspector() {
+    const y = this.content?.scrollTop ?? 0;
+    this.renderInspector();
+    if (this.content) this.content.scrollTop = y;
+  }
+  setPatchSummary(text) { if (this.patchSummary) this.patchSummary.textContent = text; }
   setStat(id, value) { const e = this.stats.get(id); if (e) e.textContent = value; }
 
   setTool(id) {

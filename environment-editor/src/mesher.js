@@ -6,12 +6,12 @@
 // smooth instead of terraced; the banding this editor avoids comes from
 // geology-free displacement, not from here.
 //
-// Vertex layout (interleaved, stride 13 floats):
-//   pos xyz | normal xyz | bed colour rgb | data: hardness, joint, sediment, moisture
+// Vertex layout (interleaved, stride 14 floats):
+//   pos xyz | normal xyz | bed colour rgb | data: hardness, joint, sediment, baked SDF AO | moisture
 
 const CORNER = [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]];
 const TETS = [[0, 5, 1, 6], [0, 1, 2, 6], [0, 2, 3, 6], [0, 3, 7, 6], [0, 7, 4, 6], [0, 4, 5, 6]];
-export const VERT_STRIDE = 13;
+export const VERT_STRIDE = 14;
 
 export function buildChunkMesh(volume, cx, cy, cz) {
   const { sdf, nx, ny, spacing, origin, chunk } = volume;
@@ -97,9 +97,39 @@ export function buildChunkMesh(volume, cx, cy, cz) {
     data[o + 9] = hard;
     data[o + 10] = volume.sampleJoint(px, py, pz);
     data[o + 11] = volume.sampleSediment(px, py, pz);
+    // Baked SDF ambient occlusion: probe the signed-distance field in a small
+    // hemisphere around the vertex. For an unoccluded plane SDF(offset) is the
+    // normal component of the offset; any deficit means rock is closing in
+    // (cornice underside, joint slot, cave wall). This is geometric occlusion
+    // from the actual volume, not a screen-space or texture effect.
+    {
+      const nxx = data[o + 3], nyy = data[o + 4], nzz = data[o + 5];
+      const hx = Math.abs(nyy) < 0.9 ? 0 : 1, hy = Math.abs(nyy) < 0.9 ? 1 : 0;
+      // tangent = helper × normal (helper has z = 0)
+      let tx = hy * nzz, ty = -hx * nzz, tz = hx * nyy - hy * nxx;
+      const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+      const bx = nyy * tz - nzz * ty, by = nzz * tx - nxx * tz, bz = nxx * ty - nyy * tx;
+      const probes = spacing < 0.6
+        ? [[0, 0, 1.25], [0.8, 0, 0.62], [-0.8, 0, 0.62], [0, 0.8, 0.62], [0, -0.8, 0.62]]
+        : [[0, 0, 1.3], [0.8, 0, 0.62], [-0.8, 0, 0.62], [0, 0.8, 0.62], [0, -0.8, 0.62],
+           [0.58, 0.58, 0.55], [-0.58, 0.58, 0.55], [0.58, -0.58, 0.55], [-0.58, -0.58, 0.55], [0, 0, 1.0]];
+      let occ = 0, wsum = 0;
+      for (let pi = 0; pi < probes.length; pi++) {
+        const [ta, ba, na] = probes[pi];
+        const dist = (pi === probes.length - 1 && probes.length > 5 ? 3.1 : 1.65) * spacing;
+        const ox = (tx * ta + bx * ba + nxx * na), oy = (ty * ta + by * ba + nyy * na), oz = (tz * ta + bz * ba + nzz * na);
+        const ol = Math.hypot(ox, oy, oz) || 1;
+        const expected = dist * na / ol;
+        const sample = volume.sampleSdf(px + ox / ol * dist, py + oy / ol * dist, pz + oz / ol * dist);
+        const weight = pi === 0 ? 1.35 : (Math.abs(ta) > 0 && Math.abs(ba) > 0 ? 0.7 : 1.0);
+        occ += weight * Math.max(0, Math.min(1, (expected - sample) / (1.5 * spacing)));
+        wsum += weight;
+      }
+      data[o + 12] = Math.max(0.16, Math.min(1, 1 - 0.84 * (occ / Math.max(1e-6, wsum))));
+    }
     const ix = Math.min(volume.nx - 1, Math.max(0, Math.round((px - origin[0]) / spacing)));
     const iz = Math.min(volume.nz - 1, Math.max(0, Math.round((pz - origin[2]) / spacing)));
-    data[o + 12] = volume.moisture[iz * volume.nx + ix];
+    data[o + 13] = volume.moisture[iz * volume.nx + ix];
   }
   return { data, vertexCount: vertCount, triangles: vertCount / 3 };
 }

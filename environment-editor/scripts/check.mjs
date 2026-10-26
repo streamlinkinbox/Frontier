@@ -1,10 +1,10 @@
 // Node checks for the pure (non-DOM) core: geology, SDF volume, erosion, mesher.
 // Run: node scripts/check.mjs [from environment-editor/]
 
-import { SdfVolume, buildEscarpmentScene } from '../src/volume.js';
+import { SdfVolume, buildEscarpmentScene, dimsForResolution } from '../src/volume.js';
 import { Geology, fillGeology } from '../src/geology.js';
-import { differentialWeathering, thermalLoose, hydraulicDroplets, computeDrainage, updateFlowMaps } from '../src/erosion.js';
-import { buildChunkMesh, buildAllChunks } from '../src/mesher.js';
+import { differentialWeathering, thermalLoose, hydraulicDroplets, computeDrainage, updateFlowMaps, scatterOutcrops, carvePath } from '../src/erosion.js';
+import { buildChunkMesh, buildAllChunks, VERT_STRIDE } from '../src/mesher.js';
 
 let passed = 0, failed = 0;
 function check(name, cond, detail = '') {
@@ -169,24 +169,74 @@ console.log('Droplets + drainage (full patch)');
   check('flow map normalised for water/vegetation phases', flowOk && maxArea === maxA);
 }
 
+console.log('Resolution + landforms');
+{
+  const d48 = dimsForResolution(48), d96 = dimsForResolution(96), d192 = dimsForResolution(192);
+  check('resolution slider maps to real voxel sizes', d48.spacing === 2 && d96.spacing === 1 && d192.spacing === 0.5, `${d48.nx}×${d48.ny}×${d48.nz} → ${d192.nx}×${d192.ny}×${d192.nz}`);
+  check('vertical cells stay isotropic/chunk-aligned', (d192.ny - 1) % 16 === 0 && (d192.nx - 1) % 16 === 0);
+
+  const g2 = new Geology(params);
+  const v48 = new SdfVolume(d48);
+  v48.geology = g2;
+  await fillGeology(v48, g2);
+  await buildEscarpmentScene(v48, g2, params);
+  const c48 = v48.landmarks.cave;
+  check('coarse 2 m grid still resolves the cave', !!c48 && v48.sampleSdf(c48.chamber[0], c48.chamber[1], c48.chamber[2]) > 0.3, c48 ? `sdf=${v48.sampleSdf(c48.chamber[0], c48.chamber[1], c48.chamber[2]).toFixed(2)}` : 'no cave');
+  const bed48 = v48.extractBedForFluid();
+  check('fluid bed follows SDF resolution', bed48.nx === 48 && bed48.ny === 48 && bed48.cellSize === 2);
+
+  await buildEscarpmentScene(v48, g2, { ...params, landform: 'mesa', cave: 1, fallenBlocks: 0 });
+  check('mesa landform raises an island and shelters its face', v48.topHeight(-3, 0) > (params.plainHeight + 16) && v48.topHeight(43, 43) < (params.plainHeight + 9) && !!v48.landmarks.cave);
+  await buildEscarpmentScene(v48, g2, { ...params, landform: 'canyon', cave: 0, fallenBlocks: 0, canyonWidth: 13, canyonDepth: 26 });
+  const canyonFloor = Math.min(...[-16, -8, -2, 4, 10].map((x) => v48.topHeight(x, 0)));
+  const canyonRim = Math.max(v48.topHeight(-38, 0), v48.topHeight(34, 0));
+  check('canyon landform incises between high rims', canyonRim - canyonFloor > 7, `rim ${canyonRim.toFixed(1)} floor ${canyonFloor.toFixed(1)}`);
+  await buildEscarpmentScene(v48, g2, { ...params, landform: 'arch', cave: 1, caveRadius: 2.8, fallenBlocks: 0 });
+  const archCave = v48.landmarks.cave;
+  check('arch landform has a through-opening in the fin', !!archCave && v48.sampleSdf(archCave.chamber[0], archCave.chamber[1], archCave.chamber[2]) > 0.3 && v48.sampleSdf(archCave.chamber[0], archCave.chamber[1] + 9, archCave.chamber[2]) < -0.3);
+  await buildEscarpmentScene(v48, g2, { ...params, landform: 'stacks', cave: 0, fallenBlocks: 0, stackScale: 16, stackHeight: 18 });
+  const tops = v48.extractTopHeight(); let maxTop = 0; for (const h of tops) if (h > maxTop) maxTop = h;
+  check('stacks landform builds towers above the plain', finiteField(v48.sdf) && maxTop > params.plainHeight + 8, `max ${maxTop.toFixed(1)} m`);
+}
+
+console.log('Features (rocks + drawn path)');
+{
+  const v = new SdfVolume({ nx: 49, ny: 25, nz: 49, spacing: 1, origin: [-24, 0, -24], chunk: 16 });
+  for (let iz = 0; iz < v.nz; iz++) for (let ix = 0; ix < v.nx; ix++) {
+    const h = 10 + v.nodeX(ix) * 0.06;
+    for (let iy = 0; iy < v.ny; iy++) v.sdf[v.index(ix, iy, iz)] = v.nodeY(iy) - h;
+  }
+  v.redistance();
+  const beforeRocks = v.solidVolume();
+  const rocks = scatterOutcrops(v, { count: 12, seed: 42, rockScale: 1.6, minSpacing: 6, maxSlopeDeg: 45 });
+  check('scatter places outcrops/boulders as SDF rock', rocks.placed >= 4 && v.solidVolume() > beforeRocks + 3, `${rocks.placed} placed, +${(v.solidVolume() - beforeRocks).toFixed(0)} m³`);
+
+  const midBefore = v.topHeight(0, 0);
+  const path = carvePath(v, [[-20, 0, 0], [-8, 0, -2], [4, 0, 1], [18, 0, 0]], { mode: 'river', width: 4, bankWidth: 2, depth: 1.2, flatten: 0.95, minSlope: 0.02 });
+  const midAfter = v.topHeight(0, 0);
+  check('drawn river carves a forced-downhill channel', path.length > 30 && path.drop > 0.5 && midAfter < midBefore - 0.25 && finiteField(v.sdf), `${path.length.toFixed(0)} m, fall ${path.drop.toFixed(1)} m, centre ${midBefore.toFixed(1)}→${midAfter.toFixed(1)} m`);
+}
+
 console.log('Mesher');
 {
   volume.markAllDirty();
   const { meshes, triangles } = buildAllChunks(volume);
   check('mesh has substantial geometry', triangles > 15000, `${triangles} tris`);
-  let normalsOk = true, finiteOk = true, checked = 0;
+  let normalsOk = true, finiteOk = true, aoOk = true, checked = 0;
   for (const mesh of meshes.values()) {
     const d = mesh.data;
     for (let i = 0; i < d.length; i++) if (!Number.isFinite(d[i])) finiteOk = false;
     for (let vtx = 0; vtx < mesh.vertexCount; vtx += 97) {
-      const o = vtx * 13;
+      const o = vtx * VERT_STRIDE;
       const l = Math.hypot(d[o + 3], d[o + 4], d[o + 5]);
       if (Math.abs(l - 1) > 0.02) normalsOk = false;
+      if (!(d[o + 12] >= 0.15 && d[o + 12] <= 1.0001)) aoOk = false;
       checked++;
     }
   }
   check('all vertex data finite', finiteOk);
   check('normals are unit SDF gradients', normalsOk, `${checked} sampled`);
+  check('baked SDF AO is present and in range', VERT_STRIDE === 14 && aoOk);
   // chunk seam: shared border plane must contain coincident vertices from both neighbours
   let seamShared = 0, seamChecked = false;
   for (let cy = 0; cy < volume.chunksY && !seamChecked; cy++) for (let cz = 0; cz < volume.chunksZ && !seamChecked; cz++) {
@@ -195,7 +245,7 @@ console.log('Mesher');
     const key = (d, o) => `${d[o].toFixed(3)},${d[o + 1].toFixed(3)},${d[o + 2].toFixed(3)}`;
     const onPlane = (mesh) => {
       const s = new Set();
-      for (let vtx = 0; vtx < mesh.vertexCount; vtx++) { const o = vtx * 13; if (Math.abs(mesh.data[o] - planeX) < 1e-4) s.add(key(mesh.data, o)); }
+      for (let vtx = 0; vtx < mesh.vertexCount; vtx++) { const o = vtx * VERT_STRIDE; if (Math.abs(mesh.data[o] - planeX) < 1e-4) s.add(key(mesh.data, o)); }
       return s;
     };
     const L = onPlane(left), R = onPlane(right);

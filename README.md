@@ -3,10 +3,13 @@
 ## Environment Editor (WebGPU)
 
 [`environment-editor/`](environment-editor/) — the unified environment
-editor prototype: true SDF terrain with geology-driven cliffs and SDF
-erosion (Phase 1, this branch), designed to plug in the 2.5D shallow-water
-simulation (`engine/fluid`, real caustics) and terrain-simulated vegetation
-(Slate tree/grass generator) behind the same brush and Frontier Editor UI.
+editor prototype: a terrain studio around a true SDF volume with selectable
+48–192-cell voxel resolution, sedimentary geology-driven cliffs, landform
+presets, SDF erosion, drawn rivers/roads, outcrop scatter, baked SDF AO and
+project/map exports (Phase 1, this branch), designed to plug in the 2.5D
+shallow-water simulation (`engine/fluid`, real caustics) and
+terrain-simulated vegetation (Slate tree/grass generator) behind the same
+brush and Frontier Editor UI.
 
 ```sh
 cd environment-editor
