@@ -4,7 +4,7 @@ import { Editor } from './ui.js';
 import { CliffScene } from './scene.js';
 
 const STORAGE_KEY = 'frontier-cliff-generator';
-const SCHEMA = 22; // bump when parameter semantics change so stale saved values do not override new defaults
+const SCHEMA = 23; // bump when parameter semantics change so stale saved values do not override new defaults
 
 function readStored() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }

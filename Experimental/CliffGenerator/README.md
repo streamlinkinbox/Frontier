@@ -5,13 +5,13 @@ inspector cards). It is a plain static page: no bundler, no JSX, Three.js resolv
 import map, so it runs straight from GitHub via raw.githack, GitHub Pages or any static server.
 
 ```
-https://raw.githack.com/<owner>/Slate/<branch>/Frontier/Experimental/CliffGenerator/index.html
+https://raw.githack.com/<owner>/Frontier/<branch>/Experimental/CliffGenerator/index.html
 ```
 
 Local preview:
 
 ```sh
-cd Frontier/Experimental/CliffGenerator
+cd Experimental/CliffGenerator
 python3 -m http.server 5173 --bind 0.0.0.0     # or: npm install && npm run dev
 ```
 
@@ -19,15 +19,22 @@ python3 -m http.server 5173 --bind 0.0.0.0     # or: npm install && npm run dev
 
 The terrain is **heightfield‑based**: a 2‑D grid of heights (128²–2048²) is what the noise,
 strata, erosion and river simulation operate on, and what the heightmap / satmap / mask exports
-describe. The *rendered mesh* goes further: steep parts are replaced by **true‑3D SDF chunks**
-(`src/sdf-chunks.js`, meshed in `src/sdf.worker.js`) — a 3‑D field made of the heightfield
-distance plus strata carving (soft beds undercut, hard beds left as lips), polygonised with
-marching cubes. The chunk field fades to the plain heightfield over a blend margin and is exactly
-`y − h` on every face shared with the heightfield mesh, so iso‑crossings sit on the heightfield's
-own border polyline: **no seams, no stitching**. Elsewhere the heightfield mesh is displaced
+describe. The *rendered mesh* goes further only where the heightfield is steep: those parts are
+replaced by **true‑3D SDF chunks** (`src/sdf-chunks.js`, `src/sdf-cliff-volume.js`, meshed in
+`src/sdf.worker.js`). Each selected chunk gets a small dense SDF volume with a halo around its
+footprint. The volume is seeded with the heightfield's base field (including the vertical-wall
+shear and lean), filled in the surface band with this editor's own strata — bed hardness with
+bedding-plane weakness, bed thickness, three persistent joint families whose spacing follows bed
+thickness, seepage and loose-sediment protection — then weathered in the volume: an integrated
+bulk differential retreat, a few narrow-band Hamilton-Jacobi feedback passes, and rounded-box
+detachment of unsupported joint-bounded blocks. Only the cropped interior is polygonised with
+marching cubes. The cropped field is blended back to the plain heightfield by the chunk weight
+and is exactly `y − h` where that weight is 0, so iso‑crossings sit on the heightfield's own
+border polyline: **no seams, no stitching**. Elsewhere the heightfield mesh is displaced
 horizontally (overhangs) and along the normal (detail). The chunks give real undercuts,
-overhangs, notches and shelters; caves and arches are possible wherever the carve breaks
-through. The isolated proof of the technique lives in `../SdfCliffLab`.
+overhangs, notches and shelters; caves and arches are possible wherever the weathered field breaks
+through. The isolated proof of the original seam technique lives in `../SdfCliffLab` in the Slate
+source tree.
 
 ## Pipeline — base shape → noise → erosion → rocks → surface
 
@@ -45,10 +52,10 @@ through. The isolated proof of the technique lives in `../SdfCliffLab`.
    flat ground (valleys, rivers, plains) is never displaced. Applied to the base shape and again,
    finer, after erosion (which smears lateral structure) — the hardness and boulder maps ride along
    with the faces. Controls: push–pull distance, block scale, blockiness, levels, ledges, slope
-   threshold, after‑erosion share. The 3‑D cliff chunks carry the same idea into true 3‑D
-   (*Cliff depth → 3D push–pull*): a blocky noise that varies with height pushes buttresses out
-   of the carved face and cuts recesses back into it, so a block can overhang the recess below it
-   — real XZ push–pull with overhangs, not just contour wiggles. **Escarpment** (*Landform →
+   threshold, after‑erosion share. Inside the 3‑D cliff chunks, *Cliff depth → 3D push–pull* is
+   no longer an outward noise displacement: susceptible joint panels retreat a little further in
+   the SDF volume so resistant panels stand proud, while this heightfield rugged stage still
+   supplies the large buttress/recess plan that the volume is seeded from. **Escarpment** (*Landform →
    Mesa & canyon → Escarpment*): a near‑vertical cliff line along the edge of the massif — the
    high side is lifted onto a bench within a cell or two along a smoothed version of the
    continental mask (long headlands and bays), with optional *Stacks* — pillars of the former cliff left standing just off the line — then pushed and pulled in plan by the rugged stage;
@@ -63,16 +70,16 @@ through. The isolated proof of the technique lives in `../SdfCliffLab`.
    is untouched. The band is wider (the whole foot…crest column is polygonised) so it costs more
    voxels. *Lean* additionally cuts the face back progressively from crest to foot (undercut).
    **Rock blocks** (*Cliff depth → True‑3D cliffs → Rock blocks / Rock block size / Missing
-   blocks*) turn the face into a wall of discrete rock blocks in the SDF itself: the bed rows of
-   the strata model × two vertical joint families (world‑aligned planes, resized and staggered
-   bed to bed like brickwork). Every block stands proud of or sits back from the face by its own
-   amount, with its own slight tilt and its own rounding of the rim, every block boundary is a
-   crack groove and a share of the blocks have fallen out, leaving deep recesses; soft beds
-   weather smooth, hard beds break into blocks; a joint family parallel to the face is blended
-   away (it would only show as spurious lines). This is geometry — rocks and cracks you can look
-   along, not a shading trick — so blocks have to be at least ~3 voxels wide: the cliff presets use
-   a 1 km world (1 m voxels at 512²); raise *Voxel budget* or lower the world size for finer
-   blocks. **Cliff protection** (*Erosion → Fluvial incision → Cliff protection*): faces steeper
+   blocks*) now control physical block detachment in the chunk volume rather than an analytic
+   block wall. Three near-vertical joint families are filled per voxel (spacing blended from bed
+   thickness and block scale, phase reset per bed, persistence-masked and swung slowly across the
+   massif). After differential weathering, hard surface blocks on a joint with air below/outboard
+   can detach; the scar is subtracted as an oriented rounded box with flat bedding/joint faces —
+   never a sphere — and boxes are kept a full voxel away from chunk-boundary nodes so no scar is
+   severed at a seam. Fallen material is not landed inside the cropped chunk: the editor's rock
+   placer already owns talus at the foot, which is usually heightfield again. This is geometry, so
+   a detached block still needs roughly two or more voxels across to resolve: raise *Voxel budget*
+   or lower the world size for finer blocks. **Cliff protection** (*Erosion → Fluvial incision → Cliff protection*): faces steeper
    than the protection angle keep their pre‑erosion shape through every erosion stage, so the
    plateau above a sea cliff or quarry wall can be eroded into a real landscape — valleys, rills,
    streams that simply hang at the crest — while the wall stays a wall.
@@ -223,13 +230,14 @@ through. The isolated proof of the technique lives in `../SdfCliffLab`.
    around the surface is sampled and polygonised; the fine roughness noise is band‑limited to ≥ 5
    voxels so it cannot alias into stair‑steps / "pancake" layers; the voxel size is either set
    The face is a *sheet*, so a wall has to be sampled from its foot to its crest — that, not the
-   triangulation, is what costs: per chunk most of the time goes into the carving of each voxel
-   (bedding, joints, blocks, relief). Two things keep it down: the sampled y‑band of a column is
-   limited to where a carve can actually flip the sign, and everything that depends only on the
-   plan position and the bed (joint lattice, block offsets, hashes) is computed once per bed and
-   reused for every voxel of that bed. Chunks are built in a pool of workers (up to 8, one less
-   than `hardwareConcurrency`) and streamed into the scene as they finish, so the terrain is
-   interactive while the walls come in.
+   triangulation, is what costs: per chunk most of the time goes into filling and weathering the
+   band of voxels around the surface (bedding, joints, seepage, relief, feedback passes and block
+   detachment). Three things keep it bounded: the sampled y‑band of a column is limited to where
+   the weathering can actually flip the sign, the chunk maps are transferred once with enough
+   padding for the volume halo, and the halo plus final `W` blend make both the heightfield seam
+   and active-neighbour chunk faces exact without a global redistancing pass. Chunks are built in
+   a pool of workers (up to 8, one less than `hardwareConcurrency`) and streamed into the scene as
+   they finish, so the terrain is interactive while the walls come in.
    explicitly or chosen automatically as the finest that fits a voxel budget (the HUD shows it).
 6. **Rocks** (`src/rock-geometry.js`, `src/rock-placement.js`) — *off by default for now "
    `rocksEnabled` / `pebblesOn` are 0 while the cliff faces are being finished; switch them on
@@ -368,6 +376,7 @@ in `localStorage`.
 
 ```sh
 node scripts/check-generate.mjs "Sandstone mesa" 256   # headless pipeline run + ASCII preview
+node scripts/check-sdf-volume.mjs                       # SDF chunk seams, weathering, block fall, MC output
 node scripts/check-shader.mjs /path/to/glslangValidator # assembles the injected shader exactly as
                                                         # Three does and validates GLSL ES 3.00
 ```

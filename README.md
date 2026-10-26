@@ -1,23 +1,30 @@
 # Frontier
 
-## Environment Editor (WebGPU)
+## Terrain Editor — CliffGenerator
 
-[`environment-editor/`](environment-editor/) — the unified environment
-editor prototype: a terrain studio around a true SDF volume with selectable
-48–192-cell voxel resolution, sedimentary geology-driven cliffs, landform
-presets, SDF erosion, drawn rivers/roads, outcrop scatter, baked SDF AO and
-project/map exports (Phase 1, this branch), designed to plug in the 2.5D
-shallow-water simulation (`engine/fluid`, real caustics) and
-terrain-simulated vegetation (Slate tree/grass generator) behind the same
-brush and Frontier Editor UI.
+[`Experimental/CliffGenerator/`](Experimental/CliffGenerator/) is the Frontier
+terrain generator in the original Frontier Editor UI (outliner · viewport ·
+inspector). It was imported as-is first; the only behavioural replacement after
+that import is inside its existing steep-slope SDF chunks:
+
+- The simulated heightfield remains authoritative for landform, strata,
+  erosion, rivers, materials, rocks and exports.
+- Cells steeper than the editor's cliff angle are still selected and budgeted
+  exactly as before, and the surrounding heightfield mesh still skips the
+  covered quads.
+- Inside each selected chunk, the former analytic carve is replaced by a small
+  dense SDF volume seeded from that heightfield, filled from the editor's own
+  strata/joint context, differentially weathered, and relieved by detachment
+  of unsupported joint-bounded blocks.
+- The volume is cropped and blended back to exact `y - h` where the chunk
+  weight is zero, preserving the original watertight heightfield seam.
 
 ```sh
-cd environment-editor
-python3 -m http.server 5173 --bind 0.0.0.0   # then open http://localhost:5173/
-npm run check                                  # core logic checks (Node)
+cd Experimental/CliffGenerator
+npm install
+npm run dev        # Vite on http://localhost:5173/
+npm run check      # heightfield generation + SDF chunk checks
 ```
 
-See [`environment-editor/README.md`](environment-editor/README.md) for the
-representation, the anti-banding geology/erosion design, controls, and the
-Phase 2/3 coupling contracts (fluid bed, flow/moisture, vegetation
-suitability).
+See [`Experimental/CliffGenerator/README.md`](Experimental/CliffGenerator/README.md)
+for the full pipeline, representation and control reference.

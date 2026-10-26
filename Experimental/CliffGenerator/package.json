@@ -7,7 +7,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "check": "node scripts/check-generate.mjs"
+    "check": "node scripts/check-generate.mjs && node scripts/check-sdf-volume.mjs",
+    "check:sdf": "node scripts/check-sdf-volume.mjs"
   },
   "dependencies": {
     "three": "^0.170.0"

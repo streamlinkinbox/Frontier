@@ -1,14 +1,18 @@
 // True-3D cliffs: local SDF chunks over the steep parts of the refined heightfield, seamless with the
 // surrounding heightfield mesh by construction (see Frontier/Experimental/SdfCliffLab for the
-// isolated proof). Pure JS — chunk meshing runs in sdf.worker.js.
+// isolated proof). Pure JS — chunk meshing runs in sdf.worker.js. The heightfield stays the
+// terrain's single source of truth; only the steep chunks selected here are replaced, and only
+// the field inside them comes from the SDF volume work (src/sdf-cliff-volume.js).
 //
-//   field  f(p) = mix( y − h(x,z),  (y − h) / |∇|  + carve(p),  W(x,z) )
+//   field  a dense local volume (chunk footprint + halo) seeded with the heightfield base field —
+//          y − h(x,z) where W = 0, the slope-normalised distance with the vertical-wall shear and
+//          lean inside — then filled with the editor's own strata and weathered in the volume:
+//          differential retreat of soft beds and joint slots, narrow-band front feedback, and
+//          rounded-box detachment of joint-bounded blocks left unsupported
 //   W      cliff weight: 1 on cells steeper than `sdfAngle`, fading to 0 over `sdfBlend` cells, 0 on
-//          every face shared with a non-chunked cell and on the map border
-//   carve  ≥ 0 removes rock along the normal: soft strata beds (same strata model as the heightfield,
-//          evaluated at the 3-D point's elevation) are undercut by pocket noise, plus joints,
-//          weathering pits and fine roughness — so hard beds are left as lips and overhangs
-//   mesh   marching tetrahedra on a voxel grid aligned with the heightfield cells; where W == 0 the
+//          every face shared with a non-chunked cell and on the map border. The cropped volume is
+//          blended back to plain y − h by W, so W = 0 columns are exact whatever the passes did
+//   mesh   marching cubes on a voxel grid aligned with the heightfield cells; where W == 0 the
 //          field is linear along every edge, so iso-crossings sit exactly on the heightfield's own
 //          piecewise-linear border → watertight with the terrain mesh, which skips the covered quads
 
@@ -17,6 +21,7 @@ import { makeBedTable, bedAt, bedJitter, bedHardness } from './strata-model.js';
 import { NO_WATER } from './features.js';
 import { edgeTable, triTable } from './mc-tables.js';
 import { makeDetail } from './detail.js';
+import { CliffVolume, weatherCliffVolume, detachJointBlocks } from './sdf-cliff-volume.js';
 
 const DX8 = [1, -1, 0, 0, 1, 1, -1, -1], DZ8 = [0, 0, 1, -1, 1, -1, 1, -1];
 
@@ -175,8 +180,14 @@ export function packChunkJobs(fine, chunks, v) {
     const gmx = fine.gmax;
     for (let i = 0; i < N * N; i++) gmx[i] = sg[i] > 1e-6 ? Math.sqrt(gmx[i] * (sg2[i] / sg[i])) : gmx[i];
   }
-  // slices are padded so the vertical-wall shear can sample the heightfield beyond the chunk
-  const pad = vertical > 0 ? Math.min(24, Math.ceil((Math.min(80, v.sdfLeanReach || 24) * Math.max(1, vertical) * 0.6) / cell) + 1) : 0;
+  // slices are padded so the vertical-wall shear can sample the heightfield beyond the chunk, and
+  // so the SDF volume's halo reads real neighbouring terrain instead of a clamped edge. The halo
+  // is ~6 m (5–14 voxels); expressed in heightfield cells that is min(6 / cell, 14 / k), and the
+  // final k is not known yet in auto mode, so bound it with k = 1 and add one cell for bilinear
+  // support. At coarse cells the old 6-cell minimum still applies.
+  const verticalPad = vertical > 0 ? Math.min(24, Math.ceil((Math.min(80, v.sdfLeanReach || 24) * Math.max(1, vertical) * 0.6) / cell) + 1) : 0;
+  const haloPad = Math.min(16, Math.ceil(Math.min(6 / cell, 14)) + 1);
+  const pad = Math.max(6, haloPad, verticalPad);
   for (const c of list) {
     const Sx = c.cw + 1 + 2 * pad, Sz = c.ch + 1 + 2 * pad;
     const maps = {};
@@ -204,29 +215,24 @@ export function packChunkJobs(fine, chunks, v) {
       if (vertical > 0) band = Math.max(band, 0.6 * ((c.hmax - c.hmin) / cell) + 6);
       est += c.cw * c.ch * band;
     }
+    est *= 1.35; // the volume halo and its weathering passes cost more than the cropped band
     const budget = Math.max(1e6, (v.sdfVoxelBudget || 24) * 1e6);
     k = est * 64 <= budget ? 4 : est * 27 <= budget ? 3 : est * 8 <= budget ? 2 : 1;
   }
   return { jobs, transfer, meta: { N, size: fine.worldSize, C, k, cell: cell / k } };
 }
 
-// largest distance the carve can move the surface along the normal
+// largest distance the volume weathering can move the surface along the normal (bulk retreat of
+// the softest, most jointed bed, plus lean, detail and a detached block's depth)
 export function carveReach(v) {
   const undercut = Math.max(0, v.sdfUndercut == null ? 6 : v.sdfUndercut);
   const pits = v.sdfPits == null ? 0.3 : v.sdfPits, joints = v.sdfJoints == null ? 0.5 : v.sdfJoints;
   const detail = (v.detailRelief || 0) + (v.rockyAmount || 0) + (v.cragAmount || 0);
   const blocks = Math.max(0, v.sdfBlocks || 0);
-  return undercut * (1 + 0.5 * pits + 0.9 * joints) + 1.5 + detail + Math.max(0, v.sdfPushPull || 0) + Math.max(0, v.sdfLean || 0)
-    + blocks * 1.5 + (blocks > 0 ? Math.min(v.sdfBlockSize || 8, 12) * 0.6 : 0);
-}
-
-function stair(v, steps, sharp) {
-  const s = v * steps, f = s - Math.floor(s), e = 0.5 - 0.5 * sharp;
-  return (Math.floor(s) + smoothstep(e, 1 - e, f)) / steps;
-}
-function blockify(v, steps, sharp) {
-  const t = Math.min(1, Math.max(0, (v + 1) * 0.5));
-  return stair(t, steps, sharp) * 2 - 1;
+  const blockDepth = joints > 0.03 && (blocks > 0 || undercut >= 3)
+    ? Math.min(16, Math.max(2.5, (v.sdfBlockSize || 8) * 0.65)) + blocks * 0.45 : 0;
+  return undercut * (1 + 0.65 * joints + 0.35 * pits) + 1.5 + detail
+    + Math.max(0, v.sdfPushPull || 0) * 0.35 + Math.max(0, v.sdfLean || 0) + blockDepth;
 }
 
 // ---- strata hardness at a 3-D point (same model as heightfield.applyStrata) -----------------------
@@ -268,12 +274,52 @@ export function makeChunkContext(v) {
     strata: makeStrataSampler(v),
     pocket: new GradientNoise3((v.seed || 1) * 41 + 9),
     joint: new SimplexNoise((v.seed || 1) * 23 + 5),
+    joint3: new GradientNoise3((v.seed || 1) * 43 + 17),
     rough: new GradientNoise3((v.seed || 1) * 31 + 11),
-    push: new GradientNoise3((v.seed || 1) * 37 + 29),
   };
 }
 
-export function buildChunkGeometry(job, meta, v, ctx) {
+// ---- joint model (from the SDF terrain volume, re-based on this editor's strata) ------------------
+// Three near-vertical fracture families. Spacing grows with the local bed thickness (the observed
+// rule in sedimentary rock: thick beds, wide joints) blended with the editor's block-scale
+// control, the phase is re-seeded per bed so joints terminate at bedding boundaries, the sets
+// swing slowly across the massif, and persistence masks stop any joint running forever.
+const JOINT_SETS = [
+  { az: 22, spacingK: 0.95, persistence: 0.85, seed: 11 },
+  { az: 109, spacingK: 1.30, persistence: 0.75, seed: 47 },
+  { az: -52, spacingK: 2.10, persistence: 0.45, seed: 83 },
+].map((s) => ({ ...s, nx: Math.cos(s.az * Math.PI / 180), nz: Math.sin(s.az * Math.PI / 180) }));
+
+function jointProximity(ctx, x, y, z, bedIndex, thick, vox, ca, sa, blockScale) {
+  let best = 0;
+  for (const set of JOINT_SETS) {
+    const nx = set.nx * ca - set.nz * sa, nz = set.nx * sa + set.nz * ca;
+    const spacing = Math.min(140, Math.max(Math.max(1.1, vox * 1.6),
+      (0.62 * thick + 0.38 * blockScale) * set.spacingK));
+    const u = (x * nx + z * nz) / spacing + hash2(bedIndex * 3 + set.seed, bedIndex - set.seed, ctx.seed + 901) * 7.31;
+    const frac = u - Math.floor(u);
+    const dist = Math.min(frac, 1 - frac) * spacing;
+    const halfWidth = Math.min(Math.max(vox * 0.75, vox * 2.4), Math.max(vox * 0.75, spacing * 0.09));
+    if (dist > halfWidth * 2.4) continue;
+    const strike = -x * nz + z * nx;
+    const pn = 0.5 + 0.5 * ctx.joint3.fbm(strike / (spacing * 1.7), y / (spacing * 0.85), set.seed * 0.173, 2, 2.05, 0.55);
+    const persist = set.persistence * smoothstep(0.30, 0.62, pn);
+    const prox = (1 - smoothstep(0, halfWidth, dist)) * clamp01(persist * 1.65);
+    if (prox > best) best = prox;
+  }
+  return best;
+}
+
+// ---- the chunk field: a dense local SDF volume around the chunk footprint -------------------------
+// The volume is seeded with the heightfield's own base field (plain y - h where W = 0, the
+// slope-normalised distance plus the vertical-wall shear and lean inside), filled with the
+// editor's strata (hardness with bedding-plane weakness and intra-bed heterogeneity, bed
+// thickness, the joint model above, a seepage gate), then weathered: an integrated bulk retreat
+// for the deep differential undercut, a few narrow-band Hamilton-Jacobi passes for feedback,
+// and rounded-box detachment of joint-bounded blocks left unsupported. Only the cropped
+// interior is returned for marching cubes; the halo exists so those passes never see a chunk
+// boundary, and the final blend back to y - h by W makes the heightfield seam exact.
+export function buildChunkField(job, meta, v, ctx) {
   const { N, size } = meta;
   const pad = job.pad || 0;
   const Sx = job.cw + 1 + 2 * pad, Sz = job.ch + 1 + 2 * pad;
@@ -312,43 +358,37 @@ export function buildChunkGeometry(job, meta, v, ctx) {
   const band = Math.max(2, v.strataBand || 26);
   const hasOutcrop = !!m.outcrop;
 
-  // the same rocky facets / crags / relief as the heightfield mesh, evaluated in 3-D on the carved
-  // faces (feature size clamped to ≥ 2.5 voxels so blocks cannot alias into voxel steps)
+  // the same rocky facets / crags as the heightfield mesh, evaluated in 3-D on the chunk faces
+  // (feature size clamped to ≥ 2.5 voxels so blocks cannot alias into voxel steps)
   const detail = makeDetail({ worldSize: size, resolution: N }, { ...v, detailRelief: 0 }, { minScale: vox * 2.5, limit: 1e9 }); // fbm relief is already there as `rough`
-  // true 3-D push–pull: blocky buttresses stand out of the face (negative carve = outward) and
-  // recesses go back into it, varying with height so a block can overhang the recess below it
+  // 3D push–pull becomes differential panel relief: susceptible panels retreat a little further
+  // so resistant joint-bounded panels stand proud — no outward noise displacement of the face
   const pushAmp = Math.max(0, v.sdfPushPull || 0);
-  const pushL = Math.max(vox * 4, v.sdfPushScale || 18);
-  const pushBlock = Math.min(1, Math.max(0, v.ruggedBlockiness == null ? 0.7 : v.ruggedBlockiness));
+  const pushScale = Math.max(vox * 3, v.sdfPushScale || 18);
   // lean: the face is cut back progressively from its crest to its foot, so the profile is | / —
   // vertical to overhanging — instead of the back-leaning slope a heightfield gives
   const leanAmp = Math.max(0, v.sdfLean || 0);
   const hasLean = leanAmp > 0 && !!m.crest && !!m.foot;
   // vertical wall: the face is sheared so its crest moves out and its foot moves in — at 1 the
   // contours of the face collapse onto one line (a vertical wall), above 1 the wall overhangs
-  // (\ /). A point at height y takes the heightfield from a plan position shifted uphill by
+  // (\\ /). A point at height y takes the heightfield from a plan position shifted uphill by
   // (t − ½)·W·vertical, t = (y − foot)/(crest − foot), W = plan width of the face in the heightfield
   const vertical = Math.max(0, v.sdfVertical || 0);
   const hasVertical = vertical > 0 && !!m.crest && !!m.foot && !!m.gmax && pad > 0;
   const vertMaxW = Math.min(80, v.sdfLeanReach || 24) * 1.2;
   const needCF = hasLean || hasVertical;
-  // rock blocks: the face is a wall of discrete blocks — bed rows (strata) × two vertical joint
-  // families (world-aligned planes, staggered and resized bed to bed like brickwork). Each block
-  // stands proud of or sits back from the face by its own amount with a bevelled rim, every block
-  // boundary is a crack groove, and some blocks have fallen out. A joint family parallel to the
-  // face would only show as spurious lines, so its boundaries are blended out by the face direction.
+  // joint-bounded block detachment (the old analytic block wall is gone: blocks now come from
+  // the joint field in the volume — `sdfBlocks` deepens/strengthens the detachment)
   const blockAmp = Math.max(0, v.sdfBlocks || 0);
   const blockSize = Math.max(2, v.sdfBlockSize || 8);
   const blockLoss = Math.min(1, Math.max(0, v.sdfBlockLoss == null ? 0.12 : v.sdfBlockLoss));
-  const blockMinL = vox * 3; // a block narrower than 3 voxels cannot be resolved
   const blockSwing = Math.max(0, Math.min(1, v.sdfBlockSwing == null ? 0.6 : v.sdfBlockSwing));
-  const crackW = Math.max(vox * 1.2, blockSize * 0.07);
-  // joint-set domains: real rock is broken into panels, each with its own joint spacing and its
-  // own block grid (and the grids do not line up across a panel boundary). Without this the blocks
-  // read as one wallpaper over every face in the world.
-  const blkDom = Math.max(14, blockSize * 5);
-  const bump = roughAmp + detail.amp + pushAmp + blockAmp;
+  const blockEnabled = joints > 0.03 && (blockAmp > 0 || undercut >= 3);
+  const bump = roughAmp + detail.amp;
   const maxCarve = carveReach(v);
+  const blockReach = blockEnabled ? Math.min(Math.max(blockSize * 0.7, vox * 3), vox * 7) : 0;
+  const reachNormal = Math.max(maxCarve, blockReach, vox * 3);
+
   // everything that depends on the plan position only
   function column(x, z) {
     const u = (x - x0) / cell, wq = (z - z0) / cell;
@@ -359,14 +399,11 @@ export function buildChunkGeometry(job, meta, v, ctx) {
     const gl = Math.hypot(gx, gz);
     const steep = smoothstep(0.7, 1.7, gl);
     const oc = hasOutcrop ? bil(m.outcrop, u, wq) : 0;
-    // visibility of the joint families on this face: planes x = const show when the face normal
-    // has little x (the gradient points along z), and vice versa
-    // the block lattice swings slowly across the massif: joint sets curve around a dome in the
+    const deposit = m.deposit ? bil(m.deposit, u, wq) : 0;
+    // the joint sets swing slowly across the massif: joint sets curve around a dome in the
     // real thing, and a single axis-aligned grid over every wall is what reads as a tiled texture
     const dang = blockSwing * 0.85 * ctx.joint.fbm(x * 0.0062, z * 0.0062, 1);
     const ca = Math.cos(dang), sa = Math.sin(dang);
-    const grx = gx * ca - gz * sa, grz = gx * sa + gz * ca;
-    const visX = gl > 1e-6 ? Math.abs(grz) / gl : 0.7, visZ = gl > 1e-6 ? Math.abs(grx) / gl : 0.7;
     const crest = needCF ? bil(m.crest, u, wq) : 0, foot = needCF ? bil(m.foot, u, wq) : 0;
     let vW = 0, vdx = 0, vdz = 0;
     if (hasVertical && w > 1e-6) {
@@ -378,114 +415,13 @@ export function buildChunkGeometry(job, meta, v, ctx) {
         vdx = dxs / dl; vdz = dzs / dl; // unit uphill direction
       }
     }
-    // this column's joint-set domain: block size, block depth and the phase of the block grid
-    const dgx = Math.floor(x / blkDom), dgz = Math.floor(z / blkDom);
-    const d0 = hash2(dgx, dgz, ctx.seed + 337), d1 = hash2(dgx, dgz, ctx.seed + 431);
-    return { x, z, h, w, slopeF, steep, oc, crest, foot, vW, vdx, vdz, visX, visZ, ca, sa, bc: null,
-      bf: 0.6 + 0.95 * d0, jf: 0.62 + 0.66 * d1, bpx: (d1 - 0.5) * 1.1, bpz: (d0 - 0.5) * 1.1, strata: w > 1e-6 && (steep > 0 || vW > 0) ? ctx.strata.column(x, z) : null };
+    return { x, z, h, w, slopeF, steep, oc, deposit, crest, foot, vW, vdx, vdz, ca, sa, _effSteep: steep,
+      strata: w > 1e-6 && (steep > 0 || vW > 0) ? ctx.strata.column(x, z) : null };
   }
-  // per-column, per-bed constants: the joint lattice and the block lattice depend on the plan
-  // position and the bed only (spacing, stagger and hashes), so a column of samples reuses them
-  // for every voxel of that bed — the noise and hashing in them is the bulk of a carve sample
-  function bedPlan(col, bi, thick) {
-    const { x, z } = col;
-    const spacing = Math.max(2, Math.min(30, thick * 0.9 * col.bf));
-    const bc = {
-      bi,
-      jn: 0.5 + 0.5 * ctx.joint.fbm(x / spacing + bi * 3.1, z / spacing - bi * 1.7, 2),
-      gone0: hash2(Math.floor(x / spacing + bi * 0.37) + bi * 131, Math.floor(z / spacing - bi * 0.61), ctx.seed) < 0.05 * joints ? 1 : 0,
-    };
-    if (blockAmp <= 0) return bc;
-    // lattice of this bed: size and stagger from the bed index, so rows do not line up
-    const hb0 = hash2(bi, 0, ctx.seed + 101), hb1 = hash2(bi, 1, ctx.seed + 101);
-    const L = Math.max(blockMinL, Math.min(60, blockSize * col.bf * (0.7 + 0.6 * hb0) * Math.min(1.6, Math.max(0.6, thick / blockSize + 0.4))));
-    const ex = (x - x0) * col.ca - (z - z0) * col.sa, ez = (x - x0) * col.sa + (z - z0) * col.ca;
-    const qx = (ex + hb0 * L * 2.3) / L + col.bpx, qz = (ez + hb1 * L * 1.7) / L + col.bpz;
-    const sX = Math.max(0.08, 1 - col.visX), sZ = Math.max(0.08, 1 - col.visZ);
-    const cx = qx - 0.5, cz = qz - 0.5;
-    const ix = Math.floor(cx), iz = Math.floor(cz);
-    const fx = qx - Math.floor(qx), fz = qz - Math.floor(qz);
-    Object.assign(bc, { ix, iz,
-      bX: smoothstep(0.5 - 0.5 * sX, 0.5 + 0.5 * sX, cx - ix), bZ: smoothstep(0.5 - 0.5 * sZ, 0.5 + 0.5 * sZ, cz - iz),
-      gbase: Math.min(L, thick, 4 * blockAmp + 2 * vox) * 0.7,
-      tf0: col.crest - 1.5 * thick - 2 * vox, tf1: col.crest - 0.3 * thick,
-      dPlan: Math.min(Math.min(fx, 1 - fx) * L + (1 - col.visX) * L, Math.min(fz, 1 - fz) * L + (1 - col.visZ) * L),
-      r: Math.min(L, thick) * (0.15 + 0.35 * hash2(Math.floor(qx) + bi * 31, Math.floor(qz) - bi * 17, ctx.seed + 19)) + crackW,
-      base: new Float64Array(4), S: new Float64Array(4), M: new Float64Array(4), lost: new Uint8Array(4) });
-    for (let c = 0; c < 4; c++) {
-      const i = ix + (c & 1), k = iz + (c >> 1);
-      if (hash2(i + bi * 7919, k, ctx.seed + 7) < blockLoss * 0.5) { bc.lost[c] = 1; continue; } // fallen out
-      const h2 = hash2(i - bi * 104729, k + 3, ctx.seed + 11), h3 = hash2(i * 3 + bi, k * 5 - bi, ctx.seed + 13);
-      bc.base[c] = (h2 - 0.5) * 2 * blockAmp;
-      // a slight tilt of the block face (not quite flush, like a slab that has shifted)
-      bc.S[c] = (h3 - 0.5) * (fx - 0.5) * col.visX + (h2 * 7 % 1 - 0.5) * (fz - 0.5) * col.visZ;
-      bc.M[c] = h3 * 5 % 1 - 0.5;
-    }
-    return bc;
-  }
-  function carve(col, y) {
-    const { x, z } = col;
-    const [hard, f, thick, bi] = ctx.strata.at(col.strata, y);
-    let bc = col.bc;
-    if (!bc || bc.bi !== bi) bc = col.bc = bedPlan(col, bi, thick);
-    // soft beds recede into a notch that is deepest just under the hard bed above (where seepage
-    // and frost work hardest); thin partings only make a shallow groove, thick soft beds a deep
-    // undercut; hard beds keep their lip
-    const softness = Math.pow(1 - smoothstep(0.3, 0.6, hard), bedPower);
-    const notch = 0.3 + 0.7 * Math.sin(Math.PI * Math.pow(Math.min(1, Math.max(0, f)), 1.6));
-    const thickF = Math.pow(Math.min(1, thick / (band * 0.5)), 0.5);
-    let soft = softness * notch * thickF;
-    const n = 0.5 + 0.5 * ctx.pocket.fbm(x / pocketScale, y / (pocketScale * 0.6), z / pocketScale, 3, 2.1, 0.55);
-    const pocket = smoothstep(0.32, 0.7, n);
-    // hard beds break along joint sets spaced like their thickness → blocky columns; soft beds
-    // weather smooth. Each bed has its own joint pattern, and now and then a whole block is gone.
-    const hardness = smoothstep(0.45, 0.7, hard);
-    let joint = smoothstep(0.7, 0.82, bc.jn) * joints * hardness;
-    const fallen = bc.gone0 ? smoothstep(0.04, 0.16, f) * smoothstep(0.98, 0.9, f) * hardness : 0;
-    const pit = smoothstep(0.66, 0.82, n) * pits;
-    const rough = ctx.rough.fbm(x * roughFreq, y * roughFreq, z * roughFreq, 2, 2.1, 0.55) * roughAmp;
-    // embedded boulders are massive rock: no bedding undercuts, spheroidal weathering only
-    if (col.oc > 0) { soft *= 1 - col.oc; joint *= 1 - col.oc * 0.5; }
-    const det = detail.amp > 0 ? detail.at(x, y, z, 1 / col.slopeF, hard) : 0;
-    let push = 0;
-    if (pushAmp > 0) {
-      const pn = ctx.push.fbm(x / pushL, y / (pushL * 0.55), z / pushL, 2, 2.1, 0.5) * 1.4;
-      push = pushAmp * ((1 - pushBlock) * pn + pushBlock * blockify(pn, 3, 0.75)) * (1 - col.oc * 0.7);
-    }
-    let block = 0;
-    if (blockAmp > 0) {
-      // the lattice of a bed over one plan position is the same for every voxel of that bed, and
-      // the hashing it needs is the costly part of a sample → cache it on the column
-      let bc = col.bc;
-      if (!bc || bc.bi !== bi) bc = col.bc = blockPlan(col, bi, thick);
-      const f05 = f - 0.5;
-      // no block falls out of the top bed right under the crest (it would leave the lip floating)
-      const gone = needCF ? -bc.gbase * (1 - smoothstep(bc.tf0, bc.tf1, y)) : -bc.gbase;
-      const P = (c) => bc.lost[c] ? gone : bc.base[c] + (bc.S[c] + bc.M[c] * f05) * 0.8 * blockAmp;
-      const pa = P(0), pb = P(1);
-      const p0 = pa + (pb - pa) * bc.bX, p1 = P(2) + (P(3) - P(2)) * bc.bX;
-      const offs = p0 + (p1 - p0) * bc.bZ;
-      // distance to the block's rim: visible joint planes and the bed boundaries
-      const e = Math.min(bc.dPlan, Math.min(f, 1 - f) * thick);
-      // bevelled rim: the block face is flat, its edges round off into the crack (some blocks are
-      // crisp, some well rounded)
-      const rim = smoothstep(0, bc.r, e);
-      const crack = (1 - smoothstep(0, crackW, e)) * (0.6 * blockAmp + 0.8 * vox);
-      // soft beds weather smooth; hard beds break into blocks (massive boulders: no jointing)
-      const bh = (0.35 + 0.65 * smoothstep(0.35, 0.6, hard)) * (1 - col.oc);
-      block = (crack - offs * (0.25 + 0.75 * rim)) * bh * col.jf;
-    }
-    let lean = 0;
-    if (hasLean) {
-      const faceH = Math.max(4, col.crest - col.foot);
-      const down = Math.min(1, Math.max(0, (col.crest - y) / faceH));
-      // deepest just above the foot, eased out at the very bottom so the face meets the ground
-      lean = leanAmp * down * (1 - 0.5 * smoothstep(0.85, 1, down)) * (1 - col.oc);
-    }
-    const d = undercut * (soft * (0.3 + 0.7 * pocket) + joint * 0.6 + fallen * 0.9 + pit * 0.5 + col.oc * 0.12 * pocket) + rough - det - push + block + lean;
-    return d * col.steep * col.w;
-  }
-  function fCol(col, y) {
+
+  // the unweathered base field: exactly y - h where W = 0, the slope-normalised distance (with
+  // the vertical-wall shear and the lean folded in) where the chunk owns the surface
+  function baseField(col, y) {
     let h = col.h, slopeF = col.slopeF, steep = col.steep;
     if (col.vW > 0) {
       const t = Math.min(1, Math.max(0, (y - col.foot) / Math.max(1, col.crest - col.foot)));
@@ -499,47 +435,178 @@ export function buildChunkGeometry(job, meta, v, ctx) {
       slopeF = Math.sqrt(1 + g * g);
       steep = Math.max(steep, smoothstep(0.7, 1.7, g));
     }
-    const plain = y - h;
+    col._effSteep = steep;
+    const plain = y - col.h;
     if (col.w <= 1e-6 || steep <= 0) return plain;
-    // outside the band where carving can flip the sign the field is just the plain distance
-    if (plain < -maxCarve * slopeF - 2 * vox || plain > bump + 2 * vox) return plain;
-    const dist = plain / slopeF;
-    return plain + (dist + carve(col, y) - plain) * col.w;
+    let field = (y - h) / slopeF;
+    if (hasLean) {
+      const faceH = Math.max(4, col.crest - col.foot);
+      const down = Math.min(1, Math.max(0, (col.crest - y) / faceH));
+      // deepest just above the foot, eased out at the very bottom so the face meets the ground
+      field += leanAmp * down * (1 - 0.5 * smoothstep(0.85, 1, down)) * (1 - col.oc) * steep;
+    }
+    return plain + (field - plain) * col.w;
   }
 
-  // vertical range: carving d along the normal moves the surface up to d·|∇| vertically
-  const reach = maxCarve * Math.min(3, job.slopeF || 3);
-  let yLo = Math.floor((job.hmin - reach - 2 * vox) / vox) * vox;
-  let yHi = Math.ceil((job.hmax + bump + 2 * vox) / vox) * vox;
-  if (hasVertical) {
+  // haloed volume bounds: at least ~6 m of halo (5–14 voxels) so the weathering passes and the
+  // block-support probes never see the volume boundary from the cropped interior
+  const halo = Math.max(5, Math.min(14, Math.ceil(6 / vox) || 5));
+  const vx = nx + 2 * halo + 1, vz = nz + 2 * halo + 1;
+  const xv0 = x0 - halo * vox, zv0 = z0 - halo * vox;
+  const cols = new Array(vx * vz);
+  let hmin = Infinity, hmax = -Infinity, fmin = Infinity, cmax = -Infinity, slopeMax = 1;
+  for (let jz = 0; jz < vz; jz++) {
+    for (let jx = 0; jx < vx; jx++) {
+      const col = column(xv0 + jx * vox, zv0 + jz * vox);
+      cols[jz * vx + jx] = col;
+      if (col.h < hmin) hmin = col.h;
+      if (col.h > hmax) hmax = col.h;
+      if (col.slopeF > slopeMax) slopeMax = col.slopeF;
+      if (hasVertical && col.w > 1e-6) {
+        if (col.foot < fmin) fmin = col.foot;
+        if (col.crest > cmax) cmax = col.crest;
+      }
+    }
+  }
+  // vertical range: a retreat d along the normal moves the surface up to d·|∇| vertically
+  let yLo = Math.floor((hmin - reachNormal * Math.min(3, slopeMax) - 2 * vox) / vox) * vox;
+  let yHi = Math.ceil((hmax + bump + 2 * vox) / vox) * vox;
+  if (hasVertical && fmin < Infinity) {
     // the sheared wall spans foot…crest in every column of the face
-    let fmin = Infinity, cmax = -Infinity;
-    for (let j = pad; j < Sz - pad; j++) for (let i = pad; i < Sx - pad; i++) { const q = j * Sx + i; if (m.sdfWeight[q] > 1e-6) { if (m.foot[q] < fmin) fmin = m.foot[q]; if (m.crest[q] > cmax) cmax = m.crest[q]; } }
-    if (fmin < Infinity) { yLo = Math.min(yLo, Math.floor((fmin - 2 * vox) / vox) * vox); yHi = Math.max(yHi, Math.ceil((cmax + bump + 2 * vox) / vox) * vox); }
+    yLo = Math.min(yLo, Math.floor((fmin - 2 * vox) / vox) * vox);
+    yHi = Math.max(yHi, Math.ceil((cmax + bump + 2 * vox) / vox) * vox);
   }
   const ny = Math.max(1, Math.round((yHi - yLo) / vox));
-  const sx = nx + 1, sy = ny + 1, sz = nz + 1;
-  // only the band around the surface is sampled / polygonised; nodes outside it are the plain
-  // distance, whose sign is known from the column height
-  const vals = new Float32Array(sx * sy * sz);
-  const bandLo = new Int32Array(sx * sz), bandHi = new Int32Array(sx * sz);
-  for (let jz = 0; jz < sz; jz++) {
-    const z = z0 + jz * vox;
-    for (let jx = 0; jx < sx; jx++) {
-      const col = column(x0 + jx * vox, z);
-      let lo = Math.max(0, Math.floor((col.h - maxCarve * col.slopeF - 2 * vox - yLo) / vox) - 1);
+  const vy = ny + 1;
+  const volume = new CliffVolume(vx, vy, vz, vox, [xv0, yLo, zv0]);
+
+  // fill: base field + geology + integrated bulk retreat, in the surface band of each column
+  for (let jz = 0; jz < vz; jz++) {
+    for (let jx = 0; jx < vx; jx++) {
+      const col = cols[jz * vx + jx];
+      const c = jz * vx + jx;
+      volume.weight[c] = col.w;
+      volume.height[c] = col.h;
+      volume.steep[c] = col.steep;
+      volume.outcrop[c] = col.oc;
+      let lo = Math.max(0, Math.floor((col.h - reachNormal * col.slopeF - 2 * vox - yLo) / vox) - 1);
       let hi = Math.min(ny, Math.ceil((col.h + bump + 2 * vox - yLo) / vox) + 1);
       if (col.vW > 0) {
         lo = Math.min(lo, Math.max(0, Math.floor((col.foot - 2 * vox - yLo) / vox) - 1));
         hi = Math.max(hi, Math.min(ny, Math.ceil((col.crest + bump + 2 * vox - yLo) / vox) + 1));
       }
-      bandLo[jz * sx + jx] = lo; bandHi[jz * sx + jx] = hi;
-      const base = jz * sy * sx + jx;
-      for (let jy = 0; jy < lo; jy++) vals[base + jy * sx] = yLo + jy * vox - col.h;
-      for (let jy = lo; jy <= hi; jy++) vals[base + jy * sx] = fCol(col, yLo + jy * vox);
-      for (let jy = hi + 1; jy < sy; jy++) vals[base + jy * sx] = yLo + jy * vox - col.h;
+      volume.bandLo[c] = lo; volume.bandHi[c] = hi;
+      const x = col.x, z = col.z;
+      for (let jy = 0; jy <= ny; jy++) {
+        const y = yLo + jy * vox;
+        const idx = (jz * vy + jy) * vx + jx;
+        const plain = y - col.h;
+        if (jy < lo || jy > hi) { volume.sdf[idx] = plain; continue; }
+        const field = baseField(col, y);
+        let retreat = 0;
+        if (col.w > 1e-6 && col.strata) {
+          const [hard0, f, thick, bi] = ctx.strata.at(col.strata, y);
+          // seepage / alcove gate: coarse 3-D variation that only modulates how fast susceptible
+          // rock retreats — it never carves hard rock by itself (that was the banding bug)
+          const seep01 = clamp01(0.5 + 0.5 * ctx.pocket.fbm(x / pocketScale, y / (pocketScale * 0.6), z / pocketScale, 3, 2.1, 0.55));
+          // bedding-plane weakness + mild intra-bed heterogeneity (from the SDF volume geology)
+          const seamDist = Math.min(f, 1 - f) * thick;
+          const seam = 1 - 0.28 * (1 - smoothstep(0, Math.max(vox * 0.8, 0.3), seamDist));
+          let hard = clamp01(hard0 * seam * (0.94 + 0.12 * seep01));
+          if (col.oc > 0) hard = lerp(hard, 0.93, col.oc * 0.8); // embedded boulders are massive rock
+          const joint01 = jointProximity(ctx, x, y, z, bi, thick, vox, col.ca, col.sa, pushScale) * (1 - col.oc * 0.65);
+          volume.bed[idx] = bi;
+          volume.bedThick[idx] = thick;
+          volume.hardness[idx] = Math.round(hard * 255);
+          volume.joint[idx] = Math.round(joint01 * 255);
+          volume.seep[idx] = Math.round(seep01 * 255);
+          volume.sediment[idx] = clamp01(col.deposit * 0.9) * (1 - col.steep * 0.6)
+            * smoothstep(vox * 1.5, -vox * 1.5, plain);
+          // differential susceptibility: soft beds recede into a notch deepest just under the hard
+          // bed above (seepage and frost work hardest there); thin partings only groove, thick
+          // soft beds undercut deeply; joints open slots even in hard beds; pits are granular
+          // disintegration of soft, seepage-wet rock only
+          const softness = Math.pow(1 - smoothstep(0.3, 0.62, hard), bedPower);
+          const notch = 0.3 + 0.7 * Math.sin(Math.PI * Math.pow(Math.min(1, Math.max(0, f)), 1.6));
+          const thickF = Math.pow(Math.min(1, thick / (band * 0.5)), 0.5);
+          const pocketGate = 0.36 + 0.64 * smoothstep(0.32, 0.72, seep01);
+          const bedRate = softness * notch * thickF * pocketGate;
+          const jointRate = 0.55 * joints * joint01 * joint01 * (0.25 + 0.75 * (1 - hard)) * (0.4 + 0.6 * pocketGate);
+          const pitRate = 0.32 * pits * softness * smoothstep(0.68, 0.86, seep01);
+          volume.susceptibility[idx] = Math.round(255 * clamp01(bedRate + jointRate + pitRate) * (1 - col.oc * 0.75));
+          // integrated bulk retreat — most of the weathering depth, from the geology at the node;
+          // the volume passes below add the front-interaction feedback on top
+          retreat = undercut * (bedRate + jointRate + pitRate)
+            + pushAmp * 0.18 * (0.25 + 0.75 * softness) * (0.35 + 0.65 * seep01);
+          retreat = Math.min(reachNormal, retreat * (1 - col.oc * 0.75) * col._effSteep * col.w);
+        }
+        let roughOffset = 0;
+        if (col.w > 1e-6 && col._effSteep > 0) {
+          const rough = ctx.rough.fbm(x * roughFreq, y * roughFreq, z * roughFreq, 2, 2.1, 0.55) * roughAmp;
+          const det = detail.amp > 0 ? detail.at(x, y, z, 1 / col.slopeF, volume.hardness[idx] / 255) : 0;
+          roughOffset = (rough - det) * col._effSteep * col.w;
+        }
+        volume.sdf[idx] = col.w <= 1e-6 ? plain : field + retreat + roughOffset;
+      }
     }
   }
+
+  // narrow-band feedback passes (count capped by the halo so a shared chunk face stays exact)
+  const weatherPasses = undercut > 0 ? Math.min(4, Math.max(0, halo - 2)) : 0;
+  const relax = Math.min(undercut * 0.2, vox * 1.5);
+  const weatherStats = weatherPasses > 0 && relax > 0
+    ? weatherCliffVolume(volume, { iterations: weatherPasses, step: relax / weatherPasses, band: Math.max(2.2, vox * 2.4), topExposure: 0.1, sedimentProtect: 2.0 })
+    : { iterations: 0, totalDelta: 0, active: 0 };
+
+  // joint-bounded blocks the undercutting left unsupported drop out of the face
+  const blockStats = blockEnabled
+    ? detachJointBlocks(volume, {
+        seed: ctx.seed,
+        strength: blockAmp > 0 ? 0.55 + 0.45 * Math.min(1, blockAmp / 3) : 0.38,
+        loss: blockLoss, blockSize, depth: blockAmp,
+        maxBlocks: Math.max(4, Math.min(36, Math.round(6 + (nx * nz) / 220))),
+        nodeBounds: { ix0: halo + 1, ix1: halo + nx - 2, iz0: halo + 1, iz1: halo + nz - 2 },
+        interior: { minX: x0, maxX: x0 + nx * vox, minZ: z0, maxZ: z0 + nz * vox },
+      })
+    : { candidates: 0, detached: 0 };
+
+  // crop the interior and blend back to the plain heightfield by W — at W = 0 the field is
+  // exactly y - h whatever the volume passes did nearby, which is the seam invariant
+  const sx = nx + 1, sy = ny + 1, sz = nz + 1;
+  const vals = new Float32Array(sx * sy * sz);
+  const bandLo = new Int32Array(sx * sz), bandHi = new Int32Array(sx * sz);
+  for (let iz = 0; iz < sz; iz++) {
+    for (let ix = 0; ix < sx; ix++) {
+      const vc = (iz + halo) * vx + (ix + halo);
+      const c = iz * sx + ix;
+      bandLo[c] = volume.bandLo[vc]; bandHi[c] = volume.bandHi[vc];
+      const w = volume.weight[vc], h = volume.height[vc];
+      for (let iy = 0; iy < sy; iy++) {
+        const plain = yLo + iy * vox - h;
+        const vol = volume.sdf[((iz + halo) * vy + iy) * vx + (ix + halo)];
+        vals[(iz * sy + iy) * sx + ix] = w <= 1e-6 ? plain : plain + (vol - plain) * w;
+      }
+    }
+  }
+  return { vals, bandLo, bandHi, nx, ny, nz, x0, yLo, z0, vox, cell, halo, volume,
+    stats: { halo, weatherPasses: weatherStats.iterations, weatherDelta: weatherStats.totalDelta,
+      blockCandidates: blockStats.candidates, blocksDetached: blockStats.detached } };
+}
+
+export function buildChunkGeometry(job, meta, v, ctx) {
+  const field = buildChunkField(job, meta, v, ctx);
+  const { vals, bandLo, bandHi, nx, ny, nz, x0, yLo, z0, vox, cell } = field;
+  const pad = job.pad || 0;
+  const Sx = job.cw + 1 + 2 * pad, Sz = job.ch + 1 + 2 * pad;
+  const m = job.maps;
+  const bil = (arr, u, w) => {
+    u += pad; w += pad;
+    const i = Math.min(Sx - 2, Math.max(0, Math.floor(u))), j = Math.min(Sz - 2, Math.max(0, Math.floor(w)));
+    const fu = Math.min(1, Math.max(0, u - i)), fw = Math.min(1, Math.max(0, w - j));
+    const a = arr[j * Sx + i], b = arr[j * Sx + i + 1], c = arr[(j + 1) * Sx + i], d = arr[(j + 1) * Sx + i + 1];
+    return (a + (b - a) * fu) * (1 - fw) + (c + (d - c) * fu) * fw;
+  };
+  const sx = nx + 1, sy = ny + 1, sz = nz + 1;
   const idx = (ix, iy, iz) => (iz * sy + iy) * sx + ix;
 
   // welded output: one vertex per crossed grid edge (axis, ix, iy, iz)
@@ -633,5 +700,5 @@ export function buildChunkGeometry(job, meta, v, ctx) {
     aux2[n * 4 + 3] = m.waterPaint ? bil(m.waterPaint, cu, cw) : m.waterLevel[Math.min(Sz - 1, Math.max(0, Math.round(cw) + pad)) * Sx + Math.min(Sx - 1, Math.max(0, Math.round(cu) + pad))];
   }
   const index = count > 65535 ? new Uint32Array(indices) : new Uint16Array(indices);
-  return { positions: pos, normals, aux, aux2, index, voxels: nx * ny * nz, triangles: indices.length / 3 };
+  return { positions: pos, normals, aux, aux2, index, voxels: nx * ny * nz, triangles: indices.length / 3, sdfVolume: field.stats };
 }
