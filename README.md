@@ -51,3 +51,12 @@ The Control Centre exposes only interface appearance settings, not GI or rendere
 
 Primary rendering: Vulkan with Slang shaders. GLFW owns windows/input; the isolated ImGui exhibit may use DX11.
 The Control Centre uses the reference trapezoidal notch and upward swipe-to-close drawer.
+
+## Rendering validation checkpoints
+
+- [Power MIS control](Exhibits/LightCompute/ReplayMISPower.md): supported plane improvement at equal query counts;
+  room quality evidence remains uncertain. Validation baseline only, not a production default.
+- [Power-MIS indirect reuse](Exhibits/LightCompute/ReplayPowerReuse.md): stronger-baseline reuse is rejected;
+  the room MIS-off reference-mean gate also fails. Exact hit-sharing checks do not establish quality acceptance.
+- Production allocation remains 348.046875 MiB output-only at 1080p. Packing and physical-GPU/editor acceptance
+  remain deferred or outstanding; software Vulkan query counts are not frame-time measurements.

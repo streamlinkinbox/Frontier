@@ -1,0 +1,1 @@
+PASS rejection-evidence parity (benchmark correctness=0, promote=0): 44 identical semantic rows, logged hashes [64, 64], ten exact RGB captures; both 5 CTests passed; four shader sources rederived per build; matched fresh work and component sums exact.

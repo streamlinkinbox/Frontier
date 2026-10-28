@@ -1330,3 +1330,16 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
   budgets for no-MIS/balance/power. Power beta=2 improves plane RMSE 24.17% versus balance and 2.72% versus off.
 - Room paired uncertainty prevents broad quality acceptance. No production/default change and no reuse promotion.
 - Active-effect and MIS-disabled exact-output assertions guard the actual FreshBudget evaluator substitution.
+
+### Power-weighted first-hop / indirect reuse — rejection reproduced
+
+- Previous recovered workspace and completed checkpoints pushed as `4d39616` on `arena/08e7de48-frontier`.
+- [Power reuse experiment](../Exhibits/LightCompute/ReplayPowerReuse.md): fixed beta=2, no reservoir retuning,
+  paired whole-power/no-MIS controls and independently referenced plane/room fixtures.
+- Release fused/unfused preflight passed 36 submissions with exact output/nine slabs/primary and 49,664 saved
+  nearest queries. Reuse regresses plane/room RMSE by 1.17%/75.70%, costs 37.05%/15.07% more final queries.
+- Release and host ASan/UBSan benchmarks both exit 1: room MIS-off fails the fixed mean/reference gate;
+  correctness=0/promote=0. Do not relax the threshold or call full numerical validation passing.
+- Both five-CTest sets pass; no host sanitizer diagnostics observed. Rejection-evidence parity passes 44 rows,
+  64 logged hashes/build, ten exact RGB captures and deterministic source rederivation.
+- Next blocker: independent room control/reference convergence and sampling audit, not more reservoir tuning.

@@ -205,3 +205,10 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   source and the actual FreshBudget evaluator; `ReplayMISPowerValidation.h` owns paired controls and references.
 - `RunReplayMISPower.sh`, `ReplayMISPowerParity.py`, `ReplayMISPowerImages.py`, `ReplayMISPower.md` and matching
   result/image names retain isolated validation, readbacks and reproducibility checks. Production is unchanged.
+
+### Power-weighted indirect reuse checkpoint
+
+- `Exhibits/LightCompute/Code/CompileReplayPowerReuse.py` derives fixed power weights consistently in the fused
+  split, unfused split and actual whole Fresh8 evaluator; the existing beta=2 function is reused verbatim.
+- `ReplayPowerReuseValidation.h`, `RunReplayPowerReuse.sh`, `ReplayPowerReuseImages.py`,
+  `ReplayPowerReuseParity.py` and `ReplayPowerReuse.md` retain isolated tests and evidence; production is unchanged.
