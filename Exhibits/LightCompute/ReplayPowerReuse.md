@@ -61,7 +61,8 @@ The room's whole MIS-off control **failed** the fixed mean/reference gate:
 | Absolute difference | 0.012931454 |
 | Allowed difference: 4 combined SE + .001 | 0.009066811 |
 
-Seven of eight means pass, but that does not erase the failed eighth. Both release and host-sanitized benchmarks exit **1** with
+Seven of eight means pass, but that does not erase the failed eighth. Both release and host-sanitized benchmarks
+exit **1** with
 `correctness=0, promote=0`. Seeds, sample counts and thresholds were not changed after observing this result.
 The room MIS-off RMSE is 0.132830909, but it cannot be accepted on lower observed RMSE while its mean gate fails.
 A failed finite-sample nominal-SE gate is not alone a diagnosis of estimator bias; rare-path variance, reference
