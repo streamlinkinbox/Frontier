@@ -14,7 +14,7 @@
 import { WATER, CAUSTICS, PARTICLES, groundWGSL } from './shaders/render.wgsl.js';
 
 const VIEW_FLOATS = 84;
-const WATER_FLOATS = 44;
+const WATER_FLOATS = 48;
 
 export class FluidRenderer {
   /**
@@ -61,6 +61,11 @@ export class FluidRenderer {
       minPixel: 1.6,
       softness: 0.25,
       particles: this.drawParticlesEnabled,
+      // [x0, z0, x1, z1] drawn by a finer nested renderer: skipped by this one so the two water
+      // layers never composite on top of each other (see fsWater in render.wgsl.js)
+      hole: null,
+      holeMode: 1,      // 1 = cut out the rect (outer layer), 2 = fade out at the rect border
+      holeFade: 2.0,    // metres of cross-fade for holeMode 2
     };
     this._view = new Float32Array(VIEW_FLOATS);
     this._water = new Float32Array(WATER_FLOATS);
@@ -269,7 +274,10 @@ export class FluidRenderer {
     w.set(s.scatter, 12); w[15] = s.roughness;
     w.set(s.mudAbsorb, 16); w[19] = s.mudRoughness;
     w.set(s.mudColor, 20); w[23] = s.debugMode;
-    w[24] = sim.params.seaLevel; w[25] = 0; w[26] = 0; w[27] = 0;
+    // hole: a rectangle drawn by a finer nested renderer (skipped here, see fsWater)
+    const hole = s.hole;
+    w[24] = sim.params.seaLevel; w[25] = hole ? (s.holeMode ?? 1) : 0; w[26] = s.holeFade ?? 2; w[27] = 0;
+    if (hole) { w[44] = hole[0]; w[45] = hole[1]; w[46] = hole[2]; w[47] = hole[3]; }
     w[28] = this.meshW; w[29] = this.meshH; w[30] = sim.params.epsRender; w[31] = s.caustics ? 1 : 0;
     w.set(s.mudScatter, 32); w[35] = 0;
     // camera-adaptive mesh: centre clamped to the domain, half extents to the farthest edge,

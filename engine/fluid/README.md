@@ -178,8 +178,9 @@ Two water renderers, both reading the same solver textures:
   from the camera height and the mesh size so the centre spacing is about one simulation cell.
   Vertices outside the playable rectangle collapse onto its border. The surface texture is
   sampled bilinearly, so vertices closer together than a cell do not show facets.
-* **Coarse water** — a plain grid over the far-field simulation, drawn first so the fine mesh
-  wins where they overlap.
+* **Coarse water** — a plain grid over the far-field simulation, drawn first. It is the fallback
+  under the fine mesh; the fine layer fades in over the last 6 m of its domain, so the two layers
+  cross-fade at the nesting border instead of compositing twice or leaving a gap.
 
 Per pixel: shoreline from the true water thickness, screen-space refraction along the refracted
 ray, Beer–Lambert absorption + single scattering (water and suspended sediment), Fresnel sky

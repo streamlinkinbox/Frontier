@@ -68,6 +68,15 @@ export class App {
       colorFormat: 'rgba16float', depthFormat: 'depth32float', label: 'fluidFar',
       adaptive: false, meshStep: 1, caustics: false, particles: false,
     });
+    // Nesting seam: the coarse water is drawn everywhere (it is the fallback under the fine mesh) and
+    // the fine water fades in over the last few metres of its domain. Inside the domain the fine
+    // surface is opaque, so the two layers never composite on top of each other there; at the border
+    // they cross-fade, which hides the join without a hard line or a gap of bare ground.
+    const seam = 6;
+    this.fluidRFar.settings.hole = null;
+    this.fluidR.settings.hole = [sc.origin[0], sc.origin[1], sc.origin[0] + sc.size, sc.origin[1] + sc.size];
+    this.fluidR.settings.holeMode = 2;
+    this.fluidR.settings.holeFade = seam;
     this.renderer = new SceneRenderer(device, this.fluidR, sc, { outputFormat, width, height });
     this.renderer.attachCoarse(this.fluidRFar);
     this.terrain = new TerrainEditor(this);

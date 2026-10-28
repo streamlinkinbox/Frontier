@@ -66,11 +66,12 @@ struct Water {
   scatter: vec3f, roughness: f32,
   mudAbsorb: vec3f, mudRough: f32,
   mudColor: vec3f, debugMode: f32,
-  seaLevel: f32, pad0: f32, pad1: f32, pad2: f32,
+  seaLevel: f32, holeOn: f32, holeW: f32, pad2: f32,  // holeOn: 0 off, 1 cut out, 2 fade at border (holeW m)
   meshW: f32, meshH: f32, epsRender: f32, causticsOn: f32,
   mudScatter: vec3f, pad3: f32,
   lodA: vec4f,    // camera-clamped centre x,z and the half extents Lx,Lz of the adaptive mesh
   lodB: vec4f,    // centre spacing factors ax,az, N-1, adaptive flag
+  hole: vec4f,    // x0,z0,x1,z1 rectangle covered by a finer nested renderer (drawn on top)
 };
 `;
 
@@ -179,6 +180,17 @@ fn heat(t: f32) -> vec3f {
 }
 
 @fragment fn fsWater(in: VOut) -> @location(0) vec4f {
+  // The fine nested domain is drawn by its own renderer after this one. Cutting it out here keeps
+  // two transparent layers from compositing on top of each other (which would tint the near water).
+  // holeOn 1: this is the OUTER (coarse) layer - skip everything a finer layer draws itself.
+  // holeOn 2: this is the INNER (fine) layer - fade out over holeW metres at its own border so the
+  // two layers cross-fade instead of meeting in a hard seam.
+  var edgeFade = 1.0;
+  if (W.holeOn > 1.5) {
+    let dEdge = min(min(in.world.x - W.hole.x, W.hole.z - in.world.x), min(in.world.z - W.hole.y, W.hole.w - in.world.z));
+    edgeFade = clamp(dEdge / max(W.holeW, 1e-3), 0.0, 1.0);
+    if (edgeFade <= 0.0) { discard; }
+  } else if (W.holeOn > 0.5 && in.world.x > W.hole.x && in.world.x < W.hole.z && in.world.z > W.hole.y && in.world.z < W.hole.w) { discard; }
   let fc = in.pos;
   let suv = fc.xy * V.invScreen;
   let flow = textureSampleLevel(shadeTex, linSamp, (in.world.xz - W.origin) / W.size, 0.0);
@@ -266,6 +278,8 @@ fn heat(t: f32) -> vec3f {
   // so the waterline follows the real intersection with the terrain (rendered wet underneath)
   let vdepth = thick0 * max(Vd.y, 0.06);
   let a = smoothstep(0.0, 0.03, vdepth) * smoothstep(0.0, W.epsRender, depthH + W.epsRender * 0.5);
+  // nested-layer cross-fade: the inner layer dissolves into the coarse water at its border
+  if (W.holeOn > 1.5) { return vec4f(mix(straight, col, a * edgeFade), edgeFade); }
   return vec4f(mix(straight, col, a), 1.0);
 }
 `;
