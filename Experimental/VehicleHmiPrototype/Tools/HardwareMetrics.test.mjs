@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {HardwareMetrics} from '../Source/HardwareMetrics.js';
+test('GPU callbacks retain their originating recorder across asynchronous map and recorder replacement',async()=>{
+ const M=new HardwareMetrics({TimestampEnabled:false},['Clouds']);M.Enabled=true;M.Written.add('Clouds');M.SampleContext={frame:9};let Finish,Old=0,New=0;M.ReadRecords={mapAsync:()=>new Promise(R=>Finish=R),getMappedRange:()=>new BigUint64Array([0n,180000n]).buffer,unmap:()=>{}};globalThis.GPUMapMode={READ:1};M.OnSample=(Raw,Context)=>{Old++;assert.equal(Raw.Clouds,.18);assert.equal(Context.frame,9);};const Pending=M.CollectDurations();M.OnSample=()=>New++;Finish();await Pending;assert.equal(Old,1);assert.equal(New,0);assert.equal(M.Enabled,true);delete globalThis.GPUMapMode;
+});

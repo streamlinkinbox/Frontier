@@ -1,0 +1,2 @@
+import assert from 'node:assert/strict';
+export default {BeforeFrame(H,F){if(F===0){H.Vehicle.Frozen=true;H.Precipitation.Settings.Category=2;H.Precipitation.Start();}if(F===10)H.Precipitation.Stop();},Report(H){assert.ok(H.Precipitation.Resident);assert.ok(!H.SurfaceDeposits,'retired coating renderer must not be constructed');console.log('Celestial GPU precipitation: simulation, hail type, particle rendering and indirect opaque mesh path validated; retired coating absent.');}};

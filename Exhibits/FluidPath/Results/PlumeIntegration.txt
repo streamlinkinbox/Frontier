@@ -1,0 +1,3 @@
+
+=== harness: 3 frames, 0 errors, 0 warnings, 63.6 s
+PASS active plume: 3 transport steps, sources and march resources present

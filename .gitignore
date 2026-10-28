@@ -1,0 +1,7 @@
+node_modules/
+build/
+.cache/
+Experimental/VehicleHmiPrototype/Assets/Celestial/MoonAtlas.rgba.gz
+
+__pycache__/
+*.py[cod]

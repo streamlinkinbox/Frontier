@@ -1,0 +1,20 @@
+PASS 1: Real WebGL2 shader compilation, simulation, and rendering
+PASS 2: Pause, exact single stepping, nonzero finite GPU voxel fields
+PASS 3: Native DM Sans fonts, charcoal cards and Project Zero control geometry
+PASS 4: Split-pill typing, slider keyboard controls, dragging and live fill synchronization
+PASS 5: Native-style outliner search, filters, folding, compact rows, status and double-click selection
+PASS 6: Inspector edits the engine’s live shared parameters
+PASS 7: Insert source and collider, edit position, retain existing simulation
+PASS 8: Object renaming is escaped, not injected as HTML
+PASS 9: Burst scheduling, reset cancellation, clear GPU fields, real detonation injection
+PASS 10: Changing voxel resolution reallocates the actual GPU grid
+PASS 11: Settings export/download and validated import round-trip
+PASS 12: Invalid settings leave the live scene intact
+PASS 13: Debug render channels and atlas controls reach the renderer
+PASS 14: Pointer orbit controls the real volume camera
+PASS 15: Preset search, reset, and gas preset loading
+PASS 16: Desktop, compact desktop, and narrow viewport layout
+Optional backend result: webgl2
+PASS 17: Optional WebGPU selection or honest fallback and WebGL2 recovery
+PASS 18: No browser JavaScript or GPU console errors
+18 browser checks passed.

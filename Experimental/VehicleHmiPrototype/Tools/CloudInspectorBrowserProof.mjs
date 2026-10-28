@@ -1,0 +1,21 @@
+// Requires prototype server on 8080 and optional Tools dependencies playwright + @sparticuz/chromium@138.0.2.
+import {chromium} from 'playwright';import Chromium from '@sparticuz/chromium';import {inflate} from './node_modules/@sparticuz/chromium/build/esm/lambdafs.js';
+import path from 'node:path';import fs from 'node:fs';import assert from 'node:assert/strict';
+const Out=process.env.OUT_DIR??'/home/user/cloud-inspector-proof';fs.mkdirSync(Out,{recursive:true});const Executable=await Chromium.executablePath();await inflate(path.resolve('Tools/node_modules/@sparticuz/chromium/bin/al2023.tar.br'));
+const Browser=await chromium.launch({executablePath:Executable,env:{...process.env,LD_LIBRARY_PATH:'/tmp/al2023/lib:/tmp',VK_ICD_FILENAMES:'/tmp/vk_swiftshader_icd.json'},args:[...Chromium.args.filter(A=>!['--single-process','--in-process-gpu','--disable-web-security'].includes(A)),'--enable-unsafe-webgpu','--use-webgpu-adapter=swiftshader','--enable-features=Vulkan','--use-vulkan=swiftshader','--disable-vulkan-surface','--enable-unsafe-swiftshader'],headless:true});
+try{
+ const P=await Browser.newPage({viewport:{width:1440,height:900}}),Errors=[];P.on('pageerror',E=>{Errors.push(String(E));console.error(E);});P.on('console',M=>{if(M.type()==='error'){Errors.push(M.text());console.error(M.text());}});
+ await P.addInitScript(()=>{const RAF=requestAnimationFrame.bind(window);window.requestAnimationFrame=Cb=>RAF(T=>{if(window.IlluminationExhibit?.FrameIndex>=1)return;Cb(T);});});
+ await P.goto('http://127.0.0.1:8080/?quality=low&scale=.25&stresspool=0&inspector=clouds',{waitUntil:'domcontentloaded'});await P.waitForFunction(()=>window.IlluminationExhibit?.FrameIndex>=1,null,{timeout:150000,polling:100});
+ await P.getByText('Density diagnostic',{exact:true}).waitFor({timeout:30000});
+ const Panel=P.locator('.cloud-observatory');assert.equal(await Panel.count(),1);assert.equal(await P.locator('.cloud-observatory .co-card').count()>0,true);
+ await P.screenshot({path:Out+'/clouds-overview.png'});await Panel.screenshot({path:Out+'/clouds-inspector.png'});
+ const Coverage=P.getByRole('spinbutton',{name:'Coverage',exact:true});await Coverage.fill('72');await Coverage.press('Tab');assert.equal(await P.evaluate(()=>window.IlluminationExhibit.Settings.CloudCoverage),.72);
+ const Mix=P.getByRole('group',{name:'Coverage and density editor',exact:true});await Mix.focus();await P.keyboard.press('ArrowRight');assert.equal(await P.evaluate(()=>window.IlluminationExhibit.Settings.CloudCoverage),.73);
+ await P.getByRole('tab',{name:'Formation',exact:true}).click();const Base=P.getByRole('spinbutton',{name:'Base altitude',exact:true});await Base.fill('2400');await Base.press('Tab');assert.equal(await P.evaluate(()=>window.IlluminationExhibit.Settings.CloudBase),2400);await P.getByRole('combobox',{name:'Cloud formation',exact:true}).selectOption('3');assert.equal(await P.evaluate(()=>window.IlluminationExhibit.Settings.CloudType),3);await Panel.screenshot({path:Out+'/clouds-formation.png'});
+ await P.getByRole('tab',{name:'Rendering',exact:true}).click();const Samples=P.getByRole('spinbutton',{name:'Sky base samples',exact:true});await Samples.fill('20');await Samples.press('Tab');assert.equal(await P.evaluate(()=>window.IlluminationExhibit.Settings.CloudSteps),20);await Panel.screenshot({path:Out+'/clouds-rendering.png'});
+ await P.getByRole('tab',{name:'Weather',exact:true}).click();assert.equal(await P.locator('[data-native-card="Lightning & thunder"]').isVisible(),true);
+ const Before=await P.evaluate(()=>window.IlluminationExhibit.Settings.CloudEnabled);await P.getByRole('button',{name:'Toggle global clouds',exact:true}).click();assert.equal(await P.evaluate(()=>window.IlluminationExhibit.Settings.CloudEnabled),!Before);
+ await P.evaluate(async()=>{const H=window.IlluminationExhibit;H.Shell.Select('sun');if(document.querySelector('.cloud-observatory'))throw Error('Cloud skin leaked into Sun');H.AdvanceFrame(H.LastTime+100);await H.Exchange.Device.queue.onSubmittedWorkDone();});
+ assert.equal(Errors.length,0,Errors.join('\n'));console.log(JSON.stringify({coverage:.73,base:2400,formation:3,samples:20,scope:'global Clouds inspector only',Errors},null,2));
+}finally{await Browser.close();}

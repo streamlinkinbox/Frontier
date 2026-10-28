@@ -1,0 +1,5 @@
+clear: optical_depth=0.000000 sun_transmittance=1.000000
+smoke: optical_depth=4.800000 sun_transmittance=0.044157
+double smoke: optical_depth=9.600000 sun_transmittance=0.001950
+soot: optical_depth=14.400001 sun_transmittance=0.000086
+PASS extracted vehicle plume optical-depth function on software Vulkan

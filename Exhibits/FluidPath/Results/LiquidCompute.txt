@@ -1,0 +1,7 @@
+Adapter: SwiftShader driver 5.0.0 (software fallback requested)
+sweeps=1 divergence_l2=16.492142 -> 15.293278 max_abs_error=2.384e-7
+sweeps=2 divergence_l2=16.492142 -> 14.301398 max_abs_error=2.384e-7
+sweeps=40 divergence_l2=16.492142 -> 8.609374 max_abs_error=9.537e-7
+sweeps=100 divergence_l2=16.492142 -> 7.870682 max_abs_error=1.907e-6
+scatter particles=1024 exact_fixed_point_mass=67108864 marker=1: PASS
+PASS software Vulkan pressure, projection, divergence and atomic scatter against CPU reference

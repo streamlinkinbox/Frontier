@@ -1,0 +1,65 @@
+/* ===================== Precipitation: CPU particles projected with the scene camera, ground collision, splash / bounce / melt ===================== */
+const PR_TYPES={Rain:{vt:8.5,d:2.2,bounce:0,drag:.25,len:1,melt:0,shape:'streak'},Drizzle:{vt:3.2,d:.6,bounce:0,drag:.6,len:.5,melt:0,shape:'streak'},Hail:{vt:22,d:9,bounce:.6,drag:.08,len:0,melt:0,shape:'ball'},Snow:{vt:1.4,d:5,bounce:0,drag:1.2,len:0,melt:1,shape:'flake'},Sleet:{vt:5.5,d:3,bounce:.15,drag:.4,len:.4,melt:.6,shape:'ball'}};
+const PR_BUDGET={Low:4000,Medium:12000,High:25000};
+const BEAUFORT=[[0.5,0,'Calm','smoke rises straight up'],[1.5,1,'Light air','smoke drifts'],[3.3,2,'Light breeze','leaves rustle'],[5.5,3,'Gentle breeze','flags stir'],[7.9,4,'Moderate breeze','dust lifts, small branches move'],[10.7,5,'Fresh breeze','small trees sway'],[13.8,6,'Strong breeze','large branches move'],[17.1,7,'Near gale','whole trees in motion'],[20.7,8,'Gale','twigs break off'],[24.4,9,'Strong gale','slates lift'],[28.4,10,'Storm','trees uprooted'],[1e9,11,'Violent storm','structural damage']];
+function beaufort(v){ return BEAUFORT.find(b=>v<b[0]); }
+const COMPASS=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']; const compassOf=d=>COMPASS[Math.round((((d%360)+360)%360)/22.5)%16];
+const WIND={int:[0,0],phase:0,trace:new Float32Array(120),ti:0,tAcc:0};
+function windBase(y){ const km=Math.max(0,y)/1000; const sp=S.wd_speed*(1+S.wd_shear*km); const b=(S.wd_dir+S.wd_veer*km)*D2R; return [Math.sin(b)*sp,Math.cos(b)*sp]; }
+function windGust(){ const ph=WIND.phase; return 1+S.wd_gust*(.55*Math.sin(ph)+.3*Math.sin(ph*2.31+1.7)+.15*Math.sin(ph*4.7+.4)); }
+function windTurb(p,t){ if(!(S.wd_turb>0)) return [0,0,0]; const q=[p[0]*.02+t*.05,p[1]*.02,p[2]*.02+t*.03]; const e=.5; const n1=_vn(q[0],q[1]+e,q[2])-_vn(q[0],q[1]-e,q[2]), n2=_vn(q[0],q[1],q[2]+e)-_vn(q[0],q[1],q[2]-e), n3=_vn(q[0]+e,q[1],q[2])-_vn(q[0]-e,q[1],q[2]); const k=S.wd_turb*S.wd_speed*.9; return [(n1-n2)*k,(n2-n3)*k,(n3-n1)*k]; }
+function windAt(p,t){ const b=windBase(p[1]); const g=windGust(); const tb=windTurb(p,t); return [b[0]*g+tb[0],tb[1],b[1]*g+tb[2]]; }
+function windStep(dt){ const b=windBase(0); const g=windGust(); WIND.int[0]+=b[0]*g*dt; WIND.int[1]+=b[1]*g*dt; WIND.phase+=dt*(.35+S.wd_gust*.4); WIND.tAcc+=dt; if(WIND.tAcc>.5){ WIND.tAcc=0; WIND.trace[WIND.ti]=S.wd_speed*g; WIND.ti=(WIND.ti+1)%WIND.trace.length; } }
+// cloud coverage sampler (mirror of the shader's base shape: 4-octave value noise, same wind advection); 0..1
+const _fr=v=>v-Math.floor(v); const _h3=(x,y,z)=>{ let px=_fr(x*.1031),py=_fr(y*.1031),pz=_fr(z*.1031); const d=px*(pz+31.32)+py*(py+31.32)+pz*(px+31.32); px+=d; py+=d; pz+=d; return _fr((px+py)*pz); };
+function _vn(x,y,z){ const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z); let fx=x-ix,fy=y-iy,fz=z-iz; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const c=(a,b,cc)=>_h3(ix+a,iy+b,iz+cc); const l=(a,b,t)=>a+(b-a)*t;
+  return l(l(l(c(0,0,0),c(1,0,0),fx),l(c(0,1,0),c(1,1,0),fx),fy),l(l(c(0,0,1),c(1,0,1),fx),l(c(0,1,1),c(1,1,1),fx),fy),fz); }
+function cloudCoverAt(x,z,time){ let qx,qz; if(S.wd_cl&&S.vis_wind!==false){ const b=windBase(S.cl_base+S.cl_thick*.25); const f=Math.hypot(b[0],b[1])/Math.max(1e-3,S.wd_speed); qx=x+WIND.int[0]*f*.8; qz=z+WIND.int[1]*f*.8; } else { const wd=(S.cl_winddir||214)*D2R; const w=(S.cl_wind||6)*time*.8; qx=x+Math.sin(wd)*w; qz=z+Math.cos(wd)*w; } const sc=1/((S.cl_scale||1.4)*900); const sx=qx*sc, sy=(S.cl_base+S.cl_thick*.25)*sc, sz=qz*sc;
+  let n=_vn(sx,sy,sz)*.5+_vn(sx*2.02+3.1,sy*2.02+1.7,sz*2.02+9.2)*.25+_vn(sx*4.1+7.7,sy*4.1+2.2,sz*4.1+1.1)*.125+_vn(sx*8.3+1.3,sy*8.3+8.8,sz*8.3+4.4)*.0625; n/=.9375;
+  const cov=S.cl_cov; const th=1-cov; return Math.max(0,Math.min(1,(n-(th-.12))/Math.max(1e-3,cov+.12))); }   // slightly wider than the render threshold: the whole footprint rains, the core rains harder
+const PR={pool:[],alive:0,landed:0,acc:0,ctx:document.getElementById('precip').getContext('2d')};
+function prGroundY(x,z){ return (S.vis_plane!==false)?S.pl_y:-1e9; }
+function prStep(dt){ const cv=document.getElementById('precip'); const on=S.vis_precip!==false&&S.vis_vclouds!==false&&S.pr_rate>0&&CAM; const g=PR.ctx; const dpr=Math.min(devicePixelRatio||1,2);
+  if(cv.width!==Math.floor(innerWidth*dpr)||cv.height!==Math.floor(innerHeight*dpr)){ cv.width=Math.floor(innerWidth*dpr); cv.height=Math.floor(innerHeight*dpr); }
+  g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,innerWidth,innerHeight); if(!on){ PR.pool.length=0; PR.alive=0; PR.landed=0; return; }
+  const T=PR_TYPES[S.pr_type]; const budget=Math.min(PR_BUDGET[S.pr_quality],PR_BUDGET[Q().precip]); const cam=CAM.pos; const R=45; // spawn radius around camera (m)
+  const ceiling=S.pr_fromClouds?S.cl_base+S.cl_thick*.5:Math.min(S.cl_base,3000); const altFade=1-Math.min(1,Math.max(0,(cam[1]-(ceiling-150))/150));   // rain lives under the cloud; nothing above it
+  if(altFade<=0){ PR.pool.length=0; PR.alive=0; PR.landed=0; return; }
+  const area=Math.PI*R*R; const perM2=S.pr_type==='Snow'?S.pr_rate*.9:S.pr_type==='Drizzle'?S.pr_rate*2.2:S.pr_rate*.55;   // drops per m² per second (rain ≈ 0.5·mm/h for 2 mm drops)
+  const spawnRate=Math.min(budget*1.5,perM2*area*S.pr_density)*altFade; PR.acc+=spawnRate*dt; const tnow=performance.now()/1000; const yaw=S.cam_yaw*D2R; const fx=Math.sin(yaw),fz=-Math.cos(yaw);
+  const top=Math.min(ceiling,S.pr_fromClouds?Math.min(cam[1]+400,Math.max(cam[1]+30,S.cl_base)):cam[1]+60);
+  const linked=S.wd_pr&&S.vis_wind!==false; const windA=(S.cl_winddir||214)*D2R, windS=(S.cl_wind||6)*S.pr_wind; let wx=Math.sin(windA)*windS, wz=Math.cos(windA)*windS; if(linked){ const w=windAt([cam[0],cam[1]+20,cam[2]],tnow); wx=w[0]*S.pr_wind*2; wz=w[2]*S.pr_wind*2; }
+  while(PR.acc>=1&&PR.pool.length<budget){ PR.acc-=1; const r=Math.sqrt(Math.random())*R, a=Math.random()*Math.PI*2; // bias spawn ahead of the camera
+    const px=cam[0]+fx*R*.45+Math.cos(a)*r, pz=cam[2]+fz*R*.45+Math.sin(a)*r;
+    const floor=Math.max(S.pl_y,cam[1]-40); const y=floor+Math.pow(Math.random(),.8)*(top-floor);
+    if(S.pr_fromClouds&&S.vis_vclouds!==false){ const c=cloudCoverAt(px,pz,tnow); if(c<.04||Math.random()>Math.min(1,.25+c*1.2)) continue; }
+    PR.pool.push({x:px,y,z:pz,vx:wx*(.6+Math.random()*.6),vy:-T.vt*(.85+Math.random()*.3),vz:wz*(.6+Math.random()*.6),s:(.7+Math.random()*.6)*S.pr_size,ph:Math.random()*6.28,st:0,t:0,b:0}); }
+  if(PR.acc>3) PR.acc=3;
+  let alive=0,landed=0; const gy=S.pl_y; const life=S.pr_life; const rest=S.pr_bounce*T.bounce;
+  for(let i=PR.pool.length-1;i>=0;i--){ const p=PR.pool[i];
+    if(p.st===0){ // falling: drag toward terminal velocity + wind, flakes flutter
+      let twx=wx,twz=wz,twy=0; if(linked&&S.wd_turb>0&&(i&7)===0){ const w=windAt([p.x,p.y,p.z],tnow); twx=w[0]*S.pr_wind*2; twz=w[2]*S.pr_wind*2; twy=w[1]*S.pr_wind; }
+      p.vy+=(-T.vt+twy-p.vy)*Math.min(1,dt*2.5); p.vx+=(twx-p.vx)*Math.min(1,dt*T.drag); p.vz+=(twz-p.vz)*Math.min(1,dt*T.drag);
+      if(T.shape==='flake'){ p.ph+=dt*2.2; p.vx+=Math.sin(p.ph)*dt*1.4; p.vz+=Math.cos(p.ph*.7)*dt*1.2; }
+      p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt;
+      const ground=S.pr_collide?prGroundY(p.x,p.z):-1e9;
+      if(p.y<=ground){ p.y=ground; if(rest>.05&&Math.abs(p.vy)>1.5&&p.b<3){ p.vy=-p.vy*rest; p.vx*=.8; p.vz*=.8; p.b++; p.y+=.01; } else { p.st=1; p.t=0; p.vx=p.vy=p.vz=0; } }
+      else if(p.y<cam[1]-60||Math.hypot(p.x-cam[0],p.z-cam[2])>R*2.2){ PR.pool[i]=PR.pool[PR.pool.length-1]; PR.pool.pop(); continue; }
+      alive++; }
+    else { p.t+=dt; landed++; if(p.t>life){ PR.pool[i]=PR.pool[PR.pool.length-1]; PR.pool.pop(); continue; } } }
+  PR.alive=alive; PR.landed=landed;
+  // ---- draw ----
+  const tint=S.pr_tint; const op=S.pr_opacity; const H=innerHeight; const rgb=hex2rgb(tint).map(v=>Math.round(v*255));
+  g.lineCap='round'; const streakK=S.pr_streak*T.len*.05; const camF=CAM;
+  for(const p of PR.pool){ const pr=gzProject([p.x,p.y,p.z]); if(!pr) continue; const [sx,sy,depth]=pr; if(sx<-20||sx>innerWidth+20||sy<-20||sy>H+20) continue;
+    const pxm=H/(2*depth*camF.tanH); // pixels per metre at this depth
+    const fade=Math.min(1,depth/2)*(1-Math.min(1,Math.max(0,(depth-R*1.6)/(R*.6)))); if(fade<=0) continue;
+    if(p.st===1){ if(!S.pr_splash) continue; const k=p.t/life; if(T.shape==='streak'){ const rr=(0.6+k*2.2)*S.pr_accum*pxm*.6+1; g.strokeStyle=`rgba(${rgb},${((1-k)*.35*op*fade).toFixed(3)})`; g.lineWidth=1; g.beginPath(); g.ellipse(sx,sy,rr,rr*.35,0,0,6.283); g.stroke(); if(k<.25){ g.fillStyle=`rgba(${rgb},${((1-k*4)*.5*op*fade).toFixed(3)})`; g.beginPath(); g.arc(sx,sy-pxm*.08*(1-k*4),Math.max(.6,pxm*.02),0,6.283); g.fill(); } }
+      else { const melt=T.melt*k; const r=Math.max(.5,p.s*T.d*.0006*pxm*(1-melt*.7)); g.fillStyle=`rgba(${rgb},${((1-k*k)*.8*op*fade).toFixed(3)})`; g.beginPath(); g.ellipse(sx,sy,r*(1+melt*.6),r*(1-melt*.5),0,0,6.283); g.fill(); }
+      continue; }
+    const vsy=-p.vy; const r=Math.max(.5,p.s*T.d*.0006*pxm);
+    if(T.shape==='streak'){ const len=Math.max(1.5,vsy*pxm*streakK*(1+depth*.02)); const tail=gzProject([p.x-p.vx*streakK*.4,p.y-p.vy*streakK*.4,p.z-p.vz*streakK*.4]); const tx=tail?tail[0]:sx, ty=tail?tail[1]:sy-len; const ab=Math.round(.55*op*fade*8)/8, lw=Math.round(Math.max(.7,r*1.6)*2)/2; const key=ab+'|'+lw; if(key!==g._k){ if(g._k){ g.stroke(); } g._k=key; g.strokeStyle=`rgba(${rgb},${ab})`; g.lineWidth=lw; g.beginPath(); } g.moveTo(sx,sy); g.lineTo(tx,ty); }
+    else if(T.shape==='ball'){ g.fillStyle=`rgba(${rgb},${(.95*op*fade).toFixed(3)})`; g.beginPath(); g.arc(sx,sy,r,0,6.283); g.fill(); g.fillStyle=`rgba(255,255,255,${(.5*op*fade).toFixed(3)})`; g.beginPath(); g.arc(sx-r*.3,sy-r*.3,r*.35,0,6.283); g.fill(); }
+    else { const rr=Math.max(1,r*1.6); g.fillStyle=`rgba(255,255,255,${(.9*op*fade).toFixed(3)})`; g.beginPath(); g.arc(sx,sy,rr,0,6.283); g.fill(); } }
+  if(g._k){ g.stroke(); g._k=null; } }

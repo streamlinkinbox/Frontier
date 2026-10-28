@@ -1,0 +1,11 @@
+{
+  "name": "frontier-reference-particle-editor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node CheckForceFields.mjs && node CheckForcePanel.mjs && node CheckHandoff.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}

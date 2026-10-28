@@ -1,0 +1,11 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {EnvironmentDefaults} from '../Source/EnvironmentSettings.js';
+import {FogPathTransmission,FogNeutralContrast,FogForwardWeight,SetFogInspectorValue} from '../Source/FogInspectorDashboard.js';
+const S={...EnvironmentDefaults,FogDensity:.003,FogHeight:80,AerialDensity:.0001,AerialStart:100,AerialMie:.3};
+test('height diagnostic uses squared optical depth, including world height',()=>{const D=200,Z=2,Expected=Math.exp(-((.003*D*Math.exp(-Z/80))**2));assert.deepEqual(FogPathTransmission(S,[0,0,Z],[D,0,Z]),[Expected,Expected,Expected]);});
+test('slanted fog path integrates exponential height and is reciprocal',()=>{const A=[0,0,20],B=[300,0,160],D=Math.hypot(300,140),Delta=140/80,OD=.003*D*Math.exp(-20/80)*(1-Math.exp(-Delta))/Delta;const T=FogPathTransmission(S,A,B)[0];assert.ok(Math.abs(T-Math.exp(-(OD**2)))<1e-12);assert.ok(Math.abs(T-FogPathTransmission(S,B,A)[0])<1e-12);});
+test('aerial has a clear start then exact spectral-to-grey extinction',()=>{assert.deepEqual(FogPathTransmission(S,[0,0,0],[100,0,0],'aerial'),[1,1,1]);const T=FogPathTransmission(S,[0,0,0],[1100,0,0],'aerial');assert.deepEqual(T,[.45,.7,1].map(B=>Math.exp(-.1*(B*.7+.3))));assert.deepEqual(FogPathTransmission({...S,AerialMie:1},[0,0,0],[1100,0,0],'aerial'),Array(3).fill(Math.exp(-.1)));});
+test('isolated probes ignore enabled, tint and scatter, and zero density is transparent',()=>{const A=FogPathTransmission(S,[0,0,2],[200,0,2]);assert.deepEqual(FogPathTransmission({...S,FogEnabled:false,FogColour:[0,0,0],FogScatter:1},[0,0,2],[200,0,2]),A);assert.deepEqual(FogPathTransmission({...S,FogDensity:0},[0,0,0],[200,0,0]),[1,1,1]);assert.equal(FogNeutralContrast([1,1,1]),1);});
+test('forward scatter is the shader cos eighth power, not extinction',()=>{assert.equal(FogForwardWeight(0,.7),.7);assert.ok(Math.abs(FogForwardWeight(Math.PI/4,1)-.0625)<1e-12);assert.equal(FogForwardWeight(Math.PI,1),0);});
+test('fog edits respect native bounds and reject unrelated/non-finite fields',()=>{const V={...S};assert.equal(SetFogInspectorValue(V,'FogDensity',2),true);assert.equal(V.FogDensity,.05);SetFogInspectorValue(V,'FogHeight',-1);assert.equal(V.FogHeight,1);assert.equal(SetFogInspectorValue(V,'FogScatter',NaN),false);assert.equal(SetFogInspectorValue(V,'MoonSize',1),false);});

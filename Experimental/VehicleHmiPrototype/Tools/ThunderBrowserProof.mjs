@@ -1,0 +1,10 @@
+import {chromium} from 'playwright';import Chromium from '@sparticuz/chromium';import {inflate} from './node_modules/@sparticuz/chromium/build/lambdafs.js';import path from 'node:path';import assert from 'node:assert/strict';
+const Executable=await Chromium.executablePath();await inflate(path.resolve('Tools/node_modules/@sparticuz/chromium/bin/al2023.tar.br'));
+const B=await chromium.launch({executablePath:Executable,env:{...process.env,LD_LIBRARY_PATH:'/tmp/al2023/lib:/tmp'},args:Chromium.args.filter(A=>!['--single-process','--in-process-gpu','--disable-web-security','--autoplay-policy=no-user-gesture-required'].includes(A)),headless:true});
+try{
+ const P=await B.newPage();const Errors=[];P.on('pageerror',E=>Errors.push(String(E)));
+ await P.route('**/__thunder-proof',R=>R.fulfill({contentType:'text/html',body:`<!doctype html><meta charset="utf-8"><button id="enable">Enable thunder</button><script type="module">import {ThunderAudio} from '/Source/ThunderAudio.js';window.T=new ThunderAudio();document.getElementById('enable').onclick=()=>T.Enable();</script>`}));
+ await P.goto('http://127.0.0.1:8080/__thunder-proof');await P.waitForFunction(()=>window.T);assert.equal(await P.evaluate(()=>T.Context),undefined);await P.locator('#enable').click();await P.waitForFunction(()=>T.Enabled&&T.Context.state==='running');
+ const R=await P.evaluate(()=>{const Starts=[],C=T.Context,Original=C.createBufferSource.bind(C);C.createBufferSource=()=>{const S=Original(),Start=S.start.bind(S);S.start=(...A)=>{Starts.push(A[0]);Start(...A);};return S;};const Before=C.currentTime;const Scheduled=T.Strike(343,.2),Voices=T.Sources.size;T.Disable();return {scheduled:Scheduled,voices:Voices,starts:Starts,before:Before,cancelled:T.Sources.size===0,sampleRate:C.sampleRate};});
+ assert.ok(R.scheduled&&R.voices===2&&R.cancelled);assert.ok(R.starts.every(T=>T>=R.before+1&&T<R.before+1.1));assert.equal(Errors.length,0);console.log(JSON.stringify({...R,errors:Errors,realWebAudioGraph:'passed'},null,2));
+}finally{await B.close();}

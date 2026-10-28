@@ -1,0 +1,14 @@
+// Replacement fog inspector, following the demo's Volume / Medium / Lighting cards.
+import {Card,Tiles,Note,Slider,Select,Button,Colour} from './NativeEnvironmentControls.js';
+import {BuildSharedWind} from './NativeCloudPanel.js';
+export function BuildLocalFog(Host,C,P){const S=Host.Settings;Tiles(C,P,S,[['LocalFogEnabled','Enabled','NativeLocalFog']]);
+ const Volume=Card(P,'Volume','NativeLocalFog');Select(C,Volume,S,'LocalFogShape','Shape',[[1,'Box'],[0,'Ellipsoid'],[2,'Sphere'],[3,'Dome']]);Tiles(C,Volume,S,[['LocalFogFalloff','Density falloff','NativeFog']]);
+ Button(Volume,'Place in front of camera',()=>{const Eye=Host.CameraEye??[0,0,2],F=Host.CameraState?.Forward??Host.Clouds?.LastForward??[1,0,0];for(let I=0;I<3;I++)S['LocalFog'+['X','Y','Z'][I]]=Math.round(Eye[I]+F[I]*25);S.LocalFogEnabled=true;C.Notify('LocalFogEnabled',S);C.Synchronise();});
+ for(const A of ['X','Y'])Slider(C,Volume,S,'LocalFog'+A,'Position '+A,-100,100,.1,'m');Slider(C,Volume,S,'LocalFogZ','Centre height',-5,60,.1,'m');
+ const Fields=document.createElement('div');Volume.appendChild(Fields);const Groups=[];
+ for(const [Shapes,Specs]of [[[0,1],[['LocalFogHalfX','Extent X',1,200],['LocalFogHalfY','Extent Y',1,200],['LocalFogHalfZ','Extent Z',.5,60]]],[[2,3],[['LocalFogHalfX','Radius',1,200]]],[[3],[['LocalFogHalfZ','Dome height',.5,60]]]]){const Group=document.createElement('div');Fields.appendChild(Group);for(const [K,L,Min,Max]of Specs)Slider(C,Group,S,K,L,Min,Max,.5,'m');Groups.push([Shapes,Group]);}
+ const Refresh=()=>{for(const [Shapes,Group]of Groups)Group.hidden=!Shapes.includes(S.LocalFogShape);};Refresh();C.Bindings.push(Refresh);
+ Slider(C,Volume,S,'LocalFogSoftness','Edge softness',.02,1,.01);Note(Volume,'Z-up adaptation: horizontal X/Y, vertical Z. Dome centre height sets its base. Extents are half sizes, matching the demo volume bounds.');
+ const Medium=Card(P,'Medium','NativeFog');Slider(C,Medium,S,'LocalFogDensity','Density σ',0,2,.01,'/m');Slider(C,Medium,S,'LocalFogNoise','Heterogeneity',0,1,.01);Slider(C,Medium,S,'LocalFogScale','Noise scale',.5,30,.1,'m');Slider(C,Medium,S,'LocalFogSpeed','Independent wind',0,5,.05,'m/s');Tiles(C,Medium,S,[['LocalFogFollowWind','Follow Wind Field','Wind']]);Note(Medium,'Independent wind is used only when Follow Wind Field is off.');Colour(C,Medium,S,'LocalFogAlbedo','Albedo');Slider(C,Medium,S,'LocalFogAbsorption','Absorption',0,1,.01);
+ const Lighting=Card(P,'Lighting','Sun');Slider(C,Lighting,S,'LocalFogAnisotropy','Anisotropy g',0,.95,.01);Tiles(C,Lighting,S,[['LocalFogSelfShadow','Self-shadowing','Sun']]);Select(C,Lighting,S,'LocalFogSteps','Quality',[[16,'Draft'],[28,'Balanced'],[48,'High']]);Note(Lighting,'Bounded secondary sun march. Density/feature-aware integration uses up to 192 samples to avoid depth-stretched bands. Scene/cabin depth occlusion and up to four local lights are retained.');BuildSharedWind(C,P,S,Host);
+}
