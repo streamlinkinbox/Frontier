@@ -1,25 +1,31 @@
 # Frontier Fluid — real-time WebGPU water for racing games
 
-Engine-agnostic WebGPU module that **simulates** water and mud on the GPU and renders it:
-ocean swell breaking on a beach, rivers flowing down a carved path, puddles and mud pits that cars
-drive through, real splashes, particle spray and particle foam, caustics and buoyancy.
+Engine-agnostic WebGPU module that **simulates** water and mud on the GPU and renders it: sea and
+swell breaking on a beach, rivers flowing down a carved path, puddles and mud pits that cars drive
+through, spray, caustics and buoyancy.
 
-Nothing is faked: every wave you see comes out of the solver, foam and spray are GPU particles
-carrying (and returning) real water volume, and caustics are traced through the simulated surface.
+Nothing is faked. Every wave comes out of the solver (there is no analytic wave mesh anywhere,
+near or far), spray particles carry and return real water volume, and caustics are traced through
+the simulated surface. The world is simulated twice at once — a coarse grid for the whole visible
+bay and a fine grid around the car — and the two are coupled in both directions, so the sea you
+see far away is the same water that runs through the fine domain. Rendering uses a
+**camera-adaptive water mesh**: about one simulation cell per vertex where you look, growing
+coarser with distance, like a Nanite-style resolution pyramid.
+
+The demo also has **terrain sculpting** (raise / lower / smooth / flatten / paint) that edits the
+golive heightfield the solver runs on, so carving a channel immediately fills with water.
 
 ```
 engine/fluid/
   src/                 the module (vanilla ES modules, no dependencies, no build step)
     FluidSim.js        shallow-water + mud solver, object coupling, queries, stats
-    FluidParticles.js  spray / mist / foam / rain particles coupled to the grid
-    FoamPattern.js     procedural foam micro-structure carried by the foam particles
-    SplashFluid.js     volumetric splash water: GPU Position Based Fluids, two-way coupled
-    SplashRenderer.js  screen-space fluid rendering of the splash water
-    FluidRenderer.js   water surface, caustics, particle rendering, ground-shader hooks
+    FluidParticles.js  spray / mist / rain particles coupled to the grid
+    DomainLink.js      two-way nesting between a fine playable grid and a coarse far-field grid
+    FluidRenderer.js   adaptive water surface, caustics, particle rendering, ground-shader hooks
     Buoyancy.js        RigidBody, BuoyancyProbe, FluidQueryBatch (CPU side)
     RiverPath.js       carve a river (or a track) along a spline, fill it, add the inflow
-    shaders/           all WGSL (sim, particles, render)
-  demo/                drivable test world (stand-in for your engine)
+    shaders/           all WGSL (sim, particles, link, render)
+  demo/                drivable test world (stand-in for your engine) + terrain sculpting
   test/                GPU numerical tests, headless render + browser tests
 ```
 
@@ -70,24 +76,29 @@ bodies and the heightfield.
 | `R` | reset / flip the car upright |
 | `1`–`5` | beach · river ford · mud pit · rapids · puddles |
 | `X` / `B` | drop crates / drop a 2-tonne cannonball (free camera: where you look) |
+| `M` | sculpt mode: the left mouse button paints the terrain instead of moving the camera |
+| `U` | undo the last sculpt stroke |
 | `T` `V` `P` | rain · debug view (depth / speed / mud / normals) · pause |
 | `H` · `G` · `?` | hide / show the menu · game view (hide all UI, as in UE) · controls sheet |
 | Gamepad | RT throttle, LT brake, A handbrake, left stick steer |
 
-The panel also has live sliders for swell height and period, river flow and wind. It also has a Camera
-section with the mode, fly speed, FOV and optional mouse lock. `?ui=hidden` starts with the menu hidden and
+The panel also has live sliders for swell height and period, river flow and wind, a Camera section
+with the mode, fly speed, FOV and optional mouse lock, and a **Terrain sculpting** section
+(see below). `?ui=hidden` starts with the menu hidden and
 `?ui=game` starts in game view. The menu state, camera speed and FOV are remembered between visits.
 
 ## What is simulated
 
 | Requirement | How |
 |---|---|
-| Ocean, shallow water, puddles, mud | One GPU shallow-water (Saint-Venant) solver over a heightfield bed, wet/dry fronts, per-cell sediment concentration with Bingham-plastic rheology |
-| No fake waves | Swell enters through an *ocean* boundary (relaxation-zone wave maker with physical amplitude/period/direction) and then propagates, shoals, refracts, steepens and breaks as bores purely in the solver. Wakes, bow waves, splashes, wind gust forcing — all solver dynamics |
+| Sea, shallow water, puddles, mud | One GPU shallow-water (Saint-Venant) solver over a heightfield bed, wet/dry fronts, per-cell sediment concentration with Bingham-plastic rheology — the same equations everywhere, no special-cased "ocean" layer |
+| No fake waves | Swell is fed into the coarse grid through its seaward edge (a relaxation zone with physical amplitude/period/direction) and then propagates, shoals, refracts, steepens and breaks as bores purely in the solver. Wakes, bow waves, splashes, wind gust forcing — all solver dynamics. Nothing is a moving sine mesh |
+| Two resolutions, one world | The visible bay runs on a coarse 1400 m grid (≈3.7 m cells) while the 160 m playable area runs on the fine grid (0.16–0.63 m cells). `DomainLink` copies the coarse state into the fine border each step and averages the fine state back into the coarse cells it covers, so both stay one continuous body of water |
+| Nanite-style water resolution | The fine surface is drawn with one draw call from a camera-warped grid: ~1 vertex per simulation cell near the camera, cells growing cubically with distance. No LOD seams, no cracks; the far side of the same mesh is a few times coarser, and the coarse grid takes over beyond the playable area |
+| Terrain sculpting | Raise / lower / smooth / flatten / paint brushes write the solver's own bed (`FluidSim.applyBed`), keeping the water *surface* in place so raising ground squeezes water aside and digging fills with water. Undo, reset, brush-size and strength controls |
 | River along a path | `RiverPath` carves a channel along a spline into the bed and adds a volume source at the head; the water flows downhill under gravity, speeds up over the rapids, pools, crosses fords and enters the sea |
 | Interactive vehicles | Car body + wheels are rasterised into the grid every frame as solid volumes: they push water away (bow wave, wake, trough behind each tyre), drag it along, leave persistent ruts in mud (yield stress) and get pushed back (buoyancy, drag, current) |
-| Volumetric splashes | Tyre sheets, rooster tails, bow splashes, mud roost and impact crowns are a real 3D liquid. A GPU Position Based Fluid (incompressible, with cohesion) collides with the car and is rendered as one continuous refracting body of water. Every parcel is water taken out of the river and put back exactly where it lands, leaving foam (see *Volumetric splashes* below) |
-| Splash, spray & foam | GPU particles emitted where the simulated surface breaks (Ihmsen et al. potentials: wave crest, trapped air, kinetic energy) and by wheel / bow emitters. Spray removes water from the grid and returns it where it lands; spray hitting water leaves thin droplet foam. Foam particles are rafts of bubbles that ride the simulated current, turn with its vorticity, thin out and burst (faster in turbulence and on land). They are rendered as one continuous foam surface that carries a bubble-raft micro-structure along with the particles, not as sprites (see *Particle foam* below) |
+| Splash & spray | GPU particles emitted where the simulated surface breaks (Ihmsen et al. potentials: wave crest, kinetic energy) and by wheel / bow emitters. Spray removes water from the grid and returns it where it lands. Soft, velocity-stretched droplets with forward scattering. There is **no foam** — no foam particles and no foam shading — and no volumetric splash solver: broken water is shown by the simulated bore plus spray |
 | Caustics | Sun rays refracted through the simulated surface onto the bed; intensity = change of projected triangle area, with absorption and chromatic dispersion |
 | Buoyancy | Async GPU point queries (pressure head, depth, flow, mud) feed CPU rigid bodies (Archimedes + quadratic/linear drag + density of mud) |
 
@@ -124,94 +135,56 @@ water under it down to its hull bottom and reports a head within 1 cm of the fre
 
 ### Particles (`shaders/particles.wgsl.js`)
 Pool of up to 512k particles (48 B each) with a GPU dead-list allocator and indirect draw.
-Kinds: spray, mist, foam, rain. Ballistic droplets with size-dependent drag relative to the
-wind; volume exchange through fixed-point atomics so splashes genuinely move water (test: total
-volume returns to 2e-6 after all spray has landed).
+Kinds: spray, mist, rain. Ballistic droplets with size-dependent drag relative to the wind;
+volume exchange through fixed-point atomics so splashes genuinely move water (test: total volume
+returns to 2e-6 after all spray has landed).
 
-### Volumetric splashes (`SplashFluid.js`, `shaders/splash.wgsl.js`, `SplashRenderer.js`)
-Splash water is a 3D particle liquid that uses **Position Based Fluids** (Macklin & Müller 2013, the
-method behind NVIDIA FleX). Each particle is a 43 ml parcel of water, spaced 3.5 cm apart, with a
-kernel radius of 7 cm.
+### Two nested domains (`DomainLink.js`, `shaders/link.wgsl.js`)
+A shallow-water grid fine enough for tyre ruts is far too fine for a 1.4 km view. Instead:
 
-**Each substep, on the GPU:**
-1. Particles are inserted into a hashed uniform grid: a counting sort, a 3-pass prefix scan and a
-   scatter. Neighbour loops visit each hash bucket only once.
-2. Density constraints are solved with Jacobi iterations, using the artificial pressure `s_corr`
-   against clumping. Each position correction is capped, so overlaps relax instead of exploding.
-3. Particles collide with the solver's primitives: the car body boxes, the wheel cylinders and the
-   props.
-4. XSPH viscosity and Akinci cohesion (surface tension) hold the water together in sheets,
-   ligaments and blobs until it breaks up.
+1. **Coarse grid** — 384² cells of 3.65 m over the whole visible bay (1400 m). Two open edges,
+   one wall, and a seaward edge where the swell relaxation zone lives. Lower resolution, lower
+   Manning friction, no particle emission.
+2. **Fine grid** — 256²–1024² over the 160 m playable square, driven by the coarse grid.
+3. Every frame: `coarse.step` → `link.edge` → `fine.step` → `link.interior`.
 
-**Coupling with the river.** Emitters reserve real water from the column they throw it out of,
-backing off rather than running a cell dry. When a parcel falls back below the surface it merges
-into the water body and returns its water and mud to that cell, sometimes leaving a raft of foam.
-On dry ground it soaks in. Test: 72 l thrown and 72 l returned, with the volume conserved to 3e-8.
+`link.edge` bilinearly samples the coarse depth, mud and velocity along the fine border, so waves
+and river flow enter the playable area instead of reflecting off its edge. `link.interior`
+supersamples the fine grid 4×4 into every coarse cell that the fine patch covers, so the coarse
+sea carries exactly the water (and momentum) the fine patch holds — including river water leaving
+the playable area and car displacement. Both kernels are one dispatch over their own grid.
 
-**Rendering: screen-space fluid rendering** (NVIDIA GDC 2010):
-1. Particles are drawn as spheres into an eye-depth map and an additive thickness map. The
-   thickness map also carries mud and aeration.
-2. A narrow-range filter (Truong & Yuksel 2018) smooths the depth into one continuous surface while
-   keeping silhouettes sharp.
-3. A composite pass shades it as water, using normals from the smoothed depth:
-   - Fresnel reflection of the sky and GGX sun glints.
-   - Refraction of the scene behind it, including the water surface.
-   - Beer–Lambert absorption by thickness.
-   - Milky white where the water is broken up and aerated, brown when it carries mud.
+### Terrain sculpting (`demo/TerrainEditor.js`)
+The brush works on the same CPU heightfield the solver uses, then pushes it to the GPU:
 
-**Parcels vs. droplets.** A rendering classification pass (`SPLASH_CLASSIFY`) measures the
-smoothed neighbourhood of every parcel and splits the water into coherent liquid and broken-up
-droplets, with hysteresis. This is deliberately not the density solve's kernel, which spikes near
-zero at rest contacts. Coherent parcels form the screen-space surface, drawn as subdivided spheres
-so it resolves finer than the simulation grid. Droplets and everything outside the sheet are drawn
-as soft, motion-blurred spray, so the splash frays into droplets instead of beads.
+| Tool | Effect |
+|---|---|
+| Raise / Lower | moves the bed up or down under the brush with a smooth falloff |
+| Smooth | relaxes the bed towards its neighbourhood average |
+| Flatten | levels the ground to the height where the stroke started |
+| Paint | writes the material mask (grass / dirt track / gravel / sand / mud) the terrain shader reads |
 
-When nothing has been thrown recently, both the simulation and the rendering are skipped entirely.
-
-### Particle foam (`FoamPattern.js`, `FOAM_SPLAT` / `FOAM_COMPOSITE` in `shaders/render.wgsl.js`)
-The foam is the simulated foam particles. Each one is a *raft* of bubbles, 0.3 m in radius, that
-spreads as it ages. Breaking waves and trapped air make full-thickness whitewater, while landing
-droplets leave a thin film. Every raft is advected by the surface current and turned by the local
-vorticity. Its thickness decays as its bubbles burst.
-
-The rafts are drawn as one continuous surface, not as sprites:
-
-1. **Splat.** Each raft is drawn as a small patch lying on the water surface. The patch adds its
-   kernel weight w, w² and its pattern values into two screen-space rgba16f buffers. The opaque
-   depth is used for the depth test.
-2. **Lagrangian texture advection** (Yu, Neyret, Bruneton & Holzschuch 2011). Every raft carries
-   its own randomly placed and rotated window of a procedural foam micro-structure, so the
-   structure moves exactly with the particles. Where rafts overlap, their patterns are combined
-   with the variance-preserving blend `P = ½ + Σw(Pᵢ − ½) / √Σw²`. This keeps the structure crisp
-   however many rafts overlap.
-3. **Coverage = P(pattern < density).** Foam is drawn where the blended pattern is lower than the
-   local foam density. The pattern channels are histogram-equalised, so mean coverage equals
-   density. Fresh whitewater is solid with a frothy rim. As foam thins, it opens up into lace
-   along the bubble-raft walls, then breaks into fragments and specks.
-4. **Shading.**
-   - Reflectance runs from about 0.5 for thin foam to about 0.85 for thick fresh foam.
-   - Thin foam is translucent and tinted by the water underneath.
-   - Lighting uses wrapped diffuse light with relief from screen-space derivatives, the sun shadow
-     map and sky light.
-   - Muddy water makes tan foam.
-   - Fresh foam has wet glints.
-   - Water under fresh foam turns milky aquamarine from the submerged bubbles.
-5. **Level of detail.** When the fine lace becomes smaller than a pixel, the threshold switches to
-   the coarser marbling. When that is unresolved too, the expected coverage is drawn instead. The
-   foam doesn't shimmer, and its average brightness is kept.
-
-The micro-structure is a 512² texture generated on the CPU at start-up (about 0.4 s), with no image
-assets. It holds marbling, two-scale domain-warped Voronoi raft walls of varying thickness,
-fine bubbles and clumps. Settings are `foam*` and `bubbleScatter` in `renderer.settings`.
+`FluidSim.applyBed` runs a tiny compute pass that keeps the **water surface** (`bed + depth`) fixed
+per cell and adjusts the depth to the new bed — raising ground squeezes water aside, digging lets
+water flow in. Edits are also mirrored into the coarse bed under the playable rectangle, so the
+two resolutions never disagree, and the high-resolution terrain mesh is rebuilt (throttled to
+~8 Hz while dragging). Eight undo steps; *Reset terrain* restores the generated world.
 
 ### Rendering (`shaders/render.wgsl.js`)
-Surface mesh displaced by the simulated height (shoreline handled per pixel from the true water
-thickness), screen-space refraction along the refracted ray, Beer–Lambert absorption + single
-scattering (water and suspended sediment), Fresnel sky reflection, GGX sun glints, opaque wet mud
-with micro-relief, fog, shadows. An outer ocean ring outside the domain shows the same incident
-swell the wave maker injects (linear theory). Spray and mist are soft, velocity-stretched droplet
-clusters with forward scattering and a soft-particle depth fade. Foam is the continuous particle
-surface described above.
+Two water renderers, both reading the same solver textures:
+
+* **Fine water** (`adaptive: true`) — one index buffer, one draw call. A regular grid in
+  normalised space is warped with `x = c + L·(a·q + (1−a)·q³)` around the camera, with `a` chosen
+  from the camera height and the mesh size so the centre spacing is about one simulation cell.
+  Vertices outside the playable rectangle collapse onto its border. The surface texture is
+  sampled bilinearly, so vertices closer together than a cell do not show facets.
+* **Coarse water** — a plain grid over the far-field simulation, drawn first so the fine mesh
+  wins where they overlap.
+
+Per pixel: shoreline from the true water thickness, screen-space refraction along the refracted
+ray, Beer–Lambert absorption + single scattering (water and suspended sediment), Fresnel sky
+reflection, GGX sun glints, opaque wet mud with micro-relief, fog and shadows. Spray and mist are
+soft, velocity-stretched droplet clusters with forward scattering and a soft-particle depth fade.
 
 ## Integrating into your engine
 
@@ -224,12 +197,20 @@ sim.setBed(terrainHeights);                    // Float32Array nx*ny, row-major 
 const river = new RiverPath(points, { width: 8, depth: 1.1, elevation: [4.4, -1.4] });
 river.carve(terrainHeights, 512, 512, 0.3125, [-80, -80]);   // optional: carve before setBed
 sim.setWater(initialDepth, initialMud);        // e.g. flood-fill the sea, fill puddles, river.fill()
-sim.setBoundaries({ south: 'ocean', west: 'open', east: 'open', north: 'wall' });
-sim.setWaves([{ amplitude: 0.3, period: 7.5, direction: Math.PI / 2 }]);
+sim.setBoundaries({ south: 'open', west: 'open', east: 'open', north: 'open' });   // driven by the coarse grid
 river.addSource(sim, { flow: 2.6 /* m³/s */ });
 
+// optional far field: a coarse grid for the rest of the visible world, coupled both ways
+const coarse = new FluidSim(device, { nx: 384, ny: 384, cellSize: 3.65, origin: [-700, -700] });
+coarse.setBed(coarseHeights);
+coarse.setBoundaries({ south: 'ocean', west: 'open', east: 'open', north: 'wall' });
+coarse.setWaves([{ amplitude: 0.3, period: 7.5, direction: Math.PI / 2 }]);   // seaward edge only
+const link = new DomainLink(sim, coarse);
+
 // 2. rendering (your HDR color target must be filterable, e.g. rgba16float; reverse-Z depth)
-const water = new FluidRenderer(sim, { colorFormat: 'rgba16float', depthFormat: 'depth32float' });
+const water = new FluidRenderer(sim, { colorFormat: 'rgba16float', depthFormat: 'depth32float',
+                                       adaptive: true, lodN: 384, caustics: true });
+const waterFar = new FluidRenderer(coarse, { colorFormat: 'rgba16float', depthFormat: 'depth32float' });
 water.setSceneTextures(sceneColorCopyView, sceneDepthView, shadowMapView /* optional */, [width, height]);
 
 // 3. every frame
@@ -237,39 +218,20 @@ sim.setPrimitives([...car.primitives(), ...props]);   // displacement + drag
 sim.emit({ position, velocity, rate: 3000, kind: 'spray', fromWater: true });   // wheel spray etc.
 queries.submit();                                   // FluidQueryBatch of BuoyancyProbes
 const enc = device.createCommandEncoder();
+coarse.step(enc, dt); link.edge(enc);                // far field, then the fine border
 sim.step(enc, dt);                                   // all sim + particle work
+link.interior(enc);                                  // fine state back into the coarse grid
 water.updateView({ viewProj, invViewProj, camPos, near, width, height, camRight, camUp, camFwd,
                    sunDir, sunColor, skyZenith, skyHorizon, fogDensity, shadowMat, shadowsOn: true });
 water.renderCaustics(enc);                           // before your opaque pass
 //   ...your opaque pass (terrain/material shaders call fluidGround(worldPos), see below)...
 enc.copyTextureToTexture({ texture: sceneColor }, { texture: sceneColorCopy }, size);
-water.renderFoam(enc);                               // splat the foam particles (tests the opaque depth)
 const pass = enc.beginRenderPass({ colorAttachments: [{ view: sceneColorView, loadOp: 'load', storeOp: 'store' }],
                                    depthStencilAttachment: { view: sceneDepthView, depthReadOnly: true } });
-water.drawWater(pass); water.drawFoam(pass); water.drawParticles(pass); pass.end();
+waterFar.drawWater(pass); water.drawWater(pass); water.drawParticles(pass); pass.end();
 device.queue.submit([enc.finish()]);
 sim.afterSubmit();                                   // kicks off async query / stats readback
 ```
-
-**Volumetric splashes** (optional, recommended):
-
-```js
-const splash = new SplashFluid(sim, { maxParticles: 32768 });
-const splashR = new SplashRenderer(splash, water);
-splashR.setSceneTextures(sceneColorCopyView, sceneDepthView, shadowMapView, [width, height]);
-// every frame
-splash.emit({ position, velocity, spread: 0.3, radius: 0.08, rate: 0.12 /* m³/s */, fromWater: true });
-sim.step(enc, dt); splash.step(enc, dt);
-//   ...opaque pass, water pass (drawWater + drawFoam)...
-splashR.render(enc);                                         // sphere depth/thickness + smoothing
-enc.copyTextureToTexture({ texture: sceneColor }, { texture: sceneColorCopy }, size);   // now with water
-const p2 = enc.beginRenderPass({ colorAttachments: [{ view: sceneColorView, loadOp: 'load', storeOp: 'store' }],
-                                 depthStencilAttachment: { view: sceneDepthView, depthReadOnly: true } });
-splashR.draw(p2); water.drawParticles(p2); p2.end();
-```
-
-`splash.emit` also takes `volume` (m³ this frame) instead of `rate`, `mud`, `life`, and
-`ring: true` + `radialSpeed` for impact crowns.
 
 **Ground & object shaders** — add `FluidRenderer.groundWGSL(group, firstBinding)` to your WGSL,
 `water.groundLayoutEntries(first)` to your bind group layout and `water.groundBindEntries(first)`
@@ -287,6 +249,11 @@ displaced volume), register them in a `FluidQueryBatch`, call `batch.submit()` b
 `batch.resultsFor(probe)`. Results are 1–3 frames old; probes query at positions predicted by
 that latency. Query layout per point: `[head, depth, velX, velZ, mud, bed, surface, dη/dt]`.
 
+**Sculpting** — call `sim.applyBed(heights)` with a new `Float32Array` whenever the terrain changes;
+it keeps the water surface where it was. `FluidRenderer` has no terrain of its own, so also rebuild
+whatever terrain mesh you draw from the same heights (`demo/SceneRenderer.js` shows a near-field
+mesh built from the fine grid and a skirt that meets the far terrain).
+
 **Vehicles** — see `demo/vehicle.js` for a complete example: hull probe, per-wheel water/mud
 queries (aquaplaning, drag, mud resistance and grip), primitives for the solver and spray /
 mud-roost emitters that only fire where there is real water.
@@ -300,61 +267,61 @@ mud-roost emitters that only fire where there is real water.
 | `kObjMax`, `objCouple` | `sim.params` | lid stiffness of piercing bodies, no-slip drag rate |
 | `spongeWidth`, `spongeRate` | `sim.params` | open-boundary absorption |
 | `infiltration`, `filmDepth`, `dryTime` | `sim.params` | how splashes soak in and wet ground dries |
-| `emitScale`, `ta/wc/ke Min/Max` | `sim.particles.params` | how readily breaking water makes spray & foam |
+| `emitScale`, `ta/wc/ke Min/Max` | `sim.particles.params` | how readily breaking water makes spray |
 | `sprayVolume` | `sim.particles.params` | water carried per spray particle (mass exchange) |
 | `absorb`, `scatter`, `mudAbsorb`, `mudScatter` | `renderer.settings` | water / sediment optics (1/m) |
-| `foamLife`, `foamSize`, `foamEmitProb`, `impactFoamProb`, `impactFoamAmount` | `sim.particles.params` | how much foam is made and how long rafts last |
-| `foamDensity`, `foamLace`, `foamThinning`, `foamFresh`, `foamAlbedo` | `renderer.settings` | how dense, lacy, long-lived and bright the foam looks |
-| `spacing`, `substepDt`, `iterations`, `xsph`, `cohesion`, `maxCorr` | `sim.splash.params` | splash liquid: resolution, solver effort, how much the water holds together |
-| `radius`, `alphaThick`, `refract`, `whiteness`, `sprayRadius` | `splashR.settings` | splash look: droplet size, how opaque, refraction, spray |
-| `splashVolume` | `app` (demo) | how much of the car's spray becomes volumetric liquid |
+| `adaptive`, `lodN` | `new FluidRenderer(...)` | camera-adaptive mesh on/off and vertices per side (`320` demo default, `384` at high quality) |
+| `meshStep`, `caustics`, `particles` | `new FluidRenderer(...)` | vertex stride as a multiple of a cell, caustics pass, particle pass |
+| `radius`, `strength`, `tool`, `material` | `demo/TerrainEditor.js` | brush size (m), brush speed, active tool, paint material |
 
 ## Performance
 
 Workload per quality preset of the demo (160 m domain):
 
-| Preset | Cells | Cell size | Particles | Sub-steps @60 Hz (≈9 m sea) |
-|---|---|---|---|---|
-| low | 256² | 0.63 m | 131k | 2 |
-| medium | 512² | 0.31 m | 262k | 2 |
-| high | 768² | 0.21 m | 393k | 2–4 |
-| ultra | 1024² | 0.16 m | 524k | 4 |
+| Preset | Fine cells | Cell size | Coarse cells | Water mesh | Particles | Sub-steps @60 Hz |
+|---|---|---|---|---|---|---|
+| low | 256² | 0.63 m | 384² | 320² + coarse | 131k | 2 |
+| medium | 512² | 0.31 m | 384² | 320² + coarse | 262k | 2 |
+| high | 768² | 0.21 m | 384² | 384² + coarse | 393k | 2–4 |
+| ultra | 1024² | 0.16 m | 384² | 384² + coarse | 524k | 4 |
 
-Each sub-step is 4 compute dispatches over the grid; particles cost one dispatch over the pool;
-the water mesh, caustic mesh and terrain are one vertex per cell. Everything stays on the GPU —
-the only readbacks are small async ones (buoyancy queries, stats). It has **not yet been profiled
-on real GPU hardware** (development was done headless on a software rasteriser), so measure on
-your target devices; the grid resolution, sub-step cap (`maxSubsteps`), particle pool and
-caustics resolution are the main knobs.
+Each sub-step is 4 compute dispatches over the fine grid; the coarse grid costs one fixed extra
+step per frame; particles cost one dispatch over the pool. The water surface is one draw call of
+~100k triangles regardless of distance (the coarse mesh is a second, cheap one). Sculpting adds a
+small bed-edit compute pass per stroke plus a terrain mesh rebuild at ~8 Hz. Everything stays on
+the GPU — the only readbacks are small async ones (buoyancy queries, stats). It has **not yet been
+profiled on real GPU hardware** (development was done headless on a software rasteriser), so
+measure on your target devices; the grid resolutions, sub-step cap (`maxSubsteps`), particle pool,
+`lodN` and caustics resolution are the main knobs.
 
 ## Tests
 
 ```bash
 cd engine/fluid && npm install
-npm test            # vehicle + editor-camera checks (CPU), WGSL validation, GPU solver + splash tests
-npm run test:splash   # GPU splash-liquid tests: mass exchange, stability, collision, foam
-npm run test:render # headless render of the demo to test/out/*.png
+npm test             # vehicle + editor-camera checks (CPU), WGSL validation, GPU numerical tests
+npm run test:render  # headless render of the demo to test/out/*.png
+npm run render:shots # named water views (bay, coast, ford, rapids, aerial) to test/out/*
+npm run test:sculpt  # terrain sculpting: bed edits, surface preservation, undo, reset, paint
 npm run test:browser # demo page in headless Chromium + WebGPU: real mouse/keyboard input
                      # (menu hide, game view, RMB fly, pan, orbit, dolly, focus, select), screenshots
-npm run render:foam  # foam close-ups (ford, beach, rapids) + foam-buffer statistics; with
-                     # TAG=before/after and node test/compare.mjs for a side-by-side sheet
 ```
 
 Runs on machines without a GPU: the launcher falls back to SwiftShader (CPU Vulkan). Current
-results: 11/11 splash-liquid checks (72 l thrown and returned with volume conserved to 4e-8,
-incompressible under a dense stream, never inside a solid, foam left on landing) and 30/30 solver
-checks — Ritter dam break, √(gh) wave speed, lake at rest with wet/dry
+results: 30/30 solver checks — Ritter dam break, √(gh) wave speed, lake at rest with wet/dry
 islands, run-up, Bingham equilibrium of a mud mound, floating-box buoyancy, moving-wheel
-displacement, exact source volume, particle volume exchange, ocean boundary stability.
+displacement, exact source volume, particle volume exchange, ocean boundary stability —
+plus 18/18 sculpting checks (surface preserved to <1e-4 m, volume conserved, undo/reset exact,
+no WebGPU validation errors) and 26/26 browser UI checks.
 
 ## Limitations / next steps
 
 * **2.5D**: the water is a heightfield, so no overturning waves, tunnels or water under
-  overhangs; breaking is represented by bores + spray/foam particles (standard for real-time).
+  overhangs; breaking is represented by bores + spray (standard for real-time).
 * **Long-wave physics**: the shallow-water equations are non-dispersive; swell and surf are
   right, but short deep-water chop below the grid scale is not simulated (and not faked).
-* **One fixed domain per `FluidSim`**: place domains where the track meets water (several can
-  coexist); a camera-following scrolling domain is a natural extension.
+* **Fixed domains**: each `FluidSim` is a fixed rectangle. The demo nests exactly two (coarse sea
+  + fine playable area); a camera-following scrolling fine domain is the natural next step, and
+  several could coexist for different track sections.
 * Particles collide with the bed / water surface, not with car geometry.
 * No underwater camera rendering (above-water views only).
 
@@ -362,9 +329,5 @@ displacement, exact source volume, particle volume exchange, ocean boundary stab
 
 Stelling & Duinmeijer 2003 (momentum-conservative staggered scheme) · Audusse et al. 2004
 (hydrostatic reconstruction) · O'Brien & Julien 1988 (mudflow rheology) · Ihmsen et al. 2012
-(spray/foam potentials) · Yu, Neyret, Bruneton & Holzschuch 2011 (Lagrangian texture advection,
-variance-preserving blending) · Macklin & Müller 2013 (Position Based Fluids) · Akinci et al. 2013
-(cohesion) · van der Laan, Green & Sainz 2009 and Green 2010 (screen-space fluid rendering) · Truong &
-Yuksel 2018 (narrow-range filter) · Hoetzlein 2014 (fast fixed-radius neighbours, counting sort) ·
-Chentanez & Müller 2010 (heightfield water with rigid-body coupling) ·
+(spray potentials) · Chentanez & Müller 2010 (heightfield water with rigid-body coupling) ·
 Ritter 1892 (dam break) · Evan Wallace 2011 (WebGL caustics) · Horne & Dreher 1963 (aquaplaning).

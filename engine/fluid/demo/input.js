@@ -42,6 +42,7 @@ export class ViewportInput {
     this._gesture = null;
     this._wheelAcc = 0;
     this._skipMove = 0;
+    this._sculpt = false;
     this._bind();
   }
 
@@ -100,6 +101,14 @@ export class ViewportInput {
     document.addEventListener('pointerlockerror', () => this._lockFailed());
   }
 
+  _ndc(e) {
+    const r = this.canvas.getBoundingClientRect();
+    return [((e.clientX - r.left) / r.width) * 2 - 1, 1 - ((e.clientY - r.top) / r.height) * 2];
+  }
+
+  /** true while the terrain brush owns the left mouse button (free camera only) */
+  get sculpting() { return this._sculpt; }
+
   _onPointer(e, type) {
     if (type === 'down') {
       this.canvas.focus({ preventScroll: true });
@@ -114,6 +123,8 @@ export class ViewportInput {
       dx = e.clientX - this._last[0]; dy = e.clientY - this._last[1];
     }
     this._last = [e.clientX, e.clientY];
+    const nd = this._ndc(e);
+    if (this.app.terrain?.enabled && this.app.cam.mode === 'free') this.app.terrain.hover(nd[0], nd[1]);
     // movement belongs to the buttons held before this event (a chorded press arrives as a move)
     if (type === 'move' && this.buttons && (dx || dy)) this._drag(dx, dy, e);
     if (e.buttons !== this.buttons) this._setButtons(e.buttons, e);
@@ -126,9 +137,15 @@ export class ViewportInput {
     this._gesture = null; // re-evaluated (and the pivot re-picked) on the next move
     app.cam.dragging = next !== 0;
 
+    // terrain brush: a plain LMB press in the free camera paints instead of moving the camera
+    const sculpt = app.terrain?.enabled && app.cam.mode === 'free' && !e.altKey;
+    if (pressed & LMB && next === LMB && sculpt) {
+      const nd = this._ndc(e);
+      if (app.terrain.begin(nd[0], nd[1])) this._sculpt = true;
+    }
     // a lone LMB press may be a click (select)
-    if (pressed & LMB && next === LMB && !e.altKey) this._click = { x: e.clientX, y: e.clientY, moved: 0 };
-    else if (pressed) this._click = null;
+    if (!this._sculpt && pressed & LMB && next === LMB && !e.altKey) this._click = { x: e.clientX, y: e.clientY, moved: 0 };
+    else if (pressed && !this._sculpt) this._click = null;
 
     // RMB / MMB / Alt + button take over from the car cameras (Unreal's "eject")
     if (app.cam.mode !== 'free' && ((pressed & (RMB | MMB)) || (pressed && e.altKey))) {
@@ -138,6 +155,11 @@ export class ViewportInput {
     if (released & RMB) {
       app.editorCam.endFlight();
       for (const code of this.keys) if (FLY_CODES.has(code)) this.suppressed.add(code);
+    }
+    if (released & LMB && this._sculpt) {
+      this._sculpt = false;
+      app.terrain.end();
+      this._click = null;
     }
     if (released & LMB && this._click) {
       const r = this.canvas.getBoundingClientRect();
@@ -156,6 +178,11 @@ export class ViewportInput {
 
   _drag(dx, dy, e) {
     const app = this.app, ec = app.editorCam, b = this.buttons;
+    if (this._sculpt && (b & LMB) && !e.altKey) {
+      const nd = this._ndc(e);
+      app.terrain.move(nd[0], nd[1]);
+      return;
+    }
     if (this._click) {
       this._click.moved += Math.abs(dx) + Math.abs(dy);
       if (this._click.moved <= CLICK_SLOP) return;
@@ -218,6 +245,7 @@ export class ViewportInput {
     if (this.buttons & RMB) this.app.editorCam.endFlight();
     this.buttons = 0;
     this._click = null;
+    this._sculpt = false;
     this._gesture = null;
     this.app.cam.dragging = false;
     this._unlock();

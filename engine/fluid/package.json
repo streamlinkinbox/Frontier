@@ -1,7 +1,7 @@
 {
   "name": "@frontier/fluid",
   "version": "0.1.0",
-  "description": "Real-time WebGPU shallow-water simulation for Frontier: ocean, rivers, puddles, mud, caustics, particle spray & foam, buoyancy.",
+  "description": "Real-time WebGPU shallow-water simulation for Frontier: ocean, rivers, puddles, mud, caustics, particle spray, buoyancy.",
   "type": "module",
   "main": "src/index.js",
   "exports": {
@@ -12,14 +12,14 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node test/vehicle.test.mjs && node test/camera.test.mjs && node test/launch.mjs test/validate.mjs demo/shaders.js && node test/launch.mjs test/sim.test.mjs && node test/launch.mjs test/splash.test.mjs",
+    "test": "node test/vehicle.test.mjs && node test/camera.test.mjs && node test/launch.mjs test/validate.mjs demo/shaders.js && node test/launch.mjs test/sim.test.mjs",
     "test:vehicle": "node test/vehicle.test.mjs",
     "test:camera": "node test/camera.test.mjs",
     "test:sim": "node test/launch.mjs test/sim.test.mjs",
-    "test:splash": "node test/launch.mjs test/splash.test.mjs",
     "validate": "node test/launch.mjs test/validate.mjs demo/shaders.js",
     "test:render": "node test/launch.mjs test/render.test.mjs",
-    "render:foam": "node test/launch.mjs test/foam.render.mjs",
+    "test:sculpt": "node test/launch.mjs test/sculpt.render.mjs",
+    "render:shots": "node test/launch.mjs test/shots.render.mjs",
     "test:browser": "node test/browser.test.mjs",
     "demo": "node demo/serve.mjs 8080"
   },

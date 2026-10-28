@@ -289,3 +289,20 @@ fn aces(x: vec3f) -> vec3f {
   return vec4f(c, 1.0);
 }
 `;
+
+// Terrain brush cursor: screen-space 1 px ring drawn from world-space points that follow the bed.
+export const BRUSH = /* wgsl */ `
+${VIEW_STRUCT}
+@group(0) @binding(0) var<uniform> V: View;
+struct BOut {
+  @builtin(position) pos: vec4f,
+  @location(0) color: vec4f,
+};
+@vertex fn vs(@location(0) p: vec3f, @location(1) c: vec4f) -> BOut {
+  var o: BOut;
+  o.pos = V.viewProj * vec4f(p, 1.0);
+  o.color = c;
+  return o;
+}
+@fragment fn fs(in: BOut) -> @location(0) vec4f { return in.color; }
+`;

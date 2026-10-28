@@ -1,21 +1,23 @@
 // Demo application core (browser-independent so it also runs headless in Node for tests).
-import { FluidSim, FluidRenderer, FluidQueryBatch, SplashFluid, SplashRenderer } from '../src/index.js';
+import { FluidSim, FluidRenderer, FluidQueryBatch } from '../src/index.js';
+import { DomainLink } from '../src/DomainLink.js';
 import { mat4, v3, quat, clamp } from '../src/math.js';
-import { buildScene, sampleBilinear } from './scene.js';
+import { buildScene, buildCoarseWorld, swellField, sampleBilinear } from './scene.js';
 import { SceneRenderer } from './SceneRenderer.js';
 import { Vehicle } from './vehicle.js';
 import { Props } from './props.js';
 import { EditorCamera, CAMERA_SPEEDS } from './EditorCamera.js';
+import { TerrainEditor } from './TerrainEditor.js';
 import { screenRay, pickScene, rayHeightfield, objectBounds } from './picking.js';
 
 export const CAMERA_MODES = ['chase', 'low', 'orbit', 'free'];
 export { CAMERA_SPEEDS };
 
 export const QUALITY = {
-  low: { res: 256, particles: 131072, splash: 32768 },
-  medium: { res: 512, particles: 262144, splash: 32768 },
-  high: { res: 768, particles: 393216, splash: 65536 },
-  ultra: { res: 1024, particles: 524288, splash: 65536 },
+  low: { res: 256, particles: 131072 },
+  medium: { res: 512, particles: 262144 },
+  high: { res: 768, particles: 393216 },
+  ultra: { res: 1024, particles: 524288 },
 };
 
 export class App {
@@ -26,25 +28,49 @@ export class App {
     const q = QUALITY[quality] ?? QUALITY.medium;
     const t0 = performance.now();
     const sc = (this.scene = buildScene({ res: q.res }));
+    const cw = (this.far = buildCoarseWorld(sc));
     this.buildMs = performance.now() - t0;
 
+    // ---- coarse far-field simulation: the whole visible bay is simulated, no analytic ocean ring
+    const coarse = (this.coarse = new FluidSim(device, {
+      nx: cw.nx, ny: cw.ny, cellSize: cw.dx, origin: cw.origin,
+      maxParticles: 2048, maxQueries: 64, maxEmitters: 8,
+    }));
+    coarse.params.seaLevel = sc.seaLevel;
+    coarse.params.manning = 0.03;
+    coarse.params.waveRampTime = 3;
+    coarse.setBed(cw.bed);
+    coarse.setBoundaries({ south: 'ocean', west: 'open', east: 'open', north: 'wall' });
+    coarse.particles.params.enabled = false;
+    coarse.particles.params.emitScale = 0;
+
+    // ---- fine nested simulation: the 160 m playable world
     const sim = (this.sim = new FluidSim(device, { nx: sc.nx, ny: sc.ny, cellSize: sc.dx, origin: sc.origin, maxParticles: q.particles, maxQueries: 2048 }));
     sim.params.seaLevel = sc.seaLevel;
     sim.params.manning = 0.025;
     sim.setBed(sc.bed);
     sim.setWater(sc.depth, sc.mud, sc.vel);
-    sim.setBoundaries({ south: 'ocean', west: 'open', east: 'open', north: 'wall' });
+    // the fine boundary is driven by the coarse sea (DomainLink), not by a local wave-maker
+    sim.setBoundaries({ south: 'open', west: 'open', east: 'open', north: 'open' });
     this.swell = { height: 0.32, period: 7.5 };
-    this._applyWaves();
+    this._applyWaves(true);
+    this.link = new DomainLink(sim, coarse);
     this.riverFlow = 2.6;
     this.riverSource = sc.river.addSource(sim, { flow: this.riverFlow, speed: 0.9, mud: 0.015 });
 
-    this.fluidR = new FluidRenderer(sim, { colorFormat: 'rgba16float', depthFormat: 'depth32float' });
+    // fine water: camera-adaptive mesh (near = full simulation resolution, far = decimated)
+    this.fluidR = new FluidRenderer(sim, {
+      colorFormat: 'rgba16float', depthFormat: 'depth32float', label: 'fluidNear',
+      adaptive: true, lodN: q.res >= 768 ? 384 : 320, caustics: true, particles: true,
+    });
+    // coarse water: regular low-resolution mesh covering the rest of the visible sea
+    this.fluidRFar = new FluidRenderer(coarse, {
+      colorFormat: 'rgba16float', depthFormat: 'depth32float', label: 'fluidFar',
+      adaptive: false, meshStep: 1, caustics: false, particles: false,
+    });
     this.renderer = new SceneRenderer(device, this.fluidR, sc, { outputFormat, width, height });
-    // volumetric splash water (PBF liquid, screen-space rendered), coupled to the shallow-water grid
-    this.splash = new SplashFluid(sim, { maxParticles: q.splash });
-    this.splashVolume = 2.0;   // thrown splash water relative to the old spray emitter volumes
-    this.renderer.attachSplash(new SplashRenderer(this.splash, this.fluidR));
+    this.renderer.attachCoarse(this.fluidRFar);
+    this.terrain = new TerrainEditor(this);
     this.vehicle = new Vehicle(sc);
     this.props = new Props(sc);
     this.batch = new FluidQueryBatch(sim);
@@ -78,7 +104,7 @@ export class App {
       out[off * 2] = this._camProbeXZ[0] = p[0];
       out[off * 2 + 1] = this._camProbeXZ[1] = p[2];
     } };
-    this.surfaceAt = (x, z) => Math.max(this.scene.heightAt(x, z), this._staticWater(x, z));
+    this.surfaceAt = (x, z) => Math.max(this.heightAt(x, z), this._staticWater(x, z));
     this.lastInput = null;
     this.rain = false;
     this.wind = 0;
@@ -87,12 +113,20 @@ export class App {
     this.balls = [];
   }
 
-  _applyWaves() {
+  _applyWaves(initField = false) {
     const { height, period } = this.swell;
-    this.sim.setWaves([
+    const waves = [
       { amplitude: height, period, direction: Math.PI / 2 + 0.12 },
       { amplitude: height * 0.45, period: period * 0.62, direction: Math.PI / 2 - 0.32, phase: 1.3 },
-    ]);
+    ];
+    this.coarse.setWaves(waves);
+    this.sim.setWaves([]);
+    if (initField) {
+      // seed the whole coarse sea with the same progressive swell the wave-maker maintains, so
+      // waves do not need to travel 700 m from the boundary before the demo starts
+      const sw = swellField(this.far, waves, this.coarse.waveDepth);
+      this.coarse.setWater(sw.depth, this.far.mud, sw.vel);
+    }
   }
   setSwell(height, period) { this.swell = { height, period: period ?? this.swell.period }; this._applyWaves(); }
   setRiverFlow(q) { this.riverFlow = q; this.sim.updateSource(this.riverSource, { flow: q }); }
@@ -102,6 +136,8 @@ export class App {
     this.sim.params.wind = [dir[0] * speed, dir[1] * speed];
     this.sim.params.windGust = speed * 0.00035;
     this.sim.particles.params.wind = [dir[0] * speed, 0, dir[1] * speed];
+    this.coarse.params.wind = [dir[0] * speed, dir[1] * speed];
+    this.coarse.params.windGust = speed * 0.0002;
   }
 
   _spawnInitialProps() {
@@ -144,7 +180,7 @@ export class App {
       const fwd = v3.norm(v3.sub(t, this.cam.pos ?? v3.add(t, [0, 3, -8])));
       p = v3.madd(t, [fwd[0], 0, fwd[2]], 10);
     }
-    const it = this.props.spawn('ball', [p[0], this.scene.heightAt(p[0], p[2]) + 9, p[2]], { velocity: [0, -6, 0] });
+    const it = this.props.spawn('ball', [p[0], this.heightAt(p[0], p[2]) + 9, p[2]], { velocity: [0, -6, 0] });
     this.balls.push({ it, t: 0 });
   }
 
@@ -152,51 +188,34 @@ export class App {
     const sc = this.scene;
     this.sim.setWater(sc.depth, sc.mud, sc.vel);
     this.sim.particles.reset();
-    this.splash.reset();
+    const sw = swellField(this.far, this.coarse.waves, this.coarse.waveDepth);
+    this.coarse.setWater(sw.depth, this.far.mud, sw.vel);
+    this.coarse.particles.reset();
   }
 
   /**
-   * Route the car's water emitters: thrown water (tyre sheets, rooster tails, bow splash, mud roost)
-   * becomes volumetric splash liquid; a share stays as fine droplet spray around it, and water
-   * dripping off the body stays as droplets.
+   * Push edited heights/materials to the GPU: both nested beds (water surface preserved), the
+   * coarse bed under the playable rectangle, and the high-resolution terrain mesh. Called by the
+   * terrain brushes; the mesh rebuild is throttled because it is much heavier than the bed upload.
    */
-  _emitVehicleWater(list) {
-    const sprayVol = this.sim.particles.params.sprayVolume;
-    for (const e of list) {
-      if (this.splash.params.enabled && e.kind === 'spray' && e.fromWater !== false) {
-        // a tyre throws a coherent sheet from a narrow region: tight nozzle, little velocity jitter
-        // dense sheets (tyre spray): more of the water becomes liquid; the bow splash stays sheet
-        const volRate = (e.rate ?? 0) * (e.volume ?? sprayVol) * this.splashVolume * (e.sheet ? 2.0 : 1.0);
-        const r = Array.isArray(e.radius) ? e.radius : [e.radius ?? 0.1, e.radius ?? 0.1];
-        // sheets are thickest close to the tyre, then stretch and break up into droplets
-        const off = (e.sheet ? 1.3 : 0.0) * Math.random();
-        const vel = e.velocity ?? [0, 0, 0], sp = Math.hypot(vel[0], vel[1], vel[2]) || 1;
-        const pos = [e.position[0] + (vel[0] / sp) * off, e.position[1] + (vel[1] / sp) * off, e.position[2] + (vel[2] / sp) * off];
-        this.splash.emit({ position: pos, velocity: vel, spread: (e.spread ?? 0.5) * 0.1, radius: r.map((x) => Math.max(0.05, x * 0.4)), rate: volRate, fromWater: true, mud: e.mud ?? -1 });
-        // plus a little fine droplet spray around the sheets
-        this.sim.emit({ ...e, rate: (e.rate ?? 0) * 0.05, size: (e.size ?? this.sim.particles.params.spraySize) * 0.4 });
-      } else {
-        this.sim.emit(e);
-      }
+  syncTerrain(force = false) {
+    const sc = this.scene, cb = this.far.bed;
+    // coarse bed under the fine rectangle follows the sculpted fine bed exactly
+    const cw = this.far, fx0 = sc.origin[0], fz0 = sc.origin[1], fx1 = fx0 + sc.size, fz1 = fz0 + sc.size;
+    const i0 = Math.max(0, Math.floor((fx0 - cw.origin[0]) / cw.dx) - 1);
+    const i1 = Math.min(cw.nx - 1, Math.ceil((fx1 - cw.origin[0]) / cw.dx) + 1);
+    const j0 = Math.max(0, Math.floor((fz0 - cw.origin[1]) / cw.dx) - 1);
+    const j1 = Math.min(cw.ny - 1, Math.ceil((fz1 - cw.origin[1]) / cw.dx) + 1);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const x = cw.origin[0] + (i + 0.5) * cw.dx, z = cw.origin[1] + (j + 0.5) * cw.dx;
+      cb[j * cw.nx + i] = sampleBilinear(sc.bed, sc.nx, sc.ny, sc.dx, sc.origin, x, z, (xx, zz) => this.far.heightAt(xx, zz));
     }
-  }
-
-  /** Crown splash when a heavy ball hits the water (volumetric, thrown out of the water itself). */
-  _ballSplashes() {
-    for (const b of this.balls) {
-      const it = b.it, body = it.body;
-      const r = this.batch.resultsFor(it.probe);
-      if (!r) continue;
-      const surf = r.data[r.offset * 8 + 6], depth = r.data[r.offset * 8 + 1];
-      const bottom = body.position[1] - it.T.half[1];
-      const vy = body.linVel[1];
-      if (!b.splashed && depth > 0.15 && bottom <= surf && vy < -3) {
-        b.splashed = true;
-        const speed = -vy, R = it.T.half[0];
-        const vol = Math.min(0.35, 0.025 * speed * speed * R);
-        this.splash.emit({ position: [body.position[0], surf, body.position[2]], velocity: [0, 0.55 * speed, 0], spread: 0.6, radius: R * 1.05, volume: vol, ring: true, radialSpeed: 0.32 * speed, fromWater: true });
-        this.splash.emit({ position: [body.position[0], surf, body.position[2]], velocity: [0, 0.25 * speed, 0], spread: 1.2, radius: R * 0.9, volume: vol * 0.3, ring: true, radialSpeed: 0.6 * speed, fromWater: true });
-      }
+    this.sim.applyBed(sc.bed);
+    this.coarse.applyBed(cb);
+    const now = performance.now();
+    if (force || now - (this._terrainMeshT ?? 0) > 120) {
+      this.renderer.updateNearTerrain();
+      this._terrainMeshT = now;
     }
   }
 
@@ -290,19 +309,26 @@ export class App {
     return hit.object ? objectBounds(hit.object, this.vehicle).center : hit.point;
   }
 
+  /** Terrain height anywhere in the visible world: the detailed nested bed or the coarse far field. */
+  heightAt(x, z) {
+    const sc = this.scene;
+    if (x > sc.origin[0] && z > sc.origin[1] && x < sc.origin[0] + sc.size && z < sc.origin[1] + sc.size) return sc.heightAt(x, z);
+    return this.far.heightAt(x, z);
+  }
+
   /** lowest eye height for the free camera: above the terrain and the (simulated) water surface */
   cameraFloor(x, z) {
     let water = this._staticWater(x, z);
     const w = this._camWater;
     if (w && Math.hypot(w.x - x, w.z - z) < 3) water = w.surface;
-    return Math.max(this.scene.heightAt(x, z) + 0.35, water + 0.25);
+    return Math.max(this.heightAt(x, z) + 0.35, water + 0.25);
   }
 
   // water surface of the initial state (sea + river + puddles) – used where no GPU sample exists
   _staticWater(x, z) {
     const sc = this.scene;
     const inside = x > sc.origin[0] && z > sc.origin[1] && x < sc.origin[0] + sc.size && z < sc.origin[1] + sc.size;
-    if (!inside) return sc.heightAt(x, z) < sc.seaLevel ? sc.seaLevel : -Infinity;
+    if (!inside) return this.heightAt(x, z) < sc.seaLevel ? sc.seaLevel : -Infinity;
     const d = sampleBilinear(sc.depth, sc.nx, sc.ny, sc.dx, sc.origin, x, z);
     return d > 0.01 ? sc.heightAt(x, z) + d : -Infinity;
   }
@@ -314,14 +340,17 @@ export class App {
     this._camWater = { x: this._camProbeXZ[0], z: this._camProbeXZ[1], surface: depth > 0.003 && surf > -1e3 ? surf : -Infinity };
   }
 
-  /** advance the simulation without rendering (settles the river after load) */
+  /** advance both nested simulations without rendering (settles the river and the swell after load) */
   warmup(seconds, dt = 1 / 30) {
     const steps = Math.round(seconds / dt);
     const keep = this.sim.particles.params.enabled;
     this.sim.particles.params.enabled = false;
     for (let s = 0; s < steps; s++) {
       const enc = this.device.createCommandEncoder();
+      this.coarse.step(enc, dt);
+      this.link.edge(enc);
       this.sim.step(enc, dt);
+      this.link.interior(enc);
       this.device.queue.submit([enc.finish()]);
     }
     this.sim.particles.params.enabled = keep;
@@ -359,7 +388,7 @@ export class App {
       const yaw = c.orbitYaw, pitch = clamp(0.3 + c.orbitPitch, 0.02, 1.45);
       pos = v3.add(target, [Math.sin(yaw) * Math.cos(pitch) * c.dist * 1.6, Math.sin(pitch) * c.dist * 1.6, Math.cos(yaw) * Math.cos(pitch) * c.dist * 1.6]);
     }
-    const ground = this.scene.heightAt(pos[0], pos[2]);
+    const ground = this.heightAt(pos[0], pos[2]);
     pos[1] = Math.max(pos[1], ground + 0.6, this.scene.seaLevel + 0.5);
     const k = c.pos ? 1 - Math.exp(-dt * 7) : 1;
     c.pos = c.pos ? v3.lerp(c.pos, pos, k) : pos;
@@ -395,7 +424,7 @@ export class App {
     const t = rayHeightfield(c.pos, fwd, this.surfaceAt, 400);
     if (t !== null) dist = Math.min(35, Math.hypot(fwd[0] * t, fwd[2] * t));
     const x = c.pos[0] + flat[0] * dist, z = c.pos[2] + flat[2] * dist;
-    return [x, Math.max(this.scene.heightAt(x, z), this.scene.seaLevel), z];
+    return [x, Math.max(this.heightAt(x, z), this.scene.seaLevel), z];
   }
 
   _instances() {
@@ -435,8 +464,7 @@ export class App {
 
       // 2) bodies -> fluid
       sim.setPrimitives([...veh.primitives(), ...this.props.primitives()]);
-      this._emitVehicleWater(veh.emitters(sim));
-      this._ballSplashes();
+      for (const e of veh.emitters(sim)) sim.emit(e);
       if (this.rain && this.cam.pos) {
         const w = sim.particles.params.wind;
         sim.emit({ position: [this.cam.pos[0], this.cam.pos[1] + 14, this.cam.pos[2]], velocity: [w[0], -7.5, w[2]], spread: 0.3, radius: [32, 32], rate: 5200, kind: 'rain', size: 0.006, volume: 2e-6, life: 4, fromWater: false, mud: 0 });
@@ -446,12 +474,19 @@ export class App {
       this.batch.submit(0.035);
     }
 
-    // 3) GPU
+    // 3) GPU: coarse sea -> fine boundary -> fine step -> fine interior back into the coarse sea
     const enc = this.device.createCommandEncoder({ label: 'demo.frame' });
-    if (!this.paused) { sim.step(enc, dt); this.splash.step(enc, dt); }
+    if (!this.paused) {
+      this.coarse.step(enc, dt);
+      this.link.edge(enc);
+      sim.step(enc, dt);
+      this.link.interior(enc);
+    }
     this._updateCamera(dt, input?.camera ?? null);
+    this.renderer.setBrush(this.terrain.enabled ? this.terrain.ringPoints() : null);
     const vp = this._viewParams();
     this.fluidR.updateView(vp.view);
+    this.fluidRFar.updateView(vp.view);
     // outputView = null: simulate only (headless tools step the world without the render cost)
     if (outputView) {
       this.renderer.setInstances(this._instances());

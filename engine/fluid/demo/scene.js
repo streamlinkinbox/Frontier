@@ -192,6 +192,7 @@ export function buildScene({ res = 512, size = 160 } = {}) {
     river, road, roadH, roadInfo, fords, puddles, mudPit, rocks,
     far, seaLevel: SEA_LEVEL,
     heightAt,
+    bed0: bed.slice(), mask0: mask.slice(),
     materialAt(x, z) {
       const i = Math.floor((x - origin[0]) / dx), j = Math.floor((z - origin[1]) / dx);
       if (i < 0 || j < 0 || i >= nx || j >= ny) return { road: 0, river: 0, sand: 0, mud: 0 };
@@ -307,4 +308,69 @@ function buildFarTerrain(origin, size) {
     idx.push(a, c, d, a, d, b);
   }
   return { positions: pos, normals: nrm, masks, indices: new Uint32Array(idx) };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Coarse far field: the whole visible bay/ocean is simulated too, at a lower resolution. The fine
+// 160 m grid (the playable world) is nested inside it and the two exchange water every frame, so
+// there is no analytic "fake ocean" ring anywhere.
+// ---------------------------------------------------------------------------------------------
+export function buildCoarseWorld(fine, { res = 384, size = 1400 } = {}) {
+  const nx = res, ny = res, dx = size / res;
+  const origin = [-size / 2, -size / 2];
+  const N = nx * ny;
+  const bed = new Float32Array(N);
+  const cx = (i) => origin[0] + (i + 0.5) * dx, cz = (j) => origin[1] + (j + 0.5) * dx;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) bed[j * nx + i] = naturalHeight(cx(i), cz(j));
+
+  // the river channel continues through the coarse world; the fine scene's exact bed replaces the
+  // coarse samples inside the playable rectangle so the two grids agree at the nesting boundary
+  fine.river.carve(bed, nx, ny, dx, origin, 80);
+  const fx0 = fine.origin[0], fz0 = fine.origin[1], fx1 = fx0 + fine.size, fz1 = fz0 + fine.size;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const x = cx(i), z = cz(j);
+    if (x > fx0 && x < fx1 && z > fz0 && z < fz1) bed[j * nx + i] = sampleBilinear(fine.bed, fine.nx, fine.ny, fine.dx, fine.origin, x, z, naturalHeight);
+  }
+
+  const depth = new Float32Array(N), mud = new Float32Array(N);
+  floodFillSea(bed, depth, nx, ny, SEA_LEVEL);
+  // river water in the coarse channel (the fine source feeds it through the coupling)
+  fine.river.fill(depth, bed, nx, ny, 0.72);
+  const vel = new Float32Array(N * 2);
+  for (let k = 0; k < N; k++) {
+    if (depth[k] > 0.05 && Number.isFinite(fine.river.info[k * 2]) && fine.river.info[k * 2] < 6) {
+      const { tangent } = fine.river.pointAt(fine.river.info[k * 2 + 1]);
+      vel[k * 2] = tangent[0] * 0.8; vel[k * 2 + 1] = tangent[1] * 0.8;
+    }
+  }
+  const heightAt = (x, z) => sampleBilinear(bed, nx, ny, dx, origin, x, z, naturalHeight);
+  return { nx, ny, dx, size, origin, bed, depth, mud, vel, heightAt, depth0: depth.slice(), mud0: mud.slice(), vel0: vel.slice(), bed0: bed.slice() };
+}
+
+/** Linear long-wave swell field matching the solver's ocean boundary (used as an initial state). */
+export function swellField(world, waves, waveDepth, ramp = 1) {
+  const { nx, ny, dx, origin, bed, depth } = world;
+  const c = Math.sqrt(9.81 * Math.max(waveDepth, 0.1));
+  const outDepth = new Float32Array(nx * ny), outVel = new Float32Array(nx * ny * 2);
+  const parsed = waves.map((w) => {
+    const omega = (2 * Math.PI) / Math.max(w.period ?? 6, 0.5);
+    const k = omega / c;
+    const dir = w.direction ?? Math.PI / 2;
+    return { A: w.amplitude ?? 0.3, dx: Math.cos(dir), dz: Math.sin(dir), k, omega, phase: w.phase ?? 0 };
+  });
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const k = j * nx + i;
+    if (depth[k] <= 1e-4) continue;
+    const lx = (i + 0.5) * dx, lz = (j + 0.5) * dx;
+    let e = 0, u = 0, v = 0;
+    for (const w of parsed) {
+      const a = w.A * ramp * Math.sin(w.k * (w.dx * lx + w.dz * lz) + w.phase);
+      e += a;
+      const s = (a * w.omega) / (w.k * Math.max(waveDepth, 0.1));
+      u += w.dx * s; v += w.dz * s;
+    }
+    outDepth[k] = Math.max(0, SEA_LEVEL + e - bed[k]);
+    outVel[k * 2] = u; outVel[k * 2 + 1] = v;
+  }
+  return { depth: outDepth, vel: outVel };
 }

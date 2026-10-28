@@ -96,6 +96,8 @@ export class FluidSim {
     const S = GPUBufferUsage.STORAGE, CD = GPUBufferUsage.COPY_DST, CS = GPUBufferUsage.COPY_SRC;
     this.simUniform = this._buf(SIM_WORDS * 4, GPUBufferUsage.UNIFORM | CD, 'fluid.sim');
     this.bed = this._buf(N * 4, S | CD | CS, 'fluid.bed');
+    this.bedPrev = this._buf(N * 4, S | CD, 'fluid.bedPrev');
+    this.bedEditBuf = this._buf(16, GPUBufferUsage.UNIFORM | CD, 'fluid.bedEdit');
     this.hc = [this._buf(N * 8, S | CD | CS, 'fluid.hc0'), this._buf(N * 8, S | CD | CS, 'fluid.hc1')];
     this.vel = [this._buf(N * 8, S | CD | CS, 'fluid.vel0'), this._buf(N * 8, S | CD | CS, 'fluid.vel1')];
     this.lim = this._buf(N * 4, S, 'fluid.limit');
@@ -142,6 +144,7 @@ export class FluidSim {
       prepB: this._pipe(K.PREP_B, 'fluid.prepB'),
       query: this._pipe(K.QUERY, 'fluid.query'),
       stats: this._pipe(K.STATS, 'fluid.stats'),
+      bedEdit: this._pipe(K.BED_EDIT, 'fluid.bedEdit'),
     };
   }
 
@@ -149,7 +152,12 @@ export class FluidSim {
     return this.device.createBindGroup({
       label,
       layout: pipeline.getBindGroupLayout(0),
-      entries: resources.map((r, i) => ({ binding: i, resource: r instanceof GPUBuffer ? { buffer: r } : r })),
+      entries: resources.map((r, i) => {
+        if (r && r.binding != null && r.resource != null) {
+          return { binding: r.binding, resource: r.resource instanceof GPUBuffer ? { buffer: r.resource } : r.resource };
+        }
+        return { binding: i, resource: r instanceof GPUBuffer ? { buffer: r } : r };
+      }),
     });
   }
 
@@ -166,6 +174,7 @@ export class FluidSim {
       prepB: this.bindGroup(p.prepB, [U, vel[0], surf, this.shadeView], 'bg.prepB'),
       query: this.bindGroup(p.query, [U, hc[0], vel[0], bed, objA, aux, this.points, this.results], 'bg.query'),
       stats: this.bindGroup(p.stats, [U, hc[0], this.statsPartial], 'bg.stats'),
+      bedEdit: this.bindGroup(p.bedEdit, [this.bedEditBuf, this.bedPrev, this.bed, hc[0]], 'bg.bedEdit'),
     };
     this.particles.createBindGroups();
   }
@@ -180,10 +189,14 @@ export class FluidSim {
   }
   cellCenter(i, j) { return [this.origin[0] + (i + 0.5) * this.dx, this.origin[1] + (j + 0.5) * this.dx]; }
 
-  /** Terrain / bed height per cell (row-major, j * nx + i). */
+  /**
+   * Terrain / bed height per cell (row-major, j * nx + i). The heights are COPIED: callers (the
+   * terrain editor) edit their own array in place, and applyBed needs the previously uploaded bed
+   * to keep the water surface where it was.
+   */
   setBed(heights) {
     if (heights.length !== this.nx * this.ny) throw new Error('setBed: wrong size');
-    this.bedHeights = heights instanceof Float32Array ? heights : new Float32Array(heights);
+    this.bedHeights = new Float32Array(heights);
     this.device.queue.writeBuffer(this.bed, 0, this.bedHeights);
     this.device.queue.writeTexture({ texture: this.bedTexture }, this.bedHeights, { bytesPerRow: this.nx * 4 }, [this.nx, this.ny]);
   }
@@ -213,6 +226,29 @@ export class FluidSim {
     for (const b of this.vel) this.device.queue.writeBuffer(b, 0, v);
     this.device.queue.writeBuffer(this.deposit, 0, new Int32Array(N * 2));
     this._initialDepth = hc;
+  }
+
+  /**
+   * Replace the terrain bed and keep the water SURFACE where it was: raising the bed squeezes the
+   * local water column, lowering it fills the new hollow. Runs one small compute pass over the grid.
+   * Used by the terrain editor; call it outside step() (it submits its own command buffer).
+   */
+  applyBed(heights) {
+    if (heights.length !== this.nx * this.ny) throw new Error('applyBed: wrong size');
+    const old = this.bedHeights ?? new Float32Array(this.nx * this.ny);
+    const next = heights instanceof Float32Array ? heights : new Float32Array(heights);
+    this.device.queue.writeBuffer(this.bedPrev, 0, old);
+    this.device.queue.writeBuffer(this.bed, 0, next);
+    this.device.queue.writeTexture({ texture: this.bedTexture }, next, { bytesPerRow: this.nx * 4 }, [this.nx, this.ny]);
+    this.device.queue.writeBuffer(this.bedEditBuf, 0, new Uint32Array([this.nx, this.ny, 0, 0]));
+    const enc = this.device.createCommandEncoder({ label: 'fluid.applyBed' });
+    const pass = enc.beginComputePass({ label: 'fluid.bedEdit' });
+    pass.setPipeline(this.p.bedEdit);
+    pass.setBindGroup(0, this.bg.bedEdit);
+    pass.dispatchWorkgroups(Math.ceil(this.nx / 8), Math.ceil(this.ny / 8));
+    pass.end();
+    this.device.queue.submit([enc.finish()]);
+    this.bedHeights = new Float32Array(next);
   }
 
   /** boundary types per edge: 'wall' | 'open' (absorbing) | 'ocean' (wave-maker + absorbing) */

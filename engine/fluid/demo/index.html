@@ -132,6 +132,18 @@
       <button id="tShadows" class="on">Shadows</button><button id="tRain">Rain</button>
     </div>
 
+    <h4>Terrain sculpting</h4>
+    <div class="toggles"><button id="tSculpt" title="Left mouse paints the terrain instead of moving the camera (M)">Sculpt mode (M)</button></div>
+    <div class="seg" id="tools">
+      <button data-tool="raise" class="on">Raise</button><button data-tool="lower">Lower</button><button data-tool="smooth">Smooth</button><button data-tool="flatten">Flatten</button><button data-tool="paint">Paint</button>
+    </div>
+    <div class="seg" id="materials">
+      <button data-mat="grass">Grass</button><button data-mat="dirt" class="on">Dirt</button><button data-mat="gravel">Gravel</button><button data-mat="sand">Sand</button><button data-mat="mud">Mud</button>
+    </div>
+    <div class="row"><label for="brushR">Brush size</label><input id="brushR" type="range" min="2" max="30" step="0.5" value="9" /><output id="brushRO">9 m</output></div>
+    <div class="row"><label for="brushS">Strength</label><input id="brushS" type="range" min="0.1" max="1" step="0.05" value="0.55" /><output id="brushSO">0.55</output></div>
+    <div class="toggles"><button id="tUndo" title="Undo the last sculpt stroke (U)">Undo (U)</button><button id="tTerrReset">Reset terrain</button></div>
+
     <h4>Debug view</h4>
     <div class="seg" id="views"><button data-v="0" class="on">Shaded</button><button data-v="1">Depth</button><button data-v="2">Speed</button><button data-v="3">Mud</button><button data-v="4">Normals</button></div>
 
@@ -145,7 +157,7 @@
       <b style="color:#dfe6ff">Camera (Unreal):</b> <kbd>RMB</kbd> drag look · <kbd>RMB</kbd>+<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly · <kbd>Q</kbd>/<kbd>E</kbd> down/up · <kbd>RMB</kbd>+wheel speed ·
       <kbd>LMB</kbd> drag move · <kbd>MMB</kbd> pan · <kbd>Alt</kbd>+drag orbit / dolly / track · click select · <kbd>F</kbd> focus<br />
       <b style="color:#dfe6ff">Car:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive · <kbd>Space</kbd> handbrake · <kbd>R</kbd> reset · <kbd>C</kbd> camera · <kbd>1</kbd>–<kbd>5</kbd> scenarios<br />
-      <kbd>H</kbd> hide menu · <kbd>G</kbd> game view · <kbd>T</kbd> rain · <kbd>V</kbd> view · <kbd>P</kbd> pause · <kbd>?</kbd> all controls
+      <kbd>H</kbd> hide menu · <kbd>G</kbd> game view · <kbd>M</kbd> sculpt · <kbd>U</kbd> undo · <kbd>T</kbd> rain · <kbd>V</kbd> view · <kbd>P</kbd> pause · <kbd>?</kbd> all controls
       <div class="links"><button id="bHelp">All controls (?)</button><button id="bHide">Hide menu (H)</button><button id="bGame">Game view (G)</button></div>
     </div>
   </div>
@@ -188,6 +200,7 @@
         <tr><td>Space · R</td><td>Handbrake · reset / flip the car</td></tr>
         <tr><td>1 – 5</td><td>Beach · river ford · mud pit · rapids · puddles</td></tr>
         <tr><td>X · B</td><td>Drop crates · cannonball (free camera: where you look)</td></tr>
+        <tr><td>M · U</td><td>Sculpt mode (left mouse paints the terrain) · undo the last stroke</td></tr>
         <tr><td>T · V · P</td><td>Rain · debug view · pause</td></tr>
         <tr><td>Gamepad</td><td>RT throttle, LT brake, A handbrake, left stick steer</td></tr>
       </table>

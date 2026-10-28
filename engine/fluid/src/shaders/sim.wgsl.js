@@ -629,3 +629,23 @@ fn main(@builtin(global_invocation_id) gid: vec3u, @builtin(local_invocation_ind
   if (li == 0u) { partial[wg.x] = red[0]; }
 }
 `;
+
+// ---------------------------------------------------------------------------------------------
+// 10) Terrain edit: move the bed while keeping the water surface where it was. Used by the editor
+// brushes (raising the bed squeezes the column, lowering it lets water fill the new hollow).
+export const BED_EDIT = /* wgsl */ `
+struct BedEdit { nx: u32, ny: u32, pad0: u32, pad1: u32, };
+@group(0) @binding(0) var<uniform> E: BedEdit;
+@group(0) @binding(1) var<storage, read> oldBed: array<f32>;
+@group(0) @binding(2) var<storage, read> newBed: array<f32>;
+@group(0) @binding(3) var<storage, read_write> hc: array<vec2f>;
+@compute @workgroup_size(8, 8)
+fn main(@builtin(global_invocation_id) gid: vec3u) {
+  let i = i32(gid.x); let j = i32(gid.y);
+  if (i >= i32(E.nx) || j >= i32(E.ny)) { return; }
+  let k = j * i32(E.nx) + i;
+  let d = hc[k];
+  let surface = oldBed[k] + d.x;
+  hc[k] = vec2f(max(0.0, surface - newBed[k]), d.y);
+}
+`;

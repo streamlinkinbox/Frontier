@@ -10,7 +10,7 @@ const DEG = Math.PI / 180;
 // build stamp: the dev server (demo/serve.mjs) serves each build under /b/<id>/ – shown in the menu
 // so it is obvious which version is running (stale caches show an old id or none at all)
 const BUILD = location.pathname.match(/\/b\/([0-9a-z]+)\//)?.[1] ?? 'dev';
-console.info(`Frontier Fluid demo · build ${BUILD} · Unreal camera · particle foam v2`);
+console.info(`Frontier Fluid demo · build ${BUILD} · Unreal camera · adaptive water`);
 
 // ---- persisted UI preferences (localStorage can be blocked in sandboxed iframes) ----------------
 const PREFS_KEY = 'frontier.fluid.demo';
@@ -80,6 +80,8 @@ function fail(msg) {
   $('bar').style.display = 'none';
 }
 
+let sculptReady = false;
+
 async function main() {
   if (!navigator.gpu) {
     fail('WebGPU is not available in this browser.<br>Use Chrome / Edge 113+ (or Safari 26 / Firefox 141+ with WebGPU enabled).');
@@ -145,6 +147,8 @@ async function main() {
       case 'KeyX': app.dropCrates(); break;
       case 'KeyB': app.cannonball(); break;
       case 'KeyT': toggle('tRain'); break;
+      case 'KeyM': toggleSculpt(); break;
+      case 'KeyU': undoStroke(); break;
       case 'KeyP': app.paused = !app.paused; toast(app.paused ? 'Paused (P)' : 'Running'); break;
       case 'KeyV': setView((app.fluidR.settings.debugMode + 1) % 5); break;
       case 'KeyH': toggleMenu(); break;
@@ -210,6 +214,55 @@ async function main() {
     b.classList.toggle('on', b.dataset.q === quality);
     b.addEventListener('click', () => { params.set('q', b.dataset.q); location.search = params.toString(); });
   }
+  // ---- terrain sculpting --------------------------------------------------------------------
+  const terr = app.terrain;
+  sculptReady = true;
+  const TOOL_HINTS = {
+    raise: 'Raise: drag to push the ground up (water is squeezed aside)',
+    lower: 'Lower: drag to dig down (water flows into the new hollow)',
+    smooth: 'Smooth: soften bumps and jagged edges',
+    flatten: 'Flatten: level the ground to the height where the stroke started',
+    paint: 'Paint: recolour the ground surface (materials, not height)',
+  };
+  function syncSculptUI() {
+    $('tSculpt').classList.toggle('on', terr.enabled);
+    for (const b of $('tools').children) b.classList.toggle('on', b.dataset.tool === terr.tool);
+    for (const b of $('materials').children) b.classList.toggle('on', b.dataset.mat === terr.material);
+    $('materials').style.opacity = terr.tool === 'paint' ? 1 : 0.45;
+    canvas.style.cursor = terr.enabled && app.cam.mode === 'free' ? 'crosshair' : '';
+  }
+  function toggleSculpt(on = !terr.enabled) {
+    terr.setEnabled(on);
+    syncSculptUI();
+    syncCameraUI();
+    toast(on ? `${TOOL_HINTS[terr.tool]} — LMB drags, M exits` : 'Sculpt mode off', on ? 3200 : 1400);
+  }
+  function undoStroke() {
+    const ok = terr.undo();
+    toast(ok ? 'Undone' : 'Nothing to undo', 1200);
+  }
+  $('tSculpt').addEventListener('click', () => toggleSculpt());
+  for (const b of $('tools').children) b.addEventListener('click', () => {
+    terr.tool = b.dataset.tool;
+    syncSculptUI();
+    toast(TOOL_HINTS[terr.tool], 2200);
+    canvas.focus({ preventScroll: true });
+  });
+  for (const b of $('materials').children) b.addEventListener('click', () => {
+    terr.material = b.dataset.mat;
+    if (terr.tool !== 'paint') { terr.tool = 'paint'; toast('Paint mode: ' + b.textContent, 1600); }
+    syncSculptUI();
+    canvas.focus({ preventScroll: true });
+  });
+  bindRange('brushR', (v) => `${v.toFixed(1)} m`, (v) => { terr.radius = v; });
+  bindRange('brushS', (v) => v.toFixed(2), (v) => { terr.strength = v; });
+  $('tUndo').addEventListener('click', undoStroke);
+  $('tTerrReset').addEventListener('click', () => {
+    terr.reset();
+    toast('Terrain restored; the water settles into it', 1800);
+  });
+  syncSculptUI();
+
   $('aCrates').addEventListener('click', () => app.dropCrates());
   $('aBall').addEventListener('click', () => app.cannonball());
   $('aReset').addEventListener('click', () => app.resetWater());
@@ -238,6 +291,11 @@ async function main() {
 
   function syncCameraUI() {
     const ec = app.editorCam, mode = app.cam.mode;
+    // the brush only paints in the free camera; switching cameras parks the tool
+    if (sculptReady) {
+      if (app.terrain.enabled && mode !== 'free') app.terrain.setEnabled(false);
+      syncSculptUI();
+    }
     for (const b of $('camModes').children) b.classList.toggle('on', b.dataset.c === mode);
     if (+$('camSpeed').value !== ec.speedSetting) $('camSpeed').value = ec.speedSetting;
     $('camSpeedO').textContent = `${ec.speedSetting} · ${ec.speed} m/s`;

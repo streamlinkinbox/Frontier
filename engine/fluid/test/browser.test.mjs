@@ -213,6 +213,46 @@ check('C returns to the chase camera', c1.mode === 'chase');
 await waitFrames(4);
 await shot('06_back_to_chase');
 
+// ---- terrain sculpting --------------------------------------------------------------------------
+await page.mouse.move(cx, cy);
+await page.mouse.down({ button: 'right' });          // grab the view: free camera
+await page.mouse.move(cx + 20, cy);
+await page.mouse.up({ button: 'right' });
+await waitFrames(2);
+await page.keyboard.press('KeyM');
+const sculptOn = await page.evaluate(() => ({ enabled: app.terrain.enabled, on: document.getElementById('tSculpt').classList.contains('on') }));
+check('M turns on sculpt mode', sculptOn.enabled && sculptOn.on);
+await page.click('#tools button[data-tool="raise"]');
+const bedKey = await page.evaluate(() => {
+  // aim straight down at the ground under the screen centre
+  const e = app.editorCam;
+  const f = e.forward();
+  app.editorCam.setLookAt(e.position, [e.position[0] + f[0] * 20, e.position[1] + f[1] * 20, e.position[2] + f[2] * 20]);
+  const hit = app.pickAt(0, 0, { objects: false });
+  app.__sculptTarget = hit ? [hit.point[0], hit.point[2]] : null;
+  return app.__sculptTarget;
+});
+await waitFrames(1);
+if (bedKey) {
+  const before = await page.evaluate(([x, z]) => app.heightAt(x, z), bedKey);
+  await page.mouse.move(cx, cy);
+  await page.mouse.down({ button: 'left' });
+  for (let i = 1; i <= 8; i++) { await page.mouse.move(cx + (i % 2), cy); await waitFrames(1); }
+  await page.mouse.up({ button: 'left' });
+  await waitFrames(2);
+  const after = await page.evaluate(([x, z]) => app.heightAt(x, z), bedKey);
+  check('LMB dragging with the raise brush lifts the terrain', after > before + 0.02, `${before.toFixed(3)} → ${after.toFixed(3)} m`);
+  await shot('07_sculpted');
+  await page.keyboard.press('KeyU');
+  await waitFrames(1);
+  const undone = await page.evaluate(([x, z]) => app.heightAt(x, z), bedKey);
+  check('U undoes the stroke', Math.abs(undone - before) < 0.01, `${undone.toFixed(3)} m vs ${before.toFixed(3)} m`);
+} else {
+  check('sculpt target found under the cursor', false);
+}
+await page.keyboard.press('KeyM');
+check('M turns sculpt mode off again', !(await page.evaluate(() => app.terrain.enabled)));
+
 console.log('errors:', errors.length ? errors : 'none');
 console.log(failed ? `${failed} UI check(s) FAILED` : 'all UI checks passed');
 await browser.close();

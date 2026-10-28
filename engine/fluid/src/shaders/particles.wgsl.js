@@ -1,12 +1,10 @@
-// GPU particle system for spray, mist, foam and rain.
-//  * Emission from the heightfield uses the potentials of Ihmsen et al. 2012 ("Unified spray, foam
-//    and air bubbles for particle-based fluids") adapted to a 2.5D surface: trapped-air (shear /
-//    colliding flow), wave-crest (convex surface moving along its normal) and kinetic energy.
+// GPU particle system for spray, mist and rain.
+//  * Emission from the heightfield uses the potentials of Ihmsen et al. 2012 (spray and trapped
+//    air) adapted to a 2.5D surface: trapped-air (shear / colliding flow), wave-crest (convex
+//    surface moving along its normal) and kinetic energy.
 //  * Spray carries real water volume: it is removed from the grid on emission and deposited back
 //    (into water or onto dry ground) when it lands, so splashes genuinely move water around.
-//  * Spray hitting water turns into foam; foam rides and is advected by the simulated surface flow,
-//    turns with its vorticity and decays (faster in turbulence and when stranded on dry ground).
-//    Foam particles are rafts of bubbles rendered as a continuous surface (FOAM_SPLAT/COMPOSITE).
+//  * Droplets are ballistic; mist is the fine fraction that stays airborne and reads as spray haze.
 import { SIM_STRUCT, PART_STRUCT, HELPERS, IDX, VEL_ACCESS, STATE_ACCESS } from './common.wgsl.js';
 
 const ALLOC = /* wgsl */ `
@@ -96,42 +94,30 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   // never throw more water than a quarter of the column holds
   count = min(count, i32(0.25 * h * S.dx * S.dx / max(PP.sprayVolume, 1e-9)));
   if (count <= 0) { return; }
-  let sprayBias = (pWC + 0.15) / (pWC + pTA + 0.15);
   let wx = S.originX; let wz = S.originZ;
   var thrown = 0.0;
   for (var e = 0; e < count; e++) {
-    let isSpray = rnd(&seed) < mix(1.0 - PP.foamFraction, 0.97, sprayBias) && vlen > 0.25;
-    // foam rafts are large: only a share of the foam emissions spawn one
-    if (!isSpray && rnd(&seed) >= PP.foamEmitProb) { continue; }
     let idx = allocParticle();
     if (idx < 0) { break; }
     let lp = (vec2f(f32(i), f32(j)) + vec2f(rnd(&seed), rnd(&seed))) * S.dx;
     var p: Particle;
-    if (isSpray) {
-      let isMist = rnd(&seed) < PP.mistFraction;
-      let spread = (vec2f(rnd(&seed), rnd(&seed)) - 0.5) * (0.45 * vlen + 0.3);
-      let up = max(w, 0.0) * (0.5 + 0.9 * rnd(&seed)) + PP.sprayUp * vlen * (0.3 + 0.7 * rnd(&seed)) + 0.2;
-      let fw = 0.8 + 0.5 * rnd(&seed);
-      p.pos = vec3f(wx + lp.x, eta + 0.02, wz + lp.y);
-      p.vel = vec3f(U.x * fw + spread.x, up, U.y * fw + spread.y);
-      p.mud = d.y;
-      if (isMist) {
-        p.kind = KIND_MIST; p.vol = 0.0;
-        p.size = PP.mistSize * (0.6 + 0.8 * rnd(&seed));
-        p.maxLife = PP.mistLife * (0.5 + rnd(&seed));
-        p.vel *= 0.6;
-      } else {
-        p.kind = KIND_SPRAY; p.vol = PP.sprayVolume;
-        p.size = PP.spraySize * (0.5 + rnd(&seed));
-        p.maxLife = PP.sprayLife * (0.6 + 0.8 * rnd(&seed));
-        thrown += PP.sprayVolume;
-      }
+    let isMist = rnd(&seed) < PP.mistFraction;
+    let spread = (vec2f(rnd(&seed), rnd(&seed)) - 0.5) * (0.45 * vlen + 0.3);
+    let up = max(w, 0.0) * (0.5 + 0.9 * rnd(&seed)) + PP.sprayUp * vlen * (0.3 + 0.7 * rnd(&seed)) + 0.2;
+    let fw = 0.8 + 0.5 * rnd(&seed);
+    p.pos = vec3f(wx + lp.x, eta + 0.02, wz + lp.y);
+    p.vel = vec3f(U.x * fw + spread.x, up, U.y * fw + spread.y);
+    p.mud = d.y;
+    if (isMist) {
+      p.kind = KIND_MIST; p.vol = 0.0;
+      p.size = PP.mistSize * (0.6 + 0.8 * rnd(&seed));
+      p.maxLife = PP.mistLife * (0.5 + rnd(&seed));
+      p.vel *= 0.6;
     } else {
-      p.kind = KIND_FOAM; p.vol = 0.0; p.mud = d.y;
-      p.pos = vec3f(wx + lp.x, eta + 0.01, wz + lp.y);
-      p.vel = vec3f(U.x, 1.0, U.y);   // vel.y: full-thickness whitewater
-      p.size = PP.foamSize * (0.5 + rnd(&seed));
-      p.maxLife = PP.foamLife * (0.4 + 0.9 * rnd(&seed));
+      p.kind = KIND_SPRAY; p.vol = PP.sprayVolume;
+      p.size = PP.spraySize * (0.5 + rnd(&seed));
+      p.maxLife = PP.sprayLife * (0.6 + 0.8 * rnd(&seed));
+      thrown += PP.sprayVolume;
     }
     p.life = p.maxLife;
     particles[idx] = p;
@@ -202,8 +188,6 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       p.kind = kind;
       p.size = E.prm.x * (0.6 + 0.8 * rnd(&seed));
       p.vol = E.prm.y;
-      // foam carries no water: vel.y = full thickness, vol = rotation (see PART_STRUCT)
-      if (kind == KIND_FOAM) { p.vel.y = 1.0; p.vol = 0.0; }
       p.mud = mud;
       p.maxLife = E.prm.z * (0.6 + 0.8 * rnd(&seed));
       p.life = p.maxLife;
@@ -257,59 +241,28 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var lp = vec2f(p.pos.x - S.originX, p.pos.z - S.originZ);
   if (lp.x < 0.0 || lp.y < 0.0 || lp.x >= L.x || lp.y >= L.y) { kill(idx); return; }
 
-  if (p.kind == KIND_FOAM) {
-    let st = sampleState(lp);
-    let U = sampleVel(lp);
-    var decay = 1.0;
-    if (st.y < 0.003) { decay = PP.foamStrandDecay; }
-    // bubbles burst faster in fast, turbulent flow
-    decay += PP.foamDecayTurb * length(U);
-    let jit = (vec2f(rnd(&seed), rnd(&seed)) - 0.5) * PP.foamDiffusion * sqrt(dt) * 3.46;
-    let drift = U * PP.surfaceDrift + vec2f(PP.windX, PP.windZ) * 0.015;
-    // a raft turns with the local fluid rotation (half the vorticity), so foam swirls in eddies.
-    // Foam carries no water, so its vol field holds this accumulated angle (radians).
-    let ex = vec2f(S.dx, 0.0); let ez = vec2f(0.0, S.dx);
-    let curl = ((sampleVel(lp + ex).y - sampleVel(lp - ex).y) - (sampleVel(lp + ez).x - sampleVel(lp - ez).x)) / (2.0 * S.dx);
-    p.vol = p.vol + 0.5 * clamp(curl, -20.0, 20.0) * dt;
-    p.pos.x += drift.x * dt + jit.x;
-    p.pos.z += drift.y * dt + jit.y;
-    lp = vec2f(p.pos.x - S.originX, p.pos.z - S.originZ);
-    let st2 = sampleState(lp);
-    p.pos.y = st2.w + 0.012;
-    p.vel = vec3f(drift.x, p.vel.y, drift.y);   // vel.y keeps the raft's birth thickness
-    p.life -= dt * decay;
-  } else {
-    // ballistic droplet with quadratic air drag relative to the wind
-    let rel = p.vel - vec3f(PP.windX, PP.windY, PP.windZ);
-    // drag/mass ~ 1/droplet diameter; mist = fine droplets (terminal ~2 m/s), rain ~7 m/s
-    var kd = PP.airDrag / max(p.size, 0.002);
-    if (p.kind == KIND_MIST) { kd = 2.0; }
-    if (p.kind == KIND_RAIN) { kd = 0.2; }
-    let speed = length(rel);
-    p.vel = p.vel - rel * min(kd * speed * dt, 0.95);
-    p.vel.y -= PP.gravity * dt;
-    p.pos += p.vel * dt;
-    p.life -= dt;
-    lp = vec2f(p.pos.x - S.originX, p.pos.z - S.originZ);
-    if (lp.x < 0.0 || lp.y < 0.0 || lp.x >= L.x || lp.y >= L.y) { kill(idx); return; }
-    let st = sampleState(lp);
-    if (p.pos.y <= st.x) {
-      // landed on dry ground: water soaks in (handled by the grid), mud leaves a deposit
-      if (p.vol > 0.0) { depositAt(lp, p.vol, p.mud); }
-      kill(idx); return;
-    }
-    if (p.pos.y <= st.w && st.y > 0.002) {
-      if (p.vol > 0.0) { depositAt(lp, p.vol, p.mud); }
-      if ((p.kind == KIND_SPRAY || p.kind == KIND_RAIN) && p.mud < 0.35 && rnd(&seed) < PP.impactFoamProb * select(1.0, 0.25, p.kind == KIND_RAIN)) {
-        p.kind = KIND_FOAM;
-        p.vol = 0.0;
-        p.pos.y = st.w + 0.012;
-        p.vel = vec3f(p.vel.x * 0.3, PP.impactFoamAmount, p.vel.z * 0.3);   // a thin film of droplet foam
-        p.size = PP.foamSize * (0.35 + 0.6 * rnd(&seed));
-        p.maxLife = PP.foamLife * (0.25 + 0.6 * rnd(&seed));
-        p.life = p.maxLife;
-      } else { kill(idx); return; }
-    }
+  // ballistic droplet with quadratic air drag relative to the wind
+  let rel = p.vel - vec3f(PP.windX, PP.windY, PP.windZ);
+  // drag/mass ~ 1/droplet diameter; mist = fine droplets (terminal ~2 m/s), rain ~7 m/s
+  var kd = PP.airDrag / max(p.size, 0.002);
+  if (p.kind == KIND_MIST) { kd = 2.0; }
+  if (p.kind == KIND_RAIN) { kd = 0.2; }
+  let speed = length(rel);
+  p.vel = p.vel - rel * min(kd * speed * dt, 0.95);
+  p.vel.y -= PP.gravity * dt;
+  p.pos += p.vel * dt;
+  p.life -= dt;
+  lp = vec2f(p.pos.x - S.originX, p.pos.z - S.originZ);
+  if (lp.x < 0.0 || lp.y < 0.0 || lp.x >= L.x || lp.y >= L.y) { kill(idx); return; }
+  let st = sampleState(lp);
+  if (p.pos.y <= st.x) {
+    // landed on dry ground: water soaks in (handled by the grid), mud leaves a deposit
+    if (p.vol > 0.0) { depositAt(lp, p.vol, p.mud); }
+    kill(idx); return;
+  }
+  if (p.pos.y <= st.w && st.y > 0.002) {
+    if (p.vol > 0.0) { depositAt(lp, p.vol, p.mud); }
+    kill(idx); return;
   }
   if (p.life <= 0.0) { kill(idx); return; }
   particles[idx] = p;

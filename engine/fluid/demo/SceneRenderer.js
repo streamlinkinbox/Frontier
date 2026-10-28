@@ -1,6 +1,6 @@
 // Minimal "engine" renderer for the demo: HDR targets, shadow map, sky, terrain, instanced meshes
 // and tone mapping, with the FluidRenderer slotted in between the opaque and post passes.
-import { TERRAIN, MESH, SKY, SHADOW, POST, SELECT } from './shaders.js';
+import { TERRAIN, MESH, SKY, SHADOW, POST, SELECT, BRUSH } from './shaders.js';
 import { mat4, v3 } from '../src/math.js';
 import { naturalHeight } from './scene.js';
 
@@ -12,6 +12,7 @@ export class SceneRenderer {
     // render terrain finer than the simulation grid (smooth shorelines, like a real engine terrain)
     this.terrainUpsample = terrainUpsample ?? (scene.dx > 0.4 ? 2 : 1);
     this.fr = fluidRenderer;
+    this.waterR = [fluidRenderer];
     this.scene = scene;
     this.outputFormat = outputFormat;
     this.shadowSize = shadowSize;
@@ -128,6 +129,22 @@ export class SceneRenderer {
       vertex: { module: pm, entryPoint: 'vs' },
       fragment: { module: pm, entryPoint: 'fs', targets: [{ format: this.outputFormat }] },
     });
+
+    // ---- terrain brush cursor (world-space line ring, 1 px)
+    const bm = d.createShaderModule({ code: BRUSH, label: 'demo.brush' });
+    const brushBlend = { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' } };
+    this.brushPipe = d.createRenderPipeline({
+      label: 'demo.brush', layout: d.createPipelineLayout({ bindGroupLayouts: [this.viewBGL] }),
+      vertex: { module: bm, entryPoint: 'vs', buffers: [{ arrayStride: 16, attributes: [
+        { shaderLocation: 0, offset: 0, format: 'float32x3' },
+        { shaderLocation: 1, offset: 12, format: 'unorm8x4' },
+      ] }] },
+      fragment: { module: bm, entryPoint: 'fs', targets: [{ format: 'rgba16float', blend: brushBlend }] },
+      primitive: { topology: 'line-list' },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: 'greater-equal' },
+    });
+    this.brushVB = d.createBuffer({ label: 'demo.brushVB', size: 512 * 16, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+    this.brushCount = 0;
   }
 
   // Near terrain: one vertex per simulation cell centre, plus a ring of vertices exactly on the
@@ -234,15 +251,41 @@ export class SceneRenderer {
     this.depth = d.createTexture({ label: 'demo.depth', size: sz, format: 'depth32float', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
     this.selMask = d.createTexture({ label: 'demo.selectionMask', size: sz, format: 'rg8unorm', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
     this.hdrView = this.hdr.createView(); this.depthView = this.depth.createView(); this.selView = this.selMask.createView();
-    this.fr.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView, [this.width, this.height]);
+    for (const w of this.waterR) w.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView, [this.width, this.height]);
     this.postBG = d.createBindGroup({ layout: this.postBGL, entries: [{ binding: 0, resource: this.hdrView }, { binding: 1, resource: { buffer: this.postBuf } }, { binding: 2, resource: this.selView }] });
-    this.splashR?.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView, [this.width, this.height]);
   }
 
-  /** Volumetric splash water (SplashRenderer), drawn after the water surface so it refracts it. */
-  attachSplash(splashR) {
-    this.splashR = splashR;
-    splashR.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView, [this.width, this.height]);
+  /** Add the coarse far-field water renderer (drawn before the fine water). */
+  attachCoarse(fr) {
+    if (!this.waterR.includes(fr)) this.waterR.unshift(fr);
+    fr.setSceneTextures(this.hdrCopy.createView(), this.depthView, this.shadowView, [this.width, this.height]);
+  }
+
+  /** Re-upload the near terrain after a sculpt/paint stroke. */
+  updateNearTerrain() {
+    const data = this._nearTerrainData();
+    if (data.positions.byteLength !== this.near.pos.size) {
+      this.near = this._terrainMesh(data);
+      return;
+    }
+    this.device.queue.writeBuffer(this.near.pos, 0, data.positions);
+    this.device.queue.writeBuffer(this.near.nrm, 0, data.normals);
+    this.device.queue.writeBuffer(this.near.mask, 0, data.masks);
+  }
+
+  /** World-space brush ring points (flat [x,y,z,...]); null hides it. */
+  setBrush(points) {
+    this.brushCount = 0;
+    if (!points || points.length < 3) return;
+    const n = Math.min(points.length / 3, 500);
+    const data = new Uint8Array(n * 16);
+    const f = new Float32Array(data.buffer);
+    for (let i = 0; i < n; i++) {
+      f[i * 4] = points[i * 3]; f[i * 4 + 1] = points[i * 3 + 1]; f[i * 4 + 2] = points[i * 3 + 2];
+      data[i * 16 + 12] = 255; data[i * 16 + 13] = 214; data[i * 16 + 14] = 70; data[i * 16 + 15] = 230;
+    }
+    this.device.queue.writeBuffer(this.brushVB, 0, data, 0, data.byteLength);
+    this.brushCount = n;
   }
 
   /** list of { mesh: 'box'|'cylinder'|'sphere', matrix: Float32Array(16), color: [r,g,b], params: [rough, metal, pattern, emissive] } */
@@ -327,33 +370,22 @@ export class SceneRenderer {
       pass.end();
     }
 
-    // particle foam: splat the foam rafts into screen-space buffers (depth-tested against the opaque scene)
-    this.fr.renderFoam(encoder);
-
-    // water + foam (+ spray particles) (read-only depth, sampled for refraction & soft particles)
-    const splash = this.splashR?.active;
+    // water + spray particles (read-only depth, sampled for refraction & soft particles)
+    // the coarse ocean is drawn first, then the high-resolution nested bay on top
     {
       const pass = encoder.beginRenderPass({
         label: 'demo.water',
         colorAttachments: [{ view: this.hdrView, loadOp: 'load', storeOp: 'store' }],
         depthStencilAttachment: { view: this.depthView, depthReadOnly: true },
       });
-      this.fr.drawWater(pass);
-      this.fr.drawFoam(pass);
-      if (!splash) this.fr.drawParticles(pass);
-      pass.end();
-    }
-    // volumetric splash water: rendered after the water so it refracts the surface behind it
-    if (splash) {
-      this.splashR.render(encoder);
-      encoder.copyTextureToTexture({ texture: this.hdr }, { texture: this.hdrCopy }, [this.width, this.height]);
-      const pass = encoder.beginRenderPass({
-        label: 'demo.splash',
-        colorAttachments: [{ view: this.hdrView, loadOp: 'load', storeOp: 'store' }],
-        depthStencilAttachment: { view: this.depthView, depthReadOnly: true },
-      });
-      this.splashR.draw(pass);
+      for (const w of this.waterR) w.drawWater(pass);
       this.fr.drawParticles(pass);
+      if (this.brushCount) {
+        pass.setPipeline(this.brushPipe);
+        pass.setBindGroup(0, this.viewBG);
+        pass.setVertexBuffer(0, this.brushVB);
+        pass.draw(this.brushCount);
+      }
       pass.end();
     }
 

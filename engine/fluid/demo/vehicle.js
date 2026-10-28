@@ -260,9 +260,9 @@ export class Vehicle {
         // sheet spray thrown sideways and up from the tyre / bow of the wheel
         const base = [c[0] + right[0] * side * 0.2, c[1] - this.cfg.radius + d, c[2] + right[2] * side * 0.2];
         const vel = v3.add(v3.add(v3.scale(right, side * (0.4 * vh + 0.8)), v3.scale(fwd, 0.15 * Math.sign(this.speed) * vh)), [v[0] * 0.25, 0.32 * vh + 1.2, v[2] * 0.25]);
-        out.push({ position: base, velocity: vel, spread: 0.2 * vh + 0.4, radius: [0.22, 0.22], rate: Math.min(9000, 2600 * d * vh), kind: 'spray', fromWater: true, mud: -1, sheet: true });
+        out.push({ position: base, velocity: vel, spread: 0.2 * vh + 0.4, radius: [0.22, 0.22], rate: Math.min(9000, 2600 * d * vh), kind: 'spray', fromWater: true, mud: -1 });
         // rooster tail behind the tyre
-        out.push({ position: v3.madd(base, fwd, -0.45 * Math.sign(this.speed)), velocity: v3.add(v3.scale(fwd, -0.35 * vh * Math.sign(this.speed)), [0, 0.45 * vh + 1, 0]), spread: 0.15 * vh + 0.3, radius: 0.12, rate: Math.min(6000, 1500 * d * vh), kind: 'spray', fromWater: true, mud: -1, sheet: true });
+        out.push({ position: v3.madd(base, fwd, -0.45 * Math.sign(this.speed)), velocity: v3.add(v3.scale(fwd, -0.35 * vh * Math.sign(this.speed)), [0, 0.45 * vh + 1, 0]), spread: 0.15 * vh + 0.3, radius: 0.12, rate: Math.min(6000, 1500 * d * vh), kind: 'spray', fromWater: true, mud: -1 });
         if (vh > 6) out.push({ position: base, velocity: [v[0] * 0.3, 0.25 * vh, v[2] * 0.3], spread: 0.25 * vh, radius: 0.3, rate: 70 * vh, kind: 'mist', fromWater: true, volume: 0 });
       }
       // mud roost: spinning tyre in mud throws clumps backwards
@@ -285,7 +285,7 @@ export class Vehicle {
     const fs = v3.dot(b.linVel, fwd);
     const fd = this.frontDepth ?? 0;
     if (fd > 0.05 && fs > 3) {
-      out.push({ position: front, velocity: v3.add(v3.scale(fwd, 0.55 * fs), [0, 0.35 * fs + 1.5, 0]), spread: 0.35 * fs, radius: [0.9, 0.3], rate: Math.min(12000, 900 * fd * fs), kind: 'spray', fromWater: true, mud: -1, sheet: true });
+      out.push({ position: front, velocity: v3.add(v3.scale(fwd, 0.55 * fs), [0, 0.35 * fs + 1.5, 0]), spread: 0.35 * fs, radius: [0.9, 0.3], rate: Math.min(12000, 900 * fd * fs), kind: 'spray', fromWater: true, mud: -1 });
     }
     return out;
   }

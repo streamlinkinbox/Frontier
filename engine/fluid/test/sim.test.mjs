@@ -250,7 +250,7 @@ function maxAbs(a) { let m = 0; for (const x of a) m = Math.max(m, Math.abs(x));
 }
 
 // -------------------------------------------------------------------------------------------
-{ // 9. Particles: breaking flow emits spray & foam; spray carries real volume that returns on landing
+{ // 9. Particles: breaking flow emits spray; spray carries real volume that returns on landing
   const nx = 96, ny = 48, dx = 0.2;
   const sim = makeSim(nx, ny, dx, { particles: true, maxParticles: 65536 });
   sim.setBed(new Float32Array(nx * ny));
@@ -266,7 +266,7 @@ function maxAbs(a) { let m = 0; for (const x of a) m = Math.max(m, Math.abs(x));
     peak = Math.max(peak, sim.stats.particles || 0);
   }
   check('particles: breaking bore emits particles', peak > 200, `peak alive ${peak}`);
-  // let everything settle; foam carries no water, spray returns its volume
+  // let everything settle; the spray returns its volume where it lands
   sim.particles.params.enabled = false;
   await run(sim, 400);
   const { hc } = await sim.readState();

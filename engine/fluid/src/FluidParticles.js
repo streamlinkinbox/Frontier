@@ -1,8 +1,8 @@
-// FluidParticles – GPU spray / mist / foam / rain particles coupled to FluidSim.
+// FluidParticles – GPU spray / mist / rain particles coupled to FluidSim.
 import { EMIT_SURFACE, EMIT_CPU, SIMULATE, FINALIZE } from './shaders/particles.wgsl.js';
 
-export const PARTICLE_KIND = { spray: 1, foam: 2, mist: 3, rain: 4 };
-const PP_WORDS = 44;
+export const PARTICLE_KIND = { spray: 1, mist: 3, rain: 4 };
+const PP_WORDS = 32;
 
 export class FluidParticles {
   constructor(sim, maxParticles = 262144, maxEmitters = 64) {
@@ -24,17 +24,9 @@ export class FluidParticles {
       maxPerCell: 8,
       sprayVolume: 1.2e-5,       // m^3 of water carried by one spray particle (12 ml)
       minDepth: 0.015,
-      sprayLife: 3.0, foamLife: 14, mistLife: 1.6,
-      foamFraction: 0.55,        // share of trapped-air emission that becomes surface foam
-      spraySize: 0.024, foamSize: 0.3, mistSize: 0.32,   // foamSize: radius of a foam raft (m)
+      sprayLife: 3.0, mistLife: 1.6,
+      spraySize: 0.024, mistSize: 0.32,
       mistFraction: 0.12,
-      foamDecayTurb: 0.12,       // extra foam decay per (m/s) of flow speed
-      foamStrandDecay: 5.0,      // decay multiplier for foam left on dry land
-      foamDiffusion: 0.05,       // random walk m/sqrt(s)
-      surfaceDrift: 1.05,        // foam moves slightly faster than depth-averaged flow (surface current)
-      impactFoamProb: 0.45,      // chance that a landing spray droplet leaves a (thin) raft of foam
-      impactFoamAmount: 0.25,    // thickness of droplet foam relative to breaking-wave foam
-      foamEmitProb: 0.35,        // share of surface foam emissions that spawn a raft (rafts are large)
       sprayUp: 0.35,
       wind: [0, 0, 0],
     };
@@ -80,7 +72,12 @@ export class FluidParticles {
     this.bg = {
       emitSurface: s.bindGroup(this.p.emitSurface, [U, P, s.hc[0], s.vel[0], s.bed, s.aux, this.particles, this.deadList, this.counters, s.deposit], 'bg.emitSurface'),
       emitCpu: s.bindGroup(this.p.emitCpu, [U, P, this.emitterBuf, s.hc[0], s.bed, this.particles, this.deadList, this.counters, s.deposit], 'bg.emitCpu'),
-      simulate: s.bindGroup(this.p.simulate, [U, P, s.hc[0], s.vel[0], s.bed, this.particles, this.deadList, this.drawList, this.counters, s.deposit], 'bg.simulate'),
+      simulate: s.bindGroup(this.p.simulate, [
+        { binding: 0, resource: U }, { binding: 1, resource: P }, { binding: 2, resource: s.hc[0] },
+        { binding: 4, resource: s.bed }, { binding: 5, resource: this.particles },
+        { binding: 6, resource: this.deadList }, { binding: 7, resource: this.drawList },
+        { binding: 8, resource: this.counters }, { binding: 9, resource: s.deposit },
+      ], 'bg.simulate'),
       finalize: s.bindGroup(this.p.finalize, [this.counters, this.drawArgs], 'bg.finalize'),
     };
   }
@@ -88,7 +85,7 @@ export class FluidParticles {
   /**
    * Queue an emitter for the next step.
    * { position:[x,y,z], velocity:[vx,vy,vz], spread (m/s), radius (m or [rx,rz]), count | rate (per s),
-   *   kind: 'spray'|'foam'|'mist'|'rain', size, volume (m^3 each), life (s), mud (0..1, -1 = from grid),
+   *   kind: 'spray'|'mist'|'rain', size, volume (m^3 each), life (s), mud (0..1, -1 = from grid),
    *   fromWater (true: must take real water from the grid at that spot) }
    */
   emit(e) {
@@ -102,12 +99,9 @@ export class FluidParticles {
     f[8] = P.taMin; f[9] = P.taMax; f[10] = P.wcMin; f[11] = P.wcMax;
     f[12] = P.keMin; f[13] = P.keMax; f[14] = P.kTA; f[15] = P.kWC;
     f[16] = P.emitScale; f[17] = P.maxPerCell; f[18] = P.sprayVolume; f[19] = P.minDepth;
-    f[20] = P.sprayLife; f[21] = P.foamLife; f[22] = P.mistLife; f[23] = P.foamFraction;
-    f[24] = P.spraySize; f[25] = P.foamSize; f[26] = P.mistSize; f[27] = P.mistFraction;
-    f[28] = P.foamDecayTurb; f[29] = P.foamStrandDecay; f[30] = P.foamDiffusion; f[31] = P.surfaceDrift;
-    f[32] = P.wind[0]; f[33] = P.wind[1]; f[34] = P.wind[2]; f[35] = P.impactFoamProb;
-    f[36] = P.foamEmitProb; f[37] = P.impactFoamAmount;
-    f[43] = P.sprayUp;
+    f[20] = P.sprayLife; f[21] = P.mistLife; f[22] = P.spraySize; f[23] = P.mistSize;
+    f[24] = P.mistFraction; f[25] = P.sprayUp;
+    f[26] = P.wind[0]; f[27] = P.wind[1]; f[28] = P.wind[2];
     // emitters
     const n = this._emitters.length;
     let active = 0;
@@ -124,9 +118,9 @@ export class FluidParticles {
         data[o] = p[0]; data[o + 1] = p[1]; data[o + 2] = p[2]; data[o + 3] = Math.min(count, 16384);
         data[o + 4] = v[0]; data[o + 5] = v[1]; data[o + 6] = v[2]; data[o + 7] = e.spread ?? 0.5;
         data[o + 8] = r[0]; data[o + 9] = r[1]; data[o + 10] = kind; data[o + 11] = (e.fromWater ?? (kind === 1)) ? 1 : 0;
-        data[o + 12] = e.size ?? (kind === 2 ? P.foamSize : kind === 3 ? P.mistSize : P.spraySize);
+        data[o + 12] = e.size ?? (kind === 3 ? P.mistSize : P.spraySize);
         data[o + 13] = e.volume ?? (kind === 1 || kind === 4 ? P.sprayVolume : 0);
-        data[o + 14] = e.life ?? (kind === 2 ? P.foamLife : kind === 3 ? P.mistLife : P.sprayLife);
+        data[o + 14] = e.life ?? (kind === 3 ? P.mistLife : P.sprayLife);
         data[o + 15] = e.mud ?? -1;
         active++;
       }
