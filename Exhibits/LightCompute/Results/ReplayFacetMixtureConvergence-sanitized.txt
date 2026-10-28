@@ -1,0 +1,44 @@
+Uniform/power facet replay mixture; --replay-facet-mixture-convergence; host sanitized
+Base 3e8bc84, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+6697e520368835e89f1832613ed07b6ae72ddf0b8db31a12c78736d2f48753ea  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+3a689e043b64039ba57bd5bc38eaab95b4d369b863f4a5d233a2d0568ff96e04  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+5268acceeb7d2e6dcc0676d1884a3c10f61076d85255047d9d5c23b3e9ca9419  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+fa24e8eb1fd6c516810260f2dd6656e56616d016070552530d42a8b4fcee63e0  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+2b52a161d5fb46c26a887467c68f75039ff5564121948eae9b3956a4e5eccc1d  Exhibits/LightCompute/Code/ReplayFacetPowerValidation.h
+b2943b00bbab69cbc255a40e5eab7770deb3d7f4bcb65f551b65f20c8afad94d  Exhibits/LightCompute/Code/ReplayFacetMixtureValidation.h
+d1bf79b0b6720452d418ce7bf80b87028f7399bfc5ecbdbb3c7e602bc9822b40  Exhibits/LightCompute/Code/ReplayFacetMixtureSpectrumValidation.h
+2bb7a54db3cdc8081e86bf28aff5c5d7ecce6185b63e665f746ca7c4eb7e68d0  Exhibits/LightCompute/Code/ReplayFacetMixtureConvergenceValidation.h
+f2de1168252963587aef20d12474145a775a590285b035a051e71222c34ecf32  Exhibits/LightCompute/Code/ReplayImportanceParityValidation.h
+79e9a04f26afb7ee9403d20ef1dc779762a4f527baf2e059131995e7eda75d6c  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=12 proposal=1 weighted_facets=1 uniform_mixture=1 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+MIXTURE_REPEAT preparing Vulkan on SwiftShader Device (Subzero)
+MIXTURE_REPEAT original_uniform exact=0.544712826 mean=0.530825479 batch_se=0.00428452161 bright=11975/24576 frequency=0.487263997 frequency_batch_se=0.00371793257 generator_mismatches=0
+MIXTURE_REPEAT batches=32 case=open_uniform exact=0.544712826 mean=0.540366763 batch_se=0.00338091172 sample_sd=0.560690785
+MIXTURE_REPEAT batches=32 case=open_mixture exact=0.544712826 mean=0.54418951 batch_se=0.0019529646 sample_sd=0.333246114
+MIXTURE_REPEAT batches=32 case=blocked_uniform exact=0.00113245984 mean=0.00113973262 batch_se=6.82733837e-06 sample_sd=0.00117198944
+MIXTURE_REPEAT batches=32 case=blocked_mixture exact=0.00113245984 mean=0.00112361895 batch_se=1.13221167e-05 sample_sd=0.00199077964
+MIXTURE_REPEAT batches=64 case=open_uniform exact=0.544712826 mean=0.544152513 batch_se=0.00219901881 sample_sd=0.561099918
+MIXTURE_REPEAT batches=64 case=open_mixture exact=0.544712826 mean=0.543778264 batch_se=0.00129550644 sample_sd=0.334134466
+MIXTURE_REPEAT batches=64 case=blocked_uniform exact=0.00113245984 mean=0.00113382785 batch_se=4.5628589e-06 sample_sd=0.00117277357
+MIXTURE_REPEAT batches=64 case=blocked_mixture exact=0.00113245984 mean=0.00113329936 batch_se=7.79129837e-06 sample_sd=0.00200060184
+MIXTURE_REPEAT batches=128 case=open_uniform exact=0.544712826 mean=0.543708555 batch_se=0.00156518293 sample_sd=0.561204595
+MIXTURE_REPEAT batches=128 case=open_mixture exact=0.544712826 mean=0.543700037 batch_se=0.000945726133 sample_sd=0.334769988
+MIXTURE_REPEAT batches=128 case=blocked_uniform exact=0.00113245984 mean=0.00113521189 batch_se=3.2516259e-06 sample_sd=0.00117327249
+MIXTURE_REPEAT batches=128 case=blocked_mixture exact=0.00113245984 mean=0.0011370946 batch_se=5.78150668e-06 sample_sd=0.00200267012
+MIXTURE_REPEAT_FREQUENCY case=open_uniform_bright expected=0.5 observed=0.499252319 batch_se=0.00136446448
+MIXTURE_REPEAT_FREQUENCY case=open_mixture_bright expected=0.748960465 observed=0.747619629 batch_se=0.00123179049
+MIXTURE_REPEAT_FREQUENCY case=blocked_uniform_visible expected=0.5 observed=0.500747681 batch_se=0.00136446448
+MIXTURE_REPEAT_FREQUENCY case=blocked_mixture_visible expected=0.251039535 observed=0.252380371 batch_se=0.00123179049
+MIXTURE_REPEAT unique_frame_seeds=128 original_seed_overlap=0 centres_per_batch=1024
+PASS original outlier diagnosis and disjoint uniform/mixture convergence repeat

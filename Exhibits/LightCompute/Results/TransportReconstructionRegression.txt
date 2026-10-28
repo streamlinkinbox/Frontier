@@ -1,0 +1,11 @@
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+COMPARE receivers=256000 facets=28276 all_visits=8107704 local_visits=2682703 fallbacks=56643 shadow_rays=513697 stack_fallbacks=0 cpu_mean_abs_rgb=2.02268e-06 cpu_max_abs_rgb=6.44028e-05 channels_over_1e-3=0
+SAMPLING lights=97 receivers=512 seeds=256 mean=1480.95 native_exact=1480.88 standard_error=0.0842466 native_max_abs=8.58307e-06
+REUSE_ENERGY chains=64 steps=4 mean=1480.78 native_exact=1480.88 standard_error=0.123867
+REJECTION material_accepted=256 material_rejected=256 normal_rejected=512 camera_cut_rejected=512 position_rejected=512 cold_restart_exact_match=1
+VISIBILITY offscreen_caster_facets=10 forced_stack_fallbacks=49664 exhaustive_fallback_matches=1
+HISTORY static_sequences=16 accepted=225214 rejected=0 spatial=636165 colour_history=225214 fresh_rmse=0.133629 reconstructed_rmse=0.0413195
+RESET lights_off_exact_match=1 accepted=0
+REFRESH current_residual_exact_match=1
+RIS first_seed_luminance_sum=60640.9 native_exact_luminance_sum=60723.4 fresh_ris_temporal_reuse=0
+PASS Vulkan all-light/cluster/overflow equality and native image comparison

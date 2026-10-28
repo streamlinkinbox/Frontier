@@ -1,0 +1,44 @@
+Strict diffuse camera reprojection; host release; external Vulkan driver and shaders are not sanitizer-instrumented
+Base e34b0a1, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+70532096c3da1d895eda966fba0e39f111d65a3884e54fc81cf08b18089329b7  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+069d91ad09c10d206a71e5952664061729a9b33d6c18ae2a4251f9b0d929fe4d  Frontier/Engine/Rendering/PathReplayDomain.h
+30de3a0be93e0745139db036c9214c738fb4729ad322d17a8cd5cfe8c11a2847  Frontier/Engine/Rendering/PathReplayDomain.cpp
+5079f411dfe475dc3ebc3ee82f88248e9e29cc33e4496b599af5d67cc32fac46  Frontier/Engine/Rendering/PathReplayVulkan.h
+cb8eea2b39a4330e8ad5ec1e03ddd0e3b1cc08c7d3986dcb2b7b99b9deef9eed  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+642c70c9822e413d0825e38ce1f0f1c1c4cc3133dd2a15a7b6c3b3995d181aa7  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+affb399d40e821651465a03e6813768b86cac7b2877bc55f49e52fc08d8755c8  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+421796039ba57ebeec189279b8124f3acb9bce84fbcccbb9ba85d1eb63a29c6a  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+7352e4ddc5eeb825d43eb706df0987c9b9cd59edfb6bfcaca8c6c0e0b7a7ed7d  Exhibits/LightCompute/Code/ReplayCameraReprojectionValidation.h
+426359805333c1989f7e57f1ca5d7be1c4aa83d70086479a678a34470c37c75e  Exhibits/LightCompute/Code/ReplayCandidateValidation.h
+bd41b325c5fc68eedfb77bcb01c6d59889c566191d5d89d7f7bcc0ed05ca6ae2  Exhibits/LightCompute/Code/ReplayReconstructionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+b1089f582559885b7ac7de403cbdaddadb44968cde997aa4d586902ff0dde526  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+30eed744b225bbc9d6ff3b6d3ae33ea46d711a964a32fa01526daf129c6936f0  Exhibits/LightCompute/Code/PathReplayCapture.h
+0783b3635b000a82eaea6550235145fe4d662221f71501b5c3e15f6fcac0889c  Exhibits/LightCompute/RunReplayCameraReprojection.sh
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1 camera_mode_rejections=3 camera_input_rejections=5
+ENGINE_REPLAY_HISTORY exact_revisions=13 proposal=1 weighted_facets=1 uniform_mixture=1 candidate_revision=1 candidate_rejections=2 in_place_atlas=1 audit=1 invalidation=1 camera_only=1 bvh_enclosure_corner=1 prior_projection=1 motion_metadata=1 signed_zero_camera=1
+PASS engine replay inputs, guards and bounded history revisions
+REPLAY_RECORDERS primary_and_input=1 barriers=3 padded_dispatch=1 push128=1 invalid_before_recording=32 candidates_0_to_4=1 weighted_span=1 uint_index_limit=1 secondary_camera=1 reconstruction_order_and_WAR=1 diffuse_camera_guards=1
+CAMERA_AREA points=290 raw_rmse=0.0328993048 filtered_rmse=0.0105451985 ratio=0.320529524 quadrature_rmse=0.000331880138
+CAMERA_REPROJECTION candidates=1 temporal=0 spatial=0 accepted=290 rejected=734 disoccluded=22 changed_view_components=850 recurrence_error=0 reservoir=0 spatial_links=0
+CAMERA_REPROJECTION candidates=4 temporal=1 spatial=1 accepted=290 rejected=734 disoccluded=22 changed_view_components=850 recurrence_error=0 reservoir=970 spatial_links=3968
+CAMERA_MULTIBOUNCE bounces=4 cpu_paths=1187840 points=290 accepted=290 rejected=734 extra_pixels=35 max_extra=0.100000001 reference_mean=0.116196937 raw_mean=0.104836207 filtered_mean=0.113815615 raw_rmse=0.28650152 filtered_rmse=0.0993064633 ratio=0.346617579 cpu_rms_se=0.00473580418 recurrence_error=1.86264515e-09
+CAMERA_MULTIBOUNCE_REPEAT batches=16 samples=4640 reference=0.116196937 cpu_mean_se=0.000278095997 raw=0.112493589 batch_se=0.00454842439 filtered=0.117898452 batch_se=0.00181569876 raw_rmse=0.298553233 filtered_rmse=0.101150416 ratio=0.338801946
+CAMERA_MULTIBOUNCE_MOTION blocker_and_camera_reset=1 reopen_reset=1 both_raw_exact=1
+CAMERA_EXACT_GUIDES near_mismatches=5 position_normal_material_optics_emission=1 rejected_raw_exact=1 unaffected_retained=285
+CAMERA_RESET blocker_and_camera colour=0 raw_bit_exact=1
+CAMERA_RESET emission_and_camera colour=0 raw_bit_exact=1
+CAMERA_RESET material_and_camera colour=0 raw_bit_exact=1
+CAMERA_RESET wrong_previous_camera colour=0 raw_bit_exact=1
+CAMERA_RESET changed_motion_metadata colour=0 raw_bit_exact=1
+CAMERA_RESET changed_bvh_bounds colour=0 raw_bit_exact=1
+CAMERA_GUARDS reset_cases=6 subpixel_colour=0 subpixel_raw_bit_exact=1 invalid_requests=5 invalid_camera_sequence_unchanged=1 default_camera_reset=1 option_toggle_reset=1
+PASS strict diffuse camera reprojection, independent area integral and change guards

@@ -1,0 +1,89 @@
+Release replay SPIR-V and host from RunReplayTexture.sh; SwiftShader CPU Vulkan
+
+--- path-replay ---
+REPLAY preparing Vulkan pipelines on SwiftShader Device (Subzero)
+REPLAY_DISOCCLUSION exact=0.119909106491 quadrature_delta=6.85214231e-08 fresh=0.1123046875 se=0.00493345227344 capped=0.120303301257 se=0.00360678000876 long=0.126626248219 se=0.00467668162786 capped_vs_long_std=0.77122633 accepted=20480 n=4096
+REPLAY_OCCLUSION mean=0 accepted=5120 reset=0
+REPLAY_MOVING_SPATIAL exact=0.0178338171166 mean=0.0213990279408 se=0.00361847212673 accepted=20480 links=48640 n=4096
+REPLAY_RELIGHT exact=0.119909106491 mean=0.122403877685 se=0.00361722758142 accepted=20480 n=4096
+REPLAY_MULTIBOUNCE one_hit=0 two_hits=0.5 revealed=0.5 se=0 accepted=5120 reset=0 expected_nearly=.5
+REPLAY_DEPTH_CHANGE mean=0.5 accepted=5120 reset=0
+REPLAY_FOUR_HITS mean=0.625 expected_nearly=.625
+REPLAY_RGB expected=(.5,.25,.125) mean=(0.5,0.25,0.125)
+REPLAY_GUARDS zero_floor=1 metallic=1 corrupt_bvh=1
+REPLAY_PREVIEW_FILTER same_surface_smoothed=1 cross_surface_rejected=1 background_preserved=1
+PASS bounded diffuse replay with moving occluder; general materials and production frame remain open
+
+--- rough-replay ---
+ROUGH_REPLAY dielectric_fresh channel=0 quadrature=0.798397046 gpu=0.798257035 pixel_se=0.000157099644 batch_se=0.000203149411 n=8192
+ROUGH_REPLAY dielectric_fresh channel=1 quadrature=0.318513126 gpu=0.318379378 pixel_se=0.000157602099 batch_se=0.000207861554 n=8192
+ROUGH_REPLAY dielectric_fresh channel=2 quadrature=0.126559549 gpu=0.126428303 pixel_se=0.000157839978 batch_se=0.000209771255 n=8192
+ROUGH_REPLAY metal_fresh channel=0 quadrature=0.685028503 gpu=0.670721938 pixel_se=0.0169028765 batch_se=0.0155533804 n=8192
+ROUGH_REPLAY metal_fresh channel=1 quadrature=0.278815309 gpu=0.273406542 pixel_se=0.00660718548 batch_se=0.00606394341 n=8192
+ROUGH_REPLAY metal_fresh channel=2 quadrature=0.103765137 gpu=0.101915922 pixel_se=0.00250612362 batch_se=0.00227763694 n=8192
+ROUGH_REPLAY metal_reused channel=0 quadrature=0.685028503 gpu=0.671844405 pixel_se=0.00535432037 batch_se=0.00560383272 n=8192
+ROUGH_REPLAY metal_reused channel=1 quadrature=0.278815309 gpu=0.273527214 pixel_se=0.00207210405 batch_se=0.00203188704 n=8192
+ROUGH_REPLAY metal_reused channel=2 quadrature=0.103765137 gpu=0.101562207 pixel_se=0.000785252478 batch_se=0.000762183889 n=8192
+ROUGH_REPLAY accepted=40960 spatial_links=97280 unsupported_near_delta_rejected=1
+PASS guarded rough opaque environment replay; not general materials
+ROUGH_ROOM tracing two 400000-path CPU baselines across four hits
+ROOM_REFERENCE rough_open_four channel=0 cpu=0.72146456 cpu_se=0.00330674784 vulkan=0.734446283 pixel_se=0.0233476149 batch_se=0.0178047299 n=400000/8192 batches=8
+ROOM_REFERENCE rough_open_four channel=1 cpu=0.600725151 cpu_se=0.00274959997 vulkan=0.61069012 pixel_se=0.0194082884 batch_se=0.0139349255 n=400000/8192 batches=8
+ROOM_REFERENCE rough_open_four channel=2 cpu=0.517880825 cpu_se=0.00226970243 vulkan=0.527491179 pixel_se=0.0160424712 batch_se=0.00995084157 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_fresh_four channel=0 cpu=0.0220675876 cpu_se=0.000335449619 vulkan=0.0229113705 pixel_se=0.00244074565 batch_se=0.00295698197 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_fresh_four channel=1 cpu=0.0182385452 cpu_se=0.000256196873 vulkan=0.0197445649 pixel_se=0.00195319078 batch_se=0.00262391451 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_fresh_four channel=2 cpu=0.0228466133 cpu_se=0.00033737444 vulkan=0.0251471881 pixel_se=0.00251273103 batch_se=0.00272845823 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_reused_four channel=0 cpu=0.0220675876 cpu_se=0.000335449619 vulkan=0.0223876305 pixel_se=0.0012818482 batch_se=0.0012035881 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_reused_four channel=1 cpu=0.0182385452 cpu_se=0.000256196873 vulkan=0.0184531021 pixel_se=0.000802385468 batch_se=0.000660196832 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_reused_four channel=2 cpu=0.0228466133 cpu_se=0.00033737444 vulkan=0.0236963025 pixel_se=0.000898147809 batch_se=0.000712185105 n=400000/8192 batches=8
+ROUGH_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+PASS rough four-hit moving-occluder reference; no refraction, textures or production claim
+
+--- replay-balance ---
+BALANCE_small_facet exact=0.00317885897775 mean=0.00317885770031 pixel_se=7.41990158687e-08 batch_se=4.85491541751e-08 std=6.7157282916e-06 n=8192
+BALANCE_small_combined exact=0.00317885897775 mean=0.00318038723447 pixel_se=2.11469067468e-06 batch_se=2.51530128106e-06 std=0.000191399950871 n=8192
+BALANCE_large_facet exact=0.951516414443 mean=0.956677809641 pixel_se=0.0273108918167 batch_se=0.0209694477221 std=2.47189975089 n=8192
+BALANCE_large_combined exact=0.951516414443 mean=0.947849266008 pixel_se=0.00419625055715 batch_se=0.00264006007471 std=0.379801244738 n=8192
+BALANCE_half_reused exact=0.119909106491 mean=0.119874960662 pixel_se=0.000475588611174 batch_se=0.000403677488445 std=0.043045367298 n=8192
+BALANCE_three exact=0.267649921244 mean=0.268416247811 pixel_se=0.00161909562223 batch_se=0.00167542689504 std=0.146543807215 n=8192
+BALANCE_mode_change exact=0.239818212982 mean=0.239735011473 pixel_se=0.000311313038732 batch_se=0.000221605211802 std=0.0281768397772 n=8192
+BALANCE_COMPARISON large_sample_std_ratio=0.153647511 small_sample_std_ratio=28.5002523 accepted=40960 changed_accepted=40960 spatial=97280
+BALANCE_GUARDS missing_facet=1 double_count=1
+BALANCE_EMPTY_ENVIRONMENT mean=0.300000012 near_blocked=0
+BALANCE_ROUGH channel=0 exact=0.129911981 mean=0.130539335 se=0.00169303763 n=8192
+BALANCE_ROUGH channel=1 exact=0.0524090955 mean=0.0526514017 se=0.000669033288 n=8192
+BALANCE_ROUGH channel=2 exact=0.0183867052 mean=0.0184704201 se=0.000233324658 n=8192
+PASS balanced direct sampling against independent area integrals
+BALANCE_ROOM tracing two independent 400000-path CPU references
+ROOM_REFERENCE balance_open_four channel=0 cpu=0.833905206 cpu_se=0.00378117151 vulkan=0.849725818 pixel_se=0.00398922132 batch_se=0.0041468424 n=400000/8192 batches=8
+ROOM_REFERENCE balance_open_four channel=1 cpu=0.695457876 cpu_se=0.0031372455 vulkan=0.709036784 pixel_se=0.00322704844 batch_se=0.00361017269 n=400000/8192 batches=8
+ROOM_REFERENCE balance_open_four channel=2 cpu=0.621088064 cpu_se=0.00258834733 vulkan=0.63211078 pixel_se=0.00276641556 batch_se=0.00282265743 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=0 cpu=0.0281347766 cpu_se=0.000443113057 vulkan=0.0285660183 pixel_se=0.000420025283 batch_se=0.000377504464 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=1 cpu=0.0233671677 cpu_se=0.000332780234 vulkan=0.0236131852 pixel_se=0.00029660926 batch_se=0.000369511438 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=2 cpu=0.0325584695 cpu_se=0.000425155677 vulkan=0.0325259741 pixel_se=0.000423255164 batch_se=0.000364411707 n=400000/8192 batches=8
+BALANCE_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+BALANCE_ROUGH_ROOM tracing two independent 400000-path CPU references
+ROOM_REFERENCE balance_rough_open_four channel=0 cpu=0.723209558 cpu_se=0.00331117984 vulkan=0.725250477 pixel_se=0.00326965958 batch_se=0.00145474381 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_open_four channel=1 cpu=0.602217057 cpu_se=0.00275345501 vulkan=0.604532625 pixel_se=0.00270513793 batch_se=0.001164011 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_open_four channel=2 cpu=0.519692697 cpu_se=0.00227570516 vulkan=0.524079916 pixel_se=0.00247796242 batch_se=0.001528173 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=0 cpu=0.0223152293 cpu_se=0.000339620116 vulkan=0.022456141 pixel_se=0.000333486909 batch_se=0.000340885686 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=1 cpu=0.0185035461 cpu_se=0.000261123797 vulkan=0.0185429207 pixel_se=0.000249317908 batch_se=0.000267245195 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=2 cpu=0.0233586208 cpu_se=0.000347424289 vulkan=0.0235647995 pixel_se=0.000359854411 batch_se=0.000280476167 n=400000/8192 batches=8
+BALANCE_ROUGH_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+PASS balanced diffuse and rough four-hit replay against independent CPU paths
+
+--- replay-motion ---
+MOTION_CAMERA shift=.07 hits=8640 exact_accepted=0 exact_rejected=8545 nearby_accepted=8512 nearby_rejected=33 reset=0 history_cap=1
+MOTION_GUARDS nearby=20480 outside=0 token=0 normal=0 missing_offset=0 missing_exact=5120 radius_cap=0 area=0.119909106 mean=0.120575932 se=0.00112360543 n=4096
+MOTION_INPUT_GUARDS nan_radius=1 nan_normal=1 huge_normal=1
+MOTION_CAMERA_only channel=0 reused_mean=0.985008773 paired_difference=0.00811568845 batch_se=0.0053808964 batches=8 temporal=68096 spatial=273504
+MOTION_CAMERA_only channel=1 reused_mean=0.755606487 paired_difference=0.00293377009 batch_se=0.00142542039 batches=8 temporal=68096 spatial=273504
+MOTION_CAMERA_only channel=2 reused_mean=0.657158931 paired_difference=0.00241986238 batch_se=0.00136323206 batches=8 temporal=68096 spatial=273504
+MOTION_CAMERA_and_blocker channel=0 reused_mean=0.486633062 paired_difference=0.0071328511 batch_se=0.0051711438 batches=8 temporal=64520 spatial=273504
+MOTION_CAMERA_and_blocker channel=1 reused_mean=0.38845558 paired_difference=0.00227315289 batch_se=0.00122103254 batches=8 temporal=64520 spatial=273504
+MOTION_CAMERA_and_blocker channel=2 reused_mean=0.323320601 paired_difference=0.00221902462 batch_se=0.00115990263 batches=8 temporal=64520 spatial=273504
+MOTION_RIGID_OBJECT angle=.12 camera_shift=.07 object_pixels=469 accepted=454 rejected=15 reset=0 cap=1
+MOTION_CAMERA_and_rigid channel=0 reused_mean=0.983793553 paired_difference=0.00819981838 batch_se=0.00522392979 batches=8 temporal=67416 spatial=273504
+MOTION_CAMERA_and_rigid channel=1 reused_mean=0.756000851 paired_difference=0.00309477624 batch_se=0.00138167017 batches=8 temporal=67416 spatial=273504
+MOTION_CAMERA_and_rigid channel=2 reused_mean=0.658158273 paired_difference=0.00264499144 batch_se=0.00135760218 batches=8 temporal=67416 spatial=273504
+PASS bounded camera, moving blocker and rigid-object four-hit replay

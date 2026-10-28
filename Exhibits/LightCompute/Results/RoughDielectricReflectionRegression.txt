@@ -1,0 +1,10 @@
+ROUGH_DEVICE name=SwiftShader Device (Subzero) type=4 software_vulkan=1
+ROUGH_REFLECTION samples_per_proposal=16 proposals=2 floor_pixels=7250 screen_rays=14941 bvh_fallback_rays=204392 hybrid_bvh_max_rgb_error=0 hybrid_bvh_mean_rgb_error=0 hidden_source_primary_pixels=0 hidden_source_red_arrival=35.1084 deterministic_repeat=1 source_off_black=1 moving_source_fresh_equal=1
+ROUGH_COLUMN index=0 pixels=1816 mean_red=0.473111
+ROUGH_COLUMN index=1 pixels=1809 mean_red=0.941659
+ROUGH_COLUMN index=2 pixels=1809 mean_red=0.800359
+ROUGH_COLUMN index=3 pixels=1816 mean_red=0.201192
+ROUGH_UNIFORM index=0 pixels=200 mean_red=0.81177 limit=1.02
+ROUGH_UNIFORM index=1 pixels=204 mean_red=0.788795 limit=1.02
+ROUGH_UNIFORM index=2 pixels=204 mean_red=0.737523 limit=1.02
+ROUGH_UNIFORM index=3 pixels=200 mean_red=0.471216 limit=1.02

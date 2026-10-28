@@ -1,0 +1,21 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+66d2cfd5c65674cc8fbf9433be6d304390e161eed9542030e20b2334c4aea0fa  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+b168293f42a100c46da345637e15e08b33a5495f09cb06743b8245c5dc6afca9  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+3d1fbeb14e3489c95eb82829423a1e9a2a4754c47bed2ef1ff419fcbe00d887a  Exhibits/LightCompute/Code/PathReplayCapture.h
+764a2ee980ff0f4e2050d9fd772d8c5aed4d7517593fa604f48c6841b1d4198c  Exhibits/LightCompute/Code/ReplayRoomReference.h
+ROOM_REFERENCE tracing three 400000-path CPU baselines against 24 facets
+ROOM_REFERENCE open_one channel=0 cpu=0.725589319 cpu_se=0.00372078184 vulkan=0.718870359 pixel_se=0.0183070274 batch_se=0.0182211137 n=400000/16384 batches=16
+ROOM_REFERENCE open_one channel=1 cpu=0.605269821 cpu_se=0.00310036089 vulkan=0.599668732 pixel_se=0.0152544331 batch_se=0.0151826432 n=400000/16384 batches=16
+ROOM_REFERENCE open_one channel=2 cpu=0.484950323 cpu_se=0.00247994161 vulkan=0.480467063 pixel_se=0.0122018459 batch_se=0.0121441773 n=400000/16384 batches=16
+ROOM_REFERENCE open_four channel=0 cpu=0.831083999 cpu_se=0.00377497041 vulkan=0.85185286 pixel_se=0.0189128033 batch_se=0.0207992906 n=400000/16384 batches=16
+ROOM_REFERENCE open_four channel=1 cpu=0.692486228 cpu_se=0.00313163664 vulkan=0.710814854 pixel_se=0.0156970114 batch_se=0.0170887385 n=400000/16384 batches=16
+ROOM_REFERENCE open_four channel=2 cpu=0.617725629 cpu_se=0.00258363909 vulkan=0.632684569 pixel_se=0.0129511787 batch_se=0.0130043921 n=400000/16384 batches=16
+ROOM_REFERENCE blocked_fresh_four channel=0 cpu=0.0274704871 cpu_se=0.000436498375 vulkan=0.0328966036 pixel_se=0.00242106316 batch_se=0.00190162324 n=400000/16384 batches=16
+ROOM_REFERENCE blocked_fresh_four channel=1 cpu=0.0229585426 cpu_se=0.000326606682 vulkan=0.0267402622 pixel_se=0.00182394435 batch_se=0.0013402199 n=400000/16384 batches=16
+ROOM_REFERENCE blocked_fresh_four channel=2 cpu=0.0324493022 cpu_se=0.000424864529 vulkan=0.0366052798 pixel_se=0.0022684703 batch_se=0.00179655178 n=400000/16384 batches=16
+ROOM_REFERENCE blocked_reused_four channel=0 cpu=0.0274704871 cpu_se=0.000436498375 vulkan=0.025696992 pixel_se=0.000582267943 batch_se=0.000633348154 n=400000/16384 batches=16
+ROOM_REFERENCE blocked_reused_four channel=1 cpu=0.0229585426 cpu_se=0.000326606682 vulkan=0.0216545222 pixel_se=0.000426740796 batch_se=0.000502283123 n=400000/16384 batches=16
+ROOM_REFERENCE blocked_reused_four channel=2 cpu=0.0324493022 cpu_se=0.000424864529 vulkan=0.0307457348 pixel_se=0.000632977847 batch_se=0.000717812011 n=400000/16384 batches=16
+ROOM_REFERENCE accepted=81920 spatial_links=194560 independent_cpu_rng=mt19937_64 brute_force=1
+PASS bounded room transport against independent Monte Carlo; no production or material-general claim

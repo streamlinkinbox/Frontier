@@ -1,0 +1,14 @@
+Medium payload extraction: sanitized; pinned exhibit source fe774a5796476bb055429e9ee3d1b208202e8aa1
+Current base 9388c96, plus working changes if any; source hashes below.
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Linux 6.1.158+ x86_64
+47094cf32fc173566cedd0f7c5221a4422b4d5030061cbd4961ce029ca4147f2  Frontier/Engine/Rendering/MediumRadiancePayload.h
+8251f35b3d8e68e25f768e9becabb0d2bdac065a95a29e4d6fcef4100798a1f1  Frontier/Engine/Rendering/MediumRadiancePayload.cpp
+01cb9fe334e271cbe55ba9970a991cd66bfe819a2009eefaeb31948469e0a83d  Exhibits/LightCompute/Code/MediumRadianceValidation.cpp
+908b773b94cee9ed2e18694120d97fc818e6ced42eb72fa08a97c5cb0d7bb90d  Exhibits/LightCompute/Code/MediumRadianceFixtures.h
+MEDIUM_PAYLOAD cloud_cases=64 seed_bits_exact=1 fog_constants_exact=1 switches=1
+MEDIUM_PAYLOAD_GUARDS rejected=37 cloud_and_fog=1
+HISTORICAL_PARITY cloud_cases=64 fog_cases=1 binary_bytes=7232 exact_equal=1
+34dbcaa684698d67e610fd5d7422ced903e0501d9a36aa8bd0831901e887d090  /home/user/Frontier/_ClaudeScratch/build/medium-radiance-sanitized/prior.bin
+34dbcaa684698d67e610fd5d7422ced903e0501d9a36aa8bd0831901e887d090  /home/user/Frontier/_ClaudeScratch/build/medium-radiance-sanitized/engine.bin
+Bounded float32 ABI checks only; no physical sky, hardware-GPU or editor integration claim.

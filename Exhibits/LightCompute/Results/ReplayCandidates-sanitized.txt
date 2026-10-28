@@ -1,0 +1,54 @@
+Replay initial candidates; host sanitized; external Vulkan driver and shaders are not sanitizer-instrumented
+Base feedef3, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+ed697e969fb4dd40a397e7c150f5e6f67c5383b5332d593d56528f6ae71b52d9  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+cca9e86224b76b1bc04cc1a5b4d229a24f1e0aab46c0f9a45bba43279012d948  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+f51b9386bd4e0a038c9d080b2b66804d243df474d70efe73ce0434df5d4bb6f9  Frontier/Engine/Rendering/PathReplayDomain.h
+be1c17c2f2218c68cc22b0c20cbe0e164b6563f29916986f95711490e2f67ead  Frontier/Engine/Rendering/PathReplayDomain.cpp
+8d80c9cd99b352e8b604e5434f42110cd4ff19835888d99312b5674585d7b765  Frontier/Engine/Rendering/PathReplayVulkan.h
+c8a583e0b14cb084b63ba536b53e3c64dd6a0609eb15444bf0961347b9064e0b  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+16b95b2f51e14241e81b48fa0a2639941051d27da03851ac74b879980a689ee6  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+0675b0a6b48d56a66e9f43665c56ffd598729310b472eff43acfde6ffb8f5776  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+280303702698d270b0981a3722497a7ec56245c68e07cb93480fdda5af55695b  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+426359805333c1989f7e57f1ca5d7be1c4aa83d70086479a678a34470c37c75e  Exhibits/LightCompute/Code/ReplayCandidateValidation.h
+1f14587e0b6e38b32468b61cfbfae52f30bfece4a2367169df74a8167d45433b  Exhibits/LightCompute/Code/ReplayReconstructionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+b1089f582559885b7ac7de403cbdaddadb44968cde997aa4d586902ff0dde526  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+57e5f3b9958d071bdeadbea8f32f5fffcc886b4c79f2f9fcabb24e100dd304a2  Exhibits/LightCompute/Code/ReplayRigidTailAudit.h
+f2de1168252963587aef20d12474145a775a590285b035a051e71222c34ecf32  Exhibits/LightCompute/Code/ReplayImportanceParityValidation.h
+b2943b00bbab69cbc255a40e5eab7770deb3d7f4bcb65f551b65f20c8afad94d  Exhibits/LightCompute/Code/ReplayFacetMixtureValidation.h
+e0d2eb0e1dcd1b1bcb022b07246cb8d95d250c3072c92a2ef7023d7c7c3ae3c2  Exhibits/LightCompute/RunReplayCandidates.sh
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=13 proposal=1 weighted_facets=1 uniform_mixture=1 candidate_revision=1 candidate_rejections=2 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+REPLAY_RECORDERS primary_and_input=1 barriers=3 padded_dispatch=1 push128=1 invalid_before_recording=28 candidates_0_to_4=1 weighted_span=1 uint_index_limit=1 secondary_camera=1 reconstruction_order_and_WAR=1
+CANDIDATE_DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592
+CANDIDATE_ORACLE candidates=1..4 compared=4090 edge_or_decision_excluded=6 weight_max_error=0 colour_max_error=0
+CANDIDATE_ENCODING legacy_zero_explicit_one_bit_exact=1 histories=1024 host_rejected=2
+CANDIDATE_AREA count=1 reference=0.119909105 mean=0.119567871 pixel_se=0.0017924079 batch_se=0.00174016675 pixel_sd=0.324455537 sd_ratio=1 samples=32768 batches=32
+CANDIDATE_AREA count=2 reference=0.119909105 mean=0.117871571 pixel_se=0.0012656021 batch_se=0.00132394466 pixel_sd=0.229094956 sd_ratio=0.70609045 samples=32768 batches=32
+CANDIDATE_AREA count=3 reference=0.119909105 mean=0.118579826 pixel_se=0.00104214938 batch_se=0.00133354116 pixel_sd=0.18864631 sd_ratio=0.581424227 samples=32768 batches=32
+CANDIDATE_AREA count=4 reference=0.119909105 mean=0.118913398 pixel_se=0.000909914217 batch_se=0.00115757617 pixel_sd=0.164709554 sd_ratio=0.507649078 samples=32768 batches=32
+CANDIDATE_SPATIAL candidates=4 pixels=1024 links=3968 host_max_error=0
+CANDIDATE_ROOM tracing 400000 independent CPU paths per scene
+CANDIDATE_ROOM scene=open count=1 channel=0 cpu=0.837953898 cpu_se=0.00379011597 gpu=0.827905671 batch_se=0.013078269 sd_ratio=1 cpu_paths=400000 gpu_outputs=32768 initial_paths=32768 batches=32
+CANDIDATE_ROOM scene=open count=1 channel=1 cpu=0.698546766 cpu_se=0.00314444188 gpu=0.688964789 batch_se=0.010822767 sd_ratio=1 cpu_paths=400000 gpu_outputs=32768 initial_paths=32768 batches=32
+CANDIDATE_ROOM scene=open count=1 channel=2 cpu=0.623201179 cpu_se=0.00259360168 gpu=0.612032589 batch_se=0.00883649825 sd_ratio=1 cpu_paths=400000 gpu_outputs=32768 initial_paths=32768 batches=32
+CANDIDATE_ROOM scene=open count=4 channel=0 cpu=0.837953898 cpu_se=0.00379011597 gpu=0.831983133 batch_se=0.00482366842 sd_ratio=0.503345268 cpu_paths=400000 gpu_outputs=32768 initial_paths=131072 batches=32
+CANDIDATE_ROOM scene=open count=4 channel=1 cpu=0.698546766 cpu_se=0.00314444188 gpu=0.693414829 batch_se=0.00381738104 sd_ratio=0.501246481 cpu_paths=400000 gpu_outputs=32768 initial_paths=131072 batches=32
+CANDIDATE_ROOM scene=open count=4 channel=2 cpu=0.623201179 cpu_se=0.00259360168 gpu=0.617621637 batch_se=0.00359258817 sd_ratio=0.526750672 cpu_paths=400000 gpu_outputs=32768 initial_paths=131072 batches=32
+CANDIDATE_ROOM scene=covered count=1 channel=0 cpu=0.0280611867 cpu_se=0.000444142784 gpu=0.0289406989 batch_se=0.00156404887 sd_ratio=1 cpu_paths=400000 gpu_outputs=32768 initial_paths=32768 batches=32
+CANDIDATE_ROOM scene=covered count=1 channel=1 cpu=0.0232761794 cpu_se=0.00033242503 gpu=0.023721681 batch_se=0.00110843843 sd_ratio=1 cpu_paths=400000 gpu_outputs=32768 initial_paths=32768 batches=32
+CANDIDATE_ROOM scene=covered count=1 channel=2 cpu=0.03230409 cpu_se=0.000423546875 gpu=0.0320141556 batch_se=0.00127701407 sd_ratio=1 cpu_paths=400000 gpu_outputs=32768 initial_paths=32768 batches=32
+CANDIDATE_ROOM scene=covered count=4 channel=0 cpu=0.0280611867 cpu_se=0.000444142784 gpu=0.0272505922 batch_se=0.000792979864 sd_ratio=0.481281245 cpu_paths=400000 gpu_outputs=32768 initial_paths=131072 batches=32
+CANDIDATE_ROOM scene=covered count=4 channel=1 cpu=0.0232761794 cpu_se=0.00033242503 gpu=0.0230264589 batch_se=0.000653925329 sd_ratio=0.490900997 cpu_paths=400000 gpu_outputs=32768 initial_paths=131072 batches=32
+CANDIDATE_ROOM scene=covered count=4 channel=2 cpu=0.03230409 cpu_se=0.000423546875 gpu=0.0322292511 batch_se=0.000794561881 sd_ratio=0.513857462 cpu_paths=400000 gpu_outputs=32768 initial_paths=131072 batches=32
+CANDIDATE_MOTION bounces=4 open_mean=0.625 reference_nearly=.625 blocker_temporal=1024 spatial=3968 blocker_colour=0 blocked_black=1 reopen_raw_exact=1 revision_tally=3 continued_tally=5
+CANDIDATE_CAMERA shift=.07 rotation=.12 candidates=4 bounces=4 textured=288 temporal=909 spatial=3716 colour=0 radiant=959 raw_exact=1
+PASS bounded initial replay candidates, independent occlusion and multibounce motion

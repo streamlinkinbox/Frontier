@@ -1,0 +1,26 @@
+Host build: release
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2b84a1857c87a002be1938d61819686ea600d0a877afc6dcc1a71bfdb6908ab9  Frontier/Engine/Rendering/PathReplayFootprint.h
+65f0d353fd779657fa82e982f1bf8aed0fa80bb07b5b95584ec7c4738d8af3e4  Frontier/Engine/Rendering/PathReplayDomain.h
+430b0e28f237f67d157c8980bbfda77a804bb95bc6f6900323f915eb8746afd7  Frontier/Engine/Rendering/PathReplayDomain.cpp
+657ca7d5097164ebf3fd40ca89459922cc190c4834d41a6a677102bb682cca1c  Frontier/Engine/Rendering/CMakeLists.txt
+0105089b10a5f3cfc1571fcb22e7a8acd76788b582ba301a031d7ce938046b65  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+f5872be30e8b35cccabf424ae900f9f6e5544b93bcee8edc207cc4c7ee47fc16  Exhibits/LightCompute/Code/PathReplayArchiveValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+2e0f2c7cdd3996ee6a96941eb1ae12854c5b459c92b885a326a55a2818776e46  Exhibits/LightCompute/CMakeLists.txt
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=7
+ENGINE_REPLAY_HISTORY exact_revisions=9 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+ENGINE_REPLAY_ARCHIVE cxx17=1 legacy_bytes=864 matches=1 load=1
+PASS C++17 legacy archive footprint and round trip
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/replay-engine-release
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-engine-release
+    Start 1: PathReplayDomainValidation
+1/2 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayArchiveValidation
+2/2 Test #2: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.01 sec

@@ -1,0 +1,20 @@
+Host build: sanitized; external Vulkan driver is not sanitizer-instrumented
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+bec0288a816109a80f0742ed624d8064c9eafed5e05f30f329f53045ee069035  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+69f3c7cd39ef16833aab5b9b02d06ec96c5d7d2fc00734736267c3d2df150479  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+832a756a4501f4392292f56dc3b8fdbd45a51ebcb80e2b17a005d895e5284332  Exhibits/LightCompute/Code/PathReplayDomain.h
+3ec640d00417baf55b399bc28abbc7f5d1206b6d05bf6012a505f882127cbc5e  Exhibits/LightCompute/Code/PathReplayCapture.h
+55bfe3a110c8b98ece07ef48b024295cfc385e40492064a1291700de9d670a4d  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+REPLAY preparing Vulkan pipelines on SwiftShader Device (Subzero)
+REPLAY_DISOCCLUSION exact=0.119909106491 quadrature_delta=6.85214231e-08 fresh=0.1123046875 se=0.00493345227344 capped=0.120303301257 se=0.00360678000876 long=0.126626248219 se=0.00467668162786 capped_vs_long_std=0.77122633 accepted=20480 n=4096
+REPLAY_OCCLUSION mean=0 accepted=5120 reset=0
+REPLAY_MOVING_SPATIAL exact=0.0178338171166 mean=0.0213990279408 se=0.00361847212673 accepted=20480 links=48640 n=4096
+REPLAY_RELIGHT exact=0.119909106491 mean=0.122403877685 se=0.00361722758142 accepted=20480 n=4096
+REPLAY_MULTIBOUNCE one_hit=0 two_hits=0.5 revealed=0.5 se=0 accepted=5120 reset=0 expected_nearly=.5
+REPLAY_DEPTH_CHANGE mean=0.5 accepted=5120 reset=0
+REPLAY_FOUR_HITS mean=0.625 expected_nearly=.625
+REPLAY_RGB expected=(.5,.25,.125) mean=(0.5,0.25,0.125)
+REPLAY_GUARDS zero_floor=1 metallic=1 corrupt_bvh=1
+REPLAY_PREVIEW_FILTER same_surface_smoothed=1 cross_surface_rejected=1 background_preserved=1
+PASS bounded diffuse replay with moving occluder; general materials and production frame remain open

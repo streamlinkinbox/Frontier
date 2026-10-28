@@ -1,0 +1,16 @@
+{
+  "extent": [
+    640,
+    400
+  ],
+  "left": "native double-precision exact lighting",
+  "right": "actual Vulkan clustered exact lighting; CPU primary visibility and sky retained",
+  "vulkan_all_vs_clustered_identical": true,
+  "native_vs_vulkan_max_display_delta": 1,
+  "native_vs_vulkan_changed_pixels": 183,
+  "native_rgb_sha256": "f07c85c5ad59b376fadb88b45bbf9a3e346a9155d5b10e0712e8f6d45bea8d51",
+  "vulkan_rgb_sha256": "a0f38ebeb38fc28c3941a68d1e56337e2bbbebb01b22db616046518393ae901d",
+  "fresh_ris_rgb_sha256": "9361201e9eb2b265ba58030eed56db9330a6da46bfa8369f7483af4d7978de6a",
+  "physical_gpu_executed": false,
+  "software_vulkan_executed": true
+}

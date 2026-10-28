@@ -1,0 +1,23 @@
+{
+  "native_checks": 8,
+  "max_mip_rgb_error": 6.67572e-07,
+  "max_mip_coverage_error": 0,
+  "pyramid_hits": 3788,
+  "pyramid_fallbacks": 31,
+  "sharp_strip_stddev": 0.154678,
+  "medium_strip_stddev": 0.209563,
+  "rough_strip_stddev": 0.055339,
+  "point_rough_strip_stddev": 0.0687934,
+  "rough_energy_ratio": 0.948044,
+  "mirror_glass_pixels": 969,
+  "max_mirror_glass_diff": 0,
+  "distance_queries": 0,
+  "distance_skips": 0,
+  "max_distance_mode_diff": 0,
+  "moving_reused_pose1": 12114,
+  "rigid_moving_reused_pose1": 318,
+  "moving_reused_pose2": 11976,
+  "refresh_reused": 0,
+  "max_refresh_cold_diff": 0,
+  "unguarded_stale_leak": 0.304866
+}

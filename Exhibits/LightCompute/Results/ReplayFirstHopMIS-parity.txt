@@ -1,0 +1,1 @@
+PASS first-hop MIS: 42 identical semantic rows, logged hashes [61, 61], ten exact RGB captures; both 5 CTests passed.

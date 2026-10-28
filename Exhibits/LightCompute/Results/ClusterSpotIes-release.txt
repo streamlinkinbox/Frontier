@@ -1,0 +1,45 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+068cd1847f6fd14f88dfc8fb2ac5cd737801a2fc95b9d176c5412d6512aa19b6  Frontier/Engine/Rendering/ReferenceRenderer.cpp
+8e8af5c8d2a4b77f17093959a9c32c872488e37966eec93dc440ddb293c61b0c  Frontier/Engine/Rendering/CandelaDistribution.h
+15e5d552b1cd0f54eb1c00319388e58d56778916ea7f3a8ead87725c44cab463  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+cb3aa54077e8529ec63ff4d25464b2313a056a443485ba6e54215f4e33bff457  Exhibits/LightCompute/Code/ClusterSpotIesValidation.h
+dfd5308a1a7b3d59f0a93e3179d51fa7794d51a0e396a5e5b3e3fde90f077446  Exhibits/LightCompute/Code/LightComputeFormat.h
+CLUSTER preparing SPOT on SwiftShader Device (Subzero)
+CLUSTER_SPOT capacity=16 visits=14336/163840 fallback=0 shadowed_main=60 main_energy=152.334027 native_max=2.98023224e-07
+CLUSTER_OPEN capacity=16 visits=14336/163840 fallback=0 shadowed_main=0 main_energy=152.334027 native_max=6.55651093e-07
+CLUSTER_OFF capacity=16 visits=14336/163840 fallback=0 shadowed_main=0 main_energy=0 native_max=5.58793545e-08
+CLUSTER_MOVED capacity=16 visits=14336/163840 fallback=0 shadowed_main=0 main_energy=152.334027 native_max=6.55651093e-07
+CLUSTER_MOVED capacity=16 visits=11264/163840 fallback=0 shadowed_main=0 main_energy=116.352152 native_max=6.55651093e-07
+CLUSTER_MOVED capacity=16 visits=11264/163840 fallback=0 shadowed_main=0 main_energy=116.352152 native_max=6.55651093e-07
+CLUSTER_OVERFLOW capacity=1 visits=47104/163840 fallback=4096 shadowed_main=60 main_energy=152.334027 native_max=2.98023224e-07
+CLUSTER_OUTSIDE capacity=16 visits=14354/163840 fallback=2 shadowed_main=60 main_energy=152.334027 native_max=2.98023224e-07
+CLUSTER_CONTROLS kind=SPOT blocker_abs_sum=106.06441 disable_abs_sum=46.2695753 overflow_queries=4096
+CLUSTER preparing IES on SwiftShader Device (Subzero)
+CLUSTER_IES capacity=16 visits=14336/163840 fallback=0 shadowed_main=60 main_energy=233.875259 native_max=1.21891499e-05
+CLUSTER_OPEN capacity=16 visits=14336/163840 fallback=0 shadowed_main=0 main_energy=233.875259 native_max=1.22785568e-05
+CLUSTER_OFF capacity=16 visits=14336/163840 fallback=0 shadowed_main=0 main_energy=0 native_max=5.58793545e-08
+CLUSTER_MOVED capacity=16 visits=14336/163840 fallback=0 shadowed_main=0 main_energy=233.875259 native_max=1.22785568e-05
+CLUSTER_MOVED capacity=16 visits=11264/163840 fallback=0 shadowed_main=0 main_energy=159.802822 native_max=1.22785568e-05
+CLUSTER_MOVED capacity=16 visits=11264/163840 fallback=0 shadowed_main=0 main_energy=159.802822 native_max=1.22785568e-05
+CLUSTER_ROTATED_IES capacity=16 visits=14336/163840 fallback=0 shadowed_main=60 main_energy=233.875259 native_max=1.22785568e-05
+CLUSTER_PROFILE kind=IES rotation_abs_sum=51.1861826
+CLUSTER_OVERFLOW capacity=1 visits=47104/163840 fallback=4096 shadowed_main=60 main_energy=233.875259 native_max=1.21891499e-05
+CLUSTER_OUTSIDE capacity=16 visits=14354/163840 fallback=2 shadowed_main=60 main_energy=233.875259 native_max=1.21891499e-05
+CLUSTER_CONTROLS kind=IES blocker_abs_sum=91.9549332 disable_abs_sum=141.919296 overflow_queries=4096
+CLUSTER preparing IES_SPOT on SwiftShader Device (Subzero)
+CLUSTER_IES_SPOT capacity=16 visits=14336/163840 fallback=0 shadowed_main=60 main_energy=115.016295 native_max=6.67572021e-06
+CLUSTER_OPEN capacity=16 visits=14336/163840 fallback=0 shadowed_main=0 main_energy=115.016295 native_max=8.5234642e-06
+CLUSTER_OFF capacity=16 visits=14336/163840 fallback=0 shadowed_main=0 main_energy=0 native_max=5.58793545e-08
+CLUSTER_MOVED capacity=16 visits=14336/163840 fallback=0 shadowed_main=0 main_energy=115.016295 native_max=8.5234642e-06
+CLUSTER_MOVED capacity=16 visits=11264/163840 fallback=0 shadowed_main=0 main_energy=89.8900759 native_max=8.5234642e-06
+CLUSTER_MOVED capacity=16 visits=11264/163840 fallback=0 shadowed_main=0 main_energy=89.8900759 native_max=8.5234642e-06
+CLUSTER_ROTATED_IES capacity=16 visits=14336/163840 fallback=0 shadowed_main=60 main_energy=115.016295 native_max=8.5234642e-06
+CLUSTER_PROFILE kind=IES_SPOT rotation_abs_sum=7.24951773
+CLUSTER_OVERFLOW capacity=1 visits=47104/163840 fallback=4096 shadowed_main=60 main_energy=115.016295 native_max=6.67572021e-06
+CLUSTER_OUTSIDE capacity=16 visits=14354/163840 fallback=2 shadowed_main=60 main_energy=115.016295 native_max=6.67572021e-06
+CLUSTER_CONTROLS kind=IES_SPOT blocker_abs_sum=84.6678029 disable_abs_sum=30.3474553 overflow_queries=4096
+PASS non-overflow spot, IES and IES-spot cells, movement, shadows and fallbacks

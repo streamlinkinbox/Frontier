@@ -1,0 +1,20 @@
+{
+  "device": "SwiftShader Device (Subzero)",
+  "physical_gpu": false,
+  "capture_dimensions": [
+    96,
+    64
+  ],
+  "samples_per_pixel": 64,
+  "directions_per_sample": 2,
+  "negative_control_revision": "abed7c6",
+  "interaction_cap": 2048,
+  "capture_sha256": {
+    "WindowDielectric0.ppm": "ee1fb65797cf05028361d95178afdc85c0372ad4deca1ec733a83ca96fd90321",
+    "WindowDielectric1.ppm": "bd12d72e6cbedfcb73785394965a544fc31b4d66fa67940afa87905cd5c6393d",
+    "WindowDielectric2.ppm": "1e0a20eb127d6a4328b4159d1ab2cbb5ca75beada2343b2e4792d0b685acf4e3"
+  },
+  "window_log": "WINDOW_DEVICE name=SwiftShader Device (Subzero) type=4\nWINDOW_SLAB case=0 analytic_pixels=100 mean_error=7.28721e-08\nWINDOW_SLAB case=1 analytic_pixels=100 mean_error=5.08365e-08\nWINDOW_SLAB case=2 analytic_pixels=100 mean_error=0.00312531\nWINDOW_SLAB case=3 analytic_pixels=100 mean_error=0.00256934\nWINDOW_ENERGY case=0 analytic_pixels=100 max_error=4.58834e-09\nWINDOW_ENERGY case=1 analytic_pixels=100 max_error=1.1283e-06\nWINDOW_SOURCE_OFF black=1 pixels=6144 samples=64 directions_per_sample=2\n",
+  "negative_control_log": "WINDOW_DEVICE name=SwiftShader Device (Subzero) type=4\nWINDOW_ORIGINAL analytic_pixels=100 blocked_black=1\n",
+  "scope": "Primary parallel thin sheet followed by smooth closed volumes. Compact diffuse extension separately tested; nesting, rough glass boundaries, caustics and saved material authoring remain unsupported."
+}

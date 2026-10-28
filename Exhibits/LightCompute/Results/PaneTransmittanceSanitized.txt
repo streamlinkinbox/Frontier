@@ -1,0 +1,1 @@
+PANE_TRANSMITTANCE_NATIVE checks=8 single_rgb=0.918657,0.922247,0.920864 oblique_rgb=0.860855,0.867596,0.864997 seven_green=0.567452 mixture_cosine_diff=7.36863e-07 eight_cap_zero=1

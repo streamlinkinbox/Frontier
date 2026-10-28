@@ -1,0 +1,24 @@
+Static SDF-emitter temporal reservoir, sanitized; retained demo GI shader hashes verified.
+Native base 07ab116, plus working changes if any; see committed source for exact test.
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Linux 6.1.158+ x86_64
+bright proposal p=0.5000, independent expectation 1; source-equation mean 1.25, retain-domain mean 1
+bright proposal p=0.1250, independent expectation 1; source-equation mean 1.4375, retain-domain mean 1
+bright proposal p=0.0625, independent expectation 1; source-equation mean 1.46875, retain-domain mean 1
+PASS exact counterexample: identical receiver domains; no WGSL/GPU execution
+different target supports: naive total-M mean 1.5; selected-support mean 2; exact sum 2
+PASS discrete direct-light support enumeration; not a general path-reconnection proof
+same support, sparse event, global, 1 frames, 10000 sequences: mean 0.355024692 SE 0.0020303093; exhaustive 0.352533456; ratio 1.00706667
+same support, sparse event, global, 24 frames, 1200 sequences: mean 0.353192 SE 0.00160971933; exhaustive 0.352533456; ratio 1.00186803
+clustered proposal support: local light present at receiver, absent at both neighbours
+unequal target support, global, 1 frames, 8000 sequences: mean 12.0398065 SE 0.13304335; exhaustive 12.2226665; ratio 0.985039278
+unequal target support, clustered, 1 frames, 8000 sequences: mean 12.073928 SE 0.133181415; exhaustive 12.2226665; ratio 0.98783093
+unequal target support, clustered, 24 frames, 1200 sequences: mean 12.0943837 SE 0.100845631; exhaustive 12.2226665; ratio 0.989504522
+PASS CPU static spatial direct-light checks; no motion or GPU execution
+analytic sphere irradiance 0.283309675; 12000 independent sequences, 24 frames
+fresh mean 0.284575935 SE 0.0082312322; temporal final mean 0.282163261 SE 0.00159767169; temporal average 0.283496993 SE 0.00219782817
+two unequal off-axis sphere emitters: analytic 0.404164946, temporal mean 0.405707239 SE 0.00378071997
+zero-weight tally 1 -> 2, capped tally 21; context guard yes; occluded irradiance 0; uniform-plane error 2.22044605e-15
+reference renderer mean 0.0947338055 SE 0.00300896231; analytic diffuse radiance 0.0901802704; surface=yes, source removed 0
+PASS static temporal reservoir; no spatial shifts, moving geometry, RGB cards, sky or multibounce
+Scope: CPU static direct-light and one-bounce SDF-emitter subsets only; no WGSL/GPU execution or full ReSTIR GI parity.

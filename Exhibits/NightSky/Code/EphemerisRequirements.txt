@@ -1,0 +1,7 @@
+# Independent, offline model comparison used by RunEphemerisValidation.sh (Python 3.11).
+astropy==7.1.1
+numpy==2.2.6
+pyerfa==2.0.1.5
+astropy-iers-data==0.2026.10.19.0.52.1
+jplephem==2.24
+skyfield-data==7.0.0

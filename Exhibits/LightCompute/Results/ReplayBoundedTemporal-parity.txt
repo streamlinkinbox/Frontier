@@ -1,0 +1,23 @@
+release: all 40 logged digests match final files
+sanitized: all 40 logged digests match final files
+66 bounded result rows exact across configurations
+release: all 18 reference/quality/paired/overlap rows exact to uncached run
+release: retained uncached shader digests equal original uncached experiment
+sanitized: all 18 reference/quality/paired/overlap rows exact to uncached run
+sanitized: retained uncached shader digests equal original uncached experiment
+Three-warm-up control result rows exact across configurations; earlier harness hashes remain historical
+All five unmodified production shader digests match the temporal-contract checkpoint
+BoundedFreshCosine: decoded RGB exact 316813204fa129459be5d7d97f267e5661d4aa782a16f599d535518080e7b8f7
+BoundedReuseCosine: decoded RGB exact d63e92d4c273d8183c23d9e7f2efbb67c73fa552500feef232debc9abbfbdbdd
+BoundedMaskCosine: decoded RGB exact 86d16de252e080f7381f84aa5baa36d490a535bb03039aeef92c3a2bb9ecb9dd
+BoundedFreshFacet: decoded RGB exact 615481ecbe0f5b2dc35477c9c4d5314eddce87b4cff834df7203defa1885631a
+BoundedReuseFacet: decoded RGB exact 4d41d38daa36c0b8ad7a3d9f255471159109fa7c9432468287943b31ece671a8
+BoundedMaskFacet: decoded RGB exact 86d16de252e080f7381f84aa5baa36d490a535bb03039aeef92c3a2bb9ecb9dd
+BoundedOffCosine: decoded RGB exact f3cc103136423a57975750907ebc1d367e2985ac6338976d4d5a439f50323f4a
+BoundedOffFacet: decoded RGB exact f3cc103136423a57975750907ebc1d367e2985ac6338976d4d5a439f50323f4a
+Both derived shader sources reproduce exactly from final authoring script in both builds
+Post-run authoring/presenter/audit source 96ea4214cd3a42ef70a7c03d0c2aa7557b776f52e5e4c1c829fe8a0690d71288  Exhibits/LightCompute/Code/CompileReplayBoundedTemporal.py
+Post-run authoring/presenter/audit source 98bbaeb706067ad1d4700dfc6b5feb2496e15377f5a51606e3fdf28708691627  Exhibits/LightCompute/Code/ReplayBoundedTemporalMeasure.cpp
+Post-run authoring/presenter/audit source 70fb683c6ef9b17f6004dd4bb690f01585a6f1e84e4b452e64859f0af25caf8a  Exhibits/LightCompute/Code/ReplayBoundedTemporalImages.py
+Post-run authoring/presenter/audit source 272c798bac55888fad3e592cca714383985a3f3bd5103570b81af1b0d79429d3  Exhibits/LightCompute/Code/ReplayBoundedTemporalParity.py
+PASS bounded temporal cache, quality, source and production-inactive parity

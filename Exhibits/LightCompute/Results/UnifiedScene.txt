@@ -1,0 +1,11 @@
+UNIFIED_SCENE_NATIVE poses=6 rigid_continuations=5 distance_samples=49152 distance_probes=3000 max_volume_drift=5.90519e-08 max_bound_overestimate=0
+UNIFIED_SCENE_DEVICE name=SwiftShader Device (Subzero) type=4 triangle_bvh=1 hardware_ray_query=0 width=192 height=120 samples=16
+UNIFIED_MODE2 lipschitz_violations=0 clear_solar=17217 near_vehicle=1806
+UNIFIED_POSE label=pose0_cold opaque_reused=0 rigid_reused=0 glass_pixels=302 window_pixels=0 mirror_pixels=112 ssr_pixels=2818 pyramid_hits=0 pyramid_fallbacks=0 distance_skips=0 capped=0 invalid=0
+UNIFIED_POSE label=pose0_warm opaque_reused=17058 rigid_reused=1284 glass_pixels=302 window_pixels=0 mirror_pixels=112 ssr_pixels=2818 pyramid_hits=6350 pyramid_fallbacks=1514 distance_skips=0 capped=0 invalid=0
+UNIFIED_POSE label=pose1_moving opaque_reused=15078 rigid_reused=1191 glass_pixels=297 window_pixels=6 mirror_pixels=112 ssr_pixels=2750 pyramid_hits=5999 pyramid_fallbacks=1450 distance_skips=0 capped=0 invalid=0
+UNIFIED_POSE label=pose2_moving opaque_reused=15052 rigid_reused=1201 glass_pixels=289 window_pixels=38 mirror_pixels=117 ssr_pixels=2673 pyramid_hits=6023 pyramid_fallbacks=1381 distance_skips=0 capped=0 invalid=0
+UNIFIED_POSE label=pose3_weather_light_shift opaque_reused=0 rigid_reused=0 glass_pixels=560 window_pixels=403 mirror_pixels=225 ssr_pixels=4655 pyramid_hits=0 pyramid_fallbacks=0 distance_skips=0 capped=0 invalid=0
+UNIFIED_POSE label=pose4_moving_tir opaque_reused=14369 rigid_reused=2709 glass_pixels=528 window_pixels=395 mirror_pixels=235 ssr_pixels=4676 pyramid_hits=12216 pyramid_fallbacks=2395 distance_skips=0 capped=0 invalid=0
+UNIFIED_POSE label=pose5_moving opaque_reused=14318 rigid_reused=2723 glass_pixels=500 window_pixels=389 mirror_pixels=243 ssr_pixels=4681 pyramid_hits=11889 pyramid_fallbacks=2208 distance_skips=0 capped=0 invalid=0
+UNIFIED_SCENE_COMPLETE distance_mode_diff=0 distance_queries=0 distance_skips=0 mode2_violations=0 black_pixels=23040

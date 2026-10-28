@@ -1,0 +1,14 @@
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+CLOUD_CLEAR bitwise_equal=1
+CLOUD_CUBE case=0 probes=446 max_transmittance_error=0 mean_rgb_error=0 max_rgb_error=0 beer_error=0 sun_error=0 attenuated_probes=0
+CLOUD_CAMERA case=0 probes=99 max_rgb_error=1.08845e-06
+CLOUD_AMBIENT uniform_closed_form=1
+CLOUD_CUBE case=1 probes=446 max_transmittance_error=1.186e-05 mean_rgb_error=1.17214e-07 max_rgb_error=8.32318e-06 beer_error=1.186e-05 sun_error=7.41056e-07 attenuated_probes=218
+CLOUD_CUBE case=2 probes=446 max_transmittance_error=1.81006e-06 mean_rgb_error=2.32823e-07 max_rgb_error=3.20098e-06 beer_error=0 sun_error=2.90214e-07 attenuated_probes=194
+CLOUD_BOUNDS invalid_steps_rejected=1
+CLOUD_CAMERA case=2 probes=99 max_rgb_error=8.63495e-06
+CLOUD_CUBE case=3 probes=446 max_transmittance_error=3.36908e-06 mean_rgb_error=1.90008e-07 max_rgb_error=2.82799e-06 beer_error=0 sun_error=2.06588e-08 attenuated_probes=184
+CLOUD_WIND changed=1
+CLOUD_CAMERA case=3 probes=99 max_rgb_error=5.77651e-06
+CLOUD_CUBE case=4 probes=446 max_transmittance_error=1.81006e-06 mean_rgb_error=4.92906e-08 max_rgb_error=2.54346e-06 beer_error=0 sun_error=2.85719e-14 attenuated_probes=194
+CLOUD_CAMERA case=4 probes=99 max_rgb_error=3.28634e-06

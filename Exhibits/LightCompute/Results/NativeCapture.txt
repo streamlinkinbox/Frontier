@@ -1,0 +1,1 @@
+CPU reference distance=0 pose=0 original_vehicle_facets=25068 total_facets=28276 visible=26576 light_list_visits=8107704 light_fallbacks=0 surface_pixels=225214 hash=9327254428034369137

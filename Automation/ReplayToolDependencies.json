@@ -1,0 +1,24 @@
+{
+  "scope": "Linux x86-64 host validation only; not engine dependencies or Windows delivery",
+  "compiler": {
+    "package": "slangtorch 1.3.22, Slang 2026.14.1",
+    "url": "https://files.pythonhosted.org/packages/59/db/f58a546564b8992e8e4c66b3e1b99432a87acec4317b10b1b9c7927868b9/slangtorch-1.3.22-py3-none-manylinux_2_27_x86_64.whl",
+    "sha256": "7755f2f53509ebbd65839dcd8a104e7105aeaf3e3600aea9385c2bec9beb2eaa"
+  },
+  "runtime": {
+    "package": "@sparticuz/chromium 153.0.0, SwiftShader payload only",
+    "url": "https://registry.npmjs.org/@sparticuz/chromium/-/chromium-153.0.0.tgz",
+    "sha512": "jiGWqSvPMdu4+P9TilYqAR7yEGPEHINx+lCvE/NqNO/EHYzF/x1hUiI5T6ioVIt7dEy7n88byyT0vk+dnsgQwA==",
+    "payload_sha256": "b680e40a33235ecc6ad4c6897a168b70ce5164f0d62d2a64d675320d51614631"
+  },
+  "files": {
+    "Slang/slangtorch/bin/libslang-compiler.so.0.2026.14.1": "aba57be5bccd5490c539e3ff19b307bc464243f60714e5894e62bad8c2cac9ba",
+    "Slang/slangtorch/bin/libslang-glsl-module-2026.14.1.so": "8c5af02dba97ca319b031e4871fdd0f41c7611a17b163091d0fa4d481806af3d",
+    "Slang/slangtorch/bin/slangc": "5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336",
+    "SwiftShader/libEGL.so": "3bf6ca30f4e0045874023bd918d2eafcbeba8bc304adb3b56ef1adbef0dfe8c2",
+    "SwiftShader/libGLESv2.so": "74fac0bff070ee961590bc82fc5b1a6f9ed5e8db95de34344d6de5e2a1c94f5d",
+    "SwiftShader/libvk_swiftshader.so": "2f3ceffaaca7d031bc3943f8eacf398a5d9c42c5fe0d15d8840b9acfa630b58e",
+    "SwiftShader/libvulkan.so.1": "8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085",
+    "SwiftShader/vk_swiftshader_icd.json": "c9eef28b6b984fec220ef0abfecc40b502d46946706e47bfe97707027cb818bd"
+  }
+}

@@ -1,0 +1,120 @@
+=== release --path-replay ===
+REPLAY preparing Vulkan pipelines on SwiftShader Device (Subzero)
+REPLAY_DISOCCLUSION exact=0.119909106491 quadrature_delta=6.85214231e-08 fresh=0.1123046875 se=0.00493345227344 capped=0.120303301257 se=0.00360678000876 long=0.126626248219 se=0.00467668162786 capped_vs_long_std=0.77122633 accepted=20480 n=4096
+REPLAY_OCCLUSION mean=0 accepted=5120 reset=0
+REPLAY_MOVING_SPATIAL exact=0.0178338171166 mean=0.0213990279408 se=0.00361847212673 accepted=20480 links=48640 n=4096
+REPLAY_RELIGHT exact=0.119909106491 mean=0.122403877685 se=0.00361722758142 accepted=20480 n=4096
+REPLAY_MULTIBOUNCE one_hit=0 two_hits=0.5 revealed=0.5 se=0 accepted=5120 reset=0 expected_nearly=.5
+REPLAY_DEPTH_CHANGE mean=0.5 accepted=5120 reset=0
+REPLAY_FOUR_HITS mean=0.625 expected_nearly=.625
+REPLAY_RGB expected=(.5,.25,.125) mean=(0.5,0.25,0.125)
+REPLAY_GUARDS zero_floor=1 metallic=1 corrupt_bvh=1
+REPLAY_PREVIEW_FILTER same_surface_smoothed=1 cross_surface_rejected=1 background_preserved=1 albedo_edge_rejected=1
+PASS bounded diffuse replay with moving occluder; general materials and production frame remain open
+=== release --replay-texture ===
+TEXTURE_GUARDS malformed=33 opt_in=1 rough_opt_in=1 rough_bounds=4 diffuse_rejects_rough=1
+TEXTURE_TWO_HIT channel=0 exact=0.8 fresh=0.800000012 changed=0.799990542 blocked=0 reopened=0.799988174
+TEXTURE_TWO_HIT channel=1 exact=0.2 fresh=0.200000003 changed=0.199997635 blocked=0 reopened=0.199997044
+TEXTURE_TWO_HIT channel=2 exact=0.1 fresh=0.100000001 changed=0.0999988177 blocked=0 reopened=0.0999985218
+TEXTURE_TWO_HIT_LINKS changed=40960 blocked=40960 reopened=40960 spatial=97280 ordinary_reset=1
+PASS two-hit textured diffuse transport, in-place changes and moving occlusion
+TEXTURE_SECONDARY probe=0 uv=0.0625/0.0625 vertical_tangent=0 rgb=0.839999964/0.140000004/0.0600000092
+TEXTURE_SECONDARY probe=1 uv=0.25/0.0625 vertical_tangent=0 rgb=0.459999983/0.319999992/0.430000003
+TEXTURE_SECONDARY probe=2 uv=-0.75/0.0625 vertical_tangent=0 rgb=0.459999975/0.319999995/0.430000011
+TEXTURE_SECONDARY probe=3 uv=0/0.0625 vertical_tangent=0 rgb=0.459999979/0.319999993/0.430000007
+TEXTURE_SECONDARY probe=4 uv=0.0625/0.0625 vertical_tangent=100 rgb=0.459999979/0.319999993/0.430000007
+PASS secondary texel center, bilinear, negative wrap, seam and coarse mip probes
+TEXTURE_PRIMARY compared=8625 wrapped=7858 mips=1236/5098/2007/284 boundary_skipped=0 max_error=7.27545189e-07
+PASS primary texture evaluation against independent double-precision filter
+=== release --replay-balance ===
+BALANCE_small_facet exact=0.00317885897775 mean=0.00317885770031 pixel_se=7.41990158687e-08 batch_se=4.85491541751e-08 std=6.7157282916e-06 n=8192
+BALANCE_small_combined exact=0.00317885897775 mean=0.00318038723447 pixel_se=2.11469067468e-06 batch_se=2.51530128106e-06 std=0.000191399950871 n=8192
+BALANCE_large_facet exact=0.951516414443 mean=0.956677809641 pixel_se=0.0273108918167 batch_se=0.0209694477221 std=2.47189975089 n=8192
+BALANCE_large_combined exact=0.951516414443 mean=0.947849266008 pixel_se=0.00419625055715 batch_se=0.00264006007471 std=0.379801244738 n=8192
+BALANCE_half_reused exact=0.119909106491 mean=0.119874960662 pixel_se=0.000475588611174 batch_se=0.000403677488445 std=0.043045367298 n=8192
+BALANCE_three exact=0.267649921244 mean=0.268416247811 pixel_se=0.00161909562223 batch_se=0.00167542689504 std=0.146543807215 n=8192
+BALANCE_mode_change exact=0.239818212982 mean=0.239735011473 pixel_se=0.000311313038732 batch_se=0.000221605211802 std=0.0281768397772 n=8192
+BALANCE_COMPARISON large_sample_std_ratio=0.153647511 small_sample_std_ratio=28.5002523 accepted=40960 changed_accepted=40960 spatial=97280
+BALANCE_GUARDS missing_facet=1 double_count=1
+BALANCE_EMPTY_ENVIRONMENT mean=0.300000012 near_blocked=0
+BALANCE_ROUGH channel=0 exact=0.129911981 mean=0.130539335 se=0.00169303763 n=8192
+BALANCE_ROUGH channel=1 exact=0.0524090955 mean=0.0526514017 se=0.000669033288 n=8192
+BALANCE_ROUGH channel=2 exact=0.0183867052 mean=0.0184704201 se=0.000233324658 n=8192
+PASS balanced direct sampling against independent area integrals
+BALANCE_ROOM tracing two independent 400000-path CPU references
+ROOM_REFERENCE balance_open_four channel=0 cpu=0.833905206 cpu_se=0.00378117151 vulkan=0.849725818 pixel_se=0.00398922132 batch_se=0.004433161 n=400000/8192 batches=8
+ROOM_REFERENCE balance_open_four channel=1 cpu=0.695457876 cpu_se=0.0031372455 vulkan=0.709036784 pixel_se=0.00322704844 batch_se=0.00385943695 n=400000/8192 batches=8
+ROOM_REFERENCE balance_open_four channel=2 cpu=0.621088064 cpu_se=0.00258834733 vulkan=0.63211078 pixel_se=0.00276641556 batch_se=0.00301754772 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=0 cpu=0.0281347766 cpu_se=0.000443113057 vulkan=0.0285660183 pixel_se=0.000420025283 batch_se=0.000403569247 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=1 cpu=0.0233671677 cpu_se=0.000332780234 vulkan=0.0236131852 pixel_se=0.00029660926 batch_se=0.000395024343 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=2 cpu=0.0325584695 cpu_se=0.000425155677 vulkan=0.0325259741 pixel_se=0.000423255164 batch_se=0.000389572502 n=400000/8192 batches=8
+BALANCE_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+BALANCE_ROUGH_ROOM tracing two independent 400000-path CPU references
+ROOM_REFERENCE balance_rough_open_four channel=0 cpu=0.723209558 cpu_se=0.00331117984 vulkan=0.725250477 pixel_se=0.00326965958 batch_se=0.00155518655 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_open_four channel=1 cpu=0.602217057 cpu_se=0.00275345501 vulkan=0.604532625 pixel_se=0.00270513793 batch_se=0.0012443801 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_open_four channel=2 cpu=0.519692697 cpu_se=0.00227570516 vulkan=0.524079916 pixel_se=0.00247796242 batch_se=0.00163368566 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=0 cpu=0.0223152293 cpu_se=0.000339620116 vulkan=0.022456141 pixel_se=0.000333486909 batch_se=0.000364422127 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=1 cpu=0.0185035461 cpu_se=0.000261123797 vulkan=0.0185429207 pixel_se=0.000249317908 batch_se=0.000285697131 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=2 cpu=0.0233586208 cpu_se=0.000347424289 vulkan=0.0235647995 pixel_se=0.000359854411 batch_se=0.000299841635 n=400000/8192 batches=8
+BALANCE_ROUGH_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+PASS balanced diffuse and rough four-hit replay against independent CPU paths
+=== sanitized --path-replay ===
+REPLAY preparing Vulkan pipelines on SwiftShader Device (Subzero)
+REPLAY_DISOCCLUSION exact=0.119909106491 quadrature_delta=6.85214231e-08 fresh=0.1123046875 se=0.00493345227344 capped=0.120303301257 se=0.00360678000876 long=0.126626248219 se=0.00467668162786 capped_vs_long_std=0.77122633 accepted=20480 n=4096
+REPLAY_OCCLUSION mean=0 accepted=5120 reset=0
+REPLAY_MOVING_SPATIAL exact=0.0178338171166 mean=0.0213990279408 se=0.00361847212673 accepted=20480 links=48640 n=4096
+REPLAY_RELIGHT exact=0.119909106491 mean=0.122403877685 se=0.00361722758142 accepted=20480 n=4096
+REPLAY_MULTIBOUNCE one_hit=0 two_hits=0.5 revealed=0.5 se=0 accepted=5120 reset=0 expected_nearly=.5
+REPLAY_DEPTH_CHANGE mean=0.5 accepted=5120 reset=0
+REPLAY_FOUR_HITS mean=0.625 expected_nearly=.625
+REPLAY_RGB expected=(.5,.25,.125) mean=(0.5,0.25,0.125)
+REPLAY_GUARDS zero_floor=1 metallic=1 corrupt_bvh=1
+REPLAY_PREVIEW_FILTER same_surface_smoothed=1 cross_surface_rejected=1 background_preserved=1 albedo_edge_rejected=1
+PASS bounded diffuse replay with moving occluder; general materials and production frame remain open
+=== sanitized --replay-texture ===
+TEXTURE_GUARDS malformed=33 opt_in=1 rough_opt_in=1 rough_bounds=4 diffuse_rejects_rough=1
+TEXTURE_TWO_HIT channel=0 exact=0.8 fresh=0.800000012 changed=0.799990542 blocked=0 reopened=0.799988174
+TEXTURE_TWO_HIT channel=1 exact=0.2 fresh=0.200000003 changed=0.199997635 blocked=0 reopened=0.199997044
+TEXTURE_TWO_HIT channel=2 exact=0.1 fresh=0.100000001 changed=0.0999988177 blocked=0 reopened=0.0999985218
+TEXTURE_TWO_HIT_LINKS changed=40960 blocked=40960 reopened=40960 spatial=97280 ordinary_reset=1
+PASS two-hit textured diffuse transport, in-place changes and moving occlusion
+TEXTURE_SECONDARY probe=0 uv=0.0625/0.0625 vertical_tangent=0 rgb=0.839999964/0.140000004/0.0600000092
+TEXTURE_SECONDARY probe=1 uv=0.25/0.0625 vertical_tangent=0 rgb=0.459999983/0.319999992/0.430000003
+TEXTURE_SECONDARY probe=2 uv=-0.75/0.0625 vertical_tangent=0 rgb=0.459999975/0.319999995/0.430000011
+TEXTURE_SECONDARY probe=3 uv=0/0.0625 vertical_tangent=0 rgb=0.459999979/0.319999993/0.430000007
+TEXTURE_SECONDARY probe=4 uv=0.0625/0.0625 vertical_tangent=100 rgb=0.459999979/0.319999993/0.430000007
+PASS secondary texel center, bilinear, negative wrap, seam and coarse mip probes
+TEXTURE_PRIMARY compared=8625 wrapped=7858 mips=1236/5098/2007/284 boundary_skipped=0 max_error=7.27545189e-07
+PASS primary texture evaluation against independent double-precision filter
+=== sanitized --replay-balance ===
+BALANCE_small_facet exact=0.00317885897775 mean=0.00317885770031 pixel_se=7.41990158687e-08 batch_se=4.85491541751e-08 std=6.7157282916e-06 n=8192
+BALANCE_small_combined exact=0.00317885897775 mean=0.00318038723447 pixel_se=2.11469067468e-06 batch_se=2.51530128106e-06 std=0.000191399950871 n=8192
+BALANCE_large_facet exact=0.951516414443 mean=0.956677809641 pixel_se=0.0273108918167 batch_se=0.0209694477221 std=2.47189975089 n=8192
+BALANCE_large_combined exact=0.951516414443 mean=0.947849266008 pixel_se=0.00419625055715 batch_se=0.00264006007471 std=0.379801244738 n=8192
+BALANCE_half_reused exact=0.119909106491 mean=0.119874960662 pixel_se=0.000475588611174 batch_se=0.000403677488445 std=0.043045367298 n=8192
+BALANCE_three exact=0.267649921244 mean=0.268416247811 pixel_se=0.00161909562223 batch_se=0.00167542689504 std=0.146543807215 n=8192
+BALANCE_mode_change exact=0.239818212982 mean=0.239735011473 pixel_se=0.000311313038732 batch_se=0.000221605211802 std=0.0281768397772 n=8192
+BALANCE_COMPARISON large_sample_std_ratio=0.153647511 small_sample_std_ratio=28.5002523 accepted=40960 changed_accepted=40960 spatial=97280
+BALANCE_GUARDS missing_facet=1 double_count=1
+BALANCE_EMPTY_ENVIRONMENT mean=0.300000012 near_blocked=0
+BALANCE_ROUGH channel=0 exact=0.129911981 mean=0.130539335 se=0.00169303763 n=8192
+BALANCE_ROUGH channel=1 exact=0.0524090955 mean=0.0526514017 se=0.000669033288 n=8192
+BALANCE_ROUGH channel=2 exact=0.0183867052 mean=0.0184704201 se=0.000233324658 n=8192
+PASS balanced direct sampling against independent area integrals
+BALANCE_ROOM tracing two independent 400000-path CPU references
+ROOM_REFERENCE balance_open_four channel=0 cpu=0.833905206 cpu_se=0.00378117151 vulkan=0.849725818 pixel_se=0.00398922132 batch_se=0.004433161 n=400000/8192 batches=8
+ROOM_REFERENCE balance_open_four channel=1 cpu=0.695457876 cpu_se=0.0031372455 vulkan=0.709036784 pixel_se=0.00322704844 batch_se=0.00385943695 n=400000/8192 batches=8
+ROOM_REFERENCE balance_open_four channel=2 cpu=0.621088064 cpu_se=0.00258834733 vulkan=0.63211078 pixel_se=0.00276641556 batch_se=0.00301754772 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=0 cpu=0.0281347766 cpu_se=0.000443113057 vulkan=0.0285660183 pixel_se=0.000420025283 batch_se=0.000403569247 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=1 cpu=0.0233671677 cpu_se=0.000332780234 vulkan=0.0236131852 pixel_se=0.00029660926 batch_se=0.000395024343 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=2 cpu=0.0325584695 cpu_se=0.000425155677 vulkan=0.0325259741 pixel_se=0.000423255164 batch_se=0.000389572502 n=400000/8192 batches=8
+BALANCE_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+BALANCE_ROUGH_ROOM tracing two independent 400000-path CPU references
+ROOM_REFERENCE balance_rough_open_four channel=0 cpu=0.723209558 cpu_se=0.00331117984 vulkan=0.725250477 pixel_se=0.00326965958 batch_se=0.00155518655 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_open_four channel=1 cpu=0.602217057 cpu_se=0.00275345501 vulkan=0.604532625 pixel_se=0.00270513793 batch_se=0.0012443801 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_open_four channel=2 cpu=0.519692697 cpu_se=0.00227570516 vulkan=0.524079916 pixel_se=0.00247796242 batch_se=0.00163368566 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=0 cpu=0.0223152293 cpu_se=0.000339620116 vulkan=0.022456141 pixel_se=0.000333486909 batch_se=0.000364422127 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=1 cpu=0.0185035461 cpu_se=0.000261123797 vulkan=0.0185429207 pixel_se=0.000249317908 batch_se=0.000285697131 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=2 cpu=0.0233586208 cpu_se=0.000347424289 vulkan=0.0235647995 pixel_se=0.000359854411 batch_se=0.000299841635 n=400000/8192 batches=8
+BALANCE_ROUGH_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+PASS balanced diffuse and rough four-hit replay against independent CPU paths

@@ -1,0 +1,30 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+bec0288a816109a80f0742ed624d8064c9eafed5e05f30f329f53045ee069035  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+69f3c7cd39ef16833aab5b9b02d06ec96c5d7d2fc00734736267c3d2df150479  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+832a756a4501f4392292f56dc3b8fdbd45a51ebcb80e2b17a005d895e5284332  Exhibits/LightCompute/Code/PathReplayDomain.h
+764a2ee980ff0f4e2050d9fd772d8c5aed4d7517593fa604f48c6841b1d4198c  Exhibits/LightCompute/Code/ReplayRoomReference.h
+6cf6f168d2e852ee16d2c892bb9f8eed69bf55ac0e5187232f52c1eb5c672ec9  Exhibits/LightCompute/Code/RoughReplayValidation.h
+ROUGH_REPLAY dielectric_fresh channel=0 quadrature=0.798397046 gpu=0.798257035 pixel_se=0.000157099644 batch_se=0.000203149411 n=8192
+ROUGH_REPLAY dielectric_fresh channel=1 quadrature=0.318513126 gpu=0.318379378 pixel_se=0.000157602099 batch_se=0.000207861554 n=8192
+ROUGH_REPLAY dielectric_fresh channel=2 quadrature=0.126559549 gpu=0.126428303 pixel_se=0.000157839978 batch_se=0.000209771255 n=8192
+ROUGH_REPLAY metal_fresh channel=0 quadrature=0.685028503 gpu=0.670721938 pixel_se=0.0169028765 batch_se=0.0155533804 n=8192
+ROUGH_REPLAY metal_fresh channel=1 quadrature=0.278815309 gpu=0.273406542 pixel_se=0.00660718548 batch_se=0.00606394341 n=8192
+ROUGH_REPLAY metal_fresh channel=2 quadrature=0.103765137 gpu=0.101915922 pixel_se=0.00250612362 batch_se=0.00227763694 n=8192
+ROUGH_REPLAY metal_reused channel=0 quadrature=0.685028503 gpu=0.671844405 pixel_se=0.00535432037 batch_se=0.00560383272 n=8192
+ROUGH_REPLAY metal_reused channel=1 quadrature=0.278815309 gpu=0.273527214 pixel_se=0.00207210405 batch_se=0.00203188704 n=8192
+ROUGH_REPLAY metal_reused channel=2 quadrature=0.103765137 gpu=0.101562207 pixel_se=0.000785252478 batch_se=0.000762183889 n=8192
+ROUGH_REPLAY accepted=40960 spatial_links=97280 unsupported_near_delta_rejected=1
+PASS guarded rough opaque environment replay; not general materials
+ROUGH_ROOM tracing two 400000-path CPU baselines across four hits
+ROOM_REFERENCE rough_open_four channel=0 cpu=0.72146456 cpu_se=0.00330674784 vulkan=0.734446283 pixel_se=0.0233476149 batch_se=0.0178047299 n=400000/8192 batches=8
+ROOM_REFERENCE rough_open_four channel=1 cpu=0.600725151 cpu_se=0.00274959997 vulkan=0.61069012 pixel_se=0.0194082884 batch_se=0.0139349255 n=400000/8192 batches=8
+ROOM_REFERENCE rough_open_four channel=2 cpu=0.517880825 cpu_se=0.00226970243 vulkan=0.527491179 pixel_se=0.0160424712 batch_se=0.00995084157 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_fresh_four channel=0 cpu=0.0220675876 cpu_se=0.000335449619 vulkan=0.0229113705 pixel_se=0.00244074565 batch_se=0.00295698197 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_fresh_four channel=1 cpu=0.0182385452 cpu_se=0.000256196873 vulkan=0.0197445649 pixel_se=0.00195319078 batch_se=0.00262391451 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_fresh_four channel=2 cpu=0.0228466133 cpu_se=0.00033737444 vulkan=0.0251471881 pixel_se=0.00251273103 batch_se=0.00272845823 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_reused_four channel=0 cpu=0.0220675876 cpu_se=0.000335449619 vulkan=0.0223876305 pixel_se=0.0012818482 batch_se=0.0012035881 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_reused_four channel=1 cpu=0.0182385452 cpu_se=0.000256196873 vulkan=0.0184531021 pixel_se=0.000802385468 batch_se=0.000660196832 n=400000/8192 batches=8
+ROOM_REFERENCE rough_blocked_reused_four channel=2 cpu=0.0228466133 cpu_se=0.00033737444 vulkan=0.0236963025 pixel_se=0.000898147809 batch_se=0.000712185105 n=400000/8192 batches=8
+ROUGH_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+PASS rough four-hit moving-occluder reference; no refraction, textures or production claim

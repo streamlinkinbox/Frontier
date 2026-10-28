@@ -1,0 +1,85 @@
+Moving rough-textured uniform/power facet replay; --replay-facet-mixture-motion-smoke; host release
+Base e3843f2, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+6697e520368835e89f1832613ed07b6ae72ddf0b8db31a12c78736d2f48753ea  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+3a689e043b64039ba57bd5bc38eaab95b4d369b863f4a5d233a2d0568ff96e04  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+9f1e14fee0ce4618877d1c80dd89e333d9a25aadd899142d29bf2288067aa0e9  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+fa24e8eb1fd6c516810260f2dd6656e56616d016070552530d42a8b4fcee63e0  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+06dab77604bba8d5a25016ee236c11de8d37ff32b03b502c1ad4a909efcc74e6  Exhibits/LightCompute/Code/ReplayMotionValidation.h
+3ccc45548bd503e3cc73706cae5c10f8ccbe7a9c1909fb21a470f0b9d083368a  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+b4705522c8b963c611a4b1e79a4e5ef04d92ba986db39c8e7d204c71fa7c1f5e  Exhibits/LightCompute/Code/ReplayTextureRoomValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+71652e374f6a409e89938abe7ac205574262c381cc510be1a11b6167cc97ee90  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+965ff5689461b7ff2c81598c14a5f60c165bf5ccc1293b0df2da0a2f46700588  Exhibits/LightCompute/Code/RoughTextureMotionValidation.h
+34ef6bddfcc6bb51f870fd463759f87059bd901eba623fc6b6db617dfda8806a  Exhibits/LightCompute/Code/ReplayImportanceMotionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+f14fa4531e6362f1ecefacdb31458cffa9a483dc8ef5d3aa7e80b94c1b32a5b8  Exhibits/LightCompute/Code/ReplayFacetMixtureCapture.h
+1cfe8dd5d54e5c9e34e99931def5b6c36b3c945a8cea187425e6c1848c7ddee2  Exhibits/LightCompute/Code/ReplayFacetMixtureMotionValidation.h
+b1515397448ad0f42f402d2d646ded40efa489ef3232ade7eaacc618920ed062  Exhibits/LightCompute/RunReplayFacetMixtureMotion.sh
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=12 proposal=1 weighted_facets=1 uniform_mixture=1 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+MIXTURE_MOTION_SOURCE translation=-0.119999997 observed=-0.120000005 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=-0.119999997 observed=-0.120000005 radiant_facets=2
+TEXTURE_MOTION_UV vertices=30 maximum_error=1.1920929e-07
+MIXTURE_MOTION preparing Vulkan on SwiftShader Device (Subzero)
+TEXTURE_MOTION_PRIMARY mixture_previous hits=3840 textured=1172 mips=182/158/570/262 mip_boundaries=0 position_error=3.81469727e-06 normal_error=0 albedo_error=6.10947609e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS mixture_previous textured=1172 max_error=0
+TEXTURE_MOTION_PRIMARY mixture_moved hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS mixture_moved textured=1173 max_error=0
+TEXTURE_MOTION_PRIMARY mixture_blocked hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS mixture_blocked textured=1173 max_error=0
+TEXTURE_MOTION_PRIMARY mixture_reopened hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS mixture_reopened textured=1173 max_error=0
+TEXTURE_MOTION_PROBE token=8 pixel=28,38 mip=0 albedo=0.08,0.576,0.12 previous_pixel=30.4884,37.9583
+TEXTURE_MOTION_PROBE token=1 pixel=46,50 mip=2 albedo=0.284759,0.555524,0.102084 previous_pixel=46.7946,50.0000
+MIXTURE_MOTION tracing 12000 independent CPU paths for each of six primary probes
+MIXTURE_MOTION_PROGRESS batches=8/8 floor_blue_mean=0.0446956814 floor_blue_se=0.00586019081
+TEXTURE_MOTION_REFERENCE mixture_object_uniform_fresh channel=0 cpu=0.00292040586 cpu_se=0.000119634332 vulkan=0.00256193685 batch_se=0.00065688924 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_uniform_fresh channel=1 cpu=0.0137698398 cpu_se=0.000405319977 vulkan=0.0126366068 batch_se=0.00278544256 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_uniform_fresh channel=2 cpu=0.00291446981 cpu_se=7.22308171e-05 vulkan=0.00217771282 batch_se=0.000535417852 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_mixture_fresh channel=0 cpu=0.00292040586 cpu_se=0.000119634332 vulkan=0.00251269694 batch_se=0.000673090075 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_mixture_fresh channel=1 cpu=0.0137698398 cpu_se=0.000405319977 vulkan=0.0163062974 batch_se=0.00577067789 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_mixture_fresh channel=2 cpu=0.00291446981 cpu_se=7.22308171e-05 vulkan=0.00345194968 batch_se=0.00074454752 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_moved_reused channel=0 cpu=0.00292040586 cpu_se=0.000119634332 vulkan=0.00228566473 batch_se=0.000351357953 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_moved_reused channel=1 cpu=0.0137698398 cpu_se=0.000405319977 vulkan=0.0143677461 batch_se=0.00111027499 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_moved_reused channel=2 cpu=0.00291446981 cpu_se=7.22308171e-05 vulkan=0.00310827076 batch_se=0.000436758695 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_blocked_reused channel=0 cpu=0.00168785087 cpu_se=2.67508046e-05 vulkan=0.00148405008 batch_se=0.000342967532 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_blocked_reused channel=1 cpu=0.00914694385 cpu_se=0.000111780432 vulkan=0.00666739757 batch_se=0.00181318368 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_blocked_reused channel=2 cpu=0.00227078924 cpu_se=2.83812764e-05 vulkan=0.00140987631 batch_se=0.000484271857 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_reopened_reused channel=0 cpu=0.00453390764 cpu_se=0.000238095663 vulkan=0.0038806576 batch_se=0.000493502721 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_reopened_reused channel=1 cpu=0.0215075509 cpu_se=0.000969251098 vulkan=0.0231701856 batch_se=0.00257214299 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_object_reopened_reused channel=2 cpu=0.00410957777 cpu_se=0.000179634615 vulkan=0.00454833599 batch_se=0.000529515353 cpu_paths=12000 gpu_batches=8
+MIXTURE_MOTION_VARIANCE probe=mixture_object channel=0 uniform_sd=0.00173796557 mixture_sd=0.00178082895 ratio=1.02466296 batches=8
+MIXTURE_MOTION_VARIANCE probe=mixture_object channel=1 uniform_sd=0.0073695883 mixture_sd=0.0152677786 ratio=2.07172748 batches=8
+MIXTURE_MOTION_VARIANCE probe=mixture_object channel=2 uniform_sd=0.00141658248 mixture_sd=0.00196988758 ratio=1.39059151 batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_uniform_fresh channel=0 cpu=0.0983694916 cpu_se=0.008487129 vulkan=0.125038817 batch_se=0.0172178307 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_uniform_fresh channel=1 cpu=0.131699754 cpu_se=0.0105605792 vulkan=0.169380311 batch_se=0.0252131614 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_uniform_fresh channel=2 cpu=0.0329229571 cpu_se=0.00376389544 vulkan=0.0451528782 batch_se=0.00633273129 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_mixture_fresh channel=0 cpu=0.0983694916 cpu_se=0.008487129 vulkan=0.127347955 batch_se=0.0152204443 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_mixture_fresh channel=1 cpu=0.131699754 cpu_se=0.0105605792 vulkan=0.163974458 batch_se=0.0163194809 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_mixture_fresh channel=2 cpu=0.0329229571 cpu_se=0.00376389544 vulkan=0.0446956814 batch_se=0.00586019081 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_moved_reused channel=0 cpu=0.0983694916 cpu_se=0.008487129 vulkan=0.123700209 batch_se=0.019303574 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_moved_reused channel=1 cpu=0.131699754 cpu_se=0.0105605792 vulkan=0.164164681 batch_se=0.0273413859 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_moved_reused channel=2 cpu=0.0329229571 cpu_se=0.00376389544 vulkan=0.0461923386 batch_se=0.00727997467 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_blocked_reused channel=0 cpu=0.00919195374 cpu_se=0.00213661612 vulkan=0.0085930028 batch_se=0.00426694217 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_blocked_reused channel=1 cpu=0.0137088502 cpu_se=0.0029929557 vulkan=0.01269575 batch_se=0.00602529476 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_blocked_reused channel=2 cpu=0.00415510006 cpu_se=0.000811163783 vulkan=0.00325845349 batch_se=0.00133896941 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_reopened_reused channel=0 cpu=0.0977803783 cpu_se=0.00735330655 vulkan=0.1273534 batch_se=0.0348824943 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_reopened_reused channel=1 cpu=0.140457021 cpu_se=0.0154218846 vulkan=0.172805991 batch_se=0.0462710525 cpu_paths=12000 gpu_batches=8
+TEXTURE_MOTION_REFERENCE mixture_floor_reopened_reused channel=2 cpu=0.0323661614 cpu_se=0.00303262748 vulkan=0.0354958554 batch_se=0.0104699843 cpu_paths=12000 gpu_batches=8
+MIXTURE_MOTION_VARIANCE probe=mixture_floor channel=0 uniform_sd=0.0455540982 mixture_sd=0.0402695106 ratio=0.883993146 batches=8
+MIXTURE_MOTION_VARIANCE probe=mixture_floor channel=1 uniform_sd=0.0667077549 mixture_sd=0.043177288 ratio=0.647260399 batches=8
+MIXTURE_MOTION_VARIANCE probe=mixture_floor channel=2 uniform_sd=0.0167548321 mixture_sd=0.0155046075 ratio=0.925381253 batches=8
+MIXTURE_MOTION_LINKS moved=29296 blocked=29064 reopened=28728 spatial=362688 probe_accepts=16/16/16 occlusion=1 relighting=1 batches=8
+PASS moving rough-textured mixture, radiant translation, source-power swap and blocker transitions

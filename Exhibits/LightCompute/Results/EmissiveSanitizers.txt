@@ -1,0 +1,4 @@
+ASan/UBSan host and native reference; ASAN_OPTIONS=detect_leaks=0 for the external Vulkan driver.
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+EMISSIVE_AREA triangles=1130 samples=16 native_probes=225 native_mean_rgb=7.2128e-09 native_max_rgb=1.36771e-06 hemisphere_rmse=0.206886 area_rmse=0.00906289 reference_samples=8192
+EMISSIVE_SAFETY empty_set_exact_equal=1 invalid_probability_rejected=1 environment_disabled_exact_equal=1

@@ -1,0 +1,7 @@
+Verified pinned Slang 2026.14.1 and SwiftShader host files
+Verified pinned Slang 2026.14.1 and SwiftShader host files
+Fresh isolated archive recovery: previously executed, all recovered files independently verified
+Tampered runtime file rejected: PASS
+Compiler archive SHA256: 7755f2f53509ebbd65839dcd8a104e7105aeaf3e3600aea9385c2bec9beb2eaa
+Runtime payload SHA256: b680e40a33235ecc6ad4c6897a168b70ce5164f0d62d2a64d675320d51614631
+No compiler, driver or Chromium binaries tracked in Git

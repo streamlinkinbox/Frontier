@@ -1,0 +1,73 @@
+Uniform/power facet replay mixture; --replay-facet-mixture; host release
+Base 0d5af89, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+6697e520368835e89f1832613ed07b6ae72ddf0b8db31a12c78736d2f48753ea  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+3a689e043b64039ba57bd5bc38eaab95b4d369b863f4a5d233a2d0568ff96e04  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+37220f47c3e374dd5c5347a00e46f68d4403f6946cdf0322d5f06d01f620d943  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+fa24e8eb1fd6c516810260f2dd6656e56616d016070552530d42a8b4fcee63e0  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+2b52a161d5fb46c26a887467c68f75039ff5564121948eae9b3956a4e5eccc1d  Exhibits/LightCompute/Code/ReplayFacetPowerValidation.h
+b2943b00bbab69cbc255a40e5eab7770deb3d7f4bcb65f551b65f20c8afad94d  Exhibits/LightCompute/Code/ReplayFacetMixtureValidation.h
+d1bf79b0b6720452d418ce7bf80b87028f7399bfc5ecbdbb3c7e602bc9822b40  Exhibits/LightCompute/Code/ReplayFacetMixtureSpectrumValidation.h
+f2de1168252963587aef20d12474145a775a590285b035a051e71222c34ecf32  Exhibits/LightCompute/Code/ReplayImportanceParityValidation.h
+79e9a04f26afb7ee9403d20ef1dc779762a4f527baf2e059131995e7eda75d6c  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=12 proposal=1 weighted_facets=1 uniform_mixture=1 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+MIXTURE_FACET preparing Vulkan on SwiftShader Device (Subzero)
+MIXTURE_FACET open_uniform exact=0.544712826 mean=0.530825479 batch_se=0.00428452161 sample_sd=0.560942264 batches=24
+MIXTURE_FACET open_power exact=0.544712826 mean=0.542871715 batch_se=0.000792883603 sample_sd=0.102307177 batches=24
+MIXTURE_FACET open_mixture exact=0.544712826 mean=0.544980427 batch_se=0.00217544692 sample_sd=0.33470563 batches=24
+MIXTURE_FACET open_mixture_mis exact=0.544712826 mean=0.544156561 batch_se=0.00246060847 sample_sd=0.347638893 batches=24
+MIXTURE_FACET blocked_uniform exact=0.00113245984 mean=0.0011322186 batch_se=6.35384583e-06 sample_sd=0.00117158876 batches=24
+MIXTURE_FACET blocked_power exact=0.00113245984 mean=0.00101451272 batch_se=0.000110018609 sample_sd=0.0241184041 batches=24
+MIXTURE_FACET blocked_mixture exact=0.00113245984 mean=0.00113022216 batch_se=9.33226867e-06 sample_sd=0.00200058671 batches=24
+MIXTURE_FACET blocked_mixture_mis exact=0.00113245984 mean=0.00114925299 batch_se=1.17086735e-05 sample_sd=0.00188632046 batches=24
+MIXTURE_FACET proposal_transition exact=0.544712826 mean=0.543883451 batch_se=0.000781059935 sample_sd=0.121761064 batches=24
+MIXTURE_FACET blocker_transition exact=0.00113245984 mean=0.00111971839 batch_se=1.52161001e-05 sample_sd=0.00247071602 batches=24
+MIXTURE_FACET relight_transition exact=0.544713173 mean=0.542420169 batch_se=0.0012019828 sample_sd=0.205163936 batches=24
+MIXTURE_FACET_VARIANCE open_sd_ratio=0.596684634 blocked_sd_ratio=1.70758442 blocked_power_sd_ratio=20.5860665 open_second_ratio=0.685797516 blocked_second_ratio=1.98895137 p=0.748960465,0.251039535 proposal=122880 blocked=122880 relit=122880 spatial=875520
+MIXTURE_FACET_GUARD missing_cdf_rejected=1 ideal_second_moment_factor=2
+PASS area, MIS, changing proposal, occlusion and source-power mixture controls
+MIXTURE_SPECTRUM sources=1 mask=1 expected_probability=1 observed=1 batch_se=0
+MIXTURE_SPECTRUM sources=1 channel=0 exact=0.0089185082 mean=0.00891991287 batch_se=1.39219688e-06
+MIXTURE_SPECTRUM sources=1 channel=1 exact=0 mean=0 batch_se=0
+MIXTURE_SPECTRUM sources=1 channel=2 exact=0 mean=0 batch_se=0
+MIXTURE_SPECTRUM sources=3 mask=1 expected_probability=0.214242498 observed=0.214172363 batch_se=0.0037396508
+MIXTURE_SPECTRUM sources=3 mask=2 expected_probability=0.17140771 observed=0.174377441 batch_se=0.00335100981
+MIXTURE_SPECTRUM sources=3 mask=4 expected_probability=0.614349792 observed=0.611450195 batch_se=0.00397269638
+MIXTURE_SPECTRUM sources=3 channel=0 exact=0.00490065034 mean=0.00489711377 batch_se=8.69967275e-05
+MIXTURE_SPECTRUM sources=3 channel=1 exact=0.000262823578 mean=0.000267297973 batch_se=5.14160131e-06
+MIXTURE_SPECTRUM sources=3 channel=2 exact=0.13520731 mean=0.134758827 batch_se=0.000885311758
+MIXTURE_SPECTRUM sources=5 mask=1 expected_probability=0.131845123 observed=0.134094238 batch_se=0.00264862575
+MIXTURE_SPECTRUM sources=5 mask=2 expected_probability=0.103173441 observed=0.104858398 batch_se=0.00265335673
+MIXTURE_SPECTRUM sources=5 mask=3 expected_probability=0.108903056 observed=0.104675293 batch_se=0.00213436954
+MIXTURE_SPECTRUM sources=5 mask=4 expected_probability=0.399658865 observed=0.398620605 batch_se=0.00275524891
+MIXTURE_SPECTRUM sources=5 mask=5 expected_probability=0.256419516 observed=0.257751465 batch_se=0.00330744475
+MIXTURE_SPECTRUM sources=5 channel=0 exact=0.0074986823 mean=0.00755505734 batch_se=7.07542762e-05
+MIXTURE_SPECTRUM sources=5 channel=1 exact=0.000456726467 mean=0.000446458418 batch_se=7.67613627e-06
+MIXTURE_SPECTRUM sources=5 channel=2 exact=0.250125672 mean=0.249460411 batch_se=0.00164683934
+MIXTURE_SPECTRUM empty_environment=0.360000014
+PASS colour-coded one, three and five-source mixture, area integrals and empty fallback
+MIXTURE_ROOM tracing three independent 400000-path four-hit CPU references
+ROOM_REFERENCE mixture_room_fresh channel=0 cpu=0.44325219 cpu_se=0.00262916094 vulkan=0.44678343 pixel_se=0.00248819193 batch_se=0.00188943106 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_fresh channel=1 cpu=0.372569994 cpu_se=0.00219339908 vulkan=0.375710233 pixel_se=0.0020841874 batch_se=0.00150926974 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_fresh channel=2 cpu=0.305847287 cpu_se=0.00176048095 vulkan=0.308531246 pixel_se=0.00165934588 batch_se=0.00117760455 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_switched channel=0 cpu=0.44325219 cpu_se=0.00262916094 vulkan=0.444483093 pixel_se=0.000888693601 batch_se=0.000639360238 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_switched channel=1 cpu=0.372569994 cpu_se=0.00219339908 vulkan=0.373650034 pixel_se=0.000709134694 batch_se=0.000567151056 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_switched channel=2 cpu=0.305847287 cpu_se=0.00176048095 vulkan=0.306731128 pixel_se=0.000684107704 batch_se=0.000472823132 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_blocked channel=0 cpu=0.0149338485 cpu_se=0.000275413651 vulkan=0.014579831 pixel_se=0.00024597063 batch_se=0.000271064752 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_blocked channel=1 cpu=0.0118972646 cpu_se=0.000200444672 vulkan=0.0115887647 pixel_se=0.000181604103 batch_se=0.00020346662 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_blocked channel=2 cpu=0.0120260178 cpu_se=0.000174262455 vulkan=0.0117010705 pixel_se=0.000160565269 batch_se=0.000155674638 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_relit channel=0 cpu=0.321652914 cpu_se=0.00211177665 vulkan=0.323607749 pixel_se=0.00078451783 batch_se=0.00130904552 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_relit channel=1 cpu=0.269025604 cpu_se=0.00175793558 vulkan=0.270372295 pixel_se=0.000609369973 batch_se=0.000947487334 n=400000/12288 batches=12
+ROOM_REFERENCE mixture_room_relit channel=2 cpu=0.22028454 cpu_se=0.00141086132 vulkan=0.221345375 pixel_se=0.00055088957 batch_se=0.000719567751 n=400000/12288 batches=12
+MIXTURE_ROOM_LINKS proposal=61440 blocked=61440 relit=61440 spatial=437760 batches=12
+PASS four-hit rough-textured mixture, changed emitter, occlusion and reopening

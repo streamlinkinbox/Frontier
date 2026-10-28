@@ -1,0 +1,53 @@
+Spatial cloud-shadow regression scope
+Shader: all twelve entries compiled with pinned Slang, direct SPIR-V, O0.
+Cloud/primary/transport/receiver/reuse inspected: Shader capability only, 32-bit integers, no shaderInt64 requirement.
+Numeric/final-toggle checks: RelWithDebInfo ASan/UBSan; external-driver leak detection disabled.
+Captures: Release, four 640x400 vehicle and overhead views at wind times 0/60/120/180 seconds.
+Initial concurrent full-size runs returned VK_ERROR_OUT_OF_DEVICE_MEMORY; retained poses 0-2 and resumed pose 3 serially.
+Corrected cloud-volume cases then passed serially under ASan/UBSan.
+Cloud enable/disable stale-history defect reproduced (exit 1), then fixed and both directions matched cold reconstruction.
+Full legacy and indirect regressions below preceded the final cloud-selection-history guard;
+the final ASan cloud-toggle and fresh-sampling regressions exercised that guard afterwards.
+No physical GPU, Windows, real-time speed or finite-Sun penumbra acceptance is claimed.
+
+=== cloud-shadow-legacy.txt ===
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+COMPARE receivers=256000 facets=28276 all_visits=8107704 local_visits=2682703 fallbacks=56643 shadow_rays=513697 stack_fallbacks=0 cpu_mean_abs_rgb=2.02268e-06 cpu_max_abs_rgb=6.44028e-05 channels_over_1e-3=0
+SAMPLING lights=97 receivers=512 seeds=256 mean=1480.95 native_exact=1480.88 standard_error=0.0842466 native_max_abs=8.58307e-06
+REUSE_ENERGY chains=64 steps=4 mean=1480.78 native_exact=1480.88 standard_error=0.123867
+REJECTION material_accepted=256 material_rejected=256 normal_rejected=512 camera_cut_rejected=512 position_rejected=512 cold_restart_exact_match=1
+VISIBILITY offscreen_caster_facets=10 forced_stack_fallbacks=49664 exhaustive_fallback_matches=1
+HISTORY static_sequences=16 accepted=225214 rejected=0 spatial=636165 colour_history=225214 fresh_rmse=0.133629 reconstructed_rmse=0.0413195
+RESET lights_off_exact_match=1 accepted=0
+REFRESH current_residual_exact_match=1
+RIS first_seed_luminance_sum=60640.9 native_exact_luminance_sum=60723.4 fresh_ris_temporal_reuse=0
+PASS Vulkan all-light/cluster/overflow equality and native image comparison
+
+=== cloud-shadow-reconstruction.txt ===
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+TRANSPORT_RECONSTRUCTION width=160 height=100 reference_seeds=16 updates=8 accepted=14080 spatial=13981 fresh_rmse=0.0103498 filtered_rmse=0.0058573
+TRANSPORT_RECONSTRUCTION_SPATIAL native_probes=210 max_rgb_error=4.8961e-08
+TRANSPORT_RECONSTRUCTION_RESET emission_cold_equal=1 camera_cut_cold_equal=1 sources_off_black=1
+
+=== cloud-shadow-native.txt ===
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake
+Test project /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake
+    Start 1: LightValidation
+1/4 Test #1: LightValidation ..................   Passed    0.17 sec
+    Start 2: TriangleVisibilityValidation
+2/4 Test #2: TriangleVisibilityValidation .....   Passed    0.13 sec
+    Start 3: TriangleDistanceValidation
+3/4 Test #3: TriangleDistanceValidation .......   Passed    0.14 sec
+    Start 4: CompleteRendererValidation
+4/4 Test #4: CompleteRendererValidation .......   Passed    0.23 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   0.67 sec
+
+=== cloud-shadow-final-sampling.txt ===
+SAMPLING lights=97 receivers=512 seeds=256 mean=1480.95 native_exact=1480.88 standard_error=0.0842466 native_max_abs=8.58307e-06
+REUSE_ENERGY chains=64 steps=4 mean=1480.78 native_exact=1480.88 standard_error=0.123867
+REJECTION material_accepted=256 material_rejected=256 normal_rejected=512 camera_cut_rejected=512 position_rejected=512 cold_restart_exact_match=1
+VISIBILITY offscreen_caster_facets=10 forced_stack_fallbacks=49664 exhaustive_fallback_matches=1
+

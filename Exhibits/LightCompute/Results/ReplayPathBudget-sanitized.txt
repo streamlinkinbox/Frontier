@@ -1,0 +1,105 @@
+Eight-current-path budget comparison; host sanitized; external Vulkan driver and shaders are not sanitizer-instrumented
+Base 68f3016, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+bd2fb76499b6060e726a16c7ebf0bf1a5f249e27ad85f4b1e70f909c2d07576e  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+069d91ad09c10d206a71e5952664061729a9b33d6c18ae2a4251f9b0d929fe4d  Frontier/Engine/Rendering/PathReplayDomain.h
+30de3a0be93e0745139db036c9214c738fb4729ad322d17a8cd5cfe8c11a2847  Frontier/Engine/Rendering/PathReplayDomain.cpp
+b48af931a2d9fa743eb29c11e7a27df62c890b5ca8f720484190baad85adec74  Frontier/Engine/Rendering/PathReplayVulkan.h
+262c68198f24db5720beec221e0496bb3c3d4f10f046c896e471ef6cf99a4b7d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+531824ebd7555395ea635c7f48f13ea891a49c3d17ed395f50951454508e2fee  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+affb399d40e821651465a03e6813768b86cac7b2877bc55f49e52fc08d8755c8  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+7603e39878fae9fde4a7446ac583c41731a16bf5c16db37a593cd02bc91ac13e  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+5fa5e86aa89aceed8ce5f8ea27b69609b77b0df691e98cdca7859e9eeee4ef18  Exhibits/LightCompute/Code/ReplaySampleHistoryValidation.h
+3438931df641573b2f9d1060008376b74102ff3edd26744ed967745c0ecf3d40  Exhibits/LightCompute/Code/ReplaySeedReservoirValidation.h
+041e54fb7c8523802369de6c434586a1708ee5c6c2fdf666d5c07d17f69492a2  Exhibits/LightCompute/Code/ReplayCompactStorageValidation.h
+43b76415f6f36ed549b1a1a2a12acc1861222c223df25977bba9805bab29b872  Exhibits/LightCompute/Code/ReplayPathBudgetValidation.h
+7352e4ddc5eeb825d43eb706df0987c9b9cd59edfb6bfcaca8c6c0e0b7a7ed7d  Exhibits/LightCompute/Code/ReplayCameraReprojectionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+426359805333c1989f7e57f1ca5d7be1c4aa83d70086479a678a34470c37c75e  Exhibits/LightCompute/Code/ReplayCandidateValidation.h
+bd41b325c5fc68eedfb77bcb01c6d59889c566191d5d89d7f7bcc0ed05ca6ae2  Exhibits/LightCompute/Code/ReplayReconstructionValidation.h
+b1089f582559885b7ac7de403cbdaddadb44968cde997aa4d586902ff0dde526  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+e05f74dfa093d1d54fac80172109a895f793238a964a3ffd917d80477db2ab84  Exhibits/LightCompute/RunReplayPathBudget.sh
+cd898db31ac6f4929915b8b9bf09f1bd15448050902c407ed55970b60be5380c  Exhibits/LightCompute/Code/ReplayFreshBudget.slang
+f8fa969cb34f631dcb4ffc51744a5e216ddb5bc68d020a60c37d9a0bd586d574  Exhibits/LightCompute/Code/ReplayPathBudgetImages.py
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+2f3ceffaaca7d031bc3943f8eacf398a5d9c42c5fe0d15d8840b9acfa630b58e  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvk_swiftshader.so
+c9eef28b6b984fec220ef0abfecc40b502d46946706e47bfe97707027cb818bd  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/vk_swiftshader_icd.json
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/Primary.spv
+73e196b6f65d34106c9b9e28648cef3f256f5ce53be2c3e65838ea024cd145c1  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/ReplayGenerate.spv
+8ba8e8d9f4b4217dfa06d66055dcad850047071b20b5c98a44271fb3975ffb73  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/ReplayGatherSampleHistory.spv
+7577bf45fd8e22f48e41865f11d40991dbafd6bfa7a2e0a9fd18156c9a3eff33  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/ReplayFinalizeSampleHistory.spv
+6d3ff88efe9cb8028cde21dd97abc8518fb080130c6fa0a65c0d0716f50a05ce  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/ReplayFreshBudget.spv
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/plain/Primary.spv
+4552f142fb548d34442bbf06950fb981f28ea77292d3d1625179adb8629c51b7  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/plain/ReplayGenerate.spv
+371925bfab306f09239eeeaaa2e45bb87bbea359b984edf3be929a502f7f9f6e  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/plain/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/plain/ReplayGatherSampleHistory.spv
+eb8cdcc1ee6f685845225f9ac92ce62d1587ad0f217bcd6bd5092d91d45396e6  /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized/plain/ReplayFinalizeSampleHistory.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-path-budget-sanitized
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.01 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.01 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.01 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.01 sec
+
+100% tests passed out of 5
+
+Total Test time (real) =   0.04 sec
+BUDGET_FRESH_RECTANGLE compared=818 edge_excluded=8 max_rgb_error=0 calls=8192 paths_each=8 old_history_poison_exact=1
+BUDGET_INSTRUMENTATION frames=4 output_and_history_exact=1 other_counters_exact=1
+BUDGET_DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 compact_output_bytes=180224
+BUDGET_REFERENCE bounces=1 points=702 mean=0.106954529 nominal_se=0 cpu_paths=0 quadrature_rmse=0.000308310723
+BUDGET_PROGRESS bounces=1 facets=0 completed=4/16
+BUDGET_PROGRESS bounces=1 facets=0 completed=8/16
+BUDGET_PROGRESS bounces=1 facets=0 completed=12/16
+BUDGET_PROGRESS bounces=1 facets=0 completed=16/16
+BUDGET_RESULT bounces=1 facets=0 mode=fresh_eight batches=16 points=702 paths_at_measured_pixel=8 mean=0.106815349 nominal_batch_se=0.000781732844 rmse=0.10959163 reference=0.106954529
+BUDGET_RESULT bounces=1 facets=0 mode=spatial_seed_ris batches=16 points=702 paths_at_measured_pixel=8 mean=0.107674604 nominal_batch_se=0.00170533596 rmse=0.132748502 reference=0.106954529
+BUDGET_PAIRED bounces=1 facets=0 mean_difference=0.000859255249 nominal_mean_se=0.00182707091 mse_difference=0.00561183926 nominal_mse_se=0.00927306649
+BUDGET_WORK bounces=1 facets=0 current_submissions_each=16 warm_submissions_reuse=48 fresh_current_calls=131072 reuse_current_calls=126432 reuse_warm_calls=288768 fresh_indirect_queries=131072 reuse_indirect_queries=126432 reuse_warm_indirect_queries=288768
+BUDGET_PROGRESS bounces=1 facets=1 completed=4/16
+BUDGET_PROGRESS bounces=1 facets=1 completed=8/16
+BUDGET_PROGRESS bounces=1 facets=1 completed=12/16
+BUDGET_PROGRESS bounces=1 facets=1 completed=16/16
+BUDGET_RESULT bounces=1 facets=1 mode=fresh_eight batches=16 points=702 paths_at_measured_pixel=8 mean=0.107086617 nominal_batch_se=9.2696543e-05 rmse=0.00959036282 reference=0.106954529
+BUDGET_RESULT bounces=1 facets=1 mode=spatial_seed_ris batches=16 points=702 paths_at_measured_pixel=8 mean=0.106937008 nominal_batch_se=0.000148783412 rmse=0.0125188468 reference=0.106954529
+BUDGET_PAIRED bounces=1 facets=1 mean_difference=-0.000149609524 nominal_mean_se=0.000185114067 mse_difference=6.4746466e-05 nominal_mse_se=1.58676885e-05
+BUDGET_WORK bounces=1 facets=1 current_submissions_each=16 warm_submissions_reuse=48 fresh_current_calls=131072 reuse_current_calls=126432 reuse_warm_calls=288768 fresh_indirect_queries=262144 reuse_indirect_queries=252864 reuse_warm_indirect_queries=577536
+BUDGET_REFERENCE bounces=4 points=702 mean=0.118167731 nominal_se=0.000360448503 cpu_paths=718848 quadrature_rmse=0
+BUDGET_PROGRESS bounces=4 facets=0 completed=4/16
+BUDGET_PROGRESS bounces=4 facets=0 completed=8/16
+BUDGET_PROGRESS bounces=4 facets=0 completed=12/16
+BUDGET_PROGRESS bounces=4 facets=0 completed=16/16
+BUDGET_RESULT bounces=4 facets=0 mode=fresh_eight batches=16 points=702 paths_at_measured_pixel=8 mean=0.117739677 nominal_batch_se=0.000772829582 rmse=0.108769436 reference=0.118167731
+BUDGET_RESULT bounces=4 facets=0 mode=spatial_seed_ris batches=16 points=702 paths_at_measured_pixel=8 mean=0.118046228 nominal_batch_se=0.00135031431 rmse=0.0951146999 reference=0.118167731
+BUDGET_PAIRED bounces=4 facets=0 mean_difference=0.000306550743 nominal_mean_se=0.00161645947 mse_difference=-0.00278398411 nominal_mse_se=0.0019072653
+BUDGET_WORK bounces=4 facets=0 current_submissions_each=16 warm_submissions_reuse=48 fresh_current_calls=131072 reuse_current_calls=126432 reuse_warm_calls=288768 fresh_indirect_queries=142640 reuse_indirect_queries=135703 reuse_warm_indirect_queries=312333
+BUDGET_PROGRESS bounces=4 facets=1 completed=4/16
+BUDGET_PROGRESS bounces=4 facets=1 completed=8/16
+BUDGET_PROGRESS bounces=4 facets=1 completed=12/16
+BUDGET_PROGRESS bounces=4 facets=1 completed=16/16
+BUDGET_RESULT bounces=4 facets=1 mode=fresh_eight batches=16 points=702 paths_at_measured_pixel=8 mean=0.117995012 nominal_batch_se=9.30304128e-05 rmse=0.0136033788 reference=0.118167731
+BUDGET_RESULT bounces=4 facets=1 mode=spatial_seed_ris batches=16 points=702 paths_at_measured_pixel=8 mean=0.117981668 nominal_batch_se=0.000163142512 rmse=0.0144190999 reference=0.118167731
+BUDGET_PAIRED bounces=4 facets=1 mean_difference=-1.33442505e-05 nominal_mean_se=0.000198411044 mse_difference=2.28585274e-05 nominal_mse_se=1.06809246e-05
+BUDGET_WORK bounces=4 facets=1 current_submissions_each=16 warm_submissions_reuse=48 fresh_current_calls=131072 reuse_current_calls=126432 reuse_warm_calls=288768 fresh_indirect_queries=279076 reuse_indirect_queries=269221 reuse_warm_indirect_queries=617872
+PASS eight-current-path comparison and reference gates; quality advantage is not required to pass
+BUDGET_CAPTURE size=64 bounces=4 facets=0 measured_points=3088 fresh_calls=32768 reuse_calls=32194 warm_reuse_calls=72960
+BUDGET_CAPTURE size=64 bounces=4 facets=1 measured_points=3088 fresh_calls=32768 reuse_calls=32194 warm_reuse_calls=72960
+BudgetFreshCosine.png 64x64 RGB_SHA256=316813204fa129459be5d7d97f267e5661d4aa782a16f599d535518080e7b8f7
+BudgetReuseCosine.png 64x64 RGB_SHA256=a6b72fbd18bb55a0b032465b71c82769fc083eb88c66743e6307588b1ab57eac
+BudgetMaskCosine.png 64x64 RGB_SHA256=86d16de252e080f7381f84aa5baa36d490a535bb03039aeef92c3a2bb9ecb9dd
+BudgetFreshFacet.png 64x64 RGB_SHA256=615481ecbe0f5b2dc35477c9c4d5314eddce87b4cff834df7203defa1885631a
+BudgetReuseFacet.png 64x64 RGB_SHA256=cff994ddd06679c7a73ed4fb08587ef4f464b10a971391107abed8d3dceff267
+BudgetMaskFacet.png 64x64 RGB_SHA256=86d16de252e080f7381f84aa5baa36d490a535bb03039aeef92c3a2bb9ecb9dd

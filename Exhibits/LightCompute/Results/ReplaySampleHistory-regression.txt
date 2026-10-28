@@ -1,0 +1,36 @@
+Existing replay regressions after sample-history implementation and validation additions.
+Base 2afe88d, plus working changes identified by these hashes:
+38bfc178437f95b97623ab42c4baf321de19b40d39ffecc4451bd80ac2d6977c  Frontier/Engine/Rendering/PathReplayVulkan.h
+adb8f9a49a9ada2b71e600ac7739953b93c5a3ba3702174a5bf6eb442884006b  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+70532096c3da1d895eda966fba0e39f111d65a3884e54fc81cf08b18089329b7  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+51907571e9fd398552d4be1e13cf872b029df5f266ad9b1b4a853e55a2fd1ed1  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+f527708507934d8218ec310272055abba3cf2886555b17aad3fae903e149aa60  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+6067be6ca100498bba59deadf01b6298578824ab72b467c11b8cc9e98cf32f7e  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+72babbf74ae32d1be849f195b2ef5ec87345766a295e910dbb575a71333d8f9a  Exhibits/LightCompute/Code/ReplaySampleHistoryValidation.h
+Strict camera release: BUILD_JOBS=1 bash Exhibits/LightCompute/RunReplayCameraReprojection.sh
+All CAMERA_ rows and PASS line match Results/ReplayCameraMultibounce-release.txt exactly.
+CAMERA_AREA points=290 raw_rmse=0.0328993048 filtered_rmse=0.0105451985 ratio=0.320529524 quadrature_rmse=0.000331880138
+CAMERA_REPROJECTION candidates=1 temporal=0 spatial=0 accepted=290 rejected=734 disoccluded=22 changed_view_components=850 recurrence_error=0 reservoir=0 spatial_links=0
+CAMERA_REPROJECTION candidates=4 temporal=1 spatial=1 accepted=290 rejected=734 disoccluded=22 changed_view_components=850 recurrence_error=0 reservoir=970 spatial_links=3968
+CAMERA_MULTIBOUNCE bounces=4 cpu_paths=1187840 points=290 accepted=290 rejected=734 extra_pixels=35 max_extra=0.100000001 reference_mean=0.116196937 raw_mean=0.104836207 filtered_mean=0.113815615 raw_rmse=0.28650152 filtered_rmse=0.0993064633 ratio=0.346617579 cpu_rms_se=0.00473580418 recurrence_error=1.86264515e-09
+CAMERA_MULTIBOUNCE_REPEAT batches=16 samples=4640 reference=0.116196937 cpu_mean_se=0.000278095997 raw=0.112493589 batch_se=0.00454842439 filtered=0.117898452 batch_se=0.00181569876 raw_rmse=0.298553233 filtered_rmse=0.101150416 ratio=0.338801946
+CAMERA_MULTIBOUNCE_MOTION blocker_and_camera_reset=1 reopen_reset=1 both_raw_exact=1
+CAMERA_EXACT_GUIDES near_mismatches=5 position_normal_material_optics_emission=1 rejected_raw_exact=1 unaffected_retained=285
+CAMERA_RESET blocker_and_camera colour=0 raw_bit_exact=1
+CAMERA_RESET emission_and_camera colour=0 raw_bit_exact=1
+CAMERA_RESET material_and_camera colour=0 raw_bit_exact=1
+CAMERA_RESET wrong_previous_camera colour=0 raw_bit_exact=1
+CAMERA_RESET changed_motion_metadata colour=0 raw_bit_exact=1
+CAMERA_RESET changed_bvh_bounds colour=0 raw_bit_exact=1
+CAMERA_GUARDS reset_cases=6 subpixel_colour=0 subpixel_raw_bit_exact=1 invalid_requests=5 invalid_camera_sequence_unchanged=1 default_camera_reset=1 option_toggle_reset=1
+PASS strict diffuse camera reprojection, independent area integral and change guards
+Candidate release + prior-shader parity: PARITY=1 BUILD_JOBS=1 bash Exhibits/LightCompute/RunReplayCandidates.sh
+CANDIDATE_ORACLE candidates=1..4 compared=4090 edge_or_decision_excluded=6 weight_max_error=0 colour_max_error=0
+CANDIDATE_ENCODING legacy_zero_explicit_one_bit_exact=1 histories=1024 host_rejected=2
+CANDIDATE_MOTION bounces=4 open_mean=0.625 reference_nearly=.625 blocker_temporal=1024 spatial=3968 blocker_colour=0 blocked_black=1 reopen_raw_exact=1 revision_tally=3 continued_tally=5
+CANDIDATE_CAMERA shift=.07 rotation=.12 candidates=4 bounces=4 textured=288 temporal=909 spatial=3716 colour=0 radiant=959 raw_exact=1
+PASS bounded initial replay candidates, independent occlusion and multibounce motion
+Prior replay shader checkpoint: b0cf5c9
+MIXTURE_PARITY images=20 components=655360 differing_float_bits=0 histories=8 uniform_and_power=1 cosine_and_ggx=1
+PASS bit-identical uniform/power and cosine/GGX readbacks with mixture disabled
+All runs use SwiftShader CPU Vulkan; not physical-GPU, Windows or editor evidence.

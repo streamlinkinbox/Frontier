@@ -1,0 +1,84 @@
+{
+  "checks": {
+    "EMISSIVE_AREA": [
+      {
+        "triangles": 1130.0,
+        "samples": 16.0,
+        "native_probes": 225.0,
+        "native_mean_rgb": 7.2128e-09,
+        "native_max_rgb": 1.36771e-06,
+        "hemisphere_rmse": 0.206886,
+        "area_rmse": 0.00906289,
+        "reference_samples": 8192.0
+      }
+    ],
+    "EMISSIVE_SAFETY": [
+      {
+        "empty_set_exact_equal": 1.0,
+        "invalid_probability_rejected": 1.0,
+        "environment_disabled_exact_equal": 1.0
+      }
+    ],
+    "EMISSIVE_MOTION": [
+      {
+        "pose": 0.0,
+        "accepted": 0.0,
+        "rejected": 225214.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.105366
+      },
+      {
+        "pose": 1.0,
+        "accepted": 152325.0,
+        "rejected": 72955.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0500607
+      },
+      {
+        "pose": 2.0,
+        "accepted": 152590.0,
+        "rejected": 73330.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0478616
+      },
+      {
+        "pose": 3.0,
+        "accepted": 0.0,
+        "rejected": 225973.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0934158
+      },
+      {
+        "pose": 4.0,
+        "accepted": 153020.0,
+        "rejected": 73540.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0436182
+      },
+      {
+        "pose": 5.0,
+        "accepted": 153177.0,
+        "rejected": 73558.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0421746
+      }
+    ]
+  },
+  "probe_rmse_reduction_percent": 95.61937975503417,
+  "reference": "225 distributed surface probes; independent 8192-sample native emissive-area integration, seed 8171",
+  "comparison": "seed 71, 16 fixed hemisphere samples versus 16 explicit area samples plus the retained hemisphere routes",
+  "equal_cost_comparison": false,
+  "universal_unbiasedness_claim": false,
+  "physical_gpu_executed": false,
+  "indirect_filtering_executed": false,
+  "cdf": "area times luminance, plus one of 2^24 probability ticks reserved per positive-area emitter",
+  "animation": "six actual lossless readbacks, illustrative timing, not frame-rate proof",
+  "motion_rgb_sha256": [
+    "c8022cb33477e52b5681dd9ed0ac17d97b6718799bf4be2cae8beaec39e15f29",
+    "13008c0c4775181cd3464de1fa359e099028a6b4c5bb5334a25f61bc0cb4a4e3",
+    "171036082d688b82b9f936c4890016b432c639c2ab2015a32ebb31a1fb047f26",
+    "3b2e872fcc3d491c2b744a711698cee5387917d028f26bec6f9a860549ea69a2",
+    "dea0e9d9b9702292a241bd05d0f7ec26e0ffcfe94b1eb919622ef52211b6c20c",
+    "4eaf501c7f4a5ec28338e158fd92bdb92ec02755da7fe6bdb4dc57b655f41c72"
+  ]
+}

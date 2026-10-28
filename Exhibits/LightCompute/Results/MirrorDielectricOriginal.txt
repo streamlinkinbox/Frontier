@@ -1,0 +1,2 @@
+MIRROR_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+MIRROR_NEGATIVE_CONTROL central_pixels=196 blocked_black=1 routing_disabled=1

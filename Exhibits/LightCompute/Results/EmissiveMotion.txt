@@ -1,0 +1,7 @@
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+EMISSIVE_MOTION pose=0 accepted=0 rejected=225214 current_indirect_equal=1 exact_rmse=0.105366
+EMISSIVE_MOTION pose=1 accepted=152325 rejected=72955 current_indirect_equal=1 exact_rmse=0.0500607
+EMISSIVE_MOTION pose=2 accepted=152590 rejected=73330 current_indirect_equal=1 exact_rmse=0.0478616
+EMISSIVE_MOTION pose=3 accepted=0 rejected=225973 current_indirect_equal=1 exact_rmse=0.0934158
+EMISSIVE_MOTION pose=4 accepted=153020 rejected=73540 current_indirect_equal=1 exact_rmse=0.0436182
+EMISSIVE_MOTION pose=5 accepted=153177 rejected=73558 current_indirect_equal=1 exact_rmse=0.0421746

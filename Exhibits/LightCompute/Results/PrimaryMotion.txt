@@ -1,0 +1,27 @@
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+PRIMARY hits=225214 misses=30786 hit_disagreement=0 facet_disagreement=0 precision_ties=0 near_edge=2717 max_relative_depth=5.00174e-06 max_normal_error=1.43991e-07 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=2.03235e-06 max_rgb_error=6.93947e-05 matched_facet_max_rgb=6.93947e-05 matched_facet_max_depth=5.00174e-06 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1
+PRIMARY_REPROJECTION pose=0 max_pixel_error=0.00012207 max_world_error=0 max_normal_error=0
+PRIMARY_MOTION pose=0 accepted=225214 rejected=0 visibility_rejected=0 colour_history=225214 fresh_rmse=0.134862 filtered_rmse=0.041186
+PRIMARY hits=225280 misses=30720 hit_disagreement=0 facet_disagreement=3 precision_ties=2 near_edge=2718 max_relative_depth=0.0106152 max_normal_error=1.4401e-07 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=2.32808e-06 max_rgb_error=0.0670623 matched_facet_max_rgb=6.43432e-05 matched_facet_max_depth=3.02489e-06 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1
+PRIMARY_REPROJECTION pose=1 max_pixel_error=0.00012207 max_world_error=4.76837e-07 max_normal_error=1.19209e-07
+PRIMARY_MOTION pose=1 accepted=152325 rejected=72955 visibility_rejected=1205 colour_history=151120 fresh_rmse=0.133991 filtered_rmse=0.0513191
+PRIMARY hits=225920 misses=30080 hit_disagreement=0 facet_disagreement=5 precision_ties=2 near_edge=2722 max_relative_depth=0.177935 max_normal_error=1.3705e-07 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=3.77025e-06 max_rgb_error=0.960438 matched_facet_max_rgb=6.44326e-05 matched_facet_max_depth=1.72217e-05 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1
+PRIMARY_REPROJECTION pose=2 max_pixel_error=0.00012207 max_world_error=4.76837e-07 max_normal_error=5.96046e-08
+PRIMARY_MOTION pose=2 accepted=152590 rejected=73330 visibility_rejected=1246 colour_history=151344 fresh_rmse=0.131754 filtered_rmse=0.057873
+PRIMARY hits=225973 misses=30027 hit_disagreement=0 facet_disagreement=0 precision_ties=0 near_edge=2658 max_relative_depth=1.73963e-05 max_normal_error=1.43956e-07 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=2.03541e-06 max_rgb_error=6.44326e-05 matched_facet_max_rgb=6.44326e-05 matched_facet_max_depth=1.73963e-05 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1
+PRIMARY_REPROJECTION pose=3 max_pixel_error=0.00012207 max_world_error=4.76837e-07 max_normal_error=1.19209e-07
+PRIMARY_MOTION pose=3 accepted=0 rejected=225973 visibility_rejected=0 colour_history=0 fresh_rmse=0.130677 filtered_rmse=0.0920956
+PRIMARY hits=226560 misses=29440 hit_disagreement=0 facet_disagreement=2 precision_ties=0 near_edge=2758 max_relative_depth=0.00951554 max_normal_error=1.44239e-07 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=2.21521e-06 max_rgb_error=0.0903397 matched_facet_max_rgb=6.4224e-05 matched_facet_max_depth=2.06961e-05 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1
+PRIMARY_REPROJECTION pose=4 max_pixel_error=0.00012207 max_world_error=4.76837e-07 max_normal_error=5.96046e-08
+PRIMARY_MOTION pose=4 accepted=153020 rejected=73540 visibility_rejected=1286 colour_history=151734 fresh_rmse=0.129381 filtered_rmse=0.0425442
+PRIMARY hits=226735 misses=29265 hit_disagreement=0 facet_disagreement=1 precision_ties=1 near_edge=2751 max_relative_depth=0.000111028 max_normal_error=1.44607e-07 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=2.05017e-06 max_rgb_error=0.000194211 matched_facet_max_rgb=6.42836e-05 matched_facet_max_depth=0.000111028 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1
+PRIMARY_REPROJECTION pose=5 max_pixel_error=0.00012207 max_world_error=4.76837e-07 max_normal_error=1.19209e-07
+PRIMARY_MOTION pose=5 accepted=153177 rejected=73558 visibility_rejected=1191 colour_history=151986 fresh_rmse=0.126105 filtered_rmse=0.042405
+PRIMARY_RESET camera_cut_cold_equal=1 lights_off_exact_equal=1 current_emission_exact_equal=1
+PRIMARY_MOTION_SUM fresh_rmse_sum=0.651907 filtered_rmse_sum=0.286237

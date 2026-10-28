@@ -1,0 +1,52 @@
+Dynamic camera regression; SwiftShader CPU Vulkan; host release
+Base 0c2350b, plus working validation changes; Engine sources unchanged.
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+70532096c3da1d895eda966fba0e39f111d65a3884e54fc81cf08b18089329b7  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+259b34bcf341d43efb57c12e730c9b7a03596cf354ab39f6bcc986a3e21ce30e  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+7352e4ddc5eeb825d43eb706df0987c9b9cd59edfb6bfcaca8c6c0e0b7a7ed7d  Exhibits/LightCompute/Code/ReplayCameraReprojectionValidation.h
+12f1a1d7d1df643c64030371630e5445eae7a46a6cf81ca0d6040eeeee686aac  Exhibits/LightCompute/Code/ReplayDynamicCameraValidation.h
+bd41b325c5fc68eedfb77bcb01c6d59889c566191d5d89d7f7bcc0ed05ca6ae2  Exhibits/LightCompute/Code/ReplayReconstructionValidation.h
+RECONSTRUCTION_STATIC rough=0 frames=20 cap=16 accepted=1024 average_max_error=0 reference=0.119909171,0.119909171,0.119909171 fresh_rmse=0.319338797 reconstructed_rmse=0.0718366138 ratio=0.224954232
+RECONSTRUCTION_GUARDS rough=0 rejected=11 retained=1013 raw_exact=1
+RECONSTRUCTION_REVISIONS rough=0 blocker_fresh_exact=1 source_off_black=1 material_fresh_exact=1
+RECONSTRUCTION_STATIC rough=1 frames=20 cap=16 accepted=1024 average_max_error=0 reference=0.220599843,0.0928487033,0.0346975848 fresh_rmse=0.374009225 reconstructed_rmse=0.0840051166 ratio=0.224607071
+RECONSTRUCTION_GUARDS rough=1 rejected=11 retained=1013 raw_exact=1
+RECONSTRUCTION_REVISIONS rough=1 blocker_fresh_exact=1 source_off_black=1 material_fresh_exact=1
+RECONSTRUCTION_RESERVOIRS frames=8 temporal=1024 spatial=3968 colour=1024 average_max_error=2.98023224e-08 reenable_reset=1 policy_reset=1
+RECONSTRUCTION_DISOCCLUSION outside=1 extreme_coordinate=1 background=1 reservoir=1021 colour=1021 raw_exact=1
+RECONSTRUCTION_CAMERA moved=.07 reservoir_accepted=921 colour_accepted=0 raw_exact=1
+RECONSTRUCTION_TEXTURED textured_accepted=293 colour=960 reservoir=960 spatial=3716 average_max_error=5.96046448e-08 atlas_reset_raw_exact=1
+PASS bounded replay diffuse and rough-specular temporal accumulation
+CAMERA_AREA points=290 raw_rmse=0.0328993048 filtered_rmse=0.0105451985 ratio=0.320529524 quadrature_rmse=0.000331880138
+CAMERA_REPROJECTION candidates=1 temporal=0 spatial=0 accepted=290 rejected=734 disoccluded=22 changed_view_components=850 recurrence_error=0 reservoir=0 spatial_links=0
+CAMERA_REPROJECTION candidates=4 temporal=1 spatial=1 accepted=290 rejected=734 disoccluded=22 changed_view_components=850 recurrence_error=0 reservoir=970 spatial_links=3968
+CAMERA_MULTIBOUNCE bounces=4 cpu_paths=1187840 points=290 accepted=290 rejected=734 extra_pixels=35 max_extra=0.100000001 reference_mean=0.116196937 raw_mean=0.104836207 filtered_mean=0.113815615 raw_rmse=0.28650152 filtered_rmse=0.0993064633 ratio=0.346617579 cpu_rms_se=0.00473580418 recurrence_error=1.86264515e-09
+CAMERA_MULTIBOUNCE_REPEAT batches=16 samples=4640 reference=0.116196937 cpu_mean_se=0.000278095997 raw=0.112493589 batch_se=0.00454842439 filtered=0.117898452 batch_se=0.00181569876 raw_rmse=0.298553233 filtered_rmse=0.101150416 ratio=0.338801946
+CAMERA_MULTIBOUNCE_MOTION blocker_and_camera_reset=1 reopen_reset=1 both_raw_exact=1
+CAMERA_EXACT_GUIDES near_mismatches=5 position_normal_material_optics_emission=1 rejected_raw_exact=1 unaffected_retained=285
+CAMERA_RESET blocker_and_camera colour=0 raw_bit_exact=1
+CAMERA_RESET emission_and_camera colour=0 raw_bit_exact=1
+CAMERA_RESET material_and_camera colour=0 raw_bit_exact=1
+CAMERA_RESET wrong_previous_camera colour=0 raw_bit_exact=1
+CAMERA_RESET changed_motion_metadata colour=0 raw_bit_exact=1
+CAMERA_RESET changed_bvh_bounds colour=0 raw_bit_exact=1
+CAMERA_GUARDS reset_cases=6 subpixel_colour=0 subpixel_raw_bit_exact=1 invalid_requests=5 invalid_camera_sequence_unchanged=1 default_camera_reset=1 option_toggle_reset=1
+PASS strict diffuse camera reprojection, independent area integral and change guards
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-camera-reprojection-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.01 sec
+PASS dynamic release and host-sanitized numerical rows match
+PASS Engine sources unchanged; previous shader parity and readback evidence remain applicable

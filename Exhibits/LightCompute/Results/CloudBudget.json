@@ -1,0 +1,74 @@
+{
+  "device": "DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1",
+  "software_vulkan_executed": true,
+  "physical_gpu_executed": false,
+  "extent": [
+    160,
+    100
+  ],
+  "columns_cloud_and_fog_shadow_steps": [
+    32,
+    64
+  ],
+  "rows_wind_seconds": [
+    0,
+    120
+  ],
+  "checks": [
+    {
+      "wind": 0.0,
+      "steps": 32.0,
+      "probes": 117.0,
+      "max_rgb_error": 9.03114e-06,
+      "sky_probes": 59.0,
+      "sky_max_rgb_error": 1.78318e-05
+    },
+    {
+      "wind": 0.0,
+      "steps": 64.0,
+      "probes": 117.0,
+      "max_rgb_error": 9.67208e-06,
+      "sky_probes": 59.0,
+      "sky_max_rgb_error": 6.04935e-06
+    },
+    {
+      "wind": 120.0,
+      "steps": 32.0,
+      "probes": 117.0,
+      "max_rgb_error": 5.1248e-07,
+      "sky_probes": 59.0,
+      "sky_max_rgb_error": 1.1056e-05
+    },
+    {
+      "wind": 120.0,
+      "steps": 64.0,
+      "probes": 117.0,
+      "max_rgb_error": 6.08692e-07,
+      "sky_probes": 59.0,
+      "sky_max_rgb_error": 1.1596e-05
+    }
+  ],
+  "errors_to_finite64": [
+    {
+      "wind": 0.0,
+      "rmse_to64": 0.00207406,
+      "max_to64": 0.0479916
+    },
+    {
+      "wind": 120.0,
+      "rmse_to64": 0.00187121,
+      "max_to64": 0.0713069
+    }
+  ],
+  "working_preset": "32 cloud view/cube/surface-shadow steps, 6 cloud self-shadow steps, 32 fog view and 32 fog cloud-shadow steps",
+  "reference": "64 cloud and fog-shadow steps; finite comparison, not ground truth",
+  "cost": "halves cloud outer/shadow step counts versus 64; no measured frame-time or hardware speed claim",
+  "appearance": "lower-budget trade-off accepted for iteration; regular horizon/cloud aliasing remains",
+  "retained": "same authored ControlVehicle, geometry, density, atmosphere and analytic/emissive surface lighting",
+  "readback_rgb_sha256": {
+    "CloudBudget0_32": "8d789abc6cf2c0d1a2d9876ef4c0830e9b254dedbea26d0ef1a4086e089a8de2",
+    "CloudBudget0_64": "c3973812b8a9506deaa8c6edf1d4a475664b38f719c4e40ffcab5fa1cd9fb63b",
+    "CloudBudget120_32": "48ec6c2a4e927705f381ff6ca46e8f5e53a782f8dced58434a9490c818faae90",
+    "CloudBudget120_64": "f23ba8bce2521fe47aa49241c39f4792aecfa7aa87404c8d266314352a0d6895"
+  }
+}

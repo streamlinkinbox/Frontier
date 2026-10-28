@@ -1,0 +1,10 @@
+{
+  "source_sha256": "6ad399734659d53a6052aa4369cdbfb786a9248b0403575e8d89b5f9904f50b5",
+  "glass_triangles": 74,
+  "boundary_edges": 68,
+  "paired_edges": 77,
+  "nonmanifold_edges": 0,
+  "inconsistent_paired_winding": 0,
+  "closed_volume_assignment": false,
+  "scope": "Exact float-position incidence only; no tolerant welding, intersection or thickness acceptance."
+}

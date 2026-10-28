@@ -1,0 +1,35 @@
+{
+  "upstream_repository": "eosclient0001-rgb/Frontier",
+  "upstream_commit": "3de9061ab614856de03ef61b534c641061d14a53",
+  "destination_base": "68f301600c72b442898313aeb49d57be0baac2f0",
+  "branch": "arena/08e7de48-frontier",
+  "recovered_paths": [
+    ".gitignore",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "CMakeLists.txt",
+    "README.md",
+    "Engine",
+    "EngineDocs",
+    "Documentation",
+    "Automation",
+    "UI",
+    "Frontier",
+    "Exhibits/LightCompute",
+    "Exhibits/EnvironmentPipeline",
+    "Exhibits/NightSky"
+  ],
+  "upstream_file_count": 1558,
+  "modified_upstream_files": [
+    "Documentation/Tracker.md"
+  ],
+  "new_audit_files": [
+    "Exhibits/LightCompute/PortAudit.md",
+    "Exhibits/LightCompute/Results/PortAudit-release.txt",
+    "Exhibits/LightCompute/Results/PortAudit-sanitized.txt",
+    "Exhibits/LightCompute/Results/PortAudit-environment.txt"
+  ],
+  "shader_changes": false,
+  "fresh_gpu_execution": false,
+  "snapshot": "Historical recovery audit before estimator continuation; see ../ReplaySeedReservoir.md for subsequent changes"
+}

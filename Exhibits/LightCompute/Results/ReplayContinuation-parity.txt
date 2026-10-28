@@ -1,0 +1,5 @@
+ReplaySampleAcceptance.png decoded RGB identical to pre-change baseline
+ReplaySampleFourFresh.png decoded RGB identical to pre-change baseline
+ReplaySampleFresh.png decoded RGB identical to pre-change baseline
+ReplaySampleRetraced.png decoded RGB identical to pre-change baseline
+15 sample-history numerical/device/capture rows identical

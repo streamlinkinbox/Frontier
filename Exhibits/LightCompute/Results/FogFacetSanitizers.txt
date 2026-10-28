@@ -1,0 +1,7 @@
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+FOG_FACET_ANALYTIC samples=131072 relative_error=0.000445949 expected_red=2.2433 native_red=2.2423
+FOG_FACET case=0 probes=112 max_rgb_error=3.56212e-06 rgb_sum=663.744 width=64 height=40
+FOG_FACET case=1 probes=112 max_rgb_error=5.98426e-06 rgb_sum=956.753 width=64 height=40
+FOG_FACET case=2 probes=112 max_rgb_error=4.68905e-06 rgb_sum=976.599 width=64 height=40
+FOG_FACET case=3 probes=112 max_rgb_error=1.32394e-05 rgb_sum=2159.54 width=64 height=40
+FOG_FACET_CHECKS cold_equal=1 surface_isolation_equal=1 zero_density_equal=1 empty_cdf_equal=1 invalid_budget_rejected=1 invalid_cdf_rejected=1

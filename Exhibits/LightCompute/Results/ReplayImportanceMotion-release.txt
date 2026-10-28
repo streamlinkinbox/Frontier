@@ -1,0 +1,81 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+03405e882194cf456790e8d15d6182b668e7ccaa79398d79e01f5f66747403a6  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+2b84a1857c87a002be1938d61819686ea600d0a877afc6dcc1a71bfdb6908ab9  Frontier/Engine/Rendering/PathReplayFootprint.h
+c83d743ea1bf35484ecb7c992cbc04b57ed6edc61249e7435f8e4fa1c7e9416d  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+657ca7d5097164ebf3fd40ca89459922cc190c4834d41a6a677102bb682cca1c  Frontier/Engine/Rendering/CMakeLists.txt
+13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9  Engine/Render/Shader/ScatteringEvaluation.slang
+be18d0016eba73754f0c5be05d4dc8ad8c50da5f1f7bd956f6239c1259473670  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+a2d277e8ec9873f8c3d19ed8059c983ff584808d8df0d3a1d5346d465c3101bb  Exhibits/LightCompute/Code/ReplayImportanceValidation.h
+05590353222cdd487e807416dacadf5dbf54dd892eda0b324860bb9e6c7a8e45  Exhibits/LightCompute/Code/ReplayImportanceMotionValidation.h
+b8f1a39fab56b3bc27e51430d9d759bc6dd21bd06b96a55b8388efba6807d842  Exhibits/LightCompute/Code/ReplayImportanceParityValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+6cf6f168d2e852ee16d2c892bb9f8eed69bf55ac0e5187232f52c1eb5c672ec9  Exhibits/LightCompute/Code/RoughReplayValidation.h
+dc3429040a6b40b27d91fa1cac1ced86b381271293444e1d65e1a73b18f18e4f  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+965ff5689461b7ff2c81598c14a5f60c165bf5ccc1293b0df2da0a2f46700588  Exhibits/LightCompute/Code/RoughTextureMotionValidation.h
+3ccc45548bd503e3cc73706cae5c10f8ccbe7a9c1909fb21a470f0b9d083368a  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+TEXTURE_MOTION_UV vertices=30 maximum_error=1.1920929e-07
+IMPORTANCE_MOTION preparing Vulkan on SwiftShader Device (Subzero)
+TEXTURE_MOTION_PRIMARY importance_previous hits=3840 textured=1172 mips=182/158/570/262 mip_boundaries=0 position_error=3.81469727e-06 normal_error=0 albedo_error=6.10947609e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS importance_previous textured=1172 max_error=0
+TEXTURE_MOTION_PRIMARY importance_moved hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS importance_moved textured=1173 max_error=0
+TEXTURE_MOTION_PRIMARY importance_blocked hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS importance_blocked textured=1173 max_error=0
+TEXTURE_MOTION_PROBE token=8 pixel=28,38 mip=0 albedo=0.08,0.576,0.12 previous_pixel=30.4884,37.9583
+TEXTURE_MOTION_PROBE token=1 pixel=46,50 mip=2 albedo=0.284759,0.555524,0.102084 previous_pixel=46.7946,50.0000
+IMPORTANCE_MOTION tracing 160000 independent CPU paths for each of four primary probes
+IMPORTANCE_MOTION completed=16/64 batches
+IMPORTANCE_MOTION completed=32/64 batches
+IMPORTANCE_MOTION completed=48/64 batches
+IMPORTANCE_MOTION completed=64/64 batches
+TEXTURE_MOTION_REFERENCE importance_object_cosine_fresh channel=0 cpu=0.00552982145 cpu_se=7.67218707e-05 vulkan=0.00533798896 batch_se=0.000508777765 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_cosine_fresh channel=1 cpu=0.0250509728 cpu_se=0.000295927477 vulkan=0.0264596514 batch_se=0.00188884765 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_cosine_fresh channel=2 cpu=0.00462658235 cpu_se=5.54929643e-05 vulkan=0.00448665915 batch_se=0.000382994898 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_mixture_fresh channel=0 cpu=0.00552982145 cpu_se=7.67218707e-05 vulkan=0.00591291095 batch_se=0.0006780234 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_mixture_fresh channel=1 cpu=0.0250509728 cpu_se=0.000295927477 vulkan=0.0249928008 batch_se=0.00190585032 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_mixture_fresh channel=2 cpu=0.00462658235 cpu_se=5.54929643e-05 vulkan=0.00415151671 batch_se=0.000282136631 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_moved_reused channel=0 cpu=0.00552982145 cpu_se=7.67218707e-05 vulkan=0.00573931754 batch_se=0.000675108266 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_moved_reused channel=1 cpu=0.0250509728 cpu_se=0.000295927477 vulkan=0.0232729177 batch_se=0.00118051544 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_moved_reused channel=2 cpu=0.00462658235 cpu_se=5.54929643e-05 vulkan=0.00466150281 batch_se=0.000317060581 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_blocked_reused channel=0 cpu=0.00186864597 cpu_se=1.29538564e-05 vulkan=0.001806634 batch_se=0.000146348375 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_blocked_reused channel=1 cpu=0.00964828705 cpu_se=3.71816571e-05 vulkan=0.00896576503 batch_se=0.000554561585 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_object_blocked_reused channel=2 cpu=0.00242418722 cpu_se=1.19746447e-05 vulkan=0.00229705516 batch_se=0.000150758685 cpu_paths=160000 gpu_batches=64
+IMPORTANCE_MOTION_VARIANCE probe=importance_object channel=0 cosine_sd=0.00403829832 mixture_sd=0.0053816439 ratio=1.3326514 batches=64
+IMPORTANCE_MOTION_COHORT probe=importance_object channel=0 cohort=0 cosine_mean=0.0060596441 cosine_se=0.000840903292 mixture_mean=0.006781666 mixture_se=0.00113340917 sd_ratio=1.34784723 n=32
+IMPORTANCE_MOTION_COHORT probe=importance_object channel=0 cohort=1 cosine_mean=0.00461633382 cosine_se=0.000558034152 mixture_mean=0.00504415589 mixture_se=0.000731582565 sd_ratio=1.31099963 n=32
+IMPORTANCE_MOTION_VARIANCE probe=importance_object channel=1 cosine_sd=0.0149922634 mixture_sd=0.0151272179 ratio=1.00900161 batches=64
+IMPORTANCE_MOTION_COHORT probe=importance_object channel=1 cohort=0 cosine_mean=0.0276926145 cosine_se=0.00301890919 mixture_mean=0.0269080938 mixture_se=0.00242429412 sd_ratio=0.80303645 n=32
+IMPORTANCE_MOTION_COHORT probe=importance_object channel=1 cohort=1 cosine_mean=0.0252266883 cosine_se=0.00229984106 mixture_mean=0.0230775077 mixture_se=0.00294100865 sd_ratio=1.27878778 n=32
+IMPORTANCE_MOTION_VARIANCE probe=importance_object channel=2 cosine_sd=0.00303992776 mixture_sd=0.00223939008 ratio=0.73665898 batches=64
+IMPORTANCE_MOTION_COHORT probe=importance_object channel=2 cohort=0 cosine_mean=0.00469125372 cosine_se=0.000541984398 mixture_mean=0.00440654943 mixture_se=0.000360307933 sd_ratio=0.66479392 n=32
+IMPORTANCE_MOTION_COHORT probe=importance_object channel=2 cohort=1 cosine_mean=0.00428206458 cosine_se=0.000547500007 mixture_mean=0.00389648398 mixture_se=0.000435341042 sd_ratio=0.795143445 n=32
+TEXTURE_MOTION_REFERENCE importance_floor_cosine_fresh channel=0 cpu=0.191882313 cpu_se=0.00414075327 vulkan=0.166648188 batch_se=0.0191195844 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_cosine_fresh channel=1 cpu=0.254932676 cpu_se=0.00495342337 vulkan=0.225681599 batch_se=0.0243610099 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_cosine_fresh channel=2 cpu=0.0651354483 cpu_se=0.00192191594 vulkan=0.0539036292 batch_se=0.0080742352 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_mixture_fresh channel=0 cpu=0.191882313 cpu_se=0.00414075327 vulkan=0.187573679 batch_se=0.00697446436 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_mixture_fresh channel=1 cpu=0.254932676 cpu_se=0.00495342337 vulkan=0.247121973 batch_se=0.00876198252 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_mixture_fresh channel=2 cpu=0.0651354483 cpu_se=0.00192191594 vulkan=0.0619212262 batch_se=0.00249603357 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_moved_reused channel=0 cpu=0.191882313 cpu_se=0.00414075327 vulkan=0.185365458 batch_se=0.00726843593 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_moved_reused channel=1 cpu=0.254932676 cpu_se=0.00495342337 vulkan=0.243988308 batch_se=0.0100333342 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_moved_reused channel=2 cpu=0.0651354483 cpu_se=0.00192191594 vulkan=0.0610910826 batch_se=0.00289394771 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_blocked_reused channel=0 cpu=0.013876616 cpu_se=0.000844646895 vulkan=0.0132697396 batch_se=0.00241975567 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_blocked_reused channel=1 cpu=0.0185502598 cpu_se=0.00106392598 vulkan=0.0177007389 batch_se=0.00310534287 cpu_paths=160000 gpu_batches=64
+TEXTURE_MOTION_REFERENCE importance_floor_blocked_reused channel=2 cpu=0.00584476194 cpu_se=0.000346474476 vulkan=0.00572762878 batch_se=0.000934500148 cpu_paths=160000 gpu_batches=64
+IMPORTANCE_MOTION_VARIANCE probe=importance_floor channel=0 cosine_sd=0.151756996 mixture_sd=0.0553580947 ratio=0.36478117 batches=64
+IMPORTANCE_MOTION_COHORT probe=importance_floor channel=0 cohort=0 cosine_mean=0.148530833 cosine_se=0.0151550087 mixture_mean=0.182645063 mixture_se=0.0110485849 sd_ratio=0.729038502 n=32
+IMPORTANCE_MOTION_COHORT probe=importance_floor channel=0 cohort=1 cosine_mean=0.184765544 cosine_se=0.0351421041 mixture_mean=0.192502296 mixture_se=0.00860653677 sd_ratio=0.244906701 n=32
+IMPORTANCE_MOTION_VARIANCE probe=importance_floor channel=1 cosine_sd=0.193359522 mixture_sd=0.0695460802 ratio=0.359672385 batches=64
+IMPORTANCE_MOTION_COHORT probe=importance_floor channel=1 cohort=0 cosine_mean=0.205181438 cosine_se=0.0190317729 mixture_mean=0.232187259 mixture_se=0.0108638904 sd_ratio=0.570829131 n=32
+IMPORTANCE_MOTION_COHORT probe=importance_floor channel=1 cohort=1 cosine_mean=0.24618176 cosine_se=0.0449755619 mixture_mean=0.262056687 mixture_se=0.0134025462 sd_ratio=0.297996193 n=32
+IMPORTANCE_MOTION_VARIANCE probe=importance_floor channel=2 cosine_sd=0.0640872551 mixture_sd=0.0198116522 ratio=0.309135603 batches=64
+IMPORTANCE_MOTION_COHORT probe=importance_floor channel=2 cohort=0 cosine_mean=0.0463567853 cosine_se=0.0057804103 mixture_mean=0.0580842327 mixture_se=0.00309924929 sd_ratio=0.536164239 n=32
+IMPORTANCE_MOTION_COHORT probe=importance_floor channel=2 cohort=1 cosine_mean=0.0614504731 cosine_se=0.0150960745 mixture_mean=0.0657582197 mixture_se=0.00384284992 sd_ratio=0.25455955 n=32
+IMPORTANCE_MOTION_LINKS moved=237952 blocked=232512 spatial=1934336 probe_accepts=128/128 batches=64
+PASS mixed-proposal moving rough-textured primary and independent four-hit paths

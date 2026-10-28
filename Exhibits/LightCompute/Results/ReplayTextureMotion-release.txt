@@ -1,0 +1,40 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+64a92501fd670589911034ee6c0cfd4a3e85e1e1bf7f84791bdf07588fa13446  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+a8be04bf600144287b51cf43ea99eee1aa5ba6215129ef5a1351500f2777fef6  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+15b81c34d390231e3e3cb4aa21b2ed7953dc95f2173d2cff9c3e48604b514e7d  Exhibits/LightCompute/Code/PathReplayDomain.h
+51060938a32afb6d45a854ad49bb47195d2c569ca21fe2ae1a300abe1ecb7b90  Exhibits/LightCompute/Code/PathReplayCapture.h
+8ca8aa2ef045a66a01d8e60a038d823d96fa2b81828de350aa4df2582af6e715  Exhibits/LightCompute/Code/ReplayRoomReference.h
+06dab77604bba8d5a25016ee236c11de8d37ff32b03b502c1ad4a909efcc74e6  Exhibits/LightCompute/Code/ReplayMotionValidation.h
+e52c5512c0a90ede472b8e522fa01f3839f0eb539e7fec34e4b2cecf0fc219e1  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+a6a785fefe0a3eca8f95871d0eec5a454a60f4b7118e3ef1567abf43a463d6b8  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+TEXTURE_MOTION_UV vertices=30 maximum_error=1.1920929e-07
+TEXTURE_MOTION_PRIMARY previous hits=3840 textured=1172 mips=182/158/570/262 mip_boundaries=0 position_error=3.81469727e-06 normal_error=0 albedo_error=6.10947609e-07
+TEXTURE_MOTION_PRIMARY moved hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+TEXTURE_MOTION_PRIMARY blocked hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+TEXTURE_MOTION_PROBE token=8 pixel=28,38 mip=0 albedo=0.08,0.576,0.12 previous_pixel=30.4884,37.9583
+TEXTURE_MOTION_PROBE token=1 pixel=46,50 mip=2 albedo=0.284759,0.555524,0.102084 previous_pixel=46.7946,50.0000
+TEXTURE_MOTION_REFERENCE tracing 240000 CPU paths for each of four primary pixels
+TEXTURE_MOTION_REFERENCE object_fresh channel=0 cpu=0.0146224677 cpu_se=0.000182662572 vulkan=0.0151355602 batch_se=0.00163027673 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE object_fresh channel=1 cpu=0.097460466 cpu_se=0.00112320595 vulkan=0.103565841 batch_se=0.00957674489 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE object_fresh channel=2 cpu=0.00943740653 cpu_se=0.000142474877 vulkan=0.0121768137 batch_se=0.0015760259 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE object_moved_reused channel=0 cpu=0.0146224677 cpu_se=0.000182662572 vulkan=0.0157757704 batch_se=0.00132101958 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE object_moved_reused channel=1 cpu=0.097460466 cpu_se=0.00112320595 vulkan=0.100679423 batch_se=0.00379112521 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE object_moved_reused channel=2 cpu=0.00943740653 cpu_se=0.000142474877 vulkan=0.0100503134 batch_se=0.000993179823 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE object_blocked_reused channel=0 cpu=0.00197139863 cpu_se=2.94539594e-05 vulkan=0.00157872959 batch_se=0.000101204603 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE object_blocked_reused channel=1 cpu=0.0122664053 cpu_se=9.3685476e-05 vulkan=0.0120225555 batch_se=0.000697542284 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE object_blocked_reused channel=2 cpu=0.00246065108 cpu_se=3.05875133e-05 vulkan=0.00209907232 batch_se=0.000168886557 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE floor_fresh channel=0 cpu=0.338514506 cpu_se=0.00199847683 vulkan=0.339343078 batch_se=0.00563103656 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE floor_fresh channel=1 cpu=0.560639728 cpu_se=0.00324331854 vulkan=0.55832269 batch_se=0.00808358786 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE floor_fresh channel=2 cpu=0.0851472554 cpu_se=0.000486078233 vulkan=0.0833729312 batch_se=0.00144721053 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE floor_moved_reused channel=0 cpu=0.338514506 cpu_se=0.00199847683 vulkan=0.342783198 batch_se=0.00453986852 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE floor_moved_reused channel=1 cpu=0.560639728 cpu_se=0.00324331854 vulkan=0.567192151 batch_se=0.00527153249 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE floor_moved_reused channel=2 cpu=0.0851472554 cpu_se=0.000486078233 vulkan=0.085479816 batch_se=0.00155687842 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE floor_blocked_reused channel=0 cpu=0.0118322758 cpu_se=0.00024337102 vulkan=0.0101216428 batch_se=0.00104715804 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE floor_blocked_reused channel=1 cpu=0.0197188752 cpu_se=0.000370119848 vulkan=0.0178297115 batch_se=0.00168883482 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE floor_blocked_reused channel=2 cpu=0.00469191786 cpu_se=8.14615511e-05 vulkan=0.00498647715 batch_se=0.000591944425 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_LINKS moved=475904 blocked=465024 spatial=3868672 moved_probe_accepts=256 blocked_probe_accepts=256 batches=128
+PASS independent primary and four-hit textured paths during camera, rigid, atlas and blocker changes

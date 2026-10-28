@@ -1,0 +1,75 @@
+Fixed beta=2 MIS experiment; host sanitized; external driver/shaders not sanitizer-instrumented
+Base 68f3016 plus working changes; source hashes below
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+aa8bf22cfb36375faacd327400be837aedccfa35579753cdd9265819701048f8  Exhibits/LightCompute/RunReplayMISPower.sh
+34c65b106f495495121d0092ebda945fb1c1e832e24de6d6eb4685b510006593  Exhibits/LightCompute/Code/CompileReplayMISPower.py
+72b0dd265d999ce049721713a15f003958c9df785dc8c749da973cdfb6d1439d  Exhibits/LightCompute/Code/ReplayMISPowerValidation.h
+b2a7984aaabe61b1a227768e499fefc66f98679812d162146dc06c9d768d5032  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+193d7e704cb1ab6472f153079ce6a2b6c72c1f954b679c35302b01e867febd6b  Exhibits/LightCompute/Code/ReplayFirstHopMISValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+5ee030f14840bc65be0576bdcb356efaf1c18e218859b68584debf85ef6805ae  Exhibits/LightCompute/Code/CompileReplayResetBudget.py
+96ea4214cd3a42ef70a7c03d0c2aa7557b776f52e5e4c1c829fe8a0690d71288  Exhibits/LightCompute/Code/CompileReplayBoundedTemporal.py
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+85568db2461f04436cce139a9b90a0c08a92fb278c644b43376dea060f683162  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/balance/ReplayResetBudget.slang
+89bb737395f3b1db5e49d28cfb3301c548f564fc1d984fe5d5f7078326462ea5  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/power/ReplayMISPower.slang
+f4de0848490153e7a1c7cc3284ee76a0b372228b687c57904e838f610d9d189d  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/power/ReplayFreshPower.slang
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/balance/Primary.spv
+131704a2f29fc8ce802d4a463691c7b4c7d6eddcab3eda7327fceadfbad4e565  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/balance/ReplayGenerate.spv
+e9a96d4bfa5636f7610285a597e27f094a6cb643f46d9a621e9fbf96440c6dec  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/balance/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/balance/ReplayGatherSampleHistory.spv
+7577bf45fd8e22f48e41865f11d40991dbafd6bfa7a2e0a9fd18156c9a3eff33  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/balance/ReplayFinalizeSampleHistory.spv
+6d3ff88efe9cb8028cde21dd97abc8518fb080130c6fa0a65c0d0716f50a05ce  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/balance/ReplayFreshBudget.spv
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/power/Primary.spv
+d97afa08bb94c01595108be7c13a7baf99ae0b48ad125ce5c05f195518d65e11  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/power/ReplayGenerate.spv
+9b44d4a6a0f20fcb78a10e408e4a8c8b1c2f792da9e6862464511d2d2984fd2b  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/power/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/power/ReplayGatherSampleHistory.spv
+7577bf45fd8e22f48e41865f11d40991dbafd6bfa7a2e0a9fd18156c9a3eff33  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/power/ReplayFinalizeSampleHistory.spv
+b0813da40cf05824ef0b7bca4a55a030e7cc8f93b886acf54684f41f74f5de62  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/power/ReplayFreshBudget.spv
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+cc5473d924d5b377a615b78bd54afd8fee6d42e5adcca84de534965ec1605def  /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized/LightComputeValidation
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-mis-power-sanitized
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.02 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.01 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.01 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.01 sec
+
+100% tests passed out of 5
+
+Total Test time (real) =   0.04 sec
+POWER_DEVICE condition=0 name=SwiftShader Device (Subzero) type=4 output_bytes=180224
+POWER_REFERENCE condition=0 points=1024 cpu_paths=4194304 mean=0.107951063 nominal_se=0.000137029982
+POWER_PROGRESS condition=0 completed=8/32
+POWER_PROGRESS condition=0 completed=16/32
+POWER_PROGRESS condition=0 completed=24/32
+POWER_PROGRESS condition=0 completed=32/32
+POWER_ACTIVE condition=0 maximum_balance_difference=0.051513359
+POWER_RESULT condition=0 method=off batches=32 points=1024 mean=0.107872085 nominal_se=6.01014876e-05 rmse=0.00994779963 mean_gate=1 nearest=285472 shadow=273059
+POWER_RESULT condition=0 method=balance batches=32 points=1024 mean=0.107868496 nominal_se=8.55528441e-05 rmse=0.0127621822 mean_gate=1 nearest=285472 shadow=273059
+POWER_RESULT condition=0 method=power batches=32 points=1024 mean=0.107869462 nominal_se=5.93598343e-05 rmse=0.00967705542 mean_gate=1 nearest=285472 shadow=273059
+POWER_PAIRED condition=0 control=balance mse_difference=-6.9227892e-05 nominal_se=1.34539631e-06 quality_gate=1
+POWER_PAIRED condition=0 control=off mse_difference=-5.31331585e-06 nominal_se=2.16755466e-07 quality_gate=1
+POWER_PARITY condition=0 disabled_output_exact=1 matched_query_counts=1 submissions=32
+POWER_DEVICE condition=1 name=SwiftShader Device (Subzero) type=4 output_bytes=101376
+POWER_REFERENCE condition=1 points=528 cpu_paths=1081344 mean=0.533460883 nominal_se=0.00172866671
+POWER_PROGRESS condition=1 completed=8/32
+POWER_PROGRESS condition=1 completed=16/32
+POWER_PROGRESS condition=1 completed=24/32
+POWER_PROGRESS condition=1 completed=32/32
+POWER_ACTIVE condition=1 maximum_balance_difference=0.75361672
+POWER_RESULT condition=1 method=off batches=32 points=528 mean=0.527412061 nominal_se=0.00135419297 rmse=0.164371453 mean_gate=1 nearest=396373 shadow=382026
+POWER_RESULT condition=1 method=balance batches=32 points=528 mean=0.534777017 nominal_se=0.00133589383 rmse=0.139899668 mean_gate=1 nearest=396373 shadow=382026
+POWER_RESULT condition=1 method=power batches=32 points=528 mean=0.534385515 nominal_se=0.00143003613 rmse=0.139791135 mean_gate=1 nearest=396373 shadow=382026
+POWER_PAIRED condition=1 control=balance mse_difference=-3.03555894e-05 nominal_se=0.000157731681 quality_gate=0
+POWER_PAIRED condition=1 control=off mse_difference=-0.00747641322 nominal_se=0.00484505354 quality_gate=0
+POWER_PARITY condition=1 disabled_output_exact=1 matched_query_counts=1 submissions=32
+POWER_DECISION correctness=1 promote=0 physical_gpu_timing=0

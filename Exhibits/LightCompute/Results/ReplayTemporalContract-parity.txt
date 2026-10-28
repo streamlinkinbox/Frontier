@@ -1,0 +1,11 @@
+release: 39 logged source/tool/shader digests match final files
+sanitized: 39 logged source/tool/shader digests match final files
+48 TEMPORAL result rows exact between release and host sanitizer
+Primary: unchecked-control SHA256 matches pre-repair compact checkpoint
+ReplayGenerate: unchecked-control SHA256 matches pre-repair compact checkpoint
+ReplayResolve: unchecked-control SHA256 matches pre-repair compact checkpoint
+ReplayGatherSampleHistory: unchecked-control SHA256 matches pre-repair compact checkpoint
+ReplayFinalizeSampleHistory: unchecked-control SHA256 matches pre-repair compact checkpoint
+TemporalCurrent: decoded RGB exact 659e944c3daed4388f8c82f34505a72d617c14767c50c0d6e30beccb303a12b1
+TemporalSourceOff: decoded RGB exact f3cc103136423a57975750907ebc1d367e2985ac6338976d4d5a439f50323f4a
+PASS temporal result, final source, unchecked negative-control and actual capture parity

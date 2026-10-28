@@ -1,0 +1,8 @@
+PRIOR_NATIVE_PRIMARY misses=2758 1:5574 2:1727 3:1763 4:2454 10:154 11:127 12:150 13:455 14:514 201:291 205:33 corners=90 surfaces=90 enclosures=31
+PRIOR_EXITANCE_NATIVE checks=8 constant_mip_gap=2.38419e-08 max_bound_overestimate=0 distance_samples=21504
+PRIOR_EXITANCE_DEVICE name=SwiftShader Device (Subzero) type=4 width=160 height=100 distance_offset=1586807
+PRIOR_TOKENS misses=2758 1:5574 2:1727 3:1763 4:2454 10:154 11:127 12:150 13:455 14:514 201:291 205:33 cam_eye=0,-6.2,2.35 fwd=0,0.989359,-0.145494 right=1,-0,0 rs=0.736 up=0,0.145494,0.989359 us=0.46 surfaces=90
+PRIOR_STATS hits=3788 fallbacks=31 distance_queries=0 skips=0 sharp=154 medium=127 rough=150 mirror_glass=969
+PRIOR_STRIPS sharp pyr=0.154678 pt=0.163959 medium pyr=0.209563 pt=0.224203 rough pyr=0.055339 pt=0.0687934 energy_ratio=0.948044
+PRIOR_SHARP deviation=0.0566037 seed_noise=0.0120526
+PRIOR_EXITANCE_GPU max_mip_rgb_error=6.67572e-07 pyramid_hits=3788 pyramid_fallbacks=31 std_sharp=0.154678 std_medium=0.209563 std_rough=0.055339 std_point_rough=0.0687934 energy_ratio=0.948044 mirror_glass_diff=0 distance_skips=0 distance_mode_diff=0 moving_reused1=12114 rigid_reused1=318 moving_reused2=11976 refresh_diff=0 stale_leak=0.304866

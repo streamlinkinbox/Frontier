@@ -1,0 +1,19 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+88428c240b886944acc7e4a8faf2072ca0a322485676cfd1d87e3ca7b8f301ae  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+RECTANGLE preparing Vulkan pipelines on SwiftShader Device (Subzero)
+RECTANGLE_MOVING shift=0.25 exact=0.223285830526 fresh=0.212646483575 se=0.00639343145509 corrected=0.226584118136 se=0.00223447511968 omitted=0.236136164287 se=0.0021723461783 accepted=20480 n=4096
+RECTANGLE_MOVING shift=0.50 exact=0.180582224402 fresh=0.177246093459 se=0.00596682551438 corrected=0.183649795151 se=0.00213048189287 omitted=0.218314515076 se=0.00207688763389 accepted=20480 n=4096
+RECTANGLE_MOVING shift=1.00 exact=0.0843764890781 fresh=0.0866699217149 se=0.00439610551593 corrected=0.0840933910313 se=0.0011878495499 omitted=0.169675591424 se=0.00167651824449 accepted=20480 n=4096
+RECTANGLE_SPATIAL exact=0.0843764890781 fresh=0.082031249709 se=0.00428769256039 corrected=0.0831476482981 se=0.00141759153453 omitted=0.159084711242 se=0.00218534083797 links=48640 n=4096
+RECTANGLE_COMBINED exact=0.0843764890781 mean=0.0833123912123 se=0.000542741884985 accepted=20480 links=48640 n=4096
+RECTANGLE_ENDPOINT translation=1 exact=0.0843764890781 corrected=0.0857309741136 se=0.00117282266593 omitted=0.172513890933 se=0.00165156794941 carried=20480 n=4096
+RECTANGLE_RGB exact=(0.0421882445,0.0210941223,0.0632823668) mean=(0.0421407135,0.0210703567,0.0632110703) se=(0.000612599944,0.000306299972,0.000918899918) n=4096
+RECTANGLE_JOINT receiver_x=.5 endpoint_x=.25 endpoint_z=.5 exact=0.118370368974 quadrature_delta=3.74614129e-08 corrected=0.116799804796 se=0.0011857657351 omitted=0.229702151202 se=0.00219741931814 carried=20480 n=4096
+RECTANGLE_MATERIAL rejected=5120 global_reset=0 matches_cold=1
+RECTANGLE_GUARDS shape_reset=1 emission_reset=1 viewport_reset=1 extra_geometry_rejected=1 matches_cold=1
+PASS restricted rectangle reconnection; not general dynamic or multibounce ReSTIR GI

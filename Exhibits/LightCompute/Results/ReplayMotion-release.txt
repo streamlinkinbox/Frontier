@@ -1,0 +1,23 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+dce7ded271e393d9a90dae4cdef2259edf7e67a92b4c24fc5deb8973eac5df61  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+714c68abbb43b0b618367f70c89319aac2bb9fd751bc34f6f7ce30449fbcfa1b  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+832a756a4501f4392292f56dc3b8fdbd45a51ebcb80e2b17a005d895e5284332  Exhibits/LightCompute/Code/PathReplayDomain.h
+764a2ee980ff0f4e2050d9fd772d8c5aed4d7517593fa604f48c6841b1d4198c  Exhibits/LightCompute/Code/ReplayRoomReference.h
+6cf6f168d2e852ee16d2c892bb9f8eed69bf55ac0e5187232f52c1eb5c672ec9  Exhibits/LightCompute/Code/RoughReplayValidation.h
+06dab77604bba8d5a25016ee236c11de8d37ff32b03b502c1ad4a909efcc74e6  Exhibits/LightCompute/Code/ReplayMotionValidation.h
+aa8809d00dbed7a8a77a4ae12f2b547bb7400b4bda5e00a5a23bf30d7249da98  Exhibits/LightCompute/Code/PathReplayCapture.h
+MOTION_CAMERA shift=.07 hits=8640 exact_accepted=0 exact_rejected=8545 nearby_accepted=8512 nearby_rejected=33 reset=0 history_cap=1
+MOTION_GUARDS nearby=20480 outside=0 token=0 normal=0 missing_offset=0 missing_exact=5120 radius_cap=0 area=0.119909106 mean=0.120575932 se=0.00112360543 n=4096
+MOTION_INPUT_GUARDS nan_radius=1 nan_normal=1 huge_normal=1
+MOTION_CAMERA_only channel=0 reused_mean=0.985008773 paired_difference=0.00811568845 batch_se=0.0053808964 batches=8 temporal=68096 spatial=273504
+MOTION_CAMERA_only channel=1 reused_mean=0.755606487 paired_difference=0.00293377009 batch_se=0.00142542039 batches=8 temporal=68096 spatial=273504
+MOTION_CAMERA_only channel=2 reused_mean=0.657158931 paired_difference=0.00241986238 batch_se=0.00136323206 batches=8 temporal=68096 spatial=273504
+MOTION_CAMERA_and_blocker channel=0 reused_mean=0.486633062 paired_difference=0.0071328511 batch_se=0.0051711438 batches=8 temporal=64520 spatial=273504
+MOTION_CAMERA_and_blocker channel=1 reused_mean=0.38845558 paired_difference=0.00227315289 batch_se=0.00122103254 batches=8 temporal=64520 spatial=273504
+MOTION_CAMERA_and_blocker channel=2 reused_mean=0.323320601 paired_difference=0.00221902462 batch_se=0.00115990263 batches=8 temporal=64520 spatial=273504
+MOTION_RIGID_OBJECT angle=.12 camera_shift=.07 object_pixels=469 accepted=454 rejected=15 reset=0 cap=1
+MOTION_CAMERA_and_rigid channel=0 reused_mean=0.983793553 paired_difference=0.00819981838 batch_se=0.00522392979 batches=8 temporal=67416 spatial=273504
+MOTION_CAMERA_and_rigid channel=1 reused_mean=0.756000851 paired_difference=0.00309477624 batch_se=0.00138167017 batches=8 temporal=67416 spatial=273504
+MOTION_CAMERA_and_rigid channel=2 reused_mean=0.658158273 paired_difference=0.00264499144 batch_se=0.00135760218 batches=8 temporal=67416 spatial=273504
+PASS bounded camera, moving blocker and rigid-object four-hit replay

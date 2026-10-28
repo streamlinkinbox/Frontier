@@ -1,0 +1,38 @@
+{
+  "result": "passed_scoped_checks",
+  "cpp": "Release C++20 build -Wall -Wextra -Werror",
+  "compute_shader_entries_compiled": 13,
+  "production_material_shader_entries_compiled": 2,
+  "production_material_fragment_byte_identical_to_pre_energy": false,
+  "production_fragment_intentionally_changed_by_energy_correction": true,
+  "fragment_spirv_sha256": "40701409dd9332ed1194395646273bb08ee91547db8abee62b6a14e42c687024",
+  "pre_energy_revision": "b6bc49e",
+  "pre_energy_fragment_spirv_sha256": "97aa187e8876dad4a4aecfb304cb60cd9468b393b13415c228ef3991deb019a3",
+  "native_ctest_passed": 4,
+  "legacy_transport_regression": "MaterialTransportRegression.txt",
+  "native_regression": "MaterialNativeRegression.txt",
+  "scoped_energy_acceptance_passed": true,
+  "energy_native_cases": 384,
+  "energy_gpu_cases": 34,
+  "energy_excess_cases": 0,
+  "energy_acceptance_limit": 1.02,
+  "native_energy_asan_ubsan_cases": 384,
+  "native_energy_asan_ubsan_errors": 0,
+  "energy_report": "../../TextureStudio/Results/MaterialEnergy.json",
+  "full_material_energy_acceptance": false,
+  "physical_gpu_executed": false,
+  "limitations": [
+    "ASan/UBSan covers the standalone native energy executable, not the full Vulkan application",
+    "Existing material fragment Paint conditional-initialization warnings remain",
+    "No Windows/editor viewport/physical GPU/validation-layer execution",
+    "Energy acceptance is scoped to tested isotropic Schlick/default-specular fixtures; not every material option or legacy BRDF"
+  ],
+  "historical_paint_only_check": {
+    "revision": "b6bc49e",
+    "fragment_byte_identical_with_without_compute_footprint": true,
+    "not_a_current_energy_comparison": true
+  },
+  "rough_reflection_acceptance_passed": true,
+  "rough_reflection_report": "RoughReflection.json",
+  "legacy_transport_regression_scope": "historical 05e4090 result, not rerun during rough-reflection phase"
+}

@@ -1,0 +1,52 @@
+Power-weighted facet replay; --replay-facet-power; host sanitized
+Base 496a076, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+9033e8640118b8da45d1fb926a545c93b45ab07f63fba1a7ea4a3e8e96db157f  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+3e8575c62799ddd26474776a65537f3a2e5db6834f723c0b298042a689d2b460  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+3158bf7681a218119367782f5831ef148e2f8db50ae4bb23d436ab29414fc834  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+17b7c0b4797f05b20cbc29867ba094d388631edf7a98299b1efab0d50e4216d1  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+1681385b3efe6feef4c0478d840a2d24e9c4d111e38ef1ef28d94f9f81b2c512  Exhibits/LightCompute/Code/ReplayFacetPowerValidation.h
+68e2cc9696d708343d57f9bfadd590ae3896da9186ee4d934ac15823e7040541  Exhibits/LightCompute/Code/ReplayImportanceParityValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=11 proposal=1 weighted_facets=1 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+POWER_FACET preparing Vulkan on SwiftShader Device (Subzero)
+POWER_FACET open_uniform exact=0.544712826 mean=0.542906547 batch_se=0.00356887508 sample_sd=0.561784867 batches=24
+POWER_FACET open_weighted exact=0.544712826 mean=0.544226565 batch_se=0.000539929677 sample_sd=0.10186536 batches=24
+POWER_FACET open_weighted_mis exact=0.544712826 mean=0.542950551 batch_se=0.00119525396 sample_sd=0.147966787 batches=24
+POWER_FACET blocked_uniform exact=0.00113245984 mean=0.001134859 batch_se=5.94591771e-06 sample_sd=0.00117477317 batches=24
+POWER_FACET blocked_weighted exact=0.00113245984 mean=0.000788898164 batch_se=0.000121355088 sample_sd=0.0214540875 batches=24
+POWER_FACET blocked_weighted_mis exact=0.00113245984 mean=0.0011405314 batch_se=3.10678146e-05 sample_sd=0.00511294807 batches=24
+POWER_FACET proposal_switch exact=0.544712826 mean=0.54443138 batch_se=0.00303964426 sample_sd=0.442531383 batches=24
+POWER_FACET blocker_transition exact=0.00113245984 mean=0.00113741477 batch_se=2.32655903e-05 sample_sd=0.0038068521 batches=24
+POWER_FACET_VARIANCE open_sd_ratio=0.1813245 blocked_sd_ratio=18.2623234 probabilities=0.99792093,0.00207906961 proposal_accepts=122880 blocker_accepts=122880 spatial=583680
+POWER_FACET_CONVERGENCE batches=32 exact=0.00113245984 mean=0.00119442571 batch_se=0.000144306699 nonzero_centres=73 unique_frame_seeds=1
+POWER_FACET_CONVERGENCE batches=64 exact=0.00113245984 mean=0.00117590361 batch_se=9.14818728e-05 nonzero_centres=141 unique_frame_seeds=1
+POWER_FACET_CONVERGENCE batches=128 exact=0.00113245984 mean=0.00123171151 batch_se=7.47779992e-05 nonzero_centres=292 unique_frame_seeds=1
+POWER_FACET_CONVERGENCE batches=256 exact=0.00113245984 mean=0.00116834519 batch_se=5.29048415e-05 nonzero_centres=560 unique_frame_seeds=1
+POWER_FACET blocked_weighted_256 exact=0.00113245984 mean=0.00116834519 batch_se=5.29048415e-05 sample_sd=0.0256986241 batches=256
+POWER_FACET_GUARDS missing_sampling=1 degenerate=1 empty_environment=0.360000014
+PASS weighted facet area, MIS, dynamic occlusion and variance counterexample
+POWER_ROOM tracing three independent 400000-path four-hit CPU references
+ROOM_REFERENCE power_room_fresh channel=0 cpu=0.441744515 cpu_se=0.00262196759 vulkan=0.443473475 pixel_se=0.00189848527 batch_se=0.0015231202 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_fresh channel=1 cpu=0.371089629 cpu_se=0.00218502942 vulkan=0.372895431 pixel_se=0.00159364087 batch_se=0.00130864473 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_fresh channel=2 cpu=0.30487988 cpu_se=0.00175581442 vulkan=0.305940573 pixel_se=0.00131199178 batch_se=0.00122912612 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_switched channel=0 cpu=0.441744515 cpu_se=0.00262196759 vulkan=0.440544169 pixel_se=0.00113153184 batch_se=0.000854968795 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_switched channel=1 cpu=0.371089629 cpu_se=0.00218502942 vulkan=0.370514139 pixel_se=0.000933229645 batch_se=0.000652910465 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_switched channel=2 cpu=0.30487988 cpu_se=0.00175581442 vulkan=0.304329549 pixel_se=0.000839389177 batch_se=0.000808674249 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_relit channel=0 cpu=0.32453663 cpu_se=0.00212336629 vulkan=0.32203587 pixel_se=0.000571880076 batch_se=0.000579587958 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_relit channel=1 cpu=0.271404428 cpu_se=0.00176741796 vulkan=0.269649219 pixel_se=0.000428110027 batch_se=0.000260981233 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_relit channel=2 cpu=0.222513569 cpu_se=0.00142037959 vulkan=0.220808555 pixel_se=0.00041864091 batch_se=0.000270535752 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_blocked channel=0 cpu=0.0140675415 cpu_se=0.000252326527 vulkan=0.014372177 pixel_se=0.00021351279 batch_se=0.000233078931 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_blocked channel=1 cpu=0.0112897432 cpu_se=0.00018247261 vulkan=0.0114181823 pixel_se=0.000149700534 batch_se=0.000199627854 n=400000/12288 batches=12
+ROOM_REFERENCE power_room_blocked channel=2 cpu=0.0116952787 cpu_se=0.000167701296 vulkan=0.0117002318 pixel_se=0.000140945399 batch_se=0.000215468005 n=400000/12288 batches=12
+POWER_ROOM_LINKS switch=61440 relit=61440 blocked=61440 spatial=437760 batches=12
+PASS weighted four-hit textured room, relighting and moving blocker

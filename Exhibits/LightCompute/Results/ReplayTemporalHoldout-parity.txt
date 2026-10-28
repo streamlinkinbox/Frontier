@@ -1,0 +1,21 @@
+42 semantic rows exact across release and host sanitizers
+release: all 48 logged source/tool/derived-shader/binary digests match final files
+sanitized: all 48 logged source/tool/derived-shader/binary digests match final files
+release: all 13 prototype/control/default shader digests unchanged from preceding phase
+sanitized: all 13 prototype/control/default shader digests unchanged from preceding phase
+Holdout0Fresh: decoded RGB exact 58968b1d30a4b79f105159be65ac03744dc07ca9a20d15afabe0100ba1bb88f9
+Holdout0Temporal: decoded RGB exact aff60e84a12f67fb31a172d77157570efbf6c403bbffdb3253d4a81c3b2cb898
+Holdout0Mask: decoded RGB exact 011ec3119006231d17e75e843c13b8970f34dee7d01c45a680629d7478c6838d
+Holdout1Fresh: decoded RGB exact 99a5a4f9c9482a350309bf81463eb00bfdd1a44b627eec7c50021bb35ae28aa8
+Holdout1Temporal: decoded RGB exact 3e829dab9bdc1c9d637a3f800c13753b6ad7c4807c70bc9aeff7e30f6ba57da1
+Holdout1Mask: decoded RGB exact 483434c52df250cf046df2b6f90e9fff21cf87943bcbfcb6a241300e6a66c934
+Holdout2Fresh: decoded RGB exact c2ff81fc04d125cc068b6c39f4cd5e3f28818f21c55e9e16d800b2a89968b3d3
+Holdout2Temporal: decoded RGB exact 98907cb16b58b335fb6fb7994a55f64fcefb44f89b5009dd88afe4660a3aa2a6
+Holdout2Mask: decoded RGB exact ed523fa4e12b2f159b37af2799cb85fd0ec01fb9b885b731c0490a8513bdc04a
+Holdout3Fresh: decoded RGB exact 7320d493c8f9b9c3f7ee89e61b07729310994f02709f70c06a2ff19a821c65f0
+Holdout3Temporal: decoded RGB exact 0b75a9e1368fa113a957311b0c9d73483f925a7a6cee60152a4dc9bd8f3ede57
+Holdout3Mask: decoded RGB exact 011ec3119006231d17e75e843c13b8970f34dee7d01c45a680629d7478c6838d
+Post-run presentation/audit source a4730e82dd11c563f9dccca0346358e2f9b6b34abbe1a6be99c37225b4e752f1  Exhibits/LightCompute/Code/ReplayTemporalHoldoutImages.py
+Post-run presentation/audit source ed5ea7e75022cf2113b4d22cdc978f1083f46811fb98d9d39c7455ccbb8c5012  Exhibits/LightCompute/Code/ReplayTemporalHoldoutParity.py
+Previous bounded-phase main.cpp digest is historical after adding this holdout CLI; shader digests remain unchanged
+PASS emitter-enabled holdout correctness, source, shader and capture parity; see HOLDOUT_DECISION for quality

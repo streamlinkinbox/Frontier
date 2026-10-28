@@ -1,0 +1,27 @@
+Power-weighted facet replay; --replay-facet-power-parity; host sanitized
+Base 496a076, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+9033e8640118b8da45d1fb926a545c93b45ab07f63fba1a7ea4a3e8e96db157f  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+3e8575c62799ddd26474776a65537f3a2e5db6834f723c0b298042a689d2b460  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+3158bf7681a218119367782f5831ef148e2f8db50ae4bb23d436ab29414fc834  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+17b7c0b4797f05b20cbc29867ba094d388631edf7a98299b1efab0d50e4216d1  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+1681385b3efe6feef4c0478d840a2d24e9c4d111e38ef1ef28d94f9f81b2c512  Exhibits/LightCompute/Code/ReplayFacetPowerValidation.h
+68e2cc9696d708343d57f9bfadd590ae3896da9186ee4d934ac15823e7040541  Exhibits/LightCompute/Code/ReplayImportanceParityValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=11 proposal=1 weighted_facets=1 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+Prior replay shader checkpoint: 496a076
+1254216ac3ac40f5fd7c0435b07ceef0186f008a604674141bab23709032fce5  /home/user/Frontier/_ClaudeScratch/build/replay-facet-power-sanitized/prior/PathReplayReservoir.slang
+IMPORTANCE_PARITY comparing previous checkpoint and current default-off shader
+IMPORTANCE_PARITY images=5 components=163840 differing_float_bits=0 max_abs=0 nonzero_pixels=23824 history=2
+PASS bit-identical default-off replay readbacks and history against Engine checkpoint
+POWER_PARITY importance_images=5 components=163840 differing_float_bits=0 history=2
+PASS default-off cosine and GGX replay readbacks and history

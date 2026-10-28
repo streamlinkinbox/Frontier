@@ -1,0 +1,10 @@
+Release/host-sanitizer: 8 compact numerical/device/allocation/capture rows identical
+release all 30 logged source/driver/SPIR-V hashes match final files
+sanitized all 30 logged source/driver/SPIR-V hashes match final files
+CompactReplayLegacy decoded RGB identical across Release/sanitizer and previous retained-seed spatial capture
+CompactReplayPacked decoded RGB identical across Release/sanitizer and previous retained-seed spatial capture
+Legacy reference regression: 15 SAMPLE rows unchanged from pre-seed-RIS baseline
+Legacy regression ReplaySampleAcceptance.png decoded RGB unchanged
+Legacy regression ReplaySampleFourFresh.png decoded RGB unchanged
+Legacy regression ReplaySampleFresh.png decoded RGB unchanged
+Legacy regression ReplaySampleRetraced.png decoded RGB unchanged

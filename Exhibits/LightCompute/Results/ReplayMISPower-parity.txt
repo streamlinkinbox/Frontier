@@ -1,0 +1,1 @@
+PASS power MIS: 27 identical semantic rows, logged hashes [28, 28], six exact RGB captures; both 5 CTests passed; active/disabled controls and shader rederivation passed; 62 CPU weight pairs passed.

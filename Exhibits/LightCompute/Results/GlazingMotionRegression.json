@@ -1,0 +1,47 @@
+{
+  "static_fixture_exit_code": 0,
+  "previous_checkpoint": "2e3eb62",
+  "static_image_equality": {
+    "VehicleGlazing.png": "fcd273be35b749278e71403e23e55b8550a397290693087ac274e6a8331a0185",
+    "VehicleGlazingAbsorbed.png": "67de31a594906b0858f34b0b92d10307c81e12a157e744e4edd838c9c921652a",
+    "VehicleGlazingClear.png": "b3f40d2e7d566233a565ac9e7349ee9a9a992b027a2dbcd3393e238a9290bb1a",
+    "VehicleGlazingMoved.png": "074b78fb4ce7fe9eda55506efff7c971ed0e88bd94257ba5fe4b05fc565631be",
+    "VehicleGlazingSheet.png": "f46ae054dad3104426316c55b4c0c4e8fb3f00dad310b975e965ccd5cbe0f11c"
+  },
+  "compiled_shader_equality": "13/13 SPIR-V digests match previous accepted manifest",
+  "native_saved_spectrum_sha256": "3e3994170be2774e88f0da7c7e7ea5db732829c70e20fb1abd83bfdb7e71d57a",
+  "source_setup_unchanged": "320x200 static fixtures retain all original images byte-for-byte after preparation extraction",
+  "post_survival": {
+    "static_fixture_exit_code": 0,
+    "prior_png_byte_equality": {
+      "VehicleGlazing.png": true,
+      "VehicleGlazingAbsorbed.png": true,
+      "VehicleGlazingClear.png": true,
+      "VehicleGlazingMoved.png": true,
+      "VehicleGlazingSheet.png": true
+    },
+    "prior_compiled_shader_byte_equality": {
+      "_ClaudeScratch/build/light-compute/Cells.spv": true,
+      "_ClaudeScratch/build/light-compute/Clouds.spv": true,
+      "_ClaudeScratch/build/light-compute/Filter.spv": true,
+      "_ClaudeScratch/build/light-compute/Finalize.spv": true,
+      "_ClaudeScratch/build/light-compute/Fog.spv": true,
+      "_ClaudeScratch/build/light-compute/Primary.spv": true,
+      "_ClaudeScratch/build/light-compute/Receivers.spv": true,
+      "_ClaudeScratch/build/light-compute/Reconstruct.spv": true,
+      "_ClaudeScratch/build/light-compute/Reuse.spv": true,
+      "_ClaudeScratch/build/light-compute/Transport.spv": false,
+      "_ClaudeScratch/build/light-compute/TransportResolve.spv": true,
+      "_ClaudeScratch/build/light-compute/TransportSpatial.spv": true,
+      "_ClaudeScratch/build/light-compute/TransportTemporal.spv": true
+    },
+    "change": "Only Transport.spv changes: compensated faint-path survival. Static CTests, authoring, repeats, moved/cold and all-source-off checks pass."
+  },
+  "retained_optical_regression": {
+    "exit_code": 0,
+    "command": "DIFFUSE_BUILD=0 bash Exhibits/LightCompute/RunDiffuseDielectric.sh",
+    "log": "Results/GlazingMotionRetainedRegression.txt",
+    "log_sha256": "7c776cf758c85daefca5bfa1201e5fc3119f8494bc189878e7bae364d751407a",
+    "scope": "Full post-survival boundary/slab/opaque-history/mirror/rough/window/diffuse/retained-vehicle/old-material-six-pose regression, not physical GPU acceptance."
+  }
+}

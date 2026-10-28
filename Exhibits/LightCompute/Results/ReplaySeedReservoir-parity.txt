@@ -1,0 +1,6 @@
+Release and host ASan/UBSan: 18 GPU numerical/progress/capture rows identical
+release all 29 logged source/driver/SPIR-V hashes match final files
+sanitized all 29 logged source/driver/SPIR-V hashes match final files
+SeedAverage Release/sanitizer decoded RGB identical: cbc41ccf121b539a25619b59c47dcf0eebd67bd0031b1760ad7052011a0197c1
+SeedReservoirLocal Release/sanitizer decoded RGB identical: fdf8aeb3277278f2531be7b1446446c88c9b6c68d55b0ba0367645023c418dfd
+SeedReservoirSpatial Release/sanitizer decoded RGB identical: 0e08efe575e02a7b9d824d5207036e5815f755490c1f2867f238a06dfed925fd

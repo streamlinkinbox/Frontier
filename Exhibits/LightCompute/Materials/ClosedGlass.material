@@ -1,0 +1,15 @@
+Format = 1
+Name = "Smooth closed glass"
+
+[DielectricVolume]
+Ior = 1.5
+Absorption = [0.2, 0.6, 1.2]
+
+# Opaque studio approximation remains separate from ray-boundary coefficients.
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.44, 0.58, 0.50]
+Roughness = 0.045
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0

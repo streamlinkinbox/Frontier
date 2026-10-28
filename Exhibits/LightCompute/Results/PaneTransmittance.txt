@@ -1,0 +1,7 @@
+PANE_TRANSMITTANCE_NATIVE checks=8 single_rgb=0.918657,0.922247,0.920864 oblique_rgb=0.860855,0.867596,0.864997 seven_green=0.567452 mixture_cosine_diff=7.36863e-07 eight_cap_zero=1
+PANE_TRANSMITTANCE_DEVICE name=SwiftShader Device (Subzero) type=4
+PANE_SURFACE_QUADRATURE probes=2016 max_rgb_error=1.53749e-08 single_ratios=0.918637,0.922243,0.920854 double_green_ratio=0.850532 oblique_green_ratio=0.859352 nee_bsdf_rel_error=0.0031442 eight_pane_bsdf_continuation=1
+PANE_MATERIAL_MIXTURES cards=4 max_white_furnace=0.541175 error_8=0.00968634 error_32=0.00745344 error_128=0.00729501
+PANE_FOG_ANALYTIC probes=922 max_rgb_error=7.09163e-07 right_over_left_rgb=0.707979,0.723158,0.717282 mullion_zero=1
+PANE_FOG_EMISSIVE probes=541 max_rgb_error=1.45148e-06 floor_right_over_left_red=0.656276 shaft_right_over_left_red=0.655761
+PANE_TRANSMITTANCE_PASS pixels=64000 solid_glass_pixels=1366 window_pixels=1120 paint_pixels=589 fabric_pixels=971 ssr_pixels=941 source_off_black=1

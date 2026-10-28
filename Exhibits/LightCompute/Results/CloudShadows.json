@@ -1,0 +1,188 @@
+{
+  "checks": {
+    "CLOUD_SHADOW": [
+      {
+        "case": 0.0,
+        "probes": 433.0,
+        "max_rgb_error": 8.87267e-06,
+        "min_transmittance": 1.0,
+        "max_transmittance": 1.0
+      },
+      {
+        "case": 1.0,
+        "probes": 433.0,
+        "max_rgb_error": 3.35243e-06,
+        "min_transmittance": 0.0731553,
+        "max_transmittance": 0.0731553
+      },
+      {
+        "case": 2.0,
+        "probes": 433.0,
+        "max_rgb_error": 2.95112e-06,
+        "min_transmittance": 0.00598468,
+        "max_transmittance": 0.988228
+      },
+      {
+        "case": 3.0,
+        "probes": 433.0,
+        "max_rgb_error": 3.74576e-06,
+        "min_transmittance": 0.00374286,
+        "max_transmittance": 0.992511
+      },
+      {
+        "case": 4.0,
+        "probes": 433.0,
+        "max_rgb_error": 2.93722e-12,
+        "min_transmittance": 4.17556e-17,
+        "max_transmittance": 1.72045e-07
+      }
+    ],
+    "CLOUD_SHADOW_REUSE": [
+      {
+        "case": 0.0,
+        "max_rgb_error": 9.53674e-07,
+        "cluster_equal": 1.0,
+        "temporal_accepted": 16000.0,
+        "spatial_accepted": 63438.0
+      },
+      {
+        "case": 1.0,
+        "max_rgb_error": 5.96046e-08,
+        "cluster_equal": 1.0,
+        "temporal_accepted": 16000.0,
+        "spatial_accepted": 63438.0
+      },
+      {
+        "case": 2.0,
+        "max_rgb_error": 2.38419e-07,
+        "cluster_equal": 1.0,
+        "temporal_accepted": 16000.0,
+        "spatial_accepted": 63438.0
+      },
+      {
+        "case": 3.0,
+        "max_rgb_error": 4.76837e-07,
+        "cluster_equal": 1.0,
+        "temporal_accepted": 16000.0,
+        "spatial_accepted": 63438.0
+      },
+      {
+        "case": 4.0,
+        "max_rgb_error": 1.13687e-13,
+        "cluster_equal": 1.0,
+        "temporal_accepted": 16000.0,
+        "spatial_accepted": 63438.0
+      }
+    ],
+    "CLOUD_SHADOW_SOURCES": [
+      {
+        "non_solar_bitwise_equal": 1.0
+      }
+    ],
+    "CLOUD_SHADOW_BOUNCE": [
+      {
+        "probes": 117.0,
+        "max_rgb_error": 7.40833e-08,
+        "native_rgb_sum": 0.142557
+      }
+    ],
+    "CLOUD_SHADOW_RESET": [
+      {
+        "wind_cold_equal": 1.0
+      }
+    ],
+    "CLOUD_SHADOW_TOGGLE": [
+      {
+        "disabled_cold_equal": 1.0,
+        "enabled_cold_equal": 1.0
+      }
+    ],
+    "CLOUD_SHADOW_CAPTURE": [
+      {
+        "pose": 0.0,
+        "wind_seconds": 0.0
+      },
+      {
+        "pose": 1.0,
+        "wind_seconds": 60.0
+      },
+      {
+        "pose": 2.0,
+        "wind_seconds": 120.0
+      },
+      {
+        "pose": 3.0,
+        "wind_seconds": 180.0
+      }
+    ]
+  },
+  "device": "DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1",
+  "physical_gpu_executed": false,
+  "platform": "Linux-6.1.158+-x86_64-with-glibc2.36",
+  "compiler": "c++ (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "configuration": "Release full captures; RelWithDebInfo ASan/UBSan numeric and cloud-volume checks",
+  "shader_sha256": "c4a5918c1d9431841dff007e509002723fbc6eec67cd30e7f71d0a54979c6feb",
+  "checkout_head": "71a5dd0aee0377d65dce5639f3e5d329f34d46c3",
+  "working_tree_changes": [
+    "Documentation/EnvironmentTodo.md",
+    "Exhibits/LightCompute/Code/CloudImages.py",
+    "Exhibits/LightCompute/Code/CloudShadowImages.py",
+    "Exhibits/LightCompute/Code/CloudShadowValidation.h",
+    "Exhibits/LightCompute/Code/Evidence.py",
+    "Exhibits/LightCompute/Code/LightComputeValidation.cpp",
+    "Exhibits/LightCompute/Images/CloudComparison.png",
+    "Exhibits/LightCompute/Images/CloudSky2.png",
+    "Exhibits/LightCompute/Images/CloudSky3.png",
+    "Exhibits/LightCompute/Images/CloudSky4.png",
+    "Exhibits/LightCompute/Images/CloudSkyWeather.png",
+    "Exhibits/LightCompute/Images/CloudVehicle2.png",
+    "Exhibits/LightCompute/Images/CloudVehicle3.png",
+    "Exhibits/LightCompute/Images/CloudVehicle4.png",
+    "Exhibits/LightCompute/Images/CloudWeather.png",
+    "Exhibits/LightCompute/README.md",
+    "Exhibits/LightCompute/Results/CloudSanitizers.txt",
+    "Exhibits/LightCompute/Results/Clouds.json",
+    "Exhibits/LightCompute/Results/Clouds.txt"
+  ],
+  "exact_sources": "SHA256 source coverage in Results/Manifest.json",
+  "windows_executed": false,
+  "extent": [
+    640,
+    400
+  ],
+  "wind_seconds": [
+    0,
+    60,
+    120,
+    180
+  ],
+  "sun": "fixed 35-degree elevation; native atmospheric attenuation at ground and cloud altitude",
+  "sun_shadows": "64 midpoint samples of the cloud field at each receiver and secondary-hit position",
+  "proposals": "unattenuated light proposal mass; current-position attenuated target and contribution",
+  "vehicle": "same original ControlVehicle; analytic, IES/spot and emissive sources retained; 16 diffuse samples",
+  "ground": "same scene, 700m overhead camera below cloud base; exact direct plus visible emission, no indirect samples",
+  "cloud_ambient": "explicit constant RGB [0.1, 0.12, 0.15]; approximation, not multiple scattering",
+  "environment": "native CPU atmosphere, GPU cloud cube for indirect rays, per-camera-ray cloud sky",
+  "limits": [
+    "regular-step flat slab",
+    "observer-centred indirect cube",
+    "point Sun, no cloud-shadow penumbra",
+    "no lunar or new celestial integration",
+    "no physical GPU, Windows or real-time acceptance"
+  ],
+  "animation": "actual lossless Vulkan readbacks; illustrative timings, not real-time performance",
+  "readback_rgb_sha256": {
+    "Vehicle": [
+      "d15fd030466d8906f5b547358c6eb33c91ec8c49725ef9451520b0419cfd294e",
+      "5441d680f772665ed2987b76b1a94559ae850b43367bc2dd8f5331ecb16b4a01",
+      "12c84785868b5fbb2cfa659af5c761ed7f7a5ba6dee57097cdf7225ea86091e6",
+      "2d359a9e9e159ef9d703de10046a67ca24072c7b5629c1c97815a812bd1c803d"
+    ],
+    "Ground": [
+      "24d40a44b81b15379d5efdd50f0c8e9f347ed59ffc7fbe1d90e9bdbd278455c0",
+      "d0c941a0feb6f188d269a4b2f1f44fe338c51845f7a7968a1fbdb2911398f573",
+      "183246f92d7b3777bbd29bebb68d644c1e8b530814242abb961e8eb0eecd1159",
+      "ed2df5e398458d8a4543aabd4372dd5f735ce036d276e0e28374409772b4e32f"
+    ]
+  }
+}

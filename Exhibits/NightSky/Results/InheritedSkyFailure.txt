@@ -1,0 +1,52 @@
+PASS Hipparcos catalogue loaded (stars) = 41359
+FAIL lunar albedo map loaded (1024x512) = 0
+FAIL Tycho samples brighter than Plato (orientation) = 1
+FAIL Mare Crisium samples dark against Tycho = 0.55
+INFO moon map Tycho 0.550 Plato 0.550 Crisium 0.550
+PASS full disc flat under Lommel-Seeliger = 1
+PASS earthshine present and faint on dark side = 0.0156
+PASS quarter phase dimming exp(-1.10 g) = 0.177661
+PASS sun elevation vs CelestialModel (deg) = 1.68569e-13
+INFO sun at 16:30 SAST: elevation 23.453 deg, azimuth 267.073 deg
+PASS equatorial round trip (rad) = 1.66533e-16
+PASS Mie extinction total matches demonstration (1/km) = 0.0044
+PASS transmittance LUT baked = 1
+INFO zenith radiance 0.0366 0.0685 0.1278, toward sun 0.4488 0.4997 0.6029, multiple factor 0.256 0.187 0.117
+PASS zenith sky is blue (B over R) = 3.49626
+PASS sky brighter toward the sun than away = 3.0364
+INFO phase 0 geometric 0.0086 raster 0.0087 mean-age 0.0000
+INFO phase 1 geometric 0.5099 raster 0.5099 mean-age 0.5000
+INFO phase 2 geometric 0.9980 raster 0.9980 mean-age 1.0000
+INFO phase 3 geometric 0.4340 raster 0.4339 mean-age 0.5000
+PASS moon raster lit fraction vs geometry = 9.53632e-05
+INFO moon geometry vs mean-age model, worst gap 0.0660 (model difference, not a render check)
+PASS phase strip runs new (0) to full (2) = 0.998045
+INFO moon at 20:30 SAST: altitude 19.86 deg, illuminated 0.995
+PASS libration latitude vs pole geometry (deg) = -0.289841
+PASS libration longitude within optical range (deg) = 4.85707
+INFO libration sub-observer lon 4.86 lat -6.50 deg, pole position components (-0.946, -0.324)
+PASS moon close-up disc area vs pi r^2 = 0.999981
+PASS night field stars drawn (Milky Way aim) = 3505
+PASS moon field stars drawn = 3034
+PASS zero visibility removes every ghost = 0
+PASS ghost centres collinear with sun and frame centre = 1.38778e-17
+INFO ghost 0 expected (586.5, 428.1) px, isolated centroid error 0.00 px
+INFO ghost 1 expected (522.3, 461.8) px, isolated centroid error 0.00 px
+INFO ghost 2 expected (447.4, 501.1) px, isolated centroid error 0.01 px
+INFO ghost 3 expected (372.5, 540.4) px, isolated centroid error 0.00 px
+INFO ghost 4 expected (276.2, 590.9) px, isolated centroid error 0.00 px
+INFO ghost 5 expected (147.8, 658.3) px, isolated centroid error 0.00 px
+PASS rendered ghost centroids within 2 px = 0.00676441
+PASS sun disc flux vs analytic limb integral = 1.00001
+PASS disc radiance at limb (half of 0.38 limb law) = 0.19
+PASS blurred limb falls off strictly = 0.0673254
+PASS flare linear in disc visibility = 0.5
+PASS anamorphic streak anisotropic (along vs across) = 3.75405
+PASS starburst spikes from 6-blade aperture = 6
+INFO flare sample 0.0788, streak along 3.7540 across 0, spikes 6
+PASS rendered disc limb ratio at geometric edge = 0.188571
+PASS rendered disc dominates sky at 2.3 radii = 71649
+INFO telephoto disc centre 1.509e+05 limb 2.846e+04 outside 2.106, filtered exposure 3.98e-06
+PASS sunset horizon is warm (R over B) at -2 deg = 411.769
+PASS PPM outputs written = 1
+SUMMARY passed 30 failed 3

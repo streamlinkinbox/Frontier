@@ -1,0 +1,20 @@
+35 split semantic rows exact across release and host ASan/UBSan
+release: all 57 logged source/tool/derived-source/shader/binary hashes match final files
+sanitized: all 57 logged source/tool/derived-source/shader/binary hashes match final files
+Condition 0: query sums exact; matched split adds exactly its separately counted direct closest-hit queries
+Condition 1: query sums exact; matched split adds exactly its separately counted direct closest-hit queries
+release: six whole-control and five production-default shaders unchanged; primary/gather/finalizer/fresh control identical
+sanitized: six whole-control and five production-default shaders unchanged; primary/gather/finalizer/fresh control identical
+Final split shader reproduces exactly from the fail-closed authoring chain
+Split0Whole: decoded RGB exact afa1e92ff812bafdd7cedd6ea2069b123778424d8f4e44babe4ca2b6b79d47eb
+Split0Fresh: decoded RGB exact afa1e92ff812bafdd7cedd6ea2069b123778424d8f4e44babe4ca2b6b79d47eb
+Split0Reuse: decoded RGB exact a897adf6d060929ff41b5859a66a6e1c2fa0f2576345bc9b92c57965a58b4d55
+Split0Mask: decoded RGB exact 517a8867d7ef375ce76d9c74f4cbc2b4b579a54154da702e93676bd8a1a35873
+Split1Whole: decoded RGB exact f1b186da68473b2128ba62450e1bf92669e071f4eaa14587806e38375f2da137
+Split1Fresh: decoded RGB exact f1b186da68473b2128ba62450e1bf92669e071f4eaa14587806e38375f2da137
+Split1Reuse: decoded RGB exact 46ab01a31d24ab99644f6ff4632943b6cd8472d28cfd0cceeae2de402db60feb
+Split1Mask: decoded RGB exact cd6443e66a6eff6058da107507e68dc1f73c4af0557a0155bc9e4e70b3ebfc86
+Post-run presentation/audit source dd48192233d94c8185e353817f13e5ef2d611a9cd3ea7a45e3d87175b48a2381  Exhibits/LightCompute/Code/ReplayIndirectSplitImages.py
+Post-run presentation/audit source b663e8325cb94846960c4c87566cadc975a330fa1ebe71de03de3ab12a3eac1c  Exhibits/LightCompute/Code/ReplayIndirectSplitParity.py
+Previous main.cpp source digest is historical after adding the split CLI; old numerical evidence is retained
+PASS direct/indirect split source, control, work and capture parity; see SPLIT_DECISION for quality

@@ -1,0 +1,12 @@
+Engine medium payloads in analytic sky-only Vulkan fixture; host sanitized
+Base 35c32e8, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+47094cf32fc173566cedd0f7c5221a4422b4d5030061cbd4961ce029ca4147f2  Frontier/Engine/Rendering/MediumRadiancePayload.h
+8251f35b3d8e68e25f768e9becabb0d2bdac065a95a29e4d6fcef4100798a1f1  Frontier/Engine/Rendering/MediumRadiancePayload.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+b9f18037fda4c635250253b8646471eb0b8b3820fde1cd98c99dd9e0d391f156  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+86a8f07fd280ab19f6fc1534d28ec6812822b571b84e0c9ed7a7a8bd212419f9  Exhibits/LightCompute/Code/MediumRadianceGpuValidation.h
+MEDIUM_GPU_DEVICE name=SwiftShader Device (Subzero) type=4
+MEDIUM_GPU homogeneous_cube_texels=24 clear_error=0 cloud_camera_error=2.69694e-07 cloud_cube_error=6.82211e-07 fog_error=7.48058e-09 combined_error=1.66219e-07 malformed_payloads_rejected=2

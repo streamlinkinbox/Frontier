@@ -1,0 +1,14 @@
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake
+Test project /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake
+    Start 1: LightValidation
+1/4 Test #1: LightValidation ..................   Passed    0.14 sec
+    Start 2: TriangleVisibilityValidation
+2/4 Test #2: TriangleVisibilityValidation .....   Passed    0.13 sec
+    Start 3: TriangleDistanceValidation
+3/4 Test #3: TriangleDistanceValidation .......   Passed    0.11 sec
+    Start 4: CompleteRendererValidation
+4/4 Test #4: CompleteRendererValidation .......   Passed    0.20 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   0.58 sec

@@ -1,0 +1,128 @@
+Bounded temporal prototype; host sanitized; external Vulkan driver and shaders are not sanitizer-instrumented
+Base 68f3016, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+069d91ad09c10d206a71e5952664061729a9b33d6c18ae2a4251f9b0d929fe4d  Frontier/Engine/Rendering/PathReplayDomain.h
+30de3a0be93e0745139db036c9214c738fb4729ad322d17a8cd5cfe8c11a2847  Frontier/Engine/Rendering/PathReplayDomain.cpp
+b48af931a2d9fa743eb29c11e7a27df62c890b5ca8f720484190baad85adec74  Frontier/Engine/Rendering/PathReplayVulkan.h
+262c68198f24db5720beec221e0496bb3c3d4f10f046c896e471ef6cf99a4b7d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+da16d169d2697033dbf0543954c37ccf1837dfab06e6f5e9a6375af2f9f9cec4  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+affb399d40e821651465a03e6813768b86cac7b2877bc55f49e52fc08d8755c8  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+7603e39878fae9fde4a7446ac583c41731a16bf5c16db37a593cd02bc91ac13e  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+5fa5e86aa89aceed8ce5f8ea27b69609b77b0df691e98cdca7859e9eeee4ef18  Exhibits/LightCompute/Code/ReplaySampleHistoryValidation.h
+3438931df641573b2f9d1060008376b74102ff3edd26744ed967745c0ecf3d40  Exhibits/LightCompute/Code/ReplaySeedReservoirValidation.h
+041e54fb7c8523802369de6c434586a1708ee5c6c2fdf666d5c07d17f69492a2  Exhibits/LightCompute/Code/ReplayCompactStorageValidation.h
+f113de418a1fdb9cfdf7b5d72a79b62a2e05b70f276a5053c02e98634641bd02  Exhibits/LightCompute/Code/ReplayBoundedTemporalValidation.h
+43b76415f6f36ed549b1a1a2a12acc1861222c223df25977bba9805bab29b872  Exhibits/LightCompute/Code/ReplayPathBudgetValidation.h
+7352e4ddc5eeb825d43eb706df0987c9b9cd59edfb6bfcaca8c6c0e0b7a7ed7d  Exhibits/LightCompute/Code/ReplayCameraReprojectionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+426359805333c1989f7e57f1ca5d7be1c4aa83d70086479a678a34470c37c75e  Exhibits/LightCompute/Code/ReplayCandidateValidation.h
+bd41b325c5fc68eedfb77bcb01c6d59889c566191d5d89d7f7bcc0ed05ca6ae2  Exhibits/LightCompute/Code/ReplayReconstructionValidation.h
+b1089f582559885b7ac7de403cbdaddadb44968cde997aa4d586902ff0dde526  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+acc93c3152cc5dc34a5bc88b8797ddebfdeac7617aad51af32844d3b11761200  Exhibits/LightCompute/RunReplayBoundedTemporal.sh
+cd898db31ac6f4929915b8b9bf09f1bd15448050902c407ed55970b60be5380c  Exhibits/LightCompute/Code/ReplayFreshBudget.slang
+f8fa969cb34f631dcb4ffc51744a5e216ddb5bc68d020a60c37d9a0bd586d574  Exhibits/LightCompute/Code/ReplayPathBudgetImages.py
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+2f3ceffaaca7d031bc3943f8eacf398a5d9c42c5fe0d15d8840b9acfa630b58e  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvk_swiftshader.so
+c9eef28b6b984fec220ef0abfecc40b502d46946706e47bfe97707027cb818bd  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/vk_swiftshader_icd.json
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/Primary.spv
+0fd5d3edc376fa977babd2e6e15698aebe8db9bed3adf8094fa35e90978d0c46  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/ReplayGenerate.spv
+4642b06df583f26a74f30e05aa7ce1394261c1b364109e614f73d6bff8e15167  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/ReplayGatherSampleHistory.spv
+7577bf45fd8e22f48e41865f11d40991dbafd6bfa7a2e0a9fd18156c9a3eff33  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/ReplayFinalizeSampleHistory.spv
+6d3ff88efe9cb8028cde21dd97abc8518fb080130c6fa0a65c0d0716f50a05ce  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/ReplayFreshBudget.spv
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/plain/Primary.spv
+31bb76d8accc656392de5bfa11467a2eb383d15a64ce1e8941597eabd30e0d87  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/plain/ReplayGenerate.spv
+371925bfab306f09239eeeaaa2e45bb87bbea359b984edf3be929a502f7f9f6e  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/plain/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/plain/ReplayGatherSampleHistory.spv
+eb8cdcc1ee6f685845225f9ac92ce62d1587ad0f217bcd6bd5092d91d45396e6  /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized/plain/ReplayFinalizeSampleHistory.spv
+BOUNDED_MEASURE configurations=24 overlapping_seeds=3 current_candidates=4 visited=491520 max_basis_error=9.78492460668e-18
+PASS bounded overlapping temporal measure; no independent-sample variance claim
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-bounded-temporal-sanitized
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.01 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.01 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.01 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.01 sec
+
+100% tests passed out of 5
+
+Total Test time (real) =   0.04 sec
+BUDGET_FRESH_RECTANGLE compared=818 edge_excluded=8 max_rgb_error=0 calls=8192 paths_each=8 old_history_poison_exact=1
+BOUNDED_GUARDS corrupt_sources=4 absent_history_output_exact=1 finite=1
+BOUNDED_DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 compact_output_bytes=180224
+BOUNDED_REFERENCE bounces=1 points=702 mean=0.106954529 nominal_se=0 cpu_paths=0 quadrature_rmse=0.000308310723
+BOUNDED_PROGRESS bounces=1 facets=0 completed=4/32
+BOUNDED_PROGRESS bounces=1 facets=0 completed=8/32
+BOUNDED_PROGRESS bounces=1 facets=0 completed=12/32
+BOUNDED_PROGRESS bounces=1 facets=0 completed=16/32
+BOUNDED_PROGRESS bounces=1 facets=0 completed=20/32
+BOUNDED_PROGRESS bounces=1 facets=0 completed=24/32
+BOUNDED_PROGRESS bounces=1 facets=0 completed=28/32
+BOUNDED_PROGRESS bounces=1 facets=0 completed=32/32
+BOUNDED_RESULT bounces=1 facets=0 mode=fresh_eight batches=32 points=702 paths_at_measured_pixel=8 mean=0.10690438 nominal_batch_se=0.000597226999 rmse=0.108974477 reference=0.106954529
+BOUNDED_RESULT bounces=1 facets=0 mode=bounded_temporal batches=32 points=702 paths_at_measured_pixel=8 mean=0.10640596 nominal_batch_se=0.000961316017 rmse=0.112890422 reference=0.106954529
+BOUNDED_PAIRED bounces=1 facets=0 mean_difference=-0.000498419974 nominal_mean_se=0.00105160934 mse_difference=0.000868810719 nominal_mse_se=0.00315472197
+BOUNDED_WORK bounces=1 facets=0 current_submissions_each=32 warm_submissions_reuse=96 fresh_current_calls=262144 reuse_current_calls=252672 reuse_warm_calls=549376 fresh_indirect_queries=262144 reuse_indirect_queries=252672 reuse_warm_indirect_queries=549376
+BOUNDED_PROGRESS bounces=1 facets=1 completed=4/32
+BOUNDED_PROGRESS bounces=1 facets=1 completed=8/32
+BOUNDED_PROGRESS bounces=1 facets=1 completed=12/32
+BOUNDED_PROGRESS bounces=1 facets=1 completed=16/32
+BOUNDED_PROGRESS bounces=1 facets=1 completed=20/32
+BOUNDED_PROGRESS bounces=1 facets=1 completed=24/32
+BOUNDED_PROGRESS bounces=1 facets=1 completed=28/32
+BOUNDED_PROGRESS bounces=1 facets=1 completed=32/32
+BOUNDED_RESULT bounces=1 facets=1 mode=fresh_eight batches=32 points=702 paths_at_measured_pixel=8 mean=0.107022459 nominal_batch_se=6.3440909e-05 rmse=0.00966925306 reference=0.106954529
+BOUNDED_RESULT bounces=1 facets=1 mode=bounded_temporal batches=32 points=702 paths_at_measured_pixel=8 mean=0.107045629 nominal_batch_se=0.000103736327 rmse=0.0123569743 reference=0.106954529
+BOUNDED_PAIRED bounces=1 facets=1 mean_difference=2.31700095e-05 nominal_mean_se=0.00013143688 mse_difference=5.92003585e-05 nominal_mse_se=1.20181415e-05
+BOUNDED_WORK bounces=1 facets=1 current_submissions_each=32 warm_submissions_reuse=96 fresh_current_calls=262144 reuse_current_calls=252672 reuse_warm_calls=549376 fresh_indirect_queries=524288 reuse_indirect_queries=505344 reuse_warm_indirect_queries=1098752
+BOUNDED_REFERENCE bounces=4 points=702 mean=0.11794824 nominal_se=0.000180067307 cpu_paths=2875392 quadrature_rmse=0
+BOUNDED_PROGRESS bounces=4 facets=0 completed=4/32
+BOUNDED_PROGRESS bounces=4 facets=0 completed=8/32
+BOUNDED_PROGRESS bounces=4 facets=0 completed=12/32
+BOUNDED_PROGRESS bounces=4 facets=0 completed=16/32
+BOUNDED_PROGRESS bounces=4 facets=0 completed=20/32
+BOUNDED_PROGRESS bounces=4 facets=0 completed=24/32
+BOUNDED_PROGRESS bounces=4 facets=0 completed=28/32
+BOUNDED_PROGRESS bounces=4 facets=0 completed=32/32
+BOUNDED_RESULT bounces=4 facets=0 mode=fresh_eight batches=32 points=702 paths_at_measured_pixel=8 mean=0.117815027 nominal_batch_se=0.000590387415 rmse=0.107816053 reference=0.11794824
+BOUNDED_RESULT bounces=4 facets=0 mode=bounded_temporal batches=32 points=702 paths_at_measured_pixel=8 mean=0.117521174 nominal_batch_se=0.000948310465 rmse=0.103042245 reference=0.11794824
+BOUNDED_PAIRED bounces=4 facets=0 mean_difference=-0.00029385317 nominal_mean_se=0.001035987 mse_difference=-0.00100659688 nominal_mse_se=0.00151517527
+BOUNDED_WORK bounces=4 facets=0 current_submissions_each=32 warm_submissions_reuse=96 fresh_current_calls=262144 reuse_current_calls=252672 reuse_warm_calls=549376 fresh_indirect_queries=285388 reuse_indirect_queries=270510 reuse_warm_indirect_queries=594165
+BOUNDED_PROGRESS bounces=4 facets=1 completed=4/32
+BOUNDED_PROGRESS bounces=4 facets=1 completed=8/32
+BOUNDED_PROGRESS bounces=4 facets=1 completed=12/32
+BOUNDED_PROGRESS bounces=4 facets=1 completed=16/32
+BOUNDED_PROGRESS bounces=4 facets=1 completed=20/32
+BOUNDED_PROGRESS bounces=4 facets=1 completed=24/32
+BOUNDED_PROGRESS bounces=4 facets=1 completed=28/32
+BOUNDED_PROGRESS bounces=4 facets=1 completed=32/32
+BOUNDED_RESULT bounces=4 facets=1 mode=fresh_eight batches=32 points=702 paths_at_measured_pixel=8 mean=0.117932627 nominal_batch_se=6.35841414e-05 rmse=0.0109591743 reference=0.11794824
+BOUNDED_RESULT bounces=4 facets=1 mode=bounded_temporal batches=32 points=702 paths_at_measured_pixel=8 mean=0.117981533 nominal_batch_se=0.000104380179 rmse=0.0116321544 reference=0.11794824
+BOUNDED_PAIRED bounces=4 facets=1 mean_difference=4.89063598e-05 nominal_mean_se=0.000123583927 mse_difference=1.52035146e-05 nominal_mse_se=5.08510311e-06
+BOUNDED_WORK bounces=4 facets=1 current_submissions_each=32 warm_submissions_reuse=96 fresh_current_calls=262144 reuse_current_calls=252672 reuse_warm_calls=549376 fresh_indirect_queries=558369 reuse_indirect_queries=538899 reuse_warm_indirect_queries=1175768
+PASS bounded eight-current-path comparison and reference gates; quality advantage is not required to pass
+BOUNDED_CAPTURE size=64 bounces=4 facets=0 measured_points=3088 fresh_calls=32768 reuse_calls=32184 warm_reuse_calls=69152
+BOUNDED_RESET facets=0 selected_history=0 bank_history=0 black_pixels=4096
+BOUNDED_CAPTURE size=64 bounces=4 facets=1 measured_points=3088 fresh_calls=32768 reuse_calls=32184 warm_reuse_calls=69152
+BOUNDED_RESET facets=1 selected_history=0 bank_history=0 black_pixels=4096
+BoundedFreshCosine.png 64x64 RGB_SHA256=316813204fa129459be5d7d97f267e5661d4aa782a16f599d535518080e7b8f7
+BoundedReuseCosine.png 64x64 RGB_SHA256=8589d720ad9f05978e5f448c4a127c92a175a76d976e96a92c4525c438e81365
+BoundedMaskCosine.png 64x64 RGB_SHA256=86d16de252e080f7381f84aa5baa36d490a535bb03039aeef92c3a2bb9ecb9dd
+BoundedFreshFacet.png 64x64 RGB_SHA256=615481ecbe0f5b2dc35477c9c4d5314eddce87b4cff834df7203defa1885631a
+BoundedReuseFacet.png 64x64 RGB_SHA256=7b7f5b8f00b823caa7096cdcc36d431aa812b2d6144190404630935eb8490c3f
+BoundedMaskFacet.png 64x64 RGB_SHA256=86d16de252e080f7381f84aa5baa36d490a535bb03039aeef92c3a2bb9ecb9dd
+BoundedOffCosine.png 64x64 RGB_SHA256=f3cc103136423a57975750907ebc1d367e2985ac6338976d4d5a439f50323f4a
+BoundedOffFacet.png 64x64 RGB_SHA256=f3cc103136423a57975750907ebc1d367e2985ac6338976d4d5a439f50323f4a

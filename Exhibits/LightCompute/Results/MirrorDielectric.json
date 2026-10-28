@@ -1,0 +1,19 @@
+{
+  "negative_control_revision": "8a1f38f",
+  "device": "SwiftShader Device (Subzero)",
+  "physical_gpu": false,
+  "capture_dimensions": [
+    96,
+    64
+  ],
+  "paths_per_pixel": 32,
+  "interaction_cap": 2048,
+  "capture_sha256": {
+    "MirrorDielectric0.ppm": "1930e66c3b5033de9399fbe0503d28f604ad59a52f0549049f3ae0b716d6a3bf",
+    "MirrorDielectric1.ppm": "e99cef5394a95fd881f53d30bd8bbd0707ed6e4b444ddc49386a07d0148cad00",
+    "MirrorDielectric2.ppm": "944c1633e85d7f7c683d783520d9f6dbe56623b9dc83958385770e6d64995e79"
+  },
+  "mirror_log": "MIRROR_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4\nMIRROR_SLAB case=0 analytic_pixels=196 mean_error=1.16825e-07\nMIRROR_SLAB case=1 analytic_pixels=196 mean_error=5.14883e-08\nMIRROR_SLAB case=2 analytic_pixels=196 mean_error=0.00307568\nMIRROR_SLAB case=3 analytic_pixels=196 mean_error=0.00230359\nMIRROR_SOURCE_OFF black=1 pixels=6144\n",
+  "negative_control_log": "MIRROR_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4\nMIRROR_NEGATIVE_CONTROL central_pixels=196 blocked_black=1 routing_disabled=1\n",
+  "scope": "Single planar mirror followed by smooth closed volumes. Rough-reflector extension separately tested. Thin-sheet extension separately tested; compact diffuse extension separately tested; nesting, rough glass boundaries, caustics and saved material-authoring integration remain unsupported."
+}

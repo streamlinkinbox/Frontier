@@ -1,0 +1,107 @@
+{
+  "checks": {
+    "TRANSPORT": [
+      {
+        "samples": 16.0,
+        "probes": 901.0,
+        "mean_rgb_error": 2.08237e-08,
+        "max_rgb_error": 4.6271e-06,
+        "secondary_rays": 3603424.0,
+        "secondary_hits": 263475.0,
+        "environment_misses": 3339949.0
+      }
+    ],
+    "TRANSPORT_SOURCE": [
+      {
+        "route": 0.0,
+        "indirect_rgb_sum": 2053.27
+      },
+      {
+        "route": 1.0,
+        "indirect_rgb_sum": 19571.8
+      },
+      {
+        "route": 2.0,
+        "indirect_rgb_sum": 612.624
+      }
+    ],
+    "TRANSPORT_LINEARITY": [
+      {
+        "max_rgb_error": 8.44442e-06
+      }
+    ],
+    "TRANSPORT_RESET": [
+      {
+        "all_sources_off_black": 1.0,
+        "cpu_primary_raster": 0.0,
+        "cpu_per_pixel_radiance": 0.0,
+        "cpu_atmosphere_cube_bake": 1.0,
+        "gpu_one_bounce_transport": 1.0
+      }
+    ],
+    "TRANSPORT_MOTION": [
+      {
+        "pose": 0.0,
+        "accepted": 0.0,
+        "rejected": 225214.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.105366
+      },
+      {
+        "pose": 1.0,
+        "accepted": 152325.0,
+        "rejected": 72955.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0500607
+      },
+      {
+        "pose": 2.0,
+        "accepted": 152590.0,
+        "rejected": 73330.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0478616
+      },
+      {
+        "pose": 3.0,
+        "accepted": 0.0,
+        "rejected": 225973.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0934158
+      },
+      {
+        "pose": 4.0,
+        "accepted": 153020.0,
+        "rejected": 73540.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0436182
+      },
+      {
+        "pose": 5.0,
+        "accepted": 153177.0,
+        "rejected": 73558.0,
+        "current_indirect_equal": 1.0,
+        "exact_rmse": 0.0421746
+      }
+    ]
+  },
+  "primary_transport": "one diffuse bounce, Fresnel-weighted Lambert response",
+  "secondary_exitance": "visible material emission plus exact shadowed analytic light evaluation",
+  "environment": "native CPU SingleScattering bake; six 48x48 cube faces, bilinear shader lookup",
+  "quadrature": "16 fixed cosine-weighted hemisphere directions; not a stochastic convergence proof",
+  "probe_reference": "double BVH, independent barycentrics, native light/secondary BRDF and shadow queries",
+  "physical_gpu_executed": false,
+  "cpu_per_pixel_radiance_uploaded": false,
+  "gpu_atmosphere_executed": false,
+  "clouds_executed": false,
+  "moon_executed": false,
+  "comparison": "left direct plus visible sky; right adds one diffuse bounce",
+  "animation": "six lossless Vulkan readbacks; illustrative playback, no frame-rate claim",
+  "motion_rgb_sha256": [
+    "c7bc8819a653c73054b5ac77b672f70ba5c29835abf4e08642f5f46aa53aab26",
+    "4d382d5ec6f128800d947e75aec38cb56fdf6a4e7c72f1e2ababbc99b296e5a0",
+    "467ed8c24a11503d52e956f33d538ab79be5eb07aac9e8bb68ea5987a81c2819",
+    "83fe932c8372698dea3cc6c08d4269825b66521924643bea42eee9f898e75aa6",
+    "f7f0532919634811be17ea1aa666cd8fcf00642309cb082dd7165e95d10fb5a0",
+    "d1e04babbb8f364ebff8d393c6af617fe78f72d81ea94631d9822a229c41f588"
+  ]
+}

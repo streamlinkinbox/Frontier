@@ -1,0 +1,62 @@
+Host build: sanitized; external Vulkan driver is not sanitizer-instrumented
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+03405e882194cf456790e8d15d6182b668e7ccaa79398d79e01f5f66747403a6  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+2b84a1857c87a002be1938d61819686ea600d0a877afc6dcc1a71bfdb6908ab9  Frontier/Engine/Rendering/PathReplayFootprint.h
+c83d743ea1bf35484ecb7c992cbc04b57ed6edc61249e7435f8e4fa1c7e9416d  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+657ca7d5097164ebf3fd40ca89459922cc190c4834d41a6a677102bb682cca1c  Frontier/Engine/Rendering/CMakeLists.txt
+13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9  Engine/Render/Shader/ScatteringEvaluation.slang
+be18d0016eba73754f0c5be05d4dc8ad8c50da5f1f7bd956f6239c1259473670  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+a2d277e8ec9873f8c3d19ed8059c983ff584808d8df0d3a1d5346d465c3101bb  Exhibits/LightCompute/Code/ReplayImportanceValidation.h
+05590353222cdd487e807416dacadf5dbf54dd892eda0b324860bb9e6c7a8e45  Exhibits/LightCompute/Code/ReplayImportanceMotionValidation.h
+b8f1a39fab56b3bc27e51430d9d759bc6dd21bd06b96a55b8388efba6807d842  Exhibits/LightCompute/Code/ReplayImportanceParityValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+6cf6f168d2e852ee16d2c892bb9f8eed69bf55ac0e5187232f52c1eb5c672ec9  Exhibits/LightCompute/Code/RoughReplayValidation.h
+dc3429040a6b40b27d91fa1cac1ced86b381271293444e1d65e1a73b18f18e4f  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+965ff5689461b7ff2c81598c14a5f60c165bf5ccc1293b0df2da0a2f46700588  Exhibits/LightCompute/Code/RoughTextureMotionValidation.h
+3ccc45548bd503e3cc73706cae5c10f8ccbe7a9c1909fb21a470f0b9d083368a  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+IMPORTANCE_MASS upper=0.817625112 rejected_ggx=0.364630093 combined=0.999940158 quadrature=1024x2048
+PASS independent proposal mass including rejected below-surface draws
+IMPORTANCE_ENV preparing Vulkan on SwiftShader Device (Subzero)
+IMPORTANCE_ENV metal_cosine channel=0 reference=0.767076909 mean=0.715262626 pixel_se=0.02630933 batch_se=0.0277162217 sample_sd=4.76242478 n=32768 batches=32
+IMPORTANCE_ENV metal_cosine channel=1 reference=0.298147616 mean=0.278496337 pixel_se=0.0099693863 batch_se=0.0105064984 sample_sd=1.80462415 n=32768 batches=32
+IMPORTANCE_ENV metal_cosine channel=2 reference=0.103938153 mean=0.097151386 pixel_se=0.00343358048 batch_se=0.00362272004 sample_sd=0.621534974 n=32768 batches=32
+IMPORTANCE_ENV metal_mixture channel=0 reference=0.767076909 mean=0.760769357 pixel_se=0.00362874349 batch_se=0.00369943678 sample_sd=0.656862715 n=32768 batches=32
+IMPORTANCE_ENV metal_mixture channel=1 reference=0.298147616 mean=0.295821741 pixel_se=0.00134085035 batch_se=0.00136863011 sample_sd=0.242716136 n=32768 batches=32
+IMPORTANCE_ENV metal_mixture channel=2 reference=0.103938153 mean=0.10315044 pixel_se=0.000457842121 batch_se=0.000467488941 sample_sd=0.0828770122 n=32768 batches=32
+IMPORTANCE_ENV matte_cosine channel=0 reference=0.699976281 mean=0.699976262 pixel_se=3.0156746e-07 batch_se=3.31386743e-07 sample_sd=5.45887084e-05 n=32768 batches=32
+IMPORTANCE_ENV matte_cosine channel=1 reference=0.699976281 mean=0.699976262 pixel_se=3.0156746e-07 batch_se=3.31386743e-07 sample_sd=5.45887084e-05 n=32768 batches=32
+IMPORTANCE_ENV matte_cosine channel=2 reference=0.699976281 mean=0.699976262 pixel_se=3.0156746e-07 batch_se=3.31386743e-07 sample_sd=5.45887084e-05 n=32768 batches=32
+IMPORTANCE_ENV matte_mixture channel=0 reference=0.699976281 mean=0.699438872 pixel_se=0.00245363529 batch_se=0.00162303472 sample_sd=0.444148654 n=32768 batches=32
+IMPORTANCE_ENV matte_mixture channel=1 reference=0.699976281 mean=0.699438872 pixel_se=0.00245363529 batch_se=0.00162303472 sample_sd=0.444148654 n=32768 batches=32
+IMPORTANCE_ENV matte_mixture channel=2 reference=0.699976281 mean=0.699438872 pixel_se=0.00245363529 batch_se=0.00162303472 sample_sd=0.444148654 n=32768 batches=32
+IMPORTANCE_VARIANCE metal_sd_ratio=0.137926108 matte_sd_ratio=8136.27337 zero_draws=8196/32768 cosine_ms=100.731594 mixture_ms=102.66754 time_ratio=1.01921885 estimated_equal_time_variance_ratio=0.0193892233
+PASS GGX mixture and cosine against environment quadrature with a variance counterexample
+IMPORTANCE_FACET balance channel=0 quadrature=0.129911981 mean=0.129175091 batch_se=0.00101296623 n=16384
+IMPORTANCE_FACET balance channel=1 quadrature=0.0524090955 mean=0.0520988139 batch_se=0.000397232286 n=16384
+IMPORTANCE_FACET balance channel=2 quadrature=0.0183867052 mean=0.0182764178 batch_se=0.000138221088 n=16384
+IMPORTANCE_FACET bsdf_only channel=0 quadrature=0.129911981 mean=0.128069684 batch_se=0.00420225944 n=16384
+IMPORTANCE_FACET bsdf_only channel=1 quadrature=0.0524090955 mean=0.0516544504 batch_se=0.00168427911 n=16384
+IMPORTANCE_FACET bsdf_only channel=2 quadrature=0.0183867052 mean=0.0181206396 batch_se=0.000589843696 n=16384
+IMPORTANCE_FACET facet_only channel=0 quadrature=0.129911981 mean=0.130214406 batch_se=0.000744517534 n=16384
+IMPORTANCE_FACET facet_only channel=1 quadrature=0.0524090955 mean=0.0525550938 batch_se=0.000293962463 n=16384
+IMPORTANCE_FACET facet_only channel=2 quadrature=0.0183867052 mean=0.0184401332 batch_se=0.000102541452 n=16384
+IMPORTANCE_FACET covered_max=0
+PASS mixed proposal and facet MIS against independent half-visible area integral
+IMPORTANCE_ROOM tracing two 400000-path independent cosine CPU references
+ROOM_REFERENCE importance_rough_open_fresh channel=0 cpu=0.695587859 cpu_se=0.00329401194 vulkan=0.690404331 pixel_se=0.00209682206 batch_se=0.00213570953 n=400000/16384 batches=16
+ROOM_REFERENCE importance_rough_open_fresh channel=1 cpu=0.583025276 cpu_se=0.00274427972 vulkan=0.577309538 pixel_se=0.00173702912 batch_se=0.00179373946 n=400000/16384 batches=16
+ROOM_REFERENCE importance_rough_open_fresh channel=2 cpu=0.477017814 cpu_se=0.00220209653 vulkan=0.473037459 pixel_se=0.00134617968 batch_se=0.00118940541 n=400000/16384 batches=16
+ROOM_REFERENCE importance_rough_proposal_reuse channel=0 cpu=0.695587859 cpu_se=0.00329401194 vulkan=0.693574879 pixel_se=0.000863216792 batch_se=0.000756549115 n=400000/16384 batches=16
+ROOM_REFERENCE importance_rough_proposal_reuse channel=1 cpu=0.583025276 cpu_se=0.00274427972 vulkan=0.580504706 pixel_se=0.000646304695 batch_se=0.000541682251 n=400000/16384 batches=16
+ROOM_REFERENCE importance_rough_proposal_reuse channel=2 cpu=0.477017814 cpu_se=0.00220209653 vulkan=0.475245752 pixel_se=0.000696727693 batch_se=0.000689511519 n=400000/16384 batches=16
+ROOM_REFERENCE importance_rough_blocked_reuse channel=0 cpu=0.021692467 cpu_se=0.000316937179 vulkan=0.0219013182 pixel_se=0.000281639217 batch_se=0.000277955469 n=400000/16384 batches=16
+ROOM_REFERENCE importance_rough_blocked_reuse channel=1 cpu=0.0179378839 cpu_se=0.00023131431 vulkan=0.018182092 pixel_se=0.000205109417 batch_se=0.000226513076 n=400000/16384 batches=16
+ROOM_REFERENCE importance_rough_blocked_reuse channel=2 cpu=0.020731806 cpu_se=0.000260163126 vulkan=0.0210442299 pixel_se=0.000226994638 batch_se=0.000237541421 n=400000/16384 batches=16
+IMPORTANCE_ROOM proposal_accepts=81920 blocked_accepts=81920 spatial=389120 batches=16
+PASS mixed-proposal four-hit textured room and bounded temporal/spatial reuse

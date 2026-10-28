@@ -1,0 +1,19 @@
+Audit 2026-10-28: restored upstream 3de9061ab614856de03ef61b534c641061d14a53 into StreamLinkInbox working tree
+Workspace base 68f301600c72b442898313aeb49d57be0baac2f0, branch arena/08e7de48-frontier, imported files uncommitted
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+cmake version 4.4.4
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-audit
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed out of 5
+
+Total Test time (real) =   0.01 sec

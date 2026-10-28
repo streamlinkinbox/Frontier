@@ -1,0 +1,121 @@
+{
+  "checks": {
+    "CLOUD_CLEAR": [
+      {
+        "bitwise_equal": 1.0
+      }
+    ],
+    "CLOUD_CUBE": [
+      {
+        "case": 0.0,
+        "probes": 446.0,
+        "max_transmittance_error": 0.0,
+        "mean_rgb_error": 0.0,
+        "max_rgb_error": 0.0,
+        "beer_error": 0.0,
+        "sun_error": 0.0,
+        "attenuated_probes": 0.0
+      },
+      {
+        "case": 1.0,
+        "probes": 446.0,
+        "max_transmittance_error": 1.186e-05,
+        "mean_rgb_error": 1.17214e-07,
+        "max_rgb_error": 8.32318e-06,
+        "beer_error": 1.186e-05,
+        "sun_error": 7.41056e-07,
+        "attenuated_probes": 218.0
+      },
+      {
+        "case": 2.0,
+        "probes": 446.0,
+        "max_transmittance_error": 1.81006e-06,
+        "mean_rgb_error": 2.32823e-07,
+        "max_rgb_error": 3.20098e-06,
+        "beer_error": 0.0,
+        "sun_error": 2.90214e-07,
+        "attenuated_probes": 194.0
+      },
+      {
+        "case": 3.0,
+        "probes": 446.0,
+        "max_transmittance_error": 3.36908e-06,
+        "mean_rgb_error": 1.90008e-07,
+        "max_rgb_error": 2.82799e-06,
+        "beer_error": 0.0,
+        "sun_error": 2.06588e-08,
+        "attenuated_probes": 184.0
+      },
+      {
+        "case": 4.0,
+        "probes": 446.0,
+        "max_transmittance_error": 1.81006e-06,
+        "mean_rgb_error": 4.92906e-08,
+        "max_rgb_error": 2.54346e-06,
+        "beer_error": 0.0,
+        "sun_error": 2.85719e-14,
+        "attenuated_probes": 194.0
+      }
+    ],
+    "CLOUD_CAMERA": [
+      {
+        "case": 0.0,
+        "probes": 99.0,
+        "max_rgb_error": 1.08845e-06
+      },
+      {
+        "case": 2.0,
+        "probes": 99.0,
+        "max_rgb_error": 8.63495e-06
+      },
+      {
+        "case": 3.0,
+        "probes": 99.0,
+        "max_rgb_error": 5.77651e-06
+      },
+      {
+        "case": 4.0,
+        "probes": 99.0,
+        "max_rgb_error": 3.28634e-06
+      }
+    ],
+    "CLOUD_AMBIENT": [
+      {
+        "uniform_closed_form": 1.0
+      }
+    ],
+    "CLOUD_BOUNDS": [
+      {
+        "invalid_steps_rejected": 1.0
+      }
+    ],
+    "CLOUD_WIND": [
+      {
+        "changed": 1.0
+      }
+    ]
+  },
+  "case_order": [
+    "clear 35-degree Sun",
+    "procedural clouds",
+    "same field advected 120 seconds",
+    "3-degree low Sun"
+  ],
+  "uniform_medium_case": "numeric fixture only, not part of the animation",
+  "camera_clouds": "64-step per-pixel GPU raymarch, six-step sun self-shadowing",
+  "indirect_environment": "six 48x48 GPU cloud-composited faces; native CPU single-scattering atmosphere input",
+  "ambient": "constant isotropic upper-hemisphere sky approximation, not multiple scattering",
+  "direct_sun_shadow": "64-step transmittance at each shaded receiver and secondary hit; observer record is diagnostic only",
+  "sun_positions": "explicit fixture angles, not observer/time ephemeris",
+  "ordinary_sun_flare_stars": "existing rendering code preserved; not newly connected to these captures",
+  "physical_gpu_executed": false,
+  "moon_executed": false,
+  "gpu_atmosphere_executed": false,
+  "animation": "actual lossless Vulkan readbacks, illustrative timing, not real-time performance",
+  "vehicle_rgb_sha256": [
+    "07662f4f3c9b1577d5e45232dbe0e0ca4a817edafb565a7c9b7cfeabc2604328",
+    "6fc34f159c63a58760ab00dae1614f9e27df2c14ff193edfc321c6ce96b17a9f",
+    "346cdf56cba7a49548c3a1221c6b01d1288df47942e3cfef044b40ea4e5eec44",
+    "ed7badae2abad3fcd064f005d6a7b5e186d95c09c52eae97b4501295a0b1fcf3"
+  ]
+}

@@ -1,0 +1,5 @@
+DIFFUSE_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+DIFFUSE_RAY_COUNTS rays=327680 hits=146417 misses=181263
+DIFFUSE_BEER changed_channels=15360 channel_ratios=0.903583,0.7616,0.632969 repeat_exact=1
+DIFFUSE_EMITTER_ROUTING nee_equal=1 refracted_total=71.4212
+DIFFUSE_DIELECTRIC_PASS source_off_black=1 pixels=6144 samples=64 proposals_per_sample=1

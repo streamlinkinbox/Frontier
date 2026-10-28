@@ -1,0 +1,3 @@
+SEED_RIS_ORACLE floors=3 local_pixels=2445 spatial_pixels=2425 edge_excluded=53 changed_visibility_paths=30 local_max_error=0 spatial_max_error=0
+SEED_RIS_GUARDS corrupt_banks=7 unaffected=1017 mode_and_spatial_reset=1 scene_reset_fresh_exact=1 temporal_rejected=1 sequence_unchanged=1
+PASS bounded seed-bank RIS and spatial replay; not general ReSTIR GI

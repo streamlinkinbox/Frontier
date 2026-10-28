@@ -1,0 +1,1 @@
+FAINT_PATH_PASS device=SwiftShader Device (Subzero) type=4 cases=240 trials=76 killed=38 exact_rgb_first_moment=1 latched_compensation=1 draw_half_boundary=1 production_block=1

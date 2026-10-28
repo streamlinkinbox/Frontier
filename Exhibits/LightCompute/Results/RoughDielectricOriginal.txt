@@ -1,0 +1,2 @@
+ROUGH_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+ROUGH_DIELECTRIC_ORIGINAL changed_channels=0 absorption_ignored=1 repeat_exact=1

@@ -1,0 +1,8 @@
+d305cd1ba1fe0b6d83655935428edb10e1648412c8998faeb6a7bc282dc1493f  Experimental/VehicleHmiReference/Shader/ReservoirTemporal.wgsl
+35056eb326c250e5ea9466b126d0f112174b7bcfd45047ce8261adb581c23f1d  Experimental/VehicleHmiReference/Shader/ReservoirSpatial.wgsl
+fcc1425e821748e71e97ef6d2859fa1b6c6d1ef26d3889aa2c22c6e9d3787a4c  Exhibits/LightCompute/Code/TemporalReconnectionAudit.cpp
+receiver_shift=0.00 exact=0.7522747879 no_jacobian=0.7522747879 relative_error=+0.000000 with_jacobian=0.7522747879 midpoint_convergence=2.98e-07
+receiver_shift=0.25 exact=0.7004690516 no_jacobian=0.7356870893 relative_error=+0.050278 with_jacobian=0.7004690516 midpoint_convergence=2.55e-07
+receiver_shift=0.50 exact=0.56664516 no_jacobian=0.6907301903 relative_error=+0.218982 with_jacobian=0.56664516 midpoint_convergence=1.44e-07
+receiver_shift=1.00 exact=0.2650048452 no_jacobian=0.5632104156 relative_error=+1.125283 with_jacobian=0.2650048452 midpoint_convergence=2.14e-08
+PASS area-measure counterexample; mathematical audit, not WGSL execution or a complete GI fix

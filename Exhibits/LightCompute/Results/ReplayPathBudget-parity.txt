@@ -1,0 +1,17 @@
+release: 39 source/tool/SPIR-V hashes match final files
+sanitized: 39 source/tool/SPIR-V hashes match final files
+23 BUDGET rows exact between release and sanitizer
+Primary: default SPIR-V SHA256 matches completed compact phase
+ReplayGenerate: default SPIR-V SHA256 matches completed compact phase
+ReplayResolve: default SPIR-V SHA256 matches completed compact phase
+ReplayGatherSampleHistory: default SPIR-V SHA256 matches completed compact phase
+ReplayFinalizeSampleHistory: default SPIR-V SHA256 matches completed compact phase
+Frontier/Engine/Rendering/PathReplayVulkan.h: footprint/recorder source unchanged from compact phase
+Frontier/Engine/Rendering/PathReplayVulkan.cpp: footprint/recorder source unchanged from compact phase
+BudgetFreshCosine: decoded RGB exact 316813204fa129459be5d7d97f267e5661d4aa782a16f599d535518080e7b8f7
+BudgetReuseCosine: decoded RGB exact a6b72fbd18bb55a0b032465b71c82769fc083eb88c66743e6307588b1ab57eac
+BudgetMaskCosine: decoded RGB exact 86d16de252e080f7381f84aa5baa36d490a535bb03039aeef92c3a2bb9ecb9dd
+BudgetFreshFacet: decoded RGB exact 615481ecbe0f5b2dc35477c9c4d5314eddce87b4cff834df7203defa1885631a
+BudgetReuseFacet: decoded RGB exact cff994ddd06679c7a73ed4fb08587ef4f464b10a971391107abed8d3dceff267
+BudgetMaskFacet: decoded RGB exact 86d16de252e080f7381f84aa5baa36d490a535bb03039aeef92c3a2bb9ecb9dd
+PASS final source hashes, all logged budget results, six captures and default shader parity

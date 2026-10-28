@@ -1,0 +1,67 @@
+Temporal replay contract; host release; external Vulkan driver and shaders are not sanitizer-instrumented
+Base 68f3016, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+bd2fb76499b6060e726a16c7ebf0bf1a5f249e27ad85f4b1e70f909c2d07576e  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+069d91ad09c10d206a71e5952664061729a9b33d6c18ae2a4251f9b0d929fe4d  Frontier/Engine/Rendering/PathReplayDomain.h
+30de3a0be93e0745139db036c9214c738fb4729ad322d17a8cd5cfe8c11a2847  Frontier/Engine/Rendering/PathReplayDomain.cpp
+b48af931a2d9fa743eb29c11e7a27df62c890b5ca8f720484190baad85adec74  Frontier/Engine/Rendering/PathReplayVulkan.h
+262c68198f24db5720beec221e0496bb3c3d4f10f046c896e471ef6cf99a4b7d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+f6e1d5c6ae943379a31edeb214316fb9c6863dc0fa2b2f0192ccaae45e4ddc8d  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+affb399d40e821651465a03e6813768b86cac7b2877bc55f49e52fc08d8755c8  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+7603e39878fae9fde4a7446ac583c41731a16bf5c16db37a593cd02bc91ac13e  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+5fa5e86aa89aceed8ce5f8ea27b69609b77b0df691e98cdca7859e9eeee4ef18  Exhibits/LightCompute/Code/ReplaySampleHistoryValidation.h
+3438931df641573b2f9d1060008376b74102ff3edd26744ed967745c0ecf3d40  Exhibits/LightCompute/Code/ReplaySeedReservoirValidation.h
+041e54fb7c8523802369de6c434586a1708ee5c6c2fdf666d5c07d17f69492a2  Exhibits/LightCompute/Code/ReplayCompactStorageValidation.h
+b6aa53d65bdea4ee6add02f46fbefcedb760d041d2558287b4fa7581af780794  Exhibits/LightCompute/Code/ReplayTemporalContractValidation.h
+7352e4ddc5eeb825d43eb706df0987c9b9cd59edfb6bfcaca8c6c0e0b7a7ed7d  Exhibits/LightCompute/Code/ReplayCameraReprojectionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+426359805333c1989f7e57f1ca5d7be1c4aa83d70086479a678a34470c37c75e  Exhibits/LightCompute/Code/ReplayCandidateValidation.h
+bd41b325c5fc68eedfb77bcb01c6d59889c566191d5d89d7f7bcc0ed05ca6ae2  Exhibits/LightCompute/Code/ReplayReconstructionValidation.h
+b1089f582559885b7ac7de403cbdaddadb44968cde997aa4d586902ff0dde526  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+d3f8d5054f7da409ecaadb44b0a7bb8a92c3c507b592d6c9cb50ea104c32b675  Exhibits/LightCompute/RunReplayTemporalContract.sh
+82110b1fb2b3507df9d2676cfe7f38247a64b1abdd083cce8c9993a9278e2015  Exhibits/LightCompute/Code/ReplayTemporalMeasureValidation.cpp
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+2f3ceffaaca7d031bc3943f8eacf398a5d9c42c5fe0d15d8840b9acfa630b58e  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvk_swiftshader.so
+c9eef28b6b984fec220ef0abfecc40b502d46946706e47bfe97707027cb818bd  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/vk_swiftshader_icd.json
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/Primary.spv
+4552f142fb548d34442bbf06950fb981f28ea77292d3d1625179adb8629c51b7  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/ReplayGenerate.spv
+371925bfab306f09239eeeaaa2e45bb87bbea359b984edf3be929a502f7f9f6e  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/ReplayGatherSampleHistory.spv
+eb8cdcc1ee6f685845225f9ac92ce62d1587ad0f217bcd6bd5092d91d45396e6  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/ReplayFinalizeSampleHistory.spv
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/unchecked/Primary.spv
+4552f142fb548d34442bbf06950fb981f28ea77292d3d1625179adb8629c51b7  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/unchecked/ReplayGenerate.spv
+371925bfab306f09239eeeaaa2e45bb87bbea359b984edf3be929a502f7f9f6e  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/unchecked/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/unchecked/ReplayGatherSampleHistory.spv
+eb8cdcc1ee6f685845225f9ac92ce62d1587ad0f217bcd6bd5092d91d45396e6  /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release/unchecked/ReplayFinalizeSampleHistory.spv
+TEMPORAL_VARIANCE correlated=0 mean=3.5 variance=2.04899458597 outcomes=131072
+TEMPORAL_VARIANCE correlated=1 mean=3.5 variance=8.84966486199 outcomes=512
+TEMPORAL_IDENTITY sequences=120 steps_each=6 seed_domain=4 visited=6868800 max_basis_error=1.36880524276e-17
+TEMPORAL_NEGATIVE method=visibility_rejection mean=3.64974170494 reference=3.5 bias=0.149741704936
+TEMPORAL_NEGATIVE method=normalization_clipping mean=3.3778287056 reference=3.5 bias=-0.122171294402
+TEMPORAL_NEGATIVE method=count_only_cap mean=5.25 reference=3.5 bias=1.75
+TEMPORAL_NEGATIVE method=stale_radiance mean=1.75 reference=0 bias=1.75
+PASS temporal finite-measure identities and four biased negative controls
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-temporal-contract-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed out of 5
+
+Total Test time (real) =   0.01 sec
+TEMPORAL_CORRUPTION_OBSERVED mutation=0 count=4 red=-nan accepted=289 rejected=0
+Malformed history did not use a fresh-only fallback

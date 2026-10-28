@@ -1,0 +1,15 @@
+11 reset semantic rows exact across release and host sanitizers
+release: all 56 logged source/tool/derived-source/shader/binary digests match final files
+sanitized: all 56 logged source/tool/derived-source/shader/binary digests match final files
+Restored current budget costs 133632 additional path calls; initial warm-up resets also cost 133632 extra
+release: six previous/control and five production-default shaders unchanged; only prototype Generate/Resolve differ
+sanitized: six previous/control and five production-default shaders unchanged; only prototype Generate/Resolve differ
+Final reset shader reproduces exactly from fail-closed authoring scripts in both builds
+ResetPrevious: decoded RGB exact 11eb62e630f1da2e5f6235ce9b9216bd78a087ee112f9b805d35722763ce2fcf
+ResetFixed: decoded RGB exact 1b235480cc352e488635383fac79b0ec7f18b3e36d987ed04f5c0b39e77fb408
+ResetFresh: decoded RGB exact 1b235480cc352e488635383fac79b0ec7f18b3e36d987ed04f5c0b39e77fb408
+ResetMask: decoded RGB exact e5cceede2f64f712d757e27dc6216df12911d5cc340b338a8ec78aebfdd0b1eb
+Post-run presentation/audit source f7fbc6591064ed8311e1a6869dc5c2ce57eb3116b2e580b31e2e121389877f5c  Exhibits/LightCompute/Code/ReplayResetBudgetImages.py
+Post-run presentation/audit source 95d10cea9726b4d6ddd580ba519020ace9b1e7d300dd4c4c2a12a84cca0482bd  Exhibits/LightCompute/Code/ReplayResetBudgetParity.py
+Prior main.cpp source digest is historical after adding the reset CLI; earlier numerical evidence is retained
+PASS fresh reset budget, unchanged continuation, source, shader and capture parity

@@ -1,0 +1,6 @@
+ROUGH_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+ROUGH_BEER changed_channels=11118 channel_ratios=0.924979,0.813363,0.71067 repeat_exact=1
+ROUGH_GLASS_SCREEN case=0 bvh_exact=1
+ROUGH_GLASS_SCREEN case=1 bvh_exact=1
+ROUGH_GLASS_SCREEN case=2 bvh_exact=1
+ROUGH_DIELECTRIC_PASS source_off_black=1 pixels=6144 samples=32 proposals_per_sample=2

@@ -1,0 +1,59 @@
+Rigid-primary disjoint-seed repeat; --replay-rigid-variance-repeat-smoke; host sanitized
+Base 19347c2, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+6697e520368835e89f1832613ed07b6ae72ddf0b8db31a12c78736d2f48753ea  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+3a689e043b64039ba57bd5bc38eaab95b4d369b863f4a5d233a2d0568ff96e04  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+a96baa2328f4199c51e361cc4bfff009c87de4e680dfd099c9d252f55ad4cc2f  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+fa24e8eb1fd6c516810260f2dd6656e56616d016070552530d42a8b4fcee63e0  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+06dab77604bba8d5a25016ee236c11de8d37ff32b03b502c1ad4a909efcc74e6  Exhibits/LightCompute/Code/ReplayMotionValidation.h
+3ccc45548bd503e3cc73706cae5c10f8ccbe7a9c1909fb21a470f0b9d083368a  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+b4705522c8b963c611a4b1e79a4e5ef04d92ba986db39c8e7d204c71fa7c1f5e  Exhibits/LightCompute/Code/ReplayTextureRoomValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+71652e374f6a409e89938abe7ac205574262c381cc510be1a11b6167cc97ee90  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+965ff5689461b7ff2c81598c14a5f60c165bf5ccc1293b0df2da0a2f46700588  Exhibits/LightCompute/Code/RoughTextureMotionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+f14fa4531e6362f1ecefacdb31458cffa9a483dc8ef5d3aa7e80b94c1b32a5b8  Exhibits/LightCompute/Code/ReplayFacetMixtureCapture.h
+1cfe8dd5d54e5c9e34e99931def5b6c36b3c945a8cea187425e6c1848c7ddee2  Exhibits/LightCompute/Code/ReplayFacetMixtureMotionValidation.h
+5167a0bfd5aa4dd091edc100745255d4997bb67ee30e91ee151dd4b31a851d0c  Exhibits/LightCompute/Code/ReplayRigidProbePrimary.slang
+e4672a6f33f7a331f384ccd3e6ba076b5bcb374fccb4f48a83d89c0fb11fd28b  Exhibits/LightCompute/Code/ReplayRigidVarianceRepeat.h
+784bd51a7902e60afa24918594e9b4b8ddabbf495a8120c638c7f3d4bd03cca0  Exhibits/LightCompute/RunReplayRigidVarianceRepeat.sh
+52afd6cbad11c04fa10c94f7b1dde1c47da3b46da9a4ba175e7c16955f0ba112  /home/user/Frontier/Exhibits/LightCompute/Results/ReplayFacetMixtureMotionRepeatSamples.csv
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=12 proposal=1 weighted_facets=1 uniform_mixture=1 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+RIGID_REPEAT preparing Vulkan on SwiftShader Device (Subzero)
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==27217==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000030 (pc 0x7f816e07f7ed bp 0x7ffc99f3ffa0 sp 0x7ffc99f3ff80 T0)
+==27217==The signal is caused by a READ memory access.
+==27217==Hint: address points to the zero page.
+    #0 0x7f816e07f7ed in void std::__Cr::__function::__policy_func<void (unsigned int const*)>::__call_func[abi:sqn240000]<spvtools::opt::AggressiveDCEPass::AddOperandsToWorkList(spvtools::opt::Instruction const*)::$_0>(std::__Cr::__function::__policy_storage const*, unsigned int const*) [clone .e0c133e060e8ce8cdac690c1c6d0e642] (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x27f7ed)
+    #1 0x7f816e07c4e9 in bool std::__Cr::__function::__policy_func<bool (spvtools::opt::Instruction*)>::__call_func[abi:sqn240000]<spvtools::opt::analysis::DefUseManager::ForEachUser(spvtools::opt::Instruction const*, std::__Cr::function<void (spvtools::opt::Instruction*)> const&) const::$_0>(std::__Cr::__function::__policy_storage const*, spvtools::opt::Instruction*) [clone .663ee5e937c9b65af6367cfbd921652e] (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x27c4e9)
+    #2 0x7f816e078dd5 in spvtools::opt::AggressiveDCEPass::AddOperandsToWorkList(spvtools::opt::Instruction const*) (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x278dd5)
+    #3 0x7f816e078698 in spvtools::opt::AggressiveDCEPass::ProcessWorkList(spvtools::opt::Function*) (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x278698)
+    #4 0x7f816e078436 in spvtools::opt::AggressiveDCEPass::AggressiveDCE(spvtools::opt::Function*) (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x278436)
+    #5 0x7f816e079e66 in spvtools::opt::AggressiveDCEPass::ProcessImpl() (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x279e66)
+    #6 0x7f816e0efc6d in spvtools::opt::Pass::Run(spvtools::opt::IRContext*) (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x2efc6d)
+    #7 0x7f816e0f04fe in spvtools::opt::PassManager::Run(spvtools::opt::IRContext*) (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x2f04fe)
+    #8 0x7f816e0ef09c in spvtools::Optimizer::Run(unsigned int const*, unsigned long, std::__Cr::vector<unsigned int, std::__Cr::allocator<unsigned int> >*, spv_optimizer_options_t*) const (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x2ef09c)
+    #9 0x7f816dee4faa in (anonymous namespace)::optimizeSpirv(vk::PipelineCache::SpirvBinaryKey const&) (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0xe4faa)
+    #10 0x7f816dee5403 in vk::ComputePipeline::compileShaders(VkAllocationCallbacks const*, VkComputePipelineCreateInfo const*, vk::PipelineCache*) (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0xe5403)
+    #11 0x7f816def291f in vkCreateComputePipelines (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0xf291f)
+    #12 0x559c11c7aec9 in ConstructPipeline /home/user/Frontier/Exhibits/LightCompute/Code/LightComputeValidation.cpp:522
+    #13 0x559c11c826a4 in Prepare /home/user/Frontier/Exhibits/LightCompute/Code/LightComputeValidation.cpp:657
+    #14 0x559c11f9c51b in ValidateReplayRigidVarianceRepeat /home/user/Frontier/Exhibits/LightCompute/Code/ReplayRigidVarianceRepeat.h:77
+    #15 0x559c11fae349 in main /home/user/Frontier/Exhibits/LightCompute/Code/LightComputeValidation.cpp:1687
+    #16 0x7f816fe45249  (/lib/x86_64-linux-gnu/libc.so.6+0x27249)
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/./libvk_swiftshader.so+0x27f7ed) in void std::__Cr::__function::__policy_func<void (unsigned int const*)>::__call_func[abi:sqn240000]<spvtools::opt::AggressiveDCEPass::AddOperandsToWorkList(spvtools::opt::Instruction const*)::$_0>(std::__Cr::__function::__policy_storage const*, unsigned int const*) [clone .e0c133e060e8ce8cdac690c1c6d0e642]
+==27217==ABORTING

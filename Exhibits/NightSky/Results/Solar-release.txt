@@ -1,0 +1,50 @@
+Solar pixel/filter and reference-renderer tests: release
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Linux 6.1.158+ x86_64
+Base revision 0eb6d76, plus working changes if any; see committed source for exact test.
+radius=  0.1 px offset=0.00 flux=1 error=1.11633e-10
+radius=  0.1 px offset=0.17 flux=1 error=6.67646e-11
+radius=  0.1 px offset=0.49 flux=1 error=1.35339e-10
+radius=  0.4 px offset=0.00 flux=1 error=2.70035e-11
+radius=  0.4 px offset=0.17 flux=1 error=1.37261e-11
+radius=  0.4 px offset=0.49 flux=1 error=1.9546e-11
+radius=  1.0 px offset=0.00 flux=1 error=3.14659e-12
+radius=  1.0 px offset=0.17 flux=1 error=8.66074e-12
+radius=  1.0 px offset=0.49 flux=1 error=5.46596e-12
+radius=  2.0 px offset=0.00 flux=1 error=1.12266e-12
+radius=  2.0 px offset=0.17 flux=1 error=1.96021e-12
+radius=  2.0 px offset=0.49 flux=1 error=1.7375e-12
+radius=  3.5 px offset=0.00 flux=1.00001468 error=1.46763e-05
+radius=  3.5 px offset=0.17 flux=0.999999254 error=7.46252e-07
+radius=  3.5 px offset=0.49 flux=1.00002084 error=2.08428e-05
+radius=  4.0 px offset=0.00 flux=1.00007033 error=7.0327e-05
+radius=  4.0 px offset=0.17 flux=1.00001038 error=1.03801e-05
+radius=  4.0 px offset=0.49 flux=1.0000649 error=6.48966e-05
+radius=  4.1 px offset=0.00 flux=0.999955669 error=4.43313e-05
+radius=  4.1 px offset=0.17 flux=1.00001232 error=1.23196e-05
+radius=  4.1 px offset=0.49 flux=0.999938979 error=6.10207e-05
+radius=  5.0 px offset=0.00 flux=1.0000688 error=6.87995e-05
+radius=  5.0 px offset=0.17 flux=0.999990605 error=9.39522e-06
+radius=  5.0 px offset=0.49 flux=1.00004329 error=4.32877e-05
+radius=  8.0 px offset=0.00 flux=1.00004966 error=4.96563e-05
+radius=  8.0 px offset=0.17 flux=0.999989218 error=1.07817e-05
+radius=  8.0 px offset=0.49 flux=1.00005487 error=5.48715e-05
+radius= 16.0 px offset=0.00 flux=1.00000601 error=6.01268e-06
+radius= 16.0 px offset=0.17 flux=0.999989349 error=1.06514e-05
+radius= 16.0 px offset=0.49 flux=1.00000607 error=6.07374e-06
+radius= 32.0 px offset=0.00 flux=1.00004558 error=4.55801e-05
+radius= 32.0 px offset=0.17 flux=1.00004257 error=4.25708e-05
+radius= 32.0 px offset=0.49 flux=1.00004634 error=4.63442e-05
+PASS finite, non-negative, symmetric, decreasing; worst flux error small 1.35338518e-10 resolved 7.03270341e-05, symmetry 1.78628926e-16
+Cartesian 600x600 quadrature max error / peak 0.00310179235; blended transition jump / peak 4.83728669e-07
+sun 64x64 FOV=1.0472 U=0 integrated=0.938488043 expected=0.938899297 relative error=0.000438017
+sun 64x64 FOV=1.0472 U=0.00306717 integrated=0.93848798 expected=0.938899015 relative error=0.000437783
+sun 64x64 FOV=1.0472 U=0.00884068 integrated=0.938486699 expected=0.93889695 relative error=0.00043695
+sun 64x64 FOV=1.0472 U=0.26 integrated=0.936622775 expected=0.936945941 relative error=0.000344915
+sun 64x64 FOV=1.0472 U=-0.32 integrated=0.935692525 expected=0.935973508 relative error=0.000300203
+sun 96x54 FOV=1.0472 U=0.35 integrated=0.935045108 expected=0.9354087 relative error=0.000388699
+sun 64x64 FOV=0.02618 U=0.001 integrated=0.939061829 expected=0.939092124 relative error=3.226e-05
+PASS renderer finite-pixel flux worst relative error 0.000438016784, 7 camera positions
+warm signal 12.2703248, blue signal 42.1043134, additive error 1.04083409e-16, mesh-blocked difference 0, planet-blocked difference 0
+Wrote illustrative reference capture /home/user/Frontier/_ClaudeScratch/build/solar-release/reference.ppm (not a lens calibration)
+Numerical model/invariant tests, not calibrated camera, atmosphere or physical-hardware measurements.

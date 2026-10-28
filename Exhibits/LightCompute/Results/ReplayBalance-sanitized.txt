@@ -1,0 +1,40 @@
+Host build: sanitized; external Vulkan driver is not sanitizer-instrumented
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+dce7ded271e393d9a90dae4cdef2259edf7e67a92b4c24fc5deb8973eac5df61  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+8957b4c52f5ec047d1cc487ce9456ee53cf2e3ab9984e54dc87d35ddbd3c17a5  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+832a756a4501f4392292f56dc3b8fdbd45a51ebcb80e2b17a005d895e5284332  Exhibits/LightCompute/Code/PathReplayDomain.h
+764a2ee980ff0f4e2050d9fd772d8c5aed4d7517593fa604f48c6841b1d4198c  Exhibits/LightCompute/Code/ReplayRoomReference.h
+6cf6f168d2e852ee16d2c892bb9f8eed69bf55ac0e5187232f52c1eb5c672ec9  Exhibits/LightCompute/Code/RoughReplayValidation.h
+7b4281495547c2f3fd288b0e0b506cbf2612a1c4e1f6cf0f8b4ab456bf3912ec  Exhibits/LightCompute/Code/ReplayFacetSamplingValidation.h
+ca03fcb7060ab390a8f66f2ea11b3099a16e7b41378304f5d8f5483aadaa6b78  Exhibits/LightCompute/Code/ReplayBalanceValidation.h
+BALANCE_small_facet exact=0.00317885897775 mean=0.00317885770031 pixel_se=7.41990158687e-08 batch_se=4.85491541751e-08 std=6.7157282916e-06 n=8192
+BALANCE_small_combined exact=0.00317885897775 mean=0.00318038723447 pixel_se=2.11469067468e-06 batch_se=2.51530128106e-06 std=0.000191399950871 n=8192
+BALANCE_large_facet exact=0.951516414443 mean=0.956677809641 pixel_se=0.0273108918167 batch_se=0.0209694477221 std=2.47189975089 n=8192
+BALANCE_large_combined exact=0.951516414443 mean=0.947849266008 pixel_se=0.00419625055715 batch_se=0.00264006007471 std=0.379801244738 n=8192
+BALANCE_half_reused exact=0.119909106491 mean=0.119874960662 pixel_se=0.000475588611174 batch_se=0.000403677488445 std=0.043045367298 n=8192
+BALANCE_three exact=0.267649921244 mean=0.268416247811 pixel_se=0.00161909562223 batch_se=0.00167542689504 std=0.146543807215 n=8192
+BALANCE_mode_change exact=0.239818212982 mean=0.239735011473 pixel_se=0.000311313038732 batch_se=0.000221605211802 std=0.0281768397772 n=8192
+BALANCE_COMPARISON large_sample_std_ratio=0.153647511 small_sample_std_ratio=28.5002523 accepted=40960 changed_accepted=40960 spatial=97280
+BALANCE_GUARDS missing_facet=1 double_count=1
+BALANCE_EMPTY_ENVIRONMENT mean=0.300000012 near_blocked=0
+BALANCE_ROUGH channel=0 exact=0.129911981 mean=0.130539335 se=0.00169303763 n=8192
+BALANCE_ROUGH channel=1 exact=0.0524090955 mean=0.0526514017 se=0.000669033288 n=8192
+BALANCE_ROUGH channel=2 exact=0.0183867052 mean=0.0184704201 se=0.000233324658 n=8192
+PASS balanced direct sampling against independent area integrals
+BALANCE_ROOM tracing two independent 400000-path CPU references
+ROOM_REFERENCE balance_open_four channel=0 cpu=0.833905206 cpu_se=0.00378117151 vulkan=0.849725818 pixel_se=0.00398922132 batch_se=0.0041468424 n=400000/8192 batches=8
+ROOM_REFERENCE balance_open_four channel=1 cpu=0.695457876 cpu_se=0.0031372455 vulkan=0.709036784 pixel_se=0.00322704844 batch_se=0.00361017269 n=400000/8192 batches=8
+ROOM_REFERENCE balance_open_four channel=2 cpu=0.621088064 cpu_se=0.00258834733 vulkan=0.63211078 pixel_se=0.00276641556 batch_se=0.00282265743 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=0 cpu=0.0281347766 cpu_se=0.000443113057 vulkan=0.0285660183 pixel_se=0.000420025283 batch_se=0.000377504464 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=1 cpu=0.0233671677 cpu_se=0.000332780234 vulkan=0.0236131852 pixel_se=0.00029660926 batch_se=0.000369511438 n=400000/8192 batches=8
+ROOM_REFERENCE balance_blocked_reused_four channel=2 cpu=0.0325584695 cpu_se=0.000425155677 vulkan=0.0325259741 pixel_se=0.000423255164 batch_se=0.000364411707 n=400000/8192 batches=8
+BALANCE_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+BALANCE_ROUGH_ROOM tracing two independent 400000-path CPU references
+ROOM_REFERENCE balance_rough_open_four channel=0 cpu=0.723209558 cpu_se=0.00331117984 vulkan=0.725250477 pixel_se=0.00326965958 batch_se=0.00145474381 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_open_four channel=1 cpu=0.602217057 cpu_se=0.00275345501 vulkan=0.604532625 pixel_se=0.00270513793 batch_se=0.001164011 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_open_four channel=2 cpu=0.519692697 cpu_se=0.00227570516 vulkan=0.524079916 pixel_se=0.00247796242 batch_se=0.001528173 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=0 cpu=0.0223152293 cpu_se=0.000339620116 vulkan=0.022456141 pixel_se=0.000333486909 batch_se=0.000340885686 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=1 cpu=0.0185035461 cpu_se=0.000261123797 vulkan=0.0185429207 pixel_se=0.000249317908 batch_se=0.000267245195 n=400000/8192 batches=8
+ROOM_REFERENCE balance_rough_blocked_reused_four channel=2 cpu=0.0233586208 cpu_se=0.000347424289 vulkan=0.0235647995 pixel_se=0.000359854411 batch_se=0.000280476167 n=400000/8192 batches=8
+BALANCE_ROUGH_ROOM accepted=40960 spatial_links=97280 cpu_rng=mt19937_64 brute_force=1
+PASS balanced diffuse and rough four-hit replay against independent CPU paths

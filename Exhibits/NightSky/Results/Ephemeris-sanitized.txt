@@ -1,0 +1,19 @@
+Sun and Moon independent ephemeris comparison, sanitized; model comparison, not measured positions.
+Native base f2068e9, plus working changes if any; see committed source for exact test.
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Python 3.11.2
+Linux 6.1.158+ x86_64
+Astropy 7.1.1, NumPy 2.2.6, jplephem 2.24, skyfield-data 7.0.0; bundled IERS
+JPL DE421, SHA-256 a20a7139da04cbc462454634918e9a9ca69127044e2cc9d4f9c16e238d2deedc
+192 UTC instants in 2026 at five WGS84 sites: Benoni, Greenwich, Equator, NorthPole, SouthPole
+reference: apparent topocentric without refraction; Frontier: mean-geometric, UTC≈UT1, TT−UTC 69.184 s
+Angular separations in degrees; reference includes aberration and light-time absent from Frontier.
+old Moon geocentric direction vs topocentric: mean 1.23266866, RMS 1.36175735, p95 2.32430549, max 2.91225411 at Greenwich 12-01 00:00 UTC
+new Moon geocentric vs geocentric: mean 0.00223557483, RMS 0.00238498458, p95 0.00347083795, max 0.00361466193 at Equator 04-08 06:00 UTC
+new Moon topocentric vs topocentric: mean 0.00184421168, RMS 0.00196777982, p95 0.00285100794, max 0.00311774943 at Greenwich 06-15 18:00 UTC
+Sun vs topocentric: mean 0.0053229709, RMS 0.00588826487, p95 0.00978637686, max 0.0124969974 at Equator 04-08 18:00 UTC
+Benoni Moon topocentric max 0.00306280086 deg; old max 2.75849826 deg
+Moon topocentric distance max error 47.7396575 km; angular radius max error 0.113722821 arcsec
+mean-age illuminated fraction vs finite-distance geometry: mean absolute gap 0.0257600147, max 0.08544778
+new geometric illuminated fraction: mean absolute gap 2.68935203e-05, max 0.000101036507
+PASS JPL DE421 comparison; Meeus example 47.a also passed

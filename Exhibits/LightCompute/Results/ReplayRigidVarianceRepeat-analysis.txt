@@ -1,0 +1,75 @@
+RIGID_ANALYSIS rows=2048 csv_sha256=e411684021b4957ea01685288d7a854863dd408ab9863c2da424cf8724143f58 prior_rows=256 prior_csv_sha256=52afd6cbad11c04fa10c94f7b1dde1c47da3b46da9a4ba175e7c16955f0ba112
+RIGID_ANALYSIS_PRIOR_SAMPLES mode=uniform max=0.0108347768 top1pct_share=0.039482
+RIGID_ANALYSIS_PRIOR_SAMPLES mode=mixture max=0.0118011041 top1pct_share=0.046022
+RIGID_ANALYSIS_NEW_CPU red=0.00284126805 se=8.93911385e-06 paths=2000000
+RIGID_ANALYSIS mode=uniform_single channel=red mean=0.00281897335 se=8.87810117e-05 sd=0.00401776995 max=0.0891464055 top1pct_share=0.110566 nominal_cpu_z=-0.249857
+RIGID_ANALYSIS mode=uniform_single channel=green mean=0.0137241586 se=0.000312130381 sd=0.0141254086 max=0.280661762 top1pct_share=0.081580 nominal_cpu_z=-0.523131
+RIGID_ANALYSIS mode=uniform_single channel=blue mean=0.00287111272 se=4.43537756e-05 sd=0.00200722275 max=0.0393820852 top1pct_share=0.048850 nominal_cpu_z=0.521021
+RIGID_ANALYSIS mode=uniform_spatial channel=red mean=0.00295478951 se=8.2741156e-05 sd=0.00374443728 max=0.0927563757 top1pct_share=0.103956 nominal_cpu_z=1.36407
+RIGID_ANALYSIS mode=uniform_spatial channel=green mean=0.0141378079 se=0.000210908973 sd=0.00954465057 max=0.179137066 top1pct_share=0.057372 nominal_cpu_z=1.16744
+RIGID_ANALYSIS mode=uniform_spatial channel=blue mean=0.00286017294 se=3.76334659e-05 sd=0.00170309625 max=0.0299740657 top1pct_share=0.042124 nominal_cpu_z=0.324587
+RIGID_ANALYSIS mode=mixture_single channel=red mean=0.00284245908 se=8.51049423e-05 sd=0.00385141004 max=0.115839973 top1pct_share=0.096777 nominal_cpu_z=0.0139182
+RIGID_ANALYSIS mode=mixture_single channel=green mean=0.0139900185 se=0.000289057871 sd=0.013081266 max=0.359558344 top1pct_share=0.068990 nominal_cpu_z=0.349117
+RIGID_ANALYSIS mode=mixture_single channel=blue mean=0.0028155054 se=3.47096487e-05 sd=0.00157077939 max=0.0164327919 top1pct_share=0.035428 nominal_cpu_z=-0.920176
+RIGID_ANALYSIS mode=mixture_spatial channel=red mean=0.00284482922 se=4.85607418e-05 sd=0.00219760831 max=0.0339937694 top1pct_share=0.064949 nominal_cpu_z=0.0721225
+RIGID_ANALYSIS mode=mixture_spatial channel=green mean=0.0140348391 se=0.000148811231 sd=0.00673442756 max=0.0918594673 top1pct_share=0.038407 nominal_cpu_z=0.959307
+RIGID_ANALYSIS mode=mixture_spatial channel=blue mean=0.00284482824 se=3.1165357e-05 sd=0.00141038306 max=0.0113472063 top1pct_share=0.031667 nominal_cpu_z=-0.094941
+RIGID_ANALYSIS_PAIRED name=uniform_spatial_minus_single channel=red mean=0.000135816162 se=0.000111431848
+RIGID_ANALYSIS_PAIRED name=uniform_spatial_minus_single channel=green mean=0.000413649239 se=0.000320765815
+RIGID_ANALYSIS_PAIRED name=uniform_spatial_minus_single channel=blue mean=-1.09397779e-05 se=5.18356035e-05
+RIGID_ANALYSIS_PAIRED name=mixture_spatial_minus_single channel=red mean=2.37014035e-06 se=8.50622158e-05
+RIGID_ANALYSIS_PAIRED name=mixture_spatial_minus_single channel=green mean=4.48206208e-05 se=0.000275192728
+RIGID_ANALYSIS_PAIRED name=mixture_spatial_minus_single channel=blue mean=2.93228368e-05 se=4.24260176e-05
+RIGID_ANALYSIS_PAIRED name=mixture_minus_uniform_single channel=red mean=2.34857285e-05 se=0.000123150074
+RIGID_ANALYSIS_PAIRED name=mixture_minus_uniform_single channel=green mean=0.000265859875 se=0.000429557924
+RIGID_ANALYSIS_PAIRED name=mixture_minus_uniform_single channel=blue mean=-5.56073127e-05 se=5.57812273e-05
+RIGID_ANALYSIS_PAIRED name=mixture_minus_uniform_spatial channel=red mean=-0.000109960294 se=9.53478484e-05
+RIGID_ANALYSIS_PAIRED name=mixture_minus_uniform_spatial channel=green mean=-0.000102968744 se=0.000257077582
+RIGID_ANALYSIS_PAIRED name=mixture_minus_uniform_spatial channel=blue mean=-1.5344698e-05 se=4.70722431e-05
+RIGID_ANALYSIS_RATIO numerator=mixture_spatial denominator=uniform_spatial channel=red sd_ratio=0.586899 bootstrap95=0.423097,0.87948
+RIGID_ANALYSIS_RATIO numerator=uniform_spatial denominator=uniform_single channel=red sd_ratio=0.931969 bootstrap95=0.597939,1.49955
+RIGID_ANALYSIS_RATIO numerator=mixture_spatial denominator=mixture_single channel=red sd_ratio=0.570598 bootstrap95=0.411933,0.988469
+RIGID_ANALYSIS_INFLUENCE removed_largest_uniform_pairs=1 remaining=2047 sd_ratio=0.692198
+RIGID_ANALYSIS_INFLUENCE removed_largest_uniform_pairs=3 remaining=2045 sd_ratio=0.828961
+RIGID_ANALYSIS_GROUP group=0 mode=uniform_single mean=0.00327851686 se=0.000401561435 n=256
+RIGID_ANALYSIS_GROUP group=0 mode=uniform_spatial mean=0.0027994392 se=0.000118131595 n=256
+RIGID_ANALYSIS_GROUP group=0 mode=mixture_single mean=0.00357155946 se=0.000552242826 n=256
+RIGID_ANALYSIS_GROUP group=0 mode=mixture_spatial mean=0.00286203817 se=0.000142148623 n=256
+RIGID_ANALYSIS_GROUP_RATIO group=0 mixture_over_uniform_red=1.20331 uniform_max=0.0202122238 mixture_max=0.0295946375
+RIGID_ANALYSIS_GROUP group=1 mode=uniform_single mean=0.00263044287 se=0.000141217174 n=256
+RIGID_ANALYSIS_GROUP group=1 mode=uniform_spatial mean=0.00267495085 se=0.000193175549 n=256
+RIGID_ANALYSIS_GROUP group=1 mode=mixture_single mean=0.00269392806 se=0.00012815567 n=256
+RIGID_ANALYSIS_GROUP group=1 mode=mixture_spatial mean=0.00280275308 se=0.000117157969 n=256
+RIGID_ANALYSIS_GROUP_RATIO group=1 mixture_over_uniform_red=0.606484 uniform_max=0.0389703512 mixture_max=0.0201289766
+RIGID_ANALYSIS_GROUP group=2 mode=uniform_single mean=0.00267330088 se=0.000164388092 n=256
+RIGID_ANALYSIS_GROUP group=2 mode=uniform_spatial mean=0.00325742485 se=0.00025619477 n=256
+RIGID_ANALYSIS_GROUP group=2 mode=mixture_single mean=0.00291417707 se=0.000203386935 n=256
+RIGID_ANALYSIS_GROUP group=2 mode=mixture_spatial mean=0.00274713987 se=0.000102227181 n=256
+RIGID_ANALYSIS_GROUP_RATIO group=2 mixture_over_uniform_red=0.399021 uniform_max=0.0471609049 mixture_max=0.0152906096
+RIGID_ANALYSIS_GROUP group=3 mode=uniform_single mean=0.00297517569 se=0.00021157478 n=256
+RIGID_ANALYSIS_GROUP group=3 mode=uniform_spatial mean=0.00290237545 se=0.00014403996 n=256
+RIGID_ANALYSIS_GROUP group=3 mode=mixture_single mean=0.00259890656 se=0.000101597315 n=256
+RIGID_ANALYSIS_GROUP group=3 mode=mixture_spatial mean=0.00267955146 se=0.000111119321 n=256
+RIGID_ANALYSIS_GROUP_RATIO group=3 mixture_over_uniform_red=0.771448 uniform_max=0.0177385807 mixture_max=0.0194059182
+RIGID_ANALYSIS_GROUP group=4 mode=uniform_single mean=0.00253595156 se=0.000130799399 n=256
+RIGID_ANALYSIS_GROUP group=4 mode=uniform_spatial mean=0.00325201216 se=0.000390653167 n=256
+RIGID_ANALYSIS_GROUP group=4 mode=mixture_single mean=0.00295307123 se=0.000172217853 n=256
+RIGID_ANALYSIS_GROUP group=4 mode=mixture_spatial mean=0.00294669936 se=0.000119702563 n=256
+RIGID_ANALYSIS_GROUP_RATIO group=4 mixture_over_uniform_red=0.306416 uniform_max=0.0927563757 mixture_max=0.0148486784
+RIGID_ANALYSIS_GROUP group=5 mode=uniform_single mean=0.00314823264 se=0.000424458492 n=256
+RIGID_ANALYSIS_GROUP group=5 mode=uniform_spatial mean=0.00286992891 se=0.000200735957 n=256
+RIGID_ANALYSIS_GROUP group=5 mode=mixture_single mean=0.00269004986 se=0.000152432371 n=256
+RIGID_ANALYSIS_GROUP group=5 mode=mixture_spatial mean=0.00296366015 se=0.000204331229 n=256
+RIGID_ANALYSIS_GROUP_RATIO group=5 mixture_over_uniform_red=1.01791 uniform_max=0.0421583168 mixture_max=0.0339937694
+RIGID_ANALYSIS_GROUP group=6 mode=uniform_single mean=0.00253771024 se=0.000108484256 n=256
+RIGID_ANALYSIS_GROUP group=6 mode=uniform_spatial mean=0.00306420528 se=0.000280634579 n=256
+RIGID_ANALYSIS_GROUP group=6 mode=mixture_single mean=0.0027483677 se=0.000137350563 n=256
+RIGID_ANALYSIS_GROUP group=6 mode=mixture_spatial mean=0.00312875368 se=0.000170111346 n=256
+RIGID_ANALYSIS_GROUP_RATIO group=6 mixture_over_uniform_red=0.606167 uniform_max=0.0684192479 mixture_max=0.0221553911
+RIGID_ANALYSIS_GROUP group=7 mode=uniform_single mean=0.00277245605 se=0.000204830059 n=256
+RIGID_ANALYSIS_GROUP group=7 mode=uniform_spatial mean=0.00281797939 se=0.000170503239 n=256
+RIGID_ANALYSIS_GROUP group=7 mode=mixture_single mean=0.00256961267 se=0.000131906412 n=256
+RIGID_ANALYSIS_GROUP group=7 mode=mixture_spatial mean=0.00262803797 se=9.45625787e-05 n=256
+RIGID_ANALYSIS_GROUP_RATIO group=7 mixture_over_uniform_red=0.554609 uniform_max=0.0364116952 mixture_max=0.0172727108
+RIGID_ANALYSIS_PRIOR uniform_vs_new_cpu_z=-3.36489 old_cpu_vs_new_cpu_z=1.84406 new_vs_old_uniform_z=3.32675
+RIGID_ANALYSIS_CHART svg=Exhibits/LightCompute/Images/ReplayRigidVarianceRepeat.svg png=Exhibits/LightCompute/Images/ReplayRigidVarianceRepeat.png

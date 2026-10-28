@@ -1,0 +1,1 @@
+DIELECTRIC_BOUNDARY device=SwiftShader Device (Subzero) type=4 cases=199 reciprocal_identities=149 tir=45 invalid=5 max_error=2.18084e-06

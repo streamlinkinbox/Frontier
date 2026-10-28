@@ -1,0 +1,264 @@
+{
+  "checks": {
+    "PRIMARY": [
+      {
+        "hits": 225214.0,
+        "misses": 30786.0,
+        "hit_disagreement": 0.0,
+        "facet_disagreement": 0.0,
+        "precision_ties": 0.0,
+        "near_edge": 2717.0,
+        "max_relative_depth": 5.00174e-06,
+        "max_normal_error": 1.43991e-07,
+        "cpu_primary_raster": 0.0,
+        "poisoned_receiver_channels": 36.0
+      },
+      {
+        "hits": 225280.0,
+        "misses": 30720.0,
+        "hit_disagreement": 0.0,
+        "facet_disagreement": 3.0,
+        "precision_ties": 2.0,
+        "near_edge": 2718.0,
+        "max_relative_depth": 0.0106152,
+        "max_normal_error": 1.4401e-07,
+        "cpu_primary_raster": 0.0,
+        "poisoned_receiver_channels": 36.0
+      },
+      {
+        "hits": 225920.0,
+        "misses": 30080.0,
+        "hit_disagreement": 0.0,
+        "facet_disagreement": 5.0,
+        "precision_ties": 2.0,
+        "near_edge": 2722.0,
+        "max_relative_depth": 0.177935,
+        "max_normal_error": 1.3705e-07,
+        "cpu_primary_raster": 0.0,
+        "poisoned_receiver_channels": 36.0
+      },
+      {
+        "hits": 225973.0,
+        "misses": 30027.0,
+        "hit_disagreement": 0.0,
+        "facet_disagreement": 0.0,
+        "precision_ties": 0.0,
+        "near_edge": 2658.0,
+        "max_relative_depth": 1.73963e-05,
+        "max_normal_error": 1.43956e-07,
+        "cpu_primary_raster": 0.0,
+        "poisoned_receiver_channels": 36.0
+      },
+      {
+        "hits": 226560.0,
+        "misses": 29440.0,
+        "hit_disagreement": 0.0,
+        "facet_disagreement": 2.0,
+        "precision_ties": 0.0,
+        "near_edge": 2758.0,
+        "max_relative_depth": 0.00951554,
+        "max_normal_error": 1.44239e-07,
+        "cpu_primary_raster": 0.0,
+        "poisoned_receiver_channels": 36.0
+      },
+      {
+        "hits": 226735.0,
+        "misses": 29265.0,
+        "hit_disagreement": 0.0,
+        "facet_disagreement": 1.0,
+        "precision_ties": 1.0,
+        "near_edge": 2751.0,
+        "max_relative_depth": 0.000111028,
+        "max_normal_error": 1.44607e-07,
+        "cpu_primary_raster": 0.0,
+        "poisoned_receiver_channels": 36.0
+      }
+    ],
+    "PRIMARY_SHADING": [
+      {
+        "mean_rgb_error": 2.03235e-06,
+        "max_rgb_error": 6.93947e-05,
+        "matched_facet_max_rgb": 6.93947e-05,
+        "matched_facet_max_depth": 5.00174e-06,
+        "native_barycentrics": 1.0,
+        "native_brdf": 1.0,
+        "native_light_arrival": 1.0,
+        "native_bvh_shadows": 1.0
+      },
+      {
+        "mean_rgb_error": 2.32808e-06,
+        "max_rgb_error": 0.0670623,
+        "matched_facet_max_rgb": 6.43432e-05,
+        "matched_facet_max_depth": 3.02489e-06,
+        "native_barycentrics": 1.0,
+        "native_brdf": 1.0,
+        "native_light_arrival": 1.0,
+        "native_bvh_shadows": 1.0
+      },
+      {
+        "mean_rgb_error": 3.77025e-06,
+        "max_rgb_error": 0.960438,
+        "matched_facet_max_rgb": 6.44326e-05,
+        "matched_facet_max_depth": 1.72217e-05,
+        "native_barycentrics": 1.0,
+        "native_brdf": 1.0,
+        "native_light_arrival": 1.0,
+        "native_bvh_shadows": 1.0
+      },
+      {
+        "mean_rgb_error": 2.03541e-06,
+        "max_rgb_error": 6.44326e-05,
+        "matched_facet_max_rgb": 6.44326e-05,
+        "matched_facet_max_depth": 1.73963e-05,
+        "native_barycentrics": 1.0,
+        "native_brdf": 1.0,
+        "native_light_arrival": 1.0,
+        "native_bvh_shadows": 1.0
+      },
+      {
+        "mean_rgb_error": 2.21521e-06,
+        "max_rgb_error": 0.0903397,
+        "matched_facet_max_rgb": 6.4224e-05,
+        "matched_facet_max_depth": 2.06961e-05,
+        "native_barycentrics": 1.0,
+        "native_brdf": 1.0,
+        "native_light_arrival": 1.0,
+        "native_bvh_shadows": 1.0
+      },
+      {
+        "mean_rgb_error": 2.05017e-06,
+        "max_rgb_error": 0.000194211,
+        "matched_facet_max_rgb": 6.42836e-05,
+        "matched_facet_max_depth": 0.000111028,
+        "native_barycentrics": 1.0,
+        "native_brdf": 1.0,
+        "native_light_arrival": 1.0,
+        "native_bvh_shadows": 1.0
+      }
+    ],
+    "PRIMARY_REPROJECTION": [
+      {
+        "pose": 0.0,
+        "max_pixel_error": 0.00012207,
+        "max_world_error": 0.0,
+        "max_normal_error": 0.0
+      },
+      {
+        "pose": 1.0,
+        "max_pixel_error": 0.00012207,
+        "max_world_error": 4.76837e-07,
+        "max_normal_error": 1.19209e-07
+      },
+      {
+        "pose": 2.0,
+        "max_pixel_error": 0.00012207,
+        "max_world_error": 4.76837e-07,
+        "max_normal_error": 5.96046e-08
+      },
+      {
+        "pose": 3.0,
+        "max_pixel_error": 0.00012207,
+        "max_world_error": 4.76837e-07,
+        "max_normal_error": 1.19209e-07
+      },
+      {
+        "pose": 4.0,
+        "max_pixel_error": 0.00012207,
+        "max_world_error": 4.76837e-07,
+        "max_normal_error": 5.96046e-08
+      },
+      {
+        "pose": 5.0,
+        "max_pixel_error": 0.00012207,
+        "max_world_error": 4.76837e-07,
+        "max_normal_error": 1.19209e-07
+      }
+    ],
+    "PRIMARY_MOTION": [
+      {
+        "pose": 0.0,
+        "accepted": 225214.0,
+        "rejected": 0.0,
+        "visibility_rejected": 0.0,
+        "colour_history": 225214.0,
+        "fresh_rmse": 0.134862,
+        "filtered_rmse": 0.041186
+      },
+      {
+        "pose": 1.0,
+        "accepted": 152325.0,
+        "rejected": 72955.0,
+        "visibility_rejected": 1205.0,
+        "colour_history": 151120.0,
+        "fresh_rmse": 0.133991,
+        "filtered_rmse": 0.0513191
+      },
+      {
+        "pose": 2.0,
+        "accepted": 152590.0,
+        "rejected": 73330.0,
+        "visibility_rejected": 1246.0,
+        "colour_history": 151344.0,
+        "fresh_rmse": 0.131754,
+        "filtered_rmse": 0.057873
+      },
+      {
+        "pose": 3.0,
+        "accepted": 0.0,
+        "rejected": 225973.0,
+        "visibility_rejected": 0.0,
+        "colour_history": 0.0,
+        "fresh_rmse": 0.130677,
+        "filtered_rmse": 0.0920956
+      },
+      {
+        "pose": 4.0,
+        "accepted": 153020.0,
+        "rejected": 73540.0,
+        "visibility_rejected": 1286.0,
+        "colour_history": 151734.0,
+        "fresh_rmse": 0.129381,
+        "filtered_rmse": 0.0425442
+      },
+      {
+        "pose": 5.0,
+        "accepted": 153177.0,
+        "rejected": 73558.0,
+        "visibility_rejected": 1191.0,
+        "colour_history": 151986.0,
+        "fresh_rmse": 0.126105,
+        "filtered_rmse": 0.042405
+      }
+    ],
+    "PRIMARY_RESET": [
+      {
+        "camera_cut_cold_equal": 1.0,
+        "lights_off_exact_equal": 1.0,
+        "current_emission_exact_equal": 1.0
+      }
+    ],
+    "PRIMARY_MOTION_SUM": [
+      {
+        "fresh_rmse_sum": 0.651907,
+        "filtered_rmse_sum": 0.286237
+      }
+    ]
+  },
+  "moving_rmse_reduction_percent": 56.092356731865124,
+  "physical_gpu_executed": false,
+  "device": "SwiftShader CPU type 4; see PrimaryMotion.txt",
+  "cpu_primary_raster_executed": false,
+  "indirect_transport_executed": false,
+  "environment": "black; analytic direct illumination plus visible material emission",
+  "warmup": "16 static updates, then five moving updates; light revision at pose 3",
+  "comparison": "fresh eight-candidate RIS left; temporal/spatial reuse and reconstruction right",
+  "animation": "six lossless readbacks; illustrative playback timing, not measured frame time",
+  "motion_rgb_sha256": [
+    "0ceada97653dcd8651359efce050b88878c4831ceafce9b6c1400e130903fd14",
+    "b4bf0c01f8d65effc3c6495bdebd83ed742c3c9bd8f39f2baf4fce4554215238",
+    "103f359dcf6d80385743c1ab73e0b056861e9e4a1185e34365b5da5996b8d4e7",
+    "74e3c59ee4a30c48e87e8552452238bc42c036e5a80d1b329a2b93d41f6442a9",
+    "bf3ff1743552a1ab77dbbc0b19f682855ad9c597440b217dc16ae08ec4e0a27e",
+    "5f029bd3ae344b9816bb792ce19ae164f6089e913c1c30765da87caec9eacb68"
+  ]
+}

@@ -1,0 +1,17 @@
+Source ba385ae; sanitized host; external Vulkan driver is not sanitizer-instrumented
+a25d67d379e2daf6ccfe43fa9357ff762cc89a6674e1247f93d374ffbc5837e9  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+15b81c34d390231e3e3cb4aa21b2ed7953dc95f2173d2cff9c3e48604b514e7d  Exhibits/LightCompute/Code/PathReplayDomain.h
+51060938a32afb6d45a854ad49bb47195d2c569ca21fe2ae1a300abe1ecb7b90  Exhibits/LightCompute/Code/PathReplayCapture.h
+b1089f582559885b7ac7de403cbdaddadb44968cde997aa4d586902ff0dde526  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+REPLAY preparing Vulkan pipelines on SwiftShader Device (Subzero)
+REPLAY_DISOCCLUSION exact=0.119909106491 quadrature_delta=6.85214231e-08 fresh=0.1123046875 se=0.00493345227344 capped=0.120303301257 se=0.00360678000876 long=0.126626248219 se=0.00467668162786 capped_vs_long_std=0.77122633 accepted=20480 n=4096
+REPLAY_OCCLUSION mean=0 accepted=5120 reset=0
+REPLAY_MOVING_SPATIAL exact=0.0178338171166 mean=0.0213990279408 se=0.00361847212673 accepted=20480 links=48640 n=4096
+REPLAY_RELIGHT exact=0.119909106491 mean=0.122403877685 se=0.00361722758142 accepted=20480 n=4096
+REPLAY_MULTIBOUNCE one_hit=0 two_hits=0.5 revealed=0.5 se=0 accepted=5120 reset=0 expected_nearly=.5
+REPLAY_DEPTH_CHANGE mean=0.5 accepted=5120 reset=0
+REPLAY_FOUR_HITS mean=0.625 expected_nearly=.625
+REPLAY_RGB expected=(.5,.25,.125) mean=(0.5,0.25,0.125)
+REPLAY_GUARDS zero_floor=1 metallic=1 corrupt_bvh=1
+REPLAY_PREVIEW_FILTER same_surface_smoothed=1 cross_surface_rejected=1 background_preserved=1 albedo_edge_rejected=1
+PASS bounded diffuse replay with moving occluder; general materials and production frame remain open
