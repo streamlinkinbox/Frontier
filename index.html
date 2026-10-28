@@ -1,0 +1,56 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frontier — Hybrid Water (2.5D Ocean + Volumetric Splash)</title>
+<style>
+/* Frontier Editor UI (Experimental / Project browser): OLED palette, Inter, 204px rail + 302px inspector */
+:root{color-scheme:dark;--main:#000;--panel:#0a0a0a;--card:#141415;--nested:#1c1c1e;--line:#ffffff12;--text:#fffffff2;--muted:#ffffff70;--faint:#ffffff42;--control:#ffffff0d;--selected:#ffffff14;--button:#f1f1ef;--button-text:#151515;--accent:#b7c6bd;--rail:204px;--insp:302px}
+*{box-sizing:border-box}body{margin:0;height:100dvh;overflow:hidden;background:var(--main);color:var(--text);font:13px/1.5 Inter,system-ui,Arial,sans-serif}
+button{color:inherit;background:var(--control);border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit}button:hover{background:var(--selected)}button.active{background:var(--button);color:var(--button-text)}
+.titlebar{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:11px;font-size:17px;font-weight:600;letter-spacing:-.5px}.mark{font-size:24px;font-style:italic;font-weight:900;transform:skew(-12deg)}
+.badge{font-size:8px;letter-spacing:1.4px;color:var(--faint);padding:4px 6px;border:1px solid var(--line);border-radius:4px}
+.eyebrow{font-size:9px;letter-spacing:1.8px;color:var(--muted)} .subtle{color:var(--muted);font-size:10px}
+.layout{display:grid;grid-template-columns:var(--rail) minmax(0,1fr) var(--insp);height:calc(100dvh - 56px)}
+.rail{background:var(--panel);border-right:1px solid var(--line);padding:20px 14px;overflow:auto}
+.insp{background:var(--panel);border-left:1px solid var(--line);overflow:auto}
+.panehead{height:48px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--line);font-size:11px}
+.tabs{display:flex;gap:4px}.tabs button{border:0;background:none;padding:6px 8px;color:var(--muted);border-radius:6px}.tabs button[aria-selected=true]{color:var(--text);background:var(--selected)}
+.nav{display:flex;gap:10px;width:100%;text-align:left;border:1px solid transparent;background:none;color:var(--muted);padding:10px;border-radius:7px;margin:2px 0}.nav.active{color:var(--text);background:var(--selected);border-color:var(--line)}.nav span{margin-left:auto;font-size:10px;color:var(--faint)}
+.rail-title{font-size:9px;letter-spacing:1.5px;color:var(--faint);padding:0 10px;margin:18px 0 8px}
+main{position:relative;min-width:0}#view{position:absolute;inset:0}#view canvas{display:block}
+.hud{position:absolute;left:14px;top:12px;background:#0009;backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:10px;color:var(--muted);pointer-events:none;max-width:360px}
+.hud strong{color:var(--text)} .toolbar{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;display:flex;gap:8px;background:#000a;padding:8px;border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(8px)}
+.status{position:absolute;right:14px;bottom:14px;font-size:10px;color:var(--muted);background:#0009;border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.group{padding:14px 16px;border-bottom:1px solid var(--line)}.group h3{font-size:10px;letter-spacing:1.4px;color:var(--faint);margin:0 0 10px;font-weight:600}
+.ctl{margin:9px 0}.ctl label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}.ctl label output{color:var(--text);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;width:100%;height:22px;background:none}input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--nested);border-radius:2px}input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);margin-top:-5px;border:2px solid #000}
+.row{display:flex;gap:7px;flex-wrap:wrap}.row button{flex:1;font-size:11px;padding:7px 6px}
+.log{font-size:10px;color:var(--muted);max-height:150px;overflow:auto}.log div{padding:5px 0;border-bottom:1px solid var(--line)}.log b{color:var(--accent);font-weight:500}
+.kv{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:3px 0}.kv b{color:var(--text);font-weight:500}
+@media(max-width:900px){:root{--rail:0px;--insp:270px}.rail{display:none}}
+</style></head><body>
+<header class="titlebar"><div class="brand"><span class="mark">F</span> Frontier <span class="badge">EXPERIMENTAL · WATER</span></div>
+<div><span class="subtle" style="margin-right:12px">Hybrid: 2.5D ocean + volumetric splash grid</span><button id="themeBtn">OLED</button></div></header>
+<div class="layout">
+ <aside class="rail"><div class="rail-title">SYSTEMS</div>
+  <button class="nav active">🌊 Ocean (2.5D) <span>on</span></button><button class="nav active">💦 Splash volume <span>on</span></button>
+  <button class="nav active">🤍 Foam <span>on</span></button><button class="nav" id="gridNav">▦ Sparse grid <span id="cellCount">0 cells</span></button>
+  <div class="rail-title">SCENE</div><button class="nav">Ocean — endless tiles <span>±9 km</span></button>
+  <button class="nav">Ripple tile <span id="tileInfo">90 m</span></button><button class="nav">Falling bodies <span id="bodyCount">0</span></button>
+  <div class="rail-title">IMPACT REGISTRY</div><div class="log" id="log"><div>No impacts yet — drop something.</div></div>
+  <p class="subtle" style="padding:10px">Every falling particle/body that hits the surface is registered (world x/z, energy) and splatted into the 2.5D heightfield + foam mask, wherever it lands.</p></aside>
+ <main><div id="view"></div>
+  <div class="hud"><strong>Click water</strong> = drop a body there · <strong>Drag</strong> orbit · <strong>Wheel</strong> zoom<br><span id="hudStats">—</span></div>
+  <div class="toolbar"><button id="dropBtn">⬇ Drop body</button><button id="rainBtn">🌧 Rain</button><button id="waveBtn">🌊 Big wave splash</button><button id="clearBtn">Clear ripples</button></div>
+  <div class="status" id="status">— fps</div></main>
+ <aside class="insp"><div class="panehead"><div class="tabs"><button aria-selected="true">Sliders</button><button aria-selected="false" onclick="document.getElementById('about').scrollIntoView()">Details</button></div></div>
+  <div id="sliders"></div>
+  <div class="group" id="about"><h3>HOW IT'S COMBINED</h3>
+   <div class="kv"><span>Ocean / waves / ripples</span><b>2.5D heightfield + Gerstner</b></div>
+   <div class="kv"><span>Splashes / spray</span><b>3D SPH-lite particles</b></div>
+   <div class="kv"><span>Neighbour grid</span><b>sparse hash, world-space</b></div>
+   <div class="kv"><span>Coupling</span><b>impact registry → splat</b></div>
+   <div class="kv"><span>Ocean extent</span><b>tiles follow camera, ±9 km far</b></div>
+   <p class="subtle">Splash particles that fall back are removed at the surface, their momentum becomes a ripple + foam deposit. Crest/impact energy spawns new spray + white foam particles. The splash grid has no tank: cells exist only where particles are, at any world position and any cell size (slider).</p></div>
+ </aside></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module" src="src/main.js"></script></body></html>
