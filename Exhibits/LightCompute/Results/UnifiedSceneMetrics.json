@@ -1,0 +1,21 @@
+{
+  "device": "SwiftShader Device (Subzero)",
+  "device_type": 4,
+  "distance_samples": 49152,
+  "distance_queries_pose0": 0,
+  "distance_skips_pose0": 0,
+  "max_distance_mode_diff": 0,
+  "mode2_lipschitz_violations": 0,
+  "mode2_clear_solar_pixels": 17217,
+  "mode2_near_vehicle_pixels": 1806,
+  "black_source_off_pixels": 23040,
+  "poses": [
+    {"label": "pose0_cold", "opaque_reused": 0, "rigid_reused": 0, "glass_pixels": 302, "window_pixels": 0, "mirror_pixels": 112, "ssr_pixels": 2818, "pyramid_hits": 0, "pyramid_fallbacks": 0, "distance_skips": 0, "capped": 0, "invalid": 0},
+    {"label": "pose0_warm", "opaque_reused": 17058, "rigid_reused": 1284, "glass_pixels": 302, "window_pixels": 0, "mirror_pixels": 112, "ssr_pixels": 2818, "pyramid_hits": 6350, "pyramid_fallbacks": 1514, "distance_skips": 0, "capped": 0, "invalid": 0},
+    {"label": "pose1_moving", "opaque_reused": 15078, "rigid_reused": 1191, "glass_pixels": 297, "window_pixels": 6, "mirror_pixels": 112, "ssr_pixels": 2750, "pyramid_hits": 5999, "pyramid_fallbacks": 1450, "distance_skips": 0, "capped": 0, "invalid": 0},
+    {"label": "pose2_moving", "opaque_reused": 15052, "rigid_reused": 1201, "glass_pixels": 289, "window_pixels": 38, "mirror_pixels": 117, "ssr_pixels": 2673, "pyramid_hits": 6023, "pyramid_fallbacks": 1381, "distance_skips": 0, "capped": 0, "invalid": 0},
+    {"label": "pose3_weather_light_shift", "opaque_reused": 0, "rigid_reused": 0, "glass_pixels": 560, "window_pixels": 403, "mirror_pixels": 225, "ssr_pixels": 4655, "pyramid_hits": 0, "pyramid_fallbacks": 0, "distance_skips": 0, "capped": 0, "invalid": 0},
+    {"label": "pose4_moving_tir", "opaque_reused": 14369, "rigid_reused": 2709, "glass_pixels": 528, "window_pixels": 395, "mirror_pixels": 235, "ssr_pixels": 4676, "pyramid_hits": 12216, "pyramid_fallbacks": 2395, "distance_skips": 0, "capped": 0, "invalid": 0},
+    {"label": "pose5_moving", "opaque_reused": 14318, "rigid_reused": 2723, "glass_pixels": 500, "window_pixels": 389, "mirror_pixels": 243, "ssr_pixels": 4681, "pyramid_hits": 11889, "pyramid_fallbacks": 2208, "distance_skips": 0, "capped": 0, "invalid": 0}
+  ]
+}

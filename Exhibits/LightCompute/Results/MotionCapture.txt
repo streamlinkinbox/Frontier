@@ -1,0 +1,6 @@
+CPU reference distance=0 pose=0 original_vehicle_facets=25068 total_facets=28276 visible=26576 light_list_visits=8107704 light_fallbacks=0 surface_pixels=225214 hash=9327254428034369137
+CPU reference distance=0 pose=1 original_vehicle_facets=25068 total_facets=28276 visible=26576 light_list_visits=8110080 light_fallbacks=0 surface_pixels=225280 hash=9611315873337623575
+CPU reference distance=0 pose=2 original_vehicle_facets=25068 total_facets=28276 visible=26576 light_list_visits=8133120 light_fallbacks=0 surface_pixels=225920 hash=4839770308375506240
+CPU reference distance=0 pose=3 original_vehicle_facets=25068 total_facets=28276 visible=26576 light_list_visits=8135028 light_fallbacks=0 surface_pixels=225973 hash=7437873208083575288
+CPU reference distance=0 pose=4 original_vehicle_facets=25068 total_facets=28276 visible=26576 light_list_visits=8156160 light_fallbacks=0 surface_pixels=226560 hash=16633981995222975417
+CPU reference distance=0 pose=5 original_vehicle_facets=25068 total_facets=28276 visible=26576 light_list_visits=8162460 light_fallbacks=0 surface_pixels=226735 hash=11404228924666355041

@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "viewer": "Exhibits/SpaceFormats/index.html",
+  "viewer_sha256": "7350a7a5e4d63b92f531c0010bdd8c58324bd5939b1efbec601a0640ad0c6512",
+  "gif_sha256": "1d7990490e7fe7bf091d2e66cd2248cb777f173893830390745a119f2a9a240c",
+  "current_caption": "NativePatternClipboard",
+  "historical_captions": [
+    "NativePatternEndpointJoin",
+    "NativePatternPenContinuation",
+    "NativePatternJoining"
+  ],
+  "original_gallery_preserved": true,
+  "pixel_stream": false,
+  "source_sha256": {
+    "Exhibits/TextureStudio/Code/EmbedNativePatternEvidence.py": "0c1dfa17819192d477333fa6a4dcaa79549f623894669e98e21c230a59ecf185"
+  }
+}

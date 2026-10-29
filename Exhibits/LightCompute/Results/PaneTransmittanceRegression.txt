@@ -1,0 +1,43 @@
+WINDOW_DEVICE name=SwiftShader Device (Subzero) type=4
+WINDOW_SLAB case=0 analytic_pixels=100 mean_error=7.28721e-08
+WINDOW_SLAB case=1 analytic_pixels=100 mean_error=5.08365e-08
+WINDOW_SLAB case=2 analytic_pixels=100 mean_error=0.00312531
+WINDOW_SLAB case=3 analytic_pixels=100 mean_error=0.00256934
+WINDOW_ENERGY case=0 analytic_pixels=100 max_error=4.58834e-09
+WINDOW_ENERGY case=1 analytic_pixels=100 max_error=1.1283e-06
+WINDOW_SOURCE_OFF black=1 pixels=6144 samples=64 directions_per_sample=2
+DIFFUSE_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+DIFFUSE_RAY_COUNTS rays=327680 hits=146417 misses=181263
+DIFFUSE_BEER changed_channels=15360 channel_ratios=0.903583,0.7616,0.632969 repeat_exact=1
+DIFFUSE_EMITTER_ROUTING nee_equal=1 refracted_total=71.4212
+DIFFUSE_DIELECTRIC_PASS source_off_black=1 pixels=6144 samples=64 proposals_per_sample=1
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+EMISSIVE_AREA triangles=1130 samples=16 native_probes=225 native_mean_rgb=7.20351e-09 native_max_rgb=1.36771e-06 hemisphere_rmse=0.206886 area_rmse=0.00906289 reference_samples=8192
+EMISSIVE_SAFETY empty_set_exact_equal=1 invalid_probability_rejected=1 environment_disabled_exact_equal=1
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+FOG_FACET_ANALYTIC samples=131072 relative_error=0.000445949 expected_red=2.2433 native_red=2.2423
+FOG_FACET case=0 probes=112 max_rgb_error=3.56212e-06 rgb_sum=663.744 width=64 height=40
+FOG_FACET case=1 probes=112 max_rgb_error=5.98426e-06 rgb_sum=956.753 width=64 height=40
+FOG_FACET case=2 probes=112 max_rgb_error=4.68905e-06 rgb_sum=976.599 width=64 height=40
+FOG_FACET case=3 probes=112 max_rgb_error=1.32422e-05 rgb_sum=2159.54 width=64 height=40
+FOG_FACET_CHECKS cold_equal=1 surface_isolation_equal=1 zero_density_equal=1 empty_cdf_equal=1 invalid_budget_rejected=1 invalid_cdf_rejected=1
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+FOG_ANALYTIC uniform_integral=1 beer=1 near_horizontal=1
+FOG_RAY capture=0 case=0 probes=109 max_rgb_error=0 mean_rgb_error=0 source_rgb_sum=0 view_128step_max_red_delta=0 surface_probes=54 surface_max_rgb_error=4.89953e-05 shadow_128step_max_red_delta=0
+FOG_RAY capture=0 case=1 probes=109 max_rgb_error=1.39411e-07 mean_rgb_error=2.49108e-08 source_rgb_sum=96.8323 view_128step_max_red_delta=5.55112e-17 surface_probes=54 surface_max_rgb_error=4.65531e-05 shadow_128step_max_red_delta=0
+FOG_RAY capture=0 case=2 probes=109 max_rgb_error=1.42095e-07 mean_rgb_error=1.86154e-08 source_rgb_sum=0 view_128step_max_red_delta=0 surface_probes=54 surface_max_rgb_error=5.18951e-05 shadow_128step_max_red_delta=0
+FOG_RAY capture=0 case=3 probes=109 max_rgb_error=8.63865e-06 mean_rgb_error=3.86122e-07 source_rgb_sum=52.5345 view_128step_max_red_delta=0.00221345 surface_probes=54 surface_max_rgb_error=5.1795e-05 shadow_128step_max_red_delta=0.00463805
+FOG_RAY capture=0 case=4 probes=109 max_rgb_error=9.49797e-07 mean_rgb_error=7.85682e-08 source_rgb_sum=8.39796 view_128step_max_red_delta=0.000660035 surface_probes=54 surface_max_rgb_error=5.22932e-05 shadow_128step_max_red_delta=0.00029702
+FOG_LOCAL capture=0 probes=109 max_rgb_error=1.04968e-05 source_rgb_sum=38.1044
+FOG_OCCLUSION geometry_changes_scattering=1
+FOG_HISTORY dry_history_bitwise_equal=1
+FOG_TOGGLE enabled_cold_equal=1 disabled_cold_equal=1
+FOG_BOUNDS invalid_steps_rejected=1
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+GLAZING_DEVICE name=SwiftShader Device (Subzero) type=4 triangle_bvh=1 hardware_ray_query=0 interaction_cap=2048
+GLAZING_CAPTURE name=VehicleGlazingSheet width=320 height=200
+GLAZING_CAPTURE name=VehicleGlazingClear width=320 height=200
+GLAZING_CAPTURE name=VehicleGlazingAbsorbed width=320 height=200
+GLAZING_RENDER glass_pixels=887 changed_channels=1851 max_decrease=9.13125 total_decrease=43.2632 capped=0 unsupported=0 repeat_exact=1
+GLAZING_MOTION camera_moved=1 cold_equal=1 fresh_transport=1
+GLAZING_RESET all_sources_off_black=1 pixels=64000

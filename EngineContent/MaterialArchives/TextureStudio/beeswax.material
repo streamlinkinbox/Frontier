@@ -1,0 +1,43 @@
+Format = 1
+Name = "Beeswax"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.6938717612919899, 0.3662525955988395, 0.07818742180518633]
+Roughness = 0.38
+Metallic = 0
+Ior = 1.44
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/beeswax-albedo.png"
+Normal = "Textures/beeswax-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "wax"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 28
+grain = 0.2
+surfaceSeed = 17
+depth = 0.5
+scattering = 0.55
+translucency = 0.16
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "wax"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 28
+grain = 0.2
+surfaceSeed = 17
+depth = 0.5
+scattering = 0.55
+translucency = 0.16

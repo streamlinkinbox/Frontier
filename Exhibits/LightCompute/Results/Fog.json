@@ -1,0 +1,206 @@
+{
+  "device": "DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1",
+  "physical_gpu_executed": false,
+  "compute_revision": "cdc516d; exact current sources and products in Results/Manifest.json",
+  "compiler_configuration": "GCC 12.2 Release captures; RelWithDebInfo ASan/UBSan numeric checks, external-driver leak detection disabled",
+  "extent": [
+    320,
+    200
+  ],
+  "checks": {
+    "FOG_ANALYTIC": [
+      {
+        "uniform_integral": 1.0,
+        "beer": 1.0,
+        "near_horizontal": 1.0
+      },
+      {
+        "uniform_integral": 1.0,
+        "beer": 1.0,
+        "near_horizontal": 1.0
+      },
+      {
+        "uniform_integral": 1.0,
+        "beer": 1.0,
+        "near_horizontal": 1.0
+      }
+    ],
+    "FOG_RAY": [
+      {
+        "capture": 0.0,
+        "case": 0.0,
+        "probes": 109.0,
+        "max_rgb_error": 0.0,
+        "mean_rgb_error": 0.0,
+        "source_rgb_sum": 0.0,
+        "view_128step_max_red_delta": 0.0,
+        "surface_probes": 54.0,
+        "surface_max_rgb_error": 4.83518e-05,
+        "shadow_64step_max_red_delta": 0.0
+      },
+      {
+        "capture": 0.0,
+        "case": 1.0,
+        "probes": 109.0,
+        "max_rgb_error": 1.16222e-07,
+        "mean_rgb_error": 2.50369e-08,
+        "source_rgb_sum": 96.8323,
+        "view_128step_max_red_delta": 5.55112e-17,
+        "surface_probes": 54.0,
+        "surface_max_rgb_error": 4.6536e-05,
+        "shadow_64step_max_red_delta": 0.0
+      },
+      {
+        "capture": 0.0,
+        "case": 2.0,
+        "probes": 109.0,
+        "max_rgb_error": 1.42095e-07,
+        "mean_rgb_error": 1.87215e-08,
+        "source_rgb_sum": 0.0,
+        "view_128step_max_red_delta": 0.0,
+        "surface_probes": 54.0,
+        "surface_max_rgb_error": 5.13873e-05,
+        "shadow_64step_max_red_delta": 0.0
+      },
+      {
+        "capture": 0.0,
+        "case": 3.0,
+        "probes": 109.0,
+        "max_rgb_error": 1.14637e-05,
+        "mean_rgb_error": 4.38916e-07,
+        "source_rgb_sum": 52.6048,
+        "view_128step_max_red_delta": 0.00311955,
+        "surface_probes": 54.0,
+        "surface_max_rgb_error": 5.1334e-05,
+        "shadow_64step_max_red_delta": 0.0293056
+      },
+      {
+        "capture": 0.0,
+        "case": 4.0,
+        "probes": 109.0,
+        "max_rgb_error": 9.49914e-07,
+        "mean_rgb_error": 7.33492e-08,
+        "source_rgb_sum": 8.40855,
+        "view_128step_max_red_delta": 0.000652681,
+        "surface_probes": 54.0,
+        "surface_max_rgb_error": 5.21472e-05,
+        "shadow_64step_max_red_delta": 0.00219402
+      },
+      {
+        "capture": 1.0,
+        "case": 0.0,
+        "probes": 65.0,
+        "max_rgb_error": 5.70983e-06,
+        "mean_rgb_error": 3.98339e-07,
+        "source_rgb_sum": 96.3812,
+        "view_128step_max_red_delta": 0.0023509,
+        "surface_probes": 0.0,
+        "surface_max_rgb_error": 0.0
+      },
+      {
+        "capture": 1.0,
+        "case": 1.0,
+        "probes": 65.0,
+        "max_rgb_error": 4.3104e-06,
+        "mean_rgb_error": 2.76633e-07,
+        "source_rgb_sum": 28.2543,
+        "view_128step_max_red_delta": 0.000913255,
+        "surface_probes": 0.0,
+        "surface_max_rgb_error": 0.0
+      },
+      {
+        "capture": 1.0,
+        "case": 2.0,
+        "probes": 65.0,
+        "max_rgb_error": 1.29691e-06,
+        "mean_rgb_error": 7.48417e-08,
+        "source_rgb_sum": 5.1541,
+        "view_128step_max_red_delta": 0.000655281,
+        "surface_probes": 0.0,
+        "surface_max_rgb_error": 0.0
+      }
+    ],
+    "FOG_LOCAL": [
+      {
+        "capture": 0.0,
+        "probes": 109.0,
+        "max_rgb_error": 1.04968e-05,
+        "source_rgb_sum": 38.1044
+      },
+      {
+        "capture": 1.0,
+        "probes": 65.0,
+        "max_rgb_error": 5.48751e-05,
+        "source_rgb_sum": 23.2112
+      }
+    ],
+    "FOG_OCCLUSION": [
+      {
+        "geometry_changes_scattering": 1.0
+      }
+    ],
+    "FOG_HISTORY": [
+      {
+        "dry_history_bitwise_equal": 1.0
+      }
+    ],
+    "FOG_TOGGLE": [
+      {
+        "enabled_cold_equal": 1.0,
+        "disabled_cold_equal": 1.0
+      }
+    ],
+    "FOG_BOUNDS": [
+      {
+        "invalid_steps_rejected": 1.0
+      }
+    ],
+    "FOG_SKY": [
+      {
+        "case": 0.0,
+        "probes": 65.0,
+        "max_rgb_error": 5.0773e-06
+      },
+      {
+        "case": 1.0,
+        "probes": 65.0,
+        "max_rgb_error": 4.37028e-06
+      }
+    ]
+  },
+  "software_vulkan_executed": true,
+  "day_panels": [
+    "fog disabled",
+    "fog with cloud shadow disabled only for in-scattering",
+    "fog with cloud- and geometry-shadowed in-scattering"
+  ],
+  "sky_panels": "same raised camera, in-scattering cloud shadow off/on; broken cloud layer 800-1100m, density scale 2.5, extinction 0.02/m",
+  "wind_capture": "FogShafts2, same field at 120 seconds; fixed Sun and stationary vehicle/camera",
+  "fog_model": "new shadowed single-scattering integration of inherited exponential height density; not a colour blend",
+  "integration": "analytic camera/light-segment optical depth; 32 view midpoints, 16 cloud-shadow samples; local-light view uses 64 midpoints",
+  "day_medium": "base extinction 0.0015/m, scale height 450m, scattering albedo 0.9, HG g 0.65",
+  "local_medium": "base extinction 0.07/m, scale height 10m, HG g 0.35; original point/IES/spot sources",
+  "vehicle": "same authored ControlVehicle; analytic lights, visible emission and four-sample emissive/diffuse transport retained",
+  "emissive_fog": "sampled emitter-to-surface extinction included; emissive-volume in-scattering disabled in these historical captures, opt-in implementation documented in FogFacets.json",
+  "history": "fog resolved after surface reconstruction; resolved scattering never feeds surface history",
+  "limitations": [
+    "single scattering, not multiple scattering",
+    "regular view/shadow sampling can alias",
+    "no temporal fog reconstruction",
+    "diffuse inter-bounce fog scattering/extinction not fully coupled",
+    "bounded local medium, observer-centred cloud environment for indirect rays",
+    "not physical-GPU, Windows or real-time acceptance; no new celestial integration"
+  ],
+  "readback_rgb_sha256": {
+    "FogDry": "ca1b3b671dc501375d7818d7a46bed50b89551193766e60a5e595a549c1256af",
+    "FogShafts0": "9841c1ccaad1cc9f8fc1995638fd70a4a50664e5c8ac028f5093407cb0a42eb0",
+    "FogShafts1": "ab4841649454dfde53bda13614c59bcb5f234e7e13a244b2fb6a6b110a1d4728",
+    "FogShafts2": "46ac4834483f31f5cf35188e08dbb9ca8f3760675b1263090211acf7fbdffd63",
+    "FogLocalDry": "919399b5f42b695d0bafffa29e302d5b14495a9d3349f28624f8488188154ff9",
+    "FogLocal": "9fdbf1052f9110f0e0a6884329ee38a3515996d70771b0ad6b5a2e940b4a8458",
+    "FogSky0": "d2f7f984bc810049f0f614bb7ff17e715ed0a170ed353584cd061fa439ff5907",
+    "FogSky1": "f35e62c5b66c729f93ef346f8ab12b6a548f17d8921ccb4d05ce400232b4a3d2"
+  },
+  "exact_source_and_product_hashes": "Results/Manifest.json",
+  "metadata_correction": "2026-10-25 source audit: day medium corrected to actual AppendFogParameters values; historical images and numeric results unchanged"
+}

@@ -1,0 +1,42 @@
+{
+  "restored_repository": "SultanAladin/Frontier",
+  "restored_branch": "arena/5e581235-frontier",
+  "restored_sha": "063e5917ea60e74a46ea06e4e88f40a7d9419bb5",
+  "upstream_tree_sha": "050f2b07953313a5b126fbc4eef9aa40d3612037",
+  "source_tree_exact_before_audit_additions": true,
+  "restored_tracked_files": 3585,
+  "branch_heads_inspected": 106,
+  "distinct_repository_revisions_inspected": 104,
+  "all_branch_trees_complete": true,
+  "missing_selected_filename_anchors": [
+    "CardRadiance.h",
+    "ClusterSurface.cpp",
+    "DeviceSweep.py",
+    "DistanceFieldSpace.slang",
+    "EnvironmentTodo.md",
+    "RadianceReservoir.h",
+    "RendererProgress.md",
+    "VehicleCapture.cpp",
+    "VehicleInlineFresh.slang",
+    "VulkanDeviceOrdinal.h",
+    "VulkanDispatchSequence.h",
+    "VulkanFixture.h",
+    "VulkanTriangleSpace.h"
+  ],
+  "missing_recent_exhibit_directories": [
+    "Exhibits/ReSTIRPort",
+    "Exhibits/ControlVehicleRender",
+    "Exhibits/ClusterSurface",
+    "Exhibits/TriangleRays",
+    "Exhibits/InlineRays"
+  ],
+  "cpu_checks_passed": 188,
+  "windows_build_rerun": false,
+  "native_vulkan_port_recovered": false,
+  "loss_percentage": null,
+  "scope": "Current heads in both named repositories; selected paths also checked in restored and earlier pinned upstream histories. Not an exhaustive search of every historical or deleted GitHub commit.",
+  "local_checkpoint_commit_created": true,
+  "remote_operations": "Source fetched; checkpoint committed and pushed after user approval with [skip ci]. No dispatch, rerun or PR mutation.",
+  "checkpoint_commit": "12344d0b",
+  "checkpoint_remote": "eosclient0001-rgb/Frontier:arena/bd3633ff-frontier"
+}

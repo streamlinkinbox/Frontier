@@ -1,0 +1,37 @@
+Format = 1
+Name = "Pure Nickel"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.6583748172794485, 0.6239603916750761, 0.4969329950608704]
+Roughness = 0.25
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/pure-nickel-albedo.png"
+Normal = "Textures/pure-nickel-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.05
+detailScale = 65
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.05
+detailScale = 65
+surfaceSeed = 17

@@ -1,0 +1,100 @@
+{
+  "DateLocal": "2026-10-19",
+  "Branch": "arena/73e163a3-frontier",
+  "Scope": "HTML Pattern authoring and browser material shading; native C++ paused",
+  "Outcome": "Succeeded",
+  "UniqueVerifiedChecks": 57,
+  "CompleteRegressionChecks": 55,
+  "CompleteRegressionDuration": "5.1m",
+  "FinalOrientationAndInteractionChecks": 16,
+  "FinalDuration": "1.2m",
+  "OverlappingChecks": 14,
+  "NewFeatureSpecifications": 9,
+  "RetainedSpecifications": 48,
+  "VerificationSequence": "Frozen-source 55-case regression succeeded. Final normal-map UV/rotation/flip/strength and GPU +Y framebuffer refinements were then covered by 16 final successful cases; 14 cases overlap, yielding 57 unique checks. The production build followed the final checks.",
+  "SupportedChannels": [
+    "Colour",
+    "Height",
+    "Normal",
+    "Roughness",
+    "Metalness",
+    "Opacity",
+    "Ambient occlusion via + Channel"
+  ],
+  "SurfaceAssertions": [
+    "Per-layer switches and unlocked multi-edit with mixed amounts",
+    "Independent scalar-channel coverage preserves disabled-channel content below",
+    "Repeat-aware height-derived normal pixels and actual PNG inspection/export",
+    "Supplied normal-map upload, decoding, source validation and undo",
+    "Normal-map UV extents on native paint and legacy shapes; rotation/flip orientation; normalized export at strength 0\u20134",
+    "Actual WebGL PBR framebuffer positive-green versus negative-green directional-light response",
+    "Actual draped-cotton weave shader compiled and rendered without console/page errors"
+  ],
+  "OrganizationAssertions": [
+    "Named nested groups/folders, cycle guards and save/reopen",
+    "Separate default-off group-wide appearance/channel and linked-feature editing",
+    "Preserve unrelated channels and locked artwork",
+    "Stored snapshots with insert-copy/insert-linked, independent placement and proportional feature dimensions",
+    "Only changed linked properties update prototypes; unrelated toggle/navigation edits do not copy local overrides",
+    "Actual UI scoped insertion, linked dimensions/normal upload, atomic undo and exact document restoration",
+    "Retained arrays, native Stamp SVG/text, Inspector alignment/Booleans/masks and raster-cache metadata reuse"
+  ],
+  "Limits": {
+    "ArtworkLayers": 64,
+    "Containers": 64,
+    "NestingLevels": 12,
+    "StoredDefinitions": 24,
+    "DocumentBytes": 12000000,
+    "NormalFileBytes": 1500000,
+    "NormalConvention": "OpenGL +Y"
+  },
+  "Boundaries": [
+    "Height is shaded relief, not silhouette displacement",
+    "Stored definitions are document-owned, not a project-wide content library",
+    "Linked editing propagates existing corresponding feature properties, not structural additions/deletions or container restructuring",
+    "Normal PNGs are finite-difference authoring maps, not a certified physically calibrated material bake",
+    "Only supported material channels are selectable; arbitrary custom shader outputs are not implemented"
+  ],
+  "Build": {
+    "Outcome": "Succeeded",
+    "Seconds": 12.13,
+    "Warnings": [
+      "Existing minified bundle-size warning"
+    ]
+  },
+  "TestingNotes": [
+    "Earlier browser checks were interrupted by editing live sources during verification. Error snapshots showed a document reset and retained draft after hot reload; frozen-source and final verification succeeded.",
+    "Two historical Pattern browser tests still target the superseded toolbar and are explicitly excluded by the reproduction command; current Inspector/array interactions and the new fabric material test are exercised instead.",
+    "Headless Chromium 133 with SwiftShader/software GPU; no hardware-GPU or native Windows execution."
+  ],
+  "Reproduction": "node Exhibits/TextureStudio/Code/PatternChannelsGroupValidation.mjs (installed browser dependencies; optional PLAYWRIGHT_EXECUTABLE_PATH)",
+  "Logs": [
+    "PatternChannelsGroupRegression.log",
+    "PatternChannelsGroupFinalChecks.log",
+    "PatternChannelsGroupBuild.log"
+  ],
+  "SourceSHA256": {
+    "Experimental/TextureStudio/src/PatternOrganization.js": "ea0d9190a051a26ab98b1d047ef3269168450726ad46512adb9a92c94c2a9a69",
+    "Experimental/TextureStudio/src/PatternOrganizationControls.jsx": "3fbbde33c277e76a81e1aef1078efeb9a704b140807c64ee5668fde7c6c146c0",
+    "Experimental/TextureStudio/src/PatternSurfaceChannels.js": "18cb755cfe93ab72590d079231578123108a5bb337a9a12d2ba3a92be2fee881",
+    "Experimental/TextureStudio/src/PatternSurfaceChannelControls.jsx": "8e064d9a2114c01f26dd1a326d4e045ef45c055f05e4479b76d954ff996eceae",
+    "Experimental/TextureStudio/src/PatternEditor.jsx": "fb5fd44612ffcd2cbf122933569b0a20582e7454db1b14ba49546b3b6a4fecc5",
+    "Experimental/TextureStudio/src/patternDocument.js": "c35fbb9e39b77f98744868d81b99957eeb23eabc5473d0ccd44adf3ce2463552",
+    "Experimental/TextureStudio/src/patternRuntime.js": "d97291db07fcaad182aa61258060e2e779321ff1c7490c376fb23aba86a5454c",
+    "Experimental/TextureStudio/src/materials.js": "b4c38956540076104a70eaa12421ba7bccf20c4becb83758af9bc7dcfd9372bf",
+    "Experimental/TextureStudio/src/ArtworkArrays.js": "9b2bf092a98a35097cfdfd910742463c0ad36da1c83eb522bcdf101754229abb",
+    "Experimental/TextureStudio/src/shapeEditorGeometry.js": "3db6a2cd186348eb81ca705af1b9f031adc849c3124eedab3468812915566689",
+    "Experimental/TextureStudio/src/artworkAuthoring.css": "9d4646b3c98563f7ea9dc059f18bf11a8f749478af8ab6b9b5cb4aacdd21cc45",
+    "Experimental/TextureStudio/tests/pattern-channels-groups.spec.js": "0d4a7425fe2bd747c1d88484bcfcc12d67f72aea6d634c3996a870861766d030",
+    "Exhibits/TextureStudio/Code/PatternChannelsGroupValidation.mjs": "1cc750129fe2769186dd0bbca671e1e4a4ae67fb5c8004b7a12ecfdb12c23fb6"
+  },
+  "CaptureSHA256": {
+    "Exhibits/TextureStudio/Images/PatternSurfaceChannelsAndGroups.png": "32b20f5ae0306226c2caa34fd4b5c583769817a6605b6b6c01bc85ddb17ee125",
+    "Exhibits/TextureStudio/Images/PatternWeaveChannelMaterial.png": "50d39666f274a88677bc20b9a8ae290d7fb95b274f0d50ce5e19fead647bf203"
+  },
+  "PreviewHostHTTP": 200,
+  "NativeChanges": false,
+  "WindowsExecution": false,
+  "GitHubActionsRun": false,
+  "CommitOrPush": false
+}

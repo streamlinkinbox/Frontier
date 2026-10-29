@@ -1,0 +1,8 @@
+IESNA:LM-63-2002
+[TEST] Synthetic validation fixture, not a manufacturer's measurement
+TILT=NONE
+1 -1 1 4 1 1 2 0 0 0
+1 1 10
+0 30 60 90
+0
+100 85 25 0

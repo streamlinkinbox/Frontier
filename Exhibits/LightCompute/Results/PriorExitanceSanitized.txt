@@ -1,0 +1,5 @@
+PRIOR_NATIVE_PRIMARY misses=2758 1:5574 2:1727 3:1763 4:2454 10:154 11:127 12:150 13:455 14:514 201:291 205:33 corners=90 surfaces=90 enclosures=31
+PRIOR_EXITANCE_NATIVE checks=8 constant_mip_gap=2.38419e-08 max_bound_overestimate=0 distance_samples=21504
+PRIOR_SAN=0
+UNIFIED_SCENE_NATIVE poses=6 rigid_continuations=5 distance_samples=49152 distance_probes=3000 max_volume_drift=5.90519e-08 max_bound_overestimate=0
+UNIFIED_SAN=0

@@ -1,0 +1,8 @@
+WINDOW_DEVICE name=SwiftShader Device (Subzero) type=4
+WINDOW_SLAB case=0 analytic_pixels=100 mean_error=7.28721e-08
+WINDOW_SLAB case=1 analytic_pixels=100 mean_error=5.08365e-08
+WINDOW_SLAB case=2 analytic_pixels=100 mean_error=0.00312531
+WINDOW_SLAB case=3 analytic_pixels=100 mean_error=0.00256934
+WINDOW_ENERGY case=0 analytic_pixels=100 max_error=4.58834e-09
+WINDOW_ENERGY case=1 analytic_pixels=100 max_error=1.1283e-06
+WINDOW_SOURCE_OFF black=1 pixels=6144 samples=64 directions_per_sample=2

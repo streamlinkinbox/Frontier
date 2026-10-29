@@ -1,0 +1,47 @@
+Project Drive source: SultanAladin/Frontier- commit 3f14808a6dcc909ae64070d62639a7019f5de794
+All retained reference Git blob hashes verified; six imported core units preprocess identically to source.
+Source and imported cores were built and run separately.
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Linux 6.1.158+ x86_64
+== VehicleValidation: source and imported outputs byte-identical ==
+
+------------------------------------------------------------------------
+ RESULT: 35 passed, 0 failed
+------------------------------------------------------------------------
+== VehicleDrivingChecks: source and imported outputs byte-identical ==
+  [PASS] high-speed cornering generates > 0.8 g lateral at moderate steer (sanity of grip) got  1.0000  (want  0.8000)
+=====================================================================================
+ Driving validation: 12 passed, 0 failed, 0 known-limitations
+=====================================================================================
+== AbsSuperchargerChecks: source and imported outputs byte-identical ==
+  [PASS] NA reports no boost / no parasitic drag                       0.000  <  0.010
+
+=== 11 passed, 0 failed ===
+
+== AerodynamicsValidation: source and imported outputs byte-identical ==
+  [PASS] drag in plausible band at 200 km/h (0.5–8 kN)  — 5985.223145 N
+
+=== 23 passed, 0 failed ===
+
+== BrakingValidation: source and imported outputs byte-identical ==
+  [PASS] ABS re-applies pressure once grip returns                  got      1.000  (ref      1.000)
+
+=== 16 passed, 0 failed ===
+
+== SuperchargerValidation: source and imported outputs byte-identical ==
+  [PASS] supercharged engine torque exceeds NA at the same throttle got    492.290  (ref    414.519)
+
+=== 13 passed, 0 failed ===
+
+== VehicleInputChecks: source and imported outputs byte-identical ==
+  [PASS] steering sensitivity 0.5 halves output
+
+=== 16 passed, 0 failed ===
+
+== ProjectDriveTrace: source and imported outputs byte-identical ==
+Trace: 7350 force/torque cases, 4320 transient-slip steps, 8640 drivetrain steps
+PASS Project Drive mock-chassis telemetry drives demo shape bridge over 480 steps
+contact steps 409, peak deformation 0.0477711558 m; manual-pose errors local 5.96046448e-08/world 4.76837158e-07 m
+with/without visual bridge max chassis difference 0 (visual path supplies no forces)
+Scope: upstream equation/invariant tests and mock-chassis simulations, not measured tyre or Jolt validation.
+Unchanged upstream VehicleSceneValidation is stale: its WheelMount initializer no longer compiles.

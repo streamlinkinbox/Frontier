@@ -1,0 +1,25 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+467df15bb88404d2cdc73a7170ae9acb1a451d19c0eaae7d06db5ad2d5a430d2  Frontier/Engine/Rendering/SolarOpticsPayload.h
+bd96f7817884ec65c2fe64c44e4f3ba4abb5f6427772afcc862315443509cec6  Frontier/Engine/Rendering/LensFlareModel.h
+ab588b275eb53da8c50983aea1048e0c7796e3ad244ccc9192ee8d6f6d142420  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+0714bcd4648185ded8c32e8518b4ac0b784599db65ab16160244ebe6168f60fe  Exhibits/LightCompute/Code/SolarOpticsValidation.h
+SOLAR preparing Vulkan pipelines on SwiftShader Device (Subzero)
+SOLAR radius_px=0.4 flux=0.999999767 cpu_error_over_peak=3.63604911e-07
+SOLAR radius_px=1.0 flux=0.999998859 cpu_error_over_peak=1.53190984e-06
+SOLAR radius_px=2.8 flux=0.999998843 cpu_error_over_peak=3.02082645e-06
+SOLAR radius_px=4.5 flux=1.00032362 cpu_error_over_peak=0.000124395995
+SOLAR radius_px=8.0 flux=1.00032768 cpu_error_over_peak=0.000271011057
+SOLAR radius_px=16.0 flux=1.0003128 cpu_error_over_peak=0.000271068883
+SOLAR worst_flux_error=0.000327679885 cpu_max_over_peak=0.000271068883 cartesian_max_over_peak=0.00118268962
+HORIZON gpu_visibility=0.50000006 cloud=0.3 disc_flux=0.150000005
+OCCLUSION limit=-2.0 gpu=0 independent=0 disc_flux=0
+OCCLUSION limit=0.0 gpu=0.500000179 independent=0.5 disc_flux=0.499999994
+OCCLUSION limit=0.5 gpu=0.824410021 independent=0.821583407 disc_flux=0.824409769
+OCCLUSION limit=2.0 gpu=0.999999583 independent=1 disc_flux=0.999999767
+FLARES warm_sum=17.552393 blue_sum=0.0550259108 additive_error_over_peak=2.92864561e-08 cpu_error_over_peak=5.11479718e-05
+COMPOSITE sky_red=0.200000003 surface_red=0.224713981 solar_added=18836.5 geometry_unchanged=1
+SUN_DIAMETER default_arcsec=1919.25277 NASA_mean_arcsec=1919 (1 AU)
+SENSOR synthetic_50mm_4um_2px_sigma=6.7945744023e-05 rad (not a lens measurement)
+PASS Vulkan solar visibility, finite-pixel disc and simultaneous flare layers; device=SwiftShader Device (Subzero)

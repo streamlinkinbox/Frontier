@@ -1,0 +1,100 @@
+{
+  "static": {
+    "static_sequences": 16.0,
+    "accepted": 225214.0,
+    "rejected": 0.0,
+    "spatial": 636165.0,
+    "colour_history": 225214.0,
+    "fresh_rmse": 0.133629,
+    "reconstructed_rmse": 0.0413195
+  },
+  "moving": [
+    {
+      "index": 1.0,
+      "accepted": 152328.0,
+      "rejected": 72952.0,
+      "visibility_rejected": 1212.0,
+      "colour_history": 151116.0,
+      "fresh_rmse": 0.133991,
+      "filtered_rmse": 0.0514145,
+      "native_max_abs": 6.41942e-05
+    },
+    {
+      "index": 2.0,
+      "accepted": 152589.0,
+      "rejected": 73331.0,
+      "visibility_rejected": 1255.0,
+      "colour_history": 151334.0,
+      "fresh_rmse": 0.131754,
+      "filtered_rmse": 0.0581324,
+      "native_max_abs": 6.4224e-05
+    },
+    {
+      "index": 3.0,
+      "accepted": 0.0,
+      "rejected": 225973.0,
+      "visibility_rejected": 0.0,
+      "colour_history": 0.0,
+      "fresh_rmse": 0.130677,
+      "filtered_rmse": 0.0920956,
+      "native_max_abs": 6.39856e-05
+    },
+    {
+      "index": 4.0,
+      "accepted": 153019.0,
+      "rejected": 73541.0,
+      "visibility_rejected": 1286.0,
+      "colour_history": 151733.0,
+      "fresh_rmse": 0.129381,
+      "filtered_rmse": 0.0425423,
+      "native_max_abs": 6.40154e-05
+    },
+    {
+      "index": 5.0,
+      "accepted": 153177.0,
+      "rejected": 73558.0,
+      "visibility_rejected": 1191.0,
+      "colour_history": 151986.0,
+      "fresh_rmse": 0.126105,
+      "filtered_rmse": 0.0424053,
+      "native_max_abs": 6.41942e-05
+    }
+  ],
+  "reuse_energy": {
+    "chains": 64.0,
+    "steps": 4.0,
+    "mean": 1480.78,
+    "native_exact": 1480.88,
+    "standard_error": 0.123867
+  },
+  "rejection": {
+    "material_accepted": 256.0,
+    "material_rejected": 256.0,
+    "normal_rejected": 512.0,
+    "camera_cut_rejected": 512.0,
+    "position_rejected": 512.0,
+    "cold_restart_exact_match": 1.0
+  },
+  "reset": {
+    "lights_off_exact_match": 1.0,
+    "accepted": 0.0
+  },
+  "residual_refresh": {
+    "current_residual_exact_match": 1.0
+  },
+  "static_rmse_reduction_percent": 69.07894244512794,
+  "moving_mean_fresh_rmse": 0.1303814,
+  "moving_mean_filtered_rmse": 0.057318,
+  "moving_rmse_reduction_percent": 56.038207903888136,
+  "motion_display_rgb_sha256": [
+    "1742a0d26aeddbff344e1d3c5a2093e530093c9ddda36ae4df26ab539160744a",
+    "e2279b18962c01516d7427080dd24c5d691028b0ca4d49564c9f194bfb1ab213",
+    "2b8e6cca372b4d7716b123e74f15809bda57193c3d46b4214b67c49eac429b0e",
+    "7fee74a894f8802018e3092f3b09c97ad3c65d529ba6154f2fdfc31713e3dbe7",
+    "735d9ecaa839d5e0374aa90778f05523e7ee9faf31fc2ff0fc8ab153a95c1c7a",
+    "81a8e181304e35b9a2dcaaab8acaa2090578371c203441162d3d18ecfd27d0df"
+  ],
+  "animation": "lossless six-image APNG; display timing is illustrative, not measured rendering time",
+  "warmup": "16 static history updates before moving poses; light change on moving index 3 resets history",
+  "image_comparison": "left fresh eight-candidate RIS; right temporal/spatial reservoirs and reconstruction, same moving pose"
+}

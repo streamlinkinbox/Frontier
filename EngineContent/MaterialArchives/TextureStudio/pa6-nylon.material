@@ -1,0 +1,69 @@
+Format = 1
+Name = "PA6 Nylon"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.6375968739940326, 0.5457244613701866, 0.386429433787049]
+Roughness = 0.576
+Metallic = 0
+Ior = 1.53
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/pa6-nylon-albedo.png"
+Orm = "Textures/pa6-nylon-orm.png"
+Normal = "Textures/pa6-nylon-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.3
+detailScale = 130
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.48
+translucency = 0.05
+depth = 0.5
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.3
+detailScale = 130
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.48
+translucency = 0.05
+depth = 0.5
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.3
+detailScale = 130
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.48
+translucency = 0.05
+depth = 0.5

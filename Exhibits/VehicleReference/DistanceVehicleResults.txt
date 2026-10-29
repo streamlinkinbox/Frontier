@@ -1,0 +1,1 @@
+PASS actual 25068-facet ControlVehicle: 49152 finite grid samples reproduced; 128 independent exhaustive grid probes max error=1.11022e-16m; 256 exhaustive ray probes hits=250, max travel error=1.77636e-15m

@@ -1,0 +1,8 @@
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+ab588b275eb53da8c50983aea1048e0c7796e3ad244ccc9192ee8d6f6d142420  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+8f9655e576419db30b82bcb8ab8c8e9268143b6df2504129f33e2852dca609cc  Exhibits/LightCompute/Code/SolarCaptureGpu.h
+CAPTURE preparing Vulkan on SwiftShader Device (Subzero) (640x360)
+CAPTURE solar_visibility=0.999999583 changed_pixels=230400 total_linear_added=801765.394 peak_linear=10442.1162
+PASS synthetic GPU-readback capture; display encoding exposure=0.45, gamma=2.2
+PNG verified decoded RGB SHA256=4c429ba7dc2438d00d159eca3a215ae488ca3984b2a6dd718f8006e44904430f

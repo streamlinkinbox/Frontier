@@ -1,0 +1,1 @@
+PRIOR_EXITANCE_ORIGINAL pinned_commit=3e8259c moving_reused=0 rough_strip_pixels=1341 rough_strip_mean=0.322794 rough_strip_stddev=0.091428

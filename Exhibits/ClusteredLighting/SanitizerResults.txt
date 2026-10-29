@@ -1,0 +1,6 @@
+PASS Type-C IES interpolation/symmetry/rejections; spot/range/orientation checks
+PASS 10000 independent query probes, 11899 affecting-light checks, 97-light overflow/outside fallback
+PASS native exact images: global visits=2278 local=98
+PASS 1024 fresh clustered RIS trials: mean=8.93014 exhaustive=8.95031 standard_error=0.0274606
+PASS emissive radiance survives inactive analytic proxies
+PASS four-frame temporal/spatial reuse finite; NOT a motion correctness proof

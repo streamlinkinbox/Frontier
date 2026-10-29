@@ -1,0 +1,13 @@
+{
+  "cpu_only": true,
+  "physical_gpu_measured": false,
+  "scope": "retained denim field versus four-channel float-map bilinear sampling; not whole-frame or GPU texture-unit cost",
+  "source_sha256": {
+    "Exhibits/TextureStudio/Code/MaterialBakeTiming.cpp": "aa4dc50952577da9e58bfde6b5f07a713f916a82c0f4570997756630c3cc9546",
+    "Engine/Render/MaterialProceduralBaking.cpp": "77fbf451fb4d38fa257db8fa409bffab83bc290c20345fd7e36acead4a0d166a",
+    "Engine/Render/MaterialProceduralBaking.h": "6ca7205e6e428b1007396955a2b525ad17b067a70c7f97874277ef3a8d539cbb",
+    "EngineContent/MaterialArchives/TextureStudio/indigo-denim.material": "2d8301abee8ad65842e1299026a47ad80e044a155d411900f07f35422d9a39da"
+  },
+  "raw_result": "MATERIAL_BAKE_TIMING cpu_only=1 hardware_gpu=0 extent=512 samples=262144 repetitions=7 bake_ms=99.630744 procedural_p50_ms=88.812869 bilinear_p50_ms=16.912012 ratio=5.25146677 float_map_bytes=4194304 texel_centre_max_error=0 offgrid_albedo_mae=0.030083642 offgrid_albedo_max=0.385714948 checksum=1924933.8",
+  "dependency_revision": "2c980bb59875b0d32144a71867fbdebb2f77cd20"
+}

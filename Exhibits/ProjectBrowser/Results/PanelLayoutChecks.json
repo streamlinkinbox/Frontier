@@ -1,0 +1,63 @@
+{
+  "result": "passed",
+  "browser": "153.0.8010.0",
+  "checks": [
+    "Three identical library/reader column boundaries and three equal headers at y=0; branding header removed",
+    "Working selectable pill-shaped version control",
+    "A4 aspect ratio, whole-sheet fit, no internal clipping, bottom reachable; document does not alter panel widths",
+    "Independent collapse to 44px, expand and persistence between catalogue and reader; back remains accessible",
+    "390px catalogue and document reader fit viewport with compact collapsed side panels"
+  ],
+  "columns": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 204,
+      "height": 1000
+    },
+    {
+      "x": 204,
+      "y": 0,
+      "width": 934,
+      "height": 1000
+    },
+    {
+      "x": 1138,
+      "y": 0,
+      "width": 302,
+      "height": 1000
+    }
+  ],
+  "headers": [
+    {
+      "y": 0,
+      "height": 64
+    },
+    {
+      "y": 0,
+      "height": 64
+    },
+    {
+      "y": 0,
+      "height": 64
+    }
+  ],
+  "paper": {
+    "width": 441.1875,
+    "height": 624,
+    "canvasWidth": 862,
+    "scrollHeight": 1119,
+    "clientHeight": 1119,
+    "overflow": "visible",
+    "canvasOverflow": "visible",
+    "imageCount": 1
+  },
+  "page_errors": [],
+  "source_sha256": {
+    "index.html": "66e27f8bb5616d560f4c497eebfa877e1b696b4b7c6b19f6f34dbf17cee655ee",
+    "Styles.css": "17f2179dbab7090f2cf7e0225f97a428656e494682c1026b7d72005c676f134d",
+    "PanelLayout.css": "12f0f49bb4f13136d253bcf469c894f6749ce82f2d3e0121159184e38f3acabc",
+    "Browser.js": "6a9b19f5dcf6fe4ab7bc7313516c76f57ee72fcde9ee22168b7ea01ff7872fb0",
+    "ReferenceRenderer.js": "571610beb3a4dade808fdc1c540b083560af7ac96158c24482a4fea7f6471672"
+  }
+}

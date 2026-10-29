@@ -1,0 +1,11 @@
+Format = 1
+Name = "Crystal Glass"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.4396571738409188, 0.5775804404296506, 0.5028864580325687]
+Roughness = 0.045
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0

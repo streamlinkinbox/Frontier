@@ -1,0 +1,61 @@
+Fog phase regression scope
+Device: SwiftShader Subzero, CPU type 4; GCC 12.2.
+Release captures: actual 320x200 Vulkan, source compute checkpoint cdc516d.
+Numeric fog checks: RelWithDebInfo ASan/UBSan; external-driver leak detection disabled.
+Native cloud/fog finite-step references are implementation comparisons, not physical/convergence truth.
+All thirteen Slang entries compiled direct SPIR-V O0. Fog/primary/transport/receiver/reuse inspected:
+Shader capability only; 32-bit integer types; no Int64 feature required.
+No physical GPU, Windows, real-time or fully coupled participating-media acceptance is claimed.
+
+=== fog-cloud-regression.txt ===
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+CLOUD_SHADOW case=0 probes=433 max_rgb_error=8.87267e-06 min_transmittance=1 max_transmittance=1
+CLOUD_SHADOW_REUSE case=0 max_rgb_error=9.53674e-07 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW case=1 probes=433 max_rgb_error=3.35243e-06 min_transmittance=0.0731553 max_transmittance=0.0731553
+CLOUD_SHADOW_REUSE case=1 max_rgb_error=5.96046e-08 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW case=2 probes=433 max_rgb_error=2.95112e-06 min_transmittance=0.00598468 max_transmittance=0.988228
+CLOUD_SHADOW_REUSE case=2 max_rgb_error=2.38419e-07 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW case=3 probes=433 max_rgb_error=3.74576e-06 min_transmittance=0.00374286 max_transmittance=0.992511
+CLOUD_SHADOW_REUSE case=3 max_rgb_error=4.76837e-07 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW case=4 probes=433 max_rgb_error=2.93722e-12 min_transmittance=4.17556e-17 max_transmittance=1.72045e-07
+CLOUD_SHADOW_REUSE case=4 max_rgb_error=1.13687e-13 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW_SOURCES non_solar_bitwise_equal=1
+CLOUD_SHADOW_BOUNCE probes=117 max_rgb_error=7.40833e-08 native_rgb_sum=0.142557
+CLOUD_SHADOW_RESET wind_cold_equal=1
+CLOUD_SHADOW_TOGGLE disabled_cold_equal=1 enabled_cold_equal=1
+
+=== fog-legacy-regression.txt ===
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+COMPARE receivers=256000 facets=28276 all_visits=8107704 local_visits=2682703 fallbacks=56643 shadow_rays=513697 stack_fallbacks=0 cpu_mean_abs_rgb=2.02268e-06 cpu_max_abs_rgb=6.44028e-05 channels_over_1e-3=0
+SAMPLING lights=97 receivers=512 seeds=256 mean=1480.95 native_exact=1480.88 standard_error=0.0842466 native_max_abs=8.58307e-06
+REUSE_ENERGY chains=64 steps=4 mean=1480.78 native_exact=1480.88 standard_error=0.123867
+REJECTION material_accepted=256 material_rejected=256 normal_rejected=512 camera_cut_rejected=512 position_rejected=512 cold_restart_exact_match=1
+VISIBILITY offscreen_caster_facets=10 forced_stack_fallbacks=49664 exhaustive_fallback_matches=1
+HISTORY static_sequences=16 accepted=225214 rejected=0 spatial=636165 colour_history=225214 fresh_rmse=0.133629 reconstructed_rmse=0.0413195
+RESET lights_off_exact_match=1 accepted=0
+REFRESH current_residual_exact_match=1
+RIS first_seed_luminance_sum=60640.9 native_exact_luminance_sum=60723.4 fresh_ris_temporal_reuse=0
+PASS Vulkan all-light/cluster/overflow equality and native image comparison
+
+=== fog-transport-regression.txt ===
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+TRANSPORT_RECONSTRUCTION width=160 height=100 reference_seeds=16 updates=8 accepted=14080 spatial=13981 fresh_rmse=0.0103498 filtered_rmse=0.0058573
+TRANSPORT_RECONSTRUCTION_SPATIAL native_probes=210 max_rgb_error=4.8961e-08
+TRANSPORT_RECONSTRUCTION_RESET emission_cold_equal=1 camera_cut_cold_equal=1 sources_off_black=1
+
+=== fog-native-regression.txt ===
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake
+Test project /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake
+    Start 1: LightValidation
+1/4 Test #1: LightValidation ..................   Passed    0.19 sec
+    Start 2: TriangleVisibilityValidation
+2/4 Test #2: TriangleVisibilityValidation .....   Passed    0.14 sec
+    Start 3: TriangleDistanceValidation
+3/4 Test #3: TriangleDistanceValidation .......   Passed    0.14 sec
+    Start 4: CompleteRendererValidation
+4/4 Test #4: CompleteRendererValidation .......   Passed    0.23 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   0.70 sec
+

@@ -1,0 +1,895 @@
+{
+  "format": 1,
+  "review_date": "2026-10-17",
+  "baseline_repository": "SultanAladin/Frontier-",
+  "baseline_commit": "338293863d7df4e585dec0c4acae45fe9c524ed5",
+  "baseline_tree": "338293863d7df4e585dec0c4acae45fe9c524ed5",
+  "review_checkout_revision": "4a77bfd17f23536e32781718553ec6a171e39021",
+  "uncommitted_paths": [
+    " M .gitignore",
+    " M CLAUDE.md",
+    " M EngineDocs/Backlog.md",
+    " M EngineDocs/FolderStructure.md",
+    "?? -",
+    "?? AGENTS.md",
+    "?? Automation/ApplyImGuiPatches.py",
+    "?? Automation/FontRequirements.txt",
+    "?? Automation/FontSources.json",
+    "?? Automation/PackageWindows.py",
+    "?? Automation/Patches/",
+    "?? Automation/PrepareFonts.py",
+    "?? Automation/PrepareUI.py",
+    "?? Automation/StageThorVG.py",
+    "?? Automation/ThorVGSoftware.cmake",
+    "?? Automation/UIDependencies.json",
+    "?? Automation/WindowsToolchain.cmake",
+    "?? CMakeLists.txt",
+    "?? Documentation/FolderStructure.md",
+    "?? Documentation/ImportManifest.json",
+    "?? Documentation/Plans/",
+    "?? Documentation/Rules/",
+    "?? Documentation/SourceNotices.md",
+    "?? Documentation/Tracker.md",
+    "?? Engine/",
+    "?? EngineContent/",
+    "?? Exhibits/ContentBrowser/",
+    "?? Exhibits/ControlCentre/",
+    "?? Exhibits/Docking/",
+    "?? Exhibits/Notifications/",
+    "?? Exhibits/ProjectSpace/",
+    "?? Exhibits/README.md",
+    "?? Exhibits/SpaceFormats/",
+    "?? Exhibits/UIFoundation/",
+    "?? Experimental/",
+    "?? README.md",
+    "?? UI/"
+  ],
+  "scope": "Format specification plus separately authorised native UI correction; not a security certification.",
+  "original_brief_sha256": "0f05294c0f51be08eb76ee039a1acdc080fa3f06e96e7bc7396b00d539c56f44",
+  "refined_plan_sha256": "d0b5165f43ebb8f1b55bfb2d735d0e20660cf8c139d6c20a4d79b1c0b8b9f648",
+  "sources": [
+    {
+      "path": "Docs/ProjectFormat.md",
+      "git_blob": "c35726b309bbee85bff7c95d593c7cd090ca449b",
+      "sha256": "8f8fc793db55fd5aa36acd6a892697350fb46367ddef4420233f5ad63e514640",
+      "bytes": 39435,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Docs/ProjectFormat.md"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceFormat.h",
+      "git_blob": "e61ee3358c8e520c3732e2bb8419d6326f681dc9",
+      "sha256": "889d7845bc3b4d184e6c006d0447dbe533727b39a0d322d36dbb7516da28a923",
+      "bytes": 25902,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceFormat.h"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceCodec.h",
+      "git_blob": "0189632fbab9e5612259bc5b6b6f2404ca4d90ff",
+      "sha256": "3b803de11d45ea9455300dc1116f8ed05145054c2315e8502ede871927b821fa",
+      "bytes": 13913,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.h"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceCodec.cpp",
+      "git_blob": "9279b7556377e4f6a787c70e03a0e9cc3ff860c9",
+      "sha256": "cd588a1c9fe01cd1ef4b4d34c2dd48807da90c9d07af2cc7766e84285fab61d3",
+      "bytes": 47255,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.cpp"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceExport.h",
+      "git_blob": "f4bbe84cce74099fab250c41a3e08f20d733551d",
+      "sha256": "fa0a513d4534ac476aac2242eb938af45cc4b68fa7f995a4f12fac9a8d656769",
+      "bytes": 10460,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceExport.h"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceExport.cpp",
+      "git_blob": "c7757bc858ee1c9230f18e522eb0454c7bcab0ca",
+      "sha256": "82ce5a4a02b73105661aa3f0c8ed72e9b2a5dcd69883133a287fe8e79db5453a",
+      "bytes": 23935,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceExport.cpp"
+    },
+    {
+      "path": "Exhibits/Workbench/ProjectFormat/SpaceFamilyProof.cpp",
+      "git_blob": "88417178f96d62868422a1e2958ac12625c25687",
+      "sha256": "19b9b7baea4b06fcb78bd734f77b0ea7f96e5fd41bf204eb323696a69b9d9aab",
+      "bytes": 75260,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Exhibits/Workbench/ProjectFormat/SpaceFamilyProof.cpp"
+    },
+    {
+      "path": "Exhibits/Workbench/ProjectFormat/CheckSpaceFamily.sh",
+      "git_blob": "0ca883a9e102be1e593f1264efcb9a4059fda84f",
+      "sha256": "cc60d116d90f9b9e9bd85d79e979f2edb5899891485c2490fb663dd37908c80e",
+      "bytes": 7701,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Exhibits/Workbench/ProjectFormat/CheckSpaceFamily.sh"
+    },
+    {
+      "path": "Exhibits/Workbench/ProjectFormat/SpaceTool.cpp",
+      "git_blob": "f1a2859a3d158afcd460e048a8c2e7adda552750",
+      "sha256": "33c0a0310f4664f4c2183fb48dff50132619677aac32660d647249e60e649d0e",
+      "bytes": 39552,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Exhibits/Workbench/ProjectFormat/SpaceTool.cpp"
+    },
+    {
+      "path": "Tools/Scripts/PackProject.sh",
+      "git_blob": "9b8bb35d8b79d3e80b344156e1ab036246b23357",
+      "sha256": "bf1919540f2eacb3a3e16bf9265f1449f01ed7ea01961aa47daab6cbdbb499c1",
+      "bytes": 3250,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Tools/Scripts/PackProject.sh"
+    },
+    {
+      "path": "Tools/Scripts/ExplodeProject.sh",
+      "git_blob": "7bbfd951c492daf04345e55dfb5f9b77eec9117c",
+      "sha256": "3f9c322fb6fb17a6032395909a50558c32fb7542b9b8a071481256c108025f47",
+      "bytes": 1373,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Tools/Scripts/ExplodeProject.sh"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/CommandLine.h",
+      "git_blob": "a0f1d90da7781691567f5422431bb37187be7cbc",
+      "sha256": "4704076d824c984f71be9237ff3a8b6d3977c9ab668dcbaf11884c2a7eee5653",
+      "bytes": 5891,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Projects/Project-Zero/Source/CommandLine.h"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/CommandLine.cpp",
+      "git_blob": "102f1154a7cb1c90a867b6a7fbd3ac245723107d",
+      "sha256": "1cdc1941ca7dc298f5ff5d818d789422c59ed0496c36d4f72f4db682ad9c47c5",
+      "bytes": 9841,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Projects/Project-Zero/Source/CommandLine.cpp"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/CelestialSequence.cpp",
+      "git_blob": "224fe2e1f820a82c24c77beff6a475d4a701712c",
+      "sha256": "facf51316cda2954af0d27d59eae20ce409fe1f7db4ebbbba0eef0f1f2ce42b3",
+      "bytes": 110367,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Projects/Project-Zero/Source/CelestialSequence.cpp"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/FigureRecipe.h",
+      "git_blob": "5233c473bdb010a7c1886788eece7c7d5402382a",
+      "sha256": "e6f53078f7e1ed820d2ececa247b697555436ce61d7d7d1252f6355bd2b38b75",
+      "bytes": 6402,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Document/FigureRecipe.h"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/FigureRecipe.cpp",
+      "git_blob": "e0df9ccc945023468aabe5310be55682d4002588",
+      "sha256": "4e6790cd964b48b1117af3a09bbb5d70b7d6ad2ccbaad79b82f54a3d135af0b4",
+      "bytes": 24396,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Document/FigureRecipe.cpp"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/SceneDocument.h",
+      "git_blob": "bcb148b79d786a1a98e23f1207cd243281f677f8",
+      "sha256": "60218e74094a114d620710a233333cc34547d63a833207421376edd7fff82150",
+      "bytes": 16406,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Document/SceneDocument.h"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/SceneDocument.cpp",
+      "git_blob": "7493ee3db61e16e1759a6b5e4afe58c079ec6a18",
+      "sha256": "00220d0a0a78bea609909c22eb7f724a119d336db885b80ba9d7e5524e6f66bf",
+      "bytes": 14170,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Document/SceneDocument.cpp"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/UndoSequence.h",
+      "git_blob": "53748554c867d69c1c2733c9b57bdb12edc123db",
+      "sha256": "b21dc2299334b2185340284a834912ba4df20b9a6ec87997b5615070708d8fb1",
+      "bytes": 3417,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Document/UndoSequence.h"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/UndoSequence.cpp",
+      "git_blob": "afb96f53587ebfc323aac3c9a111e1510297fad3",
+      "sha256": "5ad6877d6bc9ed9d4133a02a2d25e8648eb2860175cbcf5f859c6007d9747ea8",
+      "bytes": 7886,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Document/UndoSequence.cpp"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.h",
+      "git_blob": "cfeb64fea6fede7f1a8a8a1cc90200f4d661c5aa",
+      "sha256": "d6e6a4209db1ed2d2f1adbcd98ed313e0d1af647838bf3d480a9c1e099f2a228",
+      "bytes": 25852,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.h"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp",
+      "git_blob": "fc180762fb8e42282172283b00d60106f8aa2d88",
+      "sha256": "7823a02f41dd0527895f4b8946eec5d4b9c1ee465b4a8d02a967556bbed395c7",
+      "bytes": 328883,
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp"
+    }
+  ],
+  "current_sources": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "c41c98e6a177cab879a4c4cacabb8c533f75656ba617ef2e54d35895f417b2a6",
+      "origin": "Current Frontier checkout, not the pinned Frontier- baseline"
+    },
+    {
+      "path": "Engine/Interface/FontCodec.h",
+      "sha256": "d7b59ffbb00c3741f290ef1d6dd2b217890849e64aaf6a8ee40734fe8a9115f3",
+      "origin": "Current Frontier checkout, not the pinned Frontier- baseline"
+    },
+    {
+      "path": "Engine/Interface/FontCodec.cpp",
+      "sha256": "a2e807c57dc4a1086729f4a49ff68a7b2d209414859130e139142a8c4caa5d7a",
+      "origin": "Current Frontier checkout, not the pinned Frontier- baseline"
+    },
+    {
+      "path": "Engine/Interface/TypefaceRegistry.h",
+      "sha256": "fc90db00e79f3beeaf181d0663b6642babd09bd7d7a79c59d3dfcd119c7393dc",
+      "origin": "Current Frontier checkout, not the pinned Frontier- baseline"
+    },
+    {
+      "path": "Engine/Interface/TypefaceRegistry.cpp",
+      "sha256": "d824ed2ef12b50396da3d133d9b560e73610e6c78faf5c7046c760db97f6f3c7",
+      "origin": "Current Frontier checkout, not the pinned Frontier- baseline"
+    },
+    {
+      "path": "Engine/Interface/AppearanceCodec.cpp",
+      "sha256": "3843370e4f33fc791051f44fedb8cdaebefcb4ce8413224095f7bdad95c151f1",
+      "origin": "Current Frontier checkout, not the pinned Frontier- baseline"
+    },
+    {
+      "path": "Automation/PrepareFonts.py",
+      "sha256": "d37691851de962147b5d69a1f2266556f0ebfbaa0863d758b1a2932fe8b275da",
+      "origin": "Current Frontier checkout, not the pinned Frontier- baseline"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F01",
+      "classification": "confirmed",
+      "summary": "13 FSPC file types; no fontspace type in the baseline.",
+      "source": "Engine/ContentInterchange/SpaceFormat.h",
+      "first_line": 97,
+      "last_line": 113,
+      "correction": "Keep the 13 existing contracts. Propose fontspace as a justified, unimplemented addition.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceFormat.h#L97-L113"
+    },
+    {
+      "id": "F02",
+      "classification": "confirmed",
+      "summary": "Header 20 bytes; instance row 112 bytes; material slot 24 bytes.",
+      "source": "Engine/ContentInterchange/SpaceFormat.h",
+      "first_line": 128,
+      "last_line": 253,
+      "correction": "Use actual serialized fields, not superseded prose sizes. Freeze v1 fixtures before new layouts.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceFormat.h#L128-L253"
+    },
+    {
+      "id": "F03",
+      "classification": "confirmed",
+      "summary": "Reference record combines type/mode/path/blob with FNV-1a 64 content hash.",
+      "source": "Engine/ContentInterchange/SpaceFormat.h",
+      "first_line": 179,
+      "last_line": 209,
+      "correction": "Specify independent logical identity, immutable revision, output token, SHA-256 and locator.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceFormat.h#L179-L209"
+    },
+    {
+      "id": "F04",
+      "classification": "confirmed",
+      "summary": "External-reference load returns file bytes without comparing recorded content hash.",
+      "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+      "first_line": 982,
+      "last_line": 1028,
+      "correction": "Verify external and embedded payload digests and expected type/revision under the same contract.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.cpp#L982-L1028"
+    },
+    {
+      "id": "F05",
+      "classification": "confirmed",
+      "summary": "SpacePack embeds the current file REFS; it does not recurse into loaded payload dependencies.",
+      "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+      "first_line": 741,
+      "last_line": 797,
+      "correction": "Traverse and pin the complete dependency closure, with full missing/cycle chains and budgets.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.cpp#L741-L797"
+    },
+    {
+      "id": "F06",
+      "classification": "confirmed",
+      "summary": "Parse checks bounds/type/mandatory presence, records checksum failures, and returns true.",
+      "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+      "first_line": 418,
+      "last_line": 502,
+      "correction": "Separate structural inspection from strict load; reject bad required sections before typed access.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.cpp#L418-L502"
+    },
+    {
+      "id": "F07",
+      "classification": "confirmed",
+      "summary": "Find returns the first matching tag; Parse has no duplicate-singleton or overlap rejection.",
+      "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+      "first_line": 441,
+      "last_line": 493,
+      "correction": "Define duplicate/overlap/alignment policy, version/feature validation and allocation/work limits.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.cpp#L441-L493"
+    },
+    {
+      "id": "F08",
+      "classification": "confirmed",
+      "summary": "Writer uses table insertion order, hash-sorted blobs, and raw serialized row bytes.",
+      "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+      "first_line": 292,
+      "last_line": 375,
+      "correction": "Define canonical semantic ordering and ABI-independent encoding; do not promise arbitrary byte identity.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.cpp#L292-L375"
+    },
+    {
+      "id": "F09",
+      "classification": "confirmed",
+      "summary": "Extraction interpolates a directory into a shell mkdir and truncates destination files.",
+      "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+      "first_line": 704,
+      "last_line": 717,
+      "correction": "Use filesystem APIs, contained paths, explicit no-overwrite policy, staging and atomic publication.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.cpp#L704-L717"
+    },
+    {
+      "id": "F10",
+      "classification": "suspected",
+      "summary": "Quoted output paths may permit command injection; no exploit was executed.",
+      "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+      "first_line": 704,
+      "last_line": 717,
+      "correction": "Treat the shell boundary as a security review blocker, not an already-demonstrated exploit.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.cpp#L704-L717"
+    },
+    {
+      "id": "F11",
+      "classification": "confirmed",
+      "summary": "Geometry export serializes resident VertexRecord bytes and a fixed cluster prefix.",
+      "source": "Engine/ContentInterchange/SpaceExport.cpp",
+      "first_line": 47,
+      "last_line": 84,
+      "correction": "Preserve legacy export/readers; define durable authored CAD schemas separate from GPU representations.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceExport.cpp#L47-L84"
+    },
+    {
+      "id": "F12",
+      "classification": "confirmed",
+      "summary": "CAD has recipe operations and figure IDs, but edge/face inputs include array indices.",
+      "source": "Editor/AuthoringTools/Modelling/SolidArc/Document/FigureRecipe.h",
+      "first_line": 23,
+      "last_line": 70,
+      "correction": "Adapt the document model; define durable output/topology tokens and explicit split/merge rebinding.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Document/FigureRecipe.h#L23-L70"
+    },
+    {
+      "id": "F13",
+      "classification": "confirmed",
+      "summary": "Recipe regeneration iterates at most four rounds rather than dependency-order evaluation.",
+      "source": "Editor/AuthoringTools/Modelling/SolidArc/Document/SceneDocument.cpp",
+      "first_line": 268,
+      "last_line": 305,
+      "correction": "Specify typed DAG validation and deterministic ordering; retain last-valid output and diagnostics.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Document/SceneDocument.cpp#L268-L305"
+    },
+    {
+      "id": "F14",
+      "classification": "confirmed",
+      "summary": "Undo/redo stores and swaps SceneDocument snapshots.",
+      "source": "Editor/AuthoringTools/Modelling/SolidArc/Document/UndoSequence.cpp",
+      "first_line": 138,
+      "last_line": 155,
+      "correction": "Keep editor navigation separate from persistent authoring dependencies and revision ancestry.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Document/UndoSequence.cpp#L138-L155"
+    },
+    {
+      "id": "F15",
+      "classification": "confirmed",
+      "summary": "An editable .arc construction-journal save/open path already exists.",
+      "source": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp",
+      "first_line": 2142,
+      "last_line": 2240,
+      "correction": "Preserve .arc as legacy input. Import supported construction into the new schema without discarding it.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp#L2142-L2240"
+    },
+    {
+      "id": "F16",
+      "classification": "confirmed",
+      "summary": "Open replays into a candidate host; constraints, dimensions and named planes also live on ConsoleHost.",
+      "source": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp",
+      "first_line": 2188,
+      "last_line": 2238,
+      "correction": "Candidate replay is not a security sandbox. Map all authored state, not SceneDocument alone.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp#L2188-L2238"
+    },
+    {
+      "id": "F17",
+      "classification": "confirmed",
+      "summary": "Command dispatch invokes recipe regeneration and snapshot undo settlement.",
+      "source": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp",
+      "first_line": 5114,
+      "last_line": 5132,
+      "correction": "Reconnect real command consumers; do not implement a parallel CAD authoring model.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp#L5114-L5132"
+    },
+    {
+      "id": "F18",
+      "classification": "confirmed",
+      "summary": "State domains and several authoring editors are explicitly deferred in the old document.",
+      "source": "Docs/ProjectFormat.md",
+      "first_line": 400,
+      "last_line": 416,
+      "correction": "Preserve that status; container vocabulary is not complete editable-domain persistence.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Docs/ProjectFormat.md#L400-L416"
+    },
+    {
+      "id": "F19",
+      "classification": "confirmed",
+      "summary": "The historical gate compiles CPU tools with Vulkan headers and suppresses some warnings.",
+      "source": "Exhibits/Workbench/ProjectFormat/CheckSpaceFamily.sh",
+      "first_line": 24,
+      "last_line": 60,
+      "correction": "Do not run the old gate as if it validates a proposed revision; define focused new fixtures and platform checks.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Exhibits/Workbench/ProjectFormat/CheckSpaceFamily.sh#L24-L60"
+    },
+    {
+      "id": "F20",
+      "classification": "confirmed",
+      "summary": "Two historical checks explicitly skip GPU image-comparison halves.",
+      "source": "Exhibits/Workbench/ProjectFormat/SpaceFamilyProof.cpp",
+      "first_line": 1,
+      "last_line": 15,
+      "correction": "Historical results are not current runs or Windows/GPU validation.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Exhibits/Workbench/ProjectFormat/SpaceFamilyProof.cpp#L1-L15"
+    },
+    {
+      "id": "F21",
+      "classification": "confirmed",
+      "summary": "CLI parses embed-font policy; that bit alone does not implement a native font document.",
+      "source": "Projects/Project-Zero/Source/CommandLine.cpp",
+      "first_line": 78,
+      "last_line": 86,
+      "correction": "Propose fontspace semantics and trace packaging consumers before assigning a type tag.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Projects/Project-Zero/Source/CommandLine.cpp#L78-L86"
+    },
+    {
+      "id": "F22",
+      "classification": "confirmed",
+      "summary": "Pack/explode wrappers build/reuse the shared tool, with POSIX paths and output conventions.",
+      "source": "Tools/Scripts/ExplodeProject.sh",
+      "first_line": 1,
+      "last_line": 34,
+      "correction": "Reuse the codec boundary, replace unsafe platform assumptions, and verify supported Windows tooling.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Tools/Scripts/ExplodeProject.sh#L1-L34"
+    },
+    {
+      "id": "F23",
+      "classification": "confirmed",
+      "summary": "A runtime sky-probe reader uses SpaceReader and checks staged cache compatibility.",
+      "source": "Projects/Project-Zero/Source/CelestialSequence.cpp",
+      "first_line": 589,
+      "last_line": 620,
+      "correction": "Keep cache compatibility checks explicit; never mistake evaluated cache persistence for authored geometry.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Projects/Project-Zero/Source/CelestialSequence.cpp#L589-L620"
+    },
+    {
+      "id": "F24",
+      "classification": "suspected",
+      "summary": "Complete project-open consumer coverage is not established by parsing CLI options alone.",
+      "source": "Projects/Project-Zero/Source/CommandLine.cpp",
+      "first_line": 111,
+      "last_line": 138,
+      "correction": "Finish launch/export consumer mapping in phase 1 before claiming an end-to-end migration.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Projects/Project-Zero/Source/CommandLine.cpp#L111-L138"
+    },
+    {
+      "id": "F25",
+      "classification": "proposed requirement",
+      "summary": "Strict acyclic typed dependencies, immutable revisions, stable outputs and safe offline closure.",
+      "source": "Engine/ContentInterchange/SpaceCodec.h",
+      "first_line": 165,
+      "last_line": 203,
+      "correction": "The existing resolver/pack API is a reuse candidate, not evidence that these new guarantees are implemented.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceCodec.h#L165-L203"
+    },
+    {
+      "id": "F26",
+      "classification": "proposed requirement",
+      "summary": "Fontspace includes licensing, pinned fallback, variable-axis metadata and derived atlas provenance.",
+      "source": "Engine/ContentInterchange/SpaceFormat.h",
+      "first_line": 97,
+      "last_line": 113,
+      "correction": "Review existing FontCodec/TypefaceRegistry/TOML catalogue in the current checkout; add no duplicate runtime path.",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/ContentInterchange/SpaceFormat.h#L97-L113"
+    }
+  ],
+  "navigation_reference": {
+    "repository": "SultanAladin/Frontier-",
+    "commit": "338293863d7df4e585dec0c4acae45fe9c524ed5",
+    "sources": [
+      {
+        "path": "Engine/DisplayPresentation/ControlCentreHost.h",
+        "git_blob": "fb08baab412e5a4e21d09bedc45f9cbd0ece004b",
+        "sha256": "f01183d8910aa52e5d4e2bc5a43ca72f2af8468bee83942f23e9e12bff613ab6",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ControlCentreHost.h"
+      },
+      {
+        "path": "Engine/DisplayPresentation/ControlCentreHost.cpp",
+        "git_blob": "4ac429bb80b3401a33ce102e3a24e49eea6d2a7d",
+        "sha256": "5e5f4a8a511c71c5ce9efd0eac5900b2b84dbdf9d4a3280f218e059f8df6af0d",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ControlCentreHost.cpp"
+      },
+      {
+        "path": "Engine/DisplayPresentation/ConfigurationInspector.h",
+        "git_blob": "beff86312f6563438fff0cdd3babbae3906804d4",
+        "sha256": "3f25c361c865803be34f89d8b9515b9757568bb63495069b57eea722d49eb120",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ConfigurationInspector.h"
+      },
+      {
+        "path": "Engine/DisplayPresentation/ConfigurationInspector.cpp",
+        "git_blob": "d56fa0b7075d657284bed24c0948b1ece1c6e771",
+        "sha256": "cd0c0e4eecbfc8fb3b4398bd8d7ee6ac46d2293274cfdf839f95df94d59fb0a2",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ConfigurationInspector.cpp"
+      },
+      {
+        "path": "Engine/DisplayPresentation/ConfigurationStructure.h",
+        "git_blob": "45c3a54acd7d345b9dbcf8c01c3c36706e6ff499",
+        "sha256": "c139e563968205cfaa55ed3aa3387deb333ddea065d4d4ef17bbca301ee7d524",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ConfigurationStructure.h"
+      },
+      {
+        "path": "Engine/DisplayPresentation/AppearanceInspector.h",
+        "git_blob": "2149163a75a7697c9cdc48d03e99f63332a96f6c",
+        "sha256": "9016466b48ab218f963b703aa6a2722a7d7f6d6ba8581801142c5c59e12e6e6e",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/AppearanceInspector.h"
+      },
+      {
+        "path": "Engine/DisplayPresentation/AppearanceInspector.cpp",
+        "git_blob": "3f1d384061cb4b8997168b530072edd4f6c8e417",
+        "sha256": "802aecb5f32de25ee15f6a04ad8405dc0c5747c7445f06de88cd885eb6f8ed5d",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/AppearanceInspector.cpp"
+      },
+      {
+        "path": "Experimental/TextureShaderEditor/src/AssetContentBrowser.jsx",
+        "git_blob": "99ff1655afb5a4cd30e17288b152cb0b48a5b453",
+        "sha256": "e7350fc62765a6cdedce5ebf2aa1de88c3367284694338a8e79da236e79a01ce",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Experimental/TextureShaderEditor/src/AssetContentBrowser.jsx"
+      },
+      {
+        "path": "Experimental/TextureShaderEditor/src/assetContentBrowser.css",
+        "git_blob": "ece76caec2c1251179aa691fca013f3433898ae8",
+        "sha256": "079485e384b4e435c786c795f33fc4a2343e9c3bddcb8eb12854c01776f16571",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Experimental/TextureShaderEditor/src/assetContentBrowser.css"
+      },
+      {
+        "path": "Experimental/TextureShaderEditor/docs/paint-tools-and-content-browser.md",
+        "git_blob": "05fed16d437ff5597bbecdcb2519e7dd13eff882",
+        "sha256": "2fb1e9695b01834dec0aa215f25f053c080aea576053efea9a398a9d27bc75c3",
+        "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Experimental/TextureShaderEditor/docs/paint-tools-and-content-browser.md"
+      }
+    ]
+  },
+  "native_ui_report": "Exhibits/ControlCentre/Results/NavigationChecks.json",
+  "native_ui_report_sha256": "201b0782204812ff7aec84fa4199c6dc40fe445f1639826e837bf0d579851e8b",
+  "images": [
+    {
+      "path": "Exhibits/ControlCentre/Images/ClosedNotch.png",
+      "label": "Collapsed expansion tab",
+      "sha256": "90e0ea8f9dfc3f682ba30b94241cdaf2e0406ce79e24dd1821ae3c6b36434274",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/QuickPanel.png",
+      "label": "Quick controls - circular toggles",
+      "sha256": "f85e1dafa07d7e91208147de84d663e1569cbdde5994683e1f8f0c4d60d9f439",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Settings.png",
+      "label": "Settings - category list",
+      "sha256": "d0905c26a5b59317731500d86b37f684f1e1e0aa61e37593fdb008f9508e8818",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/SettingsTransition.png",
+      "label": "Settings - animated page entry",
+      "sha256": "5e24b829493103729716a4f2afb617a982eda538a8efea9078b03bb99c3e3a17",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Input.png",
+      "label": "Input - editable preferences",
+      "sha256": "be2c18014e1c0af705465bee373c10530b094ad6b74f65df0506daf28387724f",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/InputCapture.png",
+      "label": "Input - native keyboard chord capture",
+      "sha256": "5cd12073e46640f015f7111877ee2dc2024eabc4ceeffdba139907f817b0a431",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/InputConflict.png",
+      "label": "Input - duplicate shortcut rejected",
+      "sha256": "33849cd1b682a35913797a374cc8fbc0e75aaff93f5a16386f15bb29ee51e6a6",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/InputConfigured.png",
+      "label": "Input - applied and persisted",
+      "sha256": "9378b53008d3bc2c4c3d718e63645376b8748d9f6cb7bf95d17a780c37cbaee8",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/InputPointerResponse.png",
+      "label": "Input - applied pointer response",
+      "sha256": "bab9a6cc69eb613fabbf0659d6fac644437ecb41d7799cd94fcf4798aa7c7c2b",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Notifications.png",
+      "label": "Notifications - working session preferences",
+      "sha256": "a27e75fe11f70ca3ded4726076ce8b0c90f288480aa1226583538398b93b3f14",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Fonts.png",
+      "label": "Appearance - Typography",
+      "sha256": "60bf4d4e931904457027fe519e4f498a39073c981e9e4b410bc08998aeeef939",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Display.png",
+      "label": "Appearance - interface scale",
+      "sha256": "087fcaed60ae8746ac4be1a7e4e0228a21e4b8e81d1bfddd621019b22a0abc42",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/TypeScale.png",
+      "label": "Typography - type scale",
+      "sha256": "51568db25e1e17b2b687cb278c11a131ce54eb4b9acf66022400110195192d75",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Theme.png",
+      "label": "Appearance - Theme",
+      "sha256": "b188cf39fd5cb91bb9620d74147e175af13e8f3877f5e95ccc46ecc8efed2c48",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/LightTheme.png",
+      "label": "Applied light theme",
+      "sha256": "c24938e2a75f7ae5aa7b6b8e6e18a5cc60b92f658cc87f76a3f3c7f580e7a6d7",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/SwipeUp.png",
+      "label": "Upward drag - travelling boundary",
+      "sha256": "993dc514b8dd77183bde5f846eb773cb01096502c54b1f4ff155165a4f610524",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserRoot.png",
+      "label": "Content Browser - real EngineContent directories",
+      "sha256": "d895bb64c887664da23b1f3004ef2f9b03e5827f157cbd7503f05a59566d04ae",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserSearch.png",
+      "label": "Content Browser - live filename search",
+      "sha256": "c98da024bc223bad9236b88b6fcd8ede9df869e1035dfa3d7647f73f036571f1",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserSelection.png",
+      "label": "Content Browser - SVG selection and file details",
+      "sha256": "7a979dd2b4ed5d2d8cae4bd3df6bdb590724854e58aa9a257d90472e74464bc8",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserEmpty.png",
+      "label": "Content Browser - empty filtered results",
+      "sha256": "32911c1412075f8f19ab01deb0ec09452844b0a41239d05fed9b5807f1129403",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserLight.png",
+      "label": "Content Browser - shared applied light theme",
+      "sha256": "72f3702ea93e5ef88f04de4309c656fbb137f2047766affde060b4533227d45a",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserNarrow.png",
+      "label": "Content Browser - 375x700 at 125 percent",
+      "sha256": "599cf002e4021b2b3def302dec4fdf3e887fc0c5dc1a914943ecd72bad32b404",
+      "width": 375,
+      "height": 700
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserDrag.png",
+      "label": "Content Browser - downward pointer carry",
+      "sha256": "59847210331a450d11efee545c01dff54aa82962eb2e737bfc8cf28c13034193",
+      "width": 375,
+      "height": 700
+    },
+    {
+      "path": "Exhibits/ProjectSpace/Images/ProjectAppearance.png",
+      "label": "Projectspace - embedded appearance and explicit save scope",
+      "sha256": "451b64a5f46289cdc12b22bba00e922460682bf41afc5092fd1c988811d9fe96",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ProjectSpace/Images/ProjectInput.png",
+      "label": "Projectspace - saved input profile",
+      "sha256": "44d8700ce0b66cb877da207b166e4a37efc0d23041a4181d779ff09373deb2c8",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ProjectSpace/Images/ProjectNotifications.png",
+      "label": "Projectspace - saved notification preferences",
+      "sha256": "8adab20d47d2177cfe143139911ad9d612e0269c3042b994b8b633152f839118",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/ProjectSpace/Images/EmergencyFont.png",
+      "label": "Projectspace - built-in emergency font with no packaged faces",
+      "sha256": "20fa2f6e55ba2eae3cf048019295cebea97dcec0964217e7cc0798b7f618487d",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Notifications/Images/SavedTopRight.png",
+      "label": "Notifications - actual preference save, top-right card",
+      "sha256": "8a8aea6f08b9a4e55656c21b68abc14d55b664a7a5f65740601f94319e8abfa6",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Notifications/Images/SaveError.png",
+      "label": "Notifications - actual refused save, error card",
+      "sha256": "04595ad6a9b1167abfeb6738353212fbed525e543282eeb2b96556d34ba4c164",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Notifications/Images/NotificationHistory.png",
+      "label": "Quick Controls - Notification Stream beside the tiles",
+      "sha256": "2439856a60cbc920ce1b82d31622180199f39e89e31a799ce13e3de9325613bc",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Notifications/Images/NotificationNarrow.png",
+      "label": "Notifications - 375x700 viewport at 125 percent",
+      "sha256": "9f21566d21886e700849d4b924e37162ebd3f0ebe166cd81b3c371877d24388b",
+      "width": 375,
+      "height": 700
+    },
+    {
+      "path": "Exhibits/Notifications/Images/CardsLight.png",
+      "label": "Notifications - light semantic fixtures, production renderer",
+      "sha256": "15424c7c8680e5f24576b7d5b70137a42cbac9a6b6a7fb37fb713873aae6966f",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Notifications/Images/CardsDark.png",
+      "label": "Notifications - dark semantic fixtures, production renderer",
+      "sha256": "75fcc78264650bd22e6ce98c7ef0ab3bbef01c07d6426adda04a344b3c5322c4",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Notifications/Images/ConfirmApply.png",
+      "label": "Confirmation - actual preference Apply / Cancel popup",
+      "sha256": "7fd815602e3171bfaed081b111e64b267140bdee5650f5009cecfbf544b9c9c5",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Notifications/Images/ConfirmSemantic.png",
+      "label": "Confirmation - semantic-header fixture, no invented operation",
+      "sha256": "0867d2d01d52407a125d4f76ffee5afaa011b94ccc8096f05cad3f8ba6b01775",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Notifications/Images/StreamNarrow.png",
+      "label": "Quick Controls - stacked Notification Stream at 125 percent",
+      "sha256": "bad739edb871c02e31e3de94708d672e3b7310d694570997e957ef35294b793a",
+      "width": 375,
+      "height": 700
+    },
+    {
+      "path": "Exhibits/Docking/Images/DraggableDefault.png",
+      "label": "Workspace - draggable browser trapezoid is the default",
+      "sha256": "02095fc124197f5369cb6329602175c3fc7b49ac864ff60b1fe08691ebd0b5d8",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Docking/Images/DockedContent.png",
+      "label": "Docking - original Content Browser in native patched tab",
+      "sha256": "46b679c7909f33aa14f8296be398a63dc6a817f4ca33734ef27d1fdb621357c9",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Docking/Images/DockedStream.png",
+      "label": "Docking - native Notification Stream tab selection",
+      "sha256": "57b3669218f5a0e4bcf98fe9b50ba7d8875c9d8addd52fcdcd4d5ff0a174b5a5",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Docking/Images/SplitPanels.png",
+      "label": "Docking - native builder split retaining original content",
+      "sha256": "4dff851eec2341af097b2c64e246622d73b7c083b2db9f63afbe919825e4c0a4",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Docking/Images/WorkspaceSettings.png",
+      "label": "Workspace - hosting preferences and saved-layout reset",
+      "sha256": "cbd7c2c200ae21c475603598e4f7279b81e38ac6cfe9bc3122a8e3e899ee5402",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Docking/Images/RestoredTabs.png",
+      "label": "Workspace layout - tab order and selection restored in a fresh context",
+      "sha256": "bd3103a523374cfcc1386d75c3dde99ffd8ec636e59de302121d13ac4dd12ba9",
+      "width": 1100,
+      "height": 1000
+    },
+    {
+      "path": "Exhibits/Docking/Images/RestoredSplit.png",
+      "label": "Workspace layout - split proportions restored in a fresh context",
+      "sha256": "ac4f0b3b0807ce3d62ed4633e5982a9f5234a9d5fc1bacfb360bd1e05b085623",
+      "width": 1100,
+      "height": 1000
+    }
+  ],
+  "checks": {
+    "baseline_git_blob_pins": "passed",
+    "finding_line_ranges": "passed",
+    "baseline_type_count_and_header": "passed",
+    "existing_arc_save_path": "passed",
+    "native_png_headers_and_dimensions": "passed",
+    "historical_space_gate": "not run",
+    "proposed_format_acceptance": "editor projectspace persistence passed; binary/other format acceptance not run",
+    "new_native_ui_execution": "passed; ControlCentreValidation, ContentBrowserValidation, ProjectSpaceValidation, NotificationValidation, DockingValidation and WorkspaceLayoutValidation; see ControlCentre/Results/NavigationChecks.json",
+    "windows_runtime_and_gpu": "not run"
+  },
+  "limitations": [
+    "Static findings are not exploitation tests or runtime safety certification.",
+    "Browser evidence viewer is not a native editor implementation.",
+    "B approved: editable authoring sources remain separate from compiled binary runtime packages.",
+    "Editable projectspace persistence is implemented; binary runtime/other Space codecs remain gated.",
+    "Input shortcuts execute UI commands; pointer settings have a response preview, not scene-camera integration.",
+    "Top-right cards, Quick Controls Notification Stream and Apply/Cancel dialogues are implemented; action callbacks and independent fatal presentation remain pending."
+  ]
+}

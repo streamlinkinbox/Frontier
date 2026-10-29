@@ -1,0 +1,43 @@
+NOTE: initial legacy run used primary-motion input with no uploaded raster receivers and correctly failed its history-coverage assertion; corrected below using native --vulkan-input / --motion-input fixtures.
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+FOG_ANALYTIC uniform_integral=1 beer=1 near_horizontal=1
+FOG_RAY capture=0 case=0 probes=109 max_rgb_error=0 mean_rgb_error=0 source_rgb_sum=0 view_128step_max_red_delta=0 surface_probes=54 surface_max_rgb_error=4.83518e-05 shadow_128step_max_red_delta=0
+FOG_RAY capture=0 case=1 probes=109 max_rgb_error=1.16222e-07 mean_rgb_error=2.50369e-08 source_rgb_sum=96.8323 view_128step_max_red_delta=5.55112e-17 surface_probes=54 surface_max_rgb_error=4.6536e-05 shadow_128step_max_red_delta=0
+FOG_RAY capture=0 case=2 probes=109 max_rgb_error=1.42095e-07 mean_rgb_error=1.87215e-08 source_rgb_sum=0 view_128step_max_red_delta=0 surface_probes=54 surface_max_rgb_error=5.13873e-05 shadow_128step_max_red_delta=0
+FOG_RAY capture=0 case=3 probes=109 max_rgb_error=9.56828e-06 mean_rgb_error=5.63208e-07 source_rgb_sum=52.5689 view_128step_max_red_delta=0.00202864 surface_probes=54 surface_max_rgb_error=5.1334e-05 shadow_128step_max_red_delta=0.000818986
+FOG_RAY capture=0 case=4 probes=109 max_rgb_error=9.49521e-07 mean_rgb_error=9.16356e-08 source_rgb_sum=8.39633 view_128step_max_red_delta=0.000482646 surface_probes=54 surface_max_rgb_error=5.21472e-05 shadow_128step_max_red_delta=0.000100323
+FOG_LOCAL capture=0 probes=109 max_rgb_error=1.04968e-05 source_rgb_sum=38.1044
+FOG_OCCLUSION geometry_changes_scattering=1
+FOG_HISTORY dry_history_bitwise_equal=1
+FOG_TOGGLE enabled_cold_equal=1 disabled_cold_equal=1
+FOG_BOUNDS invalid_steps_rejected=1
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+COMPARE receivers=256000 facets=28276 all_visits=8107704 local_visits=2682703 fallbacks=56643 shadow_rays=513697 stack_fallbacks=0 cpu_mean_abs_rgb=2.02268e-06 cpu_max_abs_rgb=6.44028e-05 channels_over_1e-3=0
+SAMPLING lights=97 receivers=512 seeds=256 mean=1480.95 native_exact=1480.88 standard_error=0.0842466 native_max_abs=8.58307e-06
+REUSE_ENERGY chains=64 steps=4 mean=1480.78 native_exact=1480.88 standard_error=0.123867
+REJECTION material_accepted=256 material_rejected=256 normal_rejected=512 camera_cut_rejected=512 position_rejected=512 cold_restart_exact_match=1
+VISIBILITY offscreen_caster_facets=10 forced_stack_fallbacks=49664 exhaustive_fallback_matches=1
+HISTORY static_sequences=16 accepted=225214 rejected=0 spatial=636165 colour_history=225214 fresh_rmse=0.133629 reconstructed_rmse=0.0413195
+MOTION index=1 accepted=152328 rejected=72952 visibility_rejected=1212 colour_history=151116 fresh_rmse=0.133991 filtered_rmse=0.0514145 native_max_abs=6.41942e-05
+MOTION index=2 accepted=152589 rejected=73331 visibility_rejected=1255 colour_history=151334 fresh_rmse=0.131754 filtered_rmse=0.0581324 native_max_abs=6.4224e-05
+MOTION index=3 accepted=0 rejected=225973 visibility_rejected=0 colour_history=0 fresh_rmse=0.130677 filtered_rmse=0.0920956 native_max_abs=6.39856e-05
+MOTION index=4 accepted=153019 rejected=73541 visibility_rejected=1286 colour_history=151733 fresh_rmse=0.129381 filtered_rmse=0.0425423 native_max_abs=6.40154e-05
+MOTION index=5 accepted=153177 rejected=73558 visibility_rejected=1191 colour_history=151986 fresh_rmse=0.126105 filtered_rmse=0.0424053 native_max_abs=6.41942e-05
+MOTION_SUM fresh_rmse_sum=0.651907 filtered_rmse_sum=0.28659
+RESET lights_off_exact_match=1 accepted=0
+REFRESH current_residual_exact_match=1
+RIS first_seed_luminance_sum=60640.9 native_exact_luminance_sum=60723.4 fresh_ris_temporal_reuse=0
+PASS Vulkan all-light/cluster/overflow equality and native image comparison
+Test project /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake
+    Start 1: LightValidation
+1/4 Test #1: LightValidation ..................   Passed    0.14 sec
+    Start 2: TriangleVisibilityValidation
+2/4 Test #2: TriangleVisibilityValidation .....   Passed    0.12 sec
+    Start 3: TriangleDistanceValidation
+3/4 Test #3: TriangleDistanceValidation .......   Passed    0.11 sec
+    Start 4: CompleteRendererValidation
+4/4 Test #4: CompleteRendererValidation .......   Passed    0.18 sec
+
+100% tests passed out of 4
+
+Total Test time (real) =   0.55 sec

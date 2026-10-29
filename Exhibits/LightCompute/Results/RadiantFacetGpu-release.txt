@@ -1,0 +1,20 @@
+Engine CDF in existing fog/facet checks; 13 shared Slang entries, SwiftShader CPU Vulkan
+fc33969bca4c0592bdff604ad19035a943c91d01ae6340cb6219f5e5a9efb0ca  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+FOG_FACET_ANALYTIC samples=131072 relative_error=0.000445949 expected_red=2.2433 native_red=2.2423
+FOG_FACET case=0 probes=112 max_rgb_error=3.56212e-06 rgb_sum=663.744 width=64 height=40
+FOG_FACET case=1 probes=112 max_rgb_error=5.98426e-06 rgb_sum=956.753 width=64 height=40
+FOG_FACET case=2 probes=112 max_rgb_error=4.68905e-06 rgb_sum=976.599 width=64 height=40
+FOG_FACET case=3 probes=112 max_rgb_error=1.32422e-05 rgb_sum=2159.54 width=64 height=40
+FOG_FACET_CHECKS cold_equal=1 surface_isolation_equal=1 zero_density_equal=1 empty_cdf_equal=1 invalid_budget_rejected=1 invalid_cdf_rejected=1
+Reproduction: bash Exhibits/LightCompute/RunRadiantFacetGpu.sh
+Base: fe774a5796476bb055429e9ee3d1b208202e8aa1 plus extracted CDF and exhibit-consumer changes (hashes below).
+Linux 6.1.158+ x86_64
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+798ad9beb7f8c4610b94e1711238bbc27b199d654fdfee53f90d7f2d24fc13fc  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+dff95aba7c1ec197f690b88167a1009777b9d408db2090faa9bc4b405fc571ae  Exhibits/LightCompute/Code/EmissiveFacetQuadrature.h
+3d5388a3642b916ec09340a8f32114695b18e3983f690518476ef7c350cc0cd4  Exhibits/LightCompute/Code/FogFacetValidation.h
+c5fe95098de8363bac4cdbc2d0ae26899777c5c878c0b9fef4dc6a92aeba7c9a  _ClaudeScratch/vehicle-replay-compatibility/VehicleLightInput.bin

@@ -1,0 +1,120 @@
+Moving replay disjoint-seed repeat; --replay-facet-mixture-motion-repeat-smoke; host sanitized
+Base ce77bdd, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+6697e520368835e89f1832613ed07b6ae72ddf0b8db31a12c78736d2f48753ea  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+3a689e043b64039ba57bd5bc38eaab95b4d369b863f4a5d233a2d0568ff96e04  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+4cb78b9b62f3366edc54ded72ad2f2775f61b1cdcaba82058aaae0baf4fc7a3e  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+fa24e8eb1fd6c516810260f2dd6656e56616d016070552530d42a8b4fcee63e0  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+06dab77604bba8d5a25016ee236c11de8d37ff32b03b502c1ad4a909efcc74e6  Exhibits/LightCompute/Code/ReplayMotionValidation.h
+3ccc45548bd503e3cc73706cae5c10f8ccbe7a9c1909fb21a470f0b9d083368a  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+b4705522c8b963c611a4b1e79a4e5ef04d92ba986db39c8e7d204c71fa7c1f5e  Exhibits/LightCompute/Code/ReplayTextureRoomValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+71652e374f6a409e89938abe7ac205574262c381cc510be1a11b6167cc97ee90  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+965ff5689461b7ff2c81598c14a5f60c165bf5ccc1293b0df2da0a2f46700588  Exhibits/LightCompute/Code/RoughTextureMotionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+f14fa4531e6362f1ecefacdb31458cffa9a483dc8ef5d3aa7e80b94c1b32a5b8  Exhibits/LightCompute/Code/ReplayFacetMixtureCapture.h
+1cfe8dd5d54e5c9e34e99931def5b6c36b3c945a8cea187425e6c1848c7ddee2  Exhibits/LightCompute/Code/ReplayFacetMixtureMotionValidation.h
+629ffc63b3630f2ec720f3adff1bd6c2e0d0af6bffc59583c1460704d6ca7b5f  Exhibits/LightCompute/Code/ReplayMotionProbeRegion.slang
+e286220910372aed53cb28d644e14833fc1994057872528f4c79dfd12ec78d0b  Exhibits/LightCompute/Code/ReplayFacetMixtureMotionRepeat.h
+90f7f2d4e72967f0e759be0c1de662e69e49eae7f1a9209dcc4cb4cec91f5786  Exhibits/LightCompute/RunReplayFacetMixtureMotionRepeat.sh
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=12 proposal=1 weighted_facets=1 uniform_mixture=1 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+MIXTURE_MOTION_SOURCE translation=-0.119999997 observed=-0.120000005 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=-0.119999997 observed=-0.120000005 radiant_facets=2
+TEXTURE_MOTION_UV vertices=30 maximum_error=1.1920929e-07
+MOTION_REPEAT preparing Vulkan on SwiftShader Device (Subzero)
+TEXTURE_MOTION_PRIMARY repeat_previous hits=3840 textured=1172 mips=182/158/570/262 mip_boundaries=0 position_error=3.81469727e-06 normal_error=0 albedo_error=6.10947609e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS repeat_previous textured=1172 max_error=0
+TEXTURE_MOTION_PRIMARY repeat_moved hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS repeat_moved textured=1173 max_error=0
+TEXTURE_MOTION_PRIMARY repeat_blocked hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS repeat_blocked textured=1173 max_error=0
+TEXTURE_MOTION_PRIMARY repeat_reopened hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS repeat_reopened textured=1173 max_error=0
+TEXTURE_MOTION_PROBE token=8 pixel=28,38 mip=0 albedo=0.08,0.576,0.12 previous_pixel=30.4884,37.9583
+TEXTURE_MOTION_PROBE token=1 pixel=46,50 mip=2 albedo=0.284759,0.555524,0.102084 previous_pixel=46.7946,50.0000
+MOTION_REPEAT tracing 12000 paths per independent CPU reference
+MOTION_REPEAT_REGION seeds=3 rgba_components=168 differing_bits=0 history_transitions=9
+MOTION_REPEAT_REGION active_hits=338 full_pixels=4096
+MOTION_REPEAT_GROUP group=0 batches=8 rigid_green_uniform=0.0117360086 uniform_se=0.00124449405 mixture=0.0127253674 mixture_se=0.0015883963 sd_ratio=1.27633901
+MOTION_REPEAT_GROUP group=1 batches=8 rigid_green_uniform=0.0143577615 uniform_se=0.00299313495 mixture=0.0126303071 mixture_se=0.00100339964 sd_ratio=0.335233678
+TEXTURE_MOTION_REFERENCE repeat_uniform_moved_rigid channel=0 cpu=0.00296258452 cpu_se=0.000118404141 vulkan=0.00230337702 batch_se=0.00014650483 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_uniform_moved_rigid channel=1 cpu=0.0146426961 cpu_se=0.000473479663 vulkan=0.0130468851 batch_se=0.0016019795 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_uniform_moved_rigid channel=2 cpu=0.00295352367 cpu_se=7.51902252e-05 vulkan=0.00277542213 batch_se=0.000328479007 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_uniform_moved_floor channel=0 cpu=0.1230243 cpu_se=0.0204942706 vulkan=0.114250686 batch_se=0.0120094828 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_uniform_moved_floor channel=1 cpu=0.160778544 cpu_se=0.0220832278 vulkan=0.156289543 batch_se=0.017572437 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_uniform_moved_floor channel=2 cpu=0.0440975869 cpu_se=0.0109648416 vulkan=0.0360722339 batch_se=0.00415597118 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_moved_rigid channel=0 cpu=0.00296258452 cpu_se=0.000118404141 vulkan=0.00236896578 batch_se=0.000152972075 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_moved_rigid channel=1 cpu=0.0146426961 cpu_se=0.000473479663 vulkan=0.0126778373 batch_se=0.000907619851 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_moved_rigid channel=2 cpu=0.00295352367 cpu_se=7.51902252e-05 vulkan=0.00319296344 batch_se=0.000509706579 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_moved_floor channel=0 cpu=0.1230243 cpu_se=0.0204942706 vulkan=0.109814473 batch_se=0.0107705323 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_moved_floor channel=1 cpu=0.160778544 cpu_se=0.0220832278 vulkan=0.156282064 batch_se=0.0177524169 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_moved_floor channel=2 cpu=0.0440975869 cpu_se=0.0109648416 vulkan=0.0383075448 batch_se=0.00577764243 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_blocked_rigid channel=0 cpu=0.00168299691 cpu_se=2.28675546e-05 vulkan=0.00139099503 batch_se=0.000227985236 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_blocked_rigid channel=1 cpu=0.00916516166 cpu_se=0.000109441405 vulkan=0.00696856777 batch_se=0.00133809232 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_blocked_rigid channel=2 cpu=0.00224810234 cpu_se=2.51305361e-05 vulkan=0.00182128288 batch_se=0.000352441358 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_blocked_floor channel=0 cpu=0.00716974221 cpu_se=0.00145021767 vulkan=0.0127625633 batch_se=0.00780100879 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_blocked_floor channel=1 cpu=0.0103881651 cpu_se=0.00208275455 vulkan=0.0147128438 batch_se=0.0104492055 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_blocked_floor channel=2 cpu=0.00309280144 cpu_se=0.000540261277 vulkan=0.00340685035 batch_se=0.0024257578 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_reopened_rigid channel=0 cpu=0.00479476411 cpu_se=0.00025997971 vulkan=0.00528002778 batch_se=0.000731778949 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_reopened_rigid channel=1 cpu=0.0224603427 cpu_se=0.00103189458 vulkan=0.0242782683 batch_se=0.00324240432 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_reopened_rigid channel=2 cpu=0.00412701749 cpu_se=0.000178684794 vulkan=0.00476783411 batch_se=0.000828709683 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_reopened_floor channel=0 cpu=0.0969663634 cpu_se=0.00544458813 vulkan=0.0914394748 batch_se=0.00521929588 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_reopened_floor channel=1 cpu=0.127642351 cpu_se=0.00688374846 vulkan=0.131432929 batch_se=0.0100228017 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_mixture_reopened_floor channel=2 cpu=0.031235376 cpu_se=0.0020854531 vulkan=0.0335469233 batch_se=0.00288438275 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_moved_rigid channel=0 cpu=0.00296258452 cpu_se=0.000118404141 vulkan=0.00413899802 batch_se=0.00102288197 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_moved_rigid channel=1 cpu=0.0146426961 cpu_se=0.000473479663 vulkan=0.0133192074 batch_se=0.00111141245 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_moved_rigid channel=2 cpu=0.00295352367 cpu_se=7.51902252e-05 vulkan=0.00322521835 batch_se=0.000368809516 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_moved_floor channel=0 cpu=0.1230243 cpu_se=0.0204942706 vulkan=0.0994125013 batch_se=0.00838931829 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_moved_floor channel=1 cpu=0.160778544 cpu_se=0.0220832278 vulkan=0.139598795 batch_se=0.0130770415 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_moved_floor channel=2 cpu=0.0440975869 cpu_se=0.0109648416 vulkan=0.0347953344 batch_se=0.00501944322 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_blocked_rigid channel=0 cpu=0.00168299691 cpu_se=2.28675546e-05 vulkan=0.00146091257 batch_se=0.000223285887 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_blocked_rigid channel=1 cpu=0.00916516166 cpu_se=0.000109441405 vulkan=0.00849067708 batch_se=0.00113429051 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_blocked_rigid channel=2 cpu=0.00224810234 cpu_se=2.51305361e-05 vulkan=0.00194926235 batch_se=0.0003282689 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_blocked_floor channel=0 cpu=0.00716974221 cpu_se=0.00145021767 vulkan=0.00643791255 batch_se=0.00401837476 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_blocked_floor channel=1 cpu=0.0103881651 cpu_se=0.00208275455 vulkan=0.00948065394 batch_se=0.00568621518 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_blocked_floor channel=2 cpu=0.00309280144 cpu_se=0.000540261277 vulkan=0.00286518161 batch_se=0.00135217554 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_reopened_rigid channel=0 cpu=0.00479476411 cpu_se=0.00025997971 vulkan=0.00641446898 batch_se=0.000982390136 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_reopened_rigid channel=1 cpu=0.0224603427 cpu_se=0.00103189458 vulkan=0.0264947985 batch_se=0.00240018911 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_reopened_rigid channel=2 cpu=0.00412701749 cpu_se=0.000178684794 vulkan=0.00501034812 batch_se=0.000795002295 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_reopened_floor channel=0 cpu=0.0969663634 cpu_se=0.00544458813 vulkan=0.0913432697 batch_se=0.00509812873 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_reopened_floor channel=1 cpu=0.127642351 cpu_se=0.00688374846 vulkan=0.130925404 batch_se=0.0101115943 cpu_paths=12000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE repeat_reused_reopened_floor channel=2 cpu=0.031235376 cpu_se=0.0020854531 vulkan=0.0308489156 batch_se=0.00248361206 cpu_paths=12000 gpu_batches=16
+MOTION_REPEAT_DISPERSION comparison=mixture_over_uniform probe=rigid channel=0 sd_ratio=1.04414356 bootstrap_95=0.439434701,2.64682478 group_range=1.04898454,1.21740909 paired_difference=6.55887561e-05 paired_se=0.000207457291 samples=16
+MOTION_REPEAT_DISPERSION comparison=mixture_over_uniform probe=rigid channel=1 sd_ratio=0.566561463 bootstrap_95=0.265242576,1.38250593 group_range=0.335233678,1.27633901 paired_difference=-0.000369047804 paired_se=0.00183683111 samples=16
+MOTION_REPEAT_DISPERSION comparison=mixture_over_uniform probe=rigid channel=2 sd_ratio=1.55171737 bootstrap_95=0.675778384,3.62064772 group_range=1.359418,1.84271292 paired_difference=0.000417541309 paired_se=0.000560004613 samples=16
+MOTION_REPEAT_DISPERSION comparison=mixture_over_uniform probe=floor channel=0 sd_ratio=0.896835653 bootstrap_95=0.535879744,1.2993941 group_range=0.771043915,1.09422036 paired_difference=-0.00443621213 paired_se=0.0117677385 samples=16
+MOTION_REPEAT_DISPERSION comparison=mixture_over_uniform probe=floor channel=1 sd_ratio=1.01024217 bootstrap_95=0.640523964,1.36973393 group_range=1.0482729,1.09542653 paired_difference=-7.47921877e-06 paired_se=0.0193604358 samples=16
+MOTION_REPEAT_DISPERSION comparison=mixture_over_uniform probe=floor channel=2 sd_ratio=1.39020272 bootstrap_95=0.610975431,2.11720268 group_range=1.19046998,1.74918951 paired_difference=0.00223531085 paired_se=0.005482292 samples=16
+MOTION_REPEAT_DISPERSION comparison=moved_reuse_over_fresh probe=rigid channel=0 sd_ratio=6.68672355 bootstrap_95=0.916675251,14.1262663 group_range=1.6213572,7.84350786 paired_difference=0.00177003224 paired_se=0.00105210243 samples=16
+MOTION_REPEAT_DISPERSION comparison=moved_reuse_over_fresh probe=rigid channel=1 sd_ratio=1.22453519 bootstrap_95=0.814396184,2.18826502 group_range=0.892028487,1.67440948 paired_difference=0.000641370134 paired_se=0.00102660177 samples=16
+MOTION_REPEAT_DISPERSION comparison=moved_reuse_over_fresh probe=rigid channel=2 sd_ratio=0.723572209 bootstrap_95=0.505043044,1.49537063 group_range=0.694847697,0.773986855 paired_difference=3.22549095e-05 paired_se=0.000424214215 samples=16
+MOTION_REPEAT_DISPERSION comparison=moved_reuse_over_fresh probe=floor channel=0 sd_ratio=0.778913988 bootstrap_95=0.481596846,1.4326082 group_range=0.735498087,0.869799974 paired_difference=-0.0104019721 paired_se=0.00838782673 samples=16
+MOTION_REPEAT_DISPERSION comparison=moved_reuse_over_fresh probe=floor channel=1 sd_ratio=0.736634433 bootstrap_95=0.497039632,1.17699193 group_range=0.709586211,0.763607112 paired_difference=-0.0166832684 paired_se=0.012046293 samples=16
+MOTION_REPEAT_DISPERSION comparison=moved_reuse_over_fresh probe=floor channel=2 sd_ratio=0.868770139 bootstrap_95=0.554817827,1.2965276 group_range=0.778575391,0.91346599 paired_difference=-0.00351221033 paired_se=0.00301733316 samples=16
+MOTION_REPEAT_DISPERSION comparison=blocked_reuse_over_fresh probe=rigid channel=0 sd_ratio=0.979387484 bootstrap_95=0.702253913,1.2891198 group_range=0.96050154,0.978148515 paired_difference=6.99175434e-05 paired_se=0.000213139983 samples=16
+MOTION_REPEAT_DISPERSION comparison=blocked_reuse_over_fresh probe=rigid channel=1 sd_ratio=0.847692265 bootstrap_95=0.508210966,1.08454346 group_range=0.785555376,0.882215624 paired_difference=0.00152210932 paired_se=0.00111331832 samples=16
+MOTION_REPEAT_DISPERSION comparison=blocked_reuse_over_fresh probe=rigid channel=2 sd_ratio=0.931414241 bootstrap_95=0.725396717,1.15329129 group_range=0.875410422,0.938062141 paired_difference=0.000127979463 paired_se=0.00033252848 samples=16
+MOTION_REPEAT_DISPERSION comparison=blocked_reuse_over_fresh probe=floor channel=0 sd_ratio=0.515109631 bootstrap_95=0.278873418,1.16182918 group_range=0.191682506,0.511463743 paired_difference=-0.00632465078 paired_se=0.00409905239 samples=16
+MOTION_REPEAT_DISPERSION comparison=blocked_reuse_over_fresh probe=floor channel=1 sd_ratio=0.544176795 bootstrap_95=0.335765063,1.62728524 group_range=0.237499832,0.529021646 paired_difference=-0.00523218982 paired_se=0.0051813094 samples=16
+MOTION_REPEAT_DISPERSION comparison=blocked_reuse_over_fresh probe=floor channel=2 sd_ratio=0.557423966 bootstrap_95=0.518226654,3.23965594 group_range=0.520685539,0.913129977 paired_difference=-0.000541668742 paired_se=0.00131816356 samples=16
+MOTION_REPEAT_DISPERSION comparison=reopened_reuse_over_fresh probe=rigid channel=0 sd_ratio=1.34246843 bootstrap_95=0.775065239,2.16692155 group_range=1.19924745,1.8014038 paired_difference=0.00113444121 paired_se=0.0011938895 samples=16
+MOTION_REPEAT_DISPERSION comparison=reopened_reuse_over_fresh probe=rigid channel=1 sd_ratio=0.740249786 bootstrap_95=0.425705361,1.52388501 group_range=0.577001987,1.05171316 paired_difference=0.00221653027 paired_se=0.00295206458 samples=16
+MOTION_REPEAT_DISPERSION comparison=reopened_reuse_over_fresh probe=rigid channel=2 sd_ratio=0.959325457 bootstrap_95=0.651247144,1.54818204 group_range=0.778563781,1.274544 paired_difference=0.000242514001 paired_se=0.000517268467 samples=16
+MOTION_REPEAT_DISPERSION comparison=reopened_reuse_over_fresh probe=floor channel=0 sd_ratio=0.97678477 bootstrap_95=0.677299806,1.60139204 group_range=0.956874633,1.1332347 paired_difference=-9.62051563e-05 paired_se=0.00442463496 samples=16
+MOTION_REPEAT_DISPERSION comparison=reopened_reuse_over_fresh probe=floor channel=1 sd_ratio=1.00885907 bootstrap_95=0.767164521,1.39055968 group_range=0.979505495,1.00129427 paired_difference=-0.000507525168 paired_se=0.0054675959 samples=16
+MOTION_REPEAT_DISPERSION comparison=reopened_reuse_over_fresh probe=floor channel=2 sd_ratio=0.861054956 bootstrap_95=0.419328048,1.56515367 group_range=0.557604108,1.63804996 paired_difference=-0.00269800774 paired_se=0.00372324566 samples=16
+MOTION_REPEAT_LINKS temporal=4736/5408/5408 spatial=19968/19968/19968 seed_groups=2 batches_per_group=8 distinct_seeds=16 original_overlap=0
+PASS disjoint moving-primary repeat with paired fresh and reused comparisons
+31093415bb38398c2a9326d5f38132e96ee6422af0b2bc8032ad735330a0267f  /home/user/Frontier/_ClaudeScratch/build/replay-facet-mixture-motion-repeat-sanitized/ReplayFacetMixtureMotionRepeatSmoke-sanitized.csv

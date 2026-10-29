@@ -1,0 +1,104 @@
+DIELECTRIC_BOUNDARY device=SwiftShader Device (Subzero) type=4 cases=199 reciprocal_identities=149 tir=45 invalid=5 max_error=2.18084e-06
+SOLID_DEVICE name=SwiftShader Device (Subzero) type=4
+SOLID_SLAB case=0 ior=1 glass_pixels=1444 analytic_pixels=100 max_mean_error=0 capped=0 unsupported=0 tir=0
+SOLID_SLAB case=1 ior=1 glass_pixels=1444 analytic_pixels=100 max_mean_error=6.88487e-08 capped=0 unsupported=0 tir=0
+SOLID_SLAB case=2 ior=1.5 glass_pixels=1444 analytic_pixels=100 max_mean_error=0.00346691 capped=0 unsupported=0 tir=57689
+SOLID_SLAB case=3 ior=1.5 glass_pixels=1444 analytic_pixels=100 max_mean_error=0.00281873 capped=0 unsupported=0 tir=57689
+SOLID_REJECTION case=inverted_winding diagnosed_pixels=1444
+SOLID_REJECTION case=inside_camera diagnosed_pixels=6144
+SPECULAR_DEVICE name=SwiftShader Device (Subzero) type=4
+SPECULAR_FILTER native_probes=88 max_rgb_error=9.8307e-07
+SPECULAR_HISTORY original_geometry_revision=0 reference_seeds=8 reference_samples=16 frames=8 samples=4 temporal_pixels=2401 spatial_pixels=2401 preserved_smooth_pixels=520 raw_rmse=0.246571 filtered_rmse=0.0927787 moved_fresh_rmse=0 moved_history_pixels=0
+SPECULAR_CAMERA accepted=1339 rejected=17 smooth_exact_pixels=427 finite_nonnegative=1
+SPECULAR_HISTORY_RESET geometry_fresh_equal=1 source_off_black=1 smooth_preserved=1 compact_policy_retained=1
+[ 16%] Built target TriangleVisibilityValidation
+[ 32%] Built target VehicleCapture
+[ 47%] Built target TriangleDistanceValidation
+[ 63%] Built target LightValidation
+[ 78%] Built target CompleteRendererCapture
+[100%] Built target CompleteRendererValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake
+Test project /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake
+    Start 1: LightValidation
+1/4 Test #1: LightValidation ..................   Passed    0.17 sec
+    Start 2: TriangleVisibilityValidation
+2/4 Test #2: TriangleVisibilityValidation .....   Passed    0.13 sec
+    Start 3: TriangleDistanceValidation
+3/4 Test #3: TriangleDistanceValidation .......   Passed    0.14 sec
+    Start 4: CompleteRendererValidation
+4/4 Test #4: CompleteRendererValidation .......   Passed    0.23 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   0.67 sec
+SOLID_IMAGES captures=3 source_dimensions=96x64 software_vulkan=1
+Evidence: 206 sources; 265 products; device type 4
+MIRROR_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+MIRROR_SLAB case=0 analytic_pixels=196 mean_error=1.16825e-07
+MIRROR_SLAB case=1 analytic_pixels=196 mean_error=5.14883e-08
+MIRROR_SLAB case=2 analytic_pixels=196 mean_error=0.00307568
+MIRROR_SLAB case=3 analytic_pixels=196 mean_error=0.00230359
+MIRROR_SOURCE_OFF black=1 pixels=6144
+MIRROR_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+MIRROR_NEGATIVE_CONTROL central_pixels=196 blocked_black=1 routing_disabled=1
+MIRROR_IMAGES captures=3 source_dimensions=96x64 software_vulkan=1
+Evidence: 206 sources; 265 products; device type 4
+ROUGH_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+ROUGH_BEER changed_channels=11118 channel_ratios=0.924979,0.813363,0.71067 repeat_exact=1
+ROUGH_GLASS_SCREEN case=0 bvh_exact=1
+ROUGH_GLASS_SCREEN case=1 bvh_exact=1
+ROUGH_GLASS_SCREEN case=2 bvh_exact=1
+ROUGH_DIELECTRIC_PASS source_off_black=1 pixels=6144 samples=32 proposals_per_sample=2
+ROUGH_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+ROUGH_DIELECTRIC_ORIGINAL changed_channels=0 absorption_ignored=1 repeat_exact=1
+ROUGH_DEVICE name=SwiftShader Device (Subzero) type=4 software_vulkan=1
+ROUGH_REFLECTION samples_per_proposal=16 proposals=2 floor_pixels=7250 screen_rays=14941 bvh_fallback_rays=204392 hybrid_bvh_max_rgb_error=0 hybrid_bvh_mean_rgb_error=0 hidden_source_primary_pixels=0 hidden_source_red_arrival=35.1084 deterministic_repeat=1 source_off_black=1 moving_source_fresh_equal=1
+ROUGH_COLUMN index=0 pixels=1816 mean_red=0.473111
+ROUGH_COLUMN index=1 pixels=1809 mean_red=0.941659
+ROUGH_COLUMN index=2 pixels=1809 mean_red=0.800359
+ROUGH_COLUMN index=3 pixels=1816 mean_red=0.201192
+ROUGH_UNIFORM index=0 pixels=200 mean_red=0.81177 limit=1.02
+ROUGH_UNIFORM index=1 pixels=204 mean_red=0.788795 limit=1.02
+ROUGH_UNIFORM index=2 pixels=204 mean_red=0.737523 limit=1.02
+ROUGH_UNIFORM index=3 pixels=200 mean_red=0.471216 limit=1.02
+ROUGH_DIELECTRIC_IMAGES captures=3 source_dimensions=96x64 software_vulkan=1
+Evidence: 206 sources; 265 products; device type 4
+WINDOW_DEVICE name=SwiftShader Device (Subzero) type=4
+WINDOW_SLAB case=0 analytic_pixels=100 mean_error=7.28721e-08
+WINDOW_SLAB case=1 analytic_pixels=100 mean_error=5.08365e-08
+WINDOW_SLAB case=2 analytic_pixels=100 mean_error=0.00312531
+WINDOW_SLAB case=3 analytic_pixels=100 mean_error=0.00256934
+WINDOW_ENERGY case=0 analytic_pixels=100 max_error=4.58834e-09
+WINDOW_ENERGY case=1 analytic_pixels=100 max_error=1.1283e-06
+WINDOW_SOURCE_OFF black=1 pixels=6144 samples=64 directions_per_sample=2
+WINDOW_DEVICE name=SwiftShader Device (Subzero) type=4
+WINDOW_ORIGINAL analytic_pixels=100 blocked_black=1
+WINDOW_IMAGES captures=3 source_dimensions=96x64 software_vulkan=1
+Evidence: 206 sources; 265 products; device type 4
+DIFFUSE_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+DIFFUSE_RAY_COUNTS rays=327680 hits=146417 misses=181263
+DIFFUSE_BEER changed_channels=15360 channel_ratios=0.903583,0.7616,0.632969 repeat_exact=1
+DIFFUSE_EMITTER_ROUTING nee_equal=1 refracted_total=71.4212
+DIFFUSE_DIELECTRIC_PASS source_off_black=1 pixels=6144 samples=64 proposals_per_sample=1
+DIFFUSE_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4
+DIFFUSE_RAY_COUNTS rays=327680 hits=146417 misses=181263
+DIFFUSE_DIELECTRIC_ORIGINAL changed_channels=0 absorption_ignored=1 repeat_exact=1
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+TRANSPORT samples=16 probes=901 mean_rgb_error=2.12644e-08 max_rgb_error=4.5973e-06 secondary_rays=3603424 secondary_hits=263475 environment_misses=3339949
+TRANSPORT_SOURCE route=0 indirect_rgb_sum=2053.59
+TRANSPORT_SOURCE route=1 indirect_rgb_sum=19571.8
+TRANSPORT_SOURCE route=2 indirect_rgb_sum=612.624
+TRANSPORT_LINEARITY max_rgb_error=8.44436e-06
+TRANSPORT_RESET all_sources_off_black=1 cpu_primary_raster=0 cpu_per_pixel_radiance=0 cpu_atmosphere_cube_bake=1 gpu_one_bounce_transport=1
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+TRANSPORT_RECONSTRUCTION width=160 height=100 reference_seeds=16 updates=8 accepted=14080 spatial=13981 fresh_rmse=0.0103498 filtered_rmse=0.00585726
+TRANSPORT_RECONSTRUCTION_SPATIAL native_probes=210 max_rgb_error=4.23087e-08
+TRANSPORT_RECONSTRUCTION_RESET emission_cold_equal=1 camera_cut_cold_equal=1 sources_off_black=1
+TRANSPORT_RECONSTRUCTION_MOTION pose=0 accepted=0 current_emission_preserved=1 direct_max_delta=3.8147e-06
+TRANSPORT_RECONSTRUCTION_MOTION pose=1 accepted=12076 current_emission_preserved=1 direct_max_delta=2.38419e-07
+TRANSPORT_RECONSTRUCTION_MOTION pose=2 accepted=12067 current_emission_preserved=1 direct_max_delta=3.8147e-06
+TRANSPORT_RECONSTRUCTION_MOTION pose=3 accepted=0 current_emission_preserved=1 direct_max_delta=2.38419e-07
+TRANSPORT_RECONSTRUCTION_MOTION pose=4 accepted=12064 current_emission_preserved=1 direct_max_delta=3.8147e-06
+TRANSPORT_RECONSTRUCTION_MOTION pose=5 accepted=12079 current_emission_preserved=1 direct_max_delta=3.8147e-06
+DIFFUSE_DIELECTRIC_IMAGES captures=3 source_dimensions=96x64 software_vulkan=1
+Evidence: 206 sources; 265 products; device type 4

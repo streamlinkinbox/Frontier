@@ -1,0 +1,28 @@
+TAP version 13
+# Subtest: LightingSystem manages automotive light modes and roof fixtures correctly
+ok 1 - LightingSystem manages automotive light modes and roof fixtures correctly
+  ---
+  duration_ms: 0.866851
+  type: 'test'
+  ...
+# Subtest: LightingSystem packs street lamps and automotive headlights without buffer overflow
+ok 2 - LightingSystem packs street lamps and automotive headlights without buffer overflow
+  ---
+  duration_ms: 3.224475
+  type: 'test'
+  ...
+# Subtest: Roof fixture polygon generation produces valid geometry for SlimLED and RallyPod
+ok 3 - Roof fixture polygon generation produces valid geometry for SlimLED and RallyPod
+  ---
+  duration_ms: 1.071507
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 72.422353

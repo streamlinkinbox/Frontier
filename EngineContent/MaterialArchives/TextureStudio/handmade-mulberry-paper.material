@@ -1,0 +1,48 @@
+Format = 1
+Name = "Handmade Mulberry Paper"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.96
+Metallic = 0
+Ior = 1.47
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.6724431569576875, 0.5647115057049292, 0.35153259950043936]
+SheenIntensity = 0.1
+SheenRoughness = 0.8
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/handmade-mulberry-paper-albedo.png"
+Normal = "Textures/handmade-mulberry-paper-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "paper"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 90
+grain = 1
+fiberContrast = 0.3
+paperRibs = 0
+surfaceSeed = 17
+color = "#d6c6a0"
+secondaryColor = "#817259"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "paper"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 90
+grain = 1
+fiberContrast = 0.3
+paperRibs = 0
+surfaceSeed = 17
+color = "#d6c6a0"
+secondaryColor = "#817259"

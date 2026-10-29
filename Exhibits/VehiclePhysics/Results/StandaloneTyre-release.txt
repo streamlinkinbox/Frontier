@@ -1,0 +1,70 @@
+Standalone Engine tyre reference validation; release
+Base 9388c96, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+v22.22.3
+wgpu 0.32.0 numpy 2.3.4
+60b1e0de5411be1a170886bf56df87b214e67efca35357d3c284082f43f85842  Frontier/Engine/Physics/TyreContinuum.h
+63987e92a9a470e2a304e49e2acf0a5e222f2ef9a3eeba83157a8d3168d0449c  Frontier/Engine/Physics/TyreContinuum.cpp
+6ba664354911b388d5d704420d300a6822f4a162687cd8f6d18282e739b11e4f  Frontier/Engine/Physics/TyreSurfaceProjection.h
+1babafe252dd9c5b601fca4e7b919c311bf4fd53b9646e9ea77b8120c1b89577  Exhibits/VehiclePhysics/Code/TyreContinuumReference.mjs
+8b8a54a6f054e7024e753efb3bc51b5b0bd647b0956bd4d4f03ce89840db7a28  Exhibits/VehiclePhysics/Code/TyreProjectionReference.mjs
+d85382977ab6eaf2a6c676482b3d98dc82661143a95e03fb898859c1f0aa590c  Exhibits/VehiclePhysics/Code/TyreSurfaceShaderValidation.py
+34c044aa2dd09fbe3dda5ac86575bdb6eae893d4ed160e16436a15cf2a4105a3  Experimental/VehicleHmiReference/Source/TyreCarcassProjection.js
+6476c9c035e5d50171bbbf746b16f438a13f640984ef3e8c9e811d08d54400b1  Experimental/VehicleHmiReference/Source/TyreContinuumElasticity.js
+dfd7e3e5358c3552cc03e135574d265da7e4fc6b02e82ffecdbb7a5ec9114e7d  Experimental/VehicleHmiReference/Shader/VehicleVisual.wgsl
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/tyre-standalone-release
+UpdateCTestConfiguration  from :/home/user/Frontier/_ClaudeScratch/build/tyre-standalone-release/DartConfiguration.tcl
+UpdateCTestConfiguration  from :/home/user/Frontier/_ClaudeScratch/build/tyre-standalone-release/DartConfiguration.tcl
+Test project /home/user/Frontier/_ClaudeScratch/build/tyre-standalone-release
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start 1: TyreContinuumValidation
+
+1: Test command: /home/user/Frontier/_ClaudeScratch/venv/lib/python3.11/site-packages/cmake/data/bin/cmake "-DNODE=/usr/local/bin/node" "-DROOT=/home/user/Frontier" "-DPROBE=/home/user/Frontier/_ClaudeScratch/build/tyre-standalone-release/TyreContinuumValidation" "-DOBSERVATIONS=/home/user/Frontier/_ClaudeScratch/build/tyre-standalone-release/continuum-reference.txt" "-P" "/home/user/Frontier/Exhibits/VehiclePhysics/Code/RunTyreContinuum.cmake"
+1: Working Directory: /home/user/Frontier/_ClaudeScratch/build/tyre-standalone-release
+1: Test timeout computed to be: 10000000
+1: PASS complete 12 cases x 8 samples / model                      192
+1: PASS projection local positions vs demo (max m)                 0
+1: PASS projection world positions vs demo (max m)                 0
+1: PASS projection prescribed force vs demo (max N)                0
+1: PASS solid local positions vs demo (max m)                      2.71050543e-20
+1: PASS solid world positions vs demo (max m)                      0
+1: PASS solid prescribed force vs demo (max N)                     0
+1: PASS solid mean Jacobian vs demo (max absolute)                 0
+1: PASS solid mean stress vs demo (max relative)                   2.7331688e-16
+1: PASS solid contact counts match demo                            0
+1: PASS all coordinates finite and rim beads pinned                1
+1: PASS constant nodal field reproduces translation                0
+1: PASS sector/ring bilinear interpolation matches hand calculation 1.53668225e-08
+1: PASS deformed shading normal is normalized                      0.999999881
+1: PASS unloaded tyre leaves vertices unchanged                    0
+1: PASS shredded rubber collapses like demo shader                 0
+1: SUMMARY passed 16 failed 0
+1/1 Test #1: TyreContinuumValidation ..........   Passed    1.49 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   1.49 sec
+STANDALONE_DEPENDENCIES vehicle_header=0 jolt_header=0 vehicle_symbols=0 jolt_symbols=0
+Forcing backend: Vulkan (6)
+ADAPTER {'vendor': 'SwiftShader driver', 'architecture': '', 'device': 'SwiftShader Device (Subzero)', 'description': '', 'stackgroup_min_size': 4, 'stackgroup_max_size': 128, 'vendor_id': 6880, 'device_id': 49374, 'adapter_type': 'CPU', 'backend_type': 'Vulkan'}
+TYRE_PROJECTION case=spring-nominal vertices=2048 max_position_m=9.62615013e-05 max_normal=5.72428107e-05
+TYRE_PROJECTION case=spring-flat vertices=2048 max_position_m=9.69171524e-05 max_normal=3.80463898e-05
+TYRE_PROJECTION case=spring-high-pressure vertices=2048 max_position_m=9.62615013e-05 max_normal=2.16662884e-05
+TYRE_PROJECTION case=spring-near-zero vertices=2048 max_position_m=9.62615013e-05 max_normal=5.96046448e-08
+TYRE_PROJECTION case=spring-zero-deflection vertices=2048 max_position_m=0 max_normal=0
+TYRE_PROJECTION case=spring-shredded vertices=2048 max_position_m=0 max_normal=0
+TYRE_PROJECTION case=continuum-field vertices=2048 max_position_m=5.96046448e-08 max_normal=1.51991844e-06
+TYRE_PROJECTION case=continuum-xpbd vertices=2048 max_position_m=5.96046448e-08 max_normal=4.04939055e-05
+TYRE_PROJECTION case=continuum-solid vertices=2048 max_position_m=5.96046448e-08 max_normal=3.89963388e-05
+TYRE_PROJECTION case=continuum-zero-deflection vertices=2048 max_position_m=0 max_normal=0
+TYRE_PROJECTION case=continuum-shredded vertices=2048 max_position_m=0 max_normal=0
+TYRE_PROJECTION_SUMMARY cases=11 vertices=22528 worst_position_m=9.69171524e-05 worst_normal=5.72428107e-05 non_tyre_shredded_and_unloaded_guards=1
+TYRE_PRIOR_HEADER_PARITY checked=1 cases=11
+REFERENCE_WGSL_SHA256 dfd7e3e5358c3552cc03e135574d265da7e4fc6b02e82ffecdbb7a5ec9114e7d

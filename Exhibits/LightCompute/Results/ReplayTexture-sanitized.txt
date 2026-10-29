@@ -1,0 +1,25 @@
+Host build: sanitized; external Vulkan driver is not sanitizer-instrumented
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+64a92501fd670589911034ee6c0cfd4a3e85e1e1bf7f84791bdf07588fa13446  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+a25d67d379e2daf6ccfe43fa9357ff762cc89a6674e1247f93d374ffbc5837e9  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+15b81c34d390231e3e3cb4aa21b2ed7953dc95f2173d2cff9c3e48604b514e7d  Exhibits/LightCompute/Code/PathReplayDomain.h
+8ca8aa2ef045a66a01d8e60a038d823d96fa2b81828de350aa4df2582af6e715  Exhibits/LightCompute/Code/ReplayRoomReference.h
+6cf6f168d2e852ee16d2c892bb9f8eed69bf55ac0e5187232f52c1eb5c672ec9  Exhibits/LightCompute/Code/RoughReplayValidation.h
+e52c5512c0a90ede472b8e522fa01f3839f0eb539e7fec34e4b2cecf0fc219e1  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+TEXTURE_GUARDS malformed=33 opt_in=1 rough_rejected=1
+TEXTURE_TWO_HIT channel=0 exact=0.8 fresh=0.800000012 changed=0.799990542 blocked=0 reopened=0.799988174
+TEXTURE_TWO_HIT channel=1 exact=0.2 fresh=0.200000003 changed=0.199997635 blocked=0 reopened=0.199997044
+TEXTURE_TWO_HIT channel=2 exact=0.1 fresh=0.100000001 changed=0.0999988177 blocked=0 reopened=0.0999985218
+TEXTURE_TWO_HIT_LINKS changed=40960 blocked=40960 reopened=40960 spatial=97280 ordinary_reset=1
+PASS two-hit textured diffuse transport, in-place changes and moving occlusion
+TEXTURE_SECONDARY probe=0 uv=0.0625/0.0625 vertical_tangent=0 rgb=0.839999964/0.140000004/0.0600000092
+TEXTURE_SECONDARY probe=1 uv=0.25/0.0625 vertical_tangent=0 rgb=0.459999983/0.319999992/0.430000003
+TEXTURE_SECONDARY probe=2 uv=-0.75/0.0625 vertical_tangent=0 rgb=0.459999975/0.319999995/0.430000011
+TEXTURE_SECONDARY probe=3 uv=0/0.0625 vertical_tangent=0 rgb=0.459999979/0.319999993/0.430000007
+TEXTURE_SECONDARY probe=4 uv=0.0625/0.0625 vertical_tangent=100 rgb=0.459999979/0.319999993/0.430000007
+PASS secondary texel center, bilinear, negative wrap, seam and coarse mip probes
+TEXTURE_PRIMARY compared=8625 wrapped=7858 mips=1236/5098/2007/284 boundary_skipped=0 max_error=7.27545189e-07
+PASS primary texture evaluation against independent double-precision filter

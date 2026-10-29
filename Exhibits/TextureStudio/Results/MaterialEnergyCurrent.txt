@@ -1,0 +1,25 @@
+MATERIAL_ENERGY profile=0 roughness=0.349999994 normal_view=0.25 red=0.849783362 green=0.849783362 blue=0.849783362 quadrature_delta=1.59404258e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=0 roughness=0.349999994 normal_view=0.6 red=0.91952947 green=0.91952947 blue=0.91952947 quadrature_delta=7.46156927e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=0 roughness=0.349999994 normal_view=1 red=0.916985005 green=0.916985005 blue=0.916985005 quadrature_delta=4.22928179e-05 exceeds_1p02=0
+MATERIAL_ENERGY profile=0 roughness=0.649999976 normal_view=0.25 red=0.741630411 green=0.741630411 blue=0.741630411 quadrature_delta=1.99252118e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=0 roughness=0.649999976 normal_view=0.6 red=0.905084166 green=0.905084166 blue=0.905084166 quadrature_delta=7.56439548e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=0 roughness=0.649999976 normal_view=1 red=0.908340678 green=0.908340678 blue=0.908340678 quadrature_delta=1.10509252e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.349999994 normal_view=0.25 red=0.826366399 green=0.638572387 blue=0.300543184 quadrature_delta=2.72630749e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.349999994 normal_view=0.6 red=0.869445476 green=0.631468083 blue=0.203108802 quadrature_delta=1.25409589e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.349999994 normal_view=1 red=0.883391351 green=0.638007525 blue=0.196316664 quadrature_delta=0.000931824158 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.649999976 normal_view=0.25 red=0.715015466 green=0.528151099 blue=0.19179526 quadrature_delta=1.58533046e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.649999976 normal_view=0.6 red=0.667817352 green=0.484253571 blue=0.153838786 quadrature_delta=9.76922106e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.649999976 normal_view=1 red=0.688154033 green=0.497012357 blue=0.15295736 quadrature_delta=5.11674239e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.349999994 normal_view=0.25 red=0.660154407 green=0.660154407 blue=0.660154407 quadrature_delta=2.88540699e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.349999994 normal_view=0.6 red=0.854466922 green=0.854466922 blue=0.854466922 quadrature_delta=5.96251015e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.349999994 normal_view=1 red=0.853969214 green=0.853969214 blue=0.853969214 quadrature_delta=4.12609029e-05 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.649999976 normal_view=0.25 red=0.608657594 green=0.608657594 blue=0.608657594 quadrature_delta=4.24651555e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.649999976 normal_view=0.6 red=0.841124934 green=0.841124934 blue=0.841124934 quadrature_delta=6.17688325e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.649999976 normal_view=1 red=0.845253027 green=0.845253027 blue=0.845253027 quadrature_delta=3.31599869e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.349999994 normal_view=0.25 red=0.33039124 green=0.33039124 blue=0.33039124 quadrature_delta=2.09688084e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.349999994 normal_view=0.6 red=0.133233206 green=0.133233206 blue=0.133233206 quadrature_delta=6.85230541e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.349999994 normal_view=1 red=0.0239355855 green=0.0239355855 blue=0.0239355855 quadrature_delta=1.4113566e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.649999976 normal_view=0.25 red=0.33039124 green=0.33039124 blue=0.33039124 quadrature_delta=2.09688084e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.649999976 normal_view=0.6 red=0.133233206 green=0.133233206 blue=0.133233206 quadrature_delta=6.85230541e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.649999976 normal_view=1 red=0.0239355855 green=0.0239355855 blue=0.0239355855 quadrature_delta=1.4113566e-07 exceeds_1p02=0
+MATERIAL_ENERGY_DIAGNOSTIC cases=24 reciprocal_finite_nonnegative=1 maximum_reflectance=0.91952947 coarse_fine_max_delta=0.000931824158 energy_excess_cases=0 full_library_acceptance=0

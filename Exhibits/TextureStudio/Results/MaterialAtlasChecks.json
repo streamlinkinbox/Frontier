@@ -1,0 +1,165 @@
+{
+  "result": "passed",
+  "gpu_execution": true,
+  "hardware_execution": false,
+  "windows_execution": false,
+  "atlas_images": 1,
+  "shared_pipelines": 5,
+  "geometry_uploads": 1,
+  "checks": [
+    "shared authored material evaluation",
+    "GPU-to-GPU atlas copies",
+    "dirty tile isolation",
+    "slot replacement",
+    "replicated gutters",
+    "bounded UVs and slot refusal",
+    "library submission readiness",
+    "clean residency and no-op invalidation",
+    "applied material invalidation",
+    "root replacement and diagnostics",
+    "cache eviction and stale token refusal"
+  ],
+  "executions": {
+    "strict_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "-IExternalPackages/tomlpp/include",
+        "-IExternalPackages/stb",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-missing-field-initializers",
+        "Engine/Render/MaterialThumbnailAtlas.cpp",
+        "Engine/Render/MaterialLibraryRendering.cpp",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Engine/Render/SurfaceMaterial.cpp",
+        "Exhibits/TextureStudio/Code/MaterialAtlasValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAtlas/MaterialAtlasValidation-strict"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "strict_execution": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAtlas/MaterialAtlasValidation-strict",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/AdvancedPbr/Verification/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAtlas/strict"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: material GPU atlas, dirty tile isolation, gutters and shared residency\n",
+      "stderr": ""
+    },
+    "sanitized_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "-IExternalPackages/tomlpp/include",
+        "-IExternalPackages/stb",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "Engine/Render/MaterialThumbnailAtlas.cpp",
+        "Engine/Render/MaterialLibraryRendering.cpp",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Engine/Render/SurfaceMaterial.cpp",
+        "Exhibits/TextureStudio/Code/MaterialAtlasValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAtlas/MaterialAtlasValidation-sanitized"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "sanitized_execution": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAtlas/MaterialAtlasValidation-sanitized",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/AdvancedPbr/Verification/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAtlas/sanitized"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: material GPU atlas, dirty tile isolation, gutters and shared residency\n",
+      "stderr": ""
+    },
+    "encode": {
+      "command": [
+        "python3",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAtlas/strict/MaterialAtlas.ppm",
+        "/home/user/Frontier/Exhibits/TextureStudio/Images/MaterialAtlas.png"
+      ],
+      "exit_code": 0,
+      "stdout": "Encoded actual RGB evidence: 260 x 260; no synthetic artwork\n",
+      "stderr": ""
+    }
+  },
+  "limitations": [
+    "Explicit Vulkan driver execution, not native Windows window execution",
+    "ASan/UBSan executed; external driver leak detection disabled",
+    "No hardware or validation-layer acceptance is inferred"
+  ],
+  "sources": [
+    {
+      "file": "Engine/Render/MaterialThumbnailAtlas.cpp",
+      "sha256": "75876c1e10607632609bfea75d7053365d0d382d64a2391b4f3fff6e549cf44e"
+    },
+    {
+      "file": "Engine/Render/MaterialLibraryRendering.cpp",
+      "sha256": "83a10e815a363bc664d2f79ba70a2c6ed7ec85468df447f5727569e809d085e8"
+    },
+    {
+      "file": "Engine/Render/SurfaceRasterization.cpp",
+      "sha256": "474d8dff1cb143c9fee29fa9e150c2e1ad1a5e3ae1329f4e6d90892d925b4f3f"
+    },
+    {
+      "file": "Engine/Render/SurfaceMaterial.cpp",
+      "sha256": "5ef0c388273ba538c00cda3b52f337c0888ab6b43c0a03ec2f1c263d9b7603b6"
+    },
+    {
+      "file": "Exhibits/TextureStudio/Code/MaterialAtlasValidation.cpp",
+      "sha256": "697d685a5b1fe6497fce3bed86133df5dc83aa66f9a7ed6caf0c165153c31bd5"
+    },
+    {
+      "file": "Engine/Render/MaterialThumbnailAtlas.h",
+      "sha256": "c210bcbf7836de6bbb28754c47da4a211e6b32242c25d19d7addf42f6e3ce137"
+    },
+    {
+      "file": "Engine/Render/MaterialLibraryRendering.h",
+      "sha256": "826b617c7822669bbe2631704f3e6200d7a48d7ce93b25aa6c4d3d25e4164ff9"
+    },
+    {
+      "file": "Engine/Render/MaterialPreviewGeometry.h",
+      "sha256": "b7074f2eb6289473992d1598669a5961f47b8c1ca8fa7ade4479b00380aec70b"
+    },
+    {
+      "file": "Exhibits/TextureStudio/Code/AtlasReadback.h",
+      "sha256": "a4140d7c38386d35a05d52ecffca9e0a3def3709f69ad15c6073995cf139efc9"
+    },
+    {
+      "file": "Exhibits/TextureStudio/Code/VerifyMaterialAtlas.py",
+      "sha256": "ad794ea30408e13ec71febff5b5f5b0040db2f46a36f6395f6b3a8c102cc127e"
+    },
+    {
+      "file": "Engine/Render/MaterialPreviewGeometry.h",
+      "sha256": "b7074f2eb6289473992d1598669a5961f47b8c1ca8fa7ade4479b00380aec70b"
+    },
+    {
+      "file": "Engine/Interface/ControlKit.h",
+      "sha256": "a4d37a131a93689b52724958a907cd9b9ac232321ce0b9c350d4d04e0049cfc7"
+    }
+  ]
+}

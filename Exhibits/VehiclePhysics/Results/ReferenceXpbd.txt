@@ -1,0 +1,14 @@
+{"Pressure":0,"Deflection":0.01,"Force":250,"Flattening":0.01143386960029602,"Nodes":160}
+{"Pressure":0,"Deflection":0.02,"Force":500,"Flattening":0.022576063871383667,"Nodes":160}
+{"Pressure":0,"Deflection":0.04,"Force":1000,"Flattening":0.0443514883518219,"Nodes":160}
+{"Pressure":30000,"Deflection":0.01,"Force":514,"Flattening":0.011387348175048828,"Nodes":160}
+{"Pressure":30000,"Deflection":0.02,"Force":1028,"Flattening":0.02251148223876953,"Nodes":160}
+{"Pressure":30000,"Deflection":0.04,"Force":2056,"Flattening":0.044239431619644165,"Nodes":160}
+{"Pressure":220000,"Deflection":0.01,"Force":2186,"Flattening":0.01117616891860962,"Nodes":160}
+{"Pressure":220000,"Deflection":0.02,"Force":4372,"Flattening":0.02227407693862915,"Nodes":160}
+{"Pressure":220000,"Deflection":0.04,"Force":8744,"Flattening":0.04391878843307495,"Nodes":160}
+{"Pressure":350000,"Deflection":0.01,"Force":3330,"Flattening":0.011126816272735596,"Nodes":160}
+{"Pressure":350000,"Deflection":0.02,"Force":6660,"Flattening":0.022217243909835815,"Nodes":160}
+{"Pressure":350000,"Deflection":0.04,"Force":13320,"Flattening":0.04374775290489197,"Nodes":160}
+PASS 12 recovered-demo XPBD cases: 160 particles, finite deformation, exact prescribed spring-force law.
+Not real-tyre validation: output force is assigned from deflection/pressure, not summed constraint reactions.

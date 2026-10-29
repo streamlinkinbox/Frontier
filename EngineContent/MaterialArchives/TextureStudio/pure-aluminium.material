@@ -1,0 +1,37 @@
+Format = 1
+Name = "Pure Aluminium"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.8069522576692516, 0.8148465722161012, 0.799102738014409]
+Roughness = 0.18
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/pure-aluminium-albedo.png"
+Normal = "Textures/pure-aluminium-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17

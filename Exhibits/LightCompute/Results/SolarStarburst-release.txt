@@ -1,0 +1,18 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+467df15bb88404d2cdc73a7170ae9acb1a451d19c0eaae7d06db5ad2d5a430d2  Frontier/Engine/Rendering/SolarOpticsPayload.h
+bd96f7817884ec65c2fe64c44e4f3ba4abb5f6427772afcc862315443509cec6  Frontier/Engine/Rendering/LensFlareModel.h
+9b7a662905b520d7ad64eaa70d5ff41cded93c1c0fb95a4593c92c0ef737d469  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+0714bcd4648185ded8c32e8518b4ac0b784599db65ab16160244ebe6168f60fe  Exhibits/LightCompute/Code/SolarOpticsValidation.h
+58a5969bae4519bdd95259937f306c5da96f9de42483399490ba0e21a953686b  Exhibits/LightCompute/Code/SolarStarburstValidation.h
+STARBURST preparing Vulkan on SwiftShader Device (Subzero) (256x256)
+STARBURST spikes_6=6 spikes_5=10 rotated_spikes=6 alignment_rad=0.00262634016/0.00262634016/0.00538744212 cpu_error_over_peak=8.58779969e-06
+STARBURST_MIX star_green_sum=757.826536 warm_red_sum=22651.5431 blue_blue_sum=8287.03546 additive_error_over_peak=4.29602228e-08 blocked_peak=0
+PASS isolated Vulkan starburst, rotation, occlusion and three simultaneous flare layers
+StarburstSix.png 256x256 RGB_SHA256=43490be3a9b1553413135ad90e3c671665efbf51773c965f09fe3c322da35991
+StarburstFive.png 256x256 RGB_SHA256=626057e0446b50a80bfe9d37491a8718aac90b410d2768444362624fb6f59d77
+StarburstMixed.png 256x256 RGB_SHA256=b1efaed171c1055698b79fd24837b3e2a5678817dbde98625ea1e365a52b0aab

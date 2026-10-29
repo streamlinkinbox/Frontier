@@ -1,0 +1,37 @@
+Format = 1
+Name = "18K Rose Gold"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.799102738014409, 0.43415363617474895, 0.3277780980565422]
+Roughness = 0.21
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/18k-rose-gold-albedo.png"
+Normal = "Textures/18k-rose-gold-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17

@@ -1,0 +1,12 @@
+{
+  "result": "passed",
+  "device": "SwiftShader Device (Subzero)",
+  "device_type": 4,
+  "graphics_pipeline_creation_count": 3,
+  "sampler_creation_count": 1,
+  "geometry_uploads_across_mode_changes": 1,
+  "gradient_texture_uploads": 1,
+  "checks": ["GPU/CPU bilinear lookup agreement", "View-space rotation and top-row convention", "Display-referred RGB and ignored source alpha", "Tint", "Non-uniform inverse transpose", "Shear and reflected transforms", "Opaque depth occlusion", "CAD mode round trip", "Shared thumbnail residency", "Texture replacement and source pixel copy", "Clamp-to-edge boundary lookup", "Cancelled first-use retry", "Smooth normal calibration", "Source finalization before queue submission"],
+  "validation_layers_enabled": false,
+  "windows_execution_verified": false
+}

@@ -1,0 +1,88 @@
+Rigid-primary disjoint-seed repeat; --replay-rigid-variance-repeat-smoke; host sanitized
+Base 19347c2, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+6697e520368835e89f1832613ed07b6ae72ddf0b8db31a12c78736d2f48753ea  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+3a689e043b64039ba57bd5bc38eaab95b4d369b863f4a5d233a2d0568ff96e04  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+a96baa2328f4199c51e361cc4bfff009c87de4e680dfd099c9d252f55ad4cc2f  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+fa24e8eb1fd6c516810260f2dd6656e56616d016070552530d42a8b4fcee63e0  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+06dab77604bba8d5a25016ee236c11de8d37ff32b03b502c1ad4a909efcc74e6  Exhibits/LightCompute/Code/ReplayMotionValidation.h
+3ccc45548bd503e3cc73706cae5c10f8ccbe7a9c1909fb21a470f0b9d083368a  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+b4705522c8b963c611a4b1e79a4e5ef04d92ba986db39c8e7d204c71fa7c1f5e  Exhibits/LightCompute/Code/ReplayTextureRoomValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+71652e374f6a409e89938abe7ac205574262c381cc510be1a11b6167cc97ee90  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+965ff5689461b7ff2c81598c14a5f60c165bf5ccc1293b0df2da0a2f46700588  Exhibits/LightCompute/Code/RoughTextureMotionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+f14fa4531e6362f1ecefacdb31458cffa9a483dc8ef5d3aa7e80b94c1b32a5b8  Exhibits/LightCompute/Code/ReplayFacetMixtureCapture.h
+1cfe8dd5d54e5c9e34e99931def5b6c36b3c945a8cea187425e6c1848c7ddee2  Exhibits/LightCompute/Code/ReplayFacetMixtureMotionValidation.h
+1589f597a3d68457c4b6b9e4e2c494c1aa802f4563ae45b1f21c2495b1073ca6  Exhibits/LightCompute/Code/ReplayRigidProbeRegion.slang
+e115ebf64bfaf09a1329826902f2fc3507a32d40ae4140e7ed5274de09029083  Exhibits/LightCompute/Code/ReplayRigidVarianceRepeat.h
+9994d5beeb07c542be823693ba8a6f9ee77d652bbfb4474bac943dd0bce8dc13  Exhibits/LightCompute/RunReplayRigidVarianceRepeat.sh
+52afd6cbad11c04fa10c94f7b1dde1c47da3b46da9a4ba175e7c16955f0ba112  /home/user/Frontier/Exhibits/LightCompute/Results/ReplayFacetMixtureMotionRepeatSamples.csv
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=12 proposal=1 weighted_facets=1 uniform_mixture=1 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+RIGID_REPEAT preparing Vulkan on SwiftShader Device (Subzero)
+TEXTURE_MOTION_PRIMARY rigid_repeat_moved hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS rigid_repeat_moved textured=1173 max_error=0
+RIGID_REPEAT_REGION seeds=8 modes=4 output_components=128 output_mismatches=0 guide_components=5760 guide_mismatches=0 retained_hits=5
+RIGID_REPEAT tracing 4 separately seeded CPU groups of 10000 paths
+RIGID_REPEAT_CPU_GROUP group=0 red=0.00274048756 red_se=0.000115153858 paths=10000
+RIGID_REPEAT_CPU_GROUP group=1 red=0.00315005237 red_se=0.000166150732 paths=10000
+RIGID_REPEAT_CPU_GROUP group=2 red=0.00304149055 red_se=0.000154766138 paths=10000
+RIGID_REPEAT_CPU_GROUP group=3 red=0.00283012044 red_se=0.000126481318 paths=10000
+RIGID_REPEAT_GROUP group=0 mode=uniform_single red=0.0031304927 red_se=0.000848277253 batches=8
+RIGID_REPEAT_GROUP group=0 mode=uniform_spatial red=0.00306375319 red_se=0.000304030867 batches=8
+RIGID_REPEAT_GROUP group=0 mode=mixture_single red=0.00301490302 red_se=0.000254712607 batches=8
+RIGID_REPEAT_GROUP group=0 mode=mixture_spatial red=0.00327881688 red_se=0.000556965832 batches=8
+RIGID_REPEAT_GROUP group=1 mode=uniform_single red=0.00230668987 red_se=0.00068443461 batches=8
+RIGID_REPEAT_GROUP group=1 mode=uniform_spatial red=0.00297006089 red_se=0.000542481153 batches=8
+RIGID_REPEAT_GROUP group=1 mode=mixture_single red=0.00270712619 red_se=0.000531190429 batches=8
+RIGID_REPEAT_GROUP group=1 mode=mixture_spatial red=0.00378490309 red_se=0.00103370064 batches=8
+TEXTURE_MOTION_REFERENCE rigid_repeat_uniform_single channel=0 cpu=0.00294053773 cpu_se=7.1072642e-05 vulkan=0.00271859129 batch_se=0.000537137499 cpu_paths=40000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_uniform_single channel=1 cpu=0.0140907594 cpu_se=0.000243880703 vulkan=0.0171080839 batch_se=0.00382894534 cpu_paths=40000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_uniform_single channel=2 cpu=0.00285680732 cpu_se=3.69539356e-05 vulkan=0.00279801719 batch_se=0.000410687547 cpu_paths=40000 gpu_batches=16
+RIGID_REPEAT_DISPERSION mode=uniform_single channel=0 mean=0.00271859129 batch_se=0.000537137499 batch_sd=0.00214855 n=16
+RIGID_REPEAT_DISPERSION mode=uniform_single channel=1 mean=0.0171080839 batch_se=0.00382894534 batch_sd=0.0153157814 n=16
+RIGID_REPEAT_DISPERSION mode=uniform_single channel=2 mean=0.00279801719 batch_se=0.000410687547 batch_sd=0.00164275019 n=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_uniform_spatial channel=0 cpu=0.00294053773 cpu_se=7.1072642e-05 vulkan=0.00301690704 batch_se=0.000300634502 cpu_paths=40000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_uniform_spatial channel=1 cpu=0.0140907594 cpu_se=0.000243880703 vulkan=0.0166346751 batch_se=0.00144624098 cpu_paths=40000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_uniform_spatial channel=2 cpu=0.00285680732 cpu_se=3.69539356e-05 vulkan=0.00253432781 batch_se=0.000318663524 cpu_paths=40000 gpu_batches=16
+RIGID_REPEAT_DISPERSION mode=uniform_spatial channel=0 mean=0.00301690704 batch_se=0.000300634502 batch_sd=0.00120253801 n=16
+RIGID_REPEAT_DISPERSION mode=uniform_spatial channel=1 mean=0.0166346751 batch_se=0.00144624098 batch_sd=0.00578496391 n=16
+RIGID_REPEAT_DISPERSION mode=uniform_spatial channel=2 mean=0.00253432781 batch_se=0.000318663524 batch_sd=0.00127465409 n=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_mixture_single channel=0 cpu=0.00294053773 cpu_se=7.1072642e-05 vulkan=0.0028610146 batch_se=0.000287324194 cpu_paths=40000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_mixture_single channel=1 cpu=0.0140907594 cpu_se=0.000243880703 vulkan=0.0118264246 batch_se=0.00148272889 cpu_paths=40000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_mixture_single channel=2 cpu=0.00285680732 cpu_se=3.69539356e-05 vulkan=0.00239406999 batch_se=0.000426414929 cpu_paths=40000 gpu_batches=16
+RIGID_REPEAT_DISPERSION mode=mixture_single channel=0 mean=0.0028610146 batch_se=0.000287324194 batch_sd=0.00114929678 n=16
+RIGID_REPEAT_DISPERSION mode=mixture_single channel=1 mean=0.0118264246 batch_se=0.00148272889 batch_sd=0.00593091556 n=16
+RIGID_REPEAT_DISPERSION mode=mixture_single channel=2 mean=0.00239406999 batch_se=0.000426414929 batch_sd=0.00170565972 n=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_mixture_spatial channel=0 cpu=0.00294053773 cpu_se=7.1072642e-05 vulkan=0.00353185998 batch_se=0.000570943583 cpu_paths=40000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_mixture_spatial channel=1 cpu=0.0140907594 cpu_se=0.000243880703 vulkan=0.0138099051 batch_se=0.00204753048 cpu_paths=40000 gpu_batches=16
+TEXTURE_MOTION_REFERENCE rigid_repeat_mixture_spatial channel=2 cpu=0.00285680732 cpu_se=3.69539356e-05 vulkan=0.0028224054 batch_se=0.000609454642 cpu_paths=40000 gpu_batches=16
+RIGID_REPEAT_DISPERSION mode=mixture_spatial channel=0 mean=0.00353185998 batch_se=0.000570943583 batch_sd=0.00228377433 n=16
+RIGID_REPEAT_DISPERSION mode=mixture_spatial channel=1 mean=0.0138099051 batch_se=0.00204753048 batch_sd=0.00819012194 n=16
+RIGID_REPEAT_DISPERSION mode=mixture_spatial channel=2 mean=0.0028224054 batch_se=0.000609454642 batch_sd=0.00243781857 n=16
+RIGID_REPEAT_SPATIAL_DIFFERENCE proposal=uniform channel=0 mean=0.000298315752 paired_se=0.000523787484 n=16
+RIGID_REPEAT_SPATIAL_DIFFERENCE proposal=uniform channel=1 mean=-0.000473408814 paired_se=0.00357497654 n=16
+RIGID_REPEAT_SPATIAL_DIFFERENCE proposal=uniform channel=2 mean=-0.000263689384 paired_se=0.000481828971 n=16
+RIGID_REPEAT_SPATIAL_DIFFERENCE proposal=mixture channel=0 mean=0.00067084538 paired_se=0.00064604465 n=16
+RIGID_REPEAT_SPATIAL_DIFFERENCE proposal=mixture channel=1 mean=0.00198348048 paired_se=0.00247211736 n=16
+RIGID_REPEAT_SPATIAL_DIFFERENCE proposal=mixture channel=2 mean=0.000428335413 paired_se=0.000709620738 n=16
+RIGID_REPEAT_PROPOSAL_DIFFERENCE spatial=0 channel=0 mean=0.000142423318 paired_se=0.000601399972 n=16
+RIGID_REPEAT_PROPOSAL_DIFFERENCE spatial=0 channel=1 mean=-0.00528165927 paired_se=0.00440015662 n=16
+RIGID_REPEAT_PROPOSAL_DIFFERENCE spatial=0 channel=2 mean=-0.000403947209 paired_se=0.000534382696 n=16
+RIGID_REPEAT_PROPOSAL_DIFFERENCE spatial=1 channel=0 mean=0.000514952946 paired_se=0.000662484791 n=16
+RIGID_REPEAT_PROPOSAL_DIFFERENCE spatial=1 channel=1 mean=-0.00282476997 paired_se=0.00233332764 n=16
+RIGID_REPEAT_PROPOSAL_DIFFERENCE spatial=1 channel=2 mean=0.000288077588 paired_se=0.000580306634 n=16
+RIGID_REPEAT distinct_frame_seeds=16 prior_repeat_overlap=0 original_overlap=0 cpu_paths=40000 groups=2 batches_per_group=8
+PASS disjoint rigid-primary repeat with spatial on/off controls
+f7b6622b8b0d623f5d6a4ac9de09f3af54bf8815974c0aa2de58f6318e1d150c  /home/user/Frontier/_ClaudeScratch/build/replay-rigid-variance-repeat-sanitized/ReplayRigidVarianceRepeatSmoke-sanitized.csv

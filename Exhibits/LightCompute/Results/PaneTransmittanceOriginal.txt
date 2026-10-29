@@ -1,0 +1,3 @@
+PANE_TRANSMITTANCE_ORIGINAL single_nee_equals_air=1 nee_over_bsdf_red=1.1297 eight_pane_nee_sum=0 eight_pane_bsdf_green=1.04007
+PANE_FOG_ANALYTIC_ORIGINAL right_over_left_red=1.07943
+PANE_FOG_EMISSIVE_ORIGINAL right_over_left_floor_red=0.993707

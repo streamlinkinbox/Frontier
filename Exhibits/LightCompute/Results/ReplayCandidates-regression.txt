@@ -1,0 +1,92 @@
+Replay-candidate regression; base feedef3 plus working changes; SwiftShader CPU Vulkan.
+Reconstruction run: CAPTURE=1 BUILD_JOBS=2 bash Exhibits/LightCompute/RunReplayReconstruction.sh
+The runner used scratch RESULTS/OUTPUT/IMAGES so existing evidence was not overwritten.
+Replay reconstruction; host release; external Vulkan driver and shaders are not sanitizer-instrumented
+Base feedef3, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+ed697e969fb4dd40a397e7c150f5e6f67c5383b5332d593d56528f6ae71b52d9  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+cca9e86224b76b1bc04cc1a5b4d229a24f1e0aab46c0f9a45bba43279012d948  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+f51b9386bd4e0a038c9d080b2b66804d243df474d70efe73ce0434df5d4bb6f9  Frontier/Engine/Rendering/PathReplayDomain.h
+be1c17c2f2218c68cc22b0c20cbe0e164b6563f29916986f95711490e2f67ead  Frontier/Engine/Rendering/PathReplayDomain.cpp
+8d80c9cd99b352e8b604e5434f42110cd4ff19835888d99312b5674585d7b765  Frontier/Engine/Rendering/PathReplayVulkan.h
+c8a583e0b14cb084b63ba536b53e3c64dd6a0609eb15444bf0961347b9064e0b  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+16b95b2f51e14241e81b48fa0a2639941051d27da03851ac74b879980a689ee6  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+280303702698d270b0981a3722497a7ec56245c68e07cb93480fdda5af55695b  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+1f14587e0b6e38b32468b61cfbfae52f30bfece4a2367169df74a8167d45433b  Exhibits/LightCompute/Code/ReplayReconstructionValidation.h
+b1089f582559885b7ac7de403cbdaddadb44968cde997aa4d586902ff0dde526  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+8b5a3f22769c20faf2deac3168551776829f45c03ad36d7a218eb60968c9134e  Exhibits/LightCompute/RunReplayReconstruction.sh
+REPLAY_RECORDERS primary_and_input=1 barriers=3 padded_dispatch=1 push128=1 invalid_before_recording=28 candidates_0_to_4=1 weighted_span=1 uint_index_limit=1 secondary_camera=1 reconstruction_order_and_WAR=1
+RECONSTRUCTION_STATIC rough=0 frames=20 cap=16 accepted=1024 average_max_error=0 reference=0.119909171,0.119909171,0.119909171 fresh_rmse=0.319338797 reconstructed_rmse=0.0718366138 ratio=0.224954232
+RECONSTRUCTION_GUARDS rough=0 rejected=11 retained=1013 raw_exact=1
+RECONSTRUCTION_REVISIONS rough=0 blocker_fresh_exact=1 source_off_black=1 material_fresh_exact=1
+RECONSTRUCTION_STATIC rough=1 frames=20 cap=16 accepted=1024 average_max_error=0 reference=0.220599843,0.0928487033,0.0346975848 fresh_rmse=0.374009225 reconstructed_rmse=0.0840051166 ratio=0.224607071
+RECONSTRUCTION_GUARDS rough=1 rejected=11 retained=1013 raw_exact=1
+RECONSTRUCTION_REVISIONS rough=1 blocker_fresh_exact=1 source_off_black=1 material_fresh_exact=1
+RECONSTRUCTION_RESERVOIRS frames=8 temporal=1024 spatial=3968 colour=1024 average_max_error=2.98023224e-08 reenable_reset=1 policy_reset=1
+RECONSTRUCTION_DISOCCLUSION outside=1 background=1 retained=1022 raw_exact=1
+RECONSTRUCTION_CAMERA moved=.07 reservoir_accepted=921 colour_accepted=0 raw_exact=1
+RECONSTRUCTION_TEXTURED textured_accepted=293 colour=960 reservoir=960 spatial=3716 average_max_error=5.96046448e-08 atlas_reset_raw_exact=1
+PASS bounded replay diffuse and rough-specular temporal accumulation
+RECONSTRUCTION_CAPTURE 80x60 frames=12 hits_accepted=4560 spatial=17966 colour=4560 raw_temporal_l1=526.843463 blocker_first_raw_exact=1
+PASS room replay reconstruction and first blocker readback
+ReplayReconstructionFresh.png 80x60 RGB_SHA256=a9b1f0076e263ee02b43b64e8fdccb6d4dab7aff9a58fffc8ff452fc6c729c37
+ReplayReconstructionTemporal.png 80x60 RGB_SHA256=40a99257eba8c349ee543ab937744be376df0d16c7ea79b83fc59cf82d72219d
+ReplayReconstructionBlockedFirst.png 80x60 RGB_SHA256=085635a0626e13c96b0ea8fb4f01ff6d9d2f68453c2af941e50e0c05369e9904
+Compare three reconstruction PNG files with the committed b0cf5c9 images:
+496b87a21b4bf9c6c564957bf9549553f14a39a54ae6d8362ef44104b40f00b2  Exhibits/LightCompute/Images/ReplayReconstructionFresh.png
+c7682410d91f1e53c582e516abba72cde98da16045bbfffa1873823bb36ed3d5  Exhibits/LightCompute/Images/ReplayReconstructionTemporal.png
+a9ca1f3d646e1cfd661eccf78c1286ef3a4521fdb3dd82c9315eeff08f9ce8ce  Exhibits/LightCompute/Images/ReplayReconstructionBlockedFirst.png
+PASS 3/3 reconstruction PNG files match the previous committed images byte-for-byte.
+Moving-radiant mixture-on capture: release LightComputeValidation --capture-replay-mixture-motion; 8 frames/state.
+MIXTURE_MOTION_SOURCE translation=-0.119999997 observed=-0.120000005 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+MIXTURE_MOTION_SOURCE translation=-0.119999997 observed=-0.120000005 radiant_facets=2
+TEXTURE_MOTION_UV vertices=30 maximum_error=1.1920929e-07
+MIXTURE_MOTION_CAPTURE preparing Vulkan on SwiftShader Device (Subzero) (128x160, frames=8)
+MIXTURE_MOTION_CAPTURE initial complete
+MIXTURE_MOTION_CAPTURE moved and relit complete
+MIXTURE_MOTION_CAPTURE blocked complete
+MIXTURE_MOTION_CAPTURE reopened complete
+MIXTURE_MOTION_CAPTURE frames_each=8 averaged_last=4 lower_before=0.108237652 lower_moved=0.136812514 lower_blocked=0.0129284465 lower_reopened=0.136968317
+MIXTURE_MOTION_CAPTURE_LINKS accepted=18418/18066/17809 spatial=76754/76754/76754 reset=0/0/0 cap=1/1/1
+PASS moving-radiant mixture settled and first-transition Vulkan readbacks
+PASS 14/14 mixture-on PPMs match the pre-recorder baseline byte-for-byte.
+Full release CTest:
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-candidates-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.01 sec
+ReplayRadiantMotionBefore.ppm matches committed PNG RGB_SHA256=3a51369b810948da322ec6cb6df17aa0604a686cf9336ba99809a0f880af01ef
+ReplayRadiantMotionBeforePreview.ppm matches committed PNG RGB_SHA256=66e2cf14cddaac64ca57041e6757b43241352d84c0e08e655c5d07318d7c48f6
+ReplayRadiantMotionBlocked.ppm matches committed PNG RGB_SHA256=b942d664d0b2ef5ae1242e215283cc9a5c94e3c0eb19e05ac334670ea33f8ada
+ReplayRadiantMotionBlockedFirst.ppm matches committed PNG RGB_SHA256=f942fdf8f2bbac8444bb398c1ecf4f04947e58cac2182ea52fc39e5d05d06546
+ReplayRadiantMotionBlockedFirstPreview.ppm matches committed PNG RGB_SHA256=282ade164eb0d95affdb6f06799b8c6d260f41d2791f27bcb9ffa1be61b77618
+ReplayRadiantMotionBlockedPreview.ppm matches committed PNG RGB_SHA256=421a1c57f327e636f703f83522ad1adcda04afb89fbc826efbe22ac282303361
+ReplayRadiantMotionMoved.ppm matches committed PNG RGB_SHA256=b435819fd59d907ae3eb6e93f68f49d812de6dc0a5c8ef6806e634f8b0231865
+ReplayRadiantMotionMovedFirst.ppm matches committed PNG RGB_SHA256=514e133337eb2aea1e4c41dc6439f5af5ce4772619126490890bc7b38bcd8cf6
+ReplayRadiantMotionMovedFirstPreview.ppm matches committed PNG RGB_SHA256=63b27f9b46298ba40cc20ce482ccaea3dc0e11ff46bcfc8d87d881d8992b3eb5
+ReplayRadiantMotionMovedPreview.ppm matches committed PNG RGB_SHA256=822809338e8a6a0abf74144a30f6df241f6a3ad9ad06de81a15aa43eb3eb62ba
+ReplayRadiantMotionReopened.ppm matches committed PNG RGB_SHA256=d11ee371eb35ba30bd4a76e6dff0b391b15bea18ca54bfe5dd1fe0fc30a952d5
+ReplayRadiantMotionReopenedFirst.ppm matches committed PNG RGB_SHA256=4f6897677098af387d81bbd3b0f65232ab196913a4f2b68407c92f3d621ea24d
+ReplayRadiantMotionReopenedFirstPreview.ppm matches committed PNG RGB_SHA256=bd7c95cf7bc0029a2a73f1d7189c9fe8ca6ac6a84b7ed3aa9d20ed112cc6b4ab
+ReplayRadiantMotionReopenedPreview.ppm matches committed PNG RGB_SHA256=13879527d96178ac1ff48059ca52fbca6f8dcf0bd0af0181894956c3b3a8cea6
+PASS 14/14 mixture-on output pixels match committed reference PNGs.

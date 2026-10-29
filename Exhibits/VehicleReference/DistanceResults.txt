@@ -1,0 +1,3 @@
+PASS: 2048 independent proximity/conservative-bound checks; max distance error=1.11022e-15m; max lower-bound excess=0m
+PASS: 4096 exhaustive long-double bounded ray checks; hits=2375; max travel error=2.10942e-15m; no exclusions
+PASS: invalid/rebake/axis/endpoint guards; RGB emitter transport with sky disabled: added red=1282.06, other channels=0; radiance-count guard

@@ -1,0 +1,87 @@
+{
+  "result": "passed",
+  "build_revision": "dcfe53f0f8574d9cb8e7e05c1faa6ac73220f9e5",
+  "windows_run": {
+    "conclusion": "success",
+    "headSha": "dcfe53f0f8574d9cb8e7e05c1faa6ac73220f9e5",
+    "status": "completed",
+    "url": "https://github.com/SultanAladin/Frontier/actions/runs/39146539736"
+  },
+  "applications": {
+    "Frontier": "Project Browser only",
+    "TextureWorkspace": "Material Library / Preview / Inspector only"
+  },
+  "local_strict_controls": {
+    "result": "passed",
+    "checks": 72738,
+    "actual_zoom_pointer_events": true,
+    "pan_orbit_wheel_keyboard_release_and_widget_isolation": true,
+    "actual_shape_environment_exposure_pointer_events": true
+  },
+  "local_sanitized_controls": {
+    "result": "passed",
+    "checks": 72738,
+    "actual_zoom_pointer_events": true,
+    "pan_orbit_wheel_keyboard_release_and_widget_isolation": true,
+    "actual_shape_environment_exposure_pointer_events": true
+  },
+  "software_vulkan_gpu": {
+    "result": "passed",
+    "gpu_execution": true,
+    "hardware_execution": false,
+    "windows_execution": false,
+    "atlas_images": 1,
+    "shared_pipelines": 5,
+    "geometry_uploads": 1,
+    "checks": [
+      "shared authored material evaluation",
+      "GPU-to-GPU atlas copies",
+      "dirty tile isolation",
+      "slot replacement",
+      "replicated gutters",
+      "bounded UVs and slot refusal",
+      "library submission readiness",
+      "clean residency and no-op invalidation",
+      "applied material invalidation",
+      "root replacement and diagnostics",
+      "cache eviction and stale token refusal",
+      "four GPU inspection shapes",
+      "four GPU lighting environments",
+      "GPU zoom and exposure",
+      "preview-only dirtying",
+      "stable preview and atlas image views"
+    ]
+  },
+  "additional_gpu_checks_passed": [
+    "pan changes preview pixels",
+    "orbit changes preview pixels",
+    "thumbnail pixels and bake count unchanged",
+    "preview and atlas image views remain stable"
+  ],
+  "distribution": {
+    "offered": false,
+    "readiness": "withheld",
+    "chrome_warning_cleared": false,
+    "reason": "Trusted signatures and current clean antivirus verification are required; do not bypass browser protection.",
+    "script_launchers_removed": true,
+    "release_gating_refusal_tests": 4
+  },
+  "artifacts": [
+    {
+      "name": "Windows-build-diagnostics",
+      "id": 12143013393,
+      "url": "https://github.com/SultanAladin/Frontier/actions/runs/39146539736/artifacts/12143013393"
+    }
+  ],
+  "interactive_windows_gpu_launch_verified": false,
+  "evidence_capture": "Native ImGui CPU composition with real software-Vulkan preview/atlas pixels; not a Windows screenshot",
+  "sources": {
+    "UI/TextureStudio/MaterialLibraryPanel.cpp": "d7d73dc55d4d8fe2b68dad68aac4fa7b20e09917a842dcc0207a5ef1ef6e2c58",
+    "Engine/Render/MaterialPreviewConfiguration.h": "d5154869eebca1148d15a3e2e357e6c6ec8384c17e2e8b8f34bb292b492df192",
+    "Engine/Render/MaterialLibraryRendering.cpp": "bb3063a55d929b229d2a12dbcb2ca42473ae5fd7cd0ec36ea38e5efec18a35df",
+    "Experimental/Frontier/Native/WindowsFrontier.cpp": "ada861967bff03f47810b4178099ef720ddc355a64a178b6e1ea4d4b7815995b",
+    "Experimental/TextureStudio/Native/WindowsTextureStudio.cpp": "4a1ad277a5dea05885d690507bb9133747a9fdb9392a4b725994134195b26a7a",
+    "Automation/VerifyWindowsDistribution.ps1": "989ed34a3ddadfbf2c79eaead1f58d1546388714985c6712b34e55f26f5d3dac",
+    "Automation/PackageWorkspacesWindows.py": "95499767c4113adbd1f1e90218bf7820a6274c4b74352a13ac8c5e34dc7a7d43"
+  }
+}

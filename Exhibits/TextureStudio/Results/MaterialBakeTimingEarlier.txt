@@ -1,0 +1,1 @@
+MATERIAL_BAKE_TIMING cpu_only=1 hardware_gpu=0 extent=512 samples=262144 repetitions=7 bake_ms=50.80976 procedural_p50_ms=55.854275 bilinear_p50_ms=16.219293 ratio=3.44369357 float_map_bytes=4194304 texel_centre_max_error=0 offgrid_albedo_mae=0.030083642 offgrid_albedo_max=0.385714948 checksum=1924933.8

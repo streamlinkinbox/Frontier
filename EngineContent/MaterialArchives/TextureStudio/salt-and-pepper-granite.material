@@ -1,0 +1,52 @@
+Format = 1
+Name = "Salt and Pepper Granite"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.2
+Metallic = 0
+Ior = 1.52
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/salt-and-pepper-granite-albedo.png"
+Normal = "Textures/salt-and-pepper-granite-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "granite"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 35
+grain = 0.35
+surfaceSeed = 17
+color = "#898781"
+secondaryColor = "#ddd7c6"
+tertiaryColor = "#24272b"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "granite"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 35
+grain = 0.35
+surfaceSeed = 17
+color = "#898781"
+secondaryColor = "#ddd7c6"
+tertiaryColor = "#24272b"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.12
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.35

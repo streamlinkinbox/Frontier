@@ -1,0 +1,68 @@
+Motion-aware GPU SVGF / edge-stopping a-trous denoiser for ReSTIR GI; host release; CPU SwiftShader Vulkan
+Base 68f3016, plus working changes; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+aec2319fa521a70550994704987b917caa06d1bf189cc56745e2ed2b58612113  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+0a8ee50f9ad620466205e87cd2947f3b663d1628c43610a2647abf0c222582c6  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+cee909287f712044916a7cc07ba72b1b577963f38250c088488e9ff1050773d6  Frontier/Engine/Rendering/Shaders/PathReplayVarianceFilter.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+b007940289e0dbf79826f8b1fc0cdd567ab401c9ae29a7c0aef9ef11722b474e  Frontier/Engine/Rendering/PathReplayDomain.h
+2d48cfd673aa171c05d03c0cf9179b60e8c34dea066c098e447a6f7e62324371  Frontier/Engine/Rendering/PathReplayDomain.cpp
+d01272d32da5697e3a24c01f9178e4dba28441f39928ed1ebbf86c47b9e271e0  Frontier/Engine/Rendering/PathReplayVulkan.h
+b1eb5a24c223402fd30ac08d5842b5bc2db50dd4a684d43831812c4ae44cdd5d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+b7b6115e24ef7e413c2a0239b404ce84864a627f193c220fd47c4f6b39bdf09d  Frontier/Engine/Rendering/VarianceFiltering.h
+c47e3c3d0dce46be3dfc5fd914934573cbf76efae13f01eb0f022f36e207b935  Frontier/Engine/Rendering/VarianceFiltering.cpp
+a8aa3989979fe1b34c60cebdc55087069899eba320202836a714c2d68da3f4f8  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+b9b34e69774ffa4914c17c6fb6decd5d7f75e13d534480f9db052a363209a091  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+7bf0e98c8fe76fc7d79fcee69950641d3fd77aad82e89bc98b1902883cf348b2  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+431d86a1e2ce76bbadf60e48ddb2aaee09dcbc809919b60f3c41c24d8960063c  Exhibits/LightCompute/Code/ReplaySeedCorrelationValidation.cpp
+f7b049008246dfc1a44187d3cbda675b80bc6bf32d513c3b9ff5eb481a1b19db  Exhibits/LightCompute/Code/ReplayVarianceFilterValidation.cpp
+ef1a1cde308a891e5c60fb3d3c75d050f8d8d4b95efc437b415315c67f89f8d0  Exhibits/LightCompute/Code/ReplayVarianceFilterGpuValidation.h
+ec2166aef9e4a4d59837ebd9dafad4dac34d7f09eb3bbb6e4219cecf34245e64  Exhibits/LightCompute/RunReplayVarianceFilter.sh
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+2f3ceffaaca7d031bc3943f8eacf398a5d9c42c5fe0d15d8840b9acfa630b58e  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvk_swiftshader.so
+c9eef28b6b984fec220ef0abfecc40b502d46946706e47bfe97707027cb818bd  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/vk_swiftshader_icd.json
+2dfd2b1501888b151ccce4575f57d9e2c6384bcee74b650fdcfbdccf2260fe22  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/Primary.spv
+b65e4a1ca9b618940bebe9e4bbe948c057532287faa0bc80ca451af04266d366  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/ReplayGenerate.spv
+9a20c11e9ba78e5193c1f907afdf72f975962d5f55576b362399a29ae6e51bf5  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/ReplayResolve.spv
+7cba85ae8cef2dc97515698a07b8714195adf54da4ce5e1912d132528f807a12  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/ReplayGatherReconstruction.spv
+a041f7ccf85ce62ce2d49670cec1dd0a0ddf92972c923404636bd79812e0b952  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/ReplayFinalizeReconstruction.spv
+24fd828698a6e28df43320bbc95f0d235445dd6758cb8cd0642df233508b5a19  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/ReplayGatherSampleHistory.spv
+fc47460cbf0556c64e1a1420801b46de106bc0018bd2b850875748cb7495754f  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/ReplayFinalizeSampleHistory.spv
+38be73ae64d51b182c6b4a5435c3ac6c8fb5142a5d5ed18710392d6a3d173722  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/ReplayGatherVarianceHistory.spv
+a31c19e457e5756013660f670ce3956bec610e4473666a3588a97f0a11e17df9  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/ReplayIntegrateVarianceMoments.spv
+fd6cad4961092c2022ade71d1a75b2157f1c3bb3d46ba1d6730d5391434dac20  /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release/ReplayFilterVarianceWavelet.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-variance-filter-release
+    Start 1: PathReplayDomainValidation
+1/7 Test #1: PathReplayDomainValidation ........   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/7 Test #2: PathReplayVulkanValidation ........   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/7 Test #3: RadiantFacetValidation ............   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/7 Test #4: MediumRadianceValidation ..........   Passed    0.00 sec
+    Start 5: ReplaySeedCorrelationValidation
+5/7 Test #5: ReplaySeedCorrelationValidation ...   Passed    0.91 sec
+    Start 6: ReplayVarianceFilterValidation
+6/7 Test #6: ReplayVarianceFilterValidation ....   Passed    0.00 sec
+    Start 7: PathReplayArchiveValidation
+7/7 Test #7: PathReplayArchiveValidation .......   Passed    0.00 sec
+
+100% tests passed out of 7
+
+Total Test time (real) =   0.93 sec
+SVGF_QUADRATURE mode=diffuse frame0_raw_rmse=0.288822 frame0_svgf_rmse=0.081159 frame15_raw_rmse=0.317006 frame15_svgf_rmse=0.019471
+SVGF_QUADRATURE mode=rough_metallic frame0_raw_rmse=0.337423 frame0_svgf_rmse=0.101167 frame15_raw_rmse=0.365248 frame15_svgf_rmse=0.024014
+SVGF_TEXTURED_DEMODULATION 32x32 fresh_rmse=0.248441 svgf_rmse=0.039167 contrast_pairs=181 contrast_retention=0.9623 reprojected=845
+SVGF_GUARDS light_off_exact_zero=1 corrupt_slots=9 reprojected=1016 fallback_disoccluded=1024 all_finite=1
+SVGF_CORRIDOR_TRAJECTORY 32x32 frames=8 fresh_rmse=0.217606 brute8_rmse=0.084810 disk_rmse=0.120924 disk_svgf_rmse=0.039901 unified_svgf_rmse=0.033767 fresh_edge=0.263613 disk_edge=0.171122 disk_svgf_edge=0.054469 unified_svgf_edge=0.042889 fresh_flicker=0.265224 disk_flicker=0.160907 disk_svgf_flicker=0.012521 unified_svgf_flicker=0.010295 fresh_rays=2869 brute8_rays=22973 disk_rays=15839 disk_svgf_rays=15839 unified_svgf_rays=18885 svgf_reprojected=842 svgf_wavelet_taps=41148 svgf_edge_stopped=15324
+SVGF_WET_GGX_TRAJECTORY 32x32 frames=8 fresh_rmse=0.246559 disk_rmse=0.133627 disk_svgf_rmse=0.041106 fresh_flicker=0.333710 disk_flicker=0.153614 disk_svgf_flicker=0.013814 disk_rays=17266 disk_svgf_rays=17266 svgf_reprojected=870
+PASS GPU motion-aware SVGF quadrature, textured demodulation, anti-ghosting guards and driving corridors
+SVGF_CAPTURE 64x64 bounces=4 frames=8 ref_passes=256 fresh_rmse=0.217085 legacy_rmse=0.217085 disk_rmse=0.087325 disk_svgf_rmse=0.029634 unified_svgf_rmse=0.023605 fresh_edge=0.240719 legacy_edge=0.240719 disk_edge=0.108550 disk_svgf_edge=0.044771 unified_svgf_edge=0.034017 fresh_flicker=0.261984 legacy_flicker=0.261984 disk_flicker=0.120587 disk_svgf_flicker=0.008746 unified_svgf_flicker=0.007124 fresh_rays=11581 legacy_rays=11581 disk_rays=67711 disk_svgf_rays=67711 unified_svgf_rays=78915 legacy_retained=0 svgf_reprojected=3404 svgf_disoccluded=7 svgf_wavelet_taps=179776 svgf_edge_stopped=51386
+PASS 64x64 continuous subpixel driving SVGF comparison and error heatmaps
+SVGF_COMPARISON_PNG b8eede09eafe28aa50f520bc753f1c49a0a171314931b980f034746578f65739 /home/user/Frontier/Exhibits/LightCompute/Images/ReplayVarianceFilterComparison.png 1250x554

@@ -1,0 +1,14 @@
+Radiant facet extraction: sanitized; pinned exhibit source fe774a5796476bb055429e9ee3d1b208202e8aa1
+Current base fe774a5, plus working changes if any; source hashes below.
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Linux 6.1.158+ x86_64
+fc33969bca4c0592bdff604ad19035a943c91d01ae6340cb6219f5e5a9efb0ca  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+f8983a823b22a380d10682d3bf991f56d6a0cd4cf93b82866b0b9b49825341b6  Exhibits/LightCompute/Code/RadiantFacetValidation.cpp
+f20be54abfc88217550d4b8f856ea8a8405b527c95de838aab678795126f56c2  Exhibits/LightCompute/Code/RadiantFacetFixtures.h
+RADIANT_FACETS analytic_count=3 area_ratio=1:2 tiny_ticks=1 generated=3396 floats=13585
+RADIANT_FACET_GUARDS rejected=18 malformed_and_unrepresentable=1
+HISTORICAL_PARITY fixture_facets=4096 binary_bytes=54340 exact_equal=1
+d964658879bafec1002b8d0968bb3eeb05bba2c5a5e8ba309aad48ee3b8209a3  /home/user/Frontier/_ClaudeScratch/build/radiant-facet-sanitized/prior.bin
+d964658879bafec1002b8d0968bb3eeb05bba2c5a5e8ba309aad48ee3b8209a3  /home/user/Frontier/_ClaudeScratch/build/radiant-facet-sanitized/engine.bin
+Finite generated inputs, CPU only; the distribution is global and is not clustered lighting.

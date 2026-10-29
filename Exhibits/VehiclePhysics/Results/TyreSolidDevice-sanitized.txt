@@ -1,0 +1,81 @@
+Engine Hex8 tyre solid direct Vulkan validation; sanitized
+Base 1b0adc6, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+v22.22.3
+numpy 2.3.4
+3a80e7f8d9a54f104dead7fab77c8b80fc8161f3122688332d34c42113452abd  Frontier/Engine/Physics/TyreContinuum.h
+63987e92a9a470e2a304e49e2acf0a5e222f2ef9a3eeba83157a8d3168d0449c  Frontier/Engine/Physics/TyreContinuum.cpp
+865bc3cdc39fb2d6aa859b965543f451f9df43ea2fec1e1383bd4620fe2b92e0  Frontier/Engine/Physics/TyreProjectionDevice.h
+533cbe994b8e2f4ed91347b0886fa881889bae9d4f03f31c4b8ddffa2965b636  Frontier/Engine/Physics/TyreProjectionDevice.cpp
+af4d185269ae11c6ed1f3e549b3cd8c76a1b3228bf5191c5ca3fe286d5605fc8  Frontier/Engine/Physics/TyreProjectionVulkan.h
+12332db95857f021959b1e3114ed4ea78a46de50e9b80932cabe268e4aeb7e54  Frontier/Engine/Physics/TyreProjectionVulkan.cpp
+4b797b5daa97ece3af3be377067882e18c347e5033801364baeaa972dff97145  Frontier/Engine/Physics/TyreSolidDevice.h
+921c8ae7ff658c64e41e9fb1695fe744ca4d73de7e9c0f0f3b64361af92dd41a  Frontier/Engine/Physics/TyreSolidDevice.cpp
+6ba664354911b388d5d704420d300a6822f4a162687cd8f6d18282e739b11e4f  Frontier/Engine/Physics/TyreSurfaceProjection.h
+615b016924163302e43d5f89475622e96e6dcb7c50d173cf45c17c3e42c2cb43  Frontier/Engine/Physics/Shaders/TyreProjectionRecords.slang
+33bc03d22a719d02221f5e4894d77cea1d0cc5f6995bcc6af02ee247f856a6cd  Frontier/Engine/Physics/Shaders/TyreSolidDevice.slang
+c4ad5f69d9e62295e7a2189138334215f4a2c3c2b932621b8b4299e3d704458e  Frontier/Engine/Physics/Shaders/TyreSolidConstitutive.slang
+f29396240728bab00908bfa7ea53e6187bd875b5177e698228987e62e29e05ef  Frontier/Engine/Physics/Shaders/TyreSurfaceDevice.slang
+1babafe252dd9c5b601fca4e7b919c311bf4fd53b9646e9ea77b8120c1b89577  Exhibits/VehiclePhysics/Code/TyreContinuumReference.mjs
+7e2ebecc5796fc65a289c71e56911a6a8220b29d93e046d458f60ac9eaf2fc56  Exhibits/VehiclePhysics/Code/TyreSolidDeviceReference.py
+2b8f8a3a39b57704e760192fcd9c7cb799f66b179b90b4032476d47eb5561703  Exhibits/VehiclePhysics/Code/TyreSolidVulkanValidation.cpp
+8148ec96a309000b189b84935b2f341f55d0e5c8a362f1cff7ae3cb6410c8a90  Exhibits/VehiclePhysics/Code/TyreSolidConstitutiveProbe.slang
+8b230e8b1a762efc4d312ac1b822bccbf7630820c9f095ea523dac9beb2da6f8  Exhibits/VehiclePhysics/Code/TyreSurfaceDeviceProbe.slang
+6476c9c035e5d50171bbbf746b16f438a13f640984ef3e8c9e811d08d54400b1  Experimental/VehicleHmiReference/Source/TyreContinuumElasticity.js
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+2f3ceffaaca7d031bc3943f8eacf398a5d9c42c5fe0d15d8840b9acfa630b58e  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvk_swiftshader.so
+c9eef28b6b984fec220ef0abfecc40b502d46946706e47bfe97707027cb818bd  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/vk_swiftshader_icd.json
+UpdateCTestConfiguration  from :/home/user/Frontier/_ClaudeScratch/build/tyre-solid-sanitized/DartConfiguration.tcl
+Test project /home/user/Frontier/_ClaudeScratch/build/tyre-solid-sanitized
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start 1: TyreContinuumValidation
+
+1: Test command: /home/user/Frontier/_ClaudeScratch/venv/lib/python3.11/site-packages/cmake/data/bin/cmake "-DNODE=/usr/local/bin/node" "-DROOT=/home/user/Frontier" "-DPROBE=/home/user/Frontier/_ClaudeScratch/build/tyre-solid-sanitized/TyreContinuumValidation" "-DOBSERVATIONS=/home/user/Frontier/_ClaudeScratch/build/tyre-solid-sanitized/continuum-reference.txt" "-P" "/home/user/Frontier/Exhibits/VehiclePhysics/Code/RunTyreContinuum.cmake"
+1: Working Directory: /home/user/Frontier/_ClaudeScratch/build/tyre-solid-sanitized
+1: Test timeout computed to be: 10000000
+1: PASS complete 12 cases x 8 samples / model                      192
+1: PASS projection local positions vs demo (max m)                 0
+1: PASS projection world positions vs demo (max m)                 0
+1: PASS projection prescribed force vs demo (max N)                0
+1: PASS solid local positions vs demo (max m)                      2.71050543e-20
+1: PASS solid world positions vs demo (max m)                      0
+1: PASS solid prescribed force vs demo (max N)                     0
+1: PASS solid mean Jacobian vs demo (max absolute)                 0
+1: PASS solid mean stress vs demo (max relative)                   2.7331688e-16
+1: PASS solid contact counts match demo                            0
+1: PASS all coordinates finite and rim beads pinned                1
+1: PASS constant nodal field reproduces translation                0
+1: PASS sector/ring bilinear interpolation matches hand calculation 1.53668225e-08
+1: PASS deformed shading normal is normalized                      0.999999881
+1: PASS unloaded tyre leaves vertices unchanged                    0
+1: PASS shredded rubber collapses like demo shader                 0
+1: SUMMARY passed 16 failed 0
+1/1 Test #1: TyreContinuumValidation ..........   Passed    0.68 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.68 sec
+	libasan.so.8 => /lib/x86_64-linux-gnu/libasan.so.8 (0x00007fbae5000000)
+	libubsan.so.1 => /lib/x86_64-linux-gnu/libubsan.so.1 (0x00007fbae4400000)
+TYRE_SOLID_DEPENDENCIES vehicle_header=0 jolt_header=0
+0c31de2ac5ce0204067d6ad315ca7d289b7a78ad03970f53b7a2b872529473f4  /home/user/Frontier/_ClaudeScratch/build/tyre-solid-sanitized/ResetTyreSolid.spv
+cf65ae07757792ac4487a492690f11ddf44dd4c918ef1f105bc55cbfbcd648e3  /home/user/Frontier/_ClaudeScratch/build/tyre-solid-sanitized/AdvanceTyreSolid.spv
+62b093cc0638567de51977fcda160ff3fc9606a160b6de77a4dedae5296c2c97  /home/user/Frontier/_ClaudeScratch/build/tyre-solid-sanitized/TyreSurface.spv
+2384bd98f8f8fe00cf76ba820f81a7419a39b1e424885c35c78bd9f1489dd634  /home/user/Frontier/_ClaudeScratch/build/tyre-solid-sanitized/TyreStress.spv
+TYRE_SOLID_CELL_GUARDS rejected=6 valid_cells=128
+VULKAN device=SwiftShader Device (Subzero) type=4 api=1.3.0
+TYRE_SOLID_CONSTITUTIVE probes=64 independent_energy_gradient=1 max_abs=0.00846676863 max_scaled=0.000107861118 max_jacobian=1.52232736e-07 rigid_stress=0 positive_j_unclamped=1
+TYRE_SOLID_CPU tyres=33 steps=8 particle_snapshots=42240 max_local_m=0.000101864338 max_world_m=0.000100314617 max_force_n=0.00089931488 max_jacobian=4.61015691e-06 max_stress=0.687677624 pinned_components=50688 contacts_exact=1
+TYRE_SOLID_SURFACE probes=4096 gpu_resident_particles=1 same_command_buffer=1 guards=538 max_position_m=5.96046448e-08 max_normal=2.34246254e-05 largest_motion_m=0.0856878012
+TYRE_SOLID_DEVICE_GUARDS invalid_command=1 invalid_corner=1 nonfinite_cell=1 short_cells=1 count_bound=1 untouched_particles=1 same_command_reset_advance=1
+TYRE_SOLID_JS cases=12 duplicated_tyres=33 steps=8 particle_snapshots=42240 max_local_m=0.000101864338 max_world_m=0.000100295991 max_force_n=0.001953125 max_jacobian=4.62232809e-06 max_stress=0.687863568 contacts_exact=1
+TYRE_SOLID_INVARIANTS duplicated_states_exact=1 static_error_m=0 largest_deformation_m=0.0869445503
+TYRE_SOLID_READBACK_SHA256 6df6bb954411ef4a1cb4a85fb1d47cc143581e46f76b49972bcd501700e7696c
+TYRE_SOLID_SUMMARY PASS direct_slang_spirv=1 no_vehicle_or_jolt=1

@@ -1,0 +1,48 @@
+Format = 1
+Name = "Kaolin Clay"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.6795424696330938, 0.6172065624196511, 0.5088813208549338]
+Roughness = 0.92
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/kaolin-clay-albedo.png"
+Normal = "Textures/kaolin-clay-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "clay"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 24
+grain = 0.35
+moisture = 0.02
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "clay"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 24
+grain = 0.35
+moisture = 0.02
+surfaceSeed = 17
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.15
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0

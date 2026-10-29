@@ -1,0 +1,51 @@
+{
+  "result": "passed",
+  "windows_application_build": true,
+  "windows_cpu_and_imgui_tests": true,
+  "interactive_windows_vulkan_launch_verified": false,
+  "hardware_gpu_verified": false,
+  "run_url": "https://github.com/SultanAladin/Frontier/actions/runs/39142811899",
+  "build_revision": "c586fd707283afea78462f8e467d6c85ba4c44e5",
+  "applications": {
+    "SolidArc.exe": [
+      "Project Browser"
+    ],
+    "TextureWorkspace.exe": [
+      "Material Library",
+      "Preview",
+      "Inspector"
+    ]
+  },
+  "slang_entries_compiled_and_packaged": 10,
+  "runtime_shader_directory": "EngineContent/ShaderArchives/Surface",
+  "windows_acceptance_tests": [
+    "SurfaceGeometryValidation",
+    "MaterialPreviewConfigurationValidation",
+    "IconDomainValidation",
+    "MaterialLibraryValidation",
+    "ProjectBrowserValidation"
+  ],
+  "artifacts": [
+    {
+      "name": "SolidArc-TextureWorkspace-Windows-x64",
+      "id": 12142541200,
+      "bytes": 5971368,
+      "github_artifact_digest": "sha256:f84ad043a5d959c0f6588f6877461f6edf5ae4b6aacad14882b58e9adf632aca",
+      "url": "https://github.com/SultanAladin/Frontier/actions/runs/39142811899/artifacts/12142541200"
+    },
+    {
+      "name": "Windows-build-diagnostics",
+      "id": 12141379773,
+      "bytes": 273937,
+      "github_artifact_digest": "sha256:a02edc048212450c491e17caee6ea421fc1fa59fa98b5ff57e044d4563f36417",
+      "url": "https://github.com/SultanAladin/Frontier/actions/runs/39142811899/artifacts/12141379773"
+    }
+  ],
+  "local_material_checks_per_strict_and_sanitized_execution": 259,
+  "local_inspection_report": "Exhibits/TextureStudio/Results/MaterialInspectionChecks.json",
+  "limitations": [
+    "Interactive Windows window/GPU-driver startup remains user acceptance.",
+    "Seven automotive procedural recipes; remaining material fidelity remains in progress.",
+    "Other standalone workspaces are planned, not delivered by this build."
+  ]
+}

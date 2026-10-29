@@ -1,0 +1,32 @@
+{
+  "negative_control_revision": "02d5d13",
+  "device": "SwiftShader Device (Subzero)",
+  "physical_gpu": false,
+  "capture_dimensions": [
+    96,
+    64
+  ],
+  "retained_vehicle_dimensions": [
+    640,
+    400
+  ],
+  "samples_per_pixel": 64,
+  "proposals_per_sample": 1,
+  "receiver_albedo": [
+    0.3,
+    0.6,
+    0.9
+  ],
+  "interaction_cap": 2048,
+  "capture_sha256": {
+    "DiffuseDielectric0.ppm": "9dfc5725ddab8fdfd89d53ac3a26f0315369d7b02656ed6bb79869d9bd931b8d",
+    "DiffuseDielectric1.ppm": "0c42b2791d3e56ea3bc60f7a1c0a98a1d1dd7cfead0dc09f8f99d75fb3a59415",
+    "DiffuseDielectric2.ppm": "8c96f33461688141b033b6f3f28b6b76da432fe6ace45c3a67251342447f7285",
+    "Transport.ppm": "4589b8dcfb220c770b5acbd02ecd7656f38ecf5b06789003050f5b2bbf728c57"
+  },
+  "diffuse_log": "DIFFUSE_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4\nDIFFUSE_RAY_COUNTS rays=327680 hits=146417 misses=181263\nDIFFUSE_BEER changed_channels=15360 channel_ratios=0.903583,0.7616,0.632969 repeat_exact=1\nDIFFUSE_EMITTER_ROUTING nee_equal=1 refracted_total=71.4212\nDIFFUSE_DIELECTRIC_PASS source_off_black=1 pixels=6144 samples=64 proposals_per_sample=1\n",
+  "negative_control_log": "DIFFUSE_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4\nDIFFUSE_RAY_COUNTS rays=327680 hits=146417 misses=181263\nDIFFUSE_DIELECTRIC_ORIGINAL changed_channels=0 absorption_ignored=1 repeat_exact=1\n",
+  "retained_vehicle_log": "DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1\nTRANSPORT samples=16 probes=901 mean_rgb_error=2.12644e-08 max_rgb_error=4.5973e-06 secondary_rays=3603424 secondary_hits=263475 environment_misses=3339949\nTRANSPORT_SOURCE route=0 indirect_rgb_sum=2053.59\nTRANSPORT_SOURCE route=1 indirect_rgb_sum=19571.8\nTRANSPORT_SOURCE route=2 indirect_rgb_sum=612.624\nTRANSPORT_LINEARITY max_rgb_error=8.44436e-06\nTRANSPORT_RESET all_sources_off_black=1 cpu_primary_raster=0 cpu_per_pixel_radiance=0 cpu_atmosphere_cube_bake=1 gpu_one_bounce_transport=1\n",
+  "compact_motion_log": "DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1\nTRANSPORT_RECONSTRUCTION width=160 height=100 reference_seeds=16 updates=8 accepted=14080 spatial=13981 fresh_rmse=0.0103498 filtered_rmse=0.00585726\nTRANSPORT_RECONSTRUCTION_SPATIAL native_probes=210 max_rgb_error=4.23087e-08\nTRANSPORT_RECONSTRUCTION_RESET emission_cold_equal=1 camera_cut_cold_equal=1 sources_off_black=1\nTRANSPORT_RECONSTRUCTION_MOTION pose=0 accepted=0 current_emission_preserved=1 direct_max_delta=3.8147e-06\nTRANSPORT_RECONSTRUCTION_MOTION pose=1 accepted=12076 current_emission_preserved=1 direct_max_delta=2.38419e-07\nTRANSPORT_RECONSTRUCTION_MOTION pose=2 accepted=12067 current_emission_preserved=1 direct_max_delta=3.8147e-06\nTRANSPORT_RECONSTRUCTION_MOTION pose=3 accepted=0 current_emission_preserved=1 direct_max_delta=2.38419e-07\nTRANSPORT_RECONSTRUCTION_MOTION pose=4 accepted=12064 current_emission_preserved=1 direct_max_delta=3.8147e-06\nTRANSPORT_RECONSTRUCTION_MOTION pose=5 accepted=12079 current_emission_preserved=1 direct_max_delta=3.8147e-06\n",
+  "scope": "Compact cosine diffuse receivers through smooth closed volumes. Rough glass boundaries, nesting, caustics and saved material authoring remain unsupported."
+}

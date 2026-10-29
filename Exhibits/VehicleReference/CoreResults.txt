@@ -1,0 +1,19 @@
+IlluminationChain exit 0 E noisy 0.2769 -> filtered 0.0226 (12.3x lower)
+SVGF: guided step retained 0.699 of true 0.724 (97%)
+chain atlas: 91302720 bytes aliased vs 191097664 unaliased (52% saved)
+chain barriers: 45 derived
+Illumination chain validation: 55/55 checks passed
+
+IndirectIllumination exit 0 d 48.0000, absorbed 39.9103 (83.1% accounted)
+power (12x12): 90.5% accounted
+radiosity vs patch direct solve: max relative patch error 0.66%
+floor centre radiosity: 0.7103 open vs 0.3511 occluded
+Indirect illumination validation: 60/60 checks passed
+
+EnvironmentPipeline exit 0 on 74.80 deg (identity 74.80)
+equinox sunrise azimuth 90.14 deg
+cloud uniform vertical T: 0.000068 vs Beer 0.000068
+cloud scatter: toward sun 0.0033 vs away 0.0020
+environment barriers: 21 derived
+Environment pipeline validation: 73/73 checks passed
+

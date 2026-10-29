@@ -1,0 +1,66 @@
+Format = 1
+Name = "Ribbed Cotton"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.89
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0.2
+SheenColor = [0.1589608350608804, 0.10224173308810132, 0.07036009569659588]
+SheenIntensity = 0.45
+SheenRoughness = 0.7
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/ribbed-cotton-albedo.png"
+Normal = "Textures/ribbed-cotton-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 38
+weaveAngle = 0
+weaveRelief = 0.6
+fiberDetail = 16
+fuzz = 0.4
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 0
+surfaceSeed = 17
+sheen = 0.45
+sheenRoughness = 0.7
+fuzzLength = 0.5
+weavePattern = "rib"
+warpColor = "#b0957b"
+weftColor = "#6f5a4b"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 38
+weaveAngle = 0
+weaveRelief = 0.6
+fiberDetail = 16
+fuzz = 0.4
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 0
+surfaceSeed = 17
+sheen = 0.45
+sheenRoughness = 0.7
+fuzzLength = 0.5
+weavePattern = "rib"
+warpColor = "#b0957b"
+weftColor = "#6f5a4b"

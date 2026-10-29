@@ -1,0 +1,211 @@
+format = 1
+
+[[faces]]
+family = "Archivo"
+file = "Archivo/Archivo-Black.ttf"
+weight = 900
+italic = false
+sha256 = "37bafecd27daf830ceee55a55e6e2b8b4178159a8b7cab982a83fd51197e7f07"
+
+[[faces]]
+family = "Archivo"
+file = "Archivo/Archivo-Bold.ttf"
+weight = 700
+italic = false
+sha256 = "951a0ebab63b1bb0d90a26c27625bda803d570dace3851fa2f1eea65852d8983"
+
+[[faces]]
+family = "Archivo"
+file = "Archivo/Archivo-ExtraBold.ttf"
+weight = 800
+italic = false
+sha256 = "9fff67922ae2bc376a9e5c6d644eebf8c5b17f62a0f38e5f016e4b7e3903662f"
+
+[[faces]]
+family = "Archivo"
+file = "Archivo/Archivo-ExtraLight.ttf"
+weight = 200
+italic = false
+sha256 = "e9da78a3dcfb6463001ffc4da8af7c24913db50c43a94ab09d02059041de367f"
+
+[[faces]]
+family = "Archivo"
+file = "Archivo/Archivo-Light.ttf"
+weight = 300
+italic = false
+sha256 = "950fc47e639af87cf403aa6617bffd72bd9cbfdfdacdc14141b374e059586892"
+
+[[faces]]
+family = "Archivo"
+file = "Archivo/Archivo-Medium.ttf"
+weight = 500
+italic = false
+sha256 = "6d42123d7954e72600b2e29284a9c8c95cddb4372b21cd3d2a5e8cd4f231f36b"
+
+[[faces]]
+family = "Archivo"
+file = "Archivo/Archivo-Regular.ttf"
+weight = 400
+italic = false
+sha256 = "59fbfd8a9bb41301bfe950e7b097fd42d52af224a07761e2c1b2c959a4c9cf9a"
+
+[[faces]]
+family = "Archivo"
+file = "Archivo/Archivo-SemiBold.ttf"
+weight = 600
+italic = false
+sha256 = "6598b6ed816158767a7633bdfb01d78daf54cab4cd4d9d3cc0cfd995f4723083"
+
+[[faces]]
+family = "Archivo"
+file = "Archivo/Archivo-Thin.ttf"
+weight = 100
+italic = false
+sha256 = "1c978a04b40728bf9afac3575fbcd483342c3d7809967949471a87b76cb93d6a"
+
+[[faces]]
+family = "Inter"
+file = "Inter/Inter-Black.otf"
+weight = 900
+italic = false
+sha256 = "d108d003dd5e5a692a586e25aec09f5643f8078613e53d6d5e7ae45e1adf2fb4"
+
+[[faces]]
+family = "Inter"
+file = "Inter/Inter-Bold.otf"
+weight = 700
+italic = false
+sha256 = "1e9dfd6a6e33ac63a8fe3b4ed7ae0df9eac2d0b25e444e8e7daef4ac77943fc1"
+
+[[faces]]
+family = "Inter"
+file = "Inter/Inter-ExtraBold.otf"
+weight = 800
+italic = false
+sha256 = "158144ef2ad48baf0e45907951a00a1d3264f85c742ccfbc087e90d3d9288cfa"
+
+[[faces]]
+family = "Inter"
+file = "Inter/Inter-ExtraLight.otf"
+weight = 200
+italic = false
+sha256 = "a0f33dfec7784ebf09b19d4ea50ffa49e2595f880082351124aacf9ebfa48442"
+
+[[faces]]
+family = "Inter"
+file = "Inter/Inter-Light.otf"
+weight = 300
+italic = false
+sha256 = "e66f130fbadda71e297a9a78025e2f05e8d225ae9dfcea9f51f6570b68fdd905"
+
+[[faces]]
+family = "Inter"
+file = "Inter/Inter-Medium.otf"
+weight = 500
+italic = false
+sha256 = "99dab2bdcb613c4c8264000a94351d1227f74dc95a86d1249493aeee0c0179c4"
+
+[[faces]]
+family = "Inter"
+file = "Inter/Inter-Regular.otf"
+weight = 400
+italic = false
+sha256 = "a7e791e8f5a0fb02b65663f7fca73e1d1ca9543f772ad480cbd76f4e3fe3f8cc"
+
+[[faces]]
+family = "Inter"
+file = "Inter/Inter-SemiBold.otf"
+weight = 600
+italic = false
+sha256 = "8c1990b6012254ea2b487161697d107357dd0ee55811cfd91c8c11227bbef457"
+
+[[faces]]
+family = "Inter"
+file = "Inter/Inter-Thin.otf"
+weight = 100
+italic = false
+sha256 = "4d9bb6a256c5a9a4f3c7a7f5f27eb0f7e849a1ceee20638d44c9073b41a0b015"
+
+[[faces]]
+family = "JetBrains Mono"
+file = "JetBrainsMono/JetBrainsMono-Bold.ttf"
+weight = 558
+italic = false
+sha256 = "d22c4f3821d725eb01210d278d95dfcfcaadc34699a06658d47c8a5cc5830ada"
+
+[[faces]]
+family = "JetBrains Mono"
+file = "JetBrainsMono/JetBrainsMono-ExtraBold.ttf"
+weight = 800
+italic = false
+sha256 = "ee43f7507a07ed15c4bf6211d5cc78fa0bacca58e7afbc170f4b1e38a5d0cde4"
+
+[[faces]]
+family = "JetBrains Mono"
+file = "JetBrainsMono/JetBrainsMono-ExtraLight.ttf"
+weight = 240
+italic = false
+sha256 = "a6d4b0e43eecb3823925617bd8052af10cb1ff90247687f07c7676f1bd507714"
+
+[[faces]]
+family = "JetBrains Mono"
+file = "JetBrainsMono/JetBrainsMono-Light.ttf"
+weight = 336
+italic = false
+sha256 = "ba7e27ea0e9803e57fc1837eae3fa7dc4fe59f3dc548859958fa3f8b77f6909b"
+
+[[faces]]
+family = "JetBrains Mono"
+file = "JetBrainsMono/JetBrainsMono-Medium.ttf"
+weight = 436
+italic = false
+sha256 = "d16e6dc99672734698d629705f617c79f6eb6040f5113efe3a145204dc988109"
+
+[[faces]]
+family = "JetBrains Mono"
+file = "JetBrainsMono/JetBrainsMono-Regular.ttf"
+weight = 400
+italic = false
+sha256 = "e6fd0d7e91550b3ed2b735d4312474362c4716edc4fc0577a0f61ed782d5aed1"
+
+[[faces]]
+family = "JetBrains Mono"
+file = "JetBrainsMono/JetBrainsMono-SemiBold.ttf"
+weight = 472
+italic = false
+sha256 = "12d4b18fe6e1af528e4bea69cb0997aeff22f9e52fccffcf66342dd88aa32ab8"
+
+[[faces]]
+family = "JetBrains Mono"
+file = "JetBrainsMono/JetBrainsMono-Thin.ttf"
+weight = 100
+italic = false
+sha256 = "7ac062c7792f4539841b74b929e9fa3e74a108ef668c6c167e0e6733b0297ad7"
+
+[[faces]]
+family = "Space Grotesk"
+file = "SpaceGrotesk/SpaceGrotesk-Bold.ttf"
+weight = 700
+italic = false
+sha256 = "7209bbb75fc0f5c546a5f5773b0db74ffc6abf04c2148c1105cace5765a96bdb"
+
+[[faces]]
+family = "Space Grotesk"
+file = "SpaceGrotesk/SpaceGrotesk-Light.ttf"
+weight = 300
+italic = false
+sha256 = "48ebce72bd4fc089b7750a2a56c3424103f95c63fb4a25f39ca672bb39bb1913"
+
+[[faces]]
+family = "Space Grotesk"
+file = "SpaceGrotesk/SpaceGrotesk-Medium.ttf"
+weight = 500
+italic = false
+sha256 = "3183b7eb0b4241476360e2cd8e527868616cc16d3ce332c4376505989b772b44"
+
+[[faces]]
+family = "Space Grotesk"
+file = "SpaceGrotesk/SpaceGrotesk-Regular.ttf"
+weight = 400
+italic = false
+sha256 = "5ede28c4425f3fe4830c8f4754b39e9a87a93d0c3baa5e0a9924532aaa8a98bd"

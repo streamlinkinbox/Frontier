@@ -1,0 +1,18 @@
+Format = 1
+Name = "Layered Sand"
+
+[Textures]
+Albedo = "Textures/layered-sand-albedo.png"
+Orm = "Textures/layered-sand-orm.png"
+Normal = "Textures/layered-sand-normal.png"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 1.0
+Metallic = 0
+Ior = 1.544
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [1, 1, 0, 0]

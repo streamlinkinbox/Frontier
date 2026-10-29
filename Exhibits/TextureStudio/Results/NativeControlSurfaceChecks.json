@@ -1,0 +1,11 @@
+{
+  "result": "passed",
+  "native_imgui_cpu_execution": true,
+  "vulkan_material_execution": true,
+  "windows_execution": false,
+  "native_window_execution": false,
+  "hardware_execution": false,
+  "live_colour_gpu_pixels": true,
+  "preview_parameter_allocations": 2,
+  "capture": "Actual C++ ImGui triangle rasterization plus real Vulkan readbacks; not a Windows screenshot"
+}

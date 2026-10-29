@@ -1,0 +1,66 @@
+Format = 1
+Name = "Woven Fabric"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.93
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.184474994500441, 0.18116424424986022, 0.14995978981060856]
+SheenIntensity = 0.65
+SheenRoughness = 0.55
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/woven-fabric-albedo.png"
+Normal = "Textures/woven-fabric-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 30
+weaveAngle = 45
+weaveRelief = 0.65
+fiberDetail = 12
+fuzz = 0.5
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 0
+surfaceSeed = 17
+sheen = 0.65
+sheenRoughness = 0.55
+fuzzLength = 0.7
+weavePattern = "twill"
+warpColor = "#77766c"
+weftColor = "#77766c"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 30
+weaveAngle = 45
+weaveRelief = 0.65
+fiberDetail = 12
+fuzz = 0.5
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 0
+surfaceSeed = 17
+sheen = 0.65
+sheenRoughness = 0.55
+fuzzLength = 0.7
+weavePattern = "twill"
+warpColor = "#77766c"
+weftColor = "#77766c"

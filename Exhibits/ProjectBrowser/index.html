@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Browser — validation evidence</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#090909;color:#eee}*{box-sizing:border-box}body{margin:0}main{max-width:1180px;margin:auto;padding:44px 24px 80px}h1{font-size:32px;letter-spacing:-1px;margin:8px 0 16px}h2{font-size:22px;margin:0 0 14px}h3{font-size:15px;margin:0 0 8px}p{color:#aaa;line-height:1.7;margin:10px 0}a{color:#c2ded0;text-underline-offset:4px}.eyebrow{font-size:11px;letter-spacing:2px;color:#999;text-transform:uppercase}.badge{display:inline-block;padding:5px 10px;border:1px solid #365a48;color:#b5dec6;border-radius:30px;font-size:12px}.pending{border-color:#68593f;color:#dfcda7}.summary,.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card,section,figure{background:#121212;border:1px solid #282828;border-radius:16px}.card{padding:20px}.card strong{display:block;font-size:24px;margin:8px 0}.card span{color:#aaa;font-size:13px}section{padding:26px;margin:24px 0}ul{padding-left:20px;line-height:1.9;color:#ccc}table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:13px 8px;border-bottom:1px solid #292929}th{color:#aaa;font-weight:400}td:last-child{color:#b5dec6;width:88px}.notice{padding:16px 18px;border-left:3px solid #8a7552;background:#1d1913;border-radius:6px;color:#d5c7ae}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}figure{margin:0;overflow:hidden}figure img{display:block;width:100%;height:290px;object-fit:contain;background:#050505}figcaption{padding:16px;font-size:13px;color:#bbb;line-height:1.7}details{margin:18px 0;color:#aaa}summary{cursor:pointer}pre{overflow:auto;background:#090909;padding:18px;border-radius:10px;font-size:11px;line-height:1.8}footer{font-size:12px;color:#777;margin-top:25px}@media(max-width:650px){.summary,.grid{grid-template-columns:1fr}main{padding:26px 14px}section{padding:18px}h1{font-size:27px}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">Frontier · Project Browser</div>
+<h1>Conversion evidence</h1>
+<p>Native C++ validation results and HTML design-reference captures. These are different execution paths.</p>
+<div class="summary">
+<div class="card"><span>Native C++ checks</span><strong id="NativeResult">Loading…</strong><span id="Runs">Reading recorded results</span></div>
+<div class="card"><span>Native creation presets</span><strong>Blank Project</strong><span>One preset. No sample scene content.</span></div>
+<div class="card"><span>Windows / GPU execution</span><strong>Not verified</strong><span>Startup integration is source-only so far.</span></div>
+</div>
+<section><h2>Native C++ checks</h2>
+<p>Real project creation, file validation and ImGui draw/layout commands executed on the editing host.</p>
+<div class="notice">No native Windows screenshot or GPU capture exists yet. The screenshots below are from the HTML reference, not the C++ application.</div>
+<p id="Compiler"></p><table><thead><tr><th>Executed check</th><th>Result</th></tr></thead><tbody id="Checks"><tr><td>Loading recorded evidence…</td><td>—</td></tr></tbody></table>
+<p><a href="Results/NativeBrowserChecks.json">Native report · JSON</a> · <a href="Code/ProjectBrowserValidation.cpp">C++ validation source</a></p>
+<details><summary>Source fingerprints recorded with the checks</summary><pre id="Hashes">Loading…</pre></details>
+</section>
+<section><h2>HTML reference — visual evidence</h2><p>Actual Chromium captures of the browser prototype. Select an image to open it at full size.</p>
+<div class="grid">
+<figure><a href="Images/CatalogueEmbedded.png"><img src="Images/CatalogueEmbedded.png" alt="HTML reference catalogue with visible rendered file cards"></a><figcaption><h3>Visible file catalogue</h3>HTML reference only. Six rendering fixtures are not native presets.</figcaption></figure>
+<figure><a href="Images/A4Overview.png"><img src="Images/A4Overview.png" alt="Complete A4 Markdown sheet in the HTML reference"></a><figcaption><h3>Complete A4 document</h3>HTML reference only. Native Markdown rendering remains pending.</figcaption></figure>
+<figure><a href="Images/AlignedLibrary.png"><img src="Images/AlignedLibrary.png" alt="Three aligned panel headers in the HTML reference"></a><figcaption><h3>Aligned panel layout</h3>HTML reference capture. Native column/header geometry is checked separately above.</figcaption></figure>
+<figure><a href="Images/CADHistory.png"><img src="Images/CADHistory.png" alt="Reference CAD contours and selectable sample revisions"></a><figcaption><h3>Reference renderer and versions</h3>HTML reference only. Native renderer/history integration remains pending.</figcaption></figure>
+</div>
+<p><a href="Results/BrowserChecks.json">Rendering checks</a> · <a href="Results/PanelLayoutChecks.json">Layout checks</a> · <a href="Results/CatalogueLoadingChecks.json">Catalogue loading checks</a></p>
+</section>
+<section><h2>Texture Studio — Material Library</h2><p>The first native library increment executes catalogue/source operations and ImGui controls. The image below is CPU rasterization of actual native ImGui draw commands, not a Windows window screenshot.</p><figure><a href="../TextureStudio/Images/MaterialLibrary.png"><img src="../TextureStudio/Images/MaterialLibrary.png" alt="CPU capture of the executed native ImGui Material Library"></a><figcaption>Native library/source UI. Material preview registration and standalone Windows runtime acceptance remain pending.</figcaption></figure><p><a href="../TextureStudio/Results/MaterialLibraryChecks.json">Library verification</a> · <a href="../TextureStudio/README.md">Implementation and execution limits</a></p></section>
+<section><h2>Renderer validation</h2><p>Renderer evidence is separate from the application Project Browser. The dedicated review shows native Vulkan readbacks, authored-material edits and recorded results; it does not claim native editor presentation.</p><p><a href="../Renderer/index.html">Live renderer evidence review (requires the renderer evidence server)</a> · <a href="../Renderer/Results/Verification.json">Recorded renderer checks</a></p></section>
+<section><h2>Remaining native work</h2><span class="badge pending">Pending</span><ul><li>Windows build and runtime verification, including native dialogs and editor transition.</li><li>Actual Vulkan/Slang scene rendering and captured thumbnails.</li><li>A4 Markdown viewer, inspector tabs and real version history.</li><li>Full visual parity, native folder dialogs and return-to-browser navigation.</li></ul><a href="README.md">Conversion scope and validation notes</a></section>
+<footer>Recorded evidence, not a live native application. The HTML prototype remains on port 8770.</footer>
+</main>
+<script>
+'use strict';
+async function LoadEvidence()
+{
+    const Response = await fetch('Results/NativeBrowserChecks.json', {cache:'no-store'});
+    if (!Response.ok) throw new Error('Unable to read the native report');
+    const Report = await Response.json();
+    document.querySelector('#NativeResult').textContent = Report.result === 'passed' ? 'Passed' : 'Not passed';
+    document.querySelector('#Runs').textContent = `${Report.repeat_runs} successful runs · host CPU execution`;
+    document.querySelector('#Compiler').textContent = `${Report.compiler} · ${Report.execution}`;
+    const Rows = Report.checks.map(Check =>
+    {
+        const Row = document.createElement('tr');
+        for (const Text of [Check, Report.result === 'passed' ? 'Passed' : 'Review'])
+        {
+            const Cell = document.createElement('td');
+            Cell.textContent = Text;
+            Row.append(Cell);
+        }
+        return Row;
+    });
+    document.querySelector('#Checks').replaceChildren(...Rows);
+    document.querySelector('#Hashes').textContent = Object.entries(Report.source_sha256).map(([Name, Digest]) => `${Name}\n${Digest}`).join('\n\n');
+}
+LoadEvidence().catch(Failure =>
+{
+    document.querySelector('#NativeResult').textContent = 'Report unavailable';
+    document.querySelector('#Runs').textContent = Failure.message;
+    document.querySelector('#Checks').textContent = 'Could not load evidence. Open the report link to inspect the file.';
+});
+</script>
+</body></html>

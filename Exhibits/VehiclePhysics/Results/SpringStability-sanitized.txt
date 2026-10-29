@@ -1,0 +1,35 @@
+VehicleHMI spring source: SultanAladin/Frontier commit 6afb6f00b5f25c45f7cda92c7da65b64845768f3
+All retained reference hashes verified; sanitized; numerical simulations, no measurements.
+Native base 61a6789, plus working changes if any; see committed source for exact test.
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+v22.22.3
+Linux 6.1.158+ x86_64
+== Synchronized JS/native one-step comparison ==
+PASS synchronized one-step comparison at 720 JS states, 4 wheels, hard drop
+max errors: position 3.33066907e-16 m, velocity 1.11022302e-16 m/s, angular 2.22044605e-16 rad/s, quaternion 2.22044605e-16
+max errors: tyre force 0 N at step 0, load 0 N at step 0, length 0 m, deflection 0 m, spin/slip 7.99360578e-15
+contact/pinch/top-out/shred mismatches 0/0/0/0
+scope: same public state and prescribed pressure/grip at each step; zero input, no debris; host thermal evolution excluded
+== Initial-height sensitivity and hull-contact control ==
+hull on, initial dz=0 m: first force >0.01 N step -1, max position 0 m, velocity 0 m/s, angular 0 rad/s, force 0 N, load 0 N, contact mismatches 0
+hull on, initial dz=1e-15 m: first force >0.01 N step 542, max position 0.004328217394481471 m, velocity 0.6809223385785842 m/s, angular 1.7153595846915737 rad/s, force 1736.3474037799078 N, load 6808.22346636321 N, contact mismatches 3
+hull on, initial dz=1e-12 m: first force >0.01 N step 65, max position 0.00311981644413184 m, velocity 0.679630129984066 m/s, angular 1.707734474084437 rad/s, force 1849.5526491663168 N, load 21948.948204880842 N, contact mismatches 4
+hull on, initial dz=1e-9 m: first force >0.01 N step 60, max position 0.010885879246437469 m, velocity 0.70014362830059 m/s, angular 1.6857780108404146 rad/s, force 1772.691763095374 N, load 21948.948204880842 N, contact mismatches 4
+hull on, initial dz=0.000001 m: first force >0.01 N step 34, max position 0.03293092265059272 m, velocity 0.9385430404604811 m/s, angular 2.0978136547251642 rad/s, force 1926.5024929610518 N, load 18713.597844587883 N, contact mismatches 3
+hull off, initial dz=0 m: first force >0.01 N step -1, max position 0 m, velocity 0 m/s, angular 0 rad/s, force 0 N, load 0 N, contact mismatches 0
+hull off, initial dz=1e-15 m: first force >0.01 N step -1, max position 0.00000534626246917469 m, velocity 0.0000040806909054613705 m/s, angular 0.000002154888847912678 rad/s, force 0.004022643748612609 N, load 0.004022643748612609 N, contact mismatches 0
+Scope: unchanged JS equations with one diagnostic hull override; perturbations compare simulations, not measurements.
+== Direct-Step timestep study ==
+settling: 1/480 s; peak tyre 3391.4943640479005 N, load 3512.996034714657 N; vs 1/3840 max position 0.0009088895187119306 m, velocity 0.013263271414739632 m/s, angular 0.00021758493174731298 rad/s, force 26.94251429560245 N, load 2392.751261465919 N
+settling: 1/960 s; peak tyre 3391.950106656074 N, load 3517.8931168361682 N; vs 1/3840 max position 0.0008324307900267058 m, velocity 0.005625807274432209 m/s, angular 0.00018119610415153045 rad/s, force 11.672398650814102 N, load 94.14278100922729 N
+settling: 1/1920 s; peak tyre 3392.210188219026 N, load 3533.6958943428117 N; vs 1/3840 max position 0.0007697881181627508 m, velocity 0.0018438199925391733 m/s, angular 0.00018568434099616344 rad/s, force 4.2948000537267035 N, load 92.30966227550107 N
+settling: 1/3840 s; peak tyre 3392.4851883395145 N, load 3568.660143011686 N; vs 1/3840 max position 0 m, velocity 0 m/s, angular 0 rad/s, force 0 N, load 0 N
+moderate drop: 1/480 s; peak tyre 12646.75390172562 N, load 12810.407763458408 N; vs 1/3840 max position 0.008423513518920345 m, velocity 0.11165410901095056 m/s, angular 0.044373907501806836 rad/s, force 878.5034762440806 N, load 12845.694035981214 N
+moderate drop: 1/960 s; peak tyre 12644.861977809587 N, load 12936.629969122725 N; vs 1/3840 max position 0.0017239374521409445 m, velocity 0.02600830323038572 m/s, angular 0.005962984642807492 rad/s, force 377.87447000434685 N, load 5816.243202933756 N
+moderate drop: 1/1920 s; peak tyre 12638.86386609125 N, load 13005.93272185518 N; vs 1/3840 max position 0.0007090996024885499 m, velocity 0.00859842988061299 m/s, angular 0.006871350635866018 rad/s, force 305.52849421728456 N, load 3627.586379723117 N
+moderate drop: 1/3840 s; peak tyre 12634.113915504557 N, load 12966.111006578047 N; vs 1/3840 max position 0 m, velocity 0 m/s, angular 0 rad/s, force 0 N, load 0 N
+hard drop: 1/480 s; peak tyre 82285.54024142993 N, load 82285.54024142993 N; vs 1/3840 max position 0.2337750998426617 m, velocity 4.063509713976696 m/s, angular 2.8770834805892247 rad/s, force 27944.945437330032 N, load 28781.409244959028 N
+hard drop: 1/960 s; peak tyre 82253.36541851687 N, load 82253.36541851687 N; vs 1/3840 max position 0.16881175124210412 m, velocity 3.4857040277244415 m/s, angular 2.1485888460176366 rad/s, force 23732.176136102695 N, load 24892.332386102313 N
+hard drop: 1/1920 s; peak tyre 82198.04543173459 N, load 82198.04543173459 N; vs 1/3840 max position 0.3671216036363416 m, velocity 4.17279347399619 m/s, angular 2.0108611451903124 rad/s, force 38035.53640131446 N, load 40735.53640131446 N
+hard drop: 1/3840 s; peak tyre 82237.62620158003 N, load 82237.62620158003 N; vs 1/3840 max position 0 m, velocity 0 m/s, angular 0 rad/s, force 0 N, load 0 N
+Scope: direct JS Step with prescribed pressure/grip, no thermal evolution; 1/3840 is not ground truth.

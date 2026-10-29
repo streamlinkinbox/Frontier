@@ -1,0 +1,243 @@
+{
+  "platform": "Linux-6.1.158+-x86_64-with-glibc2.36",
+  "python": "3.11.2",
+  "windows_executed": false,
+  "workspace_ui_integrated": false,
+  "hardware_gpu_tested": false,
+  "commands": [
+    {
+      "caption": "ArtworkEditingBuild",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I.",
+        "-IExternalPackages/tomlpp/include",
+        "Engine/ContentInterchange/ArtworkEditing.cpp",
+        "Engine/ContentInterchange/ArtworkArrayPlacement.cpp",
+        "Engine/ContentInterchange/ArtworkAuthoringProperties.cpp",
+        "Engine/ContentInterchange/VectorArtworkDocument.cpp",
+        "Exhibits/TextureStudio/Code/ArtworkEditingValidation.cpp",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/ArtworkEditingValidation"
+      ]
+    },
+    {
+      "caption": "ArtworkEditingChecks",
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/ArtworkEditingValidation"
+      ]
+    },
+    {
+      "caption": "ArtworkEditingSanitizedBuild",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-I.",
+        "-IExternalPackages/tomlpp/include",
+        "Engine/ContentInterchange/ArtworkEditing.cpp",
+        "Engine/ContentInterchange/ArtworkArrayPlacement.cpp",
+        "Engine/ContentInterchange/ArtworkAuthoringProperties.cpp",
+        "Engine/ContentInterchange/VectorArtworkDocument.cpp",
+        "Exhibits/TextureStudio/Code/ArtworkEditingValidation.cpp",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/ArtworkEditingSanitized"
+      ]
+    },
+    {
+      "caption": "ArtworkEditingSanitizedChecks",
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/ArtworkEditingSanitized"
+      ]
+    },
+    {
+      "caption": "ArtworkControlBuild",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-DFRONTIER_EDITOR=1",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-function",
+        "-IExternalPackages/imgui",
+        "-I.",
+        "-IExternalPackages/tomlpp/include",
+        "Engine/ContentInterchange/ArtworkEditing.cpp",
+        "Engine/ContentInterchange/ArtworkArrayPlacement.cpp",
+        "Engine/ContentInterchange/ArtworkAuthoringProperties.cpp",
+        "Engine/ContentInterchange/VectorArtworkDocument.cpp",
+        "UI/TextureStudio/VectorArtworkControls.cpp",
+        "Engine/Interface/PixelSpace.cpp",
+        "Engine/Interface/ControlKit.cpp",
+        "Engine/Interface/GlyphSpace.cpp",
+        "ExternalPackages/imgui/imgui.cpp",
+        "ExternalPackages/imgui/imgui_draw.cpp",
+        "ExternalPackages/imgui/imgui_tables.cpp",
+        "ExternalPackages/imgui/imgui_widgets.cpp",
+        "Exhibits/TextureStudio/Code/VectorArtworkDocumentValidation.cpp",
+        "-Wl,--gc-sections",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/VectorArtworkDocumentValidation"
+      ]
+    },
+    {
+      "caption": "ArtworkControlChecks",
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/VectorArtworkDocumentValidation",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/NativeArtworkControlChecks.json"
+      ]
+    },
+    {
+      "caption": "ArtworkControlCapture",
+      "command": [
+        "python3",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/NativeArtworkControls.ppm",
+        "/home/user/Frontier/Exhibits/TextureStudio/Images/NativeArtworkLockedControls.png"
+      ]
+    },
+    {
+      "caption": "ArtworkShaderCompilation",
+      "command": [
+        "node",
+        "Automation/CompileVectorCoverage.mjs",
+        "/home/user/Frontier/_ClaudeScratch/tmp/Slang/package/vendor/slang-wasm.js",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/ShaderArchives"
+      ]
+    },
+    {
+      "caption": "ArtworkGpuBuild",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-DVK_NO_PROTOTYPES",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-function",
+        "-IExternalPackages/vulkan-headers/include",
+        "-IExternalPackages/stb",
+        "-I.",
+        "-IExternalPackages/tomlpp/include",
+        "Engine/ContentInterchange/ArtworkEditing.cpp",
+        "Engine/ContentInterchange/ArtworkArrayPlacement.cpp",
+        "Engine/ContentInterchange/ArtworkAuthoringProperties.cpp",
+        "Engine/ContentInterchange/VectorArtworkDocument.cpp",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Engine/Render/VectorCoverageRasterization.cpp",
+        "Exhibits/TextureStudio/Code/VectorCoverageValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/VectorCoverageValidation"
+      ]
+    },
+    {
+      "caption": "ArtworkGpuChecks",
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/VectorCoverageValidation",
+        "/tmp/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/ShaderArchives/VectorCoverageCompute.spv",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/GpuEvidence"
+      ]
+    },
+    {
+      "caption": "ArtworkWindowsCrossLink",
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "ziglang",
+        "c++",
+        "-target",
+        "x86_64-windows-gnu",
+        "-std=c++20",
+        "-O1",
+        "-static",
+        "-I.",
+        "-IExternalPackages/tomlpp/include",
+        "Engine/ContentInterchange/ArtworkEditing.cpp",
+        "Engine/ContentInterchange/ArtworkArrayPlacement.cpp",
+        "Engine/ContentInterchange/ArtworkAuthoringProperties.cpp",
+        "Engine/ContentInterchange/VectorArtworkDocument.cpp",
+        "Exhibits/TextureStudio/Code/ArtworkEditingValidation.cpp",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/build/ArtworkEditing/ArtworkEditingValidation.exe"
+      ]
+    }
+  ],
+  "revision": "4a77bfd17f23536e32781718553ec6a171e39021",
+  "uncommitted_sources": true,
+  "compiler": "g++ (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "source_contracts": {
+    "result": "passed",
+    "checks": 2269,
+    "windows_executed": false,
+    "gpu_pixels_tested": false,
+    "workspace_ui_integrated": false
+  },
+  "sanitizers": {
+    "result": "passed",
+    "checks": 2269,
+    "windows_executed": false,
+    "gpu_pixels_tested": false,
+    "workspace_ui_integrated": false
+  },
+  "controls": {
+    "result": "passed",
+    "checks": 42,
+    "windows_executed": false,
+    "workspace_ui_integrated": false
+  },
+  "gpu": {
+    "checks": 54,
+    "dispatches": 13,
+    "device": "SwiftShader Device (Subzero)",
+    "editable_contour_reconstruction": false,
+    "result": "PASS"
+  },
+  "windows_cross_link": {
+    "result": "passed",
+    "toolchain": "0.13.0",
+    "machine": "x86_64",
+    "sha256": "6d50a4ace9d440e9f8676c30d6030619a244b25b7d0b65f1ec203f0263ebaf84",
+    "executed": false,
+    "scope": "headless authoring validation, not TextureWorkspace.exe"
+  },
+  "source_sha256": {
+    "Engine/ContentInterchange/ArtworkEditing.cpp": "eb2711eace6d32828f1abe2a34e4cecc6934cb66c3d8a5e502024365718a69c9",
+    "Engine/ContentInterchange/ArtworkArrayPlacement.cpp": "fce8b5c9036a35b2d35ea195978ce5f0cd376974a8df570b7c91e5d31bbf2555",
+    "Engine/ContentInterchange/ArtworkAuthoringProperties.cpp": "49f757552ccd630a785bdd4b87f4d9ad1199e68c0aae3db4d6c573c3daf32295",
+    "Engine/ContentInterchange/VectorArtworkDocument.cpp": "3f29c3d8a7bd20c7504a3eced8996076badadbf3cb3a286f86eae4befa94d499",
+    "Engine/ContentInterchange/ArtworkEditing.h": "e36b4978238746a503b312d7e9b35a3e09342e3394bb440a9f49d8b6e2a4f746",
+    "Engine/ContentInterchange/ArtworkArrayPlacement.h": "e7c3aae9b2fa9b1f3499929b567d2f3c44e9f5c21858b5b5b420bd8fb4d04582",
+    "Engine/ContentInterchange/ArtworkAuthoringProperties.h": "d22b5c15b6f111011fda5c701d60b90da0de39e1eaf614de25978c78ff5a4f31",
+    "Engine/ContentInterchange/VectorArtworkDocument.h": "cb449d3d360bc6e39d288121c1f18378f14f1b9481c158c676a4c1a0c108026e",
+    "Exhibits/TextureStudio/Code/ArtworkEditingValidation.cpp": "cb13f616a86bfb60b5f3a5909435c5baa8e4f9e1e357910201f4996461cc98e4",
+    "Engine/Render/VectorCoverage.h": "de81e81407c0e5d1a847eb24e21f8fef9c5f3a358096e0e36d1c7680e3a4f4c6",
+    "Engine/Render/Shader/VectorCoverage.slang": "176fdfebe22c48907f9a31032cdd40139721b4553f9697f8eef1f7b4e8ad5224",
+    "UI/TextureStudio/VectorArtworkControls.cpp": "b4b3b33df4837fa0e1dca345c695c96fd7f67c89dc861fc9d351f808583c96ae",
+    "Exhibits/TextureStudio/Code/VectorArtworkDocumentValidation.cpp": "48be9aa374fce7c2da0fbaca8ec6e025559f712770e926502eeef7ff128254b5",
+    "Exhibits/TextureStudio/Code/VectorCoverageValidation.cpp": "4e6d136c70b0f227c2f5fb8e92f0891aaec2d5f1c24250112116529880e77dd9",
+    "CMakeLists.txt": "9da9b1bcd14bb0f0071b65a979480a709c99417a674b7704c570683c500dd7c4",
+    "Automation/VectorCoverage.cmake": "9b0f1c12609704a0880b93fdf2049f880c7434bb828ffeff8687cf58dce22a8b",
+    "Automation/BuildTextureStudioWindows.py": "4788d7f8ad7aeabd90dc0a0110fd3655e659b9589685b1699cc951fe819ed2fe",
+    "Exhibits/TextureStudio/Code/VerifyArtworkEditing.py": "87b31cfd5552ea221f66cbb71e181270c6ad3d0cbeb4e6734fa9aa07f910d1a9"
+  },
+  "result": "passed"
+}

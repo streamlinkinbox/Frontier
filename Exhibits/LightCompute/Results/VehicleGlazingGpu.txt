@@ -1,0 +1,8 @@
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+GLAZING_DEVICE name=SwiftShader Device (Subzero) type=4 triangle_bvh=1 hardware_ray_query=0 interaction_cap=2048
+GLAZING_CAPTURE name=VehicleGlazingSheet width=320 height=200
+GLAZING_CAPTURE name=VehicleGlazingClear width=320 height=200
+GLAZING_CAPTURE name=VehicleGlazingAbsorbed width=320 height=200
+GLAZING_RENDER glass_pixels=887 changed_channels=1851 max_decrease=9.13125 total_decrease=43.2632 capped=0 unsupported=0 repeat_exact=1
+GLAZING_MOTION camera_moved=1 cold_equal=1 fresh_transport=1
+GLAZING_RESET all_sources_off_black=1 pixels=64000

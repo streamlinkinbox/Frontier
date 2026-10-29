@@ -1,0 +1,63 @@
+Format = 1
+Name = "Nappa Leather"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.018500220128379697, 0.017641954488384078, 0.02217388479338738]
+Roughness = 0.54
+Metallic = 0
+Ior = 1.48
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.184474994500441, 0.184474994500441, 0.21586050011389926]
+SheenIntensity = 0.25
+SheenRoughness = 0.8
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/nappa-leather-albedo.png"
+Normal = "Textures/nappa-leather-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "leather"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 72
+grain = 0.4
+hideVariant = 0
+hideVariation = 0.65
+wear = 0.05
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+sheen = 0.25
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "leather"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 72
+grain = 0.4
+hideVariant = 0
+hideVariation = 0.65
+wear = 0.05
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+sheen = 0.25
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.4
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.12

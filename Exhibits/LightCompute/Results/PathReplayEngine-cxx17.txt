@@ -1,0 +1,8 @@
+C++17 VehicleCapture runtime after replay-footprint promotion
+CPU reference distance=0 pose=0 original_vehicle_facets=25068 total_facets=28276 visible=26576 light_list_visits=8107704 light_fallbacks=0 surface_pixels=225214 hash=12460078879157606139
+Source hashes:
+2b84a1857c87a002be1938d61819686ea600d0a877afc6dcc1a71bfdb6908ab9  Frontier/Engine/Rendering/PathReplayFootprint.h
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+ac2e126f648650c0cc93a48c5dd6302a8e26d35a23bc4ee49679b0304f2ecea8  Exhibits/VehicleReference/Code/VehicleCapture.cpp
+Output archive hash (ignored scratch):
+c5fe95098de8363bac4cdbc2d0ae26899777c5c878c0b9fef4dc6a92aeba7c9a  _ClaudeScratch/vehicle-replay-compatibility/VehicleLightInput.bin

@@ -1,0 +1,45 @@
+Engine domain, source distribution, medium payload and legacy archive; release and sanitized host
+Linux 6.1.158+ x86_64
+6697e520368835e89f1832613ed07b6ae72ddf0b8db31a12c78736d2f48753ea  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+2b84a1857c87a002be1938d61819686ea600d0a877afc6dcc1a71bfdb6908ab9  Frontier/Engine/Rendering/PathReplayFootprint.h
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+47094cf32fc173566cedd0f7c5221a4422b4d5030061cbd4961ce029ca4147f2  Frontier/Engine/Rendering/MediumRadiancePayload.h
+8251f35b3d8e68e25f768e9becabb0d2bdac065a95a29e4d6fcef4100798a1f1  Frontier/Engine/Rendering/MediumRadiancePayload.cpp
+e94c89ca69850a4ce63cb8ab59cd3b8866fdae155ff5a4f0883d1f3737adf49d  Frontier/Engine/Rendering/CMakeLists.txt
+fa24e8eb1fd6c516810260f2dd6656e56616d016070552530d42a8b4fcee63e0  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+f5872be30e8b35cccabf424ae900f9f6e5544b93bcee8edc207cc4c7ee47fc16  Exhibits/LightCompute/Code/PathReplayArchiveValidation.cpp
+f8983a823b22a380d10682d3bf991f56d6a0cd4cf93b82866b0b9b49825341b6  Exhibits/LightCompute/Code/RadiantFacetValidation.cpp
+01cb9fe334e271cbe55ba9970a991cd66bfe819a2009eefaeb31948469e0a83d  Exhibits/LightCompute/Code/MediumRadianceValidation.cpp
+771f69e94a817650cef943b6c76365f1ef900d98189793437aed272fad07f6e3  Exhibits/LightCompute/CMakeLists.txt
+BUILD release
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/replay-engine-release
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-engine-release
+    Start 1: PathReplayDomainValidation
+1/4 Test #1: PathReplayDomainValidation .......   Passed    0.01 sec
+    Start 2: RadiantFacetValidation
+2/4 Test #2: RadiantFacetValidation ...........   Passed    0.02 sec
+    Start 3: MediumRadianceValidation
+3/4 Test #3: MediumRadianceValidation .........   Passed    0.01 sec
+    Start 4: PathReplayArchiveValidation
+4/4 Test #4: PathReplayArchiveValidation ......   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   0.06 sec
+BUILD sanitized
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/replay-engine-sanitized
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-engine-sanitized
+    Start 1: PathReplayDomainValidation
+1/4 Test #1: PathReplayDomainValidation .......   Passed    0.02 sec
+    Start 2: RadiantFacetValidation
+2/4 Test #2: RadiantFacetValidation ...........   Passed    0.05 sec
+    Start 3: MediumRadianceValidation
+3/4 Test #3: MediumRadianceValidation .........   Passed    0.01 sec
+    Start 4: PathReplayArchiveValidation
+4/4 Test #4: PathReplayArchiveValidation ......   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   0.12 sec

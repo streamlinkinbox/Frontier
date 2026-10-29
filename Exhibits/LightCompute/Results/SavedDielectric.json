@@ -1,0 +1,37 @@
+{
+  "device": "SwiftShader Device (Subzero)",
+  "physical_gpu": false,
+  "capture_dimensions": [
+    96,
+    64
+  ],
+  "paths_per_pixel": 128,
+  "interaction_cap": 32,
+  "capture_sha256": {
+    "SavedDielectric0.ppm": "763b79e37f884943d49159af2899401bfa52d1cacf5e79c4c485ec926993a739",
+    "SavedDielectric1.ppm": "1bddd9de531f495093ecca79e025b316cc736bea5b62867aa9c00df7abfd71cb",
+    "SavedDielectric2.ppm": "1775a4716831363793927a94a049ceb05230e08129e1fcf17bb408dc410d53ad"
+  },
+  "authoring_log": "SAVED_DIELECTRIC_AUTHORING checks=39 native_toml=1 disk_roundtrip_cases=4 legacy_presets=5 rejected_inputs=11\n",
+  "sanitizer_log": "SAVED_DIELECTRIC_AUTHORING checks=39 native_toml=1 disk_roundtrip_cases=4 legacy_presets=5 rejected_inputs=11\n",
+  "native_regression_log": "Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake\nTest project /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake\n    Start 1: LightValidation\n1/4 Test #1: LightValidation ..................   Passed    0.14 sec\n    Start 2: TriangleVisibilityValidation\n2/4 Test #2: TriangleVisibilityValidation .....   Passed    0.13 sec\n    Start 3: TriangleDistanceValidation\n3/4 Test #3: TriangleDistanceValidation .......   Passed    0.11 sec\n    Start 4: CompleteRendererValidation\n4/4 Test #4: CompleteRendererValidation .......   Passed    0.20 sec\n\n100% tests passed, 0 tests failed out of 4\n\nTotal Test time (real) =   0.58 sec\n",
+  "previous_log": "SAVED_DIELECTRIC_PREVIOUS revision=cec27e4 rejected_volume_table=1\n",
+  "gpu_log": "SAVED_VOLUME_UPLOAD native_records=4 category=4 descriptor_layout_unchanged=1\nSOLID_DEVICE name=SwiftShader Device (Subzero) type=4\nSOLID_SLAB case=0 ior=1 glass_pixels=1444 analytic_pixels=100 max_mean_error=0 capped=0 unsupported=0 tir=0\nSOLID_SLAB case=1 ior=1 glass_pixels=1444 analytic_pixels=100 max_mean_error=3.42966e-08 capped=0 unsupported=0 tir=0\nSOLID_SLAB case=2 ior=1.5 glass_pixels=1444 analytic_pixels=100 max_mean_error=0.00346691 capped=0 unsupported=0 tir=57689\nSOLID_SLAB case=3 ior=1.5 glass_pixels=1444 analytic_pixels=100 max_mean_error=0.00281871 capped=0 unsupported=0 tir=57689\nSAVED_VOLUME_REPEAT exact=1 source_off_black=1 pixels=6144\nSOLID_REJECTION case=inverted_winding diagnosed_pixels=1444\nSOLID_REJECTION case=inside_camera diagnosed_pixels=6144\n",
+  "vehicle_geometry": {
+    "source_sha256": "6ad399734659d53a6052aa4369cdbfb786a9248b0403575e8d89b5f9904f50b5",
+    "glass_triangles": 74,
+    "boundary_edges": 68,
+    "paired_edges": 77,
+    "nonmanifold_edges": 0,
+    "inconsistent_paired_winding": 0,
+    "closed_volume_assignment": false,
+    "scope": "Exact float-position incidence only; no tolerant welding, intersection or thickness acceptance."
+  },
+  "saved_material_sha256": {
+    "ClosedGlass0.material": "fc0cce74fd7468db854d439bd6a7d3c8d03d2bf48c5e13711b30b6a9dfd1d6ea",
+    "ClosedGlass1.material": "428ae5d0ec3568dbfdcc8e15109a604f1b7caefb442ad923d6b92b91675815c3",
+    "ClosedGlass2.material": "d6e605b797f1173dbddb8a1e386e639e153213495be0f198cbde34ced6305906",
+    "ClosedGlass3.material": "f6ba7c1c09cea7455f86f14c6fd3b94a952a3cad8325a710f2120a57c1e4473e"
+  },
+  "scope": "Native TOML codec and material compilation into existing exhibit volume atlas. No glass studio preview, editor controls or vehicle volume assignment."
+}

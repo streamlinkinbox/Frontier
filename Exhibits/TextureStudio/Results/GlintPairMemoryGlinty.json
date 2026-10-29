@@ -1,0 +1,189 @@
+{
+  "result": "passed",
+  "browser": "HeadlessChrome/143.0.7499.0",
+  "platform": "linux 6.1.158+",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.60GHz",
+  "hardware_execution": false,
+  "windows_execution": false,
+  "native_slang_execution": false,
+  "authors_demo_full_file_identity_verified": false,
+  "full_material_integration": false,
+  "timing_scope": "software ANGLE/Vulkan elapsed query around one shaded draw after a common stencil prepass; prepass/compile/readback excluded; no hardware GPU / FPS prediction",
+  "warmups": 2,
+  "measured_repetitions": 9,
+  "p95_definition": "nearest rank; maximum of only nine samples",
+  "caveat": "common scene but different material models; not equal-error/equal-quality results",
+  "inputs": {
+    "glinty_repository": "d-k-ivanov/d-k-ivanov.github.io",
+    "glinty_revision": "96384ebf29c7471f3cda15ec2d53ad3d94ec0fb7",
+    "glinty_path": "shaders/assets/shaders/sampling/glinty_ndf.fragment.glsl",
+    "glinty_mirror_git_blob": "c161b097d785346c773ebcd0045003a8896f431e",
+    "glinty_mirror_sha256": "183fff676234b64d0d7ed2ec9c193ef2992ee27f3839815c28621714768fab6a",
+    "author_link": "https://thonatt.github.io/ -> https://www.shadertoy.com/view/tcdGDl",
+    "authenticity": "author-demo-derived GLSL mirror; public author-demo prefix matches, full-file identity not established",
+    "licence": "mirror has no repository licence endpoint; author-demo commercial reuse permission not established; scratch evaluation only",
+    "adaptation": "NDF helpers extracted, GLSL float f suffix removed; shared scene replaces demo geometry and lighting",
+    "cellular_source": "Engine/Render/Shader/AutomotivePaint.slang",
+    "cellular_source_sha256": "c973b9836e49afbed482296f6eeebe49ed9d9ca9594ad345341209dc8454d398",
+    "cellular_translation": "existing PrepareGlintComparison.py translation, unchanged cellular algorithm",
+    "generated_shader_sha256": {
+      "Smooth": "a03cb71c943d76f7650de153fb6efc21499211da5ae50ad68d5346f305ac40c3",
+      "Cellular": "82e2d44797c05b3f8e0e9e5deb6e41e711e654dbdbe12220bfbb323ac24804b2",
+      "Glinty": "cecec75e3c932a3d634c724bc072dfd893eada39927b6f4d42cf6a7731722d06",
+      "Coverage": "5c2aeb99bdd625addadd8577e22f365636dc0e2729805cd6def4ced4d63d8f6f"
+    },
+    "geometry": "three analytic material-sample spheres: sand, metallic blue paint, snow; not complete vehicle/snow/grain simulation",
+    "common": "same geometry, camera, light positions/intensities, exposure, GGX/Smith/Schlick wrapper and paint clearcoat",
+    "not_equal_appearance": "cellular alters albedo/roughness/normal once per pixel; Glinty evaluates a stochastic NDF per light; no equal-quality ranking",
+    "settings": {
+      "sand": {
+        "alpha": 0.32,
+        "metalness": 0,
+        "cell_layers": 1,
+        "cell_particle_size": 1200,
+        "glinty_N": 200000
+      },
+      "paint": {
+        "alpha": 0.2,
+        "metalness": 0.9,
+        "cell_layers": 3,
+        "cell_particle_size": 450,
+        "glinty_N": 800000
+      },
+      "snow": {
+        "alpha": 0.24,
+        "metalness": 0,
+        "cell_layers": 1,
+        "cell_particle_size": 900,
+        "glinty_N": 300000
+      },
+      "microfacet_alpha": 0.012,
+      "filter_size": 0.7,
+      "glinty_ndf_mix": 0.7
+    }
+  },
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+  "records": [
+    {
+      "method": "Glinty",
+      "width": 768,
+      "height": 384,
+      "lights": 3,
+      "density_scale": 1,
+      "samples_ms": [
+        270.316159,
+        299.342157,
+        269.057948,
+        252.20385,
+        264.270309,
+        254.526037,
+        275.906515,
+        270.236587,
+        262.006171
+      ],
+      "p50_ms": 269.057948,
+      "p95_ms": 299.342157,
+      "min_rgb": 0.01040324755012989,
+      "max_rgb": 0.8522909283638,
+      "rgb_sum": 102696.90883576032
+    },
+    {
+      "method": "Glinty",
+      "width": 256,
+      "height": 128,
+      "lights": 1,
+      "density_scale": 1,
+      "samples_ms": [
+        12.380678,
+        12.239263,
+        13.180637,
+        12.268454,
+        11.454071,
+        12.86628,
+        11.445644,
+        11.502765,
+        11.286496
+      ],
+      "p50_ms": 12.239263,
+      "p95_ms": 13.180637,
+      "min_rgb": 0.009646047838032246,
+      "max_rgb": 0.5691773891448975,
+      "rgb_sum": 6448.153829399496
+    },
+    {
+      "method": "Glinty",
+      "width": 256,
+      "height": 128,
+      "lights": 3,
+      "density_scale": 1,
+      "samples_ms": [
+        34.423138,
+        33.70581,
+        33.777523,
+        29.010088,
+        25.51214,
+        26.069084,
+        25.581062,
+        27.746515,
+        28.831464
+      ],
+      "p50_ms": 28.831464,
+      "p95_ms": 34.423138,
+      "min_rgb": 0.010526962578296661,
+      "max_rgb": 0.8078449368476868,
+      "rgb_sum": 11462.373807225376
+    },
+    {
+      "method": "Glinty",
+      "width": 768,
+      "height": 384,
+      "lights": 3,
+      "density_scale": 10,
+      "samples_ms": [
+        249.478273,
+        288.914605,
+        257.210406,
+        293.159073,
+        325.977925,
+        297.900053,
+        294.673107,
+        245.291645,
+        262.873604
+      ],
+      "p50_ms": 288.914605,
+      "p95_ms": 325.977925,
+      "min_rgb": 0.01042886357754469,
+      "max_rgb": 0.8151081800460815,
+      "rgb_sum": 103048.26012125798
+    }
+  ],
+  "resources": {
+    "feature_textures": 0,
+    "feature_buffers": 0,
+    "feature_texture_buffer_bytes": 0,
+    "shared_float_target_bytes": 4718592,
+    "shared_depth_stencil_bytes": 1179648,
+    "shared_readback_bytes": 4718592,
+    "particle_list_bytes": 0,
+    "dictionary_bytes": 0,
+    "programs_in_comparison": 2,
+    "driver_pipeline_register_spill_bytes": null,
+    "physical_vram_peak_bytes": null,
+    "host_browser_process_tree": {
+      "processes": 1,
+      "rss_sum_kib": 181424,
+      "pss_sum_kib": 180434,
+      "meaning": "post-run host snapshot including browser/driver/JS/output; not peak allocation, not GPU VRAM; RSS double-counts shared pages"
+    }
+  },
+  "capture_rgb_sha256": {
+    "Glinty": "d4f6a0d456c990052cd7d347074b3efcbaac4b553965f782d7621dbef242c1a4"
+  },
+  "source_sha256": {
+    "Exhibits/TextureStudio/Code/PrepareGlintPair.py": "8a9e6dceffc038bd5b78ac6bc6b8f261b9ef1cce4a6cdb6710970b7a4de88281",
+    "Exhibits/TextureStudio/Code/VerifyGlintPair.mjs": "a48fcd890a533853d9accfb8dcde7b33d951021bd7180716751025fe8ba4b2fc",
+    "Exhibits/TextureStudio/Code/GlintPairScene.glsl": "fd43b6c06e625179a89a48d20cb222a228466aa86ddee7365b8c55ad56c05ed7",
+    "Engine/Render/Shader/AutomotivePaint.slang": "c973b9836e49afbed482296f6eeebe49ed9d9ca9594ad345341209dc8454d398"
+  }
+}

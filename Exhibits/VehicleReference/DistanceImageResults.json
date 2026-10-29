@@ -1,0 +1,38 @@
+{
+  "path": "native C++ CPU reference; not Vulkan",
+  "comparison": "left field off; right field on: occlusion + one-bounce source radiance",
+  "distance": "unsigned open-triangle distance, conservative interpolation strides, exact triangle hit refinement",
+  "resolution": [
+    64,
+    32,
+    24
+  ],
+  "samples_per_pose": 49152,
+  "vehicle_facets": 25068,
+  "poses": [
+    {
+      "pose": 0,
+      "changed_display_pixels": 59753,
+      "display_code_mean_absolute_error": 1.7908203125,
+      "display_code_max_absolute_error": 137,
+      "off_matches_previous_commit": true,
+      "distance_grid_sha256": "c083ff2e57a1c047e1ff1adead9fbb22f0f6c4e3f10a85aaa39e9963d08cc8a8"
+    },
+    {
+      "pose": 1,
+      "changed_display_pixels": 64142,
+      "display_code_mean_absolute_error": 1.23699609375,
+      "display_code_max_absolute_error": 115,
+      "off_matches_previous_commit": true,
+      "distance_grid_sha256": "ba0ffc85dfd259842d96753527110d8b78f8404a09afb6a9abc054d43080a02e"
+    },
+    {
+      "pose": 2,
+      "changed_display_pixels": 65962,
+      "display_code_mean_absolute_error": 1.0889309895833332,
+      "display_code_max_absolute_error": 113,
+      "off_matches_previous_commit": true,
+      "distance_grid_sha256": "12b6a95a5cd04df2832ec4e3a2ec15795bd44e675d5f3094839f61a246066ce7"
+    }
+  ]
+}

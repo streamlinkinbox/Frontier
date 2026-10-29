@@ -1,0 +1,28 @@
+{
+  "result": "passed",
+  "presets": [
+    "Blank Project"
+  ],
+  "checks": [
+    "Real creation and fresh identity",
+    "Empty content and preserved defaults",
+    "Unicode directory",
+    "Overwrite and unsupported format refusal",
+    "Missing/corrupt/changed project refusal",
+    "Single-consumption hand-off",
+    "Desktop/narrow ImGui draw commands and measured aligned columns",
+    "Read-only browsing"
+  ],
+  "execution": "Host CPU checks only; no Windows, OS dialog or GPU execution",
+  "repeat_runs": 2,
+  "compiler": "g++ (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "windows_host_compiled": false,
+  "source_sha256": {
+    "UI/Editor/ProjectBrowserPanel.h": "38565306ff4a12a6d8c0274597f84d6b0ad4a978eb2471c217f0931a3958e344",
+    "UI/Editor/ProjectBrowserPanel.cpp": "0f66fff91f06a7c91053f3cb6a6d46b3db20dfe1bd5a214e284c231d1b99e63d",
+    "Exhibits/ProjectBrowser/Code/ProjectBrowserValidation.cpp": "4b15afbcb059f6048cbc44c2ed52d900df974e04b40c18ceeb7bd1b7820fe610",
+    "Exhibits/UIFoundation/Code/WindowsUI.cpp": "affdf6fe760a26aaa88bbae3c28e92a05fbfd46306ebe7b62a2f8070d473781b",
+    "CMakeLists.txt": "0857b96a2518f486a7e91825f9d036bafb5c46304cbc3d0eeb802753b5c10c97",
+    "EngineContent/Defaults/BlankProject/Blank.projectspace": "315071b2776260c00a3a05faf2cb286350697b8225521ce4a2462738c89696c3"
+  }
+}

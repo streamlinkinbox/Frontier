@@ -1,0 +1,7 @@
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+TRANSPORT samples=16 probes=901 mean_rgb_error=2.08237e-08 max_rgb_error=4.6271e-06 secondary_rays=3603424 secondary_hits=263475 environment_misses=3339949
+TRANSPORT_SOURCE route=0 indirect_rgb_sum=2053.27
+TRANSPORT_SOURCE route=1 indirect_rgb_sum=19571.8
+TRANSPORT_SOURCE route=2 indirect_rgb_sum=612.624
+TRANSPORT_LINEARITY max_rgb_error=8.44442e-06
+TRANSPORT_RESET all_sources_off_black=1 cpu_primary_raster=0 cpu_per_pixel_radiance=0 cpu_atmosphere_cube_bake=1 gpu_one_bounce_transport=1

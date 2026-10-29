@@ -1,0 +1,20 @@
+PASS ported GGX response narrows as roughness decreases
+PASS metallic Fresnel follows conductor albedo tint
+PASS BRDF rejects a below-surface light
+PASS GGX + Smith + Schlick matches independent closed form
+PASS whole frame resolves without ordering cycle
+PASS surface raster begins frame
+PASS resolved frame contains display present
+PASS frame combines all declared stages in one 38-unit schedule
+PASS same schedule includes indirect-light and environment families
+PASS whole-frame barriers derive
+PASS whole frame has nontrivial inter-stage barriers
+PASS whole-frame atlas resolves
+PASS whole-frame transient targets alias safely
+PASS atmospheric environment MIS contributes to the final surface image
+PASS renderer rasterises visible scene surfaces
+PASS cluster cut + frustum cull feed rasterizer
+PASS full frame is bit-deterministic for fixed seed
+PASS linear HDR frame encodes to visible display pixels
+reference frame: 64x40, triangles 14/14, surface pixels 1672, mean luminance 0.4373, mean IBL 0.114532
+complete renderer validation: 18 passed, 0 failed

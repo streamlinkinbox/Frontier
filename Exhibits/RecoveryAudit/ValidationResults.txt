@@ -1,0 +1,44 @@
+EnvironmentPipelineValidation.results
+========================================================================
+
+vertical transmittance: numeric (0.93588, 0.86348, 0.75867) vs analytic (0.93591, 0.86351, 0.75870)
+LUT vs direct: mean rel err 0.283%, max 2.064%
+noon sky (45 deg): R 0.0050 G 0.0103 B 0.0211
+sunset sky (toward sun): R 0.0751 G 0.0205 B 0.0026
+multiple scattering adds (0.0091, 0.0152, 0.0245)
+declination: Jun +23.44, Dec -23.43, Mar -0.04 deg
+Benoni 2026-10-22: max sun elevation 74.80 deg (identity 74.80)
+equinox sunrise azimuth 90.14 deg
+cloud uniform vertical T: 0.000068 vs Beer 0.000068
+cloud scatter: toward sun 0.0033 vs away 0.0020
+environment barriers: 21 derived
+Environment pipeline validation: 73/73 checks passed
+
+IlluminationChainValidation.results
+========================================================================
+
+discrepancy chi2: Halton 11.1 vs PCG 262.9 (lower is more uniform)
+RIS variance 314.0824 vs naive 3181.8336 (10.1x lower)
+temporal variance 319.7657 vs single-frame 448.3171
+test scene: chain RMSE 0.3851 vs naive 1-spp 3.8645 (mean truth 1.856)
+SVGF: RMSE noisy 0.2769 -> filtered 0.0226 (12.3x lower)
+SVGF: guided step retained 0.699 of true 0.724 (97%)
+chain atlas: 91302720 bytes aliased vs 191097664 unaliased (52% saved)
+chain barriers: 45 derived
+Illumination chain validation: 55/55 checks passed
+
+IndirectIlluminationValidation.results
+========================================================================
+
+trace sphere: 3.02263 vs analytic 3.02263 (4 steps)
+AO: open 1.0, corridor 0.30 -> 0.834, corridor 0.15 -> 0.529
+irradiance full hemisphere: 6.28319 vs pi*L 6.28319
+irradiance sphere: 0.59135 vs analytic 0.58905 (0.4% off)
+bake mean |error|: 16^3 0.0135 m, 32^3 0.0032 m
+room floor-centre form-factor sum: 4x4 0.9543, 8x8 0.9891 (closed room -> 1)
+radiosity residual 6.26e-11 after solve
+power (6x6): emitted 48.0000, absorbed 39.9103 (83.1% accounted)
+power (12x12): 90.5% accounted
+radiosity vs patch direct solve: max relative patch error 0.66%
+floor centre radiosity: 0.7103 open vs 0.3511 occluded
+Indirect illumination validation: 60/60 checks passed

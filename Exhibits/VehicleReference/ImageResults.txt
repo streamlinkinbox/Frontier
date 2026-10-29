@@ -1,0 +1,13 @@
+{
+  "native_extent": [
+    640,
+    400
+  ],
+  "distinct_pose_images": 3,
+  "rgb_sha256": [
+    "6116feecd9540f0f3ce7d906ba3b4320a3518b16b2eb238364ee037bee9d43aa",
+    "abe977a40eea23dd69fe7d5b499f6e1267a3aae40f4520625f8ff2ffbf494c65",
+    "e5c06e4a2a1b69caa561521100971f28fb68652bd346a5c16939d2d6e29a6b2d"
+  ],
+  "rendering_path": "native C++ CPU reference, not Vulkan"
+}

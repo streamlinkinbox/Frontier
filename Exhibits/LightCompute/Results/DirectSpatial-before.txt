@@ -1,0 +1,10 @@
+Pre-correction CPU reference renderer source: 07ab116; same validation harness, --observe.
+The historical renderer is characterized, not asserted to pass.
+PASS identical binary64-pixel hash with spatial reuse off and default-off indirect: 04da4f54d91705d0
+same support, sparse event, global, 1 frames, 10000 sequences: mean 0.502606948 SE 0.0023811354; exhaustive 0.352533456; ratio 1.4257
+same support, sparse event, global, 24 frames, 1200 sequences: mean 0.385283011 SE 0.00156959123; exhaustive 0.352533456; ratio 1.09289772
+clustered proposal support: local light present at receiver, absent at both neighbours
+unequal target support, global, 1 frames, 8000 sequences: mean 7.31137005 SE 0.0873499116; exhaustive 12.2226665; ratio 0.598181262
+unequal target support, clustered, 1 frames, 8000 sequences: mean 4.25549566 SE 0.0429193525; exhaustive 12.2226665; ratio 0.348164263
+unequal target support, clustered, 24 frames, 1200 sequences: mean 0.890232031 SE 0.00680916411; exhaustive 12.2226665; ratio 0.0728345189
+OBSERVED CPU static spatial direct-light checks; no motion or GPU execution

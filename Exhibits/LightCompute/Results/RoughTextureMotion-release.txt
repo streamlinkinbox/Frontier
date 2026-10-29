@@ -1,0 +1,46 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+ed95a588034ba48ab5f415cc846ea88ba1a28b62c42381a5ee7e58e87ee74735  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+40d5ed932288f9a7465c147cf082914cbb7f3124d6457761a17e10c7a0b346dd  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+fc56fc2a6a9cef24ffe8a479b1491029c873186f269557f237ad7270b467152d  Exhibits/LightCompute/Code/PathReplayDomain.h
+f3a116bbdcc7157b3a4cb389e7c8cad22553334efda95abb72348534fa675494  Exhibits/LightCompute/Code/PathReplayCapture.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+06dab77604bba8d5a25016ee236c11de8d37ff32b03b502c1ad4a909efcc74e6  Exhibits/LightCompute/Code/ReplayMotionValidation.h
+10c2766c9f8d3e9ac32686b1e76b4affeddfbdb1869d7040a9ff05c12deef65b  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+c672ff9b82eefb2727472dc741dd2f0c0a465bca6de7a93eacbe37de5f88918c  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+2c22394487a3892fed55e90e73b8dfc21ebb257ed39b1aaa66ba0e4b73ff9a90  Exhibits/LightCompute/Code/RoughTextureMotionValidation.h
+TEXTURE_MOTION_UV vertices=30 maximum_error=1.1920929e-07
+ROUGH_TEXTURE_MOTION preparing Vulkan on SwiftShader Device (Subzero)
+TEXTURE_MOTION_PRIMARY rough_previous hits=3840 textured=1172 mips=182/158/570/262 mip_boundaries=0 position_error=3.81469727e-06 normal_error=0 albedo_error=6.10947609e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS previous textured=1172 max_error=0
+TEXTURE_MOTION_PRIMARY rough_moved hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS moved textured=1173 max_error=0
+TEXTURE_MOTION_PRIMARY rough_blocked hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS blocked textured=1173 max_error=0
+TEXTURE_MOTION_PROBE token=8 pixel=28,38 mip=0 albedo=0.08,0.576,0.12 previous_pixel=30.4884,37.9583
+TEXTURE_MOTION_PROBE token=1 pixel=46,50 mip=2 albedo=0.284759,0.555524,0.102084 previous_pixel=46.7946,50.0000
+ROUGH_TEXTURE_MOTION tracing 240000 CPU paths for each of four primary pixels
+TEXTURE_MOTION_REFERENCE rough_object_fresh channel=0 cpu=0.00564330648 cpu_se=6.55917871e-05 vulkan=0.00514003824 batch_se=0.000338488197 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_object_fresh channel=1 cpu=0.0253971472 cpu_se=0.000244610135 vulkan=0.0252725905 batch_se=0.001265033 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_object_fresh channel=2 cpu=0.0046644882 cpu_se=4.54916025e-05 vulkan=0.00444682694 batch_se=0.000275187647 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_object_moved_reused channel=0 cpu=0.00564330648 cpu_se=6.55917871e-05 vulkan=0.00581520335 batch_se=0.000452412914 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_object_moved_reused channel=1 cpu=0.0253971472 cpu_se=0.000244610135 vulkan=0.0254901704 batch_se=0.00128268341 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_object_moved_reused channel=2 cpu=0.0046644882 cpu_se=4.54916025e-05 vulkan=0.00470027539 batch_se=0.000339299302 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_object_blocked_reused channel=0 cpu=0.00187457134 cpu_se=1.07446898e-05 vulkan=0.00189686171 batch_se=0.000110882733 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_object_blocked_reused channel=1 cpu=0.00966333365 cpu_se=3.10249995e-05 vulkan=0.0101475238 batch_se=0.000593023818 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_object_blocked_reused channel=2 cpu=0.00242827028 cpu_se=1.01934914e-05 vulkan=0.0025948 batch_se=0.000147306337 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_floor_fresh channel=0 cpu=0.188912964 cpu_se=0.00348004538 vulkan=0.174034851 batch_se=0.0134138265 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_floor_fresh channel=1 cpu=0.25281167 cpu_se=0.00431418259 vulkan=0.235593697 batch_se=0.016865412 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_floor_fresh channel=2 cpu=0.0644807608 cpu_se=0.00164931503 vulkan=0.051908951 batch_se=0.00302033068 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_floor_moved_reused channel=0 cpu=0.188912964 cpu_se=0.00348004538 vulkan=0.186871386 batch_se=0.00797354976 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_floor_moved_reused channel=1 cpu=0.25281167 cpu_se=0.00431418259 vulkan=0.248454653 batch_se=0.0103033548 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_floor_moved_reused channel=2 cpu=0.0644807608 cpu_se=0.00164931503 vulkan=0.061951503 batch_se=0.00382872911 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_floor_blocked_reused channel=0 cpu=0.0147738306 cpu_se=0.000879616904 vulkan=0.0132018191 batch_se=0.00250672187 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_floor_blocked_reused channel=1 cpu=0.0201258383 cpu_se=0.00114443739 vulkan=0.0192192036 batch_se=0.00352657185 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_floor_blocked_reused channel=2 cpu=0.00651797068 cpu_se=0.000396641432 vulkan=0.00627982266 batch_se=0.00126886339 cpu_paths=240000 gpu_batches=128
+ROUGH_TEXTURE_MOTION_LINKS moved=475904 blocked=465024 spatial=3868672 moved_probe_accepts=256 blocked_probe_accepts=256 batches=128
+PASS independent rough-textured primary and four-hit paths during rigid motion and occlusion

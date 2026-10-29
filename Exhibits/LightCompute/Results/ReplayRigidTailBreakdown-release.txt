@@ -1,0 +1,127 @@
+Rigid-primary rare-sample reservoir audit; host release
+Base 71539ea, plus working changes if any; source hashes below.
+External Vulkan driver and shader compiler are not sanitizer-instrumented.
+Linux 6.1.158+ x86_64
+2026.14.1
+6697e520368835e89f1832613ed07b6ae72ddf0b8db31a12c78736d2f48753ea  Frontier/Engine/Rendering/PathReplayDomain.h
+95c4d564acf2cb9826ac60148b5b9dc4fb7ea95cdeb4148aff360f551881089d  Frontier/Engine/Rendering/PathReplayDomain.cpp
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+3a689e043b64039ba57bd5bc38eaab95b4d369b863f4a5d233a2d0568ff96e04  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+cbc4b5a3d3e184bf03b25f30340062b93b3b210c11457adda3623c9f469486b0  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+fa24e8eb1fd6c516810260f2dd6656e56616d016070552530d42a8b4fcee63e0  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+06dab77604bba8d5a25016ee236c11de8d37ff32b03b502c1ad4a909efcc74e6  Exhibits/LightCompute/Code/ReplayMotionValidation.h
+3ccc45548bd503e3cc73706cae5c10f8ccbe7a9c1909fb21a470f0b9d083368a  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+b4705522c8b963c611a4b1e79a4e5ef04d92ba986db39c8e7d204c71fa7c1f5e  Exhibits/LightCompute/Code/ReplayTextureRoomValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+71652e374f6a409e89938abe7ac205574262c381cc510be1a11b6167cc97ee90  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+965ff5689461b7ff2c81598c14a5f60c165bf5ccc1293b0df2da0a2f46700588  Exhibits/LightCompute/Code/RoughTextureMotionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+f14fa4531e6362f1ecefacdb31458cffa9a483dc8ef5d3aa7e80b94c1b32a5b8  Exhibits/LightCompute/Code/ReplayFacetMixtureCapture.h
+1cfe8dd5d54e5c9e34e99931def5b6c36b3c945a8cea187425e6c1848c7ddee2  Exhibits/LightCompute/Code/ReplayFacetMixtureMotionValidation.h
+1589f597a3d68457c4b6b9e4e2c494c1aa802f4563ae45b1f21c2495b1073ca6  Exhibits/LightCompute/Code/ReplayRigidProbeRegion.slang
+098b1d90ccfe35d3c74bf850303ea7cb9db680201104f7e1ee49e849da8f772d  Exhibits/LightCompute/Code/ReplayRigidTailAudit.slang
+074c083523442938a535f2ca917c7ff6dcf2fb032ae9abf15aff628b1321a54a  Exhibits/LightCompute/Code/ReplayRigidTailBreakdown.slang
+57e5f3b9958d071bdeadbea8f32f5fffcc886b4c79f2f9fcabb24e100dd304a2  Exhibits/LightCompute/Code/ReplayRigidTailAudit.h
+143032db1d637fbf23ffdb7eb9b4c57a8b5b0772e92b8563443dc533d8b91e33  Exhibits/LightCompute/RunReplayRigidTailAudit.sh
+e411684021b4957ea01685288d7a854863dd408ab9863c2da424cf8724143f58  /home/user/Frontier/Exhibits/LightCompute/Results/ReplayRigidVarianceRepeatSamples.csv
+ENGINE_REPLAY_DOMAIN abi=18_float4 fields source_indices=1 rejected=8 ggx_guard=1
+ENGINE_REPLAY_HISTORY exact_revisions=12 proposal=1 weighted_facets=1 uniform_mixture=1 in_place_atlas=1 audit=1 invalidation=1
+PASS engine replay inputs, guards and bounded history revisions
+MIXTURE_MOTION_SOURCE translation=0.180000007 observed=0.180000047 radiant_facets=2
+RIGID_TAIL_SOURCE facet=12 emission=12/10/8 uniform=0.5 power=0.925925851 mixture=0.712962925
+RIGID_TAIL_SOURCE facet=16 emission=0.959999979/0.799999952/0.639999986 uniform=0.5 power=0.0740741491 mixture=0.287037075
+RIGID_TAIL_AUDIT device=SwiftShader Device (Subzero) selected_top_uniform=3 selected_median=1
+RIGID_TAIL_CASE rank=1 group=4 batch=14 frame_seed=3636229639 mode=uniform output_red=0.0927563757
+RIGID_TAIL_DONOR index=0 candidate_seed=1167774656 donor_red=0.00171113282 centre_red=0.00171113282 centre_green=0.00792638958 target=0.016207125 source_weight=1 weight=0.016207125 draw=0.0920920968 selected=1
+RIGID_TAIL_DONOR index=1 candidate_seed=2362020775 donor_red=0.0115096215 centre_red=0.0107477084 centre_green=0.0680312365 target=0.0612560958 source_weight=1 weight=0.0612560958 draw=0.426814318 selected=1
+RIGID_TAIL_DONOR index=2 candidate_seed=2542706734 donor_red=0.00262669404 centre_red=0.00262433873 centre_green=0.0148185706 target=0.0214236584 source_weight=1 weight=0.0214236584 draw=0.573751986 selected=0
+RIGID_TAIL_DONOR index=3 candidate_seed=3661535858 donor_red=0.00289189047 centre_red=0.00289327698 centre_green=0.0169001035 target=0.0229969658 source_weight=1 weight=0.0229969658 draw=0.574144602 selected=0
+RIGID_TAIL_DONOR index=4 candidate_seed=789849863 donor_red=0.139197528 centre_red=0.253269523 centre_green=0.115418822 target=0.146639705 source_weight=1 weight=0.146639705 draw=0.172950506 selected=1
+RIGID_TAIL_BOUNCE bounce=0 state=2 facet=3 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=1 state=2 facet=4 direct_red=0.000879409083 hit_red=0 direct_green=0.000578898122 hit_green=0
+RIGID_TAIL_BOUNCE bounce=2 state=3 facet=12 direct_red=0.136988699 hit_red=0.11540138 direct_green=0.062162403 hit_green=0.0526775084
+RIGID_TAIL_BOUNCE bounce=3 state=1 facet=-1 direct_red=0 hit_red=2.71426668e-08 direct_green=0 hit_green=1.48678456e-08
+RIGID_TAIL_RECONSTRUCT chosen=4 centre_red=0.253269523 sum_weight=0.268523574 scale=0.366235822 output_red=0.0927563757
+RIGID_TAIL_CASE rank=1 group=4 batch=14 frame_seed=3636229639 mode=mixture output_red=0.00330614694
+RIGID_TAIL_DONOR index=0 candidate_seed=1167774656 donor_red=0.00209686742 centre_red=0.00209686742 centre_green=0.0108824121 target=0.0184426047 source_weight=1 weight=0.0184426047 draw=0.0920920968 selected=1
+RIGID_TAIL_DONOR index=1 candidate_seed=2362020775 donor_red=0.000625235029 centre_red=0.000641537597 centre_green=0.00473647146 target=0.0137676075 source_weight=1 weight=0.0137676075 draw=0.426814318 selected=1
+RIGID_TAIL_DONOR index=2 candidate_seed=2542706734 donor_red=0.00101035659 centre_red=0.00100599974 centre_green=0.0187174529 target=0.0237088501 source_weight=1 weight=0.0237088501 draw=0.573751986 selected=0
+RIGID_TAIL_DONOR index=3 candidate_seed=3661535858 donor_red=0.00180068798 centre_red=0.00178710127 centre_green=0.00856594089 target=0.0166884288 source_weight=1 weight=0.0166884288 draw=0.574144602 selected=0
+RIGID_TAIL_DONOR index=4 candidate_seed=789849863 donor_red=0.00448556989 centre_red=0.0046832487 centre_green=0.0241880156 target=0.028701352 source_weight=1 weight=0.028701352 draw=0.172950506 selected=1
+RIGID_TAIL_BOUNCE bounce=0 state=1 facet=-1 direct_red=0.00207836158 hit_red=0.00260488689 direct_green=0.00951667223 hit_green=0.0146713434
+RIGID_TAIL_BOUNCE bounce=1 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=2 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=3 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_RECONSTRUCT chosen=4 centre_red=0.0046832487 sum_weight=0.101308838 scale=0.705951631 output_red=0.00330614694
+RIGID_TAIL_CASE rank=2 group=6 batch=87 frame_seed=3505352021 mode=uniform output_red=0.0684192479
+RIGID_TAIL_DONOR index=0 candidate_seed=953663459 donor_red=0.00253710593 centre_red=0.00253710593 centre_green=0.0141531667 target=0.0209203232 source_weight=1 weight=0.0209203232 draw=0.251778781 selected=1
+RIGID_TAIL_DONOR index=1 candidate_seed=2562013432 donor_red=0.00266204588 centre_red=0.00266432785 centre_green=0.0151221398 target=0.0216533504 source_weight=1 weight=0.0216533504 draw=0.916419089 selected=0
+RIGID_TAIL_DONOR index=2 candidate_seed=290792320 donor_red=0.00265491824 centre_red=0.00265257619 centre_green=0.0150300441 target=0.0215837881 source_weight=1 weight=0.0215837881 draw=0.786261499 selected=0
+RIGID_TAIL_DONOR index=3 candidate_seed=3732923373 donor_red=0.00291699567 centre_red=0.00291679869 centre_green=0.0171619114 target=0.0231916085 source_weight=1 weight=0.0231916085 draw=0.0628912449 selected=1
+RIGID_TAIL_DONOR index=4 candidate_seed=2141323097 donor_red=0.290847301 centre_red=0.301015258 centre_green=0.788126051 target=0.640038311 source_weight=1 weight=0.640038311 draw=0.633990228 selected=1
+RIGID_TAIL_BOUNCE bounce=0 state=2 facet=5 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=1 state=2 facet=9 direct_red=1.96247424e-06 hit_red=0 direct_green=7.03186834e-06 hit_green=0
+RIGID_TAIL_BOUNCE bounce=2 state=3 facet=12 direct_red=0.145162538 hit_red=0.155850753 direct_green=0.38016507 hit_green=0.407953948
+RIGID_TAIL_BOUNCE bounce=3 state=2 facet=17 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_RECONSTRUCT chosen=4 centre_red=0.301015258 sum_weight=0.727387369 scale=0.227294952 output_red=0.0684192479
+RIGID_TAIL_CASE rank=2 group=6 batch=87 frame_seed=3505352021 mode=mixture output_red=0.000555198756
+RIGID_TAIL_DONOR index=0 candidate_seed=953663459 donor_red=0.00195482257 centre_red=0.00195482257 centre_green=0.00975215714 target=0.0175895654 source_weight=1 weight=0.0175895654 draw=0.251778781 selected=1
+RIGID_TAIL_DONOR index=1 candidate_seed=2562013432 donor_red=0.00199424243 centre_red=0.00201440137 centre_green=0.0103172492 target=0.0180124603 source_weight=1 weight=0.0180124603 draw=0.916419089 selected=0
+RIGID_TAIL_DONOR index=2 candidate_seed=290792320 donor_red=0.00185244158 centre_red=0.00187239971 centre_green=0.00918573793 target=0.0171585381 source_weight=1 weight=0.0171585381 draw=0.786261499 selected=0
+RIGID_TAIL_DONOR index=3 candidate_seed=3732923373 donor_red=0.00040176016 centre_red=0.000393081515 centre_green=0.00295495917 target=0.0123634338 source_weight=1 weight=0.0123634338 draw=0.0628912449 selected=1
+RIGID_TAIL_DONOR index=4 candidate_seed=2141323097 donor_red=0.00275726058 centre_red=0.0027538368 centre_green=0.0158306155 target=0.0221882071 source_weight=1 weight=0.0221882071 draw=0.633990228 selected=0
+RIGID_TAIL_BOUNCE bounce=0 state=2 facet=19 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=1 state=1 facet=-1 direct_red=0.000248346332 hit_red=0.000144735197 direct_green=0.00174604531 hit_green=0.00120891386
+RIGID_TAIL_BOUNCE bounce=2 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=3 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_RECONSTRUCT chosen=3 centre_red=0.000393081515 sum_weight=0.0873122066 scale=1.41242647 output_red=0.000555198756
+RIGID_TAIL_CASE rank=3 group=2 batch=28 frame_seed=1703867237 mode=uniform output_red=0.0471609049
+RIGID_TAIL_DONOR index=0 candidate_seed=1367551003 donor_red=0.00246318406 centre_red=0.00246318406 centre_green=0.0136626009 target=0.0205462202 source_weight=1 weight=0.0205462202 draw=0.867267668 selected=1
+RIGID_TAIL_DONOR index=1 candidate_seed=1313875722 donor_red=0.00279659359 centre_red=0.00279511395 centre_green=0.0162616149 target=0.0225094426 source_weight=1 weight=0.0225094426 draw=0.114458084 selected=1
+RIGID_TAIL_DONOR index=2 candidate_seed=1310483313 donor_red=0.000935205142 centre_red=0.00139043434 centre_green=0.0109031983 target=0.0181479808 source_weight=1 weight=0.0181479808 draw=0.96846056 selected=0
+RIGID_TAIL_DONOR index=3 candidate_seed=3697332343 donor_red=0.00273931213 centre_red=0.00272786943 centre_green=0.0147053422 target=0.0213641077 source_weight=1 weight=0.0213641077 draw=0.23552376 selected=1
+RIGID_TAIL_DONOR index=4 candidate_seed=3276770276 donor_red=0.19531624 centre_red=0.196118385 centre_green=0.496090531 target=0.408027977 source_weight=1 weight=0.408027977 draw=0.150717139 selected=1
+RIGID_TAIL_BOUNCE bounce=0 state=2 facet=5 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=1 state=2 facet=9 direct_red=2.35720699e-06 hit_red=0 direct_green=8.19613433e-06 hit_green=0
+RIGID_TAIL_BOUNCE bounce=2 state=3 facet=12 direct_red=0.00280101667 hit_red=0.193315014 direct_green=0.00793036539 hit_green=0.488151968
+RIGID_TAIL_BOUNCE bounce=3 state=2 facet=6 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_RECONSTRUCT chosen=4 centre_red=0.196118385 sum_weight=0.490595728 scale=0.240471616 output_red=0.0471609049
+RIGID_TAIL_CASE rank=3 group=2 batch=28 frame_seed=1703867237 mode=mixture output_red=0.00188703928
+RIGID_TAIL_DONOR index=0 candidate_seed=1367551003 donor_red=0.00163966639 centre_red=0.00163966639 centre_green=0.00746783381 target=0.0158566851 source_weight=1 weight=0.0158566851 draw=0.867267668 selected=1
+RIGID_TAIL_DONOR index=1 candidate_seed=1313875722 donor_red=3.43643387e-06 centre_red=3.40603856e-06 centre_green=1.24884846e-05 target=0.0100098867 source_weight=1 weight=0.0100098867 draw=0.114458084 selected=1
+RIGID_TAIL_DONOR index=2 candidate_seed=1310483313 donor_red=0.000413608243 centre_red=0.000431462424 centre_green=0.00382443634 target=0.0128472745 source_weight=1 weight=0.0128472745 draw=0.96846056 selected=0
+RIGID_TAIL_DONOR index=3 candidate_seed=3697332343 donor_red=0.0011491793 centre_red=0.00151278824 centre_green=0.0065256888 target=0.0151429549 source_weight=1 weight=0.0151429549 draw=0.23552376 selected=1
+RIGID_TAIL_DONOR index=4 candidate_seed=3276770276 donor_red=0.00276682479 centre_red=0.00276589929 centre_green=0.0160313398 target=0.022335561 source_weight=1 weight=0.022335561 draw=0.150717139 selected=1
+RIGID_TAIL_BOUNCE bounce=0 state=1 facet=-1 direct_red=0 hit_red=0.00276589929 direct_green=0 hit_green=0.0160313398
+RIGID_TAIL_BOUNCE bounce=1 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=2 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=3 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_RECONSTRUCT chosen=4 centre_red=0.00276589929 sum_weight=0.0761923641 scale=0.682251632 output_red=0.00188703928
+RIGID_TAIL_CASE rank=1025 group=2 batch=99 frame_seed=2841748405 mode=uniform output_red=0.00241893344
+RIGID_TAIL_DONOR index=0 candidate_seed=3301312098 donor_red=0.00664190995 centre_red=0.00664190995 centre_green=0.0296405479 target=0.0327502936 source_weight=1 weight=0.0327502936 draw=0.203300416 selected=1
+RIGID_TAIL_DONOR index=1 candidate_seed=2630165773 donor_red=0.00231451332 centre_red=0.000403719023 centre_green=0.00307821017 target=0.0122972364 source_weight=1 weight=0.0122972364 draw=0.470698416 selected=0
+RIGID_TAIL_DONOR index=2 candidate_seed=2112629736 donor_red=0.0021518867 centre_red=0.00215359614 centre_green=0.010563137 target=0.0182239674 source_weight=1 weight=0.0182239674 draw=0.096788764 selected=1
+RIGID_TAIL_DONOR index=3 candidate_seed=3089728209 donor_red=0.00175875798 centre_red=0.00174526498 centre_green=0.00818090048 target=0.0163998865 source_weight=1 weight=0.0163998865 draw=0.963423133 selected=0
+RIGID_TAIL_DONOR index=4 candidate_seed=352218771 donor_red=0.00284524518 centre_red=0.00284206937 centre_green=0.0164724849 target=0.0226750262 source_weight=1 weight=0.0226750262 draw=0.578496277 selected=0
+RIGID_TAIL_BOUNCE bounce=0 state=1 facet=-1 direct_red=0.000238234992 hit_red=0.00191536115 direct_green=0.00109320052 hit_green=0.0094699366
+RIGID_TAIL_BOUNCE bounce=1 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=2 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=3 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_RECONSTRUCT chosen=2 centre_red=0.00215359614 sum_weight=0.102346405 scale=1.12320662 output_red=0.00241893344
+RIGID_TAIL_CASE rank=1025 group=2 batch=99 frame_seed=2841748405 mode=mixture output_red=0.00282771396
+RIGID_TAIL_DONOR index=0 candidate_seed=3301312098 donor_red=0.00208600052 centre_red=0.00208600052 centre_green=0.0109112933 target=0.0184598416 source_weight=1 weight=0.0184598416 draw=0.203300416 selected=1
+RIGID_TAIL_DONOR index=1 candidate_seed=2630165773 donor_red=0.00924024358 centre_red=0.00686913216 centre_green=0.0194168761 target=0.025450483 source_weight=1 weight=0.025450483 draw=0.470698416 selected=1
+RIGID_TAIL_DONOR index=2 candidate_seed=2112629736 donor_red=0.00283668493 centre_red=0.00283480622 centre_green=0.0164163392 target=0.022632584 source_weight=1 weight=0.022632584 draw=0.096788764 selected=1
+RIGID_TAIL_DONOR index=3 candidate_seed=3089728209 donor_red=0.00496937614 centre_red=0.00522405421 centre_green=0.0221713409 target=0.0270479992 source_weight=1 weight=0.0270479992 draw=0.963423133 selected=0
+RIGID_TAIL_DONOR index=4 candidate_seed=352218771 donor_red=0.00222939416 centre_red=0.00223379559 centre_green=0.0120054856 target=0.0192888975 source_weight=1 weight=0.0192888975 draw=0.578496277 selected=0
+RIGID_TAIL_BOUNCE bounce=0 state=1 facet=-1 direct_red=0 hit_red=0.00283480622 direct_green=0 hit_green=0.0164163392
+RIGID_TAIL_BOUNCE bounce=1 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=2 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_BOUNCE bounce=3 state=-1 facet=-1 direct_red=0 hit_red=0 direct_green=0 hit_green=0
+RIGID_TAIL_RECONSTRUCT chosen=2 centre_red=0.00283480622 sum_weight=0.112879805 scale=0.997498155 output_red=0.00282771396
+RIGID_TAIL_AUDIT cases=8 selected_output_parity_components=32 host_max_abs_error=0 bounce_max_abs_error=4.47903403e-09
+PASS recorded rare-sample replay and host spatial-reservoir reconstruction

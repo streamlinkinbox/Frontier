@@ -1,0 +1,37 @@
+Format = 1
+Name = "Performance Rubber"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.019382360956935723, 0.02217388479338738, 0.0202885630566524]
+Roughness = 0.87
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/performance-rubber-albedo.png"
+Normal = "Textures/performance-rubber-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "rubber"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 180
+depth = 0.25
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "rubber"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 180
+depth = 0.25
+surfaceSeed = 17

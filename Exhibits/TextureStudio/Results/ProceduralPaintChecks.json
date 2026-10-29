@@ -1,0 +1,442 @@
+{
+  "result": "passed",
+  "paint": {
+    "result": "passed",
+    "checks": 58,
+    "macro_test_extent": 128,
+    "macro_test_flake_size_um": 1800,
+    "production_workspace_preview_extent": 512,
+    "gpu_control_pixel_differences": {
+      "Disabled": 7909,
+      "Coverage": 7909,
+      "ParticleSize": 5482,
+      "Repetition": 5482,
+      "BinderDepth": 2081,
+      "Layers": 7800,
+      "Palette": 7916,
+      "SingleTint": 7714,
+      "Roughness": 6963,
+      "Metallic": 7300,
+      "Tilt": 4264,
+      "Burial": 4838,
+      "OrangePeel": 1758,
+      "PeelFrequency": 684,
+      "Clearcoat": 4223
+    },
+    "geometry_uploads": 1,
+    "material_texture_uploads": 4,
+    "windows_execution": false,
+    "hardware_execution": false
+  },
+  "icons": {
+    "result": "passed",
+    "checks": 90,
+    "editor_symbols": 160,
+    "texture_symbols": 165,
+    "fluid_symbols": 165,
+    "svg_rasterizations": 14,
+    "windows_execution": false
+  },
+  "executions": {
+    "strict_paint_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "-IExternalPackages/tomlpp/include",
+        "-IExternalPackages/stb",
+        "-IExternalPackages/thorvg/inc",
+        "-DVK_NO_PROTOTYPES",
+        "-DTVG_STATIC",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-missing-field-initializers",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Engine/Render/SurfaceMaterial.cpp",
+        "Engine/ContentInterchange/MaterialLibrary.cpp",
+        "Engine/Interface/TextFileReplacement.cpp",
+        "Exhibits/TextureStudio/Code/AutomotivePaintValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/AutomotivePaintValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "strict_paint_execution": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/AutomotivePaintValidation",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/AdvancedPbr/Verification/Shaders",
+        "/home/user/Frontier/EngineContent/MaterialArchives/TextureStudio",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict"
+      ],
+      "exit_code": 0,
+      "stdout": "GPU: resolved 1800 \u00b5m macro sensitivity at 128px; production preset separately captured at 512px\nGPU: Disabled changed 7909 pixels; pedestal unchanged\nGPU: Coverage changed 7909 pixels; pedestal unchanged\nGPU: ParticleSize changed 5482 pixels; pedestal unchanged\nGPU: Repetition changed 5482 pixels; pedestal unchanged\nGPU: BinderDepth changed 2081 pixels; pedestal unchanged\nGPU: Layers changed 7800 pixels; pedestal unchanged\nGPU: Palette changed 7916 pixels; pedestal unchanged\nGPU: SingleTint changed 7714 pixels; pedestal unchanged\nGPU: Roughness changed 6963 pixels; pedestal unchanged\nGPU: Metallic changed 7300 pixels; pedestal unchanged\nGPU: Tilt changed 4264 pixels; pedestal unchanged\nGPU: Burial changed 4838 pixels; pedestal unchanged\nGPU: OrangePeel changed 1758 pixels; pedestal unchanged\nGPU: PeelFrequency changed 684 pixels; pedestal unchanged\nGPU: Clearcoat changed 4223 pixels; pedestal unchanged\nPASS: 58 authored paint, procedural GPU, pedestal-isolation and reuse checks\n",
+      "stderr": ""
+    },
+    "strict_icon_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "-IExternalPackages/tomlpp/include",
+        "-IExternalPackages/stb",
+        "-IExternalPackages/thorvg/inc",
+        "-DVK_NO_PROTOTYPES",
+        "-DTVG_STATIC",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-missing-field-initializers",
+        "Engine/Interface/IconArt.cpp",
+        "Engine/Interface/ContentDirectory.cpp",
+        "Exhibits/TextureStudio/Code/IconDomainValidation.cpp",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/IconEvidence/libThorvgEvidence.a",
+        "-pthread",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/IconDomainValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "strict_icon_execution": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/IconDomainValidation",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/IconDomainChecks.json"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: 90 icon scope and production SVG rasterization checks\n",
+      "stderr": ""
+    },
+    "sanitized_paint_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "-IExternalPackages/tomlpp/include",
+        "-IExternalPackages/stb",
+        "-IExternalPackages/thorvg/inc",
+        "-DVK_NO_PROTOTYPES",
+        "-DTVG_STATIC",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Engine/Render/SurfaceMaterial.cpp",
+        "Engine/ContentInterchange/MaterialLibrary.cpp",
+        "Engine/Interface/TextFileReplacement.cpp",
+        "Exhibits/TextureStudio/Code/AutomotivePaintValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/sanitized/AutomotivePaintValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "sanitized_paint_execution": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/sanitized/AutomotivePaintValidation",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/AdvancedPbr/Verification/Shaders",
+        "/home/user/Frontier/EngineContent/MaterialArchives/TextureStudio",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/sanitized"
+      ],
+      "exit_code": 0,
+      "stdout": "GPU: resolved 1800 \u00b5m macro sensitivity at 128px; production preset separately captured at 512px\nGPU: Disabled changed 7909 pixels; pedestal unchanged\nGPU: Coverage changed 7909 pixels; pedestal unchanged\nGPU: ParticleSize changed 5482 pixels; pedestal unchanged\nGPU: Repetition changed 5482 pixels; pedestal unchanged\nGPU: BinderDepth changed 2081 pixels; pedestal unchanged\nGPU: Layers changed 7800 pixels; pedestal unchanged\nGPU: Palette changed 7916 pixels; pedestal unchanged\nGPU: SingleTint changed 7714 pixels; pedestal unchanged\nGPU: Roughness changed 6963 pixels; pedestal unchanged\nGPU: Metallic changed 7300 pixels; pedestal unchanged\nGPU: Tilt changed 4264 pixels; pedestal unchanged\nGPU: Burial changed 4838 pixels; pedestal unchanged\nGPU: OrangePeel changed 1758 pixels; pedestal unchanged\nGPU: PeelFrequency changed 684 pixels; pedestal unchanged\nGPU: Clearcoat changed 4223 pixels; pedestal unchanged\nPASS: 58 authored paint, procedural GPU, pedestal-isolation and reuse checks\n",
+      "stderr": ""
+    },
+    "sanitized_icon_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "-IExternalPackages/tomlpp/include",
+        "-IExternalPackages/stb",
+        "-IExternalPackages/thorvg/inc",
+        "-DVK_NO_PROTOTYPES",
+        "-DTVG_STATIC",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "Engine/Interface/IconArt.cpp",
+        "Engine/Interface/ContentDirectory.cpp",
+        "Exhibits/TextureStudio/Code/IconDomainValidation.cpp",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/IconEvidence/libThorvgEvidence.a",
+        "-pthread",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/sanitized/IconDomainValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "sanitized_icon_execution": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/sanitized/IconDomainValidation",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/sanitized/IconDomainChecks.json"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: 90 icon scope and production SVG rasterization checks\n",
+      "stderr": ""
+    },
+    "encode_GreenAutomotivePaint": {
+      "command": [
+        "python3",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/GreenAutomotivePaint.ppm",
+        "/home/user/Frontier/Exhibits/TextureStudio/Images/Paint-GreenAutomotivePaint.png"
+      ],
+      "exit_code": 0,
+      "stdout": "Encoded actual RGB evidence: 128 x 128; no synthetic artwork\n",
+      "stderr": ""
+    },
+    "encode_Disabled": {
+      "command": [
+        "python3",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/Disabled.ppm",
+        "/home/user/Frontier/Exhibits/TextureStudio/Images/Paint-Disabled.png"
+      ],
+      "exit_code": 0,
+      "stdout": "Encoded actual RGB evidence: 128 x 128; no synthetic artwork\n",
+      "stderr": ""
+    },
+    "encode_Coverage": {
+      "command": [
+        "python3",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/Coverage.ppm",
+        "/home/user/Frontier/Exhibits/TextureStudio/Images/Paint-Coverage.png"
+      ],
+      "exit_code": 0,
+      "stdout": "Encoded actual RGB evidence: 128 x 128; no synthetic artwork\n",
+      "stderr": ""
+    },
+    "encode_ParticleSize": {
+      "command": [
+        "python3",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/ParticleSize.ppm",
+        "/home/user/Frontier/Exhibits/TextureStudio/Images/Paint-ParticleSize.png"
+      ],
+      "exit_code": 0,
+      "stdout": "Encoded actual RGB evidence: 128 x 128; no synthetic artwork\n",
+      "stderr": ""
+    },
+    "encode_OrangePeel": {
+      "command": [
+        "python3",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/ProceduralAcceptance/strict/OrangePeel.ppm",
+        "/home/user/Frontier/Exhibits/TextureStudio/Images/Paint-OrangePeel.png"
+      ],
+      "exit_code": 0,
+      "stdout": "Encoded actual RGB evidence: 128 x 128; no synthetic artwork\n",
+      "stderr": ""
+    }
+  },
+  "limitations": [
+    "Offscreen Vulkan software-driver execution, not Windows or hardware execution",
+    "External-driver leak detection disabled; authored CPU/renderer code uses ASan/UBSan",
+    "Other HTML procedural shader families remain unported"
+  ],
+  "sources": [
+    {
+      "file": "Engine/ContentInterchange/MaterialLibrary.cpp",
+      "sha256": "210c551afdc86006c6458045562f33621b93365606645f1e0cc8a70c0e7089a8"
+    },
+    {
+      "file": "Engine/Interface/ContentDirectory.cpp",
+      "sha256": "e1cc533ced26f1876aa7ca38adb4d4f195083dd8820063f2a19f9adf6dae4ce1"
+    },
+    {
+      "file": "Engine/Interface/IconArt.cpp",
+      "sha256": "f4da9d0a9ed4bc5d754ed2ad9d9ec96b261db494379ed17f86004503f1021556"
+    },
+    {
+      "file": "Engine/Interface/IconArt.h",
+      "sha256": "1b300c8d7d9d177d32a7fa46f5bc29fc37d61118d9a0aed3b70de51b63ddeb44"
+    },
+    {
+      "file": "Engine/Interface/IconPresentation.cpp",
+      "sha256": "3ac24b91820dd0c01fb4f51c10f4c6c73677ad243adddece743e0d4fdcc4904f"
+    },
+    {
+      "file": "Engine/Interface/IconPresentation.h",
+      "sha256": "fe38956973d34dfe2036cbfe0546afef3d4a4d4e3d0575d65c0f272527c6b778"
+    },
+    {
+      "file": "Engine/Interface/IconSymbols.inc",
+      "sha256": "db19e21b58aedce205ec90557a8f838d7acf857ef0f9b7d32d83ce3d2d42fcf3"
+    },
+    {
+      "file": "Engine/Interface/Icons/EditorSymbols.inc",
+      "sha256": "5588783972504e0532e8f92a4c78721bd5f0979c078bb4f04100e183111db53a"
+    },
+    {
+      "file": "Engine/Interface/Icons/FluidSymbols.inc",
+      "sha256": "0ba1ced25e08bfb020d4e3d5229ed3330a9e7d4b7050f60699470f7a9f398dd7"
+    },
+    {
+      "file": "Engine/Interface/Icons/TextureSymbols.inc",
+      "sha256": "19d4720929b24a73010fba5a3ec256c726774e58483828cfcada5fe84ee100a3"
+    },
+    {
+      "file": "Engine/Interface/TextFileReplacement.cpp",
+      "sha256": "3e85df5e310bcbf83dd59b2ec28aca39d483534e550337d2c5d8144b42c12c70"
+    },
+    {
+      "file": "Engine/Render/AutomotivePaint.h",
+      "sha256": "f967f243a2862ede5e2da6b4c9f57094ebeae09eef7ee102764eefb689acb0a1"
+    },
+    {
+      "file": "Engine/Render/MaterialPreviewGeometry.h",
+      "sha256": "b7074f2eb6289473992d1598669a5961f47b8c1ca8fa7ade4479b00380aec70b"
+    },
+    {
+      "file": "Engine/Render/Shader/AutomotivePaint.slang",
+      "sha256": "c973b9836e49afbed482296f6eeebe49ed9d9ca9594ad345341209dc8454d398"
+    },
+    {
+      "file": "Engine/Render/Shader/MaterialSurface.slang",
+      "sha256": "e210f08ad4fee7580a62256e7ec60a23ef8414fc206f4dcb60b46b32206521cb"
+    },
+    {
+      "file": "Engine/Render/Shader/ScatteringEvaluation.slang",
+      "sha256": "32c77f38f50f78ff7d7f00f5d1b412dd273c72722510d42842b9154d37645cc5"
+    },
+    {
+      "file": "Engine/Render/SurfaceMaterial.cpp",
+      "sha256": "5ef0c388273ba538c00cda3b52f337c0888ab6b43c0a03ec2f1c263d9b7603b6"
+    },
+    {
+      "file": "Engine/Render/SurfaceMaterial.h",
+      "sha256": "223888524134025cb209f014af8ae0fd00520241abd83c19041ab9111b6808d0"
+    },
+    {
+      "file": "Engine/Render/SurfaceRasterization.cpp",
+      "sha256": "474d8dff1cb143c9fee29fa9e150c2e1ad1a5e3ae1329f4e6d90892d925b4f3f"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/check.svg",
+      "sha256": "f7909988acb542c0aa7bc9ae18693492292016bd13c5152c2e3125e06c24b040"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/chevron-down.svg",
+      "sha256": "77ad5252cc52b2bc7eb38c6c2b0433ed4399b076bfbb5c801577f0aa461db2bb"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/chevron-right.svg",
+      "sha256": "bcd0879a7b14e5397e53c36271d181b0b6266c371babdea2f2b924fe457dc490"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/copy.svg",
+      "sha256": "bef34649cdf5b75253990e3c64d7e023f7207b8df0f1fbf322b5df6d7a524379"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/folder-open.svg",
+      "sha256": "14a4500443974b6d04ff187339398099af3ffdb7ea9effa8d86946d4a0b1d318"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/heart.svg",
+      "sha256": "5de458a59ac13a026e99b6f6897bc3bd2857a213d6cc6aa14d37cc70f323ae6b"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/layers.svg",
+      "sha256": "2850625bdc8e3ee54e10e50aa6608cc030abd0706c3836e7009c03f1c15e3bda"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/more-horizontal.svg",
+      "sha256": "be6bdf7af63a1f0cc824bbbd572e047aca9ecdec32c4d28215588d1b8882579f"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/plus.svg",
+      "sha256": "ee8b8fd47b8311d8a6926fa053bfe6212d17f9f6f867d01bd8a2daaeb3e1d444"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/rotate-ccw.svg",
+      "sha256": "6880844db7808d61acbcec5a8d12f19d85aea9a446918ac97ad09be46b5af475"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/save.svg",
+      "sha256": "469bc2983c1004003f4f56694a0b42745796e7f918bff58ace32958b2158cd1a"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/search.svg",
+      "sha256": "cfd62b4515d2cf48db4d076f091d46e51b170ce4775ef6d053228207fbe02258"
+    },
+    {
+      "file": "EngineContent/Icons/Editor/sliders-horizontal.svg",
+      "sha256": "109060940fd96663a63189e3a7f5725c305a09d2460a177b3f51d5a3e049915f"
+    },
+    {
+      "file": "EngineContent/Icons/Fluid/fluid-glass.svg",
+      "sha256": "d059912713df8e698ae739195608508ad4181c6b347c2064d9e28c26e3f66c4a"
+    },
+    {
+      "file": "EngineContent/Icons/Fluid/fluid.svg",
+      "sha256": "24aac61899369dd192be6183883963c7d47bf8fa052cb263e2f4720a016b0df4"
+    },
+    {
+      "file": "EngineContent/Icons/Fluid/folder-water.svg",
+      "sha256": "d7b87372cc4742bfd85cb7f0e189ee76bce67522a99bc7e00fa93a479dd8016f"
+    },
+    {
+      "file": "EngineContent/Icons/Fluid/smoke.svg",
+      "sha256": "e85bbf4b491300500bd4ff57d893a37f83bd9dfa3ebd41e11271475c73d8d581"
+    },
+    {
+      "file": "EngineContent/Icons/Fluid/water.svg",
+      "sha256": "57734707f8bc679649c6e535248a78aae240cf4e94cd16b9ceed86ba4009e827"
+    },
+    {
+      "file": "EngineContent/Icons/Texture/clearcoat.svg",
+      "sha256": "43ac3a0ddd903932d323861eb364440c11cec5e83393e0fbd80f156f35c0b079"
+    },
+    {
+      "file": "EngineContent/Icons/Texture/decal.svg",
+      "sha256": "9510107fef337f880b8015b1c1e4ef14767c9fb1191b9f1b52aa99a1aff76d55"
+    },
+    {
+      "file": "EngineContent/Icons/Texture/flakes.svg",
+      "sha256": "2423d1e0aba4ca9ab56cd97ee7da548e106fa16db4645df394b9186c6f494f2c"
+    },
+    {
+      "file": "EngineContent/Icons/Texture/paint.svg",
+      "sha256": "004a9cd1ec494783d3e2f1d95540605654d0f2d382aad5893d6909b4f440ace4"
+    },
+    {
+      "file": "EngineContent/Icons/Texture/uv.svg",
+      "sha256": "f9969914bdd6d104401241c7bccac7656e0b739a410b05e1509d93746f114326"
+    },
+    {
+      "file": "Exhibits/TextureStudio/Code/AutomotivePaintValidation.cpp",
+      "sha256": "d8e6d8e935264044726e20fcec9dcd6e5d016f22273a6e6d12b7f3e77fe62c98"
+    },
+    {
+      "file": "Exhibits/TextureStudio/Code/IconDomainValidation.cpp",
+      "sha256": "af834a6b3235b67384e4cef7c7ecf76fe7385086edb52fa4ed8dcf3d9f3f71ad"
+    },
+    {
+      "file": "Exhibits/TextureStudio/Code/PrepareIconEvidence.py",
+      "sha256": "7c99274bb15d1cb38697c10600d6d218e547ffd754da66242a1d5b97b9025b78"
+    },
+    {
+      "file": "Exhibits/TextureStudio/Code/VerifyProceduralPaint.py",
+      "sha256": "e7025cee0a3f5bb6c7e19d948b23cf1243e1574561a9d7dec09366a9ad29d884"
+    }
+  ]
+}

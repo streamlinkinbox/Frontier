@@ -1,0 +1,12 @@
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+FOG_ANALYTIC uniform_integral=1 beer=1 near_horizontal=1
+FOG_RAY capture=0 case=0 probes=109 max_rgb_error=0 mean_rgb_error=0 source_rgb_sum=0 view_128step_max_red_delta=0 surface_probes=54 surface_max_rgb_error=4.83518e-05 shadow_128step_max_red_delta=0
+FOG_RAY capture=0 case=1 probes=109 max_rgb_error=1.16222e-07 mean_rgb_error=2.50369e-08 source_rgb_sum=96.8323 view_128step_max_red_delta=5.55112e-17 surface_probes=54 surface_max_rgb_error=4.6536e-05 shadow_128step_max_red_delta=0
+FOG_RAY capture=0 case=2 probes=109 max_rgb_error=1.42095e-07 mean_rgb_error=1.87215e-08 source_rgb_sum=0 view_128step_max_red_delta=0 surface_probes=54 surface_max_rgb_error=5.13873e-05 shadow_128step_max_red_delta=0
+FOG_RAY capture=0 case=3 probes=109 max_rgb_error=9.56828e-06 mean_rgb_error=5.63208e-07 source_rgb_sum=52.5689 view_128step_max_red_delta=0.00202864 surface_probes=54 surface_max_rgb_error=5.1334e-05 shadow_128step_max_red_delta=0.000818986
+FOG_RAY capture=0 case=4 probes=109 max_rgb_error=9.49521e-07 mean_rgb_error=9.16356e-08 source_rgb_sum=8.39633 view_128step_max_red_delta=0.000482646 surface_probes=54 surface_max_rgb_error=5.21472e-05 shadow_128step_max_red_delta=0.000100323
+FOG_LOCAL capture=0 probes=109 max_rgb_error=1.04968e-05 source_rgb_sum=38.1044
+FOG_OCCLUSION geometry_changes_scattering=1
+FOG_HISTORY dry_history_bitwise_equal=1
+FOG_TOGGLE enabled_cold_equal=1 disabled_cold_equal=1
+FOG_BOUNDS invalid_steps_rejected=1

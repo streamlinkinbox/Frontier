@@ -1,0 +1,13 @@
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+GLAZING_MOTION_SCENE pose=0 angle=0 glass_triangles=284 mirror_triangles=4 volume_m3=0.0213574
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+GLAZING_MOTION_SCENE pose=1 angle=0.08 glass_triangles=284 mirror_triangles=4 volume_m3=0.0213574
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+GLAZING_MOTION_SCENE pose=2 angle=0.16 glass_triangles=284 mirror_triangles=4 volume_m3=0.0213574
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213573
+GLAZING_MOTION_SCENE pose=3 angle=0.24 glass_triangles=284 mirror_triangles=4 volume_m3=0.0213573
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+GLAZING_MOTION_SCENE pose=4 angle=0.32 glass_triangles=284 mirror_triangles=4 volume_m3=0.0213574
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+GLAZING_MOTION_SCENE pose=5 angle=0.4 glass_triangles=284 mirror_triangles=4 volume_m3=0.0213574
+GLAZING_MOTION_NATIVE pose_groups=24 poses=6 closed_triangles=284 moving_mirror_corners=12 source_ior=1.52

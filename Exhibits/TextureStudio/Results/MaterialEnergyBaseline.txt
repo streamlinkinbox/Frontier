@@ -1,0 +1,25 @@
+MATERIAL_ENERGY profile=0 roughness=0.349999994 normal_view=0.25 red=1.12791841 green=1.12791841 blue=1.12791841 quadrature_delta=1.00368732e-06 exceeds_1p02=1
+MATERIAL_ENERGY profile=0 roughness=0.349999994 normal_view=0.6 red=1.00781774 green=1.00781774 blue=1.00781774 quadrature_delta=9.57646682e-08 exceeds_1p02=0
+MATERIAL_ENERGY profile=0 roughness=0.349999994 normal_view=1 red=0.999192399 green=0.999192399 blue=0.999192399 quadrature_delta=4.14159145e-05 exceeds_1p02=0
+MATERIAL_ENERGY profile=0 roughness=0.649999976 normal_view=0.25 red=1.01976546 green=1.01976546 blue=1.01976546 quadrature_delta=3.91103139e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=0 roughness=0.649999976 normal_view=0.6 red=0.993372432 green=0.993372432 blue=0.993372432 quadrature_delta=8.54820309e-08 exceeds_1p02=0
+MATERIAL_ENERGY profile=0 roughness=0.649999976 normal_view=1 red=0.990548072 green=0.990548072 blue=0.990548072 quadrature_delta=2.28188908e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.349999994 normal_view=0.25 red=0.826366399 green=0.638572387 blue=0.300543184 quadrature_delta=2.72630749e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.349999994 normal_view=0.6 red=0.869445476 green=0.631468083 blue=0.203108802 quadrature_delta=1.25409589e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.349999994 normal_view=1 red=0.883391351 green=0.638007525 blue=0.196316664 quadrature_delta=0.000931824158 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.649999976 normal_view=0.25 red=0.715015466 green=0.528151099 blue=0.19179526 quadrature_delta=1.58533046e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.649999976 normal_view=0.6 red=0.667817352 green=0.484253571 blue=0.153838786 quadrature_delta=9.76922106e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=1 roughness=0.649999976 normal_view=1 red=0.688154033 green=0.497012357 blue=0.15295736 quadrature_delta=5.11674239e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.349999994 normal_view=0.25 red=0.840979122 green=0.840979122 blue=0.840979122 quadrature_delta=4.66966123e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.349999994 normal_view=0.6 red=0.920883055 green=0.920883055 blue=0.920883055 quadrature_delta=6.38354871e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.349999994 normal_view=1 red=0.915202165 green=0.915202165 blue=0.915202165 quadrature_delta=4.12945574e-05 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.649999976 normal_view=0.25 red=0.789482309 green=0.789482309 blue=0.789482309 quadrature_delta=2.46226144e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.649999976 normal_view=0.6 red=0.907541067 green=0.907541067 blue=0.907541067 quadrature_delta=6.5979213e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=2 roughness=0.649999976 normal_view=1 red=0.906485979 green=0.906485979 blue=0.906485979 quadrature_delta=3.34965328e-06 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.349999994 normal_view=0.25 red=1.36977433 green=1.36977433 blue=1.36977433 quadrature_delta=1.75005441e-06 exceeds_1p02=1
+MATERIAL_ENERGY profile=3 roughness=0.349999994 normal_view=0.6 red=0.990368074 green=0.990368074 blue=0.990368074 quadrature_delta=9.96013056e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.349999994 normal_view=1 red=0.838459142 green=0.838459142 blue=0.838459142 quadrature_delta=4.12312492e-05 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.649999976 normal_view=0.25 red=1.26162138 green=1.26162138 blue=1.26162138 quadrature_delta=3.14484487e-06 exceeds_1p02=1
+MATERIAL_ENERGY profile=3 roughness=0.649999976 normal_view=0.6 red=0.97592277 green=0.97592277 blue=0.97592277 quadrature_delta=9.85730471e-07 exceeds_1p02=0
+MATERIAL_ENERGY profile=3 roughness=0.649999976 normal_view=1 red=0.829814816 green=0.829814816 blue=0.829814816 quadrature_delta=4.35237116e-08 exceeds_1p02=0
+MATERIAL_ENERGY_DIAGNOSTIC cases=24 reciprocal_finite_nonnegative=1 maximum_reflectance=1.36977433 coarse_fine_max_delta=0.000931824158 energy_excess_cases=3 full_library_acceptance=0

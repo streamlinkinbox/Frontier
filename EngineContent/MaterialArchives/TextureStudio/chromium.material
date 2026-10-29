@@ -1,0 +1,37 @@
+Format = 1
+Name = "Chromium"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.6938717612919899, 0.7156935005064807, 0.7529422167760779]
+Roughness = 0.08
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/chromium-albedo.png"
+Normal = "Textures/chromium-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17

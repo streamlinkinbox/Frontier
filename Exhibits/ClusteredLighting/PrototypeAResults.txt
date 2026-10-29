@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: LightingSystem manages automotive light modes and roof fixtures correctly
+ok 1 - LightingSystem manages automotive light modes and roof fixtures correctly
+  ---
+  duration_ms: 1.006019
+  type: 'test'
+  ...
+# Subtest: LightingSystem packs street lamps and automotive headlights without buffer overflow
+ok 2 - LightingSystem packs street lamps and automotive headlights without buffer overflow
+  ---
+  duration_ms: 4.998317
+  type: 'test'
+  ...
+# Subtest: Roof fixture polygon generation produces valid geometry for SlimLED and RallyPod
+ok 3 - Roof fixture polygon generation produces valid geometry for SlimLED and RallyPod
+  ---
+  duration_ms: 1.768074
+  type: 'test'
+  ...
+# Subtest: AssignClusters writes a header the shader's ResolveClusterRange can read back
+ok 4 - AssignClusters writes a header the shader's ResolveClusterRange can read back
+  ---
+  duration_ms: 0.934853
+  type: 'test'
+  ...
+# Subtest: AssignClusters bins a street lamp into its overlapped cells and no others
+ok 5 - AssignClusters bins a street lamp into its overlapped cells and no others
+  ---
+  duration_ms: 2.542371
+  type: 'test'
+  ...
+# Subtest: AssignClusters spreads a long-reach headlight beam across most of the grid
+ok 6 - AssignClusters spreads a long-reach headlight beam across most of the grid
+  ---
+  duration_ms: 0.857612
+  type: 'test'
+  ...
+# Subtest: AssignClusters caps a crowded cell and counts the overflow instead of failing
+ok 7 - AssignClusters caps a crowded cell and counts the overflow instead of failing
+  ---
+  duration_ms: 3.075363
+  type: 'test'
+  ...
+# Subtest: AssignClusters is deterministic across frames
+ok 8 - AssignClusters is deterministic across frames
+  ---
+  duration_ms: 0.420338
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 91.59659

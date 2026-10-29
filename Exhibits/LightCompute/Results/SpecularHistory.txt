@@ -1,0 +1,5 @@
+SPECULAR_DEVICE name=SwiftShader Device (Subzero) type=4
+SPECULAR_FILTER native_probes=88 max_rgb_error=1.19058e-06
+SPECULAR_HISTORY original_geometry_revision=0 reference_seeds=8 reference_samples=16 frames=8 samples=4 temporal_pixels=2401 spatial_pixels=2401 preserved_smooth_pixels=520 raw_rmse=0.246571 filtered_rmse=0.0927787 moved_fresh_rmse=0 moved_history_pixels=0
+SPECULAR_CAMERA accepted=1339 rejected=17 smooth_exact_pixels=427 finite_nonnegative=1
+SPECULAR_HISTORY_RESET geometry_fresh_equal=1 source_off_black=1 smooth_preserved=1 compact_policy_retained=1

@@ -1,0 +1,46 @@
+Format = 1
+Name = "Carbon Ceramic"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.07618538148130785, 0.08021982031446832, 0.08021982031446832]
+Roughness = 0.73
+Metallic = 0.25
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/carbon-ceramic-albedo.png"
+Normal = "Textures/carbon-ceramic-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "ceramic"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 180
+depth = 0.25
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "ceramic"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 180
+depth = 0.25
+surfaceSeed = 17
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.5
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.08

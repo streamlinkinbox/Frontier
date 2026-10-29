@@ -1,0 +1,2 @@
+ROUGH_DEVICE name=SwiftShader Device (Subzero) type=4 software_vulkan=1
+ROUGH_SHARP_CAPTURE original_shader=1 width=192 height=120

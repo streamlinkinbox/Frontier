@@ -1,0 +1,38 @@
+Existing vehicle adapter regression; release; no dynamics source changes
+Base 9388c96, plus working changes if any; source hashes below.
+8474102bd8751d93fafc31542116cdc9474b9276c9449289ca1222360a6dcb4d  Frontier/Engine/Physics/TyreDeformation.h
+6ba664354911b388d5d704420d300a6822f4a162687cd8f6d18282e739b11e4f  Frontier/Engine/Physics/TyreSurfaceProjection.h
+4a0ab1113eaba965b5404c0618758c540ca0e0a5f6f17f66cc39666cecbf87df  Frontier/Engine/Physics/VehicleSolver.cpp
+63987e92a9a470e2a304e49e2acf0a5e222f2ef9a3eeba83157a8d3168d0449c  Frontier/Engine/Physics/TyreContinuum.cpp
+2d969d841ee916b625cc28183cb3efe050287be737669f2afe3ac7ef15379d70  Exhibits/VehiclePhysics/Code/SpringValidation.cpp
+90b1d20ab66161d14a5b1a5c5cfd18ea7129bdfc60314fdee577ad1d101e9b8f  Exhibits/VehiclePhysics/Code/TyreWiringValidation.cpp
+Reference: SultanAladin/Frontier VehicleHMI 6afb6f00b5f25c45f7cda92c7da65b64845768f3
+Four source/shader Git blob hashes verified; prescribed pressure/grip for vehicle comparisons.
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+v22.22.3
+Linux 6.1.158+ x86_64
+PASS complete 12 cases x 8 samples / model                      192
+PASS projection local positions vs demo (max m)                 0
+PASS projection world positions vs demo (max m)                 0
+PASS projection prescribed force vs demo (max N)                0
+PASS solid local positions vs demo (max m)                      2.71050543e-20
+PASS solid world positions vs demo (max m)                      0
+PASS solid prescribed force vs demo (max N)                     0
+PASS solid mean Jacobian vs demo (max absolute)                 0
+PASS solid mean stress vs demo (max relative)                   2.7331688e-16
+PASS solid contact counts match demo                            0
+PASS all coordinates finite and rim beads pinned                1
+PASS constant nodal field reproduces translation                0
+PASS sector/ring bilinear interpolation matches hand calculation 1.53668225e-08
+PASS deformed shading normal is normalized                      0.999999881
+PASS unloaded tyre leaves vertices unchanged                    0
+PASS shredded rubber collapses like demo shader                 0
+SUMMARY passed 16 failed 0
+PASS spring against current demo, four 720-step cases + 600-step drop: 3480 samples
+max errors: position 9.11059006e-09 m, velocity 9.86028864e-08 m/s, angular 1.1673812e-07 rad/s, quaternion 5.21588074e-09
+max errors: tyre force 0.00144750259 N, deflection 1.89938362e-08 m, load 0.00144750259 N, strut length 0 m, contact mismatches 0
+pinch state mismatches 0, top-out mismatches 0; pinched wheel samples: zero-pressure 324, drop 124; airborne drop 2009
+scope: prescribed pressures/grips, flat course, no debris; host thermal evolution excluded
+PASS vehicle shape wiring, fixed input and mode changes: 180 advances, 105600 particle observations
+max errors: chassis 8.04911693e-16, force 4.95674612e-11 N, local 6.9388939e-18 m, world 0 m; max deformation 0.0716126263 m
+scope: prescribed pressure/grip; shapes do not feed prescribed reactions into chassis

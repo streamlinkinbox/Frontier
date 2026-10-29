@@ -1,0 +1,57 @@
+Host build: sanitized; external Vulkan driver is not sanitizer-instrumented
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+ed95a588034ba48ab5f415cc846ea88ba1a28b62c42381a5ee7e58e87ee74735  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9  Engine/Render/Shader/ScatteringEvaluation.slang
+ec18d4e68b3c2500ed403576ccde19bf666fd77d830073ed13feee054da017af  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+fc56fc2a6a9cef24ffe8a479b1491029c873186f269557f237ad7270b467152d  Exhibits/LightCompute/Code/PathReplayDomain.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+10c2766c9f8d3e9ac32686b1e76b4affeddfbdb1869d7040a9ff05c12deef65b  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+c672ff9b82eefb2727472dc741dd2f0c0a465bca6de7a93eacbe37de5f88918c  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+TEXTURE_GUARDS malformed=33 opt_in=1 rough_opt_in=1 rough_bounds=4 diffuse_rejects_rough=1
+ROUGH_TEXTURE_QUADRATURE channel=0 cpu=0.344771864 vulkan=0.341857044 batch_se=0.0103063235 legacy_wrong=0.432592808
+ROUGH_TEXTURE_QUADRATURE channel=1 cpu=0.36858963 vulkan=0.364369088 batch_se=0.0109359681 legacy_wrong=0.467336228
+ROUGH_TEXTURE_QUADRATURE channel=2 cpu=0.123382253 vulkan=0.118352525 batch_se=0.00640162055 legacy_wrong=0.13625668
+ROUGH_TEXTURE_QUADRATURE probes=16 batches=128 wrong_model_max_difference=0.0987465976
+PASS textured authored GGX against converged hemisphere quadrature
+ROUGH_TEXTURE_ROOM tracing three independent 400000-path CPU references
+ROUGH_TEXTURE_CONTROL channel=0 cpu_difference=0.000449620162 cpu_se=5.78670601e-05 n=120000
+ROUGH_TEXTURE_CONTROL channel=1 cpu_difference=0.000618064815 cpu_se=7.6804047e-05 n=120000
+ROUGH_TEXTURE_CONTROL channel=2 cpu_difference=0.000123367284 cpu_se=1.67474344e-05 n=120000
+ROUGH_TEXTURE_ROOM preparing Vulkan on SwiftShader Device (Subzero)
+ROOM_REFERENCE rough_texture_first_fresh channel=0 cpu=0.687113603 cpu_se=0.00326729748 vulkan=0.69074584 pixel_se=0.00301926265 batch_se=0.00277268772 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_first_fresh channel=1 cpu=0.567317581 cpu_se=0.00271274525 vulkan=0.570734725 pixel_se=0.00248271997 batch_se=0.00210146404 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_first_fresh channel=2 cpu=0.481307484 cpu_se=0.00219298804 vulkan=0.484124735 pixel_se=0.00206058138 batch_se=0.00191440744 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_changed_facet channel=0 cpu=0.690924879 cpu_se=0.0032864183 vulkan=0.690534078 pixel_se=0.003486828 batch_se=0.00324654685 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_changed_facet channel=1 cpu=0.578975793 cpu_se=0.00273858361 vulkan=0.578435424 pixel_se=0.00290439354 batch_se=0.00289526931 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_changed_facet channel=2 cpu=0.474336456 cpu_se=0.00219575977 vulkan=0.473435021 pixel_se=0.00230770755 batch_se=0.00256387849 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_changed_reused channel=0 cpu=0.690924879 cpu_se=0.0032864183 vulkan=0.691710996 pixel_se=0.000890978831 batch_se=0.000682714184 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_changed_reused channel=1 cpu=0.578975793 cpu_se=0.00273858361 vulkan=0.580122848 pixel_se=0.000642986369 batch_se=0.000694583152 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_changed_reused channel=2 cpu=0.474336456 cpu_se=0.00219575977 vulkan=0.474821679 pixel_se=0.000805514781 batch_se=0.00140503373 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_blocked_reused channel=0 cpu=0.0214183672 cpu_se=0.000315051102 vulkan=0.0221494235 pixel_se=0.000339515604 batch_se=0.000327296263 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_blocked_reused channel=1 cpu=0.0177469408 cpu_se=0.000233046396 vulkan=0.018162815 pixel_se=0.000242605133 batch_se=0.000257343917 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_blocked_reused channel=2 cpu=0.0203818724 cpu_se=0.000257048612 vulkan=0.0208015883 pixel_se=0.000281787189 batch_se=0.000389673964 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_reopened_reused channel=0 cpu=0.687113603 cpu_se=0.00326729748 vulkan=0.690276386 pixel_se=0.00168042676 batch_se=0.00072159384 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_reopened_reused channel=1 cpu=0.567317581 cpu_se=0.00271274525 vulkan=0.569962089 pixel_se=0.00134434458 batch_se=0.000514402107 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_reopened_reused channel=2 cpu=0.481307484 cpu_se=0.00219298804 vulkan=0.48272384 pixel_se=0.00121518282 batch_se=0.000608355637 n=400000/8192 batches=8
+ROOM_REFERENCE rough_texture_paired_control channel=0 cpu=0.000449620162 cpu_se=5.78670601e-05 vulkan=0.000273775311 pixel_se=5.82441174e-05 batch_se=4.96142217e-05 n=120000/24576 batches=24
+ROOM_REFERENCE rough_texture_paired_control channel=1 cpu=0.000618064815 cpu_se=7.6804047e-05 vulkan=0.000418042751 pixel_se=0.000108652978 batch_se=9.84239362e-05 n=120000/24576 batches=24
+ROOM_REFERENCE rough_texture_paired_control channel=2 cpu=0.000123367284 cpu_se=1.67474344e-05 vulkan=8.93595538e-05 pixel_se=2.68511914e-05 batch_se=2.52363141e-05 n=120000/24576 batches=24
+ROUGH_TEXTURE_ROOM_LINKS atlas=40960 blocker=40960 reopening=40960 spatial=97280 one_hit_equal=1
+PASS guarded rough texture four-hit room, atlas revision and moving blocker
+TEXTURE_MOTION_PRIMARY rough_texture hits=3840 textured=1172 mips=182/158/570/262 mip_boundaries=0 position_error=3.81469727e-06 normal_error=0 albedo_error=6.55651093e-07
+TEXTURE_MOTION_PROBE token=8 pixel=28,38 mip=0 albedo=0.297328,0.554267,0.100984 previous_pixel=28.0000,38.0000
+TEXTURE_MOTION_PROBE token=1 pixel=46,50 mip=2 albedo=0.298999,0.5541,0.100838 previous_pixel=46.0000,50.0000
+ROUGH_TEXTURE_PRIMARY tracing 240000 independent four-hit paths for each of two pixels
+TEXTURE_MOTION_REFERENCE rough_primary_object channel=0 cpu=0.0258235453 cpu_se=0.000296394858 vulkan=0.0214110952 batch_se=0.00267508726 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_primary_object channel=1 cpu=0.0344352231 cpu_se=0.000365835973 vulkan=0.0313723534 batch_se=0.00344511663 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_primary_object channel=2 cpu=0.00500156245 cpu_se=5.9025897e-05 vulkan=0.00507937533 batch_se=0.000435499726 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_primary_floor channel=0 cpu=0.248781875 cpu_se=0.00266720937 vulkan=0.240787829 batch_se=0.0134535038 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_primary_floor channel=1 cpu=0.31678251 cpu_se=0.00225012428 vulkan=0.308789325 batch_se=0.0168100512 cpu_paths=240000 gpu_batches=128
+TEXTURE_MOTION_REFERENCE rough_primary_floor channel=2 cpu=0.0780296481 cpu_se=0.000775494321 vulkan=0.0739655246 batch_se=0.0046971484 cpu_paths=240000 gpu_batches=128
+ROUGH_TEXTURE_PRIMARY pixels=2460/3246 textured=1172 parameter_error=0 cpu_paths=240000 gpu_batches=128
+PASS rough-textured primary and four-hit paths against independent rays

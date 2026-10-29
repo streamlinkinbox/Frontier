@@ -1,0 +1,14 @@
+Host build: sanitized; external Vulkan driver is not sanitizer-instrumented
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+71ccacf8de537f4ea7399874381504eead1e8e569bb9ab20877752238474835c  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+43b06a98812f8da404612582b171f2044df9d200906abf954692b584bb672945  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+832a756a4501f4392292f56dc3b8fdbd45a51ebcb80e2b17a005d895e5284332  Exhibits/LightCompute/Code/PathReplayDomain.h
+764a2ee980ff0f4e2050d9fd772d8c5aed4d7517593fa604f48c6841b1d4198c  Exhibits/LightCompute/Code/ReplayRoomReference.h
+6cf6f168d2e852ee16d2c892bb9f8eed69bf55ac0e5187232f52c1eb5c672ec9  Exhibits/LightCompute/Code/RoughReplayValidation.h
+55bfe3a110c8b98ece07ef48b024295cfc385e40492064a1291700de9d670a4d  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+5296654b37e40fc1c8770aec2a13e73b2bade1d56200f31a427392f2f3f84034  Exhibits/LightCompute/Code/ReplayEndpointValidation.h
+ENDPOINT_VISIBILITY source_z=1 near_blocker_z=0.999994993 gap=5.00679016e-06 float_ulps=84 reference=0.239818213 open=0.240573619 open_se=0.000648418584 near=0 farther=0 beyond=0.240351704 beyond_se=0.000656178524 n=4096
+ENDPOINT_PARTIAL exact=0.119909106 mean=0.120708734 se=0.0019238222 n=4096
+ENDPOINT_DYNAMIC four_hits blocked=0 revealed=0.239964419 se=0.000206484937 accepted=20480/20480 spatial=97280 n=4096
+ENDPOINT_FALLBACK stack_limit=1 blocked=0 open=0.23829861 se=0.00131899411 fallbacks=5120/5120
+PASS bounded open-segment visibility around a sampled emitter

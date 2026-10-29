@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "source": "streamlinkinbox/Frontier",
+  "commit": "773b2f5a2672ae530accff000d65d779e9059b66",
+  "checks": [
+    "Texture workspace opens from root redirect",
+    "Real teapot geometry and ready renderer",
+    "Wireframe/Lit switching",
+    "No runtime external HTTP requests"
+  ],
+  "triangle_count": 25440,
+  "page_errors": [],
+  "external_requests": [],
+  "execution": "Chromium software WebGL; not native Vulkan or physical GPU validation"
+}

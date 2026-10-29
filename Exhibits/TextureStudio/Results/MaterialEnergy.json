@@ -1,0 +1,80 @@
+{
+  "result": "passed_scoped_energy_acceptance",
+  "baseline_revision": "b6bc49e",
+  "device": "ENERGY_DEVICE name=SwiftShader Device (Subzero) type=4 software_vulkan=1",
+  "software_vulkan_executed": true,
+  "physical_gpu_executed": false,
+  "scope": "retained isotropic Schlick/default-specular path; not entire material library or renderer",
+  "native": {
+    "cases": 384.0,
+    "reciprocal_finite_nonnegative": 1.0,
+    "excess_cases": 0.0,
+    "unsettled_cases": 0.0,
+    "maximum_reflectance": 1.00095336,
+    "maximum_quadrature_delta": 0.00561954778,
+    "full_library_acceptance": 0.0
+  },
+  "vulkan_current": {
+    "legacy": 0.0,
+    "cases": 34.0,
+    "excess_cases": 0.0,
+    "original24_excess": 0.0,
+    "maximum_reflectance": 0.919532,
+    "native_max_rgb_error": 0.000864936
+  },
+  "vulkan_original_negative_control": {
+    "legacy": 1.0,
+    "cases": 34.0,
+    "excess_cases": 9.0,
+    "original24_excess": 3.0,
+    "maximum_reflectance": 19.1046,
+    "native_max_rgb_error": 0.0
+  },
+  "negative_control_native_reference_checked": false,
+  "standalone_native_energy_asan_ubsan_cases": 384,
+  "full_vulkan_application_sanitized": false,
+  "energy_acceptance_limit": 1.02,
+  "quadrature_delta_limit": 0.01,
+  "reciprocity_absolute_tolerance": 1e-10,
+  "diffuse": "paired entrance/exit Schlick transmission at light/view normal angles",
+  "sheen": "convex per-channel coverage mixture with analytically bounded Charlie/Ashikhmin lobe",
+  "output_clamp_added": false,
+  "runtime_lut_added": false,
+  "abi_changed": false,
+  "archived_materials_modified": false,
+  "full_library_acceptance": false,
+  "before_after": "unmodified 640x400 PNG pixels; only labels and juxtaposition added",
+  "not_covered": [
+    "anisotropy",
+    "exact Fresnel/specular-strength combinations",
+    "all 399 archived assets",
+    "analytic environment approximation",
+    "legacy compact BRDF",
+    "solid-volume refraction",
+    "physical RTX/GTX/Windows/editor viewport",
+    "full sampler/PDF and temporal stability"
+  ],
+  "sha256": {
+    "Engine/Render/ScatteringSequence.h": "a67e76b275dcfc936a0e5aa02aa6383e0a2a0d641307313c71bcd5e82634ad2f",
+    "Engine/Render/Shader/ScatteringEvaluation.slang": "13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9",
+    "Engine/Render/Shader/MaterialSurface.slang": "4380eb2d753d51163ef6baf31628624ccf2206576f240c0c171e9d10c720adc5",
+    "Exhibits/TextureStudio/Code/MaterialEnergyValidation.cpp": "c1e6831fba738d2e919fa7674b8be2a909c05deb3e8959c55b17da9702578fd8",
+    "Exhibits/TextureStudio/Code/MaterialEnergyBaseline.cpp": "4884cbade1e78e4f47b5a085b6351d5942a7d95c192b27ac4cf972edb8a23ad3",
+    "Exhibits/LightCompute/Code/MaterialEnergy.slang": "4cb34c6123ec37ad8c67a58abe37aceffce63000870328ccbdc69745b01d7b92",
+    "Exhibits/LightCompute/Code/MaterialEnergyGpu.h": "943e4aeec773d93201d86f86ade6d6d04f0d83aeb2ea3c9d7a848a5ba6f379b0",
+    "Exhibits/LightCompute/RunMaterialEnergy.sh": "08e99737291b3996e1946d5fb43b8d8277803661b5af2c6414c204ba19ed4863",
+    "Exhibits/LightCompute/Code/MaterialEnergyImages.py": "cbd3e769c93a207df21e9d23864689687c0011b8c0bc4b1c81aa1d28771c859a",
+    "Exhibits/TextureStudio/Results/MaterialEnergyAcceptance.txt": "1b59f3ce104b2f418377733e15e605d5309abf8c13ba99daf7e2f87211082cc2",
+    "Exhibits/TextureStudio/Results/MaterialEnergyCurrent.txt": "983cbd2da0c15c2b6cb78171c0816fc5959735877e109b19299390b9cb68cf8c",
+    "Exhibits/TextureStudio/Results/MaterialEnergyGpuCurrent.txt": "131a5f103e4e62bd9d29daf0e12ab45b0d6d20a10d3da8f04f2a55e964fb5129",
+    "Exhibits/TextureStudio/Results/MaterialEnergyGpuOriginal.txt": "7dba03f9a326dd63b979186ac4178fcd7045bd461d9217e2fe1f39c8cc64a8b8",
+    "Exhibits/TextureStudio/Results/MaterialEnergySanitizer.txt": "1b59f3ce104b2f418377733e15e605d5309abf8c13ba99daf7e2f87211082cc2",
+    "Exhibits/LightCompute/Images/MaterialSpecimensBeforeEnergy.png": "4225f0e8a8c3db6f8226b4b484c4d68e7bf46f4275c31bf6ff757287e8459a9e",
+    "Exhibits/LightCompute/Images/MaterialSpecimens.png": "9da8e1bdaa938411d145d8a5a3947b92558453886cef2d0883fac4ae8cd7ecf9",
+    "Exhibits/LightCompute/Images/MaterialEnergyChange.png": "c81d5f3ead3a4eb41026fa9771c92708436f234b5755be868b97c7201e93351c"
+  },
+  "scratch_shader_sha256": {
+    "_ClaudeScratch/build/MaterialEnergyCurrentGpu/Receivers.spv": "318654058c8d8138d71717eb019f81808ff5aad454d17863a435f50d7f8e7b19",
+    "_ClaudeScratch/build/MaterialEnergyOriginalGpu/Receivers.spv": "264c15d1a91283e37154049befc0c1fd7784d102b4c51f79a61332e91253e5fb"
+  }
+}

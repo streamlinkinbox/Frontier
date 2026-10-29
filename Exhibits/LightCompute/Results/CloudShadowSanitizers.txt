@@ -1,0 +1,16 @@
+ASan/UBSan RelWithDebInfo; ASAN_OPTIONS=detect_leaks=0 (external driver); UBSAN_OPTIONS=halt_on_error=1
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+CLOUD_SHADOW case=0 probes=433 max_rgb_error=8.87267e-06 min_transmittance=1 max_transmittance=1
+CLOUD_SHADOW_REUSE case=0 max_rgb_error=9.53674e-07 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW case=1 probes=433 max_rgb_error=3.35243e-06 min_transmittance=0.0731553 max_transmittance=0.0731553
+CLOUD_SHADOW_REUSE case=1 max_rgb_error=5.96046e-08 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW case=2 probes=433 max_rgb_error=2.95112e-06 min_transmittance=0.00598468 max_transmittance=0.988228
+CLOUD_SHADOW_REUSE case=2 max_rgb_error=2.38419e-07 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW case=3 probes=433 max_rgb_error=3.74576e-06 min_transmittance=0.00374286 max_transmittance=0.992511
+CLOUD_SHADOW_REUSE case=3 max_rgb_error=4.76837e-07 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW case=4 probes=433 max_rgb_error=2.93722e-12 min_transmittance=4.17556e-17 max_transmittance=1.72045e-07
+CLOUD_SHADOW_REUSE case=4 max_rgb_error=1.13687e-13 cluster_equal=1 temporal_accepted=16000 spatial_accepted=63438
+CLOUD_SHADOW_SOURCES non_solar_bitwise_equal=1
+CLOUD_SHADOW_BOUNCE probes=117 max_rgb_error=7.40833e-08 native_rgb_sum=0.142557
+CLOUD_SHADOW_RESET wind_cold_equal=1
+CLOUD_SHADOW_TOGGLE disabled_cold_equal=1 enabled_cold_equal=1

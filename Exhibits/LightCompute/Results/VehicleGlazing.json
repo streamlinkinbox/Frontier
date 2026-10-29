@@ -1,0 +1,36 @@
+{
+  "device": "SwiftShader Device (Subzero)",
+  "physical_gpu": false,
+  "capture_dimensions": [
+    320,
+    200
+  ],
+  "transport_samples": 16,
+  "interaction_cap": 2048,
+  "tir_diagnostic_saturation": 65535,
+  "source_triangles": 74,
+  "panes": 3,
+  "closed_triangles": 284,
+  "thickness_m": 0.006,
+  "capture_sha256": {
+    "VehicleGlazingSheet.ppm": "2d584843efc03abea93727af142a31ec057b86374df7a52e11e25aee83655537",
+    "VehicleGlazingClear.ppm": "11cca8d5baa7982e2d6879aa09d7b398007a413be7c68194f87a096cf434b037",
+    "VehicleGlazingAbsorbed.ppm": "80fae81958567a1ce242d193e33db4f2441698a3facc5d1630121b0c5026ff36",
+    "VehicleGlazingMoved.ppm": "d1f8ba197146465ab409b7f7d8472833aecd79060b869ba039d3d3a3c0d31043"
+  },
+  "source_archive_sha256": "6ad399734659d53a6052aa4369cdbfb786a9248b0403575e8d89b5f9904f50b5",
+  "saved_material_sha256": {
+    "ClosedGlass0.material": "a5b685fdfdfd59139567eec1b1162860e19d18273a084f007711e1115bb16ac8",
+    "ClosedGlass1.material": "c6233a5aae9590a221e683c6806685bd16957c9b52cfcd4fea3b2af51e3208d4",
+    "ClosedGlass2.material": "123f3069d470af371fefdd5aee50311fc54d2d5b1ecfd223a8df9cb5c5423a75",
+    "ClosedGlass3.material": "4e61217a917e3e0016c3635d11059a7a9f0fb3cd719b057369a2cc6c2f6240c2"
+  },
+  "logs": {
+    "PaneThickness": "PANE_THICKNESS checks=52 malformed_rejected=16 host_diagnostic_packing_cases=15 planar_volume_error_max=1.78814e-09 vehicle_poses=6 vehicle_panes=3 vehicle_triangles=284 volume_m3=0.0213574\n",
+    "PaneThicknessSanitized": "PANE_THICKNESS checks=52 malformed_rejected=16 host_diagnostic_packing_cases=15 planar_volume_error_max=1.78814e-09 vehicle_poses=6 vehicle_panes=3 vehicle_triangles=284 volume_m3=0.0213574\n",
+    "VehicleGlazingAuthoring": "SAVED_DIELECTRIC_AUTHORING checks=39 native_toml=1 disk_roundtrip_cases=4 legacy_presets=5 rejected_inputs=11\n",
+    "VehicleGlazingNative": "Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake\nTest project /home/user/Frontier/_ClaudeScratch/build/vehicle-reference-cmake\n    Start 1: LightValidation\n1/4 Test #1: LightValidation ..................   Passed    0.19 sec\n    Start 2: TriangleVisibilityValidation\n2/4 Test #2: TriangleVisibilityValidation .....   Passed    0.14 sec\n    Start 3: TriangleDistanceValidation\n3/4 Test #3: TriangleDistanceValidation .......   Passed    0.14 sec\n    Start 4: CompleteRendererValidation\n4/4 Test #4: CompleteRendererValidation .......   Passed    0.27 sec\n\n100% tests passed, 0 tests failed out of 4\n\nTotal Test time (real) =   0.74 sec\n",
+    "VehicleGlazingGpu": "GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574\nGLAZING_DEVICE name=SwiftShader Device (Subzero) type=4 triangle_bvh=1 hardware_ray_query=0 interaction_cap=2048\nGLAZING_CAPTURE name=VehicleGlazingSheet width=320 height=200\nGLAZING_CAPTURE name=VehicleGlazingClear width=320 height=200\nGLAZING_CAPTURE name=VehicleGlazingAbsorbed width=320 height=200\nGLAZING_RENDER glass_pixels=887 changed_channels=1851 max_decrease=9.13125 total_decrease=43.2632 capped=0 unsupported=0 repeat_exact=1\nGLAZING_MOTION camera_moved=1 cold_equal=1 fresh_transport=1\nGLAZING_RESET all_sources_off_black=1 pixels=64000\n"
+  },
+  "scope": "Derived closed retained-vehicle glazing in native compute. No editor importer, physical GPU or general CAD acceptance."
+}

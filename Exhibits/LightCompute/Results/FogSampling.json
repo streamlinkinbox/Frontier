@@ -1,0 +1,146 @@
+{
+  "device": "DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1",
+  "physical_gpu_executed": false,
+  "software_vulkan_executed": true,
+  "extent": [
+    160,
+    100
+  ],
+  "view_steps": 32,
+  "shadow_budgets": [
+    16,
+    32,
+    64,
+    128
+  ],
+  "reference": "finite 128-step cloud-shadow quadrature, NOT converged ground truth",
+  "rows": [
+    {
+      "wind": 0.0,
+      "shadow_steps": 16.0,
+      "width": 160.0,
+      "height": 100.0,
+      "rmse_to128": 0.00400171,
+      "max_to128": 0.0468006,
+      "native_probes": 117.0,
+      "native_rgb_error": 9.19088e-06,
+      "density_per_m": 0.0015,
+      "height_scale_m": 450.0
+    },
+    {
+      "wind": 0.0,
+      "shadow_steps": 32.0,
+      "width": 160.0,
+      "height": 100.0,
+      "rmse_to128": 0.000836603,
+      "max_to128": 0.0146009,
+      "native_probes": 117.0,
+      "native_rgb_error": 9.20115e-06,
+      "density_per_m": 0.0015,
+      "height_scale_m": 450.0
+    },
+    {
+      "wind": 0.0,
+      "shadow_steps": 64.0,
+      "width": 160.0,
+      "height": 100.0,
+      "rmse_to128": 0.000137084,
+      "max_to128": 0.00275564,
+      "native_probes": 117.0,
+      "native_rgb_error": 9.69142e-06,
+      "density_per_m": 0.0015,
+      "height_scale_m": 450.0
+    },
+    {
+      "wind": 0.0,
+      "shadow_steps": 128.0,
+      "width": 160.0,
+      "height": 100.0,
+      "rmse_to128": 0.0,
+      "max_to128": 0.0,
+      "native_probes": 117.0,
+      "native_rgb_error": 1.0159e-05,
+      "density_per_m": 0.0015,
+      "height_scale_m": 450.0
+    },
+    {
+      "wind": 120.0,
+      "shadow_steps": 16.0,
+      "width": 160.0,
+      "height": 100.0,
+      "rmse_to128": 0.000453626,
+      "max_to128": 0.00636348,
+      "native_probes": 117.0,
+      "native_rgb_error": 4.91665e-07,
+      "density_per_m": 0.0015,
+      "height_scale_m": 450.0
+    },
+    {
+      "wind": 120.0,
+      "shadow_steps": 32.0,
+      "width": 160.0,
+      "height": 100.0,
+      "rmse_to128": 7.89365e-05,
+      "max_to128": 0.00132751,
+      "native_probes": 117.0,
+      "native_rgb_error": 5.09076e-07,
+      "density_per_m": 0.0015,
+      "height_scale_m": 450.0
+    },
+    {
+      "wind": 120.0,
+      "shadow_steps": 64.0,
+      "width": 160.0,
+      "height": 100.0,
+      "rmse_to128": 1.6385e-05,
+      "max_to128": 0.000350177,
+      "native_probes": 117.0,
+      "native_rgb_error": 6.12162e-07,
+      "density_per_m": 0.0015,
+      "height_scale_m": 450.0
+    },
+    {
+      "wind": 120.0,
+      "shadow_steps": 128.0,
+      "width": 160.0,
+      "height": 100.0,
+      "rmse_to128": 0.0,
+      "max_to128": 0.0,
+      "native_probes": 117.0,
+      "native_rgb_error": 6.73328e-07,
+      "density_per_m": 0.0015,
+      "height_scale_m": 450.0
+    }
+  ],
+  "selected_shadow_steps": 64,
+  "comparison_columns": [
+    16,
+    64,
+    128
+  ],
+  "comparison_rows_wind_seconds": [
+    0,
+    120
+  ],
+  "retained": "original ControlVehicle, Sun, atmosphere, analytic and four-sample emissive/diffuse lighting",
+  "cloud_field": "inherited procedural density; identical across budgets, only wind time changes between rows",
+  "historical_metadata_correction": "Fog.json day medium corrected from 0.0007/m and 650m to actual source 0.0015/m and 450m; old images unchanged",
+  "configuration": "GCC Release, pinned Slang spirv_1_3 O0, Linux software Vulkan triangle BVH",
+  "limits": [
+    "two wind fixtures, not broad convergence",
+    "view steps remain 32 and can alias",
+    "4x shadow-sample budget versus 16, no speed or real-time claim",
+    "no physical GPU, Windows or multiple scattering validation"
+  ],
+  "readback_rgb_sha256": {
+    "FogSampling0_16": "ad5f17932d3737a51d994181d19cbde76289c3028fa980ee6b86bb574a5aa873",
+    "FogSampling0_32": "97f6812006caf3d0405e7f228bf66d964bdb4663a393ce9f29c20a7cf2065cd6",
+    "FogSampling0_64": "c3973812b8a9506deaa8c6edf1d4a475664b38f719c4e40ffcab5fa1cd9fb63b",
+    "FogSampling0_128": "a11fca1e8bd56c1bc8cdb2981516c23ee0d95658febacd46e131f88552fd7f97",
+    "FogSampling120_16": "0021a2554f1f680682ebe4efbc980751b35c09e8cd0d29610053f3aef007cfef",
+    "FogSampling120_32": "2bf2135817140c1afa311f401b2bc650e8421fcd54ee49d6b06f3a617397178a",
+    "FogSampling120_64": "f23ba8bce2521fe47aa49241c39f4792aecfa7aa87404c8d266314352a0d6895",
+    "FogSampling120_128": "cf5fb7b5ce5adc1533d837b7daf461b76d1a258055afcb2ef144e2fee0955171"
+  },
+  "exact_source_and_product_hashes": "Results/Manifest.json"
+}

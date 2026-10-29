@@ -1,0 +1,19 @@
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+FOG_ANALYTIC uniform_integral=1 beer=1 near_horizontal=1
+FOG_SAMPLE_CAPTURE wind=0 shadow_steps=16
+FOG_SAMPLE_CAPTURE wind=0 shadow_steps=32
+FOG_SAMPLE_CAPTURE wind=0 shadow_steps=64
+FOG_SAMPLE_CAPTURE wind=0 shadow_steps=128
+FOG_SAMPLING wind=0 shadow_steps=16 width=80 height=50 rmse_to128=0.00402289 max_to128=0.0385916 native_probes=130 native_rgb_error=8.39482e-06 density_per_m=0.0015 height_scale_m=450
+FOG_SAMPLING wind=0 shadow_steps=32 width=80 height=50 rmse_to128=0.000834224 max_to128=0.0131843 native_probes=130 native_rgb_error=7.58529e-06 density_per_m=0.0015 height_scale_m=450
+FOG_SAMPLING wind=0 shadow_steps=64 width=80 height=50 rmse_to128=0.000139342 max_to128=0.00214899 native_probes=130 native_rgb_error=9.09148e-06 density_per_m=0.0015 height_scale_m=450
+FOG_SAMPLING wind=0 shadow_steps=128 width=80 height=50 rmse_to128=0 max_to128=0 native_probes=130 native_rgb_error=1.05719e-05 density_per_m=0.0015 height_scale_m=450
+FOG_SAMPLE_CAPTURE wind=120 shadow_steps=16
+FOG_SAMPLE_CAPTURE wind=120 shadow_steps=32
+FOG_SAMPLE_CAPTURE wind=120 shadow_steps=64
+FOG_SAMPLE_CAPTURE wind=120 shadow_steps=128
+FOG_SAMPLING wind=120 shadow_steps=16 width=80 height=50 rmse_to128=0.000447491 max_to128=0.00556874 native_probes=130 native_rgb_error=1.59488e-06 density_per_m=0.0015 height_scale_m=450
+FOG_SAMPLING wind=120 shadow_steps=32 width=80 height=50 rmse_to128=8.23888e-05 max_to128=0.00116867 native_probes=130 native_rgb_error=1.59522e-06 density_per_m=0.0015 height_scale_m=450
+FOG_SAMPLING wind=120 shadow_steps=64 width=80 height=50 rmse_to128=1.59536e-05 max_to128=0.000329912 native_probes=130 native_rgb_error=1.59301e-06 density_per_m=0.0015 height_scale_m=450
+FOG_SAMPLING wind=120 shadow_steps=128 width=80 height=50 rmse_to128=0 max_to128=0 native_probes=130 native_rgb_error=1.59196e-06 density_per_m=0.0015 height_scale_m=450
+FOG_SAMPLING_PRESET shadow_steps=64 both_winds_improved=1 reference_finite=1

@@ -1,0 +1,7 @@
+SOLID_DEVICE name=SwiftShader Device (Subzero) type=4
+SOLID_SLAB case=0 ior=1 glass_pixels=1444 analytic_pixels=100 max_mean_error=0 capped=0 unsupported=0 tir=0
+SOLID_SLAB case=1 ior=1 glass_pixels=1444 analytic_pixels=100 max_mean_error=6.88487e-08 capped=0 unsupported=0 tir=0
+SOLID_SLAB case=2 ior=1.5 glass_pixels=1444 analytic_pixels=100 max_mean_error=0.00346691 capped=0 unsupported=0 tir=57689
+SOLID_SLAB case=3 ior=1.5 glass_pixels=1444 analytic_pixels=100 max_mean_error=0.00281873 capped=0 unsupported=0 tir=57689
+SOLID_REJECTION case=inverted_winding diagnosed_pixels=1444
+SOLID_REJECTION case=inside_camera diagnosed_pixels=6144

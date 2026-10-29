@@ -1,0 +1,15 @@
+Sample history combined with reservoir reuse; host verification only.
+Base 3de9061 (arena/672a179a-frontier) plus combined-mode working changes; SwiftShader GPU run blocked in this sandbox (no Vulkan CPU driver, prebuilt download host unreachable).
+Linux x86_64, GCC 12.2, CMake 4.4.4 (venv), Vulkan-Headers 1.4.321, Slang compiler library 2026.12 (slangpy wheel).
+
+Release CTests: 5/5 passed (PathReplayDomainValidation, PathReplayVulkanValidation, RadiantFacetValidation, MediumRadianceValidation, PathReplayArchiveValidation).
+ASan/UBSan CTests: 5/5 passed.
+Slang SPIR-V compile: GenerateReplayReservoirs 535720 bytes, ResolveReplayReservoirs 141460 bytes, GatherReplaySampleHistory 14784 bytes, FinalizeReplaySampleHistory 401324 bytes, TracePrimarySurfaces 146656 bytes.
+
+Source SHA256:
+eafb1c1a4b1c2107dfab28eec2887f9ef3901e9b7b74a58349bf384490a9e947  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+93a63338eed7d102da8665af60c5ae49befef5cf1716ea95874f91d311078a2d  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+a461095d55c2e67140bfda078497db686707a2dbb56671e4532062895729eaf4  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+9180cbb81ed7f093a97c46ccdc0d77c181ba6f5ae35b0b25f4d285e3f22840de  Exhibits/LightCompute/Code/ReplaySampleHistoryValidation.h
+
+GPU validation (ValidateReplaySampleCombined on SwiftShader): NOT RUN - blocked, see ReplaySampleCombined.md.

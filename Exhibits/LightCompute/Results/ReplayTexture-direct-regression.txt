@@ -1,0 +1,25 @@
+Historical shader: 98fbc76e8b25908b8961072d1bfe79bbea5ff993
+a7f4d22b7f11ae68e44fcfc6936e3764f4c9905f8c19f84b1cb736b187c92bfa  /home/user/Frontier/_ClaudeScratch/build/direct-spatial-gpu/original/LightInfluence.slang
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+53cf38c1e7237c5f20c652cf1862da32a90e27e8788c2258f9022ef99ff399ac  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+--- original ---
+DIRECT preparing Vulkan pipelines on SwiftShader Device (Subzero)
+DIRECT_SPARSE exact=2.24828977657e-09 fresh=2.32293979364e-09 se=9.69765150005e-11 spatial=5.16301539846e-09 se=6.8089502584e-11 ratio=2.29641902 n=1024
+DIRECT_TEMPORAL frames=8 exact=2.24828977657e-09 mean=2.7789124297e-09 se=3.81317725309e-11 ratio=1.23601168 std_ratio=0.393206258
+DIRECT_REPROJECT accepted=5120 domain_rejected=0 reuse_std=1.12216789256e-09 cold_std=3.14820800465e-09
+DIRECT_UNEQUAL exact=2.69487401283e-08 spatial=7.21750338575e-09 se=9.25041258816e-12 ratio=0.267823407 n=1024
+DIRECT_MOVING exact=2.69487401283e-08 reproj=4.99819569283e-09 cold=2.69487367404e-08 differing=5053 rejected=0
+DIRECT_SUBTOLERANCE kind=position_5e-7 rejected=0 differing_from_cold=3048
+DIRECT_SUBTOLERANCE kind=albedo_5e-5 rejected=0 differing_from_cold=4129
+OBSERVED direct-light reservoir audit; moving-domain reuse and ReSTIR GI remain open
+--- current ---
+DIRECT preparing Vulkan pipelines on SwiftShader Device (Subzero)
+DIRECT_SPARSE exact=2.24828977657e-09 fresh=2.32293979364e-09 se=9.69765150005e-11 spatial=2.2447766829e-09 se=4.30604055124e-11 ratio=0.998437437 n=1024
+DIRECT_TEMPORAL frames=8 exact=2.24828977657e-09 mean=2.28232122616e-09 se=3.36499875166e-11 ratio=1.01513659 std_ratio=0.346991099
+DIRECT_REPROJECT accepted=5120 domain_rejected=0 reuse_std=1.02164587297e-09 cold_std=3.14820800465e-09
+DIRECT_UNEQUAL exact=2.69487401283e-08 spatial=2.72701039254e-08 se=4.12254920568e-10 ratio=1.011925 n=1024
+DIRECT_MOVING exact=2.69487401283e-08 reproj=2.69487367404e-08 cold=2.69487367404e-08 differing=0 rejected=5120
+DIRECT_SUBTOLERANCE kind=position_5e-7 rejected=5120 differing_from_cold=0
+DIRECT_SUBTOLERANCE kind=albedo_5e-5 rejected=5120 differing_from_cold=0
+PASS direct-light reservoir audit; moving-domain reuse and ReSTIR GI remain open

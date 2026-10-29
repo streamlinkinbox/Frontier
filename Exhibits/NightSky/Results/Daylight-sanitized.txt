@@ -1,0 +1,72 @@
+Reference-renderer daylight, celestial lighting and static lunar bounce: sanitized
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Linux 6.1.158+ x86_64
+Base revision 0427c04, plus working changes if any; see committed source for exact test.
+f8c57df90d2a6dce255614e577ef1d846f222fc549e94ba6809e695ab776b5ca  EngineContent/CelestialMaps/MoonAlbedoSource2048.jpg
+910d7448b5235fc96b8f92895051e89d1cb67d230f894b10c75df225c58ac7ab  Exhibits/NightSky/Data/Hipparcos8.csv
+actual demo Moon map 2048x1024
+PASS J2000 equatorial transit at the equator is overhead; malformed row rejected
+PASS real Hipparcos CSV decoded into local directions
+catalogue rows=41359; first local ENU 0.73133519 0.44867835 -0.51365025
+PASS full-Moon broadband flux equals the configured magnitude-ratio reference at mean radius
+PASS geometric full, quarter and new Moon change integrated lunar irradiance
+full 2.51188643151e-06, quarter 1.51839434302e-07, new 0; quarter/full 0.0604483676
+PASS lunar flux changes with angular area when distance changes
+lunar radius=  0.1 px integrated 2.51188643151e-06 relative error 2.22044605e-16
+lunar radius=  0.5 px integrated 2.51188643151e-06 relative error 0
+lunar radius=  1.0 px integrated 2.51188643151e-06 relative error 2.22044605e-16
+lunar radius=  2.0 px integrated 2.51188643151e-06 relative error 3.33066907e-16
+lunar radius=  3.5 px integrated 2.5133361778e-06 relative error 0.000577154393
+lunar radius=  4.5 px integrated 2.51760908541e-06 relative error 0.00227822955
+lunar radius=  6.0 px integrated 2.52246545788e-06 relative error 0.00421158626
+lunar radius= 12.0 px integrated 2.51566622399e-06 relative error 0.00150476249
+lunar radius= 24.0 px integrated 2.5183573598e-06 relative error 0.00257612295
+PASS textured lunar pixel filtering preserves integrated flux across subpixel and resolved sizes
+PASS actual demo albedo texture produces nonuniform lunar surface detail
+lunar filtering worst relative flux error 0.00421158626
+vertical analytical optical-depth T RGB 0.940403889 0.86765718 0.762346568; numerical 0.940023757 0.867211914 0.761810865; max error 0.000535703236
+PASS vertical beam matches independent exponential and triangular-layer integrals
+Sun elevation  90.0: renderer beam T 0.94002376 0.86721191 0.76181086; 4096-step 0.94040368 0.86765693 0.76234627
+Sun elevation  30.0: renderer beam T 0.88421301 0.75326083 0.58155828; 4096-step 0.88486816 0.75392983 0.58233783
+Sun elevation  10.0: renderer beam T 0.71202423 0.45862762 0.22107284; 4096-step 0.71313614 0.45950426 0.221688
+Sun elevation   5.0: renderer beam T 0.54299037 0.24906176 0.063467724; 4096-step 0.54393609 0.24960034 0.063662433
+Sun elevation   1.0: renderer beam T 0.22646825 0.039283074 0.0010953163; 4096-step 0.22662916 0.039315825 0.0010967358
+PASS surface Sun responds to elevation and sunset reddening; toggle removes attenuation
+PASS solar surface lighting is opt-in
+PASS disabling the atmosphere or beam attenuation produces the same unattenuated direct Sun
+PASS planet blocks a below-horizon directional Sun even on a surface facing it
+PASS direct celestial light remains present when analytic-light spatial reuse runs
+PASS changing atmosphere parameters rebakes the cached LUT instead of reusing stale data
+PASS sky scattering changes when the Sun changes position
+worst renderer beam vs high-step channel absolute error 0.0011119125; updated-sky delta 0.00953394374
+PASS star pixel flux follows the astronomical magnitude law and survives subpixel projection
+magnitude 0 flux 2.01372423223e-11 expected 2.01372424986e-11; magnitude 5 / 0 0.01
+PASS daytime star is present in HDR but naturally washed out by sky scattering
+PASS optional artistic star gain scales the HDR star signal without changing the sky
+day star max RGB change 3.03535406705e-09, mean sky luminance 0.0086295999, ratio 3.5173752e-07, 10000x gain 10000
+PASS cloud transmittance attenuates background stars even when atmosphere is disabled
+clear/cloudy star integrated flux 3.19153782715e-12 / 1.63945893415e-17
+PASS a dark subpixel new Moon geometrically occludes a background star before PSF filtering
+PASS missing lunar map does not fabricate a textured Moon
+PASS textured partially illuminated Moon contributes in daylight
+PASS planet blocks a Moon whose centre is below the geometric horizon
+PASS foreground reference geometry blocks the lunar background
+PASS subpixel triangle blocks the star's point ray before camera filtering
+PASS full Moon illuminates a surface with the integrated textured-disc beam; toggle off is dark
+PASS new Moon has no direct light when earthshine is disabled
+PASS reference triangle shadow ray blocks lunar surface illumination
+full-Moon top beam RGB 2.62917838922e-06 2.48509507293e-06 2.43189902773e-06; clear/shadow direct 7.99157158353e-07 / 0
+PASS analytic sphere ray intersection matches known entry distance and miss
+PASS axis-aligned box ray intersection and interior origin are exact
+PASS grazing half-space ray is exact and respects the maximum ray length
+PASS analytic intersections agree with independent SDF marching on non-grazing mixed-scene rays
+mixed-scene 5000 rays: compared 1059, hit/miss disagreements 1, worst distance 0.000960841348 m
+PASS fresh and same-receiver temporal lunar bounces agree with analytic infinite-wall irradiance
+wall analytic 0.282482586; fresh 0.286142544 SE 0.00577310976; temporal final 0.28366767 SE 0.00134053178; average 0.28453128 SE 0.00185373914
+PASS lunar temporal reuse rejects a changed receiver, direction or irradiance
+PASS zero-weight lunar samples count and an SDF ceiling blocks the lunar bounce
+PASS reference renderer receives the lunar one-bounce path, with and without temporal reuse
+PASS renderer lunar bounce respects SDF occlusion
+renderer lunar bounce red expected 2.3670922019e-07, fresh 2.36246897494e-07, temporal 2.35608555144e-07, disabled 0
+PASS 37/37 checks; reference CPU subset only, not full ReSTIR GI or measured-sky validation
+Analytic/numerical and CPU-renderer checks; no calibrated sky observations or GPU/ReSTIR pipeline claim.

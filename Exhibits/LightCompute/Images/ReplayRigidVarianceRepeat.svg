@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="610" viewBox="0 0 1180 610">
+<rect width="100%" height="100%" fill="#f6f7f9"/>
+<text x="35" y="43" font-family="sans-serif" font-size="24" fill="#172131">Rigid red-channel follow-up</text>
+<text x="35" y="67" font-family="sans-serif" font-size="14" fill="#536174">2,048 new paired seeds; 2,000,000 new CPU paths</text>
+<rect x="617.97" y="110" width="19.87" height="377" fill="#d9e9e3"/>
+<line x1="382.68" y1="110" x2="382.68" y2="487" stroke="#e1e5ea"/>
+<text x="382.68" y="509" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#536174">0.0024</text>
+<line x1="438.25" y1="110" x2="438.25" y2="487" stroke="#e1e5ea"/>
+<text x="438.25" y="509" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#536174">0.0025</text>
+<line x1="493.83" y1="110" x2="493.83" y2="487" stroke="#e1e5ea"/>
+<text x="493.83" y="509" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#536174">0.0026</text>
+<line x1="549.40" y1="110" x2="549.40" y2="487" stroke="#e1e5ea"/>
+<text x="549.40" y="509" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#536174">0.0027</text>
+<line x1="604.97" y1="110" x2="604.97" y2="487" stroke="#e1e5ea"/>
+<text x="604.97" y="509" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#536174">0.0028</text>
+<line x1="660.54" y1="110" x2="660.54" y2="487" stroke="#e1e5ea"/>
+<text x="660.54" y="509" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#536174">0.0029</text>
+<line x1="716.12" y1="110" x2="716.12" y2="487" stroke="#e1e5ea"/>
+<text x="716.12" y="509" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#536174">0.0030</text>
+<line x1="771.69" y1="110" x2="771.69" y2="487" stroke="#e1e5ea"/>
+<text x="771.69" y="509" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#536174">0.0031</text>
+<line x1="827.26" y1="110" x2="827.26" y2="487" stroke="#e1e5ea"/>
+<text x="827.26" y="509" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#536174">0.0032</text>
+<text x="341" y="145" text-anchor="end" font-family="sans-serif" font-size="14" fill="#172131">New CPU reference</text>
+<line x1="617.97" y1="140" x2="637.84" y2="140" stroke="#596777" stroke-width="2"/>
+<line x1="617.97" y1="134" x2="617.97" y2="146" stroke="#596777" stroke-width="2"/>
+<line x1="637.84" y1="134" x2="637.84" y2="146" stroke="#596777" stroke-width="2"/>
+<circle cx="627.90" cy="140" r="6" fill="#128171"/>
+<text x="870" y="145" font-family="sans-serif" font-size="13" fill="#25354a">0.0028413 +/- 0.0000089</text>
+<text x="341" y="191" text-anchor="end" font-family="sans-serif" font-size="14" fill="#172131">Prior CPU reference</text>
+<line x1="627.00" y1="186" x2="687.64" y2="186" stroke="#596777" stroke-width="2"/>
+<line x1="627.00" y1="180" x2="627.00" y2="192" stroke="#596777" stroke-width="2"/>
+<line x1="687.64" y1="180" x2="687.64" y2="192" stroke="#596777" stroke-width="2"/>
+<circle cx="657.32" cy="186" r="6" fill="#4e7298"/>
+<text x="870" y="191" font-family="sans-serif" font-size="13" fill="#25354a">0.0028942 +/- 0.0000273</text>
+<text x="341" y="237" text-anchor="end" font-family="sans-serif" font-size="14" fill="#172131">Prior uniform spatial (256)</text>
+<line x1="392.75" y1="232" x2="567.37" y2="232" stroke="#596777" stroke-width="2"/>
+<line x1="392.75" y1="226" x2="392.75" y2="238" stroke="#596777" stroke-width="2"/>
+<line x1="567.37" y1="226" x2="567.37" y2="238" stroke="#596777" stroke-width="2"/>
+<circle cx="480.06" cy="232" r="6" fill="#c36a28"/>
+<text x="870" y="237" font-family="sans-serif" font-size="13" fill="#25354a">0.0025752 +/- 0.0000786</text>
+<text x="341" y="283" text-anchor="end" font-family="sans-serif" font-size="14" fill="#172131">Prior mixture spatial (256)</text>
+<line x1="555.91" y1="278" x2="812.25" y2="278" stroke="#596777" stroke-width="2"/>
+<line x1="555.91" y1="272" x2="555.91" y2="284" stroke="#596777" stroke-width="2"/>
+<line x1="812.25" y1="272" x2="812.25" y2="284" stroke="#596777" stroke-width="2"/>
+<circle cx="684.08" cy="278" r="6" fill="#c36a28"/>
+<text x="870" y="283" font-family="sans-serif" font-size="13" fill="#25354a">0.0029423 +/- 0.0001153</text>
+<text x="341" y="329" text-anchor="end" font-family="sans-serif" font-size="14" fill="#172131">New uniform single (2,048)</text>
+<line x1="516.84" y1="324" x2="714.19" y2="324" stroke="#596777" stroke-width="2"/>
+<line x1="516.84" y1="318" x2="516.84" y2="330" stroke="#596777" stroke-width="2"/>
+<line x1="714.19" y1="318" x2="714.19" y2="330" stroke="#596777" stroke-width="2"/>
+<circle cx="615.51" cy="324" r="6" fill="#128171"/>
+<text x="870" y="329" font-family="sans-serif" font-size="13" fill="#25354a">0.0028190 +/- 0.0000888</text>
+<text x="341" y="375" text-anchor="end" font-family="sans-serif" font-size="14" fill="#172131">New uniform spatial (2,048)</text>
+<line x1="599.03" y1="370" x2="782.95" y2="370" stroke="#596777" stroke-width="2"/>
+<line x1="599.03" y1="364" x2="599.03" y2="376" stroke="#596777" stroke-width="2"/>
+<line x1="782.95" y1="364" x2="782.95" y2="376" stroke="#596777" stroke-width="2"/>
+<circle cx="690.99" cy="370" r="6" fill="#128171"/>
+<text x="870" y="375" font-family="sans-serif" font-size="13" fill="#25354a">0.0029548 +/- 0.0000827</text>
+<text x="341" y="421" text-anchor="end" font-family="sans-serif" font-size="14" fill="#172131">New mixture single (2,048)</text>
+<line x1="533.98" y1="416" x2="723.16" y2="416" stroke="#596777" stroke-width="2"/>
+<line x1="533.98" y1="410" x2="533.98" y2="422" stroke="#596777" stroke-width="2"/>
+<line x1="723.16" y1="410" x2="723.16" y2="422" stroke="#596777" stroke-width="2"/>
+<circle cx="628.57" cy="416" r="6" fill="#128171"/>
+<text x="870" y="421" font-family="sans-serif" font-size="13" fill="#25354a">0.0028425 +/- 0.0000851</text>
+<text x="341" y="467" text-anchor="end" font-family="sans-serif" font-size="14" fill="#172131">New mixture spatial (2,048)</text>
+<line x1="575.91" y1="462" x2="683.86" y2="462" stroke="#596777" stroke-width="2"/>
+<line x1="575.91" y1="456" x2="575.91" y2="468" stroke="#596777" stroke-width="2"/>
+<line x1="683.86" y1="456" x2="683.86" y2="468" stroke="#596777" stroke-width="2"/>
+<circle cx="629.88" cy="462" r="6" fill="#128171"/>
+<text x="870" y="467" font-family="sans-serif" font-size="13" fill="#25354a">0.0028448 +/- 0.0000486</text>
+<text x="35" y="544" font-family="sans-serif" font-size="13" fill="#4b5969">Bars: +/- 2 nominal sample SE; numbers: mean +/- 1 SE. Green band: new CPU mean +/- 2 SE.</text>
+<text x="35" y="565" font-family="sans-serif" font-size="12" fill="#697786">SwiftShader CPU Vulkan; streams and normal-interval coverage are not proven; spatial modes cost more.</text>
+</svg>

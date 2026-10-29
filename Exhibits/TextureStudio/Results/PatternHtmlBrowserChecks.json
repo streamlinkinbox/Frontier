@@ -1,0 +1,451 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/user/Frontier/Experimental/TextureStudio/node_modules/.bin/playwright",
+      "test",
+      "tests/pattern-colour-sources.spec.js",
+      "tests/studio-tooltips.spec.js",
+      "tests/texture-studio.spec.js",
+      "--grep-invert",
+      "texture studio renders|texture layer menu|texture masks have|texture save and reopen|texture capacity|texture dock resize",
+      "--reporter=line,json",
+      "--timeout=60000",
+      "--global-timeout=180000"
+    ],
+    "configFile": "/home/user/Frontier/Experimental/TextureStudio/playwright.config.js",
+    "rootDir": "/home/user/Frontier/Experimental/TextureStudio/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 180000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/user/Frontier/Experimental/TextureStudio/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/home/user/Frontier/Experimental/TextureStudio/tests",
+        "testIgnore": [
+          "**/standalone.spec.js"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://127.0.0.1:5173",
+      "reuseExistingServer": true
+    }
+  },
+  "suites": [
+    {
+      "title": "pattern-colour-sources.spec.js",
+      "file": "pattern-colour-sources.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "paint sources round-trip while legacy documents remain unchanged",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 29,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:57:41.204Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "26ef08467651668fec44-1a2e387cc2fa3ebf2f40",
+          "file": "pattern-colour-sources.spec.js",
+          "line": 10,
+          "column": 1
+        },
+        {
+          "title": "paint source validation rejects active content and clamps authoring bounds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:57:41.284Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "26ef08467651668fec44-017426d60a95dab2af3f",
+          "file": "pattern-colour-sources.spec.js",
+          "line": 33,
+          "column": 1
+        },
+        {
+          "title": "SVG raster actually shades fill, stroke, flat lines and ground sources",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5817,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:57:41.305Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "26ef08467651668fec44-65d79e5aabdff280bec6",
+          "file": "pattern-colour-sources.spec.js",
+          "line": 75,
+          "column": 1
+        },
+        {
+          "title": "Pattern add/filter operations retain identity, locks, existing layers and undo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9229,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:57:47.204Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "26ef08467651668fec44-d12472fb6c4984530878",
+          "file": "pattern-colour-sources.spec.js",
+          "line": 113,
+          "column": 1
+        },
+        {
+          "title": "inspector edits render sources, round-trip saved JSON, and undo/redo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11850,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:57:56.446Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "26ef08467651668fec44-012a384d70c90d2d003d",
+          "file": "pattern-colour-sources.spec.js",
+          "line": 142,
+          "column": 1
+        },
+        {
+          "title": "image upload is embedded, rejects invalid content and paints ground in the canvas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15437,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:58:08.340Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "26ef08467651668fec44-bcfda1a5746956698071",
+          "file": "pattern-colour-sources.spec.js",
+          "line": 165,
+          "column": 1
+        },
+        {
+          "title": "drawing defaults and multi-selection apply real sources while locked motifs stay unchanged",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7920,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:58:23.827Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "26ef08467651668fec44-e3ec8141fefce8fac699",
+          "file": "pattern-colour-sources.spec.js",
+          "line": 198,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "studio-tooltips.spec.js",
+      "file": "studio-tooltips.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "shared tooltip uses opaque active-theme colours, pointer, shortcut and keyboard dismissal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4517,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:58:31.795Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "48f64df73958d694448a-817a605295f27b9619b9",
+          "file": "studio-tooltips.spec.js",
+          "line": 2,
+          "column": 1
+        },
+        {
+          "title": "shared tooltip flips at viewport edges, ignores touch and follows workspace changes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 25719,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:58:36.343Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "48f64df73958d694448a-e1e9d71f3cb9d48ccca9",
+          "file": "studio-tooltips.spec.js",
+          "line": 30,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "texture-studio.spec.js",
+      "file": "texture-studio.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "texture stack reorder, search, visibility filtering and keyboard menus preserve layer identities",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 57790,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:59:02.299Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ae97e2e114a8ee506c97-14a3eea952b6a5144be7",
+          "file": "texture-studio.spec.js",
+          "line": 210,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-18T19:57:40.464Z",
+    "duration": 141086.44,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

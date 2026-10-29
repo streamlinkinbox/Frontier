@@ -1,0 +1,29 @@
+{
+  "result": "passed",
+  "float_maps": 7,
+  "contribution_masks": 7,
+  "image_dimensions": [
+    32,
+    32
+  ],
+  "strict_sanitized_byte_identical": true,
+  "archive_sha256": "03e1421b4ecc94e7a0c070c577d4f671579baa4b91b5e8cf909788c950221f56",
+  "archive_bytes": 3265,
+  "entries": {
+    "GpuFloatColour.pfm": "5fda43824c301b1703d431fab8eb90214a3d0c9606ce82e9555ca8cd72f110bb",
+    "GpuFloatColourAlpha.pfm": "001d508f9a590da41df5d4fcc058fa39fc38f6fbd8d8dfafc6edabf678120595",
+    "GpuFloatHeight.pfm": "e127984b8bba2dda7b00d7f01f105f66e8bb93d07a2d27e5c11ea75c35d1d608",
+    "GpuFloatHeightAlpha.pfm": "001d508f9a590da41df5d4fcc058fa39fc38f6fbd8d8dfafc6edabf678120595",
+    "GpuFloatNormal.pfm": "aff55225fce40ada01824f8142421fa224f4966b51b7dade0a31fcea78f47949",
+    "GpuFloatNormalAlpha.pfm": "001d508f9a590da41df5d4fcc058fa39fc38f6fbd8d8dfafc6edabf678120595",
+    "GpuFloatRoughness.pfm": "4d1ce24081dd01f0091c5a4e3c3beb5a2e6cb690a60fe6b07fb08081d628b9fd",
+    "GpuFloatRoughnessAlpha.pfm": "001d508f9a590da41df5d4fcc058fa39fc38f6fbd8d8dfafc6edabf678120595",
+    "GpuFloatMetalness.pfm": "5b1500b7b3b7981ab5de6510bf256e93ebdd455c254774cf099d6fe8ef016b4f",
+    "GpuFloatMetalnessAlpha.pfm": "001d508f9a590da41df5d4fcc058fa39fc38f6fbd8d8dfafc6edabf678120595",
+    "GpuFloatOpacity.pfm": "001d508f9a590da41df5d4fcc058fa39fc38f6fbd8d8dfafc6edabf678120595",
+    "GpuFloatOpacityAlpha.pfm": "001d508f9a590da41df5d4fcc058fa39fc38f6fbd8d8dfafc6edabf678120595",
+    "GpuFloatOcclusion.pfm": "49a4e3d395e0aa4f75c854c5abb932bc9923464925b5084b036de72aa8c15841",
+    "GpuFloatOcclusionAlpha.pfm": "001d508f9a590da41df5d4fcc058fa39fc38f6fbd8d8dfafc6edabf678120595",
+    "README.txt": "06bfdf997d6b8e84e5ad68a2754af49c8f72e8bbcf556dab9437f712ec694bc3"
+  }
+}

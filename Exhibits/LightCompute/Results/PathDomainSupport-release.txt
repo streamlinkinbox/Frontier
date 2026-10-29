@@ -1,0 +1,7 @@
+Host build: release
+ceeb47a405774459e7d5969708ae13fee02bd8e1e0a21f7da6aa9005ca598be2  Exhibits/LightCompute/Code/PathDomainSupportAudit.cpp
+INVERTED_VISIBILITY exact=0.5 positive_floor=0.5 capped_count=0.5 zero_floor=0.166666666667
+DARK_TO_BRIGHT exact=1 positive_floor=1 capped_count=1 zero_floor=0.333333333333
+RADIANCE_CHANGE exact=1.75 positive_floor=1.75 capped_count=1.75 zero_floor=1.41666666667
+NO_CHANGE exact=1.5 positive_floor=1.5 capped_count=1.5 zero_floor=1.5
+PASS finite-domain selection enumeration; not a GPU or full-scene validation

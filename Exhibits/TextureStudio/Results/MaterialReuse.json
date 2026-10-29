@@ -1,0 +1,2749 @@
+{
+  "repository": "SultanAladin/Frontier",
+  "branch": "arena/5e581235-frontier",
+  "revision": "a76dbd34d12d5e0dbfafe24dd5aa9d4d5b414c73",
+  "tree_complete": true,
+  "files_compared": 455,
+  "identical": 448,
+  "different_or_absent": 7,
+  "scope": "all Engine/Render files, EngineContent/MaterialArchives and Material-prefixed ContentInterchange sources",
+  "difference_notes": "Three retained vector-coverage ABI differences; explicit compute-footprint AutomotivePaint extension; intentional energy allocation changes in ScatteringSequence.h and ScatteringEvaluation.slang; reciprocal coating factor grouping in MaterialSurface.slang. No material archive or partial vector ABI import.",
+  "archive_identical": 399,
+  "archive_compared": 399,
+  "meaning": "Git blob identity only; not new material physics, scene integration or hardware validation",
+  "glints": "existing cellular selected for automotive paint; Glinty remains separate research",
+  "research": "Documentation/Plans/Ongoing/MaterialGlintResearch.md",
+  "executed_comparison": "Exhibits/TextureStudio/GlintComparison.md",
+  "files": [
+    {
+      "path": "Engine/ContentInterchange/MaterialAuthoring.cpp",
+      "upstream_git_blob": "9ff4afd443dfccedf21acec9867cbdf1aafc5390",
+      "local_git_blob": "9ff4afd443dfccedf21acec9867cbdf1aafc5390",
+      "identical": true
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialAuthoring.h",
+      "upstream_git_blob": "ecf9dc7b0f39306c9c391bb0c98f06b2cdb5b372",
+      "local_git_blob": "ecf9dc7b0f39306c9c391bb0c98f06b2cdb5b372",
+      "identical": true
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialLibrary.cpp",
+      "upstream_git_blob": "c4b106bb9bdfee7897d5e3d2579fb75a6b3048bc",
+      "local_git_blob": "c4b106bb9bdfee7897d5e3d2579fb75a6b3048bc",
+      "identical": true
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialLibrary.h",
+      "upstream_git_blob": "1b511e029168602911444ca950144812a3880452",
+      "local_git_blob": "1b511e029168602911444ca950144812a3880452",
+      "identical": true
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialRecipeProfiles.cpp",
+      "upstream_git_blob": "a1359a4d48d5edb343dce4bb516206d6d763a86e",
+      "local_git_blob": "a1359a4d48d5edb343dce4bb516206d6d763a86e",
+      "identical": true
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialRecipeProfiles.h",
+      "upstream_git_blob": "b4d66af8e4eba4cc6a69fce09c1205f0e18f8f1b",
+      "local_git_blob": "b4d66af8e4eba4cc6a69fce09c1205f0e18f8f1b",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/.gitkeep",
+      "upstream_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "local_git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/AnisotropicReflection.h",
+      "upstream_git_blob": "831a91d281c9153abb4c433171008e58b90def8f",
+      "local_git_blob": "831a91d281c9153abb4c433171008e58b90def8f",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/AutomotivePaint.h",
+      "upstream_git_blob": "691edfedac0b6f045d137c00b2ac5090f1dd91ab",
+      "local_git_blob": "691edfedac0b6f045d137c00b2ac5090f1dd91ab",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/BrowserPreviewGeometry.h",
+      "upstream_git_blob": "ae315f9161bd812f70becfce5ff4d8011b242963",
+      "local_git_blob": "ae315f9161bd812f70becfce5ff4d8011b242963",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/BrowserPreviewRendering.cpp",
+      "upstream_git_blob": "763e272618afbf1bec55911fda2aa49e0f4f7634",
+      "local_git_blob": "763e272618afbf1bec55911fda2aa49e0f4f7634",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/BrowserPreviewRendering.h",
+      "upstream_git_blob": "b62ff713df6a309ba621c6364a962ce7cec696bc",
+      "local_git_blob": "b62ff713df6a309ba621c6364a962ce7cec696bc",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/DrapedClothPositions.h",
+      "upstream_git_blob": "8bcb6b56c7fcdf91b36dc18c232cb93431f97ed6",
+      "local_git_blob": "8bcb6b56c7fcdf91b36dc18c232cb93431f97ed6",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/MatCapProjection.h",
+      "upstream_git_blob": "e583bb2e2a071e7259647e8ea9b425860c652492",
+      "local_git_blob": "e583bb2e2a071e7259647e8ea9b425860c652492",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/MaterialLibraryRendering.cpp",
+      "upstream_git_blob": "07a9ed32db5352bb956b64fd9b7611ac04ef1f17",
+      "local_git_blob": "07a9ed32db5352bb956b64fd9b7611ac04ef1f17",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/MaterialLibraryRendering.h",
+      "upstream_git_blob": "8176c34b1db1cf451b981d3e2abe79358d035ad6",
+      "local_git_blob": "8176c34b1db1cf451b981d3e2abe79358d035ad6",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/MaterialPreviewConfiguration.h",
+      "upstream_git_blob": "2d52e87f16274648803a4e66dd4a1e072b504966",
+      "local_git_blob": "2d52e87f16274648803a4e66dd4a1e072b504966",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/MaterialPreviewGeometry.h",
+      "upstream_git_blob": "bcc4d30781be304334dab06d268d9e7d6c6d54d5",
+      "local_git_blob": "bcc4d30781be304334dab06d268d9e7d6c6d54d5",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/MaterialProceduralBaking.cpp",
+      "upstream_git_blob": "2128468571ed2a56febc9938f33d8b918fccf6b9",
+      "local_git_blob": "2128468571ed2a56febc9938f33d8b918fccf6b9",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/MaterialProceduralBaking.h",
+      "upstream_git_blob": "a9f264dc81d0d935221b42775372d4317eff4a28",
+      "local_git_blob": "a9f264dc81d0d935221b42775372d4317eff4a28",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/MaterialThumbnailAtlas.cpp",
+      "upstream_git_blob": "ae76478bea12a7f5a1779894af73700a799c7c3c",
+      "local_git_blob": "ae76478bea12a7f5a1779894af73700a799c7c3c",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/MaterialThumbnailAtlas.h",
+      "upstream_git_blob": "e59235f50362b1d3c910efae9bf9174e5b98aac4",
+      "local_git_blob": "e59235f50362b1d3c910efae9bf9174e5b98aac4",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/ScatteringSequence.h",
+      "upstream_git_blob": "c2dc4140af77ae9ea1a448e50bb255af4b183c00",
+      "local_git_blob": "c8ac0c0313ab4bafd48d75db2a43c4e49286b437",
+      "identical": false
+    },
+    {
+      "path": "Engine/Render/Shader/AutomotivePaint.slang",
+      "upstream_git_blob": "1b1fad2e5129997de361e07159dc815f5b30f34e",
+      "local_git_blob": "2d4e52f8da4306eeb3aae30ec22afa1b90e43000",
+      "identical": false
+    },
+    {
+      "path": "Engine/Render/Shader/BrowserDrafting.slang",
+      "upstream_git_blob": "28a9858acad6277a2b66da83b56860bda79b37a3",
+      "local_git_blob": "28a9858acad6277a2b66da83b56860bda79b37a3",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/Shader/BrowserPreview.slang",
+      "upstream_git_blob": "17591f3b811e448af22a0508b1d99d75b44821a1",
+      "local_git_blob": "17591f3b811e448af22a0508b1d99d75b44821a1",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/Shader/BrowserProjection.slang",
+      "upstream_git_blob": "98d42d730e3f85f1065d979ec292a88b3f4091d2",
+      "local_git_blob": "98d42d730e3f85f1065d979ec292a88b3f4091d2",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/Shader/CadEdge.slang",
+      "upstream_git_blob": "bd3a0b7e33de1ade422d86b19624a9fbf6e197b5",
+      "local_git_blob": "bd3a0b7e33de1ade422d86b19624a9fbf6e197b5",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/Shader/CadSurface.slang",
+      "upstream_git_blob": "7ebac37257295c002c582d73537022d8abdc108b",
+      "local_git_blob": "7ebac37257295c002c582d73537022d8abdc108b",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/Shader/MatCapSurface.slang",
+      "upstream_git_blob": "013984634e62ba4db4091168ba1aa060c35e01a5",
+      "local_git_blob": "013984634e62ba4db4091168ba1aa060c35e01a5",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/Shader/MaterialSurface.slang",
+      "upstream_git_blob": "06efdfb8e9c0b0cf3d86990764fc24c6f5fa9611",
+      "local_git_blob": "e02333440fdf517af22b055789832b3923d340db",
+      "identical": false
+    },
+    {
+      "path": "Engine/Render/Shader/PreviewPbrSurface.slang",
+      "upstream_git_blob": "daca7513b37d13d07d829168b4258777c631dfcf",
+      "local_git_blob": "daca7513b37d13d07d829168b4258777c631dfcf",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/Shader/ScatteringEvaluation.slang",
+      "upstream_git_blob": "1893ebfc109c75816772dd8c7d94cbdb05caf5f6",
+      "local_git_blob": "29ff359c578348f06760b57de7a04e7ac9a8ade4",
+      "identical": false
+    },
+    {
+      "path": "Engine/Render/Shader/SurfaceProjection.slang",
+      "upstream_git_blob": "e9b52b2f3c5170e294b3ef273f243309a3999c8f",
+      "local_git_blob": "e9b52b2f3c5170e294b3ef273f243309a3999c8f",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/Shader/VectorCoverage.slang",
+      "upstream_git_blob": "94fa3418a953a4b50b5f7a0a9b446d8df3e8f80e",
+      "local_git_blob": "321e9aada6da3371710338a17fbfbac194439ce6",
+      "identical": false
+    },
+    {
+      "path": "Engine/Render/Shader/VectorSurface.slang",
+      "upstream_git_blob": "60dc38f4c673acb2719a1ea9ed3dcc29914e1b5d",
+      "local_git_blob": "f16f85fa0b6f871c50c9b30ff2f6a40a53c3f673",
+      "identical": false
+    },
+    {
+      "path": "Engine/Render/StbImageImplementation.cpp",
+      "upstream_git_blob": "609b69c39e85505c85ffdcc3585ba285b5460da2",
+      "local_git_blob": "609b69c39e85505c85ffdcc3585ba285b5460da2",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/StbImageWriteImplementation.cpp",
+      "upstream_git_blob": "8f02c8b90bdabb2dfcf58f5fc3f87a35725d32ba",
+      "local_git_blob": "8f02c8b90bdabb2dfcf58f5fc3f87a35725d32ba",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/SurfaceGeometry.h",
+      "upstream_git_blob": "6e3bdd88bd207bdfcd865238a789cdc57c29046c",
+      "local_git_blob": "6e3bdd88bd207bdfcd865238a789cdc57c29046c",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/SurfaceMaterial.cpp",
+      "upstream_git_blob": "416c4a9001aa6e13ae89faf7b0cf0af1765c0cc1",
+      "local_git_blob": "416c4a9001aa6e13ae89faf7b0cf0af1765c0cc1",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/SurfaceMaterial.h",
+      "upstream_git_blob": "25a05c3acce8dec0d386b758a9005c3fd5518917",
+      "local_git_blob": "25a05c3acce8dec0d386b758a9005c3fd5518917",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/SurfaceNormalProjection.h",
+      "upstream_git_blob": "ec015beaffd3a2f2b1ded13a34d15fa0f3da0c43",
+      "local_git_blob": "ec015beaffd3a2f2b1ded13a34d15fa0f3da0c43",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/SurfaceRasterization.cpp",
+      "upstream_git_blob": "522d758f24b9ac49753e218755a483a954e32081",
+      "local_git_blob": "522d758f24b9ac49753e218755a483a954e32081",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/SurfaceRasterization.h",
+      "upstream_git_blob": "8b9b1abe232e86252c68fd59076a1f0abb9ca06f",
+      "local_git_blob": "8b9b1abe232e86252c68fd59076a1f0abb9ca06f",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorAuthoringCoverageRendering.cpp",
+      "upstream_git_blob": "b83b4dc2160a8d789093815a45f646d253c0c3d2",
+      "local_git_blob": "b83b4dc2160a8d789093815a45f646d253c0c3d2",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorAuthoringCoverageRendering.h",
+      "upstream_git_blob": "d20f6342ceba6a59e4f703e7a7e9cfbc465fe939",
+      "local_git_blob": "d20f6342ceba6a59e4f703e7a7e9cfbc465fe939",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorCoverage.h",
+      "upstream_git_blob": "cbb6d557587ea918a32d95ec910ae893fed64279",
+      "local_git_blob": "6b35399862aa47b5dcf8906bc2e31225ad48df3f",
+      "identical": false
+    },
+    {
+      "path": "Engine/Render/VectorCoverageRasterization.cpp",
+      "upstream_git_blob": "51e73a4b1bf1d9def71634452d1c9802c3b3b42d",
+      "local_git_blob": "51e73a4b1bf1d9def71634452d1c9802c3b3b42d",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorCoverageRasterization.h",
+      "upstream_git_blob": "757ea965815d56955298775e66a505c3bf578f02",
+      "local_git_blob": "757ea965815d56955298775e66a505c3bf578f02",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorCoverageTileBinning.cpp",
+      "upstream_git_blob": "2164c8db47e5c034f4d6ab68b69d0034fea7f88f",
+      "local_git_blob": "2164c8db47e5c034f4d6ab68b69d0034fea7f88f",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorCoverageTileBinning.h",
+      "upstream_git_blob": "383757a79af16ddfe5b9d8bd049af91831b5a1fe",
+      "local_git_blob": "383757a79af16ddfe5b9d8bd049af91831b5a1fe",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorSelectionEvaluation.cpp",
+      "upstream_git_blob": "01b108fffcb5b2e861030c974e29f7c5de3d3980",
+      "local_git_blob": "01b108fffcb5b2e861030c974e29f7c5de3d3980",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorSelectionEvaluation.h",
+      "upstream_git_blob": "a5424f3a7e02d77a9c9cdcd710843233117036b1",
+      "local_git_blob": "a5424f3a7e02d77a9c9cdcd710843233117036b1",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorSurfaceCompilation.cpp",
+      "upstream_git_blob": "3fed8f53004027ed373d0f5b70646db6e790c971",
+      "local_git_blob": "3fed8f53004027ed373d0f5b70646db6e790c971",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorSurfaceCompilation.h",
+      "upstream_git_blob": "491bfd6222ff3006dd2aa2e217b28b9e85da002d",
+      "local_git_blob": "491bfd6222ff3006dd2aa2e217b28b9e85da002d",
+      "identical": true
+    },
+    {
+      "path": "Engine/Render/VectorSurfaceMaterialBridge.h",
+      "upstream_git_blob": "025b4ce488cbc451d24539a79af7c2e44fe4ae92",
+      "local_git_blob": "025b4ce488cbc451d24539a79af7c2e44fe4ae92",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/14k-yellow-gold.material",
+      "upstream_git_blob": "6e8079a75371e5efe797f61b5f622f223ebffacf",
+      "local_git_blob": "6e8079a75371e5efe797f61b5f622f223ebffacf",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/18k-rose-gold.material",
+      "upstream_git_blob": "b52c4d3ba26044ae90224d088d0c9cd2bebf8964",
+      "local_git_blob": "b52c4d3ba26044ae90224d088d0c9cd2bebf8964",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/18k-white-gold.material",
+      "upstream_git_blob": "c7a062830c914df2502054c0bade6bb13cc0c2b5",
+      "local_git_blob": "c7a062830c914df2502054c0bade6bb13cc0c2b5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/18k-yellow-gold.material",
+      "upstream_git_blob": "1e99aaeeb29df0cbef6cec1f27d953c937040ccb",
+      "local_git_blob": "1e99aaeeb29df0cbef6cec1f27d953c937040ccb",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/24k-gold.material",
+      "upstream_git_blob": "75458465da30b80af1cbefdb9b7b3282d1334205",
+      "local_git_blob": "75458465da30b80af1cbefdb9b7b3282d1334205",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Library.toml",
+      "upstream_git_blob": "66f544c6a043ce0f7ad85f6457b99815fa6e30f3",
+      "local_git_blob": "66f544c6a043ce0f7ad85f6457b99815fa6e30f3",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/14k-yellow-gold-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/14k-yellow-gold-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/18k-rose-gold-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/18k-rose-gold-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/18k-white-gold-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/18k-white-gold-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/18k-yellow-gold-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/18k-yellow-gold-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/24k-gold-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/24k-gold-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/apple-skin-albedo.png",
+      "upstream_git_blob": "efce8e988dd43fbeaf20bf43569837cfe3aa2ab9",
+      "local_git_blob": "efce8e988dd43fbeaf20bf43569837cfe3aa2ab9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/apple-skin-normal.png",
+      "upstream_git_blob": "1eb5bbf6a4f0231cd75eb0d1ff6bb1d81aebe08e",
+      "local_git_blob": "1eb5bbf6a4f0231cd75eb0d1ff6bb1d81aebe08e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/apple-skin-orm.png",
+      "upstream_git_blob": "01136e6c43c5f947b3f362e8bb8d3918edfb1886",
+      "local_git_blob": "01136e6c43c5f947b3f362e8bb8d3918edfb1886",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/autumn-leaf-albedo.png",
+      "upstream_git_blob": "0fe5ef10ee20ba5ac3d5e5033fa4c11e22e55280",
+      "local_git_blob": "0fe5ef10ee20ba5ac3d5e5033fa4c11e22e55280",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/autumn-leaf-normal.png",
+      "upstream_git_blob": "d4d5f8241f56f1507138e1bb42cbd94e7821f5e8",
+      "local_git_blob": "d4d5f8241f56f1507138e1bb42cbd94e7821f5e8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/basket-cotton-albedo.png",
+      "upstream_git_blob": "223fc4abee705d94a8aea290371b7ef10536085e",
+      "local_git_blob": "223fc4abee705d94a8aea290371b7ef10536085e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/basket-cotton-normal.png",
+      "upstream_git_blob": "0908e49e4555d393baba3d826cece35aefd18ab0",
+      "local_git_blob": "0908e49e4555d393baba3d826cece35aefd18ab0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/beeswax-albedo.png",
+      "upstream_git_blob": "899c9e1a91ffc1d350b4cda49cc5d434dad0f100",
+      "local_git_blob": "899c9e1a91ffc1d350b4cda49cc5d434dad0f100",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/beeswax-normal.png",
+      "upstream_git_blob": "488de94bbb7ec2d43a918519b2e19e7884c2a4ac",
+      "local_git_blob": "488de94bbb7ec2d43a918519b2e19e7884c2a4ac",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/black-selvedge-denim-albedo.png",
+      "upstream_git_blob": "dd189a3ab19edd0b86780bf694bf8abbc70349ab",
+      "local_git_blob": "dd189a3ab19edd0b86780bf694bf8abbc70349ab",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/black-selvedge-denim-normal.png",
+      "upstream_git_blob": "bb317fce190be885702161ddc85105efa5386ac5",
+      "local_git_blob": "bb317fce190be885702161ddc85105efa5386ac5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/black-solar-module-albedo.png",
+      "upstream_git_blob": "0506464b701ad168a6fe5dcf0208f996ef4c24cb",
+      "local_git_blob": "0506464b701ad168a6fe5dcf0208f996ef4c24cb",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/black-solar-module-normal.png",
+      "upstream_git_blob": "eb3024eba6a670e46a568cd8166fa6401efa1e72",
+      "local_git_blob": "eb3024eba6a670e46a568cd8166fa6401efa1e72",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/black-solar-module-orm.png",
+      "upstream_git_blob": "c91f98115b991a65ea5b275f78d112c8ba899de6",
+      "local_git_blob": "c91f98115b991a65ea5b275f78d112c8ba899de6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/blue-glaucous-cactus-albedo.png",
+      "upstream_git_blob": "0a012ee386637cecaecd9e89ff88b0ae9891e357",
+      "local_git_blob": "0a012ee386637cecaecd9e89ff88b0ae9891e357",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/blue-glaucous-cactus-normal.png",
+      "upstream_git_blob": "cf476f47222ab382fd1487bbbfa61b5c11bc8ff3",
+      "local_git_blob": "cf476f47222ab382fd1487bbbfa61b5c11bc8ff3",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/blue-glaucous-cactus-orm.png",
+      "upstream_git_blob": "cefb91c912615b71bf06146a8c3bca61429070c4",
+      "local_git_blob": "cefb91c912615b71bf06146a8c3bca61429070c4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/board-form-concrete-albedo.png",
+      "upstream_git_blob": "0bcc78e59168197bd4a25af3c9885171ed057bee",
+      "local_git_blob": "0bcc78e59168197bd4a25af3c9885171ed057bee",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/board-form-concrete-normal.png",
+      "upstream_git_blob": "303e60e4d41d5479b32bd38305a2b3d79846664b",
+      "local_git_blob": "303e60e4d41d5479b32bd38305a2b3d79846664b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/brake-disc-albedo.png",
+      "upstream_git_blob": "29039c15b685475c580861fb9eae1ba881a94c9e",
+      "local_git_blob": "29039c15b685475c580861fb9eae1ba881a94c9e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/brake-disc-normal.png",
+      "upstream_git_blob": "abf01808efd6b8b9af711de252bbe4c0fc55f508",
+      "local_git_blob": "abf01808efd6b8b9af711de252bbe4c0fc55f508",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/brake-disc-orm.png",
+      "upstream_git_blob": "e2edd976ddc9da44868621434ccb4109d9ce5c61",
+      "local_git_blob": "e2edd976ddc9da44868621434ccb4109d9ce5c61",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/brass-alloy-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/brass-alloy-normal.png",
+      "upstream_git_blob": "8a836e97119b9de7e47f8f624b7d3e31f914d34e",
+      "local_git_blob": "8a836e97119b9de7e47f8f624b7d3e31f914d34e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/broadleaf-green-albedo.png",
+      "upstream_git_blob": "117b3af0c4b9f038cbbe92b336e62e121e1357fb",
+      "local_git_blob": "117b3af0c4b9f038cbbe92b336e62e121e1357fb",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/broadleaf-green-normal.png",
+      "upstream_git_blob": "c2d5a070aedf11292e1e11430921553fa6438d53",
+      "local_git_blob": "c2d5a070aedf11292e1e11430921553fa6438d53",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/bronze-alloy-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/bronze-alloy-normal.png",
+      "upstream_git_blob": "91ae6113e5532a4911fcdea92c93abcea3f46934",
+      "local_git_blob": "91ae6113e5532a4911fcdea92c93abcea3f46934",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/brushed-titanium-albedo.png",
+      "upstream_git_blob": "d422f02f4dbb8e84f379197111057f5f76241544",
+      "local_git_blob": "d422f02f4dbb8e84f379197111057f5f76241544",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/brushed-titanium-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/brushed-titanium-orm.png",
+      "upstream_git_blob": "5b9770fc561715152bbd48b1e6d0fcd3accbfac0",
+      "local_git_blob": "5b9770fc561715152bbd48b1e6d0fcd3accbfac0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/bull-grain-black-leather-albedo.png",
+      "upstream_git_blob": "ed75de18dec59293e870ef3d8c8c2cc21c05c45f",
+      "local_git_blob": "ed75de18dec59293e870ef3d8c8c2cc21c05c45f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/bull-grain-black-leather-normal.png",
+      "upstream_git_blob": "872a772dd7bc126415b90855855f6414fae7bc02",
+      "local_git_blob": "872a772dd7bc126415b90855855f6414fae7bc02",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/bull-grain-saddle-leather-albedo.png",
+      "upstream_git_blob": "a58c473f3b0e2610fe5fbbcd1f65969bf5660cc1",
+      "local_git_blob": "a58c473f3b0e2610fe5fbbcd1f65969bf5660cc1",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/bull-grain-saddle-leather-normal.png",
+      "upstream_git_blob": "607263e042dbbd911f766c56d8a1d8a3321a23dd",
+      "local_git_blob": "607263e042dbbd911f766c56d8a1d8a3321a23dd",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cactus-epidermis-albedo.png",
+      "upstream_git_blob": "27ece2f81685cbb486c164ed06ce9ecfc5850612",
+      "local_git_blob": "27ece2f81685cbb486c164ed06ce9ecfc5850612",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cactus-epidermis-normal.png",
+      "upstream_git_blob": "9deebb83801392fea6ccbcd709cb02c7b76672d2",
+      "local_git_blob": "9deebb83801392fea6ccbcd709cb02c7b76672d2",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cactus-epidermis-orm.png",
+      "upstream_git_blob": "f7018909a73b40bb39746fe0905a37714d44b035",
+      "local_git_blob": "f7018909a73b40bb39746fe0905a37714d44b035",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/carbon-ceramic-albedo.png",
+      "upstream_git_blob": "8001d225f243c4129c8b47579083536691d67682",
+      "local_git_blob": "8001d225f243c4129c8b47579083536691d67682",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/carbon-ceramic-normal.png",
+      "upstream_git_blob": "8809c95033622c84f71889e4f5f3030f4cdf6ccc",
+      "local_git_blob": "8809c95033622c84f71889e4f5f3030f4cdf6ccc",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/carbon-fiber-albedo.png",
+      "upstream_git_blob": "64a8d34221847398670513db1dee8d9bd7b817cf",
+      "local_git_blob": "64a8d34221847398670513db1dee8d9bd7b817cf",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/carbon-fiber-normal.png",
+      "upstream_git_blob": "de77c85c08c23eb255a07fabf64e1046f21715ac",
+      "local_git_blob": "de77c85c08c23eb255a07fabf64e1046f21715ac",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/carrara-marble-albedo.png",
+      "upstream_git_blob": "6d76b85d2657dcc546605f582cd5e7319eabd685",
+      "local_git_blob": "6d76b85d2657dcc546605f582cd5e7319eabd685",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/carrara-marble-normal.png",
+      "upstream_git_blob": "9d451b3d67dbd9f8af74e418333189e76a05a2a4",
+      "local_git_blob": "9d451b3d67dbd9f8af74e418333189e76a05a2a4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cast-concrete-albedo.png",
+      "upstream_git_blob": "6136527cdffe7998e36a7faa1502d30bc1da9b50",
+      "local_git_blob": "6136527cdffe7998e36a7faa1502d30bc1da9b50",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cast-concrete-normal.png",
+      "upstream_git_blob": "c0277848d2f81193e45a3361c3cd0f5ae1d9c8a4",
+      "local_git_blob": "c0277848d2f81193e45a3361c3cd0f5ae1d9c8a4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cast-steel-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cast-steel-normal.png",
+      "upstream_git_blob": "d1825171f1998218075dc58ce84c846536501fca",
+      "local_git_blob": "d1825171f1998218075dc58ce84c846536501fca",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/champagne-silk-albedo.png",
+      "upstream_git_blob": "52a0fff5c7dea58f9ee61f7b34e7306790369517",
+      "local_git_blob": "52a0fff5c7dea58f9ee61f7b34e7306790369517",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/champagne-silk-normal.png",
+      "upstream_git_blob": "a84ae8edcf2f3f261aa5bc35fa7ff48826bc223e",
+      "local_git_blob": "a84ae8edcf2f3f261aa5bc35fa7ff48826bc223e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/chromium-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/chromium-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/coated-art-paper-albedo.png",
+      "upstream_git_blob": "6788b194155361cda7798f3af988abb33898401c",
+      "local_git_blob": "6788b194155361cda7798f3af988abb33898401c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/coated-art-paper-normal.png",
+      "upstream_git_blob": "06fa23f90f17ed3d3c55d698f823896054768d4e",
+      "local_git_blob": "06fa23f90f17ed3d3c55d698f823896054768d4e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cognac-leather-albedo.png",
+      "upstream_git_blob": "10befaabd5642427f049cef49ef917bf7b415f78",
+      "local_git_blob": "10befaabd5642427f049cef49ef917bf7b415f78",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cognac-leather-normal.png",
+      "upstream_git_blob": "eaa2428306c2b0446634ee62ae5cb1ea0df6282b",
+      "local_git_blob": "eaa2428306c2b0446634ee62ae5cb1ea0df6282b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/corrugated-card-albedo.png",
+      "upstream_git_blob": "927a3b0ad194a35cb522137aaa80a45f3d00f3d1",
+      "local_git_blob": "927a3b0ad194a35cb522137aaa80a45f3d00f3d1",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/corrugated-card-normal.png",
+      "upstream_git_blob": "cd63990a3c240f4e0069e9d2ab347bb5b72eb6be",
+      "local_git_blob": "cd63990a3c240f4e0069e9d2ab347bb5b72eb6be",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cotton-jersey-knit-albedo.png",
+      "upstream_git_blob": "c12edbf6ca3d7b29761f03c7dbcd110e597ce786",
+      "local_git_blob": "c12edbf6ca3d7b29761f03c7dbcd110e597ce786",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cotton-jersey-knit-normal.png",
+      "upstream_git_blob": "6299348b25ed5662809f1ef5e0db2a93511f2e9c",
+      "local_git_blob": "6299348b25ed5662809f1ef5e0db2a93511f2e9c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cotton-rag-paper-albedo.png",
+      "upstream_git_blob": "b2218fbd33113671cdfee3005a701993ea7b445c",
+      "local_git_blob": "b2218fbd33113671cdfee3005a701993ea7b445c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/cotton-rag-paper-normal.png",
+      "upstream_git_blob": "dceb55cf3186388d753ae5e0ff3effd2b594b909",
+      "local_git_blob": "dceb55cf3186388d753ae5e0ff3effd2b594b909",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/crocodile-belly-leather-albedo.png",
+      "upstream_git_blob": "a26e37133f2221f489bb3f8225fef9a40ed930b6",
+      "local_git_blob": "a26e37133f2221f489bb3f8225fef9a40ed930b6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/crocodile-belly-leather-normal.png",
+      "upstream_git_blob": "af52d72cbe29e61be6441ab8202ac19972f7bdc0",
+      "local_git_blob": "af52d72cbe29e61be6441ab8202ac19972f7bdc0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/grained-abs-albedo.png",
+      "upstream_git_blob": "adeb66e1daa7a56d2e0cf080b845c7e1ca96709d",
+      "local_git_blob": "adeb66e1daa7a56d2e0cf080b845c7e1ca96709d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/grained-abs-normal.png",
+      "upstream_git_blob": "023a09ef9098213dbe5003712f07f950866de4de",
+      "local_git_blob": "023a09ef9098213dbe5003712f07f950866de4de",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/grained-abs-orm.png",
+      "upstream_git_blob": "e92d577f1626d47bc6ad099c65bf1fe3c6ff96c9",
+      "local_git_blob": "e92d577f1626d47bc6ad099c65bf1fe3c6ff96c9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/handmade-mulberry-paper-albedo.png",
+      "upstream_git_blob": "d8f76de5b8a8433ff535879724fe38befc9d5098",
+      "local_git_blob": "d8f76de5b8a8433ff535879724fe38befc9d5098",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/handmade-mulberry-paper-normal.png",
+      "upstream_git_blob": "8170ae81b2a3daceb7adb04954ef66bc59684747",
+      "local_git_blob": "8170ae81b2a3daceb7adb04954ef66bc59684747",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/hdpe-polyethylene-albedo.png",
+      "upstream_git_blob": "81e87162e270e300eed1c05849be7e380dbb959b",
+      "local_git_blob": "81e87162e270e300eed1c05849be7e380dbb959b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/hdpe-polyethylene-normal.png",
+      "upstream_git_blob": "83487b7d3d5d168b0962398c7527bfd15e533bab",
+      "local_git_blob": "83487b7d3d5d168b0962398c7527bfd15e533bab",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/hdpe-polyethylene-orm.png",
+      "upstream_git_blob": "a7c966719d448959e59e6391ab52c5d1b5d665bc",
+      "local_git_blob": "a7c966719d448959e59e6391ab52c5d1b5d665bc",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/herringbone-wool-albedo.png",
+      "upstream_git_blob": "612a8eaf4628499d56d2ad74bae77c25f27f0cb1",
+      "local_git_blob": "612a8eaf4628499d56d2ad74bae77c25f27f0cb1",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/herringbone-wool-normal.png",
+      "upstream_git_blob": "92fc6835cbda2fdb050e3a88ed09db5a74343a57",
+      "local_git_blob": "92fc6835cbda2fdb050e3a88ed09db5a74343a57",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/houndstooth-wool-albedo.png",
+      "upstream_git_blob": "804ea25a0aebb349b410dfe63c0b6983d5cce9c8",
+      "local_git_blob": "804ea25a0aebb349b410dfe63c0b6983d5cce9c8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/houndstooth-wool-normal.png",
+      "upstream_git_blob": "caf7f70182f1233779ac36f241c56570cadd1f72",
+      "local_git_blob": "caf7f70182f1233779ac36f241c56570cadd1f72",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/indigo-denim-albedo.png",
+      "upstream_git_blob": "c1b5cca63375e023c0aef44662adbbac1811aa2b",
+      "local_git_blob": "c1b5cca63375e023c0aef44662adbbac1811aa2b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/indigo-denim-normal.png",
+      "upstream_git_blob": "339f1c4b6602ad9a2b561724ea268765b05c7e7b",
+      "local_git_blob": "339f1c4b6602ad9a2b561724ea268765b05c7e7b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/kaolin-clay-albedo.png",
+      "upstream_git_blob": "9f23b4dbd67d1749c2dd5ef3dc42a0ed22f45faf",
+      "local_git_blob": "9f23b4dbd67d1749c2dd5ef3dc42a0ed22f45faf",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/kaolin-clay-normal.png",
+      "upstream_git_blob": "8e21c674760dada9ba3d8acc221d7485b15af9e8",
+      "local_git_blob": "8e21c674760dada9ba3d8acc221d7485b15af9e8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/kraft-paper-albedo.png",
+      "upstream_git_blob": "727a1d3ff4b246e271aad0c49d90e5c778aeab23",
+      "local_git_blob": "727a1d3ff4b246e271aad0c49d90e5c778aeab23",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/kraft-paper-normal.png",
+      "upstream_git_blob": "e1d23525191cd03f6b8c395b33bb87e9ed8d5f3b",
+      "local_git_blob": "e1d23525191cd03f6b8c395b33bb87e9ed8d5f3b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/layered-sand-albedo.png",
+      "upstream_git_blob": "2094e0011781eaaeb8998be76c4ebe06a9e9618c",
+      "local_git_blob": "2094e0011781eaaeb8998be76c4ebe06a9e9618c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/layered-sand-normal.png",
+      "upstream_git_blob": "03eb89cd7d42e262ac2e9d986210e79807e3b4b2",
+      "local_git_blob": "03eb89cd7d42e262ac2e9d986210e79807e3b4b2",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/layered-sand-orm.png",
+      "upstream_git_blob": "aede455667ed4e4ada9e02dd31564674ab39009b",
+      "local_git_blob": "aede455667ed4e4ada9e02dd31564674ab39009b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/ldpe-polyethylene-albedo.png",
+      "upstream_git_blob": "eedfabd6885e2f595d5975fb256aed0a677e96ca",
+      "local_git_blob": "eedfabd6885e2f595d5975fb256aed0a677e96ca",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/ldpe-polyethylene-normal.png",
+      "upstream_git_blob": "17378c5124644448b2df6bc375fffd61590b0c89",
+      "local_git_blob": "17378c5124644448b2df6bc375fffd61590b0c89",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/ldpe-polyethylene-orm.png",
+      "upstream_git_blob": "71bd5def7ad96098197eff7426b1aa6d486ce28f",
+      "local_git_blob": "71bd5def7ad96098197eff7426b1aa6d486ce28f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/led-pixel-matrix-albedo.png",
+      "upstream_git_blob": "dc1c8ff8ee654faa5cc11c8f4596ded8120daf5a",
+      "local_git_blob": "dc1c8ff8ee654faa5cc11c8f4596ded8120daf5a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/led-pixel-matrix-normal.png",
+      "upstream_git_blob": "20eaed511565bbf5e498aec8b7906896aa4a7d98",
+      "local_git_blob": "20eaed511565bbf5e498aec8b7906896aa4a7d98",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/led-pixel-matrix-radiance.png",
+      "upstream_git_blob": "9f2254e6ac34a19a5e6911c16ac115b60f0f2d26",
+      "local_git_blob": "9f2254e6ac34a19a5e6911c16ac115b60f0f2d26",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/lily-petal-albedo.png",
+      "upstream_git_blob": "c8c5dd41a71cc2272e416665aaf92dcc1efd11a3",
+      "local_git_blob": "c8c5dd41a71cc2272e416665aaf92dcc1efd11a3",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/lily-petal-normal.png",
+      "upstream_git_blob": "9f9b672b777ac59971283b4648a54b5dd37c4143",
+      "local_git_blob": "9f9b672b777ac59971283b4648a54b5dd37c4143",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/lime-stucco-albedo.png",
+      "upstream_git_blob": "751c2a8130e8a524ab720594a5ba2e3b7cea247d",
+      "local_git_blob": "751c2a8130e8a524ab720594a5ba2e3b7cea247d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/lime-stucco-normal.png",
+      "upstream_git_blob": "6cfae297f7b0edcbb9f0632b5afbd9d37a8a62b5",
+      "local_git_blob": "6cfae297f7b0edcbb9f0632b5afbd9d37a8a62b5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/liquid-silver-albedo.png",
+      "upstream_git_blob": "d422f02f4dbb8e84f379197111057f5f76241544",
+      "local_git_blob": "d422f02f4dbb8e84f379197111057f5f76241544",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/liquid-silver-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/liquid-silver-orm.png",
+      "upstream_git_blob": "0fec0208d3e3bb263faa8cb9fae0fab445a0b1e1",
+      "local_git_blob": "0fec0208d3e3bb263faa8cb9fae0fab445a0b1e1",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/living-plant-stem-albedo.png",
+      "upstream_git_blob": "9a5825de0b79f850fe0c5f44f43feb79cbf34207",
+      "local_git_blob": "9a5825de0b79f850fe0c5f44f43feb79cbf34207",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/living-plant-stem-normal.png",
+      "upstream_git_blob": "903ef884ff9ade93f2ce11dcadd35a8b86fe2c6d",
+      "local_git_blob": "903ef884ff9ade93f2ce11dcadd35a8b86fe2c6d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/maraging-steel-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/maraging-steel-normal.png",
+      "upstream_git_blob": "ebd466a3118c7ecd8a845c888f0b9fbf557f061f",
+      "local_git_blob": "ebd466a3118c7ecd8a845c888f0b9fbf557f061f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/meadow-grass-blades-albedo.png",
+      "upstream_git_blob": "cef2c623c71605e046eaadda5d6c662410379bf4",
+      "local_git_blob": "cef2c623c71605e046eaadda5d6c662410379bf4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/meadow-grass-blades-normal.png",
+      "upstream_git_blob": "7a038012845d398c04350904053e45c8b7687d89",
+      "local_git_blob": "7a038012845d398c04350904053e45c8b7687d89",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/melange-jersey-knit-albedo.png",
+      "upstream_git_blob": "075cde6d85d75da658b62f8b733265cab31d37aa",
+      "local_git_blob": "075cde6d85d75da658b62f8b733265cab31d37aa",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/melange-jersey-knit-normal.png",
+      "upstream_git_blob": "fc6219684416b54abd970dcdcb0ba05239565340",
+      "local_git_blob": "fc6219684416b54abd970dcdcb0ba05239565340",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/midnight-satin-albedo.png",
+      "upstream_git_blob": "01d3c2e80245f88a895408c8a05e28dc906f795b",
+      "local_git_blob": "01d3c2e80245f88a895408c8a05e28dc906f795b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/midnight-satin-normal.png",
+      "upstream_git_blob": "0e0816b96d533f92574785fabc6463cff5f211ce",
+      "local_git_blob": "0e0816b96d533f92574785fabc6463cff5f211ce",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/midnight-velvet-albedo.png",
+      "upstream_git_blob": "b5446b407e3b89e02a643190b5094b07e98ac800",
+      "local_git_blob": "b5446b407e3b89e02a643190b5094b07e98ac800",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/midnight-velvet-normal.png",
+      "upstream_git_blob": "477f1a58eff603d42900612c6817cb1269f7ed32",
+      "local_git_blob": "477f1a58eff603d42900612c6817cb1269f7ed32",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/monocrystalline-solar-albedo.png",
+      "upstream_git_blob": "f8f4cb670f165bee5f9d5b349a3420298bc12471",
+      "local_git_blob": "f8f4cb670f165bee5f9d5b349a3420298bc12471",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/monocrystalline-solar-normal.png",
+      "upstream_git_blob": "eb3024eba6a670e46a568cd8166fa6401efa1e72",
+      "local_git_blob": "eb3024eba6a670e46a568cd8166fa6401efa1e72",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/monocrystalline-solar-orm.png",
+      "upstream_git_blob": "c91f98115b991a65ea5b275f78d112c8ba899de6",
+      "local_git_blob": "c91f98115b991a65ea5b275f78d112c8ba899de6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/nappa-leather-albedo.png",
+      "upstream_git_blob": "21d08582412b2de3ba3a73d2bba27253ad45fcc6",
+      "local_git_blob": "21d08582412b2de3ba3a73d2bba27253ad45fcc6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/nappa-leather-normal.png",
+      "upstream_git_blob": "788a6954852e98c741e0843e514695d8a00f28ba",
+      "local_git_blob": "788a6954852e98c741e0843e514695d8a00f28ba",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/natural-cotton-albedo.png",
+      "upstream_git_blob": "52d422b9c905c8c4e4303cb9d37916222d6a9fc4",
+      "local_git_blob": "52d422b9c905c8c4e4303cb9d37916222d6a9fc4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/natural-cotton-normal.png",
+      "upstream_git_blob": "7b60fdafd4d305c59ba147d1330a486b68f227a0",
+      "local_git_blob": "7b60fdafd4d305c59ba147d1330a486b68f227a0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/nero-marble-albedo.png",
+      "upstream_git_blob": "e899b06a01797821c4f7f590f508cd7e919aaf1f",
+      "local_git_blob": "e899b06a01797821c4f7f590f508cd7e919aaf1f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/nero-marble-normal.png",
+      "upstream_git_blob": "cf6dd72c4692e8da773aadd3ab500910802a76ff",
+      "local_git_blob": "cf6dd72c4692e8da773aadd3ab500910802a76ff",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/newsprint-paper-albedo.png",
+      "upstream_git_blob": "0ccc515efb54706c0f28eff45e7ab5fc0c8b3bc6",
+      "local_git_blob": "0ccc515efb54706c0f28eff45e7ab5fc0c8b3bc6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/newsprint-paper-normal.png",
+      "upstream_git_blob": "e605a21a999818c1df89d36c89b9524746c288a3",
+      "local_git_blob": "e605a21a999818c1df89d36c89b9524746c288a3",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/orange-peel-albedo.png",
+      "upstream_git_blob": "eb96b623c5aea295dbfc5fd58d2e0cacfbc4df11",
+      "local_git_blob": "eb96b623c5aea295dbfc5fd58d2e0cacfbc4df11",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/orange-peel-normal.png",
+      "upstream_git_blob": "1a27cb0311acfc15948ec448a4d59e1e92971fe7",
+      "local_git_blob": "1a27cb0311acfc15948ec448a4d59e1e92971fe7",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/orange-peel-orm.png",
+      "upstream_git_blob": "627c06945e4cb9ff6da81d21ae0e0f18fefbd1a1",
+      "local_git_blob": "627c06945e4cb9ff6da81d21ae0e0f18fefbd1a1",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/oxford-weave-albedo.png",
+      "upstream_git_blob": "48355a7eee764d8bad65e950773fd6c1f6488840",
+      "local_git_blob": "48355a7eee764d8bad65e950773fd6c1f6488840",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/oxford-weave-normal.png",
+      "upstream_git_blob": "1a17b3736b6852df86cdf806e5762ed0037c8562",
+      "local_git_blob": "1a17b3736b6852df86cdf806e5762ed0037c8562",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pa6-nylon-albedo.png",
+      "upstream_git_blob": "3d9f2ba3d2cb6fea2593d06e7bbee956d71f9443",
+      "local_git_blob": "3d9f2ba3d2cb6fea2593d06e7bbee956d71f9443",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pa6-nylon-normal.png",
+      "upstream_git_blob": "97228ed7e23cf94ba29d3a1ca88ffaa6f5b320a5",
+      "local_git_blob": "97228ed7e23cf94ba29d3a1ca88ffaa6f5b320a5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pa6-nylon-orm.png",
+      "upstream_git_blob": "05478960bea545ea6d9cf8330dd7da3ce0b55a35",
+      "local_git_blob": "05478960bea545ea6d9cf8330dd7da3ce0b55a35",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pa66-glass-filled-albedo.png",
+      "upstream_git_blob": "16e7a2d047dd3a9f4ab832cfcb19693a5d3c8d0d",
+      "local_git_blob": "16e7a2d047dd3a9f4ab832cfcb19693a5d3c8d0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pa66-glass-filled-normal.png",
+      "upstream_git_blob": "f7374fb941992bef220f774633b81bbcfb17e3b4",
+      "local_git_blob": "f7374fb941992bef220f774633b81bbcfb17e3b4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pa66-glass-filled-orm.png",
+      "upstream_git_blob": "c488851c8c92611abb2c6764d684115c81ed4936",
+      "local_git_blob": "c488851c8c92611abb2c6764d684115c81ed4936",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/paraffin-wax-albedo.png",
+      "upstream_git_blob": "899c9e1a91ffc1d350b4cda49cc5d434dad0f100",
+      "local_git_blob": "899c9e1a91ffc1d350b4cda49cc5d434dad0f100",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/paraffin-wax-normal.png",
+      "upstream_git_blob": "488de94bbb7ec2d43a918519b2e19e7884c2a4ac",
+      "local_git_blob": "488de94bbb7ec2d43a918519b2e19e7884c2a4ac",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pbt-polyester-albedo.png",
+      "upstream_git_blob": "fbb4cc9f2b22bebd462f2e141aad6f5fd431c920",
+      "local_git_blob": "fbb4cc9f2b22bebd462f2e141aad6f5fd431c920",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pbt-polyester-normal.png",
+      "upstream_git_blob": "019b871b2cb5c457c69115c420893ca115278c10",
+      "local_git_blob": "019b871b2cb5c457c69115c420893ca115278c10",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pbt-polyester-orm.png",
+      "upstream_git_blob": "224988687548e20cf8d30c3683f38329f5f9503f",
+      "local_git_blob": "224988687548e20cf8d30c3683f38329f5f9503f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pc-polycarbonate-albedo.png",
+      "upstream_git_blob": "2a0e784029f7a8748623607300fc8397149b8e08",
+      "local_git_blob": "2a0e784029f7a8748623607300fc8397149b8e08",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pc-polycarbonate-normal.png",
+      "upstream_git_blob": "72761092dbe006487e53e5d4f6b69749eadcbdb9",
+      "local_git_blob": "72761092dbe006487e53e5d4f6b69749eadcbdb9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pc-polycarbonate-orm.png",
+      "upstream_git_blob": "7c0d866b5d13ea8c27b94d6ca4bbc2c4e2ac0f6b",
+      "local_git_blob": "7c0d866b5d13ea8c27b94d6ca4bbc2c4e2ac0f6b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/peek-polymer-albedo.png",
+      "upstream_git_blob": "3d9f2ba3d2cb6fea2593d06e7bbee956d71f9443",
+      "local_git_blob": "3d9f2ba3d2cb6fea2593d06e7bbee956d71f9443",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/peek-polymer-normal.png",
+      "upstream_git_blob": "97228ed7e23cf94ba29d3a1ca88ffaa6f5b320a5",
+      "local_git_blob": "97228ed7e23cf94ba29d3a1ca88ffaa6f5b320a5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/peek-polymer-orm.png",
+      "upstream_git_blob": "f18d299645b7a5adcae7e0ecf5706fe0c3bada50",
+      "local_git_blob": "f18d299645b7a5adcae7e0ecf5706fe0c3bada50",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/performance-rubber-albedo.png",
+      "upstream_git_blob": "022c422858af30b90b896c359ec33e7ae934aa05",
+      "local_git_blob": "022c422858af30b90b896c359ec33e7ae934aa05",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/performance-rubber-normal.png",
+      "upstream_git_blob": "8809c95033622c84f71889e4f5f3030f4cdf6ccc",
+      "local_git_blob": "8809c95033622c84f71889e4f5f3030f4cdf6ccc",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pet-polyester-albedo.png",
+      "upstream_git_blob": "4646d09e6f132140cccb8e3837e80ffc4da0545b",
+      "local_git_blob": "4646d09e6f132140cccb8e3837e80ffc4da0545b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pet-polyester-normal.png",
+      "upstream_git_blob": "11fbaf10ae78734dc4b643c0ad8c99f6bad6506e",
+      "local_git_blob": "11fbaf10ae78734dc4b643c0ad8c99f6bad6506e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pet-polyester-orm.png",
+      "upstream_git_blob": "5a77bb9bce71e8be2ee4627c85184a5e76641fae",
+      "local_git_blob": "5a77bb9bce71e8be2ee4627c85184a5e76641fae",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/piano-black-albedo.png",
+      "upstream_git_blob": "ffe3ff31a2966e904a21199627b29a5590a3f5d6",
+      "local_git_blob": "ffe3ff31a2966e904a21199627b29a5590a3f5d6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/piano-black-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/piano-black-orm.png",
+      "upstream_git_blob": "ffe3ff31a2966e904a21199627b29a5590a3f5d6",
+      "local_git_blob": "ffe3ff31a2966e904a21199627b29a5590a3f5d6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/plain-linen-albedo.png",
+      "upstream_git_blob": "b3fb58350985ff0789fa3849e573434dcffca2fe",
+      "local_git_blob": "b3fb58350985ff0789fa3849e573434dcffca2fe",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/plain-linen-normal.png",
+      "upstream_git_blob": "1cb2909082c3b6342cafe38637a565d5f3afe75d",
+      "local_git_blob": "1cb2909082c3b6342cafe38637a565d5f3afe75d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pmma-acrylic-albedo.png",
+      "upstream_git_blob": "ffe3ff31a2966e904a21199627b29a5590a3f5d6",
+      "local_git_blob": "ffe3ff31a2966e904a21199627b29a5590a3f5d6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pmma-acrylic-normal.png",
+      "upstream_git_blob": "fc725f148e74ea10e655275a9b2926bd0e1af607",
+      "local_git_blob": "fc725f148e74ea10e655275a9b2926bd0e1af607",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pmma-acrylic-orm.png",
+      "upstream_git_blob": "b59b37cfe63eb689cbd9e329ccb13b258036ff29",
+      "local_git_blob": "b59b37cfe63eb689cbd9e329ccb13b258036ff29",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/polycrystalline-solar-albedo.png",
+      "upstream_git_blob": "29a03ce50b1b8a2d822431bd6cc0828ed32ce978",
+      "local_git_blob": "29a03ce50b1b8a2d822431bd6cc0828ed32ce978",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/polycrystalline-solar-normal.png",
+      "upstream_git_blob": "eb3024eba6a670e46a568cd8166fa6401efa1e72",
+      "local_git_blob": "eb3024eba6a670e46a568cd8166fa6401efa1e72",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/polycrystalline-solar-orm.png",
+      "upstream_git_blob": "c91f98115b991a65ea5b275f78d112c8ba899de6",
+      "local_git_blob": "c91f98115b991a65ea5b275f78d112c8ba899de6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pom-acetal-albedo.png",
+      "upstream_git_blob": "b23598eca61e47d15a67e4ac8f7e39ef3b0a3501",
+      "local_git_blob": "b23598eca61e47d15a67e4ac8f7e39ef3b0a3501",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pom-acetal-normal.png",
+      "upstream_git_blob": "8a1c0e454481fa38e3c16db6aa77226383587c24",
+      "local_git_blob": "8a1c0e454481fa38e3c16db6aa77226383587c24",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pom-acetal-orm.png",
+      "upstream_git_blob": "5bc8684995613e6c80028568107117f56c8e8e93",
+      "local_git_blob": "5bc8684995613e6c80028568107117f56c8e8e93",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/porcelain-grid-tiles-albedo.png",
+      "upstream_git_blob": "6a8c2ca6697367f3cd9552aa4ef9dbf4462c329a",
+      "local_git_blob": "6a8c2ca6697367f3cd9552aa4ef9dbf4462c329a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/porcelain-grid-tiles-normal.png",
+      "upstream_git_blob": "23ad9efb459c83df42372fb0b7697e66c0392f07",
+      "local_git_blob": "23ad9efb459c83df42372fb0b7697e66c0392f07",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/porcelain-grid-tiles-orm.png",
+      "upstream_git_blob": "656fcc318a925806a6525acfbf7e2035d299c64f",
+      "local_git_blob": "656fcc318a925806a6525acfbf7e2035d299c64f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pp-polypropylene-albedo.png",
+      "upstream_git_blob": "3691a7a974048181e0e84aa97229a79e3e11e4ec",
+      "local_git_blob": "3691a7a974048181e0e84aa97229a79e3e11e4ec",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pp-polypropylene-normal.png",
+      "upstream_git_blob": "ddb535d3ec51babb4a94b9f05372e330d2d94ded",
+      "local_git_blob": "ddb535d3ec51babb4a94b9f05372e330d2d94ded",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pp-polypropylene-orm.png",
+      "upstream_git_blob": "c6ac83d98308b86ccc62ed8c73ebd821a70e34f8",
+      "local_git_blob": "c6ac83d98308b86ccc62ed8c73ebd821a70e34f8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/practice-golf-ball-albedo.png",
+      "upstream_git_blob": "9595af31d0d5648384c8775e3cac2ecaf52f896c",
+      "local_git_blob": "9595af31d0d5648384c8775e3cac2ecaf52f896c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/practice-golf-ball-normal.png",
+      "upstream_git_blob": "08696b6d5dfdf1a35493ae043c4b46afd66f4edf",
+      "local_git_blob": "08696b6d5dfdf1a35493ae043c4b46afd66f4edf",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/ptfe-fluoropolymer-albedo.png",
+      "upstream_git_blob": "2aa41f9f61836a92295e2d36fdb7a1df0cc458e6",
+      "local_git_blob": "2aa41f9f61836a92295e2d36fdb7a1df0cc458e6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/ptfe-fluoropolymer-normal.png",
+      "upstream_git_blob": "9d8254e178196c851d9997cd0414d6d7df843206",
+      "local_git_blob": "9d8254e178196c851d9997cd0414d6d7df843206",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/ptfe-fluoropolymer-orm.png",
+      "upstream_git_blob": "492a7980bce70d38367f724e437f80ba69c1fba1",
+      "local_git_blob": "492a7980bce70d38367f724e437f80ba69c1fba1",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-aluminium-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-aluminium-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-copper-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-copper-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-iron-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-iron-normal.png",
+      "upstream_git_blob": "be19c61b90d0afa516ca145503cfc9b3a53c2f2e",
+      "local_git_blob": "be19c61b90d0afa516ca145503cfc9b3a53c2f2e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-nickel-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-nickel-normal.png",
+      "upstream_git_blob": "d9b23bcf10569354f0952b8226f9dffa0a074df0",
+      "local_git_blob": "d9b23bcf10569354f0952b8226f9dffa0a074df0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-silver-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-silver-normal.png",
+      "upstream_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "local_git_blob": "9ec03d3e78d49628d3b686930cc64ec9ce161f8e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-tin-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-tin-normal.png",
+      "upstream_git_blob": "75baf75e3996949a91e253adfbe3e60ec65d64f5",
+      "local_git_blob": "75baf75e3996949a91e253adfbe3e60ec65d64f5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-zinc-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pure-zinc-normal.png",
+      "upstream_git_blob": "6d3c7a68628df606586d355ee9335c6146e769f2",
+      "local_git_blob": "6d3c7a68628df606586d355ee9335c6146e769f2",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pvc-p-flexible-albedo.png",
+      "upstream_git_blob": "63213ac149b954941fdfffd0d6c99074c6bf6d96",
+      "local_git_blob": "63213ac149b954941fdfffd0d6c99074c6bf6d96",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pvc-p-flexible-normal.png",
+      "upstream_git_blob": "f96335581dd63000e649d6e07c4997e782d571d5",
+      "local_git_blob": "f96335581dd63000e649d6e07c4997e782d571d5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pvc-p-flexible-orm.png",
+      "upstream_git_blob": "09253806a181f5b1c57e82fe42722ea2200703a2",
+      "local_git_blob": "09253806a181f5b1c57e82fe42722ea2200703a2",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pvc-u-rigid-albedo.png",
+      "upstream_git_blob": "2aa41f9f61836a92295e2d36fdb7a1df0cc458e6",
+      "local_git_blob": "2aa41f9f61836a92295e2d36fdb7a1df0cc458e6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pvc-u-rigid-normal.png",
+      "upstream_git_blob": "9d8254e178196c851d9997cd0414d6d7df843206",
+      "local_git_blob": "9d8254e178196c851d9997cd0414d6d7df843206",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/pvc-u-rigid-orm.png",
+      "upstream_git_blob": "b30a116df148d5a07f153b8bfe7eac8f643e37ad",
+      "local_git_blob": "b30a116df148d5a07f153b8bfe7eac8f643e37ad",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/raw-selvedge-denim-albedo.png",
+      "upstream_git_blob": "e80ec765f1ad86d52f5ccac09a5117afa3c241c3",
+      "local_git_blob": "e80ec765f1ad86d52f5ccac09a5117afa3c241c3",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/raw-selvedge-denim-normal.png",
+      "upstream_git_blob": "12b231321c6993571e3ab8e6f491220d4fef1fb0",
+      "local_git_blob": "12b231321c6993571e3ab8e6f491220d4fef1fb0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/ribbed-cotton-albedo.png",
+      "upstream_git_blob": "5df812ab9dc659e0eb26372e1e95cf3dffe76cba",
+      "local_git_blob": "5df812ab9dc659e0eb26372e1e95cf3dffe76cba",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/ribbed-cotton-normal.png",
+      "upstream_git_blob": "d21b63ada550ed99d0381cf70228033a3158d638",
+      "local_git_blob": "d21b63ada550ed99d0381cf70228033a3158d638",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/rose-granite-albedo.png",
+      "upstream_git_blob": "2687ff861726f9f5c8207ae7e5af5eb369b9f4d0",
+      "local_git_blob": "2687ff861726f9f5c8207ae7e5af5eb369b9f4d0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/rose-granite-normal.png",
+      "upstream_git_blob": "5b8f1ce6b4472e2a6ad3be3e0aa56b5bf81a818d",
+      "local_git_blob": "5b8f1ce6b4472e2a6ad3be3e0aa56b5bf81a818d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/rose-petal-albedo.png",
+      "upstream_git_blob": "f7dd725450f9347c1fd51ea6ec2772b706f29a7a",
+      "local_git_blob": "f7dd725450f9347c1fd51ea6ec2772b706f29a7a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/rose-petal-normal.png",
+      "upstream_git_blob": "5cfbb3a4d69c9d4a4b4b38ff016c359439f40e61",
+      "local_git_blob": "5cfbb3a4d69c9d4a4b4b38ff016c359439f40e61",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/rusted-iron-albedo.png",
+      "upstream_git_blob": "8346fd66f13e3b04370e89a7648dc2952290b39c",
+      "local_git_blob": "8346fd66f13e3b04370e89a7648dc2952290b39c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/rusted-iron-normal.png",
+      "upstream_git_blob": "a77fc8b96807c9b470a0e31dbcf66d45e5669dd8",
+      "local_git_blob": "a77fc8b96807c9b470a0e31dbcf66d45e5669dd8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/rusted-iron-orm.png",
+      "upstream_git_blob": "cc5ce5197de8548bb07f94cd580e2ad2b4df8ff7",
+      "local_git_blob": "cc5ce5197de8548bb07f94cd580e2ad2b4df8ff7",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/salt-and-pepper-granite-albedo.png",
+      "upstream_git_blob": "17e75dd2758c9a408f50638b79efc38f89c3d2dc",
+      "local_git_blob": "17e75dd2758c9a408f50638b79efc38f89c3d2dc",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/salt-and-pepper-granite-normal.png",
+      "upstream_git_blob": "275aa3df5bb20e1ed02df6bd74939f8c3f1b86b5",
+      "local_git_blob": "275aa3df5bb20e1ed02df6bd74939f8c3f1b86b5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/sand-albedo.png",
+      "upstream_git_blob": "6fad11e7a11fd704a2c5887ec557c87f80506fb9",
+      "local_git_blob": "6fad11e7a11fd704a2c5887ec557c87f80506fb9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/sand-normal.png",
+      "upstream_git_blob": "b1f03fdf71d9fc029d00a42a281cbf1ba42fcf56",
+      "local_git_blob": "b1f03fdf71d9fc029d00a42a281cbf1ba42fcf56",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/sand-orm.png",
+      "upstream_git_blob": "3cdad490af4c4bec3859fc3cc7aab6742c5e03a2",
+      "local_git_blob": "3cdad490af4c4bec3859fc3cc7aab6742c5e03a2",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/scratches-normal.png",
+      "upstream_git_blob": "8145dd268161dd4a3e79051e3ff9662e9b0b3f93",
+      "local_git_blob": "8145dd268161dd4a3e79051e3ff9662e9b0b3f93",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/scratches-orm.png",
+      "upstream_git_blob": "ccac3fbe93907f7c0b4df3925de578b355bdb48a",
+      "local_git_blob": "ccac3fbe93907f7c0b4df3925de578b355bdb48a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/sculpting-clay-albedo.png",
+      "upstream_git_blob": "1829f107aa2426a436417e34f18881ec5b6274c1",
+      "local_git_blob": "1829f107aa2426a436417e34f18881ec5b6274c1",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/sculpting-clay-normal.png",
+      "upstream_git_blob": "dbf703deb8ad22599f4b3c56c84216ab544c3d23",
+      "local_git_blob": "dbf703deb8ad22599f4b3c56c84216ab544c3d23",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/sealing-wax-albedo.png",
+      "upstream_git_blob": "899c9e1a91ffc1d350b4cda49cc5d434dad0f100",
+      "local_git_blob": "899c9e1a91ffc1d350b4cda49cc5d434dad0f100",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/sealing-wax-normal.png",
+      "upstream_git_blob": "488de94bbb7ec2d43a918519b2e19e7884c2a4ac",
+      "local_git_blob": "488de94bbb7ec2d43a918519b2e19e7884c2a4ac",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-deep-albedo.png",
+      "upstream_git_blob": "f4cf84ebb2531391c9067146e22b2084ebfdb0a4",
+      "local_git_blob": "f4cf84ebb2531391c9067146e22b2084ebfdb0a4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-deep-normal.png",
+      "upstream_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "local_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-golden-albedo.png",
+      "upstream_git_blob": "3de1001aeef411a13de266938a136da4006d881a",
+      "local_git_blob": "3de1001aeef411a13de266938a136da4006d881a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-golden-normal.png",
+      "upstream_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "local_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-olive-albedo.png",
+      "upstream_git_blob": "9039646affb2dd7dfff9bdc01d37bb519016c020",
+      "local_git_blob": "9039646affb2dd7dfff9bdc01d37bb519016c020",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-olive-normal.png",
+      "upstream_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "local_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-porcelain-albedo.png",
+      "upstream_git_blob": "ea7f70ed1a3ec62357439e0c43b10734d9c875af",
+      "local_git_blob": "ea7f70ed1a3ec62357439e0c43b10734d9c875af",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-porcelain-normal.png",
+      "upstream_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "local_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-rose-albedo.png",
+      "upstream_git_blob": "9e3ce70ca263c1b2e1b387ac7c912fc288f50c1e",
+      "local_git_blob": "9e3ce70ca263c1b2e1b387ac7c912fc288f50c1e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-rose-normal.png",
+      "upstream_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "local_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-umber-albedo.png",
+      "upstream_git_blob": "2e73fa6526680f400f51fde730e3a5d53816b627",
+      "local_git_blob": "2e73fa6526680f400f51fde730e3a5d53816b627",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/skin-umber-normal.png",
+      "upstream_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "local_git_blob": "de5e116f338dd42fb2df8ba5b7a59ea8e6782c77",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/soy-candle-wax-albedo.png",
+      "upstream_git_blob": "899c9e1a91ffc1d350b4cda49cc5d434dad0f100",
+      "local_git_blob": "899c9e1a91ffc1d350b4cda49cc5d434dad0f100",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/soy-candle-wax-normal.png",
+      "upstream_git_blob": "488de94bbb7ec2d43a918519b2e19e7884c2a4ac",
+      "local_git_blob": "488de94bbb7ec2d43a918519b2e19e7884c2a4ac",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/stainless-steel-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/stainless-steel-normal.png",
+      "upstream_git_blob": "75baf75e3996949a91e253adfbe3e60ec65d64f5",
+      "local_git_blob": "75baf75e3996949a91e253adfbe3e60ec65d64f5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/strawberry-skin-albedo.png",
+      "upstream_git_blob": "437e551acbe0b51b7bb93fdee6be9edea8ca34bd",
+      "local_git_blob": "437e551acbe0b51b7bb93fdee6be9edea8ca34bd",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/strawberry-skin-normal.png",
+      "upstream_git_blob": "e51bb6a9374228c1d09244c47171ce4b3061c14c",
+      "local_git_blob": "e51bb6a9374228c1d09244c47171ce4b3061c14c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/strawberry-skin-orm.png",
+      "upstream_git_blob": "9e5ecc2fb08ef49e10c9164e360bd6b23e6b50e5",
+      "local_git_blob": "9e5ecc2fb08ef49e10c9164e360bd6b23e6b50e5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/suede-microfiber-albedo.png",
+      "upstream_git_blob": "55ddf7c21de6b9355c69bfdefb513145140c6d3d",
+      "local_git_blob": "55ddf7c21de6b9355c69bfdefb513145140c6d3d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/suede-microfiber-normal.png",
+      "upstream_git_blob": "6d6d43779945f23b617cd61544c4fa5566a7067e",
+      "local_git_blob": "6d6d43779945f23b617cd61544c4fa5566a7067e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/terracotta-clay-albedo.png",
+      "upstream_git_blob": "106153472068fdc83b9a42809cae0159a8aff246",
+      "local_git_blob": "106153472068fdc83b9a42809cae0159a8aff246",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/terracotta-clay-normal.png",
+      "upstream_git_blob": "baccff49081a02020a73690087ade42a50407948",
+      "local_git_blob": "baccff49081a02020a73690087ade42a50407948",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/titanium-metal-albedo.png",
+      "upstream_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "local_git_blob": "06ff563e6a9589663a0786a78c7f33a904fedd0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/titanium-metal-normal.png",
+      "upstream_git_blob": "de04f660ec0677de1398ba64c9185036a47f5db3",
+      "local_git_blob": "de04f660ec0677de1398ba64c9185036a47f5db3",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/tour-golf-ball-albedo.png",
+      "upstream_git_blob": "c8eb2da7c1cacc1cc925907985b68ad9f771b16f",
+      "local_git_blob": "c8eb2da7c1cacc1cc925907985b68ad9f771b16f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/tour-golf-ball-normal.png",
+      "upstream_git_blob": "9d27e7f5d568de8ffa070e4bffc97871ea4d49ed",
+      "local_git_blob": "9d27e7f5d568de8ffa070e4bffc97871ea4d49ed",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/warm-cob-led-albedo.png",
+      "upstream_git_blob": "9b85a90a56587ac50c115b9ff5fd80e96ec39628",
+      "local_git_blob": "9b85a90a56587ac50c115b9ff5fd80e96ec39628",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/warm-cob-led-normal.png",
+      "upstream_git_blob": "5ed6d7e0a02b00e91ea5c874e3256199ced7c0cf",
+      "local_git_blob": "5ed6d7e0a02b00e91ea5c874e3256199ced7c0cf",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/warm-cob-led-radiance.png",
+      "upstream_git_blob": "f521090323807e829b3eade7fddf57e2c882d6e0",
+      "local_git_blob": "f521090323807e829b3eade7fddf57e2c882d6e0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/washed-indigo-denim-albedo.png",
+      "upstream_git_blob": "5911ef7636acd113d52b2b4cf79114abc2be93f8",
+      "local_git_blob": "5911ef7636acd113d52b2b4cf79114abc2be93f8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/washed-indigo-denim-normal.png",
+      "upstream_git_blob": "56eff4f27f2ed9f97ffcf43419b29eb1c2ad3cca",
+      "local_git_blob": "56eff4f27f2ed9f97ffcf43419b29eb1c2ad3cca",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/wet-potter-clay-albedo.png",
+      "upstream_git_blob": "dd74177f52329cc1f6786ad9844e3611377c010a",
+      "local_git_blob": "dd74177f52329cc1f6786ad9844e3611377c010a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/wet-potter-clay-normal.png",
+      "upstream_git_blob": "fb3b803800e1c8b01fe882dd73f748259046c456",
+      "local_git_blob": "fb3b803800e1c8b01fe882dd73f748259046c456",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/worn-polymer-albedo.png",
+      "upstream_git_blob": "7ea79bc569a7a108176107b4ce9da335dbcb8818",
+      "local_git_blob": "7ea79bc569a7a108176107b4ce9da335dbcb8818",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/worn-polymer-normal.png",
+      "upstream_git_blob": "3cd970e9828a1f8945660ae7c1c3b6d701889cd2",
+      "local_git_blob": "3cd970e9828a1f8945660ae7c1c3b6d701889cd2",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/worn-polymer-orm.png",
+      "upstream_git_blob": "ebcff7e1f68e7cb83ca05f874dd449e63f4596b6",
+      "local_git_blob": "ebcff7e1f68e7cb83ca05f874dd449e63f4596b6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/woven-fabric-albedo.png",
+      "upstream_git_blob": "6bbb18f8bb1c502d392c8284b23f1bd0a57a095c",
+      "local_git_blob": "6bbb18f8bb1c502d392c8284b23f1bd0a57a095c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/woven-fabric-normal.png",
+      "upstream_git_blob": "ad8e753de49f57b35f953cc96213746224824f07",
+      "local_git_blob": "ad8e753de49f57b35f953cc96213746224824f07",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/zellige-ceramic-tiles-albedo.png",
+      "upstream_git_blob": "4943bc39859287723e6678209c4006636e8bb045",
+      "local_git_blob": "4943bc39859287723e6678209c4006636e8bb045",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/zellige-ceramic-tiles-normal.png",
+      "upstream_git_blob": "5337838941c194aca5c0ec778db24daace1fda24",
+      "local_git_blob": "5337838941c194aca5c0ec778db24daace1fda24",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/Textures/zellige-ceramic-tiles-orm.png",
+      "upstream_git_blob": "4acdcce3b5cf21923da2ddd7fa25c7d3ea14a15c",
+      "local_git_blob": "4acdcce3b5cf21923da2ddd7fa25c7d3ea14a15c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/apple-skin.material",
+      "upstream_git_blob": "f88286ca5e9b13f080c27b088586efa8d2c89b75",
+      "local_git_blob": "f88286ca5e9b13f080c27b088586efa8d2c89b75",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/aurora-flip.material",
+      "upstream_git_blob": "1cd0c8804417cb9868d0fe38a77ca0cf7a957237",
+      "local_git_blob": "1cd0c8804417cb9868d0fe38a77ca0cf7a957237",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/autumn-leaf.material",
+      "upstream_git_blob": "06651e1e89868c894be28f56d381de537d33490f",
+      "local_git_blob": "06651e1e89868c894be28f56d381de537d33490f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/basket-cotton.material",
+      "upstream_git_blob": "49f225cd0869a56959d94841cd22ea228cc3951a",
+      "local_git_blob": "49f225cd0869a56959d94841cd22ea228cc3951a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/beeswax.material",
+      "upstream_git_blob": "bfde71e09f901746c083bf8ff978d2f4cd89ec21",
+      "local_git_blob": "bfde71e09f901746c083bf8ff978d2f4cd89ec21",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/black-selvedge-denim.material",
+      "upstream_git_blob": "e0acdf48a57c1463461fccc2f271caa8e15404d8",
+      "local_git_blob": "e0acdf48a57c1463461fccc2f271caa8e15404d8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/black-solar-module.material",
+      "upstream_git_blob": "43f648d69f09603aacbad45f36462fc1a59d4aa4",
+      "local_git_blob": "43f648d69f09603aacbad45f36462fc1a59d4aa4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/blue-glaucous-cactus.material",
+      "upstream_git_blob": "0a99760495e5476ef521919f3e40e4fbe44f5b0d",
+      "local_git_blob": "0a99760495e5476ef521919f3e40e4fbe44f5b0d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/board-form-concrete.material",
+      "upstream_git_blob": "dac99366dd62358e20b44f523592340a3059aef9",
+      "local_git_blob": "dac99366dd62358e20b44f523592340a3059aef9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/brake-disc.material",
+      "upstream_git_blob": "38dc16e74816ef5b78cc3c5c711e646a1a17db56",
+      "local_git_blob": "38dc16e74816ef5b78cc3c5c711e646a1a17db56",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/brass-alloy.material",
+      "upstream_git_blob": "a9f375a5ac356ad86a6fd036872905e4a0daa8b4",
+      "local_git_blob": "a9f375a5ac356ad86a6fd036872905e4a0daa8b4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/broadleaf-green.material",
+      "upstream_git_blob": "196805eea497105c5c7ac53b436b7871dee22e31",
+      "local_git_blob": "196805eea497105c5c7ac53b436b7871dee22e31",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/bronze-alloy.material",
+      "upstream_git_blob": "2c594d84b8322f3ca8ea404b848c7a4691060161",
+      "local_git_blob": "2c594d84b8322f3ca8ea404b848c7a4691060161",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/brushed-titanium.material",
+      "upstream_git_blob": "6428c94ebb97a9a0bc87d2306d4824c02e5bc3cc",
+      "local_git_blob": "6428c94ebb97a9a0bc87d2306d4824c02e5bc3cc",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/bull-grain-black-leather.material",
+      "upstream_git_blob": "00ef389c107d09b85def8e9219de3c3b188f2a8b",
+      "local_git_blob": "00ef389c107d09b85def8e9219de3c3b188f2a8b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/bull-grain-saddle-leather.material",
+      "upstream_git_blob": "572bbd00c9fd1e0fa17968ebbbe2838c9756bf71",
+      "local_git_blob": "572bbd00c9fd1e0fa17968ebbbe2838c9756bf71",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/cactus-epidermis.material",
+      "upstream_git_blob": "fd39cc71746c9943710b668f5d8edddf2752bc1a",
+      "local_git_blob": "fd39cc71746c9943710b668f5d8edddf2752bc1a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/camouflage-ballistic-polymer-smooth.material",
+      "upstream_git_blob": "2d6320854f8038336b2f2300b50b97ff146a7349",
+      "local_git_blob": "2d6320854f8038336b2f2300b50b97ff146a7349",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/camouflage-ballistic-polymer.material",
+      "upstream_git_blob": "665e5ddba416b7aa402ae9e29f209f54c0c7f499",
+      "local_git_blob": "665e5ddba416b7aa402ae9e29f209f54c0c7f499",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/candy-crimson.material",
+      "upstream_git_blob": "66c05f0386f31928adeb67d77fedaebb35ed767a",
+      "local_git_blob": "66c05f0386f31928adeb67d77fedaebb35ed767a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/carbon-ceramic.material",
+      "upstream_git_blob": "23bd33a54ed14ad60058b6e19903a231fb251322",
+      "local_git_blob": "23bd33a54ed14ad60058b6e19903a231fb251322",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/carbon-fiber.material",
+      "upstream_git_blob": "3148debe6d68155240b52846c4e08e55922a2cdc",
+      "local_git_blob": "3148debe6d68155240b52846c4e08e55922a2cdc",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/carrara-marble.material",
+      "upstream_git_blob": "9bd0356c9b52461e7c7eea45f51da16c86e2e550",
+      "local_git_blob": "9bd0356c9b52461e7c7eea45f51da16c86e2e550",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/cast-concrete.material",
+      "upstream_git_blob": "1fcd9a782d6fe1eb97850bc5bd846d12f8fdcf9d",
+      "local_git_blob": "1fcd9a782d6fe1eb97850bc5bd846d12f8fdcf9d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/cast-steel.material",
+      "upstream_git_blob": "fd136979919d0c0965f32a3ad6b9756ceffad45f",
+      "local_git_blob": "fd136979919d0c0965f32a3ad6b9756ceffad45f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/champagne-silk.material",
+      "upstream_git_blob": "64d1f7936ff0630bd43bc9f475e65d4737cb5fde",
+      "local_git_blob": "64d1f7936ff0630bd43bc9f475e65d4737cb5fde",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/chromium.material",
+      "upstream_git_blob": "2ccbb5d8a7043da42636ac788c15e26efd47f574",
+      "local_git_blob": "2ccbb5d8a7043da42636ac788c15e26efd47f574",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/coated-art-paper.material",
+      "upstream_git_blob": "e8a8d34c5b81fc204e1acd025c4fa2c3b0579e18",
+      "local_git_blob": "e8a8d34c5b81fc204e1acd025c4fa2c3b0579e18",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/cognac-leather.material",
+      "upstream_git_blob": "f9f1dcf5ab73200bde64a1a31d4434af6eef9246",
+      "local_git_blob": "f9f1dcf5ab73200bde64a1a31d4434af6eef9246",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/corrugated-aluminium.material",
+      "upstream_git_blob": "a027f5c8726895b5e0ce2b58f40f10ed9b9712c2",
+      "local_git_blob": "a027f5c8726895b5e0ce2b58f40f10ed9b9712c2",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/corrugated-card.material",
+      "upstream_git_blob": "8d2532c550ef93cd7417d0852e84ae746e407b0f",
+      "local_git_blob": "8d2532c550ef93cd7417d0852e84ae746e407b0f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/corrugated-steel.material",
+      "upstream_git_blob": "4f313e380f31707e465df6d722783de1521f8b8b",
+      "local_git_blob": "4f313e380f31707e465df6d722783de1521f8b8b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/corrugated-zinc.material",
+      "upstream_git_blob": "8496b290e9b29b4be1d5bdb07cdac3d2e7984b91",
+      "local_git_blob": "8496b290e9b29b4be1d5bdb07cdac3d2e7984b91",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/cotton-jersey-knit.material",
+      "upstream_git_blob": "f7d32e26144082e998f426623a42da4ccc6c773a",
+      "local_git_blob": "f7d32e26144082e998f426623a42da4ccc6c773a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/cotton-rag-paper.material",
+      "upstream_git_blob": "ff19a36f140b64735dbfa32af01e547cb50434db",
+      "local_git_blob": "ff19a36f140b64735dbfa32af01e547cb50434db",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/crocodile-belly-leather.material",
+      "upstream_git_blob": "e2518cc626ee7cef198e9fc4dde92523b726a782",
+      "local_git_blob": "e2518cc626ee7cef198e9fc4dde92523b726a782",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/crystal-glass.material",
+      "upstream_git_blob": "bab320be90444a58b8907b54212fb2d9e171d32c",
+      "local_git_blob": "bab320be90444a58b8907b54212fb2d9e171d32c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/grained-abs.material",
+      "upstream_git_blob": "7f20370a396275ca3011fe779e2e611ec880aa42",
+      "local_git_blob": "7f20370a396275ca3011fe779e2e611ec880aa42",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/handmade-mulberry-paper.material",
+      "upstream_git_blob": "322004cceeb7f95098785239ee22ee3ca668fb64",
+      "local_git_blob": "322004cceeb7f95098785239ee22ee3ca668fb64",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/hdpe-polyethylene.material",
+      "upstream_git_blob": "c08271c176314f38cc9129dd336570f89005cc29",
+      "local_git_blob": "c08271c176314f38cc9129dd336570f89005cc29",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/herringbone-wool.material",
+      "upstream_git_blob": "b746d000c9e3352b97ded91fc8edd91c9672261a",
+      "local_git_blob": "b746d000c9e3352b97ded91fc8edd91c9672261a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/houndstooth-wool.material",
+      "upstream_git_blob": "494814d61a9ea6b452762353cbab88cae9ecbdb7",
+      "local_git_blob": "494814d61a9ea6b452762353cbab88cae9ecbdb7",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/indigo-denim.material",
+      "upstream_git_blob": "86c635e2c258a13124eee4393216ddac150a0df8",
+      "local_git_blob": "86c635e2c258a13124eee4393216ddac150a0df8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/kaolin-clay.material",
+      "upstream_git_blob": "706ec6635b2a5e4c363c32655944d48d5617b6b2",
+      "local_git_blob": "706ec6635b2a5e4c363c32655944d48d5617b6b2",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/kraft-paper.material",
+      "upstream_git_blob": "c4d3ec63632b084e78c49f44b98833494e29b5be",
+      "local_git_blob": "c4d3ec63632b084e78c49f44b98833494e29b5be",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/layered-sand.material",
+      "upstream_git_blob": "40a2ebf4cd1a336027b5b25e7b1c4199574c4239",
+      "local_git_blob": "40a2ebf4cd1a336027b5b25e7b1c4199574c4239",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/ldpe-polyethylene.material",
+      "upstream_git_blob": "64343b33e26d10e0b8590b6d385a4bb9edd040e9",
+      "local_git_blob": "64343b33e26d10e0b8590b6d385a4bb9edd040e9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/led-pixel-matrix.material",
+      "upstream_git_blob": "2561b4bf24d8518bd4191828d352fa0476e0e6e4",
+      "local_git_blob": "2561b4bf24d8518bd4191828d352fa0476e0e6e4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/lily-petal.material",
+      "upstream_git_blob": "b70b53eb4aa5efee30114d3e754ac8e27dbba30d",
+      "local_git_blob": "b70b53eb4aa5efee30114d3e754ac8e27dbba30d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/lime-stucco.material",
+      "upstream_git_blob": "6c9e78058fab8f8ae9821e2a27f883d56c43c17d",
+      "local_git_blob": "6c9e78058fab8f8ae9821e2a27f883d56c43c17d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/liquid-silver.material",
+      "upstream_git_blob": "cadee7175a96ba82113ef741f24efebb2117b866",
+      "local_git_blob": "cadee7175a96ba82113ef741f24efebb2117b866",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/living-plant-stem.material",
+      "upstream_git_blob": "6a036c4e4c7fc3f01ed6989f05f0f04f1cdaca46",
+      "local_git_blob": "6a036c4e4c7fc3f01ed6989f05f0f04f1cdaca46",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/maraging-steel.material",
+      "upstream_git_blob": "f27dba419dee5e8e6f044118b21382d729055bb6",
+      "local_git_blob": "f27dba419dee5e8e6f044118b21382d729055bb6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/meadow-grass-blades.material",
+      "upstream_git_blob": "e7948f151b9b2608022ccdb08435a23db3825938",
+      "local_git_blob": "e7948f151b9b2608022ccdb08435a23db3825938",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/melange-jersey-knit.material",
+      "upstream_git_blob": "3e555924f54eed2a008fe1f8aa7b80ce88498c3f",
+      "local_git_blob": "3e555924f54eed2a008fe1f8aa7b80ce88498c3f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/midnight-amethyst.material",
+      "upstream_git_blob": "5f248b34b9e42bf9de67d6d530084861851113c0",
+      "local_git_blob": "5f248b34b9e42bf9de67d6d530084861851113c0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/midnight-satin.material",
+      "upstream_git_blob": "34c7044fef16643fc3097f2430b9f6c2f0ef98d0",
+      "local_git_blob": "34c7044fef16643fc3097f2430b9f6c2f0ef98d0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/midnight-velvet.material",
+      "upstream_git_blob": "f8f0a0a2d978b1f31e757c591d30fa3136837e83",
+      "local_git_blob": "f8f0a0a2d978b1f31e757c591d30fa3136837e83",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/monocrystalline-solar.material",
+      "upstream_git_blob": "3d4637059261867965e6955635ce852ffee4dc8f",
+      "local_git_blob": "3d4637059261867965e6955635ce852ffee4dc8f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/nappa-leather.material",
+      "upstream_git_blob": "a67c21cfde35075d5342a3a602d47dc51b67a3f9",
+      "local_git_blob": "a67c21cfde35075d5342a3a602d47dc51b67a3f9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/natural-cotton.material",
+      "upstream_git_blob": "28da497f93d80425ecd900d297e09b5c50901072",
+      "local_git_blob": "28da497f93d80425ecd900d297e09b5c50901072",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/nero-marble.material",
+      "upstream_git_blob": "72f5400732cdee23d719bf7b0e95822b1e5ea5d0",
+      "local_git_blob": "72f5400732cdee23d719bf7b0e95822b1e5ea5d0",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/newsprint-paper.material",
+      "upstream_git_blob": "8caa15104ce4cea5498f364830638d1f7bf954d5",
+      "local_git_blob": "8caa15104ce4cea5498f364830638d1f7bf954d5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/opal-pearl.material",
+      "upstream_git_blob": "c9672ba6159de681c69526561de6d88580461504",
+      "local_git_blob": "c9672ba6159de681c69526561de6d88580461504",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/orange-peel.material",
+      "upstream_git_blob": "508db178bd7fc91d148daaf0c44aedd5c63a915b",
+      "local_git_blob": "508db178bd7fc91d148daaf0c44aedd5c63a915b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/oxford-weave.material",
+      "upstream_git_blob": "f62f331275dfef058f35f4c3b44eb43a28e40e60",
+      "local_git_blob": "f62f331275dfef058f35f4c3b44eb43a28e40e60",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pa6-nylon.material",
+      "upstream_git_blob": "15430da9bc8062989fe0076be7befa38b80d3dc6",
+      "local_git_blob": "15430da9bc8062989fe0076be7befa38b80d3dc6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pa66-glass-filled.material",
+      "upstream_git_blob": "3352b9a3dd46b4122ecb1023e4905ef5e550bf45",
+      "local_git_blob": "3352b9a3dd46b4122ecb1023e4905ef5e550bf45",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/paraffin-wax.material",
+      "upstream_git_blob": "1cf63daff2a8fae005a8c0801cd87d95ed9f10a5",
+      "local_git_blob": "1cf63daff2a8fae005a8c0801cd87d95ed9f10a5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pbt-polyester.material",
+      "upstream_git_blob": "14b5b46b8f81822605933645488b7a50219a762f",
+      "local_git_blob": "14b5b46b8f81822605933645488b7a50219a762f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pc-polycarbonate.material",
+      "upstream_git_blob": "5fc77ab0239b85b636b6827316832b01f6a51ee5",
+      "local_git_blob": "5fc77ab0239b85b636b6827316832b01f6a51ee5",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/peek-polymer.material",
+      "upstream_git_blob": "d02082a4b2f89f57bd4ea99a3c0391e42379a870",
+      "local_git_blob": "d02082a4b2f89f57bd4ea99a3c0391e42379a870",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/performance-rubber.material",
+      "upstream_git_blob": "e71209763e0c4d77fd270fe46e21dcb78678534d",
+      "local_git_blob": "e71209763e0c4d77fd270fe46e21dcb78678534d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pet-polyester.material",
+      "upstream_git_blob": "db7e13a8cf117b6ec4a23510fbf7900eb09a568c",
+      "local_git_blob": "db7e13a8cf117b6ec4a23510fbf7900eb09a568c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/piano-black.material",
+      "upstream_git_blob": "7100e3b9ba5509855d5d906ec17ae15d7678ab16",
+      "local_git_blob": "7100e3b9ba5509855d5d906ec17ae15d7678ab16",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/plain-linen.material",
+      "upstream_git_blob": "ae324e94b5e277e69ae51d1fa4cd05844822b670",
+      "local_git_blob": "ae324e94b5e277e69ae51d1fa4cd05844822b670",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pmma-acrylic.material",
+      "upstream_git_blob": "020a73fef5ef3e2f9f8f55a846ee85e779bd3ec8",
+      "local_git_blob": "020a73fef5ef3e2f9f8f55a846ee85e779bd3ec8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/polycrystalline-solar.material",
+      "upstream_git_blob": "b4ea652535f5f9433b30fbbb4a62fb6106ea7f85",
+      "local_git_blob": "b4ea652535f5f9433b30fbbb4a62fb6106ea7f85",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pom-acetal.material",
+      "upstream_git_blob": "22ed207bd8a8ba7d0caaad8bd847c4363062ff52",
+      "local_git_blob": "22ed207bd8a8ba7d0caaad8bd847c4363062ff52",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/porcelain-grid-tiles.material",
+      "upstream_git_blob": "abc5e60fe4f676299adbc328c32ac808467746ef",
+      "local_git_blob": "abc5e60fe4f676299adbc328c32ac808467746ef",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pp-polypropylene.material",
+      "upstream_git_blob": "90bb9e3e6d022ec54376387d905765304496c46f",
+      "local_git_blob": "90bb9e3e6d022ec54376387d905765304496c46f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/practice-golf-ball.material",
+      "upstream_git_blob": "1fdd975c8ba8a84b2025afead1e3c6919ff08b80",
+      "local_git_blob": "1fdd975c8ba8a84b2025afead1e3c6919ff08b80",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/ptfe-fluoropolymer.material",
+      "upstream_git_blob": "3afe2432d7ff92de01c58f03c71f4c3e753f6e9f",
+      "local_git_blob": "3afe2432d7ff92de01c58f03c71f4c3e753f6e9f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pure-aluminium.material",
+      "upstream_git_blob": "5616d678978deef481dac1aeee0717c8cdbfba3c",
+      "local_git_blob": "5616d678978deef481dac1aeee0717c8cdbfba3c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pure-copper.material",
+      "upstream_git_blob": "75fdb212bb901b5da77ac40e4efa28a1ab16042f",
+      "local_git_blob": "75fdb212bb901b5da77ac40e4efa28a1ab16042f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pure-iron.material",
+      "upstream_git_blob": "a5236c207128ff7158d46803ddfa70ac129b239c",
+      "local_git_blob": "a5236c207128ff7158d46803ddfa70ac129b239c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pure-nickel.material",
+      "upstream_git_blob": "565a0ff8106344052e7628b01d8c308f41b4b439",
+      "local_git_blob": "565a0ff8106344052e7628b01d8c308f41b4b439",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pure-silver.material",
+      "upstream_git_blob": "eb76e36d2ed8d7e0dcde0cb748252ccfc524ff7b",
+      "local_git_blob": "eb76e36d2ed8d7e0dcde0cb748252ccfc524ff7b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pure-tin.material",
+      "upstream_git_blob": "74eb463e5b4c045b970d7789514531148a098516",
+      "local_git_blob": "74eb463e5b4c045b970d7789514531148a098516",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pure-zinc.material",
+      "upstream_git_blob": "1ec1f63233907ac9b88314c43da498279ebdcce8",
+      "local_git_blob": "1ec1f63233907ac9b88314c43da498279ebdcce8",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pvc-p-flexible.material",
+      "upstream_git_blob": "8780bc2ce032127b4096660df8b28cba39b217f9",
+      "local_git_blob": "8780bc2ce032127b4096660df8b28cba39b217f9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/pvc-u-rigid.material",
+      "upstream_git_blob": "18feb0293dd083af0b6ec8158a016f9dcc009eb9",
+      "local_git_blob": "18feb0293dd083af0b6ec8158a016f9dcc009eb9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/racing-green.material",
+      "upstream_git_blob": "c0c219994f6d719829f2ebad5e680dba8e408913",
+      "local_git_blob": "c0c219994f6d719829f2ebad5e680dba8e408913",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/raw-selvedge-denim.material",
+      "upstream_git_blob": "635b5b282557fb1c98a8dc406f5be6882b8e9025",
+      "local_git_blob": "635b5b282557fb1c98a8dc406f5be6882b8e9025",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/ribbed-cotton.material",
+      "upstream_git_blob": "4f55190d9731905654b86749597b7bfc8f8632e6",
+      "local_git_blob": "4f55190d9731905654b86749597b7bfc8f8632e6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/rose-granite.material",
+      "upstream_git_blob": "d66e6fa01ac12a2408ddaa68555355ca0ed7b87a",
+      "local_git_blob": "d66e6fa01ac12a2408ddaa68555355ca0ed7b87a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/rose-petal.material",
+      "upstream_git_blob": "85b218ee739b76965742252bbb7b782b97a0e8ad",
+      "local_git_blob": "85b218ee739b76965742252bbb7b782b97a0e8ad",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/rusted-iron.material",
+      "upstream_git_blob": "5141da0d2ddeb345905718ad8abaef9523dfe752",
+      "local_git_blob": "5141da0d2ddeb345905718ad8abaef9523dfe752",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/salt-and-pepper-granite.material",
+      "upstream_git_blob": "aa8fd3b53f4a1622540e4e444eddc719dbfcd75f",
+      "local_git_blob": "aa8fd3b53f4a1622540e4e444eddc719dbfcd75f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/sand.material",
+      "upstream_git_blob": "c72657eae99c67f427d04b87042bee62897c419e",
+      "local_git_blob": "c72657eae99c67f427d04b87042bee62897c419e",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/satin-pearl.material",
+      "upstream_git_blob": "d77a29f99fc7e593a4d49a608cb95f0cd6828b79",
+      "local_git_blob": "d77a29f99fc7e593a4d49a608cb95f0cd6828b79",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/scratches.material",
+      "upstream_git_blob": "d1df3c3b59dd30d04768a0fbb1c6e93005aa46ed",
+      "local_git_blob": "d1df3c3b59dd30d04768a0fbb1c6e93005aa46ed",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/sculpting-clay.material",
+      "upstream_git_blob": "feb61bedb75105987f4770e8eab08ffb19c0e9b3",
+      "local_git_blob": "feb61bedb75105987f4770e8eab08ffb19c0e9b3",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/sealing-wax.material",
+      "upstream_git_blob": "43385e3f44de901dd99875c9953f0d53f470e45f",
+      "local_git_blob": "43385e3f44de901dd99875c9953f0d53f470e45f",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/skin-deep.material",
+      "upstream_git_blob": "83013c25732049d2423708c75f23245345b30f3a",
+      "local_git_blob": "83013c25732049d2423708c75f23245345b30f3a",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/skin-golden.material",
+      "upstream_git_blob": "6bf6eaaf5f4e327263328aaaa61767c95832566b",
+      "local_git_blob": "6bf6eaaf5f4e327263328aaaa61767c95832566b",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/skin-olive.material",
+      "upstream_git_blob": "d289ae1007b062c3efd664a101a3e04ff2072b52",
+      "local_git_blob": "d289ae1007b062c3efd664a101a3e04ff2072b52",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/skin-porcelain.material",
+      "upstream_git_blob": "b0e50791c9d9eb3491df9a1effcc73725b444bea",
+      "local_git_blob": "b0e50791c9d9eb3491df9a1effcc73725b444bea",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/skin-rose.material",
+      "upstream_git_blob": "09b2f0bb5b7ebf6e4ccf043e2a2a66f148ceea76",
+      "local_git_blob": "09b2f0bb5b7ebf6e4ccf043e2a2a66f148ceea76",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/skin-umber.material",
+      "upstream_git_blob": "f811bdb9602764d9cef886d45010e22dcdeccaa2",
+      "local_git_blob": "f811bdb9602764d9cef886d45010e22dcdeccaa2",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/soy-candle-wax.material",
+      "upstream_git_blob": "a4cab5be1cd48dff4a2d57e1cd1411474511179c",
+      "local_git_blob": "a4cab5be1cd48dff4a2d57e1cd1411474511179c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/stainless-steel.material",
+      "upstream_git_blob": "b7745d23135bd6459749da79ac5b20b6d98860c9",
+      "local_git_blob": "b7745d23135bd6459749da79ac5b20b6d98860c9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/strawberry-skin.material",
+      "upstream_git_blob": "59bfe020157c1a6f93b99c23cb5877e9153bd659",
+      "local_git_blob": "59bfe020157c1a6f93b99c23cb5877e9153bd659",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/suede-microfiber.material",
+      "upstream_git_blob": "58947f0fc8412fb1b208d8b312e6ac2fa7e9ff36",
+      "local_git_blob": "58947f0fc8412fb1b208d8b312e6ac2fa7e9ff36",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/sunset-prism.material",
+      "upstream_git_blob": "301895a53727d98523ba1e9396a0471d4ed08529",
+      "local_git_blob": "301895a53727d98523ba1e9396a0471d4ed08529",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/terracotta-clay.material",
+      "upstream_git_blob": "324a1089b43ef44291e2b8e1864822e29bbdb0ff",
+      "local_git_blob": "324a1089b43ef44291e2b8e1864822e29bbdb0ff",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/titanium-metal.material",
+      "upstream_git_blob": "30adada29759cbdcb012b73227479857412192b6",
+      "local_git_blob": "30adada29759cbdcb012b73227479857412192b6",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/tour-golf-ball.material",
+      "upstream_git_blob": "1729b731ceab7f8d49f74f72aa3e92c93a3e296d",
+      "local_git_blob": "1729b731ceab7f8d49f74f72aa3e92c93a3e296d",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/warm-cob-led.material",
+      "upstream_git_blob": "1d7364126cf6b9058588a617efc152c8baa23c5c",
+      "local_git_blob": "1d7364126cf6b9058588a617efc152c8baa23c5c",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/washed-indigo-denim.material",
+      "upstream_git_blob": "c5dfea8e07766386794058689bb95e9dc5ddf377",
+      "local_git_blob": "c5dfea8e07766386794058689bb95e9dc5ddf377",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/wet-potter-clay.material",
+      "upstream_git_blob": "8e894accdd11b7783072f3995361733d6e2c27e9",
+      "local_git_blob": "8e894accdd11b7783072f3995361733d6e2c27e9",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/woodland-camouflage-fabric-smooth.material",
+      "upstream_git_blob": "45a1d5cfe445e7648faba9ba3f00cf96b310be53",
+      "local_git_blob": "45a1d5cfe445e7648faba9ba3f00cf96b310be53",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/woodland-camouflage-fabric.material",
+      "upstream_git_blob": "421c3c4aab899560c4b3467541157f96b8d263f1",
+      "local_git_blob": "421c3c4aab899560c4b3467541157f96b8d263f1",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/worn-polymer.material",
+      "upstream_git_blob": "0c262259e4abd1031fff8fe1e5f800e0985186d4",
+      "local_git_blob": "0c262259e4abd1031fff8fe1e5f800e0985186d4",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/woven-fabric.material",
+      "upstream_git_blob": "5f1a73756ce72b9f858e65f61a3d69bc536acc71",
+      "local_git_blob": "5f1a73756ce72b9f858e65f61a3d69bc536acc71",
+      "identical": true
+    },
+    {
+      "path": "EngineContent/MaterialArchives/TextureStudio/zellige-ceramic-tiles.material",
+      "upstream_git_blob": "31d8dc188765cd6c65a0da5c02263005a09b376d",
+      "local_git_blob": "31d8dc188765cd6c65a0da5c02263005a09b376d",
+      "identical": true
+    }
+  ]
+}

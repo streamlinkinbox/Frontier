@@ -1,0 +1,84 @@
+Format = 1
+Name = "Brake Disc"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.25015828472995344, 0.26225065752969623, 0.24620132670783548]
+Roughness = 0.72
+Metallic = 0.96
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/brake-disc-albedo.png"
+Orm = "Textures/brake-disc-orm.png"
+Normal = "Textures/brake-disc-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "latheMetal"
+Link = "shared"
+[Strata.Channels.Params]
+depth = 0.2
+detailScale = 180
+roughness = 0.42
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+scratchDensity = 0
+angle = 25
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "latheMetal"
+Link = "shared"
+[Strata.Channels.Params]
+depth = 0.2
+detailScale = 180
+roughness = 0.42
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+scratchDensity = 0
+angle = 25
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "latheMetal"
+Link = "shared"
+[Strata.Channels.Params]
+depth = 0.2
+detailScale = 180
+roughness = 0.42
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+scratchDensity = 0
+angle = 25
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.35
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.06

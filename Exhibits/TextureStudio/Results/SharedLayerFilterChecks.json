@@ -1,0 +1,11 @@
+{
+  "Date": "2026-10-18",
+  "Status": "Passed",
+  "SourceReport": "PatternHtmlBrowserChecks.json",
+  "Test": "texture stack reorder, search, visibility filtering and keyboard menus preserve layer identities",
+  "Includes": [
+    "Texture layer reorder and stable IDs",
+    "Shared visible/hidden filters and search",
+    "Keyboard menu navigation, Escape and returned add-button focus"
+  ]
+}

@@ -1,0 +1,11 @@
+Environment records, editor descriptions and scene render; host release
+Base a623f20, plus working changes if any
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Test project /home/user/Frontier/_ClaudeScratch/build/environment-scene-release
+    Start 1: EnvironmentSceneValidation
+1/1 Test #1: EnvironmentSceneValidation .......   Passed    3.47 sec
+
+100% tests passed out of 1
+
+Total Test time (real) =   3.47 sec

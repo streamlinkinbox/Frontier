@@ -1,0 +1,26 @@
+Environment records, editor descriptions and scene render; host release (retained summary)
+Base a623f20 plus environment/editor working changes. Linux x86_64, GCC 12.2.
+PASS five environment records registered
+PASS HTML groups Environment x4 then Forcefield x1
+PASS enabled tile 4 and disabled tile 1 (fog off)
+PASS every row carries its record-built group and stable id
+PASS Sun selection builds its own inspector
+PASS Cloud selection builds its own inspector
+PASS inspector field edits the live cloud setting
+PASS search finds Clouds by name
+PASS cloud toggle changes the rendered frame
+PASS fog toggle changes the rendered frame
+PASS Sun elevation changes the rendered frame
+PASS below-horizon Sun darkens the frame
+PASS scene frame written
+ENVIRONMENT_SCENE hashes retained in EnvironmentScene-release.txt
+PASS environment scene validation
+SceneDirectory profiles: Development 45/45, Editor 45/45, Shipping 17/17. LogStream exhibit 2/2.
+FrontierMain SDK path syntax-compiles; no ImGui window or Vulkan viewport ran in this sandbox.
+
+Visual proofs (small/fast, 2026-10-28): --strip writes a 2x2 comparison
+(clear / no-clouds / fog / night) reusing the validated frames; --animate writes
+16 frames at 256x160 over 30 s of wind advection (7 s total render time).
+Assembled: Images/EnvironmentStrip.png, Images/EnvironmentDrift.gif (16 distinct
+frames), Images/EnvironmentScene.png. These are CPU exhibit renders, not editor
+viewport captures.

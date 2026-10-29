@@ -1,0 +1,10 @@
+DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1
+PRIMARY hits=256 misses=0 hit_disagreement=0 facet_disagreement=0 precision_ties=0 near_edge=16 max_relative_depth=1.63429e-07 max_normal_error=0 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=0 max_rgb_error=0 matched_facet_max_rgb=0 matched_facet_max_depth=1.63429e-07 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1
+PRIMARY hits=256 misses=0 hit_disagreement=0 facet_disagreement=16 precision_ties=0 near_edge=16 max_relative_depth=1.63429e-07 max_normal_error=0 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=0 max_rgb_error=0 matched_facet_max_rgb=0 matched_facet_max_depth=1.63429e-07 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1
+PRIMARY hits=0 misses=256 hit_disagreement=0 facet_disagreement=0 precision_ties=0 near_edge=0 max_relative_depth=0 max_normal_error=0 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=0 max_rgb_error=0 matched_facet_max_rgb=0 matched_facet_max_depth=0 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1
+PRIMARY_CLIPPING near_far_nearest_overlap=1 forced_stack_fallbacks=256 exhaustive_fallback_matches=1
+PRIMARY hits=225214 misses=30786 hit_disagreement=0 facet_disagreement=0 precision_ties=0 near_edge=2717 max_relative_depth=5.00174e-06 max_normal_error=1.43991e-07 cpu_primary_raster=0 poisoned_receiver_channels=36
+PRIMARY_SHADING mean_rgb_error=2.03235e-06 max_rgb_error=6.93947e-05 matched_facet_max_rgb=6.93947e-05 matched_facet_max_depth=5.00174e-06 native_barycentrics=1 native_brdf=1 native_light_arrival=1 native_bvh_shadows=1

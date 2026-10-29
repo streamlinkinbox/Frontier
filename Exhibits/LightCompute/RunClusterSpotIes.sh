@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# 📝 Compare non-overflow spot/IES cell lists to exhaustive and native reference lighting.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT"
+TOOLS="$ROOT/ExternalPackages/VulkanCompute"
+CMAKE="${CMAKE:-cmake}"
+if ! command -v "$CMAKE" >/dev/null && [[ -x "$ROOT/_ClaudeScratch/venv/bin/cmake" ]]; then CMAKE="$ROOT/_ClaudeScratch/venv/bin/cmake"; fi
+if [[ "${PREPARE:-0}" == 1 ]]; then python3 Exhibits/LightCompute/Code/Prepare.py; fi
+SLANG="${SLANGC:-$TOOLS/Slang/slangtorch/bin/slangc}"
+DRIVER="${VULKAN_LIBRARY:-$TOOLS/SwiftShader/libvulkan.so.1}"
+if [[ -z "${VULKAN_LIBRARY:-}" ]]; then export VK_ICD_FILENAMES="$TOOLS/SwiftShader/vk_swiftshader_icd.json"; fi
+MODE=release
+FLAGS=(-DCMAKE_BUILD_TYPE=Release)
+if [[ "${SANITIZE:-0}" == 1 ]]; then
+    MODE=sanitized
+    FLAGS=(-DCMAKE_BUILD_TYPE=Debug '-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer'
+           '-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined')
+    export ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}"
+    export UBSAN_OPTIONS="${UBSAN_OPTIONS:-halt_on_error=1}"
+fi
+BUILD="$ROOT/_ClaudeScratch/build/cluster-spot-ies-$MODE"
+mkdir -p "$BUILD" Exhibits/LightCompute/Results
+# 📝 Solar-only preparation reuses the primary/solar pipelines but never dispatches them here.
+for PAIR in 'AssignLightCells Cells' 'EvaluateLightReceivers Receivers' 'TracePrimarySurfaces Primary' \
+            'ResolveSolarVisibility SolarVisibility' 'CompositeSolarOptics SolarOptics'; do
+    read -r ENTRY STEM <<< "$PAIR"
+    "$SLANG" Frontier/Engine/Rendering/Shaders/LightInfluence.slang -entry "$ENTRY" -target spirv \
+        -profile spirv_1_3 -emit-spirv-directly -O0 -o "$BUILD/$STEM.spv"
+done
+"$CMAKE" -S Exhibits/LightCompute -B "$BUILD" "${FLAGS[@]}" >/dev/null
+"$CMAKE" --build "$BUILD" --parallel 2 --target LightComputeValidation >/dev/null
+RESULTS="${RESULTS:-$ROOT/Exhibits/LightCompute/Results/ClusterSpotIes-$MODE.txt}"
+mkdir -p "$(dirname "$RESULTS")"
+{
+    printf 'Host build: %s; external Vulkan driver is not sanitizer-instrumented\n' "$MODE"
+    printf 'Platform: '; uname -sm
+    COMPILER="$(sed -n 's/^CMAKE_CXX_COMPILER:FILEPATH=//p' "$BUILD/CMakeCache.txt")"
+    printf 'C++ compiler: '; "$COMPILER" --version 2>&1 | sed -n '1p'
+    "$SLANG" -version 2>&1
+    sha256sum Frontier/Engine/Rendering/Shaders/LightInfluence.slang \
+              Frontier/Engine/Rendering/{ReferenceRenderer.cpp,CandelaDistribution.h} \
+              Exhibits/LightCompute/Code/{LightComputeValidation.cpp,ClusterSpotIesValidation.h,LightComputeFormat.h}
+    "$BUILD/LightComputeValidation" "$DRIVER" "$BUILD" --cluster-spot-ies
+} | tee "$RESULTS"

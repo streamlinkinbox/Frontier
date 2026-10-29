@@ -1,0 +1,1 @@
+PANE_THICKNESS checks=52 malformed_rejected=16 host_diagnostic_packing_cases=15 planar_volume_error_max=1.78814e-09 vehicle_poses=6 vehicle_panes=3 vehicle_triangles=284 volume_m3=0.0213574

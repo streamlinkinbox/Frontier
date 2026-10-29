@@ -1,0 +1,81 @@
+Format = 1
+Name = "Blue Glaucous Cactus"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.89
+Metallic = 0
+Ior = 1.45
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/blue-glaucous-cactus-albedo.png"
+Orm = "Textures/blue-glaucous-cactus-orm.png"
+Normal = "Textures/blue-glaucous-cactus-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "cactus"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 11
+plantRibs = 8
+cellScale = 140
+cellRelief = 0.5
+veinRelief = 0.5
+colorGradient = 0.8
+roughness = 0.65
+surfaceSeed = 17
+color = "#648a85"
+secondaryColor = "#b5c3b9"
+tertiaryColor = "#bca98c"
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "cactus"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 11
+plantRibs = 8
+cellScale = 140
+cellRelief = 0.5
+veinRelief = 0.5
+colorGradient = 0.8
+roughness = 0.65
+surfaceSeed = 17
+color = "#648a85"
+secondaryColor = "#b5c3b9"
+tertiaryColor = "#bca98c"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "cactus"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 11
+plantRibs = 8
+cellScale = 140
+cellRelief = 0.5
+veinRelief = 0.5
+colorGradient = 0.8
+roughness = 0.65
+surfaceSeed = 17
+color = "#648a85"
+secondaryColor = "#b5c3b9"
+tertiaryColor = "#bca98c"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.22
+Metallic = 0.0
+Ior = 1.45
+Coverage = 0.07

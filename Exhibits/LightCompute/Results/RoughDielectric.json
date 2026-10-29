@@ -1,0 +1,25 @@
+{
+  "negative_control_revision": "213f050",
+  "device": "SwiftShader Device (Subzero)",
+  "physical_gpu": false,
+  "capture_dimensions": [
+    96,
+    64
+  ],
+  "samples_per_pixel": 32,
+  "proposals_per_sample": 2,
+  "reflector_roughness": [
+    0.06,
+    0.3,
+    0.65
+  ],
+  "interaction_cap": 2048,
+  "capture_sha256": {
+    "RoughDielectric0.ppm": "21b0f2f093add0df232115b2d345257f6177d08e570effb6722d231d5061bf18",
+    "RoughDielectric1.ppm": "3316dd3b6aa3b5044c92b787f9b112e732456127aba46387688b95f0489e8990",
+    "RoughDielectric2.ppm": "57c387f4af93eedbc248771c95fd6ff1f053e297660b02838c4eb564c6977adb"
+  },
+  "rough_log": "ROUGH_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4\nROUGH_BEER changed_channels=11118 channel_ratios=0.924979,0.813363,0.71067 repeat_exact=1\nROUGH_GLASS_SCREEN case=0 bvh_exact=1\nROUGH_GLASS_SCREEN case=1 bvh_exact=1\nROUGH_GLASS_SCREEN case=2 bvh_exact=1\nROUGH_DIELECTRIC_PASS source_off_black=1 pixels=6144 samples=32 proposals_per_sample=2\n",
+  "negative_control_log": "ROUGH_DIELECTRIC_DEVICE name=SwiftShader Device (Subzero) type=4\nROUGH_DIELECTRIC_ORIGINAL changed_channels=0 absorption_ignored=1 repeat_exact=1\n",
+  "scope": "Rough cosine/GGX reflector rays through smooth closed volumes. Rough glass boundaries, nesting, caustics, saved material authoring and compact diffuse extension separately tested."
+}

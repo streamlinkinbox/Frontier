@@ -1,0 +1,25 @@
+{
+  "result": "passed",
+  "captured_frames": 207,
+  "encoded_frames": 71,
+  "duration_ms_per_input_frame": 110,
+  "pillow": "11.3.0",
+  "native_cursor": true,
+  "cpu_vector_rasterization": false,
+  "imgui_triangle_capture_on_cpu": true,
+  "vulkan_canvas": true,
+  "windows_executed": false,
+  "os_window_created": false,
+  "raw_frame_sequence_sha256": "9ad0499e7b36639eee7a7dd9cb1fc6aa50c483f0ca03f810b98f9a2b783f9aa8",
+  "gif_sha256": "959b8655bbff4a5f0057ed361c0cdbffc4e34b893d3f917b6748141fc27f1c79",
+  "executable_sha256": "7c55087cea77221cd5b125726e98c0a902168445dff874ffaa7c702b14c43193",
+  "source_sha256": {
+    "Exhibits/TextureStudio/Code/EncodeNativePatternMotion.py": "625a160d4f57f0eb287f138830d03a5534e77fe5ccaed15f66b7733bec6ad9f4",
+    "Exhibits/TextureStudio/Code/PatternWorkspaceValidation.cpp": "6a4a4774e7cf36bc9c1e13db6f594335a274b9d71219d7de3a5aa56172684a6d",
+    "UI/TextureStudio/PatternWorkspacePanel.cpp": "3bf444c040effbf6700a0a0930cc7e4f64d2bac487f51d0f6d5d3912953d5c72",
+    "Engine/Interface/VectorAuthoringControls.cpp": "24c6034f48fe0566b69cde67e81198db9cf21f9bede698f2cc5f76b066bf8145",
+    "Engine/Interface/VectorAuthoringControls.h": "87ef3899fde8bffdfa95f174df740cbd20d227b64811da52f18d8977c9505734",
+    "Engine/ContentInterchange/CubicPathEditing.cpp": "9b7d1b2807871d9c1f390bf5636cde6d0f19b68bbfd3b27ddc4146c554caae26",
+    "Engine/ContentInterchange/CubicPathEditing.h": "a9eb7b5e4f0d2d0e40f09a30ca402adf68e29863d047259ca3591f0ed533f845"
+  }
+}

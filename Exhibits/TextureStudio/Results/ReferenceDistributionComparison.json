@@ -1,0 +1,28 @@
+{
+  "Repository": "SultanAladin/Frontier-",
+  "PinnedUiRevision": "338293863d7df4e585dec0c4acae45fe9c524ed5",
+  "DesktopWorkflowRevision": "7dd674484d7387cd360cc892b5a113414b37f78f",
+  "StandaloneWorkflowRevision": "61c5be6de9df9c3a8a0cd28bece730d8693a3bd4",
+  "Findings": {
+    "Desktop": "Windows MSVC cl/link, dynamic CRT /MD, console subsystem, Python ZIP_DEFLATED, diagnostic CMD included, GitHub Actions artifact. No application signing step in inspected workflow/toolchain/packager.",
+    "Standalone": "Windows 2022 MSVC Release, static CRT, PowerShell Compress-Archive, no CMD generated, GitHub artifact plus optional GitHub prerelease. No application signing step in inspected workflow.",
+    "Networking": "Official Epic bootstrapper copied byte-identically and configured for the EOS application; workflow describes vendor signing, does not sign custom application. Direct GitHub prerelease ZIP plus checksum; extracted GUI smoke test. Actual certificate was not inspected.",
+    "BlockedDelivery": "Windows 2022 MSVC Release static CRT, Python ZIP_DEFLATED, three CMD files, GitHub artifact re-served through arena.ai as shown by user screenshot.",
+    "CurrentDelivery": "Launch scripts removed; signature and antivirus release gate remains; no new binary offered."
+  },
+  "Unresolved": [
+    "Which reference build/download the user previously used",
+    "Original blocked archive detection reason",
+    "Actual Authenticode statuses and antivirus verdicts for original and reference binaries",
+    "Whether different download origins affected Chrome classification"
+  ],
+  "Conclusion": "No evidence that the reference needed custom app signing to avoid the warning. CMD files and missing signing are not established causes. Do not substitute a vendor launcher, change archive format, or rehost the blocked archive to evade detection. Prefer traceable direct GitHub distribution for a subsequently verified package.",
+  "InspectedSources": {
+    "ReferenceWorkflow.yml": "dbe474222147101a0f4f55d9b60ab26f21f627aa3eaadf8d5505e63c42844143",
+    "ReferenceCMake.txt": "6a0348c04ea9db379e421d4faa166af2efb1e02498ee28ad4195759ad1bb8149",
+    "frontier-build.yml": "d51ed1faaa00d1466248dd0a1df2168dc4271e92384b5db4426fd31b07c63ec6",
+    "networking-windows.yml": "af36b55d1ee054a6387f1201d5ffdcf385338ce81316fec5e5bc871c948c2c55",
+    "PackageWindows.py": "a51b736c7466be933b6cf6c5a41df7eff1fb54cf245a147667b1251d09d65252",
+    "ToolchainSequence.ps1": "05a27a9728ed7a859cdb8328a9729d1a7d86d194fbd318ee8817ffeb1fa5ea5f"
+  }
+}

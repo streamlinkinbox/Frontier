@@ -1,0 +1,37 @@
+{
+  "result": "passed",
+  "frames": 3,
+  "resolution": [
+    128,
+    128
+  ],
+  "authoring_map_resolution": [
+    512,
+    512
+  ],
+  "duration_ms_per_frame": 700,
+  "pillow": "13.0.0",
+  "native_cpp_vulkan_capture": true,
+  "float32_authoring_gpu_dispatch_readback": true,
+  "pbr_gpu_sampling": true,
+  "native_windows_executed": false,
+  "os_window_created": false,
+  "cpu_vector_rasterization": false,
+  "raw_frames_sha256": "be83aa99a3bc1c43c655a2cadc2f9dd6c8e6edd3cae629af173304d3f1d9e11a",
+  "frame_sha256": {
+    "MaterialBaseline.ppm": "70daa3c5e9460e3575ce47a1082302ea09a67ca7b34cc063af36ceaac445ecc8",
+    "GpuAuthoringMaps.ppm": "2055c02b5f84965d90f19a9cb81b50b6ec5cc32fc782ab494a4646c6a6005113",
+    "UpdatedLayerRoughness.ppm": "524e3639369771f174bb7fd4bfe2cadde4f98f01816d13d7a046454e19846dc7"
+  },
+  "gif_sha256": "a0aa0352dea09c09a7d3ed134949c998704130ca13f20ea9bfb2c3d36ee92db4",
+  "executable_sha256": "7897a421f2e9fd6542dc38dbfe9d05e80096ac9c38530a4f6b8a8e0b8645a7ed",
+  "source_sha256": {
+    "Engine/Render/VectorCoverageRasterization.cpp": "e0f0ff417750d762541adddd8b677a9c59182e0a49994b6a1b1316aa02912bf8",
+    "Engine/Render/VectorSurfaceMaterialBridge.h": "2ecc70f5e99452ca8c399a49276f4c38c25674542dbb27103484cf416f525f28",
+    "Engine/Render/SurfaceMaterial.cpp": "b5f93eeb6e3b00dea62935dddb1c82454f57d0474afdb08e503ecd15b631fe30",
+    "Engine/Render/SurfaceRasterization.cpp": "a552107bc4213d4a43b82b0e16b0e401bc117bac05ae62089366d2c80fc33dd9",
+    "Engine/Render/Shader/MaterialSurface.slang": "e3de21328f1f6cfb3a946356dacf8a4ddec0b8c74a1375ea28dc9cf9cec8833b",
+    "Exhibits/Renderer/Code/MaterialRasterizationValidation.cpp": "e18af86378a5a06debf29ebea15ce0e14e7df9477f12f9438d90174f206d912e",
+    "Exhibits/TextureStudio/Code/EncodeNativePbrBridge.py": "27cced03b175825dde5f77054b0c4332303f24ea1d9e99a97a553005885b64ba"
+  }
+}

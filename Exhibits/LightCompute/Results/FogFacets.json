@@ -1,0 +1,155 @@
+{
+  "device": "DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592 ray_query_extensions=0 ray_query_executed=0 triangle_bvh_executed=1",
+  "software_vulkan_executed": true,
+  "physical_gpu_executed": false,
+  "windows_executed": false,
+  "extent": [
+    160,
+    100
+  ],
+  "capture_checks": [
+    {
+      "case": 0.0,
+      "probes": 117.0,
+      "max_rgb_error": 1.72336e-07,
+      "rgb_sum": 4552.02,
+      "width": 160.0,
+      "height": 100.0
+    },
+    {
+      "case": 1.0,
+      "probes": 117.0,
+      "max_rgb_error": 2.63045e-06,
+      "rgb_sum": 6373.19,
+      "width": 160.0,
+      "height": 100.0
+    },
+    {
+      "case": 2.0,
+      "probes": 117.0,
+      "max_rgb_error": 2.81083e-06,
+      "rgb_sum": 6498.83,
+      "width": 160.0,
+      "height": 100.0
+    },
+    {
+      "case": 3.0,
+      "probes": 117.0,
+      "max_rgb_error": 1.59192e-05,
+      "rgb_sum": 13958.4,
+      "width": 160.0,
+      "height": 100.0
+    }
+  ],
+  "sanitizer_checks": [
+    {
+      "case": 0.0,
+      "probes": 112.0,
+      "max_rgb_error": 3.56212e-06,
+      "rgb_sum": 663.744,
+      "width": 64.0,
+      "height": 40.0
+    },
+    {
+      "case": 1.0,
+      "probes": 112.0,
+      "max_rgb_error": 5.98426e-06,
+      "rgb_sum": 956.753,
+      "width": 64.0,
+      "height": 40.0
+    },
+    {
+      "case": 2.0,
+      "probes": 112.0,
+      "max_rgb_error": 4.68905e-06,
+      "rgb_sum": 976.599,
+      "width": 64.0,
+      "height": 40.0
+    },
+    {
+      "case": 3.0,
+      "probes": 112.0,
+      "max_rgb_error": 1.32394e-05,
+      "rgb_sum": 2159.54,
+      "width": 64.0,
+      "height": 40.0
+    }
+  ],
+  "rectangle_solid_angle": {
+    "samples": 131072.0,
+    "relative_error": 0.000445949,
+    "expected_red": 2.2433,
+    "native_red": 2.2423
+  },
+  "fixture": "original ControlVehicle and ground (28276 input facets) plus explicit two-triangle calibration panel",
+  "panel": {
+    "corners_m": [
+      [
+        -1,
+        -1,
+        6
+      ],
+      [
+        1,
+        -1,
+        6
+      ],
+      [
+        1,
+        1,
+        6
+      ],
+      [
+        -1,
+        1,
+        6
+      ]
+    ],
+    "two_sided_radiance_rgb": [
+      35,
+      9,
+      2
+    ]
+  },
+  "fog": {
+    "extinction_per_m": 0.07,
+    "scale_height_m": 12,
+    "albedo": 0.9,
+    "hg_g": 0.25,
+    "maximum_distance_m": 70,
+    "view_steps": 128,
+    "emitter_samples_per_view_step": 16
+  },
+  "cases": [
+    "area in-scattering off; extinction and emissive surface lighting retained",
+    "area in-scattering on; analytic volume lighting and ambient off",
+    "same as 1 but volume geometry occlusion off",
+    "both original analytic lighting and emissive volume/surface lighting on"
+  ],
+  "integration": "area/luminance discrete CDF, uniform triangle samples, area-to-solid-angle Jacobian, HG phase, triangle visibility, analytic emitter-to-volume extinction",
+  "compatibility": "Fog[15] optional budget 0..64, default 0; existing analytic/surface paths retained",
+  "checks": [
+    "cold repeat bitwise equality",
+    "resolved fog never contaminates surface radiance",
+    "zero-density equality",
+    "empty-CDF equality",
+    "invalid sample budgets and CDF rejected"
+  ],
+  "compiler": "GCC 12.2 Release captures; RelWithDebInfo ASan/UBSan checks; pinned Slang spirv_1_3 O0",
+  "sanitizer_scope": "external-driver leak detection disabled; not a global leak-free claim",
+  "limits": [
+    "finite Monte Carlo samples can be noisy",
+    "regular view marching remains",
+    "two-sided emission matches existing surface convention",
+    "emitter distances <=4mm omitted",
+    "single scattering; no inter-bounce/multiple-scattering coupling",
+    "no physical GPU, Windows, temporal fog or real-time acceptance"
+  ],
+  "readback_rgb_sha256": {
+    "FogFacet0": "0f6fdb8136f45220194ac4fbe7e3553b21b24daaf62d572073bcfd58bc2fc8d1",
+    "FogFacet1": "6d111dd001cebb7392cc9ae99854613b420ea4fc2e5838de2d3a81c90c064228",
+    "FogFacet2": "55757e6f2a54a1e0b2ae89ff134c04267eb07ab1a0349081a3a623b44e2ca6dd",
+    "FogFacet3": "ebc7d9f6a4b40a1485a29a68f1f10b7d398b361970dc062b7efaaee25d74803d"
+  },
+  "exact_source_and_product_hashes": "Results/Manifest.json"
+}

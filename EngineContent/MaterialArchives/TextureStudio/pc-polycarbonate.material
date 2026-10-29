@@ -1,0 +1,69 @@
+Format = 1
+Name = "PC Polycarbonate"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.5149176653765214, 0.5972017883637634, 0.5711248294648731]
+Roughness = 0.216
+Metallic = 0
+Ior = 1.59
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/pc-polycarbonate-albedo.png"
+Orm = "Textures/pc-polycarbonate-orm.png"
+Normal = "Textures/pc-polycarbonate-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.02
+detailScale = 130
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.12
+translucency = 0.85
+depth = 0.5
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.02
+detailScale = 130
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.12
+translucency = 0.85
+depth = 0.5
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.02
+detailScale = 130
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.12
+translucency = 0.85
+depth = 0.5

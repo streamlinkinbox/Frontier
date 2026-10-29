@@ -1,0 +1,16 @@
+Host build: sanitized; external Vulkan driver is not sanitizer-instrumented
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+ab588b275eb53da8c50983aea1048e0c7796e3ad244ccc9192ee8d6f6d142420  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+f9466530e729e9d657284962cdd70f6ad349673041e4e208a4d0bf858bf69f31  Exhibits/LightCompute/Code/StaticDiffuseGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+DIFFUSE preparing Vulkan pipelines on SwiftShader Device (Subzero)
+DIFFUSE_STATIC area_exact=0.239818199024 fresh=0.24951171875 se=0.00676141289488 spatial=0.244921879927 se=0.00301050618607 std_ratio=0.445248091 spatial_links=48640 n=4096 seeds=4
+DIFFUSE_TEMPORAL frames=8 exact=0.239818199024 mean=0.234252929688 se=0.00451288682661 std_ratio=0.333723653 accepted=5120
+DIFFUSE_REPROJECT accepted=5120 rejected=0 reuse_std=0.134914547004 cold_std=0.427817976633
+DIFFUSE_MOVING rejected=5120 global_reset=0 matches_cold=1
+DIFFUSE_SUBTOLERANCE position_5e-7 rejected=5120 matches_cold=1
+DIFFUSE_REVISION emission_reset=1 geometry_reset=1 matches_cold=1
+DIFFUSE_COLOUR exact_per_channel=0.119909099512 red=0.121627506975 red_se=0.00479031657054 blue=0.118458924087 blue_se=0.00766833826371
+DIFFUSE_MULTIBOUNCE one_hit=0 two_hits=0.5 expected_nearly=0.5 bounce_reset=1
+PASS static diffuse path reservoirs; general dynamic/spatial ReSTIR GI remains open

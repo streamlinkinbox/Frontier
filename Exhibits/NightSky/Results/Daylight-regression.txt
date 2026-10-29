@@ -1,0 +1,20 @@
+Test project /home/user/Frontier/_ClaudeScratch/build/vehicle-reference
+    Start 1: LightValidation
+1/7 Test #1: LightValidation ..................   Passed    0.21 sec
+    Start 2: TriangleVisibilityValidation
+2/7 Test #2: TriangleVisibilityValidation .....   Passed    0.13 sec
+    Start 3: TriangleDistanceValidation
+3/7 Test #3: TriangleDistanceValidation .......   Passed    0.14 sec
+    Start 4: SolarReferenceValidation
+4/7 Test #4: SolarReferenceValidation .........   Passed    0.42 sec
+    Start 5: StaticIndirectValidation
+5/7 Test #5: StaticIndirectValidation .........   Passed    0.25 sec
+    Start 6: DirectSpatialValidation
+6/7 Test #6: DirectSpatialValidation ..........   Passed    3.08 sec
+    Start 7: CompleteRendererValidation
+7/7 Test #7: CompleteRendererValidation .......   Passed    0.24 sec
+
+100% tests passed out of 7
+
+Total Test time (real) =   4.48 sec
+Default-off binary64 reference probe: 04da4f54d91705d0

@@ -1,0 +1,21 @@
+{
+  "extent": [
+    640,
+    400
+  ],
+  "vehicle_facets": 25068,
+  "analytic_lights": 36,
+  "display_rgb_identical": true,
+  "changed_display_pixels": 0,
+  "rgb_sha256": [
+    "4ba7062b79aa8f3585c64a0cff4f8a1193f9b823dd84b8ecb28c9c97dbbb7573",
+    "4ba7062b79aa8f3585c64a0cff4f8a1193f9b823dd84b8ecb28c9c97dbbb7573"
+  ],
+  "rendering_path": "native C++ CPU reference, exhaustive direct sum in both images",
+  "ies_fixture": "synthetic LM-63 data, not manufacturer photometry",
+  "all_light_list_visits": 8107704,
+  "clustered_light_list_visits": 2682703,
+  "list_visit_reduction_percent": 66.91168054482502,
+  "clustered_fallback_queries": 56643,
+  "timing_or_gpu_speedup_claimed": false
+}

@@ -1,0 +1,66 @@
+Format = 1
+Name = "Washed Indigo Denim"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.84
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.08437621154414882, 0.14995978981060856, 0.2195261997292692]
+SheenIntensity = 0.35
+SheenRoughness = 0.55
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/washed-indigo-denim-albedo.png"
+Normal = "Textures/washed-indigo-denim-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 160
+weaveAngle = 0
+weaveRelief = 0.65
+fiberDetail = 12
+fuzz = 0.35
+slub = 0.55
+denimFade = 0.6
+grain = 0.35
+fabricMode = 0
+surfaceSeed = 17
+sheen = 0.35
+sheenRoughness = 0.55
+fuzzLength = 0.65
+weavePattern = "denim"
+warpColor = "#526c81"
+weftColor = "#d1c9b1"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 160
+weaveAngle = 0
+weaveRelief = 0.65
+fiberDetail = 12
+fuzz = 0.35
+slub = 0.55
+denimFade = 0.6
+grain = 0.35
+fabricMode = 0
+surfaceSeed = 17
+sheen = 0.35
+sheenRoughness = 0.55
+fuzzLength = 0.65
+weavePattern = "denim"
+warpColor = "#526c81"
+weftColor = "#d1c9b1"

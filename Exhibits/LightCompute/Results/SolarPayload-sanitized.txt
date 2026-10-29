@@ -1,0 +1,3 @@
+467df15bb88404d2cdc73a7170ae9acb1a451d19c0eaae7d06db5ad2d5a430d2  Frontier/Engine/Rendering/SolarOpticsPayload.h
+ea092b645b184ca5ac31c3cef78f97f224995366b1ee74bf44b25866cb324cbe  Exhibits/LightCompute/Code/SolarPayloadValidation.cpp
+PASS 1536 source samples weight=0.999999993481 centroid=(0,0), synthetic sigma=6.7945744023e-05 rad, 11 invalid domains rejected

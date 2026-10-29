@@ -1,0 +1,28 @@
+Host build: release; external Vulkan driver is not sanitizer-instrumented
+Platform: Linux x86_64
+C++ compiler: c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+ed95a588034ba48ab5f415cc846ea88ba1a28b62c42381a5ee7e58e87ee74735  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+35929ddbb8ad7efd42d26c2bcd5968eb7e4699c58d101d7b38c75f9b11266c0d  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+fc56fc2a6a9cef24ffe8a479b1491029c873186f269557f237ad7270b467152d  Exhibits/LightCompute/Code/PathReplayDomain.h
+f3a116bbdcc7157b3a4cb389e7c8cad22553334efda95abb72348534fa675494  Exhibits/LightCompute/Code/PathReplayCapture.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+06dab77604bba8d5a25016ee236c11de8d37ff32b03b502c1ad4a909efcc74e6  Exhibits/LightCompute/Code/ReplayMotionValidation.h
+10c2766c9f8d3e9ac32686b1e76b4affeddfbdb1869d7040a9ff05c12deef65b  Exhibits/LightCompute/Code/ReplayTextureValidation.h
+093cc5bea45c32372cd2f4a5154e330f5e6c6ef1ee6a31bb12424483d16e333e  Exhibits/LightCompute/Code/ReplayTextureMotionValidation.h
+c672ff9b82eefb2727472dc741dd2f0c0a465bca6de7a93eacbe37de5f88918c  Exhibits/LightCompute/Code/RoughTextureReplayValidation.h
+965ff5689461b7ff2c81598c14a5f60c165bf5ccc1293b0df2da0a2f46700588  Exhibits/LightCompute/Code/RoughTextureMotionValidation.h
+ROUGH_TEXTURE_FRESH preparing Vulkan on SwiftShader Device (Subzero)
+TEXTURE_MOTION_PRIMARY rough_fresh_repeat hits=3840 textured=1173 mips=184/158/572/259 mip_boundaries=0 position_error=2.86102295e-06 normal_error=5.96046448e-08 albedo_error=7.15255737e-07
+ROUGH_TEXTURE_MOTION_COEFFICIENTS fresh_repeat textured=1173 max_error=0
+ROUGH_TEXTURE_FRESH tracing 960000 independently seeded CPU paths for pixel=46,50
+ROUGH_TEXTURE_FRESH completed=128/512 batches
+ROUGH_TEXTURE_FRESH completed=256/512 batches
+ROUGH_TEXTURE_FRESH completed=384/512 batches
+ROUGH_TEXTURE_FRESH completed=512/512 batches
+TEXTURE_MOTION_REFERENCE rough_floor_fresh_repeat channel=0 cpu=0.190791299 cpu_se=0.00172862816 vulkan=0.185243108 batch_se=0.00794921726 cpu_paths=960000 gpu_batches=512
+TEXTURE_MOTION_REFERENCE rough_floor_fresh_repeat channel=1 cpu=0.254459055 cpu_se=0.002121802 vulkan=0.243838392 batch_se=0.00892210444 cpu_paths=960000 gpu_batches=512
+TEXTURE_MOTION_REFERENCE rough_floor_fresh_repeat channel=2 cpu=0.0651533941 cpu_se=0.00083854336 vulkan=0.0624865187 batch_se=0.00382668634 cpu_paths=960000 gpu_batches=512
+ROUGH_TEXTURE_FRESH blue_delta=-0.00266687537 combined_se=0.00391748431 z=0.680762234 spatial_links=7737344
+PASS independently seeded higher-sample rough-textured fresh floor reference

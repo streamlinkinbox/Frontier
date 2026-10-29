@@ -1,0 +1,55 @@
+Vogel spatial-disk + tangent-plane culling + unified seed-bank ReSTIR GI; host release; CPU SwiftShader Vulkan
+Base 68f3016, plus working changes; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+aec2319fa521a70550994704987b917caa06d1bf189cc56745e2ed2b58612113  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+0a8ee50f9ad620466205e87cd2947f3b663d1628c43610a2647abf0c222582c6  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+069d91ad09c10d206a71e5952664061729a9b33d6c18ae2a4251f9b0d929fe4d  Frontier/Engine/Rendering/PathReplayDomain.h
+30de3a0be93e0745139db036c9214c738fb4729ad322d17a8cd5cfe8c11a2847  Frontier/Engine/Rendering/PathReplayDomain.cpp
+6a42f4732c6e069b9275801c1a8e87d641de240de7b016b3e18cee77b2ae8f9b  Frontier/Engine/Rendering/PathReplayVulkan.h
+9fd87eb6a56f07b9942459e9fa1ba37df2d582f26614008817eb73fb96022673  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+321df715e4a3b4d71e2bac40069bab42123ae9193f55f34864164e3f010959ad  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+affb399d40e821651465a03e6813768b86cac7b2877bc55f49e52fc08d8755c8  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+fb03bad7628eeec743150a76285e94aa5da1a7ab9514e705a9c4b66899ba7d55  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+431d86a1e2ce76bbadf60e48ddb2aaee09dcbc809919b60f3c41c24d8960063c  Exhibits/LightCompute/Code/ReplaySeedCorrelationValidation.cpp
+a31fd6b230c5e8c7b795430214deba0b04fd233732f6bb7c6dc0535b3e41d3c3  Exhibits/LightCompute/Code/ReplaySampleHistoryValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+90aed8e38b3f5a1f3f44db8b160e36284b9b79f5209f351988046b1c91657f71  Exhibits/LightCompute/RunReplaySpatialDisk.sh
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+2f3ceffaaca7d031bc3943f8eacf398a5d9c42c5fe0d15d8840b9acfa630b58e  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvk_swiftshader.so
+c9eef28b6b984fec220ef0abfecc40b502d46946706e47bfe97707027cb818bd  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/vk_swiftshader_icd.json
+2dfd2b1501888b151ccce4575f57d9e2c6384bcee74b650fdcfbdccf2260fe22  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/Primary.spv
+b65e4a1ca9b618940bebe9e4bbe948c057532287faa0bc80ca451af04266d366  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/ReplayGenerate.spv
+9a20c11e9ba78e5193c1f907afdf72f975962d5f55576b362399a29ae6e51bf5  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/ReplayResolve.spv
+24fd828698a6e28df43320bbc95f0d235445dd6758cb8cd0642df233508b5a19  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/ReplayGatherSampleHistory.spv
+fc47460cbf0556c64e1a1420801b46de106bc0018bd2b850875748cb7495754f  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/ReplayFinalizeSampleHistory.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release
+    Start 1: PathReplayDomainValidation
+1/6 Test #1: PathReplayDomainValidation ........   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/6 Test #2: PathReplayVulkanValidation ........   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/6 Test #3: RadiantFacetValidation ............   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/6 Test #4: MediumRadianceValidation ..........   Passed    0.00 sec
+    Start 5: ReplaySeedCorrelationValidation
+5/6 Test #5: ReplaySeedCorrelationValidation ...   Passed    1.12 sec
+    Start 6: PathReplayArchiveValidation
+6/6 Test #6: PathReplayArchiveValidation .......   Passed    0.00 sec
+
+100% tests passed out of 6
+
+Total Test time (real) =   1.14 sec
+RESERVOIR_INTAKE_GUARDS corrupt_reservoirs=11 overflow_guarded=1 temporal_rejected=11 temporal_retained=1013 disk_finite=1 host_guard=1
+SPATIAL_DISK_CORRIDOR 32x32 batches=8 cpu_lum=0.196832 clean_lum=0.198403 fresh_lum=0.198621 cross_lum=0.196937 disk_lum=0.196877 unified_lum=0.198780 fresh_rmse=0.225978 cross_rmse=0.091758 disk_rmse=0.099729 unified_rmse=0.111662 cross_edge_rmse=0.123097 disk_edge_rmse=0.134297 unified_edge_rmse=0.149618 cross_rays_avg=15848 disk_rays_avg=14600 unified_rays_avg=17385 disk_culled_avg=342
+SPATIAL_DISK_WET_GGX 32x32 batches=6 fresh_rmse=0.275748 cross_rmse=0.134707 disk_rmse=0.131988 cross_rays_avg=17084 disk_rays_avg=15789 disk_culled_avg=353
+SPATIAL_DISK_UNIFIED_GAIN 32x32 standalone_seed_rmse=0.115842 unified_seed_disk_rmse=0.111662
+PASS driving-corridor Vogel disk, tangent-plane/roughness culling and unified seed-bank + reservoir reuse
+SPATIAL_DISK_CAPTURE 64x64 bounces=4 ref_passes=192 fresh_rmse=0.229440 seed_only_rmse=0.117796 cross_rmse=0.084153 disk_rmse=0.088627 unified_rmse=0.083958 fresh_road=0.137209 seed_only_road=0.070698 cross_road=0.048661 disk_road=0.053405 unified_road=0.069209 fresh_edge=0.267213 seed_only_edge=0.144448 cross_edge=0.103440 disk_edge=0.112549 unified_edge=0.096442 fresh_rays=11542 seed_only_rays=45678 cross_rays=70473 disk_rays=67451 unified_rays=79466 cross_links=13676 disk_links=12895 unified_links=12895 disk_culled=775 unified_seeds=3490
+PASS driving-corridor spatial-disk and unified seed+reservoir comparison readbacks
+SPATIAL_DISK_COMPARISON_PNG 5d63dfcbd64e9ecabc281754cbdecefebc56c80317a84e471c9d70c5eb3b7710 /home/user/Frontier/Exhibits/LightCompute/Images/ReplaySpatialDiskComparison.png 1250x554

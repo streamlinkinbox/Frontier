@@ -1,0 +1,7 @@
+{
+  "production_block_sha256": "8e78297d6ca363422b3573e16c6a1a1928a3a77237385157a3ab706c5d1977bf",
+  "generated_shader_sha256": "1130b5b506c47fc8b6d48b3b9e6acedf54185a15b1df797c5d6a8cf8c260ecf5",
+  "compiled_shader_sha256": "05abd5771417171613ba981c907527923469c2ccbbb3c3ae4cd57b4975380b78",
+  "log": "FAINT_PATH_PASS device=SwiftShader Device (Subzero) type=4 cases=240 trials=76 killed=38 exact_rgb_first_moment=1 latched_compensation=1 draw_half_boundary=1 production_block=1\n",
+  "scope": "Actual production survival-block branch/weight parity and exact paired-draw RGB first moments. Does not statistically certify PRNG independence or remove finite hard-cap limitations."
+}

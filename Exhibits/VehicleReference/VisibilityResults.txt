@@ -1,0 +1,2 @@
+PASS: 8192 exhaustive long-double interval comparisons; endpoint/axis/invalid/empty guards
+PASS: off-camera caster; primary visible triangles=2 unchanged; mean luminance 0.491849 -> 0.336274

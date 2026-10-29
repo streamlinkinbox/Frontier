@@ -1,0 +1,66 @@
+{
+  "repository": "SultanAladin/Frontier-",
+  "commit": "338293863d7df4e585dec0c4acae45fe9c524ed5",
+  "sources": [
+    {
+      "path": "Engine/DisplayPresentation/ControlCentreHost.h",
+      "git_blob": "fb08baab412e5a4e21d09bedc45f9cbd0ece004b",
+      "sha256": "f01183d8910aa52e5d4e2bc5a43ca72f2af8468bee83942f23e9e12bff613ab6",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ControlCentreHost.h"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ControlCentreHost.cpp",
+      "git_blob": "4ac429bb80b3401a33ce102e3a24e49eea6d2a7d",
+      "sha256": "5e5f4a8a511c71c5ce9efd0eac5900b2b84dbdf9d4a3280f218e059f8df6af0d",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ControlCentreHost.cpp"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ConfigurationInspector.h",
+      "git_blob": "beff86312f6563438fff0cdd3babbae3906804d4",
+      "sha256": "3f25c361c865803be34f89d8b9515b9757568bb63495069b57eea722d49eb120",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ConfigurationInspector.h"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ConfigurationInspector.cpp",
+      "git_blob": "d56fa0b7075d657284bed24c0948b1ece1c6e771",
+      "sha256": "cd0c0e4eecbfc8fb3b4398bd8d7ee6ac46d2293274cfdf839f95df94d59fb0a2",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ConfigurationInspector.cpp"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ConfigurationStructure.h",
+      "git_blob": "45c3a54acd7d345b9dbcf8c01c3c36706e6ff499",
+      "sha256": "c139e563968205cfaa55ed3aa3387deb333ddea065d4d4ef17bbca301ee7d524",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/ConfigurationStructure.h"
+    },
+    {
+      "path": "Engine/DisplayPresentation/AppearanceInspector.h",
+      "git_blob": "2149163a75a7697c9cdc48d03e99f63332a96f6c",
+      "sha256": "9016466b48ab218f963b703aa6a2722a7d7f6d6ba8581801142c5c59e12e6e6e",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/AppearanceInspector.h"
+    },
+    {
+      "path": "Engine/DisplayPresentation/AppearanceInspector.cpp",
+      "git_blob": "3f1d384061cb4b8997168b530072edd4f6c8e417",
+      "sha256": "802aecb5f32de25ee15f6a04ad8405dc0c5747c7445f06de88cd885eb6f8ed5d",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Engine/DisplayPresentation/AppearanceInspector.cpp"
+    },
+    {
+      "path": "Experimental/TextureShaderEditor/src/AssetContentBrowser.jsx",
+      "git_blob": "99ff1655afb5a4cd30e17288b152cb0b48a5b453",
+      "sha256": "e7350fc62765a6cdedce5ebf2aa1de88c3367284694338a8e79da236e79a01ce",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Experimental/TextureShaderEditor/src/AssetContentBrowser.jsx"
+    },
+    {
+      "path": "Experimental/TextureShaderEditor/src/assetContentBrowser.css",
+      "git_blob": "ece76caec2c1251179aa691fca013f3433898ae8",
+      "sha256": "079485e384b4e435c786c795f33fc4a2343e9c3bddcb8eb12854c01776f16571",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Experimental/TextureShaderEditor/src/assetContentBrowser.css"
+    },
+    {
+      "path": "Experimental/TextureShaderEditor/docs/paint-tools-and-content-browser.md",
+      "git_blob": "05fed16d437ff5597bbecdcb2519e7dd13eff882",
+      "sha256": "2fb1e9695b01834dec0aa215f25f053c080aea576053efea9a398a9d27bc75c3",
+      "url": "https://github.com/SultanAladin/Frontier-/blob/338293863d7df4e585dec0c4acae45fe9c524ed5/Experimental/TextureShaderEditor/docs/paint-tools-and-content-browser.md"
+    }
+  ]
+}

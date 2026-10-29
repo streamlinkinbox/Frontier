@@ -1,0 +1,67 @@
+Subpixel seed retracing; host release; external Vulkan driver and shaders are not sanitizer-instrumented
+Base 68f3016, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+5d98298b72cd79e3e950dc957d5fd33d268234247fe3a7db807de66898c68634  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+aec2319fa521a70550994704987b917caa06d1bf189cc56745e2ed2b58612113  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+0a8ee50f9ad620466205e87cd2947f3b663d1628c43610a2647abf0c222582c6  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+069d91ad09c10d206a71e5952664061729a9b33d6c18ae2a4251f9b0d929fe4d  Frontier/Engine/Rendering/PathReplayDomain.h
+30de3a0be93e0745139db036c9214c738fb4729ad322d17a8cd5cfe8c11a2847  Frontier/Engine/Rendering/PathReplayDomain.cpp
+6a42f4732c6e069b9275801c1a8e87d641de240de7b016b3e18cee77b2ae8f9b  Frontier/Engine/Rendering/PathReplayVulkan.h
+9fd87eb6a56f07b9942459e9fa1ba37df2d582f26614008817eb73fb96022673  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+321df715e4a3b4d71e2bac40069bab42123ae9193f55f34864164e3f010959ad  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+affb399d40e821651465a03e6813768b86cac7b2877bc55f49e52fc08d8755c8  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+fb03bad7628eeec743150a76285e94aa5da1a7ab9514e705a9c4b66899ba7d55  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+a31fd6b230c5e8c7b795430214deba0b04fd233732f6bb7c6dc0535b3e41d3c3  Exhibits/LightCompute/Code/ReplaySampleHistoryValidation.h
+7352e4ddc5eeb825d43eb706df0987c9b9cd59edfb6bfcaca8c6c0e0b7a7ed7d  Exhibits/LightCompute/Code/ReplayCameraReprojectionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+426359805333c1989f7e57f1ca5d7be1c4aa83d70086479a678a34470c37c75e  Exhibits/LightCompute/Code/ReplayCandidateValidation.h
+bd41b325c5fc68eedfb77bcb01c6d59889c566191d5d89d7f7bcc0ed05ca6ae2  Exhibits/LightCompute/Code/ReplayReconstructionValidation.h
+b1089f582559885b7ac7de403cbdaddadb44968cde997aa4d586902ff0dde526  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+16841932c69845b298fa7923cdc4d434073b24a424566dfe33ef259d51d5dd55  Exhibits/LightCompute/RunReplaySampleHistory.sh
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+2f3ceffaaca7d031bc3943f8eacf398a5d9c42c5fe0d15d8840b9acfa630b58e  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvk_swiftshader.so
+c9eef28b6b984fec220ef0abfecc40b502d46946706e47bfe97707027cb818bd  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/vk_swiftshader_icd.json
+2dfd2b1501888b151ccce4575f57d9e2c6384bcee74b650fdcfbdccf2260fe22  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/Primary.spv
+b65e4a1ca9b618940bebe9e4bbe948c057532287faa0bc80ca451af04266d366  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/ReplayGenerate.spv
+9a20c11e9ba78e5193c1f907afdf72f975962d5f55576b362399a29ae6e51bf5  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/ReplayResolve.spv
+24fd828698a6e28df43320bbc95f0d235445dd6758cb8cd0642df233508b5a19  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/ReplayGatherSampleHistory.spv
+fc47460cbf0556c64e1a1420801b46de106bc0018bd2b850875748cb7495754f  /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release/ReplayFinalizeSampleHistory.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-sample-history-release
+    Start 1: PathReplayDomainValidation
+1/6 Test #1: PathReplayDomainValidation ........   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/6 Test #2: PathReplayVulkanValidation ........   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/6 Test #3: RadiantFacetValidation ............   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/6 Test #4: MediumRadianceValidation ..........   Passed    0.00 sec
+    Start 5: ReplaySeedCorrelationValidation
+5/6 Test #5: ReplaySeedCorrelationValidation ...   Passed    1.12 sec
+    Start 6: PathReplayArchiveValidation
+6/6 Test #6: PathReplayArchiveValidation .......   Passed    0.00 sec
+
+100% tests passed out of 6
+
+Total Test time (real) =   1.14 sec
+SAMPLE_HISTORY_DEVICE name=SwiftShader Device (Subzero) type=4 api=4206592
+SAMPLE_SUBPIXEL shift_pixels=0.5 accepted=970 rejected=54 disoccluded=22 full_history=970 oracle_pixels=783 edge_excluded=11 max_rgb_error=0 changed_visibility_paths=10 counter=970 history_reset=0
+SAMPLE_AREA points=794 raw_rmse=0.292289795 retraced_rmse=0.154938931 quadrature_rmse=0.00028989958 fresh_paths=1 retraced_max_paths=4
+SAMPLE_SCENE_RESET blocker_and_camera=1 reopen=1 wrong_previous_camera=1 raw_bit_exact=1
+SAMPLE_COMBINED temporal=1 spatial=1 disk=1 accepted=970 rejected=54 pre_spatial_exact=1 non_spatial_disoccluded_exact=1 changed=870 disk_changed=910 disk_links=3619 disk_culled=235 bank_shift_unused_draw=1
+SAMPLE_FACETS batches=16 points=794 reference=0.106268904 quadrature_rmse=0.00028989958 four_fresh=0.106175441 four_se=0.000101572244 retraced=0.106165368 retraced_se=0.000112705092 four_rmse=0.0135924256 retraced_rmse=0.0136649771 paired_difference=-1.0073344e-05 paired_se=0.000142082358
+SAMPLE_FACETS_RESET source_off_black=1 relit_raw_exact=1 both_reset=1
+SAMPLE_MULTIBOUNCE_REFERENCE cpu_paths=813056 points=794 reference=0.117593032 cpu_mean_se=0.000338078 cpu_point_rms_se=0.00952636377 accepted=970
+SAMPLE_MULTIBOUNCE_BATCHES completed=4/16
+SAMPLE_MULTIBOUNCE_BATCHES completed=8/16
+SAMPLE_MULTIBOUNCE_BATCHES completed=12/16
+SAMPLE_MULTIBOUNCE_BATCHES completed=16/16
+SAMPLE_MULTIBOUNCE bounces=4 batches=16 points=794 reference=0.117593032 cpu_mean_se=0.000338078 one=0.119595108 one_se=0.00292743074 four_fresh=0.11752393 four_se=0.00186966771 retraced=0.117497735 retraced_se=0.00155954896 one_rmse=0.307596266 four_rmse=0.153027434 retraced_rmse=0.1516848
+SAMPLE_MULTIBOUNCE_PAIRED retraced_minus_four=-2.619494e-05 batch_se=0.00261385588 current_paths_each=4 warm_frames=3
+SAMPLE_GUARDS corrupt_banks=7 rejected_raw_exact=1 unaffected=1017 invalid_requests=7 sequence_unchanged=1 toggle_reset=1
+RESERVOIR_INTAKE_GUARDS corrupt_reservoirs=11 overflow_guarded=1 temporal_rejected=11 temporal_retained=1013 disk_finite=1 host_guard=1
+PASS bounded subpixel seed retracing, area and multibounce references, and history guards

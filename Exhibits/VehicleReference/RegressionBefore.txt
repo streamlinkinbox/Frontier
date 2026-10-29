@@ -1,0 +1,2 @@
+PASS: 8192 exhaustive long-double interval comparisons; endpoint/axis/invalid/empty guards
+Off-camera shadow caster was lost to primary frustum culling

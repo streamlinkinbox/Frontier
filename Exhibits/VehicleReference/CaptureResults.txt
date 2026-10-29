@@ -1,0 +1,3 @@
+CPU reference pose=0 original_vehicle_facets=25068 total_facets=28276 visible=26576 surface_pixels=225214 hash=11686613948328813213
+CPU reference pose=1 original_vehicle_facets=25068 total_facets=28276 visible=26576 surface_pixels=227181 hash=3415148318537438264
+CPU reference pose=2 original_vehicle_facets=25068 total_facets=28276 visible=26576 surface_pixels=229120 hash=8815103525928560189

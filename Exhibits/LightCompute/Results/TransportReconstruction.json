@@ -1,0 +1,83 @@
+{
+  "checks": {
+    "TRANSPORT_RECONSTRUCTION": [
+      {
+        "width": 160.0,
+        "height": 100.0,
+        "reference_seeds": 16.0,
+        "updates": 8.0,
+        "accepted": 14080.0,
+        "spatial": 13981.0,
+        "fresh_rmse": 0.0103498,
+        "filtered_rmse": 0.0058573
+      }
+    ],
+    "TRANSPORT_RECONSTRUCTION_SPATIAL": [
+      {
+        "native_probes": 210.0,
+        "max_rgb_error": 4.8961e-08
+      }
+    ],
+    "TRANSPORT_RECONSTRUCTION_RESET": [
+      {
+        "emission_cold_equal": 1.0,
+        "camera_cut_cold_equal": 1.0,
+        "sources_off_black": 1.0
+      }
+    ],
+    "TRANSPORT_RECONSTRUCTION_MOTION": [
+      {
+        "pose": 0.0,
+        "accepted": 0.0,
+        "current_emission_preserved": 1.0,
+        "direct_max_delta": 3.8147e-06
+      },
+      {
+        "pose": 1.0,
+        "accepted": 152325.0,
+        "current_emission_preserved": 1.0,
+        "direct_max_delta": 3.8147e-06
+      },
+      {
+        "pose": 2.0,
+        "accepted": 152590.0,
+        "current_emission_preserved": 1.0,
+        "direct_max_delta": 3.8147e-06
+      },
+      {
+        "pose": 3.0,
+        "accepted": 0.0,
+        "current_emission_preserved": 1.0,
+        "direct_max_delta": 3.8147e-06
+      },
+      {
+        "pose": 4.0,
+        "accepted": 153020.0,
+        "current_emission_preserved": 1.0,
+        "direct_max_delta": 3.8147e-06
+      },
+      {
+        "pose": 5.0,
+        "accepted": 153177.0,
+        "current_emission_preserved": 1.0,
+        "direct_max_delta": 3.8147e-06
+      }
+    ]
+  },
+  "isolated_emission_rmse_reduction_percent": 43.40663587702177,
+  "reference": "160x100, isolated emission, 16 independent seeds times 16 area draws; 8 reconstruction updates",
+  "full_resolution_capture": "640x400, six moving poses, one update each, matched direct histories and seeds",
+  "filter": "reprojected capped mean, current-neighborhood RGB clamp, 5x5 surface-compatible spatial kernel",
+  "bias": "nonlinear clamping and spatial filtering are biased; moving-emitter/visibility changes are not exhaustively validated",
+  "physical_gpu_executed": false,
+  "cpu_primary_raster_executed": false,
+  "animation": "six actual lossless readbacks; illustrative timing, not frame-rate proof",
+  "motion_rgb_sha256": [
+    "25c316bc7dbe849266387562fe1fd9e7a0febf9b269158b2607fdcf06ff72b84",
+    "492dec1ef95b17d12e4db515244671e035cacdc74ee6c9a15ae18860bdf3aedb",
+    "0d7de99fb67f21575cafe1dd03f77065bb22c7d5d30a8e88e878be765aca3042",
+    "8ce1ad6679c7e102fceb71bf7e405fd692f98328fd5df15a63acd38266271bd6",
+    "4c982d6fab615cf143ce21bb8a0b7da9449aeedd6cdb2f6e43016609dc235fcf",
+    "363ccf15be691d561aa5092965b58ec38b66b0e16fc500e18337801e9169c8cd"
+  ]
+}

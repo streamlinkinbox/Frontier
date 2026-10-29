@@ -1,0 +1,31 @@
+=== FRONTIER PHASE 3: DUAL-PATH RAY ACCELERATION VALIDATION ===
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-ray-acceleration-release
+    Start 1: PathReplayDomainValidation
+1/8 Test #1: PathReplayDomainValidation ........   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/8 Test #2: PathReplayVulkanValidation ........   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/8 Test #3: RadiantFacetValidation ............   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/8 Test #4: MediumRadianceValidation ..........   Passed    0.00 sec
+    Start 5: ReplaySeedCorrelationValidation
+5/8 Test #5: ReplaySeedCorrelationValidation ...   Passed    0.92 sec
+    Start 6: ReplayVarianceFilterValidation
+6/8 Test #6: ReplayVarianceFilterValidation ....   Passed    0.00 sec
+    Start 7: ReplayRayAccelerationValidation
+7/8 Test #7: ReplayRayAccelerationValidation ...   Passed    0.08 sec
+    Start 8: PathReplayArchiveValidation
+8/8 Test #8: PathReplayArchiveValidation .......   Passed    0.00 sec
+
+100% tests passed out of 8
+
+Total Test time (real) =   1.02 sec
+RAY_QUERY_ENGINE capability_cases=6 vertex_pack=1 instance_guard=1 blas_tlas_sequence=4 build_rejections=10
+ORDERED_SAH_PARITY facets=240 median_nodes=63 sah_nodes=223 legacy_boxes=388694 legacy_tris=814628 ordered_med_boxes=364854 ordered_med_tris=770977 ordered_sah_boxes=281702 ordered_sah_tris=35056 same_tree_tri_saved_pct=5.36 sah_ordered_tri_saved_pct=95.70 shadow_rays_verified=10000
+RAY_QUERY_SPIRV_VERIFIED files=4 version=1.4 capability_4472=1 accel_type_5341=1 init_4473=1 proceed_4477=1 confirm_endpoint_skip_4476=1
+PASS replay ray-query engine, BLAS/TLAS recorder, and ordered SAH BVH equivalence
+RAY_ACCEL_RUNTIME_TIER device="SwiftShader Device (Subzero)" api_major=1 api_minor=3 hw_ray_query_ready=0 selected_tier=OrderedSoftwareBvh fallback_reason="Device lacks VK_KHR_acceleration_structure or VK_KHR_ray_query"
+RAY_ACCEL_BIT_EXACT_PARITY diffuse_4f_max_diff=0 rough_ggx_max_diff=0 median_legacy_boxes=3499985 median_ordered_boxes=3174093 median_legacy_tris=4696735 median_ordered_tris=4266046 sah_rough_legacy_boxes=341724 sah_rough_ordered_boxes=340895 sah_rough_legacy_tris=37892 sah_rough_ordered_tris=28884 slot9_conservation=1
+RAY_ACCEL_SAH_ORDERED_SPEEDUP facets=276 median_nodes=103 sah_nodes=245 single_emitter_max_diff=0 total_rays=17294 legacy_med_boxes=961558 sah_ord_boxes=478276 box_saved_pct=50.26 legacy_med_tris=1292034 sah_ord_tris=39816 tri_saved_pct=96.92 total_ops_saved_pct=77.01 legacy_rmse=0.1071 sah_ordered_rmse=0.1070
+PASS replay Vulkan ray acceleration tier selection, bit-exact parity, and SAH-2 GPU speedup
+RAY_ACCEL_CAPTURE width=64 height=64 facets=276 median_nodes=103 sah_nodes=245 total_rays=76852 same_tree_max_diff=0 legacy_boxes=4283487 sah_ordered_boxes=2152053 box_saved_pct=49.76 legacy_tris=5739088 sah_ordered_tris=179221 tri_saved_pct=96.88 combined_saved_pct=76.74 legacy_rmse=0.0699 sah_ordered_rmse=0.0667

@@ -1,0 +1,15 @@
+Format = 1
+Name = "Six millimetre vehicle glazing"
+
+[DielectricVolume]
+Ior = 1.52
+Absorption = [1.0, 4.0, 12.0]
+
+# Studio approximation only; geometry supplies nominal 0.006 m thickness.
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.44, 0.58, 0.50]
+Roughness = 0.045
+Metallic = 0
+Ior = 1.52
+Coverage = 1.0

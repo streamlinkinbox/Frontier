@@ -1,0 +1,33 @@
+ReplaySeedCorrelation host release, 96f31ec plus working changes (2D five-tap spatial mirror added)
+Reference expectations: state0 0.24127054 state1 0.41015991
+Stationary mode 0: mean 0.242007 ref 0.241271 bias +0.30505% sd 0.1239 z +0.38 | frame0 0.2463 frame3 0.2463 frame12 0.2262
+Stationary mode 1: mean 0.242633 ref 0.241271 bias +0.56451% sd 0.0956 z +0.91 | frame0 0.2463 frame3 0.2401 frame12 0.2352
+Stationary mode 2: mean 0.242314 ref 0.241271 bias +0.43267% sd 0.0798 z +0.84 | frame0 0.2463 frame3 0.2384 frame12 0.2403
+Dynamic mode 0: mean 0.407655 ref 0.410160 bias -0.61066% z -0.51
+Dynamic mode 1: mean 0.413577 ref 0.410160 bias +0.83323% z +0.92
+Dynamic mode 2: mean 0.415225 ref 0.410160 bias +1.23496% z +0.68
+Correlation mode 0: sd 0.5234 lag1 -0.0051 lag2 -0.0019 lag3 +0.0060 lag4 +0.0047
+Correlation mode 1: sd 0.2596 lag1 +0.4959 lag2 +0.2500 lag3 +0.0015 lag4 +0.0006
+Spatial mode 0 pixel 0: mean 0.218624 ref 0.217143 bias +0.68184% z +0.84
+Spatial mode 0 pixel 1: mean 0.229801 ref 0.229207 bias +0.25905% z +0.39
+Spatial mode 0 pixel 2: mean 0.241721 ref 0.241271 bias +0.18650% z +0.28
+Spatial mode 0 pixel 3: mean 0.252301 ref 0.253334 bias -0.40776% z -0.61
+Spatial mode 0 pixel 4: mean 0.267114 ref 0.265398 bias +0.64672% z +0.98
+Spatial mode 0 pixel 5: mean 0.281550 ref 0.277461 bias +1.47367% z +1.82
+Spatial mode 2 pixel 0: mean 0.218672 ref 0.217143 bias +0.70406% z +1.07
+Spatial mode 2 pixel 1: mean 0.228430 ref 0.229207 bias -0.33911% z -0.64
+Spatial mode 2 pixel 2: mean 0.241650 ref 0.241271 bias +0.15740% z +0.29
+Spatial mode 2 pixel 3: mean 0.254756 ref 0.253334 bias +0.56116% z +1.04
+Spatial mode 2 pixel 4: mean 0.265785 ref 0.265398 bias +0.14599% z +0.27
+Spatial mode 2 pixel 5: mean 0.280077 ref 0.277461 bias +0.94278% z +1.53
+Candidates=2 mode 1: mean 0.240767 ref 0.241271 bias -0.20880% z -0.40
+Candidates=2 mode 2: mean 0.240329 ref 0.241271 bias -0.39011% z -0.91
+Candidates=4 mode 1: mean 0.241748 ref 0.241271 bias +0.19774% z +0.48
+Candidates=4 mode 2: mean 0.241381 ref 0.241271 bias +0.04560% z +0.13
+Spatial2D mode 0: worst pixel 4 mean 0.216706 ref 0.219556 bias -1.29814% z -2.00 (12 pixels)
+Spatial2D mode 2: worst pixel 5 mean 0.227383 ref 0.229207 bias -0.79590% z -1.69 (12 pixels)
+Path evaluations: fresh 262144 combined 999424 combined-temporal 770048 (per equal frame count; combined modes trace retained paths, so this is cost accounting, not a speedup claim)
+ReplaySeedCorrelationValidation PASS
+
+Negative control (off-by-one bank skip): Candidates=2 temporal bias -9.90% z -20.61 FAIL; Candidates=4 temporal -4.68% z -12.49 FAIL; bank-only unaffected.
+Pre-fix semantics (fresh-draw banking, all ages): stationary combined-temporal bias -25.55% z -46.25 FAIL.
