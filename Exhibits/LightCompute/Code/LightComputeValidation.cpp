@@ -1722,6 +1722,7 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "TriangleReconnectionValidation.h"
 #include "VertexCacheValidation.h"
 #include "CacheRefreshValidation.h"
+#include "CandidateBankValidation.h"
 #include "PathReplayCapture.h"
 #include "PathReplayGpuValidation.h"
 #include "ReplayRoomReference.h"
@@ -1791,6 +1792,11 @@ int main(int Count, char** Arguments)
         if (Count == 4 && std::string(Arguments[3]) == "--replay-dynamic-camera")
         {
             ValidateReplayDynamicCamera(Arguments[1], Arguments[2]);
+            return 0;
+        }
+        if (Count == 5 && std::string(Arguments[3]) == "--candidate-bank")
+        {
+            ValidateCandidateBank(Arguments[1], Arguments[2], Arguments[4]);
             return 0;
         }
         if (Count == 5 && std::string(Arguments[3]) == "--cache-refresh")
