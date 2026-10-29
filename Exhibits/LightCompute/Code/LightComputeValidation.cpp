@@ -1908,11 +1908,19 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplayFreshDonorMotionValidation.h"
 #include "ReplayTemporalFreshHistoryValidation.h"
 #include "ReplayTemporalSelectionStreamValidation.h"
+#include "ReplayTemporalPathStreamValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
     try
     {
+        if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-path-baseline" ||
+                           std::string(Arguments[3]) == "--replay-temporal-path-decorrelated"))
+        {
+            ValidateReplayTemporalPathStream(Arguments[1], Arguments[2],
+                std::string(Arguments[3]) == "--replay-temporal-path-decorrelated");
+            return 0;
+        }
         if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-selection-baseline" ||
                            std::string(Arguments[3]) == "--replay-temporal-selection-decorrelated"))
         {

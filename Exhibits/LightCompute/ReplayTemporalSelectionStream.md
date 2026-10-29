@@ -48,3 +48,7 @@ Ray-operation counters were effectively unchanged for temporal4/lower (`5,067.33
 - Visual summary source: [`Code/ReplayTemporalSelectionStreamChart.py`](Code/ReplayTemporalSelectionStreamChart.py)
 
 **Conclusion:** the independent selection hash materially changes the observed tail/mean behavior, but the comparison does not produce a quality-neutral, gate-passing replacement. Keep the baseline unchanged; continue investigating proposal/history support, finite tails and random-stream interactions separately. Do not generalize this one holdout or use it to promote a production RNG.
+
+### Follow-up: path-proposal stream
+
+A matched-seed follow-up changes only the path-proposal seed mapping while preserving the original selection stream. The new hash fails temporal1/lower mean tolerance (despite a lower RMSE), so it also remains test-only. See the [path-stream report, visual comparison and raw evidence](ReplayTemporalPathStream.md).
