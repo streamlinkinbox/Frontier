@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760">
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<rect x="22" y="20" width="1356" height="720" rx="20" fill="white" stroke="#dbe3ee"/>
+<text x="58" y="72" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" fill="#0f172a" font-weight="700">Temporal-history visibility → contribution attribution</text>
+<text x="58" y="105" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" fill="#475569" font-weight="400">128 cohorts · 512 far-group history samples per cohort · moving visibility · SwiftShader Vulkan</text>
+<text x="66" y="155" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" fill="#0f172a" font-weight="700">A · First BSDF-ray outcome: environment miss vs opaque hit</text>
+<text x="720" y="155" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" fill="#0f172a" font-weight="700">B · Target and temporal weight by first-ray outcome</text>
+<text x="70" y="225" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600">Temporal 1</text>
+<rect x="205" y="202" width="400" height="30" rx="6" fill="#dc2626"/>
+<rect x="205" y="202" width="398.79" height="30" rx="6" fill="#15803d"/>
+<text x="620" y="224" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="400">99.7% miss/emitter · 65529 traced rays</text>
+<text x="742" y="224" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#15803d" font-weight="600">Miss target 0.90429</text>
+<text x="742" y="251" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#dc2626" font-weight="600">Opaque target 0.0001</text>
+<text x="995" y="224" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#15803d" font-weight="600">Miss history wt. 0.80922</text>
+<text x="995" y="251" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#dc2626" font-weight="600">Opaque history wt. 9.7126e-05</text>
+<text x="70" y="325" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600">Temporal 4</text>
+<rect x="205" y="302" width="400" height="30" rx="6" fill="#dc2626"/>
+<rect x="205" y="302" width="399.17" height="30" rx="6" fill="#15803d"/>
+<text x="620" y="324" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="400">99.8% miss/emitter · 65536 traced rays</text>
+<text x="742" y="324" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#15803d" font-weight="600">Miss target 0.91228</text>
+<text x="742" y="351" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#dc2626" font-weight="600">Opaque target 0.0001</text>
+<text x="995" y="324" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#15803d" font-weight="600">Miss history wt. 0.81001</text>
+<text x="995" y="351" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#dc2626" font-weight="600">Opaque history wt. 0.0001061</text>
+<rect x="58" y="445" width="1284" height="245" rx="15" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="82" y="485" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" fill="#0f172a" font-weight="700">C · Temporal estimator and weight accounting</text>
+<text x="82" y="525" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#334155" font-weight="400">Temporal 1: mean 0.813958 ± 0.014657  |  RMSE 3.76676  |  visible/occluded sample n=65331/198  |  mean history weight visible/occluded=0.80922/9.7126e-05  |  same-seed radiance states nonzero→zero=165, zero→nonzero=17</text>
+<text x="82" y="573" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#334155" font-weight="400">Temporal 4: mean 0.819691 ± 0.003130  |  RMSE 0.78703  |  visible/occluded sample n=65400/136  |  mean history weight visible/occluded=0.81001/0.0001061  |  same-seed radiance states nonzero→zero=136, zero→nonzero=0</text>
+<text x="82" y="642" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400">All 131,072 prior/current seed pairs matched; history weight recomputed from target × stored source weight × retained count.</text>
+<text x="82" y="668" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400">No emissive facets: direct-NEE rays = 0. First BSDF ray is measured; zero-radiance state is only a transition proxy for 7 temporal-1 untraced samples.</text>
+</svg>

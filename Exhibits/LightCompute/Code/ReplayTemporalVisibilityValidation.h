@@ -1,0 +1,247 @@
+/*==========================================================================================================================================
+                                      REPLAYTEMPORALVISIBILITYVALIDATION.H
+==========================================================================================================================================*/
+// 🧩 Attribute moving-visibility temporal history weight to the exact replayed path and its visibility rays.
+#pragma once
+
+void ValidateReplayTemporalVisibility(const char* Driver, const std::string& Shaders)
+{
+    constexpr uint32_t Size = 32u, Pixels = Size * Size, Cohorts = 128u, Frames = 4u;
+    constexpr uint32_t FarGroup = 1u;
+    constexpr float Floor = .0001f;
+    constexpr const char* Scenario = "motion_visibility_far";
+    const std::array<ReplayTemporalProvenanceMode, 2> Modes{{{"temporal1", 1u}, {"temporal4", 4u}}};
+
+    auto DimSpecification = EnumerateReplayMaterialSpecifications()[4];
+    DimSpecification.Coverage = 1e-3f;
+    DimSpecification.CoatCoverage = 2e-3f;
+    DimSpecification.ReportingScale = 1e3;
+    const auto Dim = ConstructReplayMaterialReuseFixture(Size, DimSpecification);
+    const auto Metal = ConstructReplayMaterialReuseFixture(Size, EnumerateReplayMaterialSpecifications()[1]);
+    const auto Capacity = ConstructReplayMixedMaterialFixture(Size, Dim, Metal);
+    const auto Scenes = ConstructReplayFreshMotionScenes(Size, Dim, Metal, false);
+    const double PositionX = double(Scenes.back().Receivers[1].PositionHit[0]);
+    const double Reference = IntegrateReplayMixedVisibleReference(Metal, PositionX, 1024u);
+    const double Coarse = IntegrateReplayMixedVisibleReference(Metal, PositionX, 512u);
+    Require(std::isfinite(Reference) && Reference > 0 && std::abs(Reference - Coarse) < .0002,
+            "Visibility-audit reference failed its convergence check");
+
+    LightComputeSubmission Compute(Driver);
+    std::printf("REPLAY_TEMPORAL_VISIBILITY scenario=%s floor=lower reference=%.12g coarse=%.12g x=%.9g "
+                "preparing_on=%s\n", Scenario, Reference, Coarse, PositionX, Compute.Properties.deviceName);
+    std::fflush(stdout);
+    Compute.Prepare(Capacity, Shaders, false, false, false, false, true, false, false, true);
+    std::printf("REPLAY_TEMPORAL_VISIBILITY pipelines_ready=1 cohorts=%u pixels_per_cohort=%u\n", Cohorts, Pixels / 2u);
+    std::fflush(stdout);
+
+    struct ModeTotals
+    {
+        uint64_t Pixels = 0, DirectRays = 0, DirectVisible = 0, EnvironmentEscapes = 0, OpaqueHits = 0;
+        uint64_t EmitterHits = 0, Selected = 0, VisibleSamples = 0, OccludedSamples = 0;
+        uint64_t PriorLitCurrentBlocked = 0, PriorBlockedCurrentLit = 0, StableLit = 0, StableBlocked = 0;
+        double Nee = 0, EmitterContribution = 0, PathRadiance = 0;
+        double Target = 0, SourceWeight = 0, Retained = 0, HistoryWeight = 0, FreshWeight = 0;
+        ReplayMaterialBatchMoments Mean, Mse;
+        std::vector<double> VisibleTargets, OccludedTargets, VisibleWeights, OccludedWeights;
+        std::vector<double> VisibleNee, OccludedNee, VisibleEmitter, OccludedEmitter;
+    };
+    std::array<ModeTotals, Modes.size()> Totals{};
+    std::mt19937_64 Random(0xd7a4c1e95b830621ull);
+    uint64_t PixelRows = 0;
+    for (uint32_t Cohort = 0; Cohort < Cohorts; ++Cohort)
+    {
+        std::array<uint32_t, Frames> Seeds{};
+        for (uint32_t& Seed : Seeds) Seed = uint32_t(Random());
+        for (size_t ModeIndex = 0; ModeIndex < Modes.size(); ++ModeIndex)
+        {
+            const auto& Mode = Modes[ModeIndex];
+            auto& Total = Totals[ModeIndex];
+            std::vector<std::array<float, 4>> Image;
+            for (uint32_t Frame = 0; Frame < Frames; ++Frame)
+            {
+                Image = ExecuteReplayMaterialFloor(Compute, Scenes[Frame],
+                    ReplayMaterialReuseMode{Mode.Label, Mode.Candidates, true, false},
+                    Seeds[Frame], Frame == 0u, Floor);
+                Require(Compute.ReplayLastHistoryCap == 1u,
+                        "Visibility audit requires a one-entry temporal history cap");
+            }
+
+            const auto Visibility = Compute.ReadReplayLogicalSlab(5u, false);
+            const auto Contributions = Compute.ReadReplayLogicalSlab(6u, false);
+            const auto Source = Compute.ReadReplayLogicalSlab(7u, false);
+            const auto Choice = Compute.ReadReplayLogicalSlab(8u, false);
+            double Sum = 0, Squared = 0;
+            uint32_t GroupPixels = 0;
+            uint64_t BatchRays = 0, BatchVisible = 0, BatchMisses = 0, BatchOpaque = 0;
+            uint64_t BatchEmitters = 0, BatchSelected = 0;
+            double BatchNee = 0, BatchEmitterContribution = 0, BatchHistoryWeight = 0;
+            for (uint32_t Pixel = 0; Pixel < Pixels; ++Pixel)
+            {
+                const uint32_t X = Pixel % Size, Y = Pixel / Size;
+                if ((X + Y) % 2u != FarGroup) continue;
+                const auto& V = Visibility[Pixel];
+                const auto& C = Contributions[Pixel];
+                const auto& S = Source[Pixel];
+                const auto& Q = Choice[Pixel];
+                const double Rays = double(V[0]), Visible = double(V[1]);
+                const double EnvironmentMiss = double(V[2]), OpaqueHit = double(V[3]);
+                const double Nee = double(C[0]), Emitter = double(C[1]);
+                const double Radiance = double(C[2]), EmitterHits = double(C[3]);
+                const uint32_t Seed = uint32_t(S[0]) | (uint32_t(S[1]) << 16u);
+                const double SourceWeight = double(S[2]), SourceCount = double(S[3]);
+                const double Retained = std::min(SourceCount, 1.0);
+                const double HistoryWeight = double(Q[0]), Probability = double(Q[1]);
+                const double PriorPathRadiance = double(Q[2]), Selected = double(Q[3]);
+                const double FreshWeight = Probability > 0 && Probability < 1
+                    ? HistoryWeight * (1.0 - Probability) / Probability : 0.0;
+                const double Target = std::max(0.0, Radiance) + Floor;
+                auto FiniteNonnegative = [](double Value) { return std::isfinite(Value) && Value >= 0; };
+                Require(FiniteNonnegative(Rays) && Rays <= 1 && FiniteNonnegative(Visible) && Visible <= Rays &&
+                        FiniteNonnegative(EnvironmentMiss) && EnvironmentMiss <= 1 &&
+                        FiniteNonnegative(OpaqueHit) && OpaqueHit <= 1 &&
+                        EnvironmentMiss + OpaqueHit + EmitterHits <= 1 &&
+                        FiniteNonnegative(Nee) && FiniteNonnegative(Emitter) && FiniteNonnegative(Radiance) &&
+                        FiniteNonnegative(EmitterHits) && EmitterHits <= 1 &&
+                        std::isfinite(SourceWeight) && SourceWeight > 0 && std::isfinite(SourceCount) &&
+                        SourceCount >= 1 && SourceCount <= 68 && std::floor(SourceCount) == SourceCount &&
+                        std::isfinite(Retained) && Retained >= 1 &&
+                        std::isfinite(HistoryWeight) && HistoryWeight > 0 && FiniteNonnegative(FreshWeight) &&
+                        FiniteNonnegative(PriorPathRadiance) && (Probability > 0 && Probability < 1) &&
+                        (Selected == 0 || Selected == 1), "Per-path visibility audit contains an invalid readback");
+                const double ExpectedWeight = Target * SourceWeight * Retained;
+                Require(std::abs(ExpectedWeight - HistoryWeight) <= 5e-6 * std::max(1.0, ExpectedWeight),
+                        "Temporal candidate weight disagrees with replayed target × stored weight × retained count");
+                const double ExpectedProbability = HistoryWeight / (FreshWeight + HistoryWeight);
+                Require(std::abs(ExpectedProbability - Probability) <= 5e-6,
+                        "Temporal selection probability disagrees with logged fresh and history weights");
+                Require(std::abs(Target - (std::max(0.0, Radiance) + Floor)) <= 5e-6 * std::max(1.0, Target),
+                        "Per-path target disagrees with replayed radiance and configured floor");
+
+                ++GroupPixels;
+                ++Total.Pixels;
+                ++PixelRows;
+                BatchRays += uint64_t(Rays);
+                BatchVisible += uint64_t(Visible);
+                BatchMisses += uint64_t(EnvironmentMiss);
+                BatchOpaque += uint64_t(OpaqueHit);
+                BatchEmitters += uint64_t(EmitterHits);
+                BatchSelected += uint64_t(Selected);
+                BatchNee += Nee;
+                BatchEmitterContribution += Emitter;
+                BatchHistoryWeight += HistoryWeight;
+                Total.DirectRays += uint64_t(Rays);
+                Total.DirectVisible += uint64_t(Visible);
+                Total.EnvironmentEscapes += uint64_t(EnvironmentMiss);
+                Total.OpaqueHits += uint64_t(OpaqueHit);
+                Total.EmitterHits += uint64_t(EmitterHits);
+                Total.Selected += uint64_t(Selected);
+                Total.Nee += Nee;
+                Total.EmitterContribution += Emitter;
+                Total.PathRadiance += Radiance;
+                Total.Target += Target;
+                Total.SourceWeight += SourceWeight;
+                Total.Retained += Retained;
+                Total.HistoryWeight += HistoryWeight;
+                Total.FreshWeight += FreshWeight;
+                const bool PriorLit = PriorPathRadiance > 1e-8;
+                const bool CurrentLit = Radiance > 1e-8;
+                if (PriorLit && !CurrentLit) ++Total.PriorLitCurrentBlocked;
+                else if (!PriorLit && CurrentLit) ++Total.PriorBlockedCurrentLit;
+                else if (PriorLit) ++Total.StableLit;
+                else ++Total.StableBlocked;
+                if (EnvironmentMiss > 0 || EmitterHits > 0)
+                {
+                    ++Total.VisibleSamples;
+                    Total.VisibleTargets.push_back(Target);
+                    Total.VisibleWeights.push_back(HistoryWeight);
+                    Total.VisibleNee.push_back(Nee);
+                    Total.VisibleEmitter.push_back(Emitter);
+                }
+                else if (OpaqueHit > 0)
+                {
+                    ++Total.OccludedSamples;
+                    Total.OccludedTargets.push_back(Target);
+                    Total.OccludedWeights.push_back(HistoryWeight);
+                    Total.OccludedNee.push_back(Nee);
+                    Total.OccludedEmitter.push_back(Emitter);
+                }
+                const double Sample = double(Image[Pixel][0]);
+                Require(std::isfinite(Sample) && Sample >= 0, "Visibility audit replay returned invalid radiance");
+                Sum += Sample;
+                Squared += (Sample - Reference) * (Sample - Reference);
+                std::printf("REPLAY_TEMPORAL_VISIBILITY_PIXEL mode=%s cohort=%u pixel=%u x=%u y=%u seed=%08x "
+                            "direct_rays=%.0f direct_visible=%.0f bsdf_miss=%.0f first_opaque_hit=%.0f "
+                            "nee_luma=%.9g emitter_hits=%.0f emitter_luma=%.9g path_luma=%.9g target=%.9g "
+                            "source_weight=%.9g source_count=%.0f retained=%.9g history_weight=%.9g fresh_weight=%.9g "
+                            "previous_path_luma=%.9g selection_probability=%.9g selected=%.0f\n",
+                            Mode.Label, Cohort, Pixel, X, Y, Seed, Rays, Visible, EnvironmentMiss, OpaqueHit, Nee,
+                            EmitterHits, Emitter, Radiance, Target, SourceWeight, SourceCount, Retained, HistoryWeight,
+                            FreshWeight, PriorPathRadiance, Probability, Selected);
+            }
+            Require(GroupPixels == Pixels / 2u, "Visibility audit far-group coverage changed");
+            const double Mean = Sum / GroupPixels, Mse = Squared / GroupPixels;
+            Total.Mean.Accumulate(Mean);
+            Total.Mse.Accumulate(Mse);
+            std::printf("REPLAY_TEMPORAL_VISIBILITY_COHORT mode=%s cohort=%u pixels=%u mean=%.12g mse=%.12g "
+                        "hash=%016llx direct_rays=%llu direct_visible=%llu bsdf_miss=%llu first_opaque_hit=%llu "
+                        "emitter_hits=%llu nee_luma=%.12g "
+                        "emitter_luma=%.12g history_weight=%.12g\n",
+                        Mode.Label, Cohort, GroupPixels, Mean, Mse,
+                        static_cast<unsigned long long>(ReplayMaterialImageHash(Image, Size, FarGroup)),
+                        static_cast<unsigned long long>(BatchRays), static_cast<unsigned long long>(BatchVisible),
+                        static_cast<unsigned long long>(BatchMisses), static_cast<unsigned long long>(BatchOpaque),
+                        static_cast<unsigned long long>(BatchEmitters), BatchNee, BatchEmitterContribution,
+                        BatchHistoryWeight);
+            (void)BatchSelected;
+        }
+        std::fflush(stdout);
+    }
+    Require(PixelRows == uint64_t(Cohorts) * Modes.size() * Pixels / 2u,
+            "Per-pixel visibility audit row coverage incomplete");
+
+    for (size_t Index = 0; Index < Modes.size(); ++Index)
+    {
+        auto& T = Totals[Index];
+        const double VisibilityRate = T.DirectRays ? double(T.DirectVisible) / T.DirectRays : 0;
+        std::printf("REPLAY_TEMPORAL_VISIBILITY_RESULT mode=%s scenario=%s reference=%.12g pixels=%llu "
+                    "direct_rays=%llu direct_visible=%llu direct_visibility_rate=%.9g bsdf_miss=%llu "
+                    "first_opaque_hit=%llu emitter_hits=%llu bsdf_visible_outcome_rate=%.9g "
+                    "mean_nee_luma=%.9g mean_emitter_hits=%.9g "
+                    "mean_emitter_luma=%.9g mean_path_luma=%.9g mean_target=%.9g mean_source_weight=%.9g "
+                    "mean_retained=%.9g mean_history_weight=%.9g mean_fresh_weight=%.9g selected=%llu "
+                    "visible_samples=%llu occluded_samples=%llu visible_mean_target=%.9g "
+                    "occluded_mean_target=%.9g visible_mean_weight=%.9g occluded_mean_weight=%.9g "
+                    "visible_mean_nee=%.9g occluded_mean_nee=%.9g visible_mean_emitter=%.9g "
+                    "occluded_mean_emitter=%.9g prior_lit_current_blocked=%llu prior_blocked_current_lit=%llu "
+                    "stable_lit=%llu stable_blocked=%llu mean=%.12g mean_se=%.12g rmse=%.12g\n",
+                    Modes[Index].Label, Scenario, Reference, static_cast<unsigned long long>(T.Pixels),
+                    static_cast<unsigned long long>(T.DirectRays), static_cast<unsigned long long>(T.DirectVisible),
+                    VisibilityRate, static_cast<unsigned long long>(T.EnvironmentEscapes),
+                    static_cast<unsigned long long>(T.OpaqueHits), static_cast<unsigned long long>(T.EmitterHits),
+                    (T.EnvironmentEscapes + T.EmitterHits + T.OpaqueHits) > 0
+                        ? double(T.EnvironmentEscapes + T.EmitterHits) /
+                          double(T.EnvironmentEscapes + T.EmitterHits + T.OpaqueHits) : 0,
+                    T.Nee / T.Pixels, double(T.EmitterHits) / T.Pixels, T.EmitterContribution / T.Pixels,
+                    T.PathRadiance / T.Pixels, T.Target / T.Pixels, T.SourceWeight / T.Pixels, T.Retained / T.Pixels,
+                    T.HistoryWeight / T.Pixels, T.FreshWeight / T.Pixels,
+                    static_cast<unsigned long long>(T.Selected),
+                    static_cast<unsigned long long>(T.VisibleSamples),
+                    static_cast<unsigned long long>(T.OccludedSamples),
+                    T.VisibleTargets.empty() ? 0 : std::accumulate(T.VisibleTargets.begin(), T.VisibleTargets.end(), 0.0) / T.VisibleTargets.size(),
+                    T.OccludedTargets.empty() ? 0 : std::accumulate(T.OccludedTargets.begin(), T.OccludedTargets.end(), 0.0) / T.OccludedTargets.size(),
+                    T.VisibleWeights.empty() ? 0 : std::accumulate(T.VisibleWeights.begin(), T.VisibleWeights.end(), 0.0) / T.VisibleWeights.size(),
+                    T.OccludedWeights.empty() ? 0 : std::accumulate(T.OccludedWeights.begin(), T.OccludedWeights.end(), 0.0) / T.OccludedWeights.size(),
+                    T.VisibleNee.empty() ? 0 : std::accumulate(T.VisibleNee.begin(), T.VisibleNee.end(), 0.0) / T.VisibleNee.size(),
+                    T.OccludedNee.empty() ? 0 : std::accumulate(T.OccludedNee.begin(), T.OccludedNee.end(), 0.0) / T.OccludedNee.size(),
+                    T.VisibleEmitter.empty() ? 0 : std::accumulate(T.VisibleEmitter.begin(), T.VisibleEmitter.end(), 0.0) / T.VisibleEmitter.size(),
+                    T.OccludedEmitter.empty() ? 0 : std::accumulate(T.OccludedEmitter.begin(), T.OccludedEmitter.end(), 0.0) / T.OccludedEmitter.size(),
+                    static_cast<unsigned long long>(T.PriorLitCurrentBlocked),
+                    static_cast<unsigned long long>(T.PriorBlockedCurrentLit),
+                    static_cast<unsigned long long>(T.StableLit), static_cast<unsigned long long>(T.StableBlocked),
+                    T.Mean.Mean(), T.Mean.StandardError(), std::sqrt(T.Mse.Mean()));
+    }
+    std::printf("PASS ReplayTemporalVisibilityValidation rows=%llu same_seed_prior_current_pairs=verified estimator_changed=0\n",
+                static_cast<unsigned long long>(PixelRows));
+    std::printf("REPLAY_TEMPORAL_VISIBILITY_EXIT status=0\n");
+    std::fflush(stdout);
+}

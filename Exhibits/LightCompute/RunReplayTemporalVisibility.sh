@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# ========================================================================================================================================
+#                           RUNREPLAYTEMPORALVISIBILITY.SH
+# ========================================================================================================================================
+# 🧩 Per-pixel test-only attribution of temporal replay visibility and reservoir weights.
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$ROOT"
+if [[ -d "$ROOT/_ClaudeScratch/pytools/bin" ]]; then export PATH="$ROOT/_ClaudeScratch/pytools/bin:$PATH"; fi
+if [[ -d "$ROOT/_ClaudeScratch/pytools" ]]; then export PYTHONPATH="$ROOT/_ClaudeScratch/pytools${PYTHONPATH:+:$PYTHONPATH}"; fi
+SLANG="${SLANGC:-$ROOT/_ClaudeScratch/toolchain/slangtorch/slangtorch/bin/slangc}"
+DRIVER="${VULKAN_LIBRARY:-$ROOT/_ClaudeScratch/toolchain/build/swiftshader/libvk_swiftshader.so}"
+export LD_LIBRARY_PATH="$(dirname "$DRIVER")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
+ulimit -v "${VIRTUAL_MEMORY_KB:-3900000}"
+BUILD="${BUILD:-$ROOT/_ClaudeScratch/build/replay-provenance-release}"
+SOURCE="$BUILD/visibility-only-source"
+OUTPUT="$BUILD/visibility-baseline"
+RESULTS="${RESULTS:-$ROOT/_ClaudeScratch/provenance/visibility.log}"
+mkdir -p "$SOURCE" "$OUTPUT" "$(dirname "$RESULTS")"
+rm -f "$OUTPUT"/*.spv
+python3 Exhibits/LightCompute/Code/ReplayTemporalVisibilityCandidate.py "$SOURCE/Visibility.slang"
+"$SLANG" Frontier/Engine/Rendering/Shaders/LightInfluence.slang -I Frontier/Engine/Rendering/Shaders \
+    -entry TracePrimarySurfaces -target spirv -profile spirv_1_3 -emit-spirv-directly -O0 -o "$OUTPUT/Primary.spv"
+"$SLANG" "$SOURCE/Visibility.slang" -I Frontier/Engine/Rendering/Shaders \
+    -entry GenerateReplayReservoirs -target spirv -profile spirv_1_3 -emit-spirv-directly -O0 -o "$OUTPUT/ReplayGenerate.spv"
+"$SLANG" "$SOURCE/Visibility.slang" -I Frontier/Engine/Rendering/Shaders \
+    -entry ResolveReplayReservoirs -target spirv -profile spirv_1_3 -emit-spirv-directly -O0 -o "$OUTPUT/ReplayResolve.spv"
+"${CMAKE:-cmake}" -S Exhibits/LightCompute -B "$BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release
+"${CMAKE:-cmake}" --build "$BUILD" --parallel "${BUILD_JOBS:-2}"
+CTEST="${CTEST:-$ROOT/_ClaudeScratch/pytools/cmake/data/bin/ctest}"
+"$CTEST" --test-dir "$BUILD" --output-on-failure
+{
+    echo 'Test-only per-pixel temporal visibility/contribution readback; no estimator or production shader changes.'
+    echo "Base $(git rev-parse --short HEAD), plus working changes if any; source hashes follow."
+    echo "MALLOC_ARENA_MAX=$MALLOC_ARENA_MAX VIRTUAL_MEMORY_KB=$(ulimit -v)"
+    uname -srm
+    "${CXX:-c++}" --version | sed -n '1p'
+    "$SLANG" -version 2>&1
+    sha256sum Frontier/Engine/Rendering/Shaders/{LightInfluence,PathReplayReservoir}.slang \
+        Exhibits/LightCompute/Code/{ReplayTemporalVisibilityCandidate.py,ReplayTemporalVisibilityValidation.h,LightComputeValidation.cpp} \
+        "$SOURCE/Visibility.slang" "$OUTPUT"/{Primary,ReplayGenerate,ReplayResolve}.spv
+    if "$BUILD/LightComputeValidation" "$DRIVER" "$OUTPUT" --replay-temporal-visibility; then
+        :
+    else
+        STATUS=$?
+        echo "REPLAY_TEMPORAL_VISIBILITY_EXIT status=$STATUS"
+        exit "$STATUS"
+    fi
+} 2>&1 | tee "$RESULTS"
+python3 Exhibits/LightCompute/Code/ReplayTemporalVisibilitySummary.py "$RESULTS" \
+    Exhibits/LightCompute/Results/ReplayTemporalPathStream.txt \
+    Exhibits/LightCompute/Results/ReplayTemporalSelectionStream.txt \
+    Exhibits/LightCompute/ReplayTemporalVisibility.svg | tee -a "$RESULTS"

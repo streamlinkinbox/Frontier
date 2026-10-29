@@ -601,7 +601,7 @@ struct LightComputeSubmission
                                                             HasSampleGather, HasVarianceGather))
             : (Scene.Receivers.size() * (HasVarianceGather ? 46 :
                 (HasSampleGather ? 40 : (HasReplayGather ? 36 :
-                (ReplayOnly ? (ReplayProvenanceOnly ? 34 : 32) :
+                (ReplayOnly ? (ReplayProvenanceOnly ? 37 : 32) :
                 ((DiffuseOnly || RectangleOnly) ? 32 : 25))))) + 13889 + SolarSourceCount);
         ConstructBuffer(6, nullptr, OutputRecords * 16);
         ConstructBuffer(7, nullptr, 96);
@@ -1914,6 +1914,7 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplayTemporalSelectionStreamValidation.h"
 #include "ReplayTemporalPathStreamValidation.h"
 #include "ReplayTemporalProvenanceValidation.h"
+#include "ReplayTemporalVisibilityValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
@@ -1941,6 +1942,11 @@ int main(int Count, char** Arguments)
             ValidateReplayTemporalProvenance(Arguments[1], Arguments[2],
                 Arm == "--replay-temporal-provenance-path",
                 Arm == "--replay-temporal-provenance-selection");
+            return 0;
+        }
+        if (Count == 4 && std::string(Arguments[3]) == "--replay-temporal-visibility")
+        {
+            ValidateReplayTemporalVisibility(Arguments[1], Arguments[2]);
             return 0;
         }
         if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-history-baseline" ||
