@@ -1,0 +1,1 @@
+PASS persistent vertex cache: 194 identical semantic rows; checked hashes [63, 63]; 64 reference gates, 12 stale-cache negatives, 32 paired identities; 32 exact raw captures, 32 PNG arrays; warm source queries zero, lifecycle cadence and shader rederivation pass; both five-CTest sets passed. promote=0 physical_gpu_timing=0.

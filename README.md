@@ -76,3 +76,6 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
 - [Triangle-BVH reconnection gate](Exhibits/LightCompute/TriangleReconnection.md): real triangle hits and directional
   outgoing lighting pass reference/negative controls. Occluded query/error tradeoffs reject the literal implementation;
   persistent payloads and general-scene acceptance remain pending.
+- [Persistent vertex/outgoing cache](Exhibits/LightCompute/VertexCache.md): paired estimates preserved while warm
+  source queries drop to zero; lifecycle totals use 20.67–27.31% fewer BVH queries. Not GPU timing or new samples;
+  bounded refresh and general rendering acceptance remain outstanding.

@@ -1,0 +1,340 @@
+Secondary GPU host mode=release revision=282bd5ae14e455102e8411330ef904c86677e089 working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+f760f3063517b5b263da934d8821f0353608d24493ccd553a1f0e415f0d201b1  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+08c6a468c96062380c831551a7192502e253c5291d2dbbc23ec22a9a660486ca  Exhibits/LightCompute/RunVertexCache.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+4e4e9d1b1d97517d3d71aeeb547da1ce01c3ce5c628b6e2d1093617b1b5ed94f  /home/user/Frontier/_ClaudeScratch/build/vertex-cache-release/VertexCache.slang
+4e4961a5d8df3750e93592cc89869019fb8f29783cdbecb0d5986dbf7ae3d3af  /home/user/Frontier/_ClaudeScratch/build/vertex-cache-release/DiffuseGenerate.spv
+4f29223d44f6ff0d471bab57d404c26011689481892f29b25de06263e51899c6  /home/user/Frontier/_ClaudeScratch/build/vertex-cache-release/DiffuseResolve.spv
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/vertex-cache-release
+[  2%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayVulkan.dir/PathReplayVulkan.cpp.o
+[  5%] Building CXX object replay-engine/CMakeFiles/FrontierMediumRadiancePayload.dir/MediumRadiancePayload.cpp.o
+[  8%] Linking CXX static library libFrontierPathReplayVulkan.a
+[  8%] Built target FrontierPathReplayVulkan
+[ 10%] Building CXX object replay-engine/CMakeFiles/FrontierRadiantFacetDistribution.dir/RadiantFacetDistribution.cpp.o
+[ 13%] Linking CXX static library libFrontierMediumRadiancePayload.a
+[ 13%] Built target FrontierMediumRadiancePayload
+[ 16%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayDomain.dir/PathReplayDomain.cpp.o
+[ 18%] Linking CXX static library libFrontierRadiantFacetDistribution.a
+[ 18%] Built target FrontierRadiantFacetDistribution
+[ 21%] Building CXX object CMakeFiles/PathReplayVulkanValidation.dir/Code/PathReplayVulkanValidation.cpp.o
+[ 24%] Linking CXX executable PathReplayVulkanValidation
+[ 27%] Linking CXX static library libFrontierPathReplayDomain.a
+[ 27%] Built target FrontierPathReplayDomain
+[ 29%] Building CXX object CMakeFiles/PathReplayArchiveValidation.dir/Code/PathReplayArchiveValidation.cpp.o
+[ 29%] Built target PathReplayVulkanValidation
+[ 32%] Building CXX object CMakeFiles/RadiantFacetValidation.dir/Code/RadiantFacetValidation.cpp.o
+[ 35%] Linking CXX executable RadiantFacetValidation
+[ 35%] Built target RadiantFacetValidation
+[ 37%] Building CXX object CMakeFiles/MediumRadianceValidation.dir/Code/MediumRadianceValidation.cpp.o
+[ 40%] Linking CXX executable MediumRadianceValidation
+[ 40%] Built target MediumRadianceValidation
+[ 43%] Building CXX object replay-engine/CMakeFiles/FrontierPlumeLatticeFootprint.dir/PlumeLatticeFootprint.cpp.o
+[ 45%] Linking CXX executable PathReplayArchiveValidation
+[ 45%] Built target PathReplayArchiveValidation
+[ 48%] Building CXX object CMakeFiles/LightComputeValidation.dir/Code/LightComputeValidation.cpp.o
+[ 51%] Linking CXX static library libFrontierPlumeLatticeFootprint.a
+[ 51%] Built target FrontierPlumeLatticeFootprint
+[ 54%] Building CXX object CMakeFiles/PathReplayDomainValidation.dir/Code/PathReplayDomainValidation.cpp.o
+[ 56%] Linking CXX executable PathReplayDomainValidation
+[ 56%] Built target PathReplayDomainValidation
+[ 59%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ClusterNesting.cpp.o
+[ 62%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VisibilityCull.cpp.o
+[ 64%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DiscrepancySequence.cpp.o
+[ 67%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReservoirSampling.cpp.o
+[ 70%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VarianceFiltering.cpp.o
+[ 72%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DistanceField.cpp.o
+[ 75%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/SurfaceCards.cpp.o
+[ 78%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/AtmosphereModel.cpp.o
+[ 81%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CelestialModel.cpp.o
+[ 83%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CloudField.cpp.o
+[ 86%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/FogMedium.cpp.o
+[ 89%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReferenceRenderer.cpp.o
+[ 91%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogRingStore.cpp.o
+[ 94%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogCategories.cpp.o
+[ 97%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogStream.cpp.o
+[100%] Linking CXX executable LightComputeValidation
+[100%] Built target LightComputeValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/vertex-cache-release
+Test project /home/user/Frontier/_ClaudeScratch/build/vertex-cache-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.01 sec
+VERTEX_CACHE_DEVICE name=SwiftShader Device (Subzero) type=4 payload_bytes_per_receiver=32 telemetry_bytes_per_receiver=16
+VERTEX_CACHE_REFERENCE fixture=0 step=cold integral=0.100571720445
+VERTEX_CACHE_REFERENCE fixture=0 step=warm integral=0.100571720445
+VERTEX_CACHE_REFERENCE fixture=0 step=receiver integral=0.100571720445
+VERTEX_CACHE_REFERENCE fixture=0 step=light integral=0.0502858602226
+VERTEX_CACHE_REFERENCE fixture=0 step=material integral=0.0251429301113
+VERTEX_CACHE_REFERENCE fixture=0 step=geometry integral=0.0194055647443
+VERTEX_CACHE_REFERENCE fixture=0 step=off integral=0
+VERTEX_CACHE_REFERENCE fixture=0 step=on integral=0.0388111294886
+VERTEX_CACHE_RESULT fixture=0 step=cold method=inline mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=3442467 source_queries=3442467 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=cold method=cache mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=3312935 source_queries=3183403 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=cold method=stale_light mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=3312935 source_queries=3183403 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=cold method=stale_geometry mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=3312935 source_queries=3183403 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=0 step=cold maximum_difference=0
+VERTEX_CACHE_RESULT fixture=0 step=warm method=inline mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=3442467 source_queries=3442467 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=warm method=cache mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=129532 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=warm method=stale_light mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=129532 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=warm method=stale_geometry mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=129532 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=0 step=warm maximum_difference=0
+VERTEX_CACHE_RESULT fixture=0 step=receiver method=inline mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=3442467 source_queries=3442467 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=receiver method=cache mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=129532 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=receiver method=stale_light mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=129532 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=receiver method=stale_geometry mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0413769208172 queries=129532 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=0 step=receiver maximum_difference=0
+VERTEX_CACHE_RESULT fixture=0 step=light method=inline mean=0.0502728327451 nominal_se=6.46565936064e-05 rmse=0.0206903189406 queries=3442467 source_queries=3442467 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=light method=cache mean=0.0502728327451 nominal_se=6.46565936064e-05 rmse=0.0206903189406 queries=3312935 source_queries=3183403 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=light method=stale_light mean=0.100544930075 nominal_se=0.00012918647908 rmse=0.0651000995472 queries=129532 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_RESULT fixture=0 step=light method=stale_geometry mean=0.0502728327451 nominal_se=6.46565936064e-05 rmse=0.0206903189406 queries=3312935 source_queries=3183403 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=0 step=light maximum_difference=0
+VERTEX_CACHE_RESULT fixture=0 step=material method=inline mean=0.02513675565 nominal_se=3.23840853635e-05 rmse=0.0103475063653 queries=3442467 source_queries=3442467 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=material method=cache mean=0.02513675565 nominal_se=3.23840853635e-05 rmse=0.0103475063653 queries=3312935 source_queries=3183403 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=material method=stale_light mean=0.02513675565 nominal_se=3.23840853635e-05 rmse=0.0103475063653 queries=3312935 source_queries=3183403 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=material method=stale_geometry mean=0.0502728327451 nominal_se=6.46565936064e-05 rmse=0.0325515150882 queries=129532 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_IDENTITY fixture=0 step=material maximum_difference=0
+VERTEX_CACHE_RESULT fixture=0 step=geometry method=inline mean=0.0193683256316 nominal_se=3.39731237095e-05 rmse=0.0107727346002 queries=3234302 source_queries=3234302 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=geometry method=cache mean=0.0193683256316 nominal_se=3.39731237095e-05 rmse=0.0107727346002 queries=3127663 source_queries=2999172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=geometry method=stale_light mean=0.0193683256316 nominal_se=3.39731237095e-05 rmse=0.0107727346002 queries=3127663 source_queries=2999172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=geometry method=stale_geometry mean=0.0388069504874 nominal_se=8.22360507276e-05 rmse=0.0337300597321 queries=129532 source_queries=0 reused=131072 mean_gate=0 negative_required=0 negative_gate=1
+VERTEX_CACHE_IDENTITY fixture=0 step=geometry maximum_difference=0
+VERTEX_CACHE_RESULT fixture=0 step=off method=inline mean=0 nominal_se=0 rmse=0 queries=3210868 source_queries=3210868 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=off method=cache mean=0 nominal_se=0 rmse=0 queries=3127663 source_queries=2999172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=off method=stale_light mean=0.0193683256316 nominal_se=3.39731237095e-05 rmse=0.0221626366163 queries=128491 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_RESULT fixture=0 step=off method=stale_geometry mean=0 nominal_se=0 rmse=0 queries=3127663 source_queries=2999172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=0 step=off maximum_difference=0
+VERTEX_CACHE_RESULT fixture=0 step=on method=inline mean=0.0387440110146 nominal_se=6.40918491628e-05 rmse=0.0206238329731 queries=3240396 source_queries=3240396 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=on method=cache mean=0.0387440110146 nominal_se=6.40918491628e-05 rmse=0.0206238329731 queries=3127663 source_queries=2999172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=0 step=on method=stale_light mean=0.0193683256316 nominal_se=3.39731237095e-05 rmse=0.0222277539539 queries=128491 source_queries=0 reused=131072 mean_gate=0 negative_required=0 negative_gate=1
+VERTEX_CACHE_RESULT fixture=0 step=on method=stale_geometry mean=0.0387440110146 nominal_se=6.40918491628e-05 rmse=0.0206238329731 queries=3127663 source_queries=2999172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=0 step=on maximum_difference=0
+VERTEX_CACHE_REFERENCE fixture=1 step=cold integral=0.100571720445
+VERTEX_CACHE_REFERENCE fixture=1 step=warm integral=0.100571720445
+VERTEX_CACHE_REFERENCE fixture=1 step=receiver integral=0.0354285394085
+VERTEX_CACHE_REFERENCE fixture=1 step=light integral=0.0177142697042
+VERTEX_CACHE_REFERENCE fixture=1 step=material integral=0.00885713485212
+VERTEX_CACHE_REFERENCE fixture=1 step=geometry integral=0.00885713487963
+VERTEX_CACHE_REFERENCE fixture=1 step=off integral=0
+VERTEX_CACHE_REFERENCE fixture=1 step=on integral=0.0177142697593
+VERTEX_CACHE_RESULT fixture=1 step=cold method=inline mean=0.100556117533 nominal_se=0.000129278935551 rmse=0.0414951725261 queries=3442276 source_queries=3442276 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=cold method=cache mean=0.100556117533 nominal_se=0.000129278935551 rmse=0.0414951725261 queries=3312724 source_queries=3183172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=cold method=stale_light mean=0.100556117533 nominal_se=0.000129278935551 rmse=0.0414951725261 queries=3312724 source_queries=3183172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=cold method=stale_geometry mean=0.100556117533 nominal_se=0.000129278935551 rmse=0.0414951725261 queries=3312724 source_queries=3183172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=1 step=cold maximum_difference=0
+VERTEX_CACHE_RESULT fixture=1 step=warm method=inline mean=0.100556117533 nominal_se=0.000129278935551 rmse=0.0414951725261 queries=3442276 source_queries=3442276 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=warm method=cache mean=0.100556117533 nominal_se=0.000129278935551 rmse=0.0414951725261 queries=129552 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=warm method=stale_light mean=0.100556117533 nominal_se=0.000129278935551 rmse=0.0414951725261 queries=129552 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=warm method=stale_geometry mean=0.100556117533 nominal_se=0.000129278935551 rmse=0.0414951725261 queries=129552 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=1 step=warm maximum_difference=0
+VERTEX_CACHE_RESULT fixture=1 step=receiver method=inline mean=0.0354066917978 nominal_se=7.69967974521e-05 rmse=0.0265473714964 queries=3442276 source_queries=3442276 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=receiver method=cache mean=0.0354066917975 nominal_se=7.6996798572e-05 rmse=0.0265473714924 queries=129552 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=receiver method=stale_light mean=0.0354066917975 nominal_se=7.6996798572e-05 rmse=0.0265473714924 queries=129552 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=receiver method=stale_geometry mean=0.0354066917975 nominal_se=7.6996798572e-05 rmse=0.0265473714924 queries=129552 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=1 step=receiver maximum_difference=1.49011611938e-08
+VERTEX_CACHE_RESULT fixture=1 step=light method=inline mean=0.0177025578726 nominal_se=3.80102051343e-05 rmse=0.0132509740424 queries=3442276 source_queries=3442276 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=light method=cache mean=0.017702557873 nominal_se=3.80102048212e-05 rmse=0.0132509740413 queries=3312724 source_queries=3183172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=light method=stale_light mean=0.0354066917975 nominal_se=7.6996798572e-05 rmse=0.0319027311584 queries=129552 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_RESULT fixture=1 step=light method=stale_geometry mean=0.017702557873 nominal_se=3.80102048212e-05 rmse=0.0132509740413 queries=3312724 source_queries=3183172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=1 step=light maximum_difference=7.45058059692e-09
+VERTEX_CACHE_RESULT fixture=1 step=material method=inline mean=0.00885321340032 nominal_se=1.91923617101e-05 rmse=0.00661255260185 queries=3442276 source_queries=3442276 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=material method=cache mean=0.00885321339909 nominal_se=1.91923614462e-05 rmse=0.00661255259863 queries=3312724 source_queries=3183172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=material method=stale_light mean=0.00885321339909 nominal_se=1.91923614462e-05 rmse=0.00661255259863 queries=3312724 source_queries=3183172 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=material method=stale_geometry mean=0.017702557873 nominal_se=3.80102048212e-05 rmse=0.0159320332756 queries=129552 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_IDENTITY fixture=1 step=material maximum_difference=7.45058059692e-09
+VERTEX_CACHE_RESULT fixture=1 step=geometry method=inline mean=0.00887032234616 nominal_se=1.94861988741e-05 rmse=0.00747837291158 queries=3246329 source_queries=3246329 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=geometry method=cache mean=0.00887032234565 nominal_se=1.94861988439e-05 rmse=0.00747837291093 queries=3128770 source_queries=3000319 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=geometry method=stale_light mean=0.00887032234565 nominal_se=1.94861988439e-05 rmse=0.00747837291093 queries=3128770 source_queries=3000319 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=geometry method=stale_geometry mean=0.017702557873 nominal_se=3.80102048212e-05 rmse=0.0159320332603 queries=129552 source_queries=0 reused=131072 mean_gate=0 negative_required=0 negative_gate=1
+VERTEX_CACHE_IDENTITY fixture=1 step=geometry maximum_difference=7.45058059692e-09
+VERTEX_CACHE_RESULT fixture=1 step=off method=inline mean=0 nominal_se=0 rmse=0 queries=3234605 source_queries=3234605 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=off method=cache mean=0 nominal_se=0 rmse=0 queries=3128770 source_queries=3000319 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=off method=stale_light mean=0.00887032234565 nominal_se=1.94861988439e-05 rmse=0.0116020905875 queries=128451 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_RESULT fixture=1 step=off method=stale_geometry mean=0 nominal_se=0 rmse=0 queries=3128770 source_queries=3000319 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=1 step=off maximum_difference=0
+VERTEX_CACHE_RESULT fixture=1 step=on method=inline mean=0.0177664584364 nominal_se=4.35747160116e-05 rmse=0.0176470593882 queries=3249380 source_queries=3249380 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=on method=cache mean=0.0177664584377 nominal_se=4.3574715697e-05 rmse=0.017647059394 queries=3128770 source_queries=3000319 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=1 step=on method=stale_light mean=0.00887032234565 nominal_se=1.94861988439e-05 rmse=0.0115819382376 queries=128451 source_queries=0 reused=131072 mean_gate=0 negative_required=0 negative_gate=1
+VERTEX_CACHE_RESULT fixture=1 step=on method=stale_geometry mean=0.0177664584377 nominal_se=4.3574715697e-05 rmse=0.017647059394 queries=3128770 source_queries=3000319 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=1 step=on maximum_difference=2.98023223877e-08
+VERTEX_CACHE_REFERENCE fixture=2 step=cold integral=0.0470486282321
+VERTEX_CACHE_REFERENCE fixture=2 step=warm integral=0.0470486282321
+VERTEX_CACHE_REFERENCE fixture=2 step=receiver integral=0.0354285394919
+VERTEX_CACHE_REFERENCE fixture=2 step=light integral=0.017714269746
+VERTEX_CACHE_REFERENCE fixture=2 step=material integral=0.00885713487298
+VERTEX_CACHE_REFERENCE fixture=2 step=geometry integral=0.00884706304238
+VERTEX_CACHE_REFERENCE fixture=2 step=off integral=0
+VERTEX_CACHE_REFERENCE fixture=2 step=on integral=0.0176941260848
+VERTEX_CACHE_RESULT fixture=2 step=cold method=inline mean=0.0471286289906 nominal_se=0.000104038029133 rmse=0.0344424062873 queries=2957632 source_queries=2957632 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=cold method=cache mean=0.0471286289906 nominal_se=0.000104038029133 rmse=0.0344424062873 queries=2876287 source_queries=2750274 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=cold method=stale_light mean=0.0471286289906 nominal_se=0.000104038029133 rmse=0.0344424062873 queries=2876287 source_queries=2750274 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=cold method=stale_geometry mean=0.0471286289906 nominal_se=0.000104038029133 rmse=0.0344424062873 queries=2876287 source_queries=2750274 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=2 step=cold maximum_difference=0
+VERTEX_CACHE_RESULT fixture=2 step=warm method=inline mean=0.0471286289906 nominal_se=0.000104038029133 rmse=0.0344424062873 queries=2957632 source_queries=2957632 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=warm method=cache mean=0.0471286289906 nominal_se=0.000104038029133 rmse=0.0344424062873 queries=126013 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=warm method=stale_light mean=0.0471286289906 nominal_se=0.000104038029133 rmse=0.0344424062873 queries=126013 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=warm method=stale_geometry mean=0.0471286289906 nominal_se=0.000104038029133 rmse=0.0344424062873 queries=126013 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=2 step=warm maximum_difference=0
+VERTEX_CACHE_RESULT fixture=2 step=receiver method=inline mean=0.0354056771478 nominal_se=0.000120819012198 rmse=0.0528654177488 queries=2979966 source_queries=2979966 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=receiver method=cache mean=0.0354056771512 nominal_se=0.000120819012632 rmse=0.052865417763 queries=126013 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=receiver method=stale_light mean=0.0354056771512 nominal_se=0.000120819012632 rmse=0.052865417763 queries=126013 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=receiver method=stale_geometry mean=0.0354056771512 nominal_se=0.000120819012632 rmse=0.052865417763 queries=126013 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=2 step=receiver maximum_difference=5.96046447754e-08
+VERTEX_CACHE_RESULT fixture=2 step=light method=inline mean=0.0177223249332 nominal_se=4.47240546603e-05 rmse=0.0198932720323 queries=2974496 source_queries=2974496 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=light method=cache mean=0.0177223249358 nominal_se=4.47240548088e-05 rmse=0.0198932720416 queries=2876287 source_queries=2750274 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=light method=stale_light mean=0.0354056771512 nominal_se=0.000120819012632 rmse=0.0557470875342 queries=126013 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_RESULT fixture=2 step=light method=stale_geometry mean=0.0177223249358 nominal_se=4.47240548088e-05 rmse=0.0198932720416 queries=2876287 source_queries=2750274 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=2 step=light maximum_difference=1.49011611938e-08
+VERTEX_CACHE_RESULT fixture=2 step=material method=inline mean=0.00885969356919 nominal_se=1.93459520888e-05 rmse=0.00798964906972 queries=2967880 source_queries=2967880 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=material method=cache mean=0.00885969356945 nominal_se=1.93459521377e-05 rmse=0.00798964907044 queries=2876287 source_queries=2750274 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=material method=stale_light mean=0.00885969356945 nominal_se=1.93459521377e-05 rmse=0.00798964907044 queries=2876287 source_queries=2750274 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=material method=stale_geometry mean=0.0177223249358 nominal_se=4.47240548088e-05 rmse=0.0217792057358 queries=126013 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_IDENTITY fixture=2 step=material maximum_difference=7.45058059692e-09
+VERTEX_CACHE_RESULT fixture=2 step=geometry method=inline mean=0.00884318758526 nominal_se=1.99637142388e-05 rmse=0.00814026169115 queries=2768975 source_queries=2768975 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=geometry method=cache mean=0.00884318758588 nominal_se=1.99637141654e-05 rmse=0.00814026169274 queries=2705212 source_queries=2581786 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=geometry method=stale_light mean=0.00884318758588 nominal_se=1.99637141654e-05 rmse=0.00814026169274 queries=2705212 source_queries=2581786 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=geometry method=stale_geometry mean=0.0177223249358 nominal_se=4.47240548088e-05 rmse=0.0217833074006 queries=126013 source_queries=0 reused=131072 mean_gate=0 negative_required=0 negative_gate=1
+VERTEX_CACHE_IDENTITY fixture=2 step=geometry maximum_difference=7.45058059692e-09
+VERTEX_CACHE_RESULT fixture=2 step=off method=inline mean=0 nominal_se=0 rmse=0 queries=2749271 source_queries=2749271 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=off method=cache mean=0 nominal_se=0 rmse=0 queries=2705212 source_queries=2581786 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=off method=stale_light mean=0.00884318758588 nominal_se=1.99637141654e-05 rmse=0.0120193931663 queries=123426 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_RESULT fixture=2 step=off method=stale_geometry mean=0 nominal_se=0 rmse=0 queries=2705212 source_queries=2581786 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=2 step=off maximum_difference=0
+VERTEX_CACHE_RESULT fixture=2 step=on method=inline mean=0.0176622284663 nominal_se=4.71350102461e-05 rmse=0.0199459632186 queries=2776166 source_queries=2776166 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=on method=cache mean=0.0176622284681 nominal_se=4.71350105561e-05 rmse=0.0199459632243 queries=2705212 source_queries=2581786 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=2 step=on method=stale_light mean=0.00884318758588 nominal_se=1.99637141654e-05 rmse=0.0120250969941 queries=123426 source_queries=0 reused=131072 mean_gate=0 negative_required=0 negative_gate=1
+VERTEX_CACHE_RESULT fixture=2 step=on method=stale_geometry mean=0.0176622284681 nominal_se=4.71350105561e-05 rmse=0.0199459632243 queries=2705212 source_queries=2581786 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=2 step=on maximum_difference=1.49011611938e-08
+VERTEX_CACHE_REFERENCE fixture=3 step=cold integral=0
+VERTEX_CACHE_REFERENCE fixture=3 step=warm integral=0
+VERTEX_CACHE_REFERENCE fixture=3 step=receiver integral=0.0179346046656
+VERTEX_CACHE_REFERENCE fixture=3 step=light integral=0.00896730233279
+VERTEX_CACHE_REFERENCE fixture=3 step=material integral=0.00448365116639
+VERTEX_CACHE_REFERENCE fixture=3 step=geometry integral=0.00324108874306
+VERTEX_CACHE_REFERENCE fixture=3 step=off integral=0
+VERTEX_CACHE_REFERENCE fixture=3 step=on integral=0.00648217748611
+VERTEX_CACHE_RESULT fixture=3 step=cold method=inline mean=0 nominal_se=0 rmse=0 queries=2332878 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=cold method=cache mean=0 nominal_se=0 rmse=0 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=cold method=stale_light mean=0 nominal_se=0 rmse=0 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=cold method=stale_geometry mean=0 nominal_se=0 rmse=0 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=3 step=cold maximum_difference=0
+VERTEX_CACHE_RESULT fixture=3 step=warm method=inline mean=0 nominal_se=0 rmse=0 queries=2332878 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=warm method=cache mean=0 nominal_se=0 rmse=0 queries=117863 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=warm method=stale_light mean=0 nominal_se=0 rmse=0 queries=117863 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=warm method=stale_geometry mean=0 nominal_se=0 rmse=0 queries=117863 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=3 step=warm maximum_difference=0
+VERTEX_CACHE_RESULT fixture=3 step=receiver method=inline mean=0.017811741743 nominal_se=9.73481221014e-05 rmse=0.0355961030314 queries=2367140 source_queries=2367140 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=receiver method=cache mean=0.017811741746 nominal_se=9.73481224339e-05 rmse=0.0355961030376 queries=117863 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=receiver method=stale_light mean=0.017811741746 nominal_se=9.73481224339e-05 rmse=0.0355961030376 queries=117863 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=receiver method=stale_geometry mean=0.017811741746 nominal_se=9.73481224339e-05 rmse=0.0355961030376 queries=117863 source_queries=0 reused=131072 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=3 step=receiver maximum_difference=2.98023223877e-08
+VERTEX_CACHE_RESULT fixture=3 step=light method=inline mean=0.0089058708723 nominal_se=4.86740613276e-05 rmse=0.0177980515154 queries=2367140 source_queries=2367140 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=light method=cache mean=0.00890587087301 nominal_se=4.8674061217e-05 rmse=0.0177980515188 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=light method=stale_light mean=0.017811741746 nominal_se=9.73481224339e-05 rmse=0.0366782164874 queries=117863 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_RESULT fixture=3 step=light method=stale_geometry mean=0.00890587087301 nominal_se=4.8674061217e-05 rmse=0.0177980515188 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=3 step=light maximum_difference=1.49011611938e-08
+VERTEX_CACHE_RESULT fixture=3 step=material method=inline mean=0.0044529354359 nominal_se=2.43370306019e-05 rmse=0.00889902575831 queries=2367140 source_queries=2367140 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=material method=cache mean=0.00445293543651 nominal_se=2.43370306085e-05 rmse=0.0088990257594 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=material method=stale_light mean=0.00445293543651 nominal_se=2.43370306085e-05 rmse=0.0088990257594 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=material method=stale_geometry mean=0.00890587087301 nominal_se=4.8674061217e-05 rmse=0.0183391082437 queries=117863 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_IDENTITY fixture=3 step=material maximum_difference=7.45058059692e-09
+VERTEX_CACHE_RESULT fixture=3 step=geometry method=inline mean=0.0032117861901 nominal_se=2.15493763808e-05 rmse=0.00821016555846 queries=2355314 source_queries=2355314 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=geometry method=cache mean=0.0032117861907 nominal_se=2.15493764265e-05 rmse=0.0082101655598 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=geometry method=stale_light mean=0.0032117861907 nominal_se=2.15493764265e-05 rmse=0.0082101655598 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=geometry method=stale_geometry mean=0.0064235723814 nominal_se=4.30987528529e-05 rmse=0.0167257897161 queries=117863 source_queries=0 reused=131072 mean_gate=0 negative_required=0 negative_gate=1
+VERTEX_CACHE_IDENTITY fixture=3 step=geometry maximum_difference=7.45058059692e-09
+VERTEX_CACHE_RESULT fixture=3 step=off method=inline mean=0 nominal_se=0 rmse=0 queries=2355314 source_queries=2355314 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=off method=cache mean=0 nominal_se=0 rmse=0 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=off method=stale_light mean=0.0032117861907 nominal_se=2.15493764265e-05 rmse=0.00881598153439 queries=117863 source_queries=0 reused=131072 mean_gate=0 negative_required=1 negative_gate=1
+VERTEX_CACHE_RESULT fixture=3 step=off method=stale_geometry mean=0 nominal_se=0 rmse=0 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=3 step=off maximum_difference=0
+VERTEX_CACHE_RESULT fixture=3 step=on method=inline mean=0.00642357238055 nominal_se=4.30987526972e-05 rmse=0.0164203311151 queries=2355314 source_queries=2355314 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=on method=cache mean=0.0064235723814 nominal_se=4.30987528529e-05 rmse=0.0164203311196 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_RESULT fixture=3 step=on method=stale_light mean=0.0032117861907 nominal_se=2.15493764265e-05 rmse=0.00883750072731 queries=117863 source_queries=0 reused=131072 mean_gate=0 negative_required=0 negative_gate=1
+VERTEX_CACHE_RESULT fixture=3 step=on method=stale_geometry mean=0.0064235723814 nominal_se=4.30987528529e-05 rmse=0.0164203311196 queries=2450741 source_queries=2332878 reused=0 mean_gate=1 negative_required=0 negative_gate=0
+VERTEX_CACHE_IDENTITY fixture=3 step=on maximum_difference=1.49011611938e-08
+VERTEX_CACHE_DECISION correctness=1 promote=0 physical_gpu_timing=0
+5eacbd480a17b4c1aaf85c7dcb05da24f7831342c39f1f527836c147e29ae02e  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache0-0.f32
+7a4238cde3c493dbdbe6ca2b4ac358a709b95ddbc07190018dd630f78ff05478  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache0-1.f32
+7a4238cde3c493dbdbe6ca2b4ac358a709b95ddbc07190018dd630f78ff05478  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache0-2.f32
+60c133580c2239c22b827ba422d042b35485e16eb0598beabc02443a6b359696  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache0-3.f32
+40b8b770b3875a4fe3ac79137b3394c1e72902b436db24669bf2ac603df249f3  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache0-4.f32
+e9fcaab2ea007e4f7dd622783e01d3dded3375918fcecd207272b61da3ffedfb  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache0-5.f32
+87d771e4e1191a0aa1b2337138e9c3f57061a55f4b83e56bbc99513eeb5b593e  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache0-6.f32
+5c80d0f1d8d65f699f0451c386f06c8edf5bddce4eca431b58ecf5a0cc7e9aaa  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache0-7.f32
+ce8f03d672fd28dd60461e7b83810553dc66eb8c24f34fba4961d229e098a351  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache1-0.f32
+583c8abab04488301266e69b60220c218b6753473161ad6dbc60f029691e6a82  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache1-1.f32
+d8269e3a10ea4630b4f7c99fc517fc1b6fdac9cf8a2ee8aa34f768b60b7e390b  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache1-2.f32
+bcbfd60ccb0421c00022e510003ebed77cf9826beecaee9261f7e55afd713281  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache1-3.f32
+504f57eb0106763689b480f667feb82c7fb3d73829d5f3e20a4c7d34ce5440b1  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache1-4.f32
+4993659f1a8814d6687b7e08856d0e574dd00df614dab666f08f473744d41dc5  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache1-5.f32
+a2599dc19326ac1f86af6a06d6604283c5a6c2858efbc27cdc6e6beb62c80666  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache1-6.f32
+6808d39f45e86605dc10f1ae2723fb42edcb26491b252f512bcdefba2798818e  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache1-7.f32
+b942e4b9fe60185b68f3064fb9423e6fe255a4741ca14d1cf0098454d97e934a  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache2-0.f32
+1ad05b759b2876d363273b14b0e6d3ad7f7be4aebc6a98a4fa07eb7304704501  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache2-1.f32
+433182d989afd7c96d3430bec347c3beb52ea88facb0fd1501f3ae2c887e7d99  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache2-2.f32
+5da62aeea7881dc3ac71e416d47b5a4d8836e3ddf482d19a1376471e37d4ac87  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache2-3.f32
+c11ad7166e6a8e1bdf1c9ee902e997aa6ac2be826e7bd08621db697252e0173c  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache2-4.f32
+807717c387406999b0e8a65c59f1ee82487a98f367631afd478ddeb514040e3f  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache2-5.f32
+7a1972cf858f177ba266530667b661e161192eceac39bc17da19fc89aacc0866  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache2-6.f32
+b831d82184642c74b68d530066b120fefa7b9f75f8ac8f2f300c848212d67474  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache2-7.f32
+efa4291b25ccb64574a57444c62340deb2f30f8985f1522e2a54386853ee2b8d  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache3-0.f32
+fc106401a428152f643c68bf7ac0cf82572e30407cd913a949ad88997442a713  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache3-1.f32
+76c4b01c1d7c4047ee50769b2c954dd639dc81e5b691eb8252d64c827a877d76  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache3-2.f32
+478069ee237d5e0059c76f4eab71ebe5156b3c89faf69be8e61aa99376f0a440  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache3-3.f32
+2b7b934fdd0164790a81066d2a00eb9ba1740227a6ebd8f04c7f33be69007189  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache3-4.f32
+e2645f97f42ad14d12c00b32aeccf9e004b851798529607026aaa0ce9f548570  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache3-5.f32
+a2ae55e88c314ab84b100297554bdc128bb16032f093f472174add49edfecfc6  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache3-6.f32
+0bd12b6a3d56705b1d35157d5fee76abd031306ef0c244e1431b6e6eeda77b12  /home/user/Frontier/_ClaudeScratch/vertex-cache-capture-release/VertexCache3-7.f32

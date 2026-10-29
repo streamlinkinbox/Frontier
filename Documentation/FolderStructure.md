@@ -261,3 +261,12 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   the restricted indirect component; pointwise outgoing probes check the oblique source shadow separately.
 - `RunTriangleReconnection.sh`, `TriangleReconnectionEvidence.py` and `TriangleReconnection.md` retain host-build
   parity, actual estimator/suffix readbacks, nearest-facet call counts and query/error comparisons.
+
+### Persistent vertex/outgoing payload lifecycle
+
+- `Exhibits/LightCompute/Code/CompileVertexCache.py` derives source-payload generation and receiver evaluation
+  from measured triangle transport. Two float4 payload arrays persist across submissions; telemetry is separate.
+- `VertexCacheValidation.h` tests eight lifecycle steps with light/geometry/material invalidation, same-seed
+  inline pairing and deliberately stale caches. Production render storage and policies are not changed.
+- `RunVertexCache.sh`, `VertexCacheEvidence.py` and `VertexCache.md` retain query savings, lifecycle readbacks,
+  host-sanitizer parity and limitations of frozen sample banks.

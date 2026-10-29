@@ -1423,3 +1423,17 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
 - Next: persistent source vertex/outgoing/PDF payload with light/geometry invalidation and fresh receiver
   visibility; retain variance/support holdouts and later full Whole6/Whole8 comparisons. Not implemented yet.
 - Production source/default/layout and output348.046875MiB unchanged; no port or promotion.
+
+### Persistent vertex/outgoing cache — verified query optimization, not production acceptance
+
+- [Payload lifecycle and actual readbacks](../Exhibits/LightCompute/VertexCache.md): GPU payloads persist across
+  real submissions; receiver visibility is fresh. Eight-step cadence includes light/material/geometry revisions.
+- Release and ASan+UBSan host pass five CTests each;64 reference means,12 stale-cache negatives and32 pair gates.
+  Cached vs same-seed inline discrepancy <=5.96e-8; warm source/suffix queries zero, <=1 receiver query/reservoir.
+- Eight-step total BVH query reduction20.67–27.31%; warm reductions94.95–96.24%. Not physical-GPU execution time.
+  Frozen source samples add no independent quality; the prior occlusion variance penalty remains unchanged.
+- Parity194 identical rows,63 checked hashes/build,32 exact raw captures and32 representative PNG arrays.
+- Implementation backed up to GitHub0441442 after prior-phase checkpoint282bd5a; final evidence retained here.
+- Next: bounded refresh, receiver-motion holdouts and fresh-control temporal quality/cost, not a direct port.
+  No RGB/general surfaces/multi-donor/history reprojection or editor/Windows/physical-GPU acceptance.
+  Production348.046875MiB unchanged;32 B/test-receiver payload +16 B diagnostic telemetry are exhibit-only.
