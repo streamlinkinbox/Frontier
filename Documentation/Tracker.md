@@ -1437,3 +1437,17 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
 - Next: bounded refresh, receiver-motion holdouts and fresh-control temporal quality/cost, not a direct port.
   No RGB/general surfaces/multi-donor/history reprojection or editor/Windows/physical-GPU acceptance.
   Production348.046875MiB unchanged;32 B/test-receiver payload +16 B diagnostic telemetry are exhibit-only.
+
+### Bounded cache refresh — verified; frozen-winner temporal quality not accepted
+
+- [Fixed motion/refresh holdouts](../Exhibits/LightCompute/CacheRefresh.md): refresh1/4/8, fresh RIS8 and cosine6/8
+  restricted-component controls;16 poses,32 independent cohorts,1024 trajectories,4 triangle-strip fixtures.
+- Release + ASan/UBSan host exit0/five CTests each. All384 pose-mean gates pass;period1/inline max2.39e-7.
+  Parity494 identical rows,97 checked hashes/build,64 exact raw captures and24 retained PNG arrays.
+- Period4/8 reduce queries41.89–67.56% versus component fresh8, but temporal RMSE rises28.85–274.80%.
+  All16 temporal MSE contrasts versus fresh6/8 positive, minimum17.38 nominal SE. No guaranteed-CI claim.
+- New .3 holdout:period4/8 temporal RMSE+100.05%/+140.20%;lag1 .4206/.5841 versus fresh8 .0005.
+  Lower flicker can hide correlated error. Prior donor-proposal variance penalty remains separately visible.
+- No retrospective period/floor tuning or promotion. Next: retain density-bearing candidates before donor winner
+  selection, current-receiver selection and explicit sample refresh, with fixed storage/query budgets and holdouts.
+- Software Vulkan only;not TAA/full GI or physical-GPU timing. Production348.046875MiB/defaults/layout unchanged.

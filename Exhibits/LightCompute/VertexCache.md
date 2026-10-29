@@ -105,3 +105,7 @@ materials, stochastic multi-bounce suffixes and Windows/editor remain untested.
 **Next:** fixed bounded-refresh and moving-receiver holdouts, measuring temporal quality/correlation as well as
 queries against fresh controls. Keep explicit revision invalidation and visibility checks. Do not port solely on
 these query savings; production output stays **348.046875 MiB/1080p**.
+
+
+The subsequent [bounded-refresh checkpoint](CacheRefresh.md) now measures these moving/temporal holdouts;
+it preserves the query savings but rejects fixed-period freezing as a quality-preserving fresh replacement.

@@ -1,0 +1,1 @@
+PASS bounded refresh: 494 identical semantic rows; checked hashes [97, 97]; 384 pose mean gates, four period1 identities, 16 paired contrasts; cadence/light revisions correct; 64 exact raw captures, 24 representative PNG arrays; shader rederivation and fresh budgets verified; both five-CTest sets passed. promote=0 physical_gpu_timing=0.

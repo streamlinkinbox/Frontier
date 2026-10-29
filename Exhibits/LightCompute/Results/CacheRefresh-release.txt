@@ -1,0 +1,674 @@
+Secondary GPU host mode=release revision=75f72f49a6a51b79ac6e20ee0cecbb7c4f7645ac working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+f9da94cc3f075f6bbc2d94d313acad0b93816367a395bd336868725529a8834d  Exhibits/LightCompute/Code/CompileCacheRefresh.py
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+3c34616bfc80078a20ba880083d6473f02dd246f6ab9c1a5e208b40644f4c98c  Exhibits/LightCompute/Code/CacheRefreshValidation.h
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+67c20ac3ca69d24caca95636721c8f22e31e660868565517b2482a3999bf27f0  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+b46bf58b68f446508b5adeea3bf1c8bfa143eda188e42245edfda3b332e458cc  Exhibits/LightCompute/RunCacheRefresh.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+f7abd4b3f2947b97f50799fb25d9141cc1cf0667c2c2c69af8ee4c6ff907eedb  /home/user/Frontier/_ClaudeScratch/build/cache-refresh-release/CacheRefresh.slang
+e7365410ae80dc1e8b86d4705088531f4379c86237eb9c5ad0b4dc4c696a84e2  /home/user/Frontier/_ClaudeScratch/build/cache-refresh-release/DiffuseGenerate.spv
+87d05e4187a0256471a662170dac0369e2777bbecb43fad5abffa8751ac694d3  /home/user/Frontier/_ClaudeScratch/build/cache-refresh-release/DiffuseResolve.spv
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.5s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/cache-refresh-release
+[  2%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayDomain.dir/PathReplayDomain.cpp.o
+[  5%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayVulkan.dir/PathReplayVulkan.cpp.o
+[  8%] Linking CXX static library libFrontierPathReplayVulkan.a
+[  8%] Built target FrontierPathReplayVulkan
+[ 10%] Building CXX object replay-engine/CMakeFiles/FrontierMediumRadiancePayload.dir/MediumRadiancePayload.cpp.o
+[ 13%] Linking CXX static library libFrontierMediumRadiancePayload.a
+[ 13%] Built target FrontierMediumRadiancePayload
+[ 16%] Building CXX object replay-engine/CMakeFiles/FrontierRadiantFacetDistribution.dir/RadiantFacetDistribution.cpp.o
+[ 18%] Linking CXX static library libFrontierPathReplayDomain.a
+[ 18%] Built target FrontierPathReplayDomain
+[ 21%] Building CXX object CMakeFiles/PathReplayVulkanValidation.dir/Code/PathReplayVulkanValidation.cpp.o
+[ 24%] Linking CXX static library libFrontierRadiantFacetDistribution.a
+[ 24%] Built target FrontierRadiantFacetDistribution
+[ 27%] Building CXX object CMakeFiles/PathReplayArchiveValidation.dir/Code/PathReplayArchiveValidation.cpp.o
+[ 29%] Linking CXX executable PathReplayVulkanValidation
+[ 29%] Built target PathReplayVulkanValidation
+[ 32%] Building CXX object CMakeFiles/RadiantFacetValidation.dir/Code/RadiantFacetValidation.cpp.o
+[ 35%] Linking CXX executable RadiantFacetValidation
+[ 35%] Built target RadiantFacetValidation
+[ 37%] Building CXX object CMakeFiles/MediumRadianceValidation.dir/Code/MediumRadianceValidation.cpp.o
+[ 40%] Linking CXX executable PathReplayArchiveValidation
+[ 40%] Built target PathReplayArchiveValidation
+[ 43%] Building CXX object replay-engine/CMakeFiles/FrontierPlumeLatticeFootprint.dir/PlumeLatticeFootprint.cpp.o
+[ 45%] Linking CXX executable MediumRadianceValidation
+[ 45%] Built target MediumRadianceValidation
+[ 48%] Building CXX object CMakeFiles/LightComputeValidation.dir/Code/LightComputeValidation.cpp.o
+[ 51%] Linking CXX static library libFrontierPlumeLatticeFootprint.a
+[ 51%] Built target FrontierPlumeLatticeFootprint
+[ 54%] Building CXX object CMakeFiles/PathReplayDomainValidation.dir/Code/PathReplayDomainValidation.cpp.o
+[ 56%] Linking CXX executable PathReplayDomainValidation
+[ 56%] Built target PathReplayDomainValidation
+[ 59%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ClusterNesting.cpp.o
+[ 62%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VisibilityCull.cpp.o
+[ 64%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DiscrepancySequence.cpp.o
+[ 67%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReservoirSampling.cpp.o
+[ 70%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VarianceFiltering.cpp.o
+[ 72%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DistanceField.cpp.o
+[ 75%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/SurfaceCards.cpp.o
+[ 78%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/AtmosphereModel.cpp.o
+[ 81%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CelestialModel.cpp.o
+[ 83%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CloudField.cpp.o
+[ 86%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/FogMedium.cpp.o
+[ 89%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReferenceRenderer.cpp.o
+[ 91%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogRingStore.cpp.o
+[ 94%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogCategories.cpp.o
+[ 97%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogStream.cpp.o
+[100%] Linking CXX executable LightComputeValidation
+[100%] Built target LightComputeValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/cache-refresh-release
+Test project /home/user/Frontier/_ClaudeScratch/build/cache-refresh-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.02 sec
+CACHE_REFRESH_DEVICE name=SwiftShader Device (Subzero) type=4
+CACHE_REFRESH_REFERENCE fixture=0 pose=0 x=0 integral=0.100571720445 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=1 x=0.038060233 integral=0.100405525911 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=2 x=0.146446615 integral=0.09813876013 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=3 x=0.308658272 integral=0.0902125195429 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=4 x=0.5 integral=0.0757548730283 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=5 x=0.691341698 integral=0.0590997652155 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=6 x=0.853553414 integral=0.0457493399112 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=7 x=0.961939752 integral=0.0379251461253 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=8 x=1 integral=0.0354285394085 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=9 x=0.961939752 integral=0.0189625730627 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=0 pose=10 x=0.853553414 integral=0.0228746699556 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=0 pose=11 x=0.691341698 integral=0.0295498826077 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=0 pose=12 x=0.5 integral=0.0378774365142 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=0 pose=13 x=0.308658272 integral=0.0902125195429 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=14 x=0.146446615 integral=0.09813876013 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=0 pose=15 x=0.038060233 integral=0.100405525911 scale=1.0
+CACHE_REFRESH_MEAN fixture=0 pose=0 method=ris8 mean=0.100274709998 nominal_se=0.000207443036378 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=0 method=period1 mean=0.100274709998 nominal_se=0.000207443036378 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=0 method=period4 mean=0.100274709998 nominal_se=0.000207443036378 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=0 method=period8 mean=0.100274709998 nominal_se=0.000207443036378 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=0 method=fresh6 mean=0.100733949052 nominal_se=0.000376800835201 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=0 method=fresh8 mean=0.100730212131 nominal_se=0.000317896064416 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=1 method=ris8 mean=0.100294415041 nominal_se=0.000173691864105 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=1 method=period1 mean=0.100294415034 nominal_se=0.000173691867785 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=1 method=period4 mean=0.100097674091 nominal_se=0.000212378809817 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=1 method=period8 mean=0.100097674091 nominal_se=0.000212378809817 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=1 method=fresh6 mean=0.100261842089 nominal_se=0.000362587991979 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=1 method=fresh8 mean=0.100150225535 nominal_se=0.000260234318305 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=2 method=ris8 mean=0.0983822417271 nominal_se=0.000197670817529 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=2 method=period1 mean=0.0983822417144 nominal_se=0.000197670820725 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=2 method=period4 mean=0.0978044441097 nominal_se=0.000237610108642 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=2 method=period8 mean=0.0978044441097 nominal_se=0.000237610108642 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=2 method=fresh6 mean=0.0978414929234 nominal_se=0.000393284882309 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=2 method=fresh8 mean=0.0980433681698 nominal_se=0.000334952669396 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=3 method=ris8 mean=0.0898368045594 nominal_se=0.000298869804328 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=3 method=period1 mean=0.0898368045606 nominal_se=0.000298869802459 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=3 method=period4 mean=0.0898579507246 nominal_se=0.00028283753073 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=3 method=period8 mean=0.0898579507246 nominal_se=0.00028283753073 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=3 method=fresh6 mean=0.0902343760797 nominal_se=0.000338528675023 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=3 method=fresh8 mean=0.0902888513353 nominal_se=0.000285938379207 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=4 method=ris8 mean=0.075687665212 nominal_se=0.000225375390726 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=4 method=period1 mean=0.0756876652132 nominal_se=0.000225375392607 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=4 method=period4 mean=0.0756876652132 nominal_se=0.000225375392607 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=4 method=period8 mean=0.0754167906238 nominal_se=0.000305765219765 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=4 method=fresh6 mean=0.0755627449414 nominal_se=0.00034474389018 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=4 method=fresh8 mean=0.0757715628411 nominal_se=0.000307749471665 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=5 method=ris8 mean=0.0592699478073 nominal_se=0.000211220424035 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=5 method=period1 mean=0.0592699478216 nominal_se=0.000211220424008 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=5 method=period4 mean=0.0590160901212 nominal_se=0.000199404969174 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=5 method=period8 mean=0.0588166723873 nominal_se=0.000281526357758 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=5 method=fresh6 mean=0.0584686284444 nominal_se=0.000304700502635 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=5 method=fresh8 mean=0.0586571520644 nominal_se=0.000257341761213 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=6 method=ris8 mean=0.0460029917936 nominal_se=0.000190786972677 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=6 method=period1 mean=0.0460029917853 nominal_se=0.000190786973858 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=6 method=period4 mean=0.0456695717923 nominal_se=0.000165854903532 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=6 method=period8 mean=0.0455258363311 nominal_se=0.000236766796196 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=6 method=fresh6 mean=0.0459097293328 nominal_se=0.000317219843881 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=6 method=fresh8 mean=0.0460736862274 nominal_se=0.000291542502022 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=7 method=ris8 mean=0.0378558359807 nominal_se=0.000172200986814 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=7 method=period1 mean=0.03785583598 nominal_se=0.000172200986373 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=7 method=period4 mean=0.0378532988547 nominal_se=0.000141806445722 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=7 method=period8 mean=0.0377403438658 nominal_se=0.000202790521304 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=7 method=fresh6 mean=0.0378689577681 nominal_se=0.000285497667037 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=7 method=fresh8 mean=0.0378881849037 nominal_se=0.0002509045078 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=8 method=ris8 mean=0.0353500039077 nominal_se=9.84691998706e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=8 method=period1 mean=0.0353500038999 nominal_se=9.84691985395e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=8 method=period4 mean=0.0353500038999 nominal_se=9.84691985395e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=8 method=period8 mean=0.0353500038999 nominal_se=9.84691985395e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=8 method=fresh6 mean=0.0352029421119 nominal_se=0.00026729550003 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=8 method=fresh8 mean=0.0353279126221 nominal_se=0.000230240807391 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=9 method=ris8 mean=0.0190624557513 nominal_se=7.77848452457e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=9 method=period1 mean=0.0190624557524 nominal_se=7.77848452712e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=9 method=period4 mean=0.0190624557524 nominal_se=7.77848452712e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=9 method=period8 mean=0.0190624557524 nominal_se=7.77848452712e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=9 method=fresh6 mean=0.0190359498284 nominal_se=0.000124121568307 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=9 method=fresh8 mean=0.0190802771543 nominal_se=0.000104366809224 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=10 method=ris8 mean=0.0228513533271 nominal_se=8.59385108051e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=10 method=period1 mean=0.0228513533303 nominal_se=8.59385108897e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=10 method=period4 mean=0.0229936013514 nominal_se=9.12529317195e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=10 method=period8 mean=0.0229936013514 nominal_se=9.12529317195e-05 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=10 method=fresh6 mean=0.0228491212649 nominal_se=0.000134880257809 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=10 method=fresh8 mean=0.0228197486774 nominal_se=0.000101418120644 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=11 method=ris8 mean=0.029472318107 nominal_se=0.000100565825686 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=11 method=period1 mean=0.0294723181043 nominal_se=0.000100565824765 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=11 method=period4 mean=0.0296934228304 nominal_se=0.00010960055703 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=11 method=period8 mean=0.0296934228304 nominal_se=0.00010960055703 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=11 method=fresh6 mean=0.029930725354 nominal_se=0.000199349967897 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=11 method=fresh8 mean=0.0297779855517 nominal_se=0.000157366940287 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=12 method=ris8 mean=0.0379939985682 nominal_se=0.000106538628672 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=12 method=period1 mean=0.0379939985698 nominal_se=0.000106538629574 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=12 method=period4 mean=0.0379939985698 nominal_se=0.000106538629574 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=12 method=period8 mean=0.0380278259522 nominal_se=0.000121459622611 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=12 method=fresh6 mean=0.0378828434148 nominal_se=0.000201015863635 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=12 method=fresh8 mean=0.0380187617621 nominal_se=0.000182370438948 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=13 method=ris8 mean=0.0904157061198 nominal_se=0.000232665272744 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=13 method=period1 mean=0.09041570611 nominal_se=0.0002326652749 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=13 method=period4 mean=0.09041570611 nominal_se=0.0002326652749 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=13 method=period8 mean=0.09041570611 nominal_se=0.0002326652749 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=13 method=fresh6 mean=0.0905270396629 nominal_se=0.000417985973171 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=13 method=fresh8 mean=0.0904138208637 nominal_se=0.000422647754475 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=14 method=ris8 mean=0.0984876593624 nominal_se=0.000230531747422 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=14 method=period1 mean=0.0984876593301 nominal_se=0.000230531745804 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=14 method=period4 mean=0.0983670784257 nominal_se=0.000225250921521 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=14 method=period8 mean=0.0983670784257 nominal_se=0.000225250921521 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=14 method=fresh6 mean=0.0985208142488 nominal_se=0.000360650892953 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=14 method=fresh8 mean=0.0985544612865 nominal_se=0.000361059947058 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=15 method=ris8 mean=0.100484445779 nominal_se=0.000218620406455 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=15 method=period1 mean=0.100484445767 nominal_se=0.000218620405317 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=15 method=period4 mean=0.100631294027 nominal_se=0.000224063713242 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=15 method=period8 mean=0.100631294027 nominal_se=0.000224063713242 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=15 method=fresh6 mean=0.100471192695 nominal_se=0.000393701074001 gate=1
+CACHE_REFRESH_MEAN fixture=0 pose=15 method=fresh8 mean=0.100501101352 nominal_se=0.000297786788221 gate=1
+CACHE_REFRESH_RESULT fixture=0 method=ris8 rmse=0.0357379360974 temporal_rmse=0.00895826589152 flicker_rmse=0.0499181443479 lag1=0.00174190353751 queries=13768997 source_queries=13768997 reused=0
+CACHE_REFRESH_RESULT fixture=0 method=period1 rmse=0.0357379360929 temporal_rmse=0.00895826589023 flicker_rmse=0.0499181443451 lag1=0.00174190336688 queries=13250655 source_queries=12732313 reused=0
+CACHE_REFRESH_RESULT fixture=0 method=period4 rmse=0.035675984743 temporal_rmse=0.0163253729934 flicker_rmse=0.0265480444293 lag1=0.71659306627 queries=5292194 source_queries=4773909 reused=327680
+CACHE_REFRESH_RESULT fixture=0 method=period8 rmse=0.0356272425035 temporal_rmse=0.0205027441737 flicker_rmse=0.0196174296178 lag1=0.844787196897 queries=3701725 source_queries=3183427 reused=393216
+CACHE_REFRESH_RESULT fixture=0 method=fresh6 rmse=0.0587195193092 temporal_rmse=0.0146758453944 flicker_rmse=0.0814806066942 lag1=0.000305467180282 queries=6830256 source_queries=6830256 reused=0
+CACHE_REFRESH_RESULT fixture=0 method=fresh8 rmse=0.0508794831333 temporal_rmse=0.0126698413906 flicker_rmse=0.070600114103 lag1=0.000662755577128 queries=9107503 source_queries=9107503 reused=0
+CACHE_REFRESH_PAIRED fixture=0 arm=period4 control=fresh8 instantaneous_mse=-0.00131594591653 instantaneous_se=6.80916753472e-06 temporal_mse=0.000105992922509 temporal_se=2.55416010857e-06
+CACHE_REFRESH_PAIRED fixture=0 arm=period8 control=fresh8 instantaneous_mse=-0.00131942139551 instantaneous_se=8.49781861922e-06 temporal_mse=0.000259837637788 temporal_se=4.5206844882e-06
+CACHE_REFRESH_PAIRED fixture=0 arm=period4 control=fresh6 instantaneous_mse=-0.00217520606052 instantaneous_se=9.05760861534e-06 temporal_mse=5.11373653331e-05 temporal_se=2.94273533525e-06
+CACHE_REFRESH_PAIRED fixture=0 arm=period8 control=fresh6 instantaneous_mse=-0.00217868153951 instantaneous_se=1.0173746029e-05 temporal_mse=0.000204982080612 temporal_se=4.69534699858e-06
+CACHE_REFRESH_CHECK fixture=0 mean_gates=96 maximum_period1_difference=2.98023223877e-08
+CACHE_REFRESH_REFERENCE fixture=1 pose=0 x=0 integral=0.0470486282321 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=1 x=0.038060233 integral=0.0473919389392 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=2 x=0.146446615 integral=0.0515153616404 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=3 x=0.308658272 integral=0.0617142439773 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=4 x=0.5 integral=0.066341063396 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=5 x=0.691341698 integral=0.0580084356047 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=6 x=0.853553414 integral=0.0457493399637 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=7 x=0.961939752 integral=0.0379251462036 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=8 x=1 integral=0.0354285394919 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=9 x=0.961939752 integral=0.0189625731018 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=1 pose=10 x=0.853553414 integral=0.0228746699818 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=1 pose=11 x=0.691341698 integral=0.0290042178024 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=1 pose=12 x=0.5 integral=0.033170531698 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=1 pose=13 x=0.308658272 integral=0.0617142439773 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=14 x=0.146446615 integral=0.0515153616404 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=1 pose=15 x=0.038060233 integral=0.0473919389392 scale=1.0
+CACHE_REFRESH_MEAN fixture=1 pose=0 method=ris8 mean=0.046685845656 nominal_se=0.000162746329616 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=0 method=period1 mean=0.046685845656 nominal_se=0.000162746329616 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=0 method=period4 mean=0.046685845656 nominal_se=0.000162746329616 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=0 method=period8 mean=0.046685845656 nominal_se=0.000162746329616 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=0 method=fresh6 mean=0.0467172244651 nominal_se=0.000282101166386 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=0 method=fresh8 mean=0.0468122879206 nominal_se=0.000245069781023 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=1 method=ris8 mean=0.0469962853848 nominal_se=0.000286312724586 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=1 method=period1 mean=0.0469962853917 nominal_se=0.000286312724335 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=1 method=period4 mean=0.0474631590716 nominal_se=0.000346085290445 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=1 method=period8 mean=0.0474631590716 nominal_se=0.000346085290445 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=1 method=fresh6 mean=0.0470803836463 nominal_se=0.000202680593326 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=1 method=fresh8 mean=0.0472160354782 nominal_se=0.000165875882249 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=2 method=ris8 mean=0.0514770976328 nominal_se=0.000549666464135 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=2 method=period1 mean=0.0514770976384 nominal_se=0.000549666465651 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=2 method=period4 mean=0.0517213472983 nominal_se=0.000676602874856 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=2 method=period8 mean=0.0517213472983 nominal_se=0.000676602874856 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=2 method=fresh6 mean=0.0517758182784 nominal_se=0.000349252454195 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=2 method=fresh8 mean=0.0516957108964 nominal_se=0.000255316452524 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=3 method=ris8 mean=0.0630050663264 nominal_se=0.000866528782702 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=3 method=period1 mean=0.0630050663423 nominal_se=0.000866528779057 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=3 method=period4 mean=0.062559080934 nominal_se=0.000663102204626 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=3 method=period8 mean=0.062559080934 nominal_se=0.000663102204626 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=3 method=fresh6 mean=0.0614422612834 nominal_se=0.000315112745911 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=3 method=fresh8 mean=0.0614353198719 nominal_se=0.00029048287005 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=4 method=ris8 mean=0.0667424648475 nominal_se=0.00065846841054 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=4 method=period1 mean=0.0667424648385 nominal_se=0.000658468409669 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=4 method=period4 mean=0.0667424648385 nominal_se=0.000658468409669 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=4 method=period8 mean=0.0667137997916 nominal_se=0.000586481803797 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=4 method=fresh6 mean=0.0665072637987 nominal_se=0.000513102735525 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=4 method=fresh8 mean=0.0664741535857 nominal_se=0.000379289605077 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=5 method=ris8 mean=0.0577498822455 nominal_se=0.00053816904242 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=5 method=period1 mean=0.0577498822048 nominal_se=0.000538169043061 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=5 method=period4 mean=0.058262975262 nominal_se=0.000481407811412 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=5 method=period8 mean=0.0581776162689 nominal_se=0.000428454896625 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=5 method=fresh6 mean=0.0576654057586 nominal_se=0.000328958016418 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=5 method=fresh8 mean=0.0577727526427 nominal_se=0.000320559497475 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=6 method=ris8 mean=0.0454997064028 nominal_se=0.000373898926926 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=6 method=period1 mean=0.0454997063938 nominal_se=0.000373898925871 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=6 method=period4 mean=0.04595455066 nominal_se=0.000361080450047 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=6 method=period8 mean=0.0459096665095 nominal_se=0.000320794975697 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=6 method=fresh6 mean=0.0453115847988 nominal_se=0.000281319424489 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=6 method=fresh8 mean=0.0452838149613 nominal_se=0.000222420945779 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=7 method=ris8 mean=0.0377462224181 nominal_se=0.000362675394686 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=7 method=period1 mean=0.0377462224102 nominal_se=0.000362675392812 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=7 method=period4 mean=0.0380956427766 nominal_se=0.000296523339558 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=7 method=period8 mean=0.03805422094 nominal_se=0.000263422267166 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=7 method=fresh6 mean=0.0378625490707 nominal_se=0.000315490918493 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=7 method=fresh8 mean=0.0378897870842 nominal_se=0.000270328935157 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=8 method=ris8 mean=0.0353529756512 nominal_se=0.000327004560292 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=8 method=period1 mean=0.0353529756473 nominal_se=0.000327004563712 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=8 method=period4 mean=0.0353529756473 nominal_se=0.000327004563712 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=8 method=period8 mean=0.0353529756473 nominal_se=0.000327004563712 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=8 method=fresh6 mean=0.0360382082351 nominal_se=0.000274253523344 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=8 method=fresh8 mean=0.035925523109 nominal_se=0.00022041324498 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=9 method=ris8 mean=0.0187402698032 nominal_se=0.000140775392918 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=9 method=period1 mean=0.0187402697986 nominal_se=0.00014077539332 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=9 method=period4 mean=0.0187402697986 nominal_se=0.00014077539332 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=9 method=period8 mean=0.0187402697986 nominal_se=0.00014077539332 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=9 method=fresh6 mean=0.0189804078341 nominal_se=0.000128425679373 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=9 method=fresh8 mean=0.0189945609028 nominal_se=0.000112698519039 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=10 method=ris8 mean=0.0229718001518 nominal_se=0.000147644822462 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=10 method=period1 mean=0.0229718001509 nominal_se=0.000147644822434 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=10 method=period4 mean=0.0226094805306 nominal_se=0.000171144747808 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=10 method=period8 mean=0.0226094805306 nominal_se=0.000171144747808 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=10 method=fresh6 mean=0.0229548646723 nominal_se=0.000141342507175 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=10 method=fresh8 mean=0.0229591377224 nominal_se=0.000101119258228 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=11 method=ris8 mean=0.0288737332942 nominal_se=0.000174759329512 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=11 method=period1 mean=0.0288737332941 nominal_se=0.000174759329264 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=11 method=period4 mean=0.0286685852818 nominal_se=0.000225622756039 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=11 method=period8 mean=0.0286685852818 nominal_se=0.000225622756039 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=11 method=fresh6 mean=0.029082641855 nominal_se=0.000175935653211 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=11 method=fresh8 mean=0.0290634164315 nominal_se=0.000158859508354 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=12 method=ris8 mean=0.0326065860514 nominal_se=0.000230553783961 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=12 method=period1 mean=0.0326065860442 nominal_se=0.000230553784374 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=12 method=period4 mean=0.0326065860442 nominal_se=0.000230553784374 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=12 method=period8 mean=0.0327324901188 nominal_se=0.000304217829532 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=12 method=fresh6 mean=0.0334010318079 nominal_se=0.000186943793945 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=12 method=fresh8 mean=0.0333908853925 nominal_se=0.000144623035592 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=13 method=ris8 mean=0.0620159909068 nominal_se=0.000806191846366 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=13 method=period1 mean=0.0620159908966 nominal_se=0.000806191844946 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=13 method=period4 mean=0.0620159908966 nominal_se=0.000806191844946 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=13 method=period8 mean=0.0620159908966 nominal_se=0.000806191844946 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=13 method=fresh6 mean=0.0616067510355 nominal_se=0.000421392526752 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=13 method=fresh8 mean=0.0615058154742 nominal_se=0.000372000613406 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=14 method=ris8 mean=0.0510377075691 nominal_se=0.000628251617897 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=14 method=period1 mean=0.0510377075772 nominal_se=0.000628251614716 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=14 method=period4 mean=0.0524419344733 nominal_se=0.000600151202957 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=14 method=period8 mean=0.0524419344733 nominal_se=0.000600151202957 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=14 method=fresh6 mean=0.0514083866265 nominal_se=0.000206645241675 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=14 method=fresh8 mean=0.0513832871775 nominal_se=0.000216746143849 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=15 method=ris8 mean=0.047155872755 nominal_se=0.000327213759985 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=15 method=period1 mean=0.047155872751 nominal_se=0.000327213758435 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=15 method=period4 mean=0.0481399434453 nominal_se=0.000346736626341 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=15 method=period8 mean=0.0481399434453 nominal_se=0.000346736626341 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=15 method=fresh6 mean=0.0470291141228 nominal_se=0.000263586450183 gate=1
+CACHE_REFRESH_MEAN fixture=1 pose=15 method=fresh8 mean=0.0470478073357 nominal_se=0.000212235486525 gate=1
+CACHE_REFRESH_RESULT fixture=1 method=ris8 rmse=0.0833956554951 temporal_rmse=0.0207993144164 flicker_rmse=0.120419865323 lag1=0.000128712137324 queries=11807670 source_queries=11807670 reused=0
+CACHE_REFRESH_RESULT fixture=1 method=period1 rmse=0.0833956554895 temporal_rmse=0.0207993144175 flicker_rmse=0.12041986532 lag1=0.000128712125161 queries=11499832 source_queries=10995846 reused=0
+CACHE_REFRESH_RESULT fixture=1 method=period4 rmse=0.083780535211 temporal_rmse=0.0325023879627 flicker_rmse=0.0867264044244 lag1=0.485393925067 queries=4628501 source_queries=4124381 reused=327680
+CACHE_REFRESH_RESULT fixture=1 method=period8 rmse=0.0840747655376 temporal_rmse=0.0409092765573 flicker_rmse=0.0725430352402 lag1=0.642554962257 queries=3252542 source_queries=2748565 reused=393216
+CACHE_REFRESH_RESULT fixture=1 method=fresh6 rmse=0.050333749166 temporal_rmse=0.0125607064093 flicker_rmse=0.0708684835938 lag1=-0.00121344553131 queries=6674974 source_queries=6674974 reused=0
+CACHE_REFRESH_RESULT fixture=1 method=fresh8 rmse=0.0436129995951 temporal_rmse=0.0109150172323 flicker_rmse=0.0614158041203 lag1=-0.00144642383854 queries=8899950 source_queries=8899950 reused=0
+CACHE_REFRESH_PAIRED fixture=1 arm=period4 control=fresh8 instantaneous_mse=0.00511708434656 instantaneous_se=0.000170584629615 temporal_mse=0.000937267622097 temporal_se=2.71936773666e-05
+CACHE_REFRESH_PAIRED fixture=1 arm=period8 control=fresh8 instantaneous_mse=0.00516647246653 instantaneous_se=0.00018735906471 temporal_mse=0.00155443130726 temporal_se=5.87533955862e-05
+CACHE_REFRESH_PAIRED fixture=1 arm=period4 control=fresh6 instantaneous_mse=0.00448569177514 instantaneous_se=0.000171229227873 temporal_mse=0.000898633877778 temporal_se=2.72641307912e-05
+CACHE_REFRESH_PAIRED fixture=1 arm=period8 control=fresh6 instantaneous_mse=0.0045350798951 instantaneous_se=0.000187573436058 temporal_mse=0.00151579756294 temporal_se=5.88302750974e-05
+CACHE_REFRESH_CHECK fixture=1 mean_gates=96 maximum_period1_difference=2.38418579102e-07
+CACHE_REFRESH_REFERENCE fixture=2 pose=0 x=0 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=1 x=0.038060233 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=2 x=0.146446615 integral=0.00441540224764 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=3 x=0.308658272 integral=0.023602341581 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=4 x=0.5 integral=0.0421220226833 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=5 x=0.691341698 integral=0.0458206037941 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=6 x=0.853553414 integral=0.0408044815178 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=7 x=0.961939752 integral=0.035896427655 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=8 x=1 integral=0.0336100076862 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=9 x=0.961939752 integral=0.0179482138275 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=2 pose=10 x=0.853553414 integral=0.0204022407589 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=2 pose=11 x=0.691341698 integral=0.022910301897 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=2 pose=12 x=0.5 integral=0.0210610113416 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=2 pose=13 x=0.308658272 integral=0.023602341581 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=14 x=0.146446615 integral=0.00441540224764 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=2 pose=15 x=0.038060233 integral=0 scale=1.0
+CACHE_REFRESH_MEAN fixture=2 pose=0 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=0 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=0 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=0 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=1 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=1 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=1 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=1 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=2 method=ris8 mean=0.004184171779 nominal_se=0.000128367175375 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=2 method=period1 mean=0.00418417178287 nominal_se=0.000128367174723 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=2 method=period4 mean=0.00447270246821 nominal_se=0.00014736190759 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=2 method=period8 mean=0.00447270246821 nominal_se=0.00014736190759 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=2 method=fresh6 mean=0.00440063478459 nominal_se=0.000115939437169 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=2 method=fresh8 mean=0.00434669511856 nominal_se=9.00381448689e-05 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=3 method=ris8 mean=0.0235665702742 nominal_se=0.000386688199086 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=3 method=period1 mean=0.0235665702721 nominal_se=0.000386688198763 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=3 method=period4 mean=0.02344485333 nominal_se=0.000354129472634 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=3 method=period8 mean=0.02344485333 nominal_se=0.000354129472634 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=3 method=fresh6 mean=0.0234600831307 nominal_se=0.000218715490168 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=3 method=fresh8 mean=0.0234590157693 nominal_se=0.000177855393022 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=4 method=ris8 mean=0.0422404009339 nominal_se=0.000351690187362 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=4 method=period1 mean=0.0422404009271 nominal_se=0.000351690185116 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=4 method=period4 mean=0.0422404009271 nominal_se=0.000351690185116 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=4 method=period8 mean=0.0419372491149 nominal_se=0.000372392689441 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=4 method=fresh6 mean=0.041759033488 nominal_se=0.000211161156333 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=4 method=fresh8 mean=0.0420458235712 nominal_se=0.000199303418739 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=5 method=ris8 mean=0.045960597586 nominal_se=0.000333399608948 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=5 method=period1 mean=0.0459605975943 nominal_se=0.000333399607509 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=5 method=period4 mean=0.0459863234909 nominal_se=0.000277149949039 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=5 method=period8 mean=0.0456173015069 nominal_se=0.000310159890408 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=5 method=fresh6 mean=0.0459951785601 nominal_se=0.000333963053418 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=5 method=fresh8 mean=0.0462178817816 nominal_se=0.000252840069763 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=6 method=ris8 mean=0.0405894179506 nominal_se=0.000273642079545 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=6 method=period1 mean=0.0405894179445 nominal_se=0.000273642077074 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=6 method=period4 mean=0.0409181561567 nominal_se=0.000226809327054 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=6 method=period8 mean=0.0406807802357 nominal_se=0.00024907160068 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=6 method=fresh6 mean=0.0406652834706 nominal_se=0.000304720792185 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=6 method=fresh8 mean=0.040816956963 nominal_se=0.000236774918508 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=7 method=ris8 mean=0.0360774908042 nominal_se=0.000195946984919 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=7 method=period1 mean=0.0360774908048 nominal_se=0.000195946982235 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=7 method=period4 mean=0.0359575661687 nominal_se=0.000178808783099 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=7 method=period8 mean=0.0357666626515 nominal_se=0.000201045966879 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=7 method=fresh6 mean=0.0357882692631 nominal_se=0.000271656988866 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=7 method=fresh8 mean=0.0356147015684 nominal_se=0.00021270938765 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=8 method=ris8 mean=0.0337277303099 nominal_se=0.000186073052807 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=8 method=period1 mean=0.0337277303147 nominal_se=0.00018607305373 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=8 method=period4 mean=0.0337277303147 nominal_se=0.00018607305373 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=8 method=period8 mean=0.0337277303147 nominal_se=0.00018607305373 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=8 method=fresh6 mean=0.0332910158302 nominal_se=0.000236863494822 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=8 method=fresh8 mean=0.03325309872 nominal_se=0.000222788278765 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=9 method=ris8 mean=0.0179923283648 nominal_se=8.31989719751e-05 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=9 method=period1 mean=0.0179923283599 nominal_se=8.31989708061e-05 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=9 method=period4 mean=0.0179923283599 nominal_se=8.31989708061e-05 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=9 method=period8 mean=0.0179923283599 nominal_se=8.31989708061e-05 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=9 method=fresh6 mean=0.0179507447407 nominal_se=0.000106741902219 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=9 method=fresh8 mean=0.0179387289573 nominal_se=0.000121731048764 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=10 method=ris8 mean=0.0205875587628 nominal_se=0.000138167947339 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=10 method=period1 mean=0.0205875587696 nominal_se=0.000138167947851 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=10 method=period4 mean=0.0204183950729 nominal_se=0.000104270270688 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=10 method=period8 mean=0.0204183950729 nominal_se=0.000104270270688 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=10 method=fresh6 mean=0.0204020692264 nominal_se=0.00016424558205 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=10 method=fresh8 mean=0.0203700263266 nominal_se=0.000135170670243 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=11 method=ris8 mean=0.0230835647482 nominal_se=0.000175583923238 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=11 method=period1 mean=0.0230835647511 nominal_se=0.000175583923228 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=11 method=period4 mean=0.0229552442464 nominal_se=0.00012880403231 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=11 method=period8 mean=0.0229552442464 nominal_se=0.00012880403231 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=11 method=fresh6 mean=0.0228694154492 nominal_se=0.00014569562313 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=11 method=fresh8 mean=0.0228517921427 nominal_se=0.000140760507581 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=12 method=ris8 mean=0.0209699202232 nominal_se=0.000199183446916 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=12 method=period1 mean=0.020969920219 nominal_se=0.000199183447257 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=12 method=period4 mean=0.020969920219 nominal_se=0.000199183447257 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=12 method=period8 mean=0.0210803469118 nominal_se=0.000147674695551 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=12 method=fresh6 mean=0.0211593629339 nominal_se=0.000132038310902 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=12 method=fresh8 mean=0.0210541541543 nominal_se=0.000110944711321 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=13 method=ris8 mean=0.0235080877296 nominal_se=0.000335456805075 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=13 method=period1 mean=0.0235080877246 nominal_se=0.000335456803709 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=13 method=period4 mean=0.0235080877246 nominal_se=0.000335456803709 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=13 method=period8 mean=0.0235080877246 nominal_se=0.000335456803709 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=13 method=fresh6 mean=0.0234729005108 nominal_se=0.000219817878668 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=13 method=fresh8 mean=0.0234365853505 nominal_se=0.000156502669435 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=14 method=ris8 mean=0.00459870866939 nominal_se=0.00017506371547 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=14 method=period1 mean=0.0045987086628 nominal_se=0.000175063714669 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=14 method=period4 mean=0.00447749095201 nominal_se=0.00010702603726 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=14 method=period8 mean=0.00447749095201 nominal_se=0.00010702603726 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=14 method=fresh6 mean=0.00429382326092 nominal_se=0.000114248555197 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=14 method=fresh8 mean=0.00426017778091 nominal_se=8.34277083985e-05 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=15 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=15 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=15 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=15 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=2 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_RESULT fixture=2 method=ris8 rmse=0.0378591658058 temporal_rmse=0.00946710828691 flicker_rmse=0.0552371887106 lag1=0.00215606989739 queries=9528630 source_queries=9528630 reused=0
+CACHE_REFRESH_RESULT fixture=2 method=period1 rmse=0.037859165799 temporal_rmse=0.009467108285 flicker_rmse=0.0552371886977 lag1=0.00215607000092 queries=9804848 source_queries=9332768 reused=0
+CACHE_REFRESH_RESULT fixture=2 method=period4 rmse=0.0377611831998 temporal_rmse=0.0147646691342 flicker_rmse=0.0419808286093 lag1=0.42063484424 queries=3972497 source_queries=3500046 reused=327680
+CACHE_REFRESH_RESULT fixture=2 method=period8 rmse=0.0375408551061 temporal_rmse=0.0177277637396 flicker_rmse=0.0353618874763 lag1=0.584085369354 queries=2805887 source_queries=2333438 reused=393216
+CACHE_REFRESH_RESULT fixture=2 method=fresh6 rmse=0.0342769825412 temporal_rmse=0.00857886795717 flicker_rmse=0.0500401833022 lag1=0.000976344864073 queries=6487314 source_queries=6487314 reused=0
+CACHE_REFRESH_RESULT fixture=2 method=fresh8 rmse=0.0296614644502 temporal_rmse=0.00738051192308 flicker_rmse=0.0433117875545 lag1=0.000529095383484 queries=8649751 source_queries=8649751 reused=0
+CACHE_REFRESH_PAIRED fixture=2 arm=period4 control=fresh8 instantaneous_mse=0.000546104483316 instantaneous_se=1.06205058801e-05 temporal_mse=0.000163523498394 temporal_se=2.17872540364e-06
+CACHE_REFRESH_PAIRED fixture=2 arm=period8 control=fresh8 instantaneous_mse=0.000529513328764 instantaneous_se=1.16813845382e-05 temporal_mse=0.000259801650961 temporal_se=3.82483391497e-06
+CACHE_REFRESH_PAIRED fixture=2 arm=period4 control=fresh6 instantaneous_mse=0.000250995424517 instantaneous_se=1.15364682117e-05 temporal_mse=0.000144398479215 temporal_se=2.27055395686e-06
+CACHE_REFRESH_PAIRED fixture=2 arm=period8 control=fresh6 instantaneous_mse=0.000234404269965 instantaneous_se=1.22115436993e-05 temporal_mse=0.000240676631781 temporal_se=3.76265395046e-06
+CACHE_REFRESH_CHECK fixture=2 mean_gates=96 maximum_period1_difference=2.98023223877e-08
+CACHE_REFRESH_REFERENCE fixture=3 pose=0 x=0 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=1 x=0.038060233 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=2 x=0.146446615 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=3 x=0.308658272 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=4 x=0.5 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=5 x=0.691341698 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=6 x=0.853553414 integral=0.0128798438218 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=7 x=0.961939752 integral=0.0172063357012 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=8 x=1 integral=0.0179346046656 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=9 x=0.961939752 integral=0.00860316785062 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=3 pose=10 x=0.853553414 integral=0.0064399219109 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=3 pose=11 x=0.691341698 integral=0 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=3 pose=12 x=0.5 integral=0 scale=0.5
+CACHE_REFRESH_REFERENCE fixture=3 pose=13 x=0.308658272 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=14 x=0.146446615 integral=0 scale=1.0
+CACHE_REFRESH_REFERENCE fixture=3 pose=15 x=0.038060233 integral=0 scale=1.0
+CACHE_REFRESH_MEAN fixture=3 pose=0 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=0 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=0 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=0 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=1 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=1 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=1 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=1 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=2 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=2 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=2 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=2 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=2 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=2 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=3 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=3 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=3 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=3 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=3 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=3 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=4 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=4 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=4 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=4 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=4 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=4 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=5 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=5 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=5 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=5 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=5 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=5 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=6 method=ris8 mean=0.0128256794158 nominal_se=0.000199043821035 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=6 method=period1 mean=0.0128256794117 nominal_se=0.00019904382206 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=6 method=period4 mean=0.0128804574478 nominal_se=0.000202650076628 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=6 method=period8 mean=0.0131079413487 nominal_se=0.000241678536381 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=6 method=fresh6 mean=0.012800293028 nominal_se=0.000151835817626 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=6 method=fresh8 mean=0.0128782658826 nominal_se=0.000127498884583 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=7 method=ris8 mean=0.0174424988026 nominal_se=0.000228661007593 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=7 method=period1 mean=0.0174424988048 nominal_se=0.000228661006029 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=7 method=period4 mean=0.0171368079562 nominal_se=0.000165182745535 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=7 method=period8 mean=0.0175159173802 nominal_se=0.000222606437849 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=7 method=fresh6 mean=0.0175085450044 nominal_se=0.000173571933825 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=7 method=fresh8 mean=0.0173130805001 nominal_se=0.000164101222886 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=8 method=ris8 mean=0.0179401586117 nominal_se=0.000195985059283 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=8 method=period1 mean=0.0179401586068 nominal_se=0.000195985060209 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=8 method=period4 mean=0.0179401586068 nominal_se=0.000195985060209 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=8 method=period8 mean=0.0179401586068 nominal_se=0.000195985060209 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=8 method=fresh6 mean=0.0176623535992 nominal_se=0.000139473270273 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=8 method=fresh8 mean=0.0177280432802 nominal_se=0.000130158279921 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=9 method=ris8 mean=0.00886215992458 nominal_se=0.000125434563789 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=9 method=period1 mean=0.00886215992855 nominal_se=0.000125434563045 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=9 method=period4 mean=0.00886215992855 nominal_se=0.000125434563045 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=9 method=period8 mean=0.00886215992855 nominal_se=0.000125434563045 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=9 method=fresh6 mean=0.00860687260024 nominal_se=7.70181071367e-05 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=9 method=fresh8 mean=0.00861408266633 nominal_se=7.18589256286e-05 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=10 method=ris8 mean=0.00638724766389 nominal_se=0.00011953727656 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=10 method=period1 mean=0.00638724766145 nominal_se=0.000119537277225 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=10 method=period4 mean=0.00661113276442 nominal_se=0.000133348883348 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=10 method=period8 mean=0.00661113276442 nominal_se=0.000133348883348 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=10 method=fresh6 mean=0.00649627688483 nominal_se=7.66118280491e-05 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=10 method=fresh8 mean=0.00645916010217 nominal_se=6.88169198314e-05 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=11 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=11 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=11 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=11 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=11 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=11 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=12 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=12 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=12 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=12 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=12 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=12 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=13 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=13 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=13 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=13 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=13 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=13 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=14 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=14 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=14 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=14 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=14 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=14 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=15 method=ris8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=15 method=period1 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=15 method=period4 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=15 method=period8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_MEAN fixture=3 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+CACHE_REFRESH_RESULT fixture=3 method=ris8 rmse=0.0174873532375 temporal_rmse=0.00436748537766 flicker_rmse=0.0255571945571 lag1=-0.00119896388816 queries=9364194 source_queries=9364194 reused=0
+CACHE_REFRESH_RESULT fixture=3 method=period1 rmse=0.0174873532361 temporal_rmse=0.00436748537785 flicker_rmse=0.0255571945538 lag1=-0.00119896378845 queries=9803558 source_queries=9331908 reused=0
+CACHE_REFRESH_RESULT fixture=3 method=period4 rmse=0.01744175052 temporal_rmse=0.00551882980492 flicker_rmse=0.0212662453684 lag1=0.303143136864 queries=3971320 source_queries=3499560 reused=327680
+CACHE_REFRESH_RESULT fixture=3 method=period8 rmse=0.0175682239896 temporal_rmse=0.00554744517532 flicker_rmse=0.0214526932779 lag1=0.301036071902 queries=2804407 source_queries=2332828 reused=393216
+CACHE_REFRESH_RESULT fixture=3 method=fresh6 rmse=0.0152844545103 temporal_rmse=0.0038227229377 flicker_rmse=0.0223150883441 lag1=0.000831773160301 queries=6328052 source_queries=6328052 reused=0
+CACHE_REFRESH_RESULT fixture=3 method=fresh8 rmse=0.0132472648516 temporal_rmse=0.00331173403614 flicker_rmse=0.0193489965612 lag1=-1.33308991814e-05 queries=8437333 source_queries=8437333 reused=0
+CACHE_REFRESH_PAIRED fixture=3 arm=period4 control=fresh8 instantaneous_mse=0.000128724635154 instantaneous_se=4.6750890634e-06 temporal_mse=1.94899000895e-05 temporal_se=4.78151897704e-07
+CACHE_REFRESH_PAIRED fixture=3 arm=period8 control=fresh8 instantaneous_mse=0.000133152468101 instantaneous_se=4.68483835545e-06 temporal_mse=1.9806565647e-05 temporal_se=5.63975309322e-07
+CACHE_REFRESH_PAIRED fixture=3 arm=period4 control=fresh6 instantaneous_mse=7.06001115251e-05 instantaneous_se=4.83276663684e-06 temporal_mse=1.58442717573e-05 temporal_se=5.08065509676e-07
+CACHE_REFRESH_PAIRED fixture=3 arm=period8 control=fresh6 instantaneous_mse=7.5027944472e-05 instantaneous_se=5.08416872543e-06 temporal_mse=1.61609373147e-05 temporal_se=5.93354020889e-07
+CACHE_REFRESH_CHECK fixture=3 mean_gates=96 maximum_period1_difference=2.98023223877e-08
+CACHE_REFRESH_DECISION correctness=1 promote=0 physical_gpu_timing=0
+e049e7d56d69ed1e9fa11c3cb15323ad9975f85c0c38a1d159f3a609b7e7c5d8  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-0.f32
+c01b2ed174d4800571c1007288079b6cd4c1c94faee9a6185e7b2c9f63270b54  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-1.f32
+1c7515b527582e929013c7f80ffc12d971934760a5ea791b79b91089e11fac56  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-10.f32
+292b8ea33f2c677d9ae17daf8cc0a5b5f058924951550cbba98e2d83c37a88ea  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-11.f32
+d822e1c8da03129fb6315f7df78ad76edca98ab9342d825cfe8e7856048b9679  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-12.f32
+42f7c1d7a76e1c844629c88d233a5e0ac5891729c5923663169e06a941c4d41f  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-13.f32
+c7a1e12cc72836a502078fa5a4464442561b26866d1d9abee37f8ab71ff69154  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-14.f32
+dee32ac80a0be9e61166b3ee81137e1a05c68e437c43c462935a1b1a5a3452cd  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-15.f32
+4a33307fe93d541079c35baf90bb0781335e479bdffdc120495c3b95e1b7a15a  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-2.f32
+91de9f3d0a3789174ef5a8187634cde67cfba2d6b4394da935e24b5d71e7483c  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-3.f32
+4c1791ac0d81badfabdc4dbe1771eb8f676772c83375b64925a0275a77b02d86  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-4.f32
+93d2aa01e3dfbb52bc6aa88453e6cd73478b0737e02c5a19f8b75ba731b722c3  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-5.f32
+a5e7735043c91e6d78ee673628e868e1a9a9303e73c60ed14fb663bb5cac5a3d  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-6.f32
+f0aa322dcfdf03d6d23b3b05a3c424be1f2b3eb480891e7c7a689d2266e1b494  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-7.f32
+97937e2790d01ae6c8c19627b074309c79693b004f63f0ea95ec40767a233438  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-8.f32
+65a9fda18a185a8fa35d1b6eb41732ae353edc10de8482cc66d9ab00943507d4  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh0-9.f32
+3d2ffb2ba89079da7e2128c12c68c97ec5add6b48589968f8f78176e2235cf87  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-0.f32
+d235b796d6b687938d5499bee6f1eb5ab5afde69ceaf9fcafbd158dfd23088bd  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-1.f32
+6dbe727a7b7119cff9cc22706d0085419bf7637dbce05b282a26821606010ce8  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-10.f32
+96addfbb47d8c4415e6dd0a16dda5fa524081b1608661ebb2dca6eb56d58289f  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-11.f32
+af62e5b332588aca6dbd65b7bcf8e88a4154384abea082d814d115d742c8b7ea  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-12.f32
+50190713b07869aa0b87ea248d3ca22a719d56ba00894657ed68c0b318f57b97  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-13.f32
+be76586fe775717aa8515f5cdfdf90478d7503253da77edc430afaa5235c4e61  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-14.f32
+06eb27acdd9aa2e394002088308440ff06211865252d941473fd0666887b4d99  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-15.f32
+5b92e0d21fa2acd3aefd3bcdd1669cfcabf40e21e88f8b4776f7efa74be09265  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-2.f32
+f669c99495853f2d744d73124cd6f009414281b58e4b6b25ff176840abcdf3d2  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-3.f32
+8c2fc7660ebd47c45eeb02725c7bb59bb07a281d4a2153189203bfff4c13aaee  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-4.f32
+a5c5c648274717fc1e9e66ae2bd57e639a163687e30e3b696b18f0252b5d4eba  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-5.f32
+d2445deae402463483fa6450b32b52d0cb19dc0e10b0fd23254a065f562f9648  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-6.f32
+7c65fb008a5bf96eab00dd49b31966eb741cde01188d0a4214b54c4677f8099d  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-7.f32
+ed56d0b5ed35792e4c6e68a723332f0af91ed91d606d5d330ba6e386164f8cfd  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-8.f32
+f648e45e647ad695ee7c23e77ce438b4d5ebebfe1977aa561cfe6f6098591e53  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh1-9.f32
+e5a6a6ffe22a6ec4c80f180eca573c08ce153f41cb92185582386c86d5320d81  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-0.f32
+878df28d0f4ec818e7888eaa33e860a79776cd8f7a2e0d4c7c4834fc40b8ecef  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-1.f32
+a9d8c830f555728275e3aa331236b359fc55284fcc432536f8348158153d0862  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-10.f32
+3bb97f79f3948fb867333aefc556977b7c4dee7938fa71c1bf8413b1e4873bb1  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-11.f32
+c34b3c98dc8b1c553bdc12fdf46dea70b22c84e42c6bff8a04462c56c768c803  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-12.f32
+e7ddbdd656b186e8c9d22457b6442d9dd8f6449a8bbf25c2c3b49c94069d797b  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-13.f32
+157684f85280059f46ead88946a543721d267a1cbb025fa3f0c69ed44f95b7fb  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-14.f32
+415616c399635542e3ef7c6d07a99291c23d43a52b668270b69efc51377f5986  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-15.f32
+ffba93c2eea325874c40da8f307446f0e76595eeaa6bd4c8321399eeae9c1789  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-2.f32
+012adda6d4927d2e90bd96a70df30ac701c217857e2d195badea4164367cc7bd  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-3.f32
+69926862ca7417dc72b48784ee66e220b1d6c2c2a6306f76cc93fc4e2d5aa192  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-4.f32
+1af5cbb19bbc816192c3f943d47961a77528aa852e518a1e3fc13f2a4e87d070  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-5.f32
+3bcbd6913536b19fec3c6d7743ed4c4174dde90aa667d27ec712faf99964bab0  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-6.f32
+6abe4182270b55d2f7b69af3399644e9aee234bf658f31a5a0da2d36a2023679  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-7.f32
+012946512873c65813154d27ca13cb9adf423a3482cf00ad5e702002f906da18  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-8.f32
+d5c4c905bd90ba7b1f51cf0ca3b91215a0e2621033df76d9763d3613a37fb676  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh2-9.f32
+135215a7ae9ccfc910789e56f3e649a680dbe6f9eab62e7c2b20d583defe804d  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-0.f32
+6115785d473463f4d2d742792bf46308cdc117083621563ce2deb34b9045151b  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-1.f32
+e9ab7292e58f50f926da6ec203caa2383fed40c2783d392b4c4f80b6e502ed35  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-10.f32
+df8271d2d65c28cd937ffd3c0471c635ea07559a86607a6f4531f7eca2b680f7  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-11.f32
+134cafeed217b1ff2ec6f705ba637f8e329421da8825aa08a8199a9d79e55f6c  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-12.f32
+0bdfcac5a5b7dcdd7701644de673af4aa62548d34acf2474ca1381f4959fbc44  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-13.f32
+b80918b74a6f31191aa85de93ffb5cb7a1565505bb0c806efefd99abc4c3e5f5  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-14.f32
+ec2f454fdb5a824cb50a8ca76b473fe6f07597a0a02c96e52013dfcb617e94fb  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-15.f32
+cf7db58d7d85b0b345238dacb4d0589a0ab6956156068a678e66564983c258b8  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-2.f32
+e8a25192988f1c8dd87ebc2edb3ab804f5630acc0da03f8ba1c415d7fc3acde5  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-3.f32
+5b4561fc09a11074df583770a81a3b8aa7aec745ed6cb80c20d1705cd0d0af9d  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-4.f32
+eddffbc2cee81a964e4f5ac22865340e661e355c8e874a660e84a52fb7338586  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-5.f32
+e521ce46c15afacd91dfdb45c12a6a588f63de44f02e9b397b3b0da9c34f1647  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-6.f32
+f99a606d25ae6b34214f4acc5aeecbabd0a3679b5ccff8bee96237429121da09  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-7.f32
+e214ae3bc7457ee797b9839f86114038e8fbf3063f9c3ce244dc7b1a6461b4e9  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-8.f32
+43975f0bba9fd31bb47e719ddb5b263cd695026229c49496935a1df0d16f8688  /home/user/Frontier/_ClaudeScratch/cache-refresh-capture-release/CacheRefresh3-9.f32

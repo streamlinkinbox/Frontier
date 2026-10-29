@@ -78,4 +78,7 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   persistent payloads and general-scene acceptance remain pending.
 - [Persistent vertex/outgoing cache](Exhibits/LightCompute/VertexCache.md): paired estimates preserved while warm
   source queries drop to zero; lifecycle totals use 20.67–27.31% fewer BVH queries. Not GPU timing or new samples;
-  bounded refresh and general rendering acceptance remain outstanding.
+  see the bounded-refresh checkpoint below; general rendering acceptance remains outstanding.
+- [Bounded cache refresh](Exhibits/LightCompute/CacheRefresh.md): fewer queries do not preserve temporal quality.
+  Fixed period4/8 caches have higher trajectory-averaging error than fresh6/8 across all four restricted fixtures;
+  candidate-retention/refresh redesign is needed before a production reuse policy.

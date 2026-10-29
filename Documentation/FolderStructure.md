@@ -270,3 +270,12 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   inline pairing and deliberately stale caches. Production render storage and policies are not changed.
 - `RunVertexCache.sh`, `VertexCacheEvidence.py` and `VertexCache.md` retain query savings, lifecycle readbacks,
   host-sanitizer parity and limitations of frozen sample banks.
+
+### Bounded refresh and receiver-motion temporal error
+
+- `Exhibits/LightCompute/Code/CompileCacheRefresh.py` derives correct refresh1/4/8 payloads and fresh cosine6/8
+  component controls; sampler densities, source target and revision policy remain fixed.
+- `CacheRefreshValidation.h` tests16 receiver poses,32 cohorts and a new .3 strip holdout. It measures trajectory
+  mean-residual error, instantaneous error, residual differences/correlation, paired MSE and full query work.
+- `RunCacheRefresh.sh`, `CacheRefreshEvidence.py` and `CacheRefresh.md` retain actual readbacks and the distinction
+  between low redraw flicker and correlated estimation error. No production rendering change.
