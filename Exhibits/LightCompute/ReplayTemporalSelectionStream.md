@@ -52,3 +52,7 @@ Ray-operation counters were effectively unchanged for temporal4/lower (`5,067.33
 ### Follow-up: path-proposal stream
 
 A matched-seed follow-up changes only the path-proposal seed mapping while preserving the original selection stream. The new hash fails temporal1/lower mean tolerance (despite a lower RMSE), so it also remains test-only. See the [path-stream report, visual comparison and raw evidence](ReplayTemporalPathStream.md).
+
+### Follow-up: paired cohort-tail audit
+
+The [paired tail/convergence report and SVG](ReplayTemporalRngTailAudit.md) recompute cohort distributions across both RNG studies. It finds distinct, low-variance mean failures for the selection-hash and path-hash candidates, while several passing cells are dominated by extreme cohort MSE tails. This is finite-cohort evidence, not pixel-level provenance or a diagnosis of asymptotic bias.

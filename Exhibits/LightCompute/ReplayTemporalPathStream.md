@@ -47,3 +47,7 @@ The current path-hash temporal4/default paired MSE contrast is `−0.03709 ± 0.
 - Prior comparator: [selection-stream study](ReplayTemporalSelectionStream.md) and its [raw log](Results/ReplayTemporalSelectionStream.txt)
 
 **Conclusion:** changing only the path-proposal stream also fails the lower-floor moving-visibility holdout—now at temporal1, with a low-RMSE but strongly out-of-reference mean. Keep the production baseline unchanged. The data motivates further scrutiny of finite tails, support and deterministic stream interactions, not a default change.
+
+### Follow-up: paired cohort-tail audit
+
+A reproducible audit of this and the prior selection-stream study finds that the two failed candidate cells have narrow, consistently low cohort means, whereas several gate-passing cells are dominated by rare, extreme MSE cohorts. See the [paired tail/convergence report and SVG](ReplayTemporalRngTailAudit.md). This does not establish pixel-level provenance or asymptotic bias.

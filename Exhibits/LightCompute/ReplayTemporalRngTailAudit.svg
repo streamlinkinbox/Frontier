@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="940" viewBox="0 0 1440 940">
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<rect x="24" y="22" width="1392" height="894" rx="22" fill="white" stroke="#dbe3ee"/>
+<text x="58" y="76" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="30" fill="#0f172a" font-weight="700" text-anchor="start">Temporal RNG lower-floor tail audit</text>
+<text x="58" y="108" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" fill="#475569" font-weight="400" text-anchor="start">128 paired cohorts · mean-reference behavior and concentration of cohort MSE</text>
+<text x="58" y="146" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" fill="#0f172a" font-weight="700" text-anchor="start">A  ·  Mean estimate ± 1 cohort SE</text>
+<text x="952" y="146" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" fill="#0f172a" font-weight="700" text-anchor="start">B  ·  Share of total MSE in worst 5% of cohorts</text>
+<line x1="92" y1="565.0" x2="840" y2="565.0" stroke="#e2e8f0"/>
+<text x="80" y="570.0" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#64748b" font-weight="400" text-anchor="end">0.78</text>
+<line x1="92" y1="481.7" x2="840" y2="481.7" stroke="#e2e8f0"/>
+<text x="80" y="486.6666666666666" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#64748b" font-weight="400" text-anchor="end">0.80</text>
+<line x1="92" y1="398.3" x2="840" y2="398.3" stroke="#e2e8f0"/>
+<text x="80" y="403.3333333333336" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#64748b" font-weight="400" text-anchor="end">0.82</text>
+<line x1="92" y1="315.0" x2="840" y2="315.0" stroke="#e2e8f0"/>
+<text x="80" y="320.00000000000017" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#64748b" font-weight="400" text-anchor="end">0.84</text>
+<line x1="92" y1="231.7" x2="840" y2="231.7" stroke="#e2e8f0"/>
+<text x="80" y="236.6666666666667" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#64748b" font-weight="400" text-anchor="end">0.86</text>
+<line x1="92" y1="387.1" x2="840" y2="387.1" stroke="#111827" stroke-width="2" stroke-dasharray="7 6"/>
+<text x="838" y="379.1287287083332" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#111827" font-weight="600" text-anchor="end">reference 0.822689</text>
+<line x1="92" y1="190" x2="92" y2="565" stroke="#94a3b8"/><line x1="92" y1="565" x2="840" y2="565" stroke="#94a3b8"/>
+<text x="280" y="595" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" fill="#334155" font-weight="600" text-anchor="middle">Temporal 1</text>
+<line x1="210" y1="362.4" x2="210" y2="484.6" stroke="#b7791f" stroke-width="2.5"/>
+<line x1="203" y1="362.4" x2="217" y2="362.4" stroke="#b7791f" stroke-width="2"/><line x1="203" y1="484.6" x2="217" y2="484.6" stroke="#b7791f" stroke-width="2"/>
+<circle cx="210" cy="423.5" r="7" fill="#b7791f" stroke="white" stroke-width="2"/>
+<line x1="280" y1="477.6" x2="280" y2="482.8" stroke="#2563eb" stroke-width="2.5"/>
+<line x1="273" y1="477.6" x2="287" y2="477.6" stroke="#2563eb" stroke-width="2"/><line x1="273" y1="482.8" x2="287" y2="482.8" stroke="#2563eb" stroke-width="2"/>
+<circle cx="280" cy="480.2" r="7" fill="#2563eb" stroke="white" stroke-width="2"/>
+<circle cx="280" cy="480.2" r="12" fill="none" stroke="#dc2626" stroke-width="2"/>
+<line x1="350" y1="345.6" x2="350" y2="469.6" stroke="#0f8b6d" stroke-width="2.5"/>
+<line x1="343" y1="345.6" x2="357" y2="345.6" stroke="#0f8b6d" stroke-width="2"/><line x1="343" y1="469.6" x2="357" y2="469.6" stroke="#0f8b6d" stroke-width="2"/>
+<circle cx="350" cy="407.6" r="7" fill="#0f8b6d" stroke="white" stroke-width="2"/>
+<text x="650" y="595" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" fill="#334155" font-weight="600" text-anchor="middle">Temporal 4</text>
+<line x1="580" y1="386.6" x2="580" y2="412.7" stroke="#b7791f" stroke-width="2.5"/>
+<line x1="573" y1="386.6" x2="587" y2="386.6" stroke="#b7791f" stroke-width="2"/><line x1="573" y1="412.7" x2="587" y2="412.7" stroke="#b7791f" stroke-width="2"/>
+<circle cx="580" cy="399.6" r="7" fill="#b7791f" stroke="white" stroke-width="2"/>
+<line x1="650" y1="271.5" x2="650" y2="412.1" stroke="#2563eb" stroke-width="2.5"/>
+<line x1="643" y1="271.5" x2="657" y2="271.5" stroke="#2563eb" stroke-width="2"/><line x1="643" y1="412.1" x2="657" y2="412.1" stroke="#2563eb" stroke-width="2"/>
+<circle cx="650" cy="341.8" r="7" fill="#2563eb" stroke="white" stroke-width="2"/>
+<line x1="720" y1="418.1" x2="720" y2="421.6" stroke="#0f8b6d" stroke-width="2.5"/>
+<line x1="713" y1="418.1" x2="727" y2="418.1" stroke="#0f8b6d" stroke-width="2"/><line x1="713" y1="421.6" x2="727" y2="421.6" stroke="#0f8b6d" stroke-width="2"/>
+<circle cx="720" cy="419.8" r="7" fill="#0f8b6d" stroke="white" stroke-width="2"/>
+<circle cx="720" cy="419.8" r="12" fill="none" stroke="#dc2626" stroke-width="2"/>
+<text x="952" y="224" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">T1  Baseline</text>
+<rect x="1110" y="206" width="250" height="22" rx="6" fill="#e2e8f0"/>
+<rect x="1110" y="206" width="249.5" height="22" rx="6" fill="#b7791f"/>
+<text x="1372" y="223" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="600" text-anchor="start">99.8%</text>
+<text x="952" y="275" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">T1  Path RNG</text>
+<rect x="1110" y="257" width="250" height="22" rx="6" fill="#e2e8f0"/>
+<rect x="1110" y="257" width="16.4" height="22" rx="6" fill="#2563eb"/>
+<text x="1372" y="274" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="600" text-anchor="start">6.6%</text>
+<text x="952" y="326" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">T1  Selection RNG</text>
+<rect x="1110" y="308" width="250" height="22" rx="6" fill="#e2e8f0"/>
+<rect x="1110" y="308" width="249.5" height="22" rx="6" fill="#0f8b6d"/>
+<text x="1372" y="325" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="600" text-anchor="start">99.8%</text>
+<text x="952" y="377" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">T4  Baseline</text>
+<rect x="1110" y="359" width="250" height="22" rx="6" fill="#e2e8f0"/>
+<rect x="1110" y="359" width="245.1" height="22" rx="6" fill="#b7791f"/>
+<text x="1372" y="376" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="600" text-anchor="start">98.1%</text>
+<text x="952" y="428" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">T4  Path RNG</text>
+<rect x="1110" y="410" width="250" height="22" rx="6" fill="#e2e8f0"/>
+<rect x="1110" y="410" width="249.8" height="22" rx="6" fill="#2563eb"/>
+<text x="1372" y="427" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="600" text-anchor="start">99.9%</text>
+<text x="952" y="479" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">T4  Selection RNG</text>
+<rect x="1110" y="461" width="250" height="22" rx="6" fill="#e2e8f0"/>
+<rect x="1110" y="461" width="15.8" height="22" rx="6" fill="#0f8b6d"/>
+<text x="1372" y="478" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="600" text-anchor="start">6.3%</text>
+<text x="952" y="535" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#64748b" font-weight="400" text-anchor="start">Rare-cohort tail concentration</text>
+<rect x="58" y="630" width="1324" height="240" rx="16" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="84" y="670" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" fill="#0f172a" font-weight="700" text-anchor="start">What the tails say</text>
+<text x="84" y="710" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" fill="#1e3a8a" font-weight="400" text-anchor="start">Path RNG · Temporal 1: mean 0.800349 ± 0.000623; worst-5% MSE share 6.6%; half means 0.800319 / 0.800379.</text>
+<text x="84" y="744" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" fill="#065f46" font-weight="400" text-anchor="start">Selection RNG · Temporal 4: mean 0.814838 ± 0.000429; worst-5% MSE share 6.3%; half means 0.814432 / 0.815243.</text>
+<text x="84" y="788" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="400" text-anchor="start">Both failed cells have narrow, consistently low cohort means—not a handful of high-MSE outliers. The baseline's lower-floor temporal cells</text>
+<text x="84" y="814" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="400" text-anchor="start">and Path RNG / Temporal 4 pass partly under very large rare-cohort tails. This is distribution evidence, not pixel-history provenance or proof of asymptotic bias.</text>
+<text x="84" y="848" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Whiskers: ±1 cohort SE. Bars: fraction of summed cohort MSE in the largest ceil(5% × 128) cohorts. Red rings mark failed fixed mean gates.</text>
+</svg>
