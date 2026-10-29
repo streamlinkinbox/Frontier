@@ -1,19 +1,17 @@
-# Renderer and ReSTIR GI status — 2026-10-28
+# Renderer and ReSTIR GI status — 2026-10-29
 
 ## Bottom line
 
-**ReSTIR GI is not complete or connected to the editor.** The current repository has a bounded,
-SwiftShader-executed software-traced research path with temporal/spatial replay, dynamic-light and blocker
-fixtures and image readbacks. An [Engine command recorder](../LightCompute/PathReplayEngine.md) now schedules
-normal replay and [bounded static colour reconstruction](../LightCompute/ReplayReconstruction.md) in that fixture;
-Vulkan resource creation and submission remain caller-owned. It does not have an accepted production scene/render
-loop, general dynamic and deforming-geometry reprojection, converged denoising
-or a tested physical GPU path. There is no defensible single completion percentage without defining and testing a
-full production acceptance checklist.
-
-Both inspected editor routes explicitly display a scene-canvas placeholder:
-`Frontier/Applications/Editor/FrontierMain.cpp` and `UI/Editor/EditorWorkspace.cpp`. An Engine source file,
-or a Vulkan validation host in Exhibits, is not by itself evidence that the editor uses it.
+**Core ReSTIR GI + GPU SVGF + Compact VRAM + Authored Multi-Strata PBR & Thin-Sheet Glazing are verified in
+`Frontier/Engine/Rendering/`, while live `Frontier` C++ editor viewport wiring and physical-GPU RT-core timing
+remain open.** The repository now compiles and executes unified seed-bank + Vogel spatial-disk ReSTIR GI,
+`PathReplayCompactStorage` (`-63.05%` to `-80.01%` 1080p VRAM), Veach $\beta = 2$ `PathReplayPowerMis`,
+roughness-driven Specular-Cone SVGF, 16-bin SAH-2 + front-to-back ordered BVH + `VK_KHR_ray_query` (`spirv_1_4`),
+and `PathReplayAuthoredMaterials` (`TextureStudio` multi-strata clearcoat car paint, polished conductors, Charlie
+velvet sheen, mip-mapped textures, and `Category == 2` Beer-Lambert thin-sheet glazing) on SwiftShader Vulkan
+([evidence](../LightCompute/ReplayPbrReflection.md)). Vulkan resource ownership and live editor scene-canvas
+submission (`Frontier/Applications/Editor/FrontierMain.cpp` and `UI/Editor/EditorWorkspace.cpp`) remain separate
+integration work.
 
 ## Ray tracing versus non-ray paths
 
@@ -37,9 +35,9 @@ or a Vulkan validation host in Exhibits, is not by itself evidence that the edit
 
 | Area | Evidence | Still missing |
 |---|---|---|
-| Dynamic/multibounce GI | [Moving-light and blocker fixture](../LightCompute/ReplayFacetMixtureMotion.md), [14 captures](../LightCompute/ReplayFacetMixtureMotionCaptures.md), [2,048-seed follow-up](../LightCompute/ReplayRigidVarianceRepeat.md), [bounded static colour history](../LightCompute/ReplayReconstruction.md), [unified seed-bank + Vogel spatial-disk reuse](../LightCompute/ReplaySpatialDisk.md), [motion-aware GPU SVGF / edge-stopping wavelet denoiser](../LightCompute/ReplayVarianceFilter.md), and [dual-path `VK_KHR_ray_query` + SAH-2 ordered BVH acceleration](../LightCompute/ReplayRayAcceleration.md) verified on CPU SwiftShader Vulkan | Physical-GPU RT-core execution/timing, arbitrary deforming meshes, and live editor viewport wiring |
-| Reflections | [Rough sampled screen proposals with software-BVH fallback](../LightCompute/RoughReflections.md), limited specular history and [static rough-opaque replay colour accumulation](../LightCompute/ReplayReconstruction.md) | General motion/disocclusion, roughness-mip screen-colour history, full temporal specular reconstruction, general multi-bounce/noise acceptance, hardware RT and editor linkage |
-| PBR | [Offscreen authored opaque/coating material pipelines](../Renderer/README.md), plus separate research glass/transport fixtures | Unified transmission/refraction, SSS, complex-IOR/multiple-scattering acceptance, converged GI, authoring/document material assignment, colour/presentation and native editor integration |
+| Dynamic/multibounce GI | [Moving-light and blocker fixture](../LightCompute/ReplayFacetMixtureMotion.md), [14 captures](../LightCompute/ReplayFacetMixtureMotionCaptures.md), [2,048-seed follow-up](../LightCompute/ReplayRigidVarianceRepeat.md), [unified seed-bank + Vogel spatial-disk reuse](../LightCompute/ReplaySpatialDisk.md), [motion-aware GPU SVGF denoiser](../LightCompute/ReplayVarianceFilter.md), [dual-path `VK_KHR_ray_query` + SAH-2 ordered BVH](../LightCompute/ReplayRayAcceleration.md), and [compact `17*N` VRAM + $\beta=2$ Power MIS + `<= 71` cap](../LightCompute/ReplayPbrReflection.md) verified on SwiftShader Vulkan | Physical-GPU RT-core execution/timing, arbitrary deforming meshes, and live editor viewport wiring |
+| Reflections | [Rough screen proposals](../LightCompute/RoughReflections.md) plus [moving-camera multi-bounce glossy clearcoat/conductor ReSTIR GI + roughness-driven Specular-Cone SVGF (`224` mirror normal exponent, `-88.5%` flicker)](../LightCompute/ReplayPbrReflection.md) | Physical-GPU hardware-RT reflection timing, deforming-mesh motion vectors, and live editor viewport linkage |
+| PBR | [Offscreen authored material pipelines](../Renderer/README.md) plus [`PathReplayAuthoredMaterials` 8-strata `TextureStudio` Clearcoat Flake Paint, Chrome, Charlie Velvet, mip pyramids, and `Category == 2` Beer-Lambert thin-sheet glazing + multi-pane shadow transmittance](../LightCompute/ReplayPbrReflection.md) | Volumetric solid-dielectric caustics/dispersion/SSS inside GI, editor material-inspector binding, and native viewport submission |
 | Atmosphere, clouds, fog | CPU atmosphere and reference sky; cloud/fog GPU shader payloads and bounded validation | Full GPU atmosphere/volume production scheduling, scene linkage and measured sky/volume acceptance |
 | Sun, Moon, stars, flares | CPU celestial model and actual demo Moon texture; isolated Vulkan Sun and simultaneous flare components | GPU/editor Moon, star and general celestial integration, Moon occlusion/indirect-light coverage, lens calibration and texture licence review |
 | Analytic / emissive lights | Bounded clustered point/spot/IES checks; global area/luminance emissive distribution | **Clustered emissive triangles**, broad IES/scene coverage and production submission; global CDF is not a clustered light grid |

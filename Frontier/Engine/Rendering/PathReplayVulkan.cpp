@@ -19,7 +19,8 @@ constexpr std::uint32_t ReplayFlags = PathReplayRoughOpaque | PathReplaySampleFa
     PathReplayPowerWeightedFacets | PathReplayUniformFacetMixture | PathReplayReconstruct | PathReplayResetReconstruction |
     PathReplayDiffuseCameraReprojection | PathReplaySampleHistory | PathReplayResetSampleHistory |
     PathReplaySpatialDisk | PathReplayVarianceFilter | PathReplayResetVarianceFilter |
-    PathReplayOrderedTraversal | PathReplayHardwareRayQuery;
+    PathReplayOrderedTraversal | PathReplayHardwareRayQuery | PathReplayPowerMis |
+    PathReplayCompactStorage | PathReplayAuthoredMaterials;
 
 void RequireReplay(bool Condition)
 {
@@ -41,6 +42,9 @@ void RecordPathReplay(VkCommandBuffer Commands, const PathReplayVulkanAccess &Ac
     const bool VarianceFilter = (Flags & PathReplayVarianceFilter) != 0;
     const bool OrderedTraversal = (Flags & PathReplayOrderedTraversal) != 0;
     const bool HardwareRayQuery = (Flags & PathReplayHardwareRayQuery) != 0;
+    const bool PowerMis = (Flags & PathReplayPowerMis) != 0;
+    const bool CompactStorage = (Flags & PathReplayCompactStorage) != 0;
+    const bool AuthoredMaterials = (Flags & PathReplayAuthoredMaterials) != 0;
     RequireReplay(Commands != VK_NULL_HANDLE && Access.PipelineLayout != VK_NULL_HANDLE &&
         Access.Descriptors != VK_NULL_HANDLE && Access.Generate != VK_NULL_HANDLE && Access.Resolve != VK_NULL_HANDLE &&
         (!Primary || Access.Primary != VK_NULL_HANDLE) &&
@@ -58,8 +62,12 @@ void RecordPathReplay(VkCommandBuffer Commands, const PathReplayVulkanAccess &Ac
         Extent.Sampling[3] > 0 && Extent.Sampling[3] <= 64 && Extent.Reconstruction[0] <= 1 &&
         Extent.Reconstruction[1] <= 1 && Extent.Reconstruction[3] > 0 && Extent.Reconstruction[3] <= 64);
     RequireReplay((Flags & ~ReplayFlags) == 0 && (!DoubleCount || Sources) && (!Balance || (Sources && !DoubleCount)) &&
+        (!PowerMis || Balance) && (!CompactStorage || !Reconstruct) &&
         (!Weighted || Sources) && (!(Flags & PathReplayUniformFacetMixture) || Weighted) &&
         (!(Flags & PathReplayImportanceRough) || (Flags & PathReplayRoughOpaque)) &&
+        (!AuthoredMaterials || ((Flags & PathReplayRoughOpaque) != 0 &&
+            (Flags & PathReplayImportanceRough) != 0 && !SampleHistory &&
+            !(Flags & PathReplayDiffuseCameraReprojection) && !DoubleCount)) &&
         (!(Flags & PathReplayResetReconstruction) || Reconstruct) &&
         (!(Flags & PathReplayDiffuseCameraReprojection) ||
             (Reconstruct && Primary && !(Flags & (PathReplayRoughOpaque | PathReplayTexturedDiffuse)))) &&
@@ -88,19 +96,22 @@ void RecordPathReplay(VkCommandBuffer Commands, const PathReplayVulkanAccess &Ac
         Buffers.CounterWords >= ((Reconstruct || SampleHistory || VarianceFilter) ?
             PathReplayReconstructionCounterWords : PathReplayCounterWords));
     // 📝 ReplaySlot(4), slot 10 for colour, slot 14 for the seed bank, or slot 20 for SVGF is the last shader index.
-    const std::uint32_t MaximumReceivers = VarianceFilter ? PathReplayMaxVarianceFilteredReceivers :
+    const std::uint32_t MaximumReceivers = CompactStorage ?
+        PathReplayMaxCompactReceivers(SampleHistory, VarianceFilter) :
+        (VarianceFilter ? PathReplayMaxVarianceFilteredReceivers :
         (SampleHistory ? PathReplayMaxSampleHistoryReceivers :
-        (Reconstruct ? PathReplayMaxReconstructedReceivers : PathReplayMaxReceivers));
-    const std::uint64_t RequiredOutput = VarianceFilter ?
-        PathReplayRequiredVarianceFilteredOutputRecords(static_cast<std::uint32_t>(Count)) :
+        (Reconstruct ? PathReplayMaxReconstructedReceivers : PathReplayMaxReceivers)));
+    const std::uint64_t RequiredOutput = CompactStorage ?
+        PathReplayRequiredCompactOutputRecords(static_cast<std::uint32_t>(Count), SampleHistory, VarianceFilter) :
+        (VarianceFilter ? PathReplayRequiredVarianceFilteredOutputRecords(static_cast<std::uint32_t>(Count)) :
         (SampleHistory ? PathReplayRequiredSampleHistoryOutputRecords(static_cast<std::uint32_t>(Count)) :
         (Reconstruct ? PathReplayRequiredReconstructedOutputRecords(static_cast<std::uint32_t>(Count)) :
-                       PathReplayRequiredOutputRecords(static_cast<std::uint32_t>(Count))));
+                       PathReplayRequiredOutputRecords(static_cast<std::uint32_t>(Count)))));
     RequireReplay(Count <= MaximumReceivers && Buffers.OutputColourRecords >= RequiredOutput);
     // Camera and source offsets are added as uint32 in Slang, even when the Vulkan range is larger.
     constexpr std::uint64_t ShaderAddressLimit = std::uint64_t(UINT32_MAX) + 1u;
-    // Textured secondary hits use CameraProjection for their ray footprint even without primary tracing.
-    if (Primary || (Flags & PathReplayTexturedDiffuse) != 0)
+    // Textured and authored-PBR secondary hits use CameraProjection for ray footprints even without primary tracing.
+    if (Primary || (Flags & (PathReplayTexturedDiffuse | PathReplayAuthoredMaterials)) != 0)
     {
         const std::uint64_t CameraEnd = std::uint64_t(Extent.Primary[1]) + PathReplayCameraFloats;
         RequireReplay(CameraEnd <= Buffers.AngleFloats && CameraEnd <= ShaderAddressLimit);

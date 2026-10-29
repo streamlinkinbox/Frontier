@@ -85,6 +85,7 @@ struct BufferSpan
     VkDeviceMemory Memory = VK_NULL_HANDLE;
     void* Address = nullptr;
     size_t Size = 0;
+    size_t AllocationSize = 0;
 };
 using ComputeExtent = LightComputeFootprint;
 struct CanonicalUnposedFacet
@@ -262,6 +263,7 @@ struct LightComputeSubmission
     bool ReplayLastVarianceFilterReset = true, ReplayVarianceFilterActive = false;
     bool ReplayPreviousTemporal = false, ReplayPreviousSpatial = false, ReplayPreviousDiffuseCamera = false;
     bool ReplayPreviousSpatialDisk = false, ReplayPreviousSampleHistory = false;
+    bool ReplayPreviousCompactStorage = false, ReplayPreviousPowerMis = false, ReplayPreviousAuthoredMaterials = false;
     uint32_t ReplayLastHistoryCap = 1, ReplayFacetStart = 0, ReplayFacetCapacity = 0;
     PathReplayHistoryDomain ReplayHistoryDomain;
     RectangleDomain PreviousRectangle{};
@@ -496,6 +498,7 @@ struct LightComputeSubmission
         Allocation.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         Allocation.allocationSize = Requirements.size;
         Allocation.memoryTypeIndex = Type;
+        B.AllocationSize = size_t(Requirements.size);
         Confirm(AllocateMemory(Device, &Allocation, nullptr, &B.Memory),
                 "AllocateMemory storage=" + std::to_string(Index) + " bytes=" + std::to_string(Requirements.size));
         Confirm(BindBufferMemory(Device, B.Buffer, B.Memory, 0));
@@ -539,10 +542,11 @@ struct LightComputeSubmission
     }
     void Prepare(const LightComputeArchive& Scene, const std::string& Shaders, bool SolarOnly = false,
                  bool DirectOnly = false, bool DiffuseOnly = false, bool RectangleOnly = false,
-                 bool ReplayOnly = false, bool MediumOnly = false)
+                 bool ReplayOnly = false, bool MediumOnly = false, bool CompactReplay = false)
     {
         Require(int(SolarOnly) + int(DirectOnly) + int(DiffuseOnly) + int(RectangleOnly) + int(ReplayOnly) + int(MediumOnly) <= 1,
                 "Compute preparation modes conflict");
+        Require(!CompactReplay || ReplayOnly, "Compact replay buffer preparation requires ReplayOnly mode");
         for (const auto& B : Buffers)
             Require(B.Buffer == VK_NULL_HANDLE, "Compute buffers are already prepared");
         const bool HasReplayGather = ReplayOnly && std::filesystem::exists(Shaders + "/ReplayGatherReconstruction.spv");
@@ -558,6 +562,7 @@ struct LightComputeSubmission
         Require(HasSampleGather == HasSampleFinalize, "Replay sample history needs both compute stages");
         Require(HasVarianceGather == HasVarianceIntegrate && HasVarianceGather == HasVarianceWavelet,
                 "Replay variance filter needs all three compute stages");
+        Require(!CompactReplay || !HasReplayGather, "Compact replay storage excludes legacy colour reconstruction");
         ConstructBuffer(0, Scene.Lights);
         ConstructBuffer(1, Scene.Receivers);
         // 📝 Poison the uploaded oracle channel: shader output must not depend on
@@ -585,10 +590,13 @@ struct LightComputeSubmission
         }
         ConstructBuffer(4, ProfileSamples);
         ConstructBuffer(5, nullptr, 256 * 17 * 4);
-        ConstructBuffer(6, nullptr,
-                        (Scene.Receivers.size() * (HasVarianceGather ? 46 :
-                            (HasSampleGather ? 40 : (HasReplayGather ? 36 :
-                            ((DiffuseOnly || RectangleOnly || ReplayOnly) ? 32 : 25)))) + 13889 + SolarSourceCount) * 16);
+        const size_t OutputRecords = CompactReplay
+            ? size_t(PathReplayRequiredCompactOutputRecords(uint32_t(Scene.Receivers.size()),
+                                                            HasSampleGather, HasVarianceGather))
+            : (Scene.Receivers.size() * (HasVarianceGather ? 46 :
+                (HasSampleGather ? 40 : (HasReplayGather ? 36 :
+                ((DiffuseOnly || RectangleOnly || ReplayOnly) ? 32 : 25)))) + 13889 + SolarSourceCount);
+        ConstructBuffer(6, nullptr, OutputRecords * 16);
         ConstructBuffer(7, nullptr, 96);
         std::array<VkDescriptorSetLayoutBinding, 8> Slots{};
         for (uint32_t I = 0; I < 8; ++I)
@@ -834,9 +842,17 @@ struct LightComputeSubmission
                                                     uint32_t InitialCandidates = 1, bool ExplicitOneForAudit = false,
                                                     bool DiffuseCameraReprojection = false, bool SampleHistory = false,
                                                     bool SpatialDisk = false, bool VarianceFilter = false,
-                                                    bool OrderedTraversal = false)
+                                                    bool OrderedTraversal = false, bool PowerMis = false,
+                                                    bool CompactStorage = false, bool AuthoredMaterials = false)
     {
         Require(!SpatialDisk || Spatial, "Spatial disk requires spatial reservoir reuse");
+        Require(!PowerMis || (BalanceSampling && SampleFacets && !DoubleCountForAudit),
+                "Power MIS requires balanced explicit facet sampling");
+        Require(!CompactStorage || !ReconstructReplay,
+                "Compact replay storage excludes legacy colour reconstruction");
+        Require(!AuthoredMaterials || (RoughOpaque && ImportanceRough && !SampleHistory &&
+                                       !DiffuseCameraReprojection && !DoubleCountForAudit),
+                "Authored PBR replay requires rough-opaque multi-lobe importance sampling");
         Require(!VarianceFilter || (!ReconstructReplay && !DoubleCountForAudit && !ProbeRegionForAudit &&
                                     !TailForAudit && ReplayGatherVarianceHistoryPipeline &&
                                     ReplayIntegrateVarianceMomentsPipeline && ReplayFilterVarianceWaveletPipeline),
@@ -868,7 +884,7 @@ struct LightComputeSubmission
         for (float C : Environment) Require(std::isfinite(C) && C >= 0 && C <= 256, "Invalid replay environment");
         ValidatePathReplayDomain(ReplayDomainView(Scene),
                        {PrimaryVisibility, RoughOpaque, TexturedDiffuse, ImportanceRough,
-                        DiffuseCameraReprojection || SampleHistory, VarianceFilter});
+                        DiffuseCameraReprojection || SampleHistory, VarianceFilter, false, AuthoredMaterials});
         Require(!DoubleCountForAudit || SampleFacets, "Double-count control requires explicit source sampling");
         Require(!BalanceSampling || (SampleFacets && !DoubleCountForAudit),
                 "Balanced sampling requires facet sampling without the double-count control");
@@ -882,13 +898,25 @@ struct LightComputeSubmission
                 "Replay facet-source distribution exceeds the prepared storage span");
         const PathReplayHistorySpecification ReplaySpecification{Bounces, PositiveFloor, Environment, PrimaryVisibility,
             RoughOpaque, SampleFacets, DoubleCountForAudit, StrictMotionForAudit, BalanceSampling, TexturedDiffuse,
-            ImportanceRough, PowerWeightedFacets, UniformFacetMixture, InitialCandidates};
+            ImportanceRough, PowerWeightedFacets, UniformFacetMixture, InitialCandidates, PowerMis, CompactStorage,
+            AuthoredMaterials};
         // 📝 Reservoir replay can retain capped history across changes; radiance accumulation cannot.
         const auto ReplayDecision = ReplayHistoryDomain.Resolve(ReplayDomainView(Scene), ReplaySpecification,
                                                                 FullHistoryForAudit);
         ReplayLastHistoryCap = ReplayDecision.MaximumHistory;
-        bool Reset = ResetHistory || Scene.Width != ReceiverWidth || Scene.Height != ReceiverHeight;
-        Upload(Scene, TexturedDiffuse);
+        bool Reset = ResetHistory || Scene.Width != ReceiverWidth || Scene.Height != ReceiverHeight ||
+                     ReplayPreviousCompactStorage != CompactStorage || ReplayPreviousPowerMis != PowerMis ||
+                     ReplayPreviousAuthoredMaterials != AuthoredMaterials;
+        Upload(Scene, TexturedDiffuse || AuthoredMaterials);
+        if (!PrimaryVisibility && AuthoredMaterials)
+            for (size_t I = 0; I < Scene.Receivers.size(); ++I)
+                if (std::isfinite(Scene.Receivers[I].ExpectedDirect[3]) && Scene.Receivers[I].ExpectedDirect[3] > 0)
+                {
+                    const float Address = Scene.Receivers[I].ExpectedDirect[3];
+                    std::memcpy(static_cast<char*>(Buffers[1].Address) + I * sizeof(LightComputeReceiver) +
+                                    offsetof(LightComputeReceiver, ExpectedDirect) + 3 * sizeof(float),
+                                &Address, sizeof(float));
+                }
         if (!FacetSources.empty())
             std::memcpy(static_cast<float*>(Buffers[4].Address) + ReplayFacetStart,
                         FacetSources.data(), FacetSources.size() * sizeof(float));
@@ -933,7 +961,10 @@ struct LightComputeSubmission
                                      (SpatialDisk ? PathReplaySpatialDisk : 0u) |
                                      (VarianceFilter ? PathReplayVarianceFilter : 0u) |
                                      (VarianceFilter && ReplayLastVarianceFilterReset ? PathReplayResetVarianceFilter : 0u) |
-                                     (OrderedTraversal ? PathReplayOrderedTraversal : 0u);
+                                     (OrderedTraversal ? PathReplayOrderedTraversal : 0u) |
+                                     (PowerMis ? PathReplayPowerMis : 0u) |
+                                     (CompactStorage ? PathReplayCompactStorage : 0u) |
+                                     (AuthoredMaterials ? PathReplayAuthoredMaterials : 0u);
         Extent.Primary = {PrimaryVisibility ? 1u : 0u, uint32_t(Scene.Angles.size()), Bounces, ReplayFlags};
         Extent.Minimum = {Environment[0], Environment[1], Environment[2], 0};
         Extent.Maximum = {PositiveFloor, 0, 0, 0};
@@ -1008,6 +1039,9 @@ struct LightComputeSubmission
         ReplayPreviousSpatialDisk = SpatialDisk;
         ReplayPreviousSampleHistory = SampleHistory;
         ReplayPreviousDiffuseCamera = DiffuseCameraReprojection;
+        ReplayPreviousCompactStorage = CompactStorage;
+        ReplayPreviousPowerMis = PowerMis;
+        ReplayPreviousAuthoredMaterials = AuthoredMaterials;
         return Result;
     }
     // One translating, unobstructed rectangular source; other geometry or changing emission is rejected/reset.
@@ -1513,6 +1547,51 @@ struct LightComputeSubmission
         std::memcpy(R.data(), Buffers[1].Address, R.size() * sizeof(LightComputeReceiver));
         return R;
     }
+    uint64_t OutputBufferBytes() const { return Buffers[6].Size; }
+    uint64_t OutputAllocationBytes() const { return Buffers[6].AllocationSize; }
+    uint64_t TotalAllocatedBytes() const
+    {
+        uint64_t Sum = 0;
+        for (const auto& B : Buffers) Sum += B.AllocationSize;
+        return Sum;
+    }
+    void RebindOutputStorage(bool CompactReplay, bool HasSampleGather, bool HasVarianceGather)
+    {
+        DeviceWaitIdle(Device);
+        auto& B = Buffers[6];
+        if (B.Address) UnmapMemory(Device, B.Memory);
+        if (B.Buffer) DestroyBuffer(Device, B.Buffer, nullptr);
+        if (B.Memory) FreeMemory(Device, B.Memory, nullptr);
+        B = {};
+        const size_t OutputRecords = CompactReplay
+            ? size_t(PathReplayRequiredCompactOutputRecords(ReceiverCount, HasSampleGather, HasVarianceGather))
+            : (size_t(ReceiverCount) * (HasVarianceGather ? 46u : (HasSampleGather ? 40u : 32u)) + 13889u + SolarSourceCount);
+        ConstructBuffer(6, nullptr, OutputRecords * 16u);
+        VkDescriptorBufferInfo Span{Buffers[6].Buffer, 0, Buffers[6].Size};
+        VkWriteDescriptorSet Write{};
+        Write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        Write.dstSet = DescriptorSet;
+        Write.dstBinding = 6;
+        Write.descriptorCount = 1;
+        Write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        Write.pBufferInfo = &Span;
+        UpdateDescriptorSets(Device, 1, &Write, 0, nullptr);
+        ReplayHistoryDomain = PathReplayHistoryDomain{};
+    }
+    std::vector<std::array<float, 4>> ReadReplayLogicalSlab(uint32_t Slot, bool CompactStorage) const
+    {
+        std::vector<std::array<float, 4>> Slab(ReceiverCount);
+        for (uint32_t Pixel = 0; Pixel < ReceiverCount; ++Pixel)
+        {
+            const uint64_t Record = CompactStorage
+                ? PathReplayCompactSlot(Slot, ReceiverCount, Pixel)
+                : (uint64_t(ReceiverCount) * (25u + Slot) + PathReplayFixedOutputRecords + Pixel);
+            Require(Record != UINT64_MAX && (Record + 1u) * 16u <= Buffers[6].Size,
+                    "Replay logical slab readback exceeds OutputColour buffer");
+            std::memcpy(&Slab[Pixel], static_cast<const char*>(Buffers[6].Address) + Record * 16u, 16u);
+        }
+        return Slab;
+    }
     std::vector<std::array<float, 4>> PrimaryStrikes() const
     {
         std::vector<std::array<float, 4>> R(ReceiverCount);
@@ -1772,11 +1851,17 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplaySampleHistoryValidation.h"
 #include "ReplayVarianceFilterGpuValidation.h"
 #include "ReplayRayAccelerationGpuValidation.h"
+#include "ReplayPbrReflectionGpuValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
     try
     {
+        if ((Count == 4 || Count == 5) && std::string(Arguments[3]) == "--replay-pbr-reflection")
+        {
+            ValidateReplayPbrReflectionAll(Arguments[1], Arguments[2], Count == 5 ? Arguments[4] : "");
+            return 0;
+        }
         if (Count == 4 && std::string(Arguments[3]) == "--replay-ray-acceleration")
         {
             ValidateReplayRayAccelerationAll(Arguments[1], Arguments[2]);

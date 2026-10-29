@@ -4,6 +4,30 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## Unified ReSTIR GI, Compact VRAM, Power MIS, and Authored Multi-Strata PBR & Reflection System — 2026-10-29
+
+- Implemented `PathReplayPowerMis` (`33554432u`), `PathReplayCompactStorage` (`67108864u`), and
+  `PathReplayAuthoredMaterials` (`134217728u`) across `Frontier/Engine/Rendering/PathReplayVulkan.{h,cpp}`,
+  `PathReplayDomain.{h,cpp}`, and `Shaders/{LightInfluence,PathReplayReservoir,PathReplayVarianceFilter}.slang`,
+  together with tight `SourceSlot.w <= 71` reservoir history clamping.
+- Generalized compact output slab remapping (`6*N` ReSTIR GI, `10*N` `SampleHistory`, `17*N` ReSTIR GI +
+  `VarianceFilter`, `+N` diagnostic `Slot 9`), cutting `64x64` `Buffers[6]` from `3,261,456 B -> 1,114,112 B`
+  (**`-65.84%`**) and 1080p full-stack VRAM from `1,455.70 MiB -> 537.89 MiB` (**`-63.05%`, `-917.81 MiB` saved**)
+  with **byte-for-byte `0.000000` parity** across RGBA output, all `24` counters, and all `12` logical slabs.
+- Integrated the `268`-float `Angles` authored multi-strata `TextureStudio` PBR atlas directly into `PathReplay`
+  (1–8 dielectric/conductor strata, 12-swatch Voronoi metallic-flake automotive clearcoat paint, Charlie velvet
+  sheen, mip-pyramid albedo/normal maps, `Category == 2` Beer-Lambert + Fresnel thin-sheet tinted glazing,
+  multi-pane non-opaque shadow transmittance across software BVH and `VK_KHR_ray_query`, and roughness-driven
+  specular-cone SVGF normal tightening up to `224.0`). Refactored multi-strata lobe evaluation/sampling to pure
+  scalar accumulators over `Angles[]` (`0` dynamic local arrays), eliminating Subzero SIMD4 `Cfg::liveness` OOM.
+- Verified `9/9` host CTests in Release (`1.20s`) and `ASan+UBSan` (`1.94s`), `4/4` `spvRayQueryKHR` SPIR-V `1.4`
+  binaries, and SwiftShader Vulkan showroom benchmarks (`RunReplayPbrReflection.sh`): close-canopy sill Power MIS
+  beats Balance MIS (`0.19494 < 0.19696` at exact `168,303 == 168,303` rays), moving-camera 3-bounce authored PBR
+  showroom RMSE drops `0.35690 -> 0.23338 -> 0.22770` (`-36.20%`), temporal flicker drops `0.51101 -> 0.05879`
+  (**`-88.50%`**), and tinted showroom glazing transmits **`37.87x`** background luminance vs. opaque control.
+  Physical-GPU RT-core timing, volumetric solid-dielectric dispersion/SSS inside GI, and live editor viewport
+  wiring remain next. [Evidence, `08e7de48` comparison, and visual proof](../Exhibits/LightCompute/ReplayPbrReflection.md).
+
 ## Dual-path ray acceleration (`VK_KHR_ray_query` + SAH-2 ordered BVH) — 2026-10-28
 
 - Implemented `PathReplayRayQuery.{h,cpp}` + `Shaders/PathReplayRayQuery.slang` and recorder/domain flags

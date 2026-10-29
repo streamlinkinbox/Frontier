@@ -41,6 +41,7 @@ struct PathReplayDomainSpecification
     bool DiffuseCameraReprojection = false;
     bool VarianceFilter = false;
     bool HardwareRayQuery = false;
+    bool AuthoredMaterials = false;
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -74,6 +75,9 @@ struct PathReplayHistorySpecification
     bool PowerWeightedFacets = false;
     bool UniformFacetMixture = false;
     uint32_t InitialCandidates = 1;
+    bool PowerMis = false;
+    bool CompactStorage = false;
+    bool AuthoredMaterials = false;
     bool operator==(const PathReplayHistorySpecification&) const = default;
 };
 

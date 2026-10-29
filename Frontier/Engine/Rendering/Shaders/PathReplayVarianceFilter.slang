@@ -19,6 +19,9 @@ bool ReplayScatteringReceiver(SurfacePoint R)
 // 📝 Demodulate surface reflectance before spatial filtering so textured and coloured edges stay crisp.
 float3 ReplayVarianceDemodulator(SurfacePoint R)
 {
+    bool AuthoredMaterials = (Extent.Primary.w & 134217728u) != 0;
+    if (AuthoredMaterials && MaterialAddress(R) > 0 && MaterialTransport(R) == 2u)
+        return float3(1.0);
     float3 Albedo = clamp(R.AlbedoIor.xyz, 0.0, 1.0);
     if ((Extent.Primary.w & 64u) == 0)
         return max(Albedo, float3(0.04));
@@ -26,6 +29,23 @@ float3 ReplayVarianceDemodulator(SurfacePoint R)
     float SpecularFloor = 0.08 * clamp(R.ResidualSpecular.w, 0.0, 1.0);
     float3 Effective = Albedo * (1.0 - Metallic) + max(Albedo, float3(SpecularFloor)) * Metallic +
                        float3(SpecularFloor * (1.0 - Metallic));
+    uint Address = MaterialAddress(R);
+    if (AuthoredMaterials && Address > 0u)
+    {
+        uint Offset = Address - 1u;
+        uint Count = min(uint(Angles[Offset]), 8u);
+        for (uint Layer = 0u; Layer < Count; ++Layer)
+        {
+            uint P = Offset + 8u + Layer * 24u;
+            if (uint(Angles[P + 12u]) == 1u)
+                Effective = max(Effective, float3(0.04 * saturate(Angles[P + 6u])));
+            else if (Angles[P + 19u] > 0.0)
+            {
+                float3 SheenRgb = saturate(float3(Angles[P + 16u], Angles[P + 17u], Angles[P + 18u]));
+                Effective = max(Effective, SheenRgb * saturate(Angles[P + 19u]) * 0.35);
+            }
+        }
+    }
     return max(Effective, float3(0.04));
 }
 
@@ -45,6 +65,8 @@ bool ReplayVarianceCompatibleTap(SurfacePoint R, SurfacePoint S, float PixelStep
     PlaneRatio = 0.0;
     NormalCosine = 0.0;
     if (!ReplayScatteringReceiver(S)) return false;
+    bool AuthoredMaterials = (Extent.Primary.w & 134217728u) != 0;
+    if (AuthoredMaterials && MaterialTransport(R) != MaterialTransport(S)) return false;
     float RLength = dot(R.NormalRoughness.xyz, R.NormalRoughness.xyz);
     float SLength = dot(S.NormalRoughness.xyz, S.NormalRoughness.xyz);
     if (RLength <= 1e-12 || SLength <= 1e-12) return false;
@@ -60,8 +82,10 @@ bool ReplayVarianceCompatibleTap(SurfacePoint R, SurfacePoint S, float PixelStep
     float PlaneTolerance = max(0.02, Footstep * Span * 0.22);
     float PlaneOffset = max(abs(dot(Delta, NormalR)), abs(dot(Delta, NormalS)));
     if (PlaneOffset > PlaneTolerance) return false;
+    float RoughR = AuthoredMaterials ? ReplayEffectiveSpecularRoughness(R) : R.NormalRoughness.w;
+    float RoughS = AuthoredMaterials ? ReplayEffectiveSpecularRoughness(S) : S.NormalRoughness.w;
     if ((Extent.Primary.w & 64u) != 0 &&
-        (abs(R.NormalRoughness.w - S.NormalRoughness.w) > 0.25 || abs(R.ViewMetallic.w - S.ViewMetallic.w) > 0.25))
+        (abs(RoughR - RoughS) > 0.25 || abs(R.ViewMetallic.w - S.ViewMetallic.w) > 0.25))
         return false;
     PlaneRatio = PlaneOffset / PlaneTolerance;
     return true;
@@ -119,7 +143,10 @@ bool ReplayVarianceCompatibleTap(SurfacePoint R, SurfacePoint S, float PixelStep
                     if (dot(Delta, Delta) > ChordLimit * ChordLimit) continue;
                     float PlaneOffset = max(abs(dot(Delta, MotionUnitNormal)), abs(dot(Delta, PriorUnitNormal)));
                     if (PlaneOffset > PlaneLimit) continue;
-                    if (abs(OldMoments.z - clamp(R.NormalRoughness.w, 0.0, 1.0)) > 0.15 ||
+                    float ReceiverRoughness = (Extent.Primary.w & 134217728u) != 0
+                        ? ReplayEffectiveSpecularRoughness(R)
+                        : clamp(R.NormalRoughness.w, 0.0, 1.0);
+                    if (abs(OldMoments.z - ReceiverRoughness) > 0.15 ||
                         abs(OldMoments.w - clamp(R.ViewMetallic.w, 0.0, 1.0)) > 0.15)
                         continue;
                     IrradianceSum += Bilinear * OldIrradiance.xyz;
@@ -194,12 +221,23 @@ bool ReplayVarianceCompatibleTap(SurfacePoint R, SurfacePoint S, float PixelStep
 
     float4 GatheredIrradiance = OutputColour[ReplaySlot(17, Pixel)];
     float4 GatheredMoments = OutputColour[ReplaySlot(18, Pixel)];
-    float Roughness = clamp(R.NormalRoughness.w, 0.05, 1.0);
+    bool AuthoredMaterials = (Extent.Primary.w & 134217728u) != 0;
+    float Roughness = AuthoredMaterials ? clamp(ReplayEffectiveSpecularRoughness(R), 0.04, 1.0)
+                                        : clamp(R.NormalRoughness.w, 0.05, 1.0);
     float Metallic = clamp(R.ViewMetallic.w, 0.0, 1.0);
     bool StationaryPixel = all(R.PositionHit.xyz == R.MotionPositionToken.xyz) &&
                            length(R.MotionPixel.xy - float2(Centre)) < 1e-3;
     float MaxHistory = ((Extent.Primary.w & 64u) != 0 && !StationaryPixel) ?
                        lerp(4.0, 12.0, Roughness * Roughness) : 16.0;
+    if (AuthoredMaterials && !StationaryPixel && Roughness < 0.25)
+    {
+        float3 CurrentRefl = reflect(-Unit(R.ViewMetallic.xyz), Unit(R.NormalRoughness.xyz));
+        float3 PriorView = Unit(CameraProjection(4).xyz - R.MotionPositionToken.xyz);
+        float3 PriorRefl = reflect(-PriorView, Unit(R.MotionNormal.xyz));
+        float LobeVariance = max(1e-4, 2.0 * Roughness * Roughness * Roughness * Roughness);
+        float AngularWeight = exp(-max(0.0, 1.0 - dot(CurrentRefl, PriorRefl)) / LobeVariance);
+        MaxHistory = max(2.0, lerp(2.0, MaxHistory, AngularWeight));
+    }
 
     float3 IntegratedIrradiance = CurrentIrradiance;
     float MeanLuminance = CurrentLuminance;
@@ -257,6 +295,19 @@ bool ReplayVarianceCompatibleTap(SurfacePoint R, SurfacePoint S, float PixelStep
             OutputColour[ReplaySlot(DestSlot, Pixel)] = CentreSample;
         return;
     }
+    bool AuthoredMaterials = (Extent.Primary.w & 134217728u) != 0;
+    if (AuthoredMaterials && MaterialAddress(R) > 0 && MaterialTransport(R) == 2u)
+    {
+        if (PassIndex < 2u)
+            OutputColour[ReplaySlot(DestSlot, Pixel)] = CentreSample;
+        else
+        {
+            float3 GlazingEmission = all(isfinite(R.ResidualSpecular.xyz)) ? max(R.ResidualSpecular.xyz, 0.0) : 0.0;
+            float GlazingAlpha = isfinite(OutputColour[Pixel].w) ? OutputColour[Pixel].w : 1.0;
+            OutputColour[Pixel] = float4(max(CentreSample.xyz, 0.0) + GlazingEmission, GlazingAlpha);
+        }
+        return;
+    }
 
     int2 Centre = int2(Pixel % Extent.History.x, Pixel / Extent.History.x);
 
@@ -283,9 +334,19 @@ bool ReplayVarianceCompatibleTap(SurfacePoint R, SurfacePoint S, float PixelStep
     FilteredVariance /= max(VarianceWeightSum, 1.0);
 
     bool RoughOpaque = (Extent.Primary.w & 64u) != 0;
-    float Roughness = RoughOpaque ? clamp(R.NormalRoughness.w, 0.05, 1.0) : 1.0;
-    float NormalPower = lerp(128.0, 48.0, Roughness);
-    float SigmaScale = lerp(2.0, 3.5, Roughness);
+    float Roughness = RoughOpaque
+        ? (AuthoredMaterials ? clamp(ReplayEffectiveSpecularRoughness(R), 0.04, 1.0)
+                             : clamp(R.NormalRoughness.w, 0.05, 1.0))
+        : 1.0;
+    float NormalPower = AuthoredMaterials && Roughness < 0.20
+        ? lerp(384.0, 112.0, Roughness / 0.20)
+        : lerp(128.0, 48.0, Roughness);
+    float SigmaScale = AuthoredMaterials && Roughness < 0.20
+        ? lerp(0.95, 2.30, Roughness / 0.20)
+        : lerp(2.0, 3.5, Roughness);
+    float ConeStepGate = (AuthoredMaterials && Step > 1u && Roughness < 0.20)
+        ? exp(-float(Step - 1u) / max(0.25, Roughness * 14.0))
+        : 1.0;
     float SigmaLuminance = SigmaScale * sqrt(max(0.0, FilteredVariance)) + 1e-4;
     float CentreLuminance = Power(CentreSample.xyz);
 
@@ -318,11 +379,12 @@ bool ReplayVarianceCompatibleTap(SurfacePoint R, SurfacePoint S, float PixelStep
             InterlockedAdd(Counters[16], 1);
             float4 TapSample = OutputColour[ReplaySlot(SourceSlot, TapIndex)];
             if (!all(isfinite(TapSample))) continue;
+            float TapRoughness = AuthoredMaterials ? ReplayEffectiveSpecularRoughness(S) : S.NormalRoughness.w;
             float WeightPlane = exp(-2.0 * PlaneRatio);
             float WeightNormal = pow(max(NormalCosine, 0.0), NormalPower);
             float WeightLum = exp(-abs(Power(TapSample.xyz) - CentreLuminance) / SigmaLuminance);
-            float WeightRough = RoughOpaque ? exp(-abs(R.NormalRoughness.w - S.NormalRoughness.w) / 0.15) : 1.0;
-            float Weight = KernelWeight * WeightPlane * WeightNormal * WeightLum * WeightRough;
+            float WeightRough = RoughOpaque ? exp(-abs(Roughness - TapRoughness) / 0.15) : 1.0;
+            float Weight = KernelWeight * ConeStepGate * WeightPlane * WeightNormal * WeightLum * WeightRough;
             IrradianceSum += Weight * max(TapSample.xyz, 0.0);
             WeightSum += Weight;
             VarianceSum += Weight * Weight * max(TapSample.w, 0.0);

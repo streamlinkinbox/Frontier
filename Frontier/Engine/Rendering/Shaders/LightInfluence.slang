@@ -50,7 +50,16 @@ struct ComputeExtent
 static const uint SolarSourceSampleCount = 1536u;
 uint DirectTemporalDomainStart() { return Extent.Dimensions.x * 24u + 13889u + SolarSourceSampleCount; }
 uint ReplayHistoryStart() { return Extent.Dimensions.x * 25u + 13889u + SolarSourceSampleCount; }
-uint ReplaySlot(uint Slot, uint Pixel) { return ReplayHistoryStart() + Slot * Extent.Dimensions.x + Pixel; }
+uint ReplaySlot(uint Slot, uint Pixel)
+{
+    if ((Extent.Primary.w & 67108864u) != 0)
+    {
+        uint Slab = Slot <= 4u ? (Slot + 1u) :
+            ((Slot >= 11u && Slot <= 14u) ? (Slot - 5u) : (Slot == 9u ? 10u : (Slot - 4u)));
+        return Slab * Extent.Dimensions.x + Pixel;
+    }
+    return ReplayHistoryStart() + Slot * Extent.Dimensions.x + Pixel;
+}
 static uint ReplayThreadBoxTests = 0;
 static uint ReplayThreadTriTests = 0;
 
@@ -1214,7 +1223,8 @@ void FlushPrimaryTraversalCounters(uint Pixel)
         }
         R.ResidualSpecular = float4(Sky, 0);
         Receivers[Pixel] = R;
-        StoreHistory(15, Pixel, float4(-1, -1, 0, 0));
+        if ((Extent.Primary.w & 67108864u) == 0)
+            StoreHistory(15, Pixel, float4(-1, -1, 0, 0));
         if (asuint(Extent.Maximum.w) != 0 && DistanceFieldHeader(3).w == 2.0)
             OutputColour[DistanceDiagnosticStart() + Pixel] = float4(-1, 0, 0, 0);
         InterlockedAdd(Counters[11], 1);
@@ -1234,8 +1244,12 @@ void FlushPrimaryTraversalCounters(uint Pixel)
     R.AlbedoIor = float4(F.AlbedoRoughness.xyz, F.OpticalToken.y);
     R.ResidualSpecular = float4(F.Emissive.xyz, F.OpticalToken.z);
     ApplyRayMaterial(R, F, Strike.yz);
+    if ((Extent.Primary.w & 134217728u) != 0 &&
+        (dot(R.NormalRoughness.xyz, Normal) < 0.05 || dot(R.NormalRoughness.xyz, R.ViewMetallic.xyz) <= 1e-4))
+        R.NormalRoughness.xyz = Normal;
     float3 PreviousNormal;
-    float3 PreviousPosition = ReprojectToPreviousWorld(Position, Normal, F.OpticalToken.w, PreviousNormal);
+    float3 ShadingNormal = (Extent.Primary.w & 134217728u) != 0 ? R.NormalRoughness.xyz : Normal;
+    float3 PreviousPosition = ReprojectToPreviousWorld(Position, ShadingNormal, F.OpticalToken.w, PreviousNormal);
     R.MotionPositionToken = float4(PreviousPosition, F.OpticalToken.w);
     R.MotionNormal = float4(PreviousNormal, 0);
     float4 PreviousEye = CameraProjection(4), PreviousForward = CameraProjection(5),
@@ -1261,7 +1275,8 @@ void FlushPrimaryTraversalCounters(uint Pixel)
             float4(LowerBound, ClearOfVehicle ? 1.0 : 0.0, ProbeMinimum, 1.0);
     }
     Receivers[Pixel] = R;
-    StoreHistory(15, Pixel, float4(Strike.x, float(Index), Strike.yz));
+    if ((Extent.Primary.w & 67108864u) == 0)
+        StoreHistory(15, Pixel, float4(Strike.x, float(Index), Strike.yz));
     FlushPrimaryTraversalCounters(Pixel);
 }
 

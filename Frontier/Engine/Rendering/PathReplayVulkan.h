@@ -20,7 +20,9 @@ inline constexpr std::uint32_t PathReplayRoughOpaque = 64u, PathReplaySampleFace
     PathReplayDiffuseCameraReprojection = 131072u, PathReplaySampleHistory = 262144u,
     PathReplayResetSampleHistory = 524288u, PathReplaySpatialDisk = 1048576u,
     PathReplayVarianceFilter = 2097152u, PathReplayResetVarianceFilter = 4194304u,
-    PathReplayOrderedTraversal = 8388608u, PathReplayHardwareRayQuery = 16777216u;
+    PathReplayOrderedTraversal = 8388608u, PathReplayHardwareRayQuery = 16777216u,
+    PathReplayPowerMis = 33554432u, PathReplayCompactStorage = 67108864u,
+    PathReplayAuthoredMaterials = 134217728u;
 
 inline constexpr std::uint32_t PathReplayCounterWords = 23, PathReplayReconstructionCounterWords = 24;
 inline constexpr std::uint32_t PathReplayCameraFloats = 48;
@@ -49,6 +51,38 @@ inline constexpr std::uint32_t PathReplayMaxVarianceFilteredReceivers =
 constexpr std::uint64_t PathReplayRequiredVarianceFilteredOutputRecords(std::uint32_t Receivers) noexcept
 {
     return std::uint64_t(Receivers) * 46u + PathReplayFixedOutputRecords;
+}
+
+// 📝 Compact output storage strips the unused 25*N + 15425 legacy prefix across reservoir, seed-bank and SVGF modes.
+inline constexpr std::uint32_t PathReplayCompactBaseSlabs = 6u;
+inline constexpr std::uint32_t PathReplayCompactSampleHistorySlabs = 10u;
+inline constexpr std::uint32_t PathReplayCompactVarianceFilteredSlabs = 17u;
+constexpr std::uint32_t PathReplayCompactSlabCount(bool SampleHistory, bool VarianceFilter) noexcept
+{
+    return VarianceFilter ? PathReplayCompactVarianceFilteredSlabs :
+        (SampleHistory ? PathReplayCompactSampleHistorySlabs : PathReplayCompactBaseSlabs);
+}
+constexpr std::uint32_t PathReplayMaxCompactReceivers(bool SampleHistory = false, bool VarianceFilter = false) noexcept
+{
+    return static_cast<std::uint32_t>((std::uint64_t(UINT32_MAX) + 1u) /
+                                      PathReplayCompactSlabCount(SampleHistory, VarianceFilter));
+}
+constexpr std::uint64_t PathReplayRequiredCompactOutputRecords(std::uint32_t Receivers, bool SampleHistory = false,
+                                                               bool VarianceFilter = false) noexcept
+{
+    return std::uint64_t(Receivers) * PathReplayCompactSlabCount(SampleHistory, VarianceFilter);
+}
+// 📝 Invalid logical slots/pixels return UINT64_MAX, never aliasing into an active compact slab.
+constexpr std::uint64_t PathReplayCompactSlot(std::uint32_t Slot, std::uint32_t Receivers,
+                                              std::uint32_t Pixel) noexcept
+{
+    if (Pixel >= Receivers) return UINT64_MAX;
+    std::uint32_t Slab = UINT32_MAX;
+    if (Slot <= 4u) Slab = Slot + 1u;
+    else if (Slot >= 11u && Slot <= 14u) Slab = Slot - 5u;
+    else if (Slot == 9u) Slab = 10u;
+    else if (Slot >= 15u && Slot <= 20u) Slab = Slot - 4u;
+    return Slab == UINT32_MAX ? UINT64_MAX : std::uint64_t(Slab) * Receivers + Pixel;
 }
 
 struct PathReplayVulkanAccess
@@ -98,10 +132,19 @@ struct PathReplayVulkanBuffers
 //    PathReplayVarianceFilter adds subpixel motion-reprojected temporal demodulated-irradiance moments before
 //    resolve and three edge-stopping B3-spline wavelet passes afterward (withDimensions[2..3] reserved as zero
 //    on caller input). It is mutually exclusive with PathReplayReconstruct and PathReplayAuditDoubleCount,
-//    composes with PathReplaySampleHistory, PathReplaySpatialDisk, PathReplayTexturedDiffuse and
-//    PathReplayRoughOpaque, and requires GatherVarianceHistory, IntegrateVarianceMoments, FilterVarianceWavelet,
-//    24 counter words and PathReplayRequiredVarianceFilteredOutputRecords(N). Set PathReplayResetVarianceFilter
-//    on first use, allocation/policy revisions and scene/lighting changes.
+//    composes with PathReplaySampleHistory, PathReplaySpatialDisk, PathReplayTexturedDiffuse,
+//    PathReplayRoughOpaque and PathReplayAuthoredMaterials, and requires GatherVarianceHistory,
+//    IntegrateVarianceMoments, FilterVarianceWavelet, 24 counter words and
+//    PathReplayRequiredVarianceFilteredOutputRecords(N) (or 17*N with PathReplayCompactStorage). Set
+//    PathReplayResetVarianceFilter on first use, allocation/policy revisions and scene/lighting changes.
+//    PathReplayPowerMis selects overflow-safe Veach beta=2 power-heuristic MIS weights and requires
+//    PathReplayBalanceSampling | PathReplaySampleFacets without PathReplayAuditDoubleCount.
+//    PathReplayCompactStorage remaps OutputColour into 6*N, 10*N (SampleHistory) or 17*N (VarianceFilter)
+//    float4 slabs without the legacy 25*N + 15425 prefix; it rejects legacy PathReplayReconstruct and
+//    invalidates retained histories across layout transitions.
+//    PathReplayAuthoredMaterials enables multi-strata PBR scattering, procedural metallic paint flakes,
+//    normal/albedo mip pyramids, Charlie fabric sheen and thin-sheet glazing transmittance, requiring
+//    PathReplayRoughOpaque | PathReplayImportanceRough and camera projection bounds.
 //    Bindings 0–7 must match LightInfluence.slang (plus binding 8 SceneAcceleration when PathReplayHardwareRayQuery
 //    is set and Buffers.AccelerationStructureBound is true); PathReplayOrderedTraversal enables front-to-back
 //    child-ordered software BVH traversal and is mutually exclusive with PathReplayHardwareRayQuery. The pipeline
