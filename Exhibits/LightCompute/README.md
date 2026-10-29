@@ -1,5 +1,15 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Geometric-receiver fresh RIS — 2026-10-29
+
+[Real BVH primary intersections,receiver visibility and image controls](GeometricAreaReservoir.md):six receiver
+triangles join the original ten facets;all16 participate in proposal PDFs and primary/suffix/connection queries.
+RIS lowers same-query raw4 RMSE23.71–26.61% uniform/27.74–30.88% area;both image gates pass3/3 per type.
+Release/host ASan+UBSan,five CTests each,double replay and exact readbacks pass. Receiver shadows change2076
+suffix decisions. Connection endpoint geometry repaired without relaxed gates. Primary-inclusive calls36/68
+RIS/raw8;not physical timing. Phase100%;overall~74%/~26% remaining,planning estimates. Memory348.046875MiB unchanged.
+
+
 ## Camera-space fresh RIS — 2026-10-29
 
 [Actual camera images,raw controls and measured gates](CameraAreaReservoir.md):32×32 orthographic receiver,

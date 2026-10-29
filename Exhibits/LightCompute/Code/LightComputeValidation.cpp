@@ -1737,6 +1737,7 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "AreaReconnectionValidation.h"
 #include "AreaReservoirValidation.h"
 #include "CameraAreaReservoirValidation.h"
+#include "GeometricAreaReservoirValidation.h"
 #include "PathReplayCapture.h"
 #include "PathReplayGpuValidation.h"
 #include "ReplayRoomReference.h"
@@ -1806,6 +1807,11 @@ int main(int Count, char** Arguments)
         if (Count == 4 && std::string(Arguments[3]) == "--replay-dynamic-camera")
         {
             ValidateReplayDynamicCamera(Arguments[1], Arguments[2]);
+            return 0;
+        }
+        if (Count == 5 && std::string(Arguments[3]) == "--geometric-area-reservoir")
+        {
+            ValidateGeometricAreaReservoir(Arguments[1], Arguments[2], Arguments[4]);
             return 0;
         }
         if (Count == 5 && std::string(Arguments[3]) == "--camera-area-reservoir")

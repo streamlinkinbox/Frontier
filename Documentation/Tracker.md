@@ -1,5 +1,22 @@
 # Project Tracker
 
+## Geometric-receiver fresh RIS — 2026-10-29
+
+- [Completed scene-consistent geometric receiver experiment](../Exhibits/LightCompute/GeometricAreaReservoir.md):
+  real shared-BVH primary hits;all16 facets,including six receiver triangles,in suffix/connection visibility/PDFs.
+- Strict replay exposed and repaired an offset-origin/unoffset-direction connection endpoint defect. All54 RGB
+  means pass;wrong normalizers fail3/3 layouts per type. Removing receivers changes2076 source suffix decisions.
+- RIS passes ordinary/cross-reference image MSE gates3/3 layouts per proposal type. RMSE falls23.71–26.61%
+  uniform/27.74–30.88% area versus raw4;raw8 remains more accurate. Calls including primaries36 versus68/pixel.
+- Release/host ASan+UBSan,five CTests each;73,728 experimental primary checks and2,359,296 reference primary
+  invariance checks/build. CPU replays491,520 candidates and393,216 paths;maximum normalized RGB/weight errors
+  7.29e-8/5.36e-7 remain below2e-5. Nine rows,63 hashes/build,six buffers,two modules match across builds.
+- Two3072-sample/pixel reference banks;all six descriptive paired intervals below zero. Toy diffuse orthographic
+  scope only,not physical GPU timing,production or temporal acceptance. Phase100%;overall~74%/~26% remaining,
+  planning estimates. Next:fresh diffuse BSDF/area MIS with explicit PDFs and equal-work controls.
+- Production348.046875MiB/defaults unchanged;packing/editor/vehicle/Jolt deferred. No PR or Actions.
+
+
 ## Camera-space fresh RIS — 2026-10-29
 
 - [Completed camera shading-patch experiment](../Exhibits/LightCompute/CameraAreaReservoir.md):orthographic32×32

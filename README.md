@@ -99,6 +99,11 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
   quality-neutral replacement;production348.046875MiB unchanged.
 
+- [Geometric-receiver fresh RIS](Exhibits/LightCompute/GeometricAreaReservoir.md):shared-BVH primary hits and
+  receiver shadows now pass CPU replay;both proposal types win3/3 same-query image gates. An endpoint defect
+  is repaired. All queries including primaries:36/pixel RIS versus68 raw8,not physical timing. Production
+  348.046875MiB unchanged;MIS/temporal/general-scene and production acceptance remain separate.
+
 - [Camera-space fresh RIS](Exhibits/LightCompute/CameraAreaReservoir.md):normal-mapped RGB receiver images pass
   same-query raw4 error gates in3/3 layouts per proposal type. Release/host sanitizers and CPU replay pass;
   finite-reference near-wall uncertainty is explicit. Shading patch only,not full-scene/physical speed acceptance.

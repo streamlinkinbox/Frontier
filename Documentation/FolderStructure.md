@@ -449,3 +449,13 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
 - `RunCameraAreaReservoir.sh` and `Code/CameraAreaReservoirEvidence.py` retain Release/host sanitizer results,
   six compressed buffers,two modules,means/metrics/audit/hashes and39 exact PNG arrays plus two image sheets.
   Native CLI:`--camera-area-reservoir`. This is not full-scene,temporal,physical speed or production acceptance.
+
+### Geometric-receiver continuous-area reservoirs
+
+- `Exhibits/LightCompute/GeometricAreaReservoir.md` freezes/reports real primary and receiver-visibility gates.
+- `Code/GeometricAreaReservoirGpu.slang` reuses production BVH closest hits and compensated geometry;the
+  connection query joins both offset endpoints. `GeometricAreaReservoirValidation.h` constructs all16 facets,
+  independently validates double primary hits and transport,and checks an omitted-receiver visibility control.
+- `RunGeometricAreaReservoir.sh`,`Code/GeometricAreaReservoirEvidence.py`,Results and Images retain both builds,
+  six compressed readbacks,two modules,initial endpoint failure,means/metrics/audit/hashes,48 exact PNG arrays
+  and three sheets. Native CLI:`--geometric-area-reservoir`. No physical speed or production acceptance.
