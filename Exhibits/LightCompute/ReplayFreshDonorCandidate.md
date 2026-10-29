@@ -67,10 +67,12 @@ and inconclusive paired gate. The candidate has genuine tradeoffs, including the
 The first candidate shader compiled to SPIR-V but aborted during SwiftShader pipeline preparation under the
 3.9 GB virtual-memory bound; the exact cause was not established. A lean expression of the same intended
 policy compiled and completed the held-out experiment. The initial abort is retained, not silently discarded.
-The Engine shader/default was not changed, and this candidate has not been ported. It still requires tests of
-moving/reprojected histories, initial candidate counts above one, seed banks, dynamic visibility, textured and
-transmissive materials, realistic camera scenes, numerical extremes, physical-GPU/Windows and performance.
-Passing this fixture does not establish general unbiasedness or real-time suitability.
+The Engine shader/default was not changed, and this candidate has not been ported. A later
+[moving supplied-receiver and Fresh4 holdout](ReplayFreshDonorMotion.md) found two candidate mean failures,
+including temporal-only behavior unchanged by the candidate, and a 41.81% mixed-metal RMSE regression. It still
+requires broader reprojected histories, seed banks, dynamic geometry, textured and transmissive materials,
+realistic camera scenes, numerical extremes, physical-GPU/Windows and performance tests. Passing this static
+fixture does not establish general unbiasedness or real-time suitability.
 
 ## Evidence and reproduction
 

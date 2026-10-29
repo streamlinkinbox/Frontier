@@ -5,6 +5,25 @@ The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) 
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts. Older entries below
 are inherited historical checkpoints: their branch/PR references and completion statements may not apply here.
 
+## Fresh-neighbor replay with moving supplied receivers — 2026-10-29
+
+- The paired [motion/Fresh4 holdout](../Exhibits/LightCompute/ReplayFreshDonorMotion.md) passes `41/48` original
+  and `46/48` candidate mean gates; all nine failures are at the lower floor. The unchanged temporal-only metal
+  case gives `0.799567 ± 0.001038` against independent reference `0.822689` in both arms. The test-only spatial
+  alternative cannot repair that failure and remains unpromoted.
+- At the default floor, combined4 far-visibility RMSE changes `1.025044 → 0.161236`, while mixed-metal RMSE
+  regresses `0.129431 → 0.183550` (+41.81%); both comparisons pass their mean and paired 3-SE gates. Final
+  and warm ray counts and triangle tests are retained, not presented as GPU timing. Exploratory Fresh4 controls
+  use substantially less work; rare-tail comparisons remain inconclusive.
+- Direct replay accepts all 1,024 histories across every tested changed-pose temporal submission at cap 1;
+  completion-gated C++ sequencing instead resets on three receiver changes and matches explicit resets.
+  The latter does not establish spatial correctness or a real camera/editor integration. `1,152` negative
+  control hashes, link probes, 10/10 Release and host-only sanitizer CTests and summary audits pass; the
+  paired study deliberately exits nonzero on the nine mean failures.
+- Peer snapshot `74af158` reports confirmed-visibility reuse with unchanged estimates and fewer queries in a
+  different diffuse fixture. Its newer weighted-pair results remain pending. No peer code was copied.
+  [Adoption ledger and shareable report](../Exhibits/LightCompute/ReplayBranchComparison.md).
+
 ## Authored-material temporal and spatial replay audit — 2026-10-29
 
 - Four fixed material fixtures now exercise actual Engine temporal/spatial replay against separate hemisphere
@@ -27,7 +46,8 @@ are inherited historical checkpoints: their branch/PR references and completion 
 - A [fresh-neighbor holdout](../Exhibits/LightCompute/ReplayFreshDonorCandidate.md) passes 32/32 candidate mean
   gates and reduces default-floor RMSE `1.032649 → 0.116732` in one visibility fixture, while a mixed-metal case
   regresses 1.87%. The original arm fails two lower-floor means. This is a test-only shader, not a production
-  fix or timing result; moving history, multiple candidates, seed banks and physical GPU remain untested.
+  fix or timing result; the later bounded motion/Fresh4 study is above, while seed banks and physical GPU remain
+  untested.
 - Physical-GPU/Windows timing, realistic mixed/moving materials, production scene/resource ownership and the
   editor viewport remain open. This restricted result does not prove general ReSTIR unbiasedness.
 

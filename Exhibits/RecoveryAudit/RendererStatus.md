@@ -17,9 +17,13 @@ a two-bounce diffuse fixture also passes a separate area integral
 but a [mixed-material/visibility stress test](../LightCompute/ReplayMixedMaterialVisibility.md) exposes severe
 variance and a significant lower-floor regression. A later [held-out guard test](../LightCompute/ReplayMaterialGuardCandidate.md)
 failed independent means under different visibility even with the same material. A separate test-only
-[fresh-neighbor holdout](../LightCompute/ReplayFreshDonorCandidate.md) passes its candidate mean gates but has
-one measured quality regression and is not integrated. None is general ReSTIR validation. The PBR showroom's 80-sample reference is a finite same-shader
-comparison, not independent ground truth. An optional completion-gated Engine submission sequence is now tested
+[fresh-neighbor static holdout](../LightCompute/ReplayFreshDonorCandidate.md) passed its candidate mean gates but
+had a measured regression. Its later
+[moving supplied-receiver/Fresh4 holdout](../LightCompute/ReplayFreshDonorMotion.md) failed two candidate means,
+including an unchanged temporal-only case, and regressed mixed-metal combined4
+RMSE by 41.81%. The candidate remains test-only. None is general ReSTIR validation. The PBR showroom's
+80-sample reference is a finite same-shader comparison, not independent ground truth. An optional completion-gated
+Engine submission sequence is now tested
 [offscreen](../LightCompute/ReplaySubmissionSequence.md), but it does not create resources or present an image.
 `Frontier/Applications/Editor/FrontierMain.cpp` and `UI/Editor/EditorWorkspace.cpp` still contain viewport
 placeholders. Windows, physical-GPU timing, deforming scenes and production scene/resource integration remain open.
@@ -34,7 +38,7 @@ fully characterized.
 
 | Scope | Approximate complete | Approximate remaining | Main blockers |
 | --- | ---: | ---: | --- |
-| ReSTIR GI end-to-end | 40% | 60% | Failed visibility-discontinuous combined reuse, motion/history tests, scene/resources, editor and physical-GPU performance. |
+| ReSTIR GI end-to-end | 40% | 60% | Failed lower-floor temporal/spatial means, real motion, scene/resources, editor and hardware performance. |
 | PBR materials and reflections end-to-end | 35% | 65% | Production material/texture loading, broad reflection/transmission/lighting validation, viewport and hardware tests. |
 
 The Engine contains bounded C++ recorder, domain and completion-gated sequence code; it is exercised by
@@ -78,7 +82,8 @@ and [sequencing](../LightCompute/ReplaySubmissionSequence.md). Reflection/PBR ev
 [rough screen proposals](../LightCompute/RoughReflections.md), [PBR replay](../LightCompute/ReplayPbrReflection.md),
 [material sampling](../LightCompute/ReplayMaterialSampling.md), [material reuse](../LightCompute/ReplayMaterialReuse.md),
 [target-floor sensitivity](../LightCompute/ReplayMaterialFloor.md),
-[mixed-material visibility](../LightCompute/ReplayMixedMaterialVisibility.md) and
+[mixed-material visibility](../LightCompute/ReplayMixedMaterialVisibility.md),
+[moving supplied receivers](../LightCompute/ReplayFreshDonorMotion.md) and
 [thin sheets](../LightCompute/ReplayTransmission.md). Tyre and gas evidence remains under
 [VehiclePhysics](../VehiclePhysics/) and [FluidReference](../FluidReference/).
 

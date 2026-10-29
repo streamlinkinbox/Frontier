@@ -1,0 +1,67 @@
+Test-only moving-receiver holdout; SwiftShader and shaders are not sanitizer-instrumented.
+Base 94183cf, plus working changes if any; source hashes follow.
+MALLOC_ARENA_MAX=2 VIRTUAL_MEMORY_KB=3900000
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
+494e342089d7d8de39ec53846b6ba878af58431e46bb348ecf40e6e487107f0d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+28dd31def1deb1fd78a29d6aa389ea63aea394880301dc49eb6d327db7adc79a  Frontier/Engine/Rendering/PathReplaySubmissionSequence.cpp
+b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+2d3f7225ff06d61e15ea1036fc3d7c156c764031d62fa3ed394d6da16fb332ed  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9  Engine/Render/Shader/ScatteringEvaluation.slang
+eec91c6476cc7d9787cc81a4510c7866439629ab4a4e1566399e526a9c19c4b8  Engine/Render/Shader/AutomotivePaint.slang
+1e9401d856b2e52b561d81a101a5ac04957a0f27474e2690ae63e65e945032b2  Exhibits/LightCompute/Code/ReplayPbrReflectionGpuValidation.h
+6008472e0db6b2caa3d59adc090f3a29a49db4e3bd7520b3620858e5a968f7d3  Exhibits/LightCompute/Code/ReplayMaterialSamplingValidation.h
+b67bef7c640328f2fe236a73084eacdf0f3ac31b93b5ebde738112ba364a71c8  Exhibits/LightCompute/Code/ReplayMaterialPathValidation.h
+4317021f6b63ae5dc44fe1f176f6e479f099f384c6cb206ac25b007cbb1dfd6c  Exhibits/LightCompute/Code/ReplayMaterialReuseValidation.h
+0ffc06132224edcedc4f68b05f66dc3802f5f18a53ce4e331c2ad6ee86d9a02f  Exhibits/LightCompute/Code/ReplayMaterialFloorValidation.h
+21cedd321a4ec5ac9651e9af6edc7ce9038ce99733b0c235b066a481477cf78f  Exhibits/LightCompute/Code/ReplayMixedMaterialValidation.h
+32e0d0ac74285586f79b4b24592a1afe5016ba98ae6f24ec2e096d34f0863ad1  Exhibits/LightCompute/Code/ReplayMaterialGuardValidation.h
+9e6f35b50d2262e0d7f7d0e6822c012b90e854fef8694b17c503c02529000a6a  Exhibits/LightCompute/Code/ReplayMaterialGuardLinks.slang
+34d9f9b631adef0f728edef3641cc520afd0ba367715db222779326fe228431e  Exhibits/LightCompute/Code/ReplayFreshDonorCandidate.py
+c95e58f60870fe33a5b95d8f13ecc1fdc0b8c7b6d43b05e15e1c62ff37cb9772  Exhibits/LightCompute/Code/ReplayFreshDonorCandidateLean.py
+71e53e13f5123a10f699a2a0bf455777c0f7c5a4f97411ee85ff3c8b0a4d043b  Exhibits/LightCompute/Code/ReplayFreshDonorMotionValidation.h
+7b53bf21aee6dcb01851c3d29f69a56e39bcae25e8f8997b866dd12f7dcc072b  Exhibits/LightCompute/Code/ReplayFreshDonorMotionSummary.py
+28a6f87fd22cbaea017b6b8b7e2c3ddf41b07075012599d5a3aa782b54845a39  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+9ee13674a2a2b0784141ca8a0903cdc44d400024cb8435612258f7a72a4254eb  Exhibits/LightCompute/RunReplayFreshDonorMotion.sh
+a85ef1695388fdd6fb52ef1388c83b83c0683920d71008eaaeaa442f2e57ae4c  /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release/test-only-source/PathReplayReservoir.slang
+672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release/baseline/Primary.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release/baseline/ReplayGenerate.spv
+5bfe8da35cb3e050cb805c6bbc02d8dd401c97871ab60f283c57eff20423b229  /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release/baseline/ReplayResolve.spv
+4cfeacb045c1f67f0828e5e0931ccd21393a820fd60a099f30a7b0bfb63b4016  /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release/baseline/ReplayGuardLinks.spv
+672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release/fresh/Primary.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release/fresh/ReplayGenerate.spv
+029dfff72a4e689a87b961caad3e0300e221f03d0288a28492929e13cc0be34d  /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release/fresh/ReplayResolve.spv
+4cfeacb045c1f67f0828e5e0931ccd21393a820fd60a099f30a7b0bfb63b4016  /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release/fresh/ReplayGuardLinks.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-fresh-motion-release
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.00 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.00 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.00 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.10 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.10 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.09 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 10
+
+Total Test time (real) =   1.30 sec
+REPLAY_FRESH_MOTION arm=baseline preparing Engine-derived pipelines on SwiftShader Device (Subzero)
+
+INTERRUPTED before any measured cohort: stopped to align new validation identifiers with repository naming; no shader result recorded.

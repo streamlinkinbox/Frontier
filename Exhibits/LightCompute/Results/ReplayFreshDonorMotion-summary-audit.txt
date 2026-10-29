@@ -1,0 +1,12 @@
+Synthetic checks for the measured-summary parser. The summary was hardened during pipeline preparation
+to require an explicit zero exit status for each arm; this did not alter measured shaders or C++.
+The paired run recorded the earlier summary hash at startup; the hash below is the version executed.
+9d8835c1680da50b0b805fb885bedcdaa56e0e31474945b7460e5ccc42cf630f  Exhibits/LightCompute/Code/ReplayFreshDonorMotionSummary.py
+3326ad052ca043a822b7d57017d5265fb291470cc5ea7a0d27337230cea71d96  Exhibits/LightCompute/Code/ReplayFreshDonorMotionSummaryAudit.py
+REPLAY_FRESH_MOTION_SUMMARY_AUDIT case=complete exit=0 expected=0
+REPLAY_FRESH_MOTION_SUMMARY_AUDIT case=mean exit=1 expected=1
+REPLAY_FRESH_MOTION_SUMMARY_AUDIT case=hash exit=1 expected=1
+REPLAY_FRESH_MOTION_SUMMARY_AUDIT case=truncated exit=1 expected=1
+REPLAY_FRESH_MOTION_SUMMARY_AUDIT case=exit exit=1 expected=1
+REPLAY_FRESH_MOTION_SUMMARY_AUDIT case=duplicate_exit exit=1 expected=1
+PASS ReplayFreshDonorMotionSummaryAudit

@@ -109,6 +109,8 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   `ReplayMixedMaterialValidation.h` and `ReplayMixedMaterialLinks.slang` stress different material/visibility
   donors and audit accepted spatial links; `ReplayMaterialGuardValidation.h` holds the failed, test-only
   material-boundary holdout; `ReplayFreshDonorValidation.h` tests a different test-only fresh-neighbor policy.
+  `ReplayFreshDonorMotionValidation.h` tests that policy with moving supplied receivers and sequence resets;
+  its paired summary, synthetic summary audit, runner, report, image and logs remain alongside the exhibit.
   Their reports, scripts and images/logs preserve scope and results.
 - `ReplayBranchComparison.md` records the compared peer revision and non-equivalent benchmark boundaries. None of
   these files connects the renderer to the editor viewport.
