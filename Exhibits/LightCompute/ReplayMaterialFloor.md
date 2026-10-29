@@ -50,7 +50,10 @@ counts omit other work and do **not** measure elapsed GPU time or establish equa
 much fainter fixture the lower floor still dominates radiance, so the detected quality changes are only about
 0.04–0.05% RMSE. Neither metal comparison passes the paired gate. These results are not a universal floor
 recommendation: heterogeneous donors, visibility changes, temporal motion and numeric extremes may behave
-very differently, and a positive floor is still needed for support.
+very differently, and a positive floor is still needed for support. A later
+[mixed-material/visibility stress test](ReplayMixedMaterialVisibility.md) observed a significant lower-floor
+regression for its metal receivers and extreme dim-material samples; it reinforces the decision not to change
+the default.
 
 The reference is an independent integration of the *same* material model, not a physical-material ground truth.
 The standard errors are nominal across 32 cohorts and conditional on the finite quadrature; multiple comparisons
@@ -70,5 +73,5 @@ PYTHONPATH="$PWD/_ClaudeScratch/pytools${PYTHONPATH:+:$PYTHONPATH}" \
 
 The [complete measured rows, work counts, CTests, tool versions and source hashes](Results/ReplayMaterialFloor-release.txt)
 are retained. Release host CTests passed 10/10. The chart is generated from those rows; it is not a rendered
-scene. The earlier [host-only sanitizer results](Results/ReplayMaterialReuse-host-sanitized.txt) did not run this
-floor harness, the external SwiftShader driver or its shaders.
+scene. [Host-only ASan/UBSan CTests](Results/ReplayMaterialFloor-host-sanitized.txt) passed 10/10 with leak
+detection disabled; they did not run the floor harness, external SwiftShader driver or its shaders.

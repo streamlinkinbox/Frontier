@@ -1,0 +1,104 @@
+Mixed-material visibility audit; SwiftShader and shaders are not sanitizer-instrumented.
+Base 41e58b0, plus working changes if any; source hashes follow.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
+494e342089d7d8de39ec53846b6ba878af58431e46bb348ecf40e6e487107f0d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+28dd31def1deb1fd78a29d6aa389ea63aea394880301dc49eb6d327db7adc79a  Frontier/Engine/Rendering/PathReplaySubmissionSequence.cpp
+b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+2d3f7225ff06d61e15ea1036fc3d7c156c764031d62fa3ed394d6da16fb332ed  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9  Engine/Render/Shader/ScatteringEvaluation.slang
+eec91c6476cc7d9787cc81a4510c7866439629ab4a4e1566399e526a9c19c4b8  Engine/Render/Shader/AutomotivePaint.slang
+1e9401d856b2e52b561d81a101a5ac04957a0f27474e2690ae63e65e945032b2  Exhibits/LightCompute/Code/ReplayPbrReflectionGpuValidation.h
+6008472e0db6b2caa3d59adc090f3a29a49db4e3bd7520b3620858e5a968f7d3  Exhibits/LightCompute/Code/ReplayMaterialSamplingValidation.h
+b67bef7c640328f2fe236a73084eacdf0f3ac31b93b5ebde738112ba364a71c8  Exhibits/LightCompute/Code/ReplayMaterialPathValidation.h
+4317021f6b63ae5dc44fe1f176f6e479f099f384c6cb206ac25b007cbb1dfd6c  Exhibits/LightCompute/Code/ReplayMaterialReuseValidation.h
+0ffc06132224edcedc4f68b05f66dc3802f5f18a53ce4e331c2ad6ee86d9a02f  Exhibits/LightCompute/Code/ReplayMaterialFloorValidation.h
+21cedd321a4ec5ac9651e9af6edc7ce9038ce99733b0c235b066a481477cf78f  Exhibits/LightCompute/Code/ReplayMixedMaterialValidation.h
+e0c53a4927615ddc6857b92b8d69618f5db985cf8799fae233b1e41e4fc00248  Exhibits/LightCompute/Code/ReplayMixedMaterialLinks.slang
+788d52bba8ce2b611cea2de945cea87d48d077e317d3387a17c69878043e4cbb  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-mixed-material-release/shaders/Primary.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-mixed-material-release/shaders/ReplayGenerate.spv
+5bfe8da35cb3e050cb805c6bbc02d8dd401c97871ab60f283c57eff20423b229  /home/user/Frontier/_ClaudeScratch/build/replay-mixed-material-release/shaders/ReplayResolve.spv
+963fff5c9ada375a52d444260aade3580a864c5cfa66d012fc27cd0759f98c79  /home/user/Frontier/_ClaudeScratch/build/replay-mixed-material-release/shaders/ReplayMixedLinks.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-mixed-material-release
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.00 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.00 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.00 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.07 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.10 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.08 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 10
+
+Total Test time (real) =   1.27 sec
+REPLAY_MIXED_REFERENCE group=dim reference=0.439914993 coarse=0.439915149 scale=1e+03
+REPLAY_MIXED_REFERENCE group=metal reference=0.625657179 coarse=0.625657977 scale=1
+REPLAY_MIXED preparing production pipelines on SwiftShader Device (Subzero)
+REPLAY_MIXED pipelines_ready=1
+REPLAY_MIXED cohort=1/32
+REPLAY_MIXED cohort=2/32
+REPLAY_MIXED cohort=3/32
+REPLAY_MIXED cohort=4/32
+REPLAY_MIXED cohort=5/32
+REPLAY_MIXED cohort=6/32
+REPLAY_MIXED cohort=7/32
+REPLAY_MIXED cohort=8/32
+REPLAY_MIXED cohort=9/32
+REPLAY_MIXED cohort=10/32
+REPLAY_MIXED cohort=11/32
+REPLAY_MIXED cohort=12/32
+REPLAY_MIXED cohort=13/32
+REPLAY_MIXED cohort=14/32
+REPLAY_MIXED cohort=15/32
+REPLAY_MIXED cohort=16/32
+REPLAY_MIXED cohort=17/32
+REPLAY_MIXED cohort=18/32
+REPLAY_MIXED cohort=19/32
+REPLAY_MIXED cohort=20/32
+REPLAY_MIXED cohort=21/32
+REPLAY_MIXED cohort=22/32
+REPLAY_MIXED cohort=23/32
+REPLAY_MIXED cohort=24/32
+REPLAY_MIXED cohort=25/32
+REPLAY_MIXED cohort=26/32
+REPLAY_MIXED cohort=27/32
+REPLAY_MIXED cohort=28/32
+REPLAY_MIXED cohort=29/32
+REPLAY_MIXED cohort=30/32
+REPLAY_MIXED cohort=31/32
+REPLAY_MIXED cohort=32/32
+REPLAY_MIXED group=dim mode=fresh1 floor=default floor_value=0.0099999998 reference=0.439914993 mean=0.438256743 batch_se=0.00261943042 rmse=0.347844284 mse=0.120995646 mse_se=0.00120602492 delta_low_vs_default=0 delta_se=0 max_pixel=1.14415912 max_batch_mean=0.469165387 mean_rays=1015.656 warm_rays=0.000 mean_boxes=1015.656 mean_triangles=473.750 temporal=0 spatial=0 mean_gate=1 quality_low=0 regression_low=0 scale=1e+03 batches=32 pixels_per_group=512
+REPLAY_MIXED group=metal mode=fresh1 floor=default floor_value=0.0099999998 reference=0.625657179 mean=0.624989799 batch_se=0.00270901687 rmse=0.429644152 mse=0.184594097 mse_se=0.000847238426 delta_low_vs_default=0 delta_se=0 max_pixel=1.04030848 max_batch_mean=0.662927908 mean_rays=1015.656 warm_rays=0.000 mean_boxes=1015.656 mean_triangles=473.750 temporal=0 spatial=0 mean_gate=1 quality_low=0 regression_low=0 scale=1 batches=32 pixels_per_group=512
+REPLAY_MIXED group=dim mode=fresh1 floor=lower floor_value=9.9999997e-05 reference=0.439914993 mean=0.438256743 batch_se=0.00261943042 rmse=0.347844284 mse=0.120995646 mse_se=0.00120602492 delta_low_vs_default=0 delta_se=0 max_pixel=1.14415912 max_batch_mean=0.469165387 mean_rays=1015.656 warm_rays=0.000 mean_boxes=1015.656 mean_triangles=473.750 temporal=0 spatial=0 mean_gate=1 quality_low=0 regression_low=0 scale=1e+03 batches=32 pixels_per_group=512
+REPLAY_MIXED group=metal mode=fresh1 floor=lower floor_value=9.9999997e-05 reference=0.625657179 mean=0.624989799 batch_se=0.00270901687 rmse=0.429644152 mse=0.184594097 mse_se=0.000847238426 delta_low_vs_default=0 delta_se=0 max_pixel=1.04030848 max_batch_mean=0.662927908 mean_rays=1015.656 warm_rays=0.000 mean_boxes=1015.656 mean_triangles=473.750 temporal=0 spatial=0 mean_gate=1 quality_low=0 regression_low=0 scale=1 batches=32 pixels_per_group=512
+REPLAY_MIXED group=dim mode=fresh4 floor=default floor_value=0.0099999998 reference=0.439914993 mean=0.439236696 batch_se=0.00244547363 rmse=0.334158047 mse=0.111661601 mse_se=0.000893230576 delta_low_vs_default=-0.0747622299 delta_se=0.000829531326 max_pixel=1.13579934 max_batch_mean=0.468299781 mean_rays=4063.000 warm_rays=0.000 mean_boxes=4063.000 mean_triangles=1898.250 temporal=0 spatial=0 mean_gate=1 quality_low=1 regression_low=0 scale=1e+03 batches=32 pixels_per_group=512
+REPLAY_MIXED group=metal mode=fresh4 floor=default floor_value=0.0099999998 reference=0.625657179 mean=0.623547156 batch_se=0.00168819485 rmse=0.2174649 mse=0.0472909827 mse_se=0.000488675037 delta_low_vs_default=-0.00152580363 delta_se=0.000183359701 max_pixel=1.02071333 max_batch_mean=0.640494538 mean_rays=4063.000 warm_rays=0.000 mean_boxes=4063.000 mean_triangles=1898.250 temporal=0 spatial=0 mean_gate=1 quality_low=1 regression_low=0 scale=1 batches=32 pixels_per_group=512
+REPLAY_MIXED group=dim mode=fresh4 floor=lower floor_value=9.9999997e-05 reference=0.439914993 mean=0.438948973 batch_se=0.00121791051 rmse=0.192092089 mse=0.0368993706 mse_se=0.000444910499 delta_low_vs_default=-0.0747622299 delta_se=0.000829531326 max_pixel=1.0920309 max_batch_mean=0.450790515 mean_rays=4063.000 warm_rays=0.000 mean_boxes=4063.000 mean_triangles=1898.250 temporal=0 spatial=0 mean_gate=1 quality_low=1 regression_low=0 scale=1e+03 batches=32 pixels_per_group=512
+REPLAY_MIXED group=metal mode=fresh4 floor=lower floor_value=9.9999997e-05 reference=0.625657179 mean=0.623901755 batch_se=0.00170007737 rmse=0.213927976 mse=0.0457651791 mse_se=0.000474358357 delta_low_vs_default=-0.00152580363 delta_se=0.000183359701 max_pixel=1.02070379 max_batch_mean=0.640734692 mean_rays=4063.000 warm_rays=0.000 mean_boxes=4063.000 mean_triangles=1898.250 temporal=0 spatial=0 mean_gate=1 quality_low=1 regression_low=0 scale=1 batches=32 pixels_per_group=512
+REPLAY_MIXED group=dim mode=temporal_disk floor=default floor_value=0.0099999998 reference=0.439914993 mean=0.454259441 batch_se=0.0146255606 rmse=0.935724549 mse=0.875580431 mse_se=0.157234789 delta_low_vs_default=16.8592306 delta_se=14.3512679 max_pixel=21.0917387 max_batch_mean=0.67441145 mean_rays=5880.906 warm_rays=16584.500 mean_boxes=5880.906 mean_triangles=2187.062 temporal=32768 spatial=123537 mean_gate=1 quality_low=0 regression_low=0 scale=1e+03 batches=32 pixels_per_group=512
+REPLAY_MIXED group=metal mode=temporal_disk floor=default floor_value=0.0099999998 reference=0.625657179 mean=0.62458869 batch_se=0.00211635742 rmse=0.157442773 mse=0.0247882267 mse_se=0.000444677789 delta_low_vs_default=0.0435901671 delta_se=0.00238931919 max_pixel=1.00418222 max_batch_mean=0.645241204 mean_rays=5880.906 warm_rays=16584.500 mean_boxes=5880.906 mean_triangles=2187.062 temporal=32768 spatial=123537 mean_gate=1 quality_low=0 regression_low=1 scale=1 batches=32 pixels_per_group=512
+REPLAY_MIXED group=dim mode=temporal_disk floor=lower floor_value=9.9999997e-05 reference=0.439914993 mean=0.416293224 batch_se=0.0360268323 rmse=4.21127191 mse=17.7348111 mse_se=14.330256 delta_low_vs_default=16.8592306 delta_se=14.3512679 max_pixel=478.505731 max_batch_mean=1.30648376 mean_rays=5884.938 warm_rays=16591.531 mean_boxes=5884.938 mean_triangles=1959.125 temporal=32768 spatial=123537 mean_gate=1 quality_low=0 regression_low=0 scale=1e+03 batches=32 pixels_per_group=512
+REPLAY_MIXED group=metal mode=temporal_disk floor=lower floor_value=9.9999997e-05 reference=0.625657179 mean=0.621437503 batch_se=0.00323076031 rmse=0.261492627 mse=0.0683783939 mse_se=0.00249478288 delta_low_vs_default=0.0435901671 delta_se=0.00238931919 max_pixel=2.63341141 max_batch_mean=0.656822673 mean_rays=5884.938 warm_rays=16591.531 mean_boxes=5884.938 mean_triangles=1959.125 temporal=32768 spatial=123537 mean_gate=1 quality_low=0 regression_low=1 scale=1 batches=32 pixels_per_group=512
+REPLAY_MIXED_IDENTITY group=dim fresh1_max_scaled_difference=0
+REPLAY_MIXED_IDENTITY group=metal fresh1_max_scaled_difference=0
+REPLAY_MIXED_LINKS seed=2604378436 eligible_same=1701 dim_receives_metal=1097 metal_receives_dim=1055 rejected=0 eligible_total=3853 resolve_links=3853
+PASS ReplayMixedMaterialValidation

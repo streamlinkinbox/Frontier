@@ -13,8 +13,9 @@ bounded materials now pass a separate hemisphere integral through the actual Eng
 a two-bounce diffuse fixture also passes a separate area integral
 ([evidence](../LightCompute/ReplayMaterialSampling.md)). A later four-material
 [reuse audit](../LightCompute/ReplayMaterialReuse.md) exercises temporal/spatial means and sequence resets. A
-[paired floor study](../LightCompute/ReplayMaterialFloor.md) reports a large dim-material improvement but only
-with homogeneous supplied receivers; neither is general ReSTIR validation. The PBR showroom's 80-sample reference is a finite same-shader
+[paired floor study](../LightCompute/ReplayMaterialFloor.md) reports a large homogeneous dim-material improvement,
+but a [mixed-material/visibility stress test](../LightCompute/ReplayMixedMaterialVisibility.md) exposes severe
+variance and a significant lower-floor regression. None is general ReSTIR validation. The PBR showroom's 80-sample reference is a finite same-shader
 comparison, not independent ground truth. An optional completion-gated Engine submission sequence is now tested
 [offscreen](../LightCompute/ReplaySubmissionSequence.md), but it does not create resources or present an image.
 `Frontier/Applications/Editor/FrontierMain.cpp` and `UI/Editor/EditorWorkspace.cpp` still contain viewport
@@ -55,7 +56,9 @@ GI evidence: [seed replay](../LightCompute/ReplaySpatialDisk.md), [SVGF](../Ligh
 and [sequencing](../LightCompute/ReplaySubmissionSequence.md). Reflection/PBR evidence:
 [rough screen proposals](../LightCompute/RoughReflections.md), [PBR replay](../LightCompute/ReplayPbrReflection.md),
 [material sampling](../LightCompute/ReplayMaterialSampling.md), [material reuse](../LightCompute/ReplayMaterialReuse.md),
-[target-floor sensitivity](../LightCompute/ReplayMaterialFloor.md) and [thin sheets](../LightCompute/ReplayTransmission.md). Tyre and gas evidence remains under
+[target-floor sensitivity](../LightCompute/ReplayMaterialFloor.md),
+[mixed-material visibility](../LightCompute/ReplayMixedMaterialVisibility.md) and
+[thin sheets](../LightCompute/ReplayTransmission.md). Tyre and gas evidence remains under
 [VehiclePhysics](../VehiclePhysics/) and [FluidReference](../FluidReference/).
 
 The vehicle dynamics/Jolt port remains explicitly deferred. The new tyre work is standalone and does not

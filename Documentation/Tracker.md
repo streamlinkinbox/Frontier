@@ -18,6 +18,10 @@ are inherited historical checkpoints: their branch/PR references and completion 
   mean gates and floor-revision reset. The existing `0.0001` floor reduces temporal + disk RMSE `0.263652 →
   0.077177` (scaled dim fixture), with counted final rays `5,886 → 5,899` plus roughly 16,600 warm rays. The
   even fainter case changes by only 0.05%; no default was changed. These are not elapsed-time measurements.
+- In a later [mixed-material and visibility stress test](../Exhibits/LightCompute/ReplayMixedMaterialVisibility.md),
+  the lower floor increased metal temporal + disk RMSE by 66.09%, while rare dim-material samples produced a much
+  higher but statistically inconclusive RMSE. All 12 means still passed. This exposes a variance risk; strict
+  material compatibility is a candidate for further investigation, not yet a production change.
 - Physical-GPU/Windows timing, realistic mixed/moving materials, production scene/resource ownership and the
   editor viewport remain open. This restricted result does not prove general ReSTIR unbiasedness.
 

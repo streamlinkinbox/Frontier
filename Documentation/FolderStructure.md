@@ -105,8 +105,9 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
 - `ReplayMaterialSamplingValidation.{h,slang}` owns the actual-sampler and independent hemisphere checks;
   `ReplayMaterialPathValidation.h` checks recorded material/diffuse paths against separate integrals.
   `ReplayMaterialReuseValidation.h` checks bounded temporal/spatial materials and C++ revision resets;
-  `ReplayMaterialFloorValidation.h` compares two accepted target floors and tests floor-revision invalidation.
-  Their run scripts, reports and retained images/logs preserve the measured evidence and its limitations.
+  `ReplayMaterialFloorValidation.h` compares two accepted target floors and tests floor-revision invalidation;
+  `ReplayMixedMaterialValidation.h` and `ReplayMixedMaterialLinks.slang` stress different material/visibility
+  donors and audit accepted spatial links. Their reports, scripts and images/logs preserve scope and results.
 - `ReplayBranchComparison.md` records the compared peer revision and non-equivalent benchmark boundaries. None of
   these files connects the renderer to the editor viewport.
 
