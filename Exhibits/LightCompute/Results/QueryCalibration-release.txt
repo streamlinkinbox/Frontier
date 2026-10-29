@@ -1,0 +1,858 @@
+Secondary GPU host mode=release revision=4bd5be2b63ae08dc70f6c4743c234762436cfc45 working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+0932af6ceedfee78c0b89c323c73503e28733ac65b955d08f5f2744d08631f8b  Exhibits/LightCompute/Code/QueryCalibrationGpu.slang
+058528fb19270111043af6ffab000c31c37a628507b453d131304bfc965fbb38  Exhibits/LightCompute/Code/QueryCalibrationValidation.h
+9aeef512bfc9030c6c8f5d2991d0589615ec71f22a9cc6a5be7fabcf5319f9cc  Exhibits/LightCompute/Code/TracedQuartetGpu.slang
+b00b5bb2449a286c829c9790244376e6c25e0be1b89ae5a54749b87067224d2c  Exhibits/LightCompute/Code/RgbTraceGpu.slang
+84e591e4615fdfd970da44342cd8fb31e4a4234e1c5e6376c65accc726b81742  Exhibits/LightCompute/Code/FacetReservoirDescriptor.h
+4dc1c4b8a829d04d33c7cb9cb57c7942358a5d76fad9a441edcc708162e58f88  Exhibits/LightCompute/Code/CompileWeightedQuartet.py
+e66b489726d4b913523e25923c7f685cf25e56ca5f885f6d60dfbf19ab5690aa  Exhibits/LightCompute/Code/CompileWeightedPair.py
+1cb56bc9980bb8b18bbacca2fb86b3c4e51a2cdd7f25aa548b06d0008105416b  Exhibits/LightCompute/Code/CompileVisibilityReuse.py
+6d5dd771944de278bea5c85f96103f730fae5b44e5098c513e577959e9106667  Exhibits/LightCompute/Code/CompileRayBudget.py
+f5b408212bb8aad1b35e02338c4152623c23b198bc2bc570555593986b4693d0  Exhibits/LightCompute/Code/CompileReceiverBank.py
+4b3b8ce02c6315a948881b76e80c79cfab6395298af629ed392c239a2f71e2b7  Exhibits/LightCompute/Code/CompileCandidateBank.py
+f9da94cc3f075f6bbc2d94d313acad0b93816367a395bd336868725529a8834d  Exhibits/LightCompute/Code/CompileCacheRefresh.py
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+3411c39b5e875c02129e6672924fc8e71e8847ffd5de8243640ff781fa0d0575  Exhibits/LightCompute/Code/TracedQuartetValidation.h
+cbf73c8ff9b1efb650bc8b4a58e09434046a3ffd27105da5d8d6812d45581022  Exhibits/LightCompute/Code/RgbTraceValidation.h
+fc02ea02ff85e3dec2b76300aff4e8056504518ac8e51af782b5ee89699e6596  Exhibits/LightCompute/Code/WeightedQuartetValidation.h
+1331bc0f2796b9fe87bf7ff0062269cb30e293f49e82d6dbe10ebb173147a04d  Exhibits/LightCompute/Code/WeightedPairValidation.h
+5dc18f3f4aa1bdc5836f16d8ae210b2eb340576b8381f5f7521a8899c953ac11  Exhibits/LightCompute/Code/VisibilityReuseValidation.h
+63be6b73789c53dd31512e6d96c50b951c232ae67b4cb22095730f887b8d0878  Exhibits/LightCompute/Code/RayBudgetValidation.h
+18313fc32f50c2791b2277cb84932b0499d427dee1d87c79508c491fe74fff6f  Exhibits/LightCompute/Code/ReceiverBankValidation.h
+c64a67094084082a1cdd31de0a8d7db1f01afef3565b14c070aa67282a4abee4  Exhibits/LightCompute/Code/CandidateBankValidation.h
+3c34616bfc80078a20ba880083d6473f02dd246f6ab9c1a5e208b40644f4c98c  Exhibits/LightCompute/Code/CacheRefreshValidation.h
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+a056b2d9a49a79c4ad9ef17548967a4ade1eab5865fd895794c11ccd14a403e9  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+f544acd4c0357d9458b00f14fd4c6c252ee47c127f53ba1b5ad64051778dc9bf  Exhibits/LightCompute/RunQueryCalibration.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+c262395e824d3e6968829db8714dfb1d3ef557856f759b22e1da1923a5606b0d  /home/user/Frontier/_ClaudeScratch/build/query-calibration-release/DiffuseGenerate.spv
+8064c52d09dbfb913eaf6bbf8649de886080177b4095d58cb7da1969244f29d9  /home/user/Frontier/_ClaudeScratch/build/query-calibration-release/DiffuseResolve.spv
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/query-calibration-release
+[  5%] Built target FrontierPathReplayVulkan
+[ 10%] Built target FrontierMediumRadiancePayload
+[ 16%] Built target FrontierRadiantFacetDistribution
+[ 21%] Built target FrontierPathReplayDomain
+[ 67%] Built target LightComputeValidation
+[ 72%] Built target PathReplayDomainValidation
+[ 78%] Built target PathReplayVulkanValidation
+[ 83%] Built target PathReplayArchiveValidation
+[ 89%] Built target RadiantFacetValidation
+[ 94%] Built target MediumRadianceValidation
+[100%] Built target FrontierPlumeLatticeFootprint
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/query-calibration-release
+Test project /home/user/Frontier/_ClaudeScratch/build/query-calibration-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.01 sec
+QUERY_CALIBRATION_DEVICE name=SwiftShader Device (Subzero) type=4 samples=1024 methods=4 steps=32 fixtures=3
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=0 lower=4 upper=5 probability=0.49340949033391918 pilot_rotate=26864 pilot_lower=24618 pilot_upper=29170 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=0 reset=1 estimate_error=1.52370190215e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=0 method=0 draws=8192 kept=0 evaluations=4045 suffix=3355 connection=3355
+QUERY_CALIBRATION_WORK fixture=0 step=0 method=1 draws=8192 kept=0 evaluations=4045 suffix=3355 connection=3355
+QUERY_CALIBRATION_WORK fixture=0 step=0 method=2 draws=4614 kept=0 evaluations=4099 suffix=3357 connection=3357
+QUERY_CALIBRATION_WORK fixture=0 step=0 method=3 draws=8192 kept=0 evaluations=7273 suffix=5015 connection=5015
+QUERY_CALIBRATION_EXACT fixture=0 step=0 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=1 lower=3 upper=4 probability=0.29865506329113922 pilot_rotate=21040 pilot_lower=19530 pilot_upper=24586 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=1 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=1 method=0 draws=4096 kept=2048 evaluations=4056 suffix=1911 connection=3362
+QUERY_CALIBRATION_WORK fixture=0 step=1 method=1 draws=8192 kept=0 evaluations=4062 suffix=3364 connection=3364
+QUERY_CALIBRATION_WORK fixture=0 step=1 method=2 draws=3385 kept=0 evaluations=3022 suffix=2645 connection=2645
+QUERY_CALIBRATION_WORK fixture=0 step=1 method=3 draws=8192 kept=0 evaluations=7302 suffix=5003 connection=5003
+QUERY_CALIBRATION_EXACT fixture=0 step=1 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=2 lower=3 upper=4 probability=0.27954898911353032 pilot_rotate=21010 pilot_lower=19572 pilot_upper=24716 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=2 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=2 method=0 draws=4096 kept=2048 evaluations=4053 suffix=1906 connection=3376
+QUERY_CALIBRATION_WORK fixture=0 step=2 method=1 draws=8192 kept=0 evaluations=4040 suffix=3355 connection=3355
+QUERY_CALIBRATION_WORK fixture=0 step=2 method=2 draws=3353 kept=0 evaluations=2979 suffix=2616 connection=2616
+QUERY_CALIBRATION_WORK fixture=0 step=2 method=3 draws=8192 kept=0 evaluations=7269 suffix=5005 connection=5005
+QUERY_CALIBRATION_EXACT fixture=0 step=2 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=3 lower=3 upper=4 probability=0.29272655007949128 pilot_rotate=21009 pilot_lower=19536 pilot_upper=24568 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=3 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=3 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1893 connection=3361
+QUERY_CALIBRATION_WORK fixture=0 step=3 method=1 draws=8192 kept=0 evaluations=4045 suffix=3353 connection=3353
+QUERY_CALIBRATION_WORK fixture=0 step=3 method=2 draws=3391 kept=0 evaluations=3005 suffix=2646 connection=2646
+QUERY_CALIBRATION_WORK fixture=0 step=3 method=3 draws=8192 kept=0 evaluations=7275 suffix=5050 connection=5050
+QUERY_CALIBRATION_EXACT fixture=0 step=3 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=4 lower=3 upper=4 probability=0.29058823529411765 pilot_rotate=21006 pilot_lower=19524 pilot_upper=24624 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=4 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=4 method=0 draws=4096 kept=2048 evaluations=4037 suffix=1896 connection=3336
+QUERY_CALIBRATION_WORK fixture=0 step=4 method=1 draws=8192 kept=0 evaluations=4047 suffix=3364 connection=3364
+QUERY_CALIBRATION_WORK fixture=0 step=4 method=2 draws=3367 kept=0 evaluations=2989 suffix=2608 connection=2608
+QUERY_CALIBRATION_WORK fixture=0 step=4 method=3 draws=8192 kept=0 evaluations=7260 suffix=5022 connection=5022
+QUERY_CALIBRATION_EXACT fixture=0 step=4 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=5 lower=3 upper=4 probability=0.28679611650485437 pilot_rotate=20959 pilot_lower=19482 pilot_upper=24632 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=5 reset=0 estimate_error=1.6102441748e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=5 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1886 connection=3350
+QUERY_CALIBRATION_WORK fixture=0 step=5 method=1 draws=8192 kept=0 evaluations=4046 suffix=3350 connection=3350
+QUERY_CALIBRATION_WORK fixture=0 step=5 method=2 draws=3377 kept=0 evaluations=2977 suffix=2591 connection=2591
+QUERY_CALIBRATION_WORK fixture=0 step=5 method=3 draws=8192 kept=0 evaluations=7268 suffix=4923 connection=4923
+QUERY_CALIBRATION_EXACT fixture=0 step=5 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=6 lower=3 upper=4 probability=0.29088110811850709 pilot_rotate=21032 pilot_lower=19520 pilot_upper=24718 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=6 reset=0 estimate_error=1.6102441748e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=6 method=0 draws=4096 kept=2048 evaluations=4041 suffix=1881 connection=3321
+QUERY_CALIBRATION_WORK fixture=0 step=6 method=1 draws=8192 kept=0 evaluations=4035 suffix=3357 connection=3357
+QUERY_CALIBRATION_WORK fixture=0 step=6 method=2 draws=3380 kept=0 evaluations=2952 suffix=2601 connection=2601
+QUERY_CALIBRATION_WORK fixture=0 step=6 method=3 draws=8192 kept=0 evaluations=7198 suffix=5008 connection=5008
+QUERY_CALIBRATION_EXACT fixture=0 step=6 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=7 lower=3 upper=4 probability=0.32181382341190573 pilot_rotate=21097 pilot_lower=19486 pilot_upper=24492 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=7 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=7 method=0 draws=4096 kept=2048 evaluations=4042 suffix=1917 connection=3361
+QUERY_CALIBRATION_WORK fixture=0 step=7 method=1 draws=8192 kept=0 evaluations=4046 suffix=3379 connection=3379
+QUERY_CALIBRATION_WORK fixture=0 step=7 method=2 draws=3419 kept=0 evaluations=3049 suffix=2664 connection=2664
+QUERY_CALIBRATION_WORK fixture=0 step=7 method=3 draws=8192 kept=0 evaluations=7308 suffix=5023 connection=5023
+QUERY_CALIBRATION_EXACT fixture=0 step=7 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=8 lower=3 upper=4 probability=0.26584234930448225 pilot_rotate=20886 pilot_lower=19510 pilot_upper=24686 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=8 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=8 method=0 draws=4096 kept=2048 evaluations=4055 suffix=1916 connection=3357
+QUERY_CALIBRATION_WORK fixture=0 step=8 method=1 draws=8192 kept=0 evaluations=4051 suffix=3359 connection=3359
+QUERY_CALIBRATION_WORK fixture=0 step=8 method=2 draws=3336 kept=0 evaluations=2982 suffix=2631 connection=2631
+QUERY_CALIBRATION_WORK fixture=0 step=8 method=3 draws=8192 kept=0 evaluations=7321 suffix=5022 connection=5022
+QUERY_CALIBRATION_EXACT fixture=0 step=8 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=9 lower=3 upper=4 probability=0.28742283950617287 pilot_rotate=20940 pilot_lower=19450 pilot_upper=24634 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=9 reset=0 estimate_error=1.6102441748e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=9 method=0 draws=4096 kept=2048 evaluations=4051 suffix=1909 connection=3397
+QUERY_CALIBRATION_WORK fixture=0 step=9 method=1 draws=8192 kept=0 evaluations=4042 suffix=3337 connection=3337
+QUERY_CALIBRATION_WORK fixture=0 step=9 method=2 draws=3378 kept=0 evaluations=3002 suffix=2611 connection=2611
+QUERY_CALIBRATION_WORK fixture=0 step=9 method=3 draws=8192 kept=0 evaluations=7240 suffix=4927 connection=4927
+QUERY_CALIBRATION_EXACT fixture=0 step=9 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=10 lower=3 upper=4 probability=0.29305499799277401 pilot_rotate=20970 pilot_lower=19510 pilot_upper=24492 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=10 reset=0 estimate_error=1.6102441748e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=10 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1910 connection=3384
+QUERY_CALIBRATION_WORK fixture=0 step=10 method=1 draws=8192 kept=0 evaluations=4053 suffix=3368 connection=3368
+QUERY_CALIBRATION_WORK fixture=0 step=10 method=2 draws=3375 kept=0 evaluations=3026 suffix=2640 connection=2640
+QUERY_CALIBRATION_WORK fixture=0 step=10 method=3 draws=8192 kept=0 evaluations=7335 suffix=5041 connection=5041
+QUERY_CALIBRATION_EXACT fixture=0 step=10 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=11 lower=3 upper=4 probability=0.29654359780047135 pilot_rotate=20950 pilot_lower=19440 pilot_upper=24532 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=11 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=11 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1889 connection=3344
+QUERY_CALIBRATION_WORK fixture=0 step=11 method=1 draws=8192 kept=0 evaluations=4052 suffix=3346 connection=3346
+QUERY_CALIBRATION_WORK fixture=0 step=11 method=2 draws=3371 kept=0 evaluations=3010 suffix=2606 connection=2606
+QUERY_CALIBRATION_WORK fixture=0 step=11 method=3 draws=8192 kept=0 evaluations=7311 suffix=5029 connection=5029
+QUERY_CALIBRATION_EXACT fixture=0 step=11 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=12 lower=3 upper=4 probability=0.26769051321928461 pilot_rotate=21033 pilot_lower=19656 pilot_upper=24800 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=12 reset=0 estimate_error=1.6102441748e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=12 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1879 connection=3344
+QUERY_CALIBRATION_WORK fixture=0 step=12 method=1 draws=8192 kept=0 evaluations=4031 suffix=3319 connection=3319
+QUERY_CALIBRATION_WORK fixture=0 step=12 method=2 draws=3316 kept=0 evaluations=2944 suffix=2605 connection=2605
+QUERY_CALIBRATION_WORK fixture=0 step=12 method=3 draws=8192 kept=0 evaluations=7241 suffix=4999 connection=4999
+QUERY_CALIBRATION_EXACT fixture=0 step=12 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=13 lower=3 upper=4 probability=0.30575117370892019 pilot_rotate=21111 pilot_lower=19548 pilot_upper=24660 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=13 reset=0 estimate_error=1.6102441748e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=13 method=0 draws=4096 kept=2048 evaluations=4049 suffix=1912 connection=3391
+QUERY_CALIBRATION_WORK fixture=0 step=13 method=1 draws=8192 kept=0 evaluations=4057 suffix=3356 connection=3356
+QUERY_CALIBRATION_WORK fixture=0 step=13 method=2 draws=3391 kept=0 evaluations=3031 suffix=2641 connection=2641
+QUERY_CALIBRATION_WORK fixture=0 step=13 method=3 draws=8192 kept=0 evaluations=7296 suffix=4988 connection=4988
+QUERY_CALIBRATION_EXACT fixture=0 step=13 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=14 lower=3 upper=4 probability=0.30148495506057055 pilot_rotate=21091 pilot_lower=19548 pilot_upper=24666 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=14 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=14 method=0 draws=4096 kept=2048 evaluations=4061 suffix=1918 connection=3426
+QUERY_CALIBRATION_WORK fixture=0 step=14 method=1 draws=8192 kept=0 evaluations=4045 suffix=3331 connection=3331
+QUERY_CALIBRATION_WORK fixture=0 step=14 method=2 draws=3384 kept=0 evaluations=2996 suffix=2638 connection=2638
+QUERY_CALIBRATION_WORK fixture=0 step=14 method=3 draws=8192 kept=0 evaluations=7281 suffix=5001 connection=5001
+QUERY_CALIBRATION_EXACT fixture=0 step=14 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=15 lower=3 upper=4 probability=0.31689029202841357 pilot_rotate=20996 pilot_lower=19390 pilot_upper=24458 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=15 reset=0 estimate_error=1.6102441748e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=15 method=0 draws=4096 kept=2048 evaluations=4057 suffix=1913 connection=3411
+QUERY_CALIBRATION_WORK fixture=0 step=15 method=1 draws=8192 kept=0 evaluations=4055 suffix=3392 connection=3392
+QUERY_CALIBRATION_WORK fixture=0 step=15 method=2 draws=3381 kept=0 evaluations=3014 suffix=2623 connection=2623
+QUERY_CALIBRATION_WORK fixture=0 step=15 method=3 draws=8192 kept=0 evaluations=7314 suffix=4994 connection=4994
+QUERY_CALIBRATION_EXACT fixture=0 step=15 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=16 lower=4 upper=5 probability=0.44959857270294379 pilot_rotate=26868 pilot_lower=24852 pilot_upper=29336 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=16 reset=1 estimate_error=2.54515522269e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=16 method=0 draws=8192 kept=0 evaluations=4042 suffix=3389 connection=3389
+QUERY_CALIBRATION_WORK fixture=0 step=16 method=1 draws=8192 kept=0 evaluations=4042 suffix=3389 connection=3389
+QUERY_CALIBRATION_WORK fixture=0 step=16 method=2 draws=4548 kept=0 evaluations=4047 suffix=3308 connection=3308
+QUERY_CALIBRATION_WORK fixture=0 step=16 method=3 draws=8192 kept=0 evaluations=7288 suffix=5015 connection=5015
+QUERY_CALIBRATION_EXACT fixture=0 step=16 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=17 lower=3 upper=4 probability=0.27017067494181535 pilot_rotate=20927 pilot_lower=19534 pilot_upper=24690 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=17 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=17 method=0 draws=4096 kept=2048 evaluations=4054 suffix=1904 connection=3385
+QUERY_CALIBRATION_WORK fixture=0 step=17 method=1 draws=8192 kept=0 evaluations=4053 suffix=3377 connection=3377
+QUERY_CALIBRATION_WORK fixture=0 step=17 method=2 draws=3339 kept=0 evaluations=2974 suffix=2631 connection=2631
+QUERY_CALIBRATION_WORK fixture=0 step=17 method=3 draws=8192 kept=0 evaluations=7319 suffix=5028 connection=5028
+QUERY_CALIBRATION_EXACT fixture=0 step=17 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=18 lower=3 upper=4 probability=0.29181286549707602 pilot_rotate=21051 pilot_lower=19554 pilot_upper=24684 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=18 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=18 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1897 connection=3343
+QUERY_CALIBRATION_WORK fixture=0 step=18 method=1 draws=8192 kept=0 evaluations=4042 suffix=3370 connection=3370
+QUERY_CALIBRATION_WORK fixture=0 step=18 method=2 draws=3358 kept=0 evaluations=2987 suffix=2638 connection=2638
+QUERY_CALIBRATION_WORK fixture=0 step=18 method=3 draws=8192 kept=0 evaluations=7271 suffix=5043 connection=5043
+QUERY_CALIBRATION_EXACT fixture=0 step=18 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=19 lower=3 upper=4 probability=0.28890205371248023 pilot_rotate=20983 pilot_lower=19520 pilot_upper=24584 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=19 reset=0 estimate_error=2.95017113239e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=19 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1910 connection=3370
+QUERY_CALIBRATION_WORK fixture=0 step=19 method=1 draws=8192 kept=0 evaluations=4049 suffix=3366 connection=3366
+QUERY_CALIBRATION_WORK fixture=0 step=19 method=2 draws=3355 kept=0 evaluations=2994 suffix=2619 connection=2619
+QUERY_CALIBRATION_WORK fixture=0 step=19 method=3 draws=8192 kept=0 evaluations=7305 suffix=4981 connection=4981
+QUERY_CALIBRATION_EXACT fixture=0 step=19 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=20 lower=3 upper=4 probability=0.27764932562620426 pilot_rotate=21073 pilot_lower=19632 pilot_upper=24822 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=20 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=20 method=0 draws=4096 kept=2048 evaluations=4064 suffix=1901 connection=3374
+QUERY_CALIBRATION_WORK fixture=0 step=20 method=1 draws=8192 kept=0 evaluations=4059 suffix=3344 connection=3344
+QUERY_CALIBRATION_WORK fixture=0 step=20 method=2 draws=3374 kept=0 evaluations=3017 suffix=2645 connection=2645
+QUERY_CALIBRATION_WORK fixture=0 step=20 method=3 draws=8192 kept=0 evaluations=7321 suffix=5021 connection=5021
+QUERY_CALIBRATION_EXACT fixture=0 step=20 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=21 lower=3 upper=4 probability=0.26933488012374324 pilot_rotate=21029 pilot_lower=19636 pilot_upper=24808 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=21 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=21 method=0 draws=4096 kept=2048 evaluations=4059 suffix=1900 connection=3372
+QUERY_CALIBRATION_WORK fixture=0 step=21 method=1 draws=8192 kept=0 evaluations=4050 suffix=3356 connection=3356
+QUERY_CALIBRATION_WORK fixture=0 step=21 method=2 draws=3359 kept=0 evaluations=2989 suffix=2599 connection=2599
+QUERY_CALIBRATION_WORK fixture=0 step=21 method=3 draws=8192 kept=0 evaluations=7246 suffix=4971 connection=4971
+QUERY_CALIBRATION_EXACT fixture=0 step=21 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=22 lower=3 upper=4 probability=0.30050900548159748 pilot_rotate=21063 pilot_lower=19528 pilot_upper=24636 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=22 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=22 method=0 draws=4096 kept=2048 evaluations=4046 suffix=1887 connection=3335
+QUERY_CALIBRATION_WORK fixture=0 step=22 method=1 draws=8192 kept=0 evaluations=4037 suffix=3350 connection=3350
+QUERY_CALIBRATION_WORK fixture=0 step=22 method=2 draws=3362 kept=0 evaluations=2987 suffix=2594 connection=2594
+QUERY_CALIBRATION_WORK fixture=0 step=22 method=3 draws=8192 kept=0 evaluations=7329 suffix=5021 connection=5021
+QUERY_CALIBRATION_EXACT fixture=0 step=22 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=23 lower=3 upper=4 probability=0.29945482866043616 pilot_rotate=21052 pilot_lower=19514 pilot_upper=24650 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=23 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=23 method=0 draws=4096 kept=2048 evaluations=4036 suffix=1885 connection=3336
+QUERY_CALIBRATION_WORK fixture=0 step=23 method=1 draws=8192 kept=0 evaluations=4051 suffix=3392 connection=3392
+QUERY_CALIBRATION_WORK fixture=0 step=23 method=2 draws=3369 kept=0 evaluations=3022 suffix=2648 connection=2648
+QUERY_CALIBRATION_WORK fixture=0 step=23 method=3 draws=8192 kept=0 evaluations=7320 suffix=5033 connection=5033
+QUERY_CALIBRATION_EXACT fixture=0 step=23 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=24 lower=5 upper=6 probability=0.13098827470686766 pilot_rotate=22247 pilot_lower=21856 pilot_upper=24841 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=24 reset=1 estimate_error=2.28125241544e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=24 method=0 draws=8192 kept=0 evaluations=4050 suffix=3359 connection=2223
+QUERY_CALIBRATION_WORK fixture=0 step=24 method=1 draws=8192 kept=0 evaluations=4050 suffix=3359 connection=2223
+QUERY_CALIBRATION_WORK fixture=0 step=24 method=2 draws=5245 kept=0 evaluations=4636 suffix=3227 connection=2296
+QUERY_CALIBRATION_WORK fixture=0 step=24 method=3 draws=8192 kept=0 evaluations=7219 suffix=4377 connection=3143
+QUERY_CALIBRATION_EXACT fixture=0 step=24 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=25 lower=3 upper=4 probability=0.45560445249805848 pilot_rotate=16326 pilot_lower=14566 pilot_upper=18429 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=25 reset=0 estimate_error=2.54515522269e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=25 method=0 draws=4096 kept=2048 evaluations=4051 suffix=1898 connection=2228
+QUERY_CALIBRATION_WORK fixture=0 step=25 method=1 draws=8192 kept=0 evaluations=4051 suffix=3349 connection=2227
+QUERY_CALIBRATION_WORK fixture=0 step=25 method=2 draws=3542 kept=0 evaluations=3156 suffix=2405 connection=1696
+QUERY_CALIBRATION_WORK fixture=0 step=25 method=3 draws=8192 kept=0 evaluations=7322 suffix=4450 connection=3171
+QUERY_CALIBRATION_EXACT fixture=0 step=25 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=26 lower=3 upper=4 probability=0.42037084074168146 pilot_rotate=16384 pilot_lower=14729 pilot_upper=18666 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=26 reset=0 estimate_error=2.42418110863e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=26 method=0 draws=4096 kept=2048 evaluations=4052 suffix=1891 connection=2235
+QUERY_CALIBRATION_WORK fixture=0 step=26 method=1 draws=8192 kept=0 evaluations=4054 suffix=3362 connection=2255
+QUERY_CALIBRATION_WORK fixture=0 step=26 method=2 draws=3503 kept=0 evaluations=3123 suffix=2419 connection=1740
+QUERY_CALIBRATION_WORK fixture=0 step=26 method=3 draws=8192 kept=0 evaluations=7304 suffix=4452 connection=3179
+QUERY_CALIBRATION_EXACT fixture=0 step=26 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=27 lower=3 upper=4 probability=0.51557632398753894 pilot_rotate=16451 pilot_lower=14465 pilot_upper=18317 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=27 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=27 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1908 connection=2206
+QUERY_CALIBRATION_WORK fixture=0 step=27 method=1 draws=8192 kept=0 evaluations=4038 suffix=3380 connection=2223
+QUERY_CALIBRATION_WORK fixture=0 step=27 method=2 draws=3567 kept=0 evaluations=3175 suffix=2445 connection=1739
+QUERY_CALIBRATION_WORK fixture=0 step=27 method=3 draws=8192 kept=0 evaluations=7269 suffix=4394 connection=3133
+QUERY_CALIBRATION_EXACT fixture=0 step=27 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=28 lower=3 upper=4 probability=0.45938078856840436 pilot_rotate=16352 pilot_lower=14616 pilot_upper=18395 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=28 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=28 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1892 connection=2223
+QUERY_CALIBRATION_WORK fixture=0 step=28 method=1 draws=8192 kept=0 evaluations=4057 suffix=3359 connection=2223
+QUERY_CALIBRATION_WORK fixture=0 step=28 method=2 draws=3539 kept=0 evaluations=3128 suffix=2358 connection=1695
+QUERY_CALIBRATION_WORK fixture=0 step=28 method=3 draws=8192 kept=0 evaluations=7265 suffix=4344 connection=3133
+QUERY_CALIBRATION_EXACT fixture=0 step=28 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=29 lower=3 upper=4 probability=0.4606741573033708 pilot_rotate=16376 pilot_lower=14613 pilot_upper=18440 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=29 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=29 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1873 connection=2232
+QUERY_CALIBRATION_WORK fixture=0 step=29 method=1 draws=8192 kept=0 evaluations=4041 suffix=3328 connection=2239
+QUERY_CALIBRATION_WORK fixture=0 step=29 method=2 draws=3517 kept=0 evaluations=3162 suffix=2391 connection=1731
+QUERY_CALIBRATION_WORK fixture=0 step=29 method=3 draws=8192 kept=0 evaluations=7301 suffix=4374 connection=3154
+QUERY_CALIBRATION_EXACT fixture=0 step=29 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=30 lower=3 upper=4 probability=0.48275862068965519 pilot_rotate=16390 pilot_lower=14542 pilot_upper=18370 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=30 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=30 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1909 connection=2211
+QUERY_CALIBRATION_WORK fixture=0 step=30 method=1 draws=8192 kept=0 evaluations=4053 suffix=3344 connection=2190
+QUERY_CALIBRATION_WORK fixture=0 step=30 method=2 draws=3548 kept=0 evaluations=3169 suffix=2415 connection=1708
+QUERY_CALIBRATION_WORK fixture=0 step=30 method=3 draws=8192 kept=0 evaluations=7300 suffix=4362 connection=3098
+QUERY_CALIBRATION_EXACT fixture=0 step=30 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=0 step=31 lower=3 upper=4 probability=0.44603009859885834 pilot_rotate=16442 pilot_lower=14723 pilot_upper=18577 feasible=1
+QUERY_CALIBRATION_CASE fixture=0 step=31 reset=0 estimate_error=2.42418110863e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=0 step=31 method=0 draws=4096 kept=2048 evaluations=4042 suffix=1879 connection=2184
+QUERY_CALIBRATION_WORK fixture=0 step=31 method=1 draws=8192 kept=0 evaluations=4033 suffix=3332 connection=2207
+QUERY_CALIBRATION_WORK fixture=0 step=31 method=2 draws=3536 kept=0 evaluations=3148 suffix=2394 connection=1743
+QUERY_CALIBRATION_WORK fixture=0 step=31 method=3 draws=8192 kept=0 evaluations=7260 suffix=4378 connection=3162
+QUERY_CALIBRATION_EXACT fixture=0 step=31 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=0 lower=5 upper=6 probability=0.14219269102990034 pilot_rotate=22265 pilot_lower=21837 pilot_upper=24847 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=0 reset=1 estimate_error=1.68896735972e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=1 step=0 method=0 draws=8192 kept=0 evaluations=4045 suffix=3308 connection=2181
+QUERY_CALIBRATION_WORK fixture=1 step=0 method=1 draws=8192 kept=0 evaluations=4045 suffix=3308 connection=2181
+QUERY_CALIBRATION_WORK fixture=1 step=0 method=2 draws=5260 kept=0 evaluations=4661 suffix=3248 connection=2327
+QUERY_CALIBRATION_WORK fixture=1 step=0 method=3 draws=8192 kept=0 evaluations=7273 suffix=4385 connection=3137
+QUERY_CALIBRATION_EXACT fixture=1 step=0 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=1 lower=3 upper=4 probability=0.48237179487179488 pilot_rotate=16464 pilot_lower=14658 pilot_upper=18402 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=1 reset=0 estimate_error=1.69797928218e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=1 step=1 method=0 draws=4096 kept=2048 evaluations=4056 suffix=1911 connection=2213
+QUERY_CALIBRATION_WORK fixture=1 step=1 method=1 draws=8192 kept=0 evaluations=4062 suffix=3341 connection=2247
+QUERY_CALIBRATION_WORK fixture=1 step=1 method=2 draws=3579 kept=0 evaluations=3199 suffix=2425 connection=1730
+QUERY_CALIBRATION_WORK fixture=1 step=1 method=3 draws=8192 kept=0 evaluations=7302 suffix=4385 connection=3143
+QUERY_CALIBRATION_EXACT fixture=1 step=1 channel0=0.028608198162752601 channel1=0.016209938728538383 channel2=0.0085174512408581812
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=2 lower=3 upper=4 probability=0.43646126310406547 pilot_rotate=16388 pilot_lower=14681 pilot_upper=18592 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=2 reset=0 estimate_error=1.58775291664e-08 weight_error=1.66859656902e-07
+QUERY_CALIBRATION_WORK fixture=1 step=2 method=0 draws=4096 kept=2048 evaluations=4053 suffix=1897 connection=2204
+QUERY_CALIBRATION_WORK fixture=1 step=2 method=1 draws=8192 kept=0 evaluations=4040 suffix=3327 connection=2200
+QUERY_CALIBRATION_WORK fixture=1 step=2 method=2 draws=3511 kept=0 evaluations=3117 suffix=2358 connection=1719
+QUERY_CALIBRATION_WORK fixture=1 step=2 method=3 draws=8192 kept=0 evaluations=7269 suffix=4383 connection=3127
+QUERY_CALIBRATION_EXACT fixture=1 step=2 channel0=0.03034785673314162 channel1=0.017938247449587778 channel2=0.0088440187211207711
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=3 lower=3 upper=4 probability=0.47468857672939307 pilot_rotate=16381 pilot_lower=14590 pilot_upper=18363 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=3 reset=0 estimate_error=2.71098543336e-08 weight_error=1.78026190032e-07
+QUERY_CALIBRATION_WORK fixture=1 step=3 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1892 connection=2212
+QUERY_CALIBRATION_WORK fixture=1 step=3 method=1 draws=8192 kept=0 evaluations=4045 suffix=3333 connection=2216
+QUERY_CALIBRATION_WORK fixture=1 step=3 method=2 draws=3548 kept=0 evaluations=3148 suffix=2398 connection=1733
+QUERY_CALIBRATION_WORK fixture=1 step=3 method=3 draws=8192 kept=0 evaluations=7275 suffix=4415 connection=3174
+QUERY_CALIBRATION_EXACT fixture=1 step=3 channel0=0.030117131697104317 channel1=0.018864973398192021 channel2=0.0086114699026312753
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=4 lower=3 upper=4 probability=0.43595206391478031 pilot_rotate=16255 pilot_lower=14618 pilot_upper=18373 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=4 reset=0 estimate_error=1.52025425929e-08 weight_error=1.78026190032e-07
+QUERY_CALIBRATION_WORK fixture=1 step=4 method=0 draws=4096 kept=2048 evaluations=4037 suffix=1886 connection=2209
+QUERY_CALIBRATION_WORK fixture=1 step=4 method=1 draws=8192 kept=0 evaluations=4047 suffix=3320 connection=2168
+QUERY_CALIBRATION_WORK fixture=1 step=4 method=2 draws=3523 kept=0 evaluations=3124 suffix=2410 connection=1699
+QUERY_CALIBRATION_WORK fixture=1 step=4 method=3 draws=8192 kept=0 evaluations=7260 suffix=4416 connection=3126
+QUERY_CALIBRATION_EXACT fixture=1 step=4 channel0=0.022078303158521752 channel1=0.013627880412202177 channel2=0.0061524581176734651
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=5 lower=3 upper=4 probability=0.6386275594908688 pilot_rotate=15699 pilot_lower=13391 pilot_upper=17005 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=5 reset=0 estimate_error=1.68963054615e-08 weight_error=8.86279620417e-07
+QUERY_CALIBRATION_WORK fixture=1 step=5 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1894 connection=2016
+QUERY_CALIBRATION_WORK fixture=1 step=5 method=1 draws=8192 kept=0 evaluations=4046 suffix=3320 connection=2082
+QUERY_CALIBRATION_WORK fixture=1 step=5 method=2 draws=3718 kept=0 evaluations=3276 suffix=2105 connection=1754
+QUERY_CALIBRATION_WORK fixture=1 step=5 method=3 draws=8192 kept=0 evaluations=7268 suffix=3671 connection=3056
+QUERY_CALIBRATION_EXACT fixture=1 step=5 channel0=0.012218330847182967 channel1=0.0066429945091767591 channel2=0.0032072874802862848
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=6 lower=3 upper=4 probability=0.78282687482575963 pilot_rotate=16141 pilot_lower=13333 pilot_upper=16920 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=6 reset=0 estimate_error=2.27934903105e-08 weight_error=8.86279620417e-07
+QUERY_CALIBRATION_WORK fixture=1 step=6 method=0 draws=4096 kept=2048 evaluations=4041 suffix=1879 connection=2147
+QUERY_CALIBRATION_WORK fixture=1 step=6 method=1 draws=8192 kept=0 evaluations=4035 suffix=3345 connection=2186
+QUERY_CALIBRATION_WORK fixture=1 step=6 method=2 draws=3886 kept=0 evaluations=3400 suffix=2170 connection=1806
+QUERY_CALIBRATION_WORK fixture=1 step=6 method=3 draws=8192 kept=0 evaluations=7198 suffix=3760 connection=3117
+QUERY_CALIBRATION_EXACT fixture=1 step=6 channel0=0.009235281650596578 channel1=0.004570425186648591 channel2=0.0021553694724340861
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=7 lower=4 upper=5 probability=0.46606156274664562 pilot_rotate=14892 pilot_lower=13711 pilot_upper=16245 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=7 reset=0 estimate_error=3.64603374922e-09 weight_error=2.60917511732e-07
+QUERY_CALIBRATION_WORK fixture=1 step=7 method=0 draws=4096 kept=2048 evaluations=4042 suffix=1902 connection=1871
+QUERY_CALIBRATION_WORK fixture=1 step=7 method=1 draws=8192 kept=0 evaluations=4046 suffix=3334 connection=1864
+QUERY_CALIBRATION_WORK fixture=1 step=7 method=2 draws=4553 kept=0 evaluations=4066 suffix=2061 connection=1644
+QUERY_CALIBRATION_WORK fixture=1 step=7 method=3 draws=8192 kept=0 evaluations=7308 suffix=3141 connection=2517
+QUERY_CALIBRATION_EXACT fixture=1 step=7 channel0=0.0064870121015918412 channel1=0.0025377551063626696 channel2=0.0019080094454808007
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=8 lower=4 upper=5 probability=0.43574535389482011 pilot_rotate=14856 pilot_lower=13754 pilot_upper=16283 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=8 reset=0 estimate_error=2.36428180159e-09 weight_error=1.80928594191e-07
+QUERY_CALIBRATION_WORK fixture=1 step=8 method=0 draws=4096 kept=2048 evaluations=4055 suffix=1909 connection=1874
+QUERY_CALIBRATION_WORK fixture=1 step=8 method=1 draws=8192 kept=0 evaluations=4051 suffix=3343 connection=1852
+QUERY_CALIBRATION_WORK fixture=1 step=8 method=2 draws=4535 kept=0 evaluations=4071 suffix=2085 connection=1701
+QUERY_CALIBRATION_WORK fixture=1 step=8 method=3 draws=8192 kept=0 evaluations=7321 suffix=3108 connection=2521
+QUERY_CALIBRATION_EXACT fixture=1 step=8 channel0=0.0064024620869207773 channel1=0.002549645075692867 channel2=0.0018985580056882076
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=9 lower=4 upper=5 probability=0.41001564945226915 pilot_rotate=14861 pilot_lower=13813 pilot_upper=16369 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=9 reset=0 estimate_error=4.64726242558e-09 weight_error=1.80928594191e-07
+QUERY_CALIBRATION_WORK fixture=1 step=9 method=0 draws=4096 kept=2048 evaluations=4051 suffix=1913 connection=1827
+QUERY_CALIBRATION_WORK fixture=1 step=9 method=1 draws=8192 kept=0 evaluations=4042 suffix=3332 connection=1802
+QUERY_CALIBRATION_WORK fixture=1 step=9 method=2 draws=4539 kept=0 evaluations=4003 suffix=2037 connection=1627
+QUERY_CALIBRATION_WORK fixture=1 step=9 method=3 draws=8192 kept=0 evaluations=7240 suffix=3054 connection=2449
+QUERY_CALIBRATION_EXACT fixture=1 step=9 channel0=0.0064870121015918412 channel1=0.0025377551063626696 channel2=0.0019080094454808007
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=10 lower=3 upper=4 probability=0.8596237337192475 pilot_rotate=16286 pilot_lower=13316 pilot_upper=16771 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=10 reset=0 estimate_error=1.04949776925e-08 weight_error=2.60917511732e-07
+QUERY_CALIBRATION_WORK fixture=1 step=10 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1900 connection=2149
+QUERY_CALIBRATION_WORK fixture=1 step=10 method=1 draws=8192 kept=0 evaluations=4053 suffix=3341 connection=2181
+QUERY_CALIBRATION_WORK fixture=1 step=10 method=2 draws=3941 kept=0 evaluations=3536 suffix=2273 connection=1878
+QUERY_CALIBRATION_WORK fixture=1 step=10 method=3 draws=8192 kept=0 evaluations=7335 suffix=3819 connection=3167
+QUERY_CALIBRATION_EXACT fixture=1 step=10 channel0=0.009235281650596578 channel1=0.004570425186648591 channel2=0.0021553694724340861
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=11 lower=3 upper=4 probability=0.79360135900339746 pilot_rotate=16110 pilot_lower=13307 pilot_upper=16839 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=11 reset=0 estimate_error=1.11398208644e-08 weight_error=8.86279620417e-07
+QUERY_CALIBRATION_WORK fixture=1 step=11 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1890 connection=2135
+QUERY_CALIBRATION_WORK fixture=1 step=11 method=1 draws=8192 kept=0 evaluations=4052 suffix=3342 connection=2167
+QUERY_CALIBRATION_WORK fixture=1 step=11 method=2 draws=3894 kept=0 evaluations=3486 suffix=2221 connection=1852
+QUERY_CALIBRATION_WORK fixture=1 step=11 method=3 draws=8192 kept=0 evaluations=7311 suffix=3773 connection=3159
+QUERY_CALIBRATION_EXACT fixture=1 step=11 channel0=0.012218330847182967 channel1=0.0066429945091767591 channel2=0.0032072874802862848
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=12 lower=3 upper=4 probability=0.33859286083807555 pilot_rotate=16094 pilot_lower=14785 pilot_upper=18651 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=12 reset=0 estimate_error=1.52025425929e-08 weight_error=8.86279620417e-07
+QUERY_CALIBRATION_WORK fixture=1 step=12 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1881 connection=2139
+QUERY_CALIBRATION_WORK fixture=1 step=12 method=1 draws=8192 kept=0 evaluations=4031 suffix=3309 connection=2154
+QUERY_CALIBRATION_WORK fixture=1 step=12 method=2 draws=3411 kept=0 evaluations=3029 suffix=2340 connection=1655
+QUERY_CALIBRATION_WORK fixture=1 step=12 method=3 draws=8192 kept=0 evaluations=7241 suffix=4371 connection=3103
+QUERY_CALIBRATION_EXACT fixture=1 step=12 channel0=0.022078303158521752 channel1=0.013627880412202177 channel2=0.0061524581176734651
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=13 lower=3 upper=4 probability=0.48144329896907218 pilot_rotate=16455 pilot_lower=14587 pilot_upper=18467 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=13 reset=0 estimate_error=2.32402073835e-08 weight_error=1.78026190032e-07
+QUERY_CALIBRATION_WORK fixture=1 step=13 method=0 draws=4096 kept=2048 evaluations=4049 suffix=1905 connection=2207
+QUERY_CALIBRATION_WORK fixture=1 step=13 method=1 draws=8192 kept=0 evaluations=4057 suffix=3345 connection=2231
+QUERY_CALIBRATION_WORK fixture=1 step=13 method=2 draws=3558 kept=0 evaluations=3177 suffix=2413 connection=1671
+QUERY_CALIBRATION_WORK fixture=1 step=13 method=3 draws=8192 kept=0 evaluations=7296 suffix=4378 connection=3131
+QUERY_CALIBRATION_EXACT fixture=1 step=13 channel0=0.030117131697104317 channel1=0.018864973398192021 channel2=0.0086114699026312753
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=14 lower=3 upper=4 probability=0.4771547248182762 pilot_rotate=16501 pilot_lower=14663 pilot_upper=18515 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=14 reset=0 estimate_error=1.44040478711e-08 weight_error=1.78026190032e-07
+QUERY_CALIBRATION_WORK fixture=1 step=14 method=0 draws=4096 kept=2048 evaluations=4061 suffix=1912 connection=2294
+QUERY_CALIBRATION_WORK fixture=1 step=14 method=1 draws=8192 kept=0 evaluations=4045 suffix=3314 connection=2215
+QUERY_CALIBRATION_WORK fixture=1 step=14 method=2 draws=3569 kept=0 evaluations=3168 suffix=2425 connection=1774
+QUERY_CALIBRATION_WORK fixture=1 step=14 method=3 draws=8192 kept=0 evaluations=7281 suffix=4388 connection=3132
+QUERY_CALIBRATION_EXACT fixture=1 step=14 channel0=0.03034785673314162 channel1=0.017938247449587778 channel2=0.0088440187211207711
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=15 lower=3 upper=4 probability=0.51583355142632814 pilot_rotate=16421 pilot_lower=14450 pilot_upper=18271 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=15 reset=0 estimate_error=1.74929554037e-08 weight_error=1.66859656902e-07
+QUERY_CALIBRATION_WORK fixture=1 step=15 method=0 draws=4096 kept=2048 evaluations=4057 suffix=1913 connection=2276
+QUERY_CALIBRATION_WORK fixture=1 step=15 method=1 draws=8192 kept=0 evaluations=4055 suffix=3371 connection=2187
+QUERY_CALIBRATION_WORK fixture=1 step=15 method=2 draws=3551 kept=0 evaluations=3156 suffix=2341 connection=1666
+QUERY_CALIBRATION_WORK fixture=1 step=15 method=3 draws=8192 kept=0 evaluations=7314 suffix=4341 connection=3105
+QUERY_CALIBRATION_EXACT fixture=1 step=15 channel0=0.028608198162752601 channel1=0.016209938728538383 channel2=0.0085174512408581812
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=16 lower=5 upper=6 probability=0.086885779368695085 pilot_rotate=22253 pilot_lower=21986 pilot_upper=25059 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=16 reset=1 estimate_error=2.28125241544e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=1 step=16 method=0 draws=8192 kept=0 evaluations=4042 suffix=3373 connection=2222
+QUERY_CALIBRATION_WORK fixture=1 step=16 method=1 draws=8192 kept=0 evaluations=4042 suffix=3373 connection=2222
+QUERY_CALIBRATION_WORK fixture=1 step=16 method=2 draws=5214 kept=0 evaluations=4637 suffix=3218 connection=2301
+QUERY_CALIBRATION_WORK fixture=1 step=16 method=3 draws=8192 kept=0 evaluations=7288 suffix=4394 connection=3132
+QUERY_CALIBRATION_EXACT fixture=1 step=16 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=17 lower=3 upper=4 probability=0.41735751295336787 pilot_rotate=16324 pilot_lower=14713 pilot_upper=18573 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=17 reset=0 estimate_error=1.89516852211e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=1 step=17 method=0 draws=4096 kept=2048 evaluations=4054 suffix=1895 connection=2199
+QUERY_CALIBRATION_WORK fixture=1 step=17 method=1 draws=8192 kept=0 evaluations=4053 suffix=3354 connection=2249
+QUERY_CALIBRATION_WORK fixture=1 step=17 method=2 draws=3500 kept=0 evaluations=3118 suffix=2377 connection=1718
+QUERY_CALIBRATION_WORK fixture=1 step=17 method=3 draws=8192 kept=0 evaluations=7319 suffix=4403 connection=3161
+QUERY_CALIBRATION_EXACT fixture=1 step=17 channel0=0.028608198162752601 channel1=0.032419877457076765 channel2=0.017034902481716362
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=18 lower=3 upper=4 probability=0.48724622592399791 pilot_rotate=16491 pilot_lower=14619 pilot_upper=18461 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=18 reset=0 estimate_error=2.05008584137e-08 weight_error=1.66859656902e-07
+QUERY_CALIBRATION_WORK fixture=1 step=18 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1892 connection=2208
+QUERY_CALIBRATION_WORK fixture=1 step=18 method=1 draws=8192 kept=0 evaluations=4042 suffix=3364 connection=2263
+QUERY_CALIBRATION_WORK fixture=1 step=18 method=2 draws=3545 kept=0 evaluations=3152 suffix=2410 connection=1711
+QUERY_CALIBRATION_WORK fixture=1 step=18 method=3 draws=8192 kept=0 evaluations=7271 suffix=4408 connection=3164
+QUERY_CALIBRATION_EXACT fixture=1 step=18 channel0=0.03034785673314162 channel1=0.035876494899175555 channel2=0.017688037442241542
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=19 lower=3 upper=4 probability=0.47153167602245388 pilot_rotate=16429 pilot_lower=14665 pilot_upper=18406 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=19 reset=0 estimate_error=4.52151209251e-08 weight_error=1.78026190032e-07
+QUERY_CALIBRATION_WORK fixture=1 step=19 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1901 connection=2212
+QUERY_CALIBRATION_WORK fixture=1 step=19 method=1 draws=8192 kept=0 evaluations=4049 suffix=3327 connection=2168
+QUERY_CALIBRATION_WORK fixture=1 step=19 method=2 draws=3548 kept=0 evaluations=3166 suffix=2392 connection=1667
+QUERY_CALIBRATION_WORK fixture=1 step=19 method=3 draws=8192 kept=0 evaluations=7305 suffix=4345 connection=3054
+QUERY_CALIBRATION_EXACT fixture=1 step=19 channel0=0.030117131697104317 channel1=0.037729946796384042 channel2=0.017222939805262551
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=20 lower=3 upper=4 probability=0.44900560938296785 pilot_rotate=16383 pilot_lower=14622 pilot_upper=18544 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=20 reset=0 estimate_error=2.4053607911e-08 weight_error=1.78026190032e-07
+QUERY_CALIBRATION_WORK fixture=1 step=20 method=0 draws=4096 kept=2048 evaluations=4064 suffix=1903 connection=2181
+QUERY_CALIBRATION_WORK fixture=1 step=20 method=1 draws=8192 kept=0 evaluations=4059 suffix=3347 connection=2200
+QUERY_CALIBRATION_WORK fixture=1 step=20 method=2 draws=3513 kept=0 evaluations=3142 suffix=2374 connection=1740
+QUERY_CALIBRATION_WORK fixture=1 step=20 method=3 draws=8192 kept=0 evaluations=7321 suffix=4397 connection=3185
+QUERY_CALIBRATION_EXACT fixture=1 step=20 channel0=0.022078303158521752 channel1=0.027255760824404354 channel2=0.01230491623534693
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=21 lower=3 upper=4 probability=0.62226584408300611 pilot_rotate=15746 pilot_lower=13527 pilot_upper=17093 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=21 reset=0 estimate_error=2.37650987396e-08 weight_error=8.86279620417e-07
+QUERY_CALIBRATION_WORK fixture=1 step=21 method=0 draws=4096 kept=2048 evaluations=4059 suffix=1901 connection=2083
+QUERY_CALIBRATION_WORK fixture=1 step=21 method=1 draws=8192 kept=0 evaluations=4050 suffix=3335 connection=2134
+QUERY_CALIBRATION_WORK fixture=1 step=21 method=2 draws=3717 kept=0 evaluations=3304 suffix=2135 connection=1775
+QUERY_CALIBRATION_WORK fixture=1 step=21 method=3 draws=8192 kept=0 evaluations=7246 suffix=3731 connection=3101
+QUERY_CALIBRATION_EXACT fixture=1 step=21 channel0=0.012218330847182967 channel1=0.013285989018353518 channel2=0.0064145749605725695
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=22 lower=3 upper=4 probability=0.77142857142857146 pilot_rotate=16190 pilot_lower=13544 pilot_upper=16974 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=22 reset=0 estimate_error=2.51372889865e-08 weight_error=8.86279620417e-07
+QUERY_CALIBRATION_WORK fixture=1 step=22 method=0 draws=4096 kept=2048 evaluations=4046 suffix=1888 connection=2153
+QUERY_CALIBRATION_WORK fixture=1 step=22 method=1 draws=8192 kept=0 evaluations=4037 suffix=3329 connection=2166
+QUERY_CALIBRATION_WORK fixture=1 step=22 method=2 draws=3877 kept=0 evaluations=3448 suffix=2189 connection=1806
+QUERY_CALIBRATION_WORK fixture=1 step=22 method=3 draws=8192 kept=0 evaluations=7329 suffix=3745 connection=3118
+QUERY_CALIBRATION_EXACT fixture=1 step=22 channel0=0.009235281650596578 channel1=0.0091408503732971821 channel2=0.0043107389448681721
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=23 lower=4 upper=5 probability=0.44647105471847742 pilot_rotate=14936 pilot_lower=13810 pilot_upper=16332 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=23 reset=0 estimate_error=7.1294264381e-09 weight_error=2.60917511732e-07
+QUERY_CALIBRATION_WORK fixture=1 step=23 method=0 draws=4096 kept=2048 evaluations=4036 suffix=1867 connection=1798
+QUERY_CALIBRATION_WORK fixture=1 step=23 method=1 draws=8192 kept=0 evaluations=4051 suffix=3363 connection=1838
+QUERY_CALIBRATION_WORK fixture=1 step=23 method=2 draws=4550 kept=0 evaluations=4065 suffix=2101 connection=1688
+QUERY_CALIBRATION_WORK fixture=1 step=23 method=3 draws=8192 kept=0 evaluations=7320 suffix=3128 connection=2508
+QUERY_CALIBRATION_EXACT fixture=1 step=23 channel0=0.0064870121015918412 channel1=0.0050755102127253392 channel2=0.0038160188909616014
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=24 lower=6 upper=7 probability=0.79229406554472981 pilot_rotate=22521 pilot_lower=20732 pilot_upper=22990 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=24 reset=1 estimate_error=5.83209740918e-09 weight_error=1.29145050202e-07
+QUERY_CALIBRATION_WORK fixture=1 step=24 method=0 draws=8192 kept=0 evaluations=4050 suffix=3324 connection=2245
+QUERY_CALIBRATION_WORK fixture=1 step=24 method=1 draws=8192 kept=0 evaluations=4050 suffix=3324 connection=2245
+QUERY_CALIBRATION_WORK fixture=1 step=24 method=2 draws=6935 kept=0 evaluations=6109 suffix=2792 connection=2792
+QUERY_CALIBRATION_WORK fixture=1 step=24 method=3 draws=8192 kept=0 evaluations=7219 suffix=3093 connection=3093
+QUERY_CALIBRATION_EXACT fixture=1 step=24 channel0=0.0081738333451324193 channel1=0.0098025349340769251 channel2=0.0050151184501386094
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=25 lower=4 upper=5 probability=0.48485940879596251 pilot_rotate=16769 pilot_lower=15424 pilot_upper=18198 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=25 reset=0 estimate_error=4.79220579885e-09 weight_error=1.3515753318e-07
+QUERY_CALIBRATION_WORK fixture=1 step=25 method=0 draws=4096 kept=2048 evaluations=4051 suffix=1909 connection=2265
+QUERY_CALIBRATION_WORK fixture=1 step=25 method=1 draws=8192 kept=0 evaluations=4051 suffix=3340 connection=2267
+QUERY_CALIBRATION_WORK fixture=1 step=25 method=2 draws=4589 kept=0 evaluations=4085 suffix=2091 connection=2091
+QUERY_CALIBRATION_WORK fixture=1 step=25 method=3 draws=8192 kept=0 evaluations=7322 suffix=3126 connection=3126
+QUERY_CALIBRATION_EXACT fixture=1 step=25 channel0=0.0092575215583606055 channel1=0.011212567652266966 channel2=0.0058099845571585613
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=26 lower=3 upper=4 probability=0.91015228426395944 pilot_rotate=18264 pilot_lower=14678 pilot_upper=18618 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=26 reset=0 estimate_error=1.32576623568e-08 weight_error=1.40019304185e-07
+QUERY_CALIBRATION_WORK fixture=1 step=26 method=0 draws=4096 kept=2048 evaluations=4052 suffix=1883 connection=2668
+QUERY_CALIBRATION_WORK fixture=1 step=26 method=1 draws=8192 kept=0 evaluations=4054 suffix=3335 connection=2679
+QUERY_CALIBRATION_WORK fixture=1 step=26 method=2 draws=4006 kept=0 evaluations=3562 suffix=2288 connection=2288
+QUERY_CALIBRATION_WORK fixture=1 step=26 method=3 draws=8192 kept=0 evaluations=7304 suffix=3791 connection=3791
+QUERY_CALIBRATION_EXACT fixture=1 step=26 channel0=0.01292208295748973 channel1=0.016051330873174691 channel2=0.0085467225295230501
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=27 lower=4 upper=5 probability=0.0071258907363420431 pilot_rotate=18434 pilot_lower=18410 pilot_upper=21778 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=27 reset=0 estimate_error=1.90391951926e-08 weight_error=2.24745358462e-07
+QUERY_CALIBRATION_WORK fixture=1 step=27 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1909 connection=2711
+QUERY_CALIBRATION_WORK fixture=1 step=27 method=1 draws=8192 kept=0 evaluations=4038 suffix=3367 connection=2771
+QUERY_CALIBRATION_WORK fixture=1 step=27 method=2 draws=4102 kept=0 evaluations=3646 suffix=2326 connection=2326
+QUERY_CALIBRATION_WORK fixture=1 step=27 method=3 draws=8192 kept=0 evaluations=7269 suffix=3790 connection=3790
+QUERY_CALIBRATION_EXACT fixture=1 step=27 channel0=0.018746584091474169 channel1=0.024006231341183494 channel2=0.012869123148942511
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=28 lower=3 upper=4 probability=0.26697498423376076 pilot_rotate=19643 pilot_lower=18373 pilot_upper=23130 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=28 reset=0 estimate_error=3.11862959207e-08 weight_error=2.24745358462e-07
+QUERY_CALIBRATION_WORK fixture=1 step=28 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1883 connection=3031
+QUERY_CALIBRATION_WORK fixture=1 step=28 method=1 draws=8192 kept=0 evaluations=4057 suffix=3345 connection=3057
+QUERY_CALIBRATION_WORK fixture=1 step=28 method=2 draws=3322 kept=0 evaluations=2925 suffix=2547 connection=2228
+QUERY_CALIBRATION_WORK fixture=1 step=28 method=3 draws=8192 kept=0 evaluations=7265 suffix=4970 connection=4370
+QUERY_CALIBRATION_EXACT fixture=1 step=28 channel0=0.026023803613419636 channel1=0.036892138436156831 channel2=0.017282601728225044
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=29 lower=3 upper=4 probability=0.26629306766293065 pilot_rotate=19616 pilot_lower=18333 pilot_upper=23151 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=29 reset=0 estimate_error=4.52151209251e-08 weight_error=2.1196055957e-07
+QUERY_CALIBRATION_WORK fixture=1 step=29 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1882 connection=3008
+QUERY_CALIBRATION_WORK fixture=1 step=29 method=1 draws=8192 kept=0 evaluations=4041 suffix=3329 connection=2978
+QUERY_CALIBRATION_WORK fixture=1 step=29 method=2 draws=3350 kept=0 evaluations=3022 suffix=2645 connection=2328
+QUERY_CALIBRATION_WORK fixture=1 step=29 method=3 draws=8192 kept=0 evaluations=7301 suffix=4992 connection=4387
+QUERY_CALIBRATION_EXACT fixture=1 step=29 channel0=0.02691383596131601 channel1=0.040900735856445998 channel2=0.01676406213114684
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=30 lower=3 upper=4 probability=0.61929908785405663 pilot_rotate=18308 pilot_lower=15728 pilot_upper=19894 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=30 reset=0 estimate_error=2.15951721089e-08 weight_error=1.78026190032e-07
+QUERY_CALIBRATION_WORK fixture=1 step=30 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1912 connection=2685
+QUERY_CALIBRATION_WORK fixture=1 step=30 method=1 draws=8192 kept=0 evaluations=4053 suffix=3358 connection=2656
+QUERY_CALIBRATION_WORK fixture=1 step=30 method=2 draws=3709 kept=0 evaluations=3296 suffix=2506 connection=2154
+QUERY_CALIBRATION_WORK fixture=1 step=30 method=3 draws=8192 kept=0 evaluations=7300 suffix=4362 connection=3731
+QUERY_CALIBRATION_EXACT fixture=1 step=30 channel0=0.026497064544019806 channel1=0.031084397823269883 channel2=0.014402027893943363
+QUERY_CALIBRATION_ALLOCATION fixture=1 step=31 lower=3 upper=4 probability=0.54499640028797691 pilot_rotate=18217 pilot_lower=15946 pilot_upper=20113 feasible=1
+QUERY_CALIBRATION_CASE fixture=1 step=31 reset=0 estimate_error=1.7700653665e-08 weight_error=1.66859656902e-07
+QUERY_CALIBRATION_WORK fixture=1 step=31 method=0 draws=4096 kept=2048 evaluations=4042 suffix=1882 connection=2647
+QUERY_CALIBRATION_WORK fixture=1 step=31 method=1 draws=8192 kept=0 evaluations=4033 suffix=3331 connection=2650
+QUERY_CALIBRATION_WORK fixture=1 step=31 method=2 draws=3641 kept=0 evaluations=3224 suffix=2448 connection=2114
+QUERY_CALIBRATION_WORK fixture=1 step=31 method=3 draws=8192 kept=0 evaluations=7260 suffix=4378 connection=3772
+QUERY_CALIBRATION_EXACT fixture=1 step=31 channel0=0.028608198162752601 channel1=0.032419877457076765 channel2=0.017034902481716362
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=0 lower=5 upper=6 probability=0.10266625804474409 pilot_rotate=23986 pilot_lower=23651 pilot_upper=26914 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=0 reset=1 estimate_error=1.68896735972e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=0 method=0 draws=8192 kept=0 evaluations=4045 suffix=3308 connection=2618
+QUERY_CALIBRATION_WORK fixture=2 step=0 method=1 draws=8192 kept=0 evaluations=4045 suffix=3308 connection=2618
+QUERY_CALIBRATION_WORK fixture=2 step=0 method=2 draws=5225 kept=0 evaluations=4634 suffix=3234 connection=2779
+QUERY_CALIBRATION_WORK fixture=2 step=0 method=3 draws=8192 kept=0 evaluations=7273 suffix=4385 connection=3766
+QUERY_CALIBRATION_EXACT fixture=2 step=0 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=1 lower=3 upper=4 probability=0.55854743083003955 pilot_rotate=18186 pilot_lower=15925 pilot_upper=19973 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=1 reset=0 estimate_error=1.99760768343e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=1 method=0 draws=4096 kept=2048 evaluations=4056 suffix=1910 connection=2654
+QUERY_CALIBRATION_WORK fixture=2 step=1 method=1 draws=8192 kept=0 evaluations=4062 suffix=3342 connection=2669
+QUERY_CALIBRATION_WORK fixture=2 step=1 method=2 draws=3611 kept=0 evaluations=3231 suffix=2446 connection=2102
+QUERY_CALIBRATION_WORK fixture=2 step=1 method=3 draws=8192 kept=0 evaluations=7302 suffix=4385 connection=3759
+QUERY_CALIBRATION_EXACT fixture=2 step=1 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=2 lower=3 upper=4 probability=0.52426035502958579 pilot_rotate=18142 pilot_lower=15927 pilot_upper=20152 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=2 reset=0 estimate_error=2.12025732665e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=2 method=0 draws=4096 kept=2048 evaluations=4053 suffix=1900 connection=2650
+QUERY_CALIBRATION_WORK fixture=2 step=2 method=1 draws=8192 kept=0 evaluations=4040 suffix=3335 connection=2643
+QUERY_CALIBRATION_WORK fixture=2 step=2 method=2 draws=3605 kept=0 evaluations=3205 suffix=2409 connection=2101
+QUERY_CALIBRATION_WORK fixture=2 step=2 method=3 draws=8192 kept=0 evaluations=7269 suffix=4383 connection=3785
+QUERY_CALIBRATION_EXACT fixture=2 step=2 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=3 lower=3 upper=4 probability=0.56162705219308995 pilot_rotate=18151 pilot_lower=15859 pilot_upper=19940 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=3 reset=0 estimate_error=2.19942737772e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=3 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1889 connection=2652
+QUERY_CALIBRATION_WORK fixture=2 step=3 method=1 draws=8192 kept=0 evaluations=4045 suffix=3335 connection=2636
+QUERY_CALIBRATION_WORK fixture=2 step=3 method=2 draws=3643 kept=0 evaluations=3237 suffix=2460 connection=2134
+QUERY_CALIBRATION_WORK fixture=2 step=3 method=3 draws=8192 kept=0 evaluations=7275 suffix=4415 connection=3806
+QUERY_CALIBRATION_EXACT fixture=2 step=3 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=4 lower=32 upper=32 probability=0 pilot_rotate=7595 pilot_lower=0 pilot_upper=0 feasible=0
+QUERY_CALIBRATION_CASE fixture=2 step=4 reset=0 estimate_error=0 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=4 method=0 draws=4096 kept=2048 evaluations=4037 suffix=1898 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=4 method=1 draws=8192 kept=0 evaluations=4047 suffix=3364 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=4 method=2 draws=32768 kept=0 evaluations=29049 suffix=0 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=4 method=3 draws=8192 kept=0 evaluations=7260 suffix=0 connection=0
+QUERY_CALIBRATION_EXACT fixture=2 step=4 channel0=0 channel1=0 channel2=0
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=5 lower=32 upper=32 probability=0 pilot_rotate=7564 pilot_lower=0 pilot_upper=0 feasible=0
+QUERY_CALIBRATION_CASE fixture=2 step=5 reset=0 estimate_error=0 weight_error=0
+QUERY_CALIBRATION_WORK fixture=2 step=5 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1884 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=5 method=1 draws=8192 kept=0 evaluations=4046 suffix=3352 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=5 method=2 draws=32768 kept=0 evaluations=29117 suffix=0 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=5 method=3 draws=8192 kept=0 evaluations=7268 suffix=0 connection=0
+QUERY_CALIBRATION_EXACT fixture=2 step=5 channel0=0 channel1=0 channel2=0
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=6 lower=32 upper=32 probability=0 pilot_rotate=7610 pilot_lower=0 pilot_upper=0 feasible=0
+QUERY_CALIBRATION_CASE fixture=2 step=6 reset=0 estimate_error=0 weight_error=0
+QUERY_CALIBRATION_WORK fixture=2 step=6 method=0 draws=4096 kept=2048 evaluations=4041 suffix=1884 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=6 method=1 draws=8192 kept=0 evaluations=4035 suffix=3364 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=6 method=2 draws=32768 kept=0 evaluations=29090 suffix=0 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=6 method=3 draws=8192 kept=0 evaluations=7198 suffix=0 connection=0
+QUERY_CALIBRATION_EXACT fixture=2 step=6 channel0=0 channel1=0 channel2=0
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=7 lower=32 upper=32 probability=0 pilot_rotate=7599 pilot_lower=0 pilot_upper=0 feasible=0
+QUERY_CALIBRATION_CASE fixture=2 step=7 reset=0 estimate_error=0 weight_error=0
+QUERY_CALIBRATION_WORK fixture=2 step=7 method=0 draws=4096 kept=2048 evaluations=4042 suffix=1922 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=7 method=1 draws=8192 kept=0 evaluations=4046 suffix=3378 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=7 method=2 draws=32768 kept=0 evaluations=29116 suffix=0 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=7 method=3 draws=8192 kept=0 evaluations=7308 suffix=0 connection=0
+QUERY_CALIBRATION_EXACT fixture=2 step=7 channel0=0 channel1=0 channel2=0
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=8 lower=4 upper=5 probability=0.33356940509915012 pilot_rotate=16274 pilot_lower=15332 pilot_upper=18156 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=8 reset=0 estimate_error=4.02335021896e-09 weight_error=1.29145050202e-07
+QUERY_CALIBRATION_WORK fixture=2 step=8 method=0 draws=4096 kept=2048 evaluations=4055 suffix=1905 connection=2215
+QUERY_CALIBRATION_WORK fixture=2 step=8 method=1 draws=8192 kept=0 evaluations=4051 suffix=3342 connection=2271
+QUERY_CALIBRATION_WORK fixture=2 step=8 method=2 draws=4436 kept=0 evaluations=3967 suffix=2042 connection=2042
+QUERY_CALIBRATION_WORK fixture=2 step=8 method=3 draws=8192 kept=0 evaluations=7321 suffix=3108 connection=3108
+QUERY_CALIBRATION_EXACT fixture=2 step=8 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=9 lower=4 upper=5 probability=0.46237693389592122 pilot_rotate=16659 pilot_lower=15344 pilot_upper=18188 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=9 reset=0 estimate_error=5.04799300277e-09 weight_error=1.29145050202e-07
+QUERY_CALIBRATION_WORK fixture=2 step=9 method=0 draws=4096 kept=2048 evaluations=4051 suffix=1918 connection=2277
+QUERY_CALIBRATION_WORK fixture=2 step=9 method=1 draws=8192 kept=0 evaluations=4042 suffix=3333 connection=2228
+QUERY_CALIBRATION_WORK fixture=2 step=9 method=2 draws=4571 kept=0 evaluations=4027 suffix=2046 connection=2046
+QUERY_CALIBRATION_WORK fixture=2 step=9 method=3 draws=8192 kept=0 evaluations=7240 suffix=3054 connection=3054
+QUERY_CALIBRATION_EXACT fixture=2 step=9 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=10 lower=4 upper=5 probability=0.53292770221904084 pilot_rotate=16715 pilot_lower=15226 pilot_upper=18020 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=10 reset=0 estimate_error=4.56470875335e-09 weight_error=1.29145050202e-07
+QUERY_CALIBRATION_WORK fixture=2 step=10 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1906 connection=2274
+QUERY_CALIBRATION_WORK fixture=2 step=10 method=1 draws=8192 kept=0 evaluations=4053 suffix=3351 connection=2326
+QUERY_CALIBRATION_WORK fixture=2 step=10 method=2 draws=4636 kept=0 evaluations=4161 suffix=2139 connection=2139
+QUERY_CALIBRATION_WORK fixture=2 step=10 method=3 draws=8192 kept=0 evaluations=7335 suffix=3180 connection=3180
+QUERY_CALIBRATION_EXACT fixture=2 step=10 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=11 lower=4 upper=5 probability=0.48559381588193956 pilot_rotate=16720 pilot_lower=15338 pilot_upper=18184 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=11 reset=0 estimate_error=4.15805941414e-09 weight_error=1.29145050202e-07
+QUERY_CALIBRATION_WORK fixture=2 step=11 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1888 connection=2265
+QUERY_CALIBRATION_WORK fixture=2 step=11 method=1 draws=8192 kept=0 evaluations=4052 suffix=3352 connection=2311
+QUERY_CALIBRATION_WORK fixture=2 step=11 method=2 draws=4588 kept=0 evaluations=4118 suffix=2104 connection=2104
+QUERY_CALIBRATION_WORK fixture=2 step=11 method=3 draws=8192 kept=0 evaluations=7311 suffix=3132 connection=3132
+QUERY_CALIBRATION_EXACT fixture=2 step=11 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=12 lower=3 upper=4 probability=0.73871059358136892 pilot_rotate=16182 pilot_lower=13581 pilot_upper=17102 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=12 reset=0 estimate_error=2.37887358007e-08 weight_error=2.20366008824e-07
+QUERY_CALIBRATION_WORK fixture=2 step=12 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1880 connection=2121
+QUERY_CALIBRATION_WORK fixture=2 step=12 method=1 draws=8192 kept=0 evaluations=4031 suffix=3290 connection=2143
+QUERY_CALIBRATION_WORK fixture=2 step=12 method=2 draws=3788 kept=0 evaluations=3362 suffix=2203 connection=1820
+QUERY_CALIBRATION_WORK fixture=2 step=12 method=3 draws=8192 kept=0 evaluations=7241 suffix=3781 connection=3143
+QUERY_CALIBRATION_EXACT fixture=2 step=12 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=13 lower=3 upper=4 probability=0.82739960125320422 pilot_rotate=16348 pilot_lower=13443 pilot_upper=16954 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=13 reset=0 estimate_error=2.25137807564e-08 weight_error=2.20366008824e-07
+QUERY_CALIBRATION_WORK fixture=2 step=13 method=0 draws=4096 kept=2048 evaluations=4049 suffix=1911 connection=2198
+QUERY_CALIBRATION_WORK fixture=2 step=13 method=1 draws=8192 kept=0 evaluations=4057 suffix=3342 connection=2212
+QUERY_CALIBRATION_WORK fixture=2 step=13 method=2 draws=3928 kept=0 evaluations=3511 suffix=2229 connection=1842
+QUERY_CALIBRATION_WORK fixture=2 step=13 method=3 draws=8192 kept=0 evaluations=7296 suffix=3756 connection=3128
+QUERY_CALIBRATION_EXACT fixture=2 step=13 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=14 lower=3 upper=4 probability=0.82248018120045296 pilot_rotate=16265 pilot_lower=13360 pilot_upper=16892 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=14 reset=0 estimate_error=2.07525092319e-08 weight_error=2.20366008824e-07
+QUERY_CALIBRATION_WORK fixture=2 step=14 method=0 draws=4096 kept=2048 evaluations=4061 suffix=1913 connection=2241
+QUERY_CALIBRATION_WORK fixture=2 step=14 method=1 draws=8192 kept=0 evaluations=4045 suffix=3319 connection=2181
+QUERY_CALIBRATION_WORK fixture=2 step=14 method=2 draws=3918 kept=0 evaluations=3482 suffix=2251 connection=1904
+QUERY_CALIBRATION_WORK fixture=2 step=14 method=3 draws=8192 kept=0 evaluations=7281 suffix=3770 connection=3154
+QUERY_CALIBRATION_EXACT fixture=2 step=14 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=15 lower=3 upper=4 probability=0.87918321043675551 pilot_rotate=16292 pilot_lower=13192 pilot_upper=16718 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=15 reset=0 estimate_error=2.6898853478e-08 weight_error=2.20366008824e-07
+QUERY_CALIBRATION_WORK fixture=2 step=15 method=0 draws=4096 kept=2048 evaluations=4057 suffix=1912 connection=2230
+QUERY_CALIBRATION_WORK fixture=2 step=15 method=1 draws=8192 kept=0 evaluations=4055 suffix=3343 connection=2180
+QUERY_CALIBRATION_WORK fixture=2 step=15 method=2 draws=3984 kept=0 evaluations=3556 suffix=2229 connection=1860
+QUERY_CALIBRATION_WORK fixture=2 step=15 method=3 draws=8192 kept=0 evaluations=7314 suffix=3743 connection=3124
+QUERY_CALIBRATION_EXACT fixture=2 step=15 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=16 lower=5 upper=6 probability=0.03370448390009028 pilot_rotate=23978 pilot_lower=23866 pilot_upper=27189 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=16 reset=1 estimate_error=2.28125241544e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=16 method=0 draws=8192 kept=0 evaluations=4042 suffix=3373 connection=2652
+QUERY_CALIBRATION_WORK fixture=2 step=16 method=1 draws=8192 kept=0 evaluations=4042 suffix=3373 connection=2652
+QUERY_CALIBRATION_WORK fixture=2 step=16 method=2 draws=5160 kept=0 evaluations=4588 suffix=3202 connection=2743
+QUERY_CALIBRATION_WORK fixture=2 step=16 method=3 draws=8192 kept=0 evaluations=7288 suffix=4394 connection=3759
+QUERY_CALIBRATION_EXACT fixture=2 step=16 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=17 lower=3 upper=4 probability=0.51750599520383689 pilot_rotate=18072 pilot_lower=15914 pilot_upper=20084 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=17 reset=0 estimate_error=2.89292969718e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=17 method=0 draws=4096 kept=2048 evaluations=4054 suffix=1896 connection=2626
+QUERY_CALIBRATION_WORK fixture=2 step=17 method=1 draws=8192 kept=0 evaluations=4053 suffix=3352 connection=2639
+QUERY_CALIBRATION_WORK fixture=2 step=17 method=2 draws=3611 kept=0 evaluations=3211 suffix=2444 connection=2083
+QUERY_CALIBRATION_WORK fixture=2 step=17 method=3 draws=8192 kept=0 evaluations=7319 suffix=4403 connection=3775
+QUERY_CALIBRATION_EXACT fixture=2 step=17 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=18 lower=3 upper=4 probability=0.5627549796016319 pilot_rotate=18168 pilot_lower=15823 pilot_upper=19990 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=18 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=18 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1897 connection=2636
+QUERY_CALIBRATION_WORK fixture=2 step=18 method=1 draws=8192 kept=0 evaluations=4042 suffix=3374 connection=2709
+QUERY_CALIBRATION_WORK fixture=2 step=18 method=2 draws=3663 kept=0 evaluations=3254 suffix=2476 connection=2128
+QUERY_CALIBRATION_WORK fixture=2 step=18 method=3 draws=8192 kept=0 evaluations=7271 suffix=4408 connection=3805
+QUERY_CALIBRATION_EXACT fixture=2 step=18 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=19 lower=3 upper=4 probability=0.55739732805541808 pilot_rotate=18136 pilot_lower=15883 pilot_upper=19925 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=19 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=19 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1907 connection=2634
+QUERY_CALIBRATION_WORK fixture=2 step=19 method=1 draws=8192 kept=0 evaluations=4049 suffix=3343 connection=2600
+QUERY_CALIBRATION_WORK fixture=2 step=19 method=2 draws=3642 kept=0 evaluations=3244 suffix=2465 connection=2086
+QUERY_CALIBRATION_WORK fixture=2 step=19 method=3 draws=8192 kept=0 evaluations=7305 suffix=4345 connection=3678
+QUERY_CALIBRATION_EXACT fixture=2 step=19 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=20 lower=32 upper=32 probability=0 pilot_rotate=7621 pilot_lower=0 pilot_upper=0 feasible=0
+QUERY_CALIBRATION_CASE fixture=2 step=20 reset=0 estimate_error=0 weight_error=2.01325225717e-07
+QUERY_CALIBRATION_WORK fixture=2 step=20 method=0 draws=4096 kept=2048 evaluations=4064 suffix=1901 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=20 method=1 draws=8192 kept=0 evaluations=4059 suffix=3354 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=20 method=2 draws=32768 kept=0 evaluations=29156 suffix=0 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=20 method=3 draws=8192 kept=0 evaluations=7321 suffix=0 connection=0
+QUERY_CALIBRATION_EXACT fixture=2 step=20 channel0=0 channel1=0 channel2=0
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=21 lower=32 upper=32 probability=0 pilot_rotate=7588 pilot_lower=0 pilot_upper=0 feasible=0
+QUERY_CALIBRATION_CASE fixture=2 step=21 reset=0 estimate_error=0 weight_error=0
+QUERY_CALIBRATION_WORK fixture=2 step=21 method=0 draws=4096 kept=2048 evaluations=4059 suffix=1903 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=21 method=1 draws=8192 kept=0 evaluations=4050 suffix=3358 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=21 method=2 draws=32768 kept=0 evaluations=29118 suffix=0 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=21 method=3 draws=8192 kept=0 evaluations=7246 suffix=0 connection=0
+QUERY_CALIBRATION_EXACT fixture=2 step=21 channel0=0 channel1=0 channel2=0
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=22 lower=32 upper=32 probability=0 pilot_rotate=7610 pilot_lower=0 pilot_upper=0 feasible=0
+QUERY_CALIBRATION_CASE fixture=2 step=22 reset=0 estimate_error=0 weight_error=0
+QUERY_CALIBRATION_WORK fixture=2 step=22 method=0 draws=4096 kept=2048 evaluations=4046 suffix=1891 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=22 method=1 draws=8192 kept=0 evaluations=4037 suffix=3354 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=22 method=2 draws=32768 kept=0 evaluations=29194 suffix=0 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=22 method=3 draws=8192 kept=0 evaluations=7329 suffix=0 connection=0
+QUERY_CALIBRATION_EXACT fixture=2 step=22 channel0=0 channel1=0 channel2=0
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=23 lower=32 upper=32 probability=0 pilot_rotate=7612 pilot_lower=0 pilot_upper=0 feasible=0
+QUERY_CALIBRATION_CASE fixture=2 step=23 reset=0 estimate_error=0 weight_error=0
+QUERY_CALIBRATION_WORK fixture=2 step=23 method=0 draws=4096 kept=2048 evaluations=4036 suffix=1891 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=23 method=1 draws=8192 kept=0 evaluations=4051 suffix=3397 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=23 method=2 draws=32768 kept=0 evaluations=29192 suffix=0 connection=0
+QUERY_CALIBRATION_WORK fixture=2 step=23 method=3 draws=8192 kept=0 evaluations=7320 suffix=0 connection=0
+QUERY_CALIBRATION_EXACT fixture=2 step=23 channel0=0 channel1=0 channel2=0
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=24 lower=8 upper=9 probability=0.54914529914529919 pilot_rotate=20877 pilot_lower=20106 pilot_upper=21510 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=24 reset=1 estimate_error=5.25871616391e-09 weight_error=1.29145050202e-07
+QUERY_CALIBRATION_WORK fixture=2 step=24 method=0 draws=8192 kept=0 evaluations=4050 suffix=3343 connection=1888
+QUERY_CALIBRATION_WORK fixture=2 step=24 method=1 draws=8192 kept=0 evaluations=4050 suffix=3343 connection=1888
+QUERY_CALIBRATION_WORK fixture=2 step=24 method=2 draws=8735 kept=0 evaluations=7714 suffix=2615 connection=2615
+QUERY_CALIBRATION_WORK fixture=2 step=24 method=3 draws=8192 kept=0 evaluations=7219 suffix=2518 connection=2518
+QUERY_CALIBRATION_EXACT fixture=2 step=24 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=25 lower=5 upper=6 probability=0.24457034938621341 pilot_rotate=14992 pilot_lower=14474 pilot_upper=16592 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=25 reset=0 estimate_error=5.35445573643e-09 weight_error=1.29145050202e-07
+QUERY_CALIBRATION_WORK fixture=2 step=25 method=0 draws=4096 kept=2048 evaluations=4051 suffix=1901 connection=1904
+QUERY_CALIBRATION_WORK fixture=2 step=25 method=1 draws=8192 kept=0 evaluations=4051 suffix=3346 connection=1907
+QUERY_CALIBRATION_WORK fixture=2 step=25 method=2 draws=5361 kept=0 evaluations=4782 suffix=1891 connection=1891
+QUERY_CALIBRATION_WORK fixture=2 step=25 method=3 draws=8192 kept=0 evaluations=7322 suffix=2563 connection=2563
+QUERY_CALIBRATION_EXACT fixture=2 step=25 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=26 lower=5 upper=6 probability=0.21962151394422311 pilot_rotate=15019 pilot_lower=14578 pilot_upper=16586 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=26 reset=0 estimate_error=5.31496298362e-09 weight_error=1.29145050202e-07
+QUERY_CALIBRATION_WORK fixture=2 step=26 method=0 draws=4096 kept=2048 evaluations=4052 suffix=1900 connection=1895
+QUERY_CALIBRATION_WORK fixture=2 step=26 method=1 draws=8192 kept=0 evaluations=4054 suffix=3360 connection=1872
+QUERY_CALIBRATION_WORK fixture=2 step=26 method=2 draws=5347 kept=0 evaluations=4778 suffix=1895 connection=1895
+QUERY_CALIBRATION_WORK fixture=2 step=26 method=3 draws=8192 kept=0 evaluations=7304 suffix=2529 connection=2529
+QUERY_CALIBRATION_EXACT fixture=2 step=26 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=27 lower=5 upper=6 probability=0.26919385796545103 pilot_rotate=15073 pilot_lower=14512 pilot_upper=16596 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=27 reset=0 estimate_error=5.32559656097e-09 weight_error=1.29145050202e-07
+QUERY_CALIBRATION_WORK fixture=2 step=27 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1894 connection=1845
+QUERY_CALIBRATION_WORK fixture=2 step=27 method=1 draws=8192 kept=0 evaluations=4038 suffix=3356 connection=1858
+QUERY_CALIBRATION_WORK fixture=2 step=27 method=2 draws=5384 kept=0 evaluations=4771 suffix=1866 connection=1866
+QUERY_CALIBRATION_WORK fixture=2 step=27 method=3 draws=8192 kept=0 evaluations=7269 suffix=2491 connection=2491
+QUERY_CALIBRATION_EXACT fixture=2 step=27 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=28 lower=3 upper=4 probability=0.57624032771961764 pilot_rotate=19618 pilot_lower=17086 pilot_upper=21480 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=28 reset=0 estimate_error=3.77946288987e-08 weight_error=2.20366008824e-07
+QUERY_CALIBRATION_WORK fixture=2 step=28 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1887 connection=2976
+QUERY_CALIBRATION_WORK fixture=2 step=28 method=1 draws=8192 kept=0 evaluations=4057 suffix=3345 connection=3004
+QUERY_CALIBRATION_WORK fixture=2 step=28 method=2 draws=3665 kept=0 evaluations=3230 suffix=2406 connection=2406
+QUERY_CALIBRATION_WORK fixture=2 step=28 method=3 draws=8192 kept=0 evaluations=7265 suffix=4359 connection=4359
+QUERY_CALIBRATION_EXACT fixture=2 step=28 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=29 lower=3 upper=4 probability=0.5717734855136084 pilot_rotate=19675 pilot_lower=17070 pilot_upper=21626 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=29 reset=0 estimate_error=3.77946288987e-08 weight_error=2.20366008824e-07
+QUERY_CALIBRATION_WORK fixture=2 step=29 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1893 connection=2992
+QUERY_CALIBRATION_WORK fixture=2 step=29 method=1 draws=8192 kept=0 evaluations=4041 suffix=3327 connection=3020
+QUERY_CALIBRATION_WORK fixture=2 step=29 method=2 draws=3668 kept=0 evaluations=3297 suffix=2489 connection=2489
+QUERY_CALIBRATION_WORK fixture=2 step=29 method=3 draws=8192 kept=0 evaluations=7301 suffix=4377 connection=4377
+QUERY_CALIBRATION_EXACT fixture=2 step=29 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=30 lower=3 upper=4 probability=0.58786797502230148 pilot_rotate=19644 pilot_lower=17008 pilot_upper=21492 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=30 reset=0 estimate_error=3.77946288987e-08 weight_error=2.20366008824e-07
+QUERY_CALIBRATION_WORK fixture=2 step=30 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1915 connection=3033
+QUERY_CALIBRATION_WORK fixture=2 step=30 method=1 draws=8192 kept=0 evaluations=4053 suffix=3326 connection=3032
+QUERY_CALIBRATION_WORK fixture=2 step=30 method=2 draws=3685 kept=0 evaluations=3277 suffix=2516 connection=2516
+QUERY_CALIBRATION_WORK fixture=2 step=30 method=3 draws=8192 kept=0 evaluations=7300 suffix=4376 connection=4376
+QUERY_CALIBRATION_EXACT fixture=2 step=30 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+QUERY_CALIBRATION_ALLOCATION fixture=2 step=31 lower=3 upper=4 probability=0.57054673721340388 pilot_rotate=19638 pilot_lower=17050 pilot_upper=21586 feasible=1
+QUERY_CALIBRATION_CASE fixture=2 step=31 reset=0 estimate_error=3.19034538926e-08 weight_error=2.20366008824e-07
+QUERY_CALIBRATION_WORK fixture=2 step=31 method=0 draws=4096 kept=2048 evaluations=4042 suffix=1886 connection=3051
+QUERY_CALIBRATION_WORK fixture=2 step=31 method=1 draws=8192 kept=0 evaluations=4033 suffix=3334 connection=3015
+QUERY_CALIBRATION_WORK fixture=2 step=31 method=2 draws=3659 kept=0 evaluations=3240 suffix=2483 connection=2483
+QUERY_CALIBRATION_WORK fixture=2 step=31 method=3 draws=8192 kept=0 evaluations=7260 suffix=4405 connection=4405
+QUERY_CALIBRATION_EXACT fixture=2 step=31 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+QUERY_CALIBRATION_DECISION correctness=1 retained_checks=178176 ambiguous=0 production_promote=0
+073b2c56cb82c568d207139b9845a7809df4afc029f7ad50bcbaac22746189e3  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-0.f32
+8815fdbd100b022cb4067a98cbef4290e8033dcc12a381e5cba1c27ace02c717  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-1.f32
+eb24d64d02263180627747d2ca280bf427f2575e6b91ef66d036a7de745ba24e  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-10.f32
+af07dfd56742539113a38748da689fd8a1c0bcfa6de4eb75bbeb15ad717443ee  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-11.f32
+b04ad7dbe07c6999738c1cb3647e19b20d27ccfffc98456218f240a8c5ac16e5  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-12.f32
+641adaeb1d671d4d49303abf4630821857cca0d5dfab4831c69a6b0da6d0840f  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-13.f32
+add936d93ac014f784de9ffea12355b60889e88596e7d6b1dd4879ae0102d4a4  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-14.f32
+7b8a39fb633add9c5fe81f5a34acdcf8faae9edeefe842eaca6fccae1980fd93  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-15.f32
+0d4781ab73803a971bf81f6a77c9f9c6ef88b700c6035307a8662021a3cdc989  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-16.f32
+bff47ece7f1fae281c6a3702905e05328c09a44514f2208a614b49982b28d97e  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-17.f32
+3643e0f6ca19d0d7990ccd1872219e3b6344c8a89a4059c8196123bfb489cc75  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-18.f32
+780713f3a51530cf255bcb146580c74dfa2c88b89ce1203d77170290854a6e62  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-19.f32
+2917e1e666eec6f8eeb5dea23ef11f929f0ffdd91132a1f01ce1f2e9cbdd5530  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-2.f32
+09ca4563bfcc5fe585db23abced43677ce6eac924633d3bf8b3649c123e22b15  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-20.f32
+76996e6c56ff4667ac234d211b7b69d10a476ea49dd784a3f63e3268a4418ee3  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-21.f32
+7c597b4a5633a00aba4a218d972c8af9a1384bc61e1509964718307a9a57d2b8  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-22.f32
+3aaef35e2e71056cd4f4f77572d5bee80c89de94df8d806f17f951d67691e868  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-23.f32
+7363caa1816e2c437099cc3f9c47abdcea45826958599db9b32079060c31a933  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-24.f32
+85b8f337322f8378a663aee66ab9ab4bfe098685f0095831da3378e54c569b58  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-25.f32
+b76251878bc0f98c5f6ac71a9c3030a1e2f80dc982202b4d8374540ce0acc0ec  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-26.f32
+63371efaae91047814d69870028d6c5d7ff44fd4b6ec6d5885ce8e94e92d6419  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-27.f32
+99e5ba7accc9209c1dfcf21a5f75e07a57b307c074e96bf53a10efc60066731f  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-28.f32
+d1bbb9090754dbedafe0e680131baab0c43dd1ff1efaf14cdc41ce91037d98ca  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-29.f32
+5cd6ec4c82decb8b13875603f86fbefbd4955f8989870dc90bfc0511f1a93490  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-3.f32
+3586738e3212b19c6ce418a027d491e0b7c27cc155d13f31191b65f6e03e0626  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-30.f32
+18c75056f0baedc227e12e2766d7d45c40c22a50b1386762ae90e4539ce72c7c  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-31.f32
+5135b60d28b559a9ffc3cc417702fcce29368bea909a046a8c679ba6858ad602  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-4.f32
+1a66889a9be16901ea71ec8b366b2ba17f7d569eeabc0830cdf3649fc9a3d484  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-5.f32
+f1b886d1c9e73eeff532cdc9bf2018a3accb060a8a945545f3c427c17efe045b  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-6.f32
+291a629cd1ee52944abf345b057e7ed0699472f50bfed9ef104e6f3aa0507ae8  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-7.f32
+718f8cd13a713e552d415c6d0786f0480e9dd6eef8aa91c1670eed7f88f972ba  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-8.f32
+f8b1fe1187ea92b70e811cc9b3b393e75a487c4eefe24788dca54fdc61637f83  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration0-9.f32
+82d8da58f6a563c35c4fdae5b918acedd7cf5ca5cf47e2fc861da1cf50b867f9  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-0.f32
+1e57add1afbc3d4d41745e0065664e5496f05e2392d17e5bc5ffb1f3d84af4c5  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-1.f32
+0ba6c082266c274b2c06ec6cf044f241a666475ca370b84917725afffbe5b7ce  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-10.f32
+777bddf32ee2a9c87437914e2986ccc59842435e51b54595917742c40d0f295b  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-11.f32
+0fbee01993eed99123d912409af114dd57de17e98963c0e0f78321a003b0ad46  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-12.f32
+ceacdc68a7c4bce008f0b83c835bbc21148e847e2b897ca425852059243359d0  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-13.f32
+25ac3ae5e6d3bb6817c39e044d022a0e46606cdea08bbe0f72f8ff8e7b898e66  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-14.f32
+6b8af28916cff5a03a6eec08b5c93e71545a822cb0444f00bf595719798e4fd9  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-15.f32
+a072bf4c835c1c1d5f3eac12a222e0eeeab88ea6ff641190350bf579fb1c3032  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-16.f32
+f4186ad84139d9ead072dca19c7ce0cd8955011cac55f89e27c641648ac0e020  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-17.f32
+2b54faeed6ebd1e465e2e7a01f8e47253d025a772d61c2016b6338de45071cfc  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-18.f32
+2eb059b4699f2e600a0b8a3fdc02b9367202d550beb4e5e9189e6f29439ab135  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-19.f32
+84fd7a48e0331f46efecd04be4b27f65088b7e7d3098c74d57fab3ad17d44d55  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-2.f32
+50eb178b5f535018af0d52f09d6e51ff5f6a52e3238597e27c1cee243af70db7  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-20.f32
+0bfb5956edaf3ec04765f768811d791279aca8f9d15c4627b646c0b51b851567  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-21.f32
+23085ee9dd013320dc90aed5b200597f186292d81a4abcd81a964d8dc026c9e6  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-22.f32
+09c5f167ef64021f81563c3c0ff08e9ac30a19e6431e3839bed72abfe5f77e3c  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-23.f32
+d6010d80e526bf55d5ea0c897b3c81ff473d6d28dc5ba1ff6532ff5620d97a8a  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-24.f32
+855efd299722d6c280b2cd9c4c612113b91ce2e10f68086c5e111fcb97ea5fbe  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-25.f32
+202dfa0b130cab109360e46a447ca38a1da9332df2420f024f81bb166be8a204  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-26.f32
+75b9afbf2df500db7a006fe28c4a139c5b8e1efeaeee125758c48e0e3782d279  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-27.f32
+4fd10d7508476185e58f4f083bc858403628169436c276270ca876ad7a558b4e  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-28.f32
+c98b632cae172583bb71c51c25cbf91906368386cb1238c01464062ab06fe9f1  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-29.f32
+60e39415b274b82bae70f3f26efff11c41b1e4002b377fdb136b26982a77ea4b  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-3.f32
+96d150dcaf12357691ba8b3aeee2eff38a263f3eb3337ee99d8c9751bc40250d  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-30.f32
+a4584d34ca9add4a0101d9ea38fdb8029268c248158afd8398903783b11c5796  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-31.f32
+767af4f69ace81754a27646dc1513f9a057d37f3d3c8b3f9ac92e0b652d5b0f0  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-4.f32
+ca7cbae81373221c918678d3bbde4a6e028429d87e67c0bca2438119e5ac0067  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-5.f32
+76e041d42b48f4df24e9bd719832326703a8090f4791f784efa0d1f2f8cbb528  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-6.f32
+7ed2fadb0dd72e38cc871b4177dcc64316e5539e571dda7e9b9b54651a6b9993  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-7.f32
+5500c77dfb2bb5282119098047cd72918b36ef927a8cc9205494016f7a17fffd  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-8.f32
+96253b664e410a36cc7d2bbdb93f14ca9281b9f0d7643b510de095f21750ace6  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration1-9.f32
+66ca6b0ac7705008979fd44c1bbdf0d5d162f3dbd588a19d50ba4348e35ebd27  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-0.f32
+275d776d7d73cf88079b3e5e1e75189435982d80a42fa0b2ac397c95c8fc63e9  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-1.f32
+7abdf5635db0d4d3284dccc7ec8a850027a61804cf8e87bba8e78de26a2d3680  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-10.f32
+0b5f5e0830b84fd6b66c937559c8c5dc7b1a4510e1fc753030d5d0511b990776  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-11.f32
+6e5fa5a26daea57ee41697841efa12aa02f3f3d8f74befb1d980f605bf256fe0  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-12.f32
+6c2a65bedb043948b3ec4e47a991fbd586d930634a1e6b3ef3674f576ab02d01  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-13.f32
+26be4168f8ec9d652ba7fe1559d0414cd051740c713ccf7c28267fc13925598b  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-14.f32
+d5e9ac912e3c2a9470a629e793f172bb09b6aec86230442f99b78ad8f3162dee  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-15.f32
+df7f110cff011a9526d68366718fd6a772b27912c75de9b143dbdaa4e605d352  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-16.f32
+1a53a5df874e4e5412db24534f2a35d9db2c4429bb987d0d75c10bfbd66c7932  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-17.f32
+25d0183d70fb38acb73db13a88625d3f590532d26264134fe6f2dbf0f57a6dd8  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-18.f32
+7a965476484ec9df1201eb8cffd04d994a246f2e51bebcca5fdd6464b6b12a53  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-19.f32
+84d0ae07dba853dd6d1190bcd67d824287c36d532e9c11335ca3b29424005a33  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-2.f32
+9fcaa0fd8bf9057cb2a5cf09336003a8e3a41bb386a35cdb2c7fd77c6b69f8f0  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-20.f32
+1b301f3ebb0d695d213e906b1c5ba2008f42c23c3091db551f2e931954c445c2  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-21.f32
+480973d2c22347f559e65a99ac3bf85fbc885310c9aad8d4a918170746f09284  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-22.f32
+99d0ddf3e43005867612fcb477f9beb4bae8bd7a0186a3282f7e82470c1fd2e2  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-23.f32
+cc016cb87156536ef6591c43665837358a5bdad19c87144f8092a7805877c300  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-24.f32
+ff65554878fddc4190580a31ca4e783e744ef2950311ff1f8b8ef66a0bc311f9  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-25.f32
+8312fd11952bee84c3c6e1fee8f9718e29aaceafb523125f5b6c6274b3608f1f  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-26.f32
+f8f5a3dba2d8d751e8f06ef5442193e6ede37940c6217d273c5a3fb65702cd62  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-27.f32
+c9d0e87f0b9b269cbcc1d83acac9def7c5ef0f177ef71245be4310452b484bcc  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-28.f32
+bdb8df05157610d91eecf9163a8c3639a16ba0c3965ef3d8e13f789833ff52b3  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-29.f32
+d01f8110a9ee8605d4bff65374146218f4d2c643a131a87e04e4699f616c8a89  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-3.f32
+e9fd41fd4383e2bb263af55e7d20817519c5c242c0e49d416d5f2f96fda33f1c  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-30.f32
+e536bcdabfc25ae8b550fbaccee09c12bc1625c9b6a4627cd7ace221fd799306  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-31.f32
+04a033375fd5cdac417cde472f0e2a5c674d72064c6d0e084178eef54c4caeb2  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-4.f32
+590055853824ea45a9bf1605712cf2b307ac560d03ad3081ccf03e7069d3307a  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-5.f32
+381673d442d55d3581f31652c923c6f5931f95eaed371296729890ebef291f9c  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-6.f32
+ad56c1093c1b7e07d1faa80d4c52477d2b605565988023f11bef94b9087c04e6  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-7.f32
+0e979393836caabd726946780d950afd17827059adc3159e3510928072fbf4cc  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-8.f32
+b32cdf8b22e06c379c7187b629096915d5a6ad50a8a8a1cbfc8454ef720a1506  /home/user/Frontier/_ClaudeScratch/query-calibration-capture-release/QueryCalibration2-9.f32

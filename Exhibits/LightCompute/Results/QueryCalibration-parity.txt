@@ -1,0 +1,8 @@
+PASS held-out query calibration implementation:674 identical semantic rows;hashes/build=[147, 147];96 byte-identical captures;two identical SPIR-V files.
+786432 quartet descriptor comparisons/build;178176 exact retained-byte checks;1152 RGB mean gates;24 exact PNG arrays.
+Max normalized CPU estimate/weight errors=[4.52151209251e-08, 8.86279620417e-07];budget_by_track=[True, True, False];promotion_by_track=[False, False, False];production_promote=0.
+Infeasible calibration steps=[(2, 4), (2, 5), (2, 6), (2, 7), (2, 20), (2, 21), (2, 22), (2, 23)];held-out cost ratios=[0.9970493906350224, 0.9988780907143794, 0.8785194891331602].
+Instant RMSEs by track=[[0.00956448958360198, 0.009554920918265217, 0.011364223970892876, 0.0074190022768756934], [0.00956377499818894, 0.009458975070756995, 0.011479585495982785, 0.007621176035004113], [0.00722924125345921, 0.007165461873002305, 0.008654673417560684, 0.005910265531759951]];rolling RMSEs=[[0.007069821560413192, 0.005822875325416519, 0.006540811579399051, 0.00450940230347701], [0.006701587026325858, 0.005574714470565613, 0.006414074280926504, 0.004464595940116959], [0.005626963493531209, 0.004827910093613534, 0.005368181371754651, 0.003879246242293946]].
+Query totals by track=[[163695, 205858, 163212, 300630], [137266, 179322, 137112, 231488], [123633, 165706, 108614, 173034]].
+Methods=rotate2,fresh-quartet,calibrated-raw,raw8;pilot4096,heldout1024,count range1..32. Query budgets are conditional gates,not assumed matched.
+Both native runs exit0,five CTests each;96 previous-policy buffers match archived bytes;host ASan+UBSan only. Ray-tested direct RGB/visibility integrated;no multibounce,camera/TAA or physical timing.

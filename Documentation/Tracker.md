@@ -4,6 +4,28 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## Held-out expected-query-budget calibration — 2026-10-29
+
+- [Completed separate-seed pilot and held-out controls](../Exhibits/LightCompute/QueryCalibration.md):4096 CPU
+  pilot packets calibrate adjacent raw counts1..32 before1024 held-out GPU packets/arm. Count allocation uses
+  a separate random domain;9/N normalization is per packet,with no contribution-dependent stopping.
+- Stationary/smooth costs match within0.30%/0.12% overall and5% on every step. Rotate2 instant error improves
+  15.84%/16.69%,but rolling error worsens8.09%/4.48%;both eligible quality gates reject promotion. Jumping has
+  8 infeasible zero-contribution steps:raw makes0 queries while rotate2 pays birth suffixes. Its aggregate
+  12.15% lower raw cost is not query-matched. No wasted rays are added to manufacture equality.
+- Both Release/host ASan+UBSan run five CTests plus CPU reference validation. Selection,weights,traced RGB,
+  outputs,query masks,allocation and means are audited;674 rows,147 hashes/build,96 buffers,two SPIR-V files
+  match across builds;178,176 retained checks and786,432 descriptor comparisons
+  per build. Release previous-policy regression reproduces96 full archived buffers exactly. Actual evidence
+  retains96 readbacks,two modules,24 exact PNG arrays,three plots and allocation/error/mean tables.
+- Bounded experiment100%;full budget eligibility2/3;rolling promotion0/2 eligible,third blocked. Overall
+  ReSTIR/GI~59%,~41% remaining,planning estimates. Next:continuous area proposals/PDF-correct reconnection on
+  the fresh traced path;do not tune rotate2 on held-out seeds. Correlation-aware reuse remains experimental.
+- Remaining area/PDFs,multibounce,dynamic/camera/TAA/general-scene acceptance,physical timing and production
+  integration. Production348.046875MiB/defaults unchanged;packing/editor/vehicle/Jolt deferred. Offline pilot
+  overhead is excluded;equal-weight wrapper counts are not GPU time. Windows/physical GPUs untested;no PR/Actions.
+
+
 ## Packet-local query elision — 2026-10-29
 
 - [Lossless optimized controls and corrected comparison](../Exhibits/LightCompute/QueryElision.md):shared Slang

@@ -6,6 +6,10 @@
 #define QUARTET_QUERY_ELISION 0
 #endif
 
+#ifndef QUARTET_QUERY_CALIBRATION
+#define QUARTET_QUERY_CALIBRATION 0
+#endif
+
 #define GenerateVertexPayload TraceReferenceGenerate
 #define EvaluateVertexPayload TraceReferenceEvaluate
 #include "RgbTraceGpu.slang"
@@ -116,7 +120,11 @@ void GenerateVertexPayload(uint3 Dispatch : SV_DispatchThreadID)
     for (uint Lane = 0; Lane < 4; ++Lane)
     {
         bool Refresh = Reset || Method == 1 || Lane / 2 == Step % 2;
+#if QUARTET_QUERY_CALIBRATION
+        bool Generate = Method < 2 && Refresh;
+#else
         bool Generate = Method < 2 ? Refresh : Method == 3 || Refresh;
+#endif
         if (Method == 0 && !Refresh)
         {
             ++Retained;
@@ -155,6 +163,21 @@ void GenerateVertexPayload(uint3 Dispatch : SV_DispatchThreadID)
         }
         EncodeReuse(Pixel, Count, Lane, Descriptor);
     }
+#if QUARTET_QUERY_CALIBRATION
+    if (Method >= 2)
+    {
+        Proposals = asuint(Input.PositionHit.w);
+        for (uint Draw = 0; Draw < Proposals; ++Draw)
+        {
+            uint Candidate = QuartetHash(Seed ^ (3 * (Draw / 2) + Draw % 2 + 1) * 0x9e3779b9u) % 9;
+            if (Candidate < 8)
+            {
+                Raw += RawContribution(Candidate, Scale, Receiver);
+                ++Evaluations;
+            }
+        }
+    }
+#endif
     OutputColour[Pixel] = float4(Method >= 2 ? Raw * 9 / Proposals : float3(0), 1);
     OutputColour[Count + Pixel] = float4(Proposals, Retained, Evaluations, Reset ? 1 : 0);
     for (uint Slot = 10; Slot < 18; ++Slot) OutputColour[Slot * Count + Pixel] = 0;

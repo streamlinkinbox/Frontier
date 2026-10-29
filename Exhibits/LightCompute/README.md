@@ -1,5 +1,16 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Held-out expected-query-budget control — 2026-10-29
+
+[Separate-seed pilot allocation,held-out costs and rejected promotion](QueryCalibration.md):4096 CPU pilot
+packets choose adjacent fresh raw counts1..32;1024 held-out GPU packets/arm use9/N normalization with no adaptive
+stopping. Stationary/smooth costs match within0.30%/0.12%,but rotate2 rolling RMSE is8.09%/4.48% worse. Jumping
+has8 infeasible zero-contribution steps and is not query-matched. Both eligible quality gates reject reuse.
+Both builds/CPU reference and mean gates pass;default-policy regression preserves96 old buffers exactly.
+Phase100%;overall~59%/~41% remaining,planning estimates. Next:continuous area proposals/PDF-correct fresh
+reconnection. Production348.046875MiB/defaults unchanged;no physical timing,PR or Actions.
+
+
 ## Lossless packet-local query elision — 2026-10-29
 
 [Optimized controls,unchanged RGB and corrected cost comparison](QueryElision.md):safe exact-zero elision and

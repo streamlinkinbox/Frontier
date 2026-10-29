@@ -1,0 +1,682 @@
+Default-policy regression revision=4bd5be2b63ae08dc70f6c4743c234762436cfc45 working_changes=1
+7d15a2acc96a7a69a888fb1ca2d692407b1576e7689622465ca542952508c4b3  Exhibits/LightCompute/Code/QueryElisionGpu.slang
+9aeef512bfc9030c6c8f5d2991d0589615ec71f22a9cc6a5be7fabcf5319f9cc  Exhibits/LightCompute/Code/TracedQuartetGpu.slang
+3411c39b5e875c02129e6672924fc8e71e8847ffd5de8243640ff781fa0d0575  Exhibits/LightCompute/Code/TracedQuartetValidation.h
+a056b2d9a49a79c4ad9ef17548967a4ade1eab5865fd895794c11ccd14a403e9  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+7f3c6070c232ad03f8fa7d1c912bffb054f09215e7fc192b08e364180af66b5a  Exhibits/LightCompute/RunQueryCalibrationRegression.sh
+0f05d6927c6118540cfe00e74b3cfb7ec2ce9ef913fa57a96f95586b71317a58  /home/user/Frontier/_ClaudeScratch/build/query-calibration-release/regression/DiffuseGenerate.spv
+8064c52d09dbfb913eaf6bbf8649de886080177b4095d58cb7da1969244f29d9  /home/user/Frontier/_ClaudeScratch/build/query-calibration-release/regression/DiffuseResolve.spv
+QUERY_ELISION_DEVICE name=SwiftShader Device (Subzero) type=4 samples=1024 methods=4 steps=32 fixtures=3
+QUERY_ELISION_CASE fixture=0 step=0 reset=1 estimate_error=1.18720910394e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=0 method=0 draws=8192 kept=0 evaluations=4038 suffix=3343 connection=3343
+QUERY_ELISION_WORK fixture=0 step=0 method=1 draws=8192 kept=0 evaluations=4038 suffix=3343 connection=3343
+QUERY_ELISION_WORK fixture=0 step=0 method=2 draws=8192 kept=0 evaluations=7273 suffix=4952 connection=4952
+QUERY_ELISION_WORK fixture=0 step=0 method=3 draws=8192 kept=0 evaluations=7273 suffix=4952 connection=4952
+QUERY_ELISION_EXACT fixture=0 step=0 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=1 reset=0 estimate_error=1.37921663118e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=1 method=0 draws=4096 kept=2048 evaluations=4049 suffix=1904 connection=3329
+QUERY_ELISION_WORK fixture=0 step=1 method=1 draws=8192 kept=0 evaluations=4040 suffix=3353 connection=3353
+QUERY_ELISION_WORK fixture=0 step=1 method=2 draws=4096 kept=0 evaluations=3660 suffix=3087 connection=3087
+QUERY_ELISION_WORK fixture=0 step=1 method=3 draws=8192 kept=0 evaluations=7292 suffix=4975 connection=4975
+QUERY_ELISION_EXACT fixture=0 step=1 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=2 reset=0 estimate_error=1.52370190215e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=2 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1901 connection=3350
+QUERY_ELISION_WORK fixture=0 step=2 method=1 draws=8192 kept=0 evaluations=4037 suffix=3360 connection=3360
+QUERY_ELISION_WORK fixture=0 step=2 method=2 draws=4096 kept=0 evaluations=3603 suffix=3054 connection=3054
+QUERY_ELISION_WORK fixture=0 step=2 method=3 draws=8192 kept=0 evaluations=7248 suffix=5009 connection=5009
+QUERY_ELISION_EXACT fixture=0 step=2 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=3 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=3 method=0 draws=4096 kept=2048 evaluations=4039 suffix=1912 connection=3385
+QUERY_ELISION_WORK fixture=0 step=3 method=1 draws=8192 kept=0 evaluations=4049 suffix=3348 connection=3348
+QUERY_ELISION_WORK fixture=0 step=3 method=2 draws=4096 kept=0 evaluations=3632 suffix=3060 connection=3060
+QUERY_ELISION_WORK fixture=0 step=3 method=3 draws=8192 kept=0 evaluations=7264 suffix=4976 connection=4976
+QUERY_ELISION_EXACT fixture=0 step=3 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=4 reset=0 estimate_error=1.52370190215e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=4 method=0 draws=4096 kept=2048 evaluations=4054 suffix=1913 connection=3349
+QUERY_ELISION_WORK fixture=0 step=4 method=1 draws=8192 kept=0 evaluations=4046 suffix=3361 connection=3361
+QUERY_ELISION_WORK fixture=0 step=4 method=2 draws=4096 kept=0 evaluations=3637 suffix=3083 connection=3083
+QUERY_ELISION_WORK fixture=0 step=4 method=3 draws=8192 kept=0 evaluations=7278 suffix=5011 connection=5011
+QUERY_ELISION_EXACT fixture=0 step=4 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=5 reset=0 estimate_error=1.37921663118e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=5 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1910 connection=3367
+QUERY_ELISION_WORK fixture=0 step=5 method=1 draws=8192 kept=0 evaluations=4053 suffix=3357 connection=3357
+QUERY_ELISION_WORK fixture=0 step=5 method=2 draws=4096 kept=0 evaluations=3635 suffix=3116 connection=3116
+QUERY_ELISION_WORK fixture=0 step=5 method=3 draws=8192 kept=0 evaluations=7321 suffix=5006 connection=5006
+QUERY_ELISION_EXACT fixture=0 step=5 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=6 reset=0 estimate_error=1.52370190215e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=6 method=0 draws=4096 kept=2048 evaluations=4043 suffix=1906 connection=3360
+QUERY_ELISION_WORK fixture=0 step=6 method=1 draws=8192 kept=0 evaluations=4048 suffix=3361 connection=3361
+QUERY_ELISION_WORK fixture=0 step=6 method=2 draws=4096 kept=0 evaluations=3668 suffix=3100 connection=3100
+QUERY_ELISION_WORK fixture=0 step=6 method=3 draws=8192 kept=0 evaluations=7341 suffix=5015 connection=5015
+QUERY_ELISION_EXACT fixture=0 step=6 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=7 reset=0 estimate_error=1.63946255183e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=7 method=0 draws=4096 kept=2048 evaluations=4046 suffix=1909 connection=3391
+QUERY_ELISION_WORK fixture=0 step=7 method=1 draws=8192 kept=0 evaluations=4046 suffix=3362 connection=3362
+QUERY_ELISION_WORK fixture=0 step=7 method=2 draws=4096 kept=0 evaluations=3665 suffix=3118 connection=3118
+QUERY_ELISION_WORK fixture=0 step=7 method=3 draws=8192 kept=0 evaluations=7286 suffix=5020 connection=5020
+QUERY_ELISION_EXACT fixture=0 step=7 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=8 reset=0 estimate_error=1.54486706552e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=8 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1881 connection=3336
+QUERY_ELISION_WORK fixture=0 step=8 method=1 draws=8192 kept=0 evaluations=4052 suffix=3325 connection=3325
+QUERY_ELISION_WORK fixture=0 step=8 method=2 draws=4096 kept=0 evaluations=3635 suffix=3061 connection=3061
+QUERY_ELISION_WORK fixture=0 step=8 method=3 draws=8192 kept=0 evaluations=7294 suffix=4972 connection=4972
+QUERY_ELISION_EXACT fixture=0 step=8 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=9 reset=0 estimate_error=1.38680575149e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=9 method=0 draws=4096 kept=2048 evaluations=4046 suffix=1903 connection=3350
+QUERY_ELISION_WORK fixture=0 step=9 method=1 draws=8192 kept=0 evaluations=4044 suffix=3354 connection=3354
+QUERY_ELISION_WORK fixture=0 step=9 method=2 draws=4096 kept=0 evaluations=3626 suffix=3072 connection=3072
+QUERY_ELISION_WORK fixture=0 step=9 method=3 draws=8192 kept=0 evaluations=7248 suffix=4989 connection=4989
+QUERY_ELISION_EXACT fixture=0 step=9 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=10 reset=0 estimate_error=1.43556875276e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=10 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1894 connection=3349
+QUERY_ELISION_WORK fixture=0 step=10 method=1 draws=8192 kept=0 evaluations=4048 suffix=3350 connection=3350
+QUERY_ELISION_WORK fixture=0 step=10 method=2 draws=4096 kept=0 evaluations=3643 suffix=3081 connection=3081
+QUERY_ELISION_WORK fixture=0 step=10 method=3 draws=8192 kept=0 evaluations=7285 suffix=4966 connection=4966
+QUERY_ELISION_EXACT fixture=0 step=10 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=11 reset=0 estimate_error=1.36761786063e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=11 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1901 connection=3347
+QUERY_ELISION_WORK fixture=0 step=11 method=1 draws=8192 kept=0 evaluations=4052 suffix=3371 connection=3371
+QUERY_ELISION_WORK fixture=0 step=11 method=2 draws=4096 kept=0 evaluations=3630 suffix=3088 connection=3088
+QUERY_ELISION_WORK fixture=0 step=11 method=3 draws=8192 kept=0 evaluations=7283 suffix=5014 connection=5014
+QUERY_ELISION_EXACT fixture=0 step=11 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=12 reset=0 estimate_error=1.7719331398e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=12 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1912 connection=3363
+QUERY_ELISION_WORK fixture=0 step=12 method=1 draws=8192 kept=0 evaluations=4037 suffix=3365 connection=3365
+QUERY_ELISION_WORK fixture=0 step=12 method=2 draws=4096 kept=0 evaluations=3641 suffix=3091 connection=3091
+QUERY_ELISION_WORK fixture=0 step=12 method=3 draws=8192 kept=0 evaluations=7255 suffix=4962 connection=4962
+QUERY_ELISION_EXACT fixture=0 step=12 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=13 reset=0 estimate_error=1.52370190215e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=13 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1910 connection=3360
+QUERY_ELISION_WORK fixture=0 step=13 method=1 draws=8192 kept=0 evaluations=4045 suffix=3365 connection=3365
+QUERY_ELISION_WORK fixture=0 step=13 method=2 draws=4096 kept=0 evaluations=3643 suffix=3082 connection=3082
+QUERY_ELISION_WORK fixture=0 step=13 method=3 draws=8192 kept=0 evaluations=7268 suffix=5021 connection=5021
+QUERY_ELISION_EXACT fixture=0 step=13 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=14 reset=0 estimate_error=1.5913817708e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=14 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1901 connection=3359
+QUERY_ELISION_WORK fixture=0 step=14 method=1 draws=8192 kept=0 evaluations=4039 suffix=3343 connection=3343
+QUERY_ELISION_WORK fixture=0 step=14 method=2 draws=4096 kept=0 evaluations=3631 suffix=3079 connection=3079
+QUERY_ELISION_WORK fixture=0 step=14 method=3 draws=8192 kept=0 evaluations=7283 suffix=5014 connection=5014
+QUERY_ELISION_EXACT fixture=0 step=14 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=15 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=15 method=0 draws=4096 kept=2048 evaluations=4040 suffix=1906 connection=3393
+QUERY_ELISION_WORK fixture=0 step=15 method=1 draws=8192 kept=0 evaluations=4042 suffix=3344 connection=3344
+QUERY_ELISION_WORK fixture=0 step=15 method=2 draws=4096 kept=0 evaluations=3643 suffix=3069 connection=3069
+QUERY_ELISION_WORK fixture=0 step=15 method=3 draws=8192 kept=0 evaluations=7309 suffix=5001 connection=5001
+QUERY_ELISION_EXACT fixture=0 step=15 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+QUERY_ELISION_CASE fixture=0 step=16 reset=1 estimate_error=2.41679506824e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=16 method=0 draws=8192 kept=0 evaluations=4038 suffix=3386 connection=3386
+QUERY_ELISION_WORK fixture=0 step=16 method=1 draws=8192 kept=0 evaluations=4038 suffix=3386 connection=3386
+QUERY_ELISION_WORK fixture=0 step=16 method=2 draws=8192 kept=0 evaluations=7254 suffix=5010 connection=5010
+QUERY_ELISION_WORK fixture=0 step=16 method=3 draws=8192 kept=0 evaluations=7254 suffix=5010 connection=5010
+QUERY_ELISION_EXACT fixture=0 step=16 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_ELISION_CASE fixture=0 step=17 reset=0 estimate_error=2.50547533553e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=17 method=0 draws=4096 kept=2048 evaluations=4029 suffix=1896 connection=3349
+QUERY_ELISION_WORK fixture=0 step=17 method=1 draws=8192 kept=0 evaluations=4044 suffix=3377 connection=3377
+QUERY_ELISION_WORK fixture=0 step=17 method=2 draws=4096 kept=0 evaluations=3628 suffix=3052 connection=3052
+QUERY_ELISION_WORK fixture=0 step=17 method=3 draws=8192 kept=0 evaluations=7254 suffix=4972 connection=4972
+QUERY_ELISION_EXACT fixture=0 step=17 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_ELISION_CASE fixture=0 step=18 reset=0 estimate_error=2.54515522269e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=18 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1902 connection=3332
+QUERY_ELISION_WORK fixture=0 step=18 method=1 draws=8192 kept=0 evaluations=4040 suffix=3336 connection=3336
+QUERY_ELISION_WORK fixture=0 step=18 method=2 draws=4096 kept=0 evaluations=3634 suffix=3090 connection=3090
+QUERY_ELISION_WORK fixture=0 step=18 method=3 draws=8192 kept=0 evaluations=7245 suffix=4976 connection=4976
+QUERY_ELISION_EXACT fixture=0 step=18 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_ELISION_CASE fixture=0 step=19 reset=0 estimate_error=3.25053339523e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=19 method=0 draws=4096 kept=2048 evaluations=4039 suffix=1901 connection=3363
+QUERY_ELISION_WORK fixture=0 step=19 method=1 draws=8192 kept=0 evaluations=4041 suffix=3346 connection=3346
+QUERY_ELISION_WORK fixture=0 step=19 method=2 draws=4096 kept=0 evaluations=3617 suffix=3057 connection=3057
+QUERY_ELISION_WORK fixture=0 step=19 method=3 draws=8192 kept=0 evaluations=7247 suffix=5023 connection=5023
+QUERY_ELISION_EXACT fixture=0 step=19 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_ELISION_CASE fixture=0 step=20 reset=0 estimate_error=3.03086541281e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=20 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1914 connection=3356
+QUERY_ELISION_WORK fixture=0 step=20 method=1 draws=8192 kept=0 evaluations=4037 suffix=3411 connection=3411
+QUERY_ELISION_WORK fixture=0 step=20 method=2 draws=4096 kept=0 evaluations=3627 suffix=3094 connection=3094
+QUERY_ELISION_WORK fixture=0 step=20 method=3 draws=8192 kept=0 evaluations=7244 suffix=5040 connection=5040
+QUERY_ELISION_EXACT fixture=0 step=20 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_ELISION_CASE fixture=0 step=21 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=21 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1908 connection=3386
+QUERY_ELISION_WORK fixture=0 step=21 method=1 draws=8192 kept=0 evaluations=4052 suffix=3335 connection=3335
+QUERY_ELISION_WORK fixture=0 step=21 method=2 draws=4096 kept=0 evaluations=3641 suffix=3057 connection=3057
+QUERY_ELISION_WORK fixture=0 step=21 method=3 draws=8192 kept=0 evaluations=7285 suffix=4980 connection=4980
+QUERY_ELISION_EXACT fixture=0 step=21 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_ELISION_CASE fixture=0 step=22 reset=0 estimate_error=2.96652977599e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=22 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1909 connection=3345
+QUERY_ELISION_WORK fixture=0 step=22 method=1 draws=8192 kept=0 evaluations=4052 suffix=3360 connection=3360
+QUERY_ELISION_WORK fixture=0 step=22 method=2 draws=4096 kept=0 evaluations=3672 suffix=3098 connection=3098
+QUERY_ELISION_WORK fixture=0 step=22 method=3 draws=8192 kept=0 evaluations=7318 suffix=5021 connection=5021
+QUERY_ELISION_EXACT fixture=0 step=22 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_ELISION_CASE fixture=0 step=23 reset=0 estimate_error=2.96652977599e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=23 method=0 draws=4096 kept=2048 evaluations=4051 suffix=1908 connection=3357
+QUERY_ELISION_WORK fixture=0 step=23 method=1 draws=8192 kept=0 evaluations=4049 suffix=3340 connection=3340
+QUERY_ELISION_WORK fixture=0 step=23 method=2 draws=4096 kept=0 evaluations=3656 suffix=3093 connection=3093
+QUERY_ELISION_WORK fixture=0 step=23 method=3 draws=8192 kept=0 evaluations=7292 suffix=5011 connection=5011
+QUERY_ELISION_EXACT fixture=0 step=23 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+QUERY_ELISION_CASE fixture=0 step=24 reset=1 estimate_error=2.11266343725e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=24 method=0 draws=8192 kept=0 evaluations=4045 suffix=3343 connection=2218
+QUERY_ELISION_WORK fixture=0 step=24 method=1 draws=8192 kept=0 evaluations=4045 suffix=3343 connection=2218
+QUERY_ELISION_WORK fixture=0 step=24 method=2 draws=8192 kept=0 evaluations=7269 suffix=4393 connection=3155
+QUERY_ELISION_WORK fixture=0 step=24 method=3 draws=8192 kept=0 evaluations=7269 suffix=4393 connection=3155
+QUERY_ELISION_EXACT fixture=0 step=24 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=0 step=25 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=25 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1908 connection=2187
+QUERY_ELISION_WORK fixture=0 step=25 method=1 draws=8192 kept=0 evaluations=4051 suffix=3349 connection=2176
+QUERY_ELISION_WORK fixture=0 step=25 method=2 draws=4096 kept=0 evaluations=3658 suffix=2748 connection=1962
+QUERY_ELISION_WORK fixture=0 step=25 method=3 draws=8192 kept=0 evaluations=7256 suffix=4382 connection=3139
+QUERY_ELISION_EXACT fixture=0 step=25 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=0 step=26 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=26 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1885 connection=2203
+QUERY_ELISION_WORK fixture=0 step=26 method=1 draws=8192 kept=0 evaluations=4056 suffix=3333 connection=2223
+QUERY_ELISION_WORK fixture=0 step=26 method=2 draws=4096 kept=0 evaluations=3637 suffix=2686 connection=1918
+QUERY_ELISION_WORK fixture=0 step=26 method=3 draws=8192 kept=0 evaluations=7285 suffix=4372 connection=3126
+QUERY_ELISION_EXACT fixture=0 step=26 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=0 step=27 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=27 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1871 connection=2200
+QUERY_ELISION_WORK fixture=0 step=27 method=1 draws=8192 kept=0 evaluations=4045 suffix=3332 connection=2197
+QUERY_ELISION_WORK fixture=0 step=27 method=2 draws=4096 kept=0 evaluations=3645 suffix=2640 connection=1881
+QUERY_ELISION_WORK fixture=0 step=27 method=3 draws=8192 kept=0 evaluations=7258 suffix=4355 connection=3116
+QUERY_ELISION_EXACT fixture=0 step=27 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=0 step=28 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=28 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1908 connection=2162
+QUERY_ELISION_WORK fixture=0 step=28 method=1 draws=8192 kept=0 evaluations=4036 suffix=3327 connection=2154
+QUERY_ELISION_WORK fixture=0 step=28 method=2 draws=4096 kept=0 evaluations=3612 suffix=2690 connection=1864
+QUERY_ELISION_WORK fixture=0 step=28 method=3 draws=8192 kept=0 evaluations=7246 suffix=4353 connection=3074
+QUERY_ELISION_EXACT fixture=0 step=28 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=0 step=29 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=29 method=0 draws=4096 kept=2048 evaluations=4043 suffix=1911 connection=2178
+QUERY_ELISION_WORK fixture=0 step=29 method=1 draws=8192 kept=0 evaluations=4041 suffix=3370 connection=2252
+QUERY_ELISION_WORK fixture=0 step=29 method=2 draws=4096 kept=0 evaluations=3631 suffix=2705 connection=1950
+QUERY_ELISION_WORK fixture=0 step=29 method=3 draws=8192 kept=0 evaluations=7290 suffix=4385 connection=3152
+QUERY_ELISION_EXACT fixture=0 step=29 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=0 step=30 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=30 method=0 draws=4096 kept=2048 evaluations=4040 suffix=1911 connection=2224
+QUERY_ELISION_WORK fixture=0 step=30 method=1 draws=8192 kept=0 evaluations=4051 suffix=3347 connection=2221
+QUERY_ELISION_WORK fixture=0 step=30 method=2 draws=4096 kept=0 evaluations=3678 suffix=2718 connection=1938
+QUERY_ELISION_WORK fixture=0 step=30 method=3 draws=8192 kept=0 evaluations=7334 suffix=4415 connection=3151
+QUERY_ELISION_EXACT fixture=0 step=30 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=0 step=31 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=0 step=31 method=0 draws=4096 kept=2048 evaluations=4036 suffix=1873 connection=2219
+QUERY_ELISION_WORK fixture=0 step=31 method=1 draws=8192 kept=0 evaluations=4041 suffix=3336 connection=2181
+QUERY_ELISION_WORK fixture=0 step=31 method=2 draws=4096 kept=0 evaluations=3626 suffix=2678 connection=1933
+QUERY_ELISION_WORK fixture=0 step=31 method=3 draws=8192 kept=0 evaluations=7281 suffix=4344 connection=3096
+QUERY_ELISION_EXACT fixture=0 step=31 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=1 step=0 reset=1 estimate_error=2.02075574607e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=1 step=0 method=0 draws=8192 kept=0 evaluations=4038 suffix=3331 connection=2194
+QUERY_ELISION_WORK fixture=1 step=0 method=1 draws=8192 kept=0 evaluations=4038 suffix=3331 connection=2194
+QUERY_ELISION_WORK fixture=1 step=0 method=2 draws=8192 kept=0 evaluations=7273 suffix=4346 connection=3097
+QUERY_ELISION_WORK fixture=1 step=0 method=3 draws=8192 kept=0 evaluations=7273 suffix=4346 connection=3097
+QUERY_ELISION_EXACT fixture=1 step=0 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_ELISION_CASE fixture=1 step=1 reset=0 estimate_error=1.37439760406e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=1 step=1 method=0 draws=4096 kept=2048 evaluations=4049 suffix=1908 connection=2173
+QUERY_ELISION_WORK fixture=1 step=1 method=1 draws=8192 kept=0 evaluations=4040 suffix=3346 connection=2187
+QUERY_ELISION_WORK fixture=1 step=1 method=2 draws=4096 kept=0 evaluations=3660 suffix=2720 connection=1923
+QUERY_ELISION_WORK fixture=1 step=1 method=3 draws=8192 kept=0 evaluations=7292 suffix=4363 connection=3088
+QUERY_ELISION_EXACT fixture=1 step=1 channel0=0.028608198162752601 channel1=0.016209938728538383 channel2=0.0085174512408581812
+QUERY_ELISION_CASE fixture=1 step=2 reset=0 estimate_error=1.50441644975e-08 weight_error=1.66859656902e-07
+QUERY_ELISION_WORK fixture=1 step=2 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1899 connection=2196
+QUERY_ELISION_WORK fixture=1 step=2 method=1 draws=8192 kept=0 evaluations=4037 suffix=3339 connection=2217
+QUERY_ELISION_WORK fixture=1 step=2 method=2 draws=4096 kept=0 evaluations=3603 suffix=2665 connection=1892
+QUERY_ELISION_WORK fixture=1 step=2 method=3 draws=8192 kept=0 evaluations=7248 suffix=4381 connection=3125
+QUERY_ELISION_EXACT fixture=1 step=2 channel0=0.03034785673314162 channel1=0.017938247449587778 channel2=0.0088440187211207711
+QUERY_ELISION_CASE fixture=1 step=3 reset=0 estimate_error=2.71583377454e-08 weight_error=1.78026190032e-07
+QUERY_ELISION_WORK fixture=1 step=3 method=0 draws=4096 kept=2048 evaluations=4039 suffix=1907 connection=2196
+QUERY_ELISION_WORK fixture=1 step=3 method=1 draws=8192 kept=0 evaluations=4049 suffix=3311 connection=2206
+QUERY_ELISION_WORK fixture=1 step=3 method=2 draws=4096 kept=0 evaluations=3632 suffix=2691 connection=1896
+QUERY_ELISION_WORK fixture=1 step=3 method=3 draws=8192 kept=0 evaluations=7264 suffix=4370 connection=3117
+QUERY_ELISION_EXACT fixture=1 step=3 channel0=0.030117131697104317 channel1=0.018864973398192021 channel2=0.0086114699026312753
+QUERY_ELISION_CASE fixture=1 step=4 reset=0 estimate_error=1.38156498047e-08 weight_error=1.78026190032e-07
+QUERY_ELISION_WORK fixture=1 step=4 method=0 draws=4096 kept=2048 evaluations=4054 suffix=1894 connection=2173
+QUERY_ELISION_WORK fixture=1 step=4 method=1 draws=8192 kept=0 evaluations=4046 suffix=3320 connection=2167
+QUERY_ELISION_WORK fixture=1 step=4 method=2 draws=4096 kept=0 evaluations=3637 suffix=2675 connection=1902
+QUERY_ELISION_WORK fixture=1 step=4 method=3 draws=8192 kept=0 evaluations=7278 suffix=4369 connection=3081
+QUERY_ELISION_EXACT fixture=1 step=4 channel0=0.022078303158521752 channel1=0.013627880412202177 channel2=0.0061524581176734651
+QUERY_ELISION_CASE fixture=1 step=5 reset=0 estimate_error=1.60394709823e-08 weight_error=8.86279620417e-07
+QUERY_ELISION_WORK fixture=1 step=5 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1902 connection=2064
+QUERY_ELISION_WORK fixture=1 step=5 method=1 draws=8192 kept=0 evaluations=4053 suffix=3327 connection=2112
+QUERY_ELISION_WORK fixture=1 step=5 method=2 draws=4096 kept=0 evaluations=3635 suffix=2347 connection=1944
+QUERY_ELISION_WORK fixture=1 step=5 method=3 draws=8192 kept=0 evaluations=7321 suffix=3758 connection=3125
+QUERY_ELISION_EXACT fixture=1 step=5 channel0=0.012218330847182967 channel1=0.0066429945091767591 channel2=0.0032072874802862848
+QUERY_ELISION_CASE fixture=1 step=6 reset=0 estimate_error=1.67232615048e-08 weight_error=8.86279620417e-07
+QUERY_ELISION_WORK fixture=1 step=6 method=0 draws=4096 kept=2048 evaluations=4043 suffix=1902 connection=2124
+QUERY_ELISION_WORK fixture=1 step=6 method=1 draws=8192 kept=0 evaluations=4048 suffix=3330 connection=2177
+QUERY_ELISION_WORK fixture=1 step=6 method=2 draws=4096 kept=0 evaluations=3668 suffix=2301 connection=1925
+QUERY_ELISION_WORK fixture=1 step=6 method=3 draws=8192 kept=0 evaluations=7341 suffix=3733 connection=3109
+QUERY_ELISION_EXACT fixture=1 step=6 channel0=0.009235281650596578 channel1=0.004570425186648591 channel2=0.0021553694724340861
+QUERY_ELISION_CASE fixture=1 step=7 reset=0 estimate_error=4.87775545649e-09 weight_error=2.60917511732e-07
+QUERY_ELISION_WORK fixture=1 step=7 method=0 draws=4096 kept=2048 evaluations=4046 suffix=1912 connection=1877
+QUERY_ELISION_WORK fixture=1 step=7 method=1 draws=8192 kept=0 evaluations=4046 suffix=3325 connection=1833
+QUERY_ELISION_WORK fixture=1 step=7 method=2 draws=4096 kept=0 evaluations=3665 suffix=1950 connection=1542
+QUERY_ELISION_WORK fixture=1 step=7 method=3 draws=8192 kept=0 evaluations=7286 suffix=3141 connection=2494
+QUERY_ELISION_EXACT fixture=1 step=7 channel0=0.0064870121015918412 channel1=0.0025377551063626696 channel2=0.0019080094454808007
+QUERY_ELISION_CASE fixture=1 step=8 reset=0 estimate_error=2.09047799557e-09 weight_error=1.80928594191e-07
+QUERY_ELISION_WORK fixture=1 step=8 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1879 connection=1840
+QUERY_ELISION_WORK fixture=1 step=8 method=1 draws=8192 kept=0 evaluations=4052 suffix=3331 connection=1856
+QUERY_ELISION_WORK fixture=1 step=8 method=2 draws=4096 kept=0 evaluations=3635 suffix=1949 connection=1541
+QUERY_ELISION_WORK fixture=1 step=8 method=3 draws=8192 kept=0 evaluations=7294 suffix=3132 connection=2482
+QUERY_ELISION_EXACT fixture=1 step=8 channel0=0.0064024620869207773 channel1=0.002549645075692867 channel2=0.0018985580056882076
+QUERY_ELISION_CASE fixture=1 step=9 reset=0 estimate_error=4.9083268075e-09 weight_error=1.80928594191e-07
+QUERY_ELISION_WORK fixture=1 step=9 method=0 draws=4096 kept=2048 evaluations=4046 suffix=1903 connection=1820
+QUERY_ELISION_WORK fixture=1 step=9 method=1 draws=8192 kept=0 evaluations=4044 suffix=3338 connection=1820
+QUERY_ELISION_WORK fixture=1 step=9 method=2 draws=4096 kept=0 evaluations=3626 suffix=1930 connection=1540
+QUERY_ELISION_WORK fixture=1 step=9 method=3 draws=8192 kept=0 evaluations=7248 suffix=3123 connection=2497
+QUERY_ELISION_EXACT fixture=1 step=9 channel0=0.0064870121015918412 channel1=0.0025377551063626696 channel2=0.0019080094454808007
+QUERY_ELISION_CASE fixture=1 step=10 reset=0 estimate_error=8.26360028669e-09 weight_error=2.60917511732e-07
+QUERY_ELISION_WORK fixture=1 step=10 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1902 connection=2197
+QUERY_ELISION_WORK fixture=1 step=10 method=1 draws=8192 kept=0 evaluations=4048 suffix=3329 connection=2173
+QUERY_ELISION_WORK fixture=1 step=10 method=2 draws=4096 kept=0 evaluations=3643 suffix=2314 connection=1940
+QUERY_ELISION_WORK fixture=1 step=10 method=3 draws=8192 kept=0 evaluations=7285 suffix=3700 connection=3094
+QUERY_ELISION_EXACT fixture=1 step=10 channel0=0.009235281650596578 channel1=0.004570425186648591 channel2=0.0021553694724340861
+QUERY_ELISION_CASE fixture=1 step=11 reset=0 estimate_error=1.20117972235e-08 weight_error=8.86279620417e-07
+QUERY_ELISION_WORK fixture=1 step=11 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1895 connection=2143
+QUERY_ELISION_WORK fixture=1 step=11 method=1 draws=8192 kept=0 evaluations=4052 suffix=3334 connection=2106
+QUERY_ELISION_WORK fixture=1 step=11 method=2 draws=4096 kept=0 evaluations=3630 suffix=2295 connection=1888
+QUERY_ELISION_WORK fixture=1 step=11 method=3 draws=8192 kept=0 evaluations=7283 suffix=3747 connection=3110
+QUERY_ELISION_EXACT fixture=1 step=11 channel0=0.012218330847182967 channel1=0.0066429945091767591 channel2=0.0032072874802862848
+QUERY_ELISION_CASE fixture=1 step=12 reset=0 estimate_error=1.69594703073e-08 weight_error=8.86279620417e-07
+QUERY_ELISION_WORK fixture=1 step=12 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1891 connection=2127
+QUERY_ELISION_WORK fixture=1 step=12 method=1 draws=8192 kept=0 evaluations=4037 suffix=3309 connection=2165
+QUERY_ELISION_WORK fixture=1 step=12 method=2 draws=4096 kept=0 evaluations=3641 suffix=2707 connection=1924
+QUERY_ELISION_WORK fixture=1 step=12 method=3 draws=8192 kept=0 evaluations=7255 suffix=4346 connection=3095
+QUERY_ELISION_EXACT fixture=1 step=12 channel0=0.022078303158521752 channel1=0.013627880412202177 channel2=0.0061524581176734651
+QUERY_ELISION_CASE fixture=1 step=13 reset=0 estimate_error=2.71583377454e-08 weight_error=1.78026190032e-07
+QUERY_ELISION_WORK fixture=1 step=13 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1903 connection=2219
+QUERY_ELISION_WORK fixture=1 step=13 method=1 draws=8192 kept=0 evaluations=4045 suffix=3355 connection=2256
+QUERY_ELISION_WORK fixture=1 step=13 method=2 draws=4096 kept=0 evaluations=3643 suffix=2666 connection=1940
+QUERY_ELISION_WORK fixture=1 step=13 method=3 draws=8192 kept=0 evaluations=7268 suffix=4364 connection=3143
+QUERY_ELISION_EXACT fixture=1 step=13 channel0=0.030117131697104317 channel1=0.018864973398192021 channel2=0.0086114699026312753
+QUERY_ELISION_CASE fixture=1 step=14 reset=0 estimate_error=1.54570874294e-08 weight_error=1.78026190032e-07
+QUERY_ELISION_WORK fixture=1 step=14 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1892 connection=2203
+QUERY_ELISION_WORK fixture=1 step=14 method=1 draws=8192 kept=0 evaluations=4039 suffix=3337 connection=2200
+QUERY_ELISION_WORK fixture=1 step=14 method=2 draws=4096 kept=0 evaluations=3631 suffix=2671 connection=1899
+QUERY_ELISION_WORK fixture=1 step=14 method=3 draws=8192 kept=0 evaluations=7283 suffix=4374 connection=3100
+QUERY_ELISION_EXACT fixture=1 step=14 channel0=0.03034785673314162 channel1=0.017938247449587778 channel2=0.0088440187211207711
+QUERY_ELISION_CASE fixture=1 step=15 reset=0 estimate_error=1.88754009506e-08 weight_error=1.66859656902e-07
+QUERY_ELISION_WORK fixture=1 step=15 method=0 draws=4096 kept=2048 evaluations=4040 suffix=1898 connection=2190
+QUERY_ELISION_WORK fixture=1 step=15 method=1 draws=8192 kept=0 evaluations=4042 suffix=3336 connection=2216
+QUERY_ELISION_WORK fixture=1 step=15 method=2 draws=4096 kept=0 evaluations=3643 suffix=2664 connection=1898
+QUERY_ELISION_WORK fixture=1 step=15 method=3 draws=8192 kept=0 evaluations=7309 suffix=4359 connection=3100
+QUERY_ELISION_EXACT fixture=1 step=15 channel0=0.028608198162752601 channel1=0.016209938728538383 channel2=0.0085174512408581812
+QUERY_ELISION_CASE fixture=1 step=16 reset=1 estimate_error=2.30451370903e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=1 step=16 method=0 draws=8192 kept=0 evaluations=4038 suffix=3371 connection=2250
+QUERY_ELISION_WORK fixture=1 step=16 method=1 draws=8192 kept=0 evaluations=4038 suffix=3371 connection=2250
+QUERY_ELISION_WORK fixture=1 step=16 method=2 draws=8192 kept=0 evaluations=7254 suffix=4393 connection=3144
+QUERY_ELISION_WORK fixture=1 step=16 method=3 draws=8192 kept=0 evaluations=7254 suffix=4393 connection=3144
+QUERY_ELISION_EXACT fixture=1 step=16 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=1 step=17 reset=0 estimate_error=2.38058866925e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=1 step=17 method=0 draws=4096 kept=2048 evaluations=4029 suffix=1896 connection=2252
+QUERY_ELISION_WORK fixture=1 step=17 method=1 draws=8192 kept=0 evaluations=4044 suffix=3358 connection=2249
+QUERY_ELISION_WORK fixture=1 step=17 method=2 draws=4096 kept=0 evaluations=3628 suffix=2670 connection=1939
+QUERY_ELISION_WORK fixture=1 step=17 method=3 draws=8192 kept=0 evaluations=7254 suffix=4343 connection=3133
+QUERY_ELISION_EXACT fixture=1 step=17 channel0=0.028608198162752601 channel1=0.032419877457076765 channel2=0.017034902481716362
+QUERY_ELISION_CASE fixture=1 step=18 reset=0 estimate_error=2.09621746489e-08 weight_error=1.66859656902e-07
+QUERY_ELISION_WORK fixture=1 step=18 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1897 connection=2228
+QUERY_ELISION_WORK fixture=1 step=18 method=1 draws=8192 kept=0 evaluations=4040 suffix=3302 connection=2198
+QUERY_ELISION_WORK fixture=1 step=18 method=2 draws=4096 kept=0 evaluations=3634 suffix=2699 connection=1918
+QUERY_ELISION_WORK fixture=1 step=18 method=3 draws=8192 kept=0 evaluations=7245 suffix=4366 connection=3100
+QUERY_ELISION_EXACT fixture=1 step=18 channel0=0.03034785673314162 channel1=0.035876494899175555 channel2=0.017688037442241542
+QUERY_ELISION_CASE fixture=1 step=19 reset=0 estimate_error=3.41802101206e-08 weight_error=1.78026190032e-07
+QUERY_ELISION_WORK fixture=1 step=19 method=0 draws=4096 kept=2048 evaluations=4039 suffix=1884 connection=2195
+QUERY_ELISION_WORK fixture=1 step=19 method=1 draws=8192 kept=0 evaluations=4041 suffix=3326 connection=2205
+QUERY_ELISION_WORK fixture=1 step=19 method=2 draws=4096 kept=0 evaluations=3617 suffix=2682 connection=1916
+QUERY_ELISION_WORK fixture=1 step=19 method=3 draws=8192 kept=0 evaluations=7247 suffix=4408 connection=3146
+QUERY_ELISION_EXACT fixture=1 step=19 channel0=0.030117131697104317 channel1=0.037729946796384042 channel2=0.017222939805262551
+QUERY_ELISION_CASE fixture=1 step=20 reset=0 estimate_error=2.77472373827e-08 weight_error=1.78026190032e-07
+QUERY_ELISION_WORK fixture=1 step=20 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1904 connection=2191
+QUERY_ELISION_WORK fixture=1 step=20 method=1 draws=8192 kept=0 evaluations=4037 suffix=3363 connection=2181
+QUERY_ELISION_WORK fixture=1 step=20 method=2 draws=4096 kept=0 evaluations=3627 suffix=2679 connection=1906
+QUERY_ELISION_WORK fixture=1 step=20 method=3 draws=8192 kept=0 evaluations=7244 suffix=4366 connection=3097
+QUERY_ELISION_EXACT fixture=1 step=20 channel0=0.022078303158521752 channel1=0.027255760824404354 channel2=0.01230491623534693
+QUERY_ELISION_CASE fixture=1 step=21 reset=0 estimate_error=1.67995396136e-08 weight_error=8.86279620417e-07
+QUERY_ELISION_WORK fixture=1 step=21 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1900 connection=2117
+QUERY_ELISION_WORK fixture=1 step=21 method=1 draws=8192 kept=0 evaluations=4052 suffix=3308 connection=2117
+QUERY_ELISION_WORK fixture=1 step=21 method=2 draws=4096 kept=0 evaluations=3641 suffix=2307 connection=1934
+QUERY_ELISION_WORK fixture=1 step=21 method=3 draws=8192 kept=0 evaluations=7285 suffix=3734 connection=3132
+QUERY_ELISION_EXACT fixture=1 step=21 channel0=0.012218330847182967 channel1=0.013285989018353518 channel2=0.0064145749605725695
+QUERY_ELISION_CASE fixture=1 step=22 reset=0 estimate_error=1.74503014538e-08 weight_error=8.86279620417e-07
+QUERY_ELISION_WORK fixture=1 step=22 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1902 connection=2168
+QUERY_ELISION_WORK fixture=1 step=22 method=1 draws=8192 kept=0 evaluations=4052 suffix=3334 connection=2162
+QUERY_ELISION_WORK fixture=1 step=22 method=2 draws=4096 kept=0 evaluations=3672 suffix=2319 connection=1937
+QUERY_ELISION_WORK fixture=1 step=22 method=3 draws=8192 kept=0 evaluations=7318 suffix=3753 connection=3144
+QUERY_ELISION_EXACT fixture=1 step=22 channel0=0.009235281650596578 channel1=0.0091408503732971821 channel2=0.0043107389448681721
+QUERY_ELISION_CASE fixture=1 step=23 reset=0 estimate_error=7.1294264381e-09 weight_error=2.60917511732e-07
+QUERY_ELISION_WORK fixture=1 step=23 method=0 draws=4096 kept=2048 evaluations=4051 suffix=1901 connection=1879
+QUERY_ELISION_WORK fixture=1 step=23 method=1 draws=8192 kept=0 evaluations=4049 suffix=3331 connection=1858
+QUERY_ELISION_WORK fixture=1 step=23 method=2 draws=4096 kept=0 evaluations=3656 suffix=1899 connection=1512
+QUERY_ELISION_WORK fixture=1 step=23 method=3 draws=8192 kept=0 evaluations=7292 suffix=3114 connection=2480
+QUERY_ELISION_EXACT fixture=1 step=23 channel0=0.0064870121015918412 channel1=0.0050755102127253392 channel2=0.0038160188909616014
+QUERY_ELISION_CASE fixture=1 step=24 reset=1 estimate_error=5.12464229732e-09 weight_error=1.29145050202e-07
+QUERY_ELISION_WORK fixture=1 step=24 method=0 draws=8192 kept=0 evaluations=4045 suffix=3352 connection=2283
+QUERY_ELISION_WORK fixture=1 step=24 method=1 draws=8192 kept=0 evaluations=4045 suffix=3352 connection=2283
+QUERY_ELISION_WORK fixture=1 step=24 method=2 draws=8192 kept=0 evaluations=7269 suffix=3128 connection=3128
+QUERY_ELISION_WORK fixture=1 step=24 method=3 draws=8192 kept=0 evaluations=7269 suffix=3128 connection=3128
+QUERY_ELISION_EXACT fixture=1 step=24 channel0=0.0081738333451324193 channel1=0.0098025349340769251 channel2=0.0050151184501386094
+QUERY_ELISION_CASE fixture=1 step=25 reset=0 estimate_error=5.10282229665e-09 weight_error=1.3515753318e-07
+QUERY_ELISION_WORK fixture=1 step=25 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1911 connection=2284
+QUERY_ELISION_WORK fixture=1 step=25 method=1 draws=8192 kept=0 evaluations=4051 suffix=3371 connection=2318
+QUERY_ELISION_WORK fixture=1 step=25 method=2 draws=4096 kept=0 evaluations=3658 suffix=1926 connection=1926
+QUERY_ELISION_WORK fixture=1 step=25 method=3 draws=8192 kept=0 evaluations=7256 suffix=3105 connection=3105
+QUERY_ELISION_EXACT fixture=1 step=25 channel0=0.0092575215583606055 channel1=0.011212567652266966 channel2=0.0058099845571585613
+QUERY_ELISION_CASE fixture=1 step=26 reset=0 estimate_error=1.40276588192e-08 weight_error=1.40019304185e-07
+QUERY_ELISION_WORK fixture=1 step=26 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1884 connection=2663
+QUERY_ELISION_WORK fixture=1 step=26 method=1 draws=8192 kept=0 evaluations=4056 suffix=3304 connection=2677
+QUERY_ELISION_WORK fixture=1 step=26 method=2 draws=4096 kept=0 evaluations=3637 suffix=2320 connection=2320
+QUERY_ELISION_WORK fixture=1 step=26 method=3 draws=8192 kept=0 evaluations=7285 suffix=3759 connection=3759
+QUERY_ELISION_EXACT fixture=1 step=26 channel0=0.01292208295748973 channel1=0.016051330873174691 channel2=0.0085467225295230501
+QUERY_ELISION_CASE fixture=1 step=27 reset=0 estimate_error=1.87550450309e-08 weight_error=2.24745358462e-07
+QUERY_ELISION_WORK fixture=1 step=27 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1876 connection=2726
+QUERY_ELISION_WORK fixture=1 step=27 method=1 draws=8192 kept=0 evaluations=4045 suffix=3335 connection=2686
+QUERY_ELISION_WORK fixture=1 step=27 method=2 draws=4096 kept=0 evaluations=3645 suffix=2249 connection=2249
+QUERY_ELISION_WORK fixture=1 step=27 method=3 draws=8192 kept=0 evaluations=7258 suffix=3705 connection=3705
+QUERY_ELISION_EXACT fixture=1 step=27 channel0=0.018746584091474169 channel1=0.024006231341183494 channel2=0.012869123148942511
+QUERY_ELISION_CASE fixture=1 step=28 reset=0 estimate_error=3.13420025627e-08 weight_error=2.24745358462e-07
+QUERY_ELISION_WORK fixture=1 step=28 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1901 connection=2998
+QUERY_ELISION_WORK fixture=1 step=28 method=1 draws=8192 kept=0 evaluations=4036 suffix=3298 connection=2992
+QUERY_ELISION_WORK fixture=1 step=28 method=2 draws=4096 kept=0 evaluations=3612 suffix=3068 connection=2669
+QUERY_ELISION_WORK fixture=1 step=28 method=3 draws=8192 kept=0 evaluations=7246 suffix=4973 connection=4349
+QUERY_ELISION_EXACT fixture=1 step=28 channel0=0.026023803613419636 channel1=0.036892138436156831 channel2=0.017282601728225044
+QUERY_ELISION_CASE fixture=1 step=29 reset=0 estimate_error=3.20486955446e-08 weight_error=2.1196055957e-07
+QUERY_ELISION_WORK fixture=1 step=29 method=0 draws=4096 kept=2048 evaluations=4043 suffix=1908 connection=2990
+QUERY_ELISION_WORK fixture=1 step=29 method=1 draws=8192 kept=0 evaluations=4041 suffix=3346 connection=2987
+QUERY_ELISION_WORK fixture=1 step=29 method=2 draws=4096 kept=0 evaluations=3631 suffix=3081 connection=2700
+QUERY_ELISION_WORK fixture=1 step=29 method=3 draws=8192 kept=0 evaluations=7290 suffix=5004 connection=4383
+QUERY_ELISION_EXACT fixture=1 step=29 channel0=0.02691383596131601 channel1=0.040900735856445998 channel2=0.01676406213114684
+QUERY_ELISION_CASE fixture=1 step=30 reset=0 estimate_error=1.87400774482e-08 weight_error=1.78026190032e-07
+QUERY_ELISION_WORK fixture=1 step=30 method=0 draws=4096 kept=2048 evaluations=4040 suffix=1908 connection=2668
+QUERY_ELISION_WORK fixture=1 step=30 method=1 draws=8192 kept=0 evaluations=4051 suffix=3342 connection=2669
+QUERY_ELISION_WORK fixture=1 step=30 method=2 draws=4096 kept=0 evaluations=3678 suffix=2718 connection=2319
+QUERY_ELISION_WORK fixture=1 step=30 method=3 draws=8192 kept=0 evaluations=7334 suffix=4415 connection=3770
+QUERY_ELISION_EXACT fixture=1 step=30 channel0=0.026497064544019806 channel1=0.031084397823269883 channel2=0.014402027893943363
+QUERY_ELISION_CASE fixture=1 step=31 reset=0 estimate_error=1.86269670382e-08 weight_error=1.66859656902e-07
+QUERY_ELISION_WORK fixture=1 step=31 method=0 draws=4096 kept=2048 evaluations=4036 suffix=1874 connection=2673
+QUERY_ELISION_WORK fixture=1 step=31 method=1 draws=8192 kept=0 evaluations=4041 suffix=3340 connection=2615
+QUERY_ELISION_WORK fixture=1 step=31 method=2 draws=4096 kept=0 evaluations=3626 suffix=2678 connection=2314
+QUERY_ELISION_WORK fixture=1 step=31 method=3 draws=8192 kept=0 evaluations=7281 suffix=4344 connection=3720
+QUERY_ELISION_EXACT fixture=1 step=31 channel0=0.028608198162752601 channel1=0.032419877457076765 channel2=0.017034902481716362
+QUERY_ELISION_CASE fixture=2 step=0 reset=1 estimate_error=2.02075574607e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=0 method=0 draws=8192 kept=0 evaluations=4038 suffix=3331 connection=2603
+QUERY_ELISION_WORK fixture=2 step=0 method=1 draws=8192 kept=0 evaluations=4038 suffix=3331 connection=2603
+QUERY_ELISION_WORK fixture=2 step=0 method=2 draws=8192 kept=0 evaluations=7273 suffix=4346 connection=3723
+QUERY_ELISION_WORK fixture=2 step=0 method=3 draws=8192 kept=0 evaluations=7273 suffix=4346 connection=3723
+QUERY_ELISION_EXACT fixture=2 step=0 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_ELISION_CASE fixture=2 step=1 reset=0 estimate_error=2.04112867302e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=1 method=0 draws=4096 kept=2048 evaluations=4049 suffix=1907 connection=2599
+QUERY_ELISION_WORK fixture=2 step=1 method=1 draws=8192 kept=0 evaluations=4040 suffix=3344 connection=2621
+QUERY_ELISION_WORK fixture=2 step=1 method=2 draws=4096 kept=0 evaluations=3660 suffix=2720 connection=2323
+QUERY_ELISION_WORK fixture=2 step=1 method=3 draws=8192 kept=0 evaluations=7292 suffix=4363 connection=3720
+QUERY_ELISION_EXACT fixture=2 step=1 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_ELISION_CASE fixture=2 step=2 reset=0 estimate_error=2.18824550841e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=2 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1903 connection=2642
+QUERY_ELISION_WORK fixture=2 step=2 method=1 draws=8192 kept=0 evaluations=4037 suffix=3337 connection=2643
+QUERY_ELISION_WORK fixture=2 step=2 method=2 draws=4096 kept=0 evaluations=3603 suffix=2665 connection=2279
+QUERY_ELISION_WORK fixture=2 step=2 method=3 draws=8192 kept=0 evaluations=7248 suffix=4381 connection=3763
+QUERY_ELISION_EXACT fixture=2 step=2 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_ELISION_CASE fixture=2 step=3 reset=0 estimate_error=1.87816037861e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=3 method=0 draws=4096 kept=2048 evaluations=4039 suffix=1913 connection=2647
+QUERY_ELISION_WORK fixture=2 step=3 method=1 draws=8192 kept=0 evaluations=4049 suffix=3328 connection=2624
+QUERY_ELISION_WORK fixture=2 step=3 method=2 draws=4096 kept=0 evaluations=3632 suffix=2691 connection=2283
+QUERY_ELISION_WORK fixture=2 step=3 method=3 draws=8192 kept=0 evaluations=7264 suffix=4370 connection=3724
+QUERY_ELISION_EXACT fixture=2 step=3 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+QUERY_ELISION_CASE fixture=2 step=4 reset=0 estimate_error=0 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=4 method=0 draws=4096 kept=2048 evaluations=4054 suffix=1915 connection=0
+QUERY_ELISION_WORK fixture=2 step=4 method=1 draws=8192 kept=0 evaluations=4046 suffix=3364 connection=0
+QUERY_ELISION_WORK fixture=2 step=4 method=2 draws=4096 kept=0 evaluations=3637 suffix=0 connection=0
+QUERY_ELISION_WORK fixture=2 step=4 method=3 draws=8192 kept=0 evaluations=7278 suffix=0 connection=0
+QUERY_ELISION_EXACT fixture=2 step=4 channel0=0 channel1=0 channel2=0
+QUERY_ELISION_CASE fixture=2 step=5 reset=0 estimate_error=0 weight_error=0
+QUERY_ELISION_WORK fixture=2 step=5 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1910 connection=0
+QUERY_ELISION_WORK fixture=2 step=5 method=1 draws=8192 kept=0 evaluations=4053 suffix=3360 connection=0
+QUERY_ELISION_WORK fixture=2 step=5 method=2 draws=4096 kept=0 evaluations=3635 suffix=0 connection=0
+QUERY_ELISION_WORK fixture=2 step=5 method=3 draws=8192 kept=0 evaluations=7321 suffix=0 connection=0
+QUERY_ELISION_EXACT fixture=2 step=5 channel0=0 channel1=0 channel2=0
+QUERY_ELISION_CASE fixture=2 step=6 reset=0 estimate_error=0 weight_error=0
+QUERY_ELISION_WORK fixture=2 step=6 method=0 draws=4096 kept=2048 evaluations=4043 suffix=1906 connection=0
+QUERY_ELISION_WORK fixture=2 step=6 method=1 draws=8192 kept=0 evaluations=4048 suffix=3357 connection=0
+QUERY_ELISION_WORK fixture=2 step=6 method=2 draws=4096 kept=0 evaluations=3668 suffix=0 connection=0
+QUERY_ELISION_WORK fixture=2 step=6 method=3 draws=8192 kept=0 evaluations=7341 suffix=0 connection=0
+QUERY_ELISION_EXACT fixture=2 step=6 channel0=0 channel1=0 channel2=0
+QUERY_ELISION_CASE fixture=2 step=7 reset=0 estimate_error=0 weight_error=0
+QUERY_ELISION_WORK fixture=2 step=7 method=0 draws=4096 kept=2048 evaluations=4046 suffix=1906 connection=0
+QUERY_ELISION_WORK fixture=2 step=7 method=1 draws=8192 kept=0 evaluations=4046 suffix=3361 connection=0
+QUERY_ELISION_WORK fixture=2 step=7 method=2 draws=4096 kept=0 evaluations=3665 suffix=0 connection=0
+QUERY_ELISION_WORK fixture=2 step=7 method=3 draws=8192 kept=0 evaluations=7286 suffix=0 connection=0
+QUERY_ELISION_EXACT fixture=2 step=7 channel0=0 channel1=0 channel2=0
+QUERY_ELISION_CASE fixture=2 step=8 reset=0 estimate_error=4.56470875335e-09 weight_error=1.29145050202e-07
+QUERY_ELISION_WORK fixture=2 step=8 method=0 draws=4096 kept=2048 evaluations=4044 suffix=1878 connection=2193
+QUERY_ELISION_WORK fixture=2 step=8 method=1 draws=8192 kept=0 evaluations=4052 suffix=3330 connection=2296
+QUERY_ELISION_WORK fixture=2 step=8 method=2 draws=4096 kept=0 evaluations=3635 suffix=1949 connection=1949
+QUERY_ELISION_WORK fixture=2 step=8 method=3 draws=8192 kept=0 evaluations=7294 suffix=3132 connection=3132
+QUERY_ELISION_EXACT fixture=2 step=8 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+QUERY_ELISION_CASE fixture=2 step=9 reset=0 estimate_error=4.07276867093e-09 weight_error=1.29145050202e-07
+QUERY_ELISION_WORK fixture=2 step=9 method=0 draws=4096 kept=2048 evaluations=4046 suffix=1903 connection=2288
+QUERY_ELISION_WORK fixture=2 step=9 method=1 draws=8192 kept=0 evaluations=4044 suffix=3340 connection=2277
+QUERY_ELISION_WORK fixture=2 step=9 method=2 draws=4096 kept=0 evaluations=3626 suffix=1930 connection=1930
+QUERY_ELISION_WORK fixture=2 step=9 method=3 draws=8192 kept=0 evaluations=7248 suffix=3123 connection=3123
+QUERY_ELISION_EXACT fixture=2 step=9 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+QUERY_ELISION_CASE fixture=2 step=10 reset=0 estimate_error=3.80382705195e-09 weight_error=1.29145050202e-07
+QUERY_ELISION_WORK fixture=2 step=10 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1903 connection=2296
+QUERY_ELISION_WORK fixture=2 step=10 method=1 draws=8192 kept=0 evaluations=4048 suffix=3333 connection=2282
+QUERY_ELISION_WORK fixture=2 step=10 method=2 draws=4096 kept=0 evaluations=3643 suffix=1942 connection=1942
+QUERY_ELISION_WORK fixture=2 step=10 method=3 draws=8192 kept=0 evaluations=7285 suffix=3091 connection=3091
+QUERY_ELISION_EXACT fixture=2 step=10 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+QUERY_ELISION_CASE fixture=2 step=11 reset=0 estimate_error=4.56470875335e-09 weight_error=1.29145050202e-07
+QUERY_ELISION_WORK fixture=2 step=11 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1901 connection=2279
+QUERY_ELISION_WORK fixture=2 step=11 method=1 draws=8192 kept=0 evaluations=4052 suffix=3349 connection=2295
+QUERY_ELISION_WORK fixture=2 step=11 method=2 draws=4096 kept=0 evaluations=3630 suffix=1941 connection=1941
+QUERY_ELISION_WORK fixture=2 step=11 method=3 draws=8192 kept=0 evaluations=7283 suffix=3136 connection=3136
+QUERY_ELISION_EXACT fixture=2 step=11 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+QUERY_ELISION_CASE fixture=2 step=12 reset=0 estimate_error=2.15924235575e-08 weight_error=2.20366008824e-07
+QUERY_ELISION_WORK fixture=2 step=12 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1900 connection=2155
+QUERY_ELISION_WORK fixture=2 step=12 method=1 draws=8192 kept=0 evaluations=4037 suffix=3317 connection=2178
+QUERY_ELISION_WORK fixture=2 step=12 method=2 draws=4096 kept=0 evaluations=3641 suffix=2344 connection=1954
+QUERY_ELISION_WORK fixture=2 step=12 method=3 draws=8192 kept=0 evaluations=7255 suffix=3734 connection=3097
+QUERY_ELISION_EXACT fixture=2 step=12 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+QUERY_ELISION_CASE fixture=2 step=13 reset=0 estimate_error=1.97659206572e-08 weight_error=2.20366008824e-07
+QUERY_ELISION_WORK fixture=2 step=13 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1897 connection=2200
+QUERY_ELISION_WORK fixture=2 step=13 method=1 draws=8192 kept=0 evaluations=4045 suffix=3351 connection=2174
+QUERY_ELISION_WORK fixture=2 step=13 method=2 draws=4096 kept=0 evaluations=3643 suffix=2281 connection=1924
+QUERY_ELISION_WORK fixture=2 step=13 method=3 draws=8192 kept=0 evaluations=7268 suffix=3725 connection=3101
+QUERY_ELISION_EXACT fixture=2 step=13 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+QUERY_ELISION_CASE fixture=2 step=14 reset=0 estimate_error=1.8344643464e-08 weight_error=2.20366008824e-07
+QUERY_ELISION_WORK fixture=2 step=14 method=0 draws=4096 kept=2048 evaluations=4047 suffix=1907 connection=2205
+QUERY_ELISION_WORK fixture=2 step=14 method=1 draws=8192 kept=0 evaluations=4039 suffix=3345 connection=2238
+QUERY_ELISION_WORK fixture=2 step=14 method=2 draws=4096 kept=0 evaluations=3631 suffix=2286 connection=1921
+QUERY_ELISION_WORK fixture=2 step=14 method=3 draws=8192 kept=0 evaluations=7283 suffix=3749 connection=3133
+QUERY_ELISION_EXACT fixture=2 step=14 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+QUERY_ELISION_CASE fixture=2 step=15 reset=0 estimate_error=2.00786668542e-08 weight_error=2.20366008824e-07
+QUERY_ELISION_WORK fixture=2 step=15 method=0 draws=4096 kept=2048 evaluations=4040 suffix=1890 connection=2214
+QUERY_ELISION_WORK fixture=2 step=15 method=1 draws=8192 kept=0 evaluations=4042 suffix=3317 connection=2161
+QUERY_ELISION_WORK fixture=2 step=15 method=2 draws=4096 kept=0 evaluations=3643 suffix=2280 connection=1883
+QUERY_ELISION_WORK fixture=2 step=15 method=3 draws=8192 kept=0 evaluations=7309 suffix=3718 connection=3090
+QUERY_ELISION_EXACT fixture=2 step=15 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+QUERY_ELISION_CASE fixture=2 step=16 reset=1 estimate_error=2.30451370903e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=16 method=0 draws=8192 kept=0 evaluations=4038 suffix=3371 connection=2671
+QUERY_ELISION_WORK fixture=2 step=16 method=1 draws=8192 kept=0 evaluations=4038 suffix=3371 connection=2671
+QUERY_ELISION_WORK fixture=2 step=16 method=2 draws=8192 kept=0 evaluations=7254 suffix=4393 connection=3757
+QUERY_ELISION_WORK fixture=2 step=16 method=3 draws=8192 kept=0 evaluations=7254 suffix=4393 connection=3757
+QUERY_ELISION_EXACT fixture=2 step=16 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=2 step=17 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=17 method=0 draws=4096 kept=2048 evaluations=4029 suffix=1896 connection=2661
+QUERY_ELISION_WORK fixture=2 step=17 method=1 draws=8192 kept=0 evaluations=4044 suffix=3367 connection=2658
+QUERY_ELISION_WORK fixture=2 step=17 method=2 draws=4096 kept=0 evaluations=3628 suffix=2670 connection=2312
+QUERY_ELISION_WORK fixture=2 step=17 method=3 draws=8192 kept=0 evaluations=7254 suffix=4343 connection=3720
+QUERY_ELISION_EXACT fixture=2 step=17 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=2 step=18 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=18 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1892 connection=2636
+QUERY_ELISION_WORK fixture=2 step=18 method=1 draws=8192 kept=0 evaluations=4040 suffix=3298 connection=2610
+QUERY_ELISION_WORK fixture=2 step=18 method=2 draws=4096 kept=0 evaluations=3634 suffix=2699 connection=2307
+QUERY_ELISION_WORK fixture=2 step=18 method=3 draws=8192 kept=0 evaluations=7245 suffix=4366 connection=3741
+QUERY_ELISION_EXACT fixture=2 step=18 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=2 step=19 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=19 method=0 draws=4096 kept=2048 evaluations=4039 suffix=1896 connection=2629
+QUERY_ELISION_WORK fixture=2 step=19 method=1 draws=8192 kept=0 evaluations=4041 suffix=3349 connection=2627
+QUERY_ELISION_WORK fixture=2 step=19 method=2 draws=4096 kept=0 evaluations=3617 suffix=2682 connection=2304
+QUERY_ELISION_WORK fixture=2 step=19 method=3 draws=8192 kept=0 evaluations=7247 suffix=4408 connection=3766
+QUERY_ELISION_EXACT fixture=2 step=19 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+QUERY_ELISION_CASE fixture=2 step=20 reset=0 estimate_error=0 weight_error=2.01325225717e-07
+QUERY_ELISION_WORK fixture=2 step=20 method=0 draws=4096 kept=2048 evaluations=4038 suffix=1908 connection=0
+QUERY_ELISION_WORK fixture=2 step=20 method=1 draws=8192 kept=0 evaluations=4037 suffix=3408 connection=0
+QUERY_ELISION_WORK fixture=2 step=20 method=2 draws=4096 kept=0 evaluations=3627 suffix=0 connection=0
+QUERY_ELISION_WORK fixture=2 step=20 method=3 draws=8192 kept=0 evaluations=7244 suffix=0 connection=0
+QUERY_ELISION_EXACT fixture=2 step=20 channel0=0 channel1=0 channel2=0
+QUERY_ELISION_CASE fixture=2 step=21 reset=0 estimate_error=0 weight_error=0
+QUERY_ELISION_WORK fixture=2 step=21 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1905 connection=0
+QUERY_ELISION_WORK fixture=2 step=21 method=1 draws=8192 kept=0 evaluations=4052 suffix=3336 connection=0
+QUERY_ELISION_WORK fixture=2 step=21 method=2 draws=4096 kept=0 evaluations=3641 suffix=0 connection=0
+QUERY_ELISION_WORK fixture=2 step=21 method=3 draws=8192 kept=0 evaluations=7285 suffix=0 connection=0
+QUERY_ELISION_EXACT fixture=2 step=21 channel0=0 channel1=0 channel2=0
+QUERY_ELISION_CASE fixture=2 step=22 reset=0 estimate_error=0 weight_error=0
+QUERY_ELISION_WORK fixture=2 step=22 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1904 connection=0
+QUERY_ELISION_WORK fixture=2 step=22 method=1 draws=8192 kept=0 evaluations=4052 suffix=3372 connection=0
+QUERY_ELISION_WORK fixture=2 step=22 method=2 draws=4096 kept=0 evaluations=3672 suffix=0 connection=0
+QUERY_ELISION_WORK fixture=2 step=22 method=3 draws=8192 kept=0 evaluations=7318 suffix=0 connection=0
+QUERY_ELISION_EXACT fixture=2 step=22 channel0=0 channel1=0 channel2=0
+QUERY_ELISION_CASE fixture=2 step=23 reset=0 estimate_error=0 weight_error=0
+QUERY_ELISION_WORK fixture=2 step=23 method=0 draws=4096 kept=2048 evaluations=4051 suffix=1909 connection=0
+QUERY_ELISION_WORK fixture=2 step=23 method=1 draws=8192 kept=0 evaluations=4049 suffix=3350 connection=0
+QUERY_ELISION_WORK fixture=2 step=23 method=2 draws=4096 kept=0 evaluations=3656 suffix=0 connection=0
+QUERY_ELISION_WORK fixture=2 step=23 method=3 draws=8192 kept=0 evaluations=7292 suffix=0 connection=0
+QUERY_ELISION_EXACT fixture=2 step=23 channel0=0 channel1=0 channel2=0
+QUERY_ELISION_CASE fixture=2 step=24 reset=1 estimate_error=5.27132594866e-09 weight_error=1.29145050202e-07
+QUERY_ELISION_WORK fixture=2 step=24 method=0 draws=8192 kept=0 evaluations=4045 suffix=3370 connection=1847
+QUERY_ELISION_WORK fixture=2 step=24 method=1 draws=8192 kept=0 evaluations=4045 suffix=3370 connection=1847
+QUERY_ELISION_WORK fixture=2 step=24 method=2 draws=8192 kept=0 evaluations=7269 suffix=2499 connection=2499
+QUERY_ELISION_WORK fixture=2 step=24 method=3 draws=8192 kept=0 evaluations=7269 suffix=2499 connection=2499
+QUERY_ELISION_EXACT fixture=2 step=24 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+QUERY_ELISION_CASE fixture=2 step=25 reset=0 estimate_error=6.44102185476e-09 weight_error=1.29145050202e-07
+QUERY_ELISION_WORK fixture=2 step=25 method=0 draws=4096 kept=2048 evaluations=4045 suffix=1910 connection=1855
+QUERY_ELISION_WORK fixture=2 step=25 method=1 draws=8192 kept=0 evaluations=4051 suffix=3344 connection=1843
+QUERY_ELISION_WORK fixture=2 step=25 method=2 draws=4096 kept=0 evaluations=3658 suffix=1564 connection=1564
+QUERY_ELISION_WORK fixture=2 step=25 method=3 draws=8192 kept=0 evaluations=7256 suffix=2491 connection=2491
+QUERY_ELISION_EXACT fixture=2 step=25 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+QUERY_ELISION_CASE fixture=2 step=26 reset=0 estimate_error=6.13215921097e-09 weight_error=1.29145050202e-07
+QUERY_ELISION_WORK fixture=2 step=26 method=0 draws=4096 kept=2048 evaluations=4048 suffix=1882 connection=1871
+QUERY_ELISION_WORK fixture=2 step=26 method=1 draws=8192 kept=0 evaluations=4056 suffix=3323 connection=1846
+QUERY_ELISION_WORK fixture=2 step=26 method=2 draws=4096 kept=0 evaluations=3637 suffix=1505 connection=1505
+QUERY_ELISION_WORK fixture=2 step=26 method=3 draws=8192 kept=0 evaluations=7285 suffix=2484 connection=2484
+QUERY_ELISION_EXACT fixture=2 step=26 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+QUERY_ELISION_CASE fixture=2 step=27 reset=0 estimate_error=6.24995412368e-09 weight_error=1.29145050202e-07
+QUERY_ELISION_WORK fixture=2 step=27 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1879 connection=1874
+QUERY_ELISION_WORK fixture=2 step=27 method=1 draws=8192 kept=0 evaluations=4045 suffix=3341 connection=1865
+QUERY_ELISION_WORK fixture=2 step=27 method=2 draws=4096 kept=0 evaluations=3645 suffix=1529 connection=1529
+QUERY_ELISION_WORK fixture=2 step=27 method=3 draws=8192 kept=0 evaluations=7258 suffix=2517 connection=2517
+QUERY_ELISION_EXACT fixture=2 step=27 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+QUERY_ELISION_CASE fixture=2 step=28 reset=0 estimate_error=3.15136024776e-08 weight_error=2.20366008824e-07
+QUERY_ELISION_WORK fixture=2 step=28 method=0 draws=4096 kept=2048 evaluations=4050 suffix=1897 connection=3002
+QUERY_ELISION_WORK fixture=2 step=28 method=1 draws=8192 kept=0 evaluations=4036 suffix=3295 connection=2933
+QUERY_ELISION_WORK fixture=2 step=28 method=2 draws=4096 kept=0 evaluations=3612 suffix=2641 connection=2641
+QUERY_ELISION_WORK fixture=2 step=28 method=3 draws=8192 kept=0 evaluations=7246 suffix=4318 connection=4318
+QUERY_ELISION_EXACT fixture=2 step=28 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+QUERY_ELISION_CASE fixture=2 step=29 reset=0 estimate_error=2.96741692607e-08 weight_error=2.20366008824e-07
+QUERY_ELISION_WORK fixture=2 step=29 method=0 draws=4096 kept=2048 evaluations=4043 suffix=1905 connection=2988
+QUERY_ELISION_WORK fixture=2 step=29 method=1 draws=8192 kept=0 evaluations=4041 suffix=3360 connection=3042
+QUERY_ELISION_WORK fixture=2 step=29 method=2 draws=4096 kept=0 evaluations=3631 suffix=2707 connection=2707
+QUERY_ELISION_WORK fixture=2 step=29 method=3 draws=8192 kept=0 evaluations=7290 suffix=4392 connection=4392
+QUERY_ELISION_EXACT fixture=2 step=29 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+QUERY_ELISION_CASE fixture=2 step=30 reset=0 estimate_error=3.12838968619e-08 weight_error=2.20366008824e-07
+QUERY_ELISION_WORK fixture=2 step=30 method=0 draws=4096 kept=2048 evaluations=4040 suffix=1907 connection=3031
+QUERY_ELISION_WORK fixture=2 step=30 method=1 draws=8192 kept=0 evaluations=4051 suffix=3336 connection=3043
+QUERY_ELISION_WORK fixture=2 step=30 method=2 draws=4096 kept=0 evaluations=3678 suffix=2708 connection=2708
+QUERY_ELISION_WORK fixture=2 step=30 method=3 draws=8192 kept=0 evaluations=7334 suffix=4405 connection=4405
+QUERY_ELISION_EXACT fixture=2 step=30 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+QUERY_ELISION_CASE fixture=2 step=31 reset=0 estimate_error=3.15136024776e-08 weight_error=2.20366008824e-07
+QUERY_ELISION_WORK fixture=2 step=31 method=0 draws=4096 kept=2048 evaluations=4036 suffix=1865 connection=3023
+QUERY_ELISION_WORK fixture=2 step=31 method=1 draws=8192 kept=0 evaluations=4041 suffix=3314 connection=2998
+QUERY_ELISION_WORK fixture=2 step=31 method=2 draws=4096 kept=0 evaluations=3626 suffix=2668 connection=2668
+QUERY_ELISION_WORK fixture=2 step=31 method=3 draws=8192 kept=0 evaluations=7281 suffix=4338 connection=4338
+QUERY_ELISION_EXACT fixture=2 step=31 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+QUERY_ELISION_DECISION correctness=1 retained_checks=178176 ambiguous=0 production_promote=0
+c0cafe4c30778a9ad63bce61918ec33342ac7d14ff29c3dce5307c972c34da25  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-0.f32
+833042c5fe0c52af34c8ee94c5ebc1959eb50af538e4d202f71ed987ecbf21c2  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-1.f32
+c17274cdb87d9a0bda1d370cbbb077ba63b5ba588db04c75d925c24e06c7ebfb  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-10.f32
+b7b829a209449513f8959f3eef64668d85e746e467306d9f8f54c3ce8e58fd80  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-11.f32
+5246a0a4e3d2d8ea941c4ac6839e1f9f3f44d2174c7d7989fc0677a597a290aa  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-12.f32
+206ba91424b35da63539ab8a0eee955f9d8c888d6d7c1d3b67bce05db0d487cb  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-13.f32
+de4e4ec5c6d3fdfa37d3456cae15e239088a44828a4164c4d200cb4d0a2780e5  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-14.f32
+a56882af3022eda54687e0f015abe2c969337dd824d67ce9a65399eb1a7d6c53  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-15.f32
+001a70f2f2c2ee7c78e127f38c08ee20381fd77f5e73ba498341a189e60b36ef  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-16.f32
+ceb16ee55e2cb97452792658a683ff3eb645f5649e894cb0ecb176f8905c972b  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-17.f32
+fb85717f9e4b75bbd5e3a3c8f5a0f02d99911e5c485a68a6479a422071edebaf  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-18.f32
+ccf6ee4ce640756967f7c79c9ed4adee583afa53df5e2ce79dd9ebdb950fc706  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-19.f32
+c4957e317a0adff86fe3845638c3caac8519d888070eab625dd009ebab1ff7f3  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-2.f32
+6e8525bdec5d3b1a13ed0033ee91299a4c8bc24239b555a7d37c189892c732a6  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-20.f32
+ea8f6b4c562dac177b11f485d77565b1dbe03bb0236d75afff96a314ff3b0966  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-21.f32
+3ae0d18f5fa238b680c791b558008cdc86ad56a92df65d376ab9d6db4414a386  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-22.f32
+9787911f8cc08b5048bdea4227eb086e18bc634d8e597e8c378d9b65c8b562a0  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-23.f32
+19889b60dcaeab4b32c66b6426db4a0ea027d9dfb4431a6688dbb523c8ad197f  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-24.f32
+7edeca7ba94d698b9460c784a53393ca94829f0bd36bb3639c979b818cec1f1c  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-25.f32
+ca0cd536f7689acd1c71f2dbd44ba309b998a5b8fd500d60725aebd02182793c  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-26.f32
+87bce81f49c7253849784ec3b019abb324dfd4841fc7256d2dced19e93ddb237  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-27.f32
+b0f30654062a3a61a075c8cf7f294883f4f1610e0d7f01562d9d98f59db42e4c  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-28.f32
+bf82c18af294958fae9433ac605cc0ab80526ef26dc0e888b2b7241b6982100a  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-29.f32
+32fdbae5f5004acfd5b473a5a1e5986e16c44ed2f464911fd31a60df79890c6f  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-3.f32
+f6b6746a7d2b049d99bacc3b73017f16e06ffdf9bf3cf56cc3571b4aa9fcb7c3  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-30.f32
+9d32ac92b8df9f2fdee349b7c8a08580ec563fc13a1ebf75123e17efa6b66957  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-31.f32
+f17b916c5f282ab61668bc042d5beabaf200c7159552d74683e79d847d7d5e9a  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-4.f32
+ff32fedaeb4dfc50bc0ea5e7b6a2b2d576c4f594404a3c3f80cdb1afee0c9aca  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-5.f32
+1157f78af1403c05058bb5c7cf34ac144c7bfc4c8d151f038072db9bf20e34b0  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-6.f32
+00a0c2ecfac9be84dd3839b9e37bee3db3fdc9805b9ced8cf6facfe49d58c2bd  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-7.f32
+cab680d839f2c42f9c2374983d9d4b1d5f3198183fe464e455c05ec9fe0193bf  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-8.f32
+ab07c7145eb8b4de389964628875e305c6dd47e446c474b2a523d1bbecbedb52  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision0-9.f32
+cd8830d3c3de4167cdd4e2fc0f704c47b114cb9c3fcb289b311bab270bf7bd77  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-0.f32
+13b50a4e2aa590ef0e425ab86f37befaec240ae155d0c629cdcf9268f7f1458f  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-1.f32
+11c9f0b54bcba524619ec7c18e1096a5fb85d5e63056942656db790464a89866  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-10.f32
+93ca90a8802358785f8140e19b35a05c2f7bac4a3b8ffe912fb84d946a236536  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-11.f32
+478f49ae59a75ad3f9ba399fca3418ffcedd8ee13b76527a9b78d038c2190e36  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-12.f32
+1887c9dca12bb35b13a9b1dc885e2c807fe70baf0049d481ea59d234a448d38f  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-13.f32
+f7038397c26fe23d61cbfea546bb390362a22a583d7c2cd7c1655e4ee42ccad2  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-14.f32
+7f89ec87dd9356d089cc725a452ee4279e9b03f7a42a9dc267e5afb0d267ae4c  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-15.f32
+44ef4c5be95c76268e0fac3d65ffffd10397caf3b961a51cee7ff40c4ca1198d  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-16.f32
+b2d188ae291c92c0ec33a4f195ef884cee7e0df47a09fbbe34340d711cbd802d  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-17.f32
+a48914780a807c6ead5297c7de1023a97393a3b73ef6f40eae96e7a24baf5426  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-18.f32
+c504cdd377ebd4645b84d0ecf31d36541a57eec8ca91c4e99fe478b17735b917  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-19.f32
+e388498246d53ef337bee3483d10851caac0ea3bcbfff446e4a6c75969c62e15  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-2.f32
+ecb5d94768d8bb62b2a29858e5d08e4e43231e067f86cc1a72a83ad68557f64e  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-20.f32
+d2848759e37320658bd091ac83d60a3fcf4c71f629d3e58e5562877374c028a8  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-21.f32
+a3933bd8d1345102041bcc814d1810a96ba5a0d5b6bd7469ea3a7ee3cb0814e3  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-22.f32
+3dd847b186b023f4195b14bbd6cc14c96ad43dcc005a54520b7dfb8e1b9aef7b  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-23.f32
+f8182023c7b36c4bc8108b6a3b6f60d76704372834b8b3d8a3880a68c521a9e0  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-24.f32
+c481f6049d861856da7dc84e4b87052cafbb6fd073d7854583c24ccddf4993ca  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-25.f32
+2bc2375b32410abb58fa29a8ad5d285fe422ce099f4898a371c2dbf278629443  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-26.f32
+6f05f497144ac5ded3b183d5e6f8395854f0b45d26fb675147ada4079d54780c  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-27.f32
+6cdfca9befab078dce7eadb416929481ad540f84bd1e0db55956d5056c774311  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-28.f32
+03593ec324bb41af328071fc43fe645fee29e8943529db7838075aa9af411c91  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-29.f32
+43381d74d84478c056f4481a544a7816b95be8f8c6739b495edc64077e230ea4  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-3.f32
+033f759854dd27f26bcf01a80db14a826ab8caaa81e061dd6e43291e8ac8f47c  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-30.f32
+d73c3a2d9d81972a3b004e2ee84fc78845351e49f67c55d33821c89bcc28b74a  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-31.f32
+1bfeb59b4b390340f4a657100b03b1ee9f77633157600e3b6ffafee0a94dfcea  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-4.f32
+a75a951f92a2d3e1b555b7da52ed12f1c7ebf381b93292aae484f3564bd70e9d  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-5.f32
+346cec6792f835a6fa68b143c294e5a64c1e3003f9e3f63c9ed8ef70187c11c8  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-6.f32
+e41e6df0ac127bf159b9e96487d2b3a03baf3721fe52d6ad407ae06d1a8e71b9  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-7.f32
+9fcc6a6873e940c672f8630ed295d25d8997c38570dedcf7b301175a34f68e7b  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-8.f32
+6eb73257674580f4c0d1a7f1dd914237c10653a4853dd4be811e8a2d850c6618  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision1-9.f32
+500ad2732005f81ee9003d5e241d6a590af4fe9ededef9642aa357eec784b7b6  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-0.f32
+58e870a26eb08e56596fb54c8164d82a3b5697c59726cc2bd99581dcada743d6  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-1.f32
+bb75cb4b2464f13701cc352550ec8bd78cf06605861853bba8a450ac4b6d6e06  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-10.f32
+81ead89dec437f2d2a02d93b3a4cc92e7771dfc1dd0b16be3affe119c83eef33  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-11.f32
+31879fc064ea7ab57ca7cc9f27a325e3a970f30120bba543deb1bb6d43f99c23  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-12.f32
+6507e9f1b2658ca49f58d19cc6e2d9510a0810f5168048dee164b7ab6780e6b7  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-13.f32
+3906a56f8b3cb4e65fc6760656e6f442108400086653a5207c57096618813676  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-14.f32
+0b20fd2dee6faeb5d475f824f6b4b722080350c1a30c5b1f7acff6ad47ac28bf  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-15.f32
+039cc708e6e259fde24647cf98d82769a1562e818502d7913d7225b6a1430e7a  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-16.f32
+c77713d25417b99e66aeb8cd836cf0b207c1f81dd267f42124e7dc431b82995a  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-17.f32
+8df557ca303c745f06c4af297783c4d369c31118b424f4ca0600d46c746defc5  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-18.f32
+9ff00c0eba14d5fa3724f746a2c81687de1c0474480de3ad7f4702dc6e21a1fa  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-19.f32
+eee5268cadfae5c67762aa8ddd6f02d341f8c0c642ee807296607704e503be3c  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-2.f32
+1997e9d5a97958b31ac0f3ac8cba8cf92a4755243a547e4a306157f7690238c9  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-20.f32
+8b6e809a22b47315d6e4a800b8b90560f98850a3cf7a337567d6b01b5bb401c4  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-21.f32
+908533fe14c0ea1257099597a260510280bfc714f526a8d3936e1c572c124c80  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-22.f32
+573d3deeac8c723644aa93e18298c0f21aa96c79cb524aaaf4fa0aa97071170a  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-23.f32
+17b58d6283804f55b1b0311fbc72f3678a3e6729f2feffe499ca267d4354760e  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-24.f32
+0b05d000e5f837cf06af0b7a6e57fb21e82e8d5834eb464ac97734146622f049  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-25.f32
+cb2d09198a7a24963243acdbaefa18415bb79f24062d99af2c639cbc77139b8d  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-26.f32
+23fee2a5c7e5cb0060add2c23a15efd1a9395f3ad46f9e5bc0c4fd8db14e3999  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-27.f32
+ca1c9b2412e496bd70db0aec6955761f0dd5d64e3d06a39c668d774cbd6430f8  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-28.f32
+8513d24ba85114f9e325e07a0a89e124d784bf62d612dd697ba6e08e007245e3  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-29.f32
+d26d3ae4ee03290d57e0cb600d2fd45b89f870789ef676fbfd93248df1ba5d64  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-3.f32
+82054ddc273436361e01450decb88dc93b4c3883cc3bf215110594b78c74008b  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-30.f32
+b4ced937f5b29e9d38468a9e707d50208249c6ffff5a4c8681b58294b96b5f4d  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-31.f32
+3b5f2f242694046f2587734e69a56129220657998da7efb37e209f283202ddac  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-4.f32
+f650d5bb8c0e339e4e9f7da72102f5a29c48e00edf23ae6a2da1c14a1a420a68  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-5.f32
+eb44e84f708b7fd017a3b18fbfebca964ce4f441e30b5cbfdb9e5e28831c4a31  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-6.f32
+4e5c02446747a52c3ef01ee6408ab97dc6fcd5fe2a25e75c767b8cb214f1f83d  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-7.f32
+045f9784660454daad28de413dd646741eb0be500d41bc75799f90056db2c67e  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-8.f32
+99b3da62892ea9d8557a05eae3f862620af881f8b4862d0fac5531b866078ae0  /home/user/Frontier/_ClaudeScratch/query-calibration-regression/QueryElision2-9.f32

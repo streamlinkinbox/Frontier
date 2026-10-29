@@ -404,3 +404,15 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   all non-query byte identity,actual query reductions and unchanged quality rejection. Results retain96 optimized
   buffers,four modules,logs and generated tables/hashes;Images retains24 exact arrays and three charts.
   No global finite-point memoization,query/time-matched claim,physical speed or production promotion follows.
+
+
+### Held-out expected-query-budget calibration
+
+- `Exhibits/LightCompute/Code/QueryCalibrationGpu.slang` enables preallocated raw counts1..32 in the shared
+  traced quartet estimator;`QueryCalibrationValidation.h` independently simulates4096 pilot packets,freezes
+  count mixtures and replays1024 held-out GPU packets/arm with double rays and per-packet query masks.
+- `RunQueryCalibration.sh`,`RunQueryCalibrationRegression.sh`,`QueryCalibrationEvidence.py` and
+  `QueryCalibration.md` retain both-build evidence,budget eligibility,quality rejection and the exact preceding
+  default-policy regression. `--query-calibration` selects this isolated validator. Results retain96 buffers,
+  two modules,logs,allocations/metrics/means and hashes;Images retains24 exact arrays and three plots.
+  Offline calibration cost is excluded from query totals;no physical speed or production promotion follows.

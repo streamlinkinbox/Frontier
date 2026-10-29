@@ -99,6 +99,11 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
   quality-neutral replacement;production348.046875MiB unchanged.
 
+- [Held-out expected-query-budget control](Exhibits/LightCompute/QueryCalibration.md):independent pilot/fresh
+  count allocation matches stationary/smooth calls within0.30%/0.12%,but rotate2 rolling error is8.09%/4.48%
+  worse. Jumping has8 infeasible zero-contribution steps;no artificial ray spending or production promotion.
+  Next:continuous area/PDF support on the fresh traced path. Production348.046875MiB unchanged.
+
 - [Lossless packet-local query elision](Exhibits/LightCompute/QueryElision.md):zero/duplicate-query removal
   preserves all RGB/descriptor bytes and reduces calls on every arm/track. Optimized proposal-budget raw is
   cheaper than rotate2 on the jumping track,with lower rolling error. Previous3/3 quality rejection remains;
