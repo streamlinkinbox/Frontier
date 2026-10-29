@@ -14,6 +14,10 @@ are inherited historical checkpoints: their branch/PR references and completion 
   rays plus approximately `16,603` warm-up rays; no equal-time claim. Faint layers showed no established quality
   win despite extra work because the fixed target floor dominated their radiance.
   [Measured chart, protocol and limits](../Exhibits/LightCompute/ReplayMaterialReuse.md).
+- A prespecified [target-floor follow-up](../Exhibits/LightCompute/ReplayMaterialFloor.md) passes 24/24 bounded
+  mean gates and floor-revision reset. The existing `0.0001` floor reduces temporal + disk RMSE `0.263652 →
+  0.077177` (scaled dim fixture), with counted final rays `5,886 → 5,899` plus roughly 16,600 warm rays. The
+  even fainter case changes by only 0.05%; no default was changed. These are not elapsed-time measurements.
 - Physical-GPU/Windows timing, realistic mixed/moving materials, production scene/resource ownership and the
   editor viewport remain open. This restricted result does not prove general ReSTIR unbiasedness.
 

@@ -1,0 +1,84 @@
+Authored material replay target-floor audit; SwiftShader and shaders are not sanitizer-instrumented.
+Base b9441e0, plus working changes if any; source hashes follow.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
+494e342089d7d8de39ec53846b6ba878af58431e46bb348ecf40e6e487107f0d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+28dd31def1deb1fd78a29d6aa389ea63aea394880301dc49eb6d327db7adc79a  Frontier/Engine/Rendering/PathReplaySubmissionSequence.cpp
+b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+2d3f7225ff06d61e15ea1036fc3d7c156c764031d62fa3ed394d6da16fb332ed  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9  Engine/Render/Shader/ScatteringEvaluation.slang
+eec91c6476cc7d9787cc81a4510c7866439629ab4a4e1566399e526a9c19c4b8  Engine/Render/Shader/AutomotivePaint.slang
+6008472e0db6b2caa3d59adc090f3a29a49db4e3bd7520b3620858e5a968f7d3  Exhibits/LightCompute/Code/ReplayMaterialSamplingValidation.h
+b67bef7c640328f2fe236a73084eacdf0f3ac31b93b5ebde738112ba364a71c8  Exhibits/LightCompute/Code/ReplayMaterialPathValidation.h
+4317021f6b63ae5dc44fe1f176f6e479f099f384c6cb206ac25b007cbb1dfd6c  Exhibits/LightCompute/Code/ReplayMaterialReuseValidation.h
+0ffc06132224edcedc4f68b05f66dc3802f5f18a53ce4e331c2ad6ee86d9a02f  Exhibits/LightCompute/Code/ReplayMaterialFloorValidation.h
+c59f7877fc90869b7bacb49dcef2b822027665f484fee5ffb80d3db45520f4b1  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-material-floor-release/shaders/Primary.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-material-floor-release/shaders/ReplayGenerate.spv
+5bfe8da35cb3e050cb805c6bbc02d8dd401c97871ab60f283c57eff20423b229  /home/user/Frontier/_ClaudeScratch/build/replay-material-floor-release/shaders/ReplayResolve.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-material-floor-release
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.00 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.00 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.00 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.08 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.09 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.08 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 10
+
+Total Test time (real) =   1.28 sec
+REPLAY_MATERIAL_FLOOR preparing production pipelines on SwiftShader Device (Subzero)
+REPLAY_MATERIAL_FLOOR pipelines_ready=1
+REPLAY_MATERIAL_FLOOR starting=metal
+REPLAY_MATERIAL_FLOOR case=metal mode=fresh1 floor=default floor_value=0.0099999998 reference=0.848680634 mean=0.849223607 batch_se=0.00126394107 rmse=0.223679857 mse=0.0500326783 mse_se=0.000668847641 delta_low_vs_default=0 delta_se=0 mean_rays=1011.062 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=metal mode=fresh1 floor=lower floor_value=9.9999997e-05 reference=0.848680634 mean=0.849223607 batch_se=0.00126394107 rmse=0.223679857 mse=0.0500326783 mse_se=0.000668847641 delta_low_vs_default=0 delta_se=0 mean_rays=1011.062 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=metal mode=fresh4 floor=default floor_value=0.0099999998 reference=0.848680634 mean=0.847882372 batch_se=0.000635541608 rmse=0.113760227 mse=0.0129413892 mse_se=0.00014828912 delta_low_vs_default=-4.8323813e-05 delta_se=4.07113912e-05 mean_rays=4043.531 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=metal mode=fresh4 floor=lower floor_value=9.9999997e-05 reference=0.848680634 mean=0.847841135 batch_se=0.000633312527 rmse=0.113547635 mse=0.0128930654 mse_se=0.000145989535 delta_low_vs_default=-4.8323813e-05 delta_se=4.07113912e-05 mean_rays=4043.531 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=metal mode=temporal_disk floor=default floor_value=0.0099999998 reference=0.848680634 mean=0.848942983 batch_se=0.000702052489 rmse=0.0525322487 mse=0.00275963715 mse_se=6.54119629e-05 delta_low_vs_default=-9.56368526e-05 delta_se=4.17372367e-05 mean_rays=5893.688 warm_rays=16595.469 temporal=32768 spatial=123499 mean_gate=1 quality_low=0 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=metal mode=temporal_disk floor=lower floor_value=9.9999997e-05 reference=0.848680634 mean=0.848912066 batch_se=0.000681192782 rmse=0.0516139545 mse=0.0026640003 mse_se=4.22141431e-05 delta_low_vs_default=-9.56368526e-05 delta_se=4.17372367e-05 mean_rays=5894.406 warm_rays=16597.188 temporal=32768 spatial=123499 mean_gate=1 quality_low=0 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR_IDENTITY case=metal fresh1_max_scaled_difference=0
+REPLAY_MATERIAL_FLOOR starting=coat
+REPLAY_MATERIAL_FLOOR case=coat mode=fresh1 floor=default floor_value=0.0099999998 reference=0.267288643 mean=0.267876883 batch_se=0.000640869969 rmse=0.122360715 mse=0.0149721446 mse_se=4.84217361e-05 delta_low_vs_default=0 delta_se=0 mean_rays=1008.938 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=coat mode=fresh1 floor=lower floor_value=9.9999997e-05 reference=0.267288643 mean=0.267876883 batch_se=0.000640869969 rmse=0.122360715 mse=0.0149721446 mse_se=4.84217361e-05 delta_low_vs_default=0 delta_se=0 mean_rays=1008.938 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=coat mode=fresh4 floor=default floor_value=0.0099999998 reference=0.267288643 mean=0.267883437 batch_se=0.00030663412 rmse=0.0615877903 mse=0.00379305592 mse_se=3.10527921e-05 delta_low_vs_default=-4.5919713e-05 delta_se=9.88423175e-06 mean_rays=4035.062 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=1 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=coat mode=fresh4 floor=lower floor_value=9.9999997e-05 reference=0.267288643 mean=0.267855014 batch_se=0.000296039212 rmse=0.0612138563 mse=0.00374713621 mse_se=2.77487522e-05 delta_low_vs_default=-4.5919713e-05 delta_se=9.88423175e-06 mean_rays=4035.062 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=1 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=coat mode=temporal_disk floor=default floor_value=0.0099999998 reference=0.267288643 mean=0.267457262 batch_se=0.000337271064 rmse=0.0293665403 mse=0.00086239369 mse_se=1.56351557e-05 delta_low_vs_default=-6.61700188e-05 delta_se=1.25596787e-05 mean_rays=5888.844 warm_rays=16573.500 temporal=32768 spatial=123542 mean_gate=1 quality_low=1 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=coat mode=temporal_disk floor=lower floor_value=9.9999997e-05 reference=0.267288643 mean=0.267520854 batch_se=0.000323785361 rmse=0.0282174356 mse=0.000796223671 mse_se=7.22862508e-06 delta_low_vs_default=-6.61700188e-05 delta_se=1.25596787e-05 mean_rays=5893.625 warm_rays=16586.625 temporal=32768 spatial=123542 mean_gate=1 quality_low=1 scale=1 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR_IDENTITY case=coat fresh1_max_scaled_difference=0
+REPLAY_MATERIAL_FLOOR starting=faint
+REPLAY_MATERIAL_FLOOR case=faint mode=fresh1 floor=default floor_value=0.0099999998 reference=0.53868709 mean=0.539757951 batch_se=0.00157114773 rmse=0.279632548 mse=0.0781943621 mse_se=0.000508827058 delta_low_vs_default=0 delta_se=0 mean_rays=1020.062 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1e+07 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=faint mode=fresh1 floor=lower floor_value=9.9999997e-05 reference=0.53868709 mean=0.539757951 batch_se=0.00157114773 rmse=0.279632548 mse=0.0781943621 mse_se=0.000508827058 delta_low_vs_default=0 delta_se=0 mean_rays=1020.062 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1e+07 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=faint mode=fresh4 floor=default floor_value=0.0099999998 reference=0.53868709 mean=0.539346257 batch_se=0.00172568007 rmse=0.278264193 mse=0.0774309609 mse_se=0.000593027263 delta_low_vs_default=-6.4498219e-05 delta_se=1.46425469e-05 mean_rays=4080.500 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=1 scale=1e+07 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=faint mode=fresh4 floor=lower floor_value=9.9999997e-05 reference=0.53868709 mean=0.539370345 batch_se=0.00170824052 rmse=0.278148275 mse=0.0773664627 mse_se=0.000588280283 delta_low_vs_default=-6.4498219e-05 delta_se=1.46425469e-05 mean_rays=4080.500 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=1 scale=1e+07 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=faint mode=temporal_disk floor=default floor_value=0.0099999998 reference=0.53868709 mean=0.540173325 batch_se=0.0019154407 rmse=0.278771016 mse=0.0777132795 mse_se=0.000842587449 delta_low_vs_default=-7.92107595e-05 delta_se=1.7063888e-05 mean_rays=5889.219 warm_rays=16641.750 temporal=32768 spatial=123564 mean_gate=1 quality_low=1 scale=1e+07 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=faint mode=temporal_disk floor=lower floor_value=9.9999997e-05 reference=0.53868709 mean=0.540251418 batch_se=0.00190480045 rmse=0.278628909 mse=0.0776340687 mse_se=0.000838681107 delta_low_vs_default=-7.92107595e-05 delta_se=1.7063888e-05 mean_rays=5889.219 warm_rays=16641.750 temporal=32768 spatial=123564 mean_gate=1 quality_low=1 scale=1e+07 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR_IDENTITY case=faint fresh1_max_scaled_difference=0
+REPLAY_MATERIAL_FLOOR starting=dim
+REPLAY_MATERIAL_FLOOR case=dim mode=fresh1 floor=default floor_value=0.0099999998 reference=0.538532468 mean=0.538438683 batch_se=0.00146825973 rmse=0.27855443 mse=0.0775925703 mse_se=0.000532115226 delta_low_vs_default=0 delta_se=0 mean_rays=1020.531 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1e+03 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=dim mode=fresh1 floor=lower floor_value=9.9999997e-05 reference=0.538532468 mean=0.538438683 batch_se=0.00146825973 rmse=0.27855443 mse=0.0775925703 mse_se=0.000532115226 delta_low_vs_default=0 delta_se=0 mean_rays=1020.531 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=0 scale=1e+03 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=dim mode=fresh4 floor=default floor_value=0.0099999998 reference=0.538532468 mean=0.537571994 batch_se=0.00135438621 rmse=0.264621768 mse=0.0700246802 mse_se=0.000428590309 delta_low_vs_default=-0.0494122705 delta_se=0.000394348907 mean_rays=4080.875 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=1 scale=1e+03 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=dim mode=fresh4 floor=lower floor_value=9.9999997e-05 reference=0.538532468 mean=0.538200727 batch_se=0.000722196064 rmse=0.143570225 mse=0.0206124096 mse_se=0.000133114602 delta_low_vs_default=-0.0494122705 delta_se=0.000394348907 mean_rays=4080.875 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_low=1 scale=1e+03 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=dim mode=temporal_disk floor=default floor_value=0.0099999998 reference=0.538532468 mean=0.541481601 batch_se=0.00180309379 rmse=0.263651757 mse=0.0695122487 mse_se=0.000589130745 delta_low_vs_default=-0.0635558824 delta_se=0.000575161925 mean_rays=5886.344 warm_rays=16631.406 temporal=32768 spatial=123478 mean_gate=1 quality_low=1 scale=1e+03 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR case=dim mode=temporal_disk floor=lower floor_value=9.9999997e-05 reference=0.538532468 mean=0.541211879 batch_se=0.00080559478 rmse=0.0771774987 mse=0.00595636631 mse_se=8.46249087e-05 delta_low_vs_default=-0.0635558824 delta_se=0.000575161925 mean_rays=5899.344 warm_rays=16658.312 temporal=32768 spatial=123478 mean_gate=1 quality_low=1 scale=1e+03 batches=32 pixels=1024
+REPLAY_MATERIAL_FLOOR_IDENTITY case=dim fresh1_max_scaled_difference=0
+REPLAY_MATERIAL_FLOOR_REVISION reset=1 exact=1 temporal=0
+PASS ReplayMaterialFloorValidation

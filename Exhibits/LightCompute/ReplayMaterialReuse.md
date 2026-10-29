@@ -50,7 +50,9 @@ The faint fixture's average **unscaled** radiance is approximately `5.39e-8`, wh
 `0.01`. The floor therefore dominates the selection target, making candidates nearly uniform regardless of
 their contribution. A positive floor protects proposal support; removing it would be unsafe. The existing
 recorder permits smaller positive floors down to `1e-4`, but even that is much larger than this example's
-radiance. A separate bounded floor-sensitivity study is needed before changing the default or domain.
+radiance. A subsequent [bounded floor-sensitivity study](ReplayMaterialFloor.md) found a large quality
+improvement for a less-faint homogeneous holdout but almost none for this case. It did not change the default or
+domain and does not establish safety for mixed donors or visibility changes.
 
 | Revision control | Outcome |
 | --- | --- |

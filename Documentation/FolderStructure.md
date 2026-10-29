@@ -104,8 +104,9 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   `RunReplayTransmission.sh`, `RunReplaySubmissionSequence.sh`, `Results/` and `Images/` retain reproducible evidence.
 - `ReplayMaterialSamplingValidation.{h,slang}` owns the actual-sampler and independent hemisphere checks;
   `ReplayMaterialPathValidation.h` checks recorded material/diffuse paths against separate integrals.
-  `ReplayMaterialReuseValidation.h` checks bounded temporal/spatial materials and C++ revision resets. Their
-  run scripts, reports and retained images/logs preserve the measured evidence and its limitations.
+  `ReplayMaterialReuseValidation.h` checks bounded temporal/spatial materials and C++ revision resets;
+  `ReplayMaterialFloorValidation.h` compares two accepted target floors and tests floor-revision invalidation.
+  Their run scripts, reports and retained images/logs preserve the measured evidence and its limitations.
 - `ReplayBranchComparison.md` records the compared peer revision and non-equivalent benchmark boundaries. None of
   these files connects the renderer to the editor viewport.
 
