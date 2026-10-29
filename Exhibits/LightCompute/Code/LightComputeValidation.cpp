@@ -1903,11 +1903,19 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplayMaterialReuseValidation.h"
 #include "ReplayMaterialFloorValidation.h"
 #include "ReplayMixedMaterialValidation.h"
+#include "ReplayMaterialGuardValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
     try
     {
+        if (Count == 4 && (std::string(Arguments[3]) == "--replay-material-guard-baseline" ||
+                           std::string(Arguments[3]) == "--replay-material-guard-candidate"))
+        {
+            ValidateReplayMaterialGuard(Arguments[1], Arguments[2],
+                                        std::string(Arguments[3]) == "--replay-material-guard-candidate");
+            return 0;
+        }
         if (Count == 4 && std::string(Arguments[3]) == "--replay-mixed-material")
         {
             ValidateReplayMixedMaterial(Arguments[1], Arguments[2]);

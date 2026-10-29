@@ -1,0 +1,853 @@
+Test-only material-boundary guard holdout; SwiftShader and shaders are not sanitizer-instrumented.
+Base 69fbe59, plus working changes if any; source hashes follow.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
+494e342089d7d8de39ec53846b6ba878af58431e46bb348ecf40e6e487107f0d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+28dd31def1deb1fd78a29d6aa389ea63aea394880301dc49eb6d327db7adc79a  Frontier/Engine/Rendering/PathReplaySubmissionSequence.cpp
+b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+2d3f7225ff06d61e15ea1036fc3d7c156c764031d62fa3ed394d6da16fb332ed  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9  Engine/Render/Shader/ScatteringEvaluation.slang
+eec91c6476cc7d9787cc81a4510c7866439629ab4a4e1566399e526a9c19c4b8  Engine/Render/Shader/AutomotivePaint.slang
+1e9401d856b2e52b561d81a101a5ac04957a0f27474e2690ae63e65e945032b2  Exhibits/LightCompute/Code/ReplayPbrReflectionGpuValidation.h
+6008472e0db6b2caa3d59adc090f3a29a49db4e3bd7520b3620858e5a968f7d3  Exhibits/LightCompute/Code/ReplayMaterialSamplingValidation.h
+b67bef7c640328f2fe236a73084eacdf0f3ac31b93b5ebde738112ba364a71c8  Exhibits/LightCompute/Code/ReplayMaterialPathValidation.h
+4317021f6b63ae5dc44fe1f176f6e479f099f384c6cb206ac25b007cbb1dfd6c  Exhibits/LightCompute/Code/ReplayMaterialReuseValidation.h
+0ffc06132224edcedc4f68b05f66dc3802f5f18a53ce4e331c2ad6ee86d9a02f  Exhibits/LightCompute/Code/ReplayMaterialFloorValidation.h
+21cedd321a4ec5ac9651e9af6edc7ce9038ce99733b0c235b066a481477cf78f  Exhibits/LightCompute/Code/ReplayMixedMaterialValidation.h
+b49c5419022cee305ea8ce6446ca156d0e44f188ae562aacc890feb4565d7bd1  Exhibits/LightCompute/Code/ReplayMaterialGuardValidation.h
+9e6f35b50d2262e0d7f7d0e6822c012b90e854fef8694b17c503c02529000a6a  Exhibits/LightCompute/Code/ReplayMaterialGuardLinks.slang
+4fc02920758807da404da45c98a0c5918504ccd6509c58ae4c12302fa863faa1  Exhibits/LightCompute/Code/ReplayMaterialGuardCandidate.py
+01cab010cb5b7694a78ee4c1a586ae193937c159d8fe15fc1cb7e9897e9e9fe8  Exhibits/LightCompute/Code/ReplayMaterialGuardSummary.py
+ab54d2d430e1de36f5e3d7acf9be98c57724ddac7b4d2bc9e19333cf2d442e73  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+1121e38f6d1af360300cb342919d45294acc0332e7fa55b70d0a7f915d16a9b5  /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release/test-only-source/PathReplayReservoir.slang
+672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release/baseline/Primary.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release/baseline/ReplayGenerate.spv
+5bfe8da35cb3e050cb805c6bbc02d8dd401c97871ab60f283c57eff20423b229  /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release/baseline/ReplayResolve.spv
+4cfeacb045c1f67f0828e5e0931ccd21393a820fd60a099f30a7b0bfb63b4016  /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release/baseline/ReplayGuardLinks.spv
+672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release/guard/Primary.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release/guard/ReplayGenerate.spv
+1ec564c96ab1578a7865a0137278a83eea79f7bd905487b579972e8db4480320  /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release/guard/ReplayResolve.spv
+2630f0e016afbe95591144437e1239ab11392a8de9fce9a83a14ff83959331d4  /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release/guard/ReplayGuardLinks.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-material-guard-release
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.00 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.00 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.00 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.11 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.09 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.08 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 10
+
+Total Test time (real) =   1.31 sec
+REPLAY_GUARD arm=baseline preparing production pipelines on SwiftShader Device (Subzero)
+REPLAY_GUARD arm=baseline pipelines_ready=1
+REPLAY_GUARD_REFERENCE arm=baseline scene=mixed group=dim reference=0.439914993 coarse=0.439915149 scale=1e+03
+REPLAY_GUARD_REFERENCE arm=baseline scene=mixed group=metal reference=0.625657179 coarse=0.625657977 scale=1
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=0 mean=0.428989267675 mse=0.120829127771 max_pixel=1.14224501885 hash=306bbf510a8bb9f8
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=0 mean=0.623963282007 mse=0.185986095024 max_pixel=1.03851008415 hash=6d6d00588af09dce
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=0 mean=0.428989267675 mse=0.120829127771 max_pixel=1.14224501885 hash=306bbf510a8bb9f8
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=0 mean=0.623963282007 mse=0.185986095024 max_pixel=1.03851008415 hash=6d6d00588af09dce
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=0 mean=0.421638606682 mse=0.23398215753 max_pixel=4.12780232728 hash=79e33e942f0c2db8
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=0 mean=0.613823255495 mse=0.0242528477593 max_pixel=0.977103173733 hash=42c62e767f1117cb
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=0 mean=0.362483375284 mse=0.0222987110906 max_pixel=0.740772113204 hash=427630abf9a5b1e0
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=0 mean=0.584746825072 mse=0.0544962072947 max_pixel=1.54588329792 hash=9f9476d9ae0b5838
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=1 mean=0.451305354275 mse=0.114258915644 max_pixel=1.14170229062 hash=9bcae24fce16f535
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=1 mean=0.668648299601 mse=0.168375616801 max_pixel=1.03889775276 hash=b1b87d64126e247a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=1 mean=0.451305354275 mse=0.114258915644 max_pixel=1.14170229062 hash=9bcae24fce16f535
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=1 mean=0.668648299601 mse=0.168375616801 max_pixel=1.03889775276 hash=b1b87d64126e247a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=1 mean=0.482746897177 mse=1.31597716638 max_pixel=16.4502300322 hash=e8e4893cf3c23bd9
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=1 mean=0.623054165393 mse=0.0253492056805 max_pixel=0.948799848557 hash=d23909d4f36931ef
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=1 mean=0.36934220816 mse=0.0215652390427 max_pixel=0.84667140618 hash=427386156b84cf09
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=1 mean=0.588614760549 mse=0.0577963561786 max_pixel=1.96511781216 hash=69607cc119589e50
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=2 mean=0.44481222379 mse=0.123078360746 max_pixel=1.14016165026 hash=823d466096557cb1
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=2 mean=0.615730909965 mse=0.184269721068 max_pixel=1.03911316395 hash=6376ba03ac2d6540
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=2 mean=0.44481222379 mse=0.123078360746 max_pixel=1.14016165026 hash=823d466096557cb1
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=2 mean=0.615730909965 mse=0.184269721068 max_pixel=1.03911316395 hash=6376ba03ac2d6540
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=2 mean=0.452510957317 mse=0.699165599763 max_pixel=9.93411522359 hash=973b4cda017c59cd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=2 mean=0.621602464264 mse=0.0255255279194 max_pixel=0.955770552158 hash=ce2d6ef6d8a4e5e1
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=2 mean=0.366741060105 mse=0.0245665427681 max_pixel=0.79987058416 hash=2126c3b13a63f1a5
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=2 mean=0.600682743956 mse=0.0573400257918 max_pixel=1.91930496693 hash=40d4798c8ebc67aa
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=3 mean=0.419918140295 mse=0.115312049751 max_pixel=1.14188937005 hash=2cd4c0ff8f9f232b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=3 mean=0.617649912267 mse=0.188187105434 max_pixel=1.0399004221 hash=d441783e533a1701
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=3 mean=0.419918140295 mse=0.115312049751 max_pixel=1.14188937005 hash=2cd4c0ff8f9f232b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=3 mean=0.617649912267 mse=0.188187105434 max_pixel=1.0399004221 hash=d441783e533a1701
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=3 mean=0.390820661494 mse=0.332071191051 max_pixel=5.8974372223 hash=f91cf9377b582890
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=3 mean=0.616258671391 mse=0.0247124595842 max_pixel=0.937563955784 hash=b50ae85bd357476c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=3 mean=0.363040444086 mse=0.0214701854998 max_pixel=0.771340040956 hash=1a527d1a24cbda18
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=3 mean=0.610609274896 mse=0.0610869733506 max_pixel=2.05077219009 hash=c33670bd73e6f58b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=4 mean=0.423934624379 mse=0.117382727347 max_pixel=1.14401069004 hash=c29df4044f2f1465
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=4 mean=0.631392293973 mse=0.178398675606 max_pixel=1.04017364979 hash=aa5992989038b376
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=4 mean=0.423934624379 mse=0.117382727347 max_pixel=1.14401069004 hash=c29df4044f2f1465
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=4 mean=0.631392293973 mse=0.178398675606 max_pixel=1.04017364979 hash=aa5992989038b376
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=4 mean=0.490099922104 mse=1.9023176978 max_pixel=15.1727115735 hash=27857e2779631a6e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=4 mean=0.651527839713 mse=0.0263787541608 max_pixel=0.967215120792 hash=c20cd5b515914348
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=4 mean=0.348931788267 mse=0.0249665749047 max_pixel=0.78085163841 hash=7daff5ec12d54140
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=4 mean=0.665153610171 mse=0.0894091944115 max_pixel=2.90351438522 hash=7a7736e658de6ce1
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=5 mean=0.450829198712 mse=0.124976514193 max_pixel=1.13765662536 hash=6bd780bc10a213d2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=5 mean=0.658794813164 mse=0.179051166528 max_pixel=1.03844559193 hash=813e7369db669ecd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=5 mean=0.450829198712 mse=0.124976514193 max_pixel=1.13765662536 hash=6bd780bc10a213d2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=5 mean=0.658794813164 mse=0.179051166528 max_pixel=1.03844559193 hash=813e7369db669ecd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=5 mean=0.418351515123 mse=0.274085125518 max_pixel=6.17030356079 hash=af662a91a4ee63ee
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=5 mean=0.613754725113 mse=0.0231018002252 max_pixel=0.97484099865 hash=3a6227ee92795c45
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=5 mean=0.37552022556 mse=0.0238574403779 max_pixel=0.849372008815 hash=f27857ac0c9b3582
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=5 mean=0.620617724606 mse=0.0572901441148 max_pixel=1.74923014641 hash=a00fd574b69abc76
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=6 mean=0.434449761684 mse=0.119376320964 max_pixel=1.13865558524 hash=66bb5aec2b9e2658
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=6 mean=0.624642826602 mse=0.190628340437 max_pixel=1.04021573067 hash=96b615c2197c7b94
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=6 mean=0.434449761684 mse=0.119376320964 max_pixel=1.13865558524 hash=66bb5aec2b9e2658
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=6 mean=0.624642826602 mse=0.190628340437 max_pixel=1.04021573067 hash=96b615c2197c7b94
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=6 mean=0.437823009207 mse=0.824037733265 max_pixel=10.525749065 hash=d7be04f0f8279933
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=6 mean=0.636459246249 mse=0.0259679199404 max_pixel=0.976782619953 hash=868ab0522cfb6124
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=6 mean=0.357388100724 mse=0.0249395071132 max_pixel=0.746568955947 hash=43c65ba78c36195b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=6 mean=0.632731789403 mse=0.0755539349818 max_pixel=2.54755091667 hash=e8e32c0c7aeeee10
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=7 mean=0.45192611131 mse=0.127657410995 max_pixel=1.14400708117 hash=4e8df0f56828763d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=7 mean=0.627937618556 mse=0.180559019289 max_pixel=1.04018068314 hash=c7ad86aa6fd0620c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=7 mean=0.45192611131 mse=0.127657410995 max_pixel=1.14400708117 hash=4e8df0f56828763d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=7 mean=0.627937618556 mse=0.180559019289 max_pixel=1.04018068314 hash=c7ad86aa6fd0620c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=7 mean=0.554203712824 mse=1.0711768473 max_pixel=9.12955589592 hash=a2d3642735354dfd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=7 mean=0.635869634312 mse=0.0236065874794 max_pixel=0.957196652889 hash=b0c109d4cafbdd7f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=7 mean=0.37423254247 mse=0.0221322304524 max_pixel=0.755226996262 hash=04a77e156df0ae0e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=7 mean=0.651578463894 mse=0.0853437577603 max_pixel=2.29764890671 hash=9354a46f49867206
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=8 mean=0.412525036424 mse=0.111780891962 max_pixel=1.14269938786 hash=72794ef6c9d1be83
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=8 mean=0.588488870388 mse=0.188809139591 max_pixel=1.03957009315 hash=d1ca607778a047b2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=8 mean=0.412525036424 mse=0.111780891962 max_pixel=1.14269938786 hash=72794ef6c9d1be83
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=8 mean=0.588488870388 mse=0.188809139591 max_pixel=1.03957009315 hash=d1ca607778a047b2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=8 mean=0.491814713314 mse=1.41439105308 max_pixel=15.7848577946 hash=70629f76c20b8635
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=8 mean=0.625532873804 mse=0.0269344431545 max_pixel=0.975168049335 hash=8bf9b80f221dcb05
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=8 mean=0.371898056954 mse=0.023182465076 max_pixel=0.839086656924 hash=56b9bde47939e3a0
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=8 mean=0.6190733806 mse=0.0587103688943 max_pixel=1.67986273766 hash=f4183ac0b53259ac
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=9 mean=0.45008297738 mse=0.123166711614 max_pixel=1.1430674931 hash=01bc8471e1eb4262
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=9 mean=0.632329868808 mse=0.178308243325 max_pixel=1.04000353813 hash=1abe784d3533468b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=9 mean=0.45008297738 mse=0.123166711614 max_pixel=1.1430674931 hash=01bc8471e1eb4262
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=9 mean=0.632329868808 mse=0.178308243325 max_pixel=1.04000353813 hash=1abe784d3533468b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=9 mean=0.447935608371 mse=0.745460828468 max_pixel=13.2082188502 hash=b1b2e7d740c12086
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=9 mean=0.624854597641 mse=0.0238963447407 max_pixel=1.00724053383 hash=7a82473b3460bc02
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=9 mean=0.37575604324 mse=0.0215833117703 max_pixel=0.912603863981 hash=10a7a2143d43baaa
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=9 mean=0.613382697091 mse=0.0598153799665 max_pixel=1.8330347538 hash=fb2acd441ead908d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=10 mean=0.452025570837 mse=0.121117836566 max_pixel=1.14178331569 hash=72d2fe3b1ad2decf
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=10 mean=0.630050308027 mse=0.179567074616 max_pixel=1.03841078281 hash=183b468b4a549110
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=10 mean=0.452025570837 mse=0.121117836566 max_pixel=1.14178331569 hash=72d2fe3b1ad2decf
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=10 mean=0.630050308027 mse=0.179567074616 max_pixel=1.03841078281 hash=183b468b4a549110
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=10 mean=0.409060877132 mse=0.386893184715 max_pixel=7.66573892906 hash=347cf0c9b14474b0
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=10 mean=0.642073727446 mse=0.020227176553 max_pixel=0.987153947353 hash=ed3798fd9a7347b7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=10 mean=0.366655190462 mse=0.0193985535359 max_pixel=0.756144174375 hash=1477e53f46a9b0c8
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=10 mean=0.613349397405 mse=0.0625065956657 max_pixel=2.74869298935 hash=830f8afec33b68e3
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=11 mean=0.430718655295 mse=0.125471579417 max_pixel=1.14390009549 hash=f6b75bbc8c63b00c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=11 mean=0.620960702814 mse=0.187257820442 max_pixel=1.03717207909 hash=aaa5ede335675140
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=11 mean=0.430718655295 mse=0.125471579417 max_pixel=1.14390009549 hash=f6b75bbc8c63b00c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=11 mean=0.620960702814 mse=0.187257820442 max_pixel=1.03717207909 hash=aaa5ede335675140
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=11 mean=0.384809455625 mse=0.349980605819 max_pixel=8.74077063054 hash=86a52961c62b75ab
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=11 mean=0.63898407534 mse=0.0248967610568 max_pixel=0.981761753559 hash=eff1f7a7aaaebb34
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=11 mean=0.371538852932 mse=0.0185117607469 max_pixel=0.796531559899 hash=27ec421cbe1d1089
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=11 mean=0.637300882576 mse=0.063295128659 max_pixel=1.99561822414 hash=775993ace6652f84
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=12 mean=0.428934431113 mse=0.119379257347 max_pixel=1.14225072321 hash=01cc4f66b12a7c8d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=12 mean=0.624171613046 mse=0.183031318723 max_pixel=1.03872394562 hash=fdadbae6eeab90db
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=12 mean=0.428934431113 mse=0.119379257347 max_pixel=1.14225072321 hash=01cc4f66b12a7c8d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=12 mean=0.624171613046 mse=0.183031318723 max_pixel=1.03872394562 hash=fdadbae6eeab90db
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=12 mean=0.492103311672 mse=1.11110776163 max_pixel=11.0440840945 hash=763c706b2e3e0772
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=12 mean=0.649339618045 mse=0.0250093016272 max_pixel=1.00167107582 hash=08a653bf6da52fb8
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=12 mean=0.3561380571 mse=0.0245138023235 max_pixel=0.724822457414 hash=1fe9149bc4217e13
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=12 mean=0.625174166853 mse=0.0668640875465 max_pixel=2.00554060936 hash=982158b3035dc879
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=13 mean=0.44243326883 mse=0.123974431567 max_pixel=1.13988528028 hash=234b09ae3a487298
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=13 mean=0.649950937281 mse=0.177239463275 max_pixel=1.0399838686 hash=dda7400afd5ed5d9
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=13 mean=0.44243326883 mse=0.123974431567 max_pixel=1.13988528028 hash=234b09ae3a487298
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=13 mean=0.649950937281 mse=0.177239463275 max_pixel=1.0399838686 hash=dda7400afd5ed5d9
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=13 mean=0.381188561491 mse=0.243305678741 max_pixel=5.28862886131 hash=f8b4b6878786a9a2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=13 mean=0.619534167723 mse=0.0238157880631 max_pixel=0.991647183895 hash=9243efed80a593bc
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=13 mean=0.360571608297 mse=0.0271113526621 max_pixel=0.785982352681 hash=bfa18ae0f111b2ab
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=13 mean=0.602080568948 mse=0.0633411694317 max_pixel=2.02979922295 hash=3562b9f338c1779b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=14 mean=0.431297754332 mse=0.11696635102 max_pixel=1.14329019561 hash=a2845a7ba85e70cd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=14 mean=0.589717846771 mse=0.194346495297 max_pixel=1.0388892889 hash=4a00c73969250958
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=14 mean=0.431297754332 mse=0.11696635102 max_pixel=1.14329019561 hash=a2845a7ba85e70cd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=14 mean=0.589717846771 mse=0.194346495297 max_pixel=1.0388892889 hash=4a00c73969250958
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=14 mean=0.444227661632 mse=1.20303993822 max_pixel=19.4566883147 hash=a64bc5777e047107
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=14 mean=0.617753512444 mse=0.0248864597582 max_pixel=0.990787088871 hash=86700960dea39e9d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=14 mean=0.364276358766 mse=0.0202650327859 max_pixel=0.705902115442 hash=ebea7c3bac9de26e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=14 mean=0.59886465485 mse=0.0601065905698 max_pixel=1.67049574852 hash=8f52e124ba6bb918
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=15 mean=0.450801791203 mse=0.122484578146 max_pixel=1.14417227451 hash=0a7541ad2dce4c4c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=15 mean=0.63310241561 mse=0.182327490385 max_pixel=1.0386826992 hash=486b44e621fd4766
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=15 mean=0.450801791203 mse=0.122484578146 max_pixel=1.14417227451 hash=0a7541ad2dce4c4c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=15 mean=0.63310241561 mse=0.182327490385 max_pixel=1.0386826992 hash=486b44e621fd4766
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=15 mean=0.386813679341 mse=0.178499835524 max_pixel=3.8354578428 hash=c813be11eba6717e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=15 mean=0.630941183656 mse=0.0268811271226 max_pixel=0.96235537529 hash=e38ab4d888312b20
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=15 mean=0.360813491582 mse=0.0260142847109 max_pixel=0.912953284569 hash=2ae4d509e75d4a31
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=15 mean=0.6218228199 mse=0.0702422890212 max_pixel=2.31616902351 hash=3dc40cf43a73661a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=16 mean=0.441783381063 mse=0.123449526665 max_pixel=1.1439321097 hash=bb8123dbf7b8c7e4
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=16 mean=0.628433168531 mse=0.185369677696 max_pixel=1.03984248638 hash=7302010ef483a1a6
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=16 mean=0.441783381063 mse=0.123449526665 max_pixel=1.1439321097 hash=bb8123dbf7b8c7e4
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=16 mean=0.628433168531 mse=0.185369677696 max_pixel=1.03984248638 hash=7302010ef483a1a6
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=16 mean=0.5385216989 mse=1.71377209964 max_pixel=11.528916657 hash=ae5a2feba409348a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=16 mean=0.615628630156 mse=0.0232393174309 max_pixel=0.960169017315 hash=d88910a5eec7cc91
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=16 mean=0.36801413188 mse=0.022274735839 max_pixel=0.737373600714 hash=bf0386d6468d8fdf
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=16 mean=0.602214590341 mse=0.0577508270614 max_pixel=1.90928530693 hash=def373f8b3faa997
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=17 mean=0.438881297299 mse=0.129868171801 max_pixel=1.13694451284 hash=49308cdd75e03a24
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=17 mean=0.619754526662 mse=0.183407552712 max_pixel=1.03994512558 hash=ebbd42af8a3a8564
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=17 mean=0.438881297299 mse=0.129868171801 max_pixel=1.13694451284 hash=49308cdd75e03a24
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=17 mean=0.619754526662 mse=0.183407552712 max_pixel=1.03994512558 hash=ebbd42af8a3a8564
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=17 mean=0.398251044516 mse=0.162580209276 max_pixel=3.53669351898 hash=a092f36dc6febb4f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=17 mean=0.608838320739 mse=0.0281373794338 max_pixel=0.97977823019 hash=2dee504cf440da14
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=17 mean=0.361653886102 mse=0.0233668331662 max_pixel=0.693343114108 hash=6a4c16bf22fe59b9
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=17 mean=0.625983556471 mse=0.106349976306 max_pixel=2.56525635719 hash=9946eb8bbda72375
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=18 mean=0.430844588067 mse=0.115774340699 max_pixel=1.14283117 hash=6c42d7922567bff9
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=18 mean=0.648959095051 mse=0.181148465343 max_pixel=1.03992044926 hash=3a1303b16b42ff2e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=18 mean=0.430844588067 mse=0.115774340699 max_pixel=1.14283117 hash=6c42d7922567bff9
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=18 mean=0.648959095051 mse=0.181148465343 max_pixel=1.03992044926 hash=3a1303b16b42ff2e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=18 mean=0.378260145553 mse=0.0948513912999 max_pixel=1.39825209044 hash=29605cc05bc27af7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=18 mean=0.644798349676 mse=0.0238640105495 max_pixel=0.981297433376 hash=1e1c7dc7cb15504b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=18 mean=0.371074110404 mse=0.0239377561655 max_pixel=0.979367527179 hash=afd13c79a80bece2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=18 mean=0.617792297358 mse=0.0632978981287 max_pixel=2.26921749115 hash=fd7ee7158027d05f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=19 mean=0.464352275685 mse=0.120268687156 max_pixel=1.14247854799 hash=863ef0c1ae2496a7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=19 mean=0.625739488154 mse=0.189913290955 max_pixel=1.040143013 hash=38dd43d33ae6a8b7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=19 mean=0.464352275685 mse=0.120268687156 max_pixel=1.14247854799 hash=863ef0c1ae2496a7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=19 mean=0.625739488154 mse=0.189913290955 max_pixel=1.040143013 hash=38dd43d33ae6a8b7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=19 mean=0.489396447051 mse=1.09747411057 max_pixel=16.8496742845 hash=aa60bd80e19bdeda
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=19 mean=0.652870448917 mse=0.0249023596221 max_pixel=0.995374679565 hash=f51de9952b5cf2b0
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=19 mean=0.375345418433 mse=0.02013432559 max_pixel=0.766971730627 hash=4db80cff2566a6fb
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=19 mean=0.666635848494 mse=0.101412711514 max_pixel=2.85900521278 hash=e2928f6c4ba4cb5e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=20 mean=0.450904171785 mse=0.126038735865 max_pixel=1.14357215352 hash=bba9c0e75b15e99c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=20 mean=0.615722750052 mse=0.185001644076 max_pixel=1.03855311871 hash=f3c3f183dfd4c770
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=20 mean=0.450904171785 mse=0.126038735865 max_pixel=1.14357215352 hash=bba9c0e75b15e99c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=20 mean=0.615722750052 mse=0.185001644076 max_pixel=1.03855311871 hash=f3c3f183dfd4c770
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=20 mean=0.455873828273 mse=1.18662067393 max_pixel=12.3616624624 hash=031533500c9bb334
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=20 mean=0.628734411308 mse=0.0248241641419 max_pixel=0.960557222366 hash=5cf23ec47112ff0e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=20 mean=0.366377899724 mse=0.0230451366399 max_pixel=0.69616077235 hash=4b647679e97e6fa1
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=20 mean=0.652512650893 mse=0.114453941743 max_pixel=2.82869768143 hash=7a5f3abf340caa92
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=21 mean=0.455984977464 mse=0.126502968231 max_pixel=1.1423851829 hash=5d1a1dc0e9858487
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=21 mean=0.612935917321 mse=0.185841945817 max_pixel=1.03972327709 hash=62f52c0023e30148
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=21 mean=0.455984977464 mse=0.126502968231 max_pixel=1.1423851829 hash=5d1a1dc0e9858487
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=21 mean=0.612935917321 mse=0.185841945817 max_pixel=1.03972327709 hash=62f52c0023e30148
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=21 mean=0.384813044803 mse=0.111587021558 max_pixel=2.95662949793 hash=3f3cf6b0298c8513
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=21 mean=0.626424839909 mse=0.0247543008752 max_pixel=0.990006089211 hash=b0b52be1ac6b9a54
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=21 mean=0.376162724535 mse=0.0202233891387 max_pixel=0.827232550364 hash=ceb4215fe4818015
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=21 mean=0.64729326946 mse=0.0984753712961 max_pixel=2.77841830254 hash=ab58e37479f182aa
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=22 mean=0.43467323249 mse=0.13056368533 max_pixel=1.14360323641 hash=3da929cd6f9b9066
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=22 mean=0.635688050359 mse=0.182433964219 max_pixel=1.03971326351 hash=99b4bde1d4f2d78b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=22 mean=0.43467323249 mse=0.13056368533 max_pixel=1.14360323641 hash=3da929cd6f9b9066
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=22 mean=0.635688050359 mse=0.182433964219 max_pixel=1.03971326351 hash=99b4bde1d4f2d78b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=22 mean=0.354311045299 mse=0.0929332489725 max_pixel=2.32137832791 hash=3d5786d04161b08d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=22 mean=0.624447421811 mse=0.0246928996385 max_pixel=0.984313428402 hash=b00f17405e221351
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=22 mean=0.372909106176 mse=0.0247832948514 max_pixel=0.833028927445 hash=30a51ab0c671ae84
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=22 mean=0.640774429892 mse=0.0831126386674 max_pixel=2.08388638496 hash=f290f8153b5c548e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=23 mean=0.445135774143 mse=0.130948091899 max_pixel=1.14313908853 hash=ce58be76af7b4270
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=23 mean=0.642648829846 mse=0.180419419955 max_pixel=1.03996455669 hash=93ec0fdb46256eab
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=23 mean=0.445135774143 mse=0.130948091899 max_pixel=1.14313908853 hash=ce58be76af7b4270
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=23 mean=0.642648829846 mse=0.180419419955 max_pixel=1.03996455669 hash=93ec0fdb46256eab
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=23 mean=0.436592292829 mse=0.389783713149 max_pixel=7.60014401749 hash=feb0bd14711705ac
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=23 mean=0.624601078191 mse=0.0252522600428 max_pixel=0.983976840973 hash=50263b98f3222053
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=23 mean=0.368168254028 mse=0.0238596471736 max_pixel=0.824121409096 hash=98b718a8e89fafe9
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=23 mean=0.655817604915 mse=0.106986741923 max_pixel=2.21941113472 hash=5eb70fed36c8203a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=24 mean=0.446619157827 mse=0.126991428195 max_pixel=1.14117865451 hash=5015fa0390a3ba6d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=24 mean=0.635386229551 mse=0.183876436298 max_pixel=1.04004240036 hash=c5e6927f4514f415
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=24 mean=0.446619157827 mse=0.126991428195 max_pixel=1.14117865451 hash=5015fa0390a3ba6d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=24 mean=0.635386229551 mse=0.183876436298 max_pixel=1.04004240036 hash=c5e6927f4514f415
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=24 mean=0.479817376657 mse=0.834029793052 max_pixel=8.75074137002 hash=cf0e732a3d7274b9
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=24 mean=0.626599699783 mse=0.0263744092447 max_pixel=0.962873458862 hash=6570bd6cebf48485
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=24 mean=0.370030862996 mse=0.0213958550895 max_pixel=1.09718297608 hash=eeab631b8653f387
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=24 mean=0.616486746701 mse=0.0602242305395 max_pixel=2.13335180283 hash=b3945c13149681cb
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=25 mean=0.42245596228 mse=0.115627159168 max_pixel=1.14239705727 hash=4ffdf6c11c5d2c7a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=25 mean=0.643320650968 mse=0.182809504523 max_pixel=1.03918218613 hash=6cc0d19acfac0149
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=25 mean=0.42245596228 mse=0.115627159168 max_pixel=1.14239705727 hash=4ffdf6c11c5d2c7a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=25 mean=0.643320650968 mse=0.182809504523 max_pixel=1.03918218613 hash=6cc0d19acfac0149
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=25 mean=0.399871544104 mse=0.620018303197 max_pixel=12.0057594031 hash=e9828ad4b5334c7f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=25 mean=0.632636040245 mse=0.0241066140176 max_pixel=0.977130174637 hash=913a5a62ffedc819
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=25 mean=0.367743821897 mse=0.0223530995962 max_pixel=0.792672741227 hash=dd711bdf0d2baee6
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=25 mean=0.663439283438 mse=0.0959057719969 max_pixel=2.64812421799 hash=03f1a359b271ddc5
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=26 mean=0.43068911647 mse=0.115395793741 max_pixel=1.14406994544 hash=4cc696c9fba09251
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=26 mean=0.630850247282 mse=0.18198861218 max_pixel=1.03995406628 hash=e2a47d65f52f5fd0
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=26 mean=0.43068911647 mse=0.115395793741 max_pixel=1.14406994544 hash=4cc696c9fba09251
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=26 mean=0.630850247282 mse=0.18198861218 max_pixel=1.03995406628 hash=e2a47d65f52f5fd0
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=26 mean=0.372865101951 mse=0.152723733594 max_pixel=6.01578457281 hash=2412179e8bb85641
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=26 mean=0.622932813043 mse=0.0227267672122 max_pixel=0.97742331028 hash=fa82f9f791bb7ceb
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=26 mean=0.365507127526 mse=0.0220367406126 max_pixel=0.740128918551 hash=73a5aba369b11ffc
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=26 mean=0.600924911807 mse=0.0700231897942 max_pixel=1.90573263168 hash=7562843debcae6f5
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=27 mean=0.448077349901 mse=0.123435628686 max_pixel=1.14412931725 hash=ad39a376abfc751d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=27 mean=0.646078364458 mse=0.179721849553 max_pixel=1.03828644753 hash=657940a2b13be1fb
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=27 mean=0.448077349901 mse=0.123435628686 max_pixel=1.14412931725 hash=ad39a376abfc751d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=27 mean=0.646078364458 mse=0.179721849553 max_pixel=1.03828644753 hash=657940a2b13be1fb
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=27 mean=0.39334505351 mse=0.140178472987 max_pixel=3.98921407759 hash=888d24cedc66faa3
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=27 mean=0.624199146259 mse=0.0238219173716 max_pixel=0.99254488945 hash=dfe9c997c1a16cab
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=27 mean=0.363608310323 mse=0.0257489921745 max_pixel=0.720464100596 hash=025b658d2e6449b7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=27 mean=0.64645551311 mse=0.0909299827215 max_pixel=2.44909381866 hash=448146c0ed8d0227
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=28 mean=0.43169059542 mse=0.119777883778 max_pixel=1.13871262874 hash=594fc0b0ec6b72a0
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=28 mean=0.612118694902 mse=0.185342828979 max_pixel=1.03666388988 hash=919b8a6c927482fd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=28 mean=0.43169059542 mse=0.119777883778 max_pixel=1.13871262874 hash=594fc0b0ec6b72a0
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=28 mean=0.612118694902 mse=0.185342828979 max_pixel=1.03666388988 hash=919b8a6c927482fd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=28 mean=0.403555650109 mse=0.865821527416 max_pixel=14.5478248596 hash=c6cf95cc8e0c9f14
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=28 mean=0.626638415735 mse=0.0261484125071 max_pixel=0.946199476719 hash=8a724f17f9a207e4
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=28 mean=0.349819450591 mse=0.0259023327871 max_pixel=0.78980793478 hash=0e77b41f0cf57846
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=28 mean=0.631857506698 mse=0.0761321156593 max_pixel=2.33431077003 hash=13b5ac7772d8059f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=29 mean=0.45249627145 mse=0.12181448446 max_pixel=1.1364214588 hash=45c73c27abda9691
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=29 mean=0.659917204204 mse=0.176142265175 max_pixel=1.03820586205 hash=5e43b5d7d573789d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=29 mean=0.45249627145 mse=0.12181448446 max_pixel=1.1364214588 hash=45c73c27abda9691
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=29 mean=0.659917204204 mse=0.176142265175 max_pixel=1.03820586205 hash=5e43b5d7d573789d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=29 mean=0.368098880472 mse=0.0858689201099 max_pixel=1.3771939557 hash=db650334ed92dc06
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=29 mean=0.631908957468 mse=0.0231532749362 max_pixel=1.00521659851 hash=3dfaa0d8e2b223fe
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=29 mean=0.3652835357 mse=0.0210247706023 max_pixel=0.698568881489 hash=092c5ee10c0f515c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=29 mean=0.649682137388 mse=0.0868132804225 max_pixel=2.16126608849 hash=de75a5e96104176c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=30 mean=0.440973226546 mse=0.125975825598 max_pixel=1.14395422861 hash=1d2c18f5465666fe
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=30 mean=0.633332887388 mse=0.183805727106 max_pixel=1.04007506371 hash=dcff689538b25287
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=30 mean=0.440973226546 mse=0.125975825598 max_pixel=1.14395422861 hash=1d2c18f5465666fe
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=30 mean=0.633332887388 mse=0.183805727106 max_pixel=1.04007506371 hash=dcff689538b25287
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=30 mean=0.399868005985 mse=0.147053200386 max_pixel=4.24084533006 hash=277a3bce7b2ab6a2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=30 mean=0.618207516382 mse=0.0269438945986 max_pixel=0.984408557415 hash=cecc6a3f29ec16e2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=30 mean=0.367900154771 mse=0.02307620098 max_pixel=0.740747491363 hash=227ad5e679095dd3
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=30 mean=0.601395931546 mse=0.0504774072439 max_pixel=1.80140888691 hash=5085266aacc014e2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=31 mean=0.417211675654 mse=0.122589430762 max_pixel=1.14133406896 hash=8bda2f2a5af09a8f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=31 mean=0.617292496056 mse=0.189242819302 max_pixel=1.0388982296 hash=04cf46b7d75dd986
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=31 mean=0.417211675654 mse=0.122589430762 max_pixel=1.14133406896 hash=8bda2f2a5af09a8f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=31 mean=0.617292496056 mse=0.189242819302 max_pixel=1.0388982296 hash=04cf46b7d75dd986
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=31 mean=0.365756944831 mse=0.107809198673 max_pixel=2.44685751386 hash=8b1ebb5ea4f6eb9d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=31 mean=0.627709246706 mse=0.0269998164311 max_pixel=0.973002076149 hash=17ef062fc7ffcd73
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=31 mean=0.360142020099 mse=0.0262296243917 max_pixel=0.787572411355 hash=10cc4276f0bea85a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=31 mean=0.637746377586 mse=0.0816578193302 max_pixel=2.73952102661 hash=0255f7cbaffad76c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=32 mean=0.464364584857 mse=0.135685651015 max_pixel=1.14294944797 hash=8bf33a2dffcf3b1a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=32 mean=0.596919395844 mse=0.19426835442 max_pixel=1.03837394714 hash=daffd5a3cefe8078
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=32 mean=0.464364584857 mse=0.135685651015 max_pixel=1.14294944797 hash=8bf33a2dffcf3b1a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=32 mean=0.596919395844 mse=0.19426835442 max_pixel=1.03837394714 hash=daffd5a3cefe8078
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=32 mean=0.414610901487 mse=0.263708452987 max_pixel=6.37668929994 hash=f428bab772641247
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=32 mean=0.618185001775 mse=0.0221014698489 max_pixel=0.929021835327 hash=1329a23c398ee749
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=32 mean=0.355230566655 mse=0.0233373712506 max_pixel=0.714331865311 hash=41964a4d1822a056
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=32 mean=0.609804043808 mse=0.0710001645747 max_pixel=2.09672546387 hash=f482224e59ba8cfe
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=33 mean=0.458121147318 mse=0.126230818198 max_pixel=1.1436380446 hash=41989a32228a6d71
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=33 mean=0.629066328946 mse=0.181202341365 max_pixel=1.0392267704 hash=61c87f5ff9049c8b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=33 mean=0.458121147318 mse=0.126230818198 max_pixel=1.1436380446 hash=41989a32228a6d71
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=33 mean=0.629066328946 mse=0.181202341365 max_pixel=1.0392267704 hash=61c87f5ff9049c8b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=33 mean=0.485008648383 mse=1.10509949047 max_pixel=14.6740311757 hash=19a32e753fe88359
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=33 mean=0.63193319636 mse=0.0233546249042 max_pixel=1.0146728754 hash=6d88cd8c0c7f07e9
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=33 mean=0.381770484523 mse=0.0193783756118 max_pixel=0.781053502578 hash=dcae5d95935fb4c0
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=33 mean=0.6227101775 mse=0.0594630220325 max_pixel=1.79101455212 hash=3f144f59421b1436
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=34 mean=0.454448153974 mse=0.123311580616 max_pixel=1.14379776642 hash=68d577332c6ae71c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=34 mean=0.636152356645 mse=0.186056870069 max_pixel=1.04024612904 hash=e64d62f2eb9497b7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=34 mean=0.454448153974 mse=0.123311580616 max_pixel=1.14379776642 hash=68d577332c6ae71c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=34 mean=0.636152356645 mse=0.186056870069 max_pixel=1.04024612904 hash=e64d62f2eb9497b7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=34 mean=0.428011614105 mse=0.639283532319 max_pixel=11.5177389234 hash=d7c96cecc115095b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=34 mean=0.635105601803 mse=0.0277765229916 max_pixel=0.9518699646 hash=33cb31fe7bbae0be
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=34 mean=0.37344855194 mse=0.021191885196 max_pixel=0.750404782593 hash=165ec5995f9bfed2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=34 mean=0.64146426291 mse=0.0963625807109 max_pixel=2.22230553627 hash=b8b5fe158d169ebc
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=35 mean=0.450054621453 mse=0.126951833098 max_pixel=1.14390905946 hash=521b32ca9dae8f3e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=35 mean=0.617786805975 mse=0.187982609008 max_pixel=1.03960227966 hash=31a02f4163f54aac
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=35 mean=0.450054621453 mse=0.126951833098 max_pixel=1.14390905946 hash=521b32ca9dae8f3e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=35 mean=0.617786805975 mse=0.187982609008 max_pixel=1.03960227966 hash=31a02f4163f54aac
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=35 mean=0.441367725955 mse=0.678048538335 max_pixel=8.49231984466 hash=58a48d30f074b4b4
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=35 mean=0.63466212507 mse=0.0260998557402 max_pixel=0.980531454086 hash=b71a3e7256eea2a5
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=35 mean=0.370428705878 mse=0.0227357077985 max_pixel=0.744019867852 hash=fe84b95d2074baa5
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=35 mean=0.64581610926 mse=0.0820101116019 max_pixel=1.97687649727 hash=cbe165736b3c170e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=36 mean=0.437727112569 mse=0.128489045517 max_pixel=1.14238937385 hash=3ee4e5067fab7058
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=36 mean=0.65578684803 mse=0.174189058883 max_pixel=1.0397708416 hash=920b8876c759f386
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=36 mean=0.437727112569 mse=0.128489045517 max_pixel=1.14238937385 hash=3ee4e5067fab7058
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=36 mean=0.65578684803 mse=0.174189058883 max_pixel=1.0397708416 hash=920b8876c759f386
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=36 mean=0.375667384446 mse=0.0952178893313 max_pixel=1.21728575323 hash=fe1ce62d9f93319b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=36 mean=0.625445944985 mse=0.023807319161 max_pixel=0.945204973221 hash=4f3f238a42d388fb
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=36 mean=0.366985007759 mse=0.0214217294501 max_pixel=0.67407975439 hash=15211aa563141599
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=36 mean=0.611629332212 mse=0.0654465664923 max_pixel=2.03039884567 hash=930efa1fd0b4bd00
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=37 mean=0.43288482992 mse=0.129060735822 max_pixel=1.14386435598 hash=cb049521e9e2281d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=37 mean=0.612923435838 mse=0.184933810324 max_pixel=1.03897643089 hash=97d9bbfadcc2fa2d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=37 mean=0.43288482992 mse=0.129060735822 max_pixel=1.14386435598 hash=cb049521e9e2281d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=37 mean=0.612923435838 mse=0.184933810324 max_pixel=1.03897643089 hash=97d9bbfadcc2fa2d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=37 mean=0.384611357816 mse=0.27924213077 max_pixel=5.98341878504 hash=fe17704556f946c1
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=37 mean=0.623948714696 mse=0.0252283568048 max_pixel=0.950669467449 hash=58a776001cae8d8f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=37 mean=0.362076691232 mse=0.0204553048932 max_pixel=0.747439917177 hash=0bd3f686b4e96b01
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=37 mean=0.60911929571 mse=0.0652993325723 max_pixel=1.73383700848 hash=f860f2d29fa7dfef
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=38 mean=0.431108547332 mse=0.125579893923 max_pixel=1.13672274165 hash=e410f8883e617f86
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=38 mean=0.584194645504 mse=0.194100092554 max_pixel=1.03745150566 hash=8f800f4a964c5309
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=38 mean=0.431108547332 mse=0.125579893923 max_pixel=1.13672274165 hash=e410f8883e617f86
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=38 mean=0.584194645504 mse=0.194100092554 max_pixel=1.03745150566 hash=8f800f4a964c5309
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=38 mean=0.505212110397 mse=1.37829928866 max_pixel=13.2001377642 hash=9b9972f5c4635312
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=38 mean=0.60714766517 mse=0.0255989663127 max_pixel=0.994752526283 hash=5a1a3e75e1ce6583
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=38 mean=0.363175503466 mse=0.0220491479088 max_pixel=0.778755522333 hash=df83d5bb57085479
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=38 mean=0.615751444013 mse=0.0803730919522 max_pixel=2.30462193489 hash=19f9ddaad670a8c8
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=39 mean=0.449532667872 mse=0.123979886761 max_pixel=1.14093523007 hash=1b800b5bc9db00f3
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=39 mean=0.645946609715 mse=0.175038322644 max_pixel=1.0392575264 hash=a72a3bb2d5a68f2f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=39 mean=0.449532667872 mse=0.123979886761 max_pixel=1.14093523007 hash=1b800b5bc9db00f3
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=39 mean=0.645946609715 mse=0.175038322644 max_pixel=1.0392575264 hash=a72a3bb2d5a68f2f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=39 mean=0.535234753826 mse=2.37605076906 max_pixel=16.9035084546 hash=db3d17da2e0f4d2b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=39 mean=0.618502450758 mse=0.0272858079893 max_pixel=0.98630297184 hash=6a707f5a87cbcfe6
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=39 mean=0.376086690068 mse=0.019922570102 max_pixel=0.77463418711 hash=da363a0bdc4048b6
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=39 mean=0.615214911071 mse=0.0584015350563 max_pixel=2.02343797684 hash=9135a80d01c85d40
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=40 mean=0.433830703599 mse=0.117993660025 max_pixel=1.14304816816 hash=77380e6f21d05ffc
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=40 mean=0.674333707328 mse=0.165375706614 max_pixel=1.03924155235 hash=53f3fe7538636993
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=40 mean=0.433830703599 mse=0.117993660025 max_pixel=1.14304816816 hash=77380e6f21d05ffc
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=40 mean=0.674333707328 mse=0.165375706614 max_pixel=1.03924155235 hash=53f3fe7538636993
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=40 mean=0.376505804923 mse=0.120369169507 max_pixel=2.71335942671 hash=7f912e05952b1952
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=40 mean=0.633708180714 mse=0.0249456114422 max_pixel=0.964583218098 hash=15705342eb6bf775
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=40 mean=0.364323292985 mse=0.0236213270006 max_pixel=0.730940315407 hash=70acaab4fc0f09a4
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=40 mean=0.607455299098 mse=0.0458513549353 max_pixel=1.52021086216 hash=c378a5731782670f
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=41 mean=0.451764180838 mse=0.12336515736 max_pixel=1.14188715816 hash=e6ac0b53e3ad7ca4
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=41 mean=0.660592975342 mse=0.178858802139 max_pixel=1.04031360149 hash=d250f417ce667d27
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=41 mean=0.451764180838 mse=0.12336515736 max_pixel=1.14188715816 hash=e6ac0b53e3ad7ca4
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=41 mean=0.660592975342 mse=0.178858802139 max_pixel=1.04031360149 hash=d250f417ce667d27
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=41 mean=0.333802016456 mse=0.0904812416231 max_pixel=1.06722803321 hash=6be0b260bd9fe571
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=41 mean=0.638996020803 mse=0.0229466633692 max_pixel=0.937981724739 hash=e4f6e5f14d3a8074
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=41 mean=0.351327510714 mse=0.0249736812496 max_pixel=0.874217250384 hash=27777ba74e6dbdfb
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=41 mean=0.661825903662 mse=0.0947897141556 max_pixel=2.74766254425 hash=f44ae4d306ac991d
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=42 mean=0.438563278081 mse=0.117113551472 max_pixel=1.13860017154 hash=71a651a90514e547
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=42 mean=0.636721530609 mse=0.181230034792 max_pixel=1.03948366642 hash=959c34edad1ed46c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=42 mean=0.438563278081 mse=0.117113551472 max_pixel=1.13860017154 hash=71a651a90514e547
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=42 mean=0.636721530609 mse=0.181230034792 max_pixel=1.03948366642 hash=959c34edad1ed46c
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=42 mean=0.495925133464 mse=1.91144145581 max_pixel=22.8217523545 hash=1565d993dfdf0719
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=42 mean=0.639626733944 mse=0.0233303937697 max_pixel=0.972313344479 hash=78dc0b8ee9071bfe
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=42 mean=0.366912535782 mse=0.0239606630098 max_pixel=0.732511514798 hash=db8467cd704899dc
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=42 mean=0.616886144897 mse=0.0583670472465 max_pixel=2.07793831825 hash=dca7dfa8476b8da8
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=43 mean=0.435033023507 mse=0.12450899074 max_pixel=1.1434124317 hash=33a1f6f7c7244a30
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=43 mean=0.653670920001 mse=0.174587122372 max_pixel=1.039888978 hash=3510017bddf4a254
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=43 mean=0.435033023507 mse=0.12450899074 max_pixel=1.1434124317 hash=33a1f6f7c7244a30
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=43 mean=0.653670920001 mse=0.174587122372 max_pixel=1.039888978 hash=3510017bddf4a254
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=43 mean=0.498574866157 mse=1.24962841744 max_pixel=11.8440743536 hash=ca19135c0154c2fa
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=43 mean=0.616385105881 mse=0.0249407625808 max_pixel=0.923105478287 hash=d8fff31fa8156d14
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=43 mean=0.370686533472 mse=0.0224483941812 max_pixel=0.78256247798 hash=bdf3e1c5906cd059
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=43 mean=0.6456974998 mse=0.0942647812153 max_pixel=2.66386890411 hash=fe3f1d812a120296
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=44 mean=0.420522930597 mse=0.119627106255 max_pixel=1.14384130575 hash=f399517f2b1e675e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=44 mean=0.60278370892 mse=0.184632323924 max_pixel=1.03996396065 hash=fd8e1018755a5fab
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=44 mean=0.420522930597 mse=0.119627106255 max_pixel=1.14384130575 hash=f399517f2b1e675e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=44 mean=0.60278370892 mse=0.184632323924 max_pixel=1.03996396065 hash=fd8e1018755a5fab
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=44 mean=0.447371683975 mse=1.0363837687 max_pixel=10.521132499 hash=8220491c2b9ef927
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=44 mean=0.623025787223 mse=0.0246414126669 max_pixel=0.987641572952 hash=5c9b4d7ee9e14d04
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=44 mean=0.346309028089 mse=0.0261988967467 max_pixel=0.798150838818 hash=158101d4a83bda60
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=44 mean=0.62380069428 mse=0.0624255481678 max_pixel=1.91785120964 hash=36e83581f793d293
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=45 mean=0.409655756158 mse=0.120516720747 max_pixel=1.14256120287 hash=6f91a51ec0b2c9b1
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=45 mean=0.649008888082 mse=0.181195617061 max_pixel=1.03710174561 hash=2b98a49e49f6d748
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=45 mean=0.409655756158 mse=0.120516720747 max_pixel=1.14256120287 hash=6f91a51ec0b2c9b1
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=45 mean=0.649008888082 mse=0.181195617061 max_pixel=1.03710174561 hash=2b98a49e49f6d748
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=45 mean=0.361108163922 mse=0.095315447879 max_pixel=1.89830036834 hash=58880a49e020a027
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=45 mean=0.623940151316 mse=0.0264470342016 max_pixel=1.00292348862 hash=3d047885ca19de7a
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=45 mean=0.355672703222 mse=0.0239545602307 max_pixel=0.903024338186 hash=b8b548f4c4107984
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=45 mean=0.597798229719 mse=0.0552404080646 max_pixel=2.08548426628 hash=d0216ce34f7f67d6
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=46 mean=0.452379144605 mse=0.120172563475 max_pixel=1.14308681805 hash=f17c6133c2ee5bcd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=46 mean=0.604992937762 mse=0.189436816328 max_pixel=1.03980982304 hash=fc4561160f0a9db7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=46 mean=0.452379144605 mse=0.120172563475 max_pixel=1.14308681805 hash=f17c6133c2ee5bcd
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=46 mean=0.604992937762 mse=0.189436816328 max_pixel=1.03980982304 hash=fc4561160f0a9db7
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=46 mean=0.41864488108 mse=0.778062970416 max_pixel=15.723913908 hash=af769a635628c9a2
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=46 mean=0.603737710189 mse=0.0246211059472 max_pixel=0.965692222118 hash=c8141167a4bd2947
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=46 mean=0.359274369686 mse=0.0244724099038 max_pixel=0.758026435506 hash=e4bc453df0164c63
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=46 mean=0.59880377748 mse=0.0637716700948 max_pixel=2.32292962074 hash=becbc78cdc910f17
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=default batch=47 mean=0.433587689798 mse=0.11879312712 max_pixel=1.14300858695 hash=517698a025edd61b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=default batch=47 mean=0.61325574186 mse=0.187914485603 max_pixel=1.04011023045 hash=41ea5cc9bbd28436
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=fresh1 floor=lower batch=47 mean=0.433587689798 mse=0.11879312712 max_pixel=1.14300858695 hash=517698a025edd61b
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=fresh1 floor=lower batch=47 mean=0.61325574186 mse=0.187914485603 max_pixel=1.04011023045 hash=41ea5cc9bbd28436
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=default batch=47 mean=0.514568645414 mse=1.86468276955 max_pixel=17.2112155706 hash=0751f268c47f2c5e
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=default batch=47 mean=0.611376410976 mse=0.0277927338262 max_pixel=0.988349914551 hash=c917c44451a0f274
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower batch=47 mean=0.370154191728 mse=0.0202848392817 max_pixel=0.734059431124 hash=eee9b226d47bf684
+REPLAY_GUARD_BATCH arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower batch=47 mean=0.621726982718 mse=0.074054006697 max_pixel=1.91346919537 hash=7f2bbcd4110f8eef
+REPLAY_GUARD_RESULT arm=baseline scene=mixed group=dim mode=fresh1 floor=default reference=0.439914993 mean=0.439819492 batch_se=0.0019001114 rmse=0.35010758 mse=0.122575317 mse_se=0.000714928981 max_pixel=1.14417227 max_batch_mean=0.464364585 mean_rays=1016.042 warm_rays=0.000 mean_boxes=1016.042 mean_triangles=471.208 temporal=0 spatial=0 mean_gate=1 scale=1e+03 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=mixed group=metal mode=fresh1 floor=default reference=0.625657179 mean=0.629580166 batch_se=0.00295862286 rmse=0.427780394 mse=0.182996066 mse_se=0.000864638421 max_pixel=1.0403136 max_batch_mean=0.674333707 mean_rays=1016.042 warm_rays=0.000 mean_boxes=1016.042 mean_triangles=471.208 temporal=0 spatial=0 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=mixed group=dim mode=fresh1 floor=lower reference=0.439914993 mean=0.439819492 batch_se=0.0019001114 rmse=0.35010758 mse=0.122575317 mse_se=0.000714928981 max_pixel=1.14417227 max_batch_mean=0.464364585 mean_rays=1016.042 warm_rays=0.000 mean_boxes=1016.042 mean_triangles=471.208 temporal=0 spatial=0 mean_gate=1 scale=1e+03 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=mixed group=metal mode=fresh1 floor=lower reference=0.625657179 mean=0.629580166 batch_se=0.00295862286 rmse=0.427780394 mse=0.182996066 mse_se=0.000864638421 max_pixel=1.0403136 max_batch_mean=0.674333707 mean_rays=1016.042 warm_rays=0.000 mean_boxes=1016.042 mean_triangles=471.208 temporal=0 spatial=0 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=mixed group=dim mode=temporal_disk floor=default reference=0.439914993 mean=0.431699436 batch_se=0.00795015527 rmse=0.842242955 mse=0.709373195 mse_se=0.087365788 max_pixel=22.8217524 max_batch_mean=0.554203713 mean_rays=5877.021 warm_rays=16592.521 mean_boxes=5877.021 mean_triangles=2165.667 temporal=49152 spatial=185235 mean_gate=1 scale=1e+03 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=mixed group=metal mode=temporal_disk floor=default reference=0.625657179 mean=0.62675554 batch_se=0.00161779404 rmse=0.15787013 mse=0.024922978 mse_se=0.000232875549 max_pixel=1.01467288 max_batch_mean=0.652870449 mean_rays=5877.021 warm_rays=16592.521 mean_boxes=5877.021 mean_triangles=2165.667 temporal=49152 spatial=185235 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=mixed group=dim mode=temporal_disk floor=lower reference=0.439914993 mean=0.365602721 batch_se=0.00112354401 rmse=0.151119199 mse=0.0228370124 mse_se=0.000300580478 max_pixel=1.09718298 max_batch_mean=0.381770485 mean_rays=5883.062 warm_rays=16600.854 mean_boxes=5883.062 mean_triangles=1940.542 temporal=49152 spatial=185235 mean_gate=0 scale=1e+03 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=mixed group=metal mode=temporal_disk floor=lower reference=0.625657179 mean=0.624756261 batch_se=0.00310044632 rmse=0.270582822 mse=0.0732150634 mse_se=0.00247167503 max_pixel=2.90351439 max_batch_mean=0.666635848 mean_rays=5883.062 warm_rays=16600.854 mean_boxes=5883.062 mean_triangles=1940.542 temporal=49152 spatial=185235 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_LINKS arm=baseline scene=mixed seed=1832929578 eligible=3873 cross_material=2216 cross_position=2216 rejected=0 resolve_links=3873
+REPLAY_GUARD_REFERENCE arm=baseline scene=visibility group=near reference=0.780225097 coarse=0.780225724 scale=1
+REPLAY_GUARD_REFERENCE arm=baseline scene=visibility group=far reference=0.625657179 coarse=0.625657977 scale=1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=0 mean=0.804339868482 mse=0.091004919117 max_pixel=1.03541660309 hash=ce4b16a485a5d10e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=0 mean=0.639927703363 mse=0.176275904387 max_pixel=1.04004669189 hash=575f8df289edb027
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=0 mean=0.804339868482 mse=0.091004919117 max_pixel=1.03541660309 hash=ce4b16a485a5d10e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=0 mean=0.639927703363 mse=0.176275904387 max_pixel=1.04004669189 hash=575f8df289edb027
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=0 mean=0.762774131843 mse=0.732009066557 max_pixel=13.0562038422 hash=66c42a22f4207d36
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=0 mean=0.611354476598 mse=0.131764276215 max_pixel=8.16293525696 hash=a7ff323e826f7c36
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=0 mean=0.693437892769 mse=0.0176840985857 max_pixel=0.960902810097 hash=e356553480346e74
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=0 mean=0.597452699891 mse=0.0186265055642 max_pixel=0.950794696808 hash=43ba10b928ab891a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=1 mean=0.771204382007 mse=0.105987674561 max_pixel=1.03117382526 hash=1216ade531a5fc44
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=1 mean=0.586658392131 mse=0.192416293213 max_pixel=1.03983056545 hash=64e3501a3f025e61
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=1 mean=0.771204382007 mse=0.105987674561 max_pixel=1.03117382526 hash=1216ade531a5fc44
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=1 mean=0.586658392131 mse=0.192416293213 max_pixel=1.03983056545 hash=64e3501a3f025e61
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=1 mean=0.668337003386 mse=0.0240635895664 max_pixel=0.894914329052 hash=c4f9c493272459b3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=1 mean=0.583773320905 mse=0.021387440597 max_pixel=0.928700327873 hash=0e8c293ce68345e0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=1 mean=0.667945381312 mse=0.0235405336207 max_pixel=0.894515752792 hash=83536ccbf130f729
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=1 mean=0.58206016128 mse=0.0211662299044 max_pixel=0.928153812885 hash=c1c9fbb382db97cb
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=2 mean=0.774190108175 mse=0.105639740297 max_pixel=1.03522276878 hash=3b0363aa3962219b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=2 mean=0.652127121808 mse=0.171126504654 max_pixel=1.0400468111 hash=87168c765b30efa3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=2 mean=0.774190108175 mse=0.105639740297 max_pixel=1.03522276878 hash=3b0363aa3962219b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=2 mean=0.652127121808 mse=0.171126504654 max_pixel=1.0400468111 hash=87168c765b30efa3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=2 mean=0.864871633356 mse=1.55013914785 max_pixel=13.1872243881 hash=cfdf92a5bdadedb6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=2 mean=0.598670449079 mse=0.0227605818233 max_pixel=0.910847961903 hash=dbc2bae3f441fc14
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=2 mean=0.688910552824 mse=0.0222152310404 max_pixel=0.948857724667 hash=8639fe56b68f4f0b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=2 mean=0.599644116475 mse=0.0206937930462 max_pixel=0.91050440073 hash=74acd34db37dae02
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=3 mean=0.786284973423 mse=0.0970491205901 max_pixel=1.03583836555 hash=3b6d97ee4dd80bd6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=3 mean=0.625686608735 mse=0.182388788326 max_pixel=1.04027581215 hash=624e244144804269
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=3 mean=0.786284973423 mse=0.0970491205901 max_pixel=1.03583836555 hash=3b6d97ee4dd80bd6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=3 mean=0.625686608735 mse=0.182388788326 max_pixel=1.04027581215 hash=624e244144804269
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=3 mean=0.724517918774 mse=0.224364090472 max_pixel=5.65251684189 hash=677826f45ebcaedd
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=3 mean=0.594744862959 mse=0.0216157364494 max_pixel=0.977931499481 hash=37734f8982bc88d8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=3 mean=0.674034329713 mse=0.0231449217501 max_pixel=0.922308802605 hash=fe725ef7193247e5
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=3 mean=0.593103337829 mse=0.020087257733 max_pixel=0.977812051773 hash=cf672f8c71a8cf3e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=4 mean=0.782446708035 mse=0.0949335123732 max_pixel=1.03645193577 hash=42f65dc3ef4c0559
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=4 mean=0.643537132506 mse=0.178518196919 max_pixel=1.03960955143 hash=e3566e9369e3d456
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=4 mean=0.782446708035 mse=0.0949335123732 max_pixel=1.03645193577 hash=42f65dc3ef4c0559
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=4 mean=0.643537132506 mse=0.178518196919 max_pixel=1.03960955143 hash=e3566e9369e3d456
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=4 mean=0.782457256457 mse=1.00024891057 max_pixel=13.7364616394 hash=03c3e1fa6b24d6dd
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=4 mean=0.688043933624 mse=0.829856767771 max_pixel=10.8701295853 hash=5e629d60e76172df
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=4 mean=0.686897811131 mse=0.0218923049304 max_pixel=0.963108479977 hash=347a1600a08e47e9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=4 mean=0.606211227656 mse=0.0197090686583 max_pixel=0.958199739456 hash=6bd8016a9e6c12c0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=5 mean=0.775552193756 mse=0.102448362262 max_pixel=1.03585672379 hash=faaf8080fe2616d3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=5 mean=0.640867431153 mse=0.17908771881 max_pixel=1.03844380379 hash=5cc8fd515a6e36c3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=5 mean=0.775552193756 mse=0.102448362262 max_pixel=1.03585672379 hash=faaf8080fe2616d3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=5 mean=0.640867431153 mse=0.17908771881 max_pixel=1.03844380379 hash=5cc8fd515a6e36c3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=5 mean=0.682453627116 mse=0.02067463545 max_pixel=0.940321564674 hash=c2fadd186231e28a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=5 mean=0.627401937614 mse=0.219538391629 max_pixel=6.48711776733 hash=eabec1441490c2b8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=5 mean=0.680346825568 mse=0.0212736906087 max_pixel=0.940379858017 hash=7f97a4d5676fd565
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=5 mean=0.592452730198 mse=0.0204890511877 max_pixel=0.951586484909 hash=9a4cc0a53e98b15a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=6 mean=0.780947888503 mse=0.104251704678 max_pixel=1.03443133831 hash=bc86dda8437d0e19
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=6 mean=0.636585792599 mse=0.184291465664 max_pixel=1.03890669346 hash=d5655ac95a6ed531
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=6 mean=0.780947888503 mse=0.104251704678 max_pixel=1.03443133831 hash=bc86dda8437d0e19
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=6 mean=0.636585792599 mse=0.184291465664 max_pixel=1.03890669346 hash=d5655ac95a6ed531
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=6 mean=0.751147551928 mse=0.659380931706 max_pixel=10.055311203 hash=694998531a39eb81
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=6 mean=0.646772526321 mse=0.375087350601 max_pixel=10.2144784927 hash=81449c8a2b84961c
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=6 mean=0.67722444894 mse=0.0230913828273 max_pixel=0.945603251457 hash=5732ed1280475c31
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=6 mean=0.606261143635 mse=0.0201736167727 max_pixel=0.981218636036 hash=7bb6dd325876e944
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=7 mean=0.797983760131 mse=0.0925648021386 max_pixel=1.03249144554 hash=115a6cf42f7523b6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=7 mean=0.616036682797 mse=0.192324419862 max_pixel=1.03813254833 hash=f5778c684f5ad4a6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=7 mean=0.797983760131 mse=0.0925648021386 max_pixel=1.03249144554 hash=115a6cf42f7523b6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=7 mean=0.616036682797 mse=0.192324419862 max_pixel=1.03813254833 hash=f5778c684f5ad4a6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=7 mean=0.920261765132 mse=2.00557635573 max_pixel=12.7836828232 hash=6e7bc9404ca28eb1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=7 mean=0.610873972444 mse=0.0220835018832 max_pixel=0.929762244225 hash=912b246f4cdcd707
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=7 mean=0.692528636893 mse=0.0194254819598 max_pixel=0.944206178188 hash=580a49c22e8169e0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=7 mean=0.611640393705 mse=0.0203702382774 max_pixel=0.929693102837 hash=4724705eb41e6e06
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=8 mean=0.798423840621 mse=0.0897235113552 max_pixel=1.03697109222 hash=607c147c435af403
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=8 mean=0.643304201003 mse=0.180462839994 max_pixel=1.03879666328 hash=50f8ad19e0c9a5b7
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=8 mean=0.798423840621 mse=0.0897235113552 max_pixel=1.03697109222 hash=607c147c435af403
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=8 mean=0.643304201003 mse=0.180462839994 max_pixel=1.03879666328 hash=50f8ad19e0c9a5b7
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=8 mean=0.697288855386 mse=0.0171535899569 max_pixel=0.937257826328 hash=6651cc3878856712
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=8 mean=0.600216050516 mse=0.0192635346708 max_pixel=0.905928075314 hash=9f9a9a341b07d46c
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=8 mean=0.695323382621 mse=0.0176876732375 max_pixel=0.937681138515 hash=69642ff3321877e1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=8 mean=0.597923872847 mse=0.0193180757728 max_pixel=0.904955863953 hash=6f3f26996c3da224
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=9 mean=0.755937815076 mse=0.109511078663 max_pixel=1.03634274006 hash=f5d986a7ec0e9792
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=9 mean=0.652142454637 mse=0.178253048294 max_pixel=1.03923714161 hash=d90cd78f58706849
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=9 mean=0.755937815076 mse=0.109511078663 max_pixel=1.03634274006 hash=f5d986a7ec0e9792
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=9 mean=0.652142454637 mse=0.178253048294 max_pixel=1.03923714161 hash=d90cd78f58706849
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=9 mean=0.858666014276 mse=1.46747440819 max_pixel=13.1485385895 hash=13cb998f6b6d5e5b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=9 mean=0.644808353973 mse=0.502451294401 max_pixel=12.8676691055 hash=694419afacca24a8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=9 mean=0.682014844497 mse=0.0202583889684 max_pixel=0.911538541317 hash=7389de980727b75f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=9 mean=0.600149406077 mse=0.0208145269491 max_pixel=0.934742927551 hash=a3a2156e08360f87
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=10 mean=0.781435159661 mse=0.0992100322546 max_pixel=1.03544485569 hash=13e82971a656c6b6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=10 mean=0.623615909106 mse=0.188627977785 max_pixel=1.03905057907 hash=47f746e87c7b05c0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=10 mean=0.781435159661 mse=0.0992100322546 max_pixel=1.03544485569 hash=13e82971a656c6b6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=10 mean=0.623615909106 mse=0.188627977785 max_pixel=1.03905057907 hash=47f746e87c7b05c0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=10 mean=0.753431575955 mse=0.986424553308 max_pixel=15.6942520142 hash=23a797ea710a17f5
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=10 mean=0.618491493631 mse=0.371385303758 max_pixel=14.0019207001 hash=f51d267e01586807
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=10 mean=0.673894153791 mse=0.0232748788499 max_pixel=0.913825571537 hash=6463f7c3940c9202
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=10 mean=0.592319410644 mse=0.0203450488391 max_pixel=0.888617873192 hash=1dbe48381ca3c276
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=11 mean=0.768589947504 mse=0.102325333842 max_pixel=1.03357505798 hash=153f6aa7dce5c9f9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=11 mean=0.632558106852 mse=0.180706901446 max_pixel=1.04011356831 hash=e8f43bc7bb9067e3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=11 mean=0.768589947504 mse=0.102325333842 max_pixel=1.03357505798 hash=153f6aa7dce5c9f9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=11 mean=0.632558106852 mse=0.180706901446 max_pixel=1.04011356831 hash=e8f43bc7bb9067e3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=11 mean=0.852547082119 mse=1.91105197053 max_pixel=14.3532867432 hash=b8f9ecc4e842d001
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=11 mean=0.712898655911 mse=1.71934082766 max_pixel=15.4051218033 hash=80acea60d8c48871
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=11 mean=0.681510374998 mse=0.0208671663351 max_pixel=0.949251174927 hash=caf670db79fafd02
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=11 mean=0.59545077887 mse=0.0192819191914 max_pixel=0.958879649639 hash=03e238ab958e6bb5
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=12 mean=0.778606277541 mse=0.104357702981 max_pixel=1.03546071053 hash=3ac849a909749a23
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=12 mean=0.645871891233 mse=0.179650999294 max_pixel=1.03874695301 hash=488aae03e2df0f78
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=12 mean=0.778606277541 mse=0.104357702981 max_pixel=1.03546071053 hash=3ac849a909749a23
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=12 mean=0.645871891233 mse=0.179650999294 max_pixel=1.03874695301 hash=488aae03e2df0f78
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=12 mean=0.820917949372 mse=1.02805529906 max_pixel=12.2058076859 hash=bbce499744134adb
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=12 mean=0.590669010475 mse=0.035695187008 max_pixel=2.16470980644 hash=ccbdab0fc0a84bf1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=12 mean=0.676089428132 mse=0.0219742593377 max_pixel=0.92194879055 hash=ca9f0aee99225b0f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=12 mean=0.577721082882 mse=0.0234471535435 max_pixel=0.966275274754 hash=bcfaeb60912f23e8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=13 mean=0.772405041425 mse=0.102631726484 max_pixel=1.03140878677 hash=1a2be9ff97828ad9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=13 mean=0.623669204084 mse=0.188555843567 max_pixel=1.03981029987 hash=4cf72410257f801e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=13 mean=0.772405041425 mse=0.102631726484 max_pixel=1.03140878677 hash=1a2be9ff97828ad9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=13 mean=0.623669204084 mse=0.188555843567 max_pixel=1.03981029987 hash=4cf72410257f801e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=13 mean=0.723726001685 mse=0.216070902109 max_pixel=8.94634723663 hash=e3fdcf0bde51bee7
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=13 mean=0.654129892122 mse=0.869130436762 max_pixel=17.0155258179 hash=90dd1cbb0a0d2801
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=13 mean=0.683768612216 mse=0.0218242152728 max_pixel=0.912240743637 hash=04894c3c806c003b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=13 mean=0.596116252622 mse=0.0190399540897 max_pixel=0.892875730991 hash=eacaabdbf66bf985
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=14 mean=0.78907180058 mse=0.098681598832 max_pixel=1.03444850445 hash=3aa7fb74a7ae99d6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=14 mean=0.606960570338 mse=0.186175801781 max_pixel=1.0400955677 hash=50fb4de923e0f5ea
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=14 mean=0.78907180058 mse=0.098681598832 max_pixel=1.03444850445 hash=3aa7fb74a7ae99d6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=14 mean=0.606960570338 mse=0.186175801781 max_pixel=1.0400955677 hash=50fb4de923e0f5ea
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=14 mean=0.85637135338 mse=1.67656255848 max_pixel=12.7247228622 hash=f72bdbae6ca54ccd
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=14 mean=0.597073375655 mse=0.115970341837 max_pixel=7.60204315186 hash=004287ca42734c98
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=14 mean=0.681361162337 mse=0.0205324164282 max_pixel=0.946301102638 hash=7454b8f0bf40ebe4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=14 mean=0.581315784824 mse=0.0207645767129 max_pixel=0.898270606995 hash=caffaf29bfd60287
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=15 mean=0.781362949012 mse=0.102323171408 max_pixel=1.03533148766 hash=722ed64cf4b2ce31
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=15 mean=0.627077803772 mse=0.183913221297 max_pixel=1.04016518593 hash=30b7acf0f4e072b8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=15 mean=0.781362949012 mse=0.102323171408 max_pixel=1.03533148766 hash=722ed64cf4b2ce31
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=15 mean=0.627077803772 mse=0.183913221297 max_pixel=1.04016518593 hash=30b7acf0f4e072b8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=15 mean=0.688080796564 mse=0.104675932377 max_pixel=5.29089355469 hash=1d9eb13f1d709f95
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=15 mean=0.643761182961 mse=0.527502677869 max_pixel=14.4832220078 hash=362423c793ab017f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=15 mean=0.668971680774 mse=0.0254136462641 max_pixel=0.963011205196 hash=dc855327cc7cfa1b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=15 mean=0.597319224384 mse=0.0189823722918 max_pixel=0.899384915829 hash=48a1f15da1f49180
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=16 mean=0.777336651445 mse=0.0995262530722 max_pixel=1.03518247604 hash=ee45e3140e400ca2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=16 mean=0.629011019148 mse=0.185971831749 max_pixel=1.04029619694 hash=6635b6fe74a53fdc
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=16 mean=0.777336651445 mse=0.0995262530722 max_pixel=1.03518247604 hash=ee45e3140e400ca2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=16 mean=0.629011019148 mse=0.185971831749 max_pixel=1.04029619694 hash=6635b6fe74a53fdc
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=16 mean=0.811262634699 mse=0.997555118039 max_pixel=11.0381116867 hash=a6e698146e1000ec
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=16 mean=0.658518801865 mse=0.389796654484 max_pixel=8.09381484985 hash=8a14a0efc0e15da0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=16 mean=0.681243342115 mse=0.0210879719434 max_pixel=0.965578734875 hash=ebe42f891ac6398d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=16 mean=0.606789630037 mse=0.0189491187335 max_pixel=0.933893978596 hash=8dce3eb7cb3c7468
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=17 mean=0.811920666543 mse=0.0860844360549 max_pixel=1.03356611729 hash=737b875e55fc9dde
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=17 mean=0.614353903162 mse=0.186882592321 max_pixel=1.03932750225 hash=5a0decce23a4f35d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=17 mean=0.811920666543 mse=0.0860844360549 max_pixel=1.03356611729 hash=737b875e55fc9dde
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=17 mean=0.614353903162 mse=0.186882592321 max_pixel=1.03932750225 hash=5a0decce23a4f35d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=17 mean=0.757142931048 mse=0.684716875096 max_pixel=13.9355230331 hash=98a7ab14bbdc94e9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=17 mean=0.58857305345 mse=0.0243613432728 max_pixel=0.96977263689 hash=7bfaec905c9ecf5c
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=17 mean=0.674020387494 mse=0.0250948263561 max_pixel=0.940388977528 hash=46cf160f59e710a2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=17 mean=0.590333844477 mse=0.0217855068536 max_pixel=0.970217704773 hash=bb653c2c329197e8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=18 mean=0.787117629108 mse=0.103054520049 max_pixel=1.03490197659 hash=2ce046aa631ade88
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=18 mean=0.619790767712 mse=0.183649119139 max_pixel=1.03887450695 hash=cb993f4dbef34865
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=18 mean=0.787117629108 mse=0.103054520049 max_pixel=1.03490197659 hash=2ce046aa631ade88
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=18 mean=0.619790767712 mse=0.183649119139 max_pixel=1.03887450695 hash=cb993f4dbef34865
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=18 mean=0.721970331389 mse=0.335412732679 max_pixel=9.76723861694 hash=eaa525c8c462cc6d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=18 mean=0.698045049503 mse=1.16079825898 max_pixel=14.6511821747 hash=e75d3bf13e8be2d8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=18 mean=0.682969089306 mse=0.0214843202533 max_pixel=0.963701307774 hash=1027fff20e3d61c8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=18 mean=0.612997514138 mse=0.0188293722643 max_pixel=0.912295877934 hash=5fc4473e5cfdb9e2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=19 mean=0.76640809518 mse=0.109554847798 max_pixel=1.03634166718 hash=f7d6fc085af648e3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=19 mean=0.607650542632 mse=0.19110308817 max_pixel=1.04008316994 hash=f95e4c0843a2b6f3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=19 mean=0.76640809518 mse=0.109554847798 max_pixel=1.03634166718 hash=f7d6fc085af648e3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=19 mean=0.607650542632 mse=0.19110308817 max_pixel=1.04008316994 hash=f95e4c0843a2b6f3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=19 mean=0.67775282904 mse=0.0235788737781 max_pixel=0.934295117855 hash=ac5bc639f3e4884f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=19 mean=0.632455493382 mse=0.643183747929 max_pixel=13.3903026581 hash=f7074c084d2b6e93
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=19 mean=0.678363093932 mse=0.0218345079399 max_pixel=0.933819234371 hash=ca0490cb759e2667
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=19 mean=0.579328251013 mse=0.0200278609368 max_pixel=0.910899341106 hash=12f690e62193b7a9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=20 mean=0.767287718612 mse=0.113536023456 max_pixel=1.03533530235 hash=fe17db1e9dfae1ff
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=20 mean=0.626178453196 mse=0.184053375788 max_pixel=1.03787982464 hash=0cda1ee374943765
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=20 mean=0.767287718612 mse=0.113536023456 max_pixel=1.03533530235 hash=fe17db1e9dfae1ff
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=20 mean=0.626178453196 mse=0.184053375788 max_pixel=1.03787982464 hash=0cda1ee374943765
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=20 mean=0.726156415389 mse=0.180503342456 max_pixel=6.76205730438 hash=9b356f676c6a1d71
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=20 mean=0.669446659231 mse=0.783640926538 max_pixel=12.7928199768 hash=cb83efb07ab9e28a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=20 mean=0.688276758534 mse=0.0211558557567 max_pixel=0.956225633621 hash=039427535cc11375
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=20 mean=0.602430858999 mse=0.0207892343689 max_pixel=0.910647511482 hash=ed90d1cba862cbc0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=21 mean=0.793980998249 mse=0.0941552198403 max_pixel=1.03453814983 hash=f81fcbad2520c104
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=21 mean=0.615724011266 mse=0.18794046125 max_pixel=1.04020047188 hash=11fe92b8aaac7e50
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=21 mean=0.793980998249 mse=0.0941552198403 max_pixel=1.03453814983 hash=f81fcbad2520c104
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=21 mean=0.615724011266 mse=0.18794046125 max_pixel=1.04020047188 hash=11fe92b8aaac7e50
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=21 mean=0.818546251801 mse=1.13648788914 max_pixel=11.8079013824 hash=e04d75f9db17cf6d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=21 mean=0.633241281757 mse=0.618035987347 max_pixel=15.3898544312 hash=b452a0b44d62de93
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=21 mean=0.673218904005 mse=0.0237644496733 max_pixel=0.934962511063 hash=cce02b7dbd2b7d5d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=21 mean=0.587286076887 mse=0.0199926828679 max_pixel=0.915678083897 hash=94e3aa5fb5dbb11c
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=22 mean=0.78526165412 mse=0.101850077171 max_pixel=1.0341719389 hash=b7269ec138c590ee
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=22 mean=0.605035407702 mse=0.195953989748 max_pixel=1.03931772709 hash=cdba886d21e7c86f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=22 mean=0.78526165412 mse=0.101850077171 max_pixel=1.0341719389 hash=b7269ec138c590ee
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=22 mean=0.605035407702 mse=0.195953989748 max_pixel=1.03931772709 hash=cdba886d21e7c86f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=22 mean=0.792974126176 mse=1.13868458672 max_pixel=13.7022294998 hash=0b1a78919b1e50cd
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=22 mean=0.67891791361 mse=0.907910558138 max_pixel=12.7419309616 hash=f5ed7b5d9bccc074
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=22 mean=0.690794311988 mse=0.0191994795661 max_pixel=0.932183265686 hash=e19a24e8164f9b42
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=22 mean=0.599552932632 mse=0.0208711057755 max_pixel=0.940833747387 hash=0f40303d6475c1a1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=23 mean=0.783974321937 mse=0.101918925774 max_pixel=1.03643143177 hash=524796204c6f3027
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=23 mean=0.63063791905 mse=0.178583279858 max_pixel=1.03972280025 hash=c6a8178cd38a9380
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=23 mean=0.783974321937 mse=0.101918925774 max_pixel=1.03643143177 hash=524796204c6f3027
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=23 mean=0.63063791905 mse=0.178583279858 max_pixel=1.03972280025 hash=c6a8178cd38a9380
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=23 mean=0.84016796411 mse=1.44665297823 max_pixel=14.1780414581 hash=502a949c168257a1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=23 mean=0.579177152191 mse=0.028767679987 max_pixel=0.948934018612 hash=e505542642c4a988
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=23 mean=0.686339757754 mse=0.0208389868604 max_pixel=0.957508146763 hash=a400ac5f580e01c0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=23 mean=0.584104628491 mse=0.0231652601178 max_pixel=0.948828339577 hash=76b2729fa4bb6cb4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=24 mean=0.785745843576 mse=0.0992472782457 max_pixel=1.03642356396 hash=361bce9f241258df
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=24 mean=0.624387456905 mse=0.178469206369 max_pixel=1.04028141499 hash=4204d51257c78d3e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=24 mean=0.785745843576 mse=0.0992472782457 max_pixel=1.03642356396 hash=361bce9f241258df
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=24 mean=0.624387456905 mse=0.178469206369 max_pixel=1.04028141499 hash=4204d51257c78d3e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=24 mean=0.698657379777 mse=0.0859228887833 max_pixel=6.61288499832 hash=30487e537baa48d8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=24 mean=0.604777552406 mse=0.0207873352871 max_pixel=0.964005947113 hash=d3ae3c5cf695c380
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=24 mean=0.684768276697 mse=0.0201662589128 max_pixel=0.955681681633 hash=6692c5b530d5123a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=24 mean=0.604853138313 mse=0.0191059889433 max_pixel=0.964001774788 hash=61fe67be9b77e4f7
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=25 mean=0.759297448545 mse=0.115782095339 max_pixel=1.03576111794 hash=8171121438a8a0ee
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=25 mean=0.631274692918 mse=0.182699944931 max_pixel=1.03987848759 hash=9fe74a90096834c3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=25 mean=0.759297448545 mse=0.115782095339 max_pixel=1.03576111794 hash=8171121438a8a0ee
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=25 mean=0.631274692918 mse=0.182699944931 max_pixel=1.03987848759 hash=9fe74a90096834c3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=25 mean=0.723952861386 mse=0.411339340525 max_pixel=10.1232671738 hash=7052be25cd420ed9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=25 mean=0.588430732227 mse=0.0216840900387 max_pixel=0.961324036121 hash=bc584dbcd3d4c8ce
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=25 mean=0.672980548348 mse=0.0236563359803 max_pixel=0.924231886864 hash=93d8837dec43a3ad
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=25 mean=0.589554215083 mse=0.0196213547234 max_pixel=0.961003422737 hash=a8a6bc2426fdb77a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=26 mean=0.793001530867 mse=0.0937459323338 max_pixel=1.03636717796 hash=519b1ad1005dafc1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=26 mean=0.61691538505 mse=0.189759291213 max_pixel=1.03991925716 hash=ab6c2e11502550d7
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=26 mean=0.793001530867 mse=0.0937459323338 max_pixel=1.03636717796 hash=519b1ad1005dafc1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=26 mean=0.61691538505 mse=0.189759291213 max_pixel=1.03991925716 hash=ab6c2e11502550d7
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=26 mean=0.700484197587 mse=0.20582312331 max_pixel=10.4399986267 hash=d64ad1dbe26dcc2e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=26 mean=0.600401121745 mse=0.0189916918903 max_pixel=0.918907523155 hash=1ca8cc52d81f12ff
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=26 mean=0.680610599316 mse=0.0226711323296 max_pixel=0.931059598923 hash=6faab0c9e7d012b4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=26 mean=0.599693764816 mse=0.017986734959 max_pixel=0.918313145638 hash=a49ea42967213663
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=27 mean=0.760527823921 mse=0.113099176881 max_pixel=1.03460478783 hash=a6c5dcf1bcfcc814
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=27 mean=0.651453591563 mse=0.181007575714 max_pixel=1.03971350193 hash=52f2c3ac81bf2472
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=27 mean=0.760527823921 mse=0.113099176881 max_pixel=1.03460478783 hash=a6c5dcf1bcfcc814
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=27 mean=0.651453591563 mse=0.181007575714 max_pixel=1.03971350193 hash=52f2c3ac81bf2472
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=27 mean=0.792434873292 mse=0.759325999897 max_pixel=9.23747444153 hash=0c023d3be2b096f4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=27 mean=0.612045448244 mse=0.193342575227 max_pixel=10.0105381012 hash=3ca078c15973dbb8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=27 mean=0.686178399366 mse=0.0204233221157 max_pixel=0.954002141953 hash=0c308d462e51aee2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=27 mean=0.594997881388 mse=0.0189656862148 max_pixel=0.933788120747 hash=43859c37f82ee0b1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=28 mean=0.764223690727 mse=0.113196003466 max_pixel=1.03640806675 hash=e9ddbb272700aa66
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=28 mean=0.648393920739 mse=0.179597889048 max_pixel=1.03999447823 hash=bae9d809b8f1b8ce
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=28 mean=0.764223690727 mse=0.113196003466 max_pixel=1.03640806675 hash=e9ddbb272700aa66
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=28 mean=0.648393920739 mse=0.179597889048 max_pixel=1.03999447823 hash=bae9d809b8f1b8ce
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=28 mean=0.820163649914 mse=1.33495583407 max_pixel=13.0558071136 hash=7c73b93a83f8eb28
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=28 mean=0.633285972668 mse=0.33415554908 max_pixel=9.59665584564 hash=3e1f590747bfa623
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=28 mean=0.685677277623 mse=0.0218356428303 max_pixel=0.981307148933 hash=472591716419dc7c
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=28 mean=0.594502958062 mse=0.0205458734378 max_pixel=0.972776532173 hash=e5d0a41ea2f4077e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=29 mean=0.769734995658 mse=0.111243374716 max_pixel=1.03406703472 hash=7a0136d20ead30a1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=29 mean=0.640851253775 mse=0.17577880538 max_pixel=1.04021263123 hash=b4c8cdc45b4b4fc1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=29 mean=0.769734995658 mse=0.111243374716 max_pixel=1.03406703472 hash=7a0136d20ead30a1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=29 mean=0.640851253775 mse=0.17577880538 max_pixel=1.04021263123 hash=b4c8cdc45b4b4fc1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=29 mean=0.716111979011 mse=0.318214779563 max_pixel=8.91826820374 hash=e3bc9dcdbd133148
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=29 mean=0.600752971572 mse=0.0250927664064 max_pixel=1.66858911514 hash=69a7a1754a85e647
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=29 mean=0.67237182011 mse=0.0252565593847 max_pixel=0.929669320583 hash=dbd13d743adc1f8d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=29 mean=0.594452341698 mse=0.0209406933256 max_pixel=0.945207178593 hash=60d06aef88918637
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=30 mean=0.776015926123 mse=0.107594880186 max_pixel=1.03351020813 hash=7552825290241917
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=30 mean=0.618482128761 mse=0.190371299153 max_pixel=1.03889405727 hash=36b4733ba85887f2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=30 mean=0.776015926123 mse=0.107594880186 max_pixel=1.03351020813 hash=7552825290241917
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=30 mean=0.618482128761 mse=0.190371299153 max_pixel=1.03889405727 hash=36b4733ba85887f2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=30 mean=0.729857978353 mse=0.371324056077 max_pixel=9.56288719177 hash=190941ed6fe04f29
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=30 mean=0.704992822168 mse=1.1178071938 max_pixel=11.9144821167 hash=d7cf06c7fa2ea867
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=30 mean=0.683743855567 mse=0.0203897233427 max_pixel=0.948813080788 hash=71a8042ba30828de
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=30 mean=0.589909184549 mse=0.0190345234074 max_pixel=0.923746168613 hash=39e1977433188cd4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=31 mean=0.744494200131 mse=0.12079066997 max_pixel=1.0334059 hash=1c9414558266616f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=31 mean=0.587197426517 mse=0.201813935244 max_pixel=1.03915631771 hash=353f67ef90f70bca
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=31 mean=0.744494200131 mse=0.12079066997 max_pixel=1.0334059 hash=1c9414558266616f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=31 mean=0.587197426517 mse=0.201813935244 max_pixel=1.03915631771 hash=353f67ef90f70bca
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=31 mean=0.772432691942 mse=1.08674231425 max_pixel=14.0943832397 hash=165a8ac96a5d7416
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=31 mean=0.614969272312 mse=0.0552577044946 max_pixel=3.14311099052 hash=49b608a78dd0a44d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=31 mean=0.675556891772 mse=0.0226549731508 max_pixel=0.93361723423 hash=28501f120ba40682
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=31 mean=0.600284286251 mse=0.0192949700019 max_pixel=0.92622256279 hash=30edef661781f2f7
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=32 mean=0.790578082844 mse=0.100979095499 max_pixel=1.03232109547 hash=4c5bbd5cc8a65193
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=32 mean=0.608567576521 mse=0.187493373262 max_pixel=1.03949820995 hash=b2abfb5993d37461
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=32 mean=0.790578082844 mse=0.100979095499 max_pixel=1.03232109547 hash=4c5bbd5cc8a65193
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=32 mean=0.608567576521 mse=0.187493373262 max_pixel=1.03949820995 hash=b2abfb5993d37461
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=32 mean=0.882510035939 mse=1.24792824787 max_pixel=10.6718244553 hash=cef687ac84e0730c
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=32 mean=0.575654867163 mse=0.0242616221733 max_pixel=0.893654882908 hash=1a1985ca3f4eca64
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=32 mean=0.920273653697 mse=13.6770478551 max_pixel=60.0047187805 hash=b84bc2d291631eb4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=32 mean=0.576496268041 mse=0.02212592553 max_pixel=0.893654108047 hash=5a79bcb2d32ffa1b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=33 mean=0.783349772653 mse=0.101612490076 max_pixel=1.03341519833 hash=bbbd81ab50ee1245
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=33 mean=0.622734317483 mse=0.179893460615 max_pixel=1.04019010067 hash=a9c79b0dd4159ed6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=33 mean=0.783349772653 mse=0.101612490076 max_pixel=1.03341519833 hash=bbbd81ab50ee1245
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=33 mean=0.622734317483 mse=0.179893460615 max_pixel=1.04019010067 hash=a9c79b0dd4159ed6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=33 mean=0.740562489955 mse=0.273063735344 max_pixel=8.0535697937 hash=70a25209e5abe9ae
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=33 mean=0.595302960282 mse=0.0204950729554 max_pixel=0.947358131409 hash=2e040d75b8e3076d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=33 mean=0.689215025748 mse=0.020790284638 max_pixel=0.950404286385 hash=53a3fa0fc56ba85d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=33 mean=0.593445225502 mse=0.0202374771243 max_pixel=0.947280049324 hash=c5281d6ad1d54e3b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=34 mean=0.786477573056 mse=0.0975244773004 max_pixel=1.03688299656 hash=e7728917fb8f37c4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=34 mean=0.639534753776 mse=0.181884071235 max_pixel=1.03683531284 hash=a8f33d88bf518cb6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=34 mean=0.786477573056 mse=0.0975244773004 max_pixel=1.03688299656 hash=e7728917fb8f37c4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=34 mean=0.639534753776 mse=0.181884071235 max_pixel=1.03683531284 hash=a8f33d88bf518cb6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=34 mean=0.843762860633 mse=1.59326265201 max_pixel=13.9019145966 hash=edf3380d916d7a17
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=34 mean=0.652137059544 mse=0.824369674498 max_pixel=15.047334671 hash=ad245415a0be2a5b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=34 mean=0.680803356168 mse=0.0228918397973 max_pixel=0.943754673004 hash=d64d2fd11e20771c
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=34 mean=0.596321190969 mse=0.0192637260356 max_pixel=0.913181364536 hash=43b778a2f07ffaf9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=35 mean=0.747918541048 mse=0.116753048307 max_pixel=1.03413796425 hash=65548a4ad38ddacd
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=35 mean=0.601348511787 mse=0.185475705583 max_pixel=1.03992593288 hash=cd4c1c71831ec4ba
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=35 mean=0.747918541048 mse=0.116753048307 max_pixel=1.03413796425 hash=65548a4ad38ddacd
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=35 mean=0.601348511787 mse=0.185475705583 max_pixel=1.03992593288 hash=cd4c1c71831ec4ba
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=35 mean=0.948522711464 mse=2.30635251029 max_pixel=13.2162370682 hash=f8966ff14a522103
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=35 mean=0.604900978855 mse=0.07316835623 max_pixel=5.63960790634 hash=0c70c3db74f32d4a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=35 mean=0.689519231761 mse=0.0204868320093 max_pixel=0.921053051949 hash=c193a414ac1e7acc
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=35 mean=0.59651695413 mse=0.0219463261035 max_pixel=0.962363839149 hash=5a442cdec7a7c2e1
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=36 mean=0.764183921565 mse=0.106048397172 max_pixel=1.03225672245 hash=24bf818fd07d56fe
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=36 mean=0.631034906124 mse=0.18432066044 max_pixel=1.03969204426 hash=423e5f15e7850d00
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=36 mean=0.764183921565 mse=0.106048397172 max_pixel=1.03225672245 hash=24bf818fd07d56fe
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=36 mean=0.631034906124 mse=0.18432066044 max_pixel=1.03969204426 hash=423e5f15e7850d00
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=36 mean=0.844147621072 mse=2.2513619318 max_pixel=13.9036531448 hash=b424a0c3758dbd5b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=36 mean=0.637615250394 mse=0.624172126756 max_pixel=14.352399826 hash=6842db4993a9fd77
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=36 mean=0.667321819288 mse=0.0252554340692 max_pixel=0.922775089741 hash=444b7786bc0f4045
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=36 mean=0.58957063104 mse=0.0195512365206 max_pixel=0.907755434513 hash=5d4cabbdf692a59f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=37 mean=0.78491920387 mse=0.095432402926 max_pixel=1.03587424755 hash=33c391cabd2db762
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=37 mean=0.634118789108 mse=0.189225117993 max_pixel=1.03783118725 hash=651e32948b348181
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=37 mean=0.78491920387 mse=0.095432402926 max_pixel=1.03587424755 hash=33c391cabd2db762
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=37 mean=0.634118789108 mse=0.189225117993 max_pixel=1.03783118725 hash=651e32948b348181
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=37 mean=0.793431036989 mse=0.926566992708 max_pixel=9.53792285919 hash=b1cf240895441005
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=37 mean=0.598408881546 mse=0.0205278343562 max_pixel=0.945677518845 hash=7fc2cb83113c5de3
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=37 mean=0.678555103019 mse=0.0235058956429 max_pixel=0.962378323078 hash=54746c64d25c35e8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=37 mean=0.598321265163 mse=0.0190081269674 max_pixel=0.945487856865 hash=41af6899dca4a234
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=38 mean=0.81269686381 mse=0.0854202917812 max_pixel=1.03609955311 hash=a4b85892460d9ace
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=38 mean=0.578687547793 mse=0.193635694617 max_pixel=1.03845727444 hash=019c5b1def4ab29b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=38 mean=0.81269686381 mse=0.0854202917812 max_pixel=1.03609955311 hash=a4b85892460d9ace
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=38 mean=0.578687547793 mse=0.193635694617 max_pixel=1.03845727444 hash=019c5b1def4ab29b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=38 mean=0.917184077902 mse=1.97921015324 max_pixel=13.4828290939 hash=79c1f5eeeb417dff
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=38 mean=0.716803443443 mse=2.06583389056 max_pixel=15.4520215988 hash=3c4a663687181f04
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=38 mean=0.691449768841 mse=0.0187158444478 max_pixel=0.931196451187 hash=abd067cda31baf6e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=38 mean=0.576830934224 mse=0.0235258068138 max_pixel=0.917215466499 hash=c7718f1b3b164383
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=39 mean=0.771507170517 mse=0.10142666735 max_pixel=1.03595161438 hash=2ca4e1c22dfd3f8a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=39 mean=0.613221625055 mse=0.190215292908 max_pixel=1.03885793686 hash=20fa30a632260547
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=39 mean=0.771507170517 mse=0.10142666735 max_pixel=1.03595161438 hash=2ca4e1c22dfd3f8a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=39 mean=0.613221625055 mse=0.190215292908 max_pixel=1.03885793686 hash=20fa30a632260547
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=39 mean=0.817607514298 mse=1.38914198342 max_pixel=13.5647726059 hash=86d6d57bf830d1ee
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=39 mean=0.66891926786 mse=0.800042279177 max_pixel=10.6577291489 hash=33ceeccee7c3d365
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=39 mean=0.693015067634 mse=0.0194465703712 max_pixel=0.958616673946 hash=023a5c1c2e3098a7
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=39 mean=0.590388987301 mse=0.0240328969628 max_pixel=0.938367605209 hash=cef6b5081583385e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=40 mean=0.782392518202 mse=0.0979112385625 max_pixel=1.03599429131 hash=051eeede5096060e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=40 mean=0.649379302427 mse=0.174793886023 max_pixel=1.03884577751 hash=ee7a80bec41f07bd
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=40 mean=0.782392518202 mse=0.0979112385625 max_pixel=1.03599429131 hash=051eeede5096060e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=40 mean=0.649379302427 mse=0.174793886023 max_pixel=1.03884577751 hash=ee7a80bec41f07bd
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=40 mean=0.768949027755 mse=0.442677389567 max_pixel=8.95537757874 hash=6165683a8dbdbf73
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=40 mean=0.622071389575 mse=0.0215190225348 max_pixel=0.922556459904 hash=67b621505ee8e0d4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=40 mean=0.693247563904 mse=0.0188615281597 max_pixel=0.937247395515 hash=191083790671115e
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=40 mean=0.624789809663 mse=0.0188416259573 max_pixel=0.921958625317 hash=1fd92303546a937d
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=41 mean=0.783715450467 mse=0.0987398287133 max_pixel=1.03556466103 hash=e0b53918c73c0bc2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=41 mean=0.637507839885 mse=0.188788997247 max_pixel=1.04016339779 hash=fa2c2129450aa128
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=41 mean=0.783715450467 mse=0.0987398287133 max_pixel=1.03556466103 hash=e0b53918c73c0bc2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=41 mean=0.637507839885 mse=0.188788997247 max_pixel=1.04016339779 hash=fa2c2129450aa128
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=41 mean=0.726505924278 mse=0.347766659087 max_pixel=10.3006811142 hash=81cc4ddc10bfcd8a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=41 mean=0.656790136243 mse=0.857468410979 max_pixel=12.7171916962 hash=7725958b4b57d0a0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=41 mean=0.684519820585 mse=0.0208293634892 max_pixel=0.956916034222 hash=ea7126f237241f26
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=41 mean=0.584280041221 mse=0.0212195844347 max_pixel=0.943706870079 hash=7b7f0b0b523275ee
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=42 mean=0.751317053364 mse=0.113450504577 max_pixel=1.03684699535 hash=633612cc6cf0829a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=42 mean=0.609026496822 mse=0.185796821248 max_pixel=1.0397759676 hash=800991895f0a5d6b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=42 mean=0.751317053364 mse=0.113450504577 max_pixel=1.03684699535 hash=633612cc6cf0829a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=42 mean=0.609026496822 mse=0.185796821248 max_pixel=1.0397759676 hash=800991895f0a5d6b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=42 mean=0.688966317917 mse=0.0819923060915 max_pixel=6.32814073563 hash=2ce82506876fcaf2
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=42 mean=0.584364874332 mse=0.021814294878 max_pixel=0.942492485046 hash=8150e7bfa9774bc4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=42 mean=0.675633613631 mse=0.0226408918942 max_pixel=0.954251229763 hash=dc43df1a78468ecd
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=42 mean=0.582706724192 mse=0.0209029691275 max_pixel=0.942406237125 hash=64539c42cafe1066
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=43 mean=0.804945992975 mse=0.0941415617072 max_pixel=1.03573894501 hash=0c43f6a1bcd3408c
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=43 mean=0.640999646843 mse=0.180011483433 max_pixel=1.03790223598 hash=1628bd8c3d9713d9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=43 mean=0.804945992975 mse=0.0941415617072 max_pixel=1.03573894501 hash=0c43f6a1bcd3408c
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=43 mean=0.640999646843 mse=0.180011483433 max_pixel=1.03790223598 hash=1628bd8c3d9713d9
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=43 mean=0.72851658432 mse=0.252548624651 max_pixel=7.05409765244 hash=ddc30b9eb95709a8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=43 mean=0.630019854259 mse=0.460611517482 max_pixel=15.6298065186 hash=d57984bea90e7ab6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=43 mean=0.676365360734 mse=0.0230708387173 max_pixel=0.954780876637 hash=af408775a0975752
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=43 mean=0.598917507799 mse=0.0209689938041 max_pixel=0.939937531948 hash=0c88c72860ab47f8
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=44 mean=0.759908099397 mse=0.116308544364 max_pixel=1.03608822823 hash=0e8b4d313cf44bee
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=44 mean=0.64068117975 mse=0.18036106894 max_pixel=1.03950679302 hash=19aa27b82d8cf660
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=44 mean=0.759908099397 mse=0.116308544364 max_pixel=1.03608822823 hash=0e8b4d313cf44bee
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=44 mean=0.64068117975 mse=0.18036106894 max_pixel=1.03950679302 hash=19aa27b82d8cf660
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=44 mean=0.862725028011 mse=1.72621686138 max_pixel=13.8135232925 hash=18af7cc8b498d22f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=44 mean=0.626985938259 mse=0.357278377813 max_pixel=9.92674064636 hash=ba19a162f14baae7
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=44 mean=0.939805391594 mse=15.4329648413 max_pixel=63.6207046509 hash=149a2d7406368b1f
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=44 mean=0.590268804197 mse=0.0217816128603 max_pixel=0.904315412045 hash=ba0267051f45caae
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=45 mean=0.766624241514 mse=0.105809431453 max_pixel=1.03464710712 hash=22518528e57354d4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=45 mean=0.649858416175 mse=0.175681399253 max_pixel=1.04024076462 hash=6bd2f99d351ca439
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=45 mean=0.766624241514 mse=0.105809431453 max_pixel=1.03464710712 hash=22518528e57354d4
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=45 mean=0.649858416175 mse=0.175681399253 max_pixel=1.04024076462 hash=6bd2f99d351ca439
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=45 mean=0.730390464712 mse=0.505661001226 max_pixel=12.8822813034 hash=7c37f5a2e10db61b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=45 mean=0.630732649966 mse=0.421110728604 max_pixel=14.9909992218 hash=762a123d876365cf
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=45 mean=0.67804784741 mse=0.0228869413233 max_pixel=0.917287528515 hash=fc1d46c7d56c7222
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=45 mean=0.600374788599 mse=0.0178452851887 max_pixel=0.924043655396 hash=6a27aa4af3d002af
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=46 mean=0.795952820103 mse=0.091790299453 max_pixel=1.03578960896 hash=668676f043bc3070
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=46 mean=0.622813638969 mse=0.183953498754 max_pixel=1.0398182869 hash=ed866dcbdb9de66b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=46 mean=0.795952820103 mse=0.091790299453 max_pixel=1.03578960896 hash=668676f043bc3070
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=46 mean=0.622813638969 mse=0.183953498754 max_pixel=1.0398182869 hash=ed866dcbdb9de66b
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=46 mean=0.72590688034 mse=0.24689362626 max_pixel=8.58894348145 hash=59e9a7eefb9163cc
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=46 mean=0.583544459689 mse=0.025894787218 max_pixel=0.929822564125 hash=75ca38a9e61d7c28
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=46 mean=0.688565461489 mse=0.0206149368964 max_pixel=0.946766555309 hash=e1d820b4d4d839d6
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=46 mean=0.583905199863 mse=0.0237412801503 max_pixel=0.932128787041 hash=8617e96ea779e0ad
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=default batch=47 mean=0.763453754393 mse=0.105466693742 max_pixel=1.03498244286 hash=9f019525e8b69f33
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=default batch=47 mean=0.636360544362 mse=0.184888965123 max_pixel=1.04017031193 hash=c25c104196fb2e96
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=fresh1 floor=lower batch=47 mean=0.763453754393 mse=0.105466693742 max_pixel=1.03498244286 hash=9f019525e8b69f33
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=fresh1 floor=lower batch=47 mean=0.636360544362 mse=0.184888965123 max_pixel=1.04017031193 hash=c25c104196fb2e96
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=default batch=47 mean=0.840889852436 mse=1.27973095939 max_pixel=13.9057130814 hash=63ce980aff8399d0
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=default batch=47 mean=0.599906491378 mse=0.023295286396 max_pixel=0.914324641228 hash=9d2340eaae87ef9a
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=near mode=temporal_disk floor=lower batch=47 mean=0.686419614562 mse=0.0217979910436 max_pixel=0.951088726521 hash=8072138bc352c833
+REPLAY_GUARD_BATCH arm=baseline scene=visibility group=far mode=temporal_disk floor=lower batch=47 mean=0.603796159659 mse=0.0192838731884 max_pixel=0.913690328598 hash=502f3b1a8505ebc6
+REPLAY_GUARD_RESULT arm=baseline scene=visibility group=near mode=fresh1 floor=default reference=0.780225097 mean=0.778646937 batch_se=0.00227610558 rmse=0.32002079 mse=0.102413306 mse_se=0.00118506799 max_pixel=1.03697109 max_batch_mean=0.812696864 mean_rays=1010.542 warm_rays=0.000 mean_boxes=1010.542 mean_triangles=348.792 temporal=0 spatial=0 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=visibility group=far mode=fresh1 floor=default reference=0.625657179 mean=0.626663333 batch_se=0.00255812607 rmse=0.429215154 mse=0.184225648 mse_se=0.000872311708 max_pixel=1.0402962 max_batch_mean=0.652142455 mean_rays=1010.542 warm_rays=0.000 mean_boxes=1010.542 mean_triangles=348.792 temporal=0 spatial=0 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=visibility group=near mode=fresh1 floor=lower reference=0.780225097 mean=0.778646937 batch_se=0.00227610558 rmse=0.32002079 mse=0.102413306 mse_se=0.00118506799 max_pixel=1.03697109 max_batch_mean=0.812696864 mean_rays=1010.542 warm_rays=0.000 mean_boxes=1010.542 mean_triangles=348.792 temporal=0 spatial=0 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=visibility group=far mode=fresh1 floor=lower reference=0.625657179 mean=0.626663333 batch_se=0.00255812607 rmse=0.429215154 mse=0.184225648 mse_se=0.000872311708 max_pixel=1.0402962 max_batch_mean=0.652142455 mean_rays=1010.542 warm_rays=0.000 mean_boxes=1010.542 mean_triangles=348.792 temporal=0 spatial=0 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=visibility group=near mode=temporal_disk floor=default reference=0.780225097 mean=0.778510376 batch_se=0.0102712189 rmse=0.924116045 mse=0.853990465 mse_se=0.0965252649 max_pixel=15.694252 max_batch_mean=0.948522711 mean_rays=5894.229 warm_rays=16590.104 mean_boxes=5894.229 mean_triangles=1274.208 temporal=49152 spatial=185385 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=visibility group=far mode=temporal_disk floor=default reference=0.625657179 mean=0.627205694 batch_se=0.00537499192 rmse=0.625671489 mse=0.391464812 mse_se=0.0676116925 max_pixel=17.0155258 max_batch_mean=0.716803443 mean_rays=5894.229 warm_rays=16590.104 mean_boxes=5894.229 mean_triangles=1274.208 temporal=49152 spatial=185385 mean_gate=1 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=visibility group=near mode=temporal_disk floor=lower reference=0.780225097 mean=0.692377719 batch_se=0.00730848105 rmse=0.791983566 mse=0.627237969 mse_se=0.424418308 max_pixel=63.6207047 max_batch_mean=0.939805392 mean_rays=5895.708 warm_rays=16593.646 mean_boxes=5895.708 mean_triangles=1253.500 temporal=49152 spatial=185385 mean_gate=0 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_RESULT arm=baseline scene=visibility group=far mode=temporal_disk floor=lower reference=0.625657179 mean=0.594690492 batch_se=0.00143006557 rmse=0.142703955 mse=0.0203644188 mse_se=0.000216229186 max_pixel=0.981218636 max_batch_mean=0.62478981 mean_rays=5895.708 warm_rays=16593.646 mean_boxes=5895.708 mean_triangles=1253.500 temporal=49152 spatial=185385 mean_gate=0 scale=1 batches=48 pixels_per_group=512
+REPLAY_GUARD_LINKS arm=baseline scene=visibility seed=2618282299 eligible=3867 cross_material=0 cross_position=2197 rejected=0 resolve_links=3867
+Material-guard holdout failed the independent mean gates

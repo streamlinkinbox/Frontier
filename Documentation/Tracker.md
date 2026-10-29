@@ -20,8 +20,10 @@ are inherited historical checkpoints: their branch/PR references and completion 
   even fainter case changes by only 0.05%; no default was changed. These are not elapsed-time measurements.
 - In a later [mixed-material and visibility stress test](../Exhibits/LightCompute/ReplayMixedMaterialVisibility.md),
   the lower floor increased metal temporal + disk RMSE by 66.09%, while rare dim-material samples produced a much
-  higher but statistically inconclusive RMSE. All 12 means still passed. This exposes a variance risk; strict
-  material compatibility is a candidate for further investigation, not yet a production change.
+  higher but statistically inconclusive RMSE. All 12 means still passed.
+- A 48-cohort [address-guard holdout](../Exhibits/LightCompute/ReplayMaterialGuardCandidate.md) then failed 5/32
+  mean gates, including same-material visibility groups unaffected by the guard. Some mixed-scene RMSEs improved,
+  but neither the guard nor a lower default floor was promoted; investigate visibility and rare tails.
 - Physical-GPU/Windows timing, realistic mixed/moving materials, production scene/resource ownership and the
   editor viewport remain open. This restricted result does not prove general ReSTIR unbiasedness.
 

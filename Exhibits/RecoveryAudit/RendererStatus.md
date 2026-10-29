@@ -15,7 +15,9 @@ a two-bounce diffuse fixture also passes a separate area integral
 [reuse audit](../LightCompute/ReplayMaterialReuse.md) exercises temporal/spatial means and sequence resets. A
 [paired floor study](../LightCompute/ReplayMaterialFloor.md) reports a large homogeneous dim-material improvement,
 but a [mixed-material/visibility stress test](../LightCompute/ReplayMixedMaterialVisibility.md) exposes severe
-variance and a significant lower-floor regression. None is general ReSTIR validation. The PBR showroom's 80-sample reference is a finite same-shader
+variance and a significant lower-floor regression. A later [held-out guard test](../LightCompute/ReplayMaterialGuardCandidate.md)
+failed independent means under different visibility even with the same material. None is general ReSTIR
+validation. The PBR showroom's 80-sample reference is a finite same-shader
 comparison, not independent ground truth. An optional completion-gated Engine submission sequence is now tested
 [offscreen](../LightCompute/ReplaySubmissionSequence.md), but it does not create resources or present an image.
 `Frontier/Applications/Editor/FrontierMain.cpp` and `UI/Editor/EditorWorkspace.cpp` still contain viewport

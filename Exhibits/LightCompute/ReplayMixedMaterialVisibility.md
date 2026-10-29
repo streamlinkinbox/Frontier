@@ -60,8 +60,9 @@ metal references are `0.439915` (× `1e3`) and `0.625657`; finer versus coarser 
 This highly artificial checkerboard deliberately permits cross-material, differently occluded spatial donors.
 Its observation motivates investigating stricter compatibility, not an automatic production change: blocking
 all different materials may remove useful samples and will not address different visibility or textured
-properties *within* the same material. Other scenes, motion, real hardware and longer rare-tail tests remain
-necessary.
+properties *within* the same material. A subsequent [held-out address-guard experiment](ReplayMaterialGuardCandidate.md) improved this
+mixed case but failed independent means in a same-material visibility control; the guard was not promoted.
+Other scenes, motion, real hardware and longer rare-tail tests remain necessary.
 
 ## Reproduce
 
