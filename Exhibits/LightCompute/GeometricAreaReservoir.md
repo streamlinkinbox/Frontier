@@ -73,7 +73,8 @@ Different geometry/support prevents direct cross-report RMSE or reference-noise 
 The initial strict replay failed at layout0,pixel2839,lane3,proposal1:GPU connection visible,CPU blocked.
 The inherited connection query offset its origin but retained the unoffset direction/range. The repaired query
 joins source and receiver endpoints each offset0.002 test units along their geometric normals,with1e-5 target
-shortening. Radiometric geometry still uses the original unoffset points. All arms and references in this exhibit use the same
+shortening. Radiometric geometry still uses the original unoffset points. All arms and references in this
+exhibit use the same
 repaired connection query;no rays are skipped. Historical shaders and production defaults are unchanged.
 [Initial failure log](Results/GeometricAreaReservoir-initial-endpoint-failure.txt).
 
