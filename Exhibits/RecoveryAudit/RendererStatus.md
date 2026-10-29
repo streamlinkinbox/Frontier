@@ -21,7 +21,11 @@ failed independent means under different visibility even with the same material.
 had a measured regression. Its later
 [moving supplied-receiver/Fresh4 holdout](../LightCompute/ReplayFreshDonorMotion.md) failed two candidate means,
 including an unchanged temporal-only case, and regressed mixed-metal combined4
-RMSE by 41.81%. The candidate remains test-only. None is general ReSTIR validation. The PBR showroom's
+RMSE by 41.81%. A subsequent [temporal-history holdout](../LightCompute/ReplayTemporalFreshHistory.md) confirms
+lower-floor moving-visibility mean failures in the original. A test-only raw-seed history passes its 80 mean
+gates and reduces selected moving tails, but regresses every stationary temporal1 comparison and shows no
+significant advantage over Fresh2 at similar final proposal count. Both candidates remain unpromoted. None is
+general ReSTIR validation. The PBR showroom's
 80-sample reference is a finite same-shader comparison, not independent ground truth. An optional completion-gated
 Engine submission sequence is now tested
 [offscreen](../LightCompute/ReplaySubmissionSequence.md), but it does not create resources or present an image.
@@ -42,9 +46,9 @@ fully characterized.
 | PBR materials and reflections end-to-end | 35% | 65% | Production material/texture loading, broad reflection/transmission/lighting validation, viewport and hardware tests. |
 
 The Engine contains bounded C++ recorder, domain and completion-gated sequence code; it is exercised by
-offscreen Vulkan tests, not yet a production scene renderer or live editor viewport. The latest fresh-donor
-quality candidate is **test-only** and is not an Engine default. Do not add percentages across the two overlapping
-scopes or use them to promise a finish date.
+offscreen Vulkan tests, not yet a production scene renderer or live editor viewport. The fresh-donor and
+raw-history quality candidates are **test-only** and are not Engine defaults. Do not add percentages across
+the two overlapping scopes or use them to promise a finish date.
 
 ## Ray tracing versus non-ray paths
 
@@ -83,7 +87,8 @@ and [sequencing](../LightCompute/ReplaySubmissionSequence.md). Reflection/PBR ev
 [material sampling](../LightCompute/ReplayMaterialSampling.md), [material reuse](../LightCompute/ReplayMaterialReuse.md),
 [target-floor sensitivity](../LightCompute/ReplayMaterialFloor.md),
 [mixed-material visibility](../LightCompute/ReplayMixedMaterialVisibility.md),
-[moving supplied receivers](../LightCompute/ReplayFreshDonorMotion.md) and
+[moving supplied receivers](../LightCompute/ReplayFreshDonorMotion.md),
+[temporal-history holdout](../LightCompute/ReplayTemporalFreshHistory.md) and
 [thin sheets](../LightCompute/ReplayTransmission.md). Tyre and gas evidence remains under
 [VehiclePhysics](../VehiclePhysics/) and [FluidReference](../FluidReference/).
 

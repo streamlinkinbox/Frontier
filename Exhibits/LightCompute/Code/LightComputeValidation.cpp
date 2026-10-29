@@ -1906,11 +1906,19 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplayMaterialGuardValidation.h"
 #include "ReplayFreshDonorValidation.h"
 #include "ReplayFreshDonorMotionValidation.h"
+#include "ReplayTemporalFreshHistoryValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
     try
     {
+        if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-history-baseline" ||
+                           std::string(Arguments[3]) == "--replay-temporal-history-raw"))
+        {
+            ValidateReplayTemporalFreshHistory(Arguments[1], Arguments[2],
+                                               std::string(Arguments[3]) == "--replay-temporal-history-raw");
+            return 0;
+        }
         if (Count == 4 && (std::string(Arguments[3]) == "--replay-fresh-motion-baseline" ||
                            std::string(Arguments[3]) == "--replay-fresh-motion-candidate"))
         {

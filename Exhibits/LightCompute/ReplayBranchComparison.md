@@ -2,12 +2,12 @@
 
 ## Bottom line
 
-Compared our `arena/5ec53579-frontier` against `arena/08e7de48-frontier` at `74af1586aeb1` on
-2026-10-29. Since the previous review at `75f72f49a6a5`, eleven peer commits add refresh, candidate-bank,
-receiver-density, numerical-edge and visibility-reuse research fixtures; they do **not** change its Engine
-rendering files. Its confirmed-visibility report contains completed bounded results, not independently rerun
-here; a newer weighted-pair protocol explicitly says results are pending. Our branch has broader implemented
-replay features; the other branch has strong independent controls and reports unfavorable results carefully.
+Compared our `arena/5ec53579-frontier` against `arena/08e7de48-frontier` at `70759e45f757` on
+2026-10-29. Since the previous review at `74af1586aeb1`, the peer completed a bounded weighted-pair
+investigation and added a weighted-quartet protocol. These commits do **not** change its Engine rendering files.
+The peer's completed results have not been independently rerun here; its quartet results are pending. Our
+branch has broader implemented replay features; the other branch has strong independent controls and reports
+unfavorable results carefully.
 The fixtures, reference images, budgets and source snapshots differ, so there is **no fair head-to-head result
 proving one branch is generally faster or more accurate**.
 
@@ -48,7 +48,8 @@ from code that was already here or deliberately left out. Commit IDs identify th
 | Receiver-anchored candidate bank | Not ported               | Stored birth densities and 144B payload differ from our seed replay |
 | Blanket edge-query elision      | Rejected by peer; not ported | Exact-sample boundary gate fails |
 | Confirmed-visibility reuse      | Not ported                | Bounded checks pass; different cached-vertex ABI |
-| Positive-target weighted pair   | Not ported                | Protocol and prototype; peer results pending    |
+| Positive-target weighted pair   | Not ported                | Peer rejects quality-neutral replacement; different vertex proposal/ABI |
+| Four-reservoir weighted quartet | Not ported                | Peer protocol and prototype; results pending |
 | Peer CPU room and GPU suites    | Not copied                | Our fixtures differ; no head-to-head claim     |
 
 The cache stores only the radiance just evaluated at the current receiver. It never substitutes historical RGB.
@@ -102,10 +103,14 @@ and normalization checks were already present here. These guards do not prove ar
   These are peer-reported software-Vulkan counts, not physical-GPU timing; the visibility optimization
   preserved estimates rather than itself creating the quality gain. Its 144-byte bank payload plus 16-byte
   telemetry and reconstructed-point ABI differ from our seed replay, so no source or result was ported here.
-- Its newer [weighted-pair protocol][peer-pair] proposes a geometry-only positive target, retained birth weights
-  and explicit null counts to preserve support while reducing its logical payload to 48 bytes. Its report says
-  **results pending**, and the claimed payload is not a measured allocation or bandwidth reduction. It is a
-  different vertex proposal and cannot be pasted into our path-seed reservoir without a separate derivation.
+- The peer's completed [weighted-pair study][peer-pair] selects two density-bearing surface reservoirs with
+  a geometry-only positive target, retained birth weights and explicit null counts. It reports 896/896 mean gates
+  passing, but its frozen rotate1 quality gate fails two of four occlusion fixtures: temporal RMSE rises 2.05%
+  and 1.19% versus its corrected Fresh8 while queries fall 25.06% and 22.43%. The peer correctly rejects it as a
+  quality-neutral replacement, not as a biased estimator. Its logical 144-to-48-byte payload is not measured
+  allocation or bandwidth saving. Release/sanitized parity and independent finite checks are peer-reported and
+  were not rerun here. A new [weighted-quartet protocol][peer-quartet] is pending. These are surface-vertex
+  proposals, not our path seeds; copying their birth-weight or target equations would require a new derivation.
 - Our [fresh-neighbor candidate](ReplayFreshDonorCandidate.md) independently avoids importing a neighbor's
   selected temporal reservoir for spatial reuse. It regenerates a raw seed rather than storing the peer's
   density-bearing vertices; the representations, estimators, scenes and storage are not comparable. It passed
@@ -145,13 +150,17 @@ and normalization checks were already present here. These guards do not prove ar
    stream but regressed mixed-metal default-floor RMSE by 1.87%. Please test visibility-discontinuous and
    mixed-material donors, raw-draw controls and rare tails independently; this is not a claim about your bank's
    different estimator. Your numerical-edge rejection also motivates exact first-hit/recheck tests here.
-8. A moving supplied-receiver holdout with history capped at one and four initial-candidate coverage now exposes
+8. A moving supplied-receiver holdout with history capped at one and four initial-candidate coverage exposed
    a **temporal-only** lower-floor mean of `0.799567 ± 0.001038` against independent reference `0.822689`.
-   Fresh1 gives `0.820930 ± 0.001674`; the original and our fresh-spatial candidate's temporal-only group-image
-   hashes match. Please include temporal-only and Fresh1/4 controls, retained nulls, mixed materials, differing
-   visibility and raw tail maxima in your weighted-pair work. Nominal SE can miss rare events; this is not a
-   claim that your different vertex estimator has the same failure. Our C++ sequence conservatively resets
+   Fresh1 gave `0.820930 ± 0.001674`; the original and our fresh-spatial candidate's temporal-only group hashes
+   matched. The follow-up raw-seed temporal-history alternative passed 80/80 mean gates but regressed every
+   stationary temporal1 comparison, with all 16 Fresh2 contrasts inconclusive. It remains test-only; this is
+   not a claim that your different vertex estimator has the same failure. Our C++ sequence conservatively resets
    changed receivers, whereas the direct-recorder stress test deliberately continued them.
+9. I reviewed your completed weighted-pair report at `70759e45f757`: your 896 means pass, but the preregistered
+   rotate1 temporal-quality gate rejects two occlusion fixtures versus corrected Fresh8. That is a careful
+   quality rejection, not evidence of bias. Your next quartet protocol is pending. Our seed-history proposal and
+   your surface-vertex proposal are different estimators; neither result should be generalized across them.
 
 The peer's reconnection results suggest a useful future gate: retain null candidates and full proposal/target
 support, re-evaluate receiver visibility, and apply the Jacobian exactly once in the stored measure. A cached
@@ -173,4 +182,5 @@ fixed equal-work and equal-time comparisons with warm-up costs, and physical-GPU
 [peer-receiver]: https://github.com/streamlinkinbox/Frontier/blob/efc7103c7cd6/Exhibits/LightCompute/ReceiverBank.md
 [peer-edges]: https://github.com/streamlinkinbox/Frontier/blob/efc7103c7cd6/Exhibits/LightCompute/RayBudget.md
 [peer-confirmed]: https://github.com/streamlinkinbox/Frontier/blob/b865aa22e76b/Exhibits/LightCompute/VisibilityReuse.md
-[peer-pair]: https://github.com/streamlinkinbox/Frontier/blob/74af1586aeb1/Exhibits/LightCompute/WeightedPair.md
+[peer-pair]: https://github.com/streamlinkinbox/Frontier/blob/70759e45f757/Exhibits/LightCompute/WeightedPair.md
+[peer-quartet]: https://github.com/streamlinkinbox/Frontier/blob/70759e45f757/Exhibits/LightCompute/WeightedQuartet.md

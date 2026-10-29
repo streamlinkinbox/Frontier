@@ -110,8 +110,9 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   donors and audit accepted spatial links; `ReplayMaterialGuardValidation.h` holds the failed, test-only
   material-boundary holdout; `ReplayFreshDonorValidation.h` tests a different test-only fresh-neighbor policy.
   `ReplayFreshDonorMotionValidation.h` tests that policy with moving supplied receivers and sequence resets;
-  its paired summary, synthetic summary audit, runner, report, image and logs remain alongside the exhibit.
-  Their reports, scripts and images/logs preserve scope and results.
+  `ReplayTemporalFreshHistoryValidation.h` diagnoses the selected temporal weight against a raw-seed control.
+  Both holdouts keep test-only candidate policies, paired summaries/audits, runners, reports, images and logs beside
+  the exhibit. Their reports and scripts preserve failures and scope; neither changes production defaults.
 - `ReplayBranchComparison.md` records the compared peer revision and non-equivalent benchmark boundaries. None of
   these files connects the renderer to the editor viewport.
 

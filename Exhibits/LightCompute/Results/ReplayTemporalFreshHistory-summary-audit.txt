@@ -1,0 +1,8 @@
+REPLAY_TEMPORAL_SUMMARY_AUDIT case=complete exit=0 expected=0
+REPLAY_TEMPORAL_SUMMARY_AUDIT case=mean exit=1 expected=1
+REPLAY_TEMPORAL_SUMMARY_AUDIT case=fresh_hash exit=1 expected=1
+REPLAY_TEMPORAL_SUMMARY_AUDIT case=historical_hash exit=1 expected=1
+REPLAY_TEMPORAL_SUMMARY_AUDIT case=truncated exit=1 expected=1
+REPLAY_TEMPORAL_SUMMARY_AUDIT case=exit exit=1 expected=1
+REPLAY_TEMPORAL_SUMMARY_AUDIT case=duplicate_exit exit=1 expected=1
+PASS ReplayTemporalFreshHistorySummaryAudit

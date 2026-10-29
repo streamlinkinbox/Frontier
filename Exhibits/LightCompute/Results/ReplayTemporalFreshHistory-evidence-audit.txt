@@ -1,0 +1,5 @@
+REPLAY_TEMPORAL_EVIDENCE aggregates=160 paired_comparisons=80 fresh_work_contrasts=32 cohorts=7680
+REPLAY_TEMPORAL_EVIDENCE fresh_controls=2304 fresh_mismatches=0 historical_controls=320 historical_mismatches=0 startup_hashes=31 frozen_inputs=3
+REPLAY_TEMPORAL_EVIDENCE mean_failures=2 baseline_failures=2 raw_failures=0
+REPLAY_TEMPORAL_EVIDENCE reference_checks=16 continuations=8 guide_checks=2 oracle_checks=2 diagnostics=32 regenerated_test_shaders=2
+PASS ReplayTemporalFreshHistoryEvidenceAudit (verified failures remain failures)
