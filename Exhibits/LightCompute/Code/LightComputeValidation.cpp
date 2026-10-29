@@ -258,6 +258,8 @@ struct LightComputeSubmission
     bool ReplayLastSampleHistoryReset = true, ReplaySampleHistoryActive = false;
     bool ReplaySeedReservoirActive = false;
     bool CompactReplayStorage = false;
+    bool ReplayIndependentIndirectSeedForAudit = false;
+    uint32_t ReplayIndirectFrameSeedForAudit = 0;
     std::uint64_t ReplayOutputDescriptorBytes = 0;
     bool ReplayPreviousTemporal = false, ReplayPreviousSpatial = false, ReplayPreviousDiffuseCamera = false;
     uint32_t ReplayLastHistoryCap = 1, ReplayFacetStart = 0, ReplayFacetCapacity = 0;
@@ -916,6 +918,14 @@ struct LightComputeSubmission
         Extent.Primary = {PrimaryVisibility ? 1u : 0u, uint32_t(Scene.Angles.size()), Bounces, ReplayFlags};
         Extent.Minimum = {Environment[0], Environment[1], Environment[2], 0};
         Extent.Maximum = {PositiveFloor, 0, 0, 0};
+        if (ReplayIndependentIndirectSeedForAudit)
+        {
+            Require(ReplayLastSampleHistoryReset && !Temporal && !Spatial,
+                    "Independent indirect stream is a cold non-spatial audit only");
+
+        }
+        const uint32_t IndirectFrameSeed = ReplayIndependentIndirectSeedForAudit ? ReplayIndirectFrameSeedForAudit : Seed;
+        std::memcpy(&Extent.Maximum[2], &IndirectFrameSeed, sizeof(IndirectFrameSeed));
         std::memcpy(&Extent.Maximum[1], &ReplayFacetStart, sizeof(ReplayFacetStart));
         std::memset(Buffers[7].Address, 0, 96);
         Confirm(ResetCommandPool(Device, Pool, 0));
@@ -1708,6 +1718,8 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "DirectSpatialGpuValidation.h"
 #include "StaticDiffuseGpuValidation.h"
 #include "RectangleReconnectionGpuValidation.h"
+#include "SecondaryReconnectionGpuValidation.h"
+#include "TriangleReconnectionValidation.h"
 #include "PathReplayCapture.h"
 #include "PathReplayGpuValidation.h"
 #include "ReplayRoomReference.h"
@@ -1756,6 +1768,9 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplayFirstHopMISValidation.h"
 #include "ReplayMISPowerValidation.h"
 #include "ReplayPowerReuseValidation.h"
+#include "ReplayRoomConvergenceValidation.h"
+#include "ReplayReuseAblationValidation.h"
+#include "ReplayCorrelationValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
@@ -1774,6 +1789,31 @@ int main(int Count, char** Arguments)
         if (Count == 4 && std::string(Arguments[3]) == "--replay-dynamic-camera")
         {
             ValidateReplayDynamicCamera(Arguments[1], Arguments[2]);
+            return 0;
+        }
+        if (Count == 5 && std::string(Arguments[3]) == "--triangle-reconnection")
+        {
+            ValidateTriangleReconnection(Arguments[1], Arguments[2], Arguments[4]);
+            return 0;
+        }
+        if (Count == 5 && std::string(Arguments[3]) == "--secondary-reconnection")
+        {
+            ValidateSecondaryReconnectionGpu(Arguments[1], Arguments[2], Arguments[4]);
+            return 0;
+        }
+        if (Count == 5 && std::string(Arguments[3]) == "--replay-correlation")
+        {
+            ValidateReplayCorrelation(Arguments[1], Arguments[2], Arguments[4]);
+            return 0;
+        }
+        if (Count == 5 && std::string(Arguments[3]) == "--replay-reuse-ablation")
+        {
+            ValidateReplayReuseAblation(Arguments[1], Arguments[2], Arguments[4]);
+            return 0;
+        }
+        if (Count == 5 && std::string(Arguments[3]) == "--replay-room-convergence")
+        {
+            ValidateReplayRoomConvergence(Arguments[1], Arguments[2], Arguments[4]);
             return 0;
         }
         if (Count == 5 && std::string(Arguments[3]) == "--replay-power-reuse")

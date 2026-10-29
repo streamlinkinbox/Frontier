@@ -1,0 +1,1 @@
+PASS triangle BVH reconnection: 42 identical semantic rows; checked hashes [33, 33]; 12 reference gates, six required negative controls, four identities; 1048576 suffix probes with shadow negative control; four exact raw readbacks and 32 retained PNG arrays; both five-CTest sets passed. promote=0 physical_gpu_timing=0.

@@ -1,0 +1,1 @@
+PASS correlation controls: 37 identical semantic rows; logged hashes [70, 70]; ten exact readbacks/PNG pixels; covariance MSE identities, Fresh6 calls, source rederivation and work sums pass; both five-CTest sets passed. promote=0.

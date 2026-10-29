@@ -1,0 +1,1 @@
+PASS reuse ablation evidence: 33 identical semantic rows; logged hashes [66, 66]; eight exact captures and retained PNG pixels; feature isolation and work sums exact; both five-CTest sets passed.

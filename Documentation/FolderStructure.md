@@ -212,3 +212,52 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   split, unfused split and actual whole Fresh8 evaluator; the existing beta=2 function is reused verbatim.
 - `ReplayPowerReuseValidation.h`, `RunReplayPowerReuse.sh`, `ReplayPowerReuseImages.py`,
   `ReplayPowerReuseParity.py` and `ReplayPowerReuse.md` retain isolated tests and evidence; production is unchanged.
+
+### Room convergence diagnostic
+
+- `Exhibits/LightCompute/Code/ReplayRoomConvergenceValidation.h` independently samples double triangle-area NEE
+  and power MIS, compares the existing BSDF reference, and tests an analytic near-emitter rectangle.
+- `RunReplayRoomConvergence.sh`, `ReplayRoomConvergenceImages.py`, `ReplayRoomConvergenceParity.py` and
+  `ReplayRoomConvergence.md` own fixed cohort logs, plots, historical-prefix parity and diagnostic evidence.
+
+### Temporal / spatial reuse ablation
+
+- `Exhibits/LightCompute/Code/ReplayReuseAblationValidation.h` isolates temporal-only and spatial-enabled seed
+  reuse using the independently checked CPU power reference. Existing transport derivations are unchanged.
+- `RunReplayReuseAblation.sh`, `ReplayReuseAblationImages.py`, `ReplayReuseAblationParity.py` and
+  `ReplayReuseAblation.md` retain paired error/cost evidence, feature-isolation checks and actual readbacks.
+
+### Fresh D/I correlation and lower-budget whole-path controls
+
+- `Exhibits/LightCompute/Code/ReplayCorrelationValidation.h` measures coupled/independent fresh D8/I8,
+  Whole8, Whole6 and temporal-only reuse with fixed seeds and empirical MSE/covariance decomposition.
+- `CompileReplayCorrelation.py` derives audit-only fresh-I seed control and six-path whole transport;
+  production shaders, storage layouts and defaults are unchanged.
+- `RunReplayCorrelation.sh`, `ReplayCorrelationImages.py`, `ReplayCorrelationParity.py` and
+  `ReplayCorrelation.md` retain query/error frontiers, actual readbacks and cross-build verification.
+
+### Secondary-vertex reconnection correctness gate
+
+- `Exhibits/LightCompute/Code/SecondaryReconnectionValidation.cpp` reuses production `Reservoir` for bounded
+  two-diffuse-vertex transport; independent area quadrature checks angular/area measures and visibility support.
+- `RunSecondaryReconnection.sh` builds optimized and host-sanitized native checks without Vulkan dependencies.
+- `SecondaryReconnectionEvidence.py`, `SecondaryReconnection.md`, retained results and measured plots document
+  correct Jacobian placement, null-candidate accounting and deliberate proposal/target-support failures.
+
+### Analytic secondary-vertex Vulkan gate
+
+- `Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang` samples/reconnects bounded diffuse vertices using
+  production RNG and descriptor definitions; receiver visibility and null/support controls are explicit.
+- `SecondaryReconnectionGpuValidation.h` reuses the existing exhibit Vulkan uploader/submitter and checks actual
+  readbacks against independent clipped-area quadrature; no BVH camera-render or persistent-history claim.
+- `RunSecondaryReconnectionGpu.sh`, `SecondaryReconnectionGpuEvidence.py` and `SecondaryReconnectionGpu.md`
+  retain release/sanitizer-host evidence, shader/tool hashes and exact raw-readback/PNG parity.
+
+### Triangle secondary-vertex transport
+
+- `Exhibits/LightCompute/Code/CompileTriangleReconnection.py` derives actual packed-triangle proposals, production
+  BVH first hits/visibility and a diffuse directional-light suffix from the frozen analytic estimator template.
+- `TriangleReconnectionValidation.h` authors the nonemissive patch/opaque strip and independently integrates
+  the restricted indirect component; pointwise outgoing probes check the oblique source shadow separately.
+- `RunTriangleReconnection.sh`, `TriangleReconnectionEvidence.py` and `TriangleReconnection.md` retain host-build
+  parity, actual estimator/suffix readbacks, nearest-facet call counts and query/error comparisons.

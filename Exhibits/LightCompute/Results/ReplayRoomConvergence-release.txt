@@ -1,0 +1,1503 @@
+Fixed beta=2 MIS experiment; host release; external driver/shaders not sanitizer-instrumented
+Base 68f3016 plus working changes; source hashes below
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+69c312d0dfd9d74d50acc3e0e856a488b8d127652ffe71b7de501dd5cc27dc09  Exhibits/LightCompute/RunReplayRoomConvergence.sh
+b1c1dad4e582f95b74494df18a5b3ac0a5c3292ccce52746961d8b13af27949b  Exhibits/LightCompute/Code/ReplayRoomConvergenceValidation.h
+34c65b106f495495121d0092ebda945fb1c1e832e24de6d6eb4685b510006593  Exhibits/LightCompute/Code/CompileReplayMISPower.py
+72b0dd265d999ce049721713a15f003958c9df785dc8c749da973cdfb6d1439d  Exhibits/LightCompute/Code/ReplayMISPowerValidation.h
+1213f62c51484ce4f5ac9432fc40c316ae1341de77b11e1c6df04113375c3fe5  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+193d7e704cb1ab6472f153079ce6a2b6c72c1f954b679c35302b01e867febd6b  Exhibits/LightCompute/Code/ReplayFirstHopMISValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+5ee030f14840bc65be0576bdcb356efaf1c18e218859b68584debf85ef6805ae  Exhibits/LightCompute/Code/CompileReplayResetBudget.py
+96ea4214cd3a42ef70a7c03d0c2aa7557b776f52e5e4c1c829fe8a0690d71288  Exhibits/LightCompute/Code/CompileReplayBoundedTemporal.py
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+85568db2461f04436cce139a9b90a0c08a92fb278c644b43376dea060f683162  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/balance/ReplayResetBudget.slang
+89bb737395f3b1db5e49d28cfb3301c548f564fc1d984fe5d5f7078326462ea5  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/power/ReplayMISPower.slang
+f4de0848490153e7a1c7cc3284ee76a0b372228b687c57904e838f610d9d189d  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/power/ReplayFreshPower.slang
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/balance/Primary.spv
+131704a2f29fc8ce802d4a463691c7b4c7d6eddcab3eda7327fceadfbad4e565  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/balance/ReplayGenerate.spv
+e9a96d4bfa5636f7610285a597e27f094a6cb643f46d9a621e9fbf96440c6dec  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/balance/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/balance/ReplayGatherSampleHistory.spv
+7577bf45fd8e22f48e41865f11d40991dbafd6bfa7a2e0a9fd18156c9a3eff33  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/balance/ReplayFinalizeSampleHistory.spv
+6d3ff88efe9cb8028cde21dd97abc8518fb080130c6fa0a65c0d0716f50a05ce  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/balance/ReplayFreshBudget.spv
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/power/Primary.spv
+d97afa08bb94c01595108be7c13a7baf99ae0b48ad125ce5c05f195518d65e11  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/power/ReplayGenerate.spv
+9b44d4a6a0f20fcb78a10e408e4a8c8b1c2f792da9e6862464511d2d2984fd2b  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/power/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/power/ReplayGatherSampleHistory.spv
+7577bf45fd8e22f48e41865f11d40991dbafd6bfa7a2e0a9fd18156c9a3eff33  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/power/ReplayFinalizeSampleHistory.spv
+b0813da40cf05824ef0b7bca4a55a030e7cc8f93b886acf54684f41f74f5de62  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/power/ReplayFreshBudget.spv
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+74246a3aa5cb91afa298ca08e919fa81cdf22c174d0325c35133036f4d6cee8f  /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release/LightComputeValidation
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-room-convergence-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed out of 5
+
+Total Test time (real) =   0.01 sec
+CONVERGENCE_ANALYTIC samples=1024 method=bsdf mean=8.4 nominal_se=4.04670108e-08 exact=8.39820954 maximum_nee=2417.66661
+CONVERGENCE_ANALYTIC samples=1024 method=nee mean=4.7444465 nominal_se=2.71843004 exact=8.39820954 maximum_nee=2417.66661
+CONVERGENCE_ANALYTIC samples=1024 method=power mean=8.37779332 nominal_se=0.031078174 exact=8.39820954 maximum_nee=2417.66661
+CONVERGENCE_ANALYTIC samples=16384 method=bsdf mean=8.3994873 nominal_se=0.00051267967 exact=8.39820954 maximum_nee=31997.4504
+CONVERGENCE_ANALYTIC samples=16384 method=nee mean=7.59030349 nominal_se=2.33258463 exact=8.39820954 maximum_nee=31997.4504
+CONVERGENCE_ANALYTIC samples=16384 method=power mean=8.40508579 nominal_se=0.0079019597 exact=8.39820954 maximum_nee=31997.4504
+CONVERGENCE_ANALYTIC samples=262144 method=bsdf mean=8.398526 nominal_se=0.000217310237 exact=8.39820954 maximum_nee=47181.7892
+CONVERGENCE_ANALYTIC samples=262144 method=nee mean=8.93236788 nominal_se=0.764108601 exact=8.39820954 maximum_nee=47181.7892
+CONVERGENCE_ANALYTIC samples=262144 method=power mean=8.39684638 nominal_se=0.00197360319 exact=8.39820954 maximum_nee=47181.7892
+CONVERGENCE_ANALYTIC samples=4194304 method=bsdf mean=8.39831371 nominal_se=5.81074786e-05 exact=8.39820954 maximum_nee=47181.7892
+CONVERGENCE_ANALYTIC samples=4194304 method=nee mean=8.7531918 nominal_se=0.184101818 exact=8.39820954 maximum_nee=47181.7892
+CONVERGENCE_ANALYTIC samples=4194304 method=power mean=8.39781442 nominal_se=0.00049183301 exact=8.39820954 maximum_nee=47181.7892
+CONVERGENCE_DEVICE name=SwiftShader Device (Subzero) type=4 points=528 sources=2
+CONVERGENCE_CPU_BATCH bounces=1 batch=0 method=bsdf mean=0.315988106846
+CONVERGENCE_CPU_BATCH bounces=1 batch=0 method=nee mean=0.317753593097
+CONVERGENCE_CPU_BATCH bounces=1 batch=0 method=power mean=0.321481253653
+CONVERGENCE_CPU_BATCH bounces=1 batch=1 method=bsdf mean=0.332840534706
+CONVERGENCE_CPU_BATCH bounces=1 batch=1 method=nee mean=0.320778279324
+CONVERGENCE_CPU_BATCH bounces=1 batch=1 method=power mean=0.319798243147
+CONVERGENCE_CPU_BATCH bounces=1 batch=2 method=bsdf mean=0.326869039998
+CONVERGENCE_CPU_BATCH bounces=1 batch=2 method=nee mean=0.320104596437
+CONVERGENCE_CPU_BATCH bounces=1 batch=2 method=power mean=0.319407507983
+CONVERGENCE_CPU_BATCH bounces=1 batch=3 method=bsdf mean=0.317295043397
+CONVERGENCE_CPU_BATCH bounces=1 batch=3 method=nee mean=0.322342989941
+CONVERGENCE_CPU_BATCH bounces=1 batch=3 method=power mean=0.320559658675
+CONVERGENCE_CPU_BATCH bounces=1 batch=4 method=bsdf mean=0.310604465842
+CONVERGENCE_CPU_BATCH bounces=1 batch=4 method=nee mean=0.320596497809
+CONVERGENCE_CPU_BATCH bounces=1 batch=4 method=power mean=0.318832422125
+CONVERGENCE_CPU_BATCH bounces=1 batch=5 method=bsdf mean=0.31625767511
+CONVERGENCE_CPU_BATCH bounces=1 batch=5 method=nee mean=0.319662902923
+CONVERGENCE_CPU_BATCH bounces=1 batch=5 method=power mean=0.320612589047
+CONVERGENCE_CPU_BATCH bounces=1 batch=6 method=bsdf mean=0.324235125256
+CONVERGENCE_CPU_BATCH bounces=1 batch=6 method=nee mean=0.321886992725
+CONVERGENCE_CPU_BATCH bounces=1 batch=6 method=power mean=0.32297971705
+CONVERGENCE_CPU_BATCH bounces=1 batch=7 method=bsdf mean=0.317381240042
+CONVERGENCE_CPU_BATCH bounces=1 batch=7 method=nee mean=0.314702384794
+CONVERGENCE_CPU_BATCH bounces=1 batch=7 method=power mean=0.321163889192
+CONVERGENCE_CPU_BATCH bounces=1 batch=8 method=bsdf mean=0.317749411314
+CONVERGENCE_CPU_BATCH bounces=1 batch=8 method=nee mean=0.320650484944
+CONVERGENCE_CPU_BATCH bounces=1 batch=8 method=power mean=0.320949903348
+CONVERGENCE_CPU_BATCH bounces=1 batch=9 method=bsdf mean=0.317646872289
+CONVERGENCE_CPU_BATCH bounces=1 batch=9 method=nee mean=0.366770648432
+CONVERGENCE_CPU_BATCH bounces=1 batch=9 method=power mean=0.32128799945
+CONVERGENCE_CPU_BATCH bounces=1 batch=10 method=bsdf mean=0.314888016536
+CONVERGENCE_CPU_BATCH bounces=1 batch=10 method=nee mean=0.320668433807
+CONVERGENCE_CPU_BATCH bounces=1 batch=10 method=power mean=0.320599890343
+CONVERGENCE_CPU_BATCH bounces=1 batch=11 method=bsdf mean=0.322306799112
+CONVERGENCE_CPU_BATCH bounces=1 batch=11 method=nee mean=0.316547867484
+CONVERGENCE_CPU_BATCH bounces=1 batch=11 method=power mean=0.320340074725
+CONVERGENCE_CPU_BATCH bounces=1 batch=12 method=bsdf mean=0.317087945648
+CONVERGENCE_CPU_BATCH bounces=1 batch=12 method=nee mean=0.319824378596
+CONVERGENCE_CPU_BATCH bounces=1 batch=12 method=power mean=0.318263493539
+CONVERGENCE_CPU_BATCH bounces=1 batch=13 method=bsdf mean=0.346037985237
+CONVERGENCE_CPU_BATCH bounces=1 batch=13 method=nee mean=0.318323929111
+CONVERGENCE_CPU_BATCH bounces=1 batch=13 method=power mean=0.320336931297
+CONVERGENCE_CPU_BATCH bounces=1 batch=14 method=bsdf mean=0.322448459739
+CONVERGENCE_CPU_BATCH bounces=1 batch=14 method=nee mean=0.325350449638
+CONVERGENCE_CPU_BATCH bounces=1 batch=14 method=power mean=0.323093806579
+CONVERGENCE_CPU_BATCH bounces=1 batch=15 method=bsdf mean=0.316793430603
+CONVERGENCE_CPU_BATCH bounces=1 batch=15 method=nee mean=0.333117401533
+CONVERGENCE_CPU_BATCH bounces=1 batch=15 method=power mean=0.320935319481
+CONVERGENCE_CPU_BATCH bounces=1 batch=16 method=bsdf mean=0.309032769904
+CONVERGENCE_CPU_BATCH bounces=1 batch=16 method=nee mean=0.317766573643
+CONVERGENCE_CPU_BATCH bounces=1 batch=16 method=power mean=0.318092536133
+CONVERGENCE_CPU_BATCH bounces=1 batch=17 method=bsdf mean=0.317806577317
+CONVERGENCE_CPU_BATCH bounces=1 batch=17 method=nee mean=0.317755481357
+CONVERGENCE_CPU_BATCH bounces=1 batch=17 method=power mean=0.321517914957
+CONVERGENCE_CPU_BATCH bounces=1 batch=18 method=bsdf mean=0.329637365392
+CONVERGENCE_CPU_BATCH bounces=1 batch=18 method=nee mean=0.318705464282
+CONVERGENCE_CPU_BATCH bounces=1 batch=18 method=power mean=0.320369046118
+CONVERGENCE_CPU_BATCH bounces=1 batch=19 method=bsdf mean=0.316805356486
+CONVERGENCE_CPU_BATCH bounces=1 batch=19 method=nee mean=0.32078046517
+CONVERGENCE_CPU_BATCH bounces=1 batch=19 method=power mean=0.320213026201
+CONVERGENCE_CPU_BATCH bounces=1 batch=20 method=bsdf mean=0.312351240295
+CONVERGENCE_CPU_BATCH bounces=1 batch=20 method=nee mean=0.317429444098
+CONVERGENCE_CPU_BATCH bounces=1 batch=20 method=power mean=0.321257036796
+CONVERGENCE_CPU_BATCH bounces=1 batch=21 method=bsdf mean=0.327752784784
+CONVERGENCE_CPU_BATCH bounces=1 batch=21 method=nee mean=0.32085466392
+CONVERGENCE_CPU_BATCH bounces=1 batch=21 method=power mean=0.321649074891
+CONVERGENCE_CPU_BATCH bounces=1 batch=22 method=bsdf mean=0.320652983086
+CONVERGENCE_CPU_BATCH bounces=1 batch=22 method=nee mean=0.315674098233
+CONVERGENCE_CPU_BATCH bounces=1 batch=22 method=power mean=0.322704332641
+CONVERGENCE_CPU_BATCH bounces=1 batch=23 method=bsdf mean=0.328317918528
+CONVERGENCE_CPU_BATCH bounces=1 batch=23 method=nee mean=0.318327559774
+CONVERGENCE_CPU_BATCH bounces=1 batch=23 method=power mean=0.321465818282
+CONVERGENCE_CPU_BATCH bounces=1 batch=24 method=bsdf mean=0.330527990322
+CONVERGENCE_CPU_BATCH bounces=1 batch=24 method=nee mean=0.319952257139
+CONVERGENCE_CPU_BATCH bounces=1 batch=24 method=power mean=0.319793169211
+CONVERGENCE_CPU_BATCH bounces=1 batch=25 method=bsdf mean=0.323244506346
+CONVERGENCE_CPU_BATCH bounces=1 batch=25 method=nee mean=0.318056445102
+CONVERGENCE_CPU_BATCH bounces=1 batch=25 method=power mean=0.321156546546
+CONVERGENCE_CPU_BATCH bounces=1 batch=26 method=bsdf mean=0.30332824687
+CONVERGENCE_CPU_BATCH bounces=1 batch=26 method=nee mean=0.316391689518
+CONVERGENCE_CPU_BATCH bounces=1 batch=26 method=power mean=0.322015439538
+CONVERGENCE_CPU_BATCH bounces=1 batch=27 method=bsdf mean=0.327163747265
+CONVERGENCE_CPU_BATCH bounces=1 batch=27 method=nee mean=0.318917186559
+CONVERGENCE_CPU_BATCH bounces=1 batch=27 method=power mean=0.317899474324
+CONVERGENCE_CPU_BATCH bounces=1 batch=28 method=bsdf mean=0.315973036656
+CONVERGENCE_CPU_BATCH bounces=1 batch=28 method=nee mean=0.320751127154
+CONVERGENCE_CPU_BATCH bounces=1 batch=28 method=power mean=0.320648914219
+CONVERGENCE_CPU_BATCH bounces=1 batch=29 method=bsdf mean=0.31873473328
+CONVERGENCE_CPU_BATCH bounces=1 batch=29 method=nee mean=0.317474728706
+CONVERGENCE_CPU_BATCH bounces=1 batch=29 method=power mean=0.321753984547
+CONVERGENCE_CPU_BATCH bounces=1 batch=30 method=bsdf mean=0.330001978295
+CONVERGENCE_CPU_BATCH bounces=1 batch=30 method=nee mean=0.31698904555
+CONVERGENCE_CPU_BATCH bounces=1 batch=30 method=power mean=0.322266367943
+CONVERGENCE_CPU_BATCH bounces=1 batch=31 method=bsdf mean=0.320519179193
+CONVERGENCE_CPU_BATCH bounces=1 batch=31 method=nee mean=0.319997919627
+CONVERGENCE_CPU_BATCH bounces=1 batch=31 method=power mean=0.320382636901
+CONVERGENCE_CPU_BATCH bounces=1 batch=32 method=bsdf mean=0.325612500125
+CONVERGENCE_CPU_BATCH bounces=1 batch=32 method=nee mean=0.316650092037
+CONVERGENCE_CPU_BATCH bounces=1 batch=32 method=power mean=0.320272574505
+CONVERGENCE_CPU_BATCH bounces=1 batch=33 method=bsdf mean=0.331777687038
+CONVERGENCE_CPU_BATCH bounces=1 batch=33 method=nee mean=0.321433799144
+CONVERGENCE_CPU_BATCH bounces=1 batch=33 method=power mean=0.320200177798
+CONVERGENCE_CPU_BATCH bounces=1 batch=34 method=bsdf mean=0.315877873665
+CONVERGENCE_CPU_BATCH bounces=1 batch=34 method=nee mean=0.322103179742
+CONVERGENCE_CPU_BATCH bounces=1 batch=34 method=power mean=0.324034083528
+CONVERGENCE_CPU_BATCH bounces=1 batch=35 method=bsdf mean=0.311729473247
+CONVERGENCE_CPU_BATCH bounces=1 batch=35 method=nee mean=0.317160314986
+CONVERGENCE_CPU_BATCH bounces=1 batch=35 method=power mean=0.318588324451
+CONVERGENCE_CPU_BATCH bounces=1 batch=36 method=bsdf mean=0.32756965703
+CONVERGENCE_CPU_BATCH bounces=1 batch=36 method=nee mean=0.318189733559
+CONVERGENCE_CPU_BATCH bounces=1 batch=36 method=power mean=0.320468219811
+CONVERGENCE_CPU_BATCH bounces=1 batch=37 method=bsdf mean=0.319242301706
+CONVERGENCE_CPU_BATCH bounces=1 batch=37 method=nee mean=0.321605783503
+CONVERGENCE_CPU_BATCH bounces=1 batch=37 method=power mean=0.321474360826
+CONVERGENCE_CPU_BATCH bounces=1 batch=38 method=bsdf mean=0.343588980911
+CONVERGENCE_CPU_BATCH bounces=1 batch=38 method=nee mean=0.318606782003
+CONVERGENCE_CPU_BATCH bounces=1 batch=38 method=power mean=0.32058744555
+CONVERGENCE_CPU_BATCH bounces=1 batch=39 method=bsdf mean=0.320120482708
+CONVERGENCE_CPU_BATCH bounces=1 batch=39 method=nee mean=0.316037528472
+CONVERGENCE_CPU_BATCH bounces=1 batch=39 method=power mean=0.321287181422
+CONVERGENCE_CPU_BATCH bounces=1 batch=40 method=bsdf mean=0.30291483524
+CONVERGENCE_CPU_BATCH bounces=1 batch=40 method=nee mean=0.319649204082
+CONVERGENCE_CPU_BATCH bounces=1 batch=40 method=power mean=0.322366091009
+CONVERGENCE_CPU_BATCH bounces=1 batch=41 method=bsdf mean=0.332058803826
+CONVERGENCE_CPU_BATCH bounces=1 batch=41 method=nee mean=0.317100900796
+CONVERGENCE_CPU_BATCH bounces=1 batch=41 method=power mean=0.320352846407
+CONVERGENCE_CPU_BATCH bounces=1 batch=42 method=bsdf mean=0.320230693793
+CONVERGENCE_CPU_BATCH bounces=1 batch=42 method=nee mean=0.321363417515
+CONVERGENCE_CPU_BATCH bounces=1 batch=42 method=power mean=0.322219489485
+CONVERGENCE_CPU_BATCH bounces=1 batch=43 method=bsdf mean=0.317623723216
+CONVERGENCE_CPU_BATCH bounces=1 batch=43 method=nee mean=0.318306133454
+CONVERGENCE_CPU_BATCH bounces=1 batch=43 method=power mean=0.321696280399
+CONVERGENCE_CPU_BATCH bounces=1 batch=44 method=bsdf mean=0.331855331251
+CONVERGENCE_CPU_BATCH bounces=1 batch=44 method=nee mean=0.325188398575
+CONVERGENCE_CPU_BATCH bounces=1 batch=44 method=power mean=0.322262317451
+CONVERGENCE_CPU_BATCH bounces=1 batch=45 method=bsdf mean=0.306475159987
+CONVERGENCE_CPU_BATCH bounces=1 batch=45 method=nee mean=0.321732036602
+CONVERGENCE_CPU_BATCH bounces=1 batch=45 method=power mean=0.320544564043
+CONVERGENCE_CPU_BATCH bounces=1 batch=46 method=bsdf mean=0.333791159154
+CONVERGENCE_CPU_BATCH bounces=1 batch=46 method=nee mean=0.319671610607
+CONVERGENCE_CPU_BATCH bounces=1 batch=46 method=power mean=0.319717595124
+CONVERGENCE_CPU_BATCH bounces=1 batch=47 method=bsdf mean=0.312122184455
+CONVERGENCE_CPU_BATCH bounces=1 batch=47 method=nee mean=0.320243076519
+CONVERGENCE_CPU_BATCH bounces=1 batch=47 method=power mean=0.321261190963
+CONVERGENCE_CPU_BATCH bounces=1 batch=48 method=bsdf mean=0.316951367399
+CONVERGENCE_CPU_BATCH bounces=1 batch=48 method=nee mean=0.319792114371
+CONVERGENCE_CPU_BATCH bounces=1 batch=48 method=power mean=0.319596880484
+CONVERGENCE_CPU_BATCH bounces=1 batch=49 method=bsdf mean=0.322215194542
+CONVERGENCE_CPU_BATCH bounces=1 batch=49 method=nee mean=0.318952436049
+CONVERGENCE_CPU_BATCH bounces=1 batch=49 method=power mean=0.320407814366
+CONVERGENCE_CPU_BATCH bounces=1 batch=50 method=bsdf mean=0.317210400614
+CONVERGENCE_CPU_BATCH bounces=1 batch=50 method=nee mean=0.326796657397
+CONVERGENCE_CPU_BATCH bounces=1 batch=50 method=power mean=0.318004771072
+CONVERGENCE_CPU_BATCH bounces=1 batch=51 method=bsdf mean=0.329214240084
+CONVERGENCE_CPU_BATCH bounces=1 batch=51 method=nee mean=0.317908877945
+CONVERGENCE_CPU_BATCH bounces=1 batch=51 method=power mean=0.321608448951
+CONVERGENCE_CPU_BATCH bounces=1 batch=52 method=bsdf mean=0.326493107868
+CONVERGENCE_CPU_BATCH bounces=1 batch=52 method=nee mean=0.338682006314
+CONVERGENCE_CPU_BATCH bounces=1 batch=52 method=power mean=0.319347824162
+CONVERGENCE_CPU_BATCH bounces=1 batch=53 method=bsdf mean=0.336362011728
+CONVERGENCE_CPU_BATCH bounces=1 batch=53 method=nee mean=0.319343004059
+CONVERGENCE_CPU_BATCH bounces=1 batch=53 method=power mean=0.319479154478
+CONVERGENCE_CPU_BATCH bounces=1 batch=54 method=bsdf mean=0.319373664129
+CONVERGENCE_CPU_BATCH bounces=1 batch=54 method=nee mean=0.321154478064
+CONVERGENCE_CPU_BATCH bounces=1 batch=54 method=power mean=0.324748898839
+CONVERGENCE_CPU_BATCH bounces=1 batch=55 method=bsdf mean=0.331453690319
+CONVERGENCE_CPU_BATCH bounces=1 batch=55 method=nee mean=0.32053932244
+CONVERGENCE_CPU_BATCH bounces=1 batch=55 method=power mean=0.320211776886
+CONVERGENCE_CPU_BATCH bounces=1 batch=56 method=bsdf mean=0.332034515569
+CONVERGENCE_CPU_BATCH bounces=1 batch=56 method=nee mean=0.335233819786
+CONVERGENCE_CPU_BATCH bounces=1 batch=56 method=power mean=0.320021215522
+CONVERGENCE_CPU_BATCH bounces=1 batch=57 method=bsdf mean=0.320835356015
+CONVERGENCE_CPU_BATCH bounces=1 batch=57 method=nee mean=0.317998266846
+CONVERGENCE_CPU_BATCH bounces=1 batch=57 method=power mean=0.319053177072
+CONVERGENCE_CPU_BATCH bounces=1 batch=58 method=bsdf mean=0.321875062333
+CONVERGENCE_CPU_BATCH bounces=1 batch=58 method=nee mean=0.321148002955
+CONVERGENCE_CPU_BATCH bounces=1 batch=58 method=power mean=0.320753089587
+CONVERGENCE_CPU_BATCH bounces=1 batch=59 method=bsdf mean=0.322012594846
+CONVERGENCE_CPU_BATCH bounces=1 batch=59 method=nee mean=0.317188066778
+CONVERGENCE_CPU_BATCH bounces=1 batch=59 method=power mean=0.32019054115
+CONVERGENCE_CPU_BATCH bounces=1 batch=60 method=bsdf mean=0.313448408059
+CONVERGENCE_CPU_BATCH bounces=1 batch=60 method=nee mean=0.31767916869
+CONVERGENCE_CPU_BATCH bounces=1 batch=60 method=power mean=0.320988843798
+CONVERGENCE_CPU_BATCH bounces=1 batch=61 method=bsdf mean=0.34858665791
+CONVERGENCE_CPU_BATCH bounces=1 batch=61 method=nee mean=0.318931107414
+CONVERGENCE_CPU_BATCH bounces=1 batch=61 method=power mean=0.320218589308
+CONVERGENCE_CPU_BATCH bounces=1 batch=62 method=bsdf mean=0.328817851821
+CONVERGENCE_CPU_BATCH bounces=1 batch=62 method=nee mean=0.321635887615
+CONVERGENCE_CPU_BATCH bounces=1 batch=62 method=power mean=0.322904327553
+CONVERGENCE_CPU_BATCH bounces=1 batch=63 method=bsdf mean=0.320662289879
+CONVERGENCE_CPU_BATCH bounces=1 batch=63 method=nee mean=0.319025823308
+CONVERGENCE_CPU_BATCH bounces=1 batch=63 method=power mean=0.321221005647
+CONVERGENCE_CPU bounces=1 method=bsdf paths=2162688 mean=0.322319029 nominal_se=0.00114399096 max_path=8.39999986 tail_gt32_mean=0
+CONVERGENCE_CPU bounces=1 method=nee paths=2162688 mean=0.320968078 nominal_se=0.000892687168 max_path=1716.49909 tail_gt32_mean=0.00283550539
+CONVERGENCE_CPU bounces=1 method=power paths=2162688 mean=0.320779955 nominal_se=0.000170419293 max_path=12.0495954 tail_gt32_mean=0
+CONVERGENCE_GPU_BATCH bounces=1 batch=0 seed=3582163364 method=nee mean=0.316543789586 max_pixel=1.76425433
+CONVERGENCE_GPU_BATCH bounces=1 batch=0 seed=3582163364 method=power mean=0.317205869102 max_pixel=1.80023313
+CONVERGENCE_GPU_BATCH bounces=1 batch=1 seed=1739701850 method=nee mean=0.329494541158 max_pixel=4.68808126
+CONVERGENCE_GPU_BATCH bounces=1 batch=1 seed=1739701850 method=power mean=0.3277710905 max_pixel=2.8793571
+CONVERGENCE_GPU_BATCH bounces=1 batch=2 seed=3607337378 method=nee mean=0.317074407081 max_pixel=1.81906223
+CONVERGENCE_GPU_BATCH bounces=1 batch=2 seed=3607337378 method=power mean=0.316924356509 max_pixel=1.93408668
+CONVERGENCE_GPU_BATCH bounces=1 batch=3 seed=4090123983 method=nee mean=0.31879167653 max_pixel=1.76866221
+CONVERGENCE_GPU_BATCH bounces=1 batch=3 seed=4090123983 method=power mean=0.322715735278 max_pixel=2.31464624
+CONVERGENCE_GPU_BATCH bounces=1 batch=4 seed=3388370855 method=nee mean=0.317427318204 max_pixel=1.70605063
+CONVERGENCE_GPU_BATCH bounces=1 batch=4 seed=3388370855 method=power mean=0.3175195998 max_pixel=1.81028295
+CONVERGENCE_GPU_BATCH bounces=1 batch=5 seed=2824724162 method=nee mean=0.313843931213 max_pixel=1.8863008
+CONVERGENCE_GPU_BATCH bounces=1 batch=5 seed=2824724162 method=power mean=0.321706692446 max_pixel=2.10229754
+CONVERGENCE_GPU_BATCH bounces=1 batch=6 seed=1718814806 method=nee mean=0.316860997088 max_pixel=1.69184721
+CONVERGENCE_GPU_BATCH bounces=1 batch=6 seed=1718814806 method=power mean=0.324724603101 max_pixel=3.15249443
+CONVERGENCE_GPU_BATCH bounces=1 batch=7 seed=1584039703 method=nee mean=0.318411105651 max_pixel=1.66518295
+CONVERGENCE_GPU_BATCH bounces=1 batch=7 seed=1584039703 method=power mean=0.318061741634 max_pixel=1.67781782
+CONVERGENCE_GPU_BATCH bounces=1 batch=8 seed=2181290249 method=nee mean=0.321196670976 max_pixel=1.83456361
+CONVERGENCE_GPU_BATCH bounces=1 batch=8 seed=2181290249 method=power mean=0.32217210194 max_pixel=1.85007739
+CONVERGENCE_GPU_BATCH bounces=1 batch=9 seed=3461079943 method=nee mean=0.316603612983 max_pixel=1.76665425
+CONVERGENCE_GPU_BATCH bounces=1 batch=9 seed=3461079943 method=power mean=0.31860418728 max_pixel=1.76954508
+CONVERGENCE_GPU_BATCH bounces=1 batch=10 seed=3747306684 method=nee mean=0.317297279365 max_pixel=1.7919147
+CONVERGENCE_GPU_BATCH bounces=1 batch=10 seed=3747306684 method=power mean=0.31821641243 max_pixel=1.77574396
+CONVERGENCE_GPU_BATCH bounces=1 batch=11 seed=734257434 method=nee mean=0.316350281428 max_pixel=1.78953207
+CONVERGENCE_GPU_BATCH bounces=1 batch=11 seed=734257434 method=power mean=0.318306661907 max_pixel=1.75137126
+CONVERGENCE_GPU_BATCH bounces=1 batch=12 seed=3062410477 method=nee mean=0.324194722338 max_pixel=2.19285154
+CONVERGENCE_GPU_BATCH bounces=1 batch=12 seed=3062410477 method=power mean=0.321166898744 max_pixel=1.7224369
+CONVERGENCE_GPU_BATCH bounces=1 batch=13 seed=418804920 method=nee mean=0.316740198898 max_pixel=1.67453074
+CONVERGENCE_GPU_BATCH bounces=1 batch=13 seed=418804920 method=power mean=0.317040172759 max_pixel=1.65773082
+CONVERGENCE_GPU_BATCH bounces=1 batch=14 seed=1647315130 method=nee mean=0.3140076707 max_pixel=1.77069533
+CONVERGENCE_GPU_BATCH bounces=1 batch=14 seed=1647315130 method=power mean=0.318543169545 max_pixel=2.04306507
+CONVERGENCE_GPU_BATCH bounces=1 batch=15 seed=1043973739 method=nee mean=0.317711463982 max_pixel=1.7411046
+CONVERGENCE_GPU_BATCH bounces=1 batch=15 seed=1043973739 method=power mean=0.322346275041 max_pixel=1.66497946
+CONVERGENCE_GPU_BATCH bounces=1 batch=16 seed=343612557 method=nee mean=0.319332836086 max_pixel=1.76669049
+CONVERGENCE_GPU_BATCH bounces=1 batch=16 seed=343612557 method=power mean=0.326842910493 max_pixel=1.7960695
+CONVERGENCE_GPU_BATCH bounces=1 batch=17 seed=1701248322 method=nee mean=0.319407993891 max_pixel=1.78541458
+CONVERGENCE_GPU_BATCH bounces=1 batch=17 seed=1701248322 method=power mean=0.322450229403 max_pixel=2.11844611
+CONVERGENCE_GPU_BATCH bounces=1 batch=18 seed=3058215801 method=nee mean=0.321396421747 max_pixel=2.98985195
+CONVERGENCE_GPU_BATCH bounces=1 batch=18 seed=3058215801 method=power mean=0.317418520629 max_pixel=1.66014504
+CONVERGENCE_GPU_BATCH bounces=1 batch=19 seed=787922486 method=nee mean=0.319639275011 max_pixel=1.76113474
+CONVERGENCE_GPU_BATCH bounces=1 batch=19 seed=787922486 method=power mean=0.321999974377 max_pixel=1.70388746
+CONVERGENCE_GPU_BATCH bounces=1 batch=20 seed=880973741 method=nee mean=0.312852187969 max_pixel=1.64651
+CONVERGENCE_GPU_BATCH bounces=1 batch=20 seed=880973741 method=power mean=0.317038699298 max_pixel=1.65797305
+CONVERGENCE_GPU_BATCH bounces=1 batch=21 seed=1323011534 method=nee mean=0.314438135487 max_pixel=1.9202491
+CONVERGENCE_GPU_BATCH bounces=1 batch=21 seed=1323011534 method=power mean=0.316039578341 max_pixel=1.82319748
+CONVERGENCE_GPU_BATCH bounces=1 batch=22 seed=3251306893 method=nee mean=0.319365890178 max_pixel=1.80864847
+CONVERGENCE_GPU_BATCH bounces=1 batch=22 seed=3251306893 method=power mean=0.321524010187 max_pixel=1.81141806
+CONVERGENCE_GPU_BATCH bounces=1 batch=23 seed=1609638412 method=nee mean=0.318453295843 max_pixel=1.85256791
+CONVERGENCE_GPU_BATCH bounces=1 batch=23 seed=1609638412 method=power mean=0.318416051307 max_pixel=1.92103505
+CONVERGENCE_GPU_BATCH bounces=1 batch=24 seed=951963426 method=nee mean=0.322051519085 max_pixel=1.83346891
+CONVERGENCE_GPU_BATCH bounces=1 batch=24 seed=951963426 method=power mean=0.322991034552 max_pixel=1.80192244
+CONVERGENCE_GPU_BATCH bounces=1 batch=25 seed=2113467747 method=nee mean=0.321072792462 max_pixel=1.77133727
+CONVERGENCE_GPU_BATCH bounces=1 batch=25 seed=2113467747 method=power mean=0.327208097278 max_pixel=2.08986449
+CONVERGENCE_GPU_BATCH bounces=1 batch=26 seed=3285152122 method=nee mean=0.320212572378 max_pixel=1.77080619
+CONVERGENCE_GPU_BATCH bounces=1 batch=26 seed=3285152122 method=power mean=0.3256913893 max_pixel=2.10269094
+CONVERGENCE_GPU_BATCH bounces=1 batch=27 seed=2625638339 method=nee mean=0.314483200911 max_pixel=1.86239064
+CONVERGENCE_GPU_BATCH bounces=1 batch=27 seed=2625638339 method=power mean=0.31867514831 max_pixel=2.166785
+CONVERGENCE_GPU_BATCH bounces=1 batch=28 seed=1499036293 method=nee mean=0.315085437611 max_pixel=1.80674875
+CONVERGENCE_GPU_BATCH bounces=1 batch=28 seed=1499036293 method=power mean=0.318700314806 max_pixel=1.7656728
+CONVERGENCE_GPU_BATCH bounces=1 batch=29 seed=585492505 method=nee mean=0.316647315002 max_pixel=1.80755067
+CONVERGENCE_GPU_BATCH bounces=1 batch=29 seed=585492505 method=power mean=0.320582120335 max_pixel=2.12807488
+CONVERGENCE_GPU_BATCH bounces=1 batch=30 seed=2512225526 method=nee mean=0.317213440826 max_pixel=1.71626091
+CONVERGENCE_GPU_BATCH bounces=1 batch=30 seed=2512225526 method=power mean=0.318478086047 max_pixel=1.67542732
+CONVERGENCE_GPU_BATCH bounces=1 batch=31 seed=3235601508 method=nee mean=0.320742293882 max_pixel=1.90352035
+CONVERGENCE_GPU bounces=1 batches=32 method=nee mean=0.318279509 nominal_se=0.00058929171
+CONVERGENCE_GPU_BATCH bounces=1 batch=31 seed=3235601508 method=power mean=0.324528631171 max_pixel=1.8420099
+CONVERGENCE_GPU bounces=1 batches=32 method=power mean=0.320675324 nominal_se=0.000592908194
+CONVERGENCE_GPU_BATCH bounces=1 batch=32 seed=2399480617 method=nee mean=0.31544308373 max_pixel=1.84371257
+CONVERGENCE_GPU_BATCH bounces=1 batch=32 seed=2399480617 method=power mean=0.317655758866 max_pixel=1.82139349
+CONVERGENCE_GPU_BATCH bounces=1 batch=33 seed=424016829 method=nee mean=0.321794880155 max_pixel=1.72885203
+CONVERGENCE_GPU_BATCH bounces=1 batch=33 seed=424016829 method=power mean=0.327656798948 max_pixel=2.1033268
+CONVERGENCE_GPU_BATCH bounces=1 batch=34 seed=1583677385 method=nee mean=0.319973037402 max_pixel=1.74109054
+CONVERGENCE_GPU_BATCH bounces=1 batch=34 seed=1583677385 method=power mean=0.322001564436 max_pixel=1.66338062
+CONVERGENCE_GPU_BATCH bounces=1 batch=35 seed=2470617211 method=nee mean=0.319073188852 max_pixel=1.92846787
+CONVERGENCE_GPU_BATCH bounces=1 batch=35 seed=2470617211 method=power mean=0.318785626946 max_pixel=1.83057201
+CONVERGENCE_GPU_BATCH bounces=1 batch=36 seed=1671409605 method=nee mean=0.316199527285 max_pixel=1.6888324
+CONVERGENCE_GPU_BATCH bounces=1 batch=36 seed=1671409605 method=power mean=0.316203446466 max_pixel=1.6701777
+CONVERGENCE_GPU_BATCH bounces=1 batch=37 seed=360952936 method=nee mean=0.31407627025 max_pixel=1.74489403
+CONVERGENCE_GPU_BATCH bounces=1 batch=37 seed=360952936 method=power mean=0.319079999394 max_pixel=1.74490929
+CONVERGENCE_GPU_BATCH bounces=1 batch=38 seed=3068956129 method=nee mean=0.318394926004 max_pixel=1.62179017
+CONVERGENCE_GPU_BATCH bounces=1 batch=38 seed=3068956129 method=power mean=0.321810885928 max_pixel=1.67966044
+CONVERGENCE_GPU_BATCH bounces=1 batch=39 seed=2604601035 method=nee mean=0.333803409291 max_pixel=3.11713958
+CONVERGENCE_GPU_BATCH bounces=1 batch=39 seed=2604601035 method=power mean=0.329298669398 max_pixel=1.59796214
+CONVERGENCE_GPU_BATCH bounces=1 batch=40 seed=2653421640 method=nee mean=0.322913086136 max_pixel=1.81151342
+CONVERGENCE_GPU_BATCH bounces=1 batch=40 seed=2653421640 method=power mean=0.326586354305 max_pixel=1.82186735
+CONVERGENCE_GPU_BATCH bounces=1 batch=41 seed=3925102148 method=nee mean=0.318883029294 max_pixel=1.74156642
+CONVERGENCE_GPU_BATCH bounces=1 batch=41 seed=3925102148 method=power mean=0.324128496896 max_pixel=3.15219355
+CONVERGENCE_GPU_BATCH bounces=1 batch=42 seed=1892506787 method=nee mean=0.315451330915 max_pixel=1.797382
+CONVERGENCE_GPU_BATCH bounces=1 batch=42 seed=1892506787 method=power mean=0.315411528015 max_pixel=1.77010679
+CONVERGENCE_GPU_BATCH bounces=1 batch=43 seed=1900900502 method=nee mean=0.467060939582 max_pixel=79.8897324
+CONVERGENCE_GPU_BATCH bounces=1 batch=43 seed=1900900502 method=power mean=0.319969726629 max_pixel=1.86809933
+CONVERGENCE_GPU_BATCH bounces=1 batch=44 seed=4146765687 method=nee mean=0.317694258328 max_pixel=1.76402259
+CONVERGENCE_GPU_BATCH bounces=1 batch=44 seed=4146765687 method=power mean=0.319943575789 max_pixel=1.75088584
+CONVERGENCE_GPU_BATCH bounces=1 batch=45 seed=2038927605 method=nee mean=0.321975764101 max_pixel=1.73187673
+CONVERGENCE_GPU_BATCH bounces=1 batch=45 seed=2038927605 method=power mean=0.324163202738 max_pixel=1.71206582
+CONVERGENCE_GPU_BATCH bounces=1 batch=46 seed=2693716815 method=nee mean=0.327159287557 max_pixel=1.87944913
+CONVERGENCE_GPU_BATCH bounces=1 batch=46 seed=2693716815 method=power mean=0.334576088925 max_pixel=3.15082765
+CONVERGENCE_GPU_BATCH bounces=1 batch=47 seed=770495302 method=nee mean=0.31475440898 max_pixel=1.7717526
+CONVERGENCE_GPU_BATCH bounces=1 batch=47 seed=770495302 method=power mean=0.317046062312 max_pixel=1.8053031
+CONVERGENCE_GPU_BATCH bounces=1 batch=48 seed=709100058 method=nee mean=0.322328506828 max_pixel=1.72849429
+CONVERGENCE_GPU_BATCH bounces=1 batch=48 seed=709100058 method=power mean=0.322956913057 max_pixel=2.61521459
+CONVERGENCE_GPU_BATCH bounces=1 batch=49 seed=2771915642 method=nee mean=0.31242178356 max_pixel=1.77646506
+CONVERGENCE_GPU_BATCH bounces=1 batch=49 seed=2771915642 method=power mean=0.313823814164 max_pixel=1.8296715
+CONVERGENCE_GPU_BATCH bounces=1 batch=50 seed=3928922396 method=nee mean=0.310859541733 max_pixel=1.7275027
+CONVERGENCE_GPU_BATCH bounces=1 batch=50 seed=3928922396 method=power mean=0.314651773525 max_pixel=2.13919902
+CONVERGENCE_GPU_BATCH bounces=1 batch=51 seed=2034863204 method=nee mean=0.320604219545 max_pixel=1.7886585
+CONVERGENCE_GPU_BATCH bounces=1 batch=51 seed=2034863204 method=power mean=0.321001416411 max_pixel=1.78038359
+CONVERGENCE_GPU_BATCH bounces=1 batch=52 seed=3429226660 method=nee mean=0.337101910821 max_pixel=10.1594868
+CONVERGENCE_GPU_BATCH bounces=1 batch=52 seed=3429226660 method=power mean=0.319962263372 max_pixel=1.84471393
+CONVERGENCE_GPU_BATCH bounces=1 batch=53 seed=3494347550 method=nee mean=0.318858596466 max_pixel=1.76600945
+CONVERGENCE_GPU_BATCH bounces=1 batch=53 seed=3494347550 method=power mean=0.324851529363 max_pixel=2.39504623
+CONVERGENCE_GPU_BATCH bounces=1 batch=54 seed=3419241882 method=nee mean=0.337591615571 max_pixel=4.66085958
+CONVERGENCE_GPU_BATCH bounces=1 batch=54 seed=3419241882 method=power mean=0.322771644916 max_pixel=1.86051655
+CONVERGENCE_GPU_BATCH bounces=1 batch=55 seed=2459613129 method=nee mean=0.322776235623 max_pixel=2.98462248
+CONVERGENCE_GPU_BATCH bounces=1 batch=55 seed=2459613129 method=power mean=0.320230339222 max_pixel=1.8225801
+CONVERGENCE_GPU_BATCH bounces=1 batch=56 seed=1840322459 method=nee mean=0.320260714662 max_pixel=1.78782558
+CONVERGENCE_GPU_BATCH bounces=1 batch=56 seed=1840322459 method=power mean=0.325966134174 max_pixel=2.28680468
+CONVERGENCE_GPU_BATCH bounces=1 batch=57 seed=3781358805 method=nee mean=0.672037719622 max_pixel=186.063507
+CONVERGENCE_GPU_BATCH bounces=1 batch=57 seed=3781358805 method=power mean=0.325526346264 max_pixel=2.10642862
+CONVERGENCE_GPU_BATCH bounces=1 batch=58 seed=90069654 method=nee mean=0.318800870241 max_pixel=1.83972991
+CONVERGENCE_GPU_BATCH bounces=1 batch=58 seed=90069654 method=power mean=0.321719410505 max_pixel=1.74926758
+CONVERGENCE_GPU_BATCH bounces=1 batch=59 seed=3704910909 method=nee mean=0.311884631812 max_pixel=1.91365397
+CONVERGENCE_GPU_BATCH bounces=1 batch=59 seed=3704910909 method=power mean=0.311608145636 max_pixel=1.88864934
+CONVERGENCE_GPU_BATCH bounces=1 batch=60 seed=528598170 method=nee mean=0.316017993953 max_pixel=1.74067664
+CONVERGENCE_GPU_BATCH bounces=1 batch=60 seed=528598170 method=power mean=0.32316784645 max_pixel=1.69792497
+CONVERGENCE_GPU_BATCH bounces=1 batch=61 seed=2037285516 method=nee mean=0.320084589648 max_pixel=1.9029516
+CONVERGENCE_GPU_BATCH bounces=1 batch=61 seed=2037285516 method=power mean=0.328202388441 max_pixel=3.07807159
+CONVERGENCE_GPU_BATCH bounces=1 batch=62 seed=2686295379 method=nee mean=0.318598424185 max_pixel=2.76189041
+CONVERGENCE_GPU_BATCH bounces=1 batch=62 seed=2686295379 method=power mean=0.316476760339 max_pixel=1.60843551
+CONVERGENCE_GPU_BATCH bounces=1 batch=63 seed=3333199115 method=nee mean=0.319814158173 max_pixel=1.8380928
+CONVERGENCE_GPU bounces=1 batches=64 method=nee mean=0.327025566 nominal_se=0.00597752459
+CONVERGENCE_GPU_BATCH bounces=1 batch=63 seed=3333199115 method=power mean=0.323486880841 max_pixel=1.77864778
+CONVERGENCE_GPU bounces=1 batches=64 method=power mean=0.321130184 nominal_se=0.000528304543
+CONVERGENCE_GPU_BATCH bounces=1 batch=64 seed=2292105124 method=nee mean=0.320921028052 max_pixel=1.77440977
+CONVERGENCE_GPU_BATCH bounces=1 batch=64 seed=2292105124 method=power mean=0.327351508233 max_pixel=1.82893717
+CONVERGENCE_GPU_BATCH bounces=1 batch=65 seed=1081028721 method=nee mean=0.320583034794 max_pixel=1.75904799
+CONVERGENCE_GPU_BATCH bounces=1 batch=65 seed=1081028721 method=power mean=0.324293776366 max_pixel=1.88110995
+CONVERGENCE_GPU_BATCH bounces=1 batch=66 seed=1439753986 method=nee mean=0.321993776476 max_pixel=1.75729465
+CONVERGENCE_GPU_BATCH bounces=1 batch=66 seed=1439753986 method=power mean=0.323904644964 max_pixel=1.67531323
+CONVERGENCE_GPU_BATCH bounces=1 batch=67 seed=1431540267 method=nee mean=0.318006736206 max_pixel=1.89398968
+CONVERGENCE_GPU_BATCH bounces=1 batch=67 seed=1431540267 method=power mean=0.319073906842 max_pixel=1.84264934
+CONVERGENCE_GPU_BATCH bounces=1 batch=68 seed=603822678 method=nee mean=0.315615428035 max_pixel=1.73442459
+CONVERGENCE_GPU_BATCH bounces=1 batch=68 seed=603822678 method=power mean=0.319006986633 max_pixel=2.10089755
+CONVERGENCE_GPU_BATCH bounces=1 batch=69 seed=3076261901 method=nee mean=0.316684968471 max_pixel=1.80970943
+CONVERGENCE_GPU_BATCH bounces=1 batch=69 seed=3076261901 method=power mean=0.318337297452 max_pixel=1.72302425
+CONVERGENCE_GPU_BATCH bounces=1 batch=70 seed=1908733137 method=nee mean=0.328502153103 max_pixel=5.10572004
+CONVERGENCE_GPU_BATCH bounces=1 batch=70 seed=1908733137 method=power mean=0.322795771067 max_pixel=1.61629319
+CONVERGENCE_GPU_BATCH bounces=1 batch=71 seed=4014558695 method=nee mean=0.322454211391 max_pixel=1.86125708
+CONVERGENCE_GPU_BATCH bounces=1 batch=71 seed=4014558695 method=power mean=0.325407910139 max_pixel=1.830163
+CONVERGENCE_GPU_BATCH bounces=1 batch=72 seed=193865030 method=nee mean=0.314935749763 max_pixel=1.79773128
+CONVERGENCE_GPU_BATCH bounces=1 batch=72 seed=193865030 method=power mean=0.322233952971 max_pixel=3.26559567
+CONVERGENCE_GPU_BATCH bounces=1 batch=73 seed=500547065 method=nee mean=0.318262850964 max_pixel=1.84169757
+CONVERGENCE_GPU_BATCH bounces=1 batch=73 seed=500547065 method=power mean=0.32047831373 max_pixel=1.7814306
+CONVERGENCE_GPU_BATCH bounces=1 batch=74 seed=238831988 method=nee mean=0.316112724872 max_pixel=1.88380444
+CONVERGENCE_GPU_BATCH bounces=1 batch=74 seed=238831988 method=power mean=0.317992427815 max_pixel=1.85284543
+CONVERGENCE_GPU_BATCH bounces=1 batch=75 seed=3340434854 method=nee mean=0.319715669937 max_pixel=1.86644828
+CONVERGENCE_GPU_BATCH bounces=1 batch=75 seed=3340434854 method=power mean=0.323483908972 max_pixel=1.86296213
+CONVERGENCE_GPU_BATCH bounces=1 batch=76 seed=3382463286 method=nee mean=0.318005699722 max_pixel=1.87685907
+CONVERGENCE_GPU_BATCH bounces=1 batch=76 seed=3382463286 method=power mean=0.32198008722 max_pixel=1.87207508
+CONVERGENCE_GPU_BATCH bounces=1 batch=77 seed=522556235 method=nee mean=0.318033776452 max_pixel=1.76758564
+CONVERGENCE_GPU_BATCH bounces=1 batch=77 seed=522556235 method=power mean=0.323739338843 max_pixel=2.08349514
+CONVERGENCE_GPU_BATCH bounces=1 batch=78 seed=1123053581 method=nee mean=0.323771642759 max_pixel=1.76290143
+CONVERGENCE_GPU_BATCH bounces=1 batch=78 seed=1123053581 method=power mean=0.328438672615 max_pixel=1.73097444
+CONVERGENCE_GPU_BATCH bounces=1 batch=79 seed=2286259166 method=nee mean=0.314689276614 max_pixel=1.8350811
+CONVERGENCE_GPU_BATCH bounces=1 batch=79 seed=2286259166 method=power mean=0.324154817565 max_pixel=1.88547254
+CONVERGENCE_GPU_BATCH bounces=1 batch=80 seed=4345410 method=nee mean=0.313000457209 max_pixel=1.73901272
+CONVERGENCE_GPU_BATCH bounces=1 batch=80 seed=4345410 method=power mean=0.31469783839 max_pixel=1.72949135
+CONVERGENCE_GPU_BATCH bounces=1 batch=81 seed=3221865896 method=nee mean=0.314453633995 max_pixel=1.73314679
+CONVERGENCE_GPU_BATCH bounces=1 batch=81 seed=3221865896 method=power mean=0.31637020682 max_pixel=1.75423884
+CONVERGENCE_GPU_BATCH bounces=1 batch=82 seed=2307000390 method=nee mean=0.331809052377 max_pixel=6.53373003
+CONVERGENCE_GPU_BATCH bounces=1 batch=82 seed=2307000390 method=power mean=0.318969202109 max_pixel=1.78981054
+CONVERGENCE_GPU_BATCH bounces=1 batch=83 seed=1646617863 method=nee mean=0.315854002751 max_pixel=1.8044225
+CONVERGENCE_GPU_BATCH bounces=1 batch=83 seed=1646617863 method=power mean=0.321954746789 max_pixel=1.86298704
+CONVERGENCE_GPU_BATCH bounces=1 batch=84 seed=307366328 method=nee mean=0.315550858319 max_pixel=1.70296264
+CONVERGENCE_GPU_BATCH bounces=1 batch=84 seed=307366328 method=power mean=0.320111915912 max_pixel=1.7750771
+CONVERGENCE_GPU_BATCH bounces=1 batch=85 seed=1272248719 method=nee mean=0.316352632348 max_pixel=1.63023555
+CONVERGENCE_GPU_BATCH bounces=1 batch=85 seed=1272248719 method=power mean=0.318389635509 max_pixel=1.66745079
+CONVERGENCE_GPU_BATCH bounces=1 batch=86 seed=2850208221 method=nee mean=0.33013257123 max_pixel=5.03950167
+CONVERGENCE_GPU_BATCH bounces=1 batch=86 seed=2850208221 method=power mean=0.328132436847 max_pixel=1.72231054
+CONVERGENCE_GPU_BATCH bounces=1 batch=87 seed=1615516396 method=nee mean=0.318832024711 max_pixel=1.96916819
+CONVERGENCE_GPU_BATCH bounces=1 batch=87 seed=1615516396 method=power mean=0.324791185406 max_pixel=1.97541332
+CONVERGENCE_GPU_BATCH bounces=1 batch=88 seed=3052190057 method=nee mean=0.314302136461 max_pixel=1.788203
+CONVERGENCE_GPU_BATCH bounces=1 batch=88 seed=3052190057 method=power mean=0.320777237434 max_pixel=1.80948722
+CONVERGENCE_GPU_BATCH bounces=1 batch=89 seed=36278693 method=nee mean=0.317715460077 max_pixel=1.82154441
+CONVERGENCE_GPU_BATCH bounces=1 batch=89 seed=36278693 method=power mean=0.317244367096 max_pixel=1.83943605
+CONVERGENCE_GPU_BATCH bounces=1 batch=90 seed=629261986 method=nee mean=0.314556811502 max_pixel=1.78973746
+CONVERGENCE_GPU_BATCH bounces=1 batch=90 seed=629261986 method=power mean=0.322217809693 max_pixel=3.16929889
+CONVERGENCE_GPU_BATCH bounces=1 batch=91 seed=2642566100 method=nee mean=0.309481764002 max_pixel=1.65531921
+CONVERGENCE_GPU_BATCH bounces=1 batch=91 seed=2642566100 method=power mean=0.312722949383 max_pixel=1.72902083
+CONVERGENCE_GPU_BATCH bounces=1 batch=92 seed=356830430 method=nee mean=0.316178285054 max_pixel=1.77932131
+CONVERGENCE_GPU_BATCH bounces=1 batch=92 seed=356830430 method=power mean=0.318666265021 max_pixel=1.85822356
+CONVERGENCE_GPU_BATCH bounces=1 batch=93 seed=4067436464 method=nee mean=0.320294262079 max_pixel=1.92279434
+CONVERGENCE_GPU_BATCH bounces=1 batch=93 seed=4067436464 method=power mean=0.317293848911 max_pixel=1.92049837
+CONVERGENCE_GPU_BATCH bounces=1 batch=94 seed=927983841 method=nee mean=0.321146226715 max_pixel=3.22157001
+CONVERGENCE_GPU_BATCH bounces=1 batch=94 seed=927983841 method=power mean=0.323035981999 max_pixel=1.92757952
+CONVERGENCE_GPU_BATCH bounces=1 batch=95 seed=1873792945 method=nee mean=0.316528741515 max_pixel=1.76602459
+CONVERGENCE_GPU_BATCH bounces=1 batch=95 seed=1873792945 method=power mean=0.316607679272 max_pixel=1.68659711
+CONVERGENCE_GPU_BATCH bounces=1 batch=96 seed=4189331883 method=nee mean=0.325747351289 max_pixel=3.2359314
+CONVERGENCE_GPU_BATCH bounces=1 batch=96 seed=4189331883 method=power mean=0.320098305458 max_pixel=1.90453804
+CONVERGENCE_GPU_BATCH bounces=1 batch=97 seed=3027048853 method=nee mean=0.317068384607 max_pixel=1.79616117
+CONVERGENCE_GPU_BATCH bounces=1 batch=97 seed=3027048853 method=power mean=0.319265019019 max_pixel=1.82279086
+CONVERGENCE_GPU_BATCH bounces=1 batch=98 seed=3673337435 method=nee mean=0.322256511048 max_pixel=1.74133801
+CONVERGENCE_GPU_BATCH bounces=1 batch=98 seed=3673337435 method=power mean=0.326024294671 max_pixel=1.722929
+CONVERGENCE_GPU_BATCH bounces=1 batch=99 seed=3340025453 method=nee mean=0.318157118851 max_pixel=1.82190096
+CONVERGENCE_GPU_BATCH bounces=1 batch=99 seed=3340025453 method=power mean=0.320300108708 max_pixel=1.84047318
+CONVERGENCE_GPU_BATCH bounces=1 batch=100 seed=1247956555 method=nee mean=0.313851568315 max_pixel=1.96883607
+CONVERGENCE_GPU_BATCH bounces=1 batch=100 seed=1247956555 method=power mean=0.320243423903 max_pixel=1.92038393
+CONVERGENCE_GPU_BATCH bounces=1 batch=101 seed=2602132481 method=nee mean=0.319226272512 max_pixel=1.72006178
+CONVERGENCE_GPU_BATCH bounces=1 batch=101 seed=2602132481 method=power mean=0.322863619379 max_pixel=1.66766727
+CONVERGENCE_GPU_BATCH bounces=1 batch=102 seed=1494071629 method=nee mean=0.314246525587 max_pixel=1.71926367
+CONVERGENCE_GPU_BATCH bounces=1 batch=102 seed=1494071629 method=power mean=0.318526478916 max_pixel=2.10124111
+CONVERGENCE_GPU_BATCH bounces=1 batch=103 seed=2968271244 method=nee mean=0.317424222236 max_pixel=1.69903302
+CONVERGENCE_GPU_BATCH bounces=1 batch=103 seed=2968271244 method=power mean=0.321551258494 max_pixel=1.65125155
+CONVERGENCE_GPU_BATCH bounces=1 batch=104 seed=2473130044 method=nee mean=0.320315207683 max_pixel=1.73467517
+CONVERGENCE_GPU_BATCH bounces=1 batch=104 seed=2473130044 method=power mean=0.326264270086 max_pixel=1.73355341
+CONVERGENCE_GPU_BATCH bounces=1 batch=105 seed=342796434 method=nee mean=0.314129252368 max_pixel=1.85788929
+CONVERGENCE_GPU_BATCH bounces=1 batch=105 seed=342796434 method=power mean=0.316323851475 max_pixel=1.76743162
+CONVERGENCE_GPU_BATCH bounces=1 batch=106 seed=3882564805 method=nee mean=0.313344670824 max_pixel=1.73720479
+CONVERGENCE_GPU_BATCH bounces=1 batch=106 seed=3882564805 method=power mean=0.316816085593 max_pixel=1.84108818
+CONVERGENCE_GPU_BATCH bounces=1 batch=107 seed=2483083837 method=nee mean=0.32460812284 max_pixel=1.83749986
+CONVERGENCE_GPU_BATCH bounces=1 batch=107 seed=2483083837 method=power mean=0.327663770715 max_pixel=1.95294762
+CONVERGENCE_GPU_BATCH bounces=1 batch=108 seed=3377502186 method=nee mean=0.314256324504 max_pixel=1.79561901
+CONVERGENCE_GPU_BATCH bounces=1 batch=108 seed=3377502186 method=power mean=0.317762742881 max_pixel=1.79208457
+CONVERGENCE_GPU_BATCH bounces=1 batch=109 seed=1024041940 method=nee mean=0.324549549212 max_pixel=1.80990136
+CONVERGENCE_GPU_BATCH bounces=1 batch=109 seed=1024041940 method=power mean=0.325767332305 max_pixel=1.72574723
+CONVERGENCE_GPU_BATCH bounces=1 batch=110 seed=935683468 method=nee mean=0.333546705204 max_pixel=4.13074684
+CONVERGENCE_GPU_BATCH bounces=1 batch=110 seed=935683468 method=power mean=0.326198964974 max_pixel=1.84964681
+CONVERGENCE_GPU_BATCH bounces=1 batch=111 seed=3350017828 method=nee mean=0.31757204769 max_pixel=1.76984024
+CONVERGENCE_GPU_BATCH bounces=1 batch=111 seed=3350017828 method=power mean=0.319116788477 max_pixel=1.79468095
+CONVERGENCE_GPU_BATCH bounces=1 batch=112 seed=1892105353 method=nee mean=0.315949172008 max_pixel=1.80920255
+CONVERGENCE_GPU_BATCH bounces=1 batch=112 seed=1892105353 method=power mean=0.322978672095 max_pixel=1.84200263
+CONVERGENCE_GPU_BATCH bounces=1 batch=113 seed=3466261025 method=nee mean=0.316431902089 max_pixel=1.78791428
+CONVERGENCE_GPU_BATCH bounces=1 batch=113 seed=3466261025 method=power mean=0.32966229864 max_pixel=3.18064451
+CONVERGENCE_GPU_BATCH bounces=1 batch=114 seed=2414710509 method=nee mean=0.318291714063 max_pixel=1.99731565
+CONVERGENCE_GPU_BATCH bounces=1 batch=114 seed=2414710509 method=power mean=0.324196027166 max_pixel=2.17655587
+CONVERGENCE_GPU_BATCH bounces=1 batch=115 seed=1771058211 method=nee mean=0.321576244841 max_pixel=3.08354831
+CONVERGENCE_GPU_BATCH bounces=1 batch=115 seed=1771058211 method=power mean=0.316128653405 max_pixel=1.85868931
+CONVERGENCE_GPU_BATCH bounces=1 batch=116 seed=445953400 method=nee mean=0.319655266142 max_pixel=1.66009939
+CONVERGENCE_GPU_BATCH bounces=1 batch=116 seed=445953400 method=power mean=0.321985568074 max_pixel=1.69503772
+CONVERGENCE_GPU_BATCH bounces=1 batch=117 seed=2771966617 method=nee mean=0.321615234488 max_pixel=1.7574842
+CONVERGENCE_GPU_BATCH bounces=1 batch=117 seed=2771966617 method=power mean=0.32771568233 max_pixel=2.17808104
+CONVERGENCE_GPU_BATCH bounces=1 batch=118 seed=442921400 method=nee mean=0.313404880904 max_pixel=1.87161314
+CONVERGENCE_GPU_BATCH bounces=1 batch=118 seed=442921400 method=power mean=0.315617749974 max_pixel=1.88018
+CONVERGENCE_GPU_BATCH bounces=1 batch=119 seed=1671013994 method=nee mean=0.317974060304 max_pixel=1.73091209
+CONVERGENCE_GPU_BATCH bounces=1 batch=119 seed=1671013994 method=power mean=0.321490367874 max_pixel=1.71191096
+CONVERGENCE_GPU_BATCH bounces=1 batch=120 seed=3083887238 method=nee mean=0.319410338923 max_pixel=1.86343575
+CONVERGENCE_GPU_BATCH bounces=1 batch=120 seed=3083887238 method=power mean=0.319442254246 max_pixel=1.89232087
+CONVERGENCE_GPU_BATCH bounces=1 batch=121 seed=4283925707 method=nee mean=0.31917306934 max_pixel=1.7331053
+CONVERGENCE_GPU_BATCH bounces=1 batch=121 seed=4283925707 method=power mean=0.31734585067 max_pixel=1.75052166
+CONVERGENCE_GPU_BATCH bounces=1 batch=122 seed=1330063655 method=nee mean=0.31878986603 max_pixel=1.75567496
+CONVERGENCE_GPU_BATCH bounces=1 batch=122 seed=1330063655 method=power mean=0.318828899644 max_pixel=1.78977001
+CONVERGENCE_GPU_BATCH bounces=1 batch=123 seed=1986353047 method=nee mean=0.319657594002 max_pixel=1.76103818
+CONVERGENCE_GPU_BATCH bounces=1 batch=123 seed=1986353047 method=power mean=0.321497080727 max_pixel=1.82656646
+CONVERGENCE_GPU_BATCH bounces=1 batch=124 seed=1095000171 method=nee mean=0.314324962783 max_pixel=1.92466831
+CONVERGENCE_GPU_BATCH bounces=1 batch=124 seed=1095000171 method=power mean=0.321916243014 max_pixel=1.88889647
+CONVERGENCE_GPU_BATCH bounces=1 batch=125 seed=2333457263 method=nee mean=0.317797180223 max_pixel=1.74715948
+CONVERGENCE_GPU_BATCH bounces=1 batch=125 seed=2333457263 method=power mean=0.319594990152 max_pixel=1.73884964
+CONVERGENCE_GPU_BATCH bounces=1 batch=126 seed=129228518 method=nee mean=0.320996844375 max_pixel=1.7625488
+CONVERGENCE_GPU_BATCH bounces=1 batch=126 seed=129228518 method=power mean=0.323190798275 max_pixel=1.70696473
+CONVERGENCE_GPU_BATCH bounces=1 batch=127 seed=3603992922 method=nee mean=0.319509633988 max_pixel=1.79644942
+CONVERGENCE_GPU bounces=1 batches=128 method=nee mean=0.322882591 nominal_se=0.0030127526
+CONVERGENCE_GPU_BATCH bounces=1 batch=127 seed=3603992922 method=power mean=0.324578378928 max_pixel=2.1060555
+CONVERGENCE_GPU bounces=1 batches=128 method=power mean=0.321233939 nominal_se=0.000352305592
+CONVERGENCE_GPU_BATCH bounces=1 batch=128 seed=496124890 method=nee mean=0.317177453131 max_pixel=1.95077515
+CONVERGENCE_GPU_BATCH bounces=1 batch=128 seed=496124890 method=power mean=0.319509895297 max_pixel=2.04215336
+CONVERGENCE_GPU_BATCH bounces=1 batch=129 seed=4147147091 method=nee mean=0.323110031649 max_pixel=1.88422799
+CONVERGENCE_GPU_BATCH bounces=1 batch=129 seed=4147147091 method=power mean=0.324272496522 max_pixel=1.79209995
+CONVERGENCE_GPU_BATCH bounces=1 batch=130 seed=3183647601 method=nee mean=0.318497647281 max_pixel=1.78595471
+CONVERGENCE_GPU_BATCH bounces=1 batch=130 seed=3183647601 method=power mean=0.322114483161 max_pixel=2.09908438
+CONVERGENCE_GPU_BATCH bounces=1 batch=131 seed=1199975894 method=nee mean=0.322097207958 max_pixel=1.77721047
+CONVERGENCE_GPU_BATCH bounces=1 batch=131 seed=1199975894 method=power mean=0.32490730456 max_pixel=1.73458755
+CONVERGENCE_GPU_BATCH bounces=1 batch=132 seed=1970190420 method=nee mean=0.315032940579 max_pixel=1.71751428
+CONVERGENCE_GPU_BATCH bounces=1 batch=132 seed=1970190420 method=power mean=0.31740872554 max_pixel=1.80015874
+CONVERGENCE_GPU_BATCH bounces=1 batch=133 seed=2809787484 method=nee mean=0.322681743542 max_pixel=1.71914816
+CONVERGENCE_GPU_BATCH bounces=1 batch=133 seed=2809787484 method=power mean=0.324950682484 max_pixel=1.64665461
+CONVERGENCE_GPU_BATCH bounces=1 batch=134 seed=3122846327 method=nee mean=0.318547085707 max_pixel=1.87921143
+CONVERGENCE_GPU_BATCH bounces=1 batch=134 seed=3122846327 method=power mean=0.322403002628 max_pixel=2.10524726
+CONVERGENCE_GPU_BATCH bounces=1 batch=135 seed=3924814232 method=nee mean=0.327557183332 max_pixel=1.89051056
+CONVERGENCE_GPU_BATCH bounces=1 batch=135 seed=3924814232 method=power mean=0.329813356528 max_pixel=1.82800972
+CONVERGENCE_GPU_BATCH bounces=1 batch=136 seed=1897587115 method=nee mean=0.363810401355 max_pixel=24.4090519
+CONVERGENCE_GPU_BATCH bounces=1 batch=136 seed=1897587115 method=power mean=0.325572609986 max_pixel=2.20329285
+CONVERGENCE_GPU_BATCH bounces=1 batch=137 seed=2773878118 method=nee mean=0.315945727267 max_pixel=1.62087035
+CONVERGENCE_GPU_BATCH bounces=1 batch=137 seed=2773878118 method=power mean=0.320731754708 max_pixel=2.29155636
+CONVERGENCE_GPU_BATCH bounces=1 batch=138 seed=3512208269 method=nee mean=0.313771919559 max_pixel=1.66275215
+CONVERGENCE_GPU_BATCH bounces=1 batch=138 seed=3512208269 method=power mean=0.317720964236 max_pixel=1.64656842
+CONVERGENCE_GPU_BATCH bounces=1 batch=139 seed=4193185480 method=nee mean=0.325083262992 max_pixel=3.93112445
+CONVERGENCE_GPU_BATCH bounces=1 batch=139 seed=4193185480 method=power mean=0.320117312381 max_pixel=1.89156079
+CONVERGENCE_GPU_BATCH bounces=1 batch=140 seed=3279616354 method=nee mean=0.315828149437 max_pixel=1.95258236
+CONVERGENCE_GPU_BATCH bounces=1 batch=140 seed=3279616354 method=power mean=0.319560019548 max_pixel=1.88735712
+CONVERGENCE_GPU_BATCH bounces=1 batch=141 seed=4171167151 method=nee mean=0.314388726198 max_pixel=1.85732055
+CONVERGENCE_GPU_BATCH bounces=1 batch=141 seed=4171167151 method=power mean=0.314691362334 max_pixel=1.86900318
+CONVERGENCE_GPU_BATCH bounces=1 batch=142 seed=691071470 method=nee mean=0.31324793142 max_pixel=1.85234368
+CONVERGENCE_GPU_BATCH bounces=1 batch=142 seed=691071470 method=power mean=0.32068401348 max_pixel=2.03910589
+CONVERGENCE_GPU_BATCH bounces=1 batch=143 seed=3476426547 method=nee mean=0.321468225163 max_pixel=1.86561751
+CONVERGENCE_GPU_BATCH bounces=1 batch=143 seed=3476426547 method=power mean=0.321615573994 max_pixel=1.86545455
+CONVERGENCE_GPU_BATCH bounces=1 batch=144 seed=4049845815 method=nee mean=0.316805491318 max_pixel=1.90063012
+CONVERGENCE_GPU_BATCH bounces=1 batch=144 seed=4049845815 method=power mean=0.316668415963 max_pixel=1.84201622
+CONVERGENCE_GPU_BATCH bounces=1 batch=145 seed=814954121 method=nee mean=0.314939095059 max_pixel=1.71021199
+CONVERGENCE_GPU_BATCH bounces=1 batch=145 seed=814954121 method=power mean=0.314649341466 max_pixel=1.69240093
+CONVERGENCE_GPU_BATCH bounces=1 batch=146 seed=907284985 method=nee mean=0.321476733234 max_pixel=1.82706118
+CONVERGENCE_GPU_BATCH bounces=1 batch=146 seed=907284985 method=power mean=0.323822952217 max_pixel=1.80202639
+CONVERGENCE_GPU_BATCH bounces=1 batch=147 seed=1968065246 method=nee mean=0.326197197088 max_pixel=3.9169631
+CONVERGENCE_GPU_BATCH bounces=1 batch=147 seed=1968065246 method=power mean=0.326031447684 max_pixel=2.01370621
+CONVERGENCE_GPU_BATCH bounces=1 batch=148 seed=1371733300 method=nee mean=0.322889584179 max_pixel=1.74405813
+CONVERGENCE_GPU_BATCH bounces=1 batch=148 seed=1371733300 method=power mean=0.324315090446 max_pixel=1.71856332
+CONVERGENCE_GPU_BATCH bounces=1 batch=149 seed=3574918632 method=nee mean=0.309446165362 max_pixel=1.8350724
+CONVERGENCE_GPU_BATCH bounces=1 batch=149 seed=3574918632 method=power mean=0.313597868861 max_pixel=2.10915542
+CONVERGENCE_GPU_BATCH bounces=1 batch=150 seed=4201699442 method=nee mean=0.318843361541 max_pixel=1.89377999
+CONVERGENCE_GPU_BATCH bounces=1 batch=150 seed=4201699442 method=power mean=0.319642701315 max_pixel=1.79781783
+CONVERGENCE_GPU_BATCH bounces=1 batch=151 seed=1824677913 method=nee mean=0.325601237018 max_pixel=1.76616621
+CONVERGENCE_GPU_BATCH bounces=1 batch=151 seed=1824677913 method=power mean=0.327822321961 max_pixel=1.76775515
+CONVERGENCE_GPU_BATCH bounces=1 batch=152 seed=469697949 method=nee mean=0.329126591627 max_pixel=7.76250935
+CONVERGENCE_GPU_BATCH bounces=1 batch=152 seed=469697949 method=power mean=0.318862258095 max_pixel=1.88902497
+CONVERGENCE_GPU_BATCH bounces=1 batch=153 seed=2032253712 method=nee mean=0.317641900937 max_pixel=1.86658812
+CONVERGENCE_GPU_BATCH bounces=1 batch=153 seed=2032253712 method=power mean=0.321895702186 max_pixel=1.83960199
+CONVERGENCE_GPU_BATCH bounces=1 batch=154 seed=2448582947 method=nee mean=0.317657748442 max_pixel=1.79867768
+CONVERGENCE_GPU_BATCH bounces=1 batch=154 seed=2448582947 method=power mean=0.326529107479 max_pixel=3.15170026
+CONVERGENCE_GPU_BATCH bounces=1 batch=155 seed=2752518705 method=nee mean=0.317179201029 max_pixel=1.73840415
+CONVERGENCE_GPU_BATCH bounces=1 batch=155 seed=2752518705 method=power mean=0.320701225705 max_pixel=1.77655101
+CONVERGENCE_GPU_BATCH bounces=1 batch=156 seed=2920485710 method=nee mean=0.321353685124 max_pixel=3.32897735
+CONVERGENCE_GPU_BATCH bounces=1 batch=156 seed=2920485710 method=power mean=0.318813421346 max_pixel=1.84641063
+CONVERGENCE_GPU_BATCH bounces=1 batch=157 seed=4125144789 method=nee mean=0.316450524372 max_pixel=1.85875261
+CONVERGENCE_GPU_BATCH bounces=1 batch=157 seed=4125144789 method=power mean=0.317557314061 max_pixel=1.78536057
+CONVERGENCE_GPU_BATCH bounces=1 batch=158 seed=2720536397 method=nee mean=0.314218132096 max_pixel=1.64902985
+CONVERGENCE_GPU_BATCH bounces=1 batch=158 seed=2720536397 method=power mean=0.316664827689 max_pixel=1.65273798
+CONVERGENCE_GPU_BATCH bounces=1 batch=159 seed=470366211 method=nee mean=0.317878694323 max_pixel=2.00141048
+CONVERGENCE_GPU_BATCH bounces=1 batch=159 seed=470366211 method=power mean=0.32291203765 max_pixel=1.96161222
+CONVERGENCE_GPU_BATCH bounces=1 batch=160 seed=2610070770 method=nee mean=0.317996293471 max_pixel=1.82424045
+CONVERGENCE_GPU_BATCH bounces=1 batch=160 seed=2610070770 method=power mean=0.331937822643 max_pixel=3.10648298
+CONVERGENCE_GPU_BATCH bounces=1 batch=161 seed=2880477379 method=nee mean=0.495575648171 max_pixel=91.0697479
+CONVERGENCE_GPU_BATCH bounces=1 batch=161 seed=2880477379 method=power mean=0.32636452482 max_pixel=1.82203734
+CONVERGENCE_GPU_BATCH bounces=1 batch=162 seed=1356320132 method=nee mean=0.31215247061 max_pixel=1.65638077
+CONVERGENCE_GPU_BATCH bounces=1 batch=162 seed=1356320132 method=power mean=0.314677078995 max_pixel=1.67552602
+CONVERGENCE_GPU_BATCH bounces=1 batch=163 seed=1366083027 method=nee mean=0.318878134883 max_pixel=1.80458355
+CONVERGENCE_GPU_BATCH bounces=1 batch=163 seed=1366083027 method=power mean=0.320831065815 max_pixel=1.78468609
+CONVERGENCE_GPU_BATCH bounces=1 batch=164 seed=1116319983 method=nee mean=0.313686295778 max_pixel=1.87626433
+CONVERGENCE_GPU_BATCH bounces=1 batch=164 seed=1116319983 method=power mean=0.313836678622 max_pixel=1.94310236
+CONVERGENCE_GPU_BATCH bounces=1 batch=165 seed=3936697894 method=nee mean=0.318017956754 max_pixel=1.85238051
+CONVERGENCE_GPU_BATCH bounces=1 batch=165 seed=3936697894 method=power mean=0.319847778352 max_pixel=1.80230665
+CONVERGENCE_GPU_BATCH bounces=1 batch=166 seed=2955638710 method=nee mean=0.315657964783 max_pixel=1.8586936
+CONVERGENCE_GPU_BATCH bounces=1 batch=166 seed=2955638710 method=power mean=0.315431077071 max_pixel=1.78966689
+CONVERGENCE_GPU_BATCH bounces=1 batch=167 seed=574351480 method=nee mean=0.316450702885 max_pixel=1.81861973
+CONVERGENCE_GPU_BATCH bounces=1 batch=167 seed=574351480 method=power mean=0.316530033252 max_pixel=1.8825444
+CONVERGENCE_GPU_BATCH bounces=1 batch=168 seed=463137853 method=nee mean=0.32211633318 max_pixel=5.35437822
+CONVERGENCE_GPU_BATCH bounces=1 batch=168 seed=463137853 method=power mean=0.31504725562 max_pixel=1.80290043
+CONVERGENCE_GPU_BATCH bounces=1 batch=169 seed=545150183 method=nee mean=0.310389419329 max_pixel=1.77899218
+CONVERGENCE_GPU_BATCH bounces=1 batch=169 seed=545150183 method=power mean=0.310870497889 max_pixel=1.83568084
+CONVERGENCE_GPU_BATCH bounces=1 batch=170 seed=3047018728 method=nee mean=0.315788852536 max_pixel=1.67425156
+CONVERGENCE_GPU_BATCH bounces=1 batch=170 seed=3047018728 method=power mean=0.31794331352 max_pixel=1.66659403
+CONVERGENCE_GPU_BATCH bounces=1 batch=171 seed=2474378996 method=nee mean=0.31789717941 max_pixel=1.85157299
+CONVERGENCE_GPU_BATCH bounces=1 batch=171 seed=2474378996 method=power mean=0.320565518951 max_pixel=1.92912221
+CONVERGENCE_GPU_BATCH bounces=1 batch=172 seed=3387638066 method=nee mean=0.318050334729 max_pixel=1.88301492
+CONVERGENCE_GPU_BATCH bounces=1 batch=172 seed=3387638066 method=power mean=0.31787733361 max_pixel=1.87201548
+CONVERGENCE_GPU_BATCH bounces=1 batch=173 seed=2946302272 method=nee mean=0.314607610052 max_pixel=1.84380913
+CONVERGENCE_GPU_BATCH bounces=1 batch=173 seed=2946302272 method=power mean=0.321011766191 max_pixel=2.18029189
+CONVERGENCE_GPU_BATCH bounces=1 batch=174 seed=1461181856 method=nee mean=0.317145420714 max_pixel=1.84583068
+CONVERGENCE_GPU_BATCH bounces=1 batch=174 seed=1461181856 method=power mean=0.321156496997 max_pixel=2.10344219
+CONVERGENCE_GPU_BATCH bounces=1 batch=175 seed=368683177 method=nee mean=0.318721149925 max_pixel=1.57768428
+CONVERGENCE_GPU_BATCH bounces=1 batch=175 seed=368683177 method=power mean=0.326899343276 max_pixel=1.58361816
+CONVERGENCE_GPU_BATCH bounces=1 batch=176 seed=111566182 method=nee mean=0.316047623144 max_pixel=1.8012743
+CONVERGENCE_GPU_BATCH bounces=1 batch=176 seed=111566182 method=power mean=0.316347060168 max_pixel=1.7140969
+CONVERGENCE_GPU_BATCH bounces=1 batch=177 seed=877636912 method=nee mean=0.315951256947 max_pixel=1.72738576
+CONVERGENCE_GPU_BATCH bounces=1 batch=177 seed=877636912 method=power mean=0.317740538514 max_pixel=1.8186152
+CONVERGENCE_GPU_BATCH bounces=1 batch=178 seed=3640582049 method=nee mean=0.322272721959 max_pixel=1.87046516
+CONVERGENCE_GPU_BATCH bounces=1 batch=178 seed=3640582049 method=power mean=0.326796737906 max_pixel=2.27456212
+CONVERGENCE_GPU_BATCH bounces=1 batch=179 seed=1799830047 method=nee mean=0.32172164593 max_pixel=3.94357109
+CONVERGENCE_GPU_BATCH bounces=1 batch=179 seed=1799830047 method=power mean=0.31911262662 max_pixel=1.62374461
+CONVERGENCE_GPU_BATCH bounces=1 batch=180 seed=4165964672 method=nee mean=0.31519959063 max_pixel=1.74840581
+CONVERGENCE_GPU_BATCH bounces=1 batch=180 seed=4165964672 method=power mean=0.325227370589 max_pixel=2.19699264
+CONVERGENCE_GPU_BATCH bounces=1 batch=181 seed=2546648262 method=nee mean=0.319530922678 max_pixel=1.83642077
+CONVERGENCE_GPU_BATCH bounces=1 batch=181 seed=2546648262 method=power mean=0.322743427555 max_pixel=1.81564021
+CONVERGENCE_GPU_BATCH bounces=1 batch=182 seed=436510231 method=nee mean=0.320873417501 max_pixel=2.25467372
+CONVERGENCE_GPU_BATCH bounces=1 batch=182 seed=436510231 method=power mean=0.329175940986 max_pixel=4.248312
+CONVERGENCE_GPU_BATCH bounces=1 batch=183 seed=2359534706 method=nee mean=0.317728739953 max_pixel=1.84205842
+CONVERGENCE_GPU_BATCH bounces=1 batch=183 seed=2359534706 method=power mean=0.318254448166 max_pixel=1.88254774
+CONVERGENCE_GPU_BATCH bounces=1 batch=184 seed=2938799063 method=nee mean=0.31823078501 max_pixel=1.90666485
+CONVERGENCE_GPU_BATCH bounces=1 batch=184 seed=2938799063 method=power mean=0.320912580505 max_pixel=1.87573302
+CONVERGENCE_GPU_BATCH bounces=1 batch=185 seed=3161800371 method=nee mean=0.316282110512 max_pixel=1.87884283
+CONVERGENCE_GPU_BATCH bounces=1 batch=185 seed=3161800371 method=power mean=0.318551169926 max_pixel=1.87425017
+CONVERGENCE_GPU_BATCH bounces=1 batch=186 seed=155618690 method=nee mean=0.322545888856 max_pixel=1.65518081
+CONVERGENCE_GPU_BATCH bounces=1 batch=186 seed=155618690 method=power mean=0.324702475875 max_pixel=1.79560542
+CONVERGENCE_GPU_BATCH bounces=1 batch=187 seed=2452797905 method=nee mean=0.318091872983 max_pixel=1.75417793
+CONVERGENCE_GPU_BATCH bounces=1 batch=187 seed=2452797905 method=power mean=0.322481529862 max_pixel=2.1025672
+CONVERGENCE_GPU_BATCH bounces=1 batch=188 seed=3960023964 method=nee mean=0.347994096382 max_pixel=13.7116203
+CONVERGENCE_GPU_BATCH bounces=1 batch=188 seed=3960023964 method=power mean=0.325391544372 max_pixel=1.73249555
+CONVERGENCE_GPU_BATCH bounces=1 batch=189 seed=865384725 method=nee mean=0.318174303312 max_pixel=1.82573199
+CONVERGENCE_GPU_BATCH bounces=1 batch=189 seed=865384725 method=power mean=0.323629593846 max_pixel=1.85921001
+CONVERGENCE_GPU_BATCH bounces=1 batch=190 seed=3419304810 method=nee mean=0.321013564963 max_pixel=1.87532282
+CONVERGENCE_GPU_BATCH bounces=1 batch=190 seed=3419304810 method=power mean=0.319977329397 max_pixel=1.835374
+CONVERGENCE_GPU_BATCH bounces=1 batch=191 seed=1686277816 method=nee mean=0.320540294528 max_pixel=1.70887721
+CONVERGENCE_GPU_BATCH bounces=1 batch=191 seed=1686277816 method=power mean=0.330448687992 max_pixel=1.77624619
+CONVERGENCE_GPU_BATCH bounces=1 batch=192 seed=1316841084 method=nee mean=0.317313325849 max_pixel=1.71742797
+CONVERGENCE_GPU_BATCH bounces=1 batch=192 seed=1316841084 method=power mean=0.319125436966 max_pixel=1.68664587
+CONVERGENCE_GPU_BATCH bounces=1 batch=193 seed=2119516692 method=nee mean=0.315577854399 max_pixel=1.87303174
+CONVERGENCE_GPU_BATCH bounces=1 batch=193 seed=2119516692 method=power mean=0.320930348056 max_pixel=1.82615232
+CONVERGENCE_GPU_BATCH bounces=1 batch=194 seed=937987778 method=nee mean=0.412584397848 max_pixel=51.751606
+CONVERGENCE_GPU_BATCH bounces=1 batch=194 seed=937987778 method=power mean=0.316206408265 max_pixel=1.74748433
+CONVERGENCE_GPU_BATCH bounces=1 batch=195 seed=968058757 method=nee mean=0.316042116729 max_pixel=1.81078684
+CONVERGENCE_GPU_BATCH bounces=1 batch=195 seed=968058757 method=power mean=0.316239945159 max_pixel=1.81993437
+CONVERGENCE_GPU_BATCH bounces=1 batch=196 seed=1333716488 method=nee mean=0.320164569463 max_pixel=1.81130481
+CONVERGENCE_GPU_BATCH bounces=1 batch=196 seed=1333716488 method=power mean=0.321818068645 max_pixel=1.84253848
+CONVERGENCE_GPU_BATCH bounces=1 batch=197 seed=140226598 method=nee mean=0.347424547446 max_pixel=15.0701618
+CONVERGENCE_GPU_BATCH bounces=1 batch=197 seed=140226598 method=power mean=0.328418965348 max_pixel=2.17666936
+CONVERGENCE_GPU_BATCH bounces=1 batch=198 seed=652986403 method=nee mean=0.321210201874 max_pixel=1.87337375
+CONVERGENCE_GPU_BATCH bounces=1 batch=198 seed=652986403 method=power mean=0.324149158576 max_pixel=1.83777285
+CONVERGENCE_GPU_BATCH bounces=1 batch=199 seed=1664483310 method=nee mean=0.322057955395 max_pixel=1.74869251
+CONVERGENCE_GPU_BATCH bounces=1 batch=199 seed=1664483310 method=power mean=0.32591237594 max_pixel=1.71477211
+CONVERGENCE_GPU_BATCH bounces=1 batch=200 seed=68250614 method=nee mean=0.317345572344 max_pixel=1.75546002
+CONVERGENCE_GPU_BATCH bounces=1 batch=200 seed=68250614 method=power mean=0.323027477633 max_pixel=2.10546589
+CONVERGENCE_GPU_BATCH bounces=1 batch=201 seed=2536963965 method=nee mean=0.314533396571 max_pixel=1.83409727
+CONVERGENCE_GPU_BATCH bounces=1 batch=201 seed=2536963965 method=power mean=0.318894249125 max_pixel=1.87283707
+CONVERGENCE_GPU_BATCH bounces=1 batch=202 seed=2692501372 method=nee mean=0.318270866829 max_pixel=1.76941347
+CONVERGENCE_GPU_BATCH bounces=1 batch=202 seed=2692501372 method=power mean=0.323802501507 max_pixel=2.16594768
+CONVERGENCE_GPU_BATCH bounces=1 batch=203 seed=3675878540 method=nee mean=0.321376423296 max_pixel=3.53578043
+CONVERGENCE_GPU_BATCH bounces=1 batch=203 seed=3675878540 method=power mean=0.318388864855 max_pixel=1.7807039
+CONVERGENCE_GPU_BATCH bounces=1 batch=204 seed=2065147435 method=nee mean=0.322202615474 max_pixel=1.79990542
+CONVERGENCE_GPU_BATCH bounces=1 batch=204 seed=2065147435 method=power mean=0.324607628395 max_pixel=1.72956407
+CONVERGENCE_GPU_BATCH bounces=1 batch=205 seed=3485765395 method=nee mean=0.317786924501 max_pixel=1.6842097
+CONVERGENCE_GPU_BATCH bounces=1 batch=205 seed=3485765395 method=power mean=0.32441136843 max_pixel=1.64918518
+CONVERGENCE_GPU_BATCH bounces=1 batch=206 seed=1206702549 method=nee mean=0.31479895621 max_pixel=1.88251269
+CONVERGENCE_GPU_BATCH bounces=1 batch=206 seed=1206702549 method=power mean=0.314692538378 max_pixel=1.85302734
+CONVERGENCE_GPU_BATCH bounces=1 batch=207 seed=2792611450 method=nee mean=0.313116315052 max_pixel=1.86642194
+CONVERGENCE_GPU_BATCH bounces=1 batch=207 seed=2792611450 method=power mean=0.318044018492 max_pixel=1.83755875
+CONVERGENCE_GPU_BATCH bounces=1 batch=208 seed=3563277329 method=nee mean=0.327634773108 max_pixel=2.07266665
+CONVERGENCE_GPU_BATCH bounces=1 batch=208 seed=3563277329 method=power mean=0.32396242722 max_pixel=1.7625072
+CONVERGENCE_GPU_BATCH bounces=1 batch=209 seed=2957333009 method=nee mean=0.325829681379 max_pixel=3.95085979
+CONVERGENCE_GPU_BATCH bounces=1 batch=209 seed=2957333009 method=power mean=0.31672337747 max_pixel=1.8234024
+CONVERGENCE_GPU_BATCH bounces=1 batch=210 seed=2247442851 method=nee mean=0.319036413423 max_pixel=1.87251878
+CONVERGENCE_GPU_BATCH bounces=1 batch=210 seed=2247442851 method=power mean=0.322629543676 max_pixel=2.10255527
+CONVERGENCE_GPU_BATCH bounces=1 batch=211 seed=446664545 method=nee mean=0.316729772743 max_pixel=1.79643869
+CONVERGENCE_GPU_BATCH bounces=1 batch=211 seed=446664545 method=power mean=0.320480191777 max_pixel=2.10159039
+CONVERGENCE_GPU_BATCH bounces=1 batch=212 seed=434757261 method=nee mean=0.314402672757 max_pixel=1.85308361
+CONVERGENCE_GPU_BATCH bounces=1 batch=212 seed=434757261 method=power mean=0.318218830761 max_pixel=1.94546103
+CONVERGENCE_GPU_BATCH bounces=1 batch=213 seed=3401506369 method=nee mean=0.323873114322 max_pixel=2.84540796
+CONVERGENCE_GPU_BATCH bounces=1 batch=213 seed=3401506369 method=power mean=0.326671101129 max_pixel=2.01474094
+CONVERGENCE_GPU_BATCH bounces=1 batch=214 seed=913289841 method=nee mean=0.316692495961 max_pixel=1.87791538
+CONVERGENCE_GPU_BATCH bounces=1 batch=214 seed=913289841 method=power mean=0.321360483383 max_pixel=1.9893136
+CONVERGENCE_GPU_BATCH bounces=1 batch=215 seed=2325918007 method=nee mean=0.311783017089 max_pixel=1.80773294
+CONVERGENCE_GPU_BATCH bounces=1 batch=215 seed=2325918007 method=power mean=0.315314883968 max_pixel=2.13477111
+CONVERGENCE_GPU_BATCH bounces=1 batch=216 seed=3357274749 method=nee mean=0.324227927453 max_pixel=1.80572104
+CONVERGENCE_GPU_BATCH bounces=1 batch=216 seed=3357274749 method=power mean=0.326658045333 max_pixel=1.99213457
+CONVERGENCE_GPU_BATCH bounces=1 batch=217 seed=3481658516 method=nee mean=0.318255062465 max_pixel=1.94374216
+CONVERGENCE_GPU_BATCH bounces=1 batch=217 seed=3481658516 method=power mean=0.318787121647 max_pixel=1.92760277
+CONVERGENCE_GPU_BATCH bounces=1 batch=218 seed=2794234344 method=nee mean=0.317969371076 max_pixel=1.64941609
+CONVERGENCE_GPU_BATCH bounces=1 batch=218 seed=2794234344 method=power mean=0.32251219627 max_pixel=1.73282206
+CONVERGENCE_GPU_BATCH bounces=1 batch=219 seed=3406779500 method=nee mean=0.523970559539 max_pixel=105.434441
+CONVERGENCE_GPU_BATCH bounces=1 batch=219 seed=3406779500 method=power mean=0.321220583345 max_pixel=1.8693614
+CONVERGENCE_GPU_BATCH bounces=1 batch=220 seed=944390307 method=nee mean=0.312312713426 max_pixel=1.78481007
+CONVERGENCE_GPU_BATCH bounces=1 batch=220 seed=944390307 method=power mean=0.316161739934 max_pixel=1.74375319
+CONVERGENCE_GPU_BATCH bounces=1 batch=221 seed=4223680385 method=nee mean=0.313863231539 max_pixel=1.8233608
+CONVERGENCE_GPU_BATCH bounces=1 batch=221 seed=4223680385 method=power mean=0.31626265329 max_pixel=1.83006549
+CONVERGENCE_GPU_BATCH bounces=1 batch=222 seed=4054184806 method=nee mean=0.320637519781 max_pixel=1.86725187
+CONVERGENCE_GPU_BATCH bounces=1 batch=222 seed=4054184806 method=power mean=0.324842828554 max_pixel=2.10124993
+CONVERGENCE_GPU_BATCH bounces=1 batch=223 seed=394218075 method=nee mean=0.319388609559 max_pixel=1.8143971
+CONVERGENCE_GPU_BATCH bounces=1 batch=223 seed=394218075 method=power mean=0.325515740085 max_pixel=2.10052299
+CONVERGENCE_GPU_BATCH bounces=1 batch=224 seed=210652454 method=nee mean=0.315014648389 max_pixel=1.73110533
+CONVERGENCE_GPU_BATCH bounces=1 batch=224 seed=210652454 method=power mean=0.31760322611 max_pixel=1.7269218
+CONVERGENCE_GPU_BATCH bounces=1 batch=225 seed=2014758405 method=nee mean=0.313955635819 max_pixel=1.74794722
+CONVERGENCE_GPU_BATCH bounces=1 batch=225 seed=2014758405 method=power mean=0.314105560299 max_pixel=1.68709612
+CONVERGENCE_GPU_BATCH bounces=1 batch=226 seed=1547443275 method=nee mean=0.316572603075 max_pixel=1.88542652
+CONVERGENCE_GPU_BATCH bounces=1 batch=226 seed=1547443275 method=power mean=0.322516794272 max_pixel=3.15670967
+CONVERGENCE_GPU_BATCH bounces=1 batch=227 seed=1765265588 method=nee mean=0.320550193014 max_pixel=1.91490293
+CONVERGENCE_GPU_BATCH bounces=1 batch=227 seed=1765265588 method=power mean=0.324618578693 max_pixel=1.87280476
+CONVERGENCE_GPU_BATCH bounces=1 batch=228 seed=2880135863 method=nee mean=0.319873389836 max_pixel=1.87066042
+CONVERGENCE_GPU_BATCH bounces=1 batch=228 seed=2880135863 method=power mean=0.324903915807 max_pixel=1.96955299
+CONVERGENCE_GPU_BATCH bounces=1 batch=229 seed=1217669179 method=nee mean=0.312655242188 max_pixel=1.66977394
+CONVERGENCE_GPU_BATCH bounces=1 batch=229 seed=1217669179 method=power mean=0.318323899053 max_pixel=1.6753515
+CONVERGENCE_GPU_BATCH bounces=1 batch=230 seed=3525501339 method=nee mean=0.317416852594 max_pixel=1.76781821
+CONVERGENCE_GPU_BATCH bounces=1 batch=230 seed=3525501339 method=power mean=0.317208585464 max_pixel=1.77332425
+CONVERGENCE_GPU_BATCH bounces=1 batch=231 seed=3007224314 method=nee mean=0.321944496375 max_pixel=1.81952691
+CONVERGENCE_GPU_BATCH bounces=1 batch=231 seed=3007224314 method=power mean=0.323689243243 max_pixel=1.9455483
+CONVERGENCE_GPU_BATCH bounces=1 batch=232 seed=2249746537 method=nee mean=0.321270346527 max_pixel=1.82924402
+CONVERGENCE_GPU_BATCH bounces=1 batch=232 seed=2249746537 method=power mean=0.32712769915 max_pixel=2.11639261
+CONVERGENCE_GPU_BATCH bounces=1 batch=233 seed=1007596438 method=nee mean=0.321014721526 max_pixel=1.78920233
+CONVERGENCE_GPU_BATCH bounces=1 batch=233 seed=1007596438 method=power mean=0.318828691872 max_pixel=1.86927497
+CONVERGENCE_GPU_BATCH bounces=1 batch=234 seed=3490774108 method=nee mean=0.45047770491 max_pixel=71.9632492
+CONVERGENCE_GPU_BATCH bounces=1 batch=234 seed=3490774108 method=power mean=0.321521620396 max_pixel=2.10100222
+CONVERGENCE_GPU_BATCH bounces=1 batch=235 seed=2980701475 method=nee mean=0.313298990947 max_pixel=1.88914049
+CONVERGENCE_GPU_BATCH bounces=1 batch=235 seed=2980701475 method=power mean=0.313943097258 max_pixel=1.86640418
+CONVERGENCE_GPU_BATCH bounces=1 batch=236 seed=4177409013 method=nee mean=0.319138678805 max_pixel=1.92246699
+CONVERGENCE_GPU_BATCH bounces=1 batch=236 seed=4177409013 method=power mean=0.320306395523 max_pixel=1.90183878
+CONVERGENCE_GPU_BATCH bounces=1 batch=237 seed=2399715742 method=nee mean=0.3203369405 max_pixel=1.8162365
+CONVERGENCE_GPU_BATCH bounces=1 batch=237 seed=2399715742 method=power mean=0.323607690713 max_pixel=1.88741565
+CONVERGENCE_GPU_BATCH bounces=1 batch=238 seed=626688418 method=nee mean=0.319893469551 max_pixel=1.86144459
+CONVERGENCE_GPU_BATCH bounces=1 batch=238 seed=626688418 method=power mean=0.327063781147 max_pixel=2.15840077
+CONVERGENCE_GPU_BATCH bounces=1 batch=239 seed=2292017846 method=nee mean=0.32791295038 max_pixel=3.26166201
+CONVERGENCE_GPU_BATCH bounces=1 batch=239 seed=2292017846 method=power mean=0.328472565547 max_pixel=2.09638238
+CONVERGENCE_GPU_BATCH bounces=1 batch=240 seed=2402016601 method=nee mean=0.320768847322 max_pixel=1.80204618
+CONVERGENCE_GPU_BATCH bounces=1 batch=240 seed=2402016601 method=power mean=0.32858646856 max_pixel=2.10244656
+CONVERGENCE_GPU_BATCH bounces=1 batch=241 seed=4120824377 method=nee mean=0.317160125213 max_pixel=1.77210116
+CONVERGENCE_GPU_BATCH bounces=1 batch=241 seed=4120824377 method=power mean=0.324267452198 max_pixel=2.13674927
+CONVERGENCE_GPU_BATCH bounces=1 batch=242 seed=2102667457 method=nee mean=0.313007939144 max_pixel=1.81159818
+CONVERGENCE_GPU_BATCH bounces=1 batch=242 seed=2102667457 method=power mean=0.313346749062 max_pixel=1.93874836
+CONVERGENCE_GPU_BATCH bounces=1 batch=243 seed=4195566041 method=nee mean=0.337096171233 max_pixel=8.16481495
+CONVERGENCE_GPU_BATCH bounces=1 batch=243 seed=4195566041 method=power mean=0.32179589055 max_pixel=1.8412286
+CONVERGENCE_GPU_BATCH bounces=1 batch=244 seed=1450033252 method=nee mean=0.31649881424 max_pixel=1.71136439
+CONVERGENCE_GPU_BATCH bounces=1 batch=244 seed=1450033252 method=power mean=0.32095284252 max_pixel=2.10963583
+CONVERGENCE_GPU_BATCH bounces=1 batch=245 seed=225288405 method=nee mean=0.314059951632 max_pixel=1.87416589
+CONVERGENCE_GPU_BATCH bounces=1 batch=245 seed=225288405 method=power mean=0.320160812293 max_pixel=1.99147892
+CONVERGENCE_GPU_BATCH bounces=1 batch=246 seed=4121520429 method=nee mean=0.319954597996 max_pixel=1.81831193
+CONVERGENCE_GPU_BATCH bounces=1 batch=246 seed=4121520429 method=power mean=0.322028006111 max_pixel=1.77130079
+CONVERGENCE_GPU_BATCH bounces=1 batch=247 seed=1843724577 method=nee mean=0.317484988059 max_pixel=1.72637236
+CONVERGENCE_GPU_BATCH bounces=1 batch=247 seed=1843724577 method=power mean=0.317552830377 max_pixel=1.73462319
+CONVERGENCE_GPU_BATCH bounces=1 batch=248 seed=728954786 method=nee mean=0.312813766339 max_pixel=1.75643671
+CONVERGENCE_GPU_BATCH bounces=1 batch=248 seed=728954786 method=power mean=0.314497210049 max_pixel=1.77431548
+CONVERGENCE_GPU_BATCH bounces=1 batch=249 seed=3138098312 method=nee mean=0.317317146936 max_pixel=1.77733719
+CONVERGENCE_GPU_BATCH bounces=1 batch=249 seed=3138098312 method=power mean=0.32044895373 max_pixel=2.08232474
+CONVERGENCE_GPU_BATCH bounces=1 batch=250 seed=2029070286 method=nee mean=0.314199274709 max_pixel=1.67245305
+CONVERGENCE_GPU_BATCH bounces=1 batch=250 seed=2029070286 method=power mean=0.317895992217 max_pixel=1.76678753
+CONVERGENCE_GPU_BATCH bounces=1 batch=251 seed=2593514553 method=nee mean=0.315616706841 max_pixel=1.7836051
+CONVERGENCE_GPU_BATCH bounces=1 batch=251 seed=2593514553 method=power mean=0.319699069172 max_pixel=1.83831978
+CONVERGENCE_GPU_BATCH bounces=1 batch=252 seed=482642664 method=nee mean=0.321401603708 max_pixel=1.77021873
+CONVERGENCE_GPU_BATCH bounces=1 batch=252 seed=482642664 method=power mean=0.321569924139 max_pixel=1.77767491
+CONVERGENCE_GPU_BATCH bounces=1 batch=253 seed=718766564 method=nee mean=0.320581952309 max_pixel=1.67497194
+CONVERGENCE_GPU_BATCH bounces=1 batch=253 seed=718766564 method=power mean=0.323498613955 max_pixel=1.67312455
+CONVERGENCE_GPU_BATCH bounces=1 batch=254 seed=800295765 method=nee mean=0.313826417987 max_pixel=1.82337141
+CONVERGENCE_GPU_BATCH bounces=1 batch=254 seed=800295765 method=power mean=0.318312543988 max_pixel=2.10700941
+CONVERGENCE_GPU_BATCH bounces=1 batch=255 seed=4092271524 method=nee mean=0.317222816915 max_pixel=1.76630867
+CONVERGENCE_GPU bounces=1 batches=256 method=nee mean=0.32343361 nominal_se=0.00195498274
+CONVERGENCE_GPU_BATCH bounces=1 batch=255 seed=4092271524 method=power mean=0.319262246557 max_pixel=1.77827632
+CONVERGENCE_GPU bounces=1 batches=256 method=power mean=0.321134893 nominal_se=0.000256111666
+CONVERGENCE_AGREEMENT bounces=1 domain=cpu method=bsdf difference=0 nominal_se=0.00161784753 gate=1
+CONVERGENCE_AGREEMENT bounces=1 domain=cpu method=nee difference=-0.00135095022 nominal_se=0.00145107054 gate=1
+CONVERGENCE_AGREEMENT bounces=1 domain=cpu method=power difference=-0.00153907353 nominal_se=0.00115661491 gate=1
+CONVERGENCE_AGREEMENT bounces=1 domain=gpu method=nee difference=0.00246553186 nominal_se=0.0021491505 gate=1
+CONVERGENCE_AGREEMENT bounces=1 domain=gpu method=power difference=0.000354937593 nominal_se=0.000307629519 gate=1
+CONVERGENCE_CPU_BATCH bounces=4 batch=0 method=bsdf mean=0.54388048303
+CONVERGENCE_CPU_BATCH bounces=4 batch=0 method=nee mean=0.538029177039
+CONVERGENCE_CPU_BATCH bounces=4 batch=0 method=power mean=0.536968186892
+CONVERGENCE_CPU_BATCH bounces=4 batch=1 method=bsdf mean=0.519966091018
+CONVERGENCE_CPU_BATCH bounces=4 batch=1 method=nee mean=0.530686597044
+CONVERGENCE_CPU_BATCH bounces=4 batch=1 method=power mean=0.53502305406
+CONVERGENCE_CPU_BATCH bounces=4 batch=2 method=bsdf mean=0.54852981236
+CONVERGENCE_CPU_BATCH bounces=4 batch=2 method=nee mean=0.529688120875
+CONVERGENCE_CPU_BATCH bounces=4 batch=2 method=power mean=0.535424195327
+CONVERGENCE_CPU_BATCH bounces=4 batch=3 method=bsdf mean=0.534281545613
+CONVERGENCE_CPU_BATCH bounces=4 batch=3 method=nee mean=0.529840755273
+CONVERGENCE_CPU_BATCH bounces=4 batch=3 method=power mean=0.534435758223
+CONVERGENCE_CPU_BATCH bounces=4 batch=4 method=bsdf mean=0.551284936716
+CONVERGENCE_CPU_BATCH bounces=4 batch=4 method=nee mean=0.530560660767
+CONVERGENCE_CPU_BATCH bounces=4 batch=4 method=power mean=0.535632870423
+CONVERGENCE_CPU_BATCH bounces=4 batch=5 method=bsdf mean=0.505517646436
+CONVERGENCE_CPU_BATCH bounces=4 batch=5 method=nee mean=0.526932084229
+CONVERGENCE_CPU_BATCH bounces=4 batch=5 method=power mean=0.536085664712
+CONVERGENCE_CPU_BATCH bounces=4 batch=6 method=bsdf mean=0.53539943014
+CONVERGENCE_CPU_BATCH bounces=4 batch=6 method=nee mean=0.529467200344
+CONVERGENCE_CPU_BATCH bounces=4 batch=6 method=power mean=0.535834792223
+CONVERGENCE_CPU_BATCH bounces=4 batch=7 method=bsdf mean=0.532323645742
+CONVERGENCE_CPU_BATCH bounces=4 batch=7 method=nee mean=0.530187207746
+CONVERGENCE_CPU_BATCH bounces=4 batch=7 method=power mean=0.538905263195
+CONVERGENCE_CPU_BATCH bounces=4 batch=8 method=bsdf mean=0.538950134841
+CONVERGENCE_CPU_BATCH bounces=4 batch=8 method=nee mean=0.529762615712
+CONVERGENCE_CPU_BATCH bounces=4 batch=8 method=power mean=0.53701139524
+CONVERGENCE_CPU_BATCH bounces=4 batch=9 method=bsdf mean=0.536100527581
+CONVERGENCE_CPU_BATCH bounces=4 batch=9 method=nee mean=0.526840365798
+CONVERGENCE_CPU_BATCH bounces=4 batch=9 method=power mean=0.535303579453
+CONVERGENCE_CPU_BATCH bounces=4 batch=10 method=bsdf mean=0.539435330276
+CONVERGENCE_CPU_BATCH bounces=4 batch=10 method=nee mean=0.537713634112
+CONVERGENCE_CPU_BATCH bounces=4 batch=10 method=power mean=0.538085840951
+CONVERGENCE_CPU_BATCH bounces=4 batch=11 method=bsdf mean=0.536048079154
+CONVERGENCE_CPU_BATCH bounces=4 batch=11 method=nee mean=0.530802103985
+CONVERGENCE_CPU_BATCH bounces=4 batch=11 method=power mean=0.53822478603
+CONVERGENCE_CPU_BATCH bounces=4 batch=12 method=bsdf mean=0.528370386132
+CONVERGENCE_CPU_BATCH bounces=4 batch=12 method=nee mean=0.529158215701
+CONVERGENCE_CPU_BATCH bounces=4 batch=12 method=power mean=0.535604869172
+CONVERGENCE_CPU_BATCH bounces=4 batch=13 method=bsdf mean=0.527007555886
+CONVERGENCE_CPU_BATCH bounces=4 batch=13 method=nee mean=0.5292529081
+CONVERGENCE_CPU_BATCH bounces=4 batch=13 method=power mean=0.536986923744
+CONVERGENCE_CPU_BATCH bounces=4 batch=14 method=bsdf mean=0.541884321405
+CONVERGENCE_CPU_BATCH bounces=4 batch=14 method=nee mean=0.529340108014
+CONVERGENCE_CPU_BATCH bounces=4 batch=14 method=power mean=0.539147836112
+CONVERGENCE_CPU_BATCH bounces=4 batch=15 method=bsdf mean=0.542638394717
+CONVERGENCE_CPU_BATCH bounces=4 batch=15 method=nee mean=0.529544048508
+CONVERGENCE_CPU_BATCH bounces=4 batch=15 method=power mean=0.536979740823
+CONVERGENCE_CPU_BATCH bounces=4 batch=16 method=bsdf mean=0.520547995066
+CONVERGENCE_CPU_BATCH bounces=4 batch=16 method=nee mean=0.530494592809
+CONVERGENCE_CPU_BATCH bounces=4 batch=16 method=power mean=0.534255405715
+CONVERGENCE_CPU_BATCH bounces=4 batch=17 method=bsdf mean=0.539218963195
+CONVERGENCE_CPU_BATCH bounces=4 batch=17 method=nee mean=0.528730712292
+CONVERGENCE_CPU_BATCH bounces=4 batch=17 method=power mean=0.53591326922
+CONVERGENCE_CPU_BATCH bounces=4 batch=18 method=bsdf mean=0.525319395807
+CONVERGENCE_CPU_BATCH bounces=4 batch=18 method=nee mean=0.522398754158
+CONVERGENCE_CPU_BATCH bounces=4 batch=18 method=power mean=0.537749715774
+CONVERGENCE_CPU_BATCH bounces=4 batch=19 method=bsdf mean=0.533515067453
+CONVERGENCE_CPU_BATCH bounces=4 batch=19 method=nee mean=0.530165054667
+CONVERGENCE_CPU_BATCH bounces=4 batch=19 method=power mean=0.540967001346
+CONVERGENCE_CPU_BATCH bounces=4 batch=20 method=bsdf mean=0.536260466053
+CONVERGENCE_CPU_BATCH bounces=4 batch=20 method=nee mean=0.523870426204
+CONVERGENCE_CPU_BATCH bounces=4 batch=20 method=power mean=0.535856084543
+CONVERGENCE_CPU_BATCH bounces=4 batch=21 method=bsdf mean=0.539620681607
+CONVERGENCE_CPU_BATCH bounces=4 batch=21 method=nee mean=0.643241934281
+CONVERGENCE_CPU_BATCH bounces=4 batch=21 method=power mean=0.534393233471
+CONVERGENCE_CPU_BATCH bounces=4 batch=22 method=bsdf mean=0.529043396307
+CONVERGENCE_CPU_BATCH bounces=4 batch=22 method=nee mean=0.527211832188
+CONVERGENCE_CPU_BATCH bounces=4 batch=22 method=power mean=0.531965899753
+CONVERGENCE_CPU_BATCH bounces=4 batch=23 method=bsdf mean=0.542366301473
+CONVERGENCE_CPU_BATCH bounces=4 batch=23 method=nee mean=0.527483135173
+CONVERGENCE_CPU_BATCH bounces=4 batch=23 method=power mean=0.539368051586
+CONVERGENCE_CPU_BATCH bounces=4 batch=24 method=bsdf mean=0.52929460723
+CONVERGENCE_CPU_BATCH bounces=4 batch=24 method=nee mean=0.531093946078
+CONVERGENCE_CPU_BATCH bounces=4 batch=24 method=power mean=0.536582420314
+CONVERGENCE_CPU_BATCH bounces=4 batch=25 method=bsdf mean=0.530779529438
+CONVERGENCE_CPU_BATCH bounces=4 batch=25 method=nee mean=0.526760918283
+CONVERGENCE_CPU_BATCH bounces=4 batch=25 method=power mean=0.537869062312
+CONVERGENCE_CPU_BATCH bounces=4 batch=26 method=bsdf mean=0.53795466562
+CONVERGENCE_CPU_BATCH bounces=4 batch=26 method=nee mean=0.528034528537
+CONVERGENCE_CPU_BATCH bounces=4 batch=26 method=power mean=0.535568513471
+CONVERGENCE_CPU_BATCH bounces=4 batch=27 method=bsdf mean=0.529654582954
+CONVERGENCE_CPU_BATCH bounces=4 batch=27 method=nee mean=0.530066351218
+CONVERGENCE_CPU_BATCH bounces=4 batch=27 method=power mean=0.536171551567
+CONVERGENCE_CPU_BATCH bounces=4 batch=28 method=bsdf mean=0.521035757661
+CONVERGENCE_CPU_BATCH bounces=4 batch=28 method=nee mean=0.526571903544
+CONVERGENCE_CPU_BATCH bounces=4 batch=28 method=power mean=0.532699815876
+CONVERGENCE_CPU_BATCH bounces=4 batch=29 method=bsdf mean=0.533465985707
+CONVERGENCE_CPU_BATCH bounces=4 batch=29 method=nee mean=0.532574288458
+CONVERGENCE_CPU_BATCH bounces=4 batch=29 method=power mean=0.535274691242
+CONVERGENCE_CPU_BATCH bounces=4 batch=30 method=bsdf mean=0.531268474494
+CONVERGENCE_CPU_BATCH bounces=4 batch=30 method=nee mean=0.531079946412
+CONVERGENCE_CPU_BATCH bounces=4 batch=30 method=power mean=0.536919506842
+CONVERGENCE_CPU_BATCH bounces=4 batch=31 method=bsdf mean=0.544728474319
+CONVERGENCE_CPU_BATCH bounces=4 batch=31 method=nee mean=0.52654266926
+CONVERGENCE_CPU_BATCH bounces=4 batch=31 method=power mean=0.532909228584
+CONVERGENCE_CPU_BATCH bounces=4 batch=32 method=bsdf mean=0.550913393586
+CONVERGENCE_CPU_BATCH bounces=4 batch=32 method=nee mean=0.529075315693
+CONVERGENCE_CPU_BATCH bounces=4 batch=32 method=power mean=0.535915204248
+CONVERGENCE_CPU_BATCH bounces=4 batch=33 method=bsdf mean=0.531804130408
+CONVERGENCE_CPU_BATCH bounces=4 batch=33 method=nee mean=0.52948430116
+CONVERGENCE_CPU_BATCH bounces=4 batch=33 method=power mean=0.536971728967
+CONVERGENCE_CPU_BATCH bounces=4 batch=34 method=bsdf mean=0.531576735078
+CONVERGENCE_CPU_BATCH bounces=4 batch=34 method=nee mean=0.538203660128
+CONVERGENCE_CPU_BATCH bounces=4 batch=34 method=power mean=0.53974554846
+CONVERGENCE_CPU_BATCH bounces=4 batch=35 method=bsdf mean=0.533537040007
+CONVERGENCE_CPU_BATCH bounces=4 batch=35 method=nee mean=0.52781901051
+CONVERGENCE_CPU_BATCH bounces=4 batch=35 method=power mean=0.538926145474
+CONVERGENCE_CPU_BATCH bounces=4 batch=36 method=bsdf mean=0.529135284917
+CONVERGENCE_CPU_BATCH bounces=4 batch=36 method=nee mean=0.525989804862
+CONVERGENCE_CPU_BATCH bounces=4 batch=36 method=power mean=0.534580363267
+CONVERGENCE_CPU_BATCH bounces=4 batch=37 method=bsdf mean=0.530597301726
+CONVERGENCE_CPU_BATCH bounces=4 batch=37 method=nee mean=0.5301170917
+CONVERGENCE_CPU_BATCH bounces=4 batch=37 method=power mean=0.534702544492
+CONVERGENCE_CPU_BATCH bounces=4 batch=38 method=bsdf mean=0.528938380382
+CONVERGENCE_CPU_BATCH bounces=4 batch=38 method=nee mean=0.535904831159
+CONVERGENCE_CPU_BATCH bounces=4 batch=38 method=power mean=0.535347401814
+CONVERGENCE_CPU_BATCH bounces=4 batch=39 method=bsdf mean=0.530968948757
+CONVERGENCE_CPU_BATCH bounces=4 batch=39 method=nee mean=0.553277317777
+CONVERGENCE_CPU_BATCH bounces=4 batch=39 method=power mean=0.537890638634
+CONVERGENCE_CPU_BATCH bounces=4 batch=40 method=bsdf mean=0.543912781559
+CONVERGENCE_CPU_BATCH bounces=4 batch=40 method=nee mean=0.528391546848
+CONVERGENCE_CPU_BATCH bounces=4 batch=40 method=power mean=0.533374268386
+CONVERGENCE_CPU_BATCH bounces=4 batch=41 method=bsdf mean=0.534939094722
+CONVERGENCE_CPU_BATCH bounces=4 batch=41 method=nee mean=0.557673408645
+CONVERGENCE_CPU_BATCH bounces=4 batch=41 method=power mean=0.534545940277
+CONVERGENCE_CPU_BATCH bounces=4 batch=42 method=bsdf mean=0.556913757986
+CONVERGENCE_CPU_BATCH bounces=4 batch=42 method=nee mean=0.527488405601
+CONVERGENCE_CPU_BATCH bounces=4 batch=42 method=power mean=0.532458053495
+CONVERGENCE_CPU_BATCH bounces=4 batch=43 method=bsdf mean=0.54289653025
+CONVERGENCE_CPU_BATCH bounces=4 batch=43 method=nee mean=0.532080043402
+CONVERGENCE_CPU_BATCH bounces=4 batch=43 method=power mean=0.536978199993
+CONVERGENCE_CPU_BATCH bounces=4 batch=44 method=bsdf mean=0.530137466172
+CONVERGENCE_CPU_BATCH bounces=4 batch=44 method=nee mean=0.546303935083
+CONVERGENCE_CPU_BATCH bounces=4 batch=44 method=power mean=0.533307740343
+CONVERGENCE_CPU_BATCH bounces=4 batch=45 method=bsdf mean=0.52945272881
+CONVERGENCE_CPU_BATCH bounces=4 batch=45 method=nee mean=0.534402659824
+CONVERGENCE_CPU_BATCH bounces=4 batch=45 method=power mean=0.53373631183
+CONVERGENCE_CPU_BATCH bounces=4 batch=46 method=bsdf mean=0.534302110079
+CONVERGENCE_CPU_BATCH bounces=4 batch=46 method=nee mean=0.528188729599
+CONVERGENCE_CPU_BATCH bounces=4 batch=46 method=power mean=0.536367301509
+CONVERGENCE_CPU_BATCH bounces=4 batch=47 method=bsdf mean=0.537080347413
+CONVERGENCE_CPU_BATCH bounces=4 batch=47 method=nee mean=0.535122744569
+CONVERGENCE_CPU_BATCH bounces=4 batch=47 method=power mean=0.537226063621
+CONVERGENCE_CPU_BATCH bounces=4 batch=48 method=bsdf mean=0.54726484384
+CONVERGENCE_CPU_BATCH bounces=4 batch=48 method=nee mean=0.528518414848
+CONVERGENCE_CPU_BATCH bounces=4 batch=48 method=power mean=0.537972753005
+CONVERGENCE_CPU_BATCH bounces=4 batch=49 method=bsdf mean=0.537545170874
+CONVERGENCE_CPU_BATCH bounces=4 batch=49 method=nee mean=0.558123971008
+CONVERGENCE_CPU_BATCH bounces=4 batch=49 method=power mean=0.537013595741
+CONVERGENCE_CPU_BATCH bounces=4 batch=50 method=bsdf mean=0.532316613473
+CONVERGENCE_CPU_BATCH bounces=4 batch=50 method=nee mean=0.554452735947
+CONVERGENCE_CPU_BATCH bounces=4 batch=50 method=power mean=0.534135453298
+CONVERGENCE_CPU_BATCH bounces=4 batch=51 method=bsdf mean=0.533464160772
+CONVERGENCE_CPU_BATCH bounces=4 batch=51 method=nee mean=0.526904728998
+CONVERGENCE_CPU_BATCH bounces=4 batch=51 method=power mean=0.534350974242
+CONVERGENCE_CPU_BATCH bounces=4 batch=52 method=bsdf mean=0.548871624666
+CONVERGENCE_CPU_BATCH bounces=4 batch=52 method=nee mean=0.536039316775
+CONVERGENCE_CPU_BATCH bounces=4 batch=52 method=power mean=0.535523812364
+CONVERGENCE_CPU_BATCH bounces=4 batch=53 method=bsdf mean=0.530348991447
+CONVERGENCE_CPU_BATCH bounces=4 batch=53 method=nee mean=0.527294016764
+CONVERGENCE_CPU_BATCH bounces=4 batch=53 method=power mean=0.534805901998
+CONVERGENCE_CPU_BATCH bounces=4 batch=54 method=bsdf mean=0.536042639488
+CONVERGENCE_CPU_BATCH bounces=4 batch=54 method=nee mean=0.524895229999
+CONVERGENCE_CPU_BATCH bounces=4 batch=54 method=power mean=0.531672949481
+CONVERGENCE_CPU_BATCH bounces=4 batch=55 method=bsdf mean=0.524786232537
+CONVERGENCE_CPU_BATCH bounces=4 batch=55 method=nee mean=0.528833308676
+CONVERGENCE_CPU_BATCH bounces=4 batch=55 method=power mean=0.535017394165
+CONVERGENCE_CPU_BATCH bounces=4 batch=56 method=bsdf mean=0.542934990962
+CONVERGENCE_CPU_BATCH bounces=4 batch=56 method=nee mean=0.525834582339
+CONVERGENCE_CPU_BATCH bounces=4 batch=56 method=power mean=0.537730506432
+CONVERGENCE_CPU_BATCH bounces=4 batch=57 method=bsdf mean=0.537952663675
+CONVERGENCE_CPU_BATCH bounces=4 batch=57 method=nee mean=0.524810988623
+CONVERGENCE_CPU_BATCH bounces=4 batch=57 method=power mean=0.536939531586
+CONVERGENCE_CPU_BATCH bounces=4 batch=58 method=bsdf mean=0.524275112877
+CONVERGENCE_CPU_BATCH bounces=4 batch=58 method=nee mean=0.584499495567
+CONVERGENCE_CPU_BATCH bounces=4 batch=58 method=power mean=0.537241840153
+CONVERGENCE_CPU_BATCH bounces=4 batch=59 method=bsdf mean=0.55492390115
+CONVERGENCE_CPU_BATCH bounces=4 batch=59 method=nee mean=0.531333757559
+CONVERGENCE_CPU_BATCH bounces=4 batch=59 method=power mean=0.53907464623
+CONVERGENCE_CPU_BATCH bounces=4 batch=60 method=bsdf mean=0.540593058123
+CONVERGENCE_CPU_BATCH bounces=4 batch=60 method=nee mean=0.52692285143
+CONVERGENCE_CPU_BATCH bounces=4 batch=60 method=power mean=0.535450823999
+CONVERGENCE_CPU_BATCH bounces=4 batch=61 method=bsdf mean=0.536632281207
+CONVERGENCE_CPU_BATCH bounces=4 batch=61 method=nee mean=0.527892998849
+CONVERGENCE_CPU_BATCH bounces=4 batch=61 method=power mean=0.537984784125
+CONVERGENCE_CPU_BATCH bounces=4 batch=62 method=bsdf mean=0.530045569907
+CONVERGENCE_CPU_BATCH bounces=4 batch=62 method=nee mean=0.526175759641
+CONVERGENCE_CPU_BATCH bounces=4 batch=62 method=power mean=0.538239284477
+CONVERGENCE_CPU_BATCH bounces=4 batch=63 method=bsdf mean=0.538874821233
+CONVERGENCE_CPU_BATCH bounces=4 batch=63 method=nee mean=0.528436964962
+CONVERGENCE_CPU_BATCH bounces=4 batch=63 method=power mean=0.53672475663
+CONVERGENCE_CPU bounces=4 method=bsdf paths=2162688 mean=0.535307365 nominal_se=0.00110380883 max_path=8.39999986 tail_gt32_mean=0
+CONVERGENCE_CPU bounces=4 method=nee paths=2162688 mean=0.533978418 nominal_se=0.00213595464 max_path=3897.09583 tail_gt32_mean=0.00662025359
+CONVERGENCE_CPU bounces=4 method=power paths=2162688 mean=0.536126104 nominal_se=0.00024741284 max_path=12.3386739 tail_gt32_mean=0
+CONVERGENCE_GPU_BATCH bounces=4 batch=0 seed=3582163364 method=nee mean=0.521042967547 max_pixel=1.90388083
+CONVERGENCE_GPU_BATCH bounces=4 batch=0 seed=3582163364 method=power mean=0.530675244602 max_pixel=1.9394691
+CONVERGENCE_GPU_BATCH bounces=4 batch=1 seed=1739701850 method=nee mean=0.54113278188 max_pixel=4.95955753
+CONVERGENCE_GPU_BATCH bounces=4 batch=1 seed=1739701850 method=power mean=0.549676735201 max_pixel=3.14729357
+CONVERGENCE_GPU_BATCH bounces=4 batch=2 seed=3607337378 method=nee mean=0.523684874346 max_pixel=2.12708902
+CONVERGENCE_GPU_BATCH bounces=4 batch=2 seed=3607337378 method=power mean=0.525308543576 max_pixel=2.23985815
+CONVERGENCE_GPU_BATCH bounces=4 batch=3 seed=4090123983 method=nee mean=0.527893658673 max_pixel=1.98518014
+CONVERGENCE_GPU_BATCH bounces=4 batch=3 seed=4090123983 method=power mean=0.536846755173 max_pixel=2.66591859
+CONVERGENCE_GPU_BATCH bounces=4 batch=4 seed=3388370855 method=nee mean=0.522344485687 max_pixel=1.89306748
+CONVERGENCE_GPU_BATCH bounces=4 batch=4 seed=3388370855 method=power mean=0.524782708592 max_pixel=1.93962455
+CONVERGENCE_GPU_BATCH bounces=4 batch=5 seed=2824724162 method=nee mean=0.525906934625 max_pixel=2.08180094
+CONVERGENCE_GPU_BATCH bounces=4 batch=5 seed=2824724162 method=power mean=0.541946452637 max_pixel=2.55373383
+CONVERGENCE_GPU_BATCH bounces=4 batch=6 seed=1718814806 method=nee mean=0.526622903639 max_pixel=1.81965101
+CONVERGENCE_GPU_BATCH bounces=4 batch=6 seed=1718814806 method=power mean=0.546007907849 max_pixel=3.38817787
+CONVERGENCE_GPU_BATCH bounces=4 batch=7 seed=1584039703 method=nee mean=0.528483756744 max_pixel=1.84449708
+CONVERGENCE_GPU_BATCH bounces=4 batch=7 seed=1584039703 method=power mean=0.529921330115 max_pixel=1.85552621
+CONVERGENCE_GPU_BATCH bounces=4 batch=8 seed=2181290249 method=nee mean=0.536550764277 max_pixel=2.04619288
+CONVERGENCE_GPU_BATCH bounces=4 batch=8 seed=2181290249 method=power mean=0.539833062388 max_pixel=2.02370715
+CONVERGENCE_GPU_BATCH bounces=4 batch=9 seed=3461079943 method=nee mean=0.522219494698 max_pixel=2.07834458
+CONVERGENCE_GPU_BATCH bounces=4 batch=9 seed=3461079943 method=power mean=0.531904794136 max_pixel=1.99318039
+CONVERGENCE_GPU_BATCH bounces=4 batch=10 seed=3747306684 method=nee mean=0.515449973169 max_pixel=1.92107761
+CONVERGENCE_GPU_BATCH bounces=4 batch=10 seed=3747306684 method=power mean=0.524762165839 max_pixel=1.91744268
+CONVERGENCE_GPU_BATCH bounces=4 batch=11 seed=734257434 method=nee mean=0.52664665923 max_pixel=2.05953574
+CONVERGENCE_GPU_BATCH bounces=4 batch=11 seed=734257434 method=power mean=0.529566878531 max_pixel=2.06825495
+CONVERGENCE_GPU_BATCH bounces=4 batch=12 seed=3062410477 method=nee mean=0.536413907941 max_pixel=2.54134202
+CONVERGENCE_GPU_BATCH bounces=4 batch=12 seed=3062410477 method=power mean=0.539625388637 max_pixel=1.9430114
+CONVERGENCE_GPU_BATCH bounces=4 batch=13 seed=418804920 method=nee mean=0.531130721472 max_pixel=1.82647824
+CONVERGENCE_GPU_BATCH bounces=4 batch=13 seed=418804920 method=power mean=0.535454480803 max_pixel=1.80937338
+CONVERGENCE_GPU_BATCH bounces=4 batch=14 seed=1647315130 method=nee mean=0.520057620713 max_pixel=1.90416121
+CONVERGENCE_GPU_BATCH bounces=4 batch=14 seed=1647315130 method=power mean=0.531047761864 max_pixel=2.24908447
+CONVERGENCE_GPU_BATCH bounces=4 batch=15 seed=1043973739 method=nee mean=0.524415269593 max_pixel=2.03558302
+CONVERGENCE_GPU_BATCH bounces=4 batch=15 seed=1043973739 method=power mean=0.53474772355 max_pixel=1.95496774
+CONVERGENCE_GPU_BATCH bounces=4 batch=16 seed=343612557 method=nee mean=0.52821666258 max_pixel=1.95184588
+CONVERGENCE_GPU_BATCH bounces=4 batch=16 seed=343612557 method=power mean=0.539152729974 max_pixel=2.17116308
+CONVERGENCE_GPU_BATCH bounces=4 batch=17 seed=1701248322 method=nee mean=0.526142783463 max_pixel=2.14045262
+CONVERGENCE_GPU_BATCH bounces=4 batch=17 seed=1701248322 method=power mean=0.536303540674 max_pixel=2.32209229
+CONVERGENCE_GPU_BATCH bounces=4 batch=18 seed=3058215801 method=nee mean=0.524380232578 max_pixel=3.24627423
+CONVERGENCE_GPU_BATCH bounces=4 batch=18 seed=3058215801 method=power mean=0.526776139517 max_pixel=2.33099914
+CONVERGENCE_GPU_BATCH bounces=4 batch=19 seed=787922486 method=nee mean=0.531147895395 max_pixel=1.97697771
+CONVERGENCE_GPU_BATCH bounces=4 batch=19 seed=787922486 method=power mean=0.538157126411 max_pixel=1.91867685
+CONVERGENCE_GPU_BATCH bounces=4 batch=20 seed=880973741 method=nee mean=0.519513614945 max_pixel=1.74634874
+CONVERGENCE_GPU_BATCH bounces=4 batch=20 seed=880973741 method=power mean=0.532043364411 max_pixel=1.84704256
+CONVERGENCE_GPU_BATCH bounces=4 batch=21 seed=1323011534 method=nee mean=0.5229817626 max_pixel=2.1271472
+CONVERGENCE_GPU_BATCH bounces=4 batch=21 seed=1323011534 method=power mean=0.526679042582 max_pixel=2.02579379
+CONVERGENCE_GPU_BATCH bounces=4 batch=22 seed=3251306893 method=nee mean=0.524859445032 max_pixel=1.92421973
+CONVERGENCE_GPU_BATCH bounces=4 batch=22 seed=3251306893 method=power mean=0.533783351195 max_pixel=2.01701808
+CONVERGENCE_GPU_BATCH bounces=4 batch=23 seed=1609638412 method=nee mean=0.522492973176 max_pixel=2.15825176
+CONVERGENCE_GPU_BATCH bounces=4 batch=23 seed=1609638412 method=power mean=0.527419571617 max_pixel=2.12692189
+CONVERGENCE_GPU_BATCH bounces=4 batch=24 seed=951963426 method=nee mean=0.533868523745 max_pixel=2.54042935
+CONVERGENCE_GPU_BATCH bounces=4 batch=24 seed=951963426 method=power mean=0.537924978663 max_pixel=1.98610699
+CONVERGENCE_GPU_BATCH bounces=4 batch=25 seed=2113467747 method=nee mean=0.519996108329 max_pixel=1.99952269
+CONVERGENCE_GPU_BATCH bounces=4 batch=25 seed=2113467747 method=power mean=0.529450216613 max_pixel=2.43801284
+CONVERGENCE_GPU_BATCH bounces=4 batch=26 seed=3285152122 method=nee mean=0.532449318403 max_pixel=1.9329809
+CONVERGENCE_GPU_BATCH bounces=4 batch=26 seed=3285152122 method=power mean=0.544242770923 max_pixel=2.35176969
+CONVERGENCE_GPU_BATCH bounces=4 batch=27 seed=2625638339 method=nee mean=0.517578299778 max_pixel=1.9113946
+CONVERGENCE_GPU_BATCH bounces=4 batch=27 seed=2625638339 method=power mean=0.533561334617 max_pixel=2.53974438
+CONVERGENCE_GPU_BATCH bounces=4 batch=28 seed=1499036293 method=nee mean=0.525606713554 max_pixel=2.0068109
+CONVERGENCE_GPU_BATCH bounces=4 batch=28 seed=1499036293 method=power mean=0.533297901049 max_pixel=1.96515107
+CONVERGENCE_GPU_BATCH bounces=4 batch=29 seed=585492505 method=nee mean=0.531385782224 max_pixel=3.24273157
+CONVERGENCE_GPU_BATCH bounces=4 batch=29 seed=585492505 method=power mean=0.537940577427 max_pixel=2.44177985
+CONVERGENCE_GPU_BATCH bounces=4 batch=30 seed=2512225526 method=nee mean=0.528334647516 max_pixel=2.04022336
+CONVERGENCE_GPU_BATCH bounces=4 batch=30 seed=2512225526 method=power mean=0.536521022645 max_pixel=2.01289821
+CONVERGENCE_GPU_BATCH bounces=4 batch=31 seed=3235601508 method=nee mean=0.526036318016 max_pixel=2.13950682
+CONVERGENCE_GPU bounces=4 batches=32 method=nee mean=0.52640587 nominal_se=0.00101948708
+CONVERGENCE_GPU_BATCH bounces=4 batch=31 seed=3235601508 method=power mean=0.535643521042 max_pixel=2.07720399
+CONVERGENCE_GPU bounces=4 batches=32 method=power mean=0.53440641 nominal_se=0.00109936343
+CONVERGENCE_GPU_BATCH bounces=4 batch=32 seed=2399480617 method=nee mean=0.51899809881 max_pixel=2.08328223
+CONVERGENCE_GPU_BATCH bounces=4 batch=32 seed=2399480617 method=power mean=0.52805728816 max_pixel=2.05985975
+CONVERGENCE_GPU_BATCH bounces=4 batch=33 seed=424016829 method=nee mean=0.52960479705 max_pixel=1.94956672
+CONVERGENCE_GPU_BATCH bounces=4 batch=33 seed=424016829 method=power mean=0.540926408495 max_pixel=2.36916304
+CONVERGENCE_GPU_BATCH bounces=4 batch=34 seed=1583677385 method=nee mean=0.527473120112 max_pixel=1.94083309
+CONVERGENCE_GPU_BATCH bounces=4 batch=34 seed=1583677385 method=power mean=0.536127757117 max_pixel=1.85962486
+CONVERGENCE_GPU_BATCH bounces=4 batch=35 seed=2470617211 method=nee mean=0.527704985452 max_pixel=2.08553553
+CONVERGENCE_GPU_BATCH bounces=4 batch=35 seed=2470617211 method=power mean=0.533640962429 max_pixel=1.98675776
+CONVERGENCE_GPU_BATCH bounces=4 batch=36 seed=1671409605 method=nee mean=0.526960687239 max_pixel=1.98872399
+CONVERGENCE_GPU_BATCH bounces=4 batch=36 seed=1671409605 method=power mean=0.536328979958 max_pixel=1.93805146
+CONVERGENCE_GPU_BATCH bounces=4 batch=37 seed=360952936 method=nee mean=0.524968333084 max_pixel=2.0727191
+CONVERGENCE_GPU_BATCH bounces=4 batch=37 seed=360952936 method=power mean=0.533499350221 max_pixel=2.03688025
+CONVERGENCE_GPU_BATCH bounces=4 batch=38 seed=3068956129 method=nee mean=0.524816842337 max_pixel=1.74776089
+CONVERGENCE_GPU_BATCH bounces=4 batch=38 seed=3068956129 method=power mean=0.534358167153 max_pixel=1.81713092
+CONVERGENCE_GPU_BATCH bounces=4 batch=39 seed=2604601035 method=nee mean=0.539760682993 max_pixel=3.60289717
+CONVERGENCE_GPU_BATCH bounces=4 batch=39 seed=2604601035 method=power mean=0.541331595579 max_pixel=1.78483868
+CONVERGENCE_GPU_BATCH bounces=4 batch=40 seed=2653421640 method=nee mean=0.531842537951 max_pixel=2.02970147
+CONVERGENCE_GPU_BATCH bounces=4 batch=40 seed=2653421640 method=power mean=0.543693189601 max_pixel=1.98975444
+CONVERGENCE_GPU_BATCH bounces=4 batch=41 seed=3925102148 method=nee mean=0.533561563701 max_pixel=2.72911191
+CONVERGENCE_GPU_BATCH bounces=4 batch=41 seed=3925102148 method=power mean=0.54387646021 max_pixel=3.44416475
+CONVERGENCE_GPU_BATCH bounces=4 batch=42 seed=1892506787 method=nee mean=0.525361699035 max_pixel=2.10316324
+CONVERGENCE_GPU_BATCH bounces=4 batch=42 seed=1892506787 method=power mean=0.529635423727 max_pixel=2.06257796
+CONVERGENCE_GPU_BATCH bounces=4 batch=43 seed=1900900502 method=nee mean=0.669097526715 max_pixel=80.4182892
+CONVERGENCE_GPU_BATCH bounces=4 batch=43 seed=1900900502 method=power mean=0.529144217684 max_pixel=2.0201335
+CONVERGENCE_GPU_BATCH bounces=4 batch=44 seed=4146765687 method=nee mean=0.52690577621 max_pixel=1.90574443
+CONVERGENCE_GPU_BATCH bounces=4 batch=44 seed=4146765687 method=power mean=0.53312542691 max_pixel=1.91126859
+CONVERGENCE_GPU_BATCH bounces=4 batch=45 seed=2038927605 method=nee mean=0.529289207065 max_pixel=1.93748832
+CONVERGENCE_GPU_BATCH bounces=4 batch=45 seed=2038927605 method=power mean=0.540064160821 max_pixel=1.9158895
+CONVERGENCE_GPU_BATCH bounces=4 batch=46 seed=2693716815 method=nee mean=0.536243270553 max_pixel=2.18549895
+CONVERGENCE_GPU_BATCH bounces=4 batch=46 seed=2693716815 method=power mean=0.549014100043 max_pixel=3.34783483
+CONVERGENCE_GPU_BATCH bounces=4 batch=47 seed=770495302 method=nee mean=0.523719602818 max_pixel=1.98342931
+CONVERGENCE_GPU_BATCH bounces=4 batch=47 seed=770495302 method=power mean=0.530892260891 max_pixel=1.95480907
+CONVERGENCE_GPU_BATCH bounces=4 batch=48 seed=709100058 method=nee mean=0.532698720133 max_pixel=2.4293375
+CONVERGENCE_GPU_BATCH bounces=4 batch=48 seed=709100058 method=power mean=0.537134615546 max_pixel=2.72458696
+CONVERGENCE_GPU_BATCH bounces=4 batch=49 seed=2771915642 method=nee mean=0.518696453521 max_pixel=1.95136523
+CONVERGENCE_GPU_BATCH bounces=4 batch=49 seed=2771915642 method=power mean=0.524707012274 max_pixel=1.97022367
+CONVERGENCE_GPU_BATCH bounces=4 batch=50 seed=3928922396 method=nee mean=0.524112396778 max_pixel=2.03006196
+CONVERGENCE_GPU_BATCH bounces=4 batch=50 seed=3928922396 method=power mean=0.528848595787 max_pixel=2.75453329
+CONVERGENCE_GPU_BATCH bounces=4 batch=51 seed=2034863204 method=nee mean=0.527653926659 max_pixel=1.98884511
+CONVERGENCE_GPU_BATCH bounces=4 batch=51 seed=2034863204 method=power mean=0.529380438853 max_pixel=1.90502405
+CONVERGENCE_GPU_BATCH bounces=4 batch=52 seed=3429226660 method=nee mean=0.544407511546 max_pixel=10.3958216
+CONVERGENCE_GPU_BATCH bounces=4 batch=52 seed=3429226660 method=power mean=0.529949567288 max_pixel=1.95005417
+CONVERGENCE_GPU_BATCH bounces=4 batch=53 seed=3494347550 method=nee mean=0.529387802245 max_pixel=1.92081237
+CONVERGENCE_GPU_BATCH bounces=4 batch=53 seed=3494347550 method=power mean=0.547024304174 max_pixel=2.9042201
+CONVERGENCE_GPU_BATCH bounces=4 batch=54 seed=3419241882 method=nee mean=0.563520255477 max_pixel=13.5074997
+CONVERGENCE_GPU_BATCH bounces=4 batch=54 seed=3419241882 method=power mean=0.536505565199 max_pixel=2.02706361
+CONVERGENCE_GPU_BATCH bounces=4 batch=55 seed=2459613129 method=nee mean=0.536615999087 max_pixel=4.83708143
+CONVERGENCE_GPU_BATCH bounces=4 batch=55 seed=2459613129 method=power mean=0.538726211956 max_pixel=2.18269253
+CONVERGENCE_GPU_BATCH bounces=4 batch=56 seed=1840322459 method=nee mean=0.528278825282 max_pixel=1.88501823
+CONVERGENCE_GPU_BATCH bounces=4 batch=56 seed=1840322459 method=power mean=0.53970923007 max_pixel=2.45210195
+CONVERGENCE_GPU_BATCH bounces=4 batch=57 seed=3781358805 method=nee mean=0.881044196815 max_pixel=186.31102
+CONVERGENCE_GPU_BATCH bounces=4 batch=57 seed=3781358805 method=power mean=0.54026252873 max_pixel=2.35312438
+CONVERGENCE_GPU_BATCH bounces=4 batch=58 seed=90069654 method=nee mean=0.529037232313 max_pixel=2.0401566
+CONVERGENCE_GPU_BATCH bounces=4 batch=58 seed=90069654 method=power mean=0.536322545112 max_pixel=1.95472586
+CONVERGENCE_GPU_BATCH bounces=4 batch=59 seed=3704910909 method=nee mean=0.52417257401 max_pixel=2.0731647
+CONVERGENCE_GPU_BATCH bounces=4 batch=59 seed=3704910909 method=power mean=0.526860966485 max_pixel=2.04650068
+CONVERGENCE_GPU_BATCH bounces=4 batch=60 seed=528598170 method=nee mean=0.527488549984 max_pixel=1.92177045
+CONVERGENCE_GPU_BATCH bounces=4 batch=60 seed=528598170 method=power mean=0.544086188466 max_pixel=1.84541965
+CONVERGENCE_GPU_BATCH bounces=4 batch=61 seed=2037285516 method=nee mean=0.529660766362 max_pixel=2.07781315
+CONVERGENCE_GPU_BATCH bounces=4 batch=61 seed=2037285516 method=power mean=0.54540196911 max_pixel=3.35862136
+CONVERGENCE_GPU_BATCH bounces=4 batch=62 seed=2686295379 method=nee mean=0.537906633789 max_pixel=3.21243858
+CONVERGENCE_GPU_BATCH bounces=4 batch=62 seed=2686295379 method=power mean=0.544856309411 max_pixel=1.85640657
+CONVERGENCE_GPU_BATCH bounces=4 batch=63 seed=3333199115 method=nee mean=0.530764602566 max_pixel=2.06085205
+CONVERGENCE_GPU bounces=4 batches=64 method=nee mean=0.53604286 nominal_se=0.00597118331
+CONVERGENCE_GPU_BATCH bounces=4 batch=63 seed=3333199115 method=power mean=0.540687699481 max_pixel=1.98924828
+CONVERGENCE_GPU bounces=4 batches=64 method=power mean=0.53554976 nominal_se=0.000800850427
+CONVERGENCE_GPU_BATCH bounces=4 batch=64 seed=2292105124 method=nee mean=0.52747969018 max_pixel=1.93499398
+CONVERGENCE_GPU_BATCH bounces=4 batch=64 seed=2292105124 method=power mean=0.538964160425 max_pixel=2.00129342
+CONVERGENCE_GPU_BATCH bounces=4 batch=65 seed=1081028721 method=nee mean=0.529950819165 max_pixel=1.91546059
+CONVERGENCE_GPU_BATCH bounces=4 batch=65 seed=1081028721 method=power mean=0.542337189788 max_pixel=2.06311178
+CONVERGENCE_GPU_BATCH bounces=4 batch=66 seed=1439753986 method=nee mean=0.531086047709 max_pixel=2.0195179
+CONVERGENCE_GPU_BATCH bounces=4 batch=66 seed=1439753986 method=power mean=0.539523654561 max_pixel=2.01688433
+CONVERGENCE_GPU_BATCH bounces=4 batch=67 seed=1431540267 method=nee mean=0.529056760754 max_pixel=2.0868628
+CONVERGENCE_GPU_BATCH bounces=4 batch=67 seed=1431540267 method=power mean=0.537251229349 max_pixel=2.03659248
+CONVERGENCE_GPU_BATCH bounces=4 batch=68 seed=603822678 method=nee mean=0.524291334915 max_pixel=1.99347532
+CONVERGENCE_GPU_BATCH bounces=4 batch=68 seed=603822678 method=power mean=0.5341505734 max_pixel=2.4194622
+CONVERGENCE_GPU_BATCH bounces=4 batch=69 seed=3076261901 method=nee mean=0.52529129471 max_pixel=2.16549754
+CONVERGENCE_GPU_BATCH bounces=4 batch=69 seed=3076261901 method=power mean=0.534121825734 max_pixel=2.08330369
+CONVERGENCE_GPU_BATCH bounces=4 batch=70 seed=1908733137 method=nee mean=0.541717795966 max_pixel=5.19089508
+CONVERGENCE_GPU_BATCH bounces=4 batch=70 seed=1908733137 method=power mean=0.546737869485 max_pixel=1.93909132
+CONVERGENCE_GPU_BATCH bounces=4 batch=71 seed=4014558695 method=nee mean=0.526553993131 max_pixel=2.00287294
+CONVERGENCE_GPU_BATCH bounces=4 batch=71 seed=4014558695 method=power mean=0.536382494325 max_pixel=1.97319138
+CONVERGENCE_GPU_BATCH bounces=4 batch=72 seed=193865030 method=nee mean=0.519835676426 max_pixel=1.90753353
+CONVERGENCE_GPU_BATCH bounces=4 batch=72 seed=193865030 method=power mean=0.536845959603 max_pixel=3.60398841
+CONVERGENCE_GPU_BATCH bounces=4 batch=73 seed=500547065 method=nee mean=0.522503203529 max_pixel=2.05202198
+CONVERGENCE_GPU_BATCH bounces=4 batch=73 seed=500547065 method=power mean=0.528882015701 max_pixel=1.99151444
+CONVERGENCE_GPU_BATCH bounces=4 batch=74 seed=238831988 method=nee mean=0.525558445285 max_pixel=2.12035513
+CONVERGENCE_GPU_BATCH bounces=4 batch=74 seed=238831988 method=power mean=0.530582217397 max_pixel=2.08741379
+CONVERGENCE_GPU_BATCH bounces=4 batch=75 seed=3340434854 method=nee mean=0.532693466912 max_pixel=1.94609559
+CONVERGENCE_GPU_BATCH bounces=4 batch=75 seed=3340434854 method=power mean=0.54307672078 max_pixel=1.94235265
+CONVERGENCE_GPU_BATCH bounces=4 batch=76 seed=3382463286 method=nee mean=0.525507110884 max_pixel=2.00049543
+CONVERGENCE_GPU_BATCH bounces=4 batch=76 seed=3382463286 method=power mean=0.536660480221 max_pixel=1.95368671
+CONVERGENCE_GPU_BATCH bounces=4 batch=77 seed=522556235 method=nee mean=0.52233286798 max_pixel=1.96378386
+CONVERGENCE_GPU_BATCH bounces=4 batch=77 seed=522556235 method=power mean=0.536183260859 max_pixel=2.5579524
+CONVERGENCE_GPU_BATCH bounces=4 batch=78 seed=1123053581 method=nee mean=0.537553829861 max_pixel=2.05112648
+CONVERGENCE_GPU_BATCH bounces=4 batch=78 seed=1123053581 method=power mean=0.546758531769 max_pixel=1.96877384
+CONVERGENCE_GPU_BATCH bounces=4 batch=79 seed=2286259166 method=nee mean=0.523917324083 max_pixel=1.96484566
+CONVERGENCE_GPU_BATCH bounces=4 batch=79 seed=2286259166 method=power mean=0.540608980016 max_pixel=2.01555824
+CONVERGENCE_GPU_BATCH bounces=4 batch=80 seed=4345410 method=nee mean=0.527524172533 max_pixel=1.95458174
+CONVERGENCE_GPU_BATCH bounces=4 batch=80 seed=4345410 method=power mean=0.534806298501 max_pixel=1.98871779
+CONVERGENCE_GPU_BATCH bounces=4 batch=81 seed=3221865896 method=nee mean=0.521660203347 max_pixel=1.90970397
+CONVERGENCE_GPU_BATCH bounces=4 batch=81 seed=3221865896 method=power mean=0.531610884675 max_pixel=1.97551084
+CONVERGENCE_GPU_BATCH bounces=4 batch=82 seed=2307000390 method=nee mean=0.549096192791 max_pixel=6.95918465
+CONVERGENCE_GPU_BATCH bounces=4 batch=82 seed=2307000390 method=power mean=0.539188654924 max_pixel=1.88903201
+CONVERGENCE_GPU_BATCH bounces=4 batch=83 seed=1646617863 method=nee mean=0.525428560375 max_pixel=1.99291158
+CONVERGENCE_GPU_BATCH bounces=4 batch=83 seed=1646617863 method=power mean=0.537272366 max_pixel=2.00520062
+CONVERGENCE_GPU_BATCH bounces=4 batch=84 seed=307366328 method=nee mean=0.534592595643 max_pixel=2.93590522
+CONVERGENCE_GPU_BATCH bounces=4 batch=84 seed=307366328 method=power mean=0.540009722752 max_pixel=1.87597418
+CONVERGENCE_GPU_BATCH bounces=4 batch=85 seed=1272248719 method=nee mean=0.534264735856 max_pixel=5.29200745
+CONVERGENCE_GPU_BATCH bounces=4 batch=85 seed=1272248719 method=power mean=0.533415605011 max_pixel=1.90581179
+CONVERGENCE_GPU_BATCH bounces=4 batch=86 seed=2850208221 method=nee mean=0.543364243271 max_pixel=5.42973566
+CONVERGENCE_GPU_BATCH bounces=4 batch=86 seed=2850208221 method=power mean=0.547375363199 max_pixel=1.89270318
+CONVERGENCE_GPU_BATCH bounces=4 batch=87 seed=1615516396 method=nee mean=0.518365888264 max_pixel=2.04468203
+CONVERGENCE_GPU_BATCH bounces=4 batch=87 seed=1615516396 method=power mean=0.53078063049 max_pixel=2.05077553
+CONVERGENCE_GPU_BATCH bounces=4 batch=88 seed=3052190057 method=nee mean=0.51987743886 max_pixel=1.85874772
+CONVERGENCE_GPU_BATCH bounces=4 batch=88 seed=3052190057 method=power mean=0.532328458207 max_pixel=1.8798157
+CONVERGENCE_GPU_BATCH bounces=4 batch=89 seed=36278693 method=nee mean=0.521130509117 max_pixel=2.06750774
+CONVERGENCE_GPU_BATCH bounces=4 batch=89 seed=36278693 method=power mean=0.529808753396 max_pixel=2.05850339
+CONVERGENCE_GPU_BATCH bounces=4 batch=90 seed=629261986 method=nee mean=0.523893890031 max_pixel=1.83169675
+CONVERGENCE_GPU_BATCH bounces=4 batch=90 seed=629261986 method=power mean=0.542280655718 max_pixel=3.45346475
+CONVERGENCE_GPU_BATCH bounces=4 batch=91 seed=2642566100 method=nee mean=0.508707201934 max_pixel=1.8319006
+CONVERGENCE_GPU_BATCH bounces=4 batch=91 seed=2642566100 method=power mean=0.523084135394 max_pixel=1.91558671
+CONVERGENCE_GPU_BATCH bounces=4 batch=92 seed=356830430 method=nee mean=0.521048147182 max_pixel=1.90159547
+CONVERGENCE_GPU_BATCH bounces=4 batch=92 seed=356830430 method=power mean=0.533889777606 max_pixel=1.96560013
+CONVERGENCE_GPU_BATCH bounces=4 batch=93 seed=4067436464 method=nee mean=0.529000304544 max_pixel=2.1368711
+CONVERGENCE_GPU_BATCH bounces=4 batch=93 seed=4067436464 method=power mean=0.53065246946 max_pixel=2.06264114
+CONVERGENCE_GPU_BATCH bounces=4 batch=94 seed=927983841 method=nee mean=0.52734929368 max_pixel=3.3582108
+CONVERGENCE_GPU_BATCH bounces=4 batch=94 seed=927983841 method=power mean=0.539138481409 max_pixel=2.13180995
+CONVERGENCE_GPU_BATCH bounces=4 batch=95 seed=1873792945 method=nee mean=0.52373520287 max_pixel=2.10874391
+CONVERGENCE_GPU_BATCH bounces=4 batch=95 seed=1873792945 method=power mean=0.529341136084 max_pixel=2.02588081
+CONVERGENCE_GPU_BATCH bounces=4 batch=96 seed=4189331883 method=nee mean=0.543891146529 max_pixel=3.53907442
+CONVERGENCE_GPU_BATCH bounces=4 batch=96 seed=4189331883 method=power mean=0.539596034863 max_pixel=1.94985533
+CONVERGENCE_GPU_BATCH bounces=4 batch=97 seed=3027048853 method=nee mean=0.531130248575 max_pixel=3.26130724
+CONVERGENCE_GPU_BATCH bounces=4 batch=97 seed=3027048853 method=power mean=0.539691791909 max_pixel=1.99150872
+CONVERGENCE_GPU_BATCH bounces=4 batch=98 seed=3673337435 method=nee mean=0.541689664912 max_pixel=3.50532126
+CONVERGENCE_GPU_BATCH bounces=4 batch=98 seed=3673337435 method=power mean=0.547198278127 max_pixel=1.82252979
+CONVERGENCE_GPU_BATCH bounces=4 batch=99 seed=3340025453 method=nee mean=0.524026763199 max_pixel=1.99935091
+CONVERGENCE_GPU_BATCH bounces=4 batch=99 seed=3340025453 method=power mean=0.53415336275 max_pixel=2.0164721
+CONVERGENCE_GPU_BATCH bounces=4 batch=100 seed=1247956555 method=nee mean=0.520899732834 max_pixel=2.19311333
+CONVERGENCE_GPU_BATCH bounces=4 batch=100 seed=1247956555 method=power mean=0.530813467033 max_pixel=2.18588376
+CONVERGENCE_GPU_BATCH bounces=4 batch=101 seed=2602132481 method=nee mean=0.528876210894 max_pixel=2.03772116
+CONVERGENCE_GPU_BATCH bounces=4 batch=101 seed=2602132481 method=power mean=0.538840921772 max_pixel=1.96363306
+CONVERGENCE_GPU_BATCH bounces=4 batch=102 seed=1494071629 method=nee mean=0.524640476479 max_pixel=1.96352553
+CONVERGENCE_GPU_BATCH bounces=4 batch=102 seed=1494071629 method=power mean=0.53765741874 max_pixel=2.40556598
+CONVERGENCE_GPU_BATCH bounces=4 batch=103 seed=2968271244 method=nee mean=0.528454097468 max_pixel=1.88404059
+CONVERGENCE_GPU_BATCH bounces=4 batch=103 seed=2968271244 method=power mean=0.536128862987 max_pixel=1.89016378
+CONVERGENCE_GPU_BATCH bounces=4 batch=104 seed=2473130044 method=nee mean=0.528071896618 max_pixel=2.1049614
+CONVERGENCE_GPU_BATCH bounces=4 batch=104 seed=2473130044 method=power mean=0.539232292759 max_pixel=2.08942938
+CONVERGENCE_GPU_BATCH bounces=4 batch=105 seed=342796434 method=nee mean=0.522349977136 max_pixel=2.08382463
+CONVERGENCE_GPU_BATCH bounces=4 batch=105 seed=342796434 method=power mean=0.529450171126 max_pixel=1.99203789
+CONVERGENCE_GPU_BATCH bounces=4 batch=106 seed=3882564805 method=nee mean=0.524868122847 max_pixel=1.86689091
+CONVERGENCE_GPU_BATCH bounces=4 batch=106 seed=3882564805 method=power mean=0.532345473022 max_pixel=1.97043538
+CONVERGENCE_GPU_BATCH bounces=4 batch=107 seed=2483083837 method=nee mean=0.528016121374 max_pixel=2.02861285
+CONVERGENCE_GPU_BATCH bounces=4 batch=107 seed=2483083837 method=power mean=0.537200793617 max_pixel=2.01822233
+CONVERGENCE_GPU_BATCH bounces=4 batch=108 seed=3377502186 method=nee mean=0.521433785 max_pixel=1.95777786
+CONVERGENCE_GPU_BATCH bounces=4 batch=108 seed=3377502186 method=power mean=0.527179818572 max_pixel=1.95287216
+CONVERGENCE_GPU_BATCH bounces=4 batch=109 seed=1024041940 method=nee mean=0.537633899275 max_pixel=2.19669771
+CONVERGENCE_GPU_BATCH bounces=4 batch=109 seed=1024041940 method=power mean=0.549470797813 max_pixel=2.11820865
+CONVERGENCE_GPU_BATCH bounces=4 batch=110 seed=935683468 method=nee mean=0.543655635112 max_pixel=4.53963614
+CONVERGENCE_GPU_BATCH bounces=4 batch=110 seed=935683468 method=power mean=0.542528110486 max_pixel=1.97923946
+CONVERGENCE_GPU_BATCH bounces=4 batch=111 seed=3350017828 method=nee mean=0.529012025835 max_pixel=1.81906259
+CONVERGENCE_GPU_BATCH bounces=4 batch=111 seed=3350017828 method=power mean=0.538503604719 max_pixel=2.2766099
+CONVERGENCE_GPU_BATCH bounces=4 batch=112 seed=1892105353 method=nee mean=0.520242987864 max_pixel=1.9335382
+CONVERGENCE_GPU_BATCH bounces=4 batch=112 seed=1892105353 method=power mean=0.535662570009 max_pixel=2.0789721
+CONVERGENCE_GPU_BATCH bounces=4 batch=113 seed=3466261025 method=nee mean=0.528781373766 max_pixel=1.93452287
+CONVERGENCE_GPU_BATCH bounces=4 batch=113 seed=3466261025 method=power mean=0.549009082514 max_pixel=3.37287617
+CONVERGENCE_GPU_BATCH bounces=4 batch=114 seed=2414710509 method=nee mean=0.524774125594 max_pixel=2.07247305
+CONVERGENCE_GPU_BATCH bounces=4 batch=114 seed=2414710509 method=power mean=0.538086093595 max_pixel=2.26746345
+CONVERGENCE_GPU_BATCH bounces=4 batch=115 seed=1771058211 method=nee mean=0.528146321367 max_pixel=3.25286961
+CONVERGENCE_GPU_BATCH bounces=4 batch=115 seed=1771058211 method=power mean=0.53102530955 max_pixel=2.13902688
+CONVERGENCE_GPU_BATCH bounces=4 batch=116 seed=445953400 method=nee mean=0.523934515976 max_pixel=1.91466212
+CONVERGENCE_GPU_BATCH bounces=4 batch=116 seed=445953400 method=power mean=0.528417459957 max_pixel=2.18820238
+CONVERGENCE_GPU_BATCH bounces=4 batch=117 seed=2771966617 method=nee mean=0.543550733876 max_pixel=5.76079035
+CONVERGENCE_GPU_BATCH bounces=4 batch=117 seed=2771966617 method=power mean=0.543951243508 max_pixel=2.65303731
+CONVERGENCE_GPU_BATCH bounces=4 batch=118 seed=442921400 method=nee mean=0.521887155535 max_pixel=2.02779365
+CONVERGENCE_GPU_BATCH bounces=4 batch=118 seed=442921400 method=power mean=0.527329144001 max_pixel=2.05734825
+CONVERGENCE_GPU_BATCH bounces=4 batch=119 seed=1671013994 method=nee mean=0.526109299164 max_pixel=1.84352803
+CONVERGENCE_GPU_BATCH bounces=4 batch=119 seed=1671013994 method=power mean=0.538955252914 max_pixel=1.82447326
+CONVERGENCE_GPU_BATCH bounces=4 batch=120 seed=3083887238 method=nee mean=0.527164793203 max_pixel=2.04980564
+CONVERGENCE_GPU_BATCH bounces=4 batch=120 seed=3083887238 method=power mean=0.537542312133 max_pixel=2.07688427
+CONVERGENCE_GPU_BATCH bounces=4 batch=121 seed=4283925707 method=nee mean=0.531220843906 max_pixel=2.00131392
+CONVERGENCE_GPU_BATCH bounces=4 batch=121 seed=4283925707 method=power mean=0.535891148336 max_pixel=1.95909083
+CONVERGENCE_GPU_BATCH bounces=4 batch=122 seed=1330063655 method=nee mean=0.531255505806 max_pixel=1.94721127
+CONVERGENCE_GPU_BATCH bounces=4 batch=122 seed=1330063655 method=power mean=0.539955706872 max_pixel=1.928877
+CONVERGENCE_GPU_BATCH bounces=4 batch=123 seed=1986353047 method=nee mean=0.53241363069 max_pixel=1.99626839
+CONVERGENCE_GPU_BATCH bounces=4 batch=123 seed=1986353047 method=power mean=0.540820722066 max_pixel=2.50964975
+CONVERGENCE_GPU_BATCH bounces=4 batch=124 seed=1095000171 method=nee mean=0.521346992443 max_pixel=2.28740692
+CONVERGENCE_GPU_BATCH bounces=4 batch=124 seed=1095000171 method=power mean=0.536063661344 max_pixel=2.26210332
+CONVERGENCE_GPU_BATCH bounces=4 batch=125 seed=2333457263 method=nee mean=0.530369007544 max_pixel=1.87243152
+CONVERGENCE_GPU_BATCH bounces=4 batch=125 seed=2333457263 method=power mean=0.544006064368 max_pixel=1.86489797
+CONVERGENCE_GPU_BATCH bounces=4 batch=126 seed=129228518 method=nee mean=0.528580635042 max_pixel=1.89021444
+CONVERGENCE_GPU_BATCH bounces=4 batch=126 seed=129228518 method=power mean=0.538894127603 max_pixel=1.80399871
+CONVERGENCE_GPU_BATCH bounces=4 batch=127 seed=3603992922 method=nee mean=0.528649371251 max_pixel=1.97098887
+CONVERGENCE_GPU bounces=4 batches=128 method=nee mean=0.532095222 nominal_se=0.00302893432
+CONVERGENCE_GPU_BATCH bounces=4 batch=127 seed=3603992922 method=power mean=0.539075196216 max_pixel=2.48798275
+CONVERGENCE_GPU bounces=4 batches=128 method=power mean=0.536280558 nominal_se=0.000537436187
+CONVERGENCE_GPU_BATCH bounces=4 batch=128 seed=496124890 method=nee mean=0.532524871795 max_pixel=2.11638069
+CONVERGENCE_GPU_BATCH bounces=4 batch=128 seed=496124890 method=power mean=0.538777379009 max_pixel=2.54003572
+CONVERGENCE_GPU_BATCH bounces=4 batch=129 seed=4147147091 method=nee mean=0.53354094961 max_pixel=2.08456731
+CONVERGENCE_GPU_BATCH bounces=4 batch=129 seed=4147147091 method=power mean=0.540959975687 max_pixel=2.07347798
+CONVERGENCE_GPU_BATCH bounces=4 batch=130 seed=3183647601 method=nee mean=0.565686416699 max_pixel=22.0647259
+CONVERGENCE_GPU_BATCH bounces=4 batch=130 seed=3183647601 method=power mean=0.53524734041 max_pixel=2.45365524
+CONVERGENCE_GPU_BATCH bounces=4 batch=131 seed=1199975894 method=nee mean=0.527011406661 max_pixel=2.06927156
+CONVERGENCE_GPU_BATCH bounces=4 batch=131 seed=1199975894 method=power mean=0.537939658854 max_pixel=2.02229691
+CONVERGENCE_GPU_BATCH bounces=4 batch=132 seed=1970190420 method=nee mean=0.525629448973 max_pixel=2.59162211
+CONVERGENCE_GPU_BATCH bounces=4 batch=132 seed=1970190420 method=power mean=0.535068363928 max_pixel=2.17067552
+CONVERGENCE_GPU_BATCH bounces=4 batch=133 seed=2809787484 method=nee mean=0.523535999995 max_pixel=1.809322
+CONVERGENCE_GPU_BATCH bounces=4 batch=133 seed=2809787484 method=power mean=0.536194254217 max_pixel=1.796386
+CONVERGENCE_GPU_BATCH bounces=4 batch=134 seed=3122846327 method=nee mean=0.524765169276 max_pixel=2.08025384
+CONVERGENCE_GPU_BATCH bounces=4 batch=134 seed=3122846327 method=power mean=0.532666708727 max_pixel=2.49495888
+CONVERGENCE_GPU_BATCH bounces=4 batch=135 seed=3924814232 method=nee mean=0.537483881023 max_pixel=2.06762338
+CONVERGENCE_GPU_BATCH bounces=4 batch=135 seed=3924814232 method=power mean=0.548025793255 max_pixel=2.00493407
+CONVERGENCE_GPU_BATCH bounces=4 batch=136 seed=1897587115 method=nee mean=0.572097473453 max_pixel=24.7705822
+CONVERGENCE_GPU_BATCH bounces=4 batch=136 seed=1897587115 method=power mean=0.543745724029 max_pixel=2.56236196
+CONVERGENCE_GPU_BATCH bounces=4 batch=137 seed=2773878118 method=nee mean=0.52510891563 max_pixel=1.79931378
+CONVERGENCE_GPU_BATCH bounces=4 batch=137 seed=2773878118 method=power mean=0.537490042981 max_pixel=3.02311087
+CONVERGENCE_GPU_BATCH bounces=4 batch=138 seed=3512208269 method=nee mean=0.520158261054 max_pixel=1.89794481
+CONVERGENCE_GPU_BATCH bounces=4 batch=138 seed=3512208269 method=power mean=0.531458193288 max_pixel=1.89782238
+CONVERGENCE_GPU_BATCH bounces=4 batch=139 seed=4193185480 method=nee mean=0.5380756164 max_pixel=4.24965
+CONVERGENCE_GPU_BATCH bounces=4 batch=139 seed=4193185480 method=power mean=0.539644852873 max_pixel=1.92564821
+CONVERGENCE_GPU_BATCH bounces=4 batch=140 seed=3279616354 method=nee mean=0.517794988679 max_pixel=2.14897203
+CONVERGENCE_GPU_BATCH bounces=4 batch=140 seed=3279616354 method=power mean=0.528922299209 max_pixel=2.08959317
+CONVERGENCE_GPU_BATCH bounces=4 batch=141 seed=4171167151 method=nee mean=0.52326958321 max_pixel=1.98216629
+CONVERGENCE_GPU_BATCH bounces=4 batch=141 seed=4171167151 method=power mean=0.526727714876 max_pixel=1.99376583
+CONVERGENCE_GPU_BATCH bounces=4 batch=142 seed=691071470 method=nee mean=0.52492183322 max_pixel=2.04239058
+CONVERGENCE_GPU_BATCH bounces=4 batch=142 seed=691071470 method=power mean=0.538446285448 max_pixel=2.31772137
+CONVERGENCE_GPU_BATCH bounces=4 batch=143 seed=3476426547 method=nee mean=0.522352985835 max_pixel=2.12028217
+CONVERGENCE_GPU_BATCH bounces=4 batch=143 seed=3476426547 method=power mean=0.527108319075 max_pixel=2.12591243
+CONVERGENCE_GPU_BATCH bounces=4 batch=144 seed=4049845815 method=nee mean=0.521923927209 max_pixel=2.16642237
+CONVERGENCE_GPU_BATCH bounces=4 batch=144 seed=4049845815 method=power mean=0.529779109017 max_pixel=2.06934094
+CONVERGENCE_GPU_BATCH bounces=4 batch=145 seed=814954121 method=nee mean=0.525554577289 max_pixel=1.93097162
+CONVERGENCE_GPU_BATCH bounces=4 batch=145 seed=814954121 method=power mean=0.530709927676 max_pixel=1.90381455
+CONVERGENCE_GPU_BATCH bounces=4 batch=146 seed=907284985 method=nee mean=0.552265260728 max_pixel=10.7561522
+CONVERGENCE_GPU_BATCH bounces=4 batch=146 seed=907284985 method=power mean=0.54253070871 max_pixel=1.98967946
+CONVERGENCE_GPU_BATCH bounces=4 batch=147 seed=1968065246 method=nee mean=0.536203255965 max_pixel=4.26197052
+CONVERGENCE_GPU_BATCH bounces=4 batch=147 seed=1968065246 method=power mean=0.54318480533 max_pixel=2.0765574
+CONVERGENCE_GPU_BATCH bounces=4 batch=148 seed=1371733300 method=nee mean=0.53941768593 max_pixel=1.95446968
+CONVERGENCE_GPU_BATCH bounces=4 batch=148 seed=1371733300 method=power mean=0.547944365239 max_pixel=1.92777395
+CONVERGENCE_GPU_BATCH bounces=4 batch=149 seed=3574918632 method=nee mean=0.515521802197 max_pixel=1.92937815
+CONVERGENCE_GPU_BATCH bounces=4 batch=149 seed=3574918632 method=power mean=0.521005122153 max_pixel=2.26502109
+CONVERGENCE_GPU_BATCH bounces=4 batch=150 seed=4201699442 method=nee mean=0.529877071537 max_pixel=2.0731144
+CONVERGENCE_GPU_BATCH bounces=4 batch=150 seed=4201699442 method=power mean=0.533757973886 max_pixel=1.97618949
+CONVERGENCE_GPU_BATCH bounces=4 batch=151 seed=1824677913 method=nee mean=0.530340548566 max_pixel=2.02384973
+CONVERGENCE_GPU_BATCH bounces=4 batch=151 seed=1824677913 method=power mean=0.537148662987 max_pixel=1.99960566
+CONVERGENCE_GPU_BATCH bounces=4 batch=152 seed=469697949 method=nee mean=0.533391522984 max_pixel=8.16928673
+CONVERGENCE_GPU_BATCH bounces=4 batch=152 seed=469697949 method=power mean=0.52761779249 max_pixel=2.02835846
+CONVERGENCE_GPU_BATCH bounces=4 batch=153 seed=2032253712 method=nee mean=0.536252313555 max_pixel=1.99306345
+CONVERGENCE_GPU_BATCH bounces=4 batch=153 seed=2032253712 method=power mean=0.545300366696 max_pixel=2.01684237
+CONVERGENCE_GPU_BATCH bounces=4 batch=154 seed=2448582947 method=nee mean=0.523460956356 max_pixel=2.02388644
+CONVERGENCE_GPU_BATCH bounces=4 batch=154 seed=2448582947 method=power mean=0.537983063935 max_pixel=3.2947197
+CONVERGENCE_GPU_BATCH bounces=4 batch=155 seed=2752518705 method=nee mean=0.530582518698 max_pixel=1.83844078
+CONVERGENCE_GPU_BATCH bounces=4 batch=155 seed=2752518705 method=power mean=0.542235613857 max_pixel=1.80421925
+CONVERGENCE_GPU_BATCH bounces=4 batch=156 seed=2920485710 method=nee mean=0.52910621151 max_pixel=3.51728868
+CONVERGENCE_GPU_BATCH bounces=4 batch=156 seed=2920485710 method=power mean=0.537723241247 max_pixel=1.99437165
+CONVERGENCE_GPU_BATCH bounces=4 batch=157 seed=4125144789 method=nee mean=0.525704273651 max_pixel=2.05535388
+CONVERGENCE_GPU_BATCH bounces=4 batch=157 seed=4125144789 method=power mean=0.532430430885 max_pixel=1.98090971
+CONVERGENCE_GPU_BATCH bounces=4 batch=158 seed=2720536397 method=nee mean=0.527407064353 max_pixel=1.82080603
+CONVERGENCE_GPU_BATCH bounces=4 batch=158 seed=2720536397 method=power mean=0.53409308374 max_pixel=1.85071003
+CONVERGENCE_GPU_BATCH bounces=4 batch=159 seed=470366211 method=nee mean=0.524227705357 max_pixel=2.15053248
+CONVERGENCE_GPU_BATCH bounces=4 batch=159 seed=470366211 method=power mean=0.532868897788 max_pixel=2.20675325
+CONVERGENCE_GPU_BATCH bounces=4 batch=160 seed=2610070770 method=nee mean=0.524772647465 max_pixel=2.46239209
+CONVERGENCE_GPU_BATCH bounces=4 batch=160 seed=2610070770 method=power mean=0.544338939472 max_pixel=3.27011395
+CONVERGENCE_GPU_BATCH bounces=4 batch=161 seed=2880477379 method=nee mean=0.706614362037 max_pixel=91.5834198
+CONVERGENCE_GPU_BATCH bounces=4 batch=161 seed=2880477379 method=power mean=0.54381624327 max_pixel=2.04805064
+CONVERGENCE_GPU_BATCH bounces=4 batch=162 seed=1356320132 method=nee mean=0.530888028157 max_pixel=2.04144192
+CONVERGENCE_GPU_BATCH bounces=4 batch=162 seed=1356320132 method=power mean=0.540367572071 max_pixel=2.01122856
+CONVERGENCE_GPU_BATCH bounces=4 batch=163 seed=1366083027 method=nee mean=0.52875327823 max_pixel=1.9423089
+CONVERGENCE_GPU_BATCH bounces=4 batch=163 seed=1366083027 method=power mean=0.533468336675 max_pixel=1.91039693
+CONVERGENCE_GPU_BATCH bounces=4 batch=164 seed=1116319983 method=nee mean=0.520713131155 max_pixel=2.01174378
+CONVERGENCE_GPU_BATCH bounces=4 batch=164 seed=1116319983 method=power mean=0.524983648077 max_pixel=2.07805109
+CONVERGENCE_GPU_BATCH bounces=4 batch=165 seed=3936697894 method=nee mean=0.524507576374 max_pixel=2.08158255
+CONVERGENCE_GPU_BATCH bounces=4 batch=165 seed=3936697894 method=power mean=0.531527812134 max_pixel=2.07836509
+CONVERGENCE_GPU_BATCH bounces=4 batch=166 seed=2955638710 method=nee mean=0.525934808207 max_pixel=2.76280236
+CONVERGENCE_GPU_BATCH bounces=4 batch=166 seed=2955638710 method=power mean=0.52628607196 max_pixel=2.07176423
+CONVERGENCE_GPU_BATCH bounces=4 batch=167 seed=574351480 method=nee mean=0.525119471046 max_pixel=2.00065351
+CONVERGENCE_GPU_BATCH bounces=4 batch=167 seed=574351480 method=power mean=0.529060971394 max_pixel=2.03964734
+CONVERGENCE_GPU_BATCH bounces=4 batch=168 seed=463137853 method=nee mean=0.53390286466 max_pixel=5.63063812
+CONVERGENCE_GPU_BATCH bounces=4 batch=168 seed=463137853 method=power mean=0.533973524735 max_pixel=1.89761174
+CONVERGENCE_GPU_BATCH bounces=4 batch=169 seed=545150183 method=nee mean=0.518566235399 max_pixel=1.87016845
+CONVERGENCE_GPU_BATCH bounces=4 batch=169 seed=545150183 method=power mean=0.526630901576 max_pixel=1.92670643
+CONVERGENCE_GPU_BATCH bounces=4 batch=170 seed=3047018728 method=nee mean=0.526933874182 max_pixel=1.91874146
+CONVERGENCE_GPU_BATCH bounces=4 batch=170 seed=3047018728 method=power mean=0.538501805153 max_pixel=1.88773584
+CONVERGENCE_GPU_BATCH bounces=4 batch=171 seed=2474378996 method=nee mean=0.525712329189 max_pixel=2.04186726
+CONVERGENCE_GPU_BATCH bounces=4 batch=171 seed=2474378996 method=power mean=0.532104281455 max_pixel=2.04959989
+CONVERGENCE_GPU_BATCH bounces=4 batch=172 seed=3387638066 method=nee mean=0.526878486158 max_pixel=2.08993578
+CONVERGENCE_GPU_BATCH bounces=4 batch=172 seed=3387638066 method=power mean=0.531830817038 max_pixel=2.07097077
+CONVERGENCE_GPU_BATCH bounces=4 batch=173 seed=2946302272 method=nee mean=0.527003937115 max_pixel=2.05188751
+CONVERGENCE_GPU_BATCH bounces=4 batch=173 seed=2946302272 method=power mean=0.538959228674 max_pixel=2.33017397
+CONVERGENCE_GPU_BATCH bounces=4 batch=174 seed=1461181856 method=nee mean=0.52204558338 max_pixel=2.05532932
+CONVERGENCE_GPU_BATCH bounces=4 batch=174 seed=1461181856 method=power mean=0.531016006833 max_pixel=2.3422389
+CONVERGENCE_GPU_BATCH bounces=4 batch=175 seed=368683177 method=nee mean=0.525064020389 max_pixel=1.65174115
+CONVERGENCE_GPU_BATCH bounces=4 batch=175 seed=368683177 method=power mean=0.535554126604 max_pixel=1.69210374
+CONVERGENCE_GPU_BATCH bounces=4 batch=176 seed=111566182 method=nee mean=0.5300182756 max_pixel=2.03334951
+CONVERGENCE_GPU_BATCH bounces=4 batch=176 seed=111566182 method=power mean=0.538367274422 max_pixel=1.98361194
+CONVERGENCE_GPU_BATCH bounces=4 batch=177 seed=877636912 method=nee mean=0.52554788943 max_pixel=2.72294974
+CONVERGENCE_GPU_BATCH bounces=4 batch=177 seed=877636912 method=power mean=0.528710696446 max_pixel=1.9249208
+CONVERGENCE_GPU_BATCH bounces=4 batch=178 seed=3640582049 method=nee mean=0.531314302984 max_pixel=2.03259993
+CONVERGENCE_GPU_BATCH bounces=4 batch=178 seed=3640582049 method=power mean=0.539415201832 max_pixel=2.52007842
+CONVERGENCE_GPU_BATCH bounces=4 batch=179 seed=1799830047 method=nee mean=0.53164877921 max_pixel=4.19967175
+CONVERGENCE_GPU_BATCH bounces=4 batch=179 seed=1799830047 method=power mean=0.541206421754 max_pixel=2.05007768
+CONVERGENCE_GPU_BATCH bounces=4 batch=180 seed=4165964672 method=nee mean=0.528520143095 max_pixel=1.88614666
+CONVERGENCE_GPU_BATCH bounces=4 batch=180 seed=4165964672 method=power mean=0.542871878754 max_pixel=2.45338583
+CONVERGENCE_GPU_BATCH bounces=4 batch=181 seed=2546648262 method=nee mean=0.527973399991 max_pixel=2.10274577
+CONVERGENCE_GPU_BATCH bounces=4 batch=181 seed=2546648262 method=power mean=0.542567790941 max_pixel=2.29951692
+CONVERGENCE_GPU_BATCH bounces=4 batch=182 seed=436510231 method=nee mean=0.601426819576 max_pixel=38.678936
+CONVERGENCE_GPU_BATCH bounces=4 batch=182 seed=436510231 method=power mean=0.542804394429 max_pixel=4.45704269
+CONVERGENCE_GPU_BATCH bounces=4 batch=183 seed=2359534706 method=nee mean=0.527153598462 max_pixel=1.9690218
+CONVERGENCE_GPU_BATCH bounces=4 batch=183 seed=2359534706 method=power mean=0.530098707253 max_pixel=2.02261043
+CONVERGENCE_GPU_BATCH bounces=4 batch=184 seed=2938799063 method=nee mean=0.532020722833 max_pixel=2.03722882
+CONVERGENCE_GPU_BATCH bounces=4 batch=184 seed=2938799063 method=power mean=0.540822222427 max_pixel=2.00541162
+CONVERGENCE_GPU_BATCH bounces=4 batch=185 seed=3161800371 method=nee mean=0.526320852643 max_pixel=2.0771606
+CONVERGENCE_GPU_BATCH bounces=4 batch=185 seed=3161800371 method=power mean=0.534902161735 max_pixel=2.5791657
+CONVERGENCE_GPU_BATCH bounces=4 batch=186 seed=155618690 method=nee mean=0.536874602027 max_pixel=1.88067079
+CONVERGENCE_GPU_BATCH bounces=4 batch=186 seed=155618690 method=power mean=0.546652236833 max_pixel=1.85162187
+CONVERGENCE_GPU_BATCH bounces=4 batch=187 seed=2452797905 method=nee mean=0.52753473304 max_pixel=1.92295027
+CONVERGENCE_GPU_BATCH bounces=4 batch=187 seed=2452797905 method=power mean=0.538755480002 max_pixel=2.41820955
+CONVERGENCE_GPU_BATCH bounces=4 batch=188 seed=3960023964 method=nee mean=0.564478368781 max_pixel=14.0062389
+CONVERGENCE_GPU_BATCH bounces=4 batch=188 seed=3960023964 method=power mean=0.540372856004 max_pixel=1.91258097
+CONVERGENCE_GPU_BATCH bounces=4 batch=189 seed=865384725 method=nee mean=0.594910205479 max_pixel=33.9669342
+CONVERGENCE_GPU_BATCH bounces=4 batch=189 seed=865384725 method=power mean=0.545272932903 max_pixel=1.92662454
+CONVERGENCE_GPU_BATCH bounces=4 batch=190 seed=3419304810 method=nee mean=0.531436885005 max_pixel=2.01676345
+CONVERGENCE_GPU_BATCH bounces=4 batch=190 seed=3419304810 method=power mean=0.536752497176 max_pixel=1.97613311
+CONVERGENCE_GPU_BATCH bounces=4 batch=191 seed=1686277816 method=nee mean=0.532779928942 max_pixel=1.90187752
+CONVERGENCE_GPU_BATCH bounces=4 batch=191 seed=1686277816 method=power mean=0.547799208632 max_pixel=2.35343051
+CONVERGENCE_GPU_BATCH bounces=4 batch=192 seed=1316841084 method=nee mean=0.524816199499 max_pixel=1.97874379
+CONVERGENCE_GPU_BATCH bounces=4 batch=192 seed=1316841084 method=power mean=0.529489538572 max_pixel=1.85945094
+CONVERGENCE_GPU_BATCH bounces=4 batch=193 seed=2119516692 method=nee mean=0.538350252897 max_pixel=8.3849926
+CONVERGENCE_GPU_BATCH bounces=4 batch=193 seed=2119516692 method=power mean=0.53596244401 max_pixel=2.13324022
+CONVERGENCE_GPU_BATCH bounces=4 batch=194 seed=937987778 method=nee mean=0.620813144703 max_pixel=52.0873032
+CONVERGENCE_GPU_BATCH bounces=4 batch=194 seed=937987778 method=power mean=0.531140978836 max_pixel=1.97558928
+CONVERGENCE_GPU_BATCH bounces=4 batch=195 seed=968058757 method=nee mean=0.528469931611 max_pixel=1.92200351
+CONVERGENCE_GPU_BATCH bounces=4 batch=195 seed=968058757 method=power mean=0.534868344786 max_pixel=1.92566144
+CONVERGENCE_GPU_BATCH bounces=4 batch=196 seed=1333716488 method=nee mean=0.533731366899 max_pixel=2.21921635
+CONVERGENCE_GPU_BATCH bounces=4 batch=196 seed=1333716488 method=power mean=0.537810670413 max_pixel=2.17791748
+CONVERGENCE_GPU_BATCH bounces=4 batch=197 seed=140226598 method=nee mean=0.552927085294 max_pixel=15.5955906
+CONVERGENCE_GPU_BATCH bounces=4 batch=197 seed=140226598 method=power mean=0.543363765383 max_pixel=2.69101143
+CONVERGENCE_GPU_BATCH bounces=4 batch=198 seed=652986403 method=nee mean=0.521421409956 max_pixel=2.0979321
+CONVERGENCE_GPU_BATCH bounces=4 batch=198 seed=652986403 method=power mean=0.530047848415 max_pixel=2.06198168
+CONVERGENCE_GPU_BATCH bounces=4 batch=199 seed=1664483310 method=nee mean=0.531259246012 max_pixel=2.00188971
+CONVERGENCE_GPU_BATCH bounces=4 batch=199 seed=1664483310 method=power mean=0.538541036602 max_pixel=2.0128994
+CONVERGENCE_GPU_BATCH bounces=4 batch=200 seed=68250614 method=nee mean=0.708185452626 max_pixel=97.7166138
+CONVERGENCE_GPU_BATCH bounces=4 batch=200 seed=68250614 method=power mean=0.538606649836 max_pixel=2.42503285
+CONVERGENCE_GPU_BATCH bounces=4 batch=201 seed=2536963965 method=nee mean=0.52338680063 max_pixel=2.17997575
+CONVERGENCE_GPU_BATCH bounces=4 batch=201 seed=2536963965 method=power mean=0.532592544159 max_pixel=2.20799041
+CONVERGENCE_GPU_BATCH bounces=4 batch=202 seed=2692501372 method=nee mean=0.530088435844 max_pixel=1.86377716
+CONVERGENCE_GPU_BATCH bounces=4 batch=202 seed=2692501372 method=power mean=0.543766535917 max_pixel=2.52344203
+CONVERGENCE_GPU_BATCH bounces=4 batch=203 seed=3675878540 method=nee mean=0.525997528655 max_pixel=4.08133125
+CONVERGENCE_GPU_BATCH bounces=4 batch=203 seed=3675878540 method=power mean=0.529629110147 max_pixel=2.04276681
+CONVERGENCE_GPU_BATCH bounces=4 batch=204 seed=2065147435 method=nee mean=0.529172751287 max_pixel=2.05295157
+CONVERGENCE_GPU_BATCH bounces=4 batch=204 seed=2065147435 method=power mean=0.535791326085 max_pixel=1.92151141
+CONVERGENCE_GPU_BATCH bounces=4 batch=205 seed=3485765395 method=nee mean=0.52820568572 max_pixel=2.08078456
+CONVERGENCE_GPU_BATCH bounces=4 batch=205 seed=3485765395 method=power mean=0.54162873931 max_pixel=2.0016737
+CONVERGENCE_GPU_BATCH bounces=4 batch=206 seed=1206702549 method=nee mean=0.52416425053 max_pixel=1.97084427
+CONVERGENCE_GPU_BATCH bounces=4 batch=206 seed=1206702549 method=power mean=0.530261477392 max_pixel=1.92037797
+CONVERGENCE_GPU_BATCH bounces=4 batch=207 seed=2792611450 method=nee mean=0.519950312054 max_pixel=2.13660216
+CONVERGENCE_GPU_BATCH bounces=4 batch=207 seed=2792611450 method=power mean=0.534021629003 max_pixel=2.10506582
+CONVERGENCE_GPU_BATCH bounces=4 batch=208 seed=3563277329 method=nee mean=0.547536278443 max_pixel=2.35973907
+CONVERGENCE_GPU_BATCH bounces=4 batch=208 seed=3563277329 method=power mean=0.546269425505 max_pixel=1.91829979
+CONVERGENCE_GPU_BATCH bounces=4 batch=209 seed=2957333009 method=nee mean=0.528040925616 max_pixel=4.2987709
+CONVERGENCE_GPU_BATCH bounces=4 batch=209 seed=2957333009 method=power mean=0.527202187325 max_pixel=2.34915161
+CONVERGENCE_GPU_BATCH bounces=4 batch=210 seed=2247442851 method=nee mean=0.530554731376 max_pixel=1.97758484
+CONVERGENCE_GPU_BATCH bounces=4 batch=210 seed=2247442851 method=power mean=0.536105321685 max_pixel=2.36697435
+CONVERGENCE_GPU_BATCH bounces=4 batch=211 seed=446664545 method=nee mean=0.525571837852 max_pixel=1.9037838
+CONVERGENCE_GPU_BATCH bounces=4 batch=211 seed=446664545 method=power mean=0.538066925417 max_pixel=2.58871698
+CONVERGENCE_GPU_BATCH bounces=4 batch=212 seed=434757261 method=nee mean=0.520814942831 max_pixel=1.90332747
+CONVERGENCE_GPU_BATCH bounces=4 batch=212 seed=434757261 method=power mean=0.535965901493 max_pixel=2.01152134
+CONVERGENCE_GPU_BATCH bounces=4 batch=213 seed=3401506369 method=nee mean=0.531131520324 max_pixel=3.08934522
+CONVERGENCE_GPU_BATCH bounces=4 batch=213 seed=3401506369 method=power mean=0.539494344358 max_pixel=2.2044394
+CONVERGENCE_GPU_BATCH bounces=4 batch=214 seed=913289841 method=nee mean=0.52348653999 max_pixel=2.07175636
+CONVERGENCE_GPU_BATCH bounces=4 batch=214 seed=913289841 method=power mean=0.542531931611 max_pixel=2.55769396
+CONVERGENCE_GPU_BATCH bounces=4 batch=215 seed=2325918007 method=nee mean=0.525260756233 max_pixel=1.94913352
+CONVERGENCE_GPU_BATCH bounces=4 batch=215 seed=2325918007 method=power mean=0.543404065898 max_pixel=2.52513981
+CONVERGENCE_GPU_BATCH bounces=4 batch=216 seed=3357274749 method=nee mean=0.530326809882 max_pixel=1.9043715
+CONVERGENCE_GPU_BATCH bounces=4 batch=216 seed=3357274749 method=power mean=0.539284191546 max_pixel=2.34527946
+CONVERGENCE_GPU_BATCH bounces=4 batch=217 seed=3481658516 method=nee mean=0.529288828324 max_pixel=2.02790189
+CONVERGENCE_GPU_BATCH bounces=4 batch=217 seed=3481658516 method=power mean=0.540410690482 max_pixel=2.01155996
+CONVERGENCE_GPU_BATCH bounces=4 batch=218 seed=2794234344 method=nee mean=0.524613707915 max_pixel=1.78790414
+CONVERGENCE_GPU_BATCH bounces=4 batch=218 seed=2794234344 method=power mean=0.536689216768 max_pixel=1.86771047
+CONVERGENCE_GPU_BATCH bounces=4 batch=219 seed=3406779500 method=nee mean=0.724975363478 max_pixel=105.811073
+CONVERGENCE_GPU_BATCH bounces=4 batch=219 seed=3406779500 method=power mean=0.53033784809 max_pixel=2.08231306
+CONVERGENCE_GPU_BATCH bounces=4 batch=220 seed=944390307 method=nee mean=0.516905538011 max_pixel=2.07690024
+CONVERGENCE_GPU_BATCH bounces=4 batch=220 seed=944390307 method=power mean=0.534316222557 max_pixel=2.0307653
+CONVERGENCE_GPU_BATCH bounces=4 batch=221 seed=4223680385 method=nee mean=0.51896057285 max_pixel=1.99786055
+CONVERGENCE_GPU_BATCH bounces=4 batch=221 seed=4223680385 method=power mean=0.528062968679 max_pixel=2.0107336
+CONVERGENCE_GPU_BATCH bounces=4 batch=222 seed=4054184806 method=nee mean=0.523707439703 max_pixel=2.1388154
+CONVERGENCE_GPU_BATCH bounces=4 batch=222 seed=4054184806 method=power mean=0.533620388215 max_pixel=2.42662168
+CONVERGENCE_GPU_BATCH bounces=4 batch=223 seed=394218075 method=nee mean=0.530450162488 max_pixel=1.93750203
+CONVERGENCE_GPU_BATCH bounces=4 batch=223 seed=394218075 method=power mean=0.545947877531 max_pixel=2.5005722
+CONVERGENCE_GPU_BATCH bounces=4 batch=224 seed=210652454 method=nee mean=0.519856425224 max_pixel=2.00116491
+CONVERGENCE_GPU_BATCH bounces=4 batch=224 seed=210652454 method=power mean=0.529215673651 max_pixel=1.99573612
+CONVERGENCE_GPU_BATCH bounces=4 batch=225 seed=2014758405 method=nee mean=0.52826051487 max_pixel=1.98421538
+CONVERGENCE_GPU_BATCH bounces=4 batch=225 seed=2014758405 method=power mean=0.535389672951 max_pixel=1.92468309
+CONVERGENCE_GPU_BATCH bounces=4 batch=226 seed=1547443275 method=nee mean=0.523696376222 max_pixel=1.92374265
+CONVERGENCE_GPU_BATCH bounces=4 batch=226 seed=1547443275 method=power mean=0.53532140726 max_pixel=3.29985142
+CONVERGENCE_GPU_BATCH bounces=4 batch=227 seed=1765265588 method=nee mean=0.52756225087 max_pixel=2.20243073
+CONVERGENCE_GPU_BATCH bounces=4 batch=227 seed=1765265588 method=power mean=0.537672528609 max_pixel=2.15390706
+CONVERGENCE_GPU_BATCH bounces=4 batch=228 seed=2880135863 method=nee mean=0.529556545761 max_pixel=2.03991914
+CONVERGENCE_GPU_BATCH bounces=4 batch=228 seed=2880135863 method=power mean=0.546279337374 max_pixel=2.1538322
+CONVERGENCE_GPU_BATCH bounces=4 batch=229 seed=1217669179 method=nee mean=0.523989168973 max_pixel=2.02257824
+CONVERGENCE_GPU_BATCH bounces=4 batch=229 seed=1217669179 method=power mean=0.544133625025 max_pixel=1.98403978
+CONVERGENCE_GPU_BATCH bounces=4 batch=230 seed=3525501339 method=nee mean=0.525740527477 max_pixel=1.90092921
+CONVERGENCE_GPU_BATCH bounces=4 batch=230 seed=3525501339 method=power mean=0.532496666042 max_pixel=1.88265359
+CONVERGENCE_GPU_BATCH bounces=4 batch=231 seed=3007224314 method=nee mean=0.530449842427 max_pixel=1.98946393
+CONVERGENCE_GPU_BATCH bounces=4 batch=231 seed=3007224314 method=power mean=0.538153644496 max_pixel=2.06100917
+CONVERGENCE_GPU_BATCH bounces=4 batch=232 seed=2249746537 method=nee mean=0.52725594815 max_pixel=2.01452208
+CONVERGENCE_GPU_BATCH bounces=4 batch=232 seed=2249746537 method=power mean=0.534597219896 max_pixel=2.51225901
+CONVERGENCE_GPU_BATCH bounces=4 batch=233 seed=1007596438 method=nee mean=0.528713662587 max_pixel=1.91194177
+CONVERGENCE_GPU_BATCH bounces=4 batch=233 seed=1007596438 method=power mean=0.537189504999 max_pixel=1.92820883
+CONVERGENCE_GPU_BATCH bounces=4 batch=234 seed=3490774108 method=nee mean=0.661052030857 max_pixel=72.4196167
+CONVERGENCE_GPU_BATCH bounces=4 batch=234 seed=3490774108 method=power mean=0.541685006553 max_pixel=2.38418174
+CONVERGENCE_GPU_BATCH bounces=4 batch=235 seed=2980701475 method=nee mean=0.527650252905 max_pixel=2.16570139
+CONVERGENCE_GPU_BATCH bounces=4 batch=235 seed=2980701475 method=power mean=0.539308814586 max_pixel=2.06662679
+CONVERGENCE_GPU_BATCH bounces=4 batch=236 seed=4177409013 method=nee mean=0.532461554077 max_pixel=2.15966892
+CONVERGENCE_GPU_BATCH bounces=4 batch=236 seed=4177409013 method=power mean=0.532710509953 max_pixel=2.06105399
+CONVERGENCE_GPU_BATCH bounces=4 batch=237 seed=2399715742 method=nee mean=0.524182334015 max_pixel=2.11273479
+CONVERGENCE_GPU_BATCH bounces=4 batch=237 seed=2399715742 method=power mean=0.535258521238 max_pixel=2.11504126
+CONVERGENCE_GPU_BATCH bounces=4 batch=238 seed=626688418 method=nee mean=0.531376954778 max_pixel=1.9957732
+CONVERGENCE_GPU_BATCH bounces=4 batch=238 seed=626688418 method=power mean=0.548005375888 max_pixel=2.51922131
+CONVERGENCE_GPU_BATCH bounces=4 batch=239 seed=2292017846 method=nee mean=0.537809494781 max_pixel=3.53003931
+CONVERGENCE_GPU_BATCH bounces=4 batch=239 seed=2292017846 method=power mean=0.543958851715 max_pixel=2.40820599
+CONVERGENCE_GPU_BATCH bounces=4 batch=240 seed=2402016601 method=nee mean=0.531723291207 max_pixel=2.02361012
+CONVERGENCE_GPU_BATCH bounces=4 batch=240 seed=2402016601 method=power mean=0.547527363503 max_pixel=2.4653635
+CONVERGENCE_GPU_BATCH bounces=4 batch=241 seed=4120824377 method=nee mean=0.522929626415 max_pixel=1.87641084
+CONVERGENCE_GPU_BATCH bounces=4 batch=241 seed=4120824377 method=power mean=0.537785806404 max_pixel=2.3946929
+CONVERGENCE_GPU_BATCH bounces=4 batch=242 seed=2102667457 method=nee mean=0.525762609361 max_pixel=2.00305343
+CONVERGENCE_GPU_BATCH bounces=4 batch=242 seed=2102667457 method=power mean=0.531085301713 max_pixel=2.00404406
+CONVERGENCE_GPU_BATCH bounces=4 batch=243 seed=4195566041 method=nee mean=0.544367368806 max_pixel=8.47350883
+CONVERGENCE_GPU_BATCH bounces=4 batch=243 seed=4195566041 method=power mean=0.531993498793 max_pixel=1.91141009
+CONVERGENCE_GPU_BATCH bounces=4 batch=244 seed=1450033252 method=nee mean=0.522546285391 max_pixel=1.83198535
+CONVERGENCE_GPU_BATCH bounces=4 batch=244 seed=1450033252 method=power mean=0.533456801253 max_pixel=2.45037985
+CONVERGENCE_GPU_BATCH bounces=4 batch=245 seed=225288405 method=nee mean=0.51981713033 max_pixel=1.99768496
+CONVERGENCE_GPU_BATCH bounces=4 batch=245 seed=225288405 method=power mean=0.530787857232 max_pixel=2.16931438
+CONVERGENCE_GPU_BATCH bounces=4 batch=246 seed=4121520429 method=nee mean=0.525566814065 max_pixel=1.98328102
+CONVERGENCE_GPU_BATCH bounces=4 batch=246 seed=4121520429 method=power mean=0.531453270462 max_pixel=1.92349243
+CONVERGENCE_GPU_BATCH bounces=4 batch=247 seed=1843724577 method=nee mean=0.521201331331 max_pixel=1.86254406
+CONVERGENCE_GPU_BATCH bounces=4 batch=247 seed=1843724577 method=power mean=0.530927318371 max_pixel=1.87849665
+CONVERGENCE_GPU_BATCH bounces=4 batch=248 seed=728954786 method=nee mean=0.522209244844 max_pixel=1.962883
+CONVERGENCE_GPU_BATCH bounces=4 batch=248 seed=728954786 method=power mean=0.52692021523 max_pixel=1.8815825
+CONVERGENCE_GPU_BATCH bounces=4 batch=249 seed=3138098312 method=nee mean=0.52296996607 max_pixel=2.06253195
+CONVERGENCE_GPU_BATCH bounces=4 batch=249 seed=3138098312 method=power mean=0.533296920394 max_pixel=2.42318511
+CONVERGENCE_GPU_BATCH bounces=4 batch=250 seed=2029070286 method=nee mean=0.528314934066 max_pixel=1.83418167
+CONVERGENCE_GPU_BATCH bounces=4 batch=250 seed=2029070286 method=power mean=0.533852928939 max_pixel=1.94805121
+CONVERGENCE_GPU_BATCH bounces=4 batch=251 seed=2593514553 method=nee mean=0.526688015198 max_pixel=2.01553106
+CONVERGENCE_GPU_BATCH bounces=4 batch=251 seed=2593514553 method=power mean=0.536434775363 max_pixel=2.08295369
+CONVERGENCE_GPU_BATCH bounces=4 batch=252 seed=482642664 method=nee mean=0.525438252004 max_pixel=2.01014352
+CONVERGENCE_GPU_BATCH bounces=4 batch=252 seed=482642664 method=power mean=0.530169241219 max_pixel=1.98873091
+CONVERGENCE_GPU_BATCH bounces=4 batch=253 seed=718766564 method=nee mean=0.530929420461 max_pixel=1.94249916
+CONVERGENCE_GPU_BATCH bounces=4 batch=253 seed=718766564 method=power mean=0.538969454468 max_pixel=2.15855312
+CONVERGENCE_GPU_BATCH bounces=4 batch=254 seed=800295765 method=nee mean=0.525154104266 max_pixel=2.07272005
+CONVERGENCE_GPU_BATCH bounces=4 batch=254 seed=800295765 method=power mean=0.539257213516 max_pixel=2.25529027
+CONVERGENCE_GPU_BATCH bounces=4 batch=255 seed=4092271524 method=nee mean=0.521369267795 max_pixel=2.12640357
+CONVERGENCE_GPU bounces=4 batches=256 method=nee mean=0.534046564 nominal_se=0.00210984468
+CONVERGENCE_GPU_BATCH bounces=4 batch=255 seed=4092271524 method=power mean=0.529789519613 max_pixel=2.14301395
+CONVERGENCE_GPU bounces=4 batches=256 method=power mean=0.536323265 nominal_se=0.000372294102
+CONVERGENCE_AGREEMENT bounces=4 domain=cpu method=bsdf difference=0 nominal_se=0.00156102142 gate=1
+CONVERGENCE_AGREEMENT bounces=4 domain=cpu method=nee difference=-0.00132894763 nominal_se=0.00240430783 gate=1
+CONVERGENCE_AGREEMENT bounces=4 domain=cpu method=power difference=0.000818739022 nominal_se=0.00113119718 gate=1
+CONVERGENCE_AGREEMENT bounces=4 domain=gpu method=nee difference=6.81463418e-05 nominal_se=0.00300229025 gate=1
+CONVERGENCE_AGREEMENT bounces=4 domain=gpu method=power difference=0.000197160549 nominal_se=0.000447007843 gate=1
+CONVERGENCE_DECISION agreement=1 prior_rejection_preserved=1 promote=0 physical_gpu_timing=0

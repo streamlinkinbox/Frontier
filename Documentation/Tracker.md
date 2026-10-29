@@ -1342,4 +1342,84 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
   correctness=0/promote=0. Do not relax the threshold or call full numerical validation passing.
 - Both five-CTest sets pass; no host sanitizer diagnostics observed. Rejection-evidence parity passes 44 rows,
   64 logged hashes/build, ten exact RGB captures and deterministic source rederivation.
-- Next blocker: independent room control/reference convergence and sampling audit, not more reservoir tuning.
+- Follow-up: independent room control/reference convergence and sampling audit; completed in the diagnostic below.
+
+### Room control/reference convergence — diagnostic agreement verified
+
+- [Independent convergence diagnostic](../Exhibits/LightCompute/ReplayRoomConvergence.md): new CPU area-NEE/power
+  references, 64 cohorts per method/depth, 256 paired GPU batches, analytic near-emitter control.
+- Original 32-batch four-bounce means reproduce exactly; earlier failed gate is not regraded.
+- Both host builds pass agreement checks at one/four bounces. Rare NEE contributions and short-run underestimated
+  uncertainty support a high-variance explanation; no systematic CPU/GPU transport mismatch demonstrated.
+- No production correction or reservoir promotion. Lower-variance independently checked CPU power reference
+  is retained for future fixed holdouts. Host ASan/UBSan exit zero, both five-CTest sets pass, no host sanitizer
+  diagnostic observed. Audit passes 1454 matching rows, 29 hashes/build, four exact readbacks and exact old prefixes.
+
+### Temporal / spatial ablation — verification complete, neither quality arm accepted
+
+- [Reuse ablation](../Exhibits/LightCompute/ReplayReuseAblation.md): 32 paired batches per scene, unchanged weights,
+  independent CPU power reference, isolated histories, separate warm work and matched whole/fused fresh controls.
+- Both host builds reproduce correctness=1; both quality gates fail. Temporal-only raises plane/room RMSE 1.56%/31.55%; spatial-enabled
+  raises them 1.75%/47.52%. Spatial is not the sole cause of the loss.
+- Room temporal-only saves 20.29% final queries but loses quality; equal-query fresh control still required.
+- Next discriminating controls: independent fresh indirect seeds for D/I covariance; equal-query fresh room baseline.
+  No reservoir retuning or promotion. Host ASan/UBSan exit zero; both five-CTest sets pass, no host diagnostics.
+- Evidence audit passes 33 matching semantic rows, 66 logged hashes/build, eight exact original/PNG captures,
+  feature isolation and exact nearest/shadow work sums.
+
+### Fresh D/I correlation / Whole6 controls — verified, no promotion
+
+- [Fixed controls and evidence](../Exhibits/LightCompute/ReplayCorrelation.md): five arms, 32 paired batches,
+  separate fresh-I PRNG stream, eight warm steps, independent CPU reference; no parameter rescue or production port.
+- Independent fresh D/I streams raise plane RMSE 0.63%; the room error change is uncertain. Correlation loss alone
+  does not explain the much larger temporal room penalty. Allocation/proposal/history variance remains confounded.
+- Whole6 room RMSE 0.157961268 versus temporal 0.179752331, with 584,171 versus 619,922 final queries:
+  12.12% lower RMSE and 5.77% fewer queries. This is measured query/error dominance, not game-frame timing.
+- Release and host sanitizer each pass five CTests and all ten mean gates, matched-seed/nine-slab and one-bounce
+  checks, covariance decomposition and exact 6:8 calls. Parity: 37 identical rows, 70 hashes/build, ten exact
+  captures/PNG pixels and source rederivation. Actual readbacks/frontier retained; no physical-GPU timing claim.
+- No promotion. Keep production output 348.046875 MiB/1080p and defaults/layouts unchanged. A future proposal or
+  allocation redesign needs new holdouts and explicit densities, not post-hoc acceptance of this configuration.
+- Next direction: isolated bounded secondary-vertex reconnection with explicit densities/Jacobian/visibility;
+  new representation must beat both fresh controls on fixed holdouts before any production port. Not implemented.
+
+### Secondary-vertex reconnection — native correctness gate verified, GPU implementation pending
+
+- [Fixed protocol and measured evidence](../Exhibits/LightCompute/SecondaryReconnection.md): static diffuse
+  secondary square, shifted receiver and two strip-occlusion fixtures. Reuses production Reservoir unchanged.
+- Angular and area encodings agree within 2.23e-16. All 12 corrected/fresh reference gates and six required
+  negative controls pass. Source visibility holes require proposal and selection support, not just a Jacobian.
+- Release and ASan+UBSan exit zero; 37 identical rows and four verified source hashes/build. Null candidates count
+  in M; independent clipped-domain integrals predict the incorrect support-limited estimates.
+- This is analytic native geometry/illumination, not a Vulkan renderer or cost comparison. No general transport,
+  temporal/material, Windows/editor or physical-GPU acceptance. Production and 348 MiB output unchanged.
+- Next: isolated area-coordinate Vulkan secondary-surface exhibit with visibility/null/support controls; then
+  real geometry/suffix and both Whole6/Whole8 holdouts. No production port or promotion at this gate.
+
+### Secondary-vertex analytic Vulkan gate — verified, not real-scene GI
+
+- [Fixed protocol and actual readbacks](../Exhibits/LightCompute/SecondaryReconnectionGpu.md): area-coordinate
+  Slang estimator, angular reference and four support/measure controls; 64×4096 reservoirs/method/fixture.
+- Both builds exit0, all five CTests each, 12 reference means and six required negative controls. Area/angular
+  maximum difference1.49e-7. All28 native/GPU mean checks pass; source support failures reproduce on Vulkan.
+- Cross-build parity:38 identical rows,31 checked hashes/build,four exact raw captures and28 PNG arrays.
+- SwiftShader CPU Vulkan type4, analytic plane/strip geometry and deterministic secondary illumination only.
+  Source payload remains in one invocation; second dispatch inert. No persistence, ray-cost or frame-time claim.
+- Next: actual triangle secondary hits/visibility and independently validated outgoing suffix, then persistent
+  reuse/history invalidation and Whole6/Whole8 holdouts. Production defaults/output348.046875MiB unchanged.
+
+### Triangle-BVH secondary transport — correctness verified, literal implementation not accepted
+
+- [Triangle transport and outgoing-lighting gate](../Exhibits/LightCompute/TriangleReconnection.md): actual
+  production NearestFacet queries for cosine hits, reconnection and directional-source visibility; nonemissive
+  diffuse secondary patch and opaque strip. Area mixture/floor support and null M accounting retained.
+- Release and ASan+UBSan host pass all five CTests each, 12 reference means and six required transport negatives.
+  Area/angular difference <=1.79e-7. Suffix:1,048,576 evaluations of16,384 unique fixture/point pairs;114,688 blocked
+  probes disagree with the deliberately unshadowed suffix as required.
+- Cross-build audit:42 identical rows,33 checked hashes/build,four exact raw captures,32 PNG arrays; derived shader
+  matches both builds. Actual readbacks inspected. No shader/driver sanitizer or physical-GPU timing claim.
+- More BVH calls in all fixtures. Occluded RMSE worsens28.18%/19.01%, queries+36.34%/+10.53% versus this restricted
+  Fresh8 component control. This is not the full four-bounce Whole8; game-quality/efficiency acceptance absent.
+- Next: persistent source vertex/outgoing/PDF payload with light/geometry invalidation and fresh receiver
+  visibility; retain variance/support holdouts and later full Whole6/Whole8 comparisons. Not implemented yet.
+- Production source/default/layout and output348.046875MiB unchanged; no port or promotion.

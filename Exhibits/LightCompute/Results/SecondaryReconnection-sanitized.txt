@@ -1,0 +1,48 @@
+SECONDARY_RECONNECTION platform=Linux mode=sanitized revision=ceebd8a925a929ecaee535869ddc0fdbfe7c1da1 working_changes=1
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+OPTIONS -std=c++20 -O2 -Wall -Wextra -Werror -I Frontier -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer
+60139bc4795c13f127a5c19f0e20107cc1e2b19b782325ac0895682eb02314bd  Exhibits/LightCompute/Code/SecondaryReconnectionValidation.cpp
+b84fb2a65448dc888c0c2e57896172bdcfcce4631b57ea7b347c56c813ee5d7b  Exhibits/LightCompute/RunSecondaryReconnection.sh
+a70a821ad22814167693c91932c6adc8cffa68a8b5fe7032241364fc7c25fe70  Frontier/Engine/Rendering/ReservoirSampling.h
+b806589ac05eddc384d603d4da6cf9b51be9c24f180ec23f224c0e607f108a6e  Frontier/Engine/Rendering/ReservoirSampling.cpp
+RECONNECTION_REFERENCE fixture=self integral=0.0617605906224 refinement=5.09951551819e-09 donor_support=0.0617605906224
+RECONNECTION_RESULT fixture=self method=angular mean=0.0617934961825 nominal_se=7.52822798791e-05 rmse=0.0390659238512 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=self method=area mean=0.0617934961825 nominal_se=7.52822798791e-05 rmse=0.0390659238512 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=self method=missing_j mean=0.0617934961825 nominal_se=7.52822798791e-05 rmse=0.0390659238512 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=self method=double_j mean=0.0617934961825 nominal_se=7.52822798791e-05 rmse=0.0390659238512 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=self method=no_fallback mean=0.0618392482586 nominal_se=9.8085023736e-05 rmse=0.0540316696455 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=self method=no_floor mean=0.0617998560856 nominal_se=6.68968929917e-05 rmse=0.036984830994 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=self method=fresh8 mean=0.0616958713531 nominal_se=9.98158971521e-05 rmse=0.0526456559281 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_IDENTITIES fixture=self maximum_area_angular_error=5.55111512313e-17 present=902249 considered=2097152 candidates=8
+RECONNECTION_REFERENCE fixture=shift integral=0.0282810225874 refinement=1.11211679102e-09 donor_support=0.0282810225874
+RECONNECTION_RESULT fixture=shift method=angular mean=0.0282585340297 nominal_se=4.31359904309e-05 rmse=0.0227660185224 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=shift method=area mean=0.0282585340297 nominal_se=4.31359904309e-05 rmse=0.0227660185224 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=shift method=missing_j mean=0.0498803887327 nominal_se=6.20316709436e-05 rmse=0.0385584097429 mean_gate=0 negative_required=1 negative_gate=1
+RECONNECTION_RESULT fixture=shift method=double_j mean=0.0177923504665 nominal_se=3.63349754634e-05 rmse=0.0222946571855 mean_gate=0 negative_required=1 negative_gate=1
+RECONNECTION_RESULT fixture=shift method=no_fallback mean=0.0282356571249 nominal_se=5.16380632444e-05 rmse=0.0299884911633 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=shift method=no_floor mean=0.0282727522148 nominal_se=4.11440640717e-05 rmse=0.0219212102194 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=shift method=fresh8 mean=0.0283696746826 nominal_se=7.22986883486e-05 rmse=0.0372344484218 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_IDENTITIES fixture=shift maximum_area_angular_error=8.32667268469e-17 present=900046 considered=2097152 candidates=8
+RECONNECTION_REFERENCE fixture=partial_support integral=0.0282810226621 refinement=1.33620264506e-09 donor_support=0.01605520312
+RECONNECTION_RESULT fixture=partial_support method=angular mean=0.0282390252852 nominal_se=7.78191420476e-05 rmse=0.0385144220298 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=partial_support method=area mean=0.0282390252852 nominal_se=7.78191420476e-05 rmse=0.0385144220298 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=partial_support method=missing_j mean=0.0497718405179 nominal_se=0.000183260669815 rmse=0.0882320625479 mean_gate=0 negative_required=0 negative_gate=1
+RECONNECTION_RESULT fixture=partial_support method=double_j mean=0.017792175564 nominal_se=3.72802959572e-05 rmse=0.0232856546639 mean_gate=0 negative_required=0 negative_gate=1
+RECONNECTION_RESULT fixture=partial_support method=no_fallback mean=0.0159990833631 nominal_se=4.5264233018e-05 rmse=0.0273453999633 mean_gate=0 negative_required=1 negative_gate=1
+RECONNECTION_RESULT fixture=partial_support method=no_floor mean=0.0160460755749 nominal_se=2.82143349209e-05 rmse=0.0209428594106 mean_gate=0 negative_required=1 negative_gate=1
+RECONNECTION_RESULT fixture=partial_support method=fresh8 mean=0.028183221817 nominal_se=8.52035589829e-05 rmse=0.0371504916862 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_IDENTITIES fixture=partial_support maximum_area_angular_error=2.22044604925e-16 present=700304 considered=2097152 candidates=8
+RECONNECTION_REFERENCE fixture=dark_donor integral=0.0179346068238 refinement=9.54305457573e-10 donor_support=0
+RECONNECTION_RESULT fixture=dark_donor method=angular mean=0.0179892694163 nominal_se=6.45115031466e-05 rmse=0.0358736090128 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=dark_donor method=area mean=0.0179892694163 nominal_se=6.45115031466e-05 rmse=0.0358736090128 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_RESULT fixture=dark_donor method=missing_j mean=0.0248172206844 nominal_se=8.81544886049e-05 rmse=0.0488000961462 mean_gate=0 negative_required=0 negative_gate=1
+RECONNECTION_RESULT fixture=dark_donor method=double_j mean=0.0135055883166 nominal_se=5.09387163201e-05 rmse=0.0290071944042 mean_gate=0 negative_required=0 negative_gate=1
+RECONNECTION_RESULT fixture=dark_donor method=no_fallback mean=0 nominal_se=0 rmse=0.0179346068238 mean_gate=0 negative_required=1 negative_gate=1
+RECONNECTION_RESULT fixture=dark_donor method=no_floor mean=0 nominal_se=0 rmse=0.0179346068238 mean_gate=0 negative_required=1 negative_gate=1
+RECONNECTION_RESULT fixture=dark_donor method=fresh8 mean=0.0179809856415 nominal_se=6.00794420956e-05 rmse=0.0300610849499 mean_gate=1 negative_required=0 negative_gate=0
+RECONNECTION_IDENTITIES fixture=dark_donor maximum_area_angular_error=1.11022302463e-16 present=524624 considered=2097152 candidates=8
+RECONNECTION_DECISION correctness=1 promote=0 gpu_tested=0 production_changed=0

@@ -1,0 +1,131 @@
+Bounded temporal prototype; host release; external Vulkan driver and shaders are not sanitizer-instrumented
+Base ceebd8a, plus working changes if any; source hashes below.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+069d91ad09c10d206a71e5952664061729a9b33d6c18ae2a4251f9b0d929fe4d  Frontier/Engine/Rendering/PathReplayDomain.h
+30de3a0be93e0745139db036c9214c738fb4729ad322d17a8cd5cfe8c11a2847  Frontier/Engine/Rendering/PathReplayDomain.cpp
+b48af931a2d9fa743eb29c11e7a27df62c890b5ca8f720484190baad85adec74  Frontier/Engine/Rendering/PathReplayVulkan.h
+262c68198f24db5720beec221e0496bb3c3d4f10f046c896e471ef6cf99a4b7d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+f0e7e96b6e1bcaafb97a947b592fa2923aad08635ba8339d1f20be33d291d38f  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+affb399d40e821651465a03e6813768b86cac7b2877bc55f49e52fc08d8755c8  Exhibits/LightCompute/Code/PathReplayDomainValidation.cpp
+7603e39878fae9fde4a7446ac583c41731a16bf5c16db37a593cd02bc91ac13e  Exhibits/LightCompute/Code/PathReplayVulkanValidation.cpp
+5fa5e86aa89aceed8ce5f8ea27b69609b77b0df691e98cdca7859e9eeee4ef18  Exhibits/LightCompute/Code/ReplaySampleHistoryValidation.h
+3438931df641573b2f9d1060008376b74102ff3edd26744ed967745c0ecf3d40  Exhibits/LightCompute/Code/ReplaySeedReservoirValidation.h
+041e54fb7c8523802369de6c434586a1708ee5c6c2fdf666d5c07d17f69492a2  Exhibits/LightCompute/Code/ReplayCompactStorageValidation.h
+c126d561f69ca650a955f8d97705453ae0c85670074eec2c3245814af0521409  Exhibits/LightCompute/Code/ReplayBoundedTemporalValidation.h
+43b76415f6f36ed549b1a1a2a12acc1861222c223df25977bba9805bab29b872  Exhibits/LightCompute/Code/ReplayPathBudgetValidation.h
+7352e4ddc5eeb825d43eb706df0987c9b9cd59edfb6bfcaca8c6c0e0b7a7ed7d  Exhibits/LightCompute/Code/ReplayCameraReprojectionValidation.h
+46a97a110b90c8b34066c513942d04c839b0ac3fa21ca70a26bd06e23b7383d3  Exhibits/LightCompute/Code/ReplayRoomReference.h
+426359805333c1989f7e57f1ca5d7be1c4aa83d70086479a678a34470c37c75e  Exhibits/LightCompute/Code/ReplayCandidateValidation.h
+bd41b325c5fc68eedfb77bcb01c6d59889c566191d5d89d7f7bcc0ed05ca6ae2  Exhibits/LightCompute/Code/ReplayReconstructionValidation.h
+b1089f582559885b7ac7de403cbdaddadb44968cde997aa4d586902ff0dde526  Exhibits/LightCompute/Code/PathReplayGpuValidation.h
+3a3acf7f09f27a02ce369f15ef74026e250399514725f2beed1db5c7b55c8e6e  Exhibits/LightCompute/RunReplayCorrelation.sh
+cd898db31ac6f4929915b8b9bf09f1bd15448050902c407ed55970b60be5380c  Exhibits/LightCompute/Code/ReplayFreshBudget.slang
+f8fa969cb34f631dcb4ffc51744a5e216ddb5bc68d020a60c37d9a0bd586d574  Exhibits/LightCompute/Code/ReplayPathBudgetImages.py
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+2f3ceffaaca7d031bc3943f8eacf398a5d9c42c5fe0d15d8840b9acfa630b58e  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvk_swiftshader.so
+c9eef28b6b984fec220ef0abfecc40b502d46946706e47bfe97707027cb818bd  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/vk_swiftshader_icd.json
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/Primary.spv
+72048c848b02888a28bc3232b8f4258e348d2c04e2f8234e51ad23c8dc1747eb  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/ReplayGenerate.spv
+3d7efcf3193886cee914bbc746d0137d1ab3647b1bf80018319bd3c7bcdae512  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/ReplayGatherSampleHistory.spv
+7577bf45fd8e22f48e41865f11d40991dbafd6bfa7a2e0a9fd18156c9a3eff33  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/ReplayFinalizeSampleHistory.spv
+6d3ff88efe9cb8028cde21dd97abc8518fb080130c6fa0a65c0d0716f50a05ce  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/ReplayFreshBudget.spv
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/plain/Primary.spv
+31bb76d8accc656392de5bfa11467a2eb383d15a64ce1e8941597eabd30e0d87  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/plain/ReplayGenerate.spv
+371925bfab306f09239eeeaaa2e45bb87bbea359b984edf3be929a502f7f9f6e  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/plain/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/plain/ReplayGatherSampleHistory.spv
+eb8cdcc1ee6f685845225f9ac92ce62d1587ad0f217bcd6bd5092d91d45396e6  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/plain/ReplayFinalizeSampleHistory.spv
+f30662fe1b33274cac1096cf420114e40406525b1a59efe5dcecf22a9c8dc155  Exhibits/LightCompute/Code/ReplayCorrelationValidation.h
+4c3362e29d24574f75f8ded90b6e0113c0f30a4f2f871d2b3b91e3497400f0ca  Exhibits/LightCompute/Code/CompileReplayCorrelation.py
+228c81d5b763955e53a4e8f169e9ec585d53b6503fad3baf7e9bd80dc3fb4500  Exhibits/LightCompute/Code/ReplayReuseAblationValidation.h
+b1c1dad4e582f95b74494df18a5b3ac0a5c3292ccce52746961d8b13af27949b  Exhibits/LightCompute/Code/ReplayRoomConvergenceValidation.h
+5156de1379ed9adb63e826e01725b718f95d7c320dc5e4886f27f6fc37d6a6d6  Exhibits/LightCompute/Code/ReplayPowerReuseValidation.h
+b5f1ae23f428ba96d5d91457afbd796ae7d5105c3801c08c27545174476882eb  Exhibits/LightCompute/Code/CompileReplayPowerReuse.py
+34c65b106f495495121d0092ebda945fb1c1e832e24de6d6eb4685b510006593  Exhibits/LightCompute/Code/CompileReplayMISPower.py
+b48e5a655ca6debe77fe1e679293f75fd1280b0b06f0a8a1651e047955e6246c  Exhibits/LightCompute/Code/CompileReplayFirstHop.py
+f26438ca0acb682f4206cb38343f6747e0034d3c605fe00c58c477e07842e29b  Exhibits/LightCompute/Code/CompileReplayIndirectSplit.py
+5ee030f14840bc65be0576bdcb356efaf1c18e218859b68584debf85ef6805ae  Exhibits/LightCompute/Code/CompileReplayResetBudget.py
+96ea4214cd3a42ef70a7c03d0c2aa7557b776f52e5e4c1c829fe8a0690d71288  Exhibits/LightCompute/Code/CompileReplayBoundedTemporal.py
+98bbaeb706067ad1d4700dfc6b5feb2496e15377f5a51606e3fdf28708691627  Exhibits/LightCompute/Code/ReplayBoundedTemporalMeasure.cpp
+d5aa38f18857868a28b6f85ecb8aa934847f746f19f227daa60a9a53f4862b72  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/ReplayPowerReuse.slang
+0418615886a7f39970395ffd496c042e02cb363825b3563962a113aa1ce981f7  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/ReplayFreshPower.slang
+38703f2724cc63e2938a951ba2e9e0e9eec1b34ca9348cfc129ba38862caf91a  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/ReplayFreshSix.slang
+3b3d9dfae44ca8e56c0761eb1da040d5f9c74db9bd08e7a750d8e9a8106dfe9d  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/six/ReplayFreshBudget.spv
+ce45cdde59eb2c5e21e044ff4b1920909502c9e0e66c2cef6c18d511f01c5fb1  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/unfused/ReplayIndirectSplit.slang
+cf51d310b8aeed4ea000e66c199a7ce913947d40a9d2e3bb306798dac2808760  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/unfused/ReplayGenerate.spv
+2d225deb8eb4c3d754f6963c1d115ea2128f21d8757ee564f7625bbe6a4a7b59  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/unfused/ReplayResolve.spv
+89bb737395f3b1db5e49d28cfb3301c548f564fc1d984fe5d5f7078326462ea5  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/unfused/whole/ReplayResetBudget.slang
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/whole/Primary.spv
+d97afa08bb94c01595108be7c13a7baf99ae0b48ad125ce5c05f195518d65e11  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/whole/ReplayGenerate.spv
+9b44d4a6a0f20fcb78a10e408e4a8c8b1c2f792da9e6862464511d2d2984fd2b  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/whole/ReplayResolve.spv
+dca38ff930e95bc9053cb8f243d60e69577baed0fb774d9a7bf4497b6d43e75b  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/whole/ReplayGatherSampleHistory.spv
+7577bf45fd8e22f48e41865f11d40991dbafd6bfa7a2e0a9fd18156c9a3eff33  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/whole/ReplayFinalizeSampleHistory.spv
+b0813da40cf05824ef0b7bca4a55a030e7cc8f93b886acf54684f41f74f5de62  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/whole/ReplayFreshBudget.spv
+3dc9b89fdba3d32f005d52ff9ca547b51e51b8de6f5f5af23b52ad5292315faf  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/SplitIdentityGenerate.spv
+24142287fe2f6a8f795a59c191e9221bdb8fd3352c0eb5cf1764e22ba845ad44  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/SplitIdentityResolve.spv
+f5f18cfd1211bd3156fd43e2b9d9fe56192d61c764111525b736e9ac64f1004b  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/SplitDirectResolve.spv
+8ddc36613fa5b08a3aece9a4b30624829e381d6c1ee7a274ab9da770721ff03d  /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release/LightComputeValidation
+Host sanitizer configuration uses Debug -O1 -g; external Vulkan/shaders are not instrumented
+BOUNDED_MEASURE configurations=24 overlapping_seeds=3 current_candidates=4 visited=491520 max_basis_error=9.78492460668e-18
+PASS bounded overlapping temporal measure; no independent-sample variance claim
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-correlation-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.01 sec
+CORRELATION_PREFLIGHT condition=0 matched_output_nine_slabs_exact=1 one_bounce_direct_exact=1 device=SwiftShader Device (Subzero) type=4
+CORRELATION_REFERENCE condition=0 points=1024 paths=4194304 mean=0.107914199 nominal_se=1.16998268e-05
+CORRELATION_PROGRESS condition=0 completed=8/32
+CORRELATION_PROGRESS condition=0 completed=16/32
+CORRELATION_PROGRESS condition=0 completed=24/32
+CORRELATION_PROGRESS condition=0 completed=32/32
+CORRELATION_RESULT condition=0 method=whole8 mean=0.107932284 nominal_se=5.43769143e-05 rmse=0.00856161783 mean_gate=1 queries=558039 nearest=285150 shadow=272889 calls=262144
+CORRELATION_RESULT condition=0 method=coupled8 mean=0.107932284 nominal_se=5.43769149e-05 rmse=0.00856161784 mean_gate=1 queries=558039 nearest=285150 shadow=272889 calls=524288
+CORRELATION_RESULT condition=0 method=independent8 mean=0.107935687 nominal_se=5.37852567e-05 rmse=0.00861533782 mean_gate=1 queries=820582 nearest=547533 shadow=273049 calls=524288
+CORRELATION_RESULT condition=0 method=whole6 mean=0.107936213 nominal_se=5.77577472e-05 rmse=0.00982724908 mean_gate=1 queries=418483 nearest=213831 shadow=204652 calls=196608
+CORRELATION_RESULT condition=0 method=temporal mean=0.107927607 nominal_se=5.45070781e-05 rmse=0.00870062391 mean_gate=1 queries=651561 nearest=383159 shadow=268402 calls=402564
+CORRELATION_COMPONENTS condition=0 arm=coupled direct_variance=7.11663292e-05 indirect_variance=4.6506692e-07 covariance=-4.84025297e-07 mean_error_squared=2.6379545e-06 rederived_mse=7.33013e-05
+CORRELATION_COMPONENTS condition=0 arm=independent direct_variance=7.11663297e-05 indirect_variance=4.66472664e-07 covariance=-3.6273135e-08 mean_error_squared=2.66378975e-06 rederived_mse=7.42240458e-05
+CORRELATION_PAIRED condition=0 pair=independent_minus_coupled mse_difference=9.22745772e-07 nominal_se=1.59111664e-07
+CORRELATION_PAIRED condition=0 pair=temporal_minus_whole6 mse_difference=-2.08739681e-05 nominal_se=8.02979471e-07
+CORRELATION_PAIRED condition=0 pair=temporal_minus_whole8 mse_difference=2.39955653e-06 nominal_se=1.87673436e-07
+CORRELATION_PAIRED condition=0 pair=temporal_minus_independent mse_difference=1.4768106e-06 nominal_se=2.25109681e-07
+CORRELATION_CHECKS condition=0 maximum_fresh_difference=2.98023224e-08 maximum_independent_difference=0.00823512673 maximum_direct_difference=1.44354999e-08 temporal_accepted=31040 spatial_links=0 warm_submissions=256 warm_queries=5004567
+CORRELATION_PREFLIGHT condition=1 matched_output_nine_slabs_exact=1 one_bounce_direct_exact=1 device=SwiftShader Device (Subzero) type=4
+CORRELATION_REFERENCE condition=1 points=528 paths=1081344 mean=0.53633344 nominal_se=0.000373512453
+CORRELATION_PROGRESS condition=1 completed=8/32
+CORRELATION_PROGRESS condition=1 completed=16/32
+CORRELATION_PROGRESS condition=1 completed=24/32
+CORRELATION_PROGRESS condition=1 completed=32/32
+CORRELATION_RESULT condition=1 method=whole8 mean=0.535003324 nominal_se=0.0010609101 rmse=0.138515749 mean_gate=1 queries=778942 nearest=396656 shadow=382286 calls=141312
+CORRELATION_RESULT condition=1 method=coupled8 mean=0.535003324 nominal_se=0.00106091017 rmse=0.138515751 mean_gate=1 queries=778942 nearest=396656 shadow=382286 calls=282624
+CORRELATION_RESULT condition=1 method=independent8 mean=0.534405985 nominal_se=0.00123718599 rmse=0.138640406 mean_gate=1 queries=913991 nearest=531682 shadow=382309 calls=282624
+CORRELATION_RESULT condition=1 method=whole6 mean=0.534312764 nominal_se=0.00116651996 rmse=0.157961268 mean_gate=1 queries=584171 nearest=297494 shadow=286677 calls=105984
+CORRELATION_RESULT condition=1 method=temporal mean=0.536185551 nominal_se=0.00126593063 rmse=0.179752331 mean_gate=1 queries=619922 nearest=344504 shadow=275418 calls=220329
+CORRELATION_COMPONENTS condition=1 arm=coupled direct_variance=0.00730327169 indirect_variance=0.0114436013 covariance=-0.000109801565 mean_error_squared=0.000659343577 rederived_mse=0.0191866134
+CORRELATION_COMPONENTS condition=1 arm=independent direct_variance=0.00730327167 indirect_variance=0.0114401702 covariance=-5.97419671e-05 mean_error_squared=0.000597204237 rederived_mse=0.0192211621
+CORRELATION_PAIRED condition=1 pair=independent_minus_coupled mse_difference=3.454874e-05 nominal_se=0.000463204675
+CORRELATION_PAIRED condition=1 pair=temporal_minus_whole6 mse_difference=0.00735913834 nominal_se=0.00126781221
+CORRELATION_PAIRED condition=1 pair=temporal_minus_whole8 mse_difference=0.0131242878 nominal_se=0.0012065741
+CORRELATION_PAIRED condition=1 pair=temporal_minus_independent mse_difference=0.0130897385 nominal_se=0.00132801394
+CORRELATION_CHECKS condition=1 maximum_fresh_difference=4.76837158e-07 maximum_independent_difference=1.36155218 maximum_direct_difference=1.78813934e-07 temporal_accepted=17664 spatial_links=0 warm_submissions=256 warm_queries=4715029
+CORRELATION_DECISION correctness=1 promote=0 physical_gpu_timing=0

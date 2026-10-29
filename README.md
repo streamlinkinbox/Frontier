@@ -60,3 +60,19 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   the room MIS-off reference-mean gate also fails. Exact hit-sharing checks do not establish quality acceptance.
 - Production allocation remains 348.046875 MiB output-only at 1080p. Packing and physical-GPU/editor acceptance
   remain deferred or outstanding; software Vulkan query counts are not frame-time measurements.
+- [Room convergence diagnostic](Exhibits/LightCompute/ReplayRoomConvergence.md): independent CPU/GPU controls
+  agree at larger fixed budgets; rare large NEE contributions support the short-run uncertainty explanation.
+  The original failed acceptance remains preserved.
+- [Temporal/spatial ablation](Exhibits/LightCompute/ReplayReuseAblation.md): neither reuse arm passes quality.
+  Room temporal-only trades 20.29% fewer traversal queries for 31.55% higher RMSE, not a proven speedup.
+- [Fresh D/I correlation and Fresh6 controls](Exhibits/LightCompute/ReplayCorrelation.md): correlation loss does
+  not explain the room reuse penalty; fixed Whole6 has 12.12% lower RMSE and 5.77% fewer queries than temporal-only.
+  Query/RMSE evidence only, not physical-GPU timing or a promoted renderer configuration.
+- [Secondary-vertex correctness gate](Exhibits/LightCompute/SecondaryReconnection.md): native production-reservoir
+  checks validate area/angular transport and expose visibility-support failures.
+  Native-only checkpoint; see the Vulkan gate below.
+- [Secondary-vertex analytic Vulkan gate](Exhibits/LightCompute/SecondaryReconnectionGpu.md): Slang readbacks pass
+  reference/support controls and cross-build parity. Analytic geometry only; real-scene/persistent reuse pending.
+- [Triangle-BVH reconnection gate](Exhibits/LightCompute/TriangleReconnection.md): real triangle hits and directional
+  outgoing lighting pass reference/negative controls. Occluded query/error tradeoffs reject the literal implementation;
+  persistent payloads and general-scene acceptance remain pending.

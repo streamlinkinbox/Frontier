@@ -1,0 +1,1 @@
+PASS room convergence evidence: 1454 identical semantic rows; logged artifact hashes [29, 29]; all cohort means/SE rederived; 32-batch historical means exact; four captures exact; both five-CTest sets passed. Prior rejection preserved, promote=0.

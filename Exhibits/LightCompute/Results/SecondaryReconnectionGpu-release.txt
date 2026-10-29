@@ -1,0 +1,106 @@
+Secondary GPU host mode=release revision=ceebd8a925a929ecaee535869ddc0fdbfe7c1da1 working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+639c95285e402506df7f8ee389ac65620c973ca0581a8f5d15f450cc8d8dc705  Exhibits/LightCompute/Code/SecondaryReconnectionGpuValidation.h
+f58c0c0b5e9c3dd04aebfd1f021499874fafd398e05c93f3a88031494ceb3e7d  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+a0eee2e4a359334eba58887a9bf9f35c487685e2fbc490baa4cef94aab3788eb  Exhibits/LightCompute/RunSecondaryReconnectionGpu.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+6ed68dcc077c8e5a62b3f873cd357211b2133f010d43987beeec6e9564a9d28f  /home/user/Frontier/_ClaudeScratch/build/secondary-reconnection-gpu-release/RectangleGenerate.spv
+ba1b5f07532002b125ea211fed63f59ab04e30828d37a2fa8a20be0b7c95a531  /home/user/Frontier/_ClaudeScratch/build/secondary-reconnection-gpu-release/RectangleResolve.spv
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/secondary-reconnection-gpu-release
+[  5%] Built target FrontierPathReplayVulkan
+[ 10%] Built target FrontierMediumRadiancePayload
+[ 16%] Built target FrontierRadiantFacetDistribution
+[ 21%] Built target FrontierPathReplayDomain
+[ 27%] Built target PathReplayVulkanValidation
+[ 32%] Built target PathReplayArchiveValidation
+[ 37%] Built target RadiantFacetValidation
+[ 43%] Built target MediumRadianceValidation
+[ 48%] Built target FrontierPlumeLatticeFootprint
+[ 54%] Built target PathReplayDomainValidation
+[100%] Built target LightComputeValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/secondary-reconnection-gpu-release
+Test project /home/user/Frontier/_ClaudeScratch/build/secondary-reconnection-gpu-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.01 sec
+SECONDARY_GPU_DEVICE name=SwiftShader Device (Subzero) type=4
+SECONDARY_GPU_REFERENCE fixture=0 integral=0.0617605906224 refinement=5.09951551819e-09 donor_support=0.0617605906224
+SECONDARY_GPU_RESULT fixture=0 method=angular mean=0.0616915927532 nominal_se=7.44139083623e-05 rmse=0.0390135218363 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=0 method=area mean=0.0616915927492 nominal_se=7.4413910252e-05 rmse=0.0390135218262 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=0 method=missing_j mean=0.0616915927532 nominal_se=7.44139083623e-05 rmse=0.0390135218363 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=0 method=double_j mean=0.0616915927492 nominal_se=7.4413910252e-05 rmse=0.0390135218262 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=0 method=no_fallback mean=0.0614996782906 nominal_se=0.000103521310231 rmse=0.0539281277961 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=0 method=no_floor mean=0.0616806074836 nominal_se=7.09190854494e-05 rmse=0.0369815518649 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=0 method=fresh8 mean=0.0614974005616 nominal_se=9.8211838453e-05 rmse=0.0524608523293 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_IDENTITY fixture=0 maximum_difference=2.98023223877e-08 present=899800 considered=2097152
+SECONDARY_GPU_REFERENCE fixture=1 integral=0.0282810225874 refinement=1.11211679102e-09 donor_support=0.0282810225874
+SECONDARY_GPU_RESULT fixture=1 method=angular mean=0.0283512111568 nominal_se=3.93759616931e-05 rmse=0.0227921373876 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=1 method=area mean=0.0283512111583 nominal_se=3.93759627629e-05 rmse=0.0227921373866 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=1 method=missing_j mean=0.0499840832007 nominal_se=5.58847970802e-05 rmse=0.0385830385112 mean_gate=0 negative_required=1 negative_gate=1
+SECONDARY_GPU_RESULT fixture=1 method=double_j mean=0.017870239166 nominal_se=3.43051854161e-05 rmse=0.0222901614112 mean_gate=0 negative_required=1 negative_gate=1
+SECONDARY_GPU_RESULT fixture=1 method=no_fallback mean=0.028301965045 nominal_se=6.30021158387e-05 rmse=0.0299882028909 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=1 method=no_floor mean=0.028350279882 nominal_se=3.76296942532e-05 rmse=0.0219511018295 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=1 method=fresh8 mean=0.0282198706854 nominal_se=6.61159213801e-05 rmse=0.0372321705861 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_IDENTITY fixture=1 maximum_difference=4.47034835815e-08 present=900949 considered=2097152
+SECONDARY_GPU_REFERENCE fixture=2 integral=0.0282810226621 refinement=1.33621491996e-09 donor_support=0.0160552033815
+SECONDARY_GPU_RESULT fixture=2 method=angular mean=0.0283456192305 nominal_se=6.6966631945e-05 rmse=0.0385758584204 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=2 method=area mean=0.0283456192314 nominal_se=6.69666329893e-05 rmse=0.0385758583949 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=2 method=missing_j mean=0.0500745650268 nominal_se=0.000147650786021 rmse=0.0888894856355 mean_gate=0 negative_required=0 negative_gate=1
+SECONDARY_GPU_RESULT fixture=2 method=double_j mean=0.0178391651808 nominal_se=3.8092717825e-05 rmse=0.023236911169 mean_gate=0 negative_required=0 negative_gate=1
+SECONDARY_GPU_RESULT fixture=2 method=no_fallback mean=0.0160779944534 nominal_se=4.21626426566e-05 rmse=0.027436655853 mean_gate=0 negative_required=1 negative_gate=1
+SECONDARY_GPU_RESULT fixture=2 method=no_floor mean=0.0160396701902 nominal_se=3.76016615538e-05 rmse=0.0209356103788 mean_gate=0 negative_required=1 negative_gate=1
+SECONDARY_GPU_RESULT fixture=2 method=fresh8 mean=0.0283220092017 nominal_se=7.61055340381e-05 rmse=0.0372962957803 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_IDENTITY fixture=2 maximum_difference=1.49011611938e-07 present=700000 considered=2097152
+SECONDARY_GPU_REFERENCE fixture=3 integral=0.0179346046656 refinement=9.54304881645e-10 donor_support=0
+SECONDARY_GPU_RESULT fixture=3 method=angular mean=0.0179329883484 nominal_se=7.15664751855e-05 rmse=0.0357996998569 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=3 method=area mean=0.0179329883576 nominal_se=7.15664760016e-05 rmse=0.0357996998733 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_RESULT fixture=3 method=missing_j mean=0.0247199709429 nominal_se=9.98272536897e-05 rmse=0.0486275543757 mean_gate=0 negative_required=0 negative_gate=1
+SECONDARY_GPU_RESULT fixture=3 method=double_j mean=0.0134761771798 nominal_se=5.52893227513e-05 rmse=0.0289981565894 mean_gate=0 negative_required=0 negative_gate=1
+SECONDARY_GPU_RESULT fixture=3 method=no_fallback mean=0 nominal_se=0 rmse=0.0179346046656 mean_gate=0 negative_required=1 negative_gate=1
+SECONDARY_GPU_RESULT fixture=3 method=no_floor mean=0 nominal_se=0 rmse=0.0179346046656 mean_gate=0 negative_required=1 negative_gate=1
+SECONDARY_GPU_RESULT fixture=3 method=fresh8 mean=0.0179922003032 nominal_se=6.24715281965e-05 rmse=0.0300918019818 mean_gate=1 negative_required=0 negative_gate=0
+SECONDARY_GPU_IDENTITY fixture=3 maximum_difference=5.96046447754e-08 present=524326 considered=2097152
+SECONDARY_GPU_DECISION correctness=1 promote=0 physical_gpu_timing=0
+31893c01cac2965aae565948931e85557eecf0db2a546c593901015a68995573  /home/user/Frontier/_ClaudeScratch/secondary-reconnection-gpu-capture-release/SecondaryGpu0.f32
+1a13156796adcf67f88cd5302c2582d849b4322ba35a5bf6641f0864eac04493  /home/user/Frontier/_ClaudeScratch/secondary-reconnection-gpu-capture-release/SecondaryGpu1.f32
+6476b628ce5f60c49649dc2438de8f14285e92a6a01a2504e7d59ccde2aaf949  /home/user/Frontier/_ClaudeScratch/secondary-reconnection-gpu-capture-release/SecondaryGpu2.f32
+b6ed63fe36563b7aed62dd56cf676446e709ae448288ca8c78af952ec9f8b50b  /home/user/Frontier/_ClaudeScratch/secondary-reconnection-gpu-capture-release/SecondaryGpu3.f32

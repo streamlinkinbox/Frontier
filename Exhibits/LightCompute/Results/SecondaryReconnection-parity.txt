@@ -1,0 +1,1 @@
+PASS secondary reconnection: 37 identical semantic rows; four source hashes per build; 12 corrected/fresh mean gates; six required negative controls; four area/angular identities; four null-candidate counts; clipped-support references verified. promote=0 gpu_tested=0.

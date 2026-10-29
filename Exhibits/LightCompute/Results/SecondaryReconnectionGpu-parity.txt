@@ -1,0 +1,1 @@
+PASS Vulkan secondary reconnection: 38 identical semantic rows; checked hashes [31, 31]; 12 reference gates, six required negative controls, four identities; 28 CPU/GPU mean comparisons; four exact raw readbacks and 28 retained PNG pixel arrays; both five-CTest sets passed. promote=0 physical_gpu_timing=0.

@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780">
+<rect width="1200" height="780" fill="#121923"/>
+<g font-family="DejaVu Sans" fill="#edf1fa">
+<text x="24" y="28" font-size="18">Secondary-vertex correctness: measured mean / independent reference</text>
+<text x="24" y="52" font-size="13">Native CPU / 64 cohorts / whiskers = 4 nominal SE / not GPU renders or performance</text>
+<text x="25" y="95" font-size="17">self</text>
+<line x1="170" y1="111" x2="170" y2="348" stroke="#35404d"/>
+<text x="164" y="370" font-size="12">0.0</text>
+<line x1="260" y1="111" x2="260" y2="348" stroke="#35404d"/>
+<text x="254" y="370" font-size="12">0.5</text>
+<line x1="350" y1="111" x2="350" y2="348" stroke="#35404d"/>
+<text x="344" y="370" font-size="12">1.0</text>
+<line x1="440" y1="111" x2="440" y2="348" stroke="#35404d"/>
+<text x="434" y="370" font-size="12">1.5</text>
+<line x1="530" y1="111" x2="530" y2="348" stroke="#35404d"/>
+<text x="524" y="370" font-size="12">2.0</text>
+<line x1="350" y1="111" x2="350" y2="348" stroke="#e1e7f2" stroke-dasharray="4 3"/>
+<text x="25" y="133" font-size="13">Corrected</text>
+<line x1="349.218" y1="129" x2="350.974" y2="129" stroke="#77d3a6" stroke-width="3"/>
+<circle cx="350.096" cy="129" r="4" fill="#77d3a6"/>
+<text x="359.096" y="133" font-size="12" fill="#77d3a6">1.001</text>
+<text x="25" y="172" font-size="13">Fresh8</text>
+<line x1="348.648" y1="168" x2="350.975" y2="168" stroke="#9abfff" stroke-width="3"/>
+<circle cx="349.811" cy="168" r="4" fill="#9abfff"/>
+<text x="358.811" y="172" font-size="12" fill="#9abfff">0.999</text>
+<text x="25" y="211" font-size="13">Omit angular J</text>
+<line x1="349.218" y1="207" x2="350.974" y2="207" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="350.096" cy="207" r="4" fill="#e7aa81"/>
+<text x="359.096" y="211" font-size="12" fill="#e7aa81">1.001</text>
+<text x="25" y="250" font-size="13">Extra area J</text>
+<line x1="349.218" y1="246" x2="350.974" y2="246" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="350.096" cy="246" r="4" fill="#e7aa81"/>
+<text x="359.096" y="250" font-size="12" fill="#e7aa81">1.001</text>
+<text x="25" y="289" font-size="13">No fallback</text>
+<line x1="349.086" y1="285" x2="351.373" y2="285" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="350.229" cy="285" r="4" fill="#e7aa81"/>
+<text x="359.229" y="289" font-size="12" fill="#e7aa81">1.001</text>
+<text x="25" y="328" font-size="13">No target floor</text>
+<line x1="349.335" y1="324" x2="350.894" y2="324" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="350.114" cy="324" r="4" fill="#e7aa81"/>
+<text x="359.114" y="328" font-size="12" fill="#e7aa81">1.001</text>
+<text x="620" y="95" font-size="17">shift</text>
+<line x1="765" y1="111" x2="765" y2="348" stroke="#35404d"/>
+<text x="759" y="370" font-size="12">0.0</text>
+<line x1="855" y1="111" x2="855" y2="348" stroke="#35404d"/>
+<text x="849" y="370" font-size="12">0.5</text>
+<line x1="945" y1="111" x2="945" y2="348" stroke="#35404d"/>
+<text x="939" y="370" font-size="12">1.0</text>
+<line x1="1035" y1="111" x2="1035" y2="348" stroke="#35404d"/>
+<text x="1029" y="370" font-size="12">1.5</text>
+<line x1="1125" y1="111" x2="1125" y2="348" stroke="#35404d"/>
+<text x="1119" y="370" font-size="12">2.0</text>
+<line x1="945" y1="111" x2="945" y2="348" stroke="#e1e7f2" stroke-dasharray="4 3"/>
+<text x="620" y="133" font-size="13">Corrected</text>
+<line x1="943.759" y1="129" x2="945.955" y2="129" stroke="#77d3a6" stroke-width="3"/>
+<circle cx="944.857" cy="129" r="4" fill="#77d3a6"/>
+<text x="953.857" y="133" font-size="12" fill="#77d3a6">0.999</text>
+<text x="620" y="172" font-size="13">Fresh8</text>
+<line x1="943.724" y1="168" x2="947.405" y2="168" stroke="#9abfff" stroke-width="3"/>
+<circle cx="945.564" cy="168" r="4" fill="#9abfff"/>
+<text x="954.564" y="172" font-size="12" fill="#9abfff">1.003</text>
+<text x="620" y="211" font-size="13">Omit angular J</text>
+<line x1="1080.894" y1="207" x2="1084.053" y2="207" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="1082.473" cy="207" r="4" fill="#e7aa81"/>
+<text x="1091.473" y="211" font-size="12" fill="#e7aa81">1.764</text>
+<text x="620" y="250" font-size="13">Extra area J</text>
+<line x1="877.318" y1="246" x2="879.168" y2="246" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="878.243" cy="246" r="4" fill="#e7aa81"/>
+<text x="887.243" y="250" font-size="12" fill="#e7aa81">0.629</text>
+<text x="620" y="289" font-size="13">No fallback</text>
+<line x1="943.397" y1="285" x2="946.026" y2="285" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="944.711" cy="285" r="4" fill="#e7aa81"/>
+<text x="953.711" y="289" font-size="12" fill="#e7aa81">0.998</text>
+<text x="620" y="328" font-size="13">No target floor</text>
+<line x1="943.900" y1="324" x2="945.995" y2="324" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="944.947" cy="324" r="4" fill="#e7aa81"/>
+<text x="953.947" y="328" font-size="12" fill="#e7aa81">1.000</text>
+<text x="25" y="420" font-size="17">partial_support</text>
+<line x1="170" y1="436" x2="170" y2="673" stroke="#35404d"/>
+<text x="164" y="695" font-size="12">0.0</text>
+<line x1="260" y1="436" x2="260" y2="673" stroke="#35404d"/>
+<text x="254" y="695" font-size="12">0.5</text>
+<line x1="350" y1="436" x2="350" y2="673" stroke="#35404d"/>
+<text x="344" y="695" font-size="12">1.0</text>
+<line x1="440" y1="436" x2="440" y2="673" stroke="#35404d"/>
+<text x="434" y="695" font-size="12">1.5</text>
+<line x1="530" y1="436" x2="530" y2="673" stroke="#35404d"/>
+<text x="524" y="695" font-size="12">2.0</text>
+<line x1="350" y1="436" x2="350" y2="673" stroke="#e1e7f2" stroke-dasharray="4 3"/>
+<text x="25" y="458" font-size="13">Corrected</text>
+<line x1="347.752" y1="454" x2="351.714" y2="454" stroke="#77d3a6" stroke-width="3"/>
+<circle cx="349.733" cy="454" r="4" fill="#77d3a6"/>
+<text x="358.733" y="458" font-size="12" fill="#77d3a6">0.999</text>
+<text x="25" y="497" font-size="13">Fresh8</text>
+<line x1="347.208" y1="493" x2="351.547" y2="493" stroke="#9abfff" stroke-width="3"/>
+<circle cx="349.378" cy="493" r="4" fill="#9abfff"/>
+<text x="358.378" y="497" font-size="12" fill="#9abfff">0.997</text>
+<text x="25" y="536" font-size="13">Omit angular J</text>
+<line x1="482.117" y1="532" x2="491.448" y2="532" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="486.782" cy="532" r="4" fill="#e7aa81"/>
+<text x="495.782" y="536" font-size="12" fill="#e7aa81">1.760</text>
+<text x="25" y="575" font-size="13">Extra area J</text>
+<line x1="282.293" y1="571" x2="284.191" y2="571" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="283.242" cy="571" r="4" fill="#e7aa81"/>
+<text x="292.242" y="575" font-size="12" fill="#e7aa81">0.629</text>
+<text x="25" y="614" font-size="13">No fallback</text>
+<line x1="270.677" y1="610" x2="272.982" y2="610" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="271.829" cy="610" r="4" fill="#e7aa81"/>
+<text x="280.829" y="614" font-size="12" fill="#e7aa81">0.566</text>
+<text x="25" y="653" font-size="13">No target floor</text>
+<line x1="271.410" y1="649" x2="272.847" y2="649" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="272.128" cy="649" r="4" fill="#e7aa81"/>
+<text x="281.128" y="653" font-size="12" fill="#e7aa81">0.567</text>
+<text x="620" y="420" font-size="17">dark_donor</text>
+<line x1="765" y1="436" x2="765" y2="673" stroke="#35404d"/>
+<text x="759" y="695" font-size="12">0.0</text>
+<line x1="855" y1="436" x2="855" y2="673" stroke="#35404d"/>
+<text x="849" y="695" font-size="12">0.5</text>
+<line x1="945" y1="436" x2="945" y2="673" stroke="#35404d"/>
+<text x="939" y="695" font-size="12">1.0</text>
+<line x1="1035" y1="436" x2="1035" y2="673" stroke="#35404d"/>
+<text x="1029" y="695" font-size="12">1.5</text>
+<line x1="1125" y1="436" x2="1125" y2="673" stroke="#35404d"/>
+<text x="1119" y="695" font-size="12">2.0</text>
+<line x1="945" y1="436" x2="945" y2="673" stroke="#e1e7f2" stroke-dasharray="4 3"/>
+<text x="620" y="458" font-size="13">Corrected</text>
+<line x1="942.959" y1="454" x2="948.138" y2="454" stroke="#77d3a6" stroke-width="3"/>
+<circle cx="945.549" cy="454" r="4" fill="#77d3a6"/>
+<text x="954.549" y="458" font-size="12" fill="#77d3a6">1.003</text>
+<text x="620" y="497" font-size="13">Fresh8</text>
+<line x1="943.054" y1="493" x2="947.877" y2="493" stroke="#9abfff" stroke-width="3"/>
+<circle cx="945.465" cy="493" r="4" fill="#9abfff"/>
+<text x="954.465" y="497" font-size="12" fill="#9abfff">1.003</text>
+<text x="620" y="536" font-size="13">Omit angular J</text>
+<line x1="1010.538" y1="532" x2="1017.616" y2="532" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="1014.077" cy="532" r="4" fill="#e7aa81"/>
+<text x="1023.077" y="536" font-size="12" fill="#e7aa81">1.384</text>
+<text x="620" y="575" font-size="13">Extra area J</text>
+<line x1="898.503" y1="571" x2="902.593" y2="571" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="900.548" cy="571" r="4" fill="#e7aa81"/>
+<text x="909.548" y="575" font-size="12" fill="#e7aa81">0.753</text>
+<text x="620" y="614" font-size="13">No fallback</text>
+<line x1="765.000" y1="610" x2="765.000" y2="610" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="765.000" cy="610" r="4" fill="#e7aa81"/>
+<text x="774.000" y="614" font-size="12" fill="#e7aa81">0.000</text>
+<text x="620" y="653" font-size="13">No target floor</text>
+<line x1="765.000" y1="649" x2="765.000" y2="649" stroke="#e7aa81" stroke-width="3"/>
+<circle cx="765.000" cy="649" r="4" fill="#e7aa81"/>
+<text x="774.000" y="653" font-size="12" fill="#e7aa81">0.000</text>
+<text x="24" y="753" font-size="13">Reference line = correct mean. Area/angular corrected estimates agree within 2.23e-16; neither proves an efficiency win.</text>
+</g></svg>
