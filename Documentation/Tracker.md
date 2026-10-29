@@ -1,5 +1,19 @@
 # Project Tracker
 
+## Perspective-camera fresh area RIS — 2026-10-30
+
+- [Completed perspective holdout](../Exhibits/LightCompute/PerspectiveAreaReservoir.md):three frozen pinhole views on the shared16-facet
+  scene;all3,072 primary pixels differ from orthographic setup,including172 wall-primary pixels in view2.
+- Uniform/area RIS pass ordinary+cross-reference MSE gates3/3 each versus same-query raw4. RMSE reductions:
+  uniform30.06/23.52/4.06%,area27.64/25.23/31.77%. View2 uniform paired interval includes zero;gain uncertain.
+- Raw8 remains more accurate all6 matched comparisons,with68 versus36 counted calls/pixel. Uniform RIS is
+  best same-query arm all3 views;query counts are not timings. No score/view/gate tuning after measurements.
+- Release/host ASan+UBSan,five CTests each;491,520 candidate/393,216 path replays,54 RGB means pass. Negative
+  density controls fail3/3 per type;9 semantic rows,67 hashes/build,6 readbacks,2 modules match.
+- Evaluation100%,remaining0%;overall~80%/~20% remaining,planning estimates. Next:broader geometry/material
+  holdouts before production integration;not arbitrary-scene or temporal acceptance.
+- Production348.046875MiB/defaults unchanged;packing/editor/vehicle/Jolt deferred. No PR or Actions.
+
 ## Fresh BSDF/area reservoirs — 2026-10-30
 
 - [Completed explicit-measure reservoir comparison](../Exhibits/LightCompute/DiffuseReservoirMis.md):two candidates,selection h/q,
