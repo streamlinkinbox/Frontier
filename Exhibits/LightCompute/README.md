@@ -1,5 +1,15 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Confirmed visibility reuse and fair query baseline — 2026-10-29
+
+[Numerical cause, corrected reuse, actual readbacks and full baseline comparison](VisibilityReuse.md).
+Original/reconstructed direction.x differs by one ULP on three retained rays;the reconstructed visibility stays
+authoritative. Confirmed-result reuse leaves all estimates/payloads unchanged. With both sides optimized,
+rotate4 uses16.18–21.80% fewer queries and has14.07–16.65% lower temporal RMSE than fresh8. Fresh6 is cheaper
+than rotate4;rotate2 still loses fresh8 temporal quality. These are restricted component/query results,not timings.
+Eight-slot prototype memory remains unresolved;production348.046875MiB/layout/defaults stay unchanged.
+
+
 ## Fresh direct lighting + indirect-only replay — 2026-10-28
 
 [Implemented split, actual colored-room captures, uncertainty and explicit work](ReplayIndirectSplit.md).

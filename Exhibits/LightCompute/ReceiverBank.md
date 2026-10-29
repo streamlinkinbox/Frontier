@@ -138,3 +138,10 @@ not solved here;the uniform proposal still relies on one known diffuse square/de
 The subsequent [ray-budget safety audit](RayBudget.md) rejects unconditional elision at three deterministic
 shadow-boundary probe entries. Its main work comparison is blocked,not passed;source-level redundancy does
 not establish exact equivalence after float hit-point reconstruction. Original checks/defaults remain in place.
+
+## Corrected-control comparison completed
+
+[Confirmed visibility reuse](VisibilityReuse.md) now preserves the numerical recheck while caching its actual
+result. Against equally corrected fresh8,rotate4 saves16.18–21.80% queries and retains14.07–16.65% lower temporal
+RMSE. Rotate4 uses4.28–11.76% more queries than corrected fresh6;inherited-control work totals above remain
+historical,not optimized speed claims. Both full matrix builds and independent evidence audits pass.

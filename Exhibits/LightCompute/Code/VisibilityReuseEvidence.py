@@ -42,6 +42,9 @@ for Mode in ('release', 'sanitized'):
             assert int(F['reused']) == 32*1024*13*(4 if Local==2 else 6 if Local==3 else 0)
         if Line.startswith('VISIBILITY_REUSE_PAIRED '):
             PairCount += 1
+            assert all(math.isfinite(float(F[K])) for K in ('instantaneous_mse','instantaneous_se','temporal_mse','temporal_se'))
+            if F['arm']=='fastrotate4':assert float(F['instantaneous_mse'])<0 and float(F['temporal_mse'])<0
+            if F['arm']=='fastrotate2' and F['control']=='fastfresh8':assert float(F['temporal_mse'])>0
             if Mode == 'release': Contrasts.append(F)
         if Line.startswith('VISIBILITY_REUSE_CHECK '):
             CheckCount += 1
@@ -67,6 +70,16 @@ for Fixture in range(4):
         A, B = (Measurements[str(Fixture), Methods[Local+Shift]] for Shift in (0, 6))
         for K in ('rmse', 'temporal_rmse', 'flicker_rmse', 'lag1', 'reused'): assert A[K] == B[K], (Fixture, Local, K)
         assert int(B['queries']) <= int(A['queries'])
+Negative = (Results/'VisibilityReuse-legacy-rejection.txt').read_text()
+HistoricalNegative = (Results/'RayBudget-release.txt').read_text()
+assert [L for L in Negative.splitlines() if L.startswith('RAY_BUDGET_')] == [
+    L for L in HistoricalNegative.splitlines() if L.startswith('RAY_BUDGET_')]
+assert Negative.rstrip().endswith('First-hit/recheck numerical edge disagreement blocks query elision')
+HistoricalHashes = {str((Root/N).resolve()):H for H,N in re.findall(r'^([a-f0-9]{64})  (.+)$',HistoricalNegative,re.M)}
+for Digest,Name in re.findall(r'^([a-f0-9]{64})  (.+)$',Negative,re.M):
+    if Name.endswith('.spv'):assert Digest==HistoricalHashes[str((Root/Name).resolve())]
+    else:assert Digest==hashlib.sha256((Root/Name).read_bytes()).hexdigest()
+(Root / '_ClaudeScratch/tmp').mkdir(parents=True, exist_ok=True)
 with tempfile.TemporaryDirectory(dir=Root / '_ClaudeScratch/tmp') as Temporary:
     Shader = Path(Temporary) / 'VisibilityReuse.slang'
     subprocess.run([sys.executable, str(Root/'Exhibits/LightCompute/Code/CompileVisibilityReuse.py'), str(Shader)], cwd=Root, check=True)
@@ -113,6 +126,38 @@ for Fixture in range(4):
                 Canvas.paste(Panel.resize((128,128),Image.Resampling.NEAREST),(180+Column*166,94+SelectedPoses.index(Pose)*158))
 Canvas.save(Images/'VisibilityReuseReadbacks.png')
 
+# Independently reconstruct the birth density and current component estimate, not only paired implementation equality.
+MaximumDensityError, MaximumReconstructionError = 0., 0.
+for Fixture, Blocker in enumerate((0., .12, .3, .6)):
+    Blocker = struct.unpack('<f',struct.pack('<f',Blocker))[0]
+    Birth = [[0]*8 for Method in range(3)]
+    for Pose in range(16):
+        Raw=(Root/f'_ClaudeScratch/visibility-reuse-capture-release/VisibilityReuse{Fixture}-{Pose}.f32').read_bytes()
+        Payload=(Root/f'_ClaudeScratch/visibility-reuse-capture-release/VisibilityReusePayload{Fixture}-{Pose}.f32').read_bytes()
+        ReceiverX=struct.unpack('<f',struct.pack('<f',.5-.5*math.cos(2*math.pi*Pose/16)))[0]
+        for Bank in range(3):
+            Replace=4 if Bank==1 else 2
+            for Slot in range(8):
+                if Bank==0 or Pose in (0,9,13) or (Slot+8-(Pose*Replace)%8)%8<Replace:Birth[Bank][Slot]=Pose
+            for Sample in range(1024):
+                Estimate=0.
+                for Slot in range(8):
+                    X,Y,Outgoing,Density=struct.unpack_from('<4f',Payload,((Bank*1024+Sample)*8+Slot)*16)
+                    if Density==0:
+                        assert X==Y==Outgoing==0
+                        continue
+                    Anchor=struct.unpack('<f',struct.pack('<f',.5-.5*math.cos(2*math.pi*Birth[Bank][Slot]/16)))[0]
+                    Visible=Blocker==0 or abs(X+Anchor)>2*Blocker
+                    Q=.25+(.75/(math.pi*(1+(X-Anchor)**2+Y*Y)**2) if Visible else 0)
+                    MaximumDensityError=max(MaximumDensityError,abs(Q-Density))
+                    Lit=Blocker==0 or abs(X+2/3)>Blocker
+                    assert abs(Outgoing-(.7*(.5 if 9<=Pose<13 else 1) if Lit else 0))<2e-6
+                    if Blocker==0 or abs(X+ReceiverX)>2*Blocker:
+                        Estimate+=.6*Outgoing/(math.pi*(1+(X-ReceiverX)**2+Y*Y)**2*Density*8)
+                Measured=struct.unpack_from('<f',Raw,((Bank+1)*1024+Sample)*16)[0]
+                MaximumReconstructionError=max(MaximumReconstructionError,abs(Estimate-Measured))
+assert MaximumDensityError<2e-6 and MaximumReconstructionError<2e-6
+
 # Actual same-origin/same-range ray diagnostics isolate direction changes, not a changed distance cutoff.
 RayLines=['# Recorded ray-direction diagnostics','',
           '| Probe | Original x bits | Reconstructed x bits | Original short hit | Reconstructed short hit |',
@@ -133,6 +178,7 @@ for Fixture in range(4):
             BitsB=struct.unpack_from('<I',Rays,Pixel*80+32)[0]
             assert BitsB-BitsA==1 and F[1:3]==F[9:11]
             assert F[13]==-1 and F[14]==2 and F[12] in (0,1)
+            assert F[7]==F[16] and 0<F[19]<F[7]
             ULPRegressions+=1
             RayLines.append(f'| {Pixel} | 0x{BitsA:08x} | 0x{BitsB:08x} | miss | blocker facet2 |')
 assert ULPRegressions==3
@@ -174,10 +220,12 @@ Message=(f'PASS confirmed visibility reuse: {len(Semantic[0])} identical semanti
          '768 mean gates,12582912 matched estimates,34078720 retained-slot checks; '
          '408 legacy rows unchanged;24 legacy/fast quality summaries identical.\n'
          f'136 captures byte-identical,24 PNG arrays exact;{CandidateChecks} captured candidate pairs equal; '
-         f'max captured estimate difference={MaximumEstimateDifference:.12g}.\n'
+         f'max captured estimate difference={MaximumEstimateDifference:.12g}; '
+         f'independent q/estimate reconstruction errors={MaximumDensityError:.12g}/{MaximumReconstructionError:.12g}.\n'
          '4096 confirmed-visibility regressions,original three first-hit disagreements retained; '
          'three x-direction one-ULP changes isolate original-short miss vs reconstructed-short blocker2.\n'
          'Both native commands exit0,five CTests each;shader regenerated exactly. '
+         'Old unsafe gate still exits1 with current host,eight archived rows unchanged. '
          'No production promotion or physical-GPU timing.\n')
 (Results/'VisibilityReuse-parity.txt').write_text(Message)
 print(Message,end='')

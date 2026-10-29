@@ -1,0 +1,13 @@
+Legacy safety regression using new host revision=cad9866fbe97767a615f7dc27c9c784fa85962d0 expected_exit=1
+b43336997c291917caf187d3f17c36a09d73f01244bc81be2f78d287ec5d029d  _ClaudeScratch/build/visibility-reuse-release/LightComputeValidation
+6e1f16ea30bc380936948f78ed1f3020388f96061aa9e8b6b48af895dc050fbe  _ClaudeScratch/build/ray-budget-release/DiffuseGenerate.spv
+bb1808193cac3df97ece2d687bf24ddb167d79249544a66be3cd52c03da9a92b  _ClaudeScratch/build/ray-budget-release/DiffuseResolve.spv
+RAY_BUDGET_DEVICE name=SwiftShader Device (Subzero) type=4
+RAY_BUDGET_EDGE fixture=0 probes=1024 hits=561 disagreements=0
+RAY_BUDGET_EDGE fixture=1 probes=1024 hits=335 disagreements=0
+RAY_BUDGET_EDGE fixture=2 probes=1024 hits=215 disagreements=3
+RAY_BUDGET_EDGE_DETAIL fixture=2 pixel=918 receiver_x=1 target_x=-0.399999887 target_y=-0.5 first=1 recheck=0
+RAY_BUDGET_EDGE_DETAIL fixture=2 pixel=938 receiver_x=1 target_x=-0.399999887 target_y=0 first=1 recheck=0
+RAY_BUDGET_EDGE_DETAIL fixture=2 pixel=958 receiver_x=1 target_x=-0.399999887 target_y=0.5 first=1 recheck=0
+RAY_BUDGET_EDGE fixture=3 probes=1024 hits=77 disagreements=0
+First-hit/recheck numerical edge disagreement blocks query elision

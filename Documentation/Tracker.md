@@ -1507,3 +1507,26 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
   visibility semantics and neighboring representable rays before reuse. No post-hoc epsilon/threshold relaxation.
 - No production Engine/layout/default change or promotion.348.046875MiB output stays. Windows/editor/physical-GPU
   time/TAA/general GI not accepted;bank memory burden unresolved. No PR or Actions run.
+
+### Confirmed visibility reuse — complete scoped correction and fair baseline comparison
+
+- [Visibility contract/results](../Exhibits/LightCompute/VisibilityReuse.md):actual reconstructed-point query remains
+  authoritative. Same-origin/same-range diagnostics isolate one ULP in direction.x on918/938/958;original short
+  ray misses,renormalized ray hits blocker2. No epsilon/tolerance or numerical-edge relaxation.
+- Confirmed query reused for new candidate rejection,density and newborn receiver contribution;historical slots
+  always retraced. Fresh cosine skips only null/out-of-domain rechecks;exact savings audited against misses.
+- Release/host ASan+UBSan exit0,five CTests each;929 identical semantic rows,177 hashes/build,768 mean gates,
+  12,582,912 exact paired estimates,34,078,720 retention checks,136 byte-identical raw captures,24 exact PNGs.
+  All408 legacy mean/result rows unchanged;independent q/estimate errors1.36e-7/5.23e-8 over1,572,864 candidates.
+- All4096 edge cases preserve recheck;23 primary/recheck differences in .3 including original three remain.
+  Unsafe old gate rerun under new host:expected exit1,eight archived rows unchanged. Original rejection retained.
+- **Both controls and bank optimized:**rotate4 vs fresh8 queries−16.18–21.80%,instant RMSE−31.78–37.90%,temporal
+  RMSE−14.07–16.65%;minimum24.41 nominal cohort SE for favorable temporal-MSE contrasts. Not physical timing.
+- Corrected fresh6 costs less:rotate4 spends4.28–11.76% extra queries for25.75–27.79% less temporal RMSE.
+  Nonpersistent area8 costs12.20–23.85% extra queries vs corrected fresh8 for34.82–37.60% less temporal RMSE.
+  Rotate2 saves queries but remains worse temporally than fresh8. No longer claim inherited-control work wins.
+- Focused phase100%,remaining0%;overall renderer approximately35% **planning estimate**,not measured readiness.
+  Done:diagnosis,correction,all baseline/alternative comparisons,both builds,regressions,visual proof and backup.
+- Remaining separate gates:lower-storage weighted-reservoir/fresh injection,full geometry/RGB/GI,production port,
+  physical-GPU/Windows/editor/TAA/timing. Experimental144B+16B bank not production-fit;packing deferred.
+  Production348.046875MiB/Engine/layout/defaults unchanged. No PR or Actions;session branch backed up to GitHub.

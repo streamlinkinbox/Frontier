@@ -1,0 +1,4 @@
+PASS confirmed visibility reuse: 929 identical semantic rows; hashes [177, 177]; 768 mean gates,12582912 matched estimates,34078720 retained-slot checks; 408 legacy rows unchanged;24 legacy/fast quality summaries identical.
+136 captures byte-identical,24 PNG arrays exact;1572864 captured candidate pairs equal; max captured estimate difference=0; independent q/estimate reconstruction errors=1.35335272267e-07/5.22758408783e-08.
+4096 confirmed-visibility regressions,original three first-hit disagreements retained; three x-direction one-ULP changes isolate original-short miss vs reconstructed-short blocker2.
+Both native commands exit0,five CTests each;shader regenerated exactly. Old unsafe gate still exits1 with current host,eight archived rows unchanged. No production promotion or physical-GPU timing.

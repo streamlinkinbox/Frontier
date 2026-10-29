@@ -1,0 +1,1189 @@
+Secondary GPU host mode=sanitized revision=cad9866fbe97767a615f7dc27c9c784fa85962d0 working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+1cb56bc9980bb8b18bbacca2fb86b3c4e51a2cdd7f25aa548b06d0008105416b  Exhibits/LightCompute/Code/CompileVisibilityReuse.py
+6d5dd771944de278bea5c85f96103f730fae5b44e5098c513e577959e9106667  Exhibits/LightCompute/Code/CompileRayBudget.py
+f5b408212bb8aad1b35e02338c4152623c23b198bc2bc570555593986b4693d0  Exhibits/LightCompute/Code/CompileReceiverBank.py
+4b3b8ce02c6315a948881b76e80c79cfab6395298af629ed392c239a2f71e2b7  Exhibits/LightCompute/Code/CompileCandidateBank.py
+f9da94cc3f075f6bbc2d94d313acad0b93816367a395bd336868725529a8834d  Exhibits/LightCompute/Code/CompileCacheRefresh.py
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+5dc18f3f4aa1bdc5836f16d8ae210b2eb340576b8381f5f7521a8899c953ac11  Exhibits/LightCompute/Code/VisibilityReuseValidation.h
+63be6b73789c53dd31512e6d96c50b951c232ae67b4cb22095730f887b8d0878  Exhibits/LightCompute/Code/RayBudgetValidation.h
+18313fc32f50c2791b2277cb84932b0499d427dee1d87c79508c491fe74fff6f  Exhibits/LightCompute/Code/ReceiverBankValidation.h
+c64a67094084082a1cdd31de0a8d7db1f01afef3565b14c070aa67282a4abee4  Exhibits/LightCompute/Code/CandidateBankValidation.h
+3c34616bfc80078a20ba880083d6473f02dd246f6ab9c1a5e208b40644f4c98c  Exhibits/LightCompute/Code/CacheRefreshValidation.h
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+e05644077b19be3852296c24ed0c2c95160bc6d703885d443bc9498a57db9545  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+a1d1ef3ad95143872d8aa528339d3d9c9d3bc2ed2b58f2f03d06df9e7e87729f  Exhibits/LightCompute/RunVisibilityReuse.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+373292b54272cbe313b9964a5c913afba3ffba91c0e11858531a88c40c810f3f  /home/user/Frontier/_ClaudeScratch/build/visibility-reuse-sanitized/VisibilityReuse.slang
+56b81ff9f6c50bc5f8f3cd91d10ac1ca8e5383f20260ebf5ece08ecaef2b0574  /home/user/Frontier/_ClaudeScratch/build/visibility-reuse-sanitized/DiffuseGenerate.spv
+bb1808193cac3df97ece2d687bf24ddb167d79249544a66be3cd52c03da9a92b  /home/user/Frontier/_ClaudeScratch/build/visibility-reuse-sanitized/DiffuseResolve.spv
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/visibility-reuse-sanitized
+[  2%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayVulkan.dir/PathReplayVulkan.cpp.o
+[  5%] Linking CXX static library libFrontierPathReplayVulkan.a
+[  5%] Built target FrontierPathReplayVulkan
+[  8%] Building CXX object replay-engine/CMakeFiles/FrontierMediumRadiancePayload.dir/MediumRadiancePayload.cpp.o
+[ 10%] Linking CXX static library libFrontierMediumRadiancePayload.a
+[ 10%] Built target FrontierMediumRadiancePayload
+[ 13%] Building CXX object replay-engine/CMakeFiles/FrontierRadiantFacetDistribution.dir/RadiantFacetDistribution.cpp.o
+[ 16%] Linking CXX static library libFrontierRadiantFacetDistribution.a
+[ 16%] Built target FrontierRadiantFacetDistribution
+[ 18%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayDomain.dir/PathReplayDomain.cpp.o
+[ 21%] Linking CXX static library libFrontierPathReplayDomain.a
+[ 21%] Built target FrontierPathReplayDomain
+[ 24%] Building CXX object CMakeFiles/LightComputeValidation.dir/Code/LightComputeValidation.cpp.o
+[ 27%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ClusterNesting.cpp.o
+[ 29%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VisibilityCull.cpp.o
+[ 32%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DiscrepancySequence.cpp.o
+[ 35%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReservoirSampling.cpp.o
+[ 37%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VarianceFiltering.cpp.o
+[ 40%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DistanceField.cpp.o
+[ 43%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/SurfaceCards.cpp.o
+[ 45%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/AtmosphereModel.cpp.o
+[ 48%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CelestialModel.cpp.o
+[ 51%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CloudField.cpp.o
+[ 54%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/FogMedium.cpp.o
+[ 56%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReferenceRenderer.cpp.o
+[ 59%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogRingStore.cpp.o
+[ 62%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogCategories.cpp.o
+[ 64%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogStream.cpp.o
+[ 67%] Linking CXX executable LightComputeValidation
+[ 67%] Built target LightComputeValidation
+[ 70%] Building CXX object CMakeFiles/PathReplayDomainValidation.dir/Code/PathReplayDomainValidation.cpp.o
+[ 72%] Linking CXX executable PathReplayDomainValidation
+[ 72%] Built target PathReplayDomainValidation
+[ 75%] Building CXX object CMakeFiles/PathReplayVulkanValidation.dir/Code/PathReplayVulkanValidation.cpp.o
+[ 78%] Linking CXX executable PathReplayVulkanValidation
+[ 78%] Built target PathReplayVulkanValidation
+[ 81%] Building CXX object CMakeFiles/PathReplayArchiveValidation.dir/Code/PathReplayArchiveValidation.cpp.o
+[ 83%] Linking CXX executable PathReplayArchiveValidation
+[ 83%] Built target PathReplayArchiveValidation
+[ 86%] Building CXX object CMakeFiles/RadiantFacetValidation.dir/Code/RadiantFacetValidation.cpp.o
+[ 89%] Linking CXX executable RadiantFacetValidation
+[ 89%] Built target RadiantFacetValidation
+[ 91%] Building CXX object CMakeFiles/MediumRadianceValidation.dir/Code/MediumRadianceValidation.cpp.o
+[ 94%] Linking CXX executable MediumRadianceValidation
+[ 94%] Built target MediumRadianceValidation
+[ 97%] Building CXX object replay-engine/CMakeFiles/FrontierPlumeLatticeFootprint.dir/PlumeLatticeFootprint.cpp.o
+[100%] Linking CXX static library libFrontierPlumeLatticeFootprint.a
+[100%] Built target FrontierPlumeLatticeFootprint
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/visibility-reuse-sanitized
+Test project /home/user/Frontier/_ClaudeScratch/build/visibility-reuse-sanitized
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.01 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.01 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.01 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.03 sec
+VISIBILITY_REUSE_DEVICE name=SwiftShader Device (Subzero) type=4
+VISIBILITY_REUSE_EDGE fixture=0 probes=1024 hits=511 disagreements=0 safe_differences=0
+VISIBILITY_REUSE_EDGE fixture=1 probes=1024 hits=303 disagreements=0 safe_differences=0
+VISIBILITY_REUSE_EDGE fixture=2 probes=1024 hits=257 disagreements=23 safe_differences=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=918 receiver_x=1 target_x=-0.399999887 target_y=-0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=938 receiver_x=1 target_x=-0.399999887 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=958 receiver_x=1 target_x=-0.399999887 target_y=0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=983 receiver_x=1 target_x=-0.399999917 target_y=-0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=984 receiver_x=1 target_x=-0.399999887 target_y=-0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=985 receiver_x=1 target_x=-0.399999857 target_y=-0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=986 receiver_x=1 target_x=-0.399999827 target_y=-0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=987 receiver_x=1 target_x=-0.399999797 target_y=-0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=990 receiver_x=1 target_x=-0.399999917 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=991 receiver_x=1 target_x=-0.399999887 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=992 receiver_x=1 target_x=-0.399999857 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=993 receiver_x=1 target_x=-0.399999827 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=994 receiver_x=1 target_x=-0.399999797 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=997 receiver_x=1 target_x=-0.399999917 target_y=0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=998 receiver_x=1 target_x=-0.399999887 target_y=0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=999 receiver_x=1 target_x=-0.399999857 target_y=0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=1000 receiver_x=1 target_x=-0.399999827 target_y=0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=1001 receiver_x=1 target_x=-0.399999797 target_y=0.5 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=1011 receiver_x=1.00000012 target_x=-0.400000036 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=1012 receiver_x=1.00000012 target_x=-0.400000006 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=1013 receiver_x=1.00000012 target_x=-0.399999976 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=1014 receiver_x=1.00000012 target_x=-0.399999946 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE_DETAIL fixture=2 pixel=1015 receiver_x=1.00000012 target_x=-0.399999917 target_y=0 first=1 recheck=0
+VISIBILITY_REUSE_EDGE fixture=3 probes=1024 hits=141 disagreements=0 safe_differences=0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=0 x=0 integral=0.100571720445 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=1 x=0.038060233 integral=0.100405525911 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=2 x=0.146446615 integral=0.09813876013 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=3 x=0.308658272 integral=0.0902125195429 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=4 x=0.5 integral=0.0757548730283 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=5 x=0.691341698 integral=0.0590997652155 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=6 x=0.853553414 integral=0.0457493399112 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=7 x=0.961939752 integral=0.0379251461253 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=8 x=1 integral=0.0354285394085 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=9 x=0.961939752 integral=0.0189625730627 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=10 x=0.853553414 integral=0.0228746699556 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=11 x=0.691341698 integral=0.0295498826077 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=12 x=0.5 integral=0.0378774365142 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=13 x=0.308658272 integral=0.0902125195429 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=14 x=0.146446615 integral=0.09813876013 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=0 pose=15 x=0.038060233 integral=0.100405525911 scale=1.0
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=area8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=bank8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=rotate4 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=rotate2 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=fresh6 mean=0.100733949052 nominal_se=0.000376800835201 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=fresh8 mean=0.100730212131 nominal_se=0.000317896064416 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=fastarea8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=fastbank8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=fastrotate4 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=fastrotate2 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=fastfresh6 mean=0.100733949052 nominal_se=0.000376800835201 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=0 method=fastfresh8 mean=0.100730212131 nominal_se=0.000317896064416 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=area8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=bank8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=rotate4 mean=0.100235783137 nominal_se=0.000210339658947 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=rotate2 mean=0.100217201691 nominal_se=0.000216070140191 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=fresh6 mean=0.100261842089 nominal_se=0.000362587991979 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=fresh8 mean=0.100150225535 nominal_se=0.000260234318305 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=fastarea8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=fastbank8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=fastrotate4 mean=0.100235783137 nominal_se=0.000210339658947 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=fastrotate2 mean=0.100217201691 nominal_se=0.000216070140191 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=fastfresh6 mean=0.100261842089 nominal_se=0.000362587991979 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=1 method=fastfresh8 mean=0.100150225535 nominal_se=0.000260234318305 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=area8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=bank8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=rotate4 mean=0.0980873580363 nominal_se=0.000228813536723 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=rotate2 mean=0.0979199232269 nominal_se=0.000229756040464 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=fresh6 mean=0.0978414929234 nominal_se=0.000393284882309 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=fresh8 mean=0.0980433681698 nominal_se=0.000334952669396 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=fastarea8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=fastbank8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=fastrotate4 mean=0.0980873580363 nominal_se=0.000228813536723 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=fastrotate2 mean=0.0979199232269 nominal_se=0.000229756040464 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=fastfresh6 mean=0.0978414929234 nominal_se=0.000393284882309 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=2 method=fastfresh8 mean=0.0980433681698 nominal_se=0.000334952669396 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=area8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=bank8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=rotate4 mean=0.090330890962 nominal_se=0.000202219030033 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=rotate2 mean=0.0902615233934 nominal_se=0.00020840687317 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=fresh6 mean=0.0902343760797 nominal_se=0.000338528675023 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=fresh8 mean=0.0902888513353 nominal_se=0.000285938379207 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=fastarea8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=fastbank8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=fastrotate4 mean=0.090330890962 nominal_se=0.000202219030033 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=fastrotate2 mean=0.0902615233934 nominal_se=0.00020840687317 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=fastfresh6 mean=0.0902343760797 nominal_se=0.000338528675023 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=3 method=fastfresh8 mean=0.0902888513353 nominal_se=0.000285938379207 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=area8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=bank8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=rotate4 mean=0.0758163154345 nominal_se=0.000181020584497 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=rotate2 mean=0.0758649232521 nominal_se=0.00018874701323 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=fresh6 mean=0.0755627449414 nominal_se=0.00034474389018 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=fresh8 mean=0.0757715628411 nominal_se=0.000307749471665 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=fastarea8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=fastbank8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=fastrotate4 mean=0.0758163154345 nominal_se=0.000181020584497 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=fastrotate2 mean=0.0758649232521 nominal_se=0.00018874701323 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=fastfresh6 mean=0.0755627449414 nominal_se=0.00034474389018 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=4 method=fastfresh8 mean=0.0757715628411 nominal_se=0.000307749471665 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=area8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=bank8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=rotate4 mean=0.0590175330977 nominal_se=0.000159137166757 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=rotate2 mean=0.059072436668 nominal_se=0.00012444686944 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=fresh6 mean=0.0584686284444 nominal_se=0.000304700502635 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=fresh8 mean=0.0586571520644 nominal_se=0.000257341761213 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=fastarea8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=fastbank8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=fastrotate4 mean=0.0590175330977 nominal_se=0.000159137166757 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=fastrotate2 mean=0.059072436668 nominal_se=0.00012444686944 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=fastfresh6 mean=0.0584686284444 nominal_se=0.000304700502635 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=5 method=fastfresh8 mean=0.0586571520644 nominal_se=0.000257341761213 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=area8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=bank8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=rotate4 mean=0.04575751093 nominal_se=0.00014973684271 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=rotate2 mean=0.0458040738529 nominal_se=0.000115489946808 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=fresh6 mean=0.0459097293328 nominal_se=0.000317219843881 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=fresh8 mean=0.0460736862274 nominal_se=0.000291542502022 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=fastarea8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=fastbank8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=fastrotate4 mean=0.04575751093 nominal_se=0.00014973684271 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=fastrotate2 mean=0.0458040738529 nominal_se=0.000115489946808 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=fastfresh6 mean=0.0459097293328 nominal_se=0.000317219843881 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=6 method=fastfresh8 mean=0.0460736862274 nominal_se=0.000291542502022 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=area8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=bank8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=rotate4 mean=0.0380871720053 nominal_se=0.000133552287713 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=rotate2 mean=0.0379515436252 nominal_se=0.000112249763635 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=fresh6 mean=0.0378689577681 nominal_se=0.000285497667037 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=fresh8 mean=0.0378881849037 nominal_se=0.0002509045078 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=fastarea8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=fastbank8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=fastrotate4 mean=0.0380871720053 nominal_se=0.000133552287713 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=fastrotate2 mean=0.0379515436252 nominal_se=0.000112249763635 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=fastfresh6 mean=0.0378689577681 nominal_se=0.000285497667037 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=7 method=fastfresh8 mean=0.0378881849037 nominal_se=0.0002509045078 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=area8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=bank8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=rotate4 mean=0.0356104337785 nominal_se=9.11861846785e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=rotate2 mean=0.0354781918382 nominal_se=0.000102320740413 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=fresh6 mean=0.0352029421119 nominal_se=0.00026729550003 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=fresh8 mean=0.0353279126221 nominal_se=0.000230240807391 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=fastarea8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=fastbank8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=fastrotate4 mean=0.0356104337785 nominal_se=9.11861846785e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=fastrotate2 mean=0.0354781918382 nominal_se=0.000102320740413 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=fastfresh6 mean=0.0352029421119 nominal_se=0.00026729550003 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=8 method=fastfresh8 mean=0.0353279126221 nominal_se=0.000230240807391 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=area8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=bank8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=rotate4 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=rotate2 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=fresh6 mean=0.0190359498284 nominal_se=0.000124121568307 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=fresh8 mean=0.0190802771543 nominal_se=0.000104366809224 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=fastarea8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=fastbank8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=fastrotate4 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=fastrotate2 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=fastfresh6 mean=0.0190359498284 nominal_se=0.000124121568307 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=9 method=fastfresh8 mean=0.0190802771543 nominal_se=0.000104366809224 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=area8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=bank8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=rotate4 mean=0.0228276132052 nominal_se=8.17615584892e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=rotate2 mean=0.02282818705 nominal_se=6.45902341643e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=fresh6 mean=0.0228491212649 nominal_se=0.000134880257809 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=fresh8 mean=0.0228197486774 nominal_se=0.000101418120644 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=fastarea8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=fastbank8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=fastrotate4 mean=0.0228276132052 nominal_se=8.17615584892e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=fastrotate2 mean=0.02282818705 nominal_se=6.45902341643e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=fastfresh6 mean=0.0228491212649 nominal_se=0.000134880257809 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=10 method=fastfresh8 mean=0.0228197486774 nominal_se=0.000101418120644 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=area8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=bank8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=rotate4 mean=0.0294207630394 nominal_se=8.78824127939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=rotate2 mean=0.0295038559013 nominal_se=8.43116385387e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=fresh6 mean=0.029930725354 nominal_se=0.000199349967897 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=fresh8 mean=0.0297779855517 nominal_se=0.000157366940287 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=fastarea8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=fastbank8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=fastrotate4 mean=0.0294207630394 nominal_se=8.78824127939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=fastrotate2 mean=0.0295038559013 nominal_se=8.43116385387e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=fastfresh6 mean=0.029930725354 nominal_se=0.000199349967897 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=11 method=fastfresh8 mean=0.0297779855517 nominal_se=0.000157366940287 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=area8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=bank8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=rotate4 mean=0.0378534121835 nominal_se=0.000128079583127 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=rotate2 mean=0.0377797706981 nominal_se=0.000110508301129 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=fresh6 mean=0.0378828434148 nominal_se=0.000201015863635 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=fresh8 mean=0.0380187617621 nominal_se=0.000182370438948 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=fastarea8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=fastbank8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=fastrotate4 mean=0.0378534121835 nominal_se=0.000128079583127 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=fastrotate2 mean=0.0377797706981 nominal_se=0.000110508301129 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=fastfresh6 mean=0.0378828434148 nominal_se=0.000201015863635 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=12 method=fastfresh8 mean=0.0380187617621 nominal_se=0.000182370438948 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=area8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=bank8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=rotate4 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=rotate2 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=fresh6 mean=0.0905270396629 nominal_se=0.000417985973171 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=fresh8 mean=0.0904138208637 nominal_se=0.000422647754475 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=fastarea8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=fastbank8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=fastrotate4 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=fastrotate2 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=fastfresh6 mean=0.0905270396629 nominal_se=0.000417985973171 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=13 method=fastfresh8 mean=0.0904138208637 nominal_se=0.000422647754475 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=area8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=bank8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=rotate4 mean=0.0981067981348 nominal_se=0.000255428233908 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=rotate2 mean=0.098121605003 nominal_se=0.000238443416643 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=fresh6 mean=0.0985208142488 nominal_se=0.000360650892953 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=fresh8 mean=0.0985544612865 nominal_se=0.000361059947058 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=fastarea8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=fastbank8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=fastrotate4 mean=0.0981067981348 nominal_se=0.000255428233908 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=fastrotate2 mean=0.098121605003 nominal_se=0.000238443416643 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=fastfresh6 mean=0.0985208142488 nominal_se=0.000360650892953 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=14 method=fastfresh8 mean=0.0985544612865 nominal_se=0.000361059947058 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=area8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=bank8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=rotate4 mean=0.100469175823 nominal_se=0.00022021403885 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=rotate2 mean=0.100358353145 nominal_se=0.000239991606076 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=fresh6 mean=0.100471192695 nominal_se=0.000393701074001 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=fresh8 mean=0.100501101352 nominal_se=0.000297786788221 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=fastarea8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=fastbank8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=fastrotate4 mean=0.100469175823 nominal_se=0.00022021403885 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=fastrotate2 mean=0.100358353145 nominal_se=0.000239991606076 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=fastfresh6 mean=0.100471192695 nominal_se=0.000393701074001 gate=1
+VISIBILITY_REUSE_MEAN fixture=0 pose=15 method=fastfresh8 mean=0.100501101352 nominal_se=0.000297786788221 gate=1
+VISIBILITY_REUSE_RESULT fixture=0 method=area8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=8444196 source_queries=8444196 reused=0
+VISIBILITY_REUSE_RESULT fixture=0 method=bank8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=8444196 source_queries=6857447 reused=0
+VISIBILITY_REUSE_RESULT fixture=0 method=rotate4 rmse=0.0315977035826 temporal_rmse=0.0106211991225 flicker_rmse=0.0323530676571 lag1=0.449263096537 queries=5672220 source_queries=4081400 reused=1703936
+VISIBILITY_REUSE_RESULT fixture=0 method=rotate2 rmse=0.031597564468 temporal_rmse=0.0136394049647 flicker_rmse=0.0248059748823 lag1=0.675523608624 queries=4297253 source_queries=2692492 reused=2555904
+VISIBILITY_REUSE_RESULT fixture=0 method=fresh6 rmse=0.0587195193092 temporal_rmse=0.0146758453944 flicker_rmse=0.0814806066942 lag1=0.000305467180282 queries=6830256 source_queries=6830256 reused=0
+VISIBILITY_REUSE_RESULT fixture=0 method=fresh8 rmse=0.0508794831333 temporal_rmse=0.0126698413906 flicker_rmse=0.070600114103 lag1=0.000662755577128 queries=9107503 source_queries=9107503 reused=0
+VISIBILITY_REUSE_RESULT fixture=0 method=fastarea8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=6319250 source_queries=6319250 reused=0
+VISIBILITY_REUSE_RESULT fixture=0 method=fastbank8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=6319250 source_queries=6319250 reused=0
+VISIBILITY_REUSE_RESULT fixture=0 method=fastrotate4 rmse=0.0315977035826 temporal_rmse=0.0106211991225 flicker_rmse=0.0323530676571 lag1=0.449263096537 queries=4404083 source_queries=3758505 reused=1703936
+VISIBILITY_REUSE_RESULT fixture=0 method=fastrotate2 rmse=0.031597564468 temporal_rmse=0.0136394049647 flicker_rmse=0.0248059748823 lag1=0.675523608624 queries=3458138 source_queries=2477515 reused=2555904
+VISIBILITY_REUSE_RESULT fixture=0 method=fastfresh6 rmse=0.0587195193092 temporal_rmse=0.0146758453944 flicker_rmse=0.0814806066942 lag1=0.000305467180282 queries=4223328 source_queries=4223328 reused=0
+VISIBILITY_REUSE_RESULT fixture=0 method=fastfresh8 rmse=0.0508794831333 temporal_rmse=0.0126698413906 flicker_rmse=0.070600114103 lag1=0.000662755577128 queries=5632094 source_queries=5632094 reused=0
+VISIBILITY_REUSE_PAIRED fixture=0 arm=fastrotate4 control=fastfresh8 instantaneous_mse=-0.00159030693222 instantaneous_se=6.03349895611e-06 temporal_mse=-4.77150100641e-05 temporal_se=1.54989578246e-06
+VISIBILITY_REUSE_PAIRED fixture=0 arm=fastrotate2 control=fastfresh8 instantaneous_mse=-0.00159031572361 instantaneous_se=6.43649568916e-06 temporal_mse=2.55084869267e-05 temporal_se=2.34842583011e-06
+VISIBILITY_REUSE_PAIRED fixture=0 arm=fastrotate4 control=fastfresh6 instantaneous_mse=-0.00244956707622 instantaneous_se=7.49759192212e-06 temporal_mse=-0.00010257056724 temporal_se=2.12506435687e-06
+VISIBILITY_REUSE_PAIRED fixture=0 arm=fastrotate2 control=fastfresh6 instantaneous_mse=-0.0024495758676 instantaneous_se=7.23377312817e-06 temporal_mse=-2.9347070249e-05 temporal_se=2.87176912608e-06
+VISIBILITY_REUSE_CHECK fixture=0 mean_gates=192 maximum_bank8_difference=0 retained_slot_checks=8519680 maximum_elision_difference=0 matched_samples=3145728
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=0 x=0 integral=0.0470486282321 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=1 x=0.038060233 integral=0.0473919389392 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=2 x=0.146446615 integral=0.0515153616404 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=3 x=0.308658272 integral=0.0617142439773 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=4 x=0.5 integral=0.066341063396 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=5 x=0.691341698 integral=0.0580084356047 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=6 x=0.853553414 integral=0.0457493399637 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=7 x=0.961939752 integral=0.0379251462036 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=8 x=1 integral=0.0354285394919 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=9 x=0.961939752 integral=0.0189625731018 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=10 x=0.853553414 integral=0.0228746699818 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=11 x=0.691341698 integral=0.0290042178024 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=12 x=0.5 integral=0.033170531698 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=13 x=0.308658272 integral=0.0617142439773 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=14 x=0.146446615 integral=0.0515153616404 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=1 pose=15 x=0.038060233 integral=0.0473919389392 scale=1.0
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=area8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=bank8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=rotate4 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=rotate2 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=fresh6 mean=0.0467172244651 nominal_se=0.000282101166386 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=fresh8 mean=0.0468122879206 nominal_se=0.000245069781023 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=fastarea8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=fastbank8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=fastrotate4 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=fastrotate2 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=fastfresh6 mean=0.0467172244651 nominal_se=0.000282101166386 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=0 method=fastfresh8 mean=0.0468122879206 nominal_se=0.000245069781023 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=area8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=bank8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=rotate4 mean=0.0473069708852 nominal_se=0.000148763757608 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=rotate2 mean=0.0473857194586 nominal_se=0.000117376100382 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=fresh6 mean=0.0470803836463 nominal_se=0.000202680593326 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=fresh8 mean=0.0472160354782 nominal_se=0.000165875882249 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=fastarea8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=fastbank8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=fastrotate4 mean=0.0473069708852 nominal_se=0.000148763757608 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=fastrotate2 mean=0.0473857194586 nominal_se=0.000117376100382 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=fastfresh6 mean=0.0470803836463 nominal_se=0.000202680593326 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=1 method=fastfresh8 mean=0.0472160354782 nominal_se=0.000165875882249 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=area8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=bank8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=rotate4 mean=0.0514127405521 nominal_se=0.000232348087492 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=rotate2 mean=0.0513949470819 nominal_se=0.000203215594589 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=fresh6 mean=0.0517758182784 nominal_se=0.000349252454195 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=fresh8 mean=0.0516957108964 nominal_se=0.000255316452524 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=fastarea8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=fastbank8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=fastrotate4 mean=0.0514127405521 nominal_se=0.000232348087492 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=fastrotate2 mean=0.0513949470819 nominal_se=0.000203215594589 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=fastfresh6 mean=0.0517758182784 nominal_se=0.000349252454195 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=2 method=fastfresh8 mean=0.0516957108964 nominal_se=0.000255316452524 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=area8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=bank8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=rotate4 mean=0.061809490336 nominal_se=0.000234864716262 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=rotate2 mean=0.0619188220986 nominal_se=0.00023908255465 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=fresh6 mean=0.0614422612834 nominal_se=0.000315112745911 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=fresh8 mean=0.0614353198719 nominal_se=0.00029048287005 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=fastarea8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=fastbank8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=fastrotate4 mean=0.061809490336 nominal_se=0.000234864716262 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=fastrotate2 mean=0.0619188220986 nominal_se=0.00023908255465 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=fastfresh6 mean=0.0614422612834 nominal_se=0.000315112745911 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=3 method=fastfresh8 mean=0.0614353198719 nominal_se=0.00029048287005 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=area8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=bank8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=rotate4 mean=0.0663445972667 nominal_se=0.000204157825561 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=rotate2 mean=0.0664952461059 nominal_se=0.000203625765144 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=fresh6 mean=0.0665072637987 nominal_se=0.000513102735525 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=fresh8 mean=0.0664741535857 nominal_se=0.000379289605077 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=fastarea8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=fastbank8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=fastrotate4 mean=0.0663445972667 nominal_se=0.000204157825561 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=fastrotate2 mean=0.0664952461059 nominal_se=0.000203625765144 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=fastfresh6 mean=0.0665072637987 nominal_se=0.000513102735525 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=4 method=fastfresh8 mean=0.0664741535857 nominal_se=0.000379289605077 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=area8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=bank8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=rotate4 mean=0.0579085004744 nominal_se=0.000110075512584 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=rotate2 mean=0.0580381412405 nominal_se=0.000155999617718 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=fresh6 mean=0.0576654057586 nominal_se=0.000328958016418 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=fresh8 mean=0.0577727526427 nominal_se=0.000320559497475 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=fastarea8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=fastbank8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=fastrotate4 mean=0.0579085004744 nominal_se=0.000110075512584 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=fastrotate2 mean=0.0580381412405 nominal_se=0.000155999617718 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=fastfresh6 mean=0.0576654057586 nominal_se=0.000328958016418 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=5 method=fastfresh8 mean=0.0577727526427 nominal_se=0.000320559497475 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=area8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=bank8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=rotate4 mean=0.045575852766 nominal_se=0.000125368358612 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=rotate2 mean=0.0455691248801 nominal_se=8.40762356827e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=fresh6 mean=0.0453115847988 nominal_se=0.000281319424489 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=fresh8 mean=0.0452838149613 nominal_se=0.000222420945779 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=fastarea8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=fastbank8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=fastrotate4 mean=0.045575852766 nominal_se=0.000125368358612 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=fastrotate2 mean=0.0455691248801 nominal_se=8.40762356827e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=fastfresh6 mean=0.0453115847988 nominal_se=0.000281319424489 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=6 method=fastfresh8 mean=0.0452838149613 nominal_se=0.000222420945779 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=area8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=bank8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=rotate4 mean=0.0376716739845 nominal_se=8.95179625411e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=rotate2 mean=0.0377823383354 nominal_se=9.44936014215e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=fresh6 mean=0.0378625490707 nominal_se=0.000315490918493 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=fresh8 mean=0.0378897870842 nominal_se=0.000270328935157 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=fastarea8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=fastbank8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=fastrotate4 mean=0.0376716739845 nominal_se=8.95179625411e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=fastrotate2 mean=0.0377823383354 nominal_se=9.44936014215e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=fastfresh6 mean=0.0378625490707 nominal_se=0.000315490918493 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=7 method=fastfresh8 mean=0.0378897870842 nominal_se=0.000270328935157 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=area8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=bank8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=rotate4 mean=0.0353623743386 nominal_se=0.000128566579019 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=rotate2 mean=0.035312138747 nominal_se=0.000117058513653 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=fresh6 mean=0.0360382082351 nominal_se=0.000274253523344 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=fresh8 mean=0.035925523109 nominal_se=0.00022041324498 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=fastarea8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=fastbank8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=fastrotate4 mean=0.0353623743386 nominal_se=0.000128566579019 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=fastrotate2 mean=0.035312138747 nominal_se=0.000117058513653 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=fastfresh6 mean=0.0360382082351 nominal_se=0.000274253523344 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=8 method=fastfresh8 mean=0.035925523109 nominal_se=0.00022041324498 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=area8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=bank8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=rotate4 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=rotate2 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=fresh6 mean=0.0189804078341 nominal_se=0.000128425679373 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=fresh8 mean=0.0189945609028 nominal_se=0.000112698519039 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=fastarea8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=fastbank8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=fastrotate4 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=fastrotate2 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=fastfresh6 mean=0.0189804078341 nominal_se=0.000128425679373 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=9 method=fastfresh8 mean=0.0189945609028 nominal_se=0.000112698519039 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=area8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=bank8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=rotate4 mean=0.0228763101688 nominal_se=7.87332226262e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=rotate2 mean=0.0228346459887 nominal_se=6.985069406e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=fresh6 mean=0.0229548646723 nominal_se=0.000141342507175 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=fresh8 mean=0.0229591377224 nominal_se=0.000101119258228 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=fastarea8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=fastbank8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=fastrotate4 mean=0.0228763101688 nominal_se=7.87332226262e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=fastrotate2 mean=0.0228346459887 nominal_se=6.985069406e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=fastfresh6 mean=0.0229548646723 nominal_se=0.000141342507175 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=10 method=fastfresh8 mean=0.0229591377224 nominal_se=0.000101119258228 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=area8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=bank8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=rotate4 mean=0.0289934344295 nominal_se=9.60269386639e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=rotate2 mean=0.0290010741727 nominal_se=9.00993209691e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=fresh6 mean=0.029082641855 nominal_se=0.000175935653211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=fresh8 mean=0.0290634164315 nominal_se=0.000158859508354 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=fastarea8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=fastbank8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=fastrotate4 mean=0.0289934344295 nominal_se=9.60269386639e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=fastrotate2 mean=0.0290010741727 nominal_se=9.00993209691e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=fastfresh6 mean=0.029082641855 nominal_se=0.000175935653211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=11 method=fastfresh8 mean=0.0290634164315 nominal_se=0.000158859508354 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=area8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=bank8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=rotate4 mean=0.0330934307661 nominal_se=0.000111982738203 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=rotate2 mean=0.0332056614449 nominal_se=0.000121293793183 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=fresh6 mean=0.0334010318079 nominal_se=0.000186943793945 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=fresh8 mean=0.0333908853925 nominal_se=0.000144623035592 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=fastarea8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=fastbank8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=fastrotate4 mean=0.0330934307661 nominal_se=0.000111982738203 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=fastrotate2 mean=0.0332056614449 nominal_se=0.000121293793183 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=fastfresh6 mean=0.0334010318079 nominal_se=0.000186943793945 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=12 method=fastfresh8 mean=0.0333908853925 nominal_se=0.000144623035592 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=area8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=bank8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=rotate4 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=rotate2 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=fresh6 mean=0.0616067510355 nominal_se=0.000421392526752 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=fresh8 mean=0.0615058154742 nominal_se=0.000372000613406 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=fastarea8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=fastbank8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=fastrotate4 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=fastrotate2 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=fastfresh6 mean=0.0616067510355 nominal_se=0.000421392526752 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=13 method=fastfresh8 mean=0.0615058154742 nominal_se=0.000372000613406 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=area8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=bank8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=rotate4 mean=0.0516234915587 nominal_se=0.000166738770445 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=rotate2 mean=0.05161975853 nominal_se=0.000139506378392 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=fresh6 mean=0.0514083866265 nominal_se=0.000206645241675 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=fresh8 mean=0.0513832871775 nominal_se=0.000216746143849 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=fastarea8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=fastbank8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=fastrotate4 mean=0.0516234915587 nominal_se=0.000166738770445 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=fastrotate2 mean=0.05161975853 nominal_se=0.000139506378392 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=fastfresh6 mean=0.0514083866265 nominal_se=0.000206645241675 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=14 method=fastfresh8 mean=0.0513832871775 nominal_se=0.000216746143849 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=area8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=bank8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=rotate4 mean=0.0472916713246 nominal_se=0.000173817776387 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=rotate2 mean=0.0475898210498 nominal_se=0.000175618296328 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=fresh6 mean=0.0470291141228 nominal_se=0.000263586450183 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=fresh8 mean=0.0470478073357 nominal_se=0.000212235486525 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=fastarea8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=fastbank8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=fastrotate4 mean=0.0472916713246 nominal_se=0.000173817776387 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=fastrotate2 mean=0.0475898210498 nominal_se=0.000175618296328 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=fastfresh6 mean=0.0470291141228 nominal_se=0.000263586450183 gate=1
+VISIBILITY_REUSE_MEAN fixture=1 pose=15 method=fastfresh8 mean=0.0470478073357 nominal_se=0.000212235486525 gate=1
+VISIBILITY_REUSE_RESULT fixture=1 method=area8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=7825882 source_queries=7825882 reused=0
+VISIBILITY_REUSE_RESULT fixture=1 method=bank8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=7825882 source_queries=6393635 reused=0
+VISIBILITY_REUSE_RESULT fixture=1 method=rotate4 rmse=0.0288944887098 temporal_rmse=0.00932620752735 flicker_rmse=0.032361466188 lag1=0.360944164897 queries=5219809 source_queries=3789670 reused=1703936
+VISIBILITY_REUSE_RESULT fixture=1 method=rotate2 rmse=0.0297263153666 temporal_rmse=0.0119507901629 flicker_rmse=0.0277895058957 lag1=0.555088041007 queries=3919026 source_queries=2489350 reused=2555904
+VISIBILITY_REUSE_RESULT fixture=1 method=fresh6 rmse=0.050333749166 temporal_rmse=0.0125607064093 flicker_rmse=0.0708684835938 lag1=-0.00121344553131 queries=6674974 source_queries=6674974 reused=0
+VISIBILITY_REUSE_RESULT fixture=1 method=fresh8 rmse=0.0436129995951 temporal_rmse=0.0109150172323 flicker_rmse=0.0614158041203 lag1=-0.00144642383854 queries=8899950 source_queries=8899950 reused=0
+VISIBILITY_REUSE_RESULT fixture=1 method=fastarea8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=6010093 source_queries=6010093 reused=0
+VISIBILITY_REUSE_RESULT fixture=1 method=fastbank8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=6010093 source_queries=6010093 reused=0
+VISIBILITY_REUSE_RESULT fixture=1 method=fastrotate4 rmse=0.0288944887098 temporal_rmse=0.00932620752735 flicker_rmse=0.032361466188 lag1=0.360944164897 queries=4146147 source_queries=3564030 reused=1703936
+VISIBILITY_REUSE_RESULT fixture=1 method=fastrotate2 rmse=0.0297263153666 temporal_rmse=0.0119507901629 flicker_rmse=0.0277895058957 lag1=0.555088041007 queries=3215227 source_queries=2342199 reused=2555904
+VISIBILITY_REUSE_RESULT fixture=1 method=fastfresh6 rmse=0.050333749166 temporal_rmse=0.0125607064093 flicker_rmse=0.0708684835938 lag1=-0.00121344553131 queries=3912764 source_queries=3912764 reused=0
+VISIBILITY_REUSE_RESULT fixture=1 method=fastfresh8 rmse=0.0436129995951 temporal_rmse=0.0109150172323 flicker_rmse=0.0614158041203 lag1=-0.00144642383854 queries=5216988 source_queries=5216988 reused=0
+VISIBILITY_REUSE_PAIRED fixture=1 arm=fastrotate4 control=fastfresh8 instantaneous_mse=-0.00106720225588 instantaneous_se=4.31803477385e-06 temporal_mse=-3.2159454339e-05 temporal_se=1.2001080744e-06
+VISIBILITY_REUSE_PAIRED fixture=1 arm=fastrotate2 control=fastfresh8 instantaneous_mse=-0.00101843990841 instantaneous_se=5.44481655838e-06 temporal_mse=2.36837843353e-05 temporal_se=1.31901327042e-06
+VISIBILITY_REUSE_PAIRED fixture=1 arm=fastrotate4 control=fastfresh6 instantaneous_mse=-0.0016985948273 instantaneous_se=6.25505165677e-06 temporal_mse=-7.07931986586e-05 temporal_se=1.45401086725e-06
+VISIBILITY_REUSE_PAIRED fixture=1 arm=fastrotate2 control=fastfresh6 instantaneous_mse=-0.00164983247983 instantaneous_se=7.02656873425e-06 temporal_mse=-1.49499599843e-05 temporal_se=1.67746402278e-06
+VISIBILITY_REUSE_CHECK fixture=1 mean_gates=192 maximum_bank8_difference=0 retained_slot_checks=8519680 maximum_elision_difference=0 matched_samples=3145728
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=0 x=0 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=1 x=0.038060233 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=2 x=0.146446615 integral=0.00441540224764 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=3 x=0.308658272 integral=0.023602341581 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=4 x=0.5 integral=0.0421220226833 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=5 x=0.691341698 integral=0.0458206037941 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=6 x=0.853553414 integral=0.0408044815178 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=7 x=0.961939752 integral=0.035896427655 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=8 x=1 integral=0.0336100076862 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=9 x=0.961939752 integral=0.0179482138275 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=10 x=0.853553414 integral=0.0204022407589 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=11 x=0.691341698 integral=0.022910301897 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=12 x=0.5 integral=0.0210610113416 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=13 x=0.308658272 integral=0.023602341581 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=14 x=0.146446615 integral=0.00441540224764 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=2 pose=15 x=0.038060233 integral=0 scale=1.0
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=0 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=1 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=area8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=bank8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=rotate4 mean=0.00449173494422 nominal_se=7.40542236277e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=rotate2 mean=0.00443200846064 nominal_se=7.25505214561e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=fresh6 mean=0.00440063478459 nominal_se=0.000115939437169 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=fresh8 mean=0.00434669511856 nominal_se=9.00381448689e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=fastarea8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=fastbank8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=fastrotate4 mean=0.00449173494422 nominal_se=7.40542236277e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=fastrotate2 mean=0.00443200846064 nominal_se=7.25505214561e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=fastfresh6 mean=0.00440063478459 nominal_se=0.000115939437169 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=2 method=fastfresh8 mean=0.00434669511856 nominal_se=9.00381448689e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=area8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=bank8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=rotate4 mean=0.0236465510054 nominal_se=0.000179107236147 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=rotate2 mean=0.0236658092965 nominal_se=0.000170917445842 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=fresh6 mean=0.0234600831307 nominal_se=0.000218715490168 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=fresh8 mean=0.0234590157693 nominal_se=0.000177855393022 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=fastarea8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=fastbank8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=fastrotate4 mean=0.0236465510054 nominal_se=0.000179107236147 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=fastrotate2 mean=0.0236658092965 nominal_se=0.000170917445842 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=fastfresh6 mean=0.0234600831307 nominal_se=0.000218715490168 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=3 method=fastfresh8 mean=0.0234590157693 nominal_se=0.000177855393022 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=area8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=bank8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=rotate4 mean=0.0420730062348 nominal_se=0.000186620618005 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=rotate2 mean=0.0420025490943 nominal_se=0.000167758300245 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=fresh6 mean=0.041759033488 nominal_se=0.000211161156333 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=fresh8 mean=0.0420458235712 nominal_se=0.000199303418739 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=fastarea8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=fastbank8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=fastrotate4 mean=0.0420730062348 nominal_se=0.000186620618005 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=fastrotate2 mean=0.0420025490943 nominal_se=0.000167758300245 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=fastfresh6 mean=0.041759033488 nominal_se=0.000211161156333 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=4 method=fastfresh8 mean=0.0420458235712 nominal_se=0.000199303418739 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=area8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=bank8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=rotate4 mean=0.0460634503407 nominal_se=0.00015405010842 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=rotate2 mean=0.0458450001582 nominal_se=0.000157131700264 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=fresh6 mean=0.0459951785601 nominal_se=0.000333963053418 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=fresh8 mean=0.0462178817816 nominal_se=0.000252840069763 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=fastarea8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=fastbank8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=fastrotate4 mean=0.0460634503407 nominal_se=0.00015405010842 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=fastrotate2 mean=0.0458450001582 nominal_se=0.000157131700264 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=fastfresh6 mean=0.0459951785601 nominal_se=0.000333963053418 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=5 method=fastfresh8 mean=0.0462178817816 nominal_se=0.000252840069763 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=area8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=bank8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=rotate4 mean=0.0409786679766 nominal_se=0.000148896119456 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=rotate2 mean=0.0409819003982 nominal_se=0.000125508382622 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=fresh6 mean=0.0406652834706 nominal_se=0.000304720792185 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=fresh8 mean=0.040816956963 nominal_se=0.000236774918508 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=fastarea8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=fastbank8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=fastrotate4 mean=0.0409786679766 nominal_se=0.000148896119456 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=fastrotate2 mean=0.0409819003982 nominal_se=0.000125508382622 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=fastfresh6 mean=0.0406652834706 nominal_se=0.000304720792185 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=6 method=fastfresh8 mean=0.040816956963 nominal_se=0.000236774918508 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=area8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=bank8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=rotate4 mean=0.0359814874192 nominal_se=0.000147697187829 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=rotate2 mean=0.0360024306647 nominal_se=0.000115349659844 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=fresh6 mean=0.0357882692631 nominal_se=0.000271656988866 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=fresh8 mean=0.0356147015684 nominal_se=0.00021270938765 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=fastarea8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=fastbank8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=fastrotate4 mean=0.0359814874192 nominal_se=0.000147697187829 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=fastrotate2 mean=0.0360024306647 nominal_se=0.000115349659844 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=fastfresh6 mean=0.0357882692631 nominal_se=0.000271656988866 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=7 method=fastfresh8 mean=0.0356147015684 nominal_se=0.00021270938765 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=area8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=bank8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=rotate4 mean=0.0336014510278 nominal_se=0.000135535681357 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=rotate2 mean=0.0336561610887 nominal_se=0.000137807477987 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=fresh6 mean=0.0332910158302 nominal_se=0.000236863494822 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=fresh8 mean=0.03325309872 nominal_se=0.000222788278765 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=fastarea8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=fastbank8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=fastrotate4 mean=0.0336014510278 nominal_se=0.000135535681357 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=fastrotate2 mean=0.0336561610887 nominal_se=0.000137807477987 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=fastfresh6 mean=0.0332910158302 nominal_se=0.000236863494822 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=8 method=fastfresh8 mean=0.03325309872 nominal_se=0.000222788278765 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=area8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=bank8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=rotate4 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=rotate2 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=fresh6 mean=0.0179507447407 nominal_se=0.000106741902219 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=fresh8 mean=0.0179387289573 nominal_se=0.000121731048764 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=fastarea8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=fastbank8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=fastrotate4 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=fastrotate2 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=fastfresh6 mean=0.0179507447407 nominal_se=0.000106741902219 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=9 method=fastfresh8 mean=0.0179387289573 nominal_se=0.000121731048764 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=area8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=bank8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=rotate4 mean=0.0204103905056 nominal_se=6.64790268857e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=rotate2 mean=0.0204050070335 nominal_se=7.69603383596e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=fresh6 mean=0.0204020692264 nominal_se=0.00016424558205 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=fresh8 mean=0.0203700263266 nominal_se=0.000135170670243 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=fastarea8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=fastbank8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=fastrotate4 mean=0.0204103905056 nominal_se=6.64790268857e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=fastrotate2 mean=0.0204050070335 nominal_se=7.69603383596e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=fastfresh6 mean=0.0204020692264 nominal_se=0.00016424558205 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=10 method=fastfresh8 mean=0.0203700263266 nominal_se=0.000135170670243 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=area8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=bank8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=rotate4 mean=0.0228132473737 nominal_se=9.31164994809e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=rotate2 mean=0.0229170942485 nominal_se=0.000102851103694 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=fresh6 mean=0.0228694154492 nominal_se=0.00014569562313 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=fresh8 mean=0.0228517921427 nominal_se=0.000140760507581 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=fastarea8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=fastbank8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=fastrotate4 mean=0.0228132473737 nominal_se=9.31164994809e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=fastrotate2 mean=0.0229170942485 nominal_se=0.000102851103694 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=fastfresh6 mean=0.0228694154492 nominal_se=0.00014569562313 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=11 method=fastfresh8 mean=0.0228517921427 nominal_se=0.000140760507581 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=area8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=bank8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=rotate4 mean=0.0209687550625 nominal_se=0.000104891340197 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=rotate2 mean=0.0210167514367 nominal_se=0.000130177408891 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=fresh6 mean=0.0211593629339 nominal_se=0.000132038310902 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=fresh8 mean=0.0210541541543 nominal_se=0.000110944711321 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=fastarea8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=fastbank8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=fastrotate4 mean=0.0209687550625 nominal_se=0.000104891340197 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=fastrotate2 mean=0.0210167514367 nominal_se=0.000130177408891 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=fastfresh6 mean=0.0211593629339 nominal_se=0.000132038310902 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=12 method=fastfresh8 mean=0.0210541541543 nominal_se=0.000110944711321 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=area8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=bank8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=rotate4 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=rotate2 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=fresh6 mean=0.0234729005108 nominal_se=0.000219817878668 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=fresh8 mean=0.0234365853505 nominal_se=0.000156502669435 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=fastarea8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=fastbank8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=fastrotate4 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=fastrotate2 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=fastfresh6 mean=0.0234729005108 nominal_se=0.000219817878668 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=13 method=fastfresh8 mean=0.0234365853505 nominal_se=0.000156502669435 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=area8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=bank8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=rotate4 mean=0.00430673677664 nominal_se=6.7317891674e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=rotate2 mean=0.00430240805565 nominal_se=6.64010275774e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=fresh6 mean=0.00429382326092 nominal_se=0.000114248555197 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=fresh8 mean=0.00426017778091 nominal_se=8.34277083985e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=fastarea8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=fastbank8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=fastrotate4 mean=0.00430673677664 nominal_se=6.7317891674e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=fastrotate2 mean=0.00430240805565 nominal_se=6.64010275774e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=fastfresh6 mean=0.00429382326092 nominal_se=0.000114248555197 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=14 method=fastfresh8 mean=0.00426017778091 nominal_se=8.34277083985e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=2 pose=15 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_RESULT fixture=2 method=area8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=7077468 source_queries=7077468 reused=0
+VISIBILITY_REUSE_RESULT fixture=2 method=bank8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=7077468 source_queries=5831853 reused=0
+VISIBILITY_REUSE_RESULT fixture=2 method=rotate4 rmse=0.0199647205644 temporal_rmse=0.00634202742316 flicker_rmse=0.0242708178001 lag1=0.307237912388 queries=4691980 source_queries=3449206 reused=1703936
+VISIBILITY_REUSE_RESULT fixture=2 method=rotate2 rmse=0.0212285821057 temporal_rmse=0.00848432075189 flicker_rmse=0.0219637340645 lag1=0.498221730819 queries=3486688 source_queries=2257683 reused=2555904
+VISIBILITY_REUSE_RESULT fixture=2 method=fresh6 rmse=0.0342769825412 temporal_rmse=0.00857886795717 flicker_rmse=0.0500401833022 lag1=0.000976344864073 queries=6487314 source_queries=6487314 reused=0
+VISIBILITY_REUSE_RESULT fixture=2 method=fresh8 rmse=0.0296614644502 temporal_rmse=0.00738051192308 flicker_rmse=0.0433117875545 lag1=0.000529095383484 queries=8649751 source_queries=8649751 reused=0
+VISIBILITY_REUSE_RESULT fixture=2 method=fastarea8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=5635886 source_queries=5635886 reused=0
+VISIBILITY_REUSE_RESULT fixture=2 method=fastbank8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=5635886 source_queries=5635886 reused=0
+VISIBILITY_REUSE_RESULT fixture=2 method=fastrotate4 rmse=0.0199647205644 temporal_rmse=0.00634202742316 flicker_rmse=0.0242708178001 lag1=0.307237912388 queries=3844868 source_queries=3337480 reused=1703936
+VISIBILITY_REUSE_RESULT fixture=2 method=fastrotate2 rmse=0.0212285821057 temporal_rmse=0.00848432075189 flicker_rmse=0.0219637340645 lag1=0.498221730819 queries=2936973 source_queries=2188115 reused=2555904
+VISIBILITY_REUSE_RESULT fixture=2 method=fastfresh6 rmse=0.0342769825412 temporal_rmse=0.00857886795717 flicker_rmse=0.0500401833022 lag1=0.000976344864073 queries=3537444 source_queries=3537444 reused=0
+VISIBILITY_REUSE_RESULT fixture=2 method=fastfresh8 rmse=0.0296614644502 temporal_rmse=0.00738051192308 flicker_rmse=0.0433117875545 lag1=0.000529095383484 queries=4716590 source_queries=4716590 reused=0
+VISIBILITY_REUSE_PAIRED fixture=2 arm=fastrotate4 control=fastfresh8 instantaneous_mse=-0.000481212406119 instantaneous_se=3.34055903864e-06 temporal_mse=-1.42506444107e-05 temporal_se=5.182477787e-07
+VISIBILITY_REUSE_PAIRED fixture=2 arm=fastrotate2 control=fastfresh8 instantaneous_mse=-0.000429149775115 instantaneous_se=3.55334741344e-06 temporal_mse=1.75117423741e-05 temporal_se=6.29658323576e-07
+VISIBILITY_REUSE_PAIRED fixture=2 arm=fastrotate4 control=fastfresh6 instantaneous_mse=-0.000776321464918 instantaneous_se=4.30272056346e-06 temporal_mse=-3.33756635904e-05 temporal_se=7.71328373427e-07
+VISIBILITY_REUSE_PAIRED fixture=2 arm=fastrotate2 control=fastfresh6 instantaneous_mse=-0.000724258833914 instantaneous_se=4.3429060841e-06 temporal_mse=-1.61327680557e-06 temporal_se=7.41808703998e-07
+VISIBILITY_REUSE_CHECK fixture=2 mean_gates=192 maximum_bank8_difference=0 retained_slot_checks=8519680 maximum_elision_difference=0 matched_samples=3145728
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=0 x=0 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=1 x=0.038060233 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=2 x=0.146446615 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=3 x=0.308658272 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=4 x=0.5 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=5 x=0.691341698 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=6 x=0.853553414 integral=0.0128798438218 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=7 x=0.961939752 integral=0.0172063357012 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=8 x=1 integral=0.0179346046656 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=9 x=0.961939752 integral=0.00860316785062 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=10 x=0.853553414 integral=0.0064399219109 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=11 x=0.691341698 integral=0 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=12 x=0.5 integral=0 scale=0.5
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=13 x=0.308658272 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=14 x=0.146446615 integral=0 scale=1.0
+VISIBILITY_REUSE_REFERENCE fixture=3 pose=15 x=0.038060233 integral=0 scale=1.0
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=0 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=1 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=2 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=3 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=4 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=5 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=area8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=bank8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=rotate4 mean=0.0127804840066 nominal_se=0.000107805473543 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=rotate2 mean=0.0128966207905 nominal_se=0.00010577520809 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=fresh6 mean=0.012800293028 nominal_se=0.000151835817626 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=fresh8 mean=0.0128782658826 nominal_se=0.000127498884583 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=fastarea8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=fastbank8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=fastrotate4 mean=0.0127804840066 nominal_se=0.000107805473543 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=fastrotate2 mean=0.0128966207905 nominal_se=0.00010577520809 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=fastfresh6 mean=0.012800293028 nominal_se=0.000151835817626 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=6 method=fastfresh8 mean=0.0128782658826 nominal_se=0.000127498884583 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=area8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=bank8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=rotate4 mean=0.0172680704313 nominal_se=0.000106314470171 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=rotate2 mean=0.0169755443436 nominal_se=0.000119603993502 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=fresh6 mean=0.0175085450044 nominal_se=0.000173571933825 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=fresh8 mean=0.0173130805001 nominal_se=0.000164101222886 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=fastarea8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=fastbank8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=fastrotate4 mean=0.0172680704313 nominal_se=0.000106314470171 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=fastrotate2 mean=0.0169755443436 nominal_se=0.000119603993502 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=fastfresh6 mean=0.0175085450044 nominal_se=0.000173571933825 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=7 method=fastfresh8 mean=0.0173130805001 nominal_se=0.000164101222886 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=area8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=bank8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=rotate4 mean=0.0180335039273 nominal_se=0.00013947303365 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=rotate2 mean=0.0177441588027 nominal_se=0.000126450341421 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=fresh6 mean=0.0176623535992 nominal_se=0.000139473270273 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=fresh8 mean=0.0177280432802 nominal_se=0.000130158279921 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=fastarea8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=fastbank8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=fastrotate4 mean=0.0180335039273 nominal_se=0.00013947303365 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=fastrotate2 mean=0.0177441588027 nominal_se=0.000126450341421 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=fastfresh6 mean=0.0176623535992 nominal_se=0.000139473270273 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=8 method=fastfresh8 mean=0.0177280432802 nominal_se=0.000130158279921 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=area8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=bank8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=rotate4 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=rotate2 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=fresh6 mean=0.00860687260024 nominal_se=7.70181071367e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=fresh8 mean=0.00861408266633 nominal_se=7.18589256286e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=fastarea8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=fastbank8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=fastrotate4 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=fastrotate2 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=fastfresh6 mean=0.00860687260024 nominal_se=7.70181071367e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=9 method=fastfresh8 mean=0.00861408266633 nominal_se=7.18589256286e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=area8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=bank8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=rotate4 mean=0.00641883529215 nominal_se=5.12118514848e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=rotate2 mean=0.00639239578581 nominal_se=4.7177913913e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=fresh6 mean=0.00649627688483 nominal_se=7.66118280491e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=fresh8 mean=0.00645916010217 nominal_se=6.88169198314e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=fastarea8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=fastbank8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=fastrotate4 mean=0.00641883529215 nominal_se=5.12118514848e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=fastrotate2 mean=0.00639239578581 nominal_se=4.7177913913e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=fastfresh6 mean=0.00649627688483 nominal_se=7.66118280491e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=10 method=fastfresh8 mean=0.00645916010217 nominal_se=6.88169198314e-05 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=11 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=12 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=13 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=14 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=area8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=bank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=rotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=rotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=fastarea8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=fastbank8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=fastrotate4 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=fastrotate2 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=fastfresh6 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_MEAN fixture=3 pose=15 method=fastfresh8 mean=0 nominal_se=0 gate=1
+VISIBILITY_REUSE_RESULT fixture=3 method=area8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=6436116 source_queries=6436116 reused=0
+VISIBILITY_REUSE_RESULT fixture=3 method=bank8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=6436116 source_queries=5351897 reused=0
+VISIBILITY_REUSE_RESULT fixture=3 method=rotate4 rmse=0.00903785436726 temporal_rmse=0.00276044460759 flicker_rmse=0.0114443846743 lag1=0.248384886621 queries=4264368 source_queries=3179620 reused=1703936
+VISIBILITY_REUSE_RESULT fixture=3 method=rotate2 rmse=0.00959947875021 temporal_rmse=0.00344066928321 flicker_rmse=0.0106651189505 lag1=0.421395512808 queries=3175528 source_queries=2092769 reused=2555904
+VISIBILITY_REUSE_RESULT fixture=3 method=fresh6 rmse=0.0152844545103 temporal_rmse=0.0038227229377 flicker_rmse=0.0223150883441 lag1=0.000831773160301 queries=6328052 source_queries=6328052 reused=0
+VISIBILITY_REUSE_RESULT fixture=3 method=fresh8 rmse=0.0132472648516 temporal_rmse=0.00331173403614 flicker_rmse=0.0193489965612 lag1=-1.33308991814e-05 queries=8437333 source_queries=8437333 reused=0
+VISIBILITY_REUSE_RESULT fixture=3 method=fastarea8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=5315210 source_queries=5315210 reused=0
+VISIBILITY_REUSE_RESULT fixture=3 method=fastbank8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=5315210 source_queries=5315210 reused=0
+VISIBILITY_REUSE_RESULT fixture=3 method=fastrotate4 rmse=0.00903785436726 temporal_rmse=0.00276044460759 flicker_rmse=0.0114443846743 lag1=0.248384886621 queries=3597399 source_queries=3157337 reused=1703936
+VISIBILITY_REUSE_RESULT fixture=3 method=fastrotate2 rmse=0.00959947875021 temporal_rmse=0.00344066928321 flicker_rmse=0.0106651189505 lag1=0.421395512808 queries=2736341 source_queries=2077587 reused=2555904
+VISIBILITY_REUSE_RESULT fixture=3 method=fastfresh6 rmse=0.0152844545103 temporal_rmse=0.0038227229377 flicker_rmse=0.0223150883441 lag1=0.000831773160301 queries=3218920 source_queries=3218920 reused=0
+VISIBILITY_REUSE_RESULT fixture=3 method=fastfresh8 rmse=0.0132472648516 temporal_rmse=0.00331173403614 flicker_rmse=0.0193489965612 lag1=-1.33308991814e-05 queries=4291754 source_queries=4291754 reused=0
+VISIBILITY_REUSE_PAIRED fixture=3 arm=fastrotate4 control=fastfresh8 instantaneous_mse=-9.38072144849e-05 instantaneous_se=1.37391587712e-06 temporal_mse=-3.34752789454e-06 temporal_se=1.37140425823e-07
+VISIBILITY_REUSE_PAIRED fixture=3 arm=fastrotate2 control=fastfresh8 instantaneous_mse=-8.3340033773e-05 instantaneous_se=1.39617701119e-06 temporal_mse=8.70622790272e-07 temporal_se=1.51763592159e-07
+VISIBILITY_REUSE_PAIRED fixture=3 arm=fastrotate4 control=fastfresh6 instantaneous_mse=-0.000151931738114 instantaneous_se=1.60209498397e-06 temporal_mse=-6.99315622681e-06 temporal_se=1.76212552708e-07
+VISIBILITY_REUSE_PAIRED fixture=3 arm=fastrotate2 control=fastfresh6 instantaneous_mse=-0.000141464557402 instantaneous_se=1.70707475098e-06 temporal_mse=-2.77500554199e-06 temporal_se=1.96709943247e-07
+VISIBILITY_REUSE_CHECK fixture=3 mean_gates=192 maximum_bank8_difference=0 retained_slot_checks=8519680 maximum_elision_difference=0 matched_samples=3145728
+VISIBILITY_REUSE_DECISION correctness=1 promote=0 physical_gpu_timing=0
+8de8da20d903220f34d573d7c05c7017a9b91cc758fabd64ab315d1f5b02093d  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-0.f32
+aa86085712f5c7cc15476e2a75e81739ef617613c243121cccdb05c4f0e9b088  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-1.f32
+1390091bd81c2909446c40a44035aaec49a661d7e1dbfabf3009858ef91da5a9  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-10.f32
+720195e2a4625936acad3a5c5e8469505476f8a09ecf660e09d05d8412cef8a9  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-11.f32
+1f648a80e6914d1e36fe3ef81a3b2c65b8f8d60d8ff3bd422de7f110bde64dec  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-12.f32
+19027e26dad5aa9a3cc4833b94d1ec2a26e0b0e37cd304ba0379988ed1bdf525  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-13.f32
+f4c27ecd09e72a596446ec4b84d97d6e4c4fc90c4fc0d24e42cab68279105a6e  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-14.f32
+6f12c7ee3c52258b6a06ac9921eb581ffa9765ae91e9e47efcc5d306f5b8dcf1  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-15.f32
+3efecdce79cd8be318b5f639446f081d6d2789731fca152c09c2c72bf7e6048d  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-2.f32
+c66f23d87bfd67affa79a5c34a44bd968e2e8d09a675c8f4cbbf92d4dab33c57  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-3.f32
+88757d8bafc11ce9ff985c557309640422019b5734924f3ba0dd656b80504895  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-4.f32
+edab3606a1111af5a0540d8b98c302edfd069269b732e74763be4029e78e66c6  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-5.f32
+e61250a90ba5c6f0b43fdc7e5f7fae7c86cb48506ff7d665a40dba17afb45a00  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-6.f32
+234e1698b1b49b919a0dd5bd7e59a98919d2a6ce0137c03f45ac723062f11720  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-7.f32
+6cf12840d36a8a8406c144d6a031f60f8a8dbbe78cb4dc3ef2a807aa291d5278  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-8.f32
+b5d5c109fafd85e20b1f22bf139c2866cd17651ae599d7cb10ad06b11e64b89d  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse0-9.f32
+15f6a44f45796937fea1a0474099ecc7d36b76df45a4a44d6717032cb46d9c17  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-0.f32
+26c9768b93f2148977b86481064680d98893cf56e46dcb417e3e439e1342e157  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-1.f32
+264e698a46e5c7b2793b191a07a03afce1ce59bdd88d96f5582e637434a7efd6  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-10.f32
+ecbfc67d6ff0554164ace26b7b3b9438d56aafd5924ce4476f022fc00c385519  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-11.f32
+15bb26930d87cc9e21e17b7d515ce8b241df39ecce292c403c57e6f2b5314b9b  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-12.f32
+e5a23e6954a2330e360626de58ffcbc5f60e9b0adb17a6e70845ec365f0d6e7d  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-13.f32
+fea38f2a13b89b38c6ff47ffad5d8c06d1503d268c50821ccefc3f487ae97524  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-14.f32
+7c1ebb24c86a9edb30ec38303a2b3639e8f6976d2c90660fcaea6dca49792471  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-15.f32
+df082b86c657eec80709ee542596004cab388a38b5d2d7f99eca6a514c3223da  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-2.f32
+a6e4b710134011f197a062fc9bcdcd14d5b17d78a095b8f22e74c21651d56bab  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-3.f32
+51cab0994222790a2b78eb7b5a24429f896b93f713fcf453278aab6943646c53  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-4.f32
+a4f08ef47454b9471f8df0892f6f1e80af6c8e0f5bdcca410755b30689ef5080  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-5.f32
+e0935c94296dfd1e2eaa20fa0677cedcb6162002885188ce44f8fdccd31866aa  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-6.f32
+61b9dccff3938b04ffe86ac7ca682f12e9093677cbcaa2706cd0abd45d0de3f4  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-7.f32
+a1b158cf53397863dc5e5305eddc3c296e2b1081425a68ec63326d5eb646e80e  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-8.f32
+e13bfca82d2beecefc9e63c3ea24f03db08991c0a1d8ca16436b3802cb618462  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse1-9.f32
+a929bc2d4a509322ebb80c5a3dbf7e4e8d13374f569e2c0868a283c0d9875e02  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-0.f32
+7b39402422e225a5606564dd896dd6c2d22bd46caf1cc025510a12f07c39e758  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-1.f32
+627d9375eba30deb7e713805be00dddab9778355d319fb3bfa04acf7d12ec391  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-10.f32
+70093c8e1f60d4b04511a398b28dc6286636052f7edc45a944472916733ece92  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-11.f32
+e714d036d5c3aab86d6e5abccfa2556e5b476d10433184c1a9985a005715717d  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-12.f32
+d87c149f228e2f1546d9fb953562c23f55948e55f93a83cdfd4e9bba6708bef9  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-13.f32
+b2edc975d25162c3cf4810923df6b7882c6a55ea5ae372ec1f8046182e1a6fbf  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-14.f32
+075d7563ede499d6ab607c9d8b40b33b65d17da3f0babc271655aef76b405612  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-15.f32
+19dc31671a0a81d9ae6c535c8dca6e27a981131eadcdba86ee75c23ef8be8518  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-2.f32
+7ebf3bf8101c3bae5cc8759c45dff4f8fdce45164daaf46408a2164cf4d2fac4  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-3.f32
+93e37e6e815ef58a01bb222e7257d54f8d91cefe817b47e870c6a2bda20b2d39  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-4.f32
+5c9f82b212560f09d27d48a49492a8faaff89bf8aee0f6d0c0add8aa47135a04  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-5.f32
+ec6d49cff9ac630e0ac2a2d3f5cbff69a8d40bfd22b12865b5c491956d8317a1  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-6.f32
+b2594113cb9b29091c33ea47f29e33c1acdaccbfd3b8fccf4cc4c5cac46c7f43  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-7.f32
+7022295868a1f5fdc4243a533d9265bfee893dca01817e507fa2443d6c6fd1a4  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-8.f32
+c6fd371d5a4d9e3add08d9c9b7c34025b4a99538322d50aacd8c258c47da9a71  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse2-9.f32
+758f447dd1e49ee05c5cb8903d5971573474fdcebb76a5068a25d0d9de9c4778  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-0.f32
+f13dde1c087931ac325164d9f0cf91c604838717855e218c5cdaffeb55e1a0ce  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-1.f32
+9c8502a094ae954973ece353664baf96d3547d2d00d4ea44ed8e524c55212dab  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-10.f32
+f04c7d05d14194f415a5637fbaac077f1e1ec832d17c6f64c49e131ff639d2ea  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-11.f32
+d58ebbc076b5faa5c4fb2724066894be22f7502b08da4090088632b3a46a37e8  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-12.f32
+c74f118ead981c80f0a36faded249cec3ba31a043bf7f1d738fec87d54094afc  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-13.f32
+4326b2c76915d5eabb7ab57c61857d996e3ed93dcee39628e2b1f39072e8bb57  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-14.f32
+12d5b974a82a53fd6336dad7c68a750387199bf835a365189c8cdfbb04fcff1c  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-15.f32
+8d25dd620420d4ef37d8e9d68c2042d4a2d648e4d3b035c52bcc7a684303c52a  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-2.f32
+f4ec8d221205aa2050a6760ef53a4403d062a275c1232461c8ff8b14f4895825  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-3.f32
+4e5b05909f68eaee55ca69fcedcc77d6be0d97393bd7452387cc5b77a53c67b1  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-4.f32
+4c42288b8c214e453ff68053ae1c3c7dba4fe0574c18f1e867f44f2abd17ba76  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-5.f32
+ea65658972574d1a85407344dce6e6f38facc601c72f848c28a600f7c2bac0d3  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-6.f32
+9060523f32322b9f56936f7aee16c6be1d62eb9d4a2a5361eb65e2b05a19414f  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-7.f32
+6af7ec8af7aaad45ae1a6efe3e364c67bacf37a8dc541a9cd77314addb50f3e7  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-8.f32
+d05f5fda3a6dbe10874583d52fdf73549ef4ee1bd384c1fc46b439027f236b2c  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuse3-9.f32
+d3d869c114e5b163ce835f9bcca8bea5d3d592b3bb84546c19607dd8c2b3d563  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuseEdge0.f32
+6b8b2a93224dd42bbc568ca0848d2ee3eb9a641cf8d6f61310ba95ab0e5c5c55  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuseEdge1.f32
+ceb167de845c414b807482c7cfca2e8c1254bca5b9c74f131ab467edc5a1ee8e  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuseEdge2.f32
+fc5a28ab739c62db5c6854ab6460361cbd432732bf9122500dcd368d7f2abfcc  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuseEdge3.f32
+07c62256dd03e6f1d5bbd51d8721669dfe99ce7ac14fd4ebbcf97d01870d9906  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-0.f32
+971590ab5df8c7577ed797b50a09db90bd7eba6035dca9870631ef6d8eb8e092  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-1.f32
+d5a3c11ddd422b4c1c9ab052d2864e327f2869ede2b9c5a0a64065dee8a966b4  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-10.f32
+05358448071adcfaf257a06c154f634624cf6ac91b02ed9f992c041f617f65e6  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-11.f32
+278ad564bcd1a45443ac161bc3ca2c84b9ce41f2eadf8b0d9db99b0318f05b11  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-12.f32
+47520624532fa6400e4441f7742d18d4b16da04ab5d0cd317d04d15d8fdf6b9b  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-13.f32
+8d25a7fd57b6aabc7e40593a5806842612bd9b56ca8b7bdf5dd21b5241bbddf1  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-14.f32
+87f699f1e450e81e0794c41ed7176380e30ce0142551a367e06f201a505e2369  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-15.f32
+216e13e4d4856b31cce1694b00c79e095c89f75835312882d4ccd9ccebb0e528  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-2.f32
+7e9a93f7be3cd9902e70adc0c0487589fce0443b711dcca6a9884f090a96f8ca  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-3.f32
+7f4ff23fa5f366272d7bfcab80f64478f869104279d34f9ddb5589634dc173ae  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-4.f32
+c1a7fcd31c9bbe946c1da266253454f0100e214b4e376793ba45f81832966637  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-5.f32
+895b2f50fa4e2aabdea26f7bc1d6f6b3cbddafbb2b56c74e9b991b179aa1a338  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-6.f32
+ff676c3064a7fc18e592b033647b5dd8047e8b6cad47d0933d5d04c9a32e672e  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-7.f32
+a9ec36854382f1c9b36845adc7c0a6404564681c7f26b2b8d96fb09d26795ce5  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-8.f32
+e60fa39bb330f081c2e8e0befa6fc79ab4fb2c28b246dc0a7cc3b0cac389a7b6  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload0-9.f32
+46277eaede97490b33917f174dc66c0571d9fb9c7ffc3c5cc6c894c0094502a0  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-0.f32
+5043bc829efd1041b54b3c88bcb672f7caf4d708fb75a1b28c400a93ce7066b8  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-1.f32
+cb7dd75617e9aa22659dd6b67077f36ec5cb7c905985b0b87ab0d54f1e0e08ff  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-10.f32
+9acfeb143cc456303fed7b160b352a4e5226cd0f0c2ae9d2add36dcef9d256ef  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-11.f32
+685d1c28445aac532b291a82c68681bc4e1410bd360cca5729e2d44c798f6364  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-12.f32
+72b3d89179b353d47bc6cfe86e000398b367aa731db8e9c91526fdfd5b47a043  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-13.f32
+74664eb96ecc7dbcff97ca497824962372c82693c6f062ab6a73750f6e5ed414  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-14.f32
+324d0f269f5f95ffef8d768b4f2ec56a8ac47c8ff96cf7105a78a751007d86ee  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-15.f32
+6bbd18b4a8d6636a9b5afcd3dacc0083e9b60d6a97f9a21a383ec82a724a6abc  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-2.f32
+225c38c9d5c44396d0419c95c481f7ab21753447a16ed8c3b54ffd59f797a825  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-3.f32
+9f0796e612cac6ef7bd45b1bf3542e1af1f9aa622baf9e24d7df26c3951adda0  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-4.f32
+22cbe8262361f5ae6efcedd6d602f3ad46685e56de17b0d0e9667dca2a326f50  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-5.f32
+d3f85a920beab9f6a338adac372edc681031c09c14890fdefce94e592bf0b116  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-6.f32
+210ffba0ccd7ee04e2a4684bfcc59779c96d3dec2e22bd4670d7827c6787e2e1  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-7.f32
+e38196732dc17f53671abe8b785989f16180cd0c4e2e14993ad1d3b5c31bc0ec  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-8.f32
+3d3b82a9cd5637c458f1c704668960988daa518c036e5e31942c4d675c4ac72a  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload1-9.f32
+335dff3d07ad42908df948928f7ad9c03001e4fe0134725e92ded4d49cfff853  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-0.f32
+c08bd08bf5902f59d5bd636e1b979838c57b9fac10bcf655ea1640216af86032  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-1.f32
+3e0f0ec647fc3e7c237abd0371997858fec2f9bda3bb0e2d441e44157165e577  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-10.f32
+85835a640e4f2e7c58f00134624ede20a94bc761a81cc14f86e8c22783268294  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-11.f32
+bee742d2f9f46859c1a2cd348728cdbb455ff0438422e00d31d6fc1623e4abb6  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-12.f32
+2603e3455123cf461a730e8488bdfba53729d5c321ca932000ec5c6a8147d2ed  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-13.f32
+13e3df97b02590edbfd6cdfd2c5044e894b79ba42c3a8cd990f42171ee5da753  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-14.f32
+b536f7d66d126e8ecc2cac1fab6270eceec17e5b1cb245c8fd5e33687bc7420b  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-15.f32
+d765bf800798114def05778127af833bc3503d3f6c2081e3b9ef3870d2306941  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-2.f32
+defd94dc7a7f190e7bbc3bc748afdc91f426ddd48c02b44fd092ba52e0a985d1  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-3.f32
+599525f5b8ab917358cdd87d72fb28703da20edc19ad3d205fb89dd35c67060a  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-4.f32
+78f493bdba96cf5d39a56b97c2905100fad0d0378b5570b8866334ba1fb66c91  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-5.f32
+cb3f5c928e2a8410516c895e9df3a41db481de010c04db4d6def03eae9778793  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-6.f32
+46321163239925a7f5fa2d415dec904ac7dd5876fedf229444a7c96c3ce9ab13  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-7.f32
+85e71fdafd5d560f4c7c4d27c96a20548e8f64f70b6d59e411df0f18e4669876  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-8.f32
+975e2855b07a872119daa3e0fc6f986e30c994945e42e3667f1066dd3d7c6c65  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload2-9.f32
+106c3fde64c6816de70d9420e738a90cbcc6078b5360648201cf2fa863b39123  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-0.f32
+4e2c9886b3cb4e767eaa2828c352b346e95838652ec0c0c78ae13e2030a31d2d  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-1.f32
+73c12e9140cc0ce77c905a1e6de3d8defae356689460902ea71654271b944d5c  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-10.f32
+31eb6295fdb1274b3c2c0a2f15dac5283574d5cf74bc2694e412757da47517eb  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-11.f32
+74537294e37a3ab80b9b46e6e31826327c3cbe67f36b9a23f1526b2d23026a8a  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-12.f32
+2ac03afedd353cd2243c5851720145a58a6d7504eace6303cc6c1d45507a9bf3  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-13.f32
+702626ac747a664449c6ca7b320506c83d812d72b6b8dc507af17e853f615263  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-14.f32
+c9b63a7cc084e4921a16cc5f73dba836e9c2ce65a49bbd3239a9e269f030f01f  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-15.f32
+34e34b274b10df03bbe7250b58f45ad89bf4a8f6bc93a71d8d8487799d671414  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-2.f32
+29be589ab74dce33900ce8880cef08742bbc07eefc71f5f3684b126303a61948  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-3.f32
+9a295f18329f4acd3e55714c8f4e0b7c55417fbd648dd47b22f4268c40b85ebb  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-4.f32
+09e55ca8768c8faec2586b6fbbf67947b9bba75c282d4c03668d4236a2b54dfe  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-5.f32
+214f54bbd5fbf0e32f0b11138f27b0d12f536971340af76d535ca52653b2a67a  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-6.f32
+a438111aa2fa57ad944c7e6b5f7bff00459aefb1294e31d068c0e333195509c5  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-7.f32
+d1f567bdc14a2a01c394d12c20a3fceee8bc2abb3764831e6bcb1cce6c048888  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-8.f32
+61bd5d890357e4b3aaccbbe79963926e89eb73194e524bff9cdd66707a620ed8  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReusePayload3-9.f32
+877ca8665435445bf73f0decc8ae91391d1a2b78a3bf2ed9536200390a0b7a06  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuseRays0.f32
+b50461c6badc9738891a47475e71cac01b1dd189c9b83745289aaa0e480e743d  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuseRays1.f32
+fda5732e5306a6aaf14efbf3b108a6f0d04d5b6683aa9fa08b052aeb80146051  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuseRays2.f32
+3f141bdbcd635acbff1577fedb8e63686947aea40bdf20aae4904d172f9e0322  /home/user/Frontier/_ClaudeScratch/visibility-reuse-capture-sanitized/VisibilityReuseRays3.f32

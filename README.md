@@ -87,7 +87,10 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   Nonpersistent area8 improves quality in all fixtures without candidate history;no production promotion.
 - [Receiver-anchored proposals](Exhibits/LightCompute/ReceiverBank.md): rotate4 closes the component fresh8 temporal
   gap on all four fixtures while retaining historical densities. A redundant-query finding in inherited controls
-  blocks optimized-speed claims;next is exact-sample ray-budget validation,not a production bank port.
+  required the numerical/work validation below;inherited-control counts are not optimized-speed evidence.
 - [Exact-sample ray-budget gate](Exhibits/LightCompute/RayBudget.md):unconditional visibility-query elision is
   rejected at a reproducible float shadow boundary. Both runtime builds exit1;trajectory/performance comparisons
-  are blocked. Existing checks stay while original/reconstructed ray semantics are investigated.
+  of that shortcut are blocked. The separate confirmed-reuse variant below preserves those decisions.
+- [Confirmed visibility reuse](Exhibits/LightCompute/VisibilityReuse.md): preserves reconstructed-ray decisions;
+  corrected rotate4 wins against equally optimized fresh8 in query work and temporal quality. Fresh6 remains
+  cheaper;no physical-GPU or production/memory promotion. The original blanket-elision safety gate still fails.

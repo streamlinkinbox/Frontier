@@ -120,3 +120,10 @@ A setup attempt stopped before any physics checks because the submission forbids
 The corrected probe preserves the prepared extent, repeats the1024 probe set and captures/checks its first1024
 results. Receiver defaults are restored before trajectories. No sampler, threshold or edge case changed.
 The historical setup log is retained separately;it is not a passing runtime measurement.
+
+## Separate semantics-preserving follow-up
+
+[Confirmed visibility reuse](VisibilityReuse.md) isolates one-ULP direction changes and preserves the authoritative
+reconstructed-point query instead of replacing it with the first hit. Its complete twelve-arm comparison passes
+in both builds,with corrected controls;this does not convert the rejected shortcut above into a pass.
+The original gate was also rerun under the new host and still exits1 with all eight diagnostic rows unchanged.

@@ -307,3 +307,13 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   accepted query-elision behaviour. `RayBudgetEvidence.py` verifies the rejection,not a successful runtime pass.
 - `RayBudget.md`, retained attempt/result logs and `Images/RayBudgetEdges.png` identify three disagreements at one
   shadow-boundary configuration. Next:instrument original/reconstructed ray parameters and their visibility contract.
+
+### Confirmed reconstructed-point visibility reuse
+
+- `Exhibits/LightCompute/Code/CompileVisibilityReuse.py` preserves the reconstructed-point query once per valid
+  new proposal,reusing its confirmed decision;historical entries retrace. Fresh null proposals alone skip recheck.
+- `VisibilityReuseValidation.h` measures all12 legacy/confirmed arms against fixed32-cohort references,checks
+  payload/estimate identity and exact null-query savings,and records original/reconstructed ray diagnostics.
+- `RunVisibilityReuse.sh`, `VisibilityReuseEvidence.py` and `VisibilityReuse.md` retain both successful builds,
+  4096 ULP/boundary probes,the three preserved original regressions,independent q reconstruction,136 raw hashes,
+  actual estimate PNGs and fair corrected-control query/quality comparison. Old RayBudget rejection still stands.
