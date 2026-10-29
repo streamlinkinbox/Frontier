@@ -1,0 +1,12 @@
+PASS correctness:8 identical semantic rows;runtime hashes/build=[65, 65];six identical buffers;two identical modules.
+CPU comparisons/build=393216;maximum RGB/PDF errors=[4.63758453861e-08, 3.17991113187e-07].
+RGB mean gates=36;missing-Jacobian negative control failures BSDF/MIS=[3, 3].
+Frozen MIS versus area-proportional quality gates=[False, False, True];all-three acceptance=False;production_promote=0.
+RMSE by layout=[[0.00018747002300957885, 0.0006203467202772102, 0.0008082120615064362, 0.0006891476003830721], [0.00019635440607654623, 0.0006181858456006303, 0.0008340246208000082, 0.0006710817295317062], [0.0005679532846904693, 0.0007672283039556008, 0.0009466184590071453, 0.0007437313241674177]]
+Cross MSE by layout=[[3.4522983687711935e-08, 3.842080275191897e-07, 6.525847105249806e-07, 4.7430238927424533e-07], [3.8006290650163216e-08, 3.8160497756545546e-07, 6.950483059650864e-07, 4.4980192557575456e-07], [3.135642749935097e-07, 5.796326117934028e-07, 8.870798483358778e-07, 5.441296239506375e-07]]
+Actual calls/pixel=[[67.1875, 44.2333984375, 64.8271484375, 54.6708984375], [67.4580078125, 44.73046875, 64.80078125, 54.8583984375], [65.990234375, 46.828125, 65.47265625, 55.9384765625]]
+Null proposals by layout=[[0, 0, 31902, 16195], [0, 0, 29826, 15000], [0, 0, 29272, 14527]]
+Estimated combined-reference RMS noise=[2.494044585608066e-05, 2.3425672573267005e-05, 9.490341720498166e-05]
+Experiments:393216 primary queries;proposal/suffix calls are measured,zero-support proposals elided.
+References:6291456 proposals/build,1024 per bank/pixel;primary geometry invariant.
+Host ASan/UBSan only;driver/SPIR-V uninstrumented;Windows/physical GPUs untested.

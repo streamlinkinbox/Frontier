@@ -1,5 +1,18 @@
 # Project Tracker
 
+## Fresh diffuse BSDF/area MIS — 2026-10-29
+
+- [Completed fresh MIS comparison](../Exhibits/LightCompute/DiffuseMis.md):32 proposals/pixel,four arms,three geometric layouts,
+  first-hit area/solid-angle Jacobians,retained null misses and actual query counts.
+- Correctness passes:393,216 independent replays/build,36 RGB means,wrong-Jacobian failures3/3 per BSDF/MIS arm.
+  Release/host ASan+UBSan,five CTests each;8 semantic rows,65 hashes/build,6 buffers,2 modules match.
+- Fixed50/50 quality default rejected:RMSE11.09%/8.56% worse than area in layouts0/1,3.06% lower in layout2.
+  Only1/3 ordinary+cross-MSE gates passes;MIS uses more actual calls than area in all layouts.
+- Uniform-facet has lowest RMSE all3,with more calls. Actual RGB/error sheets and finite-reference uncertainty
+  retained. No tuning after measurement;not temporal/reservoir MIS or production acceptance.
+- Evaluation100%,remaining0%;overall~76%/~24% remaining,planning estimates. Production348.046875MiB unchanged.
+  Next:explicit-measure fresh reservoir comparison;no packing,PR or Actions.
+
 ## Geometric-receiver fresh RIS — 2026-10-29
 
 - [Completed scene-consistent geometric receiver experiment](../Exhibits/LightCompute/GeometricAreaReservoir.md):
