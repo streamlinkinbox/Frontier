@@ -134,3 +134,7 @@ sanitizer build. Verified results are retained above. This remains software Vulk
 production TAA.
 No production Engine/layout/default change;output stays348.046875MiB. The bank's existing large footprint is
 not solved here;the uniform proposal still relies on one known diffuse square/deterministic directional suffix.
+
+The subsequent [ray-budget safety audit](RayBudget.md) rejects unconditional elision at three deterministic
+shadow-boundary probe entries. Its main work comparison is blocked,not passed;source-level redundancy does
+not establish exact equivalence after float hit-point reconstruction. Original checks/defaults remain in place.

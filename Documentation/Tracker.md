@@ -1488,3 +1488,22 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
   no physical-GPU/Windows/TAA/full GI acceptance. Production348.046875MiB/Engine/layout/defaults unchanged.
 - Next:exact-sample ray-budget audit/elision for controls and bank,including miss/occlusion/numerical-edge identity;
   only then revisit practical work efficiency and lower-storage weighted-reservoir injection. No packing or promotion.
+
+### Ray-budget elision — rejected at numerical boundaries; main comparison blocked
+
+- [Exact-sample safety audit](../Exhibits/LightCompute/RayBudget.md):frozen gate rejects any first-hit/reconstructed
+  shadow-query disagreement. Both builds reproduce three entries on .3 strip,receiver x=1,target x=−.399999887,
+  y=−.5/0/.5;probe indices918/938/958. They are one x configuration,not independent failure-rate samples.
+- Four retained1024-probe fixtures:valid hits561/335/215/77,disagreements0/0/3/0. Actual Vulkan arrays retained;
+  fixed prepared extent repeats input sets,with only the first1024 cases/fixture retained for analysis.
+- Builds and five CTests/build pass,focused runtime exits1 in BOTH release and ASan/UBSan at unchanged gate.
+  Evidence audit reproduces rejection:eight identical diagnostic rows,39 hashes/build,four byte-identical raw arrays,
+  four PNG arrays,exact shader regeneration. No host sanitizer report;driver/shader code not instrumented.
+- Twelve-arm32-cohort trajectory means/noise/candidate/work checks NOT RUN;blocked before them. No saving or
+  optimized-speed claim accepted. Existing inherited-control query totals remain historical as-implemented counts.
+- Setup attempt initially violated fixed submission extent,corrected without changing probe cases or safety gate;
+  original setup and first failure logs retained. Full final collection logs all fixtures before rejecting.
+- Next:record both ray directions,hit/reconstructed positions,facet IDs,distances and float bits;define/test consistent
+  visibility semantics and neighboring representable rays before reuse. No post-hoc epsilon/threshold relaxation.
+- No production Engine/layout/default change or promotion.348.046875MiB output stays. Windows/editor/physical-GPU
+  time/TAA/general GI not accepted;bank memory burden unresolved. No PR or Actions run.

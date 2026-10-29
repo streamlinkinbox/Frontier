@@ -82,7 +82,7 @@ Pen.text((20, 446), 'Edge-enriched deterministic set, not a failure-rate estimat
 Canvas.save(Images / 'RayBudgetEdges.png')
 Message = (f'REPRODUCED REJECTION, NOT RUNTIME PASS: {len(Semantic[0])} identical diagnostic rows; '
            f'{HashCounts} logged hashes verified; five CTests/build pass; runtime safety gate rejects in both builds.\n'
-           '4096 probes, 1188 valid first hits, three disagreements at one x boundary and three y coordinates; '
+           '4096 retained probe entries, 1188 valid first hits, three disagreements at one x boundary and three y coordinates; '
            'four raw arrays byte-identical, four PNG arrays exact, shader rederivation exact.\n'
            '12-arm trajectories, matched estimator/noise/candidate comparisons and work reductions NOT RUN; '
            'blocked before those checks. No production promotion or physical-GPU timing.\n')

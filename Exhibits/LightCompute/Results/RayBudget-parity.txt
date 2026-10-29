@@ -1,0 +1,7 @@
+REPRODUCED REJECTION, NOT RUNTIME PASS: 8 identical diagnostic rows; [39, 39] logged hashes verified; five CTests/build pass; runtime safety gate rejects in both builds.
+4096 retained probe entries, 1188 valid first hits, three disagreements at one x boundary and three y coordinates; four raw arrays byte-identical, four PNG arrays exact, shader rederivation exact.
+12-arm trajectories, matched estimator/noise/candidate comparisons and work reductions NOT RUN; blocked before those checks. No production promotion or physical-GPU timing.
+capture_sha256 fixture=0 sha256=de263fa405dd9947641420e5447d223d12188d0fddfaad1e06e58e9b9f125acf
+capture_sha256 fixture=1 sha256=ca175110965fe42912db4c94cb4886190846143a9df0940975d7a6255022adcb
+capture_sha256 fixture=2 sha256=79f1efc60c81be7ac23d291b65aa40ac74d979aa61ffe2166383e1f4f15009b1
+capture_sha256 fixture=3 sha256=212a0cbb7c78b2e95890b29d4666dcf1cf449573b7d4c7adbf39ca2d1f7d3871

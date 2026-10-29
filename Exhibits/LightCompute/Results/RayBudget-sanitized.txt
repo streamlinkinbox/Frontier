@@ -1,0 +1,131 @@
+Secondary GPU host mode=sanitized revision=8c7e743b5f6698e4edff51fadbd9cb6956c9bd47 working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+6d5dd771944de278bea5c85f96103f730fae5b44e5098c513e577959e9106667  Exhibits/LightCompute/Code/CompileRayBudget.py
+f5b408212bb8aad1b35e02338c4152623c23b198bc2bc570555593986b4693d0  Exhibits/LightCompute/Code/CompileReceiverBank.py
+4b3b8ce02c6315a948881b76e80c79cfab6395298af629ed392c239a2f71e2b7  Exhibits/LightCompute/Code/CompileCandidateBank.py
+f9da94cc3f075f6bbc2d94d313acad0b93816367a395bd336868725529a8834d  Exhibits/LightCompute/Code/CompileCacheRefresh.py
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+63be6b73789c53dd31512e6d96c50b951c232ae67b4cb22095730f887b8d0878  Exhibits/LightCompute/Code/RayBudgetValidation.h
+18313fc32f50c2791b2277cb84932b0499d427dee1d87c79508c491fe74fff6f  Exhibits/LightCompute/Code/ReceiverBankValidation.h
+c64a67094084082a1cdd31de0a8d7db1f01afef3565b14c070aa67282a4abee4  Exhibits/LightCompute/Code/CandidateBankValidation.h
+3c34616bfc80078a20ba880083d6473f02dd246f6ab9c1a5e208b40644f4c98c  Exhibits/LightCompute/Code/CacheRefreshValidation.h
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+b97218db21effe30968364367c53cec79cfeb6bf63d482ffc80048cad881924e  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+c5039a979f3b39d0b540b1cf8fa0fd44e122259e6667784430076e0e8a8a407c  Exhibits/LightCompute/RunRayBudget.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+297c70b5fde9bae222047a2519e21892d3cba8504474a2df1b8aba40eb0b3b4c  /home/user/Frontier/_ClaudeScratch/build/ray-budget-sanitized/RayBudget.slang
+6e1f16ea30bc380936948f78ed1f3020388f96061aa9e8b6b48af895dc050fbe  /home/user/Frontier/_ClaudeScratch/build/ray-budget-sanitized/DiffuseGenerate.spv
+bb1808193cac3df97ece2d687bf24ddb167d79249544a66be3cd52c03da9a92b  /home/user/Frontier/_ClaudeScratch/build/ray-budget-sanitized/DiffuseResolve.spv
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/ray-budget-sanitized
+[  2%] Building CXX object replay-engine/CMakeFiles/FrontierRadiantFacetDistribution.dir/RadiantFacetDistribution.cpp.o
+[  5%] Linking CXX static library libFrontierRadiantFacetDistribution.a
+[  5%] Built target FrontierRadiantFacetDistribution
+[  8%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayDomain.dir/PathReplayDomain.cpp.o
+[ 10%] Linking CXX static library libFrontierPathReplayDomain.a
+[ 10%] Built target FrontierPathReplayDomain
+[ 13%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayVulkan.dir/PathReplayVulkan.cpp.o
+[ 16%] Linking CXX static library libFrontierPathReplayVulkan.a
+[ 16%] Built target FrontierPathReplayVulkan
+[ 18%] Building CXX object replay-engine/CMakeFiles/FrontierMediumRadiancePayload.dir/MediumRadiancePayload.cpp.o
+[ 21%] Linking CXX static library libFrontierMediumRadiancePayload.a
+[ 21%] Built target FrontierMediumRadiancePayload
+[ 24%] Building CXX object CMakeFiles/LightComputeValidation.dir/Code/LightComputeValidation.cpp.o
+[ 27%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ClusterNesting.cpp.o
+[ 29%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VisibilityCull.cpp.o
+[ 32%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DiscrepancySequence.cpp.o
+[ 35%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReservoirSampling.cpp.o
+[ 37%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VarianceFiltering.cpp.o
+[ 40%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DistanceField.cpp.o
+[ 43%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/SurfaceCards.cpp.o
+[ 45%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/AtmosphereModel.cpp.o
+[ 48%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CelestialModel.cpp.o
+[ 51%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CloudField.cpp.o
+[ 54%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/FogMedium.cpp.o
+[ 56%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReferenceRenderer.cpp.o
+[ 59%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogRingStore.cpp.o
+[ 62%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogCategories.cpp.o
+[ 64%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogStream.cpp.o
+[ 67%] Linking CXX executable LightComputeValidation
+[ 67%] Built target LightComputeValidation
+[ 70%] Building CXX object CMakeFiles/PathReplayDomainValidation.dir/Code/PathReplayDomainValidation.cpp.o
+[ 72%] Linking CXX executable PathReplayDomainValidation
+[ 72%] Built target PathReplayDomainValidation
+[ 75%] Building CXX object CMakeFiles/PathReplayVulkanValidation.dir/Code/PathReplayVulkanValidation.cpp.o
+[ 78%] Linking CXX executable PathReplayVulkanValidation
+[ 78%] Built target PathReplayVulkanValidation
+[ 81%] Building CXX object CMakeFiles/PathReplayArchiveValidation.dir/Code/PathReplayArchiveValidation.cpp.o
+[ 83%] Linking CXX executable PathReplayArchiveValidation
+[ 83%] Built target PathReplayArchiveValidation
+[ 86%] Building CXX object CMakeFiles/RadiantFacetValidation.dir/Code/RadiantFacetValidation.cpp.o
+[ 89%] Linking CXX executable RadiantFacetValidation
+[ 89%] Built target RadiantFacetValidation
+[ 91%] Building CXX object CMakeFiles/MediumRadianceValidation.dir/Code/MediumRadianceValidation.cpp.o
+[ 94%] Linking CXX executable MediumRadianceValidation
+[ 94%] Built target MediumRadianceValidation
+[ 97%] Building CXX object replay-engine/CMakeFiles/FrontierPlumeLatticeFootprint.dir/PlumeLatticeFootprint.cpp.o
+[100%] Linking CXX static library libFrontierPlumeLatticeFootprint.a
+[100%] Built target FrontierPlumeLatticeFootprint
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/ray-budget-sanitized
+Test project /home/user/Frontier/_ClaudeScratch/build/ray-budget-sanitized
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.02 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.01 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.01 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.05 sec
+RAY_BUDGET_DEVICE name=SwiftShader Device (Subzero) type=4
+RAY_BUDGET_EDGE fixture=0 probes=1024 hits=561 disagreements=0
+RAY_BUDGET_EDGE fixture=1 probes=1024 hits=335 disagreements=0
+RAY_BUDGET_EDGE fixture=2 probes=1024 hits=215 disagreements=3
+RAY_BUDGET_EDGE_DETAIL fixture=2 pixel=918 receiver_x=1 target_x=-0.399999887 target_y=-0.5 first=1 recheck=0
+RAY_BUDGET_EDGE_DETAIL fixture=2 pixel=938 receiver_x=1 target_x=-0.399999887 target_y=0 first=1 recheck=0
+RAY_BUDGET_EDGE_DETAIL fixture=2 pixel=958 receiver_x=1 target_x=-0.399999887 target_y=0.5 first=1 recheck=0
+RAY_BUDGET_EDGE fixture=3 probes=1024 hits=77 disagreements=0
+First-hit/recheck numerical edge disagreement blocks query elision

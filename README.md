@@ -88,3 +88,6 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
 - [Receiver-anchored proposals](Exhibits/LightCompute/ReceiverBank.md): rotate4 closes the component fresh8 temporal
   gap on all four fixtures while retaining historical densities. A redundant-query finding in inherited controls
   blocks optimized-speed claims;next is exact-sample ray-budget validation,not a production bank port.
+- [Exact-sample ray-budget gate](Exhibits/LightCompute/RayBudget.md):unconditional visibility-query elision is
+  rejected at a reproducible float shadow boundary. Both runtime builds exit1;trajectory/performance comparisons
+  are blocked. Existing checks stay while original/reconstructed ray semantics are investigated.

@@ -297,3 +297,13 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   reweights captured rotate4 candidates with current instead of historical q and requires a detected mean error.
 - `RunReceiverBank.sh`, `ReceiverBankEvidence.py` and `ReceiverBank.md` retain birth-pose density reconstruction,
   exact cross-build captures and the discovered inherited-control query redundancy;no optimized-speed acceptance.
+
+### Exact-sample ray-budget safety gate
+
+- `Exhibits/LightCompute/Code/CompileRayBudget.py` pairs legacy/query-elided receiver-bank arms and adds actual
+  nearest-facet boundary probes. `RayBudgetValidation.h` rejects any first-hit/reconstructed-visibility disagreement
+  before allowing the twelve-arm trajectory/work comparison.
+- `RunRayBudget.sh` currently exits1 at that numerical gate in both release/host-sanitized builds. This is not
+  accepted query-elision behaviour. `RayBudgetEvidence.py` verifies the rejection,not a successful runtime pass.
+- `RayBudget.md`, retained attempt/result logs and `Images/RayBudgetEdges.png` identify three disagreements at one
+  shadow-boundary configuration. Next:instrument original/reconstructed ray parameters and their visibility contract.
