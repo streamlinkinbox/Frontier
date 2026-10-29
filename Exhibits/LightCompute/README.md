@@ -1,5 +1,14 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Persistent RGB quartet reuse — 2026-10-29
+
+[Complete persistence test,reset costs and rejected promotion](RgbReuse.md):two reservoirs retained/two refreshed;
+786,432 descriptor comparisons/build and178,176 retained-byte checks pass. Both builds match96 captures and
+all1,152 mean gates pass. Versus the matched raw budget,instant RGB RMSE improves8.08–12.33%,but four-step
+rolling error worsens15.32–20.18%;all3 frozen promotion gates fail. Draws−45.3125% versus raw8 are not rays
+or speed;including birth scores,logical geometry evaluations rise10.25%. Production348.046875MiB unchanged.
+
+
 ## Integrated RGB quartet selection — 2026-10-29
 
 [Selector correctness,actual buffers and negative quality result](RgbQuartet.md):two Vulkan dispatches select,

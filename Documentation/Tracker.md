@@ -4,6 +4,26 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## Persistent RGB quartet reuse — 2026-10-29
+
+- [Completed persistence experiment and rejected promotion](../Exhibits/LightCompute/RgbReuse.md):four RGB
+  descriptors persist across32 dispatch pairs;warm steps retain two/refresh two,epoch changes rebuild all four.
+  Release/host ASan+UBSan pass five CTests each and independent CPU validation;786,432 quartet descriptor
+  comparisons/build,178,176 exact retained-byte checks,zero identity exceptions and1,152 RGB mean gates pass.
+  Exact parity:578 semantic rows,96 captures,two SPIR-V files;146 runtime hashes/build verify.
+- Three tracks in one eight-facet scene:stationary,smooth and receiver jumps,with relight/geometry epochs at
+  steps16/24. Reset-inclusive matched raw budget uses the same143,360 draws/track as rotate2,versus262,144
+  raw8. Instant RGB RMSE improves8.08–12.33% versus matched budget;four-step rolling error worsens15.32–20.18%.
+  All3 frozen promotion gates fail. Logical geometry evaluations including birth scores are10.25% above raw8;
+  fewer draws do not establish ray-query savings or speed. Keep the prototype isolated from production.
+- Bounded experiment100% complete;overall ReSTIR/GI~49%,~51% remaining,planning estimates only. Next:traced
+  RGB suffix/visibility reconnection with fresh/raw controls. Correlation-aware reuse must pass before promotion;
+  arbitrary surface proposals,dynamic/camera/TAA/general-scene acceptance,physical GPU and production integration
+  remain. Production348.046875MiB/defaults and previous results unchanged;packing/editor/vehicle/Jolt deferred.
+- Results retain96 lossless buffers,compiled modules,metrics/paired block intervals,all mean gates and hashes;
+  Images retain24 exact32x32 arrays and two labelled charts. No Windows/physical-GPU test,PR or Actions.
+
+
 ## Integrated RGB quartet selection — 2026-10-29
 
 - [Complete gate,raw comparison and actual buffers](../Exhibits/LightCompute/RgbQuartet.md):two-dispatch Vulkan

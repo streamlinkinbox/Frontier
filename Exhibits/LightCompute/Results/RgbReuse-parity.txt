@@ -1,0 +1,6 @@
+PASS persistent implementation:578 identical semantic rows;hashes/build=[146, 146];96 byte-identical captures;two identical SPIR-V files.
+786432 quartet descriptor comparisons/build;178176 exact retained-byte checks;1152 RGB mean gates;24 exact PNG arrays.
+Max normalized CPU estimate/weight errors=[3.1243486114e-07, 3.16502620657e-07];promotion_by_track=[False, False, False];production_promote=0.
+Instant RMSEs by track=[[0.09875497690101342, 0.09870709977199305, 0.10902264132159763, 0.07938105620710756], [0.07524223507391854, 0.07304850555675857, 0.0818532432569399, 0.05961054450064398], [0.07212581277656056, 0.06971369540367932, 0.08226692095718349, 0.05979213681164254]];rolling RMSEs=[[0.07291792259240042, 0.059986521330610935, 0.06067448952175356, 0.04848642847699725], [0.053245612385686224, 0.044433293862103616, 0.04487472347384361, 0.03592315837778456], [0.05189469615613982, 0.04339431295925285, 0.04499919367049599, 0.035800025641951914]].
+Methods=rotate2,fresh-quartet,matched-raw-budget,raw8;rotating draws/track=143360 vs raw8=262144.
+Both native runs exit0,five CTests each;host ASan+UBSan only. No traced RGB,visibility,camera/TAA or physical timing.

@@ -360,3 +360,14 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   raw-eight and incorrect-normalization comparisons,and the explicit fresh-quality rejection. Results retain
   lossless captures/compiled SPIR-V,logs,generated table,audit and hashes;Images retains exact RGB arrays/charts.
   This exhibit does not install persistent RGB histories,trace suffixes or change production348.046875MiB/defaults.
+
+### Persistent RGB quartet reuse
+
+- `Exhibits/LightCompute/Code/RgbReuseGpu.slang` reuses RGB selector/production facet interpolation functions,
+  persists four wire descriptors plus epoch metadata,rotates two lanes,and rebuilds changed epochs before decode.
+- `RgbReuseValidation.h` independently replays descriptor identities/birth weights/RGB,compares retained bytes,
+  verifies reset/work counters and exercises three32-step receiver tracks. `--rgb-reuse` exposes the isolated run.
+- `RunRgbReuse.sh`,`RgbReuseEvidence.py` and `RgbReuse.md` retain reset-inclusive raw/fresh comparisons,exact
+  cross-build parity,paired error intervals and the all-track rolling-quality rejection. Results retain96 lossless
+  captures,two SPIR-V modules,logs,generated metrics/means and hashes;Images retains24 actual arrays/two charts.
+  No traced RGB,visibility,BVH-refit,camera/TAA,physical-GPU timing or production-allocation promotion is implied.

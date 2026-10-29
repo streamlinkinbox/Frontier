@@ -1,0 +1,807 @@
+Secondary GPU host mode=release revision=caed30362f6ef2e1e3d5f8c0d7ceae5ade830e28 working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+041dcbb764c0b67139adc6d84c554bba238e0c124033eddffda066f4ca6b74db  Exhibits/LightCompute/Code/RgbReuseGpu.slang
+4bd923202c8bc850f253904d4304d451e6a9e278e134eb4baf28f2c2e3d785bb  Exhibits/LightCompute/Code/RgbQuartetGpu.slang
+84e591e4615fdfd970da44342cd8fb31e4a4234e1c5e6376c65accc726b81742  Exhibits/LightCompute/Code/FacetReservoirDescriptor.h
+4dc1c4b8a829d04d33c7cb9cb57c7942358a5d76fad9a441edcc708162e58f88  Exhibits/LightCompute/Code/CompileWeightedQuartet.py
+e66b489726d4b913523e25923c7f685cf25e56ca5f885f6d60dfbf19ab5690aa  Exhibits/LightCompute/Code/CompileWeightedPair.py
+1cb56bc9980bb8b18bbacca2fb86b3c4e51a2cdd7f25aa548b06d0008105416b  Exhibits/LightCompute/Code/CompileVisibilityReuse.py
+6d5dd771944de278bea5c85f96103f730fae5b44e5098c513e577959e9106667  Exhibits/LightCompute/Code/CompileRayBudget.py
+f5b408212bb8aad1b35e02338c4152623c23b198bc2bc570555593986b4693d0  Exhibits/LightCompute/Code/CompileReceiverBank.py
+4b3b8ce02c6315a948881b76e80c79cfab6395298af629ed392c239a2f71e2b7  Exhibits/LightCompute/Code/CompileCandidateBank.py
+f9da94cc3f075f6bbc2d94d313acad0b93816367a395bd336868725529a8834d  Exhibits/LightCompute/Code/CompileCacheRefresh.py
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+352ff098b24845a613719526e4f146502a0943f1150df88d88d521157255a9dc  Exhibits/LightCompute/Code/RgbReuseValidation.h
+9bbc6be9747e28d717380565f6258d3080387147fee0b9915174e580bce03d5d  Exhibits/LightCompute/Code/RgbQuartetValidation.h
+fc02ea02ff85e3dec2b76300aff4e8056504518ac8e51af782b5ee89699e6596  Exhibits/LightCompute/Code/WeightedQuartetValidation.h
+1331bc0f2796b9fe87bf7ff0062269cb30e293f49e82d6dbe10ebb173147a04d  Exhibits/LightCompute/Code/WeightedPairValidation.h
+5dc18f3f4aa1bdc5836f16d8ae210b2eb340576b8381f5f7521a8899c953ac11  Exhibits/LightCompute/Code/VisibilityReuseValidation.h
+63be6b73789c53dd31512e6d96c50b951c232ae67b4cb22095730f887b8d0878  Exhibits/LightCompute/Code/RayBudgetValidation.h
+18313fc32f50c2791b2277cb84932b0499d427dee1d87c79508c491fe74fff6f  Exhibits/LightCompute/Code/ReceiverBankValidation.h
+c64a67094084082a1cdd31de0a8d7db1f01afef3565b14c070aa67282a4abee4  Exhibits/LightCompute/Code/CandidateBankValidation.h
+3c34616bfc80078a20ba880083d6473f02dd246f6ab9c1a5e208b40644f4c98c  Exhibits/LightCompute/Code/CacheRefreshValidation.h
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+ac8ba019241fc8e73fad4bb2de71cda6f25f68dfc7e72a7560be73228fdadc10  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+6fe50c565e163c20d1655f43c44d99c46b4581493bc3c937a9b77e0327163e62  Exhibits/LightCompute/RunRgbReuse.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+041dcbb764c0b67139adc6d84c554bba238e0c124033eddffda066f4ca6b74db  /home/user/Frontier/_ClaudeScratch/build/rgb-reuse-release/RgbReuse.slang
+83919dc48d822be3bbd15a4c8b6dcf07eee879b0524cec5b7a0991c804ea2a92  /home/user/Frontier/_ClaudeScratch/build/rgb-reuse-release/DiffuseGenerate.spv
+b87b539834802013f16fa9caa919f74fb6b72ee3adddfb0b68ad3dd19e272654  /home/user/Frontier/_ClaudeScratch/build/rgb-reuse-release/DiffuseResolve.spv
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/rgb-reuse-release
+[  2%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayVulkan.dir/PathReplayVulkan.cpp.o
+[  5%] Linking CXX static library libFrontierPathReplayVulkan.a
+[  5%] Built target FrontierPathReplayVulkan
+[  8%] Building CXX object replay-engine/CMakeFiles/FrontierMediumRadiancePayload.dir/MediumRadiancePayload.cpp.o
+[ 10%] Linking CXX static library libFrontierMediumRadiancePayload.a
+[ 10%] Built target FrontierMediumRadiancePayload
+[ 13%] Building CXX object replay-engine/CMakeFiles/FrontierRadiantFacetDistribution.dir/RadiantFacetDistribution.cpp.o
+[ 16%] Linking CXX static library libFrontierRadiantFacetDistribution.a
+[ 16%] Built target FrontierRadiantFacetDistribution
+[ 18%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayDomain.dir/PathReplayDomain.cpp.o
+[ 21%] Linking CXX static library libFrontierPathReplayDomain.a
+[ 21%] Built target FrontierPathReplayDomain
+[ 24%] Building CXX object CMakeFiles/LightComputeValidation.dir/Code/LightComputeValidation.cpp.o
+[ 27%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ClusterNesting.cpp.o
+[ 29%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VisibilityCull.cpp.o
+[ 32%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DiscrepancySequence.cpp.o
+[ 35%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReservoirSampling.cpp.o
+[ 37%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VarianceFiltering.cpp.o
+[ 40%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DistanceField.cpp.o
+[ 43%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/SurfaceCards.cpp.o
+[ 45%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/AtmosphereModel.cpp.o
+[ 48%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CelestialModel.cpp.o
+[ 51%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CloudField.cpp.o
+[ 54%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/FogMedium.cpp.o
+[ 56%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReferenceRenderer.cpp.o
+[ 59%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogRingStore.cpp.o
+[ 62%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogCategories.cpp.o
+[ 64%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogStream.cpp.o
+[ 67%] Linking CXX executable LightComputeValidation
+[ 67%] Built target LightComputeValidation
+[ 70%] Building CXX object CMakeFiles/PathReplayDomainValidation.dir/Code/PathReplayDomainValidation.cpp.o
+[ 72%] Linking CXX executable PathReplayDomainValidation
+[ 72%] Built target PathReplayDomainValidation
+[ 75%] Building CXX object CMakeFiles/PathReplayVulkanValidation.dir/Code/PathReplayVulkanValidation.cpp.o
+[ 78%] Linking CXX executable PathReplayVulkanValidation
+[ 78%] Built target PathReplayVulkanValidation
+[ 81%] Building CXX object CMakeFiles/PathReplayArchiveValidation.dir/Code/PathReplayArchiveValidation.cpp.o
+[ 83%] Linking CXX executable PathReplayArchiveValidation
+[ 83%] Built target PathReplayArchiveValidation
+[ 86%] Building CXX object CMakeFiles/RadiantFacetValidation.dir/Code/RadiantFacetValidation.cpp.o
+[ 89%] Linking CXX executable RadiantFacetValidation
+[ 89%] Built target RadiantFacetValidation
+[ 91%] Building CXX object CMakeFiles/MediumRadianceValidation.dir/Code/MediumRadianceValidation.cpp.o
+[ 94%] Linking CXX executable MediumRadianceValidation
+[ 94%] Built target MediumRadianceValidation
+[ 97%] Building CXX object replay-engine/CMakeFiles/FrontierPlumeLatticeFootprint.dir/PlumeLatticeFootprint.cpp.o
+[100%] Linking CXX static library libFrontierPlumeLatticeFootprint.a
+[100%] Built target FrontierPlumeLatticeFootprint
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/rgb-reuse-release
+Test project /home/user/Frontier/_ClaudeScratch/build/rgb-reuse-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.01 sec
+RGB_REUSE_DEVICE name=SwiftShader Device (Subzero) type=4 samples=1024 methods=4 steps=32 fixtures=3
+RGB_REUSE_CASE fixture=0 step=0 reset=1 estimate_error=1.08583792791e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=0 method=0 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=0 step=0 method=1 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=0 step=0 method=2 draws=8192 kept=0 evaluations=7273
+RGB_REUSE_WORK fixture=0 step=0 method=3 draws=8192 kept=0 evaluations=7273
+RGB_REUSE_EXACT fixture=0 step=0 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=1 reset=0 estimate_error=9.09644510827e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=1 method=0 draws=4096 kept=2048 evaluations=4049
+RGB_REUSE_WORK fixture=0 step=1 method=1 draws=8192 kept=0 evaluations=4040
+RGB_REUSE_WORK fixture=0 step=1 method=2 draws=4096 kept=0 evaluations=3660
+RGB_REUSE_WORK fixture=0 step=1 method=3 draws=8192 kept=0 evaluations=7292
+RGB_REUSE_EXACT fixture=0 step=1 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=2 reset=0 estimate_error=1.15634320008e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=2 method=0 draws=4096 kept=2048 evaluations=4038
+RGB_REUSE_WORK fixture=0 step=2 method=1 draws=8192 kept=0 evaluations=4037
+RGB_REUSE_WORK fixture=0 step=2 method=2 draws=4096 kept=0 evaluations=3603
+RGB_REUSE_WORK fixture=0 step=2 method=3 draws=8192 kept=0 evaluations=7248
+RGB_REUSE_EXACT fixture=0 step=2 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=3 reset=0 estimate_error=1.04341641161e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=3 method=0 draws=4096 kept=2048 evaluations=4039
+RGB_REUSE_WORK fixture=0 step=3 method=1 draws=8192 kept=0 evaluations=4049
+RGB_REUSE_WORK fixture=0 step=3 method=2 draws=4096 kept=0 evaluations=3632
+RGB_REUSE_WORK fixture=0 step=3 method=3 draws=8192 kept=0 evaluations=7264
+RGB_REUSE_EXACT fixture=0 step=3 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=4 reset=0 estimate_error=8.95942077195e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=4 method=0 draws=4096 kept=2048 evaluations=4054
+RGB_REUSE_WORK fixture=0 step=4 method=1 draws=8192 kept=0 evaluations=4046
+RGB_REUSE_WORK fixture=0 step=4 method=2 draws=4096 kept=0 evaluations=3637
+RGB_REUSE_WORK fixture=0 step=4 method=3 draws=8192 kept=0 evaluations=7278
+RGB_REUSE_EXACT fixture=0 step=4 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=5 reset=0 estimate_error=9.90446863414e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=5 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=0 step=5 method=1 draws=8192 kept=0 evaluations=4053
+RGB_REUSE_WORK fixture=0 step=5 method=2 draws=4096 kept=0 evaluations=3635
+RGB_REUSE_WORK fixture=0 step=5 method=3 draws=8192 kept=0 evaluations=7321
+RGB_REUSE_EXACT fixture=0 step=5 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=6 reset=0 estimate_error=9.90446863414e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=6 method=0 draws=4096 kept=2048 evaluations=4043
+RGB_REUSE_WORK fixture=0 step=6 method=1 draws=8192 kept=0 evaluations=4048
+RGB_REUSE_WORK fixture=0 step=6 method=2 draws=4096 kept=0 evaluations=3668
+RGB_REUSE_WORK fixture=0 step=6 method=3 draws=8192 kept=0 evaluations=7341
+RGB_REUSE_EXACT fixture=0 step=6 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=7 reset=0 estimate_error=1.07124921711e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=7 method=0 draws=4096 kept=2048 evaluations=4046
+RGB_REUSE_WORK fixture=0 step=7 method=1 draws=8192 kept=0 evaluations=4046
+RGB_REUSE_WORK fixture=0 step=7 method=2 draws=4096 kept=0 evaluations=3665
+RGB_REUSE_WORK fixture=0 step=7 method=3 draws=8192 kept=0 evaluations=7286
+RGB_REUSE_EXACT fixture=0 step=7 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=8 reset=0 estimate_error=9.99723584472e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=8 method=0 draws=4096 kept=2048 evaluations=4044
+RGB_REUSE_WORK fixture=0 step=8 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=0 step=8 method=2 draws=4096 kept=0 evaluations=3635
+RGB_REUSE_WORK fixture=0 step=8 method=3 draws=8192 kept=0 evaluations=7294
+RGB_REUSE_EXACT fixture=0 step=8 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=9 reset=0 estimate_error=9.90446863414e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=9 method=0 draws=4096 kept=2048 evaluations=4046
+RGB_REUSE_WORK fixture=0 step=9 method=1 draws=8192 kept=0 evaluations=4044
+RGB_REUSE_WORK fixture=0 step=9 method=2 draws=4096 kept=0 evaluations=3626
+RGB_REUSE_WORK fixture=0 step=9 method=3 draws=8192 kept=0 evaluations=7248
+RGB_REUSE_EXACT fixture=0 step=9 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=10 reset=0 estimate_error=9.90446863414e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=10 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=0 step=10 method=1 draws=8192 kept=0 evaluations=4048
+RGB_REUSE_WORK fixture=0 step=10 method=2 draws=4096 kept=0 evaluations=3643
+RGB_REUSE_WORK fixture=0 step=10 method=3 draws=8192 kept=0 evaluations=7285
+RGB_REUSE_EXACT fixture=0 step=10 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=11 reset=0 estimate_error=9.37880531016e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=11 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=0 step=11 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=0 step=11 method=2 draws=4096 kept=0 evaluations=3630
+RGB_REUSE_WORK fixture=0 step=11 method=3 draws=8192 kept=0 evaluations=7283
+RGB_REUSE_EXACT fixture=0 step=11 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=12 reset=0 estimate_error=1.19936194087e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=12 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=0 step=12 method=1 draws=8192 kept=0 evaluations=4037
+RGB_REUSE_WORK fixture=0 step=12 method=2 draws=4096 kept=0 evaluations=3641
+RGB_REUSE_WORK fixture=0 step=12 method=3 draws=8192 kept=0 evaluations=7255
+RGB_REUSE_EXACT fixture=0 step=12 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=13 reset=0 estimate_error=9.78066703738e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=13 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=0 step=13 method=1 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=0 step=13 method=2 draws=4096 kept=0 evaluations=3643
+RGB_REUSE_WORK fixture=0 step=13 method=3 draws=8192 kept=0 evaluations=7268
+RGB_REUSE_EXACT fixture=0 step=13 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=14 reset=0 estimate_error=1.07124921711e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=14 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=0 step=14 method=1 draws=8192 kept=0 evaluations=4039
+RGB_REUSE_WORK fixture=0 step=14 method=2 draws=4096 kept=0 evaluations=3631
+RGB_REUSE_WORK fixture=0 step=14 method=3 draws=8192 kept=0 evaluations=7283
+RGB_REUSE_EXACT fixture=0 step=14 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=15 reset=0 estimate_error=9.90446863414e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=15 method=0 draws=4096 kept=2048 evaluations=4040
+RGB_REUSE_WORK fixture=0 step=15 method=1 draws=8192 kept=0 evaluations=4042
+RGB_REUSE_WORK fixture=0 step=15 method=2 draws=4096 kept=0 evaluations=3643
+RGB_REUSE_WORK fixture=0 step=15 method=3 draws=8192 kept=0 evaluations=7309
+RGB_REUSE_EXACT fixture=0 step=15 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=0 step=16 reset=1 estimate_error=1.96650187578e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=16 method=0 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=0 step=16 method=1 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=0 step=16 method=2 draws=8192 kept=0 evaluations=7254
+RGB_REUSE_WORK fixture=0 step=16 method=3 draws=8192 kept=0 evaluations=7254
+RGB_REUSE_EXACT fixture=0 step=16 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=0 step=17 reset=0 estimate_error=1.98089372683e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=17 method=0 draws=4096 kept=2048 evaluations=4029
+RGB_REUSE_WORK fixture=0 step=17 method=1 draws=8192 kept=0 evaluations=4044
+RGB_REUSE_WORK fixture=0 step=17 method=2 draws=4096 kept=0 evaluations=3628
+RGB_REUSE_WORK fixture=0 step=17 method=3 draws=8192 kept=0 evaluations=7254
+RGB_REUSE_EXACT fixture=0 step=17 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=0 step=18 reset=0 estimate_error=1.98089372683e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=18 method=0 draws=4096 kept=2048 evaluations=4038
+RGB_REUSE_WORK fixture=0 step=18 method=1 draws=8192 kept=0 evaluations=4040
+RGB_REUSE_WORK fixture=0 step=18 method=2 draws=4096 kept=0 evaluations=3634
+RGB_REUSE_WORK fixture=0 step=18 method=3 draws=8192 kept=0 evaluations=7245
+RGB_REUSE_EXACT fixture=0 step=18 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=0 step=19 reset=0 estimate_error=1.98089372683e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=19 method=0 draws=4096 kept=2048 evaluations=4039
+RGB_REUSE_WORK fixture=0 step=19 method=1 draws=8192 kept=0 evaluations=4041
+RGB_REUSE_WORK fixture=0 step=19 method=2 draws=4096 kept=0 evaluations=3617
+RGB_REUSE_WORK fixture=0 step=19 method=3 draws=8192 kept=0 evaluations=7247
+RGB_REUSE_EXACT fixture=0 step=19 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=0 step=20 reset=0 estimate_error=1.71415635464e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=20 method=0 draws=4096 kept=2048 evaluations=4038
+RGB_REUSE_WORK fixture=0 step=20 method=1 draws=8192 kept=0 evaluations=4037
+RGB_REUSE_WORK fixture=0 step=20 method=2 draws=4096 kept=0 evaluations=3627
+RGB_REUSE_WORK fixture=0 step=20 method=3 draws=8192 kept=0 evaluations=7244
+RGB_REUSE_EXACT fixture=0 step=20 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=0 step=21 reset=0 estimate_error=1.99944716894e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=21 method=0 draws=4096 kept=2048 evaluations=4045
+RGB_REUSE_WORK fixture=0 step=21 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=0 step=21 method=2 draws=4096 kept=0 evaluations=3641
+RGB_REUSE_WORK fixture=0 step=21 method=3 draws=8192 kept=0 evaluations=7285
+RGB_REUSE_EXACT fixture=0 step=21 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=0 step=22 reset=0 estimate_error=1.81928902387e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=22 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=0 step=22 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=0 step=22 method=2 draws=4096 kept=0 evaluations=3672
+RGB_REUSE_WORK fixture=0 step=22 method=3 draws=8192 kept=0 evaluations=7318
+RGB_REUSE_EXACT fixture=0 step=22 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=0 step=23 reset=0 estimate_error=2.01110464837e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=0 step=23 method=0 draws=4096 kept=2048 evaluations=4051
+RGB_REUSE_WORK fixture=0 step=23 method=1 draws=8192 kept=0 evaluations=4049
+RGB_REUSE_WORK fixture=0 step=23 method=2 draws=4096 kept=0 evaluations=3656
+RGB_REUSE_WORK fixture=0 step=23 method=3 draws=8192 kept=0 evaluations=7292
+RGB_REUSE_EXACT fixture=0 step=23 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=0 step=24 reset=1 estimate_error=1.97516958567e-07 weight_error=2.23505109379e-07
+RGB_REUSE_WORK fixture=0 step=24 method=0 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=0 step=24 method=1 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=0 step=24 method=2 draws=8192 kept=0 evaluations=7269
+RGB_REUSE_WORK fixture=0 step=24 method=3 draws=8192 kept=0 evaluations=7269
+RGB_REUSE_EXACT fixture=0 step=24 channel0=0.43773375359927369 channel1=0.39526808273671682 channel2=0.42618346427931331
+RGB_REUSE_CASE fixture=0 step=25 reset=0 estimate_error=1.33265554814e-07 weight_error=2.23505109379e-07
+RGB_REUSE_WORK fixture=0 step=25 method=0 draws=4096 kept=2048 evaluations=4045
+RGB_REUSE_WORK fixture=0 step=25 method=1 draws=8192 kept=0 evaluations=4051
+RGB_REUSE_WORK fixture=0 step=25 method=2 draws=4096 kept=0 evaluations=3658
+RGB_REUSE_WORK fixture=0 step=25 method=3 draws=8192 kept=0 evaluations=7256
+RGB_REUSE_EXACT fixture=0 step=25 channel0=0.43773375359927369 channel1=0.39526808273671682 channel2=0.42618346427931331
+RGB_REUSE_CASE fixture=0 step=26 reset=0 estimate_error=1.48231391939e-07 weight_error=2.23505109379e-07
+RGB_REUSE_WORK fixture=0 step=26 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=0 step=26 method=1 draws=8192 kept=0 evaluations=4056
+RGB_REUSE_WORK fixture=0 step=26 method=2 draws=4096 kept=0 evaluations=3637
+RGB_REUSE_WORK fixture=0 step=26 method=3 draws=8192 kept=0 evaluations=7285
+RGB_REUSE_EXACT fixture=0 step=26 channel0=0.43773375359927369 channel1=0.39526808273671682 channel2=0.42618346427931331
+RGB_REUSE_CASE fixture=0 step=27 reset=0 estimate_error=1.33642471201e-07 weight_error=2.23505109379e-07
+RGB_REUSE_WORK fixture=0 step=27 method=0 draws=4096 kept=2048 evaluations=4050
+RGB_REUSE_WORK fixture=0 step=27 method=1 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=0 step=27 method=2 draws=4096 kept=0 evaluations=3645
+RGB_REUSE_WORK fixture=0 step=27 method=3 draws=8192 kept=0 evaluations=7258
+RGB_REUSE_EXACT fixture=0 step=27 channel0=0.43773375359927369 channel1=0.39526808273671682 channel2=0.42618346427931331
+RGB_REUSE_CASE fixture=0 step=28 reset=0 estimate_error=1.30404093301e-07 weight_error=2.23505109379e-07
+RGB_REUSE_WORK fixture=0 step=28 method=0 draws=4096 kept=2048 evaluations=4050
+RGB_REUSE_WORK fixture=0 step=28 method=1 draws=8192 kept=0 evaluations=4036
+RGB_REUSE_WORK fixture=0 step=28 method=2 draws=4096 kept=0 evaluations=3612
+RGB_REUSE_WORK fixture=0 step=28 method=3 draws=8192 kept=0 evaluations=7246
+RGB_REUSE_EXACT fixture=0 step=28 channel0=0.43773375359927369 channel1=0.39526808273671682 channel2=0.42618346427931331
+RGB_REUSE_CASE fixture=0 step=29 reset=0 estimate_error=1.50425242484e-07 weight_error=2.23505109379e-07
+RGB_REUSE_WORK fixture=0 step=29 method=0 draws=4096 kept=2048 evaluations=4043
+RGB_REUSE_WORK fixture=0 step=29 method=1 draws=8192 kept=0 evaluations=4041
+RGB_REUSE_WORK fixture=0 step=29 method=2 draws=4096 kept=0 evaluations=3631
+RGB_REUSE_WORK fixture=0 step=29 method=3 draws=8192 kept=0 evaluations=7290
+RGB_REUSE_EXACT fixture=0 step=29 channel0=0.43773375359927369 channel1=0.39526808273671682 channel2=0.42618346427931331
+RGB_REUSE_CASE fixture=0 step=30 reset=0 estimate_error=1.48231391939e-07 weight_error=2.23505109379e-07
+RGB_REUSE_WORK fixture=0 step=30 method=0 draws=4096 kept=2048 evaluations=4040
+RGB_REUSE_WORK fixture=0 step=30 method=1 draws=8192 kept=0 evaluations=4051
+RGB_REUSE_WORK fixture=0 step=30 method=2 draws=4096 kept=0 evaluations=3678
+RGB_REUSE_WORK fixture=0 step=30 method=3 draws=8192 kept=0 evaluations=7334
+RGB_REUSE_EXACT fixture=0 step=30 channel0=0.43773375359927369 channel1=0.39526808273671682 channel2=0.42618346427931331
+RGB_REUSE_CASE fixture=0 step=31 reset=0 estimate_error=1.48231391939e-07 weight_error=2.23505109379e-07
+RGB_REUSE_WORK fixture=0 step=31 method=0 draws=4096 kept=2048 evaluations=4036
+RGB_REUSE_WORK fixture=0 step=31 method=1 draws=8192 kept=0 evaluations=4041
+RGB_REUSE_WORK fixture=0 step=31 method=2 draws=4096 kept=0 evaluations=3626
+RGB_REUSE_WORK fixture=0 step=31 method=3 draws=8192 kept=0 evaluations=7281
+RGB_REUSE_EXACT fixture=0 step=31 channel0=0.43773375359927369 channel1=0.39526808273671682 channel2=0.42618346427931331
+RGB_REUSE_CASE fixture=1 step=0 reset=1 estimate_error=1.08583792791e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=1 step=0 method=0 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=1 step=0 method=1 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=1 step=0 method=2 draws=8192 kept=0 evaluations=7273
+RGB_REUSE_WORK fixture=1 step=0 method=3 draws=8192 kept=0 evaluations=7273
+RGB_REUSE_EXACT fixture=1 step=0 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=1 step=1 reset=0 estimate_error=8.07181950169e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=1 step=1 method=0 draws=4096 kept=2048 evaluations=4049
+RGB_REUSE_WORK fixture=1 step=1 method=1 draws=8192 kept=0 evaluations=4040
+RGB_REUSE_WORK fixture=1 step=1 method=2 draws=4096 kept=0 evaluations=3660
+RGB_REUSE_WORK fixture=1 step=1 method=3 draws=8192 kept=0 evaluations=7292
+RGB_REUSE_EXACT fixture=1 step=1 channel0=0.21429957274448336 channel1=0.20009816067293923 channel2=0.21612612417944943
+RGB_REUSE_CASE fixture=1 step=2 reset=0 estimate_error=1.0519984367e-07 weight_error=1.94432784144e-07
+RGB_REUSE_WORK fixture=1 step=2 method=0 draws=4096 kept=2048 evaluations=4038
+RGB_REUSE_WORK fixture=1 step=2 method=1 draws=8192 kept=0 evaluations=4037
+RGB_REUSE_WORK fixture=1 step=2 method=2 draws=4096 kept=0 evaluations=3603
+RGB_REUSE_WORK fixture=1 step=2 method=3 draws=8192 kept=0 evaluations=7248
+RGB_REUSE_EXACT fixture=1 step=2 channel0=0.20788657906354499 channel1=0.20800038942297519 channel2=0.22633508901748564
+RGB_REUSE_CASE fixture=1 step=3 reset=0 estimate_error=6.7142996385e-08 weight_error=1.94432784144e-07
+RGB_REUSE_WORK fixture=1 step=3 method=0 draws=4096 kept=2048 evaluations=4039
+RGB_REUSE_WORK fixture=1 step=3 method=1 draws=8192 kept=0 evaluations=4049
+RGB_REUSE_WORK fixture=1 step=3 method=2 draws=4096 kept=0 evaluations=3632
+RGB_REUSE_WORK fixture=1 step=3 method=3 draws=8192 kept=0 evaluations=7264
+RGB_REUSE_EXACT fixture=1 step=3 channel0=0.17139066074870574 channel1=0.19986906750469113 channel2=0.22147487153976986
+RGB_REUSE_CASE fixture=1 step=4 reset=0 estimate_error=1.1656003851e-07 weight_error=3.16502620657e-07
+RGB_REUSE_WORK fixture=1 step=4 method=0 draws=4096 kept=2048 evaluations=4054
+RGB_REUSE_WORK fixture=1 step=4 method=1 draws=8192 kept=0 evaluations=4046
+RGB_REUSE_WORK fixture=1 step=4 method=2 draws=4096 kept=0 evaluations=3637
+RGB_REUSE_WORK fixture=1 step=4 method=3 draws=8192 kept=0 evaluations=7278
+RGB_REUSE_EXACT fixture=1 step=4 channel0=0.10453231342766311 channel1=0.14024312919084958 channel2=0.16328186832327118
+RGB_REUSE_CASE fixture=1 step=5 reset=0 estimate_error=3.4722338671e-08 weight_error=3.16502620657e-07
+RGB_REUSE_WORK fixture=1 step=5 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=1 step=5 method=1 draws=8192 kept=0 evaluations=4053
+RGB_REUSE_WORK fixture=1 step=5 method=2 draws=4096 kept=0 evaluations=3635
+RGB_REUSE_WORK fixture=1 step=5 method=3 draws=8192 kept=0 evaluations=7321
+RGB_REUSE_EXACT fixture=1 step=5 channel0=0.052062007590476529 channel1=0.069416011451378615 channel2=0.087227651679837134
+RGB_REUSE_CASE fixture=1 step=6 reset=0 estimate_error=3.53160852506e-08 weight_error=1.67717593659e-07
+RGB_REUSE_WORK fixture=1 step=6 method=0 draws=4096 kept=2048 evaluations=4043
+RGB_REUSE_WORK fixture=1 step=6 method=1 draws=8192 kept=0 evaluations=4048
+RGB_REUSE_WORK fixture=1 step=6 method=2 draws=4096 kept=0 evaluations=3668
+RGB_REUSE_WORK fixture=1 step=6 method=3 draws=8192 kept=0 evaluations=7341
+RGB_REUSE_EXACT fixture=1 step=6 channel0=0.031083730168659972 channel1=0.041444974395109434 channel2=0.053040662053600959
+RGB_REUSE_CASE fixture=1 step=7 reset=0 estimate_error=1.64896153676e-08 weight_error=1.67717593659e-07
+RGB_REUSE_WORK fixture=1 step=7 method=0 draws=4096 kept=2048 evaluations=4046
+RGB_REUSE_WORK fixture=1 step=7 method=1 draws=8192 kept=0 evaluations=4046
+RGB_REUSE_WORK fixture=1 step=7 method=2 draws=4096 kept=0 evaluations=3665
+RGB_REUSE_WORK fixture=1 step=7 method=3 draws=8192 kept=0 evaluations=7286
+RGB_REUSE_EXACT fixture=1 step=7 channel0=0.020300931749473561 channel1=0.027067909545205965 channel2=0.03463565116684339
+RGB_REUSE_CASE fixture=1 step=8 reset=0 estimate_error=1.52041221696e-08 weight_error=9.95770103093e-08
+RGB_REUSE_WORK fixture=1 step=8 method=0 draws=4096 kept=2048 evaluations=4044
+RGB_REUSE_WORK fixture=1 step=8 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=1 step=8 method=2 draws=4096 kept=0 evaluations=3635
+RGB_REUSE_WORK fixture=1 step=8 method=3 draws=8192 kept=0 evaluations=7294
+RGB_REUSE_EXACT fixture=1 step=8 channel0=0.017464207250005644 channel1=0.023285610123991211 channel2=0.029599247566306122
+RGB_REUSE_CASE fixture=1 step=9 reset=0 estimate_error=1.64896153676e-08 weight_error=9.95770103093e-08
+RGB_REUSE_WORK fixture=1 step=9 method=0 draws=4096 kept=2048 evaluations=4046
+RGB_REUSE_WORK fixture=1 step=9 method=1 draws=8192 kept=0 evaluations=4044
+RGB_REUSE_WORK fixture=1 step=9 method=2 draws=4096 kept=0 evaluations=3626
+RGB_REUSE_WORK fixture=1 step=9 method=3 draws=8192 kept=0 evaluations=7248
+RGB_REUSE_EXACT fixture=1 step=9 channel0=0.020300931749473561 channel1=0.027067909545205965 channel2=0.03463565116684339
+RGB_REUSE_CASE fixture=1 step=10 reset=0 estimate_error=3.53160852506e-08 weight_error=1.67717593659e-07
+RGB_REUSE_WORK fixture=1 step=10 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=1 step=10 method=1 draws=8192 kept=0 evaluations=4048
+RGB_REUSE_WORK fixture=1 step=10 method=2 draws=4096 kept=0 evaluations=3643
+RGB_REUSE_WORK fixture=1 step=10 method=3 draws=8192 kept=0 evaluations=7285
+RGB_REUSE_EXACT fixture=1 step=10 channel0=0.031083730168659972 channel1=0.041444974395109434 channel2=0.053040662053600959
+RGB_REUSE_CASE fixture=1 step=11 reset=0 estimate_error=3.66310494992e-08 weight_error=1.67717593659e-07
+RGB_REUSE_WORK fixture=1 step=11 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=1 step=11 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=1 step=11 method=2 draws=4096 kept=0 evaluations=3630
+RGB_REUSE_WORK fixture=1 step=11 method=3 draws=8192 kept=0 evaluations=7283
+RGB_REUSE_EXACT fixture=1 step=11 channel0=0.052062007590476529 channel1=0.069416011451378615 channel2=0.087227651679837134
+RGB_REUSE_CASE fixture=1 step=12 reset=0 estimate_error=1.38054029986e-07 weight_error=3.16502620657e-07
+RGB_REUSE_WORK fixture=1 step=12 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=1 step=12 method=1 draws=8192 kept=0 evaluations=4037
+RGB_REUSE_WORK fixture=1 step=12 method=2 draws=4096 kept=0 evaluations=3641
+RGB_REUSE_WORK fixture=1 step=12 method=3 draws=8192 kept=0 evaluations=7255
+RGB_REUSE_EXACT fixture=1 step=12 channel0=0.10453231342766311 channel1=0.14024312919084958 channel2=0.16328186832327118
+RGB_REUSE_CASE fixture=1 step=13 reset=0 estimate_error=8.99969052615e-08 weight_error=3.16502620657e-07
+RGB_REUSE_WORK fixture=1 step=13 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=1 step=13 method=1 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=1 step=13 method=2 draws=4096 kept=0 evaluations=3643
+RGB_REUSE_WORK fixture=1 step=13 method=3 draws=8192 kept=0 evaluations=7268
+RGB_REUSE_EXACT fixture=1 step=13 channel0=0.17139066074870574 channel1=0.19986906750469113 channel2=0.22147487153976986
+RGB_REUSE_CASE fixture=1 step=14 reset=0 estimate_error=1.31334079612e-07 weight_error=1.94432784144e-07
+RGB_REUSE_WORK fixture=1 step=14 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=1 step=14 method=1 draws=8192 kept=0 evaluations=4039
+RGB_REUSE_WORK fixture=1 step=14 method=2 draws=4096 kept=0 evaluations=3631
+RGB_REUSE_WORK fixture=1 step=14 method=3 draws=8192 kept=0 evaluations=7283
+RGB_REUSE_EXACT fixture=1 step=14 channel0=0.20788657906354499 channel1=0.20800038942297519 channel2=0.22633508901748564
+RGB_REUSE_CASE fixture=1 step=15 reset=0 estimate_error=8.65018156548e-08 weight_error=1.94432784144e-07
+RGB_REUSE_WORK fixture=1 step=15 method=0 draws=4096 kept=2048 evaluations=4040
+RGB_REUSE_WORK fixture=1 step=15 method=1 draws=8192 kept=0 evaluations=4042
+RGB_REUSE_WORK fixture=1 step=15 method=2 draws=4096 kept=0 evaluations=3643
+RGB_REUSE_WORK fixture=1 step=15 method=3 draws=8192 kept=0 evaluations=7309
+RGB_REUSE_EXACT fixture=1 step=15 channel0=0.21429957274448336 channel1=0.20009816067293923 channel2=0.21612612417944943
+RGB_REUSE_CASE fixture=1 step=16 reset=1 estimate_error=1.96650187578e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=1 step=16 method=0 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=1 step=16 method=1 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=1 step=16 method=2 draws=8192 kept=0 evaluations=7254
+RGB_REUSE_WORK fixture=1 step=16 method=3 draws=8192 kept=0 evaluations=7254
+RGB_REUSE_EXACT fixture=1 step=16 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=1 step=17 reset=0 estimate_error=1.50521664022e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=1 step=17 method=0 draws=4096 kept=2048 evaluations=4029
+RGB_REUSE_WORK fixture=1 step=17 method=1 draws=8192 kept=0 evaluations=4044
+RGB_REUSE_WORK fixture=1 step=17 method=2 draws=4096 kept=0 evaluations=3628
+RGB_REUSE_WORK fixture=1 step=17 method=3 draws=8192 kept=0 evaluations=7254
+RGB_REUSE_EXACT fixture=1 step=17 channel0=0.42859914548896672 channel1=0.40019632134587846 channel2=0.43225224835889886
+RGB_REUSE_CASE fixture=1 step=18 reset=0 estimate_error=2.2515546827e-07 weight_error=1.94432784144e-07
+RGB_REUSE_WORK fixture=1 step=18 method=0 draws=4096 kept=2048 evaluations=4038
+RGB_REUSE_WORK fixture=1 step=18 method=1 draws=8192 kept=0 evaluations=4040
+RGB_REUSE_WORK fixture=1 step=18 method=2 draws=4096 kept=0 evaluations=3634
+RGB_REUSE_WORK fixture=1 step=18 method=3 draws=8192 kept=0 evaluations=7245
+RGB_REUSE_EXACT fixture=1 step=18 channel0=0.41577315812708998 channel1=0.41600077884595038 channel2=0.45267017803497128
+RGB_REUSE_CASE fixture=1 step=19 reset=0 estimate_error=1.48729842664e-07 weight_error=1.94432784144e-07
+RGB_REUSE_WORK fixture=1 step=19 method=0 draws=4096 kept=2048 evaluations=4039
+RGB_REUSE_WORK fixture=1 step=19 method=1 draws=8192 kept=0 evaluations=4041
+RGB_REUSE_WORK fixture=1 step=19 method=2 draws=4096 kept=0 evaluations=3617
+RGB_REUSE_WORK fixture=1 step=19 method=3 draws=8192 kept=0 evaluations=7247
+RGB_REUSE_EXACT fixture=1 step=19 channel0=0.34278132149741147 channel1=0.39973813500938227 channel2=0.44294974307953972
+RGB_REUSE_CASE fixture=1 step=20 reset=0 estimate_error=2.3312007702e-07 weight_error=3.16502620657e-07
+RGB_REUSE_WORK fixture=1 step=20 method=0 draws=4096 kept=2048 evaluations=4038
+RGB_REUSE_WORK fixture=1 step=20 method=1 draws=8192 kept=0 evaluations=4037
+RGB_REUSE_WORK fixture=1 step=20 method=2 draws=4096 kept=0 evaluations=3627
+RGB_REUSE_WORK fixture=1 step=20 method=3 draws=8192 kept=0 evaluations=7244
+RGB_REUSE_EXACT fixture=1 step=20 channel0=0.20906462685532623 channel1=0.28048625838169916 channel2=0.32656373664654237
+RGB_REUSE_CASE fixture=1 step=21 reset=0 estimate_error=6.6653302766e-08 weight_error=3.16502620657e-07
+RGB_REUSE_WORK fixture=1 step=21 method=0 draws=4096 kept=2048 evaluations=4045
+RGB_REUSE_WORK fixture=1 step=21 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=1 step=21 method=2 draws=4096 kept=0 evaluations=3641
+RGB_REUSE_WORK fixture=1 step=21 method=3 draws=8192 kept=0 evaluations=7285
+RGB_REUSE_EXACT fixture=1 step=21 channel0=0.10412401518095306 channel1=0.13883202290275723 channel2=0.17445530335967427
+RGB_REUSE_CASE fixture=1 step=22 reset=0 estimate_error=7.06321705013e-08 weight_error=1.67717593659e-07
+RGB_REUSE_WORK fixture=1 step=22 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=1 step=22 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=1 step=22 method=2 draws=4096 kept=0 evaluations=3672
+RGB_REUSE_WORK fixture=1 step=22 method=3 draws=8192 kept=0 evaluations=7318
+RGB_REUSE_EXACT fixture=1 step=22 channel0=0.062167460337319944 channel1=0.082889948790218868 channel2=0.10608132410720192
+RGB_REUSE_CASE fixture=1 step=23 reset=0 estimate_error=3.29792307352e-08 weight_error=1.67717593659e-07
+RGB_REUSE_WORK fixture=1 step=23 method=0 draws=4096 kept=2048 evaluations=4051
+RGB_REUSE_WORK fixture=1 step=23 method=1 draws=8192 kept=0 evaluations=4049
+RGB_REUSE_WORK fixture=1 step=23 method=2 draws=4096 kept=0 evaluations=3656
+RGB_REUSE_WORK fixture=1 step=23 method=3 draws=8192 kept=0 evaluations=7292
+RGB_REUSE_EXACT fixture=1 step=23 channel0=0.040601863498947122 channel1=0.05413581909041193 channel2=0.069271302333686779
+RGB_REUSE_CASE fixture=1 step=24 reset=1 estimate_error=2.02065855159e-08 weight_error=1.25478495385e-07
+RGB_REUSE_WORK fixture=1 step=24 method=0 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=1 step=24 method=1 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=1 step=24 method=2 draws=8192 kept=0 evaluations=7269
+RGB_REUSE_WORK fixture=1 step=24 method=3 draws=8192 kept=0 evaluations=7269
+RGB_REUSE_EXACT fixture=1 step=24 channel0=0.036813309998192836 channel1=0.049084414303519633 channel2=0.062680177417481109
+RGB_REUSE_CASE fixture=1 step=25 reset=0 estimate_error=3.44301044342e-08 weight_error=2.1343329393e-07
+RGB_REUSE_WORK fixture=1 step=25 method=0 draws=4096 kept=2048 evaluations=4045
+RGB_REUSE_WORK fixture=1 step=25 method=1 draws=8192 kept=0 evaluations=4051
+RGB_REUSE_WORK fixture=1 step=25 method=2 draws=4096 kept=0 evaluations=3658
+RGB_REUSE_WORK fixture=1 step=25 method=3 draws=8192 kept=0 evaluations=7256
+RGB_REUSE_EXACT fixture=1 step=25 channel0=0.042831683199420087 channel1=0.057108912094041876 channel2=0.073388643668952924
+RGB_REUSE_CASE fixture=1 step=26 reset=0 estimate_error=3.81713979314e-08 weight_error=2.1343329393e-07
+RGB_REUSE_WORK fixture=1 step=26 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=1 step=26 method=1 draws=8192 kept=0 evaluations=4056
+RGB_REUSE_WORK fixture=1 step=26 method=2 draws=4096 kept=0 evaluations=3637
+RGB_REUSE_WORK fixture=1 step=26 method=3 draws=8192 kept=0 evaluations=7285
+RGB_REUSE_EXACT fixture=1 step=26 channel0=0.06544880689843631 channel1=0.087265077643175828 channel2=0.11210110566643545
+RGB_REUSE_CASE fixture=1 step=27 reset=0 estimate_error=6.79285779848e-08 weight_error=1.11473790661e-07
+RGB_REUSE_WORK fixture=1 step=27 method=0 draws=4096 kept=2048 evaluations=4050
+RGB_REUSE_WORK fixture=1 step=27 method=1 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=1 step=27 method=2 draws=4096 kept=0 evaluations=3645
+RGB_REUSE_WORK fixture=1 step=27 method=3 draws=8192 kept=0 evaluations=7258
+RGB_REUSE_EXACT fixture=1 step=27 channel0=0.10847761840312979 channel1=0.1446368273146095 channel2=0.18181788406508598
+RGB_REUSE_CASE fixture=1 step=28 reset=0 estimate_error=3.1243486114e-07 weight_error=2.17332069125e-07
+RGB_REUSE_WORK fixture=1 step=28 method=0 draws=4096 kept=2048 evaluations=4050
+RGB_REUSE_WORK fixture=1 step=28 method=1 draws=8192 kept=0 evaluations=4036
+RGB_REUSE_WORK fixture=1 step=28 method=2 draws=4096 kept=0 evaluations=3612
+RGB_REUSE_WORK fixture=1 step=28 method=3 draws=8192 kept=0 evaluations=7246
+RGB_REUSE_EXACT fixture=1 step=28 channel0=0.22291463099581502 channel1=0.3008414717574508 channel2=0.34735109430848532
+RGB_REUSE_CASE fixture=1 step=29 reset=0 estimate_error=2.24416504824e-07 weight_error=2.17332069125e-07
+RGB_REUSE_WORK fixture=1 step=29 method=0 draws=4096 kept=2048 evaluations=4043
+RGB_REUSE_WORK fixture=1 step=29 method=1 draws=8192 kept=0 evaluations=4041
+RGB_REUSE_WORK fixture=1 step=29 method=2 draws=4096 kept=0 evaluations=3631
+RGB_REUSE_WORK fixture=1 step=29 method=3 draws=8192 kept=0 evaluations=7290
+RGB_REUSE_EXACT fixture=1 step=29 channel0=0.36334015002108017 channel1=0.41797054641216569 channel2=0.46087419421526965
+RGB_REUSE_CASE fixture=1 step=30 reset=0 estimate_error=1.97359346643e-07 weight_error=1.90784288055e-07
+RGB_REUSE_WORK fixture=1 step=30 method=0 draws=4096 kept=2048 evaluations=4040
+RGB_REUSE_WORK fixture=1 step=30 method=1 draws=8192 kept=0 evaluations=4051
+RGB_REUSE_WORK fixture=1 step=30 method=2 draws=4096 kept=0 evaluations=3678
+RGB_REUSE_WORK fixture=1 step=30 method=3 draws=8192 kept=0 evaluations=7334
+RGB_REUSE_EXACT fixture=1 step=30 channel0=0.43412815673186672 channel1=0.42555297888019322 channel2=0.46237037293187538
+RGB_REUSE_CASE fixture=1 step=31 reset=0 estimate_error=1.68646708154e-07 weight_error=2.1412224686e-07
+RGB_REUSE_WORK fixture=1 step=31 method=0 draws=4096 kept=2048 evaluations=4036
+RGB_REUSE_WORK fixture=1 step=31 method=1 draws=8192 kept=0 evaluations=4041
+RGB_REUSE_WORK fixture=1 step=31 method=2 draws=4096 kept=0 evaluations=3626
+RGB_REUSE_WORK fixture=1 step=31 method=3 draws=8192 kept=0 evaluations=7281
+RGB_REUSE_EXACT fixture=1 step=31 channel0=0.44211189107855992 channel1=0.4055260943358287 channel2=0.4380561087311538
+RGB_REUSE_CASE fixture=2 step=0 reset=1 estimate_error=1.08583792791e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=0 method=0 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=2 step=0 method=1 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=2 step=0 method=2 draws=8192 kept=0 evaluations=7273
+RGB_REUSE_WORK fixture=2 step=0 method=3 draws=8192 kept=0 evaluations=7273
+RGB_REUSE_EXACT fixture=2 step=0 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=2 step=1 reset=0 estimate_error=9.09644510827e-08 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=1 method=0 draws=4096 kept=2048 evaluations=4049
+RGB_REUSE_WORK fixture=2 step=1 method=1 draws=8192 kept=0 evaluations=4040
+RGB_REUSE_WORK fixture=2 step=1 method=2 draws=4096 kept=0 evaluations=3660
+RGB_REUSE_WORK fixture=2 step=1 method=3 draws=8192 kept=0 evaluations=7292
+RGB_REUSE_EXACT fixture=2 step=1 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=2 step=2 reset=0 estimate_error=1.15634320008e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=2 method=0 draws=4096 kept=2048 evaluations=4038
+RGB_REUSE_WORK fixture=2 step=2 method=1 draws=8192 kept=0 evaluations=4037
+RGB_REUSE_WORK fixture=2 step=2 method=2 draws=4096 kept=0 evaluations=3603
+RGB_REUSE_WORK fixture=2 step=2 method=3 draws=8192 kept=0 evaluations=7248
+RGB_REUSE_EXACT fixture=2 step=2 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=2 step=3 reset=0 estimate_error=1.04341641161e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=3 method=0 draws=4096 kept=2048 evaluations=4039
+RGB_REUSE_WORK fixture=2 step=3 method=1 draws=8192 kept=0 evaluations=4049
+RGB_REUSE_WORK fixture=2 step=3 method=2 draws=4096 kept=0 evaluations=3632
+RGB_REUSE_WORK fixture=2 step=3 method=3 draws=8192 kept=0 evaluations=7264
+RGB_REUSE_EXACT fixture=2 step=3 channel0=0.21309702946936737 channel1=0.19561428546857473 channel2=0.21080828781511857
+RGB_REUSE_CASE fixture=2 step=4 reset=0 estimate_error=0 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=4 method=0 draws=4096 kept=2048 evaluations=4054
+RGB_REUSE_WORK fixture=2 step=4 method=1 draws=8192 kept=0 evaluations=4046
+RGB_REUSE_WORK fixture=2 step=4 method=2 draws=4096 kept=0 evaluations=3637
+RGB_REUSE_WORK fixture=2 step=4 method=3 draws=8192 kept=0 evaluations=7278
+RGB_REUSE_EXACT fixture=2 step=4 channel0=0 channel1=0 channel2=0
+RGB_REUSE_CASE fixture=2 step=5 reset=0 estimate_error=0 weight_error=0
+RGB_REUSE_WORK fixture=2 step=5 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=2 step=5 method=1 draws=8192 kept=0 evaluations=4053
+RGB_REUSE_WORK fixture=2 step=5 method=2 draws=4096 kept=0 evaluations=3635
+RGB_REUSE_WORK fixture=2 step=5 method=3 draws=8192 kept=0 evaluations=7321
+RGB_REUSE_EXACT fixture=2 step=5 channel0=0 channel1=0 channel2=0
+RGB_REUSE_CASE fixture=2 step=6 reset=0 estimate_error=0 weight_error=0
+RGB_REUSE_WORK fixture=2 step=6 method=0 draws=4096 kept=2048 evaluations=4043
+RGB_REUSE_WORK fixture=2 step=6 method=1 draws=8192 kept=0 evaluations=4048
+RGB_REUSE_WORK fixture=2 step=6 method=2 draws=4096 kept=0 evaluations=3668
+RGB_REUSE_WORK fixture=2 step=6 method=3 draws=8192 kept=0 evaluations=7341
+RGB_REUSE_EXACT fixture=2 step=6 channel0=0 channel1=0 channel2=0
+RGB_REUSE_CASE fixture=2 step=7 reset=0 estimate_error=0 weight_error=0
+RGB_REUSE_WORK fixture=2 step=7 method=0 draws=4096 kept=2048 evaluations=4046
+RGB_REUSE_WORK fixture=2 step=7 method=1 draws=8192 kept=0 evaluations=4046
+RGB_REUSE_WORK fixture=2 step=7 method=2 draws=4096 kept=0 evaluations=3665
+RGB_REUSE_WORK fixture=2 step=7 method=3 draws=8192 kept=0 evaluations=7286
+RGB_REUSE_EXACT fixture=2 step=7 channel0=0 channel1=0 channel2=0
+RGB_REUSE_CASE fixture=2 step=8 reset=0 estimate_error=1.52041221696e-08 weight_error=8.28725049348e-08
+RGB_REUSE_WORK fixture=2 step=8 method=0 draws=4096 kept=2048 evaluations=4044
+RGB_REUSE_WORK fixture=2 step=8 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=2 step=8 method=2 draws=4096 kept=0 evaluations=3635
+RGB_REUSE_WORK fixture=2 step=8 method=3 draws=8192 kept=0 evaluations=7294
+RGB_REUSE_EXACT fixture=2 step=8 channel0=0.017464207250005644 channel1=0.023285610123991211 channel2=0.029599247566306122
+RGB_REUSE_CASE fixture=2 step=9 reset=0 estimate_error=1.48115888859e-08 weight_error=8.28725049348e-08
+RGB_REUSE_WORK fixture=2 step=9 method=0 draws=4096 kept=2048 evaluations=4046
+RGB_REUSE_WORK fixture=2 step=9 method=1 draws=8192 kept=0 evaluations=4044
+RGB_REUSE_WORK fixture=2 step=9 method=2 draws=4096 kept=0 evaluations=3626
+RGB_REUSE_WORK fixture=2 step=9 method=3 draws=8192 kept=0 evaluations=7248
+RGB_REUSE_EXACT fixture=2 step=9 channel0=0.017464207250005644 channel1=0.023285610123991211 channel2=0.029599247566306122
+RGB_REUSE_CASE fixture=2 step=10 reset=0 estimate_error=1.54046461004e-08 weight_error=8.28725049348e-08
+RGB_REUSE_WORK fixture=2 step=10 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=2 step=10 method=1 draws=8192 kept=0 evaluations=4048
+RGB_REUSE_WORK fixture=2 step=10 method=2 draws=4096 kept=0 evaluations=3643
+RGB_REUSE_WORK fixture=2 step=10 method=3 draws=8192 kept=0 evaluations=7285
+RGB_REUSE_EXACT fixture=2 step=10 channel0=0.017464207250005644 channel1=0.023285610123991211 channel2=0.029599247566306122
+RGB_REUSE_CASE fixture=2 step=11 reset=0 estimate_error=1.65166341715e-08 weight_error=8.28725049348e-08
+RGB_REUSE_WORK fixture=2 step=11 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=2 step=11 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=2 step=11 method=2 draws=4096 kept=0 evaluations=3630
+RGB_REUSE_WORK fixture=2 step=11 method=3 draws=8192 kept=0 evaluations=7283
+RGB_REUSE_EXACT fixture=2 step=11 channel0=0.017464207250005644 channel1=0.023285610123991211 channel2=0.029599247566306122
+RGB_REUSE_CASE fixture=2 step=12 reset=0 estimate_error=1.00697356897e-07 weight_error=1.64041304156e-07
+RGB_REUSE_WORK fixture=2 step=12 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=2 step=12 method=1 draws=8192 kept=0 evaluations=4037
+RGB_REUSE_WORK fixture=2 step=12 method=2 draws=4096 kept=0 evaluations=3641
+RGB_REUSE_WORK fixture=2 step=12 method=3 draws=8192 kept=0 evaluations=7255
+RGB_REUSE_EXACT fixture=2 step=12 channel0=0.12684819477903683 channel1=0.11977773472579678 channel2=0.10499765887112625
+RGB_REUSE_CASE fixture=2 step=13 reset=0 estimate_error=9.64911719414e-08 weight_error=1.64041304156e-07
+RGB_REUSE_WORK fixture=2 step=13 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=2 step=13 method=1 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=2 step=13 method=2 draws=4096 kept=0 evaluations=3643
+RGB_REUSE_WORK fixture=2 step=13 method=3 draws=8192 kept=0 evaluations=7268
+RGB_REUSE_EXACT fixture=2 step=13 channel0=0.12684819477903683 channel1=0.11977773472579678 channel2=0.10499765887112625
+RGB_REUSE_CASE fixture=2 step=14 reset=0 estimate_error=1.09597327658e-07 weight_error=1.64041304156e-07
+RGB_REUSE_WORK fixture=2 step=14 method=0 draws=4096 kept=2048 evaluations=4047
+RGB_REUSE_WORK fixture=2 step=14 method=1 draws=8192 kept=0 evaluations=4039
+RGB_REUSE_WORK fixture=2 step=14 method=2 draws=4096 kept=0 evaluations=3631
+RGB_REUSE_WORK fixture=2 step=14 method=3 draws=8192 kept=0 evaluations=7283
+RGB_REUSE_EXACT fixture=2 step=14 channel0=0.12684819477903683 channel1=0.11977773472579678 channel2=0.10499765887112625
+RGB_REUSE_CASE fixture=2 step=15 reset=0 estimate_error=1.09597327658e-07 weight_error=1.64041304156e-07
+RGB_REUSE_WORK fixture=2 step=15 method=0 draws=4096 kept=2048 evaluations=4040
+RGB_REUSE_WORK fixture=2 step=15 method=1 draws=8192 kept=0 evaluations=4042
+RGB_REUSE_WORK fixture=2 step=15 method=2 draws=4096 kept=0 evaluations=3643
+RGB_REUSE_WORK fixture=2 step=15 method=3 draws=8192 kept=0 evaluations=7309
+RGB_REUSE_EXACT fixture=2 step=15 channel0=0.12684819477903683 channel1=0.11977773472579678 channel2=0.10499765887112625
+RGB_REUSE_CASE fixture=2 step=16 reset=1 estimate_error=1.96650187578e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=16 method=0 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=2 step=16 method=1 draws=8192 kept=0 evaluations=4038
+RGB_REUSE_WORK fixture=2 step=16 method=2 draws=8192 kept=0 evaluations=7254
+RGB_REUSE_WORK fixture=2 step=16 method=3 draws=8192 kept=0 evaluations=7254
+RGB_REUSE_EXACT fixture=2 step=16 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=2 step=17 reset=0 estimate_error=1.98089372683e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=17 method=0 draws=4096 kept=2048 evaluations=4029
+RGB_REUSE_WORK fixture=2 step=17 method=1 draws=8192 kept=0 evaluations=4044
+RGB_REUSE_WORK fixture=2 step=17 method=2 draws=4096 kept=0 evaluations=3628
+RGB_REUSE_WORK fixture=2 step=17 method=3 draws=8192 kept=0 evaluations=7254
+RGB_REUSE_EXACT fixture=2 step=17 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=2 step=18 reset=0 estimate_error=1.98089372683e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=18 method=0 draws=4096 kept=2048 evaluations=4038
+RGB_REUSE_WORK fixture=2 step=18 method=1 draws=8192 kept=0 evaluations=4040
+RGB_REUSE_WORK fixture=2 step=18 method=2 draws=4096 kept=0 evaluations=3634
+RGB_REUSE_WORK fixture=2 step=18 method=3 draws=8192 kept=0 evaluations=7245
+RGB_REUSE_EXACT fixture=2 step=18 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=2 step=19 reset=0 estimate_error=1.98089372683e-07 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=19 method=0 draws=4096 kept=2048 evaluations=4039
+RGB_REUSE_WORK fixture=2 step=19 method=1 draws=8192 kept=0 evaluations=4041
+RGB_REUSE_WORK fixture=2 step=19 method=2 draws=4096 kept=0 evaluations=3617
+RGB_REUSE_WORK fixture=2 step=19 method=3 draws=8192 kept=0 evaluations=7247
+RGB_REUSE_EXACT fixture=2 step=19 channel0=0.42619405893873474 channel1=0.39122857093714947 channel2=0.42161657563023713
+RGB_REUSE_CASE fixture=2 step=20 reset=0 estimate_error=0 weight_error=1.79274479877e-07
+RGB_REUSE_WORK fixture=2 step=20 method=0 draws=4096 kept=2048 evaluations=4038
+RGB_REUSE_WORK fixture=2 step=20 method=1 draws=8192 kept=0 evaluations=4037
+RGB_REUSE_WORK fixture=2 step=20 method=2 draws=4096 kept=0 evaluations=3627
+RGB_REUSE_WORK fixture=2 step=20 method=3 draws=8192 kept=0 evaluations=7244
+RGB_REUSE_EXACT fixture=2 step=20 channel0=0 channel1=0 channel2=0
+RGB_REUSE_CASE fixture=2 step=21 reset=0 estimate_error=0 weight_error=0
+RGB_REUSE_WORK fixture=2 step=21 method=0 draws=4096 kept=2048 evaluations=4045
+RGB_REUSE_WORK fixture=2 step=21 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=2 step=21 method=2 draws=4096 kept=0 evaluations=3641
+RGB_REUSE_WORK fixture=2 step=21 method=3 draws=8192 kept=0 evaluations=7285
+RGB_REUSE_EXACT fixture=2 step=21 channel0=0 channel1=0 channel2=0
+RGB_REUSE_CASE fixture=2 step=22 reset=0 estimate_error=0 weight_error=0
+RGB_REUSE_WORK fixture=2 step=22 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=2 step=22 method=1 draws=8192 kept=0 evaluations=4052
+RGB_REUSE_WORK fixture=2 step=22 method=2 draws=4096 kept=0 evaluations=3672
+RGB_REUSE_WORK fixture=2 step=22 method=3 draws=8192 kept=0 evaluations=7318
+RGB_REUSE_EXACT fixture=2 step=22 channel0=0 channel1=0 channel2=0
+RGB_REUSE_CASE fixture=2 step=23 reset=0 estimate_error=0 weight_error=0
+RGB_REUSE_WORK fixture=2 step=23 method=0 draws=4096 kept=2048 evaluations=4051
+RGB_REUSE_WORK fixture=2 step=23 method=1 draws=8192 kept=0 evaluations=4049
+RGB_REUSE_WORK fixture=2 step=23 method=2 draws=4096 kept=0 evaluations=3656
+RGB_REUSE_WORK fixture=2 step=23 method=3 draws=8192 kept=0 evaluations=7292
+RGB_REUSE_EXACT fixture=2 step=23 channel0=0 channel1=0 channel2=0
+RGB_REUSE_CASE fixture=2 step=24 reset=1 estimate_error=2.02065855159e-08 weight_error=1.25478495385e-07
+RGB_REUSE_WORK fixture=2 step=24 method=0 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=2 step=24 method=1 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=2 step=24 method=2 draws=8192 kept=0 evaluations=7269
+RGB_REUSE_WORK fixture=2 step=24 method=3 draws=8192 kept=0 evaluations=7269
+RGB_REUSE_EXACT fixture=2 step=24 channel0=0.036813309998192836 channel1=0.049084414303519633 channel2=0.062680177417481109
+RGB_REUSE_CASE fixture=2 step=25 reset=0 estimate_error=2.73360064584e-08 weight_error=1.25478495385e-07
+RGB_REUSE_WORK fixture=2 step=25 method=0 draws=4096 kept=2048 evaluations=4045
+RGB_REUSE_WORK fixture=2 step=25 method=1 draws=8192 kept=0 evaluations=4051
+RGB_REUSE_WORK fixture=2 step=25 method=2 draws=4096 kept=0 evaluations=3658
+RGB_REUSE_WORK fixture=2 step=25 method=3 draws=8192 kept=0 evaluations=7256
+RGB_REUSE_EXACT fixture=2 step=25 channel0=0.036813309998192836 channel1=0.049084414303519633 channel2=0.062680177417481109
+RGB_REUSE_CASE fixture=2 step=26 reset=0 estimate_error=2.81856398221e-08 weight_error=1.25478495385e-07
+RGB_REUSE_WORK fixture=2 step=26 method=0 draws=4096 kept=2048 evaluations=4048
+RGB_REUSE_WORK fixture=2 step=26 method=1 draws=8192 kept=0 evaluations=4056
+RGB_REUSE_WORK fixture=2 step=26 method=2 draws=4096 kept=0 evaluations=3637
+RGB_REUSE_WORK fixture=2 step=26 method=3 draws=8192 kept=0 evaluations=7285
+RGB_REUSE_EXACT fixture=2 step=26 channel0=0.036813309998192836 channel1=0.049084414303519633 channel2=0.062680177417481109
+RGB_REUSE_CASE fixture=2 step=27 reset=0 estimate_error=2.81856398221e-08 weight_error=1.25478495385e-07
+RGB_REUSE_WORK fixture=2 step=27 method=0 draws=4096 kept=2048 evaluations=4050
+RGB_REUSE_WORK fixture=2 step=27 method=1 draws=8192 kept=0 evaluations=4045
+RGB_REUSE_WORK fixture=2 step=27 method=2 draws=4096 kept=0 evaluations=3645
+RGB_REUSE_WORK fixture=2 step=27 method=3 draws=8192 kept=0 evaluations=7258
+RGB_REUSE_EXACT fixture=2 step=27 channel0=0.036813309998192836 channel1=0.049084414303519633 channel2=0.062680177417481109
+RGB_REUSE_CASE fixture=2 step=28 reset=0 estimate_error=1.12350701409e-07 weight_error=1.25478495385e-07
+RGB_REUSE_WORK fixture=2 step=28 method=0 draws=4096 kept=2048 evaluations=4050
+RGB_REUSE_WORK fixture=2 step=28 method=1 draws=8192 kept=0 evaluations=4036
+RGB_REUSE_WORK fixture=2 step=28 method=2 draws=4096 kept=0 evaluations=3612
+RGB_REUSE_WORK fixture=2 step=28 method=3 draws=8192 kept=0 evaluations=7246
+RGB_REUSE_EXACT fixture=2 step=28 channel0=0.23800793080470417 channel1=0.22084760891590408 channel2=0.1974011349998098
+RGB_REUSE_CASE fixture=2 step=29 reset=0 estimate_error=1.04067420237e-07 weight_error=1.23256046901e-07
+RGB_REUSE_WORK fixture=2 step=29 method=0 draws=4096 kept=2048 evaluations=4043
+RGB_REUSE_WORK fixture=2 step=29 method=1 draws=8192 kept=0 evaluations=4041
+RGB_REUSE_WORK fixture=2 step=29 method=2 draws=4096 kept=0 evaluations=3631
+RGB_REUSE_WORK fixture=2 step=29 method=3 draws=8192 kept=0 evaluations=7290
+RGB_REUSE_EXACT fixture=2 step=29 channel0=0.23800793080470417 channel1=0.22084760891590408 channel2=0.1974011349998098
+RGB_REUSE_CASE fixture=2 step=30 reset=0 estimate_error=1.12350701409e-07 weight_error=1.23256046901e-07
+RGB_REUSE_WORK fixture=2 step=30 method=0 draws=4096 kept=2048 evaluations=4040
+RGB_REUSE_WORK fixture=2 step=30 method=1 draws=8192 kept=0 evaluations=4051
+RGB_REUSE_WORK fixture=2 step=30 method=2 draws=4096 kept=0 evaluations=3678
+RGB_REUSE_WORK fixture=2 step=30 method=3 draws=8192 kept=0 evaluations=7334
+RGB_REUSE_EXACT fixture=2 step=30 channel0=0.23800793080470417 channel1=0.22084760891590408 channel2=0.1974011349998098
+RGB_REUSE_CASE fixture=2 step=31 reset=0 estimate_error=1.13086991993e-07 weight_error=1.23256046901e-07
+RGB_REUSE_WORK fixture=2 step=31 method=0 draws=4096 kept=2048 evaluations=4036
+RGB_REUSE_WORK fixture=2 step=31 method=1 draws=8192 kept=0 evaluations=4041
+RGB_REUSE_WORK fixture=2 step=31 method=2 draws=4096 kept=0 evaluations=3626
+RGB_REUSE_WORK fixture=2 step=31 method=3 draws=8192 kept=0 evaluations=7281
+RGB_REUSE_EXACT fixture=2 step=31 channel0=0.23800793080470417 channel1=0.22084760891590408 channel2=0.1974011349998098
+RGB_REUSE_DECISION correctness=1 retained_checks=178176 ambiguous=0 production_promote=0
+22a5c138e58b79d88f258dd37faab6e916e2b2cfa65e43f24d832297c839bd84  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-0.f32
+9662d543ace3c03b4c0c57fe993c201e9faf6cd7316da9fd51fcfc9d9d674dd5  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-1.f32
+31ac69fe3c8fe5411cd62e92be1bd54881e2023cbf4e63b4dfbcc318d35b91c1  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-10.f32
+cc23c7d561ad4987167a47b19a692d3304054924906190877e55a0498dbf3407  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-11.f32
+722f075ee1b0d21bde688b5955a2ad9b06108cfd7803821bb5a211ee286eae73  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-12.f32
+1a6fec30806ceacc00b8701e1cd17304777883c53b354cffc4f299e81a6bc2f4  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-13.f32
+e7b362e75ca2e4ac6336cc7aa5dd66a9c50fa4e3f8d74dcb03b2b349e83f135d  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-14.f32
+e75f599704c116983d3d7e33804b51f39e9238b7aaee50578fe6c681d5f29c0d  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-15.f32
+f46fd07beef1c75b7fa7643298e0df37d0228341645ca91c6397c92dbc700eb6  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-16.f32
+afd410b5244acd9520c8e702b14b14dd9ab2adc0d9898a828af8105cf6f5ef49  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-17.f32
+bed35f75eb9e02aa1a7380feb61b897ba8a62edf6383cbfbd0f9b0dbdb31730f  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-18.f32
+3b7644cf409c541dc76c8c303d961e3d485d4417bd0bac121f7003e4a4889a06  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-19.f32
+3a5e0183ef19220d1eda2123b5308dbde72be84f9c687e5d965b222f710c1c3d  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-2.f32
+222b0b46ab711ad51ee1d92b0d33a1d20714fda0575df229370b9895af9894d2  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-20.f32
+a774936f8dd890d8eca2da09fdee3bce0adfb4b05a3e2b4dbc5d43ba8f5ef009  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-21.f32
+1b48a9cebd80019f89606f0f4e9d7f8c5eac472ccf41596449b5a58408753193  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-22.f32
+4b273d31a2dce7f895e848e32e0cac49e8eb2976c2245e05c3d0ead15d895a32  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-23.f32
+9a1dbfd725cdd289209c6dc3c5d6ae7c9f3c4f143cdc128beaed125411019093  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-24.f32
+f6478dd50be2469cf82273cd9168f0540775f7f818a1c60f4780715a3c95fda6  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-25.f32
+1b9fd003ee4a32528db17a918086da207d71b931c97741417628f7671e5199d7  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-26.f32
+bdce206b36d8e6f12b995359b883494385a9aa8f6ce5b3376d973dffad24e780  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-27.f32
+96715d38fcd7e4aa0ccba4af729c704c7c7db4779bee4204fcbb83953c7f8cc1  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-28.f32
+3fe188a3f3b76711593e4854c489e02cd82e4d19631d19f9de23107e1a6e8188  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-29.f32
+47fa75ee835aa189cc372e93d106ddf14b1398edd1ffc65e05c34ffdf2a0972e  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-3.f32
+c340f572b92d962d20eb90df0210c5bfb4910d9e355bfb744a8e1587ef484ce8  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-30.f32
+df735830d66786d8f4f587b6ec01f9681817c6e0249d3ca11725967d93f9a0c0  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-31.f32
+b8c6d63f64dd1bbf3ca6d7403b88412272e3d584e7db52959f853695c811f6f3  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-4.f32
+c367d953072a9bc2554a3a8b44404d39dc5768bb9fdf570720a9d093a776162e  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-5.f32
+070ff030bf7a333930ade0f3da3cb5ec331885fbf8cc8a194a8c0bdae69e335e  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-6.f32
+c9a3d8070def69ff04a8e9f1d80e96033f4b7f7ec86d74225ecf8d849272d385  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-7.f32
+cb9e6b43df10ec9716089b322453944b9038405054b4d6cba020c5c94b7ecbf2  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-8.f32
+a04eb1662e3e39eec67b482e6d06bb6764c264f65b1414304b5aab7ece1a0859  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse0-9.f32
+22a5c138e58b79d88f258dd37faab6e916e2b2cfa65e43f24d832297c839bd84  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-0.f32
+ea3f5187ba3984f6b50d42956643b7ed19dda1c23517f2873246eb6297b48537  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-1.f32
+794fb3a05a3058a5d0e091f458121b934eec98739d1b4edc89286c4a646c4493  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-10.f32
+b70b21cb420c069cbcb5e51413b4181bdd9293eef76e448e684dacb67be91266  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-11.f32
+ea5fc9d6a32aaef46ef4c8220332ee225935bc023610e663254c57aae926948a  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-12.f32
+a919c059de01c2d4eba536c0110db77467bde76bfbc9f35cfd351a1fdc0ce400  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-13.f32
+87c0f06931d986b19022ad06fef7eafd96d86c5844f2235107b203d6862c93e2  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-14.f32
+5f049bd61d8c8533231665344eeb35caa6431fe171594ada135f05d09ac9f2e9  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-15.f32
+f46fd07beef1c75b7fa7643298e0df37d0228341645ca91c6397c92dbc700eb6  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-16.f32
+f140b4d4daa217669c9217ba250db0fe2583ebfb4de75a41b2808bfc025d1841  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-17.f32
+cfe924a8fc0c4803717b62936e2fa6c624bfdf6a3b5cec8745bd292e15ac6efe  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-18.f32
+b970fdf66f886a38b19a8f5fdffd6c8ed970d798a0c5a2254bf86b749f32ba79  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-19.f32
+b19e027f191e87a018b023d2744cdc5f757dc2c5aaec6d72df91e6d869334a61  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-2.f32
+ba9fbdd84b9f2a804922ffd48ab094be47ac3fc68bd71f8630a60808b89aaa22  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-20.f32
+511e83479d0205a6adbd79bf2c31392f2899d92f255ce36bd922de7702fef923  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-21.f32
+6aeed9e5fe75ee17393faa2b76c435c0c41a062fed66f26567352d6f6791e081  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-22.f32
+67c18a6c423e4dcd52b9a82a268788685e6f281e7aa11db504111afdab0bdd95  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-23.f32
+88a5c6d35f5c0c842b8744d67fb641bc2022be64bf69d4690006ba4d13321181  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-24.f32
+d73748050b45c531ec0a1c076ccc45d8857727670cdc04c8ffd26148aab18b9b  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-25.f32
+e7e1c79f2531f45cde773f2154b0fc4e3bc611d41e63ad600a765f7ac3531d29  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-26.f32
+1906f1f60d9fbd996ac3e82afe414481e2dc49adc2f0ea2d489d441ca4b278d9  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-27.f32
+bd2890e25aac98576bf2d634f2943401296da52954593ed71736f2d2242bfbc9  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-28.f32
+ecb8ad892a272667a6f4deb83b0d3e3b47a70438226b6711ac147ce3d97ea5d7  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-29.f32
+73022cf5a605e984d93dd8ad859e1901876000e37e17acea1bf70ac3ba373323  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-3.f32
+d4da64bdb1376d2c871296bcb4a5fb3f7f5e7361a12ad44f06d9c61d8c0e7767  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-30.f32
+f072cba8b579a11c9d7363fc28a6c88a7aa200b6b3582bcd1c55a01bfca91b92  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-31.f32
+48d5bc5f788b7fb6f0152bccec7719c9235972ff0635c971d94e4afedc57d43e  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-4.f32
+e020195c44f61948dc8194c16b85cda1936a56a7ae359d3265448c305abc9df8  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-5.f32
+a4ce2faa7eb952d3a18709460d296076aa20399d80ead65f6ab60c17b8d20eed  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-6.f32
+7f4d84a047e42f283e1e730c83d3e62e3e044b331e67081c171977296a010689  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-7.f32
+e973aa223fb4d753d105c0f4accf33d32a968de64fd7cd4d84be9db1de85a62a  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-8.f32
+092172e04cc5b7c32d5de888e338b673fbc36268358444c270afc9527c113ad1  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse1-9.f32
+22a5c138e58b79d88f258dd37faab6e916e2b2cfa65e43f24d832297c839bd84  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-0.f32
+9662d543ace3c03b4c0c57fe993c201e9faf6cd7316da9fd51fcfc9d9d674dd5  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-1.f32
+e38e45e25567187821bb8c4736ac5f05d7c5106122bb1787bae776614067b315  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-10.f32
+eb9a05ad2bd30cf85be028272b69ebcd05c1b7fddce901d9392e90053a2d97cd  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-11.f32
+15b2e0c3cebf906661e3cfe3b90f7b8dccb1a623e1e230f07f81b16ded86d79f  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-12.f32
+043ade263dc7b8708fda7f827023a4ed832256458d2da921a87dc4701ef7165c  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-13.f32
+a19b3bda7beb9134816096da8d12472ac34f656d95459409b70dddb52dfb2a9a  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-14.f32
+9b3d53d8d8a9d7945e04d21141f44dd292eb3782da0ddb8facdce6ec646c9cb3  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-15.f32
+f46fd07beef1c75b7fa7643298e0df37d0228341645ca91c6397c92dbc700eb6  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-16.f32
+afd410b5244acd9520c8e702b14b14dd9ab2adc0d9898a828af8105cf6f5ef49  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-17.f32
+bed35f75eb9e02aa1a7380feb61b897ba8a62edf6383cbfbd0f9b0dbdb31730f  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-18.f32
+3b7644cf409c541dc76c8c303d961e3d485d4417bd0bac121f7003e4a4889a06  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-19.f32
+3a5e0183ef19220d1eda2123b5308dbde72be84f9c687e5d965b222f710c1c3d  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-2.f32
+ab71eb8fab4d63a5fb5f35aaebc2e8e7ee80d7bfa0e3da814ac734efd6720a28  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-20.f32
+585a923d488d8f67342a557d7bf53c1252c5861b932be83e514e538c1a874d76  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-21.f32
+0108363d69abcd720ae94a537514abdddbcf477dd1360a34c280913d3923c3ad  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-22.f32
+692c57791891bd037b298b816d45af8923e77531ee6c2d691a6ef8be7a099721  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-23.f32
+88a5c6d35f5c0c842b8744d67fb641bc2022be64bf69d4690006ba4d13321181  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-24.f32
+8233f51ca15628a5256be4bc24152c908d68948f217fb1830c15092f049c5e5a  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-25.f32
+31898e3dd8a1f60095252656e61a1e67d7e42874d32eed5283a2c9cc2de5bfa1  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-26.f32
+d747d9750f28229722ff9ca1da10e11849820152798ce134ba315ae6d3d6e201  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-27.f32
+134e75039a727d6fee5d907d053b050badcd25a50aaab67732bdf9db450a27ff  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-28.f32
+fc0d69c5c4d7234dd8e19a7e8e50132c6b8a727c959d4ad7b733092184263d13  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-29.f32
+47fa75ee835aa189cc372e93d106ddf14b1398edd1ffc65e05c34ffdf2a0972e  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-3.f32
+ddfe0f73f489443167dfcbfb4edb3730113ee93b40c839abb3ab1d20dec92608  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-30.f32
+0bd61f431ee34be909175247c24f227a3e85a8d2d54e2c678a84a0b380769e33  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-31.f32
+c2c97f4ceaffdcde82c3f4c4812d903d148e601c734d953322ffd2e13b762051  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-4.f32
+36f8682a0d371b8b3560ebf503e958d236024388ff90e002a89e125d68c10a42  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-5.f32
+f5a9cc7413f5bedfca9102107d7311a223789946404d415892a19516a9412f0d  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-6.f32
+fc3ef43609fd4d777b31ce8f22e7f61361a4535950c7be9c2840fa5a5d4a0732  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-7.f32
+4f2dc932580a44dc8f0848c33ced9535c3e72e3ba0c9652351b4fa0fef87b617  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-8.f32
+114c7c1d484bdc65dc770e10bbb56be97bd4f7231e411e55026adafef31e5648  /home/user/Frontier/_ClaudeScratch/rgb-reuse-capture-release/RgbReuse2-9.f32

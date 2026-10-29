@@ -99,6 +99,10 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
   quality-neutral replacement;production348.046875MiB unchanged.
 
+- [Persistent RGB quartet reuse](Exhibits/LightCompute/RgbReuse.md):retained descriptors and revision rebuilds
+  pass;instant error improves8.08–12.33% against matched raw budget,but rolling error worsens15.32–20.18%.
+  All3 quality promotions rejected;fewer candidate draws are not measured rays/speed. Production unchanged.
+
 - [Integrated RGB quartet selection](Exhibits/LightCompute/RgbQuartet.md):actual GPU selection/descriptor
   write-read passes327,680 CPU comparisons/build and96 mean gates. Against same-eight raw RGB candidates,
   fresh RMSE is9.06–67.82% higher;correct compression is not quality promotion. Production remains unchanged.
