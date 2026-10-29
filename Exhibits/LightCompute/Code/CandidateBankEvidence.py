@@ -51,6 +51,14 @@ for Mode in ('release', 'sanitized'):
     assert (len(References), MeanCount, CheckCount, PairCount) == (64, 384, 4, 16)
     Semantic.append(Rows)
 assert Semantic[0] == Semantic[1] and len(Measurements) == 24
+# Fresh controls must remain numerically identical to the preceding fixed-refresh experiment.
+OldControls = []
+for Line in (Results / 'CacheRefresh-release.txt').read_text().splitlines():
+    if Line.startswith(('CACHE_REFRESH_MEAN ', 'CACHE_REFRESH_RESULT ')) and re.search(r'method=fresh[68] ', Line):
+        OldControls.append(Line.replace('CACHE_REFRESH_', 'CANDIDATE_BANK_'))
+NewControls = [Line for Line in Semantic[0] if Line.startswith(('CANDIDATE_BANK_MEAN ', 'CANDIDATE_BANK_RESULT '))
+               and re.search(r'method=fresh[68] ', Line)]
+assert OldControls == NewControls and len(NewControls) == 136
 with tempfile.TemporaryDirectory(dir=Root / '_ClaudeScratch/tmp') as Temporary:
     Shader = Path(Temporary) / 'CandidateBank.slang'
     subprocess.run([sys.executable, str(Root / 'Exhibits/LightCompute/Code/CompileCandidateBank.py'), str(Shader)],
@@ -113,7 +121,7 @@ for Panel, Fixture in enumerate((0, 2)):
     Left, Right, Top, Bottom = 85 + Panel * 600, 510 + Panel * 600, 100, 390
     XMin, XMax = .2, max(X for X, Y in Ratios) * 1.18
     YMin, YMax = min(Y for X, Y in Ratios) * .75, max(Y for X, Y in Ratios) * 1.18
-    Pen.text((Left, 58), 'No strip' if Fixture == 0 else 'New .3 strip holdout', font=Font, fill='white')
+    Pen.text((Left, 58), 'No strip' if Fixture == 0 else '.3 strip holdout', font=Font, fill='white')
     for Tick in range(5):
         X, Y = Left + Tick / 4 * (Right-Left), Bottom - Tick / 4 * (Bottom-Top)
         Pen.line((X, Top, X, Bottom), fill='#35404d'); Pen.line((Left, Y, Right, Y), fill='#35404d')
@@ -191,9 +199,9 @@ for Fixture in range(4):
                      f"{float(F['flicker_rmse']):.7f} | {float(F['lag1']):.4f} | {int(F['queries']):,} |")
 (Results / 'CandidateBank-comparison.md').write_text('\n'.join(Lines) + '\n')
 Message = (f'PASS candidate bank: {len(Semantic[0])} identical semantic rows; checked hashes {HashCounts}; '
-           '384 pose mean gates, four full-bank identities, 16 paired contrasts; rotation/light revisions correct; '
+           '384 pose mean gates, four full-bank/query identities, 16 paired contrasts; 17039360 native retained-slot checks; rotation/light revisions correct; '
            '128 exact raw captures, 24 representative PNG arrays; shader rederivation and fresh budgets verified; '
-           'both five-CTest sets passed. promote=0 physical_gpu_timing=0.\n')
+           '136 fresh-control rows unchanged; both five-CTest sets passed. promote=0 physical_gpu_timing=0.\n')
 Message += (f'Payload audit: {PayloadChecks} candidate arrays, {PreservedChecks} unchanged retained slots; '
             f'max density error={MaximumDensityError:.12g} max reconstruction error={MaximumEstimateError:.12g}; '
             f'{NullDivisorDifferences} nonnull-divisor negative differences.\n')

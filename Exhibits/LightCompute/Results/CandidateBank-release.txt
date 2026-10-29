@@ -1,0 +1,696 @@
+Secondary GPU host mode=release revision=0fa8a6e15fb1cc8dc4912c03a1b964976fa1761a working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+4b3b8ce02c6315a948881b76e80c79cfab6395298af629ed392c239a2f71e2b7  Exhibits/LightCompute/Code/CompileCandidateBank.py
+f9da94cc3f075f6bbc2d94d313acad0b93816367a395bd336868725529a8834d  Exhibits/LightCompute/Code/CompileCacheRefresh.py
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+c64a67094084082a1cdd31de0a8d7db1f01afef3565b14c070aa67282a4abee4  Exhibits/LightCompute/Code/CandidateBankValidation.h
+3c34616bfc80078a20ba880083d6473f02dd246f6ab9c1a5e208b40644f4c98c  Exhibits/LightCompute/Code/CacheRefreshValidation.h
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+20fa82eb105b4259a5ec03b2c08e42a6d6b60a3eff5c4bb9dbf7022428331a16  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+8f875039bfcb6adc4d7d154aca6bc5f37a25c3987534c9a442712ed32c1a8db3  Exhibits/LightCompute/RunCandidateBank.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+12fc8759cc699e4602a24c8e61df590f0b6a8891671e5c6df67bfcddf8678111  /home/user/Frontier/_ClaudeScratch/build/candidate-bank-release/CandidateBank.slang
+2ea24e451ba952727bb027eb2da53d8c7ec11027419821806d3a3b58b391173c  /home/user/Frontier/_ClaudeScratch/build/candidate-bank-release/DiffuseGenerate.spv
+d123265018dcf8fb4ae7739a432de2774eb5af6811a31df84854f71aa72adaa6  /home/user/Frontier/_ClaudeScratch/build/candidate-bank-release/DiffuseResolve.spv
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/candidate-bank-release
+[  5%] Built target FrontierPathReplayVulkan
+[ 10%] Built target FrontierMediumRadiancePayload
+[ 16%] Built target FrontierRadiantFacetDistribution
+[ 21%] Built target FrontierPathReplayDomain
+[ 27%] Built target PathReplayArchiveValidation
+[ 32%] Built target PathReplayVulkanValidation
+[ 37%] Built target RadiantFacetValidation
+[ 43%] Built target MediumRadianceValidation
+[ 48%] Built target FrontierPlumeLatticeFootprint
+[ 54%] Built target PathReplayDomainValidation
+[ 56%] Building CXX object CMakeFiles/LightComputeValidation.dir/Code/LightComputeValidation.cpp.o
+[ 59%] Linking CXX executable LightComputeValidation
+[100%] Built target LightComputeValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/candidate-bank-release
+Test project /home/user/Frontier/_ClaudeScratch/build/candidate-bank-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.01 sec
+CANDIDATE_BANK_DEVICE name=SwiftShader Device (Subzero) type=4
+CANDIDATE_BANK_REFERENCE fixture=0 pose=0 x=0 integral=0.100571720445 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=1 x=0.038060233 integral=0.100405525911 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=2 x=0.146446615 integral=0.09813876013 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=3 x=0.308658272 integral=0.0902125195429 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=4 x=0.5 integral=0.0757548730283 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=5 x=0.691341698 integral=0.0590997652155 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=6 x=0.853553414 integral=0.0457493399112 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=7 x=0.961939752 integral=0.0379251461253 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=8 x=1 integral=0.0354285394085 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=9 x=0.961939752 integral=0.0189625730627 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=0 pose=10 x=0.853553414 integral=0.0228746699556 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=0 pose=11 x=0.691341698 integral=0.0295498826077 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=0 pose=12 x=0.5 integral=0.0378774365142 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=0 pose=13 x=0.308658272 integral=0.0902125195429 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=14 x=0.146446615 integral=0.09813876013 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=0 pose=15 x=0.038060233 integral=0.100405525911 scale=1.0
+CANDIDATE_BANK_MEAN fixture=0 pose=0 method=area8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=0 method=bank8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=0 method=rotate4 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=0 method=rotate2 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=0 method=fresh6 mean=0.100733949052 nominal_se=0.000376800835201 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=0 method=fresh8 mean=0.100730212131 nominal_se=0.000317896064416 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=1 method=area8 mean=0.100274298729 nominal_se=0.000209361740494 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=1 method=bank8 mean=0.100274298729 nominal_se=0.000209361740494 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=1 method=rotate4 mean=0.10028314978 nominal_se=0.000212519184947 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=1 method=rotate2 mean=0.100220381882 nominal_se=0.000213174913745 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=1 method=fresh6 mean=0.100261842089 nominal_se=0.000362587991979 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=1 method=fresh8 mean=0.100150225535 nominal_se=0.000260234318305 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=2 method=area8 mean=0.0981350923854 nominal_se=0.0001629661604 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=2 method=bank8 mean=0.0981350923854 nominal_se=0.0001629661604 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=2 method=rotate4 mean=0.0981184163708 nominal_se=0.00022655478955 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=2 method=rotate2 mean=0.0978993867649 nominal_se=0.000235183411534 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=2 method=fresh6 mean=0.0978414929234 nominal_se=0.000393284882309 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=2 method=fresh8 mean=0.0980433681698 nominal_se=0.000334952669396 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=3 method=area8 mean=0.0901392086581 nominal_se=0.00027434275366 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=3 method=bank8 mean=0.0901392086581 nominal_se=0.00027434275366 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=3 method=rotate4 mean=0.0902241005718 nominal_se=0.000244438653259 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=3 method=rotate2 mean=0.0902372344838 nominal_se=0.000213070911625 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=3 method=fresh6 mean=0.0902343760797 nominal_se=0.000338528675023 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=3 method=fresh8 mean=0.0902888513353 nominal_se=0.000285938379207 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=4 method=area8 mean=0.0755521845717 nominal_se=0.000178404423333 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=4 method=bank8 mean=0.0755521845717 nominal_se=0.000178404423333 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=4 method=rotate4 mean=0.0755028378695 nominal_se=0.000202511277625 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=4 method=rotate2 mean=0.0757631575619 nominal_se=0.0001806198067 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=4 method=fresh6 mean=0.0755627449414 nominal_se=0.00034474389018 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=4 method=fresh8 mean=0.0757715628411 nominal_se=0.000307749471665 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=5 method=area8 mean=0.0591673335592 nominal_se=0.000180898376256 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=5 method=bank8 mean=0.0591673335592 nominal_se=0.000180898376256 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=5 method=rotate4 mean=0.0590115284124 nominal_se=0.000136391581935 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=5 method=rotate2 mean=0.0591552734474 nominal_se=0.000143461973111 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=5 method=fresh6 mean=0.0584686284444 nominal_se=0.000304700502635 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=5 method=fresh8 mean=0.0586571520644 nominal_se=0.000257341761213 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=6 method=area8 mean=0.0458094182921 nominal_se=0.000161678053955 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=6 method=bank8 mean=0.0458094182921 nominal_se=0.000161678053955 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=6 method=rotate4 mean=0.0458009760892 nominal_se=0.000145254593666 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=6 method=rotate2 mean=0.0458331078246 nominal_se=0.000103204161116 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=6 method=fresh6 mean=0.0459097293328 nominal_se=0.000317219843881 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=6 method=fresh8 mean=0.0460736862274 nominal_se=0.000291542502022 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=7 method=area8 mean=0.0378099148679 nominal_se=9.72288857048e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=7 method=bank8 mean=0.0378099148679 nominal_se=9.72288857048e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=7 method=rotate4 mean=0.0377834056366 nominal_se=0.000120985879784 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=7 method=rotate2 mean=0.0378465891071 nominal_se=0.000103056376023 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=7 method=fresh6 mean=0.0378689577681 nominal_se=0.000285497667037 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=7 method=fresh8 mean=0.0378881849037 nominal_se=0.0002509045078 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=8 method=area8 mean=0.0355793938914 nominal_se=0.000106095294211 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=8 method=bank8 mean=0.0355793938914 nominal_se=0.000106095294211 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=8 method=rotate4 mean=0.0354020280509 nominal_se=9.32427814063e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=8 method=rotate2 mean=0.0354204036612 nominal_se=0.000101346007322 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=8 method=fresh6 mean=0.0352029421119 nominal_se=0.00026729550003 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=8 method=fresh8 mean=0.0353279126221 nominal_se=0.000230240807391 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=9 method=area8 mean=0.0189617934109 nominal_se=5.09710958124e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=9 method=bank8 mean=0.0189617934109 nominal_se=5.09710958124e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=9 method=rotate4 mean=0.0189617934109 nominal_se=5.09710958124e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=9 method=rotate2 mean=0.0189617934109 nominal_se=5.09710958124e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=9 method=fresh6 mean=0.0190359498284 nominal_se=0.000124121568307 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=9 method=fresh8 mean=0.0190802771543 nominal_se=0.000104366809224 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=10 method=area8 mean=0.0229023953601 nominal_se=6.3300443659e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=10 method=bank8 mean=0.0229023953601 nominal_se=6.3300443659e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=10 method=rotate4 mean=0.0228776662174 nominal_se=6.31308704415e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=10 method=rotate2 mean=0.0228556882526 nominal_se=6.0441928535e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=10 method=fresh6 mean=0.0228491212649 nominal_se=0.000134880257809 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=10 method=fresh8 mean=0.0228197486774 nominal_se=0.000101418120644 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=11 method=area8 mean=0.0295351362618 nominal_se=8.91052698519e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=11 method=bank8 mean=0.0295351362618 nominal_se=8.91052698519e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=11 method=rotate4 mean=0.0294975955185 nominal_se=8.32065808153e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=11 method=rotate2 mean=0.0294911652057 nominal_se=7.68265254292e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=11 method=fresh6 mean=0.029930725354 nominal_se=0.000199349967897 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=11 method=fresh8 mean=0.0297779855517 nominal_se=0.000157366940287 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=12 method=area8 mean=0.037791966542 nominal_se=7.61011708343e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=12 method=bank8 mean=0.037791966542 nominal_se=7.61011708343e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=12 method=rotate4 mean=0.0378087107114 nominal_se=8.2002410345e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=12 method=rotate2 mean=0.0377077891949 nominal_se=8.99154749491e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=12 method=fresh6 mean=0.0378828434148 nominal_se=0.000201015863635 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=12 method=fresh8 mean=0.0380187617621 nominal_se=0.000182370438948 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=13 method=area8 mean=0.090081087613 nominal_se=0.000224094590739 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=13 method=bank8 mean=0.090081087613 nominal_se=0.000224094590739 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=13 method=rotate4 mean=0.090081087613 nominal_se=0.000224094590739 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=13 method=rotate2 mean=0.090081087613 nominal_se=0.000224094590739 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=13 method=fresh6 mean=0.0905270396629 nominal_se=0.000417985973171 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=13 method=fresh8 mean=0.0904138208637 nominal_se=0.000422647754475 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=14 method=area8 mean=0.0982136719833 nominal_se=0.000217066694987 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=14 method=bank8 mean=0.0982136719833 nominal_se=0.000217066694987 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=14 method=rotate4 mean=0.0981109288065 nominal_se=0.000223810959658 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=14 method=rotate2 mean=0.0981692461087 nominal_se=0.000251225067948 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=14 method=fresh6 mean=0.0985208142488 nominal_se=0.000360650892953 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=14 method=fresh8 mean=0.0985544612865 nominal_se=0.000361059947058 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=15 method=area8 mean=0.10054420652 nominal_se=0.000239624072661 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=15 method=bank8 mean=0.10054420652 nominal_se=0.000239624072661 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=15 method=rotate4 mean=0.100426867712 nominal_se=0.000228195211116 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=15 method=rotate2 mean=0.100359666675 nominal_se=0.000241773972469 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=15 method=fresh6 mean=0.100471192695 nominal_se=0.000393701074001 gate=1
+CANDIDATE_BANK_MEAN fixture=0 pose=15 method=fresh8 mean=0.100501101352 nominal_se=0.000297786788221 gate=1
+CANDIDATE_BANK_RESULT fixture=0 method=area8 rmse=0.0310602184478 temporal_rmse=0.00772302880826 flicker_rmse=0.0428361660026 lag1=-0.00257127819793 queries=9304140 source_queries=9304140 reused=0
+CANDIDATE_BANK_RESULT fixture=0 method=bank8 rmse=0.0310602184478 temporal_rmse=0.00772302880826 flicker_rmse=0.0428361660026 lag1=-0.00257127819793 queries=9304140 source_queries=7502405 reused=0
+CANDIDATE_BANK_RESULT fixture=0 method=rotate4 rmse=0.0310102552774 temporal_rmse=0.0104415287804 flicker_rmse=0.0316332894395 lag1=0.451136657413 queries=6252842 source_queries=4452779 reused=1703936
+CANDIDATE_BANK_RESULT fixture=0 method=rotate2 rmse=0.03102480016 temporal_rmse=0.0134682938866 flicker_rmse=0.0241966934164 lag1=0.679378670913 queries=4729740 source_queries=2929672 reused=2555904
+CANDIDATE_BANK_RESULT fixture=0 method=fresh6 rmse=0.0587195193092 temporal_rmse=0.0146758453944 flicker_rmse=0.0814806066942 lag1=0.000305467180282 queries=6830256 source_queries=6830256 reused=0
+CANDIDATE_BANK_RESULT fixture=0 method=fresh8 rmse=0.0508794831333 temporal_rmse=0.0126698413906 flicker_rmse=0.070600114103 lag1=0.000662755577128 queries=9107503 source_queries=9107503 reused=0
+CANDIDATE_BANK_PAIRED fixture=0 arm=rotate4 control=fresh8 instantaneous_mse=-0.00162708587154 instantaneous_se=5.5009219167e-06 temporal_mse=-5.1499357591e-05 temporal_se=1.48166706101e-06
+CANDIDATE_BANK_PAIRED fixture=0 arm=rotate2 control=fresh8 instantaneous_mse=-0.00162618357895 instantaneous_se=5.43345244337e-06 temporal_mse=2.08700593516e-05 temporal_se=1.97617307992e-06
+CANDIDATE_BANK_PAIRED fixture=0 arm=rotate4 control=fresh6 instantaneous_mse=-0.00248634601554 instantaneous_se=7.11240889572e-06 temporal_mse=-0.000106354914767 temporal_se=2.11727454712e-06
+CANDIDATE_BANK_PAIRED fixture=0 arm=rotate2 control=fresh6 instantaneous_mse=-0.00248544372294 instantaneous_se=6.61654436841e-06 temporal_mse=-3.39854978241e-05 temporal_se=2.62698373477e-06
+CANDIDATE_BANK_CHECK fixture=0 mean_gates=96 maximum_bank8_difference=0 retained_slot_checks=4259840
+CANDIDATE_BANK_REFERENCE fixture=1 pose=0 x=0 integral=0.0470486282321 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=1 x=0.038060233 integral=0.0473919389392 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=2 x=0.146446615 integral=0.0515153616404 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=3 x=0.308658272 integral=0.0617142439773 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=4 x=0.5 integral=0.066341063396 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=5 x=0.691341698 integral=0.0580084356047 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=6 x=0.853553414 integral=0.0457493399637 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=7 x=0.961939752 integral=0.0379251462036 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=8 x=1 integral=0.0354285394919 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=9 x=0.961939752 integral=0.0189625731018 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=1 pose=10 x=0.853553414 integral=0.0228746699818 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=1 pose=11 x=0.691341698 integral=0.0290042178024 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=1 pose=12 x=0.5 integral=0.033170531698 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=1 pose=13 x=0.308658272 integral=0.0617142439773 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=14 x=0.146446615 integral=0.0515153616404 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=1 pose=15 x=0.038060233 integral=0.0473919389392 scale=1.0
+CANDIDATE_BANK_MEAN fixture=1 pose=0 method=area8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=0 method=bank8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=0 method=rotate4 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=0 method=rotate2 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=0 method=fresh6 mean=0.0467172244651 nominal_se=0.000282101166386 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=0 method=fresh8 mean=0.0468122879206 nominal_se=0.000245069781023 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=1 method=area8 mean=0.0476602419209 nominal_se=0.000166144580172 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=1 method=bank8 mean=0.0476602419209 nominal_se=0.000166144580172 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=1 method=rotate4 mean=0.0474510330297 nominal_se=0.000151575854059 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=1 method=rotate2 mean=0.0474607119047 nominal_se=0.000125426484407 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=1 method=fresh6 mean=0.0470803836463 nominal_se=0.000202680593326 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=1 method=fresh8 mean=0.0472160354782 nominal_se=0.000165875882249 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=2 method=area8 mean=0.051550793703 nominal_se=0.00021331036004 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=2 method=bank8 mean=0.051550793703 nominal_se=0.00021331036004 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=2 method=rotate4 mean=0.0516031307292 nominal_se=0.000256330940393 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=2 method=rotate2 mean=0.0514175035061 nominal_se=0.000208485756711 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=2 method=fresh6 mean=0.0517758182784 nominal_se=0.000349252454195 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=2 method=fresh8 mean=0.0516957108964 nominal_se=0.000255316452524 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=3 method=area8 mean=0.062001432314 nominal_se=0.000255746046979 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=3 method=bank8 mean=0.062001432314 nominal_se=0.000255746046979 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=3 method=rotate4 mean=0.0619637379924 nominal_se=0.000276128255439 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=3 method=rotate2 mean=0.061986152985 nominal_se=0.00025265833569 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=3 method=fresh6 mean=0.0614422612834 nominal_se=0.000315112745911 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=3 method=fresh8 mean=0.0614353198719 nominal_se=0.00029048287005 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=4 method=area8 mean=0.0664483519788 nominal_se=0.000211200321507 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=4 method=bank8 mean=0.0664483519788 nominal_se=0.000211200321507 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=4 method=rotate4 mean=0.0664214014293 nominal_se=0.000244490941815 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=4 method=rotate2 mean=0.0665922288952 nominal_se=0.000226193364431 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=4 method=fresh6 mean=0.0665072637987 nominal_se=0.000513102735525 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=4 method=fresh8 mean=0.0664741535857 nominal_se=0.000379289605077 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=5 method=area8 mean=0.058268488381 nominal_se=0.000220105515119 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=5 method=bank8 mean=0.058268488381 nominal_se=0.000220105515119 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=5 method=rotate4 mean=0.0580307013745 nominal_se=0.000193209276956 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=5 method=rotate2 mean=0.0580711183213 nominal_se=0.00020548690684 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=5 method=fresh6 mean=0.0576654057586 nominal_se=0.000328958016418 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=5 method=fresh8 mean=0.0577727526427 nominal_se=0.000320559497475 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=6 method=area8 mean=0.045588978789 nominal_se=0.000144371555293 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=6 method=bank8 mean=0.045588978789 nominal_se=0.000144371555293 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=6 method=rotate4 mean=0.0455725935413 nominal_se=0.00013939932384 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=6 method=rotate2 mean=0.045646624246 nominal_se=0.00013357582151 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=6 method=fresh6 mean=0.0453115847988 nominal_se=0.000281319424489 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=6 method=fresh8 mean=0.0452838149613 nominal_se=0.000222420945779 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=7 method=area8 mean=0.0378550816968 nominal_se=0.000124025397685 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=7 method=bank8 mean=0.0378550816968 nominal_se=0.000124025397685 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=7 method=rotate4 mean=0.0375977620667 nominal_se=0.000109913233071 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=7 method=rotate2 mean=0.0377772393836 nominal_se=0.000112909186256 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=7 method=fresh6 mean=0.0378625490707 nominal_se=0.000315490918493 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=7 method=fresh8 mean=0.0378897870842 nominal_se=0.000270328935157 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=8 method=area8 mean=0.0354267151483 nominal_se=0.000115073920591 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=8 method=bank8 mean=0.0354267151483 nominal_se=0.000115073920591 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=8 method=rotate4 mean=0.035325083207 nominal_se=0.000140018463702 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=8 method=rotate2 mean=0.035288965729 nominal_se=0.000128931243988 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=8 method=fresh6 mean=0.0360382082351 nominal_se=0.000274253523344 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=8 method=fresh8 mean=0.035925523109 nominal_se=0.00022041324498 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=9 method=area8 mean=0.0189697522692 nominal_se=5.74803886323e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=9 method=bank8 mean=0.0189697522692 nominal_se=5.74803886323e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=9 method=rotate4 mean=0.0189697522692 nominal_se=5.74803886323e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=9 method=rotate2 mean=0.0189697522692 nominal_se=5.74803886323e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=9 method=fresh6 mean=0.0189804078341 nominal_se=0.000128425679373 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=9 method=fresh8 mean=0.0189945609028 nominal_se=0.000112698519039 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=10 method=area8 mean=0.0228084452243 nominal_se=6.92064560707e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=10 method=bank8 mean=0.0228084452243 nominal_se=6.92064560707e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=10 method=rotate4 mean=0.0229022881569 nominal_se=6.71069828093e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=10 method=rotate2 mean=0.0228623755412 nominal_se=7.73838692133e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=10 method=fresh6 mean=0.0229548646723 nominal_se=0.000141342507175 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=10 method=fresh8 mean=0.0229591377224 nominal_se=0.000101119258228 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=11 method=area8 mean=0.0289234731067 nominal_se=8.97184639657e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=11 method=bank8 mean=0.0289234731067 nominal_se=8.97184639657e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=11 method=rotate4 mean=0.0289368805278 nominal_se=0.000100306083116 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=11 method=rotate2 mean=0.0289496980035 nominal_se=0.000104667381756 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=11 method=fresh6 mean=0.029082641855 nominal_se=0.000175935653211 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=11 method=fresh8 mean=0.0290634164315 nominal_se=0.000158859508354 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=12 method=area8 mean=0.033150889618 nominal_se=0.000148862248276 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=12 method=bank8 mean=0.033150889618 nominal_se=0.000148862248276 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=12 method=rotate4 mean=0.0330856999504 nominal_se=0.000122832620069 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=12 method=rotate2 mean=0.0331440244359 nominal_se=0.00011876540682 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=12 method=fresh6 mean=0.0334010318079 nominal_se=0.000186943793945 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=12 method=fresh8 mean=0.0333908853925 nominal_se=0.000144623035592 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=13 method=area8 mean=0.0618255937605 nominal_se=0.000255415400306 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=13 method=bank8 mean=0.0618255937605 nominal_se=0.000255415400306 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=13 method=rotate4 mean=0.0618255937605 nominal_se=0.000255415400306 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=13 method=rotate2 mean=0.0618255937605 nominal_se=0.000255415400306 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=13 method=fresh6 mean=0.0616067510355 nominal_se=0.000421392526752 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=13 method=fresh8 mean=0.0615058154742 nominal_se=0.000372000613406 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=14 method=area8 mean=0.0516496081873 nominal_se=0.000255203378598 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=14 method=bank8 mean=0.0516496081873 nominal_se=0.000255203378598 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=14 method=rotate4 mean=0.0517963457633 nominal_se=0.00021784316599 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=14 method=rotate2 mean=0.0517469372455 nominal_se=0.000195267182716 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=14 method=fresh6 mean=0.0514083866265 nominal_se=0.000206645241675 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=14 method=fresh8 mean=0.0513832871775 nominal_se=0.000216746143849 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=15 method=area8 mean=0.0474602083328 nominal_se=0.000125812888495 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=15 method=bank8 mean=0.0474602083328 nominal_se=0.000125812888495 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=15 method=rotate4 mean=0.0473928383361 nominal_se=0.000177919006445 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=15 method=rotate2 mean=0.0476053871186 nominal_se=0.000163863910601 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=15 method=fresh6 mean=0.0470291141228 nominal_se=0.000263586450183 gate=1
+CANDIDATE_BANK_MEAN fixture=1 pose=15 method=fresh8 mean=0.0470478073357 nominal_se=0.000212235486525 gate=1
+CANDIDATE_BANK_RESULT fixture=1 method=area8 rmse=0.0326109108603 temporal_rmse=0.0081610455989 flicker_rmse=0.046062944224 lag1=0.00116972737627 queries=7703478 source_queries=7703478 reused=0
+CANDIDATE_BANK_RESULT fixture=1 method=bank8 rmse=0.0326109108603 temporal_rmse=0.0081610455989 flicker_rmse=0.046062944224 lag1=0.00116972737627 queries=7703478 source_queries=6301832 reused=0
+CANDIDATE_BANK_RESULT fixture=1 method=rotate4 rmse=0.0325687351931 temporal_rmse=0.0105878028257 flicker_rmse=0.0365955758422 lag1=0.367929481337 queries=5140170 source_queries=3739999 reused=1703936
+CANDIDATE_BANK_RESULT fixture=1 method=rotate2 rmse=0.0326502274748 temporal_rmse=0.0132527274509 flicker_rmse=0.0308296057474 lag1=0.55368127676 queries=3862353 source_queries=2461261 reused=2555904
+CANDIDATE_BANK_RESULT fixture=1 method=fresh6 rmse=0.050333749166 temporal_rmse=0.0125607064093 flicker_rmse=0.0708684835938 lag1=-0.00121344553131 queries=6674974 source_queries=6674974 reused=0
+CANDIDATE_BANK_RESULT fixture=1 method=fresh8 rmse=0.0436129995951 temporal_rmse=0.0109150172323 flicker_rmse=0.0614158041203 lag1=-0.00144642383854 queries=8899950 source_queries=8899950 reused=0
+CANDIDATE_BANK_PAIRED fixture=1 arm=rotate4 control=fresh8 instantaneous_mse=-0.000841371221608 instantaneous_se=5.11759410928e-06 temporal_mse=-7.0360325059e-06 temporal_se=1.18006108286e-06
+CANDIDATE_BANK_PAIRED fixture=1 arm=rotate2 control=fresh8 instantaneous_mse=-0.00083605637953 instantaneous_se=5.30341936197e-06 temporal_mse=5.64971837069e-05 temporal_se=1.80570424528e-06
+CANDIDATE_BANK_PAIRED fixture=1 arm=rotate4 control=fresh6 instantaneous_mse=-0.00147276379303 instantaneous_se=6.79051390866e-06 temporal_mse=-4.56697768255e-05 temporal_se=1.28369563227e-06
+CANDIDATE_BANK_PAIRED fixture=1 arm=rotate2 control=fresh6 instantaneous_mse=-0.00146744895095 instantaneous_se=6.81516929661e-06 temporal_mse=1.78634393873e-05 temporal_se=2.03128358393e-06
+CANDIDATE_BANK_CHECK fixture=1 mean_gates=96 maximum_bank8_difference=0 retained_slot_checks=4259840
+CANDIDATE_BANK_REFERENCE fixture=2 pose=0 x=0 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=1 x=0.038060233 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=2 x=0.146446615 integral=0.00441540224764 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=3 x=0.308658272 integral=0.023602341581 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=4 x=0.5 integral=0.0421220226833 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=5 x=0.691341698 integral=0.0458206037941 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=6 x=0.853553414 integral=0.0408044815178 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=7 x=0.961939752 integral=0.035896427655 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=8 x=1 integral=0.0336100076862 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=9 x=0.961939752 integral=0.0179482138275 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=2 pose=10 x=0.853553414 integral=0.0204022407589 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=2 pose=11 x=0.691341698 integral=0.022910301897 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=2 pose=12 x=0.5 integral=0.0210610113416 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=2 pose=13 x=0.308658272 integral=0.023602341581 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=14 x=0.146446615 integral=0.00441540224764 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=2 pose=15 x=0.038060233 integral=0 scale=1.0
+CANDIDATE_BANK_MEAN fixture=2 pose=0 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=0 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=0 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=0 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=1 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=1 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=1 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=1 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=2 method=area8 mean=0.00430771238939 nominal_se=7.48197539392e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=2 method=bank8 mean=0.00430771238939 nominal_se=7.48197539392e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=2 method=rotate4 mean=0.00443684376853 nominal_se=8.3408985563e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=2 method=rotate2 mean=0.00440534966219 nominal_se=7.77166143984e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=2 method=fresh6 mean=0.00440063478459 nominal_se=0.000115939437169 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=2 method=fresh8 mean=0.00434669511856 nominal_se=9.00381448689e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=3 method=area8 mean=0.0238245323367 nominal_se=0.000191210692468 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=3 method=bank8 mean=0.0238245323367 nominal_se=0.000191210692468 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=3 method=rotate4 mean=0.0236318440971 nominal_se=0.000192910317987 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=3 method=rotate2 mean=0.0236289538141 nominal_se=0.000160675776427 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=3 method=fresh6 mean=0.0234600831307 nominal_se=0.000218715490168 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=3 method=fresh8 mean=0.0234590157693 nominal_se=0.000177855393022 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=4 method=area8 mean=0.0427067126866 nominal_se=0.000280803578089 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=4 method=bank8 mean=0.0427067126866 nominal_se=0.000280803578089 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=4 method=rotate4 mean=0.0424629647566 nominal_se=0.000210298986848 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=4 method=rotate2 mean=0.0421082256739 nominal_se=0.000198101603296 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=4 method=fresh6 mean=0.041759033488 nominal_se=0.000211161156333 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=4 method=fresh8 mean=0.0420458235712 nominal_se=0.000199303418739 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=5 method=area8 mean=0.0462429517301 nominal_se=0.000246293370303 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=5 method=bank8 mean=0.0462429517301 nominal_se=0.000246293370303 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=5 method=rotate4 mean=0.0462940696669 nominal_se=0.000222679378488 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=5 method=rotate2 mean=0.0458652786022 nominal_se=0.000180308318477 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=5 method=fresh6 mean=0.0459951785601 nominal_se=0.000333963053418 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=5 method=fresh8 mean=0.0462178817816 nominal_se=0.000252840069763 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=6 method=area8 mean=0.0407491375579 nominal_se=0.000164588032006 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=6 method=bank8 mean=0.0407491375579 nominal_se=0.000164588032006 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=6 method=rotate4 mean=0.0409299982142 nominal_se=0.000165198380437 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=6 method=rotate2 mean=0.0410347715623 nominal_se=0.000122535069872 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=6 method=fresh6 mean=0.0406652834706 nominal_se=0.000304720792185 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=6 method=fresh8 mean=0.040816956963 nominal_se=0.000236774918508 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=7 method=area8 mean=0.0360841540385 nominal_se=0.000150962850192 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=7 method=bank8 mean=0.0360841540385 nominal_se=0.000150962850192 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=7 method=rotate4 mean=0.0360496750256 nominal_se=0.00016787829334 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=7 method=rotate2 mean=0.0361479406073 nominal_se=0.000124230880441 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=7 method=fresh6 mean=0.0357882692631 nominal_se=0.000271656988866 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=7 method=fresh8 mean=0.0356147015684 nominal_se=0.00021270938765 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=8 method=area8 mean=0.0337534018841 nominal_se=0.000135351660507 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=8 method=bank8 mean=0.0337534018841 nominal_se=0.000135351660507 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=8 method=rotate4 mean=0.0336981960958 nominal_se=0.000157165673272 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=8 method=rotate2 mean=0.0337737098993 nominal_se=0.00016067260323 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=8 method=fresh6 mean=0.0332910158302 nominal_se=0.000236863494822 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=8 method=fresh8 mean=0.03325309872 nominal_se=0.000222788278765 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=9 method=area8 mean=0.0180827417818 nominal_se=7.98545254109e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=9 method=bank8 mean=0.0180827417818 nominal_se=7.98545254109e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=9 method=rotate4 mean=0.0180827417818 nominal_se=7.98545254109e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=9 method=rotate2 mean=0.0180827417818 nominal_se=7.98545254109e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=9 method=fresh6 mean=0.0179507447407 nominal_se=0.000106741902219 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=9 method=fresh8 mean=0.0179387289573 nominal_se=0.000121731048764 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=10 method=area8 mean=0.020421520829 nominal_se=9.79859311104e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=10 method=bank8 mean=0.020421520829 nominal_se=9.79859311104e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=10 method=rotate4 mean=0.0204216667292 nominal_se=0.000104200699033 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=10 method=rotate2 mean=0.0204725223042 nominal_se=9.58683034082e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=10 method=fresh6 mean=0.0204020692264 nominal_se=0.00016424558205 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=10 method=fresh8 mean=0.0203700263266 nominal_se=0.000135170670243 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=11 method=area8 mean=0.0228519913899 nominal_se=0.000124599016775 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=11 method=bank8 mean=0.0228519913899 nominal_se=0.000124599016775 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=11 method=rotate4 mean=0.0226690227392 nominal_se=0.000126976444167 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=11 method=rotate2 mean=0.0229142690951 nominal_se=0.000126606690335 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=11 method=fresh6 mean=0.0228694154492 nominal_se=0.00014569562313 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=11 method=fresh8 mean=0.0228517921427 nominal_se=0.000140760507581 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=12 method=area8 mean=0.0209636171459 nominal_se=0.000131160673957 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=12 method=bank8 mean=0.0209636171459 nominal_se=0.000131160673957 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=12 method=rotate4 mean=0.0208659684824 nominal_se=0.000132206719297 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=12 method=rotate2 mean=0.020937957824 nominal_se=0.000161747412972 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=12 method=fresh6 mean=0.0211593629339 nominal_se=0.000132038310902 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=12 method=fresh8 mean=0.0210541541543 nominal_se=0.000110944711321 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=13 method=area8 mean=0.0237959545891 nominal_se=0.00025335383482 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=13 method=bank8 mean=0.0237959545891 nominal_se=0.00025335383482 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=13 method=rotate4 mean=0.0237959545891 nominal_se=0.00025335383482 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=13 method=rotate2 mean=0.0237959545891 nominal_se=0.00025335383482 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=13 method=fresh6 mean=0.0234729005108 nominal_se=0.000219817878668 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=13 method=fresh8 mean=0.0234365853505 nominal_se=0.000156502669435 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=14 method=area8 mean=0.0043557375659 nominal_se=9.22535617364e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=14 method=bank8 mean=0.0043557375659 nominal_se=9.22535617364e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=14 method=rotate4 mean=0.00429202515579 nominal_se=9.52755208618e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=14 method=rotate2 mean=0.00427529902856 nominal_se=7.93034850262e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=14 method=fresh6 mean=0.00429382326092 nominal_se=0.000114248555197 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=14 method=fresh8 mean=0.00426017778091 nominal_se=8.34277083985e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=15 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=15 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=15 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=15 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=2 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_RESULT fixture=2 method=area8 rmse=0.0257085351541 temporal_rmse=0.00645296619995 flicker_rmse=0.0374964477027 lag1=0.00282065734192 queries=6293600 source_queries=6293600 reused=0
+CANDIDATE_BANK_RESULT fixture=2 method=bank8 rmse=0.0257085351541 temporal_rmse=0.00645296619995 flicker_rmse=0.0374964477027 lag1=0.00282065734192 queries=6293600 source_queries=5243952 reused=0
+CANDIDATE_BANK_RESULT fixture=2 method=rotate4 rmse=0.0256507198519 temporal_rmse=0.00831767100552 flicker_rmse=0.0304451375724 lag1=0.339639770518 queries=4164935 source_queries=3114028 reused=1703936
+CANDIDATE_BANK_RESULT fixture=2 method=rotate2 rmse=0.0256802217042 temporal_rmse=0.0105067682025 flicker_rmse=0.0262103821408 lag1=0.511693675598 queries=3100126 source_queries=2048979 reused=2555904
+CANDIDATE_BANK_RESULT fixture=2 method=fresh6 rmse=0.0342769825412 temporal_rmse=0.00857886795717 flicker_rmse=0.0500401833022 lag1=0.000976344864073 queries=6487314 source_queries=6487314 reused=0
+CANDIDATE_BANK_RESULT fixture=2 method=fresh8 rmse=0.0296614644502 temporal_rmse=0.00738051192308 flicker_rmse=0.0433117875545 lag1=0.000529095383484 queries=8649751 source_queries=8649751 reused=0
+CANDIDATE_BANK_PAIRED fixture=2 arm=rotate4 control=fresh8 instantaneous_mse=-0.000221843044409 instantaneous_se=4.23857131414e-06 temporal_mse=1.47116947093e-05 temporal_se=8.17704185699e-07
+CANDIDATE_BANK_PAIRED fixture=2 arm=rotate2 control=fresh8 instantaneous_mse=-0.000220328686557 instantaneous_se=4.38275039583e-06 temporal_mse=5.59202218152e-05 temporal_se=9.51662237296e-07
+CANDIDATE_BANK_PAIRED fixture=2 arm=rotate4 control=fresh6 instantaneous_mse=-0.000516952103208 instantaneous_se=5.05038840151e-06 temporal_mse=-4.41332447038e-06 temporal_se=1.01640362566e-06
+CANDIDATE_BANK_PAIRED fixture=2 arm=rotate2 control=fresh6 instantaneous_mse=-0.000515437745356 instantaneous_se=5.07585182259e-06 temporal_mse=3.67952026355e-05 temporal_se=1.02411439151e-06
+CANDIDATE_BANK_CHECK fixture=2 mean_gates=96 maximum_bank8_difference=0 retained_slot_checks=4259840
+CANDIDATE_BANK_REFERENCE fixture=3 pose=0 x=0 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=1 x=0.038060233 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=2 x=0.146446615 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=3 x=0.308658272 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=4 x=0.5 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=5 x=0.691341698 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=6 x=0.853553414 integral=0.0128798438218 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=7 x=0.961939752 integral=0.0172063357012 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=8 x=1 integral=0.0179346046656 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=9 x=0.961939752 integral=0.00860316785062 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=3 pose=10 x=0.853553414 integral=0.0064399219109 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=3 pose=11 x=0.691341698 integral=0 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=3 pose=12 x=0.5 integral=0 scale=0.5
+CANDIDATE_BANK_REFERENCE fixture=3 pose=13 x=0.308658272 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=14 x=0.146446615 integral=0 scale=1.0
+CANDIDATE_BANK_REFERENCE fixture=3 pose=15 x=0.038060233 integral=0 scale=1.0
+CANDIDATE_BANK_MEAN fixture=3 pose=0 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=0 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=0 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=0 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=1 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=1 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=1 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=1 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=2 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=2 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=2 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=2 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=2 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=2 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=3 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=3 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=3 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=3 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=3 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=3 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=4 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=4 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=4 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=4 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=4 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=4 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=5 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=5 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=5 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=5 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=5 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=5 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=6 method=area8 mean=0.0129335657589 nominal_se=0.000106667704699 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=6 method=bank8 mean=0.0129335657589 nominal_se=0.000106667704699 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=6 method=rotate4 mean=0.0128163934648 nominal_se=0.000113453230369 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=6 method=rotate2 mean=0.0128669431004 nominal_se=0.000120909646524 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=6 method=fresh6 mean=0.012800293028 nominal_se=0.000151835817626 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=6 method=fresh8 mean=0.0128782658826 nominal_se=0.000127498884583 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=7 method=area8 mean=0.0172350173839 nominal_se=0.000149660479303 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=7 method=bank8 mean=0.0172350173839 nominal_se=0.000149660479303 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=7 method=rotate4 mean=0.0172326308522 nominal_se=0.000128804427523 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=7 method=rotate2 mean=0.0169184176128 nominal_se=0.000142056765856 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=7 method=fresh6 mean=0.0175085450044 nominal_se=0.000173571933825 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=7 method=fresh8 mean=0.0173130805001 nominal_se=0.000164101222886 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=8 method=area8 mean=0.0178840936869 nominal_se=0.000144112174907 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=8 method=bank8 mean=0.0178840936869 nominal_se=0.000144112174907 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=8 method=rotate4 mean=0.0179631742345 nominal_se=0.000185304138664 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=8 method=rotate2 mean=0.0176572015484 nominal_se=0.000166217819443 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=8 method=fresh6 mean=0.0176623535992 nominal_se=0.000139473270273 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=8 method=fresh8 mean=0.0177280432802 nominal_se=0.000130158279921 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=9 method=area8 mean=0.00861980397627 nominal_se=7.87259232321e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=9 method=bank8 mean=0.00861980397627 nominal_se=7.87259232321e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=9 method=rotate4 mean=0.00861980397627 nominal_se=7.87259232321e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=9 method=rotate2 mean=0.00861980397627 nominal_se=7.87259232321e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=9 method=fresh6 mean=0.00860687260024 nominal_se=7.70181071367e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=9 method=fresh8 mean=0.00861408266633 nominal_se=7.18589256286e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=10 method=area8 mean=0.00651265190118 nominal_se=7.00629098491e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=10 method=bank8 mean=0.00651265190118 nominal_se=7.00629098491e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=10 method=rotate4 mean=0.00642106374931 nominal_se=7.81527643603e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=10 method=rotate2 mean=0.00639374646016 nominal_se=6.95922935409e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=10 method=fresh6 mean=0.00649627688483 nominal_se=7.66118280491e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=10 method=fresh8 mean=0.00645916010217 nominal_se=6.88169198314e-05 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=11 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=11 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=11 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=11 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=11 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=11 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=12 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=12 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=12 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=12 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=12 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=12 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=13 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=13 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=13 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=13 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=13 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=13 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=14 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=14 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=14 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=14 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=14 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=14 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=15 method=area8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=15 method=bank8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=15 method=rotate4 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=15 method=rotate2 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_MEAN fixture=3 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+CANDIDATE_BANK_RESULT fixture=3 method=area8 rmse=0.0108055105919 temporal_rmse=0.00269659874281 flicker_rmse=0.0157979708928 lag1=-0.00196728215881 queries=6289368 source_queries=6289368 reused=0
+CANDIDATE_BANK_RESULT fixture=3 method=bank8 rmse=0.0108055105919 temporal_rmse=0.00269659874281 flicker_rmse=0.0157979708928 lag1=-0.00196728215881 queries=6289368 source_queries=5241836 reused=0
+CANDIDATE_BANK_RESULT fixture=3 method=rotate4 rmse=0.0107624388456 temporal_rmse=0.00336029895809 flicker_rmse=0.0133225613633 lag1=0.281717397282 queries=4161106 source_queries=3112771 reused=1703936
+CANDIDATE_BANK_RESULT fixture=3 method=rotate2 rmse=0.0106899417226 temporal_rmse=0.00385207442756 flicker_rmse=0.0118246185676 lag1=0.426450724603 queries=3094854 source_queries=2047223 reused=2555904
+CANDIDATE_BANK_RESULT fixture=3 method=fresh6 rmse=0.0152844545103 temporal_rmse=0.0038227229377 flicker_rmse=0.0223150883441 lag1=0.000831773160301 queries=6328052 source_queries=6328052 reused=0
+CANDIDATE_BANK_RESULT fixture=3 method=fresh8 rmse=0.0132472648516 temporal_rmse=0.00331173403614 flicker_rmse=0.0193489965612 lag1=-1.33308991814e-05 queries=8437333 source_queries=8437333 reused=0
+CANDIDATE_BANK_PAIRED fixture=3 arm=rotate4 control=fresh8 instantaneous_mse=-5.96599361443e-05 instantaneous_se=1.68210548001e-06 temporal_mse=3.24026761593e-07 temporal_se=1.92164065011e-07
+CANDIDATE_BANK_PAIRED fixture=3 arm=rotate2 control=fresh8 instantaneous_mse=-6.12151720152e-05 instantaneous_se=1.54979662832e-06 temporal_mse=3.87089506933e-06 temporal_se=1.88886065968e-07
+CANDIDATE_BANK_PAIRED fixture=3 arm=rotate4 control=fresh6 instantaneous_mse=-0.000117784459773 instantaneous_se=1.80788700186e-06 temporal_mse=-3.32160157067e-06 temporal_se=2.1743803201e-07
+CANDIDATE_BANK_PAIRED fixture=3 arm=rotate2 control=fresh6 instantaneous_mse=-0.000119339695644 instantaneous_se=1.80011678668e-06 temporal_mse=2.2526673706e-07 temporal_se=2.26369759113e-07
+CANDIDATE_BANK_CHECK fixture=3 mean_gates=96 maximum_bank8_difference=0 retained_slot_checks=4259840
+CANDIDATE_BANK_DECISION correctness=1 promote=0 physical_gpu_timing=0
+eae5ac8e670b197b0270cc1095e9f3f363ddf3cc93f2b5aabb2e3685248d0cb3  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-0.f32
+48eaaae2d4be6c657f0297eb770638c6c4c828b7f504b2a7b7a1462ceba8064e  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-1.f32
+7912638a662684a3585a094642222b50d92d806d8cbac6e952fd35d1a0621f71  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-10.f32
+e15c99f8e0572f9bf33482e8e6b13dde47d566b0022a0495979c907c4b8d30c9  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-11.f32
+c37c2dbaae1bb095c679852fac31bc2fe14a89c9824fc105fcea65f984d47471  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-12.f32
+42ad12dfa2add6cf3298c407bf217ddb5b2c1b05969155df2ba5e4587249bdaf  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-13.f32
+fb513c9d6cd81b395b3a72c5d4ec1cbc031aeaff74a759b66a07d49ced580191  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-14.f32
+d09e998c4d53e5dd5dc55a40018d324c162d79d9820149660979e505bc0e25b3  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-15.f32
+9ec75b6334ec1b7fed2fed67f238acb2edbc7d3721b29f2bfc0b1a6715f6938d  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-2.f32
+5cacc40cd55b5641f63668c6f2e7cd86b537acad35e85bcd4ce05633114bc906  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-3.f32
+9383e2c8e45b1c8f07c665c7d5d3ac8311c435d7d2e7a0c20d6c12eb9441c2dd  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-4.f32
+ff87bdd6cac8a36b34d148eec4a954b8af6dcf1edf785b9dbd12740297f32622  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-5.f32
+e44f4c36cb41de902e896597b1d4ebe78a50ecac7cdbbbe459ea0360534c6843  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-6.f32
+d2950047224e85cf0647d7dce2d150f703026734ef49f658c992e2ddb9cb1fb4  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-7.f32
+f6d8e8233b52079b4f242436e026578dfac7af6500c29f174a7929b66cffb348  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-8.f32
+2e277ac756272e454c82c4c9ebe4638ac92e89191761d149c030d30ea9cf5f9b  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank0-9.f32
+80546d152f3fc65d6cc0152e55f7b27266e42f7446d7a73df8c9d9253b53c211  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-0.f32
+17bc69578003c3269d09a00a5d07356e8dc586c812b73ccb6c46af8b7002b1df  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-1.f32
+b70ff7e2bcbceab923980b6a908f92f7fc0ea6576ba48e8d7251a92db52bafbc  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-10.f32
+7fd50c03e72adf1f85e1baf5ea2576b2ce68fbdbe3888b15002676131d1ebcea  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-11.f32
+72b9a7646cc321aae870905e0ab7b9aa93c69ecf7a7c2375668b4553cb1119eb  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-12.f32
+0e831d39fe14791053efb5ddd325dd365415024744062b7f6d4b1f11967d687b  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-13.f32
+cb7c271845b1ebd68013c58328cde398554d18ecc4a03e175b886e39252f66b0  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-14.f32
+5f810e30e9fbeda0dbd8b39757b8cfb2f3ad22aa544dd741ea6fd1c0d338c616  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-15.f32
+d7a395a01ba758f52c51ad802a641551501d360cee6cdc80b9112f3de17d02ef  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-2.f32
+66e7cbc01698f17ee1785635fa8acf6fcb6197a5e69426edbfff9955d5038325  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-3.f32
+5e82d231986a2775184facf46b0519794f85c4dc10798d114e35418dfdfe9417  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-4.f32
+fefc5cce9aa9d6784d4b04dcd4c38a62ce4c8238772f76495ee58a6e9748034e  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-5.f32
+6e7b44376c76d79fb52a0f8af15baef18b750a705d960b5ca67c7b19e3ba0754  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-6.f32
+c77b7d2125cca88e5775c7793253cc016107ee7b3caad0837e9e441582831563  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-7.f32
+08d2c62103753684256766d3a7f18653e03f0331994aa0baf883ff613f9ebee6  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-8.f32
+a4a8b619b6b5f60aee6559c8f6186f9abdbbd1ed402dd4fcde06ef997e808d03  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank1-9.f32
+a6a5e5ececa1e198b53278b767353946b4c45a646b4d291792865b251664e701  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-0.f32
+5809815f17d68d390cf619803f9e28542101557bc42edb4182a16c02a41176c5  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-1.f32
+b59613b499164bafbfafceb21877b4b2b02c6905e71cf748b51a9b2168444126  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-10.f32
+6f80da6cfb5a3bd9f71592e207aec0eb4086109c2a2fae12ae9caffa4b22c5a0  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-11.f32
+485642335c9f7d091007aa645be699202b4f1bf6e47f0a5aa3e64e128bd0865d  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-12.f32
+ceec4c32f8e7ddd315f45b2c22d6d8f9fdea416e743e279bb4bd11b6eb7e60d1  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-13.f32
+2dda3b36de3a62facfd782ae80ddae31128250ffdff270fc0b143ea3bfe4142f  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-14.f32
+e88108b39ff63178c8bde66c7f424416d81fd6903b3cef8f34edaecb20684a2e  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-15.f32
+7b830e44a59ab342bbc7e494ebd931cdf6a3f73455b372c324d3920fa18495f7  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-2.f32
+151122a4239727148fc05d91440fe6da8e32e22970d241507629478b45d497c6  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-3.f32
+1b3c55e2b9bc031532b0d6cfffff5b30107657fe64c18287743080285aa27761  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-4.f32
+c1e25fe42598df99210e687ec84864c284abcfba455f4850dfff1a4b6673d8b1  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-5.f32
+9229bc4c645e385ffbab0a393b7ea98fe0d13839b0dc57bda3d4a0aa03ce157c  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-6.f32
+d68a082db73c3b664e02e258b4eee0950623870ab3cac29f4004d89ec22ed4e1  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-7.f32
+a9bc878e7c56fa21e03089ee97ee1fc77a957fcbc74323425ee2df90fc8938b6  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-8.f32
+e2c27969fbc3cb9fedfd6585fb22c11213c9bbb9c911c5f6e68bf6cc8ddd3a0a  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank2-9.f32
+f4cd710cfe530f1b4c11a2ed6578516300ee1af84321d8d297821605be6e7f16  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-0.f32
+29acddd0223685d737e99be3227f5dce5303101d566d1e320841c76ecb54bf0b  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-1.f32
+fad55c0bacb4466ceffe69124486d7ebac505ed018ec94ed73a92637bdd9c252  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-10.f32
+d71fe767035d0d52c01959407db9bbf81a76a6014c478e2e09e51665727709a2  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-11.f32
+f4b384201488b5dec97a32aef41309802f7a2d1390f230030ad4548f6bdce754  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-12.f32
+87d1a65a3cfa092e410fdbe68e33aa6e81e35f40388531663792a971a4f79166  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-13.f32
+5261c95c93db8abc5e64f8edd6bbcd02be51af19bdda87cd9b4ff7f1adb94bf8  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-14.f32
+d58a055ef1ba41b6bad8a53cd2ed9ac33594e62253db140ccde48a7dc8938c3c  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-15.f32
+9b14509f6a4a09baa7307b49058b31a64f1cf5dc1b0bd90a00cb40acc1738b9a  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-2.f32
+8202a0872c81feabecc13bdc5592f0cff426c4da804c294d064018d0276625a3  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-3.f32
+c9a8233a12c951d2f6efed238472c4bc6085524cd3242b23139c109b89c23b62  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-4.f32
+8b32b14b4a425f8d136d545c392a90d8fde04e81ec8b90b460ae2cdc7534b87d  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-5.f32
+1dd61875484b1fa3d3f15fea5c5fa223757c4517c5d7bf096586c309a27c75fd  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-6.f32
+32fa64b66c8981c8f622fbba2e73739883952ce00758ed3da4bb25235232cdb8  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-7.f32
+4fa4944f4169443c279b9e68ed1dc639bc0b60f9b61ace0de70efe1239fe16fc  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-8.f32
+d42bd99caac46b5c8b24d89a5c8ae4f274ebef7aaf959a8c1793950fab441e49  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBank3-9.f32
+7e7c69d818f246b07786925cf0cc73a96235c95761d93b4e4f5de50325dc4f83  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-0.f32
+02296c3ec110bf96972bee1aaf8c7024d547b3a060075d7ecf4d64266ddea1e2  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-1.f32
+9b96bffada28866fdfdd3621c722cfa39ffa5e5f216d8968203fb259e8b45a5a  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-10.f32
+9b5b3c31b572a5f552e0618631ba78e67593fc440175734ccfcdb7986192899e  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-11.f32
+05d17680f6724561a2acd7554597f5692252b194969a91f6ef14ba05c1013e0e  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-12.f32
+6c828a3701e9740f0e4f5eb0c058984fba2dd15082fa22fb2e45cef5fe2f148b  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-13.f32
+52f65aeecb783605f2b97c0e09366377d16a8842a365e15dc0df12a0f2edc555  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-14.f32
+daec955629f48b57db327eeeac21ef4311a55f3bbe5e2f8c5bd4f4cb4a6a8d8c  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-15.f32
+b0069a3122a06cb6f16e6059616f099f1a5b20b622a662b19f8b7761371f1893  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-2.f32
+7ff602453517842edf69cd932344c9b408acf2c152cca2883947eeab83459fda  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-3.f32
+154869d0203abfe00d461236d7e82dff1595b5c51cb117b2d76e1d0626ebdeef  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-4.f32
+28696479e6294ac439c9023dd389bcaf2b1e02d4b2e1fa9898a3c795de29608b  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-5.f32
+de5349d5a3cd585f224ed9c9b6d64ebd11a4689d5839a104dd579c3ae55d98b8  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-6.f32
+886d7a5b3af8bcc1e2f72fa3beb0469341d2fa8902e8b31b7a501af5c3a6a78e  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-7.f32
+48ed9c9a514d1ca634661286372d71e7ac02fe7f954b49ac9781dbcca34a7f37  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-8.f32
+f6fdcea3ac722744fad173199f103420685b6592d26ee42f24172bca279b1a59  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload0-9.f32
+c3f16e5cc61854ae52ce5b757ec1ba28d20aa67c0601f761e9e175cc2c8b5091  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-0.f32
+797c200c5d2fb701d6274cc40b25e10d733ac25d12c0fac29f73fb5a0e5a84be  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-1.f32
+7e4fbf8929c7f13ed01ff39435d26776c12dc01a53a4f204cfdba265852c0823  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-10.f32
+a4823c5e395913800c2ce79a5a2136baa80fe0048facb56b9f9fbdea4014cafd  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-11.f32
+cc886edba2389a726035c5b1ded4ff1f3bd532479201bc16e408bd163c3dbff8  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-12.f32
+4b680ea17b509f7b626ee923ee77f38b2231fec1940bfd937fd7ad813d5ca1cd  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-13.f32
+5681193da1f6e18cde5a7529cb44c9171a2425a481beedfd6e9abeaf7084b35c  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-14.f32
+b6b758d9a8e8cad0a5cd965add96927cd79dc251abd8469d366c967cf11f1333  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-15.f32
+b464c86fce5e57228a5da7a6dab6d0dd8b2b7fb3145d9be2abb0df9e6765df52  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-2.f32
+1f1d8e49c092902197d5c1cecd261c0d35bcc5da35bdcdbe5b5eeb440392ac13  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-3.f32
+5691f26948f124d90a40b9c564a015c1af766254bd5d8313b47004f2528905e2  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-4.f32
+bd48957d0967c82ae04c819710a2ec9dd2295aa020d54efcfa46e6c7e76866a2  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-5.f32
+a50ffad3159453756a9e50be4569f761af0a68191ee734fffe62054566f92191  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-6.f32
+0a02509a96993f18dbfba64b7ee59e3933482e34dab48993772615da00f58abf  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-7.f32
+0b3f43431411716e5180b212dfc85530d708dc715178a769302e0e15c702f682  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-8.f32
+138f3ebf5a7f6c21915a404356abcc3c1c4a38dd778fdf2d288f4328805629f5  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload1-9.f32
+213cda3ea0ee497448fb5cba12e626c50ef816f4eb8fc6a17b8f56b6bf2ce543  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-0.f32
+7a9c91831b59e6e57a0eeea4387a0e9cc35399ae35f8fcf1f2e6e7dbacedc0dd  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-1.f32
+84a726d6785d68d64032ce5af52e5069fe39b0e1fe4300675c59e97cc3d1b512  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-10.f32
+70df5514dbdb9287943d52aa141d9920c203eed3991c5c3304c4a0e84685516e  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-11.f32
+e4cef907860be3d5a94ea48fba006e0ab897ba356dbdb0354ed81becd67b3f85  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-12.f32
+5c41ff9c96445f1da72567789ec5027ae7841eda04f8d64b64101bb29e615db2  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-13.f32
+3ed2847aef1c66b4e74643c409b1c562ca6a609b30c345d0d9b3a125925c9133  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-14.f32
+2a46604ba09762388ee072b2f07153a333e5980b5630e886c71d123a5524b5fb  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-15.f32
+4d47cb116d50510b873adf678d8b8796417a4ae2f1af47fce680a19dc2c448c4  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-2.f32
+e0171d4582be6e62bf2d5de4beb0d7ae0c26ac335e7a29d5195afe93edd911cf  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-3.f32
+592615baf080af08e9172de2710392267ffe06e4ca21a0c5bb64a8b17bc65726  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-4.f32
+c85770935cc7ebd602fcdec7603563dee81ed42e9f57caaf7376ed0a347a9924  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-5.f32
+a41baaaafd854d700d89f23bc78ce3fa192f9f88b3f312fc8167851097a21058  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-6.f32
+a0a7e6e99c3257da8adc1c8cc025d16236737fd737c553eb3243e1f59b307694  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-7.f32
+3db56a44fc8cf37b23bd219e60daa1631bb03d8ddc0a9aad34fabdcdfdccef7b  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-8.f32
+ffae47a2a8577e38aa3941b4a9779b710143343f824c91be4449bcb29ae332e3  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload2-9.f32
+dc963df4fd4b90898fe71762c391ccc299d47ee2df4d1e5360df4fbcd7f2daee  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-0.f32
+6ab573a080cc927b632db6ae9fdb0057264eaca75729f0610eba566939acce90  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-1.f32
+940334cd3cc29ac4edf6131f20a6ecef09d7f2b6c3fe340c6abe6595d6bbe22f  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-10.f32
+eeb2136e3b0eaf9aa2d7677b0239184f494cf7ab769b1276526baa5024923916  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-11.f32
+4834aca7152c10b732ec3d9b968590d17c3834d5ed51f2fb631761859e0e6519  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-12.f32
+645a26c7fba6d1989d0a0baa3c4029c25bdf223d35909787284dd53431fa45d6  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-13.f32
+aaaf4c63002f830c1635badbe03046c595b88211cf59f20665676091cebee276  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-14.f32
+ef9903286f18ffbb87d53706f2de0110985ad72aa9c56795b705c9ff1c8a5956  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-15.f32
+d551b0142ce97e2c583518f7b2837aa108e29f2921dff6cc3ea440455b209dae  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-2.f32
+7f81a74a47e90e3f62a16058071325f7774d02c0a6e6d1e1b8380aa7489ef38f  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-3.f32
+cb9b4a5914d2aa6be043b4a98c175a595f1579cc4c7d5011bf2737aa5ab56765  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-4.f32
+a8ae486ab2159b122bb2bf258af9bbfbdb38a734828fd0b4f312d20ab79edc7e  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-5.f32
+b7154e766598e54ac87f8e3ed3bf94b7d6014ce6a4b53faee6b4de97b1453399  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-6.f32
+8bc32bbbc50e6c370337760c0b45e3896eb4359f4252f9b0e0d79360afc027c9  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-7.f32
+db4dd235681da634ffb404adc8c4a7be974aaa0f7528f83d380bc4e61595f994  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-8.f32
+37abde822c1f68d9c553b5a29f9142fd4de4d314fe88be0c9367388cfd408270  /home/user/Frontier/_ClaudeScratch/candidate-bank-capture-release/CandidateBankPayload3-9.f32

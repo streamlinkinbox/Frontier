@@ -114,3 +114,6 @@ This remains a scalar diffuse secondary-component experiment with a fixed donor 
 suffix. It does not validate production TAA, RGB/general surfaces, multi-donor merging, stochastic multibounce
 suffixes, full four-bounce Whole6/Whole8, Windows/editor or physical-GPU execution time. Production output stays
 **348.046875 MiB at1080p**, unchanged.
+
+The subsequent [candidate-retention checkpoint](CandidateBank.md) keeps density-bearing proposals instead of
+one donor-selected winner. It improves the tradeoff, but does not eliminate temporal or storage constraints.

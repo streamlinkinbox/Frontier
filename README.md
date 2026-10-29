@@ -82,3 +82,6 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
 - [Bounded cache refresh](Exhibits/LightCompute/CacheRefresh.md): fewer queries do not preserve temporal quality.
   Fixed period4/8 caches have higher trajectory-averaging error than fresh6/8 across all four restricted fixtures;
   candidate-retention/refresh redesign is needed before a production reuse policy.
+- [Density-bearing candidate retention](Exhibits/LightCompute/CandidateBank.md): rotate4 improves query count and
+  trajectory-averaging error versus restricted component fresh6 in all fixtures;fresh8/memory holdouts remain.
+  Nonpersistent area8 improves quality in all fixtures without candidate history;no production promotion.

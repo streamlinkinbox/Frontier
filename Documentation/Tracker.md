@@ -1451,3 +1451,21 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
 - No retrospective period/floor tuning or promotion. Next: retain density-bearing candidates before donor winner
   selection, current-receiver selection and explicit sample refresh, with fixed storage/query budgets and holdouts.
 - Software Vulkan only;not TAA/full GI or physical-GPU timing. Production348.046875MiB/defaults/layout unchanged.
+
+### Candidate retention — verified restricted-component gains; production promotion deferred
+
+- [Candidate bank](../Exhibits/LightCompute/CandidateBank.md): eight raw area proposals before donor selection;
+  inline area8/full-bank8, rotate4/2, fresh cosine6/8;same32-cohort/16-pose/4-fixture protocol.
+- Rotate4 versus component fresh6:queries−8.45% to−35.80%,instant RMSE−25.17% to−47.19%,temporal RMSE−3.04%
+  to−28.85%;all four temporal MSE contrasts favorable,minimum4.34 nominal SE,not guaranteed confidence bounds.
+- Rotate4 still loses temporal quality versus fresh8 on .3 holdout(+12.70%,17.99 nominal SE);.6 observed+1.47%
+  is only1.69 SE. Rotate2 temporal error worse versus fresh8 everywhere. Retention is not decorrelation.
+- Nonpersistent area8 has lower instantaneous/temporal error in4/4 fixtures and fewer queries in3/4 vs fresh8;
+  full-bank8 matches it pointwise and in queries. This known-area sampler is not full general-scene GI.
+- Release/host ASan+UBSan exit0,five CTests each;494 rows identical,163 hashes/build,384 mean gates,128 exact
+  raw captures,24 PNG arrays. Native17,039,360 slot-preservation checks;independent1,572,864-candidate audit,
+  max q/reconstruction errors1.36e-7/5.34e-8. Nonnull-divisor negative disagrees at121,428 reconstructed estimates.
+- Payload32→144B(+112B/reservoir,221.484375MiB at1080p);telemetry16B unchanged. Not a fit/promotion claim.
+  Production348.046875MiB/layout/defaults/Engine unchanged. No physical-GPU/Windows/TAA acceptance.
+- Next:receiver-anchored proposals with stored historical densities, same memory/rotation/holdouts, not packing
+  or cadence tuning. Inline area8 remains the useful lower-storage comparison.

@@ -279,3 +279,12 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   mean-residual error, instantaneous error, residual differences/correlation, paired MSE and full query work.
 - `RunCacheRefresh.sh`, `CacheRefreshEvidence.py` and `CacheRefresh.md` retain actual readbacks and the distinction
   between low redraw flicker and correlated estimation error. No production rendering change.
+
+### Density-bearing candidate bank
+
+- `Exhibits/LightCompute/Code/CompileCandidateBank.py` retains eight raw area-density-bearing source proposals,
+  rotates4/2 slots, and compares full refresh with independently evaluated inline area-IS8.
+- `CandidateBankValidation.h` checks current-receiver means, fixed8 null normalization, exact full-refresh/query
+  identity and17,039,360 retained-slot comparisons; captures output plus actual candidate payloads.
+- `RunCandidateBank.sh`, `CandidateBankEvidence.py` and `CandidateBank.md` retain cross-build/capture evidence,
+  independent density/estimator reconstruction, memory tradeoffs and paired moving-receiver error comparisons.
