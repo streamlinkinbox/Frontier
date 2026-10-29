@@ -1530,3 +1530,25 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
 - Remaining separate gates:lower-storage weighted-reservoir/fresh injection,full geometry/RGB/GI,production port,
   physical-GPU/Windows/editor/TAA/timing. Experimental144B+16B bank not production-fit;packing deferred.
   Production348.046875MiB/Engine/layout/defaults unchanged. No PR or Actions;session branch backed up to GitHub.
+
+### Two weighted reservoirs — correct historical weights;quality-neutral replacement rejected
+
+- [Complete fixed-protocol evaluation](../Exhibits/LightCompute/WeightedPair.md):two selected float4s plus revision
+  descriptor48B logical payload versus144B raw bank. Each selects from4 proposals with positive geometry h,
+  w=h/q,Z=Σw/(4hselected). Four includes nulls;historical Z preserved;visibility/outgoing excluded from target.
+- Full2 refresh8 draws;rotate1 alternates4-draw injection and one held reservoir. Cold/light epochs0/9/13 reset
+  both. Confirmed visibility reused only for newborns;historical selected points retraced. Same seeds/events/means.
+- Both release/host ASan+UBSan exit0,five CTests/build;1,069 identical rows,243 hashes/build,896 reference means,
+  200 byte-identical captures,24 exact PNG arrays.816 previous control rows/136 control+diagnostic hashes unchanged.
+  Native1,703,936 selected-history checks;262,144 exact independent float32 selection replays,6,144 finite cases.
+- Wrong null divisor,current target denominator,and zero birth-visibility target detected mathematically. Positive
+  target preserves support but selection adds conditional variance. Empty-strip full2/full8 discrepancy5.97e-8 max.
+- Rotate1 vs corrected fresh8:queries−19.52–26.86%,instant RMSE−19.29–37.67%;temporal changes−16.03%,+2.05%,
+  +1.19%,−2.59%. Frozen all-fixture acceptance fails .12/.3;adverse MSE contrasts3.74/2.03 nominal cohort SE.
+- Versus corrected Rotate4:queries−3.99–6.46%,temporal RMSE+0.17–19.43%;retain as budget tradeoff only,not a
+  quality-neutral replacement. No target/cadence tuning after measurement. Lower-storage quality goal stays open.
+- Focused evaluation100%,remaining0%;overall renderer stays~35% **planning estimate**,not measured readiness.
+  Logical96B difference is not measured allocation/bandwidth reduction. Common debug buffers retain audit vectors.
+- Next distinct candidate:intermediate reservoir count/support-safe score plus new frozen holdout. General RGB/GI,
+  production C++ integration,physical-GPU/Windows/editor/TAA/time/memory acceptance remain undone. No packing.
+  Production348.046875MiB/Engine/layout/defaults unchanged. Source and final evidence backed up;no PR or Actions.

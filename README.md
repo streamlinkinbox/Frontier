@@ -94,3 +94,7 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
 - [Confirmed visibility reuse](Exhibits/LightCompute/VisibilityReuse.md): preserves reconstructed-ray decisions;
   corrected rotate4 wins against equally optimized fresh8 in query work and temporal quality. Fresh6 remains
   cheaper;no physical-GPU or production/memory promotion. The original blanket-elision safety gate still fails.
+
+- [Two weighted reservoirs](Exhibits/LightCompute/WeightedPair.md):48B logical candidate retention passes
+  correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
+  quality-neutral replacement;production348.046875MiB unchanged.

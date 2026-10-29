@@ -317,3 +317,13 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
 - `RunVisibilityReuse.sh`, `VisibilityReuseEvidence.py` and `VisibilityReuse.md` retain both successful builds,
   4096 ULP/boundary probes,the three preserved original regressions,independent q reconstruction,136 raw hashes,
   actual estimate PNGs and fair corrected-control query/quality comparison. Old RayBudget rejection still stands.
+
+### Positive-target weighted pair
+
+- `Exhibits/LightCompute/Code/CompileWeightedPair.py` derives the confirmed-query sampler and compresses4 draws
+  per selected sample with positive geometry h,birth Z and separate selection stream. Two-lane alternating refresh.
+- `WeightedPairValidation.h` retains all12 controls plus full2/rotate1,checks epochs/history/empty-strip identity,
+  and captures selected samples,source proposals,selection uniforms and weights for independent float32 replay.
+- `RunWeightedPair.sh`, `WeightedPairFinite.py`, `WeightedPairEvidence.py` and `WeightedPair.md` retain dual-build
+  correctness,explicit quality rejection,full baseline/alternative comparisons and actual-buffer PNGs.48B is logical
+  history only,not measured allocation savings;production output and default settings are unchanged.

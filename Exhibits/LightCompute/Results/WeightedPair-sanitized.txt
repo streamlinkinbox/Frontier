@@ -1,0 +1,1395 @@
+Secondary GPU host mode=sanitized revision=74af1586aeb1d5f5fe820a06c982d8ebb652d0e7 working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+e66b489726d4b913523e25923c7f685cf25e56ca5f885f6d60dfbf19ab5690aa  Exhibits/LightCompute/Code/CompileWeightedPair.py
+1cb56bc9980bb8b18bbacca2fb86b3c4e51a2cdd7f25aa548b06d0008105416b  Exhibits/LightCompute/Code/CompileVisibilityReuse.py
+6d5dd771944de278bea5c85f96103f730fae5b44e5098c513e577959e9106667  Exhibits/LightCompute/Code/CompileRayBudget.py
+f5b408212bb8aad1b35e02338c4152623c23b198bc2bc570555593986b4693d0  Exhibits/LightCompute/Code/CompileReceiverBank.py
+4b3b8ce02c6315a948881b76e80c79cfab6395298af629ed392c239a2f71e2b7  Exhibits/LightCompute/Code/CompileCandidateBank.py
+f9da94cc3f075f6bbc2d94d313acad0b93816367a395bd336868725529a8834d  Exhibits/LightCompute/Code/CompileCacheRefresh.py
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+1331bc0f2796b9fe87bf7ff0062269cb30e293f49e82d6dbe10ebb173147a04d  Exhibits/LightCompute/Code/WeightedPairValidation.h
+5dc18f3f4aa1bdc5836f16d8ae210b2eb340576b8381f5f7521a8899c953ac11  Exhibits/LightCompute/Code/VisibilityReuseValidation.h
+63be6b73789c53dd31512e6d96c50b951c232ae67b4cb22095730f887b8d0878  Exhibits/LightCompute/Code/RayBudgetValidation.h
+18313fc32f50c2791b2277cb84932b0499d427dee1d87c79508c491fe74fff6f  Exhibits/LightCompute/Code/ReceiverBankValidation.h
+c64a67094084082a1cdd31de0a8d7db1f01afef3565b14c070aa67282a4abee4  Exhibits/LightCompute/Code/CandidateBankValidation.h
+3c34616bfc80078a20ba880083d6473f02dd246f6ab9c1a5e208b40644f4c98c  Exhibits/LightCompute/Code/CacheRefreshValidation.h
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+df1880f2392701c960ce4898b0cb413ed5823a129a12161fb644335b8f2ddd15  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+d9a7404810cdc0c50a63894d45a24e022b06e2285143feb4974aa621279301d7  Exhibits/LightCompute/RunWeightedPair.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+bfa6716cab847139925db104448729f27339eae446f7f51c5a5f4101ec6584d1  /home/user/Frontier/_ClaudeScratch/build/weighted-pair-sanitized/WeightedPair.slang
+408ac4b40dc6109d1de1d83b9a46ce011e94141c5d40ea19db06c076ded481d5  /home/user/Frontier/_ClaudeScratch/build/weighted-pair-sanitized/DiffuseGenerate.spv
+b34130d34c27c9a88a026c190c06107f12c5a09b2e991c9be59b2be93d53bfc5  /home/user/Frontier/_ClaudeScratch/build/weighted-pair-sanitized/DiffuseResolve.spv
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/weighted-pair-sanitized
+[  2%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayVulkan.dir/PathReplayVulkan.cpp.o
+[  5%] Linking CXX static library libFrontierPathReplayVulkan.a
+[  5%] Built target FrontierPathReplayVulkan
+[  8%] Building CXX object replay-engine/CMakeFiles/FrontierMediumRadiancePayload.dir/MediumRadiancePayload.cpp.o
+[ 10%] Linking CXX static library libFrontierMediumRadiancePayload.a
+[ 10%] Built target FrontierMediumRadiancePayload
+[ 13%] Building CXX object replay-engine/CMakeFiles/FrontierRadiantFacetDistribution.dir/RadiantFacetDistribution.cpp.o
+[ 16%] Linking CXX static library libFrontierRadiantFacetDistribution.a
+[ 16%] Built target FrontierRadiantFacetDistribution
+[ 18%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayDomain.dir/PathReplayDomain.cpp.o
+[ 21%] Linking CXX static library libFrontierPathReplayDomain.a
+[ 21%] Built target FrontierPathReplayDomain
+[ 24%] Building CXX object CMakeFiles/LightComputeValidation.dir/Code/LightComputeValidation.cpp.o
+[ 27%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ClusterNesting.cpp.o
+[ 29%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VisibilityCull.cpp.o
+[ 32%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DiscrepancySequence.cpp.o
+[ 35%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReservoirSampling.cpp.o
+[ 37%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VarianceFiltering.cpp.o
+[ 40%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DistanceField.cpp.o
+[ 43%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/SurfaceCards.cpp.o
+[ 45%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/AtmosphereModel.cpp.o
+[ 48%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CelestialModel.cpp.o
+[ 51%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CloudField.cpp.o
+[ 54%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/FogMedium.cpp.o
+[ 56%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReferenceRenderer.cpp.o
+[ 59%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogRingStore.cpp.o
+[ 62%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogCategories.cpp.o
+[ 64%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogStream.cpp.o
+[ 67%] Linking CXX executable LightComputeValidation
+[ 67%] Built target LightComputeValidation
+[ 70%] Building CXX object CMakeFiles/PathReplayDomainValidation.dir/Code/PathReplayDomainValidation.cpp.o
+[ 72%] Linking CXX executable PathReplayDomainValidation
+[ 72%] Built target PathReplayDomainValidation
+[ 75%] Building CXX object CMakeFiles/PathReplayVulkanValidation.dir/Code/PathReplayVulkanValidation.cpp.o
+[ 78%] Linking CXX executable PathReplayVulkanValidation
+[ 78%] Built target PathReplayVulkanValidation
+[ 81%] Building CXX object CMakeFiles/PathReplayArchiveValidation.dir/Code/PathReplayArchiveValidation.cpp.o
+[ 83%] Linking CXX executable PathReplayArchiveValidation
+[ 83%] Built target PathReplayArchiveValidation
+[ 86%] Building CXX object CMakeFiles/RadiantFacetValidation.dir/Code/RadiantFacetValidation.cpp.o
+[ 89%] Linking CXX executable RadiantFacetValidation
+[ 89%] Built target RadiantFacetValidation
+[ 91%] Building CXX object CMakeFiles/MediumRadianceValidation.dir/Code/MediumRadianceValidation.cpp.o
+[ 94%] Linking CXX executable MediumRadianceValidation
+[ 94%] Built target MediumRadianceValidation
+[ 97%] Building CXX object replay-engine/CMakeFiles/FrontierPlumeLatticeFootprint.dir/PlumeLatticeFootprint.cpp.o
+[100%] Linking CXX static library libFrontierPlumeLatticeFootprint.a
+[100%] Built target FrontierPlumeLatticeFootprint
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/weighted-pair-sanitized
+Test project /home/user/Frontier/_ClaudeScratch/build/weighted-pair-sanitized
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.01 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.01 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.03 sec
+WEIGHTED_PAIR_DEVICE name=SwiftShader Device (Subzero) type=4
+WEIGHTED_PAIR_EDGE fixture=0 probes=1024 hits=511 disagreements=0 safe_differences=0
+WEIGHTED_PAIR_EDGE fixture=1 probes=1024 hits=303 disagreements=0 safe_differences=0
+WEIGHTED_PAIR_EDGE fixture=2 probes=1024 hits=257 disagreements=23 safe_differences=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=918 receiver_x=1 target_x=-0.399999887 target_y=-0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=938 receiver_x=1 target_x=-0.399999887 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=958 receiver_x=1 target_x=-0.399999887 target_y=0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=983 receiver_x=1 target_x=-0.399999917 target_y=-0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=984 receiver_x=1 target_x=-0.399999887 target_y=-0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=985 receiver_x=1 target_x=-0.399999857 target_y=-0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=986 receiver_x=1 target_x=-0.399999827 target_y=-0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=987 receiver_x=1 target_x=-0.399999797 target_y=-0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=990 receiver_x=1 target_x=-0.399999917 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=991 receiver_x=1 target_x=-0.399999887 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=992 receiver_x=1 target_x=-0.399999857 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=993 receiver_x=1 target_x=-0.399999827 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=994 receiver_x=1 target_x=-0.399999797 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=997 receiver_x=1 target_x=-0.399999917 target_y=0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=998 receiver_x=1 target_x=-0.399999887 target_y=0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=999 receiver_x=1 target_x=-0.399999857 target_y=0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=1000 receiver_x=1 target_x=-0.399999827 target_y=0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=1001 receiver_x=1 target_x=-0.399999797 target_y=0.5 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=1011 receiver_x=1.00000012 target_x=-0.400000036 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=1012 receiver_x=1.00000012 target_x=-0.400000006 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=1013 receiver_x=1.00000012 target_x=-0.399999976 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=1014 receiver_x=1.00000012 target_x=-0.399999946 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE_DETAIL fixture=2 pixel=1015 receiver_x=1.00000012 target_x=-0.399999917 target_y=0 first=1 recheck=0
+WEIGHTED_PAIR_EDGE fixture=3 probes=1024 hits=141 disagreements=0 safe_differences=0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=0 x=0 integral=0.100571720445 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=1 x=0.038060233 integral=0.100405525911 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=2 x=0.146446615 integral=0.09813876013 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=3 x=0.308658272 integral=0.0902125195429 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=4 x=0.5 integral=0.0757548730283 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=5 x=0.691341698 integral=0.0590997652155 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=6 x=0.853553414 integral=0.0457493399112 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=7 x=0.961939752 integral=0.0379251461253 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=8 x=1 integral=0.0354285394085 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=9 x=0.961939752 integral=0.0189625730627 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=10 x=0.853553414 integral=0.0228746699556 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=11 x=0.691341698 integral=0.0295498826077 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=12 x=0.5 integral=0.0378774365142 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=13 x=0.308658272 integral=0.0902125195429 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=14 x=0.146446615 integral=0.09813876013 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=0 pose=15 x=0.038060233 integral=0.100405525911 scale=1.0
+WEIGHTED_PAIR_COMPRESSION fixture=0 maximum_empty_difference=5.96046447754e-08 retained=425984 logical_bytes=48
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=area8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=bank8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=rotate4 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=rotate2 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=fresh6 mean=0.100733949052 nominal_se=0.000376800835201 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=fresh8 mean=0.100730212131 nominal_se=0.000317896064416 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=fastarea8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=fastbank8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=fastrotate4 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=fastrotate2 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=fastfresh6 mean=0.100733949052 nominal_se=0.000376800835201 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=fastfresh8 mean=0.100730212131 nominal_se=0.000317896064416 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=full2 mean=0.100437328989 nominal_se=0.000194930656757 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=0 method=rotate1 mean=0.100437328989 nominal_se=0.000194930656757 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=area8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=bank8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=rotate4 mean=0.100235783137 nominal_se=0.000210339658947 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=rotate2 mean=0.100217201691 nominal_se=0.000216070140191 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=fresh6 mean=0.100261842089 nominal_se=0.000362587991979 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=fresh8 mean=0.100150225535 nominal_se=0.000260234318305 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=fastarea8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=fastbank8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=fastrotate4 mean=0.100235783137 nominal_se=0.000210339658947 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=fastrotate2 mean=0.100217201691 nominal_se=0.000216070140191 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=fastfresh6 mean=0.100261842089 nominal_se=0.000362587991979 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=fastfresh8 mean=0.100150225535 nominal_se=0.000260234318305 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=full2 mean=0.100238408216 nominal_se=0.000209307763261 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=1 method=rotate1 mean=0.10022819195 nominal_se=0.000210504543911 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=area8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=bank8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=rotate4 mean=0.0980873580363 nominal_se=0.000228813536723 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=rotate2 mean=0.0979199232269 nominal_se=0.000229756040464 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=fresh6 mean=0.0978414929234 nominal_se=0.000393284882309 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=fresh8 mean=0.0980433681698 nominal_se=0.000334952669396 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=fastarea8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=fastbank8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=fastrotate4 mean=0.0980873580363 nominal_se=0.000228813536723 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=fastrotate2 mean=0.0979199232269 nominal_se=0.000229756040464 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=fastfresh6 mean=0.0978414929234 nominal_se=0.000393284882309 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=fastfresh8 mean=0.0980433681698 nominal_se=0.000334952669396 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=full2 mean=0.09808940056 nominal_se=0.000143026567576 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=2 method=rotate1 mean=0.098081583111 nominal_se=0.000234749994757 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=area8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=bank8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=rotate4 mean=0.090330890962 nominal_se=0.000202219030033 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=rotate2 mean=0.0902615233934 nominal_se=0.00020840687317 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=fresh6 mean=0.0902343760797 nominal_se=0.000338528675023 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=fresh8 mean=0.0902888513353 nominal_se=0.000285938379207 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=fastarea8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=fastbank8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=fastrotate4 mean=0.090330890962 nominal_se=0.000202219030033 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=fastrotate2 mean=0.0902615233934 nominal_se=0.00020840687317 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=fastfresh6 mean=0.0902343760797 nominal_se=0.000338528675023 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=fastfresh8 mean=0.0902888513353 nominal_se=0.000285938379207 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=full2 mean=0.0903350745508 nominal_se=0.000246945995646 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=3 method=rotate1 mean=0.0903270854405 nominal_se=0.000212520200832 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=area8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=bank8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=rotate4 mean=0.0758163154345 nominal_se=0.000181020584497 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=rotate2 mean=0.0758649232521 nominal_se=0.00018874701323 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=fresh6 mean=0.0755627449414 nominal_se=0.00034474389018 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=fresh8 mean=0.0757715628411 nominal_se=0.000307749471665 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=fastarea8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=fastbank8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=fastrotate4 mean=0.0758163154345 nominal_se=0.000181020584497 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=fastrotate2 mean=0.0758649232521 nominal_se=0.00018874701323 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=fastfresh6 mean=0.0755627449414 nominal_se=0.00034474389018 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=fastfresh8 mean=0.0757715628411 nominal_se=0.000307749471665 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=full2 mean=0.075745378181 nominal_se=0.000197036887938 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=4 method=rotate1 mean=0.0758080069284 nominal_se=0.000190044909045 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=area8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=bank8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=rotate4 mean=0.0590175330977 nominal_se=0.000159137166757 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=rotate2 mean=0.059072436668 nominal_se=0.00012444686944 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=fresh6 mean=0.0584686284444 nominal_se=0.000304700502635 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=fresh8 mean=0.0586571520644 nominal_se=0.000257341761213 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=fastarea8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=fastbank8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=fastrotate4 mean=0.0590175330977 nominal_se=0.000159137166757 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=fastrotate2 mean=0.059072436668 nominal_se=0.00012444686944 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=fastfresh6 mean=0.0584686284444 nominal_se=0.000304700502635 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=fastfresh8 mean=0.0586571520644 nominal_se=0.000257341761213 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=full2 mean=0.059071814822 nominal_se=0.000162026393935 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=5 method=rotate1 mean=0.0590107210488 nominal_se=0.00015877163641 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=area8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=bank8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=rotate4 mean=0.04575751093 nominal_se=0.00014973684271 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=rotate2 mean=0.0458040738529 nominal_se=0.000115489946808 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=fresh6 mean=0.0459097293328 nominal_se=0.000317219843881 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=fresh8 mean=0.0460736862274 nominal_se=0.000291542502022 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=fastarea8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=fastbank8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=fastrotate4 mean=0.04575751093 nominal_se=0.00014973684271 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=fastrotate2 mean=0.0458040738529 nominal_se=0.000115489946808 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=fastfresh6 mean=0.0459097293328 nominal_se=0.000317219843881 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=fastfresh8 mean=0.0460736862274 nominal_se=0.000291542502022 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=full2 mean=0.0457389936287 nominal_se=0.000155836422407 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=6 method=rotate1 mean=0.045750654383 nominal_se=0.000150409673551 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=area8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=bank8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=rotate4 mean=0.0380871720053 nominal_se=0.000133552287713 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=rotate2 mean=0.0379515436252 nominal_se=0.000112249763635 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=fresh6 mean=0.0378689577681 nominal_se=0.000285497667037 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=fresh8 mean=0.0378881849037 nominal_se=0.0002509045078 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=fastarea8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=fastbank8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=fastrotate4 mean=0.0380871720053 nominal_se=0.000133552287713 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=fastrotate2 mean=0.0379515436252 nominal_se=0.000112249763635 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=fastfresh6 mean=0.0378689577681 nominal_se=0.000285497667037 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=fastfresh8 mean=0.0378881849037 nominal_se=0.0002509045078 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=full2 mean=0.037908450849 nominal_se=0.000127203546972 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=7 method=rotate1 mean=0.0380861783825 nominal_se=0.000134110562474 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=area8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=bank8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=rotate4 mean=0.0356104337785 nominal_se=9.11861846785e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=rotate2 mean=0.0354781918382 nominal_se=0.000102320740413 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=fresh6 mean=0.0352029421119 nominal_se=0.00026729550003 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=fresh8 mean=0.0353279126221 nominal_se=0.000230240807391 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=fastarea8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=fastbank8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=fastrotate4 mean=0.0356104337785 nominal_se=9.11861846785e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=fastrotate2 mean=0.0354781918382 nominal_se=0.000102320740413 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=fastfresh6 mean=0.0352029421119 nominal_se=0.00026729550003 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=fastfresh8 mean=0.0353279126221 nominal_se=0.000230240807391 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=full2 mean=0.0355032178214 nominal_se=9.6381055178e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=8 method=rotate1 mean=0.0356104751816 nominal_se=9.12002593826e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=area8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=bank8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=rotate4 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=rotate2 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=fresh6 mean=0.0190359498284 nominal_se=0.000124121568307 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=fresh8 mean=0.0190802771543 nominal_se=0.000104366809224 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=fastarea8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=fastbank8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=fastrotate4 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=fastrotate2 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=fastfresh6 mean=0.0190359498284 nominal_se=0.000124121568307 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=fastfresh8 mean=0.0190802771543 nominal_se=0.000104366809224 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=full2 mean=0.0189503262387 nominal_se=6.1072149828e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=9 method=rotate1 mean=0.0189503262387 nominal_se=6.1072149828e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=area8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=bank8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=rotate4 mean=0.0228276132052 nominal_se=8.17615584892e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=rotate2 mean=0.02282818705 nominal_se=6.45902341643e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=fresh6 mean=0.0228491212649 nominal_se=0.000134880257809 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=fresh8 mean=0.0228197486774 nominal_se=0.000101418120644 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=fastarea8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=fastbank8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=fastrotate4 mean=0.0228276132052 nominal_se=8.17615584892e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=fastrotate2 mean=0.02282818705 nominal_se=6.45902341643e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=fastfresh6 mean=0.0228491212649 nominal_se=0.000134880257809 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=fastfresh8 mean=0.0228197486774 nominal_se=0.000101418120644 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=full2 mean=0.0227862110725 nominal_se=6.29930089204e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=10 method=rotate1 mean=0.022829459484 nominal_se=8.14841294605e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=area8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=bank8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=rotate4 mean=0.0294207630394 nominal_se=8.78824127939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=rotate2 mean=0.0295038559013 nominal_se=8.43116385387e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=fresh6 mean=0.029930725354 nominal_se=0.000199349967897 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=fresh8 mean=0.0297779855517 nominal_se=0.000157366940287 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=fastarea8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=fastbank8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=fastrotate4 mean=0.0294207630394 nominal_se=8.78824127939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=fastrotate2 mean=0.0295038559013 nominal_se=8.43116385387e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=fastfresh6 mean=0.029930725354 nominal_se=0.000199349967897 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=fastfresh8 mean=0.0297779855517 nominal_se=0.000157366940287 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=full2 mean=0.02954274077 nominal_se=0.000105641601644 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=11 method=rotate1 mean=0.0294120854498 nominal_se=8.86108757877e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=area8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=bank8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=rotate4 mean=0.0378534121835 nominal_se=0.000128079583127 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=rotate2 mean=0.0377797706981 nominal_se=0.000110508301129 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=fresh6 mean=0.0378828434148 nominal_se=0.000201015863635 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=fresh8 mean=0.0380187617621 nominal_se=0.000182370438948 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=fastarea8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=fastbank8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=fastrotate4 mean=0.0378534121835 nominal_se=0.000128079583127 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=fastrotate2 mean=0.0377797706981 nominal_se=0.000110508301129 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=fastfresh6 mean=0.0378828434148 nominal_se=0.000201015863635 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=fastfresh8 mean=0.0380187617621 nominal_se=0.000182370438948 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=full2 mean=0.0378179861331 nominal_se=9.24183574338e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=12 method=rotate1 mean=0.0378478849125 nominal_se=0.000127294585342 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=area8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=bank8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=rotate4 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=rotate2 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=fresh6 mean=0.0905270396629 nominal_se=0.000417985973171 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=fresh8 mean=0.0904138208637 nominal_se=0.000422647754475 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=fastarea8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=fastbank8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=fastrotate4 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=fastrotate2 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=fastfresh6 mean=0.0905270396629 nominal_se=0.000417985973171 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=fastfresh8 mean=0.0904138208637 nominal_se=0.000422647754475 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=full2 mean=0.0900183445564 nominal_se=0.000200794275923 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=13 method=rotate1 mean=0.0900183445564 nominal_se=0.000200794275923 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=area8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=bank8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=rotate4 mean=0.0981067981348 nominal_se=0.000255428233908 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=rotate2 mean=0.098121605003 nominal_se=0.000238443416643 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=fresh6 mean=0.0985208142488 nominal_se=0.000360650892953 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=fresh8 mean=0.0985544612865 nominal_se=0.000361059947058 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=fastarea8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=fastbank8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=fastrotate4 mean=0.0981067981348 nominal_se=0.000255428233908 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=fastrotate2 mean=0.098121605003 nominal_se=0.000238443416643 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=fastfresh6 mean=0.0985208142488 nominal_se=0.000360650892953 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=fastfresh8 mean=0.0985544612865 nominal_se=0.000361059947058 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=full2 mean=0.0983224222921 nominal_se=0.000218735926973 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=14 method=rotate1 mean=0.0981114795838 nominal_se=0.000259899650364 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=area8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=bank8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=rotate4 mean=0.100469175823 nominal_se=0.00022021403885 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=rotate2 mean=0.100358353145 nominal_se=0.000239991606076 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=fresh6 mean=0.100471192695 nominal_se=0.000393701074001 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=fresh8 mean=0.100501101352 nominal_se=0.000297786788221 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=fastarea8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=fastbank8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=fastrotate4 mean=0.100469175823 nominal_se=0.00022021403885 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=fastrotate2 mean=0.100358353145 nominal_se=0.000239991606076 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=fastfresh6 mean=0.100471192695 nominal_se=0.000393701074001 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=fastfresh8 mean=0.100501101352 nominal_se=0.000297786788221 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=full2 mean=0.100529185545 nominal_se=0.000232310747881 gate=1
+WEIGHTED_PAIR_MEAN fixture=0 pose=15 method=rotate1 mean=0.100459410662 nominal_se=0.00021787156412 gate=1
+WEIGHTED_PAIR_RESULT fixture=0 method=area8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=8444196 source_queries=8444196 reused=0
+WEIGHTED_PAIR_RESULT fixture=0 method=bank8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=8444196 source_queries=6857447 reused=0
+WEIGHTED_PAIR_RESULT fixture=0 method=rotate4 rmse=0.0315977035826 temporal_rmse=0.0106211991225 flicker_rmse=0.0323530676571 lag1=0.449263096537 queries=5672220 source_queries=4081400 reused=1703936
+WEIGHTED_PAIR_RESULT fixture=0 method=rotate2 rmse=0.031597564468 temporal_rmse=0.0136394049647 flicker_rmse=0.0248059748823 lag1=0.675523608624 queries=4297253 source_queries=2692492 reused=2555904
+WEIGHTED_PAIR_RESULT fixture=0 method=fresh6 rmse=0.0587195193092 temporal_rmse=0.0146758453944 flicker_rmse=0.0814806066942 lag1=0.000305467180282 queries=6830256 source_queries=6830256 reused=0
+WEIGHTED_PAIR_RESULT fixture=0 method=fresh8 rmse=0.0508794831333 temporal_rmse=0.0126698413906 flicker_rmse=0.070600114103 lag1=0.000662755577128 queries=9107503 source_queries=9107503 reused=0
+WEIGHTED_PAIR_RESULT fixture=0 method=fastarea8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=6319250 source_queries=6319250 reused=0
+WEIGHTED_PAIR_RESULT fixture=0 method=fastbank8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=6319250 source_queries=6319250 reused=0
+WEIGHTED_PAIR_RESULT fixture=0 method=fastrotate4 rmse=0.0315977035826 temporal_rmse=0.0106211991225 flicker_rmse=0.0323530676571 lag1=0.449263096537 queries=4404083 source_queries=3758505 reused=1703936
+WEIGHTED_PAIR_RESULT fixture=0 method=fastrotate2 rmse=0.031597564468 temporal_rmse=0.0136394049647 flicker_rmse=0.0248059748823 lag1=0.675523608624 queries=3458138 source_queries=2477515 reused=2555904
+WEIGHTED_PAIR_RESULT fixture=0 method=fastfresh6 rmse=0.0587195193092 temporal_rmse=0.0146758453944 flicker_rmse=0.0814806066942 lag1=0.000305467180282 queries=4223328 source_queries=4223328 reused=0
+WEIGHTED_PAIR_RESULT fixture=0 method=fastfresh8 rmse=0.0508794831333 temporal_rmse=0.0126698413906 flicker_rmse=0.070600114103 lag1=0.000662755577128 queries=5632094 source_queries=5632094 reused=0
+WEIGHTED_PAIR_RESULT fixture=0 method=full2 rmse=0.031741864494 temporal_rmse=0.00790630278267 flicker_rmse=0.0438898485586 lag1=-0.00228721691732 queries=6319250 source_queries=6319250 reused=0
+WEIGHTED_PAIR_RESULT fixture=0 method=rotate1 rmse=0.0317140529009 temporal_rmse=0.010639187494 flicker_rmse=0.0325883150169 lag1=0.44550013978 queries=4119403 source_queries=3758505 reused=425984
+WEIGHTED_PAIR_PAIRED fixture=0 arm=full2 control=fastfresh8 instantaneous_mse=-0.00158117584236 instantaneous_se=5.72032548163e-06 temporal_mse=-9.80152571723e-05 temporal_se=1.42634111371e-06
+WEIGHTED_PAIR_PAIRED fixture=0 arm=rotate1 control=fastfresh8 instantaneous_mse=-0.00158294065251 instantaneous_se=6.12258139473e-06 temporal_mse=-4.73325703312e-05 temporal_se=1.55321174247e-06
+WEIGHTED_PAIR_PAIRED fixture=0 arm=rotate1 control=fastfresh6 instantaneous_mse=-0.00244220079651 instantaneous_se=7.54058313036e-06 temporal_mse=-0.000102188127507 temporal_se=2.12701959443e-06
+WEIGHTED_PAIR_PAIRED fixture=0 arm=rotate1 control=fastrotate4 instantaneous_mse=7.36627970871e-06 instantaneous_se=3.71699479865e-07 temporal_mse=3.82439732922e-07 temporal_se=7.02312163954e-08
+WEIGHTED_PAIR_CHECK fixture=0 mean_gates=224 maximum_bank8_difference=0 retained_slot_checks=8519680 maximum_elision_difference=0 matched_samples=3145728
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=0 x=0 integral=0.0470486282321 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=1 x=0.038060233 integral=0.0473919389392 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=2 x=0.146446615 integral=0.0515153616404 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=3 x=0.308658272 integral=0.0617142439773 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=4 x=0.5 integral=0.066341063396 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=5 x=0.691341698 integral=0.0580084356047 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=6 x=0.853553414 integral=0.0457493399637 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=7 x=0.961939752 integral=0.0379251462036 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=8 x=1 integral=0.0354285394919 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=9 x=0.961939752 integral=0.0189625731018 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=10 x=0.853553414 integral=0.0228746699818 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=11 x=0.691341698 integral=0.0290042178024 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=12 x=0.5 integral=0.033170531698 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=13 x=0.308658272 integral=0.0617142439773 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=14 x=0.146446615 integral=0.0515153616404 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=1 pose=15 x=0.038060233 integral=0.0473919389392 scale=1.0
+WEIGHTED_PAIR_COMPRESSION fixture=1 maximum_empty_difference=0 retained=425984 logical_bytes=48
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=area8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=bank8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=rotate4 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=rotate2 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=fresh6 mean=0.0467172244651 nominal_se=0.000282101166386 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=fresh8 mean=0.0468122879206 nominal_se=0.000245069781023 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=fastarea8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=fastbank8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=fastrotate4 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=fastrotate2 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=fastfresh6 mean=0.0467172244651 nominal_se=0.000282101166386 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=fastfresh8 mean=0.0468122879206 nominal_se=0.000245069781023 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=full2 mean=0.0471043734681 nominal_se=0.000200278594797 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=0 method=rotate1 mean=0.0471043734681 nominal_se=0.000200278594797 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=area8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=bank8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=rotate4 mean=0.0473069708852 nominal_se=0.000148763757608 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=rotate2 mean=0.0473857194586 nominal_se=0.000117376100382 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=fresh6 mean=0.0470803836463 nominal_se=0.000202680593326 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=fresh8 mean=0.0472160354782 nominal_se=0.000165875882249 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=fastarea8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=fastbank8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=fastrotate4 mean=0.0473069708852 nominal_se=0.000148763757608 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=fastrotate2 mean=0.0473857194586 nominal_se=0.000117376100382 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=fastfresh6 mean=0.0470803836463 nominal_se=0.000202680593326 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=fastfresh8 mean=0.0472160354782 nominal_se=0.000165875882249 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=full2 mean=0.0477823690813 nominal_se=0.000197859397425 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=1 method=rotate1 mean=0.0475832740369 nominal_se=0.000170754129782 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=area8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=bank8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=rotate4 mean=0.0514127405521 nominal_se=0.000232348087492 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=rotate2 mean=0.0513949470819 nominal_se=0.000203215594589 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=fresh6 mean=0.0517758182784 nominal_se=0.000349252454195 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=fresh8 mean=0.0516957108964 nominal_se=0.000255316452524 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=fastarea8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=fastbank8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=fastrotate4 mean=0.0514127405521 nominal_se=0.000232348087492 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=fastrotate2 mean=0.0513949470819 nominal_se=0.000203215594589 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=fastfresh6 mean=0.0517758182784 nominal_se=0.000349252454195 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=fastfresh8 mean=0.0516957108964 nominal_se=0.000255316452524 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=full2 mean=0.0513871779439 nominal_se=0.00023294576083 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=2 method=rotate1 mean=0.0513707833709 nominal_se=0.000277954807592 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=area8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=bank8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=rotate4 mean=0.061809490336 nominal_se=0.000234864716262 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=rotate2 mean=0.0619188220986 nominal_se=0.00023908255465 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=fresh6 mean=0.0614422612834 nominal_se=0.000315112745911 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=fresh8 mean=0.0614353198719 nominal_se=0.00029048287005 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=fastarea8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=fastbank8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=fastrotate4 mean=0.061809490336 nominal_se=0.000234864716262 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=fastrotate2 mean=0.0619188220986 nominal_se=0.00023908255465 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=fastfresh6 mean=0.0614422612834 nominal_se=0.000315112745911 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=fastfresh8 mean=0.0614353198719 nominal_se=0.00029048287005 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=full2 mean=0.0618543036383 nominal_se=0.000260882592362 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=3 method=rotate1 mean=0.0617426942409 nominal_se=0.000286573272914 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=area8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=bank8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=rotate4 mean=0.0663445972667 nominal_se=0.000204157825561 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=rotate2 mean=0.0664952461059 nominal_se=0.000203625765144 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=fresh6 mean=0.0665072637987 nominal_se=0.000513102735525 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=fresh8 mean=0.0664741535857 nominal_se=0.000379289605077 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=fastarea8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=fastbank8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=fastrotate4 mean=0.0663445972667 nominal_se=0.000204157825561 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=fastrotate2 mean=0.0664952461059 nominal_se=0.000203625765144 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=fastfresh6 mean=0.0665072637987 nominal_se=0.000513102735525 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=fastfresh8 mean=0.0664741535857 nominal_se=0.000379289605077 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=full2 mean=0.0662317960526 nominal_se=0.000230427963064 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=4 method=rotate1 mean=0.0664075725639 nominal_se=0.000197203515729 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=area8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=bank8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=rotate4 mean=0.0579085004744 nominal_se=0.000110075512584 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=rotate2 mean=0.0580381412405 nominal_se=0.000155999617718 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=fresh6 mean=0.0576654057586 nominal_se=0.000328958016418 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=fresh8 mean=0.0577727526427 nominal_se=0.000320559497475 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=fastarea8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=fastbank8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=fastrotate4 mean=0.0579085004744 nominal_se=0.000110075512584 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=fastrotate2 mean=0.0580381412405 nominal_se=0.000155999617718 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=fastfresh6 mean=0.0576654057586 nominal_se=0.000328958016418 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=fastfresh8 mean=0.0577727526427 nominal_se=0.000320559497475 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=full2 mean=0.0580938609683 nominal_se=0.000175270699975 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=5 method=rotate1 mean=0.0579145670927 nominal_se=0.000115564262827 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=area8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=bank8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=rotate4 mean=0.045575852766 nominal_se=0.000125368358612 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=rotate2 mean=0.0455691248801 nominal_se=8.40762356827e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=fresh6 mean=0.0453115847988 nominal_se=0.000281319424489 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=fresh8 mean=0.0452838149613 nominal_se=0.000222420945779 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=fastarea8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=fastbank8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=fastrotate4 mean=0.045575852766 nominal_se=0.000125368358612 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=fastrotate2 mean=0.0455691248801 nominal_se=8.40762356827e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=fastfresh6 mean=0.0453115847988 nominal_se=0.000281319424489 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=fastfresh8 mean=0.0452838149613 nominal_se=0.000222420945779 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=full2 mean=0.045620554081 nominal_se=0.000113311163307 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=6 method=rotate1 mean=0.0455777019782 nominal_se=0.000125594020874 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=area8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=bank8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=rotate4 mean=0.0376716739845 nominal_se=8.95179625411e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=rotate2 mean=0.0377823383354 nominal_se=9.44936014215e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=fresh6 mean=0.0378625490707 nominal_se=0.000315490918493 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=fresh8 mean=0.0378897870842 nominal_se=0.000270328935157 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=fastarea8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=fastbank8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=fastrotate4 mean=0.0376716739845 nominal_se=8.95179625411e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=fastrotate2 mean=0.0377823383354 nominal_se=9.44936014215e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=fastfresh6 mean=0.0378625490707 nominal_se=0.000315490918493 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=fastfresh8 mean=0.0378897870842 nominal_se=0.000270328935157 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=full2 mean=0.0378547513588 nominal_se=0.000118443537783 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=7 method=rotate1 mean=0.0376692949406 nominal_se=8.99870054033e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=area8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=bank8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=rotate4 mean=0.0353623743386 nominal_se=0.000128566579019 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=rotate2 mean=0.035312138747 nominal_se=0.000117058513653 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=fresh6 mean=0.0360382082351 nominal_se=0.000274253523344 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=fresh8 mean=0.035925523109 nominal_se=0.00022041324498 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=fastarea8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=fastbank8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=fastrotate4 mean=0.0353623743386 nominal_se=0.000128566579019 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=fastrotate2 mean=0.035312138747 nominal_se=0.000117058513653 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=fastfresh6 mean=0.0360382082351 nominal_se=0.000274253523344 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=fastfresh8 mean=0.035925523109 nominal_se=0.00022041324498 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=full2 mean=0.0355867494268 nominal_se=0.000131502901086 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=8 method=rotate1 mean=0.0353632074986 nominal_se=0.000128503634717 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=area8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=bank8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=rotate4 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=rotate2 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=fresh6 mean=0.0189804078341 nominal_se=0.000128425679373 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=fresh8 mean=0.0189945609028 nominal_se=0.000112698519039 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=fastarea8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=fastbank8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=fastrotate4 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=fastrotate2 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=fastfresh6 mean=0.0189804078341 nominal_se=0.000128425679373 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=fastfresh8 mean=0.0189945609028 nominal_se=0.000112698519039 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=full2 mean=0.0189335489724 nominal_se=6.34530858998e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=9 method=rotate1 mean=0.0189335489724 nominal_se=6.34530858998e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=area8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=bank8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=rotate4 mean=0.0228763101688 nominal_se=7.87332226262e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=rotate2 mean=0.0228346459887 nominal_se=6.985069406e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=fresh6 mean=0.0229548646723 nominal_se=0.000141342507175 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=fresh8 mean=0.0229591377224 nominal_se=0.000101119258228 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=fastarea8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=fastbank8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=fastrotate4 mean=0.0228763101688 nominal_se=7.87332226262e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=fastrotate2 mean=0.0228346459887 nominal_se=6.985069406e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=fastfresh6 mean=0.0229548646723 nominal_se=0.000141342507175 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=fastfresh8 mean=0.0229591377224 nominal_se=0.000101119258228 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=full2 mean=0.0228466709412 nominal_se=6.72352714168e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=10 method=rotate1 mean=0.0228770741426 nominal_se=7.88392162054e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=area8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=bank8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=rotate4 mean=0.0289934344295 nominal_se=9.60269386639e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=rotate2 mean=0.0290010741727 nominal_se=9.00993209691e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=fresh6 mean=0.029082641855 nominal_se=0.000175935653211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=fresh8 mean=0.0290634164315 nominal_se=0.000158859508354 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=fastarea8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=fastbank8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=fastrotate4 mean=0.0289934344295 nominal_se=9.60269386639e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=fastrotate2 mean=0.0290010741727 nominal_se=9.00993209691e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=fastfresh6 mean=0.029082641855 nominal_se=0.000175935653211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=fastfresh8 mean=0.0290634164315 nominal_se=0.000158859508354 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=full2 mean=0.0289902096828 nominal_se=6.88875831195e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=11 method=rotate1 mean=0.0290237027993 nominal_se=9.77993662863e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=area8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=bank8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=rotate4 mean=0.0330934307661 nominal_se=0.000111982738203 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=rotate2 mean=0.0332056614449 nominal_se=0.000121293793183 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=fresh6 mean=0.0334010318079 nominal_se=0.000186943793945 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=fresh8 mean=0.0333908853925 nominal_se=0.000144623035592 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=fastarea8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=fastbank8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=fastrotate4 mean=0.0330934307661 nominal_se=0.000111982738203 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=fastrotate2 mean=0.0332056614449 nominal_se=0.000121293793183 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=fastfresh6 mean=0.0334010318079 nominal_se=0.000186943793945 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=fastfresh8 mean=0.0333908853925 nominal_se=0.000144623035592 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=full2 mean=0.0332712119549 nominal_se=0.000127399407195 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=12 method=rotate1 mean=0.0332244496641 nominal_se=0.000107484685759 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=area8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=bank8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=rotate4 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=rotate2 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=fresh6 mean=0.0616067510355 nominal_se=0.000421392526752 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=fresh8 mean=0.0615058154742 nominal_se=0.000372000613406 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=fastarea8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=fastbank8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=fastrotate4 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=fastrotate2 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=fastfresh6 mean=0.0616067510355 nominal_se=0.000421392526752 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=fastfresh8 mean=0.0615058154742 nominal_se=0.000372000613406 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=full2 mean=0.0617930104663 nominal_se=0.000236569267137 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=13 method=rotate1 mean=0.0617930104663 nominal_se=0.000236569267137 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=area8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=bank8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=rotate4 mean=0.0516234915587 nominal_se=0.000166738770445 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=rotate2 mean=0.05161975853 nominal_se=0.000139506378392 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=fresh6 mean=0.0514083866265 nominal_se=0.000206645241675 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=fresh8 mean=0.0513832871775 nominal_se=0.000216746143849 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=fastarea8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=fastbank8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=fastrotate4 mean=0.0516234915587 nominal_se=0.000166738770445 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=fastrotate2 mean=0.05161975853 nominal_se=0.000139506378392 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=fastfresh6 mean=0.0514083866265 nominal_se=0.000206645241675 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=fastfresh8 mean=0.0513832871775 nominal_se=0.000216746143849 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=full2 mean=0.0519549428809 nominal_se=0.000273053334936 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=14 method=rotate1 mean=0.0514718876557 nominal_se=0.000180315241048 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=area8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=bank8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=rotate4 mean=0.0472916713246 nominal_se=0.000173817776387 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=rotate2 mean=0.0475898210498 nominal_se=0.000175618296328 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=fresh6 mean=0.0470291141228 nominal_se=0.000263586450183 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=fresh8 mean=0.0470478073357 nominal_se=0.000212235486525 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=fastarea8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=fastbank8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=fastrotate4 mean=0.0472916713246 nominal_se=0.000173817776387 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=fastrotate2 mean=0.0475898210498 nominal_se=0.000175618296328 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=fastfresh6 mean=0.0470291141228 nominal_se=0.000263586450183 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=fastfresh8 mean=0.0470478073357 nominal_se=0.000212235486525 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=full2 mean=0.047522980813 nominal_se=0.000199791088967 gate=1
+WEIGHTED_PAIR_MEAN fixture=1 pose=15 method=rotate1 mean=0.0472498942258 nominal_se=0.000210193347747 gate=1
+WEIGHTED_PAIR_RESULT fixture=1 method=area8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=7825882 source_queries=7825882 reused=0
+WEIGHTED_PAIR_RESULT fixture=1 method=bank8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=7825882 source_queries=6393635 reused=0
+WEIGHTED_PAIR_RESULT fixture=1 method=rotate4 rmse=0.0288944887098 temporal_rmse=0.00932620752735 flicker_rmse=0.032361466188 lag1=0.360944164897 queries=5219809 source_queries=3789670 reused=1703936
+WEIGHTED_PAIR_RESULT fixture=1 method=rotate2 rmse=0.0297263153666 temporal_rmse=0.0119507901629 flicker_rmse=0.0277895058957 lag1=0.555088041007 queries=3919026 source_queries=2489350 reused=2555904
+WEIGHTED_PAIR_RESULT fixture=1 method=fresh6 rmse=0.050333749166 temporal_rmse=0.0125607064093 flicker_rmse=0.0708684835938 lag1=-0.00121344553131 queries=6674974 source_queries=6674974 reused=0
+WEIGHTED_PAIR_RESULT fixture=1 method=fresh8 rmse=0.0436129995951 temporal_rmse=0.0109150172323 flicker_rmse=0.0614158041203 lag1=-0.00144642383854 queries=8899950 source_queries=8899950 reused=0
+WEIGHTED_PAIR_RESULT fixture=1 method=fastarea8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=6010093 source_queries=6010093 reused=0
+WEIGHTED_PAIR_RESULT fixture=1 method=fastbank8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=6010093 source_queries=6010093 reused=0
+WEIGHTED_PAIR_RESULT fixture=1 method=fastrotate4 rmse=0.0288944887098 temporal_rmse=0.00932620752735 flicker_rmse=0.032361466188 lag1=0.360944164897 queries=4146147 source_queries=3564030 reused=1703936
+WEIGHTED_PAIR_RESULT fixture=1 method=fastrotate2 rmse=0.0297263153666 temporal_rmse=0.0119507901629 flicker_rmse=0.0277895058957 lag1=0.555088041007 queries=3215227 source_queries=2342199 reused=2555904
+WEIGHTED_PAIR_RESULT fixture=1 method=fastfresh6 rmse=0.050333749166 temporal_rmse=0.0125607064093 flicker_rmse=0.0708684835938 lag1=-0.00121344553131 queries=3912764 source_queries=3912764 reused=0
+WEIGHTED_PAIR_RESULT fixture=1 method=fastfresh8 rmse=0.0436129995951 temporal_rmse=0.0109150172323 flicker_rmse=0.0614158041203 lag1=-0.00144642383854 queries=5216988 source_queries=5216988 reused=0
+WEIGHTED_PAIR_RESULT fixture=1 method=full2 rmse=0.0346559186866 temporal_rmse=0.00864609112064 flicker_rmse=0.0480450380361 lag1=-0.00470176316596 queries=6010093 source_queries=6010093 reused=0
+WEIGHTED_PAIR_RESULT fixture=1 method=rotate1 rmse=0.0351571036043 temporal_rmse=0.0111386525923 flicker_rmse=0.0397155715542 lag1=0.334305391992 queries=3909592 source_queries=3564030 reused=425984
+WEIGHTED_PAIR_PAIRED fixture=1 arm=full2 control=fastfresh8 instantaneous_mse=-0.00070106103367 instantaneous_se=5.64190160995e-06 temporal_mse=-4.43827095157e-05 temporal_se=9.63603858048e-07
+WEIGHTED_PAIR_PAIRED fixture=1 arm=rotate1 control=fastfresh8 instantaneous_mse=-0.000666071799843 instantaneous_se=6.15175503347e-06 temporal_mse=4.93198039029e-06 temporal_se=1.31842879757e-06
+WEIGHTED_PAIR_PAIRED fixture=1 arm=rotate1 control=fastfresh6 instantaneous_mse=-0.00129746437126 instantaneous_se=7.75606308791e-06 temporal_mse=-3.37017639293e-05 temporal_se=1.52836114992e-06
+WEIGHTED_PAIR_PAIRED fixture=1 arm=rotate1 control=fastrotate4 instantaneous_mse=0.000401130456038 instantaneous_se=3.29802462508e-06 temporal_mse=3.70914347293e-05 temporal_se=6.80872118728e-07
+WEIGHTED_PAIR_CHECK fixture=1 mean_gates=224 maximum_bank8_difference=0 retained_slot_checks=8519680 maximum_elision_difference=0 matched_samples=3145728
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=0 x=0 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=1 x=0.038060233 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=2 x=0.146446615 integral=0.00441540224764 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=3 x=0.308658272 integral=0.023602341581 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=4 x=0.5 integral=0.0421220226833 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=5 x=0.691341698 integral=0.0458206037941 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=6 x=0.853553414 integral=0.0408044815178 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=7 x=0.961939752 integral=0.035896427655 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=8 x=1 integral=0.0336100076862 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=9 x=0.961939752 integral=0.0179482138275 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=10 x=0.853553414 integral=0.0204022407589 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=11 x=0.691341698 integral=0.022910301897 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=12 x=0.5 integral=0.0210610113416 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=13 x=0.308658272 integral=0.023602341581 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=14 x=0.146446615 integral=0.00441540224764 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=2 pose=15 x=0.038060233 integral=0 scale=1.0
+WEIGHTED_PAIR_COMPRESSION fixture=2 maximum_empty_difference=0 retained=425984 logical_bytes=48
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=0 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=1 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=area8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=bank8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=rotate4 mean=0.00449173494422 nominal_se=7.40542236277e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=rotate2 mean=0.00443200846064 nominal_se=7.25505214561e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=fresh6 mean=0.00440063478459 nominal_se=0.000115939437169 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=fresh8 mean=0.00434669511856 nominal_se=9.00381448689e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=fastarea8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=fastbank8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=fastrotate4 mean=0.00449173494422 nominal_se=7.40542236277e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=fastrotate2 mean=0.00443200846064 nominal_se=7.25505214561e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=fastfresh6 mean=0.00440063478459 nominal_se=0.000115939437169 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=fastfresh8 mean=0.00434669511856 nominal_se=9.00381448689e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=full2 mean=0.00433819139528 nominal_se=8.34700167229e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=2 method=rotate1 mean=0.00446453555878 nominal_se=0.000110251639975 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=area8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=bank8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=rotate4 mean=0.0236465510054 nominal_se=0.000179107236147 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=rotate2 mean=0.0236658092965 nominal_se=0.000170917445842 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=fresh6 mean=0.0234600831307 nominal_se=0.000218715490168 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=fresh8 mean=0.0234590157693 nominal_se=0.000177855393022 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=fastarea8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=fastbank8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=fastrotate4 mean=0.0236465510054 nominal_se=0.000179107236147 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=fastrotate2 mean=0.0236658092965 nominal_se=0.000170917445842 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=fastfresh6 mean=0.0234600831307 nominal_se=0.000218715490168 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=fastfresh8 mean=0.0234590157693 nominal_se=0.000177855393022 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=full2 mean=0.023967367922 nominal_se=0.000202513596992 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=3 method=rotate1 mean=0.0237879311619 nominal_se=0.000260940393377 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=area8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=bank8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=rotate4 mean=0.0420730062348 nominal_se=0.000186620618005 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=rotate2 mean=0.0420025490943 nominal_se=0.000167758300245 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=fresh6 mean=0.041759033488 nominal_se=0.000211161156333 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=fresh8 mean=0.0420458235712 nominal_se=0.000199303418739 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=fastarea8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=fastbank8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=fastrotate4 mean=0.0420730062348 nominal_se=0.000186620618005 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=fastrotate2 mean=0.0420025490943 nominal_se=0.000167758300245 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=fastfresh6 mean=0.041759033488 nominal_se=0.000211161156333 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=fastfresh8 mean=0.0420458235712 nominal_se=0.000199303418739 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=full2 mean=0.0423352223691 nominal_se=0.000267988640669 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=4 method=rotate1 mean=0.0422320026398 nominal_se=0.000246159962159 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=area8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=bank8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=rotate4 mean=0.0460634503407 nominal_se=0.00015405010842 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=rotate2 mean=0.0458450001582 nominal_se=0.000157131700264 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=fresh6 mean=0.0459951785601 nominal_se=0.000333963053418 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=fresh8 mean=0.0462178817816 nominal_se=0.000252840069763 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=fastarea8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=fastbank8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=fastrotate4 mean=0.0460634503407 nominal_se=0.00015405010842 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=fastrotate2 mean=0.0458450001582 nominal_se=0.000157131700264 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=fastfresh6 mean=0.0459951785601 nominal_se=0.000333963053418 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=fastfresh8 mean=0.0462178817816 nominal_se=0.000252840069763 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=full2 mean=0.0459730006986 nominal_se=0.000200129790185 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=5 method=rotate1 mean=0.0461797263326 nominal_se=0.00018197581391 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=area8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=bank8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=rotate4 mean=0.0409786679766 nominal_se=0.000148896119456 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=rotate2 mean=0.0409819003982 nominal_se=0.000125508382622 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=fresh6 mean=0.0406652834706 nominal_se=0.000304720792185 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=fresh8 mean=0.040816956963 nominal_se=0.000236774918508 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=fastarea8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=fastbank8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=fastrotate4 mean=0.0409786679766 nominal_se=0.000148896119456 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=fastrotate2 mean=0.0409819003982 nominal_se=0.000125508382622 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=fastfresh6 mean=0.0406652834706 nominal_se=0.000304720792185 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=fastfresh8 mean=0.040816956963 nominal_se=0.000236774918508 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=full2 mean=0.0408283841845 nominal_se=0.000135194801194 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=6 method=rotate1 mean=0.0410536342874 nominal_se=0.000159196044571 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=area8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=bank8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=rotate4 mean=0.0359814874192 nominal_se=0.000147697187829 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=rotate2 mean=0.0360024306647 nominal_se=0.000115349659844 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=fresh6 mean=0.0357882692631 nominal_se=0.000271656988866 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=fresh8 mean=0.0356147015684 nominal_se=0.00021270938765 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=fastarea8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=fastbank8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=fastrotate4 mean=0.0359814874192 nominal_se=0.000147697187829 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=fastrotate2 mean=0.0360024306647 nominal_se=0.000115349659844 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=fastfresh6 mean=0.0357882692631 nominal_se=0.000271656988866 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=fastfresh8 mean=0.0356147015684 nominal_se=0.00021270938765 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=full2 mean=0.0360077456761 nominal_se=9.92892072897e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=7 method=rotate1 mean=0.0360051578608 nominal_se=0.000146255352901 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=area8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=bank8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=rotate4 mean=0.0336014510278 nominal_se=0.000135535681357 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=rotate2 mean=0.0336561610887 nominal_se=0.000137807477987 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=fresh6 mean=0.0332910158302 nominal_se=0.000236863494822 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=fresh8 mean=0.03325309872 nominal_se=0.000222788278765 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=fastarea8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=fastbank8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=fastrotate4 mean=0.0336014510278 nominal_se=0.000135535681357 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=fastrotate2 mean=0.0336561610887 nominal_se=0.000137807477987 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=fastfresh6 mean=0.0332910158302 nominal_se=0.000236863494822 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=fastfresh8 mean=0.03325309872 nominal_se=0.000222788278765 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=full2 mean=0.0336738878942 nominal_se=0.000101908794884 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=8 method=rotate1 mean=0.0335805611495 nominal_se=0.00013432280168 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=area8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=bank8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=rotate4 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=rotate2 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=fresh6 mean=0.0179507447407 nominal_se=0.000106741902219 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=fresh8 mean=0.0179387289573 nominal_se=0.000121731048764 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=fastarea8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=fastbank8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=fastrotate4 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=fastrotate2 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=fastfresh6 mean=0.0179507447407 nominal_se=0.000106741902219 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=fastfresh8 mean=0.0179387289573 nominal_se=0.000121731048764 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=full2 mean=0.0179775659807 nominal_se=6.21586218559e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=9 method=rotate1 mean=0.0179775659807 nominal_se=6.21586218559e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=area8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=bank8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=rotate4 mean=0.0204103905056 nominal_se=6.64790268857e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=rotate2 mean=0.0204050070335 nominal_se=7.69603383596e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=fresh6 mean=0.0204020692264 nominal_se=0.00016424558205 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=fresh8 mean=0.0203700263266 nominal_se=0.000135170670243 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=fastarea8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=fastbank8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=fastrotate4 mean=0.0204103905056 nominal_se=6.64790268857e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=fastrotate2 mean=0.0204050070335 nominal_se=7.69603383596e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=fastfresh6 mean=0.0204020692264 nominal_se=0.00016424558205 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=fastfresh8 mean=0.0203700263266 nominal_se=0.000135170670243 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=full2 mean=0.0204489885668 nominal_se=6.1208704901e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=10 method=rotate1 mean=0.0203866463511 nominal_se=7.21709017424e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=area8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=bank8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=rotate4 mean=0.0228132473737 nominal_se=9.31164994809e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=rotate2 mean=0.0229170942485 nominal_se=0.000102851103694 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=fresh6 mean=0.0228694154492 nominal_se=0.00014569562313 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=fresh8 mean=0.0228517921427 nominal_se=0.000140760507581 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=fastarea8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=fastbank8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=fastrotate4 mean=0.0228132473737 nominal_se=9.31164994809e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=fastrotate2 mean=0.0229170942485 nominal_se=0.000102851103694 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=fastfresh6 mean=0.0228694154492 nominal_se=0.00014569562313 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=fastfresh8 mean=0.0228517921427 nominal_se=0.000140760507581 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=full2 mean=0.022813971405 nominal_se=9.43855753842e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=11 method=rotate1 mean=0.0227852547727 nominal_se=0.000100792477221 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=area8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=bank8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=rotate4 mean=0.0209687550625 nominal_se=0.000104891340197 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=rotate2 mean=0.0210167514367 nominal_se=0.000130177408891 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=fresh6 mean=0.0211593629339 nominal_se=0.000132038310902 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=fresh8 mean=0.0210541541543 nominal_se=0.000110944711321 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=fastarea8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=fastbank8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=fastrotate4 mean=0.0209687550625 nominal_se=0.000104891340197 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=fastrotate2 mean=0.0210167514367 nominal_se=0.000130177408891 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=fastfresh6 mean=0.0211593629339 nominal_se=0.000132038310902 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=fastfresh8 mean=0.0210541541543 nominal_se=0.000110944711321 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=full2 mean=0.0211409619763 nominal_se=0.000109937099989 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=12 method=rotate1 mean=0.0209808551419 nominal_se=0.00012104882865 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=area8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=bank8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=rotate4 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=rotate2 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=fresh6 mean=0.0234729005108 nominal_se=0.000219817878668 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=fresh8 mean=0.0234365853505 nominal_se=0.000156502669435 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=fastarea8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=fastbank8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=fastrotate4 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=fastrotate2 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=fastfresh6 mean=0.0234729005108 nominal_se=0.000219817878668 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=fastfresh8 mean=0.0234365853505 nominal_se=0.000156502669435 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=full2 mean=0.0234793072863 nominal_se=0.000221742703718 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=13 method=rotate1 mean=0.0234793072863 nominal_se=0.000221742703718 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=area8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=bank8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=rotate4 mean=0.00430673677664 nominal_se=6.7317891674e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=rotate2 mean=0.00430240805565 nominal_se=6.64010275774e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=fresh6 mean=0.00429382326092 nominal_se=0.000114248555197 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=fresh8 mean=0.00426017778091 nominal_se=8.34277083985e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=fastarea8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=fastbank8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=fastrotate4 mean=0.00430673677664 nominal_se=6.7317891674e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=fastrotate2 mean=0.00430240805565 nominal_se=6.64010275774e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=fastfresh6 mean=0.00429382326092 nominal_se=0.000114248555197 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=fastfresh8 mean=0.00426017778091 nominal_se=8.34277083985e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=full2 mean=0.00422727162288 nominal_se=0.000114906141356 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=14 method=rotate1 mean=0.00422801249528 nominal_se=8.51752156107e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=2 pose=15 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_RESULT fixture=2 method=area8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=7077468 source_queries=7077468 reused=0
+WEIGHTED_PAIR_RESULT fixture=2 method=bank8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=7077468 source_queries=5831853 reused=0
+WEIGHTED_PAIR_RESULT fixture=2 method=rotate4 rmse=0.0199647205644 temporal_rmse=0.00634202742316 flicker_rmse=0.0242708178001 lag1=0.307237912388 queries=4691980 source_queries=3449206 reused=1703936
+WEIGHTED_PAIR_RESULT fixture=2 method=rotate2 rmse=0.0212285821057 temporal_rmse=0.00848432075189 flicker_rmse=0.0219637340645 lag1=0.498221730819 queries=3486688 source_queries=2257683 reused=2555904
+WEIGHTED_PAIR_RESULT fixture=2 method=fresh6 rmse=0.0342769825412 temporal_rmse=0.00857886795717 flicker_rmse=0.0500401833022 lag1=0.000976344864073 queries=6487314 source_queries=6487314 reused=0
+WEIGHTED_PAIR_RESULT fixture=2 method=fresh8 rmse=0.0296614644502 temporal_rmse=0.00738051192308 flicker_rmse=0.0433117875545 lag1=0.000529095383484 queries=8649751 source_queries=8649751 reused=0
+WEIGHTED_PAIR_RESULT fixture=2 method=fastarea8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=5635886 source_queries=5635886 reused=0
+WEIGHTED_PAIR_RESULT fixture=2 method=fastbank8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=5635886 source_queries=5635886 reused=0
+WEIGHTED_PAIR_RESULT fixture=2 method=fastrotate4 rmse=0.0199647205644 temporal_rmse=0.00634202742316 flicker_rmse=0.0242708178001 lag1=0.307237912388 queries=3844868 source_queries=3337480 reused=1703936
+WEIGHTED_PAIR_RESULT fixture=2 method=fastrotate2 rmse=0.0212285821057 temporal_rmse=0.00848432075189 flicker_rmse=0.0219637340645 lag1=0.498221730819 queries=2936973 source_queries=2188115 reused=2555904
+WEIGHTED_PAIR_RESULT fixture=2 method=fastfresh6 rmse=0.0342769825412 temporal_rmse=0.00857886795717 flicker_rmse=0.0500401833022 lag1=0.000976344864073 queries=3537444 source_queries=3537444 reused=0
+WEIGHTED_PAIR_RESULT fixture=2 method=fastfresh8 rmse=0.0296614644502 temporal_rmse=0.00738051192308 flicker_rmse=0.0433117875545 lag1=0.000529095383484 queries=4716590 source_queries=4716590 reused=0
+WEIGHTED_PAIR_RESULT fixture=2 method=full2 rmse=0.0230589632146 temporal_rmse=0.00577456411278 flicker_rmse=0.0336648689122 lag1=0.000881932241067 queries=5635886 source_queries=5635886 reused=0
+WEIGHTED_PAIR_RESULT fixture=2 method=rotate1 rmse=0.0239409033358 temporal_rmse=0.00746820104058 flicker_rmse=0.0296606872754 lag1=0.280512053692 queries=3658784 source_queries=3337480 reused=425984
+WEIGHTED_PAIR_PAIRED fixture=2 arm=full2 control=fastfresh8 instantaneous_mse=-0.000348086688798 instantaneous_se=3.77554460493e-06 temporal_mse=-2.11263655542e-05 temporal_se=5.29758164326e-07
+WEIGHTED_PAIR_PAIRED fixture=2 arm=rotate1 control=fastfresh8 instantaneous_mse=-0.000306635620798 instantaneous_se=4.56291656986e-06 temporal_mse=1.30207053579e-06 temporal_se=6.42046227883e-07
+WEIGHTED_PAIR_PAIRED fixture=2 arm=rotate1 control=fastfresh6 instantaneous_mse=-0.000601744679597 instantaneous_se=5.40242838835e-06 temporal_mse=-1.78229486439e-05 temporal_se=8.35908070037e-07
+WEIGHTED_PAIR_PAIRED fixture=2 arm=rotate1 control=fastrotate4 instantaneous_mse=0.00017457678532 instantaneous_se=2.43436708038e-06 temporal_mse=1.55527149465e-05 temporal_se=3.71977058846e-07
+WEIGHTED_PAIR_CHECK fixture=2 mean_gates=224 maximum_bank8_difference=0 retained_slot_checks=8519680 maximum_elision_difference=0 matched_samples=3145728
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=0 x=0 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=1 x=0.038060233 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=2 x=0.146446615 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=3 x=0.308658272 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=4 x=0.5 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=5 x=0.691341698 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=6 x=0.853553414 integral=0.0128798438218 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=7 x=0.961939752 integral=0.0172063357012 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=8 x=1 integral=0.0179346046656 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=9 x=0.961939752 integral=0.00860316785062 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=10 x=0.853553414 integral=0.0064399219109 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=11 x=0.691341698 integral=0 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=12 x=0.5 integral=0 scale=0.5
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=13 x=0.308658272 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=14 x=0.146446615 integral=0 scale=1.0
+WEIGHTED_PAIR_REFERENCE fixture=3 pose=15 x=0.038060233 integral=0 scale=1.0
+WEIGHTED_PAIR_COMPRESSION fixture=3 maximum_empty_difference=0 retained=425984 logical_bytes=48
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=0 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=1 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=2 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=3 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=4 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=5 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=area8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=bank8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=rotate4 mean=0.0127804840066 nominal_se=0.000107805473543 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=rotate2 mean=0.0128966207905 nominal_se=0.00010577520809 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=fresh6 mean=0.012800293028 nominal_se=0.000151835817626 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=fresh8 mean=0.0128782658826 nominal_se=0.000127498884583 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=fastarea8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=fastbank8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=fastrotate4 mean=0.0127804840066 nominal_se=0.000107805473543 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=fastrotate2 mean=0.0128966207905 nominal_se=0.00010577520809 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=fastfresh6 mean=0.012800293028 nominal_se=0.000151835817626 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=fastfresh8 mean=0.0128782658826 nominal_se=0.000127498884583 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=full2 mean=0.0127960868267 nominal_se=0.000122227022579 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=6 method=rotate1 mean=0.0127472803706 nominal_se=0.000138867476381 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=area8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=bank8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=rotate4 mean=0.0172680704313 nominal_se=0.000106314470171 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=rotate2 mean=0.0169755443436 nominal_se=0.000119603993502 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=fresh6 mean=0.0175085450044 nominal_se=0.000173571933825 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=fresh8 mean=0.0173130805001 nominal_se=0.000164101222886 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=fastarea8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=fastbank8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=fastrotate4 mean=0.0172680704313 nominal_se=0.000106314470171 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=fastrotate2 mean=0.0169755443436 nominal_se=0.000119603993502 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=fastfresh6 mean=0.0175085450044 nominal_se=0.000173571933825 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=fastfresh8 mean=0.0173130805001 nominal_se=0.000164101222886 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=full2 mean=0.0172727525993 nominal_se=0.000135204127272 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=7 method=rotate1 mean=0.0172377712037 nominal_se=0.000106741443861 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=area8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=bank8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=rotate4 mean=0.0180335039273 nominal_se=0.00013947303365 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=rotate2 mean=0.0177441588027 nominal_se=0.000126450341421 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=fresh6 mean=0.0176623535992 nominal_se=0.000139473270273 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=fresh8 mean=0.0177280432802 nominal_se=0.000130158279921 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=fastarea8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=fastbank8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=fastrotate4 mean=0.0180335039273 nominal_se=0.00013947303365 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=fastrotate2 mean=0.0177441588027 nominal_se=0.000126450341421 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=fastfresh6 mean=0.0176623535992 nominal_se=0.000139473270273 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=fastfresh8 mean=0.0177280432802 nominal_se=0.000130158279921 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=full2 mean=0.0179923053604 nominal_se=0.000126585281821 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=8 method=rotate1 mean=0.0180812572915 nominal_se=0.000152632675966 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=area8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=bank8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=rotate4 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=rotate2 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=fresh6 mean=0.00860687260024 nominal_se=7.70181071367e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=fresh8 mean=0.00861408266633 nominal_se=7.18589256286e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=fastarea8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=fastbank8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=fastrotate4 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=fastrotate2 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=fastfresh6 mean=0.00860687260024 nominal_se=7.70181071367e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=fastfresh8 mean=0.00861408266633 nominal_se=7.18589256286e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=full2 mean=0.00859572050723 nominal_se=6.58737326268e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=9 method=rotate1 mean=0.00859572050723 nominal_se=6.58737326268e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=area8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=bank8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=rotate4 mean=0.00641883529215 nominal_se=5.12118514848e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=rotate2 mean=0.00639239578581 nominal_se=4.7177913913e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=fresh6 mean=0.00649627688483 nominal_se=7.66118280491e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=fresh8 mean=0.00645916010217 nominal_se=6.88169198314e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=fastarea8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=fastbank8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=fastrotate4 mean=0.00641883529215 nominal_se=5.12118514848e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=fastrotate2 mean=0.00639239578581 nominal_se=4.7177913913e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=fastfresh6 mean=0.00649627688483 nominal_se=7.66118280491e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=fastfresh8 mean=0.00645916010217 nominal_se=6.88169198314e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=full2 mean=0.00646650802145 nominal_se=7.56395400405e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=10 method=rotate1 mean=0.00636733724107 nominal_se=6.66642533163e-05 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=11 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=12 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=13 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=14 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=area8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=bank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=rotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=rotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=fastarea8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=fastbank8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=fastrotate4 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=fastrotate2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=fastfresh6 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=fastfresh8 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=full2 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_MEAN fixture=3 pose=15 method=rotate1 mean=0 nominal_se=0 gate=1
+WEIGHTED_PAIR_RESULT fixture=3 method=area8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=6436116 source_queries=6436116 reused=0
+WEIGHTED_PAIR_RESULT fixture=3 method=bank8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=6436116 source_queries=5351897 reused=0
+WEIGHTED_PAIR_RESULT fixture=3 method=rotate4 rmse=0.00903785436726 temporal_rmse=0.00276044460759 flicker_rmse=0.0114443846743 lag1=0.248384886621 queries=4264368 source_queries=3179620 reused=1703936
+WEIGHTED_PAIR_RESULT fixture=3 method=rotate2 rmse=0.00959947875021 temporal_rmse=0.00344066928321 flicker_rmse=0.0106651189505 lag1=0.421395512808 queries=3175528 source_queries=2092769 reused=2555904
+WEIGHTED_PAIR_RESULT fixture=3 method=fresh6 rmse=0.0152844545103 temporal_rmse=0.0038227229377 flicker_rmse=0.0223150883441 lag1=0.000831773160301 queries=6328052 source_queries=6328052 reused=0
+WEIGHTED_PAIR_RESULT fixture=3 method=fresh8 rmse=0.0132472648516 temporal_rmse=0.00331173403614 flicker_rmse=0.0193489965612 lag1=-1.33308991814e-05 queries=8437333 source_queries=8437333 reused=0
+WEIGHTED_PAIR_RESULT fixture=3 method=fastarea8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=5315210 source_queries=5315210 reused=0
+WEIGHTED_PAIR_RESULT fixture=3 method=fastbank8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=5315210 source_queries=5315210 reused=0
+WEIGHTED_PAIR_RESULT fixture=3 method=fastrotate4 rmse=0.00903785436726 temporal_rmse=0.00276044460759 flicker_rmse=0.0114443846743 lag1=0.248384886621 queries=3597399 source_queries=3157337 reused=1703936
+WEIGHTED_PAIR_RESULT fixture=3 method=fastrotate2 rmse=0.00959947875021 temporal_rmse=0.00344066928321 flicker_rmse=0.0106651189505 lag1=0.421395512808 queries=2736341 source_queries=2077587 reused=2555904
+WEIGHTED_PAIR_RESULT fixture=3 method=fastfresh6 rmse=0.0152844545103 temporal_rmse=0.0038227229377 flicker_rmse=0.0223150883441 lag1=0.000831773160301 queries=3218920 source_queries=3218920 reused=0
+WEIGHTED_PAIR_RESULT fixture=3 method=fastfresh8 rmse=0.0132472648516 temporal_rmse=0.00331173403614 flicker_rmse=0.0193489965612 lag1=-1.33308991814e-05 queries=4291754 source_queries=4291754 reused=0
+WEIGHTED_PAIR_RESULT fixture=3 method=full2 rmse=0.0102146351433 temporal_rmse=0.0025455197144 flicker_rmse=0.0149266560042 lag1=-0.000969105519288 queries=5315210 source_queries=5315210 reused=0
+WEIGHTED_PAIR_RESULT fixture=3 method=rotate1 rmse=0.0105950753913 temporal_rmse=0.00322598062507 flicker_rmse=0.0134242399135 lag1=0.247489424984 queries=3453999 source_queries=3157337 reused=425984
+WEIGHTED_PAIR_PAIRED fixture=3 arm=full2 control=fastfresh8 instantaneous_mse=-7.1151254937e-05 instantaneous_se=1.44305455336e-06 temporal_mse=-4.48791170975e-06 temporal_se=1.53684698003e-07
+WEIGHTED_PAIR_PAIRED fixture=3 arm=rotate1 control=fastfresh8 instantaneous_mse=-6.32344035013e-05 instantaneous_se=1.48929902357e-06 temporal_mse=-5.60631332802e-07 temporal_se=1.78942254673e-07
+WEIGHTED_PAIR_PAIRED fixture=3 arm=rotate1 control=fastfresh6 instantaneous_mse=-0.00012135892713 instantaneous_se=1.67613090418e-06 temporal_mse=-4.20625966507e-06 temporal_se=2.02373419011e-07
+WEIGHTED_PAIR_PAIRED fixture=3 arm=rotate1 control=fastrotate4 instantaneous_mse=3.05728109836e-05 instantaneous_se=4.93506965335e-07 temporal_mse=2.78689656174e-06 temporal_se=7.77066963164e-08
+WEIGHTED_PAIR_CHECK fixture=3 mean_gates=224 maximum_bank8_difference=0 retained_slot_checks=8519680 maximum_elision_difference=0 matched_samples=3145728
+WEIGHTED_PAIR_DECISION correctness=1 promote=0 physical_gpu_timing=0
+833cbee244df5cd04abe95958dc9c02e947110afebb02739d0f6f71c8d20e99c  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-0.f32
+d21d76a27572b5acbe7c3fc59b765fc36f910ad316bdbbbc0263af3dde288cdc  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-1.f32
+65abdc5d82e1e7e5bde013e9f65a977787b797226049b053491e266c689ff4a0  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-10.f32
+1f07bcbc8261479e7a26fb69ef8e52f6bd965d94ccb5cce9487b90035a25ca52  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-11.f32
+d0c4ac2505d9ffc9b87603ee4292bc6b641bf9ebb25c4175d73df83f5576dae5  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-12.f32
+f162054d49f869beb929bbc1433d0c226d9656b4e4c24ad82c7d8cf933209b37  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-13.f32
+0b85092edfb5e4812b5f2b9c665ce0e1aac41b88156a81079af112b3d0bfb9d0  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-14.f32
+d13e6e088a66c61143a9674158014e9d56618f4cf05062240b5692322b5b5013  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-15.f32
+8f8fdc95291b2ca9bbfc345dc1440dc724b4cf19882d12fec0267d13715b5ea1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-2.f32
+fb7873eb1b85c165d13002439a1799c86fad727c07c7697d783c67321f9c2b83  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-3.f32
+13783fc3f86dc995337f2c1b59f069eae791c6b6e01246dea899fa1edb09f845  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-4.f32
+cd321b5aa15831964348e40efd5e5fb0c61ec2928c514e6bb1d7e182d5313eb7  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-5.f32
+715e57fd62f6654af3e41edf38b8d095dfadda1e80cd315431e896253aac9295  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-6.f32
+c8de61a37ac37bc8531c24a315a32b35a659dd14b60f5e8393b6ad30b18c53e4  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-7.f32
+bb9b20733d6e989c53b69b9d2a793fcb1bc4350cf28becf0af2a54885d0ceb70  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-8.f32
+0e548f888f6b5f901c422c12c2f8954a4e2c6f6f1be897b889c9f57028cbe4ef  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair0-9.f32
+ec1c0eac2fa5ee055c0b0e9099b5b9d16e69ee9fcd85df75a0b6f5fbdcf9aea1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-0.f32
+035f25d9f529265f2682ac8bd61a6e4dcc1638701d8530985952b4e456037da1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-1.f32
+5b00d8e0421ab2bc6470a7e5e9a746767fea9e9e3038e095d53d701499d0b9e5  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-10.f32
+873738b53846b047988e951d960e2287cda964f1733981a98ac86fb30b73177f  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-11.f32
+f2748371b21ba1b33df9ec7f77224a29772f40daad9ce9bbbc4034746936834b  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-12.f32
+7e2668628a0e9e678c9e5ba78947b3a5a713f45ba6b6192738ed389ed5b22610  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-13.f32
+e888bdbfcf10a4cec06b5055af50731a4e61fb82385a4459529e32d14dd04dcd  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-14.f32
+41afa1f1dc8563ac666544f36de6ccb7dd43314fcbc9728c8c8bc1b6955bb01d  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-15.f32
+c89294eb248d24d5d4b927d472271dccc317dbe73234db93e8927b76cb41daa4  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-2.f32
+ab2a2f2b691c4dc4926f3f2b6a3857eb2173fa162c2ee6c183a1f51d63efe128  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-3.f32
+7f73aec3426d76cf4a3fa2249455e6f2679aa6311e11ed9fb551d16ab1d453e8  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-4.f32
+4f72c4bdac869ae6a1cd77bbaeef2706206354b2abeacbffb3e2b353a6af5df4  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-5.f32
+846507ac22a6ba55fd27f00796fa9c23e2de0ed748e586ef913f7a9edf3010e6  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-6.f32
+e8ce62e962a7424da02ad6ebb4ea1790de950f0b4c1bd32b01599b94476cd322  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-7.f32
+05d1248cf68907181f4453c934ec2bc25c0752d10dccada6ef6982be1435c3ad  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-8.f32
+c95e09c6801c7a03229a28c6441298a82680ac1b517739da1933480e50ccb88f  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair1-9.f32
+f5368c11dd70489f01ed3c3b808c09e06388191e550edf33e0b5873100c0cb31  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-0.f32
+b7dd39bf9f7ea1b9f36a3ccb7da57ae11ed5803b4529fde73a2a44024258091c  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-1.f32
+2da1fe38084f428804f9985470c9e92daf3d5e3dc7a3c2be3177accf563affa4  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-10.f32
+9bde106c91921d9f686f791f43ba97ac9b9be135e0657152c4778801a761d7c1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-11.f32
+ba671777aa9b62c9cafb955401d611cbc19856f5663d2bf754157221820fad15  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-12.f32
+629c5882ae069542f7c8919762a5b3c44af8caf4627a914c7778a0013c334aae  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-13.f32
+8ec62e4bf4ff1b38fee5fb816c2819b35cf547e1a021ad748fc282d872c1b330  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-14.f32
+6ecd6fc0531e095bacb0107ef509633eb83aeee3fd8ac962906ccf3c5a462488  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-15.f32
+0784a5aaf4303c2cc0c4b82d6a6c72076f088fc8f0259e31f7ab6c595f239e74  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-2.f32
+d6a70978baa6551bf0c0463b856b18ddb7ccc7b25fae5b2eda8fe60359fbc519  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-3.f32
+ac2df204f0794550c19d2e33e6ea52421a7bd2e823000dac23e69fe273f1500c  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-4.f32
+bf8ef873dab9ceabf712569bf2d399d29b855a0d14412d6911fc323d00b878ed  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-5.f32
+d30678a9e0b67fa40214e5cb7e698461df5ed3becde6b59376a28b2f678a5961  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-6.f32
+1646fceec87b1983607201d5c118ef7530137920f206c0cc1c9297c80b4dbc5f  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-7.f32
+207c3358546492c15032846338a591830add23c56db436854e900978da7cc2a4  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-8.f32
+17e150650b3ce8958881804287c13f2eef2b7a316cf6d667c5880e98a1bc5908  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair2-9.f32
+ccb2bb1f356d48ac56d79c14176b5d605af3d17e89d2d300be5f3e6d5f71fcba  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-0.f32
+429264ca2bf9ddf88e17e626c5b3371fce630669e2af59979a55b0082b8d32ff  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-1.f32
+986c859e85521fb4add75ae54026e9419c638bbdf3badc4ca4107d1ef63448ae  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-10.f32
+de46ad8ee4961c322d312b310b69db02a9f465baf90b7352030a4d9928c9246a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-11.f32
+5d34d3af1a54cd7095a6a9ff31dd1e4801994e6a71b408bc24850d3ff21a6c52  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-12.f32
+4997dab894a68df7f5ac43aa6f22aa32fa390350a981ce7602118e01d4f7b2fe  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-13.f32
+0908c426ce31ef90e21d4fc25142c154acc32427cc0b99637291a6b88f320970  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-14.f32
+9864305c38b827ce2f3cc29b332c8b776723aa51b61f6afb6f1736163598f27f  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-15.f32
+ea5165c49c9cf1da1dd534ff12ce73cfd3bc54b4d9a3c39fdd7eb1402666fd98  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-2.f32
+5c879398683e88e0e79172af70a3dbd58f2eaa6fd6d1e0b2a28290e8f161ac8a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-3.f32
+f7ce25f86b79a92f2265bdd3bc4b20b916ee1efe05742aef34570dc265db2edc  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-4.f32
+d151341e8ea4ee8e806bedbfab56017865609ac0d9d163fe19f1f444df677ca9  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-5.f32
+6a48c35ca0fa1209c653f839145a20373cfe38383f6cec9d4efbdc9566bc3679  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-6.f32
+7f0d115e776fc77d79a52ca2e87ea96790ecddbd0df4f515983c1cded8bd0b1f  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-7.f32
+73232b4a2e66d7e6882ecd57ca33bd1e39d7781e1e30066fe9ea239d49dedf62  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-8.f32
+a26b93cd8d97b0f07f97d542720f1a87e491824e211a463942ce0d9d84dc79f7  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPair3-9.f32
+d3d869c114e5b163ce835f9bcca8bea5d3d592b3bb84546c19607dd8c2b3d563  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairEdge0.f32
+6b8b2a93224dd42bbc568ca0848d2ee3eb9a641cf8d6f61310ba95ab0e5c5c55  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairEdge1.f32
+ceb167de845c414b807482c7cfca2e8c1254bca5b9c74f131ab467edc5a1ee8e  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairEdge2.f32
+fc5a28ab739c62db5c6854ab6460361cbd432732bf9122500dcd368d7f2abfcc  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairEdge3.f32
+07c62256dd03e6f1d5bbd51d8721669dfe99ce7ac14fd4ebbcf97d01870d9906  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-0.f32
+971590ab5df8c7577ed797b50a09db90bd7eba6035dca9870631ef6d8eb8e092  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-1.f32
+d5a3c11ddd422b4c1c9ab052d2864e327f2869ede2b9c5a0a64065dee8a966b4  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-10.f32
+05358448071adcfaf257a06c154f634624cf6ac91b02ed9f992c041f617f65e6  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-11.f32
+278ad564bcd1a45443ac161bc3ca2c84b9ce41f2eadf8b0d9db99b0318f05b11  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-12.f32
+47520624532fa6400e4441f7742d18d4b16da04ab5d0cd317d04d15d8fdf6b9b  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-13.f32
+8d25a7fd57b6aabc7e40593a5806842612bd9b56ca8b7bdf5dd21b5241bbddf1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-14.f32
+87f699f1e450e81e0794c41ed7176380e30ce0142551a367e06f201a505e2369  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-15.f32
+216e13e4d4856b31cce1694b00c79e095c89f75835312882d4ccd9ccebb0e528  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-2.f32
+7e9a93f7be3cd9902e70adc0c0487589fce0443b711dcca6a9884f090a96f8ca  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-3.f32
+7f4ff23fa5f366272d7bfcab80f64478f869104279d34f9ddb5589634dc173ae  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-4.f32
+c1a7fcd31c9bbe946c1da266253454f0100e214b4e376793ba45f81832966637  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-5.f32
+895b2f50fa4e2aabdea26f7bc1d6f6b3cbddafbb2b56c74e9b991b179aa1a338  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-6.f32
+ff676c3064a7fc18e592b033647b5dd8047e8b6cad47d0933d5d04c9a32e672e  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-7.f32
+a9ec36854382f1c9b36845adc7c0a6404564681c7f26b2b8d96fb09d26795ce5  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-8.f32
+e60fa39bb330f081c2e8e0befa6fc79ab4fb2c28b246dc0a7cc3b0cac389a7b6  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload0-9.f32
+46277eaede97490b33917f174dc66c0571d9fb9c7ffc3c5cc6c894c0094502a0  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-0.f32
+5043bc829efd1041b54b3c88bcb672f7caf4d708fb75a1b28c400a93ce7066b8  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-1.f32
+cb7dd75617e9aa22659dd6b67077f36ec5cb7c905985b0b87ab0d54f1e0e08ff  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-10.f32
+9acfeb143cc456303fed7b160b352a4e5226cd0f0c2ae9d2add36dcef9d256ef  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-11.f32
+685d1c28445aac532b291a82c68681bc4e1410bd360cca5729e2d44c798f6364  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-12.f32
+72b3d89179b353d47bc6cfe86e000398b367aa731db8e9c91526fdfd5b47a043  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-13.f32
+74664eb96ecc7dbcff97ca497824962372c82693c6f062ab6a73750f6e5ed414  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-14.f32
+324d0f269f5f95ffef8d768b4f2ec56a8ac47c8ff96cf7105a78a751007d86ee  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-15.f32
+6bbd18b4a8d6636a9b5afcd3dacc0083e9b60d6a97f9a21a383ec82a724a6abc  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-2.f32
+225c38c9d5c44396d0419c95c481f7ab21753447a16ed8c3b54ffd59f797a825  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-3.f32
+9f0796e612cac6ef7bd45b1bf3542e1af1f9aa622baf9e24d7df26c3951adda0  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-4.f32
+22cbe8262361f5ae6efcedd6d602f3ad46685e56de17b0d0e9667dca2a326f50  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-5.f32
+d3f85a920beab9f6a338adac372edc681031c09c14890fdefce94e592bf0b116  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-6.f32
+210ffba0ccd7ee04e2a4684bfcc59779c96d3dec2e22bd4670d7827c6787e2e1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-7.f32
+e38196732dc17f53671abe8b785989f16180cd0c4e2e14993ad1d3b5c31bc0ec  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-8.f32
+3d3b82a9cd5637c458f1c704668960988daa518c036e5e31942c4d675c4ac72a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload1-9.f32
+335dff3d07ad42908df948928f7ad9c03001e4fe0134725e92ded4d49cfff853  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-0.f32
+c08bd08bf5902f59d5bd636e1b979838c57b9fac10bcf655ea1640216af86032  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-1.f32
+3e0f0ec647fc3e7c237abd0371997858fec2f9bda3bb0e2d441e44157165e577  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-10.f32
+85835a640e4f2e7c58f00134624ede20a94bc761a81cc14f86e8c22783268294  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-11.f32
+bee742d2f9f46859c1a2cd348728cdbb455ff0438422e00d31d6fc1623e4abb6  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-12.f32
+2603e3455123cf461a730e8488bdfba53729d5c321ca932000ec5c6a8147d2ed  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-13.f32
+13e3df97b02590edbfd6cdfd2c5044e894b79ba42c3a8cd990f42171ee5da753  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-14.f32
+b536f7d66d126e8ecc2cac1fab6270eceec17e5b1cb245c8fd5e33687bc7420b  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-15.f32
+d765bf800798114def05778127af833bc3503d3f6c2081e3b9ef3870d2306941  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-2.f32
+defd94dc7a7f190e7bbc3bc748afdc91f426ddd48c02b44fd092ba52e0a985d1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-3.f32
+599525f5b8ab917358cdd87d72fb28703da20edc19ad3d205fb89dd35c67060a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-4.f32
+78f493bdba96cf5d39a56b97c2905100fad0d0378b5570b8866334ba1fb66c91  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-5.f32
+cb3f5c928e2a8410516c895e9df3a41db481de010c04db4d6def03eae9778793  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-6.f32
+46321163239925a7f5fa2d415dec904ac7dd5876fedf229444a7c96c3ce9ab13  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-7.f32
+85e71fdafd5d560f4c7c4d27c96a20548e8f64f70b6d59e411df0f18e4669876  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-8.f32
+975e2855b07a872119daa3e0fc6f986e30c994945e42e3667f1066dd3d7c6c65  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload2-9.f32
+106c3fde64c6816de70d9420e738a90cbcc6078b5360648201cf2fa863b39123  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-0.f32
+4e2c9886b3cb4e767eaa2828c352b346e95838652ec0c0c78ae13e2030a31d2d  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-1.f32
+73c12e9140cc0ce77c905a1e6de3d8defae356689460902ea71654271b944d5c  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-10.f32
+31eb6295fdb1274b3c2c0a2f15dac5283574d5cf74bc2694e412757da47517eb  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-11.f32
+74537294e37a3ab80b9b46e6e31826327c3cbe67f36b9a23f1526b2d23026a8a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-12.f32
+2ac03afedd353cd2243c5851720145a58a6d7504eace6303cc6c1d45507a9bf3  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-13.f32
+702626ac747a664449c6ca7b320506c83d812d72b6b8dc507af17e853f615263  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-14.f32
+c9b63a7cc084e4921a16cc5f73dba836e9c2ce65a49bbd3239a9e269f030f01f  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-15.f32
+34e34b274b10df03bbe7250b58f45ad89bf4a8f6bc93a71d8d8487799d671414  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-2.f32
+29be589ab74dce33900ce8880cef08742bbc07eefc71f5f3684b126303a61948  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-3.f32
+9a295f18329f4acd3e55714c8f4e0b7c55417fbd648dd47b22f4268c40b85ebb  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-4.f32
+09e55ca8768c8faec2586b6fbbf67947b9bba75c282d4c03668d4236a2b54dfe  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-5.f32
+214f54bbd5fbf0e32f0b11138f27b0d12f536971340af76d535ca52653b2a67a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-6.f32
+a438111aa2fa57ad944c7e6b5f7bff00459aefb1294e31d068c0e333195509c5  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-7.f32
+d1f567bdc14a2a01c394d12c20a3fceee8bc2abb3764831e6bcb1cce6c048888  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-8.f32
+61bd5d890357e4b3aaccbbe79963926e89eb73194e524bff9cdd66707a620ed8  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairPayload3-9.f32
+877ca8665435445bf73f0decc8ae91391d1a2b78a3bf2ed9536200390a0b7a06  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairRays0.f32
+b50461c6badc9738891a47475e71cac01b1dd189c9b83745289aaa0e480e743d  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairRays1.f32
+fda5732e5306a6aaf14efbf3b108a6f0d04d5b6683aa9fa08b052aeb80146051  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairRays2.f32
+3f141bdbcd635acbff1577fedb8e63686947aea40bdf20aae4904d172f9e0322  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairRays3.f32
+867851d3d52f2165004b5a15dca327105b96ca9e7ffdb2ecd637e8482427b1ad  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-0.f32
+09da9df715c00929b367ebfbbe5209c0e6277155cb6773bda057e6dc4f90e859  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-1.f32
+fd8d8c87ab3de2fd6b4ea63d0ae44b20269a15e649fecc911c807063cdad4cd1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-10.f32
+52bc39addb39ead345d155e72beb56d2bbb0f50b521d74cb38c12b3695344c91  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-11.f32
+7cf6021356da15a8e1a3a4489c661862e40d0020125efbc842b95ab299de0c50  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-12.f32
+1a9c0701d2bbf75b0ba282ea6ebf1074571ee07a05764147efa9e7e4e60ca1ab  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-13.f32
+e82e82bee55e6d01756ba52cdd45acb0ab04060874525e083d5338b2fb7e3123  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-14.f32
+31997874eaf5009f22c74f71a9ee0f1d8e94263538168b006097c991ab561957  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-15.f32
+56abce0e16c930389b8b44ded54c206e93011bff7c5367da4a6d5b5e44a51694  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-2.f32
+a8a87252c11083fed1409a5310ad4d99b747128a2f220e6920e6b7c46f9347b9  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-3.f32
+2ab6a40f98c7635b385a26f45915338505629eb84d65d98c721c4cf1567c9122  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-4.f32
+be0d08ea0e042d56b0a44c060fea27760fe2b16d2bd157e9fcdd9c223fda412d  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-5.f32
+85a0fdb84c3162c3dd58aa51a79291a44b95ec794f6a53afcd8d495e3de79a01  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-6.f32
+bca8cce78a87e510e191196193550ed65316fadc6bda5dfa3ab74c8f9f5b830e  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-7.f32
+d390cd1a2cd4a523ae3fa780f149d3766479334df958870ab3cc0695fc2dcf04  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-8.f32
+0e2d1fa2e4cfaaa9980e63cf58620d00950bdb240a5ebd120a7b8a1c63cddf25  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected0-9.f32
+785d65c44ceb83840bdc9482c2b7fe3b3f579cc2c99111999a6eb590e9d0a636  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-0.f32
+471a7c2ef1bf37016458b87406f7c5ab4bd860f20241a816b734c44794aa59aa  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-1.f32
+0e1be59aca02d1206679f338961ab83fe6d398b38357b2fe5cb62bfadef72588  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-10.f32
+1299952a29c54a3d9b7ca2e960909d6dae6932ec1f886f941634f98ad78e9c24  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-11.f32
+307b7692f9e65c8657b4c13b528f8f12e788137159fd8d6aae992286314424c3  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-12.f32
+76d175b37cc0008e18aec55efaf7d1f39d19c28523b9fd1f27f7dad370c7fbfa  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-13.f32
+d011cbb1ab3532c2ad86a01a2cc62e335b6394b3e67e8db0933c0d3c14378677  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-14.f32
+a6dcff898d223684e49bf798cabca71a1f7802e854a7582f41e5f77a0cecfe0c  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-15.f32
+0b30688019ddf5a5710be369d0658521e9df827256c6a0bd9ddc8ce1ad699991  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-2.f32
+975dc4cc4ad543db79cb25b46e96755bba500e3d545966f4b178b2c1ea7e021d  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-3.f32
+ae68ac6ea11ad624c9309b67f0364196e891ee5907c6c56b8c9d1cf5c407deb7  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-4.f32
+23a8d2f562518bebf23c0e16ad85cfc1554d524c118d5c57a58c1c6b3962f5b1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-5.f32
+9cd103a50b1259d59570f8298ba75d2f37d18375a6e005eeed9ece760170d435  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-6.f32
+085de0800d344753a33a9ad3d14fad22a846990451d21dab85be0f6c5c03460d  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-7.f32
+2e8cd961200078ce051f85051d043c63b32ec3b6cb1fcb51a1ce6ef640eb2290  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-8.f32
+650bdbfbca03e1bd6b2fd592a64351cfd4cc4f8bffad6cd4948ae4ab09ef8eec  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected1-9.f32
+c0aa0690dabfc840b4aa7fd4301bb4753280106c5e57f543e84d317592371261  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-0.f32
+aeff46a9948fb9ba462ad7bea072cbb70e6d18ac4f78e6e00a37af7f198c5d8e  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-1.f32
+4e1c5fa15e0158fd725f8a73dd1b958e10e1c5a551b1c44e761840ab78a76a1a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-10.f32
+d9b8994ec8901f96fbad998aea5a0113c089c02699e863b29e69afc59920764f  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-11.f32
+b0ac02d5204231be3279827b75c4bccd551cd0e59eb4efdc7c225c7d2a70244a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-12.f32
+211dff476949a2fb973e07fc385c4cdb668f2bfc076a736ee1a319a012af5ea1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-13.f32
+1f9bc43b97f7528edeaa6d11168fbe72ba154b1f9372a0763d9935be7d1588b1  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-14.f32
+32c863ade44a88ece2f9ec094a776bf734e7b893fc424cc5cf0632a7eb027d8d  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-15.f32
+0f6f2a6471939496276e1593e2d8057658c982279c6ab332c003d4e569e1bd70  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-2.f32
+ac91542d77da39fa62691f8269ce91370c36b5175c27b35571ef371a471dfe16  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-3.f32
+7c7cf921c66f6d3f312d8499af7937ba6116a0dc8a93d9578978390868f822b2  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-4.f32
+0f2b6c9510139e0f3c40df271c1a1159aafc3bb4e7c6e12261bd4c471f5221e7  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-5.f32
+180aaaad3efe4072618ecce03def0522c9f8b0e692f356ca45135fcf1efa6d0e  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-6.f32
+1e5eee5aa17e185a9379ee20ddb921b2ec40af28e9987caf4dfaed1cbebb49dc  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-7.f32
+2510d7cdd5a1778137319c55d28eb93c66e81d51e5c99eed39703ea2c449a66f  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-8.f32
+adb7d0820a4c489f5c71723be37cb6c1a7da8054e055981345c896d8c5b8fb20  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected2-9.f32
+18dfccdf620a27c6e40f6fd1e50486fb0ab798927969625c383d953a20296ea9  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-0.f32
+d4fa98624a59867bb42ca53dac5306fc8bcd2777047e7831dd141ae0c2078390  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-1.f32
+d4c02cec7d303f3af07abac6bc3c7b5ee2fdef0295a534916ea1640ea863fb88  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-10.f32
+8e058b8981a8d61bebfa688d6be749c1b32b30ec6a5e1608c1b10ac27a868394  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-11.f32
+bd56ea0ec144e3059b74d14ca88f664c2f594fccba581c328133b85755b7d0e8  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-12.f32
+bfd14413ee0a24bde2af7694be6b7cb72502e14c3dcc0cf5be099f35fe98772a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-13.f32
+0d74a8f1fe335f7fc89fb78a4ea2cefc9d533e3cf59f0a8a307aeac293b83b30  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-14.f32
+ef72672c4973df5ab8f3aa62704f1b54c5affa1c6a3bcaa1a99cfaa361bc5916  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-15.f32
+92994c14723d40f9ba9386ca5d6fdd6ff21afa76a7bb6a6a141bcaa942af5467  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-2.f32
+d22e07a637eb6d3b843b27c5b6d788ebd94faa7aded3b2b1c6dfba4ddbcd739a  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-3.f32
+c4e9f23ebac1bb146cd474088deb04507205bd1c9c4f5b8206c0e0eb0da6baba  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-4.f32
+9fdc85898ed8cfce9001cff18c2aa578e5b45e8c016be8077ce548f1aec1c445  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-5.f32
+85a95d8dfab687a0cd1eaae7c7130a9d9cbf07ea0607a8ed3a4880c7f1742edc  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-6.f32
+313d0700810fc4568f769ec3fc91ba4f9045928c6e9bdc1a554db63635d1b391  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-7.f32
+26ebfe556e3ed57c2bacb486a5431aafa16afe7eae446552ad01b894b04558a4  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-8.f32
+d572afa11d17299040be6bb69918ec257d930835354ddda5ac11f950e0fbd4ce  /home/user/Frontier/_ClaudeScratch/weighted-pair-capture-sanitized/WeightedPairSelected3-9.f32

@@ -153,3 +153,9 @@ Evidence:[release](Results/VisibilityReuse-release.txt),[sanitized](Results/Visi
 [parity audit](Results/VisibilityReuse-parity.txt),[old negative control](Results/VisibilityReuse-legacy-rejection.txt).
 Counts above are per independent build unless explicitly cross-build;matched native checks include both old/new
 arms within a build,and density reconstruction uses the captured first cohort,not all32 cohorts.
+
+## Lower-storage follow-up evaluated
+
+[Two weighted reservoirs](WeightedPair.md) preserve the visibility contract and all control results while reducing
+logical persistent payload144→48B. They pass correctness,but fail temporal-quality neutrality in two fixtures.
+The complete tradeoff is retained;this does not promote the dense bank or change production memory/defaults.

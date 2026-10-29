@@ -1,5 +1,14 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Two weighted reservoirs — 2026-10-29
+
+[Complete lower-storage experiment,actual buffers and rejection](WeightedPair.md):positive geometry selection
+retains correct birth weights in48B logical payload versus144B for eight raw candidates. Both builds and896
+mean gates pass,but temporal quality worsens2.05%/1.19% on .12/.3 versus corrected fresh8. Query calls fall
+19.52–26.86%;this is a budget tradeoff,not a quality-neutral replacement or physical timing/allocation result.
+All previous12-arm controls remain unchanged. Production348.046875MiB/Engine/layout/defaults stay untouched.
+
+
 ## Confirmed visibility reuse and fair query baseline — 2026-10-29
 
 [Numerical cause, corrected reuse, actual readbacks and full baseline comparison](VisibilityReuse.md).
