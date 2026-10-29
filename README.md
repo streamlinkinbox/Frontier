@@ -99,6 +99,12 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
   quality-neutral replacement;production348.046875MiB unchanged.
 
+- [Continuous-area PDF/reconnection gate](Exhibits/LightCompute/AreaReconnection.md):fresh sampling now spans
+  triangle interiors with area PDFs,joint direction conversion and diffuse receiver BRDF. Independent double
+  rays/quadrature validate the integral. Uniform wins7/9 cases;area wins2/9 and has24.05% lower exploratory
+  pooled RMSE. Neither is a universal winner.
+  Equal query counts are not physical time;no temporal/production promotion.348.046875MiB unchanged.
+
 - [Held-out expected-query-budget control](Exhibits/LightCompute/QueryCalibration.md):independent pilot/fresh
   count allocation matches stationary/smooth calls within0.30%/0.12%,but rotate2 rolling error is8.09%/4.48%
   worse. Jumping has8 infeasible zero-contribution steps;no artificial ray spending or production promotion.

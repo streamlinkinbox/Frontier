@@ -4,6 +4,30 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## Continuous-area PDFs and fresh reconnection — 2026-10-29
+
+- [Completed continuous-surface gate and actual buffers](../Exhibits/LightCompute/AreaReconnection.md):uniform
+  within-triangle sampling over all ten facets,uniform/area-weighted triangle selection,explicit qArea and
+  joint facet/direction qOmega. Receiver diffuse BRDF/both cosines/distance/visibility are included.
+- Nine layout/receiver cases validate294,912 paths and589,824 binary CPU visibility decisions per build.
+  Both builds pass five CTests each;29 rows,60 hashes/build,nine buffers and two SPIR-V files match. Double
+  rays,RNG/selection,UVs,areas,PDFs,RGB and per-sample/output estimates agree at fixed2e-5.
+  Exactly grazing coverage16,726 paths;anchored affine interpolation avoids coplanar cancellation,not a cutoff.
+- Both proposals use32,768 calls/arm/case. Uniform triangle has lower RMSE in7/9;area weighting wins2/9 with
+  60.73%/62.29% lower RMSE in cases4/7,but is2.44–3.32x worse elsewhere. Retain both;no universal variance or
+  physical speed claim. Exploratory equal-case pooled RMSE is24.05% lower for area;it is not a frozen gate.
+  Case wins and pooled error rank differently. Discrete-point RMSEs cannot be compared to this integral.
+- Independent128/256-per-axis facet quadrature supports54 empirical RGB mean gates;72 barycentric moment
+  gates and deliberately missing-area/Jacobian controls are audited. Quadrature drift is not a certified bound.
+  qOmega is joint facet/direction density,not full marginal directional MIS. Prior reuse rejection stands.
+- Bounded phase100%;overall ReSTIR/GI~63%,~37% remaining,planning estimates. Next:fresh continuous-area
+  reservoir selection with explicit proposal densities and same-query raw controls. Remaining continuous RIS,
+  full MIS/multibounce,dynamic/camera/TAA/general-scene acceptance,physical GPU and production integration.
+- Production348.046875MiB/defaults unchanged;packing/editor/vehicle/Jolt deferred. Results retain9 readbacks,
+  two modules,build logs,comparisons/audit/hashes;Images retains18 exact arrays/two plots. Windows/physical
+  GPUs untested;host sanitizers do not instrument driver/SPIR-V. No packing,PR or Actions.
+
+
 ## Held-out expected-query-budget calibration — 2026-10-29
 
 - [Completed separate-seed pilot and held-out controls](../Exhibits/LightCompute/QueryCalibration.md):4096 CPU

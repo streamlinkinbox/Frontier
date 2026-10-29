@@ -416,3 +416,15 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   default-policy regression. `--query-calibration` selects this isolated validator. Results retain96 buffers,
   two modules,logs,allocations/metrics/means and hashes;Images retains24 exact arrays and three plots.
   Offline calibration cost is excluded from query totals;no physical speed or production promotion follows.
+
+
+### Continuous-area reconnection
+
+- `Exhibits/LightCompute/Code/AreaReconnectionGpu.slang` samples triangle interiors with uniform/area-weighted
+  facet probabilities,explicit area/joint-direction PDFs and diffuse receiver transport. It reuses the tested
+  RGB suffix/connection functions and production BVH. `--area-reconnection` selects the isolated validator.
+- `AreaReconnectionValidation.h` independently replays double rays/geometry/RNG/PDFs and integrates128/256
+  quadrature per axis/facet. `RunAreaReconnection.sh`,`AreaReconnectionEvidence.py` and `AreaReconnection.md`
+  retain build parity,mean/moment gates,wrong-PDF controls and equal-query comparisons. Results retain9 buffers,
+  two modules,logs,generated tables/audit/hashes;Images retains18 exact arrays and two plots.
+  This is continuous-area fresh transport,not full MIS,multibounce,temporal reuse or production integration.

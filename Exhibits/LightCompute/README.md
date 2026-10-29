@@ -1,5 +1,17 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Continuous-area PDFs and fresh reconnection — 2026-10-29
+
+[Continuous triangle sampling,PDF/measure checks and actual evidence](AreaReconnection.md):fresh samples over
+all ten triangles include receiver BRDF,both cosines,distance and traced visibility. Uniform/area-weighted
+proposals use equal calls;uniform wins7/9 cases,area2/9. Exploratory pooled RMSE favors area24.05%,not a
+universal gain or frozen promotion gate. Independent double geometry/rays and
+128/256-per-axis quadrature validate densities/contributions,with grazing and wrong-PDF controls. Joint
+facet/direction conversion is not complete marginal directional MIS;no temporal or production promotion.
+Phase100%;overall~63%/~37% remaining,planning estimates. Next:fresh continuous-area reservoir selection with
+proposal PDFs and same-query controls. Production348.046875MiB/defaults unchanged;no physical speed,PR/Actions.
+
+
 ## Held-out expected-query-budget control — 2026-10-29
 
 [Separate-seed pilot allocation,held-out costs and rejected promotion](QueryCalibration.md):4096 CPU pilot

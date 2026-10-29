@@ -1,0 +1,6 @@
+PASS continuous-area implementation:29 identical semantic rows;hashes/build=[60, 60];nine identical captures;two identical SPIR-V files.
+294912 continuous paths and589824 binary CPU visibility comparisons/build;54 RGB mean gates;72 barycentric moment gates;18 exact PNG arrays.
+Grazing paths=16726;negative failed mean gates missing_area/missing_Jacobian=[18, 18];area-weighted RMSE wins=2/9.
+Exploratory equal-case pooled RMSE uniform/area=[0.0010024355261443818, 0.0007613913473805529];not a frozen gate.
+Max area/direction estimate difference=1.862645149230957e-09;CPU max estimate=3.60007771268e-08;density=7.13051755995e-07.
+Total queries/build=589824,equal32768/arm/case;no physical time,production promotion,temporal reuse or multibounce claim.
