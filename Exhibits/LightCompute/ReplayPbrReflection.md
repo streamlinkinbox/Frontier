@@ -5,8 +5,10 @@
 The shared Engine replay shaders now accept an opt-in, bounded authored-material domain. The `64x64` showroom
 executes on SwiftShader CPU Vulkan; this is **not** a completed production renderer or editor viewport. The earlier
 report called this work complete, described its reference as unbiased and claimed statistical parity. Those claims
-were not established and are superseded here. A later independent check found and repaired double-counted light
-through thin glass: [transmission audit](ReplayTransmission.md).
+were not established and are superseded here. Later independent checks found and repaired double-counted light
+through thin glass and a tiny-coverage authored sampler mismatch: [transmission audit](ReplayTransmission.md) and
+[material hemisphere/recorded-path audit](ReplayMaterialSampling.md). The latter covers 11 bounded materials,
+not general reflection correctness.
 
 ![Replayed PBR showroom and same-shader comparison](Images/ReplayPbrReflectionComparison.png)
 
@@ -56,7 +58,8 @@ The SVGF result is slightly worse than spatial-only RMSE in this run. Smooth chr
 noisy in the finite reference (`0.735688` and `0.554361` masked RMSE respectively). No quality gate was promoted
 from these exploratory comparisons. See [raw metrics](Results/ReplayPbrReflectionMetrics.txt) and
 [execution log](Results/ReplayPbrReflection-release.txt). The capture was generated after the main glass-MIS
-repair but before the subsequent nine-pane and unreachable-density limit guards, which are tested separately.
+repair but before the subsequent nine-pane, unreachable-density and tiny-coverage sampler guards. Those guards
+are tested separately; this older showroom image is not evidence of their visual effects.
 
 ## Verification and reproduction
 

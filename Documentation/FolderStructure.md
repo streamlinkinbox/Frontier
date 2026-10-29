@@ -102,6 +102,9 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   `FrontierPathReplaySubmission` links the bounded domain and Vulkan recorder. Callers own GPU resources and fences.
 - `Exhibits/LightCompute/Code/Replay{Transmission,Segment,SubmissionSequence}Validation.*` owns focused checks;
   `RunReplayTransmission.sh`, `RunReplaySubmissionSequence.sh`, `Results/` and `Images/` retain reproducible evidence.
+- `ReplayMaterialSamplingValidation.{h,slang}` owns the actual-sampler and independent hemisphere checks;
+  `ReplayMaterialPathValidation.h` checks recorded material/diffuse paths against separate integrals. Their run
+  scripts and `ReplayMaterialSampling.md` preserve the historical failure, sanitizer, path and quality evidence.
 - `ReplayBranchComparison.md` records the compared peer revision and non-equivalent benchmark boundaries. None of
   these files connects the renderer to the editor viewport.
 

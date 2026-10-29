@@ -30,17 +30,20 @@ GPU work; the caller must quiesce the queue or use disjoint resources before reu
 | Host lifecycle | Pending/wrong ticket, policy/input/pipeline changes, invalid ranges and camera cuts. |
 | Native tests | 10/10 Release and 10/10 host ASan/UBSan CTests. |
 
-The Release comparison was rerun after restoring pinned dependencies into empty ignored directories. The Vulkan
+The Release comparison was rerun after the material-sampler correction with the current shader. The Vulkan
 fixture uses `32x32` diffuse triangles with seed history, temporal/spatial replay and SVGF. The simulated
-interruption is an exhibit-side exception before `vkQueueSubmit`, not a physical device-loss
-test. Shader and driver code are not sanitizer-instrumented. [Release log](Results/ReplaySubmissionSequence-release.txt)
-and [sanitizer log](Results/ReplaySubmissionSequence-sanitized.txt) retain the details.
+interruption is an exhibit-side exception before `vkQueueSubmit`, not a physical device-loss test. Shader and
+external driver code are not sanitizer-instrumented. The current [Release log](Results/ReplaySubmissionSequence-release.txt)
+and [host sanitizer CTests](Results/ReplayMaterialSampling-sanitized.txt) retain source hashes; the older
+[sequence sanitizer log](Results/ReplaySubmissionSequence-sanitized.txt) records its historical snapshot.
 
 ## Reproduce
 
 ```bash
 python3 Exhibits/LightCompute/Code/Prepare.py
-bash Exhibits/LightCompute/RunReplaySubmissionSequence.sh
+# Linux sandbox run used a 3,900,000 KiB virtual-memory cap and bounded glibc arenas.
+(ulimit -v 3900000; export MALLOC_ARENA_MAX=2; bash Exhibits/LightCompute/RunReplaySubmissionSequence.sh)
+SANITIZE=1 bash Exhibits/LightCompute/RunReplayMaterialSampling.sh  # Current host CTests; driver/shaders unsanitized
 ```
 
 The run requires CMake, Ninja, a C++20 compiler and the pinned Linux Slang/SwiftShader dependencies. The log's

@@ -1,10 +1,10 @@
 Replay pane transport and reservoir safety; shaders and SwiftShader are not sanitizer-instrumented.
-Host base d9cbe17, plus working changes if any; source hashes follow.
+Host base dcc1283, plus working changes if any; source hashes follow.
 Linux 6.1.158+ x86_64
 c++ (Debian 12.2.0-14+deb12u1) 12.2.0
 2026.14.1
 b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/LightInfluence.slang
-d53e4338f05f1f5e590acd42156fe7bcac74bd2d1385adbfcf0a03fa835a1361  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+2d3f7225ff06d61e15ea1036fc3d7c156c764031d62fa3ed394d6da16fb332ed  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
 1ff2b3cf9e64ff73fa08f9db115eed9f0f2ebd6c7600ee4ec41823aba2df61d8  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
 863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
 0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
@@ -12,12 +12,12 @@ d53e4338f05f1f5e590acd42156fe7bcac74bd2d1385adbfcf0a03fa835a1361  /home/user/Fro
 4151a6b8692085720278aea330d5265212e2f65e8aa8ff1c4851140441b2d920  Exhibits/LightCompute/Code/ReplayTransmissionValidation.h
 568367668d6ec2723ff1ba932ac091b1d545f893c351e4c1319cd960aa6b353d  Exhibits/LightCompute/Code/ReplaySegmentValidation.h
 60208ee903a072c6bf6c85254fa23623500fcf811c66b70230341e89fcd28054  Exhibits/LightCompute/Code/ReplaySegmentValidation.slang
-dabc4b8a619c8cda4990e16b332c7ba9b9874fd12d85dfc100405bda881930b4  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+ce12d834df437eb67e5be66d12e818f07fd2b7f8bd947cc0f4c5292e3a8a8bf8  Exhibits/LightCompute/Code/LightComputeValidation.cpp
 672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/Primary.spv
-8707a7174b4d547700a314de1a14ca9572c8f26f126437e4ea2044641432080b  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayGenerate.spv
-ed2828d99b1831f0473ac24050228925a3da4f8613985314269931d59b786500  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayResolve.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayGenerate.spv
+5bfe8da35cb3e050cb805c6bbc02d8dd401c97871ab60f283c57eff20423b229  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayResolve.spv
 4c9adf586ce451708fce20e3ec97e9788d6c70973f2952f9389a65adb2441ccc  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayGatherSampleHistory.spv
-612941c87c2970b1adf2f147cdd9ad640d3dc37fb8359cda8b9326c483652b50  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayFinalizeSampleHistory.spv
+66ebf3cc29483071550ee50518eaa39d282b0065524f54e35314b5325b564964  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayFinalizeSampleHistory.spv
 cc314303130a46dd7945961b793dbc36ed7d03f8718d5851f8b9290b5f242c08  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplaySegmentValidation.spv
 c680c7c4b71cc94e99beb15cbe6e3875530b4913d11e76ee1f84a66f00f0c2a6  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayMisLimits.spv
 Test project /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release
@@ -30,13 +30,13 @@ Test project /home/user/Frontier/_ClaudeScratch/build/replay-transmission-releas
       Start  4: MediumRadianceValidation
  4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
       Start  5: ReplaySeedCorrelationValidation
- 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    0.98 sec
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.08 sec
       Start  6: ReplayVarianceFilterValidation
  6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
       Start  7: ReplayRayAccelerationValidation
- 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.09 sec
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.08 sec
       Start  8: ReplayPbrReflectionValidation
- 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.07 sec
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.09 sec
       Start  9: ReplaySubmissionSequenceValidation
  9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
       Start 10: PathReplayArchiveValidation
@@ -44,7 +44,7 @@ Test project /home/user/Frontier/_ClaudeScratch/build/replay-transmission-releas
 
 100% tests passed out of 10
 
-Total Test time (real) =   1.17 sec
+Total Test time (real) =   1.27 sec
 REPLAY_TRANSMISSION panes=0 bounces=1 method=bsdf mean=0.393499819 batch_se=0.001284046 reference=0.393435032 error=0.000064787 batches=12 samples_per_batch=4096
 REPLAY_TRANSMISSION panes=0 bounces=1 method=facet_only mean=0.392890372 batch_se=0.000893897 reference=0.393435032 error=-0.000544659 batches=12 samples_per_batch=4096
 REPLAY_TRANSMISSION panes=0 bounces=1 method=balance mean=0.393442288 batch_se=0.000796420 reference=0.393435032 error=0.000007257 batches=12 samples_per_batch=4096

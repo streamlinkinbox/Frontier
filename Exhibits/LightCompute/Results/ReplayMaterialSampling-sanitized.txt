@@ -1,0 +1,55 @@
+Authored material hemisphere sampling; SwiftShader and shaders are not sanitizer-instrumented.
+Host base dcc1283, plus working changes if any; source hashes follow.
+Host ASan+UBSan: -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-O1 -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined -no-pie; ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+2d3f7225ff06d61e15ea1036fc3d7c156c764031d62fa3ed394d6da16fb332ed  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9  /home/user/Frontier/Engine/Render/Shader/ScatteringEvaluation.slang
+eec91c6476cc7d9787cc81a4510c7866439629ab4a4e1566399e526a9c19c4b8  /home/user/Frontier/Engine/Render/Shader/AutomotivePaint.slang
+dd7906399492325d728c5aca07ff522e6e43c6ba7380b095220b6c68d540a8ea  Exhibits/LightCompute/Code/ReplayMaterialSamplingValidation.slang
+6008472e0db6b2caa3d59adc090f3a29a49db4e3bd7520b3620858e5a968f7d3  Exhibits/LightCompute/Code/ReplayMaterialSamplingValidation.h
+b67bef7c640328f2fe236a73084eacdf0f3ac31b93b5ebde738112ba364a71c8  Exhibits/LightCompute/Code/ReplayMaterialPathValidation.h
+ce12d834df437eb67e5be66d12e818f07fd2b7f8bd947cc0f4c5292e3a8a8bf8  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+2e83f1bc6798d3000e23233dee2697d3321ba9430082c456bcda33da42fc494c  /home/user/Frontier/_ClaudeScratch/build/replay-material-sanitized/shaders/ReplayMaterialSampling.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-material-sanitized
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.01 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.01 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.01 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.85 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.01 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.50 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.15 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.01 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.01 sec
+
+100% tests passed out of 10
+
+Total Test time (real) =   2.55 sec
+REPLAY_MATERIAL case=matte reference=0.574762896 coarse_delta=1.63e-07 importance=0.574422976 importance_se=0.000321 cosine=0.574562386 cosine_se=0.000204 integrand=0.999577041 integrand_se=0.000497 importance_rmse=0.121323394 cosine_rmse=0.0692748387 rejected=3213 pdf_delta=0 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=metal reference=0.848680634 coarse_delta=4.14e-07 importance=0.848677354 importance_se=0.000596 cosine=0.857250229 cosine_se=0.0106 integrand=1.00177093 integrand_se=0.00596 importance_rmse=0.224665933 cosine_rmse=3.63378466 rejected=1628 pdf_delta=0 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=coat reference=0.267288643 coarse_delta=6.47e-08 importance=0.267719276 importance_se=0.000304 cosine=0.268814141 cosine_se=0.00102 integrand=1.00163571 integrand_se=0.00271 importance_rmse=0.122289073 cosine_rmse=0.380724153 rejected=1916 pdf_delta=0 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=sheen reference=0.234654542 coarse_delta=1.59e-07 importance=0.234478859 importance_se=0.000392 cosine=0.234852515 cosine_se=0.000286 integrand=0.998496332 integrand_se=0.00089 importance_rmse=0.14927301 cosine_rmse=0.12139476 rejected=7974 pdf_delta=0 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=faint reference=0.53868709 coarse_delta=1.45e-07 importance=0.539359573 importance_se=0.000873 cosine=0.540747357 cosine_se=0.00272 integrand=0.999506433 integrand_se=0.00131 importance_rmse=0.279299259 cosine_rmse=0.956847298 rejected=487 pdf_delta=0 scale=1e+07 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=zero reference=0 coarse_delta=0 importance=0 importance_se=0 cosine=0 cosine_se=0 integrand=1.00000002 integrand_se=0 importance_rmse=0 cosine_rmse=0 rejected=0 pdf_delta=0 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=coat_only reference=0.0364932525 coarse_delta=1.2e-08 importance=0.0365287249 importance_se=6.91e-05 cosine=0.0378046197 cosine_se=0.000778 integrand=0.997662944 integrand_se=0.00448 importance_rmse=0.02084703 cosine_rmse=0.279761167 rejected=337 pdf_delta=0 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=base_only reference=0.270082895 coarse_delta=7.53e-08 importance=0.269941898 importance_se=0.000143 cosine=0.270373084 cosine_se=0.000413 integrand=0.999354172 integrand_se=0.00112 importance_rmse=0.0525741674 cosine_rmse=0.164356695 rejected=2876 pdf_delta=0 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=faint_coat reference=0.0429221317 coarse_delta=2.12e-08 importance=0.0430797681 importance_se=0.000228 cosine=0.0439995098 cosine_se=0.000691 integrand=0.998968529 integrand_se=0.00138 importance_rmse=0.0700540131 cosine_rmse=0.251898174 rejected=170 pdf_delta=0 scale=1e+07 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=ultrafaint reference=0.53868711 coarse_delta=1.45e-07 importance=0.540747383 importance_se=0.00272 cosine=0.540747376 cosine_se=0.00272 integrand=1.00000002 integrand_se=0 importance_rmse=0.956847326 cosine_rmse=0.956847313 rejected=0 pdf_delta=0 scale=1e+24 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL case=eight_coats reference=0.267836678 coarse_delta=9.36e-08 importance=0.267835479 importance_se=0.00037 cosine=0.268814442 cosine_se=0.000883 integrand=1.00118926 integrand_se=0.00343 importance_rmse=0.122043869 cosine_rmse=0.34067511 rejected=2176 pdf_delta=0 scale=1 batches=32 samples_per_batch=4096
+PASS ReplayMaterialSamplingValidation

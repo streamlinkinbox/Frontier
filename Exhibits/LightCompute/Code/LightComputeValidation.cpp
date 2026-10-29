@@ -1898,11 +1898,23 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplayTransmissionValidation.h"
 #include "ReplaySegmentValidation.h"
 #include "ReplaySubmissionSequenceGpuValidation.h"
+#include "ReplayMaterialSamplingValidation.h"
+#include "ReplayMaterialPathValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
     try
     {
+        if (Count == 4 && std::string(Arguments[3]) == "--replay-material-path")
+        {
+            ValidateReplayMaterialPath(Arguments[1], Arguments[2]);
+            return 0;
+        }
+        if (Count == 4 && std::string(Arguments[3]) == "--replay-material-sampling")
+        {
+            ValidateReplayMaterialSampling(Arguments[1], Arguments[2]);
+            return 0;
+        }
         if (Count == 4 && std::string(Arguments[3]) == "--replay-submission-sequence")
         {
             ValidateReplaySubmissionSequenceGpu(Arguments[1], Arguments[2]);

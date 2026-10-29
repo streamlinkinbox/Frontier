@@ -1,5 +1,5 @@
 Completion-gated replay sequence; SwiftShader and shaders are not sanitizer-instrumented.
-Base d9cbe17, plus working changes if any; source hashes follow.
+Base dcc1283, plus working changes if any; source hashes follow.
 Linux 6.1.158+ x86_64
 c++ (Debian 12.2.0-14+deb12u1) 12.2.0
 2026.14.1
@@ -8,28 +8,28 @@ f0192ad96cb62a9fa461f11d4e3b1fa406a57a0da79a2c703fc35c7b73b01151  Frontier/Engin
 0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
 494e342089d7d8de39ec53846b6ba878af58431e46bb348ecf40e6e487107f0d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
 b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
-d53e4338f05f1f5e590acd42156fe7bcac74bd2d1385adbfcf0a03fa835a1361  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+2d3f7225ff06d61e15ea1036fc3d7c156c764031d62fa3ed394d6da16fb332ed  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
 1ff2b3cf9e64ff73fa08f9db115eed9f0f2ebd6c7600ee4ec41823aba2df61d8  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
 ec21b004067eb89088b4e322515feced5ae8d39a317fbd287cd839b6b10ba048  Frontier/Engine/Rendering/Shaders/PathReplayVarianceFilter.slang
 863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
 605783546265b3b49dfc9b42c009171809acc9ae291edd5b9561b14f6b2963eb  Exhibits/LightCompute/Code/ReplaySubmissionSequenceValidation.cpp
 4e5d88e53ab649237cc99c25278feaa9611cd1d79426489d0d0a52068a05c413  Exhibits/LightCompute/Code/ReplaySubmissionSequenceGpuValidation.h
-dabc4b8a619c8cda4990e16b332c7ba9b9874fd12d85dfc100405bda881930b4  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+ce12d834df437eb67e5be66d12e818f07fd2b7f8bd947cc0f4c5292e3a8a8bf8  Exhibits/LightCompute/Code/LightComputeValidation.cpp
 672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/Primary.spv
-8707a7174b4d547700a314de1a14ca9572c8f26f126437e4ea2044641432080b  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayGenerate.spv
-ed2828d99b1831f0473ac24050228925a3da4f8613985314269931d59b786500  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayResolve.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayGenerate.spv
+5bfe8da35cb3e050cb805c6bbc02d8dd401c97871ab60f283c57eff20423b229  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayResolve.spv
 4c9adf586ce451708fce20e3ec97e9788d6c70973f2952f9389a65adb2441ccc  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayGatherSampleHistory.spv
-612941c87c2970b1adf2f147cdd9ad640d3dc37fb8359cda8b9326c483652b50  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayFinalizeSampleHistory.spv
+66ebf3cc29483071550ee50518eaa39d282b0065524f54e35314b5325b564964  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayFinalizeSampleHistory.spv
 698e550e3466b04d2cd37c21889bf8fefc4b74811b64ffd356e10498e5fbf2fa  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayGatherVarianceHistory.spv
 31e9c8e76fb2021c0716ead7127560ce5c6e2a0fd45c79d9133bae450ff2a4fe  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayIntegrateVarianceMoments.spv
 82935a98f0531b16268f86fc9a7d682f72fd84d287dc9a45a29eaee4ac569cec  /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release/shaders/ReplayFilterVarianceWavelet.spv
 Test project /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence-release
       Start  1: PathReplayDomainValidation
- 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.00 sec
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.01 sec
       Start  2: PathReplayVulkanValidation
  2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.00 sec
       Start  3: RadiantFacetValidation
- 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.00 sec
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.01 sec
       Start  4: MediumRadianceValidation
  4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
       Start  5: ReplaySeedCorrelationValidation
@@ -37,16 +37,16 @@ Test project /home/user/Frontier/_ClaudeScratch/build/replay-submission-sequence
       Start  6: ReplayVarianceFilterValidation
  6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
       Start  7: ReplayRayAccelerationValidation
- 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.09 sec
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.10 sec
       Start  8: ReplayPbrReflectionValidation
- 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.10 sec
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.12 sec
       Start  9: ReplaySubmissionSequenceValidation
- 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.12 sec
       Start 10: PathReplayArchiveValidation
 10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.00 sec
 
 100% tests passed out of 10
 
-Total Test time (real) =   1.30 sec
+Total Test time (real) =   1.45 sec
 REPLAY_SUBMISSION_SEQUENCE frames=4 slabs=16 counters=24 exact=1 camera_continuations=2 interruption_reset=1 storage_reset=1
 PASS ReplaySubmissionSequenceGpuValidation

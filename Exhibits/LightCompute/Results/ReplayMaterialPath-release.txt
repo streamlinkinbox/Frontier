@@ -1,0 +1,68 @@
+Recorded material and diffuse-bounce replay; SwiftShader and shaders are not sanitizer-instrumented.
+Host base dcc1283, plus working changes if any; source hashes follow.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
+494e342089d7d8de39ec53846b6ba878af58431e46bb348ecf40e6e487107f0d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+2d3f7225ff06d61e15ea1036fc3d7c156c764031d62fa3ed394d6da16fb332ed  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+6008472e0db6b2caa3d59adc090f3a29a49db4e3bd7520b3620858e5a968f7d3  Exhibits/LightCompute/Code/ReplayMaterialSamplingValidation.h
+b67bef7c640328f2fe236a73084eacdf0f3ac31b93b5ebde738112ba364a71c8  Exhibits/LightCompute/Code/ReplayMaterialPathValidation.h
+ce12d834df437eb67e5be66d12e818f07fd2b7f8bd947cc0f4c5292e3a8a8bf8  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-material-path-release/shaders/Primary.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-material-path-release/shaders/ReplayGenerate.spv
+5bfe8da35cb3e050cb805c6bbc02d8dd401c97871ab60f283c57eff20423b229  /home/user/Frontier/_ClaudeScratch/build/replay-material-path-release/shaders/ReplayResolve.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-material-path-release
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.00 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.00 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.00 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.08 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.08 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.09 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.00 sec
+
+100% tests passed out of 10
+
+Total Test time (real) =   1.28 sec
+REPLAY_MATERIAL_PATH preparing production pipelines on SwiftShader Device (Subzero)
+REPLAY_MATERIAL_PATH pipelines_ready=1
+REPLAY_MATERIAL_PATH starting=matte
+REPLAY_MATERIAL_PATH case=matte bounces=1 reference=0.574762896 mean=0.575151768 batch_se=0.000313 sample_rmse=0.119869598 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=metal
+REPLAY_MATERIAL_PATH case=metal bounces=1 reference=0.848680634 mean=0.848814829 batch_se=0.000642 sample_rmse=0.224675193 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=coat
+REPLAY_MATERIAL_PATH case=coat bounces=1 reference=0.267288643 mean=0.267377826 batch_se=0.000401 sample_rmse=0.122360338 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=sheen
+REPLAY_MATERIAL_PATH case=sheen bounces=1 reference=0.234654542 mean=0.235097235 batch_se=0.000354 sample_rmse=0.148936344 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=faint
+REPLAY_MATERIAL_PATH case=faint bounces=1 reference=0.53868709 mean=0.538497548 batch_se=0.000834 sample_rmse=0.278507691 scale=1e+07 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=zero
+REPLAY_MATERIAL_PATH case=zero bounces=1 reference=0 mean=0 batch_se=0 sample_rmse=0 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=coat_only
+REPLAY_MATERIAL_PATH case=coat_only bounces=1 reference=0.0364932525 mean=0.0364856664 batch_se=6.69e-05 sample_rmse=0.0208548593 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=base_only
+REPLAY_MATERIAL_PATH case=base_only bounces=1 reference=0.270082895 mean=0.270188157 batch_se=0.000105 sample_rmse=0.0518843622 scale=1 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=faint_coat
+REPLAY_MATERIAL_PATH case=faint_coat bounces=1 reference=0.0429221317 mean=0.0427658156 batch_se=0.0002 sample_rmse=0.0698297889 scale=1e+07 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=ultrafaint
+REPLAY_MATERIAL_PATH case=ultrafaint bounces=1 reference=0.53868711 mean=0.538729192 batch_se=0.00305 sample_rmse=0.942761171 scale=1e+24 batches=32 samples_per_batch=4096
+REPLAY_MATERIAL_PATH starting=eight_coats
+REPLAY_MATERIAL_PATH case=eight_coats bounces=1 reference=0.267836678 mean=0.268209182 batch_se=0.000354 sample_rmse=0.12215826 scale=1 batches=32 samples_per_batch=4096
+REPLAY_DIFFUSE_BOUNCE bounces=1 square_factor=0.554616026 reference=0.311768776 mean=0.312060542 batch_se=0.00122 batches=32 samples_per_batch=4096
+REPLAY_DIFFUSE_BOUNCE bounces=2 square_factor=0.554616026 reference=0.467061263 mean=0.467236323 batch_se=0.000731 batches=32 samples_per_batch=4096
+PASS ReplayMaterialPathValidation

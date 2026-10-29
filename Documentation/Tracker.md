@@ -5,6 +5,24 @@ The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) 
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts. Older entries below
 are inherited historical checkpoints: their branch/PR references and completion statements may not apply here.
 
+## Authored replay material normalization and path checks — 2026-10-29
+
+- Found and repaired a multi-stratum lobe PDF mismatch at tiny/zero coverage. In an independent red-channel
+  hemisphere control, faint-layer mean changed `0.982543 -> 0.539360` against reference `0.538687` (values
+  scaled `1e7`); the zero-coverage unit-integral check changed `1.243515 -> 1.000000` (reference `1`).
+  [Visuals, controls and full scope](../Exhibits/LightCompute/ReplayMaterialSampling.md).
+- Actual Engine Generate/Resolve replay with one fresh candidate, no temporal/spatial reuse and supplied
+  receivers agrees with the separate hemisphere integral for 11 material cases. A diffuse-square fixture
+  gives two-bounce `0.467236` against separate area reference `0.467061`. All run on SwiftShader CPU Vulkan.
+- Single-sample material importance RMSE is lower for tested metal/coated cases but higher for matte/sheen;
+  no equal-time or physical-GPU speed claim. Current thin-sheet regression, 10/10 host Release/ASan+UBSan
+  CTests, sanitized-host material probe and four KHR SPIR-V opcode checks pass. Driver/shaders are unsanitized.
+- Rechecked peer snapshot `75f72f4`; no peer commits/files cherry-picked. Its new reuse/reconnection work and
+  bounded vertex-cache query savings were reviewed without promoting the prototype.
+  [Exact adoption ledger](../Exhibits/LightCompute/ReplayBranchComparison.md).
+- Full ReSTIR GI, broad reflection/PBR correctness, production material/scene upload, GPU resource ownership,
+  Windows/physical GPU and the live editor viewport remain open.
+
 ## Replay correctness, compact PBR and submission sequencing — 2026-10-29
 
 - Compared the other session branch at `ceebd8a`; its bounded reuse experiments and independent controls are

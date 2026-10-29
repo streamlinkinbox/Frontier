@@ -7,8 +7,12 @@ editor.** Engine C++ and Slang contain temporal/spatial replay, optional seed hi
 authored-material support and software/ray-query acceleration. The software route executes on SwiftShader CPU
 Vulkan; the hardware path has compiled SPIR-V but has not run on a physical RT device.
 
-A recent independent check found and repaired double counting through thin glass
-([evidence](../LightCompute/ReplayTransmission.md)). The PBR showroom's 80-sample reference is a finite same-shader
+Independent checks found and repaired double counting through thin glass
+([evidence](../LightCompute/ReplayTransmission.md)) and a tiny-coverage authored-lobe density mismatch. Eleven
+bounded materials now pass a separate hemisphere integral through the actual Engine sampler and recorded replay;
+a two-bounce diffuse fixture also passes a separate area integral
+([evidence](../LightCompute/ReplayMaterialSampling.md)). These are supplied-receiver, single-candidate tests,
+not general temporal/spatial ReSTIR validation. The PBR showroom's 80-sample reference is a finite same-shader
 comparison, not independent ground truth. An optional completion-gated Engine submission sequence is now tested
 [offscreen](../LightCompute/ReplaySubmissionSequence.md), but it does not create resources or present an image.
 `Frontier/Applications/Editor/FrontierMain.cpp` and `UI/Editor/EditorWorkspace.cpp` still contain viewport
@@ -36,9 +40,9 @@ placeholders. Windows, physical-GPU timing, deforming scenes and production scen
 
 | Area | Bounded evidence | Still missing |
 | --- | --- | --- |
-| Multibounce GI | Seed/spatial replay, SVGF, offscreen sequencing | Equal-time game tests, broader motion, viewport. |
-| Reflections | Rough screen proposals and PBR replay fixtures | Independent glossy reference, history, GPU timing. |
-| PBR | Authored replay and independent thin-sheet integral | Material loading, solid GI, SSS, editor submission. |
+| Multibounce GI | Seed/spatial replay, SVGF, offscreen sequencing; two-bounce diffuse area check | Equal-time game tests, broader motion, viewport. |
+| Reflections | Rough screen proposals, bounded material hemisphere integrals and PBR replay fixtures | Broader independent glossy scenes, history, GPU timing. |
+| PBR | Authored replay, independent hemisphere and thin-sheet integrals | Material loading, solid GI, SSS, editor submission. |
 | Atmosphere, clouds, fog | CPU models and bounded Vulkan fixtures | Production scheduling and scene linkage. |
 | Sun, Moon, stars, flares | CPU celestial and isolated Vulkan Sun work | GPU/editor integration and calibration. |
 | Analytic / emissive lights | Clustered point/spot/IES and global facet CDF | Clustered facets and production. |
@@ -47,8 +51,9 @@ placeholders. Windows, physical-GPU timing, deforming scenes and production scen
 
 GI evidence: [seed replay](../LightCompute/ReplaySpatialDisk.md), [SVGF](../LightCompute/ReplayVarianceFilter.md)
 and [sequencing](../LightCompute/ReplaySubmissionSequence.md). Reflection/PBR evidence:
-[rough screen proposals](../LightCompute/RoughReflections.md), [PBR replay](../LightCompute/ReplayPbrReflection.md)
-and [thin sheets](../LightCompute/ReplayTransmission.md). Tyre and gas evidence remains under
+[rough screen proposals](../LightCompute/RoughReflections.md), [PBR replay](../LightCompute/ReplayPbrReflection.md),
+[material sampling](../LightCompute/ReplayMaterialSampling.md) and [thin sheets](../LightCompute/ReplayTransmission.md).
+Tyre and gas evidence remains under
 [VehiclePhysics](../VehiclePhysics/) and [FluidReference](../FluidReference/).
 
 The vehicle dynamics/Jolt port remains explicitly deferred. The new tyre work is standalone and does not

@@ -129,7 +129,10 @@ bool EvaluateOrSampleReplayPbrLobes(SurfacePoint Receiver, bool SampleMode, floa
         DiffuseWeight = clamp(DiffBudget / (SpecSum + DiffBudget + 1e-6), 0.10, 0.80);
     }
 
-    float SpecScale = (1.0 - DiffuseWeight) / max(SpecSum, 1e-6);
+    // 📝 Normalize positive lobe weights by their actual sum. Below 1e-20, bound the reciprocal by using
+    //     only the full-support cosine proposal; the BRDF itself remains unchanged.
+    DiffuseWeight = SpecSum < 1e-20 ? 1.0 : DiffuseWeight;
+    float SpecScale = (1.0 - DiffuseWeight) / max(SpecSum, 1e-20);
 
     if (SampleMode)
     {
@@ -167,8 +170,9 @@ bool EvaluateOrSampleReplayPbrLobes(SurfacePoint Receiver, bool SampleMode, floa
                                        max(FresnelPower, IsCoating ? 0.22 : 0.04);
                     Transmission *= IsCoating ? max(0.05, 1.0 - Coverage * FresnelPower) : max(0.0, 1.0 - Coverage);
                     Cumulative += LobeWeight;
-                    ChosenRoughness = LayerRough;
-                    if (Selector <= Cumulative || Layer == 0) break;
+                    // 📝 Ignore zero-weight lobes, including exact CDF boundaries and rounding fallback.
+                    ChosenRoughness = LobeWeight > 0.0 ? LayerRough : ChosenRoughness;
+                    if (Selector < Cumulative) break;
                 }
             }
             float Alpha = ChosenRoughness * ChosenRoughness, Alpha2 = Alpha * Alpha;
