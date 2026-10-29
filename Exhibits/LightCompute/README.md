@@ -1,5 +1,14 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Integrated RGB quartet selection — 2026-10-29
+
+[Selector correctness,actual buffers and negative quality result](RgbQuartet.md):two Vulkan dispatches select,
+write,read and evaluate four32B RGB facet descriptors. Both builds pass327,680 descriptor comparisons each;
+20 captures match and96 correct/raw RGB mean gates pass. Fresh quartet RGB RMSE is9.06–67.82% HIGHER than
+same-eight raw candidates;144B versus272B logical storage is not a fresh-quality or speed promotion.
+Persistent reuse,traced RGB and visibility remain next work. Production348.046875MiB/defaults stay unchanged.
+
+
 ## RGB facet descriptor and positive support — 2026-10-29
 
 [Complete descriptor/support gate and actual readbacks](FacetReservoir.md):shared32B descriptor,144B logical RGB

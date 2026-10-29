@@ -1,0 +1,6 @@
+PASS integrated RGB selector gate;38 identical semantic rows;hashes/build=[68, 68];20 byte-identical captures.
+327680 selected descriptor comparisons/build;96 correct/raw RGB mean gates;8 exact PNG readbacks.
+Max CPU normalized estimate/weight,absolute suffix errors=[1.48598764071e-07, 1.79274479877e-07, 5.96046447754e-08];negative failed cases/16=[6, 12, 9].
+Quartet/raw8 RMSE ratio(nonzero)=1.09061548..1.67819174;no fresh-quality promotion.
+Host Release and ASan+UBSan each exit0 with five CTests. Two-dispatch descriptor wire write/read.
+Supplied RGB,finite candidates,no visibility rays,persistent reuse,physical timing or production changes.

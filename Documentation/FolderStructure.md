@@ -349,3 +349,14 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   finite RGB support checks,reproducible native runs,exact parity,charts and limits. Results retain logs,hashes,
   static probe SPIR-V and six lossless `.f32.gz` captures;Images retains12 exact arrays and two labelled charts.
   The prerequisite does not install RGB sampling or change production348.046875MiB/defaults.
+
+### Integrated RGB quartet selection
+
+- `Exhibits/LightCompute/Code/RgbQuartetGpu.slang` selects four shared RGB facet descriptors from eight finite
+  proposals,writes wire slots,and reads/evaluates them in a second dispatch using the existing host barrier.
+- `RgbQuartetValidation.h` owns independent double reconstruction,RNG replay,selected descriptor and RGB checks,
+  sixteen receiver pairs and four epoch/null controls;`LightComputeValidation.cpp` exposes `--rgb-quartet`.
+- `RunRgbQuartet.sh`,`RgbQuartetEvidence.py` and `RgbQuartet.md` retain native builds,exact cross-build parity,
+  raw-eight and incorrect-normalization comparisons,and the explicit fresh-quality rejection. Results retain
+  lossless captures/compiled SPIR-V,logs,generated table,audit and hashes;Images retains exact RGB arrays/charts.
+  This exhibit does not install persistent RGB histories,trace suffixes or change production348.046875MiB/defaults.

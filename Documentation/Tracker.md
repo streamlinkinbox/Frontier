@@ -4,6 +4,26 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## Integrated RGB quartet selection — 2026-10-29
+
+- [Complete gate,raw comparison and actual buffers](../Exhibits/LightCompute/RgbQuartet.md):two-dispatch Vulkan
+  selection/descriptor write-read/reconstruction passes327,680 independent CPU comparisons per build,with no
+  selected-identity disagreements or ambiguous cases. Max normalized estimate/weight errors1.486e-7/1.793e-7.
+  Both Release/host ASan+UBSan exit0,five CTests each;38 semantic rows,20 captures and two SPIR-V files match;
+  68 runtime hashes/build verify. Stale epoch,rebuild,all-null and one-valid packets pass.
+- All96 correct/raw RGB mean gates pass;wrong zero-support/valid-count/current-h arms fail6/12/9 of16 cases.
+  Against same-eight raw candidates,the144B logical quartet has9.06–67.82% higher fresh RGB RMSE on nonzero
+  cases. Raw8 wins equal-draw accuracy;no quality/speed promotion. Logical raw RGB baseline is272B,not old
+  scalar144B. Debug slabs are not a compact allocation;production348.046875MiB/defaults stay unchanged.
+- Bounded selector phase100%;overall ReSTIR/GI~46%,~54% remaining,planning estimates only. Next:persistent
+  RGB quartet reuse with reset and matched quality/query controls. Traced suffixes,visibility,arbitrary surface
+  proposals,dynamic/camera/general-scene acceptance,physical GPU measurement and production integration remain.
+  Packing/editor/vehicle/Jolt deferred. No PR or Actions;commit/push backup authorized.
+- Retained initial failure documents computed-RGB exact-equality assertion corrected to the predeclared2e-5
+  precision contract;no target,seed or mean threshold tuning. Protocol centroid wording was incorrect:actual
+  tested points have fixed barycentrics(.2,.3). Neither correction is concealed as extra geometric coverage.
+
+
 ## RGB facet descriptor and positive-support prerequisite — 2026-10-29
 
 - [Complete gate,baselines and actual buffers](../Exhibits/LightCompute/FacetReservoir.md):shared32B descriptor,
