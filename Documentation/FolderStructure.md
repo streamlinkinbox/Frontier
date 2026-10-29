@@ -428,3 +428,15 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   retain build parity,mean/moment gates,wrong-PDF controls and equal-query comparisons. Results retain9 buffers,
   two modules,logs,generated tables/audit/hashes;Images retains18 exact arrays and two plots.
   This is continuous-area fresh transport,not full MIS,multibounce,temporal reuse or production integration.
+
+
+### Fresh continuous-area reservoirs
+
+- `Exhibits/LightCompute/Code/AreaReservoirGpu.slang` selects two-proposal fresh RIS using explicit area PDFs,
+  unoccluded scores and four reservoirs/packet;the shared traced RGB/BVH functions provide selected transport.
+- `AreaReservoirValidation.h` independently checks double geometry/rays,RNG,proposals,selection,normalizers and
+  outputs against raw4/raw8 controls. `RunAreaReservoir.sh`,`AreaReservoirEvidence.py` and `AreaReservoir.md`
+  retain both-build validation,prior quadrature/overlapping raw8 comparisons,mean gates,wrong-normalizer
+  controls and bounded same-query quality acceptance. Native CLI:`--area-reservoir`. Results retain9 buffers,
+  two modules,logs,means/metrics/audit/hashes;Images retains18 exact arrays and two graphs.
+  This is fresh sampling only,not temporal reuse,camera/full MIS,multibounce or production acceptance.

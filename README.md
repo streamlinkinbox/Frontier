@@ -99,6 +99,11 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
   quality-neutral replacement;production348.046875MiB unchanged.
 
+- [Fresh continuous-area RIS](Exhibits/LightCompute/AreaReservoir.md):PDF-correct two-proposal reservoirs beat
+  same-query raw4 in9/9 cases per uniform/area family,with16.71–32.51% lower RMSE. Against same-proposal raw8,
+  calls halve but error is slightly higher;no quality-neutral speed claim. Camera/physical GPU and production
+  acceptance remain separate;348.046875MiB unchanged.
+
 - [Continuous-area PDF/reconnection gate](Exhibits/LightCompute/AreaReconnection.md):fresh sampling now spans
   triangle interiors with area PDFs,joint direction conversion and diffuse receiver BRDF. Independent double
   rays/quadrature validate the integral. Uniform wins7/9 cases;area wins2/9 and has24.05% lower exploratory

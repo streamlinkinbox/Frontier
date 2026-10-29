@@ -1,5 +1,16 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Fresh continuous-area reservoirs — 2026-10-29
+
+[PDF-correct fresh RIS and same-query/same-proposal controls](AreaReservoir.md):four reservoirs select from
+pairs using h/qArea,then trace only selected suffixes/connections. Both uniform/area families beat raw4 in9/9
+same-query cases;RMSE falls16.71–28.27%/21.22–32.51%. Raw8 remains slightly more accurate at double the calls.
+CPU independently checks368,640 proposals,294,912 traced paths,selection/weights/visibility/output and work.
+This accepts the bounded fresh sampler,not temporal reuse or production. Phase100%;overall~67%/~33% remaining,
+planning estimates. Next:camera-space normals/materials and actual image/raw comparisons. Production
+348.046875MiB/defaults unchanged;no physical speed,packing,PR or Actions.
+
+
 ## Continuous-area PDFs and fresh reconnection — 2026-10-29
 
 [Continuous triangle sampling,PDF/measure checks and actual evidence](AreaReconnection.md):fresh samples over

@@ -4,6 +4,28 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## Fresh continuous-area RIS — 2026-10-29
+
+- [Completed fresh RIS experiment and measured quality gate](../Exhibits/LightCompute/AreaReservoir.md):four
+  two-proposal reservoirs use w=h/qArea and sum(w)/(2*hSelected),then trace only selected transport. Positive
+  h floor and unoccluded known Lambertian proxy retain support;both uniform/area facet families are tested.
+- Same-query raw4 controls use eight calls/packet,as does RIS. Uniform RMSE improves16.71–28.27%,area improves
+  21.22–32.51%,with9/9 per-family frozen gates passing. Raw8 uses sixteen calls and is more accurate in all
+  same-family cases;RIS trades50% fewer calls for0.02–15.26%/0.13–2.18% higher RMSE. No physical speed claim.
+- Release/host ASan+UBSan and five CTests each validate368,640 candidates,294,912 traced paths and589,824
+  binary visibility decisions/build;11 rows,62 hashes/build,nine buffers,two modules match across builds. CPU
+  double geometry/rays replay RNG,PDFs,scores,selection,normalizers,RGB
+  and query work at fixed2e-5. Empirical162 RGB mean gates reuse the prior area quadrature;wrong-normalizer
+  controls and old raw8 overlapping packet comparisons are audited. No tuning after results.
+- Bounded experiment100%;quality18/18 accepted ONLY for fresh same-query comparison. Temporal reuse rejection
+  stands;production remains unpromoted. Overall ReSTIR/GI~67%,~33% remaining,planning estimates. Next:camera-space
+  fresh RIS with receiver normals/materials and actual image/raw comparisons. Full MIS/multibounce,dynamic/TAA,
+  general-scene/physical GPU acceptance and production integration remain.
+- Production348.046875MiB/defaults unchanged;packing/editor/vehicle/Jolt deferred. Retain9 readbacks,two modules,
+  build logs,audit/means/metrics/hashes and18 exact array PNGs/two graphs. Windows/physical GPUs untested;
+  host sanitizers exclude driver/SPIR-V. No packing,PR or Actions.
+
+
 ## Continuous-area PDFs and fresh reconnection — 2026-10-29
 
 - [Completed continuous-surface gate and actual buffers](../Exhibits/LightCompute/AreaReconnection.md):uniform
