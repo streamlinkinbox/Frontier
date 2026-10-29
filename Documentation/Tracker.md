@@ -1552,3 +1552,28 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
 - Next distinct candidate:intermediate reservoir count/support-safe score plus new frozen holdout. General RGB/GI,
   production C++ integration,physical-GPU/Windows/editor/TAA/time/memory acceptance remain undone. No packing.
   Production348.046875MiB/Engine/layout/defaults unchanged. Source and final evidence backed up;no PR or Actions.
+
+### Four weighted reservoirs — restricted logical-memory/variance compromise accepted
+
+- [Complete fixed-protocol comparison](../Exhibits/LightCompute/WeightedQuartet.md):four selected reservoirs,two
+  proposals each,replace2/update.8 cold/4 warm proposals;positive geometry h,birth Z=Σ(h/q)/(2hselected),average4.
+  Full0/9/13 rebuilds;confirmed newborn visibility reused,historical visibility retraced. No numerical weakening.
+- Same14 controls+full4w/rotate2w;32 cohorts×1024 trajectories×16 poses. Four previous strips plus predeclared
+  new .45 holdout. Frozen corrected-Fresh8 instant/temporal/query acceptance PASSES5/5;no target/cadence tuning.
+- Queries−17.51–24.00%,instant RMSE−27.62–37.82%,temporal RMSE−8.60–16.12% vs corrected Fresh8. All five paired
+  temporal-MSE contrasts favorable,minimum14.85 nominal cohort SE,not guaranteed confidence intervals.
+- Versus raw Rotate4:queries−1.58–2.81%,temporal RMSE+0.06–6.93%;logical history144→80B(−44.44%). Quartet
+  is not quality-neutral to the raw bank. Quartet uses1.35–9.99% MORE queries than corrected Fresh6,for
+  20.61–27.59% lower temporal RMSE.
+- Both release/host ASan+UBSan exit0,five CTests/build;1,527 identical rows,375 hashes/build,1,280 mean gates,
+  330 byte-identical captures,24 exact PNG arrays.952 old result rows/200 capture hashes unchanged. Original
+  three boundary disagreements preserved;all5,120 confirmed edge cases pass.15,728,640 matched estimates exact0.
+- Nativequartet4,259,840/pair2,129,920 history checks;independent655,360/327,680 float32 selection replays.
+  Max q/weight/Z/estimate errors1.37e-7/6.54e-7/4.71e-7/7.78e-8;384+6,144 finite checks with negative controls.
+- Focused phase100%,remaining0%;overall renderer~40% **planning estimate**,not measured readiness. Done:design,
+  implementation,all baseline/alternative comparisons,new holdout,both builds,independent evidence and backup.
+- Logical80B is scalar/planar only,not allocated savings or RGB/facet descriptor cost.16B telemetry unchanged;
+  common debug allocation still includes all audit fields. No production Engine/layout/defaults change or packing.
+- Next distinct gate:general-scene RGB/facet descriptors and support-positive targets at the same fresh-query
+  budget,then production integration and real device/editor/TAA/time/memory acceptance.348.046875MiB remains.
+  No PR or Actions;source and final evidence committed/pushed to the session branch.

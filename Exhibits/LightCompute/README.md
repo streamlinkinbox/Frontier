@@ -1,5 +1,14 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Four weighted reservoirs — 2026-10-29
+
+[Complete five-fixture comparison and new holdout](WeightedQuartet.md):80B logical scalar history versus144B raw
+bank passes the fixed corrected-Fresh8 quality/query gate on all five strips,including new .45. Queries fall
+17.51–24.00%,instant RMSE27.62–37.82%,temporal RMSE8.60–16.12%. Both builds and1,280 mean gates pass.
+Raw Rotate4 remains more accurate;Fresh6 remains cheaper. No allocated-memory,physical-time or general RGB/GI
+claim. Production348.046875MiB/Engine/layout/defaults stay unchanged;packing remains deferred.
+
+
 ## Two weighted reservoirs — 2026-10-29
 
 [Complete lower-storage experiment,actual buffers and rejection](WeightedPair.md):positive geometry selection

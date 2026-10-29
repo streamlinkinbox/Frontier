@@ -98,3 +98,7 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
 - [Two weighted reservoirs](Exhibits/LightCompute/WeightedPair.md):48B logical candidate retention passes
   correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
   quality-neutral replacement;production348.046875MiB unchanged.
+
+- [Four weighted reservoirs](Exhibits/LightCompute/WeightedQuartet.md):80B logical scalar history passes all five
+  corrected-Fresh8 quality/query gates,including new .45 holdout. Smaller logical history trades some raw-Rotate4
+  quality;no production allocation/timing/RGB promotion.348.046875MiB stays unchanged.

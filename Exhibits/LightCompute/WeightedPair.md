@@ -134,3 +134,9 @@ Evidence:[Release](Results/WeightedPair-release.txt),[sanitized](Results/Weighte
 [parity/decision](Results/WeightedPair-parity.txt). Native counts are per build;independent reconstruction uses
 captured first-cohort buffers rather than every cohort. Empty-strip identity is checked only on fixture0;
 zero fields on other fixtures are not additional identity tests.
+
+## Intermediate count evaluated separately
+
+[Four weighted reservoirs](WeightedQuartet.md) keep the same positive score and fresh4 warm budget,but select
+from2 proposals/reservoir.80B logical history passes the five-fixture corrected-Fresh8 gate,including new .45.
+That does not erase this pair's .12/.3 temporal failures or imply a production memory/layout change.

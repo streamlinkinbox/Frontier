@@ -1,0 +1,6 @@
+PASS correctness:rows=1527 identical;hashes=[375, 375];1280 mean gates;952 old control rows unchanged.
+330 byte-identical captures;200 old capture hashes unchanged;24 PNG arrays exact;quartet replay checks=655360;pair checks=327680.
+Max q/weight/Z/estimate errors=1.36973619336e-07/6.53368944281e-07/4.70628869209e-07/7.77841213662e-08.
+Finite two/four-proposal configurations=384/6144;negative means=[5.46, 4.0, 3.7000000000000006];correct=3.9.
+Rotate2w acceptance per fixture=[True, True, True, True, True];decision=ACCEPT_RESTRICTED;production_promote=0.
+Both native commands exit0,five CTests each;shader regenerated exactly;no physical-GPU timing/allocation claim.

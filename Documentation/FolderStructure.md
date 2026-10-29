@@ -327,3 +327,13 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
 - `RunWeightedPair.sh`, `WeightedPairFinite.py`, `WeightedPairEvidence.py` and `WeightedPair.md` retain dual-build
   correctness,explicit quality rejection,full baseline/alternative comparisons and actual-buffer PNGs.48B is logical
   history only,not measured allocation savings;production output and default settings are unchanged.
+
+### Positive-target weighted quartet
+
+- `Exhibits/LightCompute/Code/CompileWeightedQuartet.py` reuses the pair/confirmed sampler,selects4 reservoirs from
+  2 proposals each,and alternates2-reservoir refresh with birth normalization.80B logical scalar history only.
+- `WeightedQuartetValidation.h` keeps all14 previous controls,adds full4w/rotate2w and new .45 holdout,checks
+  epochs/retention/empty-strip identity,collects all mean gates,and captures source weights/uniforms/selections.
+- `RunWeightedQuartet.sh`, `WeightedQuartetFinite.py`, `WeightedQuartetEvidence.py` and `WeightedQuartet.md` retain
+  dual-build correctness,five-fixture acceptance,complete alternatives,actual-buffer PNGs and independent float32
+  replay. No measured allocation/bandwidth/physical-time saving or production/Windows/editor/RGB acceptance.
