@@ -545,11 +545,14 @@ struct LightComputeSubmission
     }
     void Prepare(const LightComputeArchive& Scene, const std::string& Shaders, bool SolarOnly = false,
                  bool DirectOnly = false, bool DiffuseOnly = false, bool RectangleOnly = false,
-                 bool ReplayOnly = false, bool MediumOnly = false, bool CompactReplay = false)
+                 bool ReplayOnly = false, bool MediumOnly = false, bool CompactReplay = false,
+                 bool ReplayProvenanceOnly = false)
     {
         Require(int(SolarOnly) + int(DirectOnly) + int(DiffuseOnly) + int(RectangleOnly) + int(ReplayOnly) + int(MediumOnly) <= 1,
                 "Compute preparation modes conflict");
         Require(!CompactReplay || ReplayOnly, "Compact replay buffer preparation requires ReplayOnly mode");
+        Require(!ReplayProvenanceOnly || ReplayOnly,
+                "Provenance slab allocation requires ReplayOnly mode");
         for (const auto& B : Buffers)
             Require(B.Buffer == VK_NULL_HANDLE, "Compute buffers are already prepared");
         const bool HasReplayGather = ReplayOnly && std::filesystem::exists(Shaders + "/ReplayGatherReconstruction.spv");
@@ -598,7 +601,8 @@ struct LightComputeSubmission
                                                             HasSampleGather, HasVarianceGather))
             : (Scene.Receivers.size() * (HasVarianceGather ? 46 :
                 (HasSampleGather ? 40 : (HasReplayGather ? 36 :
-                ((DiffuseOnly || RectangleOnly || ReplayOnly) ? 32 : 25)))) + 13889 + SolarSourceCount);
+                (ReplayOnly ? (ReplayProvenanceOnly ? 34 : 32) :
+                ((DiffuseOnly || RectangleOnly) ? 32 : 25))))) + 13889 + SolarSourceCount);
         ConstructBuffer(6, nullptr, OutputRecords * 16);
         ConstructBuffer(7, nullptr, 96);
         std::array<VkDescriptorSetLayoutBinding, 8> Slots{};
@@ -1909,6 +1913,7 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplayTemporalFreshHistoryValidation.h"
 #include "ReplayTemporalSelectionStreamValidation.h"
 #include "ReplayTemporalPathStreamValidation.h"
+#include "ReplayTemporalProvenanceValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
@@ -1926,6 +1931,16 @@ int main(int Count, char** Arguments)
         {
             ValidateReplayTemporalSelectionStream(Arguments[1], Arguments[2],
                 std::string(Arguments[3]) == "--replay-temporal-selection-decorrelated");
+            return 0;
+        }
+        if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-provenance-baseline" ||
+                           std::string(Arguments[3]) == "--replay-temporal-provenance-path" ||
+                           std::string(Arguments[3]) == "--replay-temporal-provenance-selection"))
+        {
+            const std::string Arm = Arguments[3];
+            ValidateReplayTemporalProvenance(Arguments[1], Arguments[2],
+                Arm == "--replay-temporal-provenance-path",
+                Arm == "--replay-temporal-provenance-selection");
             return 0;
         }
         if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-history-baseline" ||

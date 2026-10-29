@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="950" viewBox="0 0 1400 950">
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<rect x="22" y="20" width="1356" height="820" rx="20" fill="white" stroke="#dbe3ee"/>
+<text x="58" y="72" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="28" fill="#0f172a" font-weight="700" text-anchor="start">Temporal reservoir provenance · moving visibility</text>
+<text x="58" y="105" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" fill="#475569" font-weight="400" text-anchor="start">128 paired cohorts · lower firefly floor · SwiftShader software Vulkan</text>
+<text x="68" y="152" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" fill="#0f172a" font-weight="700" text-anchor="start">A  ·  History share of the fresh + temporal reservoir weight</text>
+<text x="750" y="152" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" fill="#0f172a" font-weight="700" text-anchor="start">B  ·  Observed vs expected temporal-selection residual</text>
+<line x1="86" y1="510.0" x2="665" y2="510.0" stroke="#e2e8f0"/>
+<text x="76" y="515.0" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">0%</text>
+<line x1="86" y1="433.8" x2="665" y2="433.8" stroke="#e2e8f0"/>
+<text x="76" y="438.75" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">15%</text>
+<line x1="86" y1="357.5" x2="665" y2="357.5" stroke="#e2e8f0"/>
+<text x="76" y="362.5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">30%</text>
+<line x1="86" y1="281.2" x2="665" y2="281.2" stroke="#e2e8f0"/>
+<text x="76" y="286.25" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">45%</text>
+<line x1="86" y1="205.0" x2="665" y2="205.0" stroke="#e2e8f0"/>
+<text x="76" y="210.0" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">60%</text>
+<line x1="86" y1="205" x2="86" y2="510" stroke="#94a3b8"/><line x1="86" y1="510" x2="665" y2="510" stroke="#94a3b8"/>
+<rect x="185" y="258.1" width="34" height="251.9" rx="5" fill="#b7791f"/>
+<text x="202" y="250.13621766736787" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" fill="#b7791f" font-weight="600" text-anchor="middle">49.5%</text>
+<rect x="233" y="262.9" width="34" height="247.1" rx="5" fill="#2563eb"/>
+<text x="250" y="254.86553941587334" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" fill="#2563eb" font-weight="600" text-anchor="middle">48.6%</text>
+<rect x="281" y="256.9" width="34" height="253.1" rx="5" fill="#0f8b6d"/>
+<text x="298" y="248.93972381865967" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" fill="#0f8b6d" font-weight="600" text-anchor="middle">49.8%</text>
+<text x="250" y="538" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600" text-anchor="middle">Temporal 1</text>
+<rect x="485" y="409.8" width="34" height="100.2" rx="5" fill="#b7791f"/>
+<text x="502" y="401.75548093490465" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" fill="#b7791f" font-weight="600" text-anchor="middle">19.7%</text>
+<rect x="533" y="402.8" width="34" height="107.2" rx="5" fill="#2563eb"/>
+<text x="550" y="394.7974164666625" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" fill="#2563eb" font-weight="600" text-anchor="middle">21.1%</text>
+<rect x="581" y="412.2" width="34" height="97.8" rx="5" fill="#0f8b6d"/>
+<text x="598" y="404.1910884670687" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11" fill="#0f8b6d" font-weight="600" text-anchor="middle">19.2%</text>
+<text x="550" y="538" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600" text-anchor="middle">Temporal 4</text>
+<line x1="785" y1="479.5" x2="1320" y2="479.5" stroke="#e2e8f0" stroke-dasharray="none"/>
+<text x="775" y="484.5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">-2</text>
+<line x1="785" y1="418.5" x2="1320" y2="418.5" stroke="#e2e8f0" stroke-dasharray="none"/>
+<text x="775" y="423.5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">-1</text>
+<line x1="785" y1="357.5" x2="1320" y2="357.5" stroke="#e2e8f0" stroke-dasharray="5 4"/>
+<text x="775" y="362.5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">+0</text>
+<line x1="785" y1="296.5" x2="1320" y2="296.5" stroke="#e2e8f0" stroke-dasharray="none"/>
+<text x="775" y="301.5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">+1</text>
+<line x1="785" y1="235.5" x2="1320" y2="235.5" stroke="#e2e8f0" stroke-dasharray="none"/>
+<text x="775" y="240.5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" fill="#64748b" font-weight="400" text-anchor="end">+2</text>
+<line x1="785" y1="477.1" x2="1320" y2="477.1" stroke="#fca5a5" stroke-dasharray="4 5"/>
+<line x1="785" y1="237.9" x2="1320" y2="237.9" stroke="#fca5a5" stroke-dasharray="4 5"/>
+<line x1="785" y1="205" x2="785" y2="510" stroke="#94a3b8"/><line x1="785" y1="510" x2="1320" y2="510" stroke="#94a3b8"/>
+<circle cx="887" cy="377.0" r="7" fill="#b7791f" stroke="white" stroke-width="2"/>
+<text x="887" y="538" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600" text-anchor="middle">T1</text>
+<circle cx="925" cy="443.0" r="7" fill="#2563eb" stroke="white" stroke-width="2"/>
+<text x="925" y="538" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600" text-anchor="middle">T1</text>
+<circle cx="963" cy="395.1" r="7" fill="#0f8b6d" stroke="white" stroke-width="2"/>
+<text x="963" y="538" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600" text-anchor="middle">T1</text>
+<circle cx="1142" cy="384.0" r="7" fill="#b7791f" stroke="white" stroke-width="2"/>
+<text x="1142" y="538" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600" text-anchor="middle">T4</text>
+<circle cx="1180" cy="346.4" r="7" fill="#2563eb" stroke="white" stroke-width="2"/>
+<text x="1180" y="538" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600" text-anchor="middle">T4</text>
+<circle cx="1218" cy="379.8" r="7" fill="#0f8b6d" stroke="white" stroke-width="2"/>
+<text x="1218" y="538" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" fill="#334155" font-weight="600" text-anchor="middle">T4</text>
+<rect x="88" y="565" width="15" height="15" rx="3" fill="#b7791f"/>
+<text x="111" y="578" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">Baseline</text>
+<rect x="278" y="565" width="15" height="15" rx="3" fill="#2563eb"/>
+<text x="301" y="578" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">Path RNG</text>
+<rect x="468" y="565" width="15" height="15" rx="3" fill="#0f8b6d"/>
+<text x="491" y="578" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">Selection RNG</text>
+<rect x="58" y="610" width="1284" height="300" rx="15" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="82" y="647" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" fill="#0f172a" font-weight="700" text-anchor="start">C  ·  Estimator outcome comparison (mean ± cohort SE; then cohort RMSE)</text>
+<text x="82" y="682" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">Temporal 1 mean ± SE:  Baseline 0.813958±0.014657  |  Path RNG 0.800349±0.000623  |  Selection RNG 0.817775±0.014881</text>
+<text x="82" y="710" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">Temporal 1 RMSE:  Baseline 3.76676  |  Path RNG 0.16922  |  Selection RNG 3.80274</text>
+<text x="82" y="748" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">Temporal 4 mean ± SE:  Baseline 0.819691±0.003130  |  Path RNG 0.833565±0.016878  |  Selection RNG 0.814838±0.000429</text>
+<text x="82" y="776" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">Temporal 4 RMSE:  Baseline 0.78703  |  Path RNG 4.31378  |  Selection RNG 0.11275</text>
+<text x="82" y="832" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#334155" font-weight="400" text-anchor="start">Controls: 262,144 path-seed + 262,144 selection-seed checks matched host reconstruction per arm; all 512 pixels accepted history.</text>
+<text x="82" y="864" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" fill="#64748b" font-weight="400" text-anchor="start">z uses an iid Bernoulli approximation despite spatial correlation. Synthetic holdout diagnostics—not a production-frame image or bias proof.</text>
+</svg>
