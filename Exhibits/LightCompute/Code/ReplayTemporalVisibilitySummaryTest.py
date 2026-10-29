@@ -113,8 +113,11 @@ class ReplayTemporalVisibilityTests(unittest.TestCase):
         self.assertIn("out float4 VisibilityAudit", shader)
         self.assertIn("HistorySelectionProbability", shader)
         self.assertIn("ReplaySlot(8, Pixel)", shader)
-        self.assertEqual(shader.count("EvaluateReplayPath(R,"), 5)
+        self.assertEqual(shader.count("EvaluateReplayPath(R,"), 6)
         self.assertIn("EncodeReplaySeed(Candidate), Source.z, Source.w", shader)
+        self.assertIn("ReplaySlot(10, Pixel)", shader)
+        self.assertIn("ReplaySlot(11, Pixel)", shader)
+        self.assertIn("PreviousPathRecord.y", shader)
         self.assertIn("PreviousPathRecord.zw", shader)
         self.assertIn("OutputColour[ReplaySlot(9, Pixel)] = float4(Power", shader)
 

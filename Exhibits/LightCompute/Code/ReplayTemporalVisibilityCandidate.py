@@ -126,13 +126,13 @@ def generate(destination):
     # Keep the other reservoir proposals on the same evaluator; their diagnostics are discarded.
     shader = replace_once(shader,
         "        float3 Radiance = EvaluateReplayPath(R, Selected);",
-        "        float4 IgnoredVisibility, IgnoredContribution;\n"
-        "        float3 Radiance = EvaluateReplayPath(R, Selected, IgnoredVisibility, IgnoredContribution);",
+        "        float4 SelectedVisibility, IgnoredContribution;\n"
+        "        float3 Radiance = EvaluateReplayPath(R, Selected, SelectedVisibility, IgnoredContribution);",
         "first fresh proposal evaluator call")
     shader = replace_once(shader,
         "            float3 CandidateRadiance = EvaluateReplayPath(R, Candidate);",
-        "            float4 IgnoredVisibility, IgnoredContribution;\n"
-        "            float3 CandidateRadiance = EvaluateReplayPath(R, Candidate, IgnoredVisibility, IgnoredContribution);",
+        "            float4 CandidateVisibility, CandidateContribution;\n"
+        "            float3 CandidateRadiance = EvaluateReplayPath(R, Candidate, CandidateVisibility, CandidateContribution);",
         "additional fresh proposal evaluator call")
     shader = replace_once(shader,
         "                    float3 Replayed = EvaluateReplayPath(R, Candidate);\n"
@@ -140,8 +140,10 @@ def generate(destination):
         "                    float4 HistoryVisibility, HistoryContribution;\n"
         "                    float3 Replayed = EvaluateReplayPath(R, Candidate, HistoryVisibility, HistoryContribution);\n"
         "                    float4 PreviousPathRecord = OutputColour[ReplaySlot(9, Previous)];\n"
-        "                    float PreviousPathRadiance = DecodeReplaySeed(PreviousPathRecord.zw) == Candidate\n"
-        "                        ? PreviousPathRecord.x : -1.0;\n"
+        "                    bool PreviousSeedMatches = DecodeReplaySeed(PreviousPathRecord.zw) == Candidate;\n"
+        "                    float PreviousPathRadiance = PreviousSeedMatches ? PreviousPathRecord.x : -1.0;\n"
+        "                    float PreviousDirectCode = PreviousSeedMatches ? PreviousPathRecord.y : -1.0;\n"
+        "                    OutputColour[ReplaySlot(11, Pixel)] = float4(PreviousDirectCode, 0, 0, 0);\n"
         "                    float ReplayedTarget = ReplayTarget(Replayed);",
         "temporal history evaluator call")
     shader = replace_once(shader,
@@ -196,11 +198,22 @@ def generate(destination):
         "spatial evaluator call")
     shader = replace_once(
         shader,
+        "        Packed = float4(EncodeReplaySeed(Selected), Sum / (Count * Target), Count);",
+        "        float4 FinalSelectedVisibility, FinalSelectedContribution;\n"
+        "        EvaluateReplayPath(R, Selected, FinalSelectedVisibility, FinalSelectedContribution);\n"
+        "        OutputColour[ReplaySlot(10, Pixel)] = FinalSelectedVisibility;\n"
+        "        Packed = float4(EncodeReplaySeed(Selected), Sum / (Count * Target), Count);",
+        "persist selected current-scene direct visibility")
+    shader = replace_once(
+        shader,
         "    OutputColour[ReplaySlot(4, Pixel)] = float4(R.NormalRoughness.xyz, 0);\n"
         "    FlushSecondaryTraversalCounters(Pixel);",
         "    OutputColour[ReplaySlot(4, Pixel)] = float4(R.NormalRoughness.xyz, 0);\n"
+        "    float4 SelectedVisibility = OutputColour[ReplaySlot(10, Pixel)];\n"
+        "    float DirectState = ReplayReservoirHistoryValid(Local) && SelectedVisibility.x > 0.0\n"
+        "        ? (SelectedVisibility.y > 0.0 ? 2.0 : 1.0) : 0.0;\n"
         "    OutputColour[ReplaySlot(9, Pixel)] = float4(Power(max(OutputColour[ReplaySlot(3, Pixel)].xyz, 0.0)),\n"
-        "        OutputColour[ReplaySlot(3, Pixel)].w, Local.xy);\n"
+        "        DirectState, Local.xy);\n"
         "    FlushSecondaryTraversalCounters(Pixel);",
         "persist prior-frame selected path radiance and seed",
     )
@@ -212,10 +225,11 @@ def generate(destination):
         "    OutputColour[ReplaySlot(6, Pixel)] = 0;\n"
         "    OutputColour[ReplaySlot(7, Pixel)] = 0;\n"
         "    OutputColour[ReplaySlot(8, Pixel)] = 0;\n"
+        "    OutputColour[ReplaySlot(11, Pixel)] = 0;\n"
         "    float4 Packed = 0, SelectedRadiance = 0;",
         "per-pixel audit initialization",
     )
-    if shader.count("EvaluateReplayPath(R,") != 5 or "SampleReplayFacetDirect(Current" not in shader:
+    if shader.count("EvaluateReplayPath(R,") != 6 or "SampleReplayFacetDirect(Current" not in shader:
         raise ValueError("Unexpected shader call graph; refusing an incomplete audit variant")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(shader, encoding="utf-8")

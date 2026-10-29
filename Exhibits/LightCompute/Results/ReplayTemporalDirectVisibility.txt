@@ -1,0 +1,51 @@
+# Replay temporal visibility audit — 2026-10-29
+
+## Scope and evidence level
+
+This is a test-only Vulkan fixture, not a Frontier production-scene render. It uses the existing one-bounce material-reuse replay with unchanged estimator math, an added overhead area emitter, an opaque quad occluder, four moving-receiver submissions, and same-seed prior/current path pairing. Runtime was measured on the locally built SwiftShader software Vulkan device (Subzero). No production shader, reservoir default, or renderer behavior was changed.
+
+The direct fixture uses 32 independent seed cohorts × 512 checkerboard pixels per mode (16,384 direct-ray records per mode). The preserved no-emitter baseline uses 128 cohorts × 512 pixels per mode (65,536 records per mode). The smaller direct fixture still produced over a thousand blocked samples per mode and over a thousand visibility transitions; the two sample counts should not be conflated.
+
+## Controlled-emitter direct-NEE results
+
+| Replay mode | Paired records | Direct rays | Visible | Blocked | Visible rate | Blocked → visible | Visible → blocked | Mean NEE, blocked / visible | Mean history weight, blocked / visible |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| temporal1 | 16,384 | 16,384 | 15,340 | 1,044 | 93.6279% | 67 | 560 | 0 / 2.60113307 | 0.580451575 / 1.75729695 |
+| temporal4 | 16,384 | 16,384 | 14,954 | 1,430 | 91.2720% | 44 | 1,123 | 0 / 3.57038285 | 0.171055287 / 1.85642012 |
+
+The full previous-state → current-state matrices (rows and columns ordered no-ray, blocked, visible) are:
+
+- **temporal1:** `[[0, 0, 0], [0, 484, 67], [0, 560, 15273]]`
+- **temporal4:** `[[0, 0, 0], [0, 307, 44], [0, 1123, 14910]]`
+
+All records traced one direct ray. The blocked samples contributed zero direct NEE in this fixture; visible samples had positive mean NEE. The runtime validator also checked the per-pixel reservoir weight identity and paired prior/current provenance, and passed 32,768 records total. This is descriptive attribution: it does not establish estimator bias, a fix, or production-scene correctness.
+
+## Preserved no-emitter baseline (comparison only)
+
+The baseline was not altered by adding the emitter; it remains a separately reported fixture. As expected, it produced **zero direct-NEE rays** and therefore cannot answer direct-light shadow visibility. It measured first-BSDF continuation outcomes instead:
+
+| Replay mode | Paired records | Direct rays | First-BSDF misses | First opaque hits | Mean | Mean SE | RMSE |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| temporal1 | 65,536 | 0 | 65,331 | 198 | 0.813958218167 | 0.014657433226 | 3.76676490542 |
+| temporal4 | 65,536 | 0 | 65,400 | 136 | 0.819690989480 | 0.003129741729 | 0.78703120376 |
+
+Baseline reference: `0.82268910511`. The seven temporal1 samples without a recorded first-ray event remain unclassified; zero must not be interpreted as an opaque hit. These baseline values are not direct-emitter results and are not evidence of a production correction.
+
+## Verification
+
+- Generated audit SPIR-V compiled for primary, replay-generate, and replay-resolve entries.
+- Release CMake build completed; CTest passed **10/10**.
+- Direct-summary synthetic tests passed **3/3**; no-emitter summary synthetic tests passed **4/4**; Python byte-compilation and `git diff --check` passed.
+- Both runtime validators passed on SwiftShader; estimator math remained unchanged.
+- Physical GPU, Windows, Frontier editor viewport, production scene/resource integration, and broader renderer correctness remain unverified.
+
+## Peer-branch comparison
+
+Compared against `arena/08e7de48-frontier` at remote commit `30ac222` (shared base `68f3016`). Its current ReSTIR evidence includes a confirmed reconstructed-point visibility-reuse path that preserves the existing one-ULP boundary behavior, plus a four-weighted-reservoir/rotate-two compromise reported as passing five frozen software-Vulkan fixtures and host sanitizers. These are substantially different experiments from this audit; their own reports still defer general-scene RGB/facet descriptors, production Engine promotion, actual allocation/bandwidth, physical-GPU timing, Windows, editor, and broader GI acceptance.
+
+No peer implementation was ported in this turn. The branch's direct-emitter fixture only instruments the current estimator and does not implement or benchmark those reservoir changes; merging them here would mix scopes without an apples-to-apples rerun. The peer's recent fresh BSDF/area reservoir experiment explicitly rejects its RIS variants against the frozen all-layout quality gate, so that is not a verified better default to adopt. Retain the peer's accepted visibility-reuse/quartet work as a separate candidate for later compatibility and comparative validation; do not characterize it as integrated into this branch.
+
+## Visual evidence
+
+- `Exhibits/LightCompute/ReplayTemporalDirectVisibility.svg` — measured same-seed direct-light outcomes and transitions.
+- `Exhibits/LightCompute/ReplayTemporalVisibility.svg` — preserved no-emitter first-BSDF attribution baseline.

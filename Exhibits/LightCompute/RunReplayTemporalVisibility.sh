@@ -38,7 +38,7 @@ CTEST="${CTEST:-$ROOT/_ClaudeScratch/pytools/cmake/data/bin/ctest}"
     "${CXX:-c++}" --version | sed -n '1p'
     "$SLANG" -version 2>&1
     sha256sum Frontier/Engine/Rendering/Shaders/{LightInfluence,PathReplayReservoir}.slang \
-        Exhibits/LightCompute/Code/{ReplayTemporalVisibilityCandidate.py,ReplayTemporalVisibilityValidation.h,LightComputeValidation.cpp} \
+        Exhibits/LightCompute/Code/{ReplayTemporalVisibilityCandidate.py,ReplayTemporalVisibilityValidation.h,ReplayTemporalDirectVisibilitySummary.py,ReplayMaterialFloorValidation.h,LightComputeValidation.cpp} \
         "$SOURCE/Visibility.slang" "$OUTPUT"/{Primary,ReplayGenerate,ReplayResolve}.spv
     if "$BUILD/LightComputeValidation" "$DRIVER" "$OUTPUT" --replay-temporal-visibility; then
         :
@@ -52,3 +52,5 @@ python3 Exhibits/LightCompute/Code/ReplayTemporalVisibilitySummary.py "$RESULTS"
     Exhibits/LightCompute/Results/ReplayTemporalPathStream.txt \
     Exhibits/LightCompute/Results/ReplayTemporalSelectionStream.txt \
     Exhibits/LightCompute/ReplayTemporalVisibility.svg | tee -a "$RESULTS"
+python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilitySummary.py "$RESULTS" \
+    Exhibits/LightCompute/ReplayTemporalDirectVisibility.svg | tee -a "$RESULTS"

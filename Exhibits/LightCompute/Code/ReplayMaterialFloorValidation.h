@@ -14,10 +14,11 @@ std::vector<std::array<float, 4>> ExecuteReplayMaterialFloor(LightComputeSubmiss
                                                              uint32_t Seed,
                                                              bool Reset,
                                                              float PositiveFloor,
-                                                             bool Sequenced = false)
+                                                             bool Sequenced = false,
+                                                             bool SampleFacets = false)
 {
     return Compute.ExecuteReplay(Scene, 1u, Seed, Mode.Temporal, Mode.Spatial, Reset, {1, 1, 1}, PositiveFloor,
-                                 false, false, true, false, false, false, 64u, false, false, true,
+                                 false, false, true, SampleFacets, false, false, 64u, false, false, true,
                                  false, false, false, false, false, Mode.Candidates, false, false, false,
                                  Mode.Spatial, false, true, false, false, true, Sequenced, 1u, false, false);
 }

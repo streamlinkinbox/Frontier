@@ -1947,6 +1947,12 @@ int main(int Count, char** Arguments)
         if (Count == 4 && std::string(Arguments[3]) == "--replay-temporal-visibility")
         {
             ValidateReplayTemporalVisibility(Arguments[1], Arguments[2]);
+            ValidateReplayTemporalDirectVisibility(Arguments[1], Arguments[2]);
+            return 0;
+        }
+        if (Count == 4 && std::string(Arguments[3]) == "--replay-temporal-direct-visibility")
+        {
+            ValidateReplayTemporalDirectVisibility(Arguments[1], Arguments[2]);
             return 0;
         }
         if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-history-baseline" ||
