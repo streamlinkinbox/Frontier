@@ -1,0 +1,807 @@
+Secondary GPU host mode=sanitized revision=210025b126bb1cac0da1d17614b62dd2ea3101d6 working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+b093c7670482dbff998caf6ab9a494b33394a3cdb3802289b15a08624c8f5a0a  Exhibits/LightCompute/Code/TracedQuartetGpu.slang
+b00b5bb2449a286c829c9790244376e6c25e0be1b89ae5a54749b87067224d2c  Exhibits/LightCompute/Code/RgbTraceGpu.slang
+84e591e4615fdfd970da44342cd8fb31e4a4234e1c5e6376c65accc726b81742  Exhibits/LightCompute/Code/FacetReservoirDescriptor.h
+4dc1c4b8a829d04d33c7cb9cb57c7942358a5d76fad9a441edcc708162e58f88  Exhibits/LightCompute/Code/CompileWeightedQuartet.py
+e66b489726d4b913523e25923c7f685cf25e56ca5f885f6d60dfbf19ab5690aa  Exhibits/LightCompute/Code/CompileWeightedPair.py
+1cb56bc9980bb8b18bbacca2fb86b3c4e51a2cdd7f25aa548b06d0008105416b  Exhibits/LightCompute/Code/CompileVisibilityReuse.py
+6d5dd771944de278bea5c85f96103f730fae5b44e5098c513e577959e9106667  Exhibits/LightCompute/Code/CompileRayBudget.py
+f5b408212bb8aad1b35e02338c4152623c23b198bc2bc570555593986b4693d0  Exhibits/LightCompute/Code/CompileReceiverBank.py
+4b3b8ce02c6315a948881b76e80c79cfab6395298af629ed392c239a2f71e2b7  Exhibits/LightCompute/Code/CompileCandidateBank.py
+f9da94cc3f075f6bbc2d94d313acad0b93816367a395bd336868725529a8834d  Exhibits/LightCompute/Code/CompileCacheRefresh.py
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+5f09ef26044d02083159f435fe3b9cebd126ac5c7250e2d6ee1d4166c496268a  Exhibits/LightCompute/Code/TracedQuartetValidation.h
+cbf73c8ff9b1efb650bc8b4a58e09434046a3ffd27105da5d8d6812d45581022  Exhibits/LightCompute/Code/RgbTraceValidation.h
+fc02ea02ff85e3dec2b76300aff4e8056504518ac8e51af782b5ee89699e6596  Exhibits/LightCompute/Code/WeightedQuartetValidation.h
+1331bc0f2796b9fe87bf7ff0062269cb30e293f49e82d6dbe10ebb173147a04d  Exhibits/LightCompute/Code/WeightedPairValidation.h
+5dc18f3f4aa1bdc5836f16d8ae210b2eb340576b8381f5f7521a8899c953ac11  Exhibits/LightCompute/Code/VisibilityReuseValidation.h
+63be6b73789c53dd31512e6d96c50b951c232ae67b4cb22095730f887b8d0878  Exhibits/LightCompute/Code/RayBudgetValidation.h
+18313fc32f50c2791b2277cb84932b0499d427dee1d87c79508c491fe74fff6f  Exhibits/LightCompute/Code/ReceiverBankValidation.h
+c64a67094084082a1cdd31de0a8d7db1f01afef3565b14c070aa67282a4abee4  Exhibits/LightCompute/Code/CandidateBankValidation.h
+3c34616bfc80078a20ba880083d6473f02dd246f6ab9c1a5e208b40644f4c98c  Exhibits/LightCompute/Code/CacheRefreshValidation.h
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+791e7367f62c5c48c5b7a10f8b0c0b83894f564d314286b2b6b20015810409c5  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+083fa0455ad6567da1f2139dff428dc42464bb6ec0c2ccfbfd442a107914dab6  Exhibits/LightCompute/RunTracedQuartet.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+b093c7670482dbff998caf6ab9a494b33394a3cdb3802289b15a08624c8f5a0a  /home/user/Frontier/_ClaudeScratch/build/traced-quartet-sanitized/TracedQuartet.slang
+dfd3ee37369259a2d0860ea81cc318f2d426c302f29e5ac3d054b0dff395f8b6  /home/user/Frontier/_ClaudeScratch/build/traced-quartet-sanitized/DiffuseGenerate.spv
+51333bad45b13db5751eb246cfee17b6bd589b7d8563e96944d138365aed4950  /home/user/Frontier/_ClaudeScratch/build/traced-quartet-sanitized/DiffuseResolve.spv
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/traced-quartet-sanitized
+[  2%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayDomain.dir/PathReplayDomain.cpp.o
+[  5%] Linking CXX static library libFrontierPathReplayDomain.a
+[  5%] Built target FrontierPathReplayDomain
+[  8%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayVulkan.dir/PathReplayVulkan.cpp.o
+[ 10%] Linking CXX static library libFrontierPathReplayVulkan.a
+[ 10%] Built target FrontierPathReplayVulkan
+[ 13%] Building CXX object replay-engine/CMakeFiles/FrontierMediumRadiancePayload.dir/MediumRadiancePayload.cpp.o
+[ 16%] Linking CXX static library libFrontierMediumRadiancePayload.a
+[ 16%] Built target FrontierMediumRadiancePayload
+[ 18%] Building CXX object replay-engine/CMakeFiles/FrontierRadiantFacetDistribution.dir/RadiantFacetDistribution.cpp.o
+[ 21%] Linking CXX static library libFrontierRadiantFacetDistribution.a
+[ 21%] Built target FrontierRadiantFacetDistribution
+[ 24%] Building CXX object CMakeFiles/LightComputeValidation.dir/Code/LightComputeValidation.cpp.o
+[ 27%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ClusterNesting.cpp.o
+[ 29%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VisibilityCull.cpp.o
+[ 32%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DiscrepancySequence.cpp.o
+[ 35%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReservoirSampling.cpp.o
+[ 37%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VarianceFiltering.cpp.o
+[ 40%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DistanceField.cpp.o
+[ 43%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/SurfaceCards.cpp.o
+[ 45%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/AtmosphereModel.cpp.o
+[ 48%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CelestialModel.cpp.o
+[ 51%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CloudField.cpp.o
+[ 54%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/FogMedium.cpp.o
+[ 56%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReferenceRenderer.cpp.o
+[ 59%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogRingStore.cpp.o
+[ 62%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogCategories.cpp.o
+[ 64%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogStream.cpp.o
+[ 67%] Linking CXX executable LightComputeValidation
+[ 67%] Built target LightComputeValidation
+[ 70%] Building CXX object CMakeFiles/PathReplayDomainValidation.dir/Code/PathReplayDomainValidation.cpp.o
+[ 72%] Linking CXX executable PathReplayDomainValidation
+[ 72%] Built target PathReplayDomainValidation
+[ 75%] Building CXX object CMakeFiles/PathReplayVulkanValidation.dir/Code/PathReplayVulkanValidation.cpp.o
+[ 78%] Linking CXX executable PathReplayVulkanValidation
+[ 78%] Built target PathReplayVulkanValidation
+[ 81%] Building CXX object CMakeFiles/PathReplayArchiveValidation.dir/Code/PathReplayArchiveValidation.cpp.o
+[ 83%] Linking CXX executable PathReplayArchiveValidation
+[ 83%] Built target PathReplayArchiveValidation
+[ 86%] Building CXX object CMakeFiles/RadiantFacetValidation.dir/Code/RadiantFacetValidation.cpp.o
+[ 89%] Linking CXX executable RadiantFacetValidation
+[ 89%] Built target RadiantFacetValidation
+[ 91%] Building CXX object CMakeFiles/MediumRadianceValidation.dir/Code/MediumRadianceValidation.cpp.o
+[ 94%] Linking CXX executable MediumRadianceValidation
+[ 94%] Built target MediumRadianceValidation
+[ 97%] Building CXX object replay-engine/CMakeFiles/FrontierPlumeLatticeFootprint.dir/PlumeLatticeFootprint.cpp.o
+[100%] Linking CXX static library libFrontierPlumeLatticeFootprint.a
+[100%] Built target FrontierPlumeLatticeFootprint
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/traced-quartet-sanitized
+Test project /home/user/Frontier/_ClaudeScratch/build/traced-quartet-sanitized
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.01 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.01 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.01 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.01 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.05 sec
+TRACED_QUARTET_DEVICE name=SwiftShader Device (Subzero) type=4 samples=1024 methods=4 steps=32 fixtures=3
+TRACED_QUARTET_CASE fixture=0 step=0 reset=1 estimate_error=1.18720910394e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=0 method=0 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=0 step=0 method=1 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=0 step=0 method=2 draws=8192 kept=0 evaluations=7273 suffix=7273 connection=7273
+TRACED_QUARTET_WORK fixture=0 step=0 method=3 draws=8192 kept=0 evaluations=7273 suffix=7273 connection=7273
+TRACED_QUARTET_EXACT fixture=0 step=0 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=1 reset=0 estimate_error=1.37921663118e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=1 method=0 draws=4096 kept=2048 evaluations=4049 suffix=2025 connection=4049
+TRACED_QUARTET_WORK fixture=0 step=1 method=1 draws=8192 kept=0 evaluations=4040 suffix=4040 connection=4040
+TRACED_QUARTET_WORK fixture=0 step=1 method=2 draws=4096 kept=0 evaluations=3660 suffix=3660 connection=3660
+TRACED_QUARTET_WORK fixture=0 step=1 method=3 draws=8192 kept=0 evaluations=7292 suffix=7292 connection=7292
+TRACED_QUARTET_EXACT fixture=0 step=1 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=2 reset=0 estimate_error=1.52370190215e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=2 method=0 draws=4096 kept=2048 evaluations=4038 suffix=2013 connection=4038
+TRACED_QUARTET_WORK fixture=0 step=2 method=1 draws=8192 kept=0 evaluations=4037 suffix=4037 connection=4037
+TRACED_QUARTET_WORK fixture=0 step=2 method=2 draws=4096 kept=0 evaluations=3603 suffix=3603 connection=3603
+TRACED_QUARTET_WORK fixture=0 step=2 method=3 draws=8192 kept=0 evaluations=7248 suffix=7248 connection=7248
+TRACED_QUARTET_EXACT fixture=0 step=2 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=3 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=3 method=0 draws=4096 kept=2048 evaluations=4039 suffix=2026 connection=4039
+TRACED_QUARTET_WORK fixture=0 step=3 method=1 draws=8192 kept=0 evaluations=4049 suffix=4049 connection=4049
+TRACED_QUARTET_WORK fixture=0 step=3 method=2 draws=4096 kept=0 evaluations=3632 suffix=3632 connection=3632
+TRACED_QUARTET_WORK fixture=0 step=3 method=3 draws=8192 kept=0 evaluations=7264 suffix=7264 connection=7264
+TRACED_QUARTET_EXACT fixture=0 step=3 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=4 reset=0 estimate_error=1.52370190215e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=4 method=0 draws=4096 kept=2048 evaluations=4054 suffix=2028 connection=4054
+TRACED_QUARTET_WORK fixture=0 step=4 method=1 draws=8192 kept=0 evaluations=4046 suffix=4046 connection=4046
+TRACED_QUARTET_WORK fixture=0 step=4 method=2 draws=4096 kept=0 evaluations=3637 suffix=3637 connection=3637
+TRACED_QUARTET_WORK fixture=0 step=4 method=3 draws=8192 kept=0 evaluations=7278 suffix=7278 connection=7278
+TRACED_QUARTET_EXACT fixture=0 step=4 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=5 reset=0 estimate_error=1.37921663118e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=5 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2020 connection=4048
+TRACED_QUARTET_WORK fixture=0 step=5 method=1 draws=8192 kept=0 evaluations=4053 suffix=4053 connection=4053
+TRACED_QUARTET_WORK fixture=0 step=5 method=2 draws=4096 kept=0 evaluations=3635 suffix=3635 connection=3635
+TRACED_QUARTET_WORK fixture=0 step=5 method=3 draws=8192 kept=0 evaluations=7321 suffix=7321 connection=7321
+TRACED_QUARTET_EXACT fixture=0 step=5 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=6 reset=0 estimate_error=1.52370190215e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=6 method=0 draws=4096 kept=2048 evaluations=4043 suffix=2023 connection=4043
+TRACED_QUARTET_WORK fixture=0 step=6 method=1 draws=8192 kept=0 evaluations=4048 suffix=4048 connection=4048
+TRACED_QUARTET_WORK fixture=0 step=6 method=2 draws=4096 kept=0 evaluations=3668 suffix=3668 connection=3668
+TRACED_QUARTET_WORK fixture=0 step=6 method=3 draws=8192 kept=0 evaluations=7341 suffix=7341 connection=7341
+TRACED_QUARTET_EXACT fixture=0 step=6 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=7 reset=0 estimate_error=1.63946255183e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=7 method=0 draws=4096 kept=2048 evaluations=4046 suffix=2023 connection=4046
+TRACED_QUARTET_WORK fixture=0 step=7 method=1 draws=8192 kept=0 evaluations=4046 suffix=4046 connection=4046
+TRACED_QUARTET_WORK fixture=0 step=7 method=2 draws=4096 kept=0 evaluations=3665 suffix=3665 connection=3665
+TRACED_QUARTET_WORK fixture=0 step=7 method=3 draws=8192 kept=0 evaluations=7286 suffix=7286 connection=7286
+TRACED_QUARTET_EXACT fixture=0 step=7 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=8 reset=0 estimate_error=1.54486706552e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=8 method=0 draws=4096 kept=2048 evaluations=4044 suffix=2021 connection=4044
+TRACED_QUARTET_WORK fixture=0 step=8 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=0 step=8 method=2 draws=4096 kept=0 evaluations=3635 suffix=3635 connection=3635
+TRACED_QUARTET_WORK fixture=0 step=8 method=3 draws=8192 kept=0 evaluations=7294 suffix=7294 connection=7294
+TRACED_QUARTET_EXACT fixture=0 step=8 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=9 reset=0 estimate_error=1.38680575149e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=9 method=0 draws=4096 kept=2048 evaluations=4046 suffix=2025 connection=4046
+TRACED_QUARTET_WORK fixture=0 step=9 method=1 draws=8192 kept=0 evaluations=4044 suffix=4044 connection=4044
+TRACED_QUARTET_WORK fixture=0 step=9 method=2 draws=4096 kept=0 evaluations=3626 suffix=3626 connection=3626
+TRACED_QUARTET_WORK fixture=0 step=9 method=3 draws=8192 kept=0 evaluations=7248 suffix=7248 connection=7248
+TRACED_QUARTET_EXACT fixture=0 step=9 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=10 reset=0 estimate_error=1.43556875276e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=10 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2022 connection=4047
+TRACED_QUARTET_WORK fixture=0 step=10 method=1 draws=8192 kept=0 evaluations=4048 suffix=4048 connection=4048
+TRACED_QUARTET_WORK fixture=0 step=10 method=2 draws=4096 kept=0 evaluations=3643 suffix=3643 connection=3643
+TRACED_QUARTET_WORK fixture=0 step=10 method=3 draws=8192 kept=0 evaluations=7285 suffix=7285 connection=7285
+TRACED_QUARTET_EXACT fixture=0 step=10 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=11 reset=0 estimate_error=1.36761786063e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=11 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2025 connection=4047
+TRACED_QUARTET_WORK fixture=0 step=11 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=0 step=11 method=2 draws=4096 kept=0 evaluations=3630 suffix=3630 connection=3630
+TRACED_QUARTET_WORK fixture=0 step=11 method=3 draws=8192 kept=0 evaluations=7283 suffix=7283 connection=7283
+TRACED_QUARTET_EXACT fixture=0 step=11 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=12 reset=0 estimate_error=1.7719331398e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=12 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2023 connection=4048
+TRACED_QUARTET_WORK fixture=0 step=12 method=1 draws=8192 kept=0 evaluations=4037 suffix=4037 connection=4037
+TRACED_QUARTET_WORK fixture=0 step=12 method=2 draws=4096 kept=0 evaluations=3641 suffix=3641 connection=3641
+TRACED_QUARTET_WORK fixture=0 step=12 method=3 draws=8192 kept=0 evaluations=7255 suffix=7255 connection=7255
+TRACED_QUARTET_EXACT fixture=0 step=12 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=13 reset=0 estimate_error=1.52370190215e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=13 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2024 connection=4047
+TRACED_QUARTET_WORK fixture=0 step=13 method=1 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=0 step=13 method=2 draws=4096 kept=0 evaluations=3643 suffix=3643 connection=3643
+TRACED_QUARTET_WORK fixture=0 step=13 method=3 draws=8192 kept=0 evaluations=7268 suffix=7268 connection=7268
+TRACED_QUARTET_EXACT fixture=0 step=13 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=14 reset=0 estimate_error=1.5913817708e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=14 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2023 connection=4047
+TRACED_QUARTET_WORK fixture=0 step=14 method=1 draws=8192 kept=0 evaluations=4039 suffix=4039 connection=4039
+TRACED_QUARTET_WORK fixture=0 step=14 method=2 draws=4096 kept=0 evaluations=3631 suffix=3631 connection=3631
+TRACED_QUARTET_WORK fixture=0 step=14 method=3 draws=8192 kept=0 evaluations=7283 suffix=7283 connection=7283
+TRACED_QUARTET_EXACT fixture=0 step=14 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=15 reset=0 estimate_error=1.7147791645e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=15 method=0 draws=4096 kept=2048 evaluations=4040 suffix=2017 connection=4040
+TRACED_QUARTET_WORK fixture=0 step=15 method=1 draws=8192 kept=0 evaluations=4042 suffix=4042 connection=4042
+TRACED_QUARTET_WORK fixture=0 step=15 method=2 draws=4096 kept=0 evaluations=3643 suffix=3643 connection=3643
+TRACED_QUARTET_WORK fixture=0 step=15 method=3 draws=8192 kept=0 evaluations=7309 suffix=7309 connection=7309
+TRACED_QUARTET_EXACT fixture=0 step=15 channel0=0.033785485960249932 channel1=0.021932721461141755 channel2=0.011053335779903327
+TRACED_QUARTET_CASE fixture=0 step=16 reset=1 estimate_error=2.41679506824e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=16 method=0 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=0 step=16 method=1 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=0 step=16 method=2 draws=8192 kept=0 evaluations=7254 suffix=7254 connection=7254
+TRACED_QUARTET_WORK fixture=0 step=16 method=3 draws=8192 kept=0 evaluations=7254 suffix=7254 connection=7254
+TRACED_QUARTET_EXACT fixture=0 step=16 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+TRACED_QUARTET_CASE fixture=0 step=17 reset=0 estimate_error=2.50547533553e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=17 method=0 draws=4096 kept=2048 evaluations=4029 suffix=2017 connection=4029
+TRACED_QUARTET_WORK fixture=0 step=17 method=1 draws=8192 kept=0 evaluations=4044 suffix=4044 connection=4044
+TRACED_QUARTET_WORK fixture=0 step=17 method=2 draws=4096 kept=0 evaluations=3628 suffix=3628 connection=3628
+TRACED_QUARTET_WORK fixture=0 step=17 method=3 draws=8192 kept=0 evaluations=7254 suffix=7254 connection=7254
+TRACED_QUARTET_EXACT fixture=0 step=17 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+TRACED_QUARTET_CASE fixture=0 step=18 reset=0 estimate_error=2.54515522269e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=18 method=0 draws=4096 kept=2048 evaluations=4038 suffix=2021 connection=4038
+TRACED_QUARTET_WORK fixture=0 step=18 method=1 draws=8192 kept=0 evaluations=4040 suffix=4040 connection=4040
+TRACED_QUARTET_WORK fixture=0 step=18 method=2 draws=4096 kept=0 evaluations=3634 suffix=3634 connection=3634
+TRACED_QUARTET_WORK fixture=0 step=18 method=3 draws=8192 kept=0 evaluations=7245 suffix=7245 connection=7245
+TRACED_QUARTET_EXACT fixture=0 step=18 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+TRACED_QUARTET_CASE fixture=0 step=19 reset=0 estimate_error=3.25053339523e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=19 method=0 draws=4096 kept=2048 evaluations=4039 suffix=2018 connection=4039
+TRACED_QUARTET_WORK fixture=0 step=19 method=1 draws=8192 kept=0 evaluations=4041 suffix=4041 connection=4041
+TRACED_QUARTET_WORK fixture=0 step=19 method=2 draws=4096 kept=0 evaluations=3617 suffix=3617 connection=3617
+TRACED_QUARTET_WORK fixture=0 step=19 method=3 draws=8192 kept=0 evaluations=7247 suffix=7247 connection=7247
+TRACED_QUARTET_EXACT fixture=0 step=19 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+TRACED_QUARTET_CASE fixture=0 step=20 reset=0 estimate_error=3.03086541281e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=20 method=0 draws=4096 kept=2048 evaluations=4038 suffix=2020 connection=4038
+TRACED_QUARTET_WORK fixture=0 step=20 method=1 draws=8192 kept=0 evaluations=4037 suffix=4037 connection=4037
+TRACED_QUARTET_WORK fixture=0 step=20 method=2 draws=4096 kept=0 evaluations=3627 suffix=3627 connection=3627
+TRACED_QUARTET_WORK fixture=0 step=20 method=3 draws=8192 kept=0 evaluations=7244 suffix=7244 connection=7244
+TRACED_QUARTET_EXACT fixture=0 step=20 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+TRACED_QUARTET_CASE fixture=0 step=21 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=21 method=0 draws=4096 kept=2048 evaluations=4045 suffix=2025 connection=4045
+TRACED_QUARTET_WORK fixture=0 step=21 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=0 step=21 method=2 draws=4096 kept=0 evaluations=3641 suffix=3641 connection=3641
+TRACED_QUARTET_WORK fixture=0 step=21 method=3 draws=8192 kept=0 evaluations=7285 suffix=7285 connection=7285
+TRACED_QUARTET_EXACT fixture=0 step=21 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+TRACED_QUARTET_CASE fixture=0 step=22 reset=0 estimate_error=2.96652977599e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=22 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2023 connection=4048
+TRACED_QUARTET_WORK fixture=0 step=22 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=0 step=22 method=2 draws=4096 kept=0 evaluations=3672 suffix=3672 connection=3672
+TRACED_QUARTET_WORK fixture=0 step=22 method=3 draws=8192 kept=0 evaluations=7318 suffix=7318 connection=7318
+TRACED_QUARTET_EXACT fixture=0 step=22 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+TRACED_QUARTET_CASE fixture=0 step=23 reset=0 estimate_error=2.96652977599e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=23 method=0 draws=4096 kept=2048 evaluations=4051 suffix=2028 connection=4051
+TRACED_QUARTET_WORK fixture=0 step=23 method=1 draws=8192 kept=0 evaluations=4049 suffix=4049 connection=4049
+TRACED_QUARTET_WORK fixture=0 step=23 method=2 draws=4096 kept=0 evaluations=3656 suffix=3656 connection=3656
+TRACED_QUARTET_WORK fixture=0 step=23 method=3 draws=8192 kept=0 evaluations=7292 suffix=7292 connection=7292
+TRACED_QUARTET_EXACT fixture=0 step=23 channel0=0.033785485960249932 channel1=0.043865442922283511 channel2=0.022106671559806654
+TRACED_QUARTET_CASE fixture=0 step=24 reset=1 estimate_error=2.11266343725e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=24 method=0 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=0 step=24 method=1 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=0 step=24 method=2 draws=8192 kept=0 evaluations=7269 suffix=7269 connection=7269
+TRACED_QUARTET_WORK fixture=0 step=24 method=3 draws=8192 kept=0 evaluations=7269 suffix=7269 connection=7269
+TRACED_QUARTET_EXACT fixture=0 step=24 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=0 step=25 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=25 method=0 draws=4096 kept=2048 evaluations=4045 suffix=2023 connection=4045
+TRACED_QUARTET_WORK fixture=0 step=25 method=1 draws=8192 kept=0 evaluations=4051 suffix=4051 connection=4051
+TRACED_QUARTET_WORK fixture=0 step=25 method=2 draws=4096 kept=0 evaluations=3658 suffix=3658 connection=3658
+TRACED_QUARTET_WORK fixture=0 step=25 method=3 draws=8192 kept=0 evaluations=7256 suffix=7256 connection=7256
+TRACED_QUARTET_EXACT fixture=0 step=25 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=0 step=26 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=26 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2025 connection=4048
+TRACED_QUARTET_WORK fixture=0 step=26 method=1 draws=8192 kept=0 evaluations=4056 suffix=4056 connection=4056
+TRACED_QUARTET_WORK fixture=0 step=26 method=2 draws=4096 kept=0 evaluations=3637 suffix=3637 connection=3637
+TRACED_QUARTET_WORK fixture=0 step=26 method=3 draws=8192 kept=0 evaluations=7285 suffix=7285 connection=7285
+TRACED_QUARTET_EXACT fixture=0 step=26 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=0 step=27 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=27 method=0 draws=4096 kept=2048 evaluations=4050 suffix=2025 connection=4050
+TRACED_QUARTET_WORK fixture=0 step=27 method=1 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=0 step=27 method=2 draws=4096 kept=0 evaluations=3645 suffix=3645 connection=3645
+TRACED_QUARTET_WORK fixture=0 step=27 method=3 draws=8192 kept=0 evaluations=7258 suffix=7258 connection=7258
+TRACED_QUARTET_EXACT fixture=0 step=27 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=0 step=28 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=28 method=0 draws=4096 kept=2048 evaluations=4050 suffix=2025 connection=4050
+TRACED_QUARTET_WORK fixture=0 step=28 method=1 draws=8192 kept=0 evaluations=4036 suffix=4036 connection=4036
+TRACED_QUARTET_WORK fixture=0 step=28 method=2 draws=4096 kept=0 evaluations=3612 suffix=3612 connection=3612
+TRACED_QUARTET_WORK fixture=0 step=28 method=3 draws=8192 kept=0 evaluations=7246 suffix=7246 connection=7246
+TRACED_QUARTET_EXACT fixture=0 step=28 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=0 step=29 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=29 method=0 draws=4096 kept=2048 evaluations=4043 suffix=2018 connection=4043
+TRACED_QUARTET_WORK fixture=0 step=29 method=1 draws=8192 kept=0 evaluations=4041 suffix=4041 connection=4041
+TRACED_QUARTET_WORK fixture=0 step=29 method=2 draws=4096 kept=0 evaluations=3631 suffix=3631 connection=3631
+TRACED_QUARTET_WORK fixture=0 step=29 method=3 draws=8192 kept=0 evaluations=7290 suffix=7290 connection=7290
+TRACED_QUARTET_EXACT fixture=0 step=29 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=0 step=30 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=30 method=0 draws=4096 kept=2048 evaluations=4040 suffix=2022 connection=4040
+TRACED_QUARTET_WORK fixture=0 step=30 method=1 draws=8192 kept=0 evaluations=4051 suffix=4051 connection=4051
+TRACED_QUARTET_WORK fixture=0 step=30 method=2 draws=4096 kept=0 evaluations=3678 suffix=3678 connection=3678
+TRACED_QUARTET_WORK fixture=0 step=30 method=3 draws=8192 kept=0 evaluations=7334 suffix=7334 connection=7334
+TRACED_QUARTET_EXACT fixture=0 step=30 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=0 step=31 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=0 step=31 method=0 draws=4096 kept=2048 evaluations=4036 suffix=2014 connection=4036
+TRACED_QUARTET_WORK fixture=0 step=31 method=1 draws=8192 kept=0 evaluations=4041 suffix=4041 connection=4041
+TRACED_QUARTET_WORK fixture=0 step=31 method=2 draws=4096 kept=0 evaluations=3626 suffix=3626 connection=3626
+TRACED_QUARTET_WORK fixture=0 step=31 method=3 draws=8192 kept=0 evaluations=7281 suffix=7281 connection=7281
+TRACED_QUARTET_EXACT fixture=0 step=31 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=1 step=0 reset=1 estimate_error=2.02075574607e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=1 step=0 method=0 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=1 step=0 method=1 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=1 step=0 method=2 draws=8192 kept=0 evaluations=7273 suffix=7273 connection=7273
+TRACED_QUARTET_WORK fixture=1 step=0 method=3 draws=8192 kept=0 evaluations=7273 suffix=7273 connection=7273
+TRACED_QUARTET_EXACT fixture=1 step=0 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+TRACED_QUARTET_CASE fixture=1 step=1 reset=0 estimate_error=1.37439760406e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=1 step=1 method=0 draws=4096 kept=2048 evaluations=4049 suffix=2025 connection=4049
+TRACED_QUARTET_WORK fixture=1 step=1 method=1 draws=8192 kept=0 evaluations=4040 suffix=4040 connection=4040
+TRACED_QUARTET_WORK fixture=1 step=1 method=2 draws=4096 kept=0 evaluations=3660 suffix=3660 connection=3660
+TRACED_QUARTET_WORK fixture=1 step=1 method=3 draws=8192 kept=0 evaluations=7292 suffix=7292 connection=7292
+TRACED_QUARTET_EXACT fixture=1 step=1 channel0=0.028608198162752601 channel1=0.016209938728538383 channel2=0.0085174512408581812
+TRACED_QUARTET_CASE fixture=1 step=2 reset=0 estimate_error=1.50441644975e-08 weight_error=1.66859656902e-07
+TRACED_QUARTET_WORK fixture=1 step=2 method=0 draws=4096 kept=2048 evaluations=4038 suffix=2013 connection=4038
+TRACED_QUARTET_WORK fixture=1 step=2 method=1 draws=8192 kept=0 evaluations=4037 suffix=4037 connection=4037
+TRACED_QUARTET_WORK fixture=1 step=2 method=2 draws=4096 kept=0 evaluations=3603 suffix=3603 connection=3603
+TRACED_QUARTET_WORK fixture=1 step=2 method=3 draws=8192 kept=0 evaluations=7248 suffix=7248 connection=7248
+TRACED_QUARTET_EXACT fixture=1 step=2 channel0=0.03034785673314162 channel1=0.017938247449587778 channel2=0.0088440187211207711
+TRACED_QUARTET_CASE fixture=1 step=3 reset=0 estimate_error=2.71583377454e-08 weight_error=1.78026190032e-07
+TRACED_QUARTET_WORK fixture=1 step=3 method=0 draws=4096 kept=2048 evaluations=4039 suffix=2026 connection=4039
+TRACED_QUARTET_WORK fixture=1 step=3 method=1 draws=8192 kept=0 evaluations=4049 suffix=4049 connection=4049
+TRACED_QUARTET_WORK fixture=1 step=3 method=2 draws=4096 kept=0 evaluations=3632 suffix=3632 connection=3632
+TRACED_QUARTET_WORK fixture=1 step=3 method=3 draws=8192 kept=0 evaluations=7264 suffix=7264 connection=7264
+TRACED_QUARTET_EXACT fixture=1 step=3 channel0=0.030117131697104317 channel1=0.018864973398192021 channel2=0.0086114699026312753
+TRACED_QUARTET_CASE fixture=1 step=4 reset=0 estimate_error=1.38156498047e-08 weight_error=1.78026190032e-07
+TRACED_QUARTET_WORK fixture=1 step=4 method=0 draws=4096 kept=2048 evaluations=4054 suffix=2028 connection=4054
+TRACED_QUARTET_WORK fixture=1 step=4 method=1 draws=8192 kept=0 evaluations=4046 suffix=4046 connection=4046
+TRACED_QUARTET_WORK fixture=1 step=4 method=2 draws=4096 kept=0 evaluations=3637 suffix=3637 connection=3637
+TRACED_QUARTET_WORK fixture=1 step=4 method=3 draws=8192 kept=0 evaluations=7278 suffix=7278 connection=7278
+TRACED_QUARTET_EXACT fixture=1 step=4 channel0=0.022078303158521752 channel1=0.013627880412202177 channel2=0.0061524581176734651
+TRACED_QUARTET_CASE fixture=1 step=5 reset=0 estimate_error=1.60394709823e-08 weight_error=8.86279620417e-07
+TRACED_QUARTET_WORK fixture=1 step=5 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2020 connection=4048
+TRACED_QUARTET_WORK fixture=1 step=5 method=1 draws=8192 kept=0 evaluations=4053 suffix=4053 connection=4053
+TRACED_QUARTET_WORK fixture=1 step=5 method=2 draws=4096 kept=0 evaluations=3635 suffix=3635 connection=3635
+TRACED_QUARTET_WORK fixture=1 step=5 method=3 draws=8192 kept=0 evaluations=7321 suffix=7321 connection=7321
+TRACED_QUARTET_EXACT fixture=1 step=5 channel0=0.012218330847182967 channel1=0.0066429945091767591 channel2=0.0032072874802862848
+TRACED_QUARTET_CASE fixture=1 step=6 reset=0 estimate_error=1.67232615048e-08 weight_error=8.86279620417e-07
+TRACED_QUARTET_WORK fixture=1 step=6 method=0 draws=4096 kept=2048 evaluations=4043 suffix=2023 connection=4043
+TRACED_QUARTET_WORK fixture=1 step=6 method=1 draws=8192 kept=0 evaluations=4048 suffix=4048 connection=4048
+TRACED_QUARTET_WORK fixture=1 step=6 method=2 draws=4096 kept=0 evaluations=3668 suffix=3668 connection=3668
+TRACED_QUARTET_WORK fixture=1 step=6 method=3 draws=8192 kept=0 evaluations=7341 suffix=7341 connection=7341
+TRACED_QUARTET_EXACT fixture=1 step=6 channel0=0.009235281650596578 channel1=0.004570425186648591 channel2=0.0021553694724340861
+TRACED_QUARTET_CASE fixture=1 step=7 reset=0 estimate_error=4.87775545649e-09 weight_error=2.60917511732e-07
+TRACED_QUARTET_WORK fixture=1 step=7 method=0 draws=4096 kept=2048 evaluations=4046 suffix=2023 connection=4046
+TRACED_QUARTET_WORK fixture=1 step=7 method=1 draws=8192 kept=0 evaluations=4046 suffix=4046 connection=4046
+TRACED_QUARTET_WORK fixture=1 step=7 method=2 draws=4096 kept=0 evaluations=3665 suffix=3665 connection=3665
+TRACED_QUARTET_WORK fixture=1 step=7 method=3 draws=8192 kept=0 evaluations=7286 suffix=7286 connection=7286
+TRACED_QUARTET_EXACT fixture=1 step=7 channel0=0.0064870121015918412 channel1=0.0025377551063626696 channel2=0.0019080094454808007
+TRACED_QUARTET_CASE fixture=1 step=8 reset=0 estimate_error=2.09047799557e-09 weight_error=1.80928594191e-07
+TRACED_QUARTET_WORK fixture=1 step=8 method=0 draws=4096 kept=2048 evaluations=4044 suffix=2021 connection=4044
+TRACED_QUARTET_WORK fixture=1 step=8 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=1 step=8 method=2 draws=4096 kept=0 evaluations=3635 suffix=3635 connection=3635
+TRACED_QUARTET_WORK fixture=1 step=8 method=3 draws=8192 kept=0 evaluations=7294 suffix=7294 connection=7294
+TRACED_QUARTET_EXACT fixture=1 step=8 channel0=0.0064024620869207773 channel1=0.002549645075692867 channel2=0.0018985580056882076
+TRACED_QUARTET_CASE fixture=1 step=9 reset=0 estimate_error=4.9083268075e-09 weight_error=1.80928594191e-07
+TRACED_QUARTET_WORK fixture=1 step=9 method=0 draws=4096 kept=2048 evaluations=4046 suffix=2025 connection=4046
+TRACED_QUARTET_WORK fixture=1 step=9 method=1 draws=8192 kept=0 evaluations=4044 suffix=4044 connection=4044
+TRACED_QUARTET_WORK fixture=1 step=9 method=2 draws=4096 kept=0 evaluations=3626 suffix=3626 connection=3626
+TRACED_QUARTET_WORK fixture=1 step=9 method=3 draws=8192 kept=0 evaluations=7248 suffix=7248 connection=7248
+TRACED_QUARTET_EXACT fixture=1 step=9 channel0=0.0064870121015918412 channel1=0.0025377551063626696 channel2=0.0019080094454808007
+TRACED_QUARTET_CASE fixture=1 step=10 reset=0 estimate_error=8.26360028669e-09 weight_error=2.60917511732e-07
+TRACED_QUARTET_WORK fixture=1 step=10 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2022 connection=4047
+TRACED_QUARTET_WORK fixture=1 step=10 method=1 draws=8192 kept=0 evaluations=4048 suffix=4048 connection=4048
+TRACED_QUARTET_WORK fixture=1 step=10 method=2 draws=4096 kept=0 evaluations=3643 suffix=3643 connection=3643
+TRACED_QUARTET_WORK fixture=1 step=10 method=3 draws=8192 kept=0 evaluations=7285 suffix=7285 connection=7285
+TRACED_QUARTET_EXACT fixture=1 step=10 channel0=0.009235281650596578 channel1=0.004570425186648591 channel2=0.0021553694724340861
+TRACED_QUARTET_CASE fixture=1 step=11 reset=0 estimate_error=1.20117972235e-08 weight_error=8.86279620417e-07
+TRACED_QUARTET_WORK fixture=1 step=11 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2025 connection=4047
+TRACED_QUARTET_WORK fixture=1 step=11 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=1 step=11 method=2 draws=4096 kept=0 evaluations=3630 suffix=3630 connection=3630
+TRACED_QUARTET_WORK fixture=1 step=11 method=3 draws=8192 kept=0 evaluations=7283 suffix=7283 connection=7283
+TRACED_QUARTET_EXACT fixture=1 step=11 channel0=0.012218330847182967 channel1=0.0066429945091767591 channel2=0.0032072874802862848
+TRACED_QUARTET_CASE fixture=1 step=12 reset=0 estimate_error=1.69594703073e-08 weight_error=8.86279620417e-07
+TRACED_QUARTET_WORK fixture=1 step=12 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2023 connection=4048
+TRACED_QUARTET_WORK fixture=1 step=12 method=1 draws=8192 kept=0 evaluations=4037 suffix=4037 connection=4037
+TRACED_QUARTET_WORK fixture=1 step=12 method=2 draws=4096 kept=0 evaluations=3641 suffix=3641 connection=3641
+TRACED_QUARTET_WORK fixture=1 step=12 method=3 draws=8192 kept=0 evaluations=7255 suffix=7255 connection=7255
+TRACED_QUARTET_EXACT fixture=1 step=12 channel0=0.022078303158521752 channel1=0.013627880412202177 channel2=0.0061524581176734651
+TRACED_QUARTET_CASE fixture=1 step=13 reset=0 estimate_error=2.71583377454e-08 weight_error=1.78026190032e-07
+TRACED_QUARTET_WORK fixture=1 step=13 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2024 connection=4047
+TRACED_QUARTET_WORK fixture=1 step=13 method=1 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=1 step=13 method=2 draws=4096 kept=0 evaluations=3643 suffix=3643 connection=3643
+TRACED_QUARTET_WORK fixture=1 step=13 method=3 draws=8192 kept=0 evaluations=7268 suffix=7268 connection=7268
+TRACED_QUARTET_EXACT fixture=1 step=13 channel0=0.030117131697104317 channel1=0.018864973398192021 channel2=0.0086114699026312753
+TRACED_QUARTET_CASE fixture=1 step=14 reset=0 estimate_error=1.54570874294e-08 weight_error=1.78026190032e-07
+TRACED_QUARTET_WORK fixture=1 step=14 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2023 connection=4047
+TRACED_QUARTET_WORK fixture=1 step=14 method=1 draws=8192 kept=0 evaluations=4039 suffix=4039 connection=4039
+TRACED_QUARTET_WORK fixture=1 step=14 method=2 draws=4096 kept=0 evaluations=3631 suffix=3631 connection=3631
+TRACED_QUARTET_WORK fixture=1 step=14 method=3 draws=8192 kept=0 evaluations=7283 suffix=7283 connection=7283
+TRACED_QUARTET_EXACT fixture=1 step=14 channel0=0.03034785673314162 channel1=0.017938247449587778 channel2=0.0088440187211207711
+TRACED_QUARTET_CASE fixture=1 step=15 reset=0 estimate_error=1.88754009506e-08 weight_error=1.66859656902e-07
+TRACED_QUARTET_WORK fixture=1 step=15 method=0 draws=4096 kept=2048 evaluations=4040 suffix=2017 connection=4040
+TRACED_QUARTET_WORK fixture=1 step=15 method=1 draws=8192 kept=0 evaluations=4042 suffix=4042 connection=4042
+TRACED_QUARTET_WORK fixture=1 step=15 method=2 draws=4096 kept=0 evaluations=3643 suffix=3643 connection=3643
+TRACED_QUARTET_WORK fixture=1 step=15 method=3 draws=8192 kept=0 evaluations=7309 suffix=7309 connection=7309
+TRACED_QUARTET_EXACT fixture=1 step=15 channel0=0.028608198162752601 channel1=0.016209938728538383 channel2=0.0085174512408581812
+TRACED_QUARTET_CASE fixture=1 step=16 reset=1 estimate_error=2.30451370903e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=1 step=16 method=0 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=1 step=16 method=1 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=1 step=16 method=2 draws=8192 kept=0 evaluations=7254 suffix=7254 connection=7254
+TRACED_QUARTET_WORK fixture=1 step=16 method=3 draws=8192 kept=0 evaluations=7254 suffix=7254 connection=7254
+TRACED_QUARTET_EXACT fixture=1 step=16 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=1 step=17 reset=0 estimate_error=2.38058866925e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=1 step=17 method=0 draws=4096 kept=2048 evaluations=4029 suffix=2017 connection=4029
+TRACED_QUARTET_WORK fixture=1 step=17 method=1 draws=8192 kept=0 evaluations=4044 suffix=4044 connection=4044
+TRACED_QUARTET_WORK fixture=1 step=17 method=2 draws=4096 kept=0 evaluations=3628 suffix=3628 connection=3628
+TRACED_QUARTET_WORK fixture=1 step=17 method=3 draws=8192 kept=0 evaluations=7254 suffix=7254 connection=7254
+TRACED_QUARTET_EXACT fixture=1 step=17 channel0=0.028608198162752601 channel1=0.032419877457076765 channel2=0.017034902481716362
+TRACED_QUARTET_CASE fixture=1 step=18 reset=0 estimate_error=2.09621746489e-08 weight_error=1.66859656902e-07
+TRACED_QUARTET_WORK fixture=1 step=18 method=0 draws=4096 kept=2048 evaluations=4038 suffix=2021 connection=4038
+TRACED_QUARTET_WORK fixture=1 step=18 method=1 draws=8192 kept=0 evaluations=4040 suffix=4040 connection=4040
+TRACED_QUARTET_WORK fixture=1 step=18 method=2 draws=4096 kept=0 evaluations=3634 suffix=3634 connection=3634
+TRACED_QUARTET_WORK fixture=1 step=18 method=3 draws=8192 kept=0 evaluations=7245 suffix=7245 connection=7245
+TRACED_QUARTET_EXACT fixture=1 step=18 channel0=0.03034785673314162 channel1=0.035876494899175555 channel2=0.017688037442241542
+TRACED_QUARTET_CASE fixture=1 step=19 reset=0 estimate_error=3.41802101206e-08 weight_error=1.78026190032e-07
+TRACED_QUARTET_WORK fixture=1 step=19 method=0 draws=4096 kept=2048 evaluations=4039 suffix=2018 connection=4039
+TRACED_QUARTET_WORK fixture=1 step=19 method=1 draws=8192 kept=0 evaluations=4041 suffix=4041 connection=4041
+TRACED_QUARTET_WORK fixture=1 step=19 method=2 draws=4096 kept=0 evaluations=3617 suffix=3617 connection=3617
+TRACED_QUARTET_WORK fixture=1 step=19 method=3 draws=8192 kept=0 evaluations=7247 suffix=7247 connection=7247
+TRACED_QUARTET_EXACT fixture=1 step=19 channel0=0.030117131697104317 channel1=0.037729946796384042 channel2=0.017222939805262551
+TRACED_QUARTET_CASE fixture=1 step=20 reset=0 estimate_error=2.77472373827e-08 weight_error=1.78026190032e-07
+TRACED_QUARTET_WORK fixture=1 step=20 method=0 draws=4096 kept=2048 evaluations=4038 suffix=2020 connection=4038
+TRACED_QUARTET_WORK fixture=1 step=20 method=1 draws=8192 kept=0 evaluations=4037 suffix=4037 connection=4037
+TRACED_QUARTET_WORK fixture=1 step=20 method=2 draws=4096 kept=0 evaluations=3627 suffix=3627 connection=3627
+TRACED_QUARTET_WORK fixture=1 step=20 method=3 draws=8192 kept=0 evaluations=7244 suffix=7244 connection=7244
+TRACED_QUARTET_EXACT fixture=1 step=20 channel0=0.022078303158521752 channel1=0.027255760824404354 channel2=0.01230491623534693
+TRACED_QUARTET_CASE fixture=1 step=21 reset=0 estimate_error=1.67995396136e-08 weight_error=8.86279620417e-07
+TRACED_QUARTET_WORK fixture=1 step=21 method=0 draws=4096 kept=2048 evaluations=4045 suffix=2025 connection=4045
+TRACED_QUARTET_WORK fixture=1 step=21 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=1 step=21 method=2 draws=4096 kept=0 evaluations=3641 suffix=3641 connection=3641
+TRACED_QUARTET_WORK fixture=1 step=21 method=3 draws=8192 kept=0 evaluations=7285 suffix=7285 connection=7285
+TRACED_QUARTET_EXACT fixture=1 step=21 channel0=0.012218330847182967 channel1=0.013285989018353518 channel2=0.0064145749605725695
+TRACED_QUARTET_CASE fixture=1 step=22 reset=0 estimate_error=1.74503014538e-08 weight_error=8.86279620417e-07
+TRACED_QUARTET_WORK fixture=1 step=22 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2023 connection=4048
+TRACED_QUARTET_WORK fixture=1 step=22 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=1 step=22 method=2 draws=4096 kept=0 evaluations=3672 suffix=3672 connection=3672
+TRACED_QUARTET_WORK fixture=1 step=22 method=3 draws=8192 kept=0 evaluations=7318 suffix=7318 connection=7318
+TRACED_QUARTET_EXACT fixture=1 step=22 channel0=0.009235281650596578 channel1=0.0091408503732971821 channel2=0.0043107389448681721
+TRACED_QUARTET_CASE fixture=1 step=23 reset=0 estimate_error=7.1294264381e-09 weight_error=2.60917511732e-07
+TRACED_QUARTET_WORK fixture=1 step=23 method=0 draws=4096 kept=2048 evaluations=4051 suffix=2028 connection=4051
+TRACED_QUARTET_WORK fixture=1 step=23 method=1 draws=8192 kept=0 evaluations=4049 suffix=4049 connection=4049
+TRACED_QUARTET_WORK fixture=1 step=23 method=2 draws=4096 kept=0 evaluations=3656 suffix=3656 connection=3656
+TRACED_QUARTET_WORK fixture=1 step=23 method=3 draws=8192 kept=0 evaluations=7292 suffix=7292 connection=7292
+TRACED_QUARTET_EXACT fixture=1 step=23 channel0=0.0064870121015918412 channel1=0.0050755102127253392 channel2=0.0038160188909616014
+TRACED_QUARTET_CASE fixture=1 step=24 reset=1 estimate_error=5.12464229732e-09 weight_error=1.29145050202e-07
+TRACED_QUARTET_WORK fixture=1 step=24 method=0 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=1 step=24 method=1 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=1 step=24 method=2 draws=8192 kept=0 evaluations=7269 suffix=7269 connection=7269
+TRACED_QUARTET_WORK fixture=1 step=24 method=3 draws=8192 kept=0 evaluations=7269 suffix=7269 connection=7269
+TRACED_QUARTET_EXACT fixture=1 step=24 channel0=0.0081738333451324193 channel1=0.0098025349340769251 channel2=0.0050151184501386094
+TRACED_QUARTET_CASE fixture=1 step=25 reset=0 estimate_error=5.10282229665e-09 weight_error=1.3515753318e-07
+TRACED_QUARTET_WORK fixture=1 step=25 method=0 draws=4096 kept=2048 evaluations=4045 suffix=2023 connection=4045
+TRACED_QUARTET_WORK fixture=1 step=25 method=1 draws=8192 kept=0 evaluations=4051 suffix=4051 connection=4051
+TRACED_QUARTET_WORK fixture=1 step=25 method=2 draws=4096 kept=0 evaluations=3658 suffix=3658 connection=3658
+TRACED_QUARTET_WORK fixture=1 step=25 method=3 draws=8192 kept=0 evaluations=7256 suffix=7256 connection=7256
+TRACED_QUARTET_EXACT fixture=1 step=25 channel0=0.0092575215583606055 channel1=0.011212567652266966 channel2=0.0058099845571585613
+TRACED_QUARTET_CASE fixture=1 step=26 reset=0 estimate_error=1.40276588192e-08 weight_error=1.40019304185e-07
+TRACED_QUARTET_WORK fixture=1 step=26 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2025 connection=4048
+TRACED_QUARTET_WORK fixture=1 step=26 method=1 draws=8192 kept=0 evaluations=4056 suffix=4056 connection=4056
+TRACED_QUARTET_WORK fixture=1 step=26 method=2 draws=4096 kept=0 evaluations=3637 suffix=3637 connection=3637
+TRACED_QUARTET_WORK fixture=1 step=26 method=3 draws=8192 kept=0 evaluations=7285 suffix=7285 connection=7285
+TRACED_QUARTET_EXACT fixture=1 step=26 channel0=0.01292208295748973 channel1=0.016051330873174691 channel2=0.0085467225295230501
+TRACED_QUARTET_CASE fixture=1 step=27 reset=0 estimate_error=1.87550450309e-08 weight_error=2.24745358462e-07
+TRACED_QUARTET_WORK fixture=1 step=27 method=0 draws=4096 kept=2048 evaluations=4050 suffix=2025 connection=4050
+TRACED_QUARTET_WORK fixture=1 step=27 method=1 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=1 step=27 method=2 draws=4096 kept=0 evaluations=3645 suffix=3645 connection=3645
+TRACED_QUARTET_WORK fixture=1 step=27 method=3 draws=8192 kept=0 evaluations=7258 suffix=7258 connection=7258
+TRACED_QUARTET_EXACT fixture=1 step=27 channel0=0.018746584091474169 channel1=0.024006231341183494 channel2=0.012869123148942511
+TRACED_QUARTET_CASE fixture=1 step=28 reset=0 estimate_error=3.13420025627e-08 weight_error=2.24745358462e-07
+TRACED_QUARTET_WORK fixture=1 step=28 method=0 draws=4096 kept=2048 evaluations=4050 suffix=2025 connection=4050
+TRACED_QUARTET_WORK fixture=1 step=28 method=1 draws=8192 kept=0 evaluations=4036 suffix=4036 connection=4036
+TRACED_QUARTET_WORK fixture=1 step=28 method=2 draws=4096 kept=0 evaluations=3612 suffix=3612 connection=3612
+TRACED_QUARTET_WORK fixture=1 step=28 method=3 draws=8192 kept=0 evaluations=7246 suffix=7246 connection=7246
+TRACED_QUARTET_EXACT fixture=1 step=28 channel0=0.026023803613419636 channel1=0.036892138436156831 channel2=0.017282601728225044
+TRACED_QUARTET_CASE fixture=1 step=29 reset=0 estimate_error=3.20486955446e-08 weight_error=2.1196055957e-07
+TRACED_QUARTET_WORK fixture=1 step=29 method=0 draws=4096 kept=2048 evaluations=4043 suffix=2018 connection=4043
+TRACED_QUARTET_WORK fixture=1 step=29 method=1 draws=8192 kept=0 evaluations=4041 suffix=4041 connection=4041
+TRACED_QUARTET_WORK fixture=1 step=29 method=2 draws=4096 kept=0 evaluations=3631 suffix=3631 connection=3631
+TRACED_QUARTET_WORK fixture=1 step=29 method=3 draws=8192 kept=0 evaluations=7290 suffix=7290 connection=7290
+TRACED_QUARTET_EXACT fixture=1 step=29 channel0=0.02691383596131601 channel1=0.040900735856445998 channel2=0.01676406213114684
+TRACED_QUARTET_CASE fixture=1 step=30 reset=0 estimate_error=1.87400774482e-08 weight_error=1.78026190032e-07
+TRACED_QUARTET_WORK fixture=1 step=30 method=0 draws=4096 kept=2048 evaluations=4040 suffix=2022 connection=4040
+TRACED_QUARTET_WORK fixture=1 step=30 method=1 draws=8192 kept=0 evaluations=4051 suffix=4051 connection=4051
+TRACED_QUARTET_WORK fixture=1 step=30 method=2 draws=4096 kept=0 evaluations=3678 suffix=3678 connection=3678
+TRACED_QUARTET_WORK fixture=1 step=30 method=3 draws=8192 kept=0 evaluations=7334 suffix=7334 connection=7334
+TRACED_QUARTET_EXACT fixture=1 step=30 channel0=0.026497064544019806 channel1=0.031084397823269883 channel2=0.014402027893943363
+TRACED_QUARTET_CASE fixture=1 step=31 reset=0 estimate_error=1.86269670382e-08 weight_error=1.66859656902e-07
+TRACED_QUARTET_WORK fixture=1 step=31 method=0 draws=4096 kept=2048 evaluations=4036 suffix=2014 connection=4036
+TRACED_QUARTET_WORK fixture=1 step=31 method=1 draws=8192 kept=0 evaluations=4041 suffix=4041 connection=4041
+TRACED_QUARTET_WORK fixture=1 step=31 method=2 draws=4096 kept=0 evaluations=3626 suffix=3626 connection=3626
+TRACED_QUARTET_WORK fixture=1 step=31 method=3 draws=8192 kept=0 evaluations=7281 suffix=7281 connection=7281
+TRACED_QUARTET_EXACT fixture=1 step=31 channel0=0.028608198162752601 channel1=0.032419877457076765 channel2=0.017034902481716362
+TRACED_QUARTET_CASE fixture=2 step=0 reset=1 estimate_error=2.02075574607e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=0 method=0 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=2 step=0 method=1 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=2 step=0 method=2 draws=8192 kept=0 evaluations=7273 suffix=7273 connection=7273
+TRACED_QUARTET_WORK fixture=2 step=0 method=3 draws=8192 kept=0 evaluations=7273 suffix=7273 connection=7273
+TRACED_QUARTET_EXACT fixture=2 step=0 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+TRACED_QUARTET_CASE fixture=2 step=1 reset=0 estimate_error=2.04112867302e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=1 method=0 draws=4096 kept=2048 evaluations=4049 suffix=2025 connection=4049
+TRACED_QUARTET_WORK fixture=2 step=1 method=1 draws=8192 kept=0 evaluations=4040 suffix=4040 connection=4040
+TRACED_QUARTET_WORK fixture=2 step=1 method=2 draws=4096 kept=0 evaluations=3660 suffix=3660 connection=3660
+TRACED_QUARTET_WORK fixture=2 step=1 method=3 draws=8192 kept=0 evaluations=7292 suffix=7292 connection=7292
+TRACED_QUARTET_EXACT fixture=2 step=1 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+TRACED_QUARTET_CASE fixture=2 step=2 reset=0 estimate_error=2.18824550841e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=2 method=0 draws=4096 kept=2048 evaluations=4038 suffix=2013 connection=4038
+TRACED_QUARTET_WORK fixture=2 step=2 method=1 draws=8192 kept=0 evaluations=4037 suffix=4037 connection=4037
+TRACED_QUARTET_WORK fixture=2 step=2 method=2 draws=4096 kept=0 evaluations=3603 suffix=3603 connection=3603
+TRACED_QUARTET_WORK fixture=2 step=2 method=3 draws=8192 kept=0 evaluations=7248 suffix=7248 connection=7248
+TRACED_QUARTET_EXACT fixture=2 step=2 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+TRACED_QUARTET_CASE fixture=2 step=3 reset=0 estimate_error=1.87816037861e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=3 method=0 draws=4096 kept=2048 evaluations=4039 suffix=2026 connection=4039
+TRACED_QUARTET_WORK fixture=2 step=3 method=1 draws=8192 kept=0 evaluations=4049 suffix=4049 connection=4049
+TRACED_QUARTET_WORK fixture=2 step=3 method=2 draws=4096 kept=0 evaluations=3632 suffix=3632 connection=3632
+TRACED_QUARTET_WORK fixture=2 step=3 method=3 draws=8192 kept=0 evaluations=7264 suffix=7264 connection=7264
+TRACED_QUARTET_EXACT fixture=2 step=3 channel0=0.027784827831666553 channel1=0.01553987664020403 channel2=0.0083448676632888411
+TRACED_QUARTET_CASE fixture=2 step=4 reset=0 estimate_error=0 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=4 method=0 draws=4096 kept=2048 evaluations=4054 suffix=2028 connection=4054
+TRACED_QUARTET_WORK fixture=2 step=4 method=1 draws=8192 kept=0 evaluations=4046 suffix=4046 connection=4046
+TRACED_QUARTET_WORK fixture=2 step=4 method=2 draws=4096 kept=0 evaluations=3637 suffix=3637 connection=3637
+TRACED_QUARTET_WORK fixture=2 step=4 method=3 draws=8192 kept=0 evaluations=7278 suffix=7278 connection=7278
+TRACED_QUARTET_EXACT fixture=2 step=4 channel0=0 channel1=0 channel2=0
+TRACED_QUARTET_CASE fixture=2 step=5 reset=0 estimate_error=0 weight_error=0
+TRACED_QUARTET_WORK fixture=2 step=5 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2020 connection=4048
+TRACED_QUARTET_WORK fixture=2 step=5 method=1 draws=8192 kept=0 evaluations=4053 suffix=4053 connection=4053
+TRACED_QUARTET_WORK fixture=2 step=5 method=2 draws=4096 kept=0 evaluations=3635 suffix=3635 connection=3635
+TRACED_QUARTET_WORK fixture=2 step=5 method=3 draws=8192 kept=0 evaluations=7321 suffix=7321 connection=7321
+TRACED_QUARTET_EXACT fixture=2 step=5 channel0=0 channel1=0 channel2=0
+TRACED_QUARTET_CASE fixture=2 step=6 reset=0 estimate_error=0 weight_error=0
+TRACED_QUARTET_WORK fixture=2 step=6 method=0 draws=4096 kept=2048 evaluations=4043 suffix=2023 connection=4043
+TRACED_QUARTET_WORK fixture=2 step=6 method=1 draws=8192 kept=0 evaluations=4048 suffix=4048 connection=4048
+TRACED_QUARTET_WORK fixture=2 step=6 method=2 draws=4096 kept=0 evaluations=3668 suffix=3668 connection=3668
+TRACED_QUARTET_WORK fixture=2 step=6 method=3 draws=8192 kept=0 evaluations=7341 suffix=7341 connection=7341
+TRACED_QUARTET_EXACT fixture=2 step=6 channel0=0 channel1=0 channel2=0
+TRACED_QUARTET_CASE fixture=2 step=7 reset=0 estimate_error=0 weight_error=0
+TRACED_QUARTET_WORK fixture=2 step=7 method=0 draws=4096 kept=2048 evaluations=4046 suffix=2023 connection=4046
+TRACED_QUARTET_WORK fixture=2 step=7 method=1 draws=8192 kept=0 evaluations=4046 suffix=4046 connection=4046
+TRACED_QUARTET_WORK fixture=2 step=7 method=2 draws=4096 kept=0 evaluations=3665 suffix=3665 connection=3665
+TRACED_QUARTET_WORK fixture=2 step=7 method=3 draws=8192 kept=0 evaluations=7286 suffix=7286 connection=7286
+TRACED_QUARTET_EXACT fixture=2 step=7 channel0=0 channel1=0 channel2=0
+TRACED_QUARTET_CASE fixture=2 step=8 reset=0 estimate_error=4.56470875335e-09 weight_error=1.29145050202e-07
+TRACED_QUARTET_WORK fixture=2 step=8 method=0 draws=4096 kept=2048 evaluations=4044 suffix=2021 connection=4044
+TRACED_QUARTET_WORK fixture=2 step=8 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=2 step=8 method=2 draws=4096 kept=0 evaluations=3635 suffix=3635 connection=3635
+TRACED_QUARTET_WORK fixture=2 step=8 method=3 draws=8192 kept=0 evaluations=7294 suffix=7294 connection=7294
+TRACED_QUARTET_EXACT fixture=2 step=8 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+TRACED_QUARTET_CASE fixture=2 step=9 reset=0 estimate_error=4.07276867093e-09 weight_error=1.29145050202e-07
+TRACED_QUARTET_WORK fixture=2 step=9 method=0 draws=4096 kept=2048 evaluations=4046 suffix=2025 connection=4046
+TRACED_QUARTET_WORK fixture=2 step=9 method=1 draws=8192 kept=0 evaluations=4044 suffix=4044 connection=4044
+TRACED_QUARTET_WORK fixture=2 step=9 method=2 draws=4096 kept=0 evaluations=3626 suffix=3626 connection=3626
+TRACED_QUARTET_WORK fixture=2 step=9 method=3 draws=8192 kept=0 evaluations=7248 suffix=7248 connection=7248
+TRACED_QUARTET_EXACT fixture=2 step=9 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+TRACED_QUARTET_CASE fixture=2 step=10 reset=0 estimate_error=3.80382705195e-09 weight_error=1.29145050202e-07
+TRACED_QUARTET_WORK fixture=2 step=10 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2022 connection=4047
+TRACED_QUARTET_WORK fixture=2 step=10 method=1 draws=8192 kept=0 evaluations=4048 suffix=4048 connection=4048
+TRACED_QUARTET_WORK fixture=2 step=10 method=2 draws=4096 kept=0 evaluations=3643 suffix=3643 connection=3643
+TRACED_QUARTET_WORK fixture=2 step=10 method=3 draws=8192 kept=0 evaluations=7285 suffix=7285 connection=7285
+TRACED_QUARTET_EXACT fixture=2 step=10 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+TRACED_QUARTET_CASE fixture=2 step=11 reset=0 estimate_error=4.56470875335e-09 weight_error=1.29145050202e-07
+TRACED_QUARTET_WORK fixture=2 step=11 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2025 connection=4047
+TRACED_QUARTET_WORK fixture=2 step=11 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=2 step=11 method=2 draws=4096 kept=0 evaluations=3630 suffix=3630 connection=3630
+TRACED_QUARTET_WORK fixture=2 step=11 method=3 draws=8192 kept=0 evaluations=7283 suffix=7283 connection=7283
+TRACED_QUARTET_EXACT fixture=2 step=11 channel0=0.0081738333451324193 channel1=0.0049012674670384625 channel2=0.0025075592250693047
+TRACED_QUARTET_CASE fixture=2 step=12 reset=0 estimate_error=2.15924235575e-08 weight_error=2.20366008824e-07
+TRACED_QUARTET_WORK fixture=2 step=12 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2023 connection=4048
+TRACED_QUARTET_WORK fixture=2 step=12 method=1 draws=8192 kept=0 evaluations=4037 suffix=4037 connection=4037
+TRACED_QUARTET_WORK fixture=2 step=12 method=2 draws=4096 kept=0 evaluations=3641 suffix=3641 connection=3641
+TRACED_QUARTET_WORK fixture=2 step=12 method=3 draws=8192 kept=0 evaluations=7255 suffix=7255 connection=7255
+TRACED_QUARTET_EXACT fixture=2 step=12 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+TRACED_QUARTET_CASE fixture=2 step=13 reset=0 estimate_error=1.97659206572e-08 weight_error=2.20366008824e-07
+TRACED_QUARTET_WORK fixture=2 step=13 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2024 connection=4047
+TRACED_QUARTET_WORK fixture=2 step=13 method=1 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=2 step=13 method=2 draws=4096 kept=0 evaluations=3643 suffix=3643 connection=3643
+TRACED_QUARTET_WORK fixture=2 step=13 method=3 draws=8192 kept=0 evaluations=7268 suffix=7268 connection=7268
+TRACED_QUARTET_EXACT fixture=2 step=13 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+TRACED_QUARTET_CASE fixture=2 step=14 reset=0 estimate_error=1.8344643464e-08 weight_error=2.20366008824e-07
+TRACED_QUARTET_WORK fixture=2 step=14 method=0 draws=4096 kept=2048 evaluations=4047 suffix=2023 connection=4047
+TRACED_QUARTET_WORK fixture=2 step=14 method=1 draws=8192 kept=0 evaluations=4039 suffix=4039 connection=4039
+TRACED_QUARTET_WORK fixture=2 step=14 method=2 draws=4096 kept=0 evaluations=3631 suffix=3631 connection=3631
+TRACED_QUARTET_WORK fixture=2 step=14 method=3 draws=8192 kept=0 evaluations=7283 suffix=7283 connection=7283
+TRACED_QUARTET_EXACT fixture=2 step=14 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+TRACED_QUARTET_CASE fixture=2 step=15 reset=0 estimate_error=2.00786668542e-08 weight_error=2.20366008824e-07
+TRACED_QUARTET_WORK fixture=2 step=15 method=0 draws=4096 kept=2048 evaluations=4040 suffix=2017 connection=4040
+TRACED_QUARTET_WORK fixture=2 step=15 method=1 draws=8192 kept=0 evaluations=4042 suffix=4042 connection=4042
+TRACED_QUARTET_WORK fixture=2 step=15 method=2 draws=4096 kept=0 evaluations=3643 suffix=3643 connection=3643
+TRACED_QUARTET_WORK fixture=2 step=15 method=3 draws=8192 kept=0 evaluations=7309 suffix=7309 connection=7309
+TRACED_QUARTET_EXACT fixture=2 step=15 channel0=0.013817480627959133 channel1=0.006897104477979376 channel2=0.0064665407874188799
+TRACED_QUARTET_CASE fixture=2 step=16 reset=1 estimate_error=2.30451370903e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=16 method=0 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=2 step=16 method=1 draws=8192 kept=0 evaluations=4038 suffix=4038 connection=4038
+TRACED_QUARTET_WORK fixture=2 step=16 method=2 draws=8192 kept=0 evaluations=7254 suffix=7254 connection=7254
+TRACED_QUARTET_WORK fixture=2 step=16 method=3 draws=8192 kept=0 evaluations=7254 suffix=7254 connection=7254
+TRACED_QUARTET_EXACT fixture=2 step=16 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=2 step=17 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=17 method=0 draws=4096 kept=2048 evaluations=4029 suffix=2017 connection=4029
+TRACED_QUARTET_WORK fixture=2 step=17 method=1 draws=8192 kept=0 evaluations=4044 suffix=4044 connection=4044
+TRACED_QUARTET_WORK fixture=2 step=17 method=2 draws=4096 kept=0 evaluations=3628 suffix=3628 connection=3628
+TRACED_QUARTET_WORK fixture=2 step=17 method=3 draws=8192 kept=0 evaluations=7254 suffix=7254 connection=7254
+TRACED_QUARTET_EXACT fixture=2 step=17 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=2 step=18 reset=0 estimate_error=2.75843326236e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=18 method=0 draws=4096 kept=2048 evaluations=4038 suffix=2021 connection=4038
+TRACED_QUARTET_WORK fixture=2 step=18 method=1 draws=8192 kept=0 evaluations=4040 suffix=4040 connection=4040
+TRACED_QUARTET_WORK fixture=2 step=18 method=2 draws=4096 kept=0 evaluations=3634 suffix=3634 connection=3634
+TRACED_QUARTET_WORK fixture=2 step=18 method=3 draws=8192 kept=0 evaluations=7245 suffix=7245 connection=7245
+TRACED_QUARTET_EXACT fixture=2 step=18 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=2 step=19 reset=0 estimate_error=3.42955832899e-08 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=19 method=0 draws=4096 kept=2048 evaluations=4039 suffix=2018 connection=4039
+TRACED_QUARTET_WORK fixture=2 step=19 method=1 draws=8192 kept=0 evaluations=4041 suffix=4041 connection=4041
+TRACED_QUARTET_WORK fixture=2 step=19 method=2 draws=4096 kept=0 evaluations=3617 suffix=3617 connection=3617
+TRACED_QUARTET_WORK fixture=2 step=19 method=3 draws=8192 kept=0 evaluations=7247 suffix=7247 connection=7247
+TRACED_QUARTET_EXACT fixture=2 step=19 channel0=0.027784827831666553 channel1=0.03107975328040806 channel2=0.016689735326577682
+TRACED_QUARTET_CASE fixture=2 step=20 reset=0 estimate_error=0 weight_error=2.01325225717e-07
+TRACED_QUARTET_WORK fixture=2 step=20 method=0 draws=4096 kept=2048 evaluations=4038 suffix=2020 connection=4038
+TRACED_QUARTET_WORK fixture=2 step=20 method=1 draws=8192 kept=0 evaluations=4037 suffix=4037 connection=4037
+TRACED_QUARTET_WORK fixture=2 step=20 method=2 draws=4096 kept=0 evaluations=3627 suffix=3627 connection=3627
+TRACED_QUARTET_WORK fixture=2 step=20 method=3 draws=8192 kept=0 evaluations=7244 suffix=7244 connection=7244
+TRACED_QUARTET_EXACT fixture=2 step=20 channel0=0 channel1=0 channel2=0
+TRACED_QUARTET_CASE fixture=2 step=21 reset=0 estimate_error=0 weight_error=0
+TRACED_QUARTET_WORK fixture=2 step=21 method=0 draws=4096 kept=2048 evaluations=4045 suffix=2025 connection=4045
+TRACED_QUARTET_WORK fixture=2 step=21 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=2 step=21 method=2 draws=4096 kept=0 evaluations=3641 suffix=3641 connection=3641
+TRACED_QUARTET_WORK fixture=2 step=21 method=3 draws=8192 kept=0 evaluations=7285 suffix=7285 connection=7285
+TRACED_QUARTET_EXACT fixture=2 step=21 channel0=0 channel1=0 channel2=0
+TRACED_QUARTET_CASE fixture=2 step=22 reset=0 estimate_error=0 weight_error=0
+TRACED_QUARTET_WORK fixture=2 step=22 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2023 connection=4048
+TRACED_QUARTET_WORK fixture=2 step=22 method=1 draws=8192 kept=0 evaluations=4052 suffix=4052 connection=4052
+TRACED_QUARTET_WORK fixture=2 step=22 method=2 draws=4096 kept=0 evaluations=3672 suffix=3672 connection=3672
+TRACED_QUARTET_WORK fixture=2 step=22 method=3 draws=8192 kept=0 evaluations=7318 suffix=7318 connection=7318
+TRACED_QUARTET_EXACT fixture=2 step=22 channel0=0 channel1=0 channel2=0
+TRACED_QUARTET_CASE fixture=2 step=23 reset=0 estimate_error=0 weight_error=0
+TRACED_QUARTET_WORK fixture=2 step=23 method=0 draws=4096 kept=2048 evaluations=4051 suffix=2028 connection=4051
+TRACED_QUARTET_WORK fixture=2 step=23 method=1 draws=8192 kept=0 evaluations=4049 suffix=4049 connection=4049
+TRACED_QUARTET_WORK fixture=2 step=23 method=2 draws=4096 kept=0 evaluations=3656 suffix=3656 connection=3656
+TRACED_QUARTET_WORK fixture=2 step=23 method=3 draws=8192 kept=0 evaluations=7292 suffix=7292 connection=7292
+TRACED_QUARTET_EXACT fixture=2 step=23 channel0=0 channel1=0 channel2=0
+TRACED_QUARTET_CASE fixture=2 step=24 reset=1 estimate_error=5.27132594866e-09 weight_error=1.29145050202e-07
+TRACED_QUARTET_WORK fixture=2 step=24 method=0 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=2 step=24 method=1 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=2 step=24 method=2 draws=8192 kept=0 evaluations=7269 suffix=7269 connection=7269
+TRACED_QUARTET_WORK fixture=2 step=24 method=3 draws=8192 kept=0 evaluations=7269 suffix=7269 connection=7269
+TRACED_QUARTET_EXACT fixture=2 step=24 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+TRACED_QUARTET_CASE fixture=2 step=25 reset=0 estimate_error=6.44102185476e-09 weight_error=1.29145050202e-07
+TRACED_QUARTET_WORK fixture=2 step=25 method=0 draws=4096 kept=2048 evaluations=4045 suffix=2023 connection=4045
+TRACED_QUARTET_WORK fixture=2 step=25 method=1 draws=8192 kept=0 evaluations=4051 suffix=4051 connection=4051
+TRACED_QUARTET_WORK fixture=2 step=25 method=2 draws=4096 kept=0 evaluations=3658 suffix=3658 connection=3658
+TRACED_QUARTET_WORK fixture=2 step=25 method=3 draws=8192 kept=0 evaluations=7256 suffix=7256 connection=7256
+TRACED_QUARTET_EXACT fixture=2 step=25 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+TRACED_QUARTET_CASE fixture=2 step=26 reset=0 estimate_error=6.13215921097e-09 weight_error=1.29145050202e-07
+TRACED_QUARTET_WORK fixture=2 step=26 method=0 draws=4096 kept=2048 evaluations=4048 suffix=2025 connection=4048
+TRACED_QUARTET_WORK fixture=2 step=26 method=1 draws=8192 kept=0 evaluations=4056 suffix=4056 connection=4056
+TRACED_QUARTET_WORK fixture=2 step=26 method=2 draws=4096 kept=0 evaluations=3637 suffix=3637 connection=3637
+TRACED_QUARTET_WORK fixture=2 step=26 method=3 draws=8192 kept=0 evaluations=7285 suffix=7285 connection=7285
+TRACED_QUARTET_EXACT fixture=2 step=26 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+TRACED_QUARTET_CASE fixture=2 step=27 reset=0 estimate_error=6.24995412368e-09 weight_error=1.29145050202e-07
+TRACED_QUARTET_WORK fixture=2 step=27 method=0 draws=4096 kept=2048 evaluations=4050 suffix=2025 connection=4050
+TRACED_QUARTET_WORK fixture=2 step=27 method=1 draws=8192 kept=0 evaluations=4045 suffix=4045 connection=4045
+TRACED_QUARTET_WORK fixture=2 step=27 method=2 draws=4096 kept=0 evaluations=3645 suffix=3645 connection=3645
+TRACED_QUARTET_WORK fixture=2 step=27 method=3 draws=8192 kept=0 evaluations=7258 suffix=7258 connection=7258
+TRACED_QUARTET_EXACT fixture=2 step=27 channel0=0.0047352443854977617 channel1=0.0083497933317423934 channel2=0.0035835553651543482
+TRACED_QUARTET_CASE fixture=2 step=28 reset=0 estimate_error=3.15136024776e-08 weight_error=2.20366008824e-07
+TRACED_QUARTET_WORK fixture=2 step=28 method=0 draws=4096 kept=2048 evaluations=4050 suffix=2025 connection=4050
+TRACED_QUARTET_WORK fixture=2 step=28 method=1 draws=8192 kept=0 evaluations=4036 suffix=4036 connection=4036
+TRACED_QUARTET_WORK fixture=2 step=28 method=2 draws=4096 kept=0 evaluations=3612 suffix=3612 connection=3612
+TRACED_QUARTET_WORK fixture=2 step=28 method=3 draws=8192 kept=0 evaluations=7246 suffix=7246 connection=7246
+TRACED_QUARTET_EXACT fixture=2 step=28 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+TRACED_QUARTET_CASE fixture=2 step=29 reset=0 estimate_error=2.96741692607e-08 weight_error=2.20366008824e-07
+TRACED_QUARTET_WORK fixture=2 step=29 method=0 draws=4096 kept=2048 evaluations=4043 suffix=2018 connection=4043
+TRACED_QUARTET_WORK fixture=2 step=29 method=1 draws=8192 kept=0 evaluations=4041 suffix=4041 connection=4041
+TRACED_QUARTET_WORK fixture=2 step=29 method=2 draws=4096 kept=0 evaluations=3631 suffix=3631 connection=3631
+TRACED_QUARTET_WORK fixture=2 step=29 method=3 draws=8192 kept=0 evaluations=7290 suffix=7290 connection=7290
+TRACED_QUARTET_EXACT fixture=2 step=29 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+TRACED_QUARTET_CASE fixture=2 step=30 reset=0 estimate_error=3.12838968619e-08 weight_error=2.20366008824e-07
+TRACED_QUARTET_WORK fixture=2 step=30 method=0 draws=4096 kept=2048 evaluations=4040 suffix=2022 connection=4040
+TRACED_QUARTET_WORK fixture=2 step=30 method=1 draws=8192 kept=0 evaluations=4051 suffix=4051 connection=4051
+TRACED_QUARTET_WORK fixture=2 step=30 method=2 draws=4096 kept=0 evaluations=3678 suffix=3678 connection=3678
+TRACED_QUARTET_WORK fixture=2 step=30 method=3 draws=8192 kept=0 evaluations=7334 suffix=7334 connection=7334
+TRACED_QUARTET_EXACT fixture=2 step=30 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+TRACED_QUARTET_CASE fixture=2 step=31 reset=0 estimate_error=3.15136024776e-08 weight_error=2.20366008824e-07
+TRACED_QUARTET_WORK fixture=2 step=31 method=0 draws=4096 kept=2048 evaluations=4036 suffix=2014 connection=4036
+TRACED_QUARTET_WORK fixture=2 step=31 method=1 draws=8192 kept=0 evaluations=4041 suffix=4041 connection=4041
+TRACED_QUARTET_WORK fixture=2 step=31 method=2 draws=4096 kept=0 evaluations=3626 suffix=3626 connection=3626
+TRACED_QUARTET_WORK fixture=2 step=31 method=3 draws=8192 kept=0 evaluations=7281 suffix=7281 connection=7281
+TRACED_QUARTET_EXACT fixture=2 step=31 channel0=0.02097836760267079 channel1=0.016502653032469079 channel2=0.010073384689240312
+TRACED_QUARTET_DECISION correctness=1 retained_checks=178176 ambiguous=0 production_promote=0
+f109b46723cc516a5b50c6b03371a4b5cd86872c95dc44a05507918ca1e3586b  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-0.f32
+e50943eb21cdf632973391fd397df7b0a28ee9dce349e7d15fcc4144de6e87f9  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-1.f32
+ff11519028c3df652df058a2f75fff3702196407033751b6de7bd8d17410ba77  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-10.f32
+88af732585241a8bb32ad2ea97dd6ec558251d8c68d5b711f8eca4a7ec027372  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-11.f32
+0f324d0609bb68eaf3cdd75019ffe00a37f18cac9f131e6d50670455aea1ad2a  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-12.f32
+b08aa4e6a1e211e664cb24272947dcf1d6503ea47682e94cb9ceb559409a0bed  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-13.f32
+900e602e43b35b0ce898affe7809c7eba11e98e6371419b86bb7308997b1b2e3  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-14.f32
+82f9eb10edd1de5b370841285756f642b725cd452a3ff3ed000c3f40c273eabd  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-15.f32
+d934b4ae3bfc0d2ca4acf5b464bd49327175c7da1ff858945adf041ca9570db3  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-16.f32
+4fb8747474ce5b4cf74fcdf1496f556834e4736124574fa18f6a2978ea4f44da  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-17.f32
+047804b7eeba7832b2e40c52d74fda9c5916adca900a9c1d4d54cd499c13f716  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-18.f32
+6f9877164435bb4a4f6ce1feda762205bed4adb7bb87f703a8e0229f0723c7ce  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-19.f32
+475c141ac1c277330de2c12aa993f6a8b37b56ca6bd807e0f50164e0cc282590  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-2.f32
+5e86e35d5fb3885fd97b77734e3c7e4d9e8797e39e8d9a865298bb8ffd0dde75  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-20.f32
+5b257d4e64ee748699f84cfae97bd6646f788d2a856c8bf18b6dc7432a9b3410  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-21.f32
+69509bba394f02098d5368b7347c0166ab6331eecd6673e0e748705b88337a8b  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-22.f32
+1763e98820a16e257114e74918980c69005fa43f63ead4b392df8d1830dcfb80  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-23.f32
+4c5920ea02bf5dab027301c352f31b5dd768083f57ce4ad0596a9580df907d17  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-24.f32
+46b7b6dc94a99b1d67e9c20f3ba97ae4714ab10e116ed79d9cea629b835cfda2  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-25.f32
+ea129dea64ad3ad3f391fe6a327dcc4957296a1b16d95d505f1b612ba25605c1  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-26.f32
+1e8632941861d0438f97e1d25aaeaa524b23fecaf5fde9b8c6701d50bb89229e  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-27.f32
+04c2ef460fbc363dbe020f6502d846c4d1c428d80833482bc27a34d3c25f01bc  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-28.f32
+b85b34ecfa58dc651898ea10f3392cf04602cc0ef144c7e04cdb70c3acff6b78  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-29.f32
+386d1e10bb680c5d1971eda646ec2c2b8323fbcebee0494713d3f26cc57b5a31  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-3.f32
+8ca31998b0c18bf6d7f4a55b64555b6776fb2ac862ccb17c9564379441433c3a  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-30.f32
+b220067e6ff8c951c09374341188d0ea8a435c78a90600013130ae6b7a2bbaa3  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-31.f32
+85c17ae8ca7f91d83b380c7c830f982429c1dc043d134d5ae2af6437e89cc707  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-4.f32
+c6ba7329a563ba32a41e3bb209fc2724e6e49af53aae94bacfe4f6354a88c3b6  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-5.f32
+3849bb7412fb4705b7a956a3c39d1f16dbc6e05f3aa3c41ea7a7a61d1cafea0d  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-6.f32
+c7e9abe579eb3c89b236a5d241c10e54cc1fe03da58e54912473de81c21296ff  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-7.f32
+44d82bb987657e19426a798491cf0b956ebf80b8372e2d38fbf017833ad459bc  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-8.f32
+0ce91c313edeaea637aae71f104ef01ebdb36fc408e2ed80a3d6f71b887df482  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet0-9.f32
+6a4109f6c4f4783a51d288708f1b6a3a2fe1d3b8f78a95a4eb96d3d8327e6e8e  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-0.f32
+727411e7bdab7963c1291cfa68c23da404b7e6744eda95b84e57cb1d4ed6a48e  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-1.f32
+92131746a76b122e4d3c68f8bec3bd2d150fd0ca5e7cf0a87bf45cd99d60af40  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-10.f32
+2e68b6cafc7631afc1ea4b8992672d969c1dd8647c0f21c8e7668c6f569b18fd  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-11.f32
+9fc9a9c78b539673898b2f00cc29078334407cfe589c8ed56f000e2d124b6269  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-12.f32
+f6346dfc08dfba0ff4198ad384e4e20853aad48df32f9632adca147c5ab9e758  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-13.f32
+8ce63770a80678afe6b6da4a0b63ec0f0bd17aefdaf6cb53634ec6de3c7caa75  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-14.f32
+19e6cb28197c15ae91cd0187e70e1dd49126a0819c30f1474502beac70383df3  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-15.f32
+b1838aa8e66fbd50179676f6dc5cc47339b6791f9946be40e7f01715e79af286  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-16.f32
+808c5a8ac4aba2d3f0ad558f7a36426b72732ab47e3580ceb0a7f93084f8d2f8  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-17.f32
+8e20e325dccfe50c10fa363a0b1b81037af1ccc49d5ced8e85a7e87317a4c3b8  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-18.f32
+b23840a917a3fca128b621d0ae065ab0e4ea664be92b468897fda6b804e4e9ed  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-19.f32
+4d8a3c4d8a6b2ed5318a35adbff9eecd967841d7670f85356e06be7c5c740cca  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-2.f32
+1820f55578959da4356cc1197bae51ec2532a5bffcfc1f3df068b5136d88ae8a  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-20.f32
+dc567d9a9d665c1c5534a549e56411e007a015966beb7a744ab9c0634460d8a9  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-21.f32
+89c05c6b8e0542ce1e35a0f94172101d42f0554a9ca4f885d964df2af231e13c  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-22.f32
+0cd4994ada3a1723feec539e6e73b041a62f7f9ec78fbb1f05b3da7a73371b89  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-23.f32
+1a96c7c668620e4d42ca82f6735272320d79db85b72cae2bc6cbecd8d6718b95  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-24.f32
+50d3eb31f7a4877969921ab2420d201016f342cf4c2afe38cace5411b05df713  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-25.f32
+614ce395afe61bf0be3750c42a0dd0ae76d326da828edd3329c8ff9392fdf3df  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-26.f32
+95b7512d325fd751d84d9cdcca428afdfacee0055530da4a9d237fbac51307bb  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-27.f32
+ff3035fab4097a5503787b5f488118e9398646a27d06abccc22f8efc67bb6e5b  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-28.f32
+92c0f40e62b80252a196d538b9a642d234194f9cc8a544a4f9704ef6cccea02b  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-29.f32
+e6aa93b4571164916f684ca942f261d668bbec156b42d8858d12785048f54ae8  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-3.f32
+9f3c1841a0cd00d03de9c2498499ab320607f29db104bb022bc1a2e8090a638d  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-30.f32
+e62b716970db995e9e1ee712de67d8c58a27a40f3c501bc4481b1327a1d5106a  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-31.f32
+d8a547514ecf8794091272022933a659858fdd52fe8a378cc3d32bf261272134  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-4.f32
+232a922f1f8533470f369587c68357e939dbd3d1991f3393f7d65045a2d50e12  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-5.f32
+5dd1c56f6c40af58f7db4eebe9e38ecb82fa6a02fa076d8dc8f32192181918c5  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-6.f32
+b08666ce9031f358269e4ab65cace3cfb35347ab446bca9a409afba91e5f34bd  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-7.f32
+af2d8fb0d24c39ad1a0eb95e48adda6749b0d789669be5e322be773350c55b30  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-8.f32
+2fdc6d7ad1376cd944aca93c6f5d5f69f5ce632b8b144545ef77e5d7b186f4a5  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet1-9.f32
+8140717dc7441f45f466f05b930c98cca1435f4194dc5e581de0d251b24b8f3f  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-0.f32
+93e20e0f90f4a5fefece44ce8c4cabd598f4c9126940ea68ab925a3f914a4de2  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-1.f32
+18b778821c07061b2a801114701517740e86a961f465d8254bcc7d7e3a104555  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-10.f32
+10c40cb2f750ddb438e560140137420125ace9685c7e535bd14c511c751f3384  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-11.f32
+469689c2be537b91bd6074307c457fca0ba7d50d7774cf3b10c24d31a4127c36  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-12.f32
+128e250790e9cd42d93f8b53348d2066b7c1dbfe0c1b50ffd65e5393f8237c77  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-13.f32
+cd70c37a7bc98ea0c83266d5fefa2a64290ce0f6a857ee4dcd0413d94d5af71e  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-14.f32
+7c0005b6b7f7885ec882ccf6d92cb948e9c1fdbaa4e3b90fa4b2dc4c9fed3757  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-15.f32
+fdd6e40ac2b78ba48fe02ed358f1b950e3bdfc0edc15ae8d87b727525d43ac1d  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-16.f32
+44b75e23fb5cc6645c7abd3d7d88d5c946b6e4e4fcf27792bac711701c268129  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-17.f32
+db7c262efb2ccaa39f85f0c5c89398799f3db255c6ec49a6dc5af7d0037b6e89  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-18.f32
+c35d452548505cdf68dd645cf85088bbdad58e713d42b55e115c67ed46c02b07  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-19.f32
+f846a01d58b9fe20c55362d1a2727e81452e01a14c81901ec5bc3f84a8f312d0  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-2.f32
+3cd08f5501f3cdb09fb0266a3529dc80a9d817abb6d6e346cd698db3d3fb805c  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-20.f32
+129c3b84e5eb7ba806b9717e53388aa50037a955396393c7c965434b08eb3ae0  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-21.f32
+c026f8770e096d5fc28c717dc0e8af354f0b39b80b5ab90cd789e4c832713265  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-22.f32
+f2e854916ddde647648c4a133d612d5647f516235634ad7f36f448cfe82566f8  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-23.f32
+2e66f1be1541cca7a43c4a80b7f1b767f1e20622c61ab8839fbad542c57d1a65  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-24.f32
+bd3cb40e6322306f88d7db426f0c1a41c1b91458dd61e3e2ae440feb496f4588  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-25.f32
+3a755389d1721250a857904d24c5bd1fbf42faca973e32df5a22168faa61909e  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-26.f32
+a37319e709bab7dbfb828b3b4c0de268c80793e018f3b7cf03b91b6323e2fff2  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-27.f32
+77c327941de0ded5f0b0e97cf01bd6f391fd0438c1e2394c272080abe4c193da  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-28.f32
+cce8171f2253c7f853e5f1133764279cebc1444fbeee84b74da0cd76f9f8a9f0  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-29.f32
+5ba6c01a574142e8e2a9b3f099e6157f7c5096c9c1a38bcb96fd19b99f4dd459  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-3.f32
+253ff6c7e6cb52dfd40e3478b7d0aaf43ae13ecb3b04f60da0d758839a65b7a7  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-30.f32
+373c9239d29eb5a7ba310be48ba430c273915c6bf356d50c93e650a7755bc4da  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-31.f32
+798766c0dcff8a1ec97645328ca50e3ae8710cf09d5f03483f00b4c5a04c5427  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-4.f32
+182a15a70815112e47b40901939a12e0b57a8057fd53c319ac20a0ef689652dd  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-5.f32
+480c0976f3796e421fa39b9281cb22ba785c332f295c03526c408251cfffd9fc  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-6.f32
+f628ca0bdd56b8c79fb2f8a053afb2433514d6cc0a12bf5fcd42134ef7d848dc  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-7.f32
+d19e67dd9fe01199ed23855389b65a336982bf0f5b76728632ce025c5ded53dc  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-8.f32
+7868324d7c5cf278beb8abedb3ba598f8be10185545a2bd092b06558f7a95a7e  /home/user/Frontier/_ClaudeScratch/traced-quartet-capture-sanitized/TracedQuartet2-9.f32

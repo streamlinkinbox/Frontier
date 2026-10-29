@@ -1,0 +1,7 @@
+PASS traced quartet implementation:578 identical semantic rows;hashes/build=[146, 146];96 byte-identical captures;two identical SPIR-V files.
+786432 quartet descriptor comparisons/build;178176 exact retained-byte checks;1152 RGB mean gates;24 exact PNG arrays.
+Max normalized CPU estimate/weight errors=[3.42955832899e-08, 8.86279620417e-07];promotion_by_track=[False, False, False];production_promote=0.
+Instant RMSEs by track=[[0.009545076041831226, 0.009554378620912945, 0.01022506876683198, 0.007442491326670132], [0.00963439761690677, 0.009516426039785753, 0.010559751405659394, 0.007635570637894297], [0.007279313213320861, 0.007196001130985457, 0.008052169641762247, 0.005914093094623321]];rolling RMSEs=[[0.0070403200990754545, 0.005784636403985229, 0.005679189206410194, 0.004515388195455259], [0.006801522011608136, 0.005638581378322226, 0.005670493783748441, 0.004503026087656045], [0.005727013246207159, 0.004878518662265952, 0.004786904268436652, 0.0039127559162055545]].
+Query totals by track=[[200167, 258870, 254700, 465772], [200167, 258870, 254700, 465772], [200167, 258870, 254700, 465772]].
+Methods=rotate2,fresh-quartet,matched-raw-budget,raw8;rotating draws/track=143360 vs raw8=262144.
+Both native runs exit0,five CTests each;host ASan+UBSan only. Ray-tested direct RGB/visibility integrated;no multibounce,camera/TAA or physical timing.

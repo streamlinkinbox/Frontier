@@ -99,6 +99,11 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
   quality-neutral replacement;production348.046875MiB unchanged.
 
+- [Traced RGB quartet integration](Exhibits/LightCompute/TracedQuartet.md):selection/persistence now use
+  actual suffix and segment queries;CPU replay and build parity pass. Rotate2 uses57.02% fewer calls than raw8,
+  but fails rolling-quality acceptance on all3 tracks. Controls are not query/time matched or fully optimized;
+  no physical speedup or production promotion.348.046875MiB unchanged.
+
 - [Ray-tested RGB suffix/reconnection](Exhibits/LightCompute/RgbTrace.md):direct Lambertian RGB uses actual
   shadow/segment queries;cached and inline results match bitwise and the independent CPU reference agrees.
   Omitted visibility fails921 records. No warm saving,multibounce GI or production promotion is claimed.

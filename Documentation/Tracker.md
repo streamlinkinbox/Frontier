@@ -4,6 +4,27 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## Traced RGB quartet integration — 2026-10-29
+
+- [Complete integration,query counts and frozen rejection](../Exhibits/LightCompute/TracedQuartet.md):RGB quartet
+  selection traces only selected suffixes;retained descriptors preserve traced RGB/birth weights;current receiver
+  visibility is traced independently. Three scene/track combinations include relight and rebuilt blocker epochs.
+- Both Release/host ASan+UBSan pass,five CTests each;786,432 descriptor comparisons/build,178,176 retained-byte
+  checks,zero selector exceptions and1,152 RGB mean gates pass. Exact parity:578 rows,96 buffers,two SPIR-V
+  files;146 runtime hashes/build verify. CPU independently replays all-triangle rays,selection,RGB and work.
+- Actual calls/track:rotate2 suffix70,763+segment129,404=200,167;fresh quartet258,870;proposal-budget raw254,700;
+  raw8=465,772. Rotate2 reduces calls57.02% versus raw8/21.41% versus budget,but rolling error worsens19.64–23.97%
+  versus budget despite instant improvement6.65–9.60%. All3 frozen quality gates fail;keep production unchanged.
+- These arms are proposal-matched,not query/time matched. Protocol always traces non-null candidates even at
+  zero RGB/geometry;duplicate/global-point memoization is absent. Counts are not savings over fully optimized
+  baselines or physical speedup. Next:fair query-budget fresh controls with safe elision/duplicate handling.
+- Bounded experiment100%;overall ReSTIR/GI~55%,~45% remaining,planning estimates only. Correlation acceptance,
+  area proposals/PDFs,multibounce,dynamic/camera/TAA/general-scene quality,physical timing and production port
+  remain. Production348.046875MiB/defaults and prior results unchanged;packing/editor/vehicle/Jolt deferred.
+  Results retain96 lossless buffers,modules,generated metrics/means/intervals and hashes;24 actual arrays/two
+  charts accompany the report. Windows/physical GPUs not tested;no PR or Actions.
+
+
 ## Ray-tested RGB suffix and visibility reconnection — 2026-10-29
 
 - [Completed bounded ray gate and actual buffers](../Exhibits/LightCompute/RgbTrace.md):production FacetSurface/

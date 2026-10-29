@@ -1,5 +1,15 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Traced RGB quartet integration — 2026-10-29
+
+[Integrated selected suffixes,visibility,actual calls and rejected promotion](TracedQuartet.md):both builds pass
+786,432 CPU descriptor comparisons/build,178,176 retained-byte checks and1,152 mean gates;96 captures match.
+Rotate2 makes200,167 calls/track versus465,772 raw8 and254,700 proposal-budget raw,including resets. Instant
+error improves6.65–9.60% versus the latter,but rolling error worsens19.64–23.97%;all3 quality gates fail.
+Baselines deliberately query every non-null candidate and are not query/time matched or fully optimized.
+No physical speedup/production promotion;348.046875MiB/defaults unchanged. Fair optimized controls are next.
+
+
 ## Ray-tested RGB suffix and visibility — 2026-10-29
 
 [Complete direct-light suffix/reconnection gate and actual buffers](RgbTrace.md):production software-BVH shadow

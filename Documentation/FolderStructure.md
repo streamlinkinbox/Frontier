@@ -381,3 +381,14 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
 - `RunRgbTrace.sh`,`RgbTraceEvidence.py` and `RgbTrace.md` retain the direct-suffix gate,exact build parity,
   omission negative control,lossless captures/compiled modules,generated metrics and labelled actual readbacks.
   `--rgb-trace` selects this exhibit;it does not wire the suffix into quartet sampling or change production.
+
+### Traced RGB quartet integration
+
+- `Exhibits/LightCompute/Code/TracedQuartetGpu.slang` integrates the tested direct Lambertian suffix/visibility
+  functions with four-reservoir selection and persistent rotate2 refresh;actual wrapper calls are instrumented.
+- `TracedQuartetValidation.h` reuses the rebuilt ray-test scene and independent double all-triangle reference,
+  replays selection/birth weights/traced RGB,checks retained bytes and verifies suffix/segment counts.
+- `RunTracedQuartet.sh`,`TracedQuartetEvidence.py` and `TracedQuartet.md` retain full build parity,reset-inclusive
+  raw/fresh comparisons,actual query counts and all-track rolling-quality rejection. Results retain96 lossless
+  buffers,two modules,logs,generated mean/error/block-interval tables and hashes;Images retains actual arrays.
+  `--traced-quartet` selects this isolated run;no optimized-baseline,physical-speed or production promotion follows.
