@@ -1,5 +1,19 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Fresh BSDF/area reservoirs — 2026-10-30
+
+- [Completed explicit-measure reservoir comparison](DiffuseReservoirMis.md):two candidates,selection h/q,
+  normalizer W/(2*hSelected),deferred source-light visibility;all4 proposal types versus same-candidate raw2.
+- Release/host ASan+UBSan,five CTests each;393,216 candidate and196,608 reservoir/raw replays/build. All72 RGB
+  means pass;wrong-M controls fail3/3 layouts per type. Five rows,64 hashes/build,3 buffers,2 modules match.
+- All4 save queries,but no type passes all3 quality gates. Uniform saves5.20–5.95% total calls for0.37–5.40%
+  higher RMSE;BSDF/MIS save≤0.42%. Retain as a budget tradeoff,not quality-neutral or production acceptance.
+- Conditional expectation equals raw2;selection adds variance. Identity error≤3.73e-9;12,804 suffix calls
+  saved/build,while253,663 candidate+393,216 primary queries remain. Actual-call counts are not timing.
+- Actual RGB/error evidence retained. Evaluation100%,remaining0%;overall~78%/~22% remaining,planning estimates.
+  Next:perspective/general-scene holdout for cheap pre-visibility uniform-area RIS,not temporal retry here.
+- Production348.046875MiB/defaults unchanged;packing/editor/vehicle/Jolt deferred. No PR or Actions.
+
 ## Fresh diffuse BSDF/area MIS — 2026-10-29
 
 - [Completed fresh MIS comparison](DiffuseMis.md):32 proposals/pixel,four arms,three geometric layouts,
