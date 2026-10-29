@@ -1,5 +1,20 @@
 # Project Tracker
 
+## Camera-space fresh RIS — 2026-10-29
+
+- [Completed camera shading-patch experiment](../Exhibits/LightCompute/CameraAreaReservoir.md):orthographic32×32
+  pixels,normal map,three diffuse RGB bands and all three blocker layouts;four packets/pixel,six arms.
+- RIS passes ordinary and cross-reference image MSE gates3/3 layouts per proposal type. RMSE falls23.82–26.68%
+  uniform/6.83–29.21% area versus same-query raw4. Raw8 remains more accurate with twice the trace calls.
+- Release/host ASan+UBSan,five CTests each;491,520 candidates and393,216 paths/build independently replayed.
+  Eight semantic rows,61 runtime hashes/build,six buffers,two modules match. All54 RGB means pass;negative
+  normalizers fail3/3 layouts per type. Compensated split-product/cosine math fixes near-wall precision failure.
+- Finite reference noise is substantial near the wall;both paired intervals there include zero. Receiver is a
+  shading-only patch,not secondary visibility geometry. No general-scene,physical GPU or production acceptance.
+- Phase100%;overall~71%/~29% remaining,planning estimates. Next:scene-consistent geometric receivers and primary
+  intersections,not temporal retry. Production348.046875MiB/defaults unchanged;packing/editor/vehicle/Jolt deferred.
+
+
 Single progress and violation tracker. Detailed evidence belongs in Exhibits, not competing progress reports.
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.

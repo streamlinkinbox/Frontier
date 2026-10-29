@@ -1,5 +1,15 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Camera-space fresh RIS — 2026-10-29
+
+[Actual camera images,raw controls and measured gates](CameraAreaReservoir.md):32×32 orthographic receiver,
+normal mapping and three RGB bands. RIS reduces same-query raw4 RMSE23.82–26.68% uniform/6.83–29.21% area;
+both ordinary/cross-reference gates pass3/3 layouts per type. Near-wall confidence intervals include zero.
+Release/host ASan+UBSan,five CTests each,CPU replay and readback parity pass. Compensated cosine math repairs a
+normalizer tolerance failure without relaxing gates. Shading-only receiver excludes full-scene acceptance.
+Phase100%;overall~71%/~29% remaining,planning estimates. Production348.046875MiB unchanged.
+
+
 ## Fresh continuous-area reservoirs — 2026-10-29
 
 [PDF-correct fresh RIS and same-query/same-proposal controls](AreaReservoir.md):four reservoirs select from

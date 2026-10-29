@@ -440,3 +440,12 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   controls and bounded same-query quality acceptance. Native CLI:`--area-reservoir`. Results retain9 buffers,
   two modules,logs,means/metrics/audit/hashes;Images retains18 exact arrays and two graphs.
   This is fresh sampling only,not temporal reuse,camera/full MIS,multibounce or production acceptance.
+
+### Camera-space continuous-area reservoirs
+
+- `Exhibits/LightCompute/CameraAreaReservoir.md` freezes and reports camera shading-patch image gates.
+- `Code/CameraAreaReservoirGpu.slang` uses actual receiver normals/materials and compensated geometry/cosine
+  math;`CameraAreaReservoirValidation.h` replays double candidates/visibility and generates disjoint references.
+- `RunCameraAreaReservoir.sh` and `Code/CameraAreaReservoirEvidence.py` retain Release/host sanitizer results,
+  six compressed buffers,two modules,means/metrics/audit/hashes and39 exact PNG arrays plus two image sheets.
+  Native CLI:`--camera-area-reservoir`. This is not full-scene,temporal,physical speed or production acceptance.
