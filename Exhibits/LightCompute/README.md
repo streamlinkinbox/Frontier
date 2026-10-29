@@ -1,5 +1,14 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## RGB facet descriptor and positive support — 2026-10-29
+
+[Complete descriptor/support gate and actual readbacks](FacetReservoir.md):shared32B descriptor,144B logical RGB
+quartet,24,576 exact byte roundtrips per build and768 finite RGB checks pass. Release/host-sanitized captures
+match exactly. Static typed-buffer SPIR-V stride32 is separately checked;runtime uses two float4 wire slots.
+Zero birth-geometry scores fail future-visible support. This is not integrated RGB sampling or new GI quality.
+Production348.046875MiB/defaults and prior scalar quartet evidence stay unchanged;packing remains deferred.
+
+
 ## Four weighted reservoirs — 2026-10-29
 
 [Complete five-fixture comparison and new holdout](WeightedQuartet.md):80B logical scalar history versus144B raw

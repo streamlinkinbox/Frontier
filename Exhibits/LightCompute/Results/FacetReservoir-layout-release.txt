@@ -1,0 +1,1 @@
+FACET_LAYOUT descriptor=32 expanded_sample=48 quartet=144 expanded_quartet=208 raw_octet=272 revision_offset=128

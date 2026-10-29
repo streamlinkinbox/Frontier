@@ -99,6 +99,10 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
   quality-neutral replacement;production348.046875MiB unchanged.
 
+- [RGB facet descriptor/support gate](Exhibits/LightCompute/FacetReservoir.md):32B shared descriptor,144B RGB
+  quartet,24,576 byte roundtrips/build and768 finite RGB checks pass. This is not integrated RGB sampling or
+  new GI quality;the previous80B format was scalar-only. Production348.046875MiB unchanged.
+
 - [Four weighted reservoirs](Exhibits/LightCompute/WeightedQuartet.md):80B logical scalar history passes all five
   corrected-Fresh8 quality/query gates,including new .45 holdout. Smaller logical history trades some raw-Rotate4
   quality;no production allocation/timing/RGB promotion.348.046875MiB stays unchanged.

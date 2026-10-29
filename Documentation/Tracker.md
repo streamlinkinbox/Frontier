@@ -4,6 +4,25 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## RGB facet descriptor and positive-support prerequisite — 2026-10-29
+
+- [Complete gate,baselines and actual buffers](../Exhibits/LightCompute/FacetReservoir.md):shared32B descriptor,
+ 144B logical RGB quartet. Eight noncoplanar facets/production interpolation;24,576 exact32B roundtrips per build,
+ corruption/revision rejection and independent double reconstruction pass. Release/host-sanitized runs exit0,
+ five CTests each;six captures/eight semantic rows match;54 hashes/build verify. Static typed-buffer stride32
+ is separately inspected;actual runtime uses two float4 wire slots.
+- Positive target floor1/64 preserves768 finite RGB channel/configuration checks,max error1.388e-17.
+ Zero support,valid-count divisor,current-target denominator fail7/12/9 of16 receiver-pair controls.
+ Native layouts in both builds:quartet144B,expanded quartet208B,raw RGB octet272B. Prior scalar80B is not RGB.
+- This bounded prerequisite100% complete;overall ReSTIR/GI~43%,~57% remaining,planning estimates only.
+ Next:integrated RGB GPU selection and equal-format comparisons;then traced suffixes,visibility/reconnection,
+ dynamic/camera/general-scene acceptance and physical GPU/production integration. No RGB sampler/quality
+ promotion yet;production348.046875MiB/defaults unchanged;packing/editor/vehicle/Jolt remain deferred.
+- Evidence includes losslessly retained raw captures,12 exact readback PNG arrays,a montage,a measured layout/
+ negative-control chart,finite results and hashes. Local Linux validation only;Windows/physical GPU not tested.
+ No PR or Actions;commit/push backup authorized.
+
+
 ## Subpixel diffuse path-seed retracing — 2026-10-28
 
 - Added a default-off, one-candidate mode which retains up to three unselected fresh seeds and retraces them at

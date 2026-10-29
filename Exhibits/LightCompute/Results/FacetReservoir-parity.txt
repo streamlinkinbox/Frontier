@@ -1,0 +1,6 @@
+PASS descriptor/support gate:8 identical semantic rows;hashes/build=[54, 54];6 byte-identical captures.
+24576 descriptor roundtrips:empty/valid/rejected=[768, 11520, 12288];12 exact PNG arrays;max position/normal/estimate=[2.31899321079e-07, 1.07423888229e-07, 2.77402663618e-08].
+Native C++ descriptor32/quartet144/expanded208/raw272;SPIR-V stride32,member offsets0/4/8/12/16/28.
+RGB finite checks=768;error=1.38777878078e-17;negative failures/16=[7, 12, 9].
+Both native runs exit0,five CTests each;ABI checks also run release/ASan+UBSan.
+No integrated RGB reservoir sampling,new GI quality,ray-traversal or production allocation claim.

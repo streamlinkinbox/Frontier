@@ -337,3 +337,15 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
 - `RunWeightedQuartet.sh`, `WeightedQuartetFinite.py`, `WeightedQuartetEvidence.py` and `WeightedQuartet.md` retain
   dual-build correctness,five-fixture acceptance,complete alternatives,actual-buffer PNGs and independent float32
   replay. No measured allocation/bandwidth/physical-time saving or production/Windows/editor/RGB acceptance.
+
+### RGB facet descriptor and positive-support prerequisite
+
+- `Exhibits/LightCompute/Code/FacetReservoirDescriptor.h` shares the unpacked32B C++/Slang descriptor definition;
+  `FacetReservoirGpu.slang` reuses production facet interpolation through actual two-float4 wire transport.
+- `FacetReservoirValidation.h` owns the eight-facet/six-phase native double reference and corruption/revision
+  tests. `FacetReservoirLayout.cpp` compares native RGB packets;`FacetReservoirStride.slang` is a separate
+  typed-buffer SPIR-V layout probe,not a runtime typed-buffer acceptance claim.
+- `FacetReservoirFinite.py`,`FacetReservoirEvidence.py`,`RunFacetReservoir.sh` and `FacetReservoir.md` retain the
+  finite RGB support checks,reproducible native runs,exact parity,charts and limits. Results retain logs,hashes,
+  static probe SPIR-V and six lossless `.f32.gz` captures;Images retains12 exact arrays and two labelled charts.
+  The prerequisite does not install RGB sampling or change production348.046875MiB/defaults.
