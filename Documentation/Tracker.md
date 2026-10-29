@@ -7,7 +7,8 @@ are inherited historical checkpoints: their branch/PR references and completion 
 
 ## Temporal-only lower-floor investigation — 2026-10-29
 
-- In an independent moving/stationary [temporal-history holdout](../Exhibits/LightCompute/ReplayTemporalFreshHistory.md),
+- In the independent moving/stationary
+  [temporal-history holdout](../Exhibits/LightCompute/ReplayTemporalFreshHistory.md),
   original selected history passes `78/80` mean gates; a test-only one-raw-seed history passes `80/80`. Original
   moving visibility/far lower-floor temporal1 gives `0.800494 ± 0.000883` versus reference `0.822689`; its
   ideal conditional selection average is `0.800491`, pointing beyond the final selection without proving cause.
@@ -19,9 +20,12 @@ are inherited historical checkpoints: their branch/PR references and completion 
   `393,216` per-arm temporal1 arithmetic checks and `786,432` raw-seed checks are retained. Release and
   host-only ASan+UBSan CTests pass `10/10`; the paired runner correctly exits 1 for the two original mean
   failures. The visual is a data chart, not an editor or rendered-scene capture.
-- Peer `70759e4` completes its separate weighted pair, whose temporal-quality gate fails in two of four
-  fixtures; its weighted-quartet study is pending. No peer source was ported. Neither peer results nor CPU
-  Vulkan operation counts establish physical-GPU timing, production correctness or viewport integration.
+- Peer `6313a1c` reports its completed weighted pair failing two of four temporal-quality gates, while its
+  separate four-reservoir Rotate2w passes five restricted fixtures with 17.51–24.00% fewer queries and
+  8.60–16.12% lower temporal RMSE than corrected Fresh8. This peer scalar known-square result is not rerun
+  here, is not measured storage/bandwidth saving, and does not port to our seed estimator. No peer source was
+  adopted; neither result or our CPU Vulkan operation counts establish hardware timing, production correctness
+  or viewport integration.
 
 ## Fresh-neighbor replay with moving supplied receivers — 2026-10-29
 
