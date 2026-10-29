@@ -1900,11 +1900,17 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplaySubmissionSequenceGpuValidation.h"
 #include "ReplayMaterialSamplingValidation.h"
 #include "ReplayMaterialPathValidation.h"
+#include "ReplayMaterialReuseValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
     try
     {
+        if (Count == 4 && std::string(Arguments[3]) == "--replay-material-reuse")
+        {
+            ValidateReplayMaterialReuse(Arguments[1], Arguments[2]);
+            return 0;
+        }
         if (Count == 4 && std::string(Arguments[3]) == "--replay-material-path")
         {
             ValidateReplayMaterialPath(Arguments[1], Arguments[2]);

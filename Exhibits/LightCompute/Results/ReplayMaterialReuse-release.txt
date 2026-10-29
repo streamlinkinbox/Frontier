@@ -1,0 +1,75 @@
+Authored material replay reuse; SwiftShader and shader instructions are not sanitizer-instrumented.
+Base f452f15, plus working changes if any; source hashes follow.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
+494e342089d7d8de39ec53846b6ba878af58431e46bb348ecf40e6e487107f0d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+28dd31def1deb1fd78a29d6aa389ea63aea394880301dc49eb6d327db7adc79a  Frontier/Engine/Rendering/PathReplaySubmissionSequence.cpp
+b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+2d3f7225ff06d61e15ea1036fc3d7c156c764031d62fa3ed394d6da16fb332ed  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+13432d2ade4bfe87c7108f3866e80f8121dd82161f971f80954f4bdb810eefd9  Engine/Render/Shader/ScatteringEvaluation.slang
+eec91c6476cc7d9787cc81a4510c7866439629ab4a4e1566399e526a9c19c4b8  Engine/Render/Shader/AutomotivePaint.slang
+6008472e0db6b2caa3d59adc090f3a29a49db4e3bd7520b3620858e5a968f7d3  Exhibits/LightCompute/Code/ReplayMaterialSamplingValidation.h
+b67bef7c640328f2fe236a73084eacdf0f3ac31b93b5ebde738112ba364a71c8  Exhibits/LightCompute/Code/ReplayMaterialPathValidation.h
+4317021f6b63ae5dc44fe1f176f6e479f099f384c6cb206ac25b007cbb1dfd6c  Exhibits/LightCompute/Code/ReplayMaterialReuseValidation.h
+aad0a2909fff4451646f551e7ef2fd673ba83aaa486f195f662257352d5c79a7  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-material-reuse-release/shaders/Primary.spv
+5b3ed0e9e9eb6de68c650d90ae11a1e97fb5fa034267c02610d15f184a25df91  /home/user/Frontier/_ClaudeScratch/build/replay-material-reuse-release/shaders/ReplayGenerate.spv
+5bfe8da35cb3e050cb805c6bbc02d8dd401c97871ab60f283c57eff20423b229  /home/user/Frontier/_ClaudeScratch/build/replay-material-reuse-release/shaders/ReplayResolve.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-material-reuse-release
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.00 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.00 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.00 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.08 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.09 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.08 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 10
+
+Total Test time (real) =   1.28 sec
+REPLAY_MATERIAL_REUSE preparing production pipelines on SwiftShader Device (Subzero)
+REPLAY_MATERIAL_REUSE pipelines_ready=1
+REPLAY_MATERIAL_REUSE starting=matte
+REPLAY_MATERIAL_REUSE case=matte mode=fresh1 reference=0.574762896 mean=0.574626217 batch_se=0.000667564168 rmse=0.121259354 mse=0.014703831 mse_se=0.000302673309 delta_fresh1=0 delta_fresh1_se=0 delta_fresh4=0.0109400521 delta_fresh4_se=0.000282743831 mean_rays=999.375 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_fresh1=0 quality_fresh4=0 scale=1 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=matte mode=fresh4 reference=0.574762896 mean=0.574544091 batch_se=0.000349682404 rmse=0.0613496448 mse=0.00376377891 mse_se=6.46452362e-05 delta_fresh1=-0.0109400521 delta_fresh1_se=0.000282743831 delta_fresh4=0 delta_fresh4_se=0 mean_rays=3996.125 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_fresh1=1 quality_fresh4=0 scale=1 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=matte mode=temporal reference=0.574762896 mean=0.57513901 batch_se=0.000247350134 rmse=0.0611808588 mse=0.00374309748 mse_se=5.00018577e-05 delta_fresh1=-0.0109607335 delta_fresh1_se=0.000291840922 delta_fresh4=-2.06814352e-05 delta_fresh4_se=7.21858188e-05 mean_rays=2022.500 warm_rays=5021.562 temporal=32768 spatial=0 mean_gate=1 quality_fresh1=1 quality_fresh4=0 scale=1 batches=32 pixels=1024 warm_frames=3
+REPLAY_MATERIAL_REUSE case=matte mode=spatial_disk reference=0.574762896 mean=0.574170414 batch_se=0.000786571908 rmse=0.0575450221 mse=0.00331142957 mse_se=9.60041444e-05 delta_fresh1=-0.0113924015 delta_fresh1_se=0.000227406094 delta_fresh4=-0.000452349343 delta_fresh4_se=9.04868104e-05 mean_rays=4765.375 warm_rays=0.000 temporal=0 spatial=123548 mean_gate=1 quality_fresh1=1 quality_fresh4=1 scale=1 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=matte mode=temporal_disk reference=0.574762896 mean=0.575080851 batch_se=0.000278593504 rmse=0.0299604779 mse=0.000897630234 mse_se=4.37602615e-05 delta_fresh1=-0.0138062008 delta_fresh1_se=0.000293352702 delta_fresh4=-0.00286614868 delta_fresh4_se=7.5052055e-05 mean_rays=5880.656 warm_rays=16502.312 temporal=32768 spatial=123548 mean_gate=1 quality_fresh1=1 quality_fresh4=1 scale=1 batches=32 pixels=1024 warm_frames=3
+REPLAY_MATERIAL_REUSE starting=metal
+REPLAY_MATERIAL_REUSE case=metal mode=fresh1 reference=0.848680634 mean=0.848613328 batch_se=0.00131447995 rmse=0.223684379 mse=0.0500347015 mse_se=0.000726840321 delta_fresh1=0 delta_fresh1_se=0 delta_fresh4=0.0371506832 delta_fresh4_se=0.000672928049 mean_rays=1011.438 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_fresh1=0 quality_fresh4=0 scale=1 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=metal mode=fresh4 reference=0.848680634 mean=0.847639334 batch_se=0.00068751652 rmse=0.11350779 mse=0.0128840183 mse_se=0.000127091733 delta_fresh1=-0.0371506832 delta_fresh1_se=0.000672928049 delta_fresh4=0 delta_fresh4_se=0 mean_rays=4043.469 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_fresh1=1 quality_fresh4=0 scale=1 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=metal mode=temporal reference=0.848680634 mean=0.848667033 batch_se=0.000687722274 rmse=0.111762512 mse=0.012490859 mse_se=0.000142161876 delta_fresh1=-0.0375438425 delta_fresh1_se=0.000691234957 delta_fresh4=-0.0003931593 delta_fresh4_se=0.00016226288 mean_rays=2035.188 warm_rays=5070.156 temporal=32768 spatial=0 mean_gate=1 quality_fresh1=1 quality_fresh4=0 scale=1 batches=32 pixels=1024 warm_frames=3
+REPLAY_MATERIAL_REUSE case=metal mode=spatial_disk reference=0.848680634 mean=0.84909448 batch_se=0.00138159648 rmse=0.103953574 mse=0.0108063456 mse_se=0.000192921263 delta_fresh1=-0.0392283559 delta_fresh1_se=0.000589388659 delta_fresh4=-0.00207767267 delta_fresh4_se=0.000186334795 mean_rays=4827.375 warm_rays=0.000 temporal=0 spatial=123556 mean_gate=1 quality_fresh1=1 quality_fresh4=1 scale=1 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=metal mode=temporal_disk reference=0.848680634 mean=0.848915431 batch_se=0.00069945763 rmse=0.0532212469 mse=0.00283250112 mse_se=0.000110751082 delta_fresh1=-0.0472022004 delta_fresh1_se=0.000706324468 delta_fresh4=-0.0100515172 delta_fresh4_se=0.000164886054 mean_rays=5895.094 warm_rays=16602.812 temporal=32768 spatial=123556 mean_gate=1 quality_fresh1=1 quality_fresh4=1 scale=1 batches=32 pixels=1024 warm_frames=3
+REPLAY_MATERIAL_REUSE starting=coat
+REPLAY_MATERIAL_REUSE case=coat mode=fresh1 reference=0.267288643 mean=0.266742565 batch_se=0.000641217935 rmse=0.122121724 mse=0.0149137156 mse_se=5.93556986e-05 delta_fresh1=0 delta_fresh1_se=0 delta_fresh4=0.0111120079 delta_fresh4_se=6.22220788e-05 mean_rays=1009.188 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_fresh1=0 quality_fresh4=0 scale=1 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=coat mode=fresh4 reference=0.267288643 mean=0.267489673 batch_se=0.000346989586 rmse=0.0616579891 mse=0.00380170762 mse_se=3.44546542e-05 delta_fresh1=-0.0111120079 delta_fresh1_se=6.22220788e-05 delta_fresh4=0 delta_fresh4_se=0 mean_rays=4036.469 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_fresh1=1 quality_fresh4=0 scale=1 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=coat mode=temporal reference=0.267288643 mean=0.266169604 batch_se=0.000325947963 rmse=0.0616400908 mse=0.00379950079 mse_se=3.11376325e-05 delta_fresh1=-0.0111142148 delta_fresh1_se=6.90755833e-05 delta_fresh4=-2.20683195e-06 delta_fresh4_se=4.39706494e-05 mean_rays=2032.125 warm_rays=5057.375 temporal=32768 spatial=0 mean_gate=1 quality_fresh1=1 quality_fresh4=0 scale=1 batches=32 pixels=1024 warm_frames=3
+REPLAY_MATERIAL_REUSE case=coat mode=spatial_disk reference=0.267288643 mean=0.266479504 batch_se=0.000664766782 rmse=0.0568214767 mse=0.00322868021 mse_se=2.70519029e-05 delta_fresh1=-0.0116850354 delta_fresh1_se=5.30573873e-05 delta_fresh4=-0.000573027408 delta_fresh4_se=4.31748257e-05 mean_rays=4813.125 warm_rays=0.000 temporal=0 spatial=123535 mean_gate=1 quality_fresh1=1 quality_fresh4=1 scale=1 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=coat mode=temporal_disk reference=0.267288643 mean=0.26618269 batch_se=0.000310925824 rmse=0.0293305732 mse=0.000860282522 mse_se=2.07009354e-05 delta_fresh1=-0.0140534331 delta_fresh1_se=6.5737661e-05 delta_fresh4=-0.0029414251 delta_fresh4_se=3.63558309e-05 mean_rays=5889.594 warm_rays=16574.594 temporal=32768 spatial=123535 mean_gate=1 quality_fresh1=1 quality_fresh4=1 scale=1 batches=32 pixels=1024 warm_frames=3
+REPLAY_MATERIAL_REUSE starting=faint
+REPLAY_MATERIAL_REUSE case=faint mode=fresh1 reference=0.53868709 mean=0.53935972 batch_se=0.00158839426 rmse=0.278784662 mse=0.0777208876 mse_se=0.000520067723 delta_fresh1=0 delta_fresh1_se=0 delta_fresh4=-0.000308806937 delta_fresh4_se=0.000543840792 mean_rays=1019.906 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_fresh1=0 quality_fresh4=0 scale=1e+07 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=faint mode=fresh4 reference=0.53868709 mean=0.540627492 batch_se=0.00113881318 rmse=0.279337958 mse=0.0780296946 mse_se=0.000464581384 delta_fresh1=0.000308806937 delta_fresh1_se=0.000543840792 delta_fresh4=0 delta_fresh4_se=0 mean_rays=4081.250 warm_rays=0.000 temporal=0 spatial=0 mean_gate=1 quality_fresh1=0 quality_fresh4=0 scale=1e+07 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=faint mode=temporal reference=0.53868709 mean=0.540335476 batch_se=0.00131224792 rmse=0.280188569 mse=0.078505634 mse_se=0.000525518251 delta_fresh1=0.000784746373 delta_fresh1_se=0.00070993538 delta_fresh4=0.000475939436 delta_fresh4_se=0.000641972519 mean_rays=2039.969 warm_rays=5100.781 temporal=32768 spatial=0 mean_gate=1 quality_fresh1=0 quality_fresh4=0 scale=1e+07 batches=32 pixels=1024 warm_frames=3
+REPLAY_MATERIAL_REUSE case=faint mode=spatial_disk reference=0.53868709 mean=0.540430077 batch_se=0.00199940883 rmse=0.279885609 mse=0.0783359544 mse_se=0.00048891467 delta_fresh1=0.000615066761 delta_fresh1_se=0.000423162986 delta_fresh4=0.000306259824 delta_fresh4_se=0.000612668698 mean_rays=4866.594 warm_rays=0.000 temporal=0 spatial=123577 mean_gate=1 quality_fresh1=0 quality_fresh4=0 scale=1e+07 batches=32 pixels=1024 warm_frames=0
+REPLAY_MATERIAL_REUSE case=faint mode=temporal_disk reference=0.53868709 mean=0.541060744 batch_se=0.00202247544 rmse=0.280667404 mse=0.0787741919 mse_se=0.000700193498 delta_fresh1=0.00105330431 delta_fresh1_se=0.000787384837 delta_fresh4=0.000744497373 delta_fresh4_se=0.000828941975 mean_rays=5884.844 warm_rays=16638.812 temporal=32768 spatial=123577 mean_gate=1 quality_fresh1=0 quality_fresh4=0 scale=1e+07 batches=32 pixels=1024 warm_frames=3
+REPLAY_MATERIAL_REVISIONS material_reset=1 material_exact=1 material_temporal=0 light_reset=1 light_exact=1 light_zero=1 light_temporal=0
+PASS ReplayMaterialReuseValidation

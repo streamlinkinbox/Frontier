@@ -5,6 +5,18 @@ The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) 
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts. Older entries below
 are inherited historical checkpoints: their branch/PR references and completion statements may not apply here.
 
+## Authored-material temporal and spatial replay audit — 2026-10-29
+
+- Four fixed material fixtures now exercise actual Engine temporal/spatial replay against separate hemisphere
+  integration: `20/20` mode/fixture means pass, with activated reuse counters. Same-seed C++ sequence checks
+  verify material and environment changes reset history and match explicit resets.
+- Metal temporal + disk RMSE was `0.05322` versus fresh1 `0.22368`, but used about `5,895` versus `1,011` final
+  rays plus approximately `16,603` warm-up rays; no equal-time claim. Faint layers showed no established quality
+  win despite extra work because the fixed target floor dominated their radiance.
+  [Measured chart, protocol and limits](../Exhibits/LightCompute/ReplayMaterialReuse.md).
+- Physical-GPU/Windows timing, realistic mixed/moving materials, production scene/resource ownership and the
+  editor viewport remain open. This restricted result does not prove general ReSTIR unbiasedness.
+
 ## Authored replay material normalization and path checks — 2026-10-29
 
 - Found and repaired a multi-stratum lobe PDF mismatch at tiny/zero coverage. In an independent red-channel

@@ -1,0 +1,37 @@
+Host-only ASan+UBSan CTests; material-reuse Vulkan suite, SwiftShader and shaders NOT run or instrumented.
+Base f452f15, plus working changes if any; source hashes follow.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1; -O1 -fsanitize=address,undefined -fno-pie -no-pie
+0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
+494e342089d7d8de39ec53846b6ba878af58431e46bb348ecf40e6e487107f0d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+28dd31def1deb1fd78a29d6aa389ea63aea394880301dc49eb6d327db7adc79a  Frontier/Engine/Rendering/PathReplaySubmissionSequence.cpp
+6008472e0db6b2caa3d59adc090f3a29a49db4e3bd7520b3620858e5a968f7d3  Exhibits/LightCompute/Code/ReplayMaterialSamplingValidation.h
+b67bef7c640328f2fe236a73084eacdf0f3ac31b93b5ebde738112ba364a71c8  Exhibits/LightCompute/Code/ReplayMaterialPathValidation.h
+4317021f6b63ae5dc44fe1f176f6e479f099f384c6cb206ac25b007cbb1dfd6c  Exhibits/LightCompute/Code/ReplayMaterialReuseValidation.h
+aad0a2909fff4451646f551e7ef2fd673ba83aaa486f195f662257352d5c79a7  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-material-reuse-sanitized
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.02 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.01 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.01 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.75 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.01 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.49 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.15 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.01 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 10
+
+Total Test time (real) =   2.45 sec

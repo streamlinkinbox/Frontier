@@ -85,9 +85,10 @@ Every measured path mean passes `5 * nominal batch SE + .001`. The complete rows
 results are in the [recorded-path log](Results/ReplayMaterialPath-release.txt).
 
 These fixtures do not test temporal/spatial energy conservation, moving/textured scenes, general multibounce
-PBR, solid transmission, production material loading or editor resource ownership. The previously tested
-[offscreen sequence](ReplaySubmissionSequence.md) covers history/recording parity, not independent
-material-general energy correctness. The [thin-sheet regression](ReplayTransmission.md) was rerun with this
+PBR, solid transmission, production material loading or editor resource ownership. A later
+[bounded reuse audit](ReplayMaterialReuse.md) tests temporal/spatial means for four supplied-receiver materials,
+but not general scene correctness. The [offscreen sequence](ReplaySubmissionSequence.md) covers
+history/recording parity, not independent material-general energy correctness. The [thin-sheet regression](ReplayTransmission.md) was rerun with this
 shader and still passes its independent area and overflow checks. Four KHR ray-query SPIR-V files were
 [recompiled and opcode-checked](Results/ReplayRayQuery-spirv.txt), not executed on ray-query hardware.
 
