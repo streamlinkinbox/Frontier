@@ -1,0 +1,806 @@
+Secondary GPU host mode=release revision=b4195284d6775e7c831c1f9ce3170a1b9e6d94c3 working_changes=1 external_driver_sanitized=0
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+2026.14.1
+f5b408212bb8aad1b35e02338c4152623c23b198bc2bc570555593986b4693d0  Exhibits/LightCompute/Code/CompileReceiverBank.py
+4b3b8ce02c6315a948881b76e80c79cfab6395298af629ed392c239a2f71e2b7  Exhibits/LightCompute/Code/CompileCandidateBank.py
+f9da94cc3f075f6bbc2d94d313acad0b93816367a395bd336868725529a8834d  Exhibits/LightCompute/Code/CompileCacheRefresh.py
+187f4ad7d28040c7ebd321a51a12177e8e9ac6b2c6f014d6e05644394462ed80  Exhibits/LightCompute/Code/CompileVertexCache.py
+2fd74637923dd365b4e3b1170aa76b0d00a477d1553a9173057358037d860a78  Exhibits/LightCompute/Code/CompileTriangleReconnection.py
+9ccc26345724e7e84b400b2889520c60a44c92221c495cd669956e230cf5df49  Exhibits/LightCompute/Code/SecondaryReconnectionGpu.slang
+18313fc32f50c2791b2277cb84932b0499d427dee1d87c79508c491fe74fff6f  Exhibits/LightCompute/Code/ReceiverBankValidation.h
+c64a67094084082a1cdd31de0a8d7db1f01afef3565b14c070aa67282a4abee4  Exhibits/LightCompute/Code/CandidateBankValidation.h
+3c34616bfc80078a20ba880083d6473f02dd246f6ab9c1a5e208b40644f4c98c  Exhibits/LightCompute/Code/CacheRefreshValidation.h
+ebc3eb282ad828acc67c17fb861ec8633ece1e709538c38a15524d26320b4dd2  Exhibits/LightCompute/Code/VertexCacheValidation.h
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+7e68de674dd019492c369b5ad6d8f049f9cb70c219c67d74d9a6c2d0b3520414  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+6d484bf4bbb4796e2fe4c580be511adbc3d880502fc71160cc83cc2b495e5ac2  Exhibits/LightCompute/Code/RectangleDomainValidation.h
+61b66021c075d7a4ed407a13b90170d61cf5ad885cc2425f66a5489f5c4aefd7  Exhibits/LightCompute/Code/RectangleReconnectionGpuValidation.h
+58b666b3fc7b52b49d27d6e71fa19c8b596b56b2a3eee593af301f10512c749d  Exhibits/LightCompute/Code/DirectSpatialGpuValidation.h
+2eecf21b3a603cb2b3b4b25097602e350090d727c48a7aaa41f0562b8b06186b  Exhibits/LightCompute/RunReceiverBank.sh
+e37db5f48637915571b380f86eeeb66389b91dccab599cf4bca1a5f19bb61a98  Exhibits/LightCompute/CMakeLists.txt
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+cb8d0423241d44c084d023cbe23c575b225eee4a746a1255153cbea850ee96c4  /home/user/Frontier/_ClaudeScratch/build/receiver-bank-release/ReceiverBank.slang
+db0b9f8d2e8588285d6e717e18e1d45aa64eb0c5f0ec27ffe2fb54715b916c92  /home/user/Frontier/_ClaudeScratch/build/receiver-bank-release/DiffuseGenerate.spv
+d123265018dcf8fb4ae7739a432de2774eb5af6811a31df84854f71aa72adaa6  /home/user/Frontier/_ClaudeScratch/build/receiver-bank-release/DiffuseResolve.spv
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/receiver-bank-release
+[  2%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayVulkan.dir/PathReplayVulkan.cpp.o
+[  5%] Building CXX object replay-engine/CMakeFiles/FrontierMediumRadiancePayload.dir/MediumRadiancePayload.cpp.o
+[  8%] Linking CXX static library libFrontierPathReplayVulkan.a
+[  8%] Built target FrontierPathReplayVulkan
+[ 10%] Building CXX object replay-engine/CMakeFiles/FrontierRadiantFacetDistribution.dir/RadiantFacetDistribution.cpp.o
+[ 13%] Linking CXX static library libFrontierMediumRadiancePayload.a
+[ 13%] Built target FrontierMediumRadiancePayload
+[ 16%] Building CXX object replay-engine/CMakeFiles/FrontierPathReplayDomain.dir/PathReplayDomain.cpp.o
+[ 18%] Linking CXX static library libFrontierRadiantFacetDistribution.a
+[ 18%] Built target FrontierRadiantFacetDistribution
+[ 21%] Building CXX object CMakeFiles/PathReplayVulkanValidation.dir/Code/PathReplayVulkanValidation.cpp.o
+[ 24%] Linking CXX static library libFrontierPathReplayDomain.a
+[ 24%] Built target FrontierPathReplayDomain
+[ 27%] Building CXX object CMakeFiles/PathReplayArchiveValidation.dir/Code/PathReplayArchiveValidation.cpp.o
+[ 29%] Linking CXX executable PathReplayVulkanValidation
+[ 29%] Built target PathReplayVulkanValidation
+[ 32%] Building CXX object CMakeFiles/RadiantFacetValidation.dir/Code/RadiantFacetValidation.cpp.o
+[ 35%] Linking CXX executable RadiantFacetValidation
+[ 35%] Built target RadiantFacetValidation
+[ 37%] Building CXX object CMakeFiles/MediumRadianceValidation.dir/Code/MediumRadianceValidation.cpp.o
+[ 40%] Linking CXX executable MediumRadianceValidation
+[ 43%] Linking CXX executable PathReplayArchiveValidation
+[ 43%] Built target MediumRadianceValidation
+[ 45%] Building CXX object replay-engine/CMakeFiles/FrontierPlumeLatticeFootprint.dir/PlumeLatticeFootprint.cpp.o
+[ 45%] Built target PathReplayArchiveValidation
+[ 48%] Building CXX object CMakeFiles/LightComputeValidation.dir/Code/LightComputeValidation.cpp.o
+[ 51%] Linking CXX static library libFrontierPlumeLatticeFootprint.a
+[ 51%] Built target FrontierPlumeLatticeFootprint
+[ 54%] Building CXX object CMakeFiles/PathReplayDomainValidation.dir/Code/PathReplayDomainValidation.cpp.o
+[ 56%] Linking CXX executable PathReplayDomainValidation
+[ 56%] Built target PathReplayDomainValidation
+[ 59%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ClusterNesting.cpp.o
+[ 62%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VisibilityCull.cpp.o
+[ 64%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DiscrepancySequence.cpp.o
+[ 67%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReservoirSampling.cpp.o
+[ 70%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/VarianceFiltering.cpp.o
+[ 72%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/DistanceField.cpp.o
+[ 75%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/SurfaceCards.cpp.o
+[ 78%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/AtmosphereModel.cpp.o
+[ 81%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CelestialModel.cpp.o
+[ 83%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/CloudField.cpp.o
+[ 86%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/FogMedium.cpp.o
+[ 89%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Rendering/ReferenceRenderer.cpp.o
+[ 91%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogRingStore.cpp.o
+[ 94%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogCategories.cpp.o
+[ 97%] Building CXX object CMakeFiles/LightComputeValidation.dir/home/user/Frontier/Frontier/Engine/Diagnostics/LogStream.cpp.o
+[100%] Linking CXX executable LightComputeValidation
+[100%] Built target LightComputeValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/receiver-bank-release
+Test project /home/user/Frontier/_ClaudeScratch/build/receiver-bank-release
+    Start 1: PathReplayDomainValidation
+1/5 Test #1: PathReplayDomainValidation .......   Passed    0.00 sec
+    Start 2: PathReplayVulkanValidation
+2/5 Test #2: PathReplayVulkanValidation .......   Passed    0.00 sec
+    Start 3: RadiantFacetValidation
+3/5 Test #3: RadiantFacetValidation ...........   Passed    0.00 sec
+    Start 4: MediumRadianceValidation
+4/5 Test #4: MediumRadianceValidation .........   Passed    0.00 sec
+    Start 5: PathReplayArchiveValidation
+5/5 Test #5: PathReplayArchiveValidation ......   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.01 sec
+RECEIVER_BANK_DEVICE name=SwiftShader Device (Subzero) type=4
+RECEIVER_BANK_REFERENCE fixture=0 pose=0 x=0 integral=0.100571720445 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=1 x=0.038060233 integral=0.100405525911 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=2 x=0.146446615 integral=0.09813876013 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=3 x=0.308658272 integral=0.0902125195429 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=4 x=0.5 integral=0.0757548730283 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=5 x=0.691341698 integral=0.0590997652155 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=6 x=0.853553414 integral=0.0457493399112 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=7 x=0.961939752 integral=0.0379251461253 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=8 x=1 integral=0.0354285394085 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=9 x=0.961939752 integral=0.0189625730627 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=0 pose=10 x=0.853553414 integral=0.0228746699556 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=0 pose=11 x=0.691341698 integral=0.0295498826077 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=0 pose=12 x=0.5 integral=0.0378774365142 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=0 pose=13 x=0.308658272 integral=0.0902125195429 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=14 x=0.146446615 integral=0.09813876013 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=0 pose=15 x=0.038060233 integral=0.100405525911 scale=1.0
+RECEIVER_BANK_MEAN fixture=0 pose=0 method=area8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=0 method=bank8 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=0 method=rotate4 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=0 method=rotate2 mean=0.100437328971 nominal_se=0.000194930670043 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=0 method=fresh6 mean=0.100733949052 nominal_se=0.000376800835201 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=0 method=fresh8 mean=0.100730212131 nominal_se=0.000317896064416 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=1 method=area8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=1 method=bank8 mean=0.10023840834 nominal_se=0.000209307749534 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=1 method=rotate4 mean=0.100235783137 nominal_se=0.000210339658947 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=1 method=rotate2 mean=0.100217201691 nominal_se=0.000216070140191 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=1 method=fresh6 mean=0.100261842089 nominal_se=0.000362587991979 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=1 method=fresh8 mean=0.100150225535 nominal_se=0.000260234318305 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=2 method=area8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=2 method=bank8 mean=0.0980894006179 nominal_se=0.000143026588601 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=2 method=rotate4 mean=0.0980873580363 nominal_se=0.000228813536723 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=2 method=rotate2 mean=0.0979199232269 nominal_se=0.000229756040464 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=2 method=fresh6 mean=0.0978414929234 nominal_se=0.000393284882309 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=2 method=fresh8 mean=0.0980433681698 nominal_se=0.000334952669396 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=3 method=area8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=3 method=bank8 mean=0.0903350745702 nominal_se=0.000246946014699 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=3 method=rotate4 mean=0.090330890962 nominal_se=0.000202219030033 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=3 method=rotate2 mean=0.0902615233934 nominal_se=0.00020840687317 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=3 method=fresh6 mean=0.0902343760797 nominal_se=0.000338528675023 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=3 method=fresh8 mean=0.0902888513353 nominal_se=0.000285938379207 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=4 method=area8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=4 method=bank8 mean=0.0757453782697 nominal_se=0.000197036891021 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=4 method=rotate4 mean=0.0758163154345 nominal_se=0.000181020584497 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=4 method=rotate2 mean=0.0758649232521 nominal_se=0.00018874701323 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=4 method=fresh6 mean=0.0755627449414 nominal_se=0.00034474389018 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=4 method=fresh8 mean=0.0757715628411 nominal_se=0.000307749471665 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=5 method=area8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=5 method=bank8 mean=0.0590718149647 nominal_se=0.00016202639509 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=5 method=rotate4 mean=0.0590175330977 nominal_se=0.000159137166757 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=5 method=rotate2 mean=0.059072436668 nominal_se=0.00012444686944 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=5 method=fresh6 mean=0.0584686284444 nominal_se=0.000304700502635 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=5 method=fresh8 mean=0.0586571520644 nominal_se=0.000257341761213 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=6 method=area8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=6 method=bank8 mean=0.0457389938411 nominal_se=0.000155836421317 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=6 method=rotate4 mean=0.04575751093 nominal_se=0.00014973684271 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=6 method=rotate2 mean=0.0458040738529 nominal_se=0.000115489946808 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=6 method=fresh6 mean=0.0459097293328 nominal_se=0.000317219843881 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=6 method=fresh8 mean=0.0460736862274 nominal_se=0.000291542502022 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=7 method=area8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=7 method=bank8 mean=0.0379084510354 nominal_se=0.00012720354745 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=7 method=rotate4 mean=0.0380871720053 nominal_se=0.000133552287713 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=7 method=rotate2 mean=0.0379515436252 nominal_se=0.000112249763635 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=7 method=fresh6 mean=0.0378689577681 nominal_se=0.000285497667037 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=7 method=fresh8 mean=0.0378881849037 nominal_se=0.0002509045078 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=8 method=area8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=8 method=bank8 mean=0.0355032180201 nominal_se=9.63810578275e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=8 method=rotate4 mean=0.0356104337785 nominal_se=9.11861846785e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=8 method=rotate2 mean=0.0354781918382 nominal_se=0.000102320740413 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=8 method=fresh6 mean=0.0352029421119 nominal_se=0.00026729550003 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=8 method=fresh8 mean=0.0353279126221 nominal_se=0.000230240807391 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=9 method=area8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=9 method=bank8 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=9 method=rotate4 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=9 method=rotate2 mean=0.0189503263252 nominal_se=6.1072148478e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=9 method=fresh6 mean=0.0190359498284 nominal_se=0.000124121568307 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=9 method=fresh8 mean=0.0190802771543 nominal_se=0.000104366809224 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=10 method=area8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=10 method=bank8 mean=0.0227862111622 nominal_se=6.29930102421e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=10 method=rotate4 mean=0.0228276132052 nominal_se=8.17615584892e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=10 method=rotate2 mean=0.02282818705 nominal_se=6.45902341643e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=10 method=fresh6 mean=0.0228491212649 nominal_se=0.000134880257809 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=10 method=fresh8 mean=0.0228197486774 nominal_se=0.000101418120644 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=11 method=area8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=11 method=bank8 mean=0.0295427408692 nominal_se=0.000105641599297 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=11 method=rotate4 mean=0.0294207630394 nominal_se=8.78824127939e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=11 method=rotate2 mean=0.0295038559013 nominal_se=8.43116385387e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=11 method=fresh6 mean=0.029930725354 nominal_se=0.000199349967897 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=11 method=fresh8 mean=0.0297779855517 nominal_se=0.000157366940287 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=12 method=area8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=12 method=bank8 mean=0.0378179861901 nominal_se=9.24183544596e-05 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=12 method=rotate4 mean=0.0378534121835 nominal_se=0.000128079583127 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=12 method=rotate2 mean=0.0377797706981 nominal_se=0.000110508301129 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=12 method=fresh6 mean=0.0378828434148 nominal_se=0.000201015863635 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=12 method=fresh8 mean=0.0380187617621 nominal_se=0.000182370438948 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=13 method=area8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=13 method=bank8 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=13 method=rotate4 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=13 method=rotate2 mean=0.0900183446986 nominal_se=0.000200794282342 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=13 method=fresh6 mean=0.0905270396629 nominal_se=0.000417985973171 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=13 method=fresh8 mean=0.0904138208637 nominal_se=0.000422647754475 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=14 method=area8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=14 method=bank8 mean=0.0983224223182 nominal_se=0.000218735938226 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=14 method=rotate4 mean=0.0981067981348 nominal_se=0.000255428233908 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=14 method=rotate2 mean=0.098121605003 nominal_se=0.000238443416643 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=14 method=fresh6 mean=0.0985208142488 nominal_se=0.000360650892953 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=14 method=fresh8 mean=0.0985544612865 nominal_se=0.000361059947058 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=15 method=area8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=15 method=bank8 mean=0.100529185575 nominal_se=0.00023231074672 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=15 method=rotate4 mean=0.100469175823 nominal_se=0.00022021403885 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=15 method=rotate2 mean=0.100358353145 nominal_se=0.000239991606076 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=15 method=fresh6 mean=0.100471192695 nominal_se=0.000393701074001 gate=1
+RECEIVER_BANK_MEAN fixture=0 pose=15 method=fresh8 mean=0.100501101352 nominal_se=0.000297786788221 gate=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=0 mean=0.100437324224 nominal_se=0.000194930654401 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=1 mean=0.100257097571 nominal_se=0.000210616131105 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=2 mean=0.0984204526316 nominal_se=0.000230978676413 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=3 mean=0.091591882339 nominal_se=0.000203521131171 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=4 mean=0.0780957482015 nominal_se=0.000183415666257 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=5 mean=0.0614644596157 nominal_se=0.00016634682045 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=6 mean=0.0475192161051 nominal_se=0.000154811181101 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=7 mean=0.0390309581201 nominal_se=0.000137292802306 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=8 mean=0.035901512468 nominal_se=9.23124827442e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=9 mean=0.0189503255954 nominal_se=6.10721483795e-05 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=10 mean=0.0222908070988 nominal_se=7.93154959439e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=11 mean=0.0283735637428 nominal_se=8.51148962354e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=12 mean=0.0363941894073 nominal_se=0.000123244928217 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=13 mean=0.0900183404944 nominal_se=0.000200794278816 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=14 mean=0.0965701238857 nominal_se=0.000250349268904 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=0 pose=15 mean=0.100011317812 nominal_se=0.000220756144021 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_RESULT fixture=0 method=area8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=8444196 source_queries=8444196 reused=0
+RECEIVER_BANK_RESULT fixture=0 method=bank8 rmse=0.0317418645285 temporal_rmse=0.00790630280321 flicker_rmse=0.0438898485923 lag1=-0.00228721577583 queries=8444196 source_queries=6857447 reused=0
+RECEIVER_BANK_RESULT fixture=0 method=rotate4 rmse=0.0315977035826 temporal_rmse=0.0106211991225 flicker_rmse=0.0323530676571 lag1=0.449263096537 queries=5672220 source_queries=4081400 reused=1703936
+RECEIVER_BANK_RESULT fixture=0 method=rotate2 rmse=0.031597564468 temporal_rmse=0.0136394049647 flicker_rmse=0.0248059748823 lag1=0.675523608624 queries=4297253 source_queries=2692492 reused=2555904
+RECEIVER_BANK_RESULT fixture=0 method=fresh6 rmse=0.0587195193092 temporal_rmse=0.0146758453944 flicker_rmse=0.0814806066942 lag1=0.000305467180282 queries=6830256 source_queries=6830256 reused=0
+RECEIVER_BANK_RESULT fixture=0 method=fresh8 rmse=0.0508794831333 temporal_rmse=0.0126698413906 flicker_rmse=0.070600114103 lag1=0.000662755577128 queries=9107503 source_queries=9107503 reused=0
+RECEIVER_BANK_PAIRED fixture=0 arm=rotate4 control=fresh8 instantaneous_mse=-0.00159030693222 instantaneous_se=6.03349895611e-06 temporal_mse=-4.77150100641e-05 temporal_se=1.54989578246e-06
+RECEIVER_BANK_PAIRED fixture=0 arm=rotate2 control=fresh8 instantaneous_mse=-0.00159031572361 instantaneous_se=6.43649568916e-06 temporal_mse=2.55084869267e-05 temporal_se=2.34842583011e-06
+RECEIVER_BANK_PAIRED fixture=0 arm=rotate4 control=fresh6 instantaneous_mse=-0.00244956707622 instantaneous_se=7.49759192212e-06 temporal_mse=-0.00010257056724 temporal_se=2.12506435687e-06
+RECEIVER_BANK_PAIRED fixture=0 arm=rotate2 control=fresh6 instantaneous_mse=-0.0024495758676 instantaneous_se=7.23377312817e-06 temporal_mse=-2.9347070249e-05 temporal_se=2.87176912608e-06
+RECEIVER_BANK_CHECK fixture=0 mean_gates=96 maximum_bank8_difference=0 retained_slot_checks=4259840 wrong_density_failures=10
+RECEIVER_BANK_REFERENCE fixture=1 pose=0 x=0 integral=0.0470486282321 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=1 x=0.038060233 integral=0.0473919389392 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=2 x=0.146446615 integral=0.0515153616404 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=3 x=0.308658272 integral=0.0617142439773 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=4 x=0.5 integral=0.066341063396 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=5 x=0.691341698 integral=0.0580084356047 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=6 x=0.853553414 integral=0.0457493399637 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=7 x=0.961939752 integral=0.0379251462036 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=8 x=1 integral=0.0354285394919 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=9 x=0.961939752 integral=0.0189625731018 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=1 pose=10 x=0.853553414 integral=0.0228746699818 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=1 pose=11 x=0.691341698 integral=0.0290042178024 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=1 pose=12 x=0.5 integral=0.033170531698 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=1 pose=13 x=0.308658272 integral=0.0617142439773 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=14 x=0.146446615 integral=0.0515153616404 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=1 pose=15 x=0.038060233 integral=0.0473919389392 scale=1.0
+RECEIVER_BANK_MEAN fixture=1 pose=0 method=area8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=0 method=bank8 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=0 method=rotate4 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=0 method=rotate2 mean=0.0467916900283 nominal_se=0.000141110763969 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=0 method=fresh6 mean=0.0467172244651 nominal_se=0.000282101166386 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=0 method=fresh8 mean=0.0468122879206 nominal_se=0.000245069781023 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=1 method=area8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=1 method=bank8 mean=0.047470573428 nominal_se=0.000173587709984 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=1 method=rotate4 mean=0.0473069708852 nominal_se=0.000148763757608 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=1 method=rotate2 mean=0.0473857194586 nominal_se=0.000117376100382 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=1 method=fresh6 mean=0.0470803836463 nominal_se=0.000202680593326 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=1 method=fresh8 mean=0.0472160354782 nominal_se=0.000165875882249 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=2 method=area8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=2 method=bank8 mean=0.0514673910413 nominal_se=0.000187704421477 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=2 method=rotate4 mean=0.0514127405521 nominal_se=0.000232348087492 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=2 method=rotate2 mean=0.0513949470819 nominal_se=0.000203215594589 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=2 method=fresh6 mean=0.0517758182784 nominal_se=0.000349252454195 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=2 method=fresh8 mean=0.0516957108964 nominal_se=0.000255316452524 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=3 method=area8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=3 method=bank8 mean=0.0617383694315 nominal_se=0.00022801277839 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=3 method=rotate4 mean=0.061809490336 nominal_se=0.000234864716262 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=3 method=rotate2 mean=0.0619188220986 nominal_se=0.00023908255465 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=3 method=fresh6 mean=0.0614422612834 nominal_se=0.000315112745911 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=3 method=fresh8 mean=0.0614353198719 nominal_se=0.00029048287005 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=4 method=area8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=4 method=bank8 mean=0.0662484557933 nominal_se=0.000208307204915 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=4 method=rotate4 mean=0.0663445972667 nominal_se=0.000204157825561 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=4 method=rotate2 mean=0.0664952461059 nominal_se=0.000203625765144 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=4 method=fresh6 mean=0.0665072637987 nominal_se=0.000513102735525 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=4 method=fresh8 mean=0.0664741535857 nominal_se=0.000379289605077 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=5 method=area8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=5 method=bank8 mean=0.0580815560606 nominal_se=0.000176611110711 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=5 method=rotate4 mean=0.0579085004744 nominal_se=0.000110075512584 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=5 method=rotate2 mean=0.0580381412405 nominal_se=0.000155999617718 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=5 method=fresh6 mean=0.0576654057586 nominal_se=0.000328958016418 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=5 method=fresh8 mean=0.0577727526427 nominal_se=0.000320559497475 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=6 method=area8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=6 method=bank8 mean=0.0456205542556 nominal_se=0.000113311161834 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=6 method=rotate4 mean=0.045575852766 nominal_se=0.000125368358612 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=6 method=rotate2 mean=0.0455691248801 nominal_se=8.40762356827e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=6 method=fresh6 mean=0.0453115847988 nominal_se=0.000281319424489 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=6 method=fresh8 mean=0.0452838149613 nominal_se=0.000222420945779 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=7 method=area8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=7 method=bank8 mean=0.0378547515395 nominal_se=0.000118443534454 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=7 method=rotate4 mean=0.0376716739845 nominal_se=8.95179625411e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=7 method=rotate2 mean=0.0377823383354 nominal_se=9.44936014215e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=7 method=fresh6 mean=0.0378625490707 nominal_se=0.000315490918493 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=7 method=fresh8 mean=0.0378897870842 nominal_se=0.000270328935157 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=8 method=area8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=8 method=bank8 mean=0.03558674961 nominal_se=0.000131502900906 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=8 method=rotate4 mean=0.0353623743386 nominal_se=0.000128566579019 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=8 method=rotate2 mean=0.035312138747 nominal_se=0.000117058513653 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=8 method=fresh6 mean=0.0360382082351 nominal_se=0.000274253523344 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=8 method=fresh8 mean=0.035925523109 nominal_se=0.00022041324498 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=9 method=area8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=9 method=bank8 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=9 method=rotate4 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=9 method=rotate2 mean=0.0189335490707 nominal_se=6.34530845939e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=9 method=fresh6 mean=0.0189804078341 nominal_se=0.000128425679373 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=9 method=fresh8 mean=0.0189945609028 nominal_se=0.000112698519039 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=10 method=area8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=10 method=bank8 mean=0.0228466710197 nominal_se=6.72352692313e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=10 method=rotate4 mean=0.0228763101688 nominal_se=7.87332226262e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=10 method=rotate2 mean=0.0228346459887 nominal_se=6.985069406e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=10 method=fresh6 mean=0.0229548646723 nominal_se=0.000141342507175 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=10 method=fresh8 mean=0.0229591377224 nominal_se=0.000101119258228 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=11 method=area8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=11 method=bank8 mean=0.028956055202 nominal_se=6.51920130733e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=11 method=rotate4 mean=0.0289934344295 nominal_se=9.60269386639e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=11 method=rotate2 mean=0.0290010741727 nominal_se=9.00993209691e-05 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=11 method=fresh6 mean=0.029082641855 nominal_se=0.000175935653211 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=11 method=fresh8 mean=0.0290634164315 nominal_se=0.000158859508354 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=12 method=area8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=12 method=bank8 mean=0.0332265563389 nominal_se=0.000114842805592 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=12 method=rotate4 mean=0.0330934307661 nominal_se=0.000111982738203 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=12 method=rotate2 mean=0.0332056614449 nominal_se=0.000121293793183 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=12 method=fresh6 mean=0.0334010318079 nominal_se=0.000186943793945 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=12 method=fresh8 mean=0.0333908853925 nominal_se=0.000144623035592 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=13 method=area8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=13 method=bank8 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=13 method=rotate4 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=13 method=rotate2 mean=0.0617306073216 nominal_se=0.000222528365211 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=13 method=fresh6 mean=0.0616067510355 nominal_se=0.000421392526752 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=13 method=fresh8 mean=0.0615058154742 nominal_se=0.000372000613406 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=14 method=area8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=14 method=bank8 mean=0.0517488151079 nominal_se=0.000216600825815 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=14 method=rotate4 mean=0.0516234915587 nominal_se=0.000166738770445 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=14 method=rotate2 mean=0.05161975853 nominal_se=0.000139506378392 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=14 method=fresh6 mean=0.0514083866265 nominal_se=0.000206645241675 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=14 method=fresh8 mean=0.0513832871775 nominal_se=0.000216746143849 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=15 method=area8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=15 method=bank8 mean=0.0473733507992 nominal_se=0.000133351901429 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=15 method=rotate4 mean=0.0472916713246 nominal_se=0.000173817776387 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=15 method=rotate2 mean=0.0475898210498 nominal_se=0.000175618296328 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=15 method=fresh6 mean=0.0470291141228 nominal_se=0.000263586450183 gate=1
+RECEIVER_BANK_MEAN fixture=1 pose=15 method=fresh8 mean=0.0470478073357 nominal_se=0.000212235486525 gate=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=0 mean=0.046791687904 nominal_se=0.000141110756625 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=1 mean=0.0463395562203 nominal_se=0.000145487348355 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=2 mean=0.0481538604959 nominal_se=0.000202485598028 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=3 mean=0.058045374818 nominal_se=0.000228601739576 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=4 mean=0.0659224123769 nominal_se=0.000206829961013 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=5 mean=0.0596494414449 nominal_se=0.000114406684047 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=6 mean=0.0472853511057 nominal_se=0.000130515710131 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=7 mean=0.0386026735566 nominal_se=9.12455156125e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=8 mean=0.0356503812958 nominal_se=0.000129716455765 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=9 mean=0.0189335483135 nominal_se=6.3453082676e-05 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=10 mean=0.0223396383225 nominal_se=7.66041828712e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=11 mean=0.0279490482459 nominal_se=9.19523151388e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=12 mean=0.0317892569149 nominal_se=0.00010704373698 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=13 mean=0.0617306043371 nominal_se=0.000222528347417 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=14 mean=0.0507866441382 nominal_se=0.00016363813961 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=1 pose=15 mean=0.0456863018298 nominal_se=0.000160578270568 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_RESULT fixture=1 method=area8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=7825882 source_queries=7825882 reused=0
+RECEIVER_BANK_RESULT fixture=1 method=bank8 rmse=0.0283865170393 temporal_rmse=0.00710934795075 flicker_rmse=0.0398146905649 lag1=-0.00232333080338 queries=7825882 source_queries=6393635 reused=0
+RECEIVER_BANK_RESULT fixture=1 method=rotate4 rmse=0.0288944887098 temporal_rmse=0.00932620752735 flicker_rmse=0.032361466188 lag1=0.360944164897 queries=5219809 source_queries=3789670 reused=1703936
+RECEIVER_BANK_RESULT fixture=1 method=rotate2 rmse=0.0297263153666 temporal_rmse=0.0119507901629 flicker_rmse=0.0277895058957 lag1=0.555088041007 queries=3919026 source_queries=2489350 reused=2555904
+RECEIVER_BANK_RESULT fixture=1 method=fresh6 rmse=0.050333749166 temporal_rmse=0.0125607064093 flicker_rmse=0.0708684835938 lag1=-0.00121344553131 queries=6674974 source_queries=6674974 reused=0
+RECEIVER_BANK_RESULT fixture=1 method=fresh8 rmse=0.0436129995951 temporal_rmse=0.0109150172323 flicker_rmse=0.0614158041203 lag1=-0.00144642383854 queries=8899950 source_queries=8899950 reused=0
+RECEIVER_BANK_PAIRED fixture=1 arm=rotate4 control=fresh8 instantaneous_mse=-0.00106720225588 instantaneous_se=4.31803477385e-06 temporal_mse=-3.2159454339e-05 temporal_se=1.2001080744e-06
+RECEIVER_BANK_PAIRED fixture=1 arm=rotate2 control=fresh8 instantaneous_mse=-0.00101843990841 instantaneous_se=5.44481655838e-06 temporal_mse=2.36837843353e-05 temporal_se=1.31901327042e-06
+RECEIVER_BANK_PAIRED fixture=1 arm=rotate4 control=fresh6 instantaneous_mse=-0.0016985948273 instantaneous_se=6.25505165677e-06 temporal_mse=-7.07931986586e-05 temporal_se=1.45401086725e-06
+RECEIVER_BANK_PAIRED fixture=1 arm=rotate2 control=fresh6 instantaneous_mse=-0.00164983247983 instantaneous_se=7.02656873425e-06 temporal_mse=-1.49499599843e-05 temporal_se=1.67746402278e-06
+RECEIVER_BANK_CHECK fixture=1 mean_gates=96 maximum_bank8_difference=0 retained_slot_checks=4259840 wrong_density_failures=10
+RECEIVER_BANK_REFERENCE fixture=2 pose=0 x=0 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=1 x=0.038060233 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=2 x=0.146446615 integral=0.00441540224764 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=3 x=0.308658272 integral=0.023602341581 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=4 x=0.5 integral=0.0421220226833 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=5 x=0.691341698 integral=0.0458206037941 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=6 x=0.853553414 integral=0.0408044815178 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=7 x=0.961939752 integral=0.035896427655 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=8 x=1 integral=0.0336100076862 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=9 x=0.961939752 integral=0.0179482138275 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=2 pose=10 x=0.853553414 integral=0.0204022407589 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=2 pose=11 x=0.691341698 integral=0.022910301897 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=2 pose=12 x=0.5 integral=0.0210610113416 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=2 pose=13 x=0.308658272 integral=0.023602341581 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=14 x=0.146446615 integral=0.00441540224764 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=2 pose=15 x=0.038060233 integral=0 scale=1.0
+RECEIVER_BANK_MEAN fixture=2 pose=0 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=0 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=0 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=0 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=1 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=1 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=1 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=1 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=2 method=area8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=2 method=bank8 mean=0.00438294832873 nominal_se=5.98612625993e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=2 method=rotate4 mean=0.00449173494422 nominal_se=7.40542236277e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=2 method=rotate2 mean=0.00443200846064 nominal_se=7.25505214561e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=2 method=fresh6 mean=0.00440063478459 nominal_se=0.000115939437169 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=2 method=fresh8 mean=0.00434669511856 nominal_se=9.00381448689e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=3 method=area8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=3 method=bank8 mean=0.0237568002192 nominal_se=0.000154543872662 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=3 method=rotate4 mean=0.0236465510054 nominal_se=0.000179107236147 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=3 method=rotate2 mean=0.0236658092965 nominal_se=0.000170917445842 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=3 method=fresh6 mean=0.0234600831307 nominal_se=0.000218715490168 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=3 method=fresh8 mean=0.0234590157693 nominal_se=0.000177855393022 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=4 method=area8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=4 method=bank8 mean=0.0422576114314 nominal_se=0.000210924801057 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=4 method=rotate4 mean=0.0420730062348 nominal_se=0.000186620618005 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=4 method=rotate2 mean=0.0420025490943 nominal_se=0.000167758300245 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=4 method=fresh6 mean=0.041759033488 nominal_se=0.000211161156333 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=4 method=fresh8 mean=0.0420458235712 nominal_se=0.000199303418739 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=5 method=area8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=5 method=bank8 mean=0.0460266643154 nominal_se=0.000171204413262 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=5 method=rotate4 mean=0.0460634503407 nominal_se=0.00015405010842 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=5 method=rotate2 mean=0.0458450001582 nominal_se=0.000157131700264 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=5 method=fresh6 mean=0.0459951785601 nominal_se=0.000333963053418 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=5 method=fresh8 mean=0.0462178817816 nominal_se=0.000252840069763 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=6 method=area8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=6 method=bank8 mean=0.0407842627844 nominal_se=0.000137736756571 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=6 method=rotate4 mean=0.0409786679766 nominal_se=0.000148896119456 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=6 method=rotate2 mean=0.0409819003982 nominal_se=0.000125508382622 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=6 method=fresh6 mean=0.0406652834706 nominal_se=0.000304720792185 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=6 method=fresh8 mean=0.040816956963 nominal_se=0.000236774918508 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=7 method=area8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=7 method=bank8 mean=0.0360299411975 nominal_se=0.00010096973617 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=7 method=rotate4 mean=0.0359814874192 nominal_se=0.000147697187829 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=7 method=rotate2 mean=0.0360024306647 nominal_se=0.000115349659844 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=7 method=fresh6 mean=0.0357882692631 nominal_se=0.000271656988866 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=7 method=fresh8 mean=0.0356147015684 nominal_se=0.00021270938765 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=8 method=area8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=8 method=bank8 mean=0.0336817328907 nominal_se=0.00010009480942 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=8 method=rotate4 mean=0.0336014510278 nominal_se=0.000135535681357 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=8 method=rotate2 mean=0.0336561610887 nominal_se=0.000137807477987 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=8 method=fresh6 mean=0.0332910158302 nominal_se=0.000236863494822 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=8 method=fresh8 mean=0.03325309872 nominal_se=0.000222788278765 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=9 method=area8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=9 method=bank8 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=9 method=rotate4 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=9 method=rotate2 mean=0.017990819936 nominal_se=5.97603805297e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=9 method=fresh6 mean=0.0179507447407 nominal_se=0.000106741902219 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=9 method=fresh8 mean=0.0179387289573 nominal_se=0.000121731048764 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=10 method=area8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=10 method=bank8 mean=0.0204758922751 nominal_se=6.4114503937e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=10 method=rotate4 mean=0.0204103905056 nominal_se=6.64790268857e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=10 method=rotate2 mean=0.0204050070335 nominal_se=7.69603383596e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=10 method=fresh6 mean=0.0204020692264 nominal_se=0.00016424558205 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=10 method=fresh8 mean=0.0203700263266 nominal_se=0.000135170670243 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=11 method=area8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=11 method=bank8 mean=0.0228657922761 nominal_se=9.58981345835e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=11 method=rotate4 mean=0.0228132473737 nominal_se=9.31164994809e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=11 method=rotate2 mean=0.0229170942485 nominal_se=0.000102851103694 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=11 method=fresh6 mean=0.0228694154492 nominal_se=0.00014569562313 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=11 method=fresh8 mean=0.0228517921427 nominal_se=0.000140760507581 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=12 method=area8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=12 method=bank8 mean=0.0210507583822 nominal_se=8.49849733051e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=12 method=rotate4 mean=0.0209687550625 nominal_se=0.000104891340197 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=12 method=rotate2 mean=0.0210167514367 nominal_se=0.000130177408891 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=12 method=fresh6 mean=0.0211593629339 nominal_se=0.000132038310902 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=12 method=fresh8 mean=0.0210541541543 nominal_se=0.000110944711321 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=13 method=area8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=13 method=bank8 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=13 method=rotate4 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=13 method=rotate2 mean=0.0236108190451 nominal_se=0.00016193506554 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=13 method=fresh6 mean=0.0234729005108 nominal_se=0.000219817878668 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=13 method=fresh8 mean=0.0234365853505 nominal_se=0.000156502669435 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=14 method=area8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=14 method=bank8 mean=0.00431987563525 nominal_se=8.25801740283e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=14 method=rotate4 mean=0.00430673677664 nominal_se=6.7317891674e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=14 method=rotate2 mean=0.00430240805565 nominal_se=6.64010275774e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=14 method=fresh6 mean=0.00429382326092 nominal_se=0.000114248555197 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=14 method=fresh8 mean=0.00426017778091 nominal_se=8.34277083985e-05 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=15 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=15 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=15 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=15 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=2 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=0 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=1 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=2 mean=0.00355728357046 nominal_se=5.84123846825e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=3 mean=0.0192900115033 nominal_se=0.000142393825724 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=4 mean=0.0382984044403 nominal_se=0.000164949470157 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=5 mean=0.0458478835804 nominal_se=0.000154379068563 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=6 mean=0.0420603108802 nominal_se=0.00015392346802 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=7 mean=0.0367542635905 nominal_se=0.000151800843677 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=8 mean=0.0338818854959 nominal_se=0.000136670544263 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=9 mean=0.017990819233 nominal_se=5.97603806425e-05 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=10 mean=0.0198997710897 nominal_se=6.45778610859e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=11 mean=0.021938320061 nominal_se=9.02123055371e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=12 mean=0.0202279213738 nominal_se=0.000100540469909 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=13 mean=0.0236108178999 nominal_se=0.00016193505933 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=14 mean=0.00444218682001 nominal_se=6.89546659714e-05 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=2 pose=15 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_RESULT fixture=2 method=area8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=7077468 source_queries=7077468 reused=0
+RECEIVER_BANK_RESULT fixture=2 method=bank8 rmse=0.019216136145 temporal_rmse=0.00481061106822 flicker_rmse=0.0280534092979 lag1=0.000961222376657 queries=7077468 source_queries=5831853 reused=0
+RECEIVER_BANK_RESULT fixture=2 method=rotate4 rmse=0.0199647205644 temporal_rmse=0.00634202742316 flicker_rmse=0.0242708178001 lag1=0.307237912388 queries=4691980 source_queries=3449206 reused=1703936
+RECEIVER_BANK_RESULT fixture=2 method=rotate2 rmse=0.0212285821057 temporal_rmse=0.00848432075189 flicker_rmse=0.0219637340645 lag1=0.498221730819 queries=3486688 source_queries=2257683 reused=2555904
+RECEIVER_BANK_RESULT fixture=2 method=fresh6 rmse=0.0342769825412 temporal_rmse=0.00857886795717 flicker_rmse=0.0500401833022 lag1=0.000976344864073 queries=6487314 source_queries=6487314 reused=0
+RECEIVER_BANK_RESULT fixture=2 method=fresh8 rmse=0.0296614644502 temporal_rmse=0.00738051192308 flicker_rmse=0.0433117875545 lag1=0.000529095383484 queries=8649751 source_queries=8649751 reused=0
+RECEIVER_BANK_PAIRED fixture=2 arm=rotate4 control=fresh8 instantaneous_mse=-0.000481212406119 instantaneous_se=3.34055903864e-06 temporal_mse=-1.42506444107e-05 temporal_se=5.182477787e-07
+RECEIVER_BANK_PAIRED fixture=2 arm=rotate2 control=fresh8 instantaneous_mse=-0.000429149775115 instantaneous_se=3.55334741344e-06 temporal_mse=1.75117423741e-05 temporal_se=6.29658323576e-07
+RECEIVER_BANK_PAIRED fixture=2 arm=rotate4 control=fresh6 instantaneous_mse=-0.000776321464918 instantaneous_se=4.30272056346e-06 temporal_mse=-3.33756635904e-05 temporal_se=7.71328373427e-07
+RECEIVER_BANK_PAIRED fixture=2 arm=rotate2 control=fresh6 instantaneous_mse=-0.000724258833914 instantaneous_se=4.3429060841e-06 temporal_mse=-1.61327680557e-06 temporal_se=7.41808703998e-07
+RECEIVER_BANK_CHECK fixture=2 mean_gates=96 maximum_bank8_difference=0 retained_slot_checks=4259840 wrong_density_failures=8
+RECEIVER_BANK_REFERENCE fixture=3 pose=0 x=0 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=1 x=0.038060233 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=2 x=0.146446615 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=3 x=0.308658272 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=4 x=0.5 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=5 x=0.691341698 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=6 x=0.853553414 integral=0.0128798438218 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=7 x=0.961939752 integral=0.0172063357012 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=8 x=1 integral=0.0179346046656 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=9 x=0.961939752 integral=0.00860316785062 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=3 pose=10 x=0.853553414 integral=0.0064399219109 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=3 pose=11 x=0.691341698 integral=0 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=3 pose=12 x=0.5 integral=0 scale=0.5
+RECEIVER_BANK_REFERENCE fixture=3 pose=13 x=0.308658272 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=14 x=0.146446615 integral=0 scale=1.0
+RECEIVER_BANK_REFERENCE fixture=3 pose=15 x=0.038060233 integral=0 scale=1.0
+RECEIVER_BANK_MEAN fixture=3 pose=0 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=0 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=0 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=0 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=0 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=0 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=1 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=1 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=1 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=1 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=1 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=1 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=2 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=2 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=2 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=2 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=2 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=2 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=3 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=3 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=3 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=3 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=3 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=3 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=4 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=4 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=4 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=4 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=4 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=4 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=5 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=5 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=5 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=5 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=5 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=5 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=6 method=area8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=6 method=bank8 mean=0.0128605250089 nominal_se=8.37733151912e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=6 method=rotate4 mean=0.0127804840066 nominal_se=0.000107805473543 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=6 method=rotate2 mean=0.0128966207905 nominal_se=0.00010577520809 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=6 method=fresh6 mean=0.012800293028 nominal_se=0.000151835817626 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=6 method=fresh8 mean=0.0128782658826 nominal_se=0.000127498884583 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=7 method=area8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=7 method=bank8 mean=0.0173174613959 nominal_se=0.00012088282138 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=7 method=rotate4 mean=0.0172680704313 nominal_se=0.000106314470171 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=7 method=rotate2 mean=0.0169755443436 nominal_se=0.000119603993502 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=7 method=fresh6 mean=0.0175085450044 nominal_se=0.000173571933825 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=7 method=fresh8 mean=0.0173130805001 nominal_se=0.000164101222886 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=8 method=area8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=8 method=bank8 mean=0.017954579335 nominal_se=0.000110986167076 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=8 method=rotate4 mean=0.0180335039273 nominal_se=0.00013947303365 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=8 method=rotate2 mean=0.0177441588027 nominal_se=0.000126450341421 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=8 method=fresh6 mean=0.0176623535992 nominal_se=0.000139473270273 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=8 method=fresh8 mean=0.0177280432802 nominal_se=0.000130158279921 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=9 method=area8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=9 method=bank8 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=9 method=rotate4 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=9 method=rotate2 mean=0.00858112335351 nominal_se=5.29446871935e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=9 method=fresh6 mean=0.00860687260024 nominal_se=7.70181071367e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=9 method=fresh8 mean=0.00861408266633 nominal_se=7.18589256286e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=10 method=area8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=10 method=bank8 mean=0.00650099170412 nominal_se=5.566023752e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=10 method=rotate4 mean=0.00641883529215 nominal_se=5.12118514848e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=10 method=rotate2 mean=0.00639239578581 nominal_se=4.7177913913e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=10 method=fresh6 mean=0.00649627688483 nominal_se=7.66118280491e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=10 method=fresh8 mean=0.00645916010217 nominal_se=6.88169198314e-05 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=11 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=11 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=11 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=11 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=11 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=11 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=12 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=12 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=12 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=12 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=12 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=12 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=13 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=13 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=13 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=13 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=13 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=13 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=14 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=14 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=14 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=14 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=14 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=14 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=15 method=area8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=15 method=bank8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=15 method=rotate4 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=15 method=rotate2 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=15 method=fresh6 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_MEAN fixture=3 pose=15 method=fresh8 mean=0 nominal_se=0 gate=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=0 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=1 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=2 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=3 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=4 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=5 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=6 mean=0.0103799712675 nominal_se=8.41252894628e-05 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=7 mean=0.0166435626879 nominal_se=0.000104694301375 fails=1 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=8 mean=0.0179574224762 nominal_se=0.000140219626235 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=9 mean=0.00858112299297 nominal_se=5.29446839155e-05 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=10 mean=0.00624108760265 nominal_se=5.00401291794e-05 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=11 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=12 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=13 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=14 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_NEGATIVE fixture=3 pose=15 mean=0 nominal_se=0 fails=0 cpu_counterfactual=1
+RECEIVER_BANK_RESULT fixture=3 method=area8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=6436116 source_queries=6436116 reused=0
+RECEIVER_BANK_RESULT fixture=3 method=bank8 rmse=0.0086168948304 temporal_rmse=0.00215797525466 flicker_rmse=0.0125793936636 lag1=0.00101339087185 queries=6436116 source_queries=5351897 reused=0
+RECEIVER_BANK_RESULT fixture=3 method=rotate4 rmse=0.00903785436726 temporal_rmse=0.00276044460759 flicker_rmse=0.0114443846743 lag1=0.248384886621 queries=4264368 source_queries=3179620 reused=1703936
+RECEIVER_BANK_RESULT fixture=3 method=rotate2 rmse=0.00959947875021 temporal_rmse=0.00344066928321 flicker_rmse=0.0106651189505 lag1=0.421395512808 queries=3175528 source_queries=2092769 reused=2555904
+RECEIVER_BANK_RESULT fixture=3 method=fresh6 rmse=0.0152844545103 temporal_rmse=0.0038227229377 flicker_rmse=0.0223150883441 lag1=0.000831773160301 queries=6328052 source_queries=6328052 reused=0
+RECEIVER_BANK_RESULT fixture=3 method=fresh8 rmse=0.0132472648516 temporal_rmse=0.00331173403614 flicker_rmse=0.0193489965612 lag1=-1.33308991814e-05 queries=8437333 source_queries=8437333 reused=0
+RECEIVER_BANK_PAIRED fixture=3 arm=rotate4 control=fresh8 instantaneous_mse=-9.38072144849e-05 instantaneous_se=1.37391587712e-06 temporal_mse=-3.34752789454e-06 temporal_se=1.37140425823e-07
+RECEIVER_BANK_PAIRED fixture=3 arm=rotate2 control=fresh8 instantaneous_mse=-8.3340033773e-05 instantaneous_se=1.39617701119e-06 temporal_mse=8.70622790272e-07 temporal_se=1.51763592159e-07
+RECEIVER_BANK_PAIRED fixture=3 arm=rotate4 control=fresh6 instantaneous_mse=-0.000151931738114 instantaneous_se=1.60209498397e-06 temporal_mse=-6.99315622681e-06 temporal_se=1.76212552708e-07
+RECEIVER_BANK_PAIRED fixture=3 arm=rotate2 control=fresh6 instantaneous_mse=-0.000141464557402 instantaneous_se=1.70707475098e-06 temporal_mse=-2.77500554199e-06 temporal_se=1.96709943247e-07
+RECEIVER_BANK_CHECK fixture=3 mean_gates=96 maximum_bank8_difference=0 retained_slot_checks=4259840 wrong_density_failures=2
+RECEIVER_BANK_DECISION correctness=1 promote=0 physical_gpu_timing=0
+eae5ac8e670b197b0270cc1095e9f3f363ddf3cc93f2b5aabb2e3685248d0cb3  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-0.f32
+fea3365f827cdea634be063f83ba63dc19439ea3b2340c800b3ff4a1392eb974  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-1.f32
+7a7cb90395340858ff12cd493540b3f66b3e03193836857415d84097e992abcf  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-10.f32
+1e71419267d466dcd6db93f649f48f9b483d954a8fd756e073fcb6369b446d48  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-11.f32
+4abe296f8af86ce4c592b14ebf4f4ca85c2215a4f926338fc73edbc67f0848e4  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-12.f32
+9adb28f0739f0a41a1d95bf21b0706db1e7f3291c0e4093c53b308f77c12c28a  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-13.f32
+14f20d4d3c89c9f090963b2c82fab3b9db6129bc0a5a4e96b02cdf579ca7f6ab  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-14.f32
+130ad7cb708066bf3038b4a7b248693edd8b320a7488efa4424faa387171a17a  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-15.f32
+e6a9961cd4d567789fb7c72483e252395b966603481e6e0e9b7342b0b743ff7a  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-2.f32
+898c4780f3b1d807cf0ef75b45f6ff5764cc9c99ed79e143745430daaf270a5b  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-3.f32
+742ad85650680da345073f42e62521de824ec3403b3c2e186b2a2630aab3134f  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-4.f32
+c0c5a1d38065aa07ac85e8adb783bdf7c41f0c2722267313d1c9bd1f46eda8bf  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-5.f32
+8cac2a6325225b8181e28baf0a5888e39ca2d5ad2338e34069261ca3b38b5a89  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-6.f32
+b35ed0f9bbb9d780dd0420a5905203781f87c37d2dbbb8c4df1a45e5e3deedbb  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-7.f32
+0c6d7ab54fffcb1b2a6f4984263dab66ba89089fc39859cfc104f66717536732  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-8.f32
+e6b580e5699e3eb342e0f6ed8132f26783f11ec81568eb7ca8bf02ef7810207b  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank0-9.f32
+80546d152f3fc65d6cc0152e55f7b27266e42f7446d7a73df8c9d9253b53c211  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-0.f32
+ebb8cdf44c99448cbccb2e6372cf339ef2c00588da7be901b9cc0400c898cc92  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-1.f32
+a5d610aeb6b40c732d3013dbb5b980657dcd3c3e098e788863d48288ef829f34  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-10.f32
+dfe9d8698ca6f3f89141a5602f80a0d9d616b4f2649d04d68e952a2d165bba7e  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-11.f32
+cd63e7dcebe41da152158418432c3f209be25957afbddd99ce547726ce943d2b  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-12.f32
+5dc069da28a7377d990b70f7b23b6b28f5348ac9736bb9368987b113d0a55316  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-13.f32
+540b5e88e586ac1f85e1208cb35ca43aa7a930b0d9df0230db006f749cf3b0ce  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-14.f32
+bc2fd0241ee367996a7382b3674d28a2ac552e1f0c088f2949c1c858edd3445c  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-15.f32
+ed74eb8aaac460801925efd13c9a38b3b151cfd8d9f9ab79d40268988cb723fe  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-2.f32
+02263fb822f499365f0d5658a9619c41ed6c9f594e545ca459b7e6def8478a74  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-3.f32
+5d122769030f2481af873acb0a11dffee0bf2c1a01759d0a48450aabf68b38a8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-4.f32
+ac11f3f70c58ed0e76d0598f463162e8ff2141b71527e8344ddb58cf9befaea4  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-5.f32
+030d4cebf8668367a49409bb2e5f4e7ebf836c8713a9cb32b61f40d10b111372  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-6.f32
+18d246354bc5f0a551096dcfa482808250c44369e381816452201416f315c9a4  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-7.f32
+96af19c890bbdfdfc6a45cf116876d531bbbf2ef32822218abd3025d170aef13  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-8.f32
+424c91774d880faf040d125f12a89024eb4ce1cec5d1ea886c5927f167b5208f  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank1-9.f32
+a6a5e5ececa1e198b53278b767353946b4c45a646b4d291792865b251664e701  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-0.f32
+5809815f17d68d390cf619803f9e28542101557bc42edb4182a16c02a41176c5  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-1.f32
+88c496e4c34e1543dfe3c417fb913419152bde309bb09c2d5f028ed20662a4fa  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-10.f32
+5565e01913f78375a48a56a358bc6440d245add7911b3261a83325207701b3a3  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-11.f32
+07ab04d86a5a29ed9c4caf51ac1fd2680262e20589e7033d7af9cf8181f23f58  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-12.f32
+da6aa7bb64df5a12e9a6f3127cc65c1ae77cda19ffdf22647bbfe5e9b60dcffa  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-13.f32
+bf71470b6a32af400bda1447388f3b780df457260d0b692117bc6eecad2e0f55  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-14.f32
+abb6bf80a462800ec338633d2d42e8e83068ae5ad8a725cb61b3b52060a4a206  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-15.f32
+70630de3b55d936925c67a6f0a7adcb6051ccade8982520bf6c0ef2e420a41ad  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-2.f32
+5b327b7ad6705c9a54f5e4746fb4b30c310d4395830a59aa54fecf9722bb5ad9  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-3.f32
+cf9d3739b0a053a86411a5e1d4d3585d4361c998b338766680666adaccd530bc  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-4.f32
+111243412224487b34092ad58b86eb71606079a7d1246ab075b2907590d938c8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-5.f32
+b82105c27a4ecad77ac18e6d8a45fae2d0b4651a374111b2c6d293d926641c26  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-6.f32
+64baa002e0bd68806cda3ec524efedabd45254145887552183925a562b9b6f5d  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-7.f32
+383f84fd4984c541b19e216a18e6089806368696f494bc8a1df9777daf36066f  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-8.f32
+87e934a25113b15480f60902832c8a8d76a24111b545f9eeaf8cc9e0e18d4575  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank2-9.f32
+f4cd710cfe530f1b4c11a2ed6578516300ee1af84321d8d297821605be6e7f16  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-0.f32
+29acddd0223685d737e99be3227f5dce5303101d566d1e320841c76ecb54bf0b  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-1.f32
+d5d06a4db985d36bfa4cb347c06924a44a868fe6c409e856d926a48a4db5c0e6  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-10.f32
+79c226b932b89720fd56442d5e3d80f90971f091c7c17890f2d9b121a1249d03  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-11.f32
+77e9afe862a08c06678c1f72229c64830c19aa10247f4a2ca7de91e26a92c5ff  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-12.f32
+87d1a65a3cfa092e410fdbe68e33aa6e81e35f40388531663792a971a4f79166  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-13.f32
+5261c95c93db8abc5e64f8edd6bbcd02be51af19bdda87cd9b4ff7f1adb94bf8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-14.f32
+d58a055ef1ba41b6bad8a53cd2ed9ac33594e62253db140ccde48a7dc8938c3c  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-15.f32
+9b14509f6a4a09baa7307b49058b31a64f1cf5dc1b0bd90a00cb40acc1738b9a  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-2.f32
+8202a0872c81feabecc13bdc5592f0cff426c4da804c294d064018d0276625a3  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-3.f32
+c9a8233a12c951d2f6efed238472c4bc6085524cd3242b23139c109b89c23b62  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-4.f32
+8b32b14b4a425f8d136d545c392a90d8fde04e81ec8b90b460ae2cdc7534b87d  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-5.f32
+27560a6b5139364cb5a4f0ea1de75c75e67beb29e0d41e5fca5922d2d902f753  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-6.f32
+58a3c15c6a87dbc3411a5f4cdcd840bd2ab4ca5408fe9d52d3cfe266fed5f3ca  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-7.f32
+c9bbfe475c736b4a829b2189203d83412377e25aaad6adc356fa67d5c39024f7  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-8.f32
+be2800a131379b02b29a59f934deb0bb1932c362ea522620eb9c36e801493d54  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBank3-9.f32
+7e7c69d818f246b07786925cf0cc73a96235c95761d93b4e4f5de50325dc4f83  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-0.f32
+a4702779db2b689c105ddc03976051fc006e86fbc150d2c2eef7bc44b7757f89  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-1.f32
+852f89ee4b5368c8d543b2559ce270c94c582309da00e3b991dc079fc0fe6cba  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-10.f32
+3c64d23ac61792ac6416564ec2ac32caca7b8a69dd876680d7f4b7e480a9e45b  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-11.f32
+bf8dec64cc660b61c3e539e23564aa7a79b3d2bda957c860da46c7775f62979f  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-12.f32
+c5ace3f7a7a53bb97f027bec4dc8a3f680fac45f03e22b5d58862dcd32da80d8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-13.f32
+f038dae58f9c651b242214844969f3ef51d40fd92bae580426f2fd0642be03a4  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-14.f32
+43308a922b254c7a2c45bf07e8c888c0ede9c267b617ca7634168f7aa5ebed6f  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-15.f32
+6eaf405a1fef6c89cd87f7da0e30df5a36bc403c2e2c5eefe0c67ec95b395629  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-2.f32
+4d5e5ab625c289907db24dab376b9c0bd0c59b5394ba9e76239cf03979a754ac  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-3.f32
+b1ad015a9337a03515af4a45c06f8975a7bc36d60eec1b16213c200cceaea8d9  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-4.f32
+ee35654ba5225c7e2866261132b9940c80451deeb19d7b85287662b0394a4fbe  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-5.f32
+ede54406ba84354507fa5262d2bf18bcb0396b5259a2c5885e0493e1fe3f9ace  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-6.f32
+81bee2ebf5cd86e4df05c9ad2c5175f3601353cd9ac85b41e2099ab5171f091b  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-7.f32
+552426d6f9404c00c0d299d8da9312a938a3e55fd8571924ebaade19e84e2d47  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-8.f32
+d28955bcdd1c1b2922ef23fcf297a439d8a59b655455b946b8d881c044375f2f  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload0-9.f32
+c3f16e5cc61854ae52ce5b757ec1ba28d20aa67c0601f761e9e175cc2c8b5091  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-0.f32
+4f1341063fd4e5d4cc8bfbe4203777fc080682e1f70ad3d17a2634840b919ab8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-1.f32
+7dad6f286e9ea986110271e067570c5738a98543f18a98457598f07ff1ed22f8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-10.f32
+fe5cb5a13ee60b8c9d2738585a9008b93e8d800e9a4020687db761e0f1f55109  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-11.f32
+25ceca7e7c862337206e0bf85bd6d62730a450f4c780ca645be8b8fb25daa1a8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-12.f32
+5194bf102ae1a214cf0c51a7469a16e1a99b3e79910e7cffa9e8f3e9db7fb8e8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-13.f32
+33fc52b139d69a366f1a38ed98030480dc1ed400d93690b2942a28ae15fea313  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-14.f32
+39c9737879a10092deb3eb21b901833336cdb0ab31ca1fab740071c767f3b164  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-15.f32
+cca1e259a3c81ce185648688ff74978789c5f562be65d23052241f6b110e3454  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-2.f32
+1322389a372a6571e9f725b96dcf263dd515fe64a186a4f39830e6f1268c0d92  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-3.f32
+e1360e1ab994f7d95ce0101b60d5145bdac4868bd31f51bc42b5a8e192e975c9  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-4.f32
+894a83a3fec7de04c54bb59de910d1babc41eae09420dcd2016cb5f8fab2c321  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-5.f32
+749f9be399e514c13eed13a3b2f4faa26ef0e1f06dd0cb8dd8c8c1e870c0bea5  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-6.f32
+0c7844e7ee09a6e99f8b724e867cb4c4cb21547b1722064a72d433c751f9684f  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-7.f32
+ec51f27cf899812b52f1ce53b5030f519b41339ad472707dfc90caafd738fbe8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-8.f32
+9a3d6ccd74c465ea9d8e91cb2c56e173578aeb0351291f69842a8ad48eb67ad2  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload1-9.f32
+213cda3ea0ee497448fb5cba12e626c50ef816f4eb8fc6a17b8f56b6bf2ce543  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-0.f32
+7a9c91831b59e6e57a0eeea4387a0e9cc35399ae35f8fcf1f2e6e7dbacedc0dd  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-1.f32
+a76d6bd662b633f705a82d4b280d15cb342b95c7d83aaba6fca7ea842e814052  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-10.f32
+4e7644fe3d1d47375ad90a817d492850737282ff83bb7a640f7ca5fa5e31b0d7  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-11.f32
+965d27925d03fecc44758e687e47451d909698a8039493e83a407ccf1a70bfa6  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-12.f32
+3285ea154ba771caf1bcf08a30861aa5185c6ab4493ebe8b5042675625727288  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-13.f32
+8105ea77bb72ad7fdd1a7b6e5d9bfe6f43ef84f461fb8a09ffbb158d84afb040  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-14.f32
+7c43492082bf8fe0528ce91b846a68ac037b7cf52df1aa801823a87fd812c5bf  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-15.f32
+14b745368183f0bd76919787c3e606401ff792a479ba9089830c7ba7d9eb2df6  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-2.f32
+6b6391f8eb209681bffba72ec28405c9dc70ca94fea9abe867b6861d03cd4ae0  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-3.f32
+8bec5d3a4dc882d71eb50f7e32a00fe9dd098d951c662e923990821c323e04a1  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-4.f32
+4a2b3763ef460e10148d76a9287f0b5d5c90ac2944097a267b96fef79cd92177  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-5.f32
+6326e8e3639e1fa082744a44ee7673faae2dd1ef674192776dce12729080d1f8  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-6.f32
+7232134a1088d7c087b2b8c270ab046a67e5ed99fdf0df73c6077d4173642f18  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-7.f32
+a3e89ba3c89485fc51f95f4bb794edd8944e7236a18b548fba6353806e23b5e1  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-8.f32
+fdd42adcc27ff27ef981127d7184d7e2a914c40f386818216221d1c257bf86cd  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload2-9.f32
+dc963df4fd4b90898fe71762c391ccc299d47ee2df4d1e5360df4fbcd7f2daee  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-0.f32
+6ab573a080cc927b632db6ae9fdb0057264eaca75729f0610eba566939acce90  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-1.f32
+d23b1544b60640e1a1f3d275cdab6d5fb1319bb79b6430e1c9c1748c2b5a7782  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-10.f32
+5c07a21252ca318ea8a12d2828195be900210a966d8f521f7fbb3af64ac6e27b  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-11.f32
+140d84ca08c6aa7c058312ec98c714671577cce89e43ff4745b0c3686b715f39  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-12.f32
+645a26c7fba6d1989d0a0baa3c4029c25bdf223d35909787284dd53431fa45d6  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-13.f32
+aaaf4c63002f830c1635badbe03046c595b88211cf59f20665676091cebee276  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-14.f32
+ef9903286f18ffbb87d53706f2de0110985ad72aa9c56795b705c9ff1c8a5956  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-15.f32
+d551b0142ce97e2c583518f7b2837aa108e29f2921dff6cc3ea440455b209dae  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-2.f32
+7f81a74a47e90e3f62a16058071325f7774d02c0a6e6d1e1b8380aa7489ef38f  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-3.f32
+cb9b4a5914d2aa6be043b4a98c175a595f1579cc4c7d5011bf2737aa5ab56765  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-4.f32
+a8ae486ab2159b122bb2bf258af9bbfbdb38a734828fd0b4f312d20ab79edc7e  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-5.f32
+5f6bc104df8ae70a1d5c60328e01753972d6728ac5ad5dedd2fcc247bfa9b21a  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-6.f32
+c684bbb77ee159e8154cb40ecf1bacf89bd9e72703b40b31151f1c7983b25505  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-7.f32
+557d17e022b761431b945bb0dd12783ac398ac6e1959351f147a0422ad6bbbb1  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-8.f32
+3f85bcb6d5561f24a29ba3cc4e002f9e86e309567fee7abf559416e758f4321b  /home/user/Frontier/_ClaudeScratch/receiver-bank-capture-release/ReceiverBankPayload3-9.f32

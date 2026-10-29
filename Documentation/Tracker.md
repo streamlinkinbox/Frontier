@@ -1469,3 +1469,22 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
   Production348.046875MiB/layout/defaults/Engine unchanged. No physical-GPU/Windows/TAA acceptance.
 - Next:receiver-anchored proposals with stored historical densities, same memory/rotation/holdouts, not packing
   or cadence tuning. Inline area8 remains the useful lower-storage comparison.
+
+### Receiver-anchored proposals — quality holdouts pass; optimized query baseline still required
+
+- [Historical-density bank](../Exhibits/LightCompute/ReceiverBank.md): same8 slots,replace4/2,32 cold cohorts,
+  16 poses and four existing strip fixtures;new draws anchored at the current receiver,old q retained.
+- Rotate4 versus restricted component fresh8:instant RMSE−31.78% to−37.90%,temporal RMSE−14.07% to−16.65%
+  across all fixtures,including .3. Four paired temporal contrasts favor rotate4,minimum24.41 nominal cohort SE.
+- Wrong current-q substitution CPU counterfactual fails30/64 pose means,10/10/8/2 by fixture. GPU correct means384
+  pass;full-refresh inline/bank estimates and total query counts identical. Rotate2 still loses fresh8 temporal quality.
+- Release/host ASan+UBSan exit0,five CTests each;558 semantic rows identical,165 checked hashes/build,128 exact
+  captures,24 PNG arrays. Native17,039,360 retained-slot checks;independent1,572,864-candidate audit verifies birth q
+  and current estimate,max errors1.36e-7/5.23e-8. All136 fresh-control rows unchanged.
+- Query reductions37.72–49.46% are against the inherited fresh8 implementation,NOT optimized-speed acceptance.
+  Source inspection finds fresh cosine first-hit followed by redundant visibility recheck;the bank repeats checks
+  too. This caveat applies to earlier inherited-control query comparisons. Keep measured counts,not inflated claims.
+- Payload144B+16B telemetry unchanged;not free production storage. Known square/scalar directional component only,
+  no physical-GPU/Windows/TAA/full GI acceptance. Production348.046875MiB/Engine/layout/defaults unchanged.
+- Next:exact-sample ray-budget audit/elision for controls and bank,including miss/occlusion/numerical-edge identity;
+  only then revisit practical work efficiency and lower-storage weighted-reservoir injection. No packing or promotion.

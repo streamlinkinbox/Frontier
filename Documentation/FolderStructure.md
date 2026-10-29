@@ -288,3 +288,12 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   identity and17,039,360 retained-slot comparisons; captures output plus actual candidate payloads.
 - `RunCandidateBank.sh`, `CandidateBankEvidence.py` and `CandidateBank.md` retain cross-build/capture evidence,
   independent density/estimator reconstruction, memory tradeoffs and paired moving-receiver error comparisons.
+
+### Receiver-anchored historical-density bank
+
+- `Exhibits/LightCompute/Code/CompileReceiverBank.py` changes only generation anchors in the candidate bank;
+  historical q remains stored per surviving draw, with the same8-slot/rotate4/2 payload and revision rules.
+- `ReceiverBankValidation.h` tests moving-receiver means/temporal error and actual queries;the CPU counterfactual
+  reweights captured rotate4 candidates with current instead of historical q and requires a detected mean error.
+- `RunReceiverBank.sh`, `ReceiverBankEvidence.py` and `ReceiverBank.md` retain birth-pose density reconstruction,
+  exact cross-build captures and the discovered inherited-control query redundancy;no optimized-speed acceptance.

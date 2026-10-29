@@ -138,3 +138,7 @@ SSBO spare slots hold the bank. Production348.046875MiB/defaults/layout remain u
 A preliminary run was stopped after fixture0 to add direct payload-preservation/canonical-null checks and
 payload captures, and to eliminate a redundant visibility query for out-of-domain cosine misses. No sampler,
 rotation, density, thresholds or holdout changed. The full-refresh control now also requires exact query identity.
+
+The subsequent [receiver-anchored checkpoint](ReceiverBank.md) closes these component fresh8 quality holdouts.
+It also identifies redundant visibility rechecks in the inherited controls:earlier query reductions remain actual
+counts against those implementations,not proof of superiority against an optimized ray budget.

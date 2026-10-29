@@ -58,7 +58,7 @@ for Mode in ('release', 'sanitized'):
     assert NegativeCount == 64 and NegativeFailures > 0
     Semantic.append(Rows)
 assert Semantic[0] == Semantic[1] and len(Measurements) == 24
-# Fresh controls must remain numerically identical to the preceding fixed-refresh experiment.
+# Fresh controls must remain numerically identical to the preceding fixed-donor bank experiment.
 OldControls = []
 for Line in (Results / 'CandidateBank-release.txt').read_text().splitlines():
     if Line.startswith(('CANDIDATE_BANK_MEAN ', 'CANDIDATE_BANK_RESULT ')) and re.search(r'method=fresh[68] ', Line):
@@ -119,7 +119,7 @@ Canvas.save(Images / 'ReceiverBankReadbacks.png')
 
 # Measured query/temporal-error frontier. Lower-left is preferable; no timing or confidence-bound claim.
 Canvas = Image.new('RGB', (1200, 530), '#121923'); Pen = ImageDraw.Draw(Canvas)
-Pen.text((20, 14), 'Measured temporal-error / query frontier relative to fresh8 / lower-left is preferable', font=Font, fill='white')
+Pen.text((20, 14), 'Temporal-error / query frontier vs existing fresh8 / lower-left preferable', font=Font, fill='white')
 Colors = ('#b2becf', '#95b5db', '#77d3a6', '#e3bd79', '#c8a0ed', '#f1a187')
 for Panel, Fixture in enumerate((0, 2)):
     Control = Measurements[str(Fixture), 'fresh8']
@@ -140,8 +140,8 @@ for Panel, Fixture in enumerate((0, 2)):
         Pen.text((X+7, Y+(12 if Index==1 else -15)), Methods[Index], font=Small, fill=Colors[Index])
     Pen.text((Left, 80), '16-pose mean-residual RMSE ratio', font=Small, fill='white')
     Pen.text((Left+90, 430), 'BVH query ratio', font=Small, fill='white')
-Pen.text((20, 477), 'Independent cohorts; cold/refresh/revision costs included. Different axis ranges per panel.', font=Small, fill='white')
-Pen.text((20, 501), 'Conditional trajectory diagnostic, not TAA reconstruction or physical-GPU time. Paired MSE uncertainty retained in logs.', font=Small, fill='white')
+Pen.text((20, 477), 'Existing fresh8 has redundant visibility rechecks; NOT an optimized query baseline. Rebuild costs included.', font=Small, fill='white')
+Pen.text((20, 501), 'Conditional trajectory diagnostic, not TAA or physical-GPU time. Different axis ranges; paired MSE uncertainty in logs.', font=Small, fill='white')
 Canvas.save(Images / 'ReceiverBankFrontier.png')
 
 # Independently verify actual area densities, current geometry, null normalization and unchanged retained words.
@@ -205,7 +205,7 @@ print(f'Payload audit: {PayloadChecks} candidates, {PreservedChecks} unchanged r
       f'max density error={MaximumDensityError:.12g}, max reconstruction error={MaximumEstimateError:.12g}; '
       f'wrong nonnull divisor rejected at {NullDivisorDifferences} estimates')
 
-Lines = ['# Candidate-bank measured comparison', '',
+Lines = ['# Receiver-anchored bank measured comparison', '',
          'Temporal RMSE = error in each 16-pose mean residual; not TAA. Queries include every rebuild.', '',
          '| Fixture | Method | Instant RMSE | Temporal RMSE | Flicker RMSE | Lag1 | BVH queries |',
          '|---------|--------|-------------:|--------------:|-------------:|-----:|------------:|']
@@ -215,7 +215,7 @@ for Fixture in range(4):
         Lines.append(f"| {Fixture} | {Method} | {float(F['rmse']):.7f} | {float(F['temporal_rmse']):.7f} | "
                      f"{float(F['flicker_rmse']):.7f} | {float(F['lag1']):.4f} | {int(F['queries']):,} |")
 (Results / 'ReceiverBank-comparison.md').write_text('\n'.join(Lines) + '\n')
-Message = (f'PASS candidate bank: {len(Semantic[0])} identical semantic rows; checked hashes {HashCounts}; '
+Message = (f'PASS receiver-anchored bank: {len(Semantic[0])} identical semantic rows; checked hashes {HashCounts}; '
            '384 pose mean gates, four full-bank/query identities, 16 paired contrasts; 17039360 native retained-slot checks; rotation/light revisions correct; '
            '128 exact raw captures, 24 representative PNG arrays; shader rederivation and fresh budgets verified; '
            '136 fresh-control rows unchanged; both five-CTest sets passed. promote=0 physical_gpu_timing=0.\n')

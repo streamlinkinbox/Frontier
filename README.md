@@ -85,3 +85,6 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
 - [Density-bearing candidate retention](Exhibits/LightCompute/CandidateBank.md): rotate4 improves query count and
   trajectory-averaging error versus restricted component fresh6 in all fixtures;fresh8/memory holdouts remain.
   Nonpersistent area8 improves quality in all fixtures without candidate history;no production promotion.
+- [Receiver-anchored proposals](Exhibits/LightCompute/ReceiverBank.md): rotate4 closes the component fresh8 temporal
+  gap on all four fixtures while retaining historical densities. A redundant-query finding in inherited controls
+  blocks optimized-speed claims;next is exact-sample ray-budget validation,not a production bank port.
