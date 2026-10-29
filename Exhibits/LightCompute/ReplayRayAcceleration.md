@@ -1,7 +1,9 @@
 # Dual-Path Ray Acceleration (`VK_KHR_ray_query` + SAH-2 Ordered BVH) — 2026-10-28
 
-🧩 Engine `VK_KHR_ray_query` / `VK_KHR_acceleration_structure` negotiation, BLAS/TLAS build recorder, SPIR-V 1.4 inline
-ray-query kernels, 16-bin SAH-2 BVH construction, and front-to-back child-ordered software traversal for ReSTIR GI.
+Engine `VK_KHR_ray_query` / `VK_KHR_acceleration_structure` negotiation, BLAS/TLAS build recorder, SPIR-V 1.4
+inline ray-query kernels, 16-bin SAH-2 BVH construction, and ordered software traversal for replayed GI.
+The [later 32x32 regression](Results/ReplayRayAcceleration-regression.txt) repeated the measured operation counts
+and same-tree parity after the PBR transport changes. SwiftShader is CPU Vulkan, not physical RT hardware.
 
 ## Mathematical & Architectural Formulation
 
@@ -22,9 +24,8 @@ Phase 3 introduces a unified three-tier ray-acceleration architecture in `Fronti
    - `Shaders/PathReplayRayQuery.slang` compiles `TracePrimarySurfaces`, `GenerateReplayReservoirs`,
      `ResolveReplayReservoirs`, and `FinalizeReplaySampleHistory` to SPIR-V `1.4` (`spvRayQueryKHR`) sharing 100% of
      the ReSTIR GI / NEE / MIS / seed-bank / Vogel-disk code: closest-hit rays use `RayQuery<RAY_FLAG_FORCE_OPAQUE>`,
-     while endpoint-excluded NEE shadow rays use
-     `RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_NON_OPAQUE>` and commit hits iff
-     `CandidatePrimitiveIndex() != Endpoint && CandidateTriangleRayT() in (0, Distance)`.
+     while endpoint-excluded NEE rays use `RAY_FLAG_FORCE_NON_OPAQUE` to inspect candidate triangles. Authored
+     thin-sheet handling and its limits are documented in [ReplayTransmission.md](ReplayTransmission.md).
 2. **Tier 1 — 16-Bin SAH-2 BVH + Front-to-Back Ordered Traversal (`PathReplayOrderedTraversal = 8388608u`):**
    - `TriangleVisibilitySpace::BuildSurfaceAreaHierarchy(..., MaxLeafFacets = 2)` evaluates `16` centroid bins per axis
      via linear prefix/suffix AABB sweeps under cost
@@ -33,31 +34,33 @@ Phase 3 introduces a unified three-tier ray-acceleration architecture in `Fronti
    - Closest-hit `NearestFacet` evaluates both child slabs (`IntersectsBoxDistance`), steps immediately into
      `NearChild` (`LeftNear <= RightNear`), pushes only `(FarChild, FarNear)` (halving stack depth), and discards stale
      subtrees in registers on pop whenever `StackNear > Strike.x`.
-   - Fixed-distance NEE shadow `ReplaySegmentOccluded` uses lazy LIFO dominant-axis octant ordering so ray-ward
-     blockers are visited first without eager sibling AABB loads on early-exit occluded rays.
+   - Fixed-distance NEE shadow `ReplaySegmentTransmittance` uses lazy LIFO dominant-axis octant ordering so
+     ray-ward blockers are visited first without eager sibling AABB loads on early-exit occluded rays.
 
 ## Quantitative Verification (`RunReplayRayAcceleration.sh`)
 
-| Suite / Scene | Metric | Legacy Median-8 Unordered | Engine SAH-2 + Ordered | Improvement / Parity |
-|---|---|---:|---:|---:|
-| Host CTests (`Release` & `ASan+UBSan`) | Passed suites / Recorder rejections | `7/7` (`43` guards) | `8/8` (`47` + `10` AS guards) | `100%` pass (`0` leaks/UB) |
-| SPIR-V `1.4` `SPV_KHR_ray_query` Binary Audit | Opcodes `4472 / 5341 / 4473 / 4476 / 4477` | Not present | `4/4` `.spv` verified | `0` `slangc` warnings |
-| `10k` Closest + `10k` NEE Shadow Oracle (`240` tris) | Triangle `FacetStrike` evaluations | `814,628` | `35,056` | **`-95.70%` (`23.2x` fewer)** |
-| `32x32` Diffuse `4`-Frame Subpixel Driving (`276` tris) | Same-tree `|Ordered - Legacy|` Max RGB | — | `0.000000` | **Bit-exact (`Slot 9 == Counters`)** |
-| `32x32` Wet-Asphalt Rough GGX (`alpha >= 0.28`) | Same-tree Max RGB / SAH Tri Tests | `37,892` tris | `0.000000` / `28,884` tris | **Bit-exact (`-23.8%` extra tris)** |
-| `32x32` Single-Luminaire Cross-BVH Check (`241` tris) | `|SAH-2 Ordered - Median-8 Legacy|` | — | `0.000000` | **Bit-exact across BVH rebuild** |
-| `32x32` Urban Overpass `4`-Frame GI + SVGF (`276` tris) | GPU Box / Triangle evaluations | `961,558` / `1,292,034` | `478,276` / `39,816` | **`-50.26%` boxes / `-96.92%` tris** |
-| `64x64` Urban Overpass `6`-Frame Capture (`76,852` rays) | GPU Box (`Counters[18]`) / Tri (`[19]`) | `4,283,487` / `5,739,088` | `2,152,053` / `179,221` | **`-49.76%` boxes / `-96.88%` tris** |
-| `64x64` Urban Overpass `6`-Frame Capture (`276` tris) | Total Ops (`Box+Tri`) / RMSE vs `384`-spp | `10,022,575` / `0.0699` | `2,331,274` / `0.0667` | **`-76.74%` (`4.30x` fewer ops)** |
+| Fixture / metric                             | Median-8, unordered   | SAH-2, ordered      | Result                 |
+| -------------------------------------------- | --------------------- | ------------------- | ---------------------- |
+| Historical host CTests, Release / ASan+UBSan | 7/7                   | 8/8                 | Historical suites pass |
+| Ray-query SPIR-V 1.4 opcode audit            | Absent                | 4/4                 | Not hardware execution |
+| 20k closest/shadow rays, triangle tests      | 814,628               | 35,056              | 95.70% fewer           |
+| 32x32 driving, same-tree max RGB difference  | -                     | 0                   | Exact tested output    |
+| 32x32 rough GGX, triangle tests              | 37,892                | 28,884              | 23.8% fewer            |
+| 32x32 single-source, cross-tree max RGB      | -                     | 0                   | Exact tested output    |
+| 32x32 urban, box / triangle tests            | 961,558 / 1,292,034   | 478,276 / 39,816    | 50.26% / 96.92% fewer  |
+| 64x64 urban, box / triangle tests            | 4,283,487 / 5,739,088 | 2,152,053 / 179,221 | 49.76% / 96.88% fewer  |
+| 64x64 urban, total box + triangle tests      | 10,022,575            | 2,331,274           | 76.74% fewer           |
+| 64x64 urban, RMSE vs 384-sample render       | 0.0699                | 0.0667              | Finite comparison      |
 
 ## Boundaries & Honest Hardware Scope
 
 - SwiftShader (`Vulkan 1.3.0`) is a CPU Vulkan implementation that does not expose `VK_KHR_acceleration_structure` or
   `VK_KHR_ray_query`; `SelectPathReplayAccelerationTier` detects this at runtime and selects `OrderedSoftwareBvh`
   (`FallbackReason = "Device lacks VK_KHR_acceleration_structure or VK_KHR_ray_query"`). Physical RT-core frame-time
-  measurements require an RTX / RDNA / Intel Arc GPU; all reported speedups above are deterministic GPU shader AABB and
-  triangle intersection reductions verified on SwiftShader Vulkan.
-- Visual and per-pixel GPU `Slot 9` traversal heatmap proof: `Exhibits/LightCompute/Images/ReplayRayAccelerationComparison.png`
+  measurements require a capable physical GPU; the reductions above are deterministic shader AABB and triangle
+  test counts on SwiftShader Vulkan, not measured frame-time speedups.
+- Visual and per-pixel `Slot 9` traversal heatmap:
+  [ReplayRayAccelerationComparison.png](Images/ReplayRayAccelerationComparison.png)
   (`SHA-256: e317731328b11e96123ac26e7db3885eeefe027d627c4d59ae012316cc886415`), reproducible via
   `CAPTURE=1 bash Exhibits/LightCompute/RunReplayRayAcceleration.sh`
   (`Exhibits/LightCompute/Results/ReplayRayAcceleration-release.txt`).

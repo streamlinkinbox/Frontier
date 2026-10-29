@@ -80,10 +80,8 @@
     uint Count = ReplaySeedBankValid(First, Second) ? uint(Second.z) : 0;
     if (Combined)
     {
-        // 📝 The bank stores the generator stream's next unused draw, never a seed that entered this
-        //    frame's reservoir (neither the fresh candidate nor the selected seed). A seed that competed
-        //    in a reservoir is correlated with that reservoir's stored weight; banking an unused draw
-        //    keeps later retracing statistically independent of it (ReplaySeedCorrelation.md).
+        // 📝 Bank the generator stream's next unused draw, not a candidate from this reservoir. This avoids
+        //    direct re-entry of a competing draw; it does not prove independence of finite PRNG streams.
         uint FreshBits = Extent.Sampling.x ^ (Pixel * 747796405u + 2891336453u);
         for (uint Draw = 0; Draw < max(Extent.Sampling.y, 1u); ++Draw) NextRandom(FreshBits);
         float2 FreshSeed = EncodeReplaySeed(NextRandom(FreshBits));

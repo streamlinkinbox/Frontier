@@ -110,6 +110,7 @@ static LocalReservoir GenerateLocal(PixelState &Pixel, uint32_t Sampling, uint32
         if (RandomUnit(SelectionBits) * Sum < CandidateTarget) { Selected = Candidate; Radiance = CandidateRadiance; Target = CandidateTarget; }
     }
     bool TemporalEntered = false;
+    double TemporalRadiance = 0;
     if (M == Mode::CombinedTemporal && Pixel.TemporalValid)
     {
         double Replayed = EvaluateFixturePeak(Pixel.TemporalSeed, Peak, Scale); ++PathEvals;
@@ -119,6 +120,7 @@ static LocalReservoir GenerateLocal(PixelState &Pixel, uint32_t Sampling, uint32
         Sum += Weight; Count += Retained;
         if (RandomUnit(SelectionBits) * Sum < Weight) { Selected = Pixel.TemporalSeed; Radiance = Replayed; Target = ReplayedTarget; }
         TemporalEntered = true;
+        TemporalRadiance = Replayed;
     }
     int BankEntries = Pixel.BankCount;
     if (M == Mode::CombinedTemporal && BankEntries > 1) BankEntries = 1; // 📝 Temporal: newest banked seed only.
@@ -126,8 +128,9 @@ static LocalReservoir GenerateLocal(PixelState &Pixel, uint32_t Sampling, uint32
         for (int I = 0; I < BankEntries; ++I)
         {
             uint32_t Candidate = Pixel.Bank[I];
-            if (TemporalEntered && Candidate == Pixel.TemporalSeed) continue; // 📝 Duplicate guard.
-            double CandidateRadiance = EvaluateFixturePeak(Candidate, Peak, Scale); ++PathEvals;
+            const bool ReuseEvaluation = TemporalEntered && Candidate == Pixel.TemporalSeed;
+            double CandidateRadiance = ReuseEvaluation ? TemporalRadiance : EvaluateFixturePeak(Candidate, Peak, Scale);
+            if (!ReuseEvaluation) ++PathEvals;
             double CandidateTarget = FixtureTarget(CandidateRadiance);
             Sum += CandidateTarget; Count += 1;
             if (RandomUnit(SelectionBits) * Sum < CandidateTarget) { Selected = Candidate; Radiance = CandidateRadiance; Target = CandidateTarget; }

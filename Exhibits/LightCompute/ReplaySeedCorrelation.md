@@ -1,9 +1,9 @@
 # Seed-bank correlation: measured bias and the unused-draw fix
 
-This closes the open item left by [combined seed-bank reuse](ReplaySampleCombined.md): "Correlations between
-retained seeds across frames and pixels remain unresolved." They are now measured — across frames and across
-pixels (spatial study below) — and the harmful part is fixed in `PathReplayReservoir.slang` /
-`PathReplaySampleHistory.slang`.
+This historical finite-fixture study measures selected seed correlations from
+[combined seed-bank reuse](ReplaySampleCombined.md). It found and reduced a large bias in that specific model;
+it does not establish unbiasedness for arbitrary scenes, random streams, motion or conditional eligibility.
+The later [transmission and reservoir audit](ReplayTransmission.md) corrected the duplicate-seed bookkeeping.
 
 ## Method
 
@@ -40,7 +40,8 @@ re-competition against descendant summaries. Either change alone is insufficient
 - `FinalizeReplaySampleHistory` (combined mode) banks the draw after the generation draws
   (`max(Sampling.y, 1)` draws skipped), never a candidate or the selected seed.
 - `GenerateReplayReservoirs` enters all banked seeds when temporal reuse is off, and only the newest banked
-  seed when it is on. The duplicate guard against the temporal candidate is unchanged.
+  seed when it is on. Since the later audit, a seed matching the temporal proposal retains both proposal counts;
+  only the already evaluated current-surface radiance is reused.
 - Post-change (dynamic) bias for the shipped configuration: +1.23% (z +0.68). Bank-only output standard
   deviation halves vs fresh (0.260 vs 0.523) with lag-1 correlation +0.50 from candidate persistence — a
   variance/correlation trade, quantified here, **not** an equal-time speedup claim (combined modes trace
@@ -51,9 +52,8 @@ re-competition against descendant summaries. Either change alone is insufficient
 A six-pixel strip whose fixture peak (0.26→0.36) and scale (0.90→1.15) drift per pixel, so spatial donors
 carry genuinely different integrands. Resolve mirrors the shader cross tap reduced to 1D (self, left,
 right), retraces donors at the receiver, and persists the pre-spatial Local as temporal history. Both
-spatial-only and full temporal+spatial+bank modes stay unbiased at every pixel (worst |z| = 1.82 over
-12 pixel/mode pairs, inside multiple-comparison noise): the spatial merge does not reintroduce the
-correlation bias, because a pixel's banked seeds never competed in a neighbour's reservoir.
+spatial-only and full temporal+spatial+bank modes remain consistent with the reference means in this fixture
+(worst |z| = 1.82 over 12 pixel/mode pairs). This does not prove that other spatial merges are unbiased.
 
 An exact 2D version mirrors `ResolveReplayReservoirs`' five offsets {(0,0), (−1,0), (1,0), (0,−1), (0,1)}
 and centre mapping on a 4×3 grid with position-drifting peak/scale: spatial-only worst |z| = 2.00 and
@@ -62,19 +62,21 @@ temporal+spatial+bank worst |z| = 1.69 over 12 pixels each, again consistent wit
 ## Multiple fresh candidates (Sampling.y > 1)
 
 The unused draw sits after `max(Sampling.y, 1)` generator draws; the harness now also runs
-`Sampling.y ∈ {2, 4}` for bank-only and temporal+bank modes: all unbiased (|z| ≤ 0.91). A negative
+`Sampling.y ∈ {2, 4}` for bank-only and temporal+bank modes: all match the reference within |z| ≤ 0.91. A negative
 control with an off-by-one skip (banking an already-used draw) fails as predicted in the temporal
 modes (−9.9%, z −20.6 at 2 candidates; −4.7%, z −12.5 at 4) while bank-only stays clean, so the
 check has teeth exactly where the correlation mechanism operates.
 
-## Verification
+## Historical verification
+
+The table records the original checkpoint. Later software-Vulkan runs are documented in the linked audits.
 
 | Check | Result |
 |---|---|
 | `ReplaySeedCorrelationValidation` (release + ASan/UBSan) | ✔️ Pass (stationary/dynamic \|z\| ≤ 0.92) |
 | LightCompute host CTests (release + ASan/UBSan) | ✔️ 6/6 |
 | Slang → SPIR-V: Generate, Resolve, Gather, Finalize, Primary | ✔️ Compiled (Slang 2026.12 library, sandbox) |
-| GPU combined check (`ValidateReplaySampleCombined`) | 🔴 Not run — no Vulkan driver in sandbox; its bank expectation was updated to the unused draw (`ReplayBankSeed`) for when it runs |
+| GPU combined check | 🔴 Not run at that checkpoint; later runs are linked above. |
 
 ## Reproduce
 

@@ -1,0 +1,30 @@
+Host-only ASan+UBSan CTests; external Vulkan driver and shaders are not instrumented.
+Base d9cbe17, plus working changes.
+f0192ad96cb62a9fa461f11d4e3b1fa406a57a0da79a2c703fc35c7b73b01151  Frontier/Engine/Rendering/PathReplaySubmissionSequence.h
+28dd31def1deb1fd78a29d6aa389ea63aea394880301dc49eb6d327db7adc79a  Frontier/Engine/Rendering/PathReplaySubmissionSequence.cpp
+605783546265b3b49dfc9b42c009171809acc9ae291edd5b9561b14f6b2963eb  Exhibits/LightCompute/Code/ReplaySubmissionSequenceValidation.cpp
+Test project /home/user/Frontier/_ClaudeScratch/build/pbr-asan
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.01 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.01 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.01 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.01 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.17 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.01 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.38 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.13 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.01 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.01 sec
+
+100% tests passed out of 10
+
+Total Test time (real) =   1.75 sec

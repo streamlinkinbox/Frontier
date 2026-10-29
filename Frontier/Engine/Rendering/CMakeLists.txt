@@ -44,6 +44,15 @@ if(FRONTIER_RENDERING_VULKAN_HEADERS)
     else()
         target_compile_options(FrontierPathReplayVulkan PRIVATE -Wall -Wextra -Werror)
     endif()
+    # 📝 Optional single-in-flight history sequencing; resource ownership and queue completion remain external.
+    add_library(FrontierPathReplaySubmission STATIC PathReplaySubmissionSequence.cpp)
+    target_compile_features(FrontierPathReplaySubmission PUBLIC cxx_std_20)
+    target_link_libraries(FrontierPathReplaySubmission PUBLIC FrontierPathReplayDomain FrontierPathReplayVulkan)
+    if(MSVC)
+        target_compile_options(FrontierPathReplaySubmission PRIVATE /utf-8 /W4)
+    else()
+        target_compile_options(FrontierPathReplaySubmission PRIVATE -Wall -Wextra -Werror)
+    endif()
 endif()
 
 # 📝 Matched face-flux gas projection parameters; shader submission and advection remain separate.

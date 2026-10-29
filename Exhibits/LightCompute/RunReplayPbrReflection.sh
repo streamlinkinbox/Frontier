@@ -2,7 +2,7 @@
 #==========================================================================================================================================
 #                                                RUNREPLAYPBRREFLECTION.SH
 #==========================================================================================================================================
-# 🧩 Build and verify Phase 4 Unified ReSTIR GI + Compact VRAM + Power MIS + Authored Multi-Strata PBR & Reflection System.
+# 🧩 Validate bounded compact replay storage and capture exploratory authored PBR reflections.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -74,7 +74,13 @@ cmake -S Exhibits/LightCompute -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Relea
 ninja -C "$BUILD_DIR" -j 2
 
 {
-    echo "=== FRONTIER PHASE 4: UNIFIED ReSTIR GI + COMPACT VRAM + AUTHORED PBR & REFLECTION VALIDATION ==="
+    echo "=== FRONTIER: COMPACT REPLAY + EXPERIMENTAL AUTHORED PBR AND REFLECTIONS ==="
+    echo "Base $(git rev-parse --short HEAD), plus working changes if any; source hashes follow."
+    uname -srm
+    "$SLANGC" -version 2>&1
+    sha256sum Frontier/Engine/Rendering/Shaders/{LightInfluence,PathReplayReservoir,PathReplayVarianceFilter,MaterialRayScattering}.slang \
+        Exhibits/LightCompute/Code/{ReplayPbrReflectionGpuValidation.h,LightComputeValidation.cpp} \
+        "$SW_SHADER_DIR"/{Primary,ReplayGenerate,ReplayResolve,ReplayGatherVarianceHistory,ReplayIntegrateVarianceMoments,ReplayFilterVarianceWavelet}.spv
     ctest --test-dir "$BUILD_DIR" --output-on-failure
     "${BUILD_DIR}/ReplayRayAccelerationValidation" --verify-spirv "$HW_SHADER_DIR"
     if [[ "${CAPTURE:-0}" == "1" ]]; then
@@ -162,27 +168,26 @@ rmse_drop = 100.0 * (1.0 - metrics["unified_full_svgf_rmse"] / metrics["raw_bala
 flicker_drop = 100.0 * (1.0 - metrics["full_svgf_flicker"] / metrics["raw_flicker"])
 glass_ratio = metrics["glazed_window_lum"] / max(1e-6, metrics["blocked_window_lum"])
 
-title = (f"FRONTIER PHASE 4: UNIFIED ReSTIR GI + COMPACT VRAM + AUTHORED MULTI-STRATA PBR SHOWROOM "
-         f"({metrics['facets']} TRIS, {w}x{h}, 3 BOUNCES)")
-subtitle = (f"Compact 17*N VRAM: -{metrics['output_saved_pct']:.2f}% Buffer Bytes (-63.05% / -917.8 MiB at 1080p, "
-            f"Max Diff = 0.000000)  |  RMSE -{rmse_drop:.1f}%  |  Flicker -{flicker_drop:.1f}%  |  "
-            f"Glazing {glass_ratio:.1f}x")
+title = (f"FRONTIER: EXPERIMENTAL PBR RESERVOIR REPLAY - SHOWROOM "
+         f"({metrics['facets']} TRIANGLES, {w}x{h}, 3 BOUNCES)")
+subtitle = (f"64x64 compact output: -{metrics['output_saved_pct']:.2f}% bytes, max diff 0  |  "
+            f"1080p output-only extrapolation: 1455.7 to 537.9 MiB  |  Same-shader RMSE -{rmse_drop:.1f}%")
 draw.text((pad_x, 14), title, fill=(238, 242, 248), font=font)
 draw.text((pad_x, 36), subtitle, fill=(146, 214, 178), font=font)
 
 panels = [
-    (raw_img, "1. Raw 1-spp Authored Multi-Strata PBR",
-     f"RMSE={metrics['raw_balance_rmse']:.4f} | Flicker={metrics['raw_flicker']:.4f} | Clearcoat+Chrome+Velvet+Glass"),
-    (uni_img, "2. Unified ReSTIR GI + Vogel Disk + Power MIS",
-     f"RMSE={metrics['unified_no_svgf_rmse']:.4f} (-{100.0*(1.0-metrics['unified_no_svgf_rmse']/metrics['raw_balance_rmse']):.1f}%) | History Cap <= 71"),
-    (svgf_img, "3. Full Stack + Compact 17*N + Specular-Cone SVGF",
-     f"RMSE={metrics['unified_full_svgf_rmse']:.4f} (-{rmse_drop:.1f}%) | Flicker={metrics['full_svgf_flicker']:.4f} (-{flicker_drop:.1f}%)"),
-    (ref_img, "4. 80-spp Unbiased Symmetric Reference",
-     f"5 TextureStudio Presets | Thin-Sheet Tinted Glass = {glass_ratio:.1f}x vs Opaque"),
-    (heat_raw, "5. Per-Pixel Linear RGB Error: Raw 1-spp",
-     f"Scale 0..{err_scale:.2f} linear radiance RMSE (hot = glossy & GI noise)"),
-    (heat_svgf, "6. Per-Pixel Linear RGB Error: Full Unified + SVGF",
-     f"Identical scale 0..{err_scale:.2f} | Hood={metrics['hood_clearcoat_rmse']:.3f} Velvet={metrics['velvet_sheen_rmse']:.3f}"),
+    (raw_img, "1. Raw 1-sample PBR replay",
+     f"RMSE={metrics['raw_balance_rmse']:.4f} | Consecutive-frame difference={metrics['raw_flicker']:.4f}"),
+    (uni_img, "2. Temporal + spatial replay (no seed bank)",
+     f"RMSE={metrics['unified_no_svgf_rmse']:.4f} | Power MIS | Additional warm-up and spatial rays"),
+    (svgf_img, "3. Replay + compact storage + SVGF",
+     f"RMSE={metrics['unified_full_svgf_rmse']:.4f} | Frame difference={metrics['full_svgf_flicker']:.4f}"),
+    (ref_img, "4. 80-sample same-shader comparison",
+     "Finite comparison; not independent ground truth"),
+    (heat_raw, "5. Linear RGB difference: raw vs comparison",
+     f"Scale 0..{err_scale:.2f} linear radiance RMSE"),
+    (heat_svgf, "6. Linear RGB difference: replay + SVGF",
+     f"Same scale 0..{err_scale:.2f} | Hood={metrics['hood_clearcoat_rmse']:.3f} Velvet={metrics['velvet_sheen_rmse']:.3f}"),
 ]
 
 for idx, (img, line1, line2) in enumerate(panels):
@@ -195,8 +200,8 @@ for idx, (img, line1, line2) in enumerate(panels):
     draw.text((x0, y0 + 4), line1, fill=(232, 236, 244), font=font)
     draw.text((x0, y0 + 22), line2, fill=(168, 184, 206), font=font)
 
-footer = (f"Compact Output = {metrics['compact_output_bytes']:,} B vs Legacy {metrics['legacy_output_bytes']:,} B "
-          f"(0.000000 max diff) | Canopy Power MIS {metrics['canopy_power_rmse']:.4f} < Balance {metrics['canopy_balance_rmse']:.4f}")
+footer = (f"SwiftShader CPU Vulkan; no game-GPU timing. Canopy balance / power RMSE: "
+          f"{metrics['canopy_balance_rmse']:.4f} / {metrics['canopy_power_rmse']:.4f} (descriptive, not a promotion gate).")
 draw.text((pad_x, canvas_h - 28), footer, fill=(148, 160, 178), font=font)
 canvas.save(out_png, format="PNG")
 print("SAVED_PNG", out_png, canvas.size)

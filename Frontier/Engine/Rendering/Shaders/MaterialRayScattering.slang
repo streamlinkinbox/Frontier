@@ -15,7 +15,12 @@ float4 MaterialCoefficients(uint Offset)
 {
     return float4(Angles[Offset], Angles[Offset + 1], Angles[Offset + 2], Angles[Offset + 3]);
 }
-uint MaterialAddress(SurfacePoint R) { return R.ExpectedDirect.w > 0 ? uint(R.ExpectedDirect.w) : 0; }
+uint MaterialAddress(SurfacePoint R)
+{
+    float Address = R.ExpectedDirect.w;
+    // 📝 Bounds reject NaN/infinity before conversion; the host domain validates integrality and atlas extent.
+    return Address >= 1.0 && Address <= 16777216.0 ? uint(Address) : 0;
+}
 uint MaterialTransport(SurfacePoint R)
 {
     uint Address = MaterialAddress(R);

@@ -1,0 +1,70 @@
+Replay pane transport and reservoir safety; shaders and SwiftShader are not sanitizer-instrumented.
+Host base d9cbe17, plus working changes if any; source hashes follow.
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+2026.14.1
+b40226274dca725c7b692f934a1c4473d765c05cd1de0f9569684e7882c3cb5d  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d53e4338f05f1f5e590acd42156fe7bcac74bd2d1385adbfcf0a03fa835a1361  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+1ff2b3cf9e64ff73fa08f9db115eed9f0f2ebd6c7600ee4ec41823aba2df61d8  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+863dc388ced7cd435436f7cf6f752288df34a2c9657dbb1960be15ac44db128e  /home/user/Frontier/Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+0c180c11d6da40b5e6e0aff54cc79af235d17c8cc6c1c81515800f2740fdfd70  Frontier/Engine/Rendering/PathReplayDomain.cpp
+494e342089d7d8de39ec53846b6ba878af58431e46bb348ecf40e6e487107f0d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+4151a6b8692085720278aea330d5265212e2f65e8aa8ff1c4851140441b2d920  Exhibits/LightCompute/Code/ReplayTransmissionValidation.h
+568367668d6ec2723ff1ba932ac091b1d545f893c351e4c1319cd960aa6b353d  Exhibits/LightCompute/Code/ReplaySegmentValidation.h
+60208ee903a072c6bf6c85254fa23623500fcf811c66b70230341e89fcd28054  Exhibits/LightCompute/Code/ReplaySegmentValidation.slang
+dabc4b8a619c8cda4990e16b332c7ba9b9874fd12d85dfc100405bda881930b4  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+672ce9dc854e6347f11b71ed02a93e9006c4d54b958686cee712adf369c0c5c6  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/Primary.spv
+8707a7174b4d547700a314de1a14ca9572c8f26f126437e4ea2044641432080b  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayGenerate.spv
+ed2828d99b1831f0473ac24050228925a3da4f8613985314269931d59b786500  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayResolve.spv
+4c9adf586ce451708fce20e3ec97e9788d6c70973f2952f9389a65adb2441ccc  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayGatherSampleHistory.spv
+612941c87c2970b1adf2f147cdd9ad640d3dc37fb8359cda8b9326c483652b50  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayFinalizeSampleHistory.spv
+cc314303130a46dd7945961b793dbc36ed7d03f8718d5851f8b9290b5f242c08  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplaySegmentValidation.spv
+c680c7c4b71cc94e99beb15cbe6e3875530b4913d11e76ee1f84a66f00f0c2a6  /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release/shaders/ReplayMisLimits.spv
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-transmission-release
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.00 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.00 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.00 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    0.98 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.09 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.07 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.00 sec
+
+100% tests passed out of 10
+
+Total Test time (real) =   1.17 sec
+REPLAY_TRANSMISSION panes=0 bounces=1 method=bsdf mean=0.393499819 batch_se=0.001284046 reference=0.393435032 error=0.000064787 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=0 bounces=1 method=facet_only mean=0.392890372 batch_se=0.000893897 reference=0.393435032 error=-0.000544659 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=0 bounces=1 method=balance mean=0.393442288 batch_se=0.000796420 reference=0.393435032 error=0.000007257 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=0 bounces=1 method=power mean=0.393614056 batch_se=0.000735525 reference=0.393435032 error=0.000179024 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=1 bounces=1 method=facet_only mean=0.357002858 batch_se=0.000817762 reference=0.357500895 error=-0.000498037 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=1 bounces=1 method=balance mean=0.357002858 batch_se=0.000817762 reference=0.357500895 error=-0.000498037 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=1 bounces=1 method=power mean=0.357002858 batch_se=0.000817762 reference=0.357500895 error=-0.000498037 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=1 bounces=2 method=bsdf mean=0.359000204 batch_se=0.001058538 reference=0.357500895 error=0.001499309 batches=24 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=1 bounces=2 method=facet_only mean=0.357570010 batch_se=0.000567614 reference=0.357500895 error=0.000069115 batches=24 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=1 bounces=2 method=balance mean=0.357859253 batch_se=0.000452766 reference=0.357500895 error=0.000358358 batches=24 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=1 bounces=2 method=power mean=0.357845835 batch_se=0.000432160 reference=0.357500895 error=0.000344940 batches=24 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=2 bounces=2 method=facet_only mean=0.324399307 batch_se=0.000748071 reference=0.324854685 error=-0.000455378 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=2 bounces=2 method=balance mean=0.324399307 batch_se=0.000748071 reference=0.324854685 error=-0.000455378 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=2 bounces=2 method=power mean=0.324399307 batch_se=0.000748071 reference=0.324854685 error=-0.000455378 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=2 bounces=3 method=bsdf mean=0.326815169 batch_se=0.001596253 reference=0.324854685 error=0.001960483 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=2 bounces=3 method=facet_only mean=0.324399307 batch_se=0.000748071 reference=0.324854685 error=-0.000455378 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=2 bounces=3 method=balance mean=0.324654536 batch_se=0.000438238 reference=0.324854685 error=-0.000200149 batches=12 samples_per_batch=4096
+REPLAY_TRANSMISSION panes=2 bounces=3 method=power mean=0.324785009 batch_se=0.000358507 reference=0.324854685 error=-0.000069676 batches=12 samples_per_batch=4096
+REPLAY_DUPLICATE_PROPOSALS selected=64 represented_both=64 expected_count=3
+REPLAY_SEGMENT panes=4 full_error=1.17550292e-07 fallback_error=1.17550292e-07 max_difference=0 full_overflows=0 fallback_overflows=4096
+REPLAY_SEGMENT panes=9 full_error=1.833675e-07 finite_nonzero=1 fallback_matches=1
+REPLAY_MIS_LIMITS balance=4 power=4 matches=1
+PASS ReplayTransmissionValidation

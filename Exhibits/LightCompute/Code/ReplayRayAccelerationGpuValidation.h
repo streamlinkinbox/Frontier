@@ -1,7 +1,7 @@
 /*==========================================================================================================================================
                                             REPLAYRAYACCELERATIONGPUVALIDATION.H
 ==========================================================================================================================================*/
-// 🧩 Verify runtime Vulkan ray-acceleration tier selection, bit-exact ordered BVH parity, and SAH-2 GPU traversal speedup.
+// 🧩 Verify Vulkan acceleration-tier selection, ordered BVH parity, and SAH-2 traversal operation counts.
 #pragma once
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -501,7 +501,7 @@ inline void ValidateReplayRayAccelerationAll(const char* Driver, const char* Sha
         Require(SahRmse <= 0.12 && std::abs(SahRmse - MedRmse) <= 0.025,
                 "SAH-2 + Ordered BVH degraded ReSTIR GI + SVGF convergence quality");
 
-        std::cout << "PASS replay Vulkan ray acceleration tier selection, bit-exact parity, and SAH-2 GPU speedup\n";
+        std::cout << "PASS replay Vulkan acceleration tier, bit-exact parity, and SAH-2 traversal counts\n";
         (void)StatsSingleMed;
         (void)StatsSingleSah;
     }

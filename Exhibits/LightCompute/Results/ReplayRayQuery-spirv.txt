@@ -1,0 +1,10 @@
+Current ray-query SPIR-V compile/opcode check; not hardware execution.
+d53e4338f05f1f5e590acd42156fe7bcac74bd2d1385adbfcf0a03fa835a1361  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+2c4ee159a410d7af0f7d32fb0f8d6d6285c49b2c2760db3e3d9eac66c571d5fd  /home/user/Frontier/_ClaudeScratch/build/replay-sequence/hardware/PrimaryHardwareRT.spv
+e318b234a8a7e89d39cc42ad0f398230815ccbdbc916ac8ba371d2eae474e814  /home/user/Frontier/_ClaudeScratch/build/replay-sequence/hardware/ReplayFinalizeSampleHistoryHardwareRT.spv
+be239174b870a0f60d33fa6d1277412e3b8fa4ea480560fb8cf17863592053ba  /home/user/Frontier/_ClaudeScratch/build/replay-sequence/hardware/ReplayGenerateHardwareRT.spv
+bd0c3e187c9c0e9c590ad5c9baf6c8efee937f3bbcc46bff5d6c96e7a733a2bc  /home/user/Frontier/_ClaudeScratch/build/replay-sequence/hardware/ReplayResolveHardwareRT.spv
+RAY_QUERY_ENGINE capability_cases=6 vertex_pack=1 instance_guard=1 blas_tlas_sequence=4 build_rejections=10
+ORDERED_SAH_PARITY facets=240 median_nodes=63 sah_nodes=223 legacy_boxes=388694 legacy_tris=814628 ordered_med_boxes=364854 ordered_med_tris=770977 ordered_sah_boxes=281702 ordered_sah_tris=35056 same_tree_tri_saved_pct=5.36 sah_ordered_tri_saved_pct=95.70 shadow_rays_verified=10000
+RAY_QUERY_SPIRV_VERIFIED files=4 version=1.4 capability_4472=1 accel_type_5341=1 init_4473=1 proceed_4477=1 confirm_endpoint_skip_4476=1
+PASS replay ray-query engine, BLAS/TLAS recorder, and ordered SAH BVH equivalence

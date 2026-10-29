@@ -516,6 +516,8 @@ inline double ComputePbrRmse(const std::vector<std::array<float, 4>>& Estimate,
                              const std::vector<LightComputeReceiver>* MaskReceivers = nullptr,
                              float RequiredToken = -1.0f)
 {
+    Require(Estimate.size() == Reference.size() && (!MaskReceivers || MaskReceivers->size() == Estimate.size()),
+            "PBR comparison extents do not match");
     double SumSq = 0.0;
     std::size_t Count = 0u;
     for (std::size_t I = 0; I < Estimate.size(); ++I)
@@ -535,10 +537,11 @@ inline double ComputePbrRmse(const std::vector<std::array<float, 4>>& Estimate,
         }
         Count += 3u;
     }
-    return Count > 0u ? std::sqrt(SumSq / double(Count)) : 0.0;
+    Require(Count > 0u, "PBR comparison mask selected no pixels");
+    return std::sqrt(SumSq / double(Count));
 }
 
-// Builds a 64x64 1-bounce glossy glazed-slate + polished-chromium sill reflection bench right beneath a broad
+// Builds a 64x64 1-bounce glossy glazed-slate + matte sill reflection bench right beneath a broad
 // close overhead light canopy (z = 0.085 m, Veach close-emitter 1/R^2 Jacobian MIS regime).
 inline LightComputeArchive BuildGlossyCanopyMisScene(uint32_t Width, uint32_t Height)
 {
@@ -774,7 +777,7 @@ inline void ValidateReplayPbrReflectionAll(const char* Driver, const std::string
     const double CanopyPowerRmse = CanopyPowRmseSum / double(CanopyBatches);
 
     // ---------------------------------------------------------------------------------------------------------
-    // 3. 3-BOUNCE AUTHORED PBR SHOWROOM: UNBIASED 80-SPP SYMMETRIC REFERENCE + MOVING-CAMERA UNIFIED PROGRESSION
+    // 3. 3-BOUNCE AUTHORED PBR SHOWROOM: 80-SAMPLE SAME-SHADER ESTIMATE + MOVING-CAMERA COMPARISON
     // ---------------------------------------------------------------------------------------------------------
     auto FinalScene = MakeFrameScene(MotionFrames - 1u);
 
@@ -989,10 +992,12 @@ inline void ValidateReplayPbrReflectionAll(const char* Driver, const std::string
               << " glazed_ratio=" << std::setprecision(2)
               << (GlazedWindowLum / std::max(1e-6, BlockedWindowLum)) << "\n";
 
-    Require(CanopyPowerRmse < CanopyBalanceRmse && MeanPowerRmse < MeanBalanceRmse * 1.015,
-            "Beta=2 Power MIS failed glossy canopy variance reduction or showroom parity");
-    Require(UnifiedNoSvgfRmse < RawPowerFrameRmse && UnifiedFullSvgfRmse < UnifiedNoSvgfRmse &&
-                FullSvgfFlicker < RawFlicker * 0.35,
-            "Unified PBR + Compact VRAM + Specular-Cone SVGF failed quality or temporal stability progression");
-    std::cout << "PASS ReplayPbrReflectionGpuValidation\n";
+    Require(std::isfinite(CanopyBalanceRmse) && std::isfinite(CanopyPowerRmse) &&
+                std::isfinite(MeanBalanceRmse) && std::isfinite(MeanPowerRmse) &&
+                std::isfinite(UnifiedNoSvgfRmse) && std::isfinite(UnifiedFullSvgfRmse) &&
+                std::isfinite(RawFlicker) && std::isfinite(FullSvgfFlicker),
+            "PBR comparison produced non-finite measurements");
+    // 📝 Same-shader finite references and small paired batches are descriptive, not a quality promotion gate.
+    std::cout << "PBR_QUALITY_DESCRIPTIVE same_shader_reference=1 promotion=0\n"
+              << "PASS ReplayPbrReflectionGpuValidation structural_checks\n";
 }

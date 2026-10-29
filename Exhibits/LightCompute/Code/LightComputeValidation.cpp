@@ -8,6 +8,7 @@
 #include "LightComputeFormat.h"
 #include "Engine/Rendering/PathReplayDomain.h"
 #include "Engine/Rendering/PathReplayVulkan.h"
+#include "Engine/Rendering/PathReplaySubmissionSequence.h"
 #include "Engine/Rendering/PathReplayRayQuery.h"
 #include "Engine/Rendering/RadiantFacetDistribution.h"
 #include "Engine/Rendering/MediumRadiancePayload.h"
@@ -266,6 +267,8 @@ struct LightComputeSubmission
     bool ReplayPreviousCompactStorage = false, ReplayPreviousPowerMis = false, ReplayPreviousAuthoredMaterials = false;
     uint32_t ReplayLastHistoryCap = 1, ReplayFacetStart = 0, ReplayFacetCapacity = 0;
     PathReplayHistoryDomain ReplayHistoryDomain;
+    PathReplaySubmissionSequence ReplaySequence;
+    PathReplaySequenceRecording ReplayLastSequence{};
     RectangleDomain PreviousRectangle{};
     bool RectangleHistory = false, LastRectangleReset = true;
     std::vector<LightComputeFacet> DiffuseFacets;
@@ -843,8 +846,13 @@ struct LightComputeSubmission
                                                     bool DiffuseCameraReprojection = false, bool SampleHistory = false,
                                                     bool SpatialDisk = false, bool VarianceFilter = false,
                                                     bool OrderedTraversal = false, bool PowerMis = false,
-                                                    bool CompactStorage = false, bool AuthoredMaterials = false)
+                                                    bool CompactStorage = false, bool AuthoredMaterials = false,
+                                                    bool Sequenced = false, uint64_t StorageRevision = 1u,
+                                                    bool AllowCameraOnly = false, bool InterruptBeforeSubmitForAudit = false)
     {
+        Require(!InterruptBeforeSubmitForAudit || Sequenced, "Submission interruption audit requires sequencing");
+        Require(!Sequenced || (!ProbeRegionForAudit && !TailForAudit && !FullHistoryForAudit),
+                "Replay submission sequencing excludes audit-only pipelines and full-history overrides");
         Require(!SpatialDisk || Spatial, "Spatial disk requires spatial reservoir reuse");
         Require(!PowerMis || (BalanceSampling && SampleFacets && !DoubleCountForAudit),
                 "Power MIS requires balanced explicit facet sampling");
@@ -904,9 +912,12 @@ struct LightComputeSubmission
         const auto ReplayDecision = ReplayHistoryDomain.Resolve(ReplayDomainView(Scene), ReplaySpecification,
                                                                 FullHistoryForAudit);
         ReplayLastHistoryCap = ReplayDecision.MaximumHistory;
+        const bool ReusePolicyChanged = HistorySequence != 0 &&
+            (ReplayPreviousTemporal != Temporal || ReplayPreviousSpatial != Spatial ||
+             ReplayPreviousSpatialDisk != SpatialDisk || ReplaySampleHistoryActive != SampleHistory);
         bool Reset = ResetHistory || Scene.Width != ReceiverWidth || Scene.Height != ReceiverHeight ||
                      ReplayPreviousCompactStorage != CompactStorage || ReplayPreviousPowerMis != PowerMis ||
-                     ReplayPreviousAuthoredMaterials != AuthoredMaterials;
+                     ReplayPreviousAuthoredMaterials != AuthoredMaterials || ReusePolicyChanged;
         Upload(Scene, TexturedDiffuse || AuthoredMaterials);
         if (!PrimaryVisibility && AuthoredMaterials)
             for (size_t I = 0; I < Scene.Receivers.size(); ++I)
@@ -969,6 +980,15 @@ struct LightComputeSubmission
         Extent.Minimum = {Environment[0], Environment[1], Environment[2], 0};
         Extent.Maximum = {PositiveFloor, 0, 0, 0};
         std::memcpy(&Extent.Maximum[1], &ReplayFacetStart, sizeof(ReplayFacetStart));
+        if (Sequenced)
+        {
+            Extent.History[2] = 0;
+            Extent.History[3] = ResetHistory ? 1u : 0u;
+            Extent.Reconstruction[3] = 64u;
+            Extent.Primary[3] &= ~(PathReplayResetReconstruction | PathReplayResetSampleHistory |
+                                   PathReplayResetVarianceFilter);
+            if (DiffuseCameraReprojection) Extent.Primary[3] |= PathReplayDiffuseCameraReprojection;
+        }
         std::memset(Buffers[7].Address, 0, 96);
         Confirm(ResetCommandPool(Device, Pool, 0));
         Confirm(ResetFences(Device, 1, &Completion));
@@ -995,7 +1015,13 @@ struct LightComputeSubmission
                 Buffers[2].Size / sizeof(TriangleVisibilitySpace::FloatEnclosure), Buffers[3].Size / sizeof(LightComputeFacet),
                 Buffers[4].Size / sizeof(float), Buffers[6].Size / sizeof(std::array<float, 4>),
                 Buffers[7].Size / sizeof(uint32_t)};
-            RecordPathReplay(Commands, Access, Spans, Extent);
+            if (Sequenced)
+            {
+                ReplayLastSequence = ReplaySequence.RecordReplay(Commands, Access, Spans, ReplayDomainView(Scene), Extent,
+                                                           StorageRevision, AllowCameraOnly);
+                Extent = ReplayLastSequence.Extent;
+            }
+            else RecordPathReplay(Commands, Access, Spans, Extent);
         }
         else
         {
@@ -1020,15 +1046,31 @@ struct LightComputeSubmission
         Barrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
         CmdPipelineBarrier(Commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_HOST_BIT,
                            0, 1, &Barrier, 0, nullptr, 0, nullptr);
-        Confirm(EndCommandBuffer(Commands));
-        VkSubmitInfo Submission{};
-        Submission.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        Submission.commandBufferCount = 1;
-        Submission.pCommandBuffers = &Commands;
-        Confirm(QueueSubmit(Queue, 1, &Submission, Completion));
-        Confirm(WaitForFences(Device, 1, &Completion, VK_TRUE, 600000000000ull));
+        try
+        {
+            Confirm(EndCommandBuffer(Commands));
+            if (InterruptBeforeSubmitForAudit) throw std::runtime_error("Replay submission interrupted for audit");
+            VkSubmitInfo Submission{};
+            Submission.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            Submission.commandBufferCount = 1;
+            Submission.pCommandBuffers = &Commands;
+            Confirm(QueueSubmit(Queue, 1, &Submission, Completion));
+            Confirm(WaitForFences(Device, 1, &Completion, VK_TRUE, 600000000000ull));
+            if (Sequenced) ReplaySequence.Finalize(ReplayLastSequence.Submission);
+        }
+        catch (...)
+        {
+            if (Sequenced && ReplaySequence.IsPending()) ReplaySequence.Abandon(ReplayLastSequence.Submission);
+            throw;
+        }
         std::vector<std::array<float, 4>> Result(Scene.Receivers.size());
         std::memcpy(Result.data(), Buffers[6].Address, Result.size() * 16);
+        if (Sequenced)
+        {
+            ReplayLastReset = ReplayLastSequence.Reset;
+            ReplayLastSampleHistoryReset = (ReplayLastSequence.Extent.Primary[3] & PathReplayResetSampleHistory) != 0;
+            ReplayLastVarianceFilterReset = (ReplayLastSequence.Extent.Primary[3] & PathReplayResetVarianceFilter) != 0;
+        }
         HistorySequence = ReplayLastReset ? 1 : HistorySequence + 1;
         HistoryDirty = false;
         ReplayReconstructionActive = ReconstructReplay;
@@ -1577,6 +1619,7 @@ struct LightComputeSubmission
         Write.pBufferInfo = &Span;
         UpdateDescriptorSets(Device, 1, &Write, 0, nullptr);
         ReplayHistoryDomain = PathReplayHistoryDomain{};
+        ReplaySequence.Invalidate();
     }
     std::vector<std::array<float, 4>> ReadReplayLogicalSlab(uint32_t Slot, bool CompactStorage) const
     {
@@ -1852,11 +1895,26 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplayVarianceFilterGpuValidation.h"
 #include "ReplayRayAccelerationGpuValidation.h"
 #include "ReplayPbrReflectionGpuValidation.h"
+#include "ReplayTransmissionValidation.h"
+#include "ReplaySegmentValidation.h"
+#include "ReplaySubmissionSequenceGpuValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
     try
     {
+        if (Count == 4 && std::string(Arguments[3]) == "--replay-submission-sequence")
+        {
+            ValidateReplaySubmissionSequenceGpu(Arguments[1], Arguments[2]);
+            return 0;
+        }
+        if (Count == 4 && (std::string(Arguments[3]) == "--replay-transmission" ||
+                           std::string(Arguments[3]) == "--replay-transmission-baseline"))
+        {
+            ValidateReplayTransmission(Arguments[1], Arguments[2],
+                                       std::string(Arguments[3]) == "--replay-transmission-baseline");
+            return 0;
+        }
         if ((Count == 4 || Count == 5) && std::string(Arguments[3]) == "--replay-pbr-reflection")
         {
             ValidateReplayPbrReflectionAll(Arguments[1], Arguments[2], Count == 5 ? Arguments[4] : "");

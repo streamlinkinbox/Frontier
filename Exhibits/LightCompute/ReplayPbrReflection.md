@@ -1,72 +1,75 @@
-# Phase 4: Unified ReSTIR GI, Compact VRAM, Power MIS, and Authored Multi-Strata PBR & Reflection System
+# Bounded PBR replay and reflection evaluation
 
-## Overview
+## Status
 
-Phase 4 completes the `Frontier` C++/Vulkan ReSTIR GI and authored PBR material & reflection stack across
-`Frontier/Engine/Rendering/` and `Frontier/Engine/Render/Shader/`:
+The shared Engine replay shaders now accept an opt-in, bounded authored-material domain. The `64x64` showroom
+executes on SwiftShader CPU Vulkan; this is **not** a completed production renderer or editor viewport. The earlier
+report called this work complete, described its reference as unbiased and claimed statistical parity. Those claims
+were not established and are superseded here. A later independent check found and repaired double-counted light
+through thin glass: [transmission audit](ReplayTransmission.md).
 
-1. **Generalized Compact Output Slab Remapping (`PathReplayCompactStorage = 67108864u`)** — strips the legacy
-   `25*N + 15,425` radiance-accumulator prefix across **all** modern reservoir modes (`6*N` ReSTIR GI,
-   `10*N` `SampleHistory`, `17*N` ReSTIR GI + `VarianceFilter`, `+N` diagnostic `Slot 9`), reducing 1080p
-   `Buffers[6]` VRAM from `1,455.70 MiB` (`46*N + 15,425`) to **`537.89 MiB` (`17*N`, `-63.05%`, `-917.81 MiB`
-   saved)** and `6*N` ReSTIR-only storage from `949.46 MiB` to **`189.84 MiB` (`-80.01%`)** with **byte-for-byte
-   `0.000000` parity** across RGBA output, all `24` GPU diagnostic counters, and all `12` logical slabs.
-2. **Branch-Inverted Veach $\beta = 2$ Power MIS (`PathReplayPowerMis = 33554432u`) & `<= 71` History Cap** —
-   adopts `ReplayMisWeight(Ratio)` (`r <= 1 -> 1/(1+r^2)` vs `1/(1+1/r^2)`, zero FP32 overflow up to `r = 1e30`)
-   with automatic `PathReplayHistoryDomain` reset, plus tight `SourceSlot.w <= 71` reservoir clamp.
-3. **Authored Multi-Strata PBR Material & Reflection System (`PathReplayAuthoredMaterials = 134217728u`)** —
-   integrates the `268`-float `Angles` material atlas (1–8 dielectric/conductor strata, 12-swatch Voronoi
-   metallic-flake automotive clearcoat paint, Charlie retroreflective velvet sheen, mip-pyramid albedo &
-   tangent-space normal maps, `Category == 2` Beer-Lambert + Schlick Fresnel thin-sheet tinted glazing, and
-   multi-pane non-opaque shadow transmittance across both software BVH and `VK_KHR_ray_query`).
-4. **Roughness-Driven Specular-Cone SVGF & Grazing Normal Gates** — scales `PathReplayVarianceFilter` spatial
-   à-trous normal exponent from `32` (`Roughness = 1`) up to **`224` (`Roughness = 0`)** while accelerating
-   history responsiveness on mirror/clearcoat surfaces and rejecting cross-material spatial reservoir reuse.
+![Replayed PBR showroom and same-shader comparison](Images/ReplayPbrReflectionComparison.png)
 
-![Phase 4 Authored Multi-Strata PBR Showroom Comparison](Images/ReplayPbrReflectionComparison.png)
+## What is implemented
 
-## Head-to-Head Audit: `arena/5ec53579-frontier` vs `origin/arena/08e7de48-frontier`
+| Component | Implemented scope |
+| --- | --- |
+| Compact output | 6 float4 slabs/pixel for base replay, 10 for seed history, 17 for SVGF. |
+| Authored opaque PBR | Bounded atlas, opaque/coating strata, albedo/normal pyramids, paint and sheen. |
+| Thin sheets | Category-2 transmission/reflection and complementary straight-path MIS. |
+| Reflection filtering | Roughness-dependent spatial and temporal guards. |
+| Power MIS | Optional beta=2; not the default and not a universal quality win. |
+| Ray query | SPIR-V compiles; the new material path has not run on physical RT hardware. |
 
-| Dimension | `origin/arena/08e7de48-frontier` (`ceebd8a`) | `arena/5ec53579-frontier` (Phase 4) | Verdict |
-| :--- | :--- | :--- | :--- |
-| Repository Baseline | `3de9061` (`1,316` files; missing `EnvironmentRecords`, `SceneInspectorPanel`, `TextureStudio`) | `fa04adf` (`2,961` active files; `<85 MB` working tree + `RestoreDeferredArchives.py`) | **`5ec53579` ahead** |
-| Seed + Reservoir Spatial/Temporal Reuse | Unguarded `+-1 px` cross + 3-seed reentry regressed Room RMSE `+75.70%` (`promote=0`) | Fresh `Bits` + `min(RetainedCount, 1u)` + `!= TemporalSeed` + 4-tap Vogel disk (`0.0840` RMSE) | **`5ec53579` ahead** |
-| Compact Output VRAM | `6*N` (`189.84 MiB` at 1080p) only when `SampleHistory=0` and no denoiser | Generalized `6*N` / `10*N` / `17*N` across `SampleHistory` and GPU SVGF (`-63.05%` to `-80.01%`) | **Adopted & generalized** |
-| Veach $\beta = 2$ Power MIS | Diffuse-only `Fresh8` (`-24.17%` Plane at `z=0.03125`, `-0.08%` Room) | `PathReplayPowerMis` across diffuse + multi-strata rough/metallic/clearcoat PBR + domain reset | **Adopted & extended** |
-| Temporal History Clamp | Tightened `SourceSlot.w <= 71` matching `1 + floor(70.5)` | Adopted `SourceSlot.w <= 71` across CPU & GPU validators | **Adopted** |
-| Motion-Aware GPU SVGF | Not implemented | 3-pass `PathReplayVarianceFilter` + roughness-driven specular-cone tightening (`-88.5%` flicker) | **`5ec53579` ahead** |
-| Ray Acceleration | Legacy unordered median BVH only | Dual-path `VK_KHR_ray_query` (`spirv_1_4`) + 16-bin SAH-2 + front-to-back ordered BVH (`-76.74%` ops) | **`5ec53579` ahead** |
-| Authored PBR & Glazing | Untextured diffuse fixtures in Phase experiments | Full 8-strata `TextureStudio` PBR: Clearcoat Flake Paint, Chrome, Charlie Velvet, Thin-Sheet Glass | **`5ec53579` ahead** |
+`PathReplayAuthoredMaterials` requires rough-opaque importance sampling. The showroom uses temporal/spatial
+reservoirs, **not** the diffuse-only seed bank. Multi-pane and bounce-budget checks are described separately.
 
-## Quantitative Benchmark Results (`64x64`, 3 Bounces, `148` SAH-2 Triangles, `5` `TextureStudio` Materials)
+Compact storage requires all participating pipelines to use the compact address layout. A layout/allocation change
+invalidates histories. The caller remains responsible for device limits, descriptors, synchronization and lifetime.
+In particular, the output-only 1080p estimates below can exceed a device's storage-buffer range; resource splitting
+and a real game budget have not been accepted.
 
-| Metric / Experiment | Baseline / Control | Phase 4 Unified Engine | Improvement / Verification |
-| :--- | ---: | ---: | :--- |
-| `64x64` Vulkan Output `VkBuffer` (`Buffers[6]`) | `3,261,456 B` | **`1,114,112 B`** | **`-65.84%` actual bytes (`0.000000` max diff)** |
-| `1920x1080` Full-Stack (`ReSTIR + SVGF`) VRAM | `1,455.70 MiB` | **`537.89 MiB`** | **`-63.05%` (`-917.81 MiB` VRAM saved)** |
-| `1920x1080` ReSTIR-Only (`6*N`) VRAM | `949.46 MiB` | **`189.84 MiB`** | **`-80.01%` (`-759.62 MiB` VRAM saved)** |
-| Close-Canopy Sill Reflection (`16` paired batches) | `0.19696` (Balance) | **`0.19494` (Power $\beta=2$)** | **Strictly lower RMSE at `168,303 == 168,303` rays** |
-| Closed 3-Bounce Showroom MIS (`8` paired batches) | `0.33907` (Balance) | **`0.34282` (Power $\beta=2$)** | **Statistical parity (`1.10%`) at `192,396 == 192,396` rays** |
-| Moving-Camera Showroom Radiance RMSE (vs `80-spp`) | `0.35690` (`1-spp` Raw) | **`0.22770` (Unified+SVGF)** | **`-36.20%` RMSE (`0.23338` pre-SVGF, `-34.61%`)** |
-| Consecutive-Frame Showroom Temporal Flicker | `0.51101` (`1-spp` Raw) | **`0.05879` (Unified+SVGF)** | **`-88.50%` (`8.69x` lower flicker)** |
-| Thin-Sheet Tinted Glazing Window Luminance (`289 px`) | `0.02103` (Opaque) | **`0.79633` (`Category=2`)** | **`37.87x` physical Beer-Lambert transmittance** |
-| Material-Specific Showroom RMSE (`Hood` / `Velvet`) | — | **`0.21477` / `0.01311`** | Crisp clearcoat reflection + Charlie sheen |
+## Measurements and limitations
 
-## Subzero SIMD4 Compiler Finding (SwiftShader Vulkan Validation)
+The following are from a synthetic `148`-triangle, 3-bounce scene and one SwiftShader CPU Vulkan run. The PBR
+materials are hand-built fixture records inspired by the existing material library; this is not an end-to-end test
+of material-file loading or authoring. The 80-sample comparison is produced by the **same shader**, is finite, and
+is not an independent ground truth. Raw, reused and filtered images have different warm-up and tracing work.
 
-Under `slangc -emit-spirv-directly -O0`, dynamically indexed local arrays (`float Roughnesses[8]`,
-`Candidate*[12]`) expand into per-lane SIMD4 gather/scatter basic-block cascades in SwiftShader Subzero, causing
-quadratic `O(B^2)` `Cfg::liveness` memory growth (`>3.85 GiB`). Refactoring `EvaluateOrSampleReplayPbrLobes` and
-`GenerateReplayReservoirs` to pure scalar accumulators over `Angles[]` eliminated all dynamic local arrays while
-preserving exact multi-strata physics across all `1..8` strata, compiling all `6` Vulkan compute pipelines cleanly
-within `~1.1 GiB` RSS and `<16 KB` stack.
+| Measurement | Control | Experimental result |
+| --- | ---: | ---: |
+| Output allocation, `64x64` | 3,261,456 B | 1,114,112 B |
+| Replay + SVGF output formula, 1080p | 1,455.70 MiB | 537.89 MiB |
+| Canopy balance / power RMSE | 0.196960 | 0.194935 |
+| Showroom balance / power RMSE | 0.332646 | 0.336900 |
+| Raw / spatial / spatial+SVGF RMSE | 0.346580 | 0.224831 / 0.226181 |
+| Consecutive-frame RGB difference | 0.500742 | 0.058311 |
+| Tinted / opaque pane luminance | 0.796379 | 0.021028 |
 
-## Reproducibility
+The `64x64` output was 65.84% smaller, with equal RGBA, 12 compared slabs and 24 counters over four frames.
+1080p is a formula extrapolation, not an allocation or total VRAM. Canopy and showroom MIS comparisons use 16
+and 8 paired batches respectively, with matching reported ray counts but no confidence gate. The image-quality
+comparison uses different amounts of warm-up and spatial tracing. The pane row is a material-effect check over
+289 pixels, not a physical calibration.
+
+The SVGF result is slightly worse than spatial-only RMSE in this run. Smooth chrome and glass remain particularly
+noisy in the finite reference (`0.735688` and `0.554361` masked RMSE respectively). No quality gate was promoted
+from these exploratory comparisons. See [raw metrics](Results/ReplayPbrReflectionMetrics.txt) and
+[execution log](Results/ReplayPbrReflection-release.txt). The capture was generated after the main glass-MIS
+repair but before the subsequent nine-pane and unreachable-density limit guards, which are tested separately.
+
+## Verification and reproduction
+
+The latest capture passed 10/10 Release host CTests, the `64x64` compact-layout checks and four SPIR-V 1.4
+ray-query opcode checks. Separate host ASan/UBSan CTests passed 10/10; the external Vulkan driver and shaders are
+not sanitizer-instrumented. No physical GPU, Windows editor, general deforming geometry, solid-dielectric GI,
+SSS, complex-IOR or equal-time acceptance is claimed.
 
 ```bash
+python3 Exhibits/LightCompute/Code/Prepare.py   # Pinned Linux Slang, Vulkan headers and SwiftShader
 CAPTURE=1 bash Exhibits/LightCompute/RunReplayPbrReflection.sh
 ```
 
-Both Release (`-O3 -Wall -Wextra -Werror`) and `ASan+UBSan` (`-fsanitize=address,undefined -Wall -Wextra -Werror`)
-pass **`9/9` CTests (`100%`)**, `4/4` `spirv_1_4+spvRayQueryKHR` binary checks, and full SwiftShader Vulkan GPU
-validation.
+The peer-branch comparison and decisions are in [ReplayBranchComparison.md](ReplayBranchComparison.md). The
+completion-gated C++ submission sequence is tested offscreen separately; live scene upload, image presentation and
+editor wiring remain open: [submission evidence](ReplaySubmissionSequence.md).

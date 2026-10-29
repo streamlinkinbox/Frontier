@@ -371,14 +371,19 @@ void ValidatePathReplayDomain(const PathReplaySceneView& Scene, const PathReplay
                             std::isfinite(R.NormalRoughness[3]) && R.NormalRoughness[3] >= MinimumRoughness &&
                             R.NormalRoughness[3] <= 1, "Rough replay receiver lies outside the guarded GGX domain");
             else Require(R.ViewMetallic[3] == 0, "Diffuse replay rejects metallic receivers");
-            if (AuthoredMaterials && std::isfinite(R.ExpectedDirect[3]) && R.ExpectedDirect[3] != 0)
+            if (AuthoredMaterials)
             {
-                Require(R.ExpectedDirect[3] >= 1 && R.ExpectedDirect[3] <= float(Scene.MaterialAtlas.size()) &&
-                            std::floor(R.ExpectedDirect[3]) == R.ExpectedDirect[3],
-                        "Replay receiver authored material address is invalid");
-                const uint32_t MaterialOffset = uint32_t(R.ExpectedDirect[3]) - 1;
-                if (ValidatedMaterials.emplace(MaterialOffset, true).second)
-                    ValidateReplayAuthoredAtlas(Scene, MaterialOffset);
+                // 📝 A NaN is the existing no-material sentinel. Infinity must never reach float-to-uint conversion.
+                Require(!std::isinf(R.ExpectedDirect[3]), "Replay receiver material address must not be infinite");
+                if (std::isfinite(R.ExpectedDirect[3]) && R.ExpectedDirect[3] != 0)
+                {
+                    Require(R.ExpectedDirect[3] >= 1 && R.ExpectedDirect[3] <= float(Scene.MaterialAtlas.size()) &&
+                                std::floor(R.ExpectedDirect[3]) == R.ExpectedDirect[3],
+                            "Replay receiver authored material address is invalid");
+                    const uint32_t MaterialOffset = uint32_t(R.ExpectedDirect[3]) - 1;
+                    if (ValidatedMaterials.emplace(MaterialOffset, true).second)
+                        ValidateReplayAuthoredAtlas(Scene, MaterialOffset);
+                }
             }
             double NormalSquared = 0, ViewSquared = 0, NormalView = 0;
             for (uint32_t C = 0; C < 3; ++C)

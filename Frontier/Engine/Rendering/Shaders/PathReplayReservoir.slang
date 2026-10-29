@@ -238,16 +238,30 @@ bool ReplayActiveImportanceDirection(SurfacePoint Receiver, inout uint Bits, out
 }
 float ReplayMisWeight(float Ratio, bool BsdfSample)
 {
+    // 📝 A positive infinite BSDF/source density ratio belongs entirely to the BSDF technique.
+    //     NaN or negative infinity is invalid and contributes nothing instead of propagating NaNs.
+    if (!isfinite(Ratio)) return Ratio > 0.0 ? (BsdfSample ? 1.0 : 0.0) : 0.0;
+    if (Ratio <= 0.0) return BsdfSample ? 0.0 : 1.0;
     if ((Extent.Primary.w & 33554432u) == 0)
         return BsdfSample ? (Ratio / (1.0 + Ratio)) : (1.0 / (1.0 + Ratio));
-    if (!isfinite(Ratio) || Ratio <= 0.0) return BsdfSample ? 0.0 : 1.0;
     float Small = Ratio <= 1.0 ? Ratio : (1.0 / Ratio);
     float Squared = Small * Small;
     float Low = Squared / (1.0 + Squared);
     float High = 1.0 / (1.0 + Squared);
     return BsdfSample ? (Ratio <= 1.0 ? Low : High) : (Ratio <= 1.0 ? High : Low);
 }
-float3 EvaluateThinSheetPaneTransmit(FacetCorners F, float2 Barycentric, float3 Direction)
+float ReplaySourceMisWeight(float Ratio, float Competitor)
+{
+    // 📝 An unreachable BSDF source path has density zero, even when Ratio overflowed to infinity.
+    return ReplayMisWeight(Competitor > 0.0 ? Ratio * Competitor : 0.0, false);
+}
+float ReplaySheetTransmissionProbability(float Reflectance)
+{
+    float SheetReflectance = (2.0 * Reflectance) / (1.0 + Reflectance);
+    return 1.0 - clamp(SheetReflectance, 0.08, 0.92);
+}
+float3 EvaluateThinSheetPaneTransmit(FacetCorners F, float2 Barycentric, float3 Direction,
+                                    out float TransmissionProbability)
 {
     uint Offset = uint(F.Emissive.w) - 1u;
     float3 PaneNormal =
@@ -257,21 +271,25 @@ float3 EvaluateThinSheetPaneTransmit(FacetCorners F, float2 Barycentric, float3 
     float PaneIor = max(Angles[Offset + 13u], 1.0), R0 = (PaneIor - 1.0) / (PaneIor + 1.0);
     R0 *= R0;
     float Reflectance = R0 + (1.0 - R0) * pow(1.0 - Cosine, 5.0);
+    TransmissionProbability = ReplaySheetTransmissionProbability(Reflectance);
     float3 AuthoredSigma = max(0.0, float3(Angles[Offset + 16u], Angles[Offset + 17u], Angles[Offset + 18u]));
     float AuthoredThickness = max(0.0, Angles[Offset + 19u]);
     float3 OpticalDepth = AuthoredThickness > 0.0 ? AuthoredSigma * AuthoredThickness
                                                   : float3(0.8, 0.15, 0.4) * 0.006;
     return ((1.0 - Reflectance) / (1.0 + Reflectance)) * exp(-OpticalDepth / Cosine);
 }
-// 📝 Test the open segment, skipping the sampled endpoint triangle and attenuating up to 8 thin-sheet panes.
-float3 ReplaySegmentTransmittance(float3 Origin, float3 Direction, float Distance, uint Endpoint)
+// 📝 The direct source proposal analytically crosses panes; its competing BSDF proposal must include
+//     the probability of selecting transmission at each pane and enough remaining bounces to reach the source.
+float3 ReplaySegmentTransmittance(float3 Origin, float3 Direction, float Distance, uint Endpoint,
+                                  out float TransmissionProbability, out uint PaneCount)
 {
+    TransmissionProbability = 1.0;
+    PaneCount = 0u;
     bool AuthoredMaterials = (Extent.Primary.w & 134217728u) != 0;
 #ifdef FRONTIER_HARDWARE_RAY_QUERY
     if (Extent.Sampling.z == 0 || Distance <= 0.0) return float3(1.0);
     InterlockedAdd(Counters[2], 1);
     float3 Throughput = 1.0;
-    uint Panes = 0u;
     RayDesc Ray;
     Ray.Origin = Origin;
     Ray.Direction = Direction;
@@ -293,12 +311,16 @@ float3 ReplaySegmentTransmittance(float3 Origin, float3 Direction, float Distanc
             }
             FacetCorners F = Facets[Index];
             uint Address = F.Emissive.w > 0.0 ? uint(F.Emissive.w) : 0u;
-            if (Address == 0u || uint(Angles[Address]) != 2u || ++Panes > 8u)
+            if (Address == 0u || uint(Angles[Address]) != 2u)
             {
                 Query.CommitNonOpaqueTriangleHit();
                 return 0.0;
             }
-            Throughput *= EvaluateThinSheetPaneTransmit(F, Query.CandidateTriangleBarycentrics(), Direction);
+            ++PaneCount;
+            float PaneProbability;
+            Throughput *= EvaluateThinSheetPaneTransmit(F, Query.CandidateTriangleBarycentrics(), Direction,
+                                                         PaneProbability);
+            TransmissionProbability *= PaneProbability;
         }
     }
     return Query.CommittedStatus() == COMMITTED_TRIANGLE_HIT ? float3(0.0) : Throughput;
@@ -306,7 +328,6 @@ float3 ReplaySegmentTransmittance(float3 Origin, float3 Direction, float Distanc
     if (Extent.Grid.w == 0 || Distance <= 0.0) return float3(1.0);
     InterlockedAdd(Counters[2], 1);
     float3 Throughput = 1.0;
-    uint Panes = 0u;
     bool Ordered = (Extent.Primary.w & 8388608u) != 0;
     float MinT = AuthoredMaterials ? 0.0001 : 0.0;
     float MaxT = AuthoredMaterials ? Distance - 1e-4 : Distance;
@@ -336,8 +357,11 @@ float3 ReplaySegmentTransmittance(float3 Origin, float3 Direction, float Distanc
                         if (!AuthoredMaterials) return 0.0;
                         FacetCorners F = Facets[Index];
                         uint Address = F.Emissive.w > 0.0 ? uint(F.Emissive.w) : 0u;
-                        if (Address == 0u || uint(Angles[Address]) != 2u || ++Panes > 8u) return 0.0;
-                        Throughput *= EvaluateThinSheetPaneTransmit(F, Strike.yz, Direction);
+                        if (Address == 0u || uint(Angles[Address]) != 2u) return 0.0;
+                        ++PaneCount;
+                        float PaneProbability;
+                        Throughput *= EvaluateThinSheetPaneTransmit(F, Strike.yz, Direction, PaneProbability);
+                        TransmissionProbability *= PaneProbability;
                     }
                 }
             }
@@ -347,6 +371,10 @@ float3 ReplaySegmentTransmittance(float3 Origin, float3 Direction, float Distanc
             if (Count + 2 > MaxStack)
             {
                 InterlockedAdd(Counters[3], 1);
+                // 📝 The fallback visits all facets, including any already visited: discard partial pane products.
+                Throughput = 1.0;
+                TransmissionProbability = 1.0;
+                PaneCount = 0u;
                 for (uint I = 0; I < Extent.Sampling.z; ++I)
                 {
                     if (I != Endpoint)
@@ -358,8 +386,11 @@ float3 ReplaySegmentTransmittance(float3 Origin, float3 Direction, float Distanc
                             if (!AuthoredMaterials) return 0.0;
                             FacetCorners F = Facets[I];
                             uint Address = F.Emissive.w > 0.0 ? uint(F.Emissive.w) : 0u;
-                            if (Address == 0u || uint(Angles[Address]) != 2u || ++Panes > 8u) return 0.0;
-                            Throughput *= EvaluateThinSheetPaneTransmit(F, Strike.yz, Direction);
+                            if (Address == 0u || uint(Angles[Address]) != 2u) return 0.0;
+                            ++PaneCount;
+                            float PaneProbability;
+                            Throughput *= EvaluateThinSheetPaneTransmit(F, Strike.yz, Direction, PaneProbability);
+                            TransmissionProbability *= PaneProbability;
                         }
                     }
                 }
@@ -406,7 +437,7 @@ float ReplayFacetInverseProbability(uint FacetIndex)
 }
 
 // 📝 Select an emissive facet by the optional Engine CDF or uniformly, then trace visibility and compute NEE weight.
-bool SampleReplayFacetDirect(SurfacePoint Receiver, float3 Origin, inout uint Bits,
+bool SampleReplayFacetDirect(SurfacePoint Receiver, float3 Origin, uint RemainingBounces, inout uint Bits,
                              out float3 OutDirection, out float3 OutFactor)
 {
     OutDirection = 0;
@@ -465,17 +496,22 @@ bool SampleReplayFacetDirect(SurfacePoint Receiver, float3 Origin, inout uint Bi
     float DirectionCosine = max(0, dot(N, Direction));
     float SourceCosine = abs(dot(AreaNormal / DoubleArea, Direction));
     if (DirectionCosine <= 0 || SourceCosine <= 0) return false;
-    float3 Transmittance = ReplaySegmentTransmittance(Origin, Direction, Distance, FacetIndex);
+    float TransmissionProbability;
+    uint PaneCount;
+    float3 Transmittance = ReplaySegmentTransmittance(Origin, Direction, Distance, FacetIndex,
+                                                       TransmissionProbability, PaneCount);
     if (all(Transmittance <= 0)) return false;
     float Measure = DirectionCosine * SourceCosine * (.5 * DoubleArea) * InverseProbability / DistanceSquared;
     float MisWeight = 1;
     if ((Extent.Primary.w & 1024u) != 0)
     {
+        // 📝 A sampled path needs one bounce per crossed sheet before it can hit this source.
+        float Competitor = PaneCount < RemainingBounces ? TransmissionProbability : 0.0;
         float Ratio = (Extent.Primary.w & 4096u) != 0
             ? ReplayActiveImportancePdf(Receiver, Direction) * SourceCosine * (.5 * DoubleArea) *
               InverseProbability / DistanceSquared
             : Measure / 3.141592653589793;
-        MisWeight = ReplayMisWeight(Ratio, false);
+        MisWeight = ReplaySourceMisWeight(Ratio, Competitor);
     }
     OutDirection = Direction;
     OutFactor = Transmittance * max(F.Emissive.xyz, 0) * (Measure * MisWeight);
@@ -490,13 +526,17 @@ float3 EvaluateReplayPath(SurfacePoint Receiver, uint Seed)
     bool RoughOpaque = (Extent.Primary.w & 64u) != 0, SampleFacets = (Extent.Primary.w & 128u) != 0;
     bool ImportanceRough = (Extent.Primary.w & 4096u) != 0;
     bool AuthoredMaterials = (Extent.Primary.w & 134217728u) != 0;
+    // 📝 Retain the most recent non-delta directional proposal across straight sheet transmissions.
+    float3 SourceOrigin = 0, SourceDirection = 0;
+    float SourcePdf = 0, TransmissionProbability = 1;
+    bool SourceProposalAvailable = false;
     SurfacePoint Current = Receiver;
     for (uint Bounce = 0; Bounce < Extent.Primary.z; ++Bounce)
     {
         bool ThinSheet = AuthoredMaterials && MaterialAddress(Current) > 0 && MaterialTransport(Current) == 2u;
         float3 NeeDirection = 0, NeeFactor = 0;
         bool HasNee = SampleFacets && !ThinSheet &&
-                      SampleReplayFacetDirect(Current, Origin, Bits, NeeDirection, NeeFactor);
+                      SampleReplayFacetDirect(Current, Origin, Extent.Primary.z - Bounce, Bits, NeeDirection, NeeFactor);
 
         float3 Direction = 0, Strike = 0;
         float BouncePdf = 0.0, BounceScale = 3.141592653589793;
@@ -515,7 +555,8 @@ float3 EvaluateReplayPath(SurfacePoint Receiver, uint Seed)
             float3 OpticalDepth = AuthoredThickness > 0.0 ? AuthoredSigma * AuthoredThickness
                                                           : float3(0.8, 0.15, 0.4) * 0.006;
             float3 SheetTransmit = ((1.0 - F) / (1.0 + F)) * exp(-OpticalDepth / Cosine);
-            float ReflectProb = clamp(SheetReflect, 0.08, 0.92);
+            float TransmitProbability = ReplaySheetTransmissionProbability(F);
+            float ReflectProb = 1.0 - TransmitProbability;
             float Selector = RandomUnit(Bits);
             (void)RandomUnit(Bits);
             (void)RandomUnit(Bits);
@@ -523,14 +564,16 @@ float3 EvaluateReplayPath(SurfacePoint Receiver, uint Seed)
             {
                 Direction = Unit(reflect(IncomingDir, Normal));
                 Throughput *= SheetReflect / ReflectProb;
-                Origin = Current.PositionHit.xyz + Normal * 0.002;
+                SourceProposalAvailable = false;
             }
             else
             {
                 Direction = IncomingDir;
-                Throughput *= SheetTransmit / (1.0 - ReflectProb);
-                Origin = Current.PositionHit.xyz - Normal * 0.002;
+                Throughput *= SheetTransmit / TransmitProbability;
+                TransmissionProbability *= TransmitProbability;
             }
+            // 📝 Straight transmission stays collinear with the source proposal across sheet offsets.
+            Origin = Current.PositionHit.xyz + Direction * 0.002;
         }
         else
         {
@@ -557,6 +600,11 @@ float3 EvaluateReplayPath(SurfacePoint Receiver, uint Seed)
             if (HasNee) Radiance += Throughput * NeeBrdf * NeeFactor;
             if (!ValidBounce) break;
             Throughput *= BounceBrdf;
+            SourceOrigin = Origin;
+            SourceDirection = Direction;
+            SourcePdf = ImportanceRough ? BouncePdf : max(0.0, dot(Normal, Direction)) / 3.141592653589793;
+            TransmissionProbability = 1.0;
+            SourceProposalAvailable = SampleFacets && Extent.Reconstruction.z > 0;
         }
         if (max(Throughput.x, max(Throughput.y, Throughput.z)) <= 0) break;
         InterlockedAdd(Counters[8], 1);
@@ -567,26 +615,25 @@ float3 EvaluateReplayPath(SurfacePoint Receiver, uint Seed)
             break;
         }
         FacetCorners F = Facets[Index];
-        // 📝 Without balance weighting (or after a delta thin-sheet bounce), emissive hits receive full weight.
-        if (ThinSheet || !SampleFacets || (Extent.Primary.w & 256u) != 0)
+        if (!SourceProposalAvailable || (Extent.Primary.w & 256u) != 0)
             Radiance += Throughput * max(F.Emissive.xyz, 0);
-        else if ((Extent.Primary.w & 1024u) != 0 && any(F.Emissive.xyz > 0) && Extent.Reconstruction.z > 0)
+        else if (any(F.Emissive.xyz > 0))
         {
-            float3 AreaNormal = cross(F.B.xyz - F.A.xyz, F.C.xyz - F.A.xyz);
-            float DoubleArea = length(AreaNormal), DistanceSquared = Strike.x * Strike.x;
-            if (DoubleArea > 0 && DistanceSquared > 0)
+            float InverseProbability = ReplayFacetInverseProbability(Index);
+            if (InverseProbability == 0)
+                Radiance += Throughput * max(F.Emissive.xyz, 0);
+            else if ((Extent.Primary.w & 1024u) != 0)
             {
-                float ReceiverCosine = max(0, dot(Normal, Direction));
-                float SourceCosine = abs(dot(AreaNormal / DoubleArea, Direction));
-                float InverseProbability = ReplayFacetInverseProbability(Index);
-                if (InverseProbability == 0)
-                    Radiance += Throughput * max(F.Emissive.xyz, 0);
-                else
+                float3 AreaNormal = cross(F.B.xyz - F.A.xyz, F.C.xyz - F.A.xyz);
+                float DoubleArea = length(AreaNormal);
+                float3 LightPosition = Origin + Direction * Strike.x;
+                float3 SourceDelta = LightPosition - SourceOrigin;
+                float DistanceSquared = ThinSheet ? dot(SourceDelta, SourceDelta) : Strike.x * Strike.x;
+                if (DoubleArea > 0 && DistanceSquared > 0)
                 {
-                    float Ratio = ImportanceRough
-                        ? BouncePdf * SourceCosine * (.5 * DoubleArea) * InverseProbability / DistanceSquared
-                        : ReceiverCosine * SourceCosine * (.5 * DoubleArea) * InverseProbability /
-                          (3.141592653589793 * DistanceSquared);
+                    float SourceCosine = abs(dot(AreaNormal / DoubleArea, SourceDirection));
+                    float Ratio = SourcePdf * TransmissionProbability * SourceCosine * (.5 * DoubleArea) *
+                                  InverseProbability / DistanceSquared;
                     Radiance += Throughput * max(F.Emissive.xyz, 0) * ReplayMisWeight(Ratio, true);
                 }
             }
@@ -640,7 +687,7 @@ bool ReplayReservoirHistoryValid(float4 SourceSlot)
 {
     return ReplaySeedHalfValid(SourceSlot.x) && ReplaySeedHalfValid(SourceSlot.y) &&
         isfinite(SourceSlot.z) && SourceSlot.z > 0 &&
-        isfinite(SourceSlot.w) && SourceSlot.w >= 1 && SourceSlot.w <= 71 &&
+        isfinite(SourceSlot.w) && SourceSlot.w >= 1 && SourceSlot.w <= 68 &&
         floor(SourceSlot.w) == SourceSlot.w;
 }
 bool ReplaySeedBankValid(float4 First, float4 Second)
@@ -660,7 +707,7 @@ int2 ProjectSpatialDiskOffset(uint Pixel, uint SequenceSeed, uint TapIndex)
     float Radius = MaxRadius * sqrt((float(TapIndex) + 0.5) * 0.25);
     return int2(floor(float2(cos(Azimuth), sin(Azimuth)) * Radius + 0.5));
 }
-// 📝 Symmetric tangent-plane and normal gate over deterministic primary hits; preserves grazing roads without bias.
+// 📝 Symmetric tangent-plane and normal gate over primary hits; eligibility alone does not prove unbiased reuse.
 bool EvaluateSpatialSurfaceCompatibility(SurfacePoint Receiver, SurfacePoint DonorReceiver)
 {
     bool RoughEnabled = (Extent.Primary.w & 64u) != 0;
@@ -734,6 +781,7 @@ void FlushSecondaryTraversalCounters(uint Pixel)
         }
         bool TemporalReplayed = false;
         uint TemporalSeed = 0;
+        float3 TemporalRadiance = 0;
         if (Extent.Reconstruction.x != 0 && Extent.History.z != 0 && Extent.History.w == 0 &&
             R.MotionPixel.w != 0 && ReplayMotionConvertible(R.MotionPixel.xy))
         {
@@ -761,7 +809,7 @@ void FlushSecondaryTraversalCounters(uint Pixel)
                     float ReplayedTarget = ReplayTarget(Replayed);
                     float Retained = min(Source.w, float(max(1u, Extent.Reconstruction.w)));
                     float Weight = ReplayedTarget * Source.z * Retained;
-                    if (isfinite(Weight) && isfinite(Sum + Weight))
+                    if (Weight > 0.0 && isfinite(Weight) && isfinite(Sum + Weight))
                     {
                         Sum += Weight;
                         Count += Retained;
@@ -773,6 +821,7 @@ void FlushSecondaryTraversalCounters(uint Pixel)
                         }
                         TemporalReplayed = true;
                         TemporalSeed = Candidate;
+                        TemporalRadiance = Replayed;
                         InterlockedAdd(Counters[20], 1);
                     }
                     else InterlockedAdd(Counters[21], 1);
@@ -793,8 +842,10 @@ void FlushSecondaryTraversalCounters(uint Pixel)
                     float2 PackedSeed = RetainedIndex == 0 ? BankFirst.xy :
                                         (RetainedIndex == 1 ? BankFirst.zw : BankSecond.xy);
                     uint Candidate = DecodeReplaySeed(PackedSeed);
-                    if (TemporalReplayed && Candidate == TemporalSeed) continue;
-                    float3 CandidateRadiance = EvaluateReplayPath(R, Candidate);
+                    // 📝 An equal seed is still a separate proposal: reuse only this invocation's fresh
+                    //     evaluation, not its weight, represented count or selection draw.
+                    float3 CandidateRadiance = TemporalReplayed && Candidate == TemporalSeed
+                        ? TemporalRadiance : EvaluateReplayPath(R, Candidate);
                     float CandidateTarget = ReplayTarget(CandidateRadiance);
                     Sum += CandidateTarget;
                     Count += 1;

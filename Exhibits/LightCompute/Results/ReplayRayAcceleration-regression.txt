@@ -1,0 +1,6 @@
+Ordered/SAH regression on SwiftShader CPU Vulkan; base d9cbe17 plus working changes.
+Shader binaries and validation host were built by RunReplayPbrReflection.sh before comment-only shader edits.
+RAY_ACCEL_RUNTIME_TIER device="SwiftShader Device (Subzero)" api_major=1 api_minor=3 hw_ray_query_ready=0 selected_tier=OrderedSoftwareBvh fallback_reason="Device lacks VK_KHR_acceleration_structure or VK_KHR_ray_query"
+RAY_ACCEL_BIT_EXACT_PARITY diffuse_4f_max_diff=0 rough_ggx_max_diff=0 median_legacy_boxes=3499985 median_ordered_boxes=3174093 median_legacy_tris=4696735 median_ordered_tris=4266046 sah_rough_legacy_boxes=341724 sah_rough_ordered_boxes=340895 sah_rough_legacy_tris=37892 sah_rough_ordered_tris=28884 slot9_conservation=1
+RAY_ACCEL_SAH_ORDERED_SPEEDUP facets=276 median_nodes=103 sah_nodes=245 single_emitter_max_diff=0 total_rays=17294 legacy_med_boxes=961558 sah_ord_boxes=478276 box_saved_pct=50.26 legacy_med_tris=1292034 sah_ord_tris=39816 tri_saved_pct=96.92 total_ops_saved_pct=77.01 legacy_rmse=0.1071 sah_ordered_rmse=0.1070
+PASS replay Vulkan ray acceleration tier selection, bit-exact parity, and SAH-2 GPU speedup

@@ -96,6 +96,15 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   `Exhibits/LightCompute/` retains fixture generation, an isolated Vulkan submission host and verification.
 - The root editor target does not yet submit this shader; the shared location is not a production-integration claim.
 
+## Replay submission and validation ownership — 2026-10-29
+
+- `Frontier/Engine/Rendering/PathReplaySubmissionSequence.{h,cpp}` owns optional completion-gated replay history;
+  `FrontierPathReplaySubmission` links the bounded domain and Vulkan recorder. Callers own GPU resources and fences.
+- `Exhibits/LightCompute/Code/Replay{Transmission,Segment,SubmissionSequence}Validation.*` owns focused checks;
+  `RunReplayTransmission.sh`, `RunReplaySubmissionSequence.sh`, `Results/` and `Images/` retain reproducible evidence.
+- `ReplayBranchComparison.md` records the compared peer revision and non-equivalent benchmark boundaries. None of
+  these files connects the renderer to the editor viewport.
+
 ## Shared radiant-facet distribution — 2026-10-27
 
 - `Frontier/Engine/Rendering/RadiantFacetDistribution.{h,cpp}` and CMake target

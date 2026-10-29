@@ -472,6 +472,25 @@ void ValidateAuthoredDomainAndHistory()
                      "Zero-length normal texel must be rejected");
     }
 
+    // 📝 Manually supplied receivers may use NaN for no material, but infinity must never be converted to uint.
+    auto ManualReceivers = Receivers;
+    auto& Manual = ManualReceivers[0];
+    Manual.PositionHit = {0, 0, 0, 1};
+    Manual.NormalRoughness = {0, 0, 1, .5f};
+    Manual.ViewMetallic = {0, 0, 1, 0};
+    Manual.AlbedoIor = {.5f, .5f, .5f, 1.5f};
+    Manual.ResidualSpecular = {0, 0, 0, .5f};
+    Manual.MotionPositionToken = {0, 0, 0, 1};
+    const PathReplaySceneView ManualView{ManualReceivers, OrderedSurfaces, Bvh.Enclosures, Bvh.Corners,
+                                         Atlas, Camera, 0u};
+    Manual.ExpectedDirect[3] = std::numeric_limits<float>::infinity();
+    ExpectThrows([&] { ValidatePathReplayDomain(ManualView, {false, true, false, true, false, false, false, true}); },
+                 "Infinite authored receiver address must be rejected");
+    Manual.ExpectedDirect[3] = std::numeric_limits<float>::quiet_NaN();
+    ValidatePathReplayDomain(ManualView, {false, true, false, true, false, false, false, true});
+    Manual.ExpectedDirect[3] = float(RacingGreen);
+    ValidatePathReplayDomain(ManualView, {false, true, false, true, false, false, false, true});
+
     // Verify PathReplayHistoryDomain tracks PowerMis, CompactStorage, and AuthoredMaterials transitions.
     PathReplayHistoryDomain History;
     PathReplayHistorySpecification Spec{4u, 0.01f, {0.02f, 0.02f, 0.02f}, true, true, true, false, false, true,
@@ -509,7 +528,11 @@ void ValidateAuthoredDomainAndHistory()
 
 float HostReplayPowerMis(float Ratio, bool BsdfSample)
 {
-    if (!std::isfinite(Ratio) || Ratio <= 0.0f)
+    if (!std::isfinite(Ratio))
+    {
+        return Ratio > 0.0f ? (BsdfSample ? 1.0f : 0.0f) : 0.0f;
+    }
+    if (Ratio <= 0.0f)
     {
         return BsdfSample ? 0.0f : 1.0f;
     }
@@ -540,9 +563,13 @@ void ValidatePowerMisAndMultiStrataPdf()
         Require(std::abs((WNee + WBsdf) - 1.0f) <= 1e-6f,
                 "Power MIS violated partition of unity w_nee + w_bsdf = 1");
     }
-    Require(HostReplayPowerMis(std::numeric_limits<float>::infinity(), false) == 1.0f ||
-                HostReplayPowerMis(1e30f, true) > 0.9999f,
-            "Extreme BSDF density must receive ~1.0 power MIS weight without NaN overflow");
+    Require(HostReplayPowerMis(std::numeric_limits<float>::infinity(), false) == 0.0f &&
+                HostReplayPowerMis(std::numeric_limits<float>::infinity(), true) == 1.0f &&
+                HostReplayPowerMis(0.0f, false) == 1.0f && HostReplayPowerMis(0.0f, true) == 0.0f,
+            "MIS limiting weights must assign positive infinity to BSDF and zero to the source proposal");
+    Require(HostReplayPowerMis(std::numeric_limits<float>::quiet_NaN(), false) == 0.0f &&
+                HostReplayPowerMis(std::numeric_limits<float>::quiet_NaN(), true) == 0.0f,
+            "Invalid density ratios must not leak NaN into radiance");
 
     // 2. Spherical quadrature over upper hemisphere of multi-strata PBR mixture density at normal & grazing view.
     struct LobeCase

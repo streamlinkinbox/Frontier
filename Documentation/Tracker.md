@@ -2,31 +2,32 @@
 
 Single progress and violation tracker. Detailed evidence belongs in Exhibits, not competing progress reports.
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
-hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
+hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts. Older entries below
+are inherited historical checkpoints: their branch/PR references and completion statements may not apply here.
 
-## Unified ReSTIR GI, Compact VRAM, Power MIS, and Authored Multi-Strata PBR & Reflection System — 2026-10-29
+## Replay correctness, compact PBR and submission sequencing — 2026-10-29
 
-- Implemented `PathReplayPowerMis` (`33554432u`), `PathReplayCompactStorage` (`67108864u`), and
-  `PathReplayAuthoredMaterials` (`134217728u`) across `Frontier/Engine/Rendering/PathReplayVulkan.{h,cpp}`,
-  `PathReplayDomain.{h,cpp}`, and `Shaders/{LightInfluence,PathReplayReservoir,PathReplayVarianceFilter}.slang`,
-  together with tight `SourceSlot.w <= 71` reservoir history clamping.
-- Generalized compact output slab remapping (`6*N` ReSTIR GI, `10*N` `SampleHistory`, `17*N` ReSTIR GI +
-  `VarianceFilter`, `+N` diagnostic `Slot 9`), cutting `64x64` `Buffers[6]` from `3,261,456 B -> 1,114,112 B`
-  (**`-65.84%`**) and 1080p full-stack VRAM from `1,455.70 MiB -> 537.89 MiB` (**`-63.05%`, `-917.81 MiB` saved**)
-  with **byte-for-byte `0.000000` parity** across RGBA output, all `24` counters, and all `12` logical slabs.
-- Integrated the `268`-float `Angles` authored multi-strata `TextureStudio` PBR atlas directly into `PathReplay`
-  (1–8 dielectric/conductor strata, 12-swatch Voronoi metallic-flake automotive clearcoat paint, Charlie velvet
-  sheen, mip-pyramid albedo/normal maps, `Category == 2` Beer-Lambert + Fresnel thin-sheet tinted glazing,
-  multi-pane non-opaque shadow transmittance across software BVH and `VK_KHR_ray_query`, and roughness-driven
-  specular-cone SVGF normal tightening up to `224.0`). Refactored multi-strata lobe evaluation/sampling to pure
-  scalar accumulators over `Angles[]` (`0` dynamic local arrays), eliminating Subzero SIMD4 `Cfg::liveness` OOM.
-- Verified `9/9` host CTests in Release (`1.20s`) and `ASan+UBSan` (`1.94s`), `4/4` `spvRayQueryKHR` SPIR-V `1.4`
-  binaries, and SwiftShader Vulkan showroom benchmarks (`RunReplayPbrReflection.sh`): close-canopy sill Power MIS
-  beats Balance MIS (`0.19494 < 0.19696` at exact `168,303 == 168,303` rays), moving-camera 3-bounce authored PBR
-  showroom RMSE drops `0.35690 -> 0.23338 -> 0.22770` (`-36.20%`), temporal flicker drops `0.51101 -> 0.05879`
-  (**`-88.50%`**), and tinted showroom glazing transmits **`37.87x`** background luminance vs. opaque control.
-  Physical-GPU RT-core timing, volumetric solid-dielectric dispersion/SSS inside GI, and live editor viewport
-  wiring remain next. [Evidence, `08e7de48` comparison, and visual proof](../Exhibits/LightCompute/ReplayPbrReflection.md).
+- Compared the other session branch at `ceebd8a`; its bounded reuse experiments and independent controls are
+  valuable, but different fixtures do not establish a general winner. Adopted the equal-seed proposal bookkeeping
+  and retained the other branch's rejection of its power-weighted indirect reuse experiment.
+  [Comparison](../Exhibits/LightCompute/ReplayBranchComparison.md).
+- Reproduced a thin-sheet MIS double count in `d9cbe17` against independent area quadrature (`0.576151` balance
+  vs `0.357501` reference). After repair, balance is `0.357859` and power is `0.357846`; zero-, one- and two-pane
+  cases, bounce limits, four-pane stack overflow and shader MIS limits also pass on SwiftShader CPU Vulkan.
+  [Before/after evidence](../Exhibits/LightCompute/ReplayTransmission.md).
+- Equal temporal/bank seeds now preserve both proposal counts while caching only their current evaluation
+  (`0/64 -> 64/64` injected-equality pixels). The bounded represented-count guard is 68, not the earlier 71.
+- `PathReplaySubmissionSequence` adds optional completion-gated history sequencing in the Engine. Four offscreen
+  Vulkan frames match direct recording across output, 16 history slabs and 24 counters; simulated pre-submit
+  interruption and storage revision both reset safely. [Evidence](../Exhibits/LightCompute/ReplaySubmissionSequence.md).
+- Compact replay, optional power MIS and bounded authored PBR remain experimental. The `64x64` PBR fixture
+  allocated `3,261,456 -> 1,114,112` output bytes with exact tested layout parity; the 1080p `17*N` result is a
+  `537.89 MiB` output-only extrapolation, not a game VRAM measurement. Its 80-sample same-shader comparison is
+  not independent ground truth and does not establish general quality or equal-time superiority.
+  [PBR evidence and corrected limits](../Exhibits/LightCompute/ReplayPbrReflection.md).
+- Release and host ASan/UBSan CTests pass `10/10`; the external driver and shaders are not sanitizer-instrumented.
+  Four ray-query SPIR-V binaries compile and pass opcode checks, but physical RT execution, Windows, deforming
+  geometry, material authoring, resource ownership and live editor viewport integration remain open.
 
 ## Dual-path ray acceleration (`VK_KHR_ray_query` + SAH-2 ordered BVH) — 2026-10-28
 
@@ -1306,9 +1307,9 @@ in `Exhibits/LightCompute/Results/FogFacetRegression.txt`; this was a fixture-se
   Windows workflow on the default branch. Actions still needs enabling in repo Settings.
 - Environment exhibit now emits small visual proofs in seconds: 2x2 comparison strip and a 16-frame
   wind-drift GIF (256x160, ~7 s total). Release + ASan validation pass with identical frame hashes.
-- ReSTIR continuation: cross-pixel (spatial) reservoir correlation now also measured in the mirror harness
-  (six-pixel strip, drifting integrand). Spatial-only and temporal+spatial+bank both unbiased at every pixel
-  (worst |z| 1.82). LightCompute 6/6 release + ASan/UBSan.
+- ReSTIR continuation: cross-pixel reservoir correlation was measured in a six-pixel mirror fixture. Both tested
+  modes were consistent with its reference means (worst |z| 1.82), not proven unbiased for arbitrary scenes.
+  LightCompute 6/6 release + ASan/UBSan at that historical checkpoint.
 - ReSTIR continuation: multi-candidate generation (Sampling.y = 2, 4) verified in the mirror for
   bank-only and temporal+bank modes (|z| <= 0.91); an off-by-one bank-skip negative control fails in
   the temporal modes (-9.9% / -4.7%), confirming the harness detects the correlation it guards against.

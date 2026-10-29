@@ -1,30 +1,33 @@
-=== FRONTIER PHASE 4: UNIFIED ReSTIR GI + COMPACT VRAM + AUTHORED PBR & REFLECTION VALIDATION ===
+=== FRONTIER: COMPACT REPLAY + EXPERIMENTAL AUTHORED PBR AND REFLECTIONS ===
 Test project /home/user/Frontier/_ClaudeScratch/build/pbr-release
-    Start 1: PathReplayDomainValidation
-1/9 Test #1: PathReplayDomainValidation ........   Passed    0.00 sec
-    Start 2: PathReplayVulkanValidation
-2/9 Test #2: PathReplayVulkanValidation ........   Passed    0.00 sec
-    Start 3: RadiantFacetValidation
-3/9 Test #3: RadiantFacetValidation ............   Passed    0.00 sec
-    Start 4: MediumRadianceValidation
-4/9 Test #4: MediumRadianceValidation ..........   Passed    0.00 sec
-    Start 5: ReplaySeedCorrelationValidation
-5/9 Test #5: ReplaySeedCorrelationValidation ...   Passed    1.01 sec
-    Start 6: ReplayVarianceFilterValidation
-6/9 Test #6: ReplayVarianceFilterValidation ....   Passed    0.00 sec
-    Start 7: ReplayRayAccelerationValidation
-7/9 Test #7: ReplayRayAccelerationValidation ...   Passed    0.09 sec
-    Start 8: ReplayPbrReflectionValidation
-8/9 Test #8: ReplayPbrReflectionValidation .....   Passed    0.08 sec
-    Start 9: PathReplayArchiveValidation
-9/9 Test #9: PathReplayArchiveValidation .......   Passed    0.00 sec
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.00 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.00 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.01 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.00 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.03 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.00 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.13 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.12 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.00 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.00 sec
 
-100% tests passed out of 9
+100% tests passed out of 10
 
-Total Test time (real) =   1.20 sec
+Total Test time (real) =   1.31 sec
 RAY_QUERY_ENGINE capability_cases=6 vertex_pack=1 instance_guard=1 blas_tlas_sequence=4 build_rejections=10
 ORDERED_SAH_PARITY facets=240 median_nodes=63 sah_nodes=223 legacy_boxes=388694 legacy_tris=814628 ordered_med_boxes=364854 ordered_med_tris=770977 ordered_sah_boxes=281702 ordered_sah_tris=35056 same_tree_tri_saved_pct=5.36 sah_ordered_tri_saved_pct=95.70 shadow_rays_verified=10000
 RAY_QUERY_SPIRV_VERIFIED files=4 version=1.4 capability_4472=1 accel_type_5341=1 init_4473=1 proceed_4477=1 confirm_endpoint_skip_4476=1
 PASS replay ray-query engine, BLAS/TLAS recorder, and ordered SAH BVH equivalence
-PBR_REFLECTION_GPU compact_output_bytes=1114112 legacy_output_bytes=3261456 output_saved_pct=65.84 compact_max_diff=0.000000 canopy_balance_rmse=0.19696 canopy_power_rmse=0.19494 showroom_balance_rmse=0.33907 showroom_power_rmse=0.34282 raw_rmse=0.35690 unified_rmse=0.23338 full_svgf_rmse=0.22770 raw_flicker=0.51101 svgf_flicker=0.05879 glazed_ratio=37.87
-PASS ReplayPbrReflectionGpuValidation
+PBR_REFLECTION_GPU compact_output_bytes=1114112 legacy_output_bytes=3261456 output_saved_pct=65.84 compact_max_diff=0.000000 canopy_balance_rmse=0.19696 canopy_power_rmse=0.19494 showroom_balance_rmse=0.33265 showroom_power_rmse=0.33690 raw_rmse=0.34658 unified_rmse=0.22483 full_svgf_rmse=0.22618 raw_flicker=0.50074 svgf_flicker=0.05831 glazed_ratio=37.87
+PBR_QUALITY_DESCRIPTIVE same_shader_reference=1 promotion=0
+PASS ReplayPbrReflectionGpuValidation structural_checks
