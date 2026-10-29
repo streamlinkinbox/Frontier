@@ -1726,6 +1726,7 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReceiverBankValidation.h"
 #include "RayBudgetValidation.h"
 #include "VisibilityReuseValidation.h"
+#include "WeightedPairValidation.h"
 #include "PathReplayCapture.h"
 #include "PathReplayGpuValidation.h"
 #include "ReplayRoomReference.h"
@@ -1795,6 +1796,11 @@ int main(int Count, char** Arguments)
         if (Count == 4 && std::string(Arguments[3]) == "--replay-dynamic-camera")
         {
             ValidateReplayDynamicCamera(Arguments[1], Arguments[2]);
+            return 0;
+        }
+        if (Count == 5 && std::string(Arguments[3]) == "--weighted-pair")
+        {
+            ValidateWeightedPair(Arguments[1], Arguments[2], Arguments[4]);
             return 0;
         }
         if (Count == 5 && std::string(Arguments[3]) == "--visibility-reuse")
