@@ -6,8 +6,13 @@
 
 namespace
 {
-void ValidateTracedQuartet(const char* Driver, const std::string& Shaders, const std::string& Directory)
+void ValidateTracedQuartet(
+    const char*        Driver,
+    const std::string& Shaders,
+    const std::string& Directory,
+    bool               Elide = false)
 {
+    const char* Label = Elide ? "QUERY_ELISION" : "TRACED_QUARTET";
     constexpr uint32_t Samples = 1024, Methods = 4, Count = Samples*Methods;
     auto Scene = RgbTraceScene(0);
     Scene.Width = 64; Scene.Height = 64;
@@ -18,8 +23,8 @@ void ValidateTracedQuartet(const char* Driver, const std::string& Shaders, const
     const std::array<std::array<float,3>,4> Corners{{{0,0,4},{0,0,-3},{4,-2,1},{-3,3,2}}};
     uint64_t RetainedChecks = 0;
     uint32_t Ambiguous = 0;
-    std::printf("TRACED_QUARTET_DEVICE name=%s type=%u samples=1024 methods=4 steps=32 fixtures=3\n",
-                Compute.Properties.deviceName,unsigned(Compute.Properties.deviceType));
+    std::printf("%s_DEVICE name=%s type=%u samples=1024 methods=4 steps=32 fixtures=3\n",
+                Label,Compute.Properties.deviceName,unsigned(Compute.Properties.deviceType));
     for (uint32_t Fixture = 0; Fixture < 3; ++Fixture)
     {
         Scene = RgbTraceScene(Fixture);
@@ -98,7 +103,8 @@ void ValidateTracedQuartet(const char* Driver, const std::string& Shaders, const
                 const uint32_t Method=Pixel/Samples;
                 const uint32_t Seed=RgbQuartetHash((Pixel%Samples+0x12345678u)^(Step*0x6c8e9cf5u));
                 std::array<double,3> Estimate{};
-                uint32_t Draws=0,Kept=0,Evaluations=0,SuffixQueries=0;
+                uint32_t Draws=0,Kept=0,Evaluations=0,SuffixQueries=0,ConnectionQueries=0;
+                uint32_t SuffixMask=0,ConnectionMask=0;
                 for (uint32_t Lane=0;Lane<4;++Lane)
                 {
                     const bool Refresh=Reset || Method==1 || Lane/2==Step%2;
@@ -126,6 +132,19 @@ void ValidateTracedQuartet(const char* Driver, const std::string& Shaders, const
                                     if (Candidate>=8) continue;
                                     ++Evaluations;
                                     const auto Outgoing=Rgb(Candidate);
+                                    if (Elide && Geometry[Candidate]>0)
+                                    {
+                                        if ((SuffixMask & (1u<<Candidate))==0) ++SuffixQueries;
+                                        SuffixMask |= 1u<<Candidate;
+                                        if (std::any_of(Outgoing.begin(),Outgoing.end(),[](float Radiance)
+                                        {
+                                            return Radiance>0;
+                                        }))
+                                        {
+                                            if ((ConnectionMask & (1u<<Candidate))==0) ++ConnectionQueries;
+                                            ConnectionMask |= 1u<<Candidate;
+                                        }
+                                    }
                                     for (uint32_t Channel=0;Channel<3;++Channel)
                                         Estimate[Channel]+=Outgoing[Channel]*Geometry[Candidate]*double(Visibility[Candidate]);
                                 }
@@ -168,7 +187,21 @@ void ValidateTracedQuartet(const char* Driver, const std::string& Shaders, const
                             Estimate[Channel]+=Expected.Outgoing[Channel]*Weights[Pixel][Lane]*Geometry[Expected.FacetIndex]*double(Visibility[Expected.FacetIndex])/4;
                         }
                         ++Evaluations;
-                        if (Refresh) ++SuffixQueries;
+                        const uint32_t FacetIndex=Expected.FacetIndex;
+                        if (Refresh)
+                        {
+                            if (!Elide || (SuffixMask & (1u<<FacetIndex))==0) ++SuffixQueries;
+                            SuffixMask |= 1u<<FacetIndex;
+                        }
+                        if (Elide && Geometry[FacetIndex]>0 &&
+                            std::any_of(Expected.Outgoing.begin(),Expected.Outgoing.end(),[](float Radiance)
+                            {
+                                return Radiance>0;
+                            }))
+                        {
+                            if ((ConnectionMask & (1u<<FacetIndex))==0) ++ConnectionQueries;
+                            ConnectionMask |= 1u<<FacetIndex;
+                        }
                     }
                     Previous[Pixel][Lane]=Actual;
                 }
@@ -182,21 +215,25 @@ void ValidateTracedQuartet(const char* Driver, const std::string& Shaders, const
                 Require(Storage[Count+Pixel][0]==float(Draws) && Storage[Count+Pixel][1]==float(Kept) &&
                         Storage[Count+Pixel][2]==float(Evaluations) && Storage[Count+Pixel][3]==float(Reset),
                         "Persistent work/reset telemetry differs");
-                if (Method>=2) SuffixQueries=Evaluations;
+                if (!Elide)
+                {
+                    if (Method>=2) SuffixQueries=Evaluations;
+                    ConnectionQueries=Evaluations;
+                }
                 const auto Query=Storage[10*Count+Pixel];
-                Require(Query[0]==float(SuffixQueries) && Query[1]==float(Method>=2?Evaluations:0) &&
-                        Query[2]==0 && Query[3]==float(Method<2?Evaluations:0),"Traced quartet query counts differ");
-                SuffixTotals[Method]+=SuffixQueries; ConnectionTotals[Method]+=Evaluations;
+                Require(Query[0]==float(SuffixQueries) && Query[1]==float(Method>=2?ConnectionQueries:0) &&
+                        Query[2]==0 && Query[3]==float(Method<2?ConnectionQueries:0),"Traced quartet query counts differ");
+                SuffixTotals[Method]+=SuffixQueries; ConnectionTotals[Method]+=ConnectionQueries;
                 DrawTotals[Method]+=Draws; KeptTotals[Method]+=Kept; EvaluationTotals[Method]+=Evaluations;
             }
-            std::printf("TRACED_QUARTET_CASE fixture=%u step=%u reset=%u estimate_error=%.12g weight_error=%.12g\n",
-                        Fixture,Step,unsigned(Reset),MaximumEstimate,MaximumWeight);
+            std::printf("%s_CASE fixture=%u step=%u reset=%u estimate_error=%.12g weight_error=%.12g\n",
+                        Label,Fixture,Step,unsigned(Reset),MaximumEstimate,MaximumWeight);
             for (uint32_t Method=0;Method<4;++Method)
-                std::printf("TRACED_QUARTET_WORK fixture=%u step=%u method=%u draws=%llu kept=%llu evaluations=%llu suffix=%llu connection=%llu\n",
-                            Fixture,Step,Method,(unsigned long long)DrawTotals[Method],(unsigned long long)KeptTotals[Method],
+                std::printf("%s_WORK fixture=%u step=%u method=%u draws=%llu kept=%llu evaluations=%llu suffix=%llu connection=%llu\n",
+                            Label,Fixture,Step,Method,(unsigned long long)DrawTotals[Method],(unsigned long long)KeptTotals[Method],
                             (unsigned long long)EvaluationTotals[Method],(unsigned long long)SuffixTotals[Method],
                             (unsigned long long)ConnectionTotals[Method]);
-            std::printf("TRACED_QUARTET_EXACT fixture=%u step=%u",Fixture,Step);
+            std::printf("%s_EXACT fixture=%u step=%u",Label,Fixture,Step);
             for (uint32_t Channel=0;Channel<3;++Channel)
             {
                 double Exact=0;
@@ -204,14 +241,14 @@ void ValidateTracedQuartet(const char* Driver, const std::string& Shaders, const
                 std::printf(" channel%u=%.17g",Channel,Exact);
             }
             std::printf("\n");
-            std::ofstream Capture(Directory+"/TracedQuartet"+std::to_string(Fixture)+"-"+std::to_string(Step)+".f32",std::ios::binary);
+            std::ofstream Capture(Directory+(Elide?"/QueryElision":"/TracedQuartet")+std::to_string(Fixture)+"-"+std::to_string(Step)+".f32",std::ios::binary);
             Capture.exceptions(std::ios::failbit|std::ios::badbit);
             Capture.write(reinterpret_cast<const char*>(Storage),19*Count*16);
             std::fflush(stdout);
         }
     }
     Require(Ambiguous<=16 && RetainedChecks==178176,"Persistent ambiguity or retention count differs");
-    std::printf("TRACED_QUARTET_DECISION correctness=1 retained_checks=%llu ambiguous=%u production_promote=0\n",
-                (unsigned long long)RetainedChecks,Ambiguous);
+    std::printf("%s_DECISION correctness=1 retained_checks=%llu ambiguous=%u production_promote=0\n",
+                Label,(unsigned long long)RetainedChecks,Ambiguous);
 }
 }

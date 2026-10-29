@@ -1804,6 +1804,11 @@ int main(int Count, char** Arguments)
             ValidateReplayDynamicCamera(Arguments[1], Arguments[2]);
             return 0;
         }
+        if (Count == 5 && std::string(Arguments[3]) == "--query-elision")
+        {
+            ValidateTracedQuartet(Arguments[1], Arguments[2], Arguments[4], true);
+            return 0;
+        }
         if (Count == 5 && std::string(Arguments[3]) == "--traced-quartet")
         {
             ValidateTracedQuartet(Arguments[1], Arguments[2], Arguments[4]);

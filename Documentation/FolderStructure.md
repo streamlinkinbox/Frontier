@@ -392,3 +392,15 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   raw/fresh comparisons,actual query counts and all-track rolling-quality rejection. Results retain96 lossless
   buffers,two modules,logs,generated mean/error/block-interval tables and hashes;Images retains actual arrays.
   `--traced-quartet` selects this isolated run;no optimized-baseline,physical-speed or production promotion follows.
+
+
+### Packet-local query elision
+
+- `Exhibits/LightCompute/Code/QueryElisionGpu.slang` enables exact-zero elision and invocation-private duplicate
+  reuse in shared `TracedQuartetGpu.slang`;default unoptimized behavior remains available and byte-verified.
+- Shared `TracedQuartetValidation.h` independently predicts both query policies using double rays and masks.
+  `--query-elision` selects optimized validation;the runner also replays `--traced-quartet` against old captures.
+- `RunQueryElision.sh`,`QueryElisionEvidence.py` and `QueryElision.md` retain both-build/both-policy comparison,
+  all non-query byte identity,actual query reductions and unchanged quality rejection. Results retain96 optimized
+  buffers,four modules,logs and generated tables/hashes;Images retains24 exact arrays and three charts.
+  No global finite-point memoization,query/time-matched claim,physical speed or production promotion follows.

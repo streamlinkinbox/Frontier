@@ -4,6 +4,28 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## Packet-local query elision — 2026-10-29
+
+- [Lossless optimized controls and corrected comparison](../Exhibits/LightCompute/QueryElision.md):shared Slang
+  estimator skips exact-zero contributions and deduplicates exact suffix/connection queries per invocation.
+  Selected descriptor RGB remains real/reusable;no global or cross-dispatch memoization or proposal changes.
+- Release/host ASan+UBSan run five CTests each plus optimized/unoptimized native executions. CPU double rays,
+  proposal/selection/weight replay and query masks validate both;1,156 rows,244 hashes/build,96 buffers and
+  four modules have exact cross-build parity. Non-query identity113,246,208 bytes against
+  fresh and prior baselines;393,216 per-packet counter checks never exceed baseline. All12 track/arm cost gates
+  pass;1,152 mean gates,178,176 retained descriptors and786,432 descriptor comparisons per execution pass.
+- Optimized totals in rotate2/fresh/proposal-raw/raw8 order:stationary163,436/205,465/195,347/299,880;
+  smooth137,388/179,011/150,229/230,668;jumping123,575/165,373/114,193/172,083. All outputs and RMSE unchanged.
+  Jumping rotate2 now uses8.22% MORE calls than proposal-budget raw and retains19.64% worse rolling error.
+  All prior quality gates remain rejected. These controls are proposal-matched,not query/time matched.
+- Bounded lossless-cost phase100%;overall ReSTIR/GI~57%,~43% remaining,planning estimates. Next:independently
+  calibrated,held-out expected-query-budget controls without contribution-dependent stopping. Remaining area
+  PDFs,multibounce,correlation/dynamic/camera/TAA/general-scene acceptance,physical timing and production port.
+- Production348.046875MiB/defaults unchanged;packing/editor/vehicle/Jolt deferred. Results retain96 optimized
+  buffers,four modules,logs,metrics/means/hashes;24 actual arrays and three charts. Windows/physical GPUs and
+  driver/SPIR-V sanitization untested;no physical speed claim,PR or Actions.
+
+
 ## Traced RGB quartet integration — 2026-10-29
 
 - [Complete integration,query counts and frozen rejection](../Exhibits/LightCompute/TracedQuartet.md):RGB quartet

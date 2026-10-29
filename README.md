@@ -99,6 +99,11 @@ The Control Centre uses the reference trapezoidal notch and upward swipe-to-clos
   correctness and reduces queries,but fails two temporal-quality gates. Useful tradeoff,not a promoted
   quality-neutral replacement;production348.046875MiB unchanged.
 
+- [Lossless packet-local query elision](Exhibits/LightCompute/QueryElision.md):zero/duplicate-query removal
+  preserves all RGB/descriptor bytes and reduces calls on every arm/track. Optimized proposal-budget raw is
+  cheaper than rotate2 on the jumping track,with lower rolling error. Previous3/3 quality rejection remains;
+  counts are not physical speed or exactly matched query budgets. Production348.046875MiB unchanged.
+
 - [Traced RGB quartet integration](Exhibits/LightCompute/TracedQuartet.md):selection/persistence now use
   actual suffix and segment queries;CPU replay and build parity pass. Rotate2 uses57.02% fewer calls than raw8,
   but fails rolling-quality acceptance on all3 tracks. Controls are not query/time matched or fully optimized;

@@ -2,6 +2,10 @@
                                                        TRACEDQUARTETGPU.SLANG
 ============================================================================================================================================*/
 // 🧩 Integrate selected ray-tested RGB suffixes,current visibility and persistent quartet refresh.
+#ifndef QUARTET_QUERY_ELISION
+#define QUARTET_QUERY_ELISION 0
+#endif
+
 #define GenerateVertexPayload TraceReferenceGenerate
 #define EvaluateVertexPayload TraceReferenceEvaluate
 #include "RgbTraceGpu.slang"
@@ -21,16 +25,58 @@ float QuartetGeometry(uint Index, float3 Receiver, float U = .2, float V = .3)
     float3 Delta = Receiver - Surface.PositionHit.xyz;
     return max(0, dot(Surface.NormalRoughness.xyz, Unit(Delta))) / max(dot(Delta, Delta), 1e-6);
 }
+#if QUARTET_QUERY_ELISION
+// 📝 Invocation-private tables:never survive dispatches or epochs;all proposal points share exact UV.
+static uint   SuffixMask     = 0;
+static uint   ConnectionMask = 0;
+static float3 SuffixRgb[8];
+static float  ConnectionFactors[8];
+#endif
+
 float3 SelectedSuffix(uint Index, float Scale)
 {
+#if QUARTET_QUERY_ELISION
+    if ((SuffixMask & (1u << Index)) != 0) return SuffixRgb[Index];
+#endif
     bool Visible;
-    return TraceSuffix(TracePoint(Index, .2, .3), Scale, Visible);
+    float3 Outgoing = TraceSuffix(TracePoint(Index, .2, .3), Scale, Visible);
+#if QUARTET_QUERY_ELISION
+    SuffixMask |= 1u << Index;
+    SuffixRgb[Index] = Outgoing;
+#endif
+    return Outgoing;
 }
 float ConnectedGeometry(uint Index, float3 Receiver, float U = .2, float V = .3)
 {
+#if QUARTET_QUERY_ELISION
+    float Geometry = QuartetGeometry(Index, Receiver, U, V);
+    if (Geometry == 0) return 0;
+    bool Canonical = U == .2 && V == .3;
+    if (Canonical && (ConnectionMask & (1u << Index)) != 0) return ConnectionFactors[Index];
+#endif
     bool Visible = TraceReconnect(TracePoint(Index, U, V), Receiver);
-    return QuartetGeometry(Index, Receiver, U, V) * (Visible ? 1 : 0);
+    float Connected = QuartetGeometry(Index, Receiver, U, V) * (Visible ? 1 : 0);
+#if QUARTET_QUERY_ELISION
+    if (Canonical)
+    {
+        ConnectionMask |= 1u << Index;
+        ConnectionFactors[Index] = Connected;
+    }
+#endif
+    return Connected;
 }
+float3 RawContribution(uint Index, float Scale, float3 Receiver)
+{
+#if QUARTET_QUERY_ELISION
+    if (QuartetGeometry(Index, Receiver) == 0) return 0;
+    float3 Outgoing = SelectedSuffix(Index, Scale);
+    if (all(Outgoing == 0)) return 0;
+    return Outgoing * ConnectedGeometry(Index, Receiver);
+#else
+    return SelectedSuffix(Index, Scale) * ConnectedGeometry(Index, Receiver);
+#endif
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  PERSISTENT DESCRIPTOR WIRE
 //------------------------------------------------------------------------------------------------------------------------
@@ -86,8 +132,8 @@ void GenerateVertexPayload(uint3 Dispatch : SV_DispatchThreadID)
             Proposals += 2;
             if (Method >= 2)
             {
-                if (First < 8) { Raw += SelectedSuffix(First, Scale) * ConnectedGeometry(First, Receiver); ++Evaluations; }
-                if (Second < 8) { Raw += SelectedSuffix(Second, Scale) * ConnectedGeometry(Second, Receiver); ++Evaluations; }
+                if (First < 8) { Raw += RawContribution(First, Scale, Receiver); ++Evaluations; }
+                if (Second < 8) { Raw += RawContribution(Second, Scale, Receiver); ++Evaluations; }
             }
             else
             {
@@ -135,8 +181,13 @@ void EvaluateVertexPayload(uint3 Dispatch : SV_DispatchThreadID)
             Descriptor.U >= 0 && Descriptor.V >= 0 && Descriptor.U + Descriptor.V <= 1;
         if (Valid)
         {
-            Estimate += Descriptor.Outgoing * Descriptor.Weight *
-                ConnectedGeometry(Descriptor.FacetIndex, Input.ViewMetallic.xyz, Descriptor.U, Descriptor.V) / 4;
+#if QUARTET_QUERY_ELISION
+            if (any(Descriptor.Outgoing > 0))
+#endif
+            {
+                Estimate += Descriptor.Outgoing * Descriptor.Weight *
+                    ConnectedGeometry(Descriptor.FacetIndex, Input.ViewMetallic.xyz, Descriptor.U, Descriptor.V) / 4;
+            }
             ++Evaluations;
         }
     }

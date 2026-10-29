@@ -1,5 +1,16 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Lossless packet-local query elision — 2026-10-29
+
+[Optimized controls,unchanged RGB and corrected cost comparison](QueryElision.md):safe exact-zero elision and
+invocation-local duplicate reuse preserve113,246,208 non-query bytes. Release/host ASan+UBSan compare both
+optimized and unoptimized execution against prior captures. Every arm/track uses fewer calls than before.
+On jumping receivers,optimized proposal-budget raw uses114,193 calls versus rotate2's123,575,and has lower
+rolling error. Earlier quality rejection remains3/3. No physical speedup or exactly query/time-matched claim.
+Bounded phase100%;overall~57%/~43% remaining,planning estimates;production348.046875MiB/defaults unchanged.
+Next:independent calibration and held-out expected-query-budget controls before further promotion decisions.
+
+
 ## Traced RGB quartet integration — 2026-10-29
 
 [Integrated selected suffixes,visibility,actual calls and rejected promotion](TracedQuartet.md):both builds pass
