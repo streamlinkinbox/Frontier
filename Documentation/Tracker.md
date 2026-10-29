@@ -4,6 +4,27 @@ Single progress and violation tracker. Detailed evidence belongs in Exhibits, no
 The [renderer and GI evidence map](../Exhibits/RecoveryAudit/RendererStatus.md) separates software tracing,
 hardware RT, non-ray paths, reflections, PBR and the statistical limits of the recent charts.
 
+## Ray-tested RGB suffix and visibility reconnection — 2026-10-29
+
+- [Completed bounded ray gate and actual buffers](../Exhibits/LightCompute/RgbTrace.md):production FacetSurface/
+  NearestFacet reconstruct points and trace a directional Lambertian RGB suffix plus receiver visibility.
+  Independent double all-triangle Moller-Trumbore checks40,960 binary reference rays;20,480 valid/4,096 stale
+  descriptors per build pass. Cached/inline connected RGB match bitwise;max normalized CPU error3.1493e-8.
+- Release/host ASan+UBSan pass,five CTests each;exact parity:eight rows,six buffers,two SPIR-V modules;
+  54 runtime hashes/build verify. Lit blocked reconnections expose921 visibility-omission failures. Nonzero
+  stale RGB poison is rejected without queries/contribution. BVHs rebuild after blocker geometry changes.
+- Cold cache and inline paths each use one suffix+one segment call/valid descriptor. No warm saving,physical
+  timing,hardware RT,multibounce suffix,quartet integration or quality promotion is claimed. Prior persistent
+  rolling-error regression/rejection remains unchanged;production348.046875MiB/defaults stay untouched.
+- Bounded ray gate100%;overall ReSTIR/GI~52%,~48% remaining,planning estimates only. Next:wire ray-tested RGB
+  and visibility into quartet selection/refresh with actual query-budget and fresh/raw comparisons. Correlation
+  acceptance,arbitrary proposals,multibounce/dynamic/camera/TAA/general-scene quality,physical GPU measurement
+  and production integration remain. Packing/editor/vehicle/Jolt deferred;no PR or Actions.
+- Results retain six lossless buffers,compiled modules,source/readback hashes and generated comparison/audit;
+  Images retains18 exact64x64 arrays and two charts. Initial unused-function build failure is retained;warnings
+  and acceptance thresholds were not weakened. Windows/MSVC and physical GPUs are untested.
+
+
 ## Persistent RGB quartet reuse — 2026-10-29
 
 - [Completed persistence experiment and rejected promotion](../Exhibits/LightCompute/RgbReuse.md):four RGB

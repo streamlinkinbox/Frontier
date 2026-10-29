@@ -1,0 +1,5 @@
+PASS RGB suffix/reconnection:8 identical semantic rows;hashes/build=[54, 54];6 identical captures;2 identical SPIR-V modules.
+20480 valid and4096 stale descriptors/build;40960 CPU binary decisions;18 exact PNG arrays.
+Query totals[cache suffix,inline suffix,cached reconnect,inline reconnect]=[20480, 20480, 20480, 20480];omitted visibility failures=921.
+Max normalized CPU RGB error=3.14929073791e-08;cached/inline bitwise equal in all cases.
+Both native runs exit0,five CTests each;host ASan+UBSan only. One direct-light suffix,not multibounce GI or quality promotion.

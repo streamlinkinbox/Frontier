@@ -371,3 +371,13 @@ The font catalogue has a native TOML form; JSON remains only an automation/repor
   cross-build parity,paired error intervals and the all-track rolling-quality rejection. Results retain96 lossless
   captures,two SPIR-V modules,logs,generated metrics/means and hashes;Images retains24 actual arrays/two charts.
   No traced RGB,visibility,BVH-refit,camera/TAA,physical-GPU timing or production-allocation promotion is implied.
+
+### Ray-tested RGB suffix and visibility reconnection
+
+- `Exhibits/LightCompute/Code/RgbTraceGpu.slang` uses production facet interpolation/software-BVH queries to
+  store a Lambertian directional-light RGB suffix in the shared descriptor and trace receiver visibility.
+- `RgbTraceValidation.h` owns a rebuilt ten-triangle BVH scene,independent double all-triangle intersections,
+  CPU RGB checks,cached/inline equality,query instrumentation checks and stale nonzero-payload rejection.
+- `RunRgbTrace.sh`,`RgbTraceEvidence.py` and `RgbTrace.md` retain the direct-suffix gate,exact build parity,
+  omission negative control,lossless captures/compiled modules,generated metrics and labelled actual readbacks.
+  `--rgb-trace` selects this exhibit;it does not wire the suffix into quartet sampling or change production.

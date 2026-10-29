@@ -1,5 +1,14 @@
 # Vulkan primary visibility, light history and reconstruction
 
+## Ray-tested RGB suffix and visibility — 2026-10-29
+
+[Complete direct-light suffix/reconnection gate and actual buffers](RgbTrace.md):production software-BVH shadow
+and receiver-segment queries now control RGB. Cached/inline results match bitwise;40,960 independent CPU binary
+reference rays agree. Both builds pass,five CTests each;six captures match. Omitting visibility leaks light on921
+records. Cold cached/inline paths both use two calls/valid descriptor:no warm saving,quality or speed promotion.
+Prior rolling-error rejection remains;production348.046875MiB/defaults unchanged. Multibounce GI is not established.
+
+
 ## Persistent RGB quartet reuse — 2026-10-29
 
 [Complete persistence test,reset costs and rejected promotion](RgbReuse.md):two reservoirs retained/two refreshed;
