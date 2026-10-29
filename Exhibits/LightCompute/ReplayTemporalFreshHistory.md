@@ -175,3 +175,7 @@ mean gates but fails two temporal-quality gates; it is not a direct benchmark of
 Neither design has been imported into production. This fixture excludes spatial reuse, arbitrary scene motion,
 textured production resources, physical RT hardware, Windows, and the live editor. The completion-gated C++
 sequence still resets changed receiver records; the direct-recorder stress test deliberately continued them.
+
+### Follow-up: selection-stream isolation
+
+A paired 128-cohort moving-visibility experiment changes only the reservoir-selection stream to a deterministic decorrelated hash, verifies the path-seed readbacks remain identical, and evaluates Fresh1/2/4 plus temporal1/4 at both floors. The alternative fails one temporal4/lower independent-mean gate; although its RMSE is lower in that cell, the paired contrast is inconclusive and the mean is outside tolerance. No stream is promoted or ported. See the [complete report, quantitative comparisons and visual proof](ReplayTemporalSelectionStream.md), with its [raw cohort log](Results/ReplayTemporalSelectionStream.txt).
