@@ -1,0 +1,32 @@
+Host-only ASan+UBSan CTests. Leak detection disabled; new GPU harness, external SwiftShader and shaders were not executed under sanitizers.
+ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1
+Linux 6.1.158+ x86_64
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+458960c641ecc714cd5fda4f0e6237a39b8cb434792d40953f170cb263487804  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+32e0d0ac74285586f79b4b24592a1afe5016ba98ae6f24ec2e096d34f0863ad1  Exhibits/LightCompute/Code/ReplayMaterialGuardValidation.h
+3e5aeade91a84944ecdd25a9c13b608244f380425143db24f093f09f1b22edd6  Exhibits/LightCompute/Code/ReplayFreshDonorValidation.h
+Test project /home/user/Frontier/_ClaudeScratch/build/replay-material-reuse-sanitized
+      Start  1: PathReplayDomainValidation
+ 1/10 Test  #1: PathReplayDomainValidation ...........   Passed    0.03 sec
+      Start  2: PathReplayVulkanValidation
+ 2/10 Test  #2: PathReplayVulkanValidation ...........   Passed    0.01 sec
+      Start  3: RadiantFacetValidation
+ 3/10 Test  #3: RadiantFacetValidation ...............   Passed    0.02 sec
+      Start  4: MediumRadianceValidation
+ 4/10 Test  #4: MediumRadianceValidation .............   Passed    0.01 sec
+      Start  5: ReplaySeedCorrelationValidation
+ 5/10 Test  #5: ReplaySeedCorrelationValidation ......   Passed    1.76 sec
+      Start  6: ReplayVarianceFilterValidation
+ 6/10 Test  #6: ReplayVarianceFilterValidation .......   Passed    0.09 sec
+      Start  7: ReplayRayAccelerationValidation
+ 7/10 Test  #7: ReplayRayAccelerationValidation ......   Passed    0.56 sec
+      Start  8: ReplayPbrReflectionValidation
+ 8/10 Test  #8: ReplayPbrReflectionValidation ........   Passed    0.16 sec
+      Start  9: ReplaySubmissionSequenceValidation
+ 9/10 Test  #9: ReplaySubmissionSequenceValidation ...   Passed    0.02 sec
+      Start 10: PathReplayArchiveValidation
+10/10 Test #10: PathReplayArchiveValidation ..........   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 10
+
+Total Test time (real) =   2.68 sec

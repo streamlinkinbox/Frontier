@@ -16,12 +16,31 @@ a two-bounce diffuse fixture also passes a separate area integral
 [paired floor study](../LightCompute/ReplayMaterialFloor.md) reports a large homogeneous dim-material improvement,
 but a [mixed-material/visibility stress test](../LightCompute/ReplayMixedMaterialVisibility.md) exposes severe
 variance and a significant lower-floor regression. A later [held-out guard test](../LightCompute/ReplayMaterialGuardCandidate.md)
-failed independent means under different visibility even with the same material. None is general ReSTIR
-validation. The PBR showroom's 80-sample reference is a finite same-shader
+failed independent means under different visibility even with the same material. A separate test-only
+[fresh-neighbor holdout](../LightCompute/ReplayFreshDonorCandidate.md) passes its candidate mean gates but has
+one measured quality regression and is not integrated. None is general ReSTIR validation. The PBR showroom's 80-sample reference is a finite same-shader
 comparison, not independent ground truth. An optional completion-gated Engine submission sequence is now tested
 [offscreen](../LightCompute/ReplaySubmissionSequence.md), but it does not create resources or present an image.
 `Frontier/Applications/Editor/FrontierMain.cpp` and `UI/Editor/EditorWorkspace.cpp` still contain viewport
 placeholders. Windows, physical-GPU timing, deforming scenes and production scene/resource integration remain open.
+
+## Rough completion estimates
+
+These are **subjective planning estimates**, not measurements or elapsed-time forecasts. Here 100% means a
+production-ready Frontier renderer with correct broad scene/material handling, safe resource/history ownership,
+live editor presentation, physical-GPU/Windows verification and acceptable real-time quality and frame cost.
+Uncertainty is at least ±20 percentage points because the remaining integration and rare-path issues are not
+fully characterized.
+
+| Scope | Approximate complete | Approximate remaining | Main blockers |
+| --- | ---: | ---: | --- |
+| ReSTIR GI end-to-end | 40% | 60% | Failed visibility-discontinuous combined reuse, motion/history tests, scene/resources, editor and physical-GPU performance. |
+| PBR materials and reflections end-to-end | 35% | 65% | Production material/texture loading, broad reflection/transmission/lighting validation, viewport and hardware tests. |
+
+The Engine contains bounded C++ recorder, domain and completion-gated sequence code; it is exercised by
+offscreen Vulkan tests, not yet a production scene renderer or live editor viewport. The latest fresh-donor
+quality candidate is **test-only** and is not an Engine default. Do not add percentages across the two overlapping
+scopes or use them to promise a finish date.
 
 ## Ray tracing versus non-ray paths
 

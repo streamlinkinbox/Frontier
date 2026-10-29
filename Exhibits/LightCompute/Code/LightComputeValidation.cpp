@@ -1904,11 +1904,19 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "ReplayMaterialFloorValidation.h"
 #include "ReplayMixedMaterialValidation.h"
 #include "ReplayMaterialGuardValidation.h"
+#include "ReplayFreshDonorValidation.h"
 } // namespace
 int main(int Count, char** Arguments)
 {
     try
     {
+        if (Count == 4 && (std::string(Arguments[3]) == "--replay-fresh-donor-baseline" ||
+                           std::string(Arguments[3]) == "--replay-fresh-donor-candidate"))
+        {
+            ValidateReplayFreshDonor(Arguments[1], Arguments[2],
+                                     std::string(Arguments[3]) == "--replay-fresh-donor-candidate");
+            return 0;
+        }
         if (Count == 4 && (std::string(Arguments[3]) == "--replay-material-guard-baseline" ||
                            std::string(Arguments[3]) == "--replay-material-guard-candidate"))
         {

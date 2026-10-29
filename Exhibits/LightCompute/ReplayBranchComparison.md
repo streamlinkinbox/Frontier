@@ -2,10 +2,11 @@
 
 ## Bottom line
 
-Compared our `arena/5ec53579-frontier` against `arena/08e7de48-frontier` at `75f72f49a6a5` on
-2026-10-29. The earlier comparison snapshot was `ceebd8a925a9`; the three later peer commits add research fixtures
-and a measured vertex-cache prototype, not changes to its Engine rendering files. Our branch has broader implemented
-replay features; the other branch has stronger independent controls and reports unfavorable results more carefully.
+Compared our `arena/5ec53579-frontier` against `arena/08e7de48-frontier` at `efc7103c7cd6` on
+2026-10-29. Since the previous review at `75f72f49a6a5`, eight peer commits add refresh, candidate-bank,
+receiver-density and numerical-edge research fixtures; they do **not** change its Engine rendering files.
+Our branch has broader implemented replay features; the other branch has strong independent controls and
+reports unfavorable results carefully.
 The fixtures, reference images, budgets and source snapshots differ, so there is **no fair head-to-head result
 proving one branch is generally faster or more accurate**.
 
@@ -43,6 +44,8 @@ from code that was already here or deliberately left out. Commit IDs identify th
 | Peer room convergence controls  | Methodology adopted       | Independent references and negative controls   |
 | Secondary vertex reconnection   | Design constraint noted   | Not this branch's seed-replay representation  |
 | Persistent vertex cache         | Not ported                | Promising bounded query savings; new ABI needed |
+| Receiver-anchored candidate bank | Not ported               | Stored birth densities and 144B payload differ from our seed replay |
+| Edge-query elision              | Rejected by peer; not ported | Exact-sample boundary gate fails; no accepted speed result |
 | Peer CPU room and GPU suites    | Not copied                | Our fixtures differ; no head-to-head claim     |
 
 The cache stores only the radiance just evaluated at the current receiver. It never substitutes historical RGB.
@@ -73,6 +76,24 @@ and normalization checks were already present here. These guards do not prove ar
   It preserves the inline estimator's occlusion noise, adds no independent samples and has no physical-GPU timing.
   Neither prototype was ported or promoted here; arbitrary materials, refresh, movement, storage integration and
   full-path fresh controls require separate tests.
+- The peer's [bounded refresh study][peer-refresh] found that freezing a selected winner reduces query work but
+  increases 16-pose temporal error versus both component Fresh6 and Fresh8 in all four fixtures. A smoother
+  sequence is not necessarily more accurate. Its [candidate bank][peer-bank] instead retains raw proposals and
+  their generation densities; rotating four candidates improves all component Fresh6 temporal comparisons but
+  still loses to Fresh8 on the `.3` occlusion fixture. It uses 144 payload bytes plus 16 telemetry bytes per
+  test reservoir and is not shown to fit production storage.
+- Its [receiver-anchored bank][peer-receiver] reduces temporal RMSE by 14.07–16.65% versus its **restricted
+  diffuse component** Fresh8 across four fixtures, while preserving each candidate's birth density and null
+  count. The reported 37.72–49.46% query reductions use an inherited control with visibility rechecks and are
+  not optimized or physical-GPU speed claims. Its subsequent [edge audit][peer-edges] blocked blanket query
+  elision: 3 of 1,024 retained probes disagreed at one shadow-boundary configuration. Those are deterministic
+  probes, not three independent failure-rate samples; no query-saving result was accepted.
+- Our [fresh-neighbor candidate](ReplayFreshDonorCandidate.md) independently avoids importing a neighbor's
+  selected temporal reservoir for spatial reuse. It regenerates a raw seed rather than storing the peer's
+  density-bearing vertices; the representations, estimators, scenes and storage are not comparable. It passed
+  its bounded candidate mean gates but also produced a small quality regression and remains test-only. No peer
+  implementation was copied, and their birth-density principle still needs a separate derivation if candidate
+  vertices are ever introduced here.
 - Its compact layout uses `PathReplayCompactStorage = 2097152u`, which collides with this branch's SVGF flag;
   its seed-reservoir flag also collides with this branch's Vogel-disk flag. Do **not** cherry-pick those flag
   definitions without an explicit ABI migration and reset of old histories.
@@ -98,6 +119,12 @@ and normalization checks were already present here. These guards do not prove ar
    normalization can bias zero/tiny coverage even when sample and evaluation PDFs agree. We now normalize the
    mixture or use a full-support cosine proposal for extremely small sums; a bounded recorded-path test also
    passes. See [material sampling and path evidence](ReplayMaterialSampling.md).
+7. In our artificial mixed-material/visibility holdouts, original temporal + disk reuse at floor `1e-4` failed
+   independent mean gates even though Fresh1 passed; a same-material visibility control also failed. The
+   test-only [fresh-neighbor alternative](ReplayFreshDonorCandidate.md) passed its 32 mean gates in a new seed
+   stream but regressed mixed-metal default-floor RMSE by 1.87%. Please test visibility-discontinuous and
+   mixed-material donors, raw-draw controls and rare tails independently; this is not a claim about your bank's
+   different estimator. Your numerical-edge rejection also motivates exact first-hit/recheck tests here.
 
 The peer's reconnection results suggest a useful future gate: retain null candidates and full proposal/target
 support, re-evaluate receiver visibility, and apply the Jacobian exactly once in the stored measure. A cached
@@ -114,3 +141,7 @@ fixed equal-work and equal-time comparisons with warm-up costs, and physical-GPU
 [peer-correlation]: https://github.com/streamlinkinbox/Frontier/blob/0441442/Exhibits/LightCompute/ReplayCorrelation.md
 [peer-triangle]: https://github.com/streamlinkinbox/Frontier/blob/0441442/Exhibits/LightCompute/TriangleReconnection.md
 [peer-vertex]: https://github.com/streamlinkinbox/Frontier/blob/75f72f4/Exhibits/LightCompute/VertexCache.md
+[peer-refresh]: https://github.com/streamlinkinbox/Frontier/blob/efc7103c7cd6/Exhibits/LightCompute/CacheRefresh.md
+[peer-bank]: https://github.com/streamlinkinbox/Frontier/blob/efc7103c7cd6/Exhibits/LightCompute/CandidateBank.md
+[peer-receiver]: https://github.com/streamlinkinbox/Frontier/blob/efc7103c7cd6/Exhibits/LightCompute/ReceiverBank.md
+[peer-edges]: https://github.com/streamlinkinbox/Frontier/blob/efc7103c7cd6/Exhibits/LightCompute/RayBudget.md

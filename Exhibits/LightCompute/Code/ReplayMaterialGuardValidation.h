@@ -9,7 +9,8 @@
 //------------------------------------------------------------------------------------------------------------------------
 
 void InspectReplayMaterialGuardLinks(LightComputeSubmission& Compute, const std::string& Shaders, uint32_t Size,
-                                     uint32_t Seed, uint32_t ResolveLinks, bool Mixed, bool Candidate)
+                                     uint32_t Seed, uint32_t ResolveLinks, bool Mixed, bool Candidate,
+                                     const char* ArmOverride = nullptr)
 {
     VkPipeline Audit = Compute.ConstructPipeline(Shaders + "/ReplayGuardLinks.spv");
     ComputeExtent Extent{};
@@ -59,8 +60,8 @@ void InspectReplayMaterialGuardLinks(LightComputeSubmission& Compute, const std:
             Counts[C] += uint32_t(Pixel[C]);
         }
     std::printf("REPLAY_GUARD_LINKS arm=%s scene=%s seed=%u eligible=%u cross_material=%u cross_position=%u "
-                "rejected=%u resolve_links=%u\n", Candidate ? "guard" : "baseline", Mixed ? "mixed" : "visibility",
-                Seed, Counts[0], Counts[1], Counts[2], Counts[3], ResolveLinks);
+                "rejected=%u resolve_links=%u\n", ArmOverride ? ArmOverride : (Candidate ? "guard" : "baseline"),
+                Mixed ? "mixed" : "visibility", Seed, Counts[0], Counts[1], Counts[2], Counts[3], ResolveLinks);
     std::fflush(stdout);
     Require(Counts[0] > 0 && Counts[0] == ResolveLinks, "Material-guard probe did not match Resolve links");
     if (Mixed)

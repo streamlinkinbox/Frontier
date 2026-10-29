@@ -1,12 +1,14 @@
 # Vogel spatial-disk reuse, geometric surface culling, and unified seed-bank ReSTIR GI
 
-🧩 Completes GPU Vulkan verification of combined subpixel seed-bank + temporal + spatial reservoir reuse, adds
-finite reservoir-intake guards, and upgrades spatial reuse in `PathReplayReservoir.slang` (`PathReplaySpatialDisk =
-1048576u`) with an angular-adaptive 4-tap Vogel Golden-Angle disk and symmetric tangent-plane/normal/roughness culling.
+🧩 Records historical, bounded software-Vulkan checks of combined subpixel seed-bank + temporal + spatial
+reservoir reuse and a 4-tap Vogel disk (`PathReplaySpatialDisk = 1048576u`). These fixtures do **not** prove
+combined reuse generally correct: later [mixed-material and visibility holdouts](ReplayMaterialGuardCandidate.md)
+failed independent mean gates and exposed severe tails. The current Engine count guard is 68, and the
+[test-only fresh-donor alternative](ReplayFreshDonorCandidate.md) remains unpromoted.
 
 ![Driving Corridor 4-Bounce ReSTIR GI Comparison](Images/ReplaySpatialDiskComparison.png)
 
-## Mathematical contracts verified
+## Historical fixture checks and current caveats
 
 1. **Unified subpixel seed-bank + reservoir reuse (`ValidateReplaySampleCombined`)**:
    - Diagnosed and resolved the prior unexecuted GPU assertion bug: when `Spatial = true`, a pixel with `Count == 0`
@@ -18,9 +20,10 @@ finite reservoir-intake guards, and upgrades spatial reuse in `PathReplayReservo
      `disk_culled=235`).
 
 2. **Finite reservoir-history intake & overflow guards (`ReplayReservoirHistoryValid`)**:
-   - Validates `uint16` seed halves (`[0, 65535]` exact integer), finite positive weight `W > 0`, and exact integer
-     count $M \in [1, 16777216]$, paired with `isfinite(Weight) && isfinite(Sum + Weight)` before reservoir updates in
-     both `GenerateReplayReservoirs` and `ResolveReplayReservoirs`.
+   - Validates `uint16` seed halves (`[0, 65535]` exact integer), finite positive weight `W > 0`, and a bounded
+     exact integer count, paired with `isfinite(Weight) && isfinite(Sum + Weight)` before reservoir updates in
+     both `GenerateReplayReservoirs` and `ResolveReplayReservoirs`. The current count limit is 68; this section's
+     injected corruption results are historical, not a fresh test of the current shader.
    - Verified against 11 injected reservoir corruptions (`NaN`/`-1`/`65536`/`0.5` seeds, `NaN`/`+Inf`/`0` weights,
      `NaN`/`1.5`/`33554432` counts, and `3.4e38 * 8` float-overflow weights): `temporal_rejected=11`, zero non-finite
      leaks across spatial-disk neighbors, and bit-exact fallback to fresh 1-spp radiance.
@@ -60,7 +63,7 @@ counters (`Counters[8]` bounce traversals + `Counters[2]` shadow traversals) and
 | Diffuse Corridor (8 batches) | Avg BVH Rays | 15,848 | **14,600 (-7.9%)** | 17,385 | ✔️ 342 taps culled |
 | Wet-Road Rough GGX (6 batches) | Whole-Frame RMSE | 0.134707 | **0.131988 (-52.1% vs 1-spp)** | n/a (diffuse bank) | 🏆 Beats Cross |
 | Wet-Road Rough GGX (6 batches) | Avg BVH Rays | 17,084 | **15,789 (-7.6%)** | n/a (diffuse bank) | 🏆 Fewer rays |
-| Host 2D Monte Carlo (`CTest`) | Worst Pixel $\|z\|$ | <= 2.00 | **<= 2.26 (40 px, 1,024 reps)** | **<= 2.26** | ✔️ Unbiased (`<5σ`) |
+| Host 2D Monte Carlo (`CTest`) | Worst Pixel $\|z\|$ | <= 2.00 | **<= 2.26 (40 px, 1,024 reps)** | **<= 2.26** | ✔️ Within this finite-fixture gate; not a proof of unbiasedness |
 
 ## Reproduce
 

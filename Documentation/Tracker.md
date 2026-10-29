@@ -23,7 +23,11 @@ are inherited historical checkpoints: their branch/PR references and completion 
   higher but statistically inconclusive RMSE. All 12 means still passed.
 - A 48-cohort [address-guard holdout](../Exhibits/LightCompute/ReplayMaterialGuardCandidate.md) then failed 5/32
   mean gates, including same-material visibility groups unaffected by the guard. Some mixed-scene RMSEs improved,
-  but neither the guard nor a lower default floor was promoted; investigate visibility and rare tails.
+  but neither the guard nor a lower default floor was promoted.
+- A [fresh-neighbor holdout](../Exhibits/LightCompute/ReplayFreshDonorCandidate.md) passes 32/32 candidate mean
+  gates and reduces default-floor RMSE `1.032649 → 0.116732` in one visibility fixture, while a mixed-metal case
+  regresses 1.87%. The original arm fails two lower-floor means. This is a test-only shader, not a production
+  fix or timing result; moving history, multiple candidates, seed banks and physical GPU remain untested.
 - Physical-GPU/Windows timing, realistic mixed/moving materials, production scene/resource ownership and the
   editor viewport remain open. This restricted result does not prove general ReSTIR unbiasedness.
 
@@ -39,9 +43,9 @@ are inherited historical checkpoints: their branch/PR references and completion 
 - Single-sample material importance RMSE is lower for tested metal/coated cases but higher for matte/sheen;
   no equal-time or physical-GPU speed claim. Current thin-sheet regression, 10/10 host Release/ASan+UBSan
   CTests, sanitized-host material probe and four KHR SPIR-V opcode checks pass. Driver/shaders are unsanitized.
-- Rechecked peer snapshot `75f72f4`; no peer commits/files cherry-picked. Its new reuse/reconnection work and
-  bounded vertex-cache query savings were reviewed without promoting the prototype.
-  [Exact adoption ledger](../Exhibits/LightCompute/ReplayBranchComparison.md).
+- Rechecked peer snapshot `efc7103`; no peer commits/files cherry-picked. Its candidate-density/refresh studies
+  and rejected numerical-edge query elision were reviewed without promoting the different prototype.
+  [Exact adoption ledger and message for the other agent](../Exhibits/LightCompute/ReplayBranchComparison.md).
 - Full ReSTIR GI, broad reflection/PBR correctness, production material/scene upload, GPU resource ownership,
   Windows/physical GPU and the live editor viewport remain open.
 

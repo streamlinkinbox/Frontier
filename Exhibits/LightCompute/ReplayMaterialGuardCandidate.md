@@ -86,6 +86,7 @@ PYTHONPATH="$PWD/_ClaudeScratch/pytools${PYTHONPATH:+:$PYTHONPATH}" \
     python3 Exhibits/LightCompute/Code/ReplayMaterialGuardImages.py
 ```
 
-The test-only candidate's address match should not be promoted on these results. A follow-up must isolate
-spatial and temporal contributions, examine visibility-discontinuous donors and rare tails, and preserve
-independent references. Physical-GPU timing, real scenes, motion and material variation remain open.
+The test-only candidate's address match should not be promoted on these results. A subsequent
+[fresh-neighbor holdout](ReplayFreshDonorCandidate.md) isolates temporal and spatial modes and reports a
+promising but still test-only alternative, including one measured regression. Physical-GPU timing, real scenes,
+motion, rare tails and material variation remain open.
