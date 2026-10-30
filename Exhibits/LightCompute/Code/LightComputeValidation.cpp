@@ -596,12 +596,13 @@ struct LightComputeSubmission
         }
         ConstructBuffer(4, ProfileSamples);
         ConstructBuffer(5, nullptr, 256 * 17 * 4);
+        // Test-only provenance reads slab 12 for the selected path's NEE contribution.
         const size_t OutputRecords = CompactReplay
             ? size_t(PathReplayRequiredCompactOutputRecords(uint32_t(Scene.Receivers.size()),
                                                             HasSampleGather, HasVarianceGather))
             : (Scene.Receivers.size() * (HasVarianceGather ? 46 :
                 (HasSampleGather ? 40 : (HasReplayGather ? 36 :
-                (ReplayOnly ? (ReplayProvenanceOnly ? 37 : 32) :
+                (ReplayOnly ? (ReplayProvenanceOnly ? 38 : 32) :
                 ((DiffuseOnly || RectangleOnly) ? 32 : 25))))) + 13889 + SolarSourceCount);
         ConstructBuffer(6, nullptr, OutputRecords * 16);
         ConstructBuffer(7, nullptr, 96);
@@ -1953,6 +1954,11 @@ int main(int Count, char** Arguments)
         if (Count == 4 && std::string(Arguments[3]) == "--replay-temporal-direct-visibility")
         {
             ValidateReplayTemporalDirectVisibility(Arguments[1], Arguments[2]);
+            return 0;
+        }
+        if (Count == 4 && std::string(Arguments[3]) == "--replay-temporal-direct-estimate")
+        {
+            ValidateReplayTemporalDirectEmitterEstimateOnly(Arguments[1], Arguments[2]);
             return 0;
         }
         if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-history-baseline" ||

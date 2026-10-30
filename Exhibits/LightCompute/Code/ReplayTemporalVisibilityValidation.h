@@ -277,6 +277,32 @@ LightComputeArchive AddReplayTemporalVisibilityEmitter(LightComputeArchive Scene
     return Scene;
 }
 
+void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute,
+                                                 const LightComputeArchive& Material,
+                                                 const std::array<LightComputeArchive, 4>& Scenes,
+                                                 uint32_t Cohorts, uint32_t Size, uint32_t FarGroup, float Floor);
+
+void ValidateReplayTemporalDirectEmitterEstimateOnly(const char* Driver, const std::string& Shaders)
+{
+    constexpr uint32_t Size = 32u, Cohorts = 32u, FarGroup = 1u;
+    constexpr float Floor = .0001f;
+    auto DimSpecification = EnumerateReplayMaterialSpecifications()[4];
+    DimSpecification.Coverage = 1e-3f;
+    DimSpecification.CoatCoverage = 2e-3f;
+    DimSpecification.ReportingScale = 1e3;
+    const auto Dim = ConstructReplayMaterialReuseFixture(Size, DimSpecification);
+    const auto Metal = ConstructReplayMaterialReuseFixture(Size, EnumerateReplayMaterialSpecifications()[1]);
+    const auto Capacity = AddReplayTemporalVisibilityEmitter(ConstructReplayMixedMaterialFixture(Size, Dim, Metal));
+    auto Scenes = ConstructReplayFreshMotionScenes(Size, Dim, Metal, false);
+    for (auto& Scene : Scenes) Scene = AddReplayTemporalVisibilityEmitter(std::move(Scene));
+    LightComputeSubmission Compute(Driver);
+    std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture=overhead_emitter moving_receivers=1 "
+                "preparing_on=%s\n", Compute.Properties.deviceName);
+    std::fflush(stdout);
+    Compute.Prepare(Capacity, Shaders, false, false, false, false, true, false, false, true);
+    ValidateReplayTemporalDirectEmitterEstimate(Compute, Metal, Scenes, Cohorts, Size, FarGroup, Floor);
+}
+
 void ValidateReplayTemporalDirectVisibility(const char* Driver, const std::string& Shaders)
 {
     constexpr uint32_t Size = 32u, Pixels = Size * Size, Cohorts = 32u, Frames = 4u;
@@ -434,5 +460,171 @@ void ValidateReplayTemporalDirectVisibility(const char* Driver, const std::strin
     }
     std::printf("PASS ReplayTemporalDirectVisibilityValidation rows=%llu same_seed_prior_current_pairs=verified "
                 "estimator_changed=0 test_only_emitter=1\n", static_cast<unsigned long long>(Rows));
+    std::fflush(stdout);
+    ValidateReplayTemporalDirectEmitterEstimate(Compute, Metal, Scenes, Cohorts, Size, FarGroup, Floor);
+}
+
+double IntegrateReplayTemporalDirectEmitterReference(const LightComputeArchive& Material,
+                                                      double ReceiverX, uint32_t Steps)
+{
+    constexpr double EmitterHalf = 2.0, EmitterZ = 3.0, OriginOffset = .001;
+    constexpr double EmissionRed = 10.0;
+    constexpr std::array<double, 2> BlockerZ{1.0, 1.5};
+    constexpr std::array<double, 2> BlockerCenterX{-.75, 0.0};
+    constexpr std::array<double, 2> BlockerHalfX{.5, .35};
+    constexpr std::array<double, 2> BlockerHalfY{.5, .35};
+    const auto& Receiver = Material.Receivers[0];
+    const double ViewLength = std::sqrt(double(Receiver.ViewMetallic[0]) * Receiver.ViewMetallic[0] +
+                                        double(Receiver.ViewMetallic[2]) * Receiver.ViewMetallic[2]);
+    const double ViewX = double(Receiver.ViewMetallic[0]) / ViewLength;
+    const double ViewZ = double(Receiver.ViewMetallic[2]) / ViewLength;
+    const double Cell = 2.0 * EmitterHalf / double(Steps);
+    double Integral = 0.0;
+    for (uint32_t Y = 0; Y < Steps; ++Y)
+        for (uint32_t X = 0; X < Steps; ++X)
+        {
+            const double SourceX = -EmitterHalf + (double(X) + .5) * Cell;
+            const double SourceY = -EmitterHalf + (double(Y) + .5) * Cell;
+            const double Dx = SourceX - ReceiverX, Dy = SourceY;
+            const double Dz = EmitterZ - OriginOffset;
+            const double DistanceSquared = Dx * Dx + Dy * Dy + Dz * Dz;
+            const double Distance = std::sqrt(DistanceSquared);
+            const double LightX = Dx / Distance, LightY = Dy / Distance, LightZ = Dz / Distance;
+            const double CosReceiver = LightZ;
+            const double CosEmitter = LightZ;
+            const double HalfX = ViewX + LightX, HalfY = LightY, HalfZ = ViewZ + LightZ;
+            const double HalfLength = std::sqrt(HalfX * HalfX + HalfY * HalfY + HalfZ * HalfZ);
+            const double NormalHalf = HalfZ / HalfLength;
+            const double ViewHalf = std::clamp((ViewX * HalfX + ViewZ * HalfZ) / HalfLength, 0.0, 1.0);
+            const double Brdf = EvaluateReplayMaterialReference(Material, ViewZ, LightZ, NormalHalf, ViewHalf);
+            bool Occluded = false;
+            for (size_t Blocker = 0; Blocker < BlockerZ.size(); ++Blocker)
+            {
+                const double T = (BlockerZ[Blocker] - OriginOffset) / Dz;
+                const double HitX = ReceiverX + T * Dx - BlockerCenterX[Blocker];
+                const double HitY = T * Dy;
+                if (std::abs(HitX) <= BlockerHalfX[Blocker] && std::abs(HitY) <= BlockerHalfY[Blocker])
+                {
+                    Occluded = true;
+                    break;
+                }
+            }
+            if (!Occluded)
+                Integral += EmissionRed * Brdf * CosReceiver * CosEmitter / DistanceSquared * Cell * Cell;
+        }
+    return Integral;
+}
+
+void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute,
+                                                 const LightComputeArchive& Material,
+                                                 const std::array<LightComputeArchive, 4>& Scenes,
+                                                 uint32_t Cohorts, uint32_t Size, uint32_t FarGroup, float Floor)
+{
+    constexpr uint32_t Frames = 4u;
+    constexpr double ReferenceTolerance = .005;
+    const uint32_t Pixels = Size * Size;
+    const std::array<ReplayMaterialReuseMode, 4> Modes{{
+        {"fresh1", 1u, false, false}, {"fresh4", 4u, false, false},
+        {"temporal1", 1u, true, false}, {"temporal4", 4u, true, false}}};
+    const double ReceiverX = Scenes.back().Receivers[1].PositionHit[0];
+    Require(std::abs(ReceiverX - 1.35) < 2e-6,
+            "Direct-emitter reference receiver no longer matches the far moving holdout");
+    constexpr double EmitterPower = 10.0 * .2126 + 8.0 * .7152 + 5.0 * .0722;
+    const double Reference = IntegrateReplayTemporalDirectEmitterReference(Material, ReceiverX, 2048u) *
+                             (EmitterPower / 10.0);
+    const double Coarse = IntegrateReplayTemporalDirectEmitterReference(Material, ReceiverX, 1024u) *
+                          (EmitterPower / 10.0);
+    const double ReferenceDelta = std::abs(Reference - Coarse);
+    const double GateTolerance = ReferenceTolerance * std::max(1.0, std::abs(Reference));
+    Require(std::isfinite(Reference) && Reference > 0 && std::isfinite(Coarse) && Coarse > 0 &&
+                ReferenceDelta <= GateTolerance,
+            "Independent direct-emitter quadrature failed its predeclared convergence gate");
+
+    std::array<ReplayMaterialBatchMoments, Modes.size()> Means{}, Mses{};
+    std::mt19937_64 Random(0xd7a4c1e95b830621ull);
+    std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready=1 scope=nee_only "
+                "bsdf_continuation_excluded=1 total_radiance_claim=0 cohorts=%u pixels_per_cohort=%u "
+                "reference_luma=%.12g reference_coarse_luma=%.12g reference_delta=%.9g gate_tolerance=%.9g "
+                "receiver_x=%.9g emission_red=10 occluders=2\n",
+                Cohorts, Pixels / 2u, Reference, Coarse, ReferenceDelta, GateTolerance, ReceiverX);
+    std::fflush(stdout);
+    for (uint32_t Cohort = 0; Cohort < Cohorts; ++Cohort)
+    {
+        std::array<uint32_t, Frames> Seeds{};
+        for (uint32_t& Seed : Seeds) Seed = uint32_t(Random());
+        for (size_t ModeIndex = 0; ModeIndex < Modes.size(); ++ModeIndex)
+        {
+            const auto& Mode = Modes[ModeIndex];
+            std::vector<std::array<float, 4>> Image;
+            if (Mode.Temporal)
+            {
+                for (uint32_t Frame = 0; Frame < Frames; ++Frame)
+                {
+                    Image = ExecuteReplayMaterialFloor(Compute, Scenes[Frame], Mode, Seeds[Frame],
+                                                       Frame == 0u, Floor, false, true);
+                    if (Frame > 0u)
+                        Require(Compute.ExtendedStatistics()[20] == Pixels,
+                                "Temporal reference arm failed same-frame candidate coverage");
+                }
+            }
+            else
+            {
+                Image = ExecuteReplayMaterialFloor(Compute, Scenes.back(), Mode, Seeds.back(),
+                                                   true, Floor, false, true);
+                Require(Compute.ExtendedStatistics()[20] == 0,
+                        "Fresh reference control unexpectedly consumed temporal history");
+            }
+            Require(Image.size() == Pixels, "Direct-emitter image readback has an unexpected pixel count");
+            const auto DirectNee = Compute.ReadReplayLogicalSlab(12u, false);
+            const auto Reservoir = Compute.ReadReplayLogicalSlab(2u, false);
+            Require(DirectNee.size() == Pixels && Reservoir.size() == Pixels,
+                    "Direct-emitter NEE/reservoir readback has an unexpected pixel count");
+            double Sum = 0.0, SquaredError = 0.0;
+            uint32_t SampleCount = 0;
+            for (uint32_t Pixel = 0; Pixel < Pixels; ++Pixel)
+            {
+                const uint32_t X = Pixel % Size, Y = Pixel / Size;
+                if ((X + Y) % 2u != FarGroup) continue;
+                const double SelectedNeePower = DirectNee[Pixel][0];
+                const double ReservoirFactor = Reservoir[Pixel][2];
+                const double Sample = SelectedNeePower * ReservoirFactor;
+                Require(std::isfinite(SelectedNeePower) && SelectedNeePower >= 0 &&
+                            std::isfinite(ReservoirFactor) && ReservoirFactor >= 0 &&
+                            std::isfinite(Sample) && Sample >= 0,
+                        "Direct-emitter NEE estimate returned invalid reservoir-weighted luminance");
+                Sum += Sample;
+                const double Error = Sample - Reference;
+                SquaredError += Error * Error;
+                ++SampleCount;
+            }
+            Require(SampleCount == Pixels / 2u,
+                    "Direct-emitter reference arm did not cover its checkerboard holdout");
+            Means[ModeIndex].Accumulate(Sum / double(SampleCount));
+            Mses[ModeIndex].Accumulate(SquaredError / double(SampleCount));
+            std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE_COHORT mode=%s cohort=%u pixels=%u "
+                        "mean_luma=%.12g mse=%.12g\n",
+                        Mode.Label, Cohort, SampleCount, Sum / double(SampleCount),
+                        SquaredError / double(SampleCount));
+        }
+        std::fflush(stdout);
+    }
+
+    bool AllMeanGates = true;
+    for (size_t ModeIndex = 0; ModeIndex < Modes.size(); ++ModeIndex)
+    {
+        const double Mean = Means[ModeIndex].Mean();
+        const double StandardError = Means[ModeIndex].StandardError();
+        const double Rmse = std::sqrt(std::max(0.0, Mses[ModeIndex].Mean()));
+        const bool MeanGate = std::abs(Mean - Reference) <= 6.0 * StandardError + GateTolerance;
+        AllMeanGates = AllMeanGates && MeanGate;
+        std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE_RESULT mode=%s cohorts=%u pixels_per_cohort=%u "
+                    "reference_luma=%.12g reference_coarse_luma=%.12g mean_luma=%.12g batch_se=%.9g "
+                    "rmse=%.9g gate_tolerance=%.9g mean_gate=%u\n",
+                    Modes[ModeIndex].Label, Cohorts, Pixels / 2u, Reference, Coarse, Mean, StandardError,
+                    Rmse, GateTolerance, unsigned(MeanGate));
+    }
+    std::printf("PASS ReplayTemporalDirectEmitterEstimateValidation cohorts=%u modes=%u scope=nee_only "
+                "independent_area_reference=1 estimator_math_changed=0 all_mean_gates=%u\n",
+                Cohorts, unsigned(Modes.size()), unsigned(AllMeanGates));
     std::fflush(stdout);
 }

@@ -1,0 +1,38 @@
+# Fresh and temporal direct-NEE comparison
+
+## Outcome
+
+**This validates only the NEE contribution, not total radiance.** The test-only audit shader records the selected path's direct-NEE luminance, then applies the reservoir normalization stored for the selected candidate. BSDF continuation/emitter-hit and environment contributions are excluded from the compared quantity. The production estimator and shader were not changed.
+
+The CPU reference midpoint-integrates the overhead emitter's area with explicit visibility against the two fixture blockers. It evaluates the existing independent double-precision CPU BRDF reference for the metal receiver and applies the emitter's Rec. 709 luminance. It is independent of the GPU light sampler, RNG, ray-intersection implementation, temporal selection, and reservoir weighting; it deliberately shares the documented material model rather than claiming an independent physical BRDF.
+
+## Fixture and validation
+
+- SwiftShader Subzero Vulkan, Slang 2026.14.1, Release build.
+- Four modes: fresh1/fresh4 reset history; temporal1/temporal4 replay a four-frame moving-receiver sequence. Suffix is the candidate count. Every mode uses the same 32 seed cohorts.
+- 512 checkerboard holdout pixels per cohort and mode (16,384 samples per mode). The final holdout receiver is at x = 1.35; the emitter is a 4 × 4 overhead quad with RGB emission (10, 8, 5). The fixture has two occluders.
+- Fine 2048² reference: **1.84228818752 luminance**. Coarse 1024² reference: **1.84907442424**; difference **0.00678623672**, inside the predeclared absolute convergence tolerance **0.00921144094** (0.5% of max(1, |reference|)).
+- Mean gate per mode: `abs(mean - reference) <= 6 × batch_SE + reference_tolerance`. RMSE is pixel-sample RMSE against the fine reference. Gate failures are reported as failures, not suppressed.
+
+| Mode | Mean luminance | Delta vs reference | Batch SE | RMSE | Mean gate |
+|---|---:|---:|---:|---:|:---:|
+| fresh1 | 1.85453688558 | +0.01224869806 (+0.665%) | 0.0299444386 | 3.76991648 | PASS |
+| fresh4 | 1.83161989307 | −0.01066829445 (−0.579%) | 0.0145219505 | 1.88207686 | PASS |
+| temporal1 | 1.67851367848 | −0.16377450904 (−8.890%) | 0.0170516458 | 2.24647603 | **FAIL** |
+| temporal4 | 1.77531980961 | −0.06696837791 (−3.635%) | 0.0115256609 | 1.61239783 | PASS |
+
+## Interpretation and decision
+
+The fresh1/fresh4 controls and temporal4 pass this fixture's broad six-SE mean gate. **Temporal1 fails**, with its mean 8.89% below the reference and outside its gate. Thus the fresh and temporal estimator family is not uniformly validated; do not promote or change estimator behavior based on this comparison. The failed mode is retained visibly in the chart. The result does not establish production-scene correctness, total-radiance unbiasedness, physical-GPU/Windows behavior, or Frontier editor integration.
+
+The previously recorded controlled-emitter visibility audit remains a separate result: its per-sample blocked/no-ray NEE guard passed on this fixture and its baseline was preserved. This estimate-only run did not rerun that 32,768-row audit. The prior audit report is `ReplayTemporalDirectVisibility.txt`.
+
+## Runtime checks
+
+- New summary/parser unit tests: **4/4 passed**, including missing-cohort, bad-aggregate, non-converged-reference, and failed-gate presentation checks.
+- Release build succeeded with warnings treated as errors; CTest: **10/10 passed**.
+- Estimate-only SwiftShader run: **32 cohorts × 4 modes**, complete; `estimator_math_changed=0`; `all_mean_gates=0` as expected from temporal1.
+- Full run log (kept outside Git): `_ClaudeScratch/provenance/direct-estimate.log`.
+- Chart: `../ReplayTemporalDirectEstimate.svg`.
+
+An earlier estimate-only attempt wrote an extra audit slab without reserving its storage and crashed. The test-only output allocation was increased by one slab; the complete run and all checks above are from the corrected rerun.

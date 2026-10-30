@@ -202,6 +202,7 @@ def generate(destination):
         "        float4 FinalSelectedVisibility, FinalSelectedContribution;\n"
         "        EvaluateReplayPath(R, Selected, FinalSelectedVisibility, FinalSelectedContribution);\n"
         "        OutputColour[ReplaySlot(10, Pixel)] = FinalSelectedVisibility;\n"
+        "        OutputColour[ReplaySlot(12, Pixel)] = float4(FinalSelectedContribution.x, 0, 0, 0);\n"
         "        Packed = float4(EncodeReplaySeed(Selected), Sum / (Count * Target), Count);",
         "persist selected current-scene direct visibility")
     shader = replace_once(
@@ -226,6 +227,7 @@ def generate(destination):
         "    OutputColour[ReplaySlot(7, Pixel)] = 0;\n"
         "    OutputColour[ReplaySlot(8, Pixel)] = 0;\n"
         "    OutputColour[ReplaySlot(11, Pixel)] = 0;\n"
+        "    OutputColour[ReplaySlot(12, Pixel)] = 0;\n"
         "    float4 Packed = 0, SelectedRadiance = 0;",
         "per-pixel audit initialization",
     )

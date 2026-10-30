@@ -3,7 +3,7 @@
 #                           RUNREPLAYTEMPORALVISIBILITY.SH
 # ========================================================================================================================================
 # 🧩 Per-pixel test-only attribution of temporal replay visibility and reservoir weights.
-# Set DIRECT_ONLY=1 to rerun the controlled-emitter audit without rerunning or overwriting the no-emitter baseline.
+# Set DIRECT_ONLY=1 for visibility+estimate audit, or ESTIMATE_ONLY=1 for the isolated NEE-reference run.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
@@ -18,7 +18,14 @@ BUILD="${BUILD:-$ROOT/_ClaudeScratch/build/replay-provenance-release}"
 SOURCE="$BUILD/visibility-only-source"
 OUTPUT="$BUILD/visibility-baseline"
 DIRECT_ONLY="${DIRECT_ONLY:-0}"
-if [[ "$DIRECT_ONLY" == 1 ]]; then
+ESTIMATE_ONLY="${ESTIMATE_ONLY:-0}"
+if [[ "$DIRECT_ONLY" == 1 && "$ESTIMATE_ONLY" == 1 ]]; then
+    echo "DIRECT_ONLY and ESTIMATE_ONLY cannot both be 1" >&2
+    exit 2
+elif [[ "$ESTIMATE_ONLY" == 1 ]]; then
+    RESULTS="${RESULTS:-$ROOT/_ClaudeScratch/provenance/direct-estimate.log}"
+    AUDIT_FLAG="--replay-temporal-direct-estimate"
+elif [[ "$DIRECT_ONLY" == 1 ]]; then
     RESULTS="${RESULTS:-$ROOT/_ClaudeScratch/provenance/direct-visibility.log}"
     AUDIT_FLAG="--replay-temporal-direct-visibility"
 else
@@ -27,6 +34,10 @@ else
 fi
 if [[ "$DIRECT_ONLY" != 0 && "$DIRECT_ONLY" != 1 ]]; then
     echo "DIRECT_ONLY must be 0 or 1 (got $DIRECT_ONLY)" >&2
+    exit 2
+fi
+if [[ "$ESTIMATE_ONLY" != 0 && "$ESTIMATE_ONLY" != 1 ]]; then
+    echo "ESTIMATE_ONLY must be 0 or 1 (got $ESTIMATE_ONLY)" >&2
     exit 2
 fi
 mkdir -p "$SOURCE" "$OUTPUT" "$(dirname "$RESULTS")"
@@ -42,6 +53,7 @@ python3 Exhibits/LightCompute/Code/ReplayTemporalVisibilityCandidate.py "$SOURCE
 "${CMAKE:-cmake}" --build "$BUILD" --parallel "${BUILD_JOBS:-2}"
 CTEST="${CTEST:-$ROOT/_ClaudeScratch/pytools/cmake/data/bin/ctest}"
 "$CTEST" --test-dir "$BUILD" --output-on-failure
+python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEstimateSummaryTest.py
 {
     echo 'Test-only per-pixel temporal visibility/contribution readback; no estimator or production shader changes.'
     echo "Base $(git rev-parse --short HEAD), plus working changes if any; source hashes follow."
@@ -50,7 +62,7 @@ CTEST="${CTEST:-$ROOT/_ClaudeScratch/pytools/cmake/data/bin/ctest}"
     "${CXX:-c++}" --version | sed -n '1p'
     "$SLANG" -version 2>&1
     sha256sum Frontier/Engine/Rendering/Shaders/{LightInfluence,PathReplayReservoir}.slang \
-        Exhibits/LightCompute/Code/{ReplayTemporalVisibilityCandidate.py,ReplayTemporalVisibilityValidation.h,ReplayTemporalDirectVisibilitySummary.py,ReplayMaterialFloorValidation.h,LightComputeValidation.cpp} \
+        Exhibits/LightCompute/Code/{ReplayTemporalVisibilityCandidate.py,ReplayTemporalVisibilityValidation.h,ReplayTemporalDirectVisibilitySummary.py,ReplayTemporalDirectEstimateSummary.py,ReplayTemporalDirectEstimateSummaryTest.py,ReplayMaterialFloorValidation.h,LightComputeValidation.cpp} \
         "$SOURCE/Visibility.slang" "$OUTPUT"/{Primary,ReplayGenerate,ReplayResolve}.spv
     if "$BUILD/LightComputeValidation" "$DRIVER" "$OUTPUT" "$AUDIT_FLAG"; then
         :
@@ -60,9 +72,14 @@ CTEST="${CTEST:-$ROOT/_ClaudeScratch/pytools/cmake/data/bin/ctest}"
         exit "$STATUS"
     fi
 } 2>&1 | tee "$RESULTS"
-if [[ "$DIRECT_ONLY" == 1 ]]; then
+if [[ "$ESTIMATE_ONLY" == 1 ]]; then
+    python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEstimateSummary.py "$RESULTS" \
+        Exhibits/LightCompute/ReplayTemporalDirectEstimate.svg | tee -a "$RESULTS"
+elif [[ "$DIRECT_ONLY" == 1 ]]; then
     python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilitySummary.py "$RESULTS" \
         Exhibits/LightCompute/ReplayTemporalDirectVisibility.svg | tee -a "$RESULTS"
+    python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEstimateSummary.py "$RESULTS" \
+        Exhibits/LightCompute/ReplayTemporalDirectEstimate.svg | tee -a "$RESULTS"
 else
     python3 Exhibits/LightCompute/Code/ReplayTemporalVisibilitySummary.py "$RESULTS" \
         Exhibits/LightCompute/Results/ReplayTemporalPathStream.txt \
@@ -70,4 +87,6 @@ else
         Exhibits/LightCompute/ReplayTemporalVisibility.svg | tee -a "$RESULTS"
     python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilitySummary.py "$RESULTS" \
         Exhibits/LightCompute/ReplayTemporalDirectVisibility.svg | tee -a "$RESULTS"
+    python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEstimateSummary.py "$RESULTS" \
+        Exhibits/LightCompute/ReplayTemporalDirectEstimate.svg | tee -a "$RESULTS"
 fi
