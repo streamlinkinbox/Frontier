@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Mixed-source native holdout](Exhibits/LightCompute/FacetMixed.md):unequal source areas/colours,receiver materials
+  and partial blockers. All864 analytic RGB means and3,145,728 visibility checks/build pass;seven CTests/build.
+  Uniform RIS beats raw4 in only6/12 cases;area RIS beats area raw4 in12/12 but loses to uniform RIS throughout.
+  Actual API/reference images retained;no universal quality/default promotion. Production348.046875MiB unchanged.
+
 - [Opt-in composed native packet estimator](Exhibits/LightCompute/FacetPacket.md):transactional source-profile
   intake and RIS/raw4/raw8 evaluation. All12 captures match the prior native caller bytewise;216 analytic means
   pass. Six CTests/build,Release/ASan+UBSan;6144 audited calls allocate zero times. Actual API images retained.

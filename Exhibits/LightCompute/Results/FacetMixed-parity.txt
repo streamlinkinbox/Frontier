@@ -1,0 +1,14 @@
+PASS frozen mixed-source packet holdout;7 CTests/build,20101 focused checks/build.
+294912 API packets/build match the separately assembled native baseline exactly.
+1966080 candidate draws,1572864 selected paths,3145728 visibility decisions in the independent baseline/build.
+All864 RGB mean gates pass clipped independent quadrature;max32/64 channel reference difference=9.6025796766192537e-09.
+Every isolated affected omission changes >=64 packets/layout/method;unaffected omission is exactly unchanged.
+Both blockers independently affect some RGB;every correct variant has positive mean.
+Twelve buffers and14 semantic rows byte-identical across Release/host ASan+UBSan;leaks enabled.
+288 actual API and48 analytic-reference image arrays verified;lossless captures/references retained.
+Uniform RIS/raw4 correct-RMSE ratios min/max=0.944936663/1.08096733;wins=6/12.
+Area RIS/raw4 correct-RMSE ratios min/max=0.905916654/0.964184953;wins=12/12.
+Area/uniform RIS correct-RMSE ratios min/max=1.0072478/1.20285286;area wins=0/12.
+All639 prior manifest entries unchanged;historical transport acceptance=0 retained.
+No engine/API/shader/default changes or new GPU execution;no universal quality,physical speed,history or Windows acceptance.
+Production348.046875MiB/defaults/32B descriptors unchanged;no PR/Actions.

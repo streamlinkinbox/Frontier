@@ -1,5 +1,27 @@
 # Project Tracker
 
+## Mixed-area/material/partial-visibility packet holdout — 2026-10-30
+
+- [Frozen native holdout](../Exhibits/LightCompute/FacetMixed.md):source areas.16/.36,different diffuse RGB,
+  two receiver materials,partial connection/suffix blockers,three layouts ×four variants,six method/measure arms.
+- Unchanged packet API/engine/shaders/defaults. All294,912 API packets/build match a separately assembled
+  lower-level caller exactly. Baseline1,966,080 draws,1,572,864 paths,3,145,728 visibility decisions/build agree
+  with independent double BVH and analytic ray/rectangle intersections;primary/material expectations agree.
+- Release/host ASan+UBSan with leaks enabled,seven CTests and20,101 focused checks/build. All864 RGB mean gates
+  pass independent clipped source quadrature;32²/64² max channel difference9.60258e-9. Twelve captures/14 rows
+  byte-identical across builds. Final primary-strike assertions preserved all original capture bytes.
+- Isolated connection/suffix omissions affect1400–2467/3690–4096 packets per layout/method;unaffected omissions
+  exactly unchanged. Both blockers independently affect RGB. Actual288 API+48 reference PNG arrays verified;
+  comparison and ablation sheets inspected. All639 prior manifest entries unchanged;old acceptance=0 stays HELD.
+- Quality is mixed:uniform RIS/raw4 wins6/12,RMSE−5.51% to+8.10%;area RIS/raw4 wins12/12,−9.41% to−3.58%.
+  Area RIS loses to uniform RIS12/12,+0.72–20.29%. Raw8 uniform has best aggregate RMSE at twice the path budget.
+  No universal four-path winner,physical speedup,score tuning or production promotion. Retain selectable modes.
+- Phase100%/0% remaining;overall stays~91%/~9% remaining,planning estimates,not release readiness. Next:separate
+  RGB-norm score prototype with fresh frozen holdouts before engine policy changes;shader/renderer integration,
+  history/general materials and physical-GPU/Windows/editor/TAA/time acceptance remain open.
+- Production348.046875MiB/defaults/32B unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+  Source and retained evidence backed up to the existing branch.
+
 ## Opt-in native facet packet estimator — 2026-10-30
 
 - [Bounded composed caller](../Exhibits/LightCompute/FacetPacket.md):header-only reusable FacetAreaPacket owns
