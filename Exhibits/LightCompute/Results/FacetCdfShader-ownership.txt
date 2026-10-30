@@ -1,0 +1,11 @@
+Preparation compiled directly with maintained-only include paths;recursive source closure follows.
+Engine/Render/Shader/AutomotivePaint.slang
+Engine/Render/Shader/DielectricRefraction.slang
+Engine/Render/Shader/ScatteringEvaluation.slang
+Frontier/Engine/Rendering/Shaders/FacetCdfPreparation.slang
+Frontier/Engine/Rendering/Shaders/FacetCdfProfile.slang
+Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang

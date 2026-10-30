@@ -14,6 +14,12 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Maintained facet CDF shader ownership](Exhibits/LightCompute/FacetCdfShader.md):generic profile decoding,
+  validity,area/CDF/PDF preparation and cached sampling now live in maintained shaders,with typed16B header.
+  Preparation compiles without exhibit includes. All seven captures/124 rows retain exact prior results;
+  16 CTests/20,535 checks per build,Release/host ASan+UBSan. Fixture scores/transport stay in the exhibit;
+  production scene/output wiring remains. Production348.046875MiB/defaults/32B unchanged.
+
 - [Renderer-facing CDF submission lifetime](Exhibits/LightCompute/FacetCdfSubmission.md):maintained caller-owned
   Vulkan encoding and fence-published cache residency,164 focused assertions,244 actual submissions/build.
   All seven captures/124 rows/six SPIR-V binaries retain exact prior results;15 CTests/20,506 checks,Release/

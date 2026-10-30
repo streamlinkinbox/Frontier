@@ -1,5 +1,22 @@
 # Project Tracker
 
+## Maintained facet profile/cache shader ownership — 2026-10-30
+
+- [Generic owned CDF shader/profile ABI](../Exhibits/LightCompute/FacetCdfShader.md):maintained profile decoding,
+  validity,geometry area,CDF/PDF preparation and score-independent RNG/identity/U/V/PDF sampling. Preparation
+  compiles directly with maintained-only includes. Typed16B host header is used by actual positive uploads.
+- Fixture illumination/proxy score,packet selection/transport and80-slab diagnostics remain exhibit-owned;
+  no hardcoded fixture light promoted into generic rendering. Existing submission/fence interface unchanged.
+  All244 submissions/build preserve116 images/118,784 packets,6,144 exact rejects and full native/uncached parity.
+- Release + host ASan/UBSan:16 CTests/20,535 focused checks per build,including29 new header checks and164
+  existing command/fence assertions. Seven captures/124 rows byte-identical to prior/cross-build;all six
+  SPIR-V binaries exact cross-build,three uncached binaries exact prior. Driver uninstrumented,leaks0.
+- Cache work remains30 preparations/466 area evaluations;uncached25,656,526,not FPS. Actual images and source
+  closure/hashes retained. Thirteen manifests/1,834 previous entries unchanged;HELD/norm FAIL preserved.
+- Ownership phase100%/0% remaining;overall~97%/~3% remaining,planning estimates. Next:production scene/output
+  wiring. Full renderer/editor,broader materials/history,physical GPU,Windows and real-time acceptance remain.
+  Production348.046875MiB/defaults/32B unchanged. Packing/editor/vehicle/Jolt deferred. No PR/Actions.
+
 ## Renderer-facing CDF command and fence lifetime — 2026-10-30
 
 - [Maintained caller-owned submission interface](../Exhibits/LightCompute/FacetCdfSubmission.md):range/callback/

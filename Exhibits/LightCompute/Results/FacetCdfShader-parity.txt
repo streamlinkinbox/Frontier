@@ -1,0 +1,12 @@
+Maintained CDF shader ownership parity=PASS;frozen numeric gates unchanged.
+16 CTests/20535 focused checks per build,including29 new header and164 existing submission assertions.
+244 actual API submissions;116 positive images/118784 packets,6144 exact rejected pixels per build.
+Seven captures/124 semantic rows exact prior/cross-build;6 SPIR-V binaries exact cross-build,3 uncached binaries exact prior.
+30 cache preparations,466 cached area calls versus25656526 uncached;operation counts,not time/FPS.
+Packet RGB maximum=3.7252902984619141e-09;RMSE=3.4299106163242583e-11.
+CDF_GPU_TOTAL images=116 batches=122 packets=118784 candidates=802816 paths=647168 pairs=155648 visibility=1294336 preparations=30 cached_areas=466 uncached_areas=25656526 rejected=6144 failures=0 guard_failures=0 rgb_error=7.4505805969238281e-09 coordinate_error=0 scalar_error=1.7163382095932151e-07 cache_error=4.4227597884027858e-07 pass=1
+Actual displayed native/GPU pairs exact=6/6. Thirteen prior manifests/1834 entries unchanged.
+Typed profile layout/extent/overflow tests PASS;owned preparation source closure has no exhibit dependency.
+Ownership remains pending on query error;caller must keep resources alive and acknowledge successful QueueSubmit.
+Driver uninstrumented,leaks0. SwiftShader CPU only,no physical-GPU/Windows/editor/history/general-material acceptance.
+Maintained profile/header/prepare/sample are active in tests;fixture score/transport remain exhibit-owned. Production348.046875MiB/32B/defaults unchanged.
