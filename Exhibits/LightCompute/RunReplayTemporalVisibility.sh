@@ -10,7 +10,9 @@ cd "$ROOT"
 if [[ -d "$ROOT/_ClaudeScratch/pytools/bin" ]]; then export PATH="$ROOT/_ClaudeScratch/pytools/bin:$PATH"; fi
 if [[ -d "$ROOT/_ClaudeScratch/pytools" ]]; then export PYTHONPATH="$ROOT/_ClaudeScratch/pytools${PYTHONPATH:+:$PYTHONPATH}"; fi
 SLANG="${SLANGC:-$ROOT/_ClaudeScratch/pytools/slangtorch/bin/slangc}"
+SPIRV_OPT="${SPIRV_OPT:-}"
 DRIVER="${VULKAN_LIBRARY:-$ROOT/_ClaudeScratch/build/swiftshader-unity-fast/Linux/libvk_swiftshader.so}"
+RUNTIME_CONFIGURATION="${RUNTIME_CONFIGURATION:-unspecified}"
 export VULKAN_SDK="${VULKAN_SDK:-$ROOT/_ClaudeScratch/deps/Vulkan-Headers}"
 export LD_LIBRARY_PATH="$(dirname "$DRIVER")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
@@ -95,6 +97,13 @@ python3 Exhibits/LightCompute/Code/ReplayTemporalVisibilityCandidate.py "$SOURCE
     -entry GenerateReplayReservoirs -target spirv -profile spirv_1_3 -emit-spirv-directly -O0 -o "$OUTPUT/ReplayGenerate.spv"
 "$SLANG" "$SOURCE/Visibility.slang" -I Frontier/Engine/Rendering/Shaders \
     -entry ResolveReplayReservoirs -target spirv -profile spirv_1_3 -emit-spirv-directly -O0 -o "$OUTPUT/ReplayResolve.spv"
+if [[ -n "$SPIRV_OPT" ]]; then
+    "$SPIRV_OPT" --target-env=spv1.3 --simplify-instructions --eliminate-dead-branches \
+        --eliminate-dead-code-aggressive --eliminate-dead-functions --eliminate-local-single-store \
+        --eliminate-local-multi-store --merge-blocks "$OUTPUT/ReplayResolve.spv" \
+        -o "$OUTPUT/ReplayResolve.optimized.spv"
+    mv "$OUTPUT/ReplayResolve.optimized.spv" "$OUTPUT/ReplayResolve.spv"
+fi
 CMAKE="${CMAKE:-$ROOT/_ClaudeScratch/pytools/cmake/data/bin/cmake}"
 "$CMAKE" -S Exhibits/LightCompute -B "$BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release
 "$CMAKE" --build "$BUILD" --parallel "${BUILD_JOBS:-2}"
@@ -107,9 +116,16 @@ python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEndpointPairSummaryTest.p
     echo 'Test-only per-pixel temporal visibility/contribution readback; no estimator or production shader changes.'
     echo "Base $(git rev-parse --short HEAD), plus working changes if any; source hashes follow."
     echo "MALLOC_ARENA_MAX=$MALLOC_ARENA_MAX VIRTUAL_MEMORY_KB=$(ulimit -v)"
+    echo "DRIVER=$DRIVER RUNTIME_CONFIGURATION=$RUNTIME_CONFIGURATION"
+    echo "SPIRV_OPT=${SPIRV_OPT:-disabled}"
     uname -srm
     "${CXX:-c++}" --version | sed -n '1p'
     "$SLANG" -version 2>&1
+    sha256sum "$DRIVER"
+    if [[ -n "$SPIRV_OPT" ]]; then
+        "$SPIRV_OPT" --version
+        sha256sum "$SPIRV_OPT"
+    fi
     sha256sum Frontier/Engine/Rendering/Shaders/{LightInfluence,PathReplayReservoir}.slang \
         Exhibits/LightCompute/Code/{ReplayTemporalVisibilityCandidate.py,ReplayTemporalVisibilityValidation.h,ReplayTemporalDirectVisibilitySummary.py,ReplayTemporalDirectVisibilityAblationSummary.py,ReplayTemporalDirectVisibilityAblationSummaryTest.py,ReplayTemporalDirectEndpointPairSummary.py,ReplayTemporalDirectEndpointPairSummaryTest.py,ReplayTemporalDirectEstimateSummary.py,ReplayTemporalDirectEstimateSummaryTest.py,ReplayMaterialFloorValidation.h,LightComputeValidation.cpp} \
         "$SOURCE/Visibility.slang" "$OUTPUT"/{Primary,ReplayGenerate,ReplayResolve}.spv

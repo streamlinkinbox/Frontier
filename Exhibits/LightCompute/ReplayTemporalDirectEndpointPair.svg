@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="760" viewBox="0 0 1240 760">
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<rect x="16" y="16" width="1208" height="728" rx="18" fill="white" stroke="#dbe3ee"/>
+<text x="46" y="58" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25" font-weight="700" fill="#0f172a">Same-endpoint visibility re-trace and temporal weights</text>
+<text x="46" y="86" font-family="Arial" font-size="13" fill="#475569">Prior endpoint is traced again from the current receiver pose; cells show count and mean retained history weight.</text>
+<text x="56" y="128" font-family="Arial" font-size="17" font-weight="700" fill="#0f172a">base_only · temporal1 · mean gate PASS</text>
+<text x="56" y="146" font-family="Arial" font-size="10" fill="#64748b">retrace match 100.0%; selected match 59.9%; mean 5.369/5.372; r(V→B,mean) undefined</text>
+<text x="230.0" y="158" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">No ray</text>
+<text x="368.0" y="158" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">Blocked</text>
+<text x="506.0" y="158" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">Visible</text>
+<text x="154" y="195.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">No ray</text>
+<rect x="161" y="163" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="169" y="184" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="169" y="202" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="299" y="163" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="307" y="184" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="307" y="202" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="437" y="163" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="445" y="184" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="445" y="202" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<text x="154" y="252.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">Blocked</text>
+<rect x="161" y="220" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="169" y="241" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="169" y="259" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="299" y="220" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="307" y="241" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="307" y="259" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="437" y="220" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="445" y="241" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="445" y="259" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<text x="154" y="309.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">Visible</text>
+<rect x="161" y="277" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="169" y="298" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="169" y="316" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="299" y="277" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="307" y="298" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="307" y="316" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="437" y="277" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="445" y="298" font-family="Arial" font-size="12" fill="#0f172a">n = 16384</text>
+<text x="445" y="316" font-family="Arial" font-size="10" fill="#475569">W̄ 5.589</text>
+<text x="56" y="425" font-family="Arial" font-size="17" font-weight="700" fill="#0f172a">base_only · temporal4 · mean gate PASS</text>
+<text x="56" y="443" font-family="Arial" font-size="10" fill="#64748b">retrace match 100.0%; selected match 29.0%; mean 5.35/5.372; r(V→B,mean) undefined</text>
+<text x="230.0" y="455" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">No ray</text>
+<text x="368.0" y="455" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">Blocked</text>
+<text x="506.0" y="455" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">Visible</text>
+<text x="154" y="492.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">No ray</text>
+<rect x="161" y="460" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="169" y="481" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="169" y="499" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="299" y="460" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="307" y="481" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="307" y="499" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="437" y="460" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="445" y="481" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="445" y="499" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<text x="154" y="549.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">Blocked</text>
+<rect x="161" y="517" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="169" y="538" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="169" y="556" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="299" y="517" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="307" y="538" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="307" y="556" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="437" y="517" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="445" y="538" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="445" y="556" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<text x="154" y="606.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">Visible</text>
+<rect x="161" y="574" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="169" y="595" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="169" y="613" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="299" y="574" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="307" y="595" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="307" y="613" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="437" y="574" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="445" y="595" font-family="Arial" font-size="12" fill="#0f172a">n = 16384</text>
+<text x="445" y="613" font-family="Arial" font-size="10" fill="#475569">W̄ 5.556</text>
+<text x="650" y="128" font-family="Arial" font-size="17" font-weight="700" fill="#0f172a">added_only · temporal1 · mean gate FAIL</text>
+<text x="650" y="146" font-family="Arial" font-size="10" fill="#64748b">retrace match 100.0%; selected match 54.2%; mean 1.7/1.842; r(V→B,mean) -0.28</text>
+<text x="824.0" y="158" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">No ray</text>
+<text x="962.0" y="158" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">Blocked</text>
+<text x="1100.0" y="158" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">Visible</text>
+<text x="748" y="195.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">No ray</text>
+<rect x="755" y="163" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="763" y="184" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="763" y="202" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="893" y="163" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="901" y="184" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="901" y="202" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="1031" y="163" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="1039" y="184" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="1039" y="202" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<text x="748" y="252.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">Blocked</text>
+<rect x="755" y="220" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="763" y="241" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="763" y="259" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="893" y="220" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="901" y="241" font-family="Arial" font-size="12" fill="#0f172a">n = 585</text>
+<text x="901" y="259" font-family="Arial" font-size="10" fill="#475569">W̄ 0.5636</text>
+<rect x="1031" y="220" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="1039" y="241" font-family="Arial" font-size="12" fill="#0f172a">n = 85</text>
+<text x="1039" y="259" font-family="Arial" font-size="10" fill="#475569">W̄ 21.02</text>
+<text x="748" y="309.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">Visible</text>
+<rect x="755" y="277" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="763" y="298" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="763" y="316" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="893" y="277" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="901" y="298" font-family="Arial" font-size="12" fill="#0f172a">n = 559</text>
+<text x="901" y="316" font-family="Arial" font-size="10" fill="#475569">W̄ 0.07064</text>
+<rect x="1031" y="277" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="1039" y="298" font-family="Arial" font-size="12" fill="#0f172a">n = 15155</text>
+<text x="1039" y="316" font-family="Arial" font-size="10" fill="#475569">W̄ 1.726</text>
+<text x="650" y="425" font-family="Arial" font-size="17" font-weight="700" fill="#0f172a">added_only · temporal4 · mean gate PASS</text>
+<text x="650" y="443" font-family="Arial" font-size="10" fill="#64748b">retrace match 100.0%; selected match 22.4%; mean 1.817/1.842; r(V→B,mean) -0.06</text>
+<text x="824.0" y="455" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">No ray</text>
+<text x="962.0" y="455" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">Blocked</text>
+<text x="1100.0" y="455" text-anchor="middle" font-family="Arial" font-size="11" fill="#334155">Visible</text>
+<text x="748" y="492.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">No ray</text>
+<rect x="755" y="460" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="763" y="481" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="763" y="499" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="893" y="460" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="901" y="481" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="901" y="499" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="1031" y="460" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="1039" y="481" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="1039" y="499" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<text x="748" y="549.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">Blocked</text>
+<rect x="755" y="517" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="763" y="538" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="763" y="556" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="893" y="517" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="901" y="538" font-family="Arial" font-size="12" fill="#0f172a">n = 387</text>
+<text x="901" y="556" font-family="Arial" font-size="10" fill="#475569">W̄ 0.8297</text>
+<rect x="1031" y="517" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="1039" y="538" font-family="Arial" font-size="12" fill="#0f172a">n = 56</text>
+<text x="1039" y="556" font-family="Arial" font-size="10" fill="#475569">W̄ 33.91</text>
+<text x="748" y="606.5" text-anchor="end" font-family="Arial" font-size="11" fill="#334155">Visible</text>
+<rect x="755" y="574" width="134" height="53" rx="5" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="763" y="595" font-family="Arial" font-size="12" fill="#0f172a">n = 0</text>
+<text x="763" y="613" font-family="Arial" font-size="10" fill="#475569">W̄ 0</text>
+<rect x="893" y="574" width="134" height="53" rx="5" fill="#fff7ed" stroke="#cbd5e1"/>
+<text x="901" y="595" font-family="Arial" font-size="12" fill="#0f172a">n = 1107</text>
+<text x="901" y="613" font-family="Arial" font-size="10" fill="#475569">W̄ 0.03671</text>
+<rect x="1031" y="574" width="134" height="53" rx="5" fill="#ecfdf5" stroke="#cbd5e1"/>
+<text x="1039" y="595" font-family="Arial" font-size="12" fill="#0f172a">n = 14834</text>
+<text x="1039" y="613" font-family="Arial" font-size="10" fill="#475569">W̄ 2.003</text>
+<text x="46" y="716" font-family="Arial" font-size="12" fill="#475569">Host cohort seeds matched; prior world-space endpoint explicitly re-traced. Cohort correlations are descriptive, not causal.</text>
+</svg>

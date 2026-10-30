@@ -538,7 +538,9 @@ struct LightComputeSubmission
         Pipeline.stage.module = Shader;
         Pipeline.stage.pName = "main";
         VkPipeline Result = VK_NULL_HANDLE;
+        std::cerr << "VULKAN_PIPELINE_BEGIN path=" << Path << " bytes=" << Length << std::endl;
         auto Status = CreateComputePipelines(Device, VK_NULL_HANDLE, 1, &Pipeline, nullptr, &Result);
+        std::cerr << "VULKAN_PIPELINE_END path=" << Path << " status=" << Status << std::endl;
         DestroyShaderModule(Device, Shader, nullptr);
         Confirm(Status, "CreateComputePipelines " + Path);
         return Result;
