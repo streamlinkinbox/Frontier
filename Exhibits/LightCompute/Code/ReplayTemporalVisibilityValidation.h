@@ -547,6 +547,10 @@ void ValidateReplayTemporalDirectEmitterOccluderAblation(const char* Driver, con
     ValidateReplayTemporalDirectEmitterEstimate(Compute, Metal, Scenes, Cohorts, Size, FarGroup, Floor);
 }
 
+double IntegrateReplayTemporalDirectEmitterReference(const LightComputeArchive& Material,
+                                                      double ReceiverX, uint32_t Steps,
+                                                      uint32_t OccluderMask);
+
 void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const std::string& Shaders)
 {
     constexpr uint32_t Size = 32u, Pixels = Size * Size, Cohorts = 32u, Frames = 4u;
@@ -564,6 +568,8 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
     const auto Capacity = AddReplayTemporalVisibilityEmitter(
         ConstructReplayMixedMaterialFixture(Size, Dim, Metal), 3u);
     const auto BaseScenes = ConstructReplayFreshMotionScenes(Size, Dim, Metal, false);
+    const double ReceiverX = BaseScenes.back().Receivers[1].PositionHit[0];
+    constexpr double EmissionLuminanceScale = (10.0 * .2126 + 8.0 * .7152 + 5.0 * .0722) / 10.0;
     LightComputeSubmission Compute(Driver);
     std::printf("REPLAY_TEMPORAL_VISIBILITY_DIRECT_ABLATION fixture=overhead_emitter motion=moving "
                 "scenarios=base_only,added_only cohorts=%u pixels_per_cohort=%u preparing_on=%s\n",
@@ -582,15 +588,26 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
         for (auto& Scene : Scenes)
             Scene = AddReplayTemporalVisibilityEmitter(std::move(Scene), Mask);
         const char* Scenario = ReplayTemporalVisibilityName(Mask);
+        const double Reference = IntegrateReplayTemporalDirectEmitterReference(Metal, ReceiverX, 2048u, Mask) *
+                                 EmissionLuminanceScale;
+        const double CoarseReference = IntegrateReplayTemporalDirectEmitterReference(Metal, ReceiverX, 1024u, Mask) *
+                                       EmissionLuminanceScale;
+        const double ReferenceTolerance = .005 * std::max(1.0, std::abs(Reference));
+        Require(std::isfinite(Reference) && Reference > 0 && std::isfinite(CoarseReference) &&
+                    std::abs(Reference - CoarseReference) <= ReferenceTolerance,
+                "Endpoint-pairing CPU reference failed its convergence gate");
         std::printf("REPLAY_TEMPORAL_VISIBILITY_DIRECT_ABLATION pipelines_ready=1 visibility=%s "
-                    "cohorts=%u pixels_per_cohort=%u bounces=1 source_sampling=uniform\n",
-                    Scenario, Cohorts, Pixels / 2u);
+                    "cohorts=%u pixels_per_cohort=%u bounces=1 source_sampling=uniform reference_luma=%.12g "
+                    "reference_coarse_luma=%.12g\n",
+                    Scenario, Cohorts, Pixels / 2u, Reference, CoarseReference);
         std::fflush(stdout);
 
         std::array<std::array<uint64_t, 9>, Modes.size()> Transitions{};
         std::array<std::array<uint64_t, 3>, Modes.size()> OutcomeCounts{};
         std::array<std::array<double, 9>, Modes.size()> HistoryWeightSums{}, NeeSums{};
-        std::array<uint64_t, Modes.size()> RayAttempts{}, RayVisible{};
+        std::array<std::array<uint64_t, 9>, Modes.size()> PairedTransitions{};
+        std::array<std::array<double, 9>, Modes.size()> PairedHistoryWeightSums{};
+        std::array<uint64_t, Modes.size()> RayAttempts{}, RayVisible{}, EndpointPairs{}, EndpointMatches{}, SelectedEndpointMatches{};
         uint64_t Rows = 0;
         for (uint32_t Cohort = 0; Cohort < Cohorts; ++Cohort)
             for (size_t ModeIndex = 0; ModeIndex < Modes.size(); ++ModeIndex)
@@ -613,6 +630,21 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                 const auto Source = Compute.ReadReplayLogicalSlab(7u, false);
                 const auto Choice = Compute.ReadReplayLogicalSlab(8u, false);
                 const auto PreviousDirect = Compute.ReadReplayLogicalSlab(11u, false);
+                const auto PairedAudit = Compute.ReadReplayLogicalSlab(16u, false);
+                const auto PreviousEndpoint = Compute.ReadReplayLogicalSlab(17u, false);
+                const auto HistoryEndpoint = Compute.ReadReplayLogicalSlab(18u, false);
+                const auto SelectedEndpoint = Compute.ReadReplayLogicalSlab(20u, false);
+                const auto DirectNee = Compute.ReadReplayLogicalSlab(12u, false);
+                const auto Reservoir = Compute.ReadReplayLogicalSlab(2u, false);
+                Require(PairedAudit.size() == Pixels && PreviousEndpoint.size() == Pixels &&
+                            HistoryEndpoint.size() == Pixels && SelectedEndpoint.size() == Pixels &&
+                            DirectNee.size() == Pixels && Reservoir.size() == Pixels,
+                        "Endpoint-pairing diagnostic readback has an unexpected pixel count");
+                std::array<uint64_t, 9> CohortPairedTransitions{};
+                std::array<double, 9> CohortPairedHistorySums{};
+                uint64_t CohortEndpointPairs = 0, CohortEndpointMatches = 0, CohortSelectedEndpointMatches = 0;
+                double CohortEstimateSum = 0;
+                uint32_t CohortSamples = 0;
                 for (uint32_t Pixel = 0; Pixel < Pixels; ++Pixel)
                 {
                     const uint32_t X = Pixel % Size, Y = Pixel / Size;
@@ -621,6 +653,10 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                     const auto& C = Contributions[Pixel];
                     const auto& S = Source[Pixel];
                     const auto& Q = Choice[Pixel];
+                    const auto& Pair = PairedAudit[Pixel];
+                    const auto& PriorEndpoint = PreviousEndpoint[Pixel];
+                    const auto& ReplayedEndpoint = HistoryEndpoint[Pixel];
+                    const auto& CurrentSelectedEndpoint = SelectedEndpoint[Pixel];
                     const double Rays = V[0], Visible = V[1], Nee = C[0], Radiance = C[2];
                     const double HistoryWeight = Q[0], Probability = Q[1], PreviousPathLuma = Q[2];
                     const double SourceWeight = S[2], SourceCount = S[3];
@@ -630,10 +666,47 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                         ? HistoryWeight * (1.0 - Probability) / Probability : 0.0;
                     const int PreviousCode = int(PreviousDirect[Pixel][0]);
                     const int CurrentCode = Rays == 0 ? 0 : (Visible > 0 ? 2 : 1);
+                    const int PairedPreviousCode = int(Pair[0]);
+                    const int PairedCurrentCode = int(Pair[1]);
+                    const double PairedRay = Pair[2];
+                    const bool PriorEndpointValid = PriorEndpoint[3] >= 1.0f;
+                    const bool ReplayedEndpointValid = ReplayedEndpoint[3] >= 1.0f;
+                    const bool SelectedEndpointValid = CurrentSelectedEndpoint[3] >= 1.0f;
+                    const uint32_t PriorFacet = PriorEndpointValid ? uint32_t(PriorEndpoint[3]) - 1u : UINT32_MAX;
+                    const uint32_t ReplayedFacet = ReplayedEndpointValid ? uint32_t(ReplayedEndpoint[3]) - 1u : UINT32_MAX;
+                    const uint32_t SelectedFacet = SelectedEndpointValid ? uint32_t(CurrentSelectedEndpoint[3]) - 1u : UINT32_MAX;
+                    const double EndpointDx = double(PriorEndpoint[0]) - ReplayedEndpoint[0];
+                    const double EndpointDy = double(PriorEndpoint[1]) - ReplayedEndpoint[1];
+                    const double EndpointDz = double(PriorEndpoint[2]) - ReplayedEndpoint[2];
+                    const bool SameEndpoint = PriorEndpointValid && ReplayedEndpointValid &&
+                        PriorFacet == ReplayedFacet && EndpointDx * EndpointDx + EndpointDy * EndpointDy +
+                        EndpointDz * EndpointDz <= 1e-10;
+                    const double SelectedEndpointDx = double(PriorEndpoint[0]) - CurrentSelectedEndpoint[0];
+                    const double SelectedEndpointDy = double(PriorEndpoint[1]) - CurrentSelectedEndpoint[1];
+                    const double SelectedEndpointDz = double(PriorEndpoint[2]) - CurrentSelectedEndpoint[2];
+                    const bool SameSelectedEndpoint = PriorEndpointValid && SelectedEndpointValid &&
+                        PriorFacet == SelectedFacet && SelectedEndpointDx * SelectedEndpointDx +
+                        SelectedEndpointDy * SelectedEndpointDy + SelectedEndpointDz * SelectedEndpointDz <= 1e-10;
+                    const double Estimate = double(DirectNee[Pixel][0]) * double(Reservoir[Pixel][2]);
                     Require(std::isfinite(Rays) && (Rays == 0 || Rays == 1) &&
                                 std::isfinite(Visible) && (Visible == 0 || Visible == 1) && Visible <= Rays &&
                                 PreviousCode >= 0 && PreviousCode <= 2 &&
                                 PreviousDirect[Pixel][0] == float(PreviousCode) &&
+                                std::isfinite(Pair[0]) && std::isfinite(Pair[1]) &&
+                                std::isfinite(Pair[2]) && std::isfinite(Pair[3]) &&
+                                PairedPreviousCode == PreviousCode && PairedPreviousCode <= 2 &&
+                                PairedCurrentCode >= 0 && PairedCurrentCode <= 2 &&
+                                (PairedRay == 0 || PairedRay == 1) &&
+                                (PairedRay == 0 ? PairedCurrentCode == 0 :
+                                    ((PairedCurrentCode == 1 || PairedCurrentCode == 2) && PriorEndpointValid)) &&
+                                (!PriorEndpointValid || (std::isfinite(PriorEndpoint[0]) &&
+                                    std::isfinite(PriorEndpoint[1]) && std::isfinite(PriorEndpoint[2]))) &&
+                                (!ReplayedEndpointValid || (std::isfinite(ReplayedEndpoint[0]) &&
+                                    std::isfinite(ReplayedEndpoint[1]) && std::isfinite(ReplayedEndpoint[2]))) &&
+                                (!SelectedEndpointValid || (std::isfinite(CurrentSelectedEndpoint[0]) &&
+                                    std::isfinite(CurrentSelectedEndpoint[1]) &&
+                                    std::isfinite(CurrentSelectedEndpoint[2]))) &&
+                                (PairedRay == 0 || (PriorEndpoint[3] >= 1.0f && PairedPreviousCode >= 0)) &&
                                 std::isfinite(PreviousPathLuma) && PreviousPathLuma >= 0 &&
                                 std::isfinite(Nee) && Nee >= 0 && (CurrentCode == 2 || Nee == 0) &&
                                 std::isfinite(Radiance) && Radiance >= 0 &&
@@ -648,11 +721,30 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                             "Visibility-ablation history weight disagrees with the current target/source weight");
                     Require(std::abs(Probability - HistoryWeight / (HistoryWeight + FreshWeight)) <= 5e-6,
                             "Visibility-ablation selection probability disagrees with reservoir weights");
+                    Require(std::isfinite(Estimate) && Estimate >= 0,
+                            "Endpoint-pairing direct-NEE estimate is invalid");
+                    if (SameEndpoint && CurrentCode != 0)
+                        Require(PairedCurrentCode == CurrentCode,
+                                "Replayed visibility and same-endpoint retrace disagree");
                     const size_t Transition = size_t(PreviousCode * 3 + CurrentCode);
+                    const size_t PairedTransition = size_t(PairedPreviousCode * 3 + PairedCurrentCode);
                     ++Transitions[ModeIndex][Transition];
                     ++OutcomeCounts[ModeIndex][size_t(CurrentCode)];
                     HistoryWeightSums[ModeIndex][Transition] += HistoryWeight;
                     NeeSums[ModeIndex][Transition] += Nee;
+                    ++PairedTransitions[ModeIndex][PairedTransition];
+                    PairedHistoryWeightSums[ModeIndex][PairedTransition] += HistoryWeight;
+                    CohortPairedTransitions[PairedTransition]++;
+                    CohortPairedHistorySums[PairedTransition] += HistoryWeight;
+                    if (PairedRay > 0) { ++EndpointPairs[ModeIndex]; ++CohortEndpointPairs; }
+                    if (SameEndpoint) { ++EndpointMatches[ModeIndex]; ++CohortEndpointMatches; }
+                    if (SameSelectedEndpoint)
+                    {
+                        ++SelectedEndpointMatches[ModeIndex];
+                        ++CohortSelectedEndpointMatches;
+                    }
+                    CohortEstimateSum += Estimate;
+                    ++CohortSamples;
                     RayAttempts[ModeIndex] += uint64_t(Rays);
                     RayVisible[ModeIndex] += uint64_t(Visible);
                     ++Rows;
@@ -662,15 +754,46 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                                 "current_direct_code=%d direct_rays=%.0f direct_visible=%.0f nee_luma=%.9g "
                                 "target=%.9g source_weight=%.9g source_count=%.9g retained=%.9g "
                                 "history_weight=%.9g fresh_weight=%.9g selection_probability=%.9g "
-                                "previous_path_luma=%.9g current_path_luma=%.9g\n",
+                                "previous_path_luma=%.9g current_path_luma=%.9g "
+                                "paired_prior_code=%d paired_current_code=%d paired_ray=%.0f paired_transmittance=%.9g "
+                                "prior_endpoint=%.9g,%.9g,%.9g,%u history_endpoint=%.9g,%.9g,%.9g,%u "
+                                "selected_endpoint=%.9g,%.9g,%.9g,%u endpoint_same_replay=%u "
+                                "endpoint_same_selected=%u direct_estimate_luma=%.9g\n",
+
                                 Scenario, Mode.Label, Cohort, Pixel, X, Y,
                                 SeedsByCohort[Cohort][Frames - 1u], SeedsByCohort[Cohort][0],
                                 SeedsByCohort[Cohort][1], SeedsByCohort[Cohort][2],
                                 SeedsByCohort[Cohort][3],
                                 uint32_t(S[0]) | (uint32_t(S[1]) << 16u), PreviousCode, CurrentCode,
                                 Rays, Visible, Nee, Target, SourceWeight, SourceCount, Retained,
-                                HistoryWeight, FreshWeight, Probability, PreviousPathLuma, Radiance);
+                                HistoryWeight, FreshWeight, Probability, PreviousPathLuma, Radiance,
+                                PairedPreviousCode, PairedCurrentCode, PairedRay, Pair[3],
+                                PriorEndpoint[0], PriorEndpoint[1], PriorEndpoint[2], unsigned(PriorFacet),
+                                ReplayedEndpoint[0], ReplayedEndpoint[1], ReplayedEndpoint[2], unsigned(ReplayedFacet),
+                                CurrentSelectedEndpoint[0], CurrentSelectedEndpoint[1], CurrentSelectedEndpoint[2],
+                                unsigned(SelectedFacet), unsigned(SameEndpoint),
+                                unsigned(SameSelectedEndpoint), Estimate);
                 }
+                Require(CohortSamples == Pixels / 2u,
+                        "Endpoint-pairing cohort estimate did not cover all holdout pixels");
+                std::printf("REPLAY_TEMPORAL_DIRECT_ENDPOINT_COHORT visibility=%s mode=%s cohort=%u samples=%u "
+                            "estimate_mean_luma=%.12g endpoint_pairs=%llu endpoint_matches=%llu "
+                            "selected_endpoint_matches=%llu",
+                            Scenario, Mode.Label, Cohort, CohortSamples, CohortEstimateSum / CohortSamples,
+                            static_cast<unsigned long long>(CohortEndpointPairs),
+                            static_cast<unsigned long long>(CohortEndpointMatches),
+                            static_cast<unsigned long long>(CohortSelectedEndpointMatches));
+                for (size_t Transition = 0; Transition < 9u; ++Transition)
+                {
+                    const size_t Previous = Transition / 3u, Current = Transition % 3u;
+                    const double MeanHistory = CohortPairedTransitions[Transition]
+                        ? CohortPairedHistorySums[Transition] / double(CohortPairedTransitions[Transition]) : 0.0;
+                    std::printf(" pair_transition_%zu%zu=%llu pair_history_mean_%zu%zu=%.9g",
+                                Previous, Current,
+                                static_cast<unsigned long long>(CohortPairedTransitions[Transition]),
+                                Previous, Current, MeanHistory);
+                }
+                std::printf("\n");
                 (void)Image;
                 std::fflush(stdout);
             }
@@ -682,6 +805,8 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
             const uint64_t ModeRows = Rows / Modes.size();
             Require(RayAttempts[ModeIndex] == ModeRows && RayVisible[ModeIndex] > 0,
                     "Visibility-ablation direct-ray coverage was incomplete");
+            Require(EndpointPairs[ModeIndex] == ModeRows && EndpointMatches[ModeIndex] > 0,
+                    "Matched previous-endpoint retrace or same-seed endpoint comparison was incomplete");
             if (Mask == 1u)
                 Require(OutcomeCounts[ModeIndex][1] == 0 && Transitions[ModeIndex][5] == 0 &&
                             Transitions[ModeIndex][7] == 0,
@@ -689,14 +814,24 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
             else
                 Require(OutcomeCounts[ModeIndex][1] > 0 && Transitions[ModeIndex][5] + Transitions[ModeIndex][7] > 0,
                         "Added-only blocker failed to produce direct visibility changes");
+            if (Mask == 1u)
+                Require(PairedTransitions[ModeIndex][5] == 0 && PairedTransitions[ModeIndex][7] == 0,
+                        "Base-only paired endpoint retrace unexpectedly changed direct visibility");
+            else
+                Require(PairedTransitions[ModeIndex][5] + PairedTransitions[ModeIndex][7] > 0,
+                        "Added-only blocker failed to change visibility for paired endpoints");
             std::printf("REPLAY_TEMPORAL_VISIBILITY_DIRECT_ABLATION_RESULT visibility=%s mode=%s rows=%llu "
-                        "direct_rays=%llu direct_visible=%llu no_ray=%llu blocked=%llu visible=%llu",
+                        "direct_rays=%llu direct_visible=%llu no_ray=%llu blocked=%llu visible=%llu "
+                        "paired_endpoint_pairs=%llu endpoint_matches=%llu selected_endpoint_matches=%llu",
                         Scenario, Modes[ModeIndex].Label, static_cast<unsigned long long>(ModeRows),
                         static_cast<unsigned long long>(RayAttempts[ModeIndex]),
                         static_cast<unsigned long long>(RayVisible[ModeIndex]),
                         static_cast<unsigned long long>(OutcomeCounts[ModeIndex][0]),
                         static_cast<unsigned long long>(OutcomeCounts[ModeIndex][1]),
-                        static_cast<unsigned long long>(OutcomeCounts[ModeIndex][2]));
+                        static_cast<unsigned long long>(OutcomeCounts[ModeIndex][2]),
+                        static_cast<unsigned long long>(EndpointPairs[ModeIndex]),
+                        static_cast<unsigned long long>(EndpointMatches[ModeIndex]),
+                        static_cast<unsigned long long>(SelectedEndpointMatches[ModeIndex]));
             for (size_t Transition = 0; Transition < 9u; ++Transition)
             {
                 const size_t Previous = Transition / 3u, Current = Transition % 3u;
@@ -708,11 +843,21 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                             Previous, Current, static_cast<unsigned long long>(Transitions[ModeIndex][Transition]),
                             Previous, Current, MeanHistory, Previous, Current, MeanNee);
             }
+            for (size_t Transition = 0; Transition < 9u; ++Transition)
+            {
+                const size_t Previous = Transition / 3u, Current = Transition % 3u;
+                const double MeanHistory = PairedTransitions[ModeIndex][Transition]
+                    ? PairedHistoryWeightSums[ModeIndex][Transition] / double(PairedTransitions[ModeIndex][Transition]) : 0.0;
+                std::printf(" paired_transition_%zu%zu=%llu paired_history_weight_mean_%zu%zu=%.9g",
+                            Previous, Current,
+                            static_cast<unsigned long long>(PairedTransitions[ModeIndex][Transition]),
+                            Previous, Current, MeanHistory);
+            }
             std::printf("\n");
         }
         std::printf("PASS ReplayTemporalDirectVisibilityAblationValidation visibility=%s rows=%llu "
                     "same_seed_prior_current_pairs=verified matched_frame_seed_sequences=verified "
-                    "estimator_math_changed=0\n",
+                    "matched_endpoint_retraces=verified estimator_math_changed=0\n",
                     Scenario, static_cast<unsigned long long>(Rows));
         std::fflush(stdout);
     }
