@@ -55,6 +55,23 @@ class DirectEstimateSummaryTests(unittest.TestCase):
                      f"independent_area_reference=1 estimator_math_changed=0 all_mean_gates={all_gates}")
         return "\n".join(lines) + "\n"
 
+    def scenario_fixture(self, scenario, motion="moving"):
+        text = self.fixture()
+        replacements = {
+            "REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready=1 ":
+                f"REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready=1 motion={motion} visibility={scenario} ",
+            "REPLAY_TEMPORAL_DIRECT_ESTIMATE_COHORT mode=":
+                f"REPLAY_TEMPORAL_DIRECT_ESTIMATE_COHORT visibility={scenario} mode=",
+            "REPLAY_TEMPORAL_DIRECT_ESTIMATE_RESULT mode=":
+                f"REPLAY_TEMPORAL_DIRECT_ESTIMATE_RESULT visibility={scenario} mode=",
+            "PASS ReplayTemporalDirectEmitterEstimateValidation cohorts=":
+                f"PASS ReplayTemporalDirectEmitterEstimateValidation visibility={scenario} cohorts=",
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        return (f"REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture=overhead_emitter motion={motion} "
+                f"visibility={scenario}\n" + text)
+
     def test_summary_and_chart_include_failed_gate_without_promoting_it(self):
         with TemporaryDirectory() as temp:
             log, svg = Path(temp) / "estimate.log", Path(temp) / "estimate.svg"
@@ -111,11 +128,7 @@ class DirectEstimateSummaryTests(unittest.TestCase):
             path.write_text(conflict)
             with self.assertRaisesRegex(ValueError, "disagree about receiver motion"):
                 SUMMARY.load(path)
-            clear = self.fixture().replace(
-                "pipelines_ready=1 scope=nee_only",
-                "pipelines_ready=1 motion=moving visibility=clear scope=nee_only")
-            clear = ("REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture=overhead_emitter motion=moving visibility=clear\n"
-                     + clear)
+            clear = self.scenario_fixture("clear")
             path.write_text(clear)
             clear_values = SUMMARY.load(path)
             SUMMARY.chart(svg, clear_values)
@@ -126,6 +139,20 @@ class DirectEstimateSummaryTests(unittest.TestCase):
                 SUMMARY.load(path)
             path.write_text(clear.replace("visibility=clear", "visibility=unspecified"))
             with self.assertRaisesRegex(ValueError, "unknown direct-visibility"):
+                SUMMARY.load(path)
+
+    def test_multi_scenario_occluder_ablation_is_separated_and_labeled(self):
+        with TemporaryDirectory() as temp:
+            path = Path(temp) / "ablation.log"
+            svg = Path(temp) / "ablation.svg"
+            path.write_text(self.scenario_fixture("base_only") + self.scenario_fixture("added_only"))
+            base = SUMMARY.load(path, "base_only")
+            added = SUMMARY.load(path, "added_only")
+            SUMMARY.chart(svg, base)
+            self.assertIn("moving / base_only", svg.read_text())
+            SUMMARY.chart(svg, added)
+            self.assertIn("moving / added_only", svg.read_text())
+            with self.assertRaisesRegex(ValueError, "multiple scenarios"):
                 SUMMARY.load(path)
 
 

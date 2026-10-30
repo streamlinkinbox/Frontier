@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="560" viewBox="0 0 1180 560">
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<rect x="18" y="18" width="1144" height="524" rx="16" fill="white" stroke="#dbe3ee"/>
+<text x="48" y="62" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25" font-weight="700" fill="#0f172a">Fresh vs temporal NEE · moving / base_only</text>
+<text x="48" y="91" font-family="Arial,sans-serif" font-size="14" fill="#475569">Reservoir-weighted direct NEE luminance · independent CPU area integral · error bars ±6 batch SE</text>
+<line x1="758.16" y1="130" x2="758.16" y2="445" stroke="#0f172a" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="758.16" y="122" text-anchor="middle" font-family="Arial" font-size="12" fill="#0f172a">CPU reference 5.37194</text>
+<text x="48" y="170" font-family="Arial" font-size="16" font-weight="700" fill="#0f172a">fresh1</text>
+<line x1="711.49" y1="165" x2="795.93" y2="165" stroke="#2563eb" stroke-width="3"/>
+<line x1="711.49" y1="158" x2="711.49" y2="172" stroke="#2563eb" stroke-width="2"/>
+<line x1="795.93" y1="158" x2="795.93" y2="172" stroke="#2563eb" stroke-width="2"/>
+<circle cx="753.71" cy="165" r="7" fill="#2563eb"/>
+<text x="880" y="161" font-family="Arial" font-size="13" fill="#334155">mean 5.32533 · RMSE 11.154</text>
+<text x="880" y="181" font-family="Arial" font-size="12" fill="#15803d">within mean gate</text>
+<text x="48" y="248" font-family="Arial" font-size="16" font-weight="700" fill="#0f172a">fresh4</text>
+<line x1="727.59" y1="243" x2="783.45" y2="243" stroke="#0ea5e9" stroke-width="3"/>
+<line x1="727.59" y1="236" x2="727.59" y2="250" stroke="#0ea5e9" stroke-width="2"/>
+<line x1="783.45" y1="236" x2="783.45" y2="250" stroke="#0ea5e9" stroke-width="2"/>
+<circle cx="755.52" cy="243" r="7" fill="#0ea5e9"/>
+<text x="880" y="239" font-family="Arial" font-size="13" fill="#334155">mean 5.34426 · RMSE 5.6612</text>
+<text x="880" y="259" font-family="Arial" font-size="12" fill="#15803d">within mean gate</text>
+<text x="48" y="326" font-family="Arial" font-size="16" font-weight="700" fill="#0f172a">temporal1</text>
+<line x1="730.86" y1="321" x2="784.95" y2="321" stroke="#d97706" stroke-width="3"/>
+<line x1="730.86" y1="314" x2="730.86" y2="328" stroke="#d97706" stroke-width="2"/>
+<line x1="784.95" y1="314" x2="784.95" y2="328" stroke="#d97706" stroke-width="2"/>
+<circle cx="757.91" cy="321" r="7" fill="#d97706"/>
+<text x="880" y="317" font-family="Arial" font-size="13" fill="#334155">mean 5.36926 · RMSE 6.6432</text>
+<text x="880" y="337" font-family="Arial" font-size="12" fill="#15803d">within mean gate</text>
+<text x="48" y="404" font-family="Arial" font-size="16" font-weight="700" fill="#0f172a">temporal4</text>
+<line x1="732.52" y1="399" x2="779.69" y2="399" stroke="#dc2626" stroke-width="3"/>
+<line x1="732.52" y1="392" x2="732.52" y2="406" stroke="#dc2626" stroke-width="2"/>
+<line x1="779.69" y1="392" x2="779.69" y2="406" stroke="#dc2626" stroke-width="2"/>
+<circle cx="756.11" cy="399" r="7" fill="#dc2626"/>
+<text x="880" y="395" font-family="Arial" font-size="13" fill="#334155">mean 5.35042 · RMSE 4.6411</text>
+<text x="880" y="415" font-family="Arial" font-size="12" fill="#15803d">within mean gate</text>
+<line x1="245" y1="445" x2="1085" y2="445" stroke="#94a3b8"/>
+<text x="48" y="485" font-family="Arial" font-size="12" fill="#475569">NEE contribution only: BSDF continuation, emitter-hit and environment terms are excluded.</text>
+<text x="48" y="507" font-family="Arial" font-size="12" fill="#64748b">Fixture-level moving-receiver/base_only visibility; temporal modes replay four frames.</text>
+</svg>

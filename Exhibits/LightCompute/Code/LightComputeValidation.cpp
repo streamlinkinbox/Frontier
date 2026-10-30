@@ -1971,6 +1971,11 @@ int main(int Count, char** Arguments)
             ValidateReplayTemporalDirectEmitterEstimateOnly(Arguments[1], Arguments[2], false, true);
             return 0;
         }
+        if (Count == 4 && std::string(Arguments[3]) == "--replay-temporal-direct-estimate-occluder-ablation")
+        {
+            ValidateReplayTemporalDirectEmitterOccluderAblation(Arguments[1], Arguments[2]);
+            return 0;
+        }
         if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-history-baseline" ||
                            std::string(Arguments[3]) == "--replay-temporal-history-raw"))
         {

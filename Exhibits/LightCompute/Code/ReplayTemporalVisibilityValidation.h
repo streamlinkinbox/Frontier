@@ -248,26 +248,40 @@
 
 // Add a uniformly sampled area emitter above the moving receiver/occluder holdout.
 // The emitter is test-only and deliberately absent from the original baseline fixture.
-LightComputeArchive AddReplayTemporalVisibilityEmitter(LightComputeArchive Scene, bool IncludeOccluders = true)
+const char* ReplayTemporalVisibilityName(uint32_t OccluderMask)
+{
+    switch (OccluderMask)
+    {
+        case 0u: return "clear";
+        case 1u: return "base_only";
+        case 2u: return "added_only";
+        case 3u: return "blocked";
+        default: throw std::runtime_error("Unknown replay temporal visibility mask");
+    }
+}
+
+LightComputeArchive AddReplayTemporalVisibilityEmitter(LightComputeArchive Scene, uint32_t OccluderMask = 3u)
 {
     auto Position = [](const std::array<float, 4>& P) { return SpatialVector{P[0], P[1], P[2]}; };
     std::vector<LightComputeFacet> Surfaces;
     std::vector<std::array<SpatialVector, 3>> Geometry;
     const SpatialVector Down{0, 0, -1};
-    if (IncludeOccluders)
+    Require(OccluderMask <= 3u, "Temporal visibility fixture has an invalid occluder mask");
+    if ((OccluderMask & 1u) != 0u)
     {
         Surfaces = Scene.Surfaces;
-        Geometry.reserve(Surfaces.size() + 4u);
+        Geometry.reserve(Surfaces.size() + ((OccluderMask & 2u) != 0u ? 6u : 2u));
         for (const auto& F : Surfaces)
             Geometry.push_back({Position(F.A), Position(F.B), Position(F.C)});
-        AppendPbrQuad(Surfaces, Geometry, {-.35, -.35, 1.5}, {.35, -.35, 1.5},
-                      {.35, .35, 1.5}, {-.35, .35, 1.5}, Down, Down, Down, Down,
-                      0u, 4.0f, {0.1f, 0.1f, 0.1f}, .7f, 0);
     }
     else
     {
-        Geometry.reserve(2u);
+        Geometry.reserve((OccluderMask & 2u) != 0u ? 4u : 2u);
     }
+    if ((OccluderMask & 2u) != 0u)
+        AppendPbrQuad(Surfaces, Geometry, {-.35, -.35, 1.5}, {.35, -.35, 1.5},
+                      {.35, .35, 1.5}, {-.35, .35, 1.5}, Down, Down, Down, Down,
+                      0u, 4.0f, {0.1f, 0.1f, 0.1f}, .7f, 0);
     AppendPbrQuad(Surfaces, Geometry, {-2, -2, 3}, {2, -2, 3}, {2, 2, 3}, {-2, 2, 3},
                   Down, Down, Down, Down, 0u, 3.0f, {0.5f, 0.5f, 0.5f}, .7f, 0,
                   {10.0f, 8.0f, 5.0f});
@@ -289,7 +303,7 @@ void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute
                                                  const LightComputeArchive& Material,
                                                  const std::array<LightComputeArchive, 4>& Scenes,
                                                  uint32_t Cohorts, uint32_t Size, uint32_t FarGroup, float Floor,
-                                                 bool IncludeOccluders = true);
+                                                 uint32_t OccluderMask = 3u);
 
 std::vector<std::array<float, 4>> ExecuteReplayTemporalDirectNeeSample(
     LightComputeSubmission& Compute, const LightComputeArchive& Scene,
@@ -312,11 +326,12 @@ void ValidateReplayTemporalDirectEmitterEstimateOnly(const char* Driver, const s
     DimSpecification.ReportingScale = 1e3;
     const auto Dim = ConstructReplayMaterialReuseFixture(Size, DimSpecification);
     const auto Metal = ConstructReplayMaterialReuseFixture(Size, EnumerateReplayMaterialSpecifications()[1]);
+    const uint32_t OccluderMask = ClearVisibility ? 0u : 3u;
     const auto Capacity = AddReplayTemporalVisibilityEmitter(
-        ConstructReplayMixedMaterialFixture(Size, Dim, Metal), !ClearVisibility);
+        ConstructReplayMixedMaterialFixture(Size, Dim, Metal), 3u);
     auto Scenes = ConstructReplayFreshMotionScenes(Size, Dim, Metal, false);
     for (auto& Scene : Scenes)
-        Scene = AddReplayTemporalVisibilityEmitter(std::move(Scene), !ClearVisibility);
+        Scene = AddReplayTemporalVisibilityEmitter(std::move(Scene), OccluderMask);
     if (Stationary)
     {
         const auto FinalScene = Scenes.back();
@@ -330,12 +345,45 @@ void ValidateReplayTemporalDirectEmitterEstimateOnly(const char* Driver, const s
     LightComputeSubmission Compute(Driver);
     std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture=overhead_emitter motion=%s visibility=%s "
                 "receiver_x=%.9g preparing_on=%s\n", Stationary ? "stationary" : "moving",
-                ClearVisibility ? "clear" : "blocked",
+                ReplayTemporalVisibilityName(OccluderMask),
                 double(Scenes.back().Receivers[1].PositionHit[0]), Compute.Properties.deviceName);
     std::fflush(stdout);
     PrepareReplayTemporalDiagnostic(Compute, Capacity, Shaders);
     ValidateReplayTemporalDirectEmitterEstimate(Compute, Metal, Scenes, Cohorts, Size, FarGroup, Floor,
-                                                 !ClearVisibility);
+                                                 OccluderMask);
+}
+
+void ValidateReplayTemporalDirectEmitterOccluderAblation(const char* Driver, const std::string& Shaders)
+{
+    constexpr uint32_t Size = 32u, Cohorts = 32u, FarGroup = 1u;
+    constexpr float Floor = .0001f;
+    const std::array<uint32_t, 2> Masks{1u, 2u};
+    auto DimSpecification = EnumerateReplayMaterialSpecifications()[4];
+    DimSpecification.Coverage = 1e-3f;
+    DimSpecification.CoatCoverage = 2e-3f;
+    DimSpecification.ReportingScale = 1e3;
+    const auto Dim = ConstructReplayMaterialReuseFixture(Size, DimSpecification);
+    const auto Metal = ConstructReplayMaterialReuseFixture(Size, EnumerateReplayMaterialSpecifications()[1]);
+    const auto Capacity = AddReplayTemporalVisibilityEmitter(
+        ConstructReplayMixedMaterialFixture(Size, Dim, Metal), 3u);
+    const auto BaseScenes = ConstructReplayFreshMotionScenes(Size, Dim, Metal, false);
+    LightComputeSubmission Compute(Driver);
+    std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE_ABLATION fixture=overhead_emitter motion=moving "
+                "scenarios=base_only,added_only cohorts=%u pixels_per_cohort=%u preparing_on=%s\n",
+                Cohorts, Size * Size / 2u, Compute.Properties.deviceName);
+    std::fflush(stdout);
+    PrepareReplayTemporalDiagnostic(Compute, Capacity, Shaders);
+    for (const uint32_t Mask : Masks)
+    {
+        auto Scenes = BaseScenes;
+        for (auto& Scene : Scenes)
+            Scene = AddReplayTemporalVisibilityEmitter(std::move(Scene), Mask);
+        std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture=overhead_emitter motion=moving visibility=%s "
+                    "receiver_x=%.9g preparing_on=%s\n", ReplayTemporalVisibilityName(Mask),
+                    double(Scenes.back().Receivers[1].PositionHit[0]), Compute.Properties.deviceName);
+        std::fflush(stdout);
+        ValidateReplayTemporalDirectEmitterEstimate(Compute, Metal, Scenes, Cohorts, Size, FarGroup, Floor, Mask);
+    }
 }
 
 [[maybe_unused]] void ValidateReplayTemporalDirectVisibility(const char* Driver, const std::string& Shaders)
@@ -501,7 +549,7 @@ void ValidateReplayTemporalDirectEmitterEstimateOnly(const char* Driver, const s
 
 double IntegrateReplayTemporalDirectEmitterReference(const LightComputeArchive& Material,
                                                       double ReceiverX, uint32_t Steps,
-                                                      bool IncludeOccluders = true)
+                                                      uint32_t OccluderMask = 3u)
 {
     constexpr double EmitterHalf = 2.0, EmitterZ = 3.0, OriginOffset = .001;
     constexpr double EmissionRed = 10.0;
@@ -534,8 +582,8 @@ double IntegrateReplayTemporalDirectEmitterReference(const LightComputeArchive& 
             const double ViewHalf = std::clamp((ViewX * HalfX + ViewZ * HalfZ) / HalfLength, 0.0, 1.0);
             const double Brdf = EvaluateReplayMaterialReference(Material, ViewZ, LightZ, NormalHalf, ViewHalf);
             bool Occluded = false;
-            if (IncludeOccluders)
-                for (size_t Blocker = 0; Blocker < BlockerZ.size(); ++Blocker)
+            for (size_t Blocker = 0; Blocker < BlockerZ.size(); ++Blocker)
+                if ((OccluderMask & (1u << Blocker)) != 0u)
                 {
                     const double T = (BlockerZ[Blocker] - OriginOffset) / Dz;
                     const double HitX = ReceiverX + T * Dx - BlockerCenterX[Blocker];
@@ -556,7 +604,7 @@ void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute
                                                  const LightComputeArchive& Material,
                                                  const std::array<LightComputeArchive, 4>& Scenes,
                                                  uint32_t Cohorts, uint32_t Size, uint32_t FarGroup, float Floor,
-                                                 bool IncludeOccluders)
+                                                 uint32_t OccluderMask)
 {
     constexpr uint32_t Frames = 4u;
     constexpr double ReferenceTolerance = .005;
@@ -569,9 +617,9 @@ void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute
             "Direct-emitter reference receiver no longer matches the far moving holdout");
     constexpr double EmitterPower = 10.0 * .2126 + 8.0 * .7152 + 5.0 * .0722;
     const double Reference = IntegrateReplayTemporalDirectEmitterReference(
-                                 Material, ReceiverX, 2048u, IncludeOccluders) * (EmitterPower / 10.0);
+                                 Material, ReceiverX, 2048u, OccluderMask) * (EmitterPower / 10.0);
     const double Coarse = IntegrateReplayTemporalDirectEmitterReference(
-                              Material, ReceiverX, 1024u, IncludeOccluders) * (EmitterPower / 10.0);
+                              Material, ReceiverX, 1024u, OccluderMask) * (EmitterPower / 10.0);
     const double ReferenceDelta = std::abs(Reference - Coarse);
     const double GateTolerance = ReferenceTolerance * std::max(1.0, std::abs(Reference));
     Require(std::isfinite(Reference) && Reference > 0 && std::isfinite(Coarse) && Coarse > 0 &&
@@ -587,8 +635,9 @@ void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute
                 "bsdf_continuation_excluded=1 total_radiance_claim=0 cohorts=%u pixels_per_cohort=%u "
                 "reference_luma=%.12g reference_coarse_luma=%.12g reference_delta=%.9g gate_tolerance=%.9g "
                 "receiver_x=%.9g emission_red=10 occluders=%u\n",
-                Motion, IncludeOccluders ? "blocked" : "clear", Cohorts, Pixels / 2u,
-                Reference, Coarse, ReferenceDelta, GateTolerance, ReceiverX, unsigned(IncludeOccluders) * 2u);
+                Motion, ReplayTemporalVisibilityName(OccluderMask), Cohorts, Pixels / 2u,
+                Reference, Coarse, ReferenceDelta, GateTolerance, ReceiverX,
+                unsigned(OccluderMask & 1u) + unsigned((OccluderMask >> 1u) & 1u));
     std::fflush(stdout);
     for (uint32_t Cohort = 0; Cohort < Cohorts; ++Cohort)
     {
@@ -643,10 +692,10 @@ void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute
                     "Direct-emitter reference arm did not cover its checkerboard holdout");
             Means[ModeIndex].Accumulate(Sum / double(SampleCount));
             Mses[ModeIndex].Accumulate(SquaredError / double(SampleCount));
-            std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE_COHORT mode=%s cohort=%u pixels=%u "
+            std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE_COHORT visibility=%s mode=%s cohort=%u pixels=%u "
                         "mean_luma=%.12g mse=%.12g\n",
-                        Mode.Label, Cohort, SampleCount, Sum / double(SampleCount),
-                        SquaredError / double(SampleCount));
+                        ReplayTemporalVisibilityName(OccluderMask), Mode.Label, Cohort, SampleCount,
+                        Sum / double(SampleCount), SquaredError / double(SampleCount));
         }
         std::fflush(stdout);
     }
@@ -659,14 +708,14 @@ void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute
         const double Rmse = std::sqrt(std::max(0.0, Mses[ModeIndex].Mean()));
         const bool MeanGate = std::abs(Mean - Reference) <= 6.0 * StandardError + GateTolerance;
         AllMeanGates = AllMeanGates && MeanGate;
-        std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE_RESULT mode=%s cohorts=%u pixels_per_cohort=%u "
+        std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE_RESULT visibility=%s mode=%s cohorts=%u pixels_per_cohort=%u "
                     "reference_luma=%.12g reference_coarse_luma=%.12g mean_luma=%.12g batch_se=%.9g "
                     "rmse=%.9g gate_tolerance=%.9g mean_gate=%u\n",
-                    Modes[ModeIndex].Label, Cohorts, Pixels / 2u, Reference, Coarse, Mean, StandardError,
-                    Rmse, GateTolerance, unsigned(MeanGate));
+                    ReplayTemporalVisibilityName(OccluderMask), Modes[ModeIndex].Label, Cohorts, Pixels / 2u,
+                    Reference, Coarse, Mean, StandardError, Rmse, GateTolerance, unsigned(MeanGate));
     }
-    std::printf("PASS ReplayTemporalDirectEmitterEstimateValidation cohorts=%u modes=%u scope=nee_only "
+    std::printf("PASS ReplayTemporalDirectEmitterEstimateValidation visibility=%s cohorts=%u modes=%u scope=nee_only "
                 "independent_area_reference=1 estimator_math_changed=0 all_mean_gates=%u\n",
-                Cohorts, unsigned(Modes.size()), unsigned(AllMeanGates));
+                ReplayTemporalVisibilityName(OccluderMask), Cohorts, unsigned(Modes.size()), unsigned(AllMeanGates));
     std::fflush(stdout);
 }

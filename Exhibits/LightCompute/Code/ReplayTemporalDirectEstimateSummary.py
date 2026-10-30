@@ -28,60 +28,84 @@ def integer(row, key):
     return value
 
 
-def load(path):
-    headers, fixture_headers, cohorts, results, passes = [], [], {}, {}, []
+def load(path, scenario=None):
+    headers, fixture_headers, cohorts, results, passes = {}, {}, {}, {}, {}
     for line in Path(path).read_text(errors="replace").splitlines():
         if line.startswith("REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture="):
-            fixture_headers.append(fields(line))
+            row = fields(line)
+            visibility = row.get("visibility", "blocked")
+            if visibility in fixture_headers:
+                raise ValueError(f"duplicate direct estimate fixture metadata for {visibility}")
+            fixture_headers[visibility] = row
         elif line.startswith("REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready="):
-            headers.append(fields(line))
+            row = fields(line)
+            visibility = row.get("visibility", "blocked")
+            if visibility in headers:
+                raise ValueError(f"duplicate direct estimate header for {visibility}")
+            headers[visibility] = row
         elif line.startswith("REPLAY_TEMPORAL_DIRECT_ESTIMATE_COHORT "):
             row = fields(line)
-            key = (row["mode"], integer(row, "cohort"))
+            visibility = row.get("visibility", "blocked")
+            key = (visibility, row["mode"], integer(row, "cohort"))
             if key in cohorts:
                 raise ValueError(f"duplicate direct estimate cohort {key}")
             cohorts[key] = row
         elif line.startswith("REPLAY_TEMPORAL_DIRECT_ESTIMATE_RESULT "):
             row = fields(line)
-            if row["mode"] in results:
-                raise ValueError(f"duplicate direct estimate result {row['mode']}")
-            results[row["mode"]] = row
+            visibility = row.get("visibility", "blocked")
+            key = (visibility, row["mode"])
+            if key in results:
+                raise ValueError(f"duplicate direct estimate result {key}")
+            results[key] = row
         elif line.startswith("PASS ReplayTemporalDirectEmitterEstimateValidation "):
-            passes.append(fields(line))
+            row = fields(line)
+            visibility = row.get("visibility", "blocked")
+            if visibility in passes:
+                raise ValueError(f"duplicate direct estimate pass marker for {visibility}")
+            passes[visibility] = row
 
-    if len(headers) != 1 or set(results) != set(MODES) or len(passes) != 1:
-        raise ValueError("direct estimate header, mode results, or PASS coverage incomplete")
-    header = headers[0]
+    if not headers or set(headers) != set(passes) or set(headers) != {key[0] for key in results}:
+        raise ValueError("direct estimate scenario headers, mode results, or PASS coverage incomplete")
+    if set(headers) != {key[0] for key in cohorts}:
+        raise ValueError("direct estimate scenario cohort coverage incomplete")
+    if fixture_headers and set(fixture_headers) != set(headers):
+        raise ValueError("fixture and result header disagree about direct visibility")
+    if scenario is None:
+        if len(headers) != 1:
+            raise ValueError("select a direct-visibility scenario when the log contains multiple scenarios")
+        scenario = next(iter(headers))
+    if scenario not in headers:
+        raise ValueError(f"direct estimate scenario not found: {scenario}")
+    if scenario not in ("blocked", "clear", "base_only", "added_only"):
+        raise ValueError(f"unknown direct-visibility scenario: {scenario}")
+
+    header = headers[scenario]
+    fixture = fixture_headers.get(scenario)
     batches = integer(header, "cohorts")
     if (batches < 2 or integer(header, "pixels_per_cohort") != PIXEL_COUNT or
             header.get("scope") != "nee_only" or header.get("bsdf_continuation_excluded") != "1" or
             header.get("total_radiance_claim") != "0"):
         raise ValueError("direct estimate header has invalid dimensions or an ambiguous radiance scope")
-    expected = {(mode, cohort) for mode in MODES for cohort in range(batches)}
-    if set(cohorts) != expected:
-        raise ValueError(f"direct estimate cohort coverage {len(cohorts)}/{len(expected)}")
-    if (integer(passes[0], "cohorts") != batches or integer(passes[0], "modes") != len(MODES) or
-            passes[0].get("independent_area_reference") != "1" or
-            passes[0].get("scope") != "nee_only" or
-            passes[0].get("estimator_math_changed") != "0"):
-        raise ValueError("direct estimate pass marker is invalid")
-
-    if len(fixture_headers) > 1:
-        raise ValueError("duplicate direct estimate fixture metadata")
-    fixture_motion = fixture_headers[0].get("motion") if fixture_headers else None
-    header_motion = header.get("motion")
-    if fixture_motion and header_motion and fixture_motion != header_motion:
-        raise ValueError("fixture and result header disagree about receiver motion")
-    motion = fixture_motion or header_motion or "moving"
+    if fixture:
+        fixture_motion = fixture.get("motion")
+        header_motion = header.get("motion")
+        if fixture_motion and header_motion and fixture_motion != header_motion:
+            raise ValueError("fixture and result header disagree about receiver motion")
+        if fixture.get("visibility", scenario) != scenario:
+            raise ValueError("fixture and result header disagree about direct visibility")
+    motion = ((fixture.get("motion") if fixture else None) or header.get("motion") or "moving")
     if motion not in ("moving", "stationary"):
         raise ValueError(f"unknown reference motion scenario: {motion}")
-    fixture_visibility = fixture_headers[0].get("visibility") if fixture_headers else None
-    header_visibility = header.get("visibility")
-    if fixture_visibility and header_visibility and fixture_visibility != header_visibility:
-        raise ValueError("fixture and result header disagree about direct visibility")
-    visibility = fixture_visibility or header_visibility or "blocked"
-    if visibility not in ("blocked", "clear"):
-        raise ValueError(f"unknown direct-visibility scenario: {visibility}")
+    expected = {(scenario, mode, cohort) for mode in MODES for cohort in range(batches)}
+    actual = {key for key in cohorts if key[0] == scenario}
+    if actual != expected:
+        raise ValueError(f"direct estimate cohort coverage {len(actual)}/{len(expected)} for {scenario}")
+    pass_row = passes[scenario]
+    if (integer(pass_row, "cohorts") != batches or integer(pass_row, "modes") != len(MODES) or
+            pass_row.get("independent_area_reference") != "1" or pass_row.get("scope") != "nee_only" or
+            pass_row.get("estimator_math_changed") != "0"):
+        raise ValueError("direct estimate pass marker is invalid")
+
     reference = number(header, "reference_luma")
     coarse = number(header, "reference_coarse_luma")
     tolerance = number(header, "gate_tolerance")
@@ -89,7 +113,7 @@ def load(path):
         raise ValueError("direct estimate reference or tolerance is invalid")
     summaries = {}
     for mode in MODES:
-        rows = [cohorts[(mode, cohort)] for cohort in range(batches)]
+        rows = [cohorts[(scenario, mode, cohort)] for cohort in range(batches)]
         means, mses = [], []
         for row in rows:
             if integer(row, "pixels") != PIXEL_COUNT:
@@ -105,7 +129,7 @@ def load(path):
         standard_error = math.sqrt(max(0.0, variance) / batches)
         rmse = math.sqrt(sum(mses) / batches)
         mean_gate = abs(mean - reference) <= 6.0 * standard_error + tolerance
-        result = results[mode]
+        result = results[(scenario, mode)]
         checks = {
             "cohorts": batches,
             "pixels_per_cohort": PIXEL_COUNT,
@@ -119,23 +143,23 @@ def load(path):
         }
         for key, expected_value in checks.items():
             if key in ("mean_gate", "cohorts", "pixels_per_cohort"):
-                actual = integer(result, key)
-                if actual != expected_value:
+                actual_value = integer(result, key)
+                if actual_value != expected_value:
                     raise ValueError(f"{mode}: aggregate {key} disagrees with cohort records")
             elif not math.isclose(number(result, key), expected_value, rel_tol=5e-7, abs_tol=5e-9):
                 raise ValueError(f"{mode}: aggregate {key} disagrees with cohort records")
         summaries[mode] = {"mean": mean, "se": standard_error, "rmse": rmse,
                            "gate": mean_gate, "reference": reference, "tolerance": tolerance,
-                           "motion": motion, "visibility": visibility}
-        print(f"DIRECT_ESTIMATE motion={motion} visibility={visibility} mode={mode} mean_luma={mean:.12g} batch_se={standard_error:.9g} "
-              f"rmse={rmse:.9g} reference_luma={reference:.12g} mean_gate={int(mean_gate)}")
+                           "motion": motion, "visibility": scenario}
+        print(f"DIRECT_ESTIMATE motion={motion} visibility={scenario} mode={mode} "
+              f"mean_luma={mean:.12g} batch_se={standard_error:.9g} rmse={rmse:.9g} "
+              f"reference_luma={reference:.12g} mean_gate={int(mean_gate)}")
     all_gates = int(all(summaries[mode]["gate"] for mode in MODES))
-    if integer(passes[0], "all_mean_gates") != all_gates:
+    if integer(pass_row, "all_mean_gates") != all_gates:
         raise ValueError("direct estimate PASS gate summary disagrees with mode results")
     if abs(reference - coarse) > tolerance:
         raise ValueError("direct emitter reference failed the recorded coarse/fine convergence tolerance")
     return summaries
-
 
 def chart(path, summaries):
     width, height = 1180, 560
@@ -178,15 +202,15 @@ def chart(path, summaries):
     Path(path).write_text("\n".join(parts) + "\n", encoding="utf-8")
 
 
-def run(log, svg):
-    summaries = load(log)
+def run(log, svg, scenario=None):
+    summaries = load(log, scenario)
     chart(svg, summaries)
     print(f"VISUAL {svg}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        raise SystemExit(f"Usage: {Path(sys.argv[0]).name} RUN_LOG CHART.svg")
+    if len(sys.argv) not in (3, 4):
+        raise SystemExit(f"Usage: {Path(sys.argv[0]).name} RUN_LOG CHART.svg [SCENARIO]")
     try:
         run(*sys.argv[1:])
     except (KeyError, ValueError, ZeroDivisionError) as error:

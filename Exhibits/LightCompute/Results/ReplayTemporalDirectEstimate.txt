@@ -29,7 +29,7 @@ The previously recorded controlled-emitter visibility audit remains a separate r
 
 ## Runtime checks
 
-- New summary/parser unit tests: **5/5 passed**, including missing-cohort, bad-aggregate, non-converged-reference, failed-gate presentation, and scenario-label checks.
+- New summary/parser unit tests: **6/6 passed**, including missing-cohort, bad-aggregate, non-converged-reference, failed-gate presentation, and visibility-scenario checks.
 - Release build succeeded with warnings treated as errors; CTest: **10/10 passed**.
 - Estimate-only SwiftShader run: **32 cohorts × 4 modes**, complete; `estimator_math_changed=0`; `all_mean_gates=0` as expected from temporal1.
 - Full run log (kept outside Git): `_ClaudeScratch/provenance/direct-estimate.log`.
@@ -67,4 +67,25 @@ The follow-up preserves the four-frame moving receiver sequence and final x = 1.
 
 **Temporal1 passes when both blockers are absent.** In the blocked moving fixture it was 8.89% below its reference and failed; the blocked stationary control passed at 0.61% above its reference. Together, these results make blocker/visibility changes a leading suspect for the moving-only miss, rather than showing that motion alone is sufficient to cause it. This remains diagnostic, not causal proof: removing blockers changes the direct-visibility distribution, and further targeted attribution is needed before any estimator modification. The clear-scene temporal1 RMSE is still 6.649, despite its batch mean passing, so this is not a claim of per-pixel accuracy.
 
-All four clear-scene mean gates pass; the run reports `estimator_math_changed=0`. The 10/10 CTest suite and 5/5 summary/parser tests pass. The chart is `../ReplayTemporalDirectEstimateClearMotion.svg`; full run log is `_ClaudeScratch/provenance/direct-estimate-clear-motion.log` (outside Git). Evidence remains fixture-scoped and NEE-only; it does not establish total-radiance unbiasedness, production-scene correctness, physical-GPU/Windows behavior, or editor integration.
+All four clear-scene mean gates pass; the run reports `estimator_math_changed=0`. The 10/10 CTest suite and 6/6 summary/parser tests pass. The chart is `../ReplayTemporalDirectEstimateClearMotion.svg`; full run log is `_ClaudeScratch/provenance/direct-estimate-clear-motion.log` (outside Git). Evidence remains fixture-scoped and NEE-only; it does not establish total-radiance unbiasedness, production-scene correctness, physical-GPU/Windows behavior, or editor integration.
+
+## Single-occluder moving-receiver ablation
+
+To distinguish whether the failure follows generic receiver motion, the original fixture blocker, or the added overhead-emitter blocker, the same four-frame moving receiver, emitter, materials, seeds, and NEE-only estimator modes were run with one blocker at a time. The `base_only` arm retains the original mixed-material fixture quad at z = 1; `added_only` retains the additional test quad at z = 1.5. Both use 32 cohorts × 512 holdout pixels per mode. Both scenarios ran in one SwiftShader process, with the same per-mode cohort seeds across scenarios.
+
+Fine/coarse CPU references: `base_only` = **5.37194399226 / 5.37194528306** (delta **0.00000129080**); `added_only` = **1.84228818752 / 1.84907442424** (delta **0.00678623672**). Both meet the same predeclared reference convergence tolerance used by their matching visibility controls.
+
+| Occluder | Mode | Mean | Delta vs reference | Batch SE | RMSE | Gate |
+|---|---|---:|---:|---:|---:|:---:|
+| base_only | fresh1 | 5.32533171312 | −0.04661227914 (−0.868%) | 0.0736569608 | 11.1543657 | PASS |
+| base_only | fresh4 | 5.34426227384 | −0.02768171842 (−0.515%) | 0.0487278489 | 5.66120615 | PASS |
+| base_only | temporal1 | 5.36925822127 | −0.00268577099 (−0.050%) | 0.0471887706 | 6.64324021 | PASS |
+| base_only | temporal4 | 5.35041562154 | −0.02152837072 (−0.401%) | 0.0411527052 | 4.64107634 | PASS |
+| added_only | fresh1 | 1.85453686333 | +0.01224867581 (+0.665%) | 0.0299444397 | 3.76991653 | PASS |
+| added_only | fresh4 | 1.83145753051 | −0.01083065701 (−0.588%) | 0.0144230528 | 1.88661340 | PASS |
+| added_only | temporal1 | 1.69965080981 | −0.14263737771 (−7.742%) | 0.0171104657 | 2.30238113 | **FAIL** |
+| added_only | temporal4 | 1.81740654155 | −0.02488164597 (−1.351%) | 0.0364529398 | 4.88621213 | PASS |
+
+The original blocker alone behaves like the clear-visibility motion control: temporal1 passes, and its reference is numerically the same as the no-blocker scene for this final receiver pose. The added z = 1.5 blocker alone reproduces a temporal1 mean miss, while fresh1, fresh4, and temporal4 pass. Its temporal1 error is close to the two-blocker moving failure (−7.742% versus −8.890%). This narrows the fixture-level suspect to the added blocker’s visibility footprint, rather than motion alone or the original blocker alone. It does **not** yet prove which visibility transition or reservoir-history mechanism causes the miss; no estimator changes were made.
+
+`estimator_math_changed=0`; CTest passed **10/10**, and summary/parser tests passed **6/6**. Charts: `../ReplayTemporalDirectEstimateBaseOnly.svg` and `../ReplayTemporalDirectEstimateAddedOnly.svg`. Full runtime log: `_ClaudeScratch/provenance/direct-estimate-occluder-ablation.log` (outside Git). This remains fixture-scoped, direct NEE-only evidence—not total-radiance unbiasedness, a production-scene result, or physical-GPU/Windows/editor validation.
