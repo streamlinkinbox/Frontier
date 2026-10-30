@@ -14,6 +14,12 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Deformed selected-proposal Vulkan parity](Exhibits/LightCompute/FacetCausalGpu.md):36 real-geometry tests
+  and36 actual GPU visibility-bypass faults,108 executions/build. SwiftShader CPU Vulkan matches native RGB
+  and coordinates exactly;ten CTests/build,Release/host ASan+UBSan. Fixed native-selected proposals,not fresh
+  GPU sampling/selection or physical-GPU acceptance. Actual readbacks retained;historical gate stays HELD.
+  Engine/defaults and348.046875MiB unchanged.
+
 - [Deformed transport causal diagnosis](Exhibits/LightCompute/FacetCausal.md):all blocked paths in the three
   insensitive historical controls have zero unoccluded RGB. Fresh replay matches all41 historical slabs.
   All36 real added-triangle tests pass and36 visibility-bypass faults are rejected;nine CTests/build,

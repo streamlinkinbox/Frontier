@@ -1,0 +1,12 @@
+PASS fixed-selected-proposal deformed Slang/Vulkan causal parity;NOT fresh GPU sampler/selector acceptance.
+SwiftShader CPU Vulkan device type4;no physical GPU or speed claim. Host sanitizer,driver uninstrumented,leaks disabled.
+10 CTests/build,20306 focused checks/build;Release/host ASan+UBSan. Native causal inputs regenerated unchanged.
+108 GPU primary/source/path executions/build;216 visibility decisions exactly match native and double BVH.
+36/36 real mutations block correct RGB;target-only omission restores RGB;wrong-only omission stays zero.
+36/36 actual GPU shader-bypass faults rejected by the same causal predicate.
+Max original/restored weighted native-GPU RGB error=0.
+Readback bytes and38 GPU semantic rows identical across Release/sanitized builds.
+All1541 prior manifest entries unchanged;historical transport HELD and norm promotion FAIL preserved.
+Actual readback contribution comparison retained;not full mutated-scene rendering.
+No engine/API/shader-default change,renderer/history/general materials/Windows acceptance.
+Production348.046875MiB/defaults/32B unchanged;no PR/Actions.

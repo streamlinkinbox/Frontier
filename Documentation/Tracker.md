@@ -1,5 +1,23 @@
 # Project Tracker
 
+## Deformed causal selected-proposal Vulkan parity — 2026-10-30
+
+- [Bounded Slang/Vulkan replay](../Exhibits/LightCompute/FacetCausalGpu.md):original/mutated/shader-fault
+  geometry for36 native-selected paths. Shader resolves primary/source and constructs visibility rays afresh;
+  native camera,selected facet,U/V and normalization weight are inputs. No GPU sampler/selector acceptance.
+- SwiftShader Device (Subzero),CPU Vulkan type4. All108 primary/source/path executions and216 suffix/connection
+  decisions/build agree with native/double BVH. Weighted RGB and reported coordinate differences0. All36
+  mutations block correct RGB and restore only the targeted gate;36 actual shader bypass faults rejected.
+- Release/host ASan+UBSan,ten CTests and20,306 focused checks/build. Driver uninstrumented;leaks disabled for
+  this runner. Previous leak-enabled native evidence unchanged. Readbacks and38 GPU semantic rows identical
+  across builds. All1,541 prior manifest entries unchanged;historical HELD and norm promotion FAIL retained.
+- Actual native/GPU contribution comparison and lossless readbacks retained,not full mutated-scene renders.
+  No physical-GPU,timing,Windows,history,general materials,editor or production promotion claim.
+- Phase100%/0% remaining as fixed-selected-proposal parity. Overall stays~91%/~9% remaining,planning estimates.
+  Next:GPU-generated candidate/selection replay for the deformed causal tests,then explicit renderer wiring
+  and broader acceptance. Engine/shader defaults,348.046875MiB output and32B descriptors unchanged.
+- Packing/editor/vehicle/Jolt deferred. No PR/Actions;source and evidence backed up on the existing branch.
+
 ## Deformed transport energy attribution and causal regression — 2026-10-30
 
 - [Original coverage diagnosis](../Exhibits/LightCompute/FacetCausal.md):all blocked paths in fixture0
