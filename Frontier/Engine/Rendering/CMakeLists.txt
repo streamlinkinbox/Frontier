@@ -60,3 +60,13 @@ if(MSVC)
 else()
     target_compile_options(FrontierPlumeLatticeFootprint PRIVATE -Wall -Wextra -Werror)
 endif()
+
+# 📝 Opt-in fresh area-measure pair arithmetic;no renderer activation or history reuse.
+add_library(FrontierFacetAreaReservoir STATIC EXCLUDE_FROM_ALL FacetAreaReservoir.cpp)
+target_compile_features(FrontierFacetAreaReservoir PUBLIC cxx_std_17)
+target_include_directories(FrontierFacetAreaReservoir PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+if(MSVC)
+    target_compile_options(FrontierFacetAreaReservoir PRIVATE /utf-8 /W4)
+else()
+    target_compile_options(FrontierFacetAreaReservoir PRIVATE -Wall -Wextra -Werror)
+endif()

@@ -12,6 +12,13 @@ The actual demo Moon texture, mixed flares and selectable XPBD/solid tyre shapes
 Project Drive's vehicle core is separately available, but is not wired into the editor or a Jolt host. Long-impact
 parity and validation against measured tyres, vehicles, sky and lens data remain open.
 
+## Latest rendering continuation
+
+- [Opt-in C++ facet-area pair operator](Exhibits/LightCompute/FacetAreaPort.md):294,912 retained GPU pairs,
+  zero selection differences,18 RGB replay images and54 reference mean gates pass. Release/host ASan+UBSan
+  agree bytewise;14,831 focused checks/build. This ports selection/normalization only,not geometry or tracing.
+  Production348.046875MiB/defaults unchanged;full sampler and renderer integration remain open.
+
 ## Start here
 
 - Read [agent instructions](CLAUDE.md) and the four mandatory skills before contributing.

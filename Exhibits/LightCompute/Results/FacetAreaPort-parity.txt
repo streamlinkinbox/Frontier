@@ -1,0 +1,11 @@
+PASS C++17 Release/ASan+UBSan:14831 focused checks/build,one CTest/build.
+Native corpus pairs=294912;Release/sanitized output bytes identical;selector differences=0.
+Native stdout/build:FACET_AREA_PORT_REPLAY pairs=294912 pass=1
+Intake SHA256=47974fa0be6e5df0e797acddb979cdcd170643a5fb88857876d96842f30f4c8d
+Native output SHA256=1c7987acb1e8f9e42ca2425373481fd958e3f0de4b0d8a307d14bc1b4ac61d17
+Independent Python weight/normalizer max errors=[0.0, 0.0];GPU sum/Z errors=7.340140815976865e-08,1.5195854286611805e-07.
+CPU/GPU image max channel delta=6.4480434706915e-10;18 images;RGB mean gates=54.
+Deformed wrong-density failures by RIS type=[3, 3];image ordinary/cross-MSE equivalence gates=18/18.
+Geometric,perspective,deformed manifests verified;no historical evidence rewritten.
+Selected-path RGB integrands recovered from retained GPU lane contribution/normalizer,not independently traced.
+Library excluded from default builds;no renderer integration,layout/default change,Windows or physical GPU test.

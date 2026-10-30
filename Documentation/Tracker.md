@@ -1,5 +1,19 @@
 # Project Tracker
 
+## Opt-in C++ facet-area pair operator — 2026-10-30
+
+- [Accepted bounded arithmetic port](../Exhibits/LightCompute/FacetAreaPort.md):new excluded-by-default engine
+  library preserves h/q selection and W/(2*hSelected),including null M2 and explicit invalid rejection.
+- Strict C++17 Release/host ASan+UBSan,14,831 unit/algebra checks and one CTest/build;294,912 retained
+  geometric/perspective/deformed GPU pairs,zero differing selected ordinals;native build outputs byte-identical.
+- GPU weight sum/normalizer normalized errors≤7.34015e-8/1.51959e-7;18 image replay max channel delta6.44805e-10.
+  All54 reference mean and18 ordinary/cross-MSE equivalence gates pass;wrong-density controls fail3/3 per type.
+- Comparison sheet visually inspected;uniform RIS remains best same-query,uniform raw8 best shown accuracy.
+  Capture-driven RGB integrand reweighting is not fresh tracing or a measured speedup;original manifests verified.
+- Bounded phase100%/0% remaining;overall~84%/~16% remaining,planning estimates. Next:proposal/RNG port with
+  independent validation,then fresh tracing/integration and physical GPU/scene/reuse gates. No PR or Actions.
+- Production348.046875MiB/defaults/32B descriptors unchanged;packing/editor/vehicle/Jolt remain deferred.
+
 ## Deformed geometry/material area RIS — 2026-10-30
 
 - [Completed three-fixture holdout](../Exhibits/LightCompute/DeformedAreaReservoir.md):vertex deformations,recomputed flat normals,

@@ -1,0 +1,30 @@
+FACET_AREA_PORT_BUILD mode=sanitized parent=2a230a6ecb41a56505b103ba7c3519c103f37ee4 working_changes=1
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+f9947111d953b50b89bfd575a7b3242bd307838d44a998e4fcaf3ed3a6b831f3  Frontier/Engine/Rendering/FacetAreaReservoir.h
+256c87a78f755005ec894ae1227f07dc62e08f6be3309aa957fa7dbb896a5b2b  Frontier/Engine/Rendering/FacetAreaReservoir.cpp
+39c74e989ece0bf79e33befa04e1f5d68a67c7bdf9df745133bdd09bea2299fe  Frontier/Engine/Rendering/CMakeLists.txt
+e613fb26960f0ebe1362e653a0bcdc234079054b20f4e70075a5372f80cfb70e  Exhibits/LightCompute/FacetAreaPort/CMakeLists.txt
+4788065746875e4d9e1cfa825dbd4e26c6bc618d14fa4154c14a6d24b13a42bc  Exhibits/LightCompute/Code/FacetAreaPortValidation.cpp
+aec92ca7d9bbb4f7232fd4ce93330ee8afa242e599b4339b249dc086b252d53b  Exhibits/LightCompute/RunFacetAreaPort.sh
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/facet-area-port-sanitized
+[ 25%] Building CXX object rendering/CMakeFiles/FrontierFacetAreaReservoir.dir/FacetAreaReservoir.cpp.o
+[ 50%] Linking CXX static library libFrontierFacetAreaReservoir.a
+[ 50%] Built target FrontierFacetAreaReservoir
+[ 75%] Building CXX object CMakeFiles/FacetAreaPortValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaPortValidation.cpp.o
+[100%] Linking CXX executable FacetAreaPortValidation
+[100%] Built target FacetAreaPortValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/facet-area-port-sanitized
+Test project /home/user/Frontier/_ClaudeScratch/build/facet-area-port-sanitized
+    Start 1: FacetAreaPortValidation
+1/1 Test #1: FacetAreaPortValidation ..........   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.02 sec
+FACET_AREA_PORT_UNIT checks=14831 pass=1
