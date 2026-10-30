@@ -1,0 +1,11 @@
+PASS Release/ASan+UBSan:three CTests/build;1060 score+193 proposal+14831 selector focused checks/build.
+Native proposals=589824 byte-identical to prior;fresh native scores=589824;GPU target observations=1474560.
+Independent double geometry/proxy/target maxima=[2.0434780401146213e-07, 9.58308747633918e-09, 9.903965918212077e-09];GPU target absolute maximum=0.0.
+Composed native selections=294912;selected ordinal differences=0;weight/Z maxima=7.340141354753577e-08,1.5195851977472282e-07.
+18 RGB replays max channel delta=6.4480434706915e-10;54 mean gates and18 ordinary/cross-MSE gates pass.
+Deformed wrong-score controls=[[True, True, True], [True, True, True], [True, True, True]];missing-floor structural failures=[True, True, True].
+Native score and composed-selection bytes identical across builds;stdout=['FACET_AREA_SCORE_REPLAY proposals=589824 pass=1', 'FACET_AREA_SCORE_REPLAY proposals=589824 pass=1', 'FACET_AREA_PORT_REPLAY pairs=294912 pass=1', 'FACET_AREA_PORT_REPLAY pairs=294912 pass=1'].
+Input SHA256=e9a40803d0548ae9bbc82a16dd5ef9ef1c44462cf1a20efaa2f525c1d4bad1cc;native score SHA256=e5da9836f1b85f911b3bb10a35355c2c4d8660305807549d94cd4c8f53677d8e.
+Source attributes resolved from native fixtures;primary receivers/path integrands retained from GPU.
+No fresh tracing,general material port,renderer activation,physical timing or Windows verification.
+Production348.046875MiB/defaults/32B layouts unchanged.

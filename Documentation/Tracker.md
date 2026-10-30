@@ -1,5 +1,22 @@
 # Project Tracker
 
+## Opt-in C++ target/compensated geometry — 2026-10-30
+
+- [Accepted bounded score port](../Exhibits/LightCompute/FacetAreaScorePort.md):excluded-by-default C++17 library
+  evaluates compensated displacement/receiver projection,diffuse area geometry,unoccluded RGB and target floor.
+- Strict Release/host ASan+UBSan,three CTests/build;1,060 score+193 proposal+14,831 selector checks/build.
+  All589,824 regenerated native proposal bytes preserve the prior port;native targets match1,474,560 GPU records
+  exactly. Native composed selections294,912,zero ordinal differences;score/selection bytes match across builds.
+- Independent double geometry/proxy/target maxima2.04348e-7/9.58309e-9/9.90397e-9. Compensated unit separation1
+  versus naive2;grazing projection5.96046e-8 versus naive0,long-double geometry relative error6.02744e-8.
+- All18 RGB replay equivalence and54 channel mean gates pass,max channel difference6.44805e-10. Wrong floor,
+  receiver cosine and pi controls detected3/3 each;positive alternate targets need not bias the estimator.
+- Actual target and RGB sheets visually inspected;raw4/raw8 retained. Primary receivers and traced integrands
+  remain GPU capture inputs,not fresh native transport or a speedup. Source material resolution remains caller-owned.
+- Bounded phase100%/0% remaining;overall~88%/~12% remaining,planning estimates. Next:fresh primary/selected-path
+  transport integration and parity,then renderer/general material/physical GPU and broader-scene/reuse acceptance.
+- Production348.046875MiB/defaults/32B descriptors unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+
 ## Opt-in C++ area proposal/RNG generation — 2026-10-30
 
 - [Accepted bounded proposal port](../Exhibits/LightCompute/FacetAreaProposalPort.md):excluded-by-default C++17

@@ -80,3 +80,13 @@ if(MSVC)
 else()
     target_compile_options(FrontierFacetAreaProposals PRIVATE -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off)
 endif()
+
+# 📝 Opt-in compensated diffuse area target;caller resolves shading and visibility separately.
+add_library(FrontierFacetAreaScore STATIC EXCLUDE_FROM_ALL FacetAreaScore.cpp)
+target_compile_features(FrontierFacetAreaScore PUBLIC cxx_std_17)
+target_include_directories(FrontierFacetAreaScore PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+if(MSVC)
+    target_compile_options(FrontierFacetAreaScore PRIVATE /utf-8 /W4 /fp:strict)
+else()
+    target_compile_options(FrontierFacetAreaScore PRIVATE -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off)
+endif()

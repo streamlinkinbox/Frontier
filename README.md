@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Opt-in C++ target/compensated geometry port](Exhibits/LightCompute/FacetAreaScorePort.md):589,824 new native
+  targets match1,474,560 retained GPU observations exactly;294,912 composed selections have zero differences.
+  Release/host ASan+UBSan,three CTests/build,16,084 focused checks/build,18 RGB replays and54 means pass.
+  Native arithmetic is not fresh transport;primary/path captures remain GPU inputs. Production348.046875MiB unchanged.
+
 - [Opt-in C++ area proposal/RNG port](Exhibits/LightCompute/FacetAreaProposalPort.md):589,824 newly generated
   native proposals match1,474,560 retained GPU observations with zero facet/barycentric/PDF differences.
   Release/host ASan+UBSan,two CTests/build,15,024 focused checks/build and distribution/negative controls pass.
