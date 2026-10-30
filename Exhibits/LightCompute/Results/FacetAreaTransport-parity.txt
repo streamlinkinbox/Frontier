@@ -1,0 +1,12 @@
+HELD: numerical transport parity passes;frozen per-fixture visibility-control sensitivity fails.
+PASS strict Release/ASan+UBSan,four CTests/build;1058 transport+1060 score+193 proposal+14831 selector units/build.
+Fresh primary hits=221184,candidate scores=1474560,traced selected/raw paths=1179648.
+Independent double BVH and linear-double rays agree exactly on2359296 emitted-ray visibility decisions/build.
+All primary captures byte-identical to GPU;all proposal ordinals,visibility bits and selections match GPU.
+Max lane RGB=1.4901161193847656e-08;packet RGB=3.725290298461914e-09;image RGB=9.89530235528946e-10;normalizer=1.5481190624312297e-07;target=0.0;deformed ray=0.0.
+Nine native captures and10 semantic rows identical across builds;54 images/54 means,18 RIS MSE gates pass.
+Omitted connection/suffix changed packets by deformed fixture=[[0, 0], [0, 7247], [4158, 3841]];acceptance=0.
+Empty/invalid BVH is rejected. Original sensitivity requirement is retained,not waived.
+Native execution consumes no GPU capture/receiver/visibility/RGB;GPU and references only post-run comparisons.
+Fixed diffuse nine-fixture corpus,not general materials/history/editor integration or physical GPU/Windows acceptance.
+Production348.046875MiB/defaults/32B descriptors unchanged;no physical speedup claim.

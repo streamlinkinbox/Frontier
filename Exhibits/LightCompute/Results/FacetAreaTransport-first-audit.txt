@@ -1,0 +1,16 @@
+First frozen-protocol evidence audit — 2026-10-30
+Parent bdd8ed23c2ecde23d3b1b6490cbb05354c8cf022 plus new transport working files.
+Command: _ClaudeScratch/venv/bin/python Exhibits/LightCompute/Code/FacetAreaTransportEvidence.py
+Observed exit status:1.
+Traceback (most recent call last):
+  File "/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaTransportEvidence.py", line 132, in <module>
+    assert Altered>0;Changed.append(Altered)
+           ^^^^^^^^^
+AssertionError
+
+This was the first omitted-visibility sensitivity check on deformed fixture0,not a ray or RGB parity failure.
+Follow-up unchanged-capture inspection found both omission controls change0 packets in fixture0;
+fixture1 connection omission changes0 packets,while suffix omission changes7247 packets;
+fixture2 connection omission changes4158 packets and suffix omission changes3841 packets.
+The final collector retains all nine numerical comparisons before returning failure on the same frozen gate.
+No thresholds,fixtures,seeds,ray offsets or sampling arithmetic were changed to repair this outcome.

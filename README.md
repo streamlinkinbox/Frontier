@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Fresh native area transport—held acceptance](Exhibits/LightCompute/FacetAreaTransport.md):221,184 new primary
+  hits,1,179,648 new paths and2,359,296 visibility checks match retained GPU/independent double rays. Actual
+  native images and54 mean gates pass;four CTests/build. Omitted connection/suffix sensitivity passes only1/3
+  and2/3 fixtures:the frozen gate fails,no promotion. Production348.046875MiB/defaults unchanged.
+
 - [Opt-in C++ target/compensated geometry port](Exhibits/LightCompute/FacetAreaScorePort.md):589,824 new native
   targets match1,474,560 retained GPU observations exactly;294,912 composed selections have zero differences.
   Release/host ASan+UBSan,three CTests/build,16,084 focused checks/build,18 RGB replays and54 means pass.

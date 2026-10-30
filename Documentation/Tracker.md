@@ -1,5 +1,23 @@
 # Project Tracker
 
+## Fresh native area transport — held acceptance,2026-10-30
+
+- [Completed numerical evaluation,not promotion](../Exhibits/LightCompute/FacetAreaTransport.md):new opt-in C++17
+  packed-BVH float32 strike/surface/suffix/connection API;native executable reads no GPU transport inputs.
+- Release/host ASan+UBSan,four CTests/build,17,142 focused units/build. Fresh221,184 primary hits,1,474,560
+  candidates,1,179,648 paths and2,359,296 emitted-ray visibility checks/build. Double BVH+linear double rays agree
+  exactly;all primary bytes/proposal identities/visibility bits/selected ordinals match retained GPU captures.
+- Native/GPU lane/packet/image max errors1.49012e-8/3.72530e-9/9.89531e-10. Native54 image arrays and54 RIS
+  reference means pass,18 RIS ordinary/cross-MSE gates pass;nine buffers/10 semantic rows match across builds.
+- Frozen negative gates FAIL:connection omission affects only1/3 deformed fixtures;suffix omission only2/3.
+  Changed packets by fixture:connection0/0/4158,suffix0/7247/3841. First failed audit retained;collector now
+  completes all numerical comparisons then returns1 on the unchanged gate. No fixture/threshold/ray tuning.
+- Actual fresh native RGB sheet inspected;raw4/raw8 also newly traced. Same-query uniform RIS remains prior
+  winner;raw8 best shown absolute accuracy. No general-material/history/editor/physical speedup acceptance.
+- Phase evaluation100%/0% remaining;acceptance HELD. Overall~89%/~11% remaining,planning estimates. Next:separately
+  predeclared occlusion-sensitivity fixtures and independent visibility controls,not rewriting this failed gate.
+- Production348.046875MiB/defaults/32B descriptors unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+
 ## Opt-in C++ target/compensated geometry — 2026-10-30
 
 - [Accepted bounded score port](../Exhibits/LightCompute/FacetAreaScorePort.md):excluded-by-default C++17 library
