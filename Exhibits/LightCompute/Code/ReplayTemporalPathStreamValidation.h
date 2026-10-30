@@ -68,7 +68,7 @@ uint64_t ReplayTemporalPathSelectionHash(uint32_t Sampling, uint32_t Pixels)
     return Hash;
 }
 
-void ValidateReplayTemporalPathStream(const char* Driver, const std::string& Shaders, bool Decorrelated)
+[[maybe_unused]] void ValidateReplayTemporalPathStream(const char* Driver, const std::string& Shaders, bool Decorrelated)
 {
     constexpr uint32_t Size = 32u, Cohorts = 128u, SubmissionCount = 4u;
     constexpr uint32_t Pixels = Size * Size;

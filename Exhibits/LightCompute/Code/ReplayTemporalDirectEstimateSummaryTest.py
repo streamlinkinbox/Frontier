@@ -100,7 +100,7 @@ class DirectEstimateSummaryTests(unittest.TestCase):
             path.write_text(stationary)
             values = SUMMARY.load(path)
             SUMMARY.chart(svg, values)
-            self.assertIn("stationary receiver", svg.read_text())
+            self.assertIn("stationary / blocked", svg.read_text())
             path.write_text(stationary.replace("motion=stationary", "motion=unmodeled"))
             with self.assertRaisesRegex(ValueError, "unknown reference motion"):
                 SUMMARY.load(path)
@@ -110,6 +110,22 @@ class DirectEstimateSummaryTests(unittest.TestCase):
                 "REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready=", 1)
             path.write_text(conflict)
             with self.assertRaisesRegex(ValueError, "disagree about receiver motion"):
+                SUMMARY.load(path)
+            clear = self.fixture().replace(
+                "pipelines_ready=1 scope=nee_only",
+                "pipelines_ready=1 motion=moving visibility=clear scope=nee_only")
+            clear = ("REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture=overhead_emitter motion=moving visibility=clear\n"
+                     + clear)
+            path.write_text(clear)
+            clear_values = SUMMARY.load(path)
+            SUMMARY.chart(svg, clear_values)
+            self.assertIn("moving / clear", svg.read_text())
+            path.write_text(clear.replace("fixture=overhead_emitter motion=moving visibility=clear",
+                                          "fixture=overhead_emitter motion=moving visibility=blocked"))
+            with self.assertRaisesRegex(ValueError, "disagree about direct visibility"):
+                SUMMARY.load(path)
+            path.write_text(clear.replace("visibility=clear", "visibility=unspecified"))
+            with self.assertRaisesRegex(ValueError, "unknown direct-visibility"):
                 SUMMARY.load(path)
 
 

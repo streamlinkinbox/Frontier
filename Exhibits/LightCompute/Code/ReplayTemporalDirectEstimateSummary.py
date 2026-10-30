@@ -75,6 +75,13 @@ def load(path):
     motion = fixture_motion or header_motion or "moving"
     if motion not in ("moving", "stationary"):
         raise ValueError(f"unknown reference motion scenario: {motion}")
+    fixture_visibility = fixture_headers[0].get("visibility") if fixture_headers else None
+    header_visibility = header.get("visibility")
+    if fixture_visibility and header_visibility and fixture_visibility != header_visibility:
+        raise ValueError("fixture and result header disagree about direct visibility")
+    visibility = fixture_visibility or header_visibility or "blocked"
+    if visibility not in ("blocked", "clear"):
+        raise ValueError(f"unknown direct-visibility scenario: {visibility}")
     reference = number(header, "reference_luma")
     coarse = number(header, "reference_coarse_luma")
     tolerance = number(header, "gate_tolerance")
@@ -119,8 +126,8 @@ def load(path):
                 raise ValueError(f"{mode}: aggregate {key} disagrees with cohort records")
         summaries[mode] = {"mean": mean, "se": standard_error, "rmse": rmse,
                            "gate": mean_gate, "reference": reference, "tolerance": tolerance,
-                           "motion": motion}
-        print(f"DIRECT_ESTIMATE motion={motion} mode={mode} mean_luma={mean:.12g} batch_se={standard_error:.9g} "
+                           "motion": motion, "visibility": visibility}
+        print(f"DIRECT_ESTIMATE motion={motion} visibility={visibility} mode={mode} mean_luma={mean:.12g} batch_se={standard_error:.9g} "
               f"rmse={rmse:.9g} reference_luma={reference:.12g} mean_gate={int(mean_gate)}")
     all_gates = int(all(summaries[mode]["gate"] for mode in MODES))
     if integer(passes[0], "all_mean_gates") != all_gates:
@@ -143,9 +150,10 @@ def chart(path, summaries):
              '<text x="48" y="91" font-family="Arial,sans-serif" font-size="14" fill="#475569">Reservoir-weighted direct NEE luminance · independent CPU area integral · error bars ±6 batch SE</text>']
     reference = next(iter(summaries.values()))["reference"]
     motion = next(iter(summaries.values()))["motion"]
+    visibility = next(iter(summaries.values()))["visibility"]
     reference_x = left + reference * scale
     parts[3] = parts[3].replace("Fresh vs temporal direct-emitter estimates",
-                                f"Fresh vs temporal direct-NEE · {motion} receiver")
+                                f"Fresh vs temporal NEE · {motion} / {visibility}")
     parts.append(f'<line x1="{reference_x:.2f}" y1="130" x2="{reference_x:.2f}" y2="445" stroke="#0f172a" stroke-width="2" stroke-dasharray="7 5"/>')
     parts.append(f'<text x="{reference_x:.2f}" y="122" text-anchor="middle" font-family="Arial" font-size="12" fill="#0f172a">CPU reference {reference:.6g}</text>')
     colors = {"fresh1": "#2563eb", "fresh4": "#0ea5e9", "temporal1": "#d97706", "temporal4": "#dc2626"}
@@ -165,7 +173,7 @@ def chart(path, summaries):
         parts.append(f'<text x="880" y="{y+16}" font-family="Arial" font-size="12" fill="{"#15803d" if row["gate"] else "#b91c1c"}">{status}</text>')
     parts.extend(['<line x1="245" y1="445" x2="1085" y2="445" stroke="#94a3b8"/>',
                   '<text x="48" y="485" font-family="Arial" font-size="12" fill="#475569">NEE contribution only: BSDF continuation, emitter-hit and environment terms are excluded.</text>',
-                  f'<text x="48" y="507" font-family="Arial" font-size="12" fill="#64748b">Fixture-level {motion}-receiver evidence only; temporal modes replay four frames.</text>',
+                  f'<text x="48" y="507" font-family="Arial" font-size="12" fill="#64748b">Fixture-level {motion}-receiver/{visibility} visibility; temporal modes replay four frames.</text>',
                   '</svg>'])
     Path(path).write_text("\n".join(parts) + "\n", encoding="utf-8")
 

@@ -29,7 +29,7 @@ The previously recorded controlled-emitter visibility audit remains a separate r
 
 ## Runtime checks
 
-- New summary/parser unit tests: **4/4 passed**, including missing-cohort, bad-aggregate, non-converged-reference, and failed-gate presentation checks.
+- New summary/parser unit tests: **5/5 passed**, including missing-cohort, bad-aggregate, non-converged-reference, failed-gate presentation, and scenario-label checks.
 - Release build succeeded with warnings treated as errors; CTest: **10/10 passed**.
 - Estimate-only SwiftShader run: **32 cohorts × 4 modes**, complete; `estimator_math_changed=0`; `all_mean_gates=0` as expected from temporal1.
 - Full run log (kept outside Git): `_ClaudeScratch/provenance/direct-estimate.log`.
@@ -49,3 +49,22 @@ A paired stationary control keeps the final receiver pose (x = 1.35), emitter, b
 | temporal4 | 1.77531980961 | 1.84548965967 | +0.07016985006 (paired SE 0.0108952) | PASS |
 
 With the receiver stationary, **all four modes pass**; temporal1 moves from 8.89% low to 0.61% high relative to the same CPU reference. This isolates the failure to the moving-sequence condition rather than temporal resampling in this stationary fixture. The evidence does **not** identify the precise mechanism: motion reprojection/validation, motion-induced visibility changes, or their interaction remain to be separated. No estimator change is justified. The paired-control chart is `../ReplayTemporalDirectEstimateStationary.svg`; stationary runtime log is `_ClaudeScratch/provenance/direct-estimate-stationary.log` (outside Git).
+
+## Clear-visibility moving-receiver control
+
+The follow-up preserves the four-frame moving receiver sequence and final x = 1.35 pose, emitter, material, seed cohorts, estimator modes, and NEE-only measurement, while removing both fixture blockers. The CPU area integral uses the same BRDF/emitter reference with blocker visibility disabled. This isolates the effect of blocker visibility in this fixture; it does not change the estimator.
+
+- 32 cohorts × 512 holdout pixels per mode (16,384 estimates per mode); SwiftShader Subzero Vulkan.
+- Fine 2048² clear-scene reference: **5.37194399226 luminance**. Coarse 1024²: **5.37194528306**, difference **0.00000129080**, within the predeclared tolerance **0.02685972**.
+- The same mean gate is applied: `abs(mean - reference) <= 6 × batch_SE + reference_tolerance`.
+
+| Mode | Mean luminance | Delta vs clear reference | Batch SE | RMSE | Mean gate |
+|---|---:|---:|---:|---:|:---:|
+| fresh1 | 5.32533171312 | −0.04661227914 (−0.868%) | 0.0736569608 | 11.1543657 | PASS |
+| fresh4 | 5.34583492098 | −0.02610907128 (−0.486%) | 0.0486561461 | 5.66561183 | PASS |
+| temporal1 | 5.37206621680 | +0.00012222454 (+0.002%) | 0.0465856817 | 6.64918702 | PASS |
+| temporal4 | 5.35222277530 | −0.01972121696 (−0.367%) | 0.0405961930 | 4.64711461 | PASS |
+
+**Temporal1 passes when both blockers are absent.** In the blocked moving fixture it was 8.89% below its reference and failed; the blocked stationary control passed at 0.61% above its reference. Together, these results make blocker/visibility changes a leading suspect for the moving-only miss, rather than showing that motion alone is sufficient to cause it. This remains diagnostic, not causal proof: removing blockers changes the direct-visibility distribution, and further targeted attribution is needed before any estimator modification. The clear-scene temporal1 RMSE is still 6.649, despite its batch mean passing, so this is not a claim of per-pixel accuracy.
+
+All four clear-scene mean gates pass; the run reports `estimator_math_changed=0`. The 10/10 CTest suite and 5/5 summary/parser tests pass. The chart is `../ReplayTemporalDirectEstimateClearMotion.svg`; full run log is `_ClaudeScratch/provenance/direct-estimate-clear-motion.log` (outside Git). Evidence remains fixture-scoped and NEE-only; it does not establish total-radiance unbiasedness, production-scene correctness, physical-GPU/Windows behavior, or editor integration.

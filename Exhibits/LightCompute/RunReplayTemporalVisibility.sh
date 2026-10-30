@@ -3,7 +3,7 @@
 #                           RUNREPLAYTEMPORALVISIBILITY.SH
 # ========================================================================================================================================
 # 🧩 Per-pixel test-only attribution of temporal replay visibility and reservoir weights.
-# Set DIRECT_ONLY=1 for visibility+estimate, ESTIMATE_ONLY=1 for moving NEE reference, or STATIONARY_ESTIMATE_ONLY=1 to isolate motion.
+# Set DIRECT_ONLY=1 for visibility+estimate; estimate-only flags isolate moving, stationary, or clear-motion fixtures.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
@@ -20,10 +20,15 @@ OUTPUT="$BUILD/visibility-baseline"
 DIRECT_ONLY="${DIRECT_ONLY:-0}"
 ESTIMATE_ONLY="${ESTIMATE_ONLY:-0}"
 STATIONARY_ESTIMATE_ONLY="${STATIONARY_ESTIMATE_ONLY:-0}"
-if [[ "$DIRECT_ONLY" == 1 && ( "$ESTIMATE_ONLY" == 1 || "$STATIONARY_ESTIMATE_ONLY" == 1 ) ]] ||
-   [[ "$ESTIMATE_ONLY" == 1 && "$STATIONARY_ESTIMATE_ONLY" == 1 ]]; then
-    echo "Choose only one of DIRECT_ONLY, ESTIMATE_ONLY, or STATIONARY_ESTIMATE_ONLY" >&2
+CLEAR_MOTION_ESTIMATE_ONLY="${CLEAR_MOTION_ESTIMATE_ONLY:-0}"
+if [[ "$DIRECT_ONLY" == 1 && ( "$ESTIMATE_ONLY" == 1 || "$STATIONARY_ESTIMATE_ONLY" == 1 || "$CLEAR_MOTION_ESTIMATE_ONLY" == 1 ) ]] ||
+   [[ "$ESTIMATE_ONLY" == 1 && ( "$STATIONARY_ESTIMATE_ONLY" == 1 || "$CLEAR_MOTION_ESTIMATE_ONLY" == 1 ) ]] ||
+   [[ "$STATIONARY_ESTIMATE_ONLY" == 1 && "$CLEAR_MOTION_ESTIMATE_ONLY" == 1 ]]; then
+    echo "Choose only one visibility/estimate run mode" >&2
     exit 2
+elif [[ "$CLEAR_MOTION_ESTIMATE_ONLY" == 1 ]]; then
+    RESULTS="${RESULTS:-$ROOT/_ClaudeScratch/provenance/direct-estimate-clear-motion.log}"
+    AUDIT_FLAG="--replay-temporal-direct-estimate-clear-motion"
 elif [[ "$STATIONARY_ESTIMATE_ONLY" == 1 ]]; then
     RESULTS="${RESULTS:-$ROOT/_ClaudeScratch/provenance/direct-estimate-stationary.log}"
     AUDIT_FLAG="--replay-temporal-direct-estimate-stationary"
@@ -47,6 +52,10 @@ if [[ "$ESTIMATE_ONLY" != 0 && "$ESTIMATE_ONLY" != 1 ]]; then
 fi
 if [[ "$STATIONARY_ESTIMATE_ONLY" != 0 && "$STATIONARY_ESTIMATE_ONLY" != 1 ]]; then
     echo "STATIONARY_ESTIMATE_ONLY must be 0 or 1 (got $STATIONARY_ESTIMATE_ONLY)" >&2
+    exit 2
+fi
+if [[ "$CLEAR_MOTION_ESTIMATE_ONLY" != 0 && "$CLEAR_MOTION_ESTIMATE_ONLY" != 1 ]]; then
+    echo "CLEAR_MOTION_ESTIMATE_ONLY must be 0 or 1 (got $CLEAR_MOTION_ESTIMATE_ONLY)" >&2
     exit 2
 fi
 mkdir -p "$SOURCE" "$OUTPUT" "$(dirname "$RESULTS")"
@@ -81,7 +90,10 @@ python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEstimateSummaryTest.py
         exit "$STATUS"
     fi
 } 2>&1 | tee "$RESULTS"
-if [[ "$STATIONARY_ESTIMATE_ONLY" == 1 ]]; then
+if [[ "$CLEAR_MOTION_ESTIMATE_ONLY" == 1 ]]; then
+    python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEstimateSummary.py "$RESULTS" \
+        Exhibits/LightCompute/ReplayTemporalDirectEstimateClearMotion.svg | tee -a "$RESULTS"
+elif [[ "$STATIONARY_ESTIMATE_ONLY" == 1 ]]; then
     python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEstimateSummary.py "$RESULTS" \
         Exhibits/LightCompute/ReplayTemporalDirectEstimateStationary.svg | tee -a "$RESULTS"
 elif [[ "$ESTIMATE_ONLY" == 1 ]]; then

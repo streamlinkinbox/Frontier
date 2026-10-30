@@ -4,6 +4,16 @@
 // 🧩 Read back per-pixel proposal and temporal-reservoir provenance on the moving-visibility lower-floor holdout.
 #pragma once
 
+template <typename Submission>
+void PrepareReplayTemporalDiagnostic(Submission& Compute, const LightComputeArchive& Scene,
+                                    const std::string& Shaders)
+{
+    if constexpr (requires { Compute.Prepare(Scene, Shaders, false, false, false, false, true, false, false, true); })
+        Compute.Prepare(Scene, Shaders, false, false, false, false, true, false, false, true);
+    else
+        Compute.Prepare(Scene, Shaders, false, false, false, false, true, false, false);
+}
+
 struct ReplayTemporalProvenanceMode
 {
     const char* Label;
@@ -19,7 +29,7 @@ struct ReplayTemporalProvenanceTotals
     double MaximumPixel = 0;
 };
 
-void ValidateReplayTemporalProvenance(const char* Driver, const std::string& Shaders,
+[[maybe_unused]] void ValidateReplayTemporalProvenance(const char* Driver, const std::string& Shaders,
                                       bool PathHash, bool SelectionHash)
 {
     constexpr uint32_t Size = 32u, Pixels = Size * Size, Cohorts = 128u, SubmissionCount = 4u;
@@ -49,7 +59,7 @@ void ValidateReplayTemporalProvenance(const char* Driver, const std::string& Sha
     std::printf("REPLAY_TEMPORAL_PROVENANCE arm=%s scenario=%s reference=%.12g coarse=%.12g x=%.9g "
                 "preparing_on=%s\n", Arm, Scenario, Reference, Coarse, PositionX, Compute.Properties.deviceName);
     std::fflush(stdout);
-    Compute.Prepare(Capacity, Shaders, false, false, false, false, true, false, false, true);
+    PrepareReplayTemporalDiagnostic(Compute, Capacity, Shaders);
     std::printf("REPLAY_TEMPORAL_PROVENANCE arm=%s pipelines_ready=1 floor=%s cohorts=%u\n",
                 Arm, FloorName, Cohorts);
     std::fflush(stdout);
