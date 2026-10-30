@@ -92,6 +92,26 @@ class DirectEstimateSummaryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "coarse/fine convergence"):
                 SUMMARY.load(path)
 
+    def test_stationary_scenario_is_labeled_and_motion_metadata_validated(self):
+        stationary = self.fixture().replace("pipelines_ready=1 scope=nee_only",
+                                            "pipelines_ready=1 motion=stationary scope=nee_only")
+        with TemporaryDirectory() as temp:
+            path, svg = Path(temp) / "stationary.log", Path(temp) / "stationary.svg"
+            path.write_text(stationary)
+            values = SUMMARY.load(path)
+            SUMMARY.chart(svg, values)
+            self.assertIn("stationary receiver", svg.read_text())
+            path.write_text(stationary.replace("motion=stationary", "motion=unmodeled"))
+            with self.assertRaisesRegex(ValueError, "unknown reference motion"):
+                SUMMARY.load(path)
+            conflict = stationary.replace(
+                "REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready=",
+                "REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture=controlled motion=moving\n"
+                "REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready=", 1)
+            path.write_text(conflict)
+            with self.assertRaisesRegex(ValueError, "disagree about receiver motion"):
+                SUMMARY.load(path)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

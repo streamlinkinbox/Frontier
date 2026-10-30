@@ -36,3 +36,16 @@ The previously recorded controlled-emitter visibility audit remains a separate r
 - Chart: `../ReplayTemporalDirectEstimate.svg`.
 
 An earlier estimate-only attempt wrote an extra audit slab without reserving its storage and crashed. The test-only output allocation was increased by one slab; the complete run and all checks above are from the corrected rerun.
+
+## Motion-isolation control
+
+A paired stationary control keeps the final receiver pose (x = 1.35), emitter, blockers, material, cohort seeds, estimator modes, and reference fixed, but holds the receiver pose constant across all four replay frames. It is run through the same SwiftShader pipelines and NEE-only extraction. Fresh controls are identical cohort-by-cohort between moving and stationary runs, as expected because both evaluate the same final scene with the same seeds.
+
+| Mode | Moving mean | Stationary mean | Stationary − moving, paired cohort mean | Stationary gate |
+|---|---:|---:|---:|:---:|
+| fresh1 | 1.85453688558 | 1.85453688558 | 0 | PASS |
+| fresh4 | 1.83161989307 | 1.83161989307 | 0 | PASS |
+| temporal1 | 1.67851367848 | 1.85352955247 | +0.17501587399 (paired SE 0.0155352) | PASS |
+| temporal4 | 1.77531980961 | 1.84548965967 | +0.07016985006 (paired SE 0.0108952) | PASS |
+
+With the receiver stationary, **all four modes pass**; temporal1 moves from 8.89% low to 0.61% high relative to the same CPU reference. This isolates the failure to the moving-sequence condition rather than temporal resampling in this stationary fixture. The evidence does **not** identify the precise mechanism: motion reprojection/validation, motion-induced visibility changes, or their interaction remain to be separated. No estimator change is justified. The paired-control chart is `../ReplayTemporalDirectEstimateStationary.svg`; stationary runtime log is `_ClaudeScratch/provenance/direct-estimate-stationary.log` (outside Git).

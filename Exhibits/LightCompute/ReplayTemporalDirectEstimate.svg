@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1180" height="560" viewBox="0 0 1180 560">
 <rect width="100%" height="100%" fill="#f8fafc"/>
 <rect x="18" y="18" width="1144" height="524" rx="16" fill="white" stroke="#dbe3ee"/>
-<text x="48" y="62" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25" font-weight="700" fill="#0f172a">Fresh vs temporal direct-emitter estimates</text>
+<text x="48" y="62" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25" font-weight="700" fill="#0f172a">Fresh vs temporal direct-NEE · moving receiver</text>
 <text x="48" y="91" font-family="Arial,sans-serif" font-size="14" fill="#475569">Reservoir-weighted direct NEE luminance · independent CPU area integral · error bars ±6 batch SE</text>
 <line x1="743.95" y1="130" x2="743.95" y2="445" stroke="#0f172a" stroke-width="2" stroke-dasharray="7 5"/>
 <text x="743.95" y="122" text-anchor="middle" font-family="Arial" font-size="12" fill="#0f172a">CPU reference 1.84229</text>
@@ -35,5 +35,5 @@
 <text x="880" y="415" font-family="Arial" font-size="12" fill="#15803d">within mean gate</text>
 <line x1="245" y1="445" x2="1085" y2="445" stroke="#94a3b8"/>
 <text x="48" y="485" font-family="Arial" font-size="12" fill="#475569">NEE contribution only: BSDF continuation, emitter-hit and environment terms are excluded.</text>
-<text x="48" y="507" font-family="Arial" font-size="12" fill="#64748b">Fixture-level evidence only, not production-scene or physical-GPU acceptance; temporal modes replay four frames.</text>
+<text x="48" y="507" font-family="Arial" font-size="12" fill="#64748b">Fixture-level moving-receiver evidence only; temporal modes replay four frames.</text>
 </svg>

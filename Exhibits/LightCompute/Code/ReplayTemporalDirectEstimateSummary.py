@@ -29,9 +29,11 @@ def integer(row, key):
 
 
 def load(path):
-    headers, cohorts, results, passes = [], {}, {}, []
+    headers, fixture_headers, cohorts, results, passes = [], [], {}, {}, []
     for line in Path(path).read_text(errors="replace").splitlines():
-        if line.startswith("REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready="):
+        if line.startswith("REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture="):
+            fixture_headers.append(fields(line))
+        elif line.startswith("REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready="):
             headers.append(fields(line))
         elif line.startswith("REPLAY_TEMPORAL_DIRECT_ESTIMATE_COHORT "):
             row = fields(line)
@@ -64,6 +66,15 @@ def load(path):
             passes[0].get("estimator_math_changed") != "0"):
         raise ValueError("direct estimate pass marker is invalid")
 
+    if len(fixture_headers) > 1:
+        raise ValueError("duplicate direct estimate fixture metadata")
+    fixture_motion = fixture_headers[0].get("motion") if fixture_headers else None
+    header_motion = header.get("motion")
+    if fixture_motion and header_motion and fixture_motion != header_motion:
+        raise ValueError("fixture and result header disagree about receiver motion")
+    motion = fixture_motion or header_motion or "moving"
+    if motion not in ("moving", "stationary"):
+        raise ValueError(f"unknown reference motion scenario: {motion}")
     reference = number(header, "reference_luma")
     coarse = number(header, "reference_coarse_luma")
     tolerance = number(header, "gate_tolerance")
@@ -107,8 +118,9 @@ def load(path):
             elif not math.isclose(number(result, key), expected_value, rel_tol=5e-7, abs_tol=5e-9):
                 raise ValueError(f"{mode}: aggregate {key} disagrees with cohort records")
         summaries[mode] = {"mean": mean, "se": standard_error, "rmse": rmse,
-                           "gate": mean_gate, "reference": reference, "tolerance": tolerance}
-        print(f"DIRECT_ESTIMATE mode={mode} mean_luma={mean:.12g} batch_se={standard_error:.9g} "
+                           "gate": mean_gate, "reference": reference, "tolerance": tolerance,
+                           "motion": motion}
+        print(f"DIRECT_ESTIMATE motion={motion} mode={mode} mean_luma={mean:.12g} batch_se={standard_error:.9g} "
               f"rmse={rmse:.9g} reference_luma={reference:.12g} mean_gate={int(mean_gate)}")
     all_gates = int(all(summaries[mode]["gate"] for mode in MODES))
     if integer(passes[0], "all_mean_gates") != all_gates:
@@ -130,7 +142,10 @@ def chart(path, summaries):
              '<text x="48" y="62" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25" font-weight="700" fill="#0f172a">Fresh vs temporal direct-emitter estimates</text>',
              '<text x="48" y="91" font-family="Arial,sans-serif" font-size="14" fill="#475569">Reservoir-weighted direct NEE luminance · independent CPU area integral · error bars ±6 batch SE</text>']
     reference = next(iter(summaries.values()))["reference"]
+    motion = next(iter(summaries.values()))["motion"]
     reference_x = left + reference * scale
+    parts[3] = parts[3].replace("Fresh vs temporal direct-emitter estimates",
+                                f"Fresh vs temporal direct-NEE · {motion} receiver")
     parts.append(f'<line x1="{reference_x:.2f}" y1="130" x2="{reference_x:.2f}" y2="445" stroke="#0f172a" stroke-width="2" stroke-dasharray="7 5"/>')
     parts.append(f'<text x="{reference_x:.2f}" y="122" text-anchor="middle" font-family="Arial" font-size="12" fill="#0f172a">CPU reference {reference:.6g}</text>')
     colors = {"fresh1": "#2563eb", "fresh4": "#0ea5e9", "temporal1": "#d97706", "temporal4": "#dc2626"}
@@ -150,7 +165,7 @@ def chart(path, summaries):
         parts.append(f'<text x="880" y="{y+16}" font-family="Arial" font-size="12" fill="{"#15803d" if row["gate"] else "#b91c1c"}">{status}</text>')
     parts.extend(['<line x1="245" y1="445" x2="1085" y2="445" stroke="#94a3b8"/>',
                   '<text x="48" y="485" font-family="Arial" font-size="12" fill="#475569">NEE contribution only: BSDF continuation, emitter-hit and environment terms are excluded.</text>',
-                  '<text x="48" y="507" font-family="Arial" font-size="12" fill="#64748b">Fixture-level evidence only, not production-scene or physical-GPU acceptance; temporal modes replay four frames.</text>',
+                  f'<text x="48" y="507" font-family="Arial" font-size="12" fill="#64748b">Fixture-level {motion}-receiver evidence only; temporal modes replay four frames.</text>',
                   '</svg>'])
     Path(path).write_text("\n".join(parts) + "\n", encoding="utf-8")
 

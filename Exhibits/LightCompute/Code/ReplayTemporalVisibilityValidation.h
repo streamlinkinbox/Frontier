@@ -282,7 +282,8 @@ void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute
                                                  const std::array<LightComputeArchive, 4>& Scenes,
                                                  uint32_t Cohorts, uint32_t Size, uint32_t FarGroup, float Floor);
 
-void ValidateReplayTemporalDirectEmitterEstimateOnly(const char* Driver, const std::string& Shaders)
+void ValidateReplayTemporalDirectEmitterEstimateOnly(const char* Driver, const std::string& Shaders,
+                                                       bool Stationary = false)
 {
     constexpr uint32_t Size = 32u, Cohorts = 32u, FarGroup = 1u;
     constexpr float Floor = .0001f;
@@ -295,9 +296,20 @@ void ValidateReplayTemporalDirectEmitterEstimateOnly(const char* Driver, const s
     const auto Capacity = AddReplayTemporalVisibilityEmitter(ConstructReplayMixedMaterialFixture(Size, Dim, Metal));
     auto Scenes = ConstructReplayFreshMotionScenes(Size, Dim, Metal, false);
     for (auto& Scene : Scenes) Scene = AddReplayTemporalVisibilityEmitter(std::move(Scene));
+    if (Stationary)
+    {
+        const auto FinalScene = Scenes.back();
+        for (auto& Scene : Scenes)
+        {
+            Scene = FinalScene;
+            for (auto& Receiver : Scene.Receivers)
+                Receiver.MotionPositionToken[0] = Receiver.PositionHit[0];
+        }
+    }
     LightComputeSubmission Compute(Driver);
-    std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture=overhead_emitter moving_receivers=1 "
-                "preparing_on=%s\n", Compute.Properties.deviceName);
+    std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE fixture=overhead_emitter motion=%s receiver_x=%.9g "
+                "preparing_on=%s\n", Stationary ? "stationary" : "moving",
+                double(Scenes.back().Receivers[1].PositionHit[0]), Compute.Properties.deviceName);
     std::fflush(stdout);
     Compute.Prepare(Capacity, Shaders, false, false, false, false, true, false, false, true);
     ValidateReplayTemporalDirectEmitterEstimate(Compute, Metal, Scenes, Cohorts, Size, FarGroup, Floor);
@@ -540,13 +552,16 @@ void ValidateReplayTemporalDirectEmitterEstimate(LightComputeSubmission& Compute
                 ReferenceDelta <= GateTolerance,
             "Independent direct-emitter quadrature failed its predeclared convergence gate");
 
+    const char* Motion = std::abs(double(Scenes.front().Receivers[1].PositionHit[0]) -
+                                  double(Scenes.back().Receivers[1].PositionHit[0])) < 2e-6
+        ? "stationary" : "moving";
     std::array<ReplayMaterialBatchMoments, Modes.size()> Means{}, Mses{};
     std::mt19937_64 Random(0xd7a4c1e95b830621ull);
-    std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready=1 scope=nee_only "
+    std::printf("REPLAY_TEMPORAL_DIRECT_ESTIMATE pipelines_ready=1 motion=%s scope=nee_only "
                 "bsdf_continuation_excluded=1 total_radiance_claim=0 cohorts=%u pixels_per_cohort=%u "
                 "reference_luma=%.12g reference_coarse_luma=%.12g reference_delta=%.9g gate_tolerance=%.9g "
                 "receiver_x=%.9g emission_red=10 occluders=2\n",
-                Cohorts, Pixels / 2u, Reference, Coarse, ReferenceDelta, GateTolerance, ReceiverX);
+                Motion, Cohorts, Pixels / 2u, Reference, Coarse, ReferenceDelta, GateTolerance, ReceiverX);
     std::fflush(stdout);
     for (uint32_t Cohort = 0; Cohort < Cohorts; ++Cohort)
     {
