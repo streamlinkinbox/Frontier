@@ -1,5 +1,17 @@
 # Project Tracker
 
+## ControlVehicle lighting showcase — 2026-10-30
+
+- [Three actual vehicle renders](../Exhibits/LightCompute/VehicleLighting.md),exhibit-only;no production wiring.
+  Authored vehicle,cones,cloth/apron/gantry,emissive sampling,spot/synthetic IES,clouds,sun and GPU lens flare.
+  Existing ReSTIR analytic direct/temporal/spatial reuse,not a new emissive ReSTIR GI claim.
+- CPU Vulkan384×240,two history steps/two transport samples. Three finite HDR readbacks and exact source/PNG RGB;
+  cold seed repeat exact,flare-off changes92,160 pixels,IES-source-off35,545. Small/noisy previews,not convergence,
+  physical GPU,Windows/editor,performance or new radiometric acceptance. No new sanitizer run for this scene.
+- Initial640×400 CPU attempt stopped without a complete frame;retained as aborted,not passing or benchmark data.
+  Showcase100%/0% remaining;overall prior~97%/~3% planning estimate unchanged. Production348.046875MiB/defaults/32B,
+  transport HELD/norm FAIL unchanged. Production wiring deferred by user. No PR/Actions.
+
 ## Maintained facet profile/cache shader ownership — 2026-10-30
 
 - [Generic owned CDF shader/profile ABI](../Exhibits/LightCompute/FacetCdfShader.md):maintained profile decoding,

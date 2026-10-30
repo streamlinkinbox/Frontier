@@ -1,0 +1,33 @@
+5a9225bd63fa156967173fa942dbdd2cb1c0c92e
+2026.14.1
+5a8ed49e8fd9df282f2efbf6ce7479afc1efce2e5240b67cc12ec2f0725d49e6  Exhibits/LightCompute/Code/VehicleLightingCapture.cpp
+7a9cb1d83dfe16f65e7039b9812d2b1390b6a9f16c9c15724d1ed55fad472e02  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Cells.spv
+9914cc2d2534e68ff5792bae4ed92a63d0c4b0c2c465e03ab93cc3ed3538bc47  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Clouds.spv
+1ff9c79187665f345c233ae44964b7c43274aadfd45c2f8eb116e213ec7a0149  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/ExitancePyramid.spv
+9be426be7a854f1adbd68be5e231f23a297c939b82e4fd888461ac02dd88409f  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Filter.spv
+da5de0585385462fb977087a8d2aab86da3128cbffa98494e25f839e6e414942  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Finalize.spv
+878ead86390b9fa31fb3157105dfa9b023c4910cc45ea4a7c71133240f0008bb  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Fog.spv
+3a4b1fecf49cedd228e83868b5bb0a871b88f863e292e0cd80491982fb0fe682  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Primary.spv
+fc211b5d819d53cc0fad59c5074079bcc308a0cfceda22c0638d857791d5c1d2  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Receivers.spv
+c7204706d63063fd774b78b305b902cbfc08148608ecbf15b2f340dc8ce383eb  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Reconstruct.spv
+685986b9c775a0365e42260cc54374707bfaf4e6d8c7e3c34810553a55a475fc  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Reuse.spv
+a2b661849ddac24d27776cea361caec47e45007a8b5cec4d05f70d22669849b5  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/SolarOptics.spv
+691752b882f6a0d96977b78270b5c5746fe504728b60eabab19888c89efca126  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/SolarVisibility.spv
+ffa74c3444331a95e072c8d9d5fcfdd8f9dfe0d6fdba93e1f47a4dfd88a6798f  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/Transport.spv
+2c8f1aa4e0ddc6a01c589eb0308134090cff5b58654bdcbc379c844465641f7c  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/TransportResolve.spv
+c879a9a7109dfb26249ee8d1ffbf66107977cab711a246219878c36b2b55aaf1  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/TransportSpatial.spv
+d12b23122d8e3c446c5d20ec439b9a5ecefd238cce9e314a57793c587a53462c  /home/user/Frontier/_ClaudeScratch/build/vehicle-lighting/TransportTemporal.spv
+6ad399734659d53a6052aa4369cdbfb786a9248b0403575e8d89b5f9904f50b5  _ClaudeScratch/vehicle-lighting-inputs/VehicleMotion0.bin
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+VEHICLE_LIGHTING device=SwiftShader Device (Subzero) width=384 height=240
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+VEHICLE_LIGHTING view=0 sample=0 pass=1
+VEHICLE_LIGHTING view=0 sample=1 pass=1
+VEHICLE_LIGHTING_CONTROLS repeat_exact=1 flare_changed=92160 ies_changed=35545
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+VEHICLE_LIGHTING view=1 sample=0 pass=1
+VEHICLE_LIGHTING view=1 sample=1 pass=1
+GLAZING_GEOMETRY source_triangles=74 panes=3 closed_triangles=284 source_boundary=68 output_boundary=0 thickness_m=0.006 volume_m3=0.0213574
+VEHICLE_LIGHTING view=2 sample=0 pass=1
+VEHICLE_LIGHTING view=2 sample=1 pass=1
+VEHICLE_LIGHTING_COMPLETE views=3 pass=1

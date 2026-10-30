@@ -1,0 +1,23 @@
+{
+  "repository": "eosclient0001-rgb/Frontier",
+  "revision": "3de9061ab614856de03ef61b534c641061d14a53",
+  "sha256": {
+    "Exhibits/ClusteredLighting/Fixtures/Synthetic.ies": "068385698053e320c7337b31456c15056860ad3b6b7bea2c3e858f4fbf94a75d",
+    "Experimental/SlateReference/A/Exhibits/VehicleProvingGrounds/Source/MaterialSpecification.js": "9b3775c02ed5a34d168ed71fefce67053612c2a3689854e4e184c89e1d2c2415",
+    "Exhibits/VehicleReference/Code/VehicleCapture.cpp": "ac2e126f648650c0cc93a48c5dd6302a8e26d35a23bc4ee49679b0304f2ecea8",
+    "Experimental/SlateReference/A/Exhibits/VehicleProvingGrounds/Archive/ControlVehicleBody.facet": "d8a7516018ba536555bca5933fabfbd1681167ad3908a87be95ad3cfd912134a",
+    "Experimental/SlateReference/A/Exhibits/VehicleProvingGrounds/Archive/ControlVehicleTyre.facet": "1cf021cd3f7ef4cbc984bf677247e0ac6722e90f542191a4ca13391fb144387d",
+    "Experimental/SlateReference/A/Exhibits/VehicleProvingGrounds/Archive/ControlVehicleRim.facet": "44b50dd7d80c12f68d92b2dbdbd3d911d73334fa1ef10fbc16e07ff1812a8de5",
+    "EngineContent/MaterialArchives/TextureStudio/racing-green.material": "13a39e3bfe2f0ebdb77d014c8a2c4ebf61fcde8451ff3361b461cdb856828e72",
+    "EngineContent/MaterialArchives/TextureStudio/pp-polypropylene.material": "880c255efaed37eab74f18284c84a4d9e1af2fbf12c8aead5fb0545ffe686b74",
+    "EngineContent/MaterialArchives/TextureStudio/crystal-glass.material": "0042a57f899d3afc7ec190e79370cdf81e8f54bb49b1ef31840bef2fcbccec3c",
+    "EngineContent/MaterialArchives/TextureStudio/indigo-denim.material": "2d8301abee8ad65842e1299026a47ad80e044a155d411900f07f35422d9a39da",
+    "EngineContent/MaterialArchives/TextureStudio/performance-rubber.material": "4386f0ed2ce30af0b744e0ebcb5c591f0798d22ea5287789d587d30809990958",
+    "EngineContent/MaterialArchives/TextureStudio/Textures/performance-rubber-albedo.png": "2c83568ce17a4d245cbc181dfd58f9240cd30d51ed854a6437dcf8f63d83a709",
+    "EngineContent/MaterialArchives/TextureStudio/Textures/indigo-denim-albedo.png": "b9c831f8ba7899f7d98da456e3d593e8e9b3d0fd022a49e1749c7e6a635625e5",
+    "EngineContent/MaterialArchives/TextureStudio/Textures/pp-polypropylene-normal.png": "fba1a30325f62859b17515084423699fcf39ef4aa9d457e2cfe5666081f57372",
+    "EngineContent/MaterialArchives/TextureStudio/Textures/indigo-denim-normal.png": "8862e592a84d7d55b1fa04031a7ebc5c79aee4a500eb9396252a05a14c706ed3",
+    "EngineContent/MaterialArchives/TextureStudio/Textures/pp-polypropylene-albedo.png": "a98dc7121ad8554da0898fc4fdf040aec20b2cac808df034629e34d8beb69751",
+    "EngineContent/MaterialArchives/TextureStudio/Textures/performance-rubber-normal.png": "4993d671111890b8df5e36a8bd321cde3c68675face71cc7f784e86fea79a96c"
+  }
+}

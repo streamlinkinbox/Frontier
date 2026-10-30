@@ -14,6 +14,10 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [ControlVehicle lighting renders](Exhibits/LightCompute/VehicleLighting.md):three fresh exhibit-only previews,
+  including props,emissive gantry,spot/synthetic IES,clouds,sun and restrained lens flare. Existing ReSTIR analytic
+  direct/reuse,separate emissive sampling;no production wiring. CPU Vulkan,384×240,not converged-quality evidence.
+
 - [Maintained facet CDF shader ownership](Exhibits/LightCompute/FacetCdfShader.md):generic profile decoding,
   validity,area/CDF/PDF preparation and cached sampling now live in maintained shaders,with typed16B header.
   Preparation compiles without exhibit includes. All seven captures/124 rows retain exact prior results;

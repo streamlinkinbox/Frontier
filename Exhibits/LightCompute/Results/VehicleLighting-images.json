@@ -1,0 +1,18 @@
+{
+  "raw_sha256": {
+    "VehicleLighting0.ppm": "d23f30afeb0763431cfbd6240f4828510dff5e318b19a19deb29826698f4b180",
+    "VehicleLighting0.f32": "804620575fed7afb3819e8b8b0e3ff44d98b0637990c76288ec55963298e9a93",
+    "VehicleLighting1.ppm": "060bbd743940c191905f1d053a45f9f8e3709a818e2dfd2b88ee718b255cb98b",
+    "VehicleLighting1.f32": "d87cc1ae3a8b7def2ca77638973e57addfeb5061d1c52cc39a136b8c5ca28c4a",
+    "VehicleLighting2.ppm": "30ace542b3ac6650c9940ad8956b51879dace1e3941d33c83b16f6bcf2b4c73b",
+    "VehicleLighting2.f32": "826af581d4cf48fb49cb7e824e508a51100f1f89eeea5945e8661f3e62c0a120",
+    "VehicleLightingCold.ppm": "595a630941e95b856321e4d7449071dbda6f47f11040e7b718c666d44cead64f",
+    "VehicleLightingFlareOff.ppm": "d08e3c861bea018e63f258bf702e831f87cbfe915a56857d2230fd70ee757633",
+    "VehicleLightingIesOff.ppm": "29dc22aab0ceed6c0ead9143b8a07a80726a5f79a7c67bc6c94f65a2babb61df"
+  },
+  "display": "shared EncodeDisplayRgb8 exposure .45; no further grading, denoising or AI upscaling",
+  "gallery_dimensions": [
+    1280,
+    858
+  ]
+}

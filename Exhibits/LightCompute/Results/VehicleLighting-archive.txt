@@ -1,0 +1,6 @@
+Geometry export cpu_primary_raster=0 distance=0 pose=0 original_vehicle_facets=25068 total_facets=0 visible=0 light_list_visits=0 light_fallbacks=0 surface_pixels=0 hash=7869672433357201358
+Geometry export cpu_primary_raster=0 distance=0 pose=1 original_vehicle_facets=25068 total_facets=0 visible=0 light_list_visits=0 light_fallbacks=0 surface_pixels=0 hash=7869672433357201358
+Geometry export cpu_primary_raster=0 distance=0 pose=2 original_vehicle_facets=25068 total_facets=0 visible=0 light_list_visits=0 light_fallbacks=0 surface_pixels=0 hash=7869672433357201358
+Geometry export cpu_primary_raster=0 distance=0 pose=3 original_vehicle_facets=25068 total_facets=0 visible=0 light_list_visits=0 light_fallbacks=0 surface_pixels=0 hash=7869672433357201358
+Geometry export cpu_primary_raster=0 distance=0 pose=4 original_vehicle_facets=25068 total_facets=0 visible=0 light_list_visits=0 light_fallbacks=0 surface_pixels=0 hash=7869672433357201358
+Geometry export cpu_primary_raster=0 distance=0 pose=5 original_vehicle_facets=25068 total_facets=0 visible=0 light_list_visits=0 light_fallbacks=0 surface_pixels=0 hash=7869672433357201358
