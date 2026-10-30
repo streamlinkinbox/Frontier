@@ -31,13 +31,15 @@ The baseline was not altered by adding the emitter; it remains a separately repo
 
 Baseline reference: `0.82268910511`. The seven temporal1 samples without a recorded first-ray event remain unclassified; zero must not be interpreted as an opaque hit. These baseline values are not direct-emitter results and are not evidence of a production correction.
 
-## Verification
+## Verification and reruns
 
 - Generated audit SPIR-V compiled for primary, replay-generate, and replay-resolve entries.
 - Release CMake build completed; CTest passed **10/10**.
 - Direct-summary synthetic tests passed **3/3**; no-emitter summary synthetic tests passed **4/4**; Python byte-compilation and `git diff --check` passed.
 - Both runtime validators passed on SwiftShader; estimator math remained unchanged.
 - Physical GPU, Windows, Frontier editor viewport, production scene/resource integration, and broader renderer correctness remain unverified.
+
+The runner now supports `DIRECT_ONLY=1 bash Exhibits/LightCompute/RunReplayTemporalVisibility.sh` to rerun just the controlled-emitter phase; its default log is `_ClaudeScratch/provenance/direct-visibility.log`, so the preserved no-emitter baseline log is not overwritten. The default runner still performs both fixtures and writes the baseline log. A mocked end-to-end runner smoke test verified the direct-only flag, parser/chart route, and output separation; it did not replace the measured chart or count as a renderer run.
 
 ## Peer-branch comparison
 

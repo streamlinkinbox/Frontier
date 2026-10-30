@@ -3,6 +3,7 @@
 #                           RUNREPLAYTEMPORALVISIBILITY.SH
 # ========================================================================================================================================
 # 🧩 Per-pixel test-only attribution of temporal replay visibility and reservoir weights.
+# Set DIRECT_ONLY=1 to rerun the controlled-emitter audit without rerunning or overwriting the no-emitter baseline.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
@@ -16,7 +17,18 @@ ulimit -v "${VIRTUAL_MEMORY_KB:-3900000}"
 BUILD="${BUILD:-$ROOT/_ClaudeScratch/build/replay-provenance-release}"
 SOURCE="$BUILD/visibility-only-source"
 OUTPUT="$BUILD/visibility-baseline"
-RESULTS="${RESULTS:-$ROOT/_ClaudeScratch/provenance/visibility.log}"
+DIRECT_ONLY="${DIRECT_ONLY:-0}"
+if [[ "$DIRECT_ONLY" == 1 ]]; then
+    RESULTS="${RESULTS:-$ROOT/_ClaudeScratch/provenance/direct-visibility.log}"
+    AUDIT_FLAG="--replay-temporal-direct-visibility"
+else
+    RESULTS="${RESULTS:-$ROOT/_ClaudeScratch/provenance/visibility.log}"
+    AUDIT_FLAG="--replay-temporal-visibility"
+fi
+if [[ "$DIRECT_ONLY" != 0 && "$DIRECT_ONLY" != 1 ]]; then
+    echo "DIRECT_ONLY must be 0 or 1 (got $DIRECT_ONLY)" >&2
+    exit 2
+fi
 mkdir -p "$SOURCE" "$OUTPUT" "$(dirname "$RESULTS")"
 rm -f "$OUTPUT"/*.spv
 python3 Exhibits/LightCompute/Code/ReplayTemporalVisibilityCandidate.py "$SOURCE/Visibility.slang"
@@ -40,7 +52,7 @@ CTEST="${CTEST:-$ROOT/_ClaudeScratch/pytools/cmake/data/bin/ctest}"
     sha256sum Frontier/Engine/Rendering/Shaders/{LightInfluence,PathReplayReservoir}.slang \
         Exhibits/LightCompute/Code/{ReplayTemporalVisibilityCandidate.py,ReplayTemporalVisibilityValidation.h,ReplayTemporalDirectVisibilitySummary.py,ReplayMaterialFloorValidation.h,LightComputeValidation.cpp} \
         "$SOURCE/Visibility.slang" "$OUTPUT"/{Primary,ReplayGenerate,ReplayResolve}.spv
-    if "$BUILD/LightComputeValidation" "$DRIVER" "$OUTPUT" --replay-temporal-visibility; then
+    if "$BUILD/LightComputeValidation" "$DRIVER" "$OUTPUT" "$AUDIT_FLAG"; then
         :
     else
         STATUS=$?
@@ -48,9 +60,14 @@ CTEST="${CTEST:-$ROOT/_ClaudeScratch/pytools/cmake/data/bin/ctest}"
         exit "$STATUS"
     fi
 } 2>&1 | tee "$RESULTS"
-python3 Exhibits/LightCompute/Code/ReplayTemporalVisibilitySummary.py "$RESULTS" \
-    Exhibits/LightCompute/Results/ReplayTemporalPathStream.txt \
-    Exhibits/LightCompute/Results/ReplayTemporalSelectionStream.txt \
-    Exhibits/LightCompute/ReplayTemporalVisibility.svg | tee -a "$RESULTS"
-python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilitySummary.py "$RESULTS" \
-    Exhibits/LightCompute/ReplayTemporalDirectVisibility.svg | tee -a "$RESULTS"
+if [[ "$DIRECT_ONLY" == 1 ]]; then
+    python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilitySummary.py "$RESULTS" \
+        Exhibits/LightCompute/ReplayTemporalDirectVisibility.svg | tee -a "$RESULTS"
+else
+    python3 Exhibits/LightCompute/Code/ReplayTemporalVisibilitySummary.py "$RESULTS" \
+        Exhibits/LightCompute/Results/ReplayTemporalPathStream.txt \
+        Exhibits/LightCompute/Results/ReplayTemporalSelectionStream.txt \
+        Exhibits/LightCompute/ReplayTemporalVisibility.svg | tee -a "$RESULTS"
+    python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilitySummary.py "$RESULTS" \
+        Exhibits/LightCompute/ReplayTemporalDirectVisibility.svg | tee -a "$RESULTS"
+fi
