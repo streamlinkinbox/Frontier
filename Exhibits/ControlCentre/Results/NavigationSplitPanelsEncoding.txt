@@ -1,0 +1,1 @@
+Encoded actual RGB evidence: 1100 x 1000; no synthetic artwork

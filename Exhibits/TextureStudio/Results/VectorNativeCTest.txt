@@ -1,0 +1,13 @@
+Test project /home/user/Frontier/_ClaudeScratch/NativeBuild
+    Start  6: VectorCoverageValidation
+1/4 Test  #6: VectorCoverageValidation .................   Passed    0.39 sec
+    Start  7: MaterialPreviewConfigurationValidation
+2/4 Test  #7: MaterialPreviewConfigurationValidation ...   Passed    0.08 sec
+    Start 10: MaterialLibraryValidation
+3/4 Test #10: MaterialLibraryValidation ................   Passed    0.36 sec
+    Start 26: VectorArtworkDocumentValidation
+4/4 Test #26: VectorArtworkDocumentValidation ..........   Passed    0.05 sec
+
+100% tests passed out of 4
+
+Total Test time (real) =   0.88 sec

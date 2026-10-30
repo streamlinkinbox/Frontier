@@ -1,0 +1,21 @@
+[ImGui]    reverted PatchG-AdjacentTabAddButton.patch
+[ImGui]    reverted PatchF-TabContentInsets.patch
+[ImGui]    reverted PatchE-NoTabScrollButtons.patch
+[ImGui]    reverted PatchD-TabAddButton.patch
+[ImGui]    reverted PatchC-RoundTabButtons.patch
+[ImGui]    reverted PatchB-TabOverlapZOrder.patch
+[ImGui]    reverted PatchA-TrapezoidalTabs.patch
+[ImGui]    applied PatchA-TrapezoidalTabs.patch
+[ImGui]    applied PatchB-TabOverlapZOrder.patch
+[ImGui]    applied PatchC-RoundTabButtons.patch
+[ImGui]    applied PatchD-TabAddButton.patch
+[ImGui]    applied PatchE-NoTabScrollButtons.patch
+[ImGui]    applied PatchF-TabContentInsets.patch
+[ImGui]    applied PatchG-AdjacentTabAddButton.patch
+[ImGui]    PatchA-TrapezoidalTabs.patch is applied
+[ImGui]    PatchB-TabOverlapZOrder.patch is applied
+[ImGui]    PatchC-RoundTabButtons.patch is applied
+[ImGui]    PatchD-TabAddButton.patch is applied
+[ImGui]    PatchE-NoTabScrollButtons.patch is applied
+[ImGui]    PatchF-TabContentInsets.patch is applied
+[ImGui]    PatchG-AdjacentTabAddButton.patch is applied
