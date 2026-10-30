@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Renderer-facing CDF submission lifetime](Exhibits/LightCompute/FacetCdfSubmission.md):maintained caller-owned
+  Vulkan encoding and fence-published cache residency,164 focused assertions,244 actual submissions/build.
+  All seven captures/124 rows/six SPIR-V binaries retain exact prior results;15 CTests/20,506 checks,Release/
+  host ASan+UBSan. Bounded interface,not full renderer/editor activation;348.046875MiB/defaults unchanged.
+
 - [GPU-resident facet area/CDF preparation](Exhibits/LightCompute/FacetCdfGpu.md):116 images/118,784 packets,
   all80 slabs bit-identical to paired uncached GPU output. Actual area calls25,656,526->466;30 preparations,
   warm reuse/invalidation/rejection controls and14 CTests/20,342 checks per build,Release/host ASan+UBSan.

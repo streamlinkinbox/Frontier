@@ -1,5 +1,23 @@
 # Project Tracker
 
+## Renderer-facing CDF command and fence lifetime — 2026-10-30
+
+- [Maintained caller-owned submission interface](../Exhibits/LightCompute/FacetCdfSubmission.md):range/callback/
+  handle/group/push/overflow validation before commands,explicit prepare/generate/resolve dependencies and
+  revision-driven cache residency. Noncopyable ownership rejects overlap;publication requires the captured
+  completion fence to signal. Encoded discard and submitted pending/error controls are explicit.
+- Header-only maintained C++,used by actual generated exhibit caller,not a replacement renderer allocation or
+  editor link. All244 submissions/build use the interface;116 images/118,784 packets and6,144 exact rejects
+  retain native/uncached parity. Seven buffers/124 semantic rows/six SPIR-V binaries byte-identical to prior.
+- Release/host ASan+UBSan:15 CTests/20,506 focused checks,including164 command/fence assertions per build.
+  Not-ready/error controls are host spies,not physical device failure recovery. Driver uninstrumented,leaks0.
+  Cached work remains30 preparations/466 area evaluations;no new speed/quality claim. Actual images retained.
+- Twelve prior manifests/1,803 entries unchanged. All prior captures reconstructed and verified without
+  duplicating retained raw buffers. Production348.046875MiB/defaults/32B unchanged;HELD/norm FAIL preserved.
+- Bounded submission/lifetime phase100%/0% remaining;overall~96%/~4% remaining,planning estimates. Next:maintained
+  shader/source-profile ownership and production scene/output wiring. General scenes/material/history,physical
+  GPU,Windows and real-time acceptance remain. Packing/editor/vehicle/Jolt deferred. No PR/Actions.
+
 ## GPU-resident facet area/CDF preparation — 2026-10-30
 
 - [Retained GPU profile preparation](../Exhibits/LightCompute/FacetCdfGpu.md):116 complete images/118,784 packets,

@@ -1,0 +1,3 @@
+COMMAND: g++ -std=c++17 -Wall -Wextra -Werror -fsyntax-only -I. -IExternalPackages/Vulkan-Headers-1.4.321/include -x c++ stdin
+CDF_SUBMISSION_HEADER cxx17_syntax=PASS runtime_cxx17=NOT_RUN windows=NOT_RUN
+ce26137d1096aa2e0c470ca2bdc92da797485d41b5bfae6b9629b14cc04b9445  Frontier/Engine/Rendering/FacetCdfSubmission.h
