@@ -356,7 +356,8 @@ void ValidateReplayTemporalDirectVisibility(const char* Driver, const std::strin
                             std::isfinite(Visible) && (Visible == 0 || Visible == 1) && Visible <= Rays &&
                             PreviousCode >= 0 && PreviousCode <= 2 && PreviousDirect[Pixel][0] == float(PreviousCode) &&
                             std::isfinite(PreviousPathLuma) && PreviousPathLuma >= 0 &&
-                            std::isfinite(Nee) && Nee >= 0 && std::isfinite(Radiance) && Radiance >= 0 &&
+                            std::isfinite(Nee) && Nee >= 0 && (CurrentCode == 2 || Nee == 0) &&
+                            std::isfinite(Radiance) && Radiance >= 0 &&
                             std::isfinite(HistoryWeight) && HistoryWeight > 0 &&
                             std::isfinite(SourceWeight) && SourceWeight > 0 &&
                             std::isfinite(SourceCount) && SourceCount >= Retained && Retained == 1 &&

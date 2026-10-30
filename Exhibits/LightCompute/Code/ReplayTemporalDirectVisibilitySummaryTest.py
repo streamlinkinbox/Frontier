@@ -90,6 +90,17 @@ class DirectVisibilitySummaryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 SUMMARY.summarize(pixels, results)
 
+    def test_blocked_direct_segment_cannot_contribute_nee(self):
+        text = self.fixture().replace(
+            "current_direct_code=1 direct_rays=1 direct_visible=0 nee_luma=0.0",
+            "current_direct_code=1 direct_rays=1 direct_visible=0 nee_luma=0.01", 1)
+        with TemporaryDirectory() as temp:
+            path = Path(temp) / "bad.log"
+            path.write_text(text)
+            pixels, results = SUMMARY.load(path)
+            with self.assertRaisesRegex(ValueError, "blocked direct segment"):
+                SUMMARY.summarize(pixels, results)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

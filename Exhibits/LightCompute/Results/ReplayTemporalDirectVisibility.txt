@@ -35,17 +35,17 @@ Baseline reference: `0.82268910511`. The seven temporal1 samples without a recor
 
 - Generated audit SPIR-V compiled for primary, replay-generate, and replay-resolve entries.
 - Release CMake build completed; CTest passed **10/10**.
-- Direct-summary synthetic tests passed **3/3**; no-emitter summary synthetic tests passed **4/4**; Python byte-compilation and `git diff --check` passed.
-- Both runtime validators passed on SwiftShader; estimator math remained unchanged.
+- Direct-summary synthetic tests passed **4/4**; no-emitter summary synthetic tests passed **4/4**; Python byte-compilation and `git diff --check` passed.
+- Both runtime validators passed on SwiftShader in the original measurement run; estimator math remained unchanged. A later per-sample guard now rejects any non-visible direct segment with nonzero NEE; it compiles in Release and CTest remains **10/10**, but that new guard has not yet been rerun on the software Vulkan fixture.
 - Physical GPU, Windows, Frontier editor viewport, production scene/resource integration, and broader renderer correctness remain unverified.
 
 The runner now supports `DIRECT_ONLY=1 bash Exhibits/LightCompute/RunReplayTemporalVisibility.sh` to rerun just the controlled-emitter phase; its default log is `_ClaudeScratch/provenance/direct-visibility.log`, so the preserved no-emitter baseline log is not overwritten. The default runner still performs both fixtures and writes the baseline log. A mocked end-to-end runner smoke test verified the direct-only flag, parser/chart route, and output separation; it did not replace the measured chart or count as a renderer run.
 
 ## Peer-branch comparison
 
-Compared against `arena/08e7de48-frontier` at remote commit `30ac222` (shared base `68f3016`). Its current ReSTIR evidence includes a confirmed reconstructed-point visibility-reuse path that preserves the existing one-ULP boundary behavior, plus a four-weighted-reservoir/rotate-two compromise reported as passing five frozen software-Vulkan fixtures and host sanitizers. These are substantially different experiments from this audit; their own reports still defer general-scene RGB/facet descriptors, production Engine promotion, actual allocation/bandwidth, physical-GPU timing, Windows, editor, and broader GI acceptance.
+Compared against `arena/08e7de48-frontier` at remote commit `9dcfb7b` (shared base `68f3016`), updated since the prior comparison. Its existing ReSTIR evidence includes confirmed reconstructed-point visibility reuse and a four-weighted-reservoir/rotate-two compromise. The new commit adds an opt-in C++ `h/q` pair selector, with retained GPU-capture parity reported across 294,912 pairs and 18 RGB image gates. Its own scope excludes geometry sampling, RNG, ray tracing, temporal/spatial reuse, and renderer wiring; the Engine target is excluded from the default build. These are bounded experiments, not general-scene or production-render acceptance.
 
-No peer implementation was ported in this turn. The branch's direct-emitter fixture only instruments the current estimator and does not implement or benchmark those reservoir changes; merging them here would mix scopes without an apples-to-apples rerun. The peer's recent fresh BSDF/area reservoir experiment explicitly rejects its RIS variants against the frozen all-layout quality gate, so that is not a verified better default to adopt. Retain the peer's accepted visibility-reuse/quartet work as a separate candidate for later compatibility and comparative validation; do not characterize it as integrated into this branch.
+No peer implementation was ported in this turn. The selector does not address the direct-visibility attribution problem, and the user's ReSTIR-first sequencing still leaves temporal/general-scene correctness open. The peer's recent fresh BSDF/area RIS variants also remain rejected against their frozen all-layout quality gate, so they are not defaults to adopt. Defer the bounded C++ selector for later compatibility/port review; do not characterize it as integrated into this branch. Peer-branch results were reviewed, not independently rerun in this turn.
 
 ## Visual evidence
 

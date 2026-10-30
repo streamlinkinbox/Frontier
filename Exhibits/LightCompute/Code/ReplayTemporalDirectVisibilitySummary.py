@@ -89,6 +89,8 @@ def summarize(pixels, results):
             retained = number(row, "retained")
             nee = number(row, "nee_luma")
             probability = number(row, "selection_probability")
+            if current != 2 and nee != 0:
+                raise ValueError(f"{mode}: no-ray or blocked direct segment has nonzero direct NEE")
             if target <= 0 or source_weight <= 0 or retained < 1 or source_count < retained:
                 raise ValueError(f"{mode}: invalid direct-case reservoir source")
             if not math.isclose(history_weight, target * source_weight * retained, rel_tol=5e-6, abs_tol=5e-7):
