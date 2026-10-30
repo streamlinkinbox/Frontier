@@ -1,0 +1,148 @@
+FACET_NORM_BUILD mode=release parent=6b4087af4466cfbd350ebd45b905964393b4cd4e working_changes=1
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+f9947111d953b50b89bfd575a7b3242bd307838d44a998e4fcaf3ed3a6b831f3  Frontier/Engine/Rendering/FacetAreaReservoir.h
+256c87a78f755005ec894ae1227f07dc62e08f6be3309aa957fa7dbb896a5b2b  Frontier/Engine/Rendering/FacetAreaReservoir.cpp
+1fbbc601358a3528b51c3bc776211be90a04a95fa109933e5f7cd63c18595d0d  Frontier/Engine/Rendering/FacetAreaProposals.h
+8d28aa60ae6805ac658a2c3fcf5bc73f0caf4364aa7025676d4941c8221049dd  Frontier/Engine/Rendering/FacetAreaProposals.cpp
+ae89a39543952e0e87464bacc0d0608627ac6eaf475b07945e90cad945129607  Frontier/Engine/Rendering/FacetAreaScore.h
+ae71b844db059df6185edd820b87f1bfbdc1b29dff07f2346032476d2f2e16dd  Frontier/Engine/Rendering/FacetAreaScore.cpp
+a72a51729bb2df2abf65ab5aa5da5a9c9ad5eff07fe3f871099f51ba545e7de1  Frontier/Engine/Rendering/FacetAreaTransport.h
+7c264cc83afb987687c69721711849d94969a64290968a8da677abf4b29fac2f  Frontier/Engine/Rendering/FacetAreaTransport.cpp
+6415678082ef3f063b2bab2c6c03d929406945e76c6ea2c4d615301a86bc9a9b  Frontier/Engine/Rendering/CMakeLists.txt
+0c332317c327121ecafca24e48a6f190d254d9ab2dc6a991ae2b45df1034c3cb  Exhibits/LightCompute/FacetAreaTransport/CMakeLists.txt
+c7a1b752fe4f8e9d43daae0d4e36dceeb977f5287e33b35b18b2a5455bedc4a5  Exhibits/LightCompute/Code/FacetAreaProposalValidation.cpp
+02130958c11e6b49b9e096584570ff7d57a5d84009d959fd25859aad5e09def7  Exhibits/LightCompute/Code/FacetAreaProposalScenes.py
+4788065746875e4d9e1cfa825dbd4e26c6bc618d14fa4154c14a6d24b13a42bc  Exhibits/LightCompute/Code/FacetAreaPortValidation.cpp
+b97be1516d22d4759727fe2aeabefe5a16322810cc8cdfa45e60d37d28b9065c  Exhibits/LightCompute/RunFacetAreaTransport.sh
+3ded598b2a512a6d3766d77202858ea9a0213199416c68f2713173b0527a40ea  Exhibits/LightCompute/Code/FacetAreaScoreValidation.cpp
+a4e7256bd6e97fe073b11f39385b2ebfb0704e575c3f4ec1aaa68509e4af37e9  Exhibits/LightCompute/Code/FacetAreaTransportValidation.cpp
+8c3b79da4e832d648bded912ef0c5c2c729de10a96794d0d1838233a725edd6a  Exhibits/LightCompute/Code/FacetAreaTransportScenes.py
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+cbf73c8ff9b1efb650bc8b4a58e09434046a3ffd27105da5d8d6812d45581022  Exhibits/LightCompute/Code/RgbTraceValidation.h
+08e5d99e7d744330327193ad3c17123175c933a93e3fdb2315bd6d62156dc168  Exhibits/LightCompute/Code/GeometricAreaReservoirValidation.h
+a7ec0b5a95461614d76883e2fb11823e8d7965902cbb65a2a1e7f3fc13b43fcf  Exhibits/LightCompute/Code/DeformedAreaReservoirValidation.h
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+8c240c11a2a8e8165bad993ed34db573303027b2f507f3a5d13da14efaf59405  Exhibits/LightCompute/Code/PerspectiveAreaReservoirValidation.h
+dc4b466fe1918b181ec2449d6a64318e738d04f6c0316d825c858e3cc518ebf1  Frontier/Engine/Rendering/TriangleVisibilitySpace.h
+6f8517d02179c1db21351241133b75483af6fb6ff9dc183045b3ae89770cd552  Frontier/Engine/Rendering/ClusterNesting.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+7dfb2c426d2c39e7a6b451c8e9cdac6bda45bbbb33910ce41ea3078e35ec89e2  Exhibits/LightCompute/Code/FacetAreaOcclusionValidation.cpp
+7ac0ec015ce8533352cb5dc91f3445586039431395a8ca1e65cde29a0954fe53  Exhibits/LightCompute/FacetAreaOcclusion/CMakeLists.txt
+e92fe4459a7f15f2ef3b71644209335365658fc82f8ed8191ba727a73efe90c9  Exhibits/LightCompute/RunFacetAreaOcclusion.sh
+FIXTURE_CONSTRUCTORS exact=7 generated_sha256=545b6f78dfc9cd046f5a658aa1c6c0a5b5d1e15444df4cab8cf65cb4214c3591
+FACET_NORM_PREFIX exact_sha256=0db9866d34e0a49e7c509b1fcb7a0bd6e981216fc23c97c2cf92d2219f49b50c
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/facet-norm-release
+9332d2549964c22a934b3d9c3c8c999bb1d27a43ad83ba3a725792423b5080d8  Frontier/Engine/Rendering/FacetAreaPacket.h
+7bd9e94c005b51bad063768a5487bae965b04e713ec3ce998a2a31084e7c3241  Exhibits/LightCompute/Code/FacetPacketValidation.cpp
+e01e20934e892e4fc2ef0294d9b522cb9482b839a9a798fbc7981f0444bdef91  Exhibits/LightCompute/FacetPacket/CMakeLists.txt
+e24d3f32026cb2870a70d1652e59c66a3b9959991588e252891be1617c6a8667  Exhibits/LightCompute/RunFacetPacket.sh
+e3ad957815235bba7a4575ca54996a5c984f366a940b0c8e2c5200cfdae6666e  Exhibits/LightCompute/Code/FacetMixedValidation.cpp
+34ad48e7894939484ff879f6eefa139132ca7ce4459851645751368d4af10711  Exhibits/LightCompute/FacetMixed/CMakeLists.txt
+a56da33be66e3b22a0dfd82e57f3f40ce876618724b96ca852c330cb220d8ca0  Exhibits/LightCompute/RunFacetMixed.sh
+f1d5d9448213046a99a4aecb32e30a9da719a989f969b6156e3e5006b9b5ecfe  Exhibits/LightCompute/Code/FacetNormScenes.py
+ae262e79a9a8aadf22598114c708136a483a9d5707c9232d86f7e4f454554ffc  Exhibits/LightCompute/Code/FacetNormValidation.cpp
+7d8c4551bf6f616e7f7839b846e27d428078de5e3297f4a4b4188538b393bbf8  Exhibits/LightCompute/FacetNorm/CMakeLists.txt
+ca438cfe8a5af2c190afd02474cc44f58efa84ff233dc3e9bd130541ad663407  Exhibits/LightCompute/RunFacetNorm.sh
+[ 50%] Built target FrontierFacetAreaProposals
+[ 75%] Building CXX object mixed/packet/native/baseline/CMakeFiles/FacetAreaProposalValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaProposalValidation.cpp.o
+[100%] Linking CXX executable FacetAreaProposalValidation
+[100%] Built target FacetAreaProposalValidation
+[ 50%] Built target FrontierFacetAreaReservoir
+[100%] Built target FacetAreaPortValidation
+[ 50%] Built target FrontierFacetAreaScore
+[ 75%] Building CXX object mixed/packet/native/baseline/CMakeFiles/FacetAreaScoreValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaScoreValidation.cpp.o
+[100%] Linking CXX executable FacetAreaScoreValidation
+[100%] Built target FacetAreaScoreValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object mixed/packet/native/baseline/CMakeFiles/FacetAreaTransportValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaTransportValidation.cpp.o
+[100%] Linking CXX executable FacetAreaTransportValidation
+[100%] Built target FacetAreaTransportValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[100%] Built target FacetAreaOcclusionValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[100%] Built target FacetPacketValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[100%] Built target FacetMixedValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object CMakeFiles/FacetNormValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetNormValidation.cpp.o
+[100%] Linking CXX executable FacetNormValidation
+[100%] Built target FacetNormValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/facet-norm-release
+Test project /home/user/Frontier/_ClaudeScratch/build/facet-norm-release
+    Start 1: FacetNormValidation
+1/8 Test #1: FacetNormValidation ..............   Passed    0.00 sec
+    Start 2: FacetMixedValidation
+2/8 Test #2: FacetMixedValidation .............   Passed    0.00 sec
+    Start 3: FacetPacketValidation
+3/8 Test #3: FacetPacketValidation ............   Passed    0.02 sec
+    Start 4: FacetAreaOcclusionValidation
+4/8 Test #4: FacetAreaOcclusionValidation .....   Passed    0.00 sec
+    Start 5: FacetAreaProposalValidation
+5/8 Test #5: FacetAreaProposalValidation ......   Passed    0.00 sec
+    Start 6: FacetAreaPortValidation
+6/8 Test #6: FacetAreaPortValidation ..........   Passed    0.00 sec
+    Start 7: FacetAreaScoreValidation
+7/8 Test #7: FacetAreaScoreValidation .........   Passed    0.00 sec
+    Start 8: FacetAreaTransportValidation
+8/8 Test #8: FacetAreaTransportValidation .....   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 8
+
+Total Test time (real) =   0.04 sec
+FACET_AREA_SCORE_CANCELLATION compensated_distance=1 naive_distance=2 grazing_projection=5.9604644775390625e-08 naive_projection=0 geometry_relative_error=6.0274319164358055e-08
+FACET_AREA_SCORE_UNIT checks=1060 pass=1
+FACET_AREA_PROPOSAL_UNIT checks=193 pass=1
+FACET_AREA_PORT_UNIT checks=14831 pass=1
+FACET_AREA_TRANSPORT_UNIT checks=1058 pass=1
+ANALYTIC_OCCLUSION_UNIT checks=132 paths=12 pass=1
+FACET_PACKET_UNIT checks=31 allocation_calls=0 evaluations=6144 pass=1
+FACET_MIXED_UNIT checks=2796 pass=1
+FACET_NORM_UNIT checks=193 pass=1
+FACET_NORM_CASE rig=0 variant=0 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=0 variant=1 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=0 variant=2 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=0 variant=3 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=1 variant=0 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=1 variant=1 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=1 variant=2 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=1 variant=3 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=2 variant=0 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=2 variant=1 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=2 variant=2 cohorts=8 arms=8 pass=1
+FACET_NORM_CASE rig=2 variant=3 cohorts=8 arms=8 pass=1
+FACET_NORM_TOTAL evaluations=3145728 candidates=22020096 paths=15728640 visibility=31457280 api_baselines=2359296 disagreements=0
+bf8867dce205348968419bd9d2dedc6391a9977c6c844d8ede1c0508d8367983  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/mixed/packet/native/baseline/FacetAreaProposalScenes.h
+fcf00af9cc947a157f804742f30f859d59fb9255a087d839cbe02a386bb7c44d  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/FacetNormScenes.h
+1db08b0d7c82555be932fce3ebc6405fcc54d9418ea883c91618714b7f10eaef  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm00.f64
+6e57c16ce20207e35c3a5dc48b806f198bb12548fb1110fd54083eea4e979f7f  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm01.f64
+f0e3b7dcce145932bcd6382a18239ff6ce1dd5eb7de178a838a03b1d3c2ea0cb  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm02.f64
+abcdc6c385d3504a6c985129667a3a946e45d378fd6cfc71e730d514c2e0b9cd  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm03.f64
+4fe0edd3e12d41dcb24338791841538fe39f56f545416451c1b9baa1fd1ca1a6  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm10.f64
+18eefa53c5d0fd29f30cae9624fb3bd5aa666bad4b766db2b72054e14f1c139f  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm11.f64
+a1f6ff816daf48e27b3af1964fffd6a6d5b29fba429ec2c739aa066163772adf  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm12.f64
+113b53acdbe7a846ba28971a011770bd93d42f5095770cbd67b794a38bcdd59a  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm13.f64
+a17f34db4bc7820fe1510c321a9c0ad4b4449d10380f6571cdfdd37f18ed5331  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm20.f64
+42f1adda711f4c503f2ce6c2cea7023c16f206e47511b49397f7ddc66e7e49dc  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm21.f64
+b2b49a93e70fd0a9bdf961c1f6abc241fe085cde646ff26b86fe6d1cd32a4b62  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm22.f64
+e008c6baf4a47f3ee44324701124b7969bc212d50496761d8e0a0c1b745fa7fe  /home/user/Frontier/_ClaudeScratch/build/facet-norm-release/captures/FacetNorm23.f64

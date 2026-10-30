@@ -1,0 +1,14 @@
+Correctness=PASS;frozen uniform-norm promotion=FAIL.
+8 CTests/build,20294 focused checks/build;Release and host ASan+UBSan with leaks enabled.
+3145728 prototype packets/build;2359296 non-norm packets match unchanged API exactly.
+22020096 candidate draws,15728640 selected paths,31457280 independently checked visibility decisions/build.
+No analytic/double BVH disagreement;12 buffers and14 semantic rows byte-identical across builds.
+1152 RGB mean gates;failures=0;max32/64 clipped reference difference=2.8487663831849516e-08.
+8 independent four-packet cohorts/case;quality MSE averages cohort image MSE,not32-packet-image MSE.
+Uniform norm/mean MSE ratios min/max=0.839181051/1.06739345;case wins=10/12;aggregate ratio=0.966144749.
+Uniform norm/raw4 MSE ratios min/max=0.789470027/1.11963789;case wins=10/12;aggregate ratio=0.906334167.
+384 actual cohort0 image arrays,48 analytic references;12 lossless cohort buffers and3 references retained.
+All1004 prior manifest entries unchanged;historical transport acceptance=0 remains HELD.
+No engine/API/shader/default change,no new GPU/history/physical-time/Windows/production acceptance.
+Production348.046875MiB output/defaults/32B descriptors unchanged;no PR/Actions.
+Collector writes complete evidence before nonzero exit when a frozen gate fails;no threshold/seed/rig retuning.

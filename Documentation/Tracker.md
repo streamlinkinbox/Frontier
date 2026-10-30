@@ -1,5 +1,25 @@
 # Project Tracker
 
+## Fresh RGB-norm target holdout — 2026-10-30
+
+- [Frozen norm-target study](../Exhibits/LightCompute/FacetNorm.md):three new rigs,four visibility variants,
+  eight arms,eight independent four-packet cohorts. Exhibit-only scaled float32 RMS target+positive floor;
+  production score/API/engine/shaders/defaults and all previous evidence unchanged.
+- Correctness PASS:Release/host ASan+UBSan+leaks,eight CTests and20,294 focused checks/build. All2,359,296
+  non-norm packets/build exactly match API RGB/omissions/primary/work. Prototype3,145,728 packets/build,
+  22,020,096 draws,15,728,640 paths and31,457,280 visibility decisions/build agree with analytic/double BVH.
+- All1,152 RGB mean gates pass independent clipped quadrature;max32²/64² difference2.84877e-8. Twelve buffers
+  and14 semantic rows byte-identical across builds;final assertions preserve original captures. All1,004 old
+  manifest entries unchanged. Retained lossless cohort averages,384 actual images+48 references and contrasts.
+- Frozen promotion FAIL:uniform norm beats mean RIS10/12 and raw4 in10/12,but only8/12 jointly. Aggregate MSE
+  improves3.39%/9.37%;worst-case regressions6.74%/11.96%. No universal four-path winner or default promotion.
+  Raw8 uniform has best aggregate accuracy at twice the traced-path budget;query counts are not timings.
+- Phase100%/0% remaining as a completed evaluation,not successful promotion. Overall remains~91%/~9% remaining,
+  planning estimates. Next:separate original deformed-transport sensitivity regression;historical acceptance=0
+  stays HELD. Shader/renderer wiring,history/general materials,physical-GPU/Windows/editor/time remain open.
+- Production348.046875MiB/defaults/32B unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+  Source and full evidence are backed up on the existing branch.
+
 ## Mixed-area/material/partial-visibility packet holdout — 2026-10-30
 
 - [Frozen native holdout](../Exhibits/LightCompute/FacetMixed.md):source areas.16/.36,different diffuse RGB,

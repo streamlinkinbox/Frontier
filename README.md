@@ -14,6 +14,12 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Fresh RGB-norm score study](Exhibits/LightCompute/FacetNorm.md):eight independent four-packet cohorts,
+  eight arms,twelve cases. Correctness passes;norm MSE improves3.39% versus mean RIS and9.37% versus raw4 on
+  average,but regresses in two cases against each baseline:the frozen promotion gate FAILS. All1,152 mean
+  gates and31,457,280 independent visibility checks/build pass;eight CTests/build,Release/host ASan+UBSan.
+  Actual baseline/reference images and failed-gate evidence retained;engine/defaults and348.046875MiB unchanged.
+
 - [Mixed-source native holdout](Exhibits/LightCompute/FacetMixed.md):unequal source areas/colours,receiver materials
   and partial blockers. All864 analytic RGB means and3,145,728 visibility checks/build pass;seven CTests/build.
   Uniform RIS beats raw4 in only6/12 cases;area RIS beats area raw4 in12/12 but loses to uniform RIS throughout.
