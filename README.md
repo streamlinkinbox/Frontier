@@ -14,6 +14,12 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [GPU-generated deformed causal packets](Exhibits/LightCompute/FacetPacketGpu.md):no native selected facet,
+  U/V,PDF or normalization weight enters the shader. All108 four-lane packets,720 candidates,144 selections
+  and1,152 visibility decisions/build pass native parity. All36 real mutations and36 shader faults checked;
+  eleven CTests/build,Release/host ASan+UBSan. SwiftShader software device,not physical GPU. Actual packet/path
+  RGB retained;historical failures and348.046875MiB/defaults unchanged. No new quality or speed claim.
+
 - [Deformed selected-proposal Vulkan parity](Exhibits/LightCompute/FacetCausalGpu.md):36 real-geometry tests
   and36 actual GPU visibility-bypass faults,108 executions/build. SwiftShader CPU Vulkan matches native RGB
   and coordinates exactly;ten CTests/build,Release/host ASan+UBSan. Fixed native-selected proposals,not fresh

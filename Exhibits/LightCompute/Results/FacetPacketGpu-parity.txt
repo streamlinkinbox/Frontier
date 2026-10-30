@@ -1,0 +1,11 @@
+PASS GPU-generated four-lane deformed causal packets;native selected proposals and weights removed from shader inputs.
+SwiftShader CPU Vulkan type4,not physical GPU. Host ASan+UBSan;driver uninstrumented,leaks disabled.
+11 CTests/build,20316 focused checks/build;108 packets,720 generated candidates,144 exact pair selections/build.
+576 traced paths and1152 visibility decisions/build exactly match native/double BVH;no edge/selection waivers.
+36/36 generated qualified-path mutations pass;36/36 actual GPU shader multiplication bypass faults rejected.
+Maximum packet/qualified-restore RGB error=9.3132257461547852e-10/9.3132257461547852e-10.
+PACKET_GPU_TOTAL executions=108 candidates=720 paths=576 pairs=144 visibility=1152 mutations=36 faults=36 rgb_error=9.3132257461547852e-10 coordinate_error=0 scalar_error=1.0134800960616974e-07 pass=1
+Three readback/reference/qualification buffers and38 packet semantic rows identical across builds.
+All1553 prior manifest entries unchanged;historical transport HELD and norm promotion FAIL preserved.
+Targeted packet/contribution swatches retained,not full-scene images or random-scene quality acceptance.
+Exhibit-only80-slab diagnostics;production348.046875MiB/defaults/32B unchanged. No PR/Actions.

@@ -1,5 +1,25 @@
 # Project Tracker
 
+## GPU-generated deformed causal packets — 2026-10-30
+
+- [Full four-lane packet composition](../Exhibits/LightCompute/FacetPacketGpu.md):GPU RNG,source area/CDF/PDF,
+  barycentrics,mean-RGB target,pair selection,normalization and tracing replace native selected-proposal inputs.
+  Inputs are geometry,original source-profile order,camera,seed,method and fault token,not native U/V/weights.
+- Three fixtures ×six methods ×two causal operations ×three geometry/fault states:108 packets/build,
+  720 candidate observations,144 exact pair choices,576 paths and1,152 exact visibility decisions. Double BVH
+  audits all native rays. All36 qualified-path mutations pass and36 actual shader bypass faults are rejected.
+- Release/host ASan+UBSan,eleven CTests and20,316 focused checks/build;driver uninstrumented,leaks disabled.
+  Max weighted packet/path RGB error9.31323e-10,coordinate error0,score/normalizer scaled residual1.01348e-7.
+  Three buffers and38 semantic rows match across builds. All1,553 prior manifest entries unchanged.
+- Retained native/GPU full-packet/path RGB and actual contribution comparisons,not full-frame scene images.
+  SwiftShader CPU Vulkan;targeted paired seeds,not new quality/random-scene,hardware or timing acceptance.
+  Exhibit-only80-slab diagnostics do not change engine/shared shaders or production output allocation.
+- Phase100%/0% remaining as bounded generated-packet parity;overall~92%/~8% remaining,planning estimates.
+  Next:batched full-frame deformed packet/image parity,before renderer wiring and broader material/history/
+  physical-GPU/Windows/editor/time acceptance. Historical transport HELD and norm promotion FAIL remain.
+- Production348.046875MiB/defaults/32B unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+  Source and complete evidence are backed up on the existing branch.
+
 ## Deformed causal selected-proposal Vulkan parity — 2026-10-30
 
 - [Bounded Slang/Vulkan replay](../Exhibits/LightCompute/FacetCausalGpu.md):original/mutated/shader-fault
