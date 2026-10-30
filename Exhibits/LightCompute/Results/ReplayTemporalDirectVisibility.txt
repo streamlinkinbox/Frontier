@@ -35,8 +35,8 @@ Baseline reference: `0.82268910511`. The seven temporal1 samples without a recor
 
 - Generated audit SPIR-V compiled for primary, replay-generate, and replay-resolve entries.
 - Release CMake build completed; CTest passed **10/10**.
-- Direct-summary synthetic tests passed **4/4**; no-emitter summary synthetic tests passed **4/4**; Python byte-compilation and `git diff --check` passed.
-- Both runtime validators passed on SwiftShader in the original measurement run; estimator math remained unchanged. A later per-sample guard now rejects any non-visible direct segment with nonzero NEE; it compiles in Release and CTest remains **10/10**, but that new guard has not yet been rerun on the software Vulkan fixture.
+- After adding the per-sample invariant, the direct-only Release rerun passed on SwiftShader (Subzero): **32,768 paired records**, all direct rays accounted for, blocked/no-ray NEE exactly zero, and original aggregate counts reproduced exactly. The run compiled the three Slang entries, completed a Release CMake build, and passed CTest **10/10**.
+- Direct-summary synthetic tests passed **4/4**; no-emitter summary synthetic tests passed **4/4**; Python byte-compilation and `git diff --check` passed. SwiftShader source revision: `cddb5c9`; Slang: `2026.14.1`.
 - Physical GPU, Windows, Frontier editor viewport, production scene/resource integration, and broader renderer correctness remain unverified.
 
 The runner now supports `DIRECT_ONLY=1 bash Exhibits/LightCompute/RunReplayTemporalVisibility.sh` to rerun just the controlled-emitter phase; its default log is `_ClaudeScratch/provenance/direct-visibility.log`, so the preserved no-emitter baseline log is not overwritten. The default runner still performs both fixtures and writes the baseline log. A mocked end-to-end runner smoke test verified the direct-only flag, parser/chart route, and output separation; it did not replace the measured chart or count as a renderer run.
