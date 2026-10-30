@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Fresh sensitive Slang/Vulkan parity](Exhibits/LightCompute/FacetAreaOcclusionGpu.md):983,040 exact proposals
+  and1,572,864 exact visibility decisions/build;216 analytic means pass. Max native/GPU image RGB delta1.46e-10.
+  Six CTests/build,Release/host ASan+UBSan,actual readback images. SwiftShader software device,not hardware.
+  Previous acceptance HELD;no renderer/default promotion. Production348.046875MiB unchanged.
+
 - [Analytic native visibility coverage](Exhibits/LightCompute/FacetAreaOcclusion.md):three layouts ×four variants;
   1,572,864 visibility checks/build,216 quadrature means and both isolated omission controls pass. Five CTests
   per Release/ASan+UBSan build;actual native ablation images retained. Previous transport acceptance stays HELD.

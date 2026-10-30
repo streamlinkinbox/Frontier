@@ -1,0 +1,8 @@
+Initial host build required adding repository-root includes for existing Engine/Render headers.
+Both initial fresh Vulkan runs then passed all frozen native ray/selection/visibility comparisons.
+Initial collector correctly rejected a stale source hash after formatting FacetAreaOcclusionGpuSubmission.py:
+AssertionError: Exhibits/LightCompute/Code/FacetAreaOcclusionGpuSubmission.py
+Both complete Release and host ASan/UBSan runs were repeated after source formatting.
+All 12 original Release capture SHA256 values remained identical after the rerun.
+Final collector passes all RGB/ablation/quadrature/manifest gates;no thresholds,seeds,fixtures or arithmetic tuned.
+The older deformed transport acceptance=0 remains unchanged;this is a separate diagnostic acceptance.

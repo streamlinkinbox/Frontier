@@ -1,0 +1,11 @@
+PASS sensitive Slang/Vulkan diagnostic;SwiftShader software device,not a physical GPU.
+Six CTests and17282 focused units/build;Release and host ASan/UBSan. External driver unsanitized,LSan disabled.
+147456 primary observations,983040 proposals,786432 paths,1572864 visibility decisions/build pass native/analytic audits.
+Native/GPU max packet/ablation RGB delta=3.4924596548080444e-10;max image RGB delta=1.4551915228366852e-10.
+Maximum primary position delta=0;216 quadrature mean gates pass;convergence=2.2890894455784848e-08.
+Every isolated affected omission restores positive RGB in all12288 packets/layout;all unaffected controls stay zero.
+Twelve buffers,14 semantic rows,two SPIR-V binaries and submission prefix identical across builds.
+180 actual GPU/difference PNG arrays verified,lossless40-slab archives retained.
+Previous two evidence manifests unchanged;historical transport acceptance=0 remains.
+No engine/default/production promotion,physical timing,Windows/editor/history/material acceptance.
+Production348.046875MiB output and32B descriptors unchanged;no PR/Actions.

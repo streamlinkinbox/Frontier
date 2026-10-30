@@ -1,5 +1,25 @@
 # Project Tracker
 
+## Sensitive Slang/Vulkan occlusion parity — 2026-10-30
+
+- [Separately frozen fresh software-Vulkan diagnostic](../Exhibits/LightCompute/FacetAreaOcclusionGpu.md):same
+  three layouts ×four variants,RIS/raw4/raw8;no CPU shading answers uploaded. Existing submission/shaders reused.
+- Release/host ASan+UBSan,six CTests and17,282 focused units/build. Device SwiftShader CPU type4,not hardware;
+  external driver unsanitized,LSan disabled. No Khronos validation-layer or physical timing claim.
+- All147,456 primary identities,983,040 proposals and786,432 selected paths agree with native. All1,572,864
+  visibility decisions match analytic/double BVH. Targets/rays error0;max relative normalizer error5.96e-8.
+- Max packet/ablation RGB delta3.49246e-10;image delta1.45520e-10. Every isolated affected omission restores
+  positive RGB;unaffected/both-blocked single omissions exactly zero. All216 independent quadrature means pass.
+- Twelve40-slab captures,14 semantic rows,two SPIR-V binaries and submission prefix identical across builds.
+  Actual180 GPU/difference PNG arrays verified;comparison sheet inspected;lossless snapshots retained.
+- Both earlier manifests unchanged;historical transport acceptance=0 stays HELD,not retroactively passed.
+  Formatting-induced stale hash was rejected;both builds rerun,all original GPU captures byte-identical.
+- Focused phase100%/0% remaining;overall stays~90%/~10% remaining,planning estimates,not production readiness.
+  Next bounded problem:opt-in composed native packet-estimator caller,not editor/default activation. General
+  scene/material/history and physical-GPU/Windows/editor/TAA/timing acceptance remain separate.
+- Production348.046875MiB/defaults/32B unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+  Source/evidence backed up to existing branch.
+
 ## Analytic native occlusion coverage — 2026-10-30
 
 - [Separately frozen diagnostic](../Exhibits/LightCompute/FacetAreaOcclusion.md):three scale/translation/colour
