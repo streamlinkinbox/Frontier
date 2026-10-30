@@ -1,5 +1,20 @@
 # Project Tracker
 
+## Deformed geometry/material area RIS — 2026-10-30
+
+- [Completed three-fixture holdout](../Exhibits/LightCompute/DeformedAreaReservoir.md):vertex deformations,recomputed flat normals,
+  rebuilt production BVHs and new neutral/high-contrast/spatial diffuse palettes;frozen perspective cameras.
+- Uniform/area RIS pass ordinary+cross-reference MSE gates3/3 each versus same-query raw4. RMSE reductions:
+  uniform28.33/26.26/2.69%,area25.71/19.39/21.49%. Fixture2 uniform interval includes zero;gain uncertain.
+- Uniform RIS remains best same-query;uniform raw8 best absolute accuracy,68 versus36 counted calls/pixel.
+  Same-query is not equal time;no physical speedup claim or score/deformation/palette/gate tuning.
+- Release/host ASan+UBSan,five CTests each;491,520 candidate/393,216 path replays,54 RGB means pass. Actual
+  emitted rays are validated before double visibility replay;no exceptions.69 hashes/build,6 buffers,2 modules.
+- Two allowed CDF/selector ambiguities;all3,072 primary pixel results change,including158 wall pixels. Default
+  submission32-slab regression preserves all six prior perspective buffers;40 slabs are diagnostic opt-in only.
+- Evaluation100%,remaining0%;overall~82%/~18% remaining,planning estimates. Next:opt-in C++ area-RIS sampler
+  equivalence port,not production default enablement. Production348.046875MiB unchanged;no packing,PR or Actions.
+
 ## Perspective-camera fresh area RIS — 2026-10-30
 
 - [Completed perspective holdout](../Exhibits/LightCompute/PerspectiveAreaReservoir.md):three frozen pinhole views on the shared16-facet

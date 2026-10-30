@@ -1,0 +1,13 @@
+PASS runtime:9 identical semantic rows;hashes/build=[69, 69];six identical readbacks;two identical modules.
+CPU comparisons/build:491520 candidates,393216 selected paths,786432 binary visibility decisions.
+CPU receiver-occlusion negative control:{'receiver_suffix_blocks': '2035', 'primary_checks': '73728', 'reference_primary_checks': '2359296', 'changed': '3072', 'wall_primaries': '158'};GPU primary records verified.
+Mean gates=54;negative control failures/layouts=[3, 3].
+Frozen same-query ordinary AND cross-reference image gates:uniform/area wins=[3, 3] of3 each.
+Acceptance per proposal=[True, True];production_promote=0.
+RMSE by layout=[[0.0002629302646779409, 0.0008400825145285948, 0.00036687696903822214, 0.0011308353901193222, 0.0002617686022363841, 0.0008389324955363576], [0.00020490666982608856, 0.0006518078369291808, 0.00027786223808993154, 0.0008086141958126934, 0.00020058165206952435, 0.0006445261064698492], [0.0006442605010055684, 0.0008706931632254096, 0.0006620848803824073, 0.001108970865505434, 0.0006396719689422937, 0.0008741600148653155]]
+Cross-reference MSE=[[6.881772610843349e-08, 7.054240332415026e-07, 1.3428411243549354e-07, 1.2784740815711365e-06, 6.820820314161179e-08, 7.034931340916813e-07], [4.17617747878368e-08, 4.24628487730916e-07, 7.698245480496491e-08, 6.536319491184275e-07, 4.0008030595558923e-08, 4.151889333698027e-07], [4.127920249668065e-07, 7.558270162983316e-07, 4.3607682064184597e-07, 1.2275368123507337e-06, 4.0690065966137125e-07, 7.618761634001902e-07]]
+Estimated combined-reference RMS noise=[1.7736909967035582e-05, 1.4998951676060295e-05, 4.774482368947836e-05]
+Calls/pixel including primaries:RIS/raw4=36,raw8=68;reference=13056 total. Reference GPU paths/build=18874368.
+Default32-slab regression:9 prior semantic rows and six perspective buffers unchanged.
+Actual emitted ray metadata finite/unit/range checked;unused ray slots canonical zero.
+Host ASan/UBSan only;driver/SPIR-V uninstrumented. No physical timing or Windows test.

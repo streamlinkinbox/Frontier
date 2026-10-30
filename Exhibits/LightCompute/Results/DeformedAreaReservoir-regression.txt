@@ -1,0 +1,10 @@
+PERSPECTIVE_AREA_RESERVOIR_DEVICE name=SwiftShader Device (Subzero) type=4 pixels=1024 packets=4 methods=6 cases=3
+PERSPECTIVE_AREA_RESERVOIR_CASE case=0 error=2.91833402444e-08 normalizer_error=5.68986282929e-07
+PERSPECTIVE_AREA_REFERENCE case=0 banks=2 packets_per_bank_pixel=384 samples_per_bank_pixel=3072
+PERSPECTIVE_AREA_RESERVOIR_CASE case=1 error=2.34521707887e-08 normalizer_error=5.10730465489e-07
+PERSPECTIVE_AREA_REFERENCE case=1 banks=2 packets_per_bank_pixel=384 samples_per_bank_pixel=3072
+PERSPECTIVE_AREA_RESERVOIR_CASE case=2 error=2.45766491602e-08 normalizer_error=5.02414770873e-07
+PERSPECTIVE_AREA_REFERENCE case=2 banks=2 packets_per_bank_pixel=384 samples_per_bank_pixel=3072
+PERSPECTIVE_AREA_OCCLUSION receiver_suffix_blocks=2047 primary_checks=73728 reference_primary_checks=2359296 changed=3072 wall_primaries=172
+PERSPECTIVE_AREA_RESERVOIR_DECISION correctness=1 candidates=491520 traced=393216 ambiguous=0 production_promote=0
+PASS shared submission default32-slab regression:six perspective buffers byte-identical.

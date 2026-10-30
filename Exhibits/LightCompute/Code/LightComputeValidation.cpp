@@ -538,7 +538,7 @@ struct LightComputeSubmission
     void Prepare(const LightComputeArchive& Scene, const std::string& Shaders, bool SolarOnly = false,
                  bool DirectOnly = false, bool DiffuseOnly = false, bool RectangleOnly = false,
                  bool ReplayOnly = false, bool MediumOnly = false,
-                 bool CompactReplay = false, uint32_t GuardRecords = 0)
+                 bool CompactReplay = false, uint32_t GuardRecords = 0, uint32_t DiffuseAuditSlabs = 32)
     {
         Require(int(SolarOnly) + int(DirectOnly) + int(DiffuseOnly) + int(RectangleOnly) + int(ReplayOnly) + int(MediumOnly) <= 1,
                 "Compute preparation modes conflict");
@@ -552,6 +552,8 @@ struct LightComputeSubmission
         Require(HasSampleGather == HasSampleFinalize, "Replay sample history needs both compute stages");
         Require(!CompactReplay || (ReplayOnly && HasSampleGather && !Scene.Receivers.empty()), "Compact replay requires seed-history pipelines");
         Require(GuardRecords <= 16 && (CompactReplay || GuardRecords == 0), "Tail guards are reserved for compact-layout validation");
+        Require(DiffuseAuditSlabs == 32 || (DiffuseOnly && DiffuseAuditSlabs == 40),
+                "Extended ray diagnostics require diffuse validation mode");
         CompactReplayStorage = CompactReplay;
         ConstructBuffer(0, Scene.Lights);
         ConstructBuffer(1, Scene.Receivers);
@@ -585,7 +587,7 @@ struct LightComputeSubmission
         ReplayOutputDescriptorBytes = CompactReplay
             ? PathReplayRequiredCompactOutputRecords(uint32_t(Scene.Receivers.size())) * 16
             : (Scene.Receivers.size() * (HasSampleGather ? 40 : (HasReplayGather ? 36 :
-                ((DiffuseOnly || RectangleOnly || ReplayOnly) ? 32 : 25))) + 13889 + SolarSourceCount) * 16;
+                (DiffuseOnly ? DiffuseAuditSlabs : ((RectangleOnly || ReplayOnly) ? 32 : 25)))) + 13889 + SolarSourceCount) * 16;
         ConstructBuffer(6, nullptr, size_t(ReplayOutputDescriptorBytes) + size_t(GuardRecords) * 16);
         if (GuardRecords)
             std::memset(static_cast<char*>(Buffers[6].Address) + ReplayOutputDescriptorBytes,
@@ -1739,6 +1741,7 @@ void WriteImage(const std::string& Path, const std::vector<std::array<float, 4>>
 #include "CameraAreaReservoirValidation.h"
 #include "GeometricAreaReservoirValidation.h"
 #include "PerspectiveAreaReservoirValidation.h"
+#include "DeformedAreaReservoirValidation.h"
 #include "DiffuseMisValidation.h"
 #include "DiffuseReservoirMisValidation.h"
 #include "PathReplayCapture.h"
@@ -1820,6 +1823,11 @@ int main(int Count, char** Arguments)
         if (Count == 5 && std::string(Arguments[3]) == "--diffuse-mis")
         {
             ValidateDiffuseMis(Arguments[1], Arguments[2], Arguments[4]);
+            return 0;
+        }
+        if (Count == 5 && std::string(Arguments[3]) == "--deformed-area-reservoir")
+        {
+            ValidateDeformedAreaReservoir(Arguments[1], Arguments[2], Arguments[4]);
             return 0;
         }
         if (Count == 5 && std::string(Arguments[3]) == "--perspective-area-reservoir")
