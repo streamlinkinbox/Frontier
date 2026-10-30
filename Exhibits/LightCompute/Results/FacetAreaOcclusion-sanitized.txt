@@ -1,0 +1,111 @@
+FACET_AREA_OCCLUSION_BUILD mode=sanitized parent=22d606ae5c85c1212c1160702306635ec6f1c82a working_changes=1
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+f9947111d953b50b89bfd575a7b3242bd307838d44a998e4fcaf3ed3a6b831f3  Frontier/Engine/Rendering/FacetAreaReservoir.h
+256c87a78f755005ec894ae1227f07dc62e08f6be3309aa957fa7dbb896a5b2b  Frontier/Engine/Rendering/FacetAreaReservoir.cpp
+1fbbc601358a3528b51c3bc776211be90a04a95fa109933e5f7cd63c18595d0d  Frontier/Engine/Rendering/FacetAreaProposals.h
+8d28aa60ae6805ac658a2c3fcf5bc73f0caf4364aa7025676d4941c8221049dd  Frontier/Engine/Rendering/FacetAreaProposals.cpp
+ae89a39543952e0e87464bacc0d0608627ac6eaf475b07945e90cad945129607  Frontier/Engine/Rendering/FacetAreaScore.h
+ae71b844db059df6185edd820b87f1bfbdc1b29dff07f2346032476d2f2e16dd  Frontier/Engine/Rendering/FacetAreaScore.cpp
+a72a51729bb2df2abf65ab5aa5da5a9c9ad5eff07fe3f871099f51ba545e7de1  Frontier/Engine/Rendering/FacetAreaTransport.h
+7c264cc83afb987687c69721711849d94969a64290968a8da677abf4b29fac2f  Frontier/Engine/Rendering/FacetAreaTransport.cpp
+6415678082ef3f063b2bab2c6c03d929406945e76c6ea2c4d615301a86bc9a9b  Frontier/Engine/Rendering/CMakeLists.txt
+0c332317c327121ecafca24e48a6f190d254d9ab2dc6a991ae2b45df1034c3cb  Exhibits/LightCompute/FacetAreaTransport/CMakeLists.txt
+c7a1b752fe4f8e9d43daae0d4e36dceeb977f5287e33b35b18b2a5455bedc4a5  Exhibits/LightCompute/Code/FacetAreaProposalValidation.cpp
+02130958c11e6b49b9e096584570ff7d57a5d84009d959fd25859aad5e09def7  Exhibits/LightCompute/Code/FacetAreaProposalScenes.py
+4788065746875e4d9e1cfa825dbd4e26c6bc618d14fa4154c14a6d24b13a42bc  Exhibits/LightCompute/Code/FacetAreaPortValidation.cpp
+b97be1516d22d4759727fe2aeabefe5a16322810cc8cdfa45e60d37d28b9065c  Exhibits/LightCompute/RunFacetAreaTransport.sh
+3ded598b2a512a6d3766d77202858ea9a0213199416c68f2713173b0527a40ea  Exhibits/LightCompute/Code/FacetAreaScoreValidation.cpp
+a4e7256bd6e97fe073b11f39385b2ebfb0704e575c3f4ec1aaa68509e4af37e9  Exhibits/LightCompute/Code/FacetAreaTransportValidation.cpp
+8c3b79da4e832d648bded912ef0c5c2c729de10a96794d0d1838233a725edd6a  Exhibits/LightCompute/Code/FacetAreaTransportScenes.py
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+cbf73c8ff9b1efb650bc8b4a58e09434046a3ffd27105da5d8d6812d45581022  Exhibits/LightCompute/Code/RgbTraceValidation.h
+08e5d99e7d744330327193ad3c17123175c933a93e3fdb2315bd6d62156dc168  Exhibits/LightCompute/Code/GeometricAreaReservoirValidation.h
+a7ec0b5a95461614d76883e2fb11823e8d7965902cbb65a2a1e7f3fc13b43fcf  Exhibits/LightCompute/Code/DeformedAreaReservoirValidation.h
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+8c240c11a2a8e8165bad993ed34db573303027b2f507f3a5d13da14efaf59405  Exhibits/LightCompute/Code/PerspectiveAreaReservoirValidation.h
+dc4b466fe1918b181ec2449d6a64318e738d04f6c0316d825c858e3cc518ebf1  Frontier/Engine/Rendering/TriangleVisibilitySpace.h
+6f8517d02179c1db21351241133b75483af6fb6ff9dc183045b3ae89770cd552  Frontier/Engine/Rendering/ClusterNesting.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+7dfb2c426d2c39e7a6b451c8e9cdac6bda45bbbb33910ce41ea3078e35ec89e2  Exhibits/LightCompute/Code/FacetAreaOcclusionValidation.cpp
+7ac0ec015ce8533352cb5dc91f3445586039431395a8ca1e65cde29a0954fe53  Exhibits/LightCompute/FacetAreaOcclusion/CMakeLists.txt
+e92fe4459a7f15f2ef3b71644209335365658fc82f8ed8191ba727a73efe90c9  Exhibits/LightCompute/RunFacetAreaOcclusion.sh
+FIXTURE_CONSTRUCTORS exact=7 generated_sha256=545b6f78dfc9cd046f5a658aa1c6c0a5b5d1e15444df4cab8cf65cb4214c3591
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized
+[ 50%] Built target FrontierFacetAreaProposals
+[ 75%] Building CXX object baseline/CMakeFiles/FacetAreaProposalValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaProposalValidation.cpp.o
+[100%] Linking CXX executable FacetAreaProposalValidation
+[100%] Built target FacetAreaProposalValidation
+[ 50%] Built target FrontierFacetAreaReservoir
+[100%] Built target FacetAreaPortValidation
+[ 50%] Built target FrontierFacetAreaScore
+[ 75%] Building CXX object baseline/CMakeFiles/FacetAreaScoreValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaScoreValidation.cpp.o
+[100%] Linking CXX executable FacetAreaScoreValidation
+[100%] Built target FacetAreaScoreValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object baseline/CMakeFiles/FacetAreaTransportValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaTransportValidation.cpp.o
+[100%] Linking CXX executable FacetAreaTransportValidation
+[100%] Built target FacetAreaTransportValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object CMakeFiles/FacetAreaOcclusionValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaOcclusionValidation.cpp.o
+[100%] Linking CXX executable FacetAreaOcclusionValidation
+[100%] Built target FacetAreaOcclusionValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized
+Test project /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized
+    Start 1: FacetAreaOcclusionValidation
+1/5 Test #1: FacetAreaOcclusionValidation .....   Passed    0.01 sec
+    Start 2: FacetAreaProposalValidation
+2/5 Test #2: FacetAreaProposalValidation ......   Passed    0.01 sec
+    Start 3: FacetAreaPortValidation
+3/5 Test #3: FacetAreaPortValidation ..........   Passed    0.01 sec
+    Start 4: FacetAreaScoreValidation
+4/5 Test #4: FacetAreaScoreValidation .........   Passed    0.01 sec
+    Start 5: FacetAreaTransportValidation
+5/5 Test #5: FacetAreaTransportValidation .....   Passed    0.04 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.09 sec
+FACET_AREA_SCORE_CANCELLATION compensated_distance=1 naive_distance=2 grazing_projection=5.9604644775390625e-08 naive_projection=0 geometry_relative_error=6.0274319164358055e-08
+FACET_AREA_SCORE_UNIT checks=1060 pass=1
+FACET_AREA_PROPOSAL_UNIT checks=193 pass=1
+FACET_AREA_PORT_UNIT checks=14831 pass=1
+FACET_AREA_TRANSPORT_UNIT checks=1058 pass=1
+ANALYTIC_OCCLUSION_UNIT checks=132 paths=12 pass=1
+ANALYTIC_OCCLUSION_CASE layout=0 variant=0 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=0 variant=1 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=0 variant=2 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=0 variant=3 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=1 variant=0 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=1 variant=1 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=1 variant=2 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=1 variant=3 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=2 variant=0 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=2 variant=1 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=2 variant=2 packets=12288 pass=1
+ANALYTIC_OCCLUSION_CASE layout=2 variant=3 packets=12288 pass=1
+ANALYTIC_OCCLUSION_TOTAL primary=147456 paths=786432 visibility=1572864 pass=1
+bf8867dce205348968419bd9d2dedc6391a9977c6c844d8ede1c0508d8367983  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/baseline/FacetAreaProposalScenes.h
+d388cf5b3e7ec20fad9aece60759c881a2ded1199375ecc999485eb9a03c3dc8  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion00.f32
+67b226349dc62358d60c5c9c441da8be90b4987dafb28224f979bb600e9988e9  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion01.f32
+4a2253df7e5053a591a2b1556f140c1db14ef10bfa8a80e7f3314be7368e0a8e  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion02.f32
+24a2f6508453ec12650cb15a0c0e1c6afdda031ba8c4196f33605a4e752ddd3c  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion03.f32
+dbf7037c0a0a86e56a6184b5a72d70f9a392fef3a2df2a0ab656552c2e537cb4  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion10.f32
+f3174ac3e4fe1dd34b11b1ad3fd1ee11b91925624f8db0bee13c98ee897f2523  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion11.f32
+73437c97afa00f1a42bcbee8d5f8124071e6443675458a3349106e73ed24a0c5  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion12.f32
+ca9e02459f3c453b8eb1bbd9d0a4867272a0a8027afa9bcdc678fce57e6406dc  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion13.f32
+97dda42845d238e6d7cb362d86f20f15832dd56b60c1df2daa140be3959c529b  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion20.f32
+1ed5319b9fafe97a8b59486eef773724dc0bd423eb9d60c32ffb2bfa820abd71  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion21.f32
+b13716ec1b0ad0cd67bef61969e973177df388bffb60b8d76aef3bfce9315ef8  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion22.f32
+eb9a9b2585a662e62921293b444cf7b5d37f379cef09a00e017c995854d977e4  /home/user/Frontier/_ClaudeScratch/build/facet-area-occlusion-sanitized/captures/AnalyticOcclusion23.f32

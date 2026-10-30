@@ -1,5 +1,23 @@
 # Project Tracker
 
+## Analytic native occlusion coverage — 2026-10-30
+
+- [Separately frozen diagnostic](../Exhibits/LightCompute/FacetAreaOcclusion.md):three scale/translation/colour
+  layouts ×clear,connection-only,suffix-only,both-blocked. Source-restricted native integration,no GPU inputs.
+- Release/host ASan+UBSan,five CTests and17,274 units/build. Fresh147,456 primary hits,786,432 selected paths
+  and1,572,864 visibility decisions/build agree with analytic classification and independent double BVH.
+- Both isolated omissions restore positive RGB in every packet;unaffected/both-blocked single omissions stay
+  zero. Joint omission restores positive RGB everywhere. All216 channel means pass independent quadrature;
+  32²/64² max channel reference difference2.28909e-8. Twelve buffers/14 semantic rows match bytewise.
+- Actual144 native32² PNG arrays verified;ablation and palette sheets inspected. All previous transport
+  evidence hashes unchanged;its failed omission gate/acceptance=0 remain preserved,not retroactively passed.
+- Restricted clear RIS RMSE−28.17–29.78% vs raw4;near raw8 with4 rather than8 traced paths. Proxy cost differs;
+  no general quality/speed claim or production promotion. No engine arithmetic changes.
+- Focused diagnostic100%/0% remaining;overall~90%/~10% remaining,planning estimates,not measured readiness.
+  Next:GPU parity on these sensitive rigs,then explicit integration;history/material/editor/TAA/device/Windows
+  acceptance remains separate. Production348.046875MiB/defaults/32B unchanged;packing/vehicle/Jolt deferred.
+  Source/evidence backed up to existing branch;no PR/Actions.
+
 ## Fresh native area transport — held acceptance,2026-10-30
 
 - [Completed numerical evaluation,not promotion](../Exhibits/LightCompute/FacetAreaTransport.md):new opt-in C++17

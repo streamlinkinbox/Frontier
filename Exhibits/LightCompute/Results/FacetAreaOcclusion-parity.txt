@@ -1,0 +1,8 @@
+PASS independent native occlusion diagnostic:five CTests/build;132 new+17142 existing unit checks/build.
+12 native variants,primary checks=147456;786432 paths and1572864 visibility checks/build match analytic/double BVH.
+Every isolated connection/suffix omission restores positive RGB in all12288 packets/layout;both-blocked single omissions stay zero.
+Correct/joint-omission quadrature channel means=216;32²/64² max convergence error=2.2890894455784848e-08.
+Twelve capture buffers and14 semantic rows identical across Release/ASan+UBSan;144 native PNG arrays verified.
+Complete prior transport manifest unchanged;its acceptance=0 remains retained,not reclassified.
+No engine modifications,new GPU comparison,general-scene quality promotion,Windows/editor/physical timing acceptance.
+Production348.046875MiB/defaults/32B descriptors unchanged.

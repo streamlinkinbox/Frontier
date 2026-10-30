@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Analytic native visibility coverage](Exhibits/LightCompute/FacetAreaOcclusion.md):three layouts ×four variants;
+  1,572,864 visibility checks/build,216 quadrature means and both isolated omission controls pass. Five CTests
+  per Release/ASan+UBSan build;actual native ablation images retained. Previous transport acceptance stays HELD.
+  Native diagnostic only;no new GPU/renderer promotion. Production348.046875MiB/defaults unchanged.
+
 - [Fresh native area transport—held acceptance](Exhibits/LightCompute/FacetAreaTransport.md):221,184 new primary
   hits,1,179,648 new paths and2,359,296 visibility checks match retained GPU/independent double rays. Actual
   native images and54 mean gates pass;four CTests/build. Omitted connection/suffix sensitivity passes only1/3
