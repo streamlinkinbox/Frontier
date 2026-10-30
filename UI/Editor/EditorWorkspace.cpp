@@ -4,6 +4,8 @@
 // 🧩 Host the original Content Browser and optional Notification Stream through callbacks into their original owners.
 
 #include "EditorWorkspace.h"
+#include "Frontier/Engine/Interface/SceneDirectoryPanelRegistration.h"
+#include "Frontier/Engine/Interface/SceneInspectorPanel.h"
 #include "Frontier/Engine/Diagnostics/LogStream.h"
 #include "Frontier/Engine/Interface/LogStreamPanelRegistration.h"
 #include <cmath>
@@ -20,8 +22,18 @@ void EditorWorkspace::ConfigureProject(EditorProjectSummary Summary)
     if (Project.Name != "Project Everest" || EverestRegistered) return;
     if (!Panels.Register(MakeLogStreamPanelSpecification(Stream)))
         throw std::runtime_error("LogStream registration refused.");
-    (void)Panels.ConfigureColumns({{"content", .12f}, {"notifications", .12f},
-        {"viewport", .38f}, {"LogStream", .38f}});
+    EverestScene = std::make_unique<EverestSceneDirectory>();
+    if (!Panels.Register(MakeSceneDirectoryPanelSpecification(EverestScene->QueryPanel())) ||
+        !Panels.Register({"Inspector", "Inspector", [&]()
+        {
+            EverestScene->Synchronize();
+            ConstructSceneInspectorInterface(EverestScene->QueryPanel());
+        }, true}))
+        throw std::runtime_error("Scene panel registration refused.");
+    if (!Panels.ConfigureStackedPanels("viewport", "LogStream", 490) ||
+        !Panels.ConfigureColumns({{"content", .001f}, {"notifications", .001f},
+        {"Outliner", .22f}, {"LogStream", .49f}, {"Inspector", .288f}}))
+        throw std::runtime_error("Everest scene layout refused; open the project before rendering the workspace.");
     EverestRegistered = true;
     const auto Category = RegisterLogCategory("Everest", LogColour::Blue);
     WriteLog(Category, LogSeverity::Info, "Project Everest workspace opened.");
@@ -130,6 +142,7 @@ void EditorWorkspace::ConstructInterface()
     const float Scale = Centre.QueryAppearance().QueryApplied().InterfaceScale / 100.0f;
     Centre.ConfigureDockedPanels(DockableBrowser, Panels.QueryOpen("notifications"));
     ConstructTopBar(Scale);
+    if (EverestScene) EverestScene->Synchronize();
     if (EverestRegistered) Stream.Synchronize(LogStore(), LogCategories(), ImGui::GetIO().DeltaTime);
     Panels.ConstructInterface(Scale);
     Rendered = true;
@@ -179,6 +192,13 @@ void EditorWorkspace::ConstructTopBar(float Scale)
 
 void EditorWorkspace::ConstructViewport()
 {
+    if (EverestScene)
+    {
+        if (ImGui::Button("Add Sun")) (void)EverestScene->ConstructSun();
+        ImGui::SameLine();
+        if (ImGui::Button("Delete selected")) (void)EverestScene->EraseSelected();
+        ImGui::Separator();
+    }
     ImGui::TextDisabled("SCENE CANVAS");
     ImGui::TextWrapped("Native scene and document rendering are not connected yet. "
                        "The Content Browser tab holds this project's real files; appearance, input and "

@@ -1,7 +1,7 @@
 Test project /home/user/Frontier/build/everest
     Start 1: ProjectEverestValidation
-1/1 Test #1: ProjectEverestValidation .........   Passed   13.80 sec
+1/1 Test #1: ProjectEverestValidation .........   Passed   17.28 sec
 
 100% tests passed out of 1
 
-Total Test time (real) =  13.80 sec
+Total Test time (real) =  17.28 sec

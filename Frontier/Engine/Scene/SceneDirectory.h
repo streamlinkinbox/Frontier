@@ -11,6 +11,10 @@
 #include "RecordClassification.h"
 #include "RecordToken.h"
 
+#if defined(FRONTIER_EDITOR_PROFILE)
+    #include "RecordEditorDescription.h"
+#endif
+
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
@@ -67,6 +71,13 @@ class SceneDirectory
     // Registration order snapshot (oldest first) for panel projections; copied under lock.
     void CopyRegistrationOrder(std::vector<RecordToken>& Out) const;
 
+#if defined(FRONTIER_EDITOR_PROFILE)
+    // 📝 Editor descriptions are built by each record's own editor-conditional constructor and
+    //    registered through RecordEntry. The returned pointer is invalidated by Unregister.
+    void ConfigureEditorDescription(RecordToken Token, RecordEditorDescription Description);
+    [[nodiscard]] const RecordEditorDescription* QueryEditorDescription(RecordToken Token) const;
+#endif
+
   private:
     struct DirectoryEntry
     {
@@ -74,6 +85,10 @@ class SceneDirectory
         RecordToken          Parent;                        // [-] - Invalid token = root
         RecordClassification Classification = RecordClassification::Unclassified;
         bool                 Visible        = true;         // [-] - Outliner eye toggle
+#if defined(FRONTIER_EDITOR_PROFILE)
+        RecordEditorDescription EditorDescription;          // [-] - Built by the record itself; empty until it registers one
+        bool                    HasEditorDescription = false;
+#endif
     };
 
     mutable std::mutex                              Mutex;

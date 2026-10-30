@@ -5,7 +5,15 @@ These are CPU-rasterized ImGui draw lists, not browser mockups or generated illu
 
 ## Workspace
 
-![Project Everest with the production LogStream](Images/Workspace.png)
+![VehicleHMI Outliner, authored Sun Inspector and LogStream in the canonical dockspace](Images/Workspace.png)
+
+The layout is Outliner / central viewport above LogStream / Inspector. The viewport is intentionally unconnected.
+The five initial scene records are shared Sun, atmosphere, clouds, fog and wind components. Sun construction and
+selection publish its own inspector fields; deleting it removes the description and clears selection.
+
+![Shared Cloud inspector](Images/CloudInspector.png)
+
+![Inspector cleared after deleting the selected record](Images/EmptyInspector.png)
 
 ## Browser and application selection
 
@@ -30,6 +38,12 @@ These are CPU-rasterized ImGui draw lists, not browser mockups or generated illu
 | Handoff                                    | TOML decode; correct path; consumed exactly once   |
 | Workspace registration                     | Repeated configuration does not duplicate panels  |
 | LogStream                                  | Existing native panel registered; close/reopen    |
+| Outliner                                   | Authored names, grouping, filter, mouse selection |
+| Inspector                                  | Mouse slider edits the actual Sun setting         |
+| Application-owned inspector                | Test-only vehicle description targets live fields |
+| Add / Delete                               | Actual mouse buttons create/remove Sun records    |
+| Scene lifetime                             | Stale tokens, recreate, external destruction, constructor failure, teardown |
+| ASan / UBSan / leak detection               | Passed; see `Results/Sanitized.txt`                |
 | Docking / Control Centre / theme            | Actual shared native draw output captured         |
 | Native Windows windowing / Vulkan display   | Not run                                           |
 | Vehicle scene / ray tracing / ReSTIR         | Not connected or tested in this UI milestone       |
@@ -37,8 +51,8 @@ These are CPU-rasterized ImGui draw lists, not browser mockups or generated illu
 Configuration: default CMake configuration (no explicit optimization profile), host verification,
 `FRONTIER_EVEREST_EXHIBIT_ONLY=ON`. Test source and captures are retained together here.
 `Results/CaptureHashes.json` identifies the exact capture source and images. `Results/Build.txt` retains the final
-incremental build result. Tested work is the uncommitted Project Everest patch over session origin `68f3016`.
-Canonical UI baseline: `71e4a17`; LogStream baseline: `f97b991`. The native Windows application already uses
+incremental build result. Tested work is the Outliner / Inspector patch over the saved LogStream checkpoint `8e330357`.
+Canonical UI baseline: `71e4a17`; LogStream, scene editing and environment description baseline: `f97b991`. The native Windows application already uses
 `EditorWorkspace::ConfigureProject`, which activates the added Everest panels after decoding the launch path.
 The isolated `FrontierUI` exhibit entry also propagates the project summary.
 
@@ -70,4 +84,27 @@ The browser preview is deliberately unavailable here. No vehicle image has been 
 ## Follow-up
 
 See [UI sequence and lifetime contract](../../Documentation/Plans/Ongoing/ProjectEverest.md).
-Review these exhibits before adding Outliner / Inspector or starting renderer integration.
+Review these three-panel exhibits before the next UI or renderer work. Full demo UI parity is not claimed.
+Record settings are session-only: save/load, undo/redo and scene serialization are not connected.
+The temporary viewport Add Sun / Delete selected buttons exercise real construction and destruction; unsupported
+Outliner add categories report a warning instead of creating fake records. Dedicated editor requests likewise
+report unavailable when no authored callback exists. Fracture/fluid/particle editors are not implemented.
+The vehicle used in the validation source is an application-authored inspector test, not a ported vehicle design.
+
+## Sanitized reproduction
+
+Use the same configure options with a separate directory and add:
+
+```bash
+cmake -S . -B build/everest-sanitized -G Ninja \
+  -DFRONTIER_HOST_VERIFICATION=ON -DFRONTIER_EVEREST_EXHIBIT_ONLY=ON \
+  -DPython3_EXECUTABLE="$PWD/.venv/bin/python" \
+  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+cmake --build build/everest-sanitized --target ProjectEverestValidation -j 4
+ASAN_OPTIONS=detect_leaks=1 build/everest-sanitized/ProjectEverestValidation \
+  "$PWD/EngineContent" "$PWD/_ClaudeScratch/EverestSanitized"
+```
+
+All new interaction/lifetime assertions run in both builds. The test also verifies that an exception in a derived
+constructor unregisters its partially constructed record. Allocation-failure injection is not tested.

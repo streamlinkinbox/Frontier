@@ -184,4 +184,10 @@ Pattern 1:1 parity remain open. GIF previews are 8-bit evidence, not precision c
 - Owner clarification (2026-10-30): port the same editor UI from the VehicleHMI demo containing ReSTIR,
   not a newly designed Everest UI. First panel sequence is LogStream → Outliner → Inspector, before renderer work.
   Preserve the demo layout and interactions while using canonical reusable docking, controls and Control Centre.
-  Current checkpoint implements LogStream integration only; Outliner and Inspector remain pending.
+  Current checkpoint integrates LogStream, the VehicleHMI Outliner and authored Inspector presentation.
+  Shared Sun / atmosphere / cloud / fog / wind descriptions are active; native viewport rendering is still absent.
+- Scene editing validation: `Exhibits/ProjectEverest/README.md`. Mouse selection, slider editing, Add/Delete,
+  stale-token rejection, application-authored inspector targets, constructor failure and teardown are checked.
+  Scene edits are session-only in this milestone; persistence, undo and dedicated editors are not implemented.
+- Outliner / Inspector checkpoint: canonical reference refreshed on 2026-10-30 and remained `71e4a17`.
+  Scene UI source is the already inspected `f97b991` pin; newer reference-branch commits were not imported.

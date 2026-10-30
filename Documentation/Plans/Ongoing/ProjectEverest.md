@@ -5,7 +5,7 @@
 First milestone: browser → select VehicleHMI application → Project Everest workspace.
 Owner clarification: reproduce the editor UI of the VehicleHMI demo containing ReSTIR, not a new UI design.
 Panel priority: LogStream → Outliner → Inspector; renderer work follows these panels.
-Current workspace is the integration checkpoint, not completed VehicleHMI editor UI parity.
+Current workspace integrates the first three panels, but is not completed VehicleHMI editor UI parity.
 Keep the canonical shared UI; do not import a competing editor or start renderer integration yet.
 Persistent links, pinned revisions, synchronization direction and lifetime rules are in `CLAUDE.md`.
 
@@ -37,7 +37,11 @@ not physical GPU or hardware ray-query acceptance. Do not label all three branch
 | 5     | Simulation / HMI / telemetry| Bind actual native simulation only after lifecycle tests                 |
 | 6     | Rendering controls         | Capability-selected Vulkan implementations, truthful unavailable labels |
 
-Orders 2–6 are planned, not implemented by this milestone. No fake Outliner or Inspector has been added.
+Orders 1–2 now have native integrated panels. The source for Outliner / Inspector, descriptions and environment
+records is the pinned `f97b991` reference, not a newly designed stand-in. The original VehicleProvingGrounds
+reference identifies `EditorShell.js`, `EditorControls.js` and `FrontierEditor.css` in its source headers.
+The shared environment descriptions in order 3 are editable, but do not drive a viewport renderer yet.
+Orders 4–6, complete UI parity, scene persistence, undo and dedicated editors remain pending.
 
 ## Construction and destruction contract
 

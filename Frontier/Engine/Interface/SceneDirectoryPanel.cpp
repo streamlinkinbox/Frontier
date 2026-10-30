@@ -15,8 +15,6 @@ namespace Frontier
 namespace
 {
 
-// Directory parenting is cycle-free by construction (ConfigureParent refuses cycles); the cap only guards
-// against corrupted state turning a projection into unbounded recursion.
 constexpr uint32_t MaximumDepthTier = 128;   // [tiers]
 
 void AppendSubtree(const SceneDirectory& Directory, RecordToken Token, uint32_t DepthTier,
@@ -28,10 +26,27 @@ void AppendSubtree(const SceneDirectory& Directory, RecordToken Token, uint32_t 
     Row.Token          = Token;
     Row.Name           = Directory.QueryName(Token);
     Row.Classification = Directory.QueryClassification(Token);
-    Row.DepthTier      = DepthTier;
-    Row.ChildCount     = Directory.QueryChildCount(Token);
     Row.Visible        = Directory.QueryVisible(Token);
-    Row.Collapsed      = CollapsedTokens.find(Token.Value) != CollapsedTokens.end();
+    Row.Enabled        = Row.Visible;
+#if defined(FRONTIER_EDITOR_PROFILE)
+    if (const RecordEditorDescription* Description = Directory.QueryEditorDescription(Token))
+    {
+        Row.Group    = Description->Group != nullptr ? Description->Group : "";
+        Row.Colour   = Description->Colour != nullptr ? Description->Colour : "";
+        Row.StableId = Description->StableId != nullptr ? Description->StableId : "";
+        if (Description->Enabled != nullptr)
+        {
+            Row.Enabled = *Description->Enabled;
+        }
+        if (Description->QueryLiveMeta)
+        {
+            Row.Meta = Description->QueryLiveMeta();
+        }
+    }
+#endif
+    Row.DepthTier  = DepthTier;
+    Row.ChildCount = Directory.QueryChildCount(Token);
+    Row.Collapsed  = CollapsedTokens.find(Token.Value) != CollapsedTokens.end();
     Out.push_back(Row);
 
     if (DepthTier >= MaximumDepthTier)
@@ -116,6 +131,132 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
         Selected = RecordToken{};
     }
 
+    static const char* const GroupOrder[] = {
+        "Render", "Environment", "Forcefield", "Objects", "Vehicle", "Effects", "Destruction", "Level", "Networking"};
+    const auto FallbackGroup = [](RecordClassification Classification) {
+        switch (Classification)
+        {
+            case RecordClassification::Illumination:
+            case RecordClassification::Camera:
+            case RecordClassification::Interface:    return "Render";
+            case RecordClassification::Environment:  return "Environment";
+            case RecordClassification::Physics:      return "Forcefield";
+            case RecordClassification::Vehicle:
+            case RecordClassification::Tyre:         return "Vehicle";
+            case RecordClassification::Content:      return "Level";
+            case RecordClassification::Geometry:
+            case RecordClassification::Unclassified:
+            case RecordClassification::Count:        break;
+        }
+        return "Objects";
+    };
+
+    Groups.clear();
+    EnabledCounts = SceneDirectoryEnabledCounts{};
+    for (SceneDirectoryRow& Row : Rows)
+    {
+        if (Row.Group.empty())
+        {
+            Row.Group = FallbackGroup(Row.Classification);
+        }
+        bool Enabled = Row.Visible;
+#if defined(FRONTIER_EDITOR_PROFILE)
+        if (const RecordEditorDescription* Description = Directory.QueryEditorDescription(Row.Token))
+        {
+            Enabled = (Description->Enabled == nullptr || *Description->Enabled) && Row.Visible;
+        }
+#endif
+        Row.Enabled = Enabled;
+        if (Enabled)
+        {
+            EnabledCounts.Enabled += 1;
+        }
+        else
+        {
+            EnabledCounts.Disabled += 1;
+        }
+
+        SceneDirectoryGroupSection* Section = nullptr;
+        for (SceneDirectoryGroupSection& Candidate : Groups)
+        {
+            if (Candidate.Group == Row.Group)
+            {
+                Section = &Candidate;
+                break;
+            }
+        }
+        if (Section == nullptr)
+        {
+            Groups.push_back(SceneDirectoryGroupSection{Row.Group, 0, {}});
+            Section = &Groups.back();
+        }
+        Section->Count += 1;
+        if (!TextFilter.empty())
+        {
+            std::string Lower = Row.Name + " " + Row.Group + " " + Row.Meta;
+            std::transform(Lower.begin(), Lower.end(), Lower.begin(),
+                           [](unsigned char Glyph) { return static_cast<char>(std::tolower(Glyph)); });
+            if (Lower.find(TextFilter) == std::string::npos)
+            {
+                continue;
+            }
+        }
+        if (!ClassificationFilter.has_value() || Row.Classification == *ClassificationFilter)
+        {
+            Section->Rows.push_back(Row);
+        }
+    }
+
+    std::stable_sort(Groups.begin(), Groups.end(), [&](const SceneDirectoryGroupSection& A,
+                                                       const SceneDirectoryGroupSection& B) {
+        const auto Rank = [&](const std::string& Group) {
+            for (size_t Index = 0; Index < std::size(GroupOrder); ++Index)
+            {
+                if (Group == GroupOrder[Index])
+                {
+                    return Index;
+                }
+            }
+            return std::size(GroupOrder);
+        };
+        return Rank(A.Group) < Rank(B.Group);
+    });
+
+    InspectorModel = SceneInspectorModel{};
+#if defined(FRONTIER_EDITOR_PROFILE)
+    if (Selected.IsValid())
+    {
+        if (const RecordEditorDescription* Description = Directory.QueryEditorDescription(Selected))
+        {
+            InspectorModel.HasSelection = true;
+            InspectorModel.Group        = Description->Group != nullptr ? Description->Group : "";
+            InspectorModel.Category     = Description->Category != nullptr ? Description->Category : "";
+            InspectorModel.Colour       = Description->Colour != nullptr ? Description->Colour : "";
+            InspectorModel.Name         = Directory.QueryName(Selected);
+            const std::string DefaultName = std::string(RecordClassificationName(Inspector.Classification)) +
+                                            " " + std::to_string(Selected.Value);
+            if (InspectorModel.Name == DefaultName && Description->DisplayName != nullptr &&
+                Description->DisplayName[0] != '\0')
+            {
+                InspectorModel.Name = Description->DisplayName;
+            }
+            InspectorModel.Description          = Description->Description != nullptr ? Description->Description : "";
+            InspectorModel.StableId             = Description->StableId != nullptr ? Description->StableId : "";
+            InspectorModel.DedicatedEditorTitle = Description->DedicatedEditorTitle != nullptr ? Description->DedicatedEditorTitle : "";
+            InspectorModel.HasEnabled           = Description->Enabled != nullptr;
+            InspectorModel.Enabled              = Description->Enabled == nullptr || *Description->Enabled;
+            InspectorModel.EnabledPtr           = Description->Enabled;
+            InspectorModel.RevisionPtr          = Description->Revision;
+            InspectorModel.ScalarFields         = Description->ScalarFields;
+            InspectorModel.Switches             = Description->Switches;
+            InspectorModel.ChoiceFields         = Description->ChoiceFields;
+            InspectorModel.Actions              = Description->Actions;
+            InspectorModel.ConstructInfographic = Description->ConstructInfographic;
+            InspectorModel.OpenDedicatedEditor  = Description->OpenDedicatedEditor;
+        }
+    }
+#endif
+
     RebuildVisible();
 }
 
@@ -158,6 +299,23 @@ bool SceneDirectoryPanel::QueryCollapsed(RecordToken Token) const
     return CollapsedTokens.find(Token.Value) != CollapsedTokens.end();
 }
 
+void SceneDirectoryPanel::ConfigureGroupCollapsed(const std::string& Group, bool Collapsed)
+{
+    if (Collapsed)
+    {
+        CollapsedGroups.insert(Group);
+    }
+    else
+    {
+        CollapsedGroups.erase(Group);
+    }
+}
+
+bool SceneDirectoryPanel::QueryGroupCollapsed(const std::string& Group) const
+{
+    return CollapsedGroups.find(Group) != CollapsedGroups.end();
+}
+
 void SceneDirectoryPanel::RequestSpawn(RecordClassification Classification)
 {
     PendingSpawn = Classification;
@@ -170,9 +328,38 @@ std::optional<RecordClassification> SceneDirectoryPanel::TakeSpawnRequest()
     return Request;
 }
 
+void SceneDirectoryPanel::RequestOpenDedicatedEditor(const std::string& StableId)
+{
+    if (!StableId.empty())
+    {
+        PendingDedicatedEditorId = StableId;
+    }
+}
+
+std::optional<std::string> SceneDirectoryPanel::TakeDedicatedEditorRequest()
+{
+    std::optional<std::string> Req = PendingDedicatedEditorId;
+    PendingDedicatedEditorId.reset();
+    return Req;
+}
+
 void SceneDirectoryPanel::Select(RecordToken Token)
 {
     Selected = Token;
+}
+
+bool SceneDirectoryPanel::SelectByStableId(const std::string& StableId)
+{
+    for (const SceneDirectoryRow& Row : Rows)
+    {
+        if (Row.StableId == StableId)
+        {
+            Selected = Row.Token;
+            Synchronize(SceneDirectory::Instance());
+            return true;
+        }
+    }
+    return false;
 }
 
 void SceneDirectoryPanel::ClearSelection()
@@ -185,8 +372,8 @@ void SceneDirectoryPanel::RebuildVisible()
 {
     Visible.clear();
     const bool Searching = !TextFilter.empty();
-    bool       Folding   = false;   // Inside a collapsed subtree (suppressed while searching)
-    uint32_t   FoldDepth = 0;       // [tiers]
+    bool       Folding   = false;
+    uint32_t   FoldDepth = 0;
     for (const SceneDirectoryRow& Row : Rows)
     {
         const bool ClassOk = !ClassificationFilter.has_value() || Row.Classification == *ClassificationFilter;
@@ -197,7 +384,7 @@ void SceneDirectoryPanel::RebuildVisible()
                            [](unsigned char Glyph) { return static_cast<char>(std::tolower(Glyph)); });
             if (ClassOk && Lower.find(TextFilter) != std::string::npos)
             {
-                Visible.push_back(Row);   // Search reveals through folds
+                Visible.push_back(Row);
             }
             continue;
         }

@@ -6,6 +6,9 @@
 #include "Engine/Scene/RecordStore.h"
 #include "Engine/Scene/SceneDirectory.h"
 
+#include <utility>
+#include <stdexcept>
+
 namespace Frontier
 {
 
@@ -13,11 +16,29 @@ RecordEntry::RecordEntry(RecordClassification Classification)
     : IssuedToken(TokenIssuer::Issue())
     , EntryClassification(Classification)
 {
-    RecordStore::Instance().Insert(*this);
+    if (!RecordStore::Instance().Insert(*this))
+        throw std::runtime_error("Scene record token registration refused.");
 #if defined(FRONTIER_EDITOR_PROFILE) || defined(FRONTIER_DEVELOPMENT_PROFILE)
-    SceneDirectory::Instance().Register(*this);   // 📝 Outliner visibility only; Shipping contains no directory
+    try
+    {
+        SceneDirectory::Instance().Register(*this);
+    }
+    catch (...)
+    {
+        // The complete constructor never ran, so its destructor cannot roll back registration.
+        SceneDirectory::Instance().Unregister(IssuedToken);
+        RecordStore::Instance().Remove(IssuedToken);
+        throw;
+    }
 #endif
 }
+
+#if defined(FRONTIER_EDITOR_PROFILE)
+void RecordEntry::RegisterEditorDescription(RecordEditorDescription Description)
+{
+    SceneDirectory::Instance().ConfigureEditorDescription(IssuedToken, std::move(Description));
+}
+#endif
 
 RecordEntry::~RecordEntry()
 {

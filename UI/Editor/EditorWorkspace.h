@@ -5,6 +5,7 @@
 
 #pragma once
 #include "ControlCentrePanel.h"
+#include "EverestSceneDirectory.h"
 #include "Frontier/Engine/Interface/LogStreamPanel.h"
 #include "Engine/Interface/PanelDockspace.h"
 #include <functional>
@@ -31,6 +32,7 @@ class EditorWorkspace
     EditorWorkspace   &operator=(const EditorWorkspace &) = delete;
     void ConfigureProject(EditorProjectSummary Summary);
     [[nodiscard]] const EditorProjectSummary &QueryProject() const noexcept { return Project; }
+    EverestSceneDirectory *QueryEverestScene() noexcept { return EverestScene.get(); }
     std::function<void()> EvaluateReturnToBrowser;
     bool               FinalizeLayout();
     void               IntegrateLayoutPersistence(double ElapsedSeconds);
@@ -56,6 +58,7 @@ class EditorWorkspace
     PanelDockspace      Panels;
     EditorProjectSummary Project;
     LogStreamPanel Stream;
+    std::unique_ptr<EverestSceneDirectory> EverestScene;
     bool EverestRegistered = false;
     bool                DockableBrowser   = false;
     bool                LayoutRestored    = false;

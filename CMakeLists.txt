@@ -113,9 +113,22 @@ add_library(FrontierLogStream STATIC
     Frontier/Engine/Diagnostics/LogStream.cpp Frontier/Engine/Interface/LogStreamPanel.cpp
     Frontier/Engine/Interface/LogStreamPanelPresentation.cpp)
 target_include_directories(FrontierLogStream PUBLIC "${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/Frontier")
-target_compile_definitions(FrontierLogStream PRIVATE FRONTIER_WITH_INTERFACE_SDK=1)
+target_compile_definitions(FrontierLogStream PUBLIC FRONTIER_EDITOR_PROFILE=1
+    PRIVATE FRONTIER_WITH_INTERFACE_SDK=1)
 target_link_libraries(FrontierLogStream PUBLIC FrontierInterface)
 target_link_libraries(FrontierEditorUI PUBLIC FrontierLogStream)
+add_library(FrontierSceneEditing STATIC
+    Frontier/Engine/Scene/RecordEntry.cpp Frontier/Engine/Scene/RecordStore.cpp
+    Frontier/Engine/Scene/SceneDirectory.cpp Frontier/Engine/Scene/EnvironmentRecords.cpp
+    Frontier/Engine/Interface/SceneDirectoryPanel.cpp
+    Frontier/Engine/Interface/SceneDirectoryPanelPresentation.cpp
+    Frontier/Engine/Interface/SceneInspectorPanel.cpp Frontier/Engine/Interface/StackRailControls.cpp)
+target_include_directories(FrontierSceneEditing PUBLIC "${CMAKE_SOURCE_DIR}/Frontier" "${CMAKE_SOURCE_DIR}")
+target_compile_definitions(FrontierSceneEditing PUBLIC FRONTIER_EDITOR_PROFILE=1
+    PRIVATE FRONTIER_WITH_INTERFACE_SDK=1)
+target_link_libraries(FrontierSceneEditing PUBLIC FrontierLogStream)
+target_sources(FrontierEditorUI PRIVATE UI/Editor/EverestSceneDirectory.cpp)
+target_link_libraries(FrontierEditorUI PUBLIC FrontierSceneEditing)
 option(FRONTIER_EVEREST_EXHIBIT_ONLY "Build native Everest UI capture without platform window dependencies" OFF)
 if(FRONTIER_EVEREST_EXHIBIT_ONLY)
     add_executable(ProjectEverestValidation Exhibits/ProjectEverest/Code/ProjectEverestValidation.cpp)

@@ -577,3 +577,19 @@ The new appearance files use Allman braces, flat namespace indentation, and desc
 | Renderer port            | Deferred         | Compare capability paths after UI review                |
 
 Current-run evidence: `Exhibits/ProjectEverest/README.md`. Earlier tracker results are inherited, not rerun here.
+
+## Project Everest scene panels — 2026-10-30
+
+| Concern                   | Status       | Evidence / remaining work                              |
+|---------------------------|--------------|--------------------------------------------------------|
+| VehicleHMI Outliner        | CPU checked  | Shared port, authored names, grouping and mouse selection |
+| VehicleHMI Inspector       | CPU checked  | Selected record descriptions; actual slider mouse edit  |
+| Environment records       | Integrated   | Sun, atmosphere, cloud, fog and wind; no viewport link  |
+| Construction / destruction | Checked      | Add/Delete buttons, stale token, constructor failure, teardown |
+| Application descriptions  | Checked      | Test-authored vehicle inspector; no fixed vehicle design |
+| ASan / UBSan / leak check  | Passed       | `Exhibits/ProjectEverest/Results/Sanitized.txt`           |
+| Undo / scene persistence   | Pending      | Session-only edits; no completed UI parity claim        |
+| Dedicated editors          | Pending      | Unsupported requests report in LogStream                |
+| Windows / Vulkan runtime   | Not run      | Current evidence is native C++ CPU draw output          |
+
+Current exhibit: `Exhibits/ProjectEverest/README.md`. Prior milestone statuses above are historical.

@@ -884,7 +884,7 @@ void LogStreamPanel::ConstructInterface()
 
         // Sparkline: exact port of the prototype's canvas routine.
         const float SparkRight = CR - 18.0f;
-        if (SparkRight - MetricX > 60.0f)
+        if (SparkRight - MetricX > 270.0f)
         {
             DrawTracked(Ink, Faces.Medium, 11.0f, ImVec2(MetricX, LabelY), Theme::Faint, "ENTRIES PER SECOND",
                         11.0f * 0.13f);
@@ -1063,6 +1063,13 @@ void LogStreamPanel::ConstructInterface()
 
         Ink->AddRectFilled(ImVec2(X + 3.0f, RowCY - 12.0f), ImVec2(X + 4.0f, RowCY + 12.0f), Theme::Line);
         X += 7.0f + 9.0f;
+
+        if (CR - X < 340.0f)
+        {
+            X = CL;
+            RowTop += 46.0f;
+            RowCY += 46.0f;
+        }
 
         // Dropdown triggers (menus below are the reusable DropdownControlSurface).
         std::vector<const LogCategory*> AllCategories;

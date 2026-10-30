@@ -1,5 +1,5 @@
 [0/2] Re-checking globbed directories...
-[1/5] Building CXX object CMakeFiles/ProjectEverestValidation.dir/Exhibits/ProjectEverest/Code/ProjectEverestValidation.cpp.o
-[2/5] Building CXX object CMakeFiles/FrontierEditorUI.dir/UI/Editor/ProjectBrowserPanel.cpp.o
-[3/5] Linking CXX static library libFrontierEditorUI.a
+[1/5] Building CXX object CMakeFiles/FrontierEditorUI.dir/UI/Editor/EverestSceneDirectory.cpp.o
+[2/5] Linking CXX static library libFrontierEditorUI.a
+[3/5] Building CXX object CMakeFiles/ProjectEverestValidation.dir/Exhibits/ProjectEverest/Code/ProjectEverestValidation.cpp.o
 [4/5] Linking CXX executable ProjectEverestValidation

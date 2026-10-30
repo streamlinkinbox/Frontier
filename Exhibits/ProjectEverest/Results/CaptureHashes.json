@@ -1,9 +1,11 @@
 {
-  "Exhibits/ProjectEverest/Images/Browser.png": "3e2445c59c88e9cff4bf2ea2c5e0558bba8321b610df418bc8a9902b77c8d701",
   "Exhibits/ProjectEverest/Images/ApplicationSelection.png": "5ecb740ccaa5e74d4825e575f433e960118d4a67924767d40ff8be346cbfc18b",
-  "Exhibits/ProjectEverest/Images/Workspace.png": "0d9d18bcfb24ad009a16c699259d6885d2308bbb0a41251dd49f7358cad308c8",
-  "Exhibits/ProjectEverest/Images/ControlCentre.png": "854f49d4a1854724a265938805b9bfc6f3a11978c9746363a92f72783b1acc99",
-  "Exhibits/ProjectEverest/Images/LightTheme.png": "b16eeba4998c133db192eb6d785a4a7bad924c057e14718e2d5fd26f6b41e3ab",
-  "Exhibits/ProjectEverest/Code/ProjectEverestValidation.cpp": "1564f27b552a6cf07890272a3a8aa25c156a7f1e8861f3ca3d2eac47a4fd430b",
-  "Exhibits/ProjectEverest/Code/ConvertCaptures.py": "2373880d44a7c69c6d58e4184d63dcebb8e37841f4abb1e5488ce47e41a0ab23"
+  "Exhibits/ProjectEverest/Images/Browser.png": "3e2445c59c88e9cff4bf2ea2c5e0558bba8321b610df418bc8a9902b77c8d701",
+  "Exhibits/ProjectEverest/Images/ControlCentre.png": "e1ea1b76f608af28b89b03544a769b5c088c55c08f326ac8d2a48bbbb364d046",
+  "Exhibits/ProjectEverest/Images/LightTheme.png": "2a9e78021bf6fa4dd095cc52c9f436d23ae38f700dc94588d841b57002ea6b6e",
+  "Exhibits/ProjectEverest/Images/Workspace.png": "6fbb85aec9ad4a8d1283e0e8cf6f24b734780d00897ac5b5b7a0655c77012f6c",
+  "Exhibits/ProjectEverest/Images/CloudInspector.png": "cfed560c4204538fde6ad90b36dda87c6504b2cadc2e581b0adadaed60e8cdb5",
+  "Exhibits/ProjectEverest/Images/EmptyInspector.png": "5ea4dcaf36a7b22eeb1dcc6241d0b570a24e77062dd38ade2d5d53cba8ff410d",
+  "Exhibits/ProjectEverest/Code/ConvertCaptures.py": "2373880d44a7c69c6d58e4184d63dcebb8e37841f4abb1e5488ce47e41a0ab23",
+  "Exhibits/ProjectEverest/Code/ProjectEverestValidation.cpp": "1f4b73f04139a133aebaa4d4708d042fbe1844739d985e9cd71c5c0968b0992c"
 }

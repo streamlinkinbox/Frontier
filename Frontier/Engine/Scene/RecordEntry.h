@@ -11,6 +11,10 @@
 #include "RecordClassification.h"
 #include "RecordToken.h"
 
+#if defined(FRONTIER_EDITOR_PROFILE)
+    #include "RecordEditorDescription.h"
+#endif
+
 namespace Frontier
 {
 
@@ -37,6 +41,15 @@ class RecordEntry
 
     [[nodiscard]] RecordToken          Token() const noexcept { return IssuedToken; }                  // [-] - Issued at construction
     [[nodiscard]] RecordClassification Classification() const noexcept { return EntryClassification; }   // [-] - Outliner category + page
+
+#if defined(FRONTIER_EDITOR_PROFILE)
+  protected:
+    // 📝 Editor-conditional construction: a derived constructor builds its own outliner/inspector
+    //    description and registers it here. The directory copy points into the record's live
+    //    settings; unregistering in the destructor removes it before the token can be reused.
+    void RegisterEditorDescription(RecordEditorDescription Description);
+  private:
+#endif
 
   private:
     RecordToken          IssuedToken;           // [-] - From TokenIssuer; authenticated through RecordStore
