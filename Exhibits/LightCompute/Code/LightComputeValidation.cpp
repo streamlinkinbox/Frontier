@@ -1976,6 +1976,11 @@ int main(int Count, char** Arguments)
             ValidateReplayTemporalDirectEmitterOccluderAblation(Arguments[1], Arguments[2]);
             return 0;
         }
+        if (Count == 4 && std::string(Arguments[3]) == "--replay-temporal-direct-visibility-occluder-ablation")
+        {
+            ValidateReplayTemporalDirectVisibilityAblation(Arguments[1], Arguments[2]);
+            return 0;
+        }
         if (Count == 4 && (std::string(Arguments[3]) == "--replay-temporal-history-baseline" ||
                            std::string(Arguments[3]) == "--replay-temporal-history-raw"))
         {

@@ -547,6 +547,177 @@ void ValidateReplayTemporalDirectEmitterOccluderAblation(const char* Driver, con
     ValidateReplayTemporalDirectEmitterEstimate(Compute, Metal, Scenes, Cohorts, Size, FarGroup, Floor);
 }
 
+void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const std::string& Shaders)
+{
+    constexpr uint32_t Size = 32u, Pixels = Size * Size, Cohorts = 32u, Frames = 4u;
+    constexpr uint32_t FarGroup = 1u;
+    constexpr float Floor = .0001f;
+    const std::array<ReplayMaterialReuseMode, 2> Modes{{
+        {"temporal1", 1u, true, false}, {"temporal4", 4u, true, false}}};
+    const std::array<uint32_t, 2> Masks{1u, 2u};
+    auto DimSpecification = EnumerateReplayMaterialSpecifications()[4];
+    DimSpecification.Coverage = 1e-3f;
+    DimSpecification.CoatCoverage = 2e-3f;
+    DimSpecification.ReportingScale = 1e3;
+    const auto Dim = ConstructReplayMaterialReuseFixture(Size, DimSpecification);
+    const auto Metal = ConstructReplayMaterialReuseFixture(Size, EnumerateReplayMaterialSpecifications()[1]);
+    const auto Capacity = AddReplayTemporalVisibilityEmitter(
+        ConstructReplayMixedMaterialFixture(Size, Dim, Metal), 3u);
+    const auto BaseScenes = ConstructReplayFreshMotionScenes(Size, Dim, Metal, false);
+    LightComputeSubmission Compute(Driver);
+    std::printf("REPLAY_TEMPORAL_VISIBILITY_DIRECT_ABLATION fixture=overhead_emitter motion=moving "
+                "scenarios=base_only,added_only cohorts=%u pixels_per_cohort=%u preparing_on=%s\n",
+                Cohorts, Pixels / 2u, Compute.Properties.deviceName);
+    std::fflush(stdout);
+    PrepareReplayTemporalDiagnostic(Compute, Capacity, Shaders);
+
+    std::mt19937_64 Random(0xd7a4c1e95b830621ull);
+    std::array<std::array<uint32_t, Frames>, Cohorts> SeedsByCohort{};
+    for (auto& Seeds : SeedsByCohort)
+        for (uint32_t& Seed : Seeds) Seed = uint32_t(Random());
+
+    for (const uint32_t Mask : Masks)
+    {
+        auto Scenes = BaseScenes;
+        for (auto& Scene : Scenes)
+            Scene = AddReplayTemporalVisibilityEmitter(std::move(Scene), Mask);
+        const char* Scenario = ReplayTemporalVisibilityName(Mask);
+        std::printf("REPLAY_TEMPORAL_VISIBILITY_DIRECT_ABLATION pipelines_ready=1 visibility=%s "
+                    "cohorts=%u pixels_per_cohort=%u bounces=1 source_sampling=uniform\n",
+                    Scenario, Cohorts, Pixels / 2u);
+        std::fflush(stdout);
+
+        std::array<std::array<uint64_t, 9>, Modes.size()> Transitions{};
+        std::array<std::array<uint64_t, 3>, Modes.size()> OutcomeCounts{};
+        std::array<std::array<double, 9>, Modes.size()> HistoryWeightSums{}, NeeSums{};
+        std::array<uint64_t, Modes.size()> RayAttempts{}, RayVisible{};
+        uint64_t Rows = 0;
+        for (uint32_t Cohort = 0; Cohort < Cohorts; ++Cohort)
+            for (size_t ModeIndex = 0; ModeIndex < Modes.size(); ++ModeIndex)
+            {
+                const auto& Mode = Modes[ModeIndex];
+                std::vector<std::array<float, 4>> Image;
+                for (uint32_t Frame = 0; Frame < Frames; ++Frame)
+                {
+                    Image = ExecuteReplayTemporalDirectNeeSample(Compute, Scenes[Frame], Mode,
+                        SeedsByCohort[Cohort][Frame], Frame == 0u, Floor);
+                    Require(Compute.ReplayLastHistoryCap == 1u,
+                            "Visibility-ablation audit requires a one-entry temporal history cap");
+                    if (Frame > 0u)
+                        Require(Compute.ExtendedStatistics()[20] == Pixels,
+                                "Visibility-ablation fixture failed same-seed temporal candidate coverage");
+                }
+                Require(Image.size() == Pixels, "Visibility-ablation readback has an unexpected pixel count");
+                const auto Visibility = Compute.ReadReplayLogicalSlab(5u, false);
+                const auto Contributions = Compute.ReadReplayLogicalSlab(6u, false);
+                const auto Source = Compute.ReadReplayLogicalSlab(7u, false);
+                const auto Choice = Compute.ReadReplayLogicalSlab(8u, false);
+                const auto PreviousDirect = Compute.ReadReplayLogicalSlab(11u, false);
+                for (uint32_t Pixel = 0; Pixel < Pixels; ++Pixel)
+                {
+                    const uint32_t X = Pixel % Size, Y = Pixel / Size;
+                    if ((X + Y) % 2u != FarGroup) continue;
+                    const auto& V = Visibility[Pixel];
+                    const auto& C = Contributions[Pixel];
+                    const auto& S = Source[Pixel];
+                    const auto& Q = Choice[Pixel];
+                    const double Rays = V[0], Visible = V[1], Nee = C[0], Radiance = C[2];
+                    const double HistoryWeight = Q[0], Probability = Q[1], PreviousPathLuma = Q[2];
+                    const double SourceWeight = S[2], SourceCount = S[3];
+                    const double Retained = std::min(SourceCount, 1.0);
+                    const double Target = std::max(0.0, Radiance) + Floor;
+                    const double FreshWeight = Probability > 0 && Probability < 1
+                        ? HistoryWeight * (1.0 - Probability) / Probability : 0.0;
+                    const int PreviousCode = int(PreviousDirect[Pixel][0]);
+                    const int CurrentCode = Rays == 0 ? 0 : (Visible > 0 ? 2 : 1);
+                    Require(std::isfinite(Rays) && (Rays == 0 || Rays == 1) &&
+                                std::isfinite(Visible) && (Visible == 0 || Visible == 1) && Visible <= Rays &&
+                                PreviousCode >= 0 && PreviousCode <= 2 &&
+                                PreviousDirect[Pixel][0] == float(PreviousCode) &&
+                                std::isfinite(PreviousPathLuma) && PreviousPathLuma >= 0 &&
+                                std::isfinite(Nee) && Nee >= 0 && (CurrentCode == 2 || Nee == 0) &&
+                                std::isfinite(Radiance) && Radiance >= 0 &&
+                                std::isfinite(HistoryWeight) && HistoryWeight > 0 &&
+                                std::isfinite(SourceWeight) && SourceWeight > 0 &&
+                                std::isfinite(SourceCount) && SourceCount >= Retained && Retained == 1 &&
+                                std::isfinite(Probability) && Probability > 0 && Probability < 1 &&
+                                std::isfinite(FreshWeight) && FreshWeight > 0,
+                            "Visibility-ablation path readback lost its same-seed predecessor or has invalid weights");
+                    Require(std::abs(HistoryWeight - Target * SourceWeight * Retained) <=
+                                5e-6 * std::max(1.0, HistoryWeight),
+                            "Visibility-ablation history weight disagrees with the current target/source weight");
+                    Require(std::abs(Probability - HistoryWeight / (HistoryWeight + FreshWeight)) <= 5e-6,
+                            "Visibility-ablation selection probability disagrees with reservoir weights");
+                    const size_t Transition = size_t(PreviousCode * 3 + CurrentCode);
+                    ++Transitions[ModeIndex][Transition];
+                    ++OutcomeCounts[ModeIndex][size_t(CurrentCode)];
+                    HistoryWeightSums[ModeIndex][Transition] += HistoryWeight;
+                    NeeSums[ModeIndex][Transition] += Nee;
+                    RayAttempts[ModeIndex] += uint64_t(Rays);
+                    RayVisible[ModeIndex] += uint64_t(Visible);
+                    ++Rows;
+                    std::printf("REPLAY_TEMPORAL_VISIBILITY_DIRECT_ABLATION_PIXEL visibility=%s mode=%s "
+                                "cohort=%u pixel=%u x=%u y=%u seed=%08x "
+                                "seed_sequence=%08x:%08x:%08x:%08x path_seed=%08x prior_direct_code=%d "
+                                "current_direct_code=%d direct_rays=%.0f direct_visible=%.0f nee_luma=%.9g "
+                                "target=%.9g source_weight=%.9g source_count=%.9g retained=%.9g "
+                                "history_weight=%.9g fresh_weight=%.9g selection_probability=%.9g "
+                                "previous_path_luma=%.9g current_path_luma=%.9g\n",
+                                Scenario, Mode.Label, Cohort, Pixel, X, Y,
+                                SeedsByCohort[Cohort][Frames - 1u], SeedsByCohort[Cohort][0],
+                                SeedsByCohort[Cohort][1], SeedsByCohort[Cohort][2],
+                                SeedsByCohort[Cohort][3],
+                                uint32_t(S[0]) | (uint32_t(S[1]) << 16u), PreviousCode, CurrentCode,
+                                Rays, Visible, Nee, Target, SourceWeight, SourceCount, Retained,
+                                HistoryWeight, FreshWeight, Probability, PreviousPathLuma, Radiance);
+                }
+                (void)Image;
+                std::fflush(stdout);
+            }
+        Require(Rows == uint64_t(Cohorts) * Modes.size() * Pixels / 2u,
+                "Visibility-ablation per-pixel row coverage was incomplete");
+
+        for (size_t ModeIndex = 0; ModeIndex < Modes.size(); ++ModeIndex)
+        {
+            const uint64_t ModeRows = Rows / Modes.size();
+            Require(RayAttempts[ModeIndex] == ModeRows && RayVisible[ModeIndex] > 0,
+                    "Visibility-ablation direct-ray coverage was incomplete");
+            if (Mask == 1u)
+                Require(OutcomeCounts[ModeIndex][1] == 0 && Transitions[ModeIndex][5] == 0 &&
+                            Transitions[ModeIndex][7] == 0,
+                        "Base-only control unexpectedly intersected the direct emitter visibility footprint");
+            else
+                Require(OutcomeCounts[ModeIndex][1] > 0 && Transitions[ModeIndex][5] + Transitions[ModeIndex][7] > 0,
+                        "Added-only blocker failed to produce direct visibility changes");
+            std::printf("REPLAY_TEMPORAL_VISIBILITY_DIRECT_ABLATION_RESULT visibility=%s mode=%s rows=%llu "
+                        "direct_rays=%llu direct_visible=%llu no_ray=%llu blocked=%llu visible=%llu",
+                        Scenario, Modes[ModeIndex].Label, static_cast<unsigned long long>(ModeRows),
+                        static_cast<unsigned long long>(RayAttempts[ModeIndex]),
+                        static_cast<unsigned long long>(RayVisible[ModeIndex]),
+                        static_cast<unsigned long long>(OutcomeCounts[ModeIndex][0]),
+                        static_cast<unsigned long long>(OutcomeCounts[ModeIndex][1]),
+                        static_cast<unsigned long long>(OutcomeCounts[ModeIndex][2]));
+            for (size_t Transition = 0; Transition < 9u; ++Transition)
+            {
+                const size_t Previous = Transition / 3u, Current = Transition % 3u;
+                const double MeanHistory = Transitions[ModeIndex][Transition]
+                    ? HistoryWeightSums[ModeIndex][Transition] / double(Transitions[ModeIndex][Transition]) : 0.0;
+                const double MeanNee = Transitions[ModeIndex][Transition]
+                    ? NeeSums[ModeIndex][Transition] / double(Transitions[ModeIndex][Transition]) : 0.0;
+                std::printf(" transition_%zu%zu=%llu history_weight_mean_%zu%zu=%.9g nee_mean_%zu%zu=%.9g",
+                            Previous, Current, static_cast<unsigned long long>(Transitions[ModeIndex][Transition]),
+                            Previous, Current, MeanHistory, Previous, Current, MeanNee);
+            }
+            std::printf("\n");
+        }
+        std::printf("PASS ReplayTemporalDirectVisibilityAblationValidation visibility=%s rows=%llu "
+                    "same_seed_prior_current_pairs=verified matched_frame_seed_sequences=verified "
+                    "estimator_math_changed=0\n",
+                    Scenario, static_cast<unsigned long long>(Rows));
+        std::fflush(stdout);
+    }
+}
+
 double IntegrateReplayTemporalDirectEmitterReference(const LightComputeArchive& Material,
                                                       double ReceiverX, uint32_t Steps,
                                                       uint32_t OccluderMask = 3u)
