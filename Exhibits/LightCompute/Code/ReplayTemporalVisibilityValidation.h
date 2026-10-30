@@ -551,6 +551,44 @@ double IntegrateReplayTemporalDirectEmitterReference(const LightComputeArchive& 
                                                       double ReceiverX, uint32_t Steps,
                                                       uint32_t OccluderMask);
 
+TriangleVisibilitySpace BuildReplayTemporalDirectVisibilitySpace(const LightComputeArchive& Scene)
+{
+    std::vector<std::array<SpatialVector, 3>> Geometry;
+    Geometry.reserve(Scene.Surfaces.size());
+    for (const auto& Facet : Scene.Surfaces)
+        Geometry.push_back({SpatialVector{Facet.A[0], Facet.A[1], Facet.A[2]},
+                            SpatialVector{Facet.B[0], Facet.B[1], Facet.B[2]},
+                            SpatialVector{Facet.C[0], Facet.C[1], Facet.C[2]}});
+    TriangleVisibilitySpace Space;
+    Space.BuildSurfaceAreaHierarchy(std::move(Geometry), 1u);
+    return Space;
+}
+
+int ReplayTemporalDirectVisibilityCode(const TriangleVisibilitySpace& Space,
+                                       const LightComputeReceiver& Receiver,
+                                       const std::array<float, 3>& Endpoint)
+{
+    const auto& P = Receiver.PositionHit;
+    const auto& N = Receiver.NormalRoughness;
+    const float NormalSquared = N[0] * N[0] + N[1] * N[1] + N[2] * N[2];
+    const float InverseNormalLength = NormalSquared > 0 ? 1.0f / std::sqrt(NormalSquared) : 0.0f;
+    const float OriginX = P[0] + N[0] * InverseNormalLength * .001f;
+    const float OriginY = P[1] + N[1] * InverseNormalLength * .001f;
+    const float OriginZ = P[2] + N[2] * InverseNormalLength * .001f;
+    const float DeltaX = Endpoint[0] - OriginX;
+    const float DeltaY = Endpoint[1] - OriginY;
+    const float DeltaZ = Endpoint[2] - OriginZ;
+    const float Distance = std::sqrt(DeltaX * DeltaX + DeltaY * DeltaY + DeltaZ * DeltaZ);
+    if (!(Distance > .0002f) || !std::isfinite(Distance)) return 0;
+    const float DirectionX = DeltaX / Distance;
+    const float DirectionY = DeltaY / Distance;
+    const float DirectionZ = DeltaZ / Distance;
+    const bool Blocked = Space.Occluded(
+        SpatialVector{OriginX, OriginY, OriginZ},
+        SpatialVector{DirectionX, DirectionY, DirectionZ}, .0001, double(Distance) - .0001);
+    return Blocked ? 1 : 2;
+}
+
 void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const std::string& Shaders)
 {
     constexpr uint32_t Size = 32u, Pixels = Size * Size, Cohorts = 32u, Frames = 4u;
@@ -568,6 +606,10 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
     const auto Capacity = AddReplayTemporalVisibilityEmitter(
         ConstructReplayMixedMaterialFixture(Size, Dim, Metal), 3u);
     const auto BaseScenes = ConstructReplayFreshMotionScenes(Size, Dim, Metal, false);
+    const auto CounterfactualBaseScene = AddReplayTemporalVisibilityEmitter(BaseScenes.back(), 1u);
+    const auto CounterfactualCombinedScene = AddReplayTemporalVisibilityEmitter(BaseScenes.back(), 3u);
+    const auto CounterfactualBaseSpace = BuildReplayTemporalDirectVisibilitySpace(CounterfactualBaseScene);
+    const auto CounterfactualCombinedSpace = BuildReplayTemporalDirectVisibilitySpace(CounterfactualCombinedScene);
     const double ReceiverX = BaseScenes.back().Receivers[1].PositionHit[0];
     constexpr double EmissionLuminanceScale = (10.0 * .2126 + 8.0 * .7152 + 5.0 * .0722) / 10.0;
     LightComputeSubmission Compute(Driver);
@@ -608,6 +650,8 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
         std::array<std::array<uint64_t, 9>, Modes.size()> PairedTransitions{};
         std::array<std::array<double, 9>, Modes.size()> PairedHistoryWeightSums{};
         std::array<uint64_t, Modes.size()> RayAttempts{}, RayVisible{}, EndpointPairs{}, EndpointMatches{}, SelectedEndpointMatches{};
+        std::array<uint64_t, Modes.size()> CounterfactualPairs{}, CounterfactualVisibilityChanges{},
+            CounterfactualBaselineMismatches{};
         uint64_t Rows = 0;
         for (uint32_t Cohort = 0; Cohort < Cohorts; ++Cohort)
             for (size_t ModeIndex = 0; ModeIndex < Modes.size(); ++ModeIndex)
@@ -723,6 +767,27 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                             "Visibility-ablation selection probability disagrees with reservoir weights");
                     Require(std::isfinite(Estimate) && Estimate >= 0,
                             "Endpoint-pairing direct-NEE estimate is invalid");
+                    const std::array<float, 3> CounterfactualEndpoint{
+                        PriorEndpoint[0], PriorEndpoint[1], PriorEndpoint[2]};
+                    const auto& CounterfactualReceiver = Scenes.back().Receivers[Pixel];
+                    const auto& ReferenceReceiver = BaseScenes.back().Receivers[Pixel];
+                    Require(CounterfactualReceiver.PositionHit == ReferenceReceiver.PositionHit &&
+                                CounterfactualReceiver.NormalRoughness == ReferenceReceiver.NormalRoughness,
+                            "Visibility-arm receiver origin changed during the fixed-endpoint counterfactual");
+                    const int CounterfactualBaseCode = PairedRay > 0
+                        ? ReplayTemporalDirectVisibilityCode(CounterfactualBaseSpace, CounterfactualReceiver,
+                                                             CounterfactualEndpoint) : 0;
+                    const int CounterfactualCombinedCode = PairedRay > 0
+                        ? ReplayTemporalDirectVisibilityCode(CounterfactualCombinedSpace, CounterfactualReceiver,
+                                                             CounterfactualEndpoint) : 0;
+                    if (PairedRay > 0)
+                    {
+                        ++CounterfactualPairs[ModeIndex];
+                        if (CounterfactualBaseCode != CounterfactualCombinedCode)
+                            ++CounterfactualVisibilityChanges[ModeIndex];
+                        if (Mask == 1u && CounterfactualBaseCode != PairedCurrentCode)
+                            ++CounterfactualBaselineMismatches[ModeIndex];
+                    }
                     if (SameEndpoint && CurrentCode != 0)
                         Require(PairedCurrentCode == CurrentCode,
                                 "Replayed visibility and same-endpoint retrace disagree");
@@ -758,7 +823,8 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                                 "paired_prior_code=%d paired_current_code=%d paired_ray=%.0f paired_transmittance=%.9g "
                                 "prior_endpoint=%.9g,%.9g,%.9g,%u history_endpoint=%.9g,%.9g,%.9g,%u "
                                 "selected_endpoint=%.9g,%.9g,%.9g,%u endpoint_same_replay=%u "
-                                "endpoint_same_selected=%u direct_estimate_luma=%.9g\n",
+                                "endpoint_same_selected=%u direct_estimate_luma=%.9g "
+                                "fixed_endpoint_mask1_code=%d fixed_endpoint_mask3_code=%d\n",
 
                                 Scenario, Mode.Label, Cohort, Pixel, X, Y,
                                 SeedsByCohort[Cohort][Frames - 1u], SeedsByCohort[Cohort][0],
@@ -772,7 +838,8 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                                 ReplayedEndpoint[0], ReplayedEndpoint[1], ReplayedEndpoint[2], unsigned(ReplayedFacet),
                                 CurrentSelectedEndpoint[0], CurrentSelectedEndpoint[1], CurrentSelectedEndpoint[2],
                                 unsigned(SelectedFacet), unsigned(SameEndpoint),
-                                unsigned(SameSelectedEndpoint), Estimate);
+                                unsigned(SameSelectedEndpoint), Estimate,
+                                CounterfactualBaseCode, CounterfactualCombinedCode);
                 }
                 Require(CohortSamples == Pixels / 2u,
                         "Endpoint-pairing cohort estimate did not cover all holdout pixels");
@@ -807,6 +874,11 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                     "Visibility-ablation direct-ray coverage was incomplete");
             Require(EndpointPairs[ModeIndex] == ModeRows && EndpointMatches[ModeIndex] > 0,
                     "Matched previous-endpoint retrace or same-seed endpoint comparison was incomplete");
+            Require(CounterfactualPairs[ModeIndex] == ModeRows,
+                    "Fixed-origin mask-1/mask-3 counterfactual did not cover every stored endpoint");
+            if (Mask == 1u)
+                Require(CounterfactualBaselineMismatches[ModeIndex] == 0,
+                        "Fixed-origin mask-1 CPU trace disagreed with the GPU same-endpoint visibility");
             if (Mask == 1u)
                 Require(OutcomeCounts[ModeIndex][1] == 0 && Transitions[ModeIndex][5] == 0 &&
                             Transitions[ModeIndex][7] == 0,
@@ -822,7 +894,9 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                         "Added-only blocker failed to change visibility for paired endpoints");
             std::printf("REPLAY_TEMPORAL_VISIBILITY_DIRECT_ABLATION_RESULT visibility=%s mode=%s rows=%llu "
                         "direct_rays=%llu direct_visible=%llu no_ray=%llu blocked=%llu visible=%llu "
-                        "paired_endpoint_pairs=%llu endpoint_matches=%llu selected_endpoint_matches=%llu",
+                        "paired_endpoint_pairs=%llu endpoint_matches=%llu selected_endpoint_matches=%llu "
+                        "fixed_endpoint_counterfactual_pairs=%llu fixed_endpoint_visibility_changes=%llu "
+                        "mask1_gpu_cpu_mismatches=%llu",
                         Scenario, Modes[ModeIndex].Label, static_cast<unsigned long long>(ModeRows),
                         static_cast<unsigned long long>(RayAttempts[ModeIndex]),
                         static_cast<unsigned long long>(RayVisible[ModeIndex]),
@@ -831,7 +905,10 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
                         static_cast<unsigned long long>(OutcomeCounts[ModeIndex][2]),
                         static_cast<unsigned long long>(EndpointPairs[ModeIndex]),
                         static_cast<unsigned long long>(EndpointMatches[ModeIndex]),
-                        static_cast<unsigned long long>(SelectedEndpointMatches[ModeIndex]));
+                        static_cast<unsigned long long>(SelectedEndpointMatches[ModeIndex]),
+                        static_cast<unsigned long long>(CounterfactualPairs[ModeIndex]),
+                        static_cast<unsigned long long>(CounterfactualVisibilityChanges[ModeIndex]),
+                        static_cast<unsigned long long>(CounterfactualBaselineMismatches[ModeIndex]));
             for (size_t Transition = 0; Transition < 9u; ++Transition)
             {
                 const size_t Previous = Transition / 3u, Current = Transition % 3u;
@@ -857,8 +934,9 @@ void ValidateReplayTemporalDirectVisibilityAblation(const char* Driver, const st
         }
         std::printf("PASS ReplayTemporalDirectVisibilityAblationValidation visibility=%s rows=%llu "
                     "same_seed_prior_current_pairs=verified matched_frame_seed_sequences=verified "
-                    "matched_endpoint_retraces=verified estimator_math_changed=0\n",
-                    Scenario, static_cast<unsigned long long>(Rows));
+                    "matched_endpoint_retraces=verified fixed_endpoint_mask1_vs_mask3=verified "
+                    "mask1_gpu_cpu_match=%s estimator_math_changed=0\n",
+                    Scenario, static_cast<unsigned long long>(Rows), Mask == 1u ? "verified" : "crosscheck_only");
         std::fflush(stdout);
     }
 }

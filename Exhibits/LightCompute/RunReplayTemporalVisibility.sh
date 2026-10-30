@@ -112,6 +112,7 @@ CTEST="${CTEST:-$ROOT/_ClaudeScratch/pytools/cmake/data/bin/ctest}"
 python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEstimateSummaryTest.py
 python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilityAblationSummaryTest.py
 python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEndpointPairSummaryTest.py
+python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilityCounterfactualSummaryTest.py
 {
     echo 'Test-only per-pixel temporal visibility/contribution readback; no estimator or production shader changes.'
     echo "Base $(git rev-parse --short HEAD), plus working changes if any; source hashes follow."
@@ -127,7 +128,7 @@ python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEndpointPairSummaryTest.p
         sha256sum "$SPIRV_OPT"
     fi
     sha256sum Frontier/Engine/Rendering/Shaders/{LightInfluence,PathReplayReservoir}.slang \
-        Exhibits/LightCompute/Code/{ReplayTemporalVisibilityCandidate.py,ReplayTemporalVisibilityValidation.h,ReplayTemporalDirectVisibilitySummary.py,ReplayTemporalDirectVisibilityAblationSummary.py,ReplayTemporalDirectVisibilityAblationSummaryTest.py,ReplayTemporalDirectEndpointPairSummary.py,ReplayTemporalDirectEndpointPairSummaryTest.py,ReplayTemporalDirectEstimateSummary.py,ReplayTemporalDirectEstimateSummaryTest.py,ReplayMaterialFloorValidation.h,LightComputeValidation.cpp} \
+        Exhibits/LightCompute/Code/{ReplayTemporalVisibilityCandidate.py,ReplayTemporalVisibilityValidation.h,ReplayTemporalDirectVisibilitySummary.py,ReplayTemporalDirectVisibilityAblationSummary.py,ReplayTemporalDirectVisibilityAblationSummaryTest.py,ReplayTemporalDirectEndpointPairSummary.py,ReplayTemporalDirectEndpointPairSummaryTest.py,ReplayTemporalDirectVisibilityCounterfactualSummary.py,ReplayTemporalDirectVisibilityCounterfactualSummaryTest.py,ReplayTemporalDirectEstimateSummary.py,ReplayTemporalDirectEstimateSummaryTest.py,ReplayMaterialFloorValidation.h,LightComputeValidation.cpp} \
         "$SOURCE/Visibility.slang" "$OUTPUT"/{Primary,ReplayGenerate,ReplayResolve}.spv
     if "$BUILD/LightComputeValidation" "$DRIVER" "$OUTPUT" "$AUDIT_FLAG"; then
         :
@@ -142,9 +143,13 @@ if [[ "$VISIBILITY_ABLATION_ONLY" == 1 ]]; then
         Exhibits/LightCompute/ReplayTemporalDirectVisibilityAblation.svg | tee -a "$RESULTS"
     python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEndpointPairSummary.py "$RESULTS" \
         Exhibits/LightCompute/ReplayTemporalDirectEndpointPair.svg | tee -a "$RESULTS"
+    python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilityCounterfactualSummary.py "$RESULTS" \
+        Exhibits/LightCompute/ReplayTemporalDirectVisibilityCounterfactual.svg | tee -a "$RESULTS"
 elif [[ "$ENDPOINT_PAIR_ONLY" == 1 ]]; then
     python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEndpointPairSummary.py "$RESULTS" \
         Exhibits/LightCompute/ReplayTemporalDirectEndpointPair.svg | tee -a "$RESULTS"
+    python3 Exhibits/LightCompute/Code/ReplayTemporalDirectVisibilityCounterfactualSummary.py "$RESULTS" \
+        Exhibits/LightCompute/ReplayTemporalDirectVisibilityCounterfactual.svg | tee -a "$RESULTS"
 elif [[ "$OCCLUDER_ABLATION_ONLY" == 1 ]]; then
     python3 Exhibits/LightCompute/Code/ReplayTemporalDirectEstimateSummary.py "$RESULTS" \
         Exhibits/LightCompute/ReplayTemporalDirectEstimateBaseOnly.svg base_only | tee -a "$RESULTS"

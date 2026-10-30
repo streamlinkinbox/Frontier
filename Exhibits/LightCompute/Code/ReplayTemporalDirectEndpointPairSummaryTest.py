@@ -47,7 +47,9 @@ class EndpointPairSummaryTests(unittest.TestCase):
                 line += (f" paired_prior_code={previous} paired_current_code={current} paired_ray=1 "
                          f"paired_transmittance={int(current == 2)} prior_endpoint={endpoint} "
                          f"history_endpoint={endpoint} selected_endpoint={endpoint} endpoint_same_replay=1 "
-                         f"endpoint_same_selected=1 direct_estimate_luma={visible_nee}")
+                         f"endpoint_same_selected=1 direct_estimate_luma={visible_nee} "
+                         f"fixed_endpoint_mask1_code=2 "
+                         f"fixed_endpoint_mask3_code={1 if scenario == 'added_only' and pixel == 2 else 2}")
                 key = (scenario, mode, cohort)
                 item = samples.setdefault(key, {"means": [], "counts": [0] * 9, "weights": [0.0] * 9})
                 cell = previous * 3 + current
@@ -68,7 +70,9 @@ class EndpointPairSummaryTests(unittest.TestCase):
                     p, c = divmod(cell, 3)
                     line += f" paired_transition_{p}{c}={n} paired_history_weight_mean_{p}{c}={.4 if n else 0}"
             elif line.startswith("PASS ReplayTemporalDirectVisibilityAblationValidation "):
-                line += " matched_endpoint_retraces=verified"
+                scenario = SUMMARY.fields(line)["visibility"]
+                line += (" matched_endpoint_retraces=verified fixed_endpoint_mask1_vs_mask3=verified "
+                         f"mask1_gpu_cpu_match={'verified' if scenario == 'base_only' else 'crosscheck_only'}")
             out.append(line)
 
         for (scenario, mode, cohort), item in samples.items():
