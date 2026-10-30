@@ -1,0 +1,11 @@
+Image packet parity=PASS;frozen gates unchanged.
+36 images,36864 packets/build;12 CTests/build,20322 focused checks/build.
+Packet RGB failed pixels=0;historical native RGB failures=0;native invalid=0.
+Maximum packet RGB difference=3.7252902984619141e-09;RGB RMSE=4.5524629011081349e-11.
+Maximum native-versus-historical RGB difference=3.7252902984619141e-09.
+IMAGE_GPU_TOTAL images=36 packets=36864 candidates=245760 paths=196608 pairs=49152 visibility=393216 failures=0 native_failures=0 tail_failures=0 rgb_error=7.4505805969238281e-09 coordinate_error=0 scalar_error=1.4859597238046663e-07 pass=1
+Offline full-diagnostic failed packets=0;two diagnostic buffers,validity and38 rows exact across builds.
+Nine prior manifests/1568 entries unchanged;transport HELD,norm promotion FAIL preserved.
+SwiftShader CPU Vulkan;host ASan+UBSan,driver uninstrumented,leaks0. No hardware/speed/quality acceptance.
+Actual32x32 images,common exposure1024,error x1e8;80-slab allocation is private exhibit diagnostics.
+Production348.046875MiB/defaults/32B unchanged. No PR/Actions.

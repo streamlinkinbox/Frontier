@@ -1,5 +1,25 @@
 # Project Tracker
 
+## Batched GPU-generated full-frame parity — 2026-10-30
+
+- [Complete perspective packet images](../Exhibits/LightCompute/FacetImageGpu.md):three scenes,six methods,
+  two samples,32×32 complete cameras;36 images/36,864 packets per build,no positive-path filtering.
+- All245,760 generated candidates,49,152 pair selections,196,608 paths and393,216 visibility decisions
+  checked against independent native components/double shadows. No edge waivers or gate/math retuning.
+  Zero packet/native failures and zero metadata-tail writes. Native packet RGB also matches historical RGB.
+- Release/host ASan+UBSan:12 CTests/20,322 focused checks per build. Driver uninstrumented,leaks0.
+  Packet max RGB3.72529e-9,RMSE4.55246e-11;all weighted diagnostic RGB max7.45058e-9,coordinates0,
+  target/normalizer scaled residual1.48596e-7. Full diagnostics/validity/38 rows exact across builds.
+- Actual native/GPU/error images retained;all18 displayed pairs have identical decoded bytes. Common
+  exposure1024,error x1e8;numeric acceptance uses unclipped data,not quantized images. Two samples are not
+  converged quality evidence. SwiftShader CPU Vulkan,no physical-GPU/speed/quality/renderer claim.
+- Nine prior manifests/1,568 entries unchanged;transport HELD and norm promotion FAIL remain.
+  Production348.046875MiB/defaults/32B unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+- Phase100%/0% remaining as bounded full-frame parity;overall~93%/~7% remaining,planning estimates.
+  Next:variable-size GPU proposal support before renderer wiring;material/history/physical-GPU/Windows remain.
+- Unexpected local checkout archived before user-approved same-branch restore to verified82d4f6c.
+  Source and complete evidence backed up on the existing branch;recovery archive retained outside Git.
+
 ## GPU-generated deformed causal packets — 2026-10-30
 
 - [Full four-lane packet composition](../Exhibits/LightCompute/FacetPacketGpu.md):GPU RNG,source area/CDF/PDF,

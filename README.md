@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Batched GPU-generated full-frame parity](Exhibits/LightCompute/FacetImageGpu.md):all36 images/36,864 packets,
+  245,760 candidates and393,216 visibility decisions/build pass the unchanged native gates. Release/host
+  ASan+UBSan,12 CTests/build;packet RGB max delta3.7253e-9,RMSE4.5525e-11. Actual32×32 native/GPU/error images
+  retained. SwiftShader CPU Vulkan,not hardware/quality/speed acceptance;348.046875MiB/defaults unchanged.
+
 - [GPU-generated deformed causal packets](Exhibits/LightCompute/FacetPacketGpu.md):no native selected facet,
   U/V,PDF or normalization weight enters the shader. All108 four-lane packets,720 candidates,144 selections
   and1,152 visibility decisions/build pass native parity. All36 real mutations and36 shader faults checked;
