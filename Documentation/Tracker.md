@@ -1,5 +1,21 @@
 # Project Tracker
 
+## Opt-in C++ area proposal/RNG generation — 2026-10-30
+
+- [Accepted bounded proposal port](../Exhibits/LightCompute/FacetAreaProposalPort.md):excluded-by-default C++17
+  library generates shader-order uint32/hash draws,float32 area CDFs,square-root barycentrics,PDFs and points.
+- Strict Release/host ASan+UBSan,two CTests/build;193 proposal units plus14,831 existing selector units/build.
+  Newly generated589,824 proposals match1,474,560 retained GPU observations,including raw4/raw8 controls.
+- Zero facet differences;native/Python draw variates exact;GPU barycentric/PDF/reconstructed-point maxima0.
+  Native geometry/proposal/extracted-constructor bytes match across builds;18 count laws and90 moments pass.
+- Wrong selection distribution,omitted square root and wrong PDF controls each fail all3 deformed fixtures.
+  Actual native point plots visually inspected;no fresh tracing,RGB improvement or physical speed claim.
+- Original fixtures and production BVH order reused through exact-source extraction;original GPU manifests
+  unchanged. Old arithmetic-port snapshot/current files verified,except intentionally extended engine CMake.
+- Bounded phase100%/0% remaining;overall~86%/~14% remaining,planning estimates. Next:unoccluded target/proxy
+  score and compensated geometry port,then tracing/integration/physical GPU and scene/reuse acceptance.
+- Production348.046875MiB/defaults/32B descriptors unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+
 ## Opt-in C++ facet-area pair operator — 2026-10-30
 
 - [Accepted bounded arithmetic port](../Exhibits/LightCompute/FacetAreaPort.md):new excluded-by-default engine

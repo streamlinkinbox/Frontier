@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Opt-in C++ area proposal/RNG port](Exhibits/LightCompute/FacetAreaProposalPort.md):589,824 newly generated
+  native proposals match1,474,560 retained GPU observations with zero facet/barycentric/PDF differences.
+  Release/host ASan+UBSan,two CTests/build,15,024 focused checks/build and distribution/negative controls pass.
+  Actual native point plots retained;not fresh tracing or renderer activation. Production348.046875MiB unchanged.
+
 - [Opt-in C++ facet-area pair operator](Exhibits/LightCompute/FacetAreaPort.md):294,912 retained GPU pairs,
   zero selection differences,18 RGB replay images and54 reference mean gates pass. Release/host ASan+UBSan
   agree bytewise;14,831 focused checks/build. This ports selection/normalization only,not geometry or tracing.

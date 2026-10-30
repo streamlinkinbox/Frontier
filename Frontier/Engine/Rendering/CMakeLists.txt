@@ -70,3 +70,13 @@ if(MSVC)
 else()
     target_compile_options(FrontierFacetAreaReservoir PRIVATE -Wall -Wextra -Werror)
 endif()
+
+# 📝 Opt-in shader-order area proposals;no default renderer activation.
+add_library(FrontierFacetAreaProposals STATIC EXCLUDE_FROM_ALL FacetAreaProposals.cpp)
+target_compile_features(FrontierFacetAreaProposals PUBLIC cxx_std_17)
+target_include_directories(FrontierFacetAreaProposals PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+if(MSVC)
+    target_compile_options(FrontierFacetAreaProposals PRIVATE /utf-8 /W4 /fp:strict)
+else()
+    target_compile_options(FrontierFacetAreaProposals PRIVATE -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off)
+endif()

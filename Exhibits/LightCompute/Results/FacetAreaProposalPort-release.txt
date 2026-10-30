@@ -1,0 +1,50 @@
+FACET_AREA_PROPOSAL_BUILD mode=release parent=9dcfb7b0f7cf6dbc531cef66274be6cc9f1ed6d7 working_changes=1
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+f9947111d953b50b89bfd575a7b3242bd307838d44a998e4fcaf3ed3a6b831f3  Frontier/Engine/Rendering/FacetAreaReservoir.h
+256c87a78f755005ec894ae1227f07dc62e08f6be3309aa957fa7dbb896a5b2b  Frontier/Engine/Rendering/FacetAreaReservoir.cpp
+1fbbc601358a3528b51c3bc776211be90a04a95fa109933e5f7cd63c18595d0d  Frontier/Engine/Rendering/FacetAreaProposals.h
+8d28aa60ae6805ac658a2c3fcf5bc73f0caf4364aa7025676d4941c8221049dd  Frontier/Engine/Rendering/FacetAreaProposals.cpp
+39ef9c5d7beb3a7ffd5786b9ec96c750a1839d93fac90f45192a872775f39277  Frontier/Engine/Rendering/CMakeLists.txt
+6d3208d872006c0d44d03487cca759e574fe8ea0e1afcbcd859e5ca131c0826f  Exhibits/LightCompute/FacetAreaProposalPort/CMakeLists.txt
+c7a1b752fe4f8e9d43daae0d4e36dceeb977f5287e33b35b18b2a5455bedc4a5  Exhibits/LightCompute/Code/FacetAreaProposalValidation.cpp
+02130958c11e6b49b9e096584570ff7d57a5d84009d959fd25859aad5e09def7  Exhibits/LightCompute/Code/FacetAreaProposalScenes.py
+4788065746875e4d9e1cfa825dbd4e26c6bc618d14fa4154c14a6d24b13a42bc  Exhibits/LightCompute/Code/FacetAreaPortValidation.cpp
+232608fedf71c92e811d6268a9cc4314f75fac586b5b2d382ed40bfba64d0b8f  Exhibits/LightCompute/RunFacetAreaProposalPort.sh
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+cbf73c8ff9b1efb650bc8b4a58e09434046a3ffd27105da5d8d6812d45581022  Exhibits/LightCompute/Code/RgbTraceValidation.h
+08e5d99e7d744330327193ad3c17123175c933a93e3fdb2315bd6d62156dc168  Exhibits/LightCompute/Code/GeometricAreaReservoirValidation.h
+a7ec0b5a95461614d76883e2fb11823e8d7965902cbb65a2a1e7f3fc13b43fcf  Exhibits/LightCompute/Code/DeformedAreaReservoirValidation.h
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+dc4b466fe1918b181ec2449d6a64318e738d04f6c0316d825c858e3cc518ebf1  Frontier/Engine/Rendering/TriangleVisibilitySpace.h
+6f8517d02179c1db21351241133b75483af6fb6ff9dc183045b3ae89770cd552  Frontier/Engine/Rendering/ClusterNesting.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+FIXTURE_CONSTRUCTORS exact=7 generated_sha256=545b6f78dfc9cd046f5a658aa1c6c0a5b5d1e15444df4cab8cf65cb4214c3591
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/facet-area-proposal-port-release
+[ 50%] Built target FrontierFacetAreaProposals
+[ 75%] Building CXX object CMakeFiles/FacetAreaProposalValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaProposalValidation.cpp.o
+[100%] Linking CXX executable FacetAreaProposalValidation
+[100%] Built target FacetAreaProposalValidation
+[ 50%] Built target FrontierFacetAreaReservoir
+[100%] Built target FacetAreaPortValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/facet-area-proposal-port-release
+Test project /home/user/Frontier/_ClaudeScratch/build/facet-area-proposal-port-release
+    Start 1: FacetAreaProposalValidation
+1/2 Test #1: FacetAreaProposalValidation ......   Passed    0.00 sec
+    Start 2: FacetAreaPortValidation
+2/2 Test #2: FacetAreaPortValidation ..........   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.01 sec
+FACET_AREA_PROPOSAL_UNIT checks=193 pass=1
+FACET_AREA_PORT_UNIT checks=14831 pass=1
+FACET_AREA_PROPOSAL_CAPTURE distinct=589824 fixtures=9 pass=1
+545b6f78dfc9cd046f5a658aa1c6c0a5b5d1e15444df4cab8cf65cb4214c3591  /home/user/Frontier/_ClaudeScratch/build/facet-area-proposal-port-release/FacetAreaProposalScenes.h
+e63ccc67d3d2b8d11f19ef1000403b428ba9ed0c23a7c9c8492bbe8590d7a69c  /home/user/Frontier/_ClaudeScratch/build/facet-area-proposal-port-release/proposals.bin
+1b00786724fb1e4b344d80ddc217020474e7777d6848a446fee3933d1a6a8553  /home/user/Frontier/_ClaudeScratch/build/facet-area-proposal-port-release/fixtures.bin

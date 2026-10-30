@@ -1,0 +1,7 @@
+PASS:Release/ASan+UBSan two CTests/build;193 proposal checks+14831 selector regression checks/build.
+Fresh native proposals=589824;GPU observations=1474560;CDF ambiguities=0.
+Native/Python normalized U,V,PDF maxima=[0.0, 0.0, 0.0];GPU PDF,barycentric,point maxima=[0.0, 0.0, 0.0].
+18 count distributions(288 bins),90 barycentric moment gates pass;deformed negative controls=[3, 3, 3].
+Native fixtures,proposals and generated exact constructor headers byte-identical across builds.
+Native points are freshly generated;GPU transport is retained;no fresh tracing,RGB-equivalence or timing claim.
+Production348.046875MiB/defaults/layouts unchanged;no renderer activation,Windows or physical GPU test.
