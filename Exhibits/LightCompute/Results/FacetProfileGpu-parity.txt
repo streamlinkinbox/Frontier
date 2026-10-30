@@ -1,0 +1,11 @@
+Runtime-sized profile parity=PASS;frozen gates unchanged.
+Three layouts,six runtime sizes1/3/7/16/31/65,six methods,108 images/110592 packets per build.
+13 CTests/20334 focused checks per build;host ASan+UBSan,driver uninstrumented,leaks0.
+Offline diagnostic failed packets=0;native invalid=0;negative failed pixels=0.
+Maximum packet RGB difference=3.7252902984619141e-09;RGB RMSE=3.4545195012223854e-11.
+Profile16 historical failures=0;max native historical delta=1.862645149230957e-09;prior GPU RGB max delta=0;full80slabs exact=1.
+PROFILE_GPU_TOTAL images=108 packets=110592 candidates=737280 paths=589824 pairs=147456 visibility=1179648 failures=0 native_failures=0 tail_failures=0 rgb_error=7.4505805969238281e-09 coordinate_error=0 scalar_error=1.7163382095932151e-07 rejected=6144 rejection_failures=0 tail_quartets=58560 pass=1
+All four buffers,first failure and116 semantic rows identical across builds.
+Displayed byte-identical native/GPU image pairs=36/36. Ten prior manifests/1637 entries unchanged.
+Original transport HELD,norm promotion FAIL preserved. SwiftShader CPU Vulkan,not physical GPU.
+Actual32x32 one-sample images,not converged quality. Production348.046875MiB/defaults/32B unchanged. No PR/Actions.

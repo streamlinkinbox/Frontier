@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Runtime-sized GPU facet profiles](Exhibits/LightCompute/FacetProfileGpu.md):support sizes1/3/7/16/31/65,
+  108 full images/110,592 packets and1,179,648 visibility decisions per build pass native parity. All6,144
+  malformed-profile pixels reject exactly;13 CTests/20,334 checks,Release/host ASan+UBSan. Profile16 retains
+  all80 prior GPU slabs byte-for-byte. SwiftShader CPU Vulkan,no quality/speed/default promotion;348MiB retained.
+
 - [Batched GPU-generated full-frame parity](Exhibits/LightCompute/FacetImageGpu.md):all36 images/36,864 packets,
   245,760 candidates and393,216 visibility decisions/build pass the unchanged native gates. Release/host
   ASan+UBSan,12 CTests/build;packet RGB max delta3.7253e-9,RMSE4.5525e-11. Actual32×32 native/GPU/error images

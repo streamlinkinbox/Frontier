@@ -1,0 +1,419 @@
+PROFILE_GPU_BUILD mode=sanitized parent=4ef3d608be28cd5728134439aa6915279f7b5ab0 working_changes=1
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Verified pinned Slang 2026.14.1 and SwiftShader host files
+2026.14.1
+5cc0134d42cf414f0dcde8c31a813337801a6afdc5443033ef39e28b1262d336  /home/user/Frontier/ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+8ee5ac00fd7968e863b05e0f6808057db16a00ad322777e5a05bed51d4f84085  /home/user/Frontier/ExternalPackages/VulkanCompute/SwiftShader/libvulkan.so.1
+71678fcbfbecf5f56f5b709df5c6074986ad87e5aaa04e73e7b0dc1b0d3a63ca  Automation/PrepareReplayTools.py
+00883ef201e811e90222d93c820524fcb3675ab455818c056b8c04336bbe0968  Automation/ReplayToolDependencies.json
+20c7e1ac42fe62b3ed526612c52ddfc21e2265f5c69ca9a5e9dd182cc4c8625b  ExternalPackages/Vulkan-Headers-1.4.321/include/vulkan/vulkan.h
+3172a758081a172f4c46771a88046a53d5791ef2bd24329ff4bd7ed8c6f12abd  ExternalPackages/Vulkan-Headers-1.4.321/include/vulkan/vulkan_core.h
+2fa47dd60cd94eb6fd8d7615953878f5664eb57fdff3b1b9b856c1d8f1496737  ExternalPackages/Vulkan-Headers-1.4.321/include/vulkan/vk_platform.h
+b986bbe29ab45c972a48fc7a1475f5a4a36662152cb0d14a4d0dbac1f439a977  Exhibits/LightCompute/Code/FacetProfileGpuSources.py
+2969316d25b590454da3da45fb5a152fa24d40b0ddd157c31b336d5c2caf3c76  Exhibits/LightCompute/Code/FacetProfileGpuValidation.cpp
+8541c8a84c08ee616ac7bfff891a77a866d30f3b76a381dc93b9acb90cbd1c20  Exhibits/LightCompute/FacetProfileGpu/CMakeLists.txt
+f42ee226b8e74554ee5d894e63c06c0d07d583291176e5d6aad3a6be1baa7a66  Exhibits/LightCompute/RunFacetProfileGpu.sh
+62e425a0f9a41149b13475a7f5f302ba31fa4aa64a4195773c45a643b701b2e3  Exhibits/LightCompute/Code/AreaReconnectionValidation.h
+b231ff92f88c883b4f2f032d54d982e33f467d6cdf47e399cc7aee992c22cdd1  Exhibits/LightCompute/Code/FacetImageGpuSources.py
+1740de77fc53b4628c537cd5c38d83a9189161ef887ef8ed32c874cfa3415b37  Exhibits/LightCompute/Code/FacetPacketGpu.slang
+f7337db27fdc52bebe247f13a771762663eb7694c3bafba4153fd9272e5acd0b  Exhibits/LightCompute/Code/FacetPacketGpuValidation.cpp
+ed15d4af1725400b6503e5348df1ff3f00bc517c89d9ad24a37b55934224c51d  Exhibits/LightCompute/Code/FacetPacketGpuSubmission.py
+cae639a67055cf6273775cfe86d1ba99d650071a2aeecd1f535393d0dd6a4016  Exhibits/LightCompute/Code/FacetCausalGpuValidation.cpp
+ebe73d7ebd5d08a9d5c493c50cc334ab41ea30d223879e21b6733a257a2213c6  Exhibits/LightCompute/Code/LightComputeValidation.cpp
+ab73b56f849e284a2637269d0fc63a4e9c47ba8d6fea5e80c63ae2e22fd148d2  Exhibits/LightCompute/Code/GeometricAreaReservoirGpu.slang
+b00b5bb2449a286c829c9790244376e6c25e0be1b89ae5a54749b87067224d2c  Exhibits/LightCompute/Code/RgbTraceGpu.slang
+258659c92a9b3b44b720fde44d225b1ec4f9431df341a340aad6d9c12a8ae2c4  Frontier/Engine/Rendering/AtmosphereModel.h
+07514ca35922ae56316afd447ff74db46665f02d374b673bcd9ed1c0d4a9b8fc  Frontier/Engine/Rendering/BarrierDerivation.h
+8e8af5c8d2a4b77f17093959a9c32c872488e37966eec93dc440ddb293c61b0c  Frontier/Engine/Rendering/CandelaDistribution.h
+85a5802c37dcffa168d594e680487455c35e00423cd2a85e7b9eff09f1825aeb  Frontier/Engine/Rendering/CelestialModel.h
+569c694e52bb154582fe1bdc5a3f329b04077312382726e2981e4576d5eaad11  Frontier/Engine/Rendering/CloudField.h
+6f8517d02179c1db21351241133b75483af6fb6ff9dc183045b3ae89770cd552  Frontier/Engine/Rendering/ClusterNesting.h
+35dbaa56e7c16cbb0b0338dd618480e3d9bd9a14de0d681a77997e97ea8cb9a0  Frontier/Engine/Rendering/CompleteFrameUnits.h
+186a31a302a8ef50f07d9e9d8c1ae1014499f31597e63f51b9c77dbdfd1cec6b  Frontier/Engine/Rendering/DiscrepancySequence.h
+4cfa30c560d23730ad73e307638765ecb1ca297259445aad5f732b9679bf8396  Frontier/Engine/Rendering/DistanceField.h
+7ca83ca0f1fa304508116d93ae138ab784aab9deaf5f865d8ae0a22c7eb91e30  Frontier/Engine/Rendering/EnvironmentUnits.h
+9332d2549964c22a934b3d9c3c8c999bb1d27a43ad83ba3a725792423b5080d8  Frontier/Engine/Rendering/FacetAreaPacket.h
+1fbbc601358a3528b51c3bc776211be90a04a95fa109933e5f7cd63c18595d0d  Frontier/Engine/Rendering/FacetAreaProposals.h
+f9947111d953b50b89bfd575a7b3242bd307838d44a998e4fcaf3ed3a6b831f3  Frontier/Engine/Rendering/FacetAreaReservoir.h
+ae89a39543952e0e87464bacc0d0608627ac6eaf475b07945e90cad945129607  Frontier/Engine/Rendering/FacetAreaScore.h
+a72a51729bb2df2abf65ab5aa5da5a9c9ad5eff07fe3f871099f51ba545e7de1  Frontier/Engine/Rendering/FacetAreaTransport.h
+2ab04c44c32f7a240f6db3c64ef1d98236077cf984ddbfb415533dc8217cd9d6  Frontier/Engine/Rendering/FogMedium.h
+7a88657d06be83b31539b39fad0b201e78e60f52e4a5bbe98211a29cbbbadaae  Frontier/Engine/Rendering/GasProjectionFootprint.h
+f6cffaed707201c28f11e4b633a8598c949e90beb6c753210c07a836104a5425  Frontier/Engine/Rendering/IlluminationUnits.h
+819f1b2db30b585555a5b6b980422e8cb6985d0ee70d8f6a43c674459f93405e  Frontier/Engine/Rendering/InspectionUnits.h
+bd96f7817884ec65c2fe64c44e4f3ba4abb5f6427772afcc862315443509cec6  Frontier/Engine/Rendering/LensFlareModel.h
+20a6a86aec817995c38d64034f49581a46fc494580cfbc8ba0622d648b4f101f  Frontier/Engine/Rendering/LightComputeFootprint.h
+f4cc2e4260a254ccd7bd3f145c9717d4eb1091e2ab302dcfeb95c6449e6af73b  Frontier/Engine/Rendering/LightInfluenceSpace.h
+430aa75c9f97066141ad08e07b677fa5428b24274a0399c39fd54cb95e5a6424  Frontier/Engine/Rendering/LunarBounceReservoir.h
+a6cb8e8bc5f708bb2a89e57eb81309acaac7a3b9d06edca0077bf610203abbe5  Frontier/Engine/Rendering/LunarDiscProjection.h
+47094cf32fc173566cedd0f7c5221a4422b4d5030061cbd4961ce029ca4147f2  Frontier/Engine/Rendering/MediumRadiancePayload.h
+069d91ad09c10d206a71e5952664061729a9b33d6c18ae2a4251f9b0d929fe4d  Frontier/Engine/Rendering/PathReplayDomain.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+b48af931a2d9fa743eb29c11e7a27df62c890b5ca8f720484190baad85adec74  Frontier/Engine/Rendering/PathReplayVulkan.h
+70bc6c2a35324bda3c6384ee08af037973a275d07003a4e4ecd5f81655474853  Frontier/Engine/Rendering/PlumeLatticeFootprint.h
+80f3542bfcb993b3951ec0697c8868b7061054670b05f3ccde13657efe5c5a97  Frontier/Engine/Rendering/RadiantFacetDistribution.h
+f2174e5f8dce28342170e7739e4f91066292dfb44fb78dcff69785bce249e5ad  Frontier/Engine/Rendering/ReferenceRenderer.h
+a9dc84cedf97149dd84cfde17a2d9d9e6b98bac5ac7bfe6e24f0ac341e8bc6d5  Frontier/Engine/Rendering/RenderTarget.h
+a70a821ad22814167693c91932c6adc8cffa68a8b5fe7032241364fc7c25fe70  Frontier/Engine/Rendering/ReservoirSampling.h
+04ba147417669f30e9f78c9541e293ac48a2d9a2271bf26849dd5f6c4fabe19b  Frontier/Engine/Rendering/SolarDiscFilter.h
+467df15bb88404d2cdc73a7170ae9acb1a451d19c0eaae7d06db5ad2d5a430d2  Frontier/Engine/Rendering/SolarOpticsPayload.h
+19149df976b2649aa81c194f67e37a6770b75217a29afe7ab8f0402e92cc4556  Frontier/Engine/Rendering/StaticIndirectReservoir.h
+b2a786dbfc661a3f9a77594321361028608146536794de210ec009aaf24087d8  Frontier/Engine/Rendering/SubmissionOrder.h
+8d2c131c76abbdc4d5d6f8bff4bf799f8cc9a22ad2f91a79bfe6b18e90fcbd78  Frontier/Engine/Rendering/SurfaceCards.h
+799ba3d5b4220a640f6c7248b1539cf9ed93dc143394553ccb176b557ae617c7  Frontier/Engine/Rendering/TransientTargetAtlas.h
+cc5a4976b12ece6bdf391554065f9e6947c3ef0c8ada7cb699bd75659daa430a  Frontier/Engine/Rendering/TriangleDistanceVolume.h
+dc4b466fe1918b181ec2449d6a64318e738d04f6c0316d825c858e3cc518ebf1  Frontier/Engine/Rendering/TriangleVisibilitySpace.h
+b7b6115e24ef7e413c2a0239b404ce84864a627f193c220fd47c4f6b39bdf09d  Frontier/Engine/Rendering/VarianceFiltering.h
+390b8a756f64a125f0376696184ff9cf2a4cc23bc162d09ae453d9e67ff76466  Frontier/Engine/Rendering/ViewportUnits.h
+b8501c97cb33236c2245ae899b061256e63b6d938e7b4b9679c639d8e93a1ace  Frontier/Engine/Rendering/VisibilityCull.h
+ac7f1c09b5edc3ef386ca12c1b7a21c0206e4e7bd4c2ee226d492df441391051  Frontier/Engine/Rendering/WeatherEffects.h
+9ae229103d759f76feda1c5570941517de35171214c7f9a97858fdbc566ad58c  Frontier/Engine/Rendering/AtmosphereModel.cpp
+384f79cb31403f450313529c146af8799231014e7b8d62751965407593033dcb  Frontier/Engine/Rendering/BarrierDerivation.cpp
+19fbb07268ff7421ffc0f104fac902ac04e70dda20dc403e0093f89787568146  Frontier/Engine/Rendering/CelestialModel.cpp
+1a69546b34a9d273566c4e3f08f85efdb28673bb253ebe0bdfae2a333db7e290  Frontier/Engine/Rendering/CloudField.cpp
+d166adafd78506de92047a2141c22064a1b302b240019cedcea09e6f00c28389  Frontier/Engine/Rendering/ClusterNesting.cpp
+b549ae656b9168cc1556535476e62ac2a604ad1ea86911e9712451ececf05a60  Frontier/Engine/Rendering/CompleteFrameUnits.cpp
+3108228d84361e818e398182fa7eb0198b3eea02061dbb483cfa80f39cf5e2f1  Frontier/Engine/Rendering/DiscrepancySequence.cpp
+a28b725b4be83376807f368c49fda24e02fa4f30c31064733c7c39a46cf898c4  Frontier/Engine/Rendering/DistanceField.cpp
+63babf1aae4554fec42ee9731d1bb32da53d6df56f5ad8096d5503771e329e5d  Frontier/Engine/Rendering/EnvironmentUnits.cpp
+8d28aa60ae6805ac658a2c3fcf5bc73f0caf4364aa7025676d4941c8221049dd  Frontier/Engine/Rendering/FacetAreaProposals.cpp
+256c87a78f755005ec894ae1227f07dc62e08f6be3309aa957fa7dbb896a5b2b  Frontier/Engine/Rendering/FacetAreaReservoir.cpp
+ae71b844db059df6185edd820b87f1bfbdc1b29dff07f2346032476d2f2e16dd  Frontier/Engine/Rendering/FacetAreaScore.cpp
+7c264cc83afb987687c69721711849d94969a64290968a8da677abf4b29fac2f  Frontier/Engine/Rendering/FacetAreaTransport.cpp
+84c1a6c21c94f0424701af68a94499f5a6025a62383e47d1eb45b5c2b3af8835  Frontier/Engine/Rendering/FogMedium.cpp
+b87189f2e713c6fb6edcfc88b7bcb10b67045e2b23cb3d5c28ca8414570660d4  Frontier/Engine/Rendering/IlluminationUnits.cpp
+b96052adc6eb723d4b35d47fab3afbae07a9a9de698b778ddffd88eea8c7a422  Frontier/Engine/Rendering/InspectionUnits.cpp
+8251f35b3d8e68e25f768e9becabb0d2bdac065a95a29e4d6fcef4100798a1f1  Frontier/Engine/Rendering/MediumRadiancePayload.cpp
+30de3a0be93e0745139db036c9214c738fb4729ad322d17a8cd5cfe8c11a2847  Frontier/Engine/Rendering/PathReplayDomain.cpp
+262c68198f24db5720beec221e0496bb3c3d4f10f046c896e471ef6cf99a4b7d  Frontier/Engine/Rendering/PathReplayVulkan.cpp
+29ec2b1c55c84d2d0a33b9db1fe616ec9d77af9861fe57d2cb9c70acfccd451a  Frontier/Engine/Rendering/PlumeLatticeFootprint.cpp
+af384855bf27b83859bd2efc39b34723bde2a63075ccafb0ff28becd1d569d45  Frontier/Engine/Rendering/RadiantFacetDistribution.cpp
+068cd1847f6fd14f88dfc8fb2ac5cd737801a2fc95b9d176c5412d6512aa19b6  Frontier/Engine/Rendering/ReferenceRenderer.cpp
+b806589ac05eddc384d603d4da6cf9b51be9c24f180ec23f224c0e607f108a6e  Frontier/Engine/Rendering/ReservoirSampling.cpp
+2c49d50ae7c15fae6c65a986fbe1a3d84280766a0e145f28379425323440bfc8  Frontier/Engine/Rendering/SubmissionOrder.cpp
+3a4a1d3926a5628208fd1136b5700e8f06411dc692bf837c5da7cdf68cdbd2c1  Frontier/Engine/Rendering/SurfaceCards.cpp
+ce33a7b0758fed49a0a6cc67bd2cb62c587fd18f5ac510884dfe68e41f24fee0  Frontier/Engine/Rendering/TransientTargetAtlas.cpp
+c47e3c3d0dce46be3dfc5fd914934573cbf76efae13f01eb0f022f36e207b935  Frontier/Engine/Rendering/VarianceFiltering.cpp
+7e4969b9807044e9ca321fe82c1453f3394897b582ba34a02575c46d39b4351f  Frontier/Engine/Rendering/ViewportUnits.cpp
+d94290120d413f186e2db85b2b2b1e665c4d0468df0613c062ce4e4b26e5b64f  Frontier/Engine/Rendering/VisibilityCull.cpp
+98c1bcc815096712e970b58bd817eec9110dcb3bbfe108088c12ae75609ca0fe  Frontier/Engine/Rendering/WeatherEffects.cpp
+8f2b21447b663687039a2ad0b38f70cbe6c379cdcdf9daf1ee1f98930e3ce540  Frontier/Engine/Rendering/Shaders/DisplayPresent.slang
+783339733a49e8af3f8be4cac93f111c106cbacdc5e8133fed3a19a85fe5b91e  Frontier/Engine/Rendering/Shaders/GasPressureProjection.slang
+eacb776ca0e7a87885bdae2162e8626970d9076a41ce204caa333263d34a8062  Frontier/Engine/Rendering/Shaders/LightInfluence.slang
+d17f079fcbdeb9a56d7aa378e0f105ee13b46f59fa45e683867225ebde5e8279  Frontier/Engine/Rendering/Shaders/MaterialRayScattering.slang
+07cd4924b828c3d2d162013512761456dc39e835e949c9980a12f451cbe56ab8  Frontier/Engine/Rendering/Shaders/MaterialRayTransport.slang
+9d2102a554b42d78d418370cb363aa74725fd54a65b81897b8222691003647b4  Frontier/Engine/Rendering/Shaders/PathReplayReconstruction.slang
+c8ecbbe06481e6a58a8ebb7f093a2848ce132976bcda84014bfc27b5b4b46fce  Frontier/Engine/Rendering/Shaders/PathReplayReservoir.slang
+e7317f69b7427169092e39efd8489e4498b21d760857aee8578a9128d43270ae  Frontier/Engine/Rendering/Shaders/PathReplaySampleHistory.slang
+49684375729063f43c8f6f127bd23bcb82ee170af7f49943420dca10eae81459  Frontier/Engine/Rendering/Shaders/RectangularReconnection.slang
+b8207bddf8ed7aa6c92d0cb80b621fd787903420767733a48775462b10de653e  Frontier/Engine/Rendering/Shaders/SolarOptics.slang
+17bf58c9506d7cc86e09532b6e17033494a8b1297eca58665e91579ea58644c8  Frontier/Engine/Rendering/Shaders/SolidDielectricTransport.slang
+9f28581b07676734bc8a78d865d205cd2197fd318c447685dacfe5a207e74561  Frontier/Engine/Rendering/Shaders/StaticDiffuseReservoir.slang
+fc217072c46426042ea9ae8c54146277b767500d55504bf94564ac80d5867f3e  Frontier/Engine/Rendering/Shaders/SurfaceRaster.slang
+FIXTURE_CONSTRUCTORS exact=7 generated_sha256=545b6f78dfc9cd046f5a658aa1c6c0a5b5d1e15444df4cab8cf65cb4214c3591
+FACET_NORM_PREFIX exact_sha256=0db9866d34e0a49e7c509b1fcb7a0bd6e981216fc23c97c2cf92d2219f49b50c
+FACET_CAUSAL_REPLAY sha256=4f3cfaee4e2f5040b13bd1cb14da209bd0c208359889bfd684db99d407dcf778
+OCCLUSION_GPU_SUBMISSION exact_prefix_sha256=7dccc8b11c155c5c83e67dcf9d42f05fb303deb8d4f4d39268759cb6334c7928
+PACKET_GPU_SUBMISSION capacity=80 sha256=b03d2258be176b9ee34e3fac8fc88a8353e55bb695dc6ebf5aec368ef7524722
+PACKET_GPU_COMPARISONS sha256=386ad04d8c881dc5c7e6bce01307a935521a161d1fee79e6df2f09ae26130316
+PACKET_GPU_SUBMISSION capacity=80 sha256=b03d2258be176b9ee34e3fac8fc88a8353e55bb695dc6ebf5aec368ef7524722
+PACKET_GPU_COMPARISONS sha256=386ad04d8c881dc5c7e6bce01307a935521a161d1fee79e6df2f09ae26130316
+IMAGE_GPU_SOURCES checked_extraction=1 slabs=80 tail=4
+PACKET_GPU_SUBMISSION capacity=80 sha256=b03d2258be176b9ee34e3fac8fc88a8353e55bb695dc6ebf5aec368ef7524722
+PACKET_GPU_COMPARISONS sha256=386ad04d8c881dc5c7e6bce01307a935521a161d1fee79e6df2f09ae26130316
+IMAGE_GPU_SOURCES checked_extraction=1 slabs=80 tail=4
+PROFILE_GPU_SOURCES checked_extraction=1 dynamic_support=1 header=1
+-- Configuring done (0.9s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized
+0e11d2c1d40d8c9783cae286b785b87b64ef5715701691e8447707d12bd13434  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/DiffuseGenerate.spv
+058f5d96a5652acea5bdf08ab2cd3697531ea59353cd7b8a00fffbc78a31f2f6  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/DiffuseResolve.spv
+70dfdb464792abfd74fce38d7f0760e83e4ab51d3fe0ed2d117fd57ab23218fa  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/FacetImageGpuComparisons.h
+429655994315abab64912323e6e7e281c30a5dd53dc6fd7606ffc28ec4724961  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/FacetPacketGpuComparisons.h
+450f46b05eb9ba9937b66cfb82a486fefad919ab927d7558300304bce670e4a9  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/FacetPacketGpuSubmission.h
+edc5869e43191c01cab040e18f5706b0f3f6dc07289fecf02ab626d97971e6de  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/FacetProfileGpuComparisons.h
+4f56e1691024a7f7e47fc093e0144779c3f962837d78eb372bca2c1af9fe726d  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/FacetProfileGpu.slang
+[  4%] Built target FrontierFacetAreaReservoir
+[  9%] Built target FrontierMediumRadiancePayload
+[ 14%] Built target FrontierFacetAreaProposals
+[ 19%] Built target FrontierPathReplayVulkan
+[ 23%] Built target FrontierFacetAreaScore
+[ 28%] Built target FrontierRadiantFacetDistribution
+[ 33%] Built target FrontierPathReplayDomain
+[ 35%] Building CXX object image/packet/fixed/native/norm/mixed/packet/native/baseline/CMakeFiles/FacetAreaProposalValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaProposalValidation.cpp.o
+[ 40%] Built target FacetAreaPortValidation
+[ 42%] Building CXX object image/packet/fixed/native/norm/mixed/packet/native/baseline/CMakeFiles/FacetAreaScoreValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaScoreValidation.cpp.o
+[ 45%] Linking CXX executable FacetAreaProposalValidation
+[ 45%] Built target FacetAreaProposalValidation
+[ 50%] Built target FrontierFacetAreaTransport
+[ 52%] Linking CXX executable FacetAreaScoreValidation
+[ 54%] Building CXX object CMakeFiles/FacetProfileGpuValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetProfileGpuValidation.cpp.o
+[ 54%] Built target FacetAreaScoreValidation
+[ 57%] Building CXX object image/CMakeFiles/FacetImageGpuValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetImageGpuValidation.cpp.o
+[ 59%] Linking CXX executable FacetImageGpuValidation
+[ 59%] Built target FacetImageGpuValidation
+[ 61%] Building CXX object image/packet/CMakeFiles/FacetPacketGpuValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetPacketGpuValidation.cpp.o
+[ 64%] Linking CXX executable FacetProfileGpuValidation
+[ 64%] Built target FacetProfileGpuValidation
+[ 66%] Building CXX object image/packet/fixed/CMakeFiles/FacetCausalGpuValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetCausalGpuValidation.cpp.o
+[ 69%] Linking CXX executable FacetCausalGpuValidation
+[ 69%] Built target FacetCausalGpuValidation
+[ 71%] Building CXX object image/packet/fixed/native/CMakeFiles/FacetCausalValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetCausalValidation.cpp.o
+[ 73%] Linking CXX executable FacetPacketGpuValidation
+[ 73%] Built target FacetPacketGpuValidation
+[ 76%] Building CXX object image/packet/fixed/native/norm/CMakeFiles/FacetNormValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetNormValidation.cpp.o
+[ 78%] Linking CXX executable FacetNormValidation
+[ 78%] Built target FacetNormValidation
+[ 83%] Built target FacetMixedValidation
+[ 88%] Built target FacetPacketValidation
+[ 92%] Built target FacetAreaOcclusionValidation
+[ 95%] Building CXX object image/packet/fixed/native/norm/mixed/packet/native/baseline/CMakeFiles/FacetAreaTransportValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaTransportValidation.cpp.o
+[ 97%] Linking CXX executable FacetCausalValidation
+[ 97%] Built target FacetCausalValidation
+[100%] Linking CXX executable FacetAreaTransportValidation
+[100%] Built target FacetAreaTransportValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized
+UpdateCTestConfiguration  from :/home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/DartConfiguration.tcl
+UpdateCTestConfiguration  from :/home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/DartConfiguration.tcl
+Test project /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+      Start  1: FacetProfileGpuValidation
+
+1: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/FacetProfileGpuValidation "--unit"
+1: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized
+1: Test timeout computed to be: 10000000
+1: PROFILE_GPU_UNIT checks=12 pass=1
+ 1/13 Test  #1: FacetProfileGpuValidation ........   Passed    0.01 sec
+test 2
+      Start  2: FacetImageGpuValidation
+
+2: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/FacetImageGpuValidation "--unit"
+2: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image
+2: Test timeout computed to be: 10000000
+2: IMAGE_GPU_UNIT checks=6 pass=1
+ 2/13 Test  #2: FacetImageGpuValidation ..........   Passed    0.01 sec
+test 3
+      Start  3: FacetPacketGpuValidation
+
+3: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/FacetPacketGpuValidation "--unit"
+3: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet
+3: Test timeout computed to be: 10000000
+3: PACKET_GPU_UNIT checks=10 pass=1
+ 3/13 Test  #3: FacetPacketGpuValidation .........   Passed    0.01 sec
+test 4
+      Start  4: FacetCausalGpuValidation
+
+4: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/FacetCausalGpuValidation "--unit"
+4: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed
+4: Test timeout computed to be: 10000000
+4: CAUSAL_GPU_UNIT checks=4 pass=1
+ 4/13 Test  #4: FacetCausalGpuValidation .........   Passed    0.00 sec
+test 5
+      Start  5: FacetCausalValidation
+
+5: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/FacetCausalValidation "--unit"
+5: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native
+5: Test timeout computed to be: 10000000
+5: FACET_CAUSAL_UNIT checks=8 pass=1
+ 5/13 Test  #5: FacetCausalValidation ............   Passed    0.00 sec
+test 6
+      Start  6: FacetNormValidation
+
+6: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/FacetNormValidation "--unit"
+6: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm
+6: Test timeout computed to be: 10000000
+6: FACET_NORM_UNIT checks=193 pass=1
+ 6/13 Test  #6: FacetNormValidation ..............   Passed    0.02 sec
+test 7
+      Start  7: FacetMixedValidation
+
+7: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/FacetMixedValidation "--unit"
+7: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed
+7: Test timeout computed to be: 10000000
+7: FACET_MIXED_UNIT checks=2796 pass=1
+ 7/13 Test  #7: FacetMixedValidation .............   Passed    0.01 sec
+test 8
+      Start  8: FacetPacketValidation
+
+8: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/FacetPacketValidation "--unit"
+8: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet
+8: Test timeout computed to be: 10000000
+8: FACET_PACKET_UNIT checks=31 allocation_calls=0 evaluations=6144 pass=1
+ 8/13 Test  #8: FacetPacketValidation ............   Passed    0.21 sec
+test 9
+      Start  9: FacetAreaOcclusionValidation
+
+9: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native/FacetAreaOcclusionValidation "--unit"
+9: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native
+9: Test timeout computed to be: 10000000
+9: ANALYTIC_OCCLUSION_UNIT checks=132 paths=12 pass=1
+ 9/13 Test  #9: FacetAreaOcclusionValidation .....   Passed    0.01 sec
+test 10
+      Start 10: FacetAreaProposalValidation
+
+10: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native/baseline/FacetAreaProposalValidation "--unit"
+10: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native/baseline
+10: Test timeout computed to be: 10000000
+10: FACET_AREA_PROPOSAL_UNIT checks=193 pass=1
+10/13 Test #10: FacetAreaProposalValidation ......   Passed    0.00 sec
+test 11
+      Start 11: FacetAreaPortValidation
+
+11: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native/baseline/FacetAreaPortValidation "--unit"
+11: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native/baseline
+11: Test timeout computed to be: 10000000
+11: FACET_AREA_PORT_UNIT checks=14831 pass=1
+11/13 Test #11: FacetAreaPortValidation ..........   Passed    0.00 sec
+test 12
+      Start 12: FacetAreaScoreValidation
+
+12: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native/baseline/FacetAreaScoreValidation "--unit"
+12: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native/baseline
+12: Test timeout computed to be: 10000000
+12: FACET_AREA_SCORE_CANCELLATION compensated_distance=1 naive_distance=2 grazing_projection=5.9604644775390625e-08 naive_projection=0 geometry_relative_error=6.0274319164358055e-08
+12: FACET_AREA_SCORE_UNIT checks=1060 pass=1
+12/13 Test #12: FacetAreaScoreValidation .........   Passed    0.01 sec
+test 13
+      Start 13: FacetAreaTransportValidation
+
+13: Test command: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native/baseline/FacetAreaTransportValidation "--unit"
+13: Working Directory: /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/image/packet/fixed/native/norm/mixed/packet/native/baseline
+13: Test timeout computed to be: 10000000
+13: FACET_AREA_TRANSPORT_UNIT checks=1058 pass=1
+13/13 Test #13: FacetAreaTransportValidation .....   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 13
+
+Total Test time (real) =   0.31 sec
+PROFILE_GPU_DEVICE name=SwiftShader Device (Subzero) type=4 driver_sanitized=0 leaks=0
+PROFILE_GPU_IMAGE fixture=0 support=1 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=1 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=1 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=1 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=1 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=1 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=3 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=3 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=3 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=3 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=3 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=3 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=7 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=7 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=7 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=7 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=7 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=7 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=16 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=16 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=16 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=16 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=16 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=16 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_REJECTION case=0 expected=1 pixels=1024 failures=0
+PROFILE_GPU_REJECTION case=1 expected=1 pixels=1024 failures=0
+PROFILE_GPU_REJECTION case=2 expected=1 pixels=1024 failures=0
+PROFILE_GPU_REJECTION case=3 expected=2 pixels=1024 failures=0
+PROFILE_GPU_REJECTION case=4 expected=2 pixels=1024 failures=0
+PROFILE_GPU_REJECTION case=5 expected=3 pixels=1024 failures=0
+PROFILE_GPU_IMAGE fixture=0 support=31 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=31 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=31 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=31 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=31 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=31 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=65 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=65 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=65 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=65 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=65 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=0 support=65 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=1 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=1 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=1 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=1 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=1 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=1 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=3 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=3 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=3 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=3 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=3 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=3 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=7 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=7 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=7 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=7 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=7 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=7 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=16 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=16 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=16 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=16 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=16 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=16 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=31 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=31 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=31 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=31 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=31 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=31 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=65 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=65 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=65 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=65 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=65 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=1 support=65 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=1 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=1 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=1 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=1 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=1 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=1 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=3 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=3 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=3 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=3 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=3 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=3 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=7 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=7 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=7 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=7 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=7 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=7 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=16 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=16 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=16 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=16 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=16 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=16 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=31 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=31 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=31 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=31 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=31 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=31 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=65 method=0 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=65 method=1 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=65 method=2 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=65 method=3 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=65 method=4 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_IMAGE fixture=2 support=65 method=5 sample=0 pixels=1024 failures=0 native_failures=0 tail_failures=0
+PROFILE_GPU_TOTAL images=108 packets=110592 candidates=737280 paths=589824 pairs=147456 visibility=1179648 failures=0 native_failures=0 tail_failures=0 rgb_error=7.4505805969238281e-09 coordinate_error=0 scalar_error=1.7163382095932151e-07 rejected=6144 rejection_failures=0 tail_quartets=58560 pass=1
+992b76948b7cf68e9f13c12c56abf0f57d339f4102a5babf00051c1d1f014580  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/captures/FacetProfileFirstFailure.txt
+98cc7acc4a405c616c66497dac8c6316721e77b7a986056890886c5517aac168  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/captures/FacetProfileGpu.f32
+b358a9cf472c1551f9b726cf2405d6600ed32d3452c869aba1ae0104528a8ed1  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/captures/FacetProfileNative.f32
+d87ded8c6dbcca00d564cbb8b4852d542e4146d292314faa1d070060e5f4568b  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/captures/FacetProfileRejections.f32
+3943449dc021df8ec8ea2e12f3adb9ede63e614f76a081ca151706e238a9d907  /home/user/Frontier/_ClaudeScratch/build/facet-profile-gpu-sanitized/captures/FacetProfileValid.u8
+PROFILE_GPU_EXIT code=0

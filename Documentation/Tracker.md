@@ -1,5 +1,27 @@
 # Project Tracker
 
+## Runtime-sized GPU proposal profiles — 2026-10-30
+
+- [Variable source-profile parity](../Exhibits/LightCompute/FacetProfileGpu.md):three deformed layouts,support
+  sizes1/3/7/16/31/65,six arms,108 complete32×32 images and110,592 packets per build. Explicit source-to-packed
+  mappings preserve support order through BVH repacking;subsets,subdivisions,reversal and partial quartets tested.
+- Runtime Slang profile/area/CDF checks precede GPU RNG/PDF/target/selection/normalization/transport. No native
+  sampler outputs are uploaded. All737,280 draws,147,456 pair choices,589,824 paths and1,179,648 visibility
+  decisions pass independent native/double-shadow checks,without changed math,gates,seeds,cameras or edge waivers.
+- Six actual GPU malformed submissions reject6,144 pixels exactly;all other diagnostic components zero.
+  58,560 sentinel quartets remain untouched. Profile16 all80 slabs match the previous GPU capture byte-for-byte.
+- Release/host ASan+UBSan:13 CTests/20,334 focused checks per build. Driver uninstrumented,leaks0.
+  Packet RGB max3.72529e-9,RMSE3.45452e-11;weighted diagnostic max7.45058e-9,coordinates0,
+  target/normalizer scaled residual1.71634e-7. Four buffers/116 semantic rows identical across builds.
+- Actual32×32 profile16/65 native/GPU/error images retained;36 displayed pairs byte-identical. One sample,
+  historical layouts/seeds/subdivisions are not converged quality or independent-scene/hardware acceptance.
+  Ten manifests/1,637 previous entries unchanged;original transport HELD and norm promotion FAIL remain.
+- Phase100%/0% remaining as bounded profile correctness;overall~94%/~6% remaining,planning estimates.
+  Next:GPU-resident per-scene area/CDF preparation,avoiding repeated diagnostic work before renderer integration.
+  General scenes/material/history,physical GPU and Windows remain. No timing/quality gain claimed.
+- Production348.046875MiB/defaults/32B unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+  Source and full evidence backed up on the existing branch.
+
 ## Batched GPU-generated full-frame parity — 2026-10-30
 
 - [Complete perspective packet images](../Exhibits/LightCompute/FacetImageGpu.md):three scenes,six methods,
