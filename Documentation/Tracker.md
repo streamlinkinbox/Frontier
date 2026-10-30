@@ -1,5 +1,25 @@
 # Project Tracker
 
+## Opt-in native facet packet estimator — 2026-10-30
+
+- [Bounded composed caller](../Exhibits/LightCompute/FacetPacket.md):header-only reusable FacetAreaPacket owns
+  packed surfaces/source profile and calls unchanged proposal/score/reservoir/transport APIs. No default wiring.
+- Transactional cold preparation;unique/in-range source ordinals. Miss/invalid/nonfinite/overflow results reject
+  without partial RGB. Valid black transport accepted. Warm evaluation has fixed scratch and no allocation calls.
+- Release/host ASan+UBSan with leaks enabled,six CTests and17,305 checks/build. New31 units include6144
+  allocation-audited evaluations with zero calls,unequal-area support and preservation of prior preparation.
+- Fresh294,912 evaluations,1,966,080 candidates,1,572,864 paths/build across both measures and all methods.
+  Equal-area uniform/area results exact. All12 five-slab buffers match retained native and both builds bytewise.
+- Retained software-Vulkan packet/ablation RGB delta≤3.49246e-10;all216 independent quadrature means pass.
+  Actual144 API32² PNG arrays verified;comparison sheet inspected. All471 prior manifest entries unchanged;
+  historical acceptance=0 remains HELD. No new quality/speedup claim or fresh GPU dispatch.
+- Startup checkout regression preserved to archive/local stash,then same branch fast-forwarded to verified
+  GitHub20020fa;no local files discarded. Details/recovery checksum retained in the exhibit.
+- Phase100%/0% remaining;overall~91%/~9% remaining,planning estimates,not measured release readiness.
+  Next:mixed-area/material/partial-visibility holdout,then explicit integration. General/history/material,physical
+  GPU/Windows/editor/TAA/timing acceptance remains open. Production348.046875MiB/defaults/32B unchanged.
+- Packing/editor/vehicle/Jolt deferred. Source/evidence backed up to the session branch;no PR/Actions.
+
 ## Sensitive Slang/Vulkan occlusion parity — 2026-10-30
 
 - [Separately frozen fresh software-Vulkan diagnostic](../Exhibits/LightCompute/FacetAreaOcclusionGpu.md):same

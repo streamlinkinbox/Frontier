@@ -1,0 +1,10 @@
+PASS opt-in composed native packet estimator:6 CTests/build,17305 focused units/build.
+New31 units include6144 ordinary-allocation-audited evaluations:0 allocation calls.
+294912 packet evaluations,1966080 proposals,1572864 paths/build;uniform and area agree on equal-area fixtures.
+All12 five-slab captures match prior native captures exactly and match Release/ASan+UBSan bytewise.
+Retained software-Vulkan max packet/ablation RGB delta=3.4924596548080444e-10;216 independent quadrature means pass.
+Quadrature convergence=2.2890894455784848e-08;144 actual API image arrays verified.
+All471 old manifest entries verified unchanged;historical acceptance=0 retained.
+Cold preparation is transactional;miss/invalid/unrepresentable estimates reject with no partial RGB.
+Header-only opt-in API;no old arithmetic/CMake/default edits,fresh GPU dispatch,physical speedup or Windows binary.
+Production348.046875MiB/defaults/32B descriptors unchanged;no PR/Actions.

@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Opt-in composed native packet estimator](Exhibits/LightCompute/FacetPacket.md):transactional source-profile
+  intake and RIS/raw4/raw8 evaluation. All12 captures match the prior native caller bytewise;216 analytic means
+  pass. Six CTests/build,Release/ASan+UBSan;6144 audited calls allocate zero times. Actual API images retained.
+  No renderer/default promotion or new GPU dispatch. Production348.046875MiB unchanged.
+
 - [Fresh sensitive Slang/Vulkan parity](Exhibits/LightCompute/FacetAreaOcclusionGpu.md):983,040 exact proposals
   and1,572,864 exact visibility decisions/build;216 analytic means pass. Max native/GPU image RGB delta1.46e-10.
   Six CTests/build,Release/host ASan+UBSan,actual readback images. SwiftShader software device,not hardware.
