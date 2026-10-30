@@ -1,0 +1,106 @@
+{
+  "extent": [
+    640,
+    400
+  ],
+  "renderer": "native C++ CPU ReferenceRenderer",
+  "shared_settings": {
+    "pose": 0,
+    "camera": "same 8, -9, 4 camera framing for every variant",
+    "seed": "0x5a17",
+    "clouds_enabled": true,
+    "resolution": [
+      640,
+      400
+    ],
+    "accumulation_frames": 8,
+    "ris_candidates": 8,
+    "environment_samples": 8
+  },
+  "variant_settings": {
+    "VehicleSunSkyClouds": {
+      "sun_direction": [
+        0.35,
+        -0.55,
+        0.7582875444
+      ],
+      "sun_irradiance": [
+        20,
+        20,
+        20
+      ],
+      "fog_enabled": false
+    },
+    "VehicleFog": {
+      "fog_enabled": true,
+      "density_at_base": 0.028,
+      "base_height_m": 0,
+      "falloff_height_m": 22,
+      "fog_colour": [
+        0.58,
+        0.68,
+        0.82
+      ]
+    },
+    "VehicleSunset": {
+      "sun_direction_from": [
+        -0.55,
+        -0.18,
+        0.15
+      ],
+      "sun_irradiance": [
+        13,
+        6.8,
+        3.4
+      ],
+      "fog_enabled": false
+    },
+    "VehicleLocalLights": {
+      "sun_irradiance": [
+        4,
+        4.6,
+        6.2
+      ],
+      "fog_enabled": false,
+      "local_point_lights": [
+        {
+          "position": [
+            0,
+            -3,
+            2
+          ],
+          "radiance": [
+            65,
+            27,
+            10
+          ],
+          "reach": 12
+        },
+        {
+          "position": [
+            1.5,
+            2.5,
+            3.5
+          ],
+          "radiance": [
+            12,
+            38,
+            78
+          ],
+          "reach": 10
+        }
+      ],
+      "exhaustive_light_sum": true,
+      "spatial_reuse": false,
+      "ris_candidates": 4,
+      "environment_samples": 16
+    }
+  },
+  "rgb_sha256": {
+    "VehicleSunSkyClouds": "2576444d8c184c478c10eda95777721a13d7e481d94da574940713c17153bd11",
+    "VehicleFog": "14a808a700cd28c2bf46f90aa9889ffe2864656432c92743ad269787e1bcb2b5",
+    "VehicleSunset": "37c31b956ff89554345bf4e7936362c92a3b68d45a97aadc1acdb4c1bda9f2aa",
+    "VehicleLocalLights": "4be9cde453a7afdea617e4ccdd4abc78be6669ee24050271893159331f8303f2"
+  },
+  "lossless_png_conversion": true
+}

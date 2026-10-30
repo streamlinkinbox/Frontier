@@ -91,14 +91,15 @@ int main(int Count, char** Arguments)
 {
     try
     {
-        if (Count != 2 && !(Count == 3 && (std::string(Arguments[2]) == "--clustered-lights" ||
+        if (Count != 2 && !(Count == 3 && (std::string(Arguments[2]) == "--showcase" ||
+                                           std::string(Arguments[2]) == "--clustered-lights" ||
                                            std::string(Arguments[2]) == "--vulkan-input" ||
                                            std::string(Arguments[2]) == "--motion-input" ||
                                            std::string(Arguments[2]) == "--primary-input" ||
                                            std::string(Arguments[2]) == "--primary-motion")))
             throw std::runtime_error(
                 "Usage: VehicleCapture output-directory "
-                "[--clustered-lights|--vulkan-input|--motion-input|--primary-input|--primary-motion]");
+                "[--showcase|--clustered-lights|--vulkan-input|--motion-input|--primary-input|--primary-motion]");
         std::filesystem::path Output = Arguments[1];
         std::filesystem::create_directories(Output);
         std::ifstream Table("_ClaudeScratch/vehicle-reference/Materials.txt");
@@ -114,7 +115,8 @@ int main(int Count, char** Arguments)
         }
         if (Materials.size() != 86)
             throw std::runtime_error("Expected 86 authored material records");
-        const bool Analytic = Count == 3;
+        const bool Showcase = Count == 3 && std::string(Arguments[2]) == "--showcase";
+        const bool Analytic = Count == 3 && !Showcase;
         const bool PrimaryMotion = Count == 3 && std::string(Arguments[2]) == "--primary-motion";
         const bool PrimaryInput =
             PrimaryMotion || (Count == 3 && std::string(Arguments[2]) == "--primary-input");
@@ -124,12 +126,15 @@ int main(int Count, char** Arguments)
             Count == 3 && (std::string(Arguments[2]) == "--vulkan-input" || MotionInput || PrimaryInput);
         CullCamera PreviousCamera;
         double PreviousAngle = 0;
-        for (uint32_t Capture = 0; Capture < (MotionInput ? 6u : (ComputeInput ? 1u : (Analytic ? 2u : 6u)));
-             ++Capture)
+        const uint32_t CaptureCount = Showcase ? 4u : (MotionInput ? 6u : (ComputeInput ? 1u : (Analytic ? 2u : 6u)));
+        for (uint32_t Capture = 0; Capture < CaptureCount; ++Capture)
         {
-            const uint32_t Pose = MotionInput ? Capture : Analytic ? 0 : Capture % 3;
-            const bool WithDistance = !Analytic && Capture >= 3;
-            const std::string Stem = MotionInput    ? "MotionInput"
+            const uint32_t Pose = Showcase ? 0u : MotionInput ? Capture : Analytic ? 0u : Capture % 3u;
+            const bool WithDistance = !Showcase && !Analytic && Capture >= 3;
+            const std::string Stem = Showcase ? std::array<const char*, 4>{
+                                                   "VehicleSunSkyClouds", "VehicleFog", "VehicleSunset",
+                                                   "VehicleLocalLights"}[Capture]
+                                     : MotionInput    ? "MotionInput"
                                      : ComputeInput ? "VulkanInput"
                                      : Analytic     ? (Capture == 0 ? "AnalyticAll" : "AnalyticCluster")
                                                     : (WithDistance ? "Distance" : "Vehicle");
@@ -183,7 +188,33 @@ int main(int Count, char** Arguments)
             if (Facets != 25068)
                 throw std::runtime_error("ControlVehicle facet count changed");
             const SpatialVector Sun{.35, -.55, .7582875444};
-            Scene.Lights.push_back({ReferenceLight::Kind::Directional, Sun, {5.5, 5.2, 4.7}});
+            SpatialVector ActiveSun = Sun;
+            if (Showcase && Capture == 2u)
+            {
+                ActiveSun = {-.55, -.18, .15};
+                const double Length = std::hypot(ActiveSun.X, ActiveSun.Y, ActiveSun.Z);
+                ActiveSun = {ActiveSun.X / Length, ActiveSun.Y / Length, ActiveSun.Z / Length};
+            }
+            Scene.Lights.push_back({ReferenceLight::Kind::Directional, ActiveSun, {5.5, 5.2, 4.7}});
+            if (Showcase && Capture == 2u)
+                Scene.Lights[0].Radiance = {4.4, 2.3, 1.2};
+            else if (Showcase && Capture == 3u)
+                Scene.Lights[0].Radiance = {1.5, 1.8, 2.4};
+            if (Showcase && Capture == 3u)
+            {
+                ReferenceLight WarmKey;
+                WarmKey.Kind = ReferenceLight::Kind::Point;
+                WarmKey.Vector = {0.0, -3.0, 2.0};
+                WarmKey.Radiance = {65.0, 27.0, 10.0};
+                WarmKey.Reach = 12.0;
+                Scene.Lights.push_back(WarmKey);
+                ReferenceLight CoolRim;
+                CoolRim.Kind = ReferenceLight::Kind::Point;
+                CoolRim.Vector = {1.5, 2.5, 3.5};
+                CoolRim.Radiance = {12.0, 38.0, 78.0};
+                CoolRim.Reach = 10.0;
+                Scene.Lights.push_back(CoolRim);
+            }
             if (Analytic)
             {
                 Scene.Lights[0].Radiance = {.2, .2, .2};
@@ -299,9 +330,34 @@ int main(int Count, char** Arguments)
             Settings.RisCandidates = 4;
             Settings.IndirectSamples = 0;
             Settings.EnvironmentSamples = 8;
-            Settings.SunDirection = Sun;
+            Settings.SunDirection = ActiveSun;
             Settings.CloudsEnabled = true;
             Settings.Clouds.WindTimeS = 5 * Pose;
+            if (Showcase)
+            {
+                Settings.RisCandidates = 8;
+                Settings.AccumulationFrames = 8;
+                Settings.Seed = 0x5a17;
+                if (Capture == 1u)
+                {
+                    Settings.FogEnabled = true;
+                    Settings.Fog.DensityAtBase = .028;
+                    Settings.Fog.BaseHeightM = 0.0;
+                    Settings.Fog.FalloffHeightM = 22.0;
+                    Settings.Fog.Colour = {.58, .68, .82};
+                }
+                else if (Capture == 2u)
+                    Settings.SunIrradiance = {13.0, 6.8, 3.4};
+                else if (Capture == 3u)
+                {
+                    Settings.RisCandidates = 4;
+                    Settings.AccumulationFrames = 8;
+                    Settings.EnvironmentSamples = 16;
+                    Settings.ExhaustiveLights = true;
+                    Settings.SpatialReuse = false;
+                    Settings.SunIrradiance = {4.0, 4.6, 6.2};
+                }
+            }
             if (Analytic)
             {
                 Settings.ExhaustiveLights = true;
@@ -346,7 +402,8 @@ int main(int Count, char** Arguments)
                     throw std::runtime_error("Nonfinite HDR vehicle pixel");
             std::vector<uint8_t> Rgb;
             EncodeDisplayRgb8(Image, .45, Rgb);
-            std::ofstream Stream(Output / (Stem + std::to_string(Pose) + ".ppm"), std::ios::binary);
+            const std::string Filename = Showcase ? Stem + ".ppm" : Stem + std::to_string(Pose) + ".ppm";
+            std::ofstream Stream(Output / Filename, std::ios::binary);
             Stream.exceptions(std::ios::failbit | std::ios::badbit);
             Stream << "P6\n640 400\n255\n";
             Stream.write(reinterpret_cast<const char*>(Rgb.data()), std::streamsize(Rgb.size()));

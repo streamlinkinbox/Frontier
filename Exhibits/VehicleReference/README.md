@@ -11,6 +11,8 @@ The near checker is surrounded by a 2 km ground apron so its finite edge does no
 **Left: field off. Right: field on (joint occlusion and one-bounce radiance).** The native controls remain
 `Capture/Vehicle*.png`; `Capture/Distance*.png` are the new geometry-aware renders.
 
+For same-pose ControlVehicle renders with **Sun/sky/clouds, height fog, a warmer lower Sun, and local analytic lights**, see the [environment showcase](EnvironmentShowcase.md). It contains four lossless native CPU reference images and direct GitHub image URLs; it is not an editor viewport or hardware-GPU result.
+
 ## Continued renderer work
 
 The recovered renderer used only primary-frustum-visible triangles as shadow occluders. An off-camera triangle
