@@ -1,0 +1,208 @@
+FACET_CAUSAL_BUILD mode=sanitized parent=b30abc01b40b507d2d008f9d8c9efd8b3fb85484 working_changes=1
+c++ (Debian 12.2.0-14+deb12u1) 12.2.0
+Copyright (C) 2022 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+f9947111d953b50b89bfd575a7b3242bd307838d44a998e4fcaf3ed3a6b831f3  Frontier/Engine/Rendering/FacetAreaReservoir.h
+256c87a78f755005ec894ae1227f07dc62e08f6be3309aa957fa7dbb896a5b2b  Frontier/Engine/Rendering/FacetAreaReservoir.cpp
+1fbbc601358a3528b51c3bc776211be90a04a95fa109933e5f7cd63c18595d0d  Frontier/Engine/Rendering/FacetAreaProposals.h
+8d28aa60ae6805ac658a2c3fcf5bc73f0caf4364aa7025676d4941c8221049dd  Frontier/Engine/Rendering/FacetAreaProposals.cpp
+ae89a39543952e0e87464bacc0d0608627ac6eaf475b07945e90cad945129607  Frontier/Engine/Rendering/FacetAreaScore.h
+ae71b844db059df6185edd820b87f1bfbdc1b29dff07f2346032476d2f2e16dd  Frontier/Engine/Rendering/FacetAreaScore.cpp
+a72a51729bb2df2abf65ab5aa5da5a9c9ad5eff07fe3f871099f51ba545e7de1  Frontier/Engine/Rendering/FacetAreaTransport.h
+7c264cc83afb987687c69721711849d94969a64290968a8da677abf4b29fac2f  Frontier/Engine/Rendering/FacetAreaTransport.cpp
+6415678082ef3f063b2bab2c6c03d929406945e76c6ea2c4d615301a86bc9a9b  Frontier/Engine/Rendering/CMakeLists.txt
+0c332317c327121ecafca24e48a6f190d254d9ab2dc6a991ae2b45df1034c3cb  Exhibits/LightCompute/FacetAreaTransport/CMakeLists.txt
+c7a1b752fe4f8e9d43daae0d4e36dceeb977f5287e33b35b18b2a5455bedc4a5  Exhibits/LightCompute/Code/FacetAreaProposalValidation.cpp
+02130958c11e6b49b9e096584570ff7d57a5d84009d959fd25859aad5e09def7  Exhibits/LightCompute/Code/FacetAreaProposalScenes.py
+4788065746875e4d9e1cfa825dbd4e26c6bc618d14fa4154c14a6d24b13a42bc  Exhibits/LightCompute/Code/FacetAreaPortValidation.cpp
+b97be1516d22d4759727fe2aeabefe5a16322810cc8cdfa45e60d37d28b9065c  Exhibits/LightCompute/RunFacetAreaTransport.sh
+3ded598b2a512a6d3766d77202858ea9a0213199416c68f2713173b0527a40ea  Exhibits/LightCompute/Code/FacetAreaScoreValidation.cpp
+a4e7256bd6e97fe073b11f39385b2ebfb0704e575c3f4ec1aaa68509e4af37e9  Exhibits/LightCompute/Code/FacetAreaTransportValidation.cpp
+8c3b79da4e832d648bded912ef0c5c2c729de10a96794d0d1838233a725edd6a  Exhibits/LightCompute/Code/FacetAreaTransportScenes.py
+962e1e27e6d2f375aa89a5c43a4ce0a7182b4e22a696e54771737c6a0d1a8789  Exhibits/LightCompute/Code/TriangleReconnectionValidation.h
+cbf73c8ff9b1efb650bc8b4a58e09434046a3ffd27105da5d8d6812d45581022  Exhibits/LightCompute/Code/RgbTraceValidation.h
+08e5d99e7d744330327193ad3c17123175c933a93e3fdb2315bd6d62156dc168  Exhibits/LightCompute/Code/GeometricAreaReservoirValidation.h
+a7ec0b5a95461614d76883e2fb11823e8d7965902cbb65a2a1e7f3fc13b43fcf  Exhibits/LightCompute/Code/DeformedAreaReservoirValidation.h
+eb7cb226b885e55778c960492395595bab019b438eb63c4598e9a293f1b634a1  Exhibits/LightCompute/Code/LightComputeFormat.h
+8c240c11a2a8e8165bad993ed34db573303027b2f507f3a5d13da14efaf59405  Exhibits/LightCompute/Code/PerspectiveAreaReservoirValidation.h
+dc4b466fe1918b181ec2449d6a64318e738d04f6c0316d825c858e3cc518ebf1  Frontier/Engine/Rendering/TriangleVisibilitySpace.h
+6f8517d02179c1db21351241133b75483af6fb6ff9dc183045b3ae89770cd552  Frontier/Engine/Rendering/ClusterNesting.h
+c3674949c7b41fd8f9da62b5d52bf7a4051a89453edbcfac5bbde58939cd309c  Frontier/Engine/Rendering/PathReplayFootprint.h
+7dfb2c426d2c39e7a6b451c8e9cdac6bda45bbbb33910ce41ea3078e35ec89e2  Exhibits/LightCompute/Code/FacetAreaOcclusionValidation.cpp
+7ac0ec015ce8533352cb5dc91f3445586039431395a8ca1e65cde29a0954fe53  Exhibits/LightCompute/FacetAreaOcclusion/CMakeLists.txt
+e92fe4459a7f15f2ef3b71644209335365658fc82f8ed8191ba727a73efe90c9  Exhibits/LightCompute/RunFacetAreaOcclusion.sh
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Python3: /usr/bin/python3.11 (found version "3.11.2") found components: Interpreter
+FIXTURE_CONSTRUCTORS exact=7 generated_sha256=545b6f78dfc9cd046f5a658aa1c6c0a5b5d1e15444df4cab8cf65cb4214c3591
+FACET_NORM_PREFIX exact_sha256=0db9866d34e0a49e7c509b1fcb7a0bd6e981216fc23c97c2cf92d2219f49b50c
+FACET_CAUSAL_REPLAY sha256=4f3cfaee4e2f5040b13bd1cb14da209bd0c208359889bfd684db99d407dcf778
+-- Configuring done (0.7s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized
+9332d2549964c22a934b3d9c3c8c999bb1d27a43ad83ba3a725792423b5080d8  Frontier/Engine/Rendering/FacetAreaPacket.h
+7bd9e94c005b51bad063768a5487bae965b04e713ec3ce998a2a31084e7c3241  Exhibits/LightCompute/Code/FacetPacketValidation.cpp
+e01e20934e892e4fc2ef0294d9b522cb9482b839a9a798fbc7981f0444bdef91  Exhibits/LightCompute/FacetPacket/CMakeLists.txt
+e24d3f32026cb2870a70d1652e59c66a3b9959991588e252891be1617c6a8667  Exhibits/LightCompute/RunFacetPacket.sh
+e3ad957815235bba7a4575ca54996a5c984f366a940b0c8e2c5200cfdae6666e  Exhibits/LightCompute/Code/FacetMixedValidation.cpp
+34ad48e7894939484ff879f6eefa139132ca7ce4459851645751368d4af10711  Exhibits/LightCompute/FacetMixed/CMakeLists.txt
+a56da33be66e3b22a0dfd82e57f3f40ce876618724b96ca852c330cb220d8ca0  Exhibits/LightCompute/RunFacetMixed.sh
+f1d5d9448213046a99a4aecb32e30a9da719a989f969b6156e3e5006b9b5ecfe  Exhibits/LightCompute/Code/FacetNormScenes.py
+ae262e79a9a8aadf22598114c708136a483a9d5707c9232d86f7e4f454554ffc  Exhibits/LightCompute/Code/FacetNormValidation.cpp
+7d8c4551bf6f616e7f7839b846e27d428078de5e3297f4a4b4188538b393bbf8  Exhibits/LightCompute/FacetNorm/CMakeLists.txt
+ca438cfe8a5af2c190afd02474cc44f58efa84ff233dc3e9bd130541ad663407  Exhibits/LightCompute/RunFacetNorm.sh
+3609a6a7de0ae8f1fa0519a6acf81167f29bbe4c9cabb3587559d2279c1d8633  Exhibits/LightCompute/Code/FacetCausalScenes.py
+f892ce7586efda6a026adfa3cb2d8184e618dea16e0e9900d60b07e766b5ad70  Exhibits/LightCompute/Code/FacetCausalValidation.cpp
+d5640d22d2c3fe634c26f2363d61f532dacd46e093040999d28187cfbe7babbf  Exhibits/LightCompute/FacetCausal/CMakeLists.txt
+bf3a9d577f0c563e23ee0f5c084d96bfb656816bbba684f76110affca86b0fec  Exhibits/LightCompute/RunFacetCausal.sh
+[ 25%] Building CXX object norm/mixed/packet/native/baseline/rendering/CMakeFiles/FrontierFacetAreaProposals.dir/FacetAreaProposals.cpp.o
+[ 50%] Linking CXX static library libFrontierFacetAreaProposals.a
+[ 50%] Built target FrontierFacetAreaProposals
+[ 75%] Building CXX object norm/mixed/packet/native/baseline/CMakeFiles/FacetAreaProposalValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaProposalValidation.cpp.o
+[100%] Linking CXX executable FacetAreaProposalValidation
+[100%] Built target FacetAreaProposalValidation
+[ 25%] Building CXX object norm/mixed/packet/native/baseline/rendering/CMakeFiles/FrontierFacetAreaReservoir.dir/FacetAreaReservoir.cpp.o
+[ 50%] Linking CXX static library libFrontierFacetAreaReservoir.a
+[ 50%] Built target FrontierFacetAreaReservoir
+[ 75%] Building CXX object norm/mixed/packet/native/baseline/CMakeFiles/FacetAreaPortValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaPortValidation.cpp.o
+[100%] Linking CXX executable FacetAreaPortValidation
+[100%] Built target FacetAreaPortValidation
+[ 25%] Building CXX object norm/mixed/packet/native/baseline/rendering/CMakeFiles/FrontierFacetAreaScore.dir/FacetAreaScore.cpp.o
+[ 50%] Linking CXX static library libFrontierFacetAreaScore.a
+[ 50%] Built target FrontierFacetAreaScore
+[ 75%] Building CXX object norm/mixed/packet/native/baseline/CMakeFiles/FacetAreaScoreValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaScoreValidation.cpp.o
+[100%] Linking CXX executable FacetAreaScoreValidation
+[100%] Built target FacetAreaScoreValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 50%] Building CXX object norm/mixed/packet/native/baseline/rendering/CMakeFiles/FrontierFacetAreaTransport.dir/FacetAreaTransport.cpp.o
+[ 60%] Linking CXX static library libFrontierFacetAreaTransport.a
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object norm/mixed/packet/native/baseline/CMakeFiles/FacetAreaTransportValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaTransportValidation.cpp.o
+[100%] Linking CXX executable FacetAreaTransportValidation
+[100%] Built target FacetAreaTransportValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object norm/mixed/packet/native/CMakeFiles/FacetAreaOcclusionValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetAreaOcclusionValidation.cpp.o
+[100%] Linking CXX executable FacetAreaOcclusionValidation
+[100%] Built target FacetAreaOcclusionValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object norm/mixed/packet/CMakeFiles/FacetPacketValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetPacketValidation.cpp.o
+[100%] Linking CXX executable FacetPacketValidation
+[100%] Built target FacetPacketValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object norm/mixed/CMakeFiles/FacetMixedValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetMixedValidation.cpp.o
+[100%] Linking CXX executable FacetMixedValidation
+[100%] Built target FacetMixedValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object norm/CMakeFiles/FacetNormValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetNormValidation.cpp.o
+[100%] Linking CXX executable FacetNormValidation
+[100%] Built target FacetNormValidation
+[ 20%] Built target FrontierFacetAreaScore
+[ 40%] Built target FrontierFacetAreaProposals
+[ 60%] Built target FrontierFacetAreaTransport
+[ 80%] Built target FrontierFacetAreaReservoir
+[ 90%] Building CXX object CMakeFiles/FacetCausalValidation.dir/home/user/Frontier/Exhibits/LightCompute/Code/FacetCausalValidation.cpp.o
+[100%] Linking CXX executable FacetCausalValidation
+[100%] Built target FacetCausalValidation
+Internal ctest changing into directory: /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized
+Test project /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized
+    Start 1: FacetCausalValidation
+1/9 Test #1: FacetCausalValidation ............   Passed    0.01 sec
+    Start 2: FacetNormValidation
+2/9 Test #2: FacetNormValidation ..............   Passed    0.02 sec
+    Start 3: FacetMixedValidation
+3/9 Test #3: FacetMixedValidation .............   Passed    0.02 sec
+    Start 4: FacetPacketValidation
+4/9 Test #4: FacetPacketValidation ............   Passed    0.19 sec
+    Start 5: FacetAreaOcclusionValidation
+5/9 Test #5: FacetAreaOcclusionValidation .....   Passed    0.01 sec
+    Start 6: FacetAreaProposalValidation
+6/9 Test #6: FacetAreaProposalValidation ......   Passed    0.01 sec
+    Start 7: FacetAreaPortValidation
+7/9 Test #7: FacetAreaPortValidation ..........   Passed    0.01 sec
+    Start 8: FacetAreaScoreValidation
+8/9 Test #8: FacetAreaScoreValidation .........   Passed    0.01 sec
+    Start 9: FacetAreaTransportValidation
+9/9 Test #9: FacetAreaTransportValidation .....   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 9
+
+Total Test time (real) =   0.30 sec
+FACET_AREA_SCORE_CANCELLATION compensated_distance=1 naive_distance=2 grazing_projection=5.9604644775390625e-08 naive_projection=0 geometry_relative_error=6.0274319164358055e-08
+FACET_AREA_SCORE_UNIT checks=1060 pass=1
+FACET_AREA_PROPOSAL_UNIT checks=193 pass=1
+FACET_AREA_PORT_UNIT checks=14831 pass=1
+FACET_AREA_TRANSPORT_UNIT checks=1058 pass=1
+ANALYTIC_OCCLUSION_UNIT checks=132 paths=12 pass=1
+FACET_PACKET_UNIT checks=31 allocation_calls=0 evaluations=6144 pass=1
+FACET_MIXED_UNIT checks=2796 pass=1
+FACET_NORM_UNIT checks=193 pass=1
+FACET_CAUSAL_UNIT checks=8 pass=1
+FRESH_NATIVE_CASE corpus=2 fixture=0 pixels=24576 pass=1
+FRESH_NATIVE_CASE corpus=2 fixture=1 pixels=24576 pass=1
+FRESH_NATIVE_CASE corpus=2 fixture=2 pixels=24576 pass=1
+FRESH_NATIVE_TOTAL primary=73728 candidates=491520 paths=393216 visibility=786432 double_primary_ties=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=0 operation=0 packet=0 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=0 operation=1 packet=0 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=1 operation=0 packet=3 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=1 operation=1 packet=3 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=2 operation=0 packet=0 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=2 operation=1 packet=0 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=3 operation=0 packet=5 lane=2 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=3 operation=1 packet=5 lane=2 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=4 operation=0 packet=0 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=4 operation=1 packet=0 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=5 operation=0 packet=3 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=0 method=5 operation=1 packet=3 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=0 operation=0 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=0 operation=1 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=1 operation=0 packet=2 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=1 operation=1 packet=2 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=2 operation=0 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=2 operation=1 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=3 operation=0 packet=2 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=3 operation=1 packet=2 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=4 operation=0 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=4 operation=1 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=5 operation=0 packet=2 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=1 method=5 operation=1 packet=2 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=0 operation=0 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=0 operation=1 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=1 operation=0 packet=1 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=1 operation=1 packet=1 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=2 operation=0 packet=0 lane=2 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=2 operation=1 packet=0 lane=2 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=3 operation=0 packet=1 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=3 operation=1 packet=1 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=4 operation=0 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=4 operation=1 packet=0 lane=1 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=5 operation=0 packet=1 lane=0 pass=1
+FACET_CAUSAL_MUTATION fixture=2 method=5 operation=1 packet=1 lane=0 pass=1
+FACET_CAUSAL_TOTAL mutations=36 fault_rejections=36 pass=1
+bf8867dce205348968419bd9d2dedc6391a9977c6c844d8ede1c0508d8367983  /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized/norm/mixed/packet/native/baseline/FacetAreaProposalScenes.h
+fcf00af9cc947a157f804742f30f859d59fb9255a087d839cbe02a386bb7c44d  /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized/norm/FacetNormScenes.h
+05486ce773fddde40a5bbaeb97045aed61e63563df23b15f42e1e0eecc453969  /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized/FacetCausalReplay.h
+d9a2d9e30391388804ebec377744edea8f7a2d58c7e1c3ff32ef526953e4a9f0  /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized/captures/FacetCausalAttribution.csv
+9768066b57ac1cdf8bdd3a29bd4d17bd0987e42b39038b48248d0242aabe1555  /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized/captures/FacetCausalMutations.f32
+064c96a71b8c54b01dbb9476170596a2324a5183d2c5cd4e08c1e335aae5cbe7  /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized/captures/NativeAreaTransport20.f32
+5f8927a3740851b6f3b9028fae9fa2306f8337f9102543d4942c9f3b8b39a46c  /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized/captures/NativeAreaTransport21.f32
+28e8099ae29d4a6a692d7631c2bfb026a67939dc99fb105cfe3733450b3f3940  /home/user/Frontier/_ClaudeScratch/build/facet-causal-sanitized/captures/NativeAreaTransport22.f32

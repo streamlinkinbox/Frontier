@@ -1,5 +1,26 @@
 # Project Tracker
 
+## Deformed transport energy attribution and causal regression — 2026-10-30
+
+- [Original coverage diagnosis](../Exhibits/LightCompute/FacetCausal.md):all blocked paths in fixture0
+  connection/suffix and fixture1 connection have zero unoccluded proxy RGB:67,935/62,001/70,734 paths.
+  Therefore omitting those gates cannot restore positive energy. This is not evidence visibility is optional.
+- Fresh native replay preserves all41 slabs of all3 original deformed captures exactly. Original changed-packet
+  counts stay0/0,0/7,247,4,158/3,841. No original gate,fixture,seed,sampler or artifact is rewritten.
+- Targeted new regression chooses the first positive fully visible qualified path per fixture/method and
+  adds one real black triangle separately to each visibility ray. All36 cases preserve source/primary/rays,
+  block correct RGB,and restore it exactly only when omitting the targeted gate. All36 bypass faults rejected.
+- Release/host ASan+UBSan+leaks,nine CTests and20,302 focused checks/build;73,728 packets,491,520 candidates,
+  393,216 paths and786,432 independent double visibility checks/build. NumPy independently checks all new
+  triangles hit only their target ray,not the opposite/camera. All1,467 prior manifest entries unchanged.
+- Retained54 actual original-scene images,lossless baseline/mutation buffers,per-method energy attribution
+  and explicit weighted-path contribution comparisons. No new quality/speed claim or production promotion.
+- Phase100%/0% remaining as completed diagnosis+causal regression;overall stays~91%/~9% remaining,planning
+  estimates. Historical transport acceptance=0 remains HELD and norm promotion FAIL is retained. Next:bounded
+  Slang/Vulkan deformed causal parity;renderer wiring,history/general materials,physical-GPU/Windows/time remain.
+- Production348.046875MiB/defaults/32B unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+  Source and complete retained evidence are backed up on the existing branch.
+
 ## Fresh RGB-norm target holdout — 2026-10-30
 
 - [Frozen norm-target study](../Exhibits/LightCompute/FacetNorm.md):three new rigs,four visibility variants,

@@ -14,6 +14,12 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [Deformed transport causal diagnosis](Exhibits/LightCompute/FacetCausal.md):all blocked paths in the three
+  insensitive historical controls have zero unoccluded RGB. Fresh replay matches all41 historical slabs.
+  All36 real added-triangle tests pass and36 visibility-bypass faults are rejected;nine CTests/build,
+  Release/host ASan+UBSan. Actual renders/contribution comparisons retained. Historical acceptance stays HELD;
+  this is targeted coverage,not a quality win or default promotion. Production348.046875MiB unchanged.
+
 - [Fresh RGB-norm score study](Exhibits/LightCompute/FacetNorm.md):eight independent four-packet cohorts,
   eight arms,twelve cases. Correctness passes;norm MSE improves3.39% versus mean RIS and9.37% versus raw4 on
   average,but regresses in two cases against each baseline:the frozen promotion gate FAILS. All1,152 mean

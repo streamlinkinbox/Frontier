@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.20)
+project(FacetCausal LANGUAGES CXX)
+enable_testing()
+add_subdirectory("../FacetNorm" "${CMAKE_CURRENT_BINARY_DIR}/norm")
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ../Code/FacetCausalScenes.py ../Code/FacetAreaTransportValidation.cpp)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/../Code/FacetCausalScenes.py"
+    "${CMAKE_CURRENT_BINARY_DIR}/FacetCausalReplay.h" COMMAND_ERROR_IS_FATAL ANY)
+add_executable(FacetCausalValidation ../Code/FacetCausalValidation.cpp)
+target_include_directories(FacetCausalValidation PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" ../Code
+    "${CMAKE_CURRENT_BINARY_DIR}/norm/mixed/packet/native/baseline")
+target_compile_features(FacetCausalValidation PRIVATE cxx_std_20)
+target_link_libraries(FacetCausalValidation PRIVATE FrontierFacetAreaTransport FrontierFacetAreaReservoir)
+if(MSVC)
+    target_compile_options(FacetCausalValidation PRIVATE /utf-8 /W4 /fp:strict)
+else()
+    target_compile_options(FacetCausalValidation PRIVATE -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off)
+endif()
+add_test(NAME FacetCausalValidation COMMAND FacetCausalValidation --unit)

@@ -1,0 +1,14 @@
+PASS deformed path-energy attribution and targeted causal visibility regression;historical acceptance remains HELD.
+9 CTests/build,20302 focused checks/build;Release and host ASan+UBSan with leaks enabled.
+73728 original deformed packets,491520 candidates,393216 paths and786432 independent visibility decisions/build.
+All41 historical slabs of each of3 fresh native captures exactly match retained historical buffers.
+Original omission sensitivity conn/suffix packets:fixture0=0/0,fixture1=0/7247,fixture2=4158/3841 unchanged.
+Every blocked path in the3 insensitive operation/fixture pairs has exactly zero unoccluded proxy RGB.
+36 real added-triangle mutations independently strike only the intended ray,not the opposite or primary ray.
+36/36 mutations preserve primary/source/rays,block RGB,and restore it exactly only by omitting the targeted gate.
+36/36 test-only visibility-multiplication bypass faults rejected by the same causal predicate.
+3 historical buffers,attribution CSV,mutation buffer and42 semantic rows identical across builds.
+All1467 prior manifest entries unchanged;original acceptance=0 and RGB-norm promotion=FAIL retained.
+54 actual original-scene RGB image arrays retained,plus weighted-path RGB comparisons,not invented scene renders.
+No engine/API/shader/default change,no new GPU/history/physical-time/Windows/production acceptance.
+Production348.046875MiB output/defaults/32B descriptors unchanged;no PR/Actions.
