@@ -14,6 +14,11 @@ parity and validation against measured tyres, vehicles, sky and lens data remain
 
 ## Latest rendering continuation
 
+- [GPU-resident facet area/CDF preparation](Exhibits/LightCompute/FacetCdfGpu.md):116 images/118,784 packets,
+  all80 slabs bit-identical to paired uncached GPU output. Actual area calls25,656,526->466;30 preparations,
+  warm reuse/invalidation/rejection controls and14 CTests/20,342 checks per build,Release/host ASan+UBSan.
+  SwiftShader CPU Vulkan;work reduction is not FPS. Production348.046875MiB/defaults/32B unchanged.
+
 - [Runtime-sized GPU facet profiles](Exhibits/LightCompute/FacetProfileGpu.md):support sizes1/3/7/16/31/65,
   108 full images/110,592 packets and1,179,648 visibility decisions per build pass native parity. All6,144
   malformed-profile pixels reject exactly;13 CTests/20,334 checks,Release/host ASan+UBSan. Profile16 retains

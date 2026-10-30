@@ -1,5 +1,23 @@
 # Project Tracker
 
+## GPU-resident facet area/CDF preparation — 2026-10-30
+
+- [Retained GPU profile preparation](../Exhibits/LightCompute/FacetCdfGpu.md):116 complete images/118,784 packets,
+  plus6,144 exact malformed-profile rejections. Paired cached/uncached GPU outputs match all80 slabs bit-for-bit;
+  independent native proposal/score/selection/transport and double shadows pass unchanged gates.
+- Measured GPU area calls25,656,526->466,30 preparations across122 submissions;92 warm submissions reuse the cache.
+  Explicit prepare-to-sample compute barrier,no CPU bridge. Dynamic private geometry-sized cache has guard quartets.
+  Camera/seed/method changes reuse;profile/material/geometry/valid support-count changes rebuild as expected.
+- Release + host ASan/UBSan:14 CTests/20,342 focused checks per build. Driver uninstrumented,leaks0.
+  Seven captures/124 semantic rows exact across builds;original108 GPU/native captures byte-identical to prior.
+  Packet RGB max3.72529e-9,RMSE3.42991e-11;weighted RGB7.45058e-9,coordinates0,cache residual4.42276e-7.
+- Lossless diagnostic deltas,cache snapshots,per-batch work,actual native/GPU/error images and work graph retained.
+  Archived reconstruction verifies raw hashes without a GPU. Eleven previous manifests/1,761 entries unchanged.
+- Phase100%/0% remaining;overall~95%/~5% remaining,planning estimates only. Next:renderer-owned resource/submission
+  integration;general scenes/material/history,physical GPU,Windows and performance acceptance remain open.
+  SwiftShader CPU Vulkan work counts are not measured FPS or quality improvement. Transport HELD,norm FAIL remain.
+- Production348.046875MiB/defaults/32B unchanged;packing/editor/vehicle/Jolt deferred. No PR/Actions.
+
 ## Runtime-sized GPU proposal profiles — 2026-10-30
 
 - [Variable source-profile parity](../Exhibits/LightCompute/FacetProfileGpu.md):three deformed layouts,support

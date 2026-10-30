@@ -1,0 +1,11 @@
+GPU-resident area/CDF parity=PASS;frozen gates unchanged.
+116 positive images/118784 packets plus6 malformed submissions;paired uncached GPU on every batch.
+14 CTests/20342 focused checks per build;host ASan+UBSan,driver uninstrumented,leaks0.
+GPU area calls 25656526->466;reduction=99.998183698 percent,NOT measured time/FPS. Preparations=30.
+Offline diagnostic failed packets=0;native invalid=0;malformed failed pixels=0.
+Maximum packet RGB difference=3.7252902984619141e-09;RGB RMSE=3.4299106163242583e-11.
+Original108 image GPU/native captures exact prior=1/1;extra preparations=[8, 8, 9, 10, 11, 12, 12, 13].
+CDF_GPU_TOTAL images=116 batches=122 packets=118784 candidates=802816 paths=647168 pairs=155648 visibility=1294336 preparations=30 cached_areas=466 uncached_areas=25656526 rejected=6144 failures=0 guard_failures=0 rgb_error=7.4505805969238281e-09 coordinate_error=0 scalar_error=1.7163382095932151e-07 cache_error=4.4227597884027858e-07 pass=1
+All seven capture files and124 semantic rows identical across builds;displayed native/GPU image pairs exact=8/8.
+Eleven prior manifests/1761 entries unchanged;transport HELD,norm promotion FAIL preserved.
+Dynamic cache is private binding5 scratch,not a production allocation change. No physical-GPU/Windows/renderer/quality acceptance.
