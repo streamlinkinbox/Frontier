@@ -34,9 +34,9 @@
     }
   ],
   "post_commit_sync": {
-    "fetched_revision": "71e4a17ed543325061b6e5f392476f5c9fd26699",
+    "fetched_revision": "85bf67c7f011ce52a3a6ae40ab6d2c52a849fbec",
     "merge_base": null,
-    "result": "After deepening the session origin history, the branch roots remain unrelated. Selected shared UI modules compare unchanged with the fetched ref; no unrelated-history merge was forced."
+    "result": "After commit 3bfa58b, fetched arena/11f31835-frontier at 85bf67c7f011ce52a3a6ae40ab6d2c52a849fbec. The roots remain unrelated; RunBrowserWindow, ProjectBrowserHost, ControlKit, PixelSpace, ControlCentrePanel and PanelDockspace compare unchanged. No unrelated-history merge was attempted."
   },
   "sync_policy": "After every local commit, fetch SultanAladin/Frontier arena/11f31835-frontier, deepen history if needed, and merge only when a common ancestor exists. If complete histories remain unrelated, verify selected shared UI files and record that no merge is possible; never use --allow-unrelated-histories. The current user request authorizes pushing the completed feature branch after sync; it does not authorize GitHub Actions, so inspect workflow triggers before pushing."
 }
