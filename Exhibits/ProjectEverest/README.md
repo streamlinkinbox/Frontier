@@ -19,13 +19,23 @@ The VehicleHMI/ReSTIR renderer, project scene, and hardware paths are **not** pa
 
 ## Native evidence
 
-The retained PNG is generated from C++ ImGui draw data by `Exhibits/LogStream/PanelCapture.cpp`; it is not an HTML render or edited upstream reference. The workspace harness exercises the production Control Centre, PanelDockspace, Outliner, Inspector, and Log Stream in deterministic ImGui frames, and checks that the custom Outliner icon set is ready. Sun's Inspector is the native four-section VehicleHMI dashboard (Overview, Daylight, Light & colour, Disc & optics); its scalar sliders delegate to the shared main/UI ControlKit through PixelSpace. The harness substitutes a CPU rasterizer for GLFW/OS-window and GPU presentation. The production browser remains the existing `RunBrowserWindow`; it is compile-checked, while the native project validator verifies `.frontier` descriptor enumeration.
+The retained PNGs are generated from C++ ImGui draw data by `Exhibits/LogStream/PanelCapture.cpp`; they are not HTML renders or edited upstream references. The workspace harness exercises the production Control Centre, PanelDockspace, Outliner, Inspector, and Log Stream in deterministic ImGui frames, and checks that the custom Outliner icon set is ready. It can select and capture each native dashboard page: Sun's source-ordered Overview, Daylight, Light & colour, and Disc & optics; Clouds' Overview, Formation, Rendering, and Weather; and Atmosphere's Overview, Medium, Light response, and Baking. Sun and Environment numeric tracks use the existing shared main/UI `ControlKit::Slider` through PixelSpace. Renderer-dependent Cloud controls and Atmosphere baking are stated as unavailable rather than represented by fabricated GPU output. The harness substitutes a CPU rasterizer for GLFW/OS-window and GPU presentation. The production browser remains the existing `RunBrowserWindow`; it is compile-checked, while the native project validator verifies `.frontier` descriptor enumeration.
 
-| Image | Native state shown |
+| Inspector page | Native capture |
 |---|---|
-| [`Images/NativeWorkspace.png`](Images/NativeWorkspace.png) | Project Everest workspace with the VehicleHMI Outliner, selected Sun Inspector, idle Viewport, and Log Stream. |
-| [`Images/NativeWorkspaceReference.png`](Images/NativeWorkspaceReference.png) | Inherited upstream workspace reference, retained for comparison; not this project's capture. |
-| [`Images/NativeControlCentreReference.png`](Images/NativeControlCentreReference.png) | Inherited upstream Control Centre reference, retained for comparison; not this project's capture. |
+| Sun — Overview | [`Images/NativeWorkspace.png`](Images/NativeWorkspace.png) |
+| Sun — Daylight | [`Images/NativeWorkspace-Sun-Daylight.png`](Images/NativeWorkspace-Sun-Daylight.png) |
+| Sun — Light & colour | [`Images/NativeWorkspace-Sun-LightColour.png`](Images/NativeWorkspace-Sun-LightColour.png) |
+| Sun — Disc & optics | [`Images/NativeWorkspace-Sun-DiscOptics.png`](Images/NativeWorkspace-Sun-DiscOptics.png) |
+| Clouds — Overview | [`Images/NativeWorkspace-Clouds.png`](Images/NativeWorkspace-Clouds.png) |
+| Clouds — Formation | [`Images/NativeWorkspace-Clouds-Formation.png`](Images/NativeWorkspace-Clouds-Formation.png) |
+| Clouds — Rendering | [`Images/NativeWorkspace-Clouds-Rendering.png`](Images/NativeWorkspace-Clouds-Rendering.png) |
+| Clouds — Weather | [`Images/NativeWorkspace-Clouds-Weather.png`](Images/NativeWorkspace-Clouds-Weather.png) |
+| Atmosphere — Overview | [`Images/NativeWorkspace-Atmosphere.png`](Images/NativeWorkspace-Atmosphere.png) |
+| Atmosphere — Medium | [`Images/NativeWorkspace-Atmosphere-Medium.png`](Images/NativeWorkspace-Atmosphere-Medium.png) |
+| Atmosphere — Light response | [`Images/NativeWorkspace-Atmosphere-LightResponse.png`](Images/NativeWorkspace-Atmosphere-LightResponse.png) |
+| Atmosphere — Baking | [`Images/NativeWorkspace-Atmosphere-Baking.png`](Images/NativeWorkspace-Atmosphere-Baking.png) |
+| Inherited source | [`Images/NativeWorkspaceReference.png`](Images/NativeWorkspaceReference.png) and [`Images/NativeControlCentreReference.png`](Images/NativeControlCentreReference.png) — retained for comparison; not this project's capture. |
 
 The native entry point is compiled in the `FrontierNativeEntry` object target with the GLFW/interface SDK headers. The exhibit does **not** launch a GLFW OS window or Vulkan presentation; renderer integration, RTX/GTX hardware execution, and performance remain unverified.
 
@@ -51,8 +61,8 @@ cmake --build Build/ProjectEverest --target Frontier FrontierNativeEntry NativeP
 ctest --test-dir Build/ProjectEverest --output-on-failure
 ```
 
-`NativeUIEvidence` writes `native-workspace.png` under its output directory by rendering the native ImGui workspace draw data. CTest runs the workspace capture together with descriptor/record validation and the portable headless smoke test. `FrontierNativeEntry` is compile-only, while `Frontier` is the portable headless host used by the smoke test. All binaries and intermediate outputs remain under ignored `Build/`.
+`NativeUIEvidence` writes `native-workspace.png` for the default Sun Overview capture. In workspace mode, an optional stable ID and page index (`0`–`3`) select Sun, Clouds, or Atmosphere pages; for example, `--workspace "$PWD" atmosphere 3` captures Atmosphere Baking. CTest captures all 12 dashboard pages, alongside descriptor/record validation and the portable headless smoke test. `FrontierNativeEntry` is compile-only, while `Frontier` is the portable headless host used by the smoke test. All binaries and intermediate outputs remain under ignored `Build/`.
 
 ## Current local result
 
-On 2026-10-31 with GCC 12.2, CMake 4.4.4, and Ninja 1.13.2, all three CTests passed. The native project/record validator passed 23 checks with zero failures, and the workspace evidence reported all 10 custom VehicleHMI Outliner icons ready. The existing `.frontier` chooser is compile-checked through `FrontierNativeEntry`; its descriptor enumeration is covered by the project validator. See [`Results/NativeValidation.txt`](Results/NativeValidation.txt) for commands and limits.
+On 2026-10-31 with GCC 12.2, CMake 4.4.4, and Ninja 1.13.2, all 14 CTests passed, including native captures for every Sun, Clouds, and Atmosphere dashboard page. The native project/record validator passed 23 checks with zero failures, and the workspace evidence reported all 10 custom VehicleHMI Outliner icons ready. The existing `.frontier` chooser is compile-checked through `FrontierNativeEntry`; its descriptor enumeration is covered by the project validator. See [`Results/NativeValidation.txt`](Results/NativeValidation.txt) for commands and limits.

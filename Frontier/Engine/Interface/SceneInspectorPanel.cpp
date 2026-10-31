@@ -145,7 +145,6 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
     const ImU32 EdgeCol  = DarkOled ? KitInkHex(0x262626) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_Border]);
     const ImU32 SegBg    = DarkOled ? KitInkHex(0x111111) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_WindowBg]);
     const ImU32 SegAct   = DarkOled ? KitInkHex(0x2e2e2e) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_HeaderActive]);
-    const ImU32 FieldBg  = DarkOled ? KitInkHex(0x131313) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_FrameBg]);
     const ImU32 HoverBg  = DarkOled ? KitInkHex(0x292929) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_FrameBgHovered]);
     const ImU32 TextCol  = DarkOled ? KitInkHex(0xdfdfdf) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_Text]);
     const ImU32 SoftCol  = DarkOled ? KitInkHex(0xa8a8a8) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_Text]);
@@ -194,9 +193,13 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
 
 #if defined(FRONTIER_EDITOR_PROFILE)
         // Entity-authored Inspector pages keep specialised controls/data with the record that owns them.
-        if (Model.ConstructInspector)
+        const auto ConstructInspector = Model.ConstructInspector;
+        if (ConstructInspector)
         {
-            Model.ConstructInspector();
+            const std::function<void()> OpenLensFlare = [&Panel] {
+                (void)Panel.SelectByStableId("flare");
+            };
+            ConstructInspector(OpenLensFlare);
             ImGui::EndChild();
             ImGui::PopStyleVar();
             ImGui::PopStyleColor();
@@ -503,14 +506,14 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
             ImGui::SetCursorScreenPos(ImVec2(Left, Cur.y + CardH + 10.0f));
         }
 
-        // Reuse the main/UI branch's PixelSpace + ControlKit slider in this ImGui child window.
-        // The track/knob dimensions are the VehicleHMI control row's 4/11 px rather than ControlKit's defaults.
+        // Reuse the shared main/UI PixelSpace + ControlKit slider in this ImGui child window.
         PixelSpace ControlSurface;
         const ImVec2 DisplaySize = ImGui::GetIO().DisplaySize;
         const bool ControlSurfaceReady =
             ControlSurface.Begin(SurfaceLayer::Window, DisplaySize.x, DisplaySize.y);
 
-        // Scalar Parameter Cards (.card + EditorControls.js two-line .control with its slim slider geometry).
+        // Scalar property rows use MaterialLibraryPanel::ConstructProperty's 25px pill,
+        // +42px track, 24px rail / 22px thumb, and 71px row block. Interaction stays on ControlKit::Slider.
         size_t FIdx = 0;
         while (FIdx < Model.ScalarFields.size())
         {
@@ -529,7 +532,7 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
             }
 
             Cur = ImGui::GetCursorScreenPos();
-            const float RowH  = 46.0f;
+            const float RowH = 71.0f;
             const float CardH = 42.0f + static_cast<float>(EndIdx - FIdx) * RowH;
             KitPillSurface(CInk, ImVec2(Left, Cur.y), ImVec2(Right, Cur.y + CardH), CardBg, CardEdge, 16.0f);
 
@@ -544,68 +547,119 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
                 const RecordEditorScalarField& Field = Model.ScalarFields[K];
                 if (Field.Target == nullptr && Field.FloatTarget == nullptr) continue;
 
-                const float RY  = Cur.y + 36.0f + static_cast<float>(K - FIdx) * RowH;
-                double      Val = ReadScalarField(Field);
-
-                // Line 1: Label on left + .number-field (value + unit) on right
-                KitDrawText(CInk, Faces.Regular, 10.5f, ImVec2(Left + 16.0f, RY + 2.0f), SoftCol,
-                            Field.Label != nullptr ? Field.Label : "");
-
-                const float NumW = 76.0f;
-                const float NumX = Right - NumW - 16.0f;
-                KitPillSurface(CInk, ImVec2(NumX, RY - 1.0f), ImVec2(NumX + NumW, RY + 20.0f),
-                               FieldBg, DarkOled ? KitInkHex(0x333333) : CardEdge, 7.0f);
-
-                char ValStr[32] = {};
-                std::snprintf(ValStr, sizeof(ValStr), "%.*f", std::clamp(Field.Digits, 0, 4), Val);
-                const bool HasUnit = Field.Unit != nullptr && Field.Unit[0] != '\0' && std::string(Field.Unit) != "-";
-                const float UnitW  = HasUnit ? (KitTextWidth(Faces.Regular, 9.0f, Field.Unit) + 4.0f) : 0.0f;
-                const float ValW   = KitTextWidth(Faces.Medium, 10.5f, ValStr);
-                KitDrawText(CInk, Faces.Medium, 10.5f, ImVec2(NumX + NumW - UnitW - ValW - 7.0f, RY + 2.5f), TextCol, ValStr);
-                if (HasUnit)
-                {
-                    KitDrawText(CInk, Faces.Regular, 9.0f, ImVec2(NumX + NumW - UnitW - 4.0f, RY + 4.0f), MuteCol, Field.Unit);
-                }
-
-                // Line 2: VehicleHMI's slim full-width row, rendered by the shared ControlKit slider (4px rail, 11px knob).
+                const float RY = Cur.y + 36.0f + static_cast<float>(K - FIdx) * RowH;
+                double Val = ReadScalarField(Field);
                 const float SliderX = Left + 16.0f;
                 const float SliderW = Width - 32.0f;
-                const float RailY   = RY + 30.0f;
+                const bool HasUnit = Field.Unit != nullptr && Field.Unit[0] != '\0' && std::string(Field.Unit) != "-";
+                const float UnitW = HasUnit ? KitTextWidth(Faces.Regular, 9.114f, Field.Unit) : 0.0f;
+                const float PillW = std::min(SliderW, std::max(63.0f, 12.0f + 42.0f +
+                    (HasUnit ? 5.0f + UnitW : 0.0f)));
+                const float PillX = SliderX + SliderW - PillW;
+                const float InputW = std::min(42.0f, std::max(1.0f, PillW - 12.0f -
+                    (HasUnit ? 5.0f + UnitW : 0.0f)));
 
                 ImGui::PushID(static_cast<int>(K + 4000));
-                ImGui::SetCursorScreenPos(ImVec2(SliderX, RailY - 9.0f));
-                ImGui::InvisibleButton("##ScalarRail", ImVec2(SliderW, 18.0f));
+                KitDrawText(CInk, Faces.Regular, 10.0f, ImVec2(SliderX, RY + 7.0f), SoftCol,
+                            Field.Label != nullptr ? Field.Label : "");
+                CInk->AddRectFilled(ImVec2(PillX, RY), ImVec2(PillX + PillW, RY + 25.0f), KitInkHex(0x090909), 12.5f);
+                CInk->AddRect(ImVec2(PillX, RY), ImVec2(PillX + PillW, RY + 25.0f), KitInkHex(0xffffff, 13), 12.5f);
+
+                char Format[16] = {};
+                std::snprintf(Format, sizeof(Format), "%s", Field.Step >= 1.0 ? "%.0f" : "%.6g");
+                double DisplayValue = Val;
+                ImGui::SetCursorScreenPos(ImVec2(PillX + 6.0f, RY));
+                ImGui::SetNextItemWidth(InputW);
+                ImGui::PushFont(Faces.Medium, 13.02f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 6.0f));
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(KitInkHex(0xcbd3dc)));
+                const bool InputChanged = ImGui::InputDouble("##ScalarValue", &DisplayValue, 0.0, 0.0, Format);
+                const bool ValueFocused = ImGui::IsItemFocused();
+                const auto SnapField = [&Field](double Next) {
+                    Next = std::clamp(Next, Field.Minimum, Field.Maximum);
+                    if (Field.Step > 0.0)
+                        Next = Field.Minimum + std::round((Next - Field.Minimum) / Field.Step) * Field.Step;
+                    return std::clamp(Next, Field.Minimum, Field.Maximum);
+                };
+                if (InputChanged && std::isfinite(DisplayValue))
+                {
+                    if (WriteScalarField(Field, SnapField(DisplayValue)))
+                    {
+                        Val = ReadScalarField(Field);
+                        BumpModelRevision(Model);
+                    }
+                }
+                else if (ValueFocused && Field.Step > 0.0)
+                {
+                    const int Direction = static_cast<int>(ImGui::IsKeyPressed(ImGuiKey_UpArrow, true)) -
+                                          static_cast<int>(ImGui::IsKeyPressed(ImGuiKey_DownArrow, true));
+                    if (Direction != 0 && WriteScalarField(Field, SnapField(Val + Direction * Field.Step)))
+                    {
+                        Val = ReadScalarField(Field);
+                        BumpModelRevision(Model);
+                    }
+                }
+                ImGui::PopStyleColor(4);
+                ImGui::PopStyleVar();
+                ImGui::PopFont();
+                if (HasUnit)
+                    CInk->AddText(Faces.Regular, 9.114f,
+                        ImVec2(PillX + PillW - 6.0f - UnitW, RY + 8.0f), KitInkHex(0x7f8f9a), Field.Unit);
+
+                const float TrackY = RY + 42.0f;
+                ImGui::SetCursorScreenPos(ImVec2(SliderX, TrackY));
+                ImGui::InvisibleButton("##ScalarRail", ImVec2(SliderW, 24.0f), ImGuiButtonFlags_EnableNav);
                 const bool ItemHovered = ImGui::IsItemHovered();
-                const bool ItemActive  = ImGui::IsItemActive();
+                const bool ItemActive = ImGui::IsItemActive();
+                const bool TrackFocused = ImGui::IsItemFocused();
 
                 if (ControlSurfaceReady)
                 {
                     const ImGuiIO& Io = ImGui::GetIO();
                     ControlPointer Pointer;
-                    Pointer.X        = Io.MousePos.x;
-                    Pointer.Y        = Io.MousePos.y;
-                    Pointer.Down     = ItemActive && ImGui::IsMouseDown(ImGuiMouseButton_Left);
-                    Pointer.Pressed  = ImGui::IsItemActivated();
+                    Pointer.X = Io.MousePos.x;
+                    Pointer.Y = Io.MousePos.y;
+                    Pointer.Down = ItemActive && ImGui::IsMouseDown(ImGuiMouseButton_Left);
+                    Pointer.Pressed = ImGui::IsItemActivated();
                     Pointer.Released = ImGui::IsItemDeactivated();
-                    Pointer.Enabled  = ItemHovered || ItemActive;
+                    Pointer.Enabled = ItemHovered || ItemActive;
+
+                    const ControlKitPalette Original = ControlKit::Palette();
+                    ControlKitPalette Palette = Original;
+                    Palette.SliderTrack = ColorQuad{23.0f / 255.0f, 23.0f / 255.0f, 23.0f / 255.0f, 1.0f};
+                    Palette.SliderFill = ColorQuad{69.0f / 255.0f, 69.0f / 255.0f, 69.0f / 255.0f, 1.0f};
+                    Palette.SliderThumb = ColorQuad{215.0f / 255.0f, 215.0f / 255.0f, 206.0f / 255.0f, 1.0f};
+                    ControlKit::ConfigurePalette(Palette);
 
                     float Output = static_cast<float>(Val);
                     const ControlHit Hit = ControlKit::Slider(
-                        ControlSurface, Spanning(SliderX, RailY - 9.0f, SliderW, 18.0f),
+                        ControlSurface, Spanning(SliderX, TrackY, SliderW, 24.0f),
                         static_cast<float>(Field.Minimum), static_cast<float>(Field.Maximum),
-                        static_cast<float>(Val), ItemActive, Pointer, Output, 1.0f, 4.0f, 11.0f);
+                        static_cast<float>(Val), ItemActive, Pointer, Output, ImGui::GetStyle().Alpha, 24.0f, 22.0f);
+                    ControlKit::ConfigurePalette(Original);
                     if (Hit.Dragging && Pointer.Down)
                     {
-                        double Next = static_cast<double>(Output);
-                        if (Field.Step > 0.0)
-                        {
-                            Next = std::round(Next / Field.Step) * Field.Step;
-                        }
+                        const double Next = SnapField(static_cast<double>(Output));
                         if (WriteScalarField(Field, Next))
                         {
                             Val = ReadScalarField(Field);
                             BumpModelRevision(Model);
                         }
+                    }
+                }
+                if (TrackFocused && !ItemActive && Field.Step > 0.0)
+                {
+                    const int Direction = static_cast<int>(ImGui::IsKeyPressed(ImGuiKey_RightArrow, true) ||
+                                                           ImGui::IsKeyPressed(ImGuiKey_UpArrow, true)) -
+                                          static_cast<int>(ImGui::IsKeyPressed(ImGuiKey_LeftArrow, true) ||
+                                                           ImGui::IsKeyPressed(ImGuiKey_DownArrow, true));
+                    if (Direction != 0 && WriteScalarField(Field, SnapField(Val + Direction * Field.Step)))
+                    {
+                        Val = ReadScalarField(Field);
+                        BumpModelRevision(Model);
                     }
                 }
                 ImGui::PopID();

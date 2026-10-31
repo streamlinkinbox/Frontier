@@ -10,12 +10,13 @@
 ## Build and test commands
 
 ```sh
-./.venv/bin/cmake --build Build/ProjectEverest \
-  --target Frontier FrontierNativeEntry NativeProjectValidation NativeUIEvidence --parallel 4
-./.venv/bin/ctest --test-dir Build/ProjectEverest --output-on-failure
+PATH="$PWD/Build/ProjectEverest/toolenv/bin:$PATH" cmake --build Build/ProjectEverest \
+  --target FrontierNativeEntry Frontier NativeProjectValidation NativeUIEvidence --parallel 2
+PATH="$PWD/Build/ProjectEverest/toolenv/bin:$PATH" ctest --test-dir Build/ProjectEverest --output-on-failure
+Build/ProjectEverest/NativeProjectValidation "$PWD"
 ```
 
-Result: **3/3 CTests passed** — `NativeProjectValidation`, `FrontierProjectZeroHeadless`, and `NativeProjectEverestWorkspace`.
+Result: **14/14 CTests passed** — `NativeProjectValidation`, `FrontierProjectZeroHeadless`, and 12 native workspace captures covering Sun Overview/Daylight/Light & colour/Disc & optics, Clouds Overview/Formation/Rendering/Weather, and Atmosphere Overview/Medium/Light response/Baking.
 
 `FrontierNativeEntry` compiles the GLFW-backed `FrontierMain.cpp` path as an object target. `NativeUIEvidence` is a test/exhibit runner, not a delivered product binary.
 
@@ -59,11 +60,9 @@ PASS  record destruction removes its Inspector description
 - Custom SVG artwork is loaded and rasterized using ThorVG into the existing ImGui dynamic-texture presentation. Approved vector variants retain source fingerprints for SVG filter primitives outside the pinned ThorVG SVG subset. Stroke icons use the pinned Lucide 1.57.0 path geometry in the native glyph renderer.
 - The CPU evidence rasterizer samples `ImTextureData` so the checked-in workspace capture includes the ThorVG-generated icons.
 
-The checked-in evidence files are:
+The checked-in native captures are 1920 × 1080 PNGs under `Images/NativeWorkspace*.png`: Sun's Overview, Daylight, Light & colour, and Disc & optics; Clouds' Overview, Formation, Rendering, and Weather; and Atmosphere's Overview, Medium, Light response, and Baking. `README.md` lists each screenshot. The source-reference and Control Centre comparison images are retained separately.
 
-- `Images/NativeWorkspace.png` — 1920 × 1080; Outliner, selected Sun Inspector, idle Viewport, and Log Stream.
-
-The workspace harness exercises the production Control Centre, PanelDockspace, Outliner, Inspector, and Log Stream units in deterministic ImGui frames. The captured Sun page is Overview; the native dashboard source also builds the Daylight, Light & colour, and Disc & optics pages. All Sun scalar controls delegate to the shared main/UI `ControlKit::Slider` through `PixelSpace`. It does not call `RunProjectWindow`; the CPU rasterizer stands in for GPU presentation.
+The workspace harness exercises the production Control Centre, PanelDockspace, Outliner, Inspector, and Log Stream units in deterministic ImGui frames. Its page selector is available in workspace mode as `[inspector-stable-id [page-index]]`, with page indices 0–3; CTest invokes all 12 dashboard pages. Sun and Environment scalar tracks delegate to the shared main/UI `ControlKit::Slider` through `PixelSpace`. Sun's numeric fields and focusable tracks retain their source step behavior on arrow keys. It does not call `RunProjectWindow`; the CPU rasterizer stands in for GPU presentation.
 
 ## Limits
 

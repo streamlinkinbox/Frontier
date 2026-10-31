@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <functional>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -292,6 +293,9 @@ void SeedStream(const std::function<void(double)>& PumpSecond)
 
 #include "Engine/Diagnostics/DiagnosticJournal.h"
 #include "Engine/Interface/LogStreamPanelRegistration.h"
+#include "Engine/Interface/SunInspectorDashboard.h"
+#include "Engine/Interface/CloudInspectorDashboard.h"
+#include "Engine/Interface/AtmosphereInspectorDashboard.h"
 #include "Engine/Interface/IconPresentation.h"
 #include "Engine/Interface/SceneDirectoryPanel.h"
 #include "Engine/Interface/SceneDirectoryPanelRegistration.h"
@@ -307,8 +311,14 @@ void SeedStream(const std::function<void(double)>& PumpSecond)
 namespace
 {
 
-int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesystem::path& RepositoryRoot)
+int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesystem::path& RepositoryRoot,
+                        const std::string& InspectorStableId, int InspectorPage)
 {
+    if (InspectorPage < -1 || InspectorPage > 3)
+    {
+        std::fprintf(stderr, "workspace capture refused: Inspector page must be between 0 and 3\n");
+        return 2;
+    }
     CaptureWidth  = 1920;
     CaptureHeight = 1080;
     std::filesystem::create_directories(OutputDirectory);
@@ -403,17 +413,35 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
     (void)Directory.ConfigureName(Wind.Token(), "Wind");
     OutlinerPanel.ConfigureWorkspaceContext("Project Everest", "No opening scene · canvas idle");
     OutlinerPanel.Synchronize(Directory);
-    if (!OutlinerPanel.SelectByStableId("sun"))
+    if (!OutlinerPanel.SelectByStableId(InspectorStableId.c_str()))
     {
-        std::printf("workspace capture refused: reusable Sun record has no Inspector description\n");
+        std::printf("workspace capture refused: record '%s' has no Inspector description\n", InspectorStableId.c_str());
         ImGui::DestroyContext();
         return 6;
     }
-    if (!OutlinerPanel.QueryInspectorModel().ConstructInspector)
+    const Frontier::SceneInspectorModel& SelectedInspector = OutlinerPanel.QueryInspectorModel();
+    if (!SelectedInspector.ConstructInspector)
     {
-        std::printf("workspace capture refused: Sun did not install its native four-section Inspector page\n");
+        std::printf("workspace capture refused: record '%s' did not install its native VehicleHMI Inspector page\n",
+                    InspectorStableId.c_str());
         ImGui::DestroyContext();
         return 6;
+    }
+    if (InspectorPage >= 0)
+    {
+        if (InspectorStableId == "sun")
+            Frontier::ConfigureSunInspectorPageForCapture(InspectorPage);
+        else if (InspectorStableId == "clouds")
+            Frontier::ConfigureCloudInspectorPageForCapture(InspectorPage);
+        else if (InspectorStableId == "atmosphere")
+            Frontier::ConfigureAtmosphereInspectorPageForCapture(InspectorPage);
+        else
+        {
+            std::fprintf(stderr, "workspace capture refused: record '%s' has no selectable dashboard page\n",
+                         InspectorStableId.c_str());
+            ImGui::DestroyContext();
+            return 6;
+        }
     }
 
     const LogCategory* Interface = Frontier::LogCategories().QueryByName("Interface");
@@ -421,9 +449,10 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
     const auto LogToken = [](const LogCategory* Category) { return Category != nullptr ? Category->Token : 0; };
     WriteCaptureLog(LogToken(Interface), Frontier::LogSeverity::Info,
                     "Project session opened · Project Everest", "FrontierMain.cpp");
-    WriteCaptureLog(LogToken(Interface), Frontier::LogSeverity::Info,
-                    "Outliner selected Sun · native four-section VehicleHMI Inspector is active",
-                    "SunInspectorDashboard.cpp");
+    const std::string SelectedMessage = "Outliner selected " + SelectedInspector.Name +
+                                        " · native VehicleHMI Inspector is active";
+    const std::string SelectedSource = InspectorStableId + "InspectorDashboard.cpp";
+    WriteCaptureLog(LogToken(Interface), Frontier::LogSeverity::Info, SelectedMessage.c_str(), SelectedSource.c_str());
     WriteCaptureLog(LogToken(Render), Frontier::LogSeverity::Info,
                     "Scene Canvas idle · no opening scene or renderer connected", "FrontierMain.cpp");
 
@@ -475,7 +504,26 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
             IconAssetsReady = false;
         }
     }
-    const std::string CapturePath = OutputDirectory + "/native-workspace.png";
+    const char* PageName = nullptr;
+    if (InspectorPage >= 0)
+    {
+        static constexpr const char* SunPages[] = {"overview", "daylight", "light-colour", "disc-optics"};
+        static constexpr const char* CloudPages[] = {"overview", "formation", "rendering", "weather"};
+        static constexpr const char* AtmospherePages[] = {"overview", "medium", "light-response", "baking"};
+        if (InspectorStableId == "sun") PageName = SunPages[InspectorPage];
+        else if (InspectorStableId == "clouds") PageName = CloudPages[InspectorPage];
+        else if (InspectorStableId == "atmosphere") PageName = AtmospherePages[InspectorPage];
+    }
+    std::string CaptureName;
+    if (InspectorStableId == "sun" && InspectorPage < 0)
+        CaptureName = "native-workspace.png";
+    else
+    {
+        CaptureName = "native-workspace-" + InspectorStableId;
+        if (PageName != nullptr) CaptureName += "-" + std::string(PageName);
+        CaptureName += ".png";
+    }
+    const std::string CapturePath = OutputDirectory + "/" + CaptureName;
     const bool CaptureWritten = WritePng(CapturePath.c_str());
     std::printf("Project Everest native ImGui workspace · Outliner + Inspector + Log Stream · icons %s · capture %s\n",
                 IconAssetsReady ? "ready" : "failed", CaptureWritten ? CapturePath.c_str() : "failed");
@@ -497,15 +545,28 @@ int main(int ArgumentCount, char** Arguments)
 {
     if (ArgumentCount < 3)
     {
-        std::fprintf(stderr, "usage: PanelCapture <font.ttf> <output-directory> [--workspace] [repository-root]\n");
+        std::fprintf(stderr, "usage: PanelCapture <font.ttf> <output-directory> [--workspace [repository-root [inspector-stable-id [page-index]]]]\n");
         return 2;
     }
     const std::string OutputDirectory = Arguments[2];
 #if defined(FRONTIER_WITH_WORKSPACE_CAPTURE)
     const std::filesystem::path RepositoryRoot = ArgumentCount > 4 ? Arguments[4] : std::filesystem::current_path();
+    const std::string InspectorStableId = ArgumentCount > 5 ? Arguments[5] : "sun";
+    int InspectorPage = -1;
+    if (ArgumentCount > 6)
+    {
+        char* End = nullptr;
+        const long ParsedPage = std::strtol(Arguments[6], &End, 10);
+        if (End == Arguments[6] || *End != '\0' || ParsedPage < 0 || ParsedPage > 3)
+        {
+            std::fprintf(stderr, "workspace capture refused: page-index must be an integer from 0 to 3\n");
+            return 2;
+        }
+        InspectorPage = static_cast<int>(ParsedPage);
+    }
     if (ArgumentCount > 3 && std::string(Arguments[3]) == "--workspace")
     {
-        return RunWorkspaceCapture(OutputDirectory, RepositoryRoot);
+        return RunWorkspaceCapture(OutputDirectory, RepositoryRoot, InspectorStableId, InspectorPage);
     }
 #endif
 

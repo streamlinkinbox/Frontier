@@ -109,6 +109,8 @@ set(NATIVE_UI_SOURCES
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/VehicleHmiGlyphs.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/SceneInspectorPanel.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/SunInspectorDashboard.cpp"
+    "${FRONTIER_ENGINE_ROOT}/Engine/Interface/CloudInspectorDashboard.cpp"
+    "${FRONTIER_ENGINE_ROOT}/Engine/Interface/AtmosphereInspectorDashboard.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/StackRailControls.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Scene/EnvironmentRecords.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Scene/RecordEntry.cpp"
@@ -194,4 +196,45 @@ if(BUILD_TESTING)
             --workspace "${REPOSITORY_ROOT}")
     set_tests_properties(NativeProjectEverestWorkspace PROPERTIES
         WORKING_DIRECTORY "${REPOSITORY_ROOT}")
+    add_test(NAME NativeProjectEverestCloudsInspector
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/clouds"
+            --workspace "${REPOSITORY_ROOT}" clouds)
+    add_test(NAME NativeProjectEverestAtmosphereInspector
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/atmosphere"
+            --workspace "${REPOSITORY_ROOT}" atmosphere)
+    set_tests_properties(NativeProjectEverestCloudsInspector NativeProjectEverestAtmosphereInspector PROPERTIES
+        WORKING_DIRECTORY "${REPOSITORY_ROOT}")
+
+    add_test(NAME NativeProjectEverestSunDaylight
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/sun-daylight"
+            --workspace "${REPOSITORY_ROOT}" sun 1)
+    add_test(NAME NativeProjectEverestSunLightColour
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/sun-light-colour"
+            --workspace "${REPOSITORY_ROOT}" sun 2)
+    add_test(NAME NativeProjectEverestSunDiscOptics
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/sun-disc-optics"
+            --workspace "${REPOSITORY_ROOT}" sun 3)
+    add_test(NAME NativeProjectEverestCloudsFormation
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/clouds-formation"
+            --workspace "${REPOSITORY_ROOT}" clouds 1)
+    add_test(NAME NativeProjectEverestCloudsRendering
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/clouds-rendering"
+            --workspace "${REPOSITORY_ROOT}" clouds 2)
+    add_test(NAME NativeProjectEverestCloudsWeather
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/clouds-weather"
+            --workspace "${REPOSITORY_ROOT}" clouds 3)
+    add_test(NAME NativeProjectEverestAtmosphereMedium
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/atmosphere-medium"
+            --workspace "${REPOSITORY_ROOT}" atmosphere 1)
+    add_test(NAME NativeProjectEverestAtmosphereLightResponse
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/atmosphere-light-response"
+            --workspace "${REPOSITORY_ROOT}" atmosphere 2)
+    add_test(NAME NativeProjectEverestAtmosphereBaking
+        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/atmosphere-baking"
+            --workspace "${REPOSITORY_ROOT}" atmosphere 3)
+    set_tests_properties(
+        NativeProjectEverestSunDaylight NativeProjectEverestSunLightColour NativeProjectEverestSunDiscOptics
+        NativeProjectEverestCloudsFormation NativeProjectEverestCloudsRendering NativeProjectEverestCloudsWeather
+        NativeProjectEverestAtmosphereMedium NativeProjectEverestAtmosphereLightResponse NativeProjectEverestAtmosphereBaking
+        PROPERTIES WORKING_DIRECTORY "${REPOSITORY_ROOT}")
 endif()

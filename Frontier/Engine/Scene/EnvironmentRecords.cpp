@@ -4,6 +4,8 @@
 
 #include "Engine/Rendering/CelestialModel.h"
 #if defined(FRONTIER_WITH_INTERFACE_SDK)
+    #include "Engine/Interface/AtmosphereInspectorDashboard.h"
+    #include "Engine/Interface/CloudInspectorDashboard.h"
     #include "Engine/Interface/SunInspectorDashboard.h"
 #endif
 
@@ -49,7 +51,9 @@ SunRecord::SunRecord() : RecordEntry(RecordClassification::Environment)
         {"Solar illuminance", "x", 0.0, 60.0, 0.1, 1, &Placement.SolarIlluminance}};
     Description.Switches = {{"Sun disc", &Placement.DiscEnabled}, {"Day cycle", &Placement.DayAnimate}};
 #if defined(FRONTIER_WITH_INTERFACE_SDK)
-    Description.ConstructInspector = [this] { ConstructSunInspectorDashboard(Placement); };
+    Description.ConstructInspector = [this](const std::function<void()>& OpenLensFlare) {
+        ConstructSunInspectorDashboard(Placement, OpenLensFlare);
+    };
 #endif
     RegisterEditorDescription(std::move(Description));
 #endif
@@ -87,6 +91,11 @@ AtmosphereRecord::AtmosphereRecord() : RecordEntry(RecordClassification::Environ
     Description.Enabled     = &Enabled;
     Description.OutlinerToggle = &Enabled;
     Description.QueryLiveState = [this] { return Enabled ? "live" : ""; };
+#if defined(FRONTIER_WITH_INTERFACE_SDK)
+    Description.ConstructInspector = [this](const std::function<void()>&) {
+        ConstructAtmosphereInspectorDashboard(Parameters, Enabled);
+    };
+#endif
     Description.ScalarFields = {
         {"Rayleigh R", "1/km", 0.0, 0.05, 0.0001, 4, &Parameters.RayleighScattering.R, "Rayleigh"},
         {"Rayleigh G", "1/km", 0.0, 0.05, 0.0001, 4, &Parameters.RayleighScattering.G, "Rayleigh"},
@@ -120,6 +129,11 @@ CloudRecord::CloudRecord() : RecordEntry(RecordClassification::Environment)
     Description.Enabled     = &Enabled;
     Description.OutlinerToggle = &Enabled;
     Description.QueryLiveState = [this] { return Enabled ? "live" : ""; };
+#if defined(FRONTIER_WITH_INTERFACE_SDK)
+    Description.ConstructInspector = [this](const std::function<void()>&) {
+        ConstructCloudInspectorDashboard(Parameters, Enabled);
+    };
+#endif
     // 📝 VehicleHMI cloud-layer controls mapped to the existing slab, transport, and scattering settings.
     Description.ScalarFields = {
         {"Coverage", "-", 0.0, 1.0, 0.01, 2, &Parameters.Coverage, "Layer"},

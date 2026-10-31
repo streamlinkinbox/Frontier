@@ -94,7 +94,7 @@ struct RecordEditorDescription
 
     std::function<std::string()> QueryLiveMeta;          // [-] - Right-aligned live Outliner row readout
     std::function<void()>        ConstructInfographic;   // [-] - Custom VehicleHMI / General UI infographic
-    std::function<void()>        ConstructInspector;    // [-] - Record-owned native Inspector page (e.g. Sun dashboard)
+    std::function<void(const std::function<void()>&)> ConstructInspector; // [-] - Record-owned page with host navigation
     const char                  *DedicatedEditorTitle = ""; // [text] - Dedicated popup editor window title
     std::function<void()>        OpenDedicatedEditor;    // [-] - Launches dedicated zero-copy popup editor window
 

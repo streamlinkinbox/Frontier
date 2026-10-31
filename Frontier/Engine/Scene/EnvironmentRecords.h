@@ -29,6 +29,7 @@ struct SunPlacement
     double ElevationDegrees = 38.0;   // [deg] - Above the horizon; negative is below it
     double AzimuthDegrees   = 145.0;  // [deg] - Counterclockwise from +X east; wrapped to [-180, 180]
     double SolarIlluminance = 12.0;   // [-] - Exhibit illumination scale, not photometric lux
+    double EmissionScale    = 1.0;    // [×] - VehicleHMI lighting-preset emitter scale
     double TemperatureKelvin = 5778.0; // [K] - Source blackbody temperature
     double RadiusDegrees     = 0.27;   // [deg] - Apparent angular radius; dashboard displays diameter
     double Glow              = 1.0;   // [x] - Optical aureole multiplier
