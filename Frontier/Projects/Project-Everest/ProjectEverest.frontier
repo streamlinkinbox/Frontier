@@ -1,0 +1,26 @@
+# UI-first Project Everest bootstrap. The scene and code image remain unset until later port phases.
+
+[Project]
+ProjectName = "Project Everest"
+ProjectFormatNumber = 1
+ContentLocation = "Content"
+OpeningScene = ""
+CodeImage = ""
+CodeInterchangeNumber = 3
+InterfaceFingerprint = 0xb6725f24d0869173
+
+[[LogCategories]]
+Name = "Everest"
+Colour = "blue"
+
+[[LogCategories]]
+Name = "VehicleHMI"
+Colour = "green"
+
+[[LogCategories]]
+Name = "Illumination"
+Colour = "purple"
+
+[[LogCategories]]
+Name = "VulkanRHI"
+Colour = "orange"

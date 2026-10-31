@@ -1,0 +1,42 @@
+{
+  "project": "Project Everest",
+  "project_directory": "Frontier/Projects/Project-Everest",
+  "port_scope": "UI-first project bootstrap; no scene or code image is included.",
+  "basis_decision": "Use the SultanAladin branch for production UI/docking/theme, egoistm1inbox for LogStream/Vulkan reference, and the streamlinkinbox branches as ReSTIR and ray-query/BVH research inputs. Do not treat any branch as proof of the GTX SDF/BVH fallback.",
+  "references": [
+    {
+      "role": "native editor UI source of truth: project browser, docking, Control Centre, and shared controls",
+      "repository": "https://github.com/SultanAladin/Frontier.git",
+      "branch": "arena/11f31835-frontier",
+      "url": "https://github.com/SultanAladin/Frontier/tree/arena/11f31835-frontier",
+      "inspected_revision": "71e4a17ed543325061b6e5f392476f5c9fd26699"
+    },
+    {
+      "role": "GPU ReSTIR and facet-area sampling experiments; research evidence only",
+      "repository": "https://github.com/streamlinkinbox/Frontier.git",
+      "branch": "arena/08e7de48-frontier",
+      "url": "https://github.com/streamlinkinbox/Frontier/tree/arena/08e7de48-frontier",
+      "inspected_revision": "7bc60250e153a9b7d70c9740744723fde19fae22"
+    },
+    {
+      "role": "ray-query versus software BVH validation and temporal visibility audits",
+      "repository": "https://github.com/streamlinkinbox/Frontier.git",
+      "branch": "arena/5ec53579-frontier",
+      "url": "https://github.com/streamlinkinbox/Frontier/tree/arena/5ec53579-frontier",
+      "inspected_revision": "56059b393f2d1a6f4ecf73c0f7661aa74f2de442"
+    },
+    {
+      "role": "native Vulkan Project-Drive, Log Stream, GTX SDF/BVH and RTX path integration reference",
+      "repository": "https://github.com/egoistm1inbox/Frontier.git",
+      "branch": "arena/9ce908bc-frontier",
+      "url": "https://github.com/egoistm1inbox/Frontier/tree/arena/9ce908bc-frontier",
+      "inspected_revision": "f97b991440fc90476383ba3f5cf124addc590f18"
+    }
+  ],
+  "post_commit_sync": {
+    "fetched_revision": "71e4a17ed543325061b6e5f392476f5c9fd26699",
+    "merge_base": null,
+    "result": "After deepening the session origin history, the branch roots remain unrelated. Selected shared UI modules compare unchanged with the fetched ref; no unrelated-history merge was forced."
+  },
+  "sync_policy": "After every local commit, fetch SultanAladin/Frontier arena/11f31835-frontier, deepen history if needed, and merge only when a common ancestor exists. If complete histories remain unrelated, verify selected shared UI files and record that no merge is possible; never use --allow-unrelated-histories. The current user request authorizes pushing the completed feature branch after sync; it does not authorize GitHub Actions, so inspect workflow triggers before pushing."
+}
