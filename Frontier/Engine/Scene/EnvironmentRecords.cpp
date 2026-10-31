@@ -402,7 +402,7 @@ SpectrumRgb LensFlareRecord::EvaluateOpticalSample(double SampleU, double Sample
     return EvaluateOpticalSampleAtSource(SampleU, SampleV, PreviewSourceU, PreviewSourceV, AspectRatio);
 }
 
-// 📝 Direct C++ port of NativeLensFlareKernel.js LFRender: evaluates cool anamorphic streak, rotated warm streak,
+// 📝 Direct C++ port of LensFlare optical stack: evaluates cool anamorphic streak, rotated warm streak,
 //    diffraction starburst, polygonal chromatic ghost chain, and spectral annular halo in linear HDR RGB.
 SpectrumRgb LensFlareRecord::EvaluateOpticalSampleAtSource(double SampleU, double SampleV, double SourceUCoord,
                                                            double SourceVCoord, double AspectRatio) const noexcept
@@ -560,14 +560,14 @@ double AtmosphereRecord::QueryRelativeMieDensity(double AltitudeMetres) const no
 
 SpectrumRgb AtmosphereRecord::EvaluateSolarTransmission(double SunElevationDegrees) const noexcept
 {
-    const double CosZenith  = std::sin(SunElevationDegrees * DegreesToRadians);
-    const double ObserverKm = Parameters.GroundRadiusKm + 0.1;
+    const double SinElevation = std::sin(SunElevationDegrees * DegreesToRadians);
+    const double ObserverKm   = Parameters.GroundRadiusKm + 0.1;
     if (UseBakedLookup && LookupTable.Baked())
     {
-        return LookupTable.Sample(Parameters, ObserverKm, CosZenith);
+        return LookupTable.Sample(Parameters, ObserverKm, SinElevation);
     }
     const uint32_t Steps = static_cast<uint32_t>(std::clamp(static_cast<int>(std::lround(LookupSamples)), 8, 64));
-    return TransmittanceToTop(Parameters, ObserverKm, CosZenith, Steps);
+    return TransmittanceToTop(Parameters, ObserverKm, SinElevation, Steps);
 }
 
 //========================================================================================================================
@@ -740,6 +740,351 @@ SpatialVector WindRecord::EvaluateSteadyVelocityAtAltitude(double AltitudeMetres
     const double Speed      = ReferenceSpeedMps * (1.0 + ShearPerKilometre * ClampedKm);
     const double BearingRad = (TravelBearingDegrees + VeerDegreesPerKilometre * ClampedKm) * DegreesToRadians;
     return SpatialVector{std::sin(BearingRad) * Speed, std::cos(BearingRad) * Speed, 0.0};
+}
+
+//========================================================================================================================
+//                                                      FOG RECORD
+//========================================================================================================================
+
+FogRecord::FogRecord()
+    : RecordEntry(RecordClassification::Environment)
+{
+    SynchronizeParameters();
+
+#if defined(FRONTIER_EDITOR_PROFILE) || defined(FRONTIER_DEVELOPMENT_PROFILE)
+    RecordEditorDescription Description;
+    Description.Identifier         = "fog";
+    Description.Eyebrow            = "ENVIRONMENT / AERIAL & HEIGHT FOG";
+    Description.DisplayName        = "Fog";
+    Description.Subtitle           = "Koschmieder split-target contrast decay, exponential height bank, and solar aureole.";
+    Description.InstrumentCategory = InspectorInstrumentCategory::FogObservatory;
+    Description.AccentColour       = 0xFFD9C49Au;   // Mist-slate accent
+    Description.EnabledTarget      = &Enabled;
+    Description.QueryLiveBadge     = [this]() {
+        if (!Enabled)
+        {
+            return std::string("CLEAR");
+        }
+        char Buffer[48] = {};
+        const double VisKm = QueryKoschmiederVisibilityMetres() / 1000.0;
+        std::snprintf(Buffer, sizeof(Buffer), "VIS %.2f km", VisKm);
+        return std::string(Buffer);
+    };
+    RegisterEditorDescription(std::move(Description));
+#endif
+}
+
+void FogRecord::ApplyPreset(int32_t Preset) noexcept
+{
+    PresetIndex = std::clamp(Preset, 0, 3);
+    switch (PresetIndex)
+    {
+        case 0:   // Clear Proving Grounds
+            Enabled             = false;
+            DensityAtFloor      = 0.004;
+            FalloffHeightMetres = 28.0;
+            AerialStartMetres   = 35.0;
+            AerialDensity       = 0.002;
+            break;
+        case 1:   // Morning Mist
+            Enabled             = true;
+            DensityAtFloor      = 0.016;
+            FalloffHeightMetres = 18.0;
+            AerialStartMetres   = 14.0;
+            AerialDensity       = 0.006;
+            InscatterRed        = 0.66;
+            InscatterGreen      = 0.74;
+            InscatterBlue       = 0.84;
+            break;
+        case 2:   // Valley Bank
+            Enabled             = true;
+            DensityAtFloor      = 0.038;
+            FalloffHeightMetres = 11.0;
+            AerialStartMetres   = 8.0;
+            AerialDensity       = 0.012;
+            InscatterRed        = 0.58;
+            InscatterGreen      = 0.67;
+            InscatterBlue       = 0.78;
+            break;
+        default:  // Alpine Whiteout
+            Enabled             = true;
+            DensityAtFloor      = 0.075;
+            FalloffHeightMetres = 65.0;
+            AerialStartMetres   = 2.0;
+            AerialDensity       = 0.025;
+            InscatterRed        = 0.82;
+            InscatterGreen      = 0.86;
+            InscatterBlue       = 0.92;
+            break;
+    }
+    SynchronizeParameters();
+}
+
+void FogRecord::SynchronizeParameters() noexcept
+{
+    Parameters.DensityAtBase  = std::max(0.0, DensityAtFloor);
+    Parameters.FalloffHeightM = std::max(0.5, FalloffHeightMetres);
+    Parameters.BaseHeightM    = FloorAltitudeMetres;
+    Parameters.Colour         = {ClampScalar(InscatterRed, 0.0, 2.0),
+                                 ClampScalar(InscatterGreen, 0.0, 2.0),
+                                 ClampScalar(InscatterBlue, 0.0, 2.0)};
+}
+
+double FogRecord::QueryKoschmiederVisibilityMetres() const noexcept
+{
+    const double Sigma = std::max(1e-5, DensityAtFloor + AerialDensity);
+    return 3.912023005 / Sigma;
+}
+
+FogSplitTargetSample FogRecord::EvaluateSplitTarget(double DistanceMetres) const noexcept
+{
+    const double Dist       = std::max(0.0, DistanceMetres);
+    const double TransH     = FogTransmittance(Parameters, {0.0, 0.0, 1.6}, {0.0, 1.0, 0.0}, Dist);
+    const double AerialSpan = std::max(0.0, Dist - AerialStartMetres);
+    const double Trans      = Enabled ? (TransH * std::exp(-std::max(0.0, AerialDensity) * AerialSpan)) : 1.0;
+    const double FogLuma    = 0.2126 * InscatterRed + 0.7152 * InscatterGreen + 0.0722 * InscatterBlue;
+    const double Bright     = 0.80 * Trans + FogLuma * (1.0 - Trans);
+    const double Dark       = 0.08 * Trans + FogLuma * (1.0 - Trans);
+    const double Contrast   = (Bright + Dark) > 1e-6 ? std::abs(Bright - Dark) / (Bright + Dark) : 0.0;
+    return {Bright, Dark, Contrast, Trans};
+}
+
+//========================================================================================================================
+//                                                     STARS RECORD
+//========================================================================================================================
+
+StarsRecord::StarsRecord()
+    : RecordEntry(RecordClassification::Environment)
+{
+    Catalogue = GenerateStarCatalogue(360u, 0x57A25EC0DEull);
+
+#if defined(FRONTIER_EDITOR_PROFILE) || defined(FRONTIER_DEVELOPMENT_PROFILE)
+    RecordEditorDescription Description;
+    Description.Identifier         = "stars";
+    Description.Eyebrow            = "CELESTIAL / SIDEREAL PLANISPHERE";
+    Description.DisplayName        = "Stars";
+    Description.Subtitle           = "Lambert equal-area celestial dome, Hipparcos magnitude histogram, and scintillation.";
+    Description.InstrumentCategory = InspectorInstrumentCategory::StarsObservatory;
+    Description.AccentColour       = 0xFFF2B89Cu;   // Sidereal starlight blue
+    Description.EnabledTarget      = &Enabled;
+    Description.QueryLiveBadge     = [this]() {
+        char Buffer[48] = {};
+        std::snprintf(Buffer, sizeof(Buffer), "%u STARS \xC2\xB7 m\xE2\x89\xA4%.1f",
+                      QueryVisibleStarCount(), LimitingMagnitude);
+        return std::string(Buffer);
+    };
+    RegisterEditorDescription(std::move(Description));
+#endif
+}
+
+uint32_t StarsRecord::QueryVisibleStarCount() const noexcept
+{
+    uint32_t Count = 0;
+    for (const StarRecord& Star : Catalogue)
+    {
+        if (Star.Magnitude <= LimitingMagnitude && Star.Direction.Z >= -0.05)
+        {
+            ++Count;
+        }
+    }
+    return Count;
+}
+
+std::array<uint32_t, 10> StarsRecord::QueryMagnitudeHistogram() const noexcept
+{
+    std::array<uint32_t, 10> Bins{};
+    for (const StarRecord& Star : Catalogue)
+    {
+        const int32_t Bin = std::clamp(static_cast<int32_t>(std::floor(Star.Magnitude + 2.0)), 0, 9);
+        ++Bins[static_cast<size_t>(Bin)];
+    }
+    return Bins;
+}
+
+double StarsRecord::EvaluateScintillationTrace(double TimeSeconds) const noexcept
+{
+    const double Rate = std::max(0.1, ScintillationRateHz);
+    const double W1   = 0.52 * std::sin(TimeSeconds * Rate * 6.2831853);
+    const double W2   = 0.31 * std::sin(TimeSeconds * Rate * 14.912 + 1.3);
+    const double W3   = 0.17 * std::cos(TimeSeconds * Rate * 27.419 - 0.7);
+    return std::clamp(1.0 + ScintillationStrength * 0.48 * (W1 + W2 + W3), 0.15, 1.85);
+}
+
+//========================================================================================================================
+//                                                     MOON RECORD
+//========================================================================================================================
+
+MoonRecord::MoonRecord()
+    : RecordEntry(RecordClassification::Environment)
+{
+#if defined(FRONTIER_EDITOR_PROFILE) || defined(FRONTIER_DEVELOPMENT_PROFILE)
+    RecordEditorDescription Description;
+    Description.Identifier         = "moon";
+    Description.Eyebrow            = "CELESTIAL / SELENOGRAPHIC DISC";
+    Description.DisplayName        = "Moon";
+    Description.Subtitle           = "29.53-day synodic phase rail, selenographic terminator, and log angular diameter tape.";
+    Description.InstrumentCategory = InspectorInstrumentCategory::MoonObservatory;
+    Description.AccentColour       = 0xFFE8D5C4u;   // Lunar silver-blue
+    Description.EnabledTarget      = &Enabled;
+    Description.QueryLiveBadge     = [this]() {
+        const LunarPhase Lunar = QueryLunarPhase();
+        char             Buffer[48] = {};
+        std::snprintf(Buffer, sizeof(Buffer), "%.0f%% %s",
+                      Lunar.Illumination * 100.0, QueryWaxing() ? "WAX" : "WAN");
+        return std::string(Buffer);
+    };
+    RegisterEditorDescription(std::move(Description));
+#endif
+}
+
+void MoonRecord::ApplyBodyPreset(int32_t Preset) noexcept
+{
+    PresetBodyIndex = std::clamp(Preset, 0, 5);
+    switch (PresetBodyIndex)
+    {
+        case 0:   // Earth Moon (0.52 deg)
+            AngularDiameterDegrees = 0.52;
+            TintRed = 0.90; TintGreen = 0.94; TintBlue = 1.00;
+            MareContrast = 0.55;
+            break;
+        case 1:   // Europa Ice Crust (1.4 deg)
+            AngularDiameterDegrees = 1.40;
+            TintRed = 0.84; TintGreen = 0.93; TintBlue = 1.00;
+            MareContrast = 0.30;
+            break;
+        case 2:   // Titan Orange Haze (2.6 deg)
+            AngularDiameterDegrees = 2.60;
+            TintRed = 1.00; TintGreen = 0.76; TintBlue = 0.44;
+            MareContrast = 0.14;
+            break;
+        case 3:   // Enceladus Plume Albedo (0.85 deg)
+            AngularDiameterDegrees = 0.85;
+            TintRed = 0.96; TintGreen = 0.98; TintBlue = 1.00;
+            MareContrast = 0.22;
+            break;
+        case 4:   // Mars Phobos Skim (0.38 deg)
+            AngularDiameterDegrees = 0.38;
+            TintRed = 0.78; TintGreen = 0.70; TintBlue = 0.64;
+            MareContrast = 0.72;
+            break;
+        default:  // Close Gas Giant Limb (18.0 deg)
+            AngularDiameterDegrees = 18.0;
+            TintRed = 0.92; TintGreen = 0.84; TintBlue = 0.68;
+            MareContrast = 0.64;
+            break;
+    }
+}
+
+const char* MoonRecord::QueryBodyPresetName() const noexcept
+{
+    static constexpr std::array<const char*, 6> Names{
+        "Earth Moon", "Europa", "Titan", "Enceladus", "Phobos", "Gas Giant"};
+    return Names[static_cast<size_t>(std::clamp(PresetBodyIndex, 0, 5))];
+}
+
+LunarPhase MoonRecord::QueryLunarPhase() const noexcept
+{
+    return MoonPhase(NewMoonEpochJulian + std::max(0.0, SynodicAgeDays));
+}
+
+bool MoonRecord::QueryWaxing() const noexcept
+{
+    return QueryLunarPhase().AgeDays < (0.5 * SynodicMonthDays);
+}
+
+SpatialVector MoonRecord::QueryMoonDirection() const noexcept
+{
+    const double ElevRad = ElevationDegrees * DegreesToRadians;
+    const double AzimRad = AzimuthDegrees * DegreesToRadians;
+    return SpatialVector{std::cos(ElevRad) * std::sin(AzimRad),
+                         std::cos(ElevRad) * std::cos(AzimRad),
+                         std::sin(ElevRad)};
+}
+
+//========================================================================================================================
+//                                                    WEATHER RECORD
+//========================================================================================================================
+
+WeatherRecord::WeatherRecord()
+    : RecordEntry(RecordClassification::Environment)
+{
+    TriggerStrikeAhead(0);
+    TimeSinceStrikeSeconds = 4.0;   // Start calm until user clicks Strike Ahead or enables storm
+
+#if defined(FRONTIER_EDITOR_PROFILE) || defined(FRONTIER_DEVELOPMENT_PROFILE)
+    RecordEditorDescription Description;
+    Description.Identifier         = "weather";
+    Description.Eyebrow            = "WEATHER / STORM & SURFACE DEPOSIT";
+    Description.DisplayName        = "Storm & Deposit";
+    Description.Subtitle           = "Procedural forked lightning, 343 m/s thunder acoustics, and 0..4 mm apron retention.";
+    Description.InstrumentCategory = InspectorInstrumentCategory::WeatherObservatory;
+    Description.AccentColour       = 0xFFFA9E78u;   // Electric storm cyan-blue
+    Description.EnabledTarget      = &Enabled;
+    Description.QueryLiveBadge     = [this]() {
+        if (!Enabled)
+        {
+            return std::string("DRY");
+        }
+        char Buffer[48] = {};
+        std::snprintf(Buffer, sizeof(Buffer), "%s \xC2\xB7 %.1f mm",
+                      QueryPrecipitationModeName(), SurfaceDepositMm);
+        return std::string(Buffer);
+    };
+    RegisterEditorDescription(std::move(Description));
+#endif
+}
+
+void WeatherRecord::TriggerStrikeAhead(uint64_t ExtraSeed) noexcept
+{
+    ++StrikeCounter;
+    const uint32_t Forks = static_cast<uint32_t>(std::clamp( std::lround(BoltForkCount), 0L, 6L));
+    ActiveBolt = GenerateLightningBolt({-1.5, 24.0, 14.0}, {0.4, 24.0, 0.0},
+                                       5u, ClampScalar(BoltJaggedness, 0.05, 0.60),
+                                       0x9E3779B97F4A7C15ull ^ (StrikeCounter * 1315423911ull) ^ ExtraSeed,
+                                       Forks);
+    TimeSinceStrikeSeconds = 0.015;   // Peak of initial return stroke!
+    Enabled                = true;
+}
+
+double WeatherRecord::QueryThunderArrivalSeconds() const noexcept
+{
+    // Speed of sound in standard proving-grounds air: 343.0 m/s.
+    return std::max(0.0, StrikeDistanceMetres) / 343.0;
+}
+
+double WeatherRecord::QueryCurrentFlashIntensity() const noexcept
+{
+    if (!Enabled)
+    {
+        return 0.0;
+    }
+    return LightningIntensity(TimeSinceStrikeSeconds, StrikeCounter) * FlashExposureMultiplier;
+}
+
+double WeatherRecord::SampleSurfaceRetentionMm(int32_t GridX, int32_t GridY) const noexcept
+{
+    // 16 x 10 Proving Grounds retention chunk around ControlVehicle:
+    // Dry acoustic shadow directly beneath vehicle chassis & overhead gantry crossbeam!
+    const double NormX = (static_cast<double>(GridX) - 7.5) / 7.5;   // [-1..1]
+    const double NormY = (static_cast<double>(GridY) - 4.5) / 4.5;   // [-1..1]
+    const bool   UnderVehicle = (std::abs(NormX) < 0.24 && std::abs(NormY) < 0.42);
+    const bool   UnderGantry  = (NormY > 0.68 && NormY < 0.86 && std::abs(NormX) < 0.68);
+    if (UnderVehicle)
+    {
+        return SurfaceDepositMm * 0.06;
+    }
+    if (UnderGantry)
+    {
+        return SurfaceDepositMm * 0.22;
+    }
+    const double PuddleWave = 0.78 + 0.22 * std::sin(NormX * 4.1 + NormY * 3.3);
+    return std::clamp(SurfaceDepositMm * PuddleWave, 0.0, 4.0);
+}
+
+const char* WeatherRecord::QueryPrecipitationModeName() const noexcept
+{
+    static constexpr std::array<const char*, 4> Modes{"CLEAR", "RAIN", "SLEET", "SNOW"};
+    return Modes[static_cast<size_t>(std::clamp(PrecipitationModeIndex, 0, 3))];
 }
 
 } // namespace Frontier

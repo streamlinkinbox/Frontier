@@ -578,8 +578,8 @@ void ConstructFolderObservatory(const ObservatoryFrame& Frame, FolderRecord& Fol
             continue;
         }
         ++ShownEnclosed;
-        const std::string ItemName = Directory.QueryName(Candidate);
-        const ImVec2      RowPos   = ImGui::GetCursorScreenPos();
+        const std::string RecordName = Directory.QueryName(Candidate);
+        const ImVec2      RowPos     = ImGui::GetCursorScreenPos();
         KitPillSurface(Frame.Ink, ImVec2(Frame.Left, RowPos.y), ImVec2(Frame.Left + Frame.Width, RowPos.y + 26.0f),
                        Frame.Theme.Surface, Frame.Theme.LineSoft, 6.5f);
         bool JumpHover = false;
@@ -592,7 +592,7 @@ void ConstructFolderObservatory(const ObservatoryFrame& Frame, FolderRecord& Fol
             DirectoryPanel.Synchronize(Directory);
         }
         KitDrawText(Frame.Ink, Frame.Faces.Regular, 11.8f, ImVec2(Frame.Left + 10.0f, RowPos.y + 6.5f),
-                    JumpHover ? Accent : Frame.Theme.Text, ItemName.c_str());
+                    JumpHover ? Accent : Frame.Theme.Text, RecordName.c_str());
 
         bool UnpackHover = false;
         char UnpackId[64] = {};
@@ -628,9 +628,9 @@ void ConstructFolderObservatory(const ObservatoryFrame& Frame, FolderRecord& Fol
             DrawSectionCardHeader(Frame, "Available root records", "04 / ENCLOSE", Accent);
         }
         ++RootCandidates;
-        const std::string ItemName = Directory.QueryName(Candidate);
-        const ImVec2      RowPos   = ImGui::GetCursorScreenPos();
-        bool              MoveHover = false;
+        const std::string RecordName = Directory.QueryName(Candidate);
+        const ImVec2      RowPos     = ImGui::GetCursorScreenPos();
+        bool              MoveHover  = false;
         char              MoveId[64] = {};
         std::snprintf(MoveId, sizeof(MoveId), "##FolderClaim%llu", static_cast<unsigned long long>(Candidate.Value));
         if (KitTarget(MoveId, ImVec2(Frame.Left, RowPos.y), ImVec2(Frame.Width, 25.0f), MoveHover))
@@ -641,7 +641,7 @@ void ConstructFolderObservatory(const ObservatoryFrame& Frame, FolderRecord& Fol
         KitPillSurface(Frame.Ink, ImVec2(Frame.Left, RowPos.y), ImVec2(Frame.Left + Frame.Width, RowPos.y + 25.0f),
                        MoveHover ? Frame.Theme.Surface3 : Frame.Theme.Surface2, Frame.Theme.LineSoft, 6.5f);
         KitDrawText(Frame.Ink, Frame.Faces.Regular, 11.5f, ImVec2(Frame.Left + 10.0f, RowPos.y + 6.0f),
-                    Frame.Theme.Muted, ItemName.c_str());
+                    Frame.Theme.Muted, RecordName.c_str());
         KitDrawText(Frame.Ink, Frame.Faces.Medium, 10.5f,
                     ImVec2(Frame.Left + Frame.Width - 66.0f, RowPos.y + 6.5f), Accent, "+ Enclose");
         ImGui::SetCursorScreenPos(ImVec2(Frame.Left, RowPos.y + 29.0f));
@@ -675,8 +675,8 @@ void ConstructSunObservatory(const ObservatoryFrame& Frame, SunRecord& Sun, uint
         ImGui::SetCursorScreenPos(CanvasMin);
         ImGui::InvisibleButton("##SunSkyDome", ImVec2(Frame.Width, CanvasH));
         const ImVec2 DomeCentre(Frame.Left + Frame.Width * 0.5f, CanvasMin.y + CanvasH * 0.50f);
-        const float  HorizonRadius = std::min(Frame.Width * 0.34f, 72.0f);
-        const float  OuterRadius   = HorizonRadius * 1.28f;
+        const float  BoundaryRadius = std::min(Frame.Width * 0.34f, 72.0f);
+        const float  OuterRadius    = BoundaryRadius * 1.28f;
 
         if (ImGui::IsItemActive())
         {
@@ -687,14 +687,14 @@ void ConstructSunObservatory(const ObservatoryFrame& Frame, SunRecord& Sun, uint
             {
                 Sun.AzimuthDegrees = std::clamp(static_cast<double>(std::atan2(Dy, Dx) * (180.0f / PiFloat)), -180.0, 180.0);
             }
-            Sun.ElevationDegrees = std::clamp(90.0 - static_cast<double>(Dist / HorizonRadius) * 90.0, -90.0, 90.0);
+            Sun.ElevationDegrees = std::clamp(90.0 - static_cast<double>(Dist / BoundaryRadius) * 90.0, -90.0, 90.0);
             Sun.TimeLinked       = false;
             Sun.DayCycleActive   = false;
         }
 
         for (float Fraction : {0.5f, 1.0f, 1.28f})
         {
-            Frame.Ink->AddCircle(DomeCentre, HorizonRadius * Fraction,
+            Frame.Ink->AddCircle(DomeCentre, BoundaryRadius * Fraction,
                                    std::abs(Fraction - 1.0f) < 0.01f ? KitInkRgba(232, 199, 139, 112)
                                                                      : KitInkRgba(232, 199, 139, 32),
                                    48, 1.15f);
@@ -715,7 +715,7 @@ void ConstructSunObservatory(const ObservatoryFrame& Frame, SunRecord& Sun, uint
 
         const float AzimuthRad = static_cast<float>(Sun.AzimuthDegrees) * (PiFloat / 180.0f);
         const float Radial     = std::clamp(static_cast<float>((90.0 - Sun.ElevationDegrees) / 90.0), 0.0f, 1.32f) *
-                             HorizonRadius;
+                             BoundaryRadius;
         const ImVec2 SunHandle(DomeCentre.x + std::cos(AzimuthRad) * Radial,
                                DomeCentre.y - std::sin(AzimuthRad) * Radial);
         const bool   SunLit = Sun.Enabled && Sun.ElevationDegrees >= 0.0;
@@ -829,7 +829,7 @@ void ConstructSunObservatory(const ObservatoryFrame& Frame, SunRecord& Sun, uint
         const std::string SetStr  = Trajectory.SetHour < 0.0 ? "--:--" : FormatSolarClock(Trajectory.SetHour);
         char              DayHrs[24] = {};
         std::snprintf(DayHrs, sizeof(DayHrs), "%.1f", Trajectory.DaylightHours);
-        DrawKpiTriple(Frame, "Horizon rise", RiseStr.c_str(), "", "Horizon set", SetStr.c_str(), "", "Above 0\xC2\xB0",
+        DrawKpiTriple(Frame, "Solar rise", RiseStr.c_str(), "", "Solar set", SetStr.c_str(), "", "Above 0\xC2\xB0",
                       DayHrs, "h");
 
         if (DrawObservatorySlider(Frame, "##SunLocalTime", "Local solar control time", Sun.SolarTimeHours, 0.0, 24.0,
@@ -873,15 +873,15 @@ void ConstructSunObservatory(const ObservatoryFrame& Frame, SunRecord& Sun, uint
 
         const float LeftX  = SpecMin.x + 14.0f;
         const float RightX = SpecMax.x - 14.0f;
-        const float BaseY  = SpecMax.y - 28.0f;
+        const float FloorY = SpecMax.y - 28.0f;
         for (int Sample = 1; Sample <= 64; ++Sample)
         {
             const double Nm0 = 380.0 + static_cast<double>(Sample - 1) / 64.0 * 400.0;
             const double Nm1 = 380.0 + static_cast<double>(Sample) / 64.0 * 400.0;
             const float  X0  = LeftX + static_cast<float>(Sample - 1) / 64.0f * (RightX - LeftX);
             const float  X1  = LeftX + static_cast<float>(Sample) / 64.0f * (RightX - LeftX);
-            const float  Y0  = BaseY - static_cast<float>(SunRecord::EvaluateNormalizedPlanck(Nm0, Sun.TemperatureKelvin)) * 90.0f;
-            const float  Y1  = BaseY - static_cast<float>(SunRecord::EvaluateNormalizedPlanck(Nm1, Sun.TemperatureKelvin)) * 90.0f;
+            const float  Y0  = FloorY - static_cast<float>(SunRecord::EvaluateNormalizedPlanck(Nm0, Sun.TemperatureKelvin)) * 90.0f;
+            const float  Y1  = FloorY - static_cast<float>(SunRecord::EvaluateNormalizedPlanck(Nm1, Sun.TemperatureKelvin)) * 90.0f;
             Frame.Ink->AddLine(ImVec2(X0, Y0), ImVec2(X1, Y1), KitInkHex(0xf0ddba), 2.0f);
 
             // Spectral rainbow bar along bottom.
@@ -890,13 +890,13 @@ void ConstructSunObservatory(const ObservatoryFrame& Frame, SunRecord& Sun, uint
                 static_cast<int>(130 + 115 * std::clamp(T * 1.6f - 0.3f, 0.0f, 1.0f)),
                 static_cast<int>(125 + 85 * std::sin(T * PiFloat)),
                 static_cast<int>(215 * (1.0f - T * 0.7f)), 220);
-            Frame.Ink->AddRectFilled(ImVec2(X0, BaseY + 6.0f), ImVec2(X1 + 1.0f, BaseY + 11.0f), BarCol);
+            Frame.Ink->AddRectFilled(ImVec2(X0, FloorY + 6.0f), ImVec2(X1 + 1.0f, FloorY + 11.0f), BarCol);
         }
         const double WienPeakNm = 2897771.955 / Sun.TemperatureKelvin;
         if (WienPeakNm >= 380.0 && WienPeakNm <= 780.0)
         {
             const float PeakX = LeftX + static_cast<float>((WienPeakNm - 380.0) / 400.0) * (RightX - LeftX);
-            Frame.Ink->AddLine(ImVec2(PeakX, SpecMin.y + 12.0f), ImVec2(PeakX, BaseY), KitInkRgba(238, 214, 166, 120));
+            Frame.Ink->AddLine(ImVec2(PeakX, SpecMin.y + 12.0f), ImVec2(PeakX, FloorY), KitInkRgba(238, 214, 166, 120));
             Frame.Ink->AddCircleFilled(ImVec2(PeakX, SpecMin.y + 18.0f), 4.0f, Accent);
         }
         KitDrawText(Frame.Ink, Frame.Faces.Regular, 9.5f, ImVec2(LeftX, SpecMax.y - 13.0f), KitInkHex(0xac9f86),
@@ -962,7 +962,7 @@ void ConstructLensFlareObservatory(const ObservatoryFrame& Frame, LensFlareRecor
                           "Reflections, diffraction, and light across the sensor.", "##FlarePower", &Flare.Enabled,
                           Accent, "Enabled", "Disabled");
 
-    // 01 / LIVE PROCEDURAL REFERENCE — Optical composite (ported from NativeFlarePanel.js + NativeLensFlareKernel.js).
+    // 01 / LIVE PROCEDURAL REFERENCE — Optical composite (ported from LensFlare optical controls).
     DrawSectionCardHeader(Frame, "Optical composite", "01 / LIVE PROCEDURAL", Accent);
     {
         const ImVec2 CompMin = ImGui::GetCursorScreenPos();
@@ -1024,7 +1024,7 @@ void ConstructLensFlareObservatory(const ObservatoryFrame& Frame, LensFlareRecor
         ImGui::Dummy(ImVec2(Frame.Width, 0.0f));
     }
 
-    DrawObservatoryTabs(Frame, "Flare", {"Compose", "Ghosts", "Halo", "Rays"}, ActiveTab, Accent);
+    DrawObservatoryTabs(Frame, "Flare", {"Composite", "Ghosts", "Halo", "Rays"}, ActiveTab, Accent);
 
     if (ActiveTab == 0)
     {
@@ -1211,8 +1211,8 @@ void ConstructAtmosphereObservatory(const ObservatoryFrame& Frame, AtmosphereRec
                 static_cast<float>(0.04 + RelR * Atmosphere.RayleighMultiplier * 0.22 +
                                    RelM * Atmosphere.MieMultiplier * 0.10),
                 0.02f, 0.55f);
-            const float ShellR = LimbRadius + static_cast<float>(Km) * 3.1f;
-            Frame.Ink->PathArcTo(PlanetCentre, ShellR, -PiFloat * 0.82f, -PiFloat * 0.18f, 36);
+            const float LayerRadius = LimbRadius + static_cast<float>(Km) * 3.1f;
+            Frame.Ink->PathArcTo(PlanetCentre, LayerRadius, -PiFloat * 0.82f, -PiFloat * 0.18f, 36);
             Frame.Ink->PathStroke(KitInkWithAlpha(Accent, Alpha), 0, 2.2f);
         }
         Frame.Ink->PathArcTo(PlanetCentre, LimbRadius, -PiFloat * 0.85f, -PiFloat * 0.15f, 40);
@@ -1407,7 +1407,7 @@ void ConstructAtmosphereObservatory(const ObservatoryFrame& Frame, AtmosphereRec
         DrawObservatorySwitchRow(Frame, "##AtmoMulti", "Multiple scattering", Atmosphere.MultipleScattering, Accent);
         DrawObservatorySlider(Frame, "##AtmoSkyScale", "Sky brightness", Atmosphere.SkyBrightnessScale, 0.0, 3.0,
                               0.02, "\xC3\x97", 2, Accent);
-        DrawObservatorySlider(Frame, "##AtmoHorizon", "Horizon glow", Atmosphere.LimbGlow, 0.0, 3.0, 0.02, "\xC3\x97",
+        DrawObservatorySlider(Frame, "##AtmoLimb", "Limb glow", Atmosphere.LimbGlow, 0.0, 3.0, 0.02, "\xC3\x97",
                               2, Accent);
         DrawObservatorySlider(Frame, "##AtmoWhite", "White line", Atmosphere.BoundaryLine, 0.0, 3.0, 0.02, "\xC3\x97",
                               2, Accent);
@@ -1493,11 +1493,11 @@ void ConstructCloudObservatory(const ObservatoryFrame& Frame, CloudRecord& Cloud
         ImGui::SetCursorScreenPos(ImVec2(Frame.Left, AtlasMax.y + 8.0f));
         ImGui::Dummy(ImVec2(Frame.Width, 0.0f));
 
-        char BaseStr[24] = {}, TopStr[24] = {}, RayStr[24] = {};
-        std::snprintf(BaseStr, sizeof(BaseStr), "%.2f", Clouds.FloorAltitudeMetres / 1000.0);
+        char FloorStr[24] = {}, TopStr[24] = {}, RayStr[24] = {};
+        std::snprintf(FloorStr, sizeof(FloorStr), "%.2f", Clouds.FloorAltitudeMetres / 1000.0);
         std::snprintf(TopStr, sizeof(TopStr), "%.2f", Clouds.QueryEffectiveTopMetres() / 1000.0);
         std::snprintf(RayStr, sizeof(RayStr), "%u", Clouds.QueryCompleteLayerRaySamples());
-        DrawKpiTriple(Frame, "Layer base", BaseStr, "km", "Effective top", TopStr, "km", "Layer ray", RayStr,
+        DrawKpiTriple(Frame, "Layer floor", FloorStr, "km", "Effective top", TopStr, "km", "Layer ray", RayStr,
                       "samples");
 
         // 02 / MIX — Interactive 2D Coverage x Density Pad.
@@ -1576,7 +1576,7 @@ void ConstructCloudObservatory(const ObservatoryFrame& Frame, CloudRecord& Cloud
         KitDrawText(Frame.Ink, Frame.Faces.Medium, 9.5f, ImVec2(StackMin.x + 10.0f, TopY - 5.0f),
                     KitInkHex(0xb9d4e0), "TOP");
         KitDrawText(Frame.Ink, Frame.Faces.Medium, 9.5f, ImVec2(StackMin.x + 10.0f, BottomY - 5.0f),
-                    KitInkHex(0x899ba6), "BASE");
+                    KitInkHex(0x899ba6), "FLOOR");
         if (Clouds.QueryCeilingClipped())
         {
             KitDrawText(Frame.Ink, Frame.Faces.Medium, 9.5f, ImVec2(StackMax.x - 98.0f, StackMin.y + 8.0f), Accent,
@@ -1957,6 +1957,487 @@ void ConstructStandardOrCustomInspector(const ObservatoryFrame& Frame, const Rec
     DrawObservatoryFooter(Frame, RecordClassificationName(Summary.Classification));
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    FOG OBSERVATORY
+//------------------------------------------------------------------------------------------------------------------------
+
+void ConstructFogObservatory(const ObservatoryFrame& Frame, FogRecord& Fog, uint32_t& ActiveTab)
+{
+    const ImU32 Accent = KitInkHex(0x9ac4d9);
+    DrawObservatoryHeader(Frame, "ENVIRONMENT / AERIAL & HEIGHT FOG", "Fog",
+                          "Koschmieder split-target contrast decay, exponential height bank, and solar aureole.",
+                          "##FogPower", &Fog.Enabled, Accent, "Fog on", "Clear");
+
+    // 6 receding split-luminance (0.80 / 0.08) Koschmieder contrast targets + interactive distance probe!
+    const ImVec2 CanvasMin = ImGui::GetCursorScreenPos();
+    const float  CanvasH   = 134.0f;
+    const ImVec2 CanvasMax(Frame.Left + Frame.Width, CanvasMin.y + CanvasH);
+    KitPillSurface(Frame.Ink, CanvasMin, CanvasMax, Frame.CanvasBg, Frame.Theme.Line, 10.0f);
+
+    const ImU32 FogTint = SrgbSwatch(Fog.InscatterRed, Fog.InscatterGreen, Fog.InscatterBlue);
+    Frame.Ink->AddRectFilledMultiColor(
+        ImVec2(CanvasMin.x + 2.0f, CanvasMin.y + 2.0f), ImVec2(CanvasMax.x - 2.0f, CanvasMax.y - 26.0f),
+        KitInkWithAlpha(FogTint, 0.24f), KitInkWithAlpha(FogTint, 0.42f),
+        KitInkWithAlpha(FogTint, 0.62f), KitInkWithAlpha(FogTint, 0.30f));
+
+    static constexpr std::array<double, 6> TargetDistancesMetres{{15.0, 40.0, 90.0, 180.0, 320.0, 520.0}};
+    const float PadL  = CanvasMin.x + 14.0f;
+    const float SpanW = (Frame.Width - 28.0f) / 6.0f;
+    for (size_t Idx = 0; Idx < TargetDistancesMetres.size(); ++Idx)
+    {
+        const double               Dist   = TargetDistancesMetres[Idx];
+        const FogSplitTargetSample Sample = Fog.EvaluateSplitTarget(Dist);
+        const float                CX     = PadL + SpanW * (static_cast<float>(Idx) + 0.5f);
+        const float                CardW  = std::max(14.0f, SpanW * 0.62f - static_cast<float>(Idx) * 1.6f);
+        const float                CardH  = 66.0f - static_cast<float>(Idx) * 6.5f;
+        const float                BaseY  = CanvasMax.y - 28.0f;
+
+        const ImU32 TopCol = SrgbSwatch(Sample.BrightLuminance, Sample.BrightLuminance, Sample.BrightLuminance * 1.04);
+        const ImU32 BotCol = SrgbSwatch(Sample.DarkLuminance, Sample.DarkLuminance, Sample.DarkLuminance * 1.04);
+        Frame.Ink->AddRectFilled(ImVec2(CX - CardW * 0.5f, BaseY - CardH), ImVec2(CX + CardW * 0.5f, BaseY - CardH * 0.5f),
+                                 TopCol, 2.5f);
+        Frame.Ink->AddRectFilled(ImVec2(CX - CardW * 0.5f, BaseY - CardH * 0.5f), ImVec2(CX + CardW * 0.5f, BaseY),
+                                 BotCol, 2.5f);
+        Frame.Ink->AddRect(ImVec2(CX - CardW * 0.5f, BaseY - CardH), ImVec2(CX + CardW * 0.5f, BaseY),
+                           KitInkRgba(255, 255, 255, 42), 2.5f);
+
+        char DistLbl[24] = {};
+        std::snprintf(DistLbl, sizeof(DistLbl), "%.0fm", Dist);
+        KitDrawText(Frame.Ink, Frame.Faces.Regular, 9.2f, ImVec2(CX - 11.0f, CanvasMax.y - 19.0f), Frame.Theme.Muted,
+                    DistLbl);
+    }
+
+    const FogSplitTargetSample ProbeSample = Fog.EvaluateSplitTarget(Fog.ProbeDistanceMetres);
+    char                       Caption[96] = {};
+    std::snprintf(Caption, sizeof(Caption), "KOSCHMIEDER %.2f km  \xC2\xB7  PROBE %.0f m CONTRAST %.0f%%",
+                  Fog.QueryKoschmiederVisibilityMetres() / 1000.0, Fog.ProbeDistanceMetres,
+                  ProbeSample.ApparentContrast * 100.0);
+    KitDrawText(Frame.Ink, Frame.Faces.Medium, 9.8f, ImVec2(CanvasMin.x + 12.0f, CanvasMin.y + 8.0f), Accent, Caption);
+    ImGui::SetCursorScreenPos(ImVec2(Frame.Left, CanvasMax.y + 8.0f));
+    ImGui::Dummy(ImVec2(Frame.Width, 0.0f));
+
+    char VisBuf[24] = {}, TransBuf[24] = {}, ContBuf[24] = {};
+    std::snprintf(VisBuf, sizeof(VisBuf), "%.2f", Fog.QueryKoschmiederVisibilityMetres() / 1000.0);
+    std::snprintf(TransBuf, sizeof(TransBuf), "%.0f", ProbeSample.Transmittance * 100.0);
+    std::snprintf(ContBuf, sizeof(ContBuf), "%.1f", ProbeSample.ApparentContrast * 100.0);
+    DrawKpiTriple(Frame, "VISIBILITY", VisBuf, "km", "TRANSMIT", TransBuf, "%", "CONTRAST", ContBuf, "%");
+
+    DrawObservatoryTabs(Frame, "Fog", {"Visibility", "Height bank", "Aerial gate", "Sun phase"}, ActiveTab, Accent);
+
+    bool Changed = false;
+    if (ActiveTab == 0)
+    {
+        DrawSectionCardHeader(Frame, "Atmospheric presets & probe", "01 / KOSCHMIEDER", Accent);
+        if (DrawObservatoryOptionStrip(Frame, "FogPreset", "Proving grounds profile",
+                                       {"Clear", "Morning Mist", "Valley Bank", "Alpine Whiteout"},
+                                       Fog.PresetIndex, Accent))
+        {
+            Fog.ApplyPreset(Fog.PresetIndex);
+        }
+        Changed |= DrawObservatorySlider(Frame, "##FogProbe", "Contrast target probe", Fog.ProbeDistanceMetres,
+                                         5.0, 600.0, 5.0, "m", 0, Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogDens", "Floor extinction density", Fog.DensityAtFloor,
+                                         0.0, 0.15, 0.001, "1/m", 3, Accent);
+    }
+    else if (ActiveTab == 1)
+    {
+        DrawSectionCardHeader(Frame, "Exponential altitude terrace", "02 / SCALE HEIGHT", Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogFloor", "Reference floor altitude", Fog.FloorAltitudeMetres,
+                                         -50.0, 500.0, 1.0, "m", 0, Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogFall", "Exponential scale height", Fog.FalloffHeightMetres,
+                                         2.0, 300.0, 1.0, "m", 0, Accent);
+        Changed |= DrawObservatorySwitchRow(Frame, "##FogAtmLink", "Couple atmospheric sky limb tint",
+                                            Fog.CoupleAtmosphereTint, Accent);
+    }
+    else if (ActiveTab == 2)
+    {
+        DrawSectionCardHeader(Frame, "Clear-start aerial perspective", "03 / NEAR GATE", Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogGate", "Clear-start foreground gate", Fog.AerialStartMetres,
+                                         0.0, 400.0, 2.0, "m", 0, Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogAerD", "Long-range aerial extinction", Fog.AerialDensity,
+                                         0.0, 0.05, 0.0005, "1/m", 4, Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogMie", "Rayleigh-to-Mie aerial blend", Fog.AerialMieBlend,
+                                         0.0, 1.0, 0.02, "", 2, Accent);
+    }
+    else
+    {
+        DrawSectionCardHeader(Frame, "Forward solar aureole", "04 / PHASE LOBE", Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogPow", "Forward scattering power", Fog.SolarForwardPower,
+                                         1.0, 32.0, 0.5, "exp", 1, Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogGain", "Solar in-scatter gain", Fog.SolarScatterGain,
+                                         0.0, 3.0, 0.05, "\xC3\x97", 2, Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogR", "Inscatter red", Fog.InscatterRed, 0.0, 1.2, 0.01, "", 2, Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogG", "Inscatter green", Fog.InscatterGreen, 0.0, 1.2, 0.01, "", 2, Accent);
+        Changed |= DrawObservatorySlider(Frame, "##FogB", "Inscatter blue", Fog.InscatterBlue, 0.0, 1.2, 0.01, "", 2, Accent);
+    }
+
+    if (Changed)
+    {
+        Fog.SynchronizeParameters();
+    }
+    DrawObservatoryFooter(Frame, "ENVIRONMENT / FOG MEDIUM");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   STARS OBSERVATORY
+//------------------------------------------------------------------------------------------------------------------------
+
+void ConstructStarsObservatory(const ObservatoryFrame& Frame, StarsRecord& Stars, uint32_t& ActiveTab)
+{
+    const ImU32 Accent = KitInkHex(0x9cb8f2);
+    DrawObservatoryHeader(Frame, "CELESTIAL / SIDEREAL PLANISPHERE", "Stars",
+                          "Lambert equal-area celestial dome, Hipparcos magnitude histogram, and scintillation.",
+                          "##StarsPower", &Stars.Enabled, Accent, "Dome live", "Off");
+
+    // North-pole Lambert equal-area celestial planisphere!
+    const ImVec2 DomeMin = ImGui::GetCursorScreenPos();
+    const float  DomeH   = 152.0f;
+    const ImVec2 DomeMax(Frame.Left + Frame.Width, DomeMin.y + DomeH);
+    KitPillSurface(Frame.Ink, DomeMin, DomeMax, KitInkHex(0x0b0f17), Frame.Theme.Line, 10.0f);
+
+    const ImVec2 DomeCentre(Frame.Left + Frame.Width * 0.34f, DomeMin.y + DomeH * 0.50f);
+    const float  DomeRadius = 60.0f;
+    Frame.Ink->AddCircleFilled(DomeCentre, DomeRadius, KitInkHex(0x070a11), 48);
+    Frame.Ink->AddCircle(DomeCentre, DomeRadius, KitInkRgba(156, 184, 242, 95), 48, 1.2f);
+    Frame.Ink->AddCircle(DomeCentre, DomeRadius * 0.58f, KitInkRgba(156, 184, 242, 36), 36, 1.0f);
+    Frame.Ink->AddLine(ImVec2(DomeCentre.x - DomeRadius, DomeCentre.y), ImVec2(DomeCentre.x + DomeRadius, DomeCentre.y),
+                       KitInkRgba(156, 184, 242, 32));
+    Frame.Ink->AddLine(ImVec2(DomeCentre.x, DomeCentre.y - DomeRadius), ImVec2(DomeCentre.x, DomeCentre.y + DomeRadius),
+                       KitInkRgba(156, 184, 242, 32));
+
+    const double RotRad = Stars.RotationDegrees * (3.14159265358979323846 / 180.0);
+    const double CosR   = std::cos(RotRad);
+    const double SinR   = std::sin(RotRad);
+    for (const StarRecord& Star : Stars.Catalogue)
+    {
+        if (Star.Direction.Z < 0.0 || Star.Magnitude > Stars.LimitingMagnitude)
+        {
+            continue;
+        }
+        // Lambert azimuthal equal-area projection from Z-apex
+        const double Radial = std::sqrt(std::max(0.0, 1.0 - Star.Direction.Z));
+        const double RX     = Star.Direction.X * CosR - Star.Direction.Y * SinR;
+        const double RY     = Star.Direction.X * SinR + Star.Direction.Y * CosR;
+        const double Horiz  = std::hypot(RX, RY);
+        const float  PX     = DomeCentre.x + (Horiz > 1e-6 ? static_cast<float>((RX / Horiz) * Radial) * DomeRadius : 0.0f);
+        const float  PY     = DomeCentre.y - (Horiz > 1e-6 ? static_cast<float>((RY / Horiz) * Radial) * DomeRadius : 0.0f);
+        const float  Size   = std::clamp(static_cast<float>((6.8 - Star.Magnitude) * 0.45), 0.9f, 2.8f);
+        const ImU32  Tint   = Star.ColourIndex < 0.0 ? KitInkRgba(185, 212, 255, 230) : KitInkRgba(255, 224, 184, 220);
+        Frame.Ink->AddCircleFilled(ImVec2(PX, PY), Size, Tint, 8);
+    }
+
+    // Right side of hero card: live 10-bin Hipparcos magnitude histogram (-2..+8)
+    const auto  Bins   = Stars.QueryMagnitudeHistogram();
+    uint32_t    MaxBin = 1u;
+    for (uint32_t C : Bins)
+    {
+        MaxBin = std::max(MaxBin, C);
+    }
+    const float HistL = Frame.Left + Frame.Width * 0.62f;
+    const float HistW = Frame.Width * 0.33f;
+    const float HistB = DomeMax.y - 24.0f;
+    KitDrawText(Frame.Ink, Frame.Faces.Medium, 9.5f, ImVec2(HistL, DomeMin.y + 12.0f), Accent, "MAGNITUDE BINS");
+    for (size_t B = 0; B < Bins.size(); ++B)
+    {
+        const float BX   = HistL + static_cast<float>(B) * (HistW / 10.0f);
+        const float BarH = (static_cast<float>(Bins[B]) / static_cast<float>(MaxBin)) * 88.0f;
+        const bool  Lit  = (static_cast<double>(B) - 2.0) <= Stars.LimitingMagnitude;
+        Frame.Ink->AddRectFilled(ImVec2(BX + 1.0f, HistB - BarH), ImVec2(BX + (HistW / 10.0f) - 1.5f, HistB),
+                                 Lit ? KitInkWithAlpha(Accent, 0.80f) : Frame.Theme.Surface3, 2.0f);
+    }
+    KitDrawText(Frame.Ink, Frame.Faces.Regular, 9.0f, ImVec2(HistL, HistB + 4.0f), Frame.Theme.Faint, "-2 mag -> +8 mag");
+    ImGui::SetCursorScreenPos(ImVec2(Frame.Left, DomeMax.y + 8.0f));
+    ImGui::Dummy(ImVec2(Frame.Width, 0.0f));
+
+    char VisStars[24] = {}, MagCut[24] = {}, RotStr[24] = {};
+    std::snprintf(VisStars, sizeof(VisStars), "%u", Stars.QueryVisibleStarCount());
+    std::snprintf(MagCut, sizeof(MagCut), "%.1f", Stars.LimitingMagnitude);
+    std::snprintf(RotStr, sizeof(RotStr), "%.0f", Stars.RotationDegrees);
+    DrawKpiTriple(Frame, "VISIBLE", VisStars, "stars", "MAG LIMIT", MagCut, "mag", "SIDEREAL", RotStr, "deg");
+
+    DrawObservatoryTabs(Frame, "Stars", {"Planisphere", "Magnitudes", "Scintillation", "Galactic"}, ActiveTab, Accent);
+    if (ActiveTab == 0)
+    {
+        DrawSectionCardHeader(Frame, "Sidereal orientation", "01 / DOME ROTATION", Accent);
+        DrawObservatorySlider(Frame, "##StarRot", "Sidereal rotation", Stars.RotationDegrees, 0.0, 360.0, 1.0, "deg", 0, Accent);
+        DrawObservatorySwitchRow(Frame, "##StarDrift", "Continuous sidereal drift", Stars.SiderealDriftActive, Accent);
+    }
+    else if (ActiveTab == 1)
+    {
+        DrawSectionCardHeader(Frame, "Photometric cutoff", "02 / APERTURE GAIN", Accent);
+        DrawObservatorySlider(Frame, "##StarMag", "Limiting visual magnitude", Stars.LimitingMagnitude, 1.0, 8.0, 0.1, "mag", 1, Accent);
+        DrawObservatorySlider(Frame, "##StarBri", "Catalogue flux multiplier", Stars.BrightnessMultiplier, 0.0, 4.0, 0.05, "\xC3\x97", 2, Accent);
+    }
+    else if (ActiveTab == 2)
+    {
+        DrawSectionCardHeader(Frame, "Atmospheric scintillation (4 s trace)", "03 / TURBULENCE", Accent);
+        const ImVec2 TraceMin = ImGui::GetCursorScreenPos();
+        const float  TraceH   = 68.0f;
+        const ImVec2 TraceMax(Frame.Left + Frame.Width, TraceMin.y + TraceH);
+        KitPillSurface(Frame.Ink, TraceMin, TraceMax, Frame.CanvasBg, Frame.Theme.LineSoft, 8.0f);
+        ImVec2 PrevPt{};
+        for (int Step = 0; Step <= 64; ++Step)
+        {
+            const double T   = (4.0 * Step) / 64.0;
+            const double Env = Stars.EvaluateScintillationTrace(T);
+            const ImVec2 Pt(TraceMin.x + 8.0f + (Frame.Width - 16.0f) * (static_cast<float>(Step) / 64.0f),
+                            TraceMax.y - 10.0f - static_cast<float>((Env - 0.15) / 1.70) * (TraceH - 20.0f));
+            if (Step > 0)
+            {
+                Frame.Ink->AddLine(PrevPt, Pt, Accent, 1.5f);
+            }
+            PrevPt = Pt;
+        }
+        ImGui::SetCursorScreenPos(ImVec2(Frame.Left, TraceMax.y + 8.0f));
+        ImGui::Dummy(ImVec2(Frame.Width, 0.0f));
+        DrawObservatorySlider(Frame, "##StarScin", "Scintillation depth", Stars.ScintillationStrength, 0.0, 1.0, 0.02, "", 2, Accent);
+        DrawObservatorySlider(Frame, "##StarHz", "Scintillation frequency", Stars.ScintillationRateHz, 0.2, 8.0, 0.1, "Hz", 1, Accent);
+    }
+    else
+    {
+        DrawSectionCardHeader(Frame, "Galactic band radiance", "04 / MILKY WAY", Accent);
+        DrawObservatorySlider(Frame, "##StarMw", "Galactic plane luminance", Stars.MilkyWayGain, 0.0, 2.0, 0.05, "\xC3\x97", 2, Accent);
+    }
+    DrawObservatoryFooter(Frame, "CELESTIAL / STAR CATALOGUE");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    MOON OBSERVATORY
+//------------------------------------------------------------------------------------------------------------------------
+
+void ConstructMoonObservatory(const ObservatoryFrame& Frame, MoonRecord& Moon, uint32_t& ActiveTab)
+{
+    const ImU32 Accent = KitInkHex(0xc4d5e8);
+    DrawObservatoryHeader(Frame, "CELESTIAL / SELENOGRAPHIC DISC", "Moon",
+                          "29.53-day synodic phase rail, selenographic terminator, and log angular diameter tape.",
+                          "##MoonPower", &Moon.Enabled, Accent, "Lunar live", "Off");
+
+    const LunarPhase Lunar  = Moon.QueryLunarPhase();
+    const bool       Waxing = Moon.QueryWaxing();
+
+    // Selenographic terminator disc + logarithmic angular diameter tape!
+    const ImVec2 DiscMin = ImGui::GetCursorScreenPos();
+    const float  DiscH   = 136.0f;
+    const ImVec2 DiscMax(Frame.Left + Frame.Width, DiscMin.y + DiscH);
+    KitPillSurface(Frame.Ink, DiscMin, DiscMax, KitInkHex(0x0b0f16), Frame.Theme.Line, 10.0f);
+
+    const ImVec2 Centre(Frame.Left + 74.0f, DiscMin.y + DiscH * 0.5f);
+    const float  Rad = 46.0f;
+    // Scanline terminator shading across selenographic sphere
+    for (int Dy = -44; Dy <= 44; Dy += 2)
+    {
+        const float HalfSpan = std::sqrt(std::max(0.0f, Rad * Rad - static_cast<float>(Dy * Dy)));
+        const double TermCos = 1.0 - 2.0 * Lunar.Illumination;
+        const float  TermX   = static_cast<float>(TermCos) * HalfSpan * (Waxing ? 1.0f : -1.0f);
+        const float  LitL    = Waxing ? TermX : -HalfSpan;
+        const float  LitR    = Waxing ? HalfSpan : TermX;
+        Frame.Ink->AddLine(ImVec2(Centre.x - HalfSpan, Centre.y + static_cast<float>(Dy)),
+                           ImVec2(Centre.x + HalfSpan, Centre.y + static_cast<float>(Dy)),
+                           KitInkRgba(34, 42, 56, 220), 2.2f);
+        if (LitR > LitL)
+        {
+            Frame.Ink->AddLine(ImVec2(Centre.x + LitL, Centre.y + static_cast<float>(Dy)),
+                               ImVec2(Centre.x + LitR, Centre.y + static_cast<float>(Dy)),
+                               SrgbSwatch(Moon.TintRed * 0.88, Moon.TintGreen * 0.88, Moon.TintBlue * 0.88), 2.2f);
+        }
+    }
+    Frame.Ink->AddCircle(Centre, Rad, KitInkRgba(196, 213, 232, 130), 40, 1.3f);
+
+    // Right side: body title + log 0.1..180 deg angular diameter tape with 0.52 deg Earth Moon tick!
+    const float TapeL = Frame.Left + 140.0f;
+    const float TapeR = Frame.Left + Frame.Width - 14.0f;
+    const float TapeW = std::max(40.0f, TapeR - TapeL);
+    KitDrawText(Frame.Ink, Frame.Faces.SemiBold, 14.0f, ImVec2(TapeL, DiscMin.y + 18.0f), Frame.Theme.Text,
+                Moon.QueryBodyPresetName());
+    char PhaseSub[64] = {};
+    std::snprintf(PhaseSub, sizeof(PhaseSub), "Age %.1f d  \xC2\xB7  %.0f%% %s",
+                  Lunar.AgeDays, Lunar.Illumination * 100.0, Waxing ? "Waxing" : "Waning");
+    KitDrawText(Frame.Ink, Frame.Faces.Regular, 11.0f, ImVec2(TapeL, DiscMin.y + 38.0f), Frame.Theme.Muted, PhaseSub);
+
+    const float TapeY = DiscMin.y + 84.0f;
+    Frame.Ink->AddRectFilled(ImVec2(TapeL, TapeY - 3.0f), ImVec2(TapeR, TapeY + 3.0f), Frame.Theme.Surface2, 3.0f);
+    const auto LogNorm = [](double Deg) {
+        return static_cast<float>(std::clamp((std::log10(std::max(0.1, Deg)) - std::log10(0.1)) /
+                                                 (std::log10(180.0) - std::log10(0.1)),
+                                             0.0, 1.0));
+    };
+    const float EarthTickX = TapeL + LogNorm(0.52) * TapeW;
+    const float CurTickX   = TapeL + LogNorm(Moon.AngularDiameterDegrees) * TapeW;
+    Frame.Ink->AddLine(ImVec2(EarthTickX, TapeY - 9.0f), ImVec2(EarthTickX, TapeY + 9.0f), KitInkHex(0xebb35e), 1.4f);
+    Frame.Ink->AddCircleFilled(ImVec2(CurTickX, TapeY), 5.5f, Accent);
+    KitDrawText(Frame.Ink, Frame.Faces.Regular, 9.2f, ImVec2(TapeL, TapeY + 12.0f), Frame.Theme.Faint,
+                "LOG ANGULAR TAPE: 0.1\xC2\xB0 .. 0.52\xC2\xB0 (Luna) .. 180\xC2\xB0");
+
+    ImGui::SetCursorScreenPos(ImVec2(Frame.Left, DiscMax.y + 8.0f));
+    ImGui::Dummy(ImVec2(Frame.Width, 0.0f));
+
+    DrawObservatoryTabs(Frame, "Moon", {"Selenograph", "Synodic", "Coordinates", "Presets"}, ActiveTab, Accent);
+    if (ActiveTab == 0)
+    {
+        DrawSectionCardHeader(Frame, "Surface albedo & earthshine", "01 / OPTICS", Accent);
+        DrawObservatorySlider(Frame, "##MoonStr", "Moonlight illuminance", Moon.MoonlightStrength, 0.0, 3.0, 0.02, "\xC3\x97", 2, Accent);
+        DrawObservatorySlider(Frame, "##MoonEarth", "Ashen earthshine", Moon.EarthshineStrength, 0.0, 0.5, 0.01, "", 2, Accent);
+        DrawObservatorySlider(Frame, "##MoonMare", "Mare / highland contrast", Moon.MareContrast, 0.0, 1.0, 0.02, "", 2, Accent);
+    }
+    else if (ActiveTab == 1)
+    {
+        DrawSectionCardHeader(Frame, "Synodic cycle (29.53 days)", "02 / PHASE RAIL", Accent);
+        DrawObservatorySlider(Frame, "##MoonAge", "Synodic age", Moon.SynodicAgeDays, 0.0, SynodicMonthDays, 0.1, "d", 1, Accent);
+        DrawObservatorySwitchRow(Frame, "##MoonLock", "Lock phase to calendar ephemeris", Moon.LockToEphemeris, Accent);
+    }
+    else if (ActiveTab == 2)
+    {
+        DrawSectionCardHeader(Frame, "Sky dome coordinates & scale", "03 / EPHEMERIS", Accent);
+        DrawObservatorySlider(Frame, "##MoonEl", "Sky elevation", Moon.ElevationDegrees, -90.0, 90.0, 0.5, "deg", 1, Accent);
+        DrawObservatorySlider(Frame, "##MoonAz", "Azimuth bearing", Moon.AzimuthDegrees, -180.0, 180.0, 1.0, "deg", 0, Accent);
+        DrawObservatorySlider(Frame, "##MoonDia", "Angular diameter", Moon.AngularDiameterDegrees, 0.1, 60.0, 0.05, "deg", 2, Accent);
+    }
+    else
+    {
+        DrawSectionCardHeader(Frame, "Planetary satellite presets", "04 / BODY CATALOGUE", Accent);
+        if (DrawObservatoryOptionStrip(Frame, "MoonPreset", "Celestial body",
+                                       {"Earth Moon", "Europa", "Titan", "Enceladus", "Phobos", "Gas Giant"},
+                                       Moon.PresetBodyIndex, Accent))
+        {
+            Moon.ApplyBodyPreset(Moon.PresetBodyIndex);
+        }
+    }
+    DrawObservatoryFooter(Frame, "CELESTIAL / SELENOGRAPHIC MODEL");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  WEATHER OBSERVATORY
+//------------------------------------------------------------------------------------------------------------------------
+
+void ConstructWeatherObservatory(const ObservatoryFrame& Frame, WeatherRecord& Weather, uint32_t& ActiveTab)
+{
+    const ImU32 Accent = KitInkHex(0x789efa);
+    DrawObservatoryHeader(Frame, "WEATHER / STORM & SURFACE DEPOSIT", "Storm & Deposit",
+                          "Procedural forked lightning, 343 m/s thunder acoustics, and 0..4 mm apron retention.",
+                          "##WeatherPower", &Weather.Enabled, Accent, "Storm live", "Dry");
+
+    // Hero canvas: either Forked Lightning Bolt + Flash Envelope (tabs 0..1) or 16x10 Surface Retention Grid (tabs 2..3)!
+    const ImVec2 HeroMin = ImGui::GetCursorScreenPos();
+    const float  HeroH   = 138.0f;
+    const ImVec2 HeroMax(Frame.Left + Frame.Width, HeroMin.y + HeroH);
+    KitPillSurface(Frame.Ink, HeroMin, HeroMax, KitInkHex(0x0b1019), Frame.Theme.Line, 10.0f);
+
+    if (ActiveTab <= 1)
+    {
+        // Project 3D ActiveBolt X/Z into left half of storm canvas + stroke/restrike envelope on right!
+        const auto ProjectBoltPt = [&](SpatialVector P) -> ImVec2 {
+            const float U = std::clamp(static_cast<float>((P.X + 4.5) / 9.0), 0.04f, 0.96f);
+            const float V = 1.0f - std::clamp(static_cast<float>(P.Z / 15.0), 0.04f, 0.96f);
+            return ImVec2(HeroMin.x + 12.0f + U * (Frame.Width * 0.48f), HeroMin.y + 10.0f + V * (HeroH - 24.0f));
+        };
+        for (size_t I = 1; I < Weather.ActiveBolt.MainChannel.size(); ++I)
+        {
+            const ImVec2 A = ProjectBoltPt(Weather.ActiveBolt.MainChannel[I - 1]);
+            const ImVec2 B = ProjectBoltPt(Weather.ActiveBolt.MainChannel[I]);
+            Frame.Ink->AddLine(A, B, KitInkRgba(140, 185, 255, 95), 4.2f);
+            Frame.Ink->AddLine(A, B, KitInkHex(0xeef5ff), 1.6f);
+        }
+        for (const auto& Branch : Weather.ActiveBolt.Branches)
+        {
+            for (size_t I = 1; I < Branch.size(); ++I)
+            {
+                Frame.Ink->AddLine(ProjectBoltPt(Branch[I - 1]), ProjectBoltPt(Branch[I]),
+                                   KitInkRgba(165, 200, 255, 175), 1.0f);
+            }
+        }
+        // Right half: multi-stroke flash envelope + 343 m/s acoustic arrival marker!
+        const float EnvL = HeroMin.x + Frame.Width * 0.54f;
+        const float EnvW = Frame.Width * 0.42f;
+        const float EnvB = HeroMax.y - 24.0f;
+        KitDrawText(Frame.Ink, Frame.Faces.Medium, 9.5f, ImVec2(EnvL, HeroMin.y + 10.0f), Accent,
+                    "RETURN STROKE + THUNDER DELAY");
+        ImVec2 Prev{};
+        for (int Step = 0; Step <= 48; ++Step)
+        {
+            const double T   = (0.65 * Step) / 48.0;
+            const double Val = LightningIntensity(T, Weather.StrikeCounter);
+            const ImVec2 Pt(EnvL + EnvW * (static_cast<float>(Step) / 48.0f),
+                            EnvB - static_cast<float>(Val) * 76.0f);
+            if (Step > 0)
+            {
+                Frame.Ink->AddLine(Prev, Pt, KitInkHex(0x9dc2ff), 1.5f);
+            }
+            Prev = Pt;
+        }
+        char ThunderCaption[64] = {};
+        std::snprintf(ThunderCaption, sizeof(ThunderCaption), "Thunder +%.2f s (%.0f m @ 343 m/s)",
+                      Weather.QueryThunderArrivalSeconds(), Weather.StrikeDistanceMetres);
+        KitDrawText(Frame.Ink, Frame.Faces.Regular, 9.4f, ImVec2(EnvL, HeroMax.y - 16.0f), KitInkHex(0xebb35e),
+                    ThunderCaption);
+    }
+    else
+    {
+        // 16 x 10 Proving Grounds Surface Deposit Retention Grid (shows dry shadow under ControlVehicle!)
+        const float GridL = HeroMin.x + 14.0f;
+        const float GridT = HeroMin.y + 24.0f;
+        const float CellW = (Frame.Width - 28.0f) / 16.0f;
+        const float CellH = (HeroH - 36.0f) / 10.0f;
+        KitDrawText(Frame.Ink, Frame.Faces.Medium, 9.5f, ImVec2(GridL, HeroMin.y + 8.0f), Accent,
+                    "CHUNKED APRON RETENTION GRID (0..4 mm  \xC2\xB7  VEHICLE CHASSIS SHADOW)");
+        for (int32_t GY = 0; GY < 10; ++GY)
+        {
+            for (int32_t GX = 0; GX < 16; ++GX)
+            {
+                const double Mm   = Weather.SampleSurfaceRetentionMm(GX, GY);
+                const float  Frac = std::clamp(static_cast<float>(Mm / 4.0), 0.0f, 1.0f);
+                const ImU32  Fill = Weather.PrecipitationModeIndex == 3
+                                        ? KitInkRgba(static_cast<int>(30 + 195 * Frac),
+                                                     static_cast<int>(38 + 195 * Frac),
+                                                     static_cast<int>(52 + 195 * Frac), 235)
+                                        : KitInkRgba(static_cast<int>(22 + 58 * Frac),
+                                                     static_cast<int>(34 + 128 * Frac),
+                                                     static_cast<int>(52 + 188 * Frac), 235);
+                const ImVec2 CMin(GridL + GX * CellW + 1.0f, GridT + GY * CellH + 1.0f);
+                const ImVec2 CMax(GridL + (GX + 1) * CellW - 1.0f, GridT + (GY + 1) * CellH - 1.0f);
+                Frame.Ink->AddRectFilled(CMin, CMax, Fill, 2.0f);
+            }
+        }
+    }
+    ImGui::SetCursorScreenPos(ImVec2(Frame.Left, HeroMax.y + 8.0f));
+    ImGui::Dummy(ImVec2(Frame.Width, 0.0f));
+
+    if (DrawObservatoryActionButton(Frame, "##StrikeAheadBtn", "Strike ahead (discharge return stroke + thunder)", Accent))
+    {
+        Weather.TriggerStrikeAhead();
+    }
+
+    DrawObservatoryTabs(Frame, "Weather", {"Lightning", "Thunder", "Precipitation", "Deposit grid"}, ActiveTab, Accent);
+    if (ActiveTab == 0)
+    {
+        DrawSectionCardHeader(Frame, "Midpoint-displacement leader", "01 / BOLT GEOMETRY", Accent);
+        DrawObservatorySlider(Frame, "##BoltForks", "Secondary fork branches", Weather.BoltForkCount, 0.0, 6.0, 1.0, "", 0, Accent);
+        DrawObservatorySlider(Frame, "##BoltJag", "Channel jaggedness", Weather.BoltJaggedness, 0.05, 0.60, 0.02, "", 2, Accent);
+        DrawObservatorySlider(Frame, "##BoltExp", "Peak flash illuminance", Weather.FlashExposureMultiplier, 0.0, 4.0, 0.1, "\xC3\x97", 1, Accent);
+    }
+    else if (ActiveTab == 1)
+    {
+        DrawSectionCardHeader(Frame, "Acoustic propagation (343 m/s)", "02 / THUNDER", Accent);
+        DrawObservatorySlider(Frame, "##StrikeDist", "Strike range ahead", Weather.StrikeDistanceMetres, 50.0, 5000.0, 25.0, "m", 0, Accent);
+        DrawObservatorySlider(Frame, "##StrikeClock", "Elapsed stroke clock", Weather.TimeSinceStrikeSeconds, 0.0, 1.0, 0.01, "s", 2, Accent);
+        DrawObservatorySwitchRow(Frame, "##AutoStorm", "Periodic storm cell discharges", Weather.AutoStormCells, Accent);
+    }
+    else if (ActiveTab == 2)
+    {
+        DrawSectionCardHeader(Frame, "Advected particle field", "03 / PRECIPITATION", Accent);
+        DrawObservatoryOptionStrip(Frame, "PrecipMode", "Phase state", {"Clear", "Rain", "Sleet", "Snow"},
+                                   Weather.PrecipitationModeIndex, Accent);
+        DrawObservatorySlider(Frame, "##PrecipRate", "Precipitation rate", Weather.PrecipitationRate, 0.0, 1.0, 0.02, "", 2, Accent);
+        DrawObservatorySlider(Frame, "##PrecipSize", "Drop / crystal diameter", Weather.ParticleSizeMillimetres, 0.5, 8.0, 0.1, "mm", 1, Accent);
+    }
+    else
+    {
+        DrawSectionCardHeader(Frame, "Chunked surface retention", "04 / APRON DEPOSIT", Accent);
+        DrawObservatorySlider(Frame, "##SurfDep", "Accumulated surface depth", Weather.SurfaceDepositMm, 0.0, 4.0, 0.1, "mm", 1, Accent);
+        DrawObservatorySlider(Frame, "##SurfDrain", "Runoff / melt rate", Weather.DrainOrMeltRate, 0.0, 1.0, 0.02, "", 2, Accent);
+    }
+    DrawObservatoryFooter(Frame, "WEATHER / LIGHTNING & RETENTION");
+}
+
 } // namespace
 
 #endif // Editor/Development profiles
@@ -2063,6 +2544,18 @@ void SceneInspectorPanel::ConstructInterface(SceneDirectoryPanel& DirectoryPanel
                         break;
                     case InspectorInstrumentCategory::WindObservatory:
                         ConstructWindObservatory(Frame, *static_cast<WindRecord*>(LiveEntry), WindTabIndex);
+                        break;
+                    case InspectorInstrumentCategory::FogObservatory:
+                        ConstructFogObservatory(Frame, *static_cast<FogRecord*>(LiveEntry), FogTabIndex);
+                        break;
+                    case InspectorInstrumentCategory::StarsObservatory:
+                        ConstructStarsObservatory(Frame, *static_cast<StarsRecord*>(LiveEntry), StarsTabIndex);
+                        break;
+                    case InspectorInstrumentCategory::MoonObservatory:
+                        ConstructMoonObservatory(Frame, *static_cast<MoonRecord*>(LiveEntry), MoonTabIndex);
+                        break;
+                    case InspectorInstrumentCategory::WeatherObservatory:
+                        ConstructWeatherObservatory(Frame, *static_cast<WeatherRecord*>(LiveEntry), WeatherTabIndex);
                         break;
                     case InspectorInstrumentCategory::Standard:
                     case InspectorInstrumentCategory::Custom:

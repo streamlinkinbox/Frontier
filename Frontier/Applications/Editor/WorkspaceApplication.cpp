@@ -232,6 +232,7 @@ int ExecuteBrowserListing(const std::filesystem::path& FromExecutable)
 
 #if defined(FRONTIER_WITH_INTERFACE_SDK)
 
+#include "Engine/Interface/DomainStudioPanels.h"
 #include "Engine/Interface/LogStreamPanelRegistration.h"
 #include "Engine/Interface/SceneDirectoryPanel.h"
 #include "Engine/Interface/SceneDirectoryPanelRegistration.h"
@@ -239,6 +240,7 @@ int ExecuteBrowserListing(const std::filesystem::path& FromExecutable)
 #include "Engine/Interface/SceneInspectorPanelRegistration.h"
 #include "Engine/Interface/StackRailControls.h"
 #include "Engine/Interface/WindowsApplication.h"
+#include "Engine/Rendering/DualTierRenderer.h"
 #include "Engine/Scene/EnvironmentRecords.h"
 #include "Engine/Scene/SceneDirectory.h"
 #include "Engine/Scene/SceneRecord.h"
@@ -255,6 +257,7 @@ int ExecuteBrowserListing(const std::filesystem::path& FromExecutable)
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <memory>
 #include <vector>
@@ -272,8 +275,12 @@ struct StandardProjectEnvironment
     FolderRecord     ForcefieldFolder{"Forcefield", "FORCEFIELD", 0xFFACD8C7u};
     AtmosphereRecord Atmosphere;
     CloudRecord      Clouds;
+    FogRecord        Fog;
     SunRecord        Sun;
+    MoonRecord       Moon;
+    StarsRecord      Stars;
     LensFlareRecord  LensFlare;
+    WeatherRecord    Weather;
     WindRecord       Wind;
 
     StandardProjectEnvironment()
@@ -282,8 +289,12 @@ struct StandardProjectEnvironment
         SceneDirectory& Directory = SceneDirectory::Instance();
         (void)Directory.ConfigureParent(Atmosphere.Token(), EnvironmentFolder.Token());
         (void)Directory.ConfigureParent(Clouds.Token(), EnvironmentFolder.Token());
+        (void)Directory.ConfigureParent(Fog.Token(), EnvironmentFolder.Token());
         (void)Directory.ConfigureParent(Sun.Token(), EnvironmentFolder.Token());
+        (void)Directory.ConfigureParent(Moon.Token(), EnvironmentFolder.Token());
+        (void)Directory.ConfigureParent(Stars.Token(), EnvironmentFolder.Token());
         (void)Directory.ConfigureParent(LensFlare.Token(), EnvironmentFolder.Token());
+        (void)Directory.ConfigureParent(Weather.Token(), EnvironmentFolder.Token());
         (void)Directory.ConfigureParent(Wind.Token(), ForcefieldFolder.Token());
 #endif
     }
@@ -293,16 +304,26 @@ struct ActiveWorkspaceSession
 {
     PanelDockspace                              Panels;
     LogStreamPanel                              LogPanel;
+    DomainStudioPanel                           StudioPanel;
     SceneDirectoryPanel                         OutlinerPanel;
     SceneInspectorPanel                         InspectorPanel;
+    std::unique_ptr<DualTierProvingGroundsRenderer> EverestRenderer;
     std::unique_ptr<ProjectEverestScene>        EverestScene;
     std::unique_ptr<StandardProjectEnvironment> StandardScene;
     std::vector<std::unique_ptr<FolderRecord>>  SpawnedFolders;
     std::vector<std::unique_ptr<SceneRecord>>   SpawnedRecords;
     ProjectDescriptor                           Descriptor;
     std::filesystem::path                       LayoutPath;
-    float                                       InterfaceScale  = 1.0f;
-    bool                                        ReturnRequested = false;
+    double                                      CameraYawDegrees     = -36.0;
+    double                                      CameraPitchDegrees   = 16.5;
+    double                                      CameraDistanceMetres = 5.85;
+    EverestViewportInputs                       CachedViewportInputs{};
+    std::vector<SpectrumRgb>                    CachedViewportGrid;
+    DualTierFrameTelemetry                      CachedTelemetry{};
+    bool                                        ViewportCacheValid   = false;
+    float                                       InterfaceScale       = 1.0f;
+    bool                                        ShowDomainStudio     = false;
+    bool                                        ReturnRequested      = false;
 };
 
 bool DecodeLaunchedProjectSelection(const std::filesystem::path& Chosen,
@@ -371,8 +392,8 @@ void ConstructWorkspaceViewport(ActiveWorkspaceSession& Session)
     if (Session.EverestScene != nullptr)
     {
         const bool  RtxActive = (Session.EverestScene->Illumination.TierSelectionIndex == 0);
-        const char* TierLabel = RtxActive ? "RTX RayQuery + ReSTIR GI" : "GTX SDF + BVH Fallback";
-        const float TierW     = KitTextWidth(Faces.Medium, 11.0f, TierLabel) + 26.0f;
+        const char* TierLabel = RtxActive ? "RTX RayQuery + ReSTIR" : "GTX SDF + BVH";
+        const float TierW     = KitTextWidth(Faces.Medium, 10.8f, TierLabel) + 24.0f;
         const float TierX     = Left + Width - TierW;
         bool        TierHover = false;
         if (KitTarget("##ViewportTierToggle", ImVec2(TierX, Top), ImVec2(TierW, 26.0f), TierHover,
@@ -383,14 +404,194 @@ void ConstructWorkspaceViewport(ActiveWorkspaceSession& Session)
         const ImU32 TierAccent = RtxActive ? KitInkHex(0x2fe6a7) : KitInkHex(0x63a8ff);
         KitPillSurface(Ink, ImVec2(TierX, Top), ImVec2(TierX + TierW, Top + 26.0f),
                        KitInkWithAlpha(TierAccent, 0.16f), KitInkWithAlpha(TierAccent, 0.55f), 999.0f);
-        Ink->AddCircleFilled(ImVec2(TierX + 12.0f, Top + 13.0f), 3.4f, TierAccent);
-        KitDrawText(Ink, Faces.Medium, 11.0f, ImVec2(TierX + 20.0f, Top + 7.0f), Theme.Text, TierLabel);
+        Ink->AddCircleFilled(ImVec2(TierX + 11.0f, Top + 13.0f), 3.4f, TierAccent);
+        KitDrawText(Ink, Faces.Medium, 10.8f, ImVec2(TierX + 19.0f, Top + 7.0f), Theme.Text, TierLabel);
+
+        // Domain Studio Drawer Toggle Pill
+        const float StudioW = 74.0f;
+        const float StudioX = TierX - StudioW - 6.0f;
+        bool        StHover = false;
+        if (KitTarget("##ViewportStudioToggle", ImVec2(StudioX, Top), ImVec2(StudioW, 26.0f), StHover,
+                      "Toggle Bottom Dock between Log Stream and Tier-3 Domain Studio"))
+        {
+            Session.ShowDomainStudio = !Session.ShowDomainStudio;
+        }
+        KitPillSurface(Ink, ImVec2(StudioX, Top), ImVec2(StudioX + StudioW, Top + 26.0f),
+                       Session.ShowDomainStudio ? KitInkRgba(242, 166, 94, 48) : Theme.Surface2,
+                       Session.ShowDomainStudio ? KitInkHex(0xf2a65e) : Theme.LineSoft, 999.0f);
+        KitDrawText(Ink, Faces.Medium, 10.8f, ImVec2(StudioX + 14.0f, Top + 7.0f),
+                    Session.ShowDomainStudio ? Theme.Text : Theme.Muted, "Studios");
+
+        // Compact AOV Strip (Final, GI, Refl, SDF, Glass, Nrm)
+        static constexpr std::array<const char*, 6> AovShortLabels{"Final", "GI", "Refl", "SDF", "Glass", "Nrm"};
+        float AovCursor = StudioX - 8.0f;
+        for (int Aov = 5; Aov >= 0; --Aov)
+        {
+            const float PW = KitTextWidth(Faces.Medium, 10.2f, AovShortLabels[static_cast<size_t>(Aov)]) + 14.0f;
+            AovCursor -= PW;
+            if (AovCursor > Left + 225.0f)
+            {
+                const bool Sel = (Session.EverestScene->Illumination.InspectionAovIndex == Aov);
+                bool       Hov = false;
+                char       Id[32] = {};
+                std::snprintf(Id, sizeof(Id), "##VpAov%d", Aov);
+                if (KitTarget(Id, ImVec2(AovCursor, Top + 1.0f), ImVec2(PW, 24.0f), Hov))
+                {
+                    Session.EverestScene->Illumination.InspectionAovIndex = Aov;
+                }
+                KitPillSurface(Ink, ImVec2(AovCursor, Top + 1.0f), ImVec2(AovCursor + PW, Top + 25.0f),
+                               Sel ? KitInkWithAlpha(TierAccent, 0.22f) : Theme.Surface2,
+                               Sel ? TierAccent : Theme.LineSoft, 6.0f);
+                KitDrawText(Ink, Faces.Medium, 10.2f, ImVec2(AovCursor + 7.0f, Top + 7.0f),
+                            Sel ? Theme.Text : Theme.Muted, AovShortLabels[static_cast<size_t>(Aov)]);
+            }
+            AovCursor -= 4.0f;
+        }
     }
 
-    // Live Coupled Sky + Sun + Cloud + Lens-Flare Viewport Diagnostic Canvas.
+    // Live 3D Dual-Tier Proving Grounds Viewport (or Standard Environment Sky Canvas for non-Everest projects).
     const ImVec2 CanvasMin(Left, Top + 34.0f);
     const ImVec2 CanvasMax(Left + Width, Top + Height);
     KitPillSurface(Ink, CanvasMin, CanvasMax, KitInkHex(0x090d11), Theme.Line, 12.0f);
+
+    if (Session.EverestScene != nullptr && Session.EverestRenderer != nullptr)
+    {
+        const float  CWidth  = std::max(32.0f, CanvasMax.x - CanvasMin.x - 6.0f);
+        const float  CHeight = std::max(32.0f, CanvasMax.y - CanvasMin.y - 6.0f);
+        const double Aspect  = static_cast<double>(CWidth / CHeight);
+
+        // Orbit drag interaction inside 3D viewport!
+        ImGui::SetCursorScreenPos(ImVec2(CanvasMin.x + 3.0f, CanvasMin.y + 3.0f));
+        ImGui::InvisibleButton("##Everest3DOrbitSurface", ImVec2(CWidth, CHeight - 38.0f));
+        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+        {
+            const ImVec2 Delta         = ImGui::GetIO().MouseDelta;
+            Session.CameraYawDegrees  += static_cast<double>(Delta.x) * 0.35;
+            Session.CameraPitchDegrees = std::clamp(Session.CameraPitchDegrees + static_cast<double>(Delta.y) * 0.25,
+                                                    3.0, 78.0);
+        }
+
+        const EverestViewportInputs Inputs = Session.EverestScene->BuildViewportInputs(
+            Session.CameraYawDegrees, Session.CameraPitchDegrees, Session.CameraDistanceMetres);
+
+        constexpr uint32_t GridCols = 280u;
+        constexpr uint32_t GridRows = 156u;
+        if (!Session.ViewportCacheValid ||
+            std::memcmp(&Inputs, &Session.CachedViewportInputs, sizeof(EverestViewportInputs)) != 0 ||
+            Session.CachedViewportGrid.size() != static_cast<size_t>((GridCols + 1u) * (GridRows + 1u)))
+        {
+            Session.EverestRenderer->RenderFrame(GridCols + 1u, GridRows + 1u, Inputs,
+                                                 Session.CachedViewportGrid, Session.CachedTelemetry);
+            Session.CachedViewportInputs = Inputs;
+            Session.ViewportCacheValid   = true;
+        }
+        const std::vector<SpectrumRgb>& LinearGrid = Session.CachedViewportGrid;
+        const DualTierFrameTelemetry&   Telemetry  = Session.CachedTelemetry;
+
+        // Couple optical LensFlare overlay when FinalLit AOV is active and Sun projects onto sensor!
+        double SunU = 0.24, SunV = 0.22;
+        const SpatialVector FarSunPt{Inputs.SunDirection.X * 120.0, Inputs.SunDirection.Y * 120.0,
+                                     Inputs.SunDirection.Z * 120.0};
+        const bool SunInFront = Session.EverestRenderer->ProjectWorldPoint(FarSunPt, Inputs, Aspect, SunU, SunV);
+        const LensFlareRecord& Flare = Session.EverestScene->LensFlare;
+
+        auto ToSrgbByte = [](double Linear) -> int {
+            const double Pos    = std::max(0.0, Linear);
+            // ACES-inspired filmic shoulder so metallic car highlights & sky roll off cleanly
+            const double Mapped = (Pos * (2.51 * Pos + 0.03)) / (Pos * (2.43 * Pos + 0.59) + 0.14);
+            return std::clamp(static_cast<int>(std::pow(std::clamp(Mapped, 0.0, 1.0), 1.0 / 2.2) * 255.0 + 0.5), 0, 255);
+        };
+
+        std::vector<ImU32> PackedVertices(LinearGrid.size());
+        for (uint32_t Row = 0; Row <= GridRows; ++Row)
+        {
+            const double V = static_cast<double>(Row) / static_cast<double>(GridRows);
+            for (uint32_t Col = 0; Col <= GridCols; ++Col)
+            {
+                const double U   = static_cast<double>(Col) / static_cast<double>(GridCols);
+                SpectrumRgb  Px  = LinearGrid[static_cast<size_t>(Row) * (GridCols + 1u) + Col];
+                if (Inputs.InspectionMode == ViewportInspectionMode::FinalLit && Flare.Enabled &&
+                    Inputs.SunEnabled && SunInFront && SunU > -0.15 && SunU < 1.15 && SunV > -0.15 && SunV < 1.15)
+                {
+                    const SpectrumRgb Opt = Flare.EvaluateOpticalSampleAtSource(
+                        U, V, std::clamp(SunU, 0.04, 0.96), std::clamp(SunV, 0.04, 0.96), Aspect);
+                    Px.R += Opt.R;
+                    Px.G += Opt.G;
+                    Px.B += Opt.B;
+                }
+                PackedVertices[static_cast<size_t>(Row) * (GridCols + 1u) + Col] =
+                    KitInkRgba(ToSrgbByte(Px.R), ToSrgbByte(Px.G), ToSrgbByte(Px.B), 255);
+            }
+        }
+
+        const float CellW = CWidth / static_cast<float>(GridCols);
+        const float CellH = CHeight / static_cast<float>(GridRows);
+        for (uint32_t Row = 0; Row < GridRows; ++Row)
+        {
+            for (uint32_t Col = 0; Col < GridCols; ++Col)
+            {
+                const ImVec2 PMin(CanvasMin.x + 3.0f + static_cast<float>(Col) * CellW,
+                                  CanvasMin.y + 3.0f + static_cast<float>(Row) * CellH);
+                const ImVec2 PMax(PMin.x + CellW + 0.4f, PMin.y + CellH + 0.4f);
+                const size_t VertexOffset = static_cast<size_t>(Row) * (GridCols + 1u) + Col;
+                Ink->AddRectFilledMultiColor(PMin, PMax, PackedVertices[VertexOffset],
+                                             PackedVertices[VertexOffset + 1u],
+                                             PackedVertices[VertexOffset + GridCols + 2u],
+                                             PackedVertices[VertexOffset + GridCols + 1u]);
+            }
+        }
+
+        // 3D Collision X-Ray Wireframe Overlay (chassis hull + 4 wheel contact hubs)!
+        if (Inputs.CollisionOverlayEnabled)
+        {
+            auto ProjectScreen = [&](SpatialVector Pt, ImVec2& OutPx) -> bool {
+                double U = 0.0, V = 0.0;
+                if (!Session.EverestRenderer->ProjectWorldPoint(Pt, Inputs, Aspect, U, V))
+                {
+                    return false;
+                }
+                OutPx = ImVec2(CanvasMin.x + 3.0f + static_cast<float>(U) * CWidth,
+                               CanvasMin.y + 3.0f + static_cast<float>(V) * CHeight);
+                return U >= 0.0 && U <= 1.0 && V >= 0.0 && V <= 1.0;
+            };
+            const std::array<SpatialVector, 8> HullCorners{{
+                {-0.96, -2.22, 0.20}, {+0.96, -2.22, 0.20}, {+0.96, +2.22, 0.20}, {-0.96, +2.22, 0.20},
+                {-0.96, -2.22, 1.24}, {+0.96, -2.22, 1.24}, {+0.96, +2.22, 1.24}, {-0.96, +2.22, 1.24},
+            }};
+            constexpr int Edges[12][2] = {{0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},{0,4},{1,5},{2,6},{3,7}};
+            for (const auto& Edge : Edges)
+            {
+                ImVec2 A{}, B{};
+                if (ProjectScreen(HullCorners[Edge[0]], A) && ProjectScreen(HullCorners[Edge[1]], B))
+                {
+                    Ink->AddLine(A, B, KitInkHex(0xff6b8b), 1.6f);
+                }
+            }
+            for (SpatialVector WC : {SpatialVector{-0.96, +1.38, 0.35}, SpatialVector{+0.96, +1.38, 0.35},
+                                     SpatialVector{-0.96, -1.38, 0.35}, SpatialVector{+0.96, -1.38, 0.35}})
+            {
+                ImVec2 Hub{};
+                if (ProjectScreen(WC, Hub))
+                {
+                    Ink->AddCircle(Hub, 14.0f, KitInkHex(0x2fe6a7), 20, 1.8f);
+                }
+            }
+        }
+
+        // Bottom 3D Render Telemetry Bar!
+        char HudLine[220] = {};
+        std::snprintf(HudLine, sizeof(HudLine),
+                      "%s  \xC2\xB7  %u tris / %u SAH nodes  \xC2\xB7  4 SDF Cascades  \xC2\xB7  %u Card texels  \xC2\xB7  GI %.2f  \xC2\xB7  Refl %.0f%%",
+                      Inputs.ExecutionMode == DualTierExecutionMode::HardwareRayQueryRtx ? "RTX TIER" : "GTX FALLBACK",
+                      Telemetry.TriangleCount, Telemetry.BvhEnclosureCount, Telemetry.SurfaceCardTexels,
+                      Telemetry.MeanIndirectLuminance, Telemetry.ReflectionHitFraction * 100.0);
+        KitPillSurface(Ink, ImVec2(CanvasMin.x + 12.0f, CanvasMax.y - 34.0f),
+                       ImVec2(CanvasMax.x - 12.0f, CanvasMax.y - 10.0f), KitInkRgba(10, 14, 18, 208),
+                       KitInkRgba(255, 255, 255, 32), 999.0f);
+        KitDrawText(Ink, Faces.Medium, 10.8f, ImVec2(CanvasMin.x + 22.0f, CanvasMax.y - 27.5f), KitInkHex(0xeef3f0),
+                    HudLine);
+        return;
+    }
 
     const SunRecord*        Sun        = Session.EverestScene ? &Session.EverestScene->Sun
                                                               : (Session.StandardScene ? &Session.StandardScene->Sun : nullptr);
@@ -558,7 +759,9 @@ int ExecuteUnifiedWindowLoop(const std::filesystem::path& FromExecutable,
         if (Descriptor.Name.find("Everest") != std::string::npos ||
             EncodeUtf8Path(Descriptor.ProjectDirectory).find("Everest") != std::string::npos)
         {
-            ActiveSession->EverestScene = std::make_unique<ProjectEverestScene>();
+            ActiveSession->EverestRenderer = std::make_unique<DualTierProvingGroundsRenderer>();
+            ActiveSession->EverestScene    = std::make_unique<ProjectEverestScene>();
+            ActiveSession->EverestScene->BindDomainStudio(ActiveSession->StudioPanel);
         }
         else
         {
@@ -577,7 +780,27 @@ int ExecuteUnifiedWindowLoop(const std::filesystem::path& FromExecutable,
         };
         ViewportSpec.Open = true;
         (void)ActiveSession->Panels.Register(ViewportSpec);
-        (void)ActiveSession->Panels.Register(MakeLogStreamPanelSpecification(ActiveSession->LogPanel));
+
+        DockPanelSpecification BottomDrawerSpec = MakeLogStreamPanelSpecification(ActiveSession->LogPanel);
+        BottomDrawerSpec.ConstructContent = [&ActiveSession]() {
+            if (!ActiveSession)
+            {
+                return;
+            }
+            if (ActiveSession->StudioPanel.ConsumeFocusRequest())
+            {
+                ActiveSession->ShowDomainStudio = true;
+            }
+            if (ActiveSession->ShowDomainStudio)
+            {
+                ActiveSession->StudioPanel.ConstructInterface();
+            }
+            else
+            {
+                ActiveSession->LogPanel.ConstructInterface();
+            }
+        };
+        (void)ActiveSession->Panels.Register(BottomDrawerSpec);
         (void)ActiveSession->Panels.Register(MakeSceneDirectoryPanelSpecification(ActiveSession->OutlinerPanel));
         (void)ActiveSession->Panels.Register(
             MakeSceneInspectorPanelSpecification(ActiveSession->InspectorPanel, ActiveSession->OutlinerPanel));

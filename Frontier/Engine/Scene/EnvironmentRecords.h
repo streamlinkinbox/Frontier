@@ -13,11 +13,14 @@
 #include "Engine/Rendering/AtmosphereModel.h"
 #include "Engine/Rendering/CelestialModel.h"
 #include "Engine/Rendering/CloudField.h"
+#include "Engine/Rendering/FogMedium.h"
 #include "Engine/Rendering/LensFlareModel.h"
+#include "Engine/Rendering/WeatherEffects.h"
 
 #include <array>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace Frontier
 {
@@ -167,7 +170,7 @@ class AtmosphereRecord final : public RecordEntry
     double               MieScaleMetres          = 1200.0; // [m] - [500..8000]
     double               MieAnisotropyG          = 0.80; // [-] - [-0.95..0.95]
     double               SkyBrightnessScale      = 1.0;  // [x] - [0..3]
-    double               LimbGlow                = 1.0;  // [x] - [0..3] ("Horizon glow" in UI)
+    double               LimbGlow                = 1.0;  // [x] - [0..3] ("Limb glow" in UI)
     double               BoundaryLine            = 1.0;  // [x] - [0..3] ("White line" in UI)
     double               LookupSamples           = 40.0; // [samples] - [8..64]
     double               SkyTintRed              = 1.0;  // [-]
@@ -202,7 +205,7 @@ class CloudRecord final : public RecordEntry
     int32_t         FormationIndex        = 2;            // [-] - 0=Stratus, 1=Stratocumulus, 2=Cumulus, 3=Cumulonimbus, 4=Altostratus, 5=Cirrus
     double          Coverage              = 0.55;         // [-] - [0..1]
     double          DensityMultiplier     = 1.00;         // [x] - [0..4]
-    double          FloorAltitudeMetres   = 1500.0;       // [m] - [100..20000] ("Base altitude")
+    double          FloorAltitudeMetres   = 1500.0;       // [m] - [100..20000] ("Floor altitude")
     double          ThicknessMetres       = 1200.0;       // [m] - [100..6000]
     double          CeilingLimitMetres    = 14000.0;      // [m] - [4000..20000]
     double          FeatureScale          = 1.00;         // [x] - [0.2..3.0]
@@ -259,6 +262,131 @@ class WindRecord final : public RecordEntry
     void                        ConfigureFromBearingDegrees(double FromDegrees) noexcept;
     [[nodiscard]] static double EvaluateGustFactor(double Gust, double PhaseSeconds) noexcept;
     [[nodiscard]] SpatialVector EvaluateSteadyVelocityAtAltitude(double AltitudeMetres) const noexcept;
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      FOG RECORD
+//------------------------------------------------------------------------------------------------------------------------
+
+struct FogSplitTargetSample
+{
+    double BrightLuminance   = 0.80;
+    double DarkLuminance     = 0.08;
+    double ApparentContrast  = 0.818;
+    double Transmittance     = 1.0;
+};
+
+class FogRecord final : public RecordEntry
+{
+  public:
+    FogRecord();
+
+    FogParameters Parameters{};
+    int32_t       PresetIndex          = 0;        // [-] - 0=Clear, 1=Morning Mist, 2=Valley Bank, 3=Alpine Whiteout
+    double        DensityAtFloor       = 0.012;    // [1/m] - [0..0.15]
+    double        FalloffHeightMetres  = 24.0;     // [m] - [2..400] exponential scale height
+    double        FloorAltitudeMetres  = 0.0;      // [m] - [-50..1000]
+    double        AerialStartMetres    = 18.0;     // [m] - [0..1000] clear-start gate
+    double        AerialDensity        = 0.006;    // [1/m] - [0..0.05]
+    double        AerialMieBlend       = 0.55;     // [-] - [0..1]
+    double        SolarForwardPower    = 8.0;      // [exp] - [1..32] cos^n forward aureole
+    double        SolarScatterGain     = 0.65;     // [x] - [0..3]
+    double        ProbeDistanceMetres  = 85.0;     // [m] - [5..600] Koschmieder contrast target probe
+    double        InscatterRed         = 0.62;     // [-]
+    double        InscatterGreen       = 0.71;     // [-]
+    double        InscatterBlue        = 0.82;     // [-]
+    bool          Enabled              = false;
+    bool          CoupleAtmosphereTint = true;
+
+    void                              ApplyPreset(int32_t Preset) noexcept;
+    void                              SynchronizeParameters() noexcept;
+    [[nodiscard]] double              QueryKoschmiederVisibilityMetres() const noexcept;
+    [[nodiscard]] FogSplitTargetSample EvaluateSplitTarget(double DistanceMetres) const noexcept;
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     STARS RECORD
+//------------------------------------------------------------------------------------------------------------------------
+
+class StarsRecord final : public RecordEntry
+{
+  public:
+    StarsRecord();
+
+    std::vector<StarRecord> Catalogue;
+    double                  BrightnessMultiplier   = 1.0;     // [x] - [0..4]
+    double                  LimitingMagnitude      = 6.0;     // [mag] - [1..8]
+    double                  RotationDegrees        = 24.0;    // [deg] - [0..360] sidereal dome rotation
+    double                  ScintillationStrength  = 0.35;    // [-] - [0..1]
+    double                  ScintillationRateHz    = 2.4;     // [Hz] - [0.2..8]
+    double                  MilkyWayGain           = 0.65;    // [x] - [0..2]
+    bool                    Enabled                = true;
+    bool                    SiderealDriftActive    = false;
+
+    [[nodiscard]] uint32_t               QueryVisibleStarCount() const noexcept;
+    [[nodiscard]] std::array<uint32_t, 10> QueryMagnitudeHistogram() const noexcept;
+    [[nodiscard]] double                 EvaluateScintillationTrace(double TimeSeconds) const noexcept;
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     MOON RECORD
+//------------------------------------------------------------------------------------------------------------------------
+
+class MoonRecord final : public RecordEntry
+{
+  public:
+    MoonRecord();
+
+    int32_t PresetBodyIndex         = 0;        // [-] - 0=Earth Moon, 1=Europa, 2=Titan, 3=Enceladus, 4=Phobos, 5=Ringed Giant
+    double  SynodicAgeDays          = 10.8;     // [d] - [0..29.530588]
+    double  ElevationDegrees        = 42.0;     // [deg] - [-90..90]
+    double  AzimuthDegrees          = -125.0;   // [deg] - [-180..180]
+    double  AngularDiameterDegrees  = 0.52;     // [deg] - [0.1..180] logarithmic tape
+    double  MoonlightStrength       = 0.25;     // [x] - [0..3]
+    double  EarthshineStrength      = 0.08;     // [-] - [0..0.5]
+    double  MareContrast            = 0.55;     // [-] - [0..1]
+    double  TintRed                 = 0.90;
+    double  TintGreen               = 0.94;
+    double  TintBlue                = 1.00;
+    bool    Enabled                 = true;
+    bool    LockToEphemeris         = false;
+
+    void                        ApplyBodyPreset(int32_t Preset) noexcept;
+    [[nodiscard]] const char*   QueryBodyPresetName() const noexcept;
+    [[nodiscard]] LunarPhase    QueryLunarPhase() const noexcept;
+    [[nodiscard]] bool          QueryWaxing() const noexcept;
+    [[nodiscard]] SpatialVector QueryMoonDirection() const noexcept;
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WEATHER RECORD
+//------------------------------------------------------------------------------------------------------------------------
+
+class WeatherRecord final : public RecordEntry
+{
+  public:
+    WeatherRecord();
+
+    LightningBolt ActiveBolt;
+    uint64_t      StrikeCounter            = 1;
+    int32_t       PrecipitationModeIndex   = 0;       // [-] - 0=Clear, 1=Rain, 2=Sleet, 3=Snow
+    double        PrecipitationRate        = 0.35;    // [-] - [0..1]
+    double        ParticleSizeMillimetres  = 2.2;     // [mm] - [0.5..8.0]
+    double        SurfaceDepositMm         = 0.0;     // [mm] - [0..4.0] chunked apron retention grid
+    double        DrainOrMeltRate          = 0.15;    // [-] - [0..1]
+    double        StrikeDistanceMetres     = 850.0;   // [m] - [50..5000]
+    double        BoltForkCount            = 3.0;     // [forks] - [0..6]
+    double        BoltJaggedness           = 0.28;    // [-] - [0.05..0.60]
+    double        FlashExposureMultiplier  = 1.6;     // [x] - [0..4]
+    double        TimeSinceStrikeSeconds   = 4.0;     // [s] - Elapsed since last Strike Ahead trigger
+    bool          Enabled                  = false;
+    bool          AutoStormCells           = false;
+
+    void                         TriggerStrikeAhead(uint64_t ExtraSeed = 0) noexcept;
+    [[nodiscard]] double         QueryThunderArrivalSeconds() const noexcept;
+    [[nodiscard]] double         QueryCurrentFlashIntensity() const noexcept;
+    [[nodiscard]] double         SampleSurfaceRetentionMm(int32_t GridX, int32_t GridY) const noexcept;
+    [[nodiscard]] const char*    QueryPrecipitationModeName() const noexcept;
 };
 
 } // namespace Frontier

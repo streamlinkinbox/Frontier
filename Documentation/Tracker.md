@@ -586,6 +586,27 @@ The new appearance files use Allman braces, flat namespace indentation, and desc
   - Evidence retained in `Exhibits/ProjectEverest/` (`ProjectEverestValidation` passed; 10 native `1920x1080`
     CPU-rasterised PNGs verified; `SceneDirectoryValidation` 45/45 Dev + 17/17 Shipping; `LogStreamValidation` 69/69
     ASan+UBSan). Windows native MSVC/GPU runtime verification remains pending.
+- **2026-10-31 — Project Everest Phase 3 Dual-Tier 3D Renderer, Remaining Engine Observatories, 8-Module Vehicle, and Tier-3 Domain Studios**:
+  - Imported RTX/transport Slang shaders and C++ contracts (`PathReplayRayQuery`, `TriangleVisibilitySpace` 16-bin SAH
+    BVH, `TriangleDistanceVolume`, `RadiantFacetDistribution`, `PlumeLatticeFootprint`, `DielectricRefraction`),
+    authored the 3 GTX fallback Slang shaders (`ToroidalDistanceClipmap.slang`, `SurfaceCardRadiosity.slang`,
+    `OrderedBvhReflections.slang`), and implemented `DualTierProvingGroundsRenderer` (`DualTierRenderer.{h,cpp}`)
+    executing both **RTX tier** (hardware `VK_KHR_ray_query` / SAH triangle BVH + reservoir-resampled GI + 2-step
+    edge-stopping SVGF filter + Snell/Fresnel/Beer-Lambert cabin glazing) and **GTX fallback tier** (4-cascade toroidal
+    3D SDF `SceneClip0..3` + `SurfaceCards` multi-bounce radiosity + `OrderedSoftwareBvh` reflections) across 6 AOVs
+    (`FinalLit`, `IndirectIrradiance`, `SpecularReflections`, `DistanceCascades`, `DielectricGlazing`, `SurfaceNormals`)
+    on a 318-triangle / 335-node Proving Grounds scene.
+  - Added the 4 remaining global Engine Observatories (`FogRecord`, `StarsRecord`, `MoonRecord`, `WeatherRecord`) in
+    `EnvironmentRecords.{h,cpp}` + `SceneInspectorPanel.{h,cpp}`, upgraded `EverestVehicleRecord` (`ControlVehicle`) to
+    the 8-module selector (`Overview`, `Chassis`, `Engine`, `Tyres`, `Suspension`, `Lights`, `HMI & Cabin`, `Mirrors`)
+    with live 3D Collision X-Ray wireframe overlay, and implemented `DomainStudioPanel` (`DomainStudioPanels.{h,cpp}`)
+    for Tier-3 **Fracture Voronoi**, **Fluid & Plume Lattice** (`ValidatePlumeLatticeFootprint`), and **Particle
+    Emitter** authoring docked in `WorkspaceApplication`.
+  - Evidence retained in `Exhibits/ProjectEverest/` (`ProjectEverestValidation` passed; 17 native `1920x1080`
+    CPU-rasterised PNGs + `ProjectEverestChecks.json` verified; `SceneDirectoryValidation` 45/45 Dev + 17/17 Shipping;
+    `LogStreamValidation` 69/69 ASan+UBSan; `ProjectBrowserValidation` 770 states; `FrontierHeadless` C++17). Linux
+    sandbox lacks `slangc` and a Vulkan ICD (`libvulkan.so`), so SPIR-V compilation and native Windows MSVC/GPU
+    swapchain execution remain pending.
 
 
 

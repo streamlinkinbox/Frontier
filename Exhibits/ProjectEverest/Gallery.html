@@ -1,121 +1,40 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Project Everest — Phase 2 Native C++ UI Exhibits</title>
-<style>
-  :root { color-scheme: dark; }
-  body {
-    margin: 0;
-    padding: 32px;
-    background: #090b0a;
-    color: #eef3f0;
-    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  }
-  h1 { margin: 0 0 8px; font-size: 24px; font-weight: 600; }
-  p.lead { margin: 0 0 28px; color: #97a29b; font-size: 14px; max-width: 1080px; line-height: 1.6; }
-  .grid { display: grid; grid-template-columns: 1fr; gap: 28px; max-width: 1920px; }
-  figure {
-    margin: 0;
-    background: #111513;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-  figcaption {
-    padding: 14px 20px;
-    font-size: 13px;
-    color: #cfd8d1;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    display: flex;
-    justify-content: space-between;
-  }
-  figcaption span.meta { color: #2fe6a7; font-family: monospace; }
-  img { display: block; width: 100%; height: auto; }
-</style>
+  <meta charset="utf-8" />
+  <title>Project Everest — Phase 3 Dual-Tier 3D &amp; Observatory Exhibit Gallery</title>
+  <style>
+    body { margin: 0; padding: 28px 36px; background: #0f1215; color: #e8ecea; font-family: Inter, system-ui, sans-serif; }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    p.sub { color: #96a29c; font-size: 13px; margin: 0 0 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 18px; }
+    figure { margin: 0; background: #171b20; border: 1px solid #262d34; border-radius: 10px; overflow: hidden; }
+    figure img { width: 100%; display: block; }
+    figcaption { padding: 10px 14px; font-size: 12.5px; color: #c7d0cb; }
+    figcaption strong { color: #f0f4f2; }
+  </style>
 </head>
 <body>
-  <h1>Project Everest — Phase 2 Native C++ UI Verification Gallery</h1>
-  <p class="lead">
-    Actual CPU-rasterised ImGui + ThorVG + TypefaceRegistry output from
-    <code>Exhibits/ProjectEverest/Code/ProjectEverestValidation.cpp</code> (1920&times;1080 Full HD):
-    <code>WorkspaceApplication</code> (<code>Initialize &rarr; Loop &rarr; Finalize</code>) unified Browser &harr;
-    Workspace loop, global Engine <strong>Folders</strong>, <strong>Sun</strong>, <strong>Lens Flare</strong>,
-    <strong>Atmosphere</strong>, <strong>Clouds</strong>, and <strong>Wind</strong> Observatories, Project Everest
-    custom <strong>ControlVehicle</strong> &amp; dual-tier <strong>RTX / GTX SDF+BVH</strong> Inspectors, and Control
-    Centre Dark/Light theme parity.
-  </p>
+  <h1>Project Everest — Phase 3 Native C++ UI &amp; Dual-Tier 3D Renderer Exhibits</h1>
+  <p class="sub">17 native 1920&times;1080 captures from <code>ProjectEverestValidation</code>: RTX RayQuery + ReSTIR/SVGF &amp; Dielectric Glazing vs GTX 4-Cascade Toroidal SDF + SurfaceCards + SAH BVH Reflections, 10 Engine Observatories, 8-Module ControlVehicle + Collision X-Ray, and 3 Tier-3 Domain Studios.</p>
   <div class="grid">
-    <figure>
-      <figcaption>
-        <span>01 &middot; Project Browser opens with Project Everest enumerated from Frontier/Projects</span>
-        <span class="meta">01-ProjectBrowser-Library.png</span>
-      </figcaption>
-      <img src="01-ProjectBrowser-Library.png" alt="Project Browser Library">
-    </figure>
-    <figure>
-      <figcaption>
-        <span>02 &middot; Selecting Project Everest opens the native application Reader &amp; Open in Frontier hand-off</span>
-        <span class="meta">02-ProjectBrowser-SelectEverest.png</span>
-      </figcaption>
-      <img src="02-ProjectBrowser-SelectEverest.png" alt="Project Browser Select Project Everest">
-    </figure>
-    <figure>
-      <figcaption>
-        <span>03 &middot; Global Engine Folder Outliner + Folder Observatory (tabbed colour-coded FolderRecord cards, + Folder, cascade visibility)</span>
-        <span class="meta">03-Folder-Outliner-Observatory.png</span>
-      </figcaption>
-      <img src="03-Folder-Outliner-Observatory.png" alt="Folder Outliner and Observatory">
-    </figure>
-    <figure>
-      <figcaption>
-        <span>04 &middot; Global Engine Sun Observatory (ENVIRONMENT / 02 &middot; polar sky-arc dial, ephemeris, Planck blackbody &amp; lighting presets)</span>
-        <span class="meta">04-Sun-Observatory-Overview.png</span>
-      </figcaption>
-      <img src="04-Sun-Observatory-Overview.png" alt="Sun Observatory">
-    </figure>
-    <figure>
-      <figcaption>
-        <span>05 &middot; Global Engine Lens Flare Observatory (ENVIRONMENT / CAMERA OPTICS &middot; live HDR optical composite, ghosts, halo &amp; rays)</span>
-        <span class="meta">05-LensFlare-Observatory-Optics.png</span>
-      </figcaption>
-      <img src="05-LensFlare-Observatory-Optics.png" alt="Lens Flare Observatory">
-    </figure>
-    <figure>
-      <figcaption>
-        <span>06 &middot; Global Engine Atmosphere Observatory (ENVIRONMENT / 03 &middot; wired to AtmosphereModel SingleScattering &amp; column density scan)</span>
-        <span class="meta">06-Atmosphere-Observatory-Medium.png</span>
-      </figcaption>
-      <img src="06-Atmosphere-Observatory-Medium.png" alt="Atmosphere Observatory">
-    </figure>
-    <figure>
-      <figcaption>
-        <span>07 &middot; Global Engine Clouds Observatory (ENVIRONMENT / 01 &middot; wired to CloudField procedural FBM density atlas &amp; XY mix pad)</span>
-        <span class="meta">07-Clouds-Observatory-Weather.png</span>
-      </figcaption>
-      <img src="07-Clouds-Observatory-Weather.png" alt="Clouds Observatory">
-    </figure>
-    <figure>
-      <figcaption>
-        <span>08 &middot; Global Engine Wind Forcefield Observatory (FORCEFIELD / SHARED WEATHER &middot; FROM bearing streamline compass &amp; gust envelope)</span>
-        <span class="meta">08-Wind-Observatory-Forcefield.png</span>
-      </figcaption>
-      <img src="08-Wind-Observatory-Forcefield.png" alt="Wind Observatory">
-    </figure>
-    <figure>
-      <figcaption>
-        <span>09 &middot; Project Everest Custom ControlVehicle Inspector (4-corner FL/FR/RL/RR suspension telemetry, AWD split &amp; 4 nested tyres)</span>
-        <span class="meta">09-Custom-Vehicle-Inspector.png</span>
-      </figcaption>
-      <img src="09-Custom-Vehicle-Inspector.png" alt="Custom ControlVehicle Inspector">
-    </figure>
-    <figure>
-      <figcaption>
-        <span>10 &middot; Dual-Tier GPU Renderer switched to GTX SDF + BVH Fallback + Golden Hour sunset + Control Centre Light Theme (Inspector luma 226.0)</span>
-        <span class="meta">10-DualTier-GTX-Fallback-LightTheme.png</span>
-      </figcaption>
-      <img src="10-DualTier-GTX-Fallback-LightTheme.png" alt="Dual-Tier GTX Fallback and Light Theme">
-    </figure>
+    <figure><img src="01-ProjectBrowser-Library.png" alt="01" /><figcaption><strong>01</strong> &middot; Project Browser Library enumerating Project Everest</figcaption></figure>
+    <figure><img src="02-ProjectBrowser-SelectEverest.png" alt="02" /><figcaption><strong>02</strong> &middot; Project Browser Reader &amp; Open in Frontier hand-off</figcaption></figure>
+    <figure><img src="03-Folder-Outliner-Observatory.png" alt="03" /><figcaption><strong>03</strong> &middot; 26-Record Folder Outliner + 3D RTX Proving Grounds Viewport + Folder Observatory</figcaption></figure>
+    <figure><img src="04-Sun-Observatory-Overview.png" alt="04" /><figcaption><strong>04</strong> &middot; Sun Observatory coupled to 3D solar shadows &amp; colour bleed</figcaption></figure>
+    <figure><img src="05-LensFlare-And-DielectricGlazingAOV.png" alt="05" /><figcaption><strong>05</strong> &middot; Lens Flare Observatory + Dielectric Glazing AOV</figcaption></figure>
+    <figure><img src="06-Atmosphere-And-IndirectGiAOV.png" alt="06" /><figcaption><strong>06</strong> &middot; Atmosphere Observatory + SVGF-Denoised Indirect Irradiance AOV</figcaption></figure>
+    <figure><img src="07-Clouds-And-ToroidalSdfCascadesAOV.png" alt="07" /><figcaption><strong>07</strong> &middot; Clouds Observatory + GTX 4-Cascade Toroidal SDF AOV</figcaption></figure>
+    <figure><img src="08-Wind-And-GtxSdfBvhFallback.png" alt="08" /><figcaption><strong>08</strong> &middot; Wind Forcefield Observatory + Live GTX SDF + SAH BVH Fallback</figcaption></figure>
+    <figure><img src="09-Fog-Observatory-KoschmiederTargets.png" alt="09" /><figcaption><strong>09</strong> &middot; Fog &amp; Aerial Perspective Observatory + Koschmieder Visibility Targets</figcaption></figure>
+    <figure><img src="10-Stars-Observatory-NightPlanisphere.png" alt="10" /><figcaption><strong>10</strong> &middot; Hipparcos Stars Planisphere Observatory + Night Headlamp Cones</figcaption></figure>
+    <figure><img src="11-Moon-Observatory-Selenograph.png" alt="11" /><figcaption><strong>11</strong> &middot; Moon Selenographic Terminator &amp; Log Angular Tape</figcaption></figure>
+    <figure><img src="12-Weather-StormLightningAndWetApron.png" alt="12" /><figcaption><strong>12</strong> &middot; Storm Forked Lightning, 343 m/s Thunder &amp; Wet Apron</figcaption></figure>
+    <figure><img src="13-Weather-SurfaceDepositSnowGrid.png" alt="13" /><figcaption><strong>13</strong> &middot; Chunked 0..4 mm Apron Retention Grid (Chassis Shadow) + Snow Scene</figcaption></figure>
+    <figure><img src="14-ControlVehicle-8Tab-CollisionXRay.png" alt="14" /><figcaption><strong>14</strong> &middot; 8-Module ControlVehicle Inspector + 3D Collision X-Ray Wireframe</figcaption></figure>
+    <figure><img src="15-Tier3-FractureVoronoiStudio.png" alt="15" /><figcaption><strong>15</strong> &middot; Docked Tier-3 Fracture Voronoi Shatter Studio</figcaption></figure>
+    <figure><img src="16-Tier3-FluidPlumeStudio.png" alt="16" /><figcaption><strong>16</strong> &middot; Docked Tier-3 Fluid &amp; Plume Lattice Studio (31.5 MiB VRAM Validated)</figcaption></figure>
+    <figure><img src="17-DualTier-GTX-Fallback-LightTheme.png" alt="17" /><figcaption><strong>17</strong> &middot; GTX SDF + SAH BVH Fallback + Golden Hour + Control Centre Light Theme</figcaption></figure>
   </div>
 </body>
 </html>

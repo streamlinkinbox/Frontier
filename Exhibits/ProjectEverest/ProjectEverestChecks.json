@@ -1,33 +1,21 @@
 {
   "result": "passed",
-  "phase": 2,
+  "phase": 3,
   "project": "Project Everest",
-  "descriptor": "Frontier/Projects/Project-Everest/ProjectEverest.frontier",
-  "workspace_application_loop": "Initialize -> Loop -> Finalize (FrontierMain removed)",
-  "declared_log_categories": 5,
-  "log_entries_ingested": 14,
-  "initial_scene_records": 18,
-  "post_folder_spawn_records": 19,
-  "folder_cascade_visibility_verified": true,
-  "scoped_destructor_unregistered": true,
-  "engine_observatories": ["Folder", "Sun", "LensFlare", "Atmosphere", "Clouds", "Wind"],
-  "custom_inspectors": ["EverestVehicleRecord", "EverestIlluminationRecord (RTX/GTX)"],
+  "scene_triangles": 318,
+  "sah_bvh_enclosures": 335,
+  "toroidal_sdf_cascades": 4,
+  "surface_card_texels": 36,
+  "card_radiosity_residual": 1.45353e-07,
+  "initial_scene_records": 26,
+  "post_folder_spawn_records": 27,
+  "engine_observatories": ["Folder", "Sun", "LensFlare", "Atmosphere", "Clouds", "Wind", "Fog", "Stars", "Moon", "Weather"],
+  "tier3_domain_studios": ["FractureVoronoi", "FluidPlumeLattice", "ParticleEmitter"],
+  "custom_inspectors": ["EverestVehicleRecord (8-Tab + Collision X-Ray)", "EverestIlluminationRecord (RTX/GTX + 6 AOVs)"],
   "mean_luma": {
-    "dark_log_stream": 41.4422,
-    "light_log_stream": 240.486,
-    "dark_inspector": 32.5933,
-    "light_inspector": 226.001
-  },
-  "captures": [
-    "01-ProjectBrowser-Library.png",
-    "02-ProjectBrowser-SelectEverest.png",
-    "03-Folder-Outliner-Observatory.png",
-    "04-Sun-Observatory-Overview.png",
-    "05-LensFlare-Observatory-Optics.png",
-    "06-Atmosphere-Observatory-Medium.png",
-    "07-Clouds-Observatory-Weather.png",
-    "08-Wind-Observatory-Forcefield.png",
-    "09-Custom-Vehicle-Inspector.png",
-    "10-DualTier-GTX-Fallback-LightTheme.png"
-  ]
+    "dark_log_stream": 41.7754,
+    "light_log_stream": 240.221,
+    "dark_inspector": 33.8286,
+    "light_inspector": 249.673
+  }
 }

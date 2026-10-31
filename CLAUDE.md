@@ -186,14 +186,18 @@ Follow the user's current commit and push instructions; do not infer permission 
        `Frontier/Engine/Interface/SceneInspectorPanel.{h,cpp}`): global editor components shared across all projects —
        **Folders** (`FolderRecord` with cascade visibility & colour swatches), **Sun** (`SunRecord`), **Lens Flare**
        (`LensFlareRecord`), **Atmosphere** (`AtmosphereRecord` wired to `AtmosphereModel`), **Clouds** (`CloudRecord`
-       wired to `CloudField`), and **Wind** (`WindRecord`) — live in Engine, never trapped inside a single project.
+       wired to `CloudField`), **Wind** (`WindRecord`), **Fog** (`FogRecord` wired to `FogMedium`), **Stars**
+       (`StarsRecord` Hipparcos planisphere), **Moon** (`MoonRecord` wired to `CelestialModel`), and **Weather / Storm**
+       (`WeatherRecord` wired to `WeatherEffects` + chunked surface retention grid) — live in Engine, never trapped
+       inside a single project.
     2. **User-created project Inspectors** (`Frontier/Projects/<Project>/Source/`): custom project designs (such as
-       **Project Everest**'s `EverestVehicleRecord` `ControlVehicle` 4-corner suspension/AWD chassis card,
-       `EverestTyreRecord`s, and `EverestIlluminationRecord` RTX/GTX tier selector) author their own `RecordEntry`
-       subclass and custom Inspector controls.
-    3. **Dedicated domain editors / studios** (`Engine/` + `UI/Editor/`): specialized domains open dedicated editors
-       rather than crowding generic property cards — Fracture Studio, Fluid/Plume Studio, Particle Studio, Object/Mesh
-       Studio, and Texture/Material Studio.
+       **Project Everest**'s 8-module `EverestVehicleRecord` `ControlVehicle` + Collision X-Ray overlay,
+       `EverestTyreRecord`s, and `EverestIlluminationRecord` RTX/GTX tier + 6-AOV selector) author their own
+       `RecordEntry` subclass and custom Inspector controls.
+    3. **Dedicated domain editors / studios** (`Frontier/Engine/Interface/DomainStudioPanels.{h,cpp}` + `Engine/` +
+       `UI/Editor/`): specialized domains open dedicated editors rather than crowding generic property cards —
+       Fracture Voronoi Studio, Fluid & Plume Lattice Studio (`PlumeLatticeFootprint`), Particle Emitter Studio,
+       Object/Mesh Studio, and Texture/Material Studio.
 
 ## Delivery
 

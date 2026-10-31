@@ -41,6 +41,10 @@ enum class InspectorInstrumentCategory : uint8_t
     AtmosphereObservatory,
     CloudObservatory,
     WindObservatory,
+    FogObservatory,
+    StarsObservatory,
+    MoonObservatory,
+    WeatherObservatory,
     Custom
 };
 
