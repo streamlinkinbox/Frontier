@@ -92,6 +92,7 @@ struct SceneInspectorModel
     std::vector<RecordEditorChoiceField> ChoiceFields;
     std::vector<RecordEditorAction>      Actions;
     std::function<void()>                ConstructInfographic;
+    std::function<void()>                ConstructInspector;
     std::function<void()>                OpenDedicatedEditor;
 #endif
 };

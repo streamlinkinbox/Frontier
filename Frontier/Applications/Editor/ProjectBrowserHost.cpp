@@ -14,10 +14,6 @@
 #include <algorithm>
 #include <system_error>
 
-#if defined(FRONTIER_WITH_INTERFACE_SDK)
-#include <imgui.h>
-#endif
-
 namespace Frontier
 {
 
@@ -90,57 +86,5 @@ uint32_t RegisterDescriptorLogCategories(const ProjectDescriptor& Descriptor)
     }
     return Registered;
 }
-
-#if defined(FRONTIER_WITH_INTERFACE_SDK)
-namespace
-{
-ProjectBrowserButtonBounds CurrentBrowserButtonBounds() noexcept
-{
-    const ImVec2 Minimum = ImGui::GetItemRectMin();
-    const ImVec2 Maximum = ImGui::GetItemRectMax();
-    return {Minimum.x, Minimum.y, Maximum.x, Maximum.y, true};
-}
-}
-
-void ConstructProjectBrowserInterface(const ProjectBrowserEnumeration& Listing,
-                                      std::filesystem::path& ChosenDescriptor,
-                                      std::vector<ProjectBrowserButtonBounds>* ProjectOpenButtons)
-{
-    if (ProjectOpenButtons != nullptr)
-    {
-        ProjectOpenButtons->assign(Listing.Entries.size(), {});
-    }
-
-    const ImVec2 Display = ImGui::GetIO().DisplaySize;
-    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-    ImGui::SetNextWindowSize(Display);
-    if (ImGui::Begin("Project Browser", nullptr, ImGuiWindowFlags_NoDecoration))
-    {
-        ImGui::TextUnformatted("Open a project");
-        ImGui::Separator();
-        for (size_t Index = 0; Index < Listing.Entries.size(); ++Index)
-        {
-            const ProjectBrowserEntry& Entry = Listing.Entries[Index];
-            ImGui::PushID(static_cast<int>(Index));
-            if (ImGui::Button(Entry.Descriptor.Name.c_str(), ImVec2(420.0f, 0.0f)))
-            {
-                ChosenDescriptor = Entry.Descriptor.DescriptorPath;
-            }
-            if (ProjectOpenButtons != nullptr)
-            {
-                (*ProjectOpenButtons)[Index] = CurrentBrowserButtonBounds();
-            }
-            ImGui::SameLine();
-            ImGui::TextDisabled("%s", EncodeUtf8Path(Entry.Descriptor.ProjectDirectory).c_str());
-            ImGui::PopID();
-        }
-        for (const std::string& Diagnostic : Listing.Diagnostics)
-        {
-            ImGui::TextDisabled("skipped: %s", Diagnostic.c_str());
-        }
-    }
-    ImGui::End();
-}
-#endif // FRONTIER_WITH_INTERFACE_SDK
 
 } // namespace Frontier

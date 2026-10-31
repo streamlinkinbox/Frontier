@@ -93,7 +93,8 @@ struct RecordEditorDescription
     std::vector<RecordEditorAction>      Actions;        // [-] - Preset / trigger buttons
 
     std::function<std::string()> QueryLiveMeta;          // [-] - Right-aligned live Outliner row readout
-    std::function<void()>        ConstructInfographic;   // [-] - Custom 1:1 VehicleHMI / General UI infographic
+    std::function<void()>        ConstructInfographic;   // [-] - Custom VehicleHMI / General UI infographic
+    std::function<void()>        ConstructInspector;    // [-] - Record-owned native Inspector page (e.g. Sun dashboard)
     const char                  *DedicatedEditorTitle = ""; // [text] - Dedicated popup editor window title
     std::function<void()>        OpenDedicatedEditor;    // [-] - Launches dedicated zero-copy popup editor window
 

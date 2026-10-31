@@ -1,11 +1,10 @@
 /*====================================================================================================================================
                                                     SCENEINSPECTORPANEL.CPP
 ====================================================================================================================================*/
-// 🧩 1:1 C++ Dark OLED port of Experimental/SlateReference/A/Exhibits/VehicleProvingGrounds/Source/EditorShell.js +
-//    EditorControls.js + Style/FrontierEditor.css: Dark OLED #141414 column, Inspector > Group crumb bar, object-header
-//    with [Editor ↗] Dedicated Entity Editor launcher + Enabled pill, .property-switches glowing green icon tiles,
-//    numbered #1f1f1f .card containers (16px radius, #2f2f2f border), 2-line platinum 3px .control sliders with
-//    right-aligned #141414 .number-field boxes, monochrome #111111 .segmented pills, and .inspector-footer.
+// 🧩 VehicleHMI generic Inspector presentation from Experimental/VehicleHmiPrototype/Source/EditorShell.js,
+//    EditorControls.js and Style/FrontierEditor.css: crumb bar, entity header, enabled pill, property switches,
+//    grouped controls, choice cards and footer. Scalar interaction delegates to the pinned main/UI ControlKit::Slider
+//    through PixelSpace; this panel does not reimplement the shared slider behavior.
 
 #include "SceneInspectorPanel.h"
 
@@ -13,6 +12,7 @@
 
 #if defined(FRONTIER_WITH_INTERFACE_SDK)
 
+#include "Engine/Interface/ControlKit.h"
 #include "Engine/Interface/StackRailControls.h"
 #include "Engine/Scene/SceneDirectory.h"
 
@@ -151,8 +151,6 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
     const ImU32 SoftCol  = DarkOled ? KitInkHex(0xa8a8a8) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_Text]);
     const ImU32 MuteCol  = DarkOled ? KitInkHex(0x7d7d7d) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_TextDisabled]);
     const ImU32 FaintCol = DarkOled ? KitInkHex(0x565656) : ImGui::ColorConvertFloat4ToU32(Style.Colors[ImGuiCol_TextDisabled]);
-    const ImU32 RailFill = DarkOled ? KitInkHex(0xc8c8c8) : KitInkHex(0x475569);
-    const ImU32 RailTrk  = DarkOled ? KitInkHex(0x404040) : IM_COL32(120, 130, 145, 90);
     const ImU32 OnGreen  = KitInkHex(0x3ec46d);
     const ImU32 CompCol  = ParseInspectorAccent(Model.Colour);
 
@@ -193,6 +191,18 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
         const float Left  = Origin.x + 16.0f;
         const float Right = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - 16.0f;
         const float Width = std::max(140.0f, Right - Left);
+
+#if defined(FRONTIER_EDITOR_PROFILE)
+        // Entity-authored Inspector pages keep specialised controls/data with the record that owns them.
+        if (Model.ConstructInspector)
+        {
+            Model.ConstructInspector();
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+            ImGui::PopStyleColor();
+            return;
+        }
+#endif
 
         // .object-header: eyebrow + h1 on left, [Editor ↗] + .enabled-pill on right
         ImVec2 Cur = ImGui::GetCursorScreenPos();
@@ -333,7 +343,7 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
             ImGui::SetCursorScreenPos(ImVec2(Left, Cur.y + TH + 10.0f));
         }
 
-        // 1:1 VehicleProvingGrounds / General UI Live Metric & Instrument Card
+        // Optional record-owned infographic slot used by native VehicleHMI Inspector components.
         if (Model.ConstructInfographic)
         {
             ImGui::SetCursorScreenPos(ImVec2(Left, ImGui::GetCursorScreenPos().y));
@@ -493,7 +503,14 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
             ImGui::SetCursorScreenPos(ImVec2(Left, Cur.y + CardH + 10.0f));
         }
 
-        // Scalar Parameter Cards (.card + EditorControls.js 2-line .control with 3px #c5c5c5 platinum rail!)
+        // Reuse the main/UI branch's PixelSpace + ControlKit slider in this ImGui child window.
+        // The track/knob dimensions are the VehicleHMI control row's 4/11 px rather than ControlKit's defaults.
+        PixelSpace ControlSurface;
+        const ImVec2 DisplaySize = ImGui::GetIO().DisplaySize;
+        const bool ControlSurfaceReady =
+            ControlSurface.Begin(SurfaceLayer::Window, DisplaySize.x, DisplaySize.y);
+
+        // Scalar Parameter Cards (.card + EditorControls.js two-line .control with its slim slider geometry).
         size_t FIdx = 0;
         while (FIdx < Model.ScalarFields.size())
         {
@@ -550,7 +567,7 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
                     KitDrawText(CInk, Faces.Regular, 9.0f, ImVec2(NumX + NumW - UnitW - 4.0f, RY + 4.0f), MuteCol, Field.Unit);
                 }
 
-                // Line 2: Full-width 3px platinum slider rail (#c5c5c5 over #404040) + 11px thumb ringed in #1d1d1d
+                // Line 2: VehicleHMI's slim full-width row, rendered by the shared ControlKit slider (4px rail, 11px knob).
                 const float SliderX = Left + 16.0f;
                 const float SliderW = Width - 32.0f;
                 const float RailY   = RY + 30.0f;
@@ -558,33 +575,39 @@ void ConstructSceneInspectorInterface(SceneDirectoryPanel& Panel)
                 ImGui::PushID(static_cast<int>(K + 4000));
                 ImGui::SetCursorScreenPos(ImVec2(SliderX, RailY - 9.0f));
                 ImGui::InvisibleButton("##ScalarRail", ImVec2(SliderW, 18.0f));
-                if (ImGui::IsItemActive())
-                {
-                    const float T = std::clamp((ImGui::GetIO().MousePos.x - SliderX) / SliderW, 0.0f, 1.0f);
-                    double Next   = Field.Minimum + static_cast<double>(T) * (Field.Maximum - Field.Minimum);
-                    if (Field.Step > 0.0)
-                    {
-                        Next = std::round(Next / Field.Step) * Field.Step;
-                    }
-                    if (WriteScalarField(Field, Next))
-                    {
-                        Val = ReadScalarField(Field);
-                        BumpModelRevision(Model);
-                    }
-                }
+                const bool ItemHovered = ImGui::IsItemHovered();
+                const bool ItemActive  = ImGui::IsItemActive();
 
-                const float Norm = (Field.Maximum > Field.Minimum)
-                    ? static_cast<float>(std::clamp((Val - Field.Minimum) / (Field.Maximum - Field.Minimum), 0.0, 1.0))
-                    : 0.0f;
-                CInk->AddRectFilled(ImVec2(SliderX, RailY - 1.5f), ImVec2(SliderX + SliderW, RailY + 1.5f), RailTrk, 2.0f);
-                if (Norm > 0.004f)
+                if (ControlSurfaceReady)
                 {
-                    CInk->AddRectFilled(ImVec2(SliderX, RailY - 1.5f),
-                                        ImVec2(SliderX + SliderW * Norm, RailY + 1.5f), RailFill, 2.0f);
+                    const ImGuiIO& Io = ImGui::GetIO();
+                    ControlPointer Pointer;
+                    Pointer.X        = Io.MousePos.x;
+                    Pointer.Y        = Io.MousePos.y;
+                    Pointer.Down     = ItemActive && ImGui::IsMouseDown(ImGuiMouseButton_Left);
+                    Pointer.Pressed  = ImGui::IsItemActivated();
+                    Pointer.Released = ImGui::IsItemDeactivated();
+                    Pointer.Enabled  = ItemHovered || ItemActive;
+
+                    float Output = static_cast<float>(Val);
+                    const ControlHit Hit = ControlKit::Slider(
+                        ControlSurface, Spanning(SliderX, RailY - 9.0f, SliderW, 18.0f),
+                        static_cast<float>(Field.Minimum), static_cast<float>(Field.Maximum),
+                        static_cast<float>(Val), ItemActive, Pointer, Output, 1.0f, 4.0f, 11.0f);
+                    if (Hit.Dragging && Pointer.Down)
+                    {
+                        double Next = static_cast<double>(Output);
+                        if (Field.Step > 0.0)
+                        {
+                            Next = std::round(Next / Field.Step) * Field.Step;
+                        }
+                        if (WriteScalarField(Field, Next))
+                        {
+                            Val = ReadScalarField(Field);
+                            BumpModelRevision(Model);
+                        }
+                    }
                 }
-                const ImVec2 ThumbC(SliderX + SliderW * Norm, RailY);
-                CInk->AddCircleFilled(ThumbC, 8.0f, CardBg, 16);
-                CInk->AddCircleFilled(ThumbC, 5.2f, KitInkHex(0xe8e8e8), 16);
                 ImGui::PopID();
             }
             ImGui::SetCursorScreenPos(ImVec2(Left, Cur.y + CardH + 10.0f));

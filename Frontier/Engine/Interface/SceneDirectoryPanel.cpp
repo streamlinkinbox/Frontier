@@ -303,6 +303,7 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
             InspectorModel.ChoiceFields         = Description->ChoiceFields;
             InspectorModel.Actions              = Description->Actions;
             InspectorModel.ConstructInfographic = Description->ConstructInfographic;
+            InspectorModel.ConstructInspector  = Description->ConstructInspector;
             InspectorModel.OpenDedicatedEditor  = Description->OpenDedicatedEditor;
         }
     }

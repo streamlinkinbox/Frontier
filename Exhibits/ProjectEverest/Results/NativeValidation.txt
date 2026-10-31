@@ -15,7 +15,7 @@
 ./.venv/bin/ctest --test-dir Build/ProjectEverest --output-on-failure
 ```
 
-Result: **4/4 CTests passed** — `NativeProjectValidation`, `FrontierProjectZeroHeadless`, `NativeProjectBrowserFlow`, and `NativeProjectEverestWorkspace`.
+Result: **3/3 CTests passed** — `NativeProjectValidation`, `FrontierProjectZeroHeadless`, and `NativeProjectEverestWorkspace`.
 
 `FrontierNativeEntry` compiles the GLFW-backed `FrontierMain.cpp` path as an object target. `NativeUIEvidence` is a test/exhibit runner, not a delivered product binary.
 
@@ -36,26 +36,35 @@ PASS  Outliner selection resolves the Sun record
 PASS  selected record supplies its own Inspector description
 PASS  Inspector scalar fields point to live Sun settings
 PASS  Inspector field pointer edits the owning record setting
+PASS  manual Sun azimuth follows VehicleHMI's east-origin local-vector convention
+PASS  automatic Sun placement delegates to the existing celestial solver
+PASS  Atmosphere Inspector groups live Rayleigh, Mie, ozone and surface fields
+PASS  Atmosphere Inspector edits its owning scattering record
+PASS  Clouds Inspector groups live layer, advection and optical fields
+PASS  Clouds Inspector edits its owning slab record
+PASS  Fog Inspector groups live medium, Sun response and tint fields
+PASS  Fog Inspector edits its owning medium record
+PASS  Wind Inspector groups the live force-field vector and turbulence settings
+PASS  Wind Inspector edits its owning force-field record
 PASS  record destructors remove their entries from the record store
 PASS  record destructors unregister their Outliner rows
 PASS  record destruction removes its Inspector description
-13 checks, 0 failures
+23 checks, 0 failures
 ```
 
 ## Browser and workspace evidence
 
-- The native chooser is the existing `.frontier` project-list flow from the SultanAladin main/UI branch. The capture calls the same `ConstructProjectBrowserInterface` used by `RunBrowserWindow`; it clicks the Project Everest row and verifies `Frontier/Projects/Project-Everest/ProjectEverest.frontier`. There is no added application-selection page and no `.projectspace` catalogue substitution.
+- The production chooser is the existing `RunBrowserWindow` from the SultanAladin main/UI branch; its inline ImGui list is kept intact, with no second browser or application-selection page. `FrontierNativeEntry` compile-checks this path, while `NativeProjectValidation` checks `.frontier` enumeration and Project Everest decoding. The `.projectspace` catalogue remains separate.
 - The workspace capture reports **all 10 custom VehicleHMI Outliner SVG symbols ready**: Environment folder, Sun, Atmosphere, Clouds, Fog, Local Cloud, Local Fog, Stars, Moon, and Lens Flare.
 - Custom SVG artwork is loaded and rasterized using ThorVG into the existing ImGui dynamic-texture presentation. Approved vector variants retain source fingerprints for SVG filter primitives outside the pinned ThorVG SVG subset. Stroke icons use the pinned Lucide 1.57.0 path geometry in the native glyph renderer.
 - The CPU evidence rasterizer samples `ImTextureData` so the checked-in workspace capture includes the ThorVG-generated icons.
 
 The checked-in evidence files are:
 
-- `Images/NativeProjectSelection.png` — 1440 × 900; existing `.frontier` project list.
 - `Images/NativeWorkspace.png` — 1920 × 1080; Outliner, selected Sun Inspector, idle Viewport, and Log Stream.
 
-The workspace harness exercises the production Control Centre, PanelDockspace, Outliner, Inspector, and Log Stream units in deterministic ImGui frames. It does not call `RunProjectWindow`; the CPU rasterizer stands in for GPU presentation.
+The workspace harness exercises the production Control Centre, PanelDockspace, Outliner, Inspector, and Log Stream units in deterministic ImGui frames. The captured Sun page is Overview; the native dashboard source also builds the Daylight, Light & colour, and Disc & optics pages. All Sun scalar controls delegate to the shared main/UI `ControlKit::Slider` through `PixelSpace`. It does not call `RunProjectWindow`; the CPU rasterizer stands in for GPU presentation.
 
 ## Limits
 
-No GLFW OS window or Vulkan presentation was launched. No scene renderer, ReSTIR pipeline, RTX hardware path, or GTX SDF/BVH fallback was run. The native workspace explicitly leaves the scene canvas empty and reports the disconnected renderer. This validates the native UI flow, icon asset loading, and record/Inspector lifecycle only; it does not claim GPU rendering or hardware-path correctness.
+No GLFW OS window or Vulkan presentation was launched. No scene renderer, ReSTIR pipeline, RTX hardware path, or GTX SDF/BVH fallback was run. The native workspace explicitly leaves the scene canvas empty and reports the disconnected renderer. This validates the native UI flow, icon asset loading, record/Inspector lifecycle, Sun direction conventions, and write-through field bindings for reusable environment components; it does not claim GPU rendering or hardware-path correctness.

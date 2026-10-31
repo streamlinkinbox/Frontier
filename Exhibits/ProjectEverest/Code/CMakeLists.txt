@@ -1,4 +1,4 @@
-# Native Project Everest browser, editor workspace, and lifecycle validation.
+# Native Project Everest editor workspace and lifecycle validation.
 # Build products stay under Build/ (ignored); captured evidence is copied into Exhibits/ProjectEverest/Images.
 cmake_minimum_required(VERSION 3.20)
 project(ProjectEverestNative LANGUAGES CXX)
@@ -77,7 +77,9 @@ add_executable(NativeProjectValidation
     "${FRONTIER_ENGINE_ROOT}/Engine/Scene/EnvironmentRecords.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Scene/RecordEntry.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Scene/RecordStore.cpp"
-    "${FRONTIER_ENGINE_ROOT}/Engine/Scene/SceneDirectory.cpp")
+    "${FRONTIER_ENGINE_ROOT}/Engine/Scene/SceneDirectory.cpp"
+    "${FRONTIER_ENGINE_ROOT}/Engine/Rendering/CelestialModel.cpp"
+    "${FRONTIER_ENGINE_ROOT}/Engine/Rendering/ClusterNesting.cpp")
 target_include_directories(NativeProjectValidation PRIVATE
     "${REPOSITORY_ROOT}" "${FRONTIER_ENGINE_ROOT}" "${TOMLPLUSPLUS_INCLUDE_DIR}")
 target_compile_definitions(NativeProjectValidation PRIVATE FRONTIER_EDITOR_PROFILE=1)
@@ -95,7 +97,6 @@ endif()
 
 set(NATIVE_UI_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../../LogStream/PanelCapture.cpp"
-    "${FRONTIER_ENGINE_ROOT}/Applications/Editor/ProjectBrowserHost.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Diagnostics/LogCategories.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Diagnostics/LogRingStore.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Diagnostics/LogStream.cpp"
@@ -107,6 +108,7 @@ set(NATIVE_UI_SOURCES
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/SceneDirectoryPanelPresentation.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/VehicleHmiGlyphs.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/SceneInspectorPanel.cpp"
+    "${FRONTIER_ENGINE_ROOT}/Engine/Interface/SunInspectorDashboard.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/StackRailControls.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Scene/EnvironmentRecords.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Scene/RecordEntry.cpp"
@@ -187,12 +189,9 @@ if(BUILD_TESTING)
 
     set(NATIVE_CAPTURE_ROOT "${CMAKE_CURRENT_BINARY_DIR}/native-captures")
     set(NATIVE_CAPTURE_FONT "${REPOSITORY_ROOT}/EngineContent/FontArchives/Inter/Inter-Regular.otf")
-    add_test(NAME NativeProjectBrowserFlow
-        COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/browser"
-            --browser "${REPOSITORY_ROOT}")
     add_test(NAME NativeProjectEverestWorkspace
         COMMAND NativeUIEvidence "${NATIVE_CAPTURE_FONT}" "${NATIVE_CAPTURE_ROOT}/workspace"
             --workspace "${REPOSITORY_ROOT}")
-    set_tests_properties(NativeProjectBrowserFlow NativeProjectEverestWorkspace PROPERTIES
+    set_tests_properties(NativeProjectEverestWorkspace PROPERTIES
         WORKING_DIRECTORY "${REPOSITORY_ROOT}")
 endif()

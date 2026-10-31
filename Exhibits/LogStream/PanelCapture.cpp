@@ -270,7 +270,7 @@ void SeedStream(const std::function<void(double)>& PumpSecond)
     WriteCaptureLog(Interface != nullptr ? Interface->Token : 0, LogSeverity::Info,
                     "Outliner selection synchronized · Sun", "SceneDirectoryPanel.cpp");
     WriteCaptureLog(Interface != nullptr ? Interface->Token : 0, LogSeverity::Info,
-                    "Inspector model exposes three live Sun scalar fields and a disc switch", "SceneInspectorPanel.cpp");
+                    "Sun Inspector exposes Overview, Daylight, Light & colour, and Disc & optics", "SunInspectorDashboard.cpp");
     PumpSecond(1.0);
     WriteCaptureLog(Render != nullptr ? Render->Token : 0, LogSeverity::Info,
                     "Scene Canvas idle · no opening scene or renderer connected", "FrontierMain.cpp");
@@ -285,13 +285,12 @@ void SeedStream(const std::function<void(double)>& PumpSecond)
 //                                                    WORKSPACE MODE
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 Renders the existing .frontier project browser and the native four-panel workspace.
-//    The workspace uses the same ControlCentrePanel, PanelDockspace, Outliner, Inspector, and Log Stream
+// 📝 Renders the native four-panel workspace.
+//    It uses the same ControlCentrePanel, PanelDockspace, Outliner, Inspector, and Log Stream
 //    production units as FrontierMain. The exhibit substitutes a CPU rasterizer for GLFW/Vulkan presentation.
 #if defined(FRONTIER_WITH_WORKSPACE_CAPTURE)
 
 #include "Engine/Diagnostics/DiagnosticJournal.h"
-#include "Applications/Editor/ProjectBrowserHost.h"
 #include "Engine/Interface/LogStreamPanelRegistration.h"
 #include "Engine/Interface/IconPresentation.h"
 #include "Engine/Interface/SceneDirectoryPanel.h"
@@ -410,6 +409,12 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
         ImGui::DestroyContext();
         return 6;
     }
+    if (!OutlinerPanel.QueryInspectorModel().ConstructInspector)
+    {
+        std::printf("workspace capture refused: Sun did not install its native four-section Inspector page\n");
+        ImGui::DestroyContext();
+        return 6;
+    }
 
     const LogCategory* Interface = Frontier::LogCategories().QueryByName("Interface");
     const LogCategory* Render    = Frontier::LogCategories().QueryByName("Render");
@@ -417,8 +422,8 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
     WriteCaptureLog(LogToken(Interface), Frontier::LogSeverity::Info,
                     "Project session opened · Project Everest", "FrontierMain.cpp");
     WriteCaptureLog(LogToken(Interface), Frontier::LogSeverity::Info,
-                    "Outliner selected Sun · Inspector exposes three live fields and a disc switch",
-                    "SceneInspectorPanel.cpp");
+                    "Outliner selected Sun · native four-section VehicleHMI Inspector is active",
+                    "SunInspectorDashboard.cpp");
     WriteCaptureLog(LogToken(Render), Frontier::LogSeverity::Info,
                     "Scene Canvas idle · no opening scene or renderer connected", "FrontierMain.cpp");
 
@@ -479,82 +484,7 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
     return CaptureWritten && IconAssetsReady ? 0 : 7;
 }
 
-int RunProjectBrowserCapture(const std::string& OutputDirectory,
-                             const std::filesystem::path& RepositoryRoot,
-                             const char* FontPath)
-{
-    CaptureWidth  = 1440;
-    CaptureHeight = 900;
-    std::filesystem::create_directories(OutputDirectory);
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& Io    = ImGui::GetIO();
-    Io.IniFilename = nullptr;
-    Io.DisplaySize = ImVec2(static_cast<float>(CaptureWidth), static_cast<float>(CaptureHeight));
-    Io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    Io.AddMousePosEvent(-1.0f, -1.0f);
-    ImGui::StyleColorsDark();
-    if (FontPath != nullptr && FontPath[0] != '\0' && Io.Fonts->AddFontFromFileTTF(FontPath, 15.0f) == nullptr)
-    {
-        ImGui::DestroyContext();
-        std::fprintf(stderr, "browser capture refused: could not load font %s\n", FontPath);
-        return 8;
-    }
-    Io.Fonts->Build();
-    Framebuffer.resize(static_cast<size_t>(CaptureWidth) * static_cast<size_t>(CaptureHeight));
-
-    const Frontier::ProjectBrowserEnumeration BrowserListing =
-        Frontier::EnumerateProjects(RepositoryRoot / "Frontier" / "Projects");
-    std::filesystem::path ChosenDescriptor;
-    std::vector<Frontier::ProjectBrowserButtonBounds> ProjectOpenButtons;
-    const auto Frame = [&](bool Rasterize) {
-        Io.DeltaTime = 1.0f / 60.0f;
-        ImGui::NewFrame();
-        Frontier::ConstructProjectBrowserInterface(BrowserListing, ChosenDescriptor, &ProjectOpenButtons);
-        ImGui::Render();
-        if (Rasterize)
-        {
-            Io.Fonts->GetTexDataAsRGBA32(nullptr, nullptr, nullptr);
-            std::fill(Framebuffer.begin(), Framebuffer.end(), Pixel{11, 13, 12, 255});
-            RasterizeDrawData(*ImGui::GetDrawData());
-        }
-    };
-    const auto ClickAt = [&](ImVec2 Position) {
-        Io.AddMousePosEvent(Position.x, Position.y);
-        Io.AddMouseButtonEvent(0, true);
-        Frame(false);
-        Io.AddMouseButtonEvent(0, false);
-        Frame(false);
-    };
-
-    Frame(false);
-    Frame(true);
-    const std::string BrowserPath = OutputDirectory + "/browser-projects.png";
-    const bool BrowserWritten = WritePng(BrowserPath.c_str());
-    const std::vector<Frontier::ProjectBrowserButtonBounds> ProjectButtons = ProjectOpenButtons;
-    const std::filesystem::path ExpectedDescriptor = std::filesystem::absolute(
-        RepositoryRoot / "Frontier" / "Projects" / "Project-Everest" / "ProjectEverest.frontier").lexically_normal();
-    for (const Frontier::ProjectBrowserButtonBounds& Bounds : ProjectButtons)
-    {
-        if (!Bounds.Valid)
-        {
-            continue;
-        }
-        ChosenDescriptor.clear();
-        ClickAt(ImVec2((Bounds.Left + Bounds.Right) * 0.5f, (Bounds.Top + Bounds.Bottom) * 0.5f));
-        if (ChosenDescriptor.lexically_normal() == ExpectedDescriptor)
-        {
-            break;
-        }
-    }
-    const bool EverestSelected = ChosenDescriptor.lexically_normal() == ExpectedDescriptor;
-    std::printf("existing .frontier project browser · capture %s · Project Everest selection %s\n",
-                BrowserWritten ? BrowserPath.c_str() : "failed", EverestSelected ? "passed" : "failed");
-
-    ImGui::DestroyContext();
-    return BrowserWritten && EverestSelected ? 0 : 11;
-}
 } // namespace
 
 #endif // FRONTIER_WITH_WORKSPACE_CAPTURE
@@ -567,7 +497,7 @@ int main(int ArgumentCount, char** Arguments)
 {
     if (ArgumentCount < 3)
     {
-        std::fprintf(stderr, "usage: PanelCapture <font.ttf> <output-directory> [--workspace|--browser] [repository-root]\n");
+        std::fprintf(stderr, "usage: PanelCapture <font.ttf> <output-directory> [--workspace] [repository-root]\n");
         return 2;
     }
     const std::string OutputDirectory = Arguments[2];
@@ -576,10 +506,6 @@ int main(int ArgumentCount, char** Arguments)
     if (ArgumentCount > 3 && std::string(Arguments[3]) == "--workspace")
     {
         return RunWorkspaceCapture(OutputDirectory, RepositoryRoot);
-    }
-    if (ArgumentCount > 3 && std::string(Arguments[3]) == "--browser")
-    {
-        return RunProjectBrowserCapture(OutputDirectory, RepositoryRoot, Arguments[1]);
     }
 #endif
 

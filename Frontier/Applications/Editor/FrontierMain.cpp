@@ -196,9 +196,9 @@ namespace
 
 struct BrowserSession
 {
-    GLFWwindow*             Window = nullptr;
+    GLFWwindow*               Window = nullptr;
     ProjectBrowserEnumeration Listing;
-    std::filesystem::path    ChosenDescriptor;
+    std::filesystem::path     Chosen;
 };
 
 struct WorkspaceSession
@@ -254,16 +254,34 @@ int RunBrowserWindow(const std::filesystem::path& FromExecutable, std::filesyste
     Callbacks.Title      = "Frontier · Project Browser";
     Callbacks.Initialize = [&Session](GLFWwindow* Window) { Session.Window = Window; };
     Callbacks.ConstructInterface = [&Session](bool) {
-        ConstructProjectBrowserInterface(Session.Listing, Session.ChosenDescriptor);
-        if (!Session.ChosenDescriptor.empty())
+        const ImVec2 Display = ImGui::GetIO().DisplaySize;
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(Display);
+        if (ImGui::Begin("Project Browser", nullptr, ImGuiWindowFlags_NoDecoration))
         {
-            // 📝 The browser window closes behind the project window it launches.
-            glfwSetWindowShouldClose(Session.Window, GLFW_TRUE);
+            ImGui::TextUnformatted("Open a project");
+            ImGui::Separator();
+            for (const ProjectBrowserEntry& Entry : Session.Listing.Entries)
+            {
+                if (ImGui::Button(Entry.Descriptor.Name.c_str(), ImVec2(420.0f, 0.0f)))
+                {
+                    Session.Chosen = Entry.Descriptor.DescriptorPath;
+                    // 📝 The browser window closes behind the project window it launches.
+                    glfwSetWindowShouldClose(Session.Window, GLFW_TRUE);
+                }
+                ImGui::SameLine();
+                ImGui::TextDisabled("%s", EncodeUtf8Path(Entry.Descriptor.ProjectDirectory).c_str());
+            }
+            for (const std::string& Diagnostic : Session.Listing.Diagnostics)
+            {
+                ImGui::TextDisabled("skipped: %s", Diagnostic.c_str());
+            }
         }
+        ImGui::End();
     };
 
     const int Result = RunWindowsApplication(Callbacks);
-    ChosenDescriptor = Session.ChosenDescriptor;
+    ChosenDescriptor = Session.Chosen;
     return Result;
 }
 
@@ -293,7 +311,8 @@ int RunProjectWindow(const ProjectDescriptor& Descriptor, const std::filesystem:
         Session.Prepared = true;
 
         Session.Centre = std::make_unique<ControlCentrePanel>(
-            "EngineContent/FontArchives", Descriptor.ProjectDirectory / "Saved" / "ControlCentre.toml");
+            "EngineContent/FontArchives", Descriptor.ProjectDirectory / "Saved" / "ControlCentre.toml",
+            Descriptor.ProjectDirectory);
         (void)Session.Centre->Initialize();
         (void)Session.Centre->Activate();
         IconPresentation::AttachVehicleHmiOutliner();

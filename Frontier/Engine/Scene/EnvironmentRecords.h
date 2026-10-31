@@ -11,6 +11,9 @@
 #include "Engine/Rendering/CloudField.h"
 #include "Engine/Rendering/FogMedium.h"
 
+#include <array>
+#include <cstdint>
+
 namespace Frontier
 {
 
@@ -18,16 +21,32 @@ namespace Frontier
 //                                                        STRUCTS
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 Manual Sun placement in the pinned HTML inspector's units. The renderer converts this to the
-//    local frame SunDirectionLocal uses (X east, Y north, Z up); latitude/longitude presets remain
-//    available through CelestialModel::SunPosition and are not duplicated here.
+// 📝 VehicleHMI SunInspectorDashboard authoring state in its existing units. Manual azimuth is
+//    counterclockwise from +X east (the demo's SunVector convention); automatic placement delegates
+//    to CelestialModel, whose local output is X east, Y north, Z up.
 struct SunPlacement
 {
     double ElevationDegrees = 38.0;   // [deg] - Above the horizon; negative is below it
-    double AzimuthDegrees   = 145.0;  // [deg] - Clockwise from north (Noon preset at 6afb6f0)
-    double SolarIlluminance = 12.0;   // [-] - Exhibit illumination scale (LightingPresets at 6afb6f0)
-    bool   Enabled          = true;   // [-] - Sun row toggle
-    bool   DiscEnabled      = true;   // [-] - Finite solar disc in the sky
+    double AzimuthDegrees   = 145.0;  // [deg] - Counterclockwise from +X east; wrapped to [-180, 180]
+    double SolarIlluminance = 12.0;   // [-] - Exhibit illumination scale, not photometric lux
+    double TemperatureKelvin = 5778.0; // [K] - Source blackbody temperature
+    double RadiusDegrees     = 0.27;   // [deg] - Apparent angular radius; dashboard displays diameter
+    double Glow              = 1.0;   // [x] - Optical aureole multiplier
+    double LocalSolarTime    = 12.0;  // [h] - Local solar control time
+    double DayDurationHours  = 6.0;   // [h] - Full day-cycle duration
+    double LatitudeDegrees   = -26.18; // [deg] - Solar solver observer latitude
+    double LongitudeDegrees  = 28.32;  // [deg] - Solar solver observer longitude
+    double TimeZoneHours     = 2.0;   // [h] - Local UTC offset
+    std::array<double, 3> Tint{1.0, 1.0, 1.0}; // [linear RGB] - Custom source tint
+    int32_t ColourSource     = 0;     // [-] - 0 = temperature, 1 = RGB tint
+    int32_t LightingPreset   = 0;     // [-] - 0 = custom, 1 = noon, 2 = golden, 3 = dusk, 4 = night
+    int32_t SkyYear          = 2026;  // [year] - Civil date used by the celestial solver
+    int32_t SkyMonth         = 10;    // [month]
+    int32_t SkyDay           = 20;    // [day]
+    bool    Enabled          = true;  // [-] - Sunlight quick toggle
+    bool    DiscEnabled      = true;  // [-] - Finite solar disc quick toggle
+    bool    AutoPosition     = false; // [-] - Link direction to date, time and location
+    bool    DayAnimate       = false; // [-] - Authoring day-cycle toggle
 };
 
 //------------------------------------------------------------------------------------------------------------------------
