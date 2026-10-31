@@ -1,0 +1,2175 @@
+{
+ "materials": [
+  {
+   "path": "racing-green.material",
+   "htmlType": 0,
+   "recipeId": "paint",
+   "nativeOps": [],
+   "textureMask": [],
+   "textured": false,
+   "controls": 12,
+   "unresolvedControls": []
+  },
+  {
+   "path": "midnight-amethyst.material",
+   "htmlType": 0,
+   "recipeId": "paint",
+   "nativeOps": [],
+   "textureMask": [],
+   "textured": false,
+   "controls": 12,
+   "unresolvedControls": []
+  },
+  {
+   "path": "liquid-silver.material",
+   "htmlType": 1,
+   "recipeId": "polishedMetal",
+   "nativeOps": [
+    "scratchedMetal"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "candy-crimson.material",
+   "htmlType": 0,
+   "recipeId": "paint",
+   "nativeOps": [],
+   "textureMask": [],
+   "textured": false,
+   "controls": 12,
+   "unresolvedControls": []
+  },
+  {
+   "path": "carbon-ceramic.material",
+   "htmlType": 2,
+   "recipeId": "ceramic",
+   "nativeOps": [
+    "ceramic"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "brushed-titanium.material",
+   "htmlType": 1,
+   "recipeId": "brushedMetal",
+   "nativeOps": [
+    "scratchedMetal"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "performance-rubber.material",
+   "htmlType": 3,
+   "recipeId": "rubber",
+   "nativeOps": [
+    "rubber"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "woven-fabric.material",
+   "htmlType": 4,
+   "recipeId": "woven",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "crystal-glass.material",
+   "htmlType": 5,
+   "recipeId": "glass",
+   "nativeOps": [],
+   "textureMask": [],
+   "textured": false,
+   "controls": 3,
+   "unresolvedControls": [
+    {
+     "id": "thickness",
+     "caption": "Glass thickness",
+     "keys": [
+      "depth"
+     ]
+    }
+   ]
+  },
+  {
+   "path": "satin-pearl.material",
+   "htmlType": 0,
+   "recipeId": "paint",
+   "nativeOps": [],
+   "textureMask": [],
+   "textured": false,
+   "controls": 12,
+   "unresolvedControls": []
+  },
+  {
+   "path": "brake-disc.material",
+   "htmlType": 6,
+   "recipeId": "brake",
+   "nativeOps": [
+    "latheMetal"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "carbon-fiber.material",
+   "htmlType": 7,
+   "recipeId": "carbon",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "piano-black.material",
+   "htmlType": 8,
+   "recipeId": "glossPlastic",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "grained-abs.material",
+   "htmlType": 9,
+   "recipeId": "grainPlastic",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "worn-polymer.material",
+   "htmlType": 10,
+   "recipeId": "wornPlastic",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 6,
+   "unresolvedControls": []
+  },
+  {
+   "path": "suede-microfiber.material",
+   "htmlType": 4,
+   "recipeId": "suede",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "midnight-velvet.material",
+   "htmlType": 4,
+   "recipeId": "velvet",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "natural-cotton.material",
+   "htmlType": 4,
+   "recipeId": "cotton",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "indigo-denim.material",
+   "htmlType": 4,
+   "recipeId": "denim",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 7,
+   "unresolvedControls": []
+  },
+  {
+   "path": "champagne-silk.material",
+   "htmlType": 4,
+   "recipeId": "silk",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "midnight-satin.material",
+   "htmlType": 4,
+   "recipeId": "silk",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "cognac-leather.material",
+   "htmlType": 11,
+   "recipeId": "leather",
+   "nativeOps": [
+    "leather"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 6,
+   "unresolvedControls": []
+  },
+  {
+   "path": "nappa-leather.material",
+   "htmlType": 11,
+   "recipeId": "leather",
+   "nativeOps": [
+    "leather"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 6,
+   "unresolvedControls": []
+  },
+  {
+   "path": "plain-linen.material",
+   "htmlType": 4,
+   "recipeId": "linen",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "basket-cotton.material",
+   "htmlType": 4,
+   "recipeId": "cotton",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "ribbed-cotton.material",
+   "htmlType": 4,
+   "recipeId": "cotton",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "oxford-weave.material",
+   "htmlType": 4,
+   "recipeId": "cotton",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "herringbone-wool.material",
+   "htmlType": 4,
+   "recipeId": "wool",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "houndstooth-wool.material",
+   "htmlType": 4,
+   "recipeId": "wool",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "aurora-flip.material",
+   "htmlType": 0,
+   "recipeId": "paint",
+   "nativeOps": [],
+   "textureMask": [],
+   "textured": false,
+   "controls": 15,
+   "unresolvedControls": [
+    {
+     "id": "iridescence",
+     "caption": "Color-shift strength",
+     "keys": [
+      "iridescence"
+     ]
+    },
+    {
+     "id": "filmPhase",
+     "caption": "Color phase",
+     "keys": [
+      "filmThickness"
+     ]
+    },
+    {
+     "id": "colorTravel",
+     "caption": "Angle response",
+     "keys": [
+      "iridescenceIOR",
+      "filmVariation"
+     ]
+    }
+   ]
+  },
+  {
+   "path": "sunset-prism.material",
+   "htmlType": 0,
+   "recipeId": "paint",
+   "nativeOps": [],
+   "textureMask": [],
+   "textured": false,
+   "controls": 15,
+   "unresolvedControls": [
+    {
+     "id": "iridescence",
+     "caption": "Color-shift strength",
+     "keys": [
+      "iridescence"
+     ]
+    },
+    {
+     "id": "filmPhase",
+     "caption": "Color phase",
+     "keys": [
+      "filmThickness"
+     ]
+    },
+    {
+     "id": "colorTravel",
+     "caption": "Angle response",
+     "keys": [
+      "iridescenceIOR",
+      "filmVariation"
+     ]
+    }
+   ]
+  },
+  {
+   "path": "opal-pearl.material",
+   "htmlType": 0,
+   "recipeId": "paint",
+   "nativeOps": [],
+   "textureMask": [],
+   "textured": false,
+   "controls": 15,
+   "unresolvedControls": [
+    {
+     "id": "iridescence",
+     "caption": "Color-shift strength",
+     "keys": [
+      "iridescence"
+     ]
+    },
+    {
+     "id": "filmPhase",
+     "caption": "Color phase",
+     "keys": [
+      "filmThickness"
+     ]
+    },
+    {
+     "id": "colorTravel",
+     "caption": "Angle response",
+     "keys": [
+      "iridescenceIOR",
+      "filmVariation"
+     ]
+    }
+   ]
+  },
+  {
+   "path": "woodland-camouflage-fabric.material",
+   "htmlType": 4,
+   "recipeId": "woven",
+   "nativeOps": [
+    "camouflage"
+   ],
+   "textureMask": [
+    1
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": [
+    {
+     "id": "roughness",
+     "caption": "Textile Roughness",
+     "keys": [
+      "sheenRoughness"
+     ]
+    },
+    {
+     "id": "softness",
+     "caption": "Yarn softness",
+     "keys": [
+      "fuzz",
+      "fuzzLength",
+      "sheen"
+     ]
+    },
+    {
+     "id": "detailScale",
+     "caption": "Thread scale",
+     "keys": [
+      "detailScale"
+     ]
+    },
+    {
+     "id": "definition",
+     "caption": "Weave definition",
+     "keys": [
+      "weaveRelief",
+      "fiberDetail"
+     ]
+    }
+   ]
+  },
+  {
+   "path": "woodland-camouflage-fabric-smooth.material",
+   "htmlType": 4,
+   "recipeId": "woven",
+   "nativeOps": [
+    "camouflage-smooth"
+   ],
+   "textureMask": [
+    1
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": [
+    {
+     "id": "roughness",
+     "caption": "Textile Roughness",
+     "keys": [
+      "sheenRoughness"
+     ]
+    },
+    {
+     "id": "softness",
+     "caption": "Yarn softness",
+     "keys": [
+      "fuzz",
+      "fuzzLength",
+      "sheen"
+     ]
+    },
+    {
+     "id": "detailScale",
+     "caption": "Thread scale",
+     "keys": [
+      "detailScale"
+     ]
+    },
+    {
+     "id": "definition",
+     "caption": "Weave definition",
+     "keys": [
+      "weaveRelief",
+      "fiberDetail"
+     ]
+    }
+   ]
+  },
+  {
+   "path": "camouflage-ballistic-polymer.material",
+   "htmlType": 9,
+   "recipeId": "grainPlastic",
+   "nativeOps": [
+    "camouflage"
+   ],
+   "textureMask": [
+    1
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": [
+    {
+     "id": "grain",
+     "caption": "Molded grain",
+     "keys": [
+      "grain"
+     ]
+    },
+    {
+     "id": "detailScale",
+     "caption": "Grain scale",
+     "keys": [
+      "detailScale"
+     ]
+    }
+   ]
+  },
+  {
+   "path": "camouflage-ballistic-polymer-smooth.material",
+   "htmlType": 9,
+   "recipeId": "grainPlastic",
+   "nativeOps": [
+    "camouflage-smooth"
+   ],
+   "textureMask": [
+    1
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": [
+    {
+     "id": "grain",
+     "caption": "Molded grain",
+     "keys": [
+      "grain"
+     ]
+    },
+    {
+     "id": "detailScale",
+     "caption": "Grain scale",
+     "keys": [
+      "detailScale"
+     ]
+    }
+   ]
+  },
+  {
+   "path": "terracotta-clay.material",
+   "htmlType": 12,
+   "recipeId": "clay",
+   "nativeOps": [
+    "clay"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "wet-potter-clay.material",
+   "htmlType": 12,
+   "recipeId": "clay",
+   "nativeOps": [
+    "clay"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "kaolin-clay.material",
+   "htmlType": 12,
+   "recipeId": "clay",
+   "nativeOps": [
+    "clay"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "sculpting-clay.material",
+   "htmlType": 12,
+   "recipeId": "clay",
+   "nativeOps": [
+    "clay"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "beeswax.material",
+   "htmlType": 13,
+   "recipeId": "wax",
+   "nativeOps": [
+    "wax"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "paraffin-wax.material",
+   "htmlType": 13,
+   "recipeId": "wax",
+   "nativeOps": [
+    "wax"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "soy-candle-wax.material",
+   "htmlType": 13,
+   "recipeId": "wax",
+   "nativeOps": [
+    "wax"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "sealing-wax.material",
+   "htmlType": 13,
+   "recipeId": "wax",
+   "nativeOps": [
+    "wax"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "skin-porcelain.material",
+   "htmlType": 14,
+   "recipeId": "skin",
+   "nativeOps": [
+    "skin"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "skin-rose.material",
+   "htmlType": 14,
+   "recipeId": "skin",
+   "nativeOps": [
+    "skin"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "skin-golden.material",
+   "htmlType": 14,
+   "recipeId": "skin",
+   "nativeOps": [
+    "skin"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "skin-olive.material",
+   "htmlType": 14,
+   "recipeId": "skin",
+   "nativeOps": [
+    "skin"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "skin-umber.material",
+   "htmlType": 14,
+   "recipeId": "skin",
+   "nativeOps": [
+    "skin"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "skin-deep.material",
+   "htmlType": 14,
+   "recipeId": "skin",
+   "nativeOps": [
+    "skin"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pvc-u-rigid.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pvc-p-flexible.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pp-polypropylene.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "hdpe-polyethylene.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "ldpe-polyethylene.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pet-polyester.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pbt-polyester.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "ptfe-fluoropolymer.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pom-acetal.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pa6-nylon.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pa66-glass-filled.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pc-polycarbonate.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pmma-acrylic.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "peek-polymer.material",
+   "htmlType": 9,
+   "recipeId": "engineering",
+   "nativeOps": [
+    "polymerGrain"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "cotton-rag-paper.material",
+   "htmlType": 15,
+   "recipeId": "paper",
+   "nativeOps": [
+    "paper"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "kraft-paper.material",
+   "htmlType": 15,
+   "recipeId": "paper",
+   "nativeOps": [
+    "paper"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "coated-art-paper.material",
+   "htmlType": 15,
+   "recipeId": "paper",
+   "nativeOps": [
+    "paper"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "newsprint-paper.material",
+   "htmlType": 15,
+   "recipeId": "paper",
+   "nativeOps": [
+    "paper"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "corrugated-card.material",
+   "htmlType": 15,
+   "recipeId": "paper",
+   "nativeOps": [
+    "paper"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "handmade-mulberry-paper.material",
+   "htmlType": 15,
+   "recipeId": "paper",
+   "nativeOps": [
+    "paper"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pure-aluminium.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "24k-gold.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "18k-yellow-gold.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "14k-yellow-gold.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "18k-rose-gold.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "18k-white-gold.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pure-copper.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "maraging-steel.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "cast-steel.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "stainless-steel.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pure-iron.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "rusted-iron.material",
+   "htmlType": 16,
+   "recipeId": "rust",
+   "nativeOps": [
+    "rust"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "chromium.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "bronze-alloy.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "brass-alloy.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pure-nickel.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "titanium-metal.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pure-zinc.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pure-silver.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "pure-tin.material",
+   "htmlType": 1,
+   "recipeId": "bareMetal",
+   "nativeOps": [
+    "metalGrain"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 2,
+   "unresolvedControls": []
+  },
+  {
+   "path": "monocrystalline-solar.material",
+   "htmlType": 17,
+   "recipeId": "solar",
+   "nativeOps": [
+    "solar"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "polycrystalline-solar.material",
+   "htmlType": 17,
+   "recipeId": "solar",
+   "nativeOps": [
+    "solar"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "black-solar-module.material",
+   "htmlType": 17,
+   "recipeId": "solar",
+   "nativeOps": [
+    "solar"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "tour-golf-ball.material",
+   "htmlType": 18,
+   "recipeId": "golf",
+   "nativeOps": [
+    "dimples"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "practice-golf-ball.material",
+   "htmlType": 18,
+   "recipeId": "golf",
+   "nativeOps": [
+    "dimples"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "bull-grain-saddle-leather.material",
+   "htmlType": 11,
+   "recipeId": "leather",
+   "nativeOps": [
+    "leather"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 6,
+   "unresolvedControls": []
+  },
+  {
+   "path": "bull-grain-black-leather.material",
+   "htmlType": 11,
+   "recipeId": "leather",
+   "nativeOps": [
+    "leather"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 6,
+   "unresolvedControls": []
+  },
+  {
+   "path": "raw-selvedge-denim.material",
+   "htmlType": 4,
+   "recipeId": "denim",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 7,
+   "unresolvedControls": []
+  },
+  {
+   "path": "washed-indigo-denim.material",
+   "htmlType": 4,
+   "recipeId": "denim",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 7,
+   "unresolvedControls": []
+  },
+  {
+   "path": "black-selvedge-denim.material",
+   "htmlType": 4,
+   "recipeId": "denim",
+   "nativeOps": [
+    "weave"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 7,
+   "unresolvedControls": []
+  },
+  {
+   "path": "cotton-jersey-knit.material",
+   "htmlType": 19,
+   "recipeId": "jersey",
+   "nativeOps": [
+    "knit"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "melange-jersey-knit.material",
+   "htmlType": 19,
+   "recipeId": "jersey",
+   "nativeOps": [
+    "knit"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "led-pixel-matrix.material",
+   "htmlType": 20,
+   "recipeId": "led",
+   "nativeOps": [
+    "led"
+   ],
+   "textureMask": [
+    13
+   ],
+   "textured": true,
+   "controls": 6,
+   "unresolvedControls": []
+  },
+  {
+   "path": "warm-cob-led.material",
+   "htmlType": 20,
+   "recipeId": "led",
+   "nativeOps": [
+    "led"
+   ],
+   "textureMask": [
+    13
+   ],
+   "textured": true,
+   "controls": 6,
+   "unresolvedControls": []
+  },
+  {
+   "path": "corrugated-aluminium.material",
+   "htmlType": 21,
+   "recipeId": "corrugated",
+   "nativeOps": [
+    "ribbedSheet"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "porcelain-grid-tiles.material",
+   "htmlType": 22,
+   "recipeId": "tiles",
+   "nativeOps": [
+    "tiles"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "zellige-ceramic-tiles.material",
+   "htmlType": 22,
+   "recipeId": "tiles",
+   "nativeOps": [
+    "tiles"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "salt-and-pepper-granite.material",
+   "htmlType": 23,
+   "recipeId": "granite",
+   "nativeOps": [
+    "granite"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "rose-granite.material",
+   "htmlType": 23,
+   "recipeId": "granite",
+   "nativeOps": [
+    "granite"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "carrara-marble.material",
+   "htmlType": 24,
+   "recipeId": "marble",
+   "nativeOps": [
+    "marble"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "nero-marble.material",
+   "htmlType": 24,
+   "recipeId": "marble",
+   "nativeOps": [
+    "marble"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "cast-concrete.material",
+   "htmlType": 25,
+   "recipeId": "concrete",
+   "nativeOps": [
+    "concrete"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "board-form-concrete.material",
+   "htmlType": 25,
+   "recipeId": "concrete",
+   "nativeOps": [
+    "concrete"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 4,
+   "unresolvedControls": []
+  },
+  {
+   "path": "lime-stucco.material",
+   "htmlType": 26,
+   "recipeId": "stucco",
+   "nativeOps": [
+    "stucco"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 3,
+   "unresolvedControls": []
+  },
+  {
+   "path": "broadleaf-green.material",
+   "htmlType": 31,
+   "recipeId": "leafSurface",
+   "nativeOps": [
+    "leaf"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 9,
+   "unresolvedControls": []
+  },
+  {
+   "path": "autumn-leaf.material",
+   "htmlType": 31,
+   "recipeId": "leafSurface",
+   "nativeOps": [
+    "leaf"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 9,
+   "unresolvedControls": []
+  },
+  {
+   "path": "meadow-grass-blades.material",
+   "htmlType": 32,
+   "recipeId": "grassSurface",
+   "nativeOps": [
+    "grass"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 7,
+   "unresolvedControls": []
+  },
+  {
+   "path": "scratches.material",
+   "htmlType": 29,
+   "recipeId": "scratches",
+   "nativeOps": [
+    "scratches"
+   ],
+   "textureMask": [
+    6
+   ],
+   "textured": true,
+   "controls": 10,
+   "unresolvedControls": []
+  },
+  {
+   "path": "crocodile-belly-leather.material",
+   "htmlType": 30,
+   "recipeId": "crocodile",
+   "nativeOps": [
+    "crocodile"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 8,
+   "unresolvedControls": []
+  },
+  {
+   "path": "rose-petal.material",
+   "htmlType": 33,
+   "recipeId": "petalSurface",
+   "nativeOps": [
+    "petal"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 7,
+   "unresolvedControls": []
+  },
+  {
+   "path": "lily-petal.material",
+   "htmlType": 33,
+   "recipeId": "petalSurface",
+   "nativeOps": [
+    "petal"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 7,
+   "unresolvedControls": []
+  },
+  {
+   "path": "apple-skin.material",
+   "htmlType": 34,
+   "recipeId": "fruitSurface",
+   "nativeOps": [
+    "fruit"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 7,
+   "unresolvedControls": []
+  },
+  {
+   "path": "orange-peel.material",
+   "htmlType": 34,
+   "recipeId": "citrusSurface",
+   "nativeOps": [
+    "fruit"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "strawberry-skin.material",
+   "htmlType": 34,
+   "recipeId": "berrySurface",
+   "nativeOps": [
+    "fruit"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": []
+  },
+  {
+   "path": "cactus-epidermis.material",
+   "htmlType": 35,
+   "recipeId": "cactusSurface",
+   "nativeOps": [
+    "cactus"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 8,
+   "unresolvedControls": []
+  },
+  {
+   "path": "blue-glaucous-cactus.material",
+   "htmlType": 35,
+   "recipeId": "cactusSurface",
+   "nativeOps": [
+    "cactus"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 8,
+   "unresolvedControls": []
+  },
+  {
+   "path": "living-plant-stem.material",
+   "htmlType": 36,
+   "recipeId": "stemSurface",
+   "nativeOps": [
+    "stem"
+   ],
+   "textureMask": [
+    5
+   ],
+   "textured": true,
+   "controls": 8,
+   "unresolvedControls": []
+  },
+  {
+   "path": "corrugated-zinc.material",
+   "htmlType": 21,
+   "recipeId": "corrugatedZinc",
+   "nativeOps": [
+    "ribbedSheet"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 6,
+   "unresolvedControls": []
+  },
+  {
+   "path": "corrugated-steel.material",
+   "htmlType": 21,
+   "recipeId": "corrugatedSteel",
+   "nativeOps": [
+    "ribbedSheet"
+   ],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 6,
+   "unresolvedControls": []
+  },
+  {
+   "path": "sand.material",
+   "htmlType": 37,
+   "recipeId": "sand",
+   "nativeOps": [],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 13,
+   "unresolvedControls": [
+    {
+     "id": "grainSize",
+     "caption": "Grain size",
+     "keys": [
+      "grainSize"
+     ]
+    },
+    {
+     "id": "grainSizeVariation",
+     "caption": "Size variation",
+     "keys": [
+      "grainSizeVariation"
+     ]
+    },
+    {
+     "id": "grainRoughness",
+     "caption": "Grain roughness",
+     "keys": [
+      "grainRoughness"
+     ]
+    },
+    {
+     "id": "grainRoughnessVariation",
+     "caption": "Roughness variation",
+     "keys": [
+      "grainRoughnessVariation"
+     ]
+    },
+    {
+     "id": "grainSpecular",
+     "caption": "Grain specular",
+     "keys": [
+      "grainSpecular"
+     ]
+    },
+    {
+     "id": "grainSpecularVariation",
+     "caption": "Specular variation",
+     "keys": [
+      "grainSpecularVariation"
+     ]
+    },
+    {
+     "id": "grainIOR",
+     "caption": "Mineral IOR",
+     "keys": [
+      "grainIOR"
+     ]
+    },
+    {
+     "id": "grainRoundness",
+     "caption": "Grain roundness",
+     "keys": [
+      "grainRoundness"
+     ]
+    },
+    {
+     "id": "grainTilt",
+     "caption": "Facet tilt",
+     "keys": [
+      "grainTilt"
+     ]
+    },
+    {
+     "id": "grainRelief",
+     "caption": "Grain relief",
+     "keys": [
+      "grainRelief"
+     ]
+    },
+    {
+     "id": "sandCoverage",
+     "caption": "Grain coverage",
+     "keys": [
+      "sandCoverage"
+     ]
+    },
+    {
+     "id": "sandScale",
+     "caption": "Grain repetition",
+     "keys": [
+      "sandScale"
+     ]
+    },
+    {
+     "id": "surfaceSeed",
+     "caption": "Grain seed",
+     "keys": [
+      "surfaceSeed"
+     ]
+    }
+   ]
+  },
+  {
+   "path": "layered-sand.material",
+   "htmlType": 38,
+   "recipeId": "layeredSand",
+   "nativeOps": [],
+   "textureMask": [
+    7
+   ],
+   "textured": true,
+   "controls": 5,
+   "unresolvedControls": [
+    {
+     "id": "sandScale",
+     "caption": "Grain repetition",
+     "keys": [
+      "sandScale"
+     ]
+    },
+    {
+     "id": "surfaceSeed",
+     "caption": "Grain seed",
+     "keys": [
+      "surfaceSeed"
+     ]
+    },
+    {
+     "id": "sandBandFrequency",
+     "caption": "Band repetition",
+     "keys": [
+      "sandBandFrequency"
+     ]
+    },
+    {
+     "id": "sandBandWarp",
+     "caption": "Band waviness",
+     "keys": [
+      "sandBandWarp"
+     ]
+    },
+    {
+     "id": "sandBandAngle",
+     "caption": "Band direction",
+     "keys": [
+      "sandBandAngle"
+     ]
+    }
+   ]
+  }
+ ],
+ "htmlTypes": {
+  "0": 7,
+  "1": 21,
+  "2": 1,
+  "3": 1,
+  "4": 18,
+  "5": 1,
+  "6": 1,
+  "7": 1,
+  "8": 1,
+  "9": 17,
+  "10": 1,
+  "11": 4,
+  "12": 4,
+  "13": 4,
+  "14": 6,
+  "15": 6,
+  "16": 1,
+  "17": 3,
+  "18": 2,
+  "19": 2,
+  "20": 2,
+  "21": 3,
+  "22": 2,
+  "23": 2,
+  "24": 2,
+  "25": 2,
+  "26": 1,
+  "29": 1,
+  "30": 1,
+  "31": 2,
+  "32": 1,
+  "33": 2,
+  "34": 3,
+  "35": 2,
+  "36": 1,
+  "37": 1,
+  "38": 1
+ },
+ "nativeOps": {
+  "cactus": 2,
+  "camouflage": 2,
+  "camouflage-smooth": 2,
+  "ceramic": 1,
+  "clay": 4,
+  "concrete": 2,
+  "crocodile": 1,
+  "dimples": 2,
+  "fruit": 3,
+  "granite": 2,
+  "grass": 1,
+  "knit": 2,
+  "latheMetal": 1,
+  "leaf": 2,
+  "leather": 4,
+  "led": 2,
+  "marble": 2,
+  "metalGrain": 19,
+  "paper": 6,
+  "petal": 2,
+  "polymerGrain": 17,
+  "ribbedSheet": 3,
+  "rubber": 1,
+  "rust": 1,
+  "scratchedMetal": 2,
+  "scratches": 1,
+  "skin": 6,
+  "solar": 3,
+  "stem": 1,
+  "stucco": 1,
+  "tiles": 2,
+  "wax": 4,
+  "weave": 17
+ }
+}

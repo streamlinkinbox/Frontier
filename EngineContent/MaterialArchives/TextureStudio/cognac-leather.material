@@ -1,0 +1,63 @@
+Format = 1
+Name = "Cognac Leather"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.1651321945016676, 0.043735029256973465, 0.016807375752887384]
+Roughness = 0.48
+Metallic = 0
+Ior = 1.48
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.467783796112159, 0.24620132670783548, 0.13286832155381798]
+SheenIntensity = 0.18
+SheenRoughness = 0.7
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/cognac-leather-albedo.png"
+Normal = "Textures/cognac-leather-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "leather"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 43
+grain = 0.75
+hideVariant = 1
+hideVariation = 0.65
+wear = 0.12
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+sheen = 0.18
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "leather"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 43
+grain = 0.75
+hideVariant = 1
+hideVariation = 0.65
+wear = 0.12
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+sheen = 0.18
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.32
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.2

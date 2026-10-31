@@ -1,0 +1,57 @@
+{
+  "Result": "passed",
+  "WindowsExecution": false,
+  "HardwareTimingMeasured": false,
+  "Checks": {
+    "FinalCtestPassed": 5,
+    "MaterialLibraryAssertions": 343,
+    "PreviewAssertions": 72751,
+    "StrictAndAddressUndefinedSanitizer": "passed for coefficient, source transaction and native control regression suite",
+    "SoftwareVulkanAtlasAndViewRegression": "passed",
+    "RetiredParameterReuse": "passed; at most 3 allocations in atlas/view regression",
+    "CoefficientTextureReuse": "passed; no extra texture allocation for coefficient revision",
+    "ActualLiveColourPixelChange": true,
+    "InspectedCaptures": 5,
+    "UnrelatedFilesPreserved": 40
+  },
+  "Captures": [
+    "NativeDropdown.png",
+    "NativeFlakePalette.png",
+    "NativeFlakeRamp.png",
+    "NativeFlakeSingle.png",
+    "NativeColourWheel.png"
+  ],
+  "Performance": {
+    "ShaderQualityChanged": false,
+    "CurrentIdlePresentation": "FIFO; cached preview",
+    "StudioLightingSampleAttemptsForTwoStrata": 96,
+    "NeighbourCellsForThreeFlakeLayers": 81,
+    "Fixed": [
+      "Retired preview uniform/descriptor reuse",
+      "Unchanged coefficient texture residence reuse",
+      "Motion diagnostic throttling",
+      "CPU coefficient compilation without texture ingestion"
+    ],
+    "Pending": [
+      "Windows CPU/GPU timestamp profiling",
+      "Cached/prefiltered studio lighting",
+      "Derivative-safe unresolved-flake shader LOD"
+    ]
+  },
+  "SourceSha256": {
+    "UI/TextureStudio/MaterialLibraryPanel.cpp": "f0ea5a13f12de07579d97297f9e05dd5ca5f7a24bd27c6bf329b7f3cd0576f4c",
+    "UI/TextureStudio/MaterialLibraryPanel.h": "b67d8c76d86c6d2a012387a5c6a24552955abe7632e53d960eeee2b98ef39e54",
+    "Engine/ContentInterchange/MaterialLibrary.cpp": "0f360280a63e5cb5dc734ac5a7e86f2bc61146b80ea6663725e9e3edf5951483",
+    "Engine/ContentInterchange/MaterialLibrary.h": "dc666d75b8f0d58627b393e37814237676e4e989f94c1ffb9c5177be162e1f3f",
+    "Engine/Render/AutomotivePaint.h": "1d27f81b0a6f62b8cb8378e59dd5cd74fa40ef6f6188cb41511ac231516a554d",
+    "Engine/Render/SurfaceMaterial.cpp": "31e9ee3365277b0436b4f250ec2e205ff4354bd9baa3a100964c777b3e97d104",
+    "Engine/Render/SurfaceMaterial.h": "16d209f694fcc143ee245c90baf667a9aa1acee318cffcc24092546c798eb3b7",
+    "Engine/Render/SurfaceRasterization.cpp": "75536d4ef9cb087dcc8ea27c1cec8ced12e27a8575c1ac087abfe2b8de65d2f9",
+    "Engine/Render/SurfaceRasterization.h": "ae859836f0c39e55e72ab44598b51ec7e1ca2eab3ca4fb4403dd665dd784f4ee",
+    "Engine/Render/MaterialLibraryRendering.cpp": "971503fef894202013c065f0e01f6c5908c3c0edda29bbe88388e581af30b53a",
+    "Engine/Render/MaterialLibraryRendering.h": "614bce7333fc58655f7696d4f4269e57aac42d3eaf1c5a779fb3d4bad96e4b20",
+    "Exhibits/TextureStudio/Code/MaterialControlSurfaceEvidence.cpp": "3540e1646e4c33e403e14dd54dad8e06894c99d320877ef410141bf3d4160740",
+    "Exhibits/TextureStudio/Code/VerifyNativeControlSurfaces.py": "8c14504894bd346eb8a0c08dc810c59cbaaa755d19683343c4faa0aa081813bb"
+  },
+  "Publication": "Local source/evidence only; existing Windows release unchanged; no push or Actions"
+}

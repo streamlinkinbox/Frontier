@@ -1,0 +1,231 @@
+Format = 1
+Name = 'Alpine Mica Schist & Lichen'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[Authoring]
+Variables = []
+Version = 2
+
+    [Authoring.Designer]
+
+    [Authoring.Inputs]
+    'field:42359cff-b989-41e7-805d-d908c7f9defa:amount' = 1.0
+    'field:42359cff-b989-41e7-805d-d908c7f9defa:angle' = 22.0
+    'field:42359cff-b989-41e7-805d-d908c7f9defa:scale' = 5.5
+    'field:42359cff-b989-41e7-805d-d908c7f9defa:seed' = 42.0
+    'field:f28439b0-aece-4d46-ace7-f9ac8b48f78e:amount' = 1.0
+    'field:f28439b0-aece-4d46-ace7-f9ac8b48f78e:angle' = 0.0
+    'field:f28439b0-aece-4d46-ace7-f9ac8b48f78e:scale' = 7.5
+    'field:f28439b0-aece-4d46-ace7-f9ac8b48f78e:seed' = 109.0
+    'layer:428988a1-c7d5-4f68-9954-b80cb01c8148:colour' = '#e6e2d8'
+    'layer:428988a1-c7d5-4f68-9954-b80cb01c8148:coverage' = 1.0
+    'layer:428988a1-c7d5-4f68-9954-b80cb01c8148:normal' = [ 0.55000000000000004, 0.55000000000000004, 1.0 ]
+    'layer:428988a1-c7d5-4f68-9954-b80cb01c8148:roughness' = 0.28000000000000003
+    'layer:979aa8f9-cd53-4727-be5b-6d712477f425:colour' = '#7b8c3e'
+    'layer:979aa8f9-cd53-4727-be5b-6d712477f425:coverage' = 1.0
+    'layer:979aa8f9-cd53-4727-be5b-6d712477f425:normal' = [ 0.29999999999999999, 0.29999999999999999, 1.0 ]
+    'layer:979aa8f9-cd53-4727-be5b-6d712477f425:roughness' = 0.92000000000000004
+
+    [Authoring.Links]
+
+    [[Authoring.Generators]]
+    Category = 'Particle fields'
+    Coded = false
+    Enabled = true
+    Identity = 'fb3c59a9-8036-416e-b3c3-c160e04cb7b1'
+    Inputs = [
+        'flakes',
+        'flakeSize',
+        'flakeScale',
+        'flakeLayers',
+        'flakeLayerDepth',
+        'flakeTilt',
+        'flakeRoughnessMin',
+        'flakeRoughnessMax',
+        'flakeMetalnessMin',
+        'flakeMetalnessMax'
+    ]
+    Name = 'Mineral flake distribution'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'flakes'
+
+    [[Authoring.Generators]]
+    Category = 'Structural fields'
+    Coded = false
+    Enabled = true
+    Identity = 'f3907587-5d13-4690-b32b-42cb4b346076'
+    Inputs = []
+    Name = 'Alpine Mica Schist & Lichen'
+    Outputs = [ 'colour', 'normal', 'roughness', 'metallic' ]
+    Procedure = 'granite'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = '42359cff-b989-41e7-805d-d908c7f9defa'
+    Inputs = [
+        'field:42359cff-b989-41e7-805d-d908c7f9defa:scale',
+        'field:42359cff-b989-41e7-805d-d908c7f9defa:seed',
+        'field:42359cff-b989-41e7-805d-d908c7f9defa:angle',
+        'field:42359cff-b989-41e7-805d-d908c7f9defa:amount'
+    ]
+    Name = 'Quartz vein network'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'ridged'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = 'f28439b0-aece-4d46-ace7-f9ac8b48f78e'
+    Inputs = [
+        'field:f28439b0-aece-4d46-ace7-f9ac8b48f78e:scale',
+        'field:f28439b0-aece-4d46-ace7-f9ac8b48f78e:seed',
+        'field:f28439b0-aece-4d46-ace7-f9ac8b48f78e:angle',
+        'field:f28439b0-aece-4d46-ace7-f9ac8b48f78e:amount'
+    ]
+    Name = 'Lichen thallus colonies'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'cells'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = '979aa8f9-cd53-4727-be5b-6d712477f425'
+    Model = 'detail'
+    Name = 'Rhizocarpon alpine lichen'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = '428988a1-c7d5-4f68-9954-b80cb01c8148'
+    Model = 'detail'
+    Name = 'Foliated quartz veins'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Enabled = true
+    Generator = 'fb3c59a9-8036-416e-b3c3-c160e04cb7b1'
+    Identity = '03aac4d5-bd93-46fc-bffb-9886e0f554cb'
+    Model = 'flakes'
+    Name = 'Mineral flakes'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'ior', 'specular', 'thickness' ]
+    Enabled = true
+    Identity = '4c3da139-1ade-499e-bb2d-30883e877674'
+    Model = 'surface'
+    Name = 'Surface body'
+
+    [[Authoring.Sources]]
+    Address = 'layer:428988a1-c7d5-4f68-9954-b80cb01c8148:colour'
+    Direct = true
+    Generator = '42359cff-b989-41e7-805d-d908c7f9defa'
+    Mode = 'field'
+    Stops = [ '#9ea4ab', '#dedad0', '#ffffff' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:428988a1-c7d5-4f68-9954-b80cb01c8148:coverage'
+    Direct = true
+    Generator = '42359cff-b989-41e7-805d-d908c7f9defa'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#c8c8c8', '#ffffff' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:428988a1-c7d5-4f68-9954-b80cb01c8148:normal'
+    Direct = true
+    Generator = '42359cff-b989-41e7-805d-d908c7f9defa'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#c8c8c8', '#ffffff' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:979aa8f9-cd53-4727-be5b-6d712477f425:colour'
+    Direct = true
+    Generator = 'f28439b0-aece-4d46-ace7-f9ac8b48f78e'
+    Mode = 'field'
+    Stops = [ '#4a5429', '#7b8c3e', '#a8b553' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:979aa8f9-cd53-4727-be5b-6d712477f425:coverage'
+    Direct = true
+    Generator = 'f28439b0-aece-4d46-ace7-f9ac8b48f78e'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#000000', '#e0e0e0' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:979aa8f9-cd53-4727-be5b-6d712477f425:normal'
+    Direct = true
+    Generator = 'f28439b0-aece-4d46-ace7-f9ac8b48f78e'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#000000', '#e0e0e0' ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.72000002861022949, 210.0, 1.1499999761581421, 0.10000000149011612 ]
+Enabled = true
+Finish = [ 0.059999998658895493, 0.2199999988079071, 0.44999998807907104, 0.87999999523162842 ]
+Layers = 4
+Palette = [
+    [ 0.68668544292449951, 0.73791056871414185, 0.80695235729217529, 0.0 ],
+    [ 0.34191444516181946, 0.39157256484031677, 0.46207705140113831, 0.25 ],
+    [ 0.57112491130828857, 0.48514997959136963, 0.32777813076972961, 0.5 ],
+    [ 0.0423114113509655, 0.051269467920064926, 0.068478181958198547, 0.75 ],
+    [ 0.91309869289398193, 0.93868589401245117, 0.97344547510147095, 1.0 ]
+]
+Relief = [ 0.41999998688697815, 0.30000001192092896, 0.079999998211860657, 34.0 ]
+
+[Textures]
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.34999999403953552
+Ior = 1.5800000429153442
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.51999998092651367
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 5
+Thickness = 0.0
+UvScaleOffset = [ 6.0, 3.0, 0.0, 0.0 ]
+
+    [Strata.Textures]
+    Albedo = 'Textures/alpine-mica-schist-albedo.png'
+    Normal = 'Textures/alpine-mica-schist-normal.png'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Albedo'
+    Op = 'granite'
+
+        [Strata.Channels.Params]
+        color = '#596068'
+        detailScale = 28.0
+        grain = 0.71999999999999997
+        secondaryColor = '#9aa3ad'
+        surfaceSeed = 611.0
+        tertiaryColor = '#252930'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Normal'
+    Op = 'granite'
+
+        [Strata.Channels.Params]
+        color = '#596068'
+        detailScale = 28.0
+        grain = 0.71999999999999997
+        secondaryColor = '#9aa3ad'
+        surfaceSeed = 611.0
+        tertiaryColor = '#252930'

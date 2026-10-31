@@ -1,0 +1,28 @@
+{
+  "result": "passed",
+  "browser": "153.0.8010.0",
+  "renderer": "Chromium WebGL 2 via software SwiftShader; not native Vulkan or hardware GPU execution",
+  "checks": [
+    "Removed promotional copy; six catalogue thumbnails are renderer PNG snapshots",
+    "Reference EON/GGX studio scene has nonblack rasterized pixels; current preview and thumbnail bytes match",
+    "Surface channel selection changes rasterization; Capture thumbnail uses actual current pixels",
+    "History selection changes actual geometry/rendered pixels; current-version selection restores original output",
+    "CAD and sketches use reference orthographic depth-tested contours; selectable revisions have rendered thumbnails",
+    "Geometry UV inspection comes from actual vertices; texture/albedo uses reference shader; metadata from actual geometry",
+    "Light theme and 390px library/reader layouts; no horizontal overflow"
+  ],
+  "studio_pixels": {
+    "Visible": 65374,
+    "Total": 505680
+  },
+  "current_snapshot_sha256": "557b6bbb8c291715f613c01a7f5e362336187232dea83d0f1b4cc678324a1703",
+  "older_snapshot_sha256": "88ab13bca2519c3b85feabfe589783a83bdf38b54e6edd89c6c9a39729bc76c0",
+  "page_errors": [],
+  "source_sha256": {
+    "index.html": "66e27f8bb5616d560f4c497eebfa877e1b696b4b7c6b19f6f34dbf17cee655ee",
+    "Styles.css": "17f2179dbab7090f2cf7e0225f97a428656e494682c1026b7d72005c676f134d",
+    "PanelLayout.css": "12f0f49bb4f13136d253bcf469c894f6749ce82f2d3e0121159184e38f3acabc",
+    "Browser.js": "6a9b19f5dcf6fe4ab7bc7313516c76f57ee72fcde9ee22168b7ea01ff7872fb0",
+    "ReferenceRenderer.js": "571610beb3a4dade808fdc1c540b083560af7ac96158c24482a4fea7f6471672"
+  }
+}

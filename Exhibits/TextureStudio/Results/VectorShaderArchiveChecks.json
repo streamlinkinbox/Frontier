@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "checks": 6,
+  "packages_created": false,
+  "archives": {
+    "VectorCoverageCompute.spv": "797201e0f3c6b401b35319c2d6d2044471ba826914137a52a19b541af382f450",
+    "VectorSelectionCompute.spv": "0f9e266383103b75c56e8c2ad2f7984bac065e5aa2923b8f6a82b40f4da05b0f",
+    "VectorCompilation.json": "a215c6d46148f3eb7379fe5f13807d17610c2ae8616d7357aba00e4dcb07c4ea"
+  },
+  "source_sha256": {
+    "Automation/VectorShaderArchives.py": "4125c98806b68bee5b6d7cc2653f5cd85fe48c19ac568e4d6b2052cb071fe04e",
+    "Automation/BuildTextureStudioWindows.py": "ecf01a2f220e4666d50b7d1fc5b8c4712967adcc646df7d7cd1bff688e31166d",
+    "Automation/PackageWorkspacesWindows.py": "4cacf6565a5bf671163af7723f25e3179c9d48235fbb474021e9c4eaeb8b55b4",
+    "Automation/CompileVectorCoverage.mjs": "9ff914b395590cc49c6098e375be17f1dc53326be7731571005947d787ea450b"
+  }
+}

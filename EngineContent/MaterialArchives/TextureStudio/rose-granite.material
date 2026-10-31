@@ -1,0 +1,94 @@
+Format = 1
+Name = 'Rose Granite'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.46000000834465027, 220.0, 1.0, 0.14000000059604645 ]
+Enabled = true
+Finish = [ 0.079999998211860657, 0.2800000011920929, 0.2199999988079071, 0.72000002861022949 ]
+Layers = 3
+Palette = [
+    [ 0.80695235729217529, 0.73046088218688965, 0.64447975158691406, 0.0 ],
+    [ 0.6724432110786438, 0.33245158195495605, 0.25415217876434326, 0.25 ],
+    [ 0.0423114113509655, 0.04666508361697197, 0.054480280727148056, 0.5 ],
+    [ 1.0, 1.0, 1.0, 0.75 ],
+    [ 0.27049785852432251, 0.13286833465099335, 0.099898740649223328, 1.0 ]
+]
+Relief = [ 0.36000001430511475, 0.34999999403953552, 0.0, 24.0 ]
+
+[Textures]
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 1.0
+Ior = 1.5199999809265137
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.2800000011920929
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 0.5
+TextureMask = 5
+Thickness = 0.0
+UvScaleOffset = [ 9.0, 4.5, 0.0, 0.0 ]
+
+    [Strata.Textures]
+    Albedo = 'Textures/rose-granite-albedo.png'
+    Normal = 'Textures/rose-granite-normal.png'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Albedo'
+    Op = 'granite'
+
+        [Strata.Channels.Params]
+        color = '#b07e6e'
+        detailScale = 24.0
+        grain = 0.5
+        secondaryColor = '#cfc4b3'
+        surfaceSeed = 17.0
+        tertiaryColor = '#343638'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Normal'
+    Op = 'granite'
+
+        [Strata.Channels.Params]
+        color = '#b07e6e'
+        detailScale = 24.0
+        grain = 0.5
+        secondaryColor = '#cfc4b3'
+        surfaceSeed = 17.0
+        tertiaryColor = '#343638'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Coating'
+Coverage = 0.25
+Fresnel = 'Schlick'
+HeightStrength = 1.0
+Ior = 1.5
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.11999999731779099
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 0.5
+TextureMask = 0
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

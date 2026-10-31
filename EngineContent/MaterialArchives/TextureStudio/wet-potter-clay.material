@@ -1,0 +1,48 @@
+Format = 1
+Name = "Wet Potter Clay"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.13843161503245183, 0.09305896284668745, 0.06301001765316767]
+Roughness = 0.38
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/wet-potter-clay-albedo.png"
+Normal = "Textures/wet-potter-clay-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "clay"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 24
+grain = 0.45
+moisture = 0.35
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "clay"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 24
+grain = 0.45
+moisture = 0.35
+surfaceSeed = 17
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.15
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0

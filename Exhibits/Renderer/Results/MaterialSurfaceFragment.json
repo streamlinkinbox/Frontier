@@ -1,0 +1,4064 @@
+{
+  "version": "1.1",
+  "parameters": [
+    {
+      "name": "Projection",
+      "binding": {
+        "kind": "pushConstantBuffer",
+        "index": 0
+      },
+      "type": {
+        "kind": "constantBuffer",
+        "elementType": {
+          "kind": "struct",
+          "name": "SurfaceNormalProjection",
+          "fields": [
+            {
+              "name": "ClipFromSurface",
+              "type": {
+                "kind": "matrix",
+                "rowCount": 4,
+                "columnCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "float32"
+                },
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 64,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 0,
+                "size": 64,
+                "elementStride": 0
+              }
+            },
+            {
+              "name": "ViewNormalRow0",
+              "type": {
+                "kind": "vector",
+                "elementCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "float32"
+                },
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 16,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 64,
+                "size": 16,
+                "elementStride": 4
+              }
+            },
+            {
+              "name": "ViewNormalRow1",
+              "type": {
+                "kind": "vector",
+                "elementCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "float32"
+                },
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 16,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 80,
+                "size": 16,
+                "elementStride": 4
+              }
+            },
+            {
+              "name": "ViewNormalRow2",
+              "type": {
+                "kind": "vector",
+                "elementCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "float32"
+                },
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 16,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 96,
+                "size": 16,
+                "elementStride": 4
+              }
+            },
+            {
+              "name": "SurfaceTint",
+              "type": {
+                "kind": "vector",
+                "elementCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "float32"
+                },
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 16,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 112,
+                "size": 16,
+                "elementStride": 4
+              }
+            }
+          ],
+          "sizes": [
+            {
+              "kind": "uniform",
+              "value": 128,
+              "alignment": 16
+            }
+          ]
+        },
+        "containerVarLayout": {
+          "binding": {
+            "kind": "pushConstantBuffer",
+            "index": 0
+          }
+        },
+        "elementVarLayout": {
+          "type": {
+            "kind": "struct",
+            "name": "SurfaceNormalProjection",
+            "fields": [
+              {
+                "name": "ClipFromSurface",
+                "type": {
+                  "kind": "matrix",
+                  "rowCount": 4,
+                  "columnCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 64,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 0,
+                  "size": 64,
+                  "elementStride": 0
+                }
+              },
+              {
+                "name": "ViewNormalRow0",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 64,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "ViewNormalRow1",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 80,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "ViewNormalRow2",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 96,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "SurfaceTint",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 112,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              }
+            ],
+            "sizes": [
+              {
+                "kind": "uniform",
+                "value": 128,
+                "alignment": 16
+              }
+            ]
+          },
+          "binding": {
+            "kind": "uniform",
+            "offset": 0,
+            "size": 128,
+            "elementStride": 0
+          }
+        },
+        "sizes": [
+          {
+            "kind": "pushConstantBuffer",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "MaterialTextures",
+      "binding": {
+        "kind": "descriptorTableSlot",
+        "index": 0
+      },
+      "type": {
+        "kind": "array",
+        "elementCount": 4,
+        "elementType": {
+          "kind": "resource",
+          "baseShape": "texture2D",
+          "array": true,
+          "resultType": {
+            "kind": "vector",
+            "elementCount": 4,
+            "elementType": {
+              "kind": "scalar",
+              "scalarType": "float32"
+            }
+          },
+          "sizes": [
+            {
+              "kind": "descriptorTableSlot",
+              "value": 1
+            }
+          ]
+        },
+        "sizes": [
+          {
+            "kind": "descriptorTableSlot",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "MaterialSampler",
+      "binding": {
+        "kind": "descriptorTableSlot",
+        "index": 1
+      },
+      "type": {
+        "kind": "samplerState",
+        "sizes": [
+          {
+            "kind": "descriptorTableSlot",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "Material",
+      "binding": {
+        "kind": "descriptorTableSlot",
+        "space": 1,
+        "index": 0
+      },
+      "type": {
+        "kind": "constantBuffer",
+        "elementType": {
+          "kind": "struct",
+          "name": "MaterialScattering",
+          "fields": [
+            {
+              "name": "Illumination",
+              "type": {
+                "kind": "struct",
+                "name": "PreviewScattering",
+                "fields": [
+                  {
+                    "name": "ViewFromSurface",
+                    "type": {
+                      "kind": "matrix",
+                      "rowCount": 4,
+                      "columnCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 64,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 0,
+                      "size": 64,
+                      "elementStride": 0
+                    }
+                  },
+                  {
+                    "name": "LightDirectionIntensity",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 64,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "LightColourExposure",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 80,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "EnvironmentHorizon",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 96,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "EnvironmentZenith",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 112,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "EnvironmentUp",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 128,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "Configuration",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "uint32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 144,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "Strata",
+                    "type": {
+                      "kind": "array",
+                      "elementCount": 8,
+                      "elementType": {
+                        "kind": "struct",
+                        "name": "ScatteringStratum",
+                        "fields": [
+                          {
+                            "name": "AlbedoRoughness",
+                            "type": {
+                              "kind": "vector",
+                              "elementCount": 4,
+                              "elementType": {
+                                "kind": "scalar",
+                                "scalarType": "float32"
+                              },
+                              "sizes": [
+                                {
+                                  "kind": "uniform",
+                                  "value": 16,
+                                  "alignment": 16
+                                }
+                              ]
+                            },
+                            "binding": {
+                              "kind": "uniform",
+                              "offset": 0,
+                              "size": 16,
+                              "elementStride": 4
+                            }
+                          },
+                          {
+                            "name": "Optics",
+                            "type": {
+                              "kind": "vector",
+                              "elementCount": 4,
+                              "elementType": {
+                                "kind": "scalar",
+                                "scalarType": "float32"
+                              },
+                              "sizes": [
+                                {
+                                  "kind": "uniform",
+                                  "value": 16,
+                                  "alignment": 16
+                                }
+                              ]
+                            },
+                            "binding": {
+                              "kind": "uniform",
+                              "offset": 16,
+                              "size": 16,
+                              "elementStride": 4
+                            }
+                          },
+                          {
+                            "name": "AbsorptionThickness",
+                            "type": {
+                              "kind": "vector",
+                              "elementCount": 4,
+                              "elementType": {
+                                "kind": "scalar",
+                                "scalarType": "float32"
+                              },
+                              "sizes": [
+                                {
+                                  "kind": "uniform",
+                                  "value": 16,
+                                  "alignment": 16
+                                }
+                              ]
+                            },
+                            "binding": {
+                              "kind": "uniform",
+                              "offset": 32,
+                              "size": 16,
+                              "elementStride": 4
+                            }
+                          },
+                          {
+                            "name": "Classification",
+                            "type": {
+                              "kind": "vector",
+                              "elementCount": 4,
+                              "elementType": {
+                                "kind": "scalar",
+                                "scalarType": "uint32"
+                              },
+                              "sizes": [
+                                {
+                                  "kind": "uniform",
+                                  "value": 16,
+                                  "alignment": 16
+                                }
+                              ]
+                            },
+                            "binding": {
+                              "kind": "uniform",
+                              "offset": 48,
+                              "size": 16,
+                              "elementStride": 4
+                            }
+                          }
+                        ],
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 64,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "uniformStride": 64,
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 512,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 160,
+                      "size": 512,
+                      "elementStride": 64
+                    }
+                  }
+                ],
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 672,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 0,
+                "size": 672,
+                "elementStride": 0
+              }
+            },
+            {
+              "name": "UvScaleOffset",
+              "type": {
+                "kind": "vector",
+                "elementCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "float32"
+                },
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 16,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 672,
+                "size": 16,
+                "elementStride": 4
+              }
+            },
+            {
+              "name": "RadianceNormal",
+              "type": {
+                "kind": "vector",
+                "elementCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "float32"
+                },
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 16,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 688,
+                "size": 16,
+                "elementStride": 4
+              }
+            },
+            {
+              "name": "TextureUse",
+              "type": {
+                "kind": "array",
+                "elementCount": 8,
+                "elementType": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "uint32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "uniformStride": 16,
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 128,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 704,
+                "size": 128,
+                "elementStride": 16
+              }
+            },
+            {
+              "name": "StratumUv",
+              "type": {
+                "kind": "array",
+                "elementCount": 8,
+                "elementType": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "uniformStride": 16,
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 128,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 832,
+                "size": 128,
+                "elementStride": 16
+              }
+            },
+            {
+              "name": "StratumNormal",
+              "type": {
+                "kind": "array",
+                "elementCount": 8,
+                "elementType": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "uniformStride": 16,
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 128,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 960,
+                "size": 128,
+                "elementStride": 16
+              }
+            },
+            {
+              "name": "DirectionalOptics",
+              "type": {
+                "kind": "array",
+                "elementCount": 8,
+                "elementType": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "uniformStride": 16,
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 128,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 1088,
+                "size": 128,
+                "elementStride": 16
+              }
+            },
+            {
+              "name": "Paint",
+              "type": {
+                "kind": "struct",
+                "name": "AutomotivePaint",
+                "fields": [
+                  {
+                    "name": "Configuration",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "uint32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 0,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "Distribution",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 16,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "Finish",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 32,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "Relief",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 48,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  },
+                  {
+                    "name": "Palette",
+                    "type": {
+                      "kind": "array",
+                      "elementCount": 12,
+                      "elementType": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "uniformStride": 16,
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 192,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 64,
+                      "size": 192,
+                      "elementStride": 16
+                    }
+                  },
+                  {
+                    "name": "AverageTint",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 256,
+                      "size": 16,
+                      "elementStride": 4
+                    }
+                  }
+                ],
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 272,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 1216,
+                "size": 272,
+                "elementStride": 0
+              }
+            },
+            {
+              "name": "PreviewConfiguration",
+              "type": {
+                "kind": "vector",
+                "elementCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "uint32"
+                },
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 16,
+                    "alignment": 16
+                  }
+                ]
+              },
+              "binding": {
+                "kind": "uniform",
+                "offset": 1488,
+                "size": 16,
+                "elementStride": 4
+              }
+            }
+          ],
+          "sizes": [
+            {
+              "kind": "uniform",
+              "value": 1504,
+              "alignment": 16
+            }
+          ]
+        },
+        "containerVarLayout": {
+          "binding": {
+            "kind": "descriptorTableSlot",
+            "index": 0
+          }
+        },
+        "elementVarLayout": {
+          "type": {
+            "kind": "struct",
+            "name": "MaterialScattering",
+            "fields": [
+              {
+                "name": "Illumination",
+                "type": {
+                  "kind": "struct",
+                  "name": "PreviewScattering",
+                  "fields": [
+                    {
+                      "name": "ViewFromSurface",
+                      "type": {
+                        "kind": "matrix",
+                        "rowCount": 4,
+                        "columnCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 64,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 0,
+                        "size": 64,
+                        "elementStride": 0
+                      }
+                    },
+                    {
+                      "name": "LightDirectionIntensity",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 64,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "LightColourExposure",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 80,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "EnvironmentHorizon",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 96,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "EnvironmentZenith",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 112,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "EnvironmentUp",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 128,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Configuration",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "uint32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 144,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Strata",
+                      "type": {
+                        "kind": "array",
+                        "elementCount": 8,
+                        "elementType": {
+                          "kind": "struct",
+                          "name": "ScatteringStratum",
+                          "fields": [
+                            {
+                              "name": "AlbedoRoughness",
+                              "type": {
+                                "kind": "vector",
+                                "elementCount": 4,
+                                "elementType": {
+                                  "kind": "scalar",
+                                  "scalarType": "float32"
+                                },
+                                "sizes": [
+                                  {
+                                    "kind": "uniform",
+                                    "value": 16,
+                                    "alignment": 16
+                                  }
+                                ]
+                              },
+                              "binding": {
+                                "kind": "uniform",
+                                "offset": 0,
+                                "size": 16,
+                                "elementStride": 4
+                              }
+                            },
+                            {
+                              "name": "Optics",
+                              "type": {
+                                "kind": "vector",
+                                "elementCount": 4,
+                                "elementType": {
+                                  "kind": "scalar",
+                                  "scalarType": "float32"
+                                },
+                                "sizes": [
+                                  {
+                                    "kind": "uniform",
+                                    "value": 16,
+                                    "alignment": 16
+                                  }
+                                ]
+                              },
+                              "binding": {
+                                "kind": "uniform",
+                                "offset": 16,
+                                "size": 16,
+                                "elementStride": 4
+                              }
+                            },
+                            {
+                              "name": "AbsorptionThickness",
+                              "type": {
+                                "kind": "vector",
+                                "elementCount": 4,
+                                "elementType": {
+                                  "kind": "scalar",
+                                  "scalarType": "float32"
+                                },
+                                "sizes": [
+                                  {
+                                    "kind": "uniform",
+                                    "value": 16,
+                                    "alignment": 16
+                                  }
+                                ]
+                              },
+                              "binding": {
+                                "kind": "uniform",
+                                "offset": 32,
+                                "size": 16,
+                                "elementStride": 4
+                              }
+                            },
+                            {
+                              "name": "Classification",
+                              "type": {
+                                "kind": "vector",
+                                "elementCount": 4,
+                                "elementType": {
+                                  "kind": "scalar",
+                                  "scalarType": "uint32"
+                                },
+                                "sizes": [
+                                  {
+                                    "kind": "uniform",
+                                    "value": 16,
+                                    "alignment": 16
+                                  }
+                                ]
+                              },
+                              "binding": {
+                                "kind": "uniform",
+                                "offset": 48,
+                                "size": 16,
+                                "elementStride": 4
+                              }
+                            }
+                          ],
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 64,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "uniformStride": 64,
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 512,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 160,
+                        "size": 512,
+                        "elementStride": 64
+                      }
+                    }
+                  ],
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 672,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 0,
+                  "size": 672,
+                  "elementStride": 0
+                }
+              },
+              {
+                "name": "UvScaleOffset",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 672,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "RadianceNormal",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 688,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "TextureUse",
+                "type": {
+                  "kind": "array",
+                  "elementCount": 8,
+                  "elementType": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "uint32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "uniformStride": 16,
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 128,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 704,
+                  "size": 128,
+                  "elementStride": 16
+                }
+              },
+              {
+                "name": "StratumUv",
+                "type": {
+                  "kind": "array",
+                  "elementCount": 8,
+                  "elementType": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "uniformStride": 16,
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 128,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 832,
+                  "size": 128,
+                  "elementStride": 16
+                }
+              },
+              {
+                "name": "StratumNormal",
+                "type": {
+                  "kind": "array",
+                  "elementCount": 8,
+                  "elementType": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "uniformStride": 16,
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 128,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 960,
+                  "size": 128,
+                  "elementStride": 16
+                }
+              },
+              {
+                "name": "DirectionalOptics",
+                "type": {
+                  "kind": "array",
+                  "elementCount": 8,
+                  "elementType": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "uniformStride": 16,
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 128,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 1088,
+                  "size": 128,
+                  "elementStride": 16
+                }
+              },
+              {
+                "name": "Paint",
+                "type": {
+                  "kind": "struct",
+                  "name": "AutomotivePaint",
+                  "fields": [
+                    {
+                      "name": "Configuration",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "uint32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 0,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Distribution",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 16,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Finish",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 32,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Relief",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 48,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Palette",
+                      "type": {
+                        "kind": "array",
+                        "elementCount": 12,
+                        "elementType": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "uniformStride": 16,
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 192,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 64,
+                        "size": 192,
+                        "elementStride": 16
+                      }
+                    },
+                    {
+                      "name": "AverageTint",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 256,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    }
+                  ],
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 272,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 1216,
+                  "size": 272,
+                  "elementStride": 0
+                }
+              },
+              {
+                "name": "PreviewConfiguration",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "uint32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 1488,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              }
+            ],
+            "sizes": [
+              {
+                "kind": "uniform",
+                "value": 1504,
+                "alignment": 16
+              }
+            ]
+          },
+          "binding": {
+            "kind": "uniform",
+            "offset": 0,
+            "size": 1504,
+            "elementStride": 0
+          }
+        },
+        "sizes": [
+          {
+            "kind": "descriptorTableSlot",
+            "value": 1
+          }
+        ]
+      }
+    }
+  ],
+  "globalScope": {
+    "kind": "none",
+    "parameters": [
+      {
+        "name": "Projection",
+        "binding": {
+          "kind": "pushConstantBuffer",
+          "index": 0
+        },
+        "type": {
+          "kind": "constantBuffer",
+          "elementType": {
+            "kind": "struct",
+            "name": "SurfaceNormalProjection",
+            "fields": [
+              {
+                "name": "ClipFromSurface",
+                "type": {
+                  "kind": "matrix",
+                  "rowCount": 4,
+                  "columnCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 64,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 0,
+                  "size": 64,
+                  "elementStride": 0
+                }
+              },
+              {
+                "name": "ViewNormalRow0",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 64,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "ViewNormalRow1",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 80,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "ViewNormalRow2",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 96,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "SurfaceTint",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 112,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              }
+            ],
+            "sizes": [
+              {
+                "kind": "uniform",
+                "value": 128,
+                "alignment": 16
+              }
+            ]
+          },
+          "containerVarLayout": {
+            "binding": {
+              "kind": "pushConstantBuffer",
+              "index": 0
+            }
+          },
+          "elementVarLayout": {
+            "type": {
+              "kind": "struct",
+              "name": "SurfaceNormalProjection",
+              "fields": [
+                {
+                  "name": "ClipFromSurface",
+                  "type": {
+                    "kind": "matrix",
+                    "rowCount": 4,
+                    "columnCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 64,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 0,
+                    "size": 64,
+                    "elementStride": 0
+                  }
+                },
+                {
+                  "name": "ViewNormalRow0",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 64,
+                    "size": 16,
+                    "elementStride": 4
+                  }
+                },
+                {
+                  "name": "ViewNormalRow1",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 80,
+                    "size": 16,
+                    "elementStride": 4
+                  }
+                },
+                {
+                  "name": "ViewNormalRow2",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 96,
+                    "size": 16,
+                    "elementStride": 4
+                  }
+                },
+                {
+                  "name": "SurfaceTint",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 112,
+                    "size": 16,
+                    "elementStride": 4
+                  }
+                }
+              ],
+              "sizes": [
+                {
+                  "kind": "uniform",
+                  "value": 128,
+                  "alignment": 16
+                }
+              ]
+            },
+            "binding": {
+              "kind": "uniform",
+              "offset": 0,
+              "size": 128,
+              "elementStride": 0
+            }
+          },
+          "sizes": [
+            {
+              "kind": "pushConstantBuffer",
+              "value": 1
+            }
+          ]
+        }
+      },
+      {
+        "name": "MaterialTextures",
+        "binding": {
+          "kind": "descriptorTableSlot",
+          "index": 0
+        },
+        "type": {
+          "kind": "array",
+          "elementCount": 4,
+          "elementType": {
+            "kind": "resource",
+            "baseShape": "texture2D",
+            "array": true,
+            "resultType": {
+              "kind": "vector",
+              "elementCount": 4,
+              "elementType": {
+                "kind": "scalar",
+                "scalarType": "float32"
+              }
+            },
+            "sizes": [
+              {
+                "kind": "descriptorTableSlot",
+                "value": 1
+              }
+            ]
+          },
+          "sizes": [
+            {
+              "kind": "descriptorTableSlot",
+              "value": 1
+            }
+          ]
+        }
+      },
+      {
+        "name": "MaterialSampler",
+        "binding": {
+          "kind": "descriptorTableSlot",
+          "index": 1
+        },
+        "type": {
+          "kind": "samplerState",
+          "sizes": [
+            {
+              "kind": "descriptorTableSlot",
+              "value": 1
+            }
+          ]
+        }
+      },
+      {
+        "name": "Material",
+        "binding": {
+          "kind": "descriptorTableSlot",
+          "space": 1,
+          "index": 0
+        },
+        "type": {
+          "kind": "constantBuffer",
+          "elementType": {
+            "kind": "struct",
+            "name": "MaterialScattering",
+            "fields": [
+              {
+                "name": "Illumination",
+                "type": {
+                  "kind": "struct",
+                  "name": "PreviewScattering",
+                  "fields": [
+                    {
+                      "name": "ViewFromSurface",
+                      "type": {
+                        "kind": "matrix",
+                        "rowCount": 4,
+                        "columnCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 64,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 0,
+                        "size": 64,
+                        "elementStride": 0
+                      }
+                    },
+                    {
+                      "name": "LightDirectionIntensity",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 64,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "LightColourExposure",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 80,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "EnvironmentHorizon",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 96,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "EnvironmentZenith",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 112,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "EnvironmentUp",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 128,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Configuration",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "uint32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 144,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Strata",
+                      "type": {
+                        "kind": "array",
+                        "elementCount": 8,
+                        "elementType": {
+                          "kind": "struct",
+                          "name": "ScatteringStratum",
+                          "fields": [
+                            {
+                              "name": "AlbedoRoughness",
+                              "type": {
+                                "kind": "vector",
+                                "elementCount": 4,
+                                "elementType": {
+                                  "kind": "scalar",
+                                  "scalarType": "float32"
+                                },
+                                "sizes": [
+                                  {
+                                    "kind": "uniform",
+                                    "value": 16,
+                                    "alignment": 16
+                                  }
+                                ]
+                              },
+                              "binding": {
+                                "kind": "uniform",
+                                "offset": 0,
+                                "size": 16,
+                                "elementStride": 4
+                              }
+                            },
+                            {
+                              "name": "Optics",
+                              "type": {
+                                "kind": "vector",
+                                "elementCount": 4,
+                                "elementType": {
+                                  "kind": "scalar",
+                                  "scalarType": "float32"
+                                },
+                                "sizes": [
+                                  {
+                                    "kind": "uniform",
+                                    "value": 16,
+                                    "alignment": 16
+                                  }
+                                ]
+                              },
+                              "binding": {
+                                "kind": "uniform",
+                                "offset": 16,
+                                "size": 16,
+                                "elementStride": 4
+                              }
+                            },
+                            {
+                              "name": "AbsorptionThickness",
+                              "type": {
+                                "kind": "vector",
+                                "elementCount": 4,
+                                "elementType": {
+                                  "kind": "scalar",
+                                  "scalarType": "float32"
+                                },
+                                "sizes": [
+                                  {
+                                    "kind": "uniform",
+                                    "value": 16,
+                                    "alignment": 16
+                                  }
+                                ]
+                              },
+                              "binding": {
+                                "kind": "uniform",
+                                "offset": 32,
+                                "size": 16,
+                                "elementStride": 4
+                              }
+                            },
+                            {
+                              "name": "Classification",
+                              "type": {
+                                "kind": "vector",
+                                "elementCount": 4,
+                                "elementType": {
+                                  "kind": "scalar",
+                                  "scalarType": "uint32"
+                                },
+                                "sizes": [
+                                  {
+                                    "kind": "uniform",
+                                    "value": 16,
+                                    "alignment": 16
+                                  }
+                                ]
+                              },
+                              "binding": {
+                                "kind": "uniform",
+                                "offset": 48,
+                                "size": 16,
+                                "elementStride": 4
+                              }
+                            }
+                          ],
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 64,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "uniformStride": 64,
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 512,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 160,
+                        "size": 512,
+                        "elementStride": 64
+                      }
+                    }
+                  ],
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 672,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 0,
+                  "size": 672,
+                  "elementStride": 0
+                }
+              },
+              {
+                "name": "UvScaleOffset",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 672,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "RadianceNormal",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 688,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              },
+              {
+                "name": "TextureUse",
+                "type": {
+                  "kind": "array",
+                  "elementCount": 8,
+                  "elementType": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "uint32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "uniformStride": 16,
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 128,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 704,
+                  "size": 128,
+                  "elementStride": 16
+                }
+              },
+              {
+                "name": "StratumUv",
+                "type": {
+                  "kind": "array",
+                  "elementCount": 8,
+                  "elementType": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "uniformStride": 16,
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 128,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 832,
+                  "size": 128,
+                  "elementStride": 16
+                }
+              },
+              {
+                "name": "StratumNormal",
+                "type": {
+                  "kind": "array",
+                  "elementCount": 8,
+                  "elementType": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "uniformStride": 16,
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 128,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 960,
+                  "size": 128,
+                  "elementStride": 16
+                }
+              },
+              {
+                "name": "DirectionalOptics",
+                "type": {
+                  "kind": "array",
+                  "elementCount": 8,
+                  "elementType": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "uniformStride": 16,
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 128,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 1088,
+                  "size": 128,
+                  "elementStride": 16
+                }
+              },
+              {
+                "name": "Paint",
+                "type": {
+                  "kind": "struct",
+                  "name": "AutomotivePaint",
+                  "fields": [
+                    {
+                      "name": "Configuration",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "uint32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 0,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Distribution",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 16,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Finish",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 32,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Relief",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 48,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    },
+                    {
+                      "name": "Palette",
+                      "type": {
+                        "kind": "array",
+                        "elementCount": 12,
+                        "elementType": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "uniformStride": 16,
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 192,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 64,
+                        "size": 192,
+                        "elementStride": 16
+                      }
+                    },
+                    {
+                      "name": "AverageTint",
+                      "type": {
+                        "kind": "vector",
+                        "elementCount": 4,
+                        "elementType": {
+                          "kind": "scalar",
+                          "scalarType": "float32"
+                        },
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 16,
+                            "alignment": 16
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 256,
+                        "size": 16,
+                        "elementStride": 4
+                      }
+                    }
+                  ],
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 272,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 1216,
+                  "size": 272,
+                  "elementStride": 0
+                }
+              },
+              {
+                "name": "PreviewConfiguration",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "uint32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 16,
+                      "alignment": 16
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 1488,
+                  "size": 16,
+                  "elementStride": 4
+                }
+              }
+            ],
+            "sizes": [
+              {
+                "kind": "uniform",
+                "value": 1504,
+                "alignment": 16
+              }
+            ]
+          },
+          "containerVarLayout": {
+            "binding": {
+              "kind": "descriptorTableSlot",
+              "index": 0
+            }
+          },
+          "elementVarLayout": {
+            "type": {
+              "kind": "struct",
+              "name": "MaterialScattering",
+              "fields": [
+                {
+                  "name": "Illumination",
+                  "type": {
+                    "kind": "struct",
+                    "name": "PreviewScattering",
+                    "fields": [
+                      {
+                        "name": "ViewFromSurface",
+                        "type": {
+                          "kind": "matrix",
+                          "rowCount": 4,
+                          "columnCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 64,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 0,
+                          "size": 64,
+                          "elementStride": 0
+                        }
+                      },
+                      {
+                        "name": "LightDirectionIntensity",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 64,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "LightColourExposure",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 80,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "EnvironmentHorizon",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 96,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "EnvironmentZenith",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 112,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "EnvironmentUp",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 128,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "Configuration",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "uint32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 144,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "Strata",
+                        "type": {
+                          "kind": "array",
+                          "elementCount": 8,
+                          "elementType": {
+                            "kind": "struct",
+                            "name": "ScatteringStratum",
+                            "fields": [
+                              {
+                                "name": "AlbedoRoughness",
+                                "type": {
+                                  "kind": "vector",
+                                  "elementCount": 4,
+                                  "elementType": {
+                                    "kind": "scalar",
+                                    "scalarType": "float32"
+                                  },
+                                  "sizes": [
+                                    {
+                                      "kind": "uniform",
+                                      "value": 16,
+                                      "alignment": 16
+                                    }
+                                  ]
+                                },
+                                "binding": {
+                                  "kind": "uniform",
+                                  "offset": 0,
+                                  "size": 16,
+                                  "elementStride": 4
+                                }
+                              },
+                              {
+                                "name": "Optics",
+                                "type": {
+                                  "kind": "vector",
+                                  "elementCount": 4,
+                                  "elementType": {
+                                    "kind": "scalar",
+                                    "scalarType": "float32"
+                                  },
+                                  "sizes": [
+                                    {
+                                      "kind": "uniform",
+                                      "value": 16,
+                                      "alignment": 16
+                                    }
+                                  ]
+                                },
+                                "binding": {
+                                  "kind": "uniform",
+                                  "offset": 16,
+                                  "size": 16,
+                                  "elementStride": 4
+                                }
+                              },
+                              {
+                                "name": "AbsorptionThickness",
+                                "type": {
+                                  "kind": "vector",
+                                  "elementCount": 4,
+                                  "elementType": {
+                                    "kind": "scalar",
+                                    "scalarType": "float32"
+                                  },
+                                  "sizes": [
+                                    {
+                                      "kind": "uniform",
+                                      "value": 16,
+                                      "alignment": 16
+                                    }
+                                  ]
+                                },
+                                "binding": {
+                                  "kind": "uniform",
+                                  "offset": 32,
+                                  "size": 16,
+                                  "elementStride": 4
+                                }
+                              },
+                              {
+                                "name": "Classification",
+                                "type": {
+                                  "kind": "vector",
+                                  "elementCount": 4,
+                                  "elementType": {
+                                    "kind": "scalar",
+                                    "scalarType": "uint32"
+                                  },
+                                  "sizes": [
+                                    {
+                                      "kind": "uniform",
+                                      "value": 16,
+                                      "alignment": 16
+                                    }
+                                  ]
+                                },
+                                "binding": {
+                                  "kind": "uniform",
+                                  "offset": 48,
+                                  "size": 16,
+                                  "elementStride": 4
+                                }
+                              }
+                            ],
+                            "sizes": [
+                              {
+                                "kind": "uniform",
+                                "value": 64,
+                                "alignment": 16
+                              }
+                            ]
+                          },
+                          "uniformStride": 64,
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 512,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 160,
+                          "size": 512,
+                          "elementStride": 64
+                        }
+                      }
+                    ],
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 672,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 0,
+                    "size": 672,
+                    "elementStride": 0
+                  }
+                },
+                {
+                  "name": "UvScaleOffset",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 672,
+                    "size": 16,
+                    "elementStride": 4
+                  }
+                },
+                {
+                  "name": "RadianceNormal",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 688,
+                    "size": 16,
+                    "elementStride": 4
+                  }
+                },
+                {
+                  "name": "TextureUse",
+                  "type": {
+                    "kind": "array",
+                    "elementCount": 8,
+                    "elementType": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "uint32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "uniformStride": 16,
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 128,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 704,
+                    "size": 128,
+                    "elementStride": 16
+                  }
+                },
+                {
+                  "name": "StratumUv",
+                  "type": {
+                    "kind": "array",
+                    "elementCount": 8,
+                    "elementType": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "uniformStride": 16,
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 128,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 832,
+                    "size": 128,
+                    "elementStride": 16
+                  }
+                },
+                {
+                  "name": "StratumNormal",
+                  "type": {
+                    "kind": "array",
+                    "elementCount": 8,
+                    "elementType": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "uniformStride": 16,
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 128,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 960,
+                    "size": 128,
+                    "elementStride": 16
+                  }
+                },
+                {
+                  "name": "DirectionalOptics",
+                  "type": {
+                    "kind": "array",
+                    "elementCount": 8,
+                    "elementType": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 16,
+                          "alignment": 16
+                        }
+                      ]
+                    },
+                    "uniformStride": 16,
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 128,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 1088,
+                    "size": 128,
+                    "elementStride": 16
+                  }
+                },
+                {
+                  "name": "Paint",
+                  "type": {
+                    "kind": "struct",
+                    "name": "AutomotivePaint",
+                    "fields": [
+                      {
+                        "name": "Configuration",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "uint32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 0,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "Distribution",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 16,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "Finish",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 32,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "Relief",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 48,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      },
+                      {
+                        "name": "Palette",
+                        "type": {
+                          "kind": "array",
+                          "elementCount": 12,
+                          "elementType": {
+                            "kind": "vector",
+                            "elementCount": 4,
+                            "elementType": {
+                              "kind": "scalar",
+                              "scalarType": "float32"
+                            },
+                            "sizes": [
+                              {
+                                "kind": "uniform",
+                                "value": 16,
+                                "alignment": 16
+                              }
+                            ]
+                          },
+                          "uniformStride": 16,
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 192,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 64,
+                          "size": 192,
+                          "elementStride": 16
+                        }
+                      },
+                      {
+                        "name": "AverageTint",
+                        "type": {
+                          "kind": "vector",
+                          "elementCount": 4,
+                          "elementType": {
+                            "kind": "scalar",
+                            "scalarType": "float32"
+                          },
+                          "sizes": [
+                            {
+                              "kind": "uniform",
+                              "value": 16,
+                              "alignment": 16
+                            }
+                          ]
+                        },
+                        "binding": {
+                          "kind": "uniform",
+                          "offset": 256,
+                          "size": 16,
+                          "elementStride": 4
+                        }
+                      }
+                    ],
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 272,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 1216,
+                    "size": 272,
+                    "elementStride": 0
+                  }
+                },
+                {
+                  "name": "PreviewConfiguration",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "uint32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "uniform",
+                        "value": 16,
+                        "alignment": 16
+                      }
+                    ]
+                  },
+                  "binding": {
+                    "kind": "uniform",
+                    "offset": 1488,
+                    "size": 16,
+                    "elementStride": 4
+                  }
+                }
+              ],
+              "sizes": [
+                {
+                  "kind": "uniform",
+                  "value": 1504,
+                  "alignment": 16
+                }
+              ]
+            },
+            "binding": {
+              "kind": "uniform",
+              "offset": 0,
+              "size": 1504,
+              "elementStride": 0
+            }
+          },
+          "sizes": [
+            {
+              "kind": "descriptorTableSlot",
+              "value": 1
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "entryPoints": [
+    {
+      "name": "MaterialSurfaceFragment",
+      "stage": "fragment",
+      "scope": {
+        "kind": "none",
+        "parameters": [
+          {
+            "name": "Pixel",
+            "stage": "fragment",
+            "binding": {
+              "kind": "varyingInput",
+              "index": 0,
+              "count": 6
+            },
+            "type": {
+              "kind": "struct",
+              "name": "MaterialPixel",
+              "fields": [
+                {
+                  "name": "Position",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": []
+                  },
+                  "semanticName": "SV_POSITION"
+                },
+                {
+                  "name": "ViewPosition",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 3,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "varyingInput",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "stage": "fragment",
+                  "binding": {
+                    "kind": "varyingInput",
+                    "index": 0
+                  },
+                  "semanticName": "TEXCOORD"
+                },
+                {
+                  "name": "ViewNormal",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 3,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "varyingInput",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "stage": "fragment",
+                  "binding": {
+                    "kind": "varyingInput",
+                    "index": 1
+                  },
+                  "semanticName": "NORMAL"
+                },
+                {
+                  "name": "Coordinates",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 2,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "varyingInput",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "stage": "fragment",
+                  "binding": {
+                    "kind": "varyingInput",
+                    "index": 2
+                  },
+                  "semanticName": "TEXCOORD",
+                  "semanticIndex": 1
+                },
+                {
+                  "name": "ViewTangent",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 4,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "varyingInput",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "stage": "fragment",
+                  "binding": {
+                    "kind": "varyingInput",
+                    "index": 3
+                  },
+                  "semanticName": "TEXCOORD",
+                  "semanticIndex": 2
+                },
+                {
+                  "name": "MaterialPosition",
+                  "type": {
+                    "kind": "vector",
+                    "elementCount": 3,
+                    "elementType": {
+                      "kind": "scalar",
+                      "scalarType": "float32"
+                    },
+                    "sizes": [
+                      {
+                        "kind": "varyingInput",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "stage": "fragment",
+                  "binding": {
+                    "kind": "varyingInput",
+                    "index": 4
+                  },
+                  "semanticName": "TEXCOORD",
+                  "semanticIndex": 3
+                },
+                {
+                  "name": "SubjectRole",
+                  "type": {
+                    "kind": "scalar",
+                    "scalarType": "uint32",
+                    "sizes": [
+                      {
+                        "kind": "varyingInput",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  "stage": "fragment",
+                  "binding": {
+                    "kind": "varyingInput",
+                    "index": 5
+                  },
+                  "semanticName": "TEXCOORD",
+                  "semanticIndex": 4
+                }
+              ],
+              "sizes": [
+                {
+                  "kind": "varyingInput",
+                  "value": 6
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "Pixel",
+          "stage": "fragment",
+          "binding": {
+            "kind": "varyingInput",
+            "index": 0,
+            "count": 6
+          },
+          "type": {
+            "kind": "struct",
+            "name": "MaterialPixel",
+            "fields": [
+              {
+                "name": "Position",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": []
+                },
+                "semanticName": "SV_POSITION"
+              },
+              {
+                "name": "ViewPosition",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 3,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "varyingInput",
+                      "value": 1
+                    }
+                  ]
+                },
+                "stage": "fragment",
+                "binding": {
+                  "kind": "varyingInput",
+                  "index": 0
+                },
+                "semanticName": "TEXCOORD"
+              },
+              {
+                "name": "ViewNormal",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 3,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "varyingInput",
+                      "value": 1
+                    }
+                  ]
+                },
+                "stage": "fragment",
+                "binding": {
+                  "kind": "varyingInput",
+                  "index": 1
+                },
+                "semanticName": "NORMAL"
+              },
+              {
+                "name": "Coordinates",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 2,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "varyingInput",
+                      "value": 1
+                    }
+                  ]
+                },
+                "stage": "fragment",
+                "binding": {
+                  "kind": "varyingInput",
+                  "index": 2
+                },
+                "semanticName": "TEXCOORD",
+                "semanticIndex": 1
+              },
+              {
+                "name": "ViewTangent",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 4,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "varyingInput",
+                      "value": 1
+                    }
+                  ]
+                },
+                "stage": "fragment",
+                "binding": {
+                  "kind": "varyingInput",
+                  "index": 3
+                },
+                "semanticName": "TEXCOORD",
+                "semanticIndex": 2
+              },
+              {
+                "name": "MaterialPosition",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 3,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "float32"
+                  },
+                  "sizes": [
+                    {
+                      "kind": "varyingInput",
+                      "value": 1
+                    }
+                  ]
+                },
+                "stage": "fragment",
+                "binding": {
+                  "kind": "varyingInput",
+                  "index": 4
+                },
+                "semanticName": "TEXCOORD",
+                "semanticIndex": 3
+              },
+              {
+                "name": "SubjectRole",
+                "type": {
+                  "kind": "scalar",
+                  "scalarType": "uint32",
+                  "sizes": [
+                    {
+                      "kind": "varyingInput",
+                      "value": 1
+                    }
+                  ]
+                },
+                "stage": "fragment",
+                "binding": {
+                  "kind": "varyingInput",
+                  "index": 5
+                },
+                "semanticName": "TEXCOORD",
+                "semanticIndex": 4
+              }
+            ],
+            "sizes": [
+              {
+                "kind": "varyingInput",
+                "value": 6
+              }
+            ]
+          }
+        }
+      ],
+      "result": {
+        "stage": "fragment",
+        "binding": {
+          "kind": "varyingOutput",
+          "index": 0
+        },
+        "semanticName": "SV_TARGET",
+        "type": {
+          "kind": "vector",
+          "elementCount": 4,
+          "elementType": {
+            "kind": "scalar",
+            "scalarType": "float32"
+          },
+          "sizes": [
+            {
+              "kind": "varyingOutput",
+              "value": 1
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "bindlessSpaceIndex": 2
+}

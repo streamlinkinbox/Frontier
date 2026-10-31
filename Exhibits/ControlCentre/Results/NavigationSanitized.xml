@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Linux-c++"
+	tests="14"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="e2b.local"
+	time="173"
+	timestamp="2026-10-17T20:33:09"
+	>
+	<testcase name="MonitorPlacementValidation" classname="MonitorPlacementValidation" time="0.0288053" status="run">
+		<properties/>
+		<system-out>PASS: monitor work-area recovery, removed/negative monitors, density reconciliation, idempotence and invalid input.
+</system-out>
+	</testcase>
+	<testcase name="ActivationValidation0" classname="ActivationValidation0" time="0.00774149" status="run">
+		<properties/>
+		<system-out>PASS: control and geometry lifecycle, editor=0; ordering, idempotence, recursion, failures, reclamation, invalid durations
+</system-out>
+	</testcase>
+	<testcase name="ActivationValidation1" classname="ActivationValidation1" time="0.00766784" status="run">
+		<properties/>
+		<system-out>PASS: control and geometry lifecycle, editor=1; ordering, idempotence, recursion, failures, reclamation, invalid durations
+</system-out>
+	</testcase>
+	<testcase name="FontCatalogueValidation" classname="FontCatalogueValidation" time="0.445277" status="run">
+		<properties/>
+		<system-out>...
+----------------------------------------------------------------------
+Ran 3 tests in 0.391s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="InputPreferencesValidation" classname="InputPreferencesValidation" time="0.0164716" status="run">
+		<properties/>
+		<system-out>PASS: portable tokens, pointer gain/inversion, Unicode TOML round-trip, strict schema, duplicate/reserved chords, invalid-save preservation and replacement failure cleanup
+</system-out>
+	</testcase>
+	<testcase name="PanelExpansionValidation" classname="PanelExpansionValidation" time="0.0148356" status="run">
+		<properties/>
+		<system-out>PASS: reference trapezoid; tap; slow upward dismiss; upward/downward flicks; axis lock; mirrored bottom direction and winding; bounded travel; small-drag retention; focus loss; resize; 125 percent scale; narrow viewport
+</system-out>
+	</testcase>
+	<testcase name="ContentDirectoryValidation" classname="ContentDirectoryValidation" time="1.12863" status="run">
+		<properties/>
+		<system-out>PASS: real files; folder/history navigation; type/search/Unicode filters; selection; root confinement; links; empty/missing folders; stale deletion; bounded catalogue
+</system-out>
+	</testcase>
+	<testcase name="ContentBrowserValidation" classname="ContentBrowserValidation" time="6.32427" status="run">
+		<properties/>
+		<system-out>PASS: native bottom tab; single/double click; Back/Forward/Up; search/restore; category; grid/list; real SVG selection; empty results; shared light theme; pointer/focus ownership; 375x700 at 125%; downward dismissal; seven native captures
+</system-out>
+	</testcase>
+	<testcase name="ControlCentreValidation" classname="ControlCentreValidation" time="51.2476" status="run">
+		<properties/>
+		<system-out>PASS: 4 families / 30 faces, discovery, removal, native font/theme clicks, draft/discard/apply, settings gear/category/back/tab navigation, transitions, shared FPS state, session notifications, actual palette/font selection, persistent preferences, invalid settings, lifecycle cleanup
+Images are actual ImGui CPU raster output, not Windows GPU screenshots.
+</system-out>
+	</testcase>
+	<testcase name="WorkspaceLayoutValidation" classname="WorkspaceLayoutValidation" time="10.595" status="run">
+		<properties/>
+		<system-out>PASS: fresh-context native tabs/order/selection/splits/floating groups/geometry/open state; personal-only merge; drafts/extensions retained; debounce; malformed/cyclic/versioned fallback; explicit reset; failed-write preservation; no INI sidecar. OS windows/GPU not executed.
+</system-out>
+	</testcase>
+	<testcase name="DockingValidation" classname="DockingValidation" time="60.6043" status="run">
+		<properties/>
+		<system-out>PASS: patches A-G; centred adjacent plus pixels/hitbox; 8 opaque themes at 100/125%; draggable/dockable browser; native tabs/split; shared content; default-off personal policy, modal save/cancel, no-adapter refusal. OS windows/GPU not executed.
+</system-out>
+	</testcase>
+	<testcase name="NotificationValidation" classname="NotificationValidation" time="24.0995" status="run">
+		<properties/>
+		<system-out>PASS: bounded history/queue, visible-only expiry, hover pause, actual save/error events, suppression, authenticated dismiss/no click-through, top-right placement, responsive stream, 125% narrow viewport, modal cancel/Escape/default-focus/Tab+Enter/apply; nine native captures
+</system-out>
+	</testcase>
+	<testcase name="ProjectSpaceValidation" classname="ProjectSpaceValidation" time="16.4491" status="run">
+		<properties/>
+		<system-out>PASS: single projectspace; fresh identity; Unicode; no overwrite; bounded/versioned reads; root paths; font/default fallback; native Project/Personal saves; notification persistence; extension/catalogue retention; override precedence; drafts; failed-write preservation; no TOML sidecars; four native captures
+</system-out>
+	</testcase>
+	<testcase name="InterfaceValidation" classname="InterfaceValidation" time="2.82034" status="run">
+		<properties/>
+		<system-out>PASS: 151 SVGs ready and visible; cache, invalid input, eviction, missing assets, ImGui commands, patched tabs, DPI atlas retirement
+CPU evidence only: no GPU upload, Windows execution, or scene renderer tested
+</system-out>
+	</testcase>
+</testsuite>

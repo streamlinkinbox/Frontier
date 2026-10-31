@@ -1,0 +1,200 @@
+{
+  "repository": "SultanAladin/Frontier",
+  "pull_request": 1,
+  "revision": "85be136ba213be6768b3acdd4c0a68cbe24c6bd2",
+  "scope": "Experimental/TextureStudio only; no branch switch or PR merge",
+  "changed_files": [
+    {
+      "path": "IMPORT.md",
+      "sha256": "bfc1fa707582acad9f10a732311a44e94cb751c44e325a7fadb887d240b3a2ce"
+    },
+    {
+      "path": "docs/stroke-performance.md",
+      "sha256": "47bd5d636528f80d19a291086d514b45f05149f6b229144f1db78ab9da9d5a8f"
+    },
+    {
+      "path": "scripts/verify-glsl.mjs",
+      "sha256": "70c1fd45692f6c1636e5a741647e0e5d861232015585588b41640620b3e47d76"
+    },
+    {
+      "path": "scripts/verify-gpu-packing.mjs",
+      "sha256": "fe3a8bb26898d06b9ef7463558ca9ba18acb0d085c948a5eb376e1c69b094a43"
+    },
+    {
+      "path": "scripts/verify-mask-gpu.mjs",
+      "sha256": "da33b097b9127a5b742cbcb46c07e158a8876e9de7619187c8bea77ed3e32a08"
+    },
+    {
+      "path": "scripts/verify-stroke-incremental.mjs",
+      "sha256": "23d3c8530442347466fec775337cae61cd9c3f1058746056c18c7c34f8fd35be"
+    },
+    {
+      "path": "src/DigitalPaintMenu.jsx",
+      "sha256": "f3d0f036c4d6b9b2ef11114b4a9af3581ddf92dbe4b8fcc950ec7bcc3a8a6d32"
+    },
+    {
+      "path": "src/RecipeInspector.jsx",
+      "sha256": "3d5f94729178e1e8eeac4e22c11e715d3f62accba5115d666eab3bddfd48e376"
+    },
+    {
+      "path": "src/StudioUI.jsx",
+      "sha256": "2cc8800dbea8e8adc5505e1956594ebedd5b7e489a85899a97496e631597ce29"
+    },
+    {
+      "path": "src/TextureMaskToolbar.jsx",
+      "sha256": "91b145a38aa64657f96dc25342ce2ace4b90bca665bbe9d0323310938aa3934b"
+    },
+    {
+      "path": "src/TexturePaintStudio.jsx",
+      "sha256": "462080a91a0529c5cb23a24d8fbd2c079cf6083848ad8c3006c75d396144ca4b"
+    },
+    {
+      "path": "src/Viewport.jsx",
+      "sha256": "679e48b297b1e065ef489294111e35e191d3ca6cbbb326e2f109fdaa5e53e53d"
+    },
+    {
+      "path": "src/decalStudio.css",
+      "sha256": "c218a26dd282b50b393be980e626de2394c8d4bcbc59811fa919530d4335ecde"
+    },
+    {
+      "path": "src/decalSurfaceController.js",
+      "sha256": "bee9bc5d49f26465522379b4d567a86fb6d62a1facdd60dc33a0633aabb31ae1"
+    },
+    {
+      "path": "src/digitalBrush.js",
+      "sha256": "0e1ef30137ecdc95ec213a970ab0560ba8af1a1bcde31a9d979c44bb8f185bd0"
+    },
+    {
+      "path": "src/digitalBrushCursor.js",
+      "sha256": "ff4833268320710add5f9269be1acd499661652f7b8be03764005b4b5d5979af"
+    },
+    {
+      "path": "src/digitalPaintGpu.js",
+      "sha256": "101e5963d47240043c1aec8c5668e389aa13005287e220e7ca7f418683c10483"
+    },
+    {
+      "path": "src/digitalPaintRaster.js",
+      "sha256": "8e90f65a81b1ed0752c0b0db4d300e901cabc74a4f0ef37e944a486985571ba5"
+    },
+    {
+      "path": "src/digitalPaintSurface.js",
+      "sha256": "acc26fac3f58f37600c487a7a22c3635c314c4052670bb40dd867aa5a00138e4"
+    },
+    {
+      "path": "src/digitalPainting.css",
+      "sha256": "6602c95c8dc05b09822f5b2a7dde715c105d31ff5bca6bfaf43f1085bc515e5b"
+    },
+    {
+      "path": "src/main.jsx",
+      "sha256": "ae9bce311e4864a852cf2bed73b999cc76ff32c8dd36e4120d9da6f998de3827"
+    },
+    {
+      "path": "src/maskCoverageFactory.js",
+      "sha256": "5d5eed73431f0473874077031eb2f82f569b88067a772e298b4830288fc29ad3"
+    },
+    {
+      "path": "src/maskPaintGpu.js",
+      "sha256": "1cd6fec46d7f880c6340a5c0a6fae3863d0ba2a3f2d69b09f1385b2ecf0dc8c7"
+    },
+    {
+      "path": "src/maskPaintRaster.js",
+      "sha256": "51698d63f72f7ad6d2097807b01997fa2d32ec9cf83f727feb7b5ce230962735"
+    },
+    {
+      "path": "src/materialProfiles.js",
+      "sha256": "79b124ef619262f33b88fbe5009780f21f49b54a06834d2c0c6c3b11c839d897"
+    },
+    {
+      "path": "src/paintGpuKit.js",
+      "sha256": "bee1043ca5962ec331d0d91b0bf196920ef25cc3be182b841e4d4c1a914becb0"
+    },
+    {
+      "path": "src/screenPaintGpu.js",
+      "sha256": "23528e0fccd2f8d7d4c0f1fb8e9114bf01a35ac57abe619495e7e3c818ba6042"
+    },
+    {
+      "path": "src/screenPaintProjection.js",
+      "sha256": "3bf9edde92e9ac909f5aa8b381c029f34b53ba8ba7e6eb2bfffa5a41a5ab9784"
+    },
+    {
+      "path": "src/studioTheme.css",
+      "sha256": "0b1062341e33ccc60bd625e58159bdf0ac3cb049419d7f2c4c24d1066cddb5cd"
+    },
+    {
+      "path": "src/styles.css",
+      "sha256": "afe9f6a3bb886c6e4652f36b900af0f4c5f87923fd1669aeae2c99af7ca11a54"
+    },
+    {
+      "path": "src/textureMaskPaint.css",
+      "sha256": "8d5740b91a28378b05df4b85daec2bead914d7696eabfd9d7252cea7b71066a3"
+    },
+    {
+      "path": "src/textureStudio.css",
+      "sha256": "3af1612ab207e8f8208b76706db866265743ffcd7dcf966dd89fd4c1e47a145e"
+    },
+    {
+      "path": "src/textureSurfaceController.js",
+      "sha256": "6806ccd306863b1fdf38e2d46876c2253489ff56909eeea734a0ed97c1c9f76f"
+    },
+    {
+      "path": "src/useDigitalPainting.js",
+      "sha256": "b8ffe02a1ae814897b18753212556d22c6ca13cab9a3ca3ffc7075c8d826e6c2"
+    },
+    {
+      "path": "tests/digital-brush-cursor-studio.spec.js",
+      "sha256": "857808fedb0e5701bf0f9553df8ed2c82a353c0d472dd11de8232e0ea571f0fb"
+    },
+    {
+      "path": "tests/digital-paint-gpu.spec.js",
+      "sha256": "7c30173239a4ab5044bc38dcbf7ea04d24e273ccaaac1de5506c89dc8960f62e"
+    },
+    {
+      "path": "tests/digital-paint-incremental.spec.js",
+      "sha256": "9e9e1aae89a77c96cf9f72995859916cf9476005e5b0faf311b847f7a4d89723"
+    },
+    {
+      "path": "tests/digital-paint-studio.spec.js",
+      "sha256": "206389129f07a23e02dc0e4a10095d0a314c4747dc26c81042d632a2b7feb645"
+    },
+    {
+      "path": "tests/granular-materials.spec.js",
+      "sha256": "fd821fbae26c52cf9988de1f2ea101265167d63607d50c240af279efb3d8c402"
+    },
+    {
+      "path": "tests/mask-paint-gpu.spec.js",
+      "sha256": "6169c5937d208471494ad9003217ff488d8cb82b2561d1f9df49748fd8c28f21"
+    },
+    {
+      "path": "tests/metal-scratches.spec.js",
+      "sha256": "79d42710e00f527e4ad0a9cca320671a2e865bfd75dfb2da163945df215cdcaf"
+    },
+    {
+      "path": "tests/screen-paint-studio.spec.js",
+      "sha256": "6f372a1a091ee2cd471b9234361e528f21fc8bf8dd051e0dbe9212ade5f89d3b"
+    },
+    {
+      "path": "tests/standalone.spec.js",
+      "sha256": "010b3c00f412dc07d2cc793301e54a2d80d2fdc2f0308c56b8c9b6c672b91abe"
+    },
+    {
+      "path": "tests/texture-mask-paint-studio.spec.js",
+      "sha256": "a43ad2b61d18cfd249d42d7f92fd3f17f801d8bb09597015a125a549874f6628"
+    },
+    {
+      "path": "tests/texture-parts-uv-studio.spec.js",
+      "sha256": "7dd2160a64ea79adfa2b92007e3cc24ebfd180718c92f61284d459229be16dec"
+    },
+    {
+      "path": "tests/texture-stack-evaluation-studio.spec.js",
+      "sha256": "31999fa6c2f2bf241170ae4b876989da06d9e2fc11a3d241a91b6b122638e6ba"
+    },
+    {
+      "path": "tests/texture-studio.spec.js",
+      "sha256": "233ff08caede0c46c433d70cedc620ebf58dfa1ce8293a2c390839d92c780f9a"
+    }
+  ],
+  "preserved_local_additions": [
+    "site",
+    "01a069b4-dacc-7386-96cc-8c05c63c3532.patch"
+  ]
+}

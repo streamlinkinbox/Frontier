@@ -1,0 +1,59 @@
+{
+  "Revision": "e412b34f196f1eb6794e46bce82e40206f22bf5c",
+  "WindowsRun": "https://github.com/SultanAladin/Frontier/actions/runs/39149823906",
+  "BuildAndFiveAcceptanceTests": "passed",
+  "PackagingRefusalCases": 4,
+  "SignatureScanPolicyCases": 72,
+  "FrontierSignature": "NotSigned",
+  "TextureWorkspaceSignature": "NotSigned",
+  "UnsignedPreviewExplicitlyAuthorized": true,
+  "Defender": "passed",
+  "DistributionReady": true,
+  "BinaryPublished": true,
+  "Release": {
+    "assets": [
+      {
+        "apiUrl": "https://api.github.com/repos/SultanAladin/Frontier/releases/assets/654059667",
+        "contentType": "application/zip",
+        "createdAt": "2026-10-18T17:34:33Z",
+        "downloadCount": 0,
+        "id": "RA_kwDOSzFHqM4m_CiT",
+        "label": "",
+        "name": "Frontier-TextureWorkspace-Windows-x64.zip",
+        "size": 6068609,
+        "state": "uploaded",
+        "updatedAt": "2026-10-18T17:34:34Z",
+        "url": "https://github.com/SultanAladin/Frontier/releases/download/frontier-windows-39149823906/Frontier-TextureWorkspace-Windows-x64.zip"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/SultanAladin/Frontier/releases/assets/654059664",
+        "contentType": "application/octet-stream",
+        "createdAt": "2026-10-18T17:34:33Z",
+        "downloadCount": 0,
+        "id": "RA_kwDOSzFHqM4m_CiQ",
+        "label": "",
+        "name": "Frontier-TextureWorkspace-Windows-x64.zip.sha256",
+        "size": 109,
+        "state": "uploaded",
+        "updatedAt": "2026-10-18T17:34:33Z",
+        "url": "https://github.com/SultanAladin/Frontier/releases/download/frontier-windows-39149823906/Frontier-TextureWorkspace-Windows-x64.zip.sha256"
+      }
+    ],
+    "isPrerelease": true,
+    "name": "Frontier and TextureWorkspace Windows UNSIGNED preview",
+    "tagName": "frontier-windows-39149823906",
+    "targetCommitish": "e412b34f196f1eb6794e46bce82e40206f22bf5c",
+    "url": "https://github.com/SultanAladin/Frontier/releases/tag/frontier-windows-39149823906"
+  },
+  "Zip": {
+    "browser_download_url": "https://github.com/SultanAladin/Frontier/releases/download/frontier-windows-39149823906/Frontier-TextureWorkspace-Windows-x64.zip",
+    "digest": "sha256:5ae0b810a579f97bb03519765465b2068de2450cf2618a0a54c93d2a0b063b56",
+    "name": "Frontier-TextureWorkspace-Windows-x64.zip",
+    "size": 6068609
+  },
+  "ArchiveChecksumReverifiedBeforePublication": true,
+  "ChromeWarningCleared": false,
+  "InteractiveWindowsGpuLaunchVerified": false,
+  "OriginalBlockedArchiveScanned": false,
+  "Limits": "A clean Defender scan and direct GitHub provenance do not establish the original Chrome detection cause, guarantee malware absence or certify Chrome acceptance."
+}

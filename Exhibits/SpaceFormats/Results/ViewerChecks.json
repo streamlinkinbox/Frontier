@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "checkout_revision": "4a77bfd17f23536e32781718553ec6a171e39021",
+  "viewer_sha256": "7350a7a5e4d63b92f531c0010bdd8c58324bd5939b1efbec601a0640ad0c6512",
+  "tabs_exercised": 5,
+  "captures_selected_and_hashed": 43,
+  "audit_rows": 26,
+  "pinned_source_rows": 22,
+  "ui_reference_rows": 10,
+  "original_and_plan_download_hashes": "passed",
+  "external_frontend_dependencies": 0,
+  "jsdom_version": "26.1.0",
+  "limitations": "DOM interaction only; no full-browser visual run or proposed-codec acceptance; native UI checks are recorded separately."
+}

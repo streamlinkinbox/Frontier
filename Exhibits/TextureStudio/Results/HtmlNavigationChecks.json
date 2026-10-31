@@ -1,0 +1,33 @@
+{
+  "Result": "passed",
+  "Scope": "HTML only; native Windows, shading parity and true HTML docking not implemented by this iteration",
+  "Tests": {
+    "CameraNavigation": 4,
+    "LayerPanelLayout": 4,
+    "RenderedViewportNavigation": 2,
+    "FiveWorkspaceDockLayout": 1,
+    "DigitalPaintingUndoCancelEraseSaveReload": 1
+  },
+  "FinalCameraLayerRun": {
+    "startTime": "2026-10-18T18:06:03.211Z",
+    "duration": 37721.566,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "ProductionBuild": "passed; existing large-chunk warning",
+  "Evidence": "HtmlNavigationEvidence.json",
+  "PreservedUnrelatedFiles": 40,
+  "SourceSha256": {
+    "Experimental/TextureStudio/src/CameraNavigation.js": "e6ade346b15202291aa1923a7e220c654d4a8d8bf41d722860def846789020c9",
+    "Experimental/TextureStudio/src/Viewport.jsx": "efa5442dbe1f2f6c04e143c9b59f9594729873b39e5f8b529fc6b0a049cfcd46",
+    "Experimental/TextureStudio/src/LayerStackPanel.jsx": "0a4c4cea9dc38ec1db6097c233fa92cc4203af6f8aab5dfb4f2a60ed5e02300f",
+    "Experimental/TextureStudio/src/PatternEditor.jsx": "51fe823f3db424844fd63cc61eb943fc1c1892e1b4d3e229f823ad0c2156006e",
+    "Experimental/TextureStudio/src/TexturePaintStudio.jsx": "7e6cb3e2f13476f3955df981a2fc66fc7f061ff976c94e9e485d985950a85ac7",
+    "Experimental/TextureStudio/src/TextureLayerStack.jsx": "89a889dc97980c4a79d1ead626d62ecda54eb4a69bd6f104f3e49904605300f9",
+    "Experimental/TextureStudio/src/studioTheme.css": "d3958c0fde1fe1dac9b387486be5494324ec4fcf915421f5bb81ccb347c6acb5",
+    "Experimental/TextureStudio/src/main.jsx": "0897af3c0c5f275ece340da9a43f6ecd66164378a50cd0c11a91cae94ff31faf",
+    "Experimental/TextureStudio/src/PatternMaterialPreview.jsx": "9ea4328259ac1ddfbb9efc4484ee6a520d6f7004e44db81d69738a3df236a290"
+  }
+}

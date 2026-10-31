@@ -1,0 +1,1 @@
+{"result":"passed","native_imgui_cpu_execution":true,"vulkan_material_execution":true,"native_window_execution":false,"windows_execution":false,"width":1440,"height":1000,"atlas_images":1,"baked_thumbnails":8,"capture":"CPU ImGui triangle composition using real Vulkan atlas and preview readbacks; not a Windows screenshot"}

@@ -1,0 +1,63 @@
+Format = 1
+Name = "Bull Grain Black Leather"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.017641954488384078, 0.01599629336550963, 0.01520851442291271]
+Roughness = 0.47
+Metallic = 0
+Ior = 1.48
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.017641954488384078, 0.01599629336550963, 0.01520851442291271]
+SheenIntensity = 0.18
+SheenRoughness = 0.55
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/bull-grain-black-leather-albedo.png"
+Normal = "Textures/bull-grain-black-leather-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "leather"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 23
+grain = 0.85
+hideVariant = 2
+hideVariation = 0.65
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+sheen = 0.18
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "leather"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 23
+grain = 0.85
+hideVariant = 2
+hideVariation = 0.65
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+sheen = 0.18
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.18
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.24

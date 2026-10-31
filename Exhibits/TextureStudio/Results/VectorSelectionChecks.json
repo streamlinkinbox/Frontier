@@ -1,0 +1,82 @@
+{
+  "platform": "Linux-6.1.158+-x86_64-with-glibc2.36",
+  "windows_executed": false,
+  "uncommitted_sources": true,
+  "revision": "4a77bfd17f23536e32781718553ec6a171e39021",
+  "compiler": "g++ (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "commands": [
+    [
+      "g++",
+      "-std=c++20",
+      "-O1",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I.",
+      "-IExternalPackages/tomlpp/include",
+      "Engine/ContentInterchange/VectorAuthoringDocument.cpp",
+      "Engine/ContentInterchange/VectorAuthoringEditing.cpp",
+      "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp",
+      "Engine/ContentInterchange/VectorAuthoringProperties.cpp",
+      "Engine/ContentInterchange/VectorAuthoringSelectionEditing.cpp",
+      "Exhibits/TextureStudio/Code/VectorSelectionValidation.cpp",
+      "-o",
+      "/home/user/Frontier/_ClaudeScratch/build/VectorSelection/strict"
+    ],
+    [
+      "/home/user/Frontier/_ClaudeScratch/build/VectorSelection/strict"
+    ],
+    [
+      "g++",
+      "-std=c++20",
+      "-O1",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I.",
+      "-IExternalPackages/tomlpp/include",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "Engine/ContentInterchange/VectorAuthoringDocument.cpp",
+      "Engine/ContentInterchange/VectorAuthoringEditing.cpp",
+      "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp",
+      "Engine/ContentInterchange/VectorAuthoringProperties.cpp",
+      "Engine/ContentInterchange/VectorAuthoringSelectionEditing.cpp",
+      "Exhibits/TextureStudio/Code/VectorSelectionValidation.cpp",
+      "-o",
+      "/home/user/Frontier/_ClaudeScratch/build/VectorSelection/sanitized"
+    ],
+    [
+      "/home/user/Frontier/_ClaudeScratch/build/VectorSelection/sanitized"
+    ]
+  ],
+  "strict": {
+    "result": "passed",
+    "checks": 1431,
+    "windows_executed": false,
+    "gpu_pixels_tested": false
+  },
+  "sanitized": {
+    "result": "passed",
+    "checks": 1431,
+    "windows_executed": false,
+    "gpu_pixels_tested": false
+  },
+  "source_sha256": {
+    "Engine/ContentInterchange/VectorAuthoringDocument.cpp": "3b38453d0fc62fc670e3cef68b30cf360f35fb02db64428234ef445c387640fa",
+    "Engine/ContentInterchange/VectorAuthoringEditing.cpp": "bcb33ba96737ba6b5dcc58ffb6e856b36d5f12b7f835c85c7a9ce36ad86199b2",
+    "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp": "fccf66cde8b80670692f674b95950c25c0d82dfb6be8f10b4cde0456c39c1016",
+    "Engine/ContentInterchange/VectorAuthoringProperties.cpp": "ddb9f24eba8e13e94eb95af59ca943b9cca5ca14a3364493688e34643860b454",
+    "Engine/ContentInterchange/VectorAuthoringSelectionEditing.cpp": "f1995ff3c7dd57ee48c16d9b845f1dffeb83f36f717d16447b03f15af5f0431c",
+    "Exhibits/TextureStudio/Code/VectorSelectionValidation.cpp": "136b901188f847c3c78bd116f04ba82bc6fd95f7eb4e79a9ea7065411e6cb06e"
+  },
+  "header_sha256": {
+    "Engine/ContentInterchange/VectorAuthoringArrayPlacement.h": "009b126fde1d46a74d7fa3edc9ec15f477ba61e1db1ade29a3ccb69df0207e1a",
+    "Engine/ContentInterchange/VectorAuthoringDocument.h": "f33d5f500b2dd15b286dc26990da734795f4d8badc6166ec139f1681a0fab2e2",
+    "Engine/ContentInterchange/VectorAuthoringEditing.h": "724056bd0481477ac1c0772a56e590159ec75e0a2da874b604486ad52549ba7a",
+    "Engine/ContentInterchange/VectorAuthoringProperties.h": "ae4755d1c8cfeaeea7d114ec257629142d23e551e758badb9c4eb4f03cd8f15b",
+    "Engine/ContentInterchange/VectorAuthoringSelectionEditing.h": "657fa8cad087f7f918e67a1168e5b457ee5d8c87007d3291ec8fe694a71b1059"
+  },
+  "result": "passed"
+}

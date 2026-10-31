@@ -1,0 +1,58 @@
+Format = 1
+Name = "Corrugated Zinc"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.34
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [2, 2, 0, 0]
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "ribbedSheet"
+[Strata.Channels.Params]
+color = "#c6d0d4"
+ribs = 4
+ribDepth = 0.14
+ribProfile = 0
+weaveAngle = 0
+sheetSpangle = 0.3
+sheetOxidation = 0.16
+roughness = 0.34
+surfaceSeed = 23
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "ribbedSheet"
+[Strata.Channels.Params]
+color = "#c6d0d4"
+ribs = 4
+ribDepth = 0.14
+ribProfile = 0
+weaveAngle = 0
+sheetSpangle = 0.3
+sheetOxidation = 0.16
+roughness = 0.34
+surfaceSeed = 23
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "ribbedSheet"
+[Strata.Channels.Params]
+color = "#c6d0d4"
+ribs = 4
+ribDepth = 0.14
+ribProfile = 0
+weaveAngle = 0
+sheetSpangle = 0.3
+sheetOxidation = 0.16
+roughness = 0.34
+surfaceSeed = 23

@@ -1,0 +1,230 @@
+/* Mask property card — MaskPropertyPanel.html frame in Alloy tokens:
+   collapsible section head, 88px property rows, painted-overlay slot, preview row. */
+.mask-property-card {
+  padding: 0;
+  overflow: hidden;
+}
+.mask-property-card .mask-section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px 0 6px;
+  border-bottom: 1px solid #ffffff08;
+}
+.mask-property-card.collapsed .mask-section-head {
+  border-bottom-color: transparent;
+}
+.mask-property-card .mask-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  text-align: left;
+  font-size: 11px;
+  color: #d0d0c3;
+  cursor: pointer;
+}
+.mask-property-card .mask-section-toggle > svg {
+  color: #84847a;
+  transition: transform 0.26s cubic-bezier(0.34, 1.5, 0.64, 1);
+}
+.mask-property-card.collapsed .mask-section-toggle > svg {
+  transform: rotate(-90deg);
+}
+.mask-property-card .mask-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c9d6a8;
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.5, 0.64, 1),
+    opacity 0.2s;
+}
+.mask-property-card.collapsed .mask-dot {
+  transform: scale(0.72);
+  opacity: 0.5;
+}
+.mask-property-card .mask-section-toggle > span {
+  flex: 1;
+}
+.mask-property-card .mask-section-toggle > small {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #858579;
+}
+.mask-property-card .mask-fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mask-property-card.collapsed .mask-fold {
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mask-property-card .mask-fold-clip {
+  overflow: hidden;
+  min-height: 0;
+}
+.mask-property-card .mask-fold-body {
+  padding: 10px 16px 16px;
+  transition:
+    opacity 0.24s ease 0.04s,
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mask-property-card.collapsed .mask-fold-body {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.14s ease,
+    transform 0.2s ease;
+}
+.mask-property-card .mask-prop-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: center;
+  min-height: 32px;
+  margin: 4px 0;
+}
+.mask-property-card .mask-prop-row > span {
+  font-size: 10px;
+  color: #a6a692;
+}
+.mask-property-card .mask-prop-row > select {
+  width: 100%;
+  max-width: none;
+}
+.mask-property-card .mask-rule {
+  height: 1px;
+  background: #ffffff08;
+  margin: 12px 0;
+}
+.mask-property-card .mask-source-pills {
+  margin: 0;
+}
+.mask-property-card .mask-slot-caption {
+  font-size: 8px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #858579;
+  font-weight: 600;
+  padding: 10px 1px 4px;
+}
+.mask-property-card .mask-slot {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px;
+  background: #171717;
+  border: 1px solid #ffffff0c;
+  border-radius: 11px;
+}
+.mask-property-card .mask-slot-thumb {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  border: 1px solid #ffffff14;
+  overflow: hidden;
+  background-color: #0d0d0d;
+  background-image:
+    linear-gradient(45deg, #1c1c1c 25%, transparent 25%, transparent 75%, #1c1c1c 75%),
+    linear-gradient(45deg, #1c1c1c 25%, transparent 25%, transparent 75%, #1c1c1c 75%);
+  background-size: 8px 8px;
+  background-position:
+    0 0,
+    4px 4px;
+  display: grid;
+  place-items: center;
+}
+.mask-property-card .mask-slot-text {
+  flex: 1;
+  min-width: 0;
+}
+.mask-property-card .mask-slot-name {
+  font-size: 10px;
+  color: #c8c8b7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mask-property-card .mask-slot-meta {
+  font-size: 8px;
+  color: #858579;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.mask-property-card .mask-verb {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid #ffffff10;
+  background: #1d1d1d;
+  color: #a3a392;
+  display: grid;
+  place-items: center;
+}
+.mask-property-card .mask-verb.danger:hover:not(:disabled) {
+  background: #3a2721;
+  color: #e3a68f;
+  border-color: #bd76663b;
+}
+.mask-property-card .mask-verb:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.mask-property-card .mask-slot-note {
+  font-size: 8px;
+  line-height: 1.65;
+  color: #8b8b7e;
+  margin: 8px 0 0;
+}
+.mask-property-card .mask-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid #ffffff08;
+  padding-top: 11px;
+  margin-top: 12px;
+}
+.mask-property-card .mask-preview-tile {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  border: 1px solid #ffffff16;
+  overflow: hidden;
+  background-color: #0d0d0d;
+  background-image:
+    linear-gradient(45deg, #1c1c1c 25%, transparent 25%, transparent 75%, #1c1c1c 75%),
+    linear-gradient(45deg, #1c1c1c 25%, transparent 25%, transparent 75%, #1c1c1c 75%);
+  background-size: 8px 8px;
+  background-position:
+    0 0,
+    4px 4px;
+  display: grid;
+  place-items: center;
+}
+.mask-property-card .mask-preview-text > span {
+  display: block;
+  font-size: 9px;
+  color: #a3a392;
+}
+.mask-property-card .mask-preview-text > small {
+  display: block;
+  margin-top: 2px;
+  font-size: 8px;
+  color: #67675e;
+  font-variant-numeric: tabular-nums;
+}

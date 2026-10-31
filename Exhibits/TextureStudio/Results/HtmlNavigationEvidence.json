@@ -1,0 +1,23 @@
+{
+  "Result": "passed",
+  "Capture": "Real HTML DOM and software-WebGL rendering; not native Windows evidence",
+  "Viewport": {
+    "Width": 1440,
+    "Height": 1000
+  },
+  "BrowserVersion": "138.0.7204.0",
+  "Readout": {
+    "CameraLagSeconds": 0.12,
+    "CameraPosition": "-4.770287,6.478582,4.420312",
+    "PreviewShape": "Shader ball",
+    "LayerRows": 17
+  },
+  "PageErrors": [],
+  "OrbitChangesPixels": true,
+  "BeforePixels": "f6674a35cee452fbb021f92e1e4eab47fa4207868e3957e61a594358dc8ee8e5",
+  "AfterPixels": "0d76edfb2faf619f7ac766eb8673a5b2404ff97c44cecc49416c0271995aa759",
+  "Images": [
+    "HtmlPatternLayers.png",
+    "HtmlPatternMaterial.png"
+  ]
+}

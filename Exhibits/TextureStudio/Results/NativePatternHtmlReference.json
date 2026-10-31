@@ -1,0 +1,120 @@
+{
+  "Viewport": {
+    "Width": 1440,
+    "Height": 900
+  },
+  "Document": "Blank plus one rectangle; library collapsed",
+  "Reference": {
+    ".pe-header": {
+      "X": 0,
+      "Y": 0,
+      "Width": 1440,
+      "Height": 43,
+      "Background": "rgb(11, 11, 11)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "0px"
+    },
+    ".pe-library": {
+      "X": 0,
+      "Y": 43,
+      "Width": 278,
+      "Height": 32,
+      "Background": "rgb(18, 18, 18)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "0px"
+    },
+    ".pe-layers-dock": {
+      "X": 0,
+      "Y": 77,
+      "Width": 278,
+      "Height": 823,
+      "Background": "rgb(18, 18, 18)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "0px"
+    },
+    ".pe-workspace": {
+      "X": 280,
+      "Y": 43,
+      "Width": 820,
+      "Height": 857,
+      "Background": "rgb(20, 20, 20)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "0px 24px 28px"
+    },
+    ".pe-inspector": {
+      "X": 1102,
+      "Y": 43,
+      "Width": 338,
+      "Height": 857,
+      "Background": "rgb(18, 18, 18)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "22px 18px"
+    },
+    ".pe-mode-switch": {
+      "X": 304,
+      "Y": 90,
+      "Width": 772,
+      "Height": 44,
+      "Background": "rgba(0, 0, 0, 0)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "3px 0px 12px"
+    },
+    ".pe-canvas-heading": {
+      "X": 304,
+      "Y": 146,
+      "Width": 772,
+      "Height": 76,
+      "Background": "rgba(0, 0, 0, 0)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "10px 0px"
+    },
+    ".se-toolbar-wrap": {
+      "X": 304,
+      "Y": 234,
+      "Width": 772,
+      "Height": 50,
+      "Background": "rgb(25, 25, 25)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "0px"
+    },
+    ".se-viewport": {
+      "X": 305,
+      "Y": 321,
+      "Width": 770,
+      "Height": 430,
+      "Background": "rgb(36, 44, 38)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "0px"
+    },
+    ".pattern-layer-heading": {
+      "X": 0,
+      "Y": 107,
+      "Width": 278,
+      "Height": 57,
+      "Background": "rgba(0, 0, 0, 0)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "17px 16px"
+    },
+    ".pe-repeat": {
+      "X": 304,
+      "Y": 826,
+      "Width": 772,
+      "Height": 132,
+      "Background": "rgba(0, 0, 0, 0)",
+      "Font": "\"DM Sans\", sans-serif",
+      "FontSize": "13px",
+      "Padding": "0px"
+    },
+    ".pattern-channel-card": null
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "result": "passed",
+  "checks": [
+    "actual Vulkan image",
+    "roughness changes actual image pixels",
+    "CAD/MatCap/PBR mode changes",
+    "calibration sphere",
+    "five resident pipelines",
+    "one upload per geometry",
+    "evidence isolated from Project Browser catalogue",
+    "left collapse",
+    "760px no horizontal overflow",
+    "all six original samples reopen without renderer validation",
+    "content-hashed browser asset revisions",
+    "renderer review linked from existing ImGui evidence",
+    "all five evidence tabs switch",
+    "embedded current library/workspace captures and original brief bytes match",
+    "private repository paths refused"
+  ],
+  "page_errors": [],
+  "failed_requests": [],
+  "request_refusals": [
+    {
+      "path": "/.git/config",
+      "expected_status": 403,
+      "actual_status": 403
+    },
+    {
+      "path": "/_ClaudeScratch/",
+      "expected_status": 403,
+      "actual_status": 403
+    },
+    {
+      "path": "/CLAUDE.md",
+      "expected_status": 403,
+      "actual_status": 403
+    },
+    {
+      "expected_status": 400,
+      "actual_status": 400
+    },
+    {
+      "expected_status": 400,
+      "actual_status": 400
+    }
+  ],
+  "sources": [
+    {
+      "file": "Exhibits/SpaceFormats/index.html",
+      "sha256": "8a0ecfdc8b0583139ef40a04fa84ea1b2eec303423ffebb598d26b56921969bf"
+    },
+    {
+      "file": "Exhibits/SpaceFormats/Code/ReviewTemplate.html",
+      "sha256": "ae4912b994277506adbc82965ea516940b25128404a4d8cb7b3a1c87df3d333d"
+    },
+    {
+      "file": "Exhibits/SpaceFormats/Code/BuildReview.py",
+      "sha256": "ecce1080131ab89afc6ae4886780be0bd4345c408ea383bdf260f0d6fedd5e3e"
+    },
+    {
+      "file": "Exhibits/ProjectBrowser/index.html",
+      "sha256": "0d139244c0346afb8a804f08d03cc5e9a7103915abb6e200a55c5ad199c8ddd6"
+    },
+    {
+      "file": "Exhibits/Renderer/index.html",
+      "sha256": "f1c80958f3c6c06405a887138b18351e160cd3e3425adad4e9ad5a003aeb9e05"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/RendererReview.js",
+      "sha256": "f8654d3051d16d7635cc674fb713cd50714af24088db7ccbafdb4b82ee78dac6"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/VulkanPreview.js",
+      "sha256": "e88ba15298c0d01d360a1c7016bcc333d419032779aa1f0cb646e7f4617ce3c0"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/VulkanPreview.css",
+      "sha256": "0595d19d9a9bae7df272f3cb273a5bad4383e6e9d261f629598b768d65bda59e"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/ServeRenderer.py",
+      "sha256": "7f387f49729ae3e394c23c81f6fa6a0b16f754b381e8b9bc593fb140f9d92e60"
+    },
+    {
+      "file": "Experimental/Project browser/Browser.js",
+      "sha256": "df8c2a57e1b40c5ffe170c672a669a8e89d5cf965c9f9a467d14075bec09f480"
+    },
+    {
+      "file": "Experimental/Project browser/index.html",
+      "sha256": "f387f37fe029b4b7cd5d7a503497b0c39d6ec9c66a6e74be3cd7481d3126a839"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/PreviewPbrBrowserChecks.mjs",
+      "sha256": "4efb633d3f1d517f46a52195b1db4d6a2bf4b4b5c5b5d6e15b61213d6d9369f8"
+    }
+  ],
+  "windows_editor_execution": false
+}

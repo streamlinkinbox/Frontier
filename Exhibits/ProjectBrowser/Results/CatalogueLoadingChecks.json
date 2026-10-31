@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "viewport": {
+    "width": 890,
+    "height": 800
+  },
+  "visible_cards": 6,
+  "total_cards": 6,
+  "checks": [
+    "Content-hashed asset URLs bypass old unversioned scripts",
+    "Six rendered file cards and visible entries at embedded preview size",
+    "All six files open and return to the catalogue",
+    "CAD filtering and reload preserve visible catalogue"
+  ],
+  "page_errors": []
+}

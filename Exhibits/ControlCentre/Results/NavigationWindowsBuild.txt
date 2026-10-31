@@ -1,0 +1,6 @@
+[0/2] Re-checking globbed directories...
+[1/6] Building CXX object CMakeFiles/FrontierUI.dir/Engine/Interface/VulkanPresentation.cpp.obj
+[2/6] Building CXX object CMakeFiles/FrontierUI.dir/Exhibits/UIFoundation/Code/WindowsUI.cpp.obj
+[3/6] Building CXX object CMakeFiles/FrontierUIDX11.dir/Exhibits/UIFoundation/Code/WindowsUI.cpp.obj
+[4/6] Linking CXX executable FrontierUI.exe
+[5/6] Linking CXX executable FrontierUIDX11.exe

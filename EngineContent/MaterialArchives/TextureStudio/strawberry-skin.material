@@ -1,0 +1,78 @@
+Format = 1
+Name = "Strawberry Skin"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.58
+Metallic = 0
+Ior = 1.45
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/strawberry-skin-albedo.png"
+Orm = "Textures/strawberry-skin-orm.png"
+Normal = "Textures/strawberry-skin-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "fruit"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 12
+skinMode = 2
+spotDensity = 0.4
+colorGradient = 0.65
+grain = 0.85
+surfaceSeed = 17
+roughness = 0.34
+color = "#a91f21"
+secondaryColor = "#c9a259"
+tertiaryColor = "#691719"
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "fruit"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 12
+skinMode = 2
+spotDensity = 0.4
+colorGradient = 0.65
+grain = 0.85
+surfaceSeed = 17
+roughness = 0.34
+color = "#a91f21"
+secondaryColor = "#c9a259"
+tertiaryColor = "#691719"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "fruit"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 12
+skinMode = 2
+spotDensity = 0.4
+colorGradient = 0.65
+grain = 0.85
+surfaceSeed = 17
+roughness = 0.34
+color = "#a91f21"
+secondaryColor = "#c9a259"
+tertiaryColor = "#691719"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.22
+Metallic = 0.0
+Ior = 1.45
+Coverage = 0.22

@@ -1,0 +1,30 @@
+{
+  "result": "passed",
+  "captured_frames": 222,
+  "encoded_frames": 26,
+  "duration_ms_per_input_frame": 110,
+  "pillow": "13.0.0",
+  "native_cursor": true,
+  "cpu_vector_rasterization": false,
+  "imgui_triangle_capture_on_cpu": true,
+  "vulkan_canvas": true,
+  "windows_executed": false,
+  "os_window_created": false,
+  "raw_frame_sequence_sha256": "b1e35511bc4e691f86aaab041ca94adffc64496b48154cdf85cfee3dcd6003dd",
+  "gif_sha256": "1d7990490e7fe7bf091d2e66cd2248cb777f173893830390745a119f2a9a240c",
+  "executable_sha256": "acdf1c26d1f77e416acc81fdfd367a75439ae4c42967054f6c776128c253c72b",
+  "source_sha256": {
+    "Engine/ContentInterchange/VectorAuthoringSelectionEditing.cpp": "f1995ff3c7dd57ee48c16d9b845f1dffeb83f36f717d16447b03f15af5f0431c",
+    "Engine/ContentInterchange/VectorAuthoringSelectionEditing.h": "657fa8cad087f7f918e67a1168e5b457ee5d8c87007d3291ec8fe694a71b1059",
+    "Engine/ContentInterchange/VectorAuthoringEditing.cpp": "bcb33ba96737ba6b5dcc58ffb6e856b36d5f12b7f835c85c7a9ce36ad86199b2",
+    "Engine/ContentInterchange/VectorAuthoringEditing.h": "724056bd0481477ac1c0772a56e590159ec75e0a2da874b604486ad52549ba7a",
+    "Exhibits/TextureStudio/Code/EncodeNativePatternMotion.py": "ef7d7c8fb45fe4b41ae91421cb6dde20c8a0e58f379e78238814eff546065b3a",
+    "Exhibits/TextureStudio/Code/PatternWorkspaceValidation.cpp": "2b7648f186724a34cd21a209b6f0cc8561fbeaf052b7f2d44dbcfdf7f24e6c12",
+    "UI/TextureStudio/PatternWorkspacePanel.cpp": "5c702126f1270ba160094b59c20a27e9407893e4efbbcbe360082c9882a8015d",
+    "UI/TextureStudio/PatternWorkspacePanel.h": "14d0cf2d48059e6c6843d74a29a378a4196647a64a48af3ebac5e8b7d20a9d79",
+    "Engine/Interface/VectorAuthoringControls.cpp": "bdf658cb6025be04bec29893eb690a6c13ef18525d33f1c3d4b8aa899cfd1773",
+    "Engine/Interface/VectorAuthoringControls.h": "87ef3899fde8bffdfa95f174df740cbd20d227b64811da52f18d8977c9505734",
+    "Engine/ContentInterchange/CubicPathEditing.cpp": "cb1fb786d809d30008ddecef9e838f2f04d599927eb9e9835345cb31af9e62fa",
+    "Engine/ContentInterchange/CubicPathEditing.h": "21d353aecc50ae220bb9253b0edf224e8f6be91812c3a19073ec62f0c58a1a03"
+  }
+}

@@ -1,0 +1,236 @@
+[
+  {
+    "id": "F01",
+    "classification": "confirmed",
+    "summary": "13 FSPC file types; no fontspace type in the baseline.",
+    "source": "Engine/ContentInterchange/SpaceFormat.h",
+    "first_line": 97,
+    "last_line": 113,
+    "correction": "Keep the 13 existing contracts. Propose fontspace as a justified, unimplemented addition."
+  },
+  {
+    "id": "F02",
+    "classification": "confirmed",
+    "summary": "Header 20 bytes; instance row 112 bytes; material slot 24 bytes.",
+    "source": "Engine/ContentInterchange/SpaceFormat.h",
+    "first_line": 128,
+    "last_line": 253,
+    "correction": "Use actual serialized fields, not superseded prose sizes. Freeze v1 fixtures before new layouts."
+  },
+  {
+    "id": "F03",
+    "classification": "confirmed",
+    "summary": "Reference record combines type/mode/path/blob with FNV-1a 64 content hash.",
+    "source": "Engine/ContentInterchange/SpaceFormat.h",
+    "first_line": 179,
+    "last_line": 209,
+    "correction": "Specify independent logical identity, immutable revision, output token, SHA-256 and locator."
+  },
+  {
+    "id": "F04",
+    "classification": "confirmed",
+    "summary": "External-reference load returns file bytes without comparing recorded content hash.",
+    "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+    "first_line": 982,
+    "last_line": 1028,
+    "correction": "Verify external and embedded payload digests and expected type/revision under the same contract."
+  },
+  {
+    "id": "F05",
+    "classification": "confirmed",
+    "summary": "SpacePack embeds the current file REFS; it does not recurse into loaded payload dependencies.",
+    "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+    "first_line": 741,
+    "last_line": 797,
+    "correction": "Traverse and pin the complete dependency closure, with full missing/cycle chains and budgets."
+  },
+  {
+    "id": "F06",
+    "classification": "confirmed",
+    "summary": "Parse checks bounds/type/mandatory presence, records checksum failures, and returns true.",
+    "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+    "first_line": 418,
+    "last_line": 502,
+    "correction": "Separate structural inspection from strict load; reject bad required sections before typed access."
+  },
+  {
+    "id": "F07",
+    "classification": "confirmed",
+    "summary": "Find returns the first matching tag; Parse has no duplicate-singleton or overlap rejection.",
+    "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+    "first_line": 441,
+    "last_line": 493,
+    "correction": "Define duplicate/overlap/alignment policy, version/feature validation and allocation/work limits."
+  },
+  {
+    "id": "F08",
+    "classification": "confirmed",
+    "summary": "Writer uses table insertion order, hash-sorted blobs, and raw serialized row bytes.",
+    "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+    "first_line": 292,
+    "last_line": 375,
+    "correction": "Define canonical semantic ordering and ABI-independent encoding; do not promise arbitrary byte identity."
+  },
+  {
+    "id": "F09",
+    "classification": "confirmed",
+    "summary": "Extraction interpolates a directory into a shell mkdir and truncates destination files.",
+    "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+    "first_line": 704,
+    "last_line": 717,
+    "correction": "Use filesystem APIs, contained paths, explicit no-overwrite policy, staging and atomic publication."
+  },
+  {
+    "id": "F10",
+    "classification": "suspected",
+    "summary": "Quoted output paths may permit command injection; no exploit was executed.",
+    "source": "Engine/ContentInterchange/SpaceCodec.cpp",
+    "first_line": 704,
+    "last_line": 717,
+    "correction": "Treat the shell boundary as a security review blocker, not an already-demonstrated exploit."
+  },
+  {
+    "id": "F11",
+    "classification": "confirmed",
+    "summary": "Geometry export serializes resident VertexRecord bytes and a fixed cluster prefix.",
+    "source": "Engine/ContentInterchange/SpaceExport.cpp",
+    "first_line": 47,
+    "last_line": 84,
+    "correction": "Preserve legacy export/readers; define durable authored CAD schemas separate from GPU representations."
+  },
+  {
+    "id": "F12",
+    "classification": "confirmed",
+    "summary": "CAD has recipe operations and figure IDs, but edge/face inputs include array indices.",
+    "source": "Editor/AuthoringTools/Modelling/SolidArc/Document/FigureRecipe.h",
+    "first_line": 23,
+    "last_line": 70,
+    "correction": "Adapt the document model; define durable output/topology tokens and explicit split/merge rebinding."
+  },
+  {
+    "id": "F13",
+    "classification": "confirmed",
+    "summary": "Recipe regeneration iterates at most four rounds rather than dependency-order evaluation.",
+    "source": "Editor/AuthoringTools/Modelling/SolidArc/Document/SceneDocument.cpp",
+    "first_line": 268,
+    "last_line": 305,
+    "correction": "Specify typed DAG validation and deterministic ordering; retain last-valid output and diagnostics."
+  },
+  {
+    "id": "F14",
+    "classification": "confirmed",
+    "summary": "Undo/redo stores and swaps SceneDocument snapshots.",
+    "source": "Editor/AuthoringTools/Modelling/SolidArc/Document/UndoSequence.cpp",
+    "first_line": 138,
+    "last_line": 155,
+    "correction": "Keep editor navigation separate from persistent authoring dependencies and revision ancestry."
+  },
+  {
+    "id": "F15",
+    "classification": "confirmed",
+    "summary": "An editable .arc construction-journal save/open path already exists.",
+    "source": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp",
+    "first_line": 2142,
+    "last_line": 2240,
+    "correction": "Preserve .arc as legacy input. Import supported construction into the new schema without discarding it."
+  },
+  {
+    "id": "F16",
+    "classification": "confirmed",
+    "summary": "Open replays into a candidate host; constraints, dimensions and named planes also live on ConsoleHost.",
+    "source": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp",
+    "first_line": 2188,
+    "last_line": 2238,
+    "correction": "Candidate replay is not a security sandbox. Map all authored state, not SceneDocument alone."
+  },
+  {
+    "id": "F17",
+    "classification": "confirmed",
+    "summary": "Command dispatch invokes recipe regeneration and snapshot undo settlement.",
+    "source": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp",
+    "first_line": 5114,
+    "last_line": 5132,
+    "correction": "Reconnect real command consumers; do not implement a parallel CAD authoring model."
+  },
+  {
+    "id": "F18",
+    "classification": "confirmed",
+    "summary": "State domains and several authoring editors are explicitly deferred in the old document.",
+    "source": "Docs/ProjectFormat.md",
+    "first_line": 400,
+    "last_line": 416,
+    "correction": "Preserve that status; container vocabulary is not complete editable-domain persistence."
+  },
+  {
+    "id": "F19",
+    "classification": "confirmed",
+    "summary": "The historical gate compiles CPU tools with Vulkan headers and suppresses some warnings.",
+    "source": "Exhibits/Workbench/ProjectFormat/CheckSpaceFamily.sh",
+    "first_line": 24,
+    "last_line": 60,
+    "correction": "Do not run the old gate as if it validates a proposed revision; define focused new fixtures and platform checks."
+  },
+  {
+    "id": "F20",
+    "classification": "confirmed",
+    "summary": "Two historical checks explicitly skip GPU image-comparison halves.",
+    "source": "Exhibits/Workbench/ProjectFormat/SpaceFamilyProof.cpp",
+    "first_line": 1,
+    "last_line": 15,
+    "correction": "Historical results are not current runs or Windows/GPU validation."
+  },
+  {
+    "id": "F21",
+    "classification": "confirmed",
+    "summary": "CLI parses embed-font policy; that bit alone does not implement a native font document.",
+    "source": "Projects/Project-Zero/Source/CommandLine.cpp",
+    "first_line": 78,
+    "last_line": 86,
+    "correction": "Propose fontspace semantics and trace packaging consumers before assigning a type tag."
+  },
+  {
+    "id": "F22",
+    "classification": "confirmed",
+    "summary": "Pack/explode wrappers build/reuse the shared tool, with POSIX paths and output conventions.",
+    "source": "Tools/Scripts/ExplodeProject.sh",
+    "first_line": 1,
+    "last_line": 34,
+    "correction": "Reuse the codec boundary, replace unsafe platform assumptions, and verify supported Windows tooling."
+  },
+  {
+    "id": "F23",
+    "classification": "confirmed",
+    "summary": "A runtime sky-probe reader uses SpaceReader and checks staged cache compatibility.",
+    "source": "Projects/Project-Zero/Source/CelestialSequence.cpp",
+    "first_line": 589,
+    "last_line": 620,
+    "correction": "Keep cache compatibility checks explicit; never mistake evaluated cache persistence for authored geometry."
+  },
+  {
+    "id": "F24",
+    "classification": "suspected",
+    "summary": "Complete project-open consumer coverage is not established by parsing CLI options alone.",
+    "source": "Projects/Project-Zero/Source/CommandLine.cpp",
+    "first_line": 111,
+    "last_line": 138,
+    "correction": "Finish launch/export consumer mapping in phase 1 before claiming an end-to-end migration."
+  },
+  {
+    "id": "F25",
+    "classification": "proposed requirement",
+    "summary": "Strict acyclic typed dependencies, immutable revisions, stable outputs and safe offline closure.",
+    "source": "Engine/ContentInterchange/SpaceCodec.h",
+    "first_line": 165,
+    "last_line": 203,
+    "correction": "The existing resolver/pack API is a reuse candidate, not evidence that these new guarantees are implemented."
+  },
+  {
+    "id": "F26",
+    "classification": "proposed requirement",
+    "summary": "Fontspace includes licensing, pinned fallback, variable-axis metadata and derived atlas provenance.",
+    "source": "Engine/ContentInterchange/SpaceFormat.h",
+    "first_line": 97,
+    "last_line": 113,
+    "correction": "Review existing FontCodec/TypefaceRegistry/TOML catalogue in the current checkout; add no duplicate runtime path."
+  }
+]

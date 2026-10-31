@@ -1,0 +1,65 @@
+Format = 1
+Name = "Autumn Leaf"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.6
+Metallic = 0
+Ior = 1.45
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.31398871337571754, 0.09084171118340768, 0.0202885630566524]
+SheenIntensity = 0.15
+SheenRoughness = 0.55
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/autumn-leaf-albedo.png"
+Normal = "Textures/autumn-leaf-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "leaf"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 12
+cellScale = 120
+cellRelief = 0.5
+cellLobing = 0.65
+stomataDensity = 0.22
+veinRelief = 0.65
+colorGradient = 0.75
+surfaceSeed = 17
+color = "#985527"
+secondaryColor = "#c3a24a"
+tertiaryColor = "#c78b37"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "leaf"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 12
+cellScale = 120
+cellRelief = 0.5
+cellLobing = 0.65
+stomataDensity = 0.22
+veinRelief = 0.65
+colorGradient = 0.75
+surfaceSeed = 17
+color = "#985527"
+secondaryColor = "#c3a24a"
+tertiaryColor = "#c78b37"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.12
+Metallic = 0.0
+Ior = 1.45
+Coverage = 0.12

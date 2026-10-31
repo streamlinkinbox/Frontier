@@ -1,0 +1,225 @@
+Format = 1
+Name = 'Canyon Stratified Sandstone'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[Authoring]
+Variables = []
+Version = 2
+
+    [Authoring.Designer]
+
+    [Authoring.Inputs]
+    'field:5eeb4690-5620-47cd-807c-15b8aa2df3db:amount' = 1.0
+    'field:5eeb4690-5620-47cd-807c-15b8aa2df3db:angle' = 14.0
+    'field:5eeb4690-5620-47cd-807c-15b8aa2df3db:scale' = 5.0
+    'field:5eeb4690-5620-47cd-807c-15b8aa2df3db:seed' = 88.0
+    'field:95080d05-b630-401b-ac0c-f88a025579f8:amount' = 1.0
+    'field:95080d05-b630-401b-ac0c-f88a025579f8:angle' = -18.0
+    'field:95080d05-b630-401b-ac0c-f88a025579f8:scale' = 3.7999999999999998
+    'field:95080d05-b630-401b-ac0c-f88a025579f8:seed' = 304.0
+    'layer:4bd00a0c-cadd-4194-b184-de50c7c11296:colour' = '#33221d'
+    'layer:4bd00a0c-cadd-4194-b184-de50c7c11296:coverage' = 1.0
+    'layer:4bd00a0c-cadd-4194-b184-de50c7c11296:normal' = [ 0.17999999999999999, 0.17999999999999999, 1.0 ]
+    'layer:4bd00a0c-cadd-4194-b184-de50c7c11296:roughness' = 0.23999999999999999
+    'layer:b1aae488-fa48-419a-a294-78dba978b0a8:colour' = '#a84424'
+    'layer:b1aae488-fa48-419a-a294-78dba978b0a8:coverage' = 1.0
+    'layer:b1aae488-fa48-419a-a294-78dba978b0a8:normal' = [ 0.47999999999999998, 0.47999999999999998, 1.0 ]
+    'layer:b1aae488-fa48-419a-a294-78dba978b0a8:roughness' = 0.73999999999999999
+
+    [Authoring.Links]
+
+    [[Authoring.Generators]]
+    Category = 'Particle fields'
+    Coded = false
+    Enabled = true
+    Identity = '0dc419d8-7df1-44a6-a93d-b23639534574'
+    Inputs = [
+        'flakes',
+        'flakeSize',
+        'flakeScale',
+        'flakeLayers',
+        'flakeLayerDepth',
+        'flakeTilt',
+        'flakeRoughnessMin',
+        'flakeRoughnessMax',
+        'flakeMetalnessMin',
+        'flakeMetalnessMax'
+    ]
+    Name = 'Mineral flake distribution'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'flakes'
+
+    [[Authoring.Generators]]
+    Category = 'Structural fields'
+    Coded = false
+    Enabled = true
+    Identity = '8ec0ca62-77d6-44e8-9341-28517c007b13'
+    Inputs = []
+    Name = 'Canyon Stratified Sandstone'
+    Outputs = [ 'colour', 'normal', 'roughness', 'metallic' ]
+    Procedure = 'stucco'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = '5eeb4690-5620-47cd-807c-15b8aa2df3db'
+    Inputs = [
+        'field:5eeb4690-5620-47cd-807c-15b8aa2df3db:scale',
+        'field:5eeb4690-5620-47cd-807c-15b8aa2df3db:seed',
+        'field:5eeb4690-5620-47cd-807c-15b8aa2df3db:angle',
+        'field:5eeb4690-5620-47cd-807c-15b8aa2df3db:amount'
+    ]
+    Name = 'Cross-bedded iron laminae'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'stripes'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = '95080d05-b630-401b-ac0c-f88a025579f8'
+    Inputs = [
+        'field:95080d05-b630-401b-ac0c-f88a025579f8:scale',
+        'field:95080d05-b630-401b-ac0c-f88a025579f8:seed',
+        'field:95080d05-b630-401b-ac0c-f88a025579f8:angle',
+        'field:95080d05-b630-401b-ac0c-f88a025579f8:amount'
+    ]
+    Name = 'Rock varnish patina'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'noise'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = '4bd00a0c-cadd-4194-b184-de50c7c11296'
+    Model = 'detail'
+    Name = 'Manganese desert varnish'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = 'b1aae488-fa48-419a-a294-78dba978b0a8'
+    Model = 'detail'
+    Name = 'Navajo Liesegang iron strata'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Enabled = true
+    Generator = '0dc419d8-7df1-44a6-a93d-b23639534574'
+    Identity = 'f4319418-5bb5-4009-b654-bc1cb10415c4'
+    Model = 'flakes'
+    Name = 'Mineral flakes'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'ior', 'specular', 'thickness' ]
+    Enabled = true
+    Identity = '7bdfb060-5d03-42b7-97f7-2ac516622bac'
+    Model = 'surface'
+    Name = 'Surface body'
+
+    [[Authoring.Sources]]
+    Address = 'layer:4bd00a0c-cadd-4194-b184-de50c7c11296:colour'
+    Direct = true
+    Generator = '95080d05-b630-401b-ac0c-f88a025579f8'
+    Mode = 'field'
+    Stops = [ '#211613', '#382520', '#4d342c' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:4bd00a0c-cadd-4194-b184-de50c7c11296:coverage'
+    Direct = true
+    Generator = '95080d05-b630-401b-ac0c-f88a025579f8'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#b0b0b0', '#f0f0f0' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:4bd00a0c-cadd-4194-b184-de50c7c11296:normal'
+    Direct = true
+    Generator = '95080d05-b630-401b-ac0c-f88a025579f8'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#b0b0b0', '#f0f0f0' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:b1aae488-fa48-419a-a294-78dba978b0a8:colour'
+    Direct = true
+    Generator = '5eeb4690-5620-47cd-807c-15b8aa2df3db'
+    Mode = 'field'
+    Stops = [ '#7d2c18', '#c96436', '#ebba88', '#9c3b20' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:b1aae488-fa48-419a-a294-78dba978b0a8:coverage'
+    Direct = true
+    Generator = '5eeb4690-5620-47cd-807c-15b8aa2df3db'
+    Mode = 'field'
+    Stops = [ '#000000', '#555555', '#c8c8c8', '#707070', '#e6e6e6' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:b1aae488-fa48-419a-a294-78dba978b0a8:normal'
+    Direct = true
+    Generator = '5eeb4690-5620-47cd-807c-15b8aa2df3db'
+    Mode = 'field'
+    Stops = [ '#000000', '#555555', '#c8c8c8', '#707070', '#e6e6e6' ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.51999998092651367, 320.0, 1.2000000476837158, 0.059999998658895493 ]
+Enabled = true
+Finish = [ 0.14000000059604645, 0.44999998807907104, 0.0, 0.11999999731779099 ]
+Layers = 3
+Palette = [
+    [ 1.0, 0.77582234144210815, 0.55201148986816406, 0.0 ],
+    [ 0.80695235729217529, 0.3564002513885498, 0.14702728390693665, 0.25 ],
+    [ 0.479320228099823, 0.080219827592372894, 0.027320891618728638, 0.5 ],
+    [ 1.0, 1.0, 1.0, 0.75 ],
+    [ 0.26225072145462036, 0.038204364478588104, 0.012983030639588833, 1.0 ]
+]
+Relief = [ 0.34000000357627869, 0.40000000596046448, 0.05000000074505806, 30.0 ]
+
+[Textures]
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 0.5647115057049292, 0.14702728390693665, 0.04666508633059758 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.34999999403953552
+Ior = 1.5440000295639038
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.77999997138977051
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 5
+Thickness = 0.0
+UvScaleOffset = [ 4.0, 4.0, 0.0, 0.0 ]
+
+    [Strata.Textures]
+    Albedo = 'Textures/canyon-banded-sandstone-albedo.png'
+    Normal = 'Textures/canyon-banded-sandstone-normal.png'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Albedo'
+    Op = 'stucco'
+
+        [Strata.Channels.Params]
+        detailScale = 16.0
+        grain = 0.68
+        surfaceSeed = 817.0
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Normal'
+    Op = 'stucco'
+
+        [Strata.Channels.Params]
+        detailScale = 16.0
+        grain = 0.68
+        surfaceSeed = 817.0

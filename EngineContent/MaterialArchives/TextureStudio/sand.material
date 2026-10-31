@@ -1,0 +1,46 @@
+Format = 1
+Name = 'Sand'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.56000000238418579, 340.0, 1.0, 0.079999998211860657 ]
+Enabled = true
+Finish = [ 0.15999999642372131, 0.5, 0.0, 0.059999998658895493 ]
+Layers = 3
+Palette = [
+    [ 0.90466135740280151, 0.82278585433959961, 0.64447975158691406, 0.0 ],
+    [ 0.73791056871414185, 0.55834048986434937, 0.30498737096786499, 0.25 ],
+    [ 0.57758051156997681, 0.36625269055366516, 0.14995980262756348, 0.5 ],
+    [ 1.0, 0.93868589401245117, 0.80695235729217529, 0.75 ],
+    [ 0.20507870614528656, 0.13843162357807159, 0.072271861135959625, 1.0 ]
+]
+Relief = [ 0.34000000357627869, 0.41999998688697815, 0.05000000074505806, 32.0 ]
+
+[Textures]
+Albedo = 'Textures/sand-albedo.png'
+Normal = 'Textures/sand-normal.png'
+Orm = 'Textures/sand-orm.png'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 1.0
+Ior = 1.5440000295639038
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 1.0
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 0.5
+TextureMask = 7
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

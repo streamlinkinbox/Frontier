@@ -1,0 +1,60 @@
+
+> alloy-material-studio@1.0.0 test
+> playwright test tests/stamp-vector-studio.spec.js tests/stamp-transform-studio.spec.js tests/stamp-decal-studio.spec.js tests/shape-editor-svg-tools.spec.js
+
+
+Running 28 tests using 1 worker
+
+  ✓   1 tests/shape-editor-svg-tools.spec.js:77:1 › curve stroke and fill controls are visible in the workbench and zero really removes the stroke (10.5s)
+  ✓   2 tests/shape-editor-svg-tools.spec.js:147:1 › Curve and Pen snap to anchors, other curves, the grid and constrained angles (11.4s)
+  ✓   3 tests/shape-editor-svg-tools.spec.js:217:1 › point and tangent edits use snap targets while a multiple-anchor move remains rigid (9.3s)
+  ✓   4 tests/shape-editor-svg-tools.spec.js:270:1 › text supports multiline typography, native editing, outlines and portable vector exports (7.2s)
+  ✓   5 tests/shape-editor-svg-tools.spec.js:337:1 › SVG markup embeds definitions, local reuse and safe styles, edits transactionally and namespaces copies (6.9s)
+  ✓   6 tests/shape-editor-svg-tools.spec.js:392:1 › SVG source refuses scripts, external resources, recursive use and invalid edits without modifying the document (6.9s)
+  ✓   7 tests/shape-editor-svg-tools.spec.js:451:1 › arc, style eyedropper and true boolean differences remain editable and undoable (8.5s)
+  ✓   8 tests/shape-editor-svg-tools.spec.js:512:1 › phone text, snap options and SVG source controls have no horizontal overflow (4.3s)
+  ✓   9 tests/stamp-decal-studio.spec.js:114:1 › rich stamp text formats a real character range with mixed fonts/sizes, grows geometry and exports real outlines (7.6s)
+  ✓  10 tests/stamp-decal-studio.spec.js:164:1 › Stamp composes embedded/imported SVG and a raster, rejects executable markup and round-trips editable preset/project data (10.8s)
+  ✘  11 tests/stamp-decal-studio.spec.js:274:1 › stamp brush places real visible decals under a regular layer, multiple components under a Decal layer, and persists undo/redo (1.1m)
+  ✘  12 tests/stamp-decal-studio.spec.js:323:1 › surface transform placement uses real 3D handles, one undo per drag, and re-anchor preserves an existing component (1.0m)
+
+
+  1) tests/stamp-decal-studio.spec.js:274:1 › stamp brush places real visible decals under a regular layer, multiple components under a Decal layer, and persists undo/redo 
+
+    TypeError: Cannot read properties of null (reading 'x')
+
+      64 | async function surfaceClick(page, x = 0.5, y = 0.5) {
+      65 |   const box = await canvas(page).boundingBox();
+    > 66 |   await page.mouse.click(box.x + box.width * x, box.y + box.height * y);
+         |                              ^
+      67 | }
+      68 | async function frameHash(page) {
+      69 |   await page.evaluate(
+        at surfaceClick (/home/user/Frontier/Experimental/TextureStudio/tests/stamp-decal-studio.spec.js:66:30)
+        at /home/user/Frontier/Experimental/TextureStudio/tests/stamp-decal-studio.spec.js:301:3
+
+    Error Context: test-results/stamp-decal-studio-stamp-b-71c91-ayer-and-persists-undo-redo/error-context.md
+
+  2) tests/stamp-decal-studio.spec.js:323:1 › surface transform placement uses real 3D handles, one undo per drag, and re-anchor preserves an existing component 
+
+    Test was interrupted.
+
+    Error: mouse.move: Test ended.
+
+      338 |   await page.mouse.move(x + 42, y + 7);
+      339 |   await page.mouse.down();
+    > 340 |   await page.mouse.move(x + 78, y + 13, { steps: 8 });
+          |                    ^
+      341 |   await page.mouse.up();
+      342 |   let saved = await project(page);
+      343 |   expect(components(saved)[0].position).not.toEqual(old.position);
+        at /home/user/Frontier/Experimental/TextureStudio/tests/stamp-decal-studio.spec.js:340:20
+
+    Error Context: test-results/stamp-decal-studio-surface-ec225-erves-an-existing-component/error-context.md
+
+  1 failed
+    tests/stamp-decal-studio.spec.js:274:1 › stamp brush places real visible decals under a regular layer, multiple components under a Decal layer, and persists undo/redo 
+  1 interrupted
+    tests/stamp-decal-studio.spec.js:323:1 › surface transform placement uses real 3D handles, one undo per drag, and re-anchor preserves an existing component 
+  16 did not run
+  10 passed (3.6m)

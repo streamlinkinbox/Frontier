@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Native pixel transport only: all workspace controls are constructed by C++ ImGui, not HTML. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Native Pattern · ImGui pixel stream</title>
+<style>
+html,body{margin:0;background:#090909;color:#c4ccb6;font:13px system-ui}header{padding:9px 14px;display:flex;gap:20px;align-items:center}small{color:#8e9980}main{overflow:auto}img{display:block;width:100%;height:auto;outline:none;touch-action:none;user-select:none}#Status{margin-left:auto}footer{padding:10px 14px;color:#8e9980}
+</style></head><body>
+<header><strong>C++ ImGui · native pixel stream</strong><small>Vulkan canvas · CPU capture of ImGui triangles · shared ephemeral session, not an OS window</small><span id="Status">Connecting…</span></header>
+<main><img id="Pixels" src="/frame.png" width="1440" height="900" tabindex="0" draggable="false" alt="Live pixels captured from the native C++ Pattern workspace"></main>
+<footer>Click the image to focus. P: Pen · A: Points · V: Select · Enter: finish open · Escape: cancel · Alt: independent tangent · Ctrl+Z: undo. Low-rate validation viewer; no durable file saving or OS docking here.</footer>
+<script>
+const Pixels=document.querySelector('#Pixels'),Status=document.querySelector('#Status');
+let X=0,Y=0,Buttons=0,Ctrl=0,Shift=0,Alt=0,Focused=1,Busy=false,Queue=[],Stopped=false,Serial=0;
+const Keys={KeyV:1,KeyA:2,KeyP:3,KeyR:4,KeyO:5,Enter:6,Escape:7,Backspace:8,Delete:9,ArrowLeft:10,ArrowRight:11,ArrowUp:12,ArrowDown:13,KeyZ:14,KeyY:15,KeyS:16,Space:17};
+function Coordinates(Event){const Rect=Pixels.getBoundingClientRect();X=(Event.clientX-Rect.left)*1440/Rect.width;Y=(Event.clientY-Rect.top)*900/Rect.height;Ctrl=+Event.ctrlKey;Shift=+Event.shiftKey;Alt=+Event.altKey;}
+function Enqueue(Key=0,Pressed=0,Wheel=0,Character=0,Motion=false){
+ const Input=[X,Y,Buttons,Wheel,Ctrl,Shift,Alt,Key,Pressed,Focused,Character];
+ if(Motion&&Queue.length&&Queue[Queue.length-1].Motion)Queue[Queue.length-1]={Input,Motion};else Queue.push({Input,Motion});
+ Pump();
+}
+async function Pump(){
+ if(Busy||Stopped||!Queue.length)return;Busy=true;const Next=Queue.shift();
+ try{
+  const Response=await fetch('/input',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Next.Input)});
+  if(!Response.ok)throw Error(await Response.text());const Result=await Response.json();Serial=Result.serial;
+  const ImageResponse=await fetch('/frame.png?serial='+Serial);if(!ImageResponse.ok)throw Error('Capture unavailable');
+  const Url=URL.createObjectURL(await ImageResponse.blob());await new Promise((Resolve,Reject)=>{Pixels.onload=Resolve;Pixels.onerror=Reject;Pixels.src=Url;});URL.revokeObjectURL(Url);
+  Status.textContent='Native submission '+Serial+' · revision '+Result.revision;
+ }catch(Failure){Status.textContent='Stream stopped: '+Failure.message;Stopped=true;}
+ finally{Busy=false;Pump();}
+}
+Pixels.addEventListener('pointerdown',Event=>{if(Event.button>2)return;Event.preventDefault();Pixels.focus();Focused=1;Coordinates(Event);Pixels.setPointerCapture(Event.pointerId);Buttons|=1<<(Event.button===1?2:Event.button===2?1:0);Enqueue();});
+Pixels.addEventListener('pointermove',Event=>{Coordinates(Event);Enqueue(0,0,0,0,true);});
+Pixels.addEventListener('pointerup',Event=>{Coordinates(Event);Buttons&=~(1<<(Event.button===1?2:Event.button===2?1:0));Enqueue();if(Pixels.hasPointerCapture(Event.pointerId))Pixels.releasePointerCapture(Event.pointerId);});
+Pixels.addEventListener('pointercancel',()=>{Buttons=0;Focused=0;Enqueue();});
+Pixels.addEventListener('contextmenu',Event=>Event.preventDefault());
+Pixels.addEventListener('wheel',Event=>{Event.preventDefault();Coordinates(Event);Enqueue(0,0,Math.max(-20,Math.min(20,-Event.deltaY/100)));},{passive:false});
+for(const Category of ['keydown','keyup'])Pixels.addEventListener(Category,Event=>{Event.preventDefault();Ctrl=+Event.ctrlKey;Shift=+Event.shiftKey;Alt=+Event.altKey;const Pressed=+(Category==='keydown');const Character=Pressed&&!Ctrl&&!Alt&&[...Event.key].length===1?Event.key.codePointAt(0):0;Enqueue(Keys[Event.code]||0,Pressed,0,Character);});
+window.addEventListener('blur',()=>{Focused=0;Buttons=Ctrl=Shift=Alt=0;Enqueue();});
+Pixels.addEventListener('focus',()=>{Focused=1;Enqueue();});
+setInterval(()=>{if(!Busy&&!Queue.length&&!Stopped)Enqueue();},400);
+</script></body></html>

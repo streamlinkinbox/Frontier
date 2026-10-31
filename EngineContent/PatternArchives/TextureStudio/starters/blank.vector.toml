@@ -1,0 +1,9 @@
+format = "frontier.vector_artwork"
+version = 1
+name = "Custom pattern"
+stamp = false
+token_clock = 1
+instructions = [{ topology = [0, 0, 0, 0], bounds = [256, 256, 512, 512], transform = [0, 0, 1, 0], colour = [0.9254902, 0.8980392, 0.8392157, 1], colour_end = [0.9254902, 0.8980392, 0.8392157, 1], paint = [0, 0, 0, 1] }]
+segments = []
+layers = [{ token = 1, name = "Pattern background", visible = true, locked = false, root = 0, surface_channels = { colour = { enabled = true, strength = 1 }, height = { enabled = false, strength = 0 }, normal = { enabled = false, strength = 0 }, roughness = { enabled = false, strength = 0 }, metalness = { enabled = false, strength = 0 }, opacity = { enabled = false, strength = 0 }, occlusion = { enabled = false, strength = 0 } }, surface_structure = "freeform", textile_geometry = "unclassified", surface_relief = 0 }]
+enclosures = []

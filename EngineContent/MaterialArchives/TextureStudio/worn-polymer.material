@@ -1,0 +1,69 @@
+Format = 1
+Name = "Worn Polymer"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.05780543019106723, 0.06301001765316767, 0.07227185068231748]
+Roughness = 0.656
+Metallic = 0
+Ior = 1.55
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/worn-polymer-albedo.png"
+Orm = "Textures/worn-polymer-orm.png"
+Normal = "Textures/worn-polymer-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.35
+detailScale = 110
+wear = 0.7
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.56
+translucency = 0
+depth = 0.4
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.35
+detailScale = 110
+wear = 0.7
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.56
+translucency = 0
+depth = 0.4
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.35
+detailScale = 110
+wear = 0.7
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.56
+translucency = 0
+depth = 0.4

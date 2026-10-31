@@ -1,0 +1,46 @@
+Format = 1
+Name = "Practice Golf Ball"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.5647115057049292, 0.6866853124353135, 0.033104766570885055]
+Roughness = 0.4
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/practice-golf-ball-albedo.png"
+Normal = "Textures/practice-golf-ball-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "dimples"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 6
+dimpleDepth = 0.016
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "dimples"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 6
+dimpleDepth = 0.016
+surfaceSeed = 17
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.15
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.35

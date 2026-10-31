@@ -1,0 +1,75 @@
+Format = 1
+Name = "Zellige Ceramic Tiles"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.93
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/zellige-ceramic-tiles-albedo.png"
+Orm = "Textures/zellige-ceramic-tiles-orm.png"
+Normal = "Textures/zellige-ceramic-tiles-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "tiles"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 2.5
+grain = 0.8
+groutWidth = 0.035
+tileVariation = 0.3
+tileStagger = 0.5
+roughness = 0.28
+surfaceSeed = 17
+color = "#316865"
+secondaryColor = "#b5ab92"
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "tiles"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 2.5
+grain = 0.8
+groutWidth = 0.035
+tileVariation = 0.3
+tileStagger = 0.5
+roughness = 0.28
+surfaceSeed = 17
+color = "#316865"
+secondaryColor = "#b5ab92"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "tiles"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 2.5
+grain = 0.8
+groutWidth = 0.035
+tileVariation = 0.3
+tileStagger = 0.5
+roughness = 0.28
+surfaceSeed = 17
+color = "#316865"
+secondaryColor = "#b5ab92"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.12
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.85

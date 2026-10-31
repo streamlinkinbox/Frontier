@@ -1,0 +1,13 @@
+Project-Networking local checks
+Upstream inspected: bf0bdd5005f97b6375c21bc74e9a4bd8b41417cd
+g++ (Debian 12.2.0-14+deb12u1) 12.2.0
+PASS initial login is not success
+PASS Connect cannot bypass Auth
+PASS Auth alone does not finish login
+PASS ordered valid completions finish login
+PASS invalid Epic account cannot authenticate
+PASS invalid PUID cannot authenticate
+PASS late completion cannot reverse timeout/refusal
+Scope: synthetic acceptance ordering only. LIVE EOS AUTHENTICATION NOT RUN.
+PASS project adapter compiles against actual upstream C ABI header (no EOS SDK compilation or linking)
+PASS console driver compiles (no EOS SDK compilation or linking)

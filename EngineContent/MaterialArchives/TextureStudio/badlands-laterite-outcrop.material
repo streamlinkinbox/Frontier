@@ -1,0 +1,227 @@
+Format = 1
+Name = 'Badlands Laterite & Shale'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[Authoring]
+Variables = []
+Version = 2
+
+    [Authoring.Designer]
+
+    [Authoring.Inputs]
+    'field:3cd28aad-357d-415f-9298-7a2cb2f452b4:amount' = 1.0
+    'field:3cd28aad-357d-415f-9298-7a2cb2f452b4:angle' = -9.0
+    'field:3cd28aad-357d-415f-9298-7a2cb2f452b4:scale' = 6.5
+    'field:3cd28aad-357d-415f-9298-7a2cb2f452b4:seed' = 512.0
+    'field:6d5b91cc-1715-4718-b6ff-08d8c5cef2c9:amount' = 1.0
+    'field:6d5b91cc-1715-4718-b6ff-08d8c5cef2c9:angle' = 15.0
+    'field:6d5b91cc-1715-4718-b6ff-08d8c5cef2c9:scale' = 8.5
+    'field:6d5b91cc-1715-4718-b6ff-08d8c5cef2c9:seed' = 618.0
+    'layer:5f07c166-146b-4f8b-9e80-f67b9c00620a:colour' = '#e0d8c8'
+    'layer:5f07c166-146b-4f8b-9e80-f67b9c00620a:coverage' = 1.0
+    'layer:5f07c166-146b-4f8b-9e80-f67b9c00620a:normal' = [ 0.28000000000000003, 0.28000000000000003, 1.0 ]
+    'layer:5f07c166-146b-4f8b-9e80-f67b9c00620a:roughness' = 0.89000000000000001
+    'layer:8c8bc790-0de8-47c7-9ef8-846e465a7c17:colour' = '#4f545b'
+    'layer:8c8bc790-0de8-47c7-9ef8-846e465a7c17:coverage' = 1.0
+    'layer:8c8bc790-0de8-47c7-9ef8-846e465a7c17:normal' = [ 0.52000000000000002, 0.52000000000000002, 1.0 ]
+    'layer:8c8bc790-0de8-47c7-9ef8-846e465a7c17:roughness' = 0.76000000000000001
+
+    [Authoring.Links]
+
+    [[Authoring.Generators]]
+    Category = 'Particle fields'
+    Coded = false
+    Enabled = true
+    Identity = '183fd31a-1ce1-49bf-9642-967fd2391f0c'
+    Inputs = [
+        'flakes',
+        'flakeSize',
+        'flakeScale',
+        'flakeLayers',
+        'flakeLayerDepth',
+        'flakeTilt',
+        'flakeRoughnessMin',
+        'flakeRoughnessMax',
+        'flakeMetalnessMin',
+        'flakeMetalnessMax'
+    ]
+    Name = 'Mineral flake distribution'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'flakes'
+
+    [[Authoring.Generators]]
+    Category = 'Structural fields'
+    Coded = false
+    Enabled = true
+    Identity = '1fef2d2c-3279-40e9-9b94-a391c5ed194e'
+    Inputs = []
+    Name = 'Badlands Laterite & Shale'
+    Outputs = [ 'colour', 'normal', 'roughness', 'metallic' ]
+    Procedure = 'clay'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = '3cd28aad-357d-415f-9298-7a2cb2f452b4'
+    Inputs = [
+        'field:3cd28aad-357d-415f-9298-7a2cb2f452b4:scale',
+        'field:3cd28aad-357d-415f-9298-7a2cb2f452b4:seed',
+        'field:3cd28aad-357d-415f-9298-7a2cb2f452b4:angle',
+        'field:3cd28aad-357d-415f-9298-7a2cb2f452b4:amount'
+    ]
+    Name = 'Shale bedding planes'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'stripes'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = '6d5b91cc-1715-4718-b6ff-08d8c5cef2c9'
+    Inputs = [
+        'field:6d5b91cc-1715-4718-b6ff-08d8c5cef2c9:scale',
+        'field:6d5b91cc-1715-4718-b6ff-08d8c5cef2c9:seed',
+        'field:6d5b91cc-1715-4718-b6ff-08d8c5cef2c9:angle',
+        'field:6d5b91cc-1715-4718-b6ff-08d8c5cef2c9:amount'
+    ]
+    Name = 'Arid salt efflorescence'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'cells'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = '5f07c166-146b-4f8b-9e80-f67b9c00620a'
+    Model = 'detail'
+    Name = 'Caliche evaporite crust'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = '8c8bc790-0de8-47c7-9ef8-846e465a7c17'
+    Model = 'detail'
+    Name = 'Fissile grey shale laminae'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Enabled = true
+    Generator = '183fd31a-1ce1-49bf-9642-967fd2391f0c'
+    Identity = '5020dc1a-ba2d-4b9a-8262-0a762e461488'
+    Model = 'flakes'
+    Name = 'Mineral flakes'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'ior', 'specular', 'thickness' ]
+    Enabled = true
+    Identity = '2a857b19-4a7b-44a0-ab75-8fb54b0a6940'
+    Model = 'surface'
+    Name = 'Surface body'
+
+    [[Authoring.Sources]]
+    Address = 'layer:5f07c166-146b-4f8b-9e80-f67b9c00620a:colour'
+    Direct = true
+    Generator = '6d5b91cc-1715-4718-b6ff-08d8c5cef2c9'
+    Mode = 'field'
+    Stops = [ '#bfb5a2', '#ded6c5', '#f7f2e8' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:5f07c166-146b-4f8b-9e80-f67b9c00620a:coverage'
+    Direct = true
+    Generator = '6d5b91cc-1715-4718-b6ff-08d8c5cef2c9'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#000000', '#eaeaea' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:5f07c166-146b-4f8b-9e80-f67b9c00620a:normal'
+    Direct = true
+    Generator = '6d5b91cc-1715-4718-b6ff-08d8c5cef2c9'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#000000', '#eaeaea' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:8c8bc790-0de8-47c7-9ef8-846e465a7c17:colour'
+    Direct = true
+    Generator = '3cd28aad-357d-415f-9298-7a2cb2f452b4'
+    Mode = 'field'
+    Stops = [ '#383c42', '#525861', '#6e7580' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:8c8bc790-0de8-47c7-9ef8-846e465a7c17:coverage'
+    Direct = true
+    Generator = '3cd28aad-357d-415f-9298-7a2cb2f452b4'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#b0b0b0', '#f0f0f0', '#000000' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:8c8bc790-0de8-47c7-9ef8-846e465a7c17:normal'
+    Direct = true
+    Generator = '3cd28aad-357d-415f-9298-7a2cb2f452b4'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#b0b0b0', '#f0f0f0', '#000000' ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.5, 290.0, 1.1499999761581421, 0.070000000298023224 ]
+Enabled = true
+Finish = [ 0.10000000149011612, 0.36000001430511475, 0.2800000011920929, 0.77999997138977051 ]
+Layers = 3
+Palette = [
+    [ 0.15592646598815918, 0.17144109308719635, 0.19806930422782898, 0.0 ],
+    [ 0.55201148986816406, 0.10224174708127975, 0.039546236395835876, 0.25 ],
+    [ 0.74540436267852783, 0.44520124793052673, 0.23074007034301758, 0.5 ],
+    [ 0.056128494441509247, 0.063010029494762421, 0.074213579297065735, 0.75 ],
+    [ 0.88792318105697632, 0.73791056871414185, 0.55201148986816406, 1.0 ]
+]
+Relief = [ 0.37999999523162842, 0.37999999523162842, 0.059999998658895493, 32.0 ]
+
+[Textures]
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 0.27467731206127314, 0.04970656595716549, 0.021979060354614873 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.34999999403953552
+Ior = 1.5700000524520874
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.81999999284744263
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 5
+Thickness = 0.0
+UvScaleOffset = [ 5.0, 5.0, 0.0, 0.0 ]
+
+    [Strata.Textures]
+    Albedo = 'Textures/badlands-laterite-outcrop-albedo.png'
+    Normal = 'Textures/badlands-laterite-outcrop-normal.png'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Albedo'
+    Op = 'clay'
+
+        [Strata.Channels.Params]
+        detailScale = 15.0
+        grain = 0.64
+        moisture = 0.0
+        surfaceSeed = 1147.0
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Normal'
+    Op = 'clay'
+
+        [Strata.Channels.Params]
+        detailScale = 15.0
+        grain = 0.64
+        moisture = 0.0
+        surfaceSeed = 1147.0

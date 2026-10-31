@@ -1,0 +1,26 @@
+{
+  "machine": "0x8664",
+  "format": "PE32+ Windows x64",
+  "sha256": "8e68c33374cc59435982ff225606d80129cc7d1f352036173fc06fce091bd963",
+  "imports": [
+    "d3d11.dll",
+    "D3DCOMPILER_47.dll",
+    "KERNEL32.dll",
+    "USER32.dll",
+    "api-ms-win-crt-environment-l1-1-0.dll",
+    "api-ms-win-crt-heap-l1-1-0.dll",
+    "api-ms-win-crt-private-l1-1-0.dll",
+    "api-ms-win-crt-runtime-l1-1-0.dll",
+    "api-ms-win-crt-stdio-l1-1-0.dll",
+    "api-ms-win-crt-string-l1-1-0.dll",
+    "api-ms-win-crt-convert-l1-1-0.dll",
+    "api-ms-win-crt-utility-l1-1-0.dll",
+    "api-ms-win-crt-math-l1-1-0.dll",
+    "SHELL32.dll",
+    "GDI32.dll",
+    "api-ms-win-crt-time-l1-1-0.dll",
+    "api-ms-win-crt-locale-l1-1-0.dll",
+    "api-ms-win-crt-multibyte-l1-1-0.dll"
+  ],
+  "runtime_execution": "not run; no Windows runtime available"
+}

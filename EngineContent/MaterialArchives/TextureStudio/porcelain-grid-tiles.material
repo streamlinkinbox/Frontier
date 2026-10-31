@@ -1,0 +1,75 @@
+Format = 1
+Name = "Porcelain Grid Tiles"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.93
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/porcelain-grid-tiles-albedo.png"
+Orm = "Textures/porcelain-grid-tiles-orm.png"
+Normal = "Textures/porcelain-grid-tiles-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "tiles"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 1.8
+grain = 0.45
+groutWidth = 0.045
+tileVariation = 0.08
+tileStagger = 0
+roughness = 0.2
+surfaceSeed = 17
+color = "#d9d8cc"
+secondaryColor = "#706e65"
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "tiles"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 1.8
+grain = 0.45
+groutWidth = 0.045
+tileVariation = 0.08
+tileStagger = 0
+roughness = 0.2
+surfaceSeed = 17
+color = "#d9d8cc"
+secondaryColor = "#706e65"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "tiles"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 1.8
+grain = 0.45
+groutWidth = 0.045
+tileVariation = 0.08
+tileStagger = 0
+roughness = 0.2
+surfaceSeed = 17
+color = "#d9d8cc"
+secondaryColor = "#706e65"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.12
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.85

@@ -1,0 +1,44 @@
+{
+  "result": "passed",
+  "checks": [
+    "four authored material specimens",
+    "actual Vulkan pixels change after TOML apply",
+    "texture uploads remain four",
+    "unsupported transmission diagnostic",
+    "last valid capture retained after error",
+    "import source and native recompile",
+    "export exact TOML source",
+    "760px layout",
+    "anisotropic GGX and tangent rotation change Vulkan pixels",
+    "independent coating UVs, normal source and strength change Vulkan pixels",
+    "exact dielectric Fresnel changes Vulkan pixels"
+  ],
+  "page_errors": [],
+  "sources": [
+    {
+      "file": "Exhibits/Renderer/index.html",
+      "sha256": "f1c80958f3c6c06405a887138b18351e160cd3e3425adad4e9ad5a003aeb9e05"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/RendererReview.js",
+      "sha256": "f8654d3051d16d7635cc674fb713cd50714af24088db7ccbafdb4b82ee78dac6"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/VulkanPreview.js",
+      "sha256": "e88ba15298c0d01d360a1c7016bcc333d419032779aa1f0cb646e7f4617ce3c0"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/VulkanPreview.css",
+      "sha256": "0595d19d9a9bae7df272f3cb273a5bad4383e6e9d261f629598b768d65bda59e"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/ServeRenderer.py",
+      "sha256": "7f387f49729ae3e394c23c81f6fa6a0b16f754b381e8b9bc593fb140f9d92e60"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/MaterialBrowserChecks.mjs",
+      "sha256": "faaad176f5fe90e8d9f6ce4fcac8e2739712fafcd2a6136069e737a555a85349"
+    }
+  ],
+  "windows_editor_execution": false
+}

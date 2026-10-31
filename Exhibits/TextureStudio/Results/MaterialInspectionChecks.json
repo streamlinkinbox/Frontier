@@ -1,0 +1,73 @@
+{
+  "result": "passed",
+  "scope": "local acceptance; interactive Windows Vulkan launch not executed",
+  "controls": {
+    "result": "passed",
+    "checks": 72707,
+    "actual_zoom_pointer_events": true,
+    "actual_shape_environment_exposure_pointer_events": true
+  },
+  "gpu": {
+    "result": "passed",
+    "gpu_execution": true,
+    "hardware_execution": false,
+    "windows_execution": false,
+    "atlas_images": 1,
+    "shared_pipelines": 5,
+    "geometry_uploads": 1,
+    "checks": [
+      "shared authored material evaluation",
+      "GPU-to-GPU atlas copies",
+      "dirty tile isolation",
+      "slot replacement",
+      "replicated gutters",
+      "bounded UVs and slot refusal",
+      "library submission readiness",
+      "clean residency and no-op invalidation",
+      "applied material invalidation",
+      "root replacement and diagnostics",
+      "cache eviction and stale token refusal",
+      "four GPU inspection shapes",
+      "four GPU lighting environments",
+      "GPU zoom and exposure",
+      "preview-only dirtying",
+      "stable preview and atlas image views"
+    ]
+  },
+  "workspace": {
+    "result": "passed",
+    "native_imgui_cpu_execution": true,
+    "vulkan_material_execution": true,
+    "native_window_execution": false,
+    "windows_execution": false,
+    "width": 1440,
+    "height": 1000,
+    "atlas_images": 1,
+    "baked_thumbnails": 8,
+    "capture": "CPU ImGui triangle composition using real Vulkan atlas and preview readbacks; not a Windows screenshot"
+  },
+  "gpu_additional_checks": [
+    "four preview objects",
+    "four lighting presets",
+    "zoom projection",
+    "exposure",
+    "unchanged thumbnail pixels/bake count",
+    "stable preview and atlas VkImageView"
+  ],
+  "image": "Exhibits/TextureStudio/Images/MaterialInspectionControls.png",
+  "sources": {
+    "UI/TextureStudio/MaterialLibraryPanel.cpp": "56ac8da85a24996a562601ab930d19467fec22d6ede868d336543802cea365d4",
+    "Engine/Render/MaterialLibraryRendering.cpp": "c70cbd6aa47ebd2cd14f8937546771e7ba3cecc2598975b5995d21545cb7011b",
+    "Engine/Render/MaterialPreviewConfiguration.h": "c709927ad7f9122311adbc4aae95a0a70de59a99088c44e7dc137c321d3b2cf5",
+    "Engine/Render/MaterialPreviewGeometry.h": "5d4ee493309e671661c66cd81a33177b8892c546c04838e0a35ec45ce434d5f3",
+    "Engine/Render/Shader/MaterialSurface.slang": "95506ec0f2cc73351cb4a11ab1d6d3cbaec6cfde511d35f8d5a92da36506feb5",
+    "Exhibits/TextureStudio/Code/MaterialPreviewConfigurationValidation.cpp": "99bf1cbc20c7213932d14287d447af8b7f2b3ae1060f8716b43d0fd2faa10596",
+    "Exhibits/TextureStudio/Code/MaterialAtlasValidation.cpp": "7e160c3d7b8c6f939b43f21c2fac524d30f31ca3a59df3421a2df73b90868c78"
+  },
+  "sanitized_controls": {
+    "result": "passed",
+    "checks": 72707,
+    "actual_zoom_pointer_events": true,
+    "actual_shape_environment_exposure_pointer_events": true
+  }
+}

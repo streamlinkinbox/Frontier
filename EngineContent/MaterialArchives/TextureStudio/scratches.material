@@ -1,0 +1,51 @@
+Format = 1
+Name = "Scratches"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.4851499400560704, 0.5149176653765214, 0.5271151257058131]
+Roughness = 0.53
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 6
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Orm = "Textures/scratches-orm.png"
+Normal = "Textures/scratches-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "scratches"
+Link = "shared"
+[Strata.Channels.Params]
+scratchDensity = 6
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+roughness = 0.23
+angle = 25
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "scratches"
+Link = "shared"
+[Strata.Channels.Params]
+scratchDensity = 6
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+roughness = 0.23
+angle = 25

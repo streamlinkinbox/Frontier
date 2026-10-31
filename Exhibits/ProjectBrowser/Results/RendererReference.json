@@ -1,0 +1,32 @@
+{
+  "repository": "SultanAladin/Frontier",
+  "commit": "658fac7378f2b38309966fab72c007e98075e538",
+  "path": "Documentation/Prototypes/ProjectBrowser.html",
+  "git_blob": "c91a3804a56754ad92e51001bd9237a0d17d7e3e",
+  "programs": {
+    "SceneVertexSource": {
+      "sha256": "6ec96c1e401a7daa55037bb7c168a813a7a75fcdf284e2573df76731008262ff",
+      "reuse": "exact bytes from inspected reference"
+    },
+    "SceneFragmentSource": {
+      "sha256": "c2be56558ea185a91660ec7cb31ed25ce75667d133e8190c41d3ea7af5d88ca8",
+      "reuse": "exact bytes from inspected reference"
+    },
+    "DraftingVertexSource": {
+      "sha256": "c4c5b66386cc972cc2da031c277e0736fbcd07e7ce7b09d89a57191eda2e4aa3",
+      "reuse": "exact bytes from inspected reference"
+    },
+    "DraftingFragmentSource": {
+      "sha256": "836ac6181fb18bf91f9195fdd93fa84cca4fe28edce4fb0b4b8c4c5784fb6bfb",
+      "reuse": "exact bytes from inspected reference"
+    }
+  },
+  "adaptations": [
+    "DOM-independent renderer allocation and camera controls",
+    "small studio using inherited ten-float vertex layout and material programs",
+    "reference actuator subset/proportions for sample revisions",
+    "cylindrical UV inspection from actual preview vertices",
+    "PNG snapshot cache keyed by file/view/revision"
+  ],
+  "native_scope": "HTML only; no native engine renderer or codec changes"
+}

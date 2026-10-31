@@ -1,0 +1,66 @@
+Format = 1
+Name = "Plain Linen"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.94
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0.2
+SheenColor = [0.386429433787049, 0.3419144249086609, 0.26225065752969623]
+SheenIntensity = 0.4
+SheenRoughness = 0.7
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/plain-linen-albedo.png"
+Normal = "Textures/plain-linen-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 38
+weaveAngle = 0
+weaveRelief = 0.6
+fiberDetail = 16
+fuzz = 0.22
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 0
+surfaceSeed = 17
+sheen = 0.4
+sheenRoughness = 0.7
+fuzzLength = 0.4
+weavePattern = "plain"
+warpColor = "#c9bfa9"
+weftColor = "#a79e8c"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 38
+weaveAngle = 0
+weaveRelief = 0.6
+fiberDetail = 16
+fuzz = 0.22
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 0
+surfaceSeed = 17
+sheen = 0.4
+sheenRoughness = 0.7
+fuzzLength = 0.4
+weavePattern = "plain"
+warpColor = "#c9bfa9"
+weftColor = "#a79e8c"

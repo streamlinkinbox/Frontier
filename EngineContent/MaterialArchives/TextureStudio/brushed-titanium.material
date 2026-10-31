@@ -1,0 +1,84 @@
+Format = 1
+Name = "Brushed Titanium"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.23455058216100522, 0.238397573812271, 0.2195261997292692]
+Roughness = 0.68
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0.65
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/brushed-titanium-albedo.png"
+Orm = "Textures/brushed-titanium-orm.png"
+Normal = "Textures/brushed-titanium-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "scratchedMetal"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 180
+roughness = 0.38
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+scratchDensity = 0
+angle = 25
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "scratchedMetal"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 180
+roughness = 0.38
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+scratchDensity = 0
+angle = 25
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "scratchedMetal"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 180
+roughness = 0.38
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+scratchDensity = 0
+angle = 25
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.25
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.15

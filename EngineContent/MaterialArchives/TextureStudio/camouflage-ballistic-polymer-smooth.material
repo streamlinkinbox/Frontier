@@ -1,0 +1,91 @@
+Format = 1
+Name = "Camouflage Ballistic Polymer · Smooth"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.09305896284668747, 0.11697066775851084, 0.05780543019106723]
+Roughness = 0.68
+Metallic = 0
+Ior = 1.55
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 1
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "camouflage-smooth"
+Link = "shared"
+[Strata.Channels.Params]
+scale = 8
+seed = 12
+angle = 0
+amount = 1
+colour0 = "#b5a477"
+colour1 = "#566044"
+colour2 = "#514334"
+colour3 = "#232921"
+softness = 0.012
+pixelSize = 4
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.55
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.08
+
+[Authoring]
+Version = 2
+
+[[Authoring.Layers]]
+Identity = "887df71f-cf75-41e6-839e-54a7cae376f1"
+Name = "Clearcoat"
+Model = "coat"
+Enabled = true
+Channels = ["coverage", "roughness", "ior"]
+
+[[Authoring.Layers]]
+Identity = "9c34b72e-1436-4aeb-86c7-c4ad4ddce10d"
+Name = "Surface body"
+Model = "surface"
+Enabled = true
+Channels = ["colour", "roughness", "metallic", "normal", "ior", "specular", "thickness"]
+
+[[Authoring.Generators]]
+Identity = "ba1b2f2c-2d2c-4e95-8ba5-432536866909"
+Name = "Grained polymer"
+Category = "Structural fields"
+Procedure = "grainPlastic"
+Enabled = true
+Coded = false
+Inputs = ["grain", "detailScale"]
+Outputs = ["colour", "normal", "roughness", "metallic"]
+
+[[Authoring.Generators]]
+Identity = "5696b93e-256c-4e9f-8995-d1ba0ec586d6"
+Name = "Smooth woodland camouflage"
+Category = "Camouflage"
+Procedure = "camouflage-smooth"
+Enabled = true
+Coded = true
+Inputs = ["field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:scale", "field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:seed", "field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:angle", "field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:amount", "field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:colour0", "field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:colour1", "field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:colour2", "field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:colour3", "field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:softness", "field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:pixelSize"]
+Outputs = ["colour", "roughness", "metallic", "normal", "coverage"]
+
+[Authoring.Inputs]
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:colour0" = "#b5a477"
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:colour1" = "#566044"
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:colour2" = "#514334"
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:colour3" = "#232921"
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:softness" = 0.012
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:pixelSize" = 4
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:scale" = 8
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:seed" = 12
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:angle" = 0
+"field:5696b93e-256c-4e9f-8995-d1ba0ec586d6:amount" = 1
+
+[[Authoring.Sources]]
+Address = "color"
+Mode = "field"
+Direct = true
+Generator = "5696b93e-256c-4e9f-8995-d1ba0ec586d6"

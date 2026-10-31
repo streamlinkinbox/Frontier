@@ -1,0 +1,66 @@
+Format = 1
+Name = "Midnight Velvet"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.01520851442291271, 0.03954623527673284, 0.05448027644244237]
+Roughness = 0.86
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.25015828472995344, 0.386429433787049, 0.4910208498478356]
+SheenIntensity = 1.0
+SheenRoughness = 0.35
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/midnight-velvet-albedo.png"
+Normal = "Textures/midnight-velvet-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 36
+weaveAngle = 45
+weaveRelief = 0.2
+fiberDetail = 12
+fuzz = 1
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 2
+surfaceSeed = 17
+sheen = 1
+sheenRoughness = 0.35
+fuzzLength = 1.1
+weavePattern = "twill"
+warpColor = "#213842"
+weftColor = "#213842"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 36
+weaveAngle = 45
+weaveRelief = 0.2
+fiberDetail = 12
+fuzz = 1
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 2
+surfaceSeed = 17
+sheen = 1
+sheenRoughness = 0.35
+fuzzLength = 1.1
+weavePattern = "twill"
+warpColor = "#213842"
+weftColor = "#213842"

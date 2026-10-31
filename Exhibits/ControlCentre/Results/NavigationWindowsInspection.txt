@@ -1,0 +1,19 @@
+{
+  "archive_sha256": "bc1a8624ba2221ca6812d768969d0eb0b74d81c8d9d6f21191206d9dca80f644",
+  "archive_bytes": 6080447,
+  "entries": 277,
+  "verified_payload_hashes": 276,
+  "verified_current_source_hashes": 82,
+  "font_faces": 30,
+  "font_families": [
+    "Archivo",
+    "Inter",
+    "JetBrains Mono",
+    "Space Grotesk"
+  ],
+  "binary_sha256": "bbf30c6858da5932428d6bbdb0c0e62763e29846470a24d73230337f0ed351af",
+  "windows_runtime_verified": false,
+  "source_revision_at_packaging": "4a77bfd17f23536e32781718553ec6a171e39021",
+  "uncommitted_changes_at_packaging": true,
+  "toolchain": "Zig 0.13.0; x86_64-windows-gnu; Release; cross-compiled on Linux"
+}
