@@ -24,23 +24,29 @@ void AppendSubtree(const SceneDirectory& Directory, RecordToken Token, uint32_t 
 {
     SceneDirectoryRow Row;
     Row.Token          = Token;
+    Row.ParentToken    = Directory.QueryParent(Token);
     Row.Name           = Directory.QueryName(Token);
     Row.Classification = Directory.QueryClassification(Token);
     Row.Visible        = Directory.QueryVisible(Token);
     Row.Enabled        = Row.Visible;
+    Row.Category       = RecordClassificationName(Row.Classification);
 #if defined(FRONTIER_EDITOR_PROFILE)
     if (const RecordEditorDescription* Description = Directory.QueryEditorDescription(Token))
     {
-        Row.Group    = Description->Group != nullptr ? Description->Group : "";
-        Row.Colour   = Description->Colour != nullptr ? Description->Colour : "";
-        Row.StableId = Description->StableId != nullptr ? Description->StableId : "";
-        if (Description->Enabled != nullptr)
-        {
-            Row.Enabled = *Description->Enabled;
-        }
+        Row.Group            = Description->Group != nullptr ? Description->Group : "";
+        Row.Category         = Description->Category != nullptr ? Description->Category : Row.Category;
+        Row.Glyph            = Description->Glyph != nullptr ? Description->Glyph : "";
+        Row.Colour           = Description->Colour != nullptr ? Description->Colour : "";
+        Row.StableId         = Description->StableId != nullptr ? Description->StableId : "";
+        Row.OutlinerToggle   = Description->OutlinerToggle;
+        Row.HiddenInOutliner = Description->HiddenInOutliner;
         if (Description->QueryLiveMeta)
         {
             Row.Meta = Description->QueryLiveMeta();
+        }
+        if (Description->QueryLiveState)
+        {
+            Row.State = Description->QueryLiveState();
         }
     }
 #endif
@@ -69,7 +75,7 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
 {
     std::vector<RecordToken> Order;
     Directory.CopyRegistrationOrder(Order);
-    Total = static_cast<uint32_t>(Order.size());
+    Total = 0;
 
     std::unordered_map<uint64_t, std::vector<RecordToken>> Children;
     std::vector<RecordToken>                               Roots;
@@ -96,6 +102,11 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
     {
         AppendSubtree(Directory, Root, 0, Children, CollapsedTokens, Rows);
     }
+    Rows.erase(std::remove_if(Rows.begin(), Rows.end(), [](const SceneDirectoryRow& Row) {
+                   return Row.HiddenInOutliner;
+               }),
+               Rows.end());
+    Total = static_cast<uint32_t>(Rows.size());
 
     Tabs.clear();
     for (uint32_t Index = 0; Index < static_cast<uint32_t>(RecordClassification::Count); ++Index)
@@ -132,7 +143,7 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
     }
 
     static const char* const GroupOrder[] = {
-        "Render", "Environment", "Forcefield", "Objects", "Vehicle", "Effects", "Destruction", "Level", "Networking"};
+        "Render", "Environment", "Forcefield", "Objects", "Vehicle", "Effects", "Destruction", "Level"};
     const auto FallbackGroup = [](RecordClassification Classification) {
         switch (Classification)
         {
@@ -151,6 +162,62 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
         return "Objects";
     };
 
+    // Preserve the VehicleHMI environment entity order independently of record-construction order.
+    static const char* const EnvironmentEntityOrder[] = {
+        "sun", "clouds", "local-cloud", "local-fog", "atmosphere", "stars", "moon", "flare", "fog", "aerial", "lightning"};
+    std::vector<size_t> EnvironmentIndices;
+    std::vector<SceneDirectoryRow> EnvironmentRows;
+    for (size_t Index = 0; Index < Rows.size(); ++Index)
+    {
+        SceneDirectoryRow& Row = Rows[Index];
+        if (Row.Group.empty())
+        {
+            Row.Group = FallbackGroup(Row.Classification);
+        }
+        if (Row.Group == "Environment")
+        {
+            EnvironmentIndices.push_back(Index);
+            EnvironmentRows.push_back(Row);
+        }
+    }
+    const auto EnvironmentRank = [](const SceneDirectoryRow& Row) {
+        for (size_t Index = 0; Index < std::size(EnvironmentEntityOrder); ++Index)
+        {
+            if (Row.StableId == EnvironmentEntityOrder[Index])
+            {
+                return Index;
+            }
+        }
+        return std::size(EnvironmentEntityOrder);
+    };
+    std::stable_sort(EnvironmentRows.begin(), EnvironmentRows.end(), [&](const SceneDirectoryRow& A,
+                                                                         const SceneDirectoryRow& B) {
+        return EnvironmentRank(A) < EnvironmentRank(B);
+    });
+    for (size_t Index = 0; Index < EnvironmentIndices.size(); ++Index)
+    {
+        Rows[EnvironmentIndices[Index]] = std::move(EnvironmentRows[Index]);
+    }
+
+    // The VehicleHMI search matches entity names and types, and keeps ancestors visible when a child matches.
+    std::unordered_set<uint64_t> SearchMatches;
+    if (!TextFilter.empty())
+    {
+        for (const SceneDirectoryRow& Row : Rows)
+        {
+            std::string Lower = Row.Name + " " + Row.Category;
+            std::transform(Lower.begin(), Lower.end(), Lower.begin(),
+                           [](unsigned char Glyph) { return static_cast<char>(std::tolower(Glyph)); });
+            if (Lower.find(TextFilter) != std::string::npos)
+            {
+                for (RecordToken Token = Row.Token; Token.IsValid(); Token = Directory.QueryParent(Token))
+                {
+                    SearchMatches.insert(Token.Value);
+                }
+            }
+        }
+    }
+
     Groups.clear();
     EnabledCounts = SceneDirectoryEnabledCounts{};
     for (SceneDirectoryRow& Row : Rows)
@@ -159,15 +226,8 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
         {
             Row.Group = FallbackGroup(Row.Classification);
         }
-        bool Enabled = Row.Visible;
-#if defined(FRONTIER_EDITOR_PROFILE)
-        if (const RecordEditorDescription* Description = Directory.QueryEditorDescription(Row.Token))
-        {
-            Enabled = (Description->Enabled == nullptr || *Description->Enabled) && Row.Visible;
-        }
-#endif
-        Row.Enabled = Enabled;
-        if (Enabled)
+        Row.Enabled = Row.Visible && (Row.OutlinerToggle == nullptr || *Row.OutlinerToggle);
+        if (Row.Enabled)
         {
             EnabledCounts.Enabled += 1;
         }
@@ -191,17 +251,8 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
             Section = &Groups.back();
         }
         Section->Count += 1;
-        if (!TextFilter.empty())
-        {
-            std::string Lower = Row.Name + " " + Row.Group + " " + Row.Meta;
-            std::transform(Lower.begin(), Lower.end(), Lower.begin(),
-                           [](unsigned char Glyph) { return static_cast<char>(std::tolower(Glyph)); });
-            if (Lower.find(TextFilter) == std::string::npos)
-            {
-                continue;
-            }
-        }
-        if (!ClassificationFilter.has_value() || Row.Classification == *ClassificationFilter)
+        const bool TextMatches = TextFilter.empty() || SearchMatches.find(Row.Token.Value) != SearchMatches.end();
+        if (TextMatches && (!ClassificationFilter.has_value() || Row.Classification == *ClassificationFilter))
         {
             Section->Rows.push_back(Row);
         }
@@ -271,7 +322,7 @@ void SceneDirectoryPanel::ConfigureTextFilter(std::string Text)
     TextFilter = std::move(Text);
     std::transform(TextFilter.begin(), TextFilter.end(), TextFilter.begin(),
                    [](unsigned char Glyph) { return static_cast<char>(std::tolower(Glyph)); });
-    RebuildVisible();
+    Synchronize(SceneDirectory::Instance());
 }
 
 void SceneDirectoryPanel::ConfigureCollapsed(RecordToken Token, bool Collapsed)
@@ -372,22 +423,50 @@ void SceneDirectoryPanel::RebuildVisible()
 {
     Visible.clear();
     const bool Searching = !TextFilter.empty();
-    bool       Folding   = false;
-    uint32_t   FoldDepth = 0;
-    for (const SceneDirectoryRow& Row : Rows)
+    if (Searching)
     {
-        const bool ClassOk = !ClassificationFilter.has_value() || Row.Classification == *ClassificationFilter;
-        if (Searching)
+        std::unordered_set<uint64_t> Matches;
+        std::unordered_map<uint64_t, RecordToken> Parents;
+        for (const SceneDirectoryRow& Row : Rows)
         {
-            std::string Lower = Row.Name;
+            Parents.emplace(Row.Token.Value, Row.ParentToken);
+        }
+        for (const SceneDirectoryRow& Row : Rows)
+        {
+            std::string Lower = Row.Name + " " + Row.Category;
             std::transform(Lower.begin(), Lower.end(), Lower.begin(),
                            [](unsigned char Glyph) { return static_cast<char>(std::tolower(Glyph)); });
-            if (ClassOk && Lower.find(TextFilter) != std::string::npos)
+            if (Lower.find(TextFilter) == std::string::npos)
+            {
+                continue;
+            }
+            for (RecordToken Token = Row.Token; Token.IsValid();)
+            {
+                Matches.insert(Token.Value);
+                const auto Parent = Parents.find(Token.Value);
+                if (Parent == Parents.end())
+                {
+                    break;
+                }
+                Token = Parent->second;
+            }
+        }
+        for (const SceneDirectoryRow& Row : Rows)
+        {
+            if ((!ClassificationFilter.has_value() || Row.Classification == *ClassificationFilter) &&
+                Matches.find(Row.Token.Value) != Matches.end())
             {
                 Visible.push_back(Row);
             }
-            continue;
         }
+        return;
+    }
+
+    bool     Folding   = false;
+    uint32_t FoldDepth = 0;
+    for (const SceneDirectoryRow& Row : Rows)
+    {
+        const bool ClassOk = !ClassificationFilter.has_value() || Row.Classification == *ClassificationFilter;
         if (Folding && Row.DepthTier > FoldDepth)
         {
             continue;

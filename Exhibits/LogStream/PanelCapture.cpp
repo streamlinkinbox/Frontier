@@ -44,24 +44,35 @@ struct Pixel
 
 std::vector<Pixel> Framebuffer;
 
-const unsigned char* AtlasPixels = nullptr;
-int                  AtlasWidth  = 0;
-int                  AtlasHeight = 0;
+const ImTextureData* BoundTexture = nullptr;
+bool SampleWhiteTexel = false; // Commands bound to external GPU textures render as flat colour
 
-bool SampleWhiteTexel = false; // Commands bound to non-atlas textures (GPU thumbnails) render as flat colour
-
-float SampleAtlas(float U, float V, int Channel)
+float SampleBoundTexture(float U, float V, int Channel)
 {
-    const float X = std::clamp(U * static_cast<float>(AtlasWidth) - 0.5f, 0.0f, static_cast<float>(AtlasWidth - 1));
-    const float Y = std::clamp(V * static_cast<float>(AtlasHeight) - 0.5f, 0.0f, static_cast<float>(AtlasHeight - 1));
+    if (BoundTexture == nullptr || BoundTexture->Pixels == nullptr || BoundTexture->Width <= 0 ||
+        BoundTexture->Height <= 0 || BoundTexture->BytesPerPixel <= 0)
+    {
+        return 1.0f;
+    }
+    if (BoundTexture->Format == ImTextureFormat_Alpha8 && Channel != 3)
+    {
+        return 1.0f;
+    }
+    const int Components = BoundTexture->BytesPerPixel;
+    const float X = std::clamp(U * static_cast<float>(BoundTexture->Width) - 0.5f, 0.0f,
+                               static_cast<float>(BoundTexture->Width - 1));
+    const float Y = std::clamp(V * static_cast<float>(BoundTexture->Height) - 0.5f, 0.0f,
+                               static_cast<float>(BoundTexture->Height - 1));
     const int   X0 = static_cast<int>(X);
     const int   Y0 = static_cast<int>(Y);
-    const int   X1 = std::min(X0 + 1, AtlasWidth - 1);
-    const int   Y1 = std::min(Y0 + 1, AtlasHeight - 1);
+    const int   X1 = std::min(X0 + 1, BoundTexture->Width - 1);
+    const int   Y1 = std::min(Y0 + 1, BoundTexture->Height - 1);
     const float Fx = X - static_cast<float>(X0);
     const float Fy = Y - static_cast<float>(Y0);
     const auto  At = [&](int Px, int Py) {
-        return static_cast<float>(AtlasPixels[(static_cast<size_t>(Py) * AtlasWidth + Px) * 4 + Channel]) / 255.0f;
+        const size_t Offset = (static_cast<size_t>(Py) * BoundTexture->Width + Px) * Components;
+        const int    Sample = BoundTexture->Format == ImTextureFormat_Alpha8 ? 0 : Channel;
+        return static_cast<float>(BoundTexture->Pixels[Offset + Sample]) / 255.0f;
     };
     const float Top    = At(X0, Y0) + (At(X1, Y0) - At(X0, Y0)) * Fx;
     const float Bottom = At(X0, Y1) + (At(X1, Y1) - At(X0, Y1)) * Fx;
@@ -112,10 +123,10 @@ void RasterizeTriangle(const ImDrawVert& A, const ImDrawVert& B, const ImDrawVer
             const float Va = Channel(A.col, IM_COL32_A_SHIFT) * W0 + Channel(B.col, IM_COL32_A_SHIFT) * W1 +
                              Channel(C.col, IM_COL32_A_SHIFT) * W2;
 
-            const float Sr = (SampleWhiteTexel ? 1.0f : SampleAtlas(U, V, 0)) * Vr;
-            const float Sg = (SampleWhiteTexel ? 1.0f : SampleAtlas(U, V, 1)) * Vg;
-            const float Sb = (SampleWhiteTexel ? 1.0f : SampleAtlas(U, V, 2)) * Vb;
-            const float Sa = (SampleWhiteTexel ? 1.0f : SampleAtlas(U, V, 3)) * Va;
+            const float Sr = (SampleWhiteTexel ? 1.0f : SampleBoundTexture(U, V, 0)) * Vr;
+            const float Sg = (SampleWhiteTexel ? 1.0f : SampleBoundTexture(U, V, 1)) * Vg;
+            const float Sb = (SampleWhiteTexel ? 1.0f : SampleBoundTexture(U, V, 2)) * Vb;
+            const float Sa = (SampleWhiteTexel ? 1.0f : SampleBoundTexture(U, V, 3)) * Va;
 
             Pixel&      Out = Framebuffer[static_cast<size_t>(Y) * CaptureWidth + X];
             const float Inv = 1.0f - Sa;
@@ -139,7 +150,8 @@ void RasterizeDrawData(const ImDrawData& Data)
             {
                 continue;
             }
-            SampleWhiteTexel = Cmd.TexRef._TexData == nullptr; // Atlas-owned commands carry texture data
+            BoundTexture = Cmd.TexRef._TexData;
+            SampleWhiteTexel = BoundTexture == nullptr || BoundTexture->Pixels == nullptr;
             for (unsigned Element = 0; Element + 2 < Cmd.ElemCount; Element += 3)
             {
                 const ImDrawIdx I0 = List->IdxBuffer[static_cast<int>(Cmd.IdxOffset + Element + 0)];
@@ -212,9 +224,7 @@ void RunFrame(double DeltaSeconds, bool Rasterize)
 
     if (Rasterize)
     {
-        unsigned char* Pixels = nullptr;
-        ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&Pixels, &AtlasWidth, &AtlasHeight);
-        AtlasPixels = Pixels;
+        ImGui::GetIO().Fonts->GetTexDataAsRGBA32(nullptr, nullptr, nullptr);
         std::fill(Framebuffer.begin(), Framebuffer.end(), Pixel{11, 13, 12, 255});
         RasterizeDrawData(*ImGui::GetDrawData());
     }
@@ -275,15 +285,15 @@ void SeedStream(const std::function<void(double)>& PumpSecond)
 //                                                    WORKSPACE MODE
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 Renders the Project Everest application/project browser and the native four-panel workspace.
+// 📝 Renders the existing .frontier project browser and the native four-panel workspace.
 //    The workspace uses the same ControlCentrePanel, PanelDockspace, Outliner, Inspector, and Log Stream
 //    production units as FrontierMain. The exhibit substitutes a CPU rasterizer for GLFW/Vulkan presentation.
 #if defined(FRONTIER_WITH_WORKSPACE_CAPTURE)
 
 #include "Engine/Diagnostics/DiagnosticJournal.h"
 #include "Applications/Editor/ProjectBrowserHost.h"
-#include "Applications/Editor/ProjectBrowserPresentation.h"
 #include "Engine/Interface/LogStreamPanelRegistration.h"
+#include "Engine/Interface/IconPresentation.h"
 #include "Engine/Interface/SceneDirectoryPanel.h"
 #include "Engine/Interface/SceneDirectoryPanelRegistration.h"
 #include "Engine/Interface/SceneInspectorPanel.h"
@@ -310,6 +320,8 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
     Io.IniFilename = nullptr;
     Io.DisplaySize = ImVec2(static_cast<float>(CaptureWidth), static_cast<float>(CaptureHeight));
     Io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+    // The software exhibit consumes ImTextureData directly, exercising the same dynamic-icon atlas as the Vulkan host.
+    Io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
     Io.AddMousePosEvent(-1.0f, -1.0f);
     Framebuffer.resize(static_cast<size_t>(CaptureWidth) * static_cast<size_t>(CaptureHeight));
 
@@ -324,6 +336,7 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
         ImGui::DestroyContext();
         return 3;
     }
+    Frontier::IconPresentation::AttachVehicleHmiOutliner(RepositoryRoot / "EngineContent" / "Icons");
 
     Frontier::PanelDockspace Panels;
     (void)Panels.ConfigureDockspaceKey("Frontier project panels");
@@ -427,9 +440,7 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
         ImGui::Render();
         if (Rasterize)
         {
-            unsigned char* Pixels = nullptr;
-            Io.Fonts->GetTexDataAsRGBA32(&Pixels, &AtlasWidth, &AtlasHeight);
-            AtlasPixels = Pixels;
+            Io.Fonts->GetTexDataAsRGBA32(nullptr, nullptr, nullptr);
             std::fill(Framebuffer.begin(), Framebuffer.end(), Pixel{11, 13, 12, 255});
             RasterizeDrawData(*ImGui::GetDrawData());
         }
@@ -444,13 +455,28 @@ int RunWorkspaceCapture(const std::string& OutputDirectory, const std::filesyste
         Frame(1.0 / 60.0, false);
     }
     Frame(1.0 / 60.0, true);
+    const Frontier::IconSymbol OutlinerIcons[] = {
+        Frontier::IconSymbol::FolderEnvironment, Frontier::IconSymbol::Sun, Frontier::IconSymbol::SkyScattering,
+        Frontier::IconSymbol::Clouds, Frontier::IconSymbol::Fog, Frontier::IconSymbol::LocalCloud,
+        Frontier::IconSymbol::LocalFog, Frontier::IconSymbol::OutlinerStars, Frontier::IconSymbol::Moon,
+        Frontier::IconSymbol::LensFlare};
+    bool IconAssetsReady = true;
+    for (const Frontier::IconSymbol Symbol : OutlinerIcons)
+    {
+        if (Frontier::IconPresentation::Result(Symbol) != Frontier::IconResult::Ready)
+        {
+            std::fprintf(stderr, "workspace capture refused: %s icon unavailable: %s\n",
+                         Frontier::IconArt::Name(Symbol), Frontier::IconPresentation::Diagnostic(Symbol));
+            IconAssetsReady = false;
+        }
+    }
     const std::string CapturePath = OutputDirectory + "/native-workspace.png";
     const bool CaptureWritten = WritePng(CapturePath.c_str());
-    std::printf("Project Everest native ImGui workspace · Outliner + Inspector + Log Stream · capture %s\n",
-                CaptureWritten ? CapturePath.c_str() : "failed");
+    std::printf("Project Everest native ImGui workspace · Outliner + Inspector + Log Stream · icons %s · capture %s\n",
+                IconAssetsReady ? "ready" : "failed", CaptureWritten ? CapturePath.c_str() : "failed");
 
     ImGui::DestroyContext();
-    return CaptureWritten ? 0 : 7;
+    return CaptureWritten && IconAssetsReady ? 0 : 7;
 }
 
 int RunProjectBrowserCapture(const std::string& OutputDirectory,
@@ -478,18 +504,18 @@ int RunProjectBrowserCapture(const std::string& OutputDirectory,
     Io.Fonts->Build();
     Framebuffer.resize(static_cast<size_t>(CaptureWidth) * static_cast<size_t>(CaptureHeight));
 
-    Frontier::ProjectBrowserPresentation Browser;
-    Browser.Listing = Frontier::EnumerateProjects(RepositoryRoot / "Frontier" / "Projects");
+    const Frontier::ProjectBrowserEnumeration BrowserListing =
+        Frontier::EnumerateProjects(RepositoryRoot / "Frontier" / "Projects");
+    std::filesystem::path ChosenDescriptor;
+    std::vector<Frontier::ProjectBrowserButtonBounds> ProjectOpenButtons;
     const auto Frame = [&](bool Rasterize) {
         Io.DeltaTime = 1.0f / 60.0f;
         ImGui::NewFrame();
-        Frontier::ConstructProjectBrowserInterface(Browser);
+        Frontier::ConstructProjectBrowserInterface(BrowserListing, ChosenDescriptor, &ProjectOpenButtons);
         ImGui::Render();
         if (Rasterize)
         {
-            unsigned char* Pixels = nullptr;
-            Io.Fonts->GetTexDataAsRGBA32(&Pixels, &AtlasWidth, &AtlasHeight);
-            AtlasPixels = Pixels;
+            Io.Fonts->GetTexDataAsRGBA32(nullptr, nullptr, nullptr);
             std::fill(Framebuffer.begin(), Framebuffer.end(), Pixel{11, 13, 12, 255});
             RasterizeDrawData(*ImGui::GetDrawData());
         }
@@ -501,51 +527,33 @@ int RunProjectBrowserCapture(const std::string& OutputDirectory,
         Io.AddMouseButtonEvent(0, false);
         Frame(false);
     };
+
     Frame(false);
     Frame(true);
-    const std::string ApplicationPath = OutputDirectory + "/browser-applications.png";
-    const bool ApplicationWritten = WritePng(ApplicationPath.c_str());
-
-    if (!Browser.ApplicationButton.Valid)
-    {
-        std::printf("browser capture refused: application button bounds were not recorded\n");
-        ImGui::DestroyContext();
-        return 9;
-    }
-    ClickAt(ImVec2((Browser.ApplicationButton.Left + Browser.ApplicationButton.Right) * 0.5f,
-                   (Browser.ApplicationButton.Top + Browser.ApplicationButton.Bottom) * 0.5f));
-    if (Browser.Page != Frontier::ProjectBrowserPage::Projects)
-    {
-        std::printf("browser flow failed: Frontier Editor selection did not open the project list\n");
-        ImGui::DestroyContext();
-        return 10;
-    }
-
-    Frame(true);
-    const std::string ProjectPath = OutputDirectory + "/browser-projects.png";
-    const bool ProjectWritten = WritePng(ProjectPath.c_str());
+    const std::string BrowserPath = OutputDirectory + "/browser-projects.png";
+    const bool BrowserWritten = WritePng(BrowserPath.c_str());
+    const std::vector<Frontier::ProjectBrowserButtonBounds> ProjectButtons = ProjectOpenButtons;
     const std::filesystem::path ExpectedDescriptor = std::filesystem::absolute(
         RepositoryRoot / "Frontier" / "Projects" / "Project-Everest" / "ProjectEverest.frontier").lexically_normal();
-    for (const Frontier::ProjectBrowserButtonBounds& Bounds : Browser.ProjectOpenButtons)
+    for (const Frontier::ProjectBrowserButtonBounds& Bounds : ProjectButtons)
     {
         if (!Bounds.Valid)
         {
             continue;
         }
-        Browser.ChosenDescriptor.clear();
+        ChosenDescriptor.clear();
         ClickAt(ImVec2((Bounds.Left + Bounds.Right) * 0.5f, (Bounds.Top + Bounds.Bottom) * 0.5f));
-        if (Browser.ChosenDescriptor.lexically_normal() == ExpectedDescriptor)
+        if (ChosenDescriptor.lexically_normal() == ExpectedDescriptor)
         {
             break;
         }
     }
-    const bool EverestSelected = Browser.ChosenDescriptor.lexically_normal() == ExpectedDescriptor;
-    std::printf("native browser capture: application page %s · project page %s · Project Everest selection %s\n",
-                ApplicationWritten ? "captured" : "failed", ProjectWritten ? "captured" : "failed",
-                EverestSelected ? "passed" : "failed");
+    const bool EverestSelected = ChosenDescriptor.lexically_normal() == ExpectedDescriptor;
+    std::printf("existing .frontier project browser · capture %s · Project Everest selection %s\n",
+                BrowserWritten ? BrowserPath.c_str() : "failed", EverestSelected ? "passed" : "failed");
 
     ImGui::DestroyContext();
-    return ApplicationWritten && ProjectWritten && EverestSelected ? 0 : 11;
+    return BrowserWritten && EverestSelected ? 0 : 11;
 }
 } // namespace
 
@@ -592,9 +600,7 @@ int main(int ArgumentCount, char** Arguments)
     Frontier::TypefaceRegistry::Install(&FaceRegistry);
     std::printf("typeface registry: %u families, DM Sans index %d\n", Families,
                 FaceRegistry.ResolveFamilyIndex("DM Sans"));
-    unsigned char* OwnedAtlas = nullptr;
-    Io.Fonts->GetTexDataAsRGBA32(&OwnedAtlas, &AtlasWidth, &AtlasHeight);
-    AtlasPixels = OwnedAtlas;
+    Io.Fonts->GetTexDataAsRGBA32(nullptr, nullptr, nullptr);
 
     // Host-side style from the upstream palette, the way the Windows host applies its theme.
     ImGui::StyleColorsDark();

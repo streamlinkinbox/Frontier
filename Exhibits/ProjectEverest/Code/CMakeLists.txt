@@ -96,7 +96,6 @@ endif()
 set(NATIVE_UI_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/../../LogStream/PanelCapture.cpp"
     "${FRONTIER_ENGINE_ROOT}/Applications/Editor/ProjectBrowserHost.cpp"
-    "${FRONTIER_ENGINE_ROOT}/Applications/Editor/ProjectBrowserPresentation.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Diagnostics/LogCategories.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Diagnostics/LogRingStore.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Diagnostics/LogStream.cpp"
@@ -106,6 +105,7 @@ set(NATIVE_UI_SOURCES
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/LogStreamPanelPresentation.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/SceneDirectoryPanel.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/SceneDirectoryPanelPresentation.cpp"
+    "${FRONTIER_ENGINE_ROOT}/Engine/Interface/VehicleHmiGlyphs.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/SceneInspectorPanel.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Interface/StackRailControls.cpp"
     "${FRONTIER_ENGINE_ROOT}/Engine/Scene/EnvironmentRecords.cpp"

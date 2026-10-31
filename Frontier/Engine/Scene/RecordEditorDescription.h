@@ -96,6 +96,12 @@ struct RecordEditorDescription
     std::function<void()>        ConstructInfographic;   // [-] - Custom 1:1 VehicleHMI / General UI infographic
     const char                  *DedicatedEditorTitle = ""; // [text] - Dedicated popup editor window title
     std::function<void()>        OpenDedicatedEditor;    // [-] - Launches dedicated zero-copy popup editor window
+
+    // VehicleHMI Outliner row behavior is distinct from Inspector Enable and scene visibility: only entities
+    // that authored an Outliner toggle show the eye control. A state callback returns "live", "warm", or "".
+    bool                       *OutlinerToggle = nullptr;
+    std::function<std::string()> QueryLiveState;
+    bool                        HiddenInOutliner = false;
 };
 
 } // namespace Frontier

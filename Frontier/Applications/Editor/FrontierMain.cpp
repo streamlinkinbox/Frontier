@@ -8,7 +8,6 @@
 
 #include "CommandLine.h"
 #include "ProjectBrowserHost.h"
-#include "ProjectBrowserPresentation.h"
 
 #include "Engine/Diagnostics/BuildConfiguration.h"
 #include "Engine/Diagnostics/LogStream.h"
@@ -175,6 +174,7 @@ int RunBrowserListing(const std::filesystem::path& FromExecutable)
 #include "Engine/Interface/SceneDirectoryPanel.h"
 #include "Engine/Interface/SceneDirectoryPanelRegistration.h"
 #include "Engine/Interface/SceneInspectorPanel.h"
+#include "Engine/Interface/IconPresentation.h"
 #include "Engine/Scene/EnvironmentRecords.h"
 #include "Engine/Scene/SceneDirectory.h"
 #include "Engine/Scene/SceneRecord.h"
@@ -196,8 +196,9 @@ namespace
 
 struct BrowserSession
 {
-    GLFWwindow*                 Window = nullptr;
-    ProjectBrowserPresentation Presentation;
+    GLFWwindow*             Window = nullptr;
+    ProjectBrowserEnumeration Listing;
+    std::filesystem::path    ChosenDescriptor;
 };
 
 struct WorkspaceSession
@@ -247,22 +248,22 @@ void ConstructViewportPanel(const WorkspaceSession& Session)
 int RunBrowserWindow(const std::filesystem::path& FromExecutable, std::filesystem::path& ChosenDescriptor)
 {
     BrowserSession Session;
-    Session.Presentation.Listing = EnumerateProjects(ResolveProjectsDirectory(FromExecutable));
+    Session.Listing = EnumerateProjects(ResolveProjectsDirectory(FromExecutable));
 
     ApplicationWindowCallbacks Callbacks;
-    Callbacks.Title      = "Frontier · Application and Project Browser";
+    Callbacks.Title      = "Frontier · Project Browser";
     Callbacks.Initialize = [&Session](GLFWwindow* Window) { Session.Window = Window; };
     Callbacks.ConstructInterface = [&Session](bool) {
-        ConstructProjectBrowserInterface(Session.Presentation);
-        if (!Session.Presentation.ChosenDescriptor.empty())
+        ConstructProjectBrowserInterface(Session.Listing, Session.ChosenDescriptor);
+        if (!Session.ChosenDescriptor.empty())
         {
-            // 📝 The application/project browser closes behind the project window it launches.
+            // 📝 The browser window closes behind the project window it launches.
             glfwSetWindowShouldClose(Session.Window, GLFW_TRUE);
         }
     };
 
     const int Result = RunWindowsApplication(Callbacks);
-    ChosenDescriptor = Session.Presentation.ChosenDescriptor;
+    ChosenDescriptor = Session.ChosenDescriptor;
     return Result;
 }
 
@@ -295,6 +296,7 @@ int RunProjectWindow(const ProjectDescriptor& Descriptor, const std::filesystem:
             "EngineContent/FontArchives", Descriptor.ProjectDirectory / "Saved" / "ControlCentre.toml");
         (void)Session.Centre->Initialize();
         (void)Session.Centre->Activate();
+        IconPresentation::AttachVehicleHmiOutliner();
 
         Session.Panels.ConfigureDockspaceKey("Frontier project panels");
         DockPanelSpecification ViewportPanel;

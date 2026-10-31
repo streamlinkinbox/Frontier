@@ -7,6 +7,7 @@
 #include <cstring>
 #include <cstdio>
 #include <memory>
+#include <vector>
 
 namespace Frontier {
 namespace {
@@ -22,7 +23,20 @@ struct Atlas {
 struct Presentation {
     IconArt Art;
     std::unique_ptr<Atlas> Current, Retired;
-    explicit Presentation(const std::filesystem::path& Root) : Art(Root) {}
+    std::array<bool, Count> Included{};
+    std::vector<IconSymbol> Symbols;
+    explicit Presentation(const std::filesystem::path& Root, bool OutlinerOnly) : Art(Root) {
+        if (OutlinerOnly) {
+            Symbols = {IconSymbol::FolderEnvironment, IconSymbol::Sun, IconSymbol::SkyScattering, IconSymbol::Clouds,
+                       IconSymbol::Fog, IconSymbol::LocalCloud, IconSymbol::LocalFog, IconSymbol::OutlinerStars,
+                       IconSymbol::Moon, IconSymbol::LensFlare};
+        } else {
+            Symbols.reserve(Count);
+            for (int I = 0; I < Count; ++I) Symbols.push_back(static_cast<IconSymbol>(I));
+        }
+        for (const IconSymbol Symbol : Symbols)
+            if (static_cast<unsigned>(Symbol) < Count) Included[static_cast<int>(Symbol)] = true;
+    }
     static void Forget(std::unique_ptr<Atlas>& Item) {
         if (!Item) return;
         // Backend owns GPU resources. It must acknowledge destruction first.
@@ -48,8 +62,10 @@ struct Presentation {
         const int Pitch = Size + 2 * Gutter;
         Next->Texture.Create(ImTextureFormat_RGBA32, Columns * Pitch, Rows * Pitch);
         Next->Texture.UseColors = true;
-        for (int I = 0; I < Count; ++I) {
-            auto Raster = Art.Rasterize(static_cast<IconSymbol>(I), static_cast<float>(Size), static_cast<float>(Size), 1, IconPolicy::Strict, IconArt::Domain(static_cast<IconSymbol>(I)));
+        for (const IconSymbol Symbol : Symbols) {
+            const int I = static_cast<int>(Symbol);
+            auto Raster = Art.Rasterize(Symbol, static_cast<float>(Size), static_cast<float>(Size), 1,
+                                        IconPolicy::Strict, IconArt::Domain(Symbol));
             const int X = (I % Columns) * Pitch + Gutter, Y = (I / Columns) * Pitch + Gutter;
             for (int Row = 0; Row < Size; ++Row)
                 std::memcpy(Next->Texture.GetPixelsAt(X, Y + Row), Raster->Rgba.data() + Row * Size * 4, Size * 4);
@@ -58,9 +74,9 @@ struct Presentation {
             Tile.Max = ImVec2(float(X + Size) / Next->Texture.Width, float(Y + Size) / Next->Texture.Height);
             Tile.Result = Raster->Result;
             Tile.Diagnostic = Raster->Diagnostic;
-            if (Raster->Substitute) DiagnosticJournal::Append("IconSubstitute", std::string(IconArt::Filename(static_cast<IconSymbol>(I))) + ": " + Raster->Diagnostic);
+            if (Raster->Substitute) DiagnosticJournal::Append("IconSubstitute", std::string(IconArt::Filename(Symbol)) + ": " + Raster->Diagnostic);
             if (Raster->Substitute)
-                std::fprintf(stderr, "[Icons] %s: %s (%s)\n", IconArt::Filename(static_cast<IconSymbol>(I)),
+                std::fprintf(stderr, "[Icons] %s: %s (%s)\n", IconArt::Filename(Symbol),
                     IconArt::ResultName(Raster->Result), Raster->Diagnostic.c_str());
         }
         ImGui::RegisterUserTexture(&Next->Texture);
@@ -86,11 +102,10 @@ Presentation* Find() {
     return nullptr;
 }
 bool Valid(IconSymbol S) { return static_cast<unsigned>(S) < Count; }
-}
-void IconPresentation::Attach(const std::filesystem::path& Root) {
+void AttachPresentation(const std::filesystem::path& Root, bool OutlinerOnly) {
     DiagnosticJournal::Append("Icons", "Attach " + DiagnosticJournal::EncodePath(Root));
     if (!ImGui::GetCurrentContext() || Find()) return;
-    auto P = std::make_unique<Presentation>(Root);
+    auto P = std::make_unique<Presentation>(Root, OutlinerOnly);
     ImGuiContextHook H;
     H.Callback = Hook; H.UserData = P.get(); H.Type = ImGuiContextHookType_NewFramePre;
     ImGui::AddContextHook(ImGui::GetCurrentContext(), &H);
@@ -98,9 +113,13 @@ void IconPresentation::Attach(const std::filesystem::path& Root) {
     ImGui::AddContextHook(ImGui::GetCurrentContext(), &H);
     P.release();
 }
+}
+void IconPresentation::Attach(const std::filesystem::path& Root) { AttachPresentation(Root, false); }
+void IconPresentation::AttachVehicleHmiOutliner(const std::filesystem::path& Root) { AttachPresentation(Root, true); }
 bool IconPresentation::Draw(ImDrawList* List, IconSymbol S, ImVec2 Min, float Size, float Opacity, IconDomain Domain, ImU32 Tint) {
     auto* P = Find();
-    if (!P || !P->Current || !Valid(S) || !IconArt::Available(S, Domain) || !List || !std::isfinite(Size) || Size <= 0) return false;
+    if (!P || !P->Current || !Valid(S) || !P->Included[static_cast<int>(S)] ||
+        !IconArt::Available(S, Domain) || !List || !std::isfinite(Size) || Size <= 0) return false;
     const auto& T = P->Current->Tiles[static_cast<int>(S)];
     if (!std::isfinite(Opacity)) Opacity = 1;
     const auto Alpha = static_cast<int>(255 * std::clamp(Opacity, 0.0f, 1.0f) + 0.5f);
@@ -110,10 +129,12 @@ bool IconPresentation::Draw(ImDrawList* List, IconSymbol S, ImVec2 Min, float Si
 }
 IconResult IconPresentation::Result(IconSymbol S) {
     auto* P = Find();
-    return P && P->Current && Valid(S) ? P->Current->Tiles[static_cast<int>(S)].Result : IconResult::InvalidRequest;
+    return P && P->Current && Valid(S) && P->Included[static_cast<int>(S)]
+        ? P->Current->Tiles[static_cast<int>(S)].Result : IconResult::InvalidRequest;
 }
 const char* IconPresentation::Diagnostic(IconSymbol S) {
     auto* P = Find();
-    return P && P->Current && Valid(S) ? P->Current->Tiles[static_cast<int>(S)].Diagnostic.c_str() : "Icon atlas unavailable";
+    return P && P->Current && Valid(S) && P->Included[static_cast<int>(S)]
+        ? P->Current->Tiles[static_cast<int>(S)].Diagnostic.c_str() : "Icon atlas unavailable";
 }
 }

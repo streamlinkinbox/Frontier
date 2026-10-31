@@ -3,6 +3,8 @@
 #include "Engine/Scene/EnvironmentRecords.h"
 
 #include <cmath>
+#include <cstdio>
+#include <string>
 #include <utility>
 
 namespace Frontier
@@ -25,6 +27,12 @@ SunRecord::SunRecord() : RecordEntry(RecordClassification::Environment)
     Description.Colour      = "#e8c27a";
     Description.Description = "Light, direction & atmosphere";
     Description.Enabled     = &Placement.Enabled;
+    Description.QueryLiveMeta = [this] {
+        char Value[24] = {};
+        std::snprintf(Value, sizeof(Value), "%.0f°", Placement.ElevationDegrees);
+        return std::string(Value);
+    };
+    Description.QueryLiveState = [this] { return Placement.ElevationDegrees > 0.0 ? "live" : "warm"; };
     Description.ScalarFields = {
         {"Elevation", "deg", -18.0, 90.0, 0.1, 1, &Placement.ElevationDegrees},
         {"Azimuth", "deg", 0.0, 360.0, 0.1, 1, &Placement.AzimuthDegrees},
@@ -55,6 +63,8 @@ AtmosphereRecord::AtmosphereRecord() : RecordEntry(RecordClassification::Environ
     Description.Colour      = "#99aafa";
     Description.Description = "Rayleigh, Mie and ozone column";
     Description.Enabled     = &Enabled;
+    Description.OutlinerToggle = &Enabled;
+    Description.QueryLiveState = [this] { return Enabled ? "live" : ""; };
     Description.ScalarFields = {
         {"Rayleigh scale height", "km", 1.0, 20.0, 0.1, 1, &Parameters.RayleighScaleHeightKm},
         {"Mie scattering", "1/km", 0.0, 0.02, 0.0001, 4, &Parameters.MieScattering},
@@ -77,6 +87,8 @@ CloudRecord::CloudRecord() : RecordEntry(RecordClassification::Environment)
     Description.Colour      = "#99aafa";
     Description.Description = "Seeded density slab, sun in-scattering and self-shadowing";
     Description.Enabled     = &Enabled;
+    Description.OutlinerToggle = &Enabled;
+    Description.QueryLiveState = [this] { return Enabled ? "live" : ""; };
     // 📝 Bounds are the pinned HTML CloudRanges (6afb6f0), mapped onto the Engine slab: base and
     //    thickness replace its base/top pair, and anisotropy maps to the Henyey-Greenstein g.
     Description.ScalarFields = {
@@ -101,6 +113,8 @@ FogRecord::FogRecord() : RecordEntry(RecordClassification::Environment)
     Description.Colour      = "#99aafa";
     Description.Description = "Exponential height fog with cloud-shadowed single scattering";
     Description.Enabled     = &Enabled;
+    Description.OutlinerToggle = &Enabled;
+    Description.QueryLiveState = [this] { return Enabled ? "live" : ""; };
     Description.ScalarFields = {
         {"Density", "1/m", 0.0, 0.01, 0.0001, 4, &Parameters.DensityAtBase},
         {"Base height", "m", 0.0, 500.0, 1.0, 0, &Parameters.BaseHeightM},
@@ -122,6 +136,8 @@ WindRecord::WindRecord() : RecordEntry(RecordClassification::Environment)
     Description.Colour      = "#a7f3d0";
     Description.Description = "Shared weather force field";
     Description.Enabled     = &Enabled;
+    Description.OutlinerToggle = &Enabled;
+    Description.QueryLiveState = [this] { return Enabled ? "live" : ""; };
     Description.ScalarFields = {
         {"Speed", "m/s", 0.0, 40.0, 0.1, 1, &SpeedMps},
         {"Bearing", "deg", 0.0, 360.0, 1.0, 0, &BearingDegrees},

@@ -1,0 +1,78 @@
+{
+  "clouds.svg": {
+    "original_unsupported": [
+      "feColorMatrix",
+      "feComposite",
+      "feDisplacementMap",
+      "feTurbulence"
+    ],
+    "changes": [
+      "Procedural filter primitives omitted in vector variant: feTurbulence, feColorMatrix, feComposite",
+      "Procedural filter primitives omitted in vector variant: feTurbulence, feDisplacementMap"
+    ],
+    "source_fnv1a64": "9639da3135d817c0"
+  },
+  "fog.svg": {
+    "original_unsupported": [
+      "feColorMatrix",
+      "feComposite",
+      "feDisplacementMap",
+      "feTurbulence"
+    ],
+    "changes": [
+      "Procedural filter primitives omitted in vector variant: feTurbulence, feDisplacementMap, feColorMatrix, feComposite"
+    ],
+    "source_fnv1a64": "3227b37f760bb88a"
+  },
+  "local-cloud.svg": {
+    "original_unsupported": [
+      "feColorMatrix",
+      "feComposite",
+      "feDisplacementMap",
+      "feTurbulence"
+    ],
+    "changes": [
+      "Procedural filter primitives omitted in vector variant: feTurbulence, feColorMatrix, feComposite",
+      "Procedural filter primitives omitted in vector variant: feTurbulence, feDisplacementMap"
+    ],
+    "source_fnv1a64": "b59770cb164634d4"
+  },
+  "local-fog.svg": {
+    "original_unsupported": [
+      "feColorMatrix",
+      "feComposite",
+      "feDisplacementMap",
+      "feTurbulence"
+    ],
+    "changes": [
+      "Procedural filter primitives omitted in vector variant: feTurbulence, feDisplacementMap, feColorMatrix, feComposite"
+    ],
+    "source_fnv1a64": "35dc7e93e142e72c"
+  },
+  "moon.svg": {
+    "original_unsupported": [
+      "feColorMatrix",
+      "feComponentTransfer",
+      "feComposite",
+      "feFuncA",
+      "feTurbulence"
+    ],
+    "changes": [
+      "Procedural filter primitives omitted in vector variant: feTurbulence, feColorMatrix, feComponentTransfer, feComposite"
+    ],
+    "source_fnv1a64": "1dd99b17425ea10d"
+  },
+  "sun.svg": {
+    "original_unsupported": [
+      "feColorMatrix",
+      "feComposite",
+      "feDisplacementMap",
+      "feTurbulence"
+    ],
+    "changes": [
+      "Procedural filter primitives omitted in vector variant: feTurbulence, feColorMatrix, feComposite",
+      "Procedural filter primitives omitted in vector variant: feTurbulence, feDisplacementMap"
+    ],
+    "source_fnv1a64": "3ec0a0fd1193105f"
+  }
+}

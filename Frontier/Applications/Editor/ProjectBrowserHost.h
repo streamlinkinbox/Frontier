@@ -10,6 +10,7 @@
 
 #include "Engine/Interface/ProjectDescriptor.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -32,6 +33,17 @@ struct ProjectBrowserEnumeration
     std::vector<std::string>         Diagnostics;  // [lines] - One line per descriptor that failed to decode
 };
 
+#if defined(FRONTIER_WITH_INTERFACE_SDK)
+struct ProjectBrowserButtonBounds
+{
+    float Left = 0.0f;
+    float Top = 0.0f;
+    float Right = 0.0f;
+    float Bottom = 0.0f;
+    bool Valid = false;
+};
+#endif
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    PUBLIC FUNCTIONS
 //------------------------------------------------------------------------------------------------------------------------
@@ -43,5 +55,13 @@ struct ProjectBrowserEnumeration
 // Registers a descriptor's declared [[LogCategories]] with the log registry (descriptor colours applied).
 // Returns how many categories were newly registered by this call.
 uint32_t RegisterDescriptorLogCategories(const ProjectDescriptor& Descriptor);
+
+#if defined(FRONTIER_WITH_INTERFACE_SDK)
+// Draws the existing .frontier project list from FrontierMain::RunBrowserWindow. The optional bounds are
+// capture instrumentation only; the native browser model and visible controls remain the existing ones.
+void ConstructProjectBrowserInterface(const ProjectBrowserEnumeration& Listing,
+                                      std::filesystem::path& ChosenDescriptor,
+                                      std::vector<ProjectBrowserButtonBounds>* ProjectOpenButtons = nullptr);
+#endif
 
 } // namespace Frontier

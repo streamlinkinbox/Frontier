@@ -9,6 +9,8 @@ namespace Frontier {
 class IconPresentation final {
 public:
     static void Attach(const std::filesystem::path& Root = "EngineContent/Icons");
+    // Attach only the custom full-colour glyphs used by the VehicleHMI Outliner; avoids loading unrelated editor icons.
+    static void AttachVehicleHmiOutliner(const std::filesystem::path& Root = "EngineContent/Icons");
     // False means no attached/texture-capable adapter (caller may use its legacy glyph).
     // Unsupported artwork still returns true: the strict, visible substitute is drawn.
     static bool Draw(ImDrawList* List, IconSymbol Symbol, ImVec2 Min, float Size,

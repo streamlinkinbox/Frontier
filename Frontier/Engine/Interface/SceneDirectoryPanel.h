@@ -33,6 +33,7 @@ class SceneDirectory;
 struct SceneDirectoryRow
 {
     RecordToken          Token;                                            // [-] - Record identity
+    RecordToken          ParentToken;                                      // [-] - Tree parent (for nested rows/search)
     std::string          Name;                                             // [text] - Display name (configured or default)
     RecordClassification Classification = RecordClassification::Unclassified;
     uint32_t             DepthTier      = 0;                               // [tiers] - Nesting depth; 0 is a root row
@@ -40,10 +41,15 @@ struct SceneDirectoryRow
     bool                 Visible        = true;                            // [-] - Directory eye toggle (dimmed when off)
     bool                 Enabled        = true;                            // [-] - Component enabled state
     bool                 Collapsed      = false;                           // [-] - Panel-side: subtree folded away
-    std::string          Group;                                            // [text] - HTML outliner group
+    std::string          Group;                                            // [text] - VehicleHMI Outliner group
+    std::string          Category;                                         // [text] - Entity type used by Outliner search
+    std::string          Glyph;                                            // [text] - VehicleHMI / Lucide glyph name
     std::string          Colour;                                           // [text] - Row accent "#rrggbb"
-    std::string          StableId;                                         // [text] - Pinned HTML entity id
+    std::string          StableId;                                         // [text] - Pinned entity id
     std::string          Meta;                                             // [text] - Live right-hand readout badge
+    std::string          State;                                            // [text] - "live", "warm", or empty
+    bool                *OutlinerToggle = nullptr;                         // [-] - Optional row-level eye toggle
+    bool                 HiddenInOutliner = false;                         // [-] - Editor-authored tree visibility
 };
 
 struct SceneClassificationTab
@@ -166,7 +172,7 @@ class SceneDirectoryPanel
     std::optional<RecordClassification>     ClassificationFilter;
     std::string                             TextFilter;
     std::unordered_set<uint64_t>            CollapsedTokens;
-    std::unordered_set<std::string>         CollapsedGroups;
+    std::unordered_set<std::string>         CollapsedGroups{"Objects"};
     std::optional<RecordClassification>     PendingSpawn;
     std::optional<std::string>              PendingDedicatedEditorId;
     RecordToken                             Selected;
