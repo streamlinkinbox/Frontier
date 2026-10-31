@@ -160,9 +160,12 @@ Follow the user's current commit and push instructions; do not infer permission 
 
 ## Project Everest — dual-tier GPU contract and editor scene architecture
 
-- **Application identity**: `Frontier/Projects/Project-Everest/ProjectEverest.frontier` (**Project Everest**).
-  Entry flow: `ProjectBrowserPanel` -> select **Project Everest** -> launch workspace composed from main-branch
-  `ControlCentrePanel` (trapezoidal notch + UI theme controller) + `PanelDockspace` + `LogStreamPanel`.
+- **Application identity & lifecycle loop**: `Frontier/Projects/Project-Everest/ProjectEverest.frontier`
+  (**Project Everest**). Host entry lives in `Frontier/Applications/Editor/WorkspaceApplication.{h,cpp}`
+  (`WorkspaceApplication::Initialize -> Loop -> Finalize`, `ExecuteWorkspaceApplication`) — never use `Main`,
+  `FrontierMain`, or `MainLoop` in application/loop identifiers (`SKILL-Naming.md`). Single unified
+  `RunWindowsApplication` loop transitions seamlessly between `ProjectBrowserPanel` and the 3-column docked workspace
+  (`Outliner` | `Viewport` over `LogStream` | `Inspector`) governed by `ControlCentrePanel`.
 - **Dual-tier Vulkan GPU rendering** (Slang `.slang` compute/ray-query shaders; never CPU raytracing):
   - **RTX tier** (hardware RT capable GPUs via `VK_KHR_acceleration_structure` + `VK_KHR_ray_query`): hardware BVH
     traversal, ReSTIR DI/GI spatiotemporal reservoir reuse, closed/thin-pane dielectric glass transport, and motion
@@ -172,19 +175,22 @@ Follow the user's current commit and push instructions; do not infer permission 
     paired with 2-level SAH triangle **BVH reflections** (`OrderedSoftwareBvh`).
 - **Editor scene item (`RecordEntry`) lifecycle and Inspector architecture** (naming-compliant; no banned `Entity`
   symbol names in C++):
-  - Every scene item (`RecordEntry`, user-facing Outliner entry) instantiated in `#if defined(FRONTIER_EDITOR_PROFILE)`
-    owns a paired **constructor and destructor** tied to its `SceneRecord`:
-    - **Constructor**: registers the item in `SceneDirectory` (`SceneDirectoryPanel` Outliner) under its group and
-      constructs/binds its Inspector (`RecordEditorDescription` / `SceneInspectorPanel`).
-    - **Destructor**: detaches and destroys its Inspector binding, clears active selection if selected, and unregisters
-      the item from `SceneDirectory` with zero dangling Outliner rows or orphan inspectors.
+  - Every scene item (`RecordEntry`, user-facing Outliner entry) instantiated in Editor/Development profiles owns a
+    paired **constructor and destructor**:
+    - **Constructor**: registers the item in `SceneDirectory` (`SceneDirectoryPanel` Outliner) under its enclosing
+      `FolderRecord` / parent and registers its `RecordEditorDescription` (`SceneInspectorPanel`).
+    - **Destructor**: detaches its `RecordEditorDescription`, clears active selection if selected, re-roots enclosed
+      records cleanly, and unregisters the item from `SceneDirectory` with zero dangling Outliner rows or inspectors.
   - **Three-tier authoring split**:
-    1. **Reusable engine components** (`Frontier/Engine/Scene/`): standard world and lighting items — Sun, Sky &
-       Atmosphere, Volumetric Clouds, Fog, Wind Forcefield, Directional/Rect/Point/Spot Lights, Camera/Post-Process —
-       ship with reusable engine Inspectors; projects instantiate and configure them without recreating inspectors.
+    1. **Reusable engine components** (`Frontier/Engine/Scene/EnvironmentRecords.{h,cpp}` +
+       `Frontier/Engine/Interface/SceneInspectorPanel.{h,cpp}`): global editor components shared across all projects —
+       **Folders** (`FolderRecord` with cascade visibility & colour swatches), **Sun** (`SunRecord`), **Lens Flare**
+       (`LensFlareRecord`), **Atmosphere** (`AtmosphereRecord` wired to `AtmosphereModel`), **Clouds** (`CloudRecord`
+       wired to `CloudField`), and **Wind** (`WindRecord`) — live in Engine, never trapped inside a single project.
     2. **User-created project Inspectors** (`Frontier/Projects/<Project>/Source/`): custom project designs (such as
-       **Project Everest**'s `ControlVehicle` chassis, glazing, paint/flakes, suspension, and cabin telemetry) author
-       their own `RecordEntry` subclass and custom Inspector controls through `CodeInterchange`.
+       **Project Everest**'s `EverestVehicleRecord` `ControlVehicle` 4-corner suspension/AWD chassis card,
+       `EverestTyreRecord`s, and `EverestIlluminationRecord` RTX/GTX tier selector) author their own `RecordEntry`
+       subclass and custom Inspector controls.
     3. **Dedicated domain editors / studios** (`Engine/` + `UI/Editor/`): specialized domains open dedicated editors
        rather than crowding generic property cards — Fracture Studio, Fluid/Plume Studio, Particle Studio, Object/Mesh
        Studio, and Texture/Material Studio.

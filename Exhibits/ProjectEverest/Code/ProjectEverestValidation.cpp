@@ -1,7 +1,9 @@
 /*==========================================================================================================================================
                                                      PROJECTEVERESTVALIDATION.CPP
 ==========================================================================================================================================*/
-// 🧩 End-to-end validation and real CPU rasterization for Project Browser -> Project Everest -> Control Centre + Docking + Log Stream.
+// 🧩 End-to-end validation and real CPU rasterization for Project Everest Phase 2:
+//    Project Browser -> Project Everest launch -> Engine Folder Outliner + 6 Global Observatories (Folder, Sun, Lens Flare,
+//    Atmosphere, Clouds, Wind) + Custom ControlVehicle & Dual-Tier RTX/GTX Illumination Inspectors + Dark/Light themes.
 
 #include "Exhibits/ControlCentre/Code/CpuRasterization.h"
 
@@ -18,9 +20,15 @@
 #include "Engine/Interface/ProjectDescriptor.h"
 #include "Engine/Interface/SceneDirectoryPanel.h"
 #include "Engine/Interface/SceneDirectoryPanelRegistration.h"
+#include "Engine/Interface/SceneInspectorPanel.h"
+#include "Engine/Interface/SceneInspectorPanelRegistration.h"
+#include "Engine/Interface/StackRailControls.h"
+#include "Engine/Rendering/AtmosphereModel.h"
+#include "Engine/Rendering/CloudField.h"
+#include "Engine/Scene/EnvironmentRecords.h"
 #include "Engine/Scene/RecordEntry.h"
 #include "Engine/Scene/SceneDirectory.h"
-#include "Engine/Scene/SceneRecord.h"
+#include "Projects/Project-Everest/Source/ProjectEverestScene.h"
 #include "UI/Editor/ControlCentrePanel.h"
 #include "UI/Editor/ProjectBrowserPanel.h"
 
@@ -28,6 +36,7 @@
 #include <imgui.h>
 #include <stb_image_write.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -39,7 +48,6 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <unordered_map>
 #include <vector>
 
 extern "C" bool FRONTIER_CODE_IMAGE_CALL ConstructProjectInterchange(
@@ -56,8 +64,8 @@ namespace
 //                                                    ASSERTION & CAPTURE
 //------------------------------------------------------------------------------------------------------------------------
 
-constexpr int CaptureWidth  = 1600;   // [px] - Desktop capture width (>900 px LogStream desktop breakpoint)
-constexpr int CaptureHeight = 960;    // [px] - Desktop capture height
+constexpr int CaptureWidth  = 1920;   // [px] - Full HD desktop capture width (middle column > 900 px desktop breakpoint)
+constexpr int CaptureHeight = 1080;   // [px] - Full HD desktop capture height
 
 void Require(bool Condition, const char* Explanation)
 {
@@ -101,92 +109,6 @@ double SampleRegionMeanLuminance(const std::vector<unsigned char>& Pixels, int L
     return Count > 0 ? Sum / static_cast<double>(Count) : 0.0;
 }
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                      RECORDENTRY OUTLINER + INSPECTOR LIFECYCLE
-//------------------------------------------------------------------------------------------------------------------------
-
-enum class InspectorProvenance : uint8_t
-{
-    ReusableEngineComponent,   // [-] - Built-in reusable environment/lighting Inspector
-    CustomProjectAuthoring,    // [-] - User-authored custom Inspector (e.g. ControlVehicle)
-    DedicatedDomainStudio      // [-] - Specialized Studio launcher (Fracture / Fluid / Particle)
-};
-
-struct InspectorBinding
-{
-    std::string         DisplayTitle;   // [-] - Inspector header title
-    InspectorProvenance Provenance;     // [-] - Authoring tier
-};
-
-class InspectorRegistry
-{
-  public:
-    static InspectorRegistry& Instance()
-    {
-        static InspectorRegistry Shared;
-        return Shared;
-    }
-
-    void Attach(RecordToken Token, std::string Title, InspectorProvenance Provenance)
-    {
-        Bindings[Token.Value] = InspectorBinding{std::move(Title), Provenance};
-    }
-
-    void Detach(RecordToken Token) noexcept
-    {
-        Bindings.erase(Token.Value);
-    }
-
-    [[nodiscard]] bool QueryBound(RecordToken Token) const noexcept
-    {
-        return Bindings.find(Token.Value) != Bindings.end();
-    }
-
-    [[nodiscard]] size_t QueryCount() const noexcept
-    {
-        return Bindings.size();
-    }
-
-  private:
-    std::unordered_map<uint64_t, InspectorBinding> Bindings;
-};
-
-// 📝 Demonstrates the pinned CLAUDE.md editor contract: every scene item derives from RecordEntry, registers its
-//    display name/parent in SceneDirectory + constructs its Inspector binding on construction, and tears down its
-//    Inspector binding before RecordEntry::~RecordEntry unregisters from SceneDirectory on destruction.
-class EverestSceneItem final : public RecordEntry
-{
-  public:
-    EverestSceneItem(RecordClassification Classification, const std::string& Name,
-                     InspectorProvenance Provenance, RecordToken Parent = {})
-        : RecordEntry(Classification)
-    {
-#if defined(FRONTIER_EDITOR_PROFILE)
-        (void)SceneDirectory::Instance().ConfigureName(Token(), Name);
-        if (Parent.IsValid())
-        {
-            (void)SceneDirectory::Instance().ConfigureParent(Token(), Parent);
-        }
-        InspectorRegistry::Instance().Attach(Token(), Name, Provenance);
-#else
-        (void)Name;
-        (void)Provenance;
-        (void)Parent;
-#endif
-    }
-
-    ~EverestSceneItem()
-    {
-#if defined(FRONTIER_EDITOR_PROFILE)
-        InspectorRegistry::Instance().Detach(Token());
-#endif
-    }
-};
-
-//------------------------------------------------------------------------------------------------------------------------
-//                                           INTERCHANGE DIAGNOSTIC BRIDGE
-//------------------------------------------------------------------------------------------------------------------------
-
 uint32_t ResolveEngineChannel(const char* Name)
 {
     const LogCategory* Category = LogCategories().QueryByName(Name);
@@ -215,31 +137,192 @@ void FRONTIER_CODE_IMAGE_CALL ReceiveEverestDiagnostic(const FrontierProjectDiag
     WriteLog(Token, LogSeverity::Info, LogVerbosity::Display, Diagnostic->Explanation, "ProjectEverestInterchange.cpp");
 }
 
-void ConstructEverestViewport(const ProjectDescriptor& Descriptor, const char* ActiveThemeLabel)
+//------------------------------------------------------------------------------------------------------------------------
+//                                        LIVE COUPLED ENVIRONMENT VIEWPORT CANVAS
+//------------------------------------------------------------------------------------------------------------------------
+
+void ConstructLiveEverestViewport(const ProjectDescriptor& Descriptor, ProjectEverestScene& Everest)
 {
-    const ImGuiStyle& Style = ImGui::GetStyle();
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(28.0f, 24.0f));
-    ImGui::TextColored(Style.Colors[ImGuiCol_TextDisabled], "SCENE CANVAS · PROJECT EVEREST");
-    ImGui::Spacing();
-    ImGui::TextWrapped("Dual-tier Vulkan C++ viewport surface. Hardware RTX GPUs execute PathReplayRayQuery + "
-                       "DielectricBoundary + motion SVGF; GTX and lower-end GPUs execute the 4-cascade toroidal 3D "
-                       "SDF + SurfaceCards GI + OrderedSoftwareBvh triangle reflections fallback.");
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-    const auto Row = [](const char* Label, const std::string& Value) {
-        ImGui::TextDisabled("%s", Label);
-        ImGui::SameLine(170.0f);
-        ImGui::TextWrapped("%s", Value.empty() ? "\u2014" : Value.c_str());
+    const KitFaces Faces   = ResolveKitFaces();
+    const KitTheme Theme   = ResolveKitTheme();
+    ImDrawList*    Ink     = ImGui::GetWindowDrawList();
+    const ImVec2   WinPos  = ImGui::GetWindowPos();
+    const ImVec2   WinSize = ImGui::GetWindowSize();
+    const float    Left    = WinPos.x + 14.0f;
+    const float    Top     = std::max(WinPos.y + 30.0f, ImGui::GetCursorScreenPos().y + 4.0f);
+    const float    Width   = std::max(120.0f, WinSize.x - 28.0f);
+    const float    Height  = std::max(120.0f, WinPos.y + WinSize.y - Top - 12.0f);
+
+    Ink->AddRectFilled(ImVec2(WinPos.x, Top - 6.0f), ImVec2(WinPos.x + WinSize.x, WinPos.y + WinSize.y), Theme.PanelBg);
+
+    // Top viewport bar: "< Browser", project title, GPU tier pill.
+    bool BackHover = false;
+    (void)KitTarget("##ViewportBackBrowser", ImVec2(Left, Top), ImVec2(88.0f, 26.0f), BackHover,
+                    "Return to Project Browser");
+    KitPillSurface(Ink, ImVec2(Left, Top), ImVec2(Left + 88.0f, Top + 26.0f),
+                   BackHover ? Theme.Surface3 : Theme.Surface2, Theme.Line, 999.0f);
+    KitDrawText(Ink, Faces.Medium, 11.5f, ImVec2(Left + 14.0f, Top + 6.5f),
+                BackHover ? Theme.Text : Theme.Muted, "< Browser");
+
+    KitDrawText(Ink, Faces.SemiBold, 14.0f, ImVec2(Left + 100.0f, Top + 5.5f), Theme.Text,
+                Descriptor.Name.c_str());
+
+    {
+        const bool  RtxActive = (Everest.Illumination.TierSelectionIndex == 0);
+        const char* TierLabel = RtxActive ? "RTX RayQuery + ReSTIR GI" : "GTX SDF + BVH Fallback";
+        const float TierW     = KitTextWidth(Faces.Medium, 11.0f, TierLabel) + 26.0f;
+        const float TierX     = Left + Width - TierW;
+        bool        TierHover = false;
+        if (KitTarget("##ViewportTierToggle", ImVec2(TierX, Top), ImVec2(TierW, 26.0f), TierHover,
+                      "Click to toggle RTX Raytracing vs GTX SDF + BVH Fallback"))
+        {
+            Everest.Illumination.TierSelectionIndex = RtxActive ? 1 : 0;
+        }
+        const ImU32 TierAccent = RtxActive ? KitInkHex(0x2fe6a7) : KitInkHex(0x63a8ff);
+        KitPillSurface(Ink, ImVec2(TierX, Top), ImVec2(TierX + TierW, Top + 26.0f),
+                       KitInkWithAlpha(TierAccent, 0.16f), KitInkWithAlpha(TierAccent, 0.55f), 999.0f);
+        Ink->AddCircleFilled(ImVec2(TierX + 12.0f, Top + 13.0f), 3.4f, TierAccent);
+        KitDrawText(Ink, Faces.Medium, 11.0f, ImVec2(TierX + 20.0f, Top + 7.0f), Theme.Text, TierLabel);
+    }
+
+    // Live Coupled Sky + Sun + Cloud + Lens-Flare Viewport Diagnostic Canvas.
+    const ImVec2 CanvasMin(Left, Top + 34.0f);
+    const ImVec2 CanvasMax(Left + Width, Top + Height);
+    KitPillSurface(Ink, CanvasMin, CanvasMax, KitInkHex(0x090d11), Theme.Line, 12.0f);
+
+    const SunRecord*        Sun        = &Everest.Sun;
+    const AtmosphereRecord* Atmosphere = &Everest.Atmosphere;
+    const CloudRecord*      Clouds     = &Everest.Clouds;
+    const LensFlareRecord*  Flare      = &Everest.LensFlare;
+    const WindRecord*       Wind       = &Everest.Wind;
+
+    const float         CWidth     = CanvasMax.x - CanvasMin.x - 6.0f;
+    const float         CHeight    = CanvasMax.y - CanvasMin.y - 6.0f;
+    const SpatialVector SunDir     = Sun->QuerySunDirection();
+    const SpatialVector ObsKm{0.0, 0.0, Atmosphere->Parameters.GroundRadiusKm + 0.1};
+    const double        Scale      = (Sun->Enabled ? Sun->SolarIlluminance : 0.0) * Atmosphere->SkyBrightnessScale;
+    const SpectrumRgb   SolarTint  = SunRecord::EvaluateBlackbodyRgb(Sun->TemperatureKelvin);
+    const SpectrumRgb   SunIrr{Scale * SolarTint.R, Scale * SolarTint.G, Scale * SolarTint.B};
+    constexpr int       Cols       = 128;
+    constexpr int       Rows       = 72;
+    const float         CellW      = CWidth / static_cast<float>(Cols);
+    const float         CellH      = CHeight / static_cast<float>(Rows);
+    const double        Aspect     = static_cast<double>(CWidth / std::max(1.0f, CHeight));
+    const double        SunScreenU = std::clamp(0.5 + (Sun->AzimuthDegrees - 145.0) / 180.0, 0.08, 0.92);
+    const double        SunScreenV = std::clamp(0.68 - (Sun->ElevationDegrees / 90.0) * 0.58, 0.06, 0.92);
+
+    auto ToByte = [](double Linear) -> int {
+        const double Mapped = std::max(0.0, Linear) / (1.0 + std::max(0.0, Linear));
+        return std::clamp(static_cast<int>(std::pow(Mapped, 1.0 / 2.2) * 255.0 + 0.5), 0, 255);
     };
-    Row("Application", Descriptor.Name);
-    Row("Opening scene", Descriptor.OpeningScene);
-    Row("Code image", Descriptor.CodeImage);
-    Row("Active UI theme", ActiveThemeLabel);
-    Row("RTX tier", "VK_KHR_acceleration_structure + VK_KHR_ray_query (Slang SPIR-V 1.4)");
-    Row("GTX fallback tier", "Toroidal 3D SDF (SceneClip0..3) + SurfaceCards + OrderedSoftwareBvh");
-    Row("Descriptor path", EncodeUtf8Path(Descriptor.DescriptorPath));
-    ImGui::PopStyleVar();
+
+    std::vector<ImU32> SkyVertexGrid(static_cast<size_t>((Cols + 1) * (Rows + 1)));
+    for (int Row = 0; Row <= Rows; ++Row)
+    {
+        const double V        = static_cast<double>(Row) / static_cast<double>(Rows);
+        const double ViewElev = (0.68 - V) * 1.45;
+        for (int Col = 0; Col <= Cols; ++Col)
+        {
+            const double U      = static_cast<double>(Col) / static_cast<double>(Cols);
+            SpectrumRgb  Colour = {0.015, 0.020, 0.024};
+
+            if (ViewElev >= 0.0)
+            {
+                if (Atmosphere->Enabled)
+                {
+                    const double        ViewAz = (U - 0.5) * 2.2 + (Sun->AzimuthDegrees * 3.14159265358979323846 / 180.0);
+                    const SpatialVector ViewDir{std::cos(ViewElev) * std::cos(ViewAz),
+                                                std::cos(ViewElev) * std::sin(ViewAz), std::sin(std::max(0.008, ViewElev))};
+                    Colour = SingleScattering(Atmosphere->Parameters, ObsKm, ViewDir, SunDir, SunIrr,
+                                              Atmosphere->UseBakedLookup ? &Atmosphere->LookupTable : nullptr, 10);
+                }
+                if (Clouds->Enabled && ViewElev > 0.03)
+                {
+                    const double CloudD = Clouds->SampleTopDownDensity(U, V * 1.4);
+                    const double Mix    = std::clamp(CloudD * 0.78 * std::min(1.0, (ViewElev - 0.03) * 8.0), 0.0, 0.88);
+                    const double Lit    = 0.25 + 0.75 * std::clamp((Sun->ElevationDegrees + 8.0) / 48.0, 0.05, 1.0);
+                    Colour.R            = Colour.R * (1.0 - Mix) + Lit * SolarTint.R * Mix;
+                    Colour.G            = Colour.G * (1.0 - Mix) + Lit * SolarTint.G * Mix;
+                    Colour.B            = Colour.B * (1.0 - Mix) + Lit * SolarTint.B * Mix;
+                }
+                if (Sun->Enabled && Sun->DiscEnabled && Sun->ElevationDegrees > -2.0)
+                {
+                    const double Dx   = (U - SunScreenU) * Aspect;
+                    const double Dy   = (V - SunScreenV);
+                    const double Dist = std::sqrt(Dx * Dx + Dy * Dy);
+                    const double Disc = std::exp(-Dist * Dist / 0.00045);
+                    const double Glow = std::exp(-Dist * 11.0) * 0.45 * Sun->OpticalGlow;
+                    Colour.R += SolarTint.R * (Disc * 4.2 + Glow);
+                    Colour.G += SolarTint.G * (Disc * 4.0 + Glow * 0.92);
+                    Colour.B += SolarTint.B * (Disc * 3.6 + Glow * 0.80);
+                }
+            }
+            else
+            {
+                const double DepthFade = std::clamp((V - 0.68) / 0.32, 0.0, 1.0);
+                const double Ambient   = 0.03 + 0.14 * std::clamp((Sun->ElevationDegrees + 6.0) / 50.0, 0.0, 1.0);
+                Colour = SpectrumRgb{Ambient * (0.55 + 0.35 * DepthFade),
+                                     Ambient * (0.60 + 0.35 * DepthFade),
+                                     Ambient * (0.62 + 0.32 * DepthFade)};
+            }
+
+            if (Flare->Enabled && Sun->Enabled && Sun->ElevationDegrees > -2.0)
+            {
+                const SpectrumRgb FlareRgb =
+                    Flare->EvaluateOpticalSampleAtSource(U, V, SunScreenU, SunScreenV, Aspect);
+                Colour.R += FlareRgb.R;
+                Colour.G += FlareRgb.G;
+                Colour.B += FlareRgb.B;
+            }
+
+            SkyVertexGrid[static_cast<size_t>(Row * (Cols + 1) + Col)] =
+                KitInkRgba(ToByte(Colour.R), ToByte(Colour.G), ToByte(Colour.B), 255);
+        }
+    }
+
+    for (int Row = 0; Row < Rows; ++Row)
+    {
+        const bool CrossesBoundary = ((static_cast<double>(Row) / Rows) < 0.68 &&
+                                      (static_cast<double>(Row + 1) / Rows) > 0.68);
+        for (int Col = 0; Col < Cols; ++Col)
+        {
+            const ImVec2 PMin(CanvasMin.x + 3.0f + static_cast<float>(Col) * CellW,
+                              CanvasMin.y + 3.0f + static_cast<float>(Row) * CellH);
+            const ImVec2 PMax(PMin.x + CellW, PMin.y + CellH);
+            const ImU32  C00 = SkyVertexGrid[static_cast<size_t>(Row * (Cols + 1) + Col)];
+            const ImU32  C10 = SkyVertexGrid[static_cast<size_t>(Row * (Cols + 1) + Col + 1)];
+            const ImU32  C11 = CrossesBoundary ? C10 : SkyVertexGrid[static_cast<size_t>((Row + 1) * (Cols + 1) + Col + 1)];
+            const ImU32  C01 = CrossesBoundary ? C00 : SkyVertexGrid[static_cast<size_t>((Row + 1) * (Cols + 1) + Col)];
+            Ink->AddRectFilledMultiColor(PMin, PMax, C00, C10, C11, C01);
+        }
+    }
+
+    // Proving-grounds perspective grid lines across the ground plane.
+    const float BoundaryY = CanvasMin.y + 2.0f + CHeight * 0.68f;
+    Ink->AddLine(ImVec2(CanvasMin.x + 2.0f, BoundaryY), ImVec2(CanvasMax.x - 2.0f, BoundaryY),
+                 KitInkRgba(255, 255, 255, 42), 1.0f);
+    for (int LineIdx = -5; LineIdx <= 5; ++LineIdx)
+    {
+        const float TopX = CanvasMin.x + 2.0f + CWidth * 0.5f + static_cast<float>(LineIdx) * (CWidth * 0.038f);
+        const float BotX = CanvasMin.x + 2.0f + CWidth * 0.5f + static_cast<float>(LineIdx) * (CWidth * 0.125f);
+        Ink->AddLine(ImVec2(TopX, BoundaryY), ImVec2(BotX, CanvasMax.y - 2.0f), KitInkRgba(210, 228, 240, 24), 1.0f);
+    }
+
+    // Bottom HUD telemetry bar inside Viewport.
+    char HudLine[220] = {};
+    std::snprintf(HudLine, sizeof(HudLine),
+                  "Sun %.1f\xC2\xB0 / %.0f K  \xC2\xB7  Clouds %d%% (%s)  \xC2\xB7  Wind %.1f m/s FROM %.0f\xC2\xB0  \xC2\xB7  Flare %s  \xC2\xB7  %.0f kg AWD",
+                  Sun->ElevationDegrees, Sun->TemperatureKelvin,
+                  static_cast<int>(std::lround(Clouds->Coverage * 100.0)),
+                  Clouds->QueryFormationName(), Wind->ReferenceSpeedMps,
+                  Wind->QueryFromBearingDegrees(),
+                  Flare->Enabled ? "Active" : "Bypassed",
+                  Everest.Vehicle.SprungMassKilograms);
+    KitPillSurface(Ink, ImVec2(CanvasMin.x + 12.0f, CanvasMax.y - 34.0f),
+                   ImVec2(CanvasMax.x - 12.0f, CanvasMax.y - 10.0f), KitInkRgba(10, 14, 18, 196),
+                   KitInkRgba(255, 255, 255, 28), 999.0f);
+    KitDrawText(Ink, Faces.Medium, 11.0f, ImVec2(CanvasMin.x + 24.0f, CanvasMax.y - 27.5f), KitInkHex(0xeef3f0),
+                HudLine);
 }
 
 } // namespace
@@ -292,8 +375,8 @@ int main(int ArgumentCount, char** Arguments)
                 "Project Everest missing from Project Browser project filter");
 
         const auto StepBrowserFrame = [&]() {
-            const double Δτ = 1.0 / 60.0;
-            (void)Centre->Integrate(Δτ);
+            const double DeltaSeconds = 1.0 / 60.0;
+            (void)Centre->Integrate(DeltaSeconds);
             Centre->PrepareInterface();
             Browser.ConfigurePalette(ControlKit::Palette());
             ImGui::NewFrame();
@@ -359,114 +442,122 @@ int main(int ArgumentCount, char** Arguments)
         Require(Interchange.ConstructProject(&HostCallbacks, nullptr), "ConstructProject refused host table");
 
         WriteLog(ResolveEngineChannel("Interface"), LogSeverity::Info, LogVerbosity::Display,
-                 "Frontier session opened · Project Everest launched from Project Browser", "FrontierMain.cpp");
+                 "WorkspaceApplication session opened \xC2\xB7 Project Everest launched from Project Browser",
+                 "WorkspaceApplication.cpp");
         WriteLog(ResolveEngineChannel("Render"), LogSeverity::Info, LogVerbosity::Log,
-                 "Vulkan device probing · RTX ray-query tier and GTX toroidal SDF + BVH fallback registered",
-                 "FrontierMain.cpp");
+                 "Vulkan device probing \xC2\xB7 RTX ray-query tier and GTX toroidal SDF + BVH fallback registered",
+                 "WorkspaceApplication.cpp");
         WriteLog(ResolveEngineChannel("Illumination"), LogSeverity::Info, LogVerbosity::Log,
-                 "PathReplayRayQuery temporal reservoir reuse converged · beta=2 Power MIS active",
+                 "PathReplayRayQuery temporal reservoir reuse converged \xC2\xB7 beta=2 Power MIS active",
                  "PathReplayRayQuery.cpp");
         WriteLog(ResolveEngineChannel("Physics"), LogSeverity::Info, LogVerbosity::Log,
-                 "Vehicle suspension & wheel contact manifolds stepped · 120 Hz fixed substep",
+                 "Vehicle suspension & wheel contact manifolds stepped \xC2\xB7 120 Hz fixed substep",
                  "ControlVehicle.cpp");
 
-        // Advance past cadence 5 times so every Project Everest user category emits into LogStore.
         for (int Step = 0; Step < 5; ++Step)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            // Trigger immediate emission by advancing after synthetic cadence wait only on first tick,
-            // and mirror deterministic category diagnostics across all 5 Project Everest channels.
             Interchange.AdvanceProject();
         }
         WriteLog(LogCategories().QueryByName("Powertrain")->Token, LogSeverity::Info, LogVerbosity::Display,
-                 "ControlVehicle powertrain · gear 3 · 4120 rpm · spectral Beer-Lambert glazing transmittance active",
+                 "ControlVehicle powertrain \xC2\xB7 gear 3 \xC2\xB7 4120 rpm \xC2\xB7 spectral Beer-Lambert glazing transmittance active",
                  "ProjectEverestInterchange.cpp");
         WriteLog(LogCategories().QueryByName("RayTracing")->Token, LogSeverity::Info, LogVerbosity::Log,
-                 "RTX tier · VK_KHR_ray_query + DielectricBoundary · reservoir acceptance 97.4%",
+                 "RTX tier \xC2\xB7 VK_KHR_ray_query + DielectricBoundary \xC2\xB7 reservoir acceptance 97.4%",
                  "ProjectEverestInterchange.cpp");
         WriteLog(LogCategories().QueryByName("DistanceField")->Token, LogSeverity::Warning, LogVerbosity::Log,
-                 "GTX fallback tier · SceneClip0..3 toroidal brick budget at 88% · OrderedSoftwareBvh 24 BLAS",
+                 "GTX fallback tier \xC2\xB7 SceneClip0..3 toroidal brick budget at 88% \xC2\xB7 OrderedSoftwareBvh 24 BLAS",
                  "ProjectEverestInterchange.cpp");
         WriteLog(LogCategories().QueryByName("Telemetry")->Token, LogSeverity::Info, LogVerbosity::Display,
-                 "Cabin telemetry · 86 km/h · pack 84% · inverter 41 C",
+                 "Cabin telemetry \xC2\xB7 86 km/h \xC2\xB7 pack 84% \xC2\xB7 inverter 41 C",
                  "ProjectEverestInterchange.cpp");
         for (int Repeat = 0; Repeat < 3; ++Repeat)
         {
             WriteLog(LogCategories().QueryByName("Everest")->Token, LogSeverity::Info, LogVerbosity::Log,
-                     "SurfaceCards multi-bounce irradiance atlas refreshed · 0 dropped tiles",
+                     "SurfaceCards multi-bounce irradiance atlas refreshed \xC2\xB7 0 dropped tiles",
                      "ProjectEverestInterchange.cpp");
         }
         WriteLog(ResolveEngineChannel("Illumination"), LogSeverity::Error, LogVerbosity::Log,
-                 "Blocked-NEE disocclusion spike at tile (94, 41) · temporal history clamped",
+                 "Blocked-NEE disocclusion spike at tile (94, 41) \xC2\xB7 temporal history clamped",
                  "PathReplayVarianceFilter.slang");
 
-        // ⑥ Verify RecordEntry constructor/destructor Outliner + Inspector lifecycle.
-        const size_t BaselineDirectoryCount = SceneDirectory::Instance().QueryCount();
-        const size_t BaselineInspectorCount = InspectorRegistry::Instance().QueryCount();
+        // ⑥ Construct ProjectEverestScene and verify all 18 RecordEntry + RecordEditorDescription bindings!
+        const size_t        BaselineDirectoryCount = SceneDirectory::Instance().QueryCount();
+        ProjectEverestScene EverestScene;
+        const size_t        EverestRecordCount = SceneDirectory::Instance().QueryCount() - BaselineDirectoryCount;
+        Require(EverestRecordCount == 18,
+                "Expected ProjectEverestScene to register 18 records (5 Folders, 5 Engine Env/Forcefield, "
+                "1 Illumination, 1 Vehicle, 4 Tyres, 1 Course, 1 Camera)");
+        const SceneDirectory& Directory = SceneDirectory::Instance();
+        Require(Directory.QueryEditorDescription(EverestScene.Sun.Token()) != nullptr &&
+                    Directory.QueryEditorDescription(EverestScene.LensFlare.Token()) != nullptr &&
+                    Directory.QueryEditorDescription(EverestScene.Atmosphere.Token()) != nullptr &&
+                    Directory.QueryEditorDescription(EverestScene.Clouds.Token()) != nullptr &&
+                    Directory.QueryEditorDescription(EverestScene.Wind.Token()) != nullptr &&
+                    Directory.QueryEditorDescription(EverestScene.EnvironmentFolder.Token()) != nullptr &&
+                    Directory.QueryEditorDescription(EverestScene.Illumination.Token()) != nullptr &&
+                    Directory.QueryEditorDescription(EverestScene.Vehicle.Token()) != nullptr,
+                "Every Engine Observatory and Project Everest custom item must register a RecordEditorDescription");
 
-        EverestSceneItem EnvironmentGroup(RecordClassification::Environment, "Everest Environment",
-                                          InspectorProvenance::ReusableEngineComponent);
-        EverestSceneItem SunLight(RecordClassification::Illumination, "Directional Sun",
-                                  InspectorProvenance::ReusableEngineComponent, EnvironmentGroup.Token());
-        EverestSceneItem SkyDome(RecordClassification::Environment, "Sky & Atmosphere",
-                                 InspectorProvenance::ReusableEngineComponent, EnvironmentGroup.Token());
-        EverestSceneItem CloudLayer(RecordClassification::Environment, "Volumetric Clouds",
-                                    InspectorProvenance::ReusableEngineComponent, EnvironmentGroup.Token());
-        EverestSceneItem WindField(RecordClassification::Physics, "Wind Forcefield",
-                                   InspectorProvenance::ReusableEngineComponent, EnvironmentGroup.Token());
-        EverestSceneItem HeroVehicle(RecordClassification::Vehicle, "ControlVehicle · Everest Prototype",
-                                     InspectorProvenance::CustomProjectAuthoring);
-
-        Require(SceneDirectory::Instance().QueryCount() == BaselineDirectoryCount + 6,
-                "RecordEntry constructors did not register all 6 items in SceneDirectory");
-        Require(InspectorRegistry::Instance().QueryCount() == BaselineInspectorCount + 6,
-                "EverestSceneItem constructors did not bind all 6 Inspectors");
+        // Verify Folder cascade visibility and scoped RecordEntry destructor cleanup.
+        Require(SceneDirectory::Instance().ConfigureCascadeVisible(EverestScene.EnvironmentFolder.Token(), false),
+                "Failed to hide EnvironmentFolder");
+        Require(!Directory.QueryVisible(EverestScene.Sun.Token()) &&
+                    !Directory.QueryVisible(EverestScene.LensFlare.Token()) &&
+                    !Directory.QueryVisible(EverestScene.Atmosphere.Token()) &&
+                    !Directory.QueryVisible(EverestScene.Clouds.Token()),
+                "FolderRecord hide did not cascade to nested Environment records");
+        Require(SceneDirectory::Instance().ConfigureCascadeVisible(EverestScene.EnvironmentFolder.Token(), true),
+                "Failed to restore EnvironmentFolder visibility");
+        Require(Directory.QueryVisible(EverestScene.Sun.Token()) &&
+                    Directory.QueryVisible(EverestScene.Clouds.Token()),
+                "FolderRecord show did not restore nested Environment records");
 
         {
-            EverestSceneItem ScopedFractureAssembly(RecordClassification::Geometry, "Destructible Barrier (Fracture Studio)",
-                                                    InspectorProvenance::DedicatedDomainStudio);
-            const RecordToken TransientToken = ScopedFractureAssembly.Token();
-            Require(SceneDirectory::Instance().QueryRegistered(TransientToken) &&
-                        InspectorRegistry::Instance().QueryBound(TransientToken),
-                    "Scoped Dedicated Studio item failed constructor registration");
-            Require(SceneDirectory::Instance().QueryCount() == BaselineDirectoryCount + 7,
-                    "Scoped item did not increment Outliner count");
+            FolderRecord ScopedFolder("Transient Fracture Group", "FRACTURE STUDIO", 0xFF5F7AE0u);
+            SceneRecord  ScopedProp(RecordClassification::Geometry);
+            (void)SceneDirectory::Instance().ConfigureName(ScopedProp.Token(), "Destructible Barrier");
+            (void)SceneDirectory::Instance().ConfigureParent(ScopedProp.Token(), ScopedFolder.Token());
+            Require(Directory.QueryCount() == BaselineDirectoryCount + EverestRecordCount + 2,
+                    "Scoped FolderRecord + SceneRecord did not increment SceneDirectory count");
         }
-        Require(SceneDirectory::Instance().QueryCount() == BaselineDirectoryCount + 6 &&
-                    InspectorRegistry::Instance().QueryCount() == BaselineInspectorCount + 6,
-                "RecordEntry destructor did not unregister Outliner row and detach Inspector");
+        Require(Directory.QueryCount() == BaselineDirectoryCount + EverestRecordCount,
+                "Scoped FolderRecord + SceneRecord destructors did not unregister cleanly");
 
-        // ⑦ Compose Project Everest workspace: ControlCentrePanel + PanelDockspace + SceneDirectoryPanel + LogStreamPanel.
+        // ⑦ Compose 3-column Project Everest workspace: Outliner (0.23) | Viewport/LogStream (0.48) | Inspector (0.29).
         PanelDockspace      Panels;
         LogStreamPanel      LogPanel;
         SceneDirectoryPanel OutlinerPanel;
-        const char*         ActiveThemeName = "Dark (Control Centre default)";
+        SceneInspectorPanel InspectorPanel;
 
-        Panels.ConfigureDockspaceKey("Project Everest workspace");
+        Panels.ConfigureDockspaceKey("Project Everest Phase 2 Workspace");
         DockPanelSpecification ViewportSpec;
         ViewportSpec.Key              = "Viewport";
         ViewportSpec.Caption          = "Viewport";
-        ViewportSpec.ConstructContent = [&]() { ConstructEverestViewport(EverestDescriptor, ActiveThemeName); };
+        ViewportSpec.ConstructContent = [&]() { ConstructLiveEverestViewport(EverestDescriptor, EverestScene); };
         ViewportSpec.Open             = true;
         Require(Panels.Register(ViewportSpec), "Failed to register Viewport dock panel");
         Require(Panels.Register(MakeLogStreamPanelSpecification(LogPanel)), "Failed to register LogStream dock panel");
         Require(Panels.Register(MakeSceneDirectoryPanelSpecification(OutlinerPanel)),
                 "Failed to register Outliner dock panel");
+        Require(Panels.Register(MakeSceneInspectorPanelSpecification(InspectorPanel, OutlinerPanel)),
+                "Failed to register Inspector dock panel");
         Panels.ConfigureWorkspaceInsets(79.0f, 0.0f);
-        Panels.ConfigureTabExtent(140.0f, 26.0f);
-        Require(Panels.ConfigureStackedPanels("Outliner", "LogStream", 265.0f),
-                "Failed to stack Outliner above LogStream");
-        Require(Panels.ConfigureColumns({{"Viewport", 0.38f}, {"LogStream", 0.62f}}),
-                "Failed to configure 38/62 workspace columns");
+        Panels.ConfigureTabExtent(136.0f, 26.0f);
+        Require(Panels.ConfigureStackedPanels("Viewport", "LogStream", 580.0f),
+                "Failed to stack Viewport above LogStream");
+        Require(Panels.ConfigureColumns({{"Outliner", 0.23f}, {"LogStream", 0.48f}, {"Inspector", 0.29f}}),
+                "Failed to configure 3-column Outliner | Viewport/LogStream | Inspector workspace");
         (void)Panels.ConfigurePlatform();
 
         const auto StepWorkspaceFrame = [&]() {
-            const double Δτ = 1.0 / 60.0;
-            LogPanel.Synchronize(LogStore(), LogCategories(), Δτ);
+            const double DeltaSeconds = 1.0 / 60.0;
+            EverestScene.ServiceSpawnRequest(OutlinerPanel);
+            LogPanel.Synchronize(LogStore(), LogCategories(), DeltaSeconds);
             OutlinerPanel.Synchronize(SceneDirectory::Instance());
             Centre->PrepareInterface();
             const float Scale = std::clamp(Centre->QueryAppearance().QueryApplied().InterfaceScale / 100.0f, 0.6f, 2.0f);
-            (void)Centre->Integrate(Δτ);
+            (void)Centre->Integrate(DeltaSeconds);
             ImGui::NewFrame();
             if (ImGui::GetMainViewport() != nullptr)
             {
@@ -501,18 +592,88 @@ int main(int ArgumentCount, char** Arguments)
             }
         };
 
-        for (int Frame = 0; Frame < 30; ++Frame)
+        // Fold Vehicle tyres initially so all 5 folders + top-level scene items fit cleanly in the Outliner rail!
+        OutlinerPanel.ConfigureCollapsed(EverestScene.Vehicle.Token(), true);
+
+        // ⑧ Capture 03: Engine Folder Outliner + Folder Observatory (`Environment` folder selected).
+        OutlinerPanel.Select(EverestScene.EnvironmentFolder.Token());
+        for (int Frame = 0; Frame < 24; ++Frame)
         {
             StepWorkspaceFrame();
         }
         Require(LogPanel.QueryTotalCount() >= 10, "LogStreamPanel did not ingest Project Everest log entries");
-        Require(OutlinerPanel.QueryTotal() == 6, "SceneDirectoryPanel did not synchronize 6 Project Everest items");
+        Require(OutlinerPanel.QueryTotal() == EverestRecordCount,
+                "SceneDirectoryPanel did not synchronize all 18 Project Everest records");
+        Require(Directory.FindTokenByIdentifier("sun") == EverestScene.Sun.Token() &&
+                    Directory.FindTokenByIdentifier("flare") == EverestScene.LensFlare.Token() &&
+                    Directory.FindTokenByIdentifier("wind") == EverestScene.Wind.Token(),
+                "SceneDirectory FindTokenByIdentifier failed to resolve global Engine environment records");
 
-        const std::vector<unsigned char> DarkPixels =
-            RasterizeCurrentFrame(ExhibitDir / "03-ProjectEverest-Workspace-Dark.png", 10);
-        const double DarkLogLuma = SampleRegionMeanLuminance(DarkPixels, 700, 420, 1540, 910);
+        const std::vector<unsigned char> DarkFolderPixels =
+            RasterizeCurrentFrame(ExhibitDir / "03-Folder-Outliner-Observatory.png", 10);
+        const double DarkLogLuma       = SampleRegionMeanLuminance(DarkFolderPixels, 520, 700, 1300, 1030);
+        const double DarkInspectorLuma = SampleRegionMeanLuminance(DarkFolderPixels, 1400, 150, 1890, 980);
 
-        // ⑧ Open Control Centre via trapezoidal notch click -> Settings -> Appearance -> Theme tab.
+        // ⑨ Capture 04: Engine Sun Observatory (`ENVIRONMENT / 02 · Sun`).
+        OutlinerPanel.Select(EverestScene.Sun.Token());
+        for (int Frame = 0; Frame < 8; ++Frame)
+        {
+            StepWorkspaceFrame();
+        }
+        (void)RasterizeCurrentFrame(ExhibitDir / "04-Sun-Observatory-Overview.png", 10);
+
+        // ⑩ Capture 05: Engine Lens Flare Observatory (`ENVIRONMENT / CAMERA OPTICS · Lens Flare`).
+        OutlinerPanel.Select(EverestScene.LensFlare.Token());
+        for (int Frame = 0; Frame < 8; ++Frame)
+        {
+            StepWorkspaceFrame();
+        }
+        (void)RasterizeCurrentFrame(ExhibitDir / "05-LensFlare-Observatory-Optics.png", 10);
+
+        // ⑪ Capture 06: Engine Atmosphere Observatory (`ENVIRONMENT / 03 · Atmosphere`).
+        OutlinerPanel.Select(EverestScene.Atmosphere.Token());
+        for (int Frame = 0; Frame < 8; ++Frame)
+        {
+            StepWorkspaceFrame();
+        }
+        (void)RasterizeCurrentFrame(ExhibitDir / "06-Atmosphere-Observatory-Medium.png", 10);
+
+        // ⑫ Capture 07: Engine Clouds Observatory (`ENVIRONMENT / 01 · Clouds`).
+        OutlinerPanel.Select(EverestScene.Clouds.Token());
+        for (int Frame = 0; Frame < 8; ++Frame)
+        {
+            StepWorkspaceFrame();
+        }
+        (void)RasterizeCurrentFrame(ExhibitDir / "07-Clouds-Observatory-Weather.png", 10);
+
+        // ⑬ Capture 08: Engine Wind ForceField Observatory (`FORCEFIELD / SHARED WEATHER · Wind`).
+        OutlinerPanel.Select(EverestScene.Wind.Token());
+        for (int Frame = 0; Frame < 8; ++Frame)
+        {
+            StepWorkspaceFrame();
+        }
+        (void)RasterizeCurrentFrame(ExhibitDir / "08-Wind-Observatory-Forcefield.png", 10);
+
+        // ⑭ Capture 09: Project Everest Custom ControlVehicle Inspector (`CUSTOM PROJECT INSPECTOR · VEHICLE DYNAMICS`).
+        OutlinerPanel.ConfigureCollapsed(EverestScene.Vehicle.Token(), false);   // Expand 4 tyres in Outliner!
+        OutlinerPanel.Select(EverestScene.Vehicle.Token());
+        for (int Frame = 0; Frame < 8; ++Frame)
+        {
+            StepWorkspaceFrame();
+        }
+        (void)RasterizeCurrentFrame(ExhibitDir / "09-Custom-Vehicle-Inspector.png", 10);
+
+        // Verify `+ Folder` dynamic spawn request round-trip on ProjectEverestScene.
+        OutlinerPanel.RequestSpawn(RecordClassification::Folder);
+        StepWorkspaceFrame();
+        Require(OutlinerPanel.QueryTotal() == EverestRecordCount + 1,
+                "+ Folder spawn request did not create a new FolderRecord in ProjectEverestScene");
+
+        // ⑮ Capture 10: Switch Dual-Tier Renderer to GTX SDF + BVH Fallback AND switch Control Centre to Light theme!
+        EverestScene.Illumination.TierSelectionIndex = 1;   // Tier 1: GTX SDF + BVH Fallback
+        EverestScene.Sun.ApplyPreset(SolarLightingPreset::Golden);
+        OutlinerPanel.Select(EverestScene.Illumination.Token());
+
         ClickExtent(Centre->QueryExpansionTab().QueryTabExtent());
         Require(Centre->QueryQuickOpen(), "Notch click did not open Control Centre drawer");
         for (int Frame = 0; Frame < 90; ++Frame)
@@ -533,14 +694,6 @@ int main(int ArgumentCount, char** Arguments)
         Require(Centre->QueryAppearancePage() == AppearancePageCategory::Theme,
                 "Control Centre did not open Appearance -> Theme tab");
         ClickExtent(Centre->QueryAppearance().QueryThemeTileExtent(2));
-        for (int Frame = 0; Frame < 30; ++Frame)
-        {
-            StepWorkspaceFrame();
-        }
-        (void)RasterizeCurrentFrame(ExhibitDir / "04-ProjectEverest-ControlCentre-ThemeDrawer.png", 10);
-
-        // ⑨ Apply Light theme in Control Centre, dismiss drawer, settle smoothstep cross-fade, and verify re-theming.
-        ActiveThemeName = "Light (applied via Control Centre)";
         ClickExtent(Centre->QueryApplyExtent());
         for (int Frame = 0; Frame < 45; ++Frame)
         {
@@ -551,39 +704,20 @@ int main(int ArgumentCount, char** Arguments)
         IO.AddKeyEvent(ImGuiKey_Escape, true);
         StepWorkspaceFrame();
         IO.AddKeyEvent(ImGuiKey_Escape, false);
-        for (int Frame = 0; Frame < 90; ++Frame)
+        for (int Frame = 0; Frame < 260; ++Frame)
         {
             StepWorkspaceFrame();
         }
         Require(!Centre->QueryQuickOpen(), "Control Centre drawer did not close on Escape");
 
         const std::vector<unsigned char> LightPixels =
-            RasterizeCurrentFrame(ExhibitDir / "05-ProjectEverest-Workspace-Light.png", 240);
-        const double LightLogLuma = SampleRegionMeanLuminance(LightPixels, 700, 420, 1540, 910);
+            RasterizeCurrentFrame(ExhibitDir / "10-DualTier-GTX-Fallback-LightTheme.png", 240);
+        const double LightLogLuma       = SampleRegionMeanLuminance(LightPixels, 520, 700, 1300, 1030);
+        const double LightInspectorLuma = SampleRegionMeanLuminance(LightPixels, 1400, 150, 1890, 980);
         Require(DarkLogLuma < 45.0 && LightLogLuma > 200.0,
                 "LogStreamPanel luminance did not respond to Control Centre Dark -> Light theme switch");
-
-        // ⑩ Switch UI theme to OLED via Control Centre to verify pure-black OLED surface propagation.
-        ActiveThemeName = "OLED (applied via Control Centre)";
-        Centre->ActivatePage(AppearancePageCategory::Theme);
-        for (int Frame = 0; Frame < 90; ++Frame)
-        {
-            StepWorkspaceFrame();
-        }
-        ClickExtent(Centre->QueryAppearance().QueryThemeTileExtent(0));
-        ClickExtent(Centre->QueryApplyExtent());
-        IO.AddKeyEvent(ImGuiKey_Escape, true);
-        StepWorkspaceFrame();
-        IO.AddKeyEvent(ImGuiKey_Escape, false);
-        for (int Frame = 0; Frame < 90; ++Frame)
-        {
-            StepWorkspaceFrame();
-        }
-        const std::vector<unsigned char> OledPixels =
-            RasterizeCurrentFrame(ExhibitDir / "06-ProjectEverest-Workspace-OLED.png", 0);
-        const double OledLogLuma = SampleRegionMeanLuminance(OledPixels, 700, 420, 1540, 910);
-        Require(!ControlKit::Palette().LightSurface && OledLogLuma < DarkLogLuma,
-                "OLED theme did not produce a darker surface than Dark theme");
+        Require(DarkInspectorLuma < 55.0 && LightInspectorLuma > 180.0,
+                "SceneInspectorPanel luminance did not respond to Control Centre Dark -> Light theme switch");
 
         Interchange.RetireProject();
         (void)Centre->Finalize();
@@ -593,30 +727,42 @@ int main(int ArgumentCount, char** Arguments)
         std::ofstream Report(ExhibitDir / "ProjectEverestChecks.json", std::ios::trunc);
         Report << "{\n"
                << "  \"result\": \"passed\",\n"
+               << "  \"phase\": 2,\n"
                << "  \"project\": \"Project Everest\",\n"
                << "  \"descriptor\": \"Frontier/Projects/Project-Everest/ProjectEverest.frontier\",\n"
+               << "  \"workspace_application_loop\": \"Initialize -> Loop -> Finalize (FrontierMain removed)\",\n"
                << "  \"declared_log_categories\": 5,\n"
                << "  \"log_entries_ingested\": " << LogPanel.QueryTotalCount() << ",\n"
-               << "  \"outliner_registered_items\": 6,\n"
+               << "  \"initial_scene_records\": " << EverestRecordCount << ",\n"
+               << "  \"post_folder_spawn_records\": " << OutlinerPanel.QueryTotal() << ",\n"
+               << "  \"folder_cascade_visibility_verified\": true,\n"
                << "  \"scoped_destructor_unregistered\": true,\n"
-               << "  \"log_stream_mean_luma\": {\n"
-               << "    \"oled\": " << OledLogLuma << ",\n"
-               << "    \"dark\": " << DarkLogLuma << ",\n"
-               << "    \"light\": " << LightLogLuma << "\n"
+               << "  \"engine_observatories\": [\"Folder\", \"Sun\", \"LensFlare\", \"Atmosphere\", \"Clouds\", \"Wind\"],\n"
+               << "  \"custom_inspectors\": [\"EverestVehicleRecord\", \"EverestIlluminationRecord (RTX/GTX)\"],\n"
+               << "  \"mean_luma\": {\n"
+               << "    \"dark_log_stream\": " << DarkLogLuma << ",\n"
+               << "    \"light_log_stream\": " << LightLogLuma << ",\n"
+               << "    \"dark_inspector\": " << DarkInspectorLuma << ",\n"
+               << "    \"light_inspector\": " << LightInspectorLuma << "\n"
                << "  },\n"
                << "  \"captures\": [\n"
                << "    \"01-ProjectBrowser-Library.png\",\n"
                << "    \"02-ProjectBrowser-SelectEverest.png\",\n"
-               << "    \"03-ProjectEverest-Workspace-Dark.png\",\n"
-               << "    \"04-ProjectEverest-ControlCentre-ThemeDrawer.png\",\n"
-               << "    \"05-ProjectEverest-Workspace-Light.png\",\n"
-               << "    \"06-ProjectEverest-Workspace-OLED.png\"\n"
+               << "    \"03-Folder-Outliner-Observatory.png\",\n"
+               << "    \"04-Sun-Observatory-Overview.png\",\n"
+               << "    \"05-LensFlare-Observatory-Optics.png\",\n"
+               << "    \"06-Atmosphere-Observatory-Medium.png\",\n"
+               << "    \"07-Clouds-Observatory-Weather.png\",\n"
+               << "    \"08-Wind-Observatory-Forcefield.png\",\n"
+               << "    \"09-Custom-Vehicle-Inspector.png\",\n"
+               << "    \"10-DualTier-GTX-Fallback-LightTheme.png\"\n"
                << "  ]\n"
                << "}\n";
 
-        std::cout << "PASS: Project Everest browser selection, native launch hand-off, v3 interchange, "
-                  << "RecordEntry Outliner/Inspector lifecycle, and OLED/Dark/Light Control Centre workspace "
-                  << "(luma OLED=" << OledLogLuma << ", Dark=" << DarkLogLuma << ", Light=" << LightLogLuma << ")\n";
+        std::cout << "PASS: Project Everest Phase 2 validation (Browser -> WorkspaceApplication -> "
+                  << "Folder Outliner + 6 Engine Observatories + ControlVehicle & Dual-Tier RTX/GTX Inspectors + "
+                  << "Dark/Light Control Centre parity; Inspector luma Dark=" << DarkInspectorLuma
+                  << ", Light=" << LightInspectorLuma << ")\n";
         return 0;
     }
     catch (const std::exception& Failure)

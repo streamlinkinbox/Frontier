@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Project Everest — Native C++ UI Exhibits</title>
+<title>Project Everest — Phase 2 Native C++ UI Exhibits</title>
 <style>
   :root { color-scheme: dark; }
   body {
@@ -13,8 +13,8 @@
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
   h1 { margin: 0 0 8px; font-size: 24px; font-weight: 600; }
-  p.lead { margin: 0 0 28px; color: #97a29b; font-size: 14px; max-width: 960px; line-height: 1.6; }
-  .grid { display: grid; grid-template-columns: 1fr; gap: 28px; max-width: 1600px; }
+  p.lead { margin: 0 0 28px; color: #97a29b; font-size: 14px; max-width: 1080px; line-height: 1.6; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 28px; max-width: 1920px; }
   figure {
     margin: 0;
     background: #111513;
@@ -35,13 +35,15 @@
 </style>
 </head>
 <body>
-  <h1>Project Everest — Native C++ UI Verification Gallery</h1>
+  <h1>Project Everest — Phase 2 Native C++ UI Verification Gallery</h1>
   <p class="lead">
     Actual CPU-rasterised ImGui + ThorVG + TypefaceRegistry output from
-    <code>Exhibits/ProjectEverest/Code/ProjectEverestValidation.cpp</code> (1600&times;960):
-    Project Browser discovery &rarr; Project Everest selection &rarr; native workspace hand-off with
-    <code>ControlCentrePanel</code>, <code>PanelDockspace</code>, <code>SceneDirectoryPanel</code>, and
-    <code>LogStreamPanel</code> across Dark, Light, and OLED themes.
+    <code>Exhibits/ProjectEverest/Code/ProjectEverestValidation.cpp</code> (1920&times;1080 Full HD):
+    <code>WorkspaceApplication</code> (<code>Initialize &rarr; Loop &rarr; Finalize</code>) unified Browser &harr;
+    Workspace loop, global Engine <strong>Folders</strong>, <strong>Sun</strong>, <strong>Lens Flare</strong>,
+    <strong>Atmosphere</strong>, <strong>Clouds</strong>, and <strong>Wind</strong> Observatories, Project Everest
+    custom <strong>ControlVehicle</strong> &amp; dual-tier <strong>RTX / GTX SDF+BVH</strong> Inspectors, and Control
+    Centre Dark/Light theme parity.
   </p>
   <div class="grid">
     <figure>
@@ -60,31 +62,59 @@
     </figure>
     <figure>
       <figcaption>
-        <span>03 &middot; Project Everest workspace opened (Control Centre notch + Dockspace + Outliner + Log Stream, Dark theme, luma 38.25)</span>
-        <span class="meta">03-ProjectEverest-Workspace-Dark.png</span>
+        <span>03 &middot; Global Engine Folder Outliner + Folder Observatory (tabbed colour-coded FolderRecord cards, + Folder, cascade visibility)</span>
+        <span class="meta">03-Folder-Outliner-Observatory.png</span>
       </figcaption>
-      <img src="03-ProjectEverest-Workspace-Dark.png" alt="Project Everest Workspace Dark">
+      <img src="03-Folder-Outliner-Observatory.png" alt="Folder Outliner and Observatory">
     </figure>
     <figure>
       <figcaption>
-        <span>04 &middot; Control Centre top drawer opened via trapezoidal notch &rarr; Appearance &rarr; Theme (Light selected)</span>
-        <span class="meta">04-ProjectEverest-ControlCentre-ThemeDrawer.png</span>
+        <span>04 &middot; Global Engine Sun Observatory (ENVIRONMENT / 02 &middot; polar sky-arc dial, ephemeris, Planck blackbody &amp; lighting presets)</span>
+        <span class="meta">04-Sun-Observatory-Overview.png</span>
       </figcaption>
-      <img src="04-ProjectEverest-ControlCentre-ThemeDrawer.png" alt="Control Centre Theme Drawer">
+      <img src="04-Sun-Observatory-Overview.png" alt="Sun Observatory">
     </figure>
     <figure>
       <figcaption>
-        <span>05 &middot; Light theme applied via Control Centre — Dockspace, Outliner, and Log Stream re-themed live (luma 243.16)</span>
-        <span class="meta">05-ProjectEverest-Workspace-Light.png</span>
+        <span>05 &middot; Global Engine Lens Flare Observatory (ENVIRONMENT / CAMERA OPTICS &middot; live HDR optical composite, ghosts, halo &amp; rays)</span>
+        <span class="meta">05-LensFlare-Observatory-Optics.png</span>
       </figcaption>
-      <img src="05-ProjectEverest-Workspace-Light.png" alt="Project Everest Workspace Light">
+      <img src="05-LensFlare-Observatory-Optics.png" alt="Lens Flare Observatory">
     </figure>
     <figure>
       <figcaption>
-        <span>06 &middot; OLED theme applied via Control Centre — pure-black OLED surfaces across workspace (luma 23.32)</span>
-        <span class="meta">06-ProjectEverest-Workspace-OLED.png</span>
+        <span>06 &middot; Global Engine Atmosphere Observatory (ENVIRONMENT / 03 &middot; wired to AtmosphereModel SingleScattering &amp; column density scan)</span>
+        <span class="meta">06-Atmosphere-Observatory-Medium.png</span>
       </figcaption>
-      <img src="06-ProjectEverest-Workspace-OLED.png" alt="Project Everest Workspace OLED">
+      <img src="06-Atmosphere-Observatory-Medium.png" alt="Atmosphere Observatory">
+    </figure>
+    <figure>
+      <figcaption>
+        <span>07 &middot; Global Engine Clouds Observatory (ENVIRONMENT / 01 &middot; wired to CloudField procedural FBM density atlas &amp; XY mix pad)</span>
+        <span class="meta">07-Clouds-Observatory-Weather.png</span>
+      </figcaption>
+      <img src="07-Clouds-Observatory-Weather.png" alt="Clouds Observatory">
+    </figure>
+    <figure>
+      <figcaption>
+        <span>08 &middot; Global Engine Wind Forcefield Observatory (FORCEFIELD / SHARED WEATHER &middot; FROM bearing streamline compass &amp; gust envelope)</span>
+        <span class="meta">08-Wind-Observatory-Forcefield.png</span>
+      </figcaption>
+      <img src="08-Wind-Observatory-Forcefield.png" alt="Wind Observatory">
+    </figure>
+    <figure>
+      <figcaption>
+        <span>09 &middot; Project Everest Custom ControlVehicle Inspector (4-corner FL/FR/RL/RR suspension telemetry, AWD split &amp; 4 nested tyres)</span>
+        <span class="meta">09-Custom-Vehicle-Inspector.png</span>
+      </figcaption>
+      <img src="09-Custom-Vehicle-Inspector.png" alt="Custom ControlVehicle Inspector">
+    </figure>
+    <figure>
+      <figcaption>
+        <span>10 &middot; Dual-Tier GPU Renderer switched to GTX SDF + BVH Fallback + Golden Hour sunset + Control Centre Light Theme (Inspector luma 226.0)</span>
+        <span class="meta">10-DualTier-GTX-Fallback-LightTheme.png</span>
+      </figcaption>
+      <img src="10-DualTier-GTX-Fallback-LightTheme.png" alt="Dual-Tier GTX Fallback and Light Theme">
     </figure>
   </div>
 </body>

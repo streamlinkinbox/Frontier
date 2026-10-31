@@ -1164,15 +1164,19 @@ void LogStreamPanel::ConstructInterface()
         const char* FollowText = FollowFlag ? "Following" : "Follow";
         const float FollowW    = 14.0f + 7.0f + 8.0f + TextWidth(Faces.Regular, 13.0f, FollowText) + 14.0f;
         const float FollowX    = CR - FollowW;
+        const bool  WrapSearch = (FollowX - 9.0f - X) < 136.0f;
+        const float SearchTop  = WrapSearch ? (RowTop + 44.0f) : RowTop;
+        const float SearchCY   = SearchTop + 18.5f;
+        const float SearchX    = WrapSearch ? CL : X;
 
         // Search pill with match count and clear control.
         {
-            const float SearchW = std::min(330.0f, std::max(140.0f, FollowX - 9.0f - X));
-            const ImVec2 Minimum(X, RowTop);
-            const ImVec2 Maximum(X + SearchW, RowTop + 37.0f);
+            const float SearchW = std::min(360.0f, std::max(140.0f, FollowX - 9.0f - SearchX));
+            const ImVec2 Minimum(SearchX, SearchTop);
+            const ImVec2 Maximum(SearchX + SearchW, SearchTop + 37.0f);
             PillSurface(Ink, Minimum, Maximum, Theme.Surface2,
                         SearchFocused ? InkWithAlpha(Theme.Mint, 0.45f) : Theme.Line, 999.0f);
-            DrawIconSearch(Ink, ImVec2(X + 20.5f, RowCY), 15.0f, Theme.Faint);
+            DrawIconSearch(Ink, ImVec2(SearchX + 20.5f, SearchCY), 15.0f, Theme.Faint);
 
             const bool HasText = !Query.empty();
             char Shown[40] = {};
@@ -1187,7 +1191,7 @@ void LogStreamPanel::ConstructInterface()
                 std::snprintf(SearchBuffer.data(), SearchBuffer.size(), "%s", Query.c_str());
                 SearchSynchronised = Query;
             }
-            ImGui::SetCursorScreenPos(ImVec2(X + 36.0f, RowTop + (37.0f - 13.5f) * 0.5f));
+            ImGui::SetCursorScreenPos(ImVec2(SearchX + 36.0f, SearchTop + (37.0f - 13.5f) * 0.5f));
             ImGui::PushFont(Faces.Regular, 13.5f);
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
@@ -1210,9 +1214,9 @@ void LogStreamPanel::ConstructInterface()
             if (HasText)
             {
                 const float ShownW = TextWidth(Faces.Regular, 11.5f, Shown);
-                DrawText(Ink, Faces.Regular, 11.5f, ImVec2(Maximum.x - 8.0f - 24.0f - 8.0f - ShownW, RowCY - 5.75f),
+                DrawText(Ink, Faces.Regular, 11.5f, ImVec2(Maximum.x - 8.0f - 24.0f - 8.0f - ShownW, SearchCY - 5.75f),
                          Theme.Faint, Shown);
-                const ImVec2 DiscCentre(Maximum.x - 8.0f - 12.0f, RowCY);
+                const ImVec2 DiscCentre(Maximum.x - 8.0f - 12.0f, SearchCY);
                 bool ClearHover = false;
                 if (PillTarget("##LogSearchClear", ImVec2(DiscCentre.x - 12.0f, DiscCentre.y - 12.0f),
                                ImVec2(24.0f, 24.0f), ClearHover, "Clear filter"))
@@ -1228,7 +1232,7 @@ void LogStreamPanel::ConstructInterface()
 
         {
             const float  FollowH = 34.0f;
-            const ImVec2 Minimum(FollowX, RowCY - FollowH * 0.5f);
+            const ImVec2 Minimum(FollowX, SearchCY - FollowH * 0.5f);
             bool Hovered = false;
             if (PillTarget("##LogFollow", Minimum, ImVec2(FollowW, FollowH), Hovered, "Follow the newest entries"))
             {
@@ -1237,11 +1241,11 @@ void LogStreamPanel::ConstructInterface()
             PillSurface(Ink, Minimum, ImVec2(Minimum.x + FollowW, Minimum.y + FollowH),
                         FollowFlag ? Theme.MintDim : 0,
                         FollowFlag ? InkWithAlpha(Theme.Mint, 0.4f) : Theme.Line, 999.0f);
-            Ink->AddCircleFilled(ImVec2(Minimum.x + 17.5f, RowCY), 3.5f, FollowFlag ? Theme.Mint : Theme.Faint);
-            DrawText(Ink, Faces.Regular, 13.0f, ImVec2(Minimum.x + 29.0f, RowCY - 6.5f),
+            Ink->AddCircleFilled(ImVec2(Minimum.x + 17.5f, SearchCY), 3.5f, FollowFlag ? Theme.Mint : Theme.Faint);
+            DrawText(Ink, Faces.Regular, 13.0f, ImVec2(Minimum.x + 29.0f, SearchCY - 6.5f),
                      FollowFlag ? Theme.Mint : Theme.Faint, FollowText);
         }
-        CursorY = RowTop + 37.0f + 12.0f;
+        CursorY = SearchTop + 37.0f + 12.0f;
     }
 
     // -- Channels menu (reusable dropdown surface) -----------------------------------------------------------------

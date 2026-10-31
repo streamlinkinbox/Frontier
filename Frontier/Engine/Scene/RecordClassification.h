@@ -18,10 +18,11 @@ namespace Frontier
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📝 Fixed for a record's whole lifetime (chosen at construction). The Scene Directory groups and filters by it;
-//    the vocabulary follows the scene the VehicleHMI port builds (vehicle + tyres, environment, geometry,
+//    the vocabulary follows the scene the VehicleHMI port builds (folders, vehicle + tyres, environment, geometry,
 //    illumination, cameras, physics bodies, interface and content objects).
 enum class RecordClassification : uint8_t
 {
+    Folder,
     Vehicle,
     Tyre,
     Environment,
@@ -40,6 +41,7 @@ enum class RecordClassification : uint8_t
 {
     switch (Classification)
     {
+        case RecordClassification::Folder:       return "Folder";
         case RecordClassification::Vehicle:      return "Vehicle";
         case RecordClassification::Tyre:         return "Tyre";
         case RecordClassification::Environment:  return "Environment";

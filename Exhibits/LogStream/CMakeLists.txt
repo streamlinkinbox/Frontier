@@ -36,7 +36,7 @@ target_link_libraries(LogStreamValidation PRIVATE FrontierEnginePortable)
 find_package(Threads REQUIRED)
 target_link_libraries(LogStreamValidation PRIVATE Threads::Threads)
 
-add_executable(Frontier ${FRONTIER_ROOT}/Applications/Editor/FrontierMain.cpp)
+add_executable(Frontier ${FRONTIER_ROOT}/Applications/Editor/WorkspaceApplication.cpp)
 target_link_libraries(Frontier PRIVATE FrontierEnginePortable)
 
 enable_testing()

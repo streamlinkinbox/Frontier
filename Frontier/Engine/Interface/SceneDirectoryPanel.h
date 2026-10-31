@@ -1,10 +1,10 @@
 /*==========================================================================================================================================
                                                         SCENE DIRECTORY PANEL
                                      ------------------------------------------------------------------
-        Portable Outliner view-model: flattened rows, real category tabs with counts, selection for the inspector.
+        Portable Outliner view-model: flattened rows, folder enclosures, category tabs with counts, selection for the inspector.
 ==========================================================================================================================================*/
 
-// 🧩 Portable Outliner view-model: flattened rows, real category tabs with counts, selection for the inspector.
+// 🧩 Portable Outliner view-model: flattened rows, folder enclosures, category tabs with counts, selection for the inspector.
 
 #pragma once
 
@@ -30,9 +30,11 @@ struct SceneDirectoryRow
 {
     RecordToken          Token;                                            // [-] - Record identity
     std::string          Name;                                             // [text] - Display name (configured or default)
+    std::string          LiveBadge;                                        // [text] - Live telemetry or folder tag
     RecordClassification Classification = RecordClassification::Unclassified;
+    uint32_t             AccentColour   = 0;                               // [RGBA8] - 0 = classification default
     uint32_t             DepthTier      = 0;                               // [tiers] - Nesting depth; 0 is a root row
-    uint32_t             ChildCount     = 0;                               // [records] - Direct children in the directory
+    uint32_t             ChildCount     = 0;                               // [records] - Direct enclosed count
     bool                 Visible        = true;                            // [-] - Directory eye toggle (dimmed when off)
     bool                 Collapsed      = false;                           // [-] - Panel-side: subtree folded away
 };
@@ -43,7 +45,6 @@ struct SceneClassificationTab
     uint32_t             Count          = 0;   // [records] - Live records in this classification
 };
 
-// What the inspector shows for the current selection ("empty inspector" = HasSelection false).
 struct SceneInspectorSummary
 {
     bool                 HasSelection   = false;
@@ -59,40 +60,34 @@ struct SceneInspectorSummary
 //                                                  SCENE DIRECTORY PANEL
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 Same split as the Log Stream: this portable view-model owns projection, filtering and selection; the native
-//    drawing (dock panel + inspector) joins it at the SDK phase against the upstream kit. Synchronize() snapshots
-//    the directory into a flattened tree: roots in registration order, children directly beneath their parent in
-//    registration order. In Shipping nothing ever registers, so every projection stays empty by construction.
 class SceneDirectoryPanel
 {
   public:
     void Synchronize(const SceneDirectory& Directory);
 
-    [[nodiscard]] const std::vector<SceneDirectoryRow>&      QueryRows() const { return Rows; }       // Flattened tree, unfiltered
-    [[nodiscard]] const std::vector<SceneDirectoryRow>&      QueryVisible() const { return Visible; } // After the classification filter
-    [[nodiscard]] const std::vector<SceneClassificationTab>& QueryTabs() const { return Tabs; }       // Every classification, with live counts
-    [[nodiscard]] uint32_t                                   QueryTotal() const { return Total; }     // [records]
+    [[nodiscard]] const std::vector<SceneDirectoryRow>&      QueryRows() const { return Rows; }
+    [[nodiscard]] const std::vector<SceneDirectoryRow>&      QueryVisible() const { return Visible; }
+    [[nodiscard]] const std::vector<SceneClassificationTab>& QueryTabs() const { return Tabs; }
+    [[nodiscard]] uint32_t                                   QueryTotal() const { return Total; }
+    [[nodiscard]] uint32_t                                   QueryEnabledCount() const { return EnabledCount; }
+    [[nodiscard]] uint32_t                                   QueryDisabledCount() const { return DisabledCount; }
     [[nodiscard]] const SceneInspectorSummary&               QueryInspector() const { return Inspector; }
 
-    void ConfigureClassificationFilter(std::optional<RecordClassification> Filter);   // nullopt = All
+    void ConfigureClassificationFilter(std::optional<RecordClassification> Filter);
     [[nodiscard]] std::optional<RecordClassification> QueryClassificationFilter() const { return ClassificationFilter; }
 
-    void ConfigureTextFilter(std::string Text);   // Case-insensitive substring over row names; empty clears.
+    void ConfigureTextFilter(std::string Text);
     [[nodiscard]] const std::string& QueryTextFilter() const { return TextFilter; }
 
     void ConfigureCollapsed(RecordToken Token, bool Collapsed);
     [[nodiscard]] bool QueryCollapsed(RecordToken Token) const;
 
-    // Spawn flow: the presentation's add menu records a request; the host services it (records are engine
-    // objects — the panel never invents them) and the new record appears by construction.
     void RequestSpawn(RecordClassification Classification);
     [[nodiscard]] std::optional<RecordClassification> TakeSpawnRequest();
 
-    // Native drawing (interface-SDK builds; an empty stub without the SDK, so portable builds keep linking).
-    // The host calls Synchronize() each frame first, then services TakeSpawnRequest().
     void ConstructInterface();
 
-    void Select(RecordToken Token);   // Unknown/stale tokens clear the selection on the next Synchronize
+    void Select(RecordToken Token);
     void ClearSelection();
     [[nodiscard]] RecordToken QuerySelected() const { return Selected; }
 
@@ -102,10 +97,12 @@ class SceneDirectoryPanel
     std::vector<SceneDirectoryRow>      Rows;
     std::vector<SceneDirectoryRow>      Visible;
     std::vector<SceneClassificationTab> Tabs;
-    uint32_t                            Total = 0;   // [records]
+    uint32_t                            Total         = 0;
+    uint32_t                            EnabledCount  = 0;
+    uint32_t                            DisabledCount = 0;
     std::optional<RecordClassification> ClassificationFilter;
-    std::string                         TextFilter;            // [text] - Lower-cased on configure
-    std::unordered_set<uint64_t>        CollapsedTokens;       // [-] - Panel-side fold state
+    std::string                         TextFilter;
+    std::unordered_set<uint64_t>        CollapsedTokens;
     std::optional<RecordClassification> PendingSpawn;
     RecordToken                         Selected;
     SceneInspectorSummary               Inspector;

@@ -1,7 +1,8 @@
-// 🧩 Portable Outliner view-model: flattened rows, real category tabs with counts, selection for the inspector.
+// 🧩 Portable Outliner view-model: flattened rows, folder enclosures, category tabs with counts, selection for the inspector.
 
 #include "Engine/Interface/SceneDirectoryPanel.h"
 
+#include "Engine/Diagnostics/BuildConfiguration.h"
 #include "Engine/Scene/SceneDirectory.h"
 
 #include <algorithm>
@@ -15,12 +16,10 @@ namespace Frontier
 namespace
 {
 
-// Directory parenting is cycle-free by construction (ConfigureParent refuses cycles); the cap only guards
-// against corrupted state turning a projection into unbounded recursion.
 constexpr uint32_t MaximumDepthTier = 128;   // [tiers]
 
 void AppendSubtree(const SceneDirectory& Directory, RecordToken Token, uint32_t DepthTier,
-                   const std::unordered_map<uint64_t, std::vector<RecordToken>>& Children,
+                   const std::unordered_map<uint64_t, std::vector<RecordToken>>& EnclosedByToken,
                    const std::unordered_set<uint64_t>& CollapsedTokens,
                    std::vector<SceneDirectoryRow>& Out)
 {
@@ -28,6 +27,10 @@ void AppendSubtree(const SceneDirectory& Directory, RecordToken Token, uint32_t 
     Row.Token          = Token;
     Row.Name           = Directory.QueryName(Token);
     Row.Classification = Directory.QueryClassification(Token);
+    Row.AccentColour   = Directory.QueryAccentColour(Token);
+#if defined(FRONTIER_EDITOR_PROFILE) || defined(FRONTIER_DEVELOPMENT_PROFILE)
+    Row.LiveBadge      = Directory.QueryLiveBadge(Token);
+#endif
     Row.DepthTier      = DepthTier;
     Row.ChildCount     = Directory.QueryChildCount(Token);
     Row.Visible        = Directory.QueryVisible(Token);
@@ -38,12 +41,12 @@ void AppendSubtree(const SceneDirectory& Directory, RecordToken Token, uint32_t 
     {
         return;
     }
-    const auto It = Children.find(Token.Value);
-    if (It != Children.end())
+    const auto Iterator = EnclosedByToken.find(Token.Value);
+    if (Iterator != EnclosedByToken.end())
     {
-        for (const RecordToken Child : It->second)
+        for (const RecordToken Inner : Iterator->second)
         {
-            AppendSubtree(Directory, Child, DepthTier + 1, Children, CollapsedTokens, Out);
+            AppendSubtree(Directory, Inner, DepthTier + 1, EnclosedByToken, CollapsedTokens, Out);
         }
     }
 }
@@ -56,14 +59,14 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
     Directory.CopyRegistrationOrder(Order);
     Total = static_cast<uint32_t>(Order.size());
 
-    std::unordered_map<uint64_t, std::vector<RecordToken>> Children;
+    std::unordered_map<uint64_t, std::vector<RecordToken>> EnclosedByToken;
     std::vector<RecordToken>                               Roots;
     for (const RecordToken Token : Order)
     {
-        const RecordToken Parent = Directory.QueryParent(Token);
-        if (Parent.IsValid() && Directory.QueryRegistered(Parent))
+        const RecordToken Enclosure = Directory.QueryParent(Token);
+        if (Enclosure.IsValid() && Directory.QueryRegistered(Enclosure))
         {
-            Children[Parent.Value].push_back(Token);
+            EnclosedByToken[Enclosure.Value].push_back(Token);
         }
         else
         {
@@ -71,15 +74,16 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
         }
     }
 
-    for (auto It = CollapsedTokens.begin(); It != CollapsedTokens.end();)
+    for (auto Iterator = CollapsedTokens.begin(); Iterator != CollapsedTokens.end();)
     {
-        It = Directory.QueryRegistered(RecordToken{*It}) ? std::next(It) : CollapsedTokens.erase(It);
+        Iterator = Directory.QueryRegistered(RecordToken{*Iterator}) ? std::next(Iterator)
+                                                                     : CollapsedTokens.erase(Iterator);
     }
 
     Rows.clear();
     for (const RecordToken Root : Roots)
     {
-        AppendSubtree(Directory, Root, 0, Children, CollapsedTokens, Rows);
+        AppendSubtree(Directory, Root, 0, EnclosedByToken, CollapsedTokens, Rows);
     }
 
     Tabs.clear();
@@ -87,9 +91,19 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
     {
         Tabs.push_back(SceneClassificationTab{static_cast<RecordClassification>(Index), 0});
     }
+    EnabledCount  = 0;
+    DisabledCount = 0;
     for (const SceneDirectoryRow& Row : Rows)
     {
         Tabs[static_cast<size_t>(Row.Classification)].Count += 1;
+        if (Row.Visible)
+        {
+            ++EnabledCount;
+        }
+        else
+        {
+            ++DisabledCount;
+        }
     }
 
     Inspector = SceneInspectorSummary{};
@@ -100,8 +114,11 @@ void SceneDirectoryPanel::Synchronize(const SceneDirectory& Directory)
         Inspector.Name           = Directory.QueryName(Selected);
         Inspector.Classification = Directory.QueryClassification(Selected);
         Inspector.ChildCount     = Directory.QueryChildCount(Selected);
-        const RecordToken Parent = Directory.QueryParent(Selected);
-        Inspector.ParentName     = Parent.IsValid() ? Directory.QueryName(Parent) : std::string{};
+        const RecordToken Enclosure = Directory.QueryParent(Selected);
+        if (Enclosure.IsValid() && Directory.QueryRegistered(Enclosure))
+        {
+            Inspector.ParentName = Directory.QueryName(Enclosure);
+        }
         for (const SceneDirectoryRow& Row : Rows)
         {
             if (Row.Token == Selected)
@@ -185,8 +202,8 @@ void SceneDirectoryPanel::RebuildVisible()
 {
     Visible.clear();
     const bool Searching = !TextFilter.empty();
-    bool       Folding   = false;   // Inside a collapsed subtree (suppressed while searching)
-    uint32_t   FoldDepth = 0;       // [tiers]
+    bool       Folding   = false;
+    uint32_t   FoldDepth = 0;
     for (const SceneDirectoryRow& Row : Rows)
     {
         const bool ClassOk = !ClassificationFilter.has_value() || Row.Classification == *ClassificationFilter;
@@ -195,9 +212,13 @@ void SceneDirectoryPanel::RebuildVisible()
             std::string Lower = Row.Name;
             std::transform(Lower.begin(), Lower.end(), Lower.begin(),
                            [](unsigned char Glyph) { return static_cast<char>(std::tolower(Glyph)); });
-            if (ClassOk && Lower.find(TextFilter) != std::string::npos)
+            std::string LowerClass = RecordClassificationName(Row.Classification);
+            std::transform(LowerClass.begin(), LowerClass.end(), LowerClass.begin(),
+                           [](unsigned char Glyph) { return static_cast<char>(std::tolower(Glyph)); });
+            if (ClassOk && (Lower.find(TextFilter) != std::string::npos ||
+                            LowerClass.find(TextFilter) != std::string::npos))
             {
-                Visible.push_back(Row);   // Search reveals through folds
+                Visible.push_back(Row);
             }
             continue;
         }

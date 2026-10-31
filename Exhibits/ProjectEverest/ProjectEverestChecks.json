@@ -1,22 +1,33 @@
 {
   "result": "passed",
+  "phase": 2,
   "project": "Project Everest",
   "descriptor": "Frontier/Projects/Project-Everest/ProjectEverest.frontier",
+  "workspace_application_loop": "Initialize -> Loop -> Finalize (FrontierMain removed)",
   "declared_log_categories": 5,
   "log_entries_ingested": 14,
-  "outliner_registered_items": 6,
+  "initial_scene_records": 18,
+  "post_folder_spawn_records": 19,
+  "folder_cascade_visibility_verified": true,
   "scoped_destructor_unregistered": true,
-  "log_stream_mean_luma": {
-    "oled": 23.3186,
-    "dark": 38.2525,
-    "light": 243.164
+  "engine_observatories": ["Folder", "Sun", "LensFlare", "Atmosphere", "Clouds", "Wind"],
+  "custom_inspectors": ["EverestVehicleRecord", "EverestIlluminationRecord (RTX/GTX)"],
+  "mean_luma": {
+    "dark_log_stream": 41.4422,
+    "light_log_stream": 240.486,
+    "dark_inspector": 32.5933,
+    "light_inspector": 226.001
   },
   "captures": [
     "01-ProjectBrowser-Library.png",
     "02-ProjectBrowser-SelectEverest.png",
-    "03-ProjectEverest-Workspace-Dark.png",
-    "04-ProjectEverest-ControlCentre-ThemeDrawer.png",
-    "05-ProjectEverest-Workspace-Light.png",
-    "06-ProjectEverest-Workspace-OLED.png"
+    "03-Folder-Outliner-Observatory.png",
+    "04-Sun-Observatory-Overview.png",
+    "05-LensFlare-Observatory-Optics.png",
+    "06-Atmosphere-Observatory-Medium.png",
+    "07-Clouds-Observatory-Weather.png",
+    "08-Wind-Observatory-Forcefield.png",
+    "09-Custom-Vehicle-Inspector.png",
+    "10-DualTier-GTX-Fallback-LightTheme.png"
   ]
 }

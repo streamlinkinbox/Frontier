@@ -572,6 +572,20 @@ The new appearance files use Allman braces, flat namespace indentation, and desc
   - Evidence retained in `Exhibits/ProjectEverest/README.md` (`ProjectEverestValidation` passed; 6 native `1600x960`
     CPU-rasterised PNGs verified; `LogStreamValidation` 69/69 passed under ASan+UBSan). Windows native MSVC/GPU runtime
     verification remains pending.
+- **2026-10-31 — Project Everest Phase 2 Global Engine Observatories, Folder Outliner, and WorkspaceApplication Loop**:
+  - Removed `FrontierMain.cpp` and implemented `Frontier/Applications/Editor/WorkspaceApplication.{h,cpp}`
+    (`Initialize -> Loop -> Finalize`, `ExecuteWorkspaceApplication`) running a single unified `RunWindowsApplication`
+    loop that transitions seamlessly between `ProjectBrowserPanel` and the 3-column workspace (`< Browser` return).
+  - Ported the 6 global VehicleHMI Observatory instruments into Engine (`Frontier/Engine/Scene/EnvironmentRecords.{h,cpp}`,
+    `Frontier/Engine/Scene/RecordEditorDescription.h`, `Frontier/Engine/Interface/SceneInspectorPanel.{h,cpp}`):
+    **Folders** (`FolderRecord` + `DrawFolderRow` tabbed cards + `+ Folder` + cascade visibility), **Sun**,
+    **Lens Flare** (live CPU HDR optical composite), **Atmosphere** (wired to `AtmosphereModel`), **Clouds** (wired to
+    `CloudField`), and **Wind** (`FROM ·°` streamline compass + 40 s gust scope), plus Project Everest custom
+    `ControlVehicle` (`EverestVehicleRecord` + 4 `EverestTyreRecord`s) and dual-tier `EverestIlluminationRecord`
+    (`RTX RayQuery + ReSTIR GI` vs `GTX SDF + BVH Fallback`).
+  - Evidence retained in `Exhibits/ProjectEverest/` (`ProjectEverestValidation` passed; 10 native `1920x1080`
+    CPU-rasterised PNGs verified; `SceneDirectoryValidation` 45/45 Dev + 17/17 Shipping; `LogStreamValidation` 69/69
+    ASan+UBSan). Windows native MSVC/GPU runtime verification remains pending.
 
 
 

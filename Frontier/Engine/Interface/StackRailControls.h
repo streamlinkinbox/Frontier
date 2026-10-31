@@ -1,21 +1,16 @@
 /*==========================================================================================================================================
                                                           STACK RAIL CONTROLS
                                      ------------------------------------------------------------------
-            First kit set beyond the Log Stream: StackRail chrome, TreeRow, IdentityHeader (interface SDK builds).
+            First kit set beyond the Log Stream: StackRail chrome, FolderRow, TreeRow, IdentityHeader (interface SDK builds).
 ==========================================================================================================================================*/
 
-// 🧩 First kit set beyond the Log Stream: StackRail chrome, TreeRow, IdentityHeader (interface SDK builds only).
+// 🧩 First kit set beyond the Log Stream: StackRail chrome, FolderRow, TreeRow, IdentityHeader (interface SDK builds only).
 
 #pragma once
 
-// 📝 Plan §10.4 order of construction: StackRail follows the Log Stream's set because the SceneDirectory is its
-//    first consumer; TreeRow carries the demo's outliner row vocabulary (§10.2); IdentityHeader tops inspectors.
-//    The vocabulary is Texture Workspace's (Rail + rail-head + HeadCount + AddHost + Filter + stack-sled +
-//    StackFoot + Readout; inspectIcon/inspectName/inspectSub), the drawing idiom is the Log Stream's proven one
-//    (window draw list + invisible hit targets + DM Sans through the upstream typeface registry), and menus stay
-//    on the reusable upstream DropdownControlSurface. Declarations exist only with the interface SDK present.
 #if defined(FRONTIER_WITH_INTERFACE_SDK)
 
+#include <cstdint>
 #include <imgui.h>
 
 namespace Frontier
@@ -46,25 +41,24 @@ constexpr ImU32 KitInkWithAlpha(ImU32 Colour, float Alpha) noexcept
     return (Colour & 0x00ffffffu) | static_cast<ImU32>(static_cast<int>(Alpha * 255.0f + 0.5f)) << 24;
 }
 
-// Same values as the Log Stream's panel theme, derived dynamically from ControlKit::Palette() so
-// ControlCentrePanel's OLED / Dark / Light theme selection governs both Outliner and Log Stream.
 struct KitTheme
 {
-    ImU32 PanelBg   = KitInkHex(0x0b100e);
-    ImU32 PanelEdge = KitInkRgba(255, 255, 255, 20);
-    ImU32 Surface   = KitInkHex(0x0e1411);
-    ImU32 Surface2  = KitInkHex(0x151d18);
-    ImU32 Surface3  = KitInkHex(0x1c2620);
-    ImU32 Line      = KitInkRgba(255, 255, 255, 18);
-    ImU32 LineSoft  = KitInkRgba(255, 255, 255, 11);
-    ImU32 RowHover  = KitInkRgba(255, 255, 255, 8);
-    ImU32 Text      = KitInkHex(0xeef3f0);
-    ImU32 Muted     = KitInkHex(0x97a29b);
-    ImU32 Faint     = KitInkHex(0x5f6b64);
-    ImU32 Mint      = KitInkHex(0x2fe6a7);
-    ImU32 MintDim   = KitInkRgba(47, 230, 167, 33);
-    ImU32 ChipOnBg  = KitInkHex(0xe9f2ed);
-    ImU32 ChipOnInk = KitInkHex(0x0b120e);
+    ImU32 PanelBg     = KitInkHex(0x0b100e);
+    ImU32 PanelEdge   = KitInkRgba(255, 255, 255, 20);
+    ImU32 Surface     = KitInkHex(0x0e1411);
+    ImU32 Surface2    = KitInkHex(0x151d18);
+    ImU32 Surface3    = KitInkHex(0x1c2620);
+    ImU32 Line        = KitInkRgba(255, 255, 255, 18);
+    ImU32 LineSoft    = KitInkRgba(255, 255, 255, 11);
+    ImU32 RowHover    = KitInkRgba(255, 255, 255, 8);
+    ImU32 Text        = KitInkHex(0xeef3f0);
+    ImU32 Muted       = KitInkHex(0x97a29b);
+    ImU32 Faint       = KitInkHex(0x5f6b64);
+    ImU32 Mint        = KitInkHex(0x2fe6a7);
+    ImU32 MintDim     = KitInkRgba(47, 230, 167, 33);
+    ImU32 ChipOnBg    = KitInkHex(0xe9f2ed);
+    ImU32 ChipOnInk   = KitInkHex(0x0b120e);
+    bool  LightCanvas = false;
 };
 
 [[nodiscard]] KitTheme ResolveKitTheme() noexcept;
@@ -91,14 +85,23 @@ float                  KitDrawTracked(ImDrawList* Ink, ImFont* Font, float Size,
                                  const char* Tooltip = nullptr);
 void                   KitPillSurface(ImDrawList* Ink, ImVec2 Minimum, ImVec2 Maximum, ImU32 Background,
                                       ImU32 Border, float Radius);
+void                   DrawFolderTabGlyph(ImDrawList* Ink, ImVec2 Centre, float Scale, ImU32 Accent, bool Open);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       CONTROLS
 //------------------------------------------------------------------------------------------------------------------------
 
-// StackRail head: title, live count pill, add button at the right. Returns true when Add was clicked.
-[[nodiscard]] bool DrawStackRailHead(const KitFaces& Faces, ImVec2 Minimum, float Width, const char* Title,
-                                     const char* CountText);
+struct StackRailHeadInteraction
+{
+    bool AddClicked    = false;
+    bool FolderClicked = false;
+};
+
+// StackRail head: title, live count pill, optional "+ Folder" pill + Add button at the right.
+[[nodiscard]] bool                     DrawStackRailHead(const KitFaces& Faces, ImVec2 Minimum, float Width,
+                                                         const char* Title, const char* CountText);
+[[nodiscard]] StackRailHeadInteraction DrawOutlinerHead(const KitFaces& Faces, ImVec2 Minimum, float Width,
+                                                        const char* Title, const char* CountText);
 
 // StackRail foot: left/right readouts on one line, hairline above.
 void DrawStackRailFoot(const KitFaces& Faces, ImVec2 Minimum, float Width, const char* LeftText,
@@ -111,14 +114,20 @@ void DrawIdentityHeader(const KitFaces& Faces, ImVec2 Minimum, float Width, ImU3
 struct TreeRowInteraction
 {
     bool Clicked        = false;   // Row body (selection)
-    bool ChevronClicked = false;   // Fold toggle (only meaningful with children)
+    bool ChevronClicked = false;   // Fold toggle
     bool EyeClicked     = false;   // Visibility toggle
 };
 
-// One Outliner tree row (demo .tree-row: name, meta, visibility, selected/off states), 30 px tall.
+// One Outliner tree row (30 px tall).
 [[nodiscard]] TreeRowInteraction DrawTreeRow(const KitFaces& Faces, const char* Id, ImVec2 Minimum, float Width,
-                                             float Indent, bool HasChildren, bool Collapsed, ImU32 DotColour,
+                                             float Indent, bool HasEnclosed, bool Collapsed, ImU32 DotColour,
                                              const char* Name, const char* Meta, bool Visible, bool Selected);
+
+// One Outliner Folder enclosure row (34 px tall: tabbed folder silhouette, title, enclosed count badge, cascade eye).
+[[nodiscard]] TreeRowInteraction DrawFolderRow(const KitFaces& Faces, const char* Id, ImVec2 Minimum, float Width,
+                                               float Indent, bool Collapsed, ImU32 AccentColour, const char* Name,
+                                               const char* TagText, uint32_t EnclosedCount, bool Visible,
+                                               bool Selected);
 
 } // namespace Frontier
 

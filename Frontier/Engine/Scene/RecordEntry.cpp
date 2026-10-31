@@ -6,6 +6,8 @@
 #include "Engine/Scene/RecordStore.h"
 #include "Engine/Scene/SceneDirectory.h"
 
+#include <utility>
+
 namespace Frontier
 {
 
@@ -26,5 +28,26 @@ RecordEntry::~RecordEntry()
 #endif
     RecordStore::Instance().Remove(IssuedToken);
 }
+
+#if defined(FRONTIER_EDITOR_PROFILE) || defined(FRONTIER_DEVELOPMENT_PROFILE)
+void RecordEntry::RegisterEditorDescription(RecordEditorDescription Description)
+{
+    Description.Subject = this;
+    SceneDirectory& Directory = SceneDirectory::Instance();
+    if (!Description.DisplayName.empty())
+    {
+        (void)Directory.ConfigureName(IssuedToken, Description.DisplayName);
+    }
+    if (Description.AccentColour != 0)
+    {
+        (void)Directory.ConfigureAccentColour(IssuedToken, Description.AccentColour);
+    }
+    if (Description.EnabledTarget != nullptr)
+    {
+        (void)Directory.ConfigureVisible(IssuedToken, *Description.EnabledTarget);
+    }
+    (void)Directory.ConfigureEditorDescription(IssuedToken, std::move(Description));
+}
+#endif
 
 } // namespace Frontier
