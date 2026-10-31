@@ -77,8 +77,16 @@ struct EverestViewportInputs
     // ControlVehicle world pose (SpawnPoint [-40, 0, 0.53], +X forward, +Y left, +Z up)
     std::array<float, 3> VehiclePosition           = { -40.0f, 0.0f, 0.53f };
     float                VehicleYawRadians         = 0.0f;
+    float                VehiclePitchRadians       = 0.0f;
+    float                VehicleRollRadians        = 0.0f;
     float                FrontSteerRadians         = 0.0f;
     float                WheelSpinRadians          = 0.0f;
+    bool                 UsePerCornerWheelPose     = false;
+    std::array<float, 4> WheelSteerPerCorner       = { 0.0f, 0.0f, 0.0f, 0.0f };
+    std::array<float, 4> WheelSpinPerCorner        = { 0.0f, 0.0f, 0.0f, 0.0f };
+    std::array<float, 4> WheelVerticalOffsetM      = { 0.0f, 0.0f, 0.0f, 0.0f };
+    double               VehicleEngineRpm          = 700.0;
+    int32_t              VehicleGearNumber         = 0;
 
     // Camera orbit / chase offsets (degrees/metres kept compatible with existing callers)
     double CameraYawDegrees                        = 22.0;     // [deg] - Slight 3/4 offset so side silhouette & course read together

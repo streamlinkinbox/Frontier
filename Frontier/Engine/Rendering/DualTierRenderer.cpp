@@ -874,13 +874,19 @@ void DualTierProvingGroundsRenderer::RenderFrame(
         }
     }
 
-    // Two-Level BVH TLAS Instances
+    // Two-Level BVH TLAS Instances (full 6-DOF yaw/pitch/roll chassis basis)
     const float CosYaw = std::cos(Inputs.VehicleYawRadians);
     const float SinYaw = std::sin(Inputs.VehicleYawRadians);
+    const float CosPit = std::cos(Inputs.VehiclePitchRadians);
+    const float SinPit = std::sin(Inputs.VehiclePitchRadians);
+    const float CosRol = std::cos(Inputs.VehicleRollRadians);
+    const float SinRol = std::sin(Inputs.VehicleRollRadians);
     const Vec3f CarPos = ToVec3f(Inputs.VehiclePosition);
-    const Vec3f CarFwd = {  CosYaw, SinYaw, 0.0f };
-    const Vec3f CarLft = { -SinYaw, CosYaw, 0.0f };
-    const Vec3f CarUp  = {  0.0f,   0.0f,   1.0f };
+    const Vec3f CarFwd = Normalize3({ CosYaw * CosPit, SinYaw * CosPit, -SinPit });
+    const Vec3f FlatLf = { -SinYaw, CosYaw, 0.0f };
+    const Vec3f PitchU = Cross3(CarFwd, FlatLf);
+    const Vec3f CarLft = Normalize3(Add3(Scale3(FlatLf, CosRol), Scale3(PitchU, SinRol)));
+    const Vec3f CarUp  = Normalize3(Cross3(CarFwd, CarLft));
 
     std::vector<RigidInstance> OpaqueTlas;
     OpaqueTlas.reserve(8u);
@@ -925,21 +931,29 @@ void DualTierProvingGroundsRenderer::RenderFrame(
     }};
     for (int Wheel = 0; Wheel < 4; ++Wheel)
     {
-        const Vec3f LocalHub = ToVec3f(WheelSockets[Wheel]);
+        Vec3f LocalHub = ToVec3f(WheelSockets[Wheel]);
+        if (Inputs.UsePerCornerWheelPose)
+        {
+            LocalHub.Z += Inputs.WheelVerticalOffsetM[Wheel];
+        }
         const Vec3f WorldHub = {
             CarPos.X + CarFwd.X * LocalHub.X + CarLft.X * LocalHub.Y + CarUp.X * LocalHub.Z,
             CarPos.Y + CarFwd.Y * LocalHub.X + CarLft.Y * LocalHub.Y + CarUp.Y * LocalHub.Z,
             CarPos.Z + CarFwd.Z * LocalHub.X + CarLft.Z * LocalHub.Y + CarUp.Z * LocalHub.Z
         };
-        const float Yaw    = Inputs.VehicleYawRadians + (Wheel < 2 ? Inputs.FrontSteerRadians : 0.0f);
-        const float Spin   = Inputs.WheelSpinRadians;
-        const float Cy     = std::cos(Yaw),  Sy = std::sin(Yaw);
-        const float Cs     = std::cos(Spin), Ss = std::sin(Spin);
-        const Vec3f SteerX = {  Cy, Sy, 0.0f };
-        const Vec3f SteerY = { -Sy, Cy, 0.0f };
-        const Vec3f SteerZ = {  0.0f, 0.0f, 1.0f };
-        const Vec3f SpinX  = Add3(Scale3(SteerX, Cs), Scale3(SteerZ, -Ss));
-        const Vec3f SpinZ  = Add3(Scale3(SteerX, Ss), Scale3(SteerZ,  Cs));
+        const float SteerAngle = Inputs.UsePerCornerWheelPose
+            ? Inputs.WheelSteerPerCorner[Wheel]
+            : (Wheel < 2 ? Inputs.FrontSteerRadians : 0.0f);
+        const float Spin   = Inputs.UsePerCornerWheelPose
+            ? Inputs.WheelSpinPerCorner[Wheel]
+            : Inputs.WheelSpinRadians;
+        const float Cs     = std::cos(SteerAngle), Ss = std::sin(SteerAngle);
+        const float Cp     = std::cos(Spin),       Sp = std::sin(Spin);
+        const Vec3f SteerX = Normalize3(Add3(Scale3(CarFwd, Cs), Scale3(CarLft,  Ss)));
+        const Vec3f SteerY = Normalize3(Add3(Scale3(CarLft, Cs), Scale3(CarFwd, -Ss)));
+        const Vec3f SteerZ = CarUp;
+        const Vec3f SpinX  = Add3(Scale3(SteerX, Cp), Scale3(SteerZ, -Sp));
+        const Vec3f SpinZ  = Add3(Scale3(SteerX, Sp), Scale3(SteerZ,  Cp));
         PushInstance(OpaqueTlas, (Wheel & 1) == 0 ? WheelLeftBlas : WheelRightBlas,
                      WorldHub, SpinX, SteerY, SpinZ, true);
     }
@@ -1292,7 +1306,9 @@ void DualTierProvingGroundsRenderer::RenderFrame(
             {
                 Out = { 0.032, 0.042, 0.058 };
                 const int Speed = std::clamp(static_cast<int>(std::lround(std::fabs(Inputs.VehicleSpeedKmh))), 0, 299);
-                const int Gear  = Speed < 4 ? 1 : std::clamp(1 + Speed / 36, 1, 6);
+                const int Gear  = Inputs.VehicleGearNumber != 0
+                    ? std::clamp(std::abs(Inputs.VehicleGearNumber), 1, 6)
+                    : (Speed < 4 ? 1 : std::clamp(1 + Speed / 36, 1, 6));
                 const int D2    = (Speed / 100) % 10;
                 const int D1    = (Speed / 10) % 10;
                 const int D0    = Speed % 10;

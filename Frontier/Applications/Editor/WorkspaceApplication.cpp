@@ -873,6 +873,8 @@ int ExecuteUnifiedWindowLoop(const std::filesystem::path& FromExecutable,
         {
             ActiveSession->EverestRenderer = std::make_unique<DualTierProvingGroundsRenderer>();
             ActiveSession->EverestScene    = std::make_unique<ProjectEverestScene>();
+            ActiveSession->EverestScene->Vehicle.ConfigureChassisHullSamples(
+                ActiveSession->EverestRenderer->QueryVehicleAssembly().SideHullSamples);
             ActiveSession->EverestScene->BindDomainStudio(ActiveSession->StudioPanel);
         }
         else
@@ -1025,7 +1027,29 @@ int ExecuteUnifiedWindowLoop(const std::filesystem::path& FromExecutable,
             }
             if (ActiveSession->EverestScene)
             {
-                ActiveSession->EverestScene->ServiceSpawnRequest(ActiveSession->OutlinerPanel);
+                ActiveSession->EverestScene->ProcessSpawnRequest(ActiveSession->OutlinerPanel);
+                if (!ImGui::GetIO().WantTextInput)
+                {
+                    auto& Veh = ActiveSession->EverestScene->Vehicle;
+                    const bool KeyW = ImGui::IsKeyDown(ImGuiKey_W) || ImGui::IsKeyDown(ImGuiKey_UpArrow);
+                    const bool KeyS = ImGui::IsKeyDown(ImGuiKey_S) || ImGui::IsKeyDown(ImGuiKey_DownArrow);
+                    const bool KeyA = ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow);
+                    const bool KeyD = ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow);
+                    const bool KeyH = ImGui::IsKeyDown(ImGuiKey_Space);
+                    if (ImGui::IsKeyPressed(ImGuiKey_R))
+                    {
+                        Veh.TeleportToZone(0u);
+                    }
+                    else if (KeyW || KeyS || KeyA || KeyD || KeyH ||
+                             std::fabs(Veh.SpeedKilometresPerHour) > 0.25)
+                    {
+                        Veh.DriverControls.Throttle  = KeyW ? 1.0 : 0.0;
+                        Veh.DriverControls.Brake     = KeyS ? 1.0 : 0.0;
+                        Veh.DriverControls.Steer     = (KeyA ? 1.0 : 0.0) - (KeyD ? 1.0 : 0.0);
+                        Veh.DriverControls.Handbrake = KeyH;
+                        Veh.StepDynamics(std::clamp(ElapsedSeconds, 0.001, 0.05));
+                    }
+                }
             }
             else
             {

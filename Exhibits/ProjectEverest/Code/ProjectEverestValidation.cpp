@@ -29,6 +29,7 @@
 #include "Engine/Rendering/AtmosphereModel.h"
 #include "Engine/Rendering/CloudField.h"
 #include "Engine/Rendering/DualTierRenderer.h"
+#include "Engine/Rendering/DualTierVulkan.h"
 #include "Engine/Rendering/PathReplayRayQuery.h"
 #include "Engine/Scene/EnvironmentRecords.h"
 #include "Engine/Scene/RecordEntry.h"
@@ -481,6 +482,147 @@ void VerifyEverestContracts(const DualTierProvingGroundsRenderer& Renderer, Proj
     bool PlumeValid = false;
     (void)StudioPanel.BuildValidatedPlumeFootprint(PlumeValid);
     Require(PlumeValid, "DomainStudioPanel PlumeLatticeFootprint failed ValidatePlumeLatticeFootprint");
+
+    // 6. Volumetric 32x5 Neo-Hookean Hex8 Tyre Continuum, Pacejka MF6.1 & 6-DOF ControlVehicleSolver Contracts.
+    Require(sizeof(VehicleVisualRecord) == 10448u && VehicleVisualRecord::TotalFloats == 2612u,
+            "VehicleVisualRecord must match VehicleHMI 10,448-byte (2,612-float) GPU upload contract");
+
+    const TyreSlipSolver SlipSolver{};
+    const double         PureFx = SlipSolver.LongitudinalForce(0.12, 0.0, 3200.0);
+    const double         PureFy = std::fabs(SlipSolver.LateralForce(-0.10, 0.0, 3200.0));
+    const auto           CombF  = SlipSolver.Combine(0.12, -0.10, 0.0, 3200.0);
+    Require(PureFx > 3000.0 && PureFy > 2500.0 &&
+                std::hypot(CombF.LongitudinalFx, CombF.LateralFy) <= std::hypot(PureFx, PureFy) + 1.0,
+            "Pacejka MF6.1 longitudinal / lateral / friction-ellipse combine contract failed");
+
+    ControlVehicleSolver TestVehicle;
+    TestVehicle.Respawn({ -40.0, 0.0, ControlVehicleSpecification::CentreOfMassHeightM }, 0.0);
+    const SolidContinuumWheel& RestFl = TestVehicle.QueryContinuumWheels()[0];
+    const float CrownUz = RestFl.QueryNodeDisplacement(24u * 5u + 2u)[2];
+    const float BulgeUy = RestFl.QueryNodeDisplacement(24u * 5u + 3u)[1] - RestFl.QueryNodeDisplacement(24u * 5u + 1u)[1];
+    const float MeanJac = RestFl.MeanJacobian;
+    Require(TestVehicle.QueryWheels()[0].TyreDeflectionM > 0.010 &&
+                TestVehicle.QueryWheels()[0].TyreDeflectionM < 0.025,
+            "Rest tyre radial deflection outside expected (10..25 mm) range");
+    Require(RestFl.QueryMaxDisplacementMetres() > 0.005f && CrownUz > 0.010f && BulgeUy > 0.004f &&
+                MeanJac > 0.70f && MeanJac < 1.30f,
+            "SolidContinuumWheel 32x5 Neo-Hookean Hex8 rest equilibrium (crown uz / sidewall bulge / Jacobian) failed");
+
+    VehicleDriverInputs LaunchCtrl{};
+    LaunchCtrl.Throttle = 1.0;
+    LaunchCtrl.Steer    = 0.0;
+    for (int Sub = 0; Sub < 360; ++Sub)
+    {
+        TestVehicle.Advance(LaunchCtrl, 1.0 / 120.0);
+    }
+    Require(TestVehicle.SpeedKilometresHour > 70.0 && TestVehicle.QueryGearNumber() >= 2 && TestVehicle.TurboBoostBar > 0.75,
+            "ControlVehicleSolver 3.0s WOT acceleration failed to build speed, upshift, and spool 1.2 bar turbo");
+
+    LaunchCtrl.Steer = 0.45;
+    for (int Sub = 0; Sub < 30; ++Sub)
+    {
+        TestVehicle.Advance(LaunchCtrl, 1.0 / 120.0);
+    }
+    Require(std::fabs(TestVehicle.QueryWheels()[0].SteerAngleRad) >
+                std::fabs(TestVehicle.QueryWheels()[1].SteerAngleRad),
+            "Ackermann steering geometry must turn inner front wheel sharper than outer front wheel");
+
+    VehicleVisualRecord EncodedVisual{};
+    TestVehicle.ShredTyre(0u);
+    TestVehicle.EncodeVisualRecord(EncodedVisual);
+    Require(EncodedVisual.Data[20] > 0.5f, "ShredTyre(0) failed to set GPU shredded flag in VehicleVisualRecord");
+    TestVehicle.RestoreTyre(0u);
+    TestVehicle.EncodeVisualRecord(EncodedVisual);
+    Require(EncodedVisual.Data[20] < 0.5f && EncodedVisual.Data[21] > 0.5f,
+            "RestoreTyre(0) failed to restore active carcass flag in VehicleVisualRecord");
+
+    // 7. DualTierVulkan SubmissionOrder + BarrierDerivation + TransientTargetAtlas + VkCommandBuffer Spy Contracts.
+    DualTierSubmissionPlan RtxPlan{}, GtxPlan{};
+    std::string            PlanDiag;
+    Require(ResolveDualTierSubmissionPlan(1920u, 1080u, DualTierExecutionMode::HardwareRayQueryRtx, RtxPlan, PlanDiag),
+            ("ResolveDualTierSubmissionPlan RTX failed: " + PlanDiag).c_str());
+    Require(ResolveDualTierSubmissionPlan(1920u, 1080u, DualTierExecutionMode::ToroidalSdfBvhGtx, GtxPlan, PlanDiag),
+            ("ResolveDualTierSubmissionPlan GTX failed: " + PlanDiag).c_str());
+    Require(RtxPlan.Order.Order.size() == 10u && GtxPlan.Order.Order.size() == 10u,
+            "Expected 10 resolved submission units in both RTX and GTX plans");
+    Require(RtxPlan.Atlas.TotalBytes < RtxPlan.Atlas.UnaliasedBytes &&
+                GtxPlan.Atlas.TotalBytes < GtxPlan.Atlas.UnaliasedBytes,
+            "TransientTargetAtlas failed to alias disjoint transient render targets");
+
+    struct VulkanSpyCounters
+    {
+        uint32_t Dispatches = 0u;
+        uint32_t Barriers   = 0u;
+        uint32_t AsBuilds   = 0u;
+    };
+    static VulkanSpyCounters Spy{};
+
+    DualTierVulkanAccess VkSpyAccess{};
+    VkSpyAccess.Device              = reinterpret_cast<VkDevice>(static_cast<uintptr_t>(0x1001u));
+    VkSpyAccess.PipelineLayout      = reinterpret_cast<VkPipelineLayout>(static_cast<uintptr_t>(0x1002u));
+    VkSpyAccess.GlobalDescriptorSet = reinterpret_cast<VkDescriptorSet>(static_cast<uintptr_t>(0x1003u));
+    VkSpyAccess.CmdBindPipeline     = [](VkCommandBuffer, VkPipelineBindPoint, VkPipeline) {};
+    VkSpyAccess.CmdBindDescriptorSets =
+        [](VkCommandBuffer, VkPipelineBindPoint, VkPipelineLayout, uint32_t, uint32_t, const VkDescriptorSet*, uint32_t, const uint32_t*) {};
+    VkSpyAccess.CmdPushConstants =
+        [](VkCommandBuffer, VkPipelineLayout, VkShaderStageFlags, uint32_t, uint32_t, const void*) {};
+    VkSpyAccess.CmdDispatch        = [](VkCommandBuffer, uint32_t, uint32_t, uint32_t) { ++Spy.Dispatches; };
+    VkSpyAccess.CmdPipelineBarrier = [](VkCommandBuffer, VkPipelineStageFlags, VkPipelineStageFlags, VkDependencyFlags,
+                                        uint32_t, const VkMemoryBarrier*, uint32_t, const VkBufferMemoryBarrier*,
+                                        uint32_t, const VkImageMemoryBarrier*) { ++Spy.Barriers; };
+    VkSpyAccess.GetAccelerationBuildSizes =
+        [](VkDevice, VkAccelerationStructureBuildTypeKHR, const VkAccelerationStructureBuildGeometryInfoKHR*,
+           const uint32_t*, VkAccelerationStructureBuildSizesInfoKHR* OutSizes) {
+            if (OutSizes != nullptr)
+            {
+                OutSizes->accelerationStructureSize = 65536u;
+                OutSizes->buildScratchSize          = 32768u;
+                OutSizes->updateScratchSize         = 16384u;
+            }
+        };
+    VkSpyAccess.CmdBuildAccelerationStructures =
+        [](VkCommandBuffer, uint32_t Count, const VkAccelerationStructureBuildGeometryInfoKHR*,
+           const VkAccelerationStructureBuildRangeInfoKHR* const*) { Spy.AsBuilds += Count; };
+
+    PathReplayAccelerationBuildAccess BuildSpyAccess{};
+    BuildSpyAccess.Device                         = VkSpyAccess.Device;
+    BuildSpyAccess.GetBuildSizes                  = VkSpyAccess.GetAccelerationBuildSizes;
+    BuildSpyAccess.CmdBuildAccelerationStructures = VkSpyAccess.CmdBuildAccelerationStructures;
+    BuildSpyAccess.CmdPipelineBarrier             = VkSpyAccess.CmdPipelineBarrier;
+
+    PathReplayAccelerationLimits AsLimits{};
+    AsLimits.MaxGeometryCount    = 8u;
+    AsLimits.MaxPrimitiveCount   = 1000000u;
+    AsLimits.MaxInstanceCount    = 16u;
+    AsLimits.MinScratchAlignment = 256u;
+
+    DualTierVulkanResources VkResources{};
+    VkResources.AccelerationPlan = PlanPathReplayAccelerationBuild(BuildSpyAccess, AsLimits, Renderer.QueryTriangleCount());
+    VkResources.AccelerationTargets.Blas                  = reinterpret_cast<VkAccelerationStructureKHR>(static_cast<uintptr_t>(0x2001u));
+    VkResources.AccelerationTargets.Tlas                  = reinterpret_cast<VkAccelerationStructureKHR>(static_cast<uintptr_t>(0x2002u));
+    VkResources.AccelerationTargets.VertexDeviceAddress   = 0x01000000u;
+    VkResources.AccelerationTargets.InstanceDeviceAddress = 0x10000000u;
+    VkResources.AccelerationTargets.BlasScratchAddress    = 0x20000000u;
+    VkResources.AccelerationTargets.TlasScratchAddress    = 0x20000000u + VkResources.AccelerationPlan.TlasScratchOffset;
+
+    const VkCommandBuffer FakeCmd = reinterpret_cast<VkCommandBuffer>(static_cast<uintptr_t>(0x3001u));
+    DualTierVulkanPipelines VkPipelines{};
+    DualTierPushConstants   VkPush{};
+    std::string             RecDiag;
+
+    Spy = {};
+    const DualTierRecordingSummary RtxRec = RecordDualTierVulkanSubmission(
+        FakeCmd, VkSpyAccess, VkPipelines, RtxPlan, VkResources, VkPush, RecDiag);
+    Require(RtxRec.Succeeded && RtxRec.AccelerationStructureBuilds == 2u && RtxRec.ComputeDispatches == 15u &&
+                Spy.AsBuilds == 2u && Spy.Dispatches == 15u,
+            ("RecordDualTierVulkanSubmission RTX spy mismatch: " + RecDiag).c_str());
+
+    Spy = {};
+    const DualTierRecordingSummary GtxRec = RecordDualTierVulkanSubmission(
+        FakeCmd, VkSpyAccess, VkPipelines, GtxPlan, VkResources, VkPush, RecDiag);
+    Require(GtxRec.Succeeded && GtxRec.AccelerationStructureBuilds == 0u && GtxRec.ComputeDispatches == 16u &&
+                Spy.AsBuilds == 0u && Spy.Dispatches == 16u,
+            ("RecordDualTierVulkanSubmission GTX spy mismatch: " + RecDiag).c_str());
 }
 
 } // namespace
@@ -593,6 +735,7 @@ int main(int ArgumentCount, char** Arguments)
         DomainStudioPanel   StudioPanel;
         const size_t        BaselineDirectoryCount = SceneDirectory::Instance().QueryCount();
         ProjectEverestScene EverestScene;
+        EverestScene.Vehicle.ConfigureChassisHullSamples(EverestRenderer.QueryVehicleAssembly().SideHullSamples);
         EverestScene.BindDomainStudio(StudioPanel);
         const size_t EverestRecordCount = SceneDirectory::Instance().QueryCount() - BaselineDirectoryCount;
         Require(EverestRecordCount == 29,
@@ -650,7 +793,7 @@ int main(int ArgumentCount, char** Arguments)
                 ShowDomainStudio = true;
                 (void)Panels.ConfigureOpen("LogStream", true);
             }
-            EverestScene.ServiceSpawnRequest(OutlinerPanel);
+            EverestScene.ProcessSpawnRequest(OutlinerPanel);
             LogPanel.Synchronize(LogStore(), LogCategories(), DeltaSeconds);
             OutlinerPanel.Synchronize(SceneDirectory::Instance());
             Centre->PrepareInterface();
@@ -696,9 +839,9 @@ int main(int ArgumentCount, char** Arguments)
         EverestScene.Vehicle.CameraMode = EverestCameraMode::Chase;
         OutlinerPanel.Select(EverestScene.Atmosphere.Token());
         for (int F = 0; F < 16; ++F) { StepWorkspaceFrame(); }
-        const std::vector<unsigned char> DefaultShellPixels =
+        const std::vector<unsigned char> DefaultWorkspacePixels =
             RasterizeCurrentFrame(ExhibitDir / "03-Folder-Outliner-Observatory.png", 10);
-        const double DarkInspectorLuma = SampleRegionMeanLuminance(DefaultShellPixels, 1540, 150, 1900, 980);
+        const double DarkInspectorLuma = SampleRegionMeanLuminance(DefaultWorkspacePixels, 1540, 150, 1900, 980);
 
         // 04: Sun Observatory + Front-Three-Quarter Orbit Camera on Sculpted ControlVehicle
         EverestScene.Vehicle.CameraMode        = EverestCameraMode::Orbit;
@@ -833,7 +976,62 @@ int main(int ArgumentCount, char** Arguments)
             RasterizeCurrentFrame(ExhibitDir / "16-Tier3-FluidPlumeStudio.png", 10);
         const double DarkLogLuma = SampleRegionMeanLuminance(DarkLogPixels, 420, 790, 1450, 1040);
         ShowDomainStudio = false;
+        BottomDrawerOpen = false;
+        (void)Panels.ConfigureOpen("LogStream", false);
         EverestScene.Vehicle.TeleportToZone(0u);   // Back to Start grid
+
+        // Exhibit 18: ControlVehicle Tab 1 (Chassis) — BODY-LOCAL SIDE VIEW / ACTUAL HULL SAMPLES + 3D Collision Wireframe
+        EverestScene.Illumination.TierSelectionIndex  = 0;
+        EverestScene.Illumination.InspectionAovIndex  = 0;
+        EverestScene.Sun.ApplyPreset(SolarLightingPreset::Noon);
+        EverestScene.Vehicle.CameraMode               = EverestCameraMode::Orbit;
+        CamYaw                                        = 196.0;
+        CamPitch                                      = 14.0;
+        CamDist                                       = 7.2;
+        EverestScene.Vehicle.ActiveModuleTab          = 1u;
+        EverestScene.Vehicle.CollisionOverlayEnabled  = true;
+        OutlinerPanel.Select(EverestScene.Vehicle.Token());
+        for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
+        (void)RasterizeCurrentFrame(ExhibitDir / "18-ControlVehicle-ChassisHullInspector.png", 10);
+        EverestScene.Vehicle.CollisionOverlayEnabled  = false;
+
+        // Exhibit 19: ControlVehicle Tab 2 (Engine) — Live 2.6 s WOT Launch + GT-R 800..8500 rpm Torque Curve & OLED Speed
+        EverestScene.Vehicle.TeleportToZone(0u);
+        EverestScene.Vehicle.CameraMode              = EverestCameraMode::Chase;
+        EverestScene.Vehicle.ActiveModuleTab         = 2u;
+        EverestScene.Vehicle.DriverControls.Throttle = 1.0f;
+        EverestScene.Vehicle.StepDynamics(2.60);
+        Require(EverestScene.Vehicle.SpeedKilometresPerHour > 60.0,
+                "Expected live WOT launch to exceed 60 km/h for Exhibit 19");
+        for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
+        (void)RasterizeCurrentFrame(ExhibitDir / "19-ControlVehicle-EngineDynoLaunch.png", 10);
+
+        // Exhibit 20: ControlVehicle Tab 3 (Tyres) — Trail-Braking Outside Front-Left Wheel + 32x5 Neo-Hookean Hex8 Bulge
+        EverestScene.Vehicle.TeleportToZone(2u);     // Skidpad
+        EverestScene.Vehicle.DriverControls.Throttle = 0.90;
+        EverestScene.Vehicle.DriverControls.Brake    = 0.0;
+        EverestScene.Vehicle.DriverControls.Steer    = 0.0;
+        EverestScene.Vehicle.StepDynamics(1.50);
+        EverestScene.Vehicle.DriverControls.Throttle = 0.0;
+        EverestScene.Vehicle.DriverControls.Brake    = 0.45;
+        EverestScene.Vehicle.DriverControls.Steer    = -0.35; // Trail-brake into right-hand turn loads outside FL > 4.5 kN
+        EverestScene.Vehicle.StepDynamics(0.45);
+        Require(EverestScene.Vehicle.DynamicsSolver.QueryWheels()[0].NormalLoadN > 4000.0,
+                "Expected outside FL tyre normal load > 4,000 N under trail-braking for Exhibit 20");
+        EverestScene.Vehicle.CameraMode              = EverestCameraMode::TyreFl;
+        EverestScene.Vehicle.ActiveModuleTab         = 3u;
+        EverestScene.Vehicle.SelectedTyreWheel       = 0u;
+        EverestScene.Vehicle.SelectedTyreSubTab      = 0u;
+        for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
+        (void)RasterizeCurrentFrame(ExhibitDir / "20-ControlVehicle-VolumetricTyreFem.png", 10);
+
+        // Restore clean Start Grid pose + reopened LogStream drawer for Dark/Light luma parity check
+        EverestScene.Vehicle.TeleportToZone(0u);
+        EverestScene.Vehicle.CameraMode      = EverestCameraMode::Chase;
+        EverestScene.Vehicle.ActiveModuleTab = 0u;
+        BottomDrawerOpen                     = true;
+        ShowDomainStudio                     = false;
+        (void)Panels.ConfigureOpen("LogStream", true);
 
         // Verify `+ Folder` spawn + Control Centre Light Theme Parity
         OutlinerPanel.RequestSpawn(RecordClassification::Folder);
@@ -886,6 +1084,10 @@ int main(int ArgumentCount, char** Arguments)
                << "  \"toroidal_sdf_cascades\": 4,\n"
                << "  \"surface_card_texels\": " << LastTelemetry.SurfaceCardTexels << ",\n"
                << "  \"card_radiosity_residual\": " << LastTelemetry.CardRadiosityResidual << ",\n"
+               << "  \"vehicle_visual_record_bytes\": " << sizeof(VehicleVisualRecord) << ",\n"
+               << "  \"continuum_tyre_nodes_per_wheel\": " << SolidContinuumWheel::NodesPerWheel << ",\n"
+               << "  \"vulkan_dual_tier_spy_verified\": true,\n"
+               << "  \"exhibit_count\": 20,\n"
                << "  \"initial_scene_records\": " << EverestRecordCount << ",\n"
                << "  \"post_folder_spawn_records\": " << OutlinerPanel.QueryTotal() << ",\n"
                << "  \"mean_luma\": {\n"

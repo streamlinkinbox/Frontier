@@ -9,11 +9,15 @@
   "toroidal_sdf_cascades": 4,
   "surface_card_texels": 168,
   "card_radiosity_residual": 1.49893e-10,
+  "vehicle_visual_record_bytes": 10448,
+  "continuum_tyre_nodes_per_wheel": 160,
+  "vulkan_dual_tier_spy_verified": true,
+  "exhibit_count": 20,
   "initial_scene_records": 29,
   "post_folder_spawn_records": 30,
   "mean_luma": {
     "dark_log_stream": 39.0579,
-    "light_log_stream": 241.451,
+    "light_log_stream": 241.447,
     "dark_inspector": 33.6436,
     "light_inspector": 246.539
   }

@@ -19,7 +19,16 @@ Retained evidence and validation harness for **Project Everest** (`Frontier/Proj
     glossy reflections, and Snell + Fresnel `DielectricRefraction` cabin glazing (`IOR = 1.52`).
   - **Tier B — GTX / Lower-End Fallback (`ToroidalSdfBvhGtx`)**: `4` nested toroidal 3D SDF cascades (`SceneClip0..3`),
     `168`-texel multi-bounce `CardRadiosity` (`residual = 1.50e-10`), and Two-Level SAH BVH reflections.
-- **1:1 `VehicleHMI` Editor Chrome, 29-Record Outliner, 10 Observatories & Tier-3 Studios**:
+- **Live 6-DOF `ControlVehicleSolver`, Pacejka MF6.1 & `32x5` Neo-Hookean Hex8 Continuum Wheel (`Frontier/Engine/Physics/ControlVehiclePhysics.{h,cpp}` + `Shaders/VolumetricTyreDeformation.slang`)**:
+  - Exact `1,300 kg` mass (`1,220 kg` sprung, `49.14%` front), `0.53 m` CoM, `2.0 Hz` digressive cubic struts (`zeta = 0.60`),
+    18-point GT-R `520 N·m` + `1.2 bar` turbo (`962 N·m` boosted) 6-speed AMT AWD powertrain, Pacejka MF6.1 combined slip,
+    `32 x 5 = 160`-node (`128` Hex8) Neo-Hookean continuum FEM wheel per corner, and `10,448`-byte (`2,612`-float) GPU
+    `VehicleVisualRecord` consumed by `VolumetricTyreDeformation.slang`.
+- **Vulkan Dual-Tier Submission Planner & `VkCommandBuffer` Recorder (`Frontier/Engine/Rendering/DualTierVulkan.{h,cpp}`)**:
+  - Resolves `SubmissionOrder`, `BarrierDerivation`, and `TransientTargetAtlas` memory aliasing for both RTX
+    (`HardwareRayQueryRtx`: `2` `vkCmdBuildAccelerationStructuresKHR` builds + `15` compute dispatches) and GTX
+    (`ToroidalSdfBvhGtx`: `0` RT hardware calls + `16` compute dispatches across `4` SDF cascades + `168`-texel `SurfaceCards`).
+- **1:1 `VehicleHMI` Editor Chrome, 29-Record Outliner, 10 Observatories, 8-Tab Engineering Inspector & Tier-3 Studios**:
   - `0.16 / 0.63 / 0.21` 3-column dockspace (`#111214` rails, `#23262b` hairlines, `38px` camera/AOV/tier top bar,
     `26px` `#0d0e10` status footer, full-height viewport by default with collapsible `Logs` / `Studios` drawer).
   - `29` initial records across `7` `FolderRecord`s (`Render`, `Environment`, `Forcefield`, `Vehicle`, `Effects`,
@@ -41,10 +50,13 @@ Retained evidence and validation harness for **Project Everest** (`Frontier/Proj
 11. **`11-Moon-Observatory-Selenograph.png`** — Global Engine **Moon Selenographic Observatory** (`83% Waxing`) with selenographic phase terminator & earthshine over the illuminated straight.
 12. **`12-Weather-StormLightningAndWetApron.png`** — Global Engine **Storm & Deposit Observatory** with forked lightning discharge, `343 m/s` thunder delay, and mirror-wet asphalt reflections.
 13. **`13-Weather-SurfaceDepositSnowGrid.png`** — Interior **`Driver` Cockpit** camera showing the hexagonal OLED cluster (`175` km/h, gear `5`), 14" infotainment HMI screen with live 3D car preview, wing mirror cones, and snow-covered Proving Grounds.
-14. **`14-ControlVehicle-8Tab-CollisionXRay.png`** — 8-tab **`ControlVehicle` Systems Inspector** with world-space **Collision OBB & 4 Wheel-Hub X-Ray** overlay.
+14. **`14-ControlVehicle-8Tab-CollisionXRay.png`** — 8-tab **`ControlVehicle` Systems Inspector (`Overview`)** clickable assembly tree + world-space **Collision OBB & 4 Wheel-Hub X-Ray** overlay.
 15. **`15-Tier3-FractureVoronoiStudio.png`** — Collapsible bottom drawer opened onto Tier-3 **Fracture Voronoi Studio**.
 16. **`16-Tier3-FluidPlumeStudio.png`** — **`ControlVehicle` teleported to Hangar Apron** (`Zone 5`) with Tier-3 **Fluid & Plume Lattice Studio** (`96x96x128 · 31.5 MiB VRAM · VALIDATED`).
-17. **`17-DualTier-GTX-Fallback-LightTheme.png`** — **`GTX · SDF` Fallback** + Golden-hour preset + spawned `Folder` (`30` records) + `Log Stream` drawer + **Control Centre Light Theme** (`Dark Inspector luma = 33.64`, `Light Inspector luma = 246.54`).
+17. **`17-DualTier-GTX-Fallback-LightTheme.png`** — **`GTX · SDF` Fallback** + Golden-hour preset + spawned `Folder` (`30` records) + `Log Stream` drawer + **Control Centre Light Theme**.
+18. **`18-ControlVehicle-ChassisHullInspector.png`** — **`ControlVehicle` Tab 1 (`Chassis`)** showing the **`BODY-LOCAL SIDE VIEW / ACTUAL HULL SAMPLES`** engineering diagram (`1,186` opaque + `74` glass facets, `AxleMount` & `SuspensionMount` sockets, `CoM 0.53 m`) + 3D collision wireframe.
+19. **`19-ControlVehicle-EngineDynoLaunch.png`** — **`ControlVehicle` Tab 2 (`Engine`)** mid-launch (`96.5 km/h`, `5,515 rpm`, `Gear 2`, `907.6 N·m`, `Boost 1.06 bar`) down the Proving Grounds straight with live green cursor on the **`800 -> 8,500 rpm` GT-R + `1.2 bar` Turbo** curve.
+20. **`20-ControlVehicle-VolumetricTyreFem.png`** — **`ControlVehicle` Tab 3 (`Tyres`)** on close-up **`Front Left` (`TyreFl`)** rig under `4,745 N` trail-braking cornering load (`Fx -2,729 N`, `Fy -2,127 N`, `Deflection 21.4 mm`) showing the **`32x5` Neo-Hookean Hex8 Meridional Bulge** (`Crown +19.5 mm`, `Sidewall bulge +21.1 mm`, `Mean J 0.995`).
 
 ![01 Project Browser Library](01-ProjectBrowser-Library.png)
 ![02 Project Browser Select Project Everest](02-ProjectBrowser-SelectEverest.png)
@@ -63,6 +75,9 @@ Retained evidence and validation harness for **Project Everest** (`Frontier/Proj
 ![15 Tier-3 Fracture Voronoi Studio](15-Tier3-FractureVoronoiStudio.png)
 ![16 Hangar Apron and Tier-3 Fluid Plume Studio](16-Tier3-FluidPlumeStudio.png)
 ![17 Dual-Tier GTX Fallback Light Theme](17-DualTier-GTX-Fallback-LightTheme.png)
+![18 ControlVehicle Chassis Hull Samples Inspector](18-ControlVehicle-ChassisHullInspector.png)
+![19 ControlVehicle Engine Dyno WOT Launch](19-ControlVehicle-EngineDynoLaunch.png)
+![20 ControlVehicle Volumetric 32x5 Hex8 Tyre FEM](20-ControlVehicle-VolumetricTyreFem.png)
 
 ## Reproduction & verification
 
@@ -70,7 +85,7 @@ Retained evidence and validation harness for **Project Everest** (`Frontier/Proj
   and `-fsanitize=address,undefined` on portable suites). `slangc` and a Vulkan ICD (`libvulkan.so`) are not installed
   in this Linux sandbox; SPIR-V compilation and native Windows MSVC / Vulkan swapchain execution remain untested here.
 - **Suites verified**:
-  - `ProjectEverestValidation` (`44,826` tris / `22,528` SAH nodes / `168` card texels / `17` `1920x1080` PNGs): **PASS**.
+  - `ProjectEverestValidation` (`44,826` tris / `22,528` SAH nodes / `168` card texels / `10,448` B `VehicleVisualRecord` / `DualTierVulkan` RTX & GTX spy / `20` `1920x1080` PNGs): **PASS**.
   - `SceneDirectoryValidation` (Development profile): **45 passed, 0 failed**.
   - `SceneDirectoryValidation` (Shipping profile, `-DFRONTIER_SHIPPING_PROFILE=1`): **17 passed, 0 failed**.
   - `LogStreamValidation` (`-fsanitize=address,undefined`): **69 passed, 0 failed**.

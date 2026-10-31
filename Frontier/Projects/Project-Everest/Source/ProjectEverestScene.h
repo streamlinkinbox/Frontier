@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Engine/Interface/DomainStudioPanels.h"
+#include "Engine/Physics/ControlVehiclePhysics.h"
 #include "Engine/Rendering/DualTierRenderer.h"
 #include "Engine/Rendering/ProvingGroundsCourse.h"
 #include "Engine/Scene/EnvironmentRecords.h"
@@ -68,56 +69,70 @@ class EverestTyreRecord final : public RecordEntry
   public:
     EverestTyreRecord(const char* CornerLabel, double DefaultCamberDeg);
 
-    double PressureKilopascals = 235.0;   // [kPa] - [160..320]
+    double PressureKilopascals = 220.0;   // [kPa] - [160..320]
     double CamberDegrees       = -1.4;    // [deg] - [-5..2]
     double CarcassCelsius      = 68.0;    // [C] - [15..130]
-    double PeakGripMu          = 1.18;    // [-] - [0.5..1.8]
+    double PeakGripMu          = 1.15;    // [-] - [0.5..1.8]
     bool   Enabled             = true;
 };
 
 // 📝 Exact 1:1 ControlVehicle record ("ControlVehicle" in Outliner):
-//    8-tab VehicleSystemsInspector: Overview, Chassis, Engine, Tyres, Suspension, Lights, HMI & cabin, Mirrors.
+//    Embeds live ControlVehicleSolver (Pacejka MF6.1 + 32x5 Neo-Hookean Hex8 SolidContinuumWheel + 10,448-byte GPU record)
+//    and renders the 1:1 8-tab VehicleSystemsInspector: Overview, Chassis, Engine, Tyres, Suspension, Lights, HMI, Mirrors.
 class EverestVehicleRecord final : public RecordEntry
 {
   public:
     EverestVehicleRecord();
 
-    uint32_t             ActiveModuleTab          = 0;        // [-] - [0..7] 8-tab VehicleSystemsInspector
-    EverestCameraMode    CameraMode               = EverestCameraMode::Chase;
-    std::array<float, 3> WorldPosition            = { -40.0f, 0.0f, 0.53f }; // [m] - Exact Proving Grounds spawn
-    float                YawRadians               = 0.0f;     // [rad] - Heading (+X East at 0)
-    float                FrontSteerRadians        = 0.0f;     // [rad] - Front wheel steer angle
-    float                WheelSpinRadians         = 0.0f;     // [rad] - Rolling wheel spin
-    double               SpeedKilometresPerHour   = 0.0;      // [km/h] - Displayed HUD & Outliner speed
-    int32_t              GearNumber               = 1;        // [-] - Current transmission gear
-    double               EngineRpm                = 850.0;    // [rpm] - Current crankshaft speed
+    uint32_t                          ActiveModuleTab          = 0u;     // [-] - [0..7] 8-tab VehicleSystemsInspector
+    uint32_t                          SelectedTyreWheel        = 0u;     // [-] - [0..3] FL, FR, RL, RR
+    uint32_t                          SelectedTyreSubTab       = 0u;     // [-] - [0..4] Tyre, Marks, Smoke, Sparks, Burnout
+    EverestCameraMode                 CameraMode               = EverestCameraMode::Chase;
+    std::array<float, 3>              WorldPosition            = { -40.0f, 0.0f, 0.53f }; // [m] - Exact Proving Grounds spawn
+    float                             YawRadians               = 0.0f;   // [rad] - Heading (+X East at 0)
+    float                             PitchRadians             = 0.0f;   // [rad]
+    float                             RollRadians              = 0.0f;   // [rad]
+    float                             FrontSteerRadians        = 0.0f;   // [rad]
+    float                             WheelSpinRadians         = 0.0f;   // [rad]
+    bool                              UseSolvedWheelPose       = true;   // [-] - Drive 4 corners from ControlVehicleSolver
+    double                            SpeedKilometresPerHour   = 0.0;    // [km/h] - Displayed HUD & Outliner speed
+    int32_t                           GearNumber               = 1;      // [-] - Current transmission gear
+    double                            EngineRpm                = 700.0;  // [rpm] - Current crankshaft speed
 
-    int32_t              DriveModeIndex           = 1;        // [-] - 0 = Comfort, 1 = Proving Sport, 2 = Drift
-    int32_t              PaintFinishPreset        = 0;        // [-] - 0 = Lime Chartreuse (#d0e000), 1..4 = VehicleHMI swatches
-    int32_t              AutomotiveBeamMode       = 1;        // [-] - 0 = Off, 1 = Low Beam, 2 = High Beam, 3 = Fog
-    int32_t              RoofFixtureIndex         = 0;        // [-] - 0 = None, 1 = Slim LED Bar, 2 = Rally 4-Pod
-    double               SprungMassKilograms      = 1500.0;   // [kg] - Exact VehicleSpecification.Mass
-    double               WheelbaseMetres          = 3.396;    // [m] - Exact 1.7274 - (-1.6686)
-    double               PeakPowerKilowatts       = 420.0;    // [kW] - [120..900]
-    double               RedlineRpm               = 7200.0;   // [rpm] - [4500..12000]
-    double               BatterySocPercent        = 84.0;     // [%] - [5..100]
-    double               AwdRearTorqueFraction    = 0.65;     // [-] - [0..1]
-    double               FrontBrakeBias           = 0.64;     // [-] - [0.4..0.8]
-    double               SpringRateKilonewtonsM   = 48.0;     // [kN/m] - [20..120]
-    double               DampingRatio             = 0.68;     // [-] - [0.2..1.4]
-    double               RideHeightMillimetres    = 132.0;    // [mm] - [75..240]
-    double               AeroDownforceCoefficient = 0.42;     // [-] - [0..1.5]
-    double               ClearcoatRoughness       = 0.0775;   // [-] - Exact BodyCoat roughness in MaterialSpecification.js
-    double               HeadlampKelvin           = 5800.0;   // [K] - [3200..7500]
-    double               CabinHmiLuminanceNits    = 680.0;    // [cd/m2] - [80..1200]
-    double               MirrorFoldDegrees        = 0.0;      // [deg] - [0..68]
-    bool                 Enabled                  = true;
-    bool                 StabilityControlActive   = true;
-    bool                 HeadlampsEnabled         = true;
-    bool                 BrakeLampsEnabled        = true;
-    bool                 HazardLampsEnabled       = false;
-    bool                 CollisionOverlayEnabled  = false;
+    ControlVehicleSolver              DynamicsSolver{};
+    VehicleDriverInputs               DriverControls{};
+    VehicleVisualRecord               VisualStateBuffer{};               // 10,448-byte GPU upload layout
+    std::vector<std::array<float, 2>> ChassisHullSamples{};              // Body-local (X, Z) hull profile from FCT1
 
+    int32_t                           DriveModeIndex           = 1;      // [-] - 0 = Comfort, 1 = Proving Sport, 2 = Drift
+    int32_t                           PaintFinishPreset        = 0;      // [-] - 0 = Lime Chartreuse (#d0e000), 1..4 = swatches
+    int32_t                           AutomotiveBeamMode       = 1;      // [-] - 0 = Off, 1 = Low Beam, 2 = High Beam, 3 = Fog
+    int32_t                           RoofFixtureIndex         = 0;      // [-] - 0 = None, 1 = Slim LED Bar, 2 = Rally 4-Pod
+    double                            SprungMassKilograms      = 1300.0; // [kg] - Exact ControlVehicleSpecification::Mass
+    double                            WheelbaseMetres          = 3.396;  // [m] - Exact 1.7274 - (-1.6686)
+    double                            PeakPowerKilowatts       = 420.0;  // [kW]
+    double                            RedlineRpm               = 7200.0; // [rpm]
+    double                            BatterySocPercent        = 84.0;   // [%]
+    double                            AwdRearTorqueFraction    = 0.65;   // [-]
+    double                            FrontBrakeBias           = 0.65;   // [-]
+    double                            SpringRateKilonewtonsM   = 48.2;   // [kN/m]
+    double                            DampingRatio             = 0.60;   // [-]
+    double                            RideHeightMillimetres    = 132.0;  // [mm]
+    double                            AeroDownforceCoefficient = 0.35;   // [-]
+    double                            ClearcoatRoughness       = 0.0775; // [-] - Exact BodyCoat roughness
+    double                            HeadlampKelvin           = 5800.0; // [K]
+    double                            CabinHmiLuminanceNits    = 680.0;  // [cd/m2]
+    double                            MirrorFoldDegrees        = 0.0;    // [deg]
+    bool                              Enabled                  = true;
+    bool                              StabilityControlActive   = true;
+    bool                              HeadlampsEnabled         = true;
+    bool                              BrakeLampsEnabled        = true;
+    bool                              HazardLampsEnabled       = false;
+    bool                              CollisionOverlayEnabled  = false;
+
+    void                        ConfigureChassisHullSamples(std::vector<std::array<float, 2>> Samples);
+    void                        SynchronizeFromSolver() noexcept;
+    void                        StepDynamics(double DeltaSeconds) noexcept;
     void                        TeleportToZone(uint32_t ZoneIndex) noexcept;
     [[nodiscard]] SpectrumRgb   QueryBodyPaintAlbedo() const noexcept;
 };
@@ -169,8 +184,8 @@ class ProjectEverestScene
     // Wires Tier-3 studio launch buttons in EverestDomainActorRecords to the docked DomainStudioPanel.
     void BindDomainStudio(DomainStudioPanel& StudioPanel);
 
-    // Services any pending "+ Folder" or "+ Add" request from the Outliner panel.
-    void ServiceSpawnRequest(SceneDirectoryPanel& DirectoryPanel);
+    // Processes any pending "+ Folder" or "+ Add" request from the Outliner panel.
+    void ProcessSpawnRequest(SceneDirectoryPanel& DirectoryPanel);
 
     // Packages every live scene record into the 3D DualTierProvingGroundsRenderer frame contract.
     [[nodiscard]] EverestViewportInputs BuildViewportInputs(double OrbitYawDegrees     = 202.9183,
