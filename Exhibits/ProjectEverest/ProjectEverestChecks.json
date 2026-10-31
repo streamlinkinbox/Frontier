@@ -1,21 +1,20 @@
 {
   "result": "passed",
-  "phase": 3,
   "project": "Project Everest",
-  "scene_triangles": 318,
-  "sah_bvh_enclosures": 335,
+  "vehicle_archives_loaded": true,
+  "scene_triangles": 44826,
+  "sah_bvh_enclosures": 22528,
+  "active_tlas_instances": 8,
+  "active_clustered_lights": 32,
   "toroidal_sdf_cascades": 4,
-  "surface_card_texels": 36,
-  "card_radiosity_residual": 1.45353e-07,
-  "initial_scene_records": 26,
-  "post_folder_spawn_records": 27,
-  "engine_observatories": ["Folder", "Sun", "LensFlare", "Atmosphere", "Clouds", "Wind", "Fog", "Stars", "Moon", "Weather"],
-  "tier3_domain_studios": ["FractureVoronoi", "FluidPlumeLattice", "ParticleEmitter"],
-  "custom_inspectors": ["EverestVehicleRecord (8-Tab + Collision X-Ray)", "EverestIlluminationRecord (RTX/GTX + 6 AOVs)"],
+  "surface_card_texels": 168,
+  "card_radiosity_residual": 1.49893e-10,
+  "initial_scene_records": 29,
+  "post_folder_spawn_records": 30,
   "mean_luma": {
-    "dark_log_stream": 41.7754,
-    "light_log_stream": 240.221,
-    "dark_inspector": 33.8286,
-    "light_inspector": 249.673
+    "dark_log_stream": 39.0579,
+    "light_log_stream": 241.451,
+    "dark_inspector": 33.6436,
+    "light_inspector": 246.539
   }
 }

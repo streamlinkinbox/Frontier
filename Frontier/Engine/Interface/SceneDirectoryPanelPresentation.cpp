@@ -1,10 +1,10 @@
 /*==========================================================================================================================================
                                                 NATIVE PRESENTATION OF THE OUTLINER PANEL
                                      ------------------------------------------------------------------
-             SceneDirectoryPanel drawn with StackRail + FolderRow + TreeRow + VehicleHMI Enabled/Disabled count tiles.
+             1:1 VehicleHMI Outliner: frontier. brand, Proving Grounds.scene, 54px count tiles, + Folder, search & IlluminationHost.
 ==========================================================================================================================================*/
 
-// 🧩 Native presentation of the Outliner panel: Folder enclosures, count tiles, filter chips, and live row telemetry.
+// 🧩 1:1 VehicleHMI Outliner presentation (ported from EditorShell.js + FrontierEditor.css) over SceneDirectoryPanel.
 
 #include "SceneDirectoryPanel.h"
 
@@ -32,20 +32,97 @@ ImU32 ClassificationColour(RecordClassification Classification) noexcept
 {
     switch (Classification)
     {
-        case RecordClassification::Folder:       return KitInkHex(0x7ad9a3);
-        case RecordClassification::Vehicle:      return KitInkHex(0x2fe6a7);
-        case RecordClassification::Tyre:         return KitInkHex(0x63a8ff);
-        case RecordClassification::Environment:  return KitInkHex(0x8fd14f);
-        case RecordClassification::Geometry:     return KitInkHex(0xb18cff);
-        case RecordClassification::Illumination: return KitInkHex(0xffb454);
-        case RecordClassification::Camera:       return KitInkHex(0xff7ad9);
-        case RecordClassification::Physics:      return KitInkHex(0xff6d6d);
+        case RecordClassification::Folder:       return KitInkHex(0x9fb4d6);
+        case RecordClassification::Vehicle:      return KitInkHex(0xe1d34a);
+        case RecordClassification::Tyre:         return KitInkHex(0xa8c5eb);
+        case RecordClassification::Environment:  return KitInkHex(0xe8c27a);
+        case RecordClassification::Geometry:     return KitInkHex(0xa8bbeb);
+        case RecordClassification::Illumination: return KitInkHex(0x9fb4d6);
+        case RecordClassification::Camera:       return KitInkHex(0xa8bbeb);
+        case RecordClassification::Physics:      return KitInkHex(0x8fb3a4);
         case RecordClassification::Interface:    return KitInkHex(0x9fd8e8);
-        case RecordClassification::Content:      return KitInkHex(0xd8cf9f);
-        case RecordClassification::Unclassified: return KitInkHex(0x5f6b64);
+        case RecordClassification::Content:      return KitInkHex(0xe8833a);
+        case RecordClassification::Unclassified: return KitInkHex(0x6d7680);
         case RecordClassification::Count:        break;
     }
-    return KitInkHex(0x5f6b64);
+    return KitInkHex(0x6d7680);
+}
+
+void DrawLayersBrandGlyph(ImDrawList* Ink, ImVec2 Centre, ImU32 Accent)
+{
+    for (int Layer = 2; Layer >= 0; --Layer)
+    {
+        const float  OffsetY = static_cast<float>(Layer - 1) * 3.8f;
+        const ImU32  Stroke  = Layer == 0 ? Accent : KitInkWithAlpha(Accent, Layer == 1 ? 0.68f : 0.42f);
+        const ImVec2 Pts[4]  = {
+            ImVec2(Centre.x,        Centre.y - 4.6f + OffsetY),
+            ImVec2(Centre.x + 8.0f, Centre.y + OffsetY),
+            ImVec2(Centre.x,        Centre.y + 4.6f + OffsetY),
+            ImVec2(Centre.x - 8.0f, Centre.y + OffsetY)
+        };
+        Ink->AddPolyline(Pts, 4, Stroke, ImDrawFlags_Closed, 1.45f);
+    }
+}
+
+void DrawRecordGlyph(ImDrawList* Ink, ImVec2 Centre, RecordClassification Classification, ImU32 Accent)
+{
+    switch (Classification)
+    {
+        case RecordClassification::Environment:
+            Ink->AddCircle(Centre, 3.6f, Accent, 16, 1.4f);
+            for (int R = 0; R < 8; ++R)
+            {
+                const float A = static_cast<float>(R) * 0.785398f;
+                Ink->AddLine(ImVec2(Centre.x + std::cos(A) * 5.2f, Centre.y + std::sin(A) * 5.2f),
+                             ImVec2(Centre.x + std::cos(A) * 6.8f, Centre.y + std::sin(A) * 6.8f), Accent, 1.2f);
+            }
+            break;
+        case RecordClassification::Vehicle:
+            Ink->AddRect(ImVec2(Centre.x - 6.5f, Centre.y - 3.5f), ImVec2(Centre.x + 6.5f, Centre.y + 3.5f), Accent, 2.0f, 0, 1.4f);
+            Ink->AddCircleFilled(ImVec2(Centre.x - 4.0f, Centre.y + 4.2f), 1.8f, Accent);
+            Ink->AddCircleFilled(ImVec2(Centre.x + 4.0f, Centre.y + 4.2f), 1.8f, Accent);
+            break;
+        case RecordClassification::Tyre:
+            Ink->AddCircle(Centre, 5.5f, Accent, 18, 1.5f);
+            Ink->AddCircle(Centre, 2.2f, Accent, 12, 1.1f);
+            break;
+        case RecordClassification::Illumination:
+            Ink->AddRect(ImVec2(Centre.x - 6.0f, Centre.y - 4.5f), ImVec2(Centre.x + 6.0f, Centre.y + 3.5f), Accent, 1.5f, 0, 1.4f);
+            Ink->AddLine(ImVec2(Centre.x - 3.0f, Centre.y + 6.0f), ImVec2(Centre.x + 3.0f, Centre.y + 6.0f), Accent, 1.4f);
+            break;
+        case RecordClassification::Physics:
+            Ink->AddQuad(ImVec2(Centre.x, Centre.y - 6.0f), ImVec2(Centre.x + 6.0f, Centre.y),
+                         ImVec2(Centre.x, Centre.y + 6.0f), ImVec2(Centre.x - 6.0f, Centre.y), Accent, 1.4f);
+            break;
+        case RecordClassification::Content:
+            Ink->AddCircleFilled(ImVec2(Centre.x, Centre.y - 4.0f), 1.6f, Accent);
+            Ink->AddCircleFilled(ImVec2(Centre.x - 3.8f, Centre.y + 2.5f), 2.0f, Accent);
+            Ink->AddCircleFilled(ImVec2(Centre.x + 3.8f, Centre.y + 2.5f), 1.5f, Accent);
+            break;
+        default:
+            Ink->AddRect(ImVec2(Centre.x - 5.2f, Centre.y - 5.2f), ImVec2(Centre.x + 5.2f, Centre.y + 5.2f), Accent, 2.0f, 0, 1.35f);
+            break;
+    }
+}
+
+void DrawEyeIcon(ImDrawList* Ink, ImVec2 Centre, bool Visible, ImU32 Colour)
+{
+    Ink->AddBezierCubic(ImVec2(Centre.x - 6.2f, Centre.y),
+                        ImVec2(Centre.x - 2.8f, Centre.y - 4.4f),
+                        ImVec2(Centre.x + 2.8f, Centre.y - 4.4f),
+                        ImVec2(Centre.x + 6.2f, Centre.y), Colour, 1.25f);
+    Ink->AddBezierCubic(ImVec2(Centre.x - 6.2f, Centre.y),
+                        ImVec2(Centre.x - 2.8f, Centre.y + 4.4f),
+                        ImVec2(Centre.x + 2.8f, Centre.y + 4.4f),
+                        ImVec2(Centre.x + 6.2f, Centre.y), Colour, 1.25f);
+    if (Visible)
+    {
+        Ink->AddCircleFilled(Centre, 1.8f, Colour);
+    }
+    else
+    {
+        Ink->AddLine(ImVec2(Centre.x - 5.5f, Centre.y + 4.8f), ImVec2(Centre.x + 5.5f, Centre.y - 4.8f), Colour, 1.35f);
+    }
 }
 
 void MenuCaption(const KitFaces& Faces, const char* Text)
@@ -53,8 +130,8 @@ void MenuCaption(const KitFaces& Faces, const char* Text)
     const KitTheme Theme = ResolveKitTheme();
     ImDrawList*    Ink   = ImGui::GetWindowDrawList();
     const ImVec2   At    = ImGui::GetCursorScreenPos();
-    KitDrawTracked(Ink, Faces.Medium, 10.5f, ImVec2(At.x + 10.0f, At.y + 8.0f), Theme.Faint, Text, 10.5f * 0.13f);
-    ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, 27.0f));
+    KitDrawTracked(Ink, Faces.Medium, 10.0f, ImVec2(At.x + 10.0f, At.y + 8.0f), Theme.Faint, Text, 1.1f);
+    ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, 26.0f));
 }
 
 } // namespace
@@ -100,28 +177,115 @@ void SceneDirectoryPanel::ConstructInterface()
     const float  ContentW       = std::max(80.0f, CR - CL);
     ImDrawList*  Ink            = ImGui::GetWindowDrawList();
 
-    Ink->AddRectFilled(WindowPosition, ImVec2(PR, PB), Theme.PanelBg);
-    Ink->AddRect(WindowPosition, ImVec2(PR, PB), Theme.PanelEdge);
+    const ImU32 BgCol   = Theme.LightCanvas ? Theme.PanelBg : KitInkHex(0x111214);
+    const ImU32 CardCol = Theme.LightCanvas ? Theme.Surface : KitInkHex(0x17191c);
+    const ImU32 EdgeCol = Theme.LightCanvas ? Theme.PanelEdge : KitInkHex(0x23262b);
 
-    // -- StackRail head (title · HeadCount · + Folder · + Add) --------------------------------------------------------
-    char CountText[48] = {};
-    std::snprintf(CountText, sizeof(CountText), "%u", QueryTotal());
-    const StackRailHeadInteraction HeadHit =
-        DrawOutlinerHead(Faces, ImVec2(CL, PT + 12.0f), ContentW, "Outliner", CountText);
-    if (HeadHit.FolderClicked)
-    {
-        RequestSpawn(RecordClassification::Folder);
-    }
-    if (HeadHit.AddClicked)
-    {
-        ImGui::OpenPopup("##OutlinerSpawnPopup");
-    }
-    float CursorY = PT + 12.0f + 36.0f + 8.0f;
+    Ink->AddRectFilled(WindowPosition, ImVec2(PR, PB), BgCol);
+    Ink->AddLine(ImVec2(PR - 1.0f, PT), ImVec2(PR - 1.0f, PB), EdgeCol, 1.0f);
 
-    // Spawn menu (reusable dropdown surface).
+    float CursorY = PT + 12.0f;
+
+    // 1. VehicleHMI Brand Bar: Layers glyph + "frontier." + "ENGINE / 01"
     {
-        ImGui::SetNextWindowPos(ImVec2(CR, PT + 46.0f), ImGuiCond_Appearing, ImVec2(1.0f, 0.0f));
-        ImGui::SetNextWindowSize(ImVec2(224.0f, 0.0f));
+        DrawLayersBrandGlyph(Ink, ImVec2(CL + 10.0f, CursorY + 11.0f), Theme.Mint);
+        const float WordX = CL + 26.0f;
+        KitDrawText(Ink, Faces.SemiBold, 17.5f, ImVec2(WordX, CursorY + 1.0f), Theme.Text, "frontier");
+        const float WordW = KitTextWidth(Faces.SemiBold, 17.5f, "frontier");
+        KitDrawText(Ink, Faces.SemiBold, 17.5f, ImVec2(WordX + WordW + 0.5f, CursorY + 1.0f), Theme.Mint, ".");
+
+        const char* Ver = "ENGINE / 01";
+        const float VerW = KitTextWidth(Faces.Medium, 9.2f, Ver) + 10.0f;
+        KitDrawTracked(Ink, Faces.Medium, 9.2f, ImVec2(CR - VerW, CursorY + 6.5f), Theme.Faint, Ver, 0.9f);
+        CursorY += 28.0f;
+    }
+
+    // 2. WORKSPACE Eyebrow + Proving Grounds.scene Title
+    {
+        const float TrackW = KitDrawTracked(Ink, Faces.Medium, 9.2f, ImVec2(CL, CursorY), Theme.Muted, "WORKSPACE", 1.15f);
+        Ink->AddCircleFilled(ImVec2(CL + TrackW + 8.0f, CursorY + 4.8f), 2.8f, Theme.Mint);
+        CursorY += 15.0f;
+
+        KitDrawText(Ink, Faces.SemiBold, 16.0f, ImVec2(CL, CursorY), Theme.Text, "Proving Grounds");
+        const float TitleW = KitTextWidth(Faces.SemiBold, 16.0f, "Proving Grounds");
+        KitDrawText(Ink, Faces.Regular, 13.5f, ImVec2(CL + TitleW + 1.5f, CursorY + 2.0f), Theme.Faint, ".scene");
+        CursorY += 25.0f;
+    }
+
+    // 3. Enabled / Disabled 52px Vertical Count Tiles (.count-tiles in FrontierEditor.css)
+    {
+        const float TileGap = 8.0f;
+        const float TileW   = std::max(40.0f, (ContentW - TileGap) * 0.5f);
+        const float TileH   = 50.0f;
+
+        auto DrawCountTile = [&](ImVec2 Origin, const char* Caption, uint32_t Count, ImU32 Accent, bool EnabledTile) {
+            KitPillSurface(Ink, Origin, ImVec2(Origin.x + TileW, Origin.y + TileH), CardCol, EdgeCol, 7.0f);
+            const ImVec2 IconC(Origin.x + 15.0f, Origin.y + 15.0f);
+            if (EnabledTile)
+            {
+                Ink->AddCircleFilled(IconC, 6.2f, KitInkWithAlpha(Accent, 0.16f));
+                Ink->AddLine(ImVec2(IconC.x - 3.0f, IconC.y + 0.2f), ImVec2(IconC.x - 0.7f, IconC.y + 2.5f), Accent, 1.5f);
+                Ink->AddLine(ImVec2(IconC.x - 0.7f, IconC.y + 2.5f), ImVec2(IconC.x + 3.4f, IconC.y - 2.2f), Accent, 1.5f);
+            }
+            else
+            {
+                DrawEyeIcon(Ink, IconC, false, Accent);
+            }
+            KitDrawTracked(Ink, Faces.Medium, 9.2f, ImVec2(Origin.x + 26.0f, Origin.y + 10.5f), Theme.Muted, Caption, 0.8f);
+            char ValueText[24] = {};
+            std::snprintf(ValueText, sizeof(ValueText), "%u", Count);
+            KitDrawText(Ink, Faces.SemiBold, 18.0f, ImVec2(Origin.x + 11.0f, Origin.y + 25.5f),
+                        EnabledTile ? Theme.Text : Theme.Muted, ValueText);
+        };
+
+        DrawCountTile(ImVec2(CL, CursorY), "ENABLED", QueryEnabledCount(), Theme.Mint, true);
+        DrawCountTile(ImVec2(CL + TileW + TileGap, CursorY), "DISABLED", QueryDisabledCount(), Theme.Faint, false);
+        CursorY += TileH + 10.0f;
+    }
+
+    // 4. Outliner Heading + Count Badge + "+ Folder" & "+ Add"
+    {
+        KitDrawText(Ink, Faces.SemiBold, 12.8f, ImVec2(CL, CursorY + 3.5f), Theme.Text, "Outliner");
+        const float Hw = KitTextWidth(Faces.SemiBold, 12.8f, "Outliner");
+
+        char CountBuf[16] = {};
+        std::snprintf(CountBuf, sizeof(CountBuf), "%02u", QueryTotal());
+        const float BadgeW = KitTextWidth(Faces.Medium, 10.0f, CountBuf) + 12.0f;
+        KitPillSurface(Ink, ImVec2(CL + Hw + 7.0f, CursorY + 2.5f), ImVec2(CL + Hw + 7.0f + BadgeW, CursorY + 20.5f),
+                       CardCol, EdgeCol, 999.0f);
+        KitDrawText(Ink, Faces.Medium, 10.0f, ImVec2(CL + Hw + 13.0f, CursorY + 5.0f), Theme.Muted, CountBuf);
+
+        // "+ Add" & "+ Folder" compact buttons on right
+        const float AddW    = 44.0f;
+        const float FolderW = 58.0f;
+        const float BtnH    = 22.0f;
+        bool        AddHov  = false;
+        bool        FldHov  = false;
+        const ImVec2 AddMin(CR - AddW, CursorY + 1.0f);
+        const ImVec2 FldMin(CR - AddW - 5.0f - FolderW, CursorY + 1.0f);
+        if (KitTarget("##OutlinerNewFolderBtn", FldMin, ImVec2(FolderW, BtnH), FldHov, "Create new Folder"))
+        {
+            RequestSpawn(RecordClassification::Folder);
+        }
+        if (KitTarget("##OutlinerSpawnAddBtn", AddMin, ImVec2(AddW, BtnH), AddHov, "Create scene item"))
+        {
+            ImGui::OpenPopup("##OutlinerSpawnPopup");
+        }
+        KitPillSurface(Ink, FldMin, ImVec2(FldMin.x + FolderW, FldMin.y + BtnH),
+                       FldHov ? Theme.Surface3 : CardCol, EdgeCol, 5.5f);
+        KitDrawText(Ink, Faces.Medium, 10.4f, ImVec2(FldMin.x + 8.0f, FldMin.y + 4.8f), Theme.Muted, "+ Folder");
+
+        KitPillSurface(Ink, AddMin, ImVec2(AddMin.x + AddW, AddMin.y + BtnH),
+                       AddHov ? Theme.Surface3 : CardCol, EdgeCol, 5.5f);
+        KitDrawText(Ink, Faces.Medium, 10.4f, ImVec2(AddMin.x + 8.0f, AddMin.y + 4.8f), Theme.Muted, "+ Add");
+
+        CursorY += 28.0f;
+    }
+
+    // Spawn menu & Category Filter menu popups
+    {
+        ImGui::SetNextWindowPos(ImVec2(CR, CursorY), ImGuiCond_Appearing, ImVec2(1.0f, 0.0f));
+        ImGui::SetNextWindowSize(ImVec2(216.0f, 0.0f));
         if (DropdownControlSurface::BeginMenu("##OutlinerSpawnPopup", 1.0f))
         {
             MenuCaption(Faces, "CREATE IN SCENE");
@@ -132,8 +296,7 @@ void SceneDirectoryPanel::ConstructInterface()
                 {
                     continue;
                 }
-                const char* Name = RecordClassificationName(Classification);
-                if (DropdownControlSurface::Option(Name, false, 1.0f))
+                if (DropdownControlSurface::Option(RecordClassificationName(Classification), false, 1.0f))
                 {
                     RequestSpawn(Classification);
                     ImGui::CloseCurrentPopup();
@@ -143,116 +306,32 @@ void SceneDirectoryPanel::ConstructInterface()
         }
     }
 
-    // -- VehicleHMI Enabled / Disabled count tiles (ported from EditorShell.js .count-tiles) --------------------------
+    // 5. Search Bar ("Find an object…" + compact Filter button)
     {
-        const float TileGap = 8.0f;
-        const float TileW   = std::max(40.0f, (ContentW - TileGap) * 0.5f);
-        const float TileH   = 30.0f;
+        const float RowH    = 32.0f;
+        const float FilterW = 28.0f;
+        const float SearchW = ContentW - FilterW - 5.0f;
+        const float RowCY   = CursorY + RowH * 0.5f;
 
-        auto DrawCountTile = [&](ImVec2 Origin, const char* Caption, uint32_t Count, ImU32 Accent, bool CheckGlyph) {
-            KitPillSurface(Ink, Origin, ImVec2(Origin.x + TileW, Origin.y + TileH), Theme.Surface, Theme.LineSoft,
-                           8.0f);
-            const ImVec2 IconCentre(Origin.x + 15.0f, Origin.y + TileH * 0.5f);
-            if (CheckGlyph)
-            {
-                Ink->AddCircleFilled(IconCentre, 6.5f, KitInkWithAlpha(Accent, 0.16f));
-                Ink->AddLine(ImVec2(IconCentre.x - 3.2f, IconCentre.y + 0.2f),
-                             ImVec2(IconCentre.x - 0.8f, IconCentre.y + 2.6f), Accent, 1.6f);
-                Ink->AddLine(ImVec2(IconCentre.x - 0.8f, IconCentre.y + 2.6f),
-                             ImVec2(IconCentre.x + 3.6f, IconCentre.y - 2.4f), Accent, 1.6f);
-            }
-            else
-            {
-                Ink->AddCircle(IconCentre, 5.5f, Accent, 20, 1.3f);
-                Ink->AddLine(ImVec2(IconCentre.x - 5.5f, IconCentre.y + 4.5f),
-                             ImVec2(IconCentre.x + 5.5f, IconCentre.y - 4.5f), Accent, 1.3f);
-            }
-            KitDrawText(Ink, Faces.Regular, 11.5f, ImVec2(Origin.x + 28.0f, Origin.y + 9.0f), Theme.Muted, Caption);
-            char ValueText[24] = {};
-            std::snprintf(ValueText, sizeof(ValueText), "%u", Count);
-            const float ValueW = KitTextWidth(Faces.SemiBold, 12.5f, ValueText);
-            KitDrawText(Ink, Faces.SemiBold, 12.5f, ImVec2(Origin.x + TileW - 10.0f - ValueW, Origin.y + 8.5f),
-                        Theme.Text, ValueText);
-        };
-
-        DrawCountTile(ImVec2(CL, CursorY), "Enabled", QueryEnabledCount(), Theme.Mint, true);
-        DrawCountTile(ImVec2(CL + TileW + TileGap, CursorY), "Disabled", QueryDisabledCount(), Theme.Faint, false);
-        CursorY += TileH + 8.0f;
-    }
-
-    // -- Category tabs (flowing chip strip, All + populated classifications) -----------------------------------------
-    {
-        float X    = CL;
-        auto  Chip = [&](const char* Label, const char* IdText, uint32_t Count, bool Active, ImU32 Dot,
-                        const std::optional<RecordClassification>& FilterTarget) {
-            char Text[64] = {};
-            std::snprintf(Text, sizeof(Text), "%s %u", Label, Count);
-            const float W = 10.0f + 7.0f + 6.0f + KitTextWidth(Faces.Regular, 11.5f, Text) + 10.0f;
-            if (X + W > CR && X > CL)
-            {
-                X = CL;
-                CursorY += 24.0f + 5.0f;
-            }
-            bool Hovered = false;
-            char Id[80]  = {};
-            std::snprintf(Id, sizeof(Id), "##OutlinerChip%s", IdText);
-            if (KitTarget(Id, ImVec2(X, CursorY), ImVec2(W, 24.0f), Hovered))
-            {
-                ConfigureClassificationFilter(FilterTarget);
-            }
-            KitPillSurface(Ink, ImVec2(X, CursorY), ImVec2(X + W, CursorY + 24.0f),
-                           Active ? Theme.ChipOnBg : (Hovered ? Theme.Surface3 : Theme.Surface2),
-                           Active ? 0 : Theme.Line, 999.0f);
-            Ink->AddCircleFilled(ImVec2(X + 13.5f, CursorY + 12.0f), 3.2f, Active ? Theme.ChipOnInk : Dot);
-            KitDrawText(Ink, Faces.Regular, 11.5f, ImVec2(X + 23.0f, CursorY + 6.2f),
-                        Active ? Theme.ChipOnInk : Theme.Muted, Text);
-            X += W + 5.0f;
-        };
-        Chip("All", "All", QueryTotal(), !QueryClassificationFilter().has_value(), Theme.Mint, std::nullopt);
-        for (const SceneClassificationTab& Tab : Tabs)
-        {
-            if (Tab.Count == 0 && QueryClassificationFilter() != Tab.Classification)
-            {
-                continue;
-            }
-            Chip(RecordClassificationName(Tab.Classification), RecordClassificationName(Tab.Classification),
-                 Tab.Count, QueryClassificationFilter() == Tab.Classification,
-                 ClassificationColour(Tab.Classification), Tab.Classification);
-        }
-        CursorY += 24.0f + 8.0f;
-    }
-
-    // -- Search field ("Find an object…" matching VehicleHMI EditorShell.js) -----------------------------------------
-    {
-        const float RowH  = 32.0f;
-        const float RowCY = CursorY + RowH * 0.5f;
-        KitPillSurface(Ink, ImVec2(CL, CursorY), ImVec2(CR, CursorY + RowH), Theme.Surface2, Theme.Line, 999.0f);
-        Ink->AddCircle(ImVec2(CL + 18.0f, RowCY - 1.5f), 5.2f, Theme.Faint, 24, 1.4f);
-        Ink->AddLine(ImVec2(CL + 22.0f, RowCY + 2.8f), ImVec2(CL + 26.0f, RowCY + 6.8f), Theme.Faint, 1.6f);
+        KitPillSurface(Ink, ImVec2(CL, CursorY), ImVec2(CL + SearchW, CursorY + RowH), CardCol, EdgeCol, 6.5f);
+        Ink->AddCircle(ImVec2(CL + 14.5f, RowCY - 1.2f), 4.5f, Theme.Faint, 20, 1.35f);
+        Ink->AddLine(ImVec2(CL + 18.0f, RowCY + 2.2f), ImVec2(CL + 21.5f, RowCY + 5.8f), Theme.Faint, 1.45f);
 
         if (QueryTextFilter() != FilterSynchronised)
         {
             std::snprintf(FilterBuffer.data(), FilterBuffer.size(), "%s", QueryTextFilter().c_str());
             FilterSynchronised = QueryTextFilter();
         }
-        const bool  HasText   = !QueryTextFilter().empty();
-        char        Shown[32] = {};
-        float       TrailingW = 0.0f;
-        if (HasText)
-        {
-            std::snprintf(Shown, sizeof(Shown), "%zu shown", QueryVisible().size());
-            TrailingW = KitTextWidth(Faces.Regular, 11.0f, Shown) + 8.0f + 22.0f + 8.0f;
-        }
         const ImVec4 InputTextCol = ImGui::ColorConvertU32ToFloat4(Theme.Text);
-        ImGui::SetCursorScreenPos(ImVec2(CL + 34.0f, CursorY + (RowH - 13.0f) * 0.5f));
-        ImGui::PushFont(Faces.Regular, 13.0f);
+        ImGui::SetCursorScreenPos(ImVec2(CL + 28.0f, CursorY + (RowH - 13.0f) * 0.5f));
+        ImGui::PushFont(Faces.Regular, 12.2f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_Text, InputTextCol);
-        ImGui::SetNextItemWidth(std::max(30.0f, ContentW - 34.0f - TrailingW));
+        ImGui::SetNextItemWidth(std::max(30.0f, SearchW - 34.0f));
         if (ImGui::InputTextWithHint("##OutlinerFilter", "Find an object\xE2\x80\xA6", FilterBuffer.data(),
                                      FilterBuffer.size()))
         {
@@ -263,108 +342,236 @@ void SceneDirectoryPanel::ConstructInterface()
         ImGui::PopStyleVar(2);
         ImGui::PopFont();
 
-        if (HasText)
+        // Compact Classification Filter Button
+        const ImVec2 FltMin(CR - FilterW, CursorY);
+        const bool   HasClassFilter = QueryClassificationFilter().has_value();
+        bool         FltHov         = false;
+        if (KitTarget("##OutlinerClassFilterBtn", FltMin, ImVec2(FilterW, RowH), FltHov, "Filter by classification"))
         {
-            const float ShownW = KitTextWidth(Faces.Regular, 11.0f, Shown);
-            KitDrawText(Ink, Faces.Regular, 11.0f, ImVec2(CR - 8.0f - 22.0f - 6.0f - ShownW, RowCY - 5.5f),
-                        Theme.Faint, Shown);
-            const ImVec2 DiscCentre(CR - 8.0f - 11.0f, RowCY);
-            bool         ClearHover = false;
-            if (KitTarget("##OutlinerFilterClear", ImVec2(DiscCentre.x - 11.0f, DiscCentre.y - 11.0f),
-                          ImVec2(22.0f, 22.0f), ClearHover, "Clear filter"))
-            {
-                FilterBuffer[0] = '\0';
-                ConfigureTextFilter("");
-                FilterSynchronised = QueryTextFilter();
-            }
-            Ink->AddCircleFilled(DiscCentre, 11.0f, Theme.Surface3);
-            const ImU32 Cross = ClearHover ? Theme.Text : Theme.Muted;
-            Ink->AddLine(ImVec2(DiscCentre.x - 3.5f, DiscCentre.y - 3.5f),
-                         ImVec2(DiscCentre.x + 3.5f, DiscCentre.y + 3.5f), Cross, 1.4f);
-            Ink->AddLine(ImVec2(DiscCentre.x - 3.5f, DiscCentre.y + 3.5f),
-                         ImVec2(DiscCentre.x + 3.5f, DiscCentre.y - 3.5f), Cross, 1.4f);
+            ImGui::OpenPopup("##OutlinerFilterPopup");
         }
+        KitPillSurface(Ink, FltMin, ImVec2(FltMin.x + FilterW, FltMin.y + RowH),
+                       HasClassFilter ? Theme.MintDim : (FltHov ? Theme.Surface3 : CardCol),
+                       HasClassFilter ? Theme.Mint : EdgeCol, 6.5f);
+        const ImU32 FunnelCol = HasClassFilter ? Theme.Mint : Theme.Muted;
+        Ink->AddLine(ImVec2(FltMin.x + 8.0f,  RowCY - 4.0f), ImVec2(FltMin.x + 20.0f, RowCY - 4.0f), FunnelCol, 1.4f);
+        Ink->AddLine(ImVec2(FltMin.x + 10.5f, RowCY),        ImVec2(FltMin.x + 17.5f, RowCY),        FunnelCol, 1.4f);
+        Ink->AddLine(ImVec2(FltMin.x + 12.5f, RowCY + 4.0f), ImVec2(FltMin.x + 15.5f, RowCY + 4.0f), FunnelCol, 1.4f);
+
+        ImGui::SetNextWindowPos(ImVec2(CR, CursorY + RowH + 4.0f), ImGuiCond_Appearing, ImVec2(1.0f, 0.0f));
+        ImGui::SetNextWindowSize(ImVec2(210.0f, 0.0f));
+        if (DropdownControlSurface::BeginMenu("##OutlinerFilterPopup", 1.0f))
+        {
+            MenuCaption(Faces, "FILTER CLASSIFICATION");
+            if (DropdownControlSurface::Option("All objects", !HasClassFilter, 1.0f))
+            {
+                ConfigureClassificationFilter(std::nullopt);
+                ImGui::CloseCurrentPopup();
+            }
+            for (const SceneClassificationTab& Tab : Tabs)
+            {
+                if (Tab.Count == 0 && QueryClassificationFilter() != Tab.Classification)
+                {
+                    continue;
+                }
+                char Label[64] = {};
+                std::snprintf(Label, sizeof(Label), "%s (%u)", RecordClassificationName(Tab.Classification), Tab.Count);
+                if (DropdownControlSurface::Option(Label, QueryClassificationFilter() == Tab.Classification, 1.0f))
+                {
+                    ConfigureClassificationFilter(Tab.Classification);
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+            DropdownControlSurface::EndMenu();
+        }
+
         CursorY += RowH + 8.0f;
     }
 
-    Ink->AddRectFilled(ImVec2(CL, CursorY), ImVec2(CR, CursorY + 1.0f), Theme.LineSoft);
-    CursorY += 6.0f;
-
-    // -- Tree (Folder enclosures + nested record rows) ---------------------------------------------------------------
-    const float FooterH    = 26.0f;
-    const float TreeBottom = PB - 10.0f - FooterH;
-    const float TreeH      = std::max(40.0f, TreeBottom - CursorY);
+    // 6. Scrollable Scene Tree (.tree in FrontierEditor.css)
+    const float BottomCardH = 42.0f;
+    const float TreeBottom  = PB - 10.0f - BottomCardH - 8.0f;
+    const float TreeH       = std::max(40.0f, TreeBottom - CursorY);
 
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::SetCursorScreenPos(ImVec2(CL, CursorY));
     if (ImGui::BeginChild("##OutlinerRows", ImVec2(ContentW, TreeH), false))
     {
+        ImDrawList* TreeInk     = ImGui::GetWindowDrawList();
         const auto& VisibleRows = QueryVisible();
-        if (VisibleRows.empty())
-        {
-            const char* Message = QueryTotal() == 0
-                                      ? "No scene objects yet — records appear here as they are constructed."
-                                      : "No objects match the current filter.";
-            const float W = KitTextWidth(Faces.Regular, 12.0f, Message);
-            KitDrawText(Ink, Faces.Regular, 12.0f,
-                        ImVec2(CL + std::max(0.0f, (ContentW - W) * 0.5f), CursorY + 24.0f), Theme.Faint, Message);
-        }
-        bool RefreshNeeded = false;
+        bool        RefreshNeeded = false;
+
         for (const SceneDirectoryRow& Row : VisibleRows)
         {
-            const ImVec2 At     = ImGui::GetCursorScreenPos();
-            char         Id[48] = {};
-            std::snprintf(Id, sizeof(Id), "OutlinerRow%llu", static_cast<unsigned long long>(Row.Token.Value));
-            const ImU32 RowAccent = Row.AccentColour != 0 ? static_cast<ImU32>(Row.AccentColour)
+            const ImVec2 At       = ImGui::GetCursorScreenPos();
+            const bool   Selected = (QuerySelected() == Row.Token);
+            const ImU32  Accent   = Row.AccentColour != 0 ? static_cast<ImU32>(Row.AccentColour)
                                                           : ClassificationColour(Row.Classification);
 
             if (Row.Classification == RecordClassification::Folder)
             {
-                const TreeRowInteraction Hit = DrawFolderRow(
-                    Faces, Id, ImVec2(CL, At.y), ContentW, static_cast<float>(Row.DepthTier) * 16.0f, Row.Collapsed,
-                    RowAccent, Row.Name.c_str(), Row.LiveBadge.c_str(), Row.ChildCount, Row.Visible,
-                    QuerySelected() == Row.Token);
-                if (Hit.ChevronClicked)
+                const float RowH   = 28.0f;
+                const float Indent = static_cast<float>(Row.DepthTier) * 12.0f;
+                const float RX     = CL + Indent;
+                const float RW     = std::max(40.0f, ContentW - Indent);
+                const float CY     = At.y + RowH * 0.5f;
+
+                bool ChevHov = false, EyeHov = false, MainHov = false;
+                char CId[48] = {}, EId[48] = {}, MId[48] = {};
+                std::snprintf(CId, sizeof(CId), "##FldChev%llu", static_cast<unsigned long long>(Row.Token.Value));
+                std::snprintf(EId, sizeof(EId), "##FldEye%llu", static_cast<unsigned long long>(Row.Token.Value));
+                std::snprintf(MId, sizeof(MId), "##FldMain%llu", static_cast<unsigned long long>(Row.Token.Value));
+
+                const bool ChevClicked = KitTarget(CId, ImVec2(RX, At.y), ImVec2(18.0f, RowH), ChevHov);
+                const bool EyeClicked  = KitTarget(EId, ImVec2(CL + ContentW - 22.0f, At.y), ImVec2(22.0f, RowH), EyeHov);
+                const bool MainClicked = KitTarget(MId, ImVec2(RX + 18.0f, At.y), ImVec2(std::max(10.0f, RW - 40.0f), RowH), MainHov);
+
+                if (Selected || MainHov)
+                {
+                    KitPillSurface(TreeInk, ImVec2(RX, At.y + 1.0f), ImVec2(CL + ContentW, At.y + RowH - 1.0f),
+                                   Selected ? Theme.MintDim : Theme.RowHover,
+                                   Selected ? KitInkWithAlpha(Theme.Mint, 0.45f) : 0u, 5.0f);
+                }
+
+                // Chevron
+                const ImVec2 ChevC(RX + 8.0f, CY);
+                if (Row.Collapsed)
+                {
+                    TreeInk->AddLine(ImVec2(ChevC.x - 2.0f, ChevC.y - 3.5f), ImVec2(ChevC.x + 2.0f, ChevC.y), Theme.Muted, 1.35f);
+                    TreeInk->AddLine(ImVec2(ChevC.x + 2.0f, ChevC.y), ImVec2(ChevC.x - 2.0f, ChevC.y + 3.5f), Theme.Muted, 1.35f);
+                }
+                else
+                {
+                    TreeInk->AddLine(ImVec2(ChevC.x - 3.5f, ChevC.y - 1.8f), ImVec2(ChevC.x, ChevC.y + 2.2f), Theme.Muted, 1.35f);
+                    TreeInk->AddLine(ImVec2(ChevC.x, ChevC.y + 2.2f), ImVec2(ChevC.x + 3.5f, ChevC.y - 1.8f), Theme.Muted, 1.35f);
+                }
+
+                // Uppercase Group Label + Child Count matching EditorShell.js .tree-group
+                std::string UpperName = Row.Name;
+                for (char& Ch : UpperName)
+                {
+                    if (Ch >= 'a' && Ch <= 'z') Ch = static_cast<char>(Ch - 'a' + 'A');
+                }
+                const float LabelW = KitDrawTracked(TreeInk, Faces.SemiBold, 9.6f, ImVec2(RX + 19.0f, CY - 5.0f),
+                                                    Row.Visible ? Theme.Muted : Theme.Faint, UpperName.c_str(), 1.15f);
+                char SubCount[16] = {};
+                std::snprintf(SubCount, sizeof(SubCount), "%u", Row.ChildCount);
+                KitDrawText(TreeInk, Faces.Regular, 9.8f, ImVec2(RX + 25.0f + LabelW, CY - 5.0f), Theme.Faint, SubCount);
+
+                DrawEyeIcon(TreeInk, ImVec2(CL + ContentW - 11.0f, CY), Row.Visible,
+                            EyeHov ? Theme.Text : (Row.Visible ? Theme.Faint : KitInkWithAlpha(Theme.Faint, 0.55f)));
+
+                if (ChevClicked)
                 {
                     ConfigureCollapsed(Row.Token, !Row.Collapsed);
                 }
-                else if (Hit.EyeClicked)
+                else if (EyeClicked)
                 {
                     (void)Directory.ConfigureCascadeVisible(Row.Token, !Row.Visible);
                     RefreshNeeded = true;
                 }
-                else if (Hit.Clicked)
+                else if (MainClicked)
                 {
                     Select(Row.Token);
                     RefreshNeeded = true;
                 }
-                ImGui::SetCursorScreenPos(ImVec2(CL, At.y + 36.0f));
+
+                ImGui::SetCursorScreenPos(ImVec2(CL, At.y + RowH + 2.0f));
                 ImGui::Dummy(ImVec2(ContentW, 0.0f));
             }
             else
             {
-                const char* BadgeText = !Row.LiveBadge.empty() ? Row.LiveBadge.c_str()
-                                                               : RecordClassificationName(Row.Classification);
-                const TreeRowInteraction Hit = DrawTreeRow(
-                    Faces, Id, ImVec2(CL, At.y), ContentW, static_cast<float>(Row.DepthTier) * 16.0f,
-                    Row.ChildCount > 0, Row.Collapsed, RowAccent, Row.Name.c_str(), BadgeText, Row.Visible,
-                    QuerySelected() == Row.Token);
-                if (Hit.ChevronClicked)
+                const float RowH      = 34.0f;
+                const int   NestDepth = std::max(0, static_cast<int>(Row.DepthTier) - 1);
+                const float Indent    = static_cast<float>(NestDepth) * 15.0f;
+                const float RX        = CL + Indent;
+                const float CY        = At.y + RowH * 0.5f;
+
+                bool ChevHov = false, EyeHov = false, MainHov = false;
+                char CId[48] = {}, EId[48] = {}, MId[48] = {};
+                std::snprintf(CId, sizeof(CId), "##RowChev%llu", static_cast<unsigned long long>(Row.Token.Value));
+                std::snprintf(EId, sizeof(EId), "##RowEye%llu", static_cast<unsigned long long>(Row.Token.Value));
+                std::snprintf(MId, sizeof(MId), "##RowMain%llu", static_cast<unsigned long long>(Row.Token.Value));
+
+                const bool HasKids     = Row.ChildCount > 0u;
+                const bool ChevClicked = HasKids ? KitTarget(CId, ImVec2(RX, At.y), ImVec2(14.0f, RowH), ChevHov) : false;
+                const bool EyeClicked  = KitTarget(EId, ImVec2(CL + ContentW - 22.0f, At.y), ImVec2(22.0f, RowH), EyeHov);
+                const float MainLeft   = RX + (HasKids ? 14.0f : 2.0f);
+                const bool MainClicked = KitTarget(MId, ImVec2(MainLeft, At.y),
+                                                   ImVec2(std::max(10.0f, (CL + ContentW - 22.0f) - MainLeft), RowH), MainHov);
+
+                if (Selected || MainHov)
+                {
+                    KitPillSurface(TreeInk, ImVec2(RX, At.y + 1.0f), ImVec2(CL + ContentW, At.y + RowH - 1.0f),
+                                   Selected ? (Theme.LightCanvas ? Theme.MintDim : KitInkRgba(47, 230, 167, 22)) : Theme.RowHover,
+                                   Selected ? KitInkWithAlpha(Theme.Mint, 0.40f) : 0u, 6.0f);
+                    if (Selected)
+                    {
+                        TreeInk->AddRectFilled(ImVec2(RX, At.y + 6.0f), ImVec2(RX + 2.5f, At.y + RowH - 6.0f), Theme.Mint, 2.0f);
+                    }
+                }
+
+                if (HasKids)
+                {
+                    const ImVec2 ChevC(RX + 7.0f, CY);
+                    if (Row.Collapsed)
+                    {
+                        TreeInk->AddLine(ImVec2(ChevC.x - 1.8f, ChevC.y - 3.0f), ImVec2(ChevC.x + 1.8f, ChevC.y), Theme.Muted, 1.3f);
+                        TreeInk->AddLine(ImVec2(ChevC.x + 1.8f, ChevC.y), ImVec2(ChevC.x - 1.8f, ChevC.y + 3.0f), Theme.Muted, 1.3f);
+                    }
+                    else
+                    {
+                        TreeInk->AddLine(ImVec2(ChevC.x - 3.0f, ChevC.y - 1.5f), ImVec2(ChevC.x, ChevC.y + 2.0f), Theme.Muted, 1.3f);
+                        TreeInk->AddLine(ImVec2(ChevC.x, ChevC.y + 2.0f), ImVec2(ChevC.x + 3.0f, ChevC.y - 1.5f), Theme.Muted, 1.3f);
+                    }
+                }
+
+                const float IconX = RX + (HasKids ? 22.0f : 14.0f);
+                DrawRecordGlyph(TreeInk, ImVec2(IconX, CY), Row.Classification,
+                                Row.Visible ? Accent : KitInkWithAlpha(Accent, 0.38f));
+
+                const float TextX = IconX + 13.0f;
+                KitDrawText(TreeInk, Selected ? Faces.SemiBold : Faces.Medium, 12.2f, ImVec2(TextX, CY - 6.5f),
+                            Row.Visible ? Theme.Text : Theme.Muted, Row.Name.c_str());
+
+                // Right-aligned live telemetry meta + live dot + eye toggle
+                const float EyeX = CL + ContentW - 11.0f;
+                DrawEyeIcon(TreeInk, ImVec2(EyeX, CY), Row.Visible,
+                            EyeHov ? Theme.Text : (Row.Visible ? Theme.Faint : KitInkWithAlpha(Theme.Faint, 0.45f)));
+
+                float RightCursor = CL + ContentW - 25.0f;
+                if (Row.Visible)
+                {
+                    TreeInk->AddCircleFilled(ImVec2(RightCursor - 3.0f, CY), 2.5f, Theme.Mint);
+                    RightCursor -= 10.0f;
+                }
+                if (!Row.LiveBadge.empty())
+                {
+                    const float MetaW = KitTextWidth(Faces.Regular, 10.2f, Row.LiveBadge.c_str());
+                    if (RightCursor - MetaW > TextX + KitTextWidth(Faces.Medium, 12.2f, Row.Name.c_str()) + 8.0f)
+                    {
+                        KitDrawText(TreeInk, Faces.Regular, 10.2f, ImVec2(RightCursor - MetaW, CY - 5.2f),
+                                    Theme.Muted, Row.LiveBadge.c_str());
+                    }
+                }
+
+                if (ChevClicked)
                 {
                     ConfigureCollapsed(Row.Token, !Row.Collapsed);
                 }
-                else if (Hit.EyeClicked)
+                else if (EyeClicked)
                 {
                     (void)Directory.ConfigureVisible(Row.Token, !Row.Visible);
                     RefreshNeeded = true;
                 }
-                else if (Hit.Clicked)
+                else if (MainClicked)
                 {
                     Select(Row.Token);
                     RefreshNeeded = true;
                 }
-                ImGui::SetCursorScreenPos(ImVec2(CL, At.y + 30.0f));
+
+                ImGui::SetCursorScreenPos(ImVec2(CL, At.y + RowH + 1.0f));
                 ImGui::Dummy(ImVec2(ContentW, 0.0f));
             }
         }
@@ -377,20 +584,26 @@ void SceneDirectoryPanel::ConstructInterface()
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
 
-    // -- StackFoot readout --------------------------------------------------------------------------------------------
-    char Left[64] = {};
-    std::snprintf(Left, sizeof(Left), "%zu shown \xC2\xB7 %u total", QueryVisible().size(), QueryTotal());
-    char Right[80] = {};
-    if (QuerySelected().IsValid())
+    // 7. Bottom IlluminationHost Status Card (.outliner-bottom in EditorShell.js)
     {
-        std::snprintf(Right, sizeof(Right), "%s #%llu", QueryInspector().Name.c_str(),
-                      static_cast<unsigned long long>(QuerySelected().Value));
+        const ImVec2 CardMin(CL, PB - 10.0f - BottomCardH);
+        const ImVec2 CardMax(CR, PB - 10.0f);
+        KitPillSurface(Ink, CardMin, CardMax, CardCol, EdgeCol, 7.0f);
+
+        const ImVec2 BoxC(CardMin.x + 19.0f, (CardMin.y + CardMax.y) * 0.5f);
+        Ink->AddQuad(ImVec2(BoxC.x, BoxC.y - 7.0f), ImVec2(BoxC.x + 6.5f, BoxC.y - 3.2f),
+                     ImVec2(BoxC.x, BoxC.y + 0.5f), ImVec2(BoxC.x - 6.5f, BoxC.y - 3.2f), Theme.Mint, 1.3f);
+        Ink->AddLine(ImVec2(BoxC.x - 6.5f, BoxC.y - 3.2f), ImVec2(BoxC.x - 6.5f, BoxC.y + 3.8f), Theme.Mint, 1.3f);
+        Ink->AddLine(ImVec2(BoxC.x + 6.5f, BoxC.y - 3.2f), ImVec2(BoxC.x + 6.5f, BoxC.y + 3.8f), Theme.Mint, 1.3f);
+        Ink->AddLine(ImVec2(BoxC.x, BoxC.y + 0.5f),        ImVec2(BoxC.x, BoxC.y + 7.2f),        Theme.Mint, 1.3f);
+        Ink->AddLine(ImVec2(BoxC.x - 6.5f, BoxC.y + 3.8f), ImVec2(BoxC.x, BoxC.y + 7.2f),        Theme.Mint, 1.3f);
+        Ink->AddLine(ImVec2(BoxC.x + 6.5f, BoxC.y + 3.8f), ImVec2(BoxC.x, BoxC.y + 7.2f),        Theme.Mint, 1.3f);
+
+        KitDrawText(Ink, Faces.SemiBold, 11.6f, ImVec2(CardMin.x + 36.0f, CardMin.y + 7.5f), Theme.Text, "IlluminationHost");
+        KitDrawText(Ink, Faces.Regular, 10.0f, ImVec2(CardMin.x + 36.0f, CardMin.y + 22.5f), Theme.Muted,
+                    "Dual-tier RTX / SDF GI");
+        Ink->AddCircleFilled(ImVec2(CardMax.x - 14.0f, (CardMin.y + CardMax.y) * 0.5f), 3.2f, Theme.Mint);
     }
-    else
-    {
-        std::snprintf(Right, sizeof(Right), "%u hidden", QueryDisabledCount());
-    }
-    DrawStackRailFoot(Faces, ImVec2(CL, PB - 10.0f - FooterH), ContentW, Left, Right);
 }
 
 } // namespace Frontier

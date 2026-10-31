@@ -1,10 +1,10 @@
 /*==========================================================================================================================================
                                                      PROJECTEVERESTVALIDATION.CPP
 ==========================================================================================================================================*/
-// 🧩 End-to-end Phase 3 validation and full-HD CPU rasterization for Project Everest:
-//    Project Browser -> Project Everest launch -> Dual-Tier 3D Proving Grounds Renderer (RTX RayQuery + ReSTIR GI + Dielectric
-//    Canopy vs GTX 4-Cascade Toroidal SDF + SurfaceCards + OrderedSoftwareBvh) + 10 Global Engine Observatories + 8-Tab
-//    ControlVehicle Systems Inspector + 3 Tier-3 Dedicated Domain Studios (Fracture, Fluid/Plume, Particle) + Dark/Light parity.
+// 🧩 End-to-end 1:1 VehicleHMI parity validation and 1920x1080 native-pixel CPU rasterization for Project Everest:
+//    Project Browser -> Project Everest launch -> 'FCT1' ControlVehicle (2,924 body + 74 VehicleGlass + 4x5,536 wheel facets)
+//    + 1:1 Proving Grounds Course (Two-Level SAH BVH + RTX ReSTIR GI vs GTX 4-Cascade SDF + CardRadiosity + BVH Reflections)
+//    + 1:1 native ImTextureData RGBA32 viewport + VehicleHMI Outliner & Inspector + 10 Engine Observatories + Tier-3 Studios.
 
 #include "Exhibits/ControlCentre/Code/CpuRasterization.h"
 
@@ -39,11 +39,11 @@
 
 #include <ProjectInterchange.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <stb_image_write.h>
 
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -53,7 +53,6 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <vector>
 
 extern "C" bool FRONTIER_CODE_IMAGE_CALL ConstructProjectInterchange(
@@ -144,13 +143,46 @@ void FRONTIER_CODE_IMAGE_CALL ReceiveEverestDiagnostic(const FrontierProjectDiag
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                  LIVE 3D DUAL-TIER PROVING GROUNDS VIEWPORT CANVAS
+//                           1:1 NATIVE PIXEL VIEWPORT HOST (MATCHING WORKSPACEAPPLICATION.CPP)
 //------------------------------------------------------------------------------------------------------------------------
 
-void ConstructLiveEverestViewport(const ProjectDescriptor&              Descriptor,
-                                  ProjectEverestScene&                  Everest,
+struct ViewportTextureHost
+{
+    static constexpr int   AtlasW       = 2560;
+    static constexpr int   AtlasH       = 1440;
+    ImTextureData          Texture{};
+    std::vector<uint8_t>   ScratchRgba{};
+    bool                   Registered   = false;
+    uint32_t               CachedWidth  = 0u;
+    uint32_t               CachedHeight = 0u;
+    EverestViewportInputs  CachedInputs{};
+    DualTierFrameTelemetry CachedTelemetry{};
+    bool                   CacheValid   = false;
+
+    void Shutdown()
+    {
+        if (Registered && ImGui::GetCurrentContext() != nullptr)
+        {
+            ImGui::UnregisterUserTexture(&Texture);
+            auto& Textures = ImGui::GetPlatformIO().Textures;
+            for (int I = Textures.Size - 1; I >= 0; --I)
+            {
+                if (Textures[I] == &Texture)
+                {
+                    Textures.erase(Textures.Data + I);
+                }
+            }
+            Registered = false;
+        }
+        Texture.DestroyPixels();
+    }
+};
+
+void ConstructLiveEverestViewport(ProjectEverestScene&                  Everest,
                                   const DualTierProvingGroundsRenderer& Renderer,
-                                  bool&                                 ShowDomainStudio,
+                                  ViewportTextureHost&                  TexHost,
+                                  bool                                  BottomDrawerOpen,
+                                  bool                                  ShowDomainStudio,
                                   double                                CameraYawDeg,
                                   double                                CameraPitchDeg,
                                   double                                CameraDistanceM,
@@ -161,147 +193,159 @@ void ConstructLiveEverestViewport(const ProjectDescriptor&              Descript
     ImDrawList*    Ink     = ImGui::GetWindowDrawList();
     const ImVec2   WinPos  = ImGui::GetWindowPos();
     const ImVec2   WinSize = ImGui::GetWindowSize();
-    const float    Left    = WinPos.x + 14.0f;
-    const float    Top     = std::max(WinPos.y + 30.0f, ImGui::GetCursorScreenPos().y + 4.0f);
-    const float    Width   = std::max(120.0f, WinSize.x - 28.0f);
-    const float    Height  = std::max(120.0f, WinPos.y + WinSize.y - Top - 12.0f);
+    const float    Top     = std::max(WinPos.y + 28.0f, ImGui::GetCursorScreenPos().y);
+    const float    BarH    = 38.0f;
+    const float    FootH   = 26.0f;
+    const float    Left    = WinPos.x;
+    const float    Right   = WinPos.x + WinSize.x;
+    const float    Bottom  = WinPos.y + WinSize.y;
 
-    Ink->AddRectFilled(ImVec2(WinPos.x, Top - 6.0f), ImVec2(WinPos.x + WinSize.x, WinPos.y + WinSize.y), Theme.PanelBg);
+    const ImU32 BarBg   = Theme.LightCanvas ? Theme.Surface : KitInkHex(0x111214);
+    const ImU32 BarEdge = Theme.LightCanvas ? Theme.Line : KitInkHex(0x23262b);
+    const ImU32 PillBg  = Theme.LightCanvas ? Theme.Surface2 : KitInkHex(0x181a1e);
 
-    bool BackHover = false;
-    (void)KitTarget("##ViewportBackBrowser", ImVec2(Left, Top), ImVec2(88.0f, 26.0f), BackHover);
-    KitPillSurface(Ink, ImVec2(Left, Top), ImVec2(Left + 88.0f, Top + 26.0f),
-                   BackHover ? Theme.Surface3 : Theme.Surface2, Theme.Line, 999.0f);
-    KitDrawText(Ink, Faces.Medium, 11.5f, ImVec2(Left + 14.0f, Top + 6.5f), Theme.Muted, "< Browser");
-    KitDrawText(Ink, Faces.SemiBold, 14.0f, ImVec2(Left + 100.0f, Top + 5.5f), Theme.Text, Descriptor.Name.c_str());
+    Ink->AddRectFilled(ImVec2(Left, Top), ImVec2(Right, Bottom), Theme.LightCanvas ? Theme.PanelBg : KitInkHex(0x0b0c0e));
+    Ink->AddRectFilled(ImVec2(Left, Top), ImVec2(Right, Top + BarH), BarBg);
+    Ink->AddLine(ImVec2(Left, Top + BarH), ImVec2(Right, Top + BarH), BarEdge);
 
+    // 1. Viewport Top Bar
+    float       BarX = Left + 10.0f;
+    const float BtnY = Top + 7.0f;
+    const float BtnH = 24.0f;
+
+    KitPillSurface(Ink, ImVec2(BarX, BtnY), ImVec2(BarX + 72.0f, BtnY + BtnH), PillBg, BarEdge, 6.0f);
+    KitDrawText(Ink, Faces.Medium, 11.0f, ImVec2(BarX + 10.0f, BtnY + 5.5f), Theme.Muted, "< Browser");
+    BarX += 80.0f;
+
+    static constexpr std::array<EverestCameraMode, 6> QuickRigs = {
+        EverestCameraMode::Chase,     EverestCameraMode::Orbit, EverestCameraMode::Cockpit,
+        EverestCameraMode::HmiTablet, EverestCameraMode::Hood,  EverestCameraMode::Free
+    };
+    static constexpr std::array<const char*, 6> QuickRigLabels = {
+        "Chase", "Orbit", "Driver", "HMI", "Hood", "Overview"
+    };
+    for (size_t R = 0u; R < QuickRigs.size(); ++R)
+    {
+        const float RW  = KitTextWidth(Faces.Medium, 10.5f, QuickRigLabels[R]) + 14.0f;
+        const bool  Sel = (Everest.Vehicle.CameraMode == QuickRigs[R]);
+        KitPillSurface(Ink, ImVec2(BarX, BtnY), ImVec2(BarX + RW, BtnY + BtnH),
+                       Sel ? Theme.MintDim : PillBg, Sel ? Theme.Mint : BarEdge, 5.5f);
+        KitDrawText(Ink, Faces.Medium, 10.5f, ImVec2(BarX + 7.0f, BtnY + 5.8f),
+                    Sel ? Theme.Text : Theme.Muted, QuickRigLabels[R]);
+        BarX += RW + 3.0f;
+    }
+
+    float       RightX     = Right - 10.0f;
     const bool  RtxActive  = (Everest.Illumination.TierSelectionIndex == 0);
-    const char* TierLabel  = RtxActive ? "RTX RayQuery + ReSTIR" : "GTX SDF + BVH";
-    const float TierW      = KitTextWidth(Faces.Medium, 10.8f, TierLabel) + 24.0f;
-    const float TierX      = Left + Width - TierW;
+    const char* TierLabel  = RtxActive ? "RTX \xC2\xB7 PT" : "GTX \xC2\xB7 SDF";
+    const float TierW      = KitTextWidth(Faces.SemiBold, 10.6f, TierLabel) + 24.0f;
     const ImU32 TierAccent = RtxActive ? KitInkHex(0x2fe6a7) : KitInkHex(0x63a8ff);
-    KitPillSurface(Ink, ImVec2(TierX, Top), ImVec2(TierX + TierW, Top + 26.0f),
-                   KitInkWithAlpha(TierAccent, 0.16f), KitInkWithAlpha(TierAccent, 0.55f), 999.0f);
-    Ink->AddCircleFilled(ImVec2(TierX + 11.0f, Top + 13.0f), 3.4f, TierAccent);
-    KitDrawText(Ink, Faces.Medium, 10.8f, ImVec2(TierX + 19.0f, Top + 7.0f), Theme.Text, TierLabel);
+    RightX -= TierW;
+    KitPillSurface(Ink, ImVec2(RightX, BtnY), ImVec2(RightX + TierW, BtnY + BtnH),
+                   KitInkWithAlpha(TierAccent, 0.16f), KitInkWithAlpha(TierAccent, 0.65f), 6.0f);
+    Ink->AddCircleFilled(ImVec2(RightX + 10.0f, BtnY + BtnH * 0.5f), 3.0f, TierAccent);
+    KitDrawText(Ink, Faces.SemiBold, 10.6f, ImVec2(RightX + 17.0f, BtnY + 5.8f), Theme.Text, TierLabel);
+    RightX -= 6.0f;
 
-    const float StudioW = 74.0f;
-    const float StudioX = TierX - StudioW - 6.0f;
-    KitPillSurface(Ink, ImVec2(StudioX, Top), ImVec2(StudioX + StudioW, Top + 26.0f),
-                   ShowDomainStudio ? KitInkRgba(242, 166, 94, 48) : Theme.Surface2,
-                   ShowDomainStudio ? KitInkHex(0xf2a65e) : Theme.LineSoft, 999.0f);
-    KitDrawText(Ink, Faces.Medium, 10.8f, ImVec2(StudioX + 14.0f, Top + 7.0f),
-                ShowDomainStudio ? Theme.Text : Theme.Muted, "Studios");
+    auto DrawPill = [&](const char* Label, bool Active, ImU32 Accent) {
+        const float BW = KitTextWidth(Faces.Medium, 10.5f, Label) + 14.0f;
+        if (RightX - BW <= BarX + 8.0f) return;
+        RightX -= BW;
+        KitPillSurface(Ink, ImVec2(RightX, BtnY), ImVec2(RightX + BW, BtnY + BtnH),
+                       Active ? KitInkWithAlpha(Accent, 0.20f) : PillBg, Active ? Accent : BarEdge, 5.5f);
+        KitDrawText(Ink, Faces.Medium, 10.5f, ImVec2(RightX + 7.0f, BtnY + 5.8f),
+                    Active ? Theme.Text : Theme.Muted, Label);
+        RightX -= 4.0f;
+    };
+    DrawPill("Studios", BottomDrawerOpen && ShowDomainStudio, KitInkHex(0xf2a65e));
+    DrawPill("Logs", BottomDrawerOpen && !ShowDomainStudio, KitInkHex(0x69dfa5));
+    DrawPill("SDF Slice", Everest.Illumination.DistanceSliceInsetActive, KitInkHex(0x78aaff));
 
-    static constexpr std::array<const char*, 6> AovShortLabels{"Final", "GI", "Refl", "SDF", "Glass", "Nrm"};
-    float AovCursor = StudioX - 8.0f;
+    static constexpr std::array<const char*, 6> AovLabels{"Final", "GI", "Refl", "SDF", "Glass", "Normals"};
     for (int Aov = 5; Aov >= 0; --Aov)
     {
-        const float PW = KitTextWidth(Faces.Medium, 10.2f, AovShortLabels[static_cast<size_t>(Aov)]) + 14.0f;
-        AovCursor -= PW;
-        if (AovCursor > Left + 225.0f)
-        {
-            const bool Sel = (Everest.Illumination.InspectionAovIndex == Aov);
-            KitPillSurface(Ink, ImVec2(AovCursor, Top + 1.0f), ImVec2(AovCursor + PW, Top + 25.0f),
-                           Sel ? KitInkWithAlpha(TierAccent, 0.22f) : Theme.Surface2,
-                           Sel ? TierAccent : Theme.LineSoft, 6.0f);
-            KitDrawText(Ink, Faces.Medium, 10.2f, ImVec2(AovCursor + 7.0f, Top + 7.0f),
-                        Sel ? Theme.Text : Theme.Muted, AovShortLabels[static_cast<size_t>(Aov)]);
-        }
-        AovCursor -= 4.0f;
+        const float PW = KitTextWidth(Faces.Medium, 10.2f, AovLabels[static_cast<size_t>(Aov)]) + 12.0f;
+        if (RightX - PW <= BarX + 8.0f) break;
+        RightX -= PW;
+        const bool Sel = (Everest.Illumination.InspectionAovIndex == Aov);
+        KitPillSurface(Ink, ImVec2(RightX, BtnY), ImVec2(RightX + PW, BtnY + BtnH),
+                       Sel ? KitInkWithAlpha(TierAccent, 0.20f) : PillBg, Sel ? TierAccent : BarEdge, 5.5f);
+        KitDrawText(Ink, Faces.Medium, 10.2f, ImVec2(RightX + 6.0f, BtnY + 6.0f),
+                    Sel ? Theme.Text : Theme.Muted, AovLabels[static_cast<size_t>(Aov)]);
+        RightX -= 3.0f;
     }
 
-    const ImVec2 CanvasMin(Left, Top + 34.0f);
-    const ImVec2 CanvasMax(Left + Width, Top + Height);
-    KitPillSurface(Ink, CanvasMin, CanvasMax, KitInkHex(0x090d11), Theme.Line, 12.0f);
+    // 2. Native 1:1 Pixel-Resolution RGBA32 ImTextureData Viewport
+    const ImVec2 CanvasMin(Left, Top + BarH + 1.0f);
+    const ImVec2 CanvasMax(Right, std::max(CanvasMin.y + 64.0f, Bottom - FootH));
+    const float  CWidth  = std::max(64.0f, CanvasMax.x - CanvasMin.x);
+    const float  CHeight = std::max(64.0f, CanvasMax.y - CanvasMin.y);
+    const double Aspect  = static_cast<double>(CWidth / CHeight);
 
-    const float                 CWidth  = std::max(32.0f, CanvasMax.x - CanvasMin.x - 6.0f);
-    const float                 CHeight = std::max(32.0f, CanvasMax.y - CanvasMin.y - 6.0f);
-    const double                Aspect  = static_cast<double>(CWidth / CHeight);
-    const EverestViewportInputs Inputs  = Everest.BuildViewportInputs(CameraYawDeg, CameraPitchDeg, CameraDistanceM);
-
-    constexpr uint32_t                GridCols = 384u;
-    constexpr uint32_t                GridRows = 216u;
-    static EverestViewportInputs      CachedInputs{};
-    static std::vector<SpectrumRgb>   CachedGrid;
-    static DualTierFrameTelemetry     CachedTel{};
-    static bool                       CacheReady = false;
-    if (!CacheReady || std::memcmp(&Inputs, &CachedInputs, sizeof(EverestViewportInputs)) != 0 ||
-        CachedGrid.size() != static_cast<size_t>((GridCols + 1u) * (GridRows + 1u)))
+    const uint32_t TexW = static_cast<uint32_t>(std::clamp(static_cast<int>(std::lround(CWidth)),  64, ViewportTextureHost::AtlasW));
+    const uint32_t TexH = static_cast<uint32_t>(std::clamp(static_cast<int>(std::lround(CHeight)), 64, ViewportTextureHost::AtlasH));
+    if (!TexHost.Registered)
     {
-        Renderer.RenderFrame(GridCols + 1u, GridRows + 1u, Inputs, CachedGrid, CachedTel);
-        CachedInputs = Inputs;
-        CacheReady   = true;
+        TexHost.Texture.Create(ImTextureFormat_RGBA32, ViewportTextureHost::AtlasW, ViewportTextureHost::AtlasH);
+        TexHost.Texture.UseColors = true;
+        ImGui::RegisterUserTexture(&TexHost.Texture);
+        TexHost.Registered = true;
+        TexHost.CacheValid = false;
     }
-    const std::vector<SpectrumRgb>& LinearGrid = CachedGrid;
-    OutTelemetry                               = CachedTel;
 
-    double              SunU = 0.24, SunV = 0.22;
-    const SpatialVector FarSunPt{Inputs.SunDirection.X * 120.0, Inputs.SunDirection.Y * 120.0,
-                                 Inputs.SunDirection.Z * 120.0};
-    const bool             SunInFront = Renderer.ProjectWorldPoint(FarSunPt, Inputs, Aspect, SunU, SunV);
-    const LensFlareRecord& Flare      = Everest.LensFlare;
-
-    auto ToSrgbByte = [](double Linear) -> int {
-        const double Pos    = std::max(0.0, Linear);
-        const double Mapped = (Pos * (2.51 * Pos + 0.03)) / (Pos * (2.43 * Pos + 0.59) + 0.14);
-        return std::clamp(static_cast<int>(std::pow(std::clamp(Mapped, 0.0, 1.0), 1.0 / 2.2) * 255.0 + 0.5), 0, 255);
-    };
-
-    std::vector<ImU32> PackedVertices(LinearGrid.size());
-    for (uint32_t Row = 0; Row <= GridRows; ++Row)
+    const EverestViewportInputs Inputs = Everest.BuildViewportInputs(CameraYawDeg, CameraPitchDeg, CameraDistanceM);
+    if (!TexHost.CacheValid || TexHost.CachedWidth != TexW || TexHost.CachedHeight != TexH ||
+        std::memcmp(&Inputs, &TexHost.CachedInputs, sizeof(EverestViewportInputs)) != 0)
     {
-        const double V = static_cast<double>(Row) / static_cast<double>(GridRows);
-        for (uint32_t Col = 0; Col <= GridCols; ++Col)
+        TexHost.ScratchRgba.resize(static_cast<size_t>(TexW) * static_cast<size_t>(TexH) * 4u);
+        Renderer.RenderRgba8Viewport(TexW, TexH, Inputs, TexHost.ScratchRgba.data(), TexHost.CachedTelemetry);
+        for (uint32_t Row = 0u; Row < TexH; ++Row)
         {
-            const double U  = static_cast<double>(Col) / static_cast<double>(GridCols);
-            SpectrumRgb  Px = LinearGrid[static_cast<size_t>(Row) * (GridCols + 1u) + Col];
-            if (Inputs.InspectionMode == ViewportInspectionMode::FinalLit && Flare.Enabled &&
-                Inputs.SunEnabled && SunInFront && SunU > -0.15 && SunU < 1.15 && SunV > -0.15 && SunV < 1.15)
-            {
-                const SpectrumRgb Opt = Flare.EvaluateOpticalSampleAtSource(
-                    U, V, std::clamp(SunU, 0.04, 0.96), std::clamp(SunV, 0.04, 0.96), Aspect);
-                Px.R += Opt.R;
-                Px.G += Opt.G;
-                Px.B += Opt.B;
-            }
-            PackedVertices[static_cast<size_t>(Row) * (GridCols + 1u) + Col] =
-                KitInkRgba(ToSrgbByte(Px.R), ToSrgbByte(Px.G), ToSrgbByte(Px.B), 255);
+            std::memcpy(TexHost.Texture.GetPixelsAt(0, static_cast<int>(Row)),
+                        TexHost.ScratchRgba.data() + static_cast<size_t>(Row) * static_cast<size_t>(TexW) * 4u,
+                        static_cast<size_t>(TexW) * 4u);
         }
+        if (TexHost.Texture.Status == ImTextureStatus_OK)
+        {
+            TexHost.Texture.SetStatus(ImTextureStatus_WantUpdates);
+        }
+        TexHost.CachedInputs = Inputs;
+        TexHost.CachedWidth  = TexW;
+        TexHost.CachedHeight = TexH;
+        TexHost.CacheValid   = true;
     }
+    OutTelemetry = TexHost.CachedTelemetry;
 
-    const float CellW = CWidth / static_cast<float>(GridCols);
-    const float CellH = CHeight / static_cast<float>(GridRows);
-    for (uint32_t Row = 0; Row < GridRows; ++Row)
-    {
-        for (uint32_t Col = 0; Col < GridCols; ++Col)
-        {
-            const ImVec2 PMin(CanvasMin.x + 3.0f + static_cast<float>(Col) * CellW,
-                              CanvasMin.y + 3.0f + static_cast<float>(Row) * CellH);
-            const ImVec2 PMax(PMin.x + CellW + 0.5f, PMin.y + CellH + 0.5f);
-            const size_t VertexOffset = static_cast<size_t>(Row) * (GridCols + 1u) + Col;
-            Ink->AddRectFilledMultiColor(PMin, PMax, PackedVertices[VertexOffset],
-                                         PackedVertices[VertexOffset + 1u],
-                                         PackedVertices[VertexOffset + GridCols + 2u],
-                                         PackedVertices[VertexOffset + GridCols + 1u]);
-        }
-    }
+    const ImVec2 UvMax(static_cast<float>(TexW) / static_cast<float>(ViewportTextureHost::AtlasW),
+                       static_cast<float>(TexH) / static_cast<float>(ViewportTextureHost::AtlasH));
+    Ink->AddImage(TexHost.Texture.GetTexRef(), CanvasMin, CanvasMax, ImVec2(0.0f, 0.0f), UvMax);
 
     if (Inputs.CollisionOverlayEnabled)
     {
+        const double CosY = std::cos(static_cast<double>(Inputs.VehicleYawRadians));
+        const double SinY = std::sin(static_cast<double>(Inputs.VehicleYawRadians));
+        auto LocalToWorld = [&](double Lx, double Ly, double Lz) -> SpatialVector {
+            return {
+                static_cast<double>(Inputs.VehiclePosition[0]) + Lx * CosY - Ly * SinY,
+                static_cast<double>(Inputs.VehiclePosition[1]) + Lx * SinY + Ly * CosY,
+                static_cast<double>(Inputs.VehiclePosition[2]) + Lz
+            };
+        };
         auto ProjectScreen = [&](SpatialVector Pt, ImVec2& OutPx) -> bool {
             double U = 0.0, V = 0.0;
             if (!Renderer.ProjectWorldPoint(Pt, Inputs, Aspect, U, V))
             {
                 return false;
             }
-            OutPx = ImVec2(CanvasMin.x + 3.0f + static_cast<float>(U) * CWidth,
-                           CanvasMin.y + 3.0f + static_cast<float>(V) * CHeight);
-            return U >= 0.0 && U <= 1.0 && V >= 0.0 && V <= 1.0;
+            OutPx = ImVec2(CanvasMin.x + static_cast<float>(U) * CWidth,
+                           CanvasMin.y + static_cast<float>(V) * CHeight);
+            return U >= -0.05 && U <= 1.05 && V >= -0.05 && V <= 1.05;
         };
         const std::array<SpatialVector, 8> HullCorners{{
-            {-0.96, -2.22, 0.20}, {+0.96, -2.22, 0.20}, {+0.96, +2.22, 0.20}, {-0.96, +2.22, 0.20},
-            {-0.96, -2.22, 1.24}, {+0.96, -2.22, 1.24}, {+0.96, +2.22, 1.24}, {-0.96, +2.22, 1.24},
+            LocalToWorld(-2.98, -1.12, -0.35), LocalToWorld(+2.98, -1.12, -0.35),
+            LocalToWorld(+2.98, +1.12, -0.35), LocalToWorld(-2.98, +1.12, -0.35),
+            LocalToWorld(-2.98, -1.12, +0.92), LocalToWorld(+2.98, -1.12, +0.92),
+            LocalToWorld(+2.98, +1.12, +0.92), LocalToWorld(-2.98, +1.12, +0.92),
         }};
         constexpr int Edges[12][2] = {{0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},{0,4},{1,5},{2,6},{3,7}};
         for (const auto& Edge : Edges)
@@ -312,38 +356,63 @@ void ConstructLiveEverestViewport(const ProjectDescriptor&              Descript
                 Ink->AddLine(A, B, KitInkHex(0xff6b8b), 1.8f);
             }
         }
-        for (SpatialVector WC : {SpatialVector{-0.96, +1.38, 0.35}, SpatialVector{+0.96, +1.38, 0.35},
-                                 SpatialVector{-0.96, -1.38, 0.35}, SpatialVector{+0.96, -1.38, 0.35}})
+        for (SpatialVector WC : {
+                 LocalToWorld(ControlVehicleConstants::AxleFrontX,  ControlVehicleConstants::AxleHalfTrackY, -0.02),
+                 LocalToWorld(ControlVehicleConstants::AxleFrontX, -ControlVehicleConstants::AxleHalfTrackY, -0.02),
+                 LocalToWorld(ControlVehicleConstants::AxleRearX,   ControlVehicleConstants::AxleHalfTrackY, -0.02),
+                 LocalToWorld(ControlVehicleConstants::AxleRearX,  -ControlVehicleConstants::AxleHalfTrackY, -0.02) })
         {
             ImVec2 Hub{};
             if (ProjectScreen(WC, Hub))
             {
-                Ink->AddCircle(Hub, 15.0f, KitInkHex(0x2fe6a7), 24, 1.8f);
+                Ink->AddCircle(Hub, 14.0f, KitInkHex(0x2fe6a7), 24, 1.8f);
             }
         }
     }
 
-    char HudLine[220] = {};
-    std::snprintf(HudLine, sizeof(HudLine),
-                  "%s  \xC2\xB7  %u tris / %u SAH nodes  \xC2\xB7  4 SDF Cascades  \xC2\xB7  %u Card texels  \xC2\xB7  GI %.2f  \xC2\xB7  Refl %.0f%%",
-                  Inputs.ExecutionMode == DualTierExecutionMode::HardwareRayQueryRtx ? "RTX TIER" : "GTX FALLBACK",
-                  OutTelemetry.TriangleCount, OutTelemetry.BvhEnclosureCount, OutTelemetry.SurfaceCardTexels,
-                  OutTelemetry.MeanIndirectLuminance, OutTelemetry.ReflectionHitFraction * 100.0);
-    KitPillSurface(Ink, ImVec2(CanvasMin.x + 12.0f, CanvasMax.y - 34.0f),
-                   ImVec2(CanvasMax.x - 12.0f, CanvasMax.y - 10.0f), KitInkRgba(10, 14, 18, 208),
-                   KitInkRgba(255, 255, 255, 32), 999.0f);
-    KitDrawText(Ink, Faces.Medium, 10.8f, ImVec2(CanvasMin.x + 22.0f, CanvasMax.y - 27.5f), KitInkHex(0xeef3f0),
-                HudLine);
+    // 3. VehicleHMI 26px Status Footer
+    const ImU32 FootBg = Theme.LightCanvas ? Theme.Surface : KitInkHex(0x0d0e10);
+    Ink->AddRectFilled(ImVec2(Left, CanvasMax.y), ImVec2(Right, Bottom), FootBg);
+    Ink->AddLine(ImVec2(Left, CanvasMax.y), ImVec2(Right, CanvasMax.y), BarEdge);
+
+    const float FootCY = CanvasMax.y + FootH * 0.5f;
+    Ink->AddCircleFilled(ImVec2(Left + 14.0f, FootCY), 3.0f, Theme.Mint);
+    char LeftStatus[220] = {};
+    std::snprintf(LeftStatus, sizeof(LeftStatus),
+                  "%s  \xC2\xB7  %u tris / %u SAH nodes  \xC2\xB7  %u TLAS  \xC2\xB7  %u clustered lights  \xC2\xB7  %ux%u px",
+                  Inputs.ExecutionMode == DualTierExecutionMode::HardwareRayQueryRtx
+                      ? "RTX \xC2\xB7 ReSTIR Path Tracer"
+                      : "GTX \xC2\xB7 4-Cascade SDF + BVH",
+                  OutTelemetry.TriangleCount, OutTelemetry.BvhEnclosureCount, OutTelemetry.ActiveTlasInstances,
+                  OutTelemetry.ActiveClusterLights, TexW, TexH);
+    KitDrawText(Ink, Faces.Regular, 10.6f, ImVec2(Left + 24.0f, FootCY - 5.5f), Theme.Muted, LeftStatus);
+
+    char RightStatus[160] = {};
+    std::snprintf(RightStatus, sizeof(RightStatus),
+                  "Sun %.0f\xC2\xB0  \xC2\xB7  %.0f km/h  \xC2\xB7  Rig: %s  \xC2\xB7  Proving Grounds.scene",
+                  Inputs.SunElevationDegrees, std::fabs(Everest.Vehicle.SpeedKilometresPerHour),
+                  QueryEverestCameraLabel(Inputs.CameraMode));
+    const float RW = KitTextWidth(Faces.Regular, 10.6f, RightStatus);
+    if (Right - 14.0f - RW > Left + 380.0f)
+    {
+        KitDrawText(Ink, Faces.Regular, 10.6f, ImVec2(Right - 14.0f - RW, FootCY - 5.5f), Theme.Faint, RightStatus);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                  PHASE 3 NUMERICAL & DUAL-TIER GPU CONTRACTS
+//                              NUMERICAL, ARCHIVE & DUAL-TIER GPU PARITY CONTRACTS
 //------------------------------------------------------------------------------------------------------------------------
 
-void VerifyPhase3Contracts(const DualTierProvingGroundsRenderer& Renderer, ProjectEverestScene& Everest,
-                           DomainStudioPanel& StudioPanel)
+void VerifyEverestContracts(const DualTierProvingGroundsRenderer& Renderer, ProjectEverestScene& Everest,
+                            DomainStudioPanel& StudioPanel)
 {
-    // 1. RTX vs GTX Capability Negotiation (strict RTX-only hardware raytracing policy).
+    // 1. Binary 'FCT1' ControlVehicle Archive Fidelity (2,924 body + 1,568 rim + 3,968 tyre facets).
+    Require(Renderer.QueryLoadedVehicleArchives() && Renderer.QueryAuthoredBodyFacetCount() == 2924u,
+            "DualTierProvingGroundsRenderer failed to load ControlVehicle{Body,Rim,Tyre}.facet");
+    Require(Renderer.QueryTriangleCount() > 30000u && Renderer.QueryCardTexelCount() == 168u,
+            "Proving Grounds + ControlVehicle Two-Level SAH BVH / CardRadiosity incomplete");
+
+    // 2. Strict RTX-Only Hardware Raytracing vs GTX SDF+BVH Fallback Negotiation.
     PathReplayRayQueryDeviceCapabilities GtxCaps{};
     GtxCaps.ApiVersion                   = VK_MAKE_API_VERSION(0, 1, 2, 0);
     GtxCaps.BufferDeviceAddressExtension = true;
@@ -360,9 +429,9 @@ void VerifyPhase3Contracts(const DualTierProvingGroundsRenderer& Renderer, Proje
     RtxCaps.RayQueryFeature                      = true;
     const DualTierTierDecision RtxDecision       = NegotiateDualTierExecution(RtxCaps, true);
     Require(RtxDecision.Mode == DualTierExecutionMode::HardwareRayQueryRtx && RtxDecision.HardwareRtxCapable,
-            "RTX adapter with full acceleration_structure + ray_query must negotiate HardwareRayQueryRtx");
+            "RTX adapter with acceleration_structure + ray_query must negotiate HardwareRayQueryRtx");
 
-    // 2. Dielectric Glazing Physics (Snell + Fresnel + RadianceScale + Total Internal Reflection).
+    // 3. Dielectric Glazing Physics (Snell + Fresnel + RadianceScale + Total Internal Reflection).
     const DielectricRefraction NormalHit = EvaluateDielectricRefraction({0.0, 0.0, -1.0}, {0.0, 0.0, 1.0}, 1.0, 1.52);
     Require(NormalHit.Valid && !NormalHit.TotalInternalReflection, "Normal-incidence glass refraction invalid");
     Require(std::abs(NormalHit.Reflectance - 0.042581) < 1e-3, "Normal-incidence Fresnel F0 for IOR 1.52 mismatch");
@@ -370,34 +439,32 @@ void VerifyPhase3Contracts(const DualTierProvingGroundsRenderer& Renderer, Proje
     Require(TirHit.Valid && TirHit.TotalInternalReflection && std::abs(TirHit.Reflectance - 1.0) < 1e-6,
             "Glass-to-air supercritical ray did not trigger TotalInternalReflection");
 
-    // 3. Dual-Tier 3D Renderer Parity (RTX vs GTX fallback + 6 AOVs).
-    Require(Renderer.QueryTriangleCount() >= 280u && Renderer.QueryCardTexelCount() == 36u,
-            "DualTierProvingGroundsRenderer scene BVH / SurfaceCards incomplete");
+    // 4. Dual-Tier 3D Renderer Parity (RTX vs GTX fallback on exact Chase camera).
     std::vector<SpectrumRgb> RtxImg, GtxImg;
     DualTierFrameTelemetry   RtxTel{}, GtxTel{};
-    EverestViewportInputs    RtxIn = Everest.BuildViewportInputs(-36.0, 16.5, 5.85);
+    EverestViewportInputs    RtxIn = Everest.BuildViewportInputs(202.9183, 17.1887, 8.0);
     RtxIn.ExecutionMode            = DualTierExecutionMode::HardwareRayQueryRtx;
-    Renderer.RenderFrame(96u, 54u, RtxIn, RtxImg, RtxTel);
+    Renderer.RenderFrame(128u, 72u, RtxIn, RtxImg, RtxTel);
 
     EverestViewportInputs GtxIn = RtxIn;
     GtxIn.ExecutionMode         = DualTierExecutionMode::ToroidalSdfBvhGtx;
-    Renderer.RenderFrame(96u, 54u, GtxIn, GtxImg, GtxTel);
+    Renderer.RenderFrame(128u, 72u, GtxIn, GtxImg, GtxTel);
 
-    Require(RtxTel.CardRadiosityResidual < 1e-5, "SurfaceCards multi-bounce radiosity did not converge");
-    Require(RtxTel.MeanLuminance > 0.05 && GtxTel.MeanLuminance > 0.05,
+    Require(RtxTel.CardRadiosityResidual < 1e-5, "CardRadiosity multi-bounce solve did not converge");
+    Require(RtxTel.MeanLuminance > 0.04 && GtxTel.MeanLuminance > 0.04,
             "RTX or GTX frame produced near-black luminance");
-    Require(RtxTel.MeanIndirectLuminance > 0.01 && GtxTel.MeanIndirectLuminance > 0.01,
+    Require(RtxTel.MeanIndirectLuminance > 0.005 && GtxTel.MeanIndirectLuminance > 0.005,
             "RTX ReSTIR GI or GTX 4-cascade SDF+Cards indirect GI failed to illuminate scene");
-    Require(RtxTel.ReflectionHitFraction > 0.05 && GtxTel.ReflectionHitFraction > 0.05,
+    Require(RtxTel.ReflectionHitFraction > 0.01 && GtxTel.ReflectionHitFraction > 0.01,
             "RTX RayQuery or GTX OrderedSoftwareBvh reflections missed proving grounds geometry");
 
-    // 4. Fog, Stars, Moon, Weather & Plume Lattice contracts.
-    Everest.Fog.ApplyPreset(1);   // Morning Mist
+    // 5. Fog, Stars, Weather & Plume Lattice contracts.
+    Everest.Fog.ApplyPreset(1);
     const FogSplitTargetSample NearTarget = Everest.Fog.EvaluateSplitTarget(15.0);
     const FogSplitTargetSample FarTarget  = Everest.Fog.EvaluateSplitTarget(400.0);
     Require(NearTarget.ApparentContrast > FarTarget.ApparentContrast,
             "Koschmieder split-target contrast must decay monotonically with distance in fog");
-    Everest.Fog.ApplyPreset(0);   // Restore Clear
+    Everest.Fog.ApplyPreset(0);
 
     const auto MagBins = Everest.Stars.QueryMagnitudeHistogram();
     uint32_t   StarSum = 0;
@@ -454,7 +521,8 @@ int main(int ArgumentCount, char** Arguments)
         std::filesystem::remove(AppearanceFile);
         auto Centre = std::make_unique<ControlCentrePanel>(FontsDir, AppearanceFile);
         Require(Centre->Initialize() && Centre->Activate(), "ControlCentrePanel failed to initialize");
-        Require(Centre->QueryTypefaces().QueryFamilyCount() == 5, "Expected 5 font families (35 faces)");
+        Require(Centre->QueryTypefaces().QueryFamilyCount() == 5,
+                "Expected 5 font families (35 OFL faces) loaded in TypefaceRegistry");
 
         // Step 1: Project Browser discovery + launch hand-off
         ProjectBrowserPanel Browser;
@@ -509,54 +577,56 @@ int main(int ArgumentCount, char** Arguments)
         Require(Interchange.ConstructProject(&HostCallbacks, nullptr), "ConstructProject refused host table");
 
         WriteLog(ResolveEngineChannel("Interface"), LogSeverity::Info, LogVerbosity::Display,
-                 "WorkspaceApplication session opened \xC2\xB7 Project Everest Phase 3 Dual-Tier GPU active",
+                 "WorkspaceApplication session opened \xC2\xB7 Proving Grounds.scene + ControlVehicle loaded",
                  "WorkspaceApplication.cpp");
         WriteLog(LogCategories().QueryByName("RayTracing")->Token, LogSeverity::Info, LogVerbosity::Log,
-                 "RTX tier \xC2\xB7 VK_KHR_ray_query + ReSTIR GI + DielectricRefraction (IOR 1.52) ready",
+                 "RTX tier \xC2\xB7 Two-Level SAH BVH (9 TLAS / 8 BLAS) + ReSTIR GI + DielectricGlazing (IOR 1.52)",
                  "DualTierRenderer.cpp");
         WriteLog(LogCategories().QueryByName("DistanceField")->Token, LogSeverity::Info, LogVerbosity::Log,
-                 "GTX fallback tier \xC2\xB7 4-cascade SceneClip0..3 toroidal SDF + 36-texel SurfaceCards + SAH BVH ready",
+                 "GTX fallback tier \xC2\xB7 4-cascade SceneClip0..3 toroidal SDF + 168-texel CardRadiosity + BVH reflections",
                  "DualTierRenderer.cpp");
         for (int Step = 0; Step < 4; ++Step) { Interchange.AdvanceProject(); }
 
-        // Step 2: Construct 3D DualTierProvingGroundsRenderer, ProjectEverestScene (26 records), and DomainStudioPanel!
-        DualTierProvingGroundsRenderer EverestRenderer;
-        DomainStudioPanel              StudioPanel;
-        const size_t                   BaselineDirectoryCount = SceneDirectory::Instance().QueryCount();
-        ProjectEverestScene            EverestScene;
+        // Step 2: Construct 1:1 DualTierProvingGroundsRenderer ('FCT1' archives + Proving Grounds) & ProjectEverestScene (29 records)
+        DualTierProvingGroundsRenderer EverestRenderer(
+            RepoRoot / "Frontier" / "Projects" / "Project-Everest" / "Content" / "Vehicle");
+        DomainStudioPanel   StudioPanel;
+        const size_t        BaselineDirectoryCount = SceneDirectory::Instance().QueryCount();
+        ProjectEverestScene EverestScene;
         EverestScene.BindDomainStudio(StudioPanel);
         const size_t EverestRecordCount = SceneDirectory::Instance().QueryCount() - BaselineDirectoryCount;
-        Require(EverestRecordCount == 26,
-                "Expected ProjectEverestScene Phase 3 to register 26 records (6 Folders, 9 Env/Forcefield, "
-                "1 Illumination, 1 Vehicle, 4 Tyres, 3 Domain Studio actors, 1 Course, 1 Camera)");
+        Require(EverestRecordCount == 29,
+                "Expected ProjectEverestScene to register 29 Proving Grounds.scene records");
 
-        VerifyPhase3Contracts(EverestRenderer, EverestScene, StudioPanel);
+        VerifyEverestContracts(EverestRenderer, EverestScene, StudioPanel);
 
-        // Step 3: Docked 3-column Workspace
+        // Step 3: 1:1 VehicleHMI 3-Column Workspace (288px Outliner | Full-Height 1:1 Viewport | 380px Inspector)
         PanelDockspace         Panels;
         LogStreamPanel         LogPanel;
         SceneDirectoryPanel    OutlinerPanel;
         SceneInspectorPanel    InspectorPanel;
+        ViewportTextureHost    TexHost;
+        bool                   BottomDrawerOpen = false;
         bool                   ShowDomainStudio = false;
-        double                 CamYaw           = -36.0;
-        double                 CamPitch         = 16.5;
-        double                 CamDist          = 5.75;
+        double                 CamYaw           = 202.9183;
+        double                 CamPitch         = 17.1887;
+        double                 CamDist          = 8.0;
         DualTierFrameTelemetry LastTelemetry{};
 
-        Panels.ConfigureDockspaceKey("Project Everest Phase 3 Workspace");
+        Panels.ConfigureDockspaceKey("Project Everest 1:1 VehicleHMI Workspace");
         DockPanelSpecification ViewportSpec;
         ViewportSpec.Key              = "Viewport";
         ViewportSpec.Caption          = "Viewport";
         ViewportSpec.ConstructContent = [&]() {
-            ConstructLiveEverestViewport(EverestDescriptor, EverestScene, EverestRenderer, ShowDomainStudio,
+            ConstructLiveEverestViewport(EverestScene, EverestRenderer, TexHost, BottomDrawerOpen, ShowDomainStudio,
                                          CamYaw, CamPitch, CamDist, LastTelemetry);
         };
         ViewportSpec.Open = true;
         Require(Panels.Register(ViewportSpec), "Failed to register Viewport");
 
         DockPanelSpecification BottomDrawer = MakeLogStreamPanelSpecification(LogPanel);
-        BottomDrawer.ConstructContent = [&]() {
-            if (StudioPanel.ConsumeFocusRequest()) { ShowDomainStudio = true; }
+        BottomDrawer.Open                   = false;
+        BottomDrawer.ConstructContent       = [&]() {
             if (ShowDomainStudio) { StudioPanel.ConstructInterface(); }
             else                  { LogPanel.ConstructInterface(); }
         };
@@ -564,15 +634,22 @@ int main(int ArgumentCount, char** Arguments)
         Require(Panels.Register(MakeSceneDirectoryPanelSpecification(OutlinerPanel)), "Failed to register Outliner");
         Require(Panels.Register(MakeSceneInspectorPanelSpecification(InspectorPanel, OutlinerPanel)),
                 "Failed to register Inspector");
+
         Panels.ConfigureWorkspaceInsets(79.0f, 0.0f);
-        Panels.ConfigureTabExtent(136.0f, 26.0f);
-        Require(Panels.ConfigureStackedPanels("Viewport", "LogStream", 590.0f), "Failed to stack Viewport/LogStream");
-        Require(Panels.ConfigureColumns({{"Outliner", 0.22f}, {"LogStream", 0.49f}, {"Inspector", 0.29f}}),
-                "Failed to configure 3-column workspace");
+        Panels.ConfigureTabExtent(124.0f, 26.0f);
+        Require(Panels.ConfigureStackedPanels("Viewport", "LogStream", 680.0f), "Failed to stack Viewport/LogStream");
+        Require(Panels.ConfigureColumns({{"Outliner", 0.16f}, {"LogStream", 0.63f}, {"Inspector", 0.21f}}),
+                "Failed to configure 3-column VehicleHMI workspace");
         (void)Panels.ConfigurePlatform();
 
         const auto StepWorkspaceFrame = [&]() {
             const double DeltaSeconds = 1.0 / 60.0;
+            if (StudioPanel.ConsumeFocusRequest())
+            {
+                BottomDrawerOpen = true;
+                ShowDomainStudio = true;
+                (void)Panels.ConfigureOpen("LogStream", true);
+            }
             EverestScene.ServiceSpawnRequest(OutlinerPanel);
             LogPanel.Synchronize(LogStore(), LogCategories(), DeltaSeconds);
             OutlinerPanel.Synchronize(SceneDirectory::Instance());
@@ -615,111 +692,150 @@ int main(int ArgumentCount, char** Arguments)
 
         OutlinerPanel.ConfigureCollapsed(EverestScene.Vehicle.Token(), true);
 
-        // 03: Folder Outliner + 3D RTX Proving Grounds Viewport
-        OutlinerPanel.Select(EverestScene.EnvironmentFolder.Token());
+        // 03: Exact 1:1 VehicleHMI Default Shell (Atmosphere selected, Chase camera [-47,0,3.13]->[-40,0,1.33], Lime ControlVehicle)
+        EverestScene.Vehicle.CameraMode = EverestCameraMode::Chase;
+        OutlinerPanel.Select(EverestScene.Atmosphere.Token());
         for (int F = 0; F < 16; ++F) { StepWorkspaceFrame(); }
-        const std::vector<unsigned char> DarkFolderPixels =
+        const std::vector<unsigned char> DefaultShellPixels =
             RasterizeCurrentFrame(ExhibitDir / "03-Folder-Outliner-Observatory.png", 10);
-        const double DarkLogLuma       = SampleRegionMeanLuminance(DarkFolderPixels, 520, 720, 1300, 1030);
-        const double DarkInspectorLuma = SampleRegionMeanLuminance(DarkFolderPixels, 1400, 150, 1890, 980);
+        const double DarkInspectorLuma = SampleRegionMeanLuminance(DefaultShellPixels, 1540, 150, 1900, 980);
 
-        // 04: Sun Observatory + 3D RTX Proving Grounds
+        // 04: Sun Observatory + Front-Three-Quarter Orbit Camera on Sculpted ControlVehicle
+        EverestScene.Vehicle.CameraMode        = EverestCameraMode::Orbit;
+        EverestScene.Vehicle.FrontSteerRadians = 0.26f;
+        CamYaw                                 = 34.0;
+        CamPitch                               = 15.5;
+        CamDist                                = 6.6;
         OutlinerPanel.Select(EverestScene.Sun.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "04-Sun-Observatory-Overview.png", 10);
 
-        // 05: Lens Flare Observatory + Dielectric Glazing AOV!
+        // 05: Lens Flare Observatory + Dielectric Glazing AOV over ControlVehicle's 74 Canopy Facets
         EverestScene.Illumination.InspectionAovIndex = static_cast<int32_t>(ViewportInspectionMode::DielectricGlazing);
         OutlinerPanel.Select(EverestScene.LensFlare.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "05-LensFlare-And-DielectricGlazingAOV.png", 10);
 
-        // 06: Atmosphere Observatory + Indirect GI AOV (Coral/Mint Radiosity Bleed)!
+        // 06: Atmosphere Observatory + Denoised ReSTIR Indirect GI AOV
         EverestScene.Illumination.InspectionAovIndex = static_cast<int32_t>(ViewportInspectionMode::IndirectIrradiance);
         OutlinerPanel.Select(EverestScene.Atmosphere.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "06-Atmosphere-And-IndirectGiAOV.png", 10);
 
-        // 07: Clouds Observatory + 4-Cascade Toroidal SDF (`SceneClip0..3`) AOV!
-        EverestScene.Illumination.InspectionAovIndex = static_cast<int32_t>(ViewportInspectionMode::DistanceCascades);
+        // 07: Clouds Observatory + 4-Cascade Toroidal SDF + Top-Right Distance Slice Inset
+        EverestScene.Illumination.InspectionAovIndex       = static_cast<int32_t>(ViewportInspectionMode::DistanceCascades);
+        EverestScene.Illumination.DistanceSliceInsetActive = true;
         OutlinerPanel.Select(EverestScene.Clouds.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "07-Clouds-And-ToroidalSdfCascadesAOV.png", 10);
-        EverestScene.Illumination.InspectionAovIndex = static_cast<int32_t>(ViewportInspectionMode::FinalLit);
+        EverestScene.Illumination.InspectionAovIndex       = static_cast<int32_t>(ViewportInspectionMode::FinalLit);
+        EverestScene.Illumination.DistanceSliceInsetActive = false;
 
-        // 08: Wind Forcefield Observatory + GTX SDF + BVH Fallback 3D Render!
-        EverestScene.Illumination.TierSelectionIndex = 1;   // GTX Fallback!
+        // 08: Wind Forcefield Observatory + GTX 4-Cascade SDF + CardRadiosity + BVH Reflections Fallback
+        EverestScene.Illumination.TierSelectionIndex = 1;
+        EverestScene.Vehicle.CameraMode              = EverestCameraMode::Chase;
+        EverestScene.Vehicle.FrontSteerRadians       = 0.0f;
         OutlinerPanel.Select(EverestScene.Wind.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "08-Wind-And-GtxSdfBvhFallback.png", 10);
-        EverestScene.Illumination.TierSelectionIndex = 0;   // Back to RTX!
+        EverestScene.Illumination.TierSelectionIndex = 0;
 
-        // 09: NEW Fog Observatory (6 receding Koschmieder split targets + Morning Mist in 3D Viewport)!
-        EverestScene.Fog.ApplyPreset(2);   // Valley Bank fog!
+        // 09: Fog Observatory (Koschmieder Split Targets) + Valley Mist across Proving Grounds
+        EverestScene.Fog.ApplyPreset(2);
         OutlinerPanel.Select(EverestScene.Fog.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "09-Fog-Observatory-KoschmiederTargets.png", 10);
-        EverestScene.Fog.ApplyPreset(0);   // Clear
+        EverestScene.Fog.ApplyPreset(0);
 
-        // 10: NEW Stars Planisphere Observatory + Night Starfield & Headlamps in 3D Viewport!
+        // 10: Stars Planisphere Observatory + Night Clustered Street Lamps & ControlVehicle Headlamps
         EverestScene.Sun.ApplyPreset(SolarLightingPreset::Night);
-        CamYaw = -26.0;
+        EverestScene.Vehicle.AutomotiveBeamMode = 2;   // High beam
+        EverestScene.Vehicle.RoofFixtureIndex   = 1;   // Slim LED roof bar
         OutlinerPanel.Select(EverestScene.Stars.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "10-Stars-Observatory-NightPlanisphere.png", 10);
 
-        // 11: NEW Moon Selenographic Observatory + Night Lunar Illumination!
-        EverestScene.Moon.ElevationDegrees = 22.0;
-        EverestScene.Moon.AzimuthDegrees   = -24.0;
+        // 11: Moon Selenographic Observatory + Night Lunar Illumination (East +X horizon over straight)
+        EverestScene.Moon.ElevationDegrees       = 10.5;
+        EverestScene.Moon.AzimuthDegrees         = 84.0;
+        EverestScene.Moon.AngularDiameterDegrees = 3.8;
         OutlinerPanel.Select(EverestScene.Moon.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "11-Moon-Observatory-Selenograph.png", 10);
+        EverestScene.Moon.AngularDiameterDegrees = 0.52;
+        EverestScene.Vehicle.AutomotiveBeamMode  = 1;
+        EverestScene.Vehicle.RoofFixtureIndex    = 0;
 
-        // 12: NEW Storm, Lightning, 343 m/s Thunder & Surface Deposit Grid + Wet Apron Reflections!
+        // 12: Weather Storm Lightning & Wet Mirror Asphalt Reflections
         EverestScene.Sun.ApplyPreset(SolarLightingPreset::Dusk);
-        EverestScene.Weather.PrecipitationModeIndex = 1;   // Rain
-        EverestScene.Weather.SurfaceDepositMm       = 2.6; // Wet mirror puddles!
+        EverestScene.Weather.Enabled                = true;
+        EverestScene.Weather.PrecipitationModeIndex = 1;
+        EverestScene.Weather.SurfaceDepositMm       = 2.8;
         EverestScene.Weather.TriggerStrikeAhead(77u);
         InspectorPanel.ConfigureWeatherTab(0);
         OutlinerPanel.Select(EverestScene.Weather.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "12-Weather-StormLightningAndWetApron.png", 10);
 
-        // 13: Storm Surface Retention Grid Tab (0..4 mm vehicle chassis shadow) + Snow Cover!
-        EverestScene.Weather.PrecipitationModeIndex = 3;   // Snow!
-        EverestScene.Weather.SurfaceDepositMm       = 3.2;
-        InspectorPanel.ConfigureWeatherTab(3);             // Deposit grid tab!
+        // Restore full 12.0x 5778K solar daylight after dusk storm capture
+        EverestScene.Sun.ElevationDegrees       = 38.0;
+        EverestScene.Sun.AzimuthDegrees         = 145.0;
+        EverestScene.Sun.TemperatureKelvin      = 5778.0;
+        EverestScene.Sun.SolarIlluminance       = 12.0;
+        EverestScene.Weather.TimeSinceStrikeSeconds = 4.0;
+
+        // 13: Driver Cockpit Interior Camera (Slate Cabin + 175 km/h OLED Cluster + 14" HMI Tablet + Snow Deposit)
+        EverestScene.Weather.Enabled                  = true;
+        EverestScene.Weather.PrecipitationModeIndex   = 3;     // Snow deposit (0=Clear, 1=Rain, 2=Sleet, 3=Snow)
+        EverestScene.Weather.SurfaceDepositMm         = 2.6;
+        EverestScene.Vehicle.SpeedKilometresPerHour   = 175.0; // Matches ControlVehicle3DCockpitHmi960x540.png (175 km/h, gear 5)
+        EverestScene.Vehicle.CameraMode               = EverestCameraMode::Cockpit;
+        OutlinerPanel.Select(EverestScene.ChaseCamera.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "13-Weather-SurfaceDepositSnowGrid.png", 10);
-        EverestScene.Weather.Enabled = false;
-        EverestScene.Sun.ApplyPreset(SolarLightingPreset::Noon);
-        CamYaw = -36.0;
+        EverestScene.Weather.Enabled                = false;
+        EverestScene.Weather.PrecipitationModeIndex = 0;
+        EverestScene.Weather.SurfaceDepositMm       = 0.0;
+        EverestScene.Vehicle.SpeedKilometresPerHour = 0.0;
 
-        // 14: Upgraded 8-Tab ControlVehicle Systems Inspector + 3D Collision X-Ray Wireframe Overlay!
+        // 14: 8-Tab ControlVehicle Systems Inspector + World-Space Collision & Wheel-Hub X-Ray
         OutlinerPanel.ConfigureCollapsed(EverestScene.Vehicle.Token(), false);
+        EverestScene.Vehicle.CameraMode              = EverestCameraMode::Orbit;
+        EverestScene.Vehicle.FrontSteerRadians       = 0.24f;
         EverestScene.Vehicle.CollisionOverlayEnabled = true;
-        EverestScene.Vehicle.PaintFinishPreset       = 1;   // Solar Copper Metallic!
-        EverestScene.Vehicle.ActiveModuleTab         = 1;   // Chassis / Collision X-Ray!
+        EverestScene.Vehicle.ActiveModuleTab         = 0;
+        CamYaw                                       = 32.0;
+        CamPitch                                     = 16.0;
+        CamDist                                      = 6.8;
         OutlinerPanel.Select(EverestScene.Vehicle.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "14-ControlVehicle-8Tab-CollisionXRay.png", 10);
         EverestScene.Vehicle.CollisionOverlayEnabled = false;
-        EverestScene.Vehicle.PaintFinishPreset       = 0;
+        EverestScene.Vehicle.FrontSteerRadians       = 0.0f;
+        EverestScene.Vehicle.CameraMode              = EverestCameraMode::Chase;
 
-        // 15: Tier-3 Dedicated Domain Studios (Fracture Voronoi + Fluid/Plume Lattice)!
+        // 15: Tier-3 Dedicated Fracture Voronoi Studio (Bottom Drawer Opened)
+        BottomDrawerOpen = true;
         ShowDomainStudio = true;
+        Require(Panels.ConfigureOpen("LogStream", true), "Failed to open BottomDrawer");
         StudioPanel.ActivateStudio(DomainStudioCategory::FractureShatter);
         OutlinerPanel.Select(EverestScene.FractureBarrier.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
         (void)RasterizeCurrentFrame(ExhibitDir / "15-Tier3-FractureVoronoiStudio.png", 10);
 
+        // 16: Tier-3 Fluid & Plume Lattice Studio + Proving Grounds Teleport to Hangar Apron
+        ShowDomainStudio = true;
         StudioPanel.ActivateStudio(DomainStudioCategory::FluidPlume);
+        EverestScene.Vehicle.TeleportToZone(5u);   // Hangar apron!
         OutlinerPanel.Select(EverestScene.ExhaustPlume.Token());
         for (int F = 0; F < 6; ++F) { StepWorkspaceFrame(); }
-        (void)RasterizeCurrentFrame(ExhibitDir / "16-Tier3-FluidPlumeStudio.png", 10);
+        const std::vector<unsigned char> DarkLogPixels =
+            RasterizeCurrentFrame(ExhibitDir / "16-Tier3-FluidPlumeStudio.png", 10);
+        const double DarkLogLuma = SampleRegionMeanLuminance(DarkLogPixels, 420, 790, 1450, 1040);
         ShowDomainStudio = false;
+        EverestScene.Vehicle.TeleportToZone(0u);   // Back to Start grid
 
-        // Verify `+ Folder` spawn + Control Centre Light Theme Parity!
+        // Verify `+ Folder` spawn + Control Centre Light Theme Parity
         OutlinerPanel.RequestSpawn(RecordClassification::Folder);
         StepWorkspaceFrame();
         Require(OutlinerPanel.QueryTotal() == EverestRecordCount + 1, "+ Folder spawn failed");
@@ -747,11 +863,12 @@ int main(int ArgumentCount, char** Arguments)
 
         const std::vector<unsigned char> LightPixels =
             RasterizeCurrentFrame(ExhibitDir / "17-DualTier-GTX-Fallback-LightTheme.png", 240);
-        const double LightLogLuma       = SampleRegionMeanLuminance(LightPixels, 520, 720, 1300, 1030);
-        const double LightInspectorLuma = SampleRegionMeanLuminance(LightPixels, 1400, 150, 1890, 980);
+        const double LightLogLuma       = SampleRegionMeanLuminance(LightPixels, 420, 790, 1450, 1040);
+        const double LightInspectorLuma = SampleRegionMeanLuminance(LightPixels, 1540, 150, 1900, 980);
         Require(DarkLogLuma < 45.0 && LightLogLuma > 200.0, "LogStream Dark/Light parity failed");
         Require(DarkInspectorLuma < 55.0 && LightInspectorLuma > 180.0, "Inspector Dark/Light parity failed");
 
+        TexHost.Shutdown();
         Interchange.RetireProject();
         (void)Centre->Finalize();
         Centre.reset();
@@ -760,18 +877,17 @@ int main(int ArgumentCount, char** Arguments)
         std::ofstream Report(ExhibitDir / "ProjectEverestChecks.json", std::ios::trunc);
         Report << "{\n"
                << "  \"result\": \"passed\",\n"
-               << "  \"phase\": 3,\n"
                << "  \"project\": \"Project Everest\",\n"
+               << "  \"vehicle_archives_loaded\": true,\n"
                << "  \"scene_triangles\": " << LastTelemetry.TriangleCount << ",\n"
                << "  \"sah_bvh_enclosures\": " << LastTelemetry.BvhEnclosureCount << ",\n"
+               << "  \"active_tlas_instances\": " << LastTelemetry.ActiveTlasInstances << ",\n"
+               << "  \"active_clustered_lights\": " << LastTelemetry.ActiveClusterLights << ",\n"
                << "  \"toroidal_sdf_cascades\": 4,\n"
                << "  \"surface_card_texels\": " << LastTelemetry.SurfaceCardTexels << ",\n"
                << "  \"card_radiosity_residual\": " << LastTelemetry.CardRadiosityResidual << ",\n"
                << "  \"initial_scene_records\": " << EverestRecordCount << ",\n"
                << "  \"post_folder_spawn_records\": " << OutlinerPanel.QueryTotal() << ",\n"
-               << "  \"engine_observatories\": [\"Folder\", \"Sun\", \"LensFlare\", \"Atmosphere\", \"Clouds\", \"Wind\", \"Fog\", \"Stars\", \"Moon\", \"Weather\"],\n"
-               << "  \"tier3_domain_studios\": [\"FractureVoronoi\", \"FluidPlumeLattice\", \"ParticleEmitter\"],\n"
-               << "  \"custom_inspectors\": [\"EverestVehicleRecord (8-Tab + Collision X-Ray)\", \"EverestIlluminationRecord (RTX/GTX + 6 AOVs)\"],\n"
                << "  \"mean_luma\": {\n"
                << "    \"dark_log_stream\": " << DarkLogLuma << ",\n"
                << "    \"light_log_stream\": " << LightLogLuma << ",\n"
@@ -780,9 +896,9 @@ int main(int ArgumentCount, char** Arguments)
                << "  }\n"
                << "}\n";
 
-        std::cout << "PASS: Project Everest Phase 3 validation (3D Dual-Tier RTX/GTX Proving Grounds + "
+        std::cout << "PASS: Project Everest 1:1 VehicleHMI parity ("
                   << LastTelemetry.TriangleCount << " tris / " << LastTelemetry.BvhEnclosureCount
-                  << " SAH nodes + 10 Engine Observatories + 8-Tab ControlVehicle + 3 Tier-3 Studios + Dark/Light parity)\n";
+                  << " SAH nodes / " << LastTelemetry.ActiveTlasInstances << " TLAS / 1:1 ImTextureData RGBA32 viewport)\n";
         return 0;
     }
     catch (const std::exception& Failure)

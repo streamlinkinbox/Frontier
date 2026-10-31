@@ -2462,17 +2462,21 @@ void SceneInspectorPanel::ConstructInterface(SceneDirectoryPanel& DirectoryPanel
     const float    PB             = WindowPosition.y + WindowSize.y;
     ImDrawList*    OuterInk       = ImGui::GetWindowDrawList();
 
-    OuterInk->AddRectFilled(ImVec2(PL, PT), ImVec2(PR, PB), Theme.PanelBg);
-    OuterInk->AddRect(ImVec2(PL, PT), ImVec2(PR, PB), Theme.PanelEdge);
+    const ImU32 InspBg   = Theme.LightCanvas ? Theme.PanelBg : KitInkHex(0x111214);
+    const ImU32 InspHead = Theme.LightCanvas ? Theme.Surface : KitInkHex(0x15171a);
+    const ImU32 InspEdge = Theme.LightCanvas ? Theme.PanelEdge : KitInkHex(0x23262b);
+
+    OuterInk->AddRectFilled(ImVec2(PL, PT), ImVec2(PR, PB), InspBg);
+    OuterInk->AddLine(ImVec2(PL, PT), ImVec2(PL, PB), InspEdge, 1.0f);
 
 #if defined(FRONTIER_EDITOR_PROFILE) || defined(FRONTIER_DEVELOPMENT_PROFILE)
     SceneDirectory&              Directory = SceneDirectory::Instance();
     const SceneInspectorSummary& Summary   = DirectoryPanel.QueryInspector();
 
-    // Top crumb bar (40 px, ported from EditorShell.js #inspector-top).
+    // Top crumb bar (38 px, ported from EditorShell.js #inspector-top).
     const float CrumbH = 38.0f;
-    OuterInk->AddRectFilled(ImVec2(PL + 1.0f, PT + 1.0f), ImVec2(PR - 1.0f, PT + CrumbH), Theme.Surface);
-    OuterInk->AddLine(ImVec2(PL, PT + CrumbH), ImVec2(PR, PT + CrumbH), Theme.LineSoft);
+    OuterInk->AddRectFilled(ImVec2(PL + 1.0f, PT), ImVec2(PR, PT + CrumbH), InspHead);
+    OuterInk->AddLine(ImVec2(PL, PT + CrumbH), ImVec2(PR, PT + CrumbH), InspEdge);
     std::string CrumbText = "Inspector";
     if (Summary.HasSelection)
     {
