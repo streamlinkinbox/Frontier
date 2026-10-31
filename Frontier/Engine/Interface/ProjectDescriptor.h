@@ -31,6 +31,7 @@ struct ProjectLogCategory
 struct ProjectDescriptor
 {
     std::string Name;                                  // [-] - ProjectName (shown on the notch and in the browser)
+    std::string Description;                           // [-] - Optional project summary shown in the browser card
     std::string ContentLocation = "Content";           // [-] - Project-relative user content folder
     std::string OpeningScene;                          // [-] - Scene opened on load; empty means a blank workspace
     std::string CodeImage;                             // [-] - Project-relative code image (DLL) the host loads

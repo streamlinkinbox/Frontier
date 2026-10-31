@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/SultanAladin/Frontier.git",
+  "branch": "arena/11f31835-frontier",
+  "inspected_revision": "8c760a9a",
+  "layout": "Project Everest native application: reuses Engine/Interface ControlCentrePanel, PanelDockspace, ProjectBrowserPanel, and Frontier/Engine LogStreamPanel + SceneDirectoryPanel.",
+  "code_interchange_number": 3,
+  "interface_fingerprint": "0xb6725f24d0869173"
+}

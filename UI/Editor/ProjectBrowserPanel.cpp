@@ -285,6 +285,91 @@ std::string FormatBrowserNumber(double Value) // 🔢 JSON.stringify number styl
     return Text;
 }
 
+struct BrowserFrontierDescriptor
+{
+    std::string Name;
+    std::string Description;
+    std::string OpeningScene;
+    std::string CodeImage;
+    std::vector<std::string> LogCategories;
+};
+
+void QuoteBrowserHexFingerprint(std::string &Text)
+{
+    const std::string Key = "InterfaceFingerprint";
+    size_t At = Text.find(Key);
+    if (At == std::string::npos) return;
+    At = Text.find('=', At + Key.size());
+    if (At == std::string::npos) return;
+    size_t Begin = At + 1;
+    while (Begin < Text.size() && std::isspace(static_cast<unsigned char>(Text[Begin])) != 0) ++Begin;
+    if (Begin + 1 >= Text.size() || Text[Begin] != '0' || (Text[Begin + 1] != 'x' && Text[Begin + 1] != 'X')) return;
+    size_t End = Begin + 2;
+    while (End < Text.size() && (std::isxdigit(static_cast<unsigned char>(Text[End])) != 0 || Text[End] == '_')) ++End;
+    std::string Hex = "0x";
+    for (size_t Index = Begin + 2; Index < End; ++Index)
+        if (Text[Index] != '_') Hex.push_back(Text[Index]);
+    Text.replace(Begin, End - Begin, "\"" + Hex + "\"");
+}
+
+bool DecodeBrowserFrontierDescriptor(
+    const std::filesystem::path &Path, BrowserFrontierDescriptor &Out, std::string &FailureDiagnostic)
+{
+    Out = {};
+    FailureDiagnostic.clear();
+    std::ifstream Input(Path, std::ios::binary);
+    if (!Input.is_open())
+    {
+        FailureDiagnostic = "Descriptor not found.";
+        return false;
+    }
+    std::string Text((std::istreambuf_iterator<char>(Input)), std::istreambuf_iterator<char>());
+    QuoteBrowserHexFingerprint(Text);
+    toml::table Root;
+    try
+    {
+        Root = toml::parse(Text);
+    }
+    catch (const toml::parse_error &Error)
+    {
+        FailureDiagnostic = std::string(Error.description());
+        return false;
+    }
+    const toml::table *Project = Root["Project"].as_table();
+    if (Project == nullptr)
+    {
+        FailureDiagnostic = "Descriptor has no [Project] table.";
+        return false;
+    }
+    Out.Name = (*Project)["ProjectName"].value_or(std::string{});
+    if (Out.Name.empty())
+    {
+        FailureDiagnostic = "Descriptor [Project] table has no ProjectName.";
+        return false;
+    }
+    Out.Description = (*Project)["Description"].value_or(std::string{});
+    Out.OpeningScene = (*Project)["OpeningScene"].value_or(std::string{});
+    Out.CodeImage = (*Project)["CodeImage"].value_or(std::string{});
+    if (const toml::array *Categories = Root["LogCategories"].as_array())
+        for (const toml::node &Node : *Categories)
+            if (const toml::table *Entry = Node.as_table())
+                if (const auto CategoryName = (*Entry)["Name"].value<std::string>(); CategoryName && !CategoryName->empty())
+                    Out.LogCategories.push_back(*CategoryName);
+    return true;
+}
+
+std::string MakeBrowserToken(const std::string &Raw)
+{
+    std::string Out;
+    for (unsigned char Character : Raw)
+    {
+        if (std::isalnum(Character) != 0) Out.push_back(static_cast<char>(std::tolower(Character)));
+        else if (!Out.empty() && Out.back() != '-') Out.push_back('-');
+    }
+    while (!Out.empty() && Out.back() == '-') Out.pop_back();
+    return Out.empty() ? "application" : Out;
+}
+
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -374,6 +459,30 @@ bool ProjectBrowserPanel::OpenSample(const std::string &Token)
     CaptureDelay = 2;
     FocusBack = true;
     return true;
+}
+
+bool ProjectBrowserPanel::OpenAttachedEntry(const std::string &Token)
+{
+    const BrowserCatalogueEntry *Entry = FindEntry(Token);
+    if (Entry == nullptr) return false;
+    ActiveToken = Token;
+    ActiveRevision = Entry->Imported ? -1 : int(Entry->Revisions.size()) - 1;
+    PreviewIndex = 0;
+    DocumentEnabled = Entry->Category == BrowserFileCategory::Document;
+    Zoom = 100;
+    ActiveTab = "details";
+    ResetLiveCamera(*Entry);
+    LiveChannel = Entry->Imported ? 0 : PreviewConfigFor(*Entry, 0, ActiveRevision).Channel;
+    LiveSignature.clear();
+    CaptureDelay = 2;
+    FocusBack = true;
+    return true;
+}
+
+bool ProjectBrowserPanel::LaunchActiveEntry()
+{
+    OpenInFrontier();
+    return !LaunchPath.empty();
 }
 
 void ProjectBrowserPanel::CloseFile()
@@ -535,6 +644,31 @@ size_t ProjectBrowserPanel::AttachPaths(const std::vector<std::filesystem::path>
             const std::string Text{std::istreambuf_iterator<char>(Input), std::istreambuf_iterator<char>()};
             Entry.Markdown = Text.substr(0, 262144);
         }
+        if (Extension == ".frontier")
+        {
+            BrowserFrontierDescriptor Decoded;
+            std::string ParseDiagnostic;
+            if (DecodeBrowserFrontierDescriptor(Path, Decoded, ParseDiagnostic))
+            {
+                Entry.Title = Decoded.Name;
+                Entry.Description = Decoded.Description.empty()
+                                        ? "Native Frontier application workspace."
+                                        : Decoded.Description;
+                Entry.Context = Decoded.OpeningScene.empty() ? "Frontier application"
+                                                             : "Application · " + Decoded.OpeningScene;
+                Entry.Opened = "Workspace ready";
+                Entry.Views = {"Application workspace"};
+                const std::filesystem::path Readme = Path.parent_path() / "README.md";
+                std::error_code ReadmeStatus;
+                if (std::filesystem::is_regular_file(Readme, ReadmeStatus) &&
+                    std::filesystem::file_size(Readme, ReadmeStatus) <= 262144)
+                {
+                    std::ifstream Input(Readme, std::ios::binary);
+                    const std::string Text{std::istreambuf_iterator<char>(Input), std::istreambuf_iterator<char>()};
+                    Entry.Markdown = Text.substr(0, 262144);
+                }
+            }
+        }
         Entries.insert(Entries.begin(), Entry);
         ++Attached;
     }
@@ -553,8 +687,95 @@ size_t ProjectBrowserPanel::AttachPaths(const std::vector<std::filesystem::path>
         FocusBack = true;
     }
     Notify(Attached ? std::to_string(Attached) + " local file" + (Attached > 1 ? "s" : "") +
-                              " attached. Native project decoding is only connected for .projectspace files."
-                          : "No supported files found. Choose .project, .assembly, .sketch, geometry, Markdown or image files.");
+                              " attached. Native project decoding is connected for .frontier and .projectspace files."
+                          : "No supported files found. Choose .frontier, .projectspace, .project, .assembly, .sketch, geometry, Markdown or image files.");
+    return Attached;
+}
+
+size_t ProjectBrowserPanel::AttachProjectsDirectory(const std::filesystem::path &ProjectsDirectory)
+{
+    std::error_code Status;
+    if (!std::filesystem::is_directory(ProjectsDirectory, Status)) return 0;
+
+    struct DiscoveredApplication
+    {
+        std::filesystem::path DescriptorPath;
+        BrowserFrontierDescriptor Descriptor;
+    };
+    std::vector<DiscoveredApplication> Discovered;
+    for (const std::filesystem::directory_entry &Folder : std::filesystem::directory_iterator(ProjectsDirectory, Status))
+    {
+        if (!Folder.is_directory(Status)) continue;
+        for (const std::filesystem::directory_entry &Candidate :
+             std::filesystem::directory_iterator(Folder.path(), Status))
+        {
+            if (!Candidate.is_regular_file(Status)) continue;
+            const std::u8string RawExt = Candidate.path().extension().u8string();
+            const std::string Ext = FoldBrowserText(std::string(RawExt.begin(), RawExt.end()));
+            if (Ext != ".frontier") continue;
+            BrowserFrontierDescriptor Decoded;
+            std::string ParseDiagnostic;
+            if (DecodeBrowserFrontierDescriptor(Candidate.path(), Decoded, ParseDiagnostic))
+                Discovered.push_back(
+                    {std::filesystem::weakly_canonical(Candidate.path(), Status), std::move(Decoded)});
+            break;
+        }
+    }
+    std::sort(Discovered.begin(), Discovered.end(),
+        [](const DiscoveredApplication &Left, const DiscoveredApplication &Right)
+        { return Left.Descriptor.Name < Right.Descriptor.Name; });
+
+    size_t Attached = 0;
+    std::vector<BrowserCatalogueEntry> ApplicationEntries;
+    for (const DiscoveredApplication &Item : Discovered)
+    {
+        const std::u8string RawPath = Item.DescriptorPath.u8string();
+        const std::string PathText(RawPath.begin(), RawPath.end());
+        const bool AlreadyPresent = std::any_of(Entries.begin(), Entries.end(),
+            [&PathText](const BrowserCatalogueEntry &Existing) { return Existing.Path == PathText; });
+        if (AlreadyPresent) continue;
+
+        const std::u8string RawFolder = Item.DescriptorPath.parent_path().filename().u8string();
+        std::string BaseToken = MakeBrowserToken(std::string(RawFolder.begin(), RawFolder.end()));
+        std::string UniqueToken = BaseToken;
+        uint32_t Suffix = 2;
+        while (FindEntry(UniqueToken) != nullptr ||
+               std::any_of(ApplicationEntries.begin(), ApplicationEntries.end(),
+                   [&UniqueToken](const BrowserCatalogueEntry &Added) { return Added.Token == UniqueToken; }))
+        {
+            UniqueToken = BaseToken + "-" + std::to_string(Suffix++);
+        }
+
+        BrowserCatalogueEntry Entry;
+        Entry.Token = UniqueToken;
+        Entry.Title = Item.Descriptor.Name;
+        Entry.Extension = ".frontier";
+        Entry.Category = BrowserFileCategory::Project;
+        Entry.Description = Item.Descriptor.Description.empty()
+                                ? "Native Frontier application workspace."
+                                : Item.Descriptor.Description;
+        Entry.Art = "Valley";
+        Entry.Context = Item.Descriptor.OpeningScene.empty()
+                            ? "Frontier application"
+                            : "Application · " + Item.Descriptor.OpeningScene;
+        Entry.Opened = "Workspace ready";
+        Entry.Path = PathText;
+        Entry.Views = {"Application workspace"};
+        Entry.Imported = true;
+        Entry.ByteCount = std::filesystem::file_size(Item.DescriptorPath, Status);
+
+        const std::filesystem::path Readme = Item.DescriptorPath.parent_path() / "README.md";
+        if (std::filesystem::is_regular_file(Readme, Status) && std::filesystem::file_size(Readme, Status) <= 262144)
+        {
+            std::ifstream Input(Readme, std::ios::binary);
+            const std::string Text{std::istreambuf_iterator<char>(Input), std::istreambuf_iterator<char>()};
+            Entry.Markdown = Text.substr(0, 262144);
+        }
+        ApplicationEntries.push_back(std::move(Entry));
+        ++Attached;
+    }
+    if (!ApplicationEntries.empty())
+        Entries.insert(Entries.begin(), ApplicationEntries.begin(), ApplicationEntries.end());
     return Attached;
 }
 
@@ -562,8 +783,8 @@ void ProjectBrowserPanel::OpenInFrontier()
 {
     const BrowserCatalogueEntry *Entry = FindEntry(ActiveToken);
     if (Entry == nullptr) return;
-    // 🚀 Real native hand-off for attached project containers; the launch dialog previews every other target.
-    if (Entry->Imported && Entry->Extension == ".projectspace")
+    // 🚀 Real native hand-off for attached project descriptors and containers; launch dialog previews sample targets.
+    if (Entry->Imported && (Entry->Extension == ".projectspace" || Entry->Extension == ".frontier"))
     {
         namespace fs = std::filesystem;
         std::error_code Status;
@@ -608,6 +829,16 @@ bool ProjectBrowserPanel::ConfigureDirectory(const std::filesystem::path &Reques
 
 bool ProjectBrowserPanel::SelectProject(const std::filesystem::path &Path)
 {
+    const std::u8string RawExt = Path.extension().u8string();
+    const std::string Ext = FoldBrowserText(std::string(RawExt.begin(), RawExt.end()));
+    if (Ext == ".frontier")
+    {
+        BrowserFrontierDescriptor Decoded;
+        if (!DecodeBrowserFrontierDescriptor(Path, Decoded, Diagnostic)) return false;
+        SelectedPath = Path;
+        Diagnostic.clear();
+        return true;
+    }
     ProjectSpaceDocument Candidate;
     if (!ProjectSpaceCodec::Decode(Path, Candidate, Diagnostic)) return false;
     SelectedPath = Path;
@@ -955,6 +1186,31 @@ void ProjectBrowserPanel::ConstructThumbnailTile(ImVec2 Min, ImVec2 Size, const 
                 Pending("Rendering preview…");
                 return;
             }
+        }
+        if (Entry.Extension == ".frontier" || Entry.Extension == ".projectspace")
+        {
+            const ImU32 Backdrop = Prefs.Theme == "light" ? S.Nested : HexColour("#0a1211");
+            const ImU32 GridInk = Prefs.Theme == "light" ? S.Line : HexColour("#25362f");
+            Draw->AddRectFilled(Min, ImVec2(Min.x + Size.x, Min.y + Size.y), Backdrop, Rounding, RoundFlags);
+            for (int Step = 1; Step < 6; ++Step)
+            {
+                Draw->AddLine(ImVec2(Min.x + Size.x * float(Step) / 6.f, Min.y),
+                    ImVec2(Min.x + Size.x * float(Step) / 6.f, Min.y + Size.y), GridInk, 1);
+            }
+            for (int Step = 1; Step < 4; ++Step)
+            {
+                Draw->AddLine(ImVec2(Min.x, Min.y + Size.y * float(Step) / 4.f),
+                    ImVec2(Min.x + Size.x, Min.y + Size.y * float(Step) / 4.f), GridInk, 1);
+            }
+            const float Glyph = 28 * Scale;
+            DrawBrowserIcon(Draw, BrowserIcon::Cube,
+                ImVec2(Min.x + (Size.x - Glyph) / 2, Min.y + (Size.y - Glyph) / 2 - 6 * Scale), Glyph, S.Accent);
+            const std::string Tag = "APPLICATION";
+            const ImVec2 TagSize = MeasureBrowserText(Font, 8 * Scale, Tag);
+            DrawBrowserSpaced(Draw, Font, 8 * Scale,
+                ImVec2(Min.x + (Size.x - TagSize.x - 10 * Scale) / 2, Min.y + Size.y * 0.68f), S.Muted, Tag,
+                1.2f * Scale);
+            return;
         }
         Draw->AddRectFilled(Min, ImVec2(Min.x + Size.x, Min.y + Size.y), S.Card, Rounding, RoundFlags);
         const float Glyph = 18 * Scale;
@@ -1943,20 +2199,42 @@ void ProjectBrowserPanel::ConstructReader(float Width)
             Frame.Draw->AddRectFilled(Box, ImVec2(Box.x + InnerW, Box.y + CanvasH), S.Card, 8 * Scale);
             Frame.Draw->AddRect(Box, ImVec2(Box.x + InnerW, Box.y + CanvasH), S.Line, 8 * Scale, 0,
                 std::max(1.f, Scale));
-            if (Entry->Imported && Entry->Markdown.empty() && Entry->ImageBytes.empty())
+            if (Entry->Imported && Entry->ImageBytes.empty())
             {
+                const bool NativeApplication =
+                    Entry->Extension == ".frontier" || Entry->Extension == ".projectspace";
                 float VY = Box.y + 35 * Scale;
-                DrawBrowserIcon(Frame.Draw, BrowserIcon::File, ImVec2(Box.x + 35 * Scale, VY), 18 * Scale, S.Muted);
-                VY += 18 * Scale + 12 * Scale;
-                DrawBrowserText(Frame.Draw, Font, 18 * Scale, ImVec2(Box.x + 35 * Scale, VY), S.Text,
-                    EllipsizeBrowserText(Font, 18 * Scale, FullName, InnerW - 70 * Scale));
-                VY += 18 * Scale + 20 * Scale;
-                VY += DrawBrowserParagraph(Frame.Draw, Font, 13 * Scale, ImVec2(Box.x + 35 * Scale, VY), S.Text,
-                    "This file was selected from your device. Native decoding is not connected.",
-                    InnerW - 70 * Scale, 13 * Scale * 1.5f);
+                DrawBrowserIcon(Frame.Draw, NativeApplication ? BrowserIcon::Cube : BrowserIcon::File,
+                    ImVec2(Box.x + 35 * Scale, VY), 20 * Scale, NativeApplication ? S.Accent : S.Muted);
+                VY += 20 * Scale + 12 * Scale;
+                if (NativeApplication)
+                {
+                    DrawBrowserSpaced(Frame.Draw, Font, 9 * Scale, ImVec2(Box.x + 35 * Scale, VY), S.Muted,
+                        "FRONTIER NATIVE APPLICATION", 1.8f * Scale);
+                    VY += 9 * Scale + 10 * Scale;
+                }
+                DrawBrowserText(Frame.Draw, Font, 20 * Scale, ImVec2(Box.x + 35 * Scale, VY), S.Text,
+                    EllipsizeBrowserText(Font, 20 * Scale, NativeApplication ? Entry->Title : FullName,
+                        InnerW - 70 * Scale));
+                VY += 20 * Scale + 18 * Scale;
+                VY += DrawBrowserParagraph(Frame.Draw, Font, 13 * Scale, ImVec2(Box.x + 35 * Scale, VY),
+                    NativeApplication ? S.Muted : S.Text,
+                    NativeApplication
+                        ? Entry->Description
+                        : "This file was selected from your device. Native decoding is not connected.",
+                    InnerW - 70 * Scale, 13 * Scale * 1.55f);
                 VY += 18 * Scale;
-                DrawBrowserChip(ImVec2(Box.x + 35 * Scale, VY),
-                    FormatBrowserCount(Entry->ByteCount) + " bytes · original unchanged", Frame);
+                if (NativeApplication)
+                {
+                    const float ChipA = DrawBrowserChip(ImVec2(Box.x + 35 * Scale, VY), Entry->Context, Frame);
+                    DrawBrowserChip(ImVec2(Box.x + 35 * Scale + ChipA + 8 * Scale, VY),
+                        "Open in Frontier launches workspace", Frame);
+                }
+                else
+                {
+                    DrawBrowserChip(ImVec2(Box.x + 35 * Scale, VY),
+                        FormatBrowserCount(Entry->ByteCount) + " bytes · original unchanged", Frame);
+                }
             }
             else if (Entry->Imported && !Entry->ImageBytes.empty())
             {
@@ -2399,7 +2677,12 @@ void ProjectBrowserPanel::ConstructReaderInspector(
                 S.Muted, Entry->Path, InnerW - 20 * Scale, 9 * Scale * 1.8f);
             Y += PathH + 20 * Scale + 18 * Scale;
             DrawBrowserChip(ImVec2(Scroll.x + Side, Y),
-                Entry->Imported ? "Read-only · native decoder pending" : "Sample file · read-only", Frame);
+                Entry->Imported
+                    ? ((Entry->Extension == ".frontier" || Entry->Extension == ".projectspace")
+                              ? "Native application · ready to open"
+                              : "Read-only · native decoder pending")
+                    : "Sample file · read-only",
+                Frame);
         }
         else if (ActiveTab == "comments")
         {

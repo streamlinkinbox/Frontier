@@ -141,6 +141,7 @@ bool DecodeProjectDescriptor(const std::filesystem::path& Path, ProjectDescripto
     }
 
     Out.Name                  = ReadString(*Project, "ProjectName", "");
+    Out.Description           = ReadString(*Project, "Description", "");
     Out.ContentLocation       = ReadString(*Project, "ContentLocation", "Content");
     Out.OpeningScene          = ReadString(*Project, "OpeningScene", "");
     Out.CodeImage             = ReadString(*Project, "CodeImage", "");
@@ -174,7 +175,11 @@ bool DecodeProjectDescriptor(const std::filesystem::path& Path, ProjectDescripto
     }
 
     std::error_code       Error;
-    Out.DescriptorPath   = std::filesystem::absolute(Path, Error);
+    Out.DescriptorPath   = std::filesystem::weakly_canonical(Path, Error);
+    if (Error)
+    {
+        Out.DescriptorPath = std::filesystem::absolute(Path, Error);
+    }
     Out.ProjectDirectory = Out.DescriptorPath.parent_path();
     return true;
 }

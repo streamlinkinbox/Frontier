@@ -46,26 +46,28 @@ constexpr ImU32 KitInkWithAlpha(ImU32 Colour, float Alpha) noexcept
     return (Colour & 0x00ffffffu) | static_cast<ImU32>(static_cast<int>(Alpha * 255.0f + 0.5f)) << 24;
 }
 
-// Same values as the Log Stream's panel theme (one visual language; consolidation follows when a third
-// consumer arrives — duplication of constants is deliberate until then).
+// Same values as the Log Stream's panel theme, derived dynamically from ControlKit::Palette() so
+// ControlCentrePanel's OLED / Dark / Light theme selection governs both Outliner and Log Stream.
 struct KitTheme
 {
-    static constexpr ImU32 PanelBg   = KitInkHex(0x0b100e);
-    static constexpr ImU32 PanelEdge = KitInkWhite(0.08f);
-    static constexpr ImU32 Surface   = KitInkHex(0x0e1411);
-    static constexpr ImU32 Surface2  = KitInkHex(0x151d18);
-    static constexpr ImU32 Surface3  = KitInkHex(0x1c2620);
-    static constexpr ImU32 Line      = KitInkWhite(0.07f);
-    static constexpr ImU32 LineSoft  = KitInkWhite(0.045f);
-    static constexpr ImU32 RowHover  = KitInkWhite(0.032f);
-    static constexpr ImU32 Text      = KitInkHex(0xeef3f0);
-    static constexpr ImU32 Muted     = KitInkHex(0x97a29b);
-    static constexpr ImU32 Faint     = KitInkHex(0x5f6b64);
-    static constexpr ImU32 Mint      = KitInkHex(0x2fe6a7);
-    static constexpr ImU32 MintDim   = KitInkRgba(47, 230, 167, 33);
-    static constexpr ImU32 ChipOnBg  = KitInkHex(0xe9f2ed);
-    static constexpr ImU32 ChipOnInk = KitInkHex(0x0b120e);
+    ImU32 PanelBg   = KitInkHex(0x0b100e);
+    ImU32 PanelEdge = KitInkRgba(255, 255, 255, 20);
+    ImU32 Surface   = KitInkHex(0x0e1411);
+    ImU32 Surface2  = KitInkHex(0x151d18);
+    ImU32 Surface3  = KitInkHex(0x1c2620);
+    ImU32 Line      = KitInkRgba(255, 255, 255, 18);
+    ImU32 LineSoft  = KitInkRgba(255, 255, 255, 11);
+    ImU32 RowHover  = KitInkRgba(255, 255, 255, 8);
+    ImU32 Text      = KitInkHex(0xeef3f0);
+    ImU32 Muted     = KitInkHex(0x97a29b);
+    ImU32 Faint     = KitInkHex(0x5f6b64);
+    ImU32 Mint      = KitInkHex(0x2fe6a7);
+    ImU32 MintDim   = KitInkRgba(47, 230, 167, 33);
+    ImU32 ChipOnBg  = KitInkHex(0xe9f2ed);
+    ImU32 ChipOnInk = KitInkHex(0x0b120e);
 };
+
+[[nodiscard]] KitTheme ResolveKitTheme() noexcept;
 
 struct KitFaces
 {

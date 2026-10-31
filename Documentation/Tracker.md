@@ -559,6 +559,20 @@ The new appearance files use Allman braces, flat namespace indentation, and desc
   studio generator and gradient point editing say "not native yet"; nothing composites PBR maps.
 - Verified in this sandbox: `TextureStudio` + TexturePaint/Baking/Stamp construction validations build
   and pass. Windows visual re-check pending (user).
+- **2026-10-31 — Project Everest Phase 1 UI, Browser Hand-Off, and Three-Branch Audit**:
+  - Updated `CLAUDE.md` with the mandatory post-commit `SultanAladin/Frontier` (`arena/11f31835-frontier`) sync rule,
+    the three reference engine branches (`08e7de48`, `5ec53579`, `9ce908bc`), the dual-tier Vulkan GPU contract (RTX
+    hardware raytracing vs GTX toroidal 3D SDF + triangle BVH reflections), and the `RecordEntry` Outliner + Inspector
+    constructor/destructor lifecycle architecture.
+  - Created `Frontier/Projects/Project-Everest/` (`ProjectEverest.frontier`, `ProjectEverest.projectspace`,
+    `Source/ProjectEverestInterchange.cpp`), wired `.frontier` application discovery/selection/launch hand-off in
+    `ProjectBrowserPanel` and `FrontierMain.cpp` (preserving all 770 `ProjectBrowserValidation` states), and connected
+    `LogStreamPanelPresentation.cpp` + `StackRailControls.cpp` to `ControlKit::Palette()` so `ControlCentrePanel`
+    governs `OLED` / `Dark` / `Light` themes across the entire docked workspace.
+  - Evidence retained in `Exhibits/ProjectEverest/README.md` (`ProjectEverestValidation` passed; 6 native `1600x960`
+    CPU-rasterised PNGs verified; `LogStreamValidation` 69/69 passed under ASan+UBSan). Windows native MSVC/GPU runtime
+    verification remains pending.
+
 
 
 

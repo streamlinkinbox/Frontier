@@ -133,6 +133,62 @@ Inspect triggers before an authorised remote operation. Never use Actions as an 
 Permission to edit or commit locally is not permission to run Actions.
 Follow the user's current commit and push instructions; do not infer permission to commit or push.
 
+## Upstream synchronisation and reference engine branches
+
+- **Main upstream branch**: `https://github.com/SultanAladin/Frontier/tree/arena/11f31835-frontier`
+  (`SultanAladin/Frontier`, branch `arena/11f31835-frontier`).
+- **Mandatory post-commit sync rule**: After every local commit, fetch `SultanAladin/Frontier`
+  `arena/11f31835-frontier` and ensure the active branch remains synchronised with main (`git fetch` and merge any new
+  upstream commits) so reusable UI, docking, Control Centre, and build updates never diverge. Remote pushes and PRs
+  still require explicit user approval under the GitHub Actions rule above.
+- **Reference engine branches** (retained for **Project Everest** Vulkan C++ porting):
+  1. `https://github.com/streamlinkinbox/Frontier/tree/arena%2F08e7de48-frontier`
+     (`streamlinkinbox/Frontier`, branch `arena/08e7de48-frontier`) — Slang compute kernels for solid and thin-pane
+     dielectric glass (`DielectricBoundary.slang`, `SolidDielectricTransport.slang`, Beer-Lambert transmittance),
+     6-pose `ControlVehicle` glazing, roughness-cone prior-screen exitance, and fence-published `FacetCdfSubmission`.
+  2. `https://github.com/streamlinkinbox/Frontier/tree/arena%2F5ec53579-frontier`
+     (`streamlinkinbox/Frontier`, branch `arena/5ec53579-frontier`) — Hardware RTX `PathReplayRayQuery`
+     (`VK_KHR_acceleration_structure` + `VK_KHR_ray_query`, SPIR-V 1.4) with 16-bin SAH-2 `OrderedSoftwareBvh`
+     fallback, motion SVGF (`PathReplayVarianceFilter.slang`), `beta = 2` Power MIS, blocked-NEE temporal visibility
+     guard, and naming-compliant `EnvironmentRecords` / `RecordEditorDescription` / `SceneInspectorPanel`.
+  3. `https://github.com/egoistm1inbox/Frontier/tree/arena%2F9ce908bc-frontier`
+     (`egoistm1inbox/Frontier`, branch `arena/9ce908bc-frontier`) — `LogStreamPanel` / `Diagnostics`, 25-record
+     Outliner grouping and Dedicated Studio UX reference, Jolt `v5.6.0` vehicle physics reference, 41k Hipparcos sky
+     and Pyro fluid reference, and dual-tier GPU hardware contract (`HardwareRayTracingRtx` vs
+     `SignedDistanceFieldGtx`). Never import its CPU-raytraced `SceneRenderer.cpp`, dummy SPIR-V
+     `VulkanShaderCompiler.cpp`, older `PanelDockspace` / `ControlCentrePanel`, or banned `Entity` / `*Id` names.
+
+## Project Everest — dual-tier GPU contract and editor scene architecture
+
+- **Application identity**: `Frontier/Projects/Project-Everest/ProjectEverest.frontier` (**Project Everest**).
+  Entry flow: `ProjectBrowserPanel` -> select **Project Everest** -> launch workspace composed from main-branch
+  `ControlCentrePanel` (trapezoidal notch + UI theme controller) + `PanelDockspace` + `LogStreamPanel`.
+- **Dual-tier Vulkan GPU rendering** (Slang `.slang` compute/ray-query shaders; never CPU raytracing):
+  - **RTX tier** (hardware RT capable GPUs via `VK_KHR_acceleration_structure` + `VK_KHR_ray_query`): hardware BVH
+    traversal, ReSTIR DI/GI spatiotemporal reservoir reuse, closed/thin-pane dielectric glass transport, and motion
+    SVGF reconstruction.
+  - **GTX / lower-end GPU fallback tier** (non-RTX GPUs): Vulkan `.slang` port of the 4 nested toroidal 3D signed
+    distance field cascades (`SceneClip0..3`) + `SurfaceCards` multi-bounce GI + nearest-depth screen-space pyramid,
+    paired with 2-level SAH triangle **BVH reflections** (`OrderedSoftwareBvh`).
+- **Editor scene item (`RecordEntry`) lifecycle and Inspector architecture** (naming-compliant; no banned `Entity`
+  symbol names in C++):
+  - Every scene item (`RecordEntry`, user-facing Outliner entry) instantiated in `#if defined(FRONTIER_EDITOR_PROFILE)`
+    owns a paired **constructor and destructor** tied to its `SceneRecord`:
+    - **Constructor**: registers the item in `SceneDirectory` (`SceneDirectoryPanel` Outliner) under its group and
+      constructs/binds its Inspector (`RecordEditorDescription` / `SceneInspectorPanel`).
+    - **Destructor**: detaches and destroys its Inspector binding, clears active selection if selected, and unregisters
+      the item from `SceneDirectory` with zero dangling Outliner rows or orphan inspectors.
+  - **Three-tier authoring split**:
+    1. **Reusable engine components** (`Frontier/Engine/Scene/`): standard world and lighting items — Sun, Sky &
+       Atmosphere, Volumetric Clouds, Fog, Wind Forcefield, Directional/Rect/Point/Spot Lights, Camera/Post-Process —
+       ship with reusable engine Inspectors; projects instantiate and configure them without recreating inspectors.
+    2. **User-created project Inspectors** (`Frontier/Projects/<Project>/Source/`): custom project designs (such as
+       **Project Everest**'s `ControlVehicle` chassis, glazing, paint/flakes, suspension, and cabin telemetry) author
+       their own `RecordEntry` subclass and custom Inspector controls through `CodeInterchange`.
+    3. **Dedicated domain editors / studios** (`Engine/` + `UI/Editor/`): specialized domains open dedicated editors
+       rather than crowding generic property cards — Fracture Studio, Fluid/Plume Studio, Particle Studio, Object/Mesh
+       Studio, and Texture/Material Studio.
+
 ## Delivery
 
 Follow the compact output skill: short outcome, verification table, visible evidence, exhibit paths,

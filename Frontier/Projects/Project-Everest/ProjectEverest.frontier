@@ -1,0 +1,30 @@
+[Project]
+ProjectName = "Project Everest"
+Description = "Dual-tier Vulkan vehicle telemetry and proving grounds — RTX hardware raytracing + GTX toroidal SDF and BVH reflections."
+ProjectFormatNumber = 1
+ContentLocation = "Content"
+OpeningScene = "EverestProvingGrounds"
+CodeImage = "Build/Output/ProjectEverest.dll"
+CodeInterchangeNumber = 3
+InterfaceFingerprint = 0xb6725f24d0869173
+
+# Project Everest log categories registered with colours when the application opens.
+[[LogCategories]]
+Name = "Everest"
+Colour = "mint"
+
+[[LogCategories]]
+Name = "Powertrain"
+Colour = "blue"
+
+[[LogCategories]]
+Name = "RayTracing"
+Colour = "purple"
+
+[[LogCategories]]
+Name = "DistanceField"
+Colour = "amber"
+
+[[LogCategories]]
+Name = "Telemetry"
+Colour = "pink"

@@ -32,7 +32,6 @@ namespace Frontier
 namespace
 {
 
-using Theme = KitTheme;
 
 ImU32 ClassificationColour(RecordClassification Classification) noexcept
 {
@@ -55,9 +54,10 @@ ImU32 ClassificationColour(RecordClassification Classification) noexcept
 
 void MenuCaption(const KitFaces& Faces, const char* Text)
 {
+    const KitTheme Theme = ResolveKitTheme();
     ImDrawList*  Ink = ImGui::GetWindowDrawList();
     const ImVec2 At  = ImGui::GetCursorScreenPos();
-    KitDrawTracked(Ink, Faces.Medium, 10.5f, ImVec2(At.x + 10.0f, At.y + 8.0f), Theme::Faint, Text, 10.5f * 0.13f);
+    KitDrawTracked(Ink, Faces.Medium, 10.5f, ImVec2(At.x + 10.0f, At.y + 8.0f), Theme.Faint, Text, 10.5f * 0.13f);
     ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, 27.0f));
 }
 
@@ -83,8 +83,13 @@ DockPanelSpecification MakeSceneDirectoryPanelSpecification(SceneDirectoryPanel&
 
 void SceneDirectoryPanel::ConstructInterface()
 {
+    if (ImGui::GetCurrentContext() == nullptr)
+    {
+        return;
+    }
     SceneDirectory&     Directory = SceneDirectory::Instance();
     const KitFaces      Faces     = ResolveKitFaces();
+    const KitTheme      Theme     = ResolveKitTheme();
     static std::array<char, 128> FilterBuffer{};
     static std::string           FilterSynchronised;
 
@@ -99,8 +104,8 @@ void SceneDirectoryPanel::ConstructInterface()
     const float  ContentW       = CR - CL;
     ImDrawList*  Ink            = ImGui::GetWindowDrawList();
 
-    Ink->AddRectFilled(WindowPosition, ImVec2(PR, PB), Theme::PanelBg);
-    Ink->AddRect(WindowPosition, ImVec2(PR, PB), Theme::PanelEdge);
+    Ink->AddRectFilled(WindowPosition, ImVec2(PR, PB), Theme.PanelBg);
+    Ink->AddRect(WindowPosition, ImVec2(PR, PB), Theme.PanelEdge);
 
     // -- StackRail head (title · HeadCount · AddHost) -----------------------------------------------------------------
     char CountText[48] = {};
@@ -152,14 +157,14 @@ void SceneDirectoryPanel::ConstructInterface()
                 ConfigureClassificationFilter(Value);
             }
             KitPillSurface(Ink, ImVec2(X, CursorY), ImVec2(X + W, CursorY + 26.0f),
-                           Active ? Theme::ChipOnBg : (Hovered ? Theme::Surface3 : Theme::Surface2),
-                           Active ? 0 : Theme::Line, 999.0f);
-            Ink->AddCircleFilled(ImVec2(X + 15.5f, CursorY + 13.0f), 3.5f, Active ? Theme::ChipOnInk : Dot);
+                           Active ? Theme.ChipOnBg : (Hovered ? Theme.Surface3 : Theme.Surface2),
+                           Active ? 0 : Theme.Line, 999.0f);
+            Ink->AddCircleFilled(ImVec2(X + 15.5f, CursorY + 13.0f), 3.5f, Active ? Theme.ChipOnInk : Dot);
             KitDrawText(Ink, Faces.Regular, 12.0f, ImVec2(X + 26.0f, CursorY + 7.0f),
-                        Active ? Theme::ChipOnInk : Theme::Muted, Text);
+                        Active ? Theme.ChipOnInk : Theme.Muted, Text);
             X += W + 6.0f;
         };
-        Chip("All", "All", QueryTotal(), !QueryClassificationFilter().has_value(), Theme::Mint, std::nullopt);
+        Chip("All", "All", QueryTotal(), !QueryClassificationFilter().has_value(), Theme.Mint, std::nullopt);
         for (const SceneClassificationTab& Tab : Tabs)
         {
             if (Tab.Count == 0 && QueryClassificationFilter() != Tab.Classification)
@@ -177,10 +182,10 @@ void SceneDirectoryPanel::ConstructInterface()
     {
         const float RowH  = 34.0f;
         const float RowCY = CursorY + RowH * 0.5f;
-        KitPillSurface(Ink, ImVec2(CL, CursorY), ImVec2(CR, CursorY + RowH), Theme::Surface2, Theme::Line, 999.0f);
+        KitPillSurface(Ink, ImVec2(CL, CursorY), ImVec2(CR, CursorY + RowH), Theme.Surface2, Theme.Line, 999.0f);
         // Magnifier glyph.
-        Ink->AddCircle(ImVec2(CL + 19.0f, RowCY - 1.5f), 5.5f, Theme::Faint, 24, 1.4f);
-        Ink->AddLine(ImVec2(CL + 23.0f, RowCY + 3.0f), ImVec2(CL + 27.0f, RowCY + 7.0f), Theme::Faint, 1.6f);
+        Ink->AddCircle(ImVec2(CL + 19.0f, RowCY - 1.5f), 5.5f, Theme.Faint, 24, 1.4f);
+        Ink->AddLine(ImVec2(CL + 23.0f, RowCY + 3.0f), ImVec2(CL + 27.0f, RowCY + 7.0f), Theme.Faint, 1.6f);
 
         if (QueryTextFilter() != FilterSynchronised)
         {
@@ -218,7 +223,7 @@ void SceneDirectoryPanel::ConstructInterface()
         {
             const float ShownW = KitTextWidth(Faces.Regular, 11.5f, Shown);
             KitDrawText(Ink, Faces.Regular, 11.5f, ImVec2(CR - 8.0f - 24.0f - 8.0f - ShownW, RowCY - 5.75f),
-                        Theme::Faint, Shown);
+                        Theme.Faint, Shown);
             const ImVec2 DiscCentre(CR - 8.0f - 12.0f, RowCY);
             bool ClearHover = false;
             if (KitTarget("##OutlinerFilterClear", ImVec2(DiscCentre.x - 12.0f, DiscCentre.y - 12.0f),
@@ -228,15 +233,15 @@ void SceneDirectoryPanel::ConstructInterface()
                 ConfigureTextFilter("");
                 FilterSynchronised = QueryTextFilter();
             }
-            Ink->AddCircleFilled(DiscCentre, 12.0f, Theme::Surface3);
-            const ImU32 Cross = ClearHover ? Theme::Text : Theme::Muted;
+            Ink->AddCircleFilled(DiscCentre, 12.0f, Theme.Surface3);
+            const ImU32 Cross = ClearHover ? Theme.Text : Theme.Muted;
             Ink->AddLine(ImVec2(DiscCentre.x - 4.0f, DiscCentre.y - 4.0f), ImVec2(DiscCentre.x + 4.0f, DiscCentre.y + 4.0f), Cross, 1.4f);
             Ink->AddLine(ImVec2(DiscCentre.x - 4.0f, DiscCentre.y + 4.0f), ImVec2(DiscCentre.x + 4.0f, DiscCentre.y - 4.0f), Cross, 1.4f);
         }
         CursorY += RowH + 10.0f;
     }
 
-    Ink->AddRectFilled(ImVec2(CL, CursorY), ImVec2(CR, CursorY + 1.0f), Theme::LineSoft);
+    Ink->AddRectFilled(ImVec2(CL, CursorY), ImVec2(CR, CursorY + 1.0f), Theme.LineSoft);
     CursorY += 6.0f;
 
     // -- Tree (stack-sled rows) ---------------------------------------------------------------------------------------
@@ -259,7 +264,7 @@ void SceneDirectoryPanel::ConstructInterface()
                 : "No objects match the current filter.";
             const float W = KitTextWidth(Faces.Regular, 12.5f, Message);
             KitDrawText(Ink, Faces.Regular, 12.5f,
-                        ImVec2(CL + std::max(0.0f, (ContentW - W) * 0.5f), CursorY + 26.0f), Theme::Faint, Message);
+                        ImVec2(CL + std::max(0.0f, (ContentW - W) * 0.5f), CursorY + 26.0f), Theme.Faint, Message);
         }
         bool RefreshNeeded = false;
         for (const SceneDirectoryRow& Row : Visible)

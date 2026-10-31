@@ -244,6 +244,7 @@ int RunBrowserListing(const std::filesystem::path& FromExecutable)
 #include "Engine/Scene/SceneRecord.h"
 #include "Engine/Interface/WindowsApplication.h"
 #include "UI/Editor/ControlCentrePanel.h"
+#include "UI/Editor/ProjectBrowserPanel.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -260,9 +261,12 @@ namespace
 
 struct BrowserSession
 {
-    GLFWwindow*               Window = nullptr;
-    ProjectBrowserEnumeration Listing;
-    std::filesystem::path     Chosen;
+    GLFWwindow*                         Window = nullptr;
+    std::unique_ptr<ControlCentrePanel> Centre;
+    ProjectBrowserPanel                 Browser;
+    std::filesystem::path               ProjectsDirectory;
+    std::filesystem::path               Chosen;
+    bool                                Prepared = false;
 };
 
 struct WorkspaceSession
@@ -274,6 +278,7 @@ struct WorkspaceSession
     SceneDirectoryPanel                OutlinerPanel;
     std::vector<std::unique_ptr<SceneRecord>> SpawnedRecords;   // Editor-spawned records live with the session
     std::string                        ProjectName;
+    std::string                        OpeningScene;
     std::string                        ProjectLocation;  // [utf8]
     std::filesystem::path              LayoutPath;
     float                              InterfaceScale = 1.0f;
@@ -290,16 +295,17 @@ void ConstructViewportPanel(const WorkspaceSession& Session)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(28, 24));
     ImGui::TextColored(Style.Colors[ImGuiCol_TextDisabled], "SCENE CANVAS");
     ImGui::Spacing();
-    ImGui::TextWrapped("The VehicleHMI viewport connects here: the ReSTIR renderer port (Phase 3) records "
-                       "into this panel through VulkanPresentation. Native scene rendering is not connected "
-                       "yet — this surface will present the project document once the SDK build lands.");
+    ImGui::TextWrapped("Project Everest Vulkan viewport target: RTX hardware raytracing (PathReplayRayQuery + "
+                       "DielectricBoundary + motion SVGF) and GTX fallback (4 toroidal SDF cascades + SurfaceCards + "
+                       "OrderedSoftwareBvh reflections) connect here via VulkanPresentation.");
     ImGui::Separator();
     const auto Row = [](const char* Label, const std::string& Value) {
         ImGui::TextDisabled("%s", Label);
         ImGui::SameLine(150);
         ImGui::TextWrapped("%s", Value.empty() ? "\u2014" : Value.c_str());
     };
-    Row("Project", Session.ProjectName);
+    Row("Application", Session.ProjectName);
+    Row("Opening scene", Session.OpeningScene);
     Row("Location", Session.ProjectLocation);
     ImGui::PopStyleVar();
 }
@@ -307,41 +313,84 @@ void ConstructViewportPanel(const WorkspaceSession& Session)
 int RunBrowserWindow(const std::filesystem::path& FromExecutable, std::filesystem::path& ChosenDescriptor)
 {
     BrowserSession Session;
-    Session.Listing = EnumerateProjects(ResolveProjectsDirectory(FromExecutable));
+    Session.ProjectsDirectory = ResolveProjectsDirectory(FromExecutable);
+    (void)Session.Browser.AttachProjectsDirectory(Session.ProjectsDirectory);
 
     ApplicationWindowCallbacks Callbacks;
     Callbacks.Title      = "Frontier · Project Browser";
     Callbacks.Initialize = [&Session](GLFWwindow* Window) { Session.Window = Window; };
-    Callbacks.ConstructInterface = [&Session](bool) {
-        const ImVec2 Display = ImGui::GetIO().DisplaySize;
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(Display);
-        if (ImGui::Begin("Project Browser", nullptr, ImGuiWindowFlags_NoDecoration))
+    Callbacks.PrepareInterface = [&Session]() {
+        if (Session.Prepared)
         {
-            ImGui::TextUnformatted("Open a project");
-            ImGui::Separator();
-            for (const ProjectBrowserEntry& Entry : Session.Listing.Entries)
-            {
-                if (ImGui::Button(Entry.Descriptor.Name.c_str(), ImVec2(420.0f, 0.0f)))
-                {
-                    Session.Chosen = Entry.Descriptor.DescriptorPath;
-                    // 📝 The browser window closes behind the project window it launches.
-                    glfwSetWindowShouldClose(Session.Window, GLFW_TRUE);
-                }
-                ImGui::SameLine();
-                ImGui::TextDisabled("%s", EncodeUtf8Path(Entry.Descriptor.ProjectDirectory).c_str());
-            }
-            for (const std::string& Diagnostic : Session.Listing.Diagnostics)
-            {
-                ImGui::TextDisabled("skipped: %s", Diagnostic.c_str());
-            }
+            return;
         }
-        ImGui::End();
+        Session.Prepared = true;
+        Session.Centre   = std::make_unique<ControlCentrePanel>(
+            "EngineContent/FontArchives", Session.ProjectsDirectory / "Saved" / "BrowserAppearance.toml");
+        (void)Session.Centre->Initialize();
+        (void)Session.Centre->Activate();
+        Session.Browser.ConfigurePreferences(Session.ProjectsDirectory / "Saved" / "ProjectBrowserPrefs.toml");
+    };
+    Callbacks.ConstructInterface = [&Session](bool) {
+        if (Session.Centre)
+        {
+            Session.Centre->PrepareInterface();
+            Session.Browser.ConfigurePalette(ControlKit::Palette());
+        }
+        Session.Browser.ConstructInterface();
+        const std::filesystem::path Picked = Session.Browser.ConsumeLaunchPath();
+        if (!Picked.empty())
+        {
+            Session.Chosen = Picked;
+            // 📝 The browser window closes behind the project window it launches.
+            glfwSetWindowShouldClose(Session.Window, GLFW_TRUE);
+        }
+    };
+    Callbacks.Finalize = [&Session]() {
+        if (Session.Centre)
+        {
+            (void)Session.Centre->Finalize();
+            Session.Centre.reset();
+        }
     };
 
     const int Result = RunWindowsApplication(Callbacks);
     ChosenDescriptor = Session.Chosen;
     return Result;
+}
+
+bool PrepareLaunchedSelection(const std::filesystem::path& Chosen,
+                              const std::filesystem::path& FromExecutable,
+                              ProjectDescriptor&           OutDescriptor)
+{
+    if (Chosen.extension() == ".projectspace")
+    {
+        std::error_code Error;
+        for (const std::filesystem::directory_entry& Sibling :
+             std::filesystem::directory_iterator(Chosen.parent_path(), Error))
+        {
+            if (Sibling.is_regular_file(Error) && Sibling.path().extension() == ".frontier")
+            {
+                return PrepareProjectSession(Sibling.path(), FromExecutable, OutDescriptor);
+            }
+        }
+        ProjectSpaceDocument Container;
+        std::string          Diagnostic;
+        if (!ProjectSpaceCodec::Decode(Chosen, Container, Diagnostic))
+        {
+            std::fprintf(stderr, "Frontier: cannot open projectspace: %s\n", Diagnostic.c_str());
+            return false;
+        }
+        OutDescriptor                  = ProjectDescriptor{};
+        OutDescriptor.Name             = Container.Sections["project"]["name"].value_or(std::string{"Untitled"});
+        OutDescriptor.OpeningScene     = Container.Sections["engine"]["startup_level"].value_or(std::string{});
+        OutDescriptor.DescriptorPath   = std::filesystem::absolute(Chosen, Error);
+        OutDescriptor.ProjectDirectory = OutDescriptor.DescriptorPath.parent_path();
+        ConfigureContentRoots(FromExecutable, OutDescriptor.ProjectDirectory / OutDescriptor.ContentLocation);
+        ConfigureLogFile(OutDescriptor.ProjectDirectory / "Saved" / "Logs" / "Frontier.log");
+        return true;
+    }
+    return PrepareProjectSession(Chosen, FromExecutable, OutDescriptor);
 }
 
 int RunProjectWindow(const ProjectDescriptor& Descriptor, const std::filesystem::path& FromExecutable)
@@ -350,6 +399,7 @@ int RunProjectWindow(const ProjectDescriptor& Descriptor, const std::filesystem:
 
     WorkspaceSession Session;
     Session.ProjectName     = Descriptor.Name;
+    Session.OpeningScene    = Descriptor.OpeningScene;
     Session.ProjectLocation = EncodeUtf8Path(Descriptor.ProjectDirectory);
     Session.LayoutPath      = Descriptor.ProjectDirectory / "Saved" / "WorkspaceLayout.toml";
 
@@ -370,8 +420,7 @@ int RunProjectWindow(const ProjectDescriptor& Descriptor, const std::filesystem:
         Session.Prepared = true;
 
         Session.Centre = std::make_unique<ControlCentrePanel>(
-            "EngineContent/FontArchives", Descriptor.ProjectDirectory / "Saved" / "ControlCentre.toml",
-            Descriptor.ProjectDirectory);
+            "EngineContent/FontArchives", Descriptor.ProjectDirectory / "Saved" / "ControlCentre.toml");
         (void)Session.Centre->Initialize();
         (void)Session.Centre->Activate();
 
@@ -386,9 +435,9 @@ int RunProjectWindow(const ProjectDescriptor& Descriptor, const std::filesystem:
         (void)Session.Panels.Register(MakeSceneDirectoryPanelSpecification(Session.OutlinerPanel));
         Session.Panels.ConfigureWorkspaceInsets(79.0f, 0.0f);   // [px] - Top band for the notch tab (TextureStudio)
         Session.Panels.ConfigureTabExtent(140.0f, 26.0f);       // [px]
-        // Outliner stacked over the Log Stream in the right column; columns stay 50/50.
-        (void)Session.Panels.ConfigureStackedPanels("Outliner", "LogStream", 420.0f);   // [px] upper height
-        (void)Session.Panels.ConfigureColumns({{"Viewport", 0.5f}, {"LogStream", 0.5f}});   // 50/50 split
+        // Outliner stacked over the Log Stream in the right column; Log Stream receives generous desktop width.
+        (void)Session.Panels.ConfigureStackedPanels("Outliner", "LogStream", 280.0f);   // [px] upper height
+        (void)Session.Panels.ConfigureColumns({{"Viewport", 0.42f}, {"LogStream", 0.58f}});
 
         std::error_code Error;
         if (std::filesystem::is_regular_file(Session.LayoutPath, Error))
@@ -437,6 +486,11 @@ int RunProjectWindow(const ProjectDescriptor& Descriptor, const std::filesystem:
         Session.Centre->ConstructInterface();   // Trapezoidal notch tab + drawer, drawn over the panels
     };
     Callbacks.Finalize = [&Session]() {
+        if (Session.Centre)
+        {
+            (void)Session.Centre->Finalize();
+            Session.Centre.reset();
+        }
         std::error_code Error;
         std::filesystem::create_directories(Session.LayoutPath.parent_path(), Error);
         std::ofstream Out(Session.LayoutPath, std::ios::trunc);
@@ -503,7 +557,7 @@ int main(int ArgumentCount, char** Arguments)
                 return BrowserResult;
             }
             ProjectDescriptor Descriptor;
-            if (!PrepareProjectSession(Chosen, FromExecutable, Descriptor))
+            if (!PrepareLaunchedSelection(Chosen, FromExecutable, Descriptor))
             {
                 return 1;
             }

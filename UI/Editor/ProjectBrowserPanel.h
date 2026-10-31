@@ -56,8 +56,11 @@ class ProjectBrowserPanel
     [[nodiscard]] static constexpr std::array<const char *, 1> QueryPresets() noexcept { return {"Blank Project"}; }
     // 📖 1:1 browser navigation (driven by the UI and by the validation harness).
     bool OpenSample(const std::string &Token);
+    bool OpenAttachedEntry(const std::string &Token);
+    bool LaunchActiveEntry();
     void CloseFile();
     size_t AttachPaths(const std::vector<std::filesystem::path> &Paths, bool AutoOpen = true);
+    size_t AttachProjectsDirectory(const std::filesystem::path &ProjectsDirectory);
     [[nodiscard]] bool IsReaderOpen() const noexcept { return !ActiveToken.empty(); }
     [[nodiscard]] const std::string &QueryActiveToken() const noexcept { return ActiveToken; }
     [[nodiscard]] size_t QueryEntryCount() const noexcept { return Entries.size(); }

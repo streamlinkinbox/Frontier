@@ -1,0 +1,8 @@
+# EngineContent-relative paths Project Everest stages beside the executable at build time.
+Stage = [
+    "FontArchives/FontCatalogue.toml",
+    "FontArchives/Inter",
+    "FontArchives/DMSans",
+    "FontArchives/JetBrainsMono",
+    "Icons",
+]

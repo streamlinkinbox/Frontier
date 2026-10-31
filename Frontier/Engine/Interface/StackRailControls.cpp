@@ -6,14 +6,57 @@
 // builds keep linking (same contract as the Log Stream presentation).
 #if defined(FRONTIER_WITH_INTERFACE_SDK)
 
+#include "Engine/Interface/ControlKit.h"
 #include "Engine/Interface/TypefaceRegistry.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace Frontier
 {
 
-using Theme = KitTheme;
+namespace
+{
+
+constexpr ImU32 KitQuad(ColorQuad Quad) noexcept
+{
+    return KitInkRgba(std::clamp(static_cast<int>(Quad.Red * 255.0f + 0.5f), 0, 255),
+                      std::clamp(static_cast<int>(Quad.Green * 255.0f + 0.5f), 0, 255),
+                      std::clamp(static_cast<int>(Quad.Blue * 255.0f + 0.5f), 0, 255),
+                      std::clamp(static_cast<int>(Quad.Alpha * 255.0f + 0.5f), 0, 255));
+}
+
+} // namespace
+
+KitTheme ResolveKitTheme() noexcept
+{
+    const ControlKitPalette& K       = ControlKit::Palette();
+    const auto               Contrast = [&](float Alpha) -> ImU32 {
+        const int Byte = std::clamp(static_cast<int>(Alpha * 255.0f + 0.5f), 0, 255);
+        return K.LightSurface ? KitInkRgba(15, 23, 42, Byte) : KitInkRgba(255, 255, 255, Byte);
+    };
+
+    KitTheme Theme;
+    Theme.PanelBg   = KitQuad(K.Panel);
+    Theme.PanelEdge = KitQuad(K.Stroke);
+    Theme.Surface   = KitQuad(K.Card);
+    Theme.Surface2  = KitQuad(K.Inset);
+    Theme.Surface3  = KitQuad(K.Raised);
+    Theme.Line      = KitQuad(K.Divider);
+    Theme.LineSoft  = Contrast(0.045f);
+    Theme.RowHover  = Contrast(0.036f);
+    Theme.Text      = KitQuad(K.Text);
+    Theme.Muted     = KitQuad(K.TextDim);
+    Theme.Faint     = KitQuad(K.TextFaint);
+    Theme.ChipOnBg  = KitQuad(K.Primary);
+    Theme.ChipOnInk = KitQuad(K.PrimaryInk);
+    if (K.LightSurface)
+    {
+        Theme.Mint    = KitInkHex(0x0b9e6f);
+        Theme.MintDim = KitInkRgba(11, 158, 111, 28);
+    }
+    return Theme;
+}
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      PRIMITIVES
@@ -98,39 +141,40 @@ void KitPillSurface(ImDrawList* Ink, ImVec2 Minimum, ImVec2 Maximum, ImU32 Backg
 bool DrawStackRailHead(const KitFaces& Faces, ImVec2 Minimum, float Width, const char* Title,
                        const char* CountText)
 {
+    const KitTheme Theme  = ResolveKitTheme();
     ImDrawList* Ink       = ImGui::GetWindowDrawList();
     const float CentreY   = Minimum.y + 18.0f;   // [px] - 36 px head row
     const float Right     = Minimum.x + Width;
 
     // Stack glyph tile.
     Ink->AddRectFilled(ImVec2(Minimum.x, CentreY - 15.0f), ImVec2(Minimum.x + 30.0f, CentreY + 15.0f),
-                       Theme::Surface2, 9.0f);
-    Ink->AddRect(ImVec2(Minimum.x, CentreY - 15.0f), ImVec2(Minimum.x + 30.0f, CentreY + 15.0f), Theme::Line, 9.0f);
+                       Theme.Surface2, 9.0f);
+    Ink->AddRect(ImVec2(Minimum.x, CentreY - 15.0f), ImVec2(Minimum.x + 30.0f, CentreY + 15.0f), Theme.Line, 9.0f);
     for (int Bar = 0; Bar < 3; ++Bar)
     {
         const float Y = CentreY - 7.0f + static_cast<float>(Bar) * 6.0f;
-        Ink->AddRectFilled(ImVec2(Minimum.x + 8.0f, Y), ImVec2(Minimum.x + 22.0f, Y + 2.6f), Theme::Mint, 1.3f);
+        Ink->AddRectFilled(ImVec2(Minimum.x + 8.0f, Y), ImVec2(Minimum.x + 22.0f, Y + 2.6f), Theme.Mint, 1.3f);
     }
 
     const float TitleX = Minimum.x + 30.0f + 14.0f;
-    KitDrawText(Ink, Faces.Medium, 21.0f, ImVec2(TitleX, CentreY - 10.5f), Theme::Text, Title);
+    KitDrawText(Ink, Faces.Medium, 21.0f, ImVec2(TitleX, CentreY - 10.5f), Theme.Text, Title);
 
     // HeadCount pill.
     const float CountW = KitTextWidth(Faces.Regular, 12.5f, CountText);
     const float PillW  = 14.0f + 7.0f + 8.0f + CountW + 14.0f;
     const float PillX  = TitleX + KitTextWidth(Faces.Medium, 21.0f, Title) + 14.0f;
-    KitPillSurface(Ink, ImVec2(PillX, CentreY - 12.0f), ImVec2(PillX + PillW, CentreY + 12.0f), Theme::Surface2,
-                   Theme::Line, 999.0f);
-    Ink->AddCircleFilled(ImVec2(PillX + 17.5f, CentreY), 3.5f, Theme::Mint);
-    KitDrawText(Ink, Faces.Regular, 12.5f, ImVec2(PillX + 29.0f, CentreY - 6.25f), Theme::Muted, CountText);
+    KitPillSurface(Ink, ImVec2(PillX, CentreY - 12.0f), ImVec2(PillX + PillW, CentreY + 12.0f), Theme.Surface2,
+                   Theme.Line, 999.0f);
+    Ink->AddCircleFilled(ImVec2(PillX + 17.5f, CentreY), 3.5f, Theme.Mint);
+    KitDrawText(Ink, Faces.Regular, 12.5f, ImVec2(PillX + 29.0f, CentreY - 6.25f), Theme.Muted, CountText);
 
     // AddHost button.
     bool       Hovered = false;
     const bool Clicked = KitTarget("##StackRailAdd", ImVec2(Right - 30.0f, CentreY - 15.0f), ImVec2(30.0f, 30.0f),
                                    Hovered, "Add object");
     KitPillSurface(Ink, ImVec2(Right - 30.0f, CentreY - 15.0f), ImVec2(Right, CentreY + 15.0f),
-                   Hovered ? Theme::Surface3 : Theme::Surface2, Theme::Line, 9.0f);
-    const ImU32 PlusColour = Hovered ? Theme::Text : Theme::Muted;
+                   Hovered ? Theme.Surface3 : Theme.Surface2, Theme.Line, 9.0f);
+    const ImU32 PlusColour = Hovered ? Theme.Text : Theme.Muted;
     Ink->AddRectFilled(ImVec2(Right - 15.0f - 6.0f, CentreY - 1.3f), ImVec2(Right - 15.0f + 6.0f, CentreY + 1.3f),
                        PlusColour, 1.3f);
     Ink->AddRectFilled(ImVec2(Right - 15.0f - 1.3f, CentreY - 6.0f), ImVec2(Right - 15.0f + 1.3f, CentreY + 6.0f),
@@ -141,32 +185,35 @@ bool DrawStackRailHead(const KitFaces& Faces, ImVec2 Minimum, float Width, const
 void DrawStackRailFoot(const KitFaces& Faces, ImVec2 Minimum, float Width, const char* LeftText,
                        const char* RightText)
 {
+    const KitTheme Theme = ResolveKitTheme();
     ImDrawList* Ink = ImGui::GetWindowDrawList();
-    Ink->AddRectFilled(Minimum, ImVec2(Minimum.x + Width, Minimum.y + 1.0f), Theme::LineSoft);
-    KitDrawText(Ink, Faces.Regular, 11.5f, ImVec2(Minimum.x, Minimum.y + 8.0f), Theme::Faint, LeftText);
+    Ink->AddRectFilled(Minimum, ImVec2(Minimum.x + Width, Minimum.y + 1.0f), Theme.LineSoft);
+    KitDrawText(Ink, Faces.Regular, 11.5f, ImVec2(Minimum.x, Minimum.y + 8.0f), Theme.Faint, LeftText);
     const float RightW = KitTextWidth(Faces.Regular, 11.5f, RightText);
-    KitDrawText(Ink, Faces.Regular, 11.5f, ImVec2(Minimum.x + Width - RightW, Minimum.y + 8.0f), Theme::Faint,
+    KitDrawText(Ink, Faces.Regular, 11.5f, ImVec2(Minimum.x + Width - RightW, Minimum.y + 8.0f), Theme.Faint,
                 RightText);
 }
 
 void DrawIdentityHeader(const KitFaces& Faces, ImVec2 Minimum, float Width, ImU32 IconColour, const char* Name,
                         const char* Sub)
 {
+    const KitTheme Theme = ResolveKitTheme();
     ImDrawList* Ink = ImGui::GetWindowDrawList();
-    KitPillSurface(Ink, Minimum, ImVec2(Minimum.x + Width, Minimum.y + 56.0f), Theme::Surface, Theme::LineSoft,
+    KitPillSurface(Ink, Minimum, ImVec2(Minimum.x + Width, Minimum.y + 56.0f), Theme.Surface, Theme.LineSoft,
                    12.0f);
     const ImVec2 DiscCentre(Minimum.x + 28.0f, Minimum.y + 28.0f);
     Ink->AddCircleFilled(DiscCentre, 14.0f, KitInkWithAlpha(IconColour, 0.16f));
     Ink->AddCircle(DiscCentre, 14.0f, KitInkWithAlpha(IconColour, 0.45f));
     Ink->AddCircleFilled(DiscCentre, 4.5f, IconColour);
-    KitDrawText(Ink, Faces.Medium, 14.5f, ImVec2(Minimum.x + 54.0f, Minimum.y + 10.0f), Theme::Text, Name);
-    KitDrawText(Ink, Faces.Regular, 11.5f, ImVec2(Minimum.x + 54.0f, Minimum.y + 32.0f), Theme::Muted, Sub);
+    KitDrawText(Ink, Faces.Medium, 14.5f, ImVec2(Minimum.x + 54.0f, Minimum.y + 10.0f), Theme.Text, Name);
+    KitDrawText(Ink, Faces.Regular, 11.5f, ImVec2(Minimum.x + 54.0f, Minimum.y + 32.0f), Theme.Muted, Sub);
 }
 
 TreeRowInteraction DrawTreeRow(const KitFaces& Faces, const char* Id, ImVec2 Minimum, float Width, float Indent,
                                bool HasChildren, bool Collapsed, ImU32 DotColour, const char* Name,
                                const char* Meta, bool Visible, bool Selected)
 {
+    const KitTheme     Theme   = ResolveKitTheme();
     ImDrawList*        Ink     = ImGui::GetWindowDrawList();
     const float        Height  = 30.0f;   // [px]
     const float        CentreY = Minimum.y + Height * 0.5f;
@@ -179,13 +226,13 @@ TreeRowInteraction DrawTreeRow(const KitFaces& Faces, const char* Id, ImVec2 Min
 
     if (Selected)
     {
-        Ink->AddRectFilled(Minimum, Maximum, Theme::MintDim, 8.0f);
+        Ink->AddRectFilled(Minimum, Maximum, Theme.MintDim, 8.0f);
         Ink->AddRectFilled(ImVec2(Minimum.x, Minimum.y + 5.0f), ImVec2(Minimum.x + 2.5f, Maximum.y - 5.0f),
-                           Theme::Mint, 1.2f);
+                           Theme.Mint, 1.2f);
     }
     else if (BodyHovered)
     {
-        Ink->AddRectFilled(Minimum, Maximum, Theme::RowHover, 8.0f);
+        Ink->AddRectFilled(Minimum, Maximum, Theme.RowHover, 8.0f);
     }
 
     float CursorX = Minimum.x + 10.0f + Indent;
@@ -197,7 +244,7 @@ TreeRowInteraction DrawTreeRow(const KitFaces& Faces, const char* Id, ImVec2 Min
         Result.ChevronClicked =
             KitTarget("##Fold", ImVec2(CursorX - 3.0f, CentreY - 9.0f), ImVec2(18.0f, 18.0f), ChevronHovered,
                       Collapsed ? "Expand" : "Collapse");
-        const ImU32  ChevronColour = ChevronHovered ? Theme::Text : Theme::Faint;
+        const ImU32  ChevronColour = ChevronHovered ? Theme.Text : Theme.Faint;
         const ImVec2 C(CursorX + 6.0f, CentreY);
         if (Collapsed)
         {
@@ -216,7 +263,7 @@ TreeRowInteraction DrawTreeRow(const KitFaces& Faces, const char* Id, ImVec2 Min
     Ink->AddCircleFilled(ImVec2(CursorX + 4.0f, CentreY), 3.5f,
                          Visible ? DotColour : KitInkWithAlpha(DotColour, 0.35f));
     CursorX += 16.0f;
-    const ImU32 NameColour = !Visible ? Theme::Faint : (Selected ? Theme::Text : Theme::Muted);
+    const ImU32 NameColour = !Visible ? Theme.Faint : (Selected ? Theme.Text : Theme.Muted);
     KitDrawText(Ink, Selected ? Faces.Medium : Faces.Regular, 13.0f, ImVec2(CursorX, CentreY - 6.5f), NameColour,
                 Name);
 
@@ -225,7 +272,7 @@ TreeRowInteraction DrawTreeRow(const KitFaces& Faces, const char* Id, ImVec2 Min
     bool        EyeHovered = false;
     Result.EyeClicked       = KitTarget("##Eye", ImVec2(EyeX, CentreY - 12.0f), ImVec2(24.0f, 24.0f), EyeHovered,
                                   Visible ? "Hide in viewport" : "Show in viewport");
-    const ImU32  EyeColour = EyeHovered ? Theme::Text : (Visible ? Theme::Muted : Theme::Faint);
+    const ImU32  EyeColour = EyeHovered ? Theme.Text : (Visible ? Theme.Muted : Theme.Faint);
     const ImVec2 EyeCentre(EyeX + 12.0f, CentreY);
     Ink->AddCircle(EyeCentre, 6.5f, EyeColour, 24, 1.3f);
     Ink->AddCircleFilled(EyeCentre, 2.2f, Visible ? EyeColour : KitInkWithAlpha(EyeColour, 0.0f));
@@ -236,7 +283,7 @@ TreeRowInteraction DrawTreeRow(const KitFaces& Faces, const char* Id, ImVec2 Min
     }
 
     const float MetaW = KitTextWidth(Faces.Regular, 11.0f, Meta);
-    KitDrawText(Ink, Faces.Regular, 11.0f, ImVec2(EyeX - 10.0f - MetaW, CentreY - 5.5f), Theme::Faint, Meta);
+    KitDrawText(Ink, Faces.Regular, 11.0f, ImVec2(EyeX - 10.0f - MetaW, CentreY - 5.5f), Theme.Faint, Meta);
 
     ImGui::PopID();
     return Result;

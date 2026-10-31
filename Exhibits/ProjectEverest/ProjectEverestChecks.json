@@ -1,0 +1,22 @@
+{
+  "result": "passed",
+  "project": "Project Everest",
+  "descriptor": "Frontier/Projects/Project-Everest/ProjectEverest.frontier",
+  "declared_log_categories": 5,
+  "log_entries_ingested": 14,
+  "outliner_registered_items": 6,
+  "scoped_destructor_unregistered": true,
+  "log_stream_mean_luma": {
+    "oled": 23.3186,
+    "dark": 38.2525,
+    "light": 243.164
+  },
+  "captures": [
+    "01-ProjectBrowser-Library.png",
+    "02-ProjectBrowser-SelectEverest.png",
+    "03-ProjectEverest-Workspace-Dark.png",
+    "04-ProjectEverest-ControlCentre-ThemeDrawer.png",
+    "05-ProjectEverest-Workspace-Light.png",
+    "06-ProjectEverest-Workspace-OLED.png"
+  ]
+}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Project Everest — Native C++ UI Exhibits</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0;
+    padding: 32px;
+    background: #090b0a;
+    color: #eef3f0;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  h1 { margin: 0 0 8px; font-size: 24px; font-weight: 600; }
+  p.lead { margin: 0 0 28px; color: #97a29b; font-size: 14px; max-width: 960px; line-height: 1.6; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 28px; max-width: 1600px; }
+  figure {
+    margin: 0;
+    background: #111513;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  figcaption {
+    padding: 14px 20px;
+    font-size: 13px;
+    color: #cfd8d1;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+  }
+  figcaption span.meta { color: #2fe6a7; font-family: monospace; }
+  img { display: block; width: 100%; height: auto; }
+</style>
+</head>
+<body>
+  <h1>Project Everest — Native C++ UI Verification Gallery</h1>
+  <p class="lead">
+    Actual CPU-rasterised ImGui + ThorVG + TypefaceRegistry output from
+    <code>Exhibits/ProjectEverest/Code/ProjectEverestValidation.cpp</code> (1600&times;960):
+    Project Browser discovery &rarr; Project Everest selection &rarr; native workspace hand-off with
+    <code>ControlCentrePanel</code>, <code>PanelDockspace</code>, <code>SceneDirectoryPanel</code>, and
+    <code>LogStreamPanel</code> across Dark, Light, and OLED themes.
+  </p>
+  <div class="grid">
+    <figure>
+      <figcaption>
+        <span>01 &middot; Project Browser opens with Project Everest enumerated from Frontier/Projects</span>
+        <span class="meta">01-ProjectBrowser-Library.png</span>
+      </figcaption>
+      <img src="01-ProjectBrowser-Library.png" alt="Project Browser Library">
+    </figure>
+    <figure>
+      <figcaption>
+        <span>02 &middot; Selecting Project Everest opens the native application Reader &amp; Open in Frontier hand-off</span>
+        <span class="meta">02-ProjectBrowser-SelectEverest.png</span>
+      </figcaption>
+      <img src="02-ProjectBrowser-SelectEverest.png" alt="Project Browser Select Project Everest">
+    </figure>
+    <figure>
+      <figcaption>
+        <span>03 &middot; Project Everest workspace opened (Control Centre notch + Dockspace + Outliner + Log Stream, Dark theme, luma 38.25)</span>
+        <span class="meta">03-ProjectEverest-Workspace-Dark.png</span>
+      </figcaption>
+      <img src="03-ProjectEverest-Workspace-Dark.png" alt="Project Everest Workspace Dark">
+    </figure>
+    <figure>
+      <figcaption>
+        <span>04 &middot; Control Centre top drawer opened via trapezoidal notch &rarr; Appearance &rarr; Theme (Light selected)</span>
+        <span class="meta">04-ProjectEverest-ControlCentre-ThemeDrawer.png</span>
+      </figcaption>
+      <img src="04-ProjectEverest-ControlCentre-ThemeDrawer.png" alt="Control Centre Theme Drawer">
+    </figure>
+    <figure>
+      <figcaption>
+        <span>05 &middot; Light theme applied via Control Centre — Dockspace, Outliner, and Log Stream re-themed live (luma 243.16)</span>
+        <span class="meta">05-ProjectEverest-Workspace-Light.png</span>
+      </figcaption>
+      <img src="05-ProjectEverest-Workspace-Light.png" alt="Project Everest Workspace Light">
+    </figure>
+    <figure>
+      <figcaption>
+        <span>06 &middot; OLED theme applied via Control Centre — pure-black OLED surfaces across workspace (luma 23.32)</span>
+        <span class="meta">06-ProjectEverest-Workspace-OLED.png</span>
+      </figcaption>
+      <img src="06-ProjectEverest-Workspace-OLED.png" alt="Project Everest Workspace OLED">
+    </figure>
+  </div>
+</body>
+</html>

@@ -307,7 +307,8 @@ inline BrowserFileCategory ClassifyBrowserImport(const std::string &Extension, b
 {
     const std::string Folded = FoldBrowserText(Extension);
     Supported = true;
-    if (Folded == ".project" || Folded == ".projectspace" || Folded == ".scene") return BrowserFileCategory::Project;
+    if (Folded == ".frontier" || Folded == ".project" || Folded == ".projectspace" || Folded == ".scene")
+        return BrowserFileCategory::Project;
     if (Folded == ".assembly" || Folded == ".sketch") return BrowserFileCategory::Cad;
     if (Folded == ".geometry" || Folded == ".geometryspace" || Folded == ".png" || Folded == ".jpg" ||
         Folded == ".jpeg" || Folded == ".webp")
