@@ -4,9 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <title>Frontier · Vehicle Inspector</title>
-    <meta name="description" content="Data-only Vehicle record, parented tyre sockets, coloured unit cards and editable engine curves in the Frontier Outliner/Inspector.">
+    <title>Frontier · Scene Inspector</title>
+    <meta name="description" content="Frontier Outliner/Inspector with Vehicle, Sun, Atmosphere, Clouds and geometry-backed 3D object records, coloured unit cards and editable curves.">
     <link rel="stylesheet" href="VehicleInspector.css">
+    <script src="SceneRecords.js" defer></script>
+    <script src="ScenePreview3D.js" defer></script>
     <script src="VehicleInspector.js" defer></script>
 </head>
 <body>
@@ -29,20 +31,26 @@
                     <div class="composition-bar">
                         <div class="scene-glyph" id="SceneGlyph"></div>
                         <div>
-                            <div class="scene-title">Vehicle record</div>
+                            <div class="scene-title" id="SceneTitle">Vehicle record</div>
                             <div class="scene-meta" id="SceneMeta">Data-only · no geometry attached</div>
                         </div>
                         <div class="spacer"></div>
-                        <div class="scene-chip"><i></i><span>Records live</span></div>
-                    </div>
-                    <div class="composition-surface">
-                        <div class="composition-heading">
-                            <p class="eyebrow">Scene / hierarchy</p>
-                            <h2>Parented tyre sockets</h2>
-                            <p>Vehicle is a scene record; tyres are removable child records.</p>
+                        <div class="scene-view-tabs" id="SceneViewTabs" aria-label="Scene composition view">
+                            <button type="button" class="active" data-action="scene-view" data-view="records">Records</button>
+                            <button type="button" data-action="scene-view" data-view="3d">3D scene</button>
                         </div>
-                        <div class="no-geometry">No mesh · no geometry</div>
+                        <div class="scene-chip"><i></i><span id="SceneChipText">Records live</span></div>
+                    </div>
+                    <div class="composition-surface" id="CompositionSurface" data-view="records">
+                        <div class="composition-heading">
+                            <p class="eyebrow" id="CompositionEyebrow">Scene / hierarchy</p>
+                            <h2 id="CompositionTitle">Parented tyre sockets</h2>
+                            <p id="CompositionSubtitle">Vehicle is a scene record; tyres are removable child records.</p>
+                        </div>
+                        <div class="no-geometry" id="NoGeometryBadge">No mesh · no geometry</div>
                         <div class="node-diagram" id="NodeDiagram"></div>
+                        <canvas id="SceneCanvas" class="scene-canvas" hidden aria-label="Live software 3D scene preview"></canvas>
+                        <div class="scene-overlay" id="SceneOverlay" aria-hidden="true"><span>SOFTWARE 3D</span><span class="spacer"></span><span>DRAG · ORBIT / CLICK · SELECT</span></div>
                         <div class="composition-readout">
                             <span>Structure</span><span class="rule"></span><span id="CompositionReadout"></span>
                         </div>
@@ -66,7 +74,7 @@
         <aside class="dock-panel inspector-dock" aria-label="Inspector">
             <div class="dock-tabs">
                 <div class="dock-tab">Inspector <span class="tab-close" aria-hidden="true">×</span></div>
-                <div class="dock-title">Vehicle / Tyres / Curves</div>
+                <div class="dock-title">Scene / Records / Curves</div>
             </div>
             <div class="dock-body">
                 <div class="panel-scroll" id="InspectorScroll"><div class="panel-content" id="InspectorContent"></div></div>
@@ -78,7 +86,7 @@
     <dialog id="CurveDialog" aria-labelledby="CurveDialogTitle">
         <form class="dialog-card" id="CurveForm">
             <div class="dialog-head">
-                <div><h3 id="CurveDialogTitle">New editable curve</h3><p>Add a parameter curve to this vehicle. Points remain draggable after creation.</p></div>
+                <div><h3 id="CurveDialogTitle">New editable curve</h3><p>Add a parameter curve to the selected vehicle, environment or 3D object record. Points remain draggable after creation.</p></div>
                 <div class="spacer"></div>
                 <button class="dialog-close" type="button" data-action="close-dialog" data-dialog="CurveDialog" aria-label="Close">×</button>
             </div>
@@ -102,11 +110,11 @@
     <dialog id="JsonDialog" aria-labelledby="JsonDialogTitle">
         <div class="dialog-card">
             <div class="dialog-head">
-                <div><h3 id="JsonDialogTitle">Custom vehicle record</h3><p>Current spec, parented tyre sockets and editable curves as portable JSON.</p></div>
+                <div><h3 id="JsonDialogTitle">Custom scene record</h3><p>Current specification, hierarchy and editable curves as portable JSON.</p></div>
                 <div class="spacer"></div>
                 <button class="dialog-close" type="button" data-action="close-dialog" data-dialog="JsonDialog" aria-label="Close">×</button>
             </div>
-            <textarea class="json-area" id="JsonArea" readonly spellcheck="false" aria-label="Vehicle record JSON"></textarea>
+            <textarea class="json-area" id="JsonArea" readonly spellcheck="false" aria-label="Scene record JSON"></textarea>
             <div class="dialog-actions">
                 <button class="btn ghost" type="button" data-action="close-dialog" data-dialog="JsonDialog">Close</button>
                 <button class="btn" type="button" data-action="download-json">Download .json</button>

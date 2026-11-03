@@ -1,13 +1,14 @@
 /*==========================================================================================================================================
-                                                       FRONTIER · VEHICLE INSPECTOR
+                                                   FRONTIER · SCENE INSPECTOR WORKBENCH
 ===========================================================================================================================================*/
-/* A data-only Vehicle record in the same Outliner/Inspector language as Render settings, Sun and Atmosphere.
-   Tyres are parented child sockets; pit-stop actions detach or replace them. Curves are editable point splines. */
+/* Render settings, Vehicle/tyres, Sun, Atmosphere, Clouds and geometry-backed 3D objects share one Outliner/Inspector language.
+   Every record has explicit-unit cards and editable point curves; object records are also drawn in a software 3D preview. */
 'use strict';
 
 (() =>
 {
     const PRESET_KEY = 'frontier.vehicle-inspector.presets.v1';
+    const RECORD_PRESET_KEY = 'frontier.scene-inspector.presets.v1';
     const $ = Id => document.getElementById(Id);
     const clone = Value => JSON.parse(JSON.stringify(Value));
     const esc = Value => String(Value ?? '').replace(/[&<>"']/g, Character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[Character]));
@@ -54,6 +55,8 @@
         drive: '<rect x="3" y="7" width="18" height="10" rx="3"/><circle cx="7" cy="12" r="1.5"/><path d="M11 9h6M11 15h6"/>',
         snowflake: '<path d="M12 2v20M4 6l16 12M20 6 4 18M9 4l3 3 3-3M9 20l3-3 3 3"/>',
         alert: '<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.4v.2"/>',
+        cloud: '<path d="M6 17.5h11.5a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 7.2 9.2 4.2 4.2 0 0 0 6 17.5z"/>',
+        orbit: '<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(-25 12 12)"/>',
         dot: '<circle cx="12" cy="12" r="3"/>'
     };
 
@@ -83,28 +86,31 @@
                 { label: 'Trace', text: '450×331', unit: 'px', tone: 'violet', glyph: 'target', trend: '½ resolution' },
                 { label: 'Bounces', text: '3 · 2', unit: 'paths', tone: 'amber', glyph: 'layers', trend: 'GI / reflection' }
             ]
-        },
-        {
-            id: 'sun', group: 'Environment', name: 'Sun', glyph: 'sun', tone: 'amber',
-            meta: '38° · 98 klx',
-            hero: { label: 'Direct illuminance', value: 98, digits: 0, unit: 'klx', side: '38', sideUnit: '°', low: 'Solar elevation' },
-            stats: [
-                { label: 'Elevation', text: '38', unit: '°', tone: 'amber', glyph: 'sun', trend: 'Stratified disc' },
-                { label: 'Colour', text: '5 800', unit: 'K', tone: 'white', glyph: 'droplet', trend: 'Blackbody estimate' },
-                { label: 'Shadow', text: '4', unit: 'cascades', tone: 'blue', glyph: 'layers', trend: 'Clipmap depth' }
-            ]
-        },
-        {
-            id: 'atmosphere', group: 'Environment', name: 'Atmosphere', glyph: 'atmosphere', tone: 'cyan',
-            meta: 'Mie 2.3 · ozone 1.0',
-            hero: { label: 'Mie scattering', value: 2.3, digits: 1, unit: '×', side: '1.0', sideUnit: 'ozone', low: 'Earth preset' },
-            stats: [
-                { label: 'Mie', text: '2.3', unit: '×', tone: 'cyan', glyph: 'atmosphere', trend: 'Aerosols' },
-                { label: 'Ozone', text: '1.0', unit: '×', tone: 'violet', glyph: 'droplet', trend: 'Absorption' },
-                { label: 'Scale height', text: '8.0', unit: 'km', tone: 'green', glyph: 'ruler', trend: 'Density profile' }
-            ]
         }
     ];
+
+    const SceneRecordsAPI = window.FrontierSceneRecords;
+    const Preview3D = window.FrontierScenePreview3D || null;
+    const SceneCatalogue = SceneRecordsAPI
+        ? SceneRecordsAPI.create()
+        : { environment: [], objects: [], all: [], map: new Map() };
+    const sceneRecord = Id => SceneCatalogue.map.get(Id) || null;
+    const sceneMeta = Record => SceneRecordsAPI ? SceneRecordsAPI.metaText(Record) : (Record ? Record.tag : '—');
+    const totalTriangles = () => SceneCatalogue.objects.reduce((Sum, Record) => Sum + (Number(Record.triangles) || 0), 0);
+    function rootSceneRecord(Record)
+    {
+        return (Record && Record.parentId && sceneRecord(Record.parentId)) || Record;
+    }
+    function syncObjectChildren(Record)
+    {
+        if (!Record || Record.kind !== 'object') return;
+        (Record.children || []).forEach(Child =>
+        {
+            if (Child.suffix === 'mesh') Object.assign(Child, { triangles: Record.triangles, vertices: Record.vertices, lods: Record.lods, materials: Record.materials, boundsM3: Record.boundsM3 });
+            if (Child.suffix === 'material') Object.assign(Child, { roughnessPct: Record.roughnessPct, metallicPct: Record.metallicPct, opacityPct: Record.opacityPct, baseColour: Record.baseColour, ior: Record.ior });
+            if (Child.suffix === 'collider') Object.assign(Child, { massKg: Record.massKg });
+        });
+    }
 
     function defaultCurves()
     {
@@ -170,12 +176,20 @@
         catch { return {}; }
     }
 
+    function loadRecordPresets()
+    {
+        try { return JSON.parse(localStorage.getItem(RECORD_PRESET_KEY) || '{}') || {}; }
+        catch { return {}; }
+    }
+
     const state = {
         vehicles: [createVehicle(1)],
         vehicleSerial: 1,
+        objectSerial: SceneCatalogue.objects.length,
         selected: 'v1',
         lastVehicleId: 'v1',
-        expanded: new Set(['v1']),
+        sceneView: 'records',
+        expanded: new Set(['v1', 'clouds', ...SceneCatalogue.objects.slice(0, 1).map(Record => Record.id)]),
         folded: new Set(),
         showEmptySockets: true,
         search: '',
@@ -183,10 +197,13 @@
         tab: 'overview',
         revision: 0,
         presets: loadPresets(),
+        recordPresets: loadRecordPresets(),
         logs: [
-            { time: time(), tag: 'SCENE',   tone: 'blue',  message: 'Default.levelspace · Vehicle record added' },
-            { time: time(), tag: 'VEHICLE', tone: 'green', message: '4 tyre sockets parented to FR-V / 01' },
-            { time: time(), tag: 'NOTE',    tone: 'amber', message: 'No geometry attached — inspector-only step' }
+            { time: time(), tag: 'SCENE',       tone: 'blue',   message: 'Default.levelspace · Vehicle record retained' },
+            { time: time(), tag: 'VEHICLE',     tone: 'green',  message: '4 tyre sockets parented to FR-V / 01' },
+            { time: time(), tag: 'ENVIRONMENT', tone: 'amber',  message: 'Sun / Atmosphere / Clouds records linked to live scene' },
+            { time: time(), tag: 'OBJECTS',     tone: 'violet', message: `${SceneCatalogue.objects.length} geometry-backed objects available in 3D preview` },
+            { time: time(), tag: 'NOTE',        tone: 'cyan',   message: 'Vehicle stays data-only; geometry lives on object records' }
         ]
     };
 
@@ -214,6 +231,12 @@
         catch { toast('Preset storage is unavailable in this browser'); }
     }
 
+    function saveRecordPresets()
+    {
+        try { localStorage.setItem(RECORD_PRESET_KEY, JSON.stringify(state.recordPresets)); }
+        catch { toast('Preset storage is unavailable in this browser'); }
+    }
+
     function commit(Tag, Message, Tone = 'blue', ToastText = '')
     {
         state.revision += 1;
@@ -228,13 +251,21 @@
         addLog(Tag, Message, Tone);
         renderOutliner();
         renderStatus();
-        refreshDerivedLabels(activeVehicle());
+        const Selection = resolveSelection();
+        if (Selection.kind === 'record')
+        {
+            renderComposition();
+            refreshRecordLabels(Selection.record);
+        }
+        else refreshDerivedLabels(activeVehicle());
     }
 
     function resolveSelection()
     {
         const Row = SceneRows.find(Entry => Entry.id === state.selected);
         if (Row) return { kind: 'scene', row: Row };
+        const Dynamic = sceneRecord(state.selected);
+        if (Dynamic) return { kind: 'record', record: Dynamic, root: rootSceneRecord(Dynamic) };
         for (const Vehicle of state.vehicles)
         {
             if (Vehicle.id === state.selected) return { kind: 'vehicle', vehicle: Vehicle };
@@ -247,6 +278,21 @@
     function activeVehicle()
     {
         return state.vehicles.find(Vehicle => Vehicle.id === state.lastVehicleId) || state.vehicles[0];
+    }
+
+    function currentCurveTarget()
+    {
+        const Selection = resolveSelection();
+        if (Selection.kind === 'record') return Selection.record;
+        return activeVehicle();
+    }
+
+    function activeRecordCurve(Record)
+    {
+        if (!Record.curves) Record.curves = {};
+        const Keys = Object.keys(Record.curves);
+        if (!Record.curves[state.curveKey]) state.curveKey = Keys[0] || '';
+        return Record.curves[state.curveKey] || null;
     }
 
     function findTyreOwner(Id)
@@ -263,6 +309,7 @@
     {
         const Selection = resolveSelection();
         if (Selection.kind === 'scene') return Selection.row.name;
+        if (Selection.kind === 'record') return Selection.record.name;
         if (Selection.kind === 'tyre') return `${Selection.tyre.code} · ${Selection.tyre.name}`;
         return Selection.vehicle.name;
     }
@@ -344,15 +391,107 @@
     function fieldHtml(Options)
     {
         const Kind = Options.kind || 'number';
-        const Value = Kind === 'string' ? esc(Options.value) : esc(Options.value);
-        const Attributes = Kind === 'number' ? `min="${esc(Options.min ?? 0)}" step="${esc(Options.step ?? 1)}" inputmode="decimal"` : `maxlength="40"`;
+        const Value = esc(Options.value);
+        const MaxAttribute = Kind === 'number' && Options.max !== undefined && Options.max !== null ? ` max="${esc(Options.max)}"` : '';
+        const Attributes = Kind === 'number' ? `min="${esc(Options.min ?? 0)}"${MaxAttribute} step="${esc(Options.step ?? 1)}" inputmode="decimal"` : 'maxlength="40"';
         return `<label class="field" data-tone="${esc(Options.tone || 'blue')}">
             <span class="field-head">${icon(Options.glyph || 'dot')}<span>${esc(Options.label)}</span></span>
             <span class="field-input"><input type="${Kind === 'string' ? 'text' : 'number'}" value="${Value}" ${Attributes}
-                data-bind="${esc(Options.bind)}" data-scope="${esc(Options.scope || 'vehicle')}" data-kind="${Kind}" data-unit="${esc(Options.unit || '')}" aria-label="${esc(Options.label)}">
+                data-bind="${esc(Options.bind)}" data-scope="${esc(Options.scope || 'vehicle')}" data-record-id="${esc(Options.recordId || '')}" data-kind="${Kind}"
+                data-unit="${esc(Options.unit || '')}" data-digits="${esc(Options.digits ?? 0)}" data-group="${esc(Options.group || '')}" aria-label="${esc(Options.label)}">
                 ${Options.unit ? `<span class="field-unit">${esc(Options.unit)}</span>` : ''}
             </span>
         </label>`;
+    }
+
+    function recordCardHtml(Record, Card)
+    {
+        const Options = { ...Card };
+        if (Card.textBind !== undefined) Options.text = Record[Card.textBind];
+        else if (Card.bind !== undefined) Options.value = Record[Card.bind];
+        if (Options.value === undefined) Options.value = 0;
+        delete Options.derived;
+        delete Options.textBind;
+        delete Options.bind;
+        return statCard(Options);
+    }
+
+    function recordHeroHtml(Record, Parent)
+    {
+        const Hero = Record.hero || { label: 'Record value', bind: 'coveragePct', unit: '', sideBind: '', sideUnit: '', low: 'Live record' };
+        const Value = Number(Record[Hero.bind]);
+        const SideValue = Record[Hero.sideBind];
+        const SideHtml = Number.isFinite(Number(SideValue)) && SideValue !== '' && SideValue !== undefined
+            ? fmt(SideValue, Hero.sideDigits ?? 0) : esc(SideValue ?? '—');
+        const Children = (Record.children || []).length;
+        const Geometry = Record.geometryBacked ? '<b>Geometry-backed.</b> Shown as a mesh in the 3D preview.' : Parent && Parent.geometryBacked ? '<b>Child of a geometry record.</b> Mesh stays parented to the object.' : '<b>Procedural record.</b> Drives the scene without spawning a mesh.';
+        return heroCard({
+            tone: Record.tone, glyph: Record.glyph, chip: Record.tag || 'SCENE RECORD',
+            tag: Record.geometryBacked ? '3D GEOMETRY' : Record.kind === 'component' ? 'COMPONENT' : 'PROCEDURAL',
+            title: Hero.label, value: Value, digits: Hero.digits ?? 0, unit: Hero.unit || '',
+            sideHtml: SideHtml, sideUnit: Hero.sideUnit || '', low: Hero.low || '',
+            noteHtml: `${Geometry} ${Children} child record${Children === 1 ? '' : 's'} · ${Object.keys(Record.curves || {}).length} editable curve${Object.keys(Record.curves || {}).length === 1 ? '' : 's'}.`
+        });
+    }
+
+    const RecordGroupNames = {
+        general: 'General', transform: 'Transform & placement', solar: 'Solar geometry', scattering: 'Scattering & density',
+        layer: 'Cloud layer', volume: 'Volume & fog', mesh: 'Mesh', surface: 'Surface', physics: 'Physics'
+    };
+
+    function recordFieldsHtml(Record)
+    {
+        const Groups = new Map();
+        (Record.fields || []).forEach(Field =>
+        {
+            const Key = Field.group || 'general';
+            if (!Groups.has(Key)) Groups.set(Key, []);
+            Groups.get(Key).push(Field);
+        });
+        return Array.from(Groups.entries()).map(([Group, Fields]) =>
+        {
+            const Html = Fields.map(Field => fieldHtml({
+                ...Field, value: Record[Field.bind], scope: 'record', recordId: Record.id
+            })).join('');
+            return `<div class="record-section-title">${esc(RecordGroupNames[Group] || Group)}</div><div class="field-grid">${Html}</div>`;
+        }).join('');
+    }
+
+    function curvesPayload(Curves)
+    {
+        return Object.fromEntries(Object.values(Curves || {}).map(Curve => [Curve.key, {
+            Label: Curve.label, X: { Label: Curve.xLabel, Unit: Curve.xUnit, Minimum: Curve.xMin, Maximum: Curve.xMax },
+            Y: { Label: Curve.yLabel, Unit: Curve.yUnit, Minimum: Curve.yMin, Maximum: Curve.yMax },
+            Smooth: Curve.smooth, Custom: Curve.custom,
+            Points: Curve.points.map(Point => ({ x: round(Point[0], 3), y: round(Point[1], 3) }))
+        }]));
+    }
+
+    function buildSceneRecord(Record)
+    {
+        const Parameters = Object.fromEntries((Record.fields || []).map(Field => [Field.bind, Record[Field.bind]]));
+        return {
+            Schema: `Frontier.SceneRecord/1`,
+            Id: Record.id, Name: Record.name, Kind: Record.kind, Group: Record.group,
+            Parent: Record.parentId || 'Default.levelspace', Tag: Record.tag,
+            GeometryBacked: !!Record.geometryBacked, Shape: Record.shape || null,
+            Transform: Record.kind === 'object' ? { Position: Record.position, Rotation: Record.rotation, Scale: Record.scale } : undefined,
+            Parameters,
+            Children: (Record.children || []).map(Child => ({ Id: Child.id, Name: Child.name, Kind: Child.kind, Tag: Child.tag })),
+            Curves: curvesPayload(Record.curves)
+        };
+    }
+
+    function recordLevelspaceText(Record)
+    {
+        const Fields = (Record.fields || []).slice(0, 6).map(Field => `${Field.bind} = ${Field.kind === 'string' ? `"${Record[Field.bind]}"` : fmt(Record[Field.bind], Field.digits ?? 0)}`).join('\n  ');
+        return `${Record.kind} "${Record.name}" {\n  Id = "${Record.id}"\n  Parent = ${Record.parentId ? `"${Record.parentId}"` : 'Default.levelspace'}\n  Geometry = ${Record.geometryBacked ? `"${Record.shape || 'mesh'}"` : '"None"'}\n  ${Fields}\n  Children = [ ${(Record.children || []).map(Child => Child.id).join(', ')} ]\n  Curves = [ ${Object.keys(Record.curves || {}).join(', ')} ]  # editable\n}`;
+    }
+
+    function refreshRecordLabels(Record)
+    {
+        const Levelspace = $('RecordLevelspace');
+        if (Levelspace && Record) Levelspace.textContent = recordLevelspaceText(Record);
     }
 
     function rangeRow(Options)
@@ -394,42 +533,79 @@
         </div>`;
     }
 
+    function recordSearchText(Record)
+    {
+        return `${Record.name} ${Record.tag || ''} ${sceneMeta(Record)}`.toLowerCase();
+    }
+
+    function dynamicTreeRows(Records, Query)
+    {
+        let Html = '';
+        let Count = 0;
+        for (const Record of Records)
+        {
+            const ParentMatch = !Query || recordSearchText(Record).includes(Query);
+            const Expanded = state.expanded.has(Record.id) || !!Query;
+            const Children = (Record.children || []).filter(Child => (Expanded || !!Query) && (!Query || ParentMatch || recordSearchText(Child).includes(Query)));
+            if (Query && !ParentMatch && !Children.length) continue;
+            Count += 1 + Children.length;
+            Html += treeRow({
+                id: Record.id, name: Record.name, glyph: Record.glyph, tone: Record.tone, tag: Record.tag,
+                meta: sceneMeta(Record), selected: state.selected === Record.id, enabled: Record.enabled !== false,
+                toggle: !!(Record.children || []).length, expanded: Expanded
+            });
+            for (const Child of Children)
+            {
+                Html += treeRow({
+                    id: Child.id, name: Child.name, glyph: Child.glyph, tone: Child.tone, meta: sceneMeta(Child),
+                    selected: state.selected === Child.id, enabled: Child.enabled !== false, nested: true
+                });
+            }
+        }
+        return { html: Html, count: Count };
+    }
+
     function renderOutliner()
     {
         const Query = state.search.trim().toLowerCase();
         const TotalTyres = state.vehicles.reduce((Sum, Vehicle) => Sum + Vehicle.tyres.length, 0);
-        const Total = SceneRows.length + state.vehicles.length + TotalTyres;
+        const Total = SceneRows.length + SceneCatalogue.all.length + state.vehicles.length + TotalTyres;
         const Mounted = state.vehicles.reduce((Sum, Vehicle) => Sum + mountedCount(Vehicle), 0);
         const Empty = TotalTyres - Mounted;
+        const Enabled = SceneRows.length + SceneCatalogue.all.filter(Record => Record.enabled !== false).length + state.vehicles.length + Mounted;
         let Html = `<div class="outliner">
             <div class="outliner-heading">
                 <div><h1>Outliner</h1><div class="muted">Default.levelspace · ${Total} records</div></div><div class="spacer"></div>
                 <button type="button" class="round-button" data-action="add-vehicle" title="Add vehicle from current spec" aria-label="Add vehicle from current spec">${icon('plus')}</button>
             </div>
             <div class="count-cards">
-                <div class="count-card" data-tone="green"><div class="chip-glyph live">${icon('check')}</div><div class="label">Enabled</div><div class="number">${SceneRows.length + state.vehicles.length + Mounted}</div></div>
+                <div class="count-card" data-tone="green"><div class="chip-glyph live">${icon('check')}</div><div class="label">Enabled</div><div class="number">${Enabled}</div></div>
                 <div class="count-card" data-tone="amber"><div class="chip-glyph ${Empty ? 'warm' : 'dim'}">${icon(Empty ? 'alert' : 'eyeoff')}</div><div class="label">Empty sockets</div><div class="number">${Empty}</div></div>
+                <div class="count-card" data-tone="violet"><div class="chip-glyph live">${icon('box')}</div><div class="label">3D objects</div><div class="number">${SceneCatalogue.objects.length}</div></div>
             </div>
             <div class="search-row">
                 <label class="search-pill">${icon('search')}<input id="OutlinerSearch" type="search" value="${esc(state.search)}" placeholder="Search records" autocomplete="off"><kbd>Ctrl+F</kbd></label>
                 <button type="button" class="filter-pill${state.showEmptySockets ? '' : ' on'}" data-action="toggle-empty">${icon('sliders')}<span>${state.showEmptySockets ? 'Hide empty' : 'Show empty'}</span></button>
             </div>`;
 
-        const StaticGroups = [
-            { title: 'Rendering', rows: SceneRows.filter(Row => Row.group === 'Rendering') },
-            { title: 'Environment', rows: SceneRows.filter(Row => Row.group === 'Environment') }
-        ];
-        for (const Group of StaticGroups)
+        const RenderRows = SceneRows.filter(Row => !Query || `${Row.name} ${Row.meta}`.toLowerCase().includes(Query));
+        if (RenderRows.length)
         {
-            const Rows = Group.rows.filter(Row => !Query || `${Row.name} ${Row.meta}`.toLowerCase().includes(Query));
-            if (!Rows.length) continue;
-            Html += `<div class="tree-group"><div class="tree-group-title">${icon('chevron')}<span>${Group.title}</span><span class="count">${Rows.length}</span></div>`;
-            for (const Row of Rows)
-            {
-                Html += treeRow({ id: Row.id, name: Row.name, glyph: Row.glyph, tone: Row.tone, meta: Row.meta, selected: state.selected === Row.id, enabled: true });
-            }
+            Html += `<div class="tree-group"><div class="tree-group-title">${icon('chevron')}<span>Rendering</span><span class="count">${RenderRows.length}</span></div>`;
+            for (const Row of RenderRows) Html += treeRow({ id: Row.id, name: Row.name, glyph: Row.glyph, tone: Row.tone, meta: Row.meta, selected: state.selected === Row.id, enabled: true });
             Html += '</div>';
         }
+
+        const EnvironmentRows = dynamicTreeRows(SceneCatalogue.environment, Query);
+        if (EnvironmentRows.count)
+        {
+            Html += `<div class="tree-group"><div class="tree-group-title">${icon('chevron')}<span>Environment</span><span class="count">${EnvironmentRows.count}</span></div>${EnvironmentRows.html}
+                <div class="tree-note"><b>Procedural records.</b> Sun, Atmosphere and Clouds drive the preview; Clouds owns Cumulus and Fog child layers.</div></div>`;
+        }
+
+        const ObjectRows = dynamicTreeRows(SceneCatalogue.objects, Query);
+        Html += `<div class="tree-group"><div class="tree-group-title">${icon('chevron')}<span>Objects</span><span class="count">${ObjectRows.count}</span><span class="spacer"></span><button type="button" class="tree-add" data-action="add-object" title="Add a geometry-backed object from current spec">${icon('plus')} Object</button></div>${ObjectRows.html}
+            <div class="tree-note"><b>Geometry-backed records.</b> Each object owns Mesh, Material and Collider children and is visible in the 3D scene view.</div></div>`;
 
         let VehicleRows = 0;
         let VehicleHtml = '';
@@ -483,18 +659,90 @@
         </article>`;
     }
 
-    function renderComposition()
+    function metricSpans(Record)
     {
-        const Vehicle = activeVehicle();
-        $('SceneGlyph').innerHTML = icon('car');
-        $('SceneMeta').textContent = `${Vehicle.name} · ${Vehicle.category} · data-only`;
+        const Fields = (Record.metaFields || []).slice(0, 3);
+        if (!Fields.length) return `<span><b>${Object.keys(Record.curves || {}).length}</b> curves</span>`;
+        return Fields.map(([Key, Unit, Digits = 0]) => `<span><b>${fmt(Record[Key], Digits)}</b> ${esc(Unit || '')}</span>`).join('');
+    }
+
+    function childNodeCard(Record, Parent)
+    {
+        return `<article class="socket-card${state.selected === Record.id ? ' selected' : ''}" data-tone="${esc(Record.tone)}" data-select="${esc(Record.id)}" role="button" tabindex="0">
+            <div class="socket-code"><b>${esc(Record.tag || 'Child')}</b><span>${esc(Parent.name)}</span></div>
+            <div class="socket-name">${esc(Record.name)}</div><div class="socket-metrics">${metricSpans(Record)}</div>
+        </article>`;
+    }
+
+    function renderVehicleComposition(Vehicle)
+    {
         $('NodeDiagram').innerHTML = `<div class="node-root" data-tone="blue">
                 <div class="node-root-top">${icon('car')}<span>Vehicle record</span><span class="spacer"></span><span>${esc(Vehicle.drive)}</span></div>
                 <div class="node-root-name">${esc(Vehicle.name)}</div>
                 <div class="node-root-meta"><b>${fmt(Vehicle.powerKw, 0)}</b><span class="unit">kW</span><span>·</span><b>${fmt(Vehicle.massKg, 0)}</b><span>kg</span><span>·</span><b data-derived="curveCount">${Object.keys(Vehicle.curves).length}</b><span>curves</span></div>
             </div>
             <div class="branch">${Vehicle.tyres.map(Tyre => socketCard(Vehicle, Tyre)).join('')}</div>`;
-        $('CompositionReadout').innerHTML = `<b>${mountedCount(Vehicle)}/4</b> mounted · <b>0</b> meshes · <b>${Object.keys(Vehicle.curves).length}</b> curves`;
+        $('CompositionReadout').innerHTML = `<b>${mountedCount(Vehicle)}/4</b> mounted · <b>0</b> vehicle meshes · <b>${Object.keys(Vehicle.curves).length}</b> curves`;
+    }
+
+    function renderRecordComposition(Record, Root)
+    {
+        const Display = (Record.kind === 'component' || Record.kind === 'environment-child') ? (Root || rootSceneRecord(Record)) : Record;
+        const Children = Display.children || [];
+        $('NodeDiagram').innerHTML = `<div class="node-root" data-tone="${esc(Display.tone)}">
+                <div class="node-root-top">${icon(Display.glyph)}<span>${esc(Display.tag || 'Scene record')}</span><span class="spacer"></span><span>${esc(Display.group)}</span></div>
+                <div class="node-root-name">${esc(Display.name)}</div>
+                <div class="node-root-meta">${metricSpans(Display)}<span>·</span><b>${Object.keys(Display.curves || {}).length}</b><span>curves</span></div>
+            </div>
+            <div class="branch">${Children.map(Child => childNodeCard(Child, Display)).join('')}</div>`;
+        $('CompositionReadout').innerHTML = `<b>${Children.length}</b> children · <b>${Display.geometryBacked ? 1 : 0}</b> mesh${Display.geometryBacked ? '' : 'es'} · <b>${Object.keys(Display.curves || {}).length}</b> curves`;
+    }
+
+    function renderComposition()
+    {
+        const Selection = resolveSelection();
+        const Is3D = state.sceneView === '3d';
+        const Surface = $('CompositionSurface');
+        const Canvas = $('SceneCanvas');
+        const Overlay = $('SceneOverlay');
+        Surface.dataset.view = state.sceneView;
+        Canvas.hidden = !Is3D;
+        Overlay.setAttribute('aria-hidden', Is3D ? 'false' : 'true');
+        document.querySelectorAll('#SceneViewTabs button').forEach(Button => Button.classList.toggle('active', Button.dataset.view === state.sceneView));
+        $('SceneChipText').textContent = Is3D ? '3D live' : 'Records live';
+
+        const Record = Selection.kind === 'record' ? Selection.record : null;
+        const Root = Selection.kind === 'record' ? Selection.root : null;
+        const Glyph = Is3D ? 'orbit' : Record ? (Root || Record).glyph : 'car';
+        $('SceneGlyph').innerHTML = icon(Glyph);
+        $('SceneTitle').textContent = Is3D ? 'Software 3D scene' : selectionLabel();
+        $('SceneMeta').textContent = `${SceneCatalogue.objects.length} object records · ${fmt(totalTriangles(), 0)} triangles · ${SceneCatalogue.environment.length} environment roots`;
+
+        if (Is3D)
+        {
+            $('CompositionEyebrow').textContent = 'Scene / 3D preview';
+            $('CompositionTitle').textContent = 'Geometry-backed object records';
+            $('CompositionSubtitle').textContent = 'Depth-sorted box, cone and icosahedron meshes. Drag to orbit, wheel to zoom, click a mesh to inspect it.';
+            $('NoGeometryBadge').textContent = `${SceneCatalogue.objects.length} visible meshes`;
+        }
+        else if (Record)
+        {
+            $('CompositionEyebrow').textContent = 'Scene / hierarchy';
+            $('CompositionTitle').textContent = (Root || Record).geometryBacked ? 'Geometry record & components' : 'Record children';
+            $('CompositionSubtitle').textContent = `${Record.name} · ${sceneMeta(Record)}. Child records stay parented to their scene root.`;
+            $('NoGeometryBadge').textContent = (Root || Record).geometryBacked ? `Geometry-backed · ${fmt((Root || Record).triangles, 0)} tris` : 'No mesh · procedural record';
+        }
+        else
+        {
+            $('CompositionEyebrow').textContent = 'Scene / hierarchy';
+            $('CompositionTitle').textContent = 'Parented tyre sockets';
+            $('CompositionSubtitle').textContent = 'Vehicle is a data-only scene record; tyres are removable child records. Object geometry lives in the 3D view.';
+            $('NoGeometryBadge').textContent = 'Vehicle: no mesh · data-only';
+        }
+
+        if (Record) renderRecordComposition(Record, Root);
+        else renderVehicleComposition(activeVehicle());
+        if (Preview3D && Is3D) Preview3D.resize();
     }
 
     function renderLog()
@@ -507,9 +755,9 @@
     function renderStatus()
     {
         const TotalTyres = state.vehicles.reduce((Sum, Vehicle) => Sum + Vehicle.tyres.length, 0);
-        const Total = SceneRows.length + state.vehicles.length + TotalTyres;
-        $('OutlinerStatus').innerHTML = `${statusCell('Records', Total)}${statusCell('Selected', selectionLabel())}${statusCell('Vehicles', state.vehicles.length)}`;
-        $('SceneStatus').innerHTML = `${statusCell('Scene', 'Default.levelspace')}${statusCell('Meshes', 0)}${statusCell('Geometry', 'None')}`;
+        const Total = SceneRows.length + SceneCatalogue.all.length + state.vehicles.length + TotalTyres;
+        $('OutlinerStatus').innerHTML = `${statusCell('Records', Total)}${statusCell('Selected', selectionLabel())}${statusCell('Objects', SceneCatalogue.objects.length)}`;
+        $('SceneStatus').innerHTML = `${statusCell('Scene', 'Default.levelspace')}${statusCell('Meshes', SceneCatalogue.objects.length)}${statusCell('Geometry', `${fmt(totalTriangles(), 0)} tris`)}`;
         $('InspectorStatus').innerHTML = `${statusCell('Parameters', 'Editing')}<span class="spacer"></span>${statusCell('Revision', String(state.revision).padStart(2, '0'))}`;
     }
 
@@ -575,11 +823,11 @@
         return `<div class="inspector">
             <div class="breadcrumb-row"><div class="breadcrumb">Inspector / <b>${esc(Row.group)}</b></div><button type="button" class="notes-pill">${icon('plus')} Add notes</button></div>
             <div class="page-title"><h2>${esc(Row.name)}</h2><span class="live-pill"><i></i>LIVE</span></div>
-            <div class="page-subtitle">The existing ${esc(Row.name.toLowerCase())} card stays in the same Outliner. Vehicle has been added beside it as a data-only record with parented tyre sockets.</div>
-            ${heroCard({ tone: Row.tone, glyph: Row.glyph, chip: 'Existing scene record', tag: 'C++ INSPECTOR', title: Row.hero.label, value: Row.hero.value, digits: Row.hero.digits, unit: Row.hero.unit, sideHtml: esc(Row.hero.side), sideUnit: Row.hero.sideUnit, low: Row.hero.low, noteHtml: `<b>No change to this record.</b> The Vehicle inspector is the new HTML surface requested for this step.` })}
+            <div class="page-subtitle">The existing ${esc(Row.name.toLowerCase())} card stays in the same Outliner. Environment and geometry-backed object records now sit beside it with the same editable inspector surface.</div>
+            ${heroCard({ tone: Row.tone, glyph: Row.glyph, chip: 'Existing scene record', tag: 'C++ INSPECTOR', title: Row.hero.label, value: Row.hero.value, digits: Row.hero.digits, unit: Row.hero.unit, sideHtml: esc(Row.hero.side), sideUnit: Row.hero.sideUnit, low: Row.hero.low, noteHtml: `<b>No change to this record.</b> The Vehicle, Sun, Atmosphere, Clouds and Object inspectors share this HTML workbench.` })}
             <div class="stat-grid">${Row.stats.map(Stat => statCard({ ...Stat, text: Stat.text })).join('')}</div>
-            <div class="empty-inspector"><h3>Vehicle is now in the Outliner</h3>Select <b>${esc(state.vehicles[0].name)}</b> or one of its four tyre sockets to inspect the new data-only hierarchy. The full tyre/vehicle editor remains the next step.</div>
-            <div class="action-row" data-tone="blue"><button type="button" class="btn primary" data-action="go-vehicle">${icon('car')} Go to Vehicle</button></div>
+            <div class="empty-inspector"><h3>Environment & objects are live records</h3>Select <b>Sun</b>, <b>Atmosphere</b>, <b>Clouds</b> or one of the <b>${SceneCatalogue.objects.length} geometry-backed objects</b>. Switch the centre pane to <b>3D scene</b> to see the meshes.</div>
+            <div class="action-row" data-tone="blue"><button type="button" class="btn primary" data-action="go-sun">${icon('sun')} Inspect Sun</button><button type="button" class="btn" data-action="go-objects">${icon('orbit')} View 3D objects</button></div>
         </div>`;
     }
 
@@ -719,6 +967,70 @@
         </div>`;
     }
 
+    function geometryBanner(Record, Root)
+    {
+        const GeometryRoot = Root && Root.geometryBacked ? Root : null;
+        if (GeometryRoot)
+        {
+            return `<div class="geometry-banner">${icon('box')}<span><b>${esc(GeometryRoot.shape || 'mesh')}</b> primitive · ${fmt(GeometryRoot.triangles, 0)} triangles · ${(GeometryRoot.children || []).length} component records</span><span class="spacer"></span><span class="mesh-count">${Object.keys(Record.curves || {}).length} curves</span></div>`;
+        }
+        return `<div class="geometry-banner">${icon('sparkles')}<span><b>Procedural record.</b> Drives Sun, Atmosphere or Clouds without spawning geometry.</span><span class="spacer"></span><span class="mesh-count">${Object.keys(Record.curves || {}).length} curves</span></div>`;
+    }
+
+    function childStrip(Record, Root)
+    {
+        const HierarchyRoot = Root && (Root.children || []).length ? Root : Record;
+        const Children = HierarchyRoot.children || [];
+        if (!Children.length) return '';
+        return `<div class="record-section-title">Child records · ${esc(HierarchyRoot.name)}</div>
+            <div class="child-grid">${Children.map(Child => `<button type="button" class="child-chip${state.selected === Child.id ? ' active' : ''}" data-tone="${esc(Child.tone)}" data-select="${esc(Child.id)}">${icon(Child.glyph)}<span>${esc(Child.name)}</span><small>${esc(sceneMeta(Child))}</small></button>`).join('')}</div>`;
+    }
+
+    function renderRecordInspector(Record, Root)
+    {
+        const Curve = activeRecordCurve(Record);
+        const CurveTone = Curve ? Curve.tone : Record.tone;
+        const CurveTabs = Object.values(Record.curves || {}).map(Entry => `<button type="button" class="curve-tab${Entry.key === (Curve && Curve.key) ? ' active' : ''}" data-tone="${Entry.tone}" data-action="select-curve" data-key="${esc(Entry.key)}"><i></i>${esc(Entry.short || Entry.label)}</button>`).join('');
+        const PresetNames = Object.keys(state.recordPresets);
+        const PresetOptions = PresetNames.length ? PresetNames.map(Name => `<option value="${esc(Name)}">${esc(Name)}</option>`).join('') : '<option value="">No saved record presets</option>';
+        const Cards = (Record.cards || []).map(Card => recordCardHtml(Record, Card)).join('');
+        const Fields = recordFieldsHtml(Record);
+        const Geometry = geometryBanner(Record, Root);
+
+        const OverviewBody = `${Geometry}<div class="stat-grid">${Cards || statCard({ tone: Record.tone, glyph: Record.glyph, label: 'Curves', value: Object.keys(Record.curves || {}).length, unit: 'items', trend: 'Editable point splines' })}</div>
+            ${childStrip(Record, Root)}
+            <div class="action-row" style="margin-top:10px" data-tone="violet"><button type="button" class="btn primary" data-action="scene-view" data-view="3d">${icon('orbit')} Open 3D scene</button><button type="button" class="btn" data-action="export-json">${icon('download')} Export JSON</button></div>`;
+        const ParametersBody = `<p class="section-caption">Every field carries an explicit unit. Changes update the Outliner, composition readout and live 3D preview immediately.</p>${Fields}`;
+        const CurvesBody = `<p class="section-caption">Editable point curves for this record. Drag a point, click the plot to insert one, double-click to remove it, or use arrow keys for fine edits.</p>
+            <div class="curve-tabs">${CurveTabs}<button type="button" class="curve-tab add" data-tone="white" data-action="new-curve">${icon('plus')} New curve</button></div>
+            ${Curve ? `<div class="curve-panel" id="CurveEditorHost" data-tone="${esc(Curve.tone)}"></div>` : '<div class="empty-inspector">No curves on this record yet.</div>'}
+            <div class="action-row" style="margin-top:9px" data-tone="blue">
+                <button type="button" class="btn ghost" data-action="reset-builtins">${icon('reset')} Reset built-ins</button>
+                <button type="button" class="btn" data-action="export-json">${icon('download')} Export curves</button>
+            </div>`;
+        const CustomBody = `<p class="section-caption">Save this record as a browser preset, export portable JSON, or add another geometry-backed object from the current spec.</p>
+            ${Geometry}
+            <div class="action-row" style="margin-top:11px" data-tone="blue">
+                <button type="button" class="btn primary" data-action="save-record-preset">${icon('save')} Save record preset</button>
+                <button type="button" class="btn" data-action="add-object">${icon('plus')} Add 3D object</button>
+                <button type="button" class="btn" data-action="export-json">${icon('download')} Export JSON</button>
+            </div>
+            <div class="preset-row"><select id="RecordPresetSelect" aria-label="Saved scene record presets">${PresetOptions}</select></div>
+            <pre class="levelspace" id="RecordLevelspace">${esc(recordLevelspaceText(Record))}</pre>`;
+
+        return `<div class="inspector">
+            <div class="breadcrumb-row"><div class="breadcrumb">Inspector / <b>${esc(Record.group)}</b> / <b>${esc((Root || Record).name)}</b></div><button type="button" class="notes-pill">${icon('plus')} Add notes</button></div>
+            <div class="page-title"><h2>${esc(Record.name)}</h2><span class="live-pill"><i></i>${Record.geometryBacked ? '3D OBJECT' : 'LIVE RECORD'}</span></div>
+            <div class="page-subtitle">${esc(Record.tag || 'Scene record')} · ${esc(sceneMeta(Record))}. Explicit-unit cards, editable fields and point curves share the Vehicle inspector surface.</div>
+            ${pageTabs([{ key: 'overview', label: 'Overview', target: 'Section-Overview' }, { key: 'parameters', label: 'Parameters', target: 'Section-Parameters' }, { key: 'curves', label: 'Curves', target: 'Section-Curves' }, { key: 'custom', label: 'Custom', target: 'Section-Custom' }], state.tab)}
+            <div id="Section-Overview">${recordHeroHtml(Record, Root)}${sectionCard('Card-Units', Record.tone, 'gauge', 'Explicit-unit cards', 'LIVE', OverviewBody)}</div>
+            <div id="Section-Parameters">${sectionCard('Card-RecordFields', 'blue', 'sliders', 'Record parameters', 'EDITABLE', ParametersBody)}</div>
+            <div id="Section-Curves">${sectionCard('Card-RecordCurves', CurveTone, 'curve', 'Parameter curves', 'EDITABLE', CurvesBody)}</div>
+            <div id="Section-Custom">${sectionCard('Card-RecordCustom', 'violet', 'sparkles', 'Custom scene record', 'PORTABLE', CustomBody)}</div>
+            <p class="footer-note">Environment and object records are prototype data. The 3D preview is a dependency-free software renderer; no native/C++ engine integration is required for this step.</p>
+        </div>`;
+    }
+
     function renderInspector()
     {
         const Scroller = $('InspectorScroll');
@@ -726,9 +1038,16 @@
         const Selection = resolveSelection();
         let Html;
         let VehicleForCurve = null;
+        let RecordForCurve = null;
         let CurveForEditor = null;
         if (Selection.kind === 'scene') Html = renderStaticInspector(Selection.row);
         else if (Selection.kind === 'tyre') Html = renderTyreInspector(Selection.vehicle, Selection.tyre);
+        else if (Selection.kind === 'record')
+        {
+            RecordForCurve = Selection.record;
+            CurveForEditor = activeRecordCurve(RecordForCurve);
+            Html = renderRecordInspector(RecordForCurve, Selection.root);
+        }
         else
         {
             VehicleForCurve = Selection.vehicle;
@@ -736,11 +1055,14 @@
             Html = renderVehicleInspector(VehicleForCurve);
         }
         $('InspectorContent').innerHTML = Html;
-        if (VehicleForCurve && CurveForEditor)
+        if (CurveForEditor)
         {
+            const Target = RecordForCurve || VehicleForCurve;
             createCurveEditor($('CurveEditorHost'), CurveForEditor, {
-                onChange: (CommitChange, Reason) => handleCurveChange(VehicleForCurve, CurveForEditor, CommitChange, Reason),
-                onDelete: Key => deleteCurve(VehicleForCurve, Key)
+                onChange: (CommitChange, Reason) => RecordForCurve
+                    ? handleRecordCurveChange(RecordForCurve, CurveForEditor, CommitChange, Reason)
+                    : handleCurveChange(VehicleForCurve, CurveForEditor, CommitChange, Reason),
+                onDelete: Key => deleteCurve(Target, Key)
             });
         }
         Scroller.scrollTop = PreviousScroll;
@@ -754,13 +1076,21 @@
         if (Reason !== 'drag' && Reason !== 'keyboard') toast(`${Curve.short || Curve.label} updated`);
     }
 
-    function deleteCurve(Vehicle, Key)
+    function handleRecordCurveChange(Record, Curve, IsCommit, Reason)
     {
-        const Curve = Vehicle.curves[Key];
+        if (!IsCommit) return;
+        refreshRecordLabels(Record);
+        softCommit('CURVE', `${Record.name} · ${Curve.label} · ${Reason === 'drag' ? 'points edited' : Reason}`, Curve.tone);
+        if (Reason !== 'drag' && Reason !== 'keyboard') toast(`${Curve.short || Curve.label} updated`);
+    }
+
+    function deleteCurve(Target, Key)
+    {
+        const Curve = Target.curves[Key];
         if (!Curve || !Curve.custom) return;
-        delete Vehicle.curves[Key];
-        state.curveKey = Object.keys(Vehicle.curves)[0] || 'torque';
-        commit('CURVE', `${Curve.label} removed`, 'red', 'Custom curve removed');
+        delete Target.curves[Key];
+        state.curveKey = Object.keys(Target.curves)[0] || 'torque';
+        commit('CURVE', `${Curve.label} removed from ${Target.name || selectionLabel()}`, 'red', 'Custom curve removed');
     }
 
     function createCurveEditor(Host, Curve, Callbacks)
@@ -1057,7 +1387,7 @@
 
     function addCustomCurve(Values)
     {
-        const Vehicle = activeVehicle();
+        const Target = currentCurveTarget();
         const Label = String(Values.get('label') || '').trim() || 'Custom curve';
         const ToneValue = String(Values.get('tone') || 'violet');
         const Tone = ['violet', 'cyan', 'green', 'amber', 'red', 'blue'].includes(ToneValue) ? ToneValue : 'violet';
@@ -1065,35 +1395,112 @@
         const YMax = Math.max(1, Number(Values.get('yMax')) || 100);
         const Key = `custom-${Date.now().toString(36)}`;
         const Points = [[0, 0], [XMax * 0.25, YMax * 0.62], [XMax * 0.5, YMax * 0.88], [XMax * 0.75, YMax * 0.68], [XMax, YMax * 0.35]];
-        const Curve = {
-            key: Key, label: Label, short: Label.length > 11 ? Label.slice(0, 10) + '…' : Label, tone: Tone, custom: true, smooth: true,
+        const Config = {
+            label: Label, short: Label.length > 11 ? Label.slice(0, 10) + '…' : Label, tone: Tone, custom: true,
             xLabel: String(Values.get('xLabel') || 'X').trim(), xUnit: String(Values.get('xUnit') || '').trim(),
             yLabel: String(Values.get('yLabel') || 'Y').trim(), yUnit: String(Values.get('yUnit') || '').trim(),
             xMin: 0, xMax: XMax, yMin: 0, yMax: YMax, xDigits: 0, yDigits: YMax <= 10 ? 2 : 0,
             stepX: Math.max(XMax / 100, 0.01), stepY: Math.max(YMax / 100, 0.01), points: Points
         };
-        Curve.defaultPoints = clone(Points);
-        Vehicle.curves[Key] = Curve;
+        Target.curves[Key] = SceneRecordsAPI && SceneRecordsAPI.curve ? SceneRecordsAPI.curve(Key, Config) : { key: Key, ...Config, smooth: true, defaultPoints: clone(Points) };
+        if (Target.kind && SceneRecordsAPI) SceneRecordsAPI.normaliseRecord(Target);
         state.curveKey = Key;
         state.tab = 'curves';
-        commit('CURVE', `${Label} added to ${Vehicle.name}`, Tone, `${Label} curve added`);
+        commit('CURVE', `${Label} added to ${Target.name || selectionLabel()}`, Tone, `${Label} curve added`);
         scrollToSection('Section-Curves');
     }
 
     function resetBuiltInCurves()
     {
+        const Target = currentCurveTarget();
+        const Defaults = clone(Target.defaultCurves || (Target.curves && Target.curves.torque ? defaultCurves() : {}));
+        Object.entries(Defaults).forEach(([Key, Curve]) => { Target.curves[Key] = Curve; });
+        state.curveKey = Object.keys(Target.curves)[0] || 'torque';
+        commit('CURVE', `Built-in curves reset for ${Target.name || selectionLabel()}`, 'blue', 'Built-in curves reset');
+    }
+
+    function addObjectFromSpec()
+    {
+        if (!SceneRecordsAPI || !SceneRecordsAPI.makeObject || !SceneCatalogue.objects.length)
+        {
+            toast('Object catalogue is unavailable');
+            return;
+        }
+        const Selection = resolveSelection();
+        const Source = Selection.kind === 'record' && Selection.root && Selection.root.geometryBacked
+            ? Selection.root : SceneCatalogue.objects[0];
+        const Ordinal = ++state.objectSerial;
+        const Serial = String(Ordinal).padStart(2, '0');
+        const Config = clone(Source);
+        Object.assign(Config, {
+            id: `obj-custom-${Serial}`, seed: Ordinal, name: `Custom object / ${Serial}`, glyph: 'box', tone: 'violet',
+            shape: Source.shape || 'box', parentId: '', tag: 'GEOMETRY', geometryBacked: true, children: [],
+            posX: round((Number(Source.posX) || 0) + 1.35, 2),
+            posZ: round((Number(Source.posZ) || 0) + 1.35, 2),
+            rotY: (Number(Source.rotY) || 0) + 24,
+            defaultCurves: clone(Source.defaultCurves || Source.curves || {})
+        });
+        const Record = SceneRecordsAPI.makeObject(Config);
+        SceneRecordsAPI.syncObject(Record);
+        syncObjectChildren(Record);
+        SceneCatalogue.objects.push(Record);
+        SceneCatalogue.all.push(Record, ...(Record.children || []));
+        SceneCatalogue.map.set(Record.id, Record);
+        (Record.children || []).forEach(Child => SceneCatalogue.map.set(Child.id, Child));
+        state.expanded.add(Record.id);
+        state.selected = Record.id;
+        state.sceneView = '3d';
+        state.tab = 'overview';
+        state.curveKey = Object.keys(Record.curves || {})[0] || 'torque';
+        if (Preview3D) Preview3D.resetCamera();
+        commit('OBJECT', `${Record.name} added · ${fmt(Record.triangles, 0)} triangles`, 'violet', `${Record.name} added to 3D scene`);
+    }
+
+    function saveRecordPreset()
+    {
+        const Selection = resolveSelection();
+        if (Selection.kind !== 'record') { toast('Select a scene record first'); return; }
+        const Record = Selection.record;
+        const Name = String(Record.name || '').trim() || 'Untitled record';
+        state.recordPresets[Name] = clone(Record);
+        saveRecordPresets();
+        commit('PRESET', `${Name} saved to browser presets`, 'green', 'Record preset saved');
+    }
+
+    function applyRecordPreset(Record, Preset)
+    {
+        (Record.fields || []).forEach(Field => { if (Preset[Field.bind] !== undefined) Record[Field.bind] = Preset[Field.bind]; });
+        ['name', 'tag', 'tone', 'glyph', 'shape', 'geometryBacked', 'metaFields', 'hero', 'cards'].forEach(Key =>
+        {
+            if (Preset[Key] !== undefined) Record[Key] = clone(Preset[Key]);
+        });
+        if (Preset.curves) Record.curves = clone(Preset.curves);
+        if (SceneRecordsAPI)
+        {
+            SceneRecordsAPI.normaliseRecord(Record);
+            SceneRecordsAPI.syncObject(Record);
+        }
+        syncObjectChildren(Record);
+        state.curveKey = Object.keys(Record.curves || {})[0] || 'torque';
+    }
+
+    function jsonPayload()
+    {
+        const Selection = resolveSelection();
+        if (Selection.kind === 'record')
+        {
+            const Record = Selection.record;
+            return { title: `${Record.name} · scene record`, data: buildSceneRecord(Record), slug: Record.id, label: 'Scene record' };
+        }
         const Vehicle = activeVehicle();
-        const Defaults = defaultCurves();
-        Object.entries(Defaults).forEach(([Key, Curve]) => { Vehicle.curves[Key] = Curve; });
-        state.curveKey = 'torque';
-        commit('CURVE', 'Built-in torque, thermal, boost and grip curves reset', 'blue', 'Built-in curves reset');
+        return { title: `${Vehicle.name} · custom vehicle record`, data: buildRecord(Vehicle), slug: Vehicle.name, label: 'Vehicle' };
     }
 
     function showJsonDialog()
     {
-        const Vehicle = activeVehicle();
-        $('JsonArea').value = JSON.stringify(buildRecord(Vehicle), null, 2);
-        $('JsonDialogTitle').textContent = `${Vehicle.name} · custom vehicle record`;
+        const Payload = jsonPayload();
+        $('JsonArea').value = JSON.stringify(Payload.data, null, 2);
+        $('JsonDialogTitle').textContent = Payload.title;
         try { $('JsonDialog').showModal(); } catch { $('JsonDialog').setAttribute('open', ''); }
     }
 
@@ -1102,27 +1509,28 @@
         const Area = $('JsonArea');
         Area.select();
         const Text = Area.value;
+        const Label = jsonPayload().label;
         if (navigator.clipboard && navigator.clipboard.writeText)
         {
-            navigator.clipboard.writeText(Text).then(() => toast('Vehicle JSON copied')).catch(() => { document.execCommand('copy'); toast('Vehicle JSON copied'); });
+            navigator.clipboard.writeText(Text).then(() => toast(`${Label} JSON copied`)).catch(() => { document.execCommand('copy'); toast(`${Label} JSON copied`); });
         }
-        else { document.execCommand('copy'); toast('Vehicle JSON copied'); }
+        else { document.execCommand('copy'); toast(`${Label} JSON copied`); }
     }
 
     function downloadJson()
     {
-        const Vehicle = activeVehicle();
-        const Text = JSON.stringify(buildRecord(Vehicle), null, 2);
+        const Payload = jsonPayload();
+        const Text = JSON.stringify(Payload.data, null, 2);
         const Blob = new Blob([Text], { type: 'application/json' });
         const Url = URL.createObjectURL(Blob);
         const Anchor = document.createElement('a');
         Anchor.href = Url;
-        Anchor.download = `${Vehicle.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'vehicle'}.json`;
+        Anchor.download = `${Payload.slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'scene-record'}.json`;
         document.body.append(Anchor);
         Anchor.click();
         Anchor.remove();
         setTimeout(() => URL.revokeObjectURL(Url), 1000);
-        toast('Vehicle JSON downloaded');
+        toast(`${Payload.label} JSON downloaded`);
     }
 
     function select(Id)
@@ -1132,7 +1540,8 @@
         if (Selection.kind === 'vehicle') state.lastVehicleId = Selection.vehicle.id;
         if (Selection.kind === 'tyre') state.lastVehicleId = Selection.vehicle.id;
         state.tab = Selection.kind === 'tyre' ? 'condition' : 'overview';
-        state.curveKey = Selection.kind === 'vehicle' && Selection.vehicle.curves[state.curveKey] ? state.curveKey : 'torque';
+        if (Selection.kind === 'record') state.curveKey = Object.keys(Selection.record.curves || {})[0] || 'torque';
+        else state.curveKey = Selection.kind === 'vehicle' && Selection.vehicle.curves[state.curveKey] ? state.curveKey : 'torque';
         renderAll();
     }
 
@@ -1160,6 +1569,15 @@
                 break;
             case 'toggle-empty': state.showEmptySockets = !state.showEmptySockets; renderOutliner(); break;
             case 'go-vehicle': select(state.lastVehicleId); break;
+            case 'go-sun': select('sun'); break;
+            case 'go-objects': state.sceneView = '3d'; select(SceneCatalogue.objects.length ? SceneCatalogue.objects[0].id : 'v1'); break;
+            case 'scene-view':
+                state.sceneView = Element.dataset.view === '3d' ? '3d' : 'records';
+                renderComposition();
+                if (Preview3D) Preview3D.resize();
+                break;
+            case 'add-object': addObjectFromSpec(); break;
+            case 'save-record-preset': saveRecordPreset(); break;
             case 'jump':
                 state.tab = Element.dataset.tab;
                 document.querySelectorAll('.page-tab').forEach(Tab => Tab.classList.toggle('active', Tab.dataset.tab === state.tab));
@@ -1251,23 +1669,45 @@
             commit('PRESET', `${Input.value} loaded into ${Vehicle.name}`, 'violet', 'Preset loaded');
             return;
         }
+        if (Input.id === 'RecordPresetSelect')
+        {
+            if (!Input.value || !state.recordPresets[Input.value]) return;
+            const Selection = resolveSelection();
+            if (Selection.kind !== 'record') return;
+            applyRecordPreset(Selection.record, state.recordPresets[Input.value]);
+            commit('PRESET', `${Input.value} loaded into ${Selection.record.name}`, 'violet', 'Record preset loaded');
+            return;
+        }
         const Bind = Input.dataset.bind;
         if (!Bind) return;
         const Scope = Input.dataset.scope;
         const Kind = Input.dataset.kind;
         const Selection = resolveSelection();
-        const Target = Scope === 'tyre' && Selection.kind === 'tyre' ? Selection.tyre : activeVehicle();
+        let Target;
+        if (Scope === 'record') Target = sceneRecord(Input.dataset.recordId);
+        else if (Scope === 'tyre' && Selection.kind === 'tyre') Target = Selection.tyre;
+        else Target = activeVehicle();
+        if (!Target) return;
         let Value;
         if (Kind === 'string') Value = Input.value.trim() || 'Untitled';
         else
         {
             Value = Number(Input.value);
             if (!Number.isFinite(Value)) return;
-            const Minimum = Number(Input.min);
+            const Minimum = Input.min !== '' ? Number(Input.min) : NaN;
+            const Maximum = Input.max !== '' ? Number(Input.max) : NaN;
             if (Number.isFinite(Minimum)) Value = Math.max(Minimum, Value);
+            if (Number.isFinite(Maximum)) Value = Math.min(Maximum, Value);
             Value = round(Value, 4);
         }
         Target[Bind] = Value;
+        if (Scope === 'record')
+        {
+            if (SceneRecordsAPI) SceneRecordsAPI.syncObject(Target);
+            const Parent = Target.parentId ? sceneRecord(Target.parentId) : null;
+            if (Parent && ['triangles', 'vertices', 'lods', 'materials', 'boundsM3', 'roughnessPct', 'metallicPct', 'opacityPct', 'massKg'].includes(Bind)) Parent[Bind] = Value;
+            syncObjectChildren(Parent || Target);
+        }
         if (Scope === 'vehicle' && Bind === 'maxRpm')
         {
             for (const Key of ['torque', 'boost'])
@@ -1280,7 +1720,9 @@
                 Curve.points[Curve.points.length - 1][0] = Curve.xMax;
             }
         }
-        commit('RECORD', `${Bind} set to ${Kind === 'string' ? Value : fmt(Value, 2)}${Input.dataset.unit ? ' ' + Input.dataset.unit : ''}`, 'blue');
+        const UnitLabel = Input.dataset.unit ? ' ' + Input.dataset.unit : '';
+        const Pretty = Kind === 'string' ? Value : fmt(Value, Number(Input.dataset.digits || 0));
+        commit('RECORD', `${Target.name || selectionLabel()} · ${Bind} set to ${Pretty}${UnitLabel}`, Target.tone || 'blue');
     }
 
     function renderAll()
@@ -1354,4 +1796,12 @@
     });
 
     renderAll();
+    if (Preview3D)
+    {
+        Preview3D.init($('SceneCanvas'), () => ({
+            environment: SceneCatalogue.environment,
+            objects: SceneCatalogue.objects,
+            selected: state.selected
+        }), Id => select(Id));
+    }
 })();
