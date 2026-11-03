@@ -1,0 +1,17 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Local agent scratch and reference material
+.arena/
+
+# dependencies & build output
+node_modules/
+dist/
+build/
+
+# logs
+*.log

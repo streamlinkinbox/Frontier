@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Frontier · Vehicle Inspector</title>
+    <meta name="description" content="Data-only Vehicle record, parented tyre sockets, coloured unit cards and editable engine curves in the Frontier Outliner/Inspector.">
+    <link rel="stylesheet" href="VehicleInspector.css">
+    <script src="VehicleInspector.js" defer></script>
+</head>
+<body>
+    <div class="workspace">
+        <aside class="dock-panel outliner-dock" aria-label="Outliner">
+            <div class="dock-tabs"><div class="dock-tab">Outliner <span class="tab-close" aria-hidden="true">×</span></div></div>
+            <div class="dock-body">
+                <div class="panel-scroll" id="OutlinerScroll"><div class="panel-content" id="OutlinerContent"></div></div>
+                <div class="status-strip" id="OutlinerStatus"></div>
+            </div>
+        </aside>
+
+        <main class="dock-column">
+            <section class="dock-panel" aria-label="Scene composition">
+                <div class="dock-tabs">
+                    <div class="dock-tab">Scene composition <span class="tab-close" aria-hidden="true">×</span></div>
+                    <div class="dock-title">Frontier · Default.levelspace</div>
+                </div>
+                <div class="dock-body">
+                    <div class="composition-bar">
+                        <div class="scene-glyph" id="SceneGlyph"></div>
+                        <div>
+                            <div class="scene-title">Vehicle record</div>
+                            <div class="scene-meta" id="SceneMeta">Data-only · no geometry attached</div>
+                        </div>
+                        <div class="spacer"></div>
+                        <div class="scene-chip"><i></i><span>Records live</span></div>
+                    </div>
+                    <div class="composition-surface">
+                        <div class="composition-heading">
+                            <p class="eyebrow">Scene / hierarchy</p>
+                            <h2>Parented tyre sockets</h2>
+                            <p>Vehicle is a scene record; tyres are removable child records.</p>
+                        </div>
+                        <div class="no-geometry">No mesh · no geometry</div>
+                        <div class="node-diagram" id="NodeDiagram"></div>
+                        <div class="composition-readout">
+                            <span>Structure</span><span class="rule"></span><span id="CompositionReadout"></span>
+                        </div>
+                    </div>
+                    <div class="status-strip" id="SceneStatus"></div>
+                </div>
+            </section>
+
+            <section class="dock-panel log-dock" aria-label="Log Stream">
+                <div class="dock-tabs"><div class="dock-tab">Log Stream <span class="tab-close" aria-hidden="true">×</span></div></div>
+                <div class="dock-body">
+                    <div class="log-head">
+                        <h3>Log Stream</h3><span class="live-pill"><i></i>LIVE</span>
+                        <span class="count" id="LogCount"></span>
+                    </div>
+                    <div class="panel-scroll"><div class="panel-content log-lines" id="LogContent"></div></div>
+                </div>
+            </section>
+        </main>
+
+        <aside class="dock-panel inspector-dock" aria-label="Inspector">
+            <div class="dock-tabs">
+                <div class="dock-tab">Inspector <span class="tab-close" aria-hidden="true">×</span></div>
+                <div class="dock-title">Vehicle / Tyres / Curves</div>
+            </div>
+            <div class="dock-body">
+                <div class="panel-scroll" id="InspectorScroll"><div class="panel-content" id="InspectorContent"></div></div>
+                <div class="status-strip" id="InspectorStatus"></div>
+            </div>
+        </aside>
+    </div>
+
+    <dialog id="CurveDialog" aria-labelledby="CurveDialogTitle">
+        <form class="dialog-card" id="CurveForm">
+            <div class="dialog-head">
+                <div><h3 id="CurveDialogTitle">New editable curve</h3><p>Add a parameter curve to this vehicle. Points remain draggable after creation.</p></div>
+                <div class="spacer"></div>
+                <button class="dialog-close" type="button" data-action="close-dialog" data-dialog="CurveDialog" aria-label="Close">×</button>
+            </div>
+            <div class="dialog-grid">
+                <label><span>Curve name</span><input name="label" required maxlength="28" placeholder="Battery derate"></label>
+                <label><span>Accent</span><select name="tone"><option value="violet">Violet</option><option value="cyan">Cyan</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option><option value="blue">Blue</option></select></label>
+                <label><span>X label</span><input name="xLabel" required maxlength="24" placeholder="State of charge"></label>
+                <label><span>X unit</span><input name="xUnit" required maxlength="10" placeholder="%"></label>
+                <label><span>Y label</span><input name="yLabel" required maxlength="24" placeholder="Power limit"></label>
+                <label><span>Y unit</span><input name="yUnit" required maxlength="10" placeholder="kW"></label>
+                <label><span>X maximum</span><input name="xMax" type="number" min="1" step="1" value="100" required></label>
+                <label><span>Y maximum</span><input name="yMax" type="number" min="1" step="1" value="100" required></label>
+            </div>
+            <div class="dialog-actions">
+                <button class="btn ghost" type="button" data-action="close-dialog" data-dialog="CurveDialog">Cancel</button>
+                <button class="btn primary" type="submit">Add curve</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="JsonDialog" aria-labelledby="JsonDialogTitle">
+        <div class="dialog-card">
+            <div class="dialog-head">
+                <div><h3 id="JsonDialogTitle">Custom vehicle record</h3><p>Current spec, parented tyre sockets and editable curves as portable JSON.</p></div>
+                <div class="spacer"></div>
+                <button class="dialog-close" type="button" data-action="close-dialog" data-dialog="JsonDialog" aria-label="Close">×</button>
+            </div>
+            <textarea class="json-area" id="JsonArea" readonly spellcheck="false" aria-label="Vehicle record JSON"></textarea>
+            <div class="dialog-actions">
+                <button class="btn ghost" type="button" data-action="close-dialog" data-dialog="JsonDialog">Close</button>
+                <button class="btn" type="button" data-action="download-json">Download .json</button>
+                <button class="btn primary" type="button" data-action="copy-json">Copy JSON</button>
+            </div>
+        </div>
+    </dialog>
+
+    <div class="toast" id="Toast" role="status" aria-live="polite"></div>
+    <noscript><p style="padding:24px;color:#f1f2f0;font-family:system-ui">This interactive inspector needs JavaScript enabled.</p></noscript>
+</body>
+</html>

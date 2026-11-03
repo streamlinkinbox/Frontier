@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!--==========================================================================================================================================
+                                                               INDEX.HTML
+===========================================================================================================================================-->
+<!-- 🧩 The Render settings inspector prototype: one outliner component, one inspector, the viewport showing its debug views. -->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Render settings · inspector prototype</title>
+    <link rel="stylesheet" href="RenderSettingsInspector.css">
+    <script src="InspectorControls.js" defer></script>
+    <script src="RenderSettingsCatalogue.js" defer></script>
+    <script src="RenderSettingsInspector.js" defer></script>
+</head>
+<body>
+    <div class="workspace">
+        <aside class="dock-panel">
+            <div class="dock-tabs"><div class="dock-tab">Outliner <span class="tab-close">×</span></div></div>
+            <div class="dock-body">
+                <div class="panel-scroll" id="OutlinerScroll"><div class="panel-content" id="OutlinerContent"></div></div>
+                <div class="status-strip" id="OutlinerStatus"></div>
+            </div>
+        </aside>
+        <main class="dock-column">
+            <section class="dock-panel viewport-dock">
+                <div class="dock-tabs">
+                    <div class="dock-tab">Viewport <span class="tab-close">×</span></div>
+                    <div class="dock-title">Frontier · Everest</div>
+                </div>
+                <div class="dock-body">
+                    <div class="viewport-bar" id="ViewportBar"></div>
+                    <div class="viewport-surface" id="ViewportSurface">
+                        <canvas id="ViewportCanvas"></canvas>
+                        <div class="viewport-hud" id="ViewportHud"></div>
+                        <div class="viewport-readout" id="ViewportReadout"></div>
+                        <div class="viewport-inset" id="ViewportInset"><div class="slice"></div><div class="inset-label"></div></div>
+                        <div class="viewport-caption" id="ViewportCaption"></div>
+                    </div>
+                    <div class="status-strip" id="ViewportStatus"></div>
+                </div>
+            </section>
+            <section class="dock-panel log-dock">
+                <div class="dock-tabs"><div class="dock-tab">Log Stream <span class="tab-close">×</span></div></div>
+                <div class="dock-body">
+                    <div class="log-head" id="LogHead"></div>
+                    <div class="panel-scroll" id="LogScroll"><div class="panel-content" id="LogContent"></div></div>
+                </div>
+            </section>
+        </main>
+        <aside class="dock-panel">
+            <div class="dock-tabs"><div class="dock-tab">Inspector <span class="tab-close">×</span></div></div>
+            <div class="dock-body">
+                <div class="panel-scroll" id="InspectorScroll"><div class="panel-content" id="InspectorContent"></div></div>
+                <div class="status-strip" id="InspectorStatus"></div>
+            </div>
+        </aside>
+    </div>
+</body>
+</html>
