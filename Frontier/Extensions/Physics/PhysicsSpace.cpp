@@ -22,7 +22,14 @@ uint32_t PhysicsSpace::AddBody(const PhysicsBodyDescriptor& Descriptor)
     const uint32_t Index = Adapter->AddBody(Descriptor);
     if (Index == PhysicsNoBody) return PhysicsNoBody;
     Descriptors.push_back(Descriptor);
-    // 📝 The descriptor keeps its shape figures, not the hull points or triangles (the solver holds those).
+    // 📝 The descriptor keeps its shape figures, not the hull points or triangles (the solver holds those); the wireframe store
+    //    keeps them so the collision overlay can draw the actual collider, not a stand-in.
+    WireframeShape Wire;
+    Wire.Shape            = Descriptor.Shape;
+    Wire.HalfExtentMetres = Descriptor.HalfExtentMetres;
+    Wire.Points           = Descriptor.Points;
+    Wire.Triangles        = Descriptor.Triangles;
+    WireframeShapes.push_back(std::move(Wire));
     Descriptors.back().Points.clear();
     Descriptors.back().Points.shrink_to_fit();
     Descriptors.back().Triangles.clear();
@@ -95,6 +102,83 @@ uint32_t PhysicsSpace::QueryWorkers() const noexcept
 const char* PhysicsSpace::QuerySolverName() const noexcept
 {
     return Adapter->QuerySolverName();
+}
+
+std::vector<PhysicsWireSegment> PhysicsSpace::ResolveWireframe() const
+{
+    std::vector<PhysicsWireSegment> Segments;
+    for (uint32_t Index = 0; Index < static_cast<uint32_t>(Descriptors.size()); ++Index)
+    {
+        const PhysicsBodyDescriptor& Descriptor = Descriptors[Index];
+        const WireframeShape&        Shape      = WireframeShapes[Index];
+        const PhysicsBodyReading     Pose       = Adapter->ReadBody(Index);
+        const bool                   Moving     = Descriptor.Motion == PhysicsMotion::Moving;
+        auto Place = [&](const std::array<double, 3>& Local)
+        {
+            const std::array<double, 3> Turned = RotatePhysicsVector(Pose.Orientation, Local);
+            return std::array<double, 3>{ Pose.PositionMetres[0] + Turned[0], Pose.PositionMetres[1] + Turned[1],
+                                          Pose.PositionMetres[2] + Turned[2] };
+        };
+        auto Edge = [&](const std::array<double, 3>& A, const std::array<double, 3>& B)
+        {
+            Segments.push_back({ Place(A), Place(B), Index, Moving });
+        };
+        if (Shape.Shape == PhysicsShape::Box)
+        {
+            const double X = Shape.HalfExtentMetres[0], Y = Shape.HalfExtentMetres[1], Z = Shape.HalfExtentMetres[2];
+            const std::array<std::array<double, 3>, 8> Corner = { { { -X, -Y, -Z }, { X, -Y, -Z }, { X, Y, -Z }, { -X, Y, -Z },
+                                                                    { -X, -Y, Z }, { X, -Y, Z }, { X, Y, Z }, { -X, Y, Z } } };
+            constexpr int EdgeIndex[12][2] = { {0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},{0,4},{1,5},{2,6},{3,7} };
+            for (const auto& Pair : EdgeIndex) Edge(Corner[Pair[0]], Corner[Pair[1]]);
+        }
+        else if (Shape.Shape == PhysicsShape::Sphere)
+        {
+            const double Radius = Shape.HalfExtentMetres[0];
+            constexpr int Steps = 24;
+            for (int Plane = 0; Plane < 3; ++Plane)
+                for (int Step = 0; Step < Steps; ++Step)
+                {
+                    const double A0 = 2.0 * 3.14159265358979323846 * Step / Steps, A1 = 2.0 * 3.14159265358979323846 * (Step + 1) / Steps;
+                    auto Circle = [&](double Angle)
+                    {
+                        const double C = Radius * std::cos(Angle), S = Radius * std::sin(Angle);
+                        if (Plane == 0) return std::array<double, 3>{ C, S, 0.0 };
+                        if (Plane == 1) return std::array<double, 3>{ C, 0.0, S };
+                        return std::array<double, 3>{ 0.0, C, S };
+                    };
+                    Edge(Circle(A0), Circle(A1));
+                }
+        }
+        else if (Shape.Shape == PhysicsShape::Triangles)
+        {
+            for (size_t Triangle = 0; Triangle + 2 < Shape.Triangles.size(); Triangle += 3)
+            {
+                const auto& P0 = Shape.Points[Shape.Triangles[Triangle]];
+                const auto& P1 = Shape.Points[Shape.Triangles[Triangle + 1]];
+                const auto& P2 = Shape.Points[Shape.Triangles[Triangle + 2]];
+                const std::array<double, 3> A{ P0[0], P0[1], P0[2] }, B{ P1[0], P1[1], P1[2] }, C{ P2[0], P2[1], P2[2] };
+                Edge(A, B); Edge(B, C); Edge(C, A);
+            }
+        }
+        else if (Shape.Shape == PhysicsShape::Hull && !Shape.Points.empty())
+        {
+            // 📝 The hull's local bounds outline: a faithful enough debug cage without re-deriving the solver's hull edges.
+            std::array<double, 3> Minimum{ 1.0e30, 1.0e30, 1.0e30 }, Maximum{ -1.0e30, -1.0e30, -1.0e30 };
+            for (const auto& Point : Shape.Points)
+                for (int Axis = 0; Axis < 3; ++Axis)
+                {
+                    Minimum[Axis] = std::min(Minimum[Axis], static_cast<double>(Point[Axis]));
+                    Maximum[Axis] = std::max(Maximum[Axis], static_cast<double>(Point[Axis]));
+                }
+            const std::array<std::array<double, 3>, 8> Corner = { { { Minimum[0], Minimum[1], Minimum[2] }, { Maximum[0], Minimum[1], Minimum[2] },
+                                                                    { Maximum[0], Maximum[1], Minimum[2] }, { Minimum[0], Maximum[1], Minimum[2] },
+                                                                    { Minimum[0], Minimum[1], Maximum[2] }, { Maximum[0], Minimum[1], Maximum[2] },
+                                                                    { Maximum[0], Maximum[1], Maximum[2] }, { Minimum[0], Maximum[1], Maximum[2] } } };
+            constexpr int EdgeIndex[12][2] = { {0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},{0,4},{1,5},{2,6},{3,7} };
+            for (const auto& Pair : EdgeIndex) Edge(Corner[Pair[0]], Corner[Pair[1]]);
+        }
+    }
+    return Segments;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

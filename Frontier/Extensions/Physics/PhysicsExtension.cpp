@@ -6,6 +6,7 @@
 
 #include "Frontier/Extensions/Physics/PhysicsExtension.h"
 
+#include "Frontier/Engine/Rendering/GlobalIllumination/TransformProjection.h"
 #include "Frontier/Engine/Scene/VehicleReadings.h"
 #include "Frontier/Engine/Scene/WorldSpace.h"
 
@@ -28,6 +29,35 @@ std::array<double, 3> ToDouble(const float Coordinates[3])
 std::array<double, 3> Conjugated(const std::array<double, 4>& Q, const std::array<double, 3>& Vector)
 {
     return RotatePhysicsVector({ -Q[0], -Q[1], -Q[2], Q[3] }, Vector);
+}
+
+// 📝 Turns a record's collision surface into the descriptor's shape. A fixed collider keeps the world-space triangles as they
+//    are (the body sits at the origin); a moving body takes the corners back into its own frame as a convex hull, so the solver
+//    carries it about its centre. Returns false when the surface has no triangles (the caller keeps its bounds box).
+bool ApplyCollisionSurface(PhysicsBodyDescriptor& Body, const CollisionSurface& Surface, bool Moving)
+{
+    if (Surface.Triangles.empty() || Surface.Corners.empty()) return false;
+    if (!Moving)
+    {
+        Body.Shape          = PhysicsShape::Triangles;
+        Body.Points         = Surface.Corners;
+        Body.Triangles      = Surface.Triangles;
+        Body.PositionMetres = { 0.0, 0.0, 0.0 };
+        Body.Orientation    = { 0.0, 0.0, 0.0, 1.0 };
+        return true;
+    }
+    const PlacementMatrix Inverse = InvertPlacement(Surface.Placement);
+    Body.Shape     = PhysicsShape::Hull;
+    Body.Triangles.clear();
+    Body.Points.clear();
+    Body.Points.reserve(Surface.Corners.size());
+    for (const auto& Corner : Surface.Corners)
+    {
+        const std::array<double, 3> World{ Corner[0], Corner[1], Corner[2] };
+        const std::array<double, 3> Local = GlobalIllumination::TransformPoint(Inverse, World);
+        Body.Points.push_back({ static_cast<float>(Local[0]), static_cast<float>(Local[1]), static_cast<float>(Local[2]) });
+    }
+    return true;
 }
 
 } // namespace
@@ -60,6 +90,7 @@ size_t PhysicsExtension::Begin(WorldSpace& World, const PhysicsExtensionSettings
     AppliedReset = 0;
     Latest       = {};
     Register.Survey(World);
+    const CollisionSurfaceArchive* Surfaces = Settings.CollisionSurfaces;
 
     // ① the ground: a 4 km slab whose top is z = 0
     PhysicsBodyDescriptor Ground;
@@ -140,6 +171,11 @@ size_t PhysicsExtension::Begin(WorldSpace& World, const PhysicsExtensionSettings
             Body.PositionMetres   = Centre;
             Body.Orientation      = Orientation;
             Body.Motion           = PhysicsMotion::Moving;
+            // 📝 The drawn surface, when the scene resolved one: a convex hull of its corners in the record's own frame, so the
+            //    crate collides as its shape rather than its bounds box. The bounds-centre position and offset are kept.
+            if (Surfaces != nullptr)
+                if (const auto Found = Surfaces->find(Record->QueryToken().Value); Found != Surfaces->end())
+                    (void)ApplyCollisionSurface(Body, Found->second, true);
             const uint32_t Index  = Space->AddBody(Body);
             if (Index == PhysicsNoBody)
             {
@@ -160,6 +196,11 @@ size_t PhysicsExtension::Begin(WorldSpace& World, const PhysicsExtensionSettings
             Collider.HalfExtentMetres = { 0.5 * World3[0], 0.5 * World3[1], 0.5 * World3[2] };
             Collider.PositionMetres   = { 0.5 * (Minimum[0] + Maximum[0]), 0.5 * (Minimum[1] + Maximum[1]), 0.5 * (Minimum[2] + Maximum[2]) };
             Collider.Motion           = PhysicsMotion::Fixed;
+            // 📝 The drawn surface, when the scene resolved one: its world-space triangles, so the jump ramp is a driveable slope
+            //    rather than the box its bounds would make. Without a surface the bounds box stands.
+            if (Surfaces != nullptr)
+                if (const auto Found = Surfaces->find(Record->QueryToken().Value); Found != Surfaces->end())
+                    (void)ApplyCollisionSurface(Collider, Found->second, false);
             Entry.Body                = Space->AddBody(Collider);
             if (Entry.Body != PhysicsNoBody)
             {
@@ -273,6 +314,8 @@ size_t PhysicsExtension::Begin(WorldSpace& World, const PhysicsExtensionSettings
             });
         Tally.Threaded = Threaded;
     }
+    Portals.Configure(World);
+    for (Link& Link : Links) Link.PreviousValid = false;
     return Tally.Moving + Tally.Vehicles;
 }
 
@@ -581,6 +624,72 @@ void PhysicsExtension::End(WorldSpace& World)
     Remainder = 0.0;
     Threaded  = false;
     Latest    = {};
+}
+
+size_t PhysicsExtension::IntegratePortals(WorldSpace& World)
+{
+    if (!Space || Threaded || Portals.QueryApertures().empty()) return 0;
+    size_t Transits = 0;
+    for (Link& Link : Links)
+    {
+        if (Link.Body == PhysicsNoBody) continue;
+        const PhysicsBodyReading Reading = Space->ReadBody(Link.Body);
+        if (!Link.PreviousValid)
+        {
+            Link.PreviousPosition = Reading.PositionMetres;
+            Link.PreviousValid    = true;
+            continue;
+        }
+        bool Teleported = false;
+        for (const PortalAperture& Aperture : Portals.QueryApertures())
+        {
+            const PortalAperture* Peer = Portals.QueryPeer(Aperture);
+            if (Peer == nullptr) continue;
+            const PortalCrossing Crossing = Portals.DetectCrossing(Link.PreviousPosition, Reading.PositionMetres, Aperture);
+            if (!Crossing.Crossed || !Crossing.WithinAperture) continue;
+            PortalBodyPose Pose;
+            Pose.Position        = Reading.PositionMetres;
+            Pose.Orientation     = Reading.Orientation;
+            Pose.LinearVelocity  = Reading.LinearVelocityMps;
+            Pose.AngularVelocity = Reading.AngularVelocityRads;
+            const PortalTransit Transit = Portals.ResolveTransit(Pose, Aperture, *Peer);
+            PhysicsBodyReading Emerging;
+            Emerging.PositionMetres      = Transit.Pose.Position;
+            Emerging.Orientation         = Transit.Pose.Orientation;
+            Emerging.LinearVelocityMps   = Transit.Pose.LinearVelocity;
+            Emerging.AngularVelocityRads = Transit.Pose.AngularVelocity;
+            Emerging.Awake               = true;
+            Space->PlaceBody(Link.Body, Emerging);
+            // 📝 The aperture ratio resizes the body: scale the record so the renderer draws it at the new size.
+            if (SceneRecordBase* Record = World.FindRecord(Link.Record))
+            {
+                auto ScaleSpatial = [&Transit](SpatialConfiguration& Spatial)
+                {
+                    for (int Axis = 0; Axis < 3; ++Axis) Spatial.Scale[Axis] *= static_cast<float>(Transit.Scale);
+                    Spatial.AdvanceRevision();
+                };
+                if (Link.Geometry)
+                {
+                    if (auto* Geometry = dynamic_cast<GeometryRecord*>(Record)) ScaleSpatial(Geometry->AccessConfiguration().Spatial);
+                }
+                else if (auto* Body = dynamic_cast<RigidBodyRecord*>(Record))
+                {
+                    ScaleSpatial(Body->AccessSpatial());
+                }
+            }
+            Link.PreviousPosition = Transit.Pose.Position;
+            Link.PreviousValid    = true;
+            Teleported            = true;
+            ++Transits;
+            break;
+        }
+        if (!Teleported)
+        {
+            Link.PreviousPosition = Reading.PositionMetres;
+            Link.PreviousValid    = true;
+        }
+    }
+    return Transits;
 }
 
 } // namespace Frontier

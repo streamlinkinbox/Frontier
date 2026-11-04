@@ -41,6 +41,10 @@ class PhysicsSpace
     void AssignMass(uint32_t Index, double MassKilograms, const std::array<double, 3>& InertiaKgm2);
     void Dispatch(uint32_t Count, const std::function<void(uint32_t)>& Task);
 
+    // 📝 The colliders' edges in world space at their current poses, for the viewport's collision wireframe: a box's twelve
+    //    edges, a triangle set's facet edges, a hull's outline, a sphere's three great circles. Fixed and moving bodies alike.
+    [[nodiscard]] std::vector<PhysicsWireSegment> ResolveWireframe() const;
+
     [[nodiscard]] const PhysicsBodyDescriptor& QueryDescriptor(uint32_t Index) const { return Descriptors[Index]; }
     [[nodiscard]] size_t                       QueryBodyCount() const noexcept { return Descriptors.size(); }
     [[nodiscard]] size_t                       QueryAwakeCount() const;
@@ -50,8 +54,19 @@ class PhysicsSpace
     [[nodiscard]] const char*                  QuerySolverName() const noexcept;
 
   private:
+    // 📝 The shape geometry kept for the collision wireframe (the descriptor drops its points and triangles once the solver holds
+    //    them). One entry per body, in the same order as Descriptors.
+    struct WireframeShape
+    {
+        PhysicsShape                      Shape = PhysicsShape::Box;
+        std::array<double, 3>             HalfExtentMetres{};
+        std::vector<std::array<float, 3>> Points{};
+        std::vector<uint32_t>             Triangles{};
+    };
+
     std::unique_ptr<PhysicsAdapter>    Adapter;
     std::vector<PhysicsBodyDescriptor> Descriptors;
+    std::vector<WireframeShape>        WireframeShapes;
     double                             SimulatedSeconds = 0.0;
 };
 

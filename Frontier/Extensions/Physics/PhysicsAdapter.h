@@ -95,6 +95,16 @@ struct PhysicsSpaceSettings
     uint32_t              Workers       = 0;                     // [-] job threads; 0: the machine's choice (up to 4)
 };
 
+// 📝 One edge of a collider drawn in world space, for the viewport's collision wireframe. Body is the space index it belongs to;
+//    Moving tells the overlay whether to tint it as a dynamic body or a fixed collider.
+struct PhysicsWireSegment
+{
+    std::array<double, 3> Start{};    // [m]
+    std::array<double, 3> End{};      // [m]
+    uint32_t              Body   = 0; // [-] the space body index
+    bool                  Moving = false;
+};
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    PHYSICS ADAPTER
 //------------------------------------------------------------------------------------------------------------------------

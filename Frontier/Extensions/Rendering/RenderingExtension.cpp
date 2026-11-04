@@ -299,6 +299,7 @@ SceneViewportRefresh RenderingExtension::Render(const SceneViewportRequest& Requ
         SceneViewportRefresh Paused = Held_;
         Paused.Readout.Held               = true;
         Paused.Readout.Geometry           = Geometry_.QueryResolutions();
+        Paused.Readout.CollisionSurfaces  = Geometry_.QueryCollisionSurfaces();
         Paused.Readout.Pick               = Pick_;
         Paused.Readout.GeometryGeneration = Geometry_.QueryGeneration();
         Paused.Status                     = "HELD: live refresh is off  |  " + Held_.Status;
@@ -424,6 +425,7 @@ SceneViewportRefresh RenderingExtension::Render(const SceneViewportRequest& Requ
     Outcome.Readout.SurfaceCards        = Statistics.SurfaceCards;
     Outcome.Readout.GeometryClusters    = Statistics.GeometryClusters;
     Outcome.Readout.Geometry            = Geometry_.QueryResolutions();
+    Outcome.Readout.CollisionSurfaces   = Geometry_.QueryCollisionSurfaces();
     Outcome.Readout.Pick                = Pick_;
     Outcome.Readout.GeometryGeneration  = Geometry_.QueryGeneration();
     Held_ = Outcome;

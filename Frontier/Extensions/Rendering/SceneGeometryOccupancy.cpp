@@ -134,6 +134,7 @@ void SceneGeometryOccupancy::Reset(const Frontier::GlobalIllumination::SceneStru
         for (uint32_t Slot = Scene_->ReserveCount; Slot > 0; --Slot) ReserveFree_.push_back(Scene_->ReserveFirst + Slot - 1);
     }
     Snapshot_ = std::make_shared<const GeometryResolutions>();
+    CollisionSnapshot_ = std::make_shared<const CollisionSurfaceArchive>();
     Owners_.clear();
     ++Generation_;
 }
@@ -608,9 +609,47 @@ std::vector<Frontier::GlobalIllumination::OccupantPlacement> SceneGeometryOccupa
         Owners_.clear();
         for (const auto& [Token, Entry] : Occupancies_)
             for (const ShownOccupant& Shown : Entry.Shown) Owners_[Shown.Occupant] = Token;
+        RebuildCollisionSurfaces();
         ++Generation_;
     }
     return Placements;
+}
+
+void SceneGeometryOccupancy::RebuildCollisionSurfaces()
+{
+    // 📝 Each shown occupant contributes its facet set's triangles, turned into world space by the placement the renderer draws.
+    //    The first copy's placement is kept as the frame a moving hull is expressed in; later copies only add triangles.
+    using namespace Frontier::GlobalIllumination;
+    auto Archive = std::make_shared<CollisionSurfaceArchive>();
+    if (Scene_ != nullptr)
+    {
+        for (const auto& [Token, Entry] : Occupancies_)
+        {
+            if (Entry.Shown.empty()) continue;
+            CollisionSurface Surface;
+            Surface.Placement = Entry.Shown.front().Placement;
+            Surface.Copies    = static_cast<uint32_t>(Entry.Shown.size());
+            for (const ShownOccupant& Shown : Entry.Shown)
+            {
+                if (Shown.FacetSet >= Scene_->FacetSets.size()) continue;
+                const FacetSet& Set = Scene_->FacetSets[Shown.FacetSet];
+                for (const FacetEntry& Facet : Set.Facets)
+                {
+                    const uint32_t Base = static_cast<uint32_t>(Surface.Corners.size());
+                    for (const Vector3& Corner : Facet.Corners)
+                    {
+                        const Vector3 World = TransformPoint(Shown.Placement, Corner);
+                        Surface.Corners.push_back({ static_cast<float>(World[0]), static_cast<float>(World[1]), static_cast<float>(World[2]) });
+                    }
+                    Surface.Triangles.push_back(Base);
+                    Surface.Triangles.push_back(Base + 1);
+                    Surface.Triangles.push_back(Base + 2);
+                }
+            }
+            if (!Surface.Triangles.empty()) Archive->emplace(Token, std::move(Surface));
+        }
+    }
+    CollisionSnapshot_ = std::move(Archive);
 }
 
 } // namespace Frontier

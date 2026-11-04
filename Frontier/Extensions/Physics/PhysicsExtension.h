@@ -15,8 +15,10 @@
 
 #include "Frontier/Extensions/Physics/PhysicsSpace.h"
 #include "Frontier/Extensions/Physics/PhysicsThread.h"
+#include "Frontier/Extensions/Portals/PortalSpace.h"
 #include "Frontier/Extensions/Physics/PhysicsVehicle.h"
 
+#include "Frontier/Engine/Scene/CollisionSurface.h"
 #include "Frontier/Engine/Scene/EngineConfigurations.h"
 #include "Frontier/Engine/Scene/RecordToken.h"
 #include "Frontier/Engine/Scene/WorldRegister.h"
@@ -39,6 +41,10 @@ struct PhysicsExtensionSettings
     int                  SolverSubsteps      = 1;       // [-] inner vehicle/drivetrain/tyre sub-steps per fixed step
     uint32_t             MaximumCatchUpSteps = 8;       // [-] physics-thread steps per wake before a backlog is dropped
     bool                 WriteRegister       = true;    // [-] <Level>.WorldRegister.md beside a loaded level
+    // 📝 The level's collision facets (world-space triangles per record), from the renderer's occupancy. When present, a Geometry
+    //    record collides as its own surface — a fixed triangle set, or a moving convex hull — instead of a bounding box. Null
+    //    falls back to the bounds box (a level opened without a renderer, or a record the scene did not resolve).
+    const CollisionSurfaceArchive* CollisionSurfaces = nullptr;
 };
 
 struct PhysicsExtensionTally
@@ -83,6 +89,11 @@ class PhysicsExtension
     void RequestVehicleReset();
     // 📝 Validations: Count fixed steps on the caller's thread now (inline mode only), then a snapshot.
     void AdvanceSteps(uint32_t Count);
+    // 📝 Carries moving bodies through paired portal apertures: a front-to-back crossing inside an aperture teleports the body
+    //    to the peer, flipped and scaled by the aperture ratio (position, orientation and both velocities), and resizes the
+    //    record. Caller-thread, inline mode (the portal transit reads and writes the space and the level together).
+    size_t IntegratePortals(WorldSpace& World);
+    [[nodiscard]] const PortalSpace& QueryPortals() const noexcept { return Portals; }
 
     [[nodiscard]] bool                         QueryRunning() const noexcept { return Space != nullptr; }
     [[nodiscard]] const PhysicsSpace*          QuerySpace() const noexcept { return Space.get(); }
@@ -103,6 +114,8 @@ class PhysicsExtension
         std::array<double, 3> CentreOffset{};                // [m] the shape's centre from the record's origin, in its own axes
         SpatialConfiguration  Saved{};                       // the transform before the simulation
         bool                  SavedDynamic = false;          // the Geometry record's Dynamic flag before the simulation
+        std::array<double, 3> PreviousPosition{};            // [m] last step's position, for portal crossing detection
+        bool                  PreviousValid = false;         // [-] whether PreviousPosition holds a reading
     };
     struct VehicleLink
     {
@@ -128,6 +141,7 @@ class PhysicsExtension
     void AddVehicle(WorldSpace& World, RecordToken Record, WorldRegisterEntry* Entry);
 
     std::unique_ptr<PhysicsSpace>            Space;
+    PortalSpace                              Portals{};        // the level's paired apertures, resolved at Begin
     std::vector<Link>                        Links;
     std::vector<VehicleLink>                 Vehicles;
     WorldRegister                            Register;

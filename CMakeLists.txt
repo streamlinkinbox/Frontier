@@ -140,6 +140,7 @@ add_library(FrontierSceneEditorUI STATIC
     Frontier/Engine/Scene/RecordEntry.cpp
     Frontier/Engine/Scene/SceneDirectory.cpp
     Frontier/Engine/Scene/WorldSpace.cpp
+    Frontier/Engine/Scene/PortalRecord.cpp
     Frontier/Engine/Scene/WorldRegister.cpp
     Frontier/Engine/Scene/VehicleRecordCodec.cpp
     Frontier/Engine/Scene/VehicleReadings.cpp
@@ -285,8 +286,22 @@ add_library(FrontierParticleExtension STATIC
 target_link_libraries(FrontierParticleExtension PUBLIC FrontierSceneEditorUI FrontierParticleSimulation)
 add_library(FrontierNetworkingExtension STATIC
     Frontier/Extensions/Networking/NetworkingSpace.cpp
-    Frontier/Extensions/Networking/NetworkingExtension.cpp)
+    Frontier/Extensions/Networking/NetworkingExtension.cpp
+    Frontier/Extensions/Networking/ProviderTransport.cpp
+    Frontier/Extensions/Networking/SessionTransportRouter.cpp
+    Frontier/Extensions/Networking/SessionLink.cpp
+    # 📝 The Project-Networking transport facades, SDK-free at this boundary: the EOS direct-path placeholder and the Photon
+    #    link stub. The real Photon Realtime libs replace the stub at link time on Windows (see Project-Networking/Build).
+    Frontier/Projects/Project-Networking/Source/EosTransport.cpp
+    Frontier/Projects/Project-Networking/Source/PhotonLinkStub.cpp)
+target_include_directories(FrontierNetworkingExtension PRIVATE
+    "${CMAKE_SOURCE_DIR}/Frontier/Projects/Project-Networking/Source")
 target_link_libraries(FrontierNetworkingExtension PUBLIC FrontierSceneEditorUI)
+# 📝 Portals: the aperture transit math (pairing, crossing, the flipped+scaled carry, the straddling clone). Pure — no solver,
+#    no renderer — so the physics step, the editor overlay and the validation share it.
+add_library(FrontierPortalsExtension STATIC
+    Frontier/Extensions/Portals/PortalSpace.cpp)
+target_link_libraries(FrontierPortalsExtension PUBLIC FrontierSceneEditorUI)
 # 📝 Physics: JoltPhysics (pinned, Automation/JoltPhysics.cmake) behind PhysicsSpace; only the extension sees Jolt's headers.
 include(Automation/JoltPhysics.cmake)
 frontier_add_jolt()
@@ -297,7 +312,7 @@ add_library(FrontierPhysicsExtension STATIC
     Frontier/Extensions/Physics/PhysicsThread.cpp
     Frontier/Extensions/Physics/PhysicsVehicle.cpp
     Frontier/Extensions/Physics/PhysicsExtension.cpp)
-target_link_libraries(FrontierPhysicsExtension PUBLIC FrontierSceneEditorUI PRIVATE Jolt)
+target_link_libraries(FrontierPhysicsExtension PUBLIC FrontierSceneEditorUI FrontierPortalsExtension PRIVATE Jolt)
 
 add_library(EverestProjectEditor STATIC
     Projects/Everest/Source/EverestApplication.cpp
@@ -321,6 +336,7 @@ add_library(EverestProjectRuntime STATIC
     Frontier/Engine/Scene/RecordEntry.cpp
     Frontier/Engine/Scene/SceneDirectory.cpp
     Frontier/Engine/Scene/WorldSpace.cpp
+    Frontier/Engine/Scene/PortalRecord.cpp
     Frontier/Engine/Scene/VehicleRecordCodec.cpp
     Frontier/Engine/PhysicalDynamics/ForceSourceCatalogue.cpp
     Frontier/Engine/Scene/GeometryLayout.cpp

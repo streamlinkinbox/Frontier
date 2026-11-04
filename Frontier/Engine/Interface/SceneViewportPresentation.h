@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Engine/Scene/CollisionSurface.h"
 #include "Engine/Scene/EngineConfigurations.h"
 #include "Engine/Scene/EnvironmentDiagnostics.h"
 
@@ -73,6 +74,9 @@ struct SceneViewportReadout
     //    counter that advances whenever any of them changed; the workspace copies them into the records for their inspector.
     std::shared_ptr<const std::unordered_map<uint64_t, GeometryConfiguration::Resolution>> Geometry{};
     uint64_t                GeometryGeneration  = 0;
+    // 📝 The collision facets of every resolved Geometry record (world-space triangles), rebuilt with the resolutions; the
+    //    workspace hands them to the Physics extension so colliders match the drawn surfaces, and draws them as a wireframe.
+    std::shared_ptr<const CollisionSurfaceArchive> CollisionSurfaces{};
     SceneViewportPick       Pick{};                          // [-] the answer to the last click on the stage
 };
 

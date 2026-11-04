@@ -4,6 +4,7 @@
 // 🧩 Dynamic scene world implementation with .levelspace container serialization and composable record simulation.
 
 #include "Engine/Scene/WorldSpace.h"
+#include "Engine/Scene/PortalRecord.h"
 #include "Engine/Scene/VehicleRecordCodec.h"
 
 #include "Engine/Scene/SceneDirectory.h"
@@ -1733,6 +1734,12 @@ void WorldSpace::RegisterNativeEngineTypes()
         [](std::string Name) -> std::unique_ptr<SceneRecordBase>
         {
             return std::make_unique<GeometryRecord>(RecordClassification::Geometry, "Geometry", std::move(Name), "Box", "Geometry", "#a8bbeb");
+        }});
+    // 📝 Portal apertures: paired one-sided rectangles that show each other's world; the Portals extension runs the transit.
+    RegisterType({"Portal", "Scene · Portal Aperture", RecordClassification::Geometry,
+        [](std::string Name) -> std::unique_ptr<SceneRecordBase>
+        {
+            return std::make_unique<PortalRecord>(std::move(Name));
         }});
 
     // Render settings (one record for the whole renderer) & Continuum Solver Types

@@ -9,6 +9,7 @@
 #include "Frontier/Engine/Rendering/GlobalIllumination/OccupantRelocation.h"
 #include "Frontier/Engine/Rendering/GlobalIllumination/PickProjection.h"
 #include "Frontier/Engine/Rendering/GlobalIllumination/SceneStructure.h"
+#include "Frontier/Engine/Scene/CollisionSurface.h"
 #include "Frontier/Engine/Scene/GeometryLayout.h"
 #include "Frontier/Engine/Scene/WorldSpace.h"
 
@@ -70,6 +71,10 @@ class SceneGeometryOccupancy
     [[nodiscard]] std::shared_ptr<const GeometryResolutions> QueryResolutions() const noexcept { return Snapshot_; }
     [[nodiscard]] uint64_t                                   QueryGeneration() const noexcept { return Generation_; }
 
+    // 📝 The collision facets of every resolved record (its shown occupants' triangles in world space), rebuilt whenever the
+    //    resolutions change. The Physics extension turns these into triangle sets and hulls so a collider matches the drawn surface.
+    [[nodiscard]] std::shared_ptr<const CollisionSurfaceArchive> QueryCollisionSurfaces() const noexcept { return CollisionSnapshot_; }
+
     // 📝 The archive transform of an occupant as the scene loaded it.
     [[nodiscard]] const Frontier::PlacementMatrix* QueryArchiveTransform(uint32_t Occupant) const noexcept;
     [[nodiscard]] const std::vector<Frontier::ShapeArchive>& QueryShapes() const noexcept { return Shapes_; }
@@ -110,6 +115,7 @@ class SceneGeometryOccupancy
     void Resolve(Occupancy& Entry, const Frontier::GeometryConfiguration& Configuration,
                  std::vector<Frontier::GlobalIllumination::OccupantPlacement>& Placements);
     void Release(Occupancy& Entry, std::vector<Frontier::GlobalIllumination::OccupantPlacement>& Placements);
+    void RebuildCollisionSurfaces();
     [[nodiscard]] bool     AcquireReserve(uint32_t FacetSet, uint32_t& OutOccupant);
     [[nodiscard]] uint32_t ResolveParticipation(const Frontier::GlobalIllumination::OccupantEntry& Base,
                                                 const Frontier::GeometryConfiguration& Configuration) const;
@@ -132,6 +138,7 @@ class SceneGeometryOccupancy
     std::unordered_map<uint64_t, Occupancy>             Occupancies_{};
     std::shared_ptr<const GeometryResolutions>          Snapshot_ = std::make_shared<const GeometryResolutions>();
     std::unordered_map<uint32_t, uint64_t>              Owners_{};         // [-] shown occupant → record token value
+    std::shared_ptr<const CollisionSurfaceArchive>      CollisionSnapshot_ = std::make_shared<const CollisionSurfaceArchive>();
     uint64_t                                            Generation_ = 0;
 };
 
