@@ -209,15 +209,45 @@ void VehicleSolver::AssignGround(GroundHeightFunction Height, GroundNormalFuncti
 void VehicleSolver::AssignCarcassModel(CarcassModel Model)
 {
     m_CarcassModel = Model;
+    for (int Index = 0; Index < 4; ++Index) m_WheelCarcassModel[Index] = Model;
     for (int Wheel = 0; Wheel < 4; ++Wheel)
         m_Lattices[Wheel].Reset();
     // 📝 The demo advances its selected visual solver once on assignment; inactive solvers retain their shape.
     AdvanceTyreContinuum(1.0 / 120.0);
 }
 
+void VehicleSolver::AssignWheelCarcassModel(int Index, CarcassModel Model)
+{
+    if (Index < 0 || Index >= 4) return;
+    m_WheelCarcassModel[Index] = Model;
+    m_Lattices[Index].Reset();
+    // 📝 Same as AssignCarcassModel: advance the corner's selected continuum solver once on assignment.
+    AdvanceTyreContinuum(1.0 / 120.0);
+}
+
+void VehicleSolver::AssignInduction(const InductionChargerConfiguration& ChargerConfiguration)
+{
+    m_InductionCharger.AssignConfiguration(ChargerConfiguration);
+    m_InductionCustom = true;
+    Boost         = 0.0;
+    ChargerRPM    = 0.0;
+    ParasiticDrag = 0.0;
+}
+
+void VehicleSolver::AssignInductionStock()
+{
+    m_InductionCustom = false;
+    ParasiticDrag     = 0.0;
+    ChargerRPM        = 0.0;
+}
+
 void VehicleSolver::AdvanceTyreContinuum(double Seconds)
 {
-    if (m_CarcassModel != CarcassProjectionModel && m_CarcassModel != CarcassSolidModel) return;
+    const bool AnyContinuum = m_WheelCarcassModel[0] == CarcassProjectionModel || m_WheelCarcassModel[0] == CarcassSolidModel
+                           || m_WheelCarcassModel[1] == CarcassProjectionModel || m_WheelCarcassModel[1] == CarcassSolidModel
+                           || m_WheelCarcassModel[2] == CarcassProjectionModel || m_WheelCarcassModel[2] == CarcassSolidModel
+                           || m_WheelCarcassModel[3] == CarcassProjectionModel || m_WheelCarcassModel[3] == CarcassSolidModel;
+    if (!AnyContinuum) return;
     for (int Wheel = 0; Wheel < 4; ++Wheel)
     {
         if (Wheels[Wheel].Shredded) continue;
@@ -227,8 +257,8 @@ void VehicleSolver::AdvanceTyreContinuum(double Seconds)
         Input.Deflection = Wheels[Wheel].Contact ? Wheels[Wheel].TyreDeflection : 0.0;
         Input.Pressure = Wheels[Wheel].Pressure;
         Input.LateralForce = Wheels[Wheel].LateralForce;
-        if (m_CarcassModel == CarcassProjectionModel) m_Projections[Wheel].Advance(Input, Seconds, 2);
-        else m_Solids[Wheel].Advance(Input, Seconds, 2);
+        if (m_WheelCarcassModel[Wheel] == CarcassProjectionModel) m_Projections[Wheel].Advance(Input, Seconds, 2);
+        else if (m_WheelCarcassModel[Wheel] == CarcassSolidModel) m_Solids[Wheel].Advance(Input, Seconds, 2);
     }
 }
 
@@ -371,18 +401,37 @@ double VehicleSolver::ResolveDriveTorque(double ThrottleIn, double ForwardSpeed,
     const bool Against = DrivenSpin * Ratio < -1.0e-3;
     EngineRPM = Against ? (ThrottleIn > 0.02 ? Launch : Engine.IdleRPM)
                         : std::fmax(WheelRPM, ThrottleIn > 0.02 ? Launch : Engine.IdleRPM);
+    if (m_InductionCustom)
+    {
+        // 📝 Unified induction module (NA / turbo / supercharger) advances every substep; the result replaces the
+        //    stock first-order turbo computation below, and the supercharger's parasitic tax comes off the crank.
+        m_ChargeReading = m_InductionCharger.Advance(EngineRPM, ThrottleIn, Seconds);
+        Boost           = m_ChargeReading.BoostBar;
+        ChargerRPM      = m_ChargeReading.ChargerRPM;
+        ParasiticDrag   = m_ChargeReading.ParasiticDragNewtonMetre;
+    }
     if (ThrottleIn <= 0.02 && (WheelRPM < Engine.IdleRPM * 1.2 || Against))
     {
         m_ShiftTimer = std::fmax(0.0, m_ShiftTimer - Seconds);
-        Boost += (0.0 - Boost) * std::fmin(1.0, Seconds / Turbo.SpoolTimeConstant);
+        if (!m_InductionCustom)
+            Boost += (0.0 - Boost) * std::fmin(1.0, Seconds / Turbo.SpoolTimeConstant);
         return 0.0;
     }
-    const double BoostTarget = ThrottleIn * Turbo.WastegateMaxBoost * ClampScalar((EngineRPM - 1500.0) / 2500.0, 0.0, 1.0);
-    Boost += (BoostTarget - Boost) * std::fmin(1.0, Seconds / Turbo.SpoolTimeConstant);
-    const double BoostMultiplier = SampleCurve(Turbo.TorqueMultiplierCurve, 4, Boost);
+    double BoostMultiplier;
+    if (m_InductionCustom)
+    {
+        BoostMultiplier = m_ChargeReading.TorqueMultiplier;
+    }
+    else
+    {
+        const double BoostTarget = ThrottleIn * Turbo.WastegateMaxBoost * ClampScalar((EngineRPM - 1500.0) / 2500.0, 0.0, 1.0);
+        Boost += (BoostTarget - Boost) * std::fmin(1.0, Seconds / Turbo.SpoolTimeConstant);
+        BoostMultiplier = SampleCurve(Turbo.TorqueMultiplierCurve, 4, Boost);
+    }
     const double Omega = EngineRPM / RadiansToRpm;
     double Torque = SampleCurve(Engine.TorqueCurve, 18, EngineRPM) * BoostMultiplier * ThrottleIn;
     Torque -= (Engine.EngineBrakingCoeff * Omega + Engine.EngineBrakingQuadratic * Omega * Omega * (1.0 - ThrottleIn));
+    Torque -= ParasiticDrag * ThrottleIn;   // [N·m] belt parasitic tax (0 on the stock path)
     if (EngineRPM >= Engine.RedlineRPM)
         Torque = std::fmin(Torque, 0.0);
     if ((WheelRPM < Launch || Against) && ThrottleIn > 0.02)
@@ -541,7 +590,7 @@ void VehicleSolver::Step(const VehicleCommand& Command, double Seconds)
             {
                 Stack.Contact = true;
                 Stack.Stiffness = Wheel.Shredded ? RimStiffness
-                                : (m_CarcassModel == CarcassLatticeModel ? Wheel.LatticeStiffness
+                                : (m_WheelCarcassModel[Index] == CarcassLatticeModel ? Wheel.LatticeStiffness
                                    : TyreSidewallStiffness + TyreAirStiffness * std::fmax(0.0, Wheel.Pressure));
                 Stack.Pinch = Wheel.Radius - Geometry.TyreRimRadius - TyrePinchClearance;
             }
@@ -645,7 +694,7 @@ void VehicleSolver::Step(const VehicleCommand& Command, double Seconds)
             }
             // 📝 XPBD lattice carcass: step the particle lattice at the solved hub height; its measured contact force
             //    replaces the spring estimate the bisection used, and its tangent stiffness feeds the next substep.
-            if (m_CarcassModel == CarcassLatticeModel && !Wheel.Shredded)
+            if (m_WheelCarcassModel[Index] == CarcassLatticeModel && !Wheel.Shredded)
             {
                 TyreLatticeInput Input;
                 double Hub[3]; MulAdd(Stack.Mount, Axis, Length, Hub);

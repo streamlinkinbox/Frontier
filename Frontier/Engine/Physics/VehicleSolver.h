@@ -23,6 +23,7 @@
 #include "Engine/Physics/TyreThermalSolver.h"
 #include "Engine/Physics/TyreCarcassLattice.h"
 #include "Engine/Physics/TyreContinuum.h"
+#include "Engine/Physics/InductionCharger.h"
 #include "Engine/Physics/VehicleSpecification.h"
 
 namespace Frontier
@@ -136,9 +137,21 @@ public:
     void AssignGround(GroundHeightFunction Height, GroundNormalFunction Normal, void* Context);
     void AssignAssists(bool LineLockEnabled);
     void AssignCarcassModel(CarcassModel Model);
+    // 📝 Per-wheel category selection: each corner runs spring / 84-node XPBD lattice / 160-node XPBD projection /
+    //    128-cell Hex8 FEM independently; the strut stack solve uses that corner's category.
+    void AssignWheelCarcassModel(int Index, CarcassModel Model);
+    [[nodiscard]] CarcassModel QueryWheelCarcassModel(int Index) const { return (Index >= 0 && Index < 4) ? m_WheelCarcassModel[Index] : m_CarcassModel; }
     void AssignTyrePressures(const double Pressures[4]);
     void AssignGrip(const double Factors[4]);
     void RestoreTyres();
+
+    // 📝 Induction: the stock path (default) is the demonstration's exact first-order turbo and stays bit-identical.
+    //    AssignInduction opts into the unified charger (NA / turbo / supercharger) whose parasitic drag taxes the
+    //    crank; AssignInductionStock restores the demo law.
+    void AssignInduction(const InductionChargerConfiguration& ChargerConfiguration);
+    void AssignInductionStock();
+    [[nodiscard]] bool                          QueryInductionIsCustom() const noexcept { return m_InductionCustom; }
+    [[nodiscard]] const InductionChargeReading& QueryChargeReading()    const noexcept { return m_ChargeReading; }
 
     // 📝 Hub world position and full wheel orientation quaternion (body · steer about +Z · spin about +Y).
     void QueryWheelPose(int Index, double OutHub[3], double OutOrientation[4]) const;
@@ -163,6 +176,8 @@ public:
     double EngineRPM   = 700.0;  // [rpm]
     double Boost       = 0.0;    // [bar]
     double Throttle    = 0.0;    // [-]    effective throttle after the pedal/reverse logic
+    double ChargerRPM  = 0.0;    // [rpm]  charger/turbo shaft speed reported by the induction module
+    double ParasiticDrag = 0.0;  // [N·m]  supercharger crank tax this substep (0 on the stock path)
     bool   Burnout     = false;  // [-]    line lock currently engaged
     bool   Frozen      = false;  // [-]    held where it is: no integration, no forces
 
@@ -185,6 +200,10 @@ private:
     TyreCarcassProjection m_Projections[4];
     TyreCarcassSolid m_Solids[4];
     CarcassModel m_CarcassModel = CarcassSpringModel; // demo defaults to solid; native default preserves existing callers
+    CarcassModel m_WheelCarcassModel[4] = { CarcassSpringModel, CarcassSpringModel, CarcassSpringModel, CarcassSpringModel };
+    bool m_InductionCustom = false;                   // [-] stock turbo law when false, InductionCharger when true
+    InductionCharger m_InductionCharger;              // [-] unified forced-induction module (custom path)
+    InductionChargeReading m_ChargeReading;           // [-] most recent charger advancement
     double m_StaticLength = 0.6436 - 0.0914;       // [m] socket separation at rest
     double m_InertiaBody[3] = { 0.0, 0.0, 0.0 };   // [kg·m²]
     double m_Accumulator = 0.0;                    // [s]
