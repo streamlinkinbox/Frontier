@@ -1,0 +1,8 @@
+DIAGNOSTIC: 720-step hard-drop extension; expected to exceed strict parity tolerances.
+The cause of the late divergence is not yet established.
+first mismatch: scenario 4 step 645, z error -2.53377835e-09, force error 0.0105946161 N
+FAIL spring against current demo, four 720-step cases + 720-step drop: 3600 samples
+max errors: position 0.00209625976 m, velocity 0.0353598144 m/s, angular 0.0185566723 rad/s, quaternion 0.000120208434
+max errors: tyre force 108.775067 N, deflection 0.000567012736 m, load 334.504356 N, strut length 0.000328979492 m, contact mismatches 0
+pinch state mismatches 0, top-out mismatches 0; pinched wheel samples: zero-pressure 324, drop 247; airborne drop 2061
+scope: prescribed pressures/grips, flat course, no debris; host thermal evolution excluded

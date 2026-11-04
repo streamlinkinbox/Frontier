@@ -1,0 +1,31 @@
+VehiclePhysics exhibit — Phase 7 physics proofs
+[PASS] A1 MF6.1 Fx vs demo JS n=210 max rel err 9.396e-16 (tol 1e-9)
+[PASS] A2 MF6.1 Fy vs demo JS n=165 max rel err 1.788e-15 (tol 1e-9)
+[PASS] A3 MF6.1 combined slip vs demo JS n=30 max rel err 1.558e-15 (tol 1e-9)
+[PASS] A4 relaxation lengths vs demo JS n=6 max rel err 0.000e+00 (tol 1e-9)
+[PASS] A5 PB-FEM vertices vs WGSL transliteration n=1440 max abs err 8.739e-08 m (tol 2e-4)
+[PASS] A6 thermal trajectory vs demo JS rows=97 max rel err 0.000e+00 (tol 1e-9)
+[PASS] B1 settle: all wheels in contact 
+[PASS] B2 settle: static deflection band deflection 0.0140..0.0145 m (demo band 0.010-0.025)
+[PASS] B3 settle: contact angle -pi/2 within 0.05 
+[PASS] B4 settle: pressure 200-250 kPa 
+[PASS] B5 settle: zero lateral distortion at rest 
+[PASS] B6 settle: corner loads sum to weight within 3% sum 12753 N vs weight 12753 N (0.00%)
+[PASS] B7 encoder: flat/shredded/cornering records lat distortion 0.0300 m (expect 0.03)
+[PASS] C1 lattice vs spring at 220 kPa within 0.75-1.30 (10-40 mm) see lattice.csv
+[PASS] C2 lattice force monotonic in deflection at 220 kPa 
+[PASS] C3 lattice force ordering by pressure at 20 mm F(20mm) = 1165 / 3168 / 4828 / 6556 N at 0/110/220/330 kPa
+[PASS] C4 lattice enclosed volume conserved under load dV/V = +0.306% at 220 kPa, 20 mm (tol 3%)
+[PASS] C5 lattice tangent stiffness in vehicle band tangent stiffness 212036 N/m
+[PASS] D1 car settles on XPBD lattice mean deflection 0.0136 m, CoM z 0.5163 m
+[PASS] D2 car drives on XPBD lattice travelled 20.4 m, speed 12.5 m/s after 3 s WOT
+[PASS] E1 launch: >22 m/s with upshifts 36.8 m/s in 7 s, gear index 6, boost 1.17 bar
+[PASS] E2 slalom: alternating yaw with real slip angles yaw sign changes 4, peak |slip angle| 0.064 rad
+[PASS] E3 full brake stop 15.0 m/s -> stop in 1.31 s / 9.9 m
+[PASS] E4 line-lock burnout: rear slip held by front brakes, tyres heat engaged 1, peak rear slip 1.50, car speed <= 0.12 m/s, rear tread +77.9 K
+[PASS] E5 burnout release launches the car speed 7.1 m/s 2 s after release
+[PASS] E6 finite state throughout the drive 
+[PASS] F1 Jolt cone row: car knocks cones and feels them 10 of 10 cones displaced/tipped, total |dv| exchanged 12.24 m/s
+[PASS] F2 Jolt wall: proxy exchange stops the car impact at 12.3 m/s -> 0.24 m/s after 0.5 s, nose penetration 0.023 m
+[PASS] F3 Jolt scene finite throughout 
+SUMMARY passed 29 failed 0
