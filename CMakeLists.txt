@@ -119,6 +119,8 @@ add_library(FrontierSceneEditorUI STATIC
     Frontier/Engine/Scene/RecordEntry.cpp
     Frontier/Engine/Scene/SceneDirectory.cpp
     Frontier/Engine/Scene/SceneWorld.cpp
+    Frontier/Engine/Scene/WorldRegister.cpp
+    Frontier/Engine/Interface/Inspectors/VehicleInspector.cpp
     Frontier/Engine/Scene/GeometryLayout.cpp
     Frontier/Engine/Diagnostics/LogCategories.cpp
     Frontier/Engine/Diagnostics/LogRingStore.cpp

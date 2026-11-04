@@ -105,6 +105,9 @@ public:
 
     static constexpr int MaxVehicles = 4;
 
+    // 📝 Bind the adapter world without launching the thread: StepAll then drives the identical cycle
+    //    synchronously (deterministic validation / headless use). Start binds and starts the lane.
+    bool BindWorld(PhysicsAdapter& Adapter, const PhysicsThreadConfiguration& Configuration);
     bool Start(PhysicsAdapter& Adapter, const PhysicsThreadConfiguration& Configuration);
     void Stop() noexcept;
     [[nodiscard]] bool QueryRunning() const noexcept { return Running.load(); }

@@ -929,4 +929,109 @@ struct GeometryConfiguration : RevisionCounter
     } Resolved{};
 };
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      VEHICLE CONFIGURATIONS
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 Soft-body tyre carcass categories offered to the vehicle (editor-facing names; the physics runtime's existing
+//    CarcassModel enumerator predates the naming ruling and carries the same values): the analytic spring carries the
+//    corner load in every category; the XPBD lattice reactions feed the chassis; the XPBD projection and the Hex8 FEM
+//    solid deform.
+enum class TyreCarcassCategory : uint8_t
+{
+    Spring         = 0,   // [-] analytic sidewall + air spring (25000 + 0.88·pressure deflection law)
+    XpbdLattice    = 1,   // [-] 84-particle XPBD carcass lattice, measured reaction feeds the chassis
+    XpbdProjection = 2,   // [-] 160-node XPBD projection carcass (deformation)
+    FemSolid       = 3    // [-] 128-cell corotational Hex8 FEM solid (deformation)
+};
+
+// 📝 One steered/driven corner of the Vehicle record: its carcass category, cold inflation and the tread it starts
+//    with. Corner order follows the solver's wheel slots: FL, FR, RL, RR.
+struct VehicleTyreCornerConfiguration
+{
+    TyreCarcassCategory Carcass        = TyreCarcassCategory::Spring;   // [-]
+    float               PressureKpa    = 220.0f;                        // [kPa] cold gauge inflation
+    float               TreadRemaining = 1.0f;                          // [-]   tread share at mount (1 = new)
+};
+
+// 📝 The level's driveable vehicle (levelspace type "Vehicle"): spawn, the full induction family (naturally aspirated,
+//    the demo's first-order turbo law, and the Roots / TwinScrew / Centrifugal superchargers with bypass valve and
+//    parasitic crank tax), transmission, chassis, and the four per-corner tyre setups with three soft-body carcass
+//    categories. Defaults are the demonstration's GT-04 control vehicle. The runtime binds these onto the vehicle
+//    solver and its kinematic proxy in the physics world; the stock induction path stays bit-exact until opted out.
+struct VehicleConfiguration : RevisionCounter
+{
+    bool Enabled                     = true;
+    bool PhysicsActive               = true;    // [-] this vehicle runs in the physics thread with a kinematic proxy
+
+    // 📝 Spawn (Respawn: centre of mass, z up, yaw about +Z)
+    float SpawnMetres[3]             = {0.0f, 0.0f, 0.55f};   // [m]
+    float SpawnYawDegrees            = 0.0f;                  // [°]
+
+    // 📝 Engine & induction
+    int   Induction               = 1;       // [-] 0 Naturally Aspirated · 1 Turbo · 2 Roots SC · 3 TwinScrew SC · 4 Centrifugal SC
+    bool  StockTurboLaw           = true;    // [-] with Turbo: keep the demo's exact first-order stock law bit-exact
+    float EngineIdleRpm           = 700.0f;  // [rpm]
+    float EngineRedlineRpm        = 7200.0f; // [rpm]
+    float TurboWastegateBar       = 1.2f;    // [bar]
+    float TurboSpoolSeconds       = 0.55f;   // [s]   first-order spool τ
+    float SuperchargerDriveRatio  = 3.2f;    // [-]   charger rpm per crank rpm
+    float SuperchargerMaxBoostBar = 0.8f;    // [bar] base tune ceiling
+    float RaceTuneBoostBar       = 1.2f;    // [bar] race tune ceiling
+    bool  RaceTune                = false;   // [-]
+    float BypassRateBarPerSecond  = 8.0f;    // [bar/s] recirculation valve slew
+    float ParasiticLossPercent    = 8.0f;    // [%]   residual parasitic share fully bypassed
+
+    // 📝 Transmission & assists
+    float FinalDriveRatio         = 3.55f;   // [-]
+    float DriveEfficiency         = 0.92f;   // [-]
+    float UpshiftRpm              = 6800.0f; // [rpm]
+    float DownshiftRpm            = 2600.0f; // [rpm]
+    float LaunchRpm               = 2600.0f; // [rpm]
+    float ClutchCapacityNewtonMetre = 1200.0f; // [N·m]
+    bool  LineLockEnabled         = true;    // [-]
+
+    // 📝 Chassis & aero (VehicleGeometry / ChassisSheet defaults)
+    float MassKilograms           = 1300.0f; // [kg] incl. driver and fuel
+    float CentreOfMassHeightMetres = 0.53f;  // [m]
+    float FrontWeightPercent      = 49.14f;  // [%]
+    float SteeringLockDegrees     = 29.8f;   // [°] (0.52 rad rack lock before the Ackermann split)
+    float SteeringRatePerSecond   = 6.0f;    // [1/s]
+    float BrakeTorquePerWheelNewtonMetre = 2600.0f;   // [N·m]
+    float HandbrakeTorqueNewtonMetre     = 4200.0f;   // [N·m]
+    float AntiRollStiffnessNewtonPerMetre[2]     = {80000.0f, 80000.0f};  // [N/m] front/rear
+    float AntiRollDampingNewtonSecondPerMetre[2] = {1500.0f, 1500.0f};    // [N·s/m] front/rear
+    float DragAreaMetreSquared    = 0.74f;   // [m²] Cd·A
+    float LiftAreaMetreSquared    = 1.10f;   // [m²] Cl·A downforce
+    float FrontLiftPercent        = 45.0f;   // [%] front share of downforce
+
+    // 📝 Tyres: one corner each (FL, FR, RL, RR) — per-corner soft-body carcass category, pressure and tread.
+    VehicleTyreCornerConfiguration Tyres[4]{};
+
+    // 📝 Measured by the physics thread and published by the workspace while the vehicle runs; not saved.
+    struct Measurements
+    {
+        bool  Live           = false;
+        float SpeedMetrePerSecond = 0.0f;   // [m/s]
+        float EngineRpm      = 0.0f;        // [rpm]
+        int   GearIndex      = 3;           // [-] sheet index, 3 = 1st
+        float BoostBar       = 0.0f;        // [bar]
+        float ChargerRpm     = 0.0f;        // [rpm]
+        float ParasiticDragNewtonMetre = 0.0f;  // [N·m]
+        bool  Burnout        = false;       // [-]
+        struct WheelLive
+        {
+            float PressureKpa           = 220.0f;  // [kPa] gauge, hot
+            float TreadCelsius          = 20.0f;   // [°C] surface
+            float CarcassCelsius        = 20.0f;   // [°C]
+            float GasCelsius            = 20.0f;   // [°C]
+            float TreadRemaining        = 1.0f;    // [-]
+            float Grip                  = 1.0f;    // [-]
+            float LoadNewton            = 0.0f;    // [N]
+            float DeflectionMillimetres = 0.0f;    // [mm]
+            float SpinRadPerSecond      = 0.0f;    // [rad/s]
+        } Wheels[4];
+    } Measured{};
+};
+
 } // namespace Frontier

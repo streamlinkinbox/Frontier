@@ -9,6 +9,7 @@
 #include "Engine/Interface/NativeInspectors.h"
 #include "Engine/Scene/EngineConfigurations.h"
 #include "Engine/Scene/RecordEntry.h"
+#include "Engine/Scene/WorldRegister.h"
 
 #include <filesystem>
 #include <functional>
@@ -116,6 +117,7 @@ using FluidPlumeRecord     = TypedSceneRecord<FluidPlumeConfiguration, FluidPlum
 using FractureRecord       = TypedSceneRecord<FractureConfiguration, FractureInspector>;
 using ParticleRecord       = TypedSceneRecord<ParticleConfiguration, ParticleInspector>;
 using GeometryRecord       = TypedSceneRecord<GeometryConfiguration, GeometryInspector>;
+using VehicleRecord        = TypedSceneRecord<VehicleConfiguration, VehicleInspector>;
 #else
 using RenderPipelineRecord = TypedSceneRecord<RenderPipelineConfiguration>;
 using SolarRecord          = TypedSceneRecord<SolarConfiguration>;
@@ -134,6 +136,7 @@ using FluidPlumeRecord     = TypedSceneRecord<FluidPlumeConfiguration>;
 using FractureRecord       = TypedSceneRecord<FractureConfiguration>;
 using ParticleRecord       = TypedSceneRecord<ParticleConfiguration>;
 using GeometryRecord       = TypedSceneRecord<GeometryConfiguration>;
+using VehicleRecord        = TypedSceneRecord<VehicleConfiguration>;
 #endif
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -266,6 +269,11 @@ class SceneWorld
     [[nodiscard]] SceneRecordBase*   FindRecord(RecordToken Token) noexcept;
     [[nodiscard]] SceneRecordBase*   FindFirstByType(std::string_view TypeIdentifier) noexcept;
     [[nodiscard]] std::vector<const SceneRecordBase*> FindAllByType(std::string_view TypeIdentifier) const;
+    // 📝 The world register: every record this world constructs is tracked (and released on destroy); hosts register
+    //    physics bodies and vehicle proxies alongside, then export the markdown store (`a.md`).
+    [[nodiscard]] WorldRegister&       AccessWorldRegister() noexcept { return Register; }
+    [[nodiscard]] const WorldRegister& QueryWorldRegister() const noexcept { return Register; }
+
     [[nodiscard]] const std::string& QueryWorldName() const noexcept { return WorldName; }
     void                             ConfigureWorldName(std::string Name) { WorldName = std::move(Name); }
 
@@ -278,6 +286,7 @@ class SceneWorld
   private:
     void RegisterNativeEngineTypes();
 
+    WorldRegister                                 Register;
     std::string                                   WorldName = "Default";
     std::filesystem::path                         LoadedLevelPath;
     std::vector<SceneTypeRegistration>            TypeRegistry;

@@ -73,6 +73,7 @@ public:
     [[nodiscard]] size_t QueryEntryCount() const noexcept { return Entries.size(); }
     [[nodiscard]] size_t QueryLiveCount() const noexcept;
     [[nodiscard]] const WorldRegisterEntry* Find(uint64_t Identity) const noexcept;
+    [[nodiscard]] const WorldRegisterEntry* FindByRecord(RecordToken Record) const noexcept;
     [[nodiscard]] const std::vector<WorldRegisterEntry>& QueryEntries() const noexcept { return Entries; }
 
     void AdvanceWorldTime(double Seconds) noexcept { WorldTime += Seconds; }

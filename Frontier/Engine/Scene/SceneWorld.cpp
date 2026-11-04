@@ -376,6 +376,129 @@ void SceneRecordBase::ConfigureEditorPresentation(const char* GlyphIdentifier,
 //                                       SINGLE-CONFIGURATION SERIALIZATION SPECIALIZATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                VEHICLE RECORD SERIALIZATION
+//------------------------------------------------------------------------------------------------------------------------
+
+template <>
+void VehicleRecord::SerializeConfiguration(toml::table& OutTable) const
+{
+    OutTable.insert_or_assign("enabled", Parameters.Enabled);
+    OutTable.insert_or_assign("physics_active", Parameters.PhysicsActive);
+    WriteFloat3(OutTable, "spawn_m", Parameters.SpawnMetres);
+    OutTable.insert_or_assign("spawn_yaw_deg", static_cast<double>(Parameters.SpawnYawDegrees));
+
+    OutTable.insert_or_assign("induction", static_cast<int64_t>(Parameters.Induction));
+    OutTable.insert_or_assign("stock_turbo_law", Parameters.StockTurboLaw);
+    OutTable.insert_or_assign("idle_rpm", static_cast<double>(Parameters.EngineIdleRpm));
+    OutTable.insert_or_assign("redline_rpm", static_cast<double>(Parameters.EngineRedlineRpm));
+    OutTable.insert_or_assign("wastegate_bar", static_cast<double>(Parameters.TurboWastegateBar));
+    OutTable.insert_or_assign("spool_s", static_cast<double>(Parameters.TurboSpoolSeconds));
+    OutTable.insert_or_assign("supercharger_drive_ratio", static_cast<double>(Parameters.SuperchargerDriveRatio));
+    OutTable.insert_or_assign("supercharger_max_boost_bar", static_cast<double>(Parameters.SuperchargerMaxBoostBar));
+    OutTable.insert_or_assign("race_tune_boost_bar", static_cast<double>(Parameters.RaceTuneBoostBar));
+    OutTable.insert_or_assign("race_tune", Parameters.RaceTune);
+    OutTable.insert_or_assign("bypass_rate_bar_s", static_cast<double>(Parameters.BypassRateBarPerSecond));
+    OutTable.insert_or_assign("parasitic_loss_percent", static_cast<double>(Parameters.ParasiticLossPercent));
+
+    OutTable.insert_or_assign("final_drive", static_cast<double>(Parameters.FinalDriveRatio));
+    OutTable.insert_or_assign("drive_efficiency", static_cast<double>(Parameters.DriveEfficiency));
+    OutTable.insert_or_assign("upshift_rpm", static_cast<double>(Parameters.UpshiftRpm));
+    OutTable.insert_or_assign("downshift_rpm", static_cast<double>(Parameters.DownshiftRpm));
+    OutTable.insert_or_assign("launch_rpm", static_cast<double>(Parameters.LaunchRpm));
+    OutTable.insert_or_assign("clutch_capacity_nm", static_cast<double>(Parameters.ClutchCapacityNewtonMetre));
+    OutTable.insert_or_assign("line_lock", Parameters.LineLockEnabled);
+
+    OutTable.insert_or_assign("mass_kg", static_cast<double>(Parameters.MassKilograms));
+    OutTable.insert_or_assign("com_height_m", static_cast<double>(Parameters.CentreOfMassHeightMetres));
+    OutTable.insert_or_assign("front_weight_percent", static_cast<double>(Parameters.FrontWeightPercent));
+    OutTable.insert_or_assign("steering_lock_deg", static_cast<double>(Parameters.SteeringLockDegrees));
+    OutTable.insert_or_assign("steering_rate", static_cast<double>(Parameters.SteeringRatePerSecond));
+    OutTable.insert_or_assign("brake_torque_nm", static_cast<double>(Parameters.BrakeTorquePerWheelNewtonMetre));
+    OutTable.insert_or_assign("handbrake_torque_nm", static_cast<double>(Parameters.HandbrakeTorqueNewtonMetre));
+    OutTable.insert_or_assign("antiroll_front_nm", static_cast<double>(Parameters.AntiRollStiffnessNewtonPerMetre[0]));
+    OutTable.insert_or_assign("antiroll_rear_nm", static_cast<double>(Parameters.AntiRollStiffnessNewtonPerMetre[1]));
+    OutTable.insert_or_assign("antiroll_damp_front", static_cast<double>(Parameters.AntiRollDampingNewtonSecondPerMetre[0]));
+    OutTable.insert_or_assign("antiroll_damp_rear", static_cast<double>(Parameters.AntiRollDampingNewtonSecondPerMetre[1]));
+    OutTable.insert_or_assign("drag_area_m2", static_cast<double>(Parameters.DragAreaMetreSquared));
+    OutTable.insert_or_assign("lift_area_m2", static_cast<double>(Parameters.LiftAreaMetreSquared));
+    OutTable.insert_or_assign("front_lift_percent", static_cast<double>(Parameters.FrontLiftPercent));
+
+    toml::array Tyres;
+    for (const VehicleTyreCornerConfiguration& Tyre : Parameters.Tyres)
+    {
+        toml::table Entry;
+        Entry.insert_or_assign("carcass", static_cast<int64_t>(static_cast<uint8_t>(Tyre.Carcass)));
+        Entry.insert_or_assign("pressure_kpa", static_cast<double>(Tyre.PressureKpa));
+        Entry.insert_or_assign("tread_remaining", static_cast<double>(Tyre.TreadRemaining));
+        Tyres.push_back(std::move(Entry));
+    }
+    OutTable.insert_or_assign("tyres", std::move(Tyres));
+}
+
+template <>
+void VehicleRecord::DeserializeConfiguration(const toml::table& InTable)
+{
+    Parameters.Enabled        = ReadBool(InTable, "enabled", Parameters.Enabled);
+    Parameters.PhysicsActive  = ReadBool(InTable, "physics_active", Parameters.PhysicsActive);
+    ReadFloat3(InTable, "spawn_m", Parameters.SpawnMetres);
+    Parameters.SpawnYawDegrees = ReadFloat(InTable, "spawn_yaw_deg", Parameters.SpawnYawDegrees);
+
+    Parameters.Induction               = ReadInt(InTable, "induction", Parameters.Induction);
+    Parameters.StockTurboLaw           = ReadBool(InTable, "stock_turbo_law", Parameters.StockTurboLaw);
+    Parameters.EngineIdleRpm           = ReadFloat(InTable, "idle_rpm", Parameters.EngineIdleRpm);
+    Parameters.EngineRedlineRpm        = ReadFloat(InTable, "redline_rpm", Parameters.EngineRedlineRpm);
+    Parameters.TurboWastegateBar       = ReadFloat(InTable, "wastegate_bar", Parameters.TurboWastegateBar);
+    Parameters.TurboSpoolSeconds       = ReadFloat(InTable, "spool_s", Parameters.TurboSpoolSeconds);
+    Parameters.SuperchargerDriveRatio  = ReadFloat(InTable, "supercharger_drive_ratio", Parameters.SuperchargerDriveRatio);
+    Parameters.SuperchargerMaxBoostBar = ReadFloat(InTable, "supercharger_max_boost_bar", Parameters.SuperchargerMaxBoostBar);
+    Parameters.RaceTuneBoostBar        = ReadFloat(InTable, "race_tune_boost_bar", Parameters.RaceTuneBoostBar);
+    Parameters.RaceTune                = ReadBool(InTable, "race_tune", Parameters.RaceTune);
+    Parameters.BypassRateBarPerSecond  = ReadFloat(InTable, "bypass_rate_bar_s", Parameters.BypassRateBarPerSecond);
+    Parameters.ParasiticLossPercent    = ReadFloat(InTable, "parasitic_loss_percent", Parameters.ParasiticLossPercent);
+
+    Parameters.FinalDriveRatio          = ReadFloat(InTable, "final_drive", Parameters.FinalDriveRatio);
+    Parameters.DriveEfficiency          = ReadFloat(InTable, "drive_efficiency", Parameters.DriveEfficiency);
+    Parameters.UpshiftRpm               = ReadFloat(InTable, "upshift_rpm", Parameters.UpshiftRpm);
+    Parameters.DownshiftRpm             = ReadFloat(InTable, "downshift_rpm", Parameters.DownshiftRpm);
+    Parameters.LaunchRpm                = ReadFloat(InTable, "launch_rpm", Parameters.LaunchRpm);
+    Parameters.ClutchCapacityNewtonMetre = ReadFloat(InTable, "clutch_capacity_nm", Parameters.ClutchCapacityNewtonMetre);
+    Parameters.LineLockEnabled          = ReadBool(InTable, "line_lock", Parameters.LineLockEnabled);
+
+    Parameters.MassKilograms            = ReadFloat(InTable, "mass_kg", Parameters.MassKilograms);
+    Parameters.CentreOfMassHeightMetres = ReadFloat(InTable, "com_height_m", Parameters.CentreOfMassHeightMetres);
+    Parameters.FrontWeightPercent       = ReadFloat(InTable, "front_weight_percent", Parameters.FrontWeightPercent);
+    Parameters.SteeringLockDegrees      = ReadFloat(InTable, "steering_lock_deg", Parameters.SteeringLockDegrees);
+    Parameters.SteeringRatePerSecond    = ReadFloat(InTable, "steering_rate", Parameters.SteeringRatePerSecond);
+    Parameters.BrakeTorquePerWheelNewtonMetre = ReadFloat(InTable, "brake_torque_nm", Parameters.BrakeTorquePerWheelNewtonMetre);
+    Parameters.HandbrakeTorqueNewtonMetre     = ReadFloat(InTable, "handbrake_torque_nm", Parameters.HandbrakeTorqueNewtonMetre);
+    Parameters.AntiRollStiffnessNewtonPerMetre[0] = ReadFloat(InTable, "antiroll_front_nm", Parameters.AntiRollStiffnessNewtonPerMetre[0]);
+    Parameters.AntiRollStiffnessNewtonPerMetre[1] = ReadFloat(InTable, "antiroll_rear_nm", Parameters.AntiRollStiffnessNewtonPerMetre[1]);
+    Parameters.AntiRollDampingNewtonSecondPerMetre[0] = ReadFloat(InTable, "antiroll_damp_front", Parameters.AntiRollDampingNewtonSecondPerMetre[0]);
+    Parameters.AntiRollDampingNewtonSecondPerMetre[1] = ReadFloat(InTable, "antiroll_damp_rear", Parameters.AntiRollDampingNewtonSecondPerMetre[1]);
+    Parameters.DragAreaMetreSquared = ReadFloat(InTable, "drag_area_m2", Parameters.DragAreaMetreSquared);
+    Parameters.LiftAreaMetreSquared = ReadFloat(InTable, "lift_area_m2", Parameters.LiftAreaMetreSquared);
+    Parameters.FrontLiftPercent     = ReadFloat(InTable, "front_lift_percent", Parameters.FrontLiftPercent);
+
+    if (const toml::array* Tyres = InTable["tyres"].as_array())
+    {
+        int Corner = 0;
+        for (const toml::node& Node : *Tyres)
+        {
+            if (Corner >= 4) break;
+            const toml::table* Entry = Node.as_table();
+            if (Entry == nullptr) { ++Corner; continue; }
+            VehicleTyreCornerConfiguration& Tyre = Parameters.Tyres[Corner];
+            Tyre.Carcass        = static_cast<TyreCarcassCategory>(std::clamp(ReadInt(*Entry, "carcass", 0), 0, 3));
+            Tyre.PressureKpa    = ReadFloat(*Entry, "pressure_kpa", Tyre.PressureKpa);
+            Tyre.TreadRemaining = ReadFloat(*Entry, "tread_remaining", Tyre.TreadRemaining);
+            ++Corner;
+        }
+    }
+    Parameters.AdvanceRevision();
+}
+
 template <>
 void RenderPipelineRecord::SerializeConfiguration(toml::table& OutTable) const
 {
@@ -1731,6 +1854,8 @@ void SceneWorld::RegisterNativeEngineTypes()
     RegisterSimple.operator()<FluidPlumeRecord>("FluidPlume", "Solver · Fluid Plume", RecordClassification::Physics, "Flame", "Solvers", "#e8833a");
     RegisterSimple.operator()<FractureRecord>("Fracture", "Solver · Voronoi Fracture", RecordClassification::Physics, "Hammer", "Solvers", "#8fb3a4");
     RegisterSimple.operator()<ParticleRecord>("Particles", "Solver · GPU Particles", RecordClassification::Physics, "Sparkles", "Solvers", "#b494f4");
+    // 📝 The driveable vehicle: full induction family (incl. superchargers) and per-corner soft-body tyres.
+    RegisterSimple.operator()<VehicleRecord>("Vehicle", "Solver · Vehicle", RecordClassification::Physics, "Car", "Solvers", "#e8b13c");
 }
 
 RecordToken SceneWorld::ConstructRecord(std::string_view TypeIdentifier,
@@ -1755,7 +1880,9 @@ RecordToken SceneWorld::ConstructRecord(std::string_view TypeIdentifier,
                 Created->AssignParentToken(ParentToken);
             }
             const RecordToken Issued = Created->QueryToken();
+            const std::string CreatedName = Created->QueryRecordName();
             OwnedRecords.push_back(std::move(Created));
+            Register.Track(WorldObjectCategory::SceneRecord, TypeIdentifier, CreatedName, nullptr, {}, Issued, 0);
             return Issued;
         }
     }
@@ -1785,6 +1912,10 @@ bool SceneWorld::DestroyRecord(RecordToken Token)
     {
         return false;
     }
+    if (const WorldRegisterEntry* Tracked = Register.FindByRecord(Token))
+    {
+        Register.Release(Tracked->Identity);
+    }
     OwnedRecords.erase(It);
     return true;
 }
@@ -1793,12 +1924,17 @@ void SceneWorld::Clear()
 {
     while (!OwnedRecords.empty())
     {
+        if (const WorldRegisterEntry* Tracked = Register.FindByRecord(OwnedRecords.back()->QueryToken()))
+        {
+            Register.Release(Tracked->Identity);
+        }
         OwnedRecords.pop_back();
     }
 }
 
 void SceneWorld::AdvanceSimulation(float DeltaSeconds)
 {
+    Register.AdvanceWorldTime(DeltaSeconds);
     for (std::unique_ptr<SceneRecordBase>& Record : OwnedRecords)
     {
         if (Record)

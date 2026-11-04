@@ -99,6 +99,14 @@ const WorldRegisterEntry* WorldRegister::Find(uint64_t Identity) const noexcept
     return nullptr;
 }
 
+const WorldRegisterEntry* WorldRegister::FindByRecord(RecordToken Record) const noexcept
+{
+    if (!Record.IsValid()) return nullptr;
+    for (const WorldRegisterEntry& Entry : Entries)
+        if (Entry.Category == WorldObjectCategory::SceneRecord && Entry.Record == Record && Entry.Live) return &Entry;
+    return nullptr;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    MARKDOWN STORE (`a.md`)
 //------------------------------------------------------------------------------------------------------------------------

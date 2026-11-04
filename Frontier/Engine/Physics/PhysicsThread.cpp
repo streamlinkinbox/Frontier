@@ -28,7 +28,7 @@ PhysicsThread::~PhysicsThread()
     Stop();
 }
 
-bool PhysicsThread::Start(PhysicsAdapter& Adapter, const PhysicsThreadConfiguration& InConfiguration)
+bool PhysicsThread::BindWorld(PhysicsAdapter& Adapter, const PhysicsThreadConfiguration& InConfiguration)
 {
     if (Running.load()) return false;
     WorldAdapter   = &Adapter;
@@ -36,6 +36,12 @@ bool PhysicsThread::Start(PhysicsAdapter& Adapter, const PhysicsThreadConfigurat
     Pending        = 0.0;
     SimulationTime = 0.0;
     SlicesConsumed = 0;
+    return true;
+}
+
+bool PhysicsThread::Start(PhysicsAdapter& Adapter, const PhysicsThreadConfiguration& InConfiguration)
+{
+    if (!BindWorld(Adapter, InConfiguration)) return false;
     {
         std::lock_guard<std::mutex> Guard(Mutex);
         Stopping = false;
