@@ -1,0 +1,145 @@
+# SolidArc extrude-axis walkthrough — the Windows report "extrude manifold suppose to remove or move the top part to match
+# the extrude … also when i extrude it goes in opposite direction of the direction i drag the mouse; make it work like
+# blenders". A 2D-cutter rectangle drawn on a side face stops 10 mm short of the top edge (the pixel gap of the report);
+# face E pushed in opens the notch through the top (no strip of the side face left over it), and the distance follows the
+# pointer along the face normal (Blender): toward where the face points pulls it out, away pushes it in, from any view.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/ExtrudeAxisRecovery.solidarc
+#      --document …/ExtrudeAxis.solidarc --script Scripts/ExtrudeAxisWalkthrough.txt
+# Closed forms: cube 2³ = 8 · the +x region y ∈ [−0.5, 0.5], z ∈ [1.2, 1.99] (10 mm under the top) — E starts at the
+# remembered 0.5; the pointer on the axis through the region's centre (1, 0, 1.595) at x = 0.2 reads −0.8 of travel →
+# −0.3: the notch opened to the top is 1 × 0.8 × 0.3 = 0.24 → 7.76, 10 faces (6 + floor, back and two walls); at x = 1.3
+# → +0.8: the region pulled out 0.8 × (1 × 0.79) = 0.632 → 8.632. Sketch E: a filled 0.6 × 0.6 square on the top, the
+# pointer at z = 2.4 → 0.9 (auto Union) 8.324 − 0.24 = 8.084; at z = 1.2 → −0.3 (auto Difference) 7.76 − 0.108 = 7.652.
+# The pointer and the free-placed corners land on whole pixels (≈ 3 mm here), so pointer-driven values are bracketed;
+# the open notch is the face count (10; a strip left over it is an 11-face closed pocket), exact forms in docval W64.
+
+snap grid on
+
+# ① a 2 m cube from the Construct menu
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume ~ 8
+expect faces == 6
+
+# ② 2D cutter · Rectangle on the +x face, free placement (no grid): the top corner lands 10 mm under the top edge
+snap grid off
+click @SketchKnifeTool
+frames 3
+click @KnifeFlatRectangle
+frames 3
+expect knife-pending == 1
+move world 1.0 -0.5 1.2
+frames 2
+click world 1.0 -0.5 1.2
+frames 2
+move world 1.0 0.5 1.99
+frames 2
+click world 1.0 0.5 1.99
+frames 3
+expect refused == 0
+expect knife == 0
+expect volume ~ 8
+expect faces == 7
+
+# ③ the region picked, E: the axis is the +x normal; the pointer on the axis drives the distance (Blender), from 0.5
+click world 1.0 0.0 1.595
+frames 2
+expect selected-faces == 1
+key E
+frames 3
+expect bevel-verb == 1
+expect bevel-axis == 1
+move world 0.2 0.0 1.595
+frames 6
+expect bevel-size > -0.31
+expect bevel-size < -0.29
+expect bevel-preview-volume > 7.75
+expect bevel-preview-volume < 7.77
+capture 317ExtrudeAxisPushIn
+move world 1.3 0.0 1.595
+frames 6
+expect bevel-size > 0.79
+expect bevel-size < 0.81
+expect bevel-preview-volume > 8.62
+expect bevel-preview-volume < 8.645
+capture 318ExtrudeAxisPullOut
+move world 0.2 0.0 1.595
+frames 6
+expect bevel-size > -0.31
+expect bevel-size < -0.29
+key Enter
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume > 7.75
+expect volume < 7.77
+expect faces == 10
+expect sound == 1
+capture 319ExtrudeEdgeNotch
+
+# ④ sketch E on the top: a filled 0.6 square; the pointer up the +z axis adds, down into the body cuts (auto)
+snap grid on
+key 1
+frames 2
+move world 0.0 0.0 2.0
+frames 2
+key Q Shift
+frames 2
+move world -0.3 -0.3 2.0
+frames 2
+click world -0.3 -0.3 2.0
+frames 2
+move world 0.3 0.3 2.0
+frames 2
+click world 0.3 0.3 2.0
+frames 3
+expect drawing == 0
+expect refused == 0
+key F
+frames 2
+move world 0.0 0.0 2.0
+frames 2
+key E
+frames 3
+expect bevel-verb == 2
+expect bevel-axis == 1
+move world 0.0 0.0 2.4
+frames 6
+expect bevel-size > 0.89
+expect bevel-size < 0.91
+expect bevel-combination == Union
+expect bevel-preview-volume > 8.07
+expect bevel-preview-volume < 8.10
+move world 0.0 0.0 1.2
+frames 6
+expect bevel-size > -0.31
+expect bevel-size < -0.29
+expect bevel-combination == Difference
+expect bevel-preview-volume > 7.64
+expect bevel-preview-volume < 7.665
+capture 320ExtrudeAxisSketch
+key Enter
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume > 7.64
+expect volume < 7.665
+expect sound == 1

@@ -1,0 +1,167 @@
+{
+  "schema": "alloy.pattern.v1",
+  "name": "Custom pattern",
+  "tileAxes": "xy",
+  "background": "#ece5d6",
+  "backgroundOpacity": 1,
+  "repeat": "straight",
+  "repeats": 2,
+  "rotation": 0,
+  "mapping": "uv",
+  "layers": [
+    {
+      "id": "layer-0",
+      "name": "Gradient foundation",
+      "kind": "rect",
+      "x": 256,
+      "y": 256,
+      "width": 350,
+      "height": 350,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "opacity": 1,
+      "paint": true,
+      "fillEnabled": true,
+      "cornerRadius": 0,
+      "color": "#dd765d",
+      "stroke": "#263c48",
+      "fillSource": {
+        "category": "image",
+        "image": "data:image/png;base64,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",
+        "fit": "cover"
+      },
+      "strokeSource": {
+        "category": "linear",
+        "angle": 0,
+        "stops": [
+          {
+            "color": "#d7ba81",
+            "offset": 0
+          },
+          {
+            "color": "#7d9b87",
+            "offset": 1
+          }
+        ]
+      },
+      "strokeWidth": 5,
+      "finish": "cotton",
+      "roughness": 0.83,
+      "metalness": 0,
+      "relief": 0.08,
+      "visible": true,
+      "path": ""
+    },
+    {
+      "id": "layer-1",
+      "name": "Radial rosette",
+      "kind": "star",
+      "x": 256,
+      "y": 256,
+      "width": 230,
+      "height": 230,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "opacity": 1,
+      "paint": true,
+      "fillEnabled": true,
+      "starPoints": 12,
+      "innerRadius": 0.65,
+      "color": "#dd765d",
+      "stroke": "#263c48",
+      "fillSource": {
+        "category": "radial",
+        "angle": 0,
+        "stops": [
+          {
+            "color": "#f4ddb3",
+            "offset": 0
+          },
+          {
+            "color": "#bb825a",
+            "offset": 1
+          }
+        ]
+      },
+      "strokeSource": {
+        "category": "linear",
+        "angle": 0,
+        "stops": [
+          {
+            "color": "#f6dfae",
+            "offset": 0
+          },
+          {
+            "color": "#dbb477",
+            "offset": 1
+          }
+        ]
+      },
+      "strokeWidth": 2,
+      "strokeLinecap": "round",
+      "strokeLinejoin": "round",
+      "finish": "cotton",
+      "roughness": 0.83,
+      "metalness": 0,
+      "relief": 0.08,
+      "visible": true,
+      "path": ""
+    },
+    {
+      "id": "layer-2",
+      "name": "Metallic outline",
+      "kind": "ellipse",
+      "x": 256,
+      "y": 256,
+      "width": 300,
+      "height": 300,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "opacity": 1,
+      "paint": true,
+      "fillEnabled": false,
+      "color": "#dd765d",
+      "stroke": "#263c48",
+      "fillSource": {
+        "category": "radial",
+        "angle": 0,
+        "stops": [
+          {
+            "color": "#f4ddb3",
+            "offset": 0
+          },
+          {
+            "color": "#bb825a",
+            "offset": 1
+          }
+        ]
+      },
+      "strokeSource": {
+        "category": "linear",
+        "angle": 0,
+        "stops": [
+          {
+            "color": "#f6dfae",
+            "offset": 0
+          },
+          {
+            "color": "#dbb477",
+            "offset": 1
+          }
+        ]
+      },
+      "strokeWidth": 4,
+      "strokeLinecap": "round",
+      "strokeLinejoin": "round",
+      "finish": "cotton",
+      "roughness": 0.83,
+      "metalness": 0,
+      "relief": 0.08,
+      "visible": true,
+      "path": ""
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "platform": "Linux-6.1.158+-x86_64-with-glibc2.36",
+  "windows_executed": false,
+  "uncommitted_sources": true,
+  "revision": "4a77bfd17f23536e32781718553ec6a171e39021",
+  "compiler": "g++ (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "commands": [
+    [
+      "g++",
+      "-std=c++20",
+      "-O1",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I.",
+      "-IExternalPackages/tomlpp/include",
+      "Engine/ContentInterchange/VectorAuthoringDocument.cpp",
+      "Engine/ContentInterchange/VectorAuthoringEditing.cpp",
+      "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp",
+      "Engine/ContentInterchange/VectorAuthoringProperties.cpp",
+      "Engine/ContentInterchange/VectorAuthoringSelectionEditing.cpp",
+      "Engine/ContentInterchange/CubicPathEditing.cpp",
+      "Exhibits/TextureStudio/Code/CubicPathValidation.cpp",
+      "-o",
+      "/home/user/Frontier/_ClaudeScratch/build/CubicPath/strict"
+    ],
+    [
+      "/home/user/Frontier/_ClaudeScratch/build/CubicPath/strict"
+    ],
+    [
+      "g++",
+      "-std=c++20",
+      "-O1",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I.",
+      "-IExternalPackages/tomlpp/include",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "Engine/ContentInterchange/VectorAuthoringDocument.cpp",
+      "Engine/ContentInterchange/VectorAuthoringEditing.cpp",
+      "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp",
+      "Engine/ContentInterchange/VectorAuthoringProperties.cpp",
+      "Engine/ContentInterchange/VectorAuthoringSelectionEditing.cpp",
+      "Engine/ContentInterchange/CubicPathEditing.cpp",
+      "Exhibits/TextureStudio/Code/CubicPathValidation.cpp",
+      "-o",
+      "/home/user/Frontier/_ClaudeScratch/build/CubicPath/sanitized"
+    ],
+    [
+      "/home/user/Frontier/_ClaudeScratch/build/CubicPath/sanitized"
+    ],
+    [
+      "python3",
+      "-m",
+      "ziglang",
+      "c++",
+      "-target",
+      "x86_64-windows-gnu",
+      "-std=c++20",
+      "-O1",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-DNOMINMAX",
+      "-DWIN32_LEAN_AND_MEAN",
+      "-I.",
+      "-IExternalPackages/tomlpp/include",
+      "-c",
+      "Engine/ContentInterchange/CubicPathEditing.cpp",
+      "-o",
+      "/home/user/Frontier/_ClaudeScratch/build/CubicPath/CubicPathEditing.obj"
+    ]
+  ],
+  "strict": {
+    "assertions": 27708,
+    "result": "passed"
+  },
+  "sanitized": {
+    "assertions": 27708,
+    "result": "passed"
+  },
+  "windows_object": {
+    "result": "passed",
+    "application_linked": false,
+    "executed": false,
+    "sha256": "46ad9a020d41884e82fc79d25964ad264ce37ed29ed524c737894f959be6cdb6"
+  },
+  "source_sha256": {
+    "Engine/ContentInterchange/VectorAuthoringDocument.cpp": "3b38453d0fc62fc670e3cef68b30cf360f35fb02db64428234ef445c387640fa",
+    "Engine/ContentInterchange/VectorAuthoringEditing.cpp": "bcb33ba96737ba6b5dcc58ffb6e856b36d5f12b7f835c85c7a9ce36ad86199b2",
+    "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp": "fccf66cde8b80670692f674b95950c25c0d82dfb6be8f10b4cde0456c39c1016",
+    "Engine/ContentInterchange/VectorAuthoringProperties.cpp": "ddb9f24eba8e13e94eb95af59ca943b9cca5ca14a3364493688e34643860b454",
+    "Engine/ContentInterchange/VectorAuthoringSelectionEditing.cpp": "19aa7a3d8af9d12f4daaedbdd2b67da1a62ed23279f6d0f2d44dd28c6d4f9d11",
+    "Engine/ContentInterchange/CubicPathEditing.cpp": "cb1fb786d809d30008ddecef9e838f2f04d599927eb9e9835345cb31af9e62fa",
+    "Exhibits/TextureStudio/Code/CubicPathValidation.cpp": "2b2aba8b1fb2b711034267f8c962a102698b458413309bdb2dd4f05f499a82fb",
+    "CMakeLists.txt": "86a1feaf577e8b9de83b01c41f7d5f6649864c630084ebdcf10604be3fd5e676",
+    "Exhibits/TextureStudio/Code/VerifyCubicPath.py": "1039231692bd7be72e2a098ebe81d19333b0d0bf21b78b03dd617463424f55e6"
+  },
+  "header_sha256": {
+    "Engine/ContentInterchange/CubicPathEditing.h": "21d353aecc50ae220bb9253b0edf224e8f6be91812c3a19073ec62f0c58a1a03",
+    "Engine/ContentInterchange/MaterialLibrary.h": "dc666d75b8f0d58627b393e37814237676e4e989f94c1ffb9c5177be162e1f3f",
+    "Engine/ContentInterchange/ProjectSpaceCodec.h": "21b1a0ccbe32e40dde8449dd49962fcaf5ab4d2bd95600942a13a77c5c1d93b3",
+    "Engine/ContentInterchange/VectorAuthoringArrayPlacement.h": "009b126fde1d46a74d7fa3edc9ec15f477ba61e1db1ade29a3ccb69df0207e1a",
+    "Engine/ContentInterchange/VectorAuthoringDocument.h": "f33d5f500b2dd15b286dc26990da734795f4d8badc6166ec139f1681a0fab2e2",
+    "Engine/ContentInterchange/VectorAuthoringEditing.h": "724056bd0481477ac1c0772a56e590159ec75e0a2da874b604486ad52549ba7a",
+    "Engine/ContentInterchange/VectorAuthoringProperties.h": "ae4755d1c8cfeaeea7d114ec257629142d23e551e758badb9c4eb4f03cd8f15b",
+    "Engine/ContentInterchange/VectorAuthoringSelectionEditing.h": "f8022ed70ead6e82d652dc26bb951c7ef39b38c9e747d8b42b2816e66326c857"
+  },
+  "result": "passed"
+}

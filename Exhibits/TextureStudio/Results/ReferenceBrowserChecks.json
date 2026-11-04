@@ -1,0 +1,24 @@
+{
+  "result": "passed",
+  "execution": "React/Three WebGL reference on Chromium + SwiftShader; not the native Material Library",
+  "checks": [
+    "updated texture workspace becomes material-ready",
+    "teapot has more than 10000 triangles",
+    "canvas contains rendered image",
+    "no workspace recovery error",
+    "no page errors",
+    "Material workspace renders at 1440 by 1000 with library and inspector",
+    "all reference material thumbnails complete before capture"
+  ],
+  "page_errors": [],
+  "sources": [
+    {
+      "file": "Exhibits/TextureStudio/Code/ReferenceBrowserChecks.mjs",
+      "sha256": "0fad60bcb1f6c378431e602dbc7f7bebb340c4b15df119c22aee99644d3b574c"
+    },
+    {
+      "file": "Exhibits/TextureStudio/Results/ReferenceImport.json",
+      "sha256": "f5a4616fc3402e9b46416b07b5a522465c27b4be4508cbac99933720b3b1c0e9"
+    }
+  ]
+}

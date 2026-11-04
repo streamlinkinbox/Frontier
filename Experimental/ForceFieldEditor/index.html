@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--==========================================================================================================================================
+                                                               INDEX.HTML
+===========================================================================================================================================-->
+<!-- 🧩 The Force Field editor prototype: the master Force Field, its Wind guest and localized forces, sampled from 100 m to 100 km. -->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Force Field · editor prototype</title>
+    <link rel="stylesheet" href="../RenderSettingsInspector/RenderSettingsInspector.css">
+    <link rel="stylesheet" href="ForceFieldEditor.css">
+    <script src="../RenderSettingsInspector/InspectorControls.js" defer></script>
+    <script src="../ForceFieldVisualization/ForceFieldVisualization.js" defer></script>
+    <script src="ForceFieldCatalogue.js" defer></script>
+    <script src="ForceFieldEditor.js" defer></script>
+</head>
+<body>
+    <div class="workspace">
+        <aside class="dock-panel">
+            <div class="dock-tabs"><div class="dock-tab">Outliner <span class="tab-close">×</span></div></div>
+            <div class="dock-body">
+                <div class="panel-scroll" id="OutlinerScroll"><div class="panel-content" id="OutlinerContent"></div></div>
+                <div class="status-strip" id="OutlinerStatus"></div>
+            </div>
+        </aside>
+        <main class="dock-column">
+            <section class="dock-panel viewport-dock">
+                <div class="dock-tabs">
+                    <div class="dock-tab">Viewport <span class="tab-close">×</span></div>
+                    <div class="dock-title">Frontier · Everest</div>
+                </div>
+                <div class="dock-body">
+                    <div class="viewport-bar" id="ViewportBar"></div>
+                    <div class="viewport-surface" id="ViewportSurface">
+                        <canvas id="ViewportCanvas"></canvas>
+                        <div class="viewport-hud" id="ViewportHud"></div>
+                        <div class="viewport-readout" id="ViewportReadout"></div>
+                        <div class="viewport-inset minimap-inset shown" id="MinimapInset">
+                            <canvas id="MinimapCanvas"></canvas>
+                            <div class="inset-label" id="MinimapLabel"></div>
+                        </div>
+                        <div class="viewport-caption" id="ViewportCaption"></div>
+                    </div>
+                    <div class="timeline-strip" id="TimelineStrip"></div>
+                    <div class="status-strip" id="ViewportStatus"></div>
+                </div>
+            </section>
+            <section class="dock-panel log-dock">
+                <div class="dock-tabs"><div class="dock-tab">Log Stream <span class="tab-close">×</span></div></div>
+                <div class="dock-body">
+                    <div class="log-head" id="LogHead"></div>
+                    <div class="panel-scroll" id="LogScroll"><div class="panel-content" id="LogContent"></div></div>
+                </div>
+            </section>
+        </main>
+        <aside class="dock-panel">
+            <div class="dock-tabs"><div class="dock-tab">Inspector <span class="tab-close">×</span></div></div>
+            <div class="dock-body">
+                <div class="panel-scroll" id="InspectorScroll"><div class="panel-content" id="InspectorContent"></div></div>
+                <div class="status-strip" id="InspectorStatus"></div>
+            </div>
+        </aside>
+    </div>
+    <div class="library-veil" id="LibraryVeil"><div class="library-sheet" id="LibrarySheet"></div></div>
+</body>
+</html>

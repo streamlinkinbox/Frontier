@@ -1,0 +1,188 @@
+# SolidArc sketch tools + sketch points walkthrough — every 2-D primitive and every curve form is its own Construct
+# Sketch tile (Line, Polyline, Rectangle, Centre rect, Circle, 2-pt circle, Arc, Slot, Polygon, Hermite, Bezier, NURBS,
+# Cubic spline). Mode 1 shows each sketch's defining points (Bezier / NURBS with their control polygon): a press-drag
+# moves a point in its sketch plane, a click picks it for the gizmo; the extrude / loft built on the sketch follows live
+# while dragging (live-volume = the staged preview), the release commits one command.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/SketchPointsRecovery.solidarc
+#      --document …/SketchPoints.solidarc --script Scripts/SketchPointsWalkthrough.txt
+# Closed forms: rectangle 2 × 1 extruded 1 = 2; its corner (2, 1) dragged to (3, 1) keeps H / V → 3 × 1 × 1 = 3.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① the Sketch section of the Construct menu: 13 tools in a 4 × 4 grid
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructSectionSketch
+frames 3
+capture 225SketchTools
+
+# ② Line: one segment, finished by its second click (no Enter)
+click @ConstructSketchSegment
+frames 2
+expect drawing == 1
+expect drawing-segment == 1
+click world -3.0 1.0 0.0
+frames 2
+click world -2.0 2.0 0.0
+frames 3
+expect drawing == 0
+expect sketches == 1
+
+# ③ Bezier: four poles, Enter finishes
+click @ConstructLauncher
+frames 2
+click @ConstructSketchBezier
+frames 2
+expect drawing-form == 2
+click world -2.6 -0.4 0.0
+frames 1
+click world -2.2 -1.4 0.0
+frames 1
+click world -1.6 -1.4 0.0
+frames 1
+click world -1.2 -0.4 0.0
+frames 1
+key Enter
+frames 3
+expect drawing == 0
+expect sketches == 2
+
+# ④ NURBS and cubic spline tiles open their own forms
+click @ConstructLauncher
+frames 2
+click @ConstructSketchNurbs
+frames 2
+expect drawing-form == 3
+click world -0.6 -1.0 0.0
+frames 1
+click world -0.2 -1.8 0.0
+frames 1
+click world 0.4 -1.8 0.0
+frames 1
+click world 0.8 -1.0 0.0
+frames 1
+key Enter
+frames 3
+expect sketches == 3
+click @ConstructLauncher
+frames 2
+click @ConstructSketchCubic
+frames 2
+expect drawing-form == 4
+key Escape
+frames 2
+expect drawing == 0
+
+# ⑤ a 2 × 1 rectangle extruded 1 (volume 2)
+key Q Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 2.0 1.0 0.0
+frames 2
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect volume ~ 2
+expect bodies == 1
+
+# ⑥ mode 1: every sketch shows its points (Bezier / NURBS with their control polygon)
+key 1
+frames 3
+expect pick-mode == 1
+capture 226SketchPoints
+
+# ⑦ press-drag the rectangle corner (2, 1) to (3, 1): mid-drag the extrude already follows (live), then release commits
+move @SketchPointSketch4.2
+frames 1
+press left
+frames 2
+move world 2.5 1.0 0.0
+frames 2
+move world 3.0 1.0 0.0
+frames 3
+expect live-staged == 1
+expect live-volume ~ 3
+expect volume ~ 2
+capture 227PointDragLive
+release left
+frames 3
+expect point-commits == 1
+expect volume ~ 3
+expect refused == 0
+expect picked-points == 1
+expect picked-point-x ~ 3
+expect picked-point-y ~ 1
+
+# ⑧ the picked point carries the gizmo (sketch plane x / y cones, xy square): drag the y cone, live, then release
+# (zoomed out a step first: in the full-height viewport the point at (3, 1) sits at the edge, its cones clipped)
+wheel world 1.5 0.5 0.0 -1
+frames 3
+expect gizmo-target == 4
+move @GizmoTranslateY
+frames 1
+press left
+frames 2
+move offset 25 -25
+frames 2
+move offset 50 -50
+frames 3
+expect live-staged == 1
+expect live-volume > 3.05
+capture 228PointGizmoLive
+release left
+frames 3
+expect gizmo-commits == 1
+expect volume > 3.05
+expect refused == 0
+
+# ⑨ Shift adds a second point: several points also turn and scale (z arc, x / y cylinders) about their centre
+click @SketchPointSketch4.3 Left Shift
+frames 3
+expect picked-points == 2
+key Y
+key Y
+key Y
+key Y
+key Y
+frames 3
+expect gizmo-modes == 7
+capture 229PointsGizmoAll
+
+# ⑩ body mode: mid-drag of the x scale cylinder the body is already scaled (live), Esc drops it untouched
+key 4
+frames 1
+click world 2.5 1.8 1.0
+frames 3
+expect gizmo-target == 2
+move @GizmoScaleX
+frames 1
+press left
+frames 2
+move offset 30 15
+frames 2
+move offset 60 30
+frames 3
+# (the y-cone move of ⑧ is pixel-sized: V 6 at 1600 × 960, so the bounds below hold at any window size)
+expect live-staged == 1
+expect live-volume > 7.0
+expect volume < 7.0
+capture 230BodyScaleLive
+key Escape
+frames 2
+release left
+frames 3
+expect gizmo-commits == 1
+expect volume < 7.0
+expect volume > 3.05

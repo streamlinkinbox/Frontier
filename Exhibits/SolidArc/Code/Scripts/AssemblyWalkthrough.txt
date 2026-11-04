@@ -1,0 +1,239 @@
+# SolidArc assembly walkthrough — Alt+J (Joint; Fusion Assemble → Joint, Plasticity has none) places one body on
+# another by a joint origin on each: an edge offers its centre / midpoint, a face its centroid / axis. The card picks the
+# kind (R rigid · V revolute · S slider · C cylindrical · P pin-slot · L planar · B ball), F flips, drag fields stage a
+# preview, Enter applies one Joint step. Measure (I) on two bodies adds the interference verdict (clear with its gap,
+# contact, overlap with its volume drawn in red). A committed joint's values drag in the step card (staged preview,
+# one undo entry on release).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/AssemblyRecovery.solidarc
+#      --document …/Assembly.solidarc --script Exhibits/SolidArc/Code/Scripts/AssemblyWalkthrough.txt
+# Bracket specimen Block1 (hole r 0.3 at (3, 1.25) through z 0 … 1); circles are pointed at 135° off +x, away from seams.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① two more bodies: a pin Cylinder3 r 0.25 h 1.5 at (6, 1.25, 0) and a lever Block2 2 × 0.4 × 0.2 at (6, 4, 0)
+frames 3
+expect bodies == 1
+click @ConstructLauncher
+frames 2
+click @ConstructCylinder
+frames 2
+key Tab
+frames 2
+click @CombinationSeparate
+click @ConstructX
+key A Ctrl
+type 6
+click @ConstructY
+key A Ctrl
+type 1.25
+click @ConstructZ
+key A Ctrl
+type 0
+click @ConstructRadius
+key A Ctrl
+type 0.25
+click @ConstructHeight
+key A Ctrl
+type 1.5
+click @ConstructX
+frames 2
+click @ConstructCreate
+frames 3
+expect refused == 0
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+key Tab
+frames 2
+click @CombinationSeparate
+click @ConstructX
+key A Ctrl
+type 6
+click @ConstructY
+key A Ctrl
+type 4
+click @ConstructZ
+key A Ctrl
+type 0
+click @ConstructWidth
+key A Ctrl
+type 2
+click @ConstructDepth
+key A Ctrl
+type 0.4
+click @ConstructHeight
+key A Ctrl
+type 0.2
+click @ConstructX
+frames 2
+click @ConstructCreate
+frames 3
+expect refused == 0
+expect bodies == 3
+expect body-captions contains Cylinder3
+expect body-captions contains Block2
+expect centroid:Cylinder3 == (6.000000, 1.250000, 0.750000)
+key Space
+frames 3
+capture 179AssemblyParts
+
+# ② Alt+J opens the card in phase 0; the pin's top rim under the pointer offers its centre (triad: z blue out of the cap)
+key J Alt
+frames 2
+expect joint == 1
+expect joint-phase == 0
+expect joint-kind == Revolute
+move world 5.823223 1.426777 1.5
+frames 2
+expect joint-hover contains circle centre on Cylinder3
+capture 180JointHover
+
+# ③ click takes it as the moving origin; the hole's top rim on the bracket is the fixed one → phase 2 and a staged preview.
+#    Facing origins put the pin's cap on the hole's rim with the pin standing up out of it
+click world 5.823223 1.426777 1.5
+frames 2
+expect joint-phase == 1
+move world 2.787868 1.462132 1.0
+frames 2
+expect joint-hover contains circle centre on Block1
+click world 2.787868 1.462132 1.0
+frames 3
+expect joint-phase == 2
+expect joint-preview == 1
+expect joint-refusal == 0
+expect joint-picks contains circle centre on Cylinder3 -> circle centre on Block1
+expect preview-resumed > 0
+capture 181JointPreview
+
+# ④ F flips (origins aligned): the pin drops into the hole; Offset 0.25 (Ctrl+click types) lifts it 0.25 proud
+key F
+frames 2
+expect joint-flipped == 1
+click @JointOffset Left Ctrl
+key A Ctrl
+type 0.25
+key Enter
+frames 3
+expect joint-refusal == 0
+capture 182JointFlipped
+
+# ⑤ Enter applies one Joint step: the pin's centroid is (3, 1.25, 0.5) — on the hole axis, z −0.25 … 1.25
+key Enter
+frames 3
+expect joint == 0
+expect joint-commits == 1
+expect refused == 0
+expect joints == 1
+expect joint-gap ~ 0.25
+expect centroid:Cylinder3 == (3.000000, 1.250000, 0.500000)
+capture 183JointApplied
+
+# ⑥ the pin's rim (now in the hole) as the moving origin, then the pin's own cap: refused — the second origin must be on
+#    another body; Esc cancels
+key J Alt
+frames 2
+click world 2.823223 1.426777 1.25
+frames 2
+expect joint-phase == 1
+click world 3.0 1.25 1.25
+frames 2
+expect joint-phase == 1
+expect status contains another body
+key Escape
+frames 2
+expect joint == 0
+
+# ⑦ picked beforehand (mode 3): the lever's top face, then the pin cap — Alt+J skips straight to phase 2. Revolute is
+#    kept; the lever turns over onto the cap (facing); Angle 90 swings its long side onto y
+key 3
+click world 7.0 4.1 0.2
+click world 3.0 1.3 1.25 Left Shift
+frames 2
+expect selected-faces == 2
+key J Alt
+frames 3
+expect joint-phase == 2
+expect joint-kind == Revolute
+expect joint-picks contains plane centroid on Block2 -> plane centroid on Cylinder3
+click @JointAngle Left Ctrl
+key A Ctrl
+type 90
+key Enter
+frames 3
+capture 184JointLeverPreview
+key Enter
+frames 3
+expect joint-commits == 2
+expect joints == 2
+expect joint-gap ~ 0.25
+expect bounds:Block2 == (2.800000, 0.250000, 1.250000) … (3.200000, 2.250000, 1.450000)
+expect focused-step == Joint#14
+capture 185JointLever
+
+# ⑧ Apply focused the new step: a real drag on its Angle stages a preview every frame (the lever swings), the release
+#    commits once — the undo count grows by one; Ctrl+Z puts the lever back at 90°
+expect undo == 9
+drag Left @Parameter:Revolute2.Angle by 60 0 6
+frames 3
+expect refused == 0
+expect parameter-drag > 2
+expect undo == 10
+capture 186JointStepDrag
+key Z Ctrl
+frames 3
+expect undo == 9
+expect bounds:Block2 == (2.800000, 0.250000, 1.250000) … (3.200000, 2.250000, 1.450000)
+key Escape
+frames 2
+
+# ⑨ mode 4: lever + bracket in Measure (I) — clear, the 0.25 gap from the lever's underside to the bracket top
+key 4
+click world 3.0 1.75 1.45
+click world 1.0 0.0 0.5 Left Shift
+frames 2
+expect selected-bodies == 2
+key I
+frames 3
+expect measure contains Block2 + Block1
+expect measure-interference contains Clear
+expect measure-distance ~ 0.25
+capture 187InterferenceClear
+key I
+frames 2
+key Escape
+
+# ⑩ the pin joint in the step card: Offset typed −0.1 stages a preview, Enter commits one undo entry; the replay resumes
+#    at the pin joint and the lever rides down with it
+click @InspectorHistory
+frames 3
+click @Step:Joint#13
+frames 2
+click @InspectorGeometry
+frames 3
+frames 2
+expect focused-step == Joint#13
+click @Parameter:Revolute1.Offset Left Ctrl
+key A Ctrl
+type -0.1
+key Enter
+frames 3
+expect refused == 0
+expect parameter-drag > 0
+expect bounds:Block2 == (2.800000, 0.250000, 0.900000) … (3.200000, 2.250000, 1.100000)
+capture 188JointStepOffset
+
+# ⑪ Measure again: the lever now overlaps the bracket top slab 0.1 deep minus the hole,
+#    its edges drawn red. The hole (⌀ 0.6) is wider than the lever (0.4): only the strip |x − 3| ≤ 0.2 of the disc is
+#    missing, 2 (0.2 √0.05 + 0.09 asin(2/3)) = 0.2207937 → (0.8 − 0.2207937) · 0.1 = 0.05792063
+key 4
+click world 3.0 1.75 1.1
+click world 1.0 0.0 0.5 Left Shift
+frames 2
+key I
+frames 3
+expect measure-interference contains Overlap
+expect measure-overlap ~ 0.05792063
+expect measure-overlap-edges > 3
+capture 189InterferenceOverlap

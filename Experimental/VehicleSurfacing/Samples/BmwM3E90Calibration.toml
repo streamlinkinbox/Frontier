@@ -1,0 +1,50 @@
+# Blueprint calibration for TraceBlueprintSections.py — BMW M3 (E90) sedan three-view (2274 × 2888 px line drawing).
+# The drawing is third-party and not committed: fetch a copy to _ClaudeScratch/Blueprint/BmwM3E90.jpg (pixel rows / columns
+# below refer to that 2274 × 2888 image). Dimensions on the sheet: length 4580, wheelbase 2761, overhangs 805 / 1014, height 1447,
+# width 1804 (2005 with mirrors), track 1539 / 1540 mm. One scale for every view: 4580 mm over the bumper extension lines.
+# Car axes: x across (mirror plane x = 0), y along (nose y = 0 → tail y = 4.58), z up (ground z = 0).
+
+Title     = "BMW M3 (E90) sedan"
+Blueprint = "_ClaudeScratch/Blueprint/BmwM3E90.jpg"
+Opacity   = 0.55
+
+[Car]
+Length        = 4.58                                                     # [m] - Bumper to bumper (sets the scale)
+Width         = 1.804                                                    # [m] - Body, without mirrors (plan clamp)
+Crown         = 0.035                                                    # [m] - Roof / bonnet crown across the half width
+SectionPoints = 48                                                       # [-] - Points per half section
+Fairing       = 0.06                                                     # [m] - Gaussian σ along the section (rounds beltline / roof edge)
+FirstStation  = 0.03                                                     # [m] - First / last station inset from the bumpers
+StationCount  = 24                                                       # [-] - Cosine-spaced stations (denser at the ends)
+
+[Side]
+FrontColumn  = 30                                                        # [px] - Front bumper extension line
+RearColumn   = 2235                                                      # [px] - Rear bumper extension line
+GroundRow    = 1642                                                      # [px] - Ground line (top edge)
+CeilingRow   = 910                                                       # [px] - Below the front / rear view dimension lines
+AntennaWidth = 0.25                                                      # [m] - Opening width: removes the roof fin
+Axles        = [0.805, 3.566]                                            # [m] - Wheel centres from the nose (805, 805 + 2761)
+WheelSpan    = 0.40                                                      # [m] - Underside bridged within ± this of an axle
+FloorHeight  = 0.12                                                      # [m] - Lowest underside kept
+Crop         = [10, 905, 2264, 1650]                                     # [px] - Image plane crop
+ImageOffset  = -1.2                                                      # [m] - Plane x (behind the car seen from the Right view)
+
+[Top]
+FrontColumn = 25                                                         # [px] - Nose in the top view
+RearColumn  = 2231                                                       # [px] - Tail in the top view
+CentreRow   = 2388                                                       # [px] - Centre line (mirror plane)
+FirstRow    = 1900                                                       # [px] - Top view band
+LastRow     = 2880                                                       # [px]
+MirrorWidth = 0.30                                                       # [m] - Opening width: removes the door mirrors
+Crop        = [10, 1880, 2264, 2885]                                     # [px] - Image plane crop
+ImageOffset = -0.01                                                      # [m] - Plane z (under the ground, seen from the Top view)
+
+[Front]
+CentreColumn  = 510                                                      # [px] - Centre line (track and mirror extension lines)
+GroundRow     = 727                                                      # [px] - Ground line
+FirstColumn   = 30                                                       # [px] - Front view band
+LastColumn    = 1000                                                     # [px]
+CeilingRow    = 48                                                       # [px] - Below the 1447 extension line
+MirrorHeights = [0.84, 1.08]                                             # [m] - Mirror rows, bridged (designer mark)
+Crop          = [20, 20, 1000, 735]                                      # [px] - Image plane crop
+ImageOffset   = 5.6                                                      # [m] - Plane y (behind the car seen from the Front view)

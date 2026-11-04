@@ -1,0 +1,94 @@
+# SolidArc Alt slide walkthrough — holding Alt while sketching or dragging slides the point along the nearest line /
+# curve / arc (Ctrl keeps the important points: ends, midpoints, centres); without a key the pointer keeps the 0.1 grid.
+# A tap of Alt still toggles the rectangle's centre mode; mode-1 points and spline poles are drawn as round handles.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/AltSlideRecovery.solidarc
+#      --document …/AltSlide.solidarc --script Scripts/AltSlideWalkthrough.txt
+# Closed forms: circle r 1 at the origin; the foot of (0.62, 0.80) on it is (0.612575, 0.790419) and of (−0.5, −0.9) is
+# (−0.485643, −0.874157). A world target lands on a whole pixel (≈ 0.01 here), so the checks bracket the foot by ±0.012
+# and the report's values lie on the circle (x² + y² = 1 to the printed digits).
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① Top view: Shift+W circle r 1 about the origin
+key N Ctrl
+frames 3
+key Keypad7
+frames 2
+key W Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 1.0 0.0 0.0
+frames 3
+expect sketches == 1
+
+# ② Shift+A line from (3, 0): beside the circle the plain pointer keeps the grid, Ctrl finds no important point there
+#    and stays off the circle (Ctrl is points only), Alt slides onto the circle (the foot of the pointer); the Alt click places the end on it
+key A Shift
+frames 2
+click world 3.0 0.0 0.0
+frames 2
+move world 0.62 0.80 0.0
+frames 2
+expect snap contains none
+expect drawing-pointer-x ~ 0.6
+expect drawing-pointer-y ~ 0.8
+move world 0.62 0.80 0.0 Ctrl
+frames 2
+expect snap lacks curve
+move world 0.62 0.80 0.0 Alt
+frames 2
+expect snap contains curve
+expect snap-x > 0.600
+expect snap-x < 0.625
+expect snap-y > 0.780
+expect snap-y < 0.800
+capture 243AltSlideCircle
+click world 0.62 0.80 0.0 Left Alt
+frames 2
+expect drawing-points == 2
+expect drawing-last-x > 0.600
+expect drawing-last-x < 0.625
+key Enter
+frames 3
+expect sketches == 2
+
+# ③ Shift+Q rectangle: a tap of Alt toggles centre mode (on release) and a second tap turns it back; Alt still slides
+key Q Shift
+frames 2
+key LeftAlt
+frames 2
+expect drawing-centre == 1
+move world 1.03 0.0 0.0 Alt
+frames 2
+expect snap contains curve
+expect snap-x > 0.9999
+expect drawing-centre == 1
+key LeftAlt
+frames 2
+expect drawing-centre == 0
+key Escape
+frames 2
+
+# ④ mode 1: round point handles; the line's far end (3, 0) dragged with Alt slides onto the circle, the release commits
+key 1
+frames 3
+capture 244RoundHandles
+move @SketchPointSketch2.0
+frames 1
+press left
+frames 2
+move world -0.5 -0.9 0.0 Alt
+frames 2
+move world -0.5 -0.9 0.0 Alt
+frames 2
+expect snap contains curve
+capture 245AltSlidePoint
+release left
+frames 3
+expect point-commits == 1
+expect picked-point-x > -0.500
+expect picked-point-x < -0.475
+expect picked-point-y > -0.885
+expect picked-point-y < -0.865

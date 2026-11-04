@@ -1,0 +1,13 @@
+{
+  "result": "passed",
+  "gif_images_decoded_and_hashed": 4,
+  "original_tabs_exercised": 5,
+  "original_capture_choices_preserved": 43,
+  "private_paths_refused": true,
+  "pixel_stream": false,
+  "viewer_sha256": "7350a7a5e4d63b92f531c0010bdd8c58324bd5939b1efbec601a0640ad0c6512",
+  "source_sha256": {
+    "Exhibits/TextureStudio/Code/VerifyNativeEvidencePage.cjs": "ce078c2f32585d1fa7cc5cf1d4ebf4d5b787a2415a1d4020aab78951aa8b1db6"
+  },
+  "limitations": "Browser evidence-display checks only; native authoring execution is validated separately."
+}

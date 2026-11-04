@@ -1,0 +1,169 @@
+# SolidArc vehicle-surfacing walkthrough (plan V1–V4): Import curves… reads the synthetic bonnet
+# (Experimental/VehicleSurfacing/Samples/SyntheticBonnet.toml, 11 curves of 26 noisy limit points), each curve is fitted
+# within 0.2 mm, mode 1 (Plasticity control points) picks the 6 sections in loft order, L lofts the open sheet, a pole
+# drag reshapes Section3 and the sheet follows; undo / redo; the sheet renders from both sides.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/VehicleRecovery.solidarc
+#      --document …/Vehicle.solidarc --script Scripts/VehicleSurfacingWalkthrough.txt
+# Click points lie on the analytic bonnet H(ξ, η) at ξ = 0.5 (x = 0.375), the sections at η {0, 0.17, 0.38, 0.6, 0.81, 1};
+# the dragged pole is pole 2 of Section3 at (0.50298, 0.41799, 0.81056) (the fit of the sample file).
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document, Import curves… with the default path: 11 SpaceCurve steps in one undo entry
+key N Ctrl
+frames 2
+expect steps == 0
+key I Ctrl Shift
+frames 3
+click @PathImport
+frames 3
+expect steps == 11
+expect refused == 0
+expect undo == 1
+expect curves == 11
+expect curves contains Section3
+expect curves contains Between5
+expect curve-fit-worst < 0.0002
+expect sheet == 0
+expect status contains Imported 11 curve(s)
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 50CurvesImported
+
+# ② 1 = control-point mode: every curve shows its poles and control polygon; a click picks a curve
+key 1
+frames 2
+expect pick-mode == 1
+capture 51ControlPoints
+click world 0.375 0.0 0.75875
+frames 2
+expect selected-curves == Section1
+expect focused-caption == Section1
+key L
+frames 2
+expect status contains at least 2
+expect steps == 11
+
+# ③ Shift+click adds the sections in loft order (badges 1 … 6, curvature combs on the selected curves)
+click world 0.375 0.187 0.7888 Left Shift
+click world 0.375 0.418 0.81925 Left Shift
+click world 0.375 0.66 0.84171 Left Shift
+click world 0.375 0.891 0.85404 Left Shift
+click world 0.375 1.1 0.85875 Left Shift
+frames 2
+expect selected-curves == Section1,Section2,Section3,Section4,Section5,Section6
+click world 0.375 0.418 0.81925 Left Ctrl
+frames 2
+expect selected-curves == Section1,Section2,Section4,Section5,Section6
+click world 0.375 0.418 0.81925 Left Shift
+frames 2
+expect selected-curves == Section1,Section2,Section4,Section5,Section6,Section3
+click world 0.375 0.418 0.81925 Left Ctrl
+click world 0.375 0.66 0.84171 Left Ctrl
+click world 0.375 0.891 0.85404 Left Ctrl
+click world 0.375 1.1 0.85875 Left Ctrl
+click world 0.375 0.418 0.81925 Left Shift
+click world 0.375 0.66 0.84171 Left Shift
+click world 0.375 0.891 0.85404 Left Shift
+click world 0.375 1.1 0.85875 Left Shift
+frames 2
+expect selected-curves == Section1,Section2,Section3,Section4,Section5,Section6
+capture 52SectionsSelected
+
+# ④ L lofts the selection: one open NURBS sheet, sound audit, the curve selection is consumed
+key L
+frames 3
+expect steps == 12
+expect refused == 0
+expect sheet == 1
+expect faces == 1
+expect edges == 4
+expect sound == 1
+expect volume == 0
+expect undo == 2
+expect selected-curves == 0
+expect status contains Lofted 6 curve(s)
+capture 53BonnetLoft
+
+# ⑤ Esc drops a grabbed pole without an edit
+move world 0.50298 0.41799 0.81056
+frames 2
+press Left
+move offset 0 -20
+frames 2
+expect pole-drag-active == 1
+key Escape
+frames 1
+release Left
+frames 2
+expect pole-drag-active == 0
+expect pole-drags == 0
+expect pole-edits == 0
+expect undo == 2
+
+# ⑥ mode 1 pole drag: press on pole 2 of Section3, drag up, the curve previews live (green), the release regenerates
+#    the loft; Ctrl+Z / Ctrl+Shift+Z remove and reapply the edit
+move world 0.50298 0.41799 0.81056
+frames 2
+press Left
+frames 1
+move offset 0 -4
+move offset 0 -8
+move offset 0 -12
+move offset 0 -16
+frames 2
+expect pole-drag-active == 1
+expect undo == 2
+capture 54PoleDragLive
+release Left
+frames 3
+expect pole-drag-active == 0
+expect pole-drags == 1
+expect pole-edits == 1
+expect undo == 3
+expect refused == 0
+expect sheet == 1
+expect sound == 1
+expect status contains Moved pole 2 of Section3
+click world 0.06 0.418 0.84268
+frames 2
+expect selected-curves == Section3
+capture 55PoleMoved
+key Z Ctrl
+frames 3
+expect pole-edits == 0
+expect sheet == 1
+expect redo == 1
+key Z Ctrl Shift
+frames 3
+expect pole-edits == 1
+expect redo == 0
+
+# ⑦ mode 3 picks the sheet's persistent face; seen from below it renders darker (back face)
+key 3
+frames 1
+click world 0.4 0.6 0.83
+frames 2
+expect selected-faces contains Loft#12.Side
+key Escape
+frames 1
+key Keypad7 Ctrl
+frames 3
+capture 56SheetUnderside
+key Keypad7
+frames 1
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+
+# ⑧ save: the document keeps the points, the pole edit and the loft order
+key S Ctrl
+frames 2
+expect file:_ClaudeScratch/SolidArcWorkspace/Vehicle.solidarc == 1
+expect dirty == 0

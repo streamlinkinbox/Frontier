@@ -1,0 +1,17 @@
+frames 4
+capture Empty
+click @Figure:Extrude#2
+frames 3
+capture BodySelected
+click @InspectorTransform
+frames 3
+capture Transform
+click @InspectorTopology
+frames 3
+capture Topology
+click @InspectorGeometry
+key 2
+frames 2
+click world 2.0 0.0 1.0
+frames 3
+capture EdgePicked

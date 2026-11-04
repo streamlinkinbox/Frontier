@@ -1,0 +1,191 @@
+# SolidArc bevel reach walkthrough — the reports "bevel … seems to be clamped whilst it can bevel more … the cube if
+# bevel 1 edge fully it would bevel till the next edge making it a triangle" and "it suppose to go longer even if i put
+# a value greater it refuses to bevel any more … this is a cube theres no funny shapes". The size was held at the width
+# of the faces beside the edge (first 0.999 of it): wrong twice — past it the blend runs on over the next face (the
+# modeller builds that overflow exactly), and at an obtuse edge a fillet's radius is far more than its setback (135°
+# faces: r · tan 22.5° = 0.41 r). The size now runs until the modeller refuses (the bound search), at most to a setback
+# of the body's diagonal.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/BevelReachRecovery.solidarc
+#      --document …/BevelReach.solidarc --script Exhibits/SolidArc/Code/Scripts/BevelReachWalkthrough.txt
+# Closed forms (2 m cube, unit-cube values · 8): fillet 2 leaves a quarter cylinder 2π; chamfer 2 the triangular prism
+# 4; chamfer 3 keeps 8 · ½ (2 − 1.5)² = 1; fillet 3 keeps 4.363248321487495; chamfer 1 then fillet 2.4 on the 135° edge
+# keeps 7 − 2 · 2.4² (tan(π/8) − π/8) = 6.752153182631247.
+
+snap grid on
+
+# ① a 2 m cube from the Construct menu, its top front edge picked, B
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect volume ~ 8
+key 2
+frames 2
+click world 0.0 -1.0 2.0
+frames 2
+key B
+frames 8
+expect bevel-active == 1
+expect bevel-span ~ 2
+
+# ② typed 2 (the face width): the fillet is a quarter round down to the bottom edge, the top face used up
+click @BevelSize
+key A Ctrl
+type 2
+key Enter
+frames 8
+expect bevel-size ~ 2
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 6.283185307179586
+capture 363BevelReachFillet
+
+#    C: the chamfer at the same size — the triangle the first report expected
+key C
+frames 12
+expect bevel-chamfer == 1
+expect bevel-size ~ 2
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 4
+capture 364BevelReachChamfer
+
+# ③ a value greater than the face: chamfer 3 runs on over the bottom face (it is not held at 2 any more) …
+click @BevelSize
+key A Ctrl
+type 3
+key Enter
+frames 8
+expect bevel-size ~ 3
+expect bevel-reach > 3
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 1
+capture 365BevelReachChamferPast
+
+#    … and so does fillet 3
+key D
+frames 12
+expect bevel-size ~ 3
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 4.363248321487495
+capture 366BevelReachFilletPast
+
+#    a long drag right keeps going past the face width too (it stops only where the modeller refuses)
+drag left viewport 0.1 0.2 by 300 0 20
+frames 30
+expect bevel-size > 3
+expect bevel-refusal == 0
+key Escape
+frames 4
+expect bevel-active == 0
+
+# ④ the screenshot: chamfer the edge 1 (applied), then fillet the 135° edge between the top and the chamfer. The top is
+#    1 m wide, yet r 2.4 builds (setback 2.4 · tan 22.5° = 0.994): the old cap held the radius at the 1 m width
+click world 0.0 -1.0 2.0
+frames 2
+key B
+frames 6
+key C
+frames 4
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 6
+key Enter
+frames 6
+expect bevel-active == 0
+expect refused == 0
+expect volume ~ 7
+click world 0.3 0.0 2.0
+frames 2
+expect selected-edges == 1
+key B
+frames 8
+key D
+frames 4
+click @BevelSize
+key A Ctrl
+type 2.4
+key Enter
+frames 8
+expect bevel-size ~ 2.4
+expect bevel-span ~ 1
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 6.752153182631247
+capture 367BevelReachObtuse
+key Enter
+frames 6
+expect bevel-active == 0
+expect refused == 0
+expect volume ~ 6.752153182631247
+expect sound == 1
+capture 368BevelReachApplied
+
+# ⑤ the handles follow the bevel (the report "the blue + white controls … should follow the edges / vertices"): they no
+#    longer reach out from the old sharp edge by the size (a big bevel left them floating in space) — the cyan ring
+#    stands on the bevel's mid-line at mid-edge, each diamond where the bevel meets its vertex; a grip pushed into the
+#    body (down on screen: the bisector points up and out) drags the bevel's mid-line with it, so the size grows
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+key 2
+frames 2
+click world 0.0 -1.0 2.0
+frames 2
+key B
+frames 8
+key D
+frames 4
+click @BevelSize
+key A Ctrl
+type 0.5
+key Enter
+frames 8
+expect bevel-size ~ 0.5
+expect bevel-handles == 3
+capture 369BevelHandlesOnFillet
+drag left @BevelHandle0 by 0 40 10
+frames 10
+expect bevel-size > 0.55
+expect bevel-refusal == 0
+capture 370BevelHandleDragged
+key C
+frames 10
+capture 371BevelHandlesOnChamfer
+drag left @BevelHandle1 by 0 40 10
+frames 10
+expect bevel-corners == 1
+expect bevel-corner-1 > 1.1
+expect bevel-size < 1.0
+expect bevel-refusal == 0
+capture 372BevelCornerOnChamfer
+key Escape
+frames 4

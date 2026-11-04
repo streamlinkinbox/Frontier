@@ -1,0 +1,364 @@
+# SolidArc trim / split walkthrough — Plasticity C (command:cut) splits a body by the focused sketch or the
+# selected curve (curves are seen along the view axis); the inside piece comes out picked in mode 4, so X deletes it.
+# Vehicle flow from the BMW study: loft a panel → C with a character line → X the unwanted piece.
+# T (command:trim) removes the piece of a sketch curve under the pointer between its crossings (hover previews it in red).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/TrimSplitRecovery.solidarc
+#      --document …/TrimSplit.solidarc --script Exhibits/SolidArc/Code/Scripts/TrimSplitWalkthrough.txt
+# Closed forms: box 2 × 1 × 1 cut at x = 0.6 (line drawn upward: inside = left = x < 0.6) → 0.6 + 1.4; core r 0.3 → 0.09π;
+# pentagram A(1,0) → C(1.6,1.9) → E(0,0.7) → B(2,0.7) → D(0.4,1.9) trimmed to its star: shoelace area 1.237928331467.
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document, Top view: a 2 × 1 rectangle extruded 1 (New)
+key N Ctrl
+frames 2
+expect steps == 0
+key Keypad7
+frames 2
+key Q Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 2.0 1.0 0.0
+frames 2
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect steps == 2
+expect volume ~ 2
+expect bodies == 1
+
+# ② C with nothing to cut with explains what it needs
+key Escape
+frames 2
+key C
+frames 2
+expect status contains focus a sketch step or select a curve
+expect steps == 2
+
+# ②b Ctrl+Alt+click an edge picks its ring (Blender): the top front edge along x walks front → bottom → back → top
+#    faces, so the four edges along x come picked. Alt+click is Blender's edge loop: a box corner has three edges (a
+#    pole), so the loop is that edge alone. Alt+A lets them go
+key 2
+frames 2
+move world 1.0 0.0 1.0
+frames 2
+click world 1.0 0.0 1.0 Left Ctrl Alt
+frames 2
+expect selected-edges == 4
+expect ring-picks == 1
+capture 294EdgeRing
+click world 1.0 0.0 1.0 Left Alt
+frames 2
+expect selected-edges == 1
+expect ring-picks == 2
+key A Alt
+frames 2
+expect selected-edges == 0
+
+# ③ Shift+A line across the box at x = 0.6 (drawn upward), Enter finishes the open chain, C splits the box in two
+key A Shift
+frames 2
+click world 0.6 -0.5 0.0
+frames 2
+click world 0.6 1.5 0.0
+frames 2
+key Enter
+frames 2
+expect focused-caption == Line1
+key C
+frames 3
+expect refused == 0
+expect steps == 4
+expect bodies == 2
+expect body-volumes contains Cut1 0.600000
+expect body-volumes contains 1.400000
+expect selected-bodies contains Cut#4
+expect pick-mode == 4
+expect sound == 1
+expect status contains Cut
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 102CutLine
+
+# ④ X deletes the picked piece; Ctrl+Z brings it back, Ctrl+Shift+Z deletes it again
+key X
+frames 3
+expect bodies == 1
+expect steps == 5
+expect body-volumes contains 1.400000
+key Z Ctrl
+frames 3
+expect bodies == 2
+key Z Ctrl Shift
+frames 3
+expect bodies == 1
+capture 103CutRemoved
+
+# ⑤ Shift+W centre circle r 0.3 on the remaining block (drawn on its top face, z 1); C cuts the core out (π · 0.09), X
+#    removes it → a hole
+key Keypad7
+frames 2
+key W Shift
+frames 2
+click world 1.2 0.5 1.0
+frames 2
+click world 1.5 0.5 1.0
+frames 2
+expect focused-caption == Circle1
+key C
+frames 3
+expect refused == 0
+expect bodies == 2
+expect body-volumes contains Cut2 0.282743
+# genus sums over the bodies: the core is genus 0, the holed block genus 1
+expect genus == 1
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+capture 104CutCore
+key X
+frames 3
+expect bodies == 1
+expect genus == 1
+expect volume ~ 1.1172566612
+capture 105CutHole
+
+# ⑥ vehicle panel: import the synthetic bonnet, pick the 6 sections in mode 1, L lofts the sheet
+key N Ctrl
+frames 2
+key I Ctrl Shift
+frames 3
+click @PathImport
+frames 3
+expect curves == 11
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+key 1
+frames 2
+click world 0.375 0.0 0.75875
+click world 0.375 0.187 0.7888 Left Shift
+click world 0.375 0.418 0.81925 Left Shift
+click world 0.375 0.66 0.84171 Left Shift
+click world 0.375 0.891 0.85404 Left Shift
+click world 0.375 1.1 0.85875 Left Shift
+frames 2
+expect selected-curves == Section1,Section2,Section3,Section4,Section5,Section6
+key L
+frames 3
+expect sheet == 1
+expect bodies == 1
+expect sound == 1
+
+# ⑦ Top view: Shift+S draws a character curve across the bonnet (overshooting both edges), C trims the panel along it
+key Keypad7
+frames 2
+key S Shift
+frames 2
+click world -0.2 0.45 0.0
+frames 2
+click world 0.2 0.6 0.0
+frames 2
+click world 0.5 0.5 0.0
+frames 2
+click world 0.9 0.6 0.0
+frames 2
+key Enter
+frames 2
+expect focused-caption == Curve1
+key C
+frames 3
+expect refused == 0
+expect bodies == 2
+expect sound == 1
+expect selected-bodies contains Cut#
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 106PanelCut
+
+# ⑧ X deletes the rear piece: the trimmed front panel stays, an open sheet with the character line as its edge
+key X
+frames 3
+expect bodies == 1
+expect sheet == 1
+expect sound == 1
+capture 107PanelTrimmed
+
+# ⑨ T on a sketch: a pentagram drawn as one closed Shift+A chain (it crosses itself, so it cannot be extruded yet)
+key N Ctrl
+frames 2
+key Keypad7
+frames 2
+key A Shift
+frames 2
+click world 1.0 0.0 0.0
+frames 2
+click world 1.6 1.9 0.0
+frames 2
+click world 0.0 0.7 0.0
+frames 2
+click world 2.0 0.7 0.0
+frames 2
+click world 0.4 1.9 0.0
+frames 2
+click world 1.0 0.0 0.0
+frames 2
+expect drawing == 0
+expect sketch-curves == 5
+key T
+frames 2
+expect trim == 1
+move world 1.3 0.95 0.0
+frames 3
+expect trim-hover contains Line1
+expect trim-refusal == 0
+capture 108TrimHover
+
+# ⑩ one click per inner piece (the chord midpoints): the five inner edges come off, the star outline is 10 lines
+click world 1.3 0.95 0.0
+frames 2
+move world 0.8 1.3 0.0
+frames 2
+click world 0.8 1.3 0.0
+frames 2
+move world 1.0 0.7 0.0
+frames 2
+click world 1.0 0.7 0.0
+frames 2
+move world 1.2 1.3 0.0
+frames 2
+click world 1.2 1.3 0.0
+frames 2
+move world 0.7 0.95 0.0
+frames 2
+click world 0.7 0.95 0.0
+frames 2
+expect trim-commits == 5
+expect sketch-curves == 10
+expect refused == 0
+move world 2.6 1.6 0.0
+frames 2
+capture 109TrimStar
+key Escape
+frames 2
+expect trim == 0
+expect focused-caption == Line1
+
+# ⑩b Enter and a right-click (no drag) end Trim like Escape: nothing more comes off
+key T
+frames 2
+expect trim == 1
+key Enter
+frames 2
+expect trim == 0
+key T
+frames 2
+expect trim == 1
+click viewport 0.90 0.20 Right
+frames 2
+expect trim == 0
+expect sketch-curves == 10
+expect focused-caption == Line1
+
+# ⑪ E extrudes the trimmed star: volume = shoelace area × 1
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect volume ~ 1.237928331467
+expect sound == 1
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 110StarExtruded
+
+# ⑫ Cut (bottom toolbar, Plasticity curve cut): a line 0 → 2 clicked at x = 0.5 breaks into two curves meeting there
+#    (nothing comes off); its end refuses; a circle becomes two half arcs (two break rings). Esc ends
+key N Ctrl
+frames 2
+key Keypad7
+frames 2
+key A Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 2.0 0.0 0.0
+frames 2
+key Enter
+frames 2
+expect sketch-curves == 1
+click @SketchCut
+frames 2
+expect split == 1
+move world 0.5 0.0 0.0
+frames 2
+expect trim-breaks == 1
+capture 292CutLineHover
+click world 0.5 0.0 0.0
+frames 3
+expect refused == 0
+expect sketch-curves == 2
+expect status contains Cut Line
+move world 0.0 0.0 0.0
+frames 2
+expect trim-refusal contains on an end
+key Escape
+frames 2
+expect split == 0
+key W Shift
+frames 2
+click world 3.0 0.0 0.0
+frames 2
+click world 3.5 0.0 0.0
+frames 2
+expect sketch-curves == 1
+click @SketchCut
+frames 2
+move world 3.0 0.5 0.0
+frames 2
+expect trim-breaks == 2
+capture 293CutCircleHover
+click world 3.0 0.5 0.0
+frames 3
+expect sketch-curves == 2
+key Escape
+frames 2
+expect split == 0

@@ -1,0 +1,255 @@
+# SolidArc wrap / scale / offset walkthrough — the request "S is Scale hotkey; i wanted to scale the sketch … a arc
+# (represents wheel well) wanted to add a 2nd outer wheelarc … the tool where i select 1 curve and another curve … the
+# Apple text will wrap like it would around a can of coke … popup/gizmo for the axis (unless orthographic)".
+# Run: SolidArcCapture --specimen --reset-files --recovery …/WrapRecovery.solidarc
+#      --document …/Wrap.solidarc --script Exhibits/SolidArc/Code/Scripts/WrapWalkthrough.txt
+# ① S on a picked sketch: a 3-point arc r 1 (the wheel arch) scales ×1.5 → r 1.5 (typed factor, Enter).
+# ② O on it: a concentric arc 0.3 away (the outer wheel arch), the original kept.
+# ③ Wrap: a circle r 1 on the ground (the can) and three shapes on the front plane (a box, an L, a dot); picked, then
+#    Inspector › Curves › Wrap around curve. Auto reads the axes from the two planes (round z, along y) in any view, no
+#    popup. The shapes become 10 3D curves on the can, lengths kept.
+# ④ A rectangle on the ground with the circle: the planes say nothing, so in perspective the axis popup still asks.
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+snap grid on
+
+key N Ctrl
+frames 3
+key Keypad7
+frames 2
+expect grid-plane == 0
+
+# ① the wheel arch: start (−3, 0), end (−1, 0), through (−2, 1) → r 1 about (−2, 0)
+click @DrawArc
+frames 2
+move world -3.0 0.0 0.0
+frames 2
+click world -3.0 0.0 0.0
+frames 2
+move world -1.0 0.0 0.0
+frames 2
+click world -1.0 0.0 0.0
+frames 2
+move world -2.0 1.0 0.0
+frames 2
+click world -2.0 1.0 0.0
+frames 3
+key Escape
+frames 2
+expect sketches == 1
+key 5
+frames 2
+move world -2.0 1.0 0.0
+frames 2
+click world -2.0 1.0 0.0
+frames 3
+expect selected-curves == 1
+expect curve-radius > 0.999
+expect curve-radius < 1.001
+key S
+frames 2
+expect transform == 1
+type 1.5
+frames 3
+expect transform-readout contains 1.5
+key Enter
+frames 3
+expect transform == 0
+expect refused == 0
+expect selected-curves == 1
+expect curve-radius > 1.499
+expect curve-radius < 1.501
+capture 325SketchScaled
+
+# ② O: the outer wheel arch 0.3 out (typed), a new sketch; the arch stays
+move @CurveOffset
+frames 2
+capture 326CurveOffsetButton
+key O
+frames 2
+expect sweep == 1
+type 0.3
+frames 3
+expect sweep-amount ~ 0.3
+capture 327OffsetPreview
+key Enter
+frames 3
+expect sweep == 0
+expect refused == 0
+expect sketches == 2
+expect status contains Offset
+key Escape
+frames 2
+
+# ③ the can (circle r 1 on the ground), then three shapes on the front plane (a box, an L, a small square)
+key W Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 1.0 0.0 0.0
+frames 3
+key Escape
+frames 2
+expect sketches == 3
+key Keypad1
+frames 2
+expect grid-plane == 1
+expect orthographic == 0
+key Q Shift
+frames 2
+click world -0.75 0.0 0.25
+frames 2
+click world -0.25 0.0 0.75
+frames 3
+key Escape
+frames 2
+key A Shift
+frames 2
+click world 0.0 0.0 0.75
+frames 2
+click world 0.0 0.0 0.25
+frames 2
+click world 0.5 0.0 0.25
+frames 2
+key Enter
+frames 3
+key Escape
+frames 2
+key Q Shift
+frames 2
+click world 0.75 0.0 0.25
+frames 2
+click world 1.0 0.0 0.5
+frames 3
+key Escape
+frames 2
+expect sketches == 6
+
+# pick the shapes and the can (a lone circle: the rail whatever the order; bottom edges, clear of the gizmo arrows)
+key 5
+frames 2
+move world -0.5 0.0 0.25
+frames 2
+click world -0.5 0.0 0.25
+frames 3
+move world 0.375 0.0 0.25
+frames 2
+click world 0.375 0.0 0.25 Left Shift
+frames 3
+move world 0.875 0.0 0.25
+frames 2
+click world 0.875 0.0 0.25 Left Shift
+frames 3
+move world 0.5 0.0 0.0
+frames 2
+click world 0.5 0.0 0.0 Left Shift
+frames 3
+expect selected-curves == 4
+move @CurveFlow
+frames 2
+capture 328WrapPicked
+
+# perspective + Auto: the planes give the axes (circle on the ground → round z, shapes on the front plane → along y), no popup
+expect wrap-auto contains round z
+expect wrap-auto contains along y
+capture 329WrapAutoAxes
+click @CurveFlow
+frames 4
+expect wrap-pending == 0
+expect status contains round z
+expect status contains along y
+expect refused == 0
+expect wrap-curves == 10
+expect selected-curves == 10
+expect status contains Wrap
+drag Middle viewport 0.5 0.5 by -110 60 14
+frames 3
+wheel viewport 0.5 0.62 3
+frames 3
+capture 330WrapAroundCan
+
+# undo, back to the front view in parallel projection: auto uses the view, no popup
+key Z Ctrl
+frames 3
+wheel viewport 0.5 0.62 -3
+frames 3
+expect selected-curves == 0
+key Keypad1
+frames 2
+key Keypad5
+frames 2
+expect orthographic == 1
+move world -0.5 0.0 0.25
+frames 2
+click world -0.5 0.0 0.25
+frames 3
+move world 0.375 0.0 0.25
+frames 2
+click world 0.375 0.0 0.25 Left Shift
+frames 3
+move world 0.875 0.0 0.25
+frames 2
+click world 0.875 0.0 0.25 Left Shift
+frames 3
+move world 0.5 0.0 0.0
+frames 2
+click world 0.5 0.0 0.0 Left Shift
+frames 3
+expect selected-curves == 4
+click @FlowProject
+frames 2
+click @CurveFlow
+frames 4
+expect wrap-pending == 0
+expect refused == 0
+expect wrap-curves == 10
+expect status contains along y
+key Keypad5
+frames 2
+drag Middle viewport 0.5 0.5 by -110 60 14
+frames 3
+wheel viewport 0.5 0.62 3
+frames 3
+capture 331ProjectOntoCan
+
+# ④ shapes on the circle's own plane: Auto cannot tell the axis, so in perspective the popup asks
+key Z Ctrl
+frames 3
+wheel viewport 0.5 0.62 -3
+expect selected-curves == 0
+key Keypad7
+frames 2
+expect grid-plane == 0
+key Q Shift
+frames 2
+click world 2.0 -0.5 0.0
+frames 2
+click world 3.0 0.5 0.0
+frames 2
+key Escape
+frames 2
+expect sketches == 7
+key 5
+frames 2
+move world 2.5 -0.5 0.0
+frames 2
+click world 2.5 -0.5 0.0
+frames 2
+move world 0.0 -1.0 0.0
+frames 2
+click world 0.0 -1.0 0.0 Left Shift
+frames 2
+expect selected-curves == 2
+click @FlowWrap
+frames 2
+expect wrap-auto lacks round
+click @CurveFlow
+frames 3
+expect wrap-pending == 1
+expect status contains popup
+capture 347WrapAxisPopupSamePlane

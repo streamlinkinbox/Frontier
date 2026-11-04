@@ -1,0 +1,18 @@
+PASS empty lobby cannot start
+PASS dummy readiness cannot bypass real player readiness
+PASS ready real player plus explicit local dummy can exercise solo flow
+PASS dummy-only roster cannot start an EOS match
+PASS history round trip preserves explicitly labelled simulation counts
+PASS unknown or credential fields rejected from cloud history
+PASS duplicate cloud fields rejected
+PASS cloud input bounded at 4096 bytes
+PASS untrusted cloud identifier cannot become a path
+PASS negative duration rejected
+PASS local and cloud copies deduplicated by immutable event ID
+PASS history is bounded and newest-first
+PASS portable config parses without embedding production credentials
+PASS portable temporary secret buffers cleared
+PASS duplicate portable secret rejected
+PASS oversized portable secret rejected, never truncated
+PASS invalid encryption key rejected
+Scope: deterministic local logic only. EOS lobby, RTC and cloud integration are not exercised here.

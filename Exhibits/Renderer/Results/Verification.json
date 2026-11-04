@@ -1,0 +1,807 @@
+{
+  "result": "passed",
+  "date": "2026-10-18",
+  "host": "linux",
+  "windows_execution_verified": false,
+  "hardware_gpu_verified": false,
+  "validation_layers_enabled": false,
+  "cmake_configure_executed": false,
+  "cmake_limitation": "Host CMake unavailable; no package installed to obtain it. Direct compiler checks executed.",
+  "windows_binary": {
+    "path": "Binaries/RendererValidation/SurfaceRasterizationValidation.exe",
+    "bytes": 480256,
+    "architecture": "Windows x64 PE32+ executable",
+    "sha256": "57e67a60bcaf81456dc9327471f74e3e44873b3789242dd70612aaca317d0384"
+  },
+  "windows_binaries": [
+    {
+      "path": "Binaries/RendererValidation/SurfaceRasterizationValidation.exe",
+      "bytes": 480256,
+      "architecture": "Windows x64 PE32+ executable",
+      "sha256": "57e67a60bcaf81456dc9327471f74e3e44873b3789242dd70612aaca317d0384"
+    },
+    {
+      "path": "Binaries/RendererValidation/MatCapRasterizationValidation.exe",
+      "bytes": 512512,
+      "architecture": "Windows x64 PE32+ executable",
+      "sha256": "00b333ef4a9129c72516783daa2212dbb7511242aa4f167f8abfea07ca0e6ae8"
+    },
+    {
+      "path": "Binaries/RendererValidation/PreviewPbrRasterizationValidation.exe",
+      "bytes": 537088,
+      "architecture": "Windows x64 PE32+ executable",
+      "sha256": "f289b7bcf8ddfd7a058d040022454fd0cd3659cab528e99d97f5d5a86415d7b7"
+    },
+    {
+      "path": "Binaries/RendererValidation/MaterialRasterizationValidation.exe",
+      "bytes": 835584,
+      "architecture": "Windows x64 PE32+ executable",
+      "sha256": "6fa157c0350ba0283213d4cc3f60b699d9a72846ad381a4592a2899e9ed8fcdf"
+    }
+  ],
+  "sources": [
+    {
+      "file": "Automation/CompileSurfaceShaders.mjs",
+      "sha256": "9c0a58cf981dea92f54a8f44e6502491ca4a1e7231d4b7636a43751e91733dca"
+    },
+    {
+      "file": "Automation/SurfaceRasterization.cmake",
+      "sha256": "6f565bca9ff6a40861d81f2292820c005f7d9c1d5446838f9b8ad8ca32567ea8"
+    },
+    {
+      "file": "Automation/UIDependencies.json",
+      "sha256": "580181e886d296b335c96ce02e43c5d5d129e611fcd03ff27183b20f9d2ca074"
+    },
+    {
+      "file": "CMakeLists.txt",
+      "sha256": "419b3596578a6f1b198921f3cd48dd915c63cd8e1ba5d4cc688bf13dfc9bb70a"
+    },
+    {
+      "file": "Engine/Render/AnisotropicReflection.h",
+      "sha256": "6402bd85bc5c3fdd95ad275c16ee3cae32e8d0f77e16e53522d02bd99ce912c2"
+    },
+    {
+      "file": "Engine/Render/MatCapProjection.h",
+      "sha256": "5ba91c707a6dad3f011f4e44f24e4f850aacf3eb232f4885ff0be5e8899ad0da"
+    },
+    {
+      "file": "Engine/Render/ScatteringSequence.h",
+      "sha256": "e478ddc0a6900779155b97a6eb9bc4c85717be748dbcb18b0ba0e615d98862f1"
+    },
+    {
+      "file": "Engine/Render/Shader/AutomotivePaint.slang",
+      "sha256": "c973b9836e49afbed482296f6eeebe49ed9d9ca9594ad345341209dc8454d398"
+    },
+    {
+      "file": "Engine/Render/Shader/CadEdge.slang",
+      "sha256": "7dd89dcd37fb850bd7b9d9fc8fb415898688c64d266360d622ebfc01c6af3bf2"
+    },
+    {
+      "file": "Engine/Render/Shader/CadSurface.slang",
+      "sha256": "958c17b1233ea940b3c80f81a355b06f615708f63e3c8038cf4193d210515513"
+    },
+    {
+      "file": "Engine/Render/Shader/MatCapSurface.slang",
+      "sha256": "16d05bd02b4e2f49fc90b274ce25ac094ccc37dde6c8ec4ae65d4a2734f155e5"
+    },
+    {
+      "file": "Engine/Render/Shader/MaterialSurface.slang",
+      "sha256": "e210f08ad4fee7580a62256e7ec60a23ef8414fc206f4dcb60b46b32206521cb"
+    },
+    {
+      "file": "Engine/Render/Shader/PreviewPbrSurface.slang",
+      "sha256": "cf625ac89eb8afdb0689f8f4028950f727d076821cc2ac5f65788a3d423e6154"
+    },
+    {
+      "file": "Engine/Render/Shader/ScatteringEvaluation.slang",
+      "sha256": "32c77f38f50f78ff7d7f00f5d1b412dd273c72722510d42842b9154d37645cc5"
+    },
+    {
+      "file": "Engine/Render/Shader/SurfaceProjection.slang",
+      "sha256": "fa2abdd93a1ffb116e100aad6b8b34e8c1b297c23b445f8959c2e8d9d045df38"
+    },
+    {
+      "file": "Engine/Render/SurfaceGeometry.h",
+      "sha256": "f2144ed2c2b9cb5c2b16a65924efab42c4ad74eb057f6151d12b218406d682e2"
+    },
+    {
+      "file": "Engine/Render/SurfaceMaterial.cpp",
+      "sha256": "5ef0c388273ba538c00cda3b52f337c0888ab6b43c0a03ec2f1c263d9b7603b6"
+    },
+    {
+      "file": "Engine/Render/SurfaceMaterial.h",
+      "sha256": "223888524134025cb209f014af8ae0fd00520241abd83c19041ab9111b6808d0"
+    },
+    {
+      "file": "Engine/Render/SurfaceNormalProjection.h",
+      "sha256": "756f4f537d793d40ebc01de5a13c0e3f9dbb39a6ad2d184b62ffcaf5c76fd78f"
+    },
+    {
+      "file": "Engine/Render/SurfaceRasterization.cpp",
+      "sha256": "474d8dff1cb143c9fee29fa9e150c2e1ad1a5e3ae1329f4e6d90892d925b4f3f"
+    },
+    {
+      "file": "Engine/Render/SurfaceRasterization.h",
+      "sha256": "c78c13d46f1bb3a47f06406f4512ea4ccc98c0dbf194d07516de36722d222bdf"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/BracketFixture.h",
+      "sha256": "2d1da05fa80c109f9fa56de8ea19de4658a97f309b36d4c4931d86af1b2a8d87"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/EncodeRasterEvidence.py",
+      "sha256": "9dda2021231810ed0c4be78f7db812ebfb5d1b74f0b0b5b17fc82f29d2f2262f"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/GenerateMaterialFixtures.py",
+      "sha256": "4eed25b9e99cfcdb1a9e6a99a881568597e4d327624b2ba3bf5fb139d1112a50"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/MatCapFixtures.h",
+      "sha256": "f09344aa57860e6f5811e58a9a8393dfba66cd36102d0fc6bb71ff5371ed3c0f"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/MatCapRasterizationValidation.cpp",
+      "sha256": "6d8dea71336eba36d4fc942efb01a7df300397b4f48da32ae7c3f97fb7a1a245"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/MaterialRasterizationValidation.cpp",
+      "sha256": "ca04e07c95711c941c8831befaedd67e431c3f536564dbf887c4e35c630b2119"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/PreviewPbrFixtures.h",
+      "sha256": "971913177572284e6b8bf67821a5715e27d5beebd73f5428b1c6f14f26cc4e98"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/PreviewPbrRasterizationValidation.cpp",
+      "sha256": "d00945f313336193038bb0f225b8c5f1c0970dee2e9031c82afafb9b2dc030a4"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/SurfaceGeometryValidation.cpp",
+      "sha256": "69dd99e77452d991f16e7901ab69e622ccabef6acb2657118a470d353e6bbd7e"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/SurfaceRasterizationValidation.cpp",
+      "sha256": "29463b798cb3ccb006df69f31afb8de615245c7f8e3e3205aacd6a78212b967c"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/VerifyRasterEvidence.py",
+      "sha256": "2edeb429f87d1a34f1b6c435803b36ca511b82c6f64648c7b656ac75131f4abe"
+    },
+    {
+      "file": "Exhibits/Renderer/Code/VulkanReadback.h",
+      "sha256": "a62b1938ef4f8115184f016730681fa5c25b4c2dbdab572f28a8e7fc8ef8fcd8"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/BrushedCopper.material",
+      "sha256": "873da0256932d4a3bcec1c9409982acf7f9dc4ccdcef3bee04f4b5fc7cbc3ce7"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/CoatedCeramic.material",
+      "sha256": "967acba30c87207bfaf0c84bd64e4bdcf1e616cb3b609cc63e88c63c8bc8a726"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/LuminousPattern.material",
+      "sha256": "0b32f9d3162695c8c71cacd8a8e4a88ccbbf96ee3c5bdf2dd80e00144b22ed04"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/TexturedAlloy.material",
+      "sha256": "c3b2121da9b552848e1f1dadbba875d9f5f3d84de62e20e0ce5f2f8271a0aaf6"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/Textures/Albedo.png",
+      "sha256": "7333a61b52a69ee1f502934aa21bb35f15c13391e136d7a2b51ef031a9f1f675"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/Textures/CoatNormal.png",
+      "sha256": "c31c246ee1a98440d67cc794669294381424cb515228db22abef3d321308c4bb"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/Textures/CoatOrm.png",
+      "sha256": "e67d7d03d3141baa16228ad74c06773f1fafb46d99661393013ffe521630ee12"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/Textures/Normal.png",
+      "sha256": "1db814e6756d309808f15ade290481355f6a4a879975819f94c47d08dff0e470"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/Textures/Orm.png",
+      "sha256": "0310f60683e646fdee15562ebd9756175667c336bf4b869844946f98ae908a5f"
+    },
+    {
+      "file": "Exhibits/Renderer/Materials/Textures/Radiance.png",
+      "sha256": "88dc859f156abad27044e690c5ff82c8c2b351cf69edfb0b4ad228c9a3660f7d"
+    }
+  ],
+  "captures": [
+    {
+      "file": "Exhibits/Renderer/Images/CadDepthOcclusion.png",
+      "width": 128,
+      "height": 128,
+      "sha256": "482ba3e5a9e91078669c24b367b090c49cc91b290a0095c368a24122e0cebb59",
+      "readback_rgb_sha256": "ec92cc55a75b048268bcc6f108b65e1473e47c970774d009f999b8f2c9714e2c"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/CadNearClip.png",
+      "width": 128,
+      "height": 128,
+      "sha256": "23b2e163ba7eb9a754818371a110a0c447707fabffa8cdf2f57f744ca2772312",
+      "readback_rgb_sha256": "dace23a285c10a4dabafb78e106ce957eb2b269abb01996d93b7c130e5c42824"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/CadOrthographic.png",
+      "width": 960,
+      "height": 720,
+      "sha256": "4b4b04e7559a206c1240e8434dc5f14b7116fd1422f94813bdc0b4b3880ffe98",
+      "readback_rgb_sha256": "7cad21d8cc16e99976115771845cf159f77e6dc56633acd71cf2d955f0e0bac1"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/CadPerspective.png",
+      "width": 960,
+      "height": 720,
+      "sha256": "85c438183f73e40da73bb259186cfccdd0b9c23eed3f87e4ff37609eafd5720d",
+      "readback_rgb_sha256": "8d540d7403602e78bd3ac7389cdcf3a652b5a7a05e11a3893c1f6aba5f40ea26"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/CadThumbnail.png",
+      "width": 320,
+      "height": 240,
+      "sha256": "e5643ce997ea73f6d41b2eec0eca1d78acb3abfaa08f487c92a12cf61c149ec9",
+      "readback_rgb_sha256": "b508258417b2ab080cfcf1594ae7f14901a257a72dc589241c7b073b2ddc8194"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MatCapBracket.png",
+      "width": 960,
+      "height": 720,
+      "sha256": "24c2e777e24812b5d008b774e66fe8eda688dd55af5d328a1afae0e0dc364df5",
+      "readback_rgb_sha256": "6c3b382bca806c7e1a5c38f783f436a093ecaacbd1f775f8fce2b2c87dd58f11"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MatCapCalibration.png",
+      "width": 720,
+      "height": 720,
+      "sha256": "b1ade9db13601e79aace5c91c1e575dd26b0bbad277a93b774203abc859c29e3",
+      "readback_rgb_sha256": "0e81af97e70d8547a4f4f3bcd0d0e124a5557685f58bd17714ee7c69685b12a7"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MatCapThumbnail.png",
+      "width": 320,
+      "height": 240,
+      "sha256": "df70def1101981c5152f26e03b121f47026c4d9e1bb5f5d72dca407e19cba601",
+      "readback_rgb_sha256": "1533597181093e16711264ecdda3c3fb7384a0af0fd5e72e1ae61d6f191495ad"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MaterialBrushedCopperBracket.png",
+      "width": 960,
+      "height": 720,
+      "sha256": "d3b3850f534949a45d302aaede7aa7917d142793a6946cca94afec3d96079267",
+      "readback_rgb_sha256": "06b72805b5aec7c66655c21ec955ab8165becb20e6578a34c9f16ad242572e74"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MaterialBrushedCopperSphere.png",
+      "width": 720,
+      "height": 720,
+      "sha256": "5e26a85d9d019f60f6b813a21669a8f09fce6f3877032d81baa02ddf947768ce",
+      "readback_rgb_sha256": "deeb6297bf289a9daf7096f705a68b357214472bafcf4a0dba3e5891a5bfbcf0"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MaterialCoatedCeramicBracket.png",
+      "width": 960,
+      "height": 720,
+      "sha256": "aab8d1fe52151c629cb324969d0d46c6c360321f35848dc0a6d9c62a334c43fb",
+      "readback_rgb_sha256": "15cbc8e93a4fadbf50d46c39c6aa22654657d79e560715c7a7b22bc3950b5f13"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MaterialCoatedCeramicSphere.png",
+      "width": 720,
+      "height": 720,
+      "sha256": "810d3e367b7e37c023d4dc9f2ee3901b00c0ddfa8ee1e6083182aa9d399fed19",
+      "readback_rgb_sha256": "80e7956dba485579966e02c108bfe999926bd430d58af56b0b2665c725efbf07"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MaterialLuminousPatternBracket.png",
+      "width": 960,
+      "height": 720,
+      "sha256": "e86b51e089136bf2baff7039bd1cc8f5dddb36c7ad66944240d464ecb6a10d9d",
+      "readback_rgb_sha256": "3e6b49fc1d3cb547380f86965d0d19a0b2ec01d5e11958341eee450f44ebbadd"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MaterialLuminousPatternSphere.png",
+      "width": 720,
+      "height": 720,
+      "sha256": "38b1a605938f077c901bf954848b509b129aae2fa63a0c4bdd8e6aac030cc3be",
+      "readback_rgb_sha256": "8c96950422b27cd06bdbc53744511ea3d29e18669bc1a09eb8a11c2e736f0cd4"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MaterialTexturedAlloyBracket.png",
+      "width": 960,
+      "height": 720,
+      "sha256": "c48590ce08c4866a27d059490497d4380c6f6f2c1f3236d50f25273126c28044",
+      "readback_rgb_sha256": "99ad24e25a55e8540abec38211dff8ddb919b2171e409628e127562786824929"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/MaterialTexturedAlloySphere.png",
+      "width": 720,
+      "height": 720,
+      "sha256": "6e02e594a015fc42016b26310dca9ec70c75f0edfa10c8a81aa72e95e900fb42",
+      "readback_rgb_sha256": "c7b9d757b65fd251d140c9de9e78af471285b96b6ba707450eadc20b86bfedf6"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/PreviewCadCalibration.png",
+      "width": 720,
+      "height": 720,
+      "sha256": "7c8600fe9f8b24a367795c6816c188d16e1623e96b43a1c087abbde188c5a205",
+      "readback_rgb_sha256": "ae6bbe82ea9c99d2a72ac808d6d984f761092c40c2ea7a9c450356f33ffa4a18"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/PreviewMatCapCalibration.png",
+      "width": 720,
+      "height": 720,
+      "sha256": "90bf1ef7f800de3c855a44f8c1cb9cd9ab1dde5b0b1da7a5341ac3c9f7a6596a",
+      "readback_rgb_sha256": "d7c18bc3fdabbd79475691911491e091dd2b0f0946ece07de0f96077565f9625"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/PreviewPbrBracket.png",
+      "width": 960,
+      "height": 720,
+      "sha256": "8d90cafa9025a54a6803e335b93c482393e29ac33d2f131a0eb2e94ddc53b97e",
+      "readback_rgb_sha256": "78609d4eabac719d7ebadf9430ccf60f8d5e710decfff6eec7c18dc9ff2fc5b2"
+    },
+    {
+      "file": "Exhibits/Renderer/Images/PreviewPbrCalibration.png",
+      "width": 720,
+      "height": 720,
+      "sha256": "858999f8fb7b8379c00675786c4239580ab894918226bafb12a9cf1948f93f89",
+      "readback_rgb_sha256": "d108af39fa4038b2dd0bf1ecfefb31269a9d583681751d01098a37c95fa2ddab"
+    }
+  ],
+  "executions": {
+    "shader_compilation": {
+      "command": [
+        "node",
+        "Automation/CompileSurfaceShaders.mjs",
+        "/home/user/Frontier/_ClaudeScratch/tmp/SlangCompiler/node_modules/slang-loader/vendor/slang-wasm.js",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Shaders"
+      ],
+      "exit_code": 0,
+      "stdout": "CadSurfaceVertex 1368 bytes\nCadSurfaceFragment 1232 bytes\nCadEdgeVertex 5156 bytes\nCadEdgeFragment 1256 bytes\nMatCapSurfaceVertex 1792 bytes\nMatCapSurfaceFragment 2160 bytes\nPreviewPbrSurfaceVertex 3572 bytes\nPreviewPbrSurfaceFragment 17772 bytes\nMaterialSurfaceVertex 8624 bytes\nMaterialSurfaceFragment 52636 bytes\n",
+      "stderr": ""
+    },
+    "SurfaceGeometryValidation_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-missing-field-initializers",
+        "Exhibits/Renderer/Code/SurfaceGeometryValidation.cpp",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SurfaceGeometryValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "SurfaceGeometryValidation": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SurfaceGeometryValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: 40 geometry and dormant lifecycle assertions\n",
+      "stderr": ""
+    },
+    "SurfaceRasterizationValidation_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-missing-field-initializers",
+        "Exhibits/Renderer/Code/SurfaceRasterizationValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SurfaceRasterizationValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "SurfaceRasterizationValidation": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SurfaceRasterizationValidation",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Results"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: Vulkan CAD pixels, perspective, resident uploads, thumbnail, hidden edges; device SwiftShader Device (Subzero)\n",
+      "stderr": ""
+    },
+    "MatCapRasterizationValidation_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-missing-field-initializers",
+        "Exhibits/Renderer/Code/MatCapRasterizationValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/MatCapRasterizationValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "MatCapRasterizationValidation": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/MatCapRasterizationValidation",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Results"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: MatCap Vulkan lookup, normal transforms, mode/texture changes, residency, depth and lifetimes\n",
+      "stderr": ""
+    },
+    "PreviewPbrRasterizationValidation_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-missing-field-initializers",
+        "Exhibits/Renderer/Code/PreviewPbrRasterizationValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/PreviewPbrRasterizationValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "PreviewPbrRasterizationValidation": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/PreviewPbrRasterizationValidation",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Results"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: 58 ordered scattering and Vulkan readback checks\n",
+      "stderr": ""
+    },
+    "MaterialRasterizationValidation_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-missing-field-initializers",
+        "Exhibits/Renderer/Code/MaterialRasterizationValidation.cpp",
+        "Engine/Render/SurfaceMaterial.cpp",
+        "-IExternalPackages/tomlpp/include",
+        "-IExternalPackages/stb",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/MaterialRasterizationValidation"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "MaterialRasterizationValidation": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/MaterialRasterizationValidation",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Results",
+        "/home/user/Frontier/Exhibits/Renderer/Materials"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: 187 authored material, texture pyramid and native Vulkan checks\n",
+      "stderr": ""
+    },
+    "SurfaceGeometryValidation_sanitized_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "Exhibits/Renderer/Code/SurfaceGeometryValidation.cpp",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SurfaceGeometryValidationSanitized"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "SurfaceGeometryValidation_sanitized": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SurfaceGeometryValidationSanitized"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: 40 geometry and dormant lifecycle assertions\n",
+      "stderr": ""
+    },
+    "SurfaceRasterizationValidation_sanitized_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "Exhibits/Renderer/Code/SurfaceRasterizationValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SurfaceRasterizationValidationSanitized"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "SurfaceRasterizationValidation_sanitized": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SurfaceRasterizationValidationSanitized",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SanitizedResults"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: Vulkan CAD pixels, perspective, resident uploads, thumbnail, hidden edges; device SwiftShader Device (Subzero)\n",
+      "stderr": ""
+    },
+    "MatCapRasterizationValidation_sanitized_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "Exhibits/Renderer/Code/MatCapRasterizationValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/MatCapRasterizationValidationSanitized"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "MatCapRasterizationValidation_sanitized": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/MatCapRasterizationValidationSanitized",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SanitizedResults"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: MatCap Vulkan lookup, normal transforms, mode/texture changes, residency, depth and lifetimes\n",
+      "stderr": ""
+    },
+    "PreviewPbrRasterizationValidation_sanitized_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "Exhibits/Renderer/Code/PreviewPbrRasterizationValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/PreviewPbrRasterizationValidationSanitized"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "PreviewPbrRasterizationValidation_sanitized": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/PreviewPbrRasterizationValidationSanitized",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SanitizedResults"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: 58 ordered scattering and Vulkan readback checks\n",
+      "stderr": ""
+    },
+    "MaterialRasterizationValidation_sanitized_build": {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "Exhibits/Renderer/Code/MaterialRasterizationValidation.cpp",
+        "Engine/Render/SurfaceMaterial.cpp",
+        "-IExternalPackages/tomlpp/include",
+        "-IExternalPackages/stb",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/MaterialRasterizationValidationSanitized"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "MaterialRasterizationValidation_sanitized": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/MaterialRasterizationValidationSanitized",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/Shaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SanitizedResults",
+        "/home/user/Frontier/Exhibits/Renderer/Materials"
+      ],
+      "exit_code": 0,
+      "stdout": "PASS: 187 authored material, texture pyramid and native Vulkan checks\n",
+      "stderr": ""
+    },
+    "malformed_archive_refusal": {
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/SurfaceRasterizationValidation",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PreviewPbr/Runtime/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/MalformedShaders",
+        "/home/user/Frontier/_ClaudeScratch/tmp/TextureStudio/RendererRegression/RejectedReadback"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "FAIL: Malformed shader file\n"
+    },
+    "cross_toolchain_version": {
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "ziglang",
+        "version"
+      ],
+      "exit_code": 0,
+      "stdout": "0.13.0\n",
+      "stderr": ""
+    },
+    "SurfaceRasterizationValidation_windows_cross_compile": {
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "ziglang",
+        "c++",
+        "-target",
+        "x86_64-windows-gnu",
+        "-std=c++20",
+        "-O1",
+        "-s",
+        "-static",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Exhibits/Renderer/Code/SurfaceRasterizationValidation.cpp",
+        "-o",
+        "/home/user/Frontier/Binaries/RendererValidation/SurfaceRasterizationValidation.exe"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "MatCapRasterizationValidation_windows_cross_compile": {
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "ziglang",
+        "c++",
+        "-target",
+        "x86_64-windows-gnu",
+        "-std=c++20",
+        "-O1",
+        "-s",
+        "-static",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Exhibits/Renderer/Code/MatCapRasterizationValidation.cpp",
+        "-o",
+        "/home/user/Frontier/Binaries/RendererValidation/MatCapRasterizationValidation.exe"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "PreviewPbrRasterizationValidation_windows_cross_compile": {
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "ziglang",
+        "c++",
+        "-target",
+        "x86_64-windows-gnu",
+        "-std=c++20",
+        "-O1",
+        "-s",
+        "-static",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Exhibits/Renderer/Code/PreviewPbrRasterizationValidation.cpp",
+        "-o",
+        "/home/user/Frontier/Binaries/RendererValidation/PreviewPbrRasterizationValidation.exe"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "MaterialRasterizationValidation_windows_cross_compile": {
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "ziglang",
+        "c++",
+        "-target",
+        "x86_64-windows-gnu",
+        "-std=c++20",
+        "-O1",
+        "-s",
+        "-static",
+        "-DVK_NO_PROTOTYPES",
+        "-I.",
+        "-IExternalPackages/vulkan-headers/include",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Exhibits/Renderer/Code/MaterialRasterizationValidation.cpp",
+        "Engine/Render/SurfaceMaterial.cpp",
+        "-IExternalPackages/tomlpp/include",
+        "-IExternalPackages/stb",
+        "-o",
+        "/home/user/Frontier/Binaries/RendererValidation/MaterialRasterizationValidation.exe"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  }
+}

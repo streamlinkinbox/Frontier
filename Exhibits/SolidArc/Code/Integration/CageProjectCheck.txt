@@ -1,0 +1,47 @@
+frames 3
+expect steps == 26
+expect bodies == 3
+expect curves == 23
+expect refused == 0
+key 6
+key A Ctrl
+frames 2
+expect selected-curves == 23
+expect selected-bodies == 0
+expect selected-spline-spans == 0
+capture Supplied_Cage_Unmodified
+key A Alt
+key Keypad3
+key Keypad5
+frames 3
+click @DrawArc
+frames 2
+expect drawing == Arc
+expect drawing-surface == 0
+expect drawing-plane == 2
+click @ToolCurveSnap
+click @ToolPlaneDepth
+key A Ctrl
+type 0.8
+key Enter
+frames 2
+capture Side_Plane_Wheel_Arc_Setup
+# Explicitly close the small menu after choosing the plane/depth.
+click @DrawingOptions
+frames 2
+click world 0.8 -1.55 0.35
+click world 0.8 -0.85 0.35
+click world 0.8 -1.2 0.75
+frames 3
+expect drawing == 0
+expect steps == 27
+expect curves == 23
+expect bodies == 3
+expect sketches contains Arc
+expect refused == 0
+capture Side_Plane_Analytic_Wheel_Arc
+key Z Ctrl
+frames 3
+expect steps == 26
+expect curves == 23
+expect bodies == 3

@@ -1,0 +1,29 @@
+{
+  "result": "passed",
+  "browser_executed": true,
+  "browser": "HeadlessChrome/133.0.6943.0",
+  "native_initial": {
+    "serial": 53,
+    "revision": 3,
+    "layers": 2
+  },
+  "native_pending": {
+    "serial": 113,
+    "revision": 3,
+    "layers": 3
+  },
+  "native_finished": {
+    "serial": 122,
+    "revision": 4,
+    "layers": 3
+  },
+  "javascript_errors": [],
+  "os_window_created": false,
+  "windows_executed": false,
+  "source_sha256": {
+    "Exhibits/TextureStudio/Code/VerifyNativePatternBrowser.mjs": "98bdbdc686ec84162e8a43fefcd1a4b1e063735e4883dea5347a262de974854e",
+    "Exhibits/TextureStudio/NativePatternStream.html": "04997145c17d4faad8ca1b9e91973a839d2f33c6363d23665a232e05d48cf637",
+    "Exhibits/TextureStudio/Code/ServeNativePattern.py": "69a2526364f2a4b076cc0ef6e6e2b88959bc1ac62416d576e7e9fb69b7ee5c3d",
+    "Exhibits/TextureStudio/Code/PatternWorkspaceValidation.cpp": "816a2c2a5b64623eb65b2ce7f10590d7397f84812b6f261a71c0caf8db50dc4a"
+  }
+}

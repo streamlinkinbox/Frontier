@@ -1,0 +1,132 @@
+# SolidArc extrude-manifold walkthrough — the Windows report "i want to extrude the shape i cant … in blender theres
+# extrude manifold that allows to push in". A closed shape drawn on a body face extrudes with E and the drag direction
+# picks the Boolean (Blender's extrude manifold): into the body cuts a pocket, out of it adds; Q / W / E / R still override,
+# A returns to auto. A flush imprinted face (what an inward Union left behind) pushes in with face E as a prism of its
+# outline cut out of the body when no push can move it (a cap pushed back past its own base).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/ManifoldRecovery.solidarc
+#      --document …/Manifold.solidarc --script Scripts/ExtrudeManifoldWalkthrough.txt
+# Closed forms: cube 2³ = 8 · pentagon (−0.5, −0.5) (0.5, −0.5) (0.5, 0.2) (0, 0.5) (−0.5, 0.2) has A = 0.85, a 0.3 pocket
+# removes 0.255 → 7.745 · triangle (y, z) (−0.4, 0.6) (0.4, 0.6) (0, 1.4) on the +x face has A = 0.32: a 0.4 boss adds
+# 0.128 → 7.873, its cap pushed in 0.9 removes the boss and a 0.5 pocket → 7.585.
+
+snap grid on
+
+# ① a 2 m cube from the Construct menu
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume ~ 8
+
+# ② Shift+A polyline on the top face (fresh, so unfilled), closed on its first point; E reads the material below it
+key A Shift
+frames 2
+move world -0.5 -0.5 2.0
+frames 2
+expect drawing-on-face == 1
+click world -0.5 -0.5 2.0
+frames 2
+click world 0.5 -0.5 2.0
+frames 2
+click world 0.5 0.2 2.0
+frames 2
+click world 0.0 0.5 2.0
+frames 2
+click world -0.5 0.2 2.0
+frames 2
+click world -0.5 -0.5 2.0
+frames 3
+expect drawing == 0
+expect refused == 0
+key E
+frames 2
+expect bevel-verb == 2
+expect bevel-material == -1
+expect bevel-auto == 1
+expect bevel-combination == Union
+click @BevelSize
+key A Ctrl
+type -0.3
+key Enter
+frames 3
+expect bevel-combination == Difference
+expect bevel-auto == 1
+expect bevel-preview-volume ~ 7.745
+capture 303ExtrudeManifoldPocket
+key Enter
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume ~ 7.745
+expect faces == 12
+expect sound == 1
+
+# ③ a triangle on the +x face, filled, E dragged out 0.4 (auto Union: a boss); then its cap picked in mode 3 and face E
+#    −0.9 — past the boss base, so no push can do it: the cap's outline prism is cut, the boss gone and a 0.5 pocket behind
+key A Shift
+frames 2
+move world 1.0 -0.4 0.6
+frames 2
+click world 1.0 -0.4 0.6
+frames 2
+click world 1.0 0.4 0.6
+frames 2
+click world 1.0 0.0 1.4
+frames 2
+click world 1.0 -0.4 0.6
+frames 3
+expect drawing == 0
+key F
+frames 2
+key E
+frames 2
+expect bevel-material == -1
+expect bevel-auto == 1
+click @BevelSize
+key A Ctrl
+type 0.4
+key Enter
+frames 3
+expect bevel-combination == Union
+key Enter
+frames 3
+expect refused == 0
+expect volume ~ 7.873
+expect faces == 16
+key 3
+frames 2
+click world 1.4 0.0 0.85
+frames 2
+expect selected-faces == 1
+key E
+frames 2
+expect bevel-verb == 1
+click @BevelSize
+key A Ctrl
+type -0.9
+key Enter
+frames 3
+expect bevel-preview-volume ~ 7.585
+capture 304ExtrudeManifoldFacePush
+key Enter
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume ~ 7.585
+expect sound == 1

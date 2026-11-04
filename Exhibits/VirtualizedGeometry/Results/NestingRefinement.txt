@@ -1,0 +1,241 @@
+# NestingRefinementMeasure 2 (Exhibits/VirtualizedGeometry/Code/NestingRefinementMeasure.cpp), 2026-11-02, 2-core Linux host.
+# Percentages are of the source bounding-box diagonal; deviation is two-sided, sampled at vertices and edge midpoints.
+
+## SphereSubdivision4 (5120 facets)
+
+### Demo — 7 tiers, coarsest 80 triangles in 1 clusters; build 65 ms serial, 52 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 2.090 | 0.129 | 16.16x |
+| 2 | 1280 | 2 | 5.715 | 0.468 | 12.21x |
+| 3 | 640 | 0 | 8.406 | 0.468 | 17.94x |
+| 4 | 320 | 0 | 12.201 | 0.615 | 19.82x |
+| 5 | 160 | 0 | 17.750 | 0.987 | 17.98x |
+| 6 | 80 | 0 | 26.448 | 1.705 | 15.51x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→5120 6.0→5120 12.0→5120 24.0→3132 48.0→2558 96.0→1280 192.0→640
+
+### I3 measured deviation — 7 tiers, coarsest 80 triangles in 1 clusters; build 407 ms serial, 306 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 0.129 | 0.129 | 1.000x |
+| 2 | 1280 | 2 | 1.208 | 0.468 | 2.581x |
+| 3 | 640 | 0 | 1.209 | 0.468 | 2.579x |
+| 4 | 320 | 0 | 1.209 | 0.615 | 1.964x |
+| 5 | 160 | 0 | 1.209 | 0.987 | 1.225x |
+| 6 | 80 | 0 | 1.705 | 1.705 | 1.000x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→3132 6.0→1886 12.0→1886 24.0→160 48.0→80 96.0→80 192.0→80
+
+### I4 needle guard — 7 tiers, coarsest 78 triangles in 1 clusters; build 88 ms serial, 60 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 2.071 | 0.129 | 16.01x |
+| 2 | 1278 | 0 | 5.026 | 0.305 | 16.46x |
+| 3 | 638 | 0 | 8.136 | 0.316 | 25.73x |
+| 4 | 318 | 0 | 12.138 | 0.494 | 24.57x |
+| 5 | 158 | 0 | 17.610 | 0.972 | 18.12x |
+| 6 | 78 | 0 | 26.675 | 1.936 | 13.77x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→5120 6.0→5120 12.0→5120 24.0→3132 48.0→2558 96.0→1278 192.0→638
+
+### I5 class borders — 7 tiers, coarsest 80 triangles in 1 clusters; build 67 ms serial, 50 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 2.090 | 0.129 | 16.16x |
+| 2 | 1280 | 2 | 5.715 | 0.468 | 12.21x |
+| 3 | 640 | 0 | 8.406 | 0.468 | 17.94x |
+| 4 | 320 | 0 | 12.201 | 0.615 | 19.82x |
+| 5 | 160 | 0 | 17.750 | 0.987 | 17.98x |
+| 6 | 80 | 0 | 26.448 | 1.705 | 15.51x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→5120 6.0→5120 12.0→5120 24.0→3132 48.0→2558 96.0→1280 192.0→640
+
+### Refined (I3+I4+I5) — 7 tiers, coarsest 78 triangles in 1 clusters; build 425 ms serial, 327 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 0.129 | 0.129 | 1.000x |
+| 2 | 1278 | 0 | 1.260 | 0.305 | 4.129x |
+| 3 | 638 | 0 | 1.261 | 0.316 | 3.987x |
+| 4 | 318 | 0 | 1.261 | 0.494 | 2.553x |
+| 5 | 158 | 0 | 1.261 | 0.972 | 1.298x |
+| 6 | 78 | 0 | 1.936 | 1.936 | 1.000x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→3132 6.0→2558 12.0→1886 24.0→158 48.0→78 96.0→78 192.0→78
+
+## SphereSubdivision4Glass (5120 facets, family 9 transmissive)
+
+### Demo — 5 tiers, coarsest 352 triangles in 25 clusters; build 80 ms serial, 50 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 2.085 | 0.112 | 18.68x |
+| 2 | 1280 | 5 | 5.219 | 0.373 | 14.00x |
+| 3 | 640 | 28 | 9.578 | 0.555 | 17.24x |
+| 4 | 352 | 102 | 49.546 | 20.805 | 2.381x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→5120 6.0→5120 12.0→5120 24.0→3663 48.0→2425 96.0→1280 192.0→638
+
+### I3 measured deviation — 5 tiers, coarsest 352 triangles in 25 clusters; build 433 ms serial, 332 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 0.112 | 0.112 | 1.000x |
+| 2 | 1280 | 5 | 1.140 | 0.373 | 3.057x |
+| 3 | 640 | 28 | 1.140 | 0.555 | 2.053x |
+| 4 | 352 | 102 | 20.805 | 20.805 | 1.000x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→3733 6.0→2558 12.0→2558 24.0→638 48.0→640 96.0→640 192.0→640
+
+### I4 needle guard — 5 tiers, coarsest 352 triangles in 24 clusters; build 89 ms serial, 59 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 1.997 | 0.095 | 20.97x |
+| 2 | 1278 | 7 | 7.327 | 0.607 | 12.07x |
+| 3 | 638 | 13 | 11.722 | 0.724 | 16.19x |
+| 4 | 352 | 82 | 47.044 | 21.115 | 2.228x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→5120 6.0→5120 12.0→5120 24.0→3663 48.0→2430 96.0→1428 192.0→396
+
+### I5 class borders — 7 tiers, coarsest 80 triangles in 3 clusters; build 64 ms serial, 48 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 2.085 | 0.112 | 18.68x |
+| 2 | 1280 | 4 | 5.219 | 0.285 | 18.32x |
+| 3 | 640 | 1 | 8.688 | 0.485 | 17.89x |
+| 4 | 320 | 1 | 13.751 | 0.759 | 18.11x |
+| 5 | 160 | 0 | 21.740 | 2.063 | 10.54x |
+| 6 | 80 | 0 | 31.398 | 3.556 | 8.828x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→5120 6.0→5120 12.0→5120 24.0→3663 48.0→2425 96.0→1280 192.0→640
+
+### Refined (I3+I4+I5) — 7 tiers, coarsest 78 triangles in 3 clusters; build 422 ms serial, 293 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 5120 | 0 | 0.000 | 0.000 | - |
+| 1 | 2558 | 0 | 0.093 | 0.093 | 1.000x |
+| 2 | 1276 | 1 | 0.563 | 0.563 | 1.000x |
+| 3 | 638 | 0 | 0.563 | 0.563 | 1.000x |
+| 4 | 318 | 0 | 0.757 | 0.757 | 1.000x |
+| 5 | 158 | 0 | 1.634 | 1.634 | 1.000x |
+| 6 | 78 | 0 | 3.063 | 3.063 | 1.000x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→5120 3.0→2702 6.0→2558 12.0→543 24.0→318 48.0→158 96.0→78 192.0→78
+
+## HeightfieldCliff64 (8192 facets)
+
+### Demo — 7 tiers, coarsest 254 triangles in 11 clusters; build 97 ms serial, 69 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 8192 | 0 | 0.000 | 0.000 | - |
+| 1 | 4096 | 0 | 1.182 | 0.073 | 16.15x |
+| 2 | 2046 | 56 | 4.030 | 0.175 | 22.96x |
+| 3 | 1022 | 73 | 6.955 | 0.557 | 12.48x |
+| 4 | 526 | 171 | 25.725 | 3.719 | 6.917x |
+| 5 | 262 | 194 | 47.606 | 3.767 | 12.63x |
+| 6 | 254 | 217 | 82.558 | 9.380 | 8.801x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→8192 3.0→8192 6.0→8192 12.0→8192 24.0→8192 48.0→8192 96.0→8192 192.0→8192
+
+### I3 measured deviation — 7 tiers, coarsest 254 triangles in 11 clusters; build 961 ms serial, 778 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 8192 | 0 | 0.000 | 0.000 | - |
+| 1 | 4096 | 0 | 0.073 | 0.073 | 1.000x |
+| 2 | 2046 | 56 | 0.751 | 0.175 | 4.280x |
+| 3 | 1022 | 73 | 0.751 | 0.557 | 1.348x |
+| 4 | 526 | 171 | 3.719 | 3.719 | 1.000x |
+| 5 | 262 | 194 | 3.767 | 3.767 | 1.000x |
+| 6 | 254 | 217 | 9.337 | 9.380 | 0.995x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→8192 3.0→8072 6.0→8072 12.0→8072 24.0→7624 48.0→5120 96.0→4096 192.0→3518
+
+### I4 needle guard — 7 tiers, coarsest 127 triangles in 1 clusters; build 106 ms serial, 78 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 8192 | 0 | 0.000 | 0.000 | - |
+| 1 | 4096 | 0 | 1.328 | 0.071 | 18.58x |
+| 2 | 2047 | 5 | 3.380 | 0.214 | 15.78x |
+| 3 | 1024 | 0 | 6.284 | 0.269 | 23.40x |
+| 4 | 511 | 0 | 10.269 | 0.673 | 15.26x |
+| 5 | 256 | 0 | 15.909 | 0.987 | 16.11x |
+| 6 | 127 | 0 | 24.717 | 1.428 | 17.30x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→8192 3.0→8192 6.0→8192 12.0→8192 24.0→8192 48.0→8192 96.0→8192 192.0→8192
+
+### I5 class borders — 7 tiers, coarsest 254 triangles in 11 clusters; build 86 ms serial, 64 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 8192 | 0 | 0.000 | 0.000 | - |
+| 1 | 4096 | 0 | 1.182 | 0.073 | 16.15x |
+| 2 | 2046 | 56 | 4.030 | 0.175 | 22.96x |
+| 3 | 1022 | 73 | 6.955 | 0.557 | 12.48x |
+| 4 | 526 | 171 | 25.725 | 3.719 | 6.917x |
+| 5 | 262 | 194 | 47.606 | 3.767 | 12.63x |
+| 6 | 254 | 217 | 82.558 | 9.380 | 8.801x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→8192 3.0→8192 6.0→8192 12.0→8192 24.0→8192 48.0→8192 96.0→8192 192.0→8192
+
+### Refined (I3+I4+I5) — 7 tiers, coarsest 127 triangles in 1 clusters; build 630 ms serial, 445 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 8192 | 0 | 0.000 | 0.000 | - |
+| 1 | 4096 | 0 | 0.071 | 0.071 | 1.000x |
+| 2 | 2047 | 5 | 1.080 | 0.214 | 5.043x |
+| 3 | 1024 | 0 | 1.080 | 0.269 | 4.021x |
+| 4 | 511 | 0 | 1.080 | 0.673 | 1.605x |
+| 5 | 256 | 0 | 1.080 | 0.987 | 1.093x |
+| 6 | 127 | 0 | 1.428 | 1.428 | 1.000x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→8192 3.0→8072 6.0→8072 12.0→8072 24.0→8072 48.0→5120 96.0→3582 192.0→2935
+
+## CreasedVessel48 (2976 facets)
+
+### Demo — 6 tiers, coarsest 92 triangles in 1 clusters; build 29 ms serial, 25 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 2976 | 0 | 0.000 | 0.000 | - |
+| 1 | 1496 | 0 | 3.059 | 0.356 | 8.581x |
+| 2 | 748 | 0 | 6.736 | 0.552 | 12.19x |
+| 3 | 374 | 1 | 13.177 | 0.907 | 14.53x |
+| 4 | 186 | 0 | 23.155 | 1.518 | 15.25x |
+| 5 | 92 | 0 | 40.194 | 2.865 | 14.02x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→2976 3.0→2976 6.0→2976 12.0→2976 24.0→2976 48.0→2712 96.0→1496 192.0→748
+
+### I3 measured deviation — 6 tiers, coarsest 92 triangles in 1 clusters; build 134 ms serial, 116 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 2976 | 0 | 0.000 | 0.000 | - |
+| 1 | 1496 | 0 | 0.356 | 0.356 | 1.000x |
+| 2 | 748 | 0 | 0.552 | 0.552 | 1.000x |
+| 3 | 374 | 1 | 0.907 | 0.907 | 1.000x |
+| 4 | 186 | 0 | 1.518 | 1.518 | 1.000x |
+| 5 | 92 | 0 | 2.865 | 2.865 | 1.000x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→2712 3.0→2712 6.0→2712 12.0→1496 24.0→374 48.0→186 96.0→92 192.0→92
+
+### I4 needle guard — 6 tiers, coarsest 92 triangles in 1 clusters; build 43 ms serial, 34 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 2976 | 0 | 0.000 | 0.000 | - |
+| 1 | 1496 | 0 | 3.183 | 0.337 | 9.438x |
+| 2 | 750 | 0 | 14.848 | 0.592 | 25.06x |
+| 3 | 374 | 0 | 21.138 | 0.704 | 30.03x |
+| 4 | 186 | 0 | 32.088 | 1.458 | 22.00x |
+| 5 | 92 | 0 | 47.769 | 2.986 | 15.99x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→2976 3.0→2976 6.0→2976 12.0→2976 24.0→2976 48.0→2712 96.0→1496 192.0→782
+
+### I5 class borders — 6 tiers, coarsest 92 triangles in 1 clusters; build 34 ms serial, 26 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 2976 | 0 | 0.000 | 0.000 | - |
+| 1 | 1496 | 0 | 3.059 | 0.356 | 8.581x |
+| 2 | 748 | 0 | 6.736 | 0.552 | 12.19x |
+| 3 | 374 | 1 | 13.177 | 0.907 | 14.53x |
+| 4 | 186 | 0 | 23.155 | 1.518 | 15.25x |
+| 5 | 92 | 0 | 40.194 | 2.865 | 14.02x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→2976 3.0→2976 6.0→2976 12.0→2976 24.0→2976 48.0→2712 96.0→1496 192.0→748
+
+### Refined (I3+I4+I5) — 6 tiers, coarsest 92 triangles in 1 clusters; build 163 ms serial, 122 ms on 2 threads (bit-identical); validation passed
+| Tier | Triangles | Needles | Claimed error % | Measured deviation % | Claimed / measured |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 2976 | 0 | 0.000 | 0.000 | - |
+| 1 | 1496 | 0 | 0.337 | 0.337 | 1.000x |
+| 2 | 750 | 0 | 2.489 | 0.592 | 4.200x |
+| 3 | 374 | 0 | 2.489 | 0.704 | 3.536x |
+| 4 | 186 | 0 | 2.489 | 1.458 | 1.707x |
+| 5 | 92 | 0 | 2.986 | 2.986 | 1.000x |
+Cut triangles at 1 px (eye distance m → triangles): 1.5→2976 3.0→2580 6.0→2580 12.0→1364 24.0→1364 48.0→782 96.0→92 192.0→92
+
+NestingRefinementMeasure: 0 profile builds failed validation or thread determinism

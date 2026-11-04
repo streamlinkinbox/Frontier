@@ -1,0 +1,22 @@
+{
+  "sdk": "rest",
+  "api": "Shop Builder v2 + Pay Station 4",
+  "notes": "Native C++ client. Official C++ Windows SDK zip is unpublished (coming soon). The public C# zip is unused. No Drive upload, no vendor .lib/.dll, no merchant API key in the game client.",
+  "vendor_repo": "https://github.com/xsolla/xsolla-sdk-windows",
+  "vendor_tag": "v3.1.19",
+  "csharp_release": "https://github.com/xsolla/xsolla-sdk-windows/releases/download/v3.1.19/com.xsolla.sdk-csharp-3.1.19.zip",
+  "cpp_zip": "com.xsolla.sdk-cpp-{version}.zip unpublished",
+  "binaries": "none",
+  "drive_upload_required": false,
+  "client_env": {
+    "XSOLLA_PROJECT_ID": "Publisher Account project id (unsigned). 0/unset = unconfigured.",
+    "XSOLLA_SANDBOX": "1 (default) sandbox Pay Station; 0 live. Live still needs a signed agreement."
+  },
+  "forbidden_on_client": ["XSOLLA_API_KEY", "XSOLLA_MERCHANT_ID", "merchant Basic auth"],
+  "hosts": {
+    "store": "https://store.xsolla.com/api",
+    "pay_station_sandbox": "https://sandbox-secure.xsolla.com/paystation4/",
+    "pay_station_live": "https://secure.xsolla.com/paystation4/"
+  },
+  "files": {}
+}

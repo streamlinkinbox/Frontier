@@ -1,0 +1,63 @@
+Format = 1
+Name = "Bull Grain Saddle Leather"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.17464740365558504, 0.05612849004960009, 0.019382360956935723]
+Roughness = 0.53
+Metallic = 0
+Ior = 1.48
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.17464740365558504, 0.05612849004960009, 0.019382360956935723]
+SheenIntensity = 0.15
+SheenRoughness = 0.55
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/bull-grain-saddle-leather-albedo.png"
+Normal = "Textures/bull-grain-saddle-leather-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "leather"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 19
+grain = 1
+hideVariant = 2
+hideVariation = 0.65
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+sheen = 0.15
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "leather"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 19
+grain = 1
+hideVariant = 2
+hideVariation = 0.65
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+sheen = 0.15
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.18
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.18

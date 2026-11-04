@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+ <!-- Purpose-drawn constellation glyph, readable at outliner sizes. -->
+ <path d="m5 17 5-8 8 6 2-10" stroke="#b8b4e8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/>
+ <path d="m10 4 1.25 3.75L15 9l-3.75 1.25L10 14l-1.25-3.75L5 9l3.75-1.25L10 4Z" fill="#dad5ff"/>
+ <circle cx="5" cy="17" r="1.8" fill="#bcb7ee"/><circle cx="18" cy="15" r="1.6" fill="#cfc9fa"/>
+ <circle cx="20" cy="5" r="1.4" fill="#e3dfff"/><circle cx="13" cy="21" r=".8" fill="#a9a4d8"/>
+</svg>

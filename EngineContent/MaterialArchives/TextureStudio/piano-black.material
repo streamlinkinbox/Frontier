@@ -1,0 +1,78 @@
+Format = 1
+Name = "Piano Black"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.005181516702338386, 0.005605391624202723, 0.007499032043226175]
+Roughness = 0.266
+Metallic = 0
+Ior = 1.55
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/piano-black-albedo.png"
+Orm = "Textures/piano-black-orm.png"
+Normal = "Textures/piano-black-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 180
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.17
+translucency = 0
+depth = 0.3
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 180
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.17
+translucency = 0
+depth = 0.3
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 180
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.17
+translucency = 0
+depth = 0.3
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.07
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.8

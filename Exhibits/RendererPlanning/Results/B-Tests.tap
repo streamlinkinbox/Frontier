@@ -1,0 +1,286 @@
+TAP version 13
+# Subtest: speed FOV smooths to its cap in forward and reverse, with finite bounded shake
+ok 1 - speed FOV smooths to its cap in forward and reverse, with finite bounded shake
+  ---
+  duration_ms: 5.928561
+  type: 'test'
+  ...
+# Subtest: HMI/inspection/free camera and disabled effects retain exact camera geometry
+ok 2 - HMI/inspection/free camera and disabled effects retain exact camera geometry
+  ---
+  duration_ms: 0.680646
+  type: 'test'
+  ...
+# Subtest: overlay schema includes exposure binding 12 and resources use the same schema
+ok 3 - overlay schema includes exposure binding 12 and resources use the same schema
+  ---
+  duration_ms: 0.709794
+  type: 'test'
+  ...
+# Subtest: real Jolt WASM bodies fall, settle, sleep, reset and leave no bodies after cleanup
+ok 4 - real Jolt WASM bodies fall, settle, sleep, reset and leave no bodies after cleanup
+  ---
+  duration_ms: 150.406941
+  type: 'test'
+  ...
+# Subtest: Jolt static colliders prevent fast loose-body wall tunnelling and can be rebuilt
+ok 5 - Jolt static colliders prevent fast loose-body wall tunnelling and can be rebuilt
+  ---
+  duration_ms: 3.656412
+  type: 'test'
+  ...
+# Subtest: Jolt loose-body collisions exchange impulses with the custom-tyre chassis proxy
+ok 6 - Jolt loose-body collisions exchange impulses with the custom-tyre chassis proxy
+  ---
+  duration_ms: 8.860282
+  type: 'test'
+  ...
+# Subtest: real cone hulls settle and tyre-support impulses wake Jolt bodies
+ok 7 - real cone hulls settle and tyre-support impulses wake Jolt bodies
+  ---
+  duration_ms: 64.428833
+  type: 'test'
+  ...
+# Subtest: LightingSystem manages automotive light modes and roof fixtures correctly
+ok 8 - LightingSystem manages automotive light modes and roof fixtures correctly
+  ---
+  duration_ms: 0.719084
+  type: 'test'
+  ...
+# Subtest: LightingSystem packs street lamps and automotive headlights without buffer overflow
+ok 9 - LightingSystem packs street lamps and automotive headlights without buffer overflow
+  ---
+  duration_ms: 2.811908
+  type: 'test'
+  ...
+# Subtest: Roof fixture polygon generation produces valid geometry for SlimLED and RallyPod
+ok 10 - Roof fixture polygon generation produces valid geometry for SlimLED and RallyPod
+  ---
+  duration_ms: 0.90355
+  type: 'test'
+  ...
+# Subtest: Fresnel F0 follows the index of refraction and the glass record carries it
+ok 11 - Fresnel F0 follows the index of refraction and the glass record carries it
+  ---
+  duration_ms: 1.259681
+  type: 'test'
+  ...
+# Subtest: material records are 64 bytes with the index of refraction at scalar 12
+ok 12 - material records are 64 bytes with the index of refraction at scalar 12
+  ---
+  duration_ms: 0.742195
+  type: 'test'
+  ...
+# Subtest: the reflection test row is metal or glass where it should be
+ok 13 - the reflection test row is metal or glass where it should be
+  ---
+  duration_ms: 0.185087
+  type: 'test'
+  ...
+# Subtest: sphere facets are outward-wound and lie on the sphere, with the pole triangles dropped
+ok 14 - sphere facets are outward-wound and lie on the sphere, with the pole triangles dropped
+  ---
+  duration_ms: 3.481675
+  type: 'test'
+  ...
+# Subtest: either brightness control at zero turns the display black; no baked canvas dimming
+ok 15 - either brightness control at zero turns the display black; no baked canvas dimming
+  ---
+  duration_ms: 1.228067
+  type: 'test'
+  ...
+# Subtest: exposure-compensated screen colours survive the final ACES fit without washing out
+ok 16 - exposure-compensated screen colours survive the final ACES fit without washing out
+  ---
+  duration_ms: 0.346088
+  type: 'test'
+  ...
+# Subtest: Slate wheel, integrated hexagon and tablet retain the requested poses and sizes
+ok 17 - Slate wheel, integrated hexagon and tablet retain the requested poses and sizes
+  ---
+  duration_ms: 25.97053
+  type: 'test'
+  ...
+# Subtest: HUD size/offset changes cannot move the physical cockpit or seated camera
+ok 18 - HUD size/offset changes cannot move the physical cockpit or seated camera
+  ---
+  duration_ms: 0.758159
+  type: 'test'
+  ...
+# Subtest: touch ray uses the new Slate tablet plane and rejects off-tablet rays
+ok 19 - touch ray uses the new Slate tablet plane and rejects off-tablet rays
+  ---
+  duration_ms: 0.413461
+  type: 'test'
+  ...
+# Subtest: reference tyre source emits patch and arch smoke with rearward momentum, then releases
+ok 20 - reference tyre source emits patch and arch smoke with rearward momentum, then releases
+  ---
+  duration_ms: 1.905541
+  type: 'test'
+  ...
+# Subtest: reference plume fades and retires with no source; disabled clears residency
+ok 21 - reference plume fades and retires with no source; disabled clears residency
+  ---
+  duration_ms: 0.225053
+  type: 'test'
+  ...
+# Subtest: Garage ray picking rejects background and resolves the actual nearest material
+ok 22 - Garage ray picking rejects background and resolves the actual nearest material
+  ---
+  duration_ms: 1.108465
+  type: 'test'
+  ...
+# Subtest: seeded mixture produces mostly fine filings, some streaks and rare chips with distinct properties
+ok 23 - seeded mixture produces mostly fine filings, some streaks and rare chips with distinct properties
+  ---
+  duration_ms: 29.372235
+  type: 'test'
+  ...
+# Subtest: contact pulses vary density, stay bounded, expire and reset safely
+ok 24 - contact pulses vary density, stay bounded, expire and reset safely
+  ---
+  duration_ms: 11.313366
+  type: 'test'
+  ...
+# Subtest: variation slider neutralizes added class properties; varied particles still cool and retire
+ok 25 - variation slider neutralizes added class properties; varied particles still cool and retire
+  ---
+  duration_ms: 81.351375
+  type: 'test'
+  ...
+# Subtest: spark intensity modulation is stable at fixed age and fades before lifetime cutoff
+ok 26 - spark intensity modulation is stable at fixed age and fades before lifetime cutoff
+  ---
+  duration_ms: 0.171097
+  type: 'test'
+  ...
+# Subtest: paint and rim records update the shared world material buffer only
+ok 27 - paint and rim records update the shared world material buffer only
+  ---
+  duration_ms: 2.212008
+  type: 'test'
+  ...
+# Subtest: Garage controls apply materials and cycle all inspection modes
+ok 28 - Garage controls apply materials and cycle all inspection modes
+  ---
+  duration_ms: 12.519204
+  type: 'test'
+  ...
+# Subtest: material drags only apply on the matching picked car surface and cancel safely
+ok 29 - material drags only apply on the matching picked car surface and cancel safely
+  ---
+  duration_ms: 0.699627
+  type: 'test'
+  ...
+# Subtest: blue emissive rim and matte finishes can be dragged onto their matching surfaces
+ok 30 - blue emissive rim and matte finishes can be dragged onto their matching surfaces
+  ---
+  duration_ms: 1.453356
+  type: 'test'
+  ...
+# Subtest: rim finish changes affect selected accent faces, never the black rim base or tyre
+ok 31 - rim finish changes affect selected accent faces, never the black rim base or tyre
+  ---
+  duration_ms: 0.406478
+  type: 'test'
+  ...
+# Subtest: swept sparks hit a thin wall, ground, ramp and convex debris without endpoint overlap
+ok 32 - swept sparks hit a thin wall, ground, ramp and convex debris without endpoint overlap
+  ---
+  duration_ms: 3.084537
+  type: 'test'
+  ...
+# Subtest: spark integration bounces, cools monotonically, retires particles and clears GPU draw count
+ok 33 - spark integration bounces, cools monotonically, retires particles and clears GPU draw count
+  ---
+  duration_ms: 3.092395
+  type: 'test'
+  ...
+# Subtest: shredded wheels write rim channels only; transitions reset trails; debris and disabled marks lay nothing
+ok 34 - shredded wheels write rim channels only; transitions reset trails; debris and disabled marks lay nothing
+  ---
+  duration_ms: 1.435931
+  type: 'test'
+  ...
+# Subtest: vehicle record preserves cabin articulation, wheel damage and volumetric deformation; every raster path shares it
+ok 35 - vehicle record preserves cabin articulation, wheel damage and volumetric deformation; every raster path shares it
+  ---
+  duration_ms: 0.651029
+  type: 'test'
+  ...
+# Subtest: countersteer is symmetric, bounded, optional and yields to manual input; reverse/airborne restore manual control
+ok 36 - countersteer is symmetric, bounded, optional and yields to manual input; reverse/airborne restore manual control
+  ---
+  duration_ms: 0.734722
+  type: 'test'
+  ...
+# Subtest: assisted left/right slide recovery stays grounded, finite and symmetric on the flat pad
+ok 37 - assisted left/right slide recovery stays grounded, finite and symmetric on the flat pad
+  ---
+  duration_ms: 618.484327
+  type: 'test'
+  ...
+# Subtest: independent orbit preserves user angles across repeated frames and vehicle translation
+ok 38 - independent orbit preserves user angles across repeated frames and vehicle translation
+  ---
+  duration_ms: 4.002687
+  type: 'test'
+  ...
+# Subtest: orbit permits repeated full yaw rotations while zoom and pitch remain safe
+ok 39 - orbit permits repeated full yaw rotations while zoom and pitch remain safe
+  ---
+  duration_ms: 0.242362
+  type: 'test'
+  ...
+# Subtest: volumetric tyre deformation encodes physical contact angle, deflection, and pressure
+ok 40 - volumetric tyre deformation encodes physical contact angle, deflection, and pressure
+  ---
+  duration_ms: 77.59045
+  type: 'test'
+  ...
+# Subtest: volumetric tyre deformation responds to inflation pressure and deflation/flat tyres
+ok 41 - volumetric tyre deformation responds to inflation pressure and deflation/flat tyres
+  ---
+  duration_ms: 0.257263
+  type: 'test'
+  ...
+# Subtest: volumetric tyre deformation handles cornering lateral distortion and steer rotation
+ok 42 - volumetric tyre deformation handles cornering lateral distortion and steer rotation
+  ---
+  duration_ms: 0.192423
+  type: 'test'
+  ...
+# Subtest: shredding keeps the complete metal rim on both sides, not just its small hub
+ok 43 - shredding keeps the complete metal rim on both sides, not just its small hub
+  ---
+  duration_ms: 39.063333
+  type: 'test'
+  ...
+# Subtest: tablet scale matches touch edges, leaves cluster/driver fixed, and is encoded for every render path
+ok 44 - tablet scale matches touch edges, leaves cluster/driver fixed, and is encoded for every render path
+  ---
+  duration_ms: 0.895174
+  type: 'test'
+  ...
+# Subtest: HMI focus faces the screen and fits it in portrait and landscape viewports
+ok 45 - HMI focus faces the screen and fits it in portrait and landscape viewports
+  ---
+  duration_ms: 0.246734
+  type: 'test'
+  ...
+# Subtest: sparks have bounded subpixel/thin footprints instead of unbounded near-camera dots
+ok 46 - sparks have bounded subpixel/thin footprints instead of unbounded near-camera dots
+  ---
+  duration_ms: 0.296821
+  type: 'test'
+  ...
+1..46
+# tests 46
+# suites 0
+# pass 46
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1953.021239

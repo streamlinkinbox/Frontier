@@ -1,0 +1,8 @@
+frames 4
+capture Specimen
+click @Figure:Extrude#2
+frames 3
+capture BodyPicked
+click @ConstructLauncher
+frames 3
+capture ConstructMenu

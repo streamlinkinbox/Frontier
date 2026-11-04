@@ -1,0 +1,10 @@
+Device	SwiftShader Device (Subzero)
+Fog wind reversal	Expected > 0.00001	0.00131972
+Fog stopped velocity	Expected < 0.000001	0
+Fog heterogeneous density	Expected > 0.00001	0.000468153
+Fog Force Field reversal	Expected > 0.00001	0.00114368
+Cloud Force Field reversal	Expected > 0.00001	0.00102684
+Cloud 32 to 128 mean RGB error	1.96025e-06
+Cloud 64 to 128 mean RGB error	1.03712e-06
+Cloud 25 percent trace extent	64 x 40	64 x 40
+Backlit heterogeneous fog	0.0364023

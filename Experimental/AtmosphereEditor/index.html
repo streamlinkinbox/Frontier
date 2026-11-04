@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-theme="oled" data-accent="blue" data-font="general-sans">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#000000">
+    <title>Atmosphere &amp; Cluster Detail — Frontier</title>
+    <link rel="stylesheet" href="AtmosphereEditor.css?v=6">
+    <script src="AtmosphereEditor.js?v=6" defer></script>
+    <script src="GeometryDetail.js?v=6" defer></script>
+    <script src="VisualControls.js?v=6" defer></script>
+</head>
+<body>
+    <main class="workspace">
+        <header class="masthead">
+            <div class="identity">
+                <span class="mark" aria-hidden="true"><i></i><i></i></span>
+                <span class="category"><span class="status-dot"></span> Environment <b>/</b> <span id="CurrentEditorName" aria-live="polite">Atmosphere</span></span>
+            </div>
+            <div id="AtmosphereViews" class="top-navigation" aria-label="Atmosphere preview views">
+                <button class="view-button selected" data-view="orbit" aria-pressed="true">Orbital view</button>
+                <button class="view-button" data-view="surface" aria-pressed="false">Surface view</button>
+            </div>
+            <div id="GeometryViews" class="top-navigation" aria-label="Geometry preview views" hidden>
+                <button class="geometry-view-button selected" data-style="shaded" aria-pressed="true">Shaded</button>
+                <button class="geometry-view-button" data-style="topology" aria-pressed="false">Topology</button>
+            </div>
+            <div class="theme-bar" aria-label="ThemeStructure tokens">
+                <select id="ThemePicker" aria-label="Editor surface theme">
+                    <option value="oled" selected>OLED</option>
+                    <option value="dark">Dark</option>
+                    <option value="dim">Dim</option>
+                    <option value="light">Light</option>
+                    <option value="sepia">Sepia</option>
+                    <option value="dracula">Dracula</option>
+                    <option value="nord">Nord</option>
+                    <option value="github">GitHub</option>
+                </select>
+                <select id="AccentPicker" aria-label="Editor accent swatch">
+                    <option value="blue" selected>Blue</option>
+                    <option value="cyan">Cyan</option>
+                    <option value="amber">Amber</option>
+                    <option value="orange">Orange</option>
+                    <option value="violet">Violet</option>
+                    <option value="rose">Rose</option>
+                    <option value="white">White</option>
+                </select>
+                <select id="FontPicker" aria-label="Editor font family">
+                    <option value="general-sans" selected>General Sans</option>
+                    <option value="dm-sans">DM Sans</option>
+                </select>
+            </div>
+        </header>
+
+        <section id="AtmosphereViewport" class="viewport" data-view="orbit" aria-label="Live atmosphere preview">
+            <canvas id="AtmosphereCanvas" aria-label="Simulated atmosphere around a planet"></canvas>
+            <div class="viewport-shade" aria-hidden="true"></div>
+            <div class="intro">
+                <p class="eyebrow"><span class="status-dot"></span> ENVIRONMENT <span class="dash">/</span> 01</p>
+                <h1>Atmosphere<span>.</span></h1>
+                <p class="intro-copy">The space between<br>ground and sky.</p>
+                <div class="intro-rule"></div>
+                <p class="intro-note">Shape the light that surrounds<br>your world.</p>
+            </div>
+
+            <div class="annotation annotation-top" aria-hidden="true"><span class="crosshair">+</span><span>ATMOSPHERIC<br>BOUNDARY</span></div>
+            <div class="annotation annotation-bottom" aria-hidden="true"><span class="crosshair">+</span><span>RAYLEIGH / MIE<br>SCATTERING</span></div>
+            <div class="orbit-readout" aria-hidden="true"><span class="tiny-ring"></span> <span id="ViewDescription">ORBITAL PERSPECTIVE</span></div>
+            <div id="RenderNotice" class="render-notice" role="status" hidden></div>
+            <div class="bottom-rail">
+                <div class="rail-label"><span class="status-dot"></span><span id="ViewHint">DRAG TO ORBIT</span></div>
+                <div class="rail-line"><span></span></div>
+                <div class="rail-detail">SINGLE SCATTERING <span>/</span> 24 × 8 SAMPLES <span>·</span> <span id="LimbReadout">RIM ENHANCED</span></div>
+            </div>
+        </section>
+
+        <aside id="AtmosphereCard" class="atmosphere-card" aria-label="Atmosphere controls">
+            <div class="card-topline">
+                <div class="card-caption"><span class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M4.5 12h15M12 4.5c2.6 2.6 2.6 12.4 0 15M12 4.5c-2.6 2.6-2.6 12.4 0 15"/></svg></span><span>ENVIRONMENT <span class="caption-divider">/</span> 01</span></div>
+                <div class="card-pagination" aria-label="Editor 1 of 2"><button type="button" data-editor="geometry" aria-label="Previous editor: Geometry detail"><svg viewBox="0 0 20 20"><path d="m12 5-5 5 5 5"/></svg></button><span>01 / 02</span><button type="button" data-editor="geometry" aria-label="Next editor: Geometry detail"><svg viewBox="0 0 20 20"><path d="m8 5 5 5-5 5"/></svg></button></div>
+            </div>
+            <div class="card-title-row">
+                <div><h2>Atmosphere</h2><p>Planetary scattering</p></div>
+                <label class="switch" title="Enable atmosphere"><input id="AtmosphereEnabled" type="checkbox" checked aria-label="Enable atmosphere"><span></span></label>
+            </div>
+            <div class="card-separator"></div>
+            <label class="profile-select" for="PlanetPreset"><span>PLANET PROFILE</span><select id="PlanetPreset" aria-label="Planet profile"><option value="Earth">Earth</option><option value="Mars">Mars</option><option value="Venus">Venus</option></select></label>
+            <div class="density-instrument" aria-label="Atmosphere density profile">
+                <div class="density-copy"><span>ATMOSPHERE / DENSITY</span><strong id="HeightReadout">8.0 <small>km</small></strong><em>molecular scale height</em></div>
+                <svg class="density-plot" viewBox="0 0 120 72" aria-hidden="true"><path class="plot-grid" d="M10 12H112M10 36H112M10 60H112"/><path id="DensityArea" class="plot-area" d=""/><path id="DensityCurve" class="plot-curve" d=""/><circle id="DensityMarker" r="2.5"/></svg>
+            </div>
+            <div class="section-heading"><span>LIGHT &amp; DENSITY</span><span class="section-index">01 — 05</span></div>
+            <div class="control-list">
+                <label class="parameter" for="SunElevation"><span class="parameter-heading"><span>Sun elevation <small>Angle of incoming light</small></span><output id="SunElevationReadout">18<span>°</span></output></span><input id="SunElevation" type="range" min="-12" max="90" step="1" value="18"></label>
+                <label class="parameter" for="Rayleigh"><span class="parameter-heading"><span>Air molecules <small>Rayleigh scattering</small></span><output id="RayleighReadout">1.00<span>×</span></output></span><input id="Rayleigh" type="range" min="0" max="3" step="0.01" value="1"></label>
+                <label class="parameter" for="Mie"><span class="parameter-heading"><span>Aerosols <small>Mie scattering</small></span><output id="MieReadout">1.00<span>×</span></output></span><input id="Mie" type="range" min="0" max="5" step="0.01" value="1"></label>
+                <label class="parameter" for="Ozone"><span class="parameter-heading"><span>Ozone <small>Light absorption</small></span><output id="OzoneReadout">1.00<span>×</span></output></span><input id="Ozone" type="range" min="0" max="3" step="0.01" value="1"></label>
+                <label class="parameter" for="Exposure"><span class="parameter-heading"><span>Exposure <small>Preview brightness</small></span><output id="ExposureReadout">1.00<span>×</span></output></span><input id="Exposure" type="range" min="0.2" max="3" step="0.01" value="1"></label>
+            </div>
+            <div class="cloud-heading"><div><strong>Cloud layer</strong><small>Procedural baked map</small></div><label class="switch" title="Enable cloud layer"><input id="CloudsEnabled" type="checkbox" checked aria-label="Enable cloud layer"><span></span></label></div>
+            <label class="parameter cloud-coverage" for="CloudCoverage"><span class="parameter-heading"><span>Cloud coverage <small>Static, low-cost approximation</small></span><output id="CloudCoverageReadout">55<span>%</span></output></span><input id="CloudCoverage" type="range" min="0" max="100" step="1" value="55"></label>
+            <div class="limb-heading"><div><strong>Atmosphere rim</strong><small>Emphasise scattered light at the limb</small></div><label class="switch" title="Emphasise atmosphere rim"><input id="LimbEnabled" type="checkbox" checked aria-label="Emphasise atmosphere rim"><span></span></label></div>
+            <div class="card-footer">
+                <span><span class="status-dot"></span> <span id="PlanetReadout">EARTH</span> / THEME BOUND</span>
+                <button id="ResetAtmosphere" type="button">Reset <span aria-hidden="true">↗</span></button>
+            </div>
+        </aside>
+
+        <section id="GeometryViewport" class="viewport geometry-viewport" aria-label="Live geometry detail preview" hidden>
+            <canvas id="GeometryCanvas" aria-label="Interactive geometry detail preview"></canvas>
+            <div class="viewport-shade" aria-hidden="true"></div>
+            <div class="intro geometry-intro">
+                <p class="eyebrow"><span class="status-dot"></span> GEOMETRY <span class="dash">/</span> 02</p>
+                <h1>Geometry<br>detail<span>.</span></h1>
+                <p class="intro-copy">Detail where<br>it matters.</p>
+                <div class="intro-rule"></div>
+                <p class="intro-note">Cluster-DAG quality curve,<br>RAM/VRAM pages &amp; material tiers.</p>
+            </div>
+            <div class="geometry-annotation" aria-hidden="true"><span class="crosshair">+</span><span>CLUSTER CUT<br>DISTANCE / DETAIL</span></div>
+            <div class="geometry-viewport-readout"><span class="tiny-ring"></span><span id="GeometryPreviewReadout">LIVE PREVIEW</span></div>
+            <div id="GeometryNotice" class="render-notice" role="status" hidden></div>
+            <div class="bottom-rail"><div class="rail-label"><span class="status-dot"></span><span>DRAG TO ORBIT</span></div><div class="rail-line"><span></span></div><div class="rail-detail">64 KB CLUSTER PAGES <span>/</span> 3-TIER MATERIALS</div></div>
+        </section>
+
+        <aside id="GeometryCard" class="atmosphere-card geometry-card" aria-label="Geometry detail controls" hidden>
+            <div class="card-topline">
+                <div class="card-caption"><span class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 3.5 8v8L12 21l8.5-5V8L12 3Zm-8.5 5L12 13l8.5-5M12 13v8"/></svg></span><span>GEOMETRY <span class="caption-divider">/</span> 02</span></div>
+                <div class="card-pagination" aria-label="Editor 2 of 2"><button type="button" data-editor="atmosphere" aria-label="Previous editor: Atmosphere"><svg viewBox="0 0 20 20"><path d="m12 5-5 5 5 5"/></svg></button><span>02 / 02</span><button type="button" data-editor="atmosphere" aria-label="Next editor: Atmosphere"><svg viewBox="0 0 20 20"><path d="m8 5 5 5-5 5"/></svg></button></div>
+            </div>
+            <div class="card-title-row"><div><h2>Geometry detail</h2><p>Cluster-DAG &amp; material tiers</p></div><span class="card-live"><span class="status-dot"></span> LIVE</span></div>
+            <div class="card-separator"></div>
+            <div class="geometry-instrument" aria-label="Current triangle count, RAM/VRAM pages, and distance quality curve">
+                <div class="geometry-metrics"><div><span>DRAWN TRIANGLES</span><strong id="GeometryTriangles">—</strong><small id="GeometryPercent">—</small></div><div class="metric-distance"><span>VIEW DISTANCE</span><strong id="GeometryDistanceMetric">—</strong><small>simulated metres</small></div></div>
+                <div class="memory-telemetry-strip">
+                    <div><span>HOST RAM</span><strong id="GeometryRamBytes">—</strong></div>
+                    <div><span>RESIDENT VRAM</span><strong id="GeometryVramBytes">—</strong></div>
+                    <div><span>MATERIAL TIER</span><strong id="GeometryMaterialTier">—</strong></div>
+                </div>
+                <div class="curve-heading"><span>DETAIL RETENTION</span><span>NEAR → FAR</span></div>
+                <svg class="quality-plot" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"><path class="plot-grid" d="M0 12H300M0 39H300M0 66H300"/><path id="GeometryArea" class="plot-area"/><path id="GeometryCurve" class="plot-curve"/><line id="GeometryMarkerLine" y1="9" y2="72"/><circle id="GeometryMarker" r="4"/></svg>
+                <div class="curve-labels"><span>0 m</span><span id="GeometryFarLabel">150 m</span></div>
+            </div>
+            <div class="section-heading"><span>DISTANCE &amp; TRIANGLES</span><span class="section-index">01 — 05</span></div>
+            <div class="control-list">
+                <label class="parameter" for="GeometryDistance"><span class="parameter-heading"><span>Preview distance <small>Virtual camera position</small></span><output id="GeometryDistanceReadout">—</output></span><input id="GeometryDistance" type="range" min="2" max="150" step="1" value="35"></label>
+                <label class="parameter" for="GeometryNear"><span class="parameter-heading"><span>Near distance <small>Full detail until this distance</small></span><output id="GeometryNearReadout">—</output></span><input id="GeometryNear" type="range" min="2" max="100" step="1" value="15"></label>
+                <label class="parameter" for="GeometryFar"><span class="parameter-heading"><span>Far distance <small>Reduced detail beyond this point</small></span><output id="GeometryFarReadout">—</output></span><input id="GeometryFar" type="range" min="3" max="150" step="1" value="100"></label>
+                <label class="parameter" for="GeometryRetention"><span class="parameter-heading"><span>Far detail <small>Target triangle retention</small></span><output id="GeometryRetentionReadout">—</output></span><input id="GeometryRetention" type="range" min="2" max="100" step="1" value="12"></label>
+                <label class="parameter" for="GeometryCurvePower"><span class="parameter-heading"><span>Falloff curve <small>Shape of the transition</small></span><output id="GeometryCurvePowerReadout">—</output></span><input id="GeometryCurvePower" type="range" min="0.5" max="3" step="0.05" value="1.5"></label>
+            </div>
+            <div class="section-heading geometry-material-head"><span>VIRTUALIZED MATERIAL TIER</span><span class="section-index">3 TIERS</span></div>
+            <label class="parameter" for="GeometryMaterial"><span class="parameter-heading"><span>Material quality <small>FullStrata → Toksvig → Proxy</small></span><output id="GeometryMaterialReadout">—</output></span><input id="GeometryMaterial" type="range" min="0" max="100" step="1" value="80"></label>
+            <p class="geometry-note">Colors, backgrounds, borders, and fonts follow Frontier ThemeStructure tokens with zero hardcoded green.</p>
+            <div class="card-footer"><span><span class="status-dot"></span> CLUSTER-DAG / THEME BOUND</span><button id="ResetGeometry" type="button">Reset <span aria-hidden="true">↗</span></button></div>
+        </aside>
+
+        <div class="workspace-footer"><span>FRONTIER <b>/</b> ENVIRONMENT</span><span id="FooterEditorName">ATMOSPHERE EDITOR <b>·</b> THEME BOUND</span></div>
+    </main>
+</body>
+</html>

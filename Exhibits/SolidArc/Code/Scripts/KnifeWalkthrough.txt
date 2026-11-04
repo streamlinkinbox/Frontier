@@ -1,0 +1,820 @@
+# SolidArc knife walkthrough (Shift+K, Blender KitOps style) — a shape drawn on a face is filled and cut into the body to
+# a typed depth or straight through; a library insert (boolean library) follows the faces, is placed, sized and cut,
+# added as a boss (Q), or left as a body of its own (R); picked bodies cut each other with the cutters kept (K).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/KnifeRecovery.solidarc --document …/Knife.solidarc
+#      --inserts …/KnifeInserts --script Scripts/KnifeWalkthrough.txt
+# Closed forms (2 m cube, z 0 … 2): circle r 0.3 cut 0.5 deep = 0.045π · rectangle 0.4 × 0.4 through 2 m = 0.32 ·
+# square pocket insert of width 0.4 (depth 0.3 widths) = 0.4² × 0.12 = 0.0192 · the same insert raised (Q) adds 0.0192 ·
+# a separate insert body (0.35 widths tall) = 0.4² × 0.14 = 0.0224.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① a 2 m cube from the Construct menu
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume ~ 8
+
+# ② Shift+K with nothing focused: the knife starts a circle on the face under the pointer; the finished circle is the
+#    cutter (filled by itself), typed 0.5 is the depth, Enter cuts it into the cube
+key K Shift
+frames 2
+expect knife == 1
+expect knife-pending == 1
+expect knife-mode == Sketch
+move world 0.0 0.0 2.0
+frames 2
+expect face-plane == 1
+click world 0.0 0.0 2.0
+frames 2
+move world 0.3 0.0 2.0
+frames 2
+click world 0.3 0.0 2.0
+frames 3
+expect knife-pending == 0
+expect sketch-filled == 1
+type 0.5
+frames 6
+expect knife-depth ~ 0.5
+expect knife-target == Block1
+expect knife-refusal == 0
+capture 271KnifeSketchStaged
+key Enter
+frames 3
+expect refused == 0
+expect knife == 0
+expect knife-commits == 1
+expect bodies == 1
+expect volume ~ 7.858628330588459
+
+# ③ a rectangle (card) on the −y face, T straight through: a 0.4 × 0.4 window through the 2 m cube
+key K Shift
+frames 2
+click @KnifeDrawRectangle
+frames 2
+move world -0.6 -1.0 0.4
+frames 2
+click world -0.6 -1.0 0.4
+frames 2
+move world -0.2 -1.0 0.8
+frames 2
+click world -0.2 -1.0 0.8
+frames 3
+expect knife-pending == 0
+key T
+frames 6
+expect knife-through == 1
+capture 272KnifeThrough
+key Enter
+frames 3
+expect refused == 0
+expect knife-commits == 2
+expect volume ~ 7.538628330588459
+
+# ④ Insert mode (the boolean library): the square pocket ghost follows the top face, typed 0.4 is its width, a click
+#    places it, ] turns it 15° (a square at 15° still removes 0.0192), Enter cuts
+key K Shift
+frames 2
+click @KnifeModeInsert
+frames 2
+expect knife-mode == Insert
+expect knife-pending == 0
+expect knife-inserts > 6
+expect knife-insert == Square pocket
+move world 0.5 0.5 2.0
+frames 2
+move world 0.5 0.5 2.0
+frames 2
+expect knife-hover == 1
+type 0.4
+frames 2
+expect knife-size ~ 0.4
+click world 0.5 0.5 2.0
+frames 2
+expect knife-placed == 1
+key RightBracket
+frames 6
+expect knife-turn ~ 15
+capture 273KnifeInsertPlaced
+key Enter
+frames 3
+expect refused == 0
+expect knife-commits == 3
+expect bodies == 1
+expect volume ~ 7.519428330588459
+
+# ⑤ Q (Add): the same insert raised out of the +x face is a boss of 0.0192
+key K Shift
+frames 2
+click @KnifeModeInsert
+frames 2
+key Q
+frames 1
+move world 1.0 0.5 1.0
+frames 2
+move world 1.0 0.5 1.0
+frames 2
+expect knife-hover == 1
+type 0.4
+frames 2
+click world 1.0 0.5 1.0
+frames 2
+key Enter
+frames 3
+expect refused == 0
+expect knife-commits == 4
+expect bodies == 1
+expect volume ~ 7.538628330588459
+
+# ⑥ R (Separate): the insert stays a body of its own on the top face (0.0224), then it is saved to the library folder
+key K Shift
+frames 2
+click @KnifeModeInsert
+frames 2
+key R
+frames 1
+move world -0.5 -0.5 2.0
+frames 2
+move world -0.5 -0.5 2.0
+frames 2
+type 0.4
+frames 2
+click world -0.5 -0.5 2.0
+frames 2
+key Enter
+frames 3
+expect refused == 0
+expect knife-commits == 5
+expect bodies == 2
+expect volume ~ 7.561028330588459
+expect selected-bodies contains Import
+key K Shift
+frames 2
+click @KnifeModeInsert
+frames 2
+click @KnifeSaveInsert
+frames 2
+expect knife-inserts > 7
+key Escape
+frames 2
+expect knife == 0
+
+# ⑦ Object mode: pick the cube (its +x face, clear of the gizmo), Shift-pick the insert body, Shift+K, K keeps the cutter, Enter cuts 0.0192 out of the cube
+key 4
+frames 1
+click world 1.0 -0.5 0.6
+frames 2
+click world -0.5 -0.5 2.02 Left Shift
+frames 2
+key K Shift
+frames 2
+expect knife-mode == Object
+key K
+frames 6
+capture 274KnifeObject
+key Enter
+frames 3
+expect refused == 0
+expect knife-commits == 6
+expect bodies == 2
+expect volume ~ 7.541828330588459
+expect sound == 1
+
+# ⑧ the toolbar cutter menu (beside the knife icon): Rectangle opens the knife drawing a rectangle; 0.4 × 0.4 on the top
+#    face (T back to depth: Through is remembered from ③) cut 0.1 deep removes 0.016; the menu remembers it (Shift+K starts a rectangle), Insert / Object switch modes,
+#    Circle brings the default back
+key Escape
+frames 2
+click viewport 0.08 0.15
+frames 2
+click @SketchKnifeTool
+frames 3
+capture 275KnifeToolMenu
+click @KnifeToolRectangle
+frames 3
+expect knife == 1
+expect knife-mode == Sketch
+expect knife-pending == 1
+expect drawing == Rectangle
+move world 0.4 -0.8 2.0
+frames 2
+click world 0.4 -0.8 2.0
+frames 2
+move world 0.8 -0.4 2.0
+frames 2
+click world 0.8 -0.4 2.0
+frames 3
+expect knife-pending == 0
+expect knife-through == 1
+key T
+frames 2
+expect knife-through == 0
+type 0.1
+frames 6
+expect knife-depth ~ 0.1
+key Enter
+frames 3
+expect refused == 0
+expect knife-commits == 7
+expect volume ~ 7.525828330588459
+key K Shift
+frames 2
+expect knife-mode == Sketch
+expect drawing == Rectangle
+click @SketchKnifeTool
+frames 3
+click @KnifeToolInsert0
+frames 3
+expect knife-mode == Insert
+expect knife-insert == Square pocket
+click @SketchKnifeTool
+frames 3
+click @KnifeToolCircle
+frames 3
+expect knife-mode == Sketch
+expect drawing == Circle
+key Escape
+frames 2
+expect knife == 0
+key K Shift
+frames 2
+expect drawing == Circle
+key Escape
+frames 2
+
+# ⑨ drawn as the Construct primitives are: live R / Ø dimension lines while the circle is drawn, then the cutter's
+#    outline at the depth with its Ø and depth dimension lines; the depth follows the pointer along the face normal
+#    (the pointer over (−0.5, 0.5, 1.4) on the axis → depth ≈ 0.6, whole-pixel pointer); Esc leaves the body untouched
+click @SketchKnifeTool
+frames 3
+click @KnifeToolCircle
+frames 3
+move world -0.5 0.5 2.0
+frames 2
+click world -0.5 0.5 2.0
+frames 2
+move world -0.25 0.5 2.0
+frames 2
+expect drawing == Circle
+capture 281KnifeDrawingDimensions
+click world -0.25 0.5 2.0
+frames 3
+expect knife-pending == 0
+expect knife-through == 0
+move world -0.5 0.5 1.7
+frames 2
+move world -0.5 0.5 1.4
+frames 6
+expect knife-depth > 0.55
+expect knife-depth < 0.65
+expect knife-refusal == 0
+capture 282KnifeCutterDimensions
+key Escape
+frames 3
+expect knife == 0
+expect volume ~ 7.525828330588459
+
+# ⑩ a knife line slices: Line from the cutter menu, two clicks across the top face (x −0.9, edge to edge) finish it; an
+#    open chain has no inside, so the knife splits the cube along the sheet the line sweeps through it (one more body,
+#    the volume unchanged); depth / T / the Boolean do not apply, so moving the pointer never restages; Enter adopts
+#    the staged preview; afterwards faces and bodies select and edit as before (a face pick, an Esc, a fillet)
+click @SketchKnifeTool
+frames 3
+click @KnifeToolLine
+frames 3
+expect knife == 1
+expect knife-pending == 1
+expect drawing == Line
+move world -0.9 -0.98 2.0
+frames 2
+click world -0.9 -0.98 2.0
+frames 2
+move world -0.9 0.98 2.0
+frames 2
+click world -0.9 0.98 2.0
+frames 3
+expect knife-pending == 0
+expect knife-slice == 1
+expect knife-refusal == 0
+move world -0.5 0.5 1.4
+frames 6
+expect knife-refusal == 0
+capture 283KnifeLineSlice
+key Enter
+frames 3
+expect refused == 0
+expect knife == 0
+expect knife-commits == 8
+expect bodies == 3
+expect volume ~ 7.525828330588459
+key 3
+frames 1
+click world -0.95 0.0 2.0
+frames 2
+expect selected-faces > 0
+key Escape
+frames 2
+key 4
+frames 1
+click world -0.95 0.0 2.0
+frames 2
+expect selected-bodies > 0
+key Escape
+frames 2
+
+# ⑪ a picked body is the cutter (KitOps cutter object): pick the separate insert body (0.4 × 0.4 × 0.14), Shift+K, it
+#    follows the pointer onto the cube's +x face, Ctrl turns its z onto the face normal (0.14 along x), a right-click
+#    places it, the pointer along the normal pulls it out, typed 0.03 sinks its centre 0.03 in: x 0.90 … 1.04 cuts
+#    0.10 × 0.4 × 0.4 = 0.016 out of the cube and the cutter is used up (0.0224): 7.525828330588459 − 0.0384
+key 4
+frames 1
+click world -0.5 -0.5 2.02
+frames 2
+expect selected-bodies == 1
+key K Shift
+frames 2
+expect knife == 1
+expect knife-mode == Object
+expect knife-placed == 0
+move world 1.0 -0.4 0.5 Ctrl
+frames 3
+expect knife-hover == 1
+expect knife-align == 1
+expect knife-rigid == 1
+expect knife-target == Block1
+capture 285KnifeCutterFollows
+press Right Ctrl
+frames 1
+release Right Ctrl
+frames 2
+expect knife-placed == 1
+expect knife-align == 1
+move world 1.25 -0.4 0.5
+frames 3
+expect knife-sink < -0.1
+type 0.03
+frames 8
+expect knife-sink ~ 0.03
+expect knife-refusal == 0
+capture 286KnifeCutterPlaced
+key Enter
+frames 3
+expect refused == 0
+expect knife == 0
+expect knife-commits == 9
+expect bodies == 2
+expect volume ~ 7.487428330588459
+
+# ⑫ cutter shapes drawn as the Construct solids are: a rectangle by press-drag-release on the top face, then its depth
+#    (typed 0.1), right-click cuts; a circle whose rim is the right-click (centre clicked, the pointer is the rim:
+#    r 0.1, 0.05 deep = 0.0005π); a polygon by press-drag, the wheel down to a pentagon, right-click confirms it
+key Escape
+frames 2
+click @SketchKnifeTool
+frames 3
+click @KnifeToolRectangle
+frames 3
+expect knife-pending == 1
+drag Left world -0.75 0.35 2.0 by 40 -24 6
+frames 3
+expect knife-pending == 0
+expect sketch-filled == 1
+type 0.1
+frames 6
+expect knife-depth ~ 0.1
+click world -0.6 0.5 2.0 Right
+frames 3
+expect refused == 0
+expect knife == 0
+expect knife-commits == 10
+expect volume < 7.487428330588459
+click @SketchKnifeTool
+frames 3
+click @KnifeToolCircle
+frames 3
+click world 0.5 -0.1 2.0
+frames 2
+move world 0.6 -0.1 2.0
+frames 2
+click world 0.6 -0.1 2.0 Right
+frames 3
+expect knife-pending == 0
+type 0.05
+frames 6
+expect knife-depth ~ 0.05
+key Enter
+frames 3
+expect refused == 0
+expect knife-commits == 11
+click @SketchKnifeTool
+frames 3
+click @KnifeToolPolygon
+frames 3
+expect drawing == Polygon
+drag Left world 0.0 0.7 2.0 by 30 0 6
+frames 3
+expect drawing == Polygon
+expect knife-pending == 1
+wheel world 0.0 0.7 2.0 -1
+frames 2
+expect drawing-sides == 5
+capture 287KnifePolygonSides
+click world 0.0 0.7 2.0 Right
+frames 3
+expect knife-pending == 0
+type 0.05
+frames 6
+key Enter
+frames 3
+expect refused == 0
+expect knife-commits == 12
+
+# ⑬ 3D cutters, drawn as the Construct menu's primitives (base on the face, then the height into the body with live
+#    dimension lines; the cut stages behind the outline as it is pulled). A fresh 2 m cube (volume 8):
+#    box 0.4 × 0.4 pulled 0.3 into the top face = 0.048 → 7.952 · cylinder r 0.2 pulled 0.5 in, cutter kept (K):
+#    −0.02π for the hole, +0.0208π for the kept cutter (0.5 + the 0.02 knife lift above the face) → 7.952 + 0.0008π ·
+#    a sphere centred on the +x face cuts a half ball (right-click is its rim)
+key Escape
+frames 2
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect bodies == 1
+expect volume ~ 8
+click @FitView
+frames 3
+click @SketchKnifeTool
+frames 3
+click @KnifeToolBlock
+frames 3
+expect knife == 1
+expect knife-pending == 1
+expect drawing-solid == 1
+expect drawing-solid-kind == Block
+click world -0.6 -0.6 2.0
+frames 2
+move world -0.2 -0.2 2.0
+frames 2
+click world -0.2 -0.2 2.0
+frames 2
+move world -0.2 -0.2 1.7
+frames 6
+expect drawing-lift ~ -0.3
+expect knife-target == Block1
+capture 288KnifeBoxCutter
+click world -0.2 -0.2 1.7
+frames 3
+expect refused == 0
+expect knife == 0
+expect knife-commits == 13
+expect bodies == 1
+expect volume ~ 7.952
+click @SketchKnifeTool
+frames 3
+click @KnifeToolCylinder
+frames 3
+expect drawing-solid-kind == Cylinder
+click world 0.4 0.4 2.0
+frames 2
+move world 0.6 0.4 2.0
+frames 2
+click world 0.6 0.4 2.0
+frames 2
+move world 0.6 0.4 1.5
+frames 6
+expect drawing-lift ~ -0.5
+key K
+frames 2
+click world 0.6 0.4 1.5 Right
+frames 3
+expect refused == 0
+expect knife-commits == 14
+expect bodies == 2
+expect volume ~ 7.954513274122872
+click @SketchKnifeTool
+frames 3
+click @KnifeToolSphere
+frames 3
+expect drawing-solid-kind == Sphere
+click world 1.0 0.0 1.0
+frames 2
+move world 1.0 0.3 1.0
+frames 8
+expect knife-target == Block1
+capture 289KnifeSphereCutter
+click world 1.0 0.3 1.0 Right
+frames 3
+expect refused == 0
+expect knife-commits == 15
+expect bodies == 2
+expect volume < 7.95
+
+# ⑭ every library cutter is drawn as the Construct primitives are: the press puts a base corner of the Triangle on the
+#    top face, the drag carries the opposite corner — the base runs corner to corner, x and y apart, 0.01 steps — and
+#    the release hands the pointer to the depth along the normal (typed 0.2 here); right-click cuts. The triangle
+#    filling a 0.4 × 0.4 base is half of it: 0.08 · 0.2 = 0.016. A Round hole typed 0.2 wide, clicked without a drag
+#    (the pointer would now carry its far corner), T straight through the 2 m cube: 0.01π · 2 = 0.0628318530718.
+click @SketchKnifeTool
+frames 3
+click @KnifeToolInsert5
+frames 3
+expect knife-mode == Insert
+expect knife-insert == Triangle
+move world 0.3 -0.7 2.0
+frames 2
+move world 0.3 -0.7 2.0
+frames 4
+expect knife-hover == 1
+press
+frames 2
+expect knife-placed == 1
+expect knife-sizing == 1
+move world 0.5 -0.5 2.0
+frames 2
+move world 0.7 -0.3 2.0
+frames 4
+expect knife-size ~ 0.4
+expect knife-aspect > 1.1
+expect knife-turn ~ 0
+capture 290KnifeInsertDrag
+release
+frames 2
+expect knife-sizing == 0
+expect knife-placed == 1
+move world 0.5 -0.5 1.75
+frames 6
+expect knife-insert-depth > 0.15
+capture 291KnifeInsertDepth
+type 0.2
+frames 6
+expect knife-insert-depth ~ 0.2
+click world 0.5 -0.5 1.75 Right
+frames 3
+expect refused == 0
+expect knife == 0
+expect knife-commits == 16
+expect knife-removed ~ 0.016
+click @SketchKnifeTool
+frames 3
+click @KnifeToolInsert1
+frames 3
+expect knife-insert == Round hole
+move world -0.5 0.5 2.0
+frames 2
+move world -0.5 0.5 2.0
+frames 4
+expect knife-hover == 1
+type 0.2
+frames 2
+expect knife-size ~ 0.2
+click world -0.5 0.5 2.0
+frames 2
+expect knife-placed == 1
+expect knife-sizing == 1
+expect knife-size-by-move == 1
+expect knife-size ~ 0.2
+key T
+frames 6
+expect knife-insert-through == 1
+key Enter
+frames 3
+expect refused == 0
+expect knife-commits == 17
+expect knife-removed ~ 0.0628318530718
+
+# ⑮ a knife polyline slices along every segment: a fresh 2 m cube, Polyline from the cutter menu, four clicks across the
+#    top face (−0.5, −1) → (−0.5, 0.3) → (0.5, 0.3) → (0.5, 1) stay a drawing until Enter ends the chain; the open chain
+#    slices the cube into two L-shaped bodies (volume unchanged); Enter applies
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect bodies == 1
+expect volume ~ 8
+click @SketchKnifeTool
+frames 3
+click @KnifeToolPolyline
+frames 3
+expect knife == 1
+expect knife-pending == 1
+expect drawing == Line
+move world -0.5 -0.98 2.0
+frames 2
+click world -0.5 -0.98 2.0
+frames 2
+move world -0.5 0.3 2.0
+frames 2
+click world -0.5 0.3 2.0
+frames 2
+move world 0.5 0.3 2.0
+frames 2
+click world 0.5 0.3 2.0
+frames 2
+move world 0.5 0.98 2.0
+frames 2
+click world 0.5 0.98 2.0
+frames 2
+expect knife-pending == 1
+key Enter
+frames 3
+expect knife-pending == 0
+expect knife-slice == 1
+expect knife-refusal == 0
+capture 299KnifePolyline
+key Enter
+frames 3
+expect refused == 0
+expect knife == 0
+expect bodies == 2
+expect volume ~ 8
+
+# ⑯ Blender loops and rings on the L piece: Alt+click its top edge at x = −1 walks round the L-shaped top (6 edges: the
+#    rim of a face with more than four sides); Ctrl+Alt+click rings across the even L faces and the x = −1 side (4);
+#    Shift+Alt+click on that picked edge takes its loop away again (2 left), a second Shift+Alt+click adds it (8)
+key 2
+frames 2
+move world -1.0 0.0 2.0
+frames 2
+click world -1.0 0.0 2.0 Left Alt
+frames 2
+expect selected-edges == 6
+capture 300EdgeLoop
+click world -1.0 0.0 2.0 Left Ctrl Alt
+frames 2
+expect selected-edges == 4
+click world -1.0 0.0 2.0 Left Shift Alt
+frames 2
+expect selected-edges == 2
+click world -1.0 0.0 2.0 Left Shift Alt
+frames 2
+expect selected-edges == 8
+key Escape
+frames 2
+
+# ⑰ the library base as the other shapes draw theirs, then edge blends on a polyline slice. A fresh 2 m cube: a click
+#    puts the Square pocket's first base corner at (−0.6, −0.6), the pointer carries the opposite one to (0, −0.4) —
+#    a 0.6 × 0.2 base (x and y apart; whole-pixel pointer, so 0.2 may read 0.21) — a second click sets it, typed 0.1 is
+#    the depth, Enter cuts ≈ 0.012. Then a
+#    polyline (0.3, −1) → (0.3, 0.2) → (0.7, 0.2) → (0.7, 1) slices the cube; before it applies, the front-right upright
+#    of one piece takes a fillet (typed 0.1) and the front-left upright of the other a chamfer (C, typed 0.05); Enter
+#    applies the slice and both blends as one step, removing (1 − π/4) · 0.1² · 2 + ½ · 0.05² · 2 = 0.006792036732051;
+#    Ctrl+Z takes all of it back (one undo entry).
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect bodies == 1
+expect volume ~ 8
+click @SketchKnifeTool
+frames 3
+click @KnifeToolInsert0
+frames 3
+expect knife-insert == Square pocket
+move world -0.6 -0.6 2.0
+frames 2
+move world -0.6 -0.6 2.0
+frames 4
+expect knife-hover == 1
+click world -0.6 -0.6 2.0
+frames 2
+expect knife-sizing == 1
+expect knife-size-by-move == 1
+move world -0.3 -0.5 2.0
+frames 2
+move world 0.0 -0.4 2.0
+frames 4
+expect knife-size ~ 0.6
+expect knife-aspect > 0.3
+expect knife-aspect < 0.37
+capture 301KnifeInsertBase
+click world 0.0 -0.4 2.0
+frames 2
+expect knife-sizing == 0
+expect knife-placed == 1
+type 0.1
+frames 6
+expect knife-insert-depth ~ 0.1
+key Enter
+frames 3
+expect refused == 0
+expect knife == 0
+expect knife-removed > 0.0114
+expect knife-removed < 0.0127
+click @SketchKnifeTool
+frames 3
+click @KnifeToolPolyline
+frames 3
+expect drawing == Line
+move world 0.3 -0.98 2.0
+frames 2
+click world 0.3 -0.98 2.0
+frames 2
+move world 0.3 0.2 2.0
+frames 2
+click world 0.3 0.2 2.0
+frames 2
+move world 0.7 0.2 2.0
+frames 2
+click world 0.7 0.2 2.0
+frames 2
+move world 0.7 0.98 2.0
+frames 2
+click world 0.7 0.98 2.0
+frames 2
+key Enter
+frames 12
+expect knife-slice == 1
+expect knife-refusal == 0
+move world 1.0 -1.0 1.0
+frames 2
+click world 1.0 -1.0 1.0
+frames 4
+expect knife-blends == 1
+expect knife-blend-shape == 0
+type 0.1
+frames 4
+expect knife-blend-size ~ 0.1
+move world -1.0 -1.0 1.0
+frames 2
+click world -1.0 -1.0 1.0
+frames 4
+expect knife-blends == 2
+expect knife-blend-focus == 2
+key C
+frames 2
+expect knife-blend-shape == 1
+type 0.05
+frames 12
+expect knife-blend-size ~ 0.05
+expect knife-refusal == 0
+capture 302KnifeSliceBlends
+key Enter
+frames 3
+expect refused == 0
+expect knife == 0
+expect bodies == 2
+expect knife-removed ~ 0.006792036732051
+key Z Ctrl
+frames 3
+expect bodies == 1
+expect volume > 7.9873
+expect volume < 7.9886

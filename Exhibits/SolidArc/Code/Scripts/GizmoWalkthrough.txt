@@ -1,0 +1,146 @@
+# SolidArc gizmo walkthrough — the Slate GizmoPRO gizmo on the selection: cones move along an axis, squares move in a
+# plane, arcs rotate, cylinders scale, the white ring moves in the screen plane (or scales uniformly with scale alone).
+# Modes combine freely (Move / Rotate / Scale chips, y cycles off → T → R → S → T+R → R+S → T+R+S). Bodies take Transform
+# steps, faces take face operations (z cone = push / pull, other moves tweak, arcs rotate, ring scales), sketches move as
+# loft sections. Snapping is on (0.1 · 5° · ×0.1); Ctrl drags free. Release commits one command, Esc cancels.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/GizmoRecovery.solidarc
+#      --document …/Gizmo.solidarc --script Scripts/GizmoWalkthrough.txt
+# Closed forms: box 2 × 1.5 × 1 = 3; a move or a rotation keeps 3.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① a box drawn from the Construct menu (2 × 1.5 × 1, a new body)
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+click world -2.0 -1.5 0.0
+frames 2
+move world 0.0 0.0 0.0
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+move world 0.0 0.0 1.0
+frames 2
+click world 0.0 0.0 1.0
+frames 3
+expect bodies == 1
+expect volume ~ 3
+
+# ② body mode, pick it: the move gizmo (default) sits on the body centre
+key 4
+frames 1
+click world -1.0 -0.7 1.0
+frames 3
+expect selected-bodies == 1
+expect gizmo-target == 2
+expect gizmo-modes == 1
+capture 218GizmoMove
+
+# ③ drag the z cone up: one Move step, volume kept
+drag left @GizmoTranslateZ by 0 -60 12
+frames 3
+expect gizmo-commits == 1
+expect volume ~ 3
+expect refused == 0
+
+# ④ y five times: off → … → move + rotate + scale (all three handles at once)
+key Y
+key Y
+key Y
+key Y
+key Y
+frames 2
+expect gizmo-modes == 7
+capture 219GizmoCombined
+
+# ⑤ the z arc turns the body (5° steps), the x cylinder stretches it along x
+drag left @GizmoRotateZ by 40 25 12
+frames 3
+expect gizmo-commits == 2
+expect volume ~ 3
+drag left @GizmoScaleX by 30 10 10
+frames 3
+expect gizmo-commits == 3
+expect volume > 3
+capture 220GizmoScaled
+
+# ⑥ undo the three, face mode on the top: move + rotate + scale on a face
+key Z Ctrl
+key Z Ctrl
+key Z Ctrl
+frames 3
+expect volume ~ 3
+key 3
+frames 1
+click world -1.0 -0.7 1.0
+frames 3
+expect selected-faces == 1
+expect gizmo-target == 1
+capture 221GizmoFace
+
+# ⑦ push / pull: the face's z cone (its normal) offsets the top up
+drag left @GizmoTranslateZ by 0 -50 10
+frames 3
+expect gizmo-commits == 4
+expect volume > 3
+expect refused == 0
+
+# ⑧ separate modes: rotate alone (chips), the top tilts about its x axis
+click @GizmoMove
+click @GizmoScale
+frames 2
+expect gizmo-modes == 2
+expect selected-faces == 1
+drag left @GizmoRotateX by 0 12 6
+frames 3
+expect gizmo-commits == 5
+expect refused == 0
+capture 222GizmoFaceRotate
+
+# ⑨ loft sections: two circles drawn on the ground, the small one lifted by the gizmo, L lofts them into a capped solid shell
+key N Ctrl
+frames 3
+click @GizmoMove
+click @GizmoRotate
+frames 1
+expect gizmo-modes == 1
+key W Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 1.0 0.0 0.0
+frames 3
+key W Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 0.5 0.0 0.0
+frames 3
+key 5
+frames 1
+click world 0.5 0.0 0.0
+frames 3
+expect gizmo-target == 3
+expect gizmo-targets == 1
+capture 223GizmoSketch
+drag left @GizmoTranslateZ by 0 -93 12
+frames 3
+expect gizmo-commits == 6
+click world 1.0 0.0 0.0 Left Shift
+frames 3
+expect selected-curves == 2
+# closed sections loft a solid shell directly (the skin and its two plane caps; no Close step)
+key L
+frames 4
+expect panels == 0
+expect last-step == 1
+expect bodies == 1
+expect volume > 1
+expect sound == 1
+# the snapped lift 0.7 makes a cone frustum: π · 0.7 / 3 · (1 + 0.5 + 0.25) = 1.282817
+expect volume ~ 1.282817
+capture 224GizmoLoft

@@ -1,0 +1,14 @@
+# Name Unit Volume[mm3] Area[mm2] Solids Shells Faces Edges(non-degenerated) Vertices — OpenCascade 8 (cadquery-ocp), written by StepFixtures.py
+# RevolvedSpline Volume: Gauss–Legendre 13178.3002642 replaces GProp 13178.3002636 (relative 4.3e-11)
+# ExtrudedSpline Area: Gauss–Legendre 1688.73880814 replaces GProp 1688.73501304 (relative 2.2e-06)
+FilletedBox MM 22849.6044153 4563.82285093 1 1 26 48 24
+ChamferedBore MM 20863.9051336 5869.37966977 1 1 9 19 12
+TiltedTorus MM 14212.2303376 4737.41011252 1 1 1 2 1
+OffsetSphere MM 8181.23086872 1963.49540849 1 1 1 1 2
+ApexCone MM 2617.99387799 1160.05897518 1 1 2 2 2
+SplineLoft MM 13484.4257273 3684.01314486 1 1 4 6 4
+RevolvedSpline MM 13178.3002642 3192.84580822 1 1 3 3 2
+ExtrudedSpline MM 3928.18356045 1688.73880814 1 1 6 12 8
+HollowBlock MM 9076.4012244 3114.15926536 1 2 7 13 10
+FilletedBoss MM 23897.5876482 7390.33294192 1 1 9 17 11
+InchBlock INCH 16387.064 4516.12 1 1 6 12 8

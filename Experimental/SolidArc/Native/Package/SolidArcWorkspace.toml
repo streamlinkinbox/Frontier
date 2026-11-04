@@ -1,0 +1,27 @@
+# SolidArc options for the installed package. SolidArcWorkspace.exe reads this file from its own folder when the working
+# directory has none, and that folder becomes the working directory: every relative path below stays inside the package.
+
+[Window]
+Width = 1600
+Height = 900
+
+[Viewport]
+EdgeStroke = 1.5                 # px
+Grid = true
+Orthographic = false
+FieldOfView = 0.7                # rad, vertical
+
+[Interface]
+FontPath = ""                    # empty: EngineContent/FontArchives/DMSans/DMSans-Regular.ttf beside the executable
+FontSize = 15.0                  # px
+
+[Files]
+RecoveryPath = "Autosave/SolidArcWorkspace.solidarc"
+AutosaveDelay = 0.6              # s of quiet time before an autosave
+DocumentPath = "Documents/Bracket.solidarc"
+CurvesPath = "Samples/SyntheticBonnet.toml"
+InsertFolder = "Inserts"         # Knife (Shift+K) insert library: every *.step here joins the built-in cutters
+
+[Vulkan]
+DriverPath = ""                  # empty: the system Vulkan loader (vulkan-1.dll, installed with the GPU driver)
+Validation = false

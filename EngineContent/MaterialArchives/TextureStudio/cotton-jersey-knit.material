@@ -1,0 +1,50 @@
+Format = 1
+Name = "Cotton Jersey Knit"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.88
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.26635560480286247, 0.2874408377269175, 0.2961382707983211]
+SheenIntensity = 0.5
+SheenRoughness = 0.75
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/cotton-jersey-knit-albedo.png"
+Normal = "Textures/cotton-jersey-knit-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "knit"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 22
+grain = 0.6
+fuzz = 0.35
+weaveAngle = 0
+surfaceSeed = 17
+sheen = 0.5
+color = "#8d9294"
+secondaryColor = "#e2ddd0"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "knit"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 22
+grain = 0.6
+fuzz = 0.35
+weaveAngle = 0
+surfaceSeed = 17
+sheen = 0.5
+color = "#8d9294"
+secondaryColor = "#e2ddd0"

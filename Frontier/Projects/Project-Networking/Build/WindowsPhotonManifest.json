@@ -1,0 +1,21 @@
+{
+  "version": "6.0.0.347-md-x64",
+  "notes": "Official Photon Realtime Core 6.0.0.347 /MD x64 release archives (Common-cpp, Photon-cpp, LoadBalancing-cpp) from the owner's Drive upload. Linked by CI; headers stay pinned at defold/extension-photon-realtime @ 8dad867470f2eb75aeae0c437e10ee723d8d1ccf (SDK 5.0.14.3).",
+  "files": {
+    "Photon/Lib/Common-cpp_windows_x86_64_release_md.lib": {
+      "drive_id": "16_0teDTh9uHgggFhiM2Oqm8Rey3g3twh",
+      "bytes": 2816752,
+      "sha256": "0cb03120d0f379700ef1c112017aa0522cccb55783ff773b81f33cdadd9561aa"
+    },
+    "Photon/Lib/Photon-cpp_windows_x86_64_release_md.lib": {
+      "drive_id": "19uNEpiJWm8vfqLWrL2_jJZOyxoMHM4wd",
+      "bytes": 4310390,
+      "sha256": "36a496cccd5812e133b6c2de781cee42a1df9a6f9a0f89d2128a771c3749992c"
+    },
+    "Photon/Lib/LoadBalancing-cpp_windows_x86_64_release_md.lib": {
+      "drive_id": "1BLRHs2VaHBuSSQWGTg3QJj7e18JyuF7j",
+      "bytes": 4168388,
+      "sha256": "45046a24a4ded849518398897a525aba9a4b53cb4cf82281e7730507ea101a75"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+# 🧩 Engine shape: A one-metre torus about z, tube 0.3 of its outer diameter, 32 × 12.
+#    Read by Frontier/Engine/Geometry/ShapeArchive.cpp; the Construct dialog offers it and the Scene Viewport lays it out from the
+#    reserve of the scene archive. Bake the distance volume after any change of [shape], [tessellation] or [distance]:
+#    build/ShapeArchiveBake EngineContent/ShapeArchives
+
+[shape]
+name        = "Torus"
+primitive   = "torus"
+glyph       = "Torus"
+description = "A one-metre torus about z, tube 0.3 of its outer diameter, 32 × 12."
+size_m      = [1.00, 1.00, 0.30]   # [m] bounding box
+
+[tessellation]
+segments = 32   # [-] around the axis
+rings    = 12   # [-] pole to pole (sphere) or around the tube (torus)
+tube_ratio = 0.3   # [-] tube diameter over the outer diameter
+
+# 📝 MaterialSpecification channels (linear albedo); the object's material slot starts from these.
+[surface]
+name           = "Torus surface"
+albedo         = [0.55, 0.55, 0.55]
+roughness      = 0.5
+metalness      = 0.0
+specular       = 0.04
+coat           = 0.0
+coat_roughness = 0.0
+incandescence  = [0.0, 0.0, 0.0]
+transmission   = 0.0
+
+[distance]
+voxel_m = 0.03125   # [m] voxel of the baked signed distance volume
+archive = "Torus.sdfspace"
+
+[cards]
+density = 12.0   # [texel/m] surface cards (the illumination's surface store)

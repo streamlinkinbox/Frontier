@@ -1,0 +1,1662 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/user/Frontier/Experimental/TextureStudio/node_modules/@playwright/test/cli.js",
+      "test",
+      "tests/stamp-vector-geometry.spec.js",
+      "tests/shape-editor-svg-geometry.spec.js",
+      "tests/stamp-decal-model.spec.js",
+      "tests/stamp-transform-model.spec.js",
+      "tests/stamp-vector-studio.spec.js",
+      "tests/stamp-stack-appearance.spec.js",
+      "--reporter=json",
+      "--global-timeout=180000"
+    ],
+    "configFile": "/home/user/Frontier/Experimental/TextureStudio/playwright.config.js",
+    "rootDir": "/home/user/Frontier/Experimental/TextureStudio/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 180000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/user/Frontier/Experimental/TextureStudio/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/home/user/Frontier/Experimental/TextureStudio/tests",
+        "testIgnore": [
+          "**/standalone.spec.js"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 300000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://127.0.0.1:5173",
+      "reuseExistingServer": true
+    }
+  },
+  "suites": [
+    {
+      "title": "shape-editor-svg-geometry.spec.js",
+      "file": "shape-editor-svg-geometry.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "point snapping honors transformed anchors, physical tolerance and endpoint priority over grids",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 17,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:22.665Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-35dd5d77bfa1e1feda02",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 61,
+          "column": 1
+        },
+        {
+          "title": "curve snapping projects onto exact cubics and alignment targets without moving existing geometry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:22.724Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-8fe599d3d457491c75a9",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 82,
+          "column": 1
+        },
+        {
+          "title": "snap targets exclude selected anchors and adjacent segments but include locked visible references",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:22.751Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-c37d11e360b276df9e8c",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 115,
+          "column": 1
+        },
+        {
+          "title": "angle snapping remains independent of the magnet and never bends a constrained handle toward off-angle targets",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:22.767Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-691d768562935adec673",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 134,
+          "column": 1
+        },
+        {
+          "title": "editable arcs preserve signed sweeps, tangent continuity and chord or pie closure",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 46,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:22.784Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-adfb9afe71372a4a2163",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 160,
+          "column": 1
+        },
+        {
+          "title": "text metadata and outlined multilingual Latin glyphs round-trip and render without any font dependency",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 40,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:22.845Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-961ea88c79c0934c0622",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 193,
+          "column": 1
+        },
+        {
+          "title": "text font-size and content edits preserve rotated resized geometry while outlining removes only text metadata",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 35,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:22.893Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-a73e3aa1f5e47451cefb",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 224,
+          "column": 1
+        },
+        {
+          "title": "empty text and invalid typography are bounded, finite and still editable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 17,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:22.942Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-409360470f15a2fec8b3",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 257,
+          "column": 1
+        },
+        {
+          "title": "Bézier boolean union, difference, intersection and exclusion retain exact filled silhouettes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 31,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:22.976Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-34bfb6dd6a3b39f1d936",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 280,
+          "column": 1
+        },
+        {
+          "title": "compound boolean holes, empty results and protected or open sources are handled atomically",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 17,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.016Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781144691e73dff4e43b-8114fb69c12b6fc71315",
+          "file": "shape-editor-svg-geometry.spec.js",
+          "line": 308,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "stamp-decal-model.spec.js",
+      "file": "stamp-decal-model.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "stamp projects preserve mixed runs, static SVG and embedded images without retaining foreign fields",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.134Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-580b5cb22203d5bcf40b",
+          "file": "stamp-decal-model.spec.js",
+          "line": 60,
+          "column": 1
+        },
+        {
+          "title": "character-range formatting splits and coalesces styles, preserves unselected text and supports empty text",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.150Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-97e8f92809f67b56a73d",
+          "file": "stamp-decal-model.spec.js",
+          "line": 84,
+          "column": 1
+        },
+        {
+          "title": "rich-text insertion and replacement keep style boundaries and literal markup as text, not executable content",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.167Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-60e9c8056141f08ed05d",
+          "file": "stamp-decal-model.spec.js",
+          "line": 110,
+          "column": 1
+        },
+        {
+          "title": "stamp validators reject scripts, missing/duplicate identities, foreign rasters, caps and oversized files",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.183Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-88f9f73ac87a94a42185",
+          "file": "stamp-decal-model.spec.js",
+          "line": 129,
+          "column": 1
+        },
+        {
+          "title": "all 14 channel targets can be toggled independently with the Normal/Height dependency and exact zero retained",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.199Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-03124675cea474e5b70c",
+          "file": "stamp-decal-model.spec.js",
+          "line": 156,
+          "column": 1
+        },
+        {
+          "title": "decals store finite normalized object-space transforms, clamp geometry and reject identities/foreign coordinate spaces",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.210Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-74c9061d7b13a457ffdc",
+          "file": "stamp-decal-model.spec.js",
+          "line": 177,
+          "column": 1
+        },
+        {
+          "title": "a regular layer hosts decals and a Decal layer hosts many placements while deduplicating the immutable stamp snapshot",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.224Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-365fa91df123498260b8",
+          "file": "stamp-decal-model.spec.js",
+          "line": 195,
+          "column": 1
+        },
+        {
+          "title": "re-saving changed artwork does not mutate placed decals or allocate another snapshot for every new dab",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.247Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-1e008a8aea934c77163a",
+          "file": "stamp-decal-model.spec.js",
+          "line": 209,
+          "column": 1
+        },
+        {
+          "title": "folder/layer/component locks protect decal mutations; eyes and unlocking remain available",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.259Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-a1bd8d55015cd6eb58c5",
+          "file": "stamp-decal-model.spec.js",
+          "line": 228,
+          "column": 1
+        },
+        {
+          "title": "layer duplication creates independent component identities, removal prunes only unused stamp snapshots",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.272Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-799df05434441e5a95ea",
+          "file": "stamp-decal-model.spec.js",
+          "line": 250,
+          "column": 1
+        },
+        {
+          "title": "decal caps, total byte budgets, missing stamp references and cross-layer identity collisions cannot bypass validation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 52,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.284Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-de80501eb563f84e98a9",
+          "file": "stamp-decal-model.spec.js",
+          "line": 268,
+          "column": 1
+        },
+        {
+          "title": "channel-disabled decals are muted, mask stamps still work and hidden folders suppress their whole subtree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.345Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-6a0e44d53f4c499afcc6",
+          "file": "stamp-decal-model.spec.js",
+          "line": 281,
+          "column": 1
+        },
+        {
+          "title": "projected triangles are surface-clipped, forward-facing and specimen-local even on a translated/rotated mesh",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 423,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.356Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-db0bb5b60eb5f5d3b8e8",
+          "file": "stamp-decal-model.spec.js",
+          "line": 296,
+          "column": 1
+        },
+        {
+          "title": "surface-mask GPU data packs true inverse projector transforms, atlas rectangles, mask mode and owner identities",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.788Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-4013377678df630337bc",
+          "file": "stamp-decal-model.spec.js",
+          "line": 323,
+          "column": 1
+        },
+        {
+          "title": "before/after/inside drop positions use siblings, atomically move complete folder subtrees and reject self/cycles/locks",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.803Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-9e4d0fe8042028ead380",
+          "file": "stamp-decal-model.spec.js",
+          "line": 362,
+          "column": 1
+        },
+        {
+          "title": "a surface placement and a transform gesture are undoable whole-document transactions with portable stamp snapshots",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.818Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-0a7fab291ef62a56c832",
+          "file": "stamp-decal-model.spec.js",
+          "line": 398,
+          "column": 1
+        },
+        {
+          "title": "explicit artwork replacement retains instance transforms, prunes the old snapshot and cannot alter component identities through a patch",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.831Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-52640ef78555e57c40f8",
+          "file": "stamp-decal-model.spec.js",
+          "line": 427,
+          "column": 1
+        },
+        {
+          "title": "sixteen distinct embedded snapshots remain bounded; replacing an exclusively used snapshot at the cap does not require a seventeenth slot",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.845Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-e8f9aebac110cf25b6dc",
+          "file": "stamp-decal-model.spec.js",
+          "line": 459,
+          "column": 1
+        },
+        {
+          "title": "locked decal descendants protect layer/subtree moves, copies and deletion as well as their own inspector",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.866Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-cafd31dc5a91e8d4d911",
+          "file": "stamp-decal-model.spec.js",
+          "line": 482,
+          "column": 1
+        },
+        {
+          "title": "drop feedback rejects over-depth folder nesting before mutating the tree",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.878Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-253739b34460c45fb0b2",
+          "file": "stamp-decal-model.spec.js",
+          "line": 499,
+          "column": 1
+        },
+        {
+          "title": "canonical transforms are idempotent and imported stamp projects without an identity get a real stable string ID",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.888Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c8433039c94d2db721c3-d52457fe185bd281dc0d",
+          "file": "stamp-decal-model.spec.js",
+          "line": 519,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "stamp-stack-appearance.spec.js",
+      "file": "stamp-stack-appearance.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Stamp stack uses shared search, counts, filters and keyboard-accessible additive menu",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8493,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:23.906Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c0952730cfad77851122-fa0f475fcc92c4b8469d",
+          "file": "stamp-stack-appearance.spec.js",
+          "line": 16,
+          "column": 1
+        },
+        {
+          "title": "Canvas backgrounds persist as view preferences without altering exported decal pixels or history",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8739,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:32.452Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c0952730cfad77851122-4837e883de84d1f118a4",
+          "file": "stamp-stack-appearance.spec.js",
+          "line": 52,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "stamp-transform-model.spec.js",
+      "file": "stamp-transform-model.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Stamp viewport coordinates use both canvas dimensions at any zoom",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.230Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "70f41315457882815baf-0224c89a99f9ecff6e4d",
+          "file": "stamp-transform-model.spec.js",
+          "line": 18,
+          "column": 1
+        },
+        {
+          "title": "G translates from the snapshot, with exact bounds, 8px snapping and X/Y constraints",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.250Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "70f41315457882815baf-7c82a4690662fea4c279",
+          "file": "stamp-transform-model.spec.js",
+          "line": 27,
+          "column": 1
+        },
+        {
+          "title": "R rotates about the artwork pivot, supports accumulated turns and snaps by 15 degrees",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.266Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "70f41315457882815baf-5e360727412b1869914a",
+          "file": "stamp-transform-model.spec.js",
+          "line": 64,
+          "column": 1
+        },
+        {
+          "title": "S preserves aspect ratio and clamps the shared factor rather than distorting either dimension",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.277Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "70f41315457882815baf-a8dd87a195790df0580b",
+          "file": "stamp-transform-model.spec.js",
+          "line": 92,
+          "column": 1
+        },
+        {
+          "title": "S X/Y changes only its constrained dimension",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.291Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "70f41315457882815baf-fc13a0f8763b7be1393f",
+          "file": "stamp-transform-model.spec.js",
+          "line": 117,
+          "column": 1
+        },
+        {
+          "title": "starting R or S over the pivot remains finite, smooth and bounded",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.300Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "70f41315457882815baf-e66c9dd32e040fea6265",
+          "file": "stamp-transform-model.spec.js",
+          "line": 138,
+          "column": 1
+        },
+        {
+          "title": "corner resizing follows rotated local axes and never mutates the component snapshot",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.312Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "70f41315457882815baf-110e7202380aec574fae",
+          "file": "stamp-transform-model.spec.js",
+          "line": 153,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "stamp-vector-geometry.spec.js",
+      "file": "stamp-vector-geometry.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Tangent rectangle/ellipse difference retains corners and removes the centre",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.325Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1db680fc9f189e3b3d4f-7699b1a9fa4955a73cc5",
+          "file": "stamp-vector-geometry.spec.js",
+          "line": 31,
+          "column": 5
+        },
+        {
+          "title": "Tangent rectangle/ellipse exclude retains corners and removes the centre",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.338Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1db680fc9f189e3b3d4f-5d0ef0ea44fedd376569",
+          "file": "stamp-vector-geometry.spec.js",
+          "line": 31,
+          "column": 5
+        },
+        {
+          "title": "Boolean holes survive a second operation, transforms and serialization",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.355Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1db680fc9f189e3b3d4f-9601c9bcda13f0d2cc0b",
+          "file": "stamp-vector-geometry.spec.js",
+          "line": 43,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "stamp-vector-studio.spec.js",
+      "file": "stamp-vector-studio.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Stamp shared vector booleans retain corner pixels, native artwork, undo and export",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 17093,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:41.373Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "32c4cb9458f08d997ca3-96f1eafb2ec3c22079de",
+          "file": "stamp-vector-studio.spec.js",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "Stamp vector drawing, pen finalization, shared gradients and editable preset round trip",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 300000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11036,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:58.499Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "32c4cb9458f08d997ca3-8471c2f3080cb28aa1db",
+          "file": "stamp-vector-studio.spec.js",
+          "line": 67,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-18T20:37:21.726Z",
+    "duration": 48135.949,
+    "expected": 45,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

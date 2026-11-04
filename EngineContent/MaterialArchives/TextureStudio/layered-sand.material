@@ -1,0 +1,46 @@
+Format = 1
+Name = 'Layered Sand'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.51999998092651367, 310.0, 1.0, 0.10000000149011612 ]
+Enabled = true
+Finish = [ 0.14000000059604645, 0.47999998927116394, 0.0, 0.05000000074505806 ]
+Layers = 3
+Palette = [
+    [ 0.96468627452850342, 0.89626938104629517, 0.73791056871414185, 0.0 ],
+    [ 0.78353792428970337, 0.6724432110786438, 0.48514997959136963, 0.25 ],
+    [ 0.68668544292449951, 0.53327649831771851, 0.3185468316078186, 0.5 ],
+    [ 0.47353154420852661, 0.28744089603424072, 0.1247718408703804, 0.75 ],
+    [ 1.0, 1.0, 1.0, 1.0 ]
+]
+Relief = [ 0.31999999284744263, 0.46000000834465027, 0.039999999105930328, 28.0 ]
+
+[Textures]
+Albedo = 'Textures/layered-sand-albedo.png'
+Normal = 'Textures/layered-sand-normal.png'
+Orm = 'Textures/layered-sand-orm.png'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 1.0
+Ior = 1.5440000295639038
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 1.0
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 0.5
+TextureMask = 7
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

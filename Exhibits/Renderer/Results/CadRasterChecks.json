@@ -1,0 +1,13 @@
+{
+  "result": "passed",
+  "device": "SwiftShader Device (Subzero)",
+  "device_type": 4,
+  "api_version": 4206592,
+  "orthographic_bright_pixels": 7075,
+  "geometry_uploads_for_two_cameras": 1,
+  "graphics_pipeline_creation_count": 2,
+  "checks": ["Bounded valid geometry and explicit topology edges", "Invalid input refusal", "Real offscreen Vulkan/Slang pixels", "Orthographic and perspective cameras", "Resident geometry reuse", "320x240 thumbnail", "Front/rear edge depth occlusion", "Cancelled transfer retry", "Near/eye clipping", "Shared pipeline pair across targets", "Retained resource lifetimes"],
+  "validation_layers_enabled": false,
+  "optional_device_features_enabled": false,
+  "execution": "Explicit driver offscreen Vulkan; inspect device_type for software versus hardware. Not Windows UI validation."
+}

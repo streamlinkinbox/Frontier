@@ -1,0 +1,214 @@
+# SolidArc revolve / sweep walkthrough — Alt+R turns the focused (else newest) sketch about an axis (the sketch
+# y-axis when the profile lies beside it, X / Y keys, or a click on one of the sketch's lines; typed degrees, 360 by
+# default) and Shift+P / Alt+E (Plasticity evolution) sweeps a closed sketch along a path (the newest one-curve sketch,
+# or a click on another sketch's curve). Both stage the result as a preview and take Q / W / E / R like extrude.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/RevolveSweepRecovery.solidarc
+#      --document …/RevolveSweep.solidarc --script Exhibits/SolidArc/Code/Scripts/RevolveSweepWalkthrough.txt
+# Closed forms: vase = lines (0, 0) (1, 0) (1, 0.4) + cubic Bézier (1, 0.4) (0.3, 0.9) (1.1, 1.5) (0.6, 2) + lines
+# (0.6, 2) (0, 2) (0, 0) about y: V = π ∮ x² dy = π (0.4 + 95069 / 105000) = 4.101094890. Plate x ∈ [1.6, 1.9],
+# y ∈ [0.6, 1.4] a quarter turn about its own left edge: (θ / 2) w² h = π / 4 · 0.09 · 0.8 = 0.056548668. Circle r 0.2
+# at (3.5, 0) along the Bézier (3.5, 0) (3.5, 1) (4.2, 1.6) (5, 1.8) on XZ (length 2.539157971, r κmax 0.12):
+# π r² L = 0.319080001; along the line (3.5, 0) → (3.5, 1.5): π r² · 1.5 = 0.188495559.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document, Top view: a vase profile drawn as two polylines and a Bézier, joined (J) into one closed sketch
+key N Ctrl
+frames 2
+expect steps == 0
+key Keypad7
+frames 2
+key Keypad5
+frames 2
+wheel viewport 0.5 0.5 -3
+frames 2
+drag Right viewport 0.5 0.5 by -150 120 24
+frames 2
+key A Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 1.0 0.0 0.0
+frames 2
+click world 1.0 0.4 0.0
+frames 2
+key Enter
+frames 2
+key S Shift
+frames 2
+key 2
+frames 2
+expect drawing-form == Bezier
+click world 1.0 0.4 0.0
+frames 2
+click world 0.3 0.9 0.0
+frames 2
+click world 1.1 1.5 0.0
+frames 2
+click world 0.6 2.0 0.0
+frames 2
+key Enter
+frames 2
+key A Shift
+frames 2
+click world 0.6 2.0 0.0
+frames 2
+click world 0.0 2.0 0.0
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+key Enter
+frames 2
+expect sketches == 3
+key J
+frames 3
+expect sketches == 1
+expect sketch-curves == 5
+
+# ② Alt+R: the profile touches the y-axis from the right, so the proposed axis is the sketch y-axis (dashed amber);
+#    the full turn previews as a staged body — Enter makes Revolve1, V = π (0.4 + 95069 / 105000)
+key R Alt
+frames 3
+expect sweep == 1
+expect sweep-verb == Revolve
+expect sweep-axis contains y-axis
+expect sweep-amount ~ 360
+expect sweep-preview == 1
+expect sweep-refusal == 0
+capture 134RevolvePreview
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 3
+capture 135RevolvePreviewIsometric
+key Enter
+frames 3
+expect sweep == 0
+expect sweep-commits == 1
+expect bodies == 1
+expect volume ~ 4.101094890
+expect sound == 1
+
+# ③ X / Y pick the sketch axes; a plate beside the vase turned a quarter about its own left edge (clicked: the cyan
+#    line is what a click takes, the pill names it), R new body: π / 4 · 0.09 · 0.8
+key Keypad7
+frames 2
+key Q Shift
+frames 2
+click world 1.6 0.6 0.0
+frames 2
+click world 1.9 1.4 0.0
+frames 2
+expect sketches == 2
+key R Alt
+frames 3
+expect sweep-axis contains y-axis
+key X
+frames 3
+expect sweep-axis contains x-axis
+key Y
+frames 3
+expect sweep-axis contains y-axis
+click world 1.6 1.0 0.0
+frames 3
+expect sweep == 1
+expect sweep-axis contains Line
+type 90
+frames 3
+expect sweep-amount ~ 90
+key R
+frames 3
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 3
+capture 136RevolveEdgeAxis
+key Enter
+frames 3
+expect sweep-commits == 2
+expect bodies == 2
+expect body-volumes contains Revolve2 0.056549
+expect sound == 1
+
+# ④ Evolution: a circle r 0.2 at (3.5, 0) on Top, then (Front, XZ) a Bézier path and a straight line from its centre;
+#    Shift+P takes the circle (the newest sketch that is not a lone open curve) and proposes the newest path, the line
+key Keypad7
+frames 2
+key W Shift
+frames 2
+click world 3.5 0.0 0.0
+frames 2
+click world 3.7 0.0 0.0
+frames 2
+key Keypad1
+frames 2
+expect grid-plane == 1
+key S Shift
+frames 2
+key 2
+frames 2
+click world 3.5 0.0 0.0
+frames 2
+click world 3.5 0.0 1.0
+frames 2
+click world 4.2 0.0 1.6
+frames 2
+click world 5.0 0.0 1.8
+frames 2
+key Enter
+frames 2
+key A Shift
+frames 2
+click world 3.5 0.0 0.0
+frames 2
+click world 3.5 0.0 1.5
+frames 2
+key Enter
+frames 2
+expect sketches == 5
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 3
+key P Shift
+frames 3
+expect sweep == 1
+expect sweep-verb == Evolution
+expect sweep-profile contains Sketch
+expect sweep-preview == 1
+capture 137EvolutionProposed
+
+# ⑤ a click on the Bézier switches the path (the cyan hover, then the amber path); Enter makes Evolution1 (new body)
+click world 3.95 0.0 1.2
+frames 3
+expect sweep == 1
+expect sweep-preview == 1
+expect sweep-refusal == 0
+capture 138EvolutionPath
+key Enter
+frames 3
+expect sweep-commits == 3
+expect bodies == 3
+expect body-volumes contains Evolution1 0.319080
+expect sound == 1
+key Space
+frames 3
+capture 139Evolution
+
+# ⑥ Alt+E is Evolution too; Esc cancels and leaves the document alone; undo removes Evolution1, redo restores it
+key E Alt
+frames 3
+expect sweep == 1
+expect sweep-verb == Evolution
+key Escape
+frames 2
+expect sweep == 0
+expect bodies == 3
+key Z Ctrl
+frames 3
+expect bodies == 2
+key Z Ctrl Shift
+frames 3
+expect bodies == 3
+expect body-volumes contains Evolution1 0.319080

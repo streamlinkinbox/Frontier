@@ -1,0 +1,140 @@
+# SolidArc STEP / STL exchange walkthrough — Export… writes the selected bodies (else every shown body) beside the
+# document as STEP AP214 (exact B-rep, millimetres) or binary STL; Save as… (Ctrl+Shift+S) exports instead of saving
+# when the name ends in .step / .stp / .stl and Open… (Ctrl+O) imports a .step / .stp file into the document, as
+# Plasticity does. Import… reads STEP (every solid becomes an Import step with the file embedded: one undo entry, faces
+# named Import#k.Face(n) in file order) or VehicleCurves .toml.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/ExchangeRecovery.solidarc
+#      --document …/Exchange.solidarc --script Exhibits/SolidArc/Code/Scripts/ExchangeWalkthrough.txt
+# Bracket specimen: block 4 × 2.5 × 1 m, boss r 0.5 (z 1 … 1.75), hole r 0.3, Fillet1 r 0.25, Chamfer1 0.2:
+# V = 10 + 0.75 π/4 − 0.09 π − 0.15625 (1 − π/4) − 0.05 = 10.2227737 m³.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① Export…: the field offers Exchange.step beside the document; the bracket goes out as STEP (11 faces, exact)
+frames 3
+expect bodies == 1
+expect volume ~ 10.2227737
+click @OutlinerMenu
+frames 2
+click @MenuExport
+frames 2
+click @PathExport
+frames 2
+expect exchange-export contains Exchange.step
+expect exchange-export > 8000
+expect exchange-export-bodies == 1
+expect exchange-export-bodies == Block1
+expect exchange-export-faces == 11
+expect exchange-exports == 1
+expect status contains Exported 1 body(ies) as STEP
+capture 195ExchangeExportStep
+
+# ② Save as… (Ctrl+Shift+S) with .stl in place of .solidarc exports binary facets; the document path is unchanged
+key S Ctrl Shift
+frames 2
+click @PathField
+key End
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+type .stl
+key Enter
+frames 2
+expect exchange-export contains Exchange.stl
+expect exchange-export-facets > 1000
+expect exchange-exports == 2
+expect status contains as STL
+capture 196ExchangeSaveAsStl
+
+# ③ New (Ctrl+N), then Open… (Ctrl+O) with Exchange.step: the bracket comes back as Import#1 "Exchange" — one step, one
+#    undo entry, the same volume, selected and framed
+key N Ctrl
+frames 2
+expect bodies == 0
+key O Ctrl
+frames 2
+click @PathField
+key End
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+type .step
+key Enter
+frames 3
+expect exchange-import contains Exchange.step
+expect exchange-import == 1
+expect exchange-import-faces == 11
+expect exchange-imports == 1
+expect bodies == 1
+expect steps == 1
+expect undo == 1
+expect sound == 1
+expect volume ~ 10.2227737
+expect body-captions contains Exchange
+expect selected-bodies == Import#1
+capture 197ExchangeImported
+
+# ④ The imported body takes features like any other: B on its bottom-front edge, 100 mm → V − (1 − π/4) · 0.1² · 4
+key A Alt
+key 2
+move world 2.0 0.0 0.0
+frames 2
+click world 2.0 0.0 0.0
+expect selected-edges contains Import#1.Face(
+key B
+frames 2
+expect bevel-active == 1
+click @BevelSize
+key A Ctrl
+type 100mm
+key Enter
+frames 2
+key Enter
+frames 2
+expect bevel-active == 0
+expect steps == 2
+expect sound == 1
+expect volume ~ 10.2141897
+capture 198ExchangeFilletImported
+
+# ⑤ The Import step in the Inspector: the embedded file (name, size, unit) and its face names
+click @InspectorHistory
+frames 3
+click @Step:Import#1
+frames 2
+click @InspectorGeometry
+frames 3
+frames 2
+expect focused-step == Import#1
+capture 199ExchangeImportStep
+
+# ⑥ Import… (the field offers the last STEP export, else the VehicleCurves sample — here the sample, the last export was
+#    STL): .obj is neither STEP nor VehicleCurves, refused, nothing changes
+key I Ctrl Shift
+frames 2
+click @PathField
+key End
+key Backspace
+key Backspace
+key Backspace
+key Backspace
+type obj
+click @PathImport
+frames 2
+expect exchange-import contains neither .step / .stp nor a VehicleCurves .toml
+expect exchange-imports == 1
+expect steps == 2
+expect status contains Refused

@@ -1,0 +1,61 @@
+Format = 1
+Name = "Rose Petal"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.48
+Metallic = 0
+Ior = 1.45
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.4793201831008268, 0.046665086336880095, 0.1301364766903643]
+SheenIntensity = 0.3
+SheenRoughness = 0.7
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/rose-petal-albedo.png"
+Normal = "Textures/rose-petal-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "petal"
+Link = "shared"
+[Strata.Channels.Params]
+cellScale = 160
+cellRelief = 0.45
+veinRelief = 0.5
+colorGradient = 0.88
+spotDensity = 0.06
+surfaceSeed = 17
+color = "#b83d65"
+secondaryColor = "#edb6bc"
+tertiaryColor = "#802342"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "petal"
+Link = "shared"
+[Strata.Channels.Params]
+cellScale = 160
+cellRelief = 0.45
+veinRelief = 0.5
+colorGradient = 0.88
+spotDensity = 0.06
+surfaceSeed = 17
+color = "#b83d65"
+secondaryColor = "#edb6bc"
+tertiaryColor = "#802342"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.22
+Metallic = 0.0
+Ior = 1.45
+Coverage = 0.04

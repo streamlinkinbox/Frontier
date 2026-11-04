@@ -1,0 +1,10 @@
+
+> alloy-material-studio@1.0.0 test
+> playwright test tests/shape-editor-svg-tools.spec.js --grep true boolean --global-timeout=60000
+
+
+Running 1 test using 1 worker
+
+  ✓  1 tests/shape-editor-svg-tools.spec.js:451:1 › arc, style eyedropper and true boolean differences remain editable and undoable (16.9s)
+
+  1 passed (18.0s)

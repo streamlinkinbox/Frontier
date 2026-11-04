@@ -1,0 +1,8 @@
+Format = 1
+Name = "VehicleHMI SLAT v1 catalogue"
+SourceRepository = "https://github.com/SultanAladin/Frontier"
+SourceRevision = "6afb6f00b5f25c45f7cda92c7da65b64845768f3"
+SourcePath = "Experimental/VehicleHmiPrototype/Assets/Celestial/BrightStars.bin"
+Sha256 = "c4cf97ed09a2a0179177a24655bf2a170a79a4a7aa73da8926dcbd10b0b90e00"
+Entries = 8920
+Purpose = "Exact inspector catalogue reference; native sky rendering continues to use Hipparcos8.csv."

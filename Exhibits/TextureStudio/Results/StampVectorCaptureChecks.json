@@ -1,0 +1,13 @@
+{
+  "ProductionPreview": 5175,
+  "BooleanEnabled": true,
+  "DifferenceCreated": true,
+  "OriginalCompositionRetained": true,
+  "CanvasBackgrounds": [
+    "transparent",
+    "ui",
+    "fill"
+  ],
+  "ComponentAdditions": 10,
+  "BrowserFailures": []
+}

@@ -1,0 +1,79 @@
+frames 3
+expect steps == 0
+key Keypad7
+key Keypad5
+frames 2
+expect orthographic == 1
+click @DrawArc
+frames 2
+expect drawing == Arc
+expect drawing-surface == 0
+click world -0.7 -0.6 0
+frames 2
+move world 0.4 -0.45 0 Shift
+frames 2
+expect snap contains Shift straight
+expect drawing-pointer-y > -0.62
+expect drawing-pointer-y < -0.58
+expect snap-lock == none
+capture Shift_Arc_Aligned_Endpoints
+click world 0.4 -0.45 0 Shift
+frames 2
+expect drawing-points == 2
+move world 0 -0.9 0 Shift
+frames 2
+expect drawing-pointer-y < -0.8
+capture Shift_Arc_Free_Bulge
+click world 0 -0.9 0 Shift
+frames 3
+expect drawing == 0
+expect sketches contains Arc
+expect steps == 1
+expect refused == 0
+key Z Ctrl
+frames 2
+expect steps == 0
+click @SurfaceTraceTool
+frames 2
+expect surface-trace == 0
+# Hide the movable drawing popup before targeting the upper-right viewport.
+click @DrawingOptions
+frames 2
+click @ConstructLauncher
+frames 2
+click @ConstructSectionSketch
+frames 2
+click @ConstructSketchLine
+frames 2
+expect drawing == Line
+expect drawing-segment == 0
+click world -0.7 -0.6 0
+click world 0.5 -0.4 0 Shift
+frames 2
+expect drawing-points == 2
+move world 0.6 0.5 0 Shift
+frames 2
+expect snap contains Shift straight
+expect drawing-pointer-x > 0.47
+expect drawing-pointer-x < 0.53
+capture Shift_Polyline_Per_Segment_Axes
+click world 0.6 0.5 0 Shift
+key Enter
+frames 3
+expect drawing == 0
+expect steps == 1
+expect refused == 0
+key S Shift
+frames 2
+expect drawing == Curve
+click world -0.8 0.8 0
+move world -0.2 1.0 0 Shift
+frames 2
+expect snap == none
+expect drawing-pointer-y > 0.9
+expect snap-lock == none
+capture Shift_Leaves_Freeform_Curves_Free
+key Escape
+frames 2
+expect steps == 1
+expect refused == 0

@@ -1,0 +1,128 @@
+# SolidArc shells walkthrough — sketches drawn on a body face (the drawing plane follows the planar face under the first
+# click), Ctrl object snaps at the important points only (without Ctrl the pointer keeps the 0.1 grid), closed sections
+# lofted straight into a capped solid shell, and the Outliner eye / lock on sketches and bodies.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/ShellsRecovery.solidarc
+#      --document …/Shells.solidarc --script Scripts/ShellsWalkthrough.txt
+# (sketches counts the block's own profile too.)
+# Closed forms: block 2.3 × 2 × 1 = 4.6; the midpoint of its front top edge is (1.15, 0, 1) — off the 0.1 grid, so only
+# the Ctrl snap reaches it; circle r 0.5 on the top face (z 1) lofted to circle r 1 on the ground = an oblique frustum,
+# V = π · 1 / 3 · (1 + 0.25 + 0.5) = 1.832596 (Cavalieri: parallel similar sections).
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① a 2.3 × 2 × 1 block from the Construct menu
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+move world 2.3 2.0 0.0
+frames 2
+click world 2.3 2.0 0.0
+frames 2
+move world 2.3 2.0 1.0
+frames 2
+click world 2.3 2.0 1.0
+frames 3
+expect bodies == 1
+expect volume ~ 4.6
+
+# ② Rectangle (Shift+Q): hovering the block top, the drawing plane follows that face (z 1), not the ground
+key Q Shift
+frames 2
+expect drawing == 1
+move world 1.0 1.0 1.0
+frames 2
+expect face-plane == 1
+expect face-plane-z ~ 1
+capture 231SketchFacePlane
+
+# ③ without Ctrl the first corner keeps the 0.1 grid on the face: (1.13, 0.04) → (1.1, 0)
+click world 1.13 0.04 1.0
+frames 2
+expect drawing-points == 1
+expect drawing-last-x ~ 1.1
+expect drawing-last-y ~ 0
+key Z Ctrl
+frames 2
+expect drawing-points == 0
+
+# ④ with Ctrl the same pointer snaps to the edge midpoint (1.15, 0, 1) — an important point, off the grid
+click world 1.13 0.04 1.0 Left Ctrl
+frames 2
+expect drawing-points == 1
+expect drawing-last-x ~ 1.15
+expect drawing-last-y ~ 0
+expect snapped-points == 1
+move world 1.8 1.2 1.0
+frames 2
+capture 232SketchMidpointOnFace
+click world 1.8 1.2 1.0
+frames 3
+expect drawing == 0
+expect sketches == 2
+expect last-sketch-z ~ 1
+expect last-sketch-normal-z ~ 1
+
+# ⑤ two circles — r 0.5 on the block top, r 1 on the ground beside it — loft (L) straight into a capped solid shell
+key W Shift
+frames 2
+click world 1.2 1.0 1.0
+frames 2
+click world 1.7 1.0 1.0
+frames 3
+expect sketches == 3
+expect last-sketch-z ~ 1
+key W Shift
+frames 2
+move world -2.0 -0.5 0.0
+frames 2
+expect face-plane == 0
+click world -2.0 -0.5 0.0
+frames 2
+click world -1.0 -0.5 0.0
+frames 3
+expect sketches == 4
+expect last-sketch-z ~ 0
+click @Figure:Sketch#4
+frames 2
+click @Figure:Sketch#5 Left Shift
+frames 2
+expect selected-curves == 2
+key L
+frames 4
+expect refused == 0
+expect last-step == 1
+expect panels == 0
+expect bodies == 2
+expect sound == 1
+expect volume ~ 6.432596
+capture 233SolidLoftShell
+
+# ⑥ the Outliner eye hides the face sketch; the lock keeps the block in view but out of picking
+click @Visibility:Sketch#3
+frames 3
+expect hidden-curves == 1
+click @Lock:Extrude#2
+frames 3
+expect locked == 1
+click world 2.1 1.8 1.0
+frames 2
+expect selected-bodies == 0
+capture 234HiddenLocked
+click @Lock:Extrude#2
+frames 2
+expect locked == 0
+click @Visibility:Sketch#3
+frames 2
+expect hidden-curves == 0

@@ -1,0 +1,274 @@
+# SolidArc sketch constraints walkthrough — K (constrain; free in Plasticity's keymap) opens a SolveSpace-style
+# session on the focused / newest sketch: click points and curves, then D distance / length / radius and N angle (type a
+# value, Enter), H V O Q M Y L [ ] at once; drag points (the rest follows the constraints); click a glyph or dimension to
+# pick it, Delete removes it, digits + Enter change a dimension. Fixed geometry draws green, free light blue.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/ConstraintsRecovery.solidarc
+#      --document …/Constraints.solidarc --script Exhibits/SolidArc/Code/Scripts/ConstraintsWalkthrough.txt
+# Closed forms: the 2 × 1 rectangle extruded 1 → ] corner, D 3, D 2 → V 6 (DOF 4 → 2 → 1 → 0); D1 = 4 → V 8; D2 removed,
+# far corner dragged to (4, 3) → V 12. Line chain: ] start, H, D 1.5, angle 45°, equal → (0.5, 3.4) (2, 3.4) (3.06066, 4.46066).
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document, Top view: a 2 × 1 rectangle extruded 1 (New)
+key N Ctrl
+frames 2
+expect steps == 0
+key Keypad7
+frames 2
+key Keypad5
+frames 2
+wheel viewport 0.5 0.5 -4
+frames 2
+# (pans the origin to 228 px left of / 150 px below the centre: the sketch stays above the Select / Cut / Trim toolbar)
+drag Right viewport 0.5 0.5 by -228 150 24
+frames 2
+key Q Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 2.0 1.0 0.0
+frames 2
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect steps == 2
+expect volume ~ 2
+
+# ② K opens on the newest sketch: four H / V constraints, 4 degrees of freedom (corner x, y, width, height)
+key Escape
+frames 2
+key K
+frames 3
+expect constrain == 1
+expect constraint-count == 4
+expect constraints == H1,V1,H2,V2
+expect sketch-dof == 4
+expect sketch-status == under-constrained
+expect status contains Constrain Rectangle1
+capture 122ConstrainOpen
+
+# ③ click the first corner, ] locks it where it is (F1): DOF 2; the corner turns green
+click world 0.0 0.0 0.0
+frames 2
+expect constrain-picks == Line1.Start
+key RightBracket
+frames 3
+expect constraint-count == 5
+expect sketch-dof == 2
+expect constrain-picks == 0
+expect constrain-commits == 1
+
+# ④ click the bottom line, D, type 3, Enter → D1 (length 3): DOF 1, the extrude follows → V 3
+click world 1.0 0.0 0.0
+frames 2
+expect constrain-picks == Line1
+key D
+frames 2
+expect status contains type a value
+type 3
+frames 1
+key Enter
+frames 3
+expect constraint-count == 6
+expect sketch-dof == 1
+expect volume ~ 3
+expect picked-constraint contains D1
+
+# ⑤ the right side, D, 2, Enter → D2: fully constrained (everything green), V 6
+key Escape
+frames 1
+click world 3.0 0.5 0.0
+frames 2
+expect constrain-picks == Line2
+key D
+frames 2
+type 2
+key Enter
+frames 3
+expect sketch-dof == 0
+expect sketch-status == fully constrained
+expect constraints == H1,V1,H2,V2,F1,D1,D2
+expect volume ~ 6
+expect sketch-points == (0, 0) (3, 0) (3, 2) (0, 2)
+key Escape
+frames 2
+capture 123ConstrainFull
+
+# ⑥ the top line again with D: the measured 3 is implied (redundant), a typed 5 conflicts — both refused by name
+click world 1.5 2.0 0.0
+frames 2
+key D
+frames 2
+key Enter
+frames 3
+expect constraint-count == 7
+expect constrain-refusal contains is already implied by
+expect constrain-refusal contains D1
+type 5
+key Enter
+frames 3
+expect constraint-count == 7
+expect constrain-refusal contains conflicts with
+expect volume ~ 6
+capture 124ConstrainConflict
+key Escape
+frames 1
+key Escape
+frames 2
+expect constrain-picks == 0
+expect constrain == 1
+
+# ⑦ click D1's dimension (outside the bottom edge), type 4, Enter: the width follows → V 8; Ctrl+Z → 6, Ctrl+Shift+Z → 8
+click world 1.5 0.0 0.0 offset 0 22
+frames 2
+expect picked-constraint contains D1
+type 4
+key Enter
+frames 3
+expect volume ~ 8
+expect sketch-points contains (4, 2)
+key Z Ctrl
+frames 3
+expect volume ~ 6
+key Z Ctrl Shift
+frames 3
+expect volume ~ 8
+expect constrain == 1
+capture 125ConstrainEdit
+
+# ⑧ click D2's dimension (outside the right edge), Delete removes it: DOF 1, the body stays
+key Escape
+frames 1
+click world 4.0 1.0 0.0 offset 22 0
+frames 2
+expect picked-constraint contains D2
+key Delete
+frames 3
+expect constraint-count == 6
+expect constraints == H1,V1,H2,V2,F1,D1
+expect sketch-dof == 1
+expect volume ~ 8
+
+# ⑨ drag the far corner from (4, 2) up to (4, 3): the top edge follows (width held by D1, corner by F1) → V 12
+move world 4.0 2.0 0.0
+frames 2
+press Left
+frames 1
+move world 4.0 2.5 0.0
+frames 2
+move world 4.0 3.0 0.0
+frames 3
+expect constrain == 1
+expect volume ~ 8
+capture 126ConstrainDragging
+release Left
+frames 3
+expect sketch-points == (0, 0) (4, 0) (4, 3) (0, 3)
+expect volume ~ 12
+expect constrain-commits == 6
+
+# ⑩ the locked corner cannot be dragged; the refusal says so and nothing changes
+move world 0.0 0.0 0.0
+frames 2
+press Left
+frames 1
+move world -0.3 -0.3 0.0
+frames 2
+move world -0.6 -0.6 0.0
+frames 2
+release Left
+frames 3
+expect constrain-refusal contains fully constrained
+expect volume ~ 12
+expect constrain-commits == 6
+
+# ⑪ K ends; a line chain (0.5, 3.4) → (2.5, 3.6) → (3.5, 4.4) above the block, K on it: ] its start (F1), Line1 H by the
+#    Inspector button (H1), D 1.5 on Line1 (D1): DOF 6 → 4 → 3 → 2
+key K
+frames 2
+expect constrain == 0
+key A Shift
+frames 2
+click world 0.5 3.4 0.0
+frames 2
+click world 2.5 3.6 0.0
+frames 2
+click world 3.5 4.4 0.0
+frames 2
+key Enter
+frames 2
+key K
+frames 3
+expect constrain == 1
+expect constraint-count == 0
+expect sketch-dof == 6
+click world 0.5 3.4 0.0
+frames 2
+expect constrain-picks == Line1.Start
+key RightBracket
+frames 3
+expect sketch-dof == 4
+click world 1.5 3.5 0.0
+frames 2
+expect constrain-picks == Line1
+click @ConstrainH
+frames 3
+expect constraints == F1,H1
+expect sketch-dof == 3
+click world 1.5 3.4 0.0
+frames 2
+key D
+frames 2
+type 1.5
+key Enter
+frames 3
+expect constraints == F1,H1,D1
+expect sketch-dof == 2
+expect sketch-points == (0.5, 3.4) (2, 3.4) (3.5, 4.4)
+
+# ⑫ Line1 + Line2, N 45, Enter (A1); Line1 + Line2, Q (Q1): fully constrained at the closed-form corner
+key Escape
+frames 1
+click world 1.25 3.4 0.0
+frames 2
+click world 2.75 3.9 0.0
+frames 2
+expect constrain-picks == Line1,Line2
+key N
+frames 2
+type 45
+key Enter
+frames 3
+expect constraints == F1,H1,D1,A1
+expect sketch-dof == 1
+key Escape
+frames 1
+click world 1.25 3.4 0.0
+frames 2
+click world 2.625 4.025 0.0
+frames 2
+expect constrain-picks == Line1,Line2
+key Q
+frames 3
+expect constraints == F1,H1,D1,A1,Q1
+expect sketch-dof == 0
+expect sketch-status == fully constrained
+expect sketch-points == (0.5, 3.4) (2, 3.4) (3.06066, 4.46066)
+move viewport 0.9 0.3
+frames 2
+capture 127ConstrainAngle
+
+# ⑬ Esc with nothing picked ends the session; the constraints are saved with the document
+key Escape
+frames 2
+expect constrain == 0
+expect refused == 0

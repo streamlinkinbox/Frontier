@@ -1,0 +1,578 @@
+{
+ "sphere": {
+  "Valid": true,
+  "BuildMsMedian": 530.6,
+  "SourceTriangles": 5120,
+  "Levels": [
+   {
+    "Level": 0,
+    "Clusters": 48,
+    "Triangles": 5120,
+    "Vertices": 2562,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 1,
+    "Clusters": 39,
+    "Triangles": 2558,
+    "Vertices": 1281,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.07240397000287828,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 2,
+    "Clusters": 20,
+    "Triangles": 1280,
+    "Vertices": 642,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.19796494190960678,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 2
+   },
+   {
+    "Level": 3,
+    "Clusters": 5,
+    "Triangles": 640,
+    "Vertices": 322,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.29119947172655475,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 4,
+    "Clusters": 3,
+    "Triangles": 320,
+    "Vertices": 162,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.42265627945913764,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 5,
+    "Clusters": 2,
+    "Triangles": 160,
+    "Vertices": 82,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.6148654497415396,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 6,
+    "Clusters": 1,
+    "Triangles": 80,
+    "Vertices": 42,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.9161787552330721,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   }
+  ],
+  "PerClusterCut": [
+   {
+    "Tau": 0.0009161787552330722,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.001790149525980581,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.003497827587754152,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.006834511674074957,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.013354160161181145,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.026093099568026544,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.050984100598560456,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.09961938431528103,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.19464934391008698,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.3803312713188031,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.7431408348840632,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 1.4520454722463936,
+    "Gaps": 0,
+    "Overlaps": 0
+   }
+  ]
+ },
+ "glass-sphere": {
+  "Valid": true,
+  "BuildMsMedian": 399.5,
+  "SourceTriangles": 5120,
+  "Levels": [
+   {
+    "Level": 0,
+    "Clusters": 56,
+    "Triangles": 5120,
+    "Vertices": 2562,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 1,
+    "Clusters": 35,
+    "Triangles": 2558,
+    "Vertices": 1281,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.0722405481539353,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 2,
+    "Clusters": 23,
+    "Triangles": 1280,
+    "Vertices": 642,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.18080561578422324,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 5
+   },
+   {
+    "Level": 3,
+    "Clusters": 23,
+    "Triangles": 640,
+    "Vertices": 322,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.3317857681480847,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 28
+   },
+   {
+    "Level": 4,
+    "Clusters": 25,
+    "Triangles": 352,
+    "Vertices": 178,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 1.7163362361875985,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 102
+   }
+  ],
+  "PerClusterCut": [
+   {
+    "Tau": 0.0017163362361875985,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.0033536015565574784,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.006552704046572063,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.012803527669529805,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.025017202000778994,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.04888187162958382,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.0955117752151784,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.1866233615988166,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.3646490604533114,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.7124988862612245,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 1.3921732371732916,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 2.720209616708056,
+    "Gaps": 0,
+    "Overlaps": 0
+   }
+  ]
+ },
+ "heightfield-cliff": {
+  "Valid": true,
+  "BuildMsMedian": 711.9,
+  "SourceTriangles": 8192,
+  "Levels": [
+   {
+    "Level": 0,
+    "Clusters": 80,
+    "Triangles": 8192,
+    "Vertices": 4225,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 1,
+    "Clusters": 55,
+    "Triangles": 4096,
+    "Vertices": 2177,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 0.6847114099641776,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 2,
+    "Clusters": 64,
+    "Triangles": 2046,
+    "Vertices": 1152,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 2.334153533948566,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 56
+   },
+   {
+    "Level": 3,
+    "Clusters": 53,
+    "Triangles": 1022,
+    "Vertices": 640,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 4.028661639520838,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 73
+   },
+   {
+    "Level": 4,
+    "Clusters": 23,
+    "Triangles": 526,
+    "Vertices": 392,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 14.90141506150716,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 171
+   },
+   {
+    "Level": 5,
+    "Clusters": 12,
+    "Triangles": 262,
+    "Vertices": 260,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 27.57550188655238,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 194
+   },
+   {
+    "Level": 6,
+    "Clusters": 11,
+    "Triangles": 254,
+    "Vertices": 256,
+    "SharpEdges": 0,
+    "UvSeams": 0,
+    "MaxError": 47.821452061632975,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 217
+   }
+  ],
+  "PerClusterCut": [
+   {
+    "Tau": 0.04782145206163298,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.09343978917963136,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.18257484508586905,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.3567385409447752,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.6970422816766056,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 1.3619721075221394,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 2.6611987112266977,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 5.199797074786651,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 10.160041602641737,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 19.852014200313036,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 38.78945414032155,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 75.79189382608762,
+    "Gaps": 0,
+    "Overlaps": 0
+   }
+  ]
+ },
+ "uv-creased-vessel": {
+  "Valid": true,
+  "BuildMsMedian": 276.6,
+  "SourceTriangles": 2976,
+  "Levels": [
+   {
+    "Level": 0,
+    "Clusters": 48,
+    "Triangles": 2976,
+    "Vertices": 1490,
+    "SharpEdges": 144,
+    "UvSeams": 116,
+    "MaxError": 0,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 1,
+    "Clusters": 24,
+    "Triangles": 1496,
+    "Vertices": 750,
+    "SharpEdges": 144,
+    "UvSeams": 115,
+    "MaxError": 0.1238659404792278,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 2,
+    "Clusters": 9,
+    "Triangles": 748,
+    "Vertices": 376,
+    "SharpEdges": 110,
+    "UvSeams": 74,
+    "MaxError": 0.27280554258002376,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 3,
+    "Clusters": 5,
+    "Triangles": 374,
+    "Vertices": 189,
+    "SharpEdges": 74,
+    "UvSeams": 54,
+    "MaxError": 0.5336363573172935,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 1
+   },
+   {
+    "Level": 4,
+    "Clusters": 3,
+    "Triangles": 186,
+    "Vertices": 95,
+    "SharpEdges": 52,
+    "UvSeams": 36,
+    "MaxError": 0.9377444186365058,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   },
+   {
+    "Level": 5,
+    "Clusters": 1,
+    "Triangles": 92,
+    "Vertices": 48,
+    "SharpEdges": 32,
+    "UvSeams": 23,
+    "MaxError": 1.6277967153634885,
+    "OffCrease": 0,
+    "SeamCrossing": 0,
+    "Needles": 0
+   }
+  ],
+  "PerClusterCut": [
+   {
+    "Tau": 0.0016277967153634884,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.003180601494802601,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.0062146739658960285,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.012143040417197217,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.02372665587653645,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.04636023431877199,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.0905846714039834,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.17699614365506064,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.3458381466004332,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 0.6757436697440888,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 1.3203561020895103,
+    "Gaps": 0,
+    "Overlaps": 0
+   },
+   {
+    "Tau": 2.579883932890155,
+    "Gaps": 0,
+    "Overlaps": 0
+   }
+  ]
+ }
+}

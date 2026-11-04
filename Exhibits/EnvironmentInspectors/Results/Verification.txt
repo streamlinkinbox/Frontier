@@ -1,0 +1,47 @@
+Native environment inspector verification — 2026-11-02 UTC
+
+Source: a1771e9b0574cfd3168f09318aa5bd750fdc9139 plus working tree (SourceManifest.json).
+Branch: arena/8b705b7d-frontier; imported streamlinkinbox/Frontier arena/88b72faa-frontier history.
+Reference: SultanAladin/Frontier 6afb6f00b5f25c45f7cda92c7da65b64845768f3.
+
+CHECK                                        RESULT
+Linux Debug build (GCC 12)                    PASS
+EnvironmentInspectorValidation              PASS: 319 assertions, zero failures
+Pinned-source numerical fixtures             PASS: 114 rows (optical RGB, cloud profile/global/local density)
+Native standalone rendered captures          PASS: 37 PNGs, including Sun/Atmosphere and narrow Moon
+EverestInterfaceValidation                   PASS: 32 environment page captures; 29-record project
+EverestShippingValidation                    PASS: editor-free runtime, simulation and serialization
+Windows x64 Release cross-build              PASS: Zig 0.13.0 / Clang 18.1.6, Frontier.exe
+Windows archive                              PASS: ZIP integrity; all 901 manifest file hashes match
+Archive content                              PASS: current executable, 29 records, separate AerialFog, SLAT catalogue
+Stored shader archives                       PASS: Environment 15 / GlobalIllumination 33 / Surface 18
+Pinned demo browser captures                  PASS: 28 PNGs, zero reported page errors (Chromium 141)
+Scene renderer changes                       NONE: EnvironmentOverlay.cpp remains byte-identical to imported tip
+Windows interactive execution                NOT RUN: no Windows session / Wine available
+Hardware GPU / Vulkan visual validation      NOT RUN for this UI change
+Exhaustive 1:1 responsive visual acceptance   PENDING; comparisons retained, not pixel-parity certification
+Executable signing / antivirus scan          NOT RUN
+
+The browser is a reference capture only. Native captures rasterize the real production C++ ImGui commands.
+UI diagrams and equations are authoring references, not evidence of new scene-renderer capabilities.
+The archive intentionally omits the Texture Studio material archives, as the existing packaging convention permits.
+
+319 assertions; 0 failures
+
+Test project /home/user/Frontier/_ClaudeScratch/build/UI
+    Start 58: EverestInterfaceValidation
+1/2 Test #58: EverestInterfaceValidation .......   Passed  165.33 sec
+    Start 59: EverestShippingValidation
+2/2 Test #59: EverestShippingValidation ........   Passed    0.02 sec
+
+100% tests passed out of 2
+
+Total Test time (real) = 165.36 sec
+
+Windows editor preview: /home/user/Frontier/Binaries/FrontierSceneViewport-Windows-x64.zip (22.7 MiB)
+SHA256: a89cd05cdac3d28e55ed5e4b9783a24b71bb663a94511e3b7d633cd8e57e75df
+Unsigned, not antivirus-scanned, never launched on Windows here: interactive startup is a user acceptance check.
+
+Archive size: 23781967 bytes
+Archive SHA256: a89cd05cdac3d28e55ed5e4b9783a24b71bb663a94511e3b7d633cd8e57e75df
+Executable SHA256: dd149138e9a3e178114d12ecdce7a50d519ba97ef2905ccf8fc932449d53e20d

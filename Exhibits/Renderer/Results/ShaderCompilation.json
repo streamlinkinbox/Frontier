@@ -1,0 +1,172 @@
+{
+  "compiler": "2026.19",
+  "target": "SPIRV",
+  "compiler_javascript_sha256": "60fe8b4234d73d67c69d798d6deddb820c594a7f130b913b673f2d9c66b769ab",
+  "compiler_wasm_sha256": "834d30ccf9fc5c01baa33cca361734fbd65a0cdd3985af95bb454ecfff66e5f1",
+  "sources": [
+    {
+      "file": "Engine/Render/Shader/AutomotivePaint.slang",
+      "sha256": "c973b9836e49afbed482296f6eeebe49ed9d9ca9594ad345341209dc8454d398"
+    },
+    {
+      "file": "Engine/Render/Shader/CadEdge.slang",
+      "sha256": "7dd89dcd37fb850bd7b9d9fc8fb415898688c64d266360d622ebfc01c6af3bf2"
+    },
+    {
+      "file": "Engine/Render/Shader/CadSurface.slang",
+      "sha256": "958c17b1233ea940b3c80f81a355b06f615708f63e3c8038cf4193d210515513"
+    },
+    {
+      "file": "Engine/Render/Shader/MatCapSurface.slang",
+      "sha256": "16d05bd02b4e2f49fc90b274ce25ac094ccc37dde6c8ec4ae65d4a2734f155e5"
+    },
+    {
+      "file": "Engine/Render/Shader/MaterialSurface.slang",
+      "sha256": "e210f08ad4fee7580a62256e7ec60a23ef8414fc206f4dcb60b46b32206521cb"
+    },
+    {
+      "file": "Engine/Render/Shader/PreviewPbrSurface.slang",
+      "sha256": "cf625ac89eb8afdb0689f8f4028950f727d076821cc2ac5f65788a3d423e6154"
+    },
+    {
+      "file": "Engine/Render/Shader/ScatteringEvaluation.slang",
+      "sha256": "32c77f38f50f78ff7d7f00f5d1b412dd273c72722510d42842b9154d37645cc5"
+    },
+    {
+      "file": "Engine/Render/Shader/SurfaceProjection.slang",
+      "sha256": "fa2abdd93a1ffb116e100aad6b8b34e8c1b297c23b445f8959c2e8d9d045df38"
+    }
+  ],
+  "entries": [
+    {
+      "source": "Engine/Render/Shader/CadSurface.slang",
+      "entry": "CadSurfaceVertex",
+      "bytes": 1368,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 112,
+      "source_sha256": "958c17b1233ea940b3c80f81a355b06f615708f63e3c8038cf4193d210515513",
+      "spirv_sha256": "d2a4bfa1d95ef535a2b03b990ae2b0b535ba9932dc9f18e31eb9ec8ad783c7a5"
+    },
+    {
+      "source": "Engine/Render/Shader/CadSurface.slang",
+      "entry": "CadSurfaceFragment",
+      "bytes": 1232,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 112,
+      "source_sha256": "958c17b1233ea940b3c80f81a355b06f615708f63e3c8038cf4193d210515513",
+      "spirv_sha256": "d401f5c28c6d189fe29dc212b1b663dff6707a6a6c444960bd337ed4eb366ece"
+    },
+    {
+      "source": "Engine/Render/Shader/CadEdge.slang",
+      "entry": "CadEdgeVertex",
+      "bytes": 5156,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 112,
+      "source_sha256": "7dd89dcd37fb850bd7b9d9fc8fb415898688c64d266360d622ebfc01c6af3bf2",
+      "spirv_sha256": "df0ced0b84b7f9c07c4d55753d61841a07384f4d9e63357988319b2bdc8a5e97"
+    },
+    {
+      "source": "Engine/Render/Shader/CadEdge.slang",
+      "entry": "CadEdgeFragment",
+      "bytes": 1256,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 112,
+      "source_sha256": "7dd89dcd37fb850bd7b9d9fc8fb415898688c64d266360d622ebfc01c6af3bf2",
+      "spirv_sha256": "7376e99b6db2cc38829f1cb209432596f1d6a5947d6c67f38f3c6a9c3a35271f"
+    },
+    {
+      "source": "Engine/Render/Shader/MatCapSurface.slang",
+      "entry": "MatCapSurfaceVertex",
+      "bytes": 1792,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 128,
+      "source_sha256": "16d05bd02b4e2f49fc90b274ce25ac094ccc37dde6c8ec4ae65d4a2734f155e5",
+      "spirv_sha256": "2ec90a67ea16046e5a26820c5097cdac7f25fe78226d6e3b8a8e3d1891e23604"
+    },
+    {
+      "source": "Engine/Render/Shader/MatCapSurface.slang",
+      "entry": "MatCapSurfaceFragment",
+      "bytes": 2160,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 128,
+      "source_sha256": "16d05bd02b4e2f49fc90b274ce25ac094ccc37dde6c8ec4ae65d4a2734f155e5",
+      "spirv_sha256": "f8d56b85a6874f1926f09c1d7abe0a88fba021b6bfb880161475d2e4f987c9c9"
+    },
+    {
+      "source": "Engine/Render/Shader/PreviewPbrSurface.slang",
+      "entry": "PreviewPbrSurfaceVertex",
+      "bytes": 3572,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 128,
+      "source_sha256": "cf625ac89eb8afdb0689f8f4028950f727d076821cc2ac5f65788a3d423e6154",
+      "spirv_sha256": "bcafe503d243afaf9bfe0d8a5c061f98a0ad2437fd9107cdc16a5ec8fad3687f"
+    },
+    {
+      "source": "Engine/Render/Shader/PreviewPbrSurface.slang",
+      "entry": "PreviewPbrSurfaceFragment",
+      "bytes": 17772,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 128,
+      "source_sha256": "cf625ac89eb8afdb0689f8f4028950f727d076821cc2ac5f65788a3d423e6154",
+      "spirv_sha256": "e1a9ed743b63a5f859dcaf6bed6828f9cf67bdf368f1b754b2c52867a310afe0"
+    },
+    {
+      "source": "Engine/Render/Shader/MaterialSurface.slang",
+      "entry": "MaterialSurfaceVertex",
+      "bytes": 8624,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 128,
+      "source_sha256": "e210f08ad4fee7580a62256e7ec60a23ef8414fc206f4dcb60b46b32206521cb",
+      "spirv_sha256": "3fb70328c1df86abc95d824d6052c4951ef4849484838f7ed035d3d01beb46c6"
+    },
+    {
+      "source": "Engine/Render/Shader/MaterialSurface.slang",
+      "entry": "MaterialSurfaceFragment",
+      "bytes": 52636,
+      "spirv_version": 66816,
+      "spirv_entry": "main",
+      "capabilities": [
+        1
+      ],
+      "push_constant_bytes": 128,
+      "source_sha256": "e210f08ad4fee7580a62256e7ec60a23ef8414fc206f4dcb60b46b32206521cb",
+      "spirv_sha256": "30e6f8e01f088e550b4a64f1f9324bc224af2abc9a641cf94e03aad6ac7992df"
+    }
+  ]
+}

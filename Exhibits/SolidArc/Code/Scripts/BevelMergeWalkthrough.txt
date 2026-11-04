@@ -1,0 +1,130 @@
+# SolidArc bevel merge walkthrough — the report "when we bevel and edges / vertices come close together they must merge
+# or create new vertex". Blends whose rails meet used to refuse ("contact rail runs backwards", "consumed by the blend")
+# or, just short of it, leave a sliver face. Now the modeller fuses them: rails meeting mid-face become one ridge edge
+# shared by both blends, a loop closing over its face becomes one apex vertex, and the face swept to zero area is dropped.
+# Dragging the size handle near such a size snaps onto it (a 9 px detent; Ctrl drags free), so the meet is exact.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/BevelMergeRecovery.solidarc
+#      --document …/BevelMerge.solidarc --script Exhibits/SolidArc/Code/Scripts/BevelMergeWalkthrough.txt
+# Closed forms (2 m cube = unit cube · 8): the top loop at 1 keeps 8 · 5/6 = 6.666666666666667 (fillet) and 8 · ⅔ =
+# 5.333333333333333 (chamfer); two parallel top edges at 1 keep 4 + π = 7.141592653589793 (fillet) and 6 (chamfer).
+
+snap grid on
+
+# ① a 2 m cube, the four top edges picked (edge mode, Shift adds), B
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect volume ~ 8
+key 2
+frames 2
+click world 0.0 -1.0 2.0
+frames 2
+click world 1.0 0.0 2.0 Left Shift
+frames 2
+click world 0.0 1.0 2.0 Left Shift
+frames 2
+click world -1.0 0.0 2.0 Left Shift
+frames 2
+expect selected-edges == 4
+key B
+frames 8
+expect bevel-active == 1
+expect bevel-merges == 2
+expect bevel-merge-first ~ 1
+
+# ② typed 0.98: just short of the meet — a thin strip of the top face is left
+click @BevelSize
+key A Ctrl
+type 0.98
+key Enter
+frames 8
+expect bevel-size ~ 0.98
+expect bevel-refusal == 0
+capture 373BevelMergeNear
+
+# ③ a nudge of the size handle: inside the detent the size snaps to 1, the four rails close to one apex vertex
+drag left @BevelHandle0 by 0 2 2
+frames 10
+expect bevel-merge-snaps > 0
+expect bevel-size ~ 1
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 6.666666666666667
+capture 374BevelMergeApexFillet
+
+#    C: the chamfers meet in a pyramid apex
+key C
+frames 12
+expect bevel-chamfer == 1
+expect bevel-size ~ 1
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 5.333333333333333
+capture 375BevelMergeApexChamfer
+key Enter
+frames 6
+expect refused == 0
+expect sound == 1
+expect volume ~ 5.333333333333333
+
+# ④ a fresh cube, the front and back top edges at 1: the two rails meet mid-top and fuse into one ridge edge
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+key 2
+frames 2
+click world 0.0 -1.0 2.0
+frames 2
+click world 0.0 1.0 2.0 Left Shift
+frames 2
+expect selected-edges == 2
+key B
+frames 8
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 8
+expect bevel-size ~ 1
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 7.141592653589793
+capture 376BevelMergeRidgeFillet
+key C
+frames 12
+expect bevel-size ~ 1
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 6
+capture 377BevelMergeRidgeChamfer
+key Enter
+frames 6
+expect refused == 0
+expect sound == 1
+expect volume ~ 6

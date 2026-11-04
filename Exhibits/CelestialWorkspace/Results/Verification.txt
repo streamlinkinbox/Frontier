@@ -1,0 +1,57 @@
+Celestial and workspace verification — 2026-11-02
+
+Source: b495bdb plus the exact files identified by SourceManifest.json.
+Host: Linux x86-64 / GCC 12 / Debug. Native GPU execution: SwiftShader Device (Subzero).
+Windows: Zig 0.13.0 / Clang 18.1.6 / x86_64-windows-gnu Release, cross-built but not executed on Windows.
+
+PASS: CelestialRenderValidation — 102 checks, including lunar controls/four slots, planets, stars and float32 space coordinates.
+PASS: CelestialWorkspaceValidation — 95 checks, including real renderer/UI captures, camera modes and fullscreen restoration.
+PASS: EnvironmentInspectorValidation — 337 assertions, zero failures, full planet-page captures and codec/input regressions.
+PASS: EverestInterfaceValidation and EverestShippingValidation using the explicit simulation fixture.
+PASS: LocalMediaValidation, SolarOcclusionValidation, ForceFieldTriggerValidation and SceneViewportFlightValidation.
+PASS: Environment and GlobalIllumination stored SPIR-V match compiled archives and current source manifests.
+PASS: Windows x64 build. Interactive Windows / hardware GPU execution NOT RUN.
+
+Default: 20 records persisted; 15 scene/environment entries shown. Required renderer configuration is hidden from Outliner.
+Each panel reserves its own footer. V fills the client area and Escape restores docking. Axis views are perspective.
+Space starts at 150 km; native visibility origins and distances use float32, not overflowing half-floats.
+Body preview uses the production CPU evaluator under fixed light; native viewport images use the GPU path.
+No new orbital mechanics, artificial placeholder scene objects, or hardware performance claims.
+
+102 celestial GPU checks passed
+
+95 workspace checks passed
+
+337 assertions; 0 failures
+
+Test project /home/user/Frontier/_ClaudeScratch/build/UI
+    Start 60: EverestInterfaceValidation
+1/2 Test #60: EverestInterfaceValidation .......   Passed  346.24 sec
+    Start 61: EverestShippingValidation
+2/2 Test #61: EverestShippingValidation ........   Passed    0.07 sec
+
+100% tests passed out of 2
+
+Total Test time (real) = 346.31 sec
+
+Test project /home/user/Frontier/_ClaudeScratch/build/UI
+    Start 63: LocalMediaValidation
+1/4 Test #63: LocalMediaValidation .............   Passed  204.66 sec
+    Start 65: SolarOcclusionValidation
+2/4 Test #65: SolarOcclusionValidation .........   Passed  285.44 sec
+    Start 66: ForceFieldTriggerValidation
+3/4 Test #66: ForceFieldTriggerValidation ......   Passed   43.33 sec
+    Start 70: SceneViewportFlightValidation
+4/4 Test #70: SceneViewportFlightValidation ....   Passed    0.00 sec
+
+100% tests passed out of 4
+
+Total Test time (real) = 533.44 sec
+
+Final Windows archive
+Source revision: c6e31f68e250d4dfa8f6205b12fdb98acc8c46d6 (clean source)
+Bytes: 23828892
+SHA256: 9bd6b57e03af13cfdb946e125e98db380a75ca2a0b446013d8ef84231e4d1db8
+PASS: all 901 file hashes; exact executable; current environment/global-illumination SPIR-V.
+PASS: 20 persisted records, unused demonstration entries absent, 15 scene entries presented in Outliner.
+Windows runtime: NOT RUN. Signed: NO. Antivirus scan: NOT RUN.

@@ -1,0 +1,26 @@
+{
+  "result": "passed",
+  "checks": 14,
+  "transport": "HTTP to persistent native C++ ImGui runner",
+  "browser_executed": false,
+  "os_window_created": false,
+  "windows_executed": false,
+  "native_before": {
+    "serial": 11,
+    "revision": 2,
+    "layers": 1
+  },
+  "native_after": {
+    "serial": 47,
+    "revision": 3,
+    "layers": 2
+  },
+  "capture_before_sha256": "071dbdec7a31e8049a4ac655d0a58f7d500ec56ad2da8d36fc7e45a8eaacdfbe",
+  "capture_after_sha256": "c838d9dfc24d1590247eb2b5f77a88c65c5d07fe8db8bcab417b35b911617bb0",
+  "source_sha256": {
+    "Exhibits/TextureStudio/Code/ServeNativePattern.py": "69a2526364f2a4b076cc0ef6e6e2b88959bc1ac62416d576e7e9fb69b7ee5c3d",
+    "Exhibits/TextureStudio/Code/VerifyNativePatternStream.py": "3284bc0eef33b6f9be9629f7ea8541a426f58b952930fd7ae08ba17646176c67",
+    "Exhibits/TextureStudio/NativePatternStream.html": "04997145c17d4faad8ca1b9e91973a839d2f33c6363d23665a232e05d48cf637",
+    "Exhibits/TextureStudio/Code/PatternWorkspaceValidation.cpp": "816a2c2a5b64623eb65b2ce7f10590d7397f84812b6f261a71c0caf8db50dc4a"
+  }
+}

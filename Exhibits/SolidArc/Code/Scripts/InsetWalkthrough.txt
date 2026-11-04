@@ -1,0 +1,117 @@
+# SolidArc inset walkthrough — Plasticity has no inset command: its O (command:offset-curve) on a face offsets the face
+# boundary inward, so SolidArc binds O on selected faces to Inset, and I (the Blender key) as an alias. The pointer drives
+# the inset distance (D) or the inner face's depth (H: + boss, − pocket); the card fields take typed values.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/InsetRecovery.solidarc
+#      --document …/Inset.solidarc --script Scripts/InsetWalkthrough.txt
+# Closed forms: box 2 × 1.5 × 1 = 3 · inset 0.25 flat = 3 · pocket −0.2 = 3 − 1.5 · 1.0 · 0.2 = 2.7 ·
+# floor inset 0.1 boss +0.2 = 2.7 + 1.3 · 0.8 · 0.2 = 2.908.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① a box drawn from the Construct menu (2 × 1.5 × 1, a new body)
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+click world -2.0 -1.5 0.0
+frames 2
+move world 0.0 0.0 0.0
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+move world 0.0 0.0 1.0
+frames 2
+click world 0.0 0.0 1.0
+frames 3
+expect bodies == 1
+expect volume ~ 3
+expect faces == 6
+
+# ② face mode, pick the top, O opens Inset (offset-curve on a face)
+key 3
+frames 1
+click world -1.0 -0.7 1.0
+frames 2
+expect selected-faces == 1
+key O
+frames 2
+expect bevel-active == 1
+expect bevel-verb == 3
+expect bevel-depth-pointer == 0
+capture 212InsetOpened
+
+# ③ typed distance 0.25, depth 0: the top splits into a border ring and an inner face (volume unchanged)
+click @BevelSize
+key A Ctrl
+type 0.25
+key Enter
+frames 3
+expect bevel-size ~ 0.25
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 3
+capture 213InsetFlat
+
+# ④ H: the pointer would now drive the depth; typed −0.2 makes a pocket
+key H
+frames 1
+expect bevel-depth-pointer == 1
+click @InsetDepthText
+key A Ctrl
+type -0.2
+key Enter
+frames 3
+expect bevel-depth ~ -0.2
+expect bevel-preview-volume ~ 2.7
+capture 214InsetPocketPreview
+key Enter
+frames 3
+expect bevel-active == 0
+expect refused == 0
+expect volume ~ 2.7
+expect faces == 11
+capture 215InsetPocket
+
+# ⑤ I (alias): the pocket floor takes a second inset 0.1 raised +0.2 as a boss (picked off the gizmo standing on the
+#    floor centre: its handles fill the +x / +y quadrants)
+click world -1.5 -0.4 0.8
+frames 2
+key I
+frames 2
+expect bevel-active == 1
+expect bevel-verb == 3
+click @BevelSize
+key A Ctrl
+type 0.1
+key Enter
+click @InsetDepthText
+key A Ctrl
+type 0.2
+key Enter
+frames 3
+expect bevel-preview-volume ~ 2.908
+key Enter
+frames 3
+expect bevel-active == 0
+expect volume ~ 2.908
+expect faces == 16
+capture 216InsetBoss
+
+# ⑥ too wide: inset 0.8 on the 1.5-deep ring face is refused live, Esc leaves the document untouched
+click world -1.0 -1.4 1.0
+frames 2
+key O
+frames 2
+click @BevelSize
+key A Ctrl
+type 0.8
+key Enter
+frames 3
+expect bevel-refusal > 0
+capture 217InsetRefused
+key Escape
+frames 2
+expect bevel-active == 0
+expect volume ~ 2.908

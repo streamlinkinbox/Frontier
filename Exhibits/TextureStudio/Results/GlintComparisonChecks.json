@@ -1,0 +1,402 @@
+{
+  "result": "passed",
+  "browser": "HeadlessChrome/133.0.6943.0",
+  "operating_system": "linux 6.1.158+ x64",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.60GHz",
+  "logical_cpus": 2,
+  "hardware_execution": false,
+  "windows_execution": false,
+  "full_material_integration": false,
+  "official_glinty_reference": false,
+  "timing_scope": "EXT_disjoint_timer_query_webgl2 around one draw; software-renderer device timestamp duration, not hardware GPU performance",
+  "repetitions": 7,
+  "warmups": 2,
+  "fixed_point_light": true,
+  "inputs": {
+    "chermain_commit": "96c08fdff986e9eb83509850770b4946d829bcea",
+    "chermain_licence": "MIT",
+    "glinty_adapter_commit": "0ca4ab63223f2a836413daab9ab05cf4d29a8591",
+    "glinty_adapter_repository": "Gistix/CreationEngineRaytracing",
+    "glinty_adapter_licence": "GPL-3.0",
+    "glinty_adapter_source_sha256": "6750c456cb25ea6524414df696543b740a70eea0151ee7ed0bbec1662de4a5fd",
+    "chermain_source_sha256": "3376a85d6e0b41d6f7aba6bd55f97b3c6e33119fd09b1d8740b290a5723d3093",
+    "cellular_source_sha256": "c973b9836e49afbed482296f6eeebe49ed9d9ca9594ad345341209dc8454d398",
+    "dictionary_exr_sequence_sha256": "0b4d85663149512024a095205b0e1af35222ac1e3e8986a4cce3535478fe7169",
+    "dictionary_logical_gpu_bytes": 393216,
+    "dictionary_upload_bytes": 786432,
+    "adapted_shader_sha256": {
+      "GlintyAdapter": "f0c8ed7f4215394f25eedbfe4eef3500687aa803b9a47b61f191070d33512cec",
+      "RasterFloor": "2c634d60cb1092a1fbf0f233c94cd248edd5a13cf23ef38d8d2714b58ab49d64",
+      "ChermainReference": "b2f86662ef6d4f2cc7699fa502e4b4ceb3c44504d24c436d3ddcf677bd7c1784",
+      "CellularAdapter": "c44c7a94b0ac4730772b31f5c5de63b9311735ed91863254ca66dcf918d67cc6"
+    }
+  },
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "vendor": "WebKit",
+  "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+  "extensions": [
+    "EXT_clip_control",
+    "EXT_color_buffer_float",
+    "EXT_color_buffer_half_float",
+    "EXT_conservative_depth",
+    "EXT_depth_clamp",
+    "EXT_disjoint_timer_query_webgl2",
+    "EXT_float_blend",
+    "EXT_polygon_offset_clamp",
+    "EXT_texture_compression_bptc",
+    "EXT_texture_compression_rgtc",
+    "EXT_texture_filter_anisotropic",
+    "EXT_texture_mirror_clamp_to_edge",
+    "EXT_texture_norm16",
+    "NV_shader_noperspective_interpolation",
+    "OES_draw_buffers_indexed",
+    "OES_sample_variables",
+    "OES_shader_multisample_interpolation",
+    "OES_texture_float_linear",
+    "OVR_multiview2",
+    "WEBGL_clip_cull_distance",
+    "WEBGL_compressed_texture_astc",
+    "WEBGL_compressed_texture_etc",
+    "WEBGL_compressed_texture_etc1",
+    "WEBGL_compressed_texture_s3tc",
+    "WEBGL_compressed_texture_s3tc_srgb",
+    "WEBGL_debug_renderer_info",
+    "WEBGL_debug_shaders",
+    "WEBGL_lose_context",
+    "WEBGL_multi_draw",
+    "WEBGL_polygon_mode",
+    "WEBGL_stencil_texturing"
+  ],
+  "records": [
+    {
+      "method": "GlintyAdapter",
+      "extent": 128,
+      "log_density": 20,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        19.372379,
+        19.357507,
+        23.049054,
+        21.280417,
+        28.612023,
+        25.129471,
+        20.158644
+      ],
+      "p50_ms": 21.280417,
+      "p95_ms": 28.612023,
+      "minimum": 0.11988583207130432,
+      "maximum": 0.5163441300392151,
+      "sum": 17407.33850352466
+    },
+    {
+      "method": "ChermainReference",
+      "extent": 128,
+      "log_density": 20,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        19.048312,
+        17.810495,
+        21.502589,
+        20.667199,
+        22.254893,
+        21.69444,
+        18.299635
+      ],
+      "p50_ms": 20.667199,
+      "p95_ms": 22.254893,
+      "minimum": 0.09699616581201553,
+      "maximum": 0.8522891998291016,
+      "sum": 19892.400314211845
+    },
+    {
+      "method": "CellularAdapter",
+      "extent": 128,
+      "log_density": 20,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        16.600481,
+        18.535638,
+        20.323078,
+        19.262139,
+        25.285056,
+        17.439762,
+        17.484178
+      ],
+      "p50_ms": 18.535638,
+      "p95_ms": 25.285056,
+      "minimum": 0.08181168138980865,
+      "maximum": 0.37519025802612305,
+      "sum": 11808.750759489834
+    },
+    {
+      "method": "RasterFloor",
+      "extent": 128,
+      "log_density": 20,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        0.234739,
+        0.245242,
+        0.44146,
+        0.255104,
+        0.586218,
+        0.401028,
+        0.238607
+      ],
+      "p50_ms": 0.255104,
+      "p95_ms": 0.586218,
+      "minimum": 0.009939281269907951,
+      "maximum": 0.01957029663026333,
+      "sum": 725.9925309419632
+    },
+    {
+      "method": "GlintyAdapter",
+      "extent": 128,
+      "log_density": 26,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        19.629144,
+        22.512447,
+        19.262511,
+        19.248501,
+        19.778856,
+        19.109307,
+        21.803229
+      ],
+      "p50_ms": 19.629144,
+      "p95_ms": 22.512447,
+      "minimum": 0.17159973084926605,
+      "maximum": 0.4753853380680084,
+      "sum": 17514.408607810736
+    },
+    {
+      "method": "ChermainReference",
+      "extent": 128,
+      "log_density": 26,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        18.433486,
+        17.464131,
+        17.798511,
+        18.421739,
+        17.544921,
+        17.774836,
+        17.396109
+      ],
+      "p50_ms": 17.774836,
+      "p95_ms": 18.433486,
+      "minimum": 0.2069316953420639,
+      "maximum": 0.5566874742507935,
+      "sum": 20148.015673935413
+    },
+    {
+      "method": "CellularAdapter",
+      "extent": 128,
+      "log_density": 26,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        16.718322,
+        19.474702,
+        16.627963,
+        17.534955,
+        16.618331,
+        16.875793,
+        16.395921
+      ],
+      "p50_ms": 16.718322,
+      "p95_ms": 19.474702,
+      "minimum": 0.08181168138980865,
+      "maximum": 0.37519025802612305,
+      "sum": 11808.750759489834
+    },
+    {
+      "method": "RasterFloor",
+      "extent": 128,
+      "log_density": 26,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        0.255069,
+        0.264509,
+        0.236373,
+        0.222813,
+        0.250454,
+        0.214027,
+        0.229934
+      ],
+      "p50_ms": 0.236373,
+      "p95_ms": 0.264509,
+      "minimum": 0.009939281269907951,
+      "maximum": 0.01957029663026333,
+      "sum": 725.9925309419632
+    },
+    {
+      "method": "GlintyAdapter",
+      "extent": 256,
+      "log_density": 20,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        86.029213,
+        111.944015,
+        85.527466,
+        83.060502,
+        83.388277,
+        79.122908,
+        87.474448
+      ],
+      "p50_ms": 85.527466,
+      "p95_ms": 111.944015,
+      "minimum": 0.05768227577209473,
+      "maximum": 0.6488891243934631,
+      "sum": 68455.94998392463
+    },
+    {
+      "method": "ChermainReference",
+      "extent": 256,
+      "log_density": 20,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        93.048019,
+        71.721355,
+        80.755003,
+        72.041402,
+        74.394103,
+        72.170429,
+        82.559668
+      ],
+      "p50_ms": 74.394103,
+      "p95_ms": 93.048019,
+      "minimum": 0.03877495974302292,
+      "maximum": 0.961087167263031,
+      "sum": 78570.11101094261
+    },
+    {
+      "method": "CellularAdapter",
+      "extent": 256,
+      "log_density": 20,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        68.339312,
+        67.307396,
+        73.248582,
+        82.75509,
+        69.547386,
+        66.560069,
+        112.527561
+      ],
+      "p50_ms": 69.547386,
+      "p95_ms": 112.527561,
+      "minimum": 0.01586185395717621,
+      "maximum": 0.574518084526062,
+      "sum": 36706.83605225198
+    },
+    {
+      "method": "RasterFloor",
+      "extent": 256,
+      "log_density": 20,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        0.685404,
+        2.107796,
+        0.594981,
+        0.951907,
+        0.565568,
+        0.543363,
+        1.299021
+      ],
+      "p50_ms": 0.685404,
+      "p95_ms": 2.107796,
+      "minimum": 0.009920136071741581,
+      "maximum": 0.019589070230722427,
+      "sum": 2903.970052242279
+    },
+    {
+      "method": "GlintyAdapter",
+      "extent": 256,
+      "log_density": 26,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        78.37895,
+        77.004584,
+        78.616847,
+        78.559518,
+        87.649147,
+        85.992984,
+        85.381646
+      ],
+      "p50_ms": 78.616847,
+      "p95_ms": 87.649147,
+      "minimum": 0.17062555253505707,
+      "maximum": 0.47576647996902466,
+      "sum": 70053.43722166121
+    },
+    {
+      "method": "ChermainReference",
+      "extent": 256,
+      "log_density": 26,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        71.67486,
+        71.754908,
+        71.141822,
+        70.276137,
+        76.895854,
+        84.462505,
+        84.944682
+      ],
+      "p50_ms": 71.754908,
+      "p95_ms": 84.944682,
+      "minimum": 0.16482001543045044,
+      "maximum": 0.7182915210723877,
+      "sum": 80572.97217813134
+    },
+    {
+      "method": "CellularAdapter",
+      "extent": 256,
+      "log_density": 26,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        85.648612,
+        66.574475,
+        68.54335,
+        70.02706,
+        74.519253,
+        77.690156,
+        68.016898
+      ],
+      "p50_ms": 70.02706,
+      "p95_ms": 85.648612,
+      "minimum": 0.01586185395717621,
+      "maximum": 0.574518084526062,
+      "sum": 36706.83605225198
+    },
+    {
+      "method": "RasterFloor",
+      "extent": 256,
+      "log_density": 26,
+      "roughness": 0.3,
+      "software_timestamp_ms": [
+        2.73269,
+        0.667565,
+        0.569009,
+        0.610127,
+        0.618947,
+        1.048917,
+        0.666276
+      ],
+      "p50_ms": 0.666276,
+      "p95_ms": 2.73269,
+      "minimum": 0.009920136071741581,
+      "maximum": 0.019589070230722427,
+      "sum": 2903.970052242279
+    }
+  ],
+  "capture_sha256": {
+    "Exhibits/TextureStudio/Images/GlintGlintyAdapter.png": "76ac381106eea6bea735b965c4adb491554131e725395530ba37c18ee398ddf4",
+    "Exhibits/TextureStudio/Images/GlintChermainReference.png": "2aaa11ae9fe0a3ed95c7f866289b006bab13a7cde5518d62a5c582ad8c32b253",
+    "Exhibits/TextureStudio/Images/GlintCellularAdapter.png": "d59ab3864bbd461de013d1423bbfc267ed231f00317d4c5e6833cff11d0fd586"
+  },
+  "source_sha256": {
+    "Exhibits/TextureStudio/Code/PrepareGlintComparison.py": "0750b4d827e9eda1a89245b1b7900d84127b46e08b83bdad800d851317140395",
+    "Exhibits/TextureStudio/Code/VerifyGlintComparison.mjs": "2aa1a22906706d327c53bd5d3bd5e6d2530e0ad57c48db6dce73a408530876dd",
+    "Engine/Render/Shader/AutomotivePaint.slang": "c973b9836e49afbed482296f6eeebe49ed9d9ca9594ad345341209dc8454d398"
+  }
+}

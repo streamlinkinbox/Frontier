@@ -1,0 +1,91 @@
+# SolidArc variable-blend walkthrough — B opens the fillet command, V (Plasticity gizmo:fillet-solid:add) makes the
+# size variable, F flips which corner takes the start size (as gizmo:place:flip). Bracket specimen, bottom-front edge
+# (y = 0, z = 0, x ∈ [0, 4]): both ends meet unblended edges, so the fillet ends in two caps.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/VariableRecovery.solidarc
+#      --document …/Variable.solidarc --script Scripts/VariableBlendWalkthrough.txt
+# Closed form: V = V(bracket) − ΔV(cone; L 4, r 0.3 → 0.1); swapping the ends mirrors the cut, so the volume is the same and
+# the captures show where each size went.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① pick the edge, B, pin the start size 0.3
+frames 2
+expect faces == 11
+expect steps == 8
+key 2
+move world 2.0 0.0 0.0
+frames 2
+click world 2.0 0.0 0.0
+expect selected-edges == 1
+key B
+frames 2
+expect bevel-active == 1
+expect bevel-variable == 0
+click @BevelSize
+key A Ctrl
+type 0.3
+key Enter
+frames 2
+expect bevel-size ~ 0.3
+expect bevel-pinned == 1
+
+# ② V: variable; the end size starts at half the start size (0.15), then typed 0.1; the Front view shows the band along
+#    the bottom of the front face (the view buttons work inside the command)
+key V
+frames 2
+expect bevel-variable == 1
+expect bevel-end-size ~ 0.15
+click @BevelEndSize
+key A Ctrl
+type 0.1
+key Enter
+frames 2
+expect bevel-end-size ~ 0.1
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 10.185606734
+click @ViewMenu
+frames 2
+click @ViewFront
+frames 3
+expect bevel-active == 1
+capture 22VariableFillet
+
+# ③ F: the 0.3 moves to the other corner; same volume (mirror image), different shape
+key F
+frames 2
+expect bevel-flipped == 1
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 10.185606734
+capture 23VariableFlipped
+
+# ④ C: a variable chamfer on the same anchor, then D back to the fillet
+key C
+frames 2
+expect bevel-chamfer == 1
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 10.136107080
+capture 24VariableChamfer
+key D
+frames 2
+expect bevel-chamfer == 0
+
+# ⑤ Enter applies one undoable step; the history caption names both sizes
+key Enter
+frames 2
+expect bevel-active == 0
+expect steps == 9
+expect faces == 12
+expect refused == 0
+expect sound == 1
+expect volume ~ 10.185606734
+expect status contains 0.3 → 0.1
+capture 25VariableApplied
+
+# ⑥ Ctrl+Z restores the bracket; Ctrl+Shift+Z brings the variable fillet back
+key Z Ctrl
+expect faces == 11
+expect steps == 8
+key Z Ctrl Shift
+expect faces == 12
+expect volume ~ 10.185606734

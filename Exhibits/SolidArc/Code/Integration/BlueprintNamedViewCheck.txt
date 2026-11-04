@@ -1,0 +1,7 @@
+frames 5
+expect steps == 0
+expect image-planes == 6
+expect image-planes-drawn == 1
+expect split-panes == 1
+expect orthographic == 1
+capture Liger_View

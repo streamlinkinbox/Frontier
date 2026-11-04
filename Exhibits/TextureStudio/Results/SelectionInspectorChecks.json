@@ -1,0 +1,41 @@
+{
+  "Date": "2026-10-19",
+  "Scope": "HTML selection-aware Inspector; native C++ paused",
+  "BroadRegressionChecksPassed": 31,
+  "FinalInteractionAndStampTransformChecksPassed": 12,
+  "OverlappingChecks": 2,
+  "UniqueSelectedChecksPassed": 41,
+  "ProductionBuild": "PASS (9.83 seconds; existing bundle-size warning)",
+  "MaskFromSelection": "512-pixel alpha snapshot in target-local coordinates; original source retained hidden; not live-linked vector contours",
+  "Verified": [
+    "Single-selection Inspector alignment",
+    "Two-selection shared vector colour and common opacity; selection retained during edits",
+    "Eligible Boolean operation execution and undo",
+    "Mask direction controls and actual raster coverage",
+    "Mask-source retention and atomic undo",
+    "Rotated source/target mask coordinates and protected-target rejection",
+    "Native rich-text composition alignment and typography preservation",
+    "Accessible switch controls",
+    "Original Stamp modal transforms, cancellation, rich-text keyboard protection and phone controls"
+  ],
+  "WindowsExecuted": false,
+  "NativeChanges": false,
+  "FullTextureSurfacePlacementCertified": false,
+  "CommitPushActionsOrPublication": false,
+  "SourceAndCaptureSha256": {
+    "Experimental/TextureStudio/src/ArtworkSelectionMask.js": "1b7a6a2961b80da4977097e19a92657f075127bd8cb103c0eb718237270ac636",
+    "Experimental/TextureStudio/src/ShapeEditorToolbar.jsx": "4cee7421b5bb04a01e80a3a3271894e9a64bbf228f2e118e05a081cdb57ed912",
+    "Experimental/TextureStudio/src/PatternEditor.jsx": "e9428f231a67c6e406334b34e3a3365d4586a5829fbfd0d9e1d44859698d7851",
+    "Experimental/TextureStudio/src/StampStudio.jsx": "18da684ebf1dafc4952e61c93f77a017f4932e73d947296f047b43225d414c99",
+    "Experimental/TextureStudio/src/StampVectorCanvas.jsx": "a5fd56b8805bbd25d5ce7d255942733f204375726a13e8857a6933e6c56db997",
+    "Experimental/TextureStudio/src/StampVectorProperties.jsx": "717bcbe57544c03e3bc5993c908a9ddcde376badff2261706cf72bb46f13199e",
+    "Experimental/TextureStudio/src/PatternTextileTools.jsx": "a482e7c6a30e945ca7d6622aea49abbd423d585f8cef2242e092ef075fbcae59",
+    "Experimental/TextureStudio/src/RugCompositionControls.jsx": "fb443f44f99b3a7f22c9003bc9789efa0f8ffdef8dcece35676c6fa239f886cf",
+    "Experimental/TextureStudio/src/artworkAuthoring.css": "a36db33cf63a4caad8dee072871ce52753ee4d2646b5ef5e89bb33ba196e66df",
+    "Experimental/TextureStudio/tests/artwork-selection-inspector.spec.js": "525390e3810d1b0b8a3126cd5a1fe97d6fd20c8807342ec857d2361568a3a9ee",
+    "Experimental/TextureStudio/tests/artwork-mask-authoring.spec.js": "d66be3b0235d3e19bb9e40e052926c694a31475baf0b164fa19fc5d238bbf4c1",
+    "Exhibits/TextureStudio/Code/SelectionInspectorValidation.mjs": "46b839623bf9687679edc27d7d6e4e106b3983655374024824ec1caa85647f1d",
+    "Exhibits/TextureStudio/Images/PatternSelectionInspector.png": "60ecca7cfa68dc9a2e82cdea124c7cc242025b8f1fd1f02bb64081490e97c257",
+    "Exhibits/TextureStudio/Images/StampSelectionInspector.png": "11f04aeb2618dd8eb7be2164efb78c7b5bcf791a97f9d6c6b272a8434f825c91"
+  }
+}

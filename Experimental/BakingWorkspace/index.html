@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Baking Workspace</title>
+  <link rel="stylesheet" href="./Styles.css" />
+</head>
+<body>
+  <svg class="symbols" aria-hidden="true">
+    <symbol id="i-mark" viewBox="0 0 24 24">
+      <path d="M5 18L11.5 6L15 12.5L19 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="19" cy="18" r="2" fill="currentColor" />
+    </symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24">
+      <path d="M12 3l9 5-9 5-9-5 9-5z" />
+      <path d="M3 12l9 5 9-5" />
+      <path d="M3 16.5l9 5 9-5" />
+    </symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="2" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="2" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="2" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="2" />
+    </symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24">
+      <path d="M12 2.8l8 4.6v9.2l-8 4.6-8-4.6V7.4l8-4.6z" />
+      <path d="M12 12l8-4.6M12 12v9.2M12 12L4 7.4" />
+    </symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24">
+      <path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="2.8" />
+    </symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 17h16" />
+      <circle cx="9" cy="7" r="2.2" fill="#17181b" />
+      <circle cx="15" cy="17" r="2.2" fill="#17181b" />
+    </symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24">
+      <path d="M6.5 9.5L12 15l5.5-5.5" />
+    </symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24">
+      <path d="M7 17L17 7M9 7h8v8" />
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="M5.5 12.5l4.2 4.2L18.5 7.8" />
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24">
+      <path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" />
+    </symbol>
+  </svg>
+
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="top-bar">
+      <div class="top-left">
+        <div class="brand-mark" aria-label="Frontier">
+          <svg><use href="#i-mark" /></svg>
+        </div>
+        <nav class="top-nav" aria-label="Workspace">
+          <button type="button" aria-current="page">
+            <svg class="icon"><use href="#i-layers" /></svg>
+            <span>Baking</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="top-actions">
+        <input id="LowMeshFileInput" type="file" accept=".obj,.stl" multiple hidden />
+        <input id="HighMeshFileInput" type="file" accept=".obj,.stl" multiple hidden />
+        <button type="button" class="pill-action-btn" id="ExportActiveBtn" title="Export active baked map (.fvol or .png)">
+          <svg class="icon"><use href="#i-download" /></svg>
+          <span id="ExportBtnLabel">Export</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main 3-Zone Bento Layout -->
+    <div class="workspace-grid">
+      <!-- LEFT PANEL: 2 Separate Tabs -> [ Mesh Maps (Grid) | Scene Outliner (Dual Low / High) ] -->
+      <aside class="panel-surface" aria-label="Mesh maps and Scene Outliner">
+        <div class="left-panel-tabs" role="tablist" aria-label="Left panel views">
+          <button
+            type="button"
+            class="left-tab-pill"
+            id="LeftTabMapsBtn"
+            role="tab"
+            aria-selected="true"
+            aria-controls="MeshMapsPane"
+          >
+            <span class="left-tab-label">
+              <svg class="icon"><use href="#i-grid" /></svg>
+              <span>Mesh Maps</span>
+            </span>
+            <span class="left-tab-count" id="TabMapsCountLabel">28</span>
+          </button>
+
+          <button
+            type="button"
+            class="left-tab-pill"
+            id="LeftTabOutlinerBtn"
+            role="tab"
+            aria-selected="false"
+            aria-controls="SceneOutlinerPane"
+          >
+            <span class="left-tab-label">
+              <svg class="icon"><use href="#i-cube" /></svg>
+              <span>Outliner</span>
+            </span>
+            <span class="left-tab-count" id="TabOutlinerCountLabel">3 · 3</span>
+          </button>
+        </div>
+
+        <!-- TAB PANE 1: Grid-Based Mesh Maps Grouped into Category Cards -->
+        <div class="left-tab-pane" id="MeshMapsPane" role="tabpanel" aria-labelledby="LeftTabMapsBtn">
+          <div class="map-list-toolbar">
+            <input id="MapSearchInput" class="map-search-pill" type="search" placeholder="Search 28 maps…" aria-label="Search mesh maps" />
+            <span class="mini-stat-pill">Baked <strong id="BakedCountLabel">0</strong></span>
+          </div>
+
+          <div class="unified-map-scroll" id="UnifiedMapList" role="listbox" aria-label="Mesh maps grid by category"></div>
+        </div>
+
+        <!-- TAB PANE 2: Dedicated Dual Low / High Poly Scene Outliner -->
+        <div class="left-tab-pane" id="SceneOutlinerPane" role="tabpanel" aria-labelledby="LeftTabOutlinerBtn" hidden>
+          <div class="outliner-toolbar">
+            <select id="MatchModeSelect" class="outliner-match-select" aria-label="High to Low mesh matching">
+              <option value="byName" selected>Match by _low / _high name</option>
+              <option value="all">Match all active sub-meshes</option>
+            </select>
+            <button type="button" class="outliner-reset-btn" id="ResetStudyMeshesBtn" title="Restore active study meshes">
+              Reset
+            </button>
+          </div>
+
+          <div class="dual-outliner-stack">
+            <!-- Low Poly Target Outliner Card -->
+            <section class="outliner-group-card" id="LowDropCol" aria-label="Low poly target outliner">
+              <div class="outliner-group-head">
+                <div class="outliner-group-title">
+                  <strong>Low Poly · Target UV</strong>
+                  <small id="LowTotalTrisLabel">0 tris · UV0</small>
+                </div>
+                <button type="button" class="outliner-import-pill" id="AddLowMeshBtn" title="Import Low Poly .obj or .stl">
+                  + Import
+                </button>
+              </div>
+              <div class="outliner-tree" id="LowOutlinerTree" role="list" aria-label="Low poly sub-meshes"></div>
+              <div class="outliner-drop-hint">Drop .obj or .stl here to replace Low Poly</div>
+            </section>
+
+            <!-- High Poly Source Outliner Card -->
+            <section class="outliner-group-card" id="HighDropCol" aria-label="High poly source outliner">
+              <div class="outliner-group-head">
+                <div class="outliner-group-title">
+                  <strong>High Poly · Sculpt Source</strong>
+                  <small id="HighTotalTrisLabel">0 tris · Watertight</small>
+                </div>
+                <button type="button" class="outliner-import-pill" id="AddHighMeshBtn" title="Import High Poly .obj or .stl">
+                  + Import
+                </button>
+              </div>
+              <div class="outliner-tree" id="HighOutlinerTree" role="list" aria-label="High poly sub-meshes"></div>
+              <div class="outliner-drop-hint">Drop .obj or .stl here to replace High Poly</div>
+            </section>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER ZONE: Open Preview Stage + Floating Pill Dropdowns -->
+      <main class="stage-zone" aria-label="Preview stage">
+        <div class="stage-header">
+          <div class="stage-title-row">
+            <h1 class="stage-title" id="StageTitle">Volume SDF</h1>
+            <span class="stage-probe" id="StageProbeReadout">Ready</span>
+          </div>
+
+          <div class="pill-dropdown-row" role="toolbar" aria-label="Viewport preview dropdowns">
+            <!-- Study Asset Selector -->
+            <div class="pill-select-wrap">
+              <svg class="icon"><use href="#i-cube" /></svg>
+              <select id="StudyShapeSelect" aria-label="Study mesh">
+                <option value="Teapot">Teapot Vessel</option>
+                <option value="Torus" selected>Toroidal Valve</option>
+                <option value="Sphere">Fluted Sphere</option>
+                <option value="Cube">Beveled Cube</option>
+              </select>
+              <svg class="pill-chevron"><use href="#i-chevron" /></svg>
+            </div>
+
+            <!-- Viewport Preview Map Dropdown -->
+            <div class="pill-select-wrap">
+              <svg class="icon"><use href="#i-eye" /></svg>
+              <select id="ViewportPreviewSelect" aria-label="Preview map"></select>
+              <svg class="pill-chevron"><use href="#i-chevron" /></svg>
+            </div>
+
+            <!-- Channel / Palette Dropdown -->
+            <div class="pill-select-wrap" id="ChannelPillWrap">
+              <svg class="icon"><use href="#i-sliders" /></svg>
+              <select id="ChannelSelect" aria-label="Preview channel">
+                <option value="rgb" selected>RGB Color</option>
+                <option value="r">R Channel</option>
+                <option value="g">G Channel</option>
+                <option value="b">B Channel</option>
+                <option value="luma">Luminance</option>
+              </select>
+              <select id="SdfPaletteSelect" aria-label="SDF palette" hidden>
+                <option value="bands" selected>Signed Bands</option>
+                <option value="iso">Iso Contours</option>
+                <option value="inside">Interior Mask</option>
+                <option value="normalized">Normalized</option>
+                <option value="confidence">Sign Confidence</option>
+              </select>
+              <svg class="pill-chevron"><use href="#i-chevron" /></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage-canvas-area">
+          <!-- Blank Stage (No 3D Mesh Viewport Needed) -->
+          <div class="blank-stage" id="BlankViewportStage" hidden>
+            <p class="blank-stage-title">Blank Stage</p>
+            <p class="blank-stage-sub">No 3D mesh viewport required. Choose any map from the preview dropdown above to inspect its baked output.</p>
+          </div>
+
+          <!-- Volume SDF 3D + 2D Slice Stage -->
+          <div class="sdf-stage" id="SdfViewportStage" data-layout="split">
+            <div class="sdf-card" id="Sdf3dPane">
+              <div class="sdf-card-head">
+                <span>3D Raymarched Zero-Isosurface</span>
+                <span id="Sdf3dMetaLabel">64³</span>
+              </div>
+              <div class="sdf-canvas-box">
+                <canvas id="Sdf3dCanvas" width="520" height="440"></canvas>
+              </div>
+            </div>
+
+            <div class="sdf-card" id="Sdf2dPane">
+              <div class="sdf-card-head">
+                <span>2D Signed Distance Slice</span>
+                <span id="Sdf2dMetaLabel">Z · 50%</span>
+              </div>
+              <div class="sdf-canvas-box">
+                <canvas id="Sdf2dCanvas" width="440" height="440"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2D Mesh Map Stage -->
+          <div class="map2d-stage" id="Map2dViewportStage" hidden>
+            <div class="map2d-frame" id="Map2dFrameWrap">
+              <canvas id="Map2dCanvas" width="512" height="512"></canvas>
+            </div>
+            <div class="unbaked-prompt" id="Map2dUnbakedPrompt" hidden>
+              <p id="UnbakedTitle">Not baked yet</p>
+              <button type="button" class="btn-primary-cta" id="EmptyStateBakeBtn">Bake Map</button>
+            </div>
+          </div>
+
+          <!-- Floating Bottom Stage Dock -->
+          <div class="floating-stage-dock" id="FloatingStageDock">
+            <div class="seg-pills" id="SdfLayoutGroup" role="group" aria-label="SDF layout">
+              <button type="button" data-sdf-layout="split" aria-pressed="true">Split</button>
+              <button type="button" data-sdf-layout="3d" aria-pressed="false">3D</button>
+              <button type="button" data-sdf-layout="2d" aria-pressed="false">2D</button>
+            </div>
+
+            <div class="dock-divider" id="SdfDockDivider1"></div>
+
+            <div class="seg-pills" id="SdfAxisGroup" role="group" aria-label="Slice axis">
+              <button type="button" data-sdf-axis="x" aria-pressed="false">X</button>
+              <button type="button" data-sdf-axis="y" aria-pressed="false">Y</button>
+              <button type="button" data-sdf-axis="z" aria-pressed="true">Z</button>
+            </div>
+
+            <div class="slice-slider-group" id="SdfSliceSliderWrap">
+              <input id="SdfSliceSlider" type="range" min="0" max="100" value="50" aria-label="Slice depth" />
+              <code id="SdfSliceValueLabel">32 / 63</code>
+            </div>
+
+            <div class="seg-pills" id="SdfCutGroup">
+              <button type="button" id="SdfMode3dToggle" aria-pressed="true">Iso + Cut</button>
+            </div>
+
+            <div class="seg-pills" id="Map2dDockInfo" hidden>
+              <button type="button" id="ZoomFitBtn" aria-pressed="true">Fit</button>
+              <button type="button" id="ZoomActualBtn" aria-pressed="false">1:1 Buffer</button>
+              <button type="button" id="UvOverlayBtn" aria-pressed="false">UV</button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT PANEL: Single-Map Inspector (Up to 16K + Custom Dimensions + Map-Specific Properties) -->
+      <aside class="panel-surface" aria-label="Inspector">
+        <div class="inspector-scroll">
+          <!-- Hero Resolution & Output Card -->
+          <section class="insp-hero-card">
+            <div class="insp-card-header">
+              <h2 class="insp-title" id="InspectorMapName">Volume SDF</h2>
+              <button type="button" class="insp-arrow-btn" id="PreviewSelectedBtn" title="Show selected map in preview stage">
+                <svg class="icon"><use href="#i-arrow-up-right" /></svg>
+              </button>
+            </div>
+
+            <div class="insp-big-metric">
+              <strong id="HeroMetricPrimary">64³</strong>
+              <span id="HeroMetricUnit">voxels</span>
+            </div>
+            <div class="insp-metric-sub" id="HeroMetricSub">Float32 · 1.0 MB</div>
+
+            <!-- 2D Resolution Selector (512 .. 16K + Custom) -->
+            <div id="Res2dControls" hidden>
+              <div class="res-pill-row" id="Res2dPillRow" role="group" aria-label="2D output resolution">
+                <button type="button" data-res2d="512" aria-pressed="false">512</button>
+                <button type="button" data-res2d="1024" aria-pressed="false">1K</button>
+                <button type="button" data-res2d="2048" aria-pressed="true">2K</button>
+                <button type="button" data-res2d="4096" aria-pressed="false">4K</button>
+                <button type="button" data-res2d="8192" aria-pressed="false">8K</button>
+                <button type="button" data-res2d="16384" aria-pressed="false">16K</button>
+                <button type="button" data-res2d="custom" aria-pressed="false">Custom</button>
+              </div>
+
+              <!-- Custom 2D Width x Height (64 .. 16384) -->
+              <div class="custom-dim-box" id="Custom2dDimBox" hidden>
+                <input id="CustomWidthInput" type="number" min="64" max="16384" step="1" value="2048" aria-label="Custom width (px)" title="Width (64 – 16384 px)" />
+                <span class="custom-dim-sep">×</span>
+                <input id="CustomHeightInput" type="number" min="64" max="16384" step="1" value="2048" aria-label="Custom height (px)" title="Height (64 – 16384 px)" />
+                <button type="button" class="lock-aspect-btn" id="LockAspectBtn" aria-pressed="true" title="Lock 1:1 square aspect">1:1</button>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+                <label class="field-row" style="cursor:pointer;">
+                  <span>Pin resolution to this map</span>
+                  <input id="PinMapResCheckbox" type="checkbox" style="accent-color:var(--text);" />
+                </label>
+                <div class="field-row">
+                  <span>Bit depth</span>
+                  <select id="OutputFormatSelect" aria-label="Bit depth">
+                    <option value="png8" selected>8-bit PNG</option>
+                    <option value="png16">16-bit PNG</option>
+                    <option value="exr32">32-bit Float EXR</option>
+                  </select>
+                </div>
+                <div class="slider-block">
+                  <div class="slider-head">
+                    <span>UV seam dilation</span>
+                    <output id="DilationValLabel">8 px</output>
+                  </div>
+                  <input id="DilationSlider" type="range" min="0" max="32" step="1" value="8" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 3D Volume SDF Resolution Selector (32³ .. 128³ + Custom Nx×Ny×Nz) -->
+            <div id="ResSdfControls">
+              <div class="res-pill-row" id="ResSdfPillRow" role="group" aria-label="SDF grid resolution">
+                <button type="button" data-ressdf="32" aria-pressed="false">32³</button>
+                <button type="button" data-ressdf="48" aria-pressed="false">48³</button>
+                <button type="button" data-ressdf="64" aria-pressed="true">64³</button>
+                <button type="button" data-ressdf="96" aria-pressed="false">96³</button>
+                <button type="button" data-ressdf="128" aria-pressed="false">128³</button>
+                <button type="button" data-ressdf="custom" aria-pressed="false">Custom</button>
+              </div>
+
+              <!-- Custom 3D Voxel Dimensions (8 .. 256 per axis) -->
+              <div class="custom-dim-box" id="CustomSdfDimBox" hidden>
+                <input id="CustomSdfXInput" type="number" min="8" max="256" step="1" value="64" aria-label="Custom voxels X" title="Nx (8 – 256)" />
+                <span class="custom-dim-sep">×</span>
+                <input id="CustomSdfYInput" type="number" min="8" max="256" step="1" value="64" aria-label="Custom voxels Y" title="Ny (8 – 256)" />
+                <span class="custom-dim-sep">×</span>
+                <input id="CustomSdfZInput" type="number" min="8" max="256" step="1" value="64" aria-label="Custom voxels Z" title="Nz (8 – 256)" />
+              </div>
+            </div>
+          </section>
+
+          <!-- Volume SDF Specific Properties -->
+          <section class="insp-section-card" id="SdfInspectorSection">
+            <div class="insp-section-head">
+              <span>Volume SDF Properties</span>
+              <small id="MeshAuditStatusLabel">Watertight</small>
+            </div>
+
+            <div class="field-row">
+              <span>Sign determination</span>
+              <select id="SdfSignModeSelect">
+                <option value="auto" selected>Auto (Winding / Parity)</option>
+                <option value="winding">Generalized Winding</option>
+                <option value="unsigned">Unsigned Shell</option>
+              </select>
+            </div>
+
+            <div class="slider-block">
+              <div class="slider-head">
+                <span>Bounds padding</span>
+                <output id="SdfPaddingVal">14%</output>
+              </div>
+              <input id="SdfPaddingSlider" type="range" min="4" max="35" step="1" value="14" />
+            </div>
+
+            <div class="slider-block">
+              <div class="slider-head">
+                <span>Narrow-band clamp</span>
+                <output id="SdfBandVal">Full</output>
+              </div>
+              <input id="SdfBandSlider" type="range" min="0" max="24" step="1" value="0" />
+            </div>
+
+            <div class="triptych-grid" id="TriptychGrid" aria-label="Orthogonal slice cuts">
+              <button type="button" class="triptych-tile" data-cut-axis="x" aria-pressed="false">
+                <canvas id="ThumbAxisX" width="96" height="96"></canvas>
+                <span>YZ · X</span>
+              </button>
+              <button type="button" class="triptych-tile" data-cut-axis="y" aria-pressed="false">
+                <canvas id="ThumbAxisY" width="96" height="96"></canvas>
+                <span>XZ · Y</span>
+              </button>
+              <button type="button" class="triptych-tile" data-cut-axis="z" aria-pressed="true">
+                <canvas id="ThumbAxisZ" width="96" height="96"></canvas>
+                <span>XY · Z</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Dynamic Map-Specific Properties Section (Unique per 2D Map Type) -->
+          <section class="insp-section-card" id="DynamicMapPropsCard" hidden>
+            <div class="insp-section-head">
+              <span id="DynamicMapPropsTitle">Map Properties</span>
+              <small id="DynamicMapGroupTag">Surface</small>
+            </div>
+            <div id="DynamicMapPropsBody" style="display:flex;flex-direction:column;gap:12px;"></div>
+          </section>
+
+          <!-- Cage & Ray Distance Disclosure -->
+          <details class="clean-disclosure" id="CageDisclosure" hidden>
+            <summary>
+              <span>Cage &amp; Ray Envelope</span>
+              <svg class="icon"><use href="#i-chevron" /></svg>
+            </summary>
+            <div class="disclosure-body">
+              <div class="slider-block">
+                <div class="slider-head">
+                  <span>Max frontal distance</span>
+                  <output id="FrontDistVal">0.050</output>
+                </div>
+                <input id="FrontDistSlider" type="range" min="0.005" max="0.25" step="0.005" value="0.05" />
+              </div>
+              <div class="slider-block">
+                <div class="slider-head">
+                  <span>Max rear distance</span>
+                  <output id="RearDistVal">0.050</output>
+                </div>
+                <input id="RearDistSlider" type="range" min="0.005" max="0.25" step="0.005" value="0.05" />
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- Pinned Single-Map + Batch Action Footer -->
+        <div class="inspector-footer">
+          <div class="progress-inline" id="BakeProgressWrap" hidden>
+            <span id="BakeProgressLabel">Baking…</span>
+            <progress id="BakeProgressBar" value="0" max="1"></progress>
+          </div>
+
+          <div class="bake-cta-row">
+            <button type="button" class="btn-primary-cta" id="BakeSelectedBtn">
+              Bake Volume SDF
+            </button>
+            <button type="button" class="btn-batch-cta" id="BakeCheckedBtn" title="Bake all queued maps">
+              Batch (4)
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="toast-pill" id="ToastBanner" role="status" aria-live="polite" hidden></div>
+
+  <script src="./GeometryAndBakers.js"></script>
+  <script src="./BakingWorkspace.js"></script>
+</body>
+</html>

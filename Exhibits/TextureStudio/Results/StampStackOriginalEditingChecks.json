@@ -1,0 +1,302 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/user/Frontier/Experimental/TextureStudio/node_modules/@playwright/test/cli.js",
+      "test",
+      "tests/stamp-decal-studio.spec.js",
+      "tests/stamp-transform-studio.spec.js",
+      "--grep",
+      "rich stamp text formats|Stamp composes|Stamp workspace keeps|GRS hotkeys|captured drag|Stamp sliders",
+      "--global-timeout=180000",
+      "--reporter=json"
+    ],
+    "configFile": "/home/user/Frontier/Experimental/TextureStudio/playwright.config.js",
+    "rootDir": "/home/user/Frontier/Experimental/TextureStudio/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 180000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/user/Frontier/Experimental/TextureStudio/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/home/user/Frontier/Experimental/TextureStudio/tests",
+        "testIgnore": [
+          "**/standalone.spec.js"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 300000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://127.0.0.1:5173",
+      "reuseExistingServer": true
+    }
+  },
+  "suites": [
+    {
+      "title": "stamp-decal-studio.spec.js",
+      "file": "stamp-decal-studio.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "rich stamp text formats a real character range with mixed fonts/sizes, grows geometry and exports real outlines",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14915,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:37:51.100Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5ee32d300623e7456ca4-d464fd680b99270a80b0",
+          "file": "stamp-decal-studio.spec.js",
+          "line": 114,
+          "column": 1
+        },
+        {
+          "title": "Stamp composes embedded/imported SVG and a raster, rejects executable markup and round-trips editable preset/project data",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12267,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:38:06.205Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5ee32d300623e7456ca4-75164cf1910c0e5bf1b7",
+          "file": "stamp-decal-studio.spec.js",
+          "line": 164,
+          "column": 1
+        },
+        {
+          "title": "Stamp workspace keeps left composition/right inspector at desktop, supports phone tabs and cached workspace return",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 26344,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:38:18.596Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5ee32d300623e7456ca4-d1c5c57104a7c96c0757",
+          "file": "stamp-decal-studio.spec.js",
+          "line": 557,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "stamp-transform-studio.spec.js",
+      "file": "stamp-transform-studio.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "GRS hotkeys do not steal typing from rich text, names, SVG markup, numeric fields or modified shortcuts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6387,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:38:45.005Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ecd97307b5c4e1267a17-893ad2d9fbb87d39300e",
+          "file": "stamp-transform-studio.spec.js",
+          "line": 360,
+          "column": 1
+        },
+        {
+          "title": "captured drag and rotated corner resize remain single transactions; pointer cancellation and no-op clicks are safe",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11536,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:38:51.425Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ecd97307b5c4e1267a17-f09f8cb5c1479ec9b159",
+          "file": "stamp-transform-studio.spec.js",
+          "line": 416,
+          "column": 1
+        },
+        {
+          "title": "Stamp sliders reuse Texture's rounded tracks/value capsules, keep zero/negative values, and phone transform/export actions fit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 20821,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T20:39:03.000Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ecd97307b5c4e1267a17-9504851e4e1be7f8dfb2",
+          "file": "stamp-transform-studio.spec.js",
+          "line": 500,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-18T20:37:49.870Z",
+    "duration": 94127.618,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

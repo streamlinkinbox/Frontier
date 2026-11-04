@@ -1,0 +1,13 @@
+
+> alloy-material-studio@1.0.0 test
+> playwright test tests/stamp-transform-studio.spec.js tests/stamp-decal-studio.spec.js --grep Stamp workspace keeps|rich text handles|pointer|modal|keyboard|inspector|G/R/S|corner|wheel --global-timeout=180000
+
+
+Running 4 tests using 1 worker
+
+  ✓  1 tests/stamp-decal-studio.spec.js:561:1 › Stamp workspace keeps left composition/right inspector at desktop, supports phone tabs and cached workspace return (17.4s)
+  ✓  2 tests/stamp-decal-studio.spec.js:613:1 › rich text handles empty edits, literal pasted/dropped markup and rejected oversized input without retaining unsafe DOM (6.3s)
+  ✓  3 tests/stamp-transform-studio.spec.js:278:1 › modal axes/snapping, Escape/blur/selection cancellation and hidden/locked guards preserve document data (16.6s)
+  ✓  4 tests/stamp-transform-studio.spec.js:422:1 › captured drag and rotated corner resize remain single transactions; pointer cancellation and no-op clicks are safe (9.8s)
+
+  4 passed (51.7s)

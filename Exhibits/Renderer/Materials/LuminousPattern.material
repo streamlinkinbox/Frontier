@@ -1,0 +1,20 @@
+Format = 1
+Name = "Luminous pattern"
+UvScaleOffset = [3.0, 2.0, 0.0, 0.0]
+NormalStrength = 1.0
+Radiance = [3.0, 1.0, 0.3]
+
+[Textures]
+Albedo = "Textures/Albedo.png"
+Orm = "Textures/Orm.png"
+Normal = "Textures/Normal.png"
+Radiance = "Textures/Radiance.png"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.08, 0.08, 0.08]
+Roughness = 0.7
+Metallic = 0.0
+Ior = 1.5
+Coverage = 1.0
+TextureMask = 8

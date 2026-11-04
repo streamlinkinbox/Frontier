@@ -1,0 +1,74 @@
+Format = 1
+Name = "Carbon Fiber"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.3
+Metallic = 0.8
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0.85
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/carbon-fiber-albedo.png"
+Normal = "Textures/carbon-fiber-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 14
+weaveAngle = 45
+weaveRelief = 0.7
+fiberDetail = 12
+fuzz = 0
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 0
+surfaceSeed = 17
+surfaceType = 7
+sheen = 0
+sheenRoughness = 0.55
+fuzzLength = 0.7
+weavePattern = "twill"
+warpColor = "#717379"
+weftColor = "#717379"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 14
+weaveAngle = 45
+weaveRelief = 0.7
+fiberDetail = 12
+fuzz = 0
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 0
+surfaceSeed = 17
+surfaceType = 7
+sheen = 0
+sheenRoughness = 0.55
+fuzzLength = 0.7
+weavePattern = "twill"
+warpColor = "#717379"
+weftColor = "#717379"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.12
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.9

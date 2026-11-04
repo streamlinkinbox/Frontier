@@ -1,0 +1,19 @@
+{
+  "archive_sha256": "96f94d5d2c2d001526b3a3fe90629f8da4dd9a92c7fa10bbb9c2481f099d5263",
+  "archive_bytes": 4681644,
+  "entries": 273,
+  "verified_payload_hashes": 272,
+  "verified_current_source_hashes": 55,
+  "font_faces": 30,
+  "font_families": [
+    "Archivo",
+    "Inter",
+    "JetBrains Mono",
+    "Space Grotesk"
+  ],
+  "binary_sha256": "8e68c33374cc59435982ff225606d80129cc7d1f352036173fc06fce091bd963",
+  "windows_runtime_verified": false,
+  "source_revision_at_packaging": "78dc34d4f23c3dd5b15a8ca49607cafacbebfd3c",
+  "uncommitted_changes_at_packaging": true,
+  "toolchain": "Zig 0.13.0 / Clang 18.1.6; Windows x64; static GLFW 3.4; ImGui DX11 exhibit"
+}

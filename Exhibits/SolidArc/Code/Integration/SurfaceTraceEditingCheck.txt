@@ -1,0 +1,66 @@
+frames 3
+key Keypad7
+key Keypad5
+frames 2
+key S Shift
+frames 2
+click world -1.02814 0.499541 0.909355
+click world -0.957639 0.45254 0.909149
+click world -0.887138 0.499541 0.90562
+key Enter
+frames 3
+expect last-control-count == 3
+key 1
+frames 2
+click world -0.957639 0.45254 0.909149
+frames 3
+expect selected-spline-poles == 1
+key X
+frames 3
+expect curves == 1
+expect last-control-count == 2
+expect steps == 4
+expect refused == 0
+capture Liger_Delete_Only_Selected_Control
+key Z Ctrl
+frames 3
+expect last-control-count == 3
+key 2
+frames 3
+# First control-cage edge midpoint, not the whole figure.
+click world -0.9928895 0.4760405 0.909252
+frames 3
+expect selected-spline-spans == 1
+capture Liger_Selected_Control_Span
+key D Ctrl Shift
+frames 3
+expect last-control-count == 4
+expect curves == 1
+expect refused == 0
+key Z Ctrl
+frames 3
+expect last-control-count == 3
+key 2
+frames 2
+click world -0.9928895 0.4760405 0.909252
+frames 3
+expect selected-spline-spans == 1
+key Delete
+frames 3
+expect curves == 1
+expect steps == 4
+expect refused == 0
+capture Liger_Delete_Only_Selected_Span
+key Z Ctrl
+frames 3
+expect last-control-count == 3
+key 5
+frames 2
+key S Shift
+frames 2
+move world -0.957639 0.4760405 0.909355 Ctrl
+frames 2
+expect snap contains Surface trace
+expect drawing-hit == 1
+capture Liger_Ctrl_Authored_Curve_Snap
+key Escape

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!--==========================================================================================================================================
+                                                               INDEX.HTML
+===========================================================================================================================================-->
+<!-- 🧩 The Particle editor prototype: eos WebGPU engine and preset library behind the Frontier outliner, inspector and field overlay. -->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Particle editor · prototype</title>
+    <link rel="stylesheet" href="../RenderSettingsInspector/RenderSettingsInspector.css">
+    <link rel="stylesheet" href="ParticleEditor.css">
+    <!-- 📝 Classic scripts first (document order), then the editor module; module scripts run after the deferred classic ones. -->
+    <script src="../RenderSettingsInspector/InspectorControls.js" defer></script>
+    <script src="../ForceFieldVisualization/ForceFieldVisualization.js" defer></script>
+    <script type="module" src="ParticleEditor.js"></script>
+</head>
+<body>
+    <div class="workspace">
+        <aside class="dock-panel">
+            <div class="dock-tabs"><div class="dock-tab">Outliner <span class="tab-close">×</span></div></div>
+            <div class="dock-body">
+                <div class="panel-scroll" id="OutlinerScroll"><div class="panel-content" id="OutlinerContent"></div></div>
+                <div class="status-strip" id="OutlinerStatus"></div>
+            </div>
+        </aside>
+        <main class="dock-column">
+            <section class="dock-panel viewport-dock">
+                <div class="dock-tabs">
+                    <div class="dock-tab">Viewport <span class="tab-close">×</span></div>
+                    <div class="dock-title">Frontier · Particle editor</div>
+                </div>
+                <div class="dock-body">
+                    <div class="viewport-bar" id="ViewportBar"></div>
+                    <div class="viewport-surface" id="ViewportSurface">
+                        <canvas id="ViewportCanvas"></canvas>
+                        <canvas id="OverlayCanvas"></canvas>
+                        <div class="viewport-hud" id="ViewportHud"></div>
+                        <div class="viewport-readout" id="ViewportReadout"></div>
+                        <div class="viewport-inset minimap-inset shown" id="MinimapInset">
+                            <canvas id="MinimapCanvas"></canvas>
+                            <div class="inset-label" id="MinimapLabel"></div>
+                        </div>
+                        <div class="viewport-caption" id="ViewportCaption"></div>
+                        <div class="boot-error" id="BootError" hidden></div>
+                    </div>
+                    <div class="status-strip" id="ViewportStatus"></div>
+                </div>
+            </section>
+            <section class="dock-panel log-dock">
+                <div class="dock-tabs"><div class="dock-tab">Log Stream <span class="tab-close">×</span></div></div>
+                <div class="dock-body">
+                    <div class="log-head" id="LogHead"></div>
+                    <div class="panel-scroll" id="LogScroll"><div class="panel-content" id="LogContent"></div></div>
+                </div>
+            </section>
+        </main>
+        <aside class="dock-panel">
+            <div class="dock-tabs"><div class="dock-tab">Inspector <span class="tab-close">×</span></div></div>
+            <div class="dock-body">
+                <div class="panel-scroll" id="InspectorScroll"><div class="panel-content" id="InspectorContent"></div></div>
+                <div class="status-strip" id="InspectorStatus"></div>
+            </div>
+        </aside>
+    </div>
+    <div class="library-veil" id="LibraryVeil"><div class="library-sheet" id="LibrarySheet"></div></div>
+</body>
+</html>

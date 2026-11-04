@@ -1,0 +1,94 @@
+# SolidArc wrap precision walkthrough — the request "the wrap around curve works; but we need it to be precise; i tried a
+# circle around the curve … there's some distance error (image 2: the yellow dots and yellow line)".
+# Run: SolidArcCapture --specimen --reset-files --recovery …/WrapPrecisionRecovery.solidarc
+#      --document …/WrapPrecision.solidarc --script Exhibits/SolidArc/Code/Scripts/WrapPrecisionWalkthrough.txt
+# ① A free curve on the side plane YZ (Right view) is the rail; a circle r 0.4 on the front plane XZ is the shape.
+# ② Pick both, Swap rail (a lone circle is the rail by default), Wrap: Auto reads round x (the curve's plane), along y.
+# ③ Right view in perspective: the near half of the loop is magnified, the far half shrunk, so it straddles the rail
+#    although every point lies on the rail's surface (to 10⁻⁶ of the width, W66 ⑨). ④ The same view in parallel
+#    projection (numpad 5): the loop lies on the rail. ⑤ Deselected: no poles (the dots are control points, off the
+#    curve by nature).
+
+snap grid on
+
+key N Ctrl
+frames 2
+
+# ① the rail: a Hermite curve through six points on YZ (Right view: the drawing plane follows the view)
+key Keypad3
+frames 2
+expect grid-plane == 2
+key S Shift
+frames 2
+click world 0.0 -0.6 2.0
+frames 2
+click world 0.0 0.0 1.2
+frames 2
+click world 0.0 0.3 0.6
+frames 2
+click world 0.0 0.4 0.0
+frames 2
+click world 0.0 0.3 -0.6
+frames 2
+click world 0.0 0.2 -1.2
+frames 2
+key Enter
+frames 3
+key Escape
+frames 2
+expect sketches == 1
+
+#    the shape: a circle r 0.4 about (0, 0, 0.3) on the front plane
+key Keypad1
+frames 2
+expect grid-plane == 1
+key W Shift
+frames 2
+click world 0.0 0.0 0.3
+frames 2
+click world 0.4 0.0 0.3
+frames 3
+key Escape
+frames 2
+expect sketches == 2
+
+# ② pick the circle (right rim) and the curve (above the circle), Swap rail, Wrap
+key 5
+frames 2
+move world 0.4 0.0 0.3
+frames 2
+click world 0.4 0.0 0.3
+frames 2
+move world 0.0 -0.3 1.6
+frames 2
+click world 0.0 -0.3 1.6 Left Shift
+frames 2
+expect selected-curves == 2
+click @FlowWrap
+frames 2
+click @FlowSwap
+frames 2
+expect wrap-auto contains round x
+click @CurveFlow
+frames 4
+expect refused == 0
+expect wrap-curves == 1
+expect status contains round x
+
+# ③ the Right view in perspective (as in the request's image): parallax makes the loop straddle the rail
+key Keypad3
+frames 3
+expect orthographic == 0
+capture 348WrapPrecisionPerspective
+
+# ④ the same view in parallel projection: the loop lies on the rail
+key Keypad5
+frames 3
+expect orthographic == 1
+capture 349WrapPrecisionParallel
+
+# ⑤ deselected (no control points drawn): the wrapped loop and the rail are one line
+key Escape
+frames 3
+expect selected-curves == 0
+capture 350WrapPrecisionClean

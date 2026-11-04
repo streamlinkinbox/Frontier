@@ -1,0 +1,20 @@
+Format = 1
+Name = "Textured alloy"
+UvScaleOffset = [3.0, 2.0, 0.0, 0.0]
+NormalStrength = 1.0
+Radiance = [0.0, 0.0, 0.0]
+
+[Textures]
+Albedo = "Textures/Albedo.png"
+Orm = "Textures/Orm.png"
+Normal = "Textures/Normal.png"
+Radiance = "Textures/Radiance.png"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.8
+Metallic = 0.8
+Ior = 1.5
+Coverage = 1.0
+TextureMask = 7

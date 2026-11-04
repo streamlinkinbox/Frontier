@@ -1,0 +1,163 @@
+{
+  "date": "2026-10-17",
+  "base_revision": "4a77bfd17f23536e32781718553ec6a171e39021",
+  "source_state": "Uncommitted selective port; hashes below identify checked source.",
+  "host": "Linux; GCC 12.2.0; Python 3.11.2; Debug and AddressSanitizer/UndefinedBehaviorSanitizer",
+  "tests": {
+    "debug": "3/3 passed",
+    "sanitized": "3/3 passed",
+    "SVGs": "151/151 ready, visible, no substitutes",
+    "patches": "6 applied; verify, idempotence, reverse/reapply passed",
+    "Windows_build": "blocked: no SDK/toolchain",
+    "Windows_GPU": "not run",
+    "GitHub_Actions": "not authorised; no workflows in repository or pushed tree"
+  },
+  "limitations": [
+    "CPU texture acknowledgement is not a GPU upload.",
+    "No Windows or Linux product binary delivered.",
+    "LLVM-MinGW download failed at release-assets.githubusercontent.com.",
+    "Shared lifecycle geometry fixtures are not production geometry integration."
+  ],
+  "source_hashes": [
+    {
+      "path": "Engine/Interface/ControlKit.cpp",
+      "sha256": "a55d56c9dd6bb0f45b24321a3813e6f72a6f99d3069ef2370e13f9a4cc3e3919"
+    },
+    {
+      "path": "Engine/Interface/ControlKit.h",
+      "sha256": "b0577ea5236fbe49cac6b5b8d3e47ad55da64ef51c489da3e936058968b67f9e"
+    },
+    {
+      "path": "Engine/Interface/GlyphSpace.cpp",
+      "sha256": "8606e66671183a6571a2ff9ada4a25ff2a27206d0b35a5eb486484e9eaa8b2a5"
+    },
+    {
+      "path": "Engine/Interface/GlyphSpace.h",
+      "sha256": "74d59968c0d46b60f06350db6f63a8895727bdcb577e7d10893ce212fc50a2b4"
+    },
+    {
+      "path": "Engine/Interface/IconArt.cpp",
+      "sha256": "2dc53bd18d942e29a1a980bc968af24f6f2640e0b451115d2fbf06b5b3a1b533"
+    },
+    {
+      "path": "Engine/Interface/IconArt.h",
+      "sha256": "fab906ac6274af418e820600d3824b8c97be43125b4edfe5986f8c7d308a6953"
+    },
+    {
+      "path": "Engine/Interface/IconPresentation.cpp",
+      "sha256": "0c0cdf1bcd7972bef22a4a5ee3c2f74a214c20a9c858b71624ef6e1876478bef"
+    },
+    {
+      "path": "Engine/Interface/IconPresentation.h",
+      "sha256": "552c35ad085db1f8754af64e46f75adbeff40b2fd7569a8f87854cb54ba03121"
+    },
+    {
+      "path": "Engine/Interface/IconSymbols.inc",
+      "sha256": "c2fb07ebd0d58452cd849edeefd3237f51f6f52a75cfe05173ffdafea7baca63"
+    },
+    {
+      "path": "Engine/Interface/PixelSpace.cpp",
+      "sha256": "1e3c760f525f8fb3cf5233f85f52bf04ae5d05e8d12f1e89a7c97f1136a9159e"
+    },
+    {
+      "path": "Engine/Interface/PixelSpace.h",
+      "sha256": "4397da3a124fa462d27409d6119a4ee0d5a7b1b7b637fe6e9ba99a727f9bf517"
+    },
+    {
+      "path": "Engine/Interface/TextEntryState.cpp",
+      "sha256": "8d759a8fda125e23cf95eb6bb46bc1facb5d7074283dda3208339429624d49de"
+    },
+    {
+      "path": "Engine/Interface/ThemeStructure.cpp",
+      "sha256": "5682e5bcd967e0ebdd1e36fe1a5014498a360c29a83e736948697fac983ff8ca"
+    },
+    {
+      "path": "Engine/Interface/ThemeStructure.h",
+      "sha256": "4b74b36106213c7ad78d4d637626876316719ae99ed146b220d3d73503d6d919"
+    },
+    {
+      "path": "Engine/Interface/VectorCodec.cpp",
+      "sha256": "377be8eaf09040cea4e7e908ad43ec87061087c3e2131ab82efa080baaf53b42"
+    },
+    {
+      "path": "Engine/Interface/VectorCodec.h",
+      "sha256": "74fc78b4f1b6d20cb112cfbe598bd5177be1e117ddc300c455be5ca59ea2e315"
+    },
+    {
+      "path": "Engine/Lifecycle/ActivationSequence.h",
+      "sha256": "52e2d2636e30a04727c2e1266a7f579f0a10cbb872ce061bee0b958bada796b0"
+    },
+    {
+      "path": "UI/Editor/FoundationPanel.cpp",
+      "sha256": "c0506e30ad50990d31d629d11878bd5440e95fada6653a1e7b041b93856f0bcf"
+    },
+    {
+      "path": "UI/Editor/FoundationPanel.h",
+      "sha256": "56d2c5414bf10fdb0c3a39a1cc47b2d5eab589c10ded140ff37cad2ec2192a16"
+    },
+    {
+      "path": "Automation/ApplyImGuiPatches.py",
+      "sha256": "a2465d95cf67ca982ba6c8f173005a6fa819472b0448aaa34066998c7befd6ee"
+    },
+    {
+      "path": "Automation/Patches/PatchA-TrapezoidalTabs.patch",
+      "sha256": "222157b8423a1b966a5f4b9d51a6f9aae4c9aa742e838b49e7d2908f7e95e36c"
+    },
+    {
+      "path": "Automation/Patches/PatchB-TabOverlapZOrder.patch",
+      "sha256": "b93322536a748c896198e81bfeef1c13a6dffb3b3ebf10f452141c30cc582716"
+    },
+    {
+      "path": "Automation/Patches/PatchC-RoundTabButtons.patch",
+      "sha256": "33743d2d56288aa52f6f11d77a60db3402925b32f5471e09ce6efe81ba24b6e7"
+    },
+    {
+      "path": "Automation/Patches/PatchD-TabAddButton.patch",
+      "sha256": "963bef0754fd073fa2d05cd13905034310a05e2e2d5aca32c470be12b46ee6f2"
+    },
+    {
+      "path": "Automation/Patches/PatchE-NoTabScrollButtons.patch",
+      "sha256": "de51d1832c94d25778307ce376d95a48fd110fec8dbe63adda216355f3ed9a41"
+    },
+    {
+      "path": "Automation/Patches/PatchF-TabContentInsets.patch",
+      "sha256": "458862c1c28d2a3ec55a7e1d4ebc4275500af232f1e750c093f3c24fa0aae9bd"
+    },
+    {
+      "path": "Automation/PrepareUI.py",
+      "sha256": "4376d68ac8baf9a72ebb5357c8d0e7f527eef6a50ae6ae862451f26c14b42aba"
+    },
+    {
+      "path": "Automation/StageThorVG.py",
+      "sha256": "9b71a8938b93e756bab6ff89ae3b4252a46f6e045bce892e838db396e3fa2d99"
+    },
+    {
+      "path": "Automation/ThorVGSoftware.cmake",
+      "sha256": "a9f55c91b913b8d461d49971accb9f46010cfa067c3f9907648908ef16cbe20b"
+    },
+    {
+      "path": "Automation/UIDependencies.json",
+      "sha256": "55a990bb3d68ea7f7e3f32a09d70f35d3acf05644833ea159546f78ae039dcf4"
+    },
+    {
+      "path": "Exhibits/UIFoundation/Code/ActivationValidation.cpp",
+      "sha256": "ff307e4028a1dd29e83bf77316a8e94d2627782a5e3fe78167b46e4b0d705c06"
+    },
+    {
+      "path": "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+      "sha256": "685fc0f14cdbfd24fd5d70310abc2aa9897dc2dcc402bf35ad1cf1e3ebd18692"
+    },
+    {
+      "path": "Exhibits/UIFoundation/Code/InterfaceValidation.cpp",
+      "sha256": "a06826c4c6377067abddb5e40e1dd4709a3593940d29ed3eee531061c6380134"
+    },
+    {
+      "path": "Exhibits/UIFoundation/Code/WindowsUI.cpp",
+      "sha256": "47c67b8d22110ca611b8d6702551ba2c9238757eb91529b2cf06957c071be765"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "983acfb4cfeab4302cdc66418abf29656fe3f2bc303b768b2a7b4081ae9b33a0"
+    }
+  ]
+}

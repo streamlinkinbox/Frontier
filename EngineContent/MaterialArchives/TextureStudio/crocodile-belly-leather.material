@@ -1,0 +1,61 @@
+Format = 1
+Name = "Crocodile Belly Leather"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.28
+Metallic = 0
+Ior = 1.48
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.162029375639111, 0.05612849004960009, 0.024157632448504756]
+SheenIntensity = 0.12
+SheenRoughness = 0.55
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/crocodile-belly-leather-albedo.png"
+Normal = "Textures/crocodile-belly-leather-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "crocodile"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 5.2
+grain = 0.8
+groutWidth = 0.024
+poreDensity = 0.8
+hideVariation = 0.65
+surfaceSeed = 17
+color = "#70432b"
+secondaryColor = "#865335"
+tertiaryColor = "#59321f"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "crocodile"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 5.2
+grain = 0.8
+groutWidth = 0.024
+poreDensity = 0.8
+hideVariation = 0.65
+surfaceSeed = 17
+color = "#70432b"
+secondaryColor = "#865335"
+tertiaryColor = "#59321f"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.17
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.32

@@ -1,0 +1,50 @@
+Format = 1
+Name = "Melange Jersey Knit"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.91
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.08437621154414882, 0.10946171077829933, 0.14126329114027164]
+SheenIntensity = 0.55
+SheenRoughness = 0.75
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/melange-jersey-knit-albedo.png"
+Normal = "Textures/melange-jersey-knit-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "knit"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 26
+grain = 0.75
+fuzz = 0.4
+weaveAngle = 0
+surfaceSeed = 17
+sheen = 0.55
+color = "#525d69"
+secondaryColor = "#b8b7aa"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "knit"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 26
+grain = 0.75
+fuzz = 0.4
+weaveAngle = 0
+surfaceSeed = 17
+sheen = 0.55
+color = "#525d69"
+secondaryColor = "#b8b7aa"

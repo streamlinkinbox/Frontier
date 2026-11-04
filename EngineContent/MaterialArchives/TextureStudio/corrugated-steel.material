@@ -1,0 +1,58 @@
+Format = 1
+Name = "Corrugated Steel"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.4
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [2, 2, 0, 0]
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "ribbedSheet"
+[Strata.Channels.Params]
+color = "#b5c0c2"
+ribs = 3
+ribDepth = 0.2
+ribProfile = 1
+weaveAngle = 0
+sheetSpangle = 0.65
+sheetOxidation = 0.06
+roughness = 0.4
+surfaceSeed = 11
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "ribbedSheet"
+[Strata.Channels.Params]
+color = "#b5c0c2"
+ribs = 3
+ribDepth = 0.2
+ribProfile = 1
+weaveAngle = 0
+sheetSpangle = 0.65
+sheetOxidation = 0.06
+roughness = 0.4
+surfaceSeed = 11
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "ribbedSheet"
+[Strata.Channels.Params]
+color = "#b5c0c2"
+ribs = 3
+ribDepth = 0.2
+ribProfile = 1
+weaveAngle = 0
+sheetSpangle = 0.65
+sheetOxidation = 0.06
+roughness = 0.4
+surfaceSeed = 11

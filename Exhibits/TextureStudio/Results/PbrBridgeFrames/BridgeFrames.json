@@ -1,0 +1,1 @@
+{"result":"passed","native_cpp_vulkan_capture":true,"resolution":[128,128],"frames":["MaterialBaseline.ppm","GpuAuthoringMaps.ppm","UpdatedLayerRoughness.ppm"],"channel_source":"VectorSurfaceMaterialBridge GPU dispatch/readback"}

@@ -1,0 +1,305 @@
+{
+  "version": "1.19.2.1",
+  "files": {
+    "Include/eos_sdk.h": {
+      "drive_id": "1V06JxRyYjwLbHfTraTJ3S31m6yk18aQy",
+      "bytes": 19380,
+      "sha256": "aa045dbbaa2e5710f77967f798e612f2bd8e21a67c02d9eb10365102e0fa26e1"
+    },
+    "Include/eos_auth.h": {
+      "drive_id": "1VJGVHDKKxuqG07LVxWJDWVlaTQGC-z1H",
+      "bytes": 12721,
+      "sha256": "192638b9c8d0609b0b565cf01e5e1d577471701ba144836064f42c5160dd6291"
+    },
+    "Include/eos_connect.h": {
+      "drive_id": "11j6nZbKPAGGh1ceQuEYEWEfqV1rRrE4_",
+      "bytes": 30164,
+      "sha256": "b94654b175d58a63c26f96636c0d6f5052cf39c5e060eae35c942b6df8b73aba"
+    },
+    "Include/eos_types.h": {
+      "drive_id": "1m3XF8OmrHvgojqPUVcYqGniRBXUsP54O",
+      "bytes": 15609,
+      "sha256": "66aa9c904e3980736e14770c9968d540165d3d4f05f2f8db14306a462d40c7ca"
+    },
+    "Include/eos_base.h": {
+      "drive_id": "15boqibjmLy6AimAbR4Gcrf6t6HyAsiBp",
+      "bytes": 4656,
+      "sha256": "c05f9cec011537c85ad17862c9176db4ff17f47f67662d5238f488fa916ebccb"
+    },
+    "Include/eos_common.h": {
+      "drive_id": "1McqYgRXtTDoAcWElR_egmkld_k21ELAq",
+      "bytes": 26125,
+      "sha256": "49cf57ffa4527245c815957f7d3aea969ae298595cff6c902d4cbe0e058ccc7e"
+    },
+    "Include/eos_init.h": {
+      "drive_id": "1SAw1JxNUt8PLRUiq-9d8SxtW3kMuIS7v",
+      "bytes": 7319,
+      "sha256": "f8b37384f2c6841e995ccd0911c6461c99187a57eca9a0130f2d221ad4d88172"
+    },
+    "Include/eos_auth_types.h": {
+      "drive_id": "1mmH2azjAJncQVgCLnKe2TLB9bMEmQKw0",
+      "bytes": 32471,
+      "sha256": "93274052dd106645e00ed0060850486506ef68dfb903a96b6fd0d3f0d846a3c4"
+    },
+    "Include/eos_connect_types.h": {
+      "drive_id": "1s9Mi8rUbtMzxiGf04f_lnTeRMAkx7Yq8",
+      "bytes": 32850,
+      "sha256": "427943389acce7cc1cf6c68b808ded12e4366c4b8600f1e469b35f4b5d46b2dc"
+    },
+    "Include/eos_result.h": {
+      "drive_id": "1ZDRMtLY5-pINhj_W9R_XA7nS_e5bs6co",
+      "bytes": 30497,
+      "sha256": "81b314617da3de0b9c3bc23c3e58ae2daf0a186865329527539b6cd986e1c897"
+    },
+    "Include/eos_metrics_types.h": {
+      "drive_id": "1xcCJZGIjQW-1opFCq8WPrnv9R0mMt7Is",
+      "bytes": 3178,
+      "sha256": "726f1dbc386617d0583d60acd8ceee0a147f695d629ff8aa3f7d535aba76d631"
+    },
+    "Include/eos_ecom_types.h": {
+      "drive_id": "1oNKSYqypygT_6eHa0Xq0iewHwsIK1ypI",
+      "bytes": 48782,
+      "sha256": "0b330f51fb4e6cf3a1b1b8fdbcee58704f5efcf2ca46e03d3ec62ce9943620c9"
+    },
+    "Include/eos_ui_types.h": {
+      "drive_id": "1wgSUE0GF8J9OUw9dxjHDwCADezdhQLDA",
+      "bytes": 22424,
+      "sha256": "c2b175b61170e17c3f965cb49fb4a18b50d20e7bf0fde1479fe1d7767c17caba"
+    },
+    "Include/eos_friends_types.h": {
+      "drive_id": "1yjWLxJOjRMh7aE5yAdJgYoRM4JcbIT3L",
+      "bytes": 14144,
+      "sha256": "2d20b98dc231499e1124a1b259592dc71844f1357eeee51446e6f1a21b0e60ea"
+    },
+    "Include/eos_presence_types.h": {
+      "drive_id": "1bKaRnLTKzWCnraek0RnIgK8KHw9se1fg",
+      "bytes": 17622,
+      "sha256": "83e862a86fb99d99250ae05dddf4c27bc335e01a1152cb451353c6613e154c40"
+    },
+    "Include/eos_p2p_types.h": {
+      "drive_id": "1bMoCTz2_8mVsgTnwayRamZpdJPCAjQ0V",
+      "bytes": 26619,
+      "sha256": "dc9db7f31de5e5404d1475de56f0087a13b03daf8a0697cc61f28187ee79f2d0"
+    },
+    "Include/eos_sessions_types.h": {
+      "drive_id": "1zp1quyZPfCA2lKsu-ZjqkC1F2XscIDXZ",
+      "bytes": 56100,
+      "sha256": "38f542caa0a4b6a5ad8de474352b93df185ebdd25475ab3c22ee3b397c4f83ac"
+    },
+    "Include/eos_lobby_types.h": {
+      "drive_id": "1RMfQKRKQwLCrHpIEx96UOF5KQf9caF2t",
+      "bytes": 72701,
+      "sha256": "c66daf1ebd2c3526f9b6d2392e44dce644fd4f482c34a3e95a65fa8718916572"
+    },
+    "Include/eos_userinfo_types.h": {
+      "drive_id": "15YYH5NQtvnbXfMbRtiIIEiNFaxa7sJbV",
+      "bytes": 15802,
+      "sha256": "e74a9e3ff99e72227b91d7217ad7427a7d426cd1b66fee629332031341f2515f"
+    },
+    "Include/eos_playerdatastorage_types.h": {
+      "drive_id": "1AvNRopGjzSq9jLOa78XU4WyR_sCwYisr",
+      "bytes": 23453,
+      "sha256": "5d7cc80aef68ffb044fddff3a119249185a833d525518121b6ad0c87e5ec2e0b"
+    },
+    "Include/eos_titlestorage_types.h": {
+      "drive_id": "1lO0ffcJa_Oukg8O2rALFuT_JxXdCPpUz",
+      "bytes": 13362,
+      "sha256": "da4d3ac9c9e2761d0c0a1d45db73e1ec1195a25e0ac5d8e382235168601b744f"
+    },
+    "Include/eos_achievements_types.h": {
+      "drive_id": "1bdTBHWnEcMPHn49ZNB3ZPQ4yuc33CV4d",
+      "bytes": 18623,
+      "sha256": "7f048bd1ffc7b91d1c7c527ca401711f73949b88e79534a48c1bcc362930e87e"
+    },
+    "Include/eos_stats_types.h": {
+      "drive_id": "15b8MI28haqan3jxloQMR4hWGJpEGQn4R",
+      "bytes": 7709,
+      "sha256": "fdb3f7bca2a72295fb4dbfb4d8a2b8b9cd6a5ca68753a71327cdca52b34b9d98"
+    },
+    "Include/eos_leaderboards_types.h": {
+      "drive_id": "1vX1GnnoRzk8ue3viaaWHKUY3t2DOdjJB",
+      "bytes": 16060,
+      "sha256": "bdca2811f1c5c302ed58f4e0582f7088dcc13470b78ee3969fc1fd81e38c8dd5"
+    },
+    "Include/eos_mods_types.h": {
+      "drive_id": "1nYJPXiCJY3b2QAa4NGDqIwvjpqqykNXv",
+      "bytes": 8837,
+      "sha256": "55bb1d399d7cac5d906b6a798fe732ac8378e8e13b16bed5dd03bf7cfd549ae3"
+    },
+    "Include/eos_anticheatclient_types.h": {
+      "drive_id": "1bjnSUb6jyJTrpoMjk6bM5nmY-6nhovIM",
+      "bytes": 17426,
+      "sha256": "9b8e00918e743a7b61351922dadd223b638af998ced1ba5ba8f6607bcde13c53"
+    },
+    "Include/eos_anticheatserver_types.h": {
+      "drive_id": "1VhEhEMghLlRxxwZqdO0VHc198BFAPTnj",
+      "bytes": 10588,
+      "sha256": "7a7215714ccddbecc8095d19c6b01e54717c895f6f043f3222eb5ad8b465e4d5"
+    },
+    "Include/eos_reports_types.h": {
+      "drive_id": "18LVnrYtflZbUwpaqrqApWxleNDT3vfqk",
+      "bytes": 3435,
+      "sha256": "a0c530eb3945e1f6f7788089a11b7ffcaad90da8c7432ba51e1e103d39c94059"
+    },
+    "Include/eos_sanctions_types.h": {
+      "drive_id": "1BKyD_RwqhkDBmuLznrCZVCT4caLrtodl",
+      "bytes": 6239,
+      "sha256": "ea4a15a9390ae251433df1c3f6b2a012e4729c03316f224445fe30f3c1af0303"
+    },
+    "Include/eos_kws_types.h": {
+      "drive_id": "1fzexyv3mcisAiuqP8NuIMtpac1xXtMuf",
+      "bytes": 11739,
+      "sha256": "af1159640689d2b0b9a88caa08ddb51b4d2747e1b6c91d19189b9ed810e46827"
+    },
+    "Include/eos_rtc_types.h": {
+      "drive_id": "1usdVm_jlUV8XOf_wxgGq0o8cgY0dXedO",
+      "bytes": 17500,
+      "sha256": "1a279d5693e0fef0a5761bbe78e4d346d8c6408caf494a62fcdd4fb152bbe66d"
+    },
+    "Include/eos_rtc_admin_types.h": {
+      "drive_id": "1CsEyzDW5cW7QRVWDktuVetsFUyYbqOqB",
+      "bytes": 7470,
+      "sha256": "b4eb783802773d99a85803d877b9233821587bdba5d765ee9d5b807cd61d4ac4"
+    },
+    "Include/eos_progressionsnapshot_types.h": {
+      "drive_id": "1ct9xa4nq0I7EXkoNJfSoiCri924DHzgD",
+      "bytes": 4859,
+      "sha256": "b70783eb0dc53b76a1114e28c8e1ffa1e52984074f37ac3ef589d7e1b2fb0fef"
+    },
+    "Include/eos_custominvites_types.h": {
+      "drive_id": "1THr9fo4-_mFEErUm1FV22jrsdehle3kw",
+      "bytes": 20435,
+      "sha256": "5c6b2f8ae10e4f76d6564bd56befcb44b0204c2d61bdcc31f8940967aec31167"
+    },
+    "Include/eos_integratedplatform_types.h": {
+      "drive_id": "1MlzlmO6w4tw8pwqFuzL2UdoxBxEVlpVd",
+      "bytes": 19016,
+      "sha256": "6db95be1ce82983e3739dbbe1081abbadcb26a382846223e1b1c542329ec3f45"
+    },
+    "Include/eos_version.h": {
+      "drive_id": "15MT3Fqj8mkWgBmU_9RImC22NDj-D265T",
+      "bytes": 2293,
+      "sha256": "2552a09e69fbdbb72ec09eae270aeb724a557dd344fb72bac985929e6ff65191"
+    },
+    "Include/eos_achievements_types_deprecated.inl": {
+      "drive_id": "1L--uoQFDY83gAuiU33GiDr18UafvUtfW",
+      "bytes": 8345,
+      "sha256": "12ecf705be02ced9c52c46d744dfa38847b8bd4993ee7394bd01a74fef9f2bf7"
+    },
+    "Include/eos_anticheatclient_types_deprecated.inl": {
+      "drive_id": "17dC4a2juWFMmJXxJ7LGNPjMpagcWILAd",
+      "bytes": 748,
+      "sha256": "21ac8098f16627f40f8fd55e8efa8c7705ff5248262da64b9e0e8c41e8b457aa"
+    },
+    "Include/eos_anticheatcommon_types.h": {
+      "drive_id": "1Hua7bzNwCZKQjvHBZoXDeRsCHiVK0xj9",
+      "bytes": 27467,
+      "sha256": "451605beec0348391981a293e3e3deabc884b6c51a6c3b4f8505f4dddc3450b1"
+    },
+    "Include/eos_auth_types_deprecated.inl": {
+      "drive_id": "1DYz-2X9y06l5Hjbv7RDCqxx-ogX91vfb",
+      "bytes": 956,
+      "sha256": "881fc03c59e64b4974dd709b5e4b7036476484ae64abae82df61f10df6f87d04"
+    },
+    "Include/eos_leaderboards_types_deprecated.inl": {
+      "drive_id": "1iWzUcd9dv9bal9T66yIgY81Jeyj1V300",
+      "bytes": 490,
+      "sha256": "940535b7c727f475996fd72834a7bcacb6b891385923776f8fd8a7eb12de1413"
+    },
+    "Include/eos_ui_buttons.h": {
+      "drive_id": "1vgBr8YCj8nyE3OuocsgKajwbpToF4Vc6",
+      "bytes": 1832,
+      "sha256": "d5fafa5a8266dac1b227cf43019da141590536e2fbbfde3b48fb3b7798d968ed"
+    },
+    "Include/eos_ui_keys.h": {
+      "drive_id": "1f36nSN6YPekYI_P19askJEoGN26Z1os3",
+      "bytes": 7074,
+      "sha256": "c41a0a761c302cc0e11847d35d23d05ba0f8438db4f7a865ea35c8d232c2b382"
+    },
+    "Lib/EOSSDK-Win64-Shipping.lib": {
+      "drive_id": "1TMflcj9PSNPeB-bYgObFuZ7LOkeuhzUB",
+      "bytes": 214016,
+      "sha256": "8fce1aa0b2d82ec939d5bcb12666bacca555ed2bbc52aa843fb0082f54e1dd3a"
+    },
+    "Bin/EOSSDK-Win64-Shipping.dll": {
+      "drive_id": "1sK3Ut4Aj-4U6v8beLoR2MPiJaA74-UEy",
+      "bytes": 19548600,
+      "sha256": "ab25af350c48856633d671a16e8469277f9acee39186d69fe5b2a26100d738e8"
+    },
+    "Include/eos_friends.h": {
+      "drive_id": "1R2oxn_NG5YbDC2ONOuU4p2T17MSwGUqE",
+      "bytes": 9674,
+      "sha256": "b9d80aca762db326c504f02aef7c0a5c5e38633b13209f7e5805910f9837f8d1"
+    },
+    "Include/eos_ui.h": {
+      "drive_id": "1lgHEjxi1PEw104LVP0yQ2REUsGBwWxxA",
+      "bytes": 18292,
+      "sha256": "4241f0f00594571ee27aa61f9207e4bb04863054311646668af52d139ec00111"
+    },
+    "Include/eos_userinfo.h": {
+      "drive_id": "1xvypZfMQ__tugTOEJM_vN3zMBUPYOgqK",
+      "bytes": 13321,
+      "sha256": "8ca8bdf99a5a922870b461523654b7b77143780a4ded11282941576894435db5"
+    },
+    "Include/eos_logging.h": {
+      "drive_id": "1zbrDj20M7wlKib9Ji8z3L7XuB8QM0HQJ",
+      "bytes": 3587,
+      "sha256": "8574042e0703ae98c8cc841c8455430d0518c7b171181fb0aa9209f7f571b2a8"
+    },
+    "Include/eos_logging_categories.h": {
+      "drive_id": "1lLY-9hSqhVELLPuUgTOlQBU-MVmOb6eN",
+      "bytes": 4503,
+      "sha256": "3f541ccbf188fafda7d2dc61ea5573eb596b9666a170faa59907cc42a46ed7d5"
+    },
+    "Include/eos_lobby.h": {
+      "drive_id": "1qMch7Wl5y_Pb5Jgy1uQg-08dPz7K9DTW",
+      "bytes": 62547,
+      "sha256": "c23feb3bad37c113d6eaeb915e2eb0e330eb668e118294333b5b118561a36b6c"
+    },
+    "Include/eos_sessions.h": {
+      "drive_id": "1AB7PX-qNyhTDJBv6Lq6Xh42GtVHKVr6n",
+      "bytes": 47021,
+      "sha256": "8d644ecb6ce5464305de49e7d5decfbb2d6fcd65f624ae4aeece7b1ecd25cfdf"
+    },
+    "Include/eos_rtc.h": {
+      "drive_id": "1IohPuslXTKroRNWufgTx3JfmzZ8xmWC7",
+      "bytes": 11827,
+      "sha256": "33d0fe63fd0aada542dccc0a74665178de6dc575f3e3e8425d09649b70fe8c50"
+    },
+    "Include/eos_rtc_audio.h": {
+      "drive_id": "18c1LhSYnXKlhHXzR5WxHQdrEcukoBYtB",
+      "bytes": 29215,
+      "sha256": "e2ac72603c47123a254d5bdc5fcac4108970a6024fd6f1b9cac8496b322bd78d"
+    },
+    "Include/eos_rtc_audio_types.h": {
+      "drive_id": "1hShYhCbZUkYy1f0C6oiGtRSbYvAXOlst",
+      "bytes": 34012,
+      "sha256": "0f0d2614b319679fea175c0ae40837af6c8430b0a38b7167641a972475f53d0a"
+    },
+    "Include/eos_playerdatastorage.h": {
+      "drive_id": "11rIctaTPMa5LaU6O2qJ_DujOmfEXxgs0",
+      "bytes": 14089,
+      "sha256": "07a6cd8db22a2ac07c0f812d85ac7394237d89f04ab7b305451a722d294b8fd1"
+    },
+    "Include/Windows/eos_Windows.h": {
+      "drive_id": "15Qhyo3zqghsbnWKhGoteCJfUWttomegp",
+      "bytes": 604,
+      "sha256": "bc2d8850d4ad6f321c572ade46fad3d4ad4d35f40538225a27c87ed851fceff6"
+    },
+    "Include/eos_rtc_audio_types_deprecated.inl": {
+      "drive_id": "1mkAvrbJM8BzaH3QVfgVY-WKmMHPSkILE",
+      "bytes": 7431,
+      "sha256": "09f569b45b3118025e6f3a42304bda28f0e47d26c9a2eb28f668865b0818bdea"
+    },
+    "Include/eos_rtc_data_types.h": {
+      "drive_id": "1ztJPfHMo5rYm2vX7xZIgT02vs9nyzTx4",
+      "bytes": 7902,
+      "sha256": "dd25a1db0fb84f13fa7909c339bde4d9ffc4ca1ee7d9c891ff35c749e41f6a22"
+    },
+    "Include/eos_ecom.h": {
+      "drive_id": "1Yq3D8obqfoqsOq77SvszDyl_8YWMNcp0",
+      "bytes": 29908,
+      "sha256": "c9618117fc47e6f5e903d1cfa9fe75dfa0e3640f900b265eb17644c29d3c4bb9"
+    }
+  }
+}

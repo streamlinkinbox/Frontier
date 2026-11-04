@@ -1,0 +1,40 @@
+{
+  "Date": "2026-10-18",
+  "Scope": "HTML-first review; no C++ port, Windows execution, new executable or publication",
+  "Build": "Passed; existing large-chunk warning remains",
+  "FocusedTests": {
+    "startTime": "2026-10-18T19:57:40.464Z",
+    "duration": 141086.44,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "ExtendedRun": {
+    "Passed": 21,
+    "RemainingUnfinishedOrNotRun": 5,
+    "Status": "Reached the six-minute global suite budget; not a complete graphics regression pass",
+    "Report": "PatternHtmlExtendedChecks.json"
+  },
+  "CaptureChecks": "PatternHtmlCaptureChecks.json",
+  "OriginalImageBytes": "Retained without authoring resize or flattening; verified by upload/save test",
+  "PreservedUnrelatedPaths": "40/40 byte-identical",
+  "Deferred": "Editable authoring retained; derived runtime baking and GPU lighting/flake optimisation remain planned",
+  "SourceSha256": {
+    "Experimental/TextureStudio/src/PatternColourSources.js": "098530ff1e539749ca78472d011908ced347a12ace74cb462d6c86dc11f6bc3a",
+    "Experimental/TextureStudio/src/PatternColourControls.jsx": "ebf111f97b0e9b69be139b4700128671234a9388965644b850da1c1c2eec5957",
+    "Experimental/TextureStudio/src/StudioTooltips.jsx": "8f2dccb6903002eb28f169b01a860a704265d19d7b0bc5e8001039089ba8ffc3",
+    "Experimental/TextureStudio/src/studioTooltips.css": "26422a7492a4604da04a849540f55d6ba12b217d3be395bbb7ff47c1a8d9b039",
+    "Experimental/TextureStudio/src/PatternEditor.jsx": "b0bdbee8be35c63f340a83475abe5bc0edc5a52451110af3d6ce87f40c7c0220",
+    "Experimental/TextureStudio/src/patternDocument.js": "3f8c59b4b9fecb64db3115aca1055521bd917a46b2fd29ca8df5ee96450f4c53",
+    "Experimental/TextureStudio/src/ShapeEditorCanvas.jsx": "bd51f10c888b806989a28a45a6aa220cc25d4c496f108110b801364ba9093a0d",
+    "Experimental/TextureStudio/src/LayerStackPanel.jsx": "2c3382de42320dc69dea214abcf30218a6565682498e425756cb8510ea5bba83",
+    "Experimental/TextureStudio/src/TextureLayerStack.jsx": "b1c2d63c2da7116e5f89aa93d7baa66847e633be8dd2368dc15ae9d581172a40",
+    "Experimental/TextureStudio/src/StudioUI.jsx": "3b30c7f60b8d7b9849313e0501b18c7433b607ce28345a4a4525001f1a50eb03",
+    "Experimental/TextureStudio/src/ShapeEditorToolbar.jsx": "a0d8b62df68b637a858e4583a65f8fd3f273b5f38c5f6685ff2ac91633a70505",
+    "Experimental/TextureStudio/src/StampStudio.jsx": "4ba4f46f530ef6a5012cb9b936f125e8846092a05b332e58669d86f10bce765b",
+    "Experimental/TextureStudio/src/TextureMaskToolbar.jsx": "b5d985cb55743abfbfdb3cd0e48acd7b00cb5569e0d3488f98d055e8d5b2ff19",
+    "Experimental/TextureStudio/src/patternEditor.css": "0d9bbffab68bcea775b48b32329bd5ffdb7f1dd07dacc50f229eddbc52f2273f",
+    "Experimental/TextureStudio/src/main.jsx": "ad01c79496fa46bbeaaac96ad31ab031a9dd3f82422ed8f68956b40a5ad9d65c"
+  }
+}

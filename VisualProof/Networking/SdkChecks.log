@@ -1,0 +1,94 @@
+Project-Networking real SDK checks
+utc=2026-10-07T09:04:24.743422+00:00
+authentication=NOT_ATTEMPTED; no client secret supplied
+Shutdown handler: initialize.
+EOS_Success
+sdk_initialized_once=1
+scope=sdk_runtime_only authentication=NOT_ATTEMPTED
+1.19.2.1-58105819
+sdk=ready; kept initialized for login and retries
+EOS_Success
+sdk_shutdown_once=1
+Shutdown handler: cleanup.
+exit=0
+Shutdown handler: initialize.
+EOS_Success
+sdk_initialized_once=1
+scope=sdk_runtime_only authentication=NOT_ATTEMPTED
+1.19.2.1-58105819
+sdk=ready; kept initialized for login and retries
+EOS_Success
+sdk_shutdown_once=1
+Shutdown handler: cleanup.
+exit=0
+Shutdown handler: initialize.
+EOS_Success
+sdk_initialized_once=1
+scope=platform_creation_only synthetic_credential=1 authentication=NOT_ATTEMPTED
+platform=created; player authentication has not yet completed
+EOS_Success
+sdk_shutdown_once=1
+Shutdown handler: cleanup.
+exit=0
+Shutdown handler: initialize.
+PASS Charge required scopes include Country, Basic Profile, Friends List and Presence
+PASS credential bounds and SDK diagnostic redaction
+EOS_Success
+sdk_initialized_once=1
+scope=sdk_runtime_only authentication=NOT_ATTEMPTED
+1.19.2.1-58105819
+sdk=ready; kept initialized for login and retries
+scope=sdk_runtime_only authentication=NOT_ATTEMPTED
+1.19.2.1-58105819
+sdk=ready; kept initialized for login and retries
+configuration=refused missing_EOS_CLIENT_SECRET; use a rotated credential locally
+scope=sdk_runtime_only authentication=NOT_ATTEMPTED
+1.19.2.1-58105819
+sdk=ready; kept initialized for login and retries
+PASS signed-out profile/creation guards and cleared profile state
+EOS_Success
+sdk_shutdown_once=1
+sdk=retired; restart the application before using EOS again
+PASS same-process SDK reuse, retry, social guards and terminal shutdown
+Shutdown handler: cleanup.
+exit=0
+Shutdown handler: initialize.
+Project-Networking: REAL EOS login; no simulated provider
+configuration=refused missing_EOS_CLIENT_SECRET; use a rotated credential locally
+Shutdown handler: cleanup.
+exit=2
+PASS real executable refuses missing credentials without authentication
+Shutdown handler: initialize.
+Usage: LoginHost [--sdk-check | --lifecycle-check | --platform-check]
+Shutdown handler: cleanup.
+exit=2
+exit=0
+PASS initial login is not success
+PASS Connect cannot bypass Auth
+PASS Auth alone does not finish login
+PASS ordered valid completions finish login
+PASS invalid Epic account cannot authenticate
+PASS invalid PUID cannot authenticate
+PASS late completion cannot reverse timeout/refusal
+PASS creation cannot bypass Auth or explicit consent state
+PASS missing product user waits for consent without restarting Auth or claiming success
+PASS explicit consent resumes the existing Connect flow
+PASS duplicate creation approval is rejected
+PASS verified login stays connected without another Auth flow
+PASS cancelled or timed-out consent cannot create a product user
+Scope: synthetic acceptance ordering only. LIVE EOS AUTHENTICATION NOT RUN.
+exit=0
+exit=0
+Shutdown handler: initialize.
+PASS reject wrong ABI revision
+PASS reject wrong ABI fingerprint
+PASS reject null delivery
+PASS load real EOS-linked project entry points
+PASS reject malformed launch
+PASS missing secret refuses real project construction
+PASS repeat refused construction safely
+PASS reject inactive project tick
+Shutdown handler: cleanup.
+scope=real_library_loading_and_refusal authentication=NOT_ATTEMPTED
+exit=0
+PASS all checks; LIVE EOS AUTHENTICATION NOT RUN; WINDOWS MSVC NOT RUN

@@ -1,0 +1,112 @@
+# SolidArc trim / join walkthrough — T on a circle an extrude already reads (Plasticity: curves stay free of the solids
+# made from them, so the trim detaches: the extruded circle is kept hidden for its body and the trimmed arc becomes a
+# new sketch), then two picked sketches joined from the Inspector (Curves card · Join) and extruded together.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/TrimJoinRecovery.solidarc
+#      --document …/TrimJoin.solidarc --script Scripts/TrimJoinWalkthrough.txt
+# Closed forms: puck r 0.5 × 1 = π/4 = 0.785398; joined square 0.5 × 0.5 and disc r 0.3, extruded 1 as a new body:
+# 0.25 + 0.09π = 0.532743, total 1.318141.
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① Top view: rectangle 2 × 1, a circle r 0.5 on its corner (2, 1), the circle extruded 1 (New)
+key N Ctrl
+frames 3
+key Keypad7
+frames 2
+key Q Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 2.0 1.0 0.0
+frames 3
+key W Shift
+frames 2
+click world 2.0 1.0 0.0
+frames 2
+click world 2.5 1.0 0.0
+frames 3
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 3
+expect bodies == 1
+expect volume ~ 0.785398
+expect sketches == 2
+
+# ② T: hover the circle's outer ¾ (outside the rectangle) — the red preview — and click: the trim detaches
+key T
+frames 2
+move world 2.353553 1.353553 0.0
+frames 3
+expect trim-hover contains Circle1
+expect trim-refusal == 0
+capture 235TrimHoverExtruded
+click world 2.353553 1.353553 0.0
+frames 3
+expect trim-commits == 1
+expect hidden-curves == 1
+expect sketches == 3
+expect bodies == 1
+expect volume ~ 0.785398
+capture 236TrimDetached
+key Escape
+frames 2
+
+# ③ a 0.5 square and a disjoint circle r 0.3 below the rectangle; picked in the Outliner (click, Shift-click), the
+#    Inspector's Curves card joins them into one sketch
+key Q Shift
+frames 2
+click world -1.5 -1.5 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 3
+key W Shift
+frames 2
+click world 0.0 -1.25 0.0
+frames 2
+click world 0.3 -1.25 0.0
+frames 3
+expect sketches == 5
+click @Figure:Sketch#5
+frames 2
+click @Figure:Sketch#6 Left Shift
+frames 2
+expect selected-curves == 2
+capture 237JoinPicked
+click @CurveJoin
+frames 3
+expect sketches == 4
+expect sketch-curves == 5
+expect selected-curves == 1
+
+# ④ E extrudes the joined sketch: both profiles rise together as a new body
+key F
+frames 2
+key E
+frames 2
+key R
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 3
+expect refused == 0
+expect volume ~ 1.318141
+capture 238JoinExtruded

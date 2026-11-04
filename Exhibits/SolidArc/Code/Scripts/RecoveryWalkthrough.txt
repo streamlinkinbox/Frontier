@@ -1,0 +1,36 @@
+# SolidArc recovery walkthrough — run after WorkspaceWalkthrough.txt left an autosave behind.
+# Run: SolidArcCapture --options Scripts/RecoveryOptions.toml --script Scripts/RecoveryWalkthrough.txt (no --specimen)
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty start + Welcome back (options: parallel projection, no grid)
+frames 2
+expect welcome == 1
+expect steps == 0
+expect orthographic == 1
+expect grid == 0
+capture 16WelcomeBack
+
+# ② Continue previous reopens the autosaved document (12 steps, through-hole → genus 2)
+click @WelcomeContinue
+frames 2
+expect welcome == 0
+expect steps == 12
+expect refused == 0
+expect genus == 2
+expect sound == 1
+capture 17Recovered
+
+# ③ Open… dialog with a typed path (the Ctrl+S file of the first walkthrough)
+key O Ctrl
+frames 2
+click @PathField
+key A Ctrl
+type _ClaudeScratch/SolidArcWorkspace/Bracket.solidarc
+click @PathOpen
+frames 2
+expect document-path == _ClaudeScratch/SolidArcWorkspace/Bracket.solidarc
+expect steps == 12
+expect status contains Opened
+capture 18Opened

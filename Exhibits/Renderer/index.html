@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frontier — Native renderer evidence</title>
+<link rel="stylesheet" href="/Exhibits/Renderer/Code/VulkanPreview.css">
+<style>
+:root{color-scheme:dark;--muted:#999;--accent:#ddd;--text:#eee;--main:#090909;--line:#292929;font-family:system-ui,sans-serif;background:#090909;color:var(--text)}
+*{box-sizing:border-box}body{margin:0}header{padding:18px 24px;border-bottom:1px solid var(--line);display:flex;gap:20px;align-items:center;flex-wrap:wrap}a{color:#c2ded0}h1{font-size:18px;margin:0}h3{font-size:15px}p{font-size:12px;color:var(--muted);line-height:1.65}button,select{background:#191919;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px;cursor:pointer}main{display:grid;grid-template-columns:170px minmax(0,1fr) 330px;min-height:calc(100vh - 85px)}aside{padding:20px;border-right:1px solid var(--line)}aside button{display:block;width:100%;margin:12px 0}.capture-column{padding:22px;min-width:0}.capture-column h2{font-size:17px;font-weight:400}#Capture{height:calc(100vh - 230px);min-height:350px;position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden}#Inspector{padding:22px;min-width:0;border-left:1px solid var(--line)}.crossline{border-top:1px solid var(--line);margin:22px 0}.label{font-size:10px;letter-spacing:1px}.left-collapsed main{grid-template-columns:0 minmax(0,1fr) 330px}.left-collapsed aside{visibility:hidden;overflow:hidden;padding:0}textarea{color:var(--text)}@media(max-width:850px){main,.left-collapsed main{grid-template-columns:minmax(0,1fr)}aside{display:flex;gap:10px;padding:12px 22px}aside button{width:auto;margin:0}.left-collapsed aside{display:none}#Capture{height:60vh;min-height:260px}#Inspector{border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header><h1>Native renderer evidence</h1><a href="/Exhibits/SpaceFormats/index.html">ImGui / native UI evidence</a><a id="Back" href="/project-browser/">Project Browser reference</a><button data-collapse="left" aria-label="Toggle specimen list">Specimens</button><label>Mode <select id="RevisionSelect" aria-label="Shading mode"><option value="0">Authored material</option><option value="1">Preview PBR</option><option value="2">MatCap</option><option value="3">CAD</option></select></label></header>
+<main>
+<aside><button data-preview="0">Bracket</button><button data-preview="1">Calibration sphere</button><p>Validation specimens only. Not application creation presets.</p></aside>
+<section class="capture-column"><h2 id="SpecimenTitle">Bracket</h2><div id="Capture"></div><p>Actual native Vulkan readback on SwiftShader (CPU). Not a native window screenshot, hardware-GPU result or completed editor viewport.</p></section>
+<section id="Inspector"></section>
+</main>
+<script src="/Exhibits/Renderer/Code/VulkanPreview.js"></script>
+<script src="/Exhibits/Renderer/Code/RendererReview.js"></script>
+</body>
+</html>

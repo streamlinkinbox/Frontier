@@ -1,0 +1,103 @@
+# SolidArc matcap walkthrough — engineering matcaps per body and per face (step A of the matcap plan).
+# Inspector · Appearance shows the 13 built-in studio matcaps (metal, plastic, other) as round swatches; a click assigns the
+# swatch to the selected faces, or to the body when nothing is selected. M opens the large picker at the top of the
+# viewport, Alt+M returns the selection (or the body) to its default. Assignments are appearance-only: no regeneration, one
+# undo entry each, and they follow the faces' persistent names through parameter edits.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/MatcapRecovery.solidarc
+#      --document …/Matcap.solidarc --script Exhibits/SolidArc/Code/Scripts/MatcapWalkthrough.txt
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① Studio: the default analytic shading; library Studio + 13 built-ins, every swatch has a thumbnail
+frames 3
+expect faces == 11
+expect steps == 8
+expect body-matcap contains Studio
+expect face-matcaps == 0
+expect matcap-layers == 14
+expect matcap-thumbnails == 14
+capture 90MatcapStudio
+
+# ② nothing selected: the Brushed steel swatch dresses the whole body
+click @MatcapBrushedSteel
+frames 2
+expect body-matcap contains BrushedSteel
+expect selection-matcap contains BrushedSteel
+expect status contains Matcap BrushedSteel → body
+expect steps == 8
+capture 91MatcapBody
+
+# ③ select the top cap and the boss top, M opens the picker, Brass applies to both and closes it
+move world 2.0 0.6 1.0
+frames 2
+click world 2.0 0.6 1.0
+move world 1.0 1.25 1.75
+frames 2
+click world 1.0 1.25 1.75 Left Shift
+expect selected-faces == 2
+key M
+frames 2
+expect matcap-picker == 1
+capture 92MatcapPicker
+click @PickMatcapBrass
+frames 2
+expect matcap-picker == 0
+expect face-matcaps == 2
+expect selection-matcap contains Brass
+expect status contains Matcap Brass → 2 face(s)
+key Escape
+frames 2
+expect selected-faces == 0
+capture 93MatcapFaces
+
+# ④ mixed scene through the M picker: the front face Red plastic, the boss side Chrome; a three-face selection reads "mixed"
+move world 2.0 0.0 0.5
+frames 2
+click world 2.0 0.0 0.5
+expect selected-faces contains Side(Line1)
+key M
+frames 2
+click @PickMatcapRedPlastic
+frames 2
+move world 1.0 0.75 1.4
+frames 2
+click world 1.0 0.75 1.4
+expect selected-faces == 1
+key M
+frames 2
+click @PickMatcapChrome
+frames 2
+expect face-matcaps == 4
+click world 2.0 0.6 1.0 Left Shift
+click world 2.0 0.0 0.5 Left Shift
+expect selected-faces == 3
+expect selection-matcap contains mixed
+key Escape
+frames 2
+expect matcap-dangling == 0
+capture 94MatcapMixed
+
+# ⑤ Alt+M: the front face returns to the body matcap; with nothing selected the body returns to Studio; Ctrl+Z undoes
+move world 2.0 0.0 0.5
+frames 2
+click world 2.0 0.0 0.5
+key M Alt
+frames 2
+expect face-matcaps == 3
+expect selection-matcap contains BrushedSteel
+key Escape
+key M Alt
+frames 2
+expect body-matcap contains Studio
+key Z Ctrl
+frames 2
+expect body-matcap contains BrushedSteel
+key Z Ctrl
+frames 2
+expect face-matcaps == 4
+key Z Ctrl Shift
+frames 2
+expect face-matcaps == 3
+expect steps == 8
+capture 95MatcapUndo

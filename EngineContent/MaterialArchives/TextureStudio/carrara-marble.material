@@ -1,0 +1,52 @@
+Format = 1
+Name = "Carrara Marble"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.18
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/carrara-marble-albedo.png"
+Normal = "Textures/carrara-marble-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "marble"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 2.8
+grain = 0.3
+veinWidth = 0.035
+surfaceSeed = 17
+color = "#dddcd3"
+secondaryColor = "#626b70"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "marble"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 2.8
+grain = 0.3
+veinWidth = 0.035
+surfaceSeed = 17
+color = "#dddcd3"
+secondaryColor = "#626b70"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.12
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.4

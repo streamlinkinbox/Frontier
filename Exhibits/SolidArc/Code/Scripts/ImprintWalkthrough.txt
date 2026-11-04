@@ -1,0 +1,115 @@
+# SolidArc 2D-cutter walkthrough — the request "seperate 2d cutters from 3d cutters … create 2nd cutter for 2d only": the
+# knife menu's own "2D cutter" column draws a shape on a face and imprints it (the face splits along the outline, nothing
+# is cut, no depth stage); the new region is then pushed in / pulled out with face E (extrude manifold) — a pocket from an
+# island, a step from a strip split off by a line drawn across the top.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/ImprintRecovery.solidarc
+#      --document …/Imprint.solidarc --script Scripts/ImprintWalkthrough.txt
+# Closed forms: cube 2³ = 8 · island 0.5 × 0.5 pushed in 0.3 removes 0.075 → 7.925 · the strip x ∈ [−1, −0.5] (0.5 × 2)
+# pushed down 0.5 removes 0.5 → 7.425.
+
+snap grid on
+
+# ① a 2 m cube from the Construct menu
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume ~ 8
+expect faces == 6
+
+# ② knife menu → 2D cutter · Rectangle, drawn on the top: imprinted at once (no depth), the volume unchanged, one face more
+click @SketchKnifeTool
+frames 3
+capture 305ImprintMenu
+click @KnifeFlatRectangle
+frames 3
+expect knife == 1
+expect knife-pending == 1
+expect drawing == Rectangle
+move world 0.2 0.2 2.0
+frames 2
+click world 0.2 0.2 2.0
+frames 2
+move world 0.7 0.7 2.0
+frames 2
+click world 0.7 0.7 2.0
+frames 3
+expect refused == 0
+expect knife == 0
+expect bodies == 1
+expect volume ~ 8
+expect faces == 7
+expect sound == 1
+
+# ③ the island picked (face mode is on) and face E −0.3: a pocket
+click world 0.45 0.45 2.0
+frames 2
+expect selected-faces == 1
+capture 306ImprintIsland
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type -0.3
+key Enter
+frames 3
+expect bevel-preview-volume ~ 7.925
+key Enter
+frames 3
+expect refused == 0
+expect volume ~ 7.925
+expect faces == 11
+expect sound == 1
+
+# ④ 2D cutter · Line across the top (it splits edge to edge), then the strip it cut off pushed down 0.5: a step
+click @SketchKnifeTool
+frames 3
+click @KnifeFlatLine
+frames 3
+expect knife-pending == 1
+move world -0.5 -0.8 2.0
+frames 2
+click world -0.5 -0.8 2.0
+frames 2
+move world -0.5 0.8 2.0
+frames 2
+click world -0.5 0.8 2.0
+frames 3
+expect refused == 0
+expect knife == 0
+expect volume ~ 7.925
+expect faces == 12
+click world -0.8 0.0 2.0
+frames 2
+expect selected-faces == 1
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type -0.5
+key Enter
+frames 3
+expect bevel-preview-volume ~ 7.425
+capture 307ImprintStep
+key Enter
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume ~ 7.425
+expect sound == 1

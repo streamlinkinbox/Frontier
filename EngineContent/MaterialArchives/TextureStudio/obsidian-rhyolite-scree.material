@@ -1,0 +1,259 @@
+Format = 1
+Name = 'Glacial Obsidian & Rhyolite'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[Authoring]
+Variables = []
+Version = 2
+
+    [Authoring.Designer]
+
+    [Authoring.Inputs]
+    'field:cb3af54e-d4f3-4977-abc3-f709c2b2ca0a:amount' = 1.0
+    'field:cb3af54e-d4f3-4977-abc3-f709c2b2ca0a:angle' = 32.0
+    'field:cb3af54e-d4f3-4977-abc3-f709c2b2ca0a:scale' = 7.2000000000000002
+    'field:cb3af54e-d4f3-4977-abc3-f709c2b2ca0a:seed' = 405.0
+    'field:f68e8ddc-5f0d-49dd-bd72-72622d2dc227:amount' = 1.0
+    'field:f68e8ddc-5f0d-49dd-bd72-72622d2dc227:angle' = -24.0
+    'field:f68e8ddc-5f0d-49dd-bd72-72622d2dc227:scale' = 4.5999999999999996
+    'field:f68e8ddc-5f0d-49dd-bd72-72622d2dc227:seed' = 319.0
+    'layer:3ec4714e-c161-4780-93c1-e65dd2710802:colour' = '#b59a8c'
+    'layer:3ec4714e-c161-4780-93c1-e65dd2710802:coverage' = 1.0
+    'layer:3ec4714e-c161-4780-93c1-e65dd2710802:normal' = [ 0.41999999999999998, 0.41999999999999998, 1.0 ]
+    'layer:3ec4714e-c161-4780-93c1-e65dd2710802:roughness' = 0.71999999999999997
+    'layer:f4dc766d-92ea-40cf-ab8b-721e9f06bdb5:colour' = '#cfd8de'
+    'layer:f4dc766d-92ea-40cf-ab8b-721e9f06bdb5:coverage' = 1.0
+    'layer:f4dc766d-92ea-40cf-ab8b-721e9f06bdb5:normal' = [ 0.25, 0.25, 1.0 ]
+    'layer:f4dc766d-92ea-40cf-ab8b-721e9f06bdb5:roughness' = 0.83999999999999997
+
+    [Authoring.Links]
+
+    [[Authoring.Generators]]
+    Category = 'Particle fields'
+    Coded = false
+    Enabled = true
+    Identity = 'f4f85a71-f608-4495-8184-3db98e7d8af2'
+    Inputs = [
+        'flakes',
+        'flakeSize',
+        'flakeScale',
+        'flakeLayers',
+        'flakeLayerDepth',
+        'flakeTilt',
+        'flakeRoughnessMin',
+        'flakeRoughnessMax',
+        'flakeMetalnessMin',
+        'flakeMetalnessMax'
+    ]
+    Name = 'Mineral flake distribution'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'flakes'
+
+    [[Authoring.Generators]]
+    Category = 'Structural fields'
+    Coded = false
+    Enabled = true
+    Identity = '50e7cc04-e9ef-4e3a-88bf-db56fcbeaa43'
+    Inputs = []
+    Name = 'Glacial Obsidian & Rhyolite'
+    Outputs = [ 'colour', 'normal', 'roughness', 'metallic' ]
+    Procedure = 'granite'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = 'f68e8ddc-5f0d-49dd-bd72-72622d2dc227'
+    Inputs = [
+        'field:f68e8ddc-5f0d-49dd-bd72-72622d2dc227:scale',
+        'field:f68e8ddc-5f0d-49dd-bd72-72622d2dc227:seed',
+        'field:f68e8ddc-5f0d-49dd-bd72-72622d2dc227:angle',
+        'field:f68e8ddc-5f0d-49dd-bd72-72622d2dc227:amount'
+    ]
+    Name = 'Felsic lava flow bands'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'rings'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = 'cb3af54e-d4f3-4977-abc3-f709c2b2ca0a'
+    Inputs = [
+        'field:cb3af54e-d4f3-4977-abc3-f709c2b2ca0a:scale',
+        'field:cb3af54e-d4f3-4977-abc3-f709c2b2ca0a:seed',
+        'field:cb3af54e-d4f3-4977-abc3-f709c2b2ca0a:angle',
+        'field:cb3af54e-d4f3-4977-abc3-f709c2b2ca0a:amount'
+    ]
+    Name = 'Periglacial silt & rime'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'noise'
+
+    [[Authoring.Layers]]
+    Channels = [ 'coverage', 'roughness', 'ior' ]
+    Enabled = true
+    Identity = '7fb0c0ae-1791-4712-9688-14ef5bdf95ab'
+    Model = 'coat'
+    Name = 'Clearcoat'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = 'f4dc766d-92ea-40cf-ab8b-721e9f06bdb5'
+    Model = 'detail'
+    Name = 'Glacial rock-flour frost'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = '3ec4714e-c161-4780-93c1-e65dd2710802'
+    Model = 'detail'
+    Name = 'Flow-banded rhyolite swirls'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Enabled = true
+    Generator = 'f4f85a71-f608-4495-8184-3db98e7d8af2'
+    Identity = '4a7515bc-e500-4687-9679-21780d261690'
+    Model = 'flakes'
+    Name = 'Mineral flakes'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'ior', 'specular', 'thickness' ]
+    Enabled = true
+    Identity = '76f9bd07-9874-454e-830b-6547c48e4842'
+    Model = 'surface'
+    Name = 'Surface body'
+
+    [[Authoring.Sources]]
+    Address = 'layer:3ec4714e-c161-4780-93c1-e65dd2710802:colour'
+    Direct = true
+    Generator = 'f68e8ddc-5f0d-49dd-bd72-72622d2dc227'
+    Mode = 'field'
+    Stops = [ '#6e564d', '#a88b7d', '#d4bdb0' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:3ec4714e-c161-4780-93c1-e65dd2710802:coverage'
+    Direct = true
+    Generator = 'f68e8ddc-5f0d-49dd-bd72-72622d2dc227'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#8c8c8c', '#e4e4e4', '#404040' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:3ec4714e-c161-4780-93c1-e65dd2710802:normal'
+    Direct = true
+    Generator = 'f68e8ddc-5f0d-49dd-bd72-72622d2dc227'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#8c8c8c', '#e4e4e4', '#404040' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:f4dc766d-92ea-40cf-ab8b-721e9f06bdb5:colour'
+    Direct = true
+    Generator = 'cb3af54e-d4f3-4977-abc3-f709c2b2ca0a'
+    Mode = 'field'
+    Stops = [ '#9aa6b0', '#c8d3da', '#eef4f7' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:f4dc766d-92ea-40cf-ab8b-721e9f06bdb5:coverage'
+    Direct = true
+    Generator = 'cb3af54e-d4f3-4977-abc3-f709c2b2ca0a'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#c4c4c4', '#ffffff' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:f4dc766d-92ea-40cf-ab8b-721e9f06bdb5:normal'
+    Direct = true
+    Generator = 'cb3af54e-d4f3-4977-abc3-f709c2b2ca0a'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#c4c4c4', '#ffffff' ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.60000002384185791, 270.0, 1.1000000238418579, 0.18000000715255737 ]
+Enabled = true
+Finish = [ 0.05000000074505806, 0.20000000298023224, 0.34999999403953552, 0.85000002384185791 ]
+Layers = 4
+Palette = [
+    [ 0.072271861135959625, 0.084376215934753418, 0.13286833465099335, 0.0 ],
+    [ 0.19461780786514282, 0.12743769586086273, 0.18782076239585876, 0.25 ],
+    [ 0.479320228099823, 0.34670409560203552, 0.28744089603424072, 0.5 ],
+    [ 0.027320891618728638, 0.035601314157247543, 0.054480280727148056, 0.75 ],
+    [ 0.68668544292449951, 0.74540436267852783, 0.80695235729217529, 1.0 ]
+]
+Relief = [ 0.36000001430511475, 0.47999998927116394, 0.019999999552965164, 22.0 ]
+
+[Textures]
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.34999999403953552
+Ior = 1.5
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.2199999988079071
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 5
+Thickness = 0.0
+UvScaleOffset = [ 6.0, 3.0, 0.0, 0.0 ]
+
+    [Strata.Textures]
+    Albedo = 'Textures/obsidian-rhyolite-scree-albedo.png'
+    Normal = 'Textures/obsidian-rhyolite-scree-normal.png'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Albedo'
+    Op = 'granite'
+
+        [Strata.Channels.Params]
+        color = '#232026'
+        detailScale = 20.0
+        grain = 0.44
+        secondaryColor = '#8c7268'
+        surfaceSeed = 1031.0
+        tertiaryColor = '#111015'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Normal'
+    Op = 'granite'
+
+        [Strata.Channels.Params]
+        color = '#232026'
+        detailScale = 20.0
+        grain = 0.44
+        secondaryColor = '#8c7268'
+        surfaceSeed = 1031.0
+        tertiaryColor = '#111015'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Coating'
+Coverage = 0.46000000834465027
+Fresnel = 'Schlick'
+HeightStrength = 0.0
+Ior = 1.5199999809265137
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.075000002980232239
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 0.5
+TextureMask = 0
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

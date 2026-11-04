@@ -1,0 +1,52 @@
+frames 3
+key Keypad7
+key Keypad5
+key 6
+frames 3
+click world 0.3 1 1
+click world 0.7 1 1 Shift
+frames 3
+expect selected-curves == 2
+click @OffsetDistance
+key A Ctrl
+type 0.2
+key Enter
+frames 2
+click @OffsetTolerance
+key A Ctrl
+type 0.01
+key Enter
+frames 2
+click @LinkSurfaceOffset
+frames 4
+expect offset-linked-count == 1
+expect last-curve-mid-x > 0.48
+expect last-curve-mid-x < 0.52
+expect refused == 0
+capture Live_Surface_Distance
+# Changing the guide updates the target, without modifying the reference.
+click world 1.8 1.8 1
+frames 2
+click world 0.3 1 1
+frames 2
+expect selected-curves == 1
+key G
+key X
+type 0.1
+key Enter
+frames 3
+expect offset-linked-count == 1
+expect last-curve-mid-x > 0.58
+expect last-curve-mid-x < 0.62
+expect faces == 6
+expect curves == 2
+capture Guide_Edit_Updates_Target
+key Z Ctrl
+frames 3
+expect last-curve-mid-x > 0.48
+expect last-curve-mid-x < 0.52
+key Z Ctrl
+frames 3
+expect offset-linked-count == 0
+expect last-curve-mid-x > 0.68
+expect last-curve-mid-x < 0.72

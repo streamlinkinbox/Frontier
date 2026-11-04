@@ -1,0 +1,58 @@
+Functional environment verification — 2026-11-02
+
+Native Vulkan: SwiftShader Device (Subzero), Linux x86-64, GCC 12, Debug.
+Windows build: Zig 0.13.0 / Clang 18.1.6, x86_64-windows-gnu, Release; NOT run on Windows.
+Source: baseline 255846f plus the files identified by SourceManifest.json.
+Reference branch: streamlinkinbox/Frontier arena/08e7de48-frontier, 7bc60250e153a9b7d70c9740744723fde19fae22.
+
+PASS: LocalMediaValidation — wind reversal, stop, noise, bounds, quality, actual reduced trace dispatch.
+PASS: SceneMediaValidation — 78 checks of real records, renderer, bake acknowledgements, frozen/live optics and persistence.
+PASS: EnvironmentInspectorValidation — 327 assertions, zero failures, including native Bake button activation.
+PASS: EverestInterfaceValidation — 30-record project, 33 environment page captures.
+PASS: EverestShippingValidation — editor-free runtime, simulation and serialization.
+PASS: SolarOcclusionValidation, ForceFieldTriggerValidation, SceneViewportFlightValidation, StoredShaderArchiveValidation.
+PASS: Windows x64 executable compilation (unexecuted on Windows).
+NOT RUN: hardware GPU performance, Windows interactive execution, antivirus scanning, signing.
+
+Meaning: commands change actual native GPU results. The GUI does not fabricate bake completion or velocity measurements.
+The editor captures use low-resolution software-Vulkan images enlarged in a genuine native C++/ImGui workspace.
+The GUI clock is fixed for deterministic captures; its FPS is not a measured performance claim.
+
+Fog wind reversal: 0.00131972; stopped velocity: 0; density variation: 0.000468153
+
+327 assertions; 0 failures
+
+Test project /home/user/Frontier/_ClaudeScratch/build/UI
+    Start 59: EverestInterfaceValidation
+1/2 Test #59: EverestInterfaceValidation .......   Passed  166.73 sec
+    Start 60: EverestShippingValidation
+2/2 Test #60: EverestShippingValidation ........   Passed    0.03 sec
+
+100% tests passed out of 2
+
+Total Test time (real) = 166.76 sec
+
+Test project /home/user/Frontier/_ClaudeScratch/build/UI
+    Start 63: SolarOcclusionValidation
+1/4 Test #63: SolarOcclusionValidation .........   Passed  213.83 sec
+    Start 64: ForceFieldTriggerValidation
+2/4 Test #64: ForceFieldTriggerValidation ......   Passed   35.32 sec
+    Start 68: SceneViewportFlightValidation
+3/4 Test #68: SceneViewportFlightValidation ....   Passed    0.00 sec
+    Start 69: StoredShaderArchiveValidation
+4/4 Test #69: StoredShaderArchiveValidation ....   Passed    0.05 sec
+
+100% tests passed out of 4
+
+Total Test time (real) = 249.20 sec
+
+78 scene-media integration checks passed
+
+Final Windows package verification
+Source revision: c6816fae35461e6b0776aab035a5ffbe1fc64bf4 (clean source tree)
+Archive: Binaries/FrontierSceneViewport-Windows-x64.zip
+Bytes: 23819540
+SHA256: 9dd54698cfc9137c8ab1805274fd8e7a08e31d9df9a69bafbf825da99c9aee97
+PASS: ZIP integrity, all 901 file hashes, exact current executable and environment shaders.
+PASS: 30-record level; Wind nested under Force Field; local media registrations retained.
+Windows runtime: NOT RUN. Signed: NO. Antivirus-scanned: NO.

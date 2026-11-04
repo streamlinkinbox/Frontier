@@ -1,0 +1,148 @@
+# RayTracedLightingCapture PaneSunGlint MirrorReference,Demo,Unfiltered,SolarDisc,DemoDirect,DemoSpecular,SolarDiscDirect,
+# SolarDiscSpecular 8 16 1 (indirect light on, 480x270, low, SwiftShader, 2-core Linux host, 2026-11-02). The pane mirrors the sun.
+# The …Direct and …Specular variants show one term (inspection 1 and 5), so their errors against the full reference mean
+# nothing; their noise and the glint measures below do. Glint measures: the last refresh, region 195,95-285,170.
+#   Converged  core >230: 58 px | Demo 100 | Unfiltered 100 | SolarDisc 58 | Demo direct 115 | SolarDisc direct 68
+#   Demo specular: 2389 px >128 | SolarDisc specular: 2184 px >128 (the reflected disc spread by the variance filter).
+device: SwiftShader Device (Subzero); 8 warm + 16 measured refreshes; indirect on; 480x270
+PaneSunGlint/MirrorReference: fireflies 0.0, visible errors 0 per refresh, refresh 14.268 s
+    stage ReSTIR resampling               1004.7 ms
+    stage antialias and present             35.3 ms
+    stage card lighting                    291.9 ms
+    stage diffuse variance filter           58.6 ms
+    stage direct radiance                  361.6 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.1 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            48.8 ms
+    stage mirror trace                    5092.8 ms
+    stage recombination                     18.6 ms
+    stage reflection trace                 127.6 ms
+    stage shadow cascades                   40.8 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    44.7 ms
+PaneSunGlint/Demo: fireflies 0.0, visible errors 572 per refresh, refresh 8.478 s
+    stage ReSTIR resampling                935.4 ms
+    stage antialias and present             31.7 ms
+    stage card lighting                     55.5 ms
+    stage diffuse variance filter           57.1 ms
+    stage direct radiance                  346.2 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.0 ms
+    stage environment light inputs           1.5 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            46.0 ms
+    stage recombination                     15.6 ms
+    stage reflection trace                 122.2 ms
+    stage shadow cascades                   40.3 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    43.1 ms
+PaneSunGlint/Unfiltered: fireflies 0.0, visible errors 591 per refresh, refresh 8.285 s
+    stage ReSTIR resampling                917.0 ms
+    stage antialias and present             32.8 ms
+    stage card lighting                     62.8 ms
+    stage diffuse variance filter           11.0 ms
+    stage direct radiance                  340.6 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.8 ms
+    stage environment light inputs           1.5 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            10.8 ms
+    stage recombination                     15.7 ms
+    stage reflection trace                 121.9 ms
+    stage shadow cascades                   40.1 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    42.1 ms
+PaneSunGlint/SolarDisc: fireflies 0.0, visible errors 56 per refresh, refresh 8.797 s
+    stage ReSTIR resampling               1031.1 ms
+    stage antialias and present             31.9 ms
+    stage card lighting                     71.4 ms
+    stage diffuse variance filter           60.4 ms
+    stage direct radiance                  352.5 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.8 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            48.8 ms
+    stage recombination                     16.8 ms
+    stage reflection trace                 129.9 ms
+    stage shadow cascades                   41.1 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    43.8 ms
+PaneSunGlint/DemoDirect: fireflies 0.0, visible errors 26607 per refresh, refresh 8.497 s
+    stage ReSTIR resampling                944.4 ms
+    stage antialias and present             31.8 ms
+    stage card lighting                     81.8 ms
+    stage diffuse variance filter           57.0 ms
+    stage direct radiance                  337.7 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.7 ms
+    stage environment light inputs           1.5 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            46.4 ms
+    stage recombination                     16.0 ms
+    stage reflection trace                 122.3 ms
+    stage shadow cascades                   39.9 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    41.8 ms
+PaneSunGlint/DemoSpecular: fireflies 0.0, visible errors 26758 per refresh, refresh 8.761 s
+    stage ReSTIR resampling                943.8 ms
+    stage antialias and present             33.2 ms
+    stage card lighting                     75.6 ms
+    stage diffuse variance filter           57.9 ms
+    stage direct radiance                  349.5 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.4 ms
+    stage environment light inputs           1.5 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            47.6 ms
+    stage recombination                     17.7 ms
+    stage reflection trace                 125.5 ms
+    stage shadow cascades                   41.9 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    43.8 ms
+PaneSunGlint/SolarDiscDirect: fireflies 0.0, visible errors 26697 per refresh, refresh 9.049 s
+    stage ReSTIR resampling               1053.1 ms
+    stage antialias and present             33.7 ms
+    stage card lighting                     67.4 ms
+    stage diffuse variance filter           62.5 ms
+    stage direct radiance                  371.7 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.7 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            50.7 ms
+    stage recombination                     17.9 ms
+    stage reflection trace                 132.4 ms
+    stage shadow cascades                   41.9 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    45.6 ms
+PaneSunGlint/SolarDiscSpecular: fireflies 0.0, visible errors 26870 per refresh, refresh 8.823 s
+    stage ReSTIR resampling                991.2 ms
+    stage antialias and present             32.0 ms
+    stage card lighting                     55.9 ms
+    stage diffuse variance filter           61.3 ms
+    stage direct radiance                  342.0 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.4 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            48.2 ms
+    stage recombination                     16.2 ms
+    stage reflection trace                 127.8 ms
+    stage shadow cascades                   40.6 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    42.5 ms
+
+PaneSunGlint (3223 transition pixels of 27000 in the measured region)
+| Variant | Fireflies / refresh | Visible errors / refresh | Refresh RMS | Transition RMS | Transition noise | Transition bias | Refresh [s] |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| MirrorReference | 0.0 | 0 | 0.56 | 1.43 | 0.58 | 0.00 | 14.268 |
+| Demo | 0.0 | 572 | 4.96 | 13.51 | 0.48 | 13.46 | 8.478 |
+| Unfiltered | 0.0 | 591 | 4.90 | 13.09 | 0.78 | 12.97 | 8.285 |
+| SolarDisc | 0.0 | 56 | 1.40 | 3.51 | 0.46 | 3.35 | 8.797 |
+| DemoDirect | 0.0 | 26607 | 31.78 | 23.99 | 3.26 | 23.75 | 8.497 |
+| DemoSpecular | 0.0 | 26758 | 42.78 | 36.29 | 2.74 | 36.15 | 8.761 |
+| SolarDiscDirect | 0.0 | 26697 | 28.56 | 31.94 | 1.31 | 31.90 | 9.049 |
+| SolarDiscSpecular | 0.0 | 26870 | 42.77 | 40.85 | 1.55 | 40.80 | 8.823 |

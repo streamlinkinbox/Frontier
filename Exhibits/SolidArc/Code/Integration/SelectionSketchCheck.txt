@@ -1,0 +1,35 @@
+frames 3
+key Keypad7
+key Keypad5
+frames 3
+expect steps == 2
+key 1
+click world -1 0 0
+frames 3
+expect picked-points == 1
+click world 0 1 0 Shift
+frames 3
+expect selected-curves == 2
+expect picked-points == 0
+key Delete
+frames 3
+expect steps == 0
+expect refused == 0
+key Z Ctrl
+frames 3
+expect steps == 2
+key 2
+click @Figure:Sketch#1
+frames 2
+click @Figure:Sketch#2 Shift
+frames 3
+expect selected-curves == 2
+expect picked-points == 0
+key X
+frames 3
+expect steps == 0
+expect refused == 0
+key Z Ctrl
+frames 3
+expect steps == 2
+capture Planar_Sketch_Global_Selection_Delete

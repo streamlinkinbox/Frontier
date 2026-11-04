@@ -1,0 +1,123 @@
+# SolidArc edge path walkthrough — Ctrl+click an unpicked edge while edges are picked (Blender's pick shortest path):
+# the edges from the active (last picked) edge to the clicked one join. Inspector › Edge path: Along loop keeps to a
+# loop holding both edges (an edge loop, a face rim or a tangent chain) and never cuts across the body, Other side takes
+# the far way round a closed loop, Whole loop the whole loop, Shortest the least total length over any edges.
+# Ctrl+click on a picked edge still removes it (Plasticity).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/EdgePathRecovery.solidarc
+#      --document …/EdgePath.solidarc --script Exhibits/SolidArc/Code/Scripts/EdgePathWalkthrough.txt
+# Closed forms on the 2 × 1 × 1 box: front-top → back-top round the top rim 2 + 1 + 2 = 5 (either side), the whole
+# rim 6; front-top → right-bottom shares no loop (refused along a loop), shortest 2 + 1 + 1 = 4 down the front-right edge.
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+snap grid on
+
+# ① empty document, Top view: a 2 × 1 rectangle, filled, extruded 1
+key N Ctrl
+frames 2
+expect steps == 0
+key Keypad7
+frames 2
+key Q Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 2.0 1.0 0.0
+frames 2
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect steps == 2
+expect volume ~ 2
+
+# ② edge mode: click the front-top edge, Ctrl+click the back-top edge → the path round the top rim (3 edges, 5)
+key 2
+frames 2
+move world 1.0 0.0 1.0
+frames 2
+click world 1.0 0.0 1.0
+frames 2
+expect selected-edges == 1
+move world 1.0 1.0 1.0
+frames 2
+click world 1.0 1.0 1.0 Left Ctrl
+frames 2
+expect path-picks == 1
+expect path-refused == 0
+expect path-edges == 3
+expect path-length > 4.999
+expect path-length < 5.001
+expect selected-edges == 3
+expect status contains Along loop
+capture 321EdgePathAlong
+
+# ③ Inspector › Edge path: Other side (the far short edge), Whole loop (the rim, 4 edges, 6), Shortest (3 edges, 5)
+click @PathOtherSide
+frames 2
+expect path-edges == 3
+expect selected-edges == 3
+expect status contains far side
+click @PathWhole
+frames 2
+expect path-mode == 1
+expect path-edges == 4
+expect path-length > 5.999
+expect path-length < 6.001
+expect selected-edges == 4
+capture 322EdgePathWhole
+click @PathShortest
+frames 2
+expect path-mode == 2
+expect path-edges == 3
+expect selected-edges == 3
+click @PathAlong
+frames 2
+expect path-mode == 0
+
+# ④ no loop holds both: front-top, then (bottom view) Ctrl+click the right-bottom edge → refused along a loop,
+#    the front-top edge stays picked; Shortest then goes down the front-right edge (3 edges, 4)
+move world 1.0 0.0 1.0
+frames 2
+click world 1.0 0.0 1.0
+frames 2
+expect selected-edges == 1
+key Keypad7 Ctrl
+frames 2
+move world 2.0 0.5 0.0
+frames 2
+click world 2.0 0.5 0.0 Left Ctrl
+frames 2
+expect path-picks == 2
+expect path-refused == 1
+expect selected-edges == 1
+expect status contains share no edge loop
+capture 323EdgePathRefused
+click @PathShortest
+frames 2
+expect path-refused == 0
+expect path-edges == 3
+expect path-length > 3.999
+expect path-length < 4.001
+expect selected-edges == 3
+capture 324EdgePathShortest
+
+# ⑤ Ctrl+click a picked edge removes it (Plasticity); Along loop again for the next session
+click world 2.0 0.5 0.0 Left Ctrl
+frames 2
+expect selected-edges == 2
+expect path-picks == 2
+click @PathAlong
+frames 2
+expect path-mode == 0

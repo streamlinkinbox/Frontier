@@ -1,0 +1,22 @@
+Format = 1
+Name = "Brushed copper"
+UvScaleOffset = [3.0, 2.0, 0.0, 0.0]
+NormalStrength = 1.0
+Radiance = [0.0, 0.0, 0.0]
+
+[Textures]
+Albedo = "Textures/Albedo.png"
+Orm = "Textures/Orm.png"
+Normal = "Textures/Normal.png"
+Radiance = "Textures/Radiance.png"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.95, 0.48, 0.22]
+Roughness = 0.35
+Metallic = 1.0
+Ior = 1.5
+Coverage = 1.0
+TextureMask = 0
+Anisotropy = 0.8
+Rotation = 0.35

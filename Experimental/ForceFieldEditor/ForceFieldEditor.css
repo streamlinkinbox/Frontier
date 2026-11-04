@@ -1,0 +1,54 @@
+/*==========================================================================================================================================
+                                                          FORCEFIELDEDITOR.CSS
+==========================================================================================================================================*/
+/* 🧩 Force Field editor additions to the Render settings design: the timeline, the readout and the viewport cursor. */
+
+/* 📝 Everything else (palette, docks, outliner, cards, rows, tiles, library sheet, minimap) comes from
+      ../RenderSettingsInspector/RenderSettingsInspector.css, so the three prototypes share one look and one place to change it. */
+.log-dock { height: 188px; }
+.viewport-surface canvas#ViewportCanvas { cursor: crosshair; touch-action: none; }
+.viewport-surface canvas#ViewportCanvas.dragging { cursor: grabbing; }
+
+/*------------------------------------------------------------------------------------------------------------------------
+                                                    VIEWPORT BAR AND HUD
+------------------------------------------------------------------------------------------------------------------------*/
+.viewport-readout { top: 50px; min-width: 230px; pointer-events: none; }
+.viewport-readout b { color: #ffffff; font-weight: 400; }
+
+/*------------------------------------------------------------------------------------------------------------------------
+                                                         TIMELINE
+------------------------------------------------------------------------------------------------------------------------*/
+.timeline-strip {
+    flex: none; display: grid; grid-template-columns: 236px 1fr; gap: 10px; margin: -2px 12px 10px; padding: 9px 12px;
+    border-radius: 14px; background: #121212; border: 1px solid #1f1f1f;
+}
+.timeline-transport { display: flex; flex-direction: column; justify-content: center; gap: 7px; }
+.transport-row { display: flex; align-items: center; gap: 7px; }
+.transport-row .round-button { width: 30px; height: 30px; font-size: 13px; }
+.transport-row .round-button.on { color: var(--live); border-color: rgba(62, 196, 109, 0.4); }
+.timeline-clock { font-family: var(--mono); font-size: 12px; color: var(--text-primary); min-width: 78px; }
+.timeline-clock small { color: var(--text-muted); font-size: 10px; }
+.timeline-tracks { position: relative; min-width: 0; }
+.timeline-ruler { position: relative; height: 18px; cursor: ew-resize; touch-action: none; border-bottom: 1px solid #222222; }
+.timeline-lane.ruler-lane { height: 20px; cursor: default; }
+.timeline-lane.ruler-lane .lane-name { color: var(--text-faint); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
+.timeline-ruler .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: #262626; }
+.timeline-ruler .tick span { position: absolute; left: 4px; top: 1px; color: var(--text-faint); font-size: 9px; font-variant-numeric: tabular-nums; }
+.timeline-lanes { max-height: 66px; overflow: hidden auto; scrollbar-width: none; }
+.timeline-lanes::-webkit-scrollbar { display: none; }
+.timeline-lane { display: grid; grid-template-columns: 118px 1fr 50px; align-items: center; gap: 8px; height: 22px; cursor: pointer; }
+.timeline-lane .lane-name { color: var(--text-muted); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.timeline-lane.selected .lane-name { color: var(--text-primary); }
+.timeline-lane .lane-track { position: relative; height: 8px; border-radius: 4px; background: #1b1b1b; overflow: hidden; }
+.timeline-lane .lane-window { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: rgba(143, 211, 196, 0.55); }
+.timeline-lane .lane-window.accelerate { background: rgba(232, 194, 122, 0.6); }
+.timeline-lane .lane-window.damp { background: rgba(185, 163, 232, 0.6); }
+.timeline-lane .lane-fire {
+    height: 20px; border-radius: 999px; border: 1px solid rgba(232, 168, 74, 0.45); background: rgba(232, 168, 74, 0.1);
+    color: #e8b46a; font-size: 9.5px; letter-spacing: 0.06em; cursor: pointer;
+}
+.timeline-lane .lane-fire:empty { visibility: hidden; }
+.timeline-hint { color: var(--text-faint); font-size: 10.5px; padding: 8px 0 2px; }
+.timeline-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #ffffff; pointer-events: none;
+                     box-shadow: 0 0 8px rgba(255, 255, 255, 0.5); }
+.timeline-playhead::before { content: ''; position: absolute; top: -2px; left: -4px; width: 10px; height: 6px; border-radius: 3px; background: #ffffff; }

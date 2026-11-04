@@ -1,0 +1,54 @@
+frames 3
+expect surface-trace == 1
+expect volume ~ 8
+key Keypad3
+key Keypad5
+frames 3
+expect orthographic == 1
+click @SketchKnifeTool
+frames 2
+capture Unified_Surface_Cutter_Menu
+click @KnifeToolRectangle
+frames 2
+expect drawing == Rectangle
+expect drawing-surface == 0
+expect surface-trace == 1
+move world 5 5 6
+frames 3
+expect drawing-on-face == 1
+expect drawing-normal-x ~ 1
+click world 5 5 6
+frames 2
+expect drawing-points == 1
+move world 5 5.35 6.25
+frames 2
+expect drawing-on-face == 1
+expect drawing-normal-x ~ 1
+click world 5 5.35 6.25
+frames 3
+expect knife-pending == 0
+expect plane-normal-x ~ 1
+expect plane-offset ~ 5
+key 0
+key Period
+key 2
+key 5
+frames 3
+expect knife-depth ~ 0.25
+capture Ortho_Surface_Inward_Pocket_Preview
+key Enter
+frames 3
+expect knife-commits == 1
+# Physical clicks land on integer pixels, not the ideal subpixel world coordinates.
+# Native validation compares exact removed volume to the actual clicked rectangle.
+expect volume > 7.976
+expect volume < 7.980
+expect refused == 0
+expect surface-trace == 1
+capture Ortho_Surface_Inward_Pocket
+key Escape
+key Z Ctrl
+frames 3
+expect volume ~ 8
+expect refused == 0
+capture Ortho_Surface_Cut_Undo

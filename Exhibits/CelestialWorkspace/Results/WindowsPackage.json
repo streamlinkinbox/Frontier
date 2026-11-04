@@ -1,0 +1,12 @@
+{
+  "source_revision": "c6e31f68e250d4dfa8f6205b12fdb98acc8c46d6",
+  "source_dirty": false,
+  "archive_bytes": 23828892,
+  "archive_sha256": "9bd6b57e03af13cfdb946e125e98db380a75ca2a0b446013d8ef84231e4d1db8",
+  "exe_sha256": "a48d8ab90ab8027e40ee696504b30fa3b3b3e8b055821f44a704061eed1ab4cf",
+  "verified_files": 901,
+  "default_records": 20,
+  "visible_scene_entries": 15,
+  "windows_runtime_verified": false,
+  "signed": false
+}

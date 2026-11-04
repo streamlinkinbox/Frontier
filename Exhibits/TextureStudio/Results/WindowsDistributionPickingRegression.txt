@@ -1,0 +1,2 @@
+PASS: four incomplete/untrusted distribution reports refused; no executable archives produced.
+PASS: 72 signature/scan policy combinations; unsigned needs both explicit authorizations.

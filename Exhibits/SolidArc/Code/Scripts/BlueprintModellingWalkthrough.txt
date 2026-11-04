@@ -1,0 +1,282 @@
+# SolidArc blueprint-modelling walkthrough (vehicle surfacing, blueprint study): Import curves… reads the BMW M3
+# (E90) trace (Experimental/VehicleSurfacing/Samples/BmwM3E90Sections.toml: 24 faired half sections + 3 [[ImagePlanes]]),
+# the blueprint shows behind the curves in the Right / Top / Front views (parallel projection), a left-drag box picks all 24
+# sections in station order, L lofts them, Alt+X mirrors, Close caps the ends → sound solid; four x-axis cylinders
+# (Construct · Axis x · Difference) cut the wheel arches through the body sides.
+# The blueprint picture is third-party and not committed: place a copy at _ClaudeScratch/Blueprint/BmwM3E90.jpg (see
+# Experimental/VehicleSurfacing/Samples/BmwM3E90Calibration.toml); without it the planes refuse and the geometry is unchanged.
+# Run from the repository root: SolidArcCapture --specimen --reset-files --recovery …/BlueprintRecovery.solidarc
+#      --document …/Blueprint.solidarc --script Exhibits/SolidArc/Code/Scripts/BlueprintModellingWalkthrough.txt
+# Arches: wheel centres y 0.805 / 3.566 (axles), z 0.33; r 0.37; from x = ±0.62 (inside the tyre) 0.5 outward.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① import: 24 curves (worst fit ≤ 0.2 mm) + 3 image planes in one undo entry; parallel projection for blueprint work
+key N Ctrl
+frames 2
+key I Ctrl Shift
+frames 2
+click @PathField
+key A Ctrl
+type Experimental/VehicleSurfacing/Samples/BmwM3E90Sections.toml
+click @PathImport
+frames 3
+expect steps == 24
+expect refused == 0
+expect undo == 1
+expect image-planes == 3
+expect curve-fit-worst < 0.0002
+expect status contains Imported 24 curve(s)
+click @Projection
+frames 1
+expect orthographic == 1
+
+# ② the blueprint behind the sections: Right (side), Top (plan), Front
+click @ViewMenu
+frames 2
+click @ViewRight
+frames 2
+key Space
+frames 3
+expect image-planes-drawn == 3
+capture 80BlueprintSide
+click @ViewMenu
+frames 2
+click @ViewTop
+frames 2
+key Space
+frames 3
+capture 81BlueprintTop
+click @ViewMenu
+frames 2
+click @ViewFront
+frames 2
+key Space
+frames 3
+capture 82BlueprintFront
+
+# ③ Images toggle and per-plane Visible (Inspector · Image planes)
+click @DisplayMenu
+frames 2
+click @ImagesToggle
+frames 2
+expect image-planes-drawn == 0
+click @DisplayMenu
+frames 2
+click @ImagesToggle
+frames 2
+expect image-planes-drawn == 3
+click @PlaneVisible1
+frames 2
+expect image-planes-drawn == 2
+expect dirty == 1
+click @PlaneVisible1
+frames 2
+expect image-planes-drawn == 3
+
+# ④ mode 1 + left-drag box over the side view: all 24 sections, in station order
+click @ViewMenu
+frames 2
+click @ViewRight
+frames 2
+key Space
+frames 2
+key 1
+frames 2
+drag Left viewport 0.01 0.06 by 3000 2000 12
+frames 2
+expect box-selections == 1
+expect selected-curves contains Station01,Station02,Station03
+expect status contains Box selected 24 curve(s)
+capture 83SectionsBoxed
+
+# ⑤ L lofts the 24 sections (one sheet), Alt+X mirrors, Close caps → sound solid
+key L
+frames 3
+expect steps == 25
+expect sheet == 1
+expect panels == 1
+key X Alt
+frames 3
+expect panels == 2
+click @PanelClose
+frames 3
+expect refused == 0
+expect sheet == 0
+expect sound == 1
+expect faces == 4
+expect volume > 7.14
+expect volume < 7.16
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 84BodySolid
+
+# ⑥ wheel arches: Construct · Cylinder · Axis x · Difference, r 0.37 at each wheel centre
+# front right
+click @ConstructLauncher
+frames 2
+click @ConstructCylinder
+frames 2
+key Tab
+frames 2
+click @CombinationDifference
+click @ConstructAxisX
+click @ConstructX
+key A Ctrl
+type 0.62
+click @ConstructY
+key A Ctrl
+type 0.805
+click @ConstructZ
+key A Ctrl
+type 0.33
+click @ConstructRadius
+key A Ctrl
+type 0.37
+click @ConstructHeight
+key A Ctrl
+type 0.5
+click @ConstructRadius
+frames 2
+capture 85ArchDialog
+click @ConstructCreate
+frames 3
+expect refused == 0
+expect sound == 1
+expect faces == 6
+expect volume > 7.04
+expect volume < 7.07
+# front left
+click @ConstructLauncher
+frames 2
+click @ConstructCylinder
+frames 2
+key Tab
+frames 2
+click @CombinationDifference
+click @ConstructAxisX
+click @ConstructX
+key A Ctrl
+type -1.12
+click @ConstructY
+key A Ctrl
+type 0.805
+click @ConstructZ
+key A Ctrl
+type 0.33
+click @ConstructRadius
+key A Ctrl
+type 0.37
+click @ConstructHeight
+key A Ctrl
+type 0.5
+click @ConstructRadius
+frames 2
+click @ConstructCreate
+frames 3
+expect refused == 0
+expect sound == 1
+expect faces == 8
+expect volume > 6.95
+expect volume < 6.97
+# rear right
+click @ConstructLauncher
+frames 2
+click @ConstructCylinder
+frames 2
+key Tab
+frames 2
+click @CombinationDifference
+click @ConstructAxisX
+click @ConstructX
+key A Ctrl
+type 0.62
+click @ConstructY
+key A Ctrl
+type 3.566
+click @ConstructZ
+key A Ctrl
+type 0.33
+click @ConstructRadius
+key A Ctrl
+type 0.37
+click @ConstructHeight
+key A Ctrl
+type 0.5
+click @ConstructRadius
+frames 2
+click @ConstructCreate
+frames 3
+expect refused == 0
+expect sound == 1
+expect faces == 10
+expect volume > 6.86
+expect volume < 6.89
+# rear left
+click @ConstructLauncher
+frames 2
+click @ConstructCylinder
+frames 2
+key Tab
+frames 2
+click @CombinationDifference
+click @ConstructAxisX
+click @ConstructX
+key A Ctrl
+type -1.12
+click @ConstructY
+key A Ctrl
+type 3.566
+click @ConstructZ
+key A Ctrl
+type 0.33
+click @ConstructRadius
+key A Ctrl
+type 0.37
+click @ConstructHeight
+key A Ctrl
+type 0.5
+click @ConstructRadius
+frames 2
+click @ConstructCreate
+frames 3
+expect refused == 0
+expect sound == 1
+expect faces == 12
+expect volume > 6.78
+expect volume < 6.8
+# ⑦ mode 3 (faces: no poles) for the result; the blueprint behind it, then the solid alone (Images off)
+key 3
+frames 2
+expect pick-mode == 3
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 86ArchesIso
+click @ViewMenu
+frames 2
+click @ViewRight
+frames 2
+key Space
+frames 3
+capture 87ArchesSide
+click @DisplayMenu
+frames 2
+click @ImagesToggle
+frames 2
+expect image-planes-drawn == 0
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 88ArchesSolid

@@ -1,0 +1,84 @@
+Format = 1
+Name = "Liquid Silver"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.4178850708481375, 0.45078578283822346, 0.43415363617474895]
+Roughness = 0.5
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0.05
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/liquid-silver-albedo.png"
+Orm = "Textures/liquid-silver-orm.png"
+Normal = "Textures/liquid-silver-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "scratchedMetal"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 180
+roughness = 0.2
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+scratchDensity = 0
+angle = 25
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "scratchedMetal"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 180
+roughness = 0.2
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+scratchDensity = 0
+angle = 25
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "scratchedMetal"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 180
+roughness = 0.2
+scratchLength = 1.15
+scratchWidth = 0.01
+scratchDepth = 0.0018
+scratchSpread = 0.8
+scratchBend = 0.42
+scratchScale = 6
+surfaceSeed = 17
+scratchDensity = 0
+angle = 25
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.14
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.4

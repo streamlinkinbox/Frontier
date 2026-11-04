@@ -1,0 +1,48 @@
+Format = 1
+Name = "Terracotta Clay"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.4019777798321958, 0.09758734714186246, 0.05126945837404324]
+Roughness = 0.89
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/terracotta-clay-albedo.png"
+Normal = "Textures/terracotta-clay-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "clay"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 24
+grain = 0.8
+moisture = 0.04
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "clay"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 24
+grain = 0.8
+moisture = 0.04
+surfaceSeed = 17
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.15
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0

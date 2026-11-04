@@ -1,0 +1,48 @@
+Format = 1
+Name = "Kraft Paper"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.89
+Metallic = 0
+Ior = 1.47
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.33245153634617935, 0.184474994500441, 0.08021982031446832]
+SheenIntensity = 0.1
+SheenRoughness = 0.8
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/kraft-paper-albedo.png"
+Normal = "Textures/kraft-paper-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "paper"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 90
+grain = 0.6
+fiberContrast = 0.3
+paperRibs = 0
+surfaceSeed = 17
+color = "#9c7750"
+secondaryColor = "#817259"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "paper"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 90
+grain = 0.6
+fiberContrast = 0.3
+paperRibs = 0
+surfaceSeed = 17
+color = "#9c7750"
+secondaryColor = "#817259"

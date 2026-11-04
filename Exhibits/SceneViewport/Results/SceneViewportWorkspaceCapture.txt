@@ -1,0 +1,20 @@
+  viewport image 1028 x 430 for a 1028 x 430 panel in 162.2 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  47935.8 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 47.0 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  47841.6 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 44.7 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  47525.6 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 46.0 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  47369.8 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 47.2 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  47353.7 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 47.1 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  47323.6 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 40.0 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  46594.7 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 38.6 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  45798.4 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 39.9 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  45205.4 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 38.8 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  44569.7 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 38.4 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  43957.4 ms
+  viewport image 1028 x 430 for a 1028 x 430 panel in 39.7 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  43532.2 ms
+[SceneViewportWorkspaceCapture] /home/user/Frontier/_ClaudeScratch/tmp/capture-ui/EverestLiveSceneViewport.png (viewport 1028 x 430)
+  viewport image 1028 x 430 for a 1028 x 430 panel in 38.7 s — LIVE: ReSTIR GI RTX + PlanetaryAtmosphere  |  1028 x 430  |  43048.7 ms
+[SceneViewportWorkspaceCapture] /home/user/Frontier/_ClaudeScratch/tmp/capture-ui/EverestLiveSceneViewport-Normals.png (viewport 1028 x 430)
+
+real	11m10.130s
+user	20m29.393s
+sys	0m4.083s
+exit 0

@@ -1,0 +1,112 @@
+# SolidArc incremental replay walkthrough — every regeneration saves the replay state after each step; the next one
+# restores the unchanged leading steps and replays from the first changed step. The Inspector's Body card says how many
+# ran: "replayed k/n" — the last k of n steps replayed, the earlier ones restored (8/8 from scratch, 0/8 when nothing
+# changed: undo, redo, a preview staged from the document).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/ReplayRecovery.solidarc
+#      --document …/Replay.solidarc --script Exhibits/SolidArc/Code/Scripts/IncrementalReplayWalkthrough.txt
+# Bracket specimen steps: Block1 (Sketch#1, Extrude#2) · Cylinder1 boss (Sketch#3, Extrude#4) · Cylinder2 hole (Sketch#5,
+# Extrude#6) · Fillet1 (Blend#7) · Chamfer1 (Blend#8).
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① the bracket: 8 steps, sound
+frames 3
+expect steps == 8
+expect refused == 0
+expect sound == 1
+
+# ② tail edit: Fillet1 size 0.25 → 0.3 replays Fillet1 and Chamfer1 (2/8); Block1 and both cylinders are restored
+click @InspectorHistory
+frames 3
+click @Step:Blend#7
+frames 2
+click @InspectorGeometry
+frames 3
+expect focused-step == Blend#7
+click @Parameter:Fillet1.Size
+key A Ctrl
+type 0.3
+key Enter
+frames 2
+expect status contains Fillet1.Size
+expect refused == 0
+expect sound == 1
+expect replay-resumed == 6
+capture 140ReplayTailEdit
+
+# ③ middle edit: the hole radius 0.3 → 0.35 replays from its sketch (step 5: 4/8)
+click @InspectorHistory
+frames 3
+click @Step:Extrude#6
+frames 2
+click @InspectorGeometry
+frames 3
+click @Parameter:Cylinder2.Radius
+key A Ctrl
+type 0.35
+key Enter
+frames 2
+expect status contains Cylinder2.Radius
+expect refused == 0
+expect replay-resumed == 4
+capture 141ReplayMiddleEdit
+
+# ④ undo / redo restore every step from the saved states (0/8; the 5 specimen commands are in the history too)
+key Z Ctrl
+frames 2
+expect replay-resumed == 8
+expect undo == 6
+expect redo == 1
+capture 142ReplayUndo
+key Z Ctrl Shift
+frames 2
+expect replay-resumed == 8
+expect redo == 0
+capture 143ReplayRedo
+
+# ⑤ Block1's height is the extrude distance: the sketch is restored, 7/8 replay; its width is a sketch dimension, so
+#    everything replays (8/8)
+click @InspectorHistory
+frames 3
+click @Step:Extrude#2
+frames 2
+click @InspectorGeometry
+frames 3
+click @Parameter:Block1.Height
+key A Ctrl
+type 1.2
+key Enter
+frames 2
+expect status contains Block1.Height
+expect refused == 0
+expect replay-resumed == 1
+click @Parameter:Block1.Width
+key A Ctrl
+type 4.4
+key Enter
+frames 2
+expect status contains Block1.Width
+expect refused == 0
+expect sound == 1
+expect replay-resumed == 0
+capture 144ReplayFullEdit
+
+# ⑥ B on the bottom-front edge: the bevel preview is staged from the document's saved states — the copy restores all
+#    8 steps and replays only the new fillet (the Bevel card: "replayed 1/9"); Escape leaves the document as it was
+key Escape
+key 2
+move world 2.0 0.0 0.0
+frames 2
+click world 2.0 0.0 0.0
+expect selected-edges == 1
+key B
+frames 2
+expect bevel-active == 1
+expect preview-resumed == 8
+capture 145ReplayPreview
+key Escape
+frames 2
+expect bevel-active == 0
+expect steps == 8
+expect replay-resumed == 0

@@ -1,0 +1,81 @@
+Format = 1
+Name = "Cactus Epidermis"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.72
+Metallic = 0
+Ior = 1.45
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/cactus-epidermis-albedo.png"
+Orm = "Textures/cactus-epidermis-orm.png"
+Normal = "Textures/cactus-epidermis-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "cactus"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 15
+plantRibs = 10
+cellScale = 120
+cellRelief = 0.5
+veinRelief = 0.55
+colorGradient = 0.35
+roughness = 0.48
+surfaceSeed = 17
+color = "#426d48"
+secondaryColor = "#8faaa0"
+tertiaryColor = "#bbb095"
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "cactus"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 15
+plantRibs = 10
+cellScale = 120
+cellRelief = 0.5
+veinRelief = 0.55
+colorGradient = 0.35
+roughness = 0.48
+surfaceSeed = 17
+color = "#426d48"
+secondaryColor = "#8faaa0"
+tertiaryColor = "#bbb095"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "cactus"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 15
+plantRibs = 10
+cellScale = 120
+cellRelief = 0.5
+veinRelief = 0.55
+colorGradient = 0.35
+roughness = 0.48
+surfaceSeed = 17
+color = "#426d48"
+secondaryColor = "#8faaa0"
+tertiaryColor = "#bbb095"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.22
+Metallic = 0.0
+Ior = 1.45
+Coverage = 0.07

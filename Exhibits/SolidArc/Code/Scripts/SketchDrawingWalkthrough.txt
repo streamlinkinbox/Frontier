@@ -1,0 +1,228 @@
+# SolidArc sketch-drawing walkthrough — Plasticity drawing keys on the construction plane, then E extrudes the drawn
+# profile with the extrude Boolean keys (q union · w difference · e intersect · r new body).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/SketchRecovery.solidarc
+#      --document …/Sketch.solidarc --script Scripts/SketchDrawingWalkthrough.txt
+# Clicks name world points on z = 0 in the Top view; the pointer snaps to the 0.1 grid, so every profile is exact. A
+# first click over the box lands on its top face (z 1.5): the sketch plane follows the face, and a cut goes in (−).
+# Closed forms: box 2 × 1 × 1.5 = 3 · hole r 0.4 through: −0.24π · triangle (1.5,0) (3,0) (1.5,1) height 1 outside the
+# box: +1/3 · closed Hermite through (0.2,0.2) (0.5,0.2) (0.5,0.8) (0.2,0.8) has area 0.246, pocket 0.5 deep (from the
+# top face): −0.123.
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document, Top view: the construction plane is XY
+key N Ctrl
+frames 2
+expect steps == 0
+key Keypad7
+frames 2
+expect grid-plane == 0
+
+# ② Shift+Q corner rectangle: two clicks finish it; the new sketch is focused
+key Q Shift
+frames 2
+expect drawing == Rectangle
+expect drawing-plane == 0
+expect drawing-centre == 0
+move world 0.0 0.0 0.0
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+expect drawing-points == 1
+move world 2.0 1.0 0.0
+frames 2
+capture 30RectanglePreview
+click world 2.0 1.0 0.0
+frames 2
+expect drawing == 0
+expect steps == 1
+expect sketches == Rectangle1
+expect focused-caption == Rectangle1
+expect sketch-curves == 4
+
+# ③ E on the focused sketch: no body yet, so the Boolean is New; distance typed 1.5
+key F
+frames 2
+key E
+frames 2
+expect bevel-active == 1
+expect bevel-verb == 2
+expect bevel-combination == New
+click @BevelSize
+key A Ctrl
+type 1.5
+key Enter
+frames 2
+expect bevel-size ~ 1.5
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 3
+key Enter
+frames 2
+expect bevel-active == 0
+expect steps == 2
+expect volume ~ 3
+expect faces == 6
+expect sound == 1
+
+# ④ Shift+W centre circle r 0.4 on the box top (the face carries the sketch), then E · W difference down through the box
+key W Shift
+frames 2
+expect drawing == Circle
+expect drawing-centre == 1
+click world 1.0 0.5 1.5
+frames 2
+click world 1.4 0.5 1.5
+frames 2
+expect steps == 3
+expect focused-caption == Circle1
+key F
+frames 2
+key E
+frames 2
+expect bevel-combination == Union
+key W
+frames 2
+expect bevel-combination == Difference
+click @BevelSize
+key A Ctrl
+type -1.5
+key Enter
+frames 2
+expect bevel-preview-volume ~ 2.2460177631
+key Enter
+frames 2
+expect volume ~ 2.2460177631
+expect genus == 1
+expect sound == 1
+
+# ⑤ Shift+A line: three clicks, a click on the first point closes the triangle; E · Q union, height 1 (the first click is
+#    off the box, so the triangle stays on the ground plane)
+key A Shift
+frames 2
+expect drawing == Line
+click world 3.0 0.0 0.0
+frames 2
+click world 1.5 1.0 0.0
+frames 2
+click world 1.5 0.0 0.0
+frames 2
+expect drawing-points == 3
+click world 3.0 0.0 0.0
+frames 2
+expect drawing == 0
+expect sketches == Rectangle1,Circle1,Line1
+expect sketch-curves == 3
+key F
+frames 2
+key E
+frames 2
+key E
+frames 2
+expect bevel-combination == Intersection
+key Q
+frames 2
+expect bevel-combination == Union
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+expect bevel-preview-volume ~ 2.5793510965
+key Enter
+frames 2
+expect volume ~ 2.5793510965
+expect sound == 1
+
+# ⑥ Shift+S curve: forms 1–4 (Plasticity hermite, bezier, nurbs, cubic-spline); Ctrl+Z drops a point; the closed Hermite
+#    drawn over the box lands on its top face and pockets 0.5 down into it (E · W, −0.5)
+key S Shift
+frames 2
+expect drawing == Curve
+expect drawing-form == Hermite
+click world 0.2 0.2 1.5
+frames 2
+click world 0.5 0.2 1.5
+frames 2
+click world 0.5 0.5 1.5
+frames 2
+expect drawing-points == 3
+key Z Ctrl
+frames 2
+expect drawing-points == 2
+click world 0.5 0.8 1.5
+frames 2
+click world 0.2 0.8 1.5
+frames 2
+key 2
+frames 2
+expect drawing-form == Bezier
+key 3
+frames 2
+expect drawing-form == NURBS
+key 4
+frames 2
+expect drawing-form == Cubic spline
+capture 31CurveForms
+key 1
+frames 2
+expect drawing-form == Hermite
+move world 0.2 0.2 1.5
+frames 2
+capture 32HermiteClosing
+click world 0.2 0.2 1.5
+frames 2
+expect drawing == 0
+expect focused-caption == Curve1
+expect sketch-curves == 1
+key F
+frames 2
+key E
+frames 2
+key W
+frames 2
+click @BevelSize
+key A Ctrl
+type -0.5
+key Enter
+frames 2
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 2.4563510965
+key Enter
+frames 2
+expect volume ~ 2.4563510965
+expect sound == 1
+expect refused == 0
+
+# ⑦ refusal: a three-point arc on one line is collinear; the session stays open, Ctrl+Z, Esc aborts untouched
+click @DrawArc
+frames 2
+expect drawing == Arc
+click world 2.0 1.8 0.0
+frames 2
+click world 2.5 1.8 0.0
+frames 2
+click world 3.0 1.8 0.0
+frames 2
+expect drawing == Arc
+expect drawing-refusal contains collinear
+key Z Ctrl
+frames 2
+expect drawing-points == 2
+key Escape
+frames 2
+expect drawing == 0
+expect steps == 8
+
+# ⑧ the solid from an isometric view, sketches overlaid (used ones dimmed)
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 3
+capture 33DrawnSolid

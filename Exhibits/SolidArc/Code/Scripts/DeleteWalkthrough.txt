@@ -1,0 +1,131 @@
+# SolidArc delete walkthrough (W68) - X / Delete deletes whatever is picked, in the viewport and in the Outliner (the row
+# under the pointer): a plain box edge refuses (no closed solid without it, the pick stays), a free sketch row goes, the
+# box's own sketch row leaves the scene while the box keeps it, a mode 1 sketch point takes its two lines, the body row is
+# removed, and undo brings it back.
+# Run: SolidArcCapture --specimen --reset-files --recovery .../DeleteRecovery.solidarc
+#      --document .../Delete.solidarc --script Scripts/DeleteWalkthrough.txt
+# Closed forms: box 2 x 1.5 x 1 = 3.
+
+snap grid on
+
+# 1. a box drawn from the Construct menu (2 x 1.5 x 1, x in [-2, 0], y in [-1.5, 0], z in [0, 1]): Sketch#1 + Extrude#2
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+click world -2.0 -1.5 0.0
+frames 2
+move world 0.0 0.0 0.0
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+move world 0.0 0.0 1.0
+frames 2
+click world 0.0 0.0 1.0
+frames 3
+expect bodies == 1
+expect volume ~ 3
+expect steps == 2
+
+# 2. edge mode, the front-top edge picked, X: refused (two different planes), the box and the pick stay
+key 2
+frames 1
+move world -1.6 -1.5 1.0
+frames 1
+click world -1.6 -1.5 1.0
+frames 3
+expect selected-edges == 1
+key X
+frames 3
+expect volume ~ 3
+expect faces == 6
+expect steps == 2
+expect selected-edges == 1
+capture 337DeleteBoxEdgeRefused
+key Escape
+frames 2
+
+# 3. a free rectangle beside the box (Sketch#3); the pointer on its Outliner row and Delete: the row and the step go
+key Q Shift
+frames 2
+click world 1.0 -1.0 0.0
+frames 2
+click world 2.0 0.0 0.0
+frames 3
+expect steps == 3
+move @Figure:Sketch#3
+frames 2
+expect outliner-hover == 1
+capture 338DeleteOutlinerHover
+key Delete
+frames 3
+expect steps == 2
+expect bodies == 1
+capture 339DeleteOutlinerSketchGone
+
+# 4. the box's own sketch row and X: it leaves the scene (removed, off the Outliner), the box keeps it
+move @Figure:Sketch#1
+frames 2
+key X
+frames 3
+expect removed-curves == 1
+expect bodies == 1
+expect volume ~ 3
+expect steps == 2
+capture 340DeleteExtrudedSketch
+
+# 5. another rectangle (Sketch#3 again: the freed ordinal), mode 1, its first corner picked, X: the two lines through it go
+key Q Shift
+frames 2
+click world 1.0 -1.0 0.0
+frames 2
+click world 2.0 0.0 0.0
+frames 3
+expect steps == 3
+key 1
+frames 3
+move @SketchPointSketch3.0
+frames 1
+click @SketchPointSketch3.0
+frames 3
+expect picked-points == 1
+key X
+frames 3
+expect picked-points == 0
+expect steps == 3
+expect refused == 0
+capture 341DeleteSketchPoint
+
+# 6. the body row (Extrude#2) and X: the box is removed
+move @Figure:Extrude#2
+frames 2
+key X
+frames 3
+expect bodies == 0
+capture 342DeleteBodyFromOutliner
+
+# 7. undo: the box is back
+move viewport 0.5 0.5
+frames 1
+key Z Ctrl
+frames 3
+expect bodies == 1
+expect volume ~ 3
+capture 343DeleteUndone
+
+# 8. the body row picked, the sketch row Shift-picked, X over the sketch row: both picks go, not just the hovered row
+click @Figure:Extrude#2
+frames 2
+click @Figure:Sketch#3 Left Shift
+frames 2
+move @Figure:Sketch#3
+frames 2
+expect outliner-hover == Sketch#3
+key X
+frames 3
+expect bodies == 0
+expect sketches lacks Rectangle1
+expect removed-curves == 1
+capture 344DeleteOutlinerPicks

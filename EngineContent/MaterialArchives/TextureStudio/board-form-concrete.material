@@ -1,0 +1,45 @@
+Format = 1
+Name = "Board Form Concrete"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.86
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/board-form-concrete-albedo.png"
+Normal = "Textures/board-form-concrete-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "concrete"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 38
+grain = 0.7
+poreDensity = 0.4
+wallMode = 1
+surfaceSeed = 17
+color = "#949589"
+secondaryColor = "#595c54"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "concrete"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 38
+grain = 0.7
+poreDensity = 0.4
+wallMode = 1
+surfaceSeed = 17
+color = "#949589"
+secondaryColor = "#595c54"

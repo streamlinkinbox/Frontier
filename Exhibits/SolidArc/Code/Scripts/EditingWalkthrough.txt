@@ -1,0 +1,295 @@
+# SolidArc editing walkthrough — the Plasticity editing keys: G / R / S (move / rotate / scale with X / Y / Z axis,
+# Shift+X / Y / Z plane, typed values), Shift+D (duplicate, then move), Ctrl+C / Ctrl+V (paste the body as it stood when
+# copied, even after X), H / Shift+H / Alt+H / Ctrl+H (hide selected / unselected, unhide all, invert), J (join touching
+# sketches), O (offset curve) and P (pipe).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/EditingRecovery.solidarc
+#      --document …/Editing.solidarc --script Exhibits/SolidArc/Code/Scripts/EditingWalkthrough.txt
+# Closed forms: box 2 × 1 × 1 = 2 (moves and turns keep it); S z ×2 → 4; joined unit square extruded 1 → 1;
+# offset ¼ → a 1.5 square; pipe r 0.2 along a line of 2 → π · 0.04 · 2 = 0.251327.
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document, Top view: a 2 × 1 rectangle extruded 1
+key N Ctrl
+frames 2
+expect steps == 0
+key Keypad7
+frames 2
+key Q Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 2.0 1.0 0.0
+frames 2
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect steps == 2
+expect volume ~ 2
+expect bodies == 1
+
+# ② G with nothing picked explains what it needs
+key Escape
+frames 2
+key G
+frames 2
+expect transform == 0
+expect status contains needs picked bodies
+
+# ③ mode 4: pick the box; G, X locks the x axis, the pointer drags it 1 along x (snapped to 0.1) — the staged copy shows it
+key 4
+frames 2
+click world 1.0 0.5 1.0
+frames 2
+expect selected-bodies contains Extrude#
+move world 1.0 0.5 0.5
+frames 2
+key G
+frames 2
+expect transform == 1
+key X
+frames 2
+move world 2.0 0.5 0.5
+frames 4
+expect transform-readout contains Move x (1, 0, 0)
+expect transform-preview-volume ~ 2
+expect steps == 2
+capture 111MovePreview
+click world 2.0 0.5 0.5
+frames 3
+expect transform == 0
+expect transform-commits == 1
+expect steps == 3
+expect volume ~ 2
+expect sound == 1
+expect status contains Move
+
+# ④ R, Z, type 45: a quarter-turn's half about z through the box centre
+key R
+frames 2
+key Z
+frames 2
+type 45
+frames 3
+expect transform-readout contains Rotate z 45
+key Enter
+frames 3
+expect transform-commits == 2
+expect steps == 4
+expect volume ~ 2
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 112Rotate
+
+# ⑤ S, Z, type 2: the box doubles in height only → 4; Esc on a second S leaves everything as it was
+key S
+frames 2
+key Z
+frames 2
+type 2
+frames 3
+expect transform-readout contains Scale z ×2
+key Enter
+frames 3
+expect transform-commits == 3
+expect volume ~ 4
+expect sound == 1
+key S
+frames 2
+type 3
+frames 3
+key Escape
+frames 2
+expect transform == 0
+expect steps == 5
+expect volume ~ 4
+capture 113Scale
+
+# ⑥ Shift+D: duplicate, Y locks the axis, type 3 → the copy stands 3 along y, active and picked
+key D Shift
+frames 2
+expect transform == 1
+key Y
+frames 2
+type 3
+frames 3
+expect transform-readout contains Move y (0, 3, 0)
+key Enter
+frames 3
+expect bodies == 2
+expect steps == 6
+expect volume ~ 8
+expect active-body contains Duplicate#
+expect selected-bodies contains Duplicate#
+expect body-captions contains Copy1
+key Space
+frames 3
+capture 114Duplicate
+
+# ⑦ Ctrl+C the copy, X deletes it, Ctrl+V pastes it back as it stood when copied
+key C Ctrl
+frames 2
+expect clipboard == 1
+expect status contains Copied
+key X
+frames 3
+expect bodies == 1
+key V Ctrl
+frames 3
+expect bodies == 2
+expect volume ~ 8
+expect status contains Paste
+expect selected-bodies contains Duplicate#
+capture 115Paste
+
+# ⑧ H hides the picked paste; Alt+H shows all; Shift+H on the paste hides the rest; Ctrl+H swaps shown and hidden
+key H
+frames 3
+expect hidden == 1
+expect scene-bodies == 1
+expect bodies == 2
+capture 116Hide
+key H Alt
+frames 3
+expect hidden == 0
+expect scene-bodies == 2
+key 4
+frames 2
+key Keypad7
+frames 2
+click world 2.0 3.5 1.5
+frames 2
+expect selected-bodies contains Duplicate#
+key H Shift
+frames 3
+expect hidden == 1
+expect scene-bodies == 1
+key H Ctrl
+frames 3
+expect hidden == 1
+expect scene-bodies == 1
+expect volume ~ 8
+capture 117InvertHidden
+key Z Ctrl
+frames 3
+expect scene-bodies == 1
+key H Alt
+frames 3
+expect hidden == 0
+expect scene-bodies == 2
+
+# ⑨ J: an L and its complement drawn as two sketches weld into one closed square, which extrudes to 1
+key N Ctrl
+frames 2
+key Keypad7
+frames 2
+key A Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 1.0 0.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+key Enter
+frames 2
+key A Shift
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+click world 0.0 1.0 0.0
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+key Enter
+frames 2
+expect sketches == 2
+key J
+frames 3
+expect sketches == 1
+expect sketch-curves == 4
+expect status contains Join
+capture 118Join
+key F
+frames 2
+expect sketch-filled == 1
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect volume ~ 1
+expect bodies == 1
+
+# ⑩ O offsets the square by ¼ (typed): the green outline previews it, Enter makes the sketch Offset1
+key Keypad7
+frames 2
+key O
+frames 2
+expect sweep == 1
+type 0.25
+frames 3
+expect sweep-amount ~ 0.25
+expect sweep-outline == 4
+capture 119OffsetPreview
+key Enter
+frames 3
+expect sweep == 0
+expect sweep-commits == 1
+expect sketches == 2
+expect focused-caption == Offset1
+
+# ⑪ P along a drawn line (0, 2) → (2, 2), radius 0.2 typed, R makes it a new body: π · 0.04 · 2
+key A Shift
+frames 2
+click world 0.0 2.0 0.0
+frames 2
+click world 2.0 2.0 0.0
+frames 2
+key Enter
+frames 2
+key P
+frames 2
+expect sweep == 1
+type 0.2
+frames 3
+key R
+frames 3
+expect sweep-amount ~ 0.2
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+capture 120PipePreview
+key Enter
+frames 3
+expect sweep-commits == 2
+expect bodies == 2
+expect body-volumes contains Pipe1 0.251327
+expect sound == 1
+key Space
+frames 3
+capture 121Pipe

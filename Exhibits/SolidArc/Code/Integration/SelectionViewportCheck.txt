@@ -1,0 +1,72 @@
+frames 3
+key Keypad7
+key Keypad5
+frames 3
+key 6
+click world -0.8 0 0
+frames 3
+expect selected-curves == 1
+# The other curve lies directly underneath the first curve's Y gizmo.
+click @GizmoTranslateY Shift
+frames 3
+expect selected-curves == 2
+expect transform-commits == 0
+expect selected-spline-poles == 0
+click world 0 0.8 0 Shift
+frames 2
+expect selected-curves == 2
+click world -0.8 0 0 Ctrl
+frames 2
+expect selected-curves == 1
+click world -0.8 0 0 Ctrl
+frames 2
+expect selected-curves == 1
+key A Alt
+key 2
+click world -0.8 0 0
+frames 3
+expect selected-spline-spans == 1
+click world 0 0.8 0 Shift
+frames 3
+expect selected-curves == 2
+expect selected-spline-spans == 0
+expect selected-spline-poles == 0
+key Delete
+frames 3
+expect curves == 0
+expect steps == 0
+expect refused == 0
+key Z Ctrl
+frames 3
+expect curves == 2
+key A Alt
+key 1
+click world -1 0 0
+frames 3
+expect selected-spline-poles == 1
+click world 0 1 0 Shift
+frames 3
+expect selected-curves == 2
+expect selected-spline-poles == 0
+key X
+frames 3
+expect curves == 0
+expect steps == 0
+key Z Ctrl
+frames 3
+expect curves == 2
+key A Alt
+key 5
+click world -0.8 0 0
+frames 2
+click world 0 0.8 0 Shift
+frames 3
+expect selected-curves == 2
+key Delete
+frames 3
+expect curves == 0
+expect refused == 0
+key Z Ctrl
+frames 3
+expect curves == 2
+capture Global_Shift_Selection_And_Delete

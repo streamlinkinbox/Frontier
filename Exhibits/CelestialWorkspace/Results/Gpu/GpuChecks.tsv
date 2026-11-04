@@ -1,0 +1,107 @@
+PASS	Native Vulkan setup
+PASS	Native Vulkan setup
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Moon phase control changes lit fraction without requiring a visible Sun
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Moon angular diameter changes native projected area
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Moon spin changes actual atlas orientation
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Moon brightness affects native radiance
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Moon glow changes aureole pixels
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	All four authored slots reach native payload
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Fourth Moon slot contributes rendered pixels
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+Image difference	Venus	0.00067246
+PASS	Venus infographic control affects native pixels
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Planet brightness reaches native renderer
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+Image difference	Jupiter	0.000407614
+PASS	Jupiter infographic control affects native pixels
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Planet brightness reaches native renderer
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+Image difference	Mars	0.000131116
+PASS	Mars infographic control affects native pixels
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Planet brightness reaches native renderer
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+Image difference	Saturn	0.0113918
+PASS	Saturn infographic control affects native pixels
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Planet brightness reaches native renderer
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Native star point size changes pixels
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Native star halo changes pixels
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Disabled scintillation is actually stationary
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Scintillation switch changes native radiance
+PASS	Native celestial refresh
+PASS	Native celestial readback
+PASS	Native image written
+PASS	Space view produces finite native radiance
+PASS	Space visibility readback
+PASS	Space camera origin retains float32 precision beyond half-float range
+SUMMARY	102 checks passed

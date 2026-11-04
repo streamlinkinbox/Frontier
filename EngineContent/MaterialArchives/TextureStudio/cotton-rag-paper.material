@@ -1,0 +1,48 @@
+Format = 1
+Name = "Cotton Rag Paper"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.94
+Metallic = 0
+Ior = 1.47
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.7379104087727308, 0.6866853124353135, 0.5520114015120001]
+SheenIntensity = 0.1
+SheenRoughness = 0.8
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/cotton-rag-paper-albedo.png"
+Normal = "Textures/cotton-rag-paper-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "paper"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 90
+grain = 0.8
+fiberContrast = 0.3
+paperRibs = 0
+surfaceSeed = 17
+color = "#dfd8c4"
+secondaryColor = "#817259"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "paper"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 90
+grain = 0.8
+fiberContrast = 0.3
+paperRibs = 0
+surfaceSeed = 17
+color = "#dfd8c4"
+secondaryColor = "#817259"

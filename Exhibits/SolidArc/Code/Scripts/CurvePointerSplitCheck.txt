@@ -1,0 +1,26 @@
+frames 4
+key Keypad7
+frames 3
+click @SketchCut
+move world 0.37 0 0
+frames 3
+expect trim-hover > 0
+expect trim-breaks == 1
+capture Split_Pointer_Preview
+click world 0.37 0 0
+frames 3
+expect curves == 3
+expect trim-commits == 1
+capture Split_Exact_Pieces
+key Escape
+click @CurveGuide
+frames 3
+capture Curve_Workflow_Guide
+click @CurveGuide
+frames 2
+drag left @PanelTabOutliner by 320 180 8
+frames 4
+capture Workspace_Floating_Outliner
+click @ResetPanels
+frames 4
+capture Workspace_Reset_Docks

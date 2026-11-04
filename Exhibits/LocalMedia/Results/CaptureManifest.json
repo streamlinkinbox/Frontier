@@ -1,0 +1,387 @@
+{
+  "After/Cloud-128.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "8c77a527ab636c4dcc4a583d725967e0127252de66c3ef494f6f7c040100d279"
+  },
+  "After/Cloud-32.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "65a5fd35865cf07c532261f8327fee72313db09f699d39318cc092fe00462dc9"
+  },
+  "After/Cloud-64.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "1edafd4cd76d76486789491ea95c7ad397d47ce22ef6c79e93c71b4bacf2c4ec"
+  },
+  "After/Cloud-Field-East.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "e368d9b89b171a557bf066735515c96c55d4f08a9cccd32d2567fce0da20699b"
+  },
+  "After/Cloud-Field-West.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "1edafd4cd76d76486789491ea95c7ad397d47ce22ef6c79e93c71b4bacf2c4ec"
+  },
+  "After/Cloud-QuarterResolution.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "6f12516d8cac58d350eea4aa77d5d21f7e7f30348726ac8b126b85767d87e6e9"
+  },
+  "After/Fog-East.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "222139915a45daf130a0c4b186398c931643b1ec9c40fd2c2b049ea472706562"
+  },
+  "After/Fog-Field-East.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "4815f55a305cd2869a616e1c0ce71b48ccb8f6b1ee458402ae8f6abfe67c6c3d"
+  },
+  "After/Fog-Field-West.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "fbabb02faabe5b33996b81a76c23b6a450a891ec8fb74b7bb3ef4c6af2b74a75"
+  },
+  "After/Fog-Shape-0.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "022ae382374fcac89fda8583a84c051477ce09ec10400ffc07ba0d6943a32e8c"
+  },
+  "After/Fog-Shape-1.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "676f956abb7ab4ee7ebd68f57f36005c8ef2ca36918b095a8f8a1a696d12f4fa"
+  },
+  "After/Fog-Shape-2.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "0b0feb2c99ee24c14d7962a68fc425d6f9abc7db72f22ab32a23219542f9d31c"
+  },
+  "After/Fog-Shape-3.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "cd7dcebbaed654ad6286220d6d2da406e0863e6f051697929a370ca9e07f7e1e"
+  },
+  "After/Fog-Still-0.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "6185c0c6bce72947abfe81b1e6b49178264f2579761a97c728c7c231e3b032d9"
+  },
+  "After/Fog-Still-4.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "6185c0c6bce72947abfe81b1e6b49178264f2579761a97c728c7c231e3b032d9"
+  },
+  "After/Fog-Uniform.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "dd76a7bd4bfe92615951f655e3ac983b18e61e9dd821d8b25453f5d81ab2b7db"
+  },
+  "After/Fog-West.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "0da22a1dc28fb4de549e5bd946d110b0312a0ccccecacca6987288a929eb8e63"
+  },
+  "After/Showcase-Fog-Noisy.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "d5b740f15d7af1c58c823754afa52d87fe3755258de0de96561144bc007371e0"
+  },
+  "After/Showcase-Fog-SelfShadow.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "6ea5d71148d934767b20642a44343c7283ff2b56cf84b3307b7a2466ab7cf2dd"
+  },
+  "After/Showcase-Fog-Uniform.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "5adbbf8abd0d0c78e620e4039e0b11c89d8ed2a6cb36356d97b0fd84579c54dc"
+  },
+  "After/Showcase-Fog-Wind-0.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "d5b740f15d7af1c58c823754afa52d87fe3755258de0de96561144bc007371e0"
+  },
+  "After/Showcase-Fog-Wind-1.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "de90e261876663c748100d1e09723ea786b3f623b623e74a7128767ef008988e"
+  },
+  "After/Showcase-Fog-Wind-2.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "4ee46750f8dd75986c66f9e294f80259bb3b9afc1e9fcb2ae1a68a9f684ae573"
+  },
+  "After/Showcase-Fog-Wind-3.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "e8bc4f61bc87dcc373fe39818e046e2d076d108819c0a3db7e89ab42bd2a79cf"
+  },
+  "Before/Fog-East.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "af8cde5859179580da59f860db14161921f763cadb2a8bea031bdbb33e0ffde8"
+  },
+  "Before/Fog-Still-0.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "5f7e17fee7e01d7b5ee6da98de84f51408d4592c792ce2e8d93b9f32ff7a2178"
+  },
+  "Before/Fog-Still-4.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "af8cde5859179580da59f860db14161921f763cadb2a8bea031bdbb33e0ffde8"
+  },
+  "Before/Fog-Uniform.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "582239a43e9b15feeec0dbba773513901d37c5e2ae65c5c6a21e4d6a8f67abb3"
+  },
+  "Before/Fog-West.png": {
+    "width": 256,
+    "height": 160,
+    "sha256": "af8cde5859179580da59f860db14161921f763cadb2a8bea031bdbb33e0ffde8"
+  },
+  "Editor/Baking-Ready.png": {
+    "width": 1440,
+    "height": 900,
+    "sha256": "7f8ede0747375b794aefef427ff9e0cd0081627c61e08d33716cc2d3bd2c7faf"
+  },
+  "Editor/Baking-StaleAuthoring.png": {
+    "width": 1440,
+    "height": 900,
+    "sha256": "fc152bff146aebb563485fd4b026199a3bfe1e382b9ebe3f3389d6d2c7d1c9aa"
+  },
+  "Editor/ForceField.png": {
+    "width": 1440,
+    "height": 900,
+    "sha256": "29ef7aef9b10f59f7b4b8760dc867846dc07a63832df6e891d98367b7654d5a3"
+  },
+  "Editor/LocalCloud.png": {
+    "width": 1440,
+    "height": 900,
+    "sha256": "5b7f12bbde70d48427b6de433b2e4057d822209e3c23be96eceb7587ada0c808"
+  },
+  "Editor/LocalFog.png": {
+    "width": 1440,
+    "height": 900,
+    "sha256": "28c768bbb79ea2ac65e5da881a4d3c67a39ddbc44bbb92c1ce4a63089e146647"
+  },
+  "Editor/MultipleScattering.png": {
+    "width": 32,
+    "height": 32,
+    "sha256": "26a8ce79ae2b867dad8aabf5da055e04167ccb070cef3070dce67a1eb24e16c3"
+  },
+  "Editor/SkyView.png": {
+    "width": 192,
+    "height": 108,
+    "sha256": "8ed06d1ade15a0a466ae9f8cadc2e963610cb4795edd7f7ad658e73507ae6547"
+  },
+  "Editor/Transmittance.png": {
+    "width": 256,
+    "height": 64,
+    "sha256": "c01e5cfdcdffd1ee2f06ab07adf22506b2f3067b67e421e41813232102b6dd14"
+  },
+  "FogWind.gif": {
+    "width": 512,
+    "height": 368,
+    "sha256": "dc8032306d246ed064ab13a573ad165364c56abb7250cde49165e3d48a87b93f"
+  },
+  "Inspectors/AerialFog-0.png": {
+    "width": 420,
+    "height": 962,
+    "sha256": "aea86b1a0f3b829c7d29e686cf0d20be3fc60824fe9a3139c3a6f1454ff8607b"
+  },
+  "Inspectors/AerialFog-1.png": {
+    "width": 420,
+    "height": 810,
+    "sha256": "0172a2f0aa839a6195f3879668cf060ab0dfc39563df29870ce034c4386b544b"
+  },
+  "Inspectors/AerialFog-2.png": {
+    "width": 420,
+    "height": 796,
+    "sha256": "2433c2402ab526c4de9c60f3e9d588df266cc44e8b51dae4d15b4aea9b0797d4"
+  },
+  "Inspectors/Atmosphere-0.png": {
+    "width": 420,
+    "height": 1546,
+    "sha256": "8aa731bcf4e17cdc922b2738023ecc1a9703c20ffec1205754e28b8df7b67e8b"
+  },
+  "Inspectors/Atmosphere-1.png": {
+    "width": 420,
+    "height": 1509,
+    "sha256": "ca3a69f53360128a9eb372896d086868158beecb9e24f0b9b2b4f6ef2fdf7da5"
+  },
+  "Inspectors/Atmosphere-2.png": {
+    "width": 420,
+    "height": 1264,
+    "sha256": "2309c4fb8608d4129274a5d6990256c7ed236c8442beec01fa7bf2c14329113c"
+  },
+  "Inspectors/Atmosphere-3.png": {
+    "width": 420,
+    "height": 920,
+    "sha256": "fa1ee737483e08e8b882c1679a41baa11d8b1727724d89494f97cd9a0727a1c4"
+  },
+  "Inspectors/Cloud-0.png": {
+    "width": 420,
+    "height": 1123,
+    "sha256": "6d23f7f769b6d738bf52c18c3ecb76460b82e4e6e9d02cd3cf48282c4cae6fc9"
+  },
+  "Inspectors/Cloud-1.png": {
+    "width": 420,
+    "height": 1522,
+    "sha256": "81cea2e53aad3c0337c49acb185dcd821dabd9f4639b7ddaddf9a872648d7105"
+  },
+  "Inspectors/Cloud-2.png": {
+    "width": 420,
+    "height": 1302,
+    "sha256": "a42be919cc780a6586aeff844000864c39c14ad55e75dad3766ff74ffea3ae7b"
+  },
+  "Inspectors/Cloud-3.png": {
+    "width": 420,
+    "height": 1660,
+    "sha256": "2a74786cf90368ca8ab8d18c2bb220f67e1817fc33f39c9a26c0fbab06e74271"
+  },
+  "Inspectors/Flare-0.png": {
+    "width": 420,
+    "height": 1217,
+    "sha256": "5583157e93e8b0dc4c6951002aa96519bfc6a89abd91fb9b6548f1e4658a8ea2"
+  },
+  "Inspectors/Flare-1.png": {
+    "width": 420,
+    "height": 1389,
+    "sha256": "6ec31055748a9330757e6e9cb9d6fc519734019479017c934ccfa35741d1cbf2"
+  },
+  "Inspectors/Flare-2.png": {
+    "width": 420,
+    "height": 1309,
+    "sha256": "797f3235827e4fb20d97ba62fe6ccbc6229ef34ffba357ef75726a1b04de0468"
+  },
+  "Inspectors/Flare-3.png": {
+    "width": 420,
+    "height": 1496,
+    "sha256": "fb98182adebb94cb2ec0c774ee7025c93d8250d344af040f4aec8e7fa12b4cd0"
+  },
+  "Inspectors/Fog-0.png": {
+    "width": 420,
+    "height": 912,
+    "sha256": "be4c6ba126376ea70fcc978ba738a7b07c5b06ed76dacaae0ea27041188cf8d8"
+  },
+  "Inspectors/Fog-1.png": {
+    "width": 420,
+    "height": 806,
+    "sha256": "98a2f5f6207d18076f6ee16c01061e53167d7dc6d382f3d2f6d1b369fe0b4166"
+  },
+  "Inspectors/Fog-2.png": {
+    "width": 420,
+    "height": 887,
+    "sha256": "b9bdd36c3b2312337d4dd6d7d8ab6949af709ee50b8fec8ef78c26b3aa135031"
+  },
+  "Inspectors/ForceField-0.png": {
+    "width": 420,
+    "height": 1247,
+    "sha256": "2484c020044700aaf5924c0102a8f257a1420f3efc146232d4682ad7d3f7b810"
+  },
+  "Inspectors/Lightning-0.png": {
+    "width": 420,
+    "height": 1238,
+    "sha256": "90ebc46f116eaf30397f54be7c381e36d0f82821125c6713bc3c737a1d8c5c72"
+  },
+  "Inspectors/LocalCloud-0.png": {
+    "width": 420,
+    "height": 5135,
+    "sha256": "da2e1e3ae70b458a8498a5108182d2eec79e43d933d0b0b3a831eca6efbda14d"
+  },
+  "Inspectors/LocalFog-0.png": {
+    "width": 420,
+    "height": 2588,
+    "sha256": "4459638340f32b3973629be5bb03141d1c8fd222589f18a97bb8623d71ed7174"
+  },
+  "Inspectors/Moon-0.png": {
+    "width": 420,
+    "height": 1010,
+    "sha256": "ba5fd9662227082f344622ddd614f2bdd9d8bbeb51f4b2269a76748e98b039f1"
+  },
+  "Inspectors/Moon-1.png": {
+    "width": 420,
+    "height": 1684,
+    "sha256": "d3060004200006d9eec824c867ae9118182596aca0c6ed074a116e66dbc15fe0"
+  },
+  "Inspectors/Moon-2.png": {
+    "width": 420,
+    "height": 1914,
+    "sha256": "9dff822906dc53eed29dd8d7eac4f0ba542534811937a908ac090fe923a92ed9"
+  },
+  "Inspectors/Moon-3.png": {
+    "width": 420,
+    "height": 753,
+    "sha256": "715311d2442ca48feb296cfd40c11953c976da47472e95b10bf24593b8734ad2"
+  },
+  "Inspectors/Moon-Narrow.png": {
+    "width": 320,
+    "height": 957,
+    "sha256": "ee528829df212d6c352419960765854ae0a818a3ee14a3b116dd64bbe25cb81d"
+  },
+  "Inspectors/Stars-0.png": {
+    "width": 420,
+    "height": 969,
+    "sha256": "699e0a9a4b820c622ae2301fba43468b087fc60f6a61cc6d568ec29641003841"
+  },
+  "Inspectors/Stars-1.png": {
+    "width": 420,
+    "height": 1113,
+    "sha256": "50c0751896f9436046869551adba32340b9897c45e310bf3c6e9609604198678"
+  },
+  "Inspectors/Stars-2.png": {
+    "width": 420,
+    "height": 827,
+    "sha256": "5da5d8aa018df30415016f447f471a506b77e2b5ae22ba00719a7fad4fc59811"
+  },
+  "Inspectors/Sun-0.png": {
+    "width": 420,
+    "height": 1132,
+    "sha256": "9f7b8755882492f6cdfa673fea907d9a00124745aec2644361baebba097b3069"
+  },
+  "Inspectors/Sun-1.png": {
+    "width": 420,
+    "height": 1285,
+    "sha256": "9fcde6d210d39c3d0c10d917c83552edc8c25e19ef65050e1617f3ee63a96d58"
+  },
+  "Inspectors/Sun-2.png": {
+    "width": 420,
+    "height": 1332,
+    "sha256": "2522fb91448387e2d3e1c13c02832703c8db962b7c4153c15ca1c8d5139bceee"
+  },
+  "Inspectors/Sun-3.png": {
+    "width": 420,
+    "height": 941,
+    "sha256": "1ca07f3b77cb8a68df2dd545be71345c6d9d94e5169604e871d0cd2409b1a45b"
+  },
+  "Inspectors/Wind-0.png": {
+    "width": 420,
+    "height": 1118,
+    "sha256": "30c526ca5f8fcb9e7c8ce219d00264685a6977548006493dd58ab636e14a3e3b"
+  },
+  "Inspectors/Wind-1.png": {
+    "width": 420,
+    "height": 1356,
+    "sha256": "5f879bfad5fc1607fba3ed8cd0abfbb68fe00ea21eebb350fdac4b79edcd62d6"
+  },
+  "Inspectors/Wind-2.png": {
+    "width": 420,
+    "height": 948,
+    "sha256": "774d7f9573e86b39e87e51ad63c2c43f87e9c5fcadf3234a05f85fb6e95a4e97"
+  },
+  "Inspectors/Wind-3.png": {
+    "width": 420,
+    "height": 976,
+    "sha256": "23f5389f7480fd37af0c416ef634481a70f6fefb91ab7d8f5a245af3907f34c1"
+  },
+  "LocalMediaOverview.png": {
+    "width": 1152,
+    "height": 911,
+    "sha256": "6e71d5981737e1f39cc248d05705f5f0eb3030ca8dac1f9d7b919236db8bc0ae"
+  }
+}

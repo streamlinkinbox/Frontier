@@ -1,0 +1,67 @@
+{
+  "result": "passed",
+  "date": "2026-10-17",
+  "repository": "SultanAladin/Frontier",
+  "commit": "9bccc416609aae335e4011f0d093fa6d503141bc",
+  "scope": "Source authentication and design mapping only; no new production UI implementation or runtime test",
+  "sources": [
+    {
+      "path": "SourceImages/Confirmations/b79e438e0f6d7e1d7fb5420764363100.jpg",
+      "git_blob": "222333420c694e23d42c35c422f8afbcf1b6d970",
+      "sha256": "23abaad447f5d75d346c081afad840591c05b87135ea0abf73bcab60b498c9d6",
+      "dimensions": "1101x601",
+      "intended_use": "Full-screen red fatal engine error; independent of failed GPU device",
+      "url": "https://github.com/SultanAladin/Frontier/blob/9bccc416609aae335e4011f0d093fa6d503141bc/SourceImages/Confirmations/b79e438e0f6d7e1d7fb5420764363100.jpg"
+    },
+    {
+      "path": "SourceImages/Confirmations/aa658ed8425a71143147d593b1d58c77.jpg",
+      "git_blob": "b1e0793b4ed1371aae950de1ebaeedb3cce08ac4",
+      "sha256": "cd0295167226e80393fa576d77e42a8aed9f2b157c504ad870587ea1c1248a8e",
+      "dimensions": "1200x900",
+      "intended_use": "Light/dark semantic notification cards",
+      "url": "https://github.com/SultanAladin/Frontier/blob/9bccc416609aae335e4011f0d093fa6d503141bc/SourceImages/Confirmations/aa658ed8425a71143147d593b1d58c77.jpg"
+    },
+    {
+      "path": "SourceImages/Confirmations/0422373405cf1817679ee4e40e6b7aa6.jpg",
+      "git_blob": "c4a50fe7414009a13510a6c2f6e351f6be95da03",
+      "sha256": "6a889962a1693592ef752a59cec5ee23d91072ea88f450f6ec116413f16d933d",
+      "dimensions": "400x300",
+      "intended_use": "Compact notification/action strips",
+      "url": "https://github.com/SultanAladin/Frontier/blob/9bccc416609aae335e4011f0d093fa6d503141bc/SourceImages/Confirmations/0422373405cf1817679ee4e40e6b7aa6.jpg"
+    },
+    {
+      "path": "SourceImages/Confirmations/69ca33c1f28a3f326909e3b554646a21.jpg",
+      "git_blob": "be003b58927f841f4eb1c408410be76627b1e2e3",
+      "sha256": "477f17b7c2f65c4259e22975add4aeebf95677f070818edbc11e6ef093e63eb7",
+      "dimensions": "1200x900",
+      "intended_use": "Notification cards with right-side actions",
+      "url": "https://github.com/SultanAladin/Frontier/blob/9bccc416609aae335e4011f0d093fa6d503141bc/SourceImages/Confirmations/69ca33c1f28a3f326909e3b554646a21.jpg"
+    },
+    {
+      "path": "SourceImages/Confirmations/71a8613a6ecb22ac20c63711c357eba9.jpg",
+      "git_blob": "a38eb8aaa442d692bc940e13c0f7f72e1897a560",
+      "sha256": "c97eb1b0e548b5ddc12b6bacad0c22662659875faf2f67e128059289e5762143",
+      "dimensions": "752x564",
+      "intended_use": "Rounded confirmation dialog",
+      "url": "https://github.com/SultanAladin/Frontier/blob/9bccc416609aae335e4011f0d093fa6d503141bc/SourceImages/Confirmations/71a8613a6ecb22ac20c63711c357eba9.jpg"
+    },
+    {
+      "path": "SourceImages/Confirmations/763e050824fe11d41d0d9c5b6c468d31.jpg",
+      "git_blob": "1071715875205ce49a4633b83a17ffef2fdb31db",
+      "sha256": "de28622e81cf07997cd846427aa9477e1a7b3f46507a9926d39a6a82e28895aa",
+      "dimensions": "564x423",
+      "intended_use": "Colour-header semantic dialog with detail text and footer actions",
+      "url": "https://github.com/SultanAladin/Frontier/blob/9bccc416609aae335e4011f0d093fa6d503141bc/SourceImages/Confirmations/763e050824fe11d41d0d9c5b6c468d31.jpg"
+    }
+  ],
+  "checks": [
+    "All six JPEGs match Git blobs in the pinned remote commit",
+    "All six JPEGs decode with ImageMagick identify; dimensions recorded"
+  ],
+  "limitations": [
+    "Images are design references, not new native rendering evidence",
+    "Artwork licensing is not established by user-supplied screenshots",
+    "The current host uses DX11; Vulkan device-loss integration is not present"
+  ],
+  "reproduce": "python Exhibits/SpaceFormats/Code/InspectConfirmationReferences.py"
+}

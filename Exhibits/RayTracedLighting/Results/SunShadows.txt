@@ -1,0 +1,167 @@
+# RayTracedLightingCapture PenumbraNear,TowerShadow ShadowReference,Demo,Cascades,PenumbraFilter,PenumbraNarrow 8 16 0 (480x270, low,
+# SwiftShader, 2-core Linux host, 2026-11-02). PenumbraNarrow is the half filter radius, since then the only PenumbraFilter
+# setting; PenumbraFilter here is the full radius it replaced. Stage lines: mean ms per refresh. Luminance in 8-bit levels.
+device: SwiftShader Device (Subzero); 8 warm + 16 measured refreshes; indirect off; 480x270
+PenumbraNear/ShadowReference: fireflies 0.0, visible errors 0 per refresh, refresh 39.920 s
+    stage antialias and present             49.3 ms
+    stage card lighting                    422.1 ms
+    stage direct radiance                30857.2 ms
+    stage distance union                     0.0 ms
+    stage environment import                10.2 ms
+    stage environment light inputs           2.2 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            32.7 ms
+    stage recombination                     26.9 ms
+    stage reflection trace                 252.4 ms
+    stage shadow cascades                   51.9 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    81.2 ms
+PenumbraNear/Demo: fireflies 0.0, visible errors 928 per refresh, refresh 8.235 s
+    stage antialias and present             40.5 ms
+    stage card lighting                     63.9 ms
+    stage direct radiance                  609.6 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.6 ms
+    stage environment light inputs           1.8 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            25.4 ms
+    stage recombination                     20.1 ms
+    stage reflection trace                 186.9 ms
+    stage shadow cascades                   44.2 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    70.8 ms
+PenumbraNear/Cascades: fireflies 0.0, visible errors 1601 per refresh, refresh 7.812 s
+    stage antialias and present             37.6 ms
+    stage card lighting                     80.6 ms
+    stage direct radiance                  336.9 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.3 ms
+    stage environment light inputs           1.8 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            24.5 ms
+    stage recombination                     19.2 ms
+    stage reflection trace                 192.3 ms
+    stage shadow cascades                   44.8 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    69.4 ms
+PenumbraNear/PenumbraFilter: fireflies 0.0, visible errors 1023 per refresh, refresh 7.992 s
+    stage antialias and present             36.8 ms
+    stage card lighting                     79.0 ms
+    stage direct radiance                  546.0 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.0 ms
+    stage environment light inputs           1.8 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            22.5 ms
+    stage penumbra resolve                  37.0 ms
+    stage recombination                     18.2 ms
+    stage reflection trace                 182.5 ms
+    stage shadow cascades                   43.5 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    64.7 ms
+PenumbraNear/PenumbraNarrow: fireflies 0.0, visible errors 615 per refresh, refresh 7.667 s
+    stage antialias and present             34.2 ms
+    stage card lighting                     84.5 ms
+    stage direct radiance                  539.6 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.7 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            21.5 ms
+    stage penumbra resolve                  35.9 ms
+    stage recombination                     17.1 ms
+    stage reflection trace                 172.8 ms
+    stage shadow cascades                   40.8 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    63.5 ms
+
+PenumbraNear (9740 transition pixels of 129600 in the measured region)
+| Variant | Fireflies / refresh | Visible errors / refresh | Refresh RMS | Transition RMS | Transition noise | Transition bias | Refresh [s] |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ShadowReference | 0.0 | 0 | 0.81 | 2.52 | 1.42 | 0.00 | 39.920 |
+| Demo | 0.0 | 928 | 2.15 | 7.11 | 1.93 | 6.32 | 8.235 |
+| Cascades | 0.0 | 1601 | 3.16 | 10.65 | 1.03 | 10.45 | 7.812 |
+| PenumbraFilter | 0.0 | 1023 | 2.09 | 6.32 | 1.34 | 5.95 | 7.992 |
+| PenumbraNarrow | 0.0 | 615 | 1.78 | 5.69 | 1.30 | 5.29 | 7.667 |
+
+TowerShadow/ShadowReference: fireflies 0.0, visible errors 0 per refresh, refresh 26.178 s
+    stage antialias and present             35.2 ms
+    stage card lighting                     63.2 ms
+    stage direct radiance                18817.9 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.0 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            20.7 ms
+    stage recombination                     16.9 ms
+    stage reflection trace                 139.9 ms
+    stage shadow cascades                   37.0 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    57.2 ms
+TowerShadow/Demo: fireflies 0.0, visible errors 903 per refresh, refresh 7.513 s
+    stage antialias and present             34.4 ms
+    stage card lighting                     58.9 ms
+    stage direct radiance                  441.9 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.4 ms
+    stage environment light inputs           1.5 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            19.0 ms
+    stage recombination                     15.5 ms
+    stage reflection trace                 130.6 ms
+    stage shadow cascades                   35.5 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    55.4 ms
+TowerShadow/Cascades: fireflies 0.0, visible errors 2246 per refresh, refresh 7.484 s
+    stage antialias and present             35.1 ms
+    stage card lighting                     60.5 ms
+    stage direct radiance                  288.1 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.5 ms
+    stage environment light inputs           1.5 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            20.9 ms
+    stage recombination                     16.8 ms
+    stage reflection trace                 133.2 ms
+    stage shadow cascades                   36.5 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    57.8 ms
+TowerShadow/PenumbraFilter: fireflies 0.0, visible errors 999 per refresh, refresh 8.171 s
+    stage antialias and present             38.7 ms
+    stage card lighting                     66.9 ms
+    stage direct radiance                  484.8 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.2 ms
+    stage environment light inputs           1.8 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            22.7 ms
+    stage penumbra resolve                  35.2 ms
+    stage recombination                     18.3 ms
+    stage reflection trace                 149.8 ms
+    stage shadow cascades                   39.2 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    62.5 ms
+TowerShadow/PenumbraNarrow: fireflies 0.0, visible errors 673 per refresh, refresh 8.085 s
+    stage antialias and present             38.1 ms
+    stage card lighting                     74.6 ms
+    stage direct radiance                  455.5 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.4 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            21.5 ms
+    stage penumbra resolve                  33.7 ms
+    stage recombination                     18.0 ms
+    stage reflection trace                 143.1 ms
+    stage shadow cascades                   37.1 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    61.3 ms
+
+TowerShadow (4210 transition pixels of 81600 in the measured region)
+| Variant | Fireflies / refresh | Visible errors / refresh | Refresh RMS | Transition RMS | Transition noise | Transition bias | Refresh [s] |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ShadowReference | 0.0 | 0 | 1.51 | 3.60 | 2.09 | 0.00 | 26.178 |
+| Demo | 0.0 | 903 | 2.65 | 8.21 | 2.59 | 7.17 | 7.513 |
+| Cascades | 0.0 | 2246 | 10.65 | 21.35 | 1.82 | 20.77 | 7.484 |
+| PenumbraFilter | 0.0 | 999 | 2.85 | 7.48 | 1.75 | 6.73 | 8.171 |
+| PenumbraNarrow | 0.0 | 673 | 2.67 | 6.61 | 1.83 | 5.73 | 8.085 |

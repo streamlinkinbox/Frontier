@@ -1,0 +1,297 @@
+# SolidArc constraint follow-up walkthrough — the K session on spline curves (L tangent G1, C curvature G2,
+# H / V end direction, O point on the curve), reference dimensions (Shift+D adds one, grey in parentheses; E toggles a
+# picked dimension between driving and reference) and links to earlier sketches (they draw dimmed and are pickable; a
+# constraint on their geometry links it in, amber, and it follows them on regeneration; Delete unlinks).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/LinkedConstraintsRecovery.solidarc
+#      --document …/LinkedConstraints.solidarc --script Exhibits/SolidArc/Code/Scripts/LinkedConstraintsWalkthrough.txt
+# Closed forms: line (0, 1.5) → (1, 1) joined to a NURBS curve (1, 1) (2, 0.6) (3, 0.9) (4, 1.1): DOF 10 → ] ] 6 → L 5 →
+# C 4 (replaces T1) → H 3. Plate 2 × 1 → ] corner, D 1.5, D 1 → DOF 0, V 1.5; Shift+D diagonal reads √3.25 = 1.80278,
+# D2 = 2 → reads 2.5, V 3. A later line (2.5, 2.5) → (3.2, 3): O to the plate's far corner (1.5, 2), O onto its top line
+# → DOF 4 → 2 → 1; D1 = 2 → the line's start follows to (2, 2), V 4.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document, Top view: a line and a NURBS curve drawn from its end, joined into one sketch (J)
+key N Ctrl
+frames 2
+expect steps == 0
+key Keypad7
+frames 2
+key Keypad5
+frames 2
+wheel viewport 0.5 0.5 -4
+frames 2
+drag Right viewport 0.5 0.5 by -228 228 24
+frames 2
+key A Shift
+frames 2
+click world 0.0 1.5 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+key Enter
+frames 2
+key S Shift
+frames 2
+key 3
+frames 2
+expect drawing-form == NURBS
+click world 1.0 1.0 0.0
+frames 2
+click world 2.0 0.6 0.0
+frames 2
+click world 3.0 0.9 0.0
+frames 2
+click world 4.0 1.1 0.0
+frames 2
+key Enter
+frames 2
+expect sketches == 2
+key J
+frames 3
+expect sketches == 1
+expect sketch-curves == 2
+
+# ② K: 10 degrees of freedom; ] locks both line ends (the joint is the curve's start too): DOF 6
+key K
+frames 3
+expect constrain == 1
+expect sketch-dof == 10
+click world 0.0 1.5 0.0
+frames 2
+key RightBracket
+frames 3
+click world 1.0 1.0 0.0
+frames 2
+key RightBracket
+frames 3
+expect constraints == F1,F2
+expect sketch-dof == 6
+
+# ③ the curve (at t = 0.2) + the line, L: tangent at the joint (G1) → T1, DOF 5
+click world 1.6 0.8376 0.0
+frames 2
+click world 0.5 1.25 0.0
+frames 2
+expect constrain-picks == Spline1,Line2
+key L
+frames 3
+expect constraints == F1,F2,T1
+expect sketch-dof == 5
+expect constrain-refusal == 0
+capture 128ConstrainSplineG1
+
+# ④ the curve + the line again, C: tangent and equal curvature (G2) → K1 replaces T1, DOF 4; then the curve + its far
+#    end, H: the end direction horizontal → H1, DOF 3
+click world 1.3578 0.8211 0.0
+frames 2
+click world 0.5 1.25 0.0
+frames 2
+expect constrain-picks == Spline1,Line2
+key C
+frames 3
+expect constraints == F1,F2,K1
+expect sketch-dof == 4
+expect status contains replaces T1
+click world 1.3578 0.8211 0.0
+frames 2
+click world 4.0 1.1 0.0
+frames 2
+expect constrain-picks == Spline1,Spline1.Point3
+key H
+frames 3
+expect constraints == F1,F2,K1,H1
+expect sketch-dof == 3
+expect sketch-status == under-constrained
+capture 129ConstrainSplineG2
+
+# ⑤ new document: a 2 × 1 plate extruded 1, then ] corner, D 1.5, D 1 → DOF 0, V 1.5
+key Escape
+frames 1
+key Escape
+frames 2
+key N Ctrl
+frames 2
+key Keypad7
+frames 2
+wheel viewport 0.5 0.5 -4
+frames 2
+drag Right viewport 0.5 0.5 by -228 228 24
+frames 2
+key Q Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 2.0 1.0 0.0
+frames 2
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect steps == 2
+key Escape
+frames 2
+key K
+frames 3
+click world 0.0 0.0 0.0
+frames 2
+key RightBracket
+frames 3
+click world 1.0 0.0 0.0
+frames 2
+key D
+frames 2
+type 1.5
+key Enter
+frames 3
+key Escape
+frames 1
+click world 1.5 0.7 0.0
+frames 2
+key D
+frames 2
+type 1
+key Enter
+frames 3
+key Escape
+frames 1
+expect sketch-dof == 0
+expect volume ~ 1.5
+
+# ⑥ the two far corners, Shift+D: a reference dimension D3 reads the diagonal (1.80278), grey in parentheses; nothing
+#    moves, DOF stays 0
+click world 0.0 0.0 0.0
+frames 2
+click world 1.5 1.0 0.0
+frames 2
+key D Shift
+frames 3
+expect constraints == H1,V1,H2,V2,F1,D1,D2,D3
+expect picked-constraint contains (reference)
+expect picked-constraint contains 1.80278
+expect sketch-dof == 0
+expect sketch-status == fully constrained
+expect volume ~ 1.5
+capture 130ConstrainReference
+
+# ⑦ D2 = 2 (card row): the reading follows to 2.5, V 3; E on the reference is refused (driving, it would be implied)
+key Escape
+frames 1
+click @ConstraintRow6
+frames 2
+expect picked-constraint contains D2
+type 2
+key Enter
+frames 3
+expect volume ~ 3
+click @ConstraintRow7
+frames 2
+expect picked-constraint contains Distance 2.5 (reference)
+key E
+frames 3
+expect constrain-refusal contains stays a reference
+expect constraint-count == 8
+capture 131ConstrainReferenceFollows
+
+# ⑧ a later line sketch (2.5, 2.5) → (3.2, 3); K on it draws the plate's sketch dimmed: pick the line's start and the
+#    plate's far corner
+key Escape
+frames 1
+key Escape
+frames 1
+key Escape
+frames 2
+expect constrain == 0
+key A Shift
+frames 2
+click world 2.5 2.5 0.0
+frames 2
+click world 3.2 3.0 0.0
+frames 2
+key Enter
+frames 2
+expect sketches == 2
+key K
+frames 3
+expect constrain == 1
+expect sketch-dof == 4
+click world 2.5 2.5 0.0
+frames 2
+click world 1.5 2.0 0.0
+frames 2
+expect constrain-picks == Line1.Start,Line2.End of Rectangle1
+capture 132ConstrainLinkPick
+
+# ⑨ O links the corner in (amber) and makes it coincident: DOF 2; the line's end + the plate's top line, O: DOF 1 (the
+#    top line comes in as a construction line on linked points)
+key O
+frames 3
+expect sketch-dof == 2
+expect sketch-links contains Point
+expect sketch-points contains (1.5, 2)
+click world 3.2 3.0 0.0
+frames 2
+click world 0.75 2.0 0.0
+frames 2
+expect constrain-picks == Line1.End,Line3 of Rectangle1
+key O
+frames 3
+expect sketch-dof == 1
+expect sketch-links contains Line2
+expect sketch-points contains (3.2, 2)
+
+# ⑩ the plate's D1 = 2 (its own K session): V 4, and the line's start follows the corner to (2, 2)
+key Escape
+frames 2
+expect constrain == 0
+click @InspectorHistory
+frames 3
+click @Step:Sketch#1
+frames 2
+click @InspectorGeometry
+frames 3
+frames 2
+key K
+frames 3
+click @ConstraintRow5
+frames 2
+expect picked-constraint contains D1
+type 2
+key Enter
+frames 3
+expect volume ~ 4
+key Escape
+frames 1
+key Escape
+frames 2
+click @InspectorHistory
+frames 3
+click @Step:Sketch#3
+frames 2
+click @InspectorGeometry
+frames 3
+frames 2
+key K
+frames 3
+expect sketch-points contains (2, 2)
+expect sketch-dof == 1
+move world 2.6 1.0 0.0
+frames 2
+capture 133ConstrainLinked
+
+# ⑪ the linked corner picked, Delete unlinks it: the point stays at (2, 2), now free (DOF 3)
+click world 2.0 2.0 0.0
+frames 2
+key Delete
+frames 3
+expect status contains Unlink
+expect sketch-dof == 3
+expect sketch-points contains (2, 2)

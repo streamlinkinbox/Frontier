@@ -1,0 +1,18 @@
+F11_Card_direct_irradiance.raw — demo A vs demo B: 4194304 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 1.42403), PSNR inf dB, non-finite 0
+F11_Card_final_radiance.raw — demo A vs demo B: 4194304 values, 91.5261% identical, max |d| 0.686035, mean |d| 0.000981432 (mean |ref| 0.310077), PSNR 70.50 dB, non-finite 0
+F11_Radiosity_sites.bin — demo A vs demo B: 262144 values, 83.9874% identical, max |d| 3.15668, mean |d| 0.0455021 (mean |ref| 0.94949), PSNR 50.25 dB, non-finite 0
+F11_Scene_distance_cascade_0.raw — demo A vs demo B: 1048576 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 467.802), PSNR inf dB, non-finite 0
+F11_Shadow_cascades.raw — demo A vs demo B: 3145728 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.9846), PSNR inf dB, non-finite 0
+F11_Direct_radiance.raw — demo A vs demo B: 186624 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.420894), PSNR inf dB, non-finite 0
+F11_Reflection_radiance.raw — demo A vs demo B: 46656 values, 99.9186% identical, max |d| 0.0439453, mean |d| 3.66098e-06 (mean |ref| 0.115152), PSNR 98.06 dB, non-finite 0
+F11_Resampled_irradiance.raw — demo A vs demo B: 46656 values, 99.9078% identical, max |d| 0.00390625, mean |d| 7.57612e-07 (mean |ref| 0.851865), PSNR 121.60 dB, non-finite 0
+F11_Reservoirs_0.bin — 93.7500 % of reservoirs bit-identical between demo runs
+F11_Reservoirs_1.bin — 93.6728 % of reservoirs bit-identical between demo runs
+F11_Surface_attributes.raw — demo A vs demo B: 186624 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 5.18981), PSNR inf dB, non-finite 0
+F11_Surface_depth.raw — demo A vs demo B: 46656 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.0051225), PSNR inf dB, non-finite 0
+F11_Capture.raw — demo A vs demo B: 186624 values, 99.9362% identical, max |d| 0.0039216, mean |d| 2.50057e-06 (mean |ref| 0.648403), PSNR 80.02 dB, non-finite 0
+F11_Diffuse_screen.raw — demo A vs demo B: 186624 values, 99.5606% identical, max |d| 0.00830078, mean |d| 4.33808e-06 (mean |ref| 0.823959), PSNR 113.84 dB, non-finite 0
+F11_Glossy_screen.raw — demo A vs demo B: 186624 values, 96.6885% identical, max |d| 0.00390625, mean |d| 2.82731e-06 (mean |ref| 0.248454), PSNR 112.09 dB, non-finite 0
+F11_Recombined_radiance.raw — demo A vs demo B: 186624 values, 99.7492% identical, max |d| 0.00195312, mean |d| 3.06894e-07 (mean |ref| 0.537937), PSNR 125.94 dB, non-finite 0
+F11_Resolved_radiance_A.raw — demo A vs demo B: 186624 values, 99.3500% identical, max |d| 0.0078125, mean |d| 1.70744e-06 (mean |ref| 0.525056), PSNR 109.59 dB, non-finite 0
+F11_Resolved_radiance_B.raw — demo A vs demo B: 186624 values, 99.3479% identical, max |d| 0.0078125, mean |d| 1.38887e-06 (mean |ref| 0.522722), PSNR 109.20 dB, non-finite 0

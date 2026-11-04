@@ -1,0 +1,37 @@
+Format = 1
+Name = "Pure Tin"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.665387298282272, 0.6724431569576875, 0.6307571363461468]
+Roughness = 0.32
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/pure-tin-albedo.png"
+Normal = "Textures/pure-tin-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.1
+detailScale = 65
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.1
+detailScale = 65
+surfaceSeed = 17

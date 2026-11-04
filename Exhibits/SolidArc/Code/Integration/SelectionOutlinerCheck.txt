@@ -1,0 +1,54 @@
+frames 3
+key Keypad7
+key Keypad5
+frames 3
+key 1
+click world -0.8 -0.5 0
+frames 3
+expect selected-spline-poles == 1
+click @Figure:Curve#2
+frames 3
+expect selected-curves == 1
+expect selected-spline-poles == 0
+expect selected-spline-spans == 0
+click @Figure:Curve#3 Shift
+frames 3
+expect selected-curves == 2
+key Delete
+frames 3
+expect curves == 1
+expect steps == 1
+expect refused == 0
+key Z Ctrl
+frames 3
+expect curves == 3
+key 2
+click world -0.4 -0.4625 0
+frames 3
+expect selected-spline-spans == 1
+click @Figure:Curve#2 Ctrl
+frames 3
+expect selected-curves == 2
+expect selected-spline-spans == 0
+expect selected-spline-poles == 0
+key X
+frames 3
+expect curves == 1
+expect refused == 0
+key Z Ctrl
+frames 3
+expect curves == 3
+key 3
+click @Figure:Curve#1
+click @Figure:Curve#3 Shift
+frames 3
+expect selected-curves == 3
+key Delete
+frames 3
+expect curves == 0
+expect steps == 0
+expect refused == 0
+key Z Ctrl
+frames 3
+expect curves == 3
+capture Outliner_Range_Delete_Undo

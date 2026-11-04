@@ -1,0 +1,223 @@
+# RayTracedLightingCapture PaneNear,ConesNear MirrorReference,Demo,Unfiltered,SolarDisc,MirrorFilter,MirrorTrace 8 16 1 (indirect
+# light on, 480x270, low, SwiftShader, 2-core Linux host, 2026-11-02). Measured regions: the pane and the cone. Stage lines: mean
+# ms per refresh. Luminance in 8-bit levels.
+device: SwiftShader Device (Subzero); 8 warm + 16 measured refreshes; indirect on; 480x270
+PaneNear/MirrorReference: fireflies 0.0, visible errors 0 per refresh, refresh 15.788 s
+    stage ReSTIR resampling               1000.3 ms
+    stage antialias and present             33.2 ms
+    stage card lighting                    286.6 ms
+    stage diffuse variance filter           69.2 ms
+    stage direct radiance                  424.2 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.3 ms
+    stage environment light inputs           1.7 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            56.2 ms
+    stage mirror trace                    6863.8 ms
+    stage recombination                     16.7 ms
+    stage reflection trace                 170.7 ms
+    stage shadow cascades                   39.0 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    56.7 ms
+PaneNear/Demo: fireflies 0.0, visible errors 57 per refresh, refresh 8.819 s
+    stage ReSTIR resampling               1039.6 ms
+    stage antialias and present             32.9 ms
+    stage card lighting                     54.0 ms
+    stage diffuse variance filter           73.2 ms
+    stage direct radiance                  439.6 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.6 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            59.1 ms
+    stage recombination                     16.7 ms
+    stage reflection trace                 187.6 ms
+    stage shadow cascades                   39.3 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    56.7 ms
+PaneNear/Unfiltered: fireflies 0.0, visible errors 65 per refresh, refresh 8.852 s
+    stage ReSTIR resampling               1032.6 ms
+    stage antialias and present             34.3 ms
+    stage card lighting                     64.3 ms
+    stage diffuse variance filter           13.1 ms
+    stage direct radiance                  438.8 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.1 ms
+    stage environment light inputs           1.7 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            13.1 ms
+    stage recombination                     16.8 ms
+    stage reflection trace                 190.6 ms
+    stage shadow cascades                   39.9 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    59.5 ms
+PaneNear/SolarDisc: fireflies 0.0, visible errors 51 per refresh, refresh 8.761 s
+    stage ReSTIR resampling               1020.5 ms
+    stage antialias and present             33.7 ms
+    stage card lighting                     66.6 ms
+    stage diffuse variance filter           71.6 ms
+    stage direct radiance                  431.7 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.7 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            58.6 ms
+    stage recombination                     16.1 ms
+    stage reflection trace                 178.8 ms
+    stage shadow cascades                   39.6 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    57.2 ms
+PaneNear/MirrorFilter: fireflies 0.0, visible errors 37 per refresh, refresh 8.951 s
+    stage ReSTIR resampling                996.8 ms
+    stage antialias and present             34.5 ms
+    stage card lighting                     79.1 ms
+    stage diffuse variance filter           73.6 ms
+    stage direct radiance                  444.2 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.8 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            59.2 ms
+    stage mirror projection                 13.0 ms
+    stage recombination                     17.4 ms
+    stage reflection trace                 190.5 ms
+    stage shadow cascades                   38.3 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    57.5 ms
+PaneNear/MirrorTrace: fireflies 0.0, visible errors 35 per refresh, refresh 10.462 s
+    stage ReSTIR resampling               1287.6 ms
+    stage antialias and present             39.5 ms
+    stage card lighting                     85.5 ms
+    stage diffuse variance filter           80.4 ms
+    stage direct radiance                  500.0 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.4 ms
+    stage environment light inputs           1.9 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            67.2 ms
+    stage mirror trace                     561.2 ms
+    stage recombination                     20.1 ms
+    stage reflection trace                 211.8 ms
+    stage shadow cascades                   43.8 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    64.8 ms
+
+PaneNear (1322 transition pixels of 17664 in the measured region)
+| Variant | Fireflies / refresh | Visible errors / refresh | Refresh RMS | Transition RMS | Transition noise | Transition bias | Refresh [s] |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| MirrorReference | 0.0 | 0 | 0.77 | 2.48 | 1.47 | 0.00 | 15.788 |
+| Demo | 0.0 | 57 | 2.70 | 4.98 | 1.31 | 4.55 | 8.819 |
+| Unfiltered | 0.0 | 65 | 2.51 | 4.76 | 1.80 | 4.15 | 8.852 |
+| SolarDisc | 0.0 | 51 | 2.75 | 5.00 | 1.33 | 4.55 | 8.761 |
+| MirrorFilter | 0.0 | 37 | 1.58 | 4.42 | 1.33 | 4.00 | 8.951 |
+| MirrorTrace | 0.0 | 35 | 1.36 | 3.65 | 1.30 | 3.04 | 10.462 |
+
+ConesNear/MirrorReference: fireflies 0.0, visible errors 0 per refresh, refresh 13.490 s
+    stage ReSTIR resampling               1065.3 ms
+    stage antialias and present             37.4 ms
+    stage card lighting                     59.5 ms
+    stage diffuse variance filter           86.9 ms
+    stage direct radiance                  523.1 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.2 ms
+    stage environment light inputs           1.7 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            69.6 ms
+    stage mirror trace                    4481.4 ms
+    stage recombination                     19.9 ms
+    stage reflection trace                 143.7 ms
+    stage shadow cascades                   43.0 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    65.3 ms
+ConesNear/Demo: fireflies 0.0, visible errors 339 per refresh, refresh 9.477 s
+    stage ReSTIR resampling               1168.4 ms
+    stage antialias and present             38.4 ms
+    stage card lighting                     64.0 ms
+    stage diffuse variance filter           93.9 ms
+    stage direct radiance                  542.3 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.6 ms
+    stage environment light inputs           1.7 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            76.4 ms
+    stage recombination                     19.9 ms
+    stage reflection trace                 160.3 ms
+    stage shadow cascades                   43.0 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    66.3 ms
+ConesNear/Unfiltered: fireflies 0.0, visible errors 423 per refresh, refresh 8.752 s
+    stage ReSTIR resampling               1072.4 ms
+    stage antialias and present             35.3 ms
+    stage card lighting                     72.7 ms
+    stage diffuse variance filter           14.8 ms
+    stage direct radiance                  493.5 ms
+    stage distance union                     0.0 ms
+    stage environment import                 6.8 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            14.8 ms
+    stage recombination                     17.3 ms
+    stage reflection trace                 144.8 ms
+    stage shadow cascades                   41.1 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    63.0 ms
+ConesNear/SolarDisc: fireflies 0.0, visible errors 419 per refresh, refresh 8.310 s
+    stage ReSTIR resampling                940.8 ms
+    stage antialias and present             32.5 ms
+    stage card lighting                     75.4 ms
+    stage diffuse variance filter           83.4 ms
+    stage direct radiance                  462.0 ms
+    stage distance union                     0.0 ms
+    stage environment import                 7.0 ms
+    stage environment light inputs           1.6 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            71.0 ms
+    stage recombination                     17.2 ms
+    stage reflection trace                 137.2 ms
+    stage shadow cascades                   40.7 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    60.7 ms
+ConesNear/MirrorFilter: fireflies 0.0, visible errors 431 per refresh, refresh 9.002 s
+    stage ReSTIR resampling                997.8 ms
+    stage antialias and present             35.2 ms
+    stage card lighting                     94.3 ms
+    stage diffuse variance filter          108.1 ms
+    stage direct radiance                  495.6 ms
+    stage distance union                     0.0 ms
+    stage environment import                10.0 ms
+    stage environment light inputs           1.7 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            86.2 ms
+    stage mirror projection                 18.2 ms
+    stage recombination                     22.5 ms
+    stage reflection trace                 168.5 ms
+    stage shadow cascades                   45.2 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    87.7 ms
+ConesNear/MirrorTrace: fireflies 0.0, visible errors 412 per refresh, refresh 9.209 s
+    stage ReSTIR resampling               1009.6 ms
+    stage antialias and present             35.1 ms
+    stage card lighting                     94.8 ms
+    stage diffuse variance filter          104.9 ms
+    stage direct radiance                  499.0 ms
+    stage distance union                     0.0 ms
+    stage environment import                 8.1 ms
+    stage environment light inputs           1.8 ms
+    stage fragment distances                 0.0 ms
+    stage glossy variance filter            75.1 ms
+    stage mirror trace                     301.5 ms
+    stage recombination                     21.1 ms
+    stage reflection trace                 151.5 ms
+    stage shadow cascades                   46.0 ms
+    stage sky view                           0.0 ms
+    stage surface raster                    80.8 ms
+
+ConesNear (1771 transition pixels of 11264 in the measured region)
+| Variant | Fireflies / refresh | Visible errors / refresh | Refresh RMS | Transition RMS | Transition noise | Transition bias | Refresh [s] |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| MirrorReference | 0.0 | 0 | 2.31 | 4.39 | 3.37 | 0.00 | 13.490 |
+| Demo | 0.0 | 339 | 5.50 | 10.33 | 1.95 | 9.92 | 9.477 |
+| Unfiltered | 0.0 | 423 | 6.49 | 11.29 | 2.72 | 10.67 | 8.752 |
+| SolarDisc | 0.0 | 419 | 6.51 | 11.26 | 1.84 | 10.90 | 8.310 |
+| MirrorFilter | 0.0 | 431 | 6.72 | 11.88 | 2.05 | 11.48 | 9.002 |
+| MirrorTrace | 0.0 | 412 | 6.51 | 11.24 | 1.83 | 10.89 | 9.209 |

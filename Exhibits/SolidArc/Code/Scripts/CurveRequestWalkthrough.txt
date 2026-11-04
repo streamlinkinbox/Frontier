@@ -1,0 +1,270 @@
+# SolidArc curve request walkthrough — the request "it must show 3d gizmo in 3d; and 2d in 2d view … i tried lofting
+# the yellow line with yellow line it refused … need in inspector a button to swap the normals … H hotkey to hide
+# [doesnt seem to work on curves] … same for L loft hotkey doesnt seem to always work … snap a curve along a
+# curve (using ALT) … need Trim on curves (without changing the shape of the curves) … show visual proof".
+# Run: SolidArcCapture --specimen --reset-files --recovery …/CurveRequestRecovery.solidarc
+#      --document …/CurveRequest.solidarc --script Exhibits/SolidArc/Code/Scripts/CurveRequestWalkthrough.txt
+# ① Loft between two picked ("yellow") sketches drawn side by side in the Right view; L pressed while the Trim tool is
+#    open still lofts (the tool closes and L goes through). ② Flip normals from the Inspector on one picked face of the
+#    sheet (the dark back side turns to the front). ③ Gizmo on curve points: 2D in the Right view, 3D once orbited; the
+#    3D arrow lifts the point off the plane and the curve becomes a 3D curve. ④ Shift+S with Alt on that 3D curve:
+#    the point snaps onto it (off the drawing plane) and the drawn curve is a 3D curve through it. ⑤ H hides the picked
+#    curve, Alt+H shows it again. ⑥ Trim (T) on a Hermite curve between two lines: the middle piece goes, the rest keeps
+#    its exact shape (W18 ⑧: every point on the original within 10⁻¹⁴).
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+snap grid on
+
+# ① two curves side by side on the side plane YZ (Right view: the drawing plane follows the view)
+key N Ctrl
+frames 2
+key Keypad3
+frames 2
+expect grid-plane == 2
+key S Shift
+frames 2
+click world 0.0 -1.0 0.0
+frames 2
+click world 0.0 -0.6 0.6
+frames 2
+click world 0.0 -0.8 1.2
+frames 2
+key Enter
+frames 3
+key Escape
+frames 2
+key S Shift
+frames 2
+click world 0.0 0.6 0.0
+frames 2
+click world 0.0 0.9 0.5
+frames 2
+click world 0.0 0.8 1.2
+frames 2
+key Enter
+frames 3
+key Escape
+frames 2
+expect sketches == 2
+move world 0.0 -1.0 0.0
+frames 2
+click world 0.0 -1.0 0.0
+frames 2
+move world 0.0 0.6 0.0
+frames 2
+click world 0.0 0.6 0.0 Left Shift
+frames 3
+expect selected-curves == 2
+capture 351CurveLoftPicked
+
+#    T opens Trim; L closes it and lofts the two picked curves
+key T
+frames 2
+expect trim == 1
+key L
+frames 4
+expect trim == 0
+expect refused == 0
+expect last-step contains Loft
+expect bodies == 1
+expect sound == 1
+drag Middle viewport 0.5 0.5 by -110 60 14
+frames 3
+expect orthographic == 0
+capture 352CurveLoftSheet
+
+# ② face mode, pick the sheet, Inspector Normals card · Flip selected faces: the picked face's piece turns over (its back side was dark)
+key 3
+frames 2
+move world 0.0 0.0 0.6
+frames 2
+click world 0.0 0.0 0.6
+frames 3
+expect selected-faces == 1
+capture 353CurveFlipFace
+click @Operation:FlipFaces
+frames 4
+expect refused == 0
+expect flips == 1
+expect sound == 1
+capture 354CurveFlipped
+
+#    the Normals card (the report "a button to swap the normals … selected faces / entire object"): in body mode the
+#    same sheet shows "Flip whole object" enabled and the face button greyed; it turns the whole loft over
+key 4
+frames 2
+click world 0.0 0.0 0.6
+frames 3
+expect selected-faces == 0
+capture 378NormalsCardObject
+click @Operation:FlipObject
+frames 4
+expect refused == 0
+expect flips == 2
+expect sound == 1
+capture 379NormalsObjectFlipped
+
+# ③ curve points: the gizmo in the Right view is 2D (two arrows in the screen plane) …
+key N Ctrl
+frames 2
+key Keypad3
+frames 2
+key S Shift
+frames 2
+click world 0.0 -1.0 0.0
+frames 2
+click world 0.0 -0.3 0.7
+frames 2
+click world 0.0 0.4 0.2
+frames 2
+click world 0.0 1.0 0.9
+frames 2
+key Enter
+frames 3
+key Escape
+frames 2
+key 1
+frames 2
+move world 0.0 -0.3 0.7
+frames 2
+click world 0.0 -0.3 0.7
+frames 3
+expect gizmo-target == 4
+expect gizmo-flat == 1
+expect gizmo-arrows == 2
+capture 355GizmoFlat
+
+#    … orbited it is 3D (the arrow along the plane normal is back) …
+drag Middle viewport 0.5 0.5 by -110 60 14
+frames 3
+expect gizmo-flat == 0
+expect gizmo-arrows == 3
+capture 356GizmoSpace
+
+#    … and that arrow lifts the point off the plane: the curve becomes a 3D curve through it
+drag left @GizmoTranslateZ by 0 -60 10
+frames 4
+expect refused == 0
+expect last-step contains Curve#
+expect sketches == 0
+capture 357GizmoLifted
+
+key Escape
+frames 2
+
+# ④ a fresh scene: a curve standing on YZ, then Shift+S in an orbited view with Alt on it
+key N Ctrl
+frames 2
+key Keypad3
+frames 2
+key S Shift
+frames 2
+click world 0.0 -1.0 0.0
+frames 2
+click world 0.0 -0.5 0.8
+frames 2
+click world 0.0 0.5 1.0
+frames 2
+click world 0.0 1.0 0.4
+frames 2
+key Enter
+frames 3
+key Escape
+frames 2
+drag Middle viewport 0.5 0.5 by -110 60 14
+frames 3
+expect grid-plane == 0
+key S Shift
+frames 2
+click world 1.2 -0.8 0.0
+frames 2
+move world 0.0 -0.5 0.8 Alt
+frames 3
+expect snap contains curve
+expect snap-z > 0.5
+capture 358AltCurveSnap
+click world 0.0 -0.5 0.8 Left Alt
+frames 2
+move world 1.4 0.7 0.0
+frames 2
+click world 1.4 0.7 0.0
+frames 2
+key Enter
+frames 4
+expect refused == 0
+expect last-step contains Curve#
+expect selected-curves == 1
+capture 359AltCurveDrawn
+
+# ⑤ H hides the picked 3D curve; Alt+H shows it again
+key H
+frames 3
+expect hidden-curves == 1
+expect status contains hidden
+capture 360CurveHidden
+key H Alt
+frames 3
+expect hidden-curves == 0
+
+# ⑥ Trim on a curve: a Hermite curve on the ground and two lines across it (Top view)
+key N Ctrl
+frames 2
+key Keypad7
+frames 2
+key S Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+click world 2.0 -0.5 0.0
+frames 2
+click world 3.0 0.8 0.0
+frames 2
+click world 4.0 0.2 0.0
+frames 2
+key Enter
+frames 3
+key Escape
+frames 2
+key A Shift
+frames 2
+click world 1.2 -1.5 0.0
+frames 2
+click world 1.2 1.5 0.0
+frames 2
+key Enter
+frames 3
+key Escape
+frames 2
+key A Shift
+frames 2
+click world 2.6 -1.5 0.0
+frames 2
+click world 2.6 1.5 0.0
+frames 2
+key Enter
+frames 3
+key Escape
+frames 2
+expect sketch-curve-total == 3
+key T
+frames 2
+expect trim == 1
+move world 1.9 -0.45215 0.0
+frames 3
+expect trim-refusal == 0
+capture 361CurveTrimHover
+click world 1.9 -0.45215 0.0
+frames 4
+expect refused == 0
+expect sketch-curve-total == 4
+key Enter
+frames 2
+expect trim == 0
+capture 362CurveTrimmed

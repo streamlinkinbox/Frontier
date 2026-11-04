@@ -1,0 +1,19 @@
+frames 3
+key Keypad7
+key Keypad5
+frames 2
+key S Shift
+frames 2
+move world 1.138 -1.64733 0.84828 Ctrl
+frames 2
+expect snap contains On curve
+expect drawing-hit == 1
+click world 1.138 -1.64733 0.84828 Ctrl
+frames 2
+expect drawing-points == 1
+expect drawing-last-z > 0.8
+capture Liger_Ctrl_Model_Edge_Snap
+key Escape
+frames 2
+expect steps == 3
+expect undo == 0

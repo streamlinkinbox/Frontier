@@ -1,0 +1,46 @@
+Format = 1
+Name = 'Wadi Rum Red Sand'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.57999998331069946, 330.0, 1.1000000238418579, 0.079999998211860657 ]
+Enabled = true
+Finish = [ 0.15000000596046448, 0.46000000834465027, 0.039999999105930328, 0.2199999988079071 ]
+Layers = 3
+Palette = [
+    [ 0.76815128326416016, 0.25415217876434326, 0.10461649298667908, 0.0 ],
+    [ 0.479320228099823, 0.07618539035320282, 0.028426038101315498, 0.25 ],
+    [ 0.87136721611022949, 0.62396043539047241, 0.39157256484031677, 0.5 ],
+    [ 0.14702728390693665, 0.024157630279660225, 0.01228648703545332, 0.75 ],
+    [ 1.0, 0.71569365262985229, 0.479320228099823, 1.0 ]
+]
+Relief = [ 0.34999999403953552, 0.41999998688697815, 0.05000000074505806, 26.0 ]
+
+[Textures]
+Albedo = 'Textures/wadi-red-desert-sand-albedo.png'
+Normal = 'Textures/wadi-red-desert-sand-normal.png'
+Orm = 'Textures/wadi-red-desert-sand-orm.png'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.0
+Ior = 1.5800000429153442
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 1.0
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 7
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

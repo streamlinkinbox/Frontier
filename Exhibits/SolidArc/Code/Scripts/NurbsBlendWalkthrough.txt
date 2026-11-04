@@ -1,0 +1,189 @@
+# SolidArc NURBS-blend walkthrough (priority 10, N5) — chamfers and variable fillets on a freeform NURBS wall.
+# A closed Hermite profile extruded 1 has an exact ruled NURBS side; C cuts it at x = 0.8 and X removes the left piece, so
+# the top rim becomes an open spline edge between the wall and the top cap. B then blends that rim: a chamfer (ball law on
+# extended supports), a variable fillet 0.1 → 0.25, and an honest refusal past the wall's curvature radius.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/NurbsBlendRecovery.solidarc
+#      --document …/NurbsBlend.solidarc --script Exhibits/SolidArc/Code/Scripts/NurbsBlendWalkthrough.txt
+# Volumes: the kernel's own closed-form gates live in FreeformBlendValidation C1 / C2; here the session values are pinned
+# against the same kernel run headless on the cut rim (chamfer 0.25 → 2.050097333727, 0.15 → 2.118687354516).
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document, Top view: closed Hermite (seam at (0, 0.5), away from the blended rim), F fills it, extruded 1
+key N Ctrl
+frames 2
+expect steps == 0
+key Keypad7
+frames 2
+key S Shift
+frames 2
+expect drawing-form == Hermite
+click world 0.0 0.5 0.0
+frames 2
+click world 1.0 0.0 0.0
+frames 2
+click world 2.0 0.5 0.0
+frames 2
+click world 2.0 1.5 0.0
+frames 2
+click world 1.0 2.0 0.0
+frames 2
+click world 0.0 1.5 0.0
+frames 2
+move world 0.0 0.5 0.0
+frames 2
+click world 0.0 0.5 0.0
+frames 2
+expect drawing == 0
+expect sketch-curves == 1
+key F
+frames 2
+expect sketch-filled == 1
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect steps == 2
+expect bodies == 1
+expect sound == 1
+expect refused == 0
+
+# ② Shift+A line at x = 0.8 (drawn upward: inside = left), C splits the body, X removes the left piece
+key Escape
+frames 2
+key A Shift
+frames 2
+click world 0.8 -0.5 0.0
+frames 2
+click world 0.8 2.5 0.0
+frames 2
+key Enter
+frames 2
+expect focused-caption == Line1
+key C
+frames 3
+expect refused == 0
+expect bodies == 2
+expect selected-bodies contains Cut#
+key X
+frames 3
+expect bodies == 1
+expect sound == 1
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 173NurbsBlendCutBody
+
+# ③ edge mode, pick the spline rim on the top cap, B: the command opens at 0.25 — a chamfer whose spine radius is below the
+#    ball radius (finite chord curvature, so the preview tessellates), then 0.15 and Enter
+key Escape
+frames 2
+key 2
+frames 2
+move world 2.0 1.5 1.0
+frames 2
+click world 2.0 1.5 1.0
+frames 2
+expect selected-edges == 1
+key B
+frames 3
+expect bevel-active == 1
+expect bevel-variable == 0
+key C
+frames 3
+expect bevel-chamfer == 1
+expect bevel-size ~ 0.25
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 2.050097333727
+capture 174NurbsChamfer025
+click @BevelSize
+key A Ctrl
+type 0.15
+key Enter
+frames 3
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 2.118687354516
+key Enter
+frames 3
+expect bevel-active == 0
+expect refused == 0
+expect sound == 1
+expect volume ~ 2.118687354516
+capture 175NurbsChamferApplied
+
+# ④ Ctrl+Z, B, D fillet 0.1, V variable with the end typed 0.25: one undoable step named "0.1 → 0.25"
+key Z Ctrl
+frames 3
+key 2
+frames 2
+move world 2.0 1.5 1.0
+frames 2
+click world 2.0 1.5 1.0
+frames 2
+expect selected-edges == 1
+key B
+frames 3
+key D
+frames 3
+expect bevel-chamfer == 0
+click @BevelSize
+key A Ctrl
+type 0.1
+key Enter
+frames 3
+expect bevel-refusal == 0
+key V
+frames 3
+expect bevel-variable == 1
+click @BevelEndSize
+key A Ctrl
+type 0.25
+key Enter
+frames 3
+expect bevel-end-size ~ 0.25
+expect bevel-refusal == 0
+capture 176NurbsVariablePreview
+key Enter
+frames 3
+expect bevel-active == 0
+expect refused == 0
+expect sound == 1
+expect status contains 0.1 → 0.25
+expect volume ~ 2.133847116
+capture 177NurbsVariableApplied
+
+# ⑤ Ctrl+Z, B (a new session opens constant again), chamfer 0.9: past the wall's curvature radius, refused by name; Esc leaves the body untouched
+key Z Ctrl
+frames 3
+key 2
+frames 2
+move world 2.0 1.5 1.0
+frames 2
+click world 2.0 1.5 1.0
+frames 2
+key B
+frames 3
+expect bevel-variable == 0
+key C
+frames 3
+click @BevelSize
+key A Ctrl
+type 0.9
+key Enter
+frames 3
+expect bevel-refusal contains curvature radius
+capture 178NurbsChamferRefused
+key Escape
+frames 3
+expect bevel-active == 0
+expect sound == 1
+expect refused == 0

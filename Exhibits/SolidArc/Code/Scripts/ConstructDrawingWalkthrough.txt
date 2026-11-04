@@ -1,0 +1,219 @@
+# SolidArc construct-drawing walkthrough — the Construct menu (Solids · Sketch, 4 × 2 tiles each) starts a drawing command
+# in the viewport: plane clicks on the ground (or on a body top), then the pointer lifts the height; live dimension lines
+# show W / D / H / R / Ø while drawing. Every solid lands as its own body (R, new body, is the default — no Boolean).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/ConstructRecovery.solidarc
+#      --document …/Construct.solidarc --script Scripts/ConstructDrawingWalkthrough.txt
+# Clicks name world points; plane points snap to the 0.1 grid and heights to 0.1 steps, so every volume is exact.
+# Closed forms: box 2 × 1.5 × 1 = 3 · cylinder r 0.5 h 1.2 = 0.3π · cone r 0.6 h 1 = 0.12π · 7-prism R 0.6 h 0.8 =
+# 3.5 · 0.36 · sin(2π/7) · 0.8 · torus R 1 r 0.3 = 2π² · 0.09 · box on the first box's top 1 × 0.5 × 0.5 = 0.25.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document; the Construct menu opens on Solids, its Sketch section holds the 2-D tools
+key N Ctrl
+frames 3
+expect steps == 0
+click @ConstructLauncher
+frames 2
+capture 200ConstructSolids
+click @ConstructSectionSketch
+frames 2
+expect construct-section == 1
+capture 201ConstructSketch
+click @ConstructSectionSolids
+frames 2
+expect construct-section == 0
+
+# ② Box tile: corner, opposite corner, height — a new body, no form
+click @ConstructBlock
+frames 2
+expect drawing-solid == 1
+expect drawing-solid-kind == 0
+expect construct-combination == 4
+move world -2.0 -1.5 0.0
+frames 2
+click world -2.0 -1.5 0.0
+frames 2
+expect drawing-points == 1
+move world 0.0 0.0 0.0
+frames 2
+capture 202BoxBase
+click world 0.0 0.0 0.0
+frames 2
+expect drawing-points == 2
+move world 0.0 0.0 1.0
+frames 2
+expect drawing-lift ~ 1
+capture 203BoxHeight
+click world 0.0 0.0 1.0
+frames 3
+expect drawing-solid == 0
+expect refused == 0
+expect bodies == 1
+expect volume ~ 3
+
+# ③ Shift+X cylinder: centre, radius, height — a second body beside the box (bodies never fuse by default)
+key X Shift
+frames 2
+expect drawing-solid-kind == 1
+click world 1.5 -0.8 0.0
+frames 2
+move world 2.0 -0.8 0.0
+frames 2
+click world 2.0 -0.8 0.0
+frames 2
+move world 2.0 -0.8 1.2
+frames 2
+capture 204CylinderHeight
+click world 2.0 -0.8 1.2
+frames 3
+expect refused == 0
+expect bodies == 2
+expect volume ~ 3.942477796
+
+# ④ Cone tile: base centre, radius, apex height
+click @ConstructLauncher
+frames 2
+click @ConstructCone
+frames 2
+expect drawing-solid-kind == 4
+click world -1.0 1.5 0.0
+frames 2
+click world -0.4 1.5 0.0
+frames 2
+move world -0.4 1.5 1.0
+frames 2
+capture 205ConeHeight
+click world -0.4 1.5 1.0
+frames 3
+expect refused == 0
+expect bodies == 3
+expect volume ~ 4.319468915
+
+# ⑤ Prism tile, + raises the sides to 7: centre, a vertex, height
+click @ConstructLauncher
+frames 2
+click @ConstructPrism
+frames 2
+expect drawing-solid-kind == 6
+expect drawing-sides == 6
+key Equal
+frames 1
+expect drawing-sides == 7
+click world 1.5 1.5 0.0
+frames 2
+click world 2.1 1.5 0.0
+frames 2
+move world 2.1 1.5 0.8
+frames 2
+capture 206PrismHeight
+click world 2.1 1.5 0.8
+frames 3
+expect refused == 0
+expect bodies == 4
+expect volume ~ 5.107555049
+
+# ⑥ Torus tile: centre, major radius, tube radius — no height stage
+click @ConstructLauncher
+frames 2
+click @ConstructTorus
+frames 2
+click world 0.0 -3.0 0.0
+frames 2
+click world 1.0 -3.0 0.0
+frames 2
+move world 1.3 -3.0 0.0
+frames 2
+capture 207TorusTube
+click world 1.3 -3.0 0.0
+frames 3
+expect refused == 0
+expect bodies == 5
+expect volume ~ 6.884083841
+
+# ⑦ a box started on the first box's top face: the plane rises to z = 1
+key C Shift
+frames 2
+move world -1.5 -1.0 1.0
+frames 2
+click world -1.5 -1.0 1.0
+frames 2
+expect drawing-elevation ~ 1
+click world -0.5 -0.5 1.0
+frames 2
+move world -0.5 -0.5 1.5
+frames 2
+expect drawing-lift ~ 0.5
+click world -0.5 -0.5 1.5
+frames 3
+expect refused == 0
+expect bodies == 6
+expect volume ~ 7.134083841
+
+# ⑧ Sketch section · Polygon: centre, then a vertex; R, side and interior angle shown while drawing; then (the HTML
+#    reference) it waits: the wheel changes its sides (7, as the prism left it, → 8, then down to a pentagon) and a right-click confirms it
+click @ConstructLauncher
+frames 2
+click @ConstructSectionSketch
+frames 2
+click @ConstructSketchPolygon
+frames 2
+expect drawing == Polygon
+click world 2.8 0.3 0.0
+frames 2
+move world 3.4 0.3 0.0
+frames 2
+capture 208PolygonDimensions
+click world 3.4 0.3 0.0
+frames 3
+expect drawing == Polygon
+expect drawing-sides == 7
+wheel world 3.4 0.3 0.0 1
+frames 2
+expect drawing-sides == 8
+wheel world 3.4 0.3 0.0 -1
+frames 2
+wheel world 3.4 0.3 0.0 -1
+frames 2
+expect drawing-sides == 6
+wheel world 3.4 0.3 0.0 -1
+frames 2
+expect drawing-sides == 5
+capture 284PolygonSides
+click world 3.4 0.3 0.0 Right
+frames 3
+expect drawing == 0
+expect refused == 0
+expect sketches contains Polygon1
+
+# ⑨ Shift+A line: length and angle dimensions follow the pointer; Esc leaves the document untouched
+key A Shift
+frames 2
+click world 3.0 1.5 0.0
+frames 2
+move world 2.2 2.0 0.0
+frames 2
+capture 209LineDimensions
+key Escape
+frames 2
+expect drawing == 0
+
+# ⑩ Tab inside a solid command opens the exact-size form, filled with what is drawn so far (new body)
+key C Shift
+frames 2
+click world 3.0 2.0 0.0
+frames 2
+key Tab
+frames 3
+expect drawing-solid == 0
+expect construct-open == 1
+expect construct-combination == 4
+capture 210ConstructExact
+key Escape
+frames 2
+expect construct-open == 0
+expect bodies == 6
+key Space
+frames 3
+capture 211ConstructBodies

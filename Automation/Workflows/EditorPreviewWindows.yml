@@ -1,0 +1,160 @@
+#============================================================================================================================================
+#                                                       EDITORPREVIEWWINDOWS.YML
+#============================================================================================================================================
+# 🧩 Builds the Windows editor preview on GitHub's runners and publishes it as a pre-release of the pushed revision:
+#    ① the Zig cross-build that Automation/PackageEditorPreviewWindows.py packages (static runtime, the download),
+#    ② an MSVC build exactly as Exhibits/SceneViewport/README.md tells a Windows checkout to build,
+#    ③ the packaged Frontier.exe launched on Windows with a software Vulkan driver: Project Browser, then Everest's Scene Viewport,
+#    ④ a pre-release `editor-preview-<sha>` carrying both packages and the launch screenshots.
+#
+# 📝 Inactive here: GitHub runs workflows only from .github/workflows/. Copy this file there (GitHub web: Add file → Create new
+#    file → `.github/workflows/EditorPreviewWindows.yml`) on the branch to build. Arena's GitHub App has no `workflows`
+#    permission, so it cannot place the file itself, and its sandbox cannot reach uploads.github.com for release assets.
+
+name: Editor preview (Windows)
+
+on:
+  push:
+    branches: ['main', 'arena/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: editor-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  CrossBuild:
+    name: Zig cross-build and package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pinned tools and dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m pip install --disable-pip-version-check cmake ninja ziglang==0.13.0 -r Automation/FontRequirements.txt
+          python Automation/PrepareUI.py
+          python Automation/PrepareFonts.py
+      - name: Build Frontier.exe (no Slang compiler; the stored SPIR-V is used)
+        run: |
+          cmake -S . -B Build/Windows -G Ninja -DCMAKE_TOOLCHAIN_FILE=Automation/WindowsToolchain.cmake \
+              -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+          cmake --build Build/Windows --target Frontier --parallel
+      - name: Package
+        run: |
+          python Automation/PackageEditorPreviewWindows.py --executable Build/Windows/Frontier.exe \
+              --toolchain "Zig 0.13.0 x86_64-windows-gnu (Automation/WindowsToolchain.cmake), GitHub ubuntu-24.04" \
+              --omit-material-archives --output Binaries/FrontierSceneViewport-Windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CrossBuildPackage
+          path: Binaries/FrontierSceneViewport-Windows-x64.zip*
+          retention-days: 14
+
+  MsvcBuild:
+    name: MSVC build (as a Windows checkout builds)
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Dependencies and fonts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m pip install --disable-pip-version-check -r Automation/FontRequirements.txt
+          python Automation/PrepareUI.py
+          python Automation/PrepareFonts.py
+      - name: cmake -S . -B Build/Editor -A x64, then the Frontier target
+        run: |
+          cmake -S . -B Build/Editor -A x64
+          cmake --build Build/Editor --config Release --target Frontier --parallel
+      - name: Package
+        run: |
+          python Automation/PackageEditorPreviewWindows.py --executable Build/Editor/Release/Frontier.exe \
+              --toolchain "MSVC, Visual Studio 2022 (GitHub windows-2022)" \
+              --omit-material-archives --output Binaries/FrontierSceneViewport-Windows-x64-MSVC.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MsvcPackage
+          path: Binaries/FrontierSceneViewport-Windows-x64-MSVC.zip*
+          retention-days: 14
+
+  WindowsLaunch:
+    name: Launch on Windows (software Vulkan)
+    needs: CrossBuild
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: CrossBuildPackage
+          path: Package
+      - name: Project Browser, then Project Everest's Scene Viewport
+        shell: pwsh
+        run: ./Automation/LaunchEditorPreviewWindows.ps1 -Archive Package/FrontierSceneViewport-Windows-x64.zip -Evidence Evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: WindowsLaunchEvidence
+          path: Evidence
+          retention-days: 14
+
+  Release:
+    name: Publish the pre-release
+    needs: [CrossBuild, MsvcBuild, WindowsLaunch]
+    if: ${{ always() && needs.CrossBuild.result == 'success' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: Artifacts
+      - name: editor-preview-<sha>
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MSVC_RESULT: ${{ needs.MsvcBuild.result }}
+          LAUNCH_RESULT: ${{ needs.WindowsLaunch.result }}
+        run: |
+          Short="${GITHUB_SHA::8}"
+          Tag="editor-preview-$Short"
+          Assets=(Artifacts/CrossBuildPackage/*)
+          [ -d Artifacts/MsvcPackage ] && Assets+=(Artifacts/MsvcPackage/*)
+          for Shot in Artifacts/WindowsLaunchEvidence/*.png; do [ -f "$Shot" ] && Assets+=("$Shot"); done
+          {
+            echo "Windows x64 editor preview of \`$GITHUB_SHA\` (branch \`$GITHUB_REF_NAME\`), built by GitHub Actions run $GITHUB_RUN_ID."
+            echo
+            echo "**Download:** \`FrontierSceneViewport-Windows-x64.zip\`. Unzip it, run \`Frontier.exe\`, open **Project Everest**;"
+            echo "or run \`Frontier.exe Projects\\Everest\\Everest.projectspace\` to open it directly. The Scene Viewport is in the"
+            echo "Everest workspace. The zip's \`README.md\` lists what it contains."
+            echo
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Zig cross-build + package (the download) | success |"
+            echo "| MSVC build, \`cmake -S . -B Build/Editor -A x64\` (\`...-MSVC.zip\`) | $MSVC_RESULT |"
+            echo "| Launch on Windows with a software Vulkan driver (screenshots attached) | $LAUNCH_RESULT |"
+            echo
+            if [ -f Artifacts/WindowsLaunchEvidence/Summary.txt ]; then
+              echo '```text'
+              cat Artifacts/WindowsLaunchEvidence/Summary.txt
+              echo '```'
+            fi
+            echo
+            echo "Unsigned and not antivirus-scanned. The launch check uses a CPU Vulkan driver on a GitHub runner, not a GPU."
+          } > Notes.md
+          gh release delete "$Tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$Tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+              --title "Editor preview $Short (Windows x64)" --notes-file Notes.md "${Assets[@]}"

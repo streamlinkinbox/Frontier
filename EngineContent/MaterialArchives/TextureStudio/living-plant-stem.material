@@ -1,0 +1,63 @@
+Format = 1
+Name = "Living Plant Stem"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.48
+Metallic = 0
+Ior = 1.45
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.08650046203654976, 0.13563332965520566, 0.043735029256973465]
+SheenIntensity = 0.1
+SheenRoughness = 0.55
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/living-plant-stem-albedo.png"
+Normal = "Textures/living-plant-stem-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "stem"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 28
+cellScale = 150
+cellRelief = 0.5
+veinRelief = 0.6
+colorGradient = 0.55
+spotDensity = 0.65
+surfaceSeed = 17
+color = "#53673b"
+secondaryColor = "#827051"
+tertiaryColor = "#b9aa80"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "stem"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 28
+cellScale = 150
+cellRelief = 0.5
+veinRelief = 0.6
+colorGradient = 0.55
+spotDensity = 0.65
+surfaceSeed = 17
+color = "#53673b"
+secondaryColor = "#827051"
+tertiaryColor = "#b9aa80"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.22
+Metallic = 0.0
+Ior = 1.45
+Coverage = 0.04

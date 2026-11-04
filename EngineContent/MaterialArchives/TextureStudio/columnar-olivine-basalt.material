@@ -1,0 +1,233 @@
+Format = 1
+Name = 'Columnar Olivine Basalt'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[Authoring]
+Variables = []
+Version = 2
+
+    [Authoring.Designer]
+
+    [Authoring.Inputs]
+    'field:84bf2a62-b5fe-45fb-b7d8-91a8c296aba0:amount' = 1.0
+    'field:84bf2a62-b5fe-45fb-b7d8-91a8c296aba0:angle' = -35.0
+    'field:84bf2a62-b5fe-45fb-b7d8-91a8c296aba0:scale' = 4.2000000000000002
+    'field:84bf2a62-b5fe-45fb-b7d8-91a8c296aba0:seed' = 77.0
+    'field:98fc821e-4753-4eae-8778-ad0d466d4174:amount' = 1.0
+    'field:98fc821e-4753-4eae-8778-ad0d466d4174:angle' = 12.0
+    'field:98fc821e-4753-4eae-8778-ad0d466d4174:scale' = 6.0
+    'field:98fc821e-4753-4eae-8778-ad0d466d4174:seed' = 213.0
+    'layer:4b63b5d6-1456-48fb-b0f3-befb095f2aa2:colour' = '#181a1e'
+    'layer:4b63b5d6-1456-48fb-b0f3-befb095f2aa2:coverage' = 1.0
+    'layer:4b63b5d6-1456-48fb-b0f3-befb095f2aa2:normal' = [ 0.71999999999999997, 0.71999999999999997, 1.0 ]
+    'layer:4b63b5d6-1456-48fb-b0f3-befb095f2aa2:roughness' = 0.85999999999999999
+    'layer:b142750c-2b27-4fcd-b97f-b22ca39bbc80:colour' = '#595149'
+    'layer:b142750c-2b27-4fcd-b97f-b22ca39bbc80:coverage' = 1.0
+    'layer:b142750c-2b27-4fcd-b97f-b22ca39bbc80:normal' = [ 0.22, 0.22, 1.0 ]
+    'layer:b142750c-2b27-4fcd-b97f-b22ca39bbc80:roughness' = 0.94999999999999996
+
+    [Authoring.Links]
+
+    [[Authoring.Generators]]
+    Category = 'Particle fields'
+    Coded = false
+    Enabled = true
+    Identity = '09d05d8b-58c0-436c-bb94-974be065eeba'
+    Inputs = [
+        'flakes',
+        'flakeSize',
+        'flakeScale',
+        'flakeLayers',
+        'flakeLayerDepth',
+        'flakeTilt',
+        'flakeRoughnessMin',
+        'flakeRoughnessMax',
+        'flakeMetalnessMin',
+        'flakeMetalnessMax'
+    ]
+    Name = 'Mineral flake distribution'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'flakes'
+
+    [[Authoring.Generators]]
+    Category = 'Structural fields'
+    Coded = false
+    Enabled = true
+    Identity = '59bcddf1-2ffc-4289-a1e2-16f4909ec67a'
+    Inputs = []
+    Name = 'Columnar Olivine Basalt'
+    Outputs = [ 'colour', 'normal', 'roughness', 'metallic' ]
+    Procedure = 'concrete'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = '84bf2a62-b5fe-45fb-b7d8-91a8c296aba0'
+    Inputs = [
+        'field:84bf2a62-b5fe-45fb-b7d8-91a8c296aba0:scale',
+        'field:84bf2a62-b5fe-45fb-b7d8-91a8c296aba0:seed',
+        'field:84bf2a62-b5fe-45fb-b7d8-91a8c296aba0:angle',
+        'field:84bf2a62-b5fe-45fb-b7d8-91a8c296aba0:amount'
+    ]
+    Name = 'Columnar joint fissures'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'ridged'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = '98fc821e-4753-4eae-8778-ad0d466d4174'
+    Inputs = [
+        'field:98fc821e-4753-4eae-8778-ad0d466d4174:scale',
+        'field:98fc821e-4753-4eae-8778-ad0d466d4174:seed',
+        'field:98fc821e-4753-4eae-8778-ad0d466d4174:angle',
+        'field:98fc821e-4753-4eae-8778-ad0d466d4174:amount'
+    ]
+    Name = 'Aeolian ash accumulation'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'noise'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = 'b142750c-2b27-4fcd-b97f-b22ca39bbc80'
+    Model = 'detail'
+    Name = 'Volcanic tephra & ash mantle'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = '4b63b5d6-1456-48fb-b0f3-befb095f2aa2'
+    Model = 'detail'
+    Name = 'Cooling fracture ridges'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Enabled = true
+    Generator = '09d05d8b-58c0-436c-bb94-974be065eeba'
+    Identity = '2865a6eb-4127-4d81-8579-0522e5a06eee'
+    Model = 'flakes'
+    Name = 'Mineral flakes'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'ior', 'specular', 'thickness' ]
+    Enabled = true
+    Identity = '68cd72e5-f7d7-4292-aa4d-0ea1c232e5f2'
+    Model = 'surface'
+    Name = 'Surface body'
+
+    [[Authoring.Sources]]
+    Address = 'layer:4b63b5d6-1456-48fb-b0f3-befb095f2aa2:colour'
+    Direct = true
+    Generator = '84bf2a62-b5fe-45fb-b7d8-91a8c296aba0'
+    Mode = 'field'
+    Stops = [ '#121316', '#22252b', '#353942' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:4b63b5d6-1456-48fb-b0f3-befb095f2aa2:coverage'
+    Direct = true
+    Generator = '84bf2a62-b5fe-45fb-b7d8-91a8c296aba0'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#b8b8b8', '#ffffff' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:4b63b5d6-1456-48fb-b0f3-befb095f2aa2:normal'
+    Direct = true
+    Generator = '84bf2a62-b5fe-45fb-b7d8-91a8c296aba0'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#b8b8b8', '#ffffff' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:b142750c-2b27-4fcd-b97f-b22ca39bbc80:colour'
+    Direct = true
+    Generator = '98fc821e-4753-4eae-8778-ad0d466d4174'
+    Mode = 'field'
+    Stops = [ '#423c37', '#5c534a', '#786d62' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:b142750c-2b27-4fcd-b97f-b22ca39bbc80:coverage'
+    Direct = true
+    Generator = '98fc821e-4753-4eae-8778-ad0d466d4174'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#9e9e9e', '#e8e8e8' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:b142750c-2b27-4fcd-b97f-b22ca39bbc80:normal'
+    Direct = true
+    Generator = '98fc821e-4753-4eae-8778-ad0d466d4174'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#9e9e9e', '#e8e8e8' ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.56000000238418579, 240.0, 1.0, 0.079999998211860657 ]
+Enabled = true
+Finish = [ 0.079999998211860657, 0.2800000011920929, 0.25, 0.75999999046325684 ]
+Layers = 3
+Palette = [
+    [ 0.12213879823684692, 0.22322797775268555, 0.039546236395835876, 0.0 ],
+    [ 0.22696588933467865, 0.36625269055366516, 0.06662595272064209, 0.25 ],
+    [ 0.078187428414821625, 0.093058981001377106, 0.11953843384981155, 0.5 ],
+    [ 0.29177069664001465, 0.39157256484031677, 0.10702311247587204, 0.75 ],
+    [ 0.026241222396492958, 0.03189602866768837, 0.039546236395835876, 1.0 ]
+]
+Relief = [ 0.37999999523162842, 0.36000001430511475, 0.039999999105930328, 28.0 ]
+
+[Textures]
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.34999999403953552
+Ior = 1.6399999856948853
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.68000000715255737
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 5
+Thickness = 0.0
+UvScaleOffset = [ 5.0, 5.0, 0.0, 0.0 ]
+
+    [Strata.Textures]
+    Albedo = 'Textures/columnar-olivine-basalt-albedo.png'
+    Normal = 'Textures/columnar-olivine-basalt-normal.png'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Albedo'
+    Op = 'concrete'
+
+        [Strata.Channels.Params]
+        color = '#2a2d32'
+        detailScale = 18.0
+        grain = 0.66000000000000003
+        poreDensity = 0.62
+        secondaryColor = '#454950'
+        surfaceSeed = 709.0
+        wallMode = 0.0
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Normal'
+    Op = 'concrete'
+
+        [Strata.Channels.Params]
+        color = '#2a2d32'
+        detailScale = 18.0
+        grain = 0.66000000000000003
+        poreDensity = 0.62
+        secondaryColor = '#454950'
+        surfaceSeed = 709.0
+        wallMode = 0.0

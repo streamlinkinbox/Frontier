@@ -1,0 +1,52 @@
+Start testing: Oct 17 12:43 UTC
+----------------------------------------------------------
+1/3 Testing: ActivationValidation0
+1/3 Test: ActivationValidation0
+Command: "/home/user/Frontier/_ClaudeScratch/build/ui/ActivationValidation0"
+Directory: /home/user/Frontier/_ClaudeScratch/build/ui
+"ActivationValidation0" start time: Oct 17 12:43 UTC
+Output:
+----------------------------------------------------------
+PASS: control and geometry lifecycle, editor=0; ordering, idempotence, recursion, failures, reclamation, invalid durations
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"ActivationValidation0" end time: Oct 17 12:43 UTC
+"ActivationValidation0" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/3 Testing: ActivationValidation1
+2/3 Test: ActivationValidation1
+Command: "/home/user/Frontier/_ClaudeScratch/build/ui/ActivationValidation1"
+Directory: /home/user/Frontier/_ClaudeScratch/build/ui
+"ActivationValidation1" start time: Oct 17 12:43 UTC
+Output:
+----------------------------------------------------------
+PASS: control and geometry lifecycle, editor=1; ordering, idempotence, recursion, failures, reclamation, invalid durations
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"ActivationValidation1" end time: Oct 17 12:43 UTC
+"ActivationValidation1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/3 Testing: InterfaceValidation
+3/3 Test: InterfaceValidation
+Command: "/home/user/Frontier/_ClaudeScratch/build/ui/InterfaceValidation" "/home/user/Frontier/UI/Assets/Icons" "/home/user/Frontier/_ClaudeScratch/build/ui/evidence"
+Directory: /home/user/Frontier/_ClaudeScratch/build/ui
+"InterfaceValidation" start time: Oct 17 12:43 UTC
+Output:
+----------------------------------------------------------
+PASS: 151 SVGs ready and visible; cache, invalid input, eviction, missing assets, ImGui commands, patched tabs, DPI atlas retirement
+CPU evidence only: no GPU upload, Windows execution, or scene renderer tested
+<end of output>
+Test time =   0.91 sec
+----------------------------------------------------------
+Test Passed.
+"InterfaceValidation" end time: Oct 17 12:43 UTC
+"InterfaceValidation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 17 12:43 UTC

@@ -1,0 +1,66 @@
+Format = 1
+Name = "Champagne Silk"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.17
+Metallic = 0
+Ior = 1.55
+Coverage = 1.0
+Anisotropy = 0.65
+SheenColor = [0.9130986517934192, 0.8069522576692516, 0.6444796819705821]
+SheenIntensity = 0.65
+SheenRoughness = 0.28
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/champagne-silk-albedo.png"
+Normal = "Textures/champagne-silk-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 75
+weaveAngle = 0
+weaveRelief = 0.24
+fiberDetail = 22
+fuzz = 0.025
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 4
+surfaceSeed = 17
+sheen = 0.65
+sheenRoughness = 0.28
+fuzzLength = 0.065
+weavePattern = "satin"
+warpColor = "#b99c78"
+weftColor = "#b99c78"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 75
+weaveAngle = 0
+weaveRelief = 0.24
+fiberDetail = 22
+fuzz = 0.025
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 4
+surfaceSeed = 17
+sheen = 0.65
+sheenRoughness = 0.28
+fuzzLength = 0.065
+weavePattern = "satin"
+warpColor = "#b99c78"
+weftColor = "#b99c78"

@@ -1,0 +1,222 @@
+# SolidArc shortcut walkthrough — the Plasticity keymap (nkallen/plasticity default-keymap.ts) on keyboard and pointer.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/ShortcutRecovery.solidarc --script Scripts/ShortcutWalkthrough.txt
+# Own recovery / document files, so the main walkthrough → recovery fixture is untouched.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① selection modes 2 / 3 / 4 / 5 (Tab) and 1 (control points: curves and poles); mode 4 selects the body (by key, not its faces); Alt+A deselects
+frames 2
+expect faces == 11
+expect steps == 8
+key 2
+expect pick-mode == 2
+key 3
+expect pick-mode == 3
+key 4
+expect pick-mode == 4
+move world 2.0 0.0 0.5
+frames 2
+click world 2.0 0.0 0.5
+expect selected-bodies == 1
+expect selected-faces == 0
+key A Alt
+expect selected-bodies == 0
+key Tab
+expect pick-mode == 5
+key 1
+expect pick-mode == 1
+key 5
+expect pick-mode == 5
+
+# ② B opens the fillet command pinned (Plasticity: the card stays usable); C / D switch chamfer / fillet; Mouse follows the pointer, moving left shrinks the size to 1 mm and stops (no flip into a chamfer); Esc aborts
+#    (selection changes are undoable, so the undo depth stays 5 across the aborted command)
+key 2
+move world 2.0 0.0 0.0
+frames 2
+click world 2.0 0.0 0.0
+expect selected-edges == 1
+expect undo == 5
+key B
+frames 2
+expect bevel-active == 1
+expect bevel-chamfer == 0
+key C
+expect bevel-chamfer == 1
+key D
+expect bevel-chamfer == 0
+expect bevel-pinned == 1
+click @BevelMouse
+frames 1
+move viewport 0.40 0.70
+frames 1
+move viewport 0.40 0.70 offset -300 0
+frames 2
+expect bevel-chamfer == 0
+expect bevel-size ~ 0.001
+expect bevel-pinned == 0
+capture 19BevelSizeFloor
+key Escape
+frames 1
+expect bevel-active == 0
+expect faces == 11
+expect steps == 8
+expect undo == 5
+
+# ③ numeric pin, then a viewport right-click finishes the command (Plasticity mouse2 = command:finish)
+key B
+frames 2
+click @BevelSize
+key A Ctrl
+type 0.3
+key Enter
+frames 2
+expect bevel-pinned == 1
+expect bevel-size ~ 0.3
+click viewport 0.40 0.70 Right
+frames 2
+expect bevel-active == 0
+expect faces == 12
+expect steps == 9
+expect sound == 1
+
+# ④ Ctrl+Z, then Ctrl+Shift+Z redoes
+key Z Ctrl
+expect faces == 11
+expect redo == 1
+key Z Ctrl Shift
+expect faces == 12
+expect redo == 0
+
+# ⑤ click replaces, Shift+click adds, Ctrl+click removes, Alt+Shift+click adds the tangent chain (Alt alone: the edge ring)
+#    (x = 4 side face: bottom line → Blend#9 arc → front vertical → Blend#7 arc → top line, all sharp and G1)
+key Escape
+key 2
+move world 4.0 1.5 0.0
+frames 2
+click world 4.0 1.5 0.0
+expect selected-edges == 1
+move world 2.0 2.5 1.0
+frames 2
+click world 2.0 2.5 1.0 Left Shift
+expect selected-edges == 2
+click world 2.0 2.5 1.0 Left Ctrl
+expect selected-edges == 1
+key Escape
+move world 4.0 1.5 0.0
+frames 2
+click world 4.0 1.5 0.0 Left Alt Shift
+expect selected-edges == 5
+capture 21TangentChain
+key Escape
+
+# ⑥ Delete removes the focused feature-tree step
+click @InspectorHistory
+frames 3
+click @Step:Blend#9
+frames 2
+click @InspectorGeometry
+frames 3
+expect focused-step == Blend#9
+key Delete
+frames 2
+expect steps == 8
+expect faces == 11
+expect focused-step != Blend#9
+
+# ⑦ Space frames the body after a right-drag pan (target back to the bounds centre); numpad views; Numpad5 projection
+key Escape
+drag Right viewport 0.5 0.5 by 80 40 4
+expect camera-target-x != 2
+key Space
+expect camera-target-x ~ 2
+expect camera-target-z ~ 0.875
+key Keypad7
+expect camera-pitch ~ 1.5707963268
+expect grid-plane == 0
+key Keypad1
+expect grid-plane == 1
+key Keypad3
+expect grid-plane == 2
+#    Grid follows the camera: a 90° view shows the plane facing it, any other angle (10 px orbit ≈ 0.08 rad) the ground only
+drag Middle viewport 0.5 0.5 by 10 0 2
+expect grid-plane == 0
+key Keypad1
+frames 2
+expect grid-plane == 1
+capture 345GridFrontWall
+drag Middle viewport 0.5 0.5 by 0 -10 2
+frames 2
+expect grid-plane == 0
+capture 346GridOrbitGround
+key Keypad5
+key Keypad1
+frames 2
+expect grid-plane == 1
+drag Middle viewport 0.5 0.5 by 10 0 2
+expect grid-plane == 0
+key Keypad5
+key Keypad3
+expect grid-plane == 2
+key Keypad5
+expect orthographic == 1
+key Keypad5
+expect orthographic == 0
+
+# ⑧ Alt+Z x-ray (ghost faces, hidden edges) and back; the faces stay on
+key Z Alt
+expect xray == 1
+expect surfaces == 1
+key Z Alt
+expect xray == 0
+
+# ⑨ E opens the extrude command on the selected face (0.5 by default), Enter finishes: boss r 0.5 grows by π · 0.5² · 0.5
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key 3
+move world 1.0 1.25 1.75
+frames 2
+click world 1.0 1.25 1.75
+expect selected-faces contains Extrude#4.Cap(End)
+key E
+frames 2
+expect bevel-active == 1
+expect bevel-size ~ 0.5
+key Enter
+frames 2
+expect bevel-active == 0
+expect steps == 9
+expect refused == 0
+expect sound == 1
+expect volume > 10.60
+expect volume < 10.63
+capture 20ShortcutExtrude
+
+# ⑩ Shift+R repeats the last command (the extrude) on the new cap face
+key Escape
+move world 1.0 1.25 2.25
+frames 2
+click world 1.0 1.25 2.25
+expect selected-faces == 1
+key R Shift
+frames 2
+expect steps == 10
+expect volume > 10.99
+expect volume < 11.02
+
+# ⑪ Shift+X starts the drawn Cylinder (new body by default); W picks Difference; Esc aborts without a step
+key X Shift
+frames 2
+expect drawing-solid == 1
+expect drawing-solid-kind == 1
+expect construct-combination == 4
+key W
+frames 1
+expect construct-combination == 2
+key Escape
+frames 2
+expect drawing-solid == 0
+expect construct-open == 0
+expect steps == 10

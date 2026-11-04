@@ -1,0 +1,78 @@
+# SolidArc reshape walkthrough (W67) - direct edits of a solid with the gizmo: edges in mode 2 and body vertices in mode 1
+# move by the gizmo; the faces at them follow (re-planed when they stay flat, bilinear patches for four-sided faces that
+# bend); a move that would break the solid refuses and the document stays as it was.
+# Run: SolidArcCapture --specimen --reset-files --recovery .../ReshapeRecovery.solidarc
+#      --document .../Reshape.solidarc --script Scripts/ReshapeWalkthrough.txt
+# Closed forms: box 2 x 1.5 x 1 = 3; the front-top edge raised by d adds 1.5 d (a wedge 2 long).
+
+snap grid on
+
+# 1. a box drawn from the Construct menu (2 x 1.5 x 1, x in [-2, 0], y in [-1.5, 0], z in [0, 1])
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+click world -2.0 -1.5 0.0
+frames 2
+move world 0.0 0.0 0.0
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+move world 0.0 0.0 1.0
+frames 2
+click world 0.0 0.0 1.0
+frames 3
+expect bodies == 1
+expect volume ~ 3
+expect faces == 6
+
+# 2. edge mode, pick the front-top edge: the gizmo stands on it (world axes) - reshape target
+key 2
+frames 1
+move world -1.6 -1.5 1.0
+frames 1
+click world -1.6 -1.5 1.0
+frames 3
+expect selected-edges == 1
+expect gizmo-target == 5
+capture 332ReshapeEdgePicked
+
+# 3. drag the z cone up: one Reshape step, the front and the top lean, still six faces, nothing refused
+drag left @GizmoTranslateZ by 0 -50 12
+frames 3
+expect gizmo-commits == 1
+expect refused == 0
+expect faces == 6
+expect volume > 3.05
+expect selected-edges == 1
+capture 333ReshapeEdgeRaised
+
+# 4. vertex mode: the body vertices show as dots; pick the back-right top corner (0, 0, 1)
+key 1
+frames 2
+move world 0.0 0.0 1.0
+frames 1
+click world 0.0 0.0 1.0
+frames 3
+expect selected-vertices == 1
+expect gizmo-target == 5
+capture 334ReshapeVertexPicked
+
+# 5. raise it with the z cone: the top cannot stay flat, it becomes a bilinear patch; still six faces
+drag left @GizmoTranslateZ by 0 -40 12
+frames 3
+expect gizmo-commits == 2
+expect refused == 0
+expect faces == 6
+capture 335ReshapeVertexRaised
+
+# 6. undo both: the box is back
+key Z Ctrl
+frames 2
+key Z Ctrl
+frames 3
+expect volume ~ 3
+expect faces == 6
+capture 336ReshapeUndone

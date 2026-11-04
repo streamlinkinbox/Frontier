@@ -1,0 +1,37 @@
+Format = 1
+Name = "Pure Copper"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.8631572134541023, 0.43415363617474895, 0.3049873140698863]
+Roughness = 0.22
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/pure-copper-albedo.png"
+Normal = "Textures/pure-copper-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17

@@ -1,0 +1,67 @@
+Format = 1
+Name = "Warm COB LED"
+Radiance = [2.5, 1.611199205, 0.6454571323]
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.46
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 13
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/warm-cob-led-albedo.png"
+Normal = "Textures/warm-cob-led-normal.png"
+Radiance = "Textures/warm-cob-led-radiance.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "led"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 11
+pixelFill = 0.86
+lensDome = 0.7
+packageDepth = 0.6
+surfaceSeed = 17
+color = "#b6a76b"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "led"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 11
+pixelFill = 0.86
+lensDome = 0.7
+packageDepth = 0.6
+surfaceSeed = 17
+color = "#b6a76b"
+
+
+[[Strata.Channels]]
+Name = "Radiance"
+Op = "led"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 11
+pixelFill = 0.86
+lensDome = 0.7
+packageDepth = 0.6
+surfaceSeed = 17
+color = "#b6a76b"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.15
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.25

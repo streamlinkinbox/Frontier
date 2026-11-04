@@ -1,0 +1,66 @@
+Format = 1
+Name = "Natural Cotton"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.9
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0.15
+SheenColor = [0.7835377915261935, 0.7379104087727308, 0.6239603916750761]
+SheenIntensity = 0.48
+SheenRoughness = 0.8
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/natural-cotton-albedo.png"
+Normal = "Textures/natural-cotton-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 64
+weaveAngle = 0
+weaveRelief = 0.72
+fiberDetail = 18
+fuzz = 0.62
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 3
+surfaceSeed = 17
+sheen = 0.48
+sheenRoughness = 0.8
+fuzzLength = 0.42
+weavePattern = "plain"
+warpColor = "#c7bfae"
+weftColor = "#c7bfae"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "weave"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 64
+weaveAngle = 0
+weaveRelief = 0.72
+fiberDetail = 18
+fuzz = 0.62
+slub = 0.3
+denimFade = 0.12
+grain = 0
+fabricMode = 3
+surfaceSeed = 17
+sheen = 0.48
+sheenRoughness = 0.8
+fuzzLength = 0.42
+weavePattern = "plain"
+warpColor = "#c7bfae"
+weftColor = "#c7bfae"

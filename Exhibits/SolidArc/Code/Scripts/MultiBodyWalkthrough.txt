@@ -1,0 +1,157 @@
+# SolidArc multi-body walkthrough — several bodies per document, one matcap per body (step B of the matcap plan).
+# Construct's R / "New body" adds a separate body; mode 4 picks whole bodies (Shift adds, pick order = Boolean order); M
+# with bodies picked dresses each body; Q opens the Boolean card (Q union · W difference · E intersect · Enter applies).
+# The first picked body is the target: it keeps its key, matcap and history; the tools are consumed.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/MultiBodyRecovery.solidarc
+#      --document …/MultiBody.solidarc --script Exhibits/SolidArc/Code/Scripts/MultiBodyWalkthrough.txt
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① the bracket specimen is one body; Construct · Block · New body adds Block2 (1.5 × 2 × 1) beside it
+frames 3
+expect bodies == 1
+expect steps == 8
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+key Tab
+frames 2
+click @CombinationSeparate
+click @ConstructX
+key A Ctrl
+type 5
+click @ConstructY
+key A Ctrl
+type 0.25
+click @ConstructZ
+key A Ctrl
+type 0
+click @ConstructWidth
+key A Ctrl
+type 1.5
+click @ConstructDepth
+key A Ctrl
+type 2
+click @ConstructHeight
+key A Ctrl
+type 1
+click @ConstructX
+frames 2
+click @ConstructCreate
+frames 3
+expect refused == 0
+expect bodies == 2
+expect steps == 10
+expect body-volumes contains Block2 3.000000
+expect status contains New body
+key Space
+frames 3
+capture 96MultiBodyNew
+
+# ② R in the Construct dialog: a cylinder r 0.4 h 1.5 as a third body, standing through Block2 (bodies may overlap)
+click @ConstructLauncher
+frames 2
+click @ConstructCylinder
+frames 2
+key Tab
+frames 2
+key R
+click @ConstructX
+key A Ctrl
+type 5.75
+click @ConstructY
+key A Ctrl
+type 1.25
+click @ConstructZ
+key A Ctrl
+type -0.25
+click @ConstructRadius
+key A Ctrl
+type 0.4
+click @ConstructHeight
+key A Ctrl
+type 1.5
+click @ConstructX
+frames 2
+click @ConstructCreate
+frames 3
+expect refused == 0
+expect bodies == 3
+expect body-captions contains Cylinder3
+expect sound == 1
+capture 97MultiBodyThree
+
+# ③ mode 4: one matcap per body through the M picker — Block1 Brushed steel, Block2 Blue paint, Cylinder3 Brass
+key 4
+move world 2.0 0.0 0.5
+frames 2
+click world 2.0 0.0 0.5
+expect selected-bodies == 1
+expect selected-faces == 0
+key M
+frames 2
+click @PickMatcapBrushedSteel
+frames 2
+move world 5.2 0.25 0.5
+frames 2
+click world 5.2 0.25 0.5
+expect selected-bodies contains Extrude
+key M
+frames 2
+click @PickMatcapBluePaint
+frames 2
+move world 5.75 1.25 1.25
+frames 2
+click world 5.75 1.25 1.25
+key M
+frames 2
+click @PickMatcapBrass
+frames 2
+expect body-matcaps == 3
+expect selection-matcap contains Brass
+expect body-matcap contains Studio
+expect steps == 12
+key Escape
+frames 2
+capture 98MultiBodyMatcaps
+
+# ④ Q Boolean: pick Block2 (target), Shift-pick Cylinder3 (tool), Q opens the card, W difference, Enter applies
+move world 5.2 0.25 0.5
+frames 2
+click world 5.2 0.25 0.5
+move world 5.75 1.25 1.25
+frames 2
+click world 5.75 1.25 1.25 Left Shift
+expect selected-bodies == 2
+key Q
+frames 2
+expect boolean == 1
+key W
+frames 2
+expect status contains Difference
+capture 99MultiBodyBoolean
+key Enter
+frames 3
+expect boolean == 0
+expect boolean-commits == 1
+expect bodies == 2
+expect refused == 0
+expect sound == 1
+expect body-volumes contains Block2 2.497345
+expect matcap-dangling == 1
+key Escape
+frames 2
+capture 100MultiBodyDrilled
+
+# ⑤ undo brings Cylinder3 back with its Brass (no dangling matcap); redo drills again
+key Z Ctrl
+frames 3
+expect bodies == 3
+expect matcap-dangling == 0
+key Z Ctrl Shift
+frames 3
+expect bodies == 2
+expect body-volumes contains Block2 2.497345
+capture 101MultiBodyUndo

@@ -1,0 +1,77 @@
+{
+  "Date": "2026-10-18",
+  "Scope": "HTML cleanup and owned mask painting; native integration paused for HTML review",
+  "ArtworkRegressionTestsPassed": 29,
+  "OriginalStampEditingTestsPassed": 12,
+  "TotalSelectedChecksPassed": 41,
+  "ProductionBuild": "PASS (12.36 seconds; existing chunk-size warning)",
+  "ScreenshotViewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      900,
+      680
+    ]
+  ],
+  "OriginalStampPhoneViewports": [
+    [
+      414,
+      896
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "VerifiedBehaviours": [
+    "Compact tool/disclosure access and icon-only contextual Booleans",
+    "Owned selectable mask rows in Pattern and Stamp",
+    "Brush and shape-fill edits, per-gesture undo/redo, cancellation, lock protection and save/reopen",
+    "Actual SVG raster alpha for brush, fills and inversion",
+    "Fractional embedded-image alpha/luminance beneath painted coverage",
+    "Reveal-all preservation of stroke beyond fill bounds and coverage of flat stroked paths",
+    "Existing vector Boolean holes, gradients, project/preset round-trip, native rich-text artwork and original PBR channel settings",
+    "Original Stamp composition transforms, mixed rich text, SVG/image import, transparency preferences, exports and desktop/phone navigation"
+  ],
+  "PaintLimits": {
+    "OperationsPerMask": 256,
+    "PointsPerOperation": 2048,
+    "PointsPerMask": 16384
+  },
+  "NativeSourceFingerprintsUnchangedFromPriorReport": 16,
+  "NativeWorkspaceUiIntegrated": false,
+  "WindowsExecuted": false,
+  "NativeTestsRerun": false,
+  "FullTextureSurfacePlacementCertified": false,
+  "CommitPushActionsOrBinaryPublication": false,
+  "EvidenceType": "Actual local Chromium screenshots and rasterized SVG pixel assertions; no generated mock-ups",
+  "SourceAndCaptureSha256": {
+    "Experimental/TextureStudio/src/ArtworkMask.js": "85861fc33a57b689c857f0459a06a624428faa2416e5deb0d3e55150d3f50ec7",
+    "Experimental/TextureStudio/src/ArtworkMaskCanvas.jsx": "316139caf98523b0e2aa4a5ebde35e5cd83355cd89f9e0498145434a5d3b0874",
+    "Experimental/TextureStudio/src/ArtworkMaskStackRow.jsx": "131b9482d27d6faf8050ce970d287ee8124218e8c9ab5de6e634b9e46ce67574",
+    "Experimental/TextureStudio/src/ArtworkMaskControls.jsx": "5d5ccc0f8ffa66e0288896bfa06be04c68665fcdedcc441226e321d0694ca6dc",
+    "Experimental/TextureStudio/src/ArtworkDocumentMenu.jsx": "1766e38690e22323f302229619a5b3278a9828587e9664c82c9aeb9110fa29e1",
+    "Experimental/TextureStudio/src/ShapeEditorToolbar.jsx": "318f9e3f9b9534cb75ed787ed3a0d5e1219cfb3e8943b95ebcd712923610375a",
+    "Experimental/TextureStudio/src/PatternEditor.jsx": "a096ff9c3a2fa782e7e8a9498ceb85f39e66033d4b9481a4fa4fb81ad8bb560b",
+    "Experimental/TextureStudio/src/StampStudio.jsx": "f21ea9cf6b17802c049d89fff39ed75e4bb1ee8e9c83c8e5fcf7821cd0a1ef36",
+    "Experimental/TextureStudio/src/artworkAuthoring.css": "d548925594526713f4fa877831d1d9defb7545718251c12de4498b334c21f2a1",
+    "Experimental/TextureStudio/src/main.jsx": "e2c0e31074641e0409484a2a614e7086d9f6b7045245532e872358f44dbf4f6a",
+    "Experimental/TextureStudio/tests/artwork-mask-authoring.spec.js": "d10f2eb336ddff8bdb31f1cce621de70e95fd740fbb8978c7fb58b00916cead1",
+    "Experimental/TextureStudio/tests/artwork-masks.spec.js": "2490b12ee248d1e2ffa404c010c4ee0c568e6f7eac2c6d870d4f6c2f2c3119a9",
+    "Experimental/TextureStudio/tests/stamp-stack-appearance.spec.js": "27a8f732c2f263127769a0c09b51a9329206d837065f19503a0560cb4e926d16",
+    "Experimental/TextureStudio/tests/stamp-vector-studio.spec.js": "8be56b8577135dd994c4a229c78e05e451f4aaf1bfe0fb8e499afc126d54912a",
+    "Experimental/TextureStudio/tests/stamp-decal-studio.spec.js": "b317be6f57151a9ef73dc3fb7b159f3f17548dfe2a635699b579b7dce90ca2ec",
+    "Experimental/TextureStudio/tests/stamp-transform-studio.spec.js": "e2b4bb4e39ea220021d439aa9d76bf776ed861599bac2dbea328d535e6bdc875",
+    "Exhibits/TextureStudio/Images/PatternMaskPainting.png": "c247f80e9182ecd036928f7bb9211e3a38a60da857b3680a861c6ca9e608a00e",
+    "Exhibits/TextureStudio/Images/StampMaskPainting.png": "a2bfdfd17565121b2c5f1adf98f0a3e052c7c8d9ac1b97bf895fa1f9dc07aff8",
+    "Exhibits/TextureStudio/Images/PatternCompactTools.png": "92372cef27cc66900dc58aad6d955aa56c3842a7718374263aabe6ac95e64bc0",
+    "Exhibits/TextureStudio/Images/PatternCompactToolsNormal.png": "c5c62960263bb615b93be838b8c3356a92e4d3e2b1f83b19dad2a28ae7216688",
+    "Exhibits/TextureStudio/Images/StampCompactTools.png": "9837309c30112e4e53fb14044716cd0e0eac9275c0044beafc3ec5b5ee48ca63",
+    "Exhibits/TextureStudio/Images/PatternMaskCompactViewport.png": "67c6dfaa3a30323c6f303e93c80668605af64a3687e49ff9d682e3575a02cc99",
+    "Exhibits/TextureStudio/Images/StampMaskCompactViewport.png": "78aa178d1c68e59482cb67915d0f4bf9e71e4b88ad97fc5c97c8a01a66182ec2",
+    "Exhibits/TextureStudio/Code/ArtworkMaskAuthoringValidation.mjs": "3438c40dad951fd0b90c8ce7c5e6052e6c084fb01ddc2de4c0f4ba8c75e7ce45",
+    "Exhibits/TextureStudio/Code/CaptureArtworkToolbars.mjs": "467ababb6be3724ee625bbd9b8c26f96ddbbc781c2e4f819810ecaa3619880fa"
+  }
+}

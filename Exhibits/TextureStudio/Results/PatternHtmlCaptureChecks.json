@@ -1,0 +1,54 @@
+{
+  "Date": "2026-10-18",
+  "Surface": "Actual React/Vite HTML prototype in Chromium, not native C++ or Windows execution",
+  "Tooltip": {
+    "Caption": "Rectangle tool\nR\n\nDrag to draw a rectangle using the current fill and stroke. Hold Shift for a square.",
+    "Placement": "right",
+    "Background": "rgb(18, 18, 18)",
+    "Radius": "18px"
+  },
+  "AdditionTargets": [
+    {
+      "Caption": "Rectangle",
+      "HitVisible": true
+    },
+    {
+      "Caption": "Ellipse",
+      "HitVisible": true
+    },
+    {
+      "Caption": "Triangle",
+      "HitVisible": true
+    },
+    {
+      "Caption": "Diamond",
+      "HitVisible": true
+    },
+    {
+      "Caption": "Polygon",
+      "HitVisible": true
+    },
+    {
+      "Caption": "Star",
+      "HitVisible": true
+    },
+    {
+      "Caption": "Rosette",
+      "HitVisible": true
+    },
+    {
+      "Caption": "Ribbon",
+      "HitVisible": true
+    },
+    {
+      "Caption": "Ring",
+      "HitVisible": true
+    }
+  ],
+  "BrowserFailures": [],
+  "Captures": [
+    "PatternColourSources.png",
+    "PatternLayerAdditions.png",
+    "PatternImageSource.png"
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "result": "passed",
+  "branch": "arena/73e163a3-frontier",
+  "verified_source_fingerprints": 418,
+  "reports": {
+    "MaterialLibraryChecks.json": {
+      "sha256": "1711484e8963d15c979cd8934dbb21ff69520f156d78ff4fd49650d3167848e4",
+      "file": "Exhibits/TextureStudio/Results/MaterialLibraryChecks.json"
+    },
+    "MaterialWorkspaceChecks.json": {
+      "sha256": "4e08b9efd746dfac8a42861c78fe64b6bca2800940e77df948716862e4304e5e",
+      "file": "Exhibits/TextureStudio/Results/MaterialWorkspaceChecks.json"
+    },
+    "MaterialAtlasChecks.json": {
+      "sha256": "030825258c934bd41cd243d11021c3148f6d5e0008bf5f7c007331c6a6b48280",
+      "file": "Exhibits/TextureStudio/Results/MaterialAtlasChecks.json"
+    },
+    "ProceduralPaintChecks.json": {
+      "sha256": "91b72a8c2b38b2a296bb9f016050dc5653ac1ca2682d5b01fa03c120e1051966",
+      "file": "Exhibits/TextureStudio/Results/ProceduralPaintChecks.json"
+    },
+    "Verification.json": {
+      "sha256": "1fce99ab3d4b98b35a55dcb0c788d2495d965960ad41d5eb74b7c448030064f5",
+      "file": "Exhibits/Renderer/Results/Verification.json"
+    }
+  },
+  "images": {
+    "MaterialWorkspace.png": {
+      "width": 1440,
+      "height": 1000,
+      "sha256": "65b8367346bbd381e30f5d9e4ab9f066d4aa0e17c3afc9d4097c7538685743a5"
+    },
+    "ReferenceMaterialWorkspace.png": {
+      "width": 1440,
+      "height": 1000,
+      "sha256": "c1a08a21a3c977fdbf2165af4a31faa39812c9a8f906df404ca34d45f73371ee"
+    },
+    "Paint-GreenAutomotivePaint.png": {
+      "width": 128,
+      "height": 128,
+      "sha256": "dc9c5387425f8ec1e877c51cdb774669e6cb5b92dbf6712918f0a231e0fe2fa1"
+    },
+    "Paint-Disabled.png": {
+      "width": 128,
+      "height": 128,
+      "sha256": "187a9bc2358ed0ad30e84ce44cadc37888c66e84024b8a82300cce90adaaa5be"
+    }
+  },
+  "package": {
+    "file": "Binaries/TextureStudio-Windows-x64.zip",
+    "bytes": 10278835,
+    "sha256": "00b75dd44f1da305b40a1c8dcae7bb9cb1baaf892ef2ea6ab00cf445551b6d20",
+    "verified_payload_files": 441,
+    "material_presets": 127,
+    "procedural_automotive_presets": 7,
+    "compiled_shaders": 10,
+    "executable_linked": true,
+    "windows_execution": false,
+    "hardware_execution": false
+  },
+  "limitations": [
+    "Other HTML procedural families remain unported",
+    "Exact HTML/native appearance is not certified",
+    "Workspace evidence is Vulkan software-driver readback plus CPU ImGui/SVG composition, not an OS screenshot",
+    "Windows launch, hardware drivers and multi-window acceptance require user testing"
+  ]
+}

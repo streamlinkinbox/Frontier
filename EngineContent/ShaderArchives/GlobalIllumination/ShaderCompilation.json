@@ -1,0 +1,398 @@
+{
+  "format": 1,
+  "set": "GlobalIllumination",
+  "compiler": "slangc 2026.14.1",
+  "refresh": "python Automation/StoreShaderArchives.py --build <build> --compiler <slangc or slang-wasm.js> --sets GlobalIllumination",
+  "entries": [
+    {
+      "file": "AtmosphereMultiple.IntegrateMultiple.spv",
+      "spirv_sha256": "9134f3185fee0179ab08e7938edbfc8a7501061022fe1d81d0566a778f5a41c6"
+    },
+    {
+      "file": "AtmosphereScattering.IntegrateSkyView.spv",
+      "spirv_sha256": "b0b7a66337f15775eff4107cc56c448a15d674f6cefed1fb7ea0f047bd56c10f"
+    },
+    {
+      "file": "AtmosphereTransmittance.IntegrateTransmittance.spv",
+      "spirv_sha256": "6b3c89681e0393b9647f23d3f55cf1637272ebb03e83f713a1c98affe87bd631"
+    },
+    {
+      "file": "CardCapture.CaptureFragment.spv",
+      "spirv_sha256": "5679b73af84e058df75573f102ea219e507b6260ab2885fb8b9373d3bcaf712f"
+    },
+    {
+      "file": "CardCapture.CaptureVertex.spv",
+      "spirv_sha256": "e5c1ded477f71deefb39e6ee7a5da4a794f454801181dddfa64defb8b1523e20"
+    },
+    {
+      "file": "CardDirect.IntegrateCardDirect.spv",
+      "spirv_sha256": "13f6d6728ccd20fedf81ecda4066851c60e5e296b1d66f9fcbc6fb05b21033eb"
+    },
+    {
+      "file": "CardFinal.IntegrateCardFinal.spv",
+      "spirv_sha256": "95abdb1073bb4331baffc6948a0491fbf9fdef7445a478ccd256b2c1b2ab5471"
+    },
+    {
+      "file": "CardRadiosity.IntegrateCardRadiosity.spv",
+      "spirv_sha256": "fd2609083ea668aa28b9ca58919388b32465b9101954c652f6e10b9150194421"
+    },
+    {
+      "file": "DirectRadiance.IntegrateDirectRadiance.spv",
+      "spirv_sha256": "11e2b99e54f8e22a9366689364d1397e6cc2230fc7681287ddfb638f83203eb2"
+    },
+    {
+      "file": "DisplayAntialias.IntegrateAntialias.spv",
+      "spirv_sha256": "77717e11d95cf71450c87cdd9fd9eb3122f90f46fa6212e4e6dd113a4e67db66"
+    },
+    {
+      "file": "DisplayExposure.IntegrateExposure.spv",
+      "spirv_sha256": "ab5f5d90bf12a11d0be3e1e7b4723107dae7b8e14c1fdb952852acb42766f528"
+    },
+    {
+      "file": "DisplayPresent.PresentFragment.spv",
+      "spirv_sha256": "1206a48bc34dbe0ca29dff9b92f2650ee926861e5c2a9a4ff06dc6e5c46e124e"
+    },
+    {
+      "file": "DisplayPresent.PresentVertex.spv",
+      "spirv_sha256": "e5dc1035a948141da544765526f17490f5e5a105aaca6fa91fb9763e2a9b9802"
+    },
+    {
+      "file": "DisplayRecombination.ResolveRecombination.spv",
+      "spirv_sha256": "18ce10892b5fd7f79638de18cd4fbeddf0cae2c266187aaecb4cabbd9955bb26"
+    },
+    {
+      "file": "DistanceTransfer.TransferDistance.spv",
+      "spirv_sha256": "779a1ee3a871b21ecfd166b9cec1c9b371190b848da5f9e09d1f3402ad3c0d04"
+    },
+    {
+      "file": "DistanceUnion.UniteDistance.spv",
+      "spirv_sha256": "b20550c51948fd0fd43df7faf9b09a9061a3954232ea09132c538ee2fb15dfb1"
+    },
+    {
+      "file": "EnvironmentLighting.ProjectCloudShadow.spv",
+      "spirv_sha256": "6ae1c291a1cf2d9d7d2715eb5c7ba5f0e0e71ddd2456f8d468944cddf09e35c7"
+    },
+    {
+      "file": "EnvironmentLighting.ProjectEnvironmentSky.spv",
+      "spirv_sha256": "421c6aa87fadd956279f7e10b03322a71569156c2b3752437b8bf8537015267d"
+    },
+    {
+      "file": "EnvironmentVisibility.ProjectEnvironmentVisibility.spv",
+      "spirv_sha256": "ead8a0b17e80c94fadf33267b23d3018d1406b1c4594f313581681bf65264788"
+    },
+    {
+      "file": "EnvironmentVisibility.RestoreEnvironmentRadiance.spv",
+      "spirv_sha256": "0687c7136cb4c69c8b7b96e10ed3240583bbfa784c4d243edbc4f439cf54ccab"
+    },
+    {
+      "file": "FragmentDistance.ComputeFragmentDistance.spv",
+      "spirv_sha256": "4085a181d8802c18e52504afe9fbebdfd0fafc631b9790c7c4cf2d6bc6e95970"
+    },
+    {
+      "file": "GeometryClusterCull.CullGeometryClusters.spv",
+      "spirv_sha256": "58b58b3ba880588a38ba79332ec22b098e77b9d687e1ebe9c40bc7b93b5eba2a"
+    },
+    {
+      "file": "InspectionMarch.MarchInspection.spv",
+      "spirv_sha256": "764937835a688f430d780455e9adc3a635ef0544a3a6714bd5ecd0c526ff8552"
+    },
+    {
+      "file": "PenumbraResolve.ResolvePenumbra.spv",
+      "spirv_sha256": "f9fd71cfa400458ff6a5271689cd34fd2c522698f738cfb0cd461edc1f17c88e"
+    },
+    {
+      "file": "PickRaster.PickFragment.spv",
+      "spirv_sha256": "14c424e84feeeecae65f620b8987363d5cc47a8e5828315acfbd3b8d81c50237"
+    },
+    {
+      "file": "PickRaster.PickVertex.spv",
+      "spirv_sha256": "dd778364384146f84e7ce1a4fe2c0a9e75d7ea0ce6f00a60ef1cb1e13f8f34ad"
+    },
+    {
+      "file": "ReflectionTrace.TraverseMirrorReflection.spv",
+      "spirv_sha256": "2356d5ca205a7988e6ceded298f9b35e0faf01f1c322b39b107e7b27edf025af"
+    },
+    {
+      "file": "ReflectionTrace.TraverseReflection.spv",
+      "spirv_sha256": "d5b70d4842cfbeb2a0d4b2e24fe18fe036b195be17f996c69d120b729e5f32a5"
+    },
+    {
+      "file": "ReservoirSpatial.ResampleSpatial.spv",
+      "spirv_sha256": "35f91a600169e4975ec343e6e7aa35d995afbb08b7dea99c052735521d2898eb"
+    },
+    {
+      "file": "ReservoirTemporal.ProjectResamplingGuide.spv",
+      "spirv_sha256": "ec98728d42a8ff050ae115feada27a3e3945c87f0bcd3a9b200d3cbd6f455fff"
+    },
+    {
+      "file": "ReservoirTemporal.ResampleTemporal.spv",
+      "spirv_sha256": "20388b40b05476590f7891822113d4369dc3f8f6e1c2538987e32952d60bd1a7"
+    },
+    {
+      "file": "ShadowRaster.MaskedShadowFragment.spv",
+      "spirv_sha256": "96c727c806a2419055820bb71b20df61098dd6dfaffe83af82a3539705b14e79"
+    },
+    {
+      "file": "ShadowRaster.MaskedShadowVertex.spv",
+      "spirv_sha256": "d7f24556a44a85a37e935cda4b55f3784400386603d750d25ba2c9170e1f5e3b"
+    },
+    {
+      "file": "ShadowRaster.ShadowVertex.spv",
+      "spirv_sha256": "cc21ca8fa32762412f5d5e0058a1789c0ef0343a5c13c33a443d2b1ce90aadf7"
+    },
+    {
+      "file": "SurfaceRaster.SurfaceFragment.spv",
+      "spirv_sha256": "064323d0426578aef63b66068d654470daec620f95fced1fa295543cb65ded83"
+    },
+    {
+      "file": "SurfaceRaster.SurfaceVertex.spv",
+      "spirv_sha256": "ae12067111d3ec9cbff467838ada652a426abd93a0bfa6f0eef28056cb3c322c"
+    },
+    {
+      "file": "VarianceTemporal.IntegrateTemporal.spv",
+      "spirv_sha256": "3fd4f5cdb1e95cd14db14e88709c8ab86de84b349bf9447fc40f4a382bec8fea"
+    },
+    {
+      "file": "VarianceUpsample.ProjectScreenSignal.spv",
+      "spirv_sha256": "7af367cb866e60d244565a148c74f62a6b445722fc5d73fed40790887609fd0e"
+    },
+    {
+      "file": "VarianceWavelet.ConvolveWavelet.spv",
+      "spirv_sha256": "e5b03f89694f93133a70ab71866ee580e3d160d07a835eb6b4ef8c1cdb01e3c6"
+    }
+  ],
+  "sources": [
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/AtmosphereMedium.slang",
+      "sha256": "c363f1dea3f9450ac54ed9721de6d327e90b436f25274f32bf2a543ab4c21231"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/AtmosphereMultiple.slang",
+      "sha256": "524d1a372ca1acc0743aea580339472e35cff98d42542412796ff013d12efb1b"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/AtmosphereScattering.slang",
+      "sha256": "ffa9b12acd3e8866d14ae51ba77bc4a427167657cf1a9aa677f953d105fb7211"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/AtmosphereTransmittance.slang",
+      "sha256": "645540a58b84f1a00c07632b05d2e496598268510df02be2c2f77d8749122ae8"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CabinVolume.slang",
+      "sha256": "b0b50a480565cc12e058bbe32cd14c842e3b32912b91f13807f9acffcb3921b2"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CardCapture.slang",
+      "sha256": "381660f90fb66a2f7abba996d4ef4644a06114db6cc4615d0a6c93dbadbed316"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CardDirect.slang",
+      "sha256": "d5e5165087c428a90e406ef88b7ef5f8a5c6b85cec8ec54efe7a4b3e897d3492"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CardFinal.slang",
+      "sha256": "53af37a89c95967573ad6f966fe98fa46baf7c7d0f26a9f99f0881b77a07f295"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CardIrradiance.slang",
+      "sha256": "03d22e2ae0da8632b63af92d1d5781ce4139a78ac06a0fdce7c509cff74d118f"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CardProjection.slang",
+      "sha256": "abf4c0fd27318ba3ba54d6834f2cf7a854548cfcf8a6f6d66e7d05bdc0c97bb3"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CardRadiosity.slang",
+      "sha256": "1957b75b6885b78f37dd9a424d0d246893ce92cdd669b44909905c65ab795c65"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CardSampling.slang",
+      "sha256": "0ba8a58f4cdf451bfe1645720ee27c237bd88eb114d0e13084ff1d4f794fa6f7"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CelestialSky.slang",
+      "sha256": "db42608128fdadddba0aeade932cced4a33de7cdf8b8fe119fa7478a25e0140d"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CloudLayouts.slang",
+      "sha256": "897727e4bd48a9bc2a4b391a68fc271d1ae1d38d85b7e98c47bd653dfa91d7a4"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CloudPresent.slang",
+      "sha256": "be1352a5dcdf7f0893c79ca52cb27af5d284b054840ca40d402d2e43e881c546"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CloudShadowLayouts.slang",
+      "sha256": "3162e2d64dc6a4a46b3d043e34a545eb53047d5712623c3623ce450d91c4f302"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/CloudShadowSample.slang",
+      "sha256": "0adb07ecc79afa909dc492faed0a7c2e6c409bef040d150d8e4457792a7a3db6"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/ClusteredLights.slang",
+      "sha256": "55aa38373da812b7add0ea719312d1a0576066c499ce3b3714e18780014314b2"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DirectRadiance.slang",
+      "sha256": "17c12242d9344c9ff4ee42ad3a43df2d2793265e43b2196126e4f8c0dd39710b"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DiscrepancySequence.slang",
+      "sha256": "e8be93b79a795fa1dc87b41b78cfe6e0bfd7fbefb55849c8dbe74c69c019e344"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DisplayAntialias.slang",
+      "sha256": "774467520e1d699d9685d9fcb8fd83905918ffa7c08fde149c1a73c9734e20b6"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DisplayExposure.slang",
+      "sha256": "ec060a7b75e5b2622df2c709088c4f77e196c42d6f3251c5d897033521ae3c20"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DisplayPresent.slang",
+      "sha256": "94c6225deb502d9fdfe554a970f2a7b784ef2d355f2854ed79a566157f89375e"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DisplayRecombination.slang",
+      "sha256": "f060297fda5ded44d7cdeea93f237283ed7a316aee01208b87bfc61a3bbcb584"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DistanceLayouts.slang",
+      "sha256": "fff038009ff54b252f26405513978f1c927c5c7e681bd650b3026316dfa8931a"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DistanceMarch.slang",
+      "sha256": "4003d10d91b98f564d48d2276d23f551933208c7494f25191400343fc1f9b088"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DistanceTransfer.slang",
+      "sha256": "e838cd9b8ba5e6414e0d910b3e115d867ca265dd126ad966a62caf15eb03c673"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DistanceUnion.slang",
+      "sha256": "3ab6a9a3cd50929d83f9ca9c2138dda51025900d348901d703b1e369c5d65f74"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/EffectLayouts.slang",
+      "sha256": "92452f166057a85c9f25c4c12348f0a0f8076f82c7b793f701a82b56a3bce9b3"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/EnvironmentLighting.slang",
+      "sha256": "bf8cb844e7de55ebf56dbf4e567e295c38680a33a411a5f04c36006a3144f4e4"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/EnvironmentVisibility.slang",
+      "sha256": "e6d9cf99f5c266e1b0ba474a29761d7e9bd388582c9deaa8c3288d2313604566"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/FireIllumination.slang",
+      "sha256": "ed74b9c194a22759e6ba52ec5091442ac9aaaa080c977c85ca23a1e53fafc903"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/FogMedium.slang",
+      "sha256": "1b87182f94f7ee3c80cbb50f099e26e84ebef67069344a514d9965e8daa1863c"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/FragmentDistance.slang",
+      "sha256": "fb373b66e7817e4b49d8925aaae621cf7c2a3285545dce847d77a241f8517542"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/GeometryClusterCull.slang",
+      "sha256": "c8c8213847ab9bd449b82255e6d4c08cbbb01077f4df8c69602d70d1a9089c23"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/HostConstants.slang",
+      "sha256": "e7db94f4ed7070df8437a5462c47a95ddabf41c3498825c44675364fd631b3f1"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/InspectionMarch.slang",
+      "sha256": "503faa7e76043ef0ec7f773a64a9422cdb2de33a221f38febb7fd2cd0bf2776d"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/IntrinsicParity.slang",
+      "sha256": "8073ff213243e2548ab7d7bc96fda2406ce9931f4e63279f624672beb5ca2c84"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/NativeTwilight.slang",
+      "sha256": "7cade31aa65c7a9eaf42114b47b8018c4ebbf40887542592301ff8a5f1638748"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/NightStars.slang",
+      "sha256": "b18868421dcd87bd70d081b5aa484fa2b5b60f45284d645ed871fcc6c2bcc1b5"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/PackingCodec.slang",
+      "sha256": "bcf957f2ad36cb5bcb17b40de4db70e6b86b4ab455587e91123df6bf545ccb38"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/PenumbraResolve.slang",
+      "sha256": "10e063b3ae327c7b919b49a2d992697f543ae94fdf0553434fb4f8eea6e46dc0"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/PickRaster.slang",
+      "sha256": "be18b160a14a5ec5a900289a128010e55107a12f11a988b2406973a6aadb9d4d"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/RayIntersection.slang",
+      "sha256": "b1d101b355b6dfa541741486afdf305f3dc57a00db86c59f6db9cdf6b5f28f43"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/ReflectionTrace.slang",
+      "sha256": "bc5d6ba49a6d9cce615a7d52d5c1356ccaad1eccb0d0169e0415da057aff767b"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/RefreshDescriptor.slang",
+      "sha256": "6250336931a7ca865cefb85beb450482f57e1d7f6c0b6c110b15008d6da85a5a"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/ReservoirLayouts.slang",
+      "sha256": "18d6c4b44a275b2606f98490414f4221fd37a9e3e2fd13cce4ad06e52c17233d"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/ReservoirSpatial.slang",
+      "sha256": "ba78a3bc60ecd6ed596e50be2d522477d3d976d7c0d70e7e4da4cc2e56bb5b51"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/ReservoirTemporal.slang",
+      "sha256": "df5be41ab1e6df9ac98a97fcd5e8383b10f11c48cc053ebd782337dd06bc2600"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/SceneLayouts.slang",
+      "sha256": "773d4e1b24f6c4256334c63c5cfa7fb77a733a28c0d5926be7e1b27aaaf560e2"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/ShadowRaster.slang",
+      "sha256": "5139075f3bcafb52ee083b95b5efde9fe183e18922939ccf07ac231afaf4ce13"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/SkyProjection.slang",
+      "sha256": "d29ff5265079534c7439b1b3074c9bc5d13c03e85d27e914605efb69cbab7465"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/SurfaceRaster.slang",
+      "sha256": "310b7f92ddf23ab4a5b9074c4d3686cd45d83e049446200a424fceb55220978e"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/SurfaceReflectance.slang",
+      "sha256": "6035abd463c6b3687331c8d06d9819795f7a709a27c30b101bc717a66fe2f287"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/VarianceTemporal.slang",
+      "sha256": "79221c2a069f5804cab68a379cb0ae99b07c51d8012942d7b4be8d98a81b2e24"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/VarianceUpsample.slang",
+      "sha256": "3d909b8599570d931f553d66468e5a2516f0a7a6cf79db80b921abf66447c791"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/VarianceWavelet.slang",
+      "sha256": "18c5df7ad9d7c97f4288b9cb811fc233c5359659c7312319f1daff3ee0ccc05a"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/VehicleVisual.slang",
+      "sha256": "84eeab25e8f4cb16d03957957041d7fd98180339be32f09aad1ed5aaaa709f4f"
+    }
+  ]
+}

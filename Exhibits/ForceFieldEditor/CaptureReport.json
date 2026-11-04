@@ -1,0 +1,207 @@
+{
+  "Revision": "930b001",
+  "Platform": "linux x64",
+  "Pages": {
+    "ForceFieldEditor": {
+      "Facts": {
+        "Sources": 14,
+        "Samples": 22040,
+        "Milliseconds": 12.899999999441206,
+        "Rows": 16
+      },
+      "Wide": {
+        "CellSpan": 512,
+        "Span": 100000
+      },
+      "Added": {
+        "Sources": 15,
+        "Log": [
+          "Added Microburst 3",
+          "Showing flow",
+          "Showing acceleration"
+        ]
+      },
+      "Errors": []
+    },
+    "ParticleEditor": {
+      "Boot": {
+        "Adapter": "google swiftshader",
+        "Effects": [
+          [
+            "Sparks",
+            173
+          ],
+          [
+            "Leaves",
+            28
+          ],
+          [
+            "Atoms (LJ gas)",
+            1024
+          ],
+          [
+            "Chemicals A+B→C",
+            1024
+          ]
+        ],
+        "Readbacks": 10
+      },
+      "Agreement": {
+        "Voxel": [
+          12,
+          1,
+          12
+        ],
+        "Probe": [
+          3.5625,
+          -1.0986328125,
+          0.9931640625
+        ],
+        "Overlay": [
+          3.5625,
+          -1.0986328125,
+          0.9931640625
+        ],
+        "Difference": 0
+      },
+      "Library": {
+        "Cards": 52,
+        "Tabs": 15
+      },
+      "Final": {
+        "Effects": 5,
+        "Packed": 1,
+        "Lost": false
+      },
+      "Errors": []
+    },
+    "RenderSettings": {
+      "Facts": {
+        "Sections": 10,
+        "Sliders": 24
+      },
+      "Errors": []
+    }
+  },
+  "Assertions": [
+    {
+      "Claim": "the outliner shows the Force Field, its Wind guest and 14 localized forces",
+      "Passed": true,
+      "Detail": {
+        "Sources": 14,
+        "Samples": 22040,
+        "Milliseconds": 12.899999999441206,
+        "Rows": 16
+      }
+    },
+    {
+      "Claim": "at 100 km the lattice samples at a few hundred metres (level of detail), not metres",
+      "Passed": true,
+      "Detail": {
+        "CellSpan": 512,
+        "Span": 100000
+      }
+    },
+    {
+      "Claim": "a library card adds a force at the view centre and logs it",
+      "Passed": true,
+      "Detail": {
+        "Sources": 15,
+        "Log": [
+          "Added Microburst 3",
+          "Showing flow",
+          "Showing acceleration"
+        ]
+      }
+    },
+    {
+      "Claim": "no page errors on the Force Field editor",
+      "Passed": true,
+      "Detail": []
+    },
+    {
+      "Claim": "the eos default scene runs on WebGPU: four effects with live particles",
+      "Passed": true,
+      "Detail": {
+        "Adapter": "google swiftshader",
+        "Effects": [
+          [
+            "Sparks",
+            173
+          ],
+          [
+            "Leaves",
+            28
+          ],
+          [
+            "Atoms (LJ gas)",
+            1024
+          ],
+          [
+            "Chemicals A+B→C",
+            1024
+          ]
+        ],
+        "Readbacks": 10
+      }
+    },
+    {
+      "Claim": "the overlay has read the GPU wind lattice back",
+      "Passed": true,
+      "Detail": 10
+    },
+    {
+      "Claim": "the overlay reads exactly the texel the engine probe reads (same GPU lattice)",
+      "Passed": true,
+      "Detail": {
+        "Voxel": [
+          12,
+          1,
+          12
+        ],
+        "Probe": [
+          3.5625,
+          -1.0986328125,
+          0.9931640625
+        ],
+        "Overlay": [
+          3.5625,
+          -1.0986328125,
+          0.9931640625
+        ],
+        "Difference": 0
+      }
+    },
+    {
+      "Claim": "the library offers the same 52 presets in 14 groups (plus All)",
+      "Passed": true,
+      "Detail": {
+        "Cards": 52,
+        "Tabs": 15
+      }
+    },
+    {
+      "Claim": "a library preset joins the scene; its attractor reaches fieldAccel; the device stays alive",
+      "Passed": true,
+      "Detail": {
+        "Effects": 5,
+        "Packed": 1,
+        "Lost": false
+      }
+    },
+    {
+      "Claim": "no page errors on the Particle editor",
+      "Passed": true,
+      "Detail": []
+    },
+    {
+      "Claim": "Render settings still builds every section with the extended InspectorControls",
+      "Passed": true,
+      "Detail": {
+        "Sections": 10,
+        "Sliders": 24,
+        "Errors": []
+      }
+    }
+  ]
+}

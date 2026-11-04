@@ -1,0 +1,11 @@
+frames 5
+expect steps == 0
+expect refused == 0
+expect image-planes == 6
+expect image-planes-drawn == 3
+expect split-panes == 4
+capture Liger_Quad
+key Space
+frames 2
+expect camera-distance > 1
+capture Liger_Quad_Framed

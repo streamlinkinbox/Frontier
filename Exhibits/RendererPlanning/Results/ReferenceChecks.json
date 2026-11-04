@@ -1,0 +1,20 @@
+{
+  "execution": "Node unit tests on host CPU; no Dawn/WebGPU/Vulkan execution or physical GPU timings",
+  "references": {
+    "A": {
+      "tests": 64,
+      "pass": 64,
+      "fail": 0,
+      "skipped": 0
+    },
+    "B": {
+      "tests": 46,
+      "pass": 46,
+      "fail": 0,
+      "skipped": 0
+    }
+  },
+  "verified_source_files": 1149,
+  "painting_app_files": 30,
+  "shared_sources_identical": true
+}

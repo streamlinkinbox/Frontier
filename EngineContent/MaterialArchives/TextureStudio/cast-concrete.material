@@ -1,0 +1,45 @@
+Format = 1
+Name = "Cast Concrete"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.88
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/cast-concrete-albedo.png"
+Normal = "Textures/cast-concrete-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "concrete"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 40
+grain = 0.65
+poreDensity = 0.65
+wallMode = 0
+surfaceSeed = 17
+color = "#aaa79c"
+secondaryColor = "#68665c"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "concrete"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 40
+grain = 0.65
+poreDensity = 0.65
+wallMode = 0
+surfaceSeed = 17
+color = "#aaa79c"
+secondaryColor = "#68665c"

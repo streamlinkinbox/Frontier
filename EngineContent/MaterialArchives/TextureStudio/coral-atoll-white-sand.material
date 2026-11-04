@@ -1,0 +1,46 @@
+Format = 1
+Name = 'Coral Atoll White Sand'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.56000000238418579, 360.0, 1.25, 0.090000003576278687 ]
+Enabled = true
+Finish = [ 0.11999999731779099, 0.40000000596046448, 0.0, 0.059999998658895493 ]
+Layers = 3
+Palette = [
+    [ 1.0, 1.0, 1.0, 0.0 ],
+    [ 0.9301108717918396, 0.86315727233886719, 0.76052463054656982, 0.25 ],
+    [ 0.88792318105697632, 0.57758051156997681, 0.51491779088973999, 0.5 ],
+    [ 0.80695235729217529, 0.73046088218688965, 0.5972018837928772, 0.75 ],
+    [ 1.0, 0.9301108717918396, 0.88792318105697632, 1.0 ]
+]
+Relief = [ 0.2800000011920929, 0.44999998807907104, 0.029999999329447746, 30.0 ]
+
+[Textures]
+Albedo = 'Textures/coral-atoll-white-sand-albedo.png'
+Normal = 'Textures/coral-atoll-white-sand-normal.png'
+Orm = 'Textures/coral-atoll-white-sand-orm.png'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.0
+Ior = 1.6599999666213989
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 1.0
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 7
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

@@ -1,0 +1,209 @@
+# SolidArc bevel handles walkthrough (Plasticity's pull / push fillet controller) — B on an edge shows a uniform handle
+# at mid-edge and one per corner along the outward bisector; dragging a handle sets the size with more control than the
+# pointer (Shift fine), a corner handle gives that corner its own size (a variable fillet), the card types them. The bevel
+# shows at once: the start size fits the edges, a left drag on empty space adjusts it, a click off an edge keeps the pick,
+# and an oversized size keeps showing the last good preview.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/BevelHandlesRecovery.solidarc
+#      --document …/BevelHandles.solidarc --script Scripts/BevelHandlesWalkthrough.txt
+# Closed forms (2 m cube, z 0 … 2): fillet r on one edge removes (1 − π/4) · r² · 2 → r 0.25: 7.973174770424681.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① a 2 m cube from the Construct menu
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect refused == 0
+expect volume ~ 8
+
+# ② edge mode, the top front edge (y = −1, z = 2), B: 0.25 fits (span 2 → fitted 0.2; 0.25 ≤ 0.35 · 2) and the preview
+#    is there without any pointer hunting; three handles (uniform + 2 corners)
+key 2
+frames 2
+click world 0.0 -1.0 2.0
+frames 2
+expect selected-edges == 1
+key B
+frames 8
+expect bevel-active == 1
+expect bevel-size ~ 0.25
+expect bevel-span ~ 2
+expect bevel-fitted ~ 0.2
+expect bevel-handles == 3
+expect bevel-corners == 0
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 7.973174770424681
+capture 276BevelHandles
+
+# ③ a click on empty space keeps the picked edge (it used to clear it); the pointer on its way there only shrinks the
+#    size (floor 1 mm, it no longer flips into a chamfer); a left drag on empty space sizes it and pins it
+click viewport 0.1 0.2
+frames 3
+expect bevel-active == 1
+expect selected-edges == 1
+drag left viewport 0.1 0.2 by 80 0 8
+frames 8
+expect bevel-active == 1
+expect selected-edges == 1
+expect bevel-size != 0.25
+expect bevel-chamfer == 0
+expect bevel-pinned == 1
+expect bevel-refusal == 0
+
+# ④ the uniform handle typed back via the card, then a corner handle dragged: that corner takes its own size, V is off
+click @BevelSize
+key A Ctrl
+type 0.25
+key Enter
+frames 8
+expect bevel-size ~ 0.25
+expect bevel-pinned == 1
+drag left @BevelHandle1 by 30 -30 6
+frames 8
+expect bevel-corners == 1
+expect bevel-variable == 0
+expect bevel-corner-1 != 0.25
+expect bevel-corner-2 ~ 0.25
+expect bevel-refusal == 0
+capture 277BevelCornerDragged
+
+# ⑤ the card's corner field: Corner 1 typed 0.4 → the 0.4 → 0.25 variable fillet (the V taper's body)
+click @BevelCornerSize
+key A Ctrl
+type 0.4
+key Enter
+frames 8
+expect bevel-corners == 1
+expect bevel-corner-1 ~ 0.4
+expect bevel-refusal == 0
+capture 278BevelCornerTyped
+key Enter
+frames 3
+expect bevel-active == 0
+expect refused == 0
+expect sound == 1
+expect status contains corner size
+
+# ⑥ a 0.2 m cube: the last size (0.25) would not fit, so B starts at the fitted 0.02 and shows it at once
+key N Ctrl
+frames 3
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -0.1 -0.1 0.0
+frames 2
+click world -0.1 -0.1 0.0
+frames 2
+move world 0.1 0.1 0.0
+frames 2
+click world 0.1 0.1 0.0
+frames 2
+move world 0.1 0.1 0.2
+frames 2
+click world 0.1 0.1 0.2
+frames 3
+expect volume ~ 0.008
+key Escape
+frames 2
+click @FitView
+frames 4
+key 2
+frames 2
+click world 0.0 -0.1 0.2
+frames 2
+expect selected-edges == 1
+key B
+frames 8
+expect bevel-active == 1
+expect bevel-span ~ 0.2
+expect bevel-size ~ 0.02
+expect bevel-refusal == 0
+expect bevel-handles == 3
+capture 279BevelFitted
+key Escape
+frames 2
+
+# ⑦ the top loop (Shift-click adds edges): one handle per corner; a corner pulled out gives a variable fillet whose ends
+#    meet the neighbours' in a cone ∩ cone mitre — applied, sound. The front corner's bisector points at the isometric
+#    camera, so its handle stands up on screen and drags by pointer x
+click world 0.0 -0.1 0.2
+frames 2
+click world 0.1 0.0 0.2 Left Shift
+frames 2
+click world 0.0 0.1 0.2 Left Shift
+frames 2
+click world -0.1 0.0 0.2 Left Shift
+frames 2
+expect selected-edges == 4
+key B
+frames 8
+expect bevel-handles == 5
+expect bevel-refusal == 0
+drag left @BevelHandle2 by 40 0 6
+frames 8
+expect bevel-corners == 1
+expect bevel-corner-2 > 0.021
+expect bevel-refusal == 0
+capture 280BevelLoopCorner
+key Enter
+frames 3
+expect bevel-active == 0
+expect refused == 0
+expect sound == 1
+
+# ⑧ Bounds: Ctrl+Z takes the loop fillet back; one top edge of the plain 0.2 m cube; a typed 0.5 does not fit, so the
+#    size stops at the largest fillet that builds (found by halving, never an error); Mouse adjust then drags far right
+#    and the size stays at that bound
+key Escape
+frames 2
+key Z Ctrl
+frames 4
+expect volume ~ 0.008
+key A Alt
+frames 2
+move world 0.0 -0.1 0.2
+frames 2
+click world 0.0 -0.1 0.2
+frames 2
+expect selected-edges == 1
+key B
+frames 8
+expect bevel-pinned == 1
+click @BevelSize
+key A Ctrl
+type 0.5
+key Enter
+frames 12
+expect bevel-refusal == 0
+expect bevel-size < 0.5
+expect bevel-size > 0.01
+expect bevel-limit-stops > 0
+capture 297BevelBound
+click @BevelMouse
+frames 1
+move viewport 0.5 0.5
+frames 2
+move viewport 0.5 0.5 offset 400 0
+frames 12
+expect bevel-refusal == 0
+expect bevel-size < 0.5
+key Escape
+frames 2
+expect bevel-active == 0

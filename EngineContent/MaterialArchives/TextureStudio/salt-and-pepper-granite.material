@@ -1,0 +1,94 @@
+Format = 1
+Name = 'Salt and Pepper Granite'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.47999998927116394, 230.0, 1.0, 0.14000000059604645 ]
+Enabled = true
+Finish = [ 0.079999998211860657, 0.25999999046325684, 0.25, 0.75 ]
+Layers = 3
+Palette = [
+    [ 0.88792318105697632, 0.88792318105697632, 0.85499268770217896, 0.0 ],
+    [ 0.479320228099823, 0.50288659334182739, 0.53947961330413818, 0.25 ],
+    [ 0.024157630279660225, 0.027320891618728638, 0.033104762434959412, 0.5 ],
+    [ 1.0, 1.0, 1.0, 0.75 ],
+    [ 0.13286833465099335, 0.14702728390693665, 0.17144109308719635, 1.0 ]
+]
+Relief = [ 0.37999999523162842, 0.34000000357627869, 0.0, 24.0 ]
+
+[Textures]
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 1.0
+Ior = 1.5199999809265137
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.20000000298023224
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 0.5
+TextureMask = 5
+Thickness = 0.0
+UvScaleOffset = [ 9.0, 4.5, 0.0, 0.0 ]
+
+    [Strata.Textures]
+    Albedo = 'Textures/salt-and-pepper-granite-albedo.png'
+    Normal = 'Textures/salt-and-pepper-granite-normal.png'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Albedo'
+    Op = 'granite'
+
+        [Strata.Channels.Params]
+        color = '#898781'
+        detailScale = 35.0
+        grain = 0.34999999999999998
+        secondaryColor = '#ddd7c6'
+        surfaceSeed = 17.0
+        tertiaryColor = '#24272b'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Normal'
+    Op = 'granite'
+
+        [Strata.Channels.Params]
+        color = '#898781'
+        detailScale = 35.0
+        grain = 0.34999999999999998
+        secondaryColor = '#ddd7c6'
+        surfaceSeed = 17.0
+        tertiaryColor = '#24272b'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Coating'
+Coverage = 0.34999999403953552
+Fresnel = 'Schlick'
+HeightStrength = 1.0
+Ior = 1.5
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.11999999731779099
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 0.5
+TextureMask = 0
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

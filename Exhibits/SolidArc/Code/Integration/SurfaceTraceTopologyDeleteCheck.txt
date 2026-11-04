@@ -1,0 +1,44 @@
+frames 3
+key Keypad7
+key Keypad5
+frames 2
+expect bodies == 1
+expect faces == 6
+key 3
+frames 2
+click world 0.35 0.2 2
+frames 2
+expect selected-faces == 1
+key X
+frames 3
+expect bodies == 1
+expect faces == 5
+expect sheet == 1
+expect refused == 0
+capture Delete_Selected_Box_Face_Only
+key Z Ctrl
+frames 3
+expect faces == 6
+key 1
+frames 2
+click world 2 2 2
+frames 3
+expect selected-vertices == 1
+key Delete
+frames 3
+expect bodies == 1
+expect faces == 6
+expect refused == 0
+expect status contains vertex is a corner
+key 2
+frames 2
+click world 1 2 2
+frames 3
+expect selected-edges == 1
+key X
+frames 3
+expect bodies == 1
+expect faces == 6
+expect refused == 0
+expect status contains edge joins two different surfaces
+capture SubElement_Delete_Never_Deletes_Parent

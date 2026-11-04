@@ -1,0 +1,41 @@
+/*==========================================================================================================================================
+                                                           PARTICLEEDITOR.CSS
+==========================================================================================================================================*/
+/* 🧩 Particle editor additions to the Render settings design: the WebGPU surface and overlay, the library tabs and the boot banner. */
+
+/* 📝 Palette, docks, outliner, cards, rows, tiles, the library sheet and the minimap come from
+      ../RenderSettingsInspector/RenderSettingsInspector.css, shared with the Force Field editor. */
+.log-dock { height: 196px; }
+.viewport-surface { background: #090a0c; }
+.viewport-surface canvas#ViewportCanvas { cursor: grab; touch-action: none; }
+.viewport-surface canvas#ViewportCanvas:active { cursor: grabbing; }
+.viewport-surface canvas#OverlayCanvas { pointer-events: none; }
+.viewport-readout { top: 50px; pointer-events: none; }
+.boot-error {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 70%; padding: 16px 20px; border-radius: 16px;
+    background: rgba(40, 14, 14, 0.92); border: 1px solid rgba(217, 86, 86, 0.5); color: #f0c4c4; font-size: 12.5px; line-height: 1.5; text-align: center;
+}
+
+/*------------------------------------------------------------------------------------------------------------------------
+                                                      LIBRARY TABS
+------------------------------------------------------------------------------------------------------------------------*/
+.library-search { flex: 0 0 260px; height: 36px; }
+.library-tabs {
+    display: flex; gap: 4px; padding: 4px; margin-bottom: 14px; overflow-x: auto; scrollbar-width: none;
+    background: #111111; border: 1px solid #1f1f1f; border-radius: 999px;
+}
+.library-tabs::-webkit-scrollbar { display: none; }
+.library-tab {
+    flex: none; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 13px; border: 0; border-radius: 999px; background: none;
+    color: #8a8a8a; font-size: 11.5px; cursor: pointer; white-space: nowrap; transition: all 200ms var(--ease);
+}
+.library-tab small { color: var(--text-faint); font-size: 10px; }
+.library-tab:hover { color: var(--text-secondary); }
+.library-tab.active { background: linear-gradient(180deg, #333333, #2a2a2a); color: var(--text-primary);
+                      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 6px 16px rgba(0, 0, 0, 0.45); }
+.library-tab.active small { color: var(--text-muted); }
+.library-card .card-blurb { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.library-card .card-badge {
+    position: absolute; right: 12px; top: 12px; height: 18px; padding: 0 8px; border-radius: 999px; display: flex; align-items: center;
+    background: rgba(62, 196, 109, 0.12); color: #7fd29c; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+}

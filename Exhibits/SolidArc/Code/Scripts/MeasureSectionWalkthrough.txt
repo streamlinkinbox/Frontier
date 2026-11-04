@@ -1,0 +1,108 @@
+# SolidArc measure + section walkthrough — I (Measure; Fusion Inspect → Measure, Plasticity has none) shows the
+# exact figures of the selection in an Inspector card with a dimension overlay; Alt+S (Section) clips the viewport at a
+# plane, caps the cut solid and reports the exact kernel section.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/MeasureRecovery.solidarc
+#      --document …/Measure.solidarc --script Exhibits/SolidArc/Code/Scripts/MeasureSectionWalkthrough.txt
+# Bracket specimen: block 4 × 2.5 × 1, boss r 0.5 (z 1 … 1.75) at (1, 1.25), hole r 0.3 at (3, 1.25), Fillet1 r 0.25 on
+# the right top edge, Chamfer1 0.2 on the left top edge — volume 10.22278.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① I with nothing selected: the body's mass properties (unit density) and its centroid marker
+frames 3
+expect steps == 8
+expect measure == 0
+key I
+frames 2
+expect measure == 1
+expect measure contains Body
+expect measure-volume ~ 10.22278
+expect measure-refreshes == 1
+capture 152MeasureBody
+
+# ② mode 3, the boss top: a disc of area π·0.5² = 0.7853982, perimeter π = 3.141593
+key 3
+click world 1.0 1.25 1.75
+frames 2
+expect measure contains Face
+expect measure-area ~ 0.7853982
+expect measure-length ~ 3.141593
+capture 153MeasureFace
+
+# ③ Shift adds the front face (y = 0): the closest points are the boss-top rim (1, 0.75, 1.75) and the front-top corner
+#    line (1, 0, 1) — distance √(0.75² + 0.75²) = 1.060660; the plane normals +z and −y meet at 90°
+click world 2.0 0.0 0.5 Left Shift
+frames 2
+expect measure contains Distance
+expect measure-distance ~ 1.060660
+expect measure-angle ~ 90
+capture 154MeasureDistance
+
+# ④ mode 2: the boss-top circle (length 2π·0.5) and Shift the hole's top circle — rims 1.2 apart in x, 0.75 in z:
+#    √(1.2² + 0.75²) = 1.415097; two circles carry no direction, so no angle
+key 2
+click world 1.5 1.25 1.75
+frames 2
+expect measure contains Edge
+expect measure-length ~ 3.141593
+click world 2.7 1.25 1.0 Left Shift
+frames 2
+expect measure-distance ~ 1.415097
+capture 155MeasureEdges
+
+# ⑤ I again closes the card and the overlay
+key I
+frames 2
+expect measure == 0
+key Escape
+
+# ⑥ Alt+S: the default plane y = 1.25 (scene centre) through the boss and the hole, front half removed. The exact cut is
+#    the 4 × 1 block profile − chamfer ½·0.2² − fillet corner (1 − π/4)·0.25² − hole 0.6 × 1 + boss 1 × 0.75
+#    = 4.116587 m² in 2 regions (the hole splits it)
+key S Alt
+frames 2
+expect section == 1
+expect section contains y 1.25
+expect section-clip == 1
+expect section-area ~ 4.116587
+expect section-regions == 2
+expect section-bodies == 1
+capture 156SectionY
+
+# ⑦ the cap is no entity: hovering it reads "section cap", a click there selects nothing
+key 3
+move world 2.0 1.25 0.5
+frames 2
+expect hover == section cap
+click world 2.0 1.25 0.5
+frames 2
+expect selected-faces == 0
+capture 157SectionCapHover
+
+# ⑧ X through the boss axis (x = 1): the hole is not cut — 2.5 × 1 + boss 1 × 0.75 = 3.25 m², one region
+click @SectionAxisX
+frames 2
+expect section contains x 2
+click @SectionOffset
+key A Ctrl
+type 1
+key Enter
+frames 2
+expect section contains x 1
+expect section-area ~ 3.25
+expect section-regions == 1
+capture 158SectionX
+
+# ⑨ Flip keeps the other half (x ≥ 1): same cut, the cap now faces away from the isometric eye
+click @SectionFlip
+frames 2
+expect section contains flipped
+expect section-area ~ 3.25
+capture 159SectionFlipped
+
+# ⑩ Alt+S again: everything returns
+key S Alt
+frames 2
+expect section == 0
+expect section-clip == 0

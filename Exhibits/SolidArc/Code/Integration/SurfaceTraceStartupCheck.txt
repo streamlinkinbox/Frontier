@@ -1,0 +1,24 @@
+frames 3
+expect surface-trace == 1
+expect full-xyz == 1
+expect steps == 3
+expect bodies == 3
+expect refused == 0
+capture Liger_Surface_Tracing
+key Keypad7
+frames 2
+capture Liger_Surface_Tracing_Top
+key S Shift
+frames 2
+expect drawing-surface == 1
+expect drawing == Curve
+move viewport 0.99 0.02
+frames 2
+expect drawing-hit == 0
+click viewport 0.99 0.02
+frames 2
+expect drawing-points == 0
+key Escape
+frames 2
+expect steps == 3
+expect undo == 0

@@ -1,0 +1,268 @@
+# SolidArc parity walkthrough — real ImGui pointer / keyboard events, one step per frame.
+# Run: SolidArcCapture --specimen --script Scripts/WorkspaceWalkthrough.txt (see README for the full command)
+# Targets: @Widget (registered rectangle centre) · world X Y Z (projected into the viewport) · viewport U V · X Y pixels
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① layout + specimen
+frames 2
+capture 01Workspace
+expect faces == 11
+expect steps == 8
+expect refused == 0
+expect sound == 1
+
+# ② GPU identity hover and click selection (mode 1)
+move world 2.0 0.6 1.0
+frames 2
+expect hover contains Cap(End)
+click world 2.0 0.6 1.0
+expect selected-faces contains Extrude#2.Cap(End)
+move world 1.0 1.25 1.75
+frames 2
+click world 1.0 1.25 1.75 Left Shift
+expect selected-faces == 2
+capture 02FacesSelected
+click world 1.0 1.25 1.75 Left Ctrl
+expect selected-faces == 1
+key Escape
+expect selected-faces == 0
+
+# ③ mode 2 edges: the front bottom edge
+key 2
+expect pick-mode == 2
+move world 2.0 0.0 0.0
+frames 2
+click world 2.0 0.0 0.0
+expect selected-edges == 1
+expect selected-edges contains Side(Line1)
+capture 03EdgeSelected
+
+# ④ B: interactive fillet with staged preview, pointer adjust, unit entry, Enter applies
+key B
+expect bevel-active == 1
+expect bevel-chamfer == 0
+frames 2
+expect preview-faces == 12
+expect faces == 11
+expect bevel-pinned == 1
+click @BevelMouse
+frames 1
+move viewport 0.40 0.70
+frames 1
+move viewport 0.40 0.70 offset 30 0
+frames 2
+expect bevel-size > 0.05
+click @BevelSize
+key A Ctrl
+type 300mm
+key Enter
+frames 2
+expect bevel-size ~ 0.3
+expect bevel-pinned == 1
+expect preview-faces == 12
+expect faces == 11
+expect undo == 5
+capture 04BevelPreview
+move viewport 0.40 0.75
+frames 2
+expect bevel-size ~ 0.3
+key Enter
+frames 2
+expect bevel-active == 0
+expect faces == 12
+expect steps == 9
+expect undo == 6
+expect sound == 1
+capture 05FilletApplied
+
+# ⑤ B then C (Plasticity chamfer) on an edge that meets the earlier fillet: the start size fits the short neighbour
+#    (span 0.28 → 0.02, shown at once); a typed 0.3 does not fit, so the size stops at the largest chamfer that builds
+#    (found by halving over a few frames, never an error), Esc cancels
+move world 2.0 0.0 1.0
+frames 2
+click world 2.0 0.0 1.0
+expect selected-edges == 1
+key B
+frames 2
+key C
+frames 2
+expect bevel-active == 1
+expect bevel-chamfer == 1
+expect bevel-size ~ 0.02
+expect bevel-refusal == 0
+click @BevelSize
+key A Ctrl
+type 0.3
+key Enter
+frames 2
+frames 24
+expect bevel-refusal == 0
+expect bevel-size < 0.3
+expect bevel-size > 0.02
+expect bevel-limit-stops > 0
+capture 06BevelRefusal
+key Escape
+frames 1
+expect bevel-active == 0
+expect faces == 12
+expect steps == 9
+
+# ⑥ undo / redo (Ctrl+Z, Ctrl+Shift+Z, header buttons)
+key Z Ctrl
+expect faces == 11
+expect redo == 1
+key Z Ctrl Shift
+expect faces == 12
+click @HeaderUndo
+expect faces == 11
+click @HeaderRedo
+expect faces == 12
+
+# ⑦ navigation (Plasticity orbit-controls): middle orbit (yaw about z, then elevation), right pan, wheel dolly
+key Escape
+expect camera-yaw ~ -0.7853981634
+drag Middle viewport 0.5 0.5 by 120 0 12
+expect camera-yaw ~ -1.7453981634
+expect camera-pitch ~ 0.6154797087
+drag Middle viewport 0.5 0.5 by 0 -50 5
+expect camera-pitch ~ 0.2154797087
+drag Right viewport 0.5 0.5 by 60 0 6
+expect camera-yaw ~ -1.7453981634
+expect camera-target-x != 2
+drag Right viewport 0.5 0.5 by 0 40 4
+expect camera-target-z != 0.875
+wheel viewport 0.5 0.5 2
+expect camera-distance < 7.9
+capture 07Navigated
+
+# ⑧ orientation cube, view bar, projection, grid
+# The perspective cube hides its top face below about 14° of elevation (eye 4.05 × sin(pitch) under the face at 1);
+# at the 12° left by ⑦ the click would land on the Front face, so orbit back up first.
+drag Middle viewport 0.5 0.5 by 0 50 5
+expect camera-pitch ~ 0.6154797087
+click @CubeTop
+expect camera-pitch ~ 1.5707963268
+expect grid-plane == 0
+capture 08ViewCubeTop
+click @Projection
+expect orthographic == 1
+click @ViewMenu
+frames 2
+click @ViewFront
+expect camera-pitch ~ 0
+expect camera-yaw ~ -1.5707963268
+expect grid-plane == 1
+capture 09FrontParallel
+click @ViewMenu
+frames 2
+click @ViewRight
+expect grid-plane == 2
+capture 09RightParallel
+click @ViewMenu
+frames 2
+click @ViewIsometric
+expect grid-plane == 0
+click @ViewMenu
+frames 2
+click @ViewTop
+click @Projection
+click @DisplayMenu
+frames 2
+click @GridToggle
+expect grid == 0
+click @DisplayMenu
+frames 2
+click @GridToggle
+click @ViewMenu
+frames 2
+click @ViewIsometric
+click @FitView
+expect camera-pitch ~ 0.6154797087
+expect grid-plane == 0
+
+# ⑨ face edit in mode 3: Push the boss top 0.25 through the Inspector
+key 3
+move world 1.0 1.25 1.75
+frames 2
+click world 1.0 1.25 1.75
+expect selected-faces == 1
+expect selected-faces contains Extrude#4.Cap(End)
+capture 10FaceEdit
+click @FaceApply
+expect steps == 10
+expect sound == 1
+expect status contains Push
+
+# ⑩ feature tree: focus Block1, edit its Height parameter (history replay), Delete-key on a step
+click @InspectorHistory
+frames 3
+click @Step:Extrude#2
+frames 2
+click @InspectorGeometry
+frames 3
+expect focused-step == Extrude#2
+click @Parameter:Block1.Height
+key A Ctrl
+type 1.25
+key Enter
+frames 2
+expect status contains Block1.Height
+expect refused == 0
+expect sound == 1
+capture 11ParameterEdit
+
+# ⑪ construct: a through-hole cylinder (Difference) from the Outliner tile
+click @ConstructLauncher
+frames 2
+click @ConstructCylinder
+frames 2
+key Tab
+frames 2
+click @CombinationDifference
+click @ConstructX
+key A Ctrl
+type 0.6
+click @ConstructY
+key A Ctrl
+type 0.6
+click @ConstructZ
+key A Ctrl
+type -0.5
+click @ConstructRadius
+key A Ctrl
+type 0.2
+click @ConstructHeight
+key A Ctrl
+type 2.5
+click @ConstructRadius
+frames 2
+capture 12Construct
+click @ConstructCreate
+frames 2
+expect steps == 12
+expect refused == 0
+expect sound == 1
+expect genus == 2
+capture 13Constructed
+
+# ⑫ save (Ctrl+S), autosave after 600 ms quiet time, New + Restore previous document
+key S Ctrl
+expect dirty == 0
+expect file:_ClaudeScratch/SolidArcWorkspace/Bracket.solidarc == 1
+frames 45
+expect file:_ClaudeScratch/SolidArcWorkspace/Recovery.solidarc == 1
+click @OutlinerMenu
+frames 2
+click @MenuNew
+frames 2
+expect steps == 0
+capture 14NewDocument
+expect file:_ClaudeScratch/SolidArcWorkspace/Recovery.previous.solidarc == 1
+click @OutlinerMenu
+frames 2
+click @MenuRestorePrevious
+frames 2
+expect steps > 9
+capture 15Restored

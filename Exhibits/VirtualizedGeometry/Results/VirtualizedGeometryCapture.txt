@@ -1,0 +1,35 @@
+# VirtualizedGeometryCapture on SwiftShader, 480x270 low, 6 refreshes per setting, stored archives, 2026-11-02: the refined
+# archive (ProvingGround.nestingspace), I1 against the demo's per-record commands on the same pages; bring-up lines omitted.
+device: SwiftShader Device (Subzero)
+Baseline: 6 refreshes, mean 10.018 s, slowest 12.162 s → out/Baseline.png
+VirtualizedFirstRefresh: 1 refreshes, mean 8.293 s, slowest 8.293 s → out/VirtualizedFirstRefresh.png
+[PASS] the takeover found eligible facet sets
+takeover: 1613 cluster records over 1 occupants, 8 pages (6 pending after the first refresh)
+VirtualizedStreaming: 1 refreshes, mean 8.302 s, slowest 8.302 s → out/VirtualizedStreaming.png
+VirtualizedStreaming: 1 refreshes, mean 8.371 s, slowest 8.371 s → out/VirtualizedStreaming.png
+VirtualizedStreaming: 1 refreshes, mean 8.651 s, slowest 8.651 s → out/VirtualizedStreaming.png
+every page resident after 4 refreshes
+Virtualized: 6 refreshes, mean 8.763 s, slowest 9.823 s → out/Virtualized.png
+virtualized vs baseline: mean absolute difference 0.0171; refresh 8.763 s vs 10.018 s (0.87x)
+[PASS] the virtualized surface matches the lossless one within 5 % mean difference — 0.017095
+IdentitiesI1: 2 refreshes, mean 8.443 s, slowest 8.455 s → out/IdentitiesI1.png
+IdentitiesPerRecord: 2 refreshes, mean 8.549 s, slowest 8.710 s → out/IdentitiesPerRecord.png
+VirtualizedPerRecord: 6 refreshes, mean 8.914 s, slowest 9.142 s → out/VirtualizedPerRecord.png
+VirtualizedAgain: 2 refreshes, mean 8.828 s, slowest 9.191 s → out/VirtualizedAgain.png
+cluster commands, demo: 6452 indirect calls per refresh, 0.631 ms recording them, refresh 8.914 s
+cluster commands, I1:   10 indirect calls per refresh, 0.003 ms recording them, refresh 8.763 s (one call per phase and class)
+I1 vs demo commands: 0 of 129600 cluster identity pixels differ; lit images 0.044553 apart, I1 against itself later 0.028629
+[PASS] I1 records fewer indirect calls than one per cluster record — 10 vs 6452
+[PASS] I1 draws exactly the clusters of the per-record commands — 0 pixels differ
+ClusterIdentities: 2 refreshes, mean 8.539 s, slowest 8.904 s → out/ClusterIdentities.png
+[PASS] ClusterIdentities shows real cluster data — 1384 distinct colours
+ClusterResolve: 2 refreshes, mean 8.358 s, slowest 8.427 s → out/ClusterResolve.png
+[PASS] ClusterResolve shows real cluster data — 104 distinct colours
+ClusterHiZ: 2 refreshes, mean 8.623 s, slowest 8.651 s → out/ClusterHiZ.png
+[PASS] ClusterHiZ shows real cluster data — 12 distinct colours
+ClusterGlassLayers: 2 refreshes, mean 8.430 s, slowest 8.622 s → out/ClusterGlassLayers.png
+[PASS] ClusterGlassLayers shows real cluster data — 26 distinct colours
+ClusterTiers: 2 refreshes, mean 9.103 s, slowest 9.622 s → out/ClusterTiers.png
+[PASS] ClusterTiers shows real cluster data — 32 distinct colours
+VirtualizedGeometryCapture: 0 failing checks
+CAPTURE-EXIT 0

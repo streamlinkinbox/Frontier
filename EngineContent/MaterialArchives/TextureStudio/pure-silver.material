@@ -1,0 +1,37 @@
+Format = 1
+Name = "Pure Silver"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.8879231178819663, 0.8713671191987972, 0.7912979403326302]
+Roughness = 0.12
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/pure-silver-albedo.png"
+Normal = "Textures/pure-silver-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17

@@ -1,0 +1,242 @@
+# SolidArc fill / flip / image-plane walkthrough — fresh closed drawings are unfilled (a faint tint), the Fill tool next
+# to Trim previews the closed region under the pointer (the lens of two circles, each crescent) and a click fills it into
+# a new sketch; F toggles fill on the focused sketch (Inspector › Filled); an unfilled closed sketch extrudes into
+# zero-thickness walls (an open sheet); Alt+N flips the normals of a picked sheet; Construct › Reference › Image plane.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/FillRecovery.solidarc
+#      --document …/Fill.solidarc --script Exhibits/SolidArc/Code/Scripts/FillWalkthrough.txt
+# Closed forms: unit circles at (0,0) and (1,0): lens 2π/3 − √3/2 = 1.228369698609, crescent π − lens = 1.913222954981.
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① empty document, Top view: two overlapping unit circles, both unfilled (tinted faintly)
+key N Ctrl
+frames 2
+expect steps == 0
+key Keypad7
+frames 2
+key W Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 1.0 0.0 0.0
+frames 2
+key W Shift
+frames 2
+click world 1.0 0.0 0.0
+frames 2
+click world 2.0 0.0 0.0
+frames 2
+expect drawing == 0
+expect steps == 2
+expect sketches == Circle1,Circle2
+expect focused-caption == Circle2
+expect sketch-filled == 0
+expect tint-loops == 2
+capture 246FillTint
+
+# ② the Fill tool (bottom toolbar, next to Trim): hovering the lens previews it, a click fills it into a new sketch
+click @SketchFill
+frames 2
+expect fill == 1
+move world 0.5 0.1 0.0
+frames 3
+expect fill-hover == region
+expect fill-loops == 1
+expect status contains Fill
+capture 247FillLens
+click world 0.5 0.1 0.0
+frames 3
+expect refused == 0
+expect fill-commits == 1
+expect steps == 3
+expect sketch-filled == 1
+expect fill == 1
+
+# ③ the left crescent: Circle1 minus the lens (the lens sketch over it does not split it again)
+move world -0.5 0.0 0.0
+frames 3
+expect fill-hover == region
+expect fill-loops == 1
+capture 248FillCrescent
+click world -0.5 0.0 0.0
+frames 3
+expect fill-commits == 2
+expect steps == 4
+expect sketch-filled == 1
+key Escape
+frames 2
+expect fill == 0
+
+# ③b Enter and a right-click (no drag) end the Fill tool like Escape, committing nothing more
+click @SketchFill
+frames 2
+expect fill == 1
+key Enter
+frames 2
+expect fill == 0
+expect steps == 4
+click @SketchFill
+frames 2
+expect fill == 1
+click viewport 0.90 0.20 Right
+frames 2
+expect fill == 0
+expect steps == 4
+
+# ④ E extrudes the filled crescent into a solid (New, 1 up)
+key E
+frames 2
+expect bevel-active == 1
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect steps == 5
+expect bodies == 1
+expect volume ~ 1.913222954981
+expect sound == 1
+
+# ⑤ a fresh rectangle: F fills it, F again unfills it (Inspector › Filled follows), E makes 4 walls (an open sheet)
+key Keypad7
+frames 2
+key Q Shift
+frames 2
+click world 1.2 -0.6 0.0
+frames 2
+click world 1.8 0.6 0.0
+frames 2
+expect steps == 6
+expect sketch-filled == 0
+key F
+frames 2
+expect sketch-filled == 1
+key F
+frames 2
+expect sketch-filled == 0
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect steps == 7
+expect bodies == 2
+expect volume ~ 1.913222954981
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+capture 249FillWalls
+
+# ⑥ Alt+N on the picked walls turns their normals (a Flip step); Alt+N again removes it
+key 4
+frames 2
+click world 1.5 -0.6 0.5
+frames 3
+expect selected-bodies contains Extrude#7
+key N Alt
+frames 3
+expect refused == 0
+expect flips == 1
+expect steps == 8
+expect status contains Flip
+capture 250FlipNormals
+key N Alt
+frames 3
+expect flips == 0
+expect steps == 7
+
+# ⑦ Construct › Reference › Image plane: a picture on the front plane, 4 m wide
+click @ConstructLauncher
+frames 2
+click @ConstructSectionReference
+frames 2
+expect construct-section == 2
+capture 251ConstructReference
+click @ConstructImagePlane
+frames 3
+click @PicturePathField
+key A Ctrl
+type Exhibits/SolidArc/Images/HtmlReference/EmptyWorkspace.png
+click @PictureFront
+frames 1
+click @PictureAdd
+frames 3
+expect image-planes == 1
+expect status contains Image plane EmptyWorkspace
+click @ViewMenu
+frames 2
+click @ViewFront
+frames 2
+key Space
+frames 3
+capture 252ImagePlane
+
+# ⑧ Image planes in the Outliner (Images chip): a row pick opens the plane's properties in the Inspector — photo,
+#    mirror, a left crop (the picture keeps its scale: the plane narrows), opacity; the row's lock freezes them, its eye
+#    hides the picture. Everything goes back afterwards
+click @FilterImages
+frames 2
+click @Figure:EmptyWorkspace
+frames 4
+expect image-focused == EmptyWorkspace
+move @ImagePhoto
+frames 2
+click @ImagePhoto
+frames 2
+expect image-photo == 1
+click @ImageFlipAcross
+frames 2
+expect image-mirrored == 1
+# Crop and opacity are Frontier authoring sliders now: the clicks name their tracks (…Slider)
+click @ImageCropLeftSlider
+frames 3
+expect image-crop-left > 0
+move @ImageOpacitySlider offset -15 0
+frames 2
+click @ImageOpacitySlider offset -15 0
+frames 2
+expect image-opacity > 0.25
+expect image-opacity < 0.55
+capture 298ImageProperties
+click @Lock:EmptyWorkspace
+frames 2
+expect image-locked == 1
+click @Visibility:EmptyWorkspace
+frames 2
+expect image-planes-drawn == 0
+click @Visibility:EmptyWorkspace
+frames 2
+expect image-planes-drawn == 1
+click @Lock:EmptyWorkspace
+frames 2
+expect image-locked == 0
+click @ImageUncrop
+frames 2
+expect image-crop-left == 0
+click @ImageFlipAcross
+frames 2
+click @ImageInk
+frames 2
+expect image-photo == 0
+expect image-mirrored == 0
+click @Figure:EmptyWorkspace
+frames 2
+expect image-focused != EmptyWorkspace
+click @FilterAll
+frames 2

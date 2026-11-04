@@ -1,0 +1,12 @@
+{
+  "glfw": {
+    "repository": "https://github.com/glfw/glfw",
+    "revision": "7b6aead9fb88b3623e3b3725ebb42670cbe4c579",
+    "version": "3.4"
+  },
+  "imgui": {
+    "repository": "https://github.com/ocornut/imgui",
+    "revision": "f5befd2d29e66809cd1110a152e375a7f1981f06",
+    "version": "1.91.9b"
+  }
+}

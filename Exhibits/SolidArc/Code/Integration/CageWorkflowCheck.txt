@@ -1,0 +1,74 @@
+frames 3
+key Keypad7
+key Keypad5
+frames 3
+key 6
+frames 2
+click world 0.5 0 0
+frames 3
+expect selected-curves == 1
+expect selected-spline-spans == 0
+expect selected-spline-poles == 0
+click world 0 0.5 0 Shift
+frames 3
+expect selected-curves == 2
+expect selected-spline-spans == 0
+capture Whole_Curves_Not_Spans
+# Whole-curve mode never falls through to a body pick.
+click world 1.2 1.2 0
+frames 3
+expect selected-curves == 0
+key S Shift
+frames 3
+expect drawing-surface == 1
+click @ToolSurface
+frames 3
+expect drawing-surface == 0
+expect surface-trace == 0
+capture Drawing_Options_Planar
+key Escape
+frames 3
+click @SurfaceTrace
+frames 2
+expect surface-trace == 1
+click @DrawArc
+frames 3
+expect drawing == Arc
+expect drawing-surface == 0
+capture Arc_Planar_Not_Retopology
+# Disable automatic curve snapping to draw this independent planar arc.
+click @ToolCurveSnap
+frames 2
+click world -0.7 -0.6 0
+click world 0.4 -0.6 0
+click world 0 -0.9 0
+frames 3
+expect drawing == 0
+expect sketches contains Arc
+expect curves == 2
+expect refused == 0
+capture Analytic_Wheel_Arc
+key Z Ctrl
+frames 3
+expect curves == 2
+expect steps == 2
+# New NURBS + automatic splitting are one transaction.
+key S Shift
+frames 3
+click @ToolSurface
+click @ToolAutoSplit
+frames 2
+click world -0.2 0.8 0
+click world 0.2 -0.8 0
+key Enter
+frames 3
+expect curves > 5
+expect curves < 8
+expect steps > 5
+expect steps < 8
+expect refused == 0
+capture Auto_Split_Crossings
+key Z Ctrl
+frames 3
+expect curves == 2
+expect steps == 2

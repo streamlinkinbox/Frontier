@@ -1,0 +1,212 @@
+{
+  "platform": "Linux-6.1.158+-x86_64-with-glibc2.36",
+  "python": "3.11.2",
+  "windows_executed": false,
+  "workspace_ui_integrated": false,
+  "hardware_gpu_tested": false,
+  "commands": [
+    {
+      "caption": "VectorAuthoringEditingBuild",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I.",
+        "-IExternalPackages/tomlpp/include",
+        "Engine/ContentInterchange/VectorAuthoringEditing.cpp",
+        "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp",
+        "Engine/ContentInterchange/VectorAuthoringProperties.cpp",
+        "Engine/ContentInterchange/VectorAuthoringDocument.cpp",
+        "Exhibits/TextureStudio/Code/VectorAuthoringEditingValidation.cpp",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/VectorAuthoringEditingValidation"
+      ]
+    },
+    {
+      "caption": "VectorAuthoringEditingChecks",
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/VectorAuthoringEditingValidation"
+      ]
+    },
+    {
+      "caption": "VectorAuthoringEditingSanitizedBuild",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-g",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-I.",
+        "-IExternalPackages/tomlpp/include",
+        "Engine/ContentInterchange/VectorAuthoringEditing.cpp",
+        "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp",
+        "Engine/ContentInterchange/VectorAuthoringProperties.cpp",
+        "Engine/ContentInterchange/VectorAuthoringDocument.cpp",
+        "Exhibits/TextureStudio/Code/VectorAuthoringEditingValidation.cpp",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/VectorAuthoringEditingSanitized"
+      ]
+    },
+    {
+      "caption": "VectorAuthoringEditingSanitizedChecks",
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/VectorAuthoringEditingSanitized"
+      ]
+    },
+    {
+      "caption": "VectorAuthoringControlBuild",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-DFRONTIER_EDITOR=1",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-function",
+        "-IExternalPackages/imgui",
+        "-I.",
+        "-IExternalPackages/tomlpp/include",
+        "Engine/ContentInterchange/VectorAuthoringEditing.cpp",
+        "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp",
+        "Engine/ContentInterchange/VectorAuthoringProperties.cpp",
+        "Engine/ContentInterchange/VectorAuthoringDocument.cpp",
+        "UI/TextureStudio/VectorMaskControls.cpp",
+        "Engine/Interface/PixelSpace.cpp",
+        "Engine/Interface/ControlKit.cpp",
+        "Engine/Interface/GlyphSpace.cpp",
+        "ExternalPackages/imgui/imgui.cpp",
+        "ExternalPackages/imgui/imgui_draw.cpp",
+        "ExternalPackages/imgui/imgui_tables.cpp",
+        "ExternalPackages/imgui/imgui_widgets.cpp",
+        "Exhibits/TextureStudio/Code/VectorAuthoringDocumentValidation.cpp",
+        "-Wl,--gc-sections",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/VectorAuthoringDocumentValidation"
+      ]
+    },
+    {
+      "caption": "VectorAuthoringControlChecks",
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/VectorAuthoringDocumentValidation",
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/NativeVectorAuthoringControlChecks.json"
+      ]
+    },
+    {
+      "caption": "VectorAuthoringControlCapture",
+      "command": [
+        "python3",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/NativeVectorAuthoringControls.ppm",
+        "/home/user/Frontier/Exhibits/TextureStudio/Images/NativeVectorAuthoringLockedControls.png"
+      ]
+    },
+    {
+      "caption": "VectorAuthoringShaderCompilation",
+      "command": [
+        "node",
+        "Automation/CompileVectorCoverage.mjs",
+        "/home/user/Frontier/_ClaudeScratch/tmp/PatternTools/node_modules/slang-loader/vendor/slang-wasm.js",
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/ShaderArchives"
+      ]
+    },
+    {
+      "caption": "VectorAuthoringGpuBuild",
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-DVK_NO_PROTOTYPES",
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-function",
+        "-IExternalPackages/vulkan-headers/include",
+        "-IExternalPackages/stb",
+        "-I.",
+        "-IExternalPackages/tomlpp/include",
+        "Engine/ContentInterchange/VectorAuthoringEditing.cpp",
+        "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp",
+        "Engine/ContentInterchange/VectorAuthoringProperties.cpp",
+        "Engine/ContentInterchange/VectorAuthoringDocument.cpp",
+        "Engine/Render/SurfaceRasterization.cpp",
+        "Engine/Render/VectorCoverageRasterization.cpp",
+        "Exhibits/TextureStudio/Code/VectorCoverageValidation.cpp",
+        "-ldl",
+        "-o",
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/VectorCoverageValidation"
+      ]
+    },
+    {
+      "caption": "VectorAuthoringGpuChecks",
+      "command": [
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/VectorCoverageValidation",
+        "/tmp/libvk_swiftshader.so",
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/ShaderArchives/VectorCoverageCompute.spv",
+        "/home/user/Frontier/_ClaudeScratch/build/VectorAuthoringEditing/GpuEvidence"
+      ]
+    }
+  ],
+  "revision": "4a77bfd17f23536e32781718553ec6a171e39021",
+  "uncommitted_sources": true,
+  "compiler": "g++ (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "source_contracts": {
+    "result": "passed",
+    "checks": 2269,
+    "windows_executed": false,
+    "gpu_pixels_tested": false,
+    "workspace_ui_integrated": false
+  },
+  "sanitizers": {
+    "result": "passed",
+    "checks": 2269,
+    "windows_executed": false,
+    "gpu_pixels_tested": false,
+    "workspace_ui_integrated": false
+  },
+  "controls": {
+    "result": "passed",
+    "checks": 42,
+    "windows_executed": false,
+    "workspace_ui_integrated": false
+  },
+  "gpu": {
+    "checks": 54,
+    "dispatches": 13,
+    "device": "SwiftShader Device (Subzero)",
+    "editable_contour_reconstruction": false,
+    "result": "PASS"
+  },
+  "source_sha256": {
+    "Engine/ContentInterchange/VectorAuthoringEditing.cpp": "bcb33ba96737ba6b5dcc58ffb6e856b36d5f12b7f835c85c7a9ce36ad86199b2",
+    "Engine/ContentInterchange/VectorAuthoringArrayPlacement.cpp": "fccf66cde8b80670692f674b95950c25c0d82dfb6be8f10b4cde0456c39c1016",
+    "Engine/ContentInterchange/VectorAuthoringProperties.cpp": "ddb9f24eba8e13e94eb95af59ca943b9cca5ca14a3364493688e34643860b454",
+    "Engine/ContentInterchange/VectorAuthoringDocument.cpp": "3b38453d0fc62fc670e3cef68b30cf360f35fb02db64428234ef445c387640fa",
+    "Engine/ContentInterchange/VectorAuthoringEditing.h": "724056bd0481477ac1c0772a56e590159ec75e0a2da874b604486ad52549ba7a",
+    "Engine/ContentInterchange/VectorAuthoringArrayPlacement.h": "009b126fde1d46a74d7fa3edc9ec15f477ba61e1db1ade29a3ccb69df0207e1a",
+    "Engine/ContentInterchange/VectorAuthoringProperties.h": "ae4755d1c8cfeaeea7d114ec257629142d23e551e758badb9c4eb4f03cd8f15b",
+    "Engine/ContentInterchange/VectorAuthoringDocument.h": "f33d5f500b2dd15b286dc26990da734795f4d8badc6166ec139f1681a0fab2e2",
+    "Exhibits/TextureStudio/Code/VectorAuthoringEditingValidation.cpp": "d08260540ea974d3400be3857d27b6c6e13c9c31263bbf23939bf0df3eb945ad",
+    "Engine/Render/VectorCoverage.h": "216a945bd772b0311ea771c67d01124391c163da0adc4eb0fd0f4df6bb16903d",
+    "Engine/Render/Shader/VectorCoverage.slang": "7fef903580aa46c9ca92c4c27351dbde4340e7905f527401a2cb5960eab0b69e",
+    "UI/TextureStudio/VectorMaskControls.cpp": "b0d9f076a704e8afe47e1f69fecdfe2f44b1f4e1ec55c253c7909415d1c86e6a",
+    "Exhibits/TextureStudio/Code/VectorAuthoringDocumentValidation.cpp": "b9a8f7c8d1c54918fa4511214bad00c5f96751ce9f6cc5a111a4b9343ebdbafa",
+    "Exhibits/TextureStudio/Code/VectorCoverageValidation.cpp": "b800054a775a53c3b76bcbb5e32b2d36697a1e14255d47429f8714853a40e976",
+    "CMakeLists.txt": "6479acf4ec2b6fbc44d1f868fb4d77a1c0ebbb8b6ae04340c7410fc0b5c41cf1",
+    "Automation/VectorCoverage.cmake": "1b38520aaf091bcb3fb9d243eeea9009b3b0d4eb39d9ba0d00d1326d3ea50931",
+    "Automation/BuildTextureStudioWindows.py": "ecf01a2f220e4666d50b7d1fc5b8c4712967adcc646df7d7cd1bff688e31166d",
+    "Exhibits/TextureStudio/Code/VerifyVectorAuthoringEditing.py": "f469a934a943e8197d5132a8dd6bd4642d891b3f50507293dafce61988b8825c"
+  },
+  "result": "passed"
+}

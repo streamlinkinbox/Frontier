@@ -1,0 +1,46 @@
+Format = 1
+Name = 'Sahara Erg Dune Sand'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.62000000476837158, 380.0, 1.1499999761581421, 0.070000000298023224 ]
+Enabled = true
+Finish = [ 0.14000000059604645, 0.43999999761581421, 0.0, 0.079999998211860657 ]
+Layers = 3
+Palette = [
+    [ 1.0, 0.70837593078613281, 0.37123778462409973, 0.0 ],
+    [ 0.80695235729217529, 0.33245158195495605, 0.088655605912208557, 0.25 ],
+    [ 0.58407849073410034, 0.15896086394786835, 0.03189602866768837, 0.5 ],
+    [ 1.0, 0.89626938104629517, 0.70837593078613281, 0.75 ],
+    [ 0.25415217876434326, 0.057805433869361877, 0.012983030639588833, 1.0 ]
+]
+Relief = [ 0.30000001192092896, 0.40000000596046448, 0.059999998658895493, 28.0 ]
+
+[Textures]
+Albedo = 'Textures/sahara-erg-sand-albedo.png'
+Normal = 'Textures/sahara-erg-sand-normal.png'
+Orm = 'Textures/sahara-erg-sand-orm.png'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.0
+Ior = 1.5440000295639038
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 1.0
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 7
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

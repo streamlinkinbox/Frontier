@@ -1,0 +1,37 @@
+Format = 1
+Name = "Titanium Metal"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.45641102318040466, 0.44520119451622786, 0.4019777798321958]
+Roughness = 0.34
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/titanium-metal-albedo.png"
+Normal = "Textures/titanium-metal-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.13
+detailScale = 65
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.13
+detailScale = 65
+surfaceSeed = 17

@@ -1,0 +1,67 @@
+Format = 1
+Name = 'Wet Tidal Rippled Sand'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.54000002145767212, 350.0, 1.2000000476837158, 0.2199999988079071 ]
+Enabled = true
+Finish = [ 0.10000000149011612, 0.31999999284744263, 0.11999999731779099, 0.47999998927116394 ]
+Layers = 3
+Palette = [
+    [ 0.68668544292449951, 0.60382741689682007, 0.45641106367111206, 0.0 ],
+    [ 0.36625269055366516, 0.28314879536628723, 0.18116423487663269, 0.25 ],
+    [ 0.84687328338623047, 0.77582234144210815, 0.6514056921005249, 0.5 ],
+    [ 0.10702311247587204, 0.080219827592372894, 0.051269467920064926, 0.75 ],
+    [ 0.479320228099823, 0.53947961330413818, 0.57758051156997681, 1.0 ]
+]
+Relief = [ 0.25999999046325684, 0.51999998092651367, 0.079999998211860657, 18.0 ]
+
+[Textures]
+Albedo = 'Textures/wet-tidal-beach-sand-albedo.png'
+Normal = 'Textures/wet-tidal-beach-sand-normal.png'
+Orm = 'Textures/wet-tidal-beach-sand-orm.png'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.0
+Ior = 1.5440000295639038
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 1.0
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 7
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[[Strata]]
+Absorption = [ 0.079999998211860657, 0.039999999105930328, 0.029999999329447746 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Coating'
+Coverage = 0.77999997138977051
+Fresnel = 'Schlick'
+HeightStrength = 0.0
+Ior = 1.3329999446868896
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.054999999701976776
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 0.5
+TextureMask = 0
+Thickness = 0.25
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

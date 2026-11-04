@@ -1,0 +1,61 @@
+Format = 1
+Name = "Lily Petal"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.48
+Metallic = 0
+Ior = 1.45
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.8227857543962835, 0.6795424696330938, 0.4793201831008268]
+SheenIntensity = 0.3
+SheenRoughness = 0.7
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/lily-petal-albedo.png"
+Normal = "Textures/lily-petal-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "petal"
+Link = "shared"
+[Strata.Channels.Params]
+cellScale = 140
+cellRelief = 0.5
+veinRelief = 0.65
+colorGradient = 0.65
+spotDensity = 0.82
+surfaceSeed = 17
+color = "#ead7b8"
+secondaryColor = "#b97c34"
+tertiaryColor = "#742a32"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "petal"
+Link = "shared"
+[Strata.Channels.Params]
+cellScale = 140
+cellRelief = 0.5
+veinRelief = 0.65
+colorGradient = 0.65
+spotDensity = 0.82
+surfaceSeed = 17
+color = "#ead7b8"
+secondaryColor = "#b97c34"
+tertiaryColor = "#742a32"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.22
+Metallic = 0.0
+Ior = 1.45
+Coverage = 0.04

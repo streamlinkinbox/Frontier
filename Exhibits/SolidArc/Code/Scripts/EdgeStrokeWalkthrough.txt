@@ -1,0 +1,120 @@
+# SolidArc edge-stroke walkthrough — the reported jagged / dashed edges: a cylinder r 1.7 h 0.6 with a boss r 0.2 joined
+# on its curved side and a 0.05 fillet on the boss rim (curved edges on curved faces), seen whole and then close up
+# (the zoom where a fixed device-depth bias let the faces cut the strokes into dashes). The captures are the evidence;
+# the expectations pin the scene so before / after images show the same model.
+# Run: SolidArcCapture --reset-files --recovery …/EdgeStrokeRecovery.solidarc --document …/EdgeStroke.solidarc
+#      --script Scripts/EdgeStrokeWalkthrough.txt
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① cylinder r 1.7, h 0.6 (Shift+W circle, F fill, E 0.6)
+key N Ctrl
+frames 3
+key W Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 1.7 0.0 0.0
+frames 3
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 0.6
+key Enter
+frames 2
+key Enter
+frames 3
+expect bodies == 1
+expect refused == 0
+
+# ② isometric view; circle r 0.2 on the −y side: the sketch plane is the exact tangent plane (n̂ = −y, 1.7 from the axis)
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 3
+key W Shift
+frames 2
+move world 0.0 -1.7 0.3
+frames 2
+expect face-plane == 1
+click world 0.0 -1.7 0.3
+frames 2
+click world 0.2 -1.7 0.3
+frames 3
+expect refused == 0
+expect plane-normal-y < -0.9999
+expect plane-offset ~ 1.7
+
+# ③ F, E: the Union starts sunk by the measured profile depth (≥ R − √(R² − r²) = 0.011806), 0.3 typed
+key F
+frames 2
+key E
+frames 2
+expect profile-sink > 0.011806
+expect profile-sink < 0.03
+click @BevelSize
+key A Ctrl
+type 0.3
+key Enter
+frames 2
+key Enter
+frames 3
+expect bodies == 1
+expect refused == 0
+expect sound == 1
+expect extrude-start < -0.011806
+expect volume ~ 5.485591014531
+
+# ④ edge mode, the boss rim (0, −2.0, 0.5): fillet 0.05
+key 2
+frames 1
+move world 0.0 -2.0 0.5
+frames 2
+click world 0.0 -2.0 0.5
+frames 2
+expect selected-edges == 1
+key B
+frames 2
+key D
+frames 2
+click @BevelSize
+key A Ctrl
+type 0.05
+key Enter
+frames 2
+key Enter
+frames 3
+expect bevel-active == 0
+expect refused == 0
+expect sound == 1
+move viewport 0.95 0.10
+frames 3
+capture 267EdgeStrokesWhole
+
+# ⑤ closer on the filleted boss: the strokes stay whole on the curved faces
+wheel world 0.0 -1.85 0.3 3
+frames 3
+move viewport 0.95 0.10
+frames 3
+expect refused == 0
+capture 268EdgeStrokesCloser
+
+# ⑥ close up (where a fixed device-depth bias let the faces cut the strokes into dashes)
+wheel world 0.0 -1.85 0.3 2
+frames 3
+move viewport 0.95 0.10
+frames 3
+expect refused == 0
+capture 269EdgeStrokesCloseUp
+
+# ⑦ very close (the reported view: a curved rim edge drawn in dashes)
+wheel world 0.0 -1.85 0.3 2
+frames 3
+move viewport 0.95 0.10
+frames 3
+expect refused == 0
+capture 270EdgeStrokesVeryClose

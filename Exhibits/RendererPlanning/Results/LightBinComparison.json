@@ -1,0 +1,21 @@
+{
+  "execution": "CPU light-bin reproduction; not GPU speed, Dawn validation or Windows execution",
+  "A": {
+    "cluster_dimensions": [
+      16,
+      16,
+      4
+    ],
+    "test_lights": 32,
+    "retained_per_cell": 16,
+    "dropped_assignments": 16384,
+    "light_and_cluster_bytes": 84016
+  },
+  "B": {
+    "test_lights": 32,
+    "retained_per_cell": 32,
+    "first_cell_mask": 4294967295,
+    "light_and_cluster_bytes": 6176
+  },
+  "interpretation": "B retains all 32 supported lights in this case; A drops assignments beyond its 16-light cell cap. This does not measure runtime."
+}

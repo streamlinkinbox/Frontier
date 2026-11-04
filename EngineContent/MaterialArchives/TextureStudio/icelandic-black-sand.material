@@ -1,0 +1,46 @@
+Format = 1
+Name = 'Icelandic Volcanic Black Sand'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.68000000715255737, 310.0, 1.1000000238418579, 0.059999998658895493 ]
+Enabled = true
+Finish = [ 0.070000000298023224, 0.25999999046325684, 0.30000001192092896, 0.81999999284744263 ]
+Layers = 4
+Palette = [
+    [ 0.043735027313232422, 0.054480280727148056, 0.072271861135959625, 0.0 ],
+    [ 0.14995980262756348, 0.18116423487663269, 0.22322797775268555, 0.25 ],
+    [ 0.099898740649223328, 0.1778884083032608, 0.036889445036649704, 0.5 ],
+    [ 0.01228648703545332, 0.014443843625485897, 0.017641952261328697, 0.75 ],
+    [ 0.32314324378967285, 0.37123778462409973, 0.43415370583534241, 1.0 ]
+]
+Relief = [ 0.43999999761581421, 0.34999999403953552, 0.039999999105930328, 36.0 ]
+
+[Textures]
+Albedo = 'Textures/icelandic-black-sand-albedo.png'
+Normal = 'Textures/icelandic-black-sand-normal.png'
+Orm = 'Textures/icelandic-black-sand-orm.png'
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.0
+Ior = 1.6200000047683716
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 1.0
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 7
+Thickness = 0.0
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]

@@ -1,0 +1,26 @@
+frames 3
+expect curves == 23
+expect bodies == 3
+key 2
+click @Figure:Curve#1
+frames 3
+key A Ctrl
+frames 3
+expect selected-curves == 23
+expect selected-bodies == 0
+expect selected-spline-spans == 0
+expect selected-spline-poles == 0
+key Delete
+frames 3
+expect curves == 0
+expect steps == 3
+expect bodies == 3
+expect refused == 0
+capture Delete_All_Cage_Curves_Not_References
+key Z Ctrl
+frames 3
+expect curves == 23
+expect steps == 26
+expect bodies == 3
+expect refused == 0
+capture Undo_All_Cage_Curves

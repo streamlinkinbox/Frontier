@@ -1,0 +1,79 @@
+Format = 1
+Name = "Woodland Camouflage Fabric"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.09305896284668747, 0.11697066775851084, 0.05780543019106723]
+Roughness = 0.86
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.09305896284668745, 0.11697066775851084, 0.05780543019106723]
+SheenIntensity = 0.2
+SheenRoughness = 0.8
+TextureMask = 1
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "camouflage"
+Link = "shared"
+[Strata.Channels.Params]
+scale = 8
+seed = 12
+angle = 0
+amount = 1
+colour0 = "#b5a477"
+colour1 = "#566044"
+colour2 = "#514334"
+colour3 = "#232921"
+softness = 0.012
+pixelSize = 4
+
+[Authoring]
+Version = 2
+
+[[Authoring.Layers]]
+Identity = "3afe01a0-b4a1-427f-8f3e-67d6213e8ea2"
+Name = "Surface body"
+Model = "surface"
+Enabled = true
+Channels = ["colour", "roughness", "metallic", "normal", "ior", "specular", "thickness", "sheen", "sheenRoughness"]
+
+[[Authoring.Generators]]
+Identity = "2ff2a2ef-0029-4332-8110-6aa57bdf4239"
+Name = "Yarn construction"
+Category = "Textile fields"
+Procedure = "weave"
+Enabled = true
+Coded = false
+Inputs = ["fuzz", "fuzzLength", "detailScale", "weaveRelief", "fiberDetail", "weaveAngle"]
+Outputs = ["colour", "normal", "roughness", "metallic"]
+
+[[Authoring.Generators]]
+Identity = "66a21bd8-5fd8-40c9-8fc2-7781acc0efed"
+Name = "Woodland camouflage"
+Category = "Camouflage"
+Procedure = "camouflage"
+Enabled = true
+Coded = true
+Inputs = ["field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:scale", "field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:seed", "field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:angle", "field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:amount", "field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:colour0", "field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:colour1", "field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:colour2", "field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:colour3", "field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:softness", "field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:pixelSize"]
+Outputs = ["colour", "roughness", "metallic", "normal", "coverage"]
+
+[Authoring.Inputs]
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:colour0" = "#b5a477"
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:colour1" = "#566044"
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:colour2" = "#514334"
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:colour3" = "#232921"
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:softness" = 0.012
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:pixelSize" = 4
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:scale" = 8
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:seed" = 12
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:angle" = 0
+"field:66a21bd8-5fd8-40c9-8fc2-7781acc0efed:amount" = 1
+
+[[Authoring.Sources]]
+Address = "color"
+Mode = "field"
+Direct = true
+Generator = "66a21bd8-5fd8-40c9-8fc2-7781acc0efed"

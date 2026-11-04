@@ -1,0 +1,83 @@
+# SolidArc point cut + sketch duplicate walkthrough. Request: "cut at intersections of 2d objects; eg circle and another
+# circle overlap; the points they overlap i want to cut at that place; we can use ctrl to snap to that point and cut it"
+# and "add duplicate hotkey".
+# Cut (bottom toolbar) with Ctrl held snaps onto a crossing / end / midpoint / quarter point; every curve through it breaks
+# there in one step (a circle also at its next crossing). Ctrl+D / Shift+D duplicate bodies, or else the picked 2D objects.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/PointCutRecovery.solidarc
+#      --document …/PointCut.solidarc --script Exhibits/SolidArc/Code/Scripts/PointCutWalkthrough.txt
+# Closed forms: circles r 1 about (0, 0) and (1.2, 0) cross at (0.6, ±0.8).
+
+snap grid on
+
+# ① Top view: two overlapping Shift+W circles
+key N Ctrl
+frames 3
+key Keypad7
+frames 2
+key W Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 1.0 0.0 0.0
+frames 3
+key W Shift
+frames 2
+click world 1.2 0.0 0.0
+frames 2
+click world 2.2 0.0 0.0
+frames 3
+expect sketches == 2
+expect sketch-curve-total == 2
+
+# ② Cut + Ctrl over the upper crossing: the Intersection snap lights both circles, four break rings (both crossings)
+click @SketchCut
+frames 2
+expect split == 1
+move world 0.6 0.8 0.0 Ctrl
+frames 3
+expect trim-point contains Intersection · Circle1 × Circle2
+expect trim-point-curves == 2
+expect trim-breaks == 4
+capture 308PointCutHover
+
+# ③ Ctrl+click cuts: each circle becomes two arcs meeting at (0.6, ±0.8), one undo step
+click world 0.6 0.8 0.0 Left Ctrl
+frames 3
+expect refused == 0
+expect sketch-curve-total == 4
+expect status contains Cut 2 curve
+key Escape
+frames 2
+expect split == 0
+capture 309PointCutDone
+
+# ④ Pick the left circle in curve mode (5); Ctrl+D duplicates it, X locks the axis, type 3, Enter: the copy stands at x 3
+key 5
+frames 2
+click world -1.0 0.0 0.0
+frames 3
+expect selected-curves == 1
+key D Ctrl
+frames 2
+expect transform == 1
+key X
+frames 2
+type 3
+frames 3
+expect transform-readout contains Move x (3, 0, 0)
+key Enter
+frames 3
+expect sketches == 3
+expect sketch-curve-total == 6
+expect selected-curves == 1
+expect refused == 0
+capture 310SketchDuplicate
+
+# ⑤ Shift+D is the same duplicate; Esc cancels it (nothing added)
+key D Shift
+frames 2
+expect transform == 1
+key Escape
+frames 3
+expect transform == 0
+expect sketches == 3

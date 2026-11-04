@@ -1,0 +1,47 @@
+{
+ "sphere": {"BuildMsMedian": 37.1, "Violations": 0, "Levels": [
+  {"Level": 0, "Triangles": 5120, "Clusters": 63, "MaxError": 0.00000, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0},
+  {"Level": 1, "Triangles": 2910, "Clusters": 37, "MaxError": 0.10714, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0},
+  {"Level": 2, "Triangles": 1500, "Clusters": 17, "MaxError": 0.17235, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 2},
+  {"Level": 3, "Triangles": 750, "Clusters": 13, "MaxError": 0.17235, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 1},
+  {"Level": 4, "Triangles": 374, "Clusters": 3, "MaxError": 0.21062, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0},
+  {"Level": 5, "Triangles": 186, "Clusters": 2, "MaxError": 0.28580, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0},
+  {"Level": 6, "Triangles": 92, "Clusters": 1, "MaxError": 0.38157, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0}
+ ], "PerClusterCut": [{"Tau": 0.00038, "Gaps": 0, "Overlaps": 2}, {"Tau": 0.00075, "Gaps": 0, "Overlaps": 2}, {"Tau": 0.00146, "Gaps": 0, "Overlaps": 2}, {"Tau": 0.00285, "Gaps": 0, "Overlaps": 2}, {"Tau": 0.00556, "Gaps": 0, "Overlaps": 2}, {"Tau": 0.01087, "Gaps": 0, "Overlaps": 2}, {"Tau": 0.02123, "Gaps": 0, "Overlaps": 2}, {"Tau": 0.04149, "Gaps": 0, "Overlaps": 6}, {"Tau": 0.08107, "Gaps": 0, "Overlaps": 27}, {"Tau": 0.15840, "Gaps": 0, "Overlaps": 10}, {"Tau": 0.30950, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.60474, "Gaps": 0, "Overlaps": 0}]},
+ "glass-sphere": {"BuildMsMedian": 45.1, "Violations": 0, "Levels": [
+  {"Level": 0, "Triangles": 5120, "Clusters": 68, "MaxError": 0.00000, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0},
+  {"Level": 1, "Triangles": 2910, "Clusters": 32, "MaxError": 0.10714, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0},
+  {"Level": 2, "Triangles": 1516, "Clusters": 30, "MaxError": 0.18608, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0},
+  {"Level": 3, "Triangles": 886, "Clusters": 17, "MaxError": 0.18608, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 1},
+  {"Level": 4, "Triangles": 598, "Clusters": 15, "MaxError": 0.27908, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 3},
+  {"Level": 5, "Triangles": 458, "Clusters": 4, "MaxError": 0.44924, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 15},
+  {"Level": 6, "Triangles": 402, "Clusters": 4, "MaxError": 0.78059, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 31},
+  {"Level": 7, "Triangles": 384, "Clusters": 4, "MaxError": 0.85510, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 48},
+  {"Level": 8, "Triangles": 376, "Clusters": 4, "MaxError": 1.46571, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 79},
+  {"Level": 9, "Triangles": 372, "Clusters": 4, "MaxError": 1.46571, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 159},
+  {"Level": 10, "Triangles": 370, "Clusters": 4, "MaxError": 1.46815, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 178}
+ ], "PerClusterCut": [{"Tau": 0.00147, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.00287, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.00561, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.01095, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.02140, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.04181, "Gaps": 0, "Overlaps": 4}, {"Tau": 0.08170, "Gaps": 0, "Overlaps": 21}, {"Tau": 0.15964, "Gaps": 0, "Overlaps": 22}, {"Tau": 0.31192, "Gaps": 0, "Overlaps": 1}, {"Tau": 0.60947, "Gaps": 0, "Overlaps": 0}, {"Tau": 1.19086, "Gaps": 0, "Overlaps": 0}, {"Tau": 2.32686, "Gaps": 0, "Overlaps": 0}]},
+ "heightfield-cliff": {"BuildMsMedian": 59.4, "Violations": 0, "Levels": [
+  {"Level": 0, "Triangles": 8192, "Clusters": 87, "MaxError": 0.00000, "SharpEdges": 0, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0},
+  {"Level": 1, "Triangles": 4513, "Clusters": 52, "MaxError": 5.23867, "SharpEdges": 129, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 1},
+  {"Level": 2, "Triangles": 2287, "Clusters": 32, "MaxError": 5.71909, "SharpEdges": 129, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 8},
+  {"Level": 3, "Triangles": 1143, "Clusters": 18, "MaxError": 5.71909, "SharpEdges": 129, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 6},
+  {"Level": 4, "Triangles": 571, "Clusters": 12, "MaxError": 6.16948, "SharpEdges": 129, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 2},
+  {"Level": 5, "Triangles": 327, "Clusters": 7, "MaxError": 7.68381, "SharpEdges": 129, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 7},
+  {"Level": 6, "Triangles": 207, "Clusters": 8, "MaxError": 12.26854, "SharpEdges": 129, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 12},
+  {"Level": 7, "Triangles": 163, "Clusters": 5, "MaxError": 12.62102, "SharpEdges": 129, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 14},
+  {"Level": 8, "Triangles": 141, "Clusters": 2, "MaxError": 15.52522, "SharpEdges": 129, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 31},
+  {"Level": 9, "Triangles": 133, "Clusters": 2, "MaxError": 19.31071, "SharpEdges": 129, "UvSeams": 0, "OffCrease": 0, "SeamCrossing": 0, "Needles": 44}
+ ], "PerClusterCut": [{"Tau": 0.01931, "Gaps": 0, "Overlaps": 1}, {"Tau": 0.03773, "Gaps": 0, "Overlaps": 1}, {"Tau": 0.07373, "Gaps": 0, "Overlaps": 1}, {"Tau": 0.14405, "Gaps": 0, "Overlaps": 1}, {"Tau": 0.28147, "Gaps": 0, "Overlaps": 1}, {"Tau": 0.54998, "Gaps": 0, "Overlaps": 5}, {"Tau": 1.07461, "Gaps": 0, "Overlaps": 21}, {"Tau": 2.09972, "Gaps": 0, "Overlaps": 38}, {"Tau": 4.10271, "Gaps": 0, "Overlaps": 40}, {"Tau": 8.01641, "Gaps": 0, "Overlaps": 6}, {"Tau": 15.66351, "Gaps": 0, "Overlaps": 0}, {"Tau": 30.60541, "Gaps": 0, "Overlaps": 0}]},
+ "uv-creased-vessel": {"BuildMsMedian": 21.7, "Violations": 0, "Levels": [
+  {"Level": 0, "Triangles": 2976, "Clusters": 36, "MaxError": 0.00000, "SharpEdges": 144, "UvSeams": 116, "OffCrease": 0, "SeamCrossing": 0, "Needles": 0},
+  {"Level": 1, "Triangles": 1600, "Clusters": 22, "MaxError": 0.61435, "SharpEdges": 0, "UvSeams": 116, "OffCrease": 0, "SeamCrossing": 0, "Needles": 16},
+  {"Level": 2, "Triangles": 876, "Clusters": 11, "MaxError": 0.94415, "SharpEdges": 0, "UvSeams": 116, "OffCrease": 0, "SeamCrossing": 0, "Needles": 15},
+  {"Level": 3, "Triangles": 522, "Clusters": 7, "MaxError": 1.40514, "SharpEdges": 0, "UvSeams": 116, "OffCrease": 0, "SeamCrossing": 0, "Needles": 17},
+  {"Level": 4, "Triangles": 370, "Clusters": 7, "MaxError": 1.44171, "SharpEdges": 0, "UvSeams": 116, "OffCrease": 0, "SeamCrossing": 0, "Needles": 12},
+  {"Level": 5, "Triangles": 292, "Clusters": 7, "MaxError": 1.44171, "SharpEdges": 0, "UvSeams": 116, "OffCrease": 0, "SeamCrossing": 0, "Needles": 8},
+  {"Level": 6, "Triangles": 264, "Clusters": 3, "MaxError": 1.44171, "SharpEdges": 0, "UvSeams": 116, "OffCrease": 0, "SeamCrossing": 0, "Needles": 7},
+  {"Level": 7, "Triangles": 242, "Clusters": 3, "MaxError": 1.92759, "SharpEdges": 0, "UvSeams": 116, "OffCrease": 0, "SeamCrossing": 0, "Needles": 15},
+  {"Level": 8, "Triangles": 236, "Clusters": 2, "MaxError": 1.92759, "SharpEdges": 0, "UvSeams": 116, "OffCrease": 0, "SeamCrossing": 0, "Needles": 20}
+ ], "PerClusterCut": [{"Tau": 0.00193, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.00377, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.00736, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.01438, "Gaps": 0, "Overlaps": 0}, {"Tau": 0.02810, "Gaps": 0, "Overlaps": 2}, {"Tau": 0.05490, "Gaps": 0, "Overlaps": 2}, {"Tau": 0.10727, "Gaps": 0, "Overlaps": 5}, {"Tau": 0.20959, "Gaps": 0, "Overlaps": 11}, {"Tau": 0.40953, "Gaps": 0, "Overlaps": 16}, {"Tau": 0.80019, "Gaps": 0, "Overlaps": 7}, {"Tau": 1.56352, "Gaps": 0, "Overlaps": 0}, {"Tau": 3.05502, "Gaps": 0, "Overlaps": 0}]}
+}

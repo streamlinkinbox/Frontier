@@ -1,0 +1,105 @@
+Start testing: Oct 17 13:34 UTC
+----------------------------------------------------------
+1/6 Testing: ActivationValidation0
+1/6 Test: ActivationValidation0
+Command: "/home/user/Frontier/_ClaudeScratch/build/ui/ActivationValidation0"
+Directory: /home/user/Frontier/_ClaudeScratch/build/ui
+"ActivationValidation0" start time: Oct 17 13:34 UTC
+Output:
+----------------------------------------------------------
+PASS: control and geometry lifecycle, editor=0; ordering, idempotence, recursion, failures, reclamation, invalid durations
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"ActivationValidation0" end time: Oct 17 13:34 UTC
+"ActivationValidation0" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/6 Testing: ActivationValidation1
+2/6 Test: ActivationValidation1
+Command: "/home/user/Frontier/_ClaudeScratch/build/ui/ActivationValidation1"
+Directory: /home/user/Frontier/_ClaudeScratch/build/ui
+"ActivationValidation1" start time: Oct 17 13:34 UTC
+Output:
+----------------------------------------------------------
+PASS: control and geometry lifecycle, editor=1; ordering, idempotence, recursion, failures, reclamation, invalid durations
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"ActivationValidation1" end time: Oct 17 13:34 UTC
+"ActivationValidation1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/6 Testing: FontCatalogueValidation
+3/6 Test: FontCatalogueValidation
+Command: "/home/user/Frontier/_ClaudeScratch/venv/bin/python3.11" "/home/user/Frontier/Exhibits/ControlCentre/Code/FontCatalogueValidation.py"
+Directory: /home/user/Frontier/_ClaudeScratch/build/ui
+"FontCatalogueValidation" start time: Oct 17 13:34 UTC
+Output:
+----------------------------------------------------------
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.458s
+
+OK
+<end of output>
+Test time =   0.51 sec
+----------------------------------------------------------
+Test Passed.
+"FontCatalogueValidation" end time: Oct 17 13:34 UTC
+"FontCatalogueValidation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/6 Testing: NotchValidation
+4/6 Test: NotchValidation
+Command: "/home/user/Frontier/_ClaudeScratch/build/ui/NotchValidation"
+Directory: /home/user/Frontier/_ClaudeScratch/build/ui
+"NotchValidation" start time: Oct 17 13:34 UTC
+Output:
+----------------------------------------------------------
+PASS: reference trapezoid; tap; slow upward dismiss; upward/downward flicks; axis lock; small-drag retention; focus loss; resize; 125 percent scale; narrow viewport
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"NotchValidation" end time: Oct 17 13:34 UTC
+"NotchValidation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/6 Testing: ControlCentreValidation
+5/6 Test: ControlCentreValidation
+Command: "/home/user/Frontier/_ClaudeScratch/build/ui/ControlCentreValidation" "/home/user/Frontier/EngineContent/FontArchives" "/home/user/Frontier/_ClaudeScratch/build/ui/control-centre-evidence"
+Directory: /home/user/Frontier/_ClaudeScratch/build/ui
+"ControlCentreValidation" start time: Oct 17 13:34 UTC
+Output:
+----------------------------------------------------------
+PASS: 4 families / 30 faces, discovery, removal, native font/theme clicks, draft/discard/apply, actual palette/font selection, persistent preferences, invalid settings, lifecycle cleanup
+Images are actual ImGui CPU raster output, not Windows GPU screenshots.
+<end of output>
+Test time =   9.14 sec
+----------------------------------------------------------
+Test Passed.
+"ControlCentreValidation" end time: Oct 17 13:35 UTC
+"ControlCentreValidation" time elapsed: 00:00:09
+----------------------------------------------------------
+
+6/6 Testing: InterfaceValidation
+6/6 Test: InterfaceValidation
+Command: "/home/user/Frontier/_ClaudeScratch/build/ui/InterfaceValidation" "/home/user/Frontier/EngineContent/Icons" "/home/user/Frontier/_ClaudeScratch/build/ui/evidence"
+Directory: /home/user/Frontier/_ClaudeScratch/build/ui
+"InterfaceValidation" start time: Oct 17 13:35 UTC
+Output:
+----------------------------------------------------------
+PASS: 151 SVGs ready and visible; cache, invalid input, eviction, missing assets, ImGui commands, patched tabs, DPI atlas retirement
+CPU evidence only: no GPU upload, Windows execution, or scene renderer tested
+<end of output>
+Test time =   0.72 sec
+----------------------------------------------------------
+Test Passed.
+"InterfaceValidation" end time: Oct 17 13:35 UTC
+"InterfaceValidation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 17 13:35 UTC

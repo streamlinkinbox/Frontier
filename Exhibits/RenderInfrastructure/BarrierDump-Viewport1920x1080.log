@@ -1,0 +1,8 @@
+[13:16:47.693] [Render] [Info] Submission order resolved · 2 units · 0 imported targets (SubmissionOrder.cpp)
+[13:16:47.704] [Render] [Info] Transient atlas resolved · 2 targets -> 2 bins · 24883200 bytes (unaliased 24883200, saved 0) (TransientTargetAtlas.cpp)
+[13:16:47.704] [Render] [Info] Barrier · Surface layout Undefined -> ColourWrite before SurfaceRaster [#0] (BarrierDerivation.cpp)
+[13:16:47.704] [Render] [Info] Barrier · Depth layout Undefined -> DepthWrite before SurfaceRaster [#0] (BarrierDerivation.cpp)
+[13:16:47.704] [Render] [Info] Barrier · Surface layout ColourWrite -> Sampled before DisplayPresent [#1] (BarrierDerivation.cpp)
+[13:16:47.704] [Render] [Info] Barrier · Swapchain layout Present -> ColourWrite before DisplayPresent [#1] (BarrierDerivation.cpp)
+[13:16:47.704] [Render] [Info] Barrier · Swapchain layout ColourWrite -> Present before DisplayPresent [#1] (BarrierDerivation.cpp)
+[13:16:47.704] [Render] [Info] Barriers derived · 5 layout transitions · 0 execution dependencies (BarrierDerivation.cpp)

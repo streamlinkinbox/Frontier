@@ -1,0 +1,1807 @@
+{
+  "repository": "streamlinkinbox/Frontier",
+  "commit": "773b2f5a2672ae530accff000d65d779e9059b66",
+  "source_root": "Experimental/TextureStudio",
+  "entries": [
+    {
+      "path": ".gitignore",
+      "git_blob": "b1eb1bc4ecb68ec7f68f324beb281e241be862ad",
+      "sha256": "7826b0aa554d2ffda9118859c77a0516589f1723da391f866f9022e46130e7c8",
+      "bytes": 245
+    },
+    {
+      "path": "01a069b4-dacc-7386-96cc-8c05c63c3532.patch",
+      "git_blob": "bfa1bf1e88231a4fccd0879d8096a1b58c957124",
+      "sha256": "935ea4489069bb0bc8d412688ec3ff7adabfba27f028c20741681699fbbdd92b",
+      "bytes": 161678
+    },
+    {
+      "path": "README.md",
+      "git_blob": "9c9107a262da47d2ac6c4a602cc98c7120d6fab6",
+      "sha256": "1708f35b67503899034c528ebb6e34c9096f2fb188cddb0a229b17c30a44dfc2",
+      "bytes": 52494
+    },
+    {
+      "path": "deliverables/utah-teapot/README.md",
+      "git_blob": "4e35256531240a79c53e22d62dc744f7071de2b3",
+      "sha256": "1238b737b7c1c4e15e4474ad9f33413f5e00898a850dd864df6336fae8507a66",
+      "bytes": 3215
+    },
+    {
+      "path": "deliverables/utah-teapot/index.html",
+      "git_blob": "50e3462ceaf3e9e8d411d80c0b971315ecf11808",
+      "sha256": "9e1705173518a92550e5a34da165a676a834a9d6db17e8cd3fa3118edde49fe5",
+      "bytes": 2488
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/README.txt",
+      "git_blob": "1b97325796b9b6e8ca7b4d7023891c9884666042",
+      "sha256": "672eae96ed192bf20e35195f6606a622ae216962e09fdc2a57c15c7a36ff277b",
+      "bytes": 1148
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/confidence-x.png",
+      "git_blob": "28f63f8130583b79cb8dc623abdfbb2e26138a54",
+      "sha256": "52f28be2f9885257103ec32213e7f5120eb677f717a291ab817af258cdb0036f",
+      "bytes": 266
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/confidence-y.png",
+      "git_blob": "fcde85aa97f322b7295fb866d712a724a7b248c7",
+      "sha256": "dfd29ccc4204ec552d988af587f06d573babdbc97bfec3678d27145ac2c5fb24",
+      "bytes": 273
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/confidence-z.png",
+      "git_blob": "5ff360f159ff2e103459fa927d6d9a4b8346a669",
+      "sha256": "4f84edc430baddcf63ecfba5a8f3bd6398b72b98a8840b75379653a3c46a526c",
+      "bytes": 296
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/index.html",
+      "git_blob": "d832f81e2510a6a3294c1b02f3aab328363f0b16",
+      "sha256": "92aba2925f644afcb1343a8fe4a23fe77bc1612786189672b24fdf1b35cd7cf5",
+      "bytes": 4646
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/manifest.json",
+      "git_blob": "d24ab875fd1bcc4fc0e939a06f9659339125a40a",
+      "sha256": "63726a6814965096a53bf2b650a78309a4089df04fe886337b65135b9d042cce",
+      "bytes": 3522
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/slice-x.png",
+      "git_blob": "f99d02b111d296d4c290f1ccc81d2e9a7830e9f1",
+      "sha256": "302dfa434467fb5b76568c7486ec8168fab9e3c2d29f831a795b2aeaaa6e08fc",
+      "bytes": 3239
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/slice-y.png",
+      "git_blob": "facc9c40a2af289f664b47d51068c4089cf59915",
+      "sha256": "de33dee82ab7a723586344262d456b29b459e8ed714bb599fd796ddc64ed50ef",
+      "bytes": 3148
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/slice-z.png",
+      "git_blob": "6f72f4db2fd35845e44d1c8fd1139d011fe7fa4d",
+      "sha256": "333474f39c4c916b78353def2d7800ec1298b4f0991ea7aade5952f7bca47b6c",
+      "bytes": 5166
+    },
+    {
+      "path": "deliverables/utah-teapot/sdf-64/utah-teapot-sdf-64.zip",
+      "git_blob": "ca3fb05a313480ba6d2645b460983e5dbb513ac3",
+      "sha256": "f971a8e8ef28c2dba86e12f134e38d541cb04fba5a6c39350b0459b20b7ddb4f",
+      "bytes": 1328828
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/alpha.png",
+      "git_blob": "1a752dc0409a8497eec61fa2d4fe4e4cdc34b6d6",
+      "sha256": "cbcf4dde7e757cf16da3de6ffa343dd72fbc9b6ee90fc9d44323bf8ac66a3bf8",
+      "bytes": 5688
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/audit.json",
+      "git_blob": "21874bb4322696d3620f1a632564d6cec1b556bf",
+      "sha256": "469caa83ddc5c17d87e206be315ccbd897c019ef375e1c66e80dd8f1c4407e69",
+      "bytes": 9753
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/base-color.png",
+      "git_blob": "078ba4ca40f7718a66da4fd44e6f08a061aa3cf7",
+      "sha256": "dd7dc2875de47fdfb5f2e841f0e5c08c27605c3589e1c49c7552a719f151ff91",
+      "bytes": 6302
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/bent-normal.png",
+      "git_blob": "63900a725f989460dc4cd03d676a67800bd750ae",
+      "sha256": "b8b6614091feb745b182387babfaff845732cf3a5da94355d7a8f03cfd3614e8",
+      "bytes": 222167
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/bent-object-normal.png",
+      "git_blob": "d11e07e30fdbb7d29d6b3dbc3b81be702a9f331d",
+      "sha256": "36669450e6f9b9d889a7a0a66acf8d2673e523a2fa7bd77fe19b38346d60810a",
+      "bytes": 570630
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/bent-world-normal.png",
+      "git_blob": "d11e07e30fdbb7d29d6b3dbc3b81be702a9f331d",
+      "sha256": "36669450e6f9b9d889a7a0a66acf8d2673e523a2fa7bd77fe19b38346d60810a",
+      "bytes": 570630
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/bevel-mask.png",
+      "git_blob": "858bc2f19ce83781f8d8fc3f7f788f4487cf1e32",
+      "sha256": "85d579d91fb12703875f674566add82418214a7560d4b952b1c9c7d33cc8d6f7",
+      "bytes": 43470
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/bevel-normal.png",
+      "git_blob": "c7cdcd34f9f0edcd1fd7a51b106ad2fe33d832c6",
+      "sha256": "f98b7e327daf7e1d36c52243d3244347da2ac24d4c83a35008f6ff113033e280",
+      "bytes": 87683
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/cavity.png",
+      "git_blob": "1cf94f188898570629daabe9c22ab8eb41961c97",
+      "sha256": "028079046083dec3e0d8edc8c88f3498b7c536416c90c9db0cfd14602d1ba921",
+      "bytes": 25273
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/convexity.png",
+      "git_blob": "78891d53fec0574d1f4b44672463688a4cf6fd3f",
+      "sha256": "aae127bcfce2aea32f1bbf7090a960219f44973a99d495d0136bdb58e60149e2",
+      "bytes": 87480
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/coverage.png",
+      "git_blob": "1a752dc0409a8497eec61fa2d4fe4e4cdc34b6d6",
+      "sha256": "cbcf4dde7e757cf16da3de6ffa343dd72fbc9b6ee90fc9d44323bf8ac66a3bf8",
+      "bytes": 5688
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/curvature.png",
+      "git_blob": "6e02217da4e33d84207b05cc3777daa1dbafbde3",
+      "sha256": "9f12a080f2c871210f30aa9cc70f40ba78036e40f44c40b78aaeaf50ad079355",
+      "bytes": 47542
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/dirt.png",
+      "git_blob": "309f79c184d464ecb68e3f4a899fcb34484def72",
+      "sha256": "73fecd284d23abcf984a70d859aa309cc5103f6141ed26870cfd143c549785c9",
+      "bytes": 51487
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/dust.png",
+      "git_blob": "6c36f9cb874bf381e6d283c4625defb2a287c5fe",
+      "sha256": "13339cd2f0df8e003a85437146398b8d0c5e914fff39f9348e3adca79bd9aae3",
+      "bytes": 64760
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/edge-wear.png",
+      "git_blob": "20853442fe5168ec28ad587de18565f8443d70da",
+      "sha256": "e0e7a2e9fdf3817b25bfe1856b7bc8200468c4a21c320e1fa2ba482948520648",
+      "bytes": 107737
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/height.png",
+      "git_blob": "fba49e951a39c89197dc7a86498c7a5e0d7325c2",
+      "sha256": "4079c2da2f9b2138b9f440c45b9529cecc379145d6dda17051e97f59bfc4fd90",
+      "bytes": 23923
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/id.png",
+      "git_blob": "26a719119b032d97a30a41aabe364c22f1e16402",
+      "sha256": "a82bc5ff40338a63c4e6c867f1473c659179b982ca4d6205e0e42df92c9600d5",
+      "bytes": 6762
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/index.html",
+      "git_blob": "5e8cc8d38a139e2386ee0a9b3310dde1fb52717e",
+      "sha256": "c6e6eee83ae277f938795165a5ba4ebcad0e909aa1382c0a5d6292a7f8b23683",
+      "bytes": 5626
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/manifest.json",
+      "git_blob": "23b158652e1ccf1280d6d3bdfdeff0b08d991149",
+      "sha256": "f0f5713ff91cbbca8ac38a3c58b2d08074be18248445ad5d7a543ae5d9c3437d",
+      "bytes": 15791
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/normal.png",
+      "git_blob": "840bc5d0a944f68bd266ad008b780db6e2167e72",
+      "sha256": "f78879b48a7bad042bc0e676e10cf8048b512176352b765f9686973eb9e30ec8",
+      "bytes": 61140
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/object-normal.png",
+      "git_blob": "ab34995a7ea5f5f8d2d8de0af554963bc83fd079",
+      "sha256": "df2327762d23bcd5455bb8cb2876cd4dac7b5052a61a1c86a74cc842a4c29ee7",
+      "bytes": 542921
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/occlusion-secondary.png",
+      "git_blob": "182a96f5a38ca8aa5fbfa84eba367d9fba8d64b0",
+      "sha256": "3a80dc6d509c798fec8c565a04094665c7a2d8966d16dbc52accfa9aa34513eb",
+      "bytes": 72544
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/occlusion.png",
+      "git_blob": "4b2acdebd981c12b8c9aa6789a0d0eec9c6e5388",
+      "sha256": "94d141191094fb59f197d2baeecd696b7974c2f3d28d7f5c8d5ebb6047d43309",
+      "bytes": 58539
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/position.png",
+      "git_blob": "c5a76a8fa522ee25d05eef6e2b52d4047d3ae909",
+      "sha256": "1b5448e741d795c7fdc6b92c87fa694ca543d44377a4a3b7619ff91d08ff34ce",
+      "bytes": 365398
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/thickness.png",
+      "git_blob": "c476bc6b2c0e4ec22628a142dc8e93365b6d21b1",
+      "sha256": "771f759e0edccf3899e9440b8d3f69349e7c054b9b02e1b8e9d892723852b50c",
+      "bytes": 33107
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/utah-teapot-512.zip",
+      "git_blob": "9c82cd9146a94ea9bccff643175e8a0ae51efcc0",
+      "sha256": "fe75310fea9cbbb883df4a65497d5811fa1b71f4d2930d866fcffc20f86abdbe",
+      "bytes": 3832527
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/uv-island.png",
+      "git_blob": "42b7988fd40bf0e6991c8dea5b88056881f4a3c0",
+      "sha256": "9ad3d283aebbfc3c478b89a86179bd187b2666ecfec3bd0a98a5ebc9ee81aff9",
+      "bytes": 8573
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/uv.png",
+      "git_blob": "899339b55c03d6da92576d133c9dd0a0500cb46f",
+      "sha256": "356820e614a8b80e6ffa6d800bc6bf6f7febaabdb853db5053696bad14446126",
+      "bytes": 97995
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/vector-displacement.png",
+      "git_blob": "2ebc607038aa7989803898532b8d7c5975ca4574",
+      "sha256": "36cd99c7427be825278e463d6f3b36c2632813e4fd55a3259dd2ad93551e6aa8",
+      "bytes": 63701
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/wireframe.png",
+      "git_blob": "21a3e001e8ddf3a4b81dbf4201486c383f2933eb",
+      "sha256": "a6151ee0884c4aed78fa441b7da3f48832ab838e6edc32d3ccf4379e0740ac6f",
+      "bytes": 24202
+    },
+    {
+      "path": "deliverables/utah-teapot/surface-512/world-normal.png",
+      "git_blob": "ab34995a7ea5f5f8d2d8de0af554963bc83fd079",
+      "sha256": "df2327762d23bcd5455bb8cb2876cd4dac7b5052a61a1c86a74cc842a4c29ee7",
+      "bytes": 542921
+    },
+    {
+      "path": "docs/baking-studio.md",
+      "git_blob": "2935196f26ac649382f64284ca5ae213c066c681",
+      "sha256": "67ec120bb86463f2333eaa9b16993acd43c90f466b84a48eb6569eda7408bd50",
+      "bytes": 15352
+    },
+    {
+      "path": "docs/corrugated-and-sand.md",
+      "git_blob": "e1785ff24536e17296e5880225fbd2e6bf527c43",
+      "sha256": "07decc3d16a5907c78c18613e93903c984dd4f1f2620b7f3d17abb9edb21a920",
+      "bytes": 6950
+    },
+    {
+      "path": "docs/digital-painting.md",
+      "git_blob": "ab8ebd24c991af8bfd1cca31a485d67601d7fb63",
+      "sha256": "88832791e8d5c6f155f80282532715c6b89b0097bdf0d6b93b77629292ba73e2",
+      "bytes": 27307
+    },
+    {
+      "path": "docs/heritage-patterns.md",
+      "git_blob": "137c9724aaf4dfc3b15f6df856fc5d39571a7567",
+      "sha256": "d2a47a910a5b9dc78392115528b40dc13d8cdc1a7c4c493d8c1c12619cd25e93",
+      "bytes": 8073
+    },
+    {
+      "path": "docs/paint-tools-and-content-browser.md",
+      "git_blob": "05fed16d437ff5597bbecdcb2519e7dd13eff882",
+      "sha256": "2fb1e9695b01834dec0aa215f25f053c080aea576053efea9a398a9d27bc75c3",
+      "bytes": 21888
+    },
+    {
+      "path": "docs/pattern-structure-ledger.md",
+      "git_blob": "1c88ed2aa44b36435ba8b4e1c0a35015632d6bb2",
+      "sha256": "5fa1f22b17b716c3ca47256b55334be92bd8185a328cef9c08b8b7b9d90d0d2b",
+      "bytes": 1446
+    },
+    {
+      "path": "docs/pattern-studio.md",
+      "git_blob": "b04b56b7b04b6f1ff2863b5ddb1b8d5f0e405f7f",
+      "sha256": "7b567ffcabb5f00a322cb740050b162d21cad94014d4e3ba372d877a3a5be7bb",
+      "bytes": 26647
+    },
+    {
+      "path": "docs/preview-runtime.md",
+      "git_blob": "6b8667bd2a7d338ea658b08e12e3395151b17495",
+      "sha256": "2bf0464d91c13e54a9de3ae4c31fd1362fa04c95d29f45f348d4309052087a9c",
+      "bytes": 4370
+    },
+    {
+      "path": "docs/rug-references.md",
+      "git_blob": "04b68287e456bf8290ee5661766040fe6d7cf18c",
+      "sha256": "8ef5b9b90ed21009541a39ddaa9160435db3c3dc643fb8a6e60a56de991afd3a",
+      "bytes": 12139
+    },
+    {
+      "path": "docs/shape-editor.md",
+      "git_blob": "4748e5365206bddf5ce0e7208787651449148ebd",
+      "sha256": "f80d6f30207c21abbb5e2e3c6624eac586e03eca643118ddc00c53442c4e2aad",
+      "bytes": 21194
+    },
+    {
+      "path": "docs/stamps-and-decals.md",
+      "git_blob": "0670fb7869e35f4e473e9ef673c1d49cf2e5e9ec",
+      "sha256": "a03c8167d9e7fc5628968d6498c3004fc9d1c7f8666435c708154a3d690149bf",
+      "bytes": 15246
+    },
+    {
+      "path": "docs/surface-reference-notes.md",
+      "git_blob": "39d54213b680536769ed0c143e43ce117e917f7e",
+      "sha256": "62c27c0b8f05b5ca8accb32486cf5b7925511fc55ed113f2698367638827e72a",
+      "bytes": 5422
+    },
+    {
+      "path": "docs/texture-layer-evaluation.md",
+      "git_blob": "c4e9d044e0fee834d0992f3e6cdb6263ce383734",
+      "sha256": "655747dfe53d432b50fbfac779bf712e440afb8aa0e5af81cfd404479a66da12",
+      "bytes": 15735
+    },
+    {
+      "path": "docs/texture-mask-painting.md",
+      "git_blob": "a306fcb5b4b296a2ef99f20c8fbb93f3dbe5c7b3",
+      "sha256": "1a31934e44664fd4cf99fe9939e8724fafbae1d26cf02c02600665fc501adb92",
+      "bytes": 17978
+    },
+    {
+      "path": "docs/texture-painting-plan.md",
+      "git_blob": "e010a690bfd65710349a6cc0b6961a0cf64671c8",
+      "sha256": "39fafdb7803d33bb6182644360201fa57fa593e63cbc8ebd83040db00a3ec2c7",
+      "bytes": 20835
+    },
+    {
+      "path": "docs/texture-parts-uv.md",
+      "git_blob": "1dbbd4f7f5aa470ece1983c2605d6614bb3288ae",
+      "sha256": "bc8055211566054855ce1460457fa43a6c193928073f15a42785cb8e7c94501a",
+      "bytes": 12963
+    },
+    {
+      "path": "docs/volume-sdf-and-bake-audit.md",
+      "git_blob": "980872f92da59d1600d3bd36574e0ab5971b2a2e",
+      "sha256": "b3aa664933dd0487888492dbc29f2b2bed71cc6414df10ce243b8f78d6061755",
+      "bytes": 8768
+    },
+    {
+      "path": "index.html",
+      "git_blob": "3e914019f9b23b5a8b087ee34cf0f4d79c3ed38a",
+      "sha256": "ab744599bfde2a970e63cd0f4786ad11ccc96d35a1d19182a6031f1c546b3b3b",
+      "bytes": 622
+    },
+    {
+      "path": "package-lock.json",
+      "git_blob": "b28b1bb92dccac33f9c320e335b2bcb94480d822",
+      "sha256": "3654a8b395aa5d2a0b783b88681aab24e3e46b52e575c0c212bc61b46e453686",
+      "bytes": 40106
+    },
+    {
+      "path": "package.json",
+      "git_blob": "04e899f9873b84061cbb3b6bff7963c0d192ba52",
+      "sha256": "1955ad575dd6e021f6b4857ed83215159fd7682824f6026834c9ba9893fd9e4f",
+      "bytes": 3520
+    },
+    {
+      "path": "playwright.config.js",
+      "git_blob": "9ae197ddce5c1c84daa608eedfff3dac65bd7268",
+      "sha256": "c0b46939c33b23b26d1eb0662fff558cc1344ed4a88d3b25c98f0abab47975f7",
+      "bytes": 876
+    },
+    {
+      "path": "playwright.standalone.config.js",
+      "git_blob": "8ff1e60942e37a0e6b884cb348808c68a9e737e3",
+      "sha256": "6fe85b11898454f84353725e68bd4fb28f2abefa9c2af2fced43e3b0c1c0190f",
+      "bytes": 500
+    },
+    {
+      "path": "scripts/audit-teapot-bakes.mjs",
+      "git_blob": "506b56924d7fe8b022944b40350d8e0d17e7b0a0",
+      "sha256": "9d3ab73b9bdcad01c5d3d5c947f4b6b275e174f566af5ea8db602d1ba5071fc0",
+      "bytes": 9803
+    },
+    {
+      "path": "scripts/audit-teapot-sdf.mjs",
+      "git_blob": "f50e70fb4779cbdf7bde966f68b603b6e4b2d311",
+      "sha256": "2d2de3a450fed5ebcc31a7aa86c78b7c899cfdc6131c42fe4f14077196552ad0",
+      "bytes": 3541
+    },
+    {
+      "path": "scripts/bake-cloth.mjs",
+      "git_blob": "1eb923e4815120deab2da50af2960d45319e7041",
+      "sha256": "9aa844e5ca149c2830449f49495e0f88bc8af291aa5ab9d3f2a428893ac9ba46",
+      "bytes": 4702
+    },
+    {
+      "path": "scripts/build-githack.mjs",
+      "git_blob": "0944e95dde4bb3434c4e2a8b49dd27a6a59f9948",
+      "sha256": "003e237dc00790185e97380d53147990d108f264e70bff0504a954c990e40a37",
+      "bytes": 1991
+    },
+    {
+      "path": "scripts/verify-published.mjs",
+      "git_blob": "f550f55c4ff3a003972593f6ca3489548576d2e2",
+      "sha256": "ca7b6ccdd8abb5917cdacc4080bfd5e0b82bc4d294c2a99eea933e85b06acc0a",
+      "bytes": 2672
+    },
+    {
+      "path": "site/index.html",
+      "git_blob": "fdb5ec12ed161a25d4c91e2fa60988733d8d9293",
+      "sha256": "d764dfe2015e2c32ca916d0899ab566b517062867ecdde48549373583a873dfa",
+      "bytes": 4020340
+    },
+    {
+      "path": "src/AssetContentBrowser.jsx",
+      "git_blob": "99ff1655afb5a4cd30e17288b152cb0b48a5b453",
+      "sha256": "e7350fc62765a6cdedce5ebf2aa1de88c3367284694338a8e79da236e79a01ce",
+      "bytes": 28832
+    },
+    {
+      "path": "src/AuthoringNameField.jsx",
+      "git_blob": "5875aee70022ec73eb411629df51fc0cc8002068",
+      "sha256": "d02ec3830edf6a25edd8714c982a91147d9aa15d6d9bb426db6d8ace30049f9f",
+      "bytes": 901
+    },
+    {
+      "path": "src/BakePanel.jsx",
+      "git_blob": "e41d224f56acb98a34afa9cac707299c4452ddca",
+      "sha256": "647b116b2370a6d1ea804f64e34547f4cfa0cd5cea2faf87d415a6d1ec54b91a",
+      "bytes": 7730
+    },
+    {
+      "path": "src/BakingStudio.jsx",
+      "git_blob": "5737a4411bd57532b045b7391d86f25091758d94",
+      "sha256": "e036911cfdcaebbb32c58cb2f6ae7159d49ceef5dcb8257942807329b5a1be8e",
+      "bytes": 43798
+    },
+    {
+      "path": "src/ChannelPropertyPanel.jsx",
+      "git_blob": "868cc7462a83a6f7253bef5d9c4175b2358401a5",
+      "sha256": "11141dbae8708e50a8518f37eb0a3ed0ed8fcef70ebdbb872cac433547d42066",
+      "bytes": 21243
+    },
+    {
+      "path": "src/ColourMaskPreview.jsx",
+      "git_blob": "b42b899098971184ee57c275d31dde5d9545d588",
+      "sha256": "4993c4d156a6e32454ac2a2d73e94107795356cb405810d2ebba066126bb22cd",
+      "bytes": 3375
+    },
+    {
+      "path": "src/ColourPicker.jsx",
+      "git_blob": "289ee35538db90b3f5f9b8f7b1eb3c8e43bf7736",
+      "sha256": "896749938160cabf7c592b3592c8afaf7806eb68ba39587b90813ae5b06d76b4",
+      "bytes": 6084
+    },
+    {
+      "path": "src/DecalComponentsPanel.jsx",
+      "git_blob": "10d3932d8eb25546e56a61e27451a7d8bc5739d8",
+      "sha256": "233d9c7b1d0cfc68647d6d5b299a2c04088f381053606346d861de08861aee76",
+      "bytes": 18162
+    },
+    {
+      "path": "src/DigitalPaintMenu.jsx",
+      "git_blob": "b70bc55f201ff3d92e624707d79901f43455302c",
+      "sha256": "2c761eef8579749c1f7fef37531c850d8c88d429ace099856f7202869d020df0",
+      "bytes": 24062
+    },
+    {
+      "path": "src/GradientSliceImage.jsx",
+      "git_blob": "fb652d59e3382ade76850e0caed6efa144c288ba",
+      "sha256": "4cb079191d380a727b2110e40544f0e96f378539d5020b91273861e173d68386",
+      "bytes": 690
+    },
+    {
+      "path": "src/MaterialControls.jsx",
+      "git_blob": "1449b082cc5a57942b7f68b02f215dfaf9c62207",
+      "sha256": "437387750f2f7a4799d5610b9d4fe4fecbe011144eef700e3c4965cfe516a21c",
+      "bytes": 10730
+    },
+    {
+      "path": "src/MaterialGeneratorEditor.jsx",
+      "git_blob": "5a462a00b0546ad036b8b63cc70d75709067da7e",
+      "sha256": "e06d02cc02558d4892764b31e2049d2cbb50b4047e40b818e65e2866fc7af322",
+      "bytes": 7225
+    },
+    {
+      "path": "src/MaterialInspectorPanel.jsx",
+      "git_blob": "2c3047c00b5b9f4c30327d1475b7bcc9775c637f",
+      "sha256": "37ba801c6e7bac1a7710a2bb4fa50c7a75ccf56d754fb01b20a14637355ca285",
+      "bytes": 5668
+    },
+    {
+      "path": "src/PaintToolMenu.jsx",
+      "git_blob": "79a749b4967cd0308c864a2838280709eb1eeda3",
+      "sha256": "128006ca6ac28f17fe06780a3ac5623ceab2ee76d25f674d11a4a7878fbebac9",
+      "bytes": 8838
+    },
+    {
+      "path": "src/PathEditorControls.jsx",
+      "git_blob": "02b796dbf47ef72d64708ed983a59c6d55b8e353",
+      "sha256": "54b5140b41240dc53c0e3f085f83c92e979072985f2203ac8f759de12c702e72",
+      "bytes": 13141
+    },
+    {
+      "path": "src/PathEditorOverlay.jsx",
+      "git_blob": "502dbfcf27314c848b0d518f0622f61dad89bcc7",
+      "sha256": "681100f61ddbb55241ddbec3afc2e4ace598a080e88d2befc4733b89bbf2ffd6",
+      "bytes": 5318
+    },
+    {
+      "path": "src/PatternEditor.jsx",
+      "git_blob": "1a8ec66a07f6b4ba0b01995d7d79b8a8b14a8b2b",
+      "sha256": "980fe7a522712819d0e619b990a7195c6ec693db2c43e6330d4aba125229c26a",
+      "bytes": 96103
+    },
+    {
+      "path": "src/PatternMaterialPreview.jsx",
+      "git_blob": "9b5a72af68dc2230c41f7ac3e6f67c475c5342ed",
+      "sha256": "3546feb21bf5f809e2f7f5bf3f27df9c32bc96cbd8b9964d99ca37873c390d45",
+      "bytes": 3885
+    },
+    {
+      "path": "src/PatternTextControls.jsx",
+      "git_blob": "178b21757afaf733c2d329e1a42f8536076935a7",
+      "sha256": "3f30ea6cc85f631f9e28c55776dc78f94c489f587da1021acdb3f846f8ed7c4a",
+      "bytes": 3812
+    },
+    {
+      "path": "src/PatternTextileTools.jsx",
+      "git_blob": "bc9d72f597845e57b0eebff18b52b7113df30922",
+      "sha256": "5b7d676cdab73c8588c654b8f73a8b4cd8cbd7088786d55c5d64ab0f5ebd674e",
+      "bytes": 7636
+    },
+    {
+      "path": "src/PointGradientEditor.jsx",
+      "git_blob": "a3696cf8d857c07578e9aa1f842c523418262124",
+      "sha256": "ad62fd4c9d0216c684edbf7135254bfa8a0806401e120193861e67f75ae6e639",
+      "bytes": 6587
+    },
+    {
+      "path": "src/RecipeInspector.jsx",
+      "git_blob": "437c723dbbf517bbf360798a4cc65612c984a12b",
+      "sha256": "93c4a3e2a044be8ba265ba897260671e6d14fa5c247918f2a571abab4f9e67bf",
+      "bytes": 8560
+    },
+    {
+      "path": "src/RugCompositionControls.jsx",
+      "git_blob": "657576c6be58a8b8c5b9ba9a198132dcfe9802cf",
+      "sha256": "7848bca3f9cb1d884a9140a09a2bc9ef8bd88aec516822cb6de9e265ea3034eb",
+      "bytes": 3650
+    },
+    {
+      "path": "src/SVGSourceEditor.jsx",
+      "git_blob": "31db9e0356fd1bc7f85273b9d625cdc1a0d6ff2d",
+      "sha256": "74c7ae1f651b8f1efa74aadacfb878cff47b7578896d99a5e41b36a892071949",
+      "bytes": 4952
+    },
+    {
+      "path": "src/SandLayersEditor.jsx",
+      "git_blob": "ee85c2ba41be085d24dce2c4569d07f9e8e48d4e",
+      "sha256": "46e9ce3b91947deea9e648a11ca95b78051de324bd9e4e2885a2a284ec8d17c9",
+      "bytes": 5902
+    },
+    {
+      "path": "src/ShapeEditorCanvas.jsx",
+      "git_blob": "c1c549183727eda8c867e194ebfa617a47296d5b",
+      "sha256": "8df660915e2a4bacc1f3a3ffd9ee64b90b4c95c14ae3bf69d114c9f929fa6ccf",
+      "bytes": 79123
+    },
+    {
+      "path": "src/ShapeEditorToolbar.jsx",
+      "git_blob": "197aa77bcc85d417c198c1a5126b198421f642da",
+      "sha256": "fb88b2cba7fb63c1629a5db82f96a927904f31f642874860e24a1253f4bed025",
+      "bytes": 8463
+    },
+    {
+      "path": "src/StampRichTextEditor.jsx",
+      "git_blob": "ea5e02fe3956a588d006f3b6d46f2df62270a4a5",
+      "sha256": "9b0cb1026b26ff1a3d22aa306133ab64ca884241889affbc5a3d689fef4bc585",
+      "bytes": 9393
+    },
+    {
+      "path": "src/StampStudio.jsx",
+      "git_blob": "b012c21b4a7dee39481cc0814afedd636990b3ae",
+      "sha256": "6a0b3b27b5e366f66e07feac015deec1f1066df6f4f9b24cfb2b049b4f9f1246",
+      "bytes": 39986
+    },
+    {
+      "path": "src/StudioUI.jsx",
+      "git_blob": "d0aff3ea83d4c7f688cf0958e87f7db09530d1dd",
+      "sha256": "d1ec296ac047c24d5c757ef23b872ecaf3f9948d87d684d07594283a8626961c",
+      "bytes": 4214
+    },
+    {
+      "path": "src/TextureHistoryPanel.jsx",
+      "git_blob": "67184a54de9949871bf0f69c29ddac558ee06f22",
+      "sha256": "325f267829b971c32a1a979e1eac52d922d1e2ec02f0ba67b07f2b2dc347e4a1",
+      "bytes": 8810
+    },
+    {
+      "path": "src/TextureLayerInspector.jsx",
+      "git_blob": "3334fe0fec25e293bd33fe88464c8f9692a84d14",
+      "sha256": "3ae15a799c3ca033a6aeda7f1a407bb6de48e03adc24a5998f5cb3493ba61a27",
+      "bytes": 27721
+    },
+    {
+      "path": "src/TextureLayerStack.jsx",
+      "git_blob": "56f1c32d1e3f66b7e233562f615b29bf835a3394",
+      "sha256": "ecd71af72ee7983453c3c0911bbf6884b175258f520a621f9566ad9e6e2df21f",
+      "bytes": 33639
+    },
+    {
+      "path": "src/TextureMaskToolbar.jsx",
+      "git_blob": "e2d5fe14b162ad125814774d307e5c8c671eb308",
+      "sha256": "d34792c2a6f622236c31752d34d6870a9dc28ee008a7ce9d32c02c1229e5b217",
+      "bytes": 7181
+    },
+    {
+      "path": "src/TexturePaintStudio.jsx",
+      "git_blob": "c29d62ecf177a6fa0a73c11171a1546924cce380",
+      "sha256": "bc1964d8049f619c272a1a5fe1384e2890302fe9026eccdb64d4e6fc137bc9c0",
+      "bytes": 61456
+    },
+    {
+      "path": "src/TextureSourceCanvas.jsx",
+      "git_blob": "b6f414807e1e01b442805b13e74c8c69e5394ffe",
+      "sha256": "642d74fb11557a85eb3822d40b46a9bdd8f6a75174905918675ed4713f83bf29",
+      "bytes": 8934
+    },
+    {
+      "path": "src/TextureUVView.jsx",
+      "git_blob": "c2104f9811a3bc27baf7450131af66ea14373664",
+      "sha256": "a427bbc1e6a1c1a15ec900228520d372474923aff30c7a64bfa23facb9fb8825",
+      "bytes": 28545
+    },
+    {
+      "path": "src/Viewport.jsx",
+      "git_blob": "5d3f9f96e83895184aab722c9267f1b5007c6c18",
+      "sha256": "7cbde4d77558512fffc0b834cb7bf8d1f9e18fb0c183df15858b83eb63afd9e3",
+      "bytes": 50391
+    },
+    {
+      "path": "src/architecturalKernels.js",
+      "git_blob": "2119a0244649bc401a1a45b0fd5f372a58da068d",
+      "sha256": "93af35182b903a86ac0fb1200b247b04abd62fe04a5df1b0e10240f85b6bee96",
+      "bytes": 9202
+    },
+    {
+      "path": "src/architectureCatalog.js",
+      "git_blob": "2db6b56906f1cc329a2a4adf2f726dc75ce458ae",
+      "sha256": "a6747e4444dae74b7ef029b3d975279c176b715402b930a5cd960a23b6b52797",
+      "bytes": 5022
+    },
+    {
+      "path": "src/assetContentBrowser.css",
+      "git_blob": "ece76caec2c1251179aa691fca013f3433898ae8",
+      "sha256": "079485e384b4e435c786c795f33fc4a2343e9c3bddcb8eb12854c01776f16571",
+      "bytes": 22217
+    },
+    {
+      "path": "src/assets/draped-cloth.json",
+      "git_blob": "57e402c07254cc4ff7c02133dab9186675bcb923",
+      "sha256": "48a4c05d4bca66ea7c772f8128365a473985c410504a3c30e09d9dd905bc1020",
+      "bytes": 131352
+    },
+    {
+      "path": "src/bakeMaterial.js",
+      "git_blob": "2caf82918a9550a94c0a8938d87aa06c94a1cc62",
+      "sha256": "57e81d69864d5b1cfc2a38b5f66542c07aa797737228bedc269d1ccb4e9d8602",
+      "bytes": 8272
+    },
+    {
+      "path": "src/baking/MeshBakeViewport.jsx",
+      "git_blob": "d56370a2704f83e4c757987df680813b85ecfe9e",
+      "sha256": "7d1981dfd6ee3125ed64da11b6c2d52cbb49882cd61a612e860ae0d4ebe91553",
+      "bytes": 7924
+    },
+    {
+      "path": "src/baking/MeshMapGrid.jsx",
+      "git_blob": "06f1452726077994eaf13590b512d91c9d843979",
+      "sha256": "2bbb1f666bef8e521cc1e4bc826c6d4d75cb096a7888ef5aa00c88fc140eb74d",
+      "bytes": 5169
+    },
+    {
+      "path": "src/baking/VolumeSdfPanel.jsx",
+      "git_blob": "e92309f0a173047c0e050ba41076f08396f10c79",
+      "sha256": "fa33e9c8a006d0be5553420daeb47e2f66f84539b806c6c0ba40be8f35159c77",
+      "bytes": 7257
+    },
+    {
+      "path": "src/baking/bakeGraph.js",
+      "git_blob": "19f7ea6ae5bbc73493e94523458255903f7bbaad",
+      "sha256": "51b605d69bf2c7aef424b2e035223fee83439cf56fc2940f464994b3b1ec2932",
+      "bytes": 10252
+    },
+    {
+      "path": "src/baking/bakeGraphEvaluation.js",
+      "git_blob": "98a4e4756d7a3bdd15335d1c834d2e9875f28f63",
+      "sha256": "033c94160d50f4d9b36fefbc119b2b4f2f4a67dd07470144293afd36100c8202",
+      "bytes": 11956
+    },
+    {
+      "path": "src/baking/bakeMeshJob.js",
+      "git_blob": "22d8c5b86447974d6e7b440f413c583cc5c20bb3",
+      "sha256": "35b358ce82c044a0d90f7e9a7bf018f71e68bf20a9faf3cf94a0ab562536ace1",
+      "bytes": 9222
+    },
+    {
+      "path": "src/baking/bakeMeshes.js",
+      "git_blob": "db648c18b5b86a0f341ab0a21bca093c376634bc",
+      "sha256": "9420e5e6b833a4081f438b32ac3d7d09fb41de49a4bee0aab4596d2bfa90aa10",
+      "bytes": 12257
+    },
+    {
+      "path": "src/baking/bakeRecipe.js",
+      "git_blob": "c5ea9fa2a497b0b55b18292ec02a611339917b22",
+      "sha256": "6f6541638c4a15410b70fcea9a2737de0bff4c83cd08c6877d5534e9c65b7bf9",
+      "bytes": 2299
+    },
+    {
+      "path": "src/baking/meshBakeCore.js",
+      "git_blob": "222408e6c6d1bfb3b4ea0b13778fa1a19b2f45ca",
+      "sha256": "398e9daed51f701595f721d78798562fef960706a5d27ecbae9d1c2a1c06843c",
+      "bytes": 30378
+    },
+    {
+      "path": "src/baking/meshBakeWorker.js",
+      "git_blob": "3e2d55f94ff3ab73fafd83dfa1aac96c98c90051",
+      "sha256": "4cdfaa5c79151b400c4038e295d7e8583f2f120ed12dba570401b00686793e74",
+      "bytes": 1951
+    },
+    {
+      "path": "src/baking/meshMaps.js",
+      "git_blob": "8407fc3fb767354e69efcec59304c4ae66df4cf2",
+      "sha256": "951fe37e197929ace231eb2760e390424e95f4ff4ad2958bf9dc22da68302765",
+      "bytes": 8033
+    },
+    {
+      "path": "src/baking/volumeSdf.js",
+      "git_blob": "3ebb10c95d226ffadf2c69d030f862ab50c54fa6",
+      "sha256": "a305228257bcedd2b906a7b9f441af796e268c03f1e00728cc81e0130fef3381",
+      "bytes": 14369
+    },
+    {
+      "path": "src/baking/volumeSdfJob.js",
+      "git_blob": "ce62c0f791c1293d804b5d079a61d7ec1967196b",
+      "sha256": "340374692cb11c540c250422d662c509d75d2697a8204f414bc10c8eaa624481",
+      "bytes": 3490
+    },
+    {
+      "path": "src/baking/volumeSdfWorker.js",
+      "git_blob": "dbcc85f93eefbb69be5c0960f34b8c001702982e",
+      "sha256": "4f1e1a9a6e0c0df18f204858dc7b300e2996e2b75de4cc9da31bb5be46f80f76",
+      "bytes": 853
+    },
+    {
+      "path": "src/botanicalCatalog.js",
+      "git_blob": "96df8d0ab55c2af32ee2dc3dc75fd87d136a08f6",
+      "sha256": "0d8b14a5eab583ce1800db8d39619e4b0eef00452e559489fd0087344300fb53",
+      "bytes": 4105
+    },
+    {
+      "path": "src/botanicalGeometry.js",
+      "git_blob": "65f7103fafd2e3dd138746670945d81bc851b1d7",
+      "sha256": "21b00265ea649e77b3302958e20432b9413ddce2d924e3120f560a48fbd995f6",
+      "bytes": 2103
+    },
+    {
+      "path": "src/botanicalKernels.js",
+      "git_blob": "9561f3d1b0f62c8650f61d818ca9b45edf4c9890",
+      "sha256": "d78a5adb10f2b5138988745891111a131141f00568a09dd0957d516592c5127a",
+      "bytes": 11051
+    },
+    {
+      "path": "src/catalogExpansion.js",
+      "git_blob": "aed0019916d76e300a68e027357042eacd9826b7",
+      "sha256": "fa419a489ce44f45574cdf6301342cd20930f9b8f037d0a7cbce216f53b3e54e",
+      "bytes": 9019
+    },
+    {
+      "path": "src/channelPropertyPanel.css",
+      "git_blob": "bc0ececc766c55aa13e512b41390a5c578408ac9",
+      "sha256": "906ed0c45f827ff53e040316d2fe8339b4b75ef7df971ebfb8048a9a5b3eafd7",
+      "bytes": 16812
+    },
+    {
+      "path": "src/clothGeometry.js",
+      "git_blob": "a0cccfcdbaca8d6950359b4365eb97885101a8f1",
+      "sha256": "7788220a411a493c3a5608c8c5d41ef880878efd343c92360c3f084065f0b90e",
+      "bytes": 2153
+    },
+    {
+      "path": "src/colourPicker.css",
+      "git_blob": "66e5efcef58420aba47fe86b70c6b53da40fe417",
+      "sha256": "184b9699a6519d0aedfdd2f159a3f39550880bb45bab7f7ebf2e8ccb3abccb96",
+      "bytes": 2346
+    },
+    {
+      "path": "src/decalModel.js",
+      "git_blob": "1f3a3d5ae89380453c335a965935ebfb545e1a63",
+      "sha256": "e4896875d8e6179ade96dead17fe3e9d8d214577ec87408297248137b303f3d8",
+      "bytes": 4821
+    },
+    {
+      "path": "src/decalProjection.js",
+      "git_blob": "b24c142951c6a6dd6929aa18bfc3fe41df16ce76",
+      "sha256": "2b9d20f0caca380954ff64af8c0087681d3dade39271a5e7b599c7873f524364",
+      "bytes": 10229
+    },
+    {
+      "path": "src/decalStudio.css",
+      "git_blob": "d90de1d6255ed145af6e1a20a60fa0b5521cc390",
+      "sha256": "1db4e63af58898abd7dc64293ac49bd7268047a0f1988bb560109c04fe106fa6",
+      "bytes": 5475
+    },
+    {
+      "path": "src/decalSurfaceController.js",
+      "git_blob": "ec62a9c11eefc14f8e8c493eeadca25333e09ad3",
+      "sha256": "c24bcf755499539b7b1cf4573093c4ebe9886ff0b62c7277a4a45838926c79e3",
+      "bytes": 23979
+    },
+    {
+      "path": "src/digitalBrush.js",
+      "git_blob": "3a41c59225f90e67593ae8b016d9ab11fd982ddb",
+      "sha256": "83e05f5003cf07e0bc5965d9dcd9ba7c456ffdfb2834bddaae7e5ac0172e75f5",
+      "bytes": 11395
+    },
+    {
+      "path": "src/digitalBrushCursor.js",
+      "git_blob": "2efb1366dfdf0e92c73053b16ec521d72089d8e3",
+      "sha256": "e890e1df0e4dac9a333c2b75c0f48a7e4f615da8b95b193483a7bc7d171c57cf",
+      "bytes": 8426
+    },
+    {
+      "path": "src/digitalBrushCursorController.js",
+      "git_blob": "dc473b50101592e42b1cb493bcd53de0422e4993",
+      "sha256": "91ca26099b134a58df1c41d2c2c5a9027d0ec8b695d2d27d7049b26dc73f2fff",
+      "bytes": 8978
+    },
+    {
+      "path": "src/digitalPaintRaster.js",
+      "git_blob": "12c92d58968b42798a7dca45e43ad8dd8fbc0dda",
+      "sha256": "f2e429d7c5f806372088a599f75d85088af7888a45096aa3c21bbe62e7fcfed7",
+      "bytes": 6354
+    },
+    {
+      "path": "src/digitalPaintSurface.js",
+      "git_blob": "a62b6d4e23ef6486eb05f87baa037425ac820eb8",
+      "sha256": "c0563c13cbbc5246369f9d5621ad1e531fb3482f977d693fc441236401c87de7",
+      "bytes": 18241
+    },
+    {
+      "path": "src/digitalPainting.css",
+      "git_blob": "23dcb67cec717589062c9b9ca40d942a335bd296",
+      "sha256": "55398ab8518fc5018600d754419c2a24c3f932cbcd9ab416a7cd55717a37b0f5",
+      "bytes": 18025
+    },
+    {
+      "path": "src/geometricConstructions.js",
+      "git_blob": "78c29b7f0cb6826e8d814a6efc4f11e84e17b355",
+      "sha256": "016cb0ec2ef176b411417fff3d4f866e998b60cc55af07be344c925e74b40eb9",
+      "bytes": 55862
+    },
+    {
+      "path": "src/granularCatalog.js",
+      "git_blob": "fdddf3fd7b3e16a9a276d4e2377e07806e9c43ca",
+      "sha256": "102df4faef8c40b025e539da2c75decef653768582950d5fe527d0a06407e19c",
+      "bytes": 3974
+    },
+    {
+      "path": "src/heritagePatterns.js",
+      "git_blob": "f5215aa0379c18e47e56fb97ccad706711c4c209",
+      "sha256": "74774374e21d8059f08b93c48f2059d6253afc02dd0659dceb3e818483134d5b",
+      "bytes": 35991
+    },
+    {
+      "path": "src/leatherGeometry.js",
+      "git_blob": "bf5210e9fd4ad73bd791cef9afab1cb7c1ecff42",
+      "sha256": "0dc936c1e82275bdd8128a9f59547e767163dfca8cbc4741b482064b29f820b2",
+      "bytes": 2275
+    },
+    {
+      "path": "src/leatherSource.js",
+      "git_blob": "82b90b71712206952a37298882a23bfcf7b36c02",
+      "sha256": "343e759d0779a807227273e4ad7dc03e5d1c69660cf4aec3acc8d20170df6b37",
+      "bytes": 5747
+    },
+    {
+      "path": "src/main.jsx",
+      "git_blob": "e85781665843e4f8a1c6bdf46d6e744030549882",
+      "sha256": "cbe27f0bf6fcc2b48a68b8182f5d6b2a79a20a4bc11029327fcbc48128936f35",
+      "bytes": 46906
+    },
+    {
+      "path": "src/maskPaintRaster.js",
+      "git_blob": "9e8edb65ab9459c8b33f3b8ff429478117f3cdae",
+      "sha256": "b47ca8246e385e1e878a1fa36a287631f11a7398b7b0f455baf58d66c47e9d3a",
+      "bytes": 12556
+    },
+    {
+      "path": "src/maskPreviewController.js",
+      "git_blob": "0c4979e87fe3e559ef6c6e9d5e0027f1adf6fa7d",
+      "sha256": "da6dbae6c9c2670f4a02f613c4f4789711e0014b4caef16f73546ec022f6c1ed",
+      "bytes": 11083
+    },
+    {
+      "path": "src/materialExport.js",
+      "git_blob": "c9259d83a25728e2aa57f6fdf4665e5f1ff5b602",
+      "sha256": "ec505cf3d613114c8440390525fa0492e020c2c5782e33260b0f324ff479890c",
+      "bytes": 2957
+    },
+    {
+      "path": "src/materialGeneratorModel.js",
+      "git_blob": "9ed452e95a46932a52ce33378d30c88457a132f5",
+      "sha256": "f2ae94ca84ef0d4f4728f6675eb582f0d4bf8ceba12852491086920d45bf7bb9",
+      "bytes": 4464
+    },
+    {
+      "path": "src/materialProfiles.js",
+      "git_blob": "5fc821acccf7a2c3f738e7fe98b7996c66ef26ee",
+      "sha256": "ae8077702ab88bdf8cda57ae08ab369c1d7a7e98a1cb10dac1cf0f9498d5a216",
+      "bytes": 51243
+    },
+    {
+      "path": "src/materialViewportOptions.js",
+      "git_blob": "24d2a78befaa6a2e64c4281797ca74a427e4272e",
+      "sha256": "6abc35032a1ccc4af0d36181cf711cbb3e48cb74e5b3373c5b1449a05a3664df",
+      "bytes": 482
+    },
+    {
+      "path": "src/materials.js",
+      "git_blob": "c8b88a6d99ce4a3045f38746328287082ecdf9e7",
+      "sha256": "c04806b71db12c7d1dd96fdd3cf5b06e9a92b79aa4b115bb21ec55be03986264",
+      "bytes": 49856
+    },
+    {
+      "path": "src/ornamentDrawing.js",
+      "git_blob": "7d3bcd424776d29bd56e318396cab3fa7341b870",
+      "sha256": "21b18ca41e1cc36fd417167296da89e16b010dff16a44928c68c88a7b668e002",
+      "bytes": 7247
+    },
+    {
+      "path": "src/ornamentalConstructions.js",
+      "git_blob": "63975eb1448ba268c96ac0805a6ca2dc8b2534b1",
+      "sha256": "3539356ab8c6be72f74556964f88da9cd3c2eb39073874158d0cf981ef349a0c",
+      "bytes": 32774
+    },
+    {
+      "path": "src/paintChannelModel.js",
+      "git_blob": "15a0adcb8ad361cc038388bd4b04dbcbfee91dfb",
+      "sha256": "65e132808c371f82bd9f442f410a3edfe50b2dd1f85f49284fb222698720a71f",
+      "bytes": 8085
+    },
+    {
+      "path": "src/paintToolCatalogue.js",
+      "git_blob": "ac7df02fd250e586ffed07bdf7b468635b505351",
+      "sha256": "39dcc1be1b478ca3069cf53f53eb276cb7865da439ab0a01fe77b416271f15cf",
+      "bytes": 129183
+    },
+    {
+      "path": "src/paintTools.css",
+      "git_blob": "582e9eb50df562ffdd0211ab28332d35904b438d",
+      "sha256": "95c423039135efe6b04a836f7f409906bfec202d5c22b59ef79a6c0fbce06ab8",
+      "bytes": 9317
+    },
+    {
+      "path": "src/pathEditorGeometry.js",
+      "git_blob": "47a84341f6adc67166a9dfc2d8fb99af5588b563",
+      "sha256": "3b15b8e3ac36ec4b3c30e216209ac6740df7f4fe9c3c5901af0db0878733d7c1",
+      "bytes": 12573
+    },
+    {
+      "path": "src/patternCollections.js",
+      "git_blob": "63f505c44c1f270d498b80f3e9367772455da163",
+      "sha256": "8fab65db4d59f5b6d0ae587349ad61baa9b18aec325f8884cc9cdcd012a89860",
+      "bytes": 14378
+    },
+    {
+      "path": "src/patternDocument.js",
+      "git_blob": "383871ba573092f8878574d54f999b3e80b28e74",
+      "sha256": "d9eca08d0d7982fa388f08eb2978415903ef48bac56040bfa30177c3c72c82b1",
+      "bytes": 29370
+    },
+    {
+      "path": "src/patternDraft.js",
+      "git_blob": "64aab8b3ea81c89089f01b1fa38bcece03c8dc54",
+      "sha256": "12522b4ab324455b646cf970040d20b3d7ed70885f75ef75453685fbc6fd9225",
+      "bytes": 804
+    },
+    {
+      "path": "src/patternEditor.css",
+      "git_blob": "c265e3588c04b5f617e22e1f211ff66eeee0dc7b",
+      "sha256": "4e50b80c6da21d22e9efe4c7d873a4d4224fa979fba98b891a8c53cf0d04b86d",
+      "bytes": 11268
+    },
+    {
+      "path": "src/patternGeometry.js",
+      "git_blob": "1f1bc17a85c8f90e2843eef0c6f14cc2aab2473e",
+      "sha256": "af0362ff62139efea3301aace5ba21b5a89a42d8703c13cbeb173c1457b8a452",
+      "bytes": 11287
+    },
+    {
+      "path": "src/patternImport.js",
+      "git_blob": "a2f4091c2189f151c764a8d6f8da7232d1c0fa82",
+      "sha256": "9c30e437ee226494480b410af27764d0ca24656a333ebb9449e1c6596796469b",
+      "bytes": 7360
+    },
+    {
+      "path": "src/patternLibrary.js",
+      "git_blob": "2e300a3ead0968de258ac9a111975523131a060f",
+      "sha256": "59df18e05f1ed931aa8764fafdf3586e0b95aac3f5100120e3caca884064841c",
+      "bytes": 15545
+    },
+    {
+      "path": "src/patternRuntime.js",
+      "git_blob": "67547606161a21e05b22f618a5e0ad899d726715",
+      "sha256": "d8feb85cbc82348f9a85b2e097ba1a48b82bab0346623aeb3ec9eac6913422af",
+      "bytes": 9702
+    },
+    {
+      "path": "src/patternStitches.js",
+      "git_blob": "2cdceff81ab545319ebf5a9f452294a88f1dabfe",
+      "sha256": "0fd4df2dfd36ee04be4da0ba33b7d7ba0f74a853213ba5c3c69a926e9f0c042a",
+      "bytes": 11949
+    },
+    {
+      "path": "src/patternSurface.js",
+      "git_blob": "35a4516d1c21154809c56295b3b276c66a137b45",
+      "sha256": "3cd494c2019678b3dfe1a5d8432636a98011c53e9d8b6cfd4afc4f4d6a105e3a",
+      "bytes": 1208
+    },
+    {
+      "path": "src/patternTextFonts.js",
+      "git_blob": "ab982b9e5c3f76e4fc6e0a2bf009996d7c029c87",
+      "sha256": "acd6c421268d5437665ce2555f115e24c9de108cb9169955d9641eefca67f46c",
+      "bytes": 1393
+    },
+    {
+      "path": "src/patternTextGeometry.js",
+      "git_blob": "4d91542d4eff80160900022fb17710b576ebcfca",
+      "sha256": "2c90b6764af554f59205c28f6f45e82456e6a10079e959684e308735bd9bc726",
+      "bytes": 3739
+    },
+    {
+      "path": "src/patternTransforms.js",
+      "git_blob": "29d0e78cd5f5fd3c3a374b1b45edb60d2de3402b",
+      "sha256": "5b3b51e7ef14dbaa939cf4ee115a838e716704546fe564750a1cc1288f3e3216",
+      "bytes": 2429
+    },
+    {
+      "path": "src/patternWeaves.js",
+      "git_blob": "cdc7e32c0f801ad0ed2931b6c13e55948c0b521b",
+      "sha256": "0bd92f98baef1958b0bf9ab0ab7c7a82ee1bf01fb394ab50bf0f9335239ae0aa",
+      "bytes": 6574
+    },
+    {
+      "path": "src/pointGradient.css",
+      "git_blob": "2d1eee37610413efab3f2a55aa4167ff994ddd32",
+      "sha256": "7871d32d898aa8ecab0246c241aafd0fd8f6154771d62edd705de329fdbd6c62",
+      "bytes": 3587
+    },
+    {
+      "path": "src/pointGradient.js",
+      "git_blob": "15ed4a28073ab6b80601b80c66aa509c6291c40f",
+      "sha256": "9d54a3772ddaadcc39b134f7fbed5dc96d0d48339105cb2811c856d93fa5049c",
+      "bytes": 4683
+    },
+    {
+      "path": "src/pointGradientViewport.js",
+      "git_blob": "2b2e430ed3300abe9fc37c4c88165bd0dbf57392",
+      "sha256": "0fb90e0a07e3a5de66dbbde254c86749ab1612c557a6400236d74492b738e09b",
+      "bytes": 7383
+    },
+    {
+      "path": "src/referencePatterns.js",
+      "git_blob": "1b3cd53ce7789460e5f5a54faf106f7a7f0b2a55",
+      "sha256": "2b0adf9018a336f0aa5c8948ad70c88daa01dd3d37b51c5b7659a1bf72878c92",
+      "bytes": 25166
+    },
+    {
+      "path": "src/renderMaterialGenerator.js",
+      "git_blob": "148fba6f4ef065c9d38bedbdeeb1c3eea12fa544",
+      "sha256": "bc54ea9bd724f88ed5fbbbf5a44b63f8bb20af9a52c50b1322ddb3446cbf72de",
+      "bytes": 2238
+    },
+    {
+      "path": "src/renderTargetViewport.js",
+      "git_blob": "b690a1f92dac5752ddd0bed2e267617ca0fdfc96",
+      "sha256": "a5dd7548bcda107c02e7960626c09379419c30ee1ca17eb7ba68899f712da5bd",
+      "bytes": 478
+    },
+    {
+      "path": "src/rugCompositions.js",
+      "git_blob": "de0a49662380a54aedcab85fdf1d31dfb7916275",
+      "sha256": "f8e55d30d3ecdc88393bdda33ed34c5f23f02d79446c8b96c10062b9dd2368b7",
+      "bytes": 38626
+    },
+    {
+      "path": "src/rugDesigns.js",
+      "git_blob": "f9a4337521eab4be4a70c103ceca8560b20371b8",
+      "sha256": "f819ba89f33c03e9a382069e7fc70e17c31a186a593b1de91cc58aef59459f93",
+      "bytes": 11403
+    },
+    {
+      "path": "src/sandKernels.js",
+      "git_blob": "c318c4090f24cdc7c59cbbeb69132cd7de6ee20c",
+      "sha256": "ea7e7ce67e926a3bd70e899aed21cf2f6b4869159a4e7bf3015dee0f80c3f000",
+      "bytes": 5633
+    },
+    {
+      "path": "src/screenPaintProjection.js",
+      "git_blob": "ee901d7719555dcd0c8dd7543474d604110c7e27",
+      "sha256": "79dde05be2ce5873386cd1482ae5415ce9dcedd8b66805a4c160759e6b7f0c6f",
+      "bytes": 16335
+    },
+    {
+      "path": "src/shapeEditor.css",
+      "git_blob": "4eecd20566c5167edcd5fe8a74cc468ea36ad459",
+      "sha256": "ccb6e9d817c0d92e511b8e85510039314673f09ce0dfa89a6699f8c4498309af",
+      "bytes": 26338
+    },
+    {
+      "path": "src/shapeEditorGeometry.js",
+      "git_blob": "33aacfcc2739683e1231e380ce5f1d801d59c8a2",
+      "sha256": "d0c528a146d278a83c9fff686ec533154046e6181c0a5037ef4321ea04a71224",
+      "bytes": 20829
+    },
+    {
+      "path": "src/stampDocument.js",
+      "git_blob": "1bc8eb841da8c36a8f2724160f1c8654bcf89394",
+      "sha256": "bef3aaa6cc2fda49951b8468ea232f305d9a27db4a1b4933387cb20d73fe4c75",
+      "bytes": 11755
+    },
+    {
+      "path": "src/stampRaster.js",
+      "git_blob": "8340d1385bd67433f4afa762fb78c6cb5b8a0cfd",
+      "sha256": "f2b53ce2430acb803b093d64ae15d5e7ff707d3434f5caf58ad6f77f7c77765e",
+      "bytes": 6765
+    },
+    {
+      "path": "src/stampStudio.css",
+      "git_blob": "bc80f4811efef3cbac6f584de0f1701a45d31062",
+      "sha256": "824348b31773b890a4c7c9be866235ef85a27bcf668c669fa3f429c5ab05d8ef",
+      "bytes": 14297
+    },
+    {
+      "path": "src/stampTransform.js",
+      "git_blob": "ecaa66d788ff1a59a3e66526232e944837db8e59",
+      "sha256": "0622a844d3985faf73583f05d2291e7ab9579017ad8a1755f1afacbdbe2fbe3f",
+      "bytes": 3344
+    },
+    {
+      "path": "src/studioTheme.css",
+      "git_blob": "158023f3150564b736b1302bc724f1dc22601ef5",
+      "sha256": "22fd4cdd9e06e57aaf128a980183e847cc6da8adc0850c034aad6069011e8ef7",
+      "bytes": 51465
+    },
+    {
+      "path": "src/styles.css",
+      "git_blob": "f9832c9c9b57a41e7a2f8b1973d51d5d040ce6fd",
+      "sha256": "2653f29e58045087c6020d772bfc5303908aca3d973aec830429f13005057a16",
+      "bytes": 78192
+    },
+    {
+      "path": "src/surfaceBakeMaps.js",
+      "git_blob": "82c1b3d5420b42cd62b8f0af35a457e382a43f61",
+      "sha256": "5c38755d6a4e3978bba202bb31126db650348f64665f2b667696b44cc24f2336",
+      "bytes": 1547
+    },
+    {
+      "path": "src/surfaceKernels.js",
+      "git_blob": "c7aa7baa88f26efb92218fdcd4b3a95dc72d39fc",
+      "sha256": "aec7f8c7a08b3880c424566a7b788444ecf6d503ded8174b5761a0dd25b54908",
+      "bytes": 7468
+    },
+    {
+      "path": "src/textureDigitalPaint.js",
+      "git_blob": "ad1bc6b58cb2e2a2060773a41324c20d67c33ac2",
+      "sha256": "a47f8acadb814abef7d84122e60ffa9f4328190926c98f53e7bf5ae6fce7fc23",
+      "bytes": 8392
+    },
+    {
+      "path": "src/textureDocument.js",
+      "git_blob": "e1c87220844454c7881b9267749e2850ad158110",
+      "sha256": "52664f0f23809c85852e6f02cc116747caac36830376592e15698c13ad8348d8",
+      "bytes": 27851
+    },
+    {
+      "path": "src/textureHistory.js",
+      "git_blob": "c27519304b082cea70fc32debb6801e502e7dee8",
+      "sha256": "9a754ebf84f0f383ad3192dbca3a04274d4ec16b1fd3b48236af9df4276b6868",
+      "bytes": 10816
+    },
+    {
+      "path": "src/textureMaskPaint.css",
+      "git_blob": "48eff381ce43b58d8ffb711b145020f073c51bfe",
+      "sha256": "39390558e4bf99d95d5df9297447bca3339a1d505088b721991970782229c15b",
+      "bytes": 5528
+    },
+    {
+      "path": "src/textureMaskPaint.js",
+      "git_blob": "c7acb76430138d00af4ece6eb453bc554e2acf3a",
+      "sha256": "c3750a09c52e512800f67e7faf0f064c60b720618460876c25bcc67e7cbb1d63",
+      "bytes": 7347
+    },
+    {
+      "path": "src/textureMasks.js",
+      "git_blob": "20b79a873d2f13ceb97c37501a8236b7d619f6d6",
+      "sha256": "e86722f201d70fec72ee262e93df8dd5de770b19a22b2d7703161c30de4e813e",
+      "bytes": 2323
+    },
+    {
+      "path": "src/textureMeshMapBridge.js",
+      "git_blob": "56357d9bb29fd652449a54f2a23abb5d4664b932",
+      "sha256": "ce053e3b5fd9047e888728eeb5e6fa70c956a22360ea8ac001b4e0b8841f4dd0",
+      "bytes": 2306
+    },
+    {
+      "path": "src/textureMeshMaps.js",
+      "git_blob": "606488782c636d5144aa5847aa72c740308e3949",
+      "sha256": "7052d9f59f1375aa0740e074caa4b447033db02ae2a63a5e7bf663052c7bcf96",
+      "bytes": 4132
+    },
+    {
+      "path": "src/textureMeshSupportController.js",
+      "git_blob": "b5f25d9d93e864ba6bdb2c9c22b6810951e8659f",
+      "sha256": "8455821925d84d526e57fa7523b856d9de065deb408254e01d0f0e31b6a6e198",
+      "bytes": 7786
+    },
+    {
+      "path": "src/textureOpticalStackController.js",
+      "git_blob": "a684016763fea939dc413ccbb52e43ee57340b80",
+      "sha256": "4ceb846bd8fb5927c7cdde1f0555614b38dc87da00d5b902636f697f25a4116e",
+      "bytes": 17538
+    },
+    {
+      "path": "src/textureSource.js",
+      "git_blob": "706e7666a575a615cb48afc92e6a75d436dad2b9",
+      "sha256": "a6bd422c259cdc7435d5133980c1fc16b8d03ee1982d6ebd9f3a8a80c16191c3",
+      "bytes": 5591
+    },
+    {
+      "path": "src/textureStackEvaluation.js",
+      "git_blob": "1039f77103485a76304d2b81d8f362ff0cf6d3af",
+      "sha256": "cded2a60f45e5a14c4fe39f24f95007bf4cf07eda6bee879f2e4a8e217a119c9",
+      "bytes": 3858
+    },
+    {
+      "path": "src/textureStackUVController.js",
+      "git_blob": "84157083a734c39f0faffec9c872c64d88e5ab4f",
+      "sha256": "a9ec8025012b14e99216c3e7ae938b8835aa8113489f64d21fed2813ddf55e0d",
+      "bytes": 5832
+    },
+    {
+      "path": "src/textureStrokes.js",
+      "git_blob": "d5fc9e9cd83e31c975a145bfc0680ec14085aa9d",
+      "sha256": "cf3458b50608f7d29185974927f901d9de41a94f02563a9200e828805d97e399",
+      "bytes": 4520
+    },
+    {
+      "path": "src/textureStudio.css",
+      "git_blob": "1a06943cc958da09e0e55e561171a887bed6810f",
+      "sha256": "126c035c0481715b80617c46d6f838ecacef7119219c5b2ef5100d7f165448bb",
+      "bytes": 53343
+    },
+    {
+      "path": "src/textureSurfaceController.js",
+      "git_blob": "ce6fdbdfe0d5508a7f839bb6b731d6ca2b479f27",
+      "sha256": "2214608ef30c436add2c9fe88fb06a04fa7cd52f66e9f959d50be78d2cec1183",
+      "bytes": 11651
+    },
+    {
+      "path": "src/textureSurfaceModel.js",
+      "git_blob": "985e0d83732de682c871a3f89d801f3d9e48f285",
+      "sha256": "e9e2e37b83c9e0ec04aea2d0021078e1931bef5369bce46f7efab84f65feb9d9",
+      "bytes": 9509
+    },
+    {
+      "path": "src/textureSystemBaseMaterial.js",
+      "git_blob": "3359e4fdb78cec3ecc121bb5bfba3032e55cd8ea",
+      "sha256": "a26364f012b0f9aab87113084e540fb922e486d73f0cd6f7f1acc8f3c67af285",
+      "bytes": 915
+    },
+    {
+      "path": "src/textureUVGeometry.js",
+      "git_blob": "9bc1e8cccab3945703afd4f6b64f21d913d6f4c4",
+      "sha256": "aa1115767e464582b269e8048166e50abab42b185e735487b8477c3f3681a3ee",
+      "bytes": 11940
+    },
+    {
+      "path": "src/useDecalEditing.js",
+      "git_blob": "4da41f93ce7eabe88ad0031380ee634df46da380",
+      "sha256": "a732ef9d22c1199b23b0a069be81814ff1def624fd649b37f357dbda885c6449",
+      "bytes": 14599
+    },
+    {
+      "path": "src/useDialogFocus.js",
+      "git_blob": "cc1d165b0ffa91aa73462b075d50d98e254b00a6",
+      "sha256": "bee81ab6938f2404505e74eeedfd8dd5a79012597a500dde823f968f16c0300b",
+      "bytes": 1434
+    },
+    {
+      "path": "src/useDigitalPainting.js",
+      "git_blob": "c07e906555e0bf3e7f8f686d7806584a79c33b76",
+      "sha256": "214d82b964fa7389fe94848d1310dcf7757d4eceb0c04f90d1963973ed86d115",
+      "bytes": 15810
+    },
+    {
+      "path": "src/useMaskEditing.js",
+      "git_blob": "504406b87f632db70879465426b5a14405e3fdb6",
+      "sha256": "8db5e906495c197e27a85e86f1e59d4a510b16a6da294b1d5f1c191df7be9db9",
+      "bytes": 9312
+    },
+    {
+      "path": "src/usePathSession.js",
+      "git_blob": "ce5bff1539fba1bd1461f0765ef104fb4ea04272",
+      "sha256": "7e12c0353a0499cd4b023ca3f5c39cd0cff22d4e2aa775cb79535cf7513916d7",
+      "bytes": 2036
+    },
+    {
+      "path": "src/usePatternHistory.js",
+      "git_blob": "9f5eaf220981f9ab465ab24018a8b2afff46d409",
+      "sha256": "b1973608b6fa5ac4f60018bef2ce53772618a8ca5a506cdfc0efeb5f40817f44",
+      "bytes": 3870
+    },
+    {
+      "path": "src/useStampTransform.js",
+      "git_blob": "cf03939fa01478ad8d5ce18c5e3408a6bbc1e231",
+      "sha256": "29d4a21b3a9776d4783679d4ce583857256d4ac5e3f2f7c7f53b5842e80406e9",
+      "bytes": 9491
+    },
+    {
+      "path": "src/useTextureDocument.js",
+      "git_blob": "ba17e26cdda8821b07a58819c5fe36cba0fb6e33",
+      "sha256": "9744a21c7317da2da87741198d22ab234b6009788e13a2615c75f9ce32341b51",
+      "bytes": 4562
+    },
+    {
+      "path": "src/vectorEditorGeometry.js",
+      "git_blob": "51c2b39e5eb884afa53f0764c17173d8adde5fb8",
+      "sha256": "7a7c0cf21946af51dbb25476d0114ad58ce109b38fc0fe9099d3da2e0376ac6a",
+      "bytes": 4760
+    },
+    {
+      "path": "src/vectorEditorSnapping.js",
+      "git_blob": "04f0902bfc707021a40c904fbe256828b14da191",
+      "sha256": "d5a5eb4787564f0fe7d27d923b73fad3f91cc34dd826f697fd9a707ef54ba817",
+      "bytes": 5382
+    },
+    {
+      "path": "tests/architecture.spec.js",
+      "git_blob": "d1d1353061e67b81188cac0bb0c859fc61f0efaf",
+      "sha256": "6d544196c4b39ebffd31a32fc631432ea4114237e60ac2ec31a9a00a251da705",
+      "bytes": 6261
+    },
+    {
+      "path": "tests/baking-geometry.spec.js",
+      "git_blob": "5071c46b9e8d36f716bf8a9abb10919577e36278",
+      "sha256": "e0c73ff8116b2e1d201dbd4fe93bb19a7955953aa83f2a33e9da7947c5479e35",
+      "bytes": 16569
+    },
+    {
+      "path": "tests/baking-studio.spec.js",
+      "git_blob": "43eb45ad2f1ee2328dd39f5bb33906f8dc2a7e0b",
+      "sha256": "356d2504c37eb22a1732c6a534c420c2c0aa62d8535b4a58b93c29b53b57ea36",
+      "bytes": 12499
+    },
+    {
+      "path": "tests/botanical.spec.js",
+      "git_blob": "eedeec26b04dc41d15d6deb41e37023e4dae59f5",
+      "sha256": "615c04766b252660afa57e722bd8c100d0f7a0af5cdfb654d99646cc4c593730",
+      "bytes": 7058
+    },
+    {
+      "path": "tests/digital-brush-cursor-model.spec.js",
+      "git_blob": "dde4d282b3e331422a845ed6280ac36f65288606",
+      "sha256": "8a5b62d9cae5d0e27ea6c639e2db87f2ede7a593d1798f72f84deea264262dbb",
+      "bytes": 7233
+    },
+    {
+      "path": "tests/digital-brush-cursor-raster.spec.js",
+      "git_blob": "7b111949ab87a3b9a9dae1ac9491c5b85eb240c0",
+      "sha256": "d6c56be82e0dab776b7b0d931ed24319085c5a3a195e3493e09f11d0465eb78f",
+      "bytes": 9391
+    },
+    {
+      "path": "tests/digital-brush-cursor-studio.spec.js",
+      "git_blob": "68503bd0ee71454d85668cda667b0237332493b5",
+      "sha256": "3c457a521f729ae6eefe0293dc9aca0c6d907a258be4971ee1e24c8e9f7c5f4f",
+      "bytes": 25010
+    },
+    {
+      "path": "tests/digital-paint-model.spec.js",
+      "git_blob": "7f875330bb22011bd242aa7103c9f9f3b6dbaad5",
+      "sha256": "068afbb894278ea4b2cb2752b6a09f2a1ca3ee3e8c23cb411a04d3fcfabf9470",
+      "bytes": 13285
+    },
+    {
+      "path": "tests/digital-paint-raster.spec.js",
+      "git_blob": "c9892096cc05f3f9b16a323e8bf5073c9db4fef9",
+      "sha256": "2e1d4028a7e0db20de8476a9d3fc68d6bd9c592ecd65204e0436d32f390f24af",
+      "bytes": 14402
+    },
+    {
+      "path": "tests/digital-paint-studio.spec.js",
+      "git_blob": "61b74e9a4d4b31360861ec763e8700bcf1e901b9",
+      "sha256": "c39890e5ab8197b3a51fbbda15ebdbf779cb92db330cb0f56d94b063edfa544e",
+      "bytes": 19815
+    },
+    {
+      "path": "tests/expansion.spec.js",
+      "git_blob": "e370d1d5cf66060fbb4f9636a7adcc76f2984098",
+      "sha256": "63e957a5e4c8fd5fa12058971474493aba101804b9c6e939bd58e371d47ac9b3",
+      "bytes": 7594
+    },
+    {
+      "path": "tests/fixtures/runtime-probe.jsx",
+      "git_blob": "379633e3a8a4b8a5187d99e6de887e15f34b709d",
+      "sha256": "c313315a66157ab504e0544e4dd82146fdef911c35a0c7061d552c29ee2fd230",
+      "bytes": 745
+    },
+    {
+      "path": "tests/fixtures/scratch-v6.1.glsl",
+      "git_blob": "8ebbb10e9eed3fefdafabf6d588c8168f40689f2",
+      "sha256": "756d647f4242ed2db743f657aeb2fccdc78f884af9198acc4b29f42dd3f15505",
+      "bytes": 2092
+    },
+    {
+      "path": "tests/fixtures/texture-mesh-map-pngs.json",
+      "git_blob": "553bd777ed404fe9445b2e69c8d61b3992ad4f51",
+      "sha256": "af0f76435f665feea59ff1edc4804aa21460c219670d6191deb23741a0de6e70",
+      "bytes": 760
+    },
+    {
+      "path": "tests/geometry-set-four.spec.js",
+      "git_blob": "1a3d0735ba7c94b48949f9701c4f672ee9fadda2",
+      "sha256": "1af6e507a959d637ef6cf0921c79987f2adecc6ff482e3e2a299e6e2c4b58657",
+      "bytes": 13160
+    },
+    {
+      "path": "tests/geometry-set-three.spec.js",
+      "git_blob": "27bf423182304702be00a276f0d7d14f1e71b0fa",
+      "sha256": "679dd2124a6db5da2dfcd2639a703470a587f983c98636d1f7e54ddc0d07e8bb",
+      "bytes": 14502
+    },
+    {
+      "path": "tests/geometry-set-two.spec.js",
+      "git_blob": "3ec96eebc5e7c539ed35826648706d136104ae05",
+      "sha256": "659461cf9ff8cb77456f104166bba0d472818294dd77703e9b0b57ea2f91030d",
+      "bytes": 11156
+    },
+    {
+      "path": "tests/granular-materials.spec.js",
+      "git_blob": "9800a19f4e6ee2635f9036efddd7538ce8d464f7",
+      "sha256": "2c268171e97731a43d28e1bdc42871c78b1286dbcbc8149ca04f67f122f5a257",
+      "bytes": 12420
+    },
+    {
+      "path": "tests/heritage-patterns-model.spec.js",
+      "git_blob": "d309521f0905e74a7194e343b5d901e6c1ba4175",
+      "sha256": "1aa8fb747d76bbdb4c0fbc3a9ffe9d082cc28983588fa85ad14a400ac5d1c5db",
+      "bytes": 8313
+    },
+    {
+      "path": "tests/heritage-patterns-studio.spec.js",
+      "git_blob": "0093bedffbd735cece9068eed67deedc0cb887ac",
+      "sha256": "9262040805b2abe33e1454a8692fc6c5038eb5d7e1229455009759fa00eba2ed",
+      "bytes": 12236
+    },
+    {
+      "path": "tests/leather.spec.js",
+      "git_blob": "33e7e2d688230202d69f69a15a3a944bd5fa5cdf",
+      "sha256": "417651b573c8ba4786b2b04636ab50e4eebcf1bd5bc9d8c6fd66a86beb27fbb9",
+      "bytes": 6068
+    },
+    {
+      "path": "tests/mesh-map-library.spec.js",
+      "git_blob": "cc77c4e6e07d925779543e9f4783e98ecb2d73bf",
+      "sha256": "b60e65c6f5a9c6b1bd7591fef19511c60fe77790bb7ac55c20dc3c666f6a228b",
+      "bytes": 12207
+    },
+    {
+      "path": "tests/metal-scratches.spec.js",
+      "git_blob": "e0045aab01d863620d4c7512ef45e69eb3a5ed0f",
+      "sha256": "2250543eba7137f38c916b2a9c3df55ec55eedfa6bf6a3dbd1b96f66edd1c2a7",
+      "bytes": 8004
+    },
+    {
+      "path": "tests/ornamental-constructions.spec.js",
+      "git_blob": "084dbd450a2731dc220569461588ede97189374a",
+      "sha256": "56b77bf770b28cc471e28aa5a5cb0932c9ff542c0f86013e3fa1c0a7572435bb",
+      "bytes": 2271
+    },
+    {
+      "path": "tests/paint-authoring-model.spec.js",
+      "git_blob": "82ac306087cc9cb6822baae4fa1468347c17ee18",
+      "sha256": "0bcf0381198ee72e5e54bdd7499fa6248e6c028925e59e67b3b82918f80d6850",
+      "bytes": 7327
+    },
+    {
+      "path": "tests/paint-authoring-studio.spec.js",
+      "git_blob": "d23f0e2a4efa5bc9bb0534d2c6b63960fef4a36f",
+      "sha256": "4c12036217d69ea7be5968064980547396dd9b6b4039fd53b0cc72008cdc9b3d",
+      "bytes": 18263
+    },
+    {
+      "path": "tests/pattern-collections.spec.js",
+      "git_blob": "2ae1ad4624d8809962dffc4d15490a668e3014f1",
+      "sha256": "619f4b8616d28f5f353631363f06ef739ad82965687a55fa689624d8ae3b50eb",
+      "bytes": 11981
+    },
+    {
+      "path": "tests/pattern-editor.spec.js",
+      "git_blob": "f0185d84d517d6ee1f961203660c2dcf66a87de1",
+      "sha256": "dbdcff123b025bb8e47aa906d07b966bc7af0224d12c49d7c0d838812476e388",
+      "bytes": 10562
+    },
+    {
+      "path": "tests/pattern-library.spec.js",
+      "git_blob": "3d3a0239de12a9b20c115b5b0094302f96508411",
+      "sha256": "5685ee71cc566c4a78931077766aa7d912a955cdcf989bb1d001dba16c9db1c3",
+      "bytes": 11211
+    },
+    {
+      "path": "tests/patterns.spec.js",
+      "git_blob": "cb42323f5a0673546d504fefe41b92012e503295",
+      "sha256": "932bae2fb151c8db4daf3604d6d151cf5693788b729331ff75d0f7c4380d4ba6",
+      "bytes": 12615
+    },
+    {
+      "path": "tests/point-gradient-model.spec.js",
+      "git_blob": "8d863f3777832322a07cb5faf818a0e80d3660c1",
+      "sha256": "d240ce54be27020b93f434cadb1cd8ed399dca40285200fb98830880b7cc1a8b",
+      "bytes": 8614
+    },
+    {
+      "path": "tests/point-gradient-studio.spec.js",
+      "git_blob": "3ec94e0c2fd9b1e1643ecb229f512518c8fc4c71",
+      "sha256": "b2f39e66af60a4a5e326124d8d641810e3fb649e9280c7075c5e186d1d93668c",
+      "bytes": 11920
+    },
+    {
+      "path": "tests/reference-patterns.spec.js",
+      "git_blob": "df59613bf590088c4431563888a36b9596b3895d",
+      "sha256": "a924eae5e2c9f31a7291fdd7ab399d2f8e3694415a1415a569922a01d6154633",
+      "bytes": 7961
+    },
+    {
+      "path": "tests/render-target-dpi.spec.js",
+      "git_blob": "79de6f70ce5fe06156c7a005758d127bc39299e2",
+      "sha256": "c6dcdc7d5bd29b8f37034f882b20892cbe3cff814a4a86a2b629bb308743e69c",
+      "bytes": 2660
+    },
+    {
+      "path": "tests/rug-compositions.spec.js",
+      "git_blob": "29480e5d62fdbbca23121e3f95436aeebf7c9dd9",
+      "sha256": "d10e4365fee6bbf8f7b0b3f38bbd4181c5a33be53cd534ea3716a47712b7dc69",
+      "bytes": 10586
+    },
+    {
+      "path": "tests/screen-paint-depth-mask.spec.js",
+      "git_blob": "f461a85d0823c39b99b6c4cad86388478b3b01be",
+      "sha256": "67d3d8c57bba78e50fc8ae1d6fb97f0053e76ec5b34ff4a605eba25e63f15d91",
+      "bytes": 5028
+    },
+    {
+      "path": "tests/screen-paint-model.spec.js",
+      "git_blob": "24bb86ab0aed59e91c1254325504523b9d4a38a6",
+      "sha256": "42de70a72e353e9c028f289873012c9b3071354bc2f1511d81099b2fd9be58ea",
+      "bytes": 4352
+    },
+    {
+      "path": "tests/screen-paint-raster.spec.js",
+      "git_blob": "507de8d2dde3ae2f6142720a1a7f967e466ac60c",
+      "sha256": "81ceb959bcf45fccf407acbf465c84df009abe8c9cea5f0b5b8b613ca5329a51",
+      "bytes": 6605
+    },
+    {
+      "path": "tests/screen-paint-studio.spec.js",
+      "git_blob": "f6f068843609f498dbaace78c4ea28f4149d85af",
+      "sha256": "dfac4d385eda7149a7591664098eeb6b57df9c083c13c34baa8f4d93a0bd101d",
+      "bytes": 11731
+    },
+    {
+      "path": "tests/shape-editor-geometry.spec.js",
+      "git_blob": "cfb0a5fab0393ecf05e1f44a79e0a5e22714f80f",
+      "sha256": "bcde748dbde41248029748a783939946aad943a356f4ffeb0f9bacdc9158d48a",
+      "bytes": 12550
+    },
+    {
+      "path": "tests/shape-editor-paths.spec.js",
+      "git_blob": "1d2e93c1ca169182ccbd1b919a233d30a21d626b",
+      "sha256": "9140ab1ef49b764d50b8c59b4f2a5a069fdf0cf5f76dc5211329d59a4fbe17b2",
+      "bytes": 8171
+    },
+    {
+      "path": "tests/shape-editor-pen.spec.js",
+      "git_blob": "7f51979a01f7e782da247e1bda030128141e1360",
+      "sha256": "cbb24c8676cf1ecab89554a738cb864daf9d0a89843ed73f24a04bedff382b43",
+      "bytes": 16213
+    },
+    {
+      "path": "tests/shape-editor-svg-geometry.spec.js",
+      "git_blob": "0192584eef838fcf1366907289226c63dc9d08af",
+      "sha256": "ccba0e9149d018b317d70f790a12686f918a76043cf52f160f6951ea4ad14ca8",
+      "bytes": 11322
+    },
+    {
+      "path": "tests/shape-editor-svg-tools.spec.js",
+      "git_blob": "2e09fd052b3ce100c98dab47f9e2eda194b56e55",
+      "sha256": "2606cbc5b0d1dccd324d46ed30d0700dbb1916b6e03e927b0b8d49a6dc0d1dee",
+      "bytes": 20445
+    },
+    {
+      "path": "tests/shape-editor.spec.js",
+      "git_blob": "c181592fe262fcdcb77c273e235beade156676be",
+      "sha256": "4f3cbd350e50e95dae420447971b970b2233bf5d015b1007b763602410e78310",
+      "bytes": 24073
+    },
+    {
+      "path": "tests/stamp-decal-model.spec.js",
+      "git_blob": "abd90abf7c91034199642a33ee907a1bce1a31dd",
+      "sha256": "9455a222714afb221b5283e5dbb4ec27ba23d75e646753f6c32ea248ae302679",
+      "bytes": 19963
+    },
+    {
+      "path": "tests/stamp-decal-studio.spec.js",
+      "git_blob": "6d25699d0be7379be96c735a0b400002627d8161",
+      "sha256": "d71132d1806d2061d7138ac333e727bbe86bb09410a69d3d0ae434cda69bb74e",
+      "bytes": 26289
+    },
+    {
+      "path": "tests/stamp-transform-model.spec.js",
+      "git_blob": "117a9bf62bebf7c61aac8d70cf5b63a60b265b7f",
+      "sha256": "57c382cbe8ae19f8c0fbdd406a85c39b0d6e9f5f869299a77318c62888da452d",
+      "bytes": 4427
+    },
+    {
+      "path": "tests/stamp-transform-studio.spec.js",
+      "git_blob": "7111695db651d372a7c4f0a7fd16ee213f6e4dc2",
+      "sha256": "f5b409a2074180c76a2610446c0a8e4396cf65b9cad69b353387d56246633605",
+      "bytes": 20420
+    },
+    {
+      "path": "tests/standalone.spec.js",
+      "git_blob": "036c1eae84e07822af806ec010932dc5de5fd43d",
+      "sha256": "a4a72a47dd41b230c368a2b5b7c1e705a75ee73389ecdc7639cce75204ffdeee",
+      "bytes": 91118
+    },
+    {
+      "path": "tests/studio-docks.spec.js",
+      "git_blob": "98c108df8dc21758091f220817409d5701e913af",
+      "sha256": "f9ed450d51c46d61a3481c41f175091f1346652ce4356710c5bfe8177f270945",
+      "bytes": 3239
+    },
+    {
+      "path": "tests/studio.spec.js",
+      "git_blob": "8fef7c2e8b942287cc7d91a081f6557e2438ceec",
+      "sha256": "ac5de5f01daa0b33715c2065459d2efb6ccece1dbbbfbe98f9c700097f83f0b7",
+      "bytes": 27111
+    },
+    {
+      "path": "tests/surface-bake-tiles.spec.js",
+      "git_blob": "11fbed76eac4d426be258d6cbd2fbd717ee2d916",
+      "sha256": "91d9306659d5757056c1471053b01b44a2ef594908fbae2fc915e07d84a0578b",
+      "bytes": 3641
+    },
+    {
+      "path": "tests/textile-corrections.spec.js",
+      "git_blob": "e7132b040d62d94bfdb6a61605b52058806a75b4",
+      "sha256": "7144c6f01bc9432cecea47c8cdd050ffa38cf911edbf0fdf7c8ce5dae72abb00",
+      "bytes": 9782
+    },
+    {
+      "path": "tests/texture-document.spec.js",
+      "git_blob": "707f7464c357906c30dd1886cdb0687ede7b0282",
+      "sha256": "e2adb24a839e18d8338788fcad5770ec76591832d2857fcac47ebbfe1ac8940f",
+      "bytes": 5667
+    },
+    {
+      "path": "tests/texture-folders-model.spec.js",
+      "git_blob": "0b1efd0a6e29eee06d296d8c4995fb7c690a3fa9",
+      "sha256": "292e9aa83489ea0db458f1ab72d6f88cc7cb842205cf9b8b57691b8625e07c2b",
+      "bytes": 12934
+    },
+    {
+      "path": "tests/texture-folders-studio.spec.js",
+      "git_blob": "a98481b9598af6618727650a6db5e05f2db40375",
+      "sha256": "78f2d2125442cccc607fd0ca561f320a511d4bb344fdd5df412c79e849b78686",
+      "bytes": 20458
+    },
+    {
+      "path": "tests/texture-history-model.spec.js",
+      "git_blob": "59cbcccc2d06080b5a9664e6d619ba2904997d7e",
+      "sha256": "7c23b4bba76cae1c60e6dc6e9a2f4facfe710d2267a6848db64df92f57cafdeb",
+      "bytes": 8218
+    },
+    {
+      "path": "tests/texture-history-studio.spec.js",
+      "git_blob": "28be87cd9cf83462d8eb7d43c333d0715efacbac",
+      "sha256": "d2da194de7349e04d013ebf42ebb82bf6d963835c6a7244297d1fecb4dceb710",
+      "bytes": 14805
+    },
+    {
+      "path": "tests/texture-mask-paint-model.spec.js",
+      "git_blob": "ca0de7eb51936613c20d1b3a1a3002b6e7383b6f",
+      "sha256": "9488cd3c4f4f8d33755cdf46735a5f5660a1d4e9955aaf1dd4b731009144b3f8",
+      "bytes": 10659
+    },
+    {
+      "path": "tests/texture-mask-paint-studio.spec.js",
+      "git_blob": "840aaaa158b88f1d9488c5050a57601184b79e57",
+      "sha256": "b7774af4caad0d29afbdb19ddfb311c02c8eb11c13a4a6c38b2cdeeb7f751b88",
+      "bytes": 34014
+    },
+    {
+      "path": "tests/texture-optical-stack-model.spec.js",
+      "git_blob": "61e2c5378497b0b576a583595900b2cf2af64e07",
+      "sha256": "0ab28943d0d43b70b26597443babe47220aef4cb22fa7f170e37e48740ffba54",
+      "bytes": 12939
+    },
+    {
+      "path": "tests/texture-parts-uv-model.spec.js",
+      "git_blob": "9f199965dd987bc870fd6f92bfbf2f2928ca46f2",
+      "sha256": "f53af74e3bc1eebbba53761600f1861c2a622092392799f6fa121f1a529e2dda",
+      "bytes": 18648
+    },
+    {
+      "path": "tests/texture-parts-uv-studio.spec.js",
+      "git_blob": "4f7fb2266408986b4771326180207ebf2092817c",
+      "sha256": "39a70e673818594a0a98521157d3c19ce7262edf286679ea88dec49a9c69d4b4",
+      "bytes": 21178
+    },
+    {
+      "path": "tests/texture-stack-evaluation-model.spec.js",
+      "git_blob": "f8570b7040051f655937ee2cf867c31c053908ee",
+      "sha256": "538410062a19b80f97782d6da0526fd1b6df5796f67891042bc7e3214c7fadca",
+      "bytes": 17137
+    },
+    {
+      "path": "tests/texture-stack-evaluation-studio.spec.js",
+      "git_blob": "2f41265dc87378440e8d363b28122234ed1f45b7",
+      "sha256": "c68cc2695cc0e1ce799ef3d073c8f8b8dd517f8457cdf2471317622d9a463c6a",
+      "bytes": 24888
+    },
+    {
+      "path": "tests/texture-studio.spec.js",
+      "git_blob": "f7259857c308946d8e6e7e9498b48babaab2005e",
+      "sha256": "1fb3571c6bf2fbde9c41cd9bb78400ccb66acd36f93949d0ea0f241ca76d1c2d",
+      "bytes": 14939
+    },
+    {
+      "path": "tests/volume-sdf.spec.js",
+      "git_blob": "d8fa2bf1e3bc91b394ebcdb48903fc7d3b6133b4",
+      "sha256": "f15d0d16c5f89f33c5b6ac2e84359b0e884285603e66b5868020147f3a2e225b",
+      "bytes": 6762
+    },
+    {
+      "path": "tests/workspace-runtime.spec.js",
+      "git_blob": "90574701b15c03ef4793e9ec118032d077575bbb",
+      "sha256": "9ab1262d4cb406313ec662ce23ba2e891fbf9b7e1b1cec022140d0058b13070c",
+      "bytes": 10352
+    },
+    {
+      "path": "vite.config.js",
+      "git_blob": "56a328d50fec7daac4a3e9ae4c57e7c63f863ab3",
+      "sha256": "e1c5171b6fc0e245d7e2859790914adb598b8037724cf1d8361da10982c7ab16",
+      "bytes": 1862
+    }
+  ]
+}

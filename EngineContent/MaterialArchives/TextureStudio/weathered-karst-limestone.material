@@ -1,0 +1,243 @@
+Format = 1
+Name = 'Weathered Karst Limestone'
+NormalStrength = 1.0
+Radiance = [ 0.0, 0.0, 0.0 ]
+UvScaleOffset = [ 1.0, 1.0, 0.0, 0.0 ]
+
+[Authoring]
+Variables = []
+Version = 2
+
+    [Authoring.Designer]
+
+    [Authoring.Inputs]
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:amount' = 1.0
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:angle' = 8.0
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:colour0' = '#344722'
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:colour1' = '#516b35'
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:colour2' = '#6e8240'
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:colour3' = '#7d4e38'
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:pixelSize' = 4.0
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:scale' = 5.4000000000000004
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:seed' = 267.0
+    'field:08be12da-f78c-451b-96d4-75807a31e0a3:softness' = 0.012
+    'field:c40a8427-6135-4157-8e47-8d3e1c9adf71:amount' = 1.0
+    'field:c40a8427-6135-4157-8e47-8d3e1c9adf71:angle' = 68.0
+    'field:c40a8427-6135-4157-8e47-8d3e1c9adf71:scale' = 6.2000000000000002
+    'field:c40a8427-6135-4157-8e47-8d3e1c9adf71:seed' = 154.0
+    'layer:27a6e414-49b2-4584-a15e-e00592fc8a18:colour' = '#5e584e'
+    'layer:27a6e414-49b2-4584-a15e-e00592fc8a18:coverage' = 1.0
+    'layer:27a6e414-49b2-4584-a15e-e00592fc8a18:normal' = [ 0.68000000000000005, 0.68000000000000005, 1.0 ]
+    'layer:27a6e414-49b2-4584-a15e-e00592fc8a18:roughness' = 0.88
+    'layer:9b930c6d-fb34-48d0-9c9a-8478ea051482:colour' = '#4a6132'
+    'layer:9b930c6d-fb34-48d0-9c9a-8478ea051482:coverage' = 1.0
+    'layer:9b930c6d-fb34-48d0-9c9a-8478ea051482:normal' = [ 0.35999999999999999, 0.35999999999999999, 1.0 ]
+    'layer:9b930c6d-fb34-48d0-9c9a-8478ea051482:roughness' = 0.91000000000000003
+
+    [Authoring.Links]
+
+    [[Authoring.Generators]]
+    Category = 'Particle fields'
+    Coded = false
+    Enabled = true
+    Identity = 'b3ccbb22-eacb-4a39-8e5c-2c1db6862ccc'
+    Inputs = [
+        'flakes',
+        'flakeSize',
+        'flakeScale',
+        'flakeLayers',
+        'flakeLayerDepth',
+        'flakeTilt',
+        'flakeRoughnessMin',
+        'flakeRoughnessMax',
+        'flakeMetalnessMin',
+        'flakeMetalnessMax'
+    ]
+    Name = 'Mineral flake distribution'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'flakes'
+
+    [[Authoring.Generators]]
+    Category = 'Structural fields'
+    Coded = false
+    Enabled = true
+    Identity = 'db01d2f1-4462-4542-8c2e-0b7428559bda'
+    Inputs = []
+    Name = 'Weathered Karst Limestone'
+    Outputs = [ 'colour', 'normal', 'roughness', 'metallic' ]
+    Procedure = 'marble'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = 'c40a8427-6135-4157-8e47-8d3e1c9adf71'
+    Inputs = [
+        'field:c40a8427-6135-4157-8e47-8d3e1c9adf71:scale',
+        'field:c40a8427-6135-4157-8e47-8d3e1c9adf71:seed',
+        'field:c40a8427-6135-4157-8e47-8d3e1c9adf71:angle',
+        'field:c40a8427-6135-4157-8e47-8d3e1c9adf71:amount'
+    ]
+    Name = 'Karst solution channels'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'ridged'
+
+    [[Authoring.Generators]]
+    Category = 'Geological strata'
+    Coded = true
+    Enabled = true
+    Identity = '08be12da-f78c-451b-96d4-75807a31e0a3'
+    Inputs = [
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:scale',
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:seed',
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:angle',
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:amount',
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:colour0',
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:colour1',
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:colour2',
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:colour3',
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:softness',
+        'field:08be12da-f78c-451b-96d4-75807a31e0a3:pixelSize'
+    ]
+    Name = 'Moss cushion patches'
+    Outputs = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Procedure = 'camouflage-smooth'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = '9b930c6d-fb34-48d0-9c9a-8478ea051482'
+    Model = 'detail'
+    Name = 'Highland bryophyte moss & terra rossa'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'normal', 'coverage' ]
+    Enabled = true
+    Identity = '27a6e414-49b2-4584-a15e-e00592fc8a18'
+    Model = 'detail'
+    Name = 'Dissolution rillenkarren crevices'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'coverage' ]
+    Enabled = true
+    Generator = 'b3ccbb22-eacb-4a39-8e5c-2c1db6862ccc'
+    Identity = '883b91a4-197a-4bfc-81fa-2cfef8d2c198'
+    Model = 'flakes'
+    Name = 'Mineral flakes'
+
+    [[Authoring.Layers]]
+    Channels = [ 'colour', 'roughness', 'metallic', 'normal', 'ior', 'specular', 'thickness' ]
+    Enabled = true
+    Identity = 'a40075d1-2c70-4db3-9c4c-03a7a7616455'
+    Model = 'surface'
+    Name = 'Surface body'
+
+    [[Authoring.Sources]]
+    Address = 'layer:27a6e414-49b2-4584-a15e-e00592fc8a18:colour'
+    Direct = true
+    Generator = 'c40a8427-6135-4157-8e47-8d3e1c9adf71'
+    Mode = 'field'
+    Stops = [ '#454038', '#696257', '#8a8275' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:27a6e414-49b2-4584-a15e-e00592fc8a18:coverage'
+    Direct = true
+    Generator = 'c40a8427-6135-4157-8e47-8d3e1c9adf71'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#c2c2c2', '#ffffff' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:27a6e414-49b2-4584-a15e-e00592fc8a18:normal'
+    Direct = true
+    Generator = 'c40a8427-6135-4157-8e47-8d3e1c9adf71'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#c2c2c2', '#ffffff' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:9b930c6d-fb34-48d0-9c9a-8478ea051482:colour'
+    Direct = true
+    Generator = '08be12da-f78c-451b-96d4-75807a31e0a3'
+    Mode = 'field'
+    Stops = [ '#344722', '#516b35', '#6e8240', '#7d4e38' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:9b930c6d-fb34-48d0-9c9a-8478ea051482:coverage'
+    Direct = true
+    Generator = '08be12da-f78c-451b-96d4-75807a31e0a3'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#adadad', '#f2f2f2' ]
+
+    [[Authoring.Sources]]
+    Address = 'layer:9b930c6d-fb34-48d0-9c9a-8478ea051482:normal'
+    Direct = true
+    Generator = '08be12da-f78c-451b-96d4-75807a31e0a3'
+    Mode = 'field'
+    Stops = [ '#000000', '#000000', '#000000', '#adadad', '#f2f2f2' ]
+
+[AutomotivePaint]
+ColourMode = 'Palette'
+Distribution = [ 0.47999998927116394, 260.0, 1.0499999523162842, 0.090000003576278687 ]
+Enabled = true
+Finish = [ 0.10000000149011612, 0.34000000357627869, 0.019999999552965164, 0.18000000715255737 ]
+Layers = 3
+Palette = [
+    [ 1.0, 1.0, 1.0, 0.0 ],
+    [ 0.82278585433959961, 0.78353792428970337, 0.69387191534042358, 0.25 ],
+    [ 0.62396043539047241, 0.57758051156997681, 0.479320228099823, 0.5 ],
+    [ 0.39157256484031677, 0.3515326976776123, 0.27467736601829529, 0.75 ],
+    [ 0.9301108717918396, 0.90466135740280151, 0.8387991189956665, 1.0 ]
+]
+Relief = [ 0.30000001192092896, 0.41999998688697815, 0.029999999329447746, 24.0 ]
+
+[Textures]
+
+[[Strata]]
+Absorption = [ 0.0, 0.0, 0.0 ]
+Albedo = [ 1.0, 1.0, 1.0 ]
+Anisotropy = 0.0
+Category = 'Opaque'
+Coverage = 1.0
+Fresnel = 'Schlick'
+HeightStrength = 0.34999999403953552
+Ior = 1.5859999656677246
+Metallic = 0.0
+NormalStrength = 1.0
+Rotation = 0.0
+Roughness = 0.6600000262260437
+SheenColor = [ 0.0, 0.0, 0.0 ]
+SheenIntensity = 0.0
+SheenRoughness = 0.0
+Specular = 1.0
+TextureMask = 5
+Thickness = 0.0
+UvScaleOffset = [ 5.0, 5.0, 0.0, 0.0 ]
+
+    [Strata.Textures]
+    Albedo = 'Textures/weathered-karst-limestone-albedo.png'
+    Normal = 'Textures/weathered-karst-limestone-normal.png'
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Albedo'
+    Op = 'marble'
+
+        [Strata.Channels.Params]
+        color = '#c8c2b4'
+        detailScale = 14.0
+        grain = 0.57999999999999996
+        secondaryColor = '#8d8678'
+        surfaceSeed = 923.0
+        veinWidth = 0.055
+
+    [[Strata.Channels]]
+    Link = 'shared'
+    Name = 'Normal'
+    Op = 'marble'
+
+        [Strata.Channels.Params]
+        color = '#c8c2b4'
+        detailScale = 14.0
+        grain = 0.57999999999999996
+        secondaryColor = '#8d8678'
+        surfaceSeed = 923.0
+        veinWidth = 0.055

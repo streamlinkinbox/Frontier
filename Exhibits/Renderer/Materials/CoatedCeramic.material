@@ -1,0 +1,38 @@
+Format = 1
+Name = "Coated ceramic"
+UvScaleOffset = [3.0, 2.0, 0.0, 0.0]
+NormalStrength = 1.0
+Radiance = [0.0, 0.0, 0.0]
+
+[Textures]
+Albedo = "Textures/Albedo.png"
+Orm = "Textures/Orm.png"
+Normal = "Textures/Normal.png"
+Radiance = "Textures/Radiance.png"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.12, 0.42, 0.65]
+Roughness = 0.5
+Metallic = 0.0
+Ior = 1.5
+Coverage = 1.0
+TextureMask = 5
+
+[[Strata]]
+Category = "Coating"
+Roughness = 0.12
+Ior = 1.5
+Coverage = 1.0
+Absorption = [2.0, 0.3, 0.1]
+Thickness = 0.02
+TextureMask = 6
+UvScaleOffset = [0.5, 2.0, 0.13, 0.0]
+NormalStrength = 0.5
+Anisotropy = 0.55
+Rotation = 0.4
+Fresnel = "Dielectric"
+
+[Strata.Textures]
+Normal = "Textures/CoatNormal.png"
+Orm = "Textures/CoatOrm.png"

@@ -1,0 +1,69 @@
+Format = 1
+Name = "PP Polypropylene"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.5840784178911641, 0.5647115057049292, 0.47353149614800955]
+Roughness = 0.526
+Metallic = 0
+Ior = 1.49
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/pp-polypropylene-albedo.png"
+Orm = "Textures/pp-polypropylene-orm.png"
+Normal = "Textures/pp-polypropylene-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.25
+detailScale = 130
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.43
+translucency = 0.07
+depth = 0.5
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.25
+detailScale = 130
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.43
+translucency = 0.07
+depth = 0.5
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.25
+detailScale = 130
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.43
+translucency = 0.07
+depth = 0.5

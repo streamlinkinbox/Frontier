@@ -1,0 +1,164 @@
+# SolidArc surface-evaluation walkthrough (vehicle plan V8): zebra stripes and the deviation map on the synthetic
+# bonnet. Smooth data joins almost G1 by itself (8.5e-4 rad, gate C3) — invisible in any zebra — so ① lifts pole 2 of the
+# shared Section3 (mode 1 drag, ≈ 20 mm): front (Section1–3) and rear (Section3–6) lofts joined G0 then crease along
+# Section3 and the stripes kink. ② The rear loft redone G2: the stripes run smoothly across. ③ The deviation map: a needle
+# from every imported limit point (286, including 5 check loops never lofted) to its foot on the panels, coloured on
+# 0 … 0.2 mm — the lifted pole shows as red needles (the edit leaves the scan). ④ A fresh bonnet lofted through all six
+# sections, Alt+X: the stripes continue across the mirror seam at x = 0 (look-ahead tangents).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/EvaluationRecovery.solidarc
+#      --document …/Evaluation.solidarc --script Scripts/SurfaceEvaluationWalkthrough.txt
+# Click points lie on the analytic bonnet at ξ = 0.5 (x = 0.375); the dragged pole is pole 2 of Section3 at
+# (0.50298, 0.41799, 0.81056), as in VehicleSurfacingWalkthrough.txt.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① bonnet: lift pole 2 of Section3, front loft, rear loft G0
+key N Ctrl
+frames 2
+key I Ctrl Shift
+frames 3
+click @PathImport
+frames 3
+expect steps == 11
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+key 1
+frames 2
+move world 0.50298 0.41799 0.81056
+frames 2
+press Left
+frames 1
+move offset 0 -10
+frames 2
+release Left
+frames 3
+expect pole-edits == 1
+expect status contains Moved pole 2 of Section3
+click world 0.375 0.0 0.75875
+click world 0.375 0.187 0.7888 Left Shift
+click world 0.375 0.418 0.81925 Left Shift
+frames 2
+click @LoftG0
+frames 1
+expect loft-continuity == 0
+key L
+frames 3
+expect panels == 1
+click world 0.375 0.418 0.81925
+click world 0.375 0.66 0.84171 Left Shift
+click world 0.375 0.891 0.85404 Left Shift
+click world 0.375 1.1 0.85875 Left Shift
+frames 2
+expect selected-curves == Section3,Section4,Section5,Section6
+key L
+frames 3
+expect steps == 13
+expect refused == 0
+expect panels == 2
+expect sound == 1
+key Escape
+frames 1
+click @DisplayMenu
+frames 2
+click @ZebraToggle
+frames 3
+expect zebra == 1
+expect triangles > 1500
+expect status contains Zebra on
+click @ViewMenu
+frames 2
+click @ViewTop
+frames 3
+capture 70ZebraG0
+
+# ② undo the rear loft, redo it G2: the stripes no longer kink at Section3
+key Z Ctrl
+frames 3
+expect panels == 1
+click world 0.375 0.418 0.81925
+click world 0.375 0.66 0.84171 Left Shift
+click world 0.375 0.891 0.85404 Left Shift
+click world 0.375 1.1 0.85875 Left Shift
+frames 2
+click @LoftG2
+frames 1
+expect loft-continuity == 2
+key L
+frames 3
+expect steps == 13
+expect refused == 0
+expect panels == 2
+expect sound == 1
+expect status contains · G2
+key Escape
+frames 1
+expect zebra == 1
+click @ViewMenu
+frames 2
+click @ViewTop
+frames 3
+capture 71ZebraG2
+
+# ③ deviation map: zebra off, needles on (magnified; the legend states the factor)
+click @DisplayMenu
+frames 2
+click @ZebraToggle
+frames 2
+expect zebra == 0
+click @DisplayMenu
+frames 2
+click @DeviationToggle
+frames 3
+expect deviation-points == 286
+expect deviation-worst > 0.002
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 3
+capture 72DeviationMap
+click @DisplayMenu
+frames 2
+click @DeviationToggle
+frames 1
+
+# ④ fresh bonnet, one loft through all six sections, Alt+X, zebra: stripes continue across x = 0
+key N Ctrl
+frames 2
+key I Ctrl Shift
+frames 3
+click @PathImport
+frames 3
+click world 0.375 0.0 0.75875
+click world 0.375 0.187 0.7888 Left Shift
+click world 0.375 0.418 0.81925 Left Shift
+click world 0.375 0.66 0.84171 Left Shift
+click world 0.375 0.891 0.85404 Left Shift
+click world 0.375 1.1 0.85875 Left Shift
+frames 2
+expect selected-curves == Section1,Section2,Section3,Section4,Section5,Section6
+click @LoftG0
+key L
+frames 3
+key X Alt
+frames 3
+expect panels == 2
+expect sound == 1
+key Escape
+frames 1
+click @DisplayMenu
+frames 2
+click @ZebraToggle
+frames 3
+expect zebra == 1
+click @ViewMenu
+frames 2
+click @ViewTop
+frames 2
+key Space
+frames 3
+capture 73ZebraMirrored

@@ -1,0 +1,96 @@
+PASS	Orbit moves around selected target
+PASS	Orbit retains selected-target distance
+PASS	Chase follows moving selected target
+PASS	Fixed-axis camera has valid direction/up basis
+PASS	Fixed-axis camera has valid direction/up basis
+PASS	Fixed-axis camera has valid direction/up basis
+PASS	Fixed-axis camera has valid direction/up basis
+PASS	Fixed-axis camera has valid direction/up basis
+PASS	Fixed-axis camera has valid direction/up basis
+PASS	Space navigation starts outside the atmosphere
+PASS	Leaving space navigation restores the scene position
+PASS	Native UI initialized
+PASS	Clean default retains only rendered environment and required renderer settings
+PASS	No unused default SpatialNode
+PASS	No unused default RigidBody
+PASS	No unused default ThermalBody
+PASS	No unused default ChemicalVessel
+PASS	No unused default FluidPlume
+PASS	No unused default Fracture
+PASS	No unused default Particles
+PASS	No unused default HarmonicOscillator
+PASS	No unused default Lightning
+PASS	No unused default AerialFog
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  3288.4 ms
+PASS	Native presented pixels read back
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  3299.1 ms
+PASS	Native presented pixels read back
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  3202.7 ms
+PASS	Native presented pixels read back
+PASS	Workspace image saved
+PASS	Outliner only lists the fifteen rendered scene entries
+PASS	Render settings remain available outside the scene list
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	No dummy or renderer metadata in Outliner
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  3135.1 ms
+PASS	Native presented pixels read back
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  3071.6 ms
+PASS	Native presented pixels read back
+PASS	V enables fullscreen viewport
+PASS	Fullscreen viewport occupies the entire application client area
+PASS	Workspace image saved
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  3007.1 ms
+PASS	Native presented pixels read back
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  2758.8 ms
+PASS	Native presented pixels read back
+PASS	Escape restores the docked workspace
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  2720.8 ms
+PASS	Native presented pixels read back
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  2694.3 ms
+PASS	Native presented pixels read back
+PASS	Workspace image saved
+PASS	Venus live preview responds to edits
+PASS	Planet orientation persists through codec
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  2681.4 ms
+PASS	Native presented pixels read back
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  2473.5 ms
+PASS	Native presented pixels read back
+PASS	Workspace image saved
+PASS	Jupiter live preview responds to edits
+PASS	Planet orientation persists through codec
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  2290.3 ms
+PASS	Native presented pixels read back
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  2125.2 ms
+PASS	Native presented pixels read back
+PASS	Workspace image saved
+PASS	Mars live preview responds to edits
+PASS	Planet orientation persists through codec
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  1980.1 ms
+PASS	Native presented pixels read back
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  1855.3 ms
+PASS	Native presented pixels read back
+PASS	Workspace image saved
+PASS	Saturn live preview responds to edits
+PASS	Planet orientation persists through codec
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  1851.9 ms
+PASS	Native presented pixels read back
+PASS	Native viewport: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  288 x 180  |  1801.5 ms
+PASS	Native presented pixels read back
+PASS	Workspace image saved
+PASS	Space camera is live in the production viewport
+PASS	No shared workspace footer
+PASS	All four panels reserve independent footer space
+SUMMARY	95 checks passed

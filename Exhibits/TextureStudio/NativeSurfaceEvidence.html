@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Frontier · Native surface evidence</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#e8e7dd;background:#111411;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}main{max-width:1120px;margin:auto;padding:32px 24px 56px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;border-bottom:1px solid #343a32;padding-bottom:22px}
+h1{font-size:clamp(24px,4vw,38px);font-weight:560;letter-spacing:-.035em;margin:0 0 8px}
+p{color:#aeb3a5;line-height:1.55;margin:0}.download{flex:none;display:inline-block;color:#eff1e7;background:#283326;border:1px solid #4b5947;border-radius:8px;padding:11px 15px;text-decoration:none}
+section{margin-top:30px}h2{font-size:17px;font-weight:550;margin:0 0 15px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}
+article{background:#191d19;border:1px solid #30362f;border-radius:9px;overflow:hidden}article img{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:#151815}article h3{font-size:14px;font-weight:540;margin:12px 13px 5px}article p{font-size:12px;margin:0 13px 14px}
+.library{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.library article img{aspect-ratio:4/3;object-fit:contain}.note{margin-top:25px;padding:14px 16px;border:1px solid #394239;border-radius:8px;background:#181d18;font-size:13px}
+@media(max-width:650px){main{padding:22px 15px 38px}header{display:block}.download{margin-top:16px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div><h1>Native Float32 surface maps</h1><p>GPU-authored vector channels, typed RGBA32F storage, and isolated gold-thread properties.</p></div>
+<a class="download" href="Outputs/SurfaceFloatSamples.zip" download>Download 14 Float32 samples</a>
+</header>
+<section><h2>Material-library preview grain investigation · 20 October 2026</h2><article><div style="padding:14px 13px 0"><p>The reported 200% preview from build <code>730272b5</code> is visibly noisy; the earlier captures on this page do not prove that desktop preview was clean. The material shader has now been revised to integrate the four studio softboxes as rectangular area lights and keep sky sampling separate (eight samples). Portable Slang-to-SPIR-V compilation passed. A fresh GPU capture/runtime comparison is still required, so this is a status note—not a claim that the visual issue is resolved.</p></div><h3>Current verification status</h3><p>Shader compilation: passed · Native GPU preview capture: pending · Windows desktop visual confirmation: pending</p></article></section>
+<section><h2>Actual native Vulkan channel captures</h2><div class="grid">
+<article><img src="Images/NativePatternSurfaceChannels.gif" alt="Seven GPU Float32 map captures: colour, height, normal, roughness, metalness, opacity, and occlusion"><h3>Seven Float32 channels</h3><p>Actual C++ Vulkan readbacks, displayed as 8-bit GIF frames. The PFM samples retain Float32 values.</p></article>
+</div></section>
+<section><h2>Float32 authoring maps in the PBR renderer</h2><div class="grid">
+<article><img src="Images/NativePbrBridgeSampling.gif" alt="C++ Vulkan PBR captures: baseline, Float32 fabric and gold-thread maps, then calibrated fabric relief and roughness with gold thread unchanged"><h3>GPU authoring to PBR sampling</h3><p>Three 128×128 PBR captures generated from full-size 512×512 C++ Vulkan Float32 fabric and gold-thread maps: baseline, authored-map sampling, then a per-layer fabric relief and roughness edit. The gold thread retains its independent tangent normals, roughness, and metalness response. <a href="Results/NativePbrBridgeSamplingChecks.json">Validation and provenance</a>. SwiftShader fixture; not a Windows desktop capture.</p></article>
+</div></section>
+<section><h2>Native C++ Pattern panel integration checks</h2><div class="grid">
+<article><img src="Images/NativePatternWorkspacePort.gif" alt="Native C++ Pattern panel edits with GPU-backed canvas captures"><h3>Pattern panel and GPU canvas</h3><p>606 C++ checks pass, including 340 coverage dispatches and 63 selection dispatches. Captures come from the ImGui/Vulkan validation runner, not a Windows desktop session. <a href="Results/PatternWorkspaceChecks.json">Validation report</a></p></article>
+</div></section>
+<section><h2>Existing native Pattern recording library</h2><div class="library">
+<article><img src="Images/NativePatternClipboard.gif" alt="Native clipboard editing"><h3>Clipboard</h3></article>
+<article><img src="Images/NativePatternEndpointJoin.gif" alt="Native endpoint join"><h3>Endpoint join</h3></article>
+<article><img src="Images/NativePatternJoining.gif" alt="Native path joining"><h3>Path joining</h3></article>
+<article><img src="Images/NativePatternMultipoint.gif" alt="Native multipoint editing"><h3>Multipoint editing</h3></article>
+<article><img src="Images/NativePatternPenContinuation.gif" alt="Native pen continuation"><h3>Pen continuation</h3></article>
+<article><img src="Images/NativePatternPenPlacement.gif" alt="Native pen placement"><h3>Pen placement</h3></article>
+<article><img src="Images/NativePatternRefinement.gif" alt="Native path refinement"><h3>Path refinement</h3></article>
+<article><img src="Images/NativePatternSegmentEditing.gif" alt="Native segment editing"><h3>Segment editing</h3></article>
+</div></section>
+<div class="note">Fixture scope: 32 × 32 GPU validation document with a fabric base and a separately authored gold-thread ellipse. The downloadable ZIP is a regression fixture, not a user's document export. Height remains normalized, not metres; the 3D material application UI and physical displacement calibration remain unfinished.</div>
+</main>
+</body>
+</html>

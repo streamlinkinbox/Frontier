@@ -1,0 +1,14 @@
+# Options for Scripts/RecoveryWalkthrough.txt: non-default values so the capture proves the file is honoured.
+[Window]
+Width = 1600
+Height = 900
+
+[Viewport]
+Orthographic = true
+Grid = false
+EdgeStroke = 2.0
+
+[Files]
+RecoveryPath = "_ClaudeScratch/SolidArcWorkspace/Recovery.solidarc"
+DocumentPath = "_ClaudeScratch/SolidArcWorkspace/Bracket.solidarc"
+AutosaveDelay = 0.6

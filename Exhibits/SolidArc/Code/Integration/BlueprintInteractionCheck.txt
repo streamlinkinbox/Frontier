@@ -1,0 +1,83 @@
+# Real UI regression: arm Arc in Top, move to Right/Front, then pin its plane with the first point.
+frames 5
+snap grid on
+move @PaneView:0 offset 0 65
+frames 3
+expect active-pane == 0
+click @DrawArc
+frames 3
+expect drawing == Arc
+move @PaneView:0 offset 0 65
+frames 2
+expect drawing-plane == 0
+move @PaneView:3 offset 0 65
+frames 3
+expect active-pane == 3
+expect drawing-plane == 2
+expect drawing-normal-x ~ 1
+move @PaneView:2 offset 0 65
+frames 3
+expect active-pane == 2
+expect drawing-plane == 1
+move @PaneView:3 offset 0 65
+frames 3
+expect drawing-plane == 2
+click world 0 -1 0
+frames 3
+expect drawing-points == 1
+move @PaneView:0 offset 0 65
+frames 3
+expect active-pane == 0
+expect drawing-plane == 2
+move @PaneView:3 offset 0 65
+frames 2
+click world 0 1 0
+frames 2
+click world 0 0 1
+frames 3
+expect drawing == 0
+expect steps == 1
+expect plane-normal-x ~ 1
+expect plane-normal-y ~ 0
+expect plane-normal-z ~ 0
+capture Liger_Side_Arc
+# Click the visible pill's Offset button; original arc remains.
+click @SketchOffset
+frames 3
+expect sweep == 1
+expect sweep-verb == Offset
+type 0.1
+frames 3
+expect sweep-amount ~ 0.1
+expect sweep-refusal == 0
+expect sweep-outline == 1
+move @PaneView:3 offset 0 65
+frames 2
+capture Liger_Concentric_Offset_Preview
+key Enter
+frames 3
+expect steps == 2
+expect sweep == 0
+expect refused == 0
+expect plane-normal-x ~ 1
+key 5
+frames 2
+click world 0 0 0.9
+frames 3
+expect selected-curves == 1
+expect curve-radius ~ 0.9
+expect curve-center-u ~ 0
+expect curve-center-v ~ 0
+# Verify the original is still independently selectable, at its unchanged radius.
+key Escape
+frames 2
+expect selected-curves == 0
+click world 0 0 1
+frames 3
+expect selected-curves == 1
+expect curve-radius ~ 1
+expect curve-center-u ~ 0
+expect curve-center-v ~ 0
+move @PaneView:3 offset 0 65
+frames 2
+capture Liger_Concentric_Arcs

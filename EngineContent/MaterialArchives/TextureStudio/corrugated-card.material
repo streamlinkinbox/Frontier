@@ -1,0 +1,48 @@
+Format = 1
+Name = "Corrugated Card"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.9
+Metallic = 0
+Ior = 1.47
+Coverage = 1.0
+Anisotropy = 0
+SheenColor = [0.3049873140698863, 0.1651321945016676, 0.07618538148130785]
+SheenIntensity = 0.1
+SheenRoughness = 0.8
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/corrugated-card-albedo.png"
+Normal = "Textures/corrugated-card-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "paper"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 90
+grain = 0.7
+fiberContrast = 0.3
+paperRibs = 1
+surfaceSeed = 17
+color = "#96714e"
+secondaryColor = "#817259"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "paper"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 90
+grain = 0.7
+fiberContrast = 0.3
+paperRibs = 1
+surfaceSeed = 17
+color = "#96714e"
+secondaryColor = "#817259"

@@ -1,0 +1,78 @@
+Format = 1
+Name = "Grained ABS"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.03560131487502034, 0.03688945040110004, 0.03954623527673284]
+Roughness = 0.716
+Metallic = 0
+Ior = 1.55
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/grained-abs-albedo.png"
+Orm = "Textures/grained-abs-orm.png"
+Normal = "Textures/grained-abs-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.85
+detailScale = 85
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.62
+translucency = 0
+depth = 0.35
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.85
+detailScale = 85
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.62
+translucency = 0
+depth = 0.35
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "polymerGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0.85
+detailScale = 85
+wear = 0
+wearSoftness = 0.65
+wornRoughness = 0.24
+scratchScale = 32
+surfaceSeed = 17
+roughness = 0.62
+translucency = 0
+depth = 0.35
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.4
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.08

@@ -1,0 +1,33 @@
+{
+  "result": "passed",
+  "native_selection_bypasses": [],
+  "shared_geometry": {
+    "popup_radius": 8.0,
+    "row_radius": 6.0,
+    "padding_x": 12.0,
+    "padding_y": 10.0,
+    "row_height": 28.0,
+    "row_gap": 4.0
+  },
+  "coverage": "Native Pattern action/selection dropdowns, material/mask selectors and shared PixelSpace geometry",
+  "exclusions": "Colour pickers and modal dialog layouts are not list dropdowns",
+  "source_sha256": {
+    "Engine/Interface/DropdownControls.h": "80f82fc05f4697bd6bc5f17e1f6960c0e5001b5168b96aaa1c3a2d9dca6aaa79",
+    "Engine/Interface/ControlKit.h": "fd8d64387b333b580073ececba5ab71c876ed4b5d310230e8bcdec08d12bc083",
+    "Engine/Interface/ControlKit.cpp": "3cddfef1fdf975ef31bc115f22b594cf5a1a7cbb6ee71768c35801173b695e73",
+    "Engine/Interface/VectorAuthoringControls.cpp": "bdf658cb6025be04bec29893eb690a6c13ef18525d33f1c3d4b8aa899cfd1773",
+    "UI/TextureStudio/VectorMaskControls.cpp": "b12535fffaf512984a1ca2914efbb8adc67129259dd63a01abe95e06174fffd7",
+    "UI/TextureStudio/PatternWorkspacePanel.cpp": "5c702126f1270ba160094b59c20a27e9407893e4efbbcbe360082c9882a8015d",
+    "UI/TextureStudio/MaterialLibraryPanel.cpp": "25edd385b09fd81ba158c46d5939ca00617cc702b45f4ea9a40e8d249f13079e",
+    "Exhibits/TextureStudio/Code/VerifyDropdownStyle.py": "6b704f0e718362656fdd31bd5c7b1df385c574e760833c1ab0c273dc4d345ef0"
+  },
+  "capture_sha256": {
+    "Exhibits/TextureStudio/Images/NativeDropdownAddMotif.png": "48a6cb16cb07989521491a05fec572af6d4e6f9a6937e8f4cbea7dfccd73bea4",
+    "Exhibits/TextureStudio/Images/NativeDropdownMoreTools.png": "dc5523e35ea95e62a20f665549029f71449fba6a7b0b2cc51572c444c6809dbf",
+    "Exhibits/TextureStudio/Images/NativeDropdownDocument.png": "9c3f3f8095cd8a6c6f22415355d14c153c9e2632d2d91b4f14699aa1aec755b2",
+    "Exhibits/TextureStudio/Images/NativeDropdownArray.png": "fe8be66cbb0a9b9e4de440179a156e8d9234da3d89d8e215a6652c12ee75e288",
+    "Exhibits/TextureStudio/Images/NativeDropdownMaterial.png": "64a01e5095773d516b8d57eee67b451b813f9e925a9ae7212d9c25d7a3612028"
+  },
+  "windows_executed": false,
+  "hardware_gpu_execution": false
+}

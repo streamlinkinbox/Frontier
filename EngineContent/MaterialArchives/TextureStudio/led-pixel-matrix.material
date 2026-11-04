@@ -1,0 +1,67 @@
+Format = 1
+Name = "LED Pixel Matrix"
+Radiance = [0.5048082006, 1.544752996, 3]
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.38
+Metallic = 0
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 13
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/led-pixel-matrix-albedo.png"
+Normal = "Textures/led-pixel-matrix-normal.png"
+Radiance = "Textures/led-pixel-matrix-radiance.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "led"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 7
+pixelFill = 0.62
+lensDome = 0.7
+packageDepth = 0.6
+surfaceSeed = 17
+color = "#111518"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "led"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 7
+pixelFill = 0.62
+lensDome = 0.7
+packageDepth = 0.6
+surfaceSeed = 17
+color = "#111518"
+
+
+[[Strata.Channels]]
+Name = "Radiance"
+Op = "led"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 7
+pixelFill = 0.62
+lensDome = 0.7
+packageDepth = 0.6
+surfaceSeed = 17
+color = "#111518"
+
+
+[[Strata]]
+Category = "Coating"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.15
+Metallic = 0.0
+Ior = 1.5
+Coverage = 0.25

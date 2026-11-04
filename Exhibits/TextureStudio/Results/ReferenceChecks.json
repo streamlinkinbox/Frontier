@@ -1,0 +1,758 @@
+{
+  "result": "passed",
+  "scope": "Updated React/Three reference only; no native application claim",
+  "optional_prerequisites": [
+    "@napi-rs/canvas",
+    "@shaderfrog/glsl-parser"
+  ],
+  "limitations": [
+    "GLSL parse warnings about built-in symbols are not GPU compiler results",
+    "Node checks do not execute browser painting or native Vulkan"
+  ],
+  "executions": [
+    {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "stdout": "\n> alloy-material-studio@1.0.0 build\n> vite build\n\nvite v7.3.7 building client environment for production...\ntransforming...\n\u2713 1845 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                                                0.87 kB \u2502 gzip:   0.47 kB\ndist/assets/space-grotesk-latin-600-normal-DjKNqYRj.woff2     13.28 kB\ndist/assets/space-grotesk-latin-500-normal-lFbtlQH6.woff2     13.31 kB\ndist/assets/space-grotesk-latin-400-normal-CJ-V5oYT.woff2     13.39 kB\ndist/assets/dm-sans-latin-300-normal-C46oWILc.woff2           13.71 kB\ndist/assets/dm-sans-latin-600-normal-Aqo67rzb.woff2           14.14 kB\ndist/assets/dm-sans-latin-400-normal-CW0RaeGs.woff2           14.20 kB\ndist/assets/dm-sans-latin-500-normal-B9HHJjqV.woff2           14.30 kB\ndist/assets/dm-sans-latin-700-normal-DvUfVpUG.woff2           14.35 kB\ndist/assets/space-grotesk-latin-600-normal-BflQw4A9.woff      16.88 kB\ndist/assets/space-grotesk-latin-500-normal-CNSSEhBt.woff      16.99 kB\ndist/assets/space-grotesk-latin-400-normal-BnQMeOim.woff      17.00 kB\ndist/assets/dm-sans-latin-300-normal-CsNfKS1n.woff            17.84 kB\ndist/assets/dm-sans-latin-600-normal-BmdmIIQ2.woff            18.32 kB\ndist/assets/dm-sans-latin-400-normal-BwCSEQnW.woff            18.36 kB\ndist/assets/dm-sans-latin-700-normal-CUSSCpQX.woff            18.50 kB\ndist/assets/dm-sans-latin-500-normal-Dr3UlScf.woff            18.52 kB\ndist/assets/index-BrF3pCka.css                               251.48 kB \u2502 gzip:  49.71 kB\ndist/assets/react-BmnML0C_.js                                 12.51 kB \u2502 gzip:   4.41 kB\ndist/assets/three-CJUp1yOI.js                                572.39 kB \u2502 gzip: 146.80 kB\ndist/assets/index-oori_0nA.js                              2,799.35 kB \u2502 gzip: 871.37 kB\n\u2713 built in 20.54s\n",
+      "stderr": "\n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\n"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-gpu-packing.mjs"
+      ],
+      "exit_code": 0,
+      "stdout": "verify-gpu-packing: dab packing, support detection and CPU fallback OK\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-stroke-incremental.mjs"
+      ],
+      "exit_code": 0,
+      "stdout": "  identical  fill only (4194304 bytes)\n  identical  stroke grows to 2 samples (4194304 bytes)\n  identical  stroke grows to 4 samples (4194304 bytes)\n  identical  stroke grows to 6 samples (4194304 bytes)\n  identical  stroke grows to 8 samples (4194304 bytes)\n  identical  stroke grows to 10 samples (4194304 bytes)\n  identical  stroke grows to 12 samples (4194304 bytes)\n  identical  stroke grows to 14 samples (4194304 bytes)\n  identical  stroke grows to 16 samples (4194304 bytes)\n  identical  stroke grows to 18 samples (4194304 bytes)\n  identical  stroke grows to 20 samples (4194304 bytes)\n  identical  stroke grows to 22 samples (4194304 bytes)\n  identical  stroke grows to 24 samples (4194304 bytes)\n  identical  stroke grows to 26 samples (4194304 bytes)\n  identical  stroke grows to 28 samples (4194304 bytes)\n  identical  stroke grows to 30 samples (4194304 bytes)\n  identical  stroke grows to 32 samples (4194304 bytes)\n  identical  stroke grows to 34 samples (4194304 bytes)\n  identical  stroke grows to 36 samples (4194304 bytes)\n  identical  stroke grows to 38 samples (4194304 bytes)\n  identical  stroke grows to 40 samples (4194304 bytes)\n  identical  stroke grows to 42 samples (4194304 bytes)\n  identical  stroke grows to 44 samples (4194304 bytes)\n  identical  stroke grows to 46 samples (4194304 bytes)\n  identical  stroke grows to 48 samples (4194304 bytes)\n  identical  stroke grows to 50 samples (4194304 bytes)\n  identical  stroke grows to 52 samples (4194304 bytes)\n  identical  stroke grows to 54 samples (4194304 bytes)\n  identical  stroke grows to 56 samples (4194304 bytes)\n  identical  stroke grows to 58 samples (4194304 bytes)\n  identical  stroke grows to 60 samples (4194304 bytes)\n  identical  endpoint replaced (4194304 bytes)\n  identical  interior sample smoothed (4194304 bytes)\n  identical  tapered stroke appears (4194304 bytes)\n  identical  tapered stroke grows (4194304 bytes)\n  identical  erase dab (4194304 bytes)\n  identical  undo to fill (4194304 bytes)\n  identical  new stroke after undo (4194304 bytes)\nsession equivalence: 38 frames byte-identical\ntiming (30 growth frames, 3 channels): incremental 369.7ms total (12.32ms/frame) vs full replay 2692.2ms total (89.74ms/frame) = 7.3x\n  identical  mask region fill\n  identical  mask digital mask stroke grows to 2\n  identical  mask digital mask stroke grows to 6\n  identical  mask digital mask stroke grows to 10\n  identical  mask digital mask stroke grows to 14\n  identical  mask digital mask stroke grows to 18\n  identical  mask digital mask stroke grows to 22\n  identical  mask digital mask stroke grows to 26\n  identical  mask digital mask stroke grows to 30\n  identical  mask digital mask stroke grows to 34\n  identical  mask digital mask stroke grows to 38\n  identical  mask digital mask erase (4 bytes within \u00b11)\n  identical  mask legacy mask stroke grows to 2\n  identical  mask legacy mask stroke grows to 6\n  identical  mask legacy mask stroke grows to 10\n  identical  mask legacy mask stroke grows to 14\n  identical  mask legacy mask stroke grows to 18\n  identical  mask legacy mask stroke grows to 22\n  identical  mask legacy mask stroke grows to 26\n  identical  mask legacy mask stroke grows to 30\n  identical  mask mask undo to region\nmask session equivalence: all frames byte-identical\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-mask-gpu.mjs"
+      ],
+      "exit_code": 0,
+      "stdout": "legacyMaskDabs: 200 randomized strokes match the CPU dab loop\npackGradientUniforms: shader math matches compilePointGradient\nscreenStencilLayout: 200 randomized layouts match stencil()\nverify-mask-gpu: all checks OK\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-glsl.mjs"
+      ],
+      "exit_code": 0,
+      "stdout": "verify-glsl: 17 shader blocks parse OK\n",
+      "stderr": "Encountered undefined variable: \"position\"\nEncountered undefined variable: \"gl_Position\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"gl_FragCoord\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"gl_FragCoord\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"position\"\nEncountered undefined variable: \"gl_Position\"\nEncountered undefined variable: \"gl_FragCoord\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"position\"\nEncountered undefined variable: \"gl_Position\"\nEncountered undefined variable: \"gl_FragCoord\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"gl_Position\"\nEncountered undefined variable: \"gl_FragCoord\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"gl_FragColor\"\nEncountered undefined variable: \"gl_FragColor\"\n(node:52023) [DEP0151] DeprecationWarning: No \"main\" or \"exports\" field defined in the package.json for /home/user/Frontier/Experimental/TextureStudio/node_modules/@shaderfrog/glsl-parser/ resolving the main entry point \"index.js\", imported from /home/user/Frontier/Experimental/TextureStudio/scripts/verify-glsl.mjs.\nDefault \"index\" lookups for the main are deprecated for ES modules.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n"
+    }
+  ],
+  "sources": [
+    {
+      "file": "Exhibits/TextureStudio/Code/VerifyReference.py",
+      "sha256": "73ea0cff370eb99a3ead8e6293f23c94f8bad7cc0ce1479e60d19964e90c1f68"
+    },
+    {
+      "file": "Experimental/TextureStudio/package-lock.json",
+      "sha256": "3654a8b395aa5d2a0b783b88681aab24e3e46b52e575c0c212bc61b46e453686"
+    },
+    {
+      "file": "Experimental/TextureStudio/package.json",
+      "sha256": "1955ad575dd6e021f6b4857ed83215159fd7682824f6026834c9ba9893fd9e4f"
+    },
+    {
+      "file": "Experimental/TextureStudio/scripts/audit-teapot-bakes.mjs",
+      "sha256": "9d3ab73b9bdcad01c5d3d5c947f4b6b275e174f566af5ea8db602d1ba5071fc0"
+    },
+    {
+      "file": "Experimental/TextureStudio/scripts/audit-teapot-sdf.mjs",
+      "sha256": "2d2de3a450fed5ebcc31a7aa86c78b7c899cfdc6131c42fe4f14077196552ad0"
+    },
+    {
+      "file": "Experimental/TextureStudio/scripts/bake-cloth.mjs",
+      "sha256": "9aa844e5ca149c2830449f49495e0f88bc8af291aa5ab9d3f2a428893ac9ba46"
+    },
+    {
+      "file": "Experimental/TextureStudio/scripts/build-githack.mjs",
+      "sha256": "003e237dc00790185e97380d53147990d108f264e70bff0504a954c990e40a37"
+    },
+    {
+      "file": "Experimental/TextureStudio/scripts/verify-glsl.mjs",
+      "sha256": "70c1fd45692f6c1636e5a741647e0e5d861232015585588b41640620b3e47d76"
+    },
+    {
+      "file": "Experimental/TextureStudio/scripts/verify-gpu-packing.mjs",
+      "sha256": "fe3a8bb26898d06b9ef7463558ca9ba18acb0d085c948a5eb376e1c69b094a43"
+    },
+    {
+      "file": "Experimental/TextureStudio/scripts/verify-mask-gpu.mjs",
+      "sha256": "da33b097b9127a5b742cbcb46c07e158a8876e9de7619187c8bea77ed3e32a08"
+    },
+    {
+      "file": "Experimental/TextureStudio/scripts/verify-published.mjs",
+      "sha256": "ca7b6ccdd8abb5917cdacc4080bfd5e0b82bc4d294c2a99eea933e85b06acc0a"
+    },
+    {
+      "file": "Experimental/TextureStudio/scripts/verify-stroke-incremental.mjs",
+      "sha256": "23d3c8530442347466fec775337cae61cd9c3f1058746056c18c7c34f8fd35be"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/AssetContentBrowser.jsx",
+      "sha256": "e7350fc62765a6cdedce5ebf2aa1de88c3367284694338a8e79da236e79a01ce"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/AuthoringNameField.jsx",
+      "sha256": "d02ec3830edf6a25edd8714c982a91147d9aa15d6d9bb426db6d8ace30049f9f"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/BakePanel.jsx",
+      "sha256": "647b116b2370a6d1ea804f64e34547f4cfa0cd5cea2faf87d415a6d1ec54b91a"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/BakingStudio.jsx",
+      "sha256": "e036911cfdcaebbb32c58cb2f6ae7159d49ceef5dcb8257942807329b5a1be8e"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/ChannelPropertyPanel.jsx",
+      "sha256": "11141dbae8708e50a8518f37eb0a3ed0ed8fcef70ebdbb872cac433547d42066"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/ColourMaskPreview.jsx",
+      "sha256": "4993c4d156a6e32454ac2a2d73e94107795356cb405810d2ebba066126bb22cd"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/ColourPicker.jsx",
+      "sha256": "896749938160cabf7c592b3592c8afaf7806eb68ba39587b90813ae5b06d76b4"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/DecalComponentsPanel.jsx",
+      "sha256": "233d9c7b1d0cfc68647d6d5b299a2c04088f381053606346d861de08861aee76"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/DigitalPaintMenu.jsx",
+      "sha256": "f3d0f036c4d6b9b2ef11114b4a9af3581ddf92dbe4b8fcc950ec7bcc3a8a6d32"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/GradientSliceImage.jsx",
+      "sha256": "4cb079191d380a727b2110e40544f0e96f378539d5020b91273861e173d68386"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/MaterialControls.jsx",
+      "sha256": "437387750f2f7a4799d5610b9d4fe4fecbe011144eef700e3c4965cfe516a21c"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/MaterialGeneratorEditor.jsx",
+      "sha256": "e06d02cc02558d4892764b31e2049d2cbb50b4047e40b818e65e2866fc7af322"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/MaterialInspectorPanel.jsx",
+      "sha256": "37ba801c6e7bac1a7710a2bb4fa50c7a75ccf56d754fb01b20a14637355ca285"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/PaintToolMenu.jsx",
+      "sha256": "128006ca6ac28f17fe06780a3ac5623ceab2ee76d25f674d11a4a7878fbebac9"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/PathEditorControls.jsx",
+      "sha256": "54b5140b41240dc53c0e3f085f83c92e979072985f2203ac8f759de12c702e72"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/PathEditorOverlay.jsx",
+      "sha256": "681100f61ddbb55241ddbec3afc2e4ace598a080e88d2befc4733b89bbf2ffd6"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/PatternEditor.jsx",
+      "sha256": "980fe7a522712819d0e619b990a7195c6ec693db2c43e6330d4aba125229c26a"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/PatternMaterialPreview.jsx",
+      "sha256": "3546feb21bf5f809e2f7f5bf3f27df9c32bc96cbd8b9964d99ca37873c390d45"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/PatternTextControls.jsx",
+      "sha256": "3f30ea6cc85f631f9e28c55776dc78f94c489f587da1021acdb3f846f8ed7c4a"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/PatternTextileTools.jsx",
+      "sha256": "5b7d676cdab73c8588c654b8f73a8b4cd8cbd7088786d55c5d64ab0f5ebd674e"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/PointGradientEditor.jsx",
+      "sha256": "ad62fd4c9d0216c684edbf7135254bfa8a0806401e120193861e67f75ae6e639"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/RecipeInspector.jsx",
+      "sha256": "3d5f94729178e1e8eeac4e22c11e715d3f62accba5115d666eab3bddfd48e376"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/RugCompositionControls.jsx",
+      "sha256": "7848bca3f9cb1d884a9140a09a2bc9ef8bd88aec516822cb6de9e265ea3034eb"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/SVGSourceEditor.jsx",
+      "sha256": "74c7ae1f651b8f1efa74aadacfb878cff47b7578896d99a5e41b36a892071949"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/SandLayersEditor.jsx",
+      "sha256": "46e9ce3b91947deea9e648a11ca95b78051de324bd9e4e2885a2a284ec8d17c9"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/ShapeEditorCanvas.jsx",
+      "sha256": "8df660915e2a4bacc1f3a3ffd9ee64b90b4c95c14ae3bf69d114c9f929fa6ccf"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/ShapeEditorToolbar.jsx",
+      "sha256": "fb88b2cba7fb63c1629a5db82f96a927904f31f642874860e24a1253f4bed025"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/StampRichTextEditor.jsx",
+      "sha256": "9b0cb1026b26ff1a3d22aa306133ab64ca884241889affbc5a3d689fef4bc585"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/StampStudio.jsx",
+      "sha256": "6a0b3b27b5e366f66e07feac015deec1f1066df6f4f9b24cfb2b049b4f9f1246"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/StudioUI.jsx",
+      "sha256": "2cc8800dbea8e8adc5505e1956594ebedd5b7e489a85899a97496e631597ce29"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/TextureHistoryPanel.jsx",
+      "sha256": "325f267829b971c32a1a979e1eac52d922d1e2ec02f0ba67b07f2b2dc347e4a1"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/TextureLayerInspector.jsx",
+      "sha256": "3ae15a799c3ca033a6aeda7f1a407bb6de48e03adc24a5998f5cb3493ba61a27"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/TextureLayerStack.jsx",
+      "sha256": "ecd71af72ee7983453c3c0911bbf6884b175258f520a621f9566ad9e6e2df21f"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/TextureMaskToolbar.jsx",
+      "sha256": "91b145a38aa64657f96dc25342ce2ace4b90bca665bbe9d0323310938aa3934b"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/TexturePaintStudio.jsx",
+      "sha256": "462080a91a0529c5cb23a24d8fbd2c079cf6083848ad8c3006c75d396144ca4b"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/TextureSourceCanvas.jsx",
+      "sha256": "642d74fb11557a85eb3822d40b46a9bdd8f6a75174905918675ed4713f83bf29"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/TextureUVView.jsx",
+      "sha256": "a427bbc1e6a1c1a15ec900228520d372474923aff30c7a64bfa23facb9fb8825"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/Viewport.jsx",
+      "sha256": "679e48b297b1e065ef489294111e35e191d3ca6cbbb326e2f109fdaa5e53e53d"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/architecturalKernels.js",
+      "sha256": "93af35182b903a86ac0fb1200b247b04abd62fe04a5df1b0e10240f85b6bee96"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/architectureCatalog.js",
+      "sha256": "a6747e4444dae74b7ef029b3d975279c176b715402b930a5cd960a23b6b52797"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/assetContentBrowser.css",
+      "sha256": "079485e384b4e435c786c795f33fc4a2343e9c3bddcb8eb12854c01776f16571"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/assets/draped-cloth.json",
+      "sha256": "48a4c05d4bca66ea7c772f8128365a473985c410504a3c30e09d9dd905bc1020"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/bakeMaterial.js",
+      "sha256": "57e81d69864d5b1cfc2a38b5f66542c07aa797737228bedc269d1ccb4e9d8602"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/MeshBakeViewport.jsx",
+      "sha256": "7d1981dfd6ee3125ed64da11b6c2d52cbb49882cd61a612e860ae0d4ebe91553"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/MeshMapGrid.jsx",
+      "sha256": "2bbb1f666bef8e521cc1e4bc826c6d4d75cb096a7888ef5aa00c88fc140eb74d"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/VolumeSdfPanel.jsx",
+      "sha256": "fa33e9c8a006d0be5553420daeb47e2f66f84539b806c6c0ba40be8f35159c77"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/bakeGraph.js",
+      "sha256": "51b605d69bf2c7aef424b2e035223fee83439cf56fc2940f464994b3b1ec2932"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/bakeGraphEvaluation.js",
+      "sha256": "033c94160d50f4d9b36fefbc119b2b4f2f4a67dd07470144293afd36100c8202"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/bakeMeshJob.js",
+      "sha256": "35b358ce82c044a0d90f7e9a7bf018f71e68bf20a9faf3cf94a0ab562536ace1"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/bakeMeshes.js",
+      "sha256": "9420e5e6b833a4081f438b32ac3d7d09fb41de49a4bee0aab4596d2bfa90aa10"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/bakeRecipe.js",
+      "sha256": "6f6541638c4a15410b70fcea9a2737de0bff4c83cd08c6877d5534e9c65b7bf9"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/meshBakeCore.js",
+      "sha256": "398e9daed51f701595f721d78798562fef960706a5d27ecbae9d1c2a1c06843c"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/meshBakeWorker.js",
+      "sha256": "4cdfaa5c79151b400c4038e295d7e8583f2f120ed12dba570401b00686793e74"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/meshMaps.js",
+      "sha256": "951fe37e197929ace231eb2760e390424e95f4ff4ad2958bf9dc22da68302765"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/volumeSdf.js",
+      "sha256": "a305228257bcedd2b906a7b9f441af796e268c03f1e00728cc81e0130fef3381"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/volumeSdfJob.js",
+      "sha256": "340374692cb11c540c250422d662c509d75d2697a8204f414bc10c8eaa624481"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/baking/volumeSdfWorker.js",
+      "sha256": "4f1e1a9a6e0c0df18f204858dc7b300e2996e2b75de4cc9da31bb5be46f80f76"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/botanicalCatalog.js",
+      "sha256": "0d8b14a5eab583ce1800db8d39619e4b0eef00452e559489fd0087344300fb53"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/botanicalGeometry.js",
+      "sha256": "21b00265ea649e77b3302958e20432b9413ddce2d924e3120f560a48fbd995f6"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/botanicalKernels.js",
+      "sha256": "d78a5adb10f2b5138988745891111a131141f00568a09dd0957d516592c5127a"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/catalogExpansion.js",
+      "sha256": "fa419a489ce44f45574cdf6301342cd20930f9b8f037d0a7cbce216f53b3e54e"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/channelPropertyPanel.css",
+      "sha256": "906ed0c45f827ff53e040316d2fe8339b4b75ef7df971ebfb8048a9a5b3eafd7"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/clothGeometry.js",
+      "sha256": "7788220a411a493c3a5608c8c5d41ef880878efd343c92360c3f084065f0b90e"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/colourPicker.css",
+      "sha256": "184b9699a6519d0aedfdd2f159a3f39550880bb45bab7f7ebf2e8ccb3abccb96"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/decalModel.js",
+      "sha256": "e4896875d8e6179ade96dead17fe3e9d8d214577ec87408297248137b303f3d8"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/decalProjection.js",
+      "sha256": "2b9d20f0caca380954ff64af8c0087681d3dade39271a5e7b599c7873f524364"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/decalStudio.css",
+      "sha256": "c218a26dd282b50b393be980e626de2394c8d4bcbc59811fa919530d4335ecde"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/decalSurfaceController.js",
+      "sha256": "bee9bc5d49f26465522379b4d567a86fb6d62a1facdd60dc33a0633aabb31ae1"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/digitalBrush.js",
+      "sha256": "0e1ef30137ecdc95ec213a970ab0560ba8af1a1bcde31a9d979c44bb8f185bd0"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/digitalBrushCursor.js",
+      "sha256": "ff4833268320710add5f9269be1acd499661652f7b8be03764005b4b5d5979af"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/digitalBrushCursorController.js",
+      "sha256": "91ca26099b134a58df1c41d2c2c5a9027d0ec8b695d2d27d7049b26dc73f2fff"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/digitalPaintGpu.js",
+      "sha256": "101e5963d47240043c1aec8c5668e389aa13005287e220e7ca7f418683c10483"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/digitalPaintRaster.js",
+      "sha256": "8e90f65a81b1ed0752c0b0db4d300e901cabc74a4f0ef37e944a486985571ba5"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/digitalPaintSurface.js",
+      "sha256": "acc26fac3f58f37600c487a7a22c3635c314c4052670bb40dd867aa5a00138e4"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/digitalPainting.css",
+      "sha256": "6602c95c8dc05b09822f5b2a7dde715c105d31ff5bca6bfaf43f1085bc515e5b"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/geometricConstructions.js",
+      "sha256": "016cb0ec2ef176b411417fff3d4f866e998b60cc55af07be344c925e74b40eb9"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/granularCatalog.js",
+      "sha256": "102df4faef8c40b025e539da2c75decef653768582950d5fe527d0a06407e19c"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/heritagePatterns.js",
+      "sha256": "74774374e21d8059f08b93c48f2059d6253afc02dd0659dceb3e818483134d5b"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/leatherGeometry.js",
+      "sha256": "0dc936c1e82275bdd8128a9f59547e767163dfca8cbc4741b482064b29f820b2"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/leatherSource.js",
+      "sha256": "343e759d0779a807227273e4ad7dc03e5d1c69660cf4aec3acc8d20170df6b37"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/main.jsx",
+      "sha256": "ae9bce311e4864a852cf2bed73b999cc76ff32c8dd36e4120d9da6f998de3827"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/maskCoverageFactory.js",
+      "sha256": "5d5eed73431f0473874077031eb2f82f569b88067a772e298b4830288fc29ad3"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/maskPaintGpu.js",
+      "sha256": "1cd6fec46d7f880c6340a5c0a6fae3863d0ba2a3f2d69b09f1385b2ecf0dc8c7"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/maskPaintRaster.js",
+      "sha256": "51698d63f72f7ad6d2097807b01997fa2d32ec9cf83f727feb7b5ce230962735"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/maskPreviewController.js",
+      "sha256": "da6dbae6c9c2670f4a02f613c4f4789711e0014b4caef16f73546ec022f6c1ed"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/materialExport.js",
+      "sha256": "ec505cf3d613114c8440390525fa0492e020c2c5782e33260b0f324ff479890c"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/materialGeneratorModel.js",
+      "sha256": "f2ae94ca84ef0d4f4728f6675eb582f0d4bf8ceba12852491086920d45bf7bb9"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/materialProfiles.js",
+      "sha256": "79b124ef619262f33b88fbe5009780f21f49b54a06834d2c0c6c3b11c839d897"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/materialViewportOptions.js",
+      "sha256": "6abc35032a1ccc4af0d36181cf711cbb3e48cb74e5b3373c5b1449a05a3664df"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/materials.js",
+      "sha256": "c04806b71db12c7d1dd96fdd3cf5b06e9a92b79aa4b115bb21ec55be03986264"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/ornamentDrawing.js",
+      "sha256": "21b18ca41e1cc36fd417167296da89e16b010dff16a44928c68c88a7b668e002"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/ornamentalConstructions.js",
+      "sha256": "3539356ab8c6be72f74556964f88da9cd3c2eb39073874158d0cf981ef349a0c"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/paintChannelModel.js",
+      "sha256": "65e132808c371f82bd9f442f410a3edfe50b2dd1f85f49284fb222698720a71f"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/paintGpuKit.js",
+      "sha256": "bee1043ca5962ec331d0d91b0bf196920ef25cc3be182b841e4d4c1a914becb0"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/paintToolCatalogue.js",
+      "sha256": "39dcc1be1b478ca3069cf53f53eb276cb7865da439ab0a01fe77b416271f15cf"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/paintTools.css",
+      "sha256": "95c423039135efe6b04a836f7f409906bfec202d5c22b59ef79a6c0fbce06ab8"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/pathEditorGeometry.js",
+      "sha256": "3b15b8e3ac36ec4b3c30e216209ac6740df7f4fe9c3c5901af0db0878733d7c1"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternCollections.js",
+      "sha256": "8fab65db4d59f5b6d0ae587349ad61baa9b18aec325f8884cc9cdcd012a89860"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternDocument.js",
+      "sha256": "d9eca08d0d7982fa388f08eb2978415903ef48bac56040bfa30177c3c72c82b1"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternDraft.js",
+      "sha256": "12522b4ab324455b646cf970040d20b3d7ed70885f75ef75453685fbc6fd9225"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternEditor.css",
+      "sha256": "4e50b80c6da21d22e9efe4c7d873a4d4224fa979fba98b891a8c53cf0d04b86d"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternGeometry.js",
+      "sha256": "af0362ff62139efea3301aace5ba21b5a89a42d8703c13cbeb173c1457b8a452"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternImport.js",
+      "sha256": "9c30e437ee226494480b410af27764d0ca24656a333ebb9449e1c6596796469b"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternLibrary.js",
+      "sha256": "59df18e05f1ed931aa8764fafdf3586e0b95aac3f5100120e3caca884064841c"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternRuntime.js",
+      "sha256": "d8feb85cbc82348f9a85b2e097ba1a48b82bab0346623aeb3ec9eac6913422af"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternStitches.js",
+      "sha256": "0fd4df2dfd36ee04be4da0ba33b7d7ba0f74a853213ba5c3c69a926e9f0c042a"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternSurface.js",
+      "sha256": "3cd494c2019678b3dfe1a5d8432636a98011c53e9d8b6cfd4afc4f4d6a105e3a"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternTextFonts.js",
+      "sha256": "acd6c421268d5437665ce2555f115e24c9de108cb9169955d9641eefca67f46c"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternTextGeometry.js",
+      "sha256": "2c90b6764af554f59205c28f6f45e82456e6a10079e959684e308735bd9bc726"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternTransforms.js",
+      "sha256": "5b3b51e7ef14dbaa939cf4ee115a838e716704546fe564750a1cc1288f3e3216"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/patternWeaves.js",
+      "sha256": "0bd92f98baef1958b0bf9ab0ab7c7a82ee1bf01fb394ab50bf0f9335239ae0aa"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/pointGradient.css",
+      "sha256": "7871d32d898aa8ecab0246c241aafd0fd8f6154771d62edd705de329fdbd6c62"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/pointGradient.js",
+      "sha256": "9d54a3772ddaadcc39b134f7fbed5dc96d0d48339105cb2811c856d93fa5049c"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/pointGradientViewport.js",
+      "sha256": "0fb90e0a07e3a5de66dbbde254c86749ab1612c557a6400236d74492b738e09b"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/referencePatterns.js",
+      "sha256": "2b0adf9018a336f0aa5c8948ad70c88daa01dd3d37b51c5b7659a1bf72878c92"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/renderMaterialGenerator.js",
+      "sha256": "bc54ea9bd724f88ed5fbbbf5a44b63f8bb20af9a52c50b1322ddb3446cbf72de"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/renderTargetViewport.js",
+      "sha256": "a5dd7548bcda107c02e7960626c09379419c30ee1ca17eb7ba68899f712da5bd"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/rugCompositions.js",
+      "sha256": "f8e55d30d3ecdc88393bdda33ed34c5f23f02d79446c8b96c10062b9dd2368b7"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/rugDesigns.js",
+      "sha256": "f819ba89f33c03e9a382069e7fc70e17c31a186a593b1de91cc58aef59459f93"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/sandKernels.js",
+      "sha256": "ea7e7ce67e926a3bd70e899aed21cf2f6b4869159a4e7bf3015dee0f80c3f000"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/screenPaintGpu.js",
+      "sha256": "23528e0fccd2f8d7d4c0f1fb8e9114bf01a35ac57abe619495e7e3c818ba6042"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/screenPaintProjection.js",
+      "sha256": "3bf9edde92e9ac909f5aa8b381c029f34b53ba8ba7e6eb2bfffa5a41a5ab9784"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/shapeEditor.css",
+      "sha256": "ccb6e9d817c0d92e511b8e85510039314673f09ce0dfa89a6699f8c4498309af"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/shapeEditorGeometry.js",
+      "sha256": "d0c528a146d278a83c9fff686ec533154046e6181c0a5037ef4321ea04a71224"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/stampDocument.js",
+      "sha256": "bef3aaa6cc2fda49951b8468ea232f305d9a27db4a1b4933387cb20d73fe4c75"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/stampRaster.js",
+      "sha256": "f2b53ce2430acb803b093d64ae15d5e7ff707d3434f5caf58ad6f77f7c77765e"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/stampStudio.css",
+      "sha256": "824348b31773b890a4c7c9be866235ef85a27bcf668c669fa3f429c5ab05d8ef"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/stampTransform.js",
+      "sha256": "0622a844d3985faf73583f05d2291e7ab9579017ad8a1755f1afacbdbe2fbe3f"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/studioTheme.css",
+      "sha256": "0b1062341e33ccc60bd625e58159bdf0ac3cb049419d7f2c4c24d1066cddb5cd"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/styles.css",
+      "sha256": "afe9f6a3bb886c6e4652f36b900af0f4c5f87923fd1669aeae2c99af7ca11a54"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/surfaceBakeMaps.js",
+      "sha256": "5c38755d6a4e3978bba202bb31126db650348f64665f2b667696b44cc24f2336"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/surfaceKernels.js",
+      "sha256": "aec7f8c7a08b3880c424566a7b788444ecf6d503ded8174b5761a0dd25b54908"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureDigitalPaint.js",
+      "sha256": "a47f8acadb814abef7d84122e60ffa9f4328190926c98f53e7bf5ae6fce7fc23"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureDocument.js",
+      "sha256": "52664f0f23809c85852e6f02cc116747caac36830376592e15698c13ad8348d8"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureHistory.js",
+      "sha256": "9a754ebf84f0f383ad3192dbca3a04274d4ec16b1fd3b48236af9df4276b6868"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureMaskPaint.css",
+      "sha256": "8d5740b91a28378b05df4b85daec2bead914d7696eabfd9d7252cea7b71066a3"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureMaskPaint.js",
+      "sha256": "c3750a09c52e512800f67e7faf0f064c60b720618460876c25bcc67e7cbb1d63"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureMasks.js",
+      "sha256": "e86722f201d70fec72ee262e93df8dd5de770b19a22b2d7703161c30de4e813e"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureMeshMapBridge.js",
+      "sha256": "ce053e3b5fd9047e888728eeb5e6fa70c956a22360ea8ac001b4e0b8841f4dd0"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureMeshMaps.js",
+      "sha256": "7052d9f59f1375aa0740e074caa4b447033db02ae2a63a5e7bf663052c7bcf96"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureMeshSupportController.js",
+      "sha256": "8455821925d84d526e57fa7523b856d9de065deb408254e01d0f0e31b6a6e198"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureOpticalStackController.js",
+      "sha256": "4ceb846bd8fb5927c7cdde1f0555614b38dc87da00d5b902636f697f25a4116e"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureSource.js",
+      "sha256": "a6bd422c259cdc7435d5133980c1fc16b8d03ee1982d6ebd9f3a8a80c16191c3"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureStackEvaluation.js",
+      "sha256": "cded2a60f45e5a14c4fe39f24f95007bf4cf07eda6bee879f2e4a8e217a119c9"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureStackUVController.js",
+      "sha256": "a9ec8025012b14e99216c3e7ae938b8835aa8113489f64d21fed2813ddf55e0d"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureStrokes.js",
+      "sha256": "cf3458b50608f7d29185974927f901d9de41a94f02563a9200e828805d97e399"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureStudio.css",
+      "sha256": "3af1612ab207e8f8208b76706db866265743ffcd7dcf966dd89fd4c1e47a145e"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureSurfaceController.js",
+      "sha256": "6806ccd306863b1fdf38e2d46876c2253489ff56909eeea734a0ed97c1c9f76f"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureSurfaceModel.js",
+      "sha256": "e9e2e37b83c9e0ec04aea2d0021078e1931bef5369bce46f7efab84f65feb9d9"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureSystemBaseMaterial.js",
+      "sha256": "a26364f012b0f9aab87113084e540fb922e486d73f0cd6f7f1acc8f3c67af285"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/textureUVGeometry.js",
+      "sha256": "aa1115767e464582b269e8048166e50abab42b185e735487b8477c3f3681a3ee"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/useDecalEditing.js",
+      "sha256": "a732ef9d22c1199b23b0a069be81814ff1def624fd649b37f357dbda885c6449"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/useDialogFocus.js",
+      "sha256": "bee81ab6938f2404505e74eeedfd8dd5a79012597a500dde823f968f16c0300b"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/useDigitalPainting.js",
+      "sha256": "b8ffe02a1ae814897b18753212556d22c6ca13cab9a3ca3ffc7075c8d826e6c2"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/useMaskEditing.js",
+      "sha256": "8db5e906495c197e27a85e86f1e59d4a510b16a6da294b1d5f1c191df7be9db9"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/usePathSession.js",
+      "sha256": "7e12c0353a0499cd4b023ca3f5c39cd0cff22d4e2aa775cb79535cf7513916d7"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/usePatternHistory.js",
+      "sha256": "b1973608b6fa5ac4f60018bef2ce53772618a8ca5a506cdfc0efeb5f40817f44"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/useStampTransform.js",
+      "sha256": "29d4a21b3a9776d4783679d4ce583857256d4ac5e3f2f7c7f53b5842e80406e9"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/useTextureDocument.js",
+      "sha256": "9744a21c7317da2da87741198d22ab234b6009788e13a2615c75f9ce32341b51"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/vectorEditorGeometry.js",
+      "sha256": "7a7c0cf21946af51dbb25476d0114ad58ce109b38fc0fe9099d3da2e0376ac6a"
+    },
+    {
+      "file": "Experimental/TextureStudio/src/vectorEditorSnapping.js",
+      "sha256": "d5a5eb4787564f0fe7d27d923b73fad3f91cc34dd826f697fd9a707ef54ba817"
+    },
+    {
+      "file": "Experimental/TextureStudio/vite.config.js",
+      "sha256": "e1c5171b6fc0e245d7e2859790914adb598b8037724cf1d8361da10982c7ab16"
+    }
+  ]
+}

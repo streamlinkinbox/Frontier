@@ -1,0 +1,193 @@
+# SolidArc panel-assembly walkthrough (vehicle plan V5–V7): ① the synthetic bonnet is lofted as two panels, the
+# rear one G2 to the front (G2 button), Alt+X (Plasticity mirror, gizmo x) mirrors both through x = 0 — the SpaceCurves
+# ending on the plane are re-fitted to leave it along x̂, so the halves sew G1 into one 4-panel sheet; Close refuses
+# the open, non-planar rim. ② The synthetic pod (5 planar half hoops): loft → Alt+X → Close → a sound solid.
+# ③ The bonnet network (6 sections + 4 spines that cross): L builds one Gordon panel instead of a loft.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/PanelRecovery.solidarc
+#      --document …/Panels.solidarc --script Scripts/PanelAssemblyWalkthrough.txt
+# Click points lie on the analytic curves: bonnet sections at ξ = 0.5 (x = 0.375), spines at y = 0.55, hoops at z = 0
+# (Hoop4 at θ = −π/3: at z = 0 the click lands on Hoop5's control polygon). The G0 / G1 / G2 choice persists across New.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① bonnet: import, mode 1, Section1–3 → L (front panel)
+key N Ctrl
+frames 2
+key I Ctrl Shift
+frames 3
+click @PathImport
+frames 3
+expect steps == 11
+expect refused == 0
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+key 1
+frames 2
+click world 0.375 0.0 0.75875
+click world 0.375 0.187 0.7888 Left Shift
+click world 0.375 0.418 0.81925 Left Shift
+frames 2
+expect selected-curves == Section1,Section2,Section3
+expect loft-continuity == 0
+key L
+frames 3
+expect steps == 12
+expect refused == 0
+expect panels == 1
+expect sheet == 1
+expect faces == 1
+expect sound == 1
+expect status contains Lofted 3 curve(s)
+
+# Section3–6 with G2 → the rear panel meets the front with continuous curvature
+click world 0.375 0.418 0.81925
+click world 0.375 0.66 0.84171 Left Shift
+click world 0.375 0.891 0.85404 Left Shift
+click world 0.375 1.1 0.85875 Left Shift
+frames 2
+expect selected-curves == Section3,Section4,Section5,Section6
+click @LoftG2
+frames 2
+expect loft-continuity == 2
+capture 60RearSectionsG2
+key L
+frames 3
+expect steps == 13
+expect refused == 0
+expect panels == 2
+expect sheet == 1
+expect faces == 2
+expect sound == 1
+expect status contains · G2
+capture 61FrontRearG2
+
+# Alt+X: mirror through x = 0 → 4 panels sewn into one sheet
+key X Alt
+frames 3
+expect steps == 14
+expect refused == 0
+expect panels == 4
+expect sheet == 1
+expect faces == 4
+expect sound == 1
+expect panel-names contains Mirror#14.Image(Loft#12.Side(Surface))
+expect status contains Mirrored through x = 0
+key Space
+frames 3
+capture 62BonnetMirrored
+
+# Close on the open bonnet: the rim is not planar → refused, document unchanged
+click @PanelClose
+frames 3
+expect steps == 14
+expect panels == 4
+expect status contains not planar
+capture 63CloseRefused
+
+# ② pod: 5 planar half hoops → loft → Alt+X → Close → solid
+key N Ctrl
+frames 2
+key I Ctrl Shift
+frames 2
+click @PathField
+key A Ctrl
+type Experimental/VehicleSurfacing/Samples/SyntheticPod.toml
+click @PathImport
+frames 3
+expect steps == 5
+expect refused == 0
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+key 1
+frames 2
+click world 0.4 0.0 0.0
+click world 0.47071 0.4 0.0 Left Shift
+click world 0.5 0.8 0.0 Left Shift
+click world 0.23536 1.2 -0.31177 Left Shift
+click world 0.4 1.6 0.0 Left Shift
+frames 2
+expect selected-curves == Hoop1,Hoop2,Hoop3,Hoop4,Hoop5
+click @LoftG0
+frames 1
+expect loft-continuity == 0
+key L
+frames 3
+expect panels == 1
+expect sheet == 1
+key X Alt
+frames 3
+expect panels == 2
+expect sheet == 1
+expect faces == 2
+capture 64PodHalves
+click @PanelClose
+frames 3
+expect steps == 8
+expect refused == 0
+expect sheet == 0
+expect faces == 4
+expect sound == 1
+expect volume > 0.791
+expect volume < 0.794
+expect status contains Closed → solid
+key Space
+frames 3
+capture 65PodSolid
+
+# ③ network: crossing curves → L builds a Gordon surface (order does not matter)
+key N Ctrl
+frames 2
+key I Ctrl Shift
+frames 2
+click @PathField
+key A Ctrl
+type Experimental/VehicleSurfacing/Samples/SyntheticBonnetNetwork.toml
+click @PathImport
+frames 3
+expect steps == 10
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 2
+key Space
+frames 3
+key 1
+frames 2
+click world 0.2625 0.55 0.84512
+click world 0.375 0.0 0.75875 Left Shift
+click world 0.375 0.66 0.84171 Left Shift
+click world 0.0 0.55 0.857 Left Shift
+click world 0.375 0.187 0.7888 Left Shift
+click world 0.525 0.55 0.80947 Left Shift
+click world 0.375 1.1 0.85875 Left Shift
+click world 0.375 0.418 0.81925 Left Shift
+click world 0.75 0.55 0.76 Left Shift
+click world 0.375 0.891 0.85404 Left Shift
+frames 2
+expect selected-curves == Spine2,Section1,Section4,Spine1,Section2,Spine3,Section6,Section3,Spine4,Section5
+click @LoftG0
+frames 1
+capture 66NetworkCurves
+key L
+frames 3
+expect steps == 11
+expect refused == 0
+expect panels == 1
+expect sheet == 1
+expect sound == 1
+expect status contains Network of 10 curve(s)
+capture 67NetworkPanel
+
+# save: Network step, its curves and captions
+key S Ctrl
+frames 2
+expect dirty == 0

@@ -1,0 +1,12 @@
+# NestingArchiveExport --survey EngineContent/EnvironmentArchives/ProvingGround/ProvingGround.facetspace, 2026-11-02, 2-core Linux host.
+# Per profile: tiers and clusters of the one eligible set, then triangles/clusters per tier, leaf first (all hardware threads).
+Demo, facet set 3 (Proving ground): 3664 facets → 4 tiers, 650 clusters in 27 ms
+  3664/168 2124/162 1970/164 1952/156
+I3 measured deviation, facet set 3 (Proving ground): 3664 facets → 4 tiers, 650 clusters in 158 ms
+  3664/168 2124/162 1970/164 1952/156
+I4 needle guard, facet set 3 (Proving ground): 3664 facets → 9 tiers, 1390 clusters in 43 ms
+  3664/168 1835/158 1572/152 1554/152 1545/152 1541/152 1539/152 1538/152 1537/152
+I5 class borders, facet set 3 (Proving ground): 3664 facets → 6 tiers, 908 clusters in 40 ms
+  3664/168 2044/155 1234/151 828/146 626/144 614/144
+Refined (I3+I4+I5), facet set 3 (Proving ground): 3664 facets → 11 tiers, 1613 clusters in 188 ms
+  3664/168 1831/157 986/148 563/145 351/143 246/142 194/142 167/142 153/142 150/142 146/142

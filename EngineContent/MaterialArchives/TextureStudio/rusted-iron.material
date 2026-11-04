@@ -1,0 +1,60 @@
+Format = 1
+Name = "Rusted Iron"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [1.0, 1.0, 1.0]
+Roughness = 0.94
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 7
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/rusted-iron-albedo.png"
+Orm = "Textures/rusted-iron-orm.png"
+Normal = "Textures/rusted-iron-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "rust"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 65
+grain = 0.8
+oxidation = 0.7
+roughness = 0.36
+surfaceSeed = 17
+color = "#a8aca9"
+secondaryColor = "#94471f"
+
+
+[[Strata.Channels]]
+Name = "Orm"
+Op = "rust"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 65
+grain = 0.8
+oxidation = 0.7
+roughness = 0.36
+surfaceSeed = 17
+color = "#a8aca9"
+secondaryColor = "#94471f"
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "rust"
+Link = "shared"
+[Strata.Channels.Params]
+detailScale = 65
+grain = 0.8
+oxidation = 0.7
+roughness = 0.36
+surfaceSeed = 17
+color = "#a8aca9"
+secondaryColor = "#94471f"

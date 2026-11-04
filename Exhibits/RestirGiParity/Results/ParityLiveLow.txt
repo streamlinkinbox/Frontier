@@ -1,0 +1,145 @@
+live host encoders: 12 captured camera/light refreshes
+capture: 336 host → device writes
+device: SwiftShader Device (Subzero)
+bring-up: 2094 occupants, 8554 cards, 1017 TLAS entries, trace 144 × 81
+[PASS] refresh -1 host write 'Brick stamps' — 1 demo / 1 port writes, 8192 B, 0 differing bytes
+[PASS] refresh -1 host write 'Card records' — 1 demo / 1 port writes, 410592 B, 0 differing bytes
+[PASS] refresh -1 host write 'Distance list' — 1 demo / 1 port writes, 1832 B, 0 differing bytes
+[PASS] refresh -1 host write 'Facet vertices' — 1 demo / 1 port writes, 3964224 B, 0 differing bytes
+[PASS] refresh -1 host write 'RayTracing BLAS triangles' — 1 demo / 1 port writes, 1860480 B, 0 differing bytes
+[PASS] bring-up occupant profiles byte-identical — 703584 B
+[PASS] bring-up TLAS byte-identical — 32544 B
+[PASS] BringUp 'Occupant distance space' — 13166440 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.0297448), PSNR inf dB, non-finite 0
+[PASS] BringUp 'Card albedo' — 4194304 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.360069), PSNR inf dB, non-finite 0
+[PASS] BringUp 'Card normal' — 4194304 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.605484), PSNR inf dB, non-finite 0
+[PASS] BringUp 'Card emission' — 4194304 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.25909), PSNR inf dB, non-finite 0
+[PASS] BringUp 'Card depth' — 1048576 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 1.8049), PSNR inf dB, non-finite 0
+[PASS] refresh 0 host write 'Atmosphere record' — 1 demo / 1 port writes, 96 B, 0 differing bytes
+[PASS] refresh 0 host write 'Card tiles' — 1 demo / 1 port writes, 92736 B, 0 differing bytes
+[PASS] refresh 0 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 0 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 0 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 0 host write 'Cluster instance identities' — 1 demo / 1 port writes, 8376 B, 0 differing bytes
+[PASS] refresh 0 host write 'Cluster triangle indices' — 1 demo / 1 port writes, 43968 B, 0 differing bytes
+[PASS] refresh 0 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 0 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 0 host write 'Geometry cluster bounds' — 1 demo / 1 port writes, 1536 B, 0 differing bytes
+[PASS] refresh 0 host write 'Invalidated bricks' — 1 demo / 1 port writes, 32768 B, 0 differing bytes
+[PASS] refresh 0 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 1 host write 'Card tiles' — 1 demo / 1 port writes, 92736 B, 0 differing bytes
+[PASS] refresh 1 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 1 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 1 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 1 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 1 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 1 host write 'Invalidated bricks' — 1 demo / 1 port writes, 6080 B, 0 differing bytes
+[PASS] refresh 1 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 2 host write 'Card tiles' — 1 demo / 1 port writes, 92736 B, 0 differing bytes
+[PASS] refresh 2 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 2 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 2 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 2 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 2 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 2 host write 'Invalidated bricks' — 1 demo / 1 port writes, 6464 B, 0 differing bytes
+[PASS] refresh 2 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 3 host write 'Card tiles' — 1 demo / 1 port writes, 92736 B, 0 differing bytes
+[PASS] refresh 3 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 3 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 3 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 3 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 3 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 3 host write 'Invalidated bricks' — 1 demo / 1 port writes, 2368 B, 0 differing bytes
+[PASS] refresh 3 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 4 host write 'Card tiles' — 1 demo / 1 port writes, 92736 B, 0 differing bytes
+[PASS] refresh 4 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 4 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 4 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 4 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 4 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 4 host write 'Invalidated bricks' — 1 demo / 1 port writes, 2368 B, 0 differing bytes
+[PASS] refresh 4 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 5 host write 'Card tiles' — 1 demo / 1 port writes, 92736 B, 0 differing bytes
+[PASS] refresh 5 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 5 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 5 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 5 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 5 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 5 host write 'Invalidated bricks' — 1 demo / 1 port writes, 6464 B, 0 differing bytes
+[PASS] refresh 5 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 6 host write 'Card tiles' — 1 demo / 1 port writes, 7616 B, 0 differing bytes
+[PASS] refresh 6 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 6 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 6 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 6 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 6 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 6 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 7 host write 'Card tiles' — 1 demo / 1 port writes, 7616 B, 0 differing bytes
+[PASS] refresh 7 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 7 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 7 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 7 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 7 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 7 host write 'Invalidated bricks' — 1 demo / 1 port writes, 6464 B, 0 differing bytes
+[PASS] refresh 7 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 8 host write 'Card tiles' — 1 demo / 1 port writes, 7616 B, 0 differing bytes
+[PASS] refresh 8 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 8 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 8 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 8 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 8 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 8 host write 'Invalidated bricks' — 1 demo / 1 port writes, 2368 B, 0 differing bytes
+[PASS] refresh 8 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 9 host write 'Card tiles' — 1 demo / 1 port writes, 7616 B, 0 differing bytes
+[PASS] refresh 9 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 9 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 9 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 9 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 9 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 9 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 10 host write 'Card tiles' — 1 demo / 1 port writes, 7616 B, 0 differing bytes
+[PASS] refresh 10 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 10 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 10 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 10 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 10 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 10 host write 'Invalidated bricks' — 1 demo / 1 port writes, 4096 B, 0 differing bytes
+[PASS] refresh 10 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+[PASS] refresh 11 host write 'Card tiles' — 1 demo / 1 port writes, 7616 B, 0 differing bytes
+[PASS] refresh 11 host write 'Card work' — 1 demo / 1 port writes, 16 B, 0 differing bytes
+[PASS] refresh 11 host write 'Cascade receiver' — 1 demo / 1 port writes, 256 B, 0 differing bytes
+[PASS] refresh 11 host write 'Cascade records' — 1 demo / 1 port writes, 768 B, 0 differing bytes
+[PASS] refresh 11 host write 'Distance record' — 1 demo / 1 port writes, 160 B, 0 differing bytes
+[PASS] refresh 11 host write 'Frame record' — 1 demo / 1 port writes, 1072 B, 0 differing bytes
+[PASS] refresh 11 host write 'RayTracing BVH nodes (TLAS + BLAS)' — 1 demo / 1 port writes, 32544 B, 0 differing bytes
+--- refresh 11 targets
+[SKIP] F11 'Sky view' — not dumped by this capture
+[SKIP] F11 'Atmosphere transmittance 256×64' — not dumped by this capture
+[SKIP] F11 'Atmosphere multiple scattering 32×32' — not dumped by this capture
+[PASS] F11 'Scene distance cascade 0' — 1048576 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 467.802), PSNR inf dB, non-finite 0
+[SKIP] F11 'Scene distance cascade 1' — not dumped by this capture
+[SKIP] F11 'Scene distance cascade 2' — not dumped by this capture
+[SKIP] F11 'Scene distance cascade 3' — not dumped by this capture
+[PASS] F11 'Shadow cascades' — 3145728 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.9846), PSNR inf dB, non-finite 0
+[PASS] F11 'Card direct irradiance' — 4194304 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 1.42403), PSNR inf dB, non-finite 0
+[PASS] F11 'Card final radiance' — 4194304 values, 90.6668% identical, max |d| 0.651367, mean |d| 0.00118412 (mean |ref| 0.31024), PSNR 69.57 dB, non-finite 0
+[PASS] F11 'Surface depth' — 46656 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.0051225), PSNR inf dB, non-finite 0
+[PASS] F11 'Surface attributes' — 186624 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 5.18981), PSNR inf dB, non-finite 0
+[SKIP] F11 'Surface motion' — not dumped by this capture
+[PASS] F11 'Direct radiance' — 186624 values, 100.0000% identical, max |d| 0, mean |d| 0 (mean |ref| 0.420894), PSNR inf dB, non-finite 0
+[SKIP] F11 'Resampling guide A' — not dumped by this capture
+[SKIP] F11 'Resampling guide B' — not dumped by this capture
+[PASS] F11 'Resampled irradiance' — 46656 values, 99.7021% identical, max |d| 0.0351562, mean |d| 5.92188e-06 (mean |ref| 0.851865), PSNR 103.30 dB, non-finite 0
+[PASS] F11 'Reflection radiance' — 46656 values, 99.8800% identical, max |d| 0.101562, mean |d| 9.2339e-06 (mean |ref| 0.115152), PSNR 89.36 dB, non-finite 0
+[SKIP] F11 'Diffuse integrated' — not dumped by this capture
+[PASS] F11 'Diffuse screen' — 186624 values, 99.6860% identical, max |d| 0.0234375, mean |d| 3.50989e-06 (mean |ref| 0.823959), PSNR 110.76 dB, non-finite 0
+[SKIP] F11 'Glossy integrated' — not dumped by this capture
+[PASS] F11 'Glossy screen' — 186624 values, 97.1794% identical, max |d| 0.0234375, mean |d| 4.05505e-06 (mean |ref| 0.248455), PSNR 98.74 dB, non-finite 0
+[PASS] F11 'Recombined radiance' — 186624 values, 99.8167% identical, max |d| 0.00976562, mean |d| 8.77349e-07 (mean |ref| 0.537937), PSNR 114.16 dB, non-finite 0
+[PASS] F11 'Resolved radiance A' — 186624 values, 99.3715% identical, max |d| 0.0078125, mean |d| 1.49363e-06 (mean |ref| 0.525056), PSNR 111.11 dB, non-finite 0
+[PASS] F11 'Resolved radiance B' — 186624 values, 99.3924% identical, max |d| 0.0078125, mean |d| 1.29352e-06 (mean |ref| 0.522722), PSNR 110.62 dB, non-finite 0
+[PASS] F11 'Capture' — 186624 values, 99.9319% identical, max |d| 0.0039216, mean |d| 2.66868e-06 (mean |ref| 0.648402), PSNR 79.73 dB, non-finite 0
+[PASS] F11 'Reservoirs 0' — 87.302812 % of reservoirs bit-identical
+[PASS] F11 'Reservoirs 1' — 86.779835 % of reservoirs bit-identical
+
+=== parity: 0 failing checks
+exit 0

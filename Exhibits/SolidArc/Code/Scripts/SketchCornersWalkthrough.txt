@@ -1,0 +1,143 @@
+# SolidArc sketch corners walkthrough — B on 2D sketches (Plasticity fillet-curve): every corner of an extruded rectangle
+# filleted from the Outliner pick (the extrude follows), one corner picked in mode 1 and chamfered (B, then C), and the
+# Windows report's fan loft: two lofts out of the same line sew into one sheet.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/SketchCornersRecovery.solidarc
+#      --document …/SketchCorners.solidarc --script Scripts/SketchCornersWalkthrough.txt
+# Closed forms: 2 × 1 × 1 with four r 0.25 fillets: 2 − (4 − π)/16 = 1.946350.
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① Top view: rectangle 2 × 1 extruded 1 (V 2)
+key N Ctrl
+frames 3
+key Keypad7
+frames 2
+key Q Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 2.0 1.0 0.0
+frames 3
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 3
+expect volume ~ 2
+
+# ② the sketch picked in the Outliner; B opens the corner fillet (verb 4), typed r 0.25 previews, Enter applies
+click @Figure:Sketch#1
+frames 2
+key B
+frames 2
+expect bevel-active == 1
+expect bevel-verb == 4
+click @BevelSize
+key A Ctrl
+type 0.25
+key Enter
+frames 3
+expect bevel-refusal == 0
+expect bevel-preview-volume ~ 1.946350
+capture 239SketchFilletPreview
+key Enter
+frames 3
+expect bevel-active == 0
+expect volume ~ 1.946350
+expect sketch-curve-total == 8
+expect sound == 1
+capture 240SketchFillet
+key A Alt
+frames 2
+
+# ③ a second rectangle; mode 1, its corner (4, 1) picked; B then C chamfers it by 0.3 (5 lines)
+# (zoomed out a step: in the full-height viewport x = 4 would fall past the right edge)
+wheel world 2.0 0.5 0.0 -1
+frames 3
+key Q Shift
+frames 2
+click world 3.0 0.0 0.0
+frames 2
+click world 4.0 1.0 0.0
+frames 3
+key 1
+frames 3
+click @SketchPointSketch3.2
+frames 2
+expect picked-points == 1
+key B
+frames 2
+key C
+frames 2
+expect bevel-chamfer == 1
+click @BevelSize
+key A Ctrl
+type 0.3
+key Enter
+frames 3
+expect bevel-refusal == 0
+key Enter
+frames 3
+expect sketch-curve-total == 13
+capture 241SketchChamferCorner
+key 5
+frames 2
+key A Alt
+frames 2
+
+# ④ fan loft: line A (−3, 0)–(−2, 0), C one up, D one down; A + C lofted, then A + D: both sew into one sheet (2 faces)
+key A Shift
+frames 2
+click world -3.0 0.0 0.0
+frames 2
+click world -2.0 0.0 0.0
+frames 2
+key Enter
+frames 3
+key A Shift
+frames 2
+click world -3.0 1.0 0.0
+frames 2
+click world -2.0 1.0 0.0
+frames 2
+key Enter
+frames 3
+key A Shift
+frames 2
+click world -3.0 -1.0 0.0
+frames 2
+click world -2.0 -1.0 0.0
+frames 2
+key Enter
+frames 3
+expect sketches == 5
+click @Figure:Sketch#4
+frames 2
+click @Figure:Sketch#5 Left Shift
+frames 2
+key L
+frames 3
+expect panels == 1
+click @Figure:Sketch#4
+frames 2
+click @Figure:Sketch#6 Left Shift
+frames 2
+key L
+frames 3
+expect refused == 0
+expect panels == 2
+expect sheet == 1
+capture 242FanLoft

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Frontier · C++ Port Evidence Hub</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#e8e7dd;background:#101210}
+*{box-sizing:border-box}body{margin:0}main{max-width:1180px;margin:auto;padding:32px 24px 64px}
+header{border-bottom:1px solid #343a32;padding-bottom:20px}
+h1{font-size:clamp(24px,4vw,36px);letter-spacing:-.03em;margin:6px 0 8px}
+.eyebrow{font-size:11px;letter-spacing:2px;color:#999;text-transform:uppercase}
+p{color:#aeb3a5;line-height:1.6}
+a{color:#c2ded0;text-underline-offset:3px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #292929;vertical-align:top}
+th{color:#8e9980;font-weight:500}
+td:last-child{width:210px}
+.ok{color:#9fd08f}.mid{color:#dfcda7}.bad{color:#e08f8f}
+section{background:#141714;border:1px solid #2a3129;border-radius:14px;padding:22px;margin:22px 0}
+h2{font-size:18px;margin:0 0 6px}h3{font-size:14px;margin:18px 0 6px;color:#c9cec0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+figure{margin:0;background:#0c0e0c;border:1px solid #262c26;border-radius:10px;overflow:hidden}
+figure img{display:block;width:100%;height:220px;object-fit:contain;background:#050505}
+figcaption{padding:12px 14px;font-size:12px;color:#aeb3a5;line-height:1.6}
+iframe{width:100%;height:520px;border:1px solid #2a3129;border-radius:10px;background:#090909}
+.note{padding:14px 16px;border-left:3px solid #8a7552;background:#1d1913;border-radius:6px;color:#d5c7ae;font-size:13px}
+code{font-size:12px;color:#d5c7ae}
+footer{font-size:12px;color:#777;margin-top:24px}
+.badge{display:inline-block;padding:4px 10px;border:1px solid #365a48;color:#b5dec6;border-radius:30px;font-size:12px}
+.badge.pending{border-color:#68593f;color:#dfcda7}
+</style>
+</head>
+<body><main>
+<header>
+<div class="eyebrow">Frontier · Alloy (HTML) → Native C++ port</div>
+<h1>C++ Port Evidence Hub</h1>
+<p>Revision <code>3e20aab</code> · rebuilt in this session where the sandbox permits. Native captures are CPU/SwiftShader
+host executions — <strong>not</strong> Windows desktop or hardware-GPU sessions. HTML captures are actual Chromium runs of
+the Alloy reference (<code>Experimental/TextureStudio</code>).</p>
+<p><span class="badge" id="RebuildBadge">Rebuild: 21/21 CPU validations passed · 2026-10-20 · GCC 12.2 Debug + ASan/UBSan docking confirmation</span></p>
+</header>
+
+<section>
+<h2>How far is the C++ port?</h2>
+<p>Alloy workspaces vs native C++ panels. Detail: <a href="TextureStudio/README.md">TextureStudio evidence log</a>,
+<a href="TextureStudio/NativePatternWorkspace.md">Native Pattern workspace</a>, <a href="../Documentation/Plans/Ongoing/TextureStudio.md">active plan</a>.</p>
+<table>
+<thead><tr><th>Alloy workspace (HTML)</th><th>Native C++ owner</th><th>Status</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>Material library + inspector + preview</td><td><code>UI/TextureStudio/MaterialLibraryPanel</code></td>
+<td class="ok">Functional · 127 presets · GPU atlas + live preview · automotive paint</td>
+<td><a href="TextureStudio/Images/MaterialWorkspace.png">native composition</a> · <a href="TextureStudio/Images/ReferenceMaterialWorkspace.png">HTML reference</a> · <a href="TextureStudio/Results/MaterialLibraryChecks.json">checks</a></td></tr>
+<tr><td>Pattern studio (vector authoring)</td><td><code>UI/TextureStudio/PatternWorkspacePanel</code></td>
+<td class="mid">~68% · shapes/pen/points/join/arrays/masks · 626 checks</td>
+<td><a href="TextureStudio/Images/NativePatternWorkspace.png">native panel</a> · <a href="TextureStudio/Images/HtmlPatternLayers.png">HTML layers</a> · <a href="TextureStudio/Results/PatternWorkspaceChecks.json">checks</a></td></tr>
+<tr><td>Pattern Float32 surface maps → PBR</td><td><code>Engine/Render/VectorSurface*</code> + bridge</td>
+<td class="mid">Bridge 95% · 7 RGBA32F channels · live-preview replace only</td>
+<td><a href="TextureStudio/NativeSurfaceEvidence.html">surface evidence</a> · <a href="TextureStudio/Images/NativePbrBridgeSampling.gif">PBR GIF</a></td></tr>
+<tr><td>Texture / Stamp / Baking studios</td><td>—</td>
+<td class="bad">Not ported · tabs disabled in native header</td>
+<td><a href="TextureStudio/Images/PatternCompactTools.png">HTML tools</a> · <a href="TextureStudio/Images/StampSelectionInspector.png">HTML stamp</a></td></tr>
+<tr><td>Project Browser (Frontier entry)</td><td><code>UI/Editor/ProjectBrowserPanel</code></td>
+<td class="mid">3-column browser · Blank Project only · no scene rendering</td>
+<td><a href="ProjectBrowser/index.html">browser evidence</a> · <a href="ProjectBrowser/Results/NativeBrowserChecks.json">checks</a></td></tr>
+<tr><td>Control Centre / docking / notifications</td><td><code>UI/Editor/*</code> + <code>Engine/Interface/*</code></td>
+<td class="ok">Ported foundations · CPU-validated · Windows interaction pending</td>
+<td><a href="ControlCentre/Images/Settings.png">centre</a> · <a href="Docking/Images/RestoredTabs.png">docking</a></td></tr>
+<tr><td>Windows binaries / hardware GPU</td><td>CI + <code>Automation/Package*.py</code></td>
+<td class="bad">Blocked · unsigned preview hold · no Windows run this session</td>
+<td><a href="TextureStudio/Results/DownloadTrustChecks.json">trust gate</a></td></tr>
+</tbody>
+</table>
+<div class="note">Open UI defects carried into this session (from your last test round): Project Browser ≠ 1:1 HTML;
+zoom-in FPS drop (analytic sample/iteration cost); material Layers tab needs LayerStack-style cards; checkboxes must
+become toggles; dropdowns must use the reusable component; fill editors show boxes only (no slider/ramp/gradient);
+rotation math broken; CPU-side drag/add-shape latency. These are queued for repair after the rebuild lands.</div>
+</section>
+
+<section>
+<h2>Material workspace — HTML reference vs native C++</h2>
+<div class="grid">
+<figure><a href="TextureStudio/Images/ReferenceMaterialWorkspace.png"><img src="TextureStudio/Images/ReferenceMaterialWorkspace.png" alt="HTML Alloy material workspace"></a><figcaption><h3>HTML reference (Chromium/WebGL)</h3>Actual Alloy capture · Racing Green selected · 1440×1000.</figcaption></figure>
+<figure><a href="TextureStudio/Images/MaterialWorkspace.png"><img src="TextureStudio/Images/MaterialWorkspace.png" alt="Native C++ material workspace composition"></a><figcaption><h3>Native C++ (CPU raster + Vulkan readback)</h3>Composed exhibit · not a Windows window screenshot. <a href="TextureStudio/Results/MaterialWorkspaceChecks.json">checks</a></figcaption></figure>
+<figure><a href="TextureStudio/Images/MaterialLibrary.png"><img src="TextureStudio/Images/MaterialLibrary.png" alt="Native material library cards"></a><figcaption><h3>Native library cards</h3>CPU raster of executed ImGui · GPU atlas tiles in production path.</figcaption></figure>
+<figure><a href="TextureStudio/Images/MaterialInspectionControls.png"><img src="TextureStudio/Images/MaterialInspectionControls.png" alt="Native preview inspection controls"></a><figcaption><h3>Preview inspection</h3>Zoom pill · shape/environment/exposure controls · orbit/pan gestures.</figcaption></figure>
+</div>
+</section>
+
+<section>
+<h2>Pattern workspace — native C++ captures</h2>
+<div class="grid">
+<figure><a href="TextureStudio/Images/NativePatternWorkspace.png"><img src="TextureStudio/Images/NativePatternWorkspace.png" alt="Native Pattern workspace"></a><figcaption><h3>Native Pattern panel</h3>Motifs · 2D viewport · Inspector · GPU canvas pixels.</figcaption></figure>
+<figure><a href="TextureStudio/Images/NativePatternWorkspacePort.gif"><img src="TextureStudio/Images/NativePatternWorkspacePort.gif" alt="Native Pattern edit sequence"></a><figcaption><h3>Edit sequence</h3>606 checks · 340 coverage + 63 selection dispatches.</figcaption></figure>
+<figure><a href="TextureStudio/Images/NativePatternSegmentEditing.gif"><img src="TextureStudio/Images/NativePatternSegmentEditing.gif" alt="Native segment editing"></a><figcaption><h3>Segment editing</h3>Click-to-split · drag-to-bend · Undo/Redo · Escape cancel.</figcaption></figure>
+<figure><a href="TextureStudio/Images/NativePatternMultipoint.gif"><img src="TextureStudio/Images/NativePatternMultipoint.gif" alt="Native multipoint editing"></a><figcaption><h3>Multipoint</h3>Shift-select · group move · automatic tangents · batch nudge/delete.</figcaption></figure>
+<figure><a href="TextureStudio/Images/NativePatternSurfaceChannels.gif"><img src="TextureStudio/Images/NativePatternSurfaceChannels.gif" alt="Seven Float32 channel captures"></a><figcaption><h3>Seven Float32 channels</h3>Actual Vulkan readbacks (8-bit GIF display; PFM holds Float32).</figcaption></figure>
+<figure><a href="TextureStudio/Images/NativePbrBridgeSampling.gif"><img src="TextureStudio/Images/NativePbrBridgeSampling.gif" alt="Float32 maps sampled by PBR"></a><figcaption><h3>Float32 → PBR</h3>Baseline · authored maps · fabric edit with gold thread isolated.</figcaption></figure>
+</div>
+<p>More: <a href="TextureStudio/Images/NativePatternPenPlacement.gif">pen</a> ·
+<a href="TextureStudio/Images/NativePatternJoining.gif">joining</a> ·
+<a href="TextureStudio/Images/NativePatternRefinement.gif">refinement</a> ·
+<a href="TextureStudio/Images/NativePatternClipboard.gif">clipboard</a> ·
+<a href="TextureStudio/Images/NativePatternRotation.png">rotation</a> ·
+<a href="TextureStudio/Images/NativePatternResize.png">resize</a> ·
+<a href="TextureStudio/Images/NativePatternMarquee.png">marquee</a> ·
+<a href="TextureStudio/Images/NativeDropdown.png">dropdowns</a></p>
+</section>
+
+<section>
+<h2>Project Browser evidence (embedded)</h2>
+<iframe src="ProjectBrowser/index.html" title="Project Browser evidence"></iframe>
+</section>
+
+<section>
+<h2>Native Float32 surface evidence (embedded)</h2>
+<iframe src="TextureStudio/NativeSurfaceEvidence.html" title="Native surface evidence"></iframe>
+</section>
+
+<section>
+<h2>Renderer evidence (embedded)</h2>
+<p>Static recorded captures below; live GPU readbacks need the renderer server with an explicit driver + executable
+(not available in this sandbox).</p>
+<iframe src="Renderer/index.html" title="Renderer evidence"></iframe>
+</section>
+
+<section>
+<h2>Session rebuild log</h2>
+<p id="RebuildLog">Rebuilt 2026-10-20: <code>Automation/PrepareUI.py</code> (6 pinned deps) →
+<code>Automation/PrepareFonts.py</code> (5 families / 35 faces) →
+<code>cmake -DFRONTIER_HOST_VERIFICATION=ON</code> → full build → <code>ctest</code>: <strong>21/21 passed</strong>
+in 70&nbsp;s. Four stale harnesses were repaired (font inventory 4/30→5/35; per-domain icon rasterization; canvas
+hover before preview keys; full dockspace window name — the last was a null dereference). Docking also passes under
+ASan/UBSan. Not run here: GPU/SwiftShader readbacks (no <code>slangc</code>/driver in sandbox), Windows link/run.</p>
+<ul>
+<li><a href="TextureStudio/Results/NativePatternWorkspaceChecks.json">Pattern workspace checks (recorded)</a></li>
+<li><a href="TextureStudio/Results/MaterialAtlasChecks.json">Material atlas checks (recorded)</a></li>
+<li><a href="TextureStudio/Results/ProceduralPaintChecks.json">Automotive paint checks (recorded)</a></li>
+<li><a href="ProjectBrowser/Results/NativeBrowserChecks.json">Project Browser checks (recorded)</a></li>
+</ul>
+</section>
+
+<footer>Frontier evidence hub · <code>arena/db2f9953-frontier</code> @ <code>3e20aab</code> · 2026-10-20 ·
+Alloy reference: <code>Experimental/TextureStudio</code> · Single tracker: <code>Documentation/Tracker.md</code></footer>
+</main>
+</body>
+</html>

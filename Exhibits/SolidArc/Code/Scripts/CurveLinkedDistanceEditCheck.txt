@@ -1,0 +1,45 @@
+frames 4
+key Keypad7
+key Keypad5
+key 6
+frames 3
+click world 0.3 1 1
+click world 0.7 1 1 Shift
+frames 3
+expect selected-curves == 2
+click @OffsetDistance
+key A Ctrl
+type 0.2
+key Enter
+click @OffsetTolerance
+key A Ctrl
+type 0.01
+key Enter
+click @LinkSurfaceOffset
+frames 4
+expect offset-linked-count == 1
+click world 1.8 1.8 1
+click world 0.5 1 1
+frames 3
+expect selected-curves == 1
+click @OffsetDistance
+key A Ctrl
+type 0.35
+key Enter
+frames 4
+expect offset-linked-count == 1
+expect last-curve-mid-x > 0.63
+expect last-curve-mid-x < 0.67
+expect refused == 0
+capture Linked_Target_Only_Distance_Edit
+click @OffsetDistance
+key A Ctrl
+type -0.1
+key Enter
+frames 4
+expect last-curve-mid-x > 0.63
+expect last-curve-mid-x < 0.67
+capture Distance_Refusal_Keeps_Geometry
+click @ResetPanels
+frames 3
+capture Workspace_Default_Docks

@@ -1,0 +1,5 @@
+Device	SwiftShader Device (Subzero)
+Fog wind reversal	Expected > 0.00001	0
+Fog stopped velocity	Expected < 0.000001	0.00092608
+Fog heterogeneous density	Expected > 0.00001	0.000686922
+Baseline	Recorded existing behaviour, not an acceptance pass

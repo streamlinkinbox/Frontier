@@ -1,0 +1,78 @@
+PASS	Control Centre initialized
+PASS	Default level includes Force Field and local media
+PASS	Field, Wind and Atmosphere records exist
+PASS	Both local media records exist
+PASS	Viewport snapshot includes both local record sets
+PASS	Create menu entries construct bounded media
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  4529.0 ms
+PASS	Native scene readback
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  4419.1 ms
+PASS	Native scene readback
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  4348.9 ms
+PASS	Native scene readback
+PASS	Environment diagnostics are live
+PASS	Both local media reach native renderer
+PASS	World-vector sample lattice generated
+PASS	World +X wind maps to native Y-up solver correctly
+PASS	Native workspace capture
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  4238.5 ms
+PASS	Native scene readback
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  4128.9 ms
+PASS	Native scene readback
+PASS	Native workspace capture
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  4038.1 ms
+PASS	Native scene readback
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  3771.8 ms
+PASS	Native scene readback
+PASS	Native workspace capture
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  3549.1 ms
+PASS	Native scene readback
+PASS	Disabling Wind freezes accumulated fog displacement without jumping
+PASS	Disabled wind has zero evaluated velocity
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  3342.1 ms
+PASS	Native scene readback
+PASS	Unlinked fog with zero independent wind stays frozen
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  3155.4 ms
+PASS	Native scene readback
+PASS	Following fog resumes motion from retained displacement
+PASS	Initial real GPU LUT readback ready
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  2997.7 ms
+PASS	Native scene readback
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  2866.7 ms
+PASS	Native scene readback
+PASS	Workspace acknowledges successful GPU bake request
+PASS	Baked settings reflect actual inputs
+PASS	GPU lookup extents agree
+PASS	Bake regenerates changed GPU transmittance pixels
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  2726.2 ms
+PASS	Native scene readback
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  2591.4 ms
+PASS	Native scene readback
+PASS	Authored edits do not silently replace frozen baked inputs
+PASS	GPU lookup extents agree
+PASS	Frozen GPU lookup is unchanged
+PASS	Native workspace capture
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  2672.6 ms
+PASS	Native scene readback
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  2736.3 ms
+PASS	Native scene readback
+PASS	Explicit rebake replaces snapshot
+PASS	Native workspace capture
+PASS	Decoded GPU lookup size
+PASS	GPU lookup PNG written
+PASS	Decoded GPU lookup size
+PASS	GPU lookup PNG written
+PASS	Decoded GPU lookup size
+PASS	GPU lookup PNG written
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  2805.2 ms
+PASS	Native scene readback
+PASS	Live mode resumes authored optics
+PASS	Foreign/stale record bake cannot be acknowledged
+PASS	Native viewport renders: LIVE: ReSTIR GI GTX + PlanetaryAtmosphere  |  192 x 120  |  2915.6 ms
+PASS	Native scene readback
+PASS	Multiple-scattering switch changes real GPU lookup to zero transfer
+PASS	Baked optical snapshot serializes as TOML
+PASS	Baked level saved
+PASS	Baked level reloaded
+PASS	Frozen optical snapshot survives level reload
+SUMMARY	78 checks passed

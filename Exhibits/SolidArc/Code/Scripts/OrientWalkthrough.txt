@@ -1,0 +1,174 @@
+# SolidArc orient-to-faces walkthrough — a sketch or a Construct solid drawn on a body face takes that face's orientation
+# by itself (no Ctrl): the drawing plane is the face (curved faces: the tangent plane at the pointer) and a solid's height
+# runs along the outward normal. The Snaps card's "Orient to faces" toggle (on by default) falls back to the grid plane.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/OrientRecovery.solidarc
+#      --document …/Orient.solidarc --script Scripts/OrientWalkthrough.txt
+# Face frames: n̂ outward, x̂ = ẑ × n̂, ŷ = n̂ × x̂; points snap to the 0.1 grid of the face, so every volume is exact.
+# Closed forms: cube 2³ = 8 · circle r 0.4 on its +x face extruded 1 = 0.16π · cylinder r 0.4 h 0.5 on the −y face =
+# 0.08π · wedge 2 × 2 × 1 = 2 · cylinder r 0.3 h 0.5 on the wedge's slope (n̂ = (1, 0, 2)/√5) = 0.045π.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① a 2 m cube from the Construct menu; Orient to faces starts on
+key N Ctrl
+frames 3
+expect face-orient == 1
+click @ConstructLauncher
+frames 2
+click @ConstructBlock
+frames 2
+move world -1.0 -1.0 0.0
+frames 2
+click world -1.0 -1.0 0.0
+frames 2
+move world 1.0 1.0 0.0
+frames 2
+click world 1.0 1.0 0.0
+frames 2
+move world 1.0 1.0 2.0
+frames 2
+click world 1.0 1.0 2.0
+frames 3
+expect refused == 0
+expect bodies == 1
+expect volume ~ 8
+
+# ② Shift+W over the cube's +x face: the circle lies on that face (normal +x), F fills it, E extrudes it 1 outward (joined to the cube it stands on)
+key W Shift
+frames 2
+move world 1.0 0.0 1.0
+frames 2
+expect face-plane == 1
+expect drawing-on-face == 1
+expect drawing-normal-x ~ 1
+click world 1.0 0.0 1.0
+frames 2
+move world 1.0 0.4 1.0
+frames 2
+capture 257CircleOnSideFace
+click world 1.0 0.4 1.0
+frames 3
+expect refused == 0
+expect plane-normal-x ~ 1
+expect plane-normal-z ~ 0
+key F
+frames 2
+key E
+frames 2
+click @BevelSize
+key A Ctrl
+type 1
+key Enter
+frames 2
+key Enter
+frames 2
+expect refused == 0
+expect bodies == 1
+expect volume ~ 8.502654824574368
+expect scene-high-x ~ 2
+
+# ③ Shift+X Construct cylinder on the −y face: base on the face, the height lifts along −y
+key X Shift
+frames 2
+expect drawing-solid-kind == 1
+move world 0.0 -1.0 1.0
+frames 2
+click world 0.0 -1.0 1.0
+frames 2
+expect drawing-on-face == 1
+expect drawing-normal-y ~ -1
+move world 0.4 -1.0 1.0
+frames 2
+click world 0.4 -1.0 1.0
+frames 2
+move world 0.4 -1.5 1.0
+frames 2
+expect drawing-lift ~ 0.5
+capture 258CylinderOnFrontFace
+click world 0.4 -1.5 1.0
+frames 3
+expect refused == 0
+expect bodies == 2
+expect volume ~ 8.75398223686155
+expect plane-normal-y ~ -1
+expect scene-low-y ~ -1.5
+
+# ④ a wedge on the ground left of the cube (its slope faces +x), then a cylinder on its slope: the solid stands square to the slanted face
+click @ConstructLauncher
+frames 2
+click @ConstructWedge
+frames 2
+move world -4.0 -1.0 0.0
+frames 2
+click world -4.0 -1.0 0.0
+frames 2
+move world -2.0 1.0 0.0
+frames 2
+click world -2.0 1.0 0.0
+frames 2
+move world -2.0 1.0 1.0
+frames 2
+click world -2.0 1.0 1.0
+frames 3
+expect refused == 0
+expect bodies == 3
+expect volume ~ 10.75398223686155
+key X Shift
+frames 2
+move world -2.9938388 0.0 0.4969194
+frames 2
+click world -2.9938388 0.0 0.4969194
+frames 2
+expect drawing-on-face == 1
+expect drawing-normal-x ~ 0.4472135955
+expect drawing-normal-z ~ 0.894427191
+move world -2.9938388 0.3 0.4969194
+frames 2
+click world -2.9938388 0.3 0.4969194
+frames 2
+move world -2.770232 0.3 0.944133
+frames 2
+expect drawing-lift ~ 0.5
+capture 259CylinderOnSlope
+click world -2.770232 0.3 0.944133
+frames 3
+expect refused == 0
+expect bodies == 4
+expect volume ~ 10.89535390627309
+expect plane-normal-x ~ 0.4472135955
+expect plane-normal-z ~ 0.894427191
+
+# ⑤ a curved face: a circle on the first cylinder's side lies in the tangent plane at the pointer (normal ≈ +x)
+key W Shift
+frames 2
+move world 0.4 -1.25 1.0
+frames 2
+expect face-plane == 1
+click world 0.4 -1.25 1.0
+frames 2
+click world 0.4 -1.25 1.15
+frames 3
+expect refused == 0
+expect plane-normal-x > 0.99
+
+# ⑥ Orient to faces off: over the cube's −y face the drawing keeps the ground plane
+key W Shift
+frames 2
+click @FaceOrient
+frames 2
+expect face-orient == 0
+move world -0.7 -1.0 0.3
+frames 2
+expect face-plane == 0
+expect drawing-normal-z ~ 1
+capture 260OrientOff
+click world -0.7 -1.0 0.3
+frames 2
+click world -0.3 -1.0 0.3
+frames 3
+expect refused == 0
+expect plane-normal-z ~ 1
+key Space
+frames 3
+capture 261OrientedBodies

@@ -1,0 +1,26 @@
+# VirtualizedGeometryCapture on SwiftShader, 480x270 low, stored archives (EngineContent/ShaderArchives), 2026-11-02, at 3970b6a:
+# the nesting built in the viewport with the demo's options (before I1-I5 and the stored archive).
+device: SwiftShader Device (Subzero)
+Baseline: 6 refreshes, mean 9.753 s, slowest 10.112 s → out/Baseline.png
+VirtualizedFirstRefresh: 1 refreshes, mean 9.046 s, slowest 9.046 s → out/VirtualizedFirstRefresh.png
+[PASS] the takeover found eligible facet sets
+takeover: 650 cluster records over 1 occupants, 8 pages (6 pending after the first refresh)
+VirtualizedStreaming: 1 refreshes, mean 8.451 s, slowest 8.451 s → out/VirtualizedStreaming.png
+VirtualizedStreaming: 1 refreshes, mean 8.962 s, slowest 8.962 s → out/VirtualizedStreaming.png
+VirtualizedStreaming: 1 refreshes, mean 10.080 s, slowest 10.080 s → out/VirtualizedStreaming.png
+every page resident after 4 refreshes
+Virtualized: 6 refreshes, mean 8.675 s, slowest 8.902 s → out/Virtualized.png
+virtualized vs baseline: mean absolute difference 0.0133; refresh 8.675 s vs 9.753 s (0.89x)
+[PASS] the virtualized surface matches the lossless one within 5 % mean difference — 0.013280
+ClusterIdentities: 2 refreshes, mean 8.971 s, slowest 9.170 s → out/ClusterIdentities.png
+[PASS] ClusterIdentities shows real cluster data — 1518 distinct colours
+ClusterResolve: 2 refreshes, mean 8.724 s, slowest 8.750 s → out/ClusterResolve.png
+[PASS] ClusterResolve shows real cluster data — 85 distinct colours
+ClusterHiZ: 2 refreshes, mean 8.178 s, slowest 8.299 s → out/ClusterHiZ.png
+[PASS] ClusterHiZ shows real cluster data — 11 distinct colours
+ClusterGlassLayers: 2 refreshes, mean 9.194 s, slowest 9.347 s → out/ClusterGlassLayers.png
+[PASS] ClusterGlassLayers shows real cluster data — 29 distinct colours
+ClusterTiers: 2 refreshes, mean 9.165 s, slowest 9.423 s → out/ClusterTiers.png
+[PASS] ClusterTiers shows real cluster data — 36 distinct colours
+VirtualizedGeometryCapture: 0 failing checks
+CAPTURE-EXIT 0

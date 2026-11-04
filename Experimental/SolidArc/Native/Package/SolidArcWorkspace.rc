@@ -1,0 +1,48 @@
+/*====================================================================================================================================
+                                                       SOLIDARCWORKSPACE.RC
+====================================================================================================================================*/
+// 🧩 Windows resources of SolidArcWorkspace.exe: version details (Properties → Details)
+
+// 📝 Version details only. The icon and the application manifest of the a4c0e11 package were taken out again: the
+//    manifest stopped the program from starting ("side-by-side configuration is incorrect") and the builds that ran had
+//    neither. MSVC links its default manifest as before; the Zig cross-build links none.
+#pragma code_page(65001)
+
+#include <winver.h>
+
+#define SOLIDARC_VERSION_NUMBERS 0, 6, 0, 0
+#define SOLIDARC_VERSION_TEXT    "0.6.0.0"
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    VERSION
+//------------------------------------------------------------------------------------------------------------------------
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     SOLIDARC_VERSION_NUMBERS
+PRODUCTVERSION  SOLIDARC_VERSION_NUMBERS
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       VS_FF_PRERELEASE
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName",      "SolidArc"
+            VALUE "FileDescription",  "SolidArc Workspace - parametric CAD modelling"
+            VALUE "FileVersion",      SOLIDARC_VERSION_TEXT
+            VALUE "InternalName",     "SolidArcWorkspace"
+            VALUE "LegalCopyright",   "Copyright (C) 2026 SolidArc contributors"
+            VALUE "OriginalFilename", "SolidArcWorkspace.exe"
+            VALUE "ProductName",      "SolidArc"
+            VALUE "ProductVersion",   SOLIDARC_VERSION_TEXT
+            VALUE "Comments",         "Preview build of the Frontier SolidArc port"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

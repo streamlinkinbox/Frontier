@@ -1,0 +1,104 @@
+# SolidArc drawing sheet walkthrough — Alt+D (Fusion Drawing; Plasticity has none) shows the shown solid bodies
+# as an ISO drawing (kernel views, hidden lines, automatic dimensions in millimetres, title block) in place of the
+# model; the card picks paper, angle, scale, views and title fields (saved with the document) and exports SVG / DXF R12
+# beside the document.
+# Run: SolidArcCapture --specimen --reset-files --recovery …/SheetRecovery.solidarc
+#      --document …/Sheet.solidarc --script Exhibits/SolidArc/Code/Scripts/DrawingSheetWalkthrough.txt
+# Bracket specimen: block 4 × 2.5 × 1 m, boss r 0.5 (z 1 … 1.75) at (1, 1.25), hole r 0.3 at (3, 1.25), Fillet1 r 0.25
+# on the right top edge, Chamfer1 0.2 on the left top edge.
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① Alt+D: A3, first angle (ISO / SANS 10111), the largest standard scale that fits; Front, Top below it, Right on its
+#    left, the isometric in the free corner; 4000 × 2500 × 1750 mm overall, ⌀1000 boss, ⌀600 hole
+frames 3
+expect drawing-sheet == 0
+key D Alt
+frames 2
+expect drawing-sheet == 1
+expect drawing-sheet contains A3
+expect drawing-sheet contains First
+expect drawing-sheet-views == 4
+expect drawing-sheet-views == Front Top Right Isometric
+expect drawing-sheet-dimensions contains 4000
+expect drawing-sheet-dimensions contains 2500
+expect drawing-sheet-dimensions contains 1750
+expect drawing-sheet-dimensions contains ⌀1000
+expect drawing-sheet-dimensions contains ⌀600
+expect drawing-sheet-texts contains Bracket
+expect drawing-sheet-refreshes == 1
+expect drawing-sheet-saved == 0
+capture 190DrawingSheetFirstAngle
+
+# ② Third angle: Top moves above Front, Right to its right, the symbol mirrors; the setting is saved with the document
+click @SheetThirdAngle
+frames 2
+expect drawing-sheet contains Third
+expect drawing-sheet-refreshes == 2
+expect drawing-sheet-saved == 1
+capture 191DrawingSheetThirdAngle
+
+# ③ Section A-A replaces the isometric: y through the scene centre (Section default) — the cap is the exact cut
+#    4.116587 m² (block profile − chamfer − fillet corner − hole + boss), hatched, with the cutting line on Top
+click @SheetSection
+frames 2
+expect drawing-sheet-views == Front Top Right Section A-A
+expect drawing-sheet-section-area ~ 4.116587
+capture 192DrawingSheetSection
+
+# ④ Title block fields (Enter applies): title and material print in the title block
+click @SheetTitle
+key A Ctrl
+type Bracket B-1
+key Enter
+frames 2
+click @SheetMaterial
+key A Ctrl
+type AlSi10Mg
+key Enter
+frames 2
+expect drawing-sheet-texts contains Bracket B-1
+expect drawing-sheet-texts contains AlSi10Mg
+
+# ⑤ Scale steps: − takes the next smaller ISO 5455 scale, Auto returns to the largest that fits
+click @SheetScaleSmaller
+frames 2
+expect drawing-sheet-scale < 0.02
+click @SheetScaleAuto
+frames 2
+expect drawing-sheet-scale == 0.02
+expect drawing-sheet contains 1:50
+
+# ⑥ The wheel zooms the paper about the pointer (3 notches = 1.2³), double-click fits again
+wheel @ViewportSurface 3
+frames 2
+expect drawing-sheet-zoom ~ 1.728
+capture 193DrawingSheetZoom
+click @SheetFit
+frames 2
+expect drawing-sheet-zoom == 1
+
+# ⑦ Export beside the document: Sheet.svg and Sheet.dxf (R12)
+click @SheetExportSvg
+frames 2
+expect drawing-sheet-export contains Sheet.svg
+expect drawing-sheet-export > 20000
+click @SheetExportDxf
+frames 2
+expect drawing-sheet-export contains Sheet.dxf
+expect drawing-sheet-export > 20000
+capture 194DrawingSheetExport
+
+# ⑧ Esc returns to the model; Alt+D again shows the saved settings (third angle, section A-A, title)
+key Escape
+frames 2
+expect drawing-sheet == 0
+key D Alt
+frames 2
+expect drawing-sheet contains Third
+expect drawing-sheet-views contains Section A-A
+expect drawing-sheet-texts contains AlSi10Mg
+key D Alt
+frames 2
+expect drawing-sheet == 0

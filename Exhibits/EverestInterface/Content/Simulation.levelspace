@@ -1,0 +1,376 @@
+[level]
+format_version = 1
+name = "Everest — Default Scene"
+
+[[records]]
+identity = "rec_pipeline"
+type = "RenderPipeline"
+name = "Render settings"
+[records.configuration]
+# The whole renderer in one record (Render settings inspector); every value below is the VehicleHMI demo's unless noted.
+enabled = true
+hardware_ray_query = true          # RTX ReSTIR path tracer; false: GTX distance-field GI
+quality_tier = 2                   # 0 low, 1 medium, 2 high
+analytic_illumination = false      # the fast closed-form preview instead of the global illumination (a debug view)
+# Resolution & sampling
+render_scale = 1.0                 # viewport scale, under the grade's pixel ceiling
+trace_scale = 2                    # GI and reflections: 1 full, 2 half, 4 quarter
+initial_candidates = 2             # paths per pixel (M)
+# Global illumination
+global_illumination = true
+max_bounces = 3
+multi_bounce_nee = true
+russian_roulette = true
+temporal_reuse = true
+spatial_reuse = true
+visibility_reuse = true
+radiance_refresh = true
+spatial_count = 5
+spatial_radius = 20.0
+temporal_tally_limit = 20.0
+indirect_scale = 1.0
+sky_scale = 1.0
+incandescence_scale = 1.0
+card_radiosity = true
+card_tile_budget = 0               # 0: the grade's
+# Reflections
+reflections = true
+ray_traced_reflections = true
+reflection_bounces = 2
+reflection_scale = 1.0
+reflection_roughness = 0.8
+mirror_filter = false              # measured option (Documentation/Plans/Ongoing/RayTracedLighting.md)
+mirror_trace = false               # measured option, costly
+# Sun & shadows
+direct_shadow = true
+ray_traced_shadows = true
+firefly_filter = true
+solar_disc = false                 # measured option
+stratified_sun = false             # measured option
+penumbra_filter = false            # measured option
+# Denoising & antialiasing
+variance_filter = true
+temporal_aa = true
+diffuse_wavelet_levels = 4
+diffuse_tally_limit = 24
+diffuse_minimum_weight = 0.08
+diffuse_colour_sigma = 4.0
+glossy_wavelet_levels = 3
+glossy_tally_limit = 12
+glossy_minimum_weight = 0.12
+glossy_colour_sigma = 3.0
+# Exposure
+auto_exposure = true
+exposure_ev = 0.12                 # this level's own
+# Geometry
+virtualized_geometry = false
+virtualized_stream_slots = 0
+# Debug views and timing
+inspection_mode = 0
+distance_inspection = 1            # view 6 reads: 1 normals, 2 steps, 3 light
+live_refresh = true
+target_rate = 60
+
+[[records]]
+identity = "rec_solar"
+type = "Solar"
+name = "Sun"
+[records.configuration]
+enabled = true
+elevation_deg = 38.0
+azimuth_deg = 132.0
+illuminance_klx = 98.0
+kelvin = 5778.0
+
+[[records]]
+identity = "rec_flare"
+type = "OpticalFlare"
+name = "Lens Flare"
+parent = "rec_solar"
+[records.configuration]
+enabled = true
+intensity = 0.62
+aperture_blades = 7
+
+[[records]]
+identity = "rec_clouds"
+type = "Clouds"
+name = "Clouds"
+[records.configuration]
+enabled = true
+local_volume = false
+coverage = 0.42
+base_altitude_m = 1750.0
+thickness_m = 1350.0
+
+[[records]]
+identity = "rec_local_cloud"
+type = "Clouds"
+name = "Local Cloud"
+[records.configuration]
+enabled = false
+local_volume = true
+
+[[records]]
+identity = "rec_local_fog"
+type = "Fog"
+name = "Local Volumetric Fog"
+[records.configuration]
+enabled = false
+local_volume = true
+
+[[records]]
+identity = "rec_atmosphere"
+type = "Atmosphere"
+name = "Atmosphere"
+[records.configuration]
+enabled = true
+rayleigh = 1.0
+mie_turbidity = 2.3
+ozone = 1.0
+
+[[records]]
+identity = "rec_stars"
+type = "Stars"
+name = "Stars"
+[records.configuration]
+enabled = true
+hipparcos_count = 5000
+magnitude_gain = 1.15
+
+[[records]]
+identity = "rec_moons"
+type = "Moons"
+name = "Moons"
+[records.configuration]
+enabled = true
+primary_phase = 0.68
+secondary_enabled = true
+
+[[records]]
+identity = "rec_planet_venus"
+type = "Planet"
+name = "Venus"
+[records.configuration]
+enabled = true
+body = 0
+apparent_diameter_deg = 0.80
+brightness = 1.0
+ring_system = false
+atmosphere_shell = true
+
+[[records]]
+identity = "rec_planet_jupiter"
+type = "Planet"
+name = "Jupiter"
+[records.configuration]
+enabled = true
+body = 1
+apparent_diameter_deg = 1.26
+brightness = 1.0
+ring_system = false
+atmosphere_shell = false
+
+[[records]]
+identity = "rec_planet_mars"
+type = "Planet"
+name = "Mars"
+[records.configuration]
+enabled = true
+body = 2
+apparent_diameter_deg = 0.69
+brightness = 1.0
+ring_system = false
+atmosphere_shell = false
+
+[[records]]
+identity = "rec_planet_saturn"
+type = "Planet"
+name = "Saturn"
+[records.configuration]
+enabled = true
+body = 3
+apparent_diameter_deg = 1.03
+brightness = 1.0
+ring_system = true
+atmosphere_shell = false
+
+[[records]]
+identity = "rec_fog"
+type = "Fog"
+name = "Height Fog"
+[records.configuration]
+enabled = true
+local_volume = false
+base_density = 0.012
+height_falloff = 0.14
+
+[[records]]
+identity = "rec_aerial_fog"
+type = "AerialFog"
+name = "Atmospheric Fog"
+[records.configuration]
+enabled = true
+aerial_only = true
+aerial_enabled = true
+aerial_density = 0.00004
+aerial_start_metres = 500.0
+aerial_mie_blend = 0.5
+
+[[records]]
+identity = "rec_lightning"
+type = "Lightning"
+name = "Lightning & thunder"
+[records.configuration]
+enabled = true
+strikes_per_minute = 4.0
+auto_discharge = false
+
+[[records]]
+identity = "rec_force_field"
+type = "ForceField"
+name = "Force Field"
+[records.configuration]
+enabled = true
+visualize = false
+include_turbulence = true
+centre_metres = [-20.0, 0.0, 8.0]
+half_extents_metres = [20.0, 20.0, 8.0]
+grid_resolution = 5
+arrow_seconds = 0.5
+
+[[records]]
+identity = "rec_wind"
+type = "Wind"
+name = "Wind"
+parent = "rec_force_field"
+[records.configuration]
+enabled = true
+direction_deg = 45.0
+speed_mps = 6.5
+turbulence = 0.45
+
+[[records]]
+identity = "rec_origin"
+type = "SpatialNode"
+name = "Simulation Origin"
+[records.configuration]
+position_m = [0.0, 0.0, 0.0]
+orientation_deg = [0.0, 0.0, 0.0]
+scale = [1.0, 1.0, 1.0]
+
+[[records]]
+identity = "rec_slab"
+type = "RigidBody"
+name = "Reference Ground Slab"
+parent = "rec_origin"
+[records.configuration]
+position_m = [0.0, 0.0, 0.0]
+orientation_deg = [0.0, 0.0, 0.0]
+scale = [60.0, 0.5, 60.0]
+physics_enabled = true
+mass_kg = 3200.0
+density_kg_m3 = 2400.0
+volume_m3 = 1.3333
+dynamic_body = false
+gravity_coupled = false
+optics_enabled = true
+albedo_rgb = [0.70, 0.73, 0.76]
+roughness = 0.52
+metallic = 0.02
+
+[[records]]
+identity = "rec_thermal_block"
+type = "ThermalBody"
+name = "Conductive Test Block"
+parent = "rec_origin"
+[records.configuration]
+position_m = [-3.0, 1.0, 0.0]
+orientation_deg = [0.0, 15.0, 0.0]
+scale = [1.0, 1.0, 1.0]
+physics_enabled = true
+mass_kg = 18.0
+density_kg_m3 = 2700.0
+volume_m3 = 0.0067
+dynamic_body = true
+gravity_coupled = true
+thermal_enabled = true
+temperature_k = 640.0
+specific_heat_j_kg_k = 897.0
+conductivity_w_m_k = 205.0
+emissivity = 0.85
+optics_enabled = true
+albedo_rgb = [0.82, 0.68, 0.54]
+roughness = 0.34
+metallic = 0.65
+
+[[records]]
+identity = "rec_vessel"
+type = "ChemicalVessel"
+name = "Kinetics Reaction Cell"
+parent = "rec_origin"
+[records.configuration]
+position_m = [3.0, 1.2, 0.0]
+orientation_deg = [0.0, 0.0, 0.0]
+scale = [0.8, 1.2, 0.8]
+thermal_enabled = true
+temperature_k = 365.0
+specific_heat_j_kg_k = 4184.0
+conductivity_w_m_k = 0.60
+emissivity = 0.92
+chemical_enabled = true
+molar_mass_g_mol = 46.07
+amount_mol = 4.5
+concentration_mol_l = 1.5
+activation_energy_kj_mol = 52.0
+enthalpy_delta_kj_mol = -68.4
+matter_phase = 1
+reversible = true
+catalyzed = false
+
+[[records]]
+identity = "rec_plume"
+type = "FluidPlume"
+name = "Eulerian Fluid Plume"
+parent = "rec_origin"
+[records.configuration]
+enabled = true
+buoyancy_lift = 2.15
+vorticity = 1.85
+blackbody_k = 1850.0
+
+[[records]]
+identity = "rec_fracture"
+type = "Fracture"
+name = "Voronoi Fracture Specimen"
+parent = "rec_origin"
+[records.configuration]
+enabled = true
+voronoi_cells = 36
+impulse_threshold_ns = 40.0
+
+[[records]]
+identity = "rec_particles"
+type = "Particles"
+name = "Ballistic Particle Emitter"
+parent = "rec_origin"
+[records.configuration]
+enabled = true
+spark_rate = 260.0
+rain_density = 0.0
+snow_density = 0.0
+
+[[records]]
+identity = "rec_oscillator"
+type = "HarmonicOscillator"
+name = "Damped Harmonic Oscillator"
+parent = "rec_origin"
+[records.configuration]
+position_m = [0.0, 1.8, -2.5]
+mass_kg = 4.5
+density_kg_m3 = 7850.0
+volume_m3 = 0.00057
+stiffness_n_m = 180.0
+damping_ratio = 0.14
+initial_displacement_m = 0.65
+drive_frequency_hz = 1.0

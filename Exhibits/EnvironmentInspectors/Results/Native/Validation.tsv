@@ -1,0 +1,320 @@
+PASS	Optical reference row 1
+PASS	Optical reference row 1
+PASS	Optical reference row 1
+PASS	Optical reference row 2
+PASS	Optical reference row 2
+PASS	Optical reference row 2
+PASS	Optical reference row 3
+PASS	Optical reference row 3
+PASS	Optical reference row 3
+PASS	Optical reference row 4
+PASS	Optical reference row 4
+PASS	Optical reference row 4
+PASS	Optical reference row 5
+PASS	Optical reference row 5
+PASS	Optical reference row 5
+PASS	Optical reference row 6
+PASS	Optical reference row 6
+PASS	Optical reference row 6
+PASS	Optical reference row 7
+PASS	Optical reference row 7
+PASS	Optical reference row 7
+PASS	Optical reference row 8
+PASS	Optical reference row 8
+PASS	Optical reference row 8
+PASS	Optical reference row 9
+PASS	Optical reference row 9
+PASS	Optical reference row 9
+PASS	Optical reference row 10
+PASS	Optical reference row 10
+PASS	Optical reference row 10
+PASS	Optical reference row 11
+PASS	Optical reference row 11
+PASS	Optical reference row 11
+PASS	Optical reference row 12
+PASS	Optical reference row 12
+PASS	Optical reference row 12
+PASS	Optical reference row 13
+PASS	Optical reference row 13
+PASS	Optical reference row 13
+PASS	Optical reference row 14
+PASS	Optical reference row 14
+PASS	Optical reference row 14
+PASS	Optical reference row 15
+PASS	Optical reference row 15
+PASS	Optical reference row 15
+PASS	Optical reference row 16
+PASS	Optical reference row 16
+PASS	Optical reference row 16
+PASS	Optical reference row 17
+PASS	Optical reference row 17
+PASS	Optical reference row 17
+PASS	Optical reference row 18
+PASS	Optical reference row 18
+PASS	Optical reference row 18
+PASS	Optical reference row 19
+PASS	Optical reference row 19
+PASS	Optical reference row 19
+PASS	Optical reference row 20
+PASS	Optical reference row 20
+PASS	Optical reference row 20
+PASS	Optical reference row 21
+PASS	Optical reference row 21
+PASS	Optical reference row 21
+PASS	Optical reference row 22
+PASS	Optical reference row 22
+PASS	Optical reference row 22
+PASS	Optical reference row 23
+PASS	Optical reference row 23
+PASS	Optical reference row 23
+PASS	Optical reference row 24
+PASS	Optical reference row 24
+PASS	Optical reference row 24
+PASS	Profile reference row 25
+PASS	Profile reference row 26
+PASS	Profile reference row 27
+PASS	Profile reference row 28
+PASS	Profile reference row 29
+PASS	Profile reference row 30
+PASS	Profile reference row 31
+PASS	Profile reference row 32
+PASS	Profile reference row 33
+PASS	Profile reference row 34
+PASS	Profile reference row 35
+PASS	Profile reference row 36
+PASS	Profile reference row 37
+PASS	Profile reference row 38
+PASS	Profile reference row 39
+PASS	Profile reference row 40
+PASS	Profile reference row 41
+PASS	Profile reference row 42
+PASS	Profile reference row 43
+PASS	Profile reference row 44
+PASS	Profile reference row 45
+PASS	Profile reference row 46
+PASS	Profile reference row 47
+PASS	Profile reference row 48
+PASS	Profile reference row 49
+PASS	Profile reference row 50
+PASS	Profile reference row 51
+PASS	Profile reference row 52
+PASS	Profile reference row 53
+PASS	Profile reference row 54
+PASS	Profile reference row 55
+PASS	Profile reference row 56
+PASS	Profile reference row 57
+PASS	Profile reference row 58
+PASS	Profile reference row 59
+PASS	Profile reference row 60
+PASS	Profile reference row 61
+PASS	Profile reference row 62
+PASS	Profile reference row 63
+PASS	Profile reference row 64
+PASS	Profile reference row 65
+PASS	Profile reference row 66
+PASS	Density reference row 67
+PASS	Density reference row 68
+PASS	Density reference row 69
+PASS	Density reference row 70
+PASS	Density reference row 71
+PASS	Density reference row 72
+PASS	Density reference row 73
+PASS	Density reference row 74
+PASS	Density reference row 75
+PASS	Density reference row 76
+PASS	Density reference row 77
+PASS	Density reference row 78
+PASS	Density reference row 79
+PASS	Density reference row 80
+PASS	Density reference row 81
+PASS	Density reference row 82
+PASS	Density reference row 83
+PASS	Density reference row 84
+PASS	Density reference row 85
+PASS	Density reference row 86
+PASS	Density reference row 87
+PASS	Density reference row 88
+PASS	Density reference row 89
+PASS	Density reference row 90
+PASS	LocalDensity reference row 91
+PASS	LocalDensity reference row 92
+PASS	LocalDensity reference row 93
+PASS	LocalDensity reference row 94
+PASS	LocalDensity reference row 95
+PASS	LocalDensity reference row 96
+PASS	LocalDensity reference row 97
+PASS	LocalDensity reference row 98
+PASS	LocalDensity reference row 99
+PASS	LocalDensity reference row 100
+PASS	LocalDensity reference row 101
+PASS	LocalDensity reference row 102
+PASS	LocalDensity reference row 103
+PASS	LocalDensity reference row 104
+PASS	LocalDensity reference row 105
+PASS	LocalDensity reference row 106
+PASS	LocalDensity reference row 107
+PASS	LocalDensity reference row 108
+PASS	LocalDensity reference row 109
+PASS	LocalDensity reference row 110
+PASS	LocalDensity reference row 111
+PASS	LocalDensity reference row 112
+PASS	LocalDensity reference row 113
+PASS	LocalDensity reference row 114
+PASS	All pinned-source numerical rows evaluated
+PASS	Wind travel east component
+PASS	Wind travel north component
+PASS	Wind disabled reference
+PASS	Height fog squared extinction at one optical depth
+PASS	Aerial clear-start gate
+PASS	Aerial red extinction
+PASS	Aerial blue extinction
+PASS	New moon fraction
+PASS	Full moon fraction
+PASS	Actual SLAT catalogue: 8920 finite entries
+PASS	Magnitude census accounts for catalogue
+PASS	Magnitude eligibility agrees with bins
+PASS	Truncated SLAT rejected
+PASS	Wrong SLAT magic rejected
+PASS	Unknown SLAT version rejected
+PASS	Non-finite SLAT direction rejected
+PASS	Missing SLAT has no fabricated fallback
+PASS	Registered lunar map: Luna
+PASS	Transparent textured sphere: Luna
+PASS	Non-finite lunar settings rejected
+PASS	Registered lunar map: Ember
+PASS	Transparent textured sphere: Ember
+PASS	Non-finite lunar settings rejected
+PASS	Registered lunar map: Glacier
+PASS	Transparent textured sphere: Glacier
+PASS	Non-finite lunar settings rejected
+PASS	Registered lunar map: Sulfur
+PASS	Transparent textured sphere: Sulfur
+PASS	Non-finite lunar settings rejected
+PASS	Registered lunar map: Shroud
+PASS	Transparent textured sphere: Shroud
+PASS	Non-finite lunar settings rejected
+PASS	Registered lunar map: Shard
+PASS	Transparent textured sphere: Shard
+PASS	Non-finite lunar settings rejected
+PASS	Missing lunar map reported
+PASS	Empty optical extent rejected
+PASS	Oversized optical allocation rejected
+PASS	Non-finite optical input rejected
+PASS	PFM export succeeds
+PASS	PFM RGB Float32 little-endian header
+PASS	PFM scanlines are bottom-up and retain HDR
+PASS	PFM refuses overwrite
+PASS	PFM rejects NaN
+PASS	PFM rejects invalid dimensions
+PASS	Clouds all serialized authoring fields round-trip
+PASS	Wind all serialized authoring fields round-trip
+PASS	Fog all serialized authoring fields round-trip
+PASS	AerialFog all serialized authoring fields round-trip
+PASS	Lightning all serialized authoring fields round-trip
+PASS	Stars all serialized authoring fields round-trip
+PASS	OpticalFlare all serialized authoring fields round-trip
+PASS	Moons all serialized authoring fields round-trip
+PASS	TOML non-finite float rejection preserves prior settings
+PASS	Legacy Moon phase migrates to days
+PASS	Legacy Moon visibility migrates
+PASS	Complete environment level saved
+PASS	Complete environment level reloaded
+PASS	Clouds survives disk save/reload
+PASS	Wind survives disk save/reload
+PASS	Fog survives disk save/reload
+PASS	AerialFog survives disk save/reload
+PASS	Lightning survives disk save/reload
+PASS	Stars survives disk save/reload
+PASS	OpticalFlare survives disk save/reload
+PASS	Moons survives disk save/reload
+PASS	Slider arrow changes one raw step
+PASS	Slider Shift-arrow changes ten raw steps
+PASS	Disabled slider ignores keyboard input
+PASS	Slider pointer hit region edits the setting
+PASS	Native rendered capture Cloud-0.png
+PASS	Native rendered capture Cloud-1.png
+PASS	Native rendered capture Cloud-2.png
+PASS	Native rendered capture Cloud-3.png
+PASS	Native rendered capture LocalCloud-0.png
+PASS	Native rendered capture Wind-0.png
+PASS	Native rendered capture Wind-1.png
+PASS	Native rendered capture Wind-2.png
+PASS	Native rendered capture Wind-3.png
+PASS	Native rendered capture Fog-0.png
+PASS	Native rendered capture Fog-1.png
+PASS	Native rendered capture Fog-2.png
+PASS	Native rendered capture AerialFog-0.png
+PASS	Native rendered capture AerialFog-1.png
+PASS	Native rendered capture AerialFog-2.png
+PASS	Native rendered capture LocalFog-0.png
+PASS	Native rendered capture Lightning-0.png
+PASS	Native rendered capture Stars-0.png
+PASS	Native rendered capture Stars-1.png
+PASS	Native rendered capture Stars-2.png
+PASS	Native rendered capture Moon-0.png
+PASS	Native rendered capture Moon-1.png
+PASS	Native rendered capture Moon-2.png
+PASS	Native rendered capture Moon-3.png
+PASS	Asynchronous optical preview publishes actual radiance
+PASS	Native rendered capture Flare-0.png
+PASS	Asynchronous optical preview publishes actual radiance
+PASS	Native rendered capture Flare-1.png
+PASS	Asynchronous optical preview publishes actual radiance
+PASS	Native rendered capture Flare-2.png
+PASS	Asynchronous optical preview publishes actual radiance
+PASS	Native rendered capture Flare-3.png
+PASS	Native rendered capture Sun-0.png
+PASS	Native rendered capture Sun-1.png
+PASS	Native rendered capture Sun-2.png
+PASS	Native rendered capture Sun-3.png
+PASS	Native rendered capture Atmosphere-0.png
+PASS	Native rendered capture Atmosphere-1.png
+PASS	Native rendered capture Atmosphere-2.png
+PASS	Native rendered capture Atmosphere-3.png
+PASS	Cloud mix diagram keyboard changes coverage
+PASS	Cloud mix edit advances revision once
+PASS	Fog diagnostic probe does not dirty scene
+PASS	Wind compass Home reference speed
+PASS	Wind compass FROM convention
+PASS	Clear-night action edits Sun
+PASS	Clear-night action edits cross-record visibility
+PASS	Flare source keyboard interaction
+PASS	Optical calculation survives immediate inspector destruction
+PASS	Moon phase slider changes days
+PASS	Manual Moon phase disables sky following
+PASS	Lightning intervals remain ordered after input
+PASS	Camera-dependent placement is disabled without camera access
+PASS	Native rendered capture Moon-Narrow.png
+PASS	Raster replacement accepted
+PASS	Raster corner radius produces rounded geometry
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Raster replacement accepted
+PASS	Acknowledged reference textures retire instead of accumulating
+PASS	Inspector deletion retires reference texture
+PASS	Reference before context shutdown
+PASS	Reference not reused across ImGui contexts
+PASS	Reference registers in another context
+PASS	Destroyed context invalidates reference
+PASS	Reference recreated after context shutdown
+SUMMARY	319 assertions	0 failures

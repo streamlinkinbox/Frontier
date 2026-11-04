@@ -1,0 +1,102 @@
+# SolidArc fillet drag + orientation cube walkthrough — the Windows report: on a rectangle with all four corners
+# filleted, dragging a fillet's points in mode 1 turned the bottom-left arc inside out (the tangent circle swept the long
+# way, ~270°). Tangency at a shared endpoint now keeps the side it starts on, and a drag that would still invert a fillet
+# is refused (the sketch stays). The orientation cube follows the viewport projection (Parallel / Perspective).
+# Run: SolidArcCapture --specimen --reset-files --recovery …/FilletDragRecovery.solidarc
+#      --document …/FilletDrag.solidarc --script Exhibits/SolidArc/Code/Scripts/FilletDragWalkthrough.txt
+# Closed forms: rectangle 3 × 1.5 with four r 0.3 fillets: every arc sweeps 90°.
+
+# The Drawing options panel, shown by default while a drawing tool is active, covers the top right of the
+# viewport where some of these clicks land: hide it first (Inspector › Surface tracing › Drawing options).
+frames 2
+click @DrawingOptions
+frames 2
+
+# Placement snapped to the 0.1 grid, as these checks were written for (free placement is the default since ⑮ of Snapping).
+snap grid on
+
+# ① Top view: rectangle 3 × 1.5, every corner filleted r 0.3 from the Outliner pick
+key N Ctrl
+frames 3
+key Keypad7
+frames 2
+key Q Shift
+frames 2
+click world 0.0 0.0 0.0
+frames 2
+click world 3.0 1.5 0.0
+frames 3
+click @Figure:Sketch#1
+frames 2
+key B
+frames 2
+click @BevelSize
+key A Ctrl
+type 0.3
+key Enter
+frames 3
+key Enter
+frames 3
+expect sketch-curve-total == 8
+expect arc-widest ~ 90
+key A Alt
+frames 2
+
+# ② mode 1: press-drag the bottom-left fillet centre (0.3, 0.3) out past the corner to (−0.9, −0.8): mid-drag the arc
+#    stays a quarter turn (the lines follow), release commits
+key 1
+frames 3
+move world 0.3 0.3 0.0
+frames 1
+press left
+frames 2
+move world -0.3 -0.3 0.0
+frames 2
+move world -0.9 -0.8 0.0
+frames 3
+expect live-staged == 1
+expect live-arc-widest < 180
+capture 253FilletCentreDragLive
+release left
+frames 3
+expect point-commits == 1
+expect arc-widest ~ 90
+expect sketch-curve-total == 8
+capture 254FilletCentreDragged
+
+# ③ the corner's virtual sharp dragged far inside (the arcs follow, still 90°)
+key Z Ctrl
+frames 3
+move world 0.0 0.0 0.0
+frames 1
+press left
+frames 2
+move world 0.6 0.5 0.0
+frames 2
+move world 1.2 0.9 0.0
+frames 3
+expect live-arc-widest < 180
+release left
+frames 3
+expect arc-widest ~ 90
+key Z Ctrl
+frames 3
+expect arc-widest ~ 90
+
+# ④ orientation cube: the default orbit view; Keypad 5 → Parallel (orthographic cube), again → Perspective
+key 5
+frames 2
+key A Alt
+frames 2
+click @ViewMenu
+frames 2
+click @ViewIsometric
+frames 3
+key Keypad5
+frames 3
+expect orthographic == 1
+capture 255CubeParallel
+key Keypad5
+frames 3
+expect orthographic == 0
+capture 256CubePerspective

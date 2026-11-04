@@ -1,0 +1,37 @@
+Format = 1
+Name = "18K White Gold"
+
+[[Strata]]
+Category = "Opaque"
+Albedo = [0.7304607400903537, 0.7083757798916868, 0.6444796819705821]
+Roughness = 0.17
+Metallic = 1
+Ior = 1.5
+Coverage = 1.0
+Anisotropy = 0
+TextureMask = 5
+UvScaleOffset = [9, 4.5, 0, 0]
+
+[Strata.Textures]
+Albedo = "Textures/18k-white-gold-albedo.png"
+Normal = "Textures/18k-white-gold-normal.png"
+
+
+[[Strata.Channels]]
+Name = "Albedo"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17
+
+
+[[Strata.Channels]]
+Name = "Normal"
+Op = "metalGrain"
+Link = "shared"
+[Strata.Channels.Params]
+grain = 0
+detailScale = 65
+surfaceSeed = 17

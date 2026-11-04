@@ -1,0 +1,20 @@
+# AnalyticIlluminationCapture (Exhibits/AnalyticIllumination/Code), 2026-11-02, SwiftShader, 2-core Linux host,
+# low quality, 480x270, 4 refreshes per setting; bring-up lines omitted.
+device: SwiftShader Device (Subzero)
+GlobalIllumination: 4 refreshes, mean 9.534 s, slowest 10.094 s → Images/GlobalIllumination.png
+  analytic illumination up
+AnalyticFirstRefresh: 1 refreshes, mean 0.122 s, slowest 0.122 s → Images/AnalyticFirstRefresh.png
+[PASS] the analytic illumination builds on the global illumination's scene
+AnalyticIllumination: 4 refreshes, mean 0.065 s, slowest 0.067 s → Images/AnalyticIllumination.png
+[PASS] the analytic image is lit, shaded geometry rather than a flat fill — 129 distinct colours
+[PASS] the sky band at the top is blue over red — 0.870632 vs 0.719188
+analytic vs global: mean absolute difference 0.0846; refresh 0.065 s vs 9.534 s (145.8x faster)
+[PASS] the analytic refresh is cheaper than the global illumination's
+AnalyticLowSun: 2 refreshes, mean 0.058 s, slowest 0.059 s → Images/AnalyticLowSun.png
+[PASS] a low western sun relights the scene — 0.112114
+AnalyticWithoutSun: 2 refreshes, mean 0.061 s, slowest 0.064 s → Images/AnalyticWithoutSun.png
+[PASS] without the sun the hemisphere fill alone lights the lower half, dimmer than with it — 0.110000 vs 0.342794
+GlobalIlluminationReturned: 2 refreshes, mean 9.471 s, slowest 9.790 s → Images/GlobalIlluminationReturned.png
+[PASS] the global illumination resumes after the analytic illumination rests
+AnalyticIlluminationCapture: 0 failing checks
+CAPTURE-EXIT 0

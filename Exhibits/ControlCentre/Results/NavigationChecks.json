@@ -1,0 +1,592 @@
+{
+  "date": "2026-10-17",
+  "result": "passed",
+  "checkout_revision": "4a77bfd17f23536e32781718553ec6a171e39021",
+  "uncommitted_changes": true,
+  "host": "Linux-6.1.158+-x86_64-with-glibc2.36",
+  "python": "3.11.2",
+  "scope": "Native production ImGui UI on Linux verification host; Windows package is cross-compiled only.",
+  "commands": [
+    {
+      "argv": [
+        "cmake",
+        "--build",
+        "/home/user/Frontier/_ClaudeScratch/build/ui",
+        "-j",
+        "4"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationDebugBuild.txt"
+    },
+    {
+      "argv": [
+        "ctest",
+        "--test-dir",
+        "/home/user/Frontier/_ClaudeScratch/build/ui",
+        "--output-on-failure",
+        "--output-junit",
+        "/home/user/Frontier/Exhibits/ControlCentre/Results/NavigationDebug.xml"
+      ],
+      "exit_code": 0,
+      "log": "Results/LocalChecks.txt"
+    },
+    {
+      "argv": [
+        "cmake",
+        "--build",
+        "/home/user/Frontier/_ClaudeScratch/build/ui-sanitized",
+        "-j",
+        "4"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationSanitizedBuild.txt"
+    },
+    {
+      "argv": [
+        "ctest",
+        "--test-dir",
+        "/home/user/Frontier/_ClaudeScratch/build/ui-sanitized",
+        "--output-on-failure",
+        "--output-junit",
+        "/home/user/Frontier/Exhibits/ControlCentre/Results/NavigationSanitized.xml"
+      ],
+      "exit_code": 0,
+      "log": "Results/SanitizedChecks.txt"
+    },
+    {
+      "argv": [
+        "cmake",
+        "--build",
+        "/home/user/Frontier/_ClaudeScratch/build/windows-ui",
+        "-j",
+        "4"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationWindowsBuild.txt"
+    },
+    {
+      "argv": [
+        "/home/user/Frontier/_ClaudeScratch/venv/bin/python",
+        "Automation/PackageWindows.py",
+        "--build",
+        "/home/user/Frontier/_ClaudeScratch/build/windows-ui",
+        "--toolchain",
+        "Zig 0.13.0; x86_64-windows-gnu; Release; cross-compiled on Linux"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationWindowsPackaging.txt"
+    },
+    {
+      "argv": [
+        "/home/user/Frontier/_ClaudeScratch/venv/bin/python",
+        "Exhibits/ControlCentre/Code/InspectWindowsPackage.py"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationWindowsInspection.txt"
+    },
+    {
+      "argv": [
+        "/home/user/Frontier/_ClaudeScratch/venv/bin/python",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/build/ui/docking-evidence/DraggableDefault.ppm",
+        "/home/user/Frontier/Exhibits/Docking/Images/DraggableDefault.png"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationDraggableDefaultEncoding.txt"
+    },
+    {
+      "argv": [
+        "/home/user/Frontier/_ClaudeScratch/venv/bin/python",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/build/ui/docking-evidence/DockedContent.ppm",
+        "/home/user/Frontier/Exhibits/Docking/Images/DockedContent.png"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationDockedContentEncoding.txt"
+    },
+    {
+      "argv": [
+        "/home/user/Frontier/_ClaudeScratch/venv/bin/python",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/build/ui/docking-evidence/DockedStream.ppm",
+        "/home/user/Frontier/Exhibits/Docking/Images/DockedStream.png"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationDockedStreamEncoding.txt"
+    },
+    {
+      "argv": [
+        "/home/user/Frontier/_ClaudeScratch/venv/bin/python",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/build/ui/docking-evidence/SplitPanels.ppm",
+        "/home/user/Frontier/Exhibits/Docking/Images/SplitPanels.png"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationSplitPanelsEncoding.txt"
+    },
+    {
+      "argv": [
+        "/home/user/Frontier/_ClaudeScratch/venv/bin/python",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/build/ui/docking-evidence/WorkspaceSettings.ppm",
+        "/home/user/Frontier/Exhibits/Docking/Images/WorkspaceSettings.png"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationWorkspaceSettingsEncoding.txt"
+    },
+    {
+      "argv": [
+        "/home/user/Frontier/_ClaudeScratch/venv/bin/python",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/build/ui/workspace-layout-evidence/RestoredTabs.ppm",
+        "/home/user/Frontier/Exhibits/Docking/Images/RestoredTabs.png"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationRestoredTabsEncoding.txt"
+    },
+    {
+      "argv": [
+        "/home/user/Frontier/_ClaudeScratch/venv/bin/python",
+        "Exhibits/UIFoundation/Code/EncodeEvidence.py",
+        "/home/user/Frontier/_ClaudeScratch/build/ui/workspace-layout-evidence/RestoredSplit.ppm",
+        "/home/user/Frontier/Exhibits/Docking/Images/RestoredSplit.png"
+      ],
+      "exit_code": 0,
+      "log": "Results/NavigationRestoredSplitEncoding.txt"
+    }
+  ],
+  "tests": {
+    "Debug": {
+      "name": "Linux-c++",
+      "tests": "14",
+      "failures": "0",
+      "disabled": "0",
+      "skipped": "0",
+      "hostname": "e2b.local",
+      "time": "58",
+      "timestamp": "2026-10-17T20:30:47"
+    },
+    "Sanitized": {
+      "name": "Linux-c++",
+      "tests": "14",
+      "failures": "0",
+      "disabled": "0",
+      "skipped": "0",
+      "hostname": "e2b.local",
+      "time": "173",
+      "timestamp": "2026-10-17T20:33:09"
+    }
+  },
+  "images": [
+    {
+      "path": "Exhibits/ControlCentre/Images/ClosedNotch.png",
+      "sha256": "90e0ea8f9dfc3f682ba30b94241cdaf2e0406ce79e24dd1821ae3c6b36434274",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/QuickPanel.png",
+      "sha256": "f85e1dafa07d7e91208147de84d663e1569cbdde5994683e1f8f0c4d60d9f439",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Settings.png",
+      "sha256": "d0905c26a5b59317731500d86b37f684f1e1e0aa61e37593fdb008f9508e8818",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/SettingsTransition.png",
+      "sha256": "5e24b829493103729716a4f2afb617a982eda538a8efea9078b03bb99c3e3a17",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Input.png",
+      "sha256": "be2c18014e1c0af705465bee373c10530b094ad6b74f65df0506daf28387724f",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Notifications.png",
+      "sha256": "a27e75fe11f70ca3ded4726076ce8b0c90f288480aa1226583538398b93b3f14",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/InputCapture.png",
+      "sha256": "5cd12073e46640f015f7111877ee2dc2024eabc4ceeffdba139907f817b0a431",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/InputConflict.png",
+      "sha256": "33849cd1b682a35913797a374cc8fbc0e75aaff93f5a16386f15bb29ee51e6a6",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/InputConfigured.png",
+      "sha256": "9378b53008d3bc2c4c3d718e63645376b8748d9f6cb7bf95d17a780c37cbaee8",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/InputPointerResponse.png",
+      "sha256": "bab9a6cc69eb613fabbf0659d6fac644437ecb41d7799cd94fcf4798aa7c7c2b",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Fonts.png",
+      "sha256": "60bf4d4e931904457027fe519e4f498a39073c981e9e4b410bc08998aeeef939",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Display.png",
+      "sha256": "087fcaed60ae8746ac4be1a7e4e0228a21e4b8e81d1bfddd621019b22a0abc42",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/TypeScale.png",
+      "sha256": "51568db25e1e17b2b687cb278c11a131ce54eb4b9acf66022400110195192d75",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/Theme.png",
+      "sha256": "b188cf39fd5cb91bb9620d74147e175af13e8f3877f5e95ccc46ecc8efed2c48",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/LightTheme.png",
+      "sha256": "c24938e2a75f7ae5aa7b6b8e6e18a5cc60b92f658cc87f76a3f3c7f580e7a6d7",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ControlCentre/Images/SwipeUp.png",
+      "sha256": "993dc514b8dd77183bde5f846eb773cb01096502c54b1f4ff155165a4f610524",
+      "producer": "ControlCentreValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserRoot.png",
+      "sha256": "d895bb64c887664da23b1f3004ef2f9b03e5827f157cbd7503f05a59566d04ae",
+      "producer": "ContentBrowserValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserSearch.png",
+      "sha256": "c98da024bc223bad9236b88b6fcd8ede9df869e1035dfa3d7647f73f036571f1",
+      "producer": "ContentBrowserValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserSelection.png",
+      "sha256": "7a979dd2b4ed5d2d8cae4bd3df6bdb590724854e58aa9a257d90472e74464bc8",
+      "producer": "ContentBrowserValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserEmpty.png",
+      "sha256": "32911c1412075f8f19ab01deb0ec09452844b0a41239d05fed9b5807f1129403",
+      "producer": "ContentBrowserValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserLight.png",
+      "sha256": "72f3702ea93e5ef88f04de4309c656fbb137f2047766affde060b4533227d45a",
+      "producer": "ContentBrowserValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserNarrow.png",
+      "sha256": "599cf002e4021b2b3def302dec4fdf3e887fc0c5dc1a914943ecd72bad32b404",
+      "producer": "ContentBrowserValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ContentBrowser/Images/BrowserDrag.png",
+      "sha256": "59847210331a450d11efee545c01dff54aa82962eb2e737bfc8cf28c13034193",
+      "producer": "ContentBrowserValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ProjectSpace/Images/ProjectAppearance.png",
+      "sha256": "451b64a5f46289cdc12b22bba00e922460682bf41afc5092fd1c988811d9fe96",
+      "producer": "ProjectSpaceValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ProjectSpace/Images/ProjectInput.png",
+      "sha256": "44d8700ce0b66cb877da207b166e4a37efc0d23041a4181d779ff09373deb2c8",
+      "producer": "ProjectSpaceValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ProjectSpace/Images/ProjectNotifications.png",
+      "sha256": "8adab20d47d2177cfe143139911ad9d612e0269c3042b994b8b633152f839118",
+      "producer": "ProjectSpaceValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/ProjectSpace/Images/EmergencyFont.png",
+      "sha256": "20fa2f6e55ba2eae3cf048019295cebea97dcec0964217e7cc0798b7f618487d",
+      "producer": "ProjectSpaceValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Notifications/Images/SavedTopRight.png",
+      "sha256": "8a8aea6f08b9a4e55656c21b68abc14d55b664a7a5f65740601f94319e8abfa6",
+      "producer": "NotificationValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Notifications/Images/SaveError.png",
+      "sha256": "04595ad6a9b1167abfeb6738353212fbed525e543282eeb2b96556d34ba4c164",
+      "producer": "NotificationValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Notifications/Images/NotificationHistory.png",
+      "sha256": "2439856a60cbc920ce1b82d31622180199f39e89e31a799ce13e3de9325613bc",
+      "producer": "NotificationValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Notifications/Images/NotificationNarrow.png",
+      "sha256": "9f21566d21886e700849d4b924e37162ebd3f0ebe166cd81b3c371877d24388b",
+      "producer": "NotificationValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Notifications/Images/CardsLight.png",
+      "sha256": "15424c7c8680e5f24576b7d5b70137a42cbac9a6b6a7fb37fb713873aae6966f",
+      "producer": "NotificationValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Notifications/Images/CardsDark.png",
+      "sha256": "75fcc78264650bd22e6ce98c7ef0ab3bbef01c07d6426adda04a344b3c5322c4",
+      "producer": "NotificationValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Notifications/Images/ConfirmApply.png",
+      "sha256": "7fd815602e3171bfaed081b111e64b267140bdee5650f5009cecfbf544b9c9c5",
+      "producer": "NotificationValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Notifications/Images/ConfirmSemantic.png",
+      "sha256": "0867d2d01d52407a125d4f76ffee5afaa011b94ccc8096f05cad3f8ba6b01775",
+      "producer": "NotificationValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Notifications/Images/StreamNarrow.png",
+      "sha256": "bad739edb871c02e31e3de94708d672e3b7310d694570997e957ef35294b793a",
+      "producer": "NotificationValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Docking/Images/DraggableDefault.png",
+      "sha256": "02095fc124197f5369cb6329602175c3fc7b49ac864ff60b1fe08691ebd0b5d8",
+      "producer": "DockingValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Docking/Images/DockedContent.png",
+      "sha256": "46b679c7909f33aa14f8296be398a63dc6a817f4ca33734ef27d1fdb621357c9",
+      "producer": "DockingValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Docking/Images/DockedStream.png",
+      "sha256": "57b3669218f5a0e4bcf98fe9b50ba7d8875c9d8addd52fcdcd4d5ff0a174b5a5",
+      "producer": "DockingValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Docking/Images/SplitPanels.png",
+      "sha256": "4dff851eec2341af097b2c64e246622d73b7c083b2db9f63afbe919825e4c0a4",
+      "producer": "DockingValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Docking/Images/WorkspaceSettings.png",
+      "sha256": "cbd7c2c200ae21c475603598e4f7279b81e38ac6cfe9bc3122a8e3e899ee5402",
+      "producer": "DockingValidation -> actual ImGui commands -> CPU fixture -> PNG"
+    },
+    {
+      "path": "Exhibits/Docking/Images/RestoredTabs.png",
+      "sha256": "bd3103a523374cfcc1386d75c3dde99ffd8ec636e59de302121d13ac4dd12ba9",
+      "producer": "WorkspaceLayoutValidation -> fresh-context real native restore -> CPU commands -> PNG"
+    },
+    {
+      "path": "Exhibits/Docking/Images/RestoredSplit.png",
+      "sha256": "ac4f0b3b0807ce3d62ed4633e5982a9f5234a9d5fc1bacfb360bd1e05b085623",
+      "producer": "WorkspaceLayoutValidation -> fresh-context real native restore -> CPU commands -> PNG"
+    }
+  ],
+  "limitations": [
+    "No Windows startup, GPU, DPI/device, detached OS-window or native MSVC execution.",
+    "Embedded layouts, monitor recovery and Vulkan platform-window rendering are implemented; physical Windows GPU/monitor execution remains unverified.",
+    "No full browser visual run; the HTML is an evidence viewer.",
+    "Editable projectspace preferences implemented; binary FSPC runtime codecs and other Space formats remain unimplemented.",
+    "Keyboard commands execute in the UI host; pointer gain/inversion have an applied preview, not a scene camera.",
+    "Notification preferences persist for projectspace saves; legacy TOML compatibility hosts retain session-only notifications.",
+    "Filtered reference: no GI/Render/Materials categories, renderer tiles or render-scale pill.",
+    "Content browser shows file metadata/type glyphs, not content thumbnails; no material or scene runtime.",
+    "Filename matching folds ASCII case only; paths and literal Unicode queries remain UTF-8.",
+    "Read-only filesystem confinement is not a hostile concurrent-filesystem security boundary."
+  ],
+  "configuration": {
+    "Debug": {
+      "CMAKE_BUILD_TYPE": "Debug",
+      "CMAKE_CXX_COMPILER": "/usr/bin/c++",
+      "CMAKE_CXX_FLAGS": "",
+      "CMAKE_EXE_LINKER_FLAGS": "",
+      "FRONTIER_HOST_VERIFICATION": "ON"
+    },
+    "Sanitized": {
+      "CMAKE_BUILD_TYPE": "Debug",
+      "CMAKE_CXX_COMPILER": "/usr/bin/c++",
+      "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie",
+      "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined -no-pie",
+      "FRONTIER_HOST_VERIFICATION": "ON"
+    },
+    "Windows": {
+      "CMAKE_BUILD_TYPE": "Release",
+      "CMAKE_CXX_FLAGS": "-target x86_64-windows-gnu -static",
+      "CMAKE_EXE_LINKER_FLAGS": "",
+      "CMAKE_TOOLCHAIN_FILE": "/home/user/Frontier/Automation/WindowsToolchain.cmake",
+      "FRONTIER_HOST_VERIFICATION": "OFF"
+    }
+  },
+  "reference_pins": "passed; 10 approved baseline files",
+  "reference_commit": "338293863d7df4e585dec0c4acae45fe9c524ed5",
+  "single_slider_style": "passed; one 28 px rail / 26 px thumb contract; no alternate/native slider paths",
+  "footer_contour": "native CPU pixel assertions: straight upper seam and contained lower corners",
+  "input_checks": [
+    "chord capture/conflict/cancel/focus loss",
+    "exact modifiers and real command execution",
+    "default/custom profiles and draft/apply/discard/defaults",
+    "applied pointer response and persistent reload",
+    "Unicode/schema/refusal/failure cleanup",
+    "375x700 viewport at 125 percent scale"
+  ],
+  "content_browser_checks": [
+    "real-files-only; root-confined navigation and bounded enumeration",
+    "Back/Forward/Up/Root/Reload; single/double click and arrow keys",
+    "search/restore; type categories; grid/list; scroll; metadata selection",
+    "missing/empty folders; symlinks omitted; stale selection cleared",
+    "shared theme/fonts; 375x700 at 125 percent; popup input ownership",
+    "reflected shared expansion geometry/gesture parity; maximize/restore; focus cancellation"
+  ],
+  "notification_checks": [
+    "top-right card stack outside shared expansion tab",
+    "real preference save/apply/error events and persisted suppression/hold preferences",
+    "64-entry history, 16 pending, three visible; dismissed/expired/suppressed alerts retain history",
+    "visible-only expiry; hover pause; finite durations/time; UTF-8-safe storage limits",
+    "matching close-button press/release; no drawer click-through; native Clear history in Quick Controls",
+    "responsive Quick Controls split/stack; Notification Stream removed from notification settings",
+    "shared 200x18 logical px trapezoidal tabs; unboxed Invert Y-Axis switch",
+    "real Apply/Cancel modal; no save on request/cancel; Escape, default Cancel, Tab+Enter and pointer confinement",
+    "light/dark semantic card fixtures explicitly labelled; 375x700 at 125 percent",
+    "nine native CPU captures; rounded actual-save and semantic-header fixture; Windows runtime/GPU not executed"
+  ],
+  "projectspace_checks": [
+    "single editor container; no TOML sidecars; shared table schemas",
+    "fresh-identity template snapshot; no overwrite; Unicode paths; confined root locators",
+    "Personal/Project saves; optional overrides; notification reload; dirty-draft refusal",
+    "unknown/versioned/oversized/binary refusal; malformed pins; failed writes preserve previous bytes",
+    "catalogue/extension retention; missing profiles/family and emergency built-in font",
+    "native scope/Apply pointer dispatch and four native captures"
+  ],
+  "docking_checks": [
+    "patched native dockspace; draggable browser default; Apply/Cancel switching preserves one original browser",
+    "pointer-driven plus/catalogue/native tab selection/native close/native reorder; native builder splitting and dock-back",
+    "native plus disc/hitbox adjacency and rendered cross centring at 100/125%; opaque darkest drawer/tab pixels across 8 themes; browser state retained",
+    "enabled/disabled personal reload; project-policy isolation; malformed hosting refused; missing adapters refuse detachment; no OS-window, native drag/split or monitor execution"
+  ],
+  "workspace_layout_checks": [
+    "Frontier-owned bounded TOML inside personal projectspace; native DockBuilder restore; no raw INI load or sidecar",
+    "fresh contexts: tab order/selection, split ratios, floating groups/geometry, closed panels, draggable browser visibility",
+    "two-second stable debounce; no unchanged-file rewrite; final shutdown save; preserves unrelated drafts/extensions/overrides",
+    "version/schema/cycle/size refusal; guarded default fallback; native reset button; atomic-write failure preserves previous bytes",
+    "synthetic native-window archive returns panels to main when unsupported/disabled; no real OS-window or monitor execution"
+  ],
+  "monitor_recovery_checks": [
+    "removed/negative monitor coordinates; saved/current DPI; resolution/taskbar fitting",
+    "idempotence, invalid geometry and transient enumeration",
+    "synthetic platform move/resize callbacks; recovery deferred for minimized secondary windows",
+    "optional layout monitor metadata validated; no physical OS/GPU execution"
+  ],
+  "vulkan_display": "Windows default binary: Vulkan/GLFW; DX11 comparison isolated; PE imports inspected, runtime unverified",
+  "windows_package": {
+    "archive_sha256": "bc1a8624ba2221ca6812d768969d0eb0b74d81c8d9d6f21191206d9dca80f644",
+    "archive_bytes": 6080447,
+    "entries": 277,
+    "verified_payload_hashes": 276,
+    "verified_current_source_hashes": 82,
+    "font_faces": 30,
+    "font_families": [
+      "Archivo",
+      "Inter",
+      "JetBrains Mono",
+      "Space Grotesk"
+    ],
+    "binary_sha256": "bbf30c6858da5932428d6bbdb0c0e62763e29846470a24d73230337f0ed351af",
+    "windows_runtime_verified": false,
+    "source_revision_at_packaging": "4a77bfd17f23536e32781718553ec6a171e39021",
+    "uncommitted_changes_at_packaging": true,
+    "toolchain": "Zig 0.13.0; x86_64-windows-gnu; Release; cross-compiled on Linux"
+  },
+  "source_sha256": {
+    "Automation/ApplyImGuiPatches.py": "b80f3692c3a75844deb35206df8a24a2327c3232e1989b88226347c8a84d71ec",
+    "Automation/Patches/PatchG-AdjacentTabAddButton.patch": "ebfd408e62bc5eaa0d6638e4ca335564484884f8459a1af44328297a97d8f4a6",
+    "CMakeLists.txt": "59a7103522b9c5fddf9c19a4dd254526284570b05c482932624812a1e06de5fe",
+    "Engine/ContentInterchange/ProjectSpaceCodec.cpp": "1778e1a3347391934dc85567b0aab457d8f65350c06f8345a6c1583fa3723a9a",
+    "Engine/ContentInterchange/ProjectSpaceCodec.h": "21b1a0ccbe32e40dde8449dd49962fcaf5ab4d2bd95600942a13a77c5c1d93b3",
+    "Engine/Interface/AppearanceCodec.cpp": "3843370e4f33fc791051f44fedb8cdaebefcb4ce8413224095f7bdad95c151f1",
+    "Engine/Interface/AppearanceCodec.h": "972314fe6522a62f902049a24732f4b690af2a8905cee9eb08b51ed7445a9465",
+    "Engine/Interface/AppearanceInspector.cpp": "719cf3b0ec1d7ea73b6e72c37485ac478ff77ca790030e9f34e831a8f7ad8213",
+    "Engine/Interface/AppearanceInspector.h": "4730bd0eaceb94818c001e7acb2300f7a8f5e4d169c9783b6e42bba42814e2a8",
+    "Engine/Interface/ConfigurationInspector.cpp": "c3897c2bddeaa9b47cfd755c8b39720b65ef32c9eaa333d109fe8cc7b78f70a2",
+    "Engine/Interface/ConfigurationInspector.h": "bf56e25999659a37d0ac78a4ba4470e3f067cb0ed3ee8543bba50d5728849e78",
+    "Engine/Interface/ConfigurationStructure.cpp": "b262ae3cb7283c0f9e9918e75a257db2ac0556b554b7bcd9eee32c829fa5b938",
+    "Engine/Interface/ConfigurationStructure.h": "ec727f9acbb4efa8e160744417991c1ef2c3172c022990c63daeb0712eb0ce55",
+    "Engine/Interface/ConfirmationDialogue.cpp": "e98a214f8e351c22406cf7003f24e1bdb62633e85dedad97696e5887591027fd",
+    "Engine/Interface/ConfirmationDialogue.h": "f28d09b5d9a79a34355a602bd45926437196f4d3d97fa08f3ea411f8e82e739f",
+    "Engine/Interface/ContentDirectory.cpp": "e1cc533ced26f1876aa7ca38adb4d4f195083dd8820063f2a19f9adf6dae4ce1",
+    "Engine/Interface/ContentDirectory.h": "720f590e8aa2090e75e7d9b967c77119beceacfe341062e43e358098f81816b0",
+    "Engine/Interface/ControlKit.cpp": "aab1e72746cc5a06b8b391ac44b8bf8edecbbf2a437adcd11de796011b3fab86",
+    "Engine/Interface/ControlKit.h": "d3fc98f7d2f348dd5e4bb2dc898619cd27a94a957ad9d985a95487f2950f68a8",
+    "Engine/Interface/FontCodec.cpp": "a2e807c57dc4a1086729f4a49ff68a7b2d209414859130e139142a8c4caa5d7a",
+    "Engine/Interface/FontCodec.h": "d7b59ffbb00c3741f290ef1d6dd2b217890849e64aaf6a8ee40734fe8a9115f3",
+    "Engine/Interface/GlyphSpace.cpp": "8606e66671183a6571a2ff9ada4a25ff2a27206d0b35a5eb486484e9eaa8b2a5",
+    "Engine/Interface/GlyphSpace.h": "74d59968c0d46b60f06350db6f63a8895727bdcb577e7d10893ce212fc50a2b4",
+    "Engine/Interface/IconArt.cpp": "f21e31f5b76fc6b5540e833630a24033936c5ea066262862766a41b8d57b68f5",
+    "Engine/Interface/IconArt.h": "fab906ac6274af418e820600d3824b8c97be43125b4edfe5986f8c7d308a6953",
+    "Engine/Interface/IconPresentation.cpp": "0c0cdf1bcd7972bef22a4a5ee3c2f74a214c20a9c858b71624ef6e1876478bef",
+    "Engine/Interface/IconPresentation.h": "fa758f615ecabfc64db194706889d7bc709208272fb4e8efc4a1ff4515e72736",
+    "Engine/Interface/InputPreferencesCodec.cpp": "d189fe0e121e373682e2b7d46b073c76f6d962c469860d3d2fc97259d3df54fd",
+    "Engine/Interface/InputPreferencesCodec.h": "4ccbef1af46fe3def9d5aeb47b5c73df0a76aec2c0ab78c5f38e0adc0e453df8",
+    "Engine/Interface/MonitorPlacement.cpp": "f3ad42facf7fbac1cadec5b86c7deae10818cd992907378a5e0403d5bcd6d5e4",
+    "Engine/Interface/MonitorPlacement.h": "2ffc8119ecfefcc0419a37cbba9a34b23dc478a9fdeeac9038330a1b817c525b",
+    "Engine/Interface/MotionIntegrator.cpp": "076eb3506797dd79270f4d4314a0c84ef2c8b907864605293e4844d432e05423",
+    "Engine/Interface/MotionIntegrator.h": "2902d2dcf922f1456de6687ff55aba0befe1fe5372a04eddbccaa70cf8a9e2b8",
+    "Engine/Interface/NotificationSequence.cpp": "0e0212d4df2304501689bafe853180dfd24bc1d0473cdc0898d2d7448d9a18a7",
+    "Engine/Interface/NotificationSequence.h": "5290ebcdca7b19a4bfb5f82c1272a245f4c215ffcd82aceeb69af811909b6fcf",
+    "Engine/Interface/PanelDockspace.cpp": "2d6c407e116114d70ee5dea128c0420b0a6c1ea461d0a3041a17a574baed1834",
+    "Engine/Interface/PanelDockspace.h": "f7e41d6def059984c93400e0a7d0c216f7d0d256cca44544909a5b48be872659",
+    "Engine/Interface/PanelDockspaceLayout.cpp": "3799872e46bf4b2ffac02fa765973419df9d7be048c7713e18bf7c71fe449496",
+    "Engine/Interface/PanelDockspaceMonitor.cpp": "a381f0170baeba98735dde74c373204fcd8a61733ae693a99262bc268678588e",
+    "Engine/Interface/PanelExpansionTab.cpp": "6d1d3665dc03f38561cf0825f30861f86a54e5414b440b050a24f1020bfd621c",
+    "Engine/Interface/PanelExpansionTab.h": "9df21f88b8a893464e5077dd21d55b1152e8f45fdcdcfe88174b43c82d23e1bc",
+    "Engine/Interface/PixelSpace.cpp": "1e3c760f525f8fb3cf5233f85f52bf04ae5d05e8d12f1e89a7c97f1136a9159e",
+    "Engine/Interface/PixelSpace.h": "4397da3a124fa462d27409d6119a4ee0d5a7b1b7b637fe6e9ba99a727f9bf517",
+    "Engine/Interface/TextEntryState.cpp": "8d759a8fda125e23cf95eb6bb46bc1facb5d7074283dda3208339429624d49de",
+    "Engine/Interface/TextFileReplacement.cpp": "3e85df5e310bcbf83dd59b2ec28aca39d483534e550337d2c5d8144b42c12c70",
+    "Engine/Interface/TextFileReplacement.h": "ae47d93fc2da57a82fb8627c729a8d4e1531cadfdbad9bfb1c88a426e6e0ad05",
+    "Engine/Interface/ThemeStructure.cpp": "7ad9559196600874a9a4e3480460f862c601d4e2149259b41adb284144608779",
+    "Engine/Interface/ThemeStructure.h": "197dbbf30d5e890b82021f7571962cc385e14085fc63980d0d4cb83cfa5c8711",
+    "Engine/Interface/TypefaceRegistry.cpp": "d824ed2ef12b50396da3d133d9b560e73610e6c78faf5c7046c760db97f6f3c7",
+    "Engine/Interface/TypefaceRegistry.h": "fc90db00e79f3beeaf181d0663b6642babd09bd7d7a79c59d3dfcd119c7393dc",
+    "Engine/Interface/VectorCodec.cpp": "377be8eaf09040cea4e7e908ad43ec87061087c3e2131ab82efa080baaf53b42",
+    "Engine/Interface/VectorCodec.h": "74fc78b4f1b6d20cb112cfbe598bd5177be1e117ddc300c455be5ca59ea2e315",
+    "Engine/Interface/VulkanPresentation.cpp": "f81370e6221d7dd924df10b6f1f8aa0922f771338f9a2e6c3b024cdf63e663a3",
+    "Engine/Interface/VulkanPresentation.h": "e58c4224c4fbd97bfcc1af584ef49df8c92700999ee9d8d3a23576b176c0aab5",
+    "Engine/Lifecycle/ActivationSequence.h": "52e2d2636e30a04727c2e1266a7f579f0a10cbb872ce061bee0b958bada796b0",
+    "EngineContent/Defaults/BlankProject/Blank.projectspace": "315071b2776260c00a3a05faf2cb286350697b8225521ce4a2462738c89696c3",
+    "Exhibits/ContentBrowser/Code/ContentBrowserValidation.cpp": "e88ce4c1b5fb536f9d2c8b248f7992a003a6eae6b348a1052fd406e925f098a4",
+    "Exhibits/ContentBrowser/Code/ContentDirectoryValidation.cpp": "5257daec99145634c24b93b30097f982c99741ce9d6776a1e7a0b5b81a447006",
+    "Exhibits/ControlCentre/Code/ControlCentreValidation.cpp": "5cdb4f03edeb1ea5a9b796fcf77ff9d22cbe0c44b4edef14f863ca19bd0c8cdb",
+    "Exhibits/ControlCentre/Code/CpuRasterization.h": "9cc27dbeff2ae453621ac98f730376b6d12137533c72346c6b17fff4cbec9cfa",
+    "Exhibits/ControlCentre/Code/FontCatalogueValidation.py": "1b6bf9ab86a3b970493359ea9fff2bb83d71e228d8bab933d3063698cc680b74",
+    "Exhibits/ControlCentre/Code/InputPreferencesValidation.cpp": "71d6b892c1156df04da3d6b88b13c796797c38b0ac2fcc4b6bac28528318060e",
+    "Exhibits/ControlCentre/Code/InspectWindowsPackage.py": "9436b80be381bcb5b7a7d0582da8ad3c3dba5004c1824a4d841cd51b7fb90b0e",
+    "Exhibits/ControlCentre/Code/PanelExpansionValidation.cpp": "ee5ab62b749b9405bf544cae9a549f005085fcc45620ca4ed4fbc3a92e220b0a",
+    "Exhibits/ControlCentre/Code/ValidateNavigation.py": "7136ef7809219cbbe7e2f7b1990d9c92f6b350130463b8b5f600dc99be285127",
+    "Exhibits/Docking/Code/DockingValidation.cpp": "4561085ef6b7d3828e94489d713a974f21c25cdf976120c98c1963ccb81223e0",
+    "Exhibits/Docking/Code/MonitorPlacementValidation.cpp": "6541d07860e3cfd558db34a8e4684721bbc8f8c7a32a9adb3c04dd0ef59261a2",
+    "Exhibits/Docking/Code/WorkspaceLayoutValidation.cpp": "3e5dfd104e273f39cad4934e8e6e64b7b78967533bed1ec3c0206b3d21458b2d",
+    "Exhibits/Notifications/Code/NotificationValidation.cpp": "f5763da837a56d775f94c25864636001a418ec3964d82a30724eee302921b695",
+    "Exhibits/ProjectSpace/Code/ProjectSpaceValidation.cpp": "32905908b4948aafbc8ba32d4943616441c5a5204fc90b9596356056f7065cc6",
+    "Exhibits/UIFoundation/Code/WindowsUI.cpp": "8cc4a8060d773e49f7776f4c91af9b6e6a6f7da33f9b48eb08432a2a92a85e41",
+    "UI/Editor/ContentBrowserPanel.cpp": "f68256bfd62137b5b3345b516339a1980737bb22863441e6a620af1572b28521",
+    "UI/Editor/ContentBrowserPanel.h": "95d41486f7b1ed33cf7ac19ac048875c8eeacc40ada1e1987313c5bf4855f3f4",
+    "UI/Editor/ControlCentrePanel.cpp": "671f76b97724ca596ef41f4a58956219c8d792e364dc32cf037baf6fe0659b1a",
+    "UI/Editor/ControlCentrePanel.h": "33a37d658079dc487625d20718beabaf53b40a63ccda175baa7d08a161dbdf86",
+    "UI/Editor/EditorWorkspace.cpp": "43b3bbb0687f54d0b0266829585013ed1ef741d4df38d09573d6d30cedeff39a",
+    "UI/Editor/EditorWorkspace.h": "cae810f1b3aafdf72d3b2f94621995f884a1bdd031d29fc5a24436069f940833",
+    "UI/Editor/FoundationPanel.cpp": "44108e7dc2c0c067eda3049968a1760df6d579d48d15924cc1099125dd7de2ae",
+    "UI/Editor/FoundationPanel.h": "429a9aa2e62f215c35f7f7dbb6e060100c71dd73d91307cf63d602d825a3e1b7"
+  }
+}

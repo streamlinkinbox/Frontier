@@ -1,0 +1,85 @@
+{
+  "DateLocal": "2026-10-19",
+  "Branch": "arena/73e163a3-frontier",
+  "Scope": "HTML Pattern and Stamp; native C++ remains paused",
+  "Outcome": "Succeeded",
+  "UniqueChecks": 46,
+  "ArraySpecificChecks": 5,
+  "RetainedInspectorArtworkChecks": 41,
+  "AdditionalHoverRepetitions": 6,
+  "AdditionalHoverRepetitionsOverlapUniqueChecks": true,
+  "ProductionBuild": {
+    "Outcome": "Succeeded",
+    "Seconds": 9.14,
+    "Warnings": [
+      "Existing minified bundle-size warning"
+    ]
+  },
+  "Layouts": [
+    "linear",
+    "grid",
+    "circular / arc",
+    "radial rings"
+  ],
+  "ScaleProfiles": [
+    "uniform",
+    "linear progression",
+    "circular wave",
+    "radial distance",
+    "seeded per-copy noise"
+  ],
+  "CaptionUniqueness": "Case-insensitive numbered collision resolution in both document normalizers; unique custom captions retained; mask rows include owner caption.",
+  "Preservation": [
+    "Single undo restores original document",
+    "Grouped offsets scale/rotate together; per-copy groups and masks retained",
+    "Original native Stamp text runs, SVG bodies, component types and PBR channels retained",
+    "Caption normalization does not modify identities, order or geometry"
+  ],
+  "Limits": {
+    "PatternEntries": 64,
+    "StampEntries": 24,
+    "ScalePercent": [
+      1,
+      400
+    ],
+    "LiveModifier": false,
+    "NoiseIsCoherentPerlinField": false
+  },
+  "HoverComparison": {
+    "InitialRegression": "Two preliminary 46-case runs each had 45 successful checks and one PNG byte-equality failure. The isolated test was intermittent.",
+    "Diagnosis": "Captured images had unchanged layout and visible artwork, with small SVG/compositor edge differences; byte-identical PNGs were an unsuitable raster assertion.",
+    "Correction": "Compare decoded RGBA pixels: no more than 0.1 percent of pixels may differ by over 8 channel units, and mean absolute channel delta must remain below 0.1 out of 255.",
+    "NegativeControl": "Inject an opaque artwork-hit-area background and require it to exceed both allowances. Six repeated checks and the final 46-case regression succeeded."
+  },
+  "Reproduction": "node Exhibits/TextureStudio/Code/ArtworkArrayValidation.mjs (with installed browser dependencies / optional PLAYWRIGHT_EXECUTABLE_PATH)",
+  "Logs": [
+    "ArtworkArraysReproduction.log",
+    "ArtworkArraysBuild.log",
+    "ArtworkArraysHoverChecks.log",
+    "ArtworkArraysInitialChecks.log"
+  ],
+  "SourceSHA256": {
+    "Experimental/TextureStudio/src/ArtworkArrays.js": "dc5a0e21e9b73f6aaf8ed5c20ebe38416a11805975a5dbc4b98aa6cb34da24e7",
+    "Experimental/TextureStudio/src/ArtworkNames.js": "1a99dd4ad3d0862731bb7b833213bc27dd1b3705434f1ef2b1ba8c7682ac4464",
+    "Experimental/TextureStudio/src/ArtworkArrayControls.jsx": "1d1129e92a0d83f2402e6d0dcabb2054522020855419d8bc2daa29b8005a0edc",
+    "Experimental/TextureStudio/src/ArtworkMaskStackRow.jsx": "2ac272c831b33851601f2f0c574c43f25d9eb40460edbf43f9093af7a282e433",
+    "Experimental/TextureStudio/src/PatternEditor.jsx": "3c776fd10e5be50329f0011f0deb4efc854292e3777db71b4d34171cb7245351",
+    "Experimental/TextureStudio/src/StampStudio.jsx": "256d9efbe86d30db127e51aa8beef01d671035381e8fcbe4d8237c5fbd280125",
+    "Experimental/TextureStudio/src/StampVectorProjection.js": "b62f95486b546a8d5ddaa77d88f07aa75103d573591f16b426cd6dc74b3f93ed",
+    "Experimental/TextureStudio/src/patternDocument.js": "c0fcd3a7e8ea0076a5e8fcbeb62584adc33663591872d24b34499ee46380f599",
+    "Experimental/TextureStudio/src/stampDocument.js": "f14255d5317d6b0ab32766dbd8331ac19601aa662416842fffdebb72b305eff3",
+    "Experimental/TextureStudio/src/artworkAuthoring.css": "22f23ebf6194a51f601bd024ae81b4b7f28e14f2b8e1c5142e451aefc0baaab2",
+    "Experimental/TextureStudio/tests/artwork-arrays.spec.js": "39f5812ab68a4e9aaf1a6c208af5360443270896dc020d61a55269832f6c45ed",
+    "Experimental/TextureStudio/tests/stamp-transform-studio.spec.js": "06ef619b4adad6319aac80e7229185846684b99cc59da358657876d824c18aa4",
+    "Exhibits/TextureStudio/Code/ArtworkArrayValidation.mjs": "b66be941c625d8ce296a970e8fe7546d5b03b686061408a74d1290f17e65d3f1"
+  },
+  "CaptureSHA256": {
+    "Exhibits/TextureStudio/Images/PatternArtworkArrays.png": "54bad21f3be9287e054eb406840a23114b65443bac2f091d5c58cd515725760c",
+    "Exhibits/TextureStudio/Images/StampArtworkArrays.png": "d27c57c64e07f9891b65d67e6fbaa184dc86e5bd7aaf1f3e50caa5e7303fd3a8"
+  },
+  "PreviewHostHTTP": 200,
+  "WindowsExecution": false,
+  "NativeChanges": false,
+  "GitHubActionsRun": false,
+  "CommitOrPush": false
+}
