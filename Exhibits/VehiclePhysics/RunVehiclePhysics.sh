@@ -32,12 +32,12 @@ echo "generating oracle tables from the demonstration's JS (node)..."
 node Exhibits/VehiclePhysics/Code/TyreOracle.mjs > "$BUILD/oracle.txt"
 
 echo "compiling production physics + exhibit..."
-for f in VehicleSolver TyreSlipSolver TyreThermalSolver TyreCarcassLattice TyreContinuum; do
+for f in VehicleSolver TyreSlipSolver TyreThermalSolver TyreCarcassLattice TyreContinuum InductionCharger; do
     g++ -std=c++17 -O2 -Wall -Wextra -Werror -I Frontier -c "Frontier/Engine/Physics/$f.cpp" -o "$BUILD/$f.o"
 done
 g++ -std=c++17 -O2 -Wall -Wextra -Werror -I Frontier -I Exhibits/VehiclePhysics/Code -I "$JOLT_SRC" -DNDEBUG \
     Exhibits/VehiclePhysics/Code/VehiclePhysicsExhibit.cpp Exhibits/VehiclePhysics/Code/JoltScene.cpp \
-    "$BUILD"/VehicleSolver.o "$BUILD"/TyreSlipSolver.o "$BUILD"/TyreThermalSolver.o "$BUILD"/TyreCarcassLattice.o "$BUILD"/TyreContinuum.o \
+    "$BUILD"/VehicleSolver.o "$BUILD"/TyreSlipSolver.o "$BUILD"/TyreThermalSolver.o "$BUILD"/TyreCarcassLattice.o "$BUILD"/TyreContinuum.o "$BUILD"/InductionCharger.o \
     "$JOLT_DIR/libJolt.a" -pthread -o "$BUILD/VehiclePhysicsExhibit"
 
 echo "running checks..."

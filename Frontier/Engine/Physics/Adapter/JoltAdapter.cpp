@@ -16,6 +16,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/RayCast.h>
@@ -392,9 +393,13 @@ bool JoltAdapter::CastRay(const double Origin[3], const double Direction[3], dou
     OutHit.Distance = Result.mFraction * Length;
     for (int Axis = 0; Axis < 3; ++Axis)
         OutHit.Position[Axis] = Origin[Axis] + Direction[Axis] * Length * Result.mFraction;
-    const JPH::Vec3 N = Inner->World.GetBodyInterface()
-        .GetShape(Result.mBodyID)->GetWorldSpaceSurfaceNormal(Result.mSubShapeID2,
-            JPH::RVec3(OutHit.Position[0], OutHit.Position[1], OutHit.Position[2]));
+    JPH::Vec3 N(0.0f, 0.0f, 1.0f);
+    {
+        JPH::BodyLockRead Lock(Inner->World.GetBodyLockInterface(), Result.mBodyID);
+        if (Lock.Succeeded())
+            N = Lock.GetBody().GetWorldSpaceSurfaceNormal(Result.mSubShapeID2,
+                JPH::RVec3(OutHit.Position[0], OutHit.Position[1], OutHit.Position[2]));
+    }
     OutHit.Normal[0] = N.GetX(); OutHit.Normal[1] = N.GetY(); OutHit.Normal[2] = N.GetZ();
     for (std::size_t Index = 0; Index < Slots.size(); ++Index)
     {
