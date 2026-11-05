@@ -9,8 +9,6 @@ build/
 Binaries/*
 !Binaries/FrontierSceneViewport-Windows-x64.zip
 !Binaries/FrontierSceneViewport-Windows-x64.zip.sha256
-!Binaries/FrontierNetworkingValidation-Windows-x64.zip
-!Binaries/FrontierNetworkingValidation-Windows-x64.zip.sha256
 
 # Sample meshes / textures / assets — tracked separately.
 EngineContent/*
