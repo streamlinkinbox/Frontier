@@ -1,0 +1,9 @@
+capture	refresh	steps	sources	resident	pixels_with_smoke	darkest_transmittance	march_ms
+Tyre smoke 1.0 s	60	28	8	1	9960	0.844238	41.3328
+Thick burnout 2.0 s	120	81	5	1	40908	0.0152359	78.3512
+Fire 3.0 s	180	133	11	1	82464	0.000443459	134.972
+Inferno and burst 3.8 s	230	177	6	1	93776	0.000734329	157.172
+Crosswind 5.0 s	300	238	8	1	95300	0.000125766	207.67
+Shredded 5.7 s	345	260	4	1	86456	0.00149441	180.51
+Tyres burning out 6.5 s	390	288	0	1	62292	0.00834656	238.192
+Switched off 7.0 s	419	297	0	0	0	1	0.240596

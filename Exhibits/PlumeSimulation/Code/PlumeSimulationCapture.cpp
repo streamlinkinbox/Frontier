@@ -461,7 +461,7 @@ int RunCapture(const std::filesystem::path& Root, const std::filesystem::path& S
                 static_cast<double>(Description.Bytes) / (1024.0 * 1024.0), Trace[0], Trace[1], Width, Height);
 
     const std::vector<Shot> Shots = {{"Tyre smoke 1.0 s", 60}, {"Thick burnout 2.0 s", 120}, {"Fire 3.0 s", 180}, {"Inferno and burst 3.8 s", 230},
-                                     {"Crosswind 5.0 s", 300}, {"Shredded 5.7 s", 345}, {"Tyres burning out 6.5 s", 390}, {"Plume off 7.0 s", 419}};
+                                     {"Crosswind 5.0 s", 300}, {"Shredded 5.7 s", 345}, {"Tyres burning out 6.5 s", 390}, {"Switched off 7.0 s", 419}};
     std::ofstream Ledger(Output / "Captures.tsv");
     Ledger << "capture\trefresh\tsteps\tsources\tresident\tpixels_with_smoke\tdarkest_transmittance\tmarch_ms\n";
     std::vector<std::vector<uint8_t>> Pictures;

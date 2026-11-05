@@ -2,7 +2,8 @@
                                                     PLUMESIMULATIONVALIDATION.CPP
 ==========================================================================================================================================*/
 // 🧩 The C++ plume's CPU modules against the HTML prototype's own: the gas catalogue and its six presets, the map from gas to plume settings,
-//    the four grades, the tiling detail volume, the fire-light record, the xorshift, the onset hysteresis, the source projection (tyres, arches,
+//    the four grades, the editor's decay and blackbody instruments (strokes, bands and labels against the prototype's own drawing code on a
+//    recording canvas, and Helland's fit), the tiling detail volume, the fire-light record, the xorshift, the onset hysteresis, the source projection (tyres, arches,
 //    flame seats, exhaust pops, bursts, ember emitters, fire lights) over 240 steps, and the whole sequence — projection, residency, the moving
 //    window, the 256 byte step record, the fire-light record — over a 420 refresh burnout and a 1000 refresh fade (residency stops on the
 //    twelfth second to the refresh and restarts), plus step records written through the host's debug channel and past the decay caps.
@@ -16,6 +17,7 @@
 
 #include "PlumeScenario.h"
 
+#include "Frontier/Engine/PhysicalDynamics/FluidDynamics/GasInstrumentProjection.h"
 #include "Frontier/Engine/Rendering/PlumeSimulation/SmokeSequence.h"
 
 #include <toml++/toml.hpp>
@@ -482,6 +484,82 @@ void CheckMapping(const toml::table& Reference)
     }
 }
 
+// 📝 The editor's two instruments against what the prototype's own DrawDecay and DrawBlackbody stroke, fill and write on a recording canvas
+//    (ExportPlumeReference): nineteen gas sets (the defaults, the six presets, both ends of every range, ten drawn across them), and Helland's fit.
+void CheckInstruments(const toml::table& Reference)
+{
+    const toml::table& Table = *Reference["Instruments"].as_table();
+    const size_t       Count = static_cast<size_t>(Table["Count"].value<int64_t>().value_or(0));
+    const double       DecayWidth = Table["DecayWidth"].value<double>().value_or(0.0), DecayHeight = Table["DecayHeight"].value<double>().value_or(0.0);
+    const double       BlackbodyHeight = Table["BlackbodyHeight"].value<double>().value_or(0.0);
+    Expect(DecayWidth == InstrumentCanvasWidth, "the instrument canvas is 640 px wide");
+    const toml::array& GasRows       = *Table["Gas"].as_array();
+    const toml::array& StrokeRows    = *Table["DecayStrokes"].as_array();
+    const toml::array& DecayLabels   = *Table["DecayLabelPositions"].as_array();
+    const toml::array& BandRows      = *Table["BlackbodyBands"].as_array();
+    const toml::array& BlackLabels   = *Table["BlackbodyLabelPositions"].as_array();
+    const std::vector<std::string> DecayText = ReadStrings(Table["DecayLabelText"]), BlackText = ReadStrings(Table["BlackbodyLabelText"]);
+    Expect(Count == 19 && GasRows.size() == Count && StrokeRows.size() == Count && BandRows.size() == Count, "nineteen gas sets");
+    Expect(DecayText.size() == 3 * Count && BlackText.size() == 2 * Count, "three decay labels and two blackbody labels per set");
+
+    const auto Label = [](const InstrumentLabel& Entry) { return std::vector<double>{ Entry.X, Entry.Y, double(Entry.Colour[0]), double(Entry.Colour[1]), double(Entry.Colour[2]) }; };
+    size_t Strokes = 0, Points = 0, Bands = 0;
+    for (size_t Index = 0; Index < std::min({ Count, GasRows.size(), StrokeRows.size(), BandRows.size(), DecayLabels.size(), BlackLabels.size() }); ++Index)
+    {
+        const GasParameters Gas = GasFromValues(ReadNumbers(toml::node_view<const toml::node>(GasRows[Index])));
+        const std::string   Set = "gas set " + std::to_string(Index);
+
+        const DecayInstrument Decay = ConstructDecayInstrument(Gas, DecayWidth, DecayHeight);
+        std::vector<double>   Flat;
+        for (const InstrumentPolyline& Stroke : Decay.Strokes)
+        {
+            Flat.insert(Flat.end(), { Stroke.Width, double(Stroke.Colour[0]), double(Stroke.Colour[1]), double(Stroke.Colour[2]), double(Stroke.Points.size()) });
+            for (const auto& Point : Stroke.Points) Flat.insert(Flat.end(), { Point[0], Point[1] });
+            ++Strokes;
+            Points += Stroke.Points.size();
+        }
+        ExpectNumbers(Flat, ReadNumbers(toml::node_view<const toml::node>(StrokeRows[Index])), "decay strokes of " + Set);
+        Expect(Decay.Strokes.size() == 7, "the decay instrument strokes five grid lines and two curves (" + Set + ")");
+        std::vector<double> DecayFlat;
+        for (size_t Entry = 0; Entry < Decay.Labels.size(); ++Entry)
+        {
+            Expect(3 * Index + Entry < DecayText.size() && Decay.Labels[Entry].Text == DecayText[3 * Index + Entry], "decay label " + std::to_string(Entry) + " of " + Set);
+            const std::vector<double> Placed = Label(Decay.Labels[Entry]);
+            DecayFlat.insert(DecayFlat.end(), Placed.begin(), Placed.end());
+        }
+        ExpectNumbers(DecayFlat, ReadNumbers(toml::node_view<const toml::node>(DecayLabels[Index])), "decay label positions of " + Set);
+
+        const BlackbodyInstrument Blackbody = ConstructBlackbodyInstrument(Gas, DecayWidth, BlackbodyHeight);
+        std::vector<double>       BandFlat;
+        for (const InstrumentBand& Band : Blackbody.Bands)
+        {
+            BandFlat.insert(BandFlat.end(), { Band.X, Band.Y, Band.Width, Band.Height, double(Band.Colour[0]), double(Band.Colour[1]), double(Band.Colour[2]) });
+            ++Bands;
+        }
+        ExpectNumbers(BandFlat, ReadNumbers(toml::node_view<const toml::node>(BandRows[Index])), "blackbody bands of " + Set);
+        std::vector<double> BlackFlat;
+        for (size_t Entry = 0; Entry < Blackbody.Labels.size(); ++Entry)
+        {
+            Expect(2 * Index + Entry < BlackText.size() && Blackbody.Labels[Entry].Text == BlackText[2 * Index + Entry],
+                   "blackbody label " + std::to_string(Entry) + " of " + Set + " (" + Blackbody.Labels[Entry].Text + ")");
+            const std::vector<double> Placed = Label(Blackbody.Labels[Entry]);
+            BlackFlat.insert(BlackFlat.end(), Placed.begin(), Placed.end());
+        }
+        ExpectNumbers(BlackFlat, ReadNumbers(toml::node_view<const toml::node>(BlackLabels[Index])), "blackbody label positions of " + Set);
+    }
+
+    const std::vector<double> Kelvins = ReadNumbers(Table["HellandKelvin"]);
+    std::vector<double>       Fit;
+    for (const double Kelvin : Kelvins)
+    {
+        const auto Colour = ResolveHellandColour(Kelvin);
+        Fit.insert(Fit.end(), Colour.begin(), Colour.end());
+    }
+    Expect(Kelvins.size() == 281, "Helland's fit sampled every 25 K from 500 K to 7500 K");
+    ExpectNumbers(Fit, ReadNumbers(Table["HellandColour"]), "ResolveHellandColour over " + std::to_string(Kelvins.size()) + " temperatures");
+    std::printf("  instruments: %zu strokes (%zu points), %zu blackbody bands in %zu gas sets\n", Strokes, Points, Bands, Count);
+}
+
 void CheckDetail(const toml::table& Reference)
 {
     const toml::table& Table = *Reference["Detail"].as_table();
@@ -883,6 +961,7 @@ int main(int Count, char** Arguments)
     CheckSettings(Table);
     CheckPresets(Table);
     CheckMapping(Table);
+    CheckInstruments(Table);
     CheckDetail(Table);
     CheckFireLights(Table);
     CheckDescription(Table);

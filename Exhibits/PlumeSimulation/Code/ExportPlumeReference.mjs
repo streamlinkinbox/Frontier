@@ -29,7 +29,7 @@ globalThis.GPUShaderStage  = { COMPUTE: 4 };
 const { PlumeGrades, PlumeDefaults } = await import(`${Source}/Source/PlumeSpace.js`);
 const { PlumeSourceProjection, SmokeSpecification, SourceStride, SourceCapacity } = await import(`${Source}/Source/PlumeSourceProjection.js`);
 const { SmokeSequence, GasParameterCatalogue, ConstructGasParameters, MapPlumeSettings, ProjectPlumeTelemetry } = await import(`${Source}/Source/SmokeSequence.js`);
-const { GasPresets } = await import(`${Source}/Source/InspectorPages.js`);
+const { GasPresets, DrawDecay, DrawBlackbody, ResolveHelland } = await import(`${Source}/Source/InspectorPages.js`);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        TOML WRITER
@@ -158,6 +158,85 @@ Object.keys(GasPresets).forEach((Name, Index) =>
     Emit(`Count = ${Sets.length}`);
     Emit(`Gas = [${Sets.map((Gas) => List(Keys.map((Key) => Gas[Key]))).join(", ")}]`);
     Emit(`Settings = [${Sets.map((Gas, Index) => List(Flatten(MapPlumeSettings(Gas, Index % 3 !== 0)))).join(", ")}]`);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE EDITOR'S INSTRUMENTS
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 A canvas that remembers what the prototype's own DrawDecay and DrawBlackbody stroke, fill and write.
+function ConstructRecordingCanvas()
+{
+    const Strokes = [], Bands = [], Labels = [];
+    let Path = [];
+    const Colour = (Text) =>
+    {
+        const Hex = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(Text), Rgb = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(Text);
+        if (Hex) return [1, 2, 3].map((Index) => parseInt(Hex[Index], 16));
+        if (Rgb) return [1, 2, 3].map((Index) => Number(Rgb[Index]));
+        throw new Error(`a colour the recorder does not read: ${Text}`);
+    };
+    const Context = {
+        strokeStyle: "", fillStyle: "", lineWidth: 1, font: "",
+        beginPath() { Path = []; },
+        moveTo(X, Y) { Path.push([X, Y]); },
+        lineTo(X, Y) { Path.push([X, Y]); },
+        stroke() { Strokes.push({ Colour: Colour(Context.strokeStyle), Width: Context.lineWidth, Points: Path }); },
+        fillRect(X, Y, Width, Height) { Bands.push({ X, Y, Width, Height, Colour: Colour(Context.fillStyle) }); },
+        fillText(Text, X, Y) { Labels.push({ Text, X, Y, Colour: Colour(Context.fillStyle) }); }
+    };
+    return { Context, Strokes, Bands, Labels };
+}
+
+// 📝 DrawDecay (the Simulation card, 86 px tall: a canvas 640 × 172), DrawBlackbody (the Fire card, 54 px: 640 × 108) and ResolveHelland, on the
+//    defaults, the six presets, the two ends of every range and ten gas sets drawn across them.
+{
+    const Defaults = ConstructGasParameters();
+    const Sets = [Defaults, ...Object.keys(GasPresets).map((Name) => Object.assign(ConstructGasParameters(), GasPresets[Name]))];
+    Sets.push(Object.assign(ConstructGasParameters(), { Dissipation: 0.9, Cooling: 0.95, FlameTemperature: 0.7, FlameCore: 1300, FlameTip: 900 }));
+    Sets.push(Object.assign(ConstructGasParameters(), { Dissipation: 0, Cooling: 0, FlameTemperature: 1.6, FlameCore: 2400, FlameTip: 1600 }));
+    const Rng = Mulberry32(0x1A57C0DE);
+    for (let Index = 0; Index < 10; ++Index)
+    {
+        const Gas = {};
+        for (const Key of Keys)
+        {
+            const Entry = GasParameterCatalogue[Key];
+            Gas[Key] = Entry.Minimum + (Entry.Maximum - Entry.Minimum) * Rng();
+        }
+        Sets.push(Gas);
+    }
+    const DecayWidth = 640, DecayHeight = 172, BlackbodyHeight = 108;
+    const Decays = [], Blackbodies = [];
+    for (const Gas of Sets)
+    {
+        const Decay = ConstructRecordingCanvas();
+        DrawDecay(Decay.Context, DecayWidth, DecayHeight, Gas);
+        Decays.push(Decay);
+        const Blackbody = ConstructRecordingCanvas();
+        DrawBlackbody(Blackbody.Context, DecayWidth, BlackbodyHeight, Gas);
+        Blackbodies.push(Blackbody);
+    }
+    const Stroke = (Entry) => [Entry.Width, ...Entry.Colour, Entry.Points.length, ...Entry.Points.flat()];
+    const Label  = (Entry) => [Entry.X, Entry.Y, ...Entry.Colour];
+    const Band   = (Entry) => [Entry.X, Entry.Y, Entry.Width, Entry.Height, ...Entry.Colour];
+    Emit();
+    Emit("[Instruments]");
+    Emit(`Count = ${Sets.length}`);
+    Emit(`DecayWidth = ${Float(DecayWidth)}`);
+    Emit(`DecayHeight = ${Float(DecayHeight)}`);
+    Emit(`BlackbodyHeight = ${Float(BlackbodyHeight)}`);
+    Emit(`Gas = [${Sets.map((Gas) => List(Keys.map((Key) => Gas[Key]))).join(", ")}]`);
+    Emit(`DecayStrokes = [${Decays.map((Record) => List(Record.Strokes.flatMap(Stroke))).join(", ")}]`);
+    Emit(`DecayLabelText = ${Strings(Decays.flatMap((Record) => Record.Labels.map((Entry) => Entry.Text)))}`);
+    Emit(`DecayLabelPositions = [${Decays.map((Record) => List(Record.Labels.flatMap(Label))).join(", ")}]`);
+    Emit(`BlackbodyBands = [${Blackbodies.map((Record) => List(Record.Bands.flatMap(Band))).join(", ")}]`);
+    Emit(`BlackbodyLabelText = ${Strings(Blackbodies.flatMap((Record) => Record.Labels.map((Entry) => Entry.Text)))}`);
+    Emit(`BlackbodyLabelPositions = [${Blackbodies.map((Record) => List(Record.Labels.flatMap(Label))).join(", ")}]`);
+    const Kelvins = [];
+    for (let Kelvin = 500; Kelvin <= 7500; Kelvin += 25) Kelvins.push(Kelvin);
+    Emit(`HellandKelvin = ${List(Kelvins)}`);
+    Emit(`HellandColour = ${List(Kelvins.flatMap((Kelvin) => ResolveHelland(Kelvin)))}`);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -5,22 +5,37 @@
 #    and the tiling detail volume) under Frontier/Engine/PhysicalDynamics/FluidDynamics and Frontier/Engine/Rendering/PlumeSimulation, ported from
 #    the HMI prototype's SmokeSequence.js, PlumeSourceProjection.js and PlumeSpace.js.
 
-add_library(FrontierPlumeSimulation STATIC
+# 📝 The gas catalogue on its own: the Smoke & fire record carries its readings, and the editor lists them and draws their instruments; none of it
+#    needs the device.
+add_library(FrontierGasCatalogue STATIC
     Frontier/Engine/PhysicalDynamics/FluidDynamics/GasParameterCatalogue.cpp
+    Frontier/Engine/PhysicalDynamics/FluidDynamics/GasInstrumentProjection.cpp)
+target_include_directories(FrontierGasCatalogue PUBLIC "${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/Frontier")
+target_compile_features(FrontierGasCatalogue PUBLIC cxx_std_20)
+
+add_library(FrontierPlumeSimulation STATIC
     Frontier/Engine/PhysicalDynamics/FluidDynamics/PlumeSourceProjection.cpp
     Frontier/Engine/PhysicalDynamics/FluidDynamics/PlumeTelemetryProjection.cpp
     Frontier/Engine/Rendering/PlumeSimulation/PlumeSchedule.cpp
     Frontier/Engine/Rendering/PlumeSimulation/SmokeSequence.cpp
     Frontier/Engine/Rendering/PlumeSimulation/PlumeSimulationSequence.cpp)
 target_include_directories(FrontierPlumeSimulation PUBLIC "${CMAKE_SOURCE_DIR}")
-target_link_libraries(FrontierPlumeSimulation PUBLIC FrontierGlobalIllumination)
+target_link_libraries(FrontierPlumeSimulation PUBLIC FrontierGlobalIllumination FrontierGasCatalogue)
 target_compile_features(FrontierPlumeSimulation PUBLIC cxx_std_20)
 # 📝 Parity with the demo's JavaScript doubles needs plain IEEE evaluation: no fused multiply-adds.
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(FrontierPlumeSimulation PRIVATE -ffp-contract=off)
-elseif(MSVC)
-    target_compile_options(FrontierPlumeSimulation PRIVATE /fp:precise)
-endif()
+foreach(PlumeTarget FrontierGasCatalogue FrontierPlumeSimulation)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(${PlumeTarget} PRIVATE -ffp-contract=off)
+    elseif(MSVC)
+        target_compile_options(${PlumeTarget} PRIVATE /fp:precise)
+    endif()
+endforeach()
+# 📝 The scene record and the editor both read the catalogue.
+foreach(SceneTarget FrontierSceneEditorUI EverestProjectRuntime)
+    if(TARGET ${SceneTarget})
+        target_link_libraries(${SceneTarget} PUBLIC FrontierGasCatalogue)
+    endif()
+endforeach()
 
 # 📝 The units include the illumination port's intrinsics, host constants, scene layouts, distance field march, refresh profile and sky projection
 #    (they bind its groups), so they compile with the same pinned compiler; without it the plume uses EngineContent/ShaderArchives/PlumeSimulation.
