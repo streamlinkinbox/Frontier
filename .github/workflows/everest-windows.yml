@@ -1,0 +1,73 @@
+#==========================================================================
+#  Everest Windows preview — manual GitHub Actions build of Frontier.exe
+#  (MSVC) + TextureWorkspace.exe + EngineContent + Project Everest.
+#
+#  Run: Actions tab → "Everest Windows preview" → Run workflow (or
+#  `gh workflow run everest-windows.yml --ref <branch>`). The packaged zip
+#  and the launch evidence (screenshots + journals) are workflow artifacts —
+#  nothing is committed to Binaries/.
+#
+#  Steps mirror the documented local flow: PrepareFonts.py, the CMake
+#  `Frontier` + `TextureStudio` targets, PackageEditorPreviewWindows.py, and
+#  the LaunchEditorPreviewWindows.ps1 software-driver smoke test.
+#==========================================================================
+name: Everest Windows preview
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prepare fonts
+        run: |
+          pip install fonttools
+          python Automation/PrepareFonts.py
+
+      - name: Force the stored-SPIR-V path
+        # The vendored slangc is a Linux binary; without this removal the
+        # shader steps would try to execute it. The editor then uses the
+        # stored EngineContent/ShaderArchives sets (the designed fallback).
+        run: Remove-Item ExternalPackages/VulkanCompute/Slang/slangtorch/bin/slangc
+
+      - name: Configure (MSVC x64)
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build Frontier + TextureWorkspace
+        run: cmake --build build --config Release --target Frontier TextureStudio --parallel
+
+      - name: Package the preview
+        run: >
+          python Automation/PackageEditorPreviewWindows.py
+          --executable build/Release/Frontier.exe
+          --toolchain "MSVC 19 (Visual Studio 2022, GitHub Actions windows-latest)"
+          --output dist/FrontierEverest-Windows-x64.zip
+
+      - name: Launch smoke test (software Vulkan)
+        run: >
+          powershell -NoProfile -ExecutionPolicy Bypass
+          -File Automation/LaunchEditorPreviewWindows.ps1
+          -Archive dist/FrontierEverest-Windows-x64.zip -Evidence dist/evidence
+
+      - name: Upload preview zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: FrontierEverest-Windows-x64
+          path: dist/FrontierEverest-Windows-x64.zip
+
+      - name: Upload launch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-evidence
+          path: dist/evidence
