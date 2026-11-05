@@ -26,6 +26,7 @@ import { ResolveLevelPlacements } from "./LevelStructure.js";
 import { ResolveLobbyRequested } from "./LobbyStructure.js";
 import { EaseCinematic, InterpolateOrbitPose, ResolveLagBlend, BlendVector, ClampStudioEye } from "./LobbyCameraMotion.js";
 import { PickVehicle } from "./VehiclePicking.js";
+import { GarageView, GarageExtent } from "./GarageView.js";
 import { SurfaceCardDepot } from "./SurfaceCardDepot.js";
 import { RayTracingSpace } from "./RayTracingSpace.js";
 import { AtmosphereIntegrator } from "./AtmosphereIntegrator.js";
@@ -74,7 +75,8 @@ const ShaderSources = [
     "DisplayRefraction.wgsl", "DisplayAntialias.wgsl", "DisplayExposure.wgsl", "DisplayPresent.wgsl", "FireIllumination.wgsl", "PlumeRecords.wgsl",
     "PlumeAdvection.wgsl", "PlumePressure.wgsl", "PlumeVorticity.wgsl", "PlumeMarch.wgsl", "FragmentDistance.wgsl",
     "EffectRecords.wgsl", "EffectRaster.wgsl", "VehicleVisual.wgsl", "SparkRaster.wgsl", "ForwardRaster.wgsl",
-    "CabinOverlay.wgsl", "CabinVolume.wgsl", "LightClusterSpace.wgsl", "ScreenTraversal.wgsl", "NearestDepthTransfer.wgsl", "NearestDepthReduction.wgsl"
+    "CabinOverlay.wgsl", "CabinVolume.wgsl", "LightClusterSpace.wgsl", "ScreenTraversal.wgsl", "NearestDepthTransfer.wgsl", "NearestDepthReduction.wgsl",
+    "ViewWorld.wgsl", "ScanOverlay.wgsl"
 ];
 
 // 📝 Quality grades trade cascade resolution, card density and traversal length; selected with ?quality=low|medium|high.
@@ -101,12 +103,15 @@ const FeatureBits = {
 const ExtendedFeatureBits = { ScreenTraversal: 1, ScreenIndirect: 2, ScreenReflection: 4, LightGrid: 8, EmissiveLights: 16, IesProfiles: 32 };
 
 const TemporalRestartBit = 2048;   // [-] FeatureTemporalRestart in SceneRecords.wgsl
+const ScreenTraceBits = ExtendedFeatureBits.ScreenTraversal | ExtendedFeatureBits.ScreenIndirect | ExtendedFeatureBits.ScreenReflection;
+const NoOccupants = new Uint32Array(4);   // [-] the studio camera hides and scans nothing
+const NoPlane     = new Float32Array(4);
 const SmokeCompositeBit  = 4096;   // [-] FeatureSmokeComposite in SceneRecords.wgsl
 
 const PassNames = ["Distance union", "Card lighting", "Shadow", "Surface", "Depth pyramid", "Direct", "ReSTIR GI",
                     "Diffuse reconstruction", "Reflection", "Glossy reconstruction", "Resolve", "Smoke transport", "Smoke render", "Tyre carcass"];
 
-const FrameRecordExtent = 528;   // [B] FrameRecord in SceneRecords.wgsl (130 floats, padded to a 16-byte multiple)
+const FrameRecordExtent = 640;   // [B] FrameRecord in SceneRecords.wgsl (160 floats: the view's hidden and scanned occupants, the scan plane, the paint ripple)
 const FireLightReach    = 14.0;  // [m] influence radius of a tyre fire's light
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -185,6 +190,9 @@ class IlluminationHost
         // 🔍 Diagnostic only: ?capture=1 presents into an offscreen texture read back into a 2D canvas, for hosts
         //    (headless software adapters) whose WebGPU canvas presentation is unavailable.
         this.Capture = Query.get("capture") === "1";
+        // 📝 The Garage's view is 640 × 400, the reference's stage; ?garage=WxH sizes it (the software rasteriser's evidence frames are small).
+        const GarageParam = /^(\d{2,4})x(\d{2,4})$/.exec(Query.get("garage") || "");
+        this.GarageExtent = GarageParam ? [Number(GarageParam[1]), Number(GarageParam[2])] : GarageExtent.slice();
     }
 
     ReportProgress(Caption, Fraction)
@@ -334,7 +342,10 @@ class IlluminationHost
             MirrorGlassFamily:     { Type: "u32", Value: CourseMaterial.MirrorGlass },
             ConeOrangeFamily:      { Type: "u32", Value: CourseMaterial.ConeOrange },
             ConeBandFamily:        { Type: "u32", Value: CourseMaterial.ConeBand },
-            ConeBaseFamily:        { Type: "u32", Value: CourseMaterial.ConeBase }
+            ConeBaseFamily:        { Type: "u32", Value: CourseMaterial.ConeBase },
+            BodyCoatFamily:        { Type: "u32", Value: CourseMaterial.BodyCoat },
+            HeadlightFamily:       { Type: "u32", Value: CourseMaterial.Headlight },
+            TaillightFamily:       { Type: "u32", Value: CourseMaterial.Taillight }
         };
         const InheritedConstruct = this.Shaders.ConstructModule.bind(this.Shaders);
         this.Shaders.ConstructModule = (FileName, Constants = {}, Label = FileName) => InheritedConstruct(FileName, { ...this.Constants, ...Constants }, Label);
@@ -400,6 +411,9 @@ class IlluminationHost
         await this.Cabin.ConstructResources({ FrameRecords: this.FrameRecords, OccupantRecords: this.OccupantRecords, MaterialRecords: this.MaterialRecords,
                                               EffectRecords: this.Effects.Records, VehicleRecords: this.VehicleRecords, Shadow: this.Shadow,
                                               Atmosphere: this.Atmosphere, Scene: this.Scene, AdaptationRecords: this.Display.AdaptationRecords });
+        // 📝 The Garage's car: a second view of this very scene through the same renderer (GarageView.js), drawn into the tablet's preview well.
+        this.Garage = new GarageView(this, { Extent: this.GarageExtent });
+        await this.Garage.ConstructPrograms();
         this.ReportProgress("Compiling drift smoke programs", 0.91);
         this.Thermal = new TyreThermalSolver(4);
         this.BurstPuffs = [];
@@ -435,6 +449,7 @@ class IlluminationHost
         this.ConstructPanel();
         this.ConstructInput();
         this.ReconstructScreenTargets();
+        this.Garage.ConstructTargets();
         if (this.StressInitial > 0 || this.Settings.StressMotion > 0)
         {
             this.Stress.AssignMotion(this.Settings.StressMotion);
@@ -1373,39 +1388,61 @@ class IlluminationHost
                  Aspect: this.ScreenExtent[0] / this.ScreenExtent[1], Near };
     }
 
+    // 📝 The studio camera's record. Everything the main view alone owns happens here: the gate bookkeeping that restarts its temporal
+    //    tallies, the pick ray, the previous projection, the light albedo the effects read.
     EncodeFrameRecord(Camera, Light)
     {
-        const [Width, Height] = this.ScreenExtent;
+        this.ScreenTracing = this.Settings.ScreenTraversal;
+        const Gates = `${this.Settings.ScreenTraversal}`;
+        if (this.GatesPrior !== undefined && Gates !== this.GatesPrior) this.PriorValid = false;
+        this.GatesPrior = Gates;
+        const Composed = this.ComposeViewRecord({
+            Main: true, ScreenExtent: this.ScreenExtent, TraceExtent: this.TraceExtent, TraceScaleUsed: this.TraceScaleUsed,
+            Tick: this.FrameIndex, PreviousUnjittered: this.PreviousUnjittered, Restart: !this.PriorValid,
+            Hidden: NoOccupants, Scanned: NoOccupants, ScanPlane: NoPlane, ScanState: NoPlane
+        }, Camera, Light);
+        this.ViewProjectionInverse = Composed.ViewProjectionInverse;   // the Lobby's tap-the-car pick ray
+        this.PreviousUnjittered = Composed.Unjittered;
+        this.Effects.LightAlbedo = this.Materials[CourseMaterial.BodyCoat].Albedo;
+        this.Exchange.Device.queue.writeBuffer(this.FrameRecords, 0, Composed.Bytes);
+    }
+
+    // 📝 One view's FrameRecord, bytes only. The studio camera and the Garage's camera both compose theirs here, so the two views read the very
+    //    same settings, light and paint ripple; what differs is the view: its extent, its temporal history (Tick, PreviousUnjittered, Restart),
+    //    the occupants it hides and scans, and — main only — the screen traces, the inspection modes and the inset.
+    //    View: { Main, ScreenExtent, TraceExtent, TraceScaleUsed, Tick, PreviousUnjittered, Restart, Hidden, Scanned, ScanPlane, ScanState }.
+    ComposeViewRecord(View, Camera, Light)
+    {
+        const [Width, Height] = View.ScreenExtent;
         const Jittered = this.Settings.Antialias;
-        const Sequence = (this.FrameIndex % 16) + 1;
+        const Sequence = (View.Tick % 16) + 1;
         const JitterX = Jittered ? (ProjectRadicalInverse(Sequence, 2) - 0.5) * 2.0 / Width : 0.0;
         const JitterY = Jittered ? (ProjectRadicalInverse(Sequence, 3) - 0.5) * 2.0 / Height : 0.0;
-        const View = ConstructViewTransform(Camera.Position, Camera.Target, Camera.Up || [0.0, 0.0, 1.0]);
+        const Transform = ConstructViewTransform(Camera.Position, Camera.Target, Camera.Up || [0.0, 0.0, 1.0]);
         const Projection = ConstructPerspectiveTransform(Camera.VerticalFieldOfView, Camera.Aspect, Camera.Near, JitterX, JitterY);
-        const Unjittered = MultiplyTransform(ConstructPerspectiveTransform(Camera.VerticalFieldOfView, Camera.Aspect, Camera.Near), View);
-        const ViewProjection = MultiplyTransform(Projection, View);
-        this.ViewProjectionInverse = InvertTransform(ViewProjection);   // the Lobby's tap-the-car pick ray
-        const Previous = this.PreviousUnjittered || Unjittered;
-        this.PreviousUnjittered = Unjittered;
+        const Unjittered = MultiplyTransform(ConstructPerspectiveTransform(Camera.VerticalFieldOfView, Camera.Aspect, Camera.Near), Transform);
+        const ViewProjection = MultiplyTransform(Projection, Transform);
+        const ViewProjectionInverse = InvertTransform(ViewProjection);
+        const Previous = View.PreviousUnjittered || Unjittered;
 
         const Bytes = new ArrayBuffer(FrameRecordExtent);
         const Scalars = new Float32Array(Bytes);
         const Integers = new Uint32Array(Bytes);
         Scalars.set(ViewProjection, 0);
-        Scalars.set(InvertTransform(ViewProjection), 16);
+        Scalars.set(ViewProjectionInverse, 16);
         Scalars.set(Unjittered, 32);
         Scalars.set(Previous, 48);
-        Scalars.set(View, 64);
+        Scalars.set(Transform, 64);
         Scalars.set(Camera.Position, 80);
-        Integers[83] = this.FrameIndex;
+        Integers[83] = View.Tick;
         Scalars.set(Light.Direction, 84);
         Scalars[87] = performance.now() * 0.001;
         Scalars.set(Light.Illuminance, 88);
         Scalars[91] = this.Settings.SkyScale;
         Scalars.set([Width, Height, 1.0 / Width, 1.0 / Height], 92);
-        Scalars.set([this.TraceExtent[0], this.TraceExtent[1], 1.0 / this.TraceExtent[0], 1.0 / this.TraceExtent[1]], 96);
+        Scalars.set([View.TraceExtent[0], View.TraceExtent[1], 1.0 / View.TraceExtent[0], 1.0 / View.TraceExtent[1]], 96);
         Scalars.set([JitterX, JitterY], 100);
-        Integers[102] = this.TraceScaleUsed;
+        Integers[102] = View.TraceScaleUsed;
         let Features = 0;
         for (const [Key, Bit] of Object.entries(FeatureBits))
             if (this.Settings[Key]) Features |= Bit;
@@ -1413,25 +1450,24 @@ class IlluminationHost
         const EncodedCandidates  = Math.max(1, Math.min(7, (this.Settings.InitialCandidates | 0) || 2));
         const EncodedReflBounces = Math.max(1, Math.min(7, (this.Settings.ReflectionBounces | 0) || 2));
         Features |= (EncodedBounces << 20) | (EncodedCandidates << 24) | (EncodedReflBounces << 28);
-        // 📝 The second word: screen-trace gates, the light grid and the emissive lights (ExtendedFeatureBits).
+        // 📝 The second word: screen-trace gates, the light grid and the emissive lights (ExtendedFeatureBits). The Garage's view has no depth
+        //    pyramid, so its screen-trace gates are off whatever the studio camera has.
         let Extended = 0;
         for (const [Key, Bit] of Object.entries(ExtendedFeatureBits))
             if (this.Settings[Key]) Extended |= Bit;
+        if (!View.Main)
+            Extended &= ~ScreenTraceBits;
         // 📝 Switching a master gate restarts the temporal tallies for one frame: the pyramid and exitance only exist from the
         //    frame they were enabled, and the reflections change source.
-        this.ScreenTracing = this.Settings.ScreenTraversal;
-        const Gates = `${this.Settings.ScreenTraversal}`;
-        if (this.GatesPrior !== undefined && Gates !== this.GatesPrior) this.PriorValid = false;
-        this.GatesPrior = Gates;
-        if (!this.PriorValid)
+        if (View.Restart)
         {
             Features &= ~(FeatureBits.TemporalReuse);
             Features |= TemporalRestartBit;
         }
-        if (this.Smoke.Resident && this.Settings.SmokeEnabled && !this.Omitted.has("Smoke")) Features |= SmokeCompositeBit;
+        if (View.Main && this.Smoke.Resident && this.Settings.SmokeEnabled && !this.Omitted.has("Smoke")) Features |= SmokeCompositeBit;
         Integers[103] = Features >>> 0;
         Integers[129] = Extended >>> 0;
-        Integers[104] = this.Settings.Inspection;
+        Integers[104] = View.Main ? this.Settings.Inspection : 0;
         Scalars[105] = this.Settings.TemporalTallyLimit;
         Scalars[106] = this.Settings.SpatialRadius;
         Integers[107] = this.Settings.SpatialCount;
@@ -1445,15 +1481,21 @@ class IlluminationHost
         const ScaleShort = Math.max(1, Math.min(65535, Math.round((this.Settings.ReflectionScale ?? 1.0) * 1000.0) + 1));
         Integers[115]    = (DistMode | (RoughByte << 8) | (ScaleShort << 16)) >>> 0;
         Scalars.set(this.Focus, 116);
-        Integers[119] = (this.Dock ? this.Dock.InsetDrawn : this.Settings.InsetEnabled) ? 1 : 0;
+        Integers[119] = View.Main && (this.Dock ? this.Dock.InsetDrawn : this.Settings.InsetEnabled) ? 1 : 0;
         const Fire = this.Smoke.FireLight;
         Scalars.set(Fire.Position, 120);
         Scalars[123] = this.Settings.SmokeEnabled ? Fire.Intensity : 0.0;
         Scalars.set(Fire.Colour, 124);
         Scalars[127] = FireLightReach;
         Scalars[128] = Camera.Near;   // the camera's own near plane, for the screen traces' reversed depth
-        this.Effects.LightAlbedo = this.Materials[CourseMaterial.BodyCoat].Albedo;
-        this.Exchange.Device.queue.writeBuffer(this.FrameRecords, 0, Bytes);
+        // 📝 What this view sees of the world that another does not (ViewWorld.wgsl): occupants it hides, the occupants and plane the scan
+        //    fades, and the paint ripple every view of the car shows alike.
+        Integers.set(View.Hidden, 132);
+        Integers.set(View.Scanned, 136);
+        Scalars.set(View.ScanPlane, 140);
+        Scalars.set(View.ScanState, 144);
+        this.Cabin.Appearance.Ripple.Encode(Scalars, 148);
+        return { Bytes, Unjittered, ViewProjectionInverse };
     }
 
     AdvanceFrame(Now)
@@ -1531,6 +1573,9 @@ class IlluminationHost
         this.Sparks.Emit(VehicleEvents.Sparks, Step);
         this.Sparks.Advance(Step, this.Vehicle.Obstacles, this.Bodies.Bodies);
         Device.queue.writeBuffer(this.VehicleRecords, 0, this.VehicleVisual.EncodeRecord(this.QueryCabinHeader(), this.Vehicle.Wheels, this.Vehicle.Orientation));
+        // 📝 The paint ripple runs on the same clock as everything else; the record every view composes carries its radius.
+        this.Cabin.Appearance.Advance(Δτ);
+        this.Garage.Advance(Δτ);
         const Pumped = this.Cabin.Advance(Δτ, this.QueryTyreLive());
         if (this.Cabin.Screen?.RouteRequest)
         {
@@ -1639,7 +1684,11 @@ class IlluminationHost
                                       this.Metrics.QueryWrites("Card lighting"));
         this.Surface.RecordSurface(Encoder, this.Scene, this.VertexRecords, this.Metrics.QueryWrites("Surface"));
         if (Included("Cabin"))
+        {
             this.Cabin.RecordViews(Encoder, this.Scene, this.VertexRecords, this.Vehicle.QueryBodyTransform(), this.QueryMirrorsVisible());
+            // 📝 The Garage's picture is complete before the cabin overlay samples it into the tablet's well.
+            this.Garage.Record(Encoder, Light);
+        }
         // 📝 Rebuilt only while the screen-trace master gate is on; enabling it restarts the temporal tallies for one frame.
         if (this.ScreenTracing)
             this.NearestDepth.RecordReduction(Encoder, Parity, this.Metrics.QueryWrites("Depth pyramid"));

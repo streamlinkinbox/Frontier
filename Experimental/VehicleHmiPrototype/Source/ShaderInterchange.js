@@ -13,6 +13,9 @@ export class ShaderInterchange
         this.SourceFolder = SourceFolder;
         this.Sources      = new Map();
         this.Modules      = new Map();
+        this.Programs     = new Map();   // program key → the pipeline's construction (a promise, so concurrent callers share one build)
+        this.LayoutIdentities = new WeakMap();   // layout object → its number in program keys
+        this.NextLayoutIdentity = 1;
     }
 
     async RetrieveSources(FileNames)
@@ -99,7 +102,33 @@ export class ShaderInterchange
     //                                             PROGRAM CONSTRUCTION
     //--------------------------------------------------------------------------------------------------------------------
 
-    async ConstructComputeProgram(FileName, EntryPoint, Layouts, Constants = {})
+    // 📝 A program is identified by its source file, entry point, injected constants and the very layout objects it is built over
+    //    (raster programs add their whole descriptor). The same identity returns the pipeline already built: a second view
+    //    stack (GarageView) declares the same programs over the same layouts and compiles nothing.
+    ResolveProgramKey(Kind, FileName, Entry, Layouts, Constants, Descriptor = null)
+    {
+        const Identities = Layouts.map((Layout) =>
+        {
+            if (!this.LayoutIdentities.has(Layout))
+                this.LayoutIdentities.set(Layout, this.NextLayoutIdentity++);
+            return this.LayoutIdentities.get(Layout);
+        });
+        return `${Kind}|${FileName}|${Entry}|${JSON.stringify(Constants)}|${Identities.join(",")}|${Descriptor ? JSON.stringify(Descriptor) : ""}`;
+    }
+
+    ConstructComputeProgram(FileName, EntryPoint, Layouts, Constants = {})
+    {
+        const Key = this.ResolveProgramKey("compute", FileName, EntryPoint, Layouts, Constants);
+        if (!this.Programs.has(Key))
+        {
+            const Construction = this.BuildComputeProgram(FileName, EntryPoint, Layouts, Constants);
+            Construction.catch(() => this.Programs.delete(Key));
+            this.Programs.set(Key, Construction);
+        }
+        return this.Programs.get(Key);
+    }
+
+    async BuildComputeProgram(FileName, EntryPoint, Layouts, Constants)
     {
         const Module = await this.ConstructModule(FileName, Constants);
         const Device = this.Exchange.Device;
@@ -123,7 +152,19 @@ export class ShaderInterchange
         return Program;
     }
 
-    async ConstructRasterProgram(FileName, Descriptor, Layouts, Constants = {})
+    ConstructRasterProgram(FileName, Descriptor, Layouts, Constants = {})
+    {
+        const Key = this.ResolveProgramKey("raster", FileName, Descriptor.VertexEntry, Layouts, Constants, Descriptor);
+        if (!this.Programs.has(Key))
+        {
+            const Construction = this.BuildRasterProgram(FileName, Descriptor, Layouts, Constants);
+            Construction.catch(() => this.Programs.delete(Key));
+            this.Programs.set(Key, Construction);
+        }
+        return this.Programs.get(Key);
+    }
+
+    async BuildRasterProgram(FileName, Descriptor, Layouts, Constants)
     {
         const Module = await this.ConstructModule(FileName, Constants);
         const Device = this.Exchange.Device;

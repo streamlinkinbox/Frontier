@@ -1,21 +1,17 @@
 //============================================================================================================================================
 //                                                            FORWARDRASTER.WGSL
 //============================================================================================================================================
-// 🧩 A small lit forward pass over the scene's facets: the mirrors' reflected views and the HMI Garage's studio portrait of the car.
+// 🧩 A small lit forward pass over the scene's facets: the mirrors' reflected views of the grounds.
 
-// 📝 The main view is deferred and globally illuminated — far too much for three side views and a 640 × 400 preview.
-//    This pass draws the same vertex records (the same instanced runs, the same rigid wheel damage state, steering wheel and
-//    derez mask) with direct light only:
+// 📝 The main view is deferred and globally illuminated — far too much for three side views. This pass draws the same vertex records (the
+//    same instanced runs, the same rigid wheel damage state, steering wheel and derez mask) with direct light only: the sun through the
+//    cascaded shadow depth, the sky view averaged over the normal's hemisphere, a sun-lit ground bounce from below, authored emission —
+//    what a mirror shows of the grounds.
 //
-//    | Mode   | Light                                                                                              |
-//    |--------|----------------------------------------------------------------------------------------------------|
-//    | scene  | the sun through the cascaded shadow depth, the sky view averaged over the normal's hemisphere, a    |
-//    |        | sun-lit ground bounce from below, authored emission — what a mirror shows of the grounds           |
-//    | studio | a key, a fill and a rim light fixed to the camera, a dim ambient, a soft floor glow — the car as a  |
-//    |        | configurator shows it, its own camera and lighting (Docs/CarHmiReport.md)                           |
+//    A mirror's view is the driver's eye reflected in the mirror's plane, through an off-axis frustum fitted to the glass; its near plane is
+//    the mirror itself, so nothing behind the glass leaks into it.
 //
-//    A mirror's view is the driver's eye reflected in the mirror's plane, through an off-axis frustum fitted to the
-//    glass; its near plane is the mirror itself, so nothing behind the glass leaks into it.
+//    (The Garage's portrait of the car is not drawn here: GarageView.js renders it through the same ReSTIR pipeline as the studio.)
 
 //! include "FrameDescriptor.wgsl"
 //! include "SurfaceReflectance.wgsl"
@@ -27,10 +23,7 @@
 struct ForwardView
 {
     ViewProjection : mat4x4f,
-    Camera         : vec4f,   // xyz [m] eye, w mode: 0 scene, 1 studio
-    Key            : vec4f,   // xyz studio key light direction (toward the light), w its intensity
-    Fill           : vec4f,   // xyz studio fill direction, w intensity
-    Rim            : vec4f,   // xyz studio rim direction, w intensity; scene: x hides the car (derezzed)
+    Camera         : vec4f,   // xyz [m] eye
 }
 
 struct CascadeReceiver
@@ -59,12 +52,11 @@ struct ForwardVarying
     @location(2) WorldPosition              : vec3f,
     @location(3) @interpolate(flat) Vehicle : u32,
     @location(4) BodyLocal                  : vec3f,
-    @location(5) Barycentric : vec3f,
 }
 
 @vertex
 fn ForwardVertex(@location(0) Position: vec3f, @location(1) Family: u32, @location(2) Normal: vec3f,
-                 @location(3) OccupantOffset: u32, @builtin(instance_index) OccupantIndex: u32, @builtin(vertex_index) VertexIndex: u32) -> ForwardVarying
+                 @location(3) OccupantOffset: u32, @builtin(instance_index) OccupantIndex: u32) -> ForwardVarying
 {
     let Index = OccupantIndex + OccupantOffset;
     let Occupant = Occupants[Index];
@@ -86,7 +78,6 @@ fn ForwardVertex(@location(0) Position: vec3f, @location(1) Family: u32, @locati
     Varying.Family = select(Family, Occupant.MaterialOverride, Occupant.MaterialOverride != NoMaterialOverride);
     Varying.WorldPosition = World.xyz;
     Varying.Vehicle = select(0u, 1u, Index < 5u);
-    Varying.Barycentric = vec3f(select(0.0, 1.0, VertexIndex % 3u == 0u), select(0.0, 1.0, VertexIndex % 3u == 1u), select(0.0, 1.0, VertexIndex % 3u == 2u));
     Varying.BodyLocal = (Occupants[0].WorldToLocal * World).xyz;
     return Varying;
 }
@@ -139,19 +130,6 @@ fn ClassifyMasked(BodyLocal: vec3f) -> bool
 @fragment
 fn ForwardFragment(Varying: ForwardVarying) -> @location(0) vec4f
 {
-    // Derivatives evaluated uniformly; triangle-list barycentrics give pixel-width edges.
-    let Width = max(fwidth(Varying.Barycentric), vec3f(0.00001));
-    let EdgeDistance = Varying.Barycentric / Width;
-    let Edge = 1.0 - smoothstep(0.6, 1.6, min(min(EdgeDistance.x, EdgeDistance.y), EdgeDistance.z));
-    let Scanning = View.Camera.w > 3.5;
-    let ScanPlane = mix(3.2, -3.2, fract(Frame.ElapsedSeconds * 0.2));
-    if (Scanning && abs(Varying.BodyLocal.x - ScanPlane) < 0.035) { return vec4f(0.5, 0.95, 1.0, 1.0); }
-    if (View.Camera.w > 1.5 && (!Scanning || Varying.BodyLocal.x > ScanPlane)) {
-        if (!Scanning && View.Camera.w > 2.5 && Edge < 0.15) { discard; }
-        // Screen-door transparency avoids sorting and leaves the world materials untouched.
-        if ((Scanning || View.Camera.w < 2.5) && Edge < 0.15 && (u32(Varying.Position.x) + u32(Varying.Position.y)) % 4u != 0u) { discard; }
-        return vec4f(mix(vec3f(0.035, 0.16, 0.2), vec3f(0.35, 0.85, 1.0), Edge), 1.0);
-    }
     if (Varying.Vehicle == 1u)
     {
         // 📝 A mirror never sees mirror glass (each mirror's own lies on its near plane); see-through glazing is gone.
@@ -173,19 +151,7 @@ fn ForwardFragment(Varying: ForwardVarying) -> @location(0) vec4f
     }
     let Albedo = ResolveDiffuseAlbedo(Surface);
     var Radiance = Surface.Emission * Frame.EmissionScale;
-    if (View.Camera.w > 0.5)
-    {
-        // 📝 Studio: three lights fixed to the camera, a dim cool ambient, a warm glow from the floor.
-        Radiance += ResolveDirectReflectance(Surface, Normal, ViewDirection, normalize(View.Key.xyz)) * View.Key.w;
-        Radiance += ResolveDirectReflectance(Surface, Normal, ViewDirection, normalize(View.Fill.xyz)) * View.Fill.w;
-        Radiance += ResolveDirectReflectance(Surface, Normal, ViewDirection, normalize(View.Rim.xyz)) * View.Rim.w;
-        Radiance += Albedo * (vec3f(0.10, 0.12, 0.14) * (0.6 + 0.4 * Normal.z) + vec3f(0.05, 0.045, 0.04) * max(-Normal.z, 0.0));
-        let Reflected = reflect(-ViewDirection, Normal);
-        Radiance += ResolveSpecularColour(Surface) * 0.08 * smoothstep(-0.2, 0.6, Reflected.z) * (1.0 - Surface.Roughness);
-        // 📝 The preview is a picture on a screen (display-referred, 8-bit): a soft shoulder keeps the coat's highlights.
-        return vec4f(Radiance * 1.5 / (vec3f(1.0) + Radiance * 1.5), 1.0);
-    }
-    // 📝 Scene: the sun with its cascaded shadow, the sky over the normal's hemisphere, the ground's bounce.
+    // 📝 The sun with its cascaded shadow, the sky over the normal's hemisphere, the ground's bounce.
     let Visibility = ResolveSunVisibility(Varying.WorldPosition, Normal);
     Radiance += Frame.SunIlluminance * Visibility * ResolveDirectReflectance(Surface, Normal, ViewDirection, Frame.SunDirection);
     let SkyDirection = normalize(vec3f(Normal.xy, max(Normal.z, 0.0) + 0.35));

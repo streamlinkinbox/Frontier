@@ -4,6 +4,7 @@
 // 🧩 Direct sun radiance, tyre-fire and light-grid arrivals at every primary surface, cascaded shadow depth, and sky background.
 
 //! include "FrameDescriptor.wgsl"
+//! include "ViewWorld.wgsl"
 //! include "SurfaceReflectance.wgsl"
 //! include "PackingCodec.wgsl"
 //! include "SkyProjection.wgsl"
@@ -99,7 +100,8 @@ fn IntegrateDirectRadiance(@builtin(global_invocation_id) Invocation: vec3u)
     let Position     = ReconstructWorldPosition(Centre, Depth);
     let Attributes   = textureLoad(SurfaceAttributes, vec2i(Pixel), 0);
     let Normal       = DecodeOctahedral(Attributes.xy);
-    let Surface      = ProjectSurfaceSample(Materials[u32(Attributes.z + 0.5)]);
+    let Family       = u32(Attributes.z + 0.5);
+    let Surface      = ProjectSurfaceSample(ApplyPaintRipple(Materials[Family], Family, Position));
     let View         = normalize(Frame.CameraPosition - Position);
     let UseRtShadows = FeatureEnabled(Frame, FeatureRayTracing) && FeatureEnabled(Frame, FeatureRayTracedShadows);
     let RayOrigin    = Position + Normal * RayEpsilon;

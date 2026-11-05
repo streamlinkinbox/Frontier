@@ -45,6 +45,7 @@ function EncodePng(Rgba, Width, Height)
     const Header = Buffer.alloc(13); Header.writeUInt32BE(Width, 0); Header.writeUInt32BE(Height, 4); Header[8] = 8; Header[9] = 6; Header[10] = 0; Header[11] = 0; Header[12] = 0;
     return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), Chunk("IHDR", Header), Chunk("IDAT", zlib.deflateSync(Raw)), Chunk("IEND", Buffer.alloc(0))]);
 }
+globalThis.EncodePng = EncodePng;   // for hooks that read other textures back (GarageHooks.mjs)
 globalThis.SaveCapture = (Name) => { const Last = Captures[Captures.length - 1]; if (Last) { fs.writeFileSync(Name, EncodePng(Last.data, Last.width, Last.height)); console.log("saved", Name, Last.width + "x" + Last.height); } };
 Object.defineProperty(globalThis, "navigator", { value: { gpu: Gpu, userAgent: "node" }, configurable: true, writable: true });
 

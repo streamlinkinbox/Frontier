@@ -63,8 +63,8 @@ Lights.forEach((Light, Index) =>
 });
 Space.Update(Device, Data);
 Space.AssignPhotometry(Device, await RetrievePhotometricAtlas());
-const Frame = Exchange.ConstructRecords(528, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, "Frame");
-const FrameBytes = new ArrayBuffer(528);
+const Frame = Exchange.ConstructRecords(640, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, "Frame");
+const FrameBytes = new ArrayBuffer(640);
 new Uint32Array(FrameBytes)[129] = 32 | 8;   // ExtendedIesProfiles | ExtendedLightGrid
 Device.queue.writeBuffer(Frame, 0, FrameBytes);
 

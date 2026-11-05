@@ -4,6 +4,7 @@
 // 🧩 Primary visibility: every rastered occupant projected into depth, shading normal, material family and screen motion.
 
 //! include "FrameDescriptor.wgsl"
+//! include "ViewWorld.wgsl"
 //! include "PackingCodec.wgsl"
 //! include "EffectRecords.wgsl"
 //! include "VehicleVisual.wgsl"
@@ -28,6 +29,7 @@ struct SurfaceVarying
     @location(5) @interpolate(flat) Vehicle : u32,
     @location(6) BodyLocal                  : vec3f,   // car-body frame, for the derez mask
     @location(7) @interpolate(flat) Identity : u32,   // occupant identity in the distance field's vocabulary
+    @location(8) @interpolate(flat) Occupant : u32,   // occupant index, for the view's scan
 }
 
 struct SurfaceTargets
@@ -63,6 +65,13 @@ fn SurfaceVertex(@location(0) Position: vec3f, @location(1) Family: u32, @locati
                  @location(3) OccupantOffset: u32, @builtin(instance_index) OccupantIndex: u32) -> SurfaceVarying
 {
     let Index    = OccupantIndex + OccupantOffset;
+    // 📝 An occupant this view hides (the Garage preview's other cars) has every vertex outside the clip volume: it draws nothing.
+    if (OccupantHidden(Index))
+    {
+        var Hidden : SurfaceVarying;
+        Hidden.Position = vec4f(0.0, 0.0, 2.0, 1.0);
+        return Hidden;
+    }
     let Occupant = Occupants[Index];
     let Moved    = DeformVehicleVertex(Index, Family, Position, Normal);
     let World    = Occupant.LocalToWorld * vec4f(Moved.Position, 1.0);
@@ -80,6 +89,7 @@ fn SurfaceVertex(@location(0) Position: vec3f, @location(1) Family: u32, @locati
     //    every carded occupant, GroundIdentity for the course plane, whose cards belong to the ground tiles. Identities
     //    stay below 2048, so the half-float attribute holds them exactly.
     Varying.Identity      = select(GroundIdentity, Index, (Occupant.Roles & RoleCards) != 0u);
+    Varying.Occupant      = Index;
     return Varying;
 }
 
@@ -173,6 +183,18 @@ fn SurfaceFragment(Varying: SurfaceVarying) -> SurfaceTargets
     if (Varying.Vehicle == 1u && Family == VehicleGlassFamily && VehicleState.Cabin.y > 0.5)
     {
         discard;
+    }
+    // 📝 The scan's solid fade, as stochastic transparency: a scanned pixel survives with the probability the reference's alpha gives it
+    //    (ViewWorld.wgsl). The threshold is the interleaved gradient the tyre marks use, changed every frame, so temporal antialiasing
+    //    averages the coin flips into a smooth fade and what lies behind the shell shows through it with the rest of the lighting.
+    if (OccupantScanned(Varying.Occupant) && !ScanSparesFamily(Family))
+    {
+        let ScanPixel = Varying.Position.xy + vec2f(5.588238 * f32(Frame.FrameIndex % 32u));
+        let ScanThreshold = fract(52.9829189 * fract(dot(ScanPixel, vec2f(0.06711056, 0.00583715))));
+        if (ResolveScanOpacity(Varying.WorldPosition) <= ScanThreshold)
+        {
+            discard;
+        }
     }
     let Marked = (Family >= MarkedFamilyFirst && Family <= MarkedFamilyLast) || (Family >= MarkedFamilyExtraFirst && Family <= MarkedFamilyExtraLast);
     if (Marked)

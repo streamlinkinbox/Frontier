@@ -91,11 +91,11 @@ const MaterialBytes = new Float32Array(Materials.length * 16);
 Materials.forEach((Material, Index) => MaterialBytes.set([...Material.Albedo, 0.5, ...Material.Emission, 0], Index * 16));
 const OccupantBuffer = Exchange.ConstructRecordsFrom(new Uint8Array(OccupantBytes), GPUBufferUsage.STORAGE, "Occupants");
 const MaterialBuffer = Exchange.ConstructRecordsFrom(MaterialBytes, GPUBufferUsage.STORAGE, "Materials");
-const FrameBytes = new ArrayBuffer(528);
+const FrameBytes = new ArrayBuffer(640);
 new Uint32Array(FrameBytes)[103] = 8192;            // FeatureRayTracing
 new Float32Array(FrameBytes)[111] = 1.0;            // EmissionScale
 new Uint32Array(FrameBytes)[129] = 16;              // ExtendedEmissiveLights
-const Frame = Exchange.ConstructRecords(528, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, "Frame");
+const Frame = Exchange.ConstructRecords(640, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, "Frame");
 Device.queue.writeBuffer(Frame, 0, FrameBytes);
 
 // queries: shading points over the pad (some outside the grid), draws, and membership probes taken from the table (listed and not)

@@ -47,6 +47,15 @@ struct FrameRecord
     FireLightReach                   : f32,       // [m]    influence radius
     CameraNear                       : f32,       // [m]    near plane of the reversed infinite projection; device depth = CameraNear / view depth
     Features2                        : u32,       // [-]    ExtendedFeature mask (screen traces, light grid, emissive lights)
+    // 📝 What differs between views of the one world (GarageView.js writes its own record; the main view leaves the hide and scan
+    //    fields zero). The ripple is the car's paint changing and appears in every view.
+    HiddenOccupants                  : vec4u,     // [-]    bit n of the 128: occupant n is no part of this view's world, in raster and in rays
+    ScannedOccupants                 : vec4u,     // [-]    bit n of the 128: the scan fades occupant n
+    ScanPlane                        : vec4f,     // [m]    xyz unit axis toward the scan's start, w offset: the signed distance past the front is dot(P, xyz) + w
+    ScanState                        : vec4f,     // [-]    x scan amount (Truck.tsx uHoloAmt); yzw reserved
+    RippleCentre                     : vec4f,     // [m]    xyz world centre of the paint ripple, w its radius; 0 while none runs
+    RippleNext                       : vec4f,     // [-]    rgb linear albedo the ripple paints, w its roughness
+    RippleFinish                     : vec4f,     // [-]    x metalness the ripple paints, y the width of its soft edge [m]; zw reserved
 }
 
 // 📝 FeatureBit — the toggles the control panel exposes, read by the programs that honour them.

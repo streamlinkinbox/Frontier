@@ -10,6 +10,7 @@
 //    reflects the same radiance with its own response and attenuates the layer beneath by its Fresnel transmittance.
 
 //! include "FrameDescriptor.wgsl"
+//! include "ViewWorld.wgsl"
 //! include "SurfaceReflectance.wgsl"
 //! include "PackingCodec.wgsl"
 //! include "CabinVolume.wgsl"
@@ -65,8 +66,9 @@ fn ResolveDiffuseExitance(Pixel: vec2i, Depth: f32, Visibility: f32) -> vec3f
     }
     let Attributes = textureLoad(SurfaceAttributes, Pixel, 0);
     let Normal = DecodeOctahedral(Attributes.xy);
-    let Surface = ProjectSurfaceSample(Materials[u32(Attributes.z + 0.5)]);
+    let Family = u32(Attributes.z + 0.5);
     let Position = ReconstructWorldPosition(vec2f(Pixel) + 0.5, Depth);
+    let Surface = ProjectSurfaceSample(ApplyPaintRipple(Materials[Family], Family, Position));
     let Enclosure = mix(1.0, CabinIndirectShare, ResolveCabinShare((Occupants[0].WorldToLocal * vec4f(Position, 1.0)).xyz));
     var Irradiance = Frame.SunIlluminance * Visibility * max(dot(Normal, Frame.SunDirection), 0.0);
     Irradiance += textureLoad(DirectIrradiance, Pixel, 0).rgb;
@@ -118,8 +120,9 @@ fn ResolveRecombination(@builtin(global_invocation_id) Invocation: vec3u)
     }
     let Attributes = textureLoad(SurfaceAttributes, Pixel, 0);
     let Normal = DecodeOctahedral(Attributes.xy);
-    let Surface = ProjectSurfaceSample(Materials[u32(Attributes.z + 0.5)]);
+    let Family = u32(Attributes.z + 0.5);
     let Position = ReconstructWorldPosition(vec2f(Pixel) + 0.5, Depth);
+    let Surface = ProjectSurfaceSample(ApplyPaintRipple(Materials[Family], Family, Position));
     let View = normalize(Frame.CameraPosition - Position);
     let NdotV = max(dot(Normal, View), 1.0e-3);
 

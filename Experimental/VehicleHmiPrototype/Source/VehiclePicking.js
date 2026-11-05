@@ -1,5 +1,5 @@
 // CPU picking against the same vehicle facets and occupant poses as the Garage renderer.
-import { InvertTransform, TransformPoint, TransformDirection, SubtractVector, CrossVector, DotVector, NormalizeVector } from './TransformProjection.js';
+import { InvertTransform, TransformPoint, TransformDirection, SubtractVector, AddVector, ScaleVector, CrossVector, DotVector, NormalizeVector } from './TransformProjection.js';
 export function IntersectVehicleFacet(Origin, Direction, Corners) {
     const [A,B,C] = Corners, E1 = SubtractVector(B,A), E2 = SubtractVector(C,A);
     const P = CrossVector(Direction,E2), D = DotVector(E1,P);
@@ -11,6 +11,8 @@ export function IntersectVehicleFacet(Origin, Direction, Corners) {
     const Distance = DotVector(E2,Q) / D;
     return Distance > 0 ? Distance : Infinity;
 }
+// 📝 What is under a view point (U, V ∈ [0, 1], V down): the occupant (0 body, 1–4 wheels), the material family of the facet, and the hit's world
+//    Point — where the paint ripple of the HMI's drop begins. Distance is along the occupant-local ray.
 export function PickVehicle(Scene, InverseView, U, V) {
     if (!InverseView || U < 0 || U > 1 || V < 0 || V > 1) return null;
     const From = TransformPoint(InverseView, [U*2-1, 1-V*2, 0]);
@@ -22,7 +24,8 @@ export function PickVehicle(Scene, InverseView, U, V) {
         const Origin = TransformPoint(Inverse, From), Direction = TransformDirection(Inverse, Ray);
         for (const Facet of Scene.FacetSets[Occupant.FacetSet].Facets) {
             const Distance = IntersectVehicleFacet(Origin, Direction, Facet.Corners);
-            if (Number.isFinite(Distance) && (!Best || Distance < Best.Distance)) Best = { Occupant: Index, Family: Facet.Family, Distance };
+            if (Number.isFinite(Distance) && (!Best || Distance < Best.Distance))
+                Best = { Occupant: Index, Family: Facet.Family, Distance, Point: TransformPoint(Occupant.Transform, AddVector(Origin, ScaleVector(Direction, Distance))) };
         }
     }
     return Best;

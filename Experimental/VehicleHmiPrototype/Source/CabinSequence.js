@@ -1,4 +1,3 @@
-import { PickVehicle } from "./VehiclePicking.js";
 //============================================================================================================================================
 //                                                             CABINSEQUENCE.JS
 //============================================================================================================================================
@@ -15,8 +14,9 @@ import { PickVehicle } from "./VehiclePicking.js";
 //    pressures, the Telemetry and Tyres applications the solver's readings, and the Tyres slider pumps the tyres.
 //
 //    The Garage application shows the car. The prototype rendered a three.js model into 640 × 400 and read it back;
-//    here the exhibit's own facets are drawn by ForwardRaster.wgsl's studio mode into a texture the overlay composites
-//    into the preview well (no read-back, the same car — popped tyres, derez and all), orbiting on its turntable.
+//    here GarageView.js renders the car LIVE through the exhibit's own ReSTIR pipeline, from the configurator's orbit camera, into a
+//    texture the overlay composites into the preview well (no read-back, the same car — popped tyres, derez and all). The overlay
+//    also draws that view's glass: the Garage's frame record has no cabin, so the glazing is the one thing it lacks.
 //
 //    Mirrors: the driver's eye reflected in each mirror's plane, through an off-axis frustum fitted to its glass
 //    (Kooima's generalised perspective projection), its near plane on the glass. One mirror is re-rendered per frame
@@ -31,7 +31,6 @@ import { TransformPoint, TransformDirection, MultiplyTransform, ConstructViewTra
 const OverlayFloats  = 10;                  // position xyz, kind (u32), normal xyz, layer, uv
 const ViewStride     = 256;                 // [B] dynamic-offset alignment
 const MirrorExtent   = [352, 192];          // [px]
-const PreviewExtent  = [1024, 640];         // [px] the 640 × 400 well at the panel's 1.6×
 const TabletPixels   = [1920, 1200];        // [px] 1200 × 750 at 1.6×
 const ClusterPixels  = [1500, 838];         // [px] the hexagon's canvas: 1000 × 559 logical at 1.5× (ClusterSequence)
 const KindGlass = 0, KindTablet = 1, KindCluster = 2, KindMirror = 3;
@@ -60,9 +59,10 @@ export class CabinSequence
         this.Clock    = 0.0;
         this.MirrorCursor = 0;
         this.MirrorsRendered = 0;
-        this.Preview  = { External: true, Loaded: true, Facets: 0, Spin: true, Dirty: true, Yaw: 0.6, Pitch: 0.2,
-                          Orbit: (Yaw, Pitch) => { this.Preview.Yaw += Yaw; this.Preview.Pitch = Math.max(-0.1, Math.min(0.9, this.Preview.Pitch + Pitch)); } };
-        this.Metrics  = { TabletUploads: 0, ClusterUploads: 0, MirrorPasses: 0, PreviewPasses: 0, Hmi: "starting" };
+        // 📝 What the panel's Garage application drives; the host replaces it with the GarageView once that is built (AssignPreview).
+        this.Preview  = { External: true, Loaded: false, Facets: 0, Spin: false, Rotate() {}, Zoom() {}, Pick: () => null };
+        this.GlassGroups = new Map();
+        this.Metrics  = { TabletUploads: 0, ClusterUploads: 0, MirrorPasses: 0, Hmi: "starting" };
         this.LiveRevision = -1;
         this.PumpedPressure = null;
     }
@@ -76,9 +76,7 @@ export class CabinSequence
         const Exchange = this.Exchange;
         const Device = Exchange.Device;
         this.Scene = Scene;
-        this.Preview.Pick = (U, V) => PickVehicle(Scene, this.PreviewInverse, U, V);
-        this.Preview.Facets = Scene.FacetSets[Scene.VehicleBodySet].Facets.length
-                            + 4 * Scene.FacetSets[Scene.Occupants[Scene.VehicleOccupants.Wheels[0]].FacetSet].Facets.length;
+        this.OverlayInputs = { FrameRecords, OccupantRecords, EffectRecords, VehicleRecords, Atmosphere, AdaptationRecords };
 
         // ① overlay geometry, car-body frame
         const Vertices = [];
@@ -90,6 +88,7 @@ export class CabinSequence
             for (const Corner of Facet.Corners)
                 Push(Corner, KindGlass, Normal, 0, 0, 0);
         }
+        this.GlassVertexCount = Vertices.length / OverlayFloats;   // the glass comes first: the Garage's view draws these and nothing else
         const Rectangle = (Fixture, Kind, Layer, Flip) =>
         {
             const Corner = (X, Y) => AddVector(AddVector(Fixture.Centre, ScaleVector(Fixture.Right, X * Fixture.Width * 0.5)), ScaleVector(Fixture.Up, Y * Fixture.Height * 0.5));
@@ -117,8 +116,8 @@ export class CabinSequence
         const CanvasUsage = GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT;
         this.TabletTexture  = Texture("Cabin tablet", TabletPixels, "rgba8unorm-srgb", CanvasUsage);
         this.ClusterTexture = Texture("Cabin cluster", ClusterPixels, "rgba8unorm-srgb", CanvasUsage);
-        this.PreviewTexture = Texture("Garage preview", PreviewExtent, "rgba8unorm-srgb", GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT);
-        this.PreviewDepth   = Texture("Garage preview depth", PreviewExtent, "depth32float", GPUTextureUsage.RENDER_ATTACHMENT);
+        // 📝 Until the Garage's view has a texture of its own, the well's binding is a cleared pixel.
+        this.PreviewTexture = Texture("Garage preview (none)", [1, 1], "rgba8unorm-srgb", GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT);
         this.MirrorTexture  = Texture("Mirror views", MirrorExtent, "rgba16float", GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT, 3);
         this.MirrorDepth    = Texture("Mirror depth", MirrorExtent, "depth32float", GPUTextureUsage.RENDER_ATTACHMENT);
         this.MirrorLayers   = [0, 1, 2].map((Layer) => this.MirrorTexture.createView({ dimension: "2d", baseArrayLayer: Layer, arrayLayerCount: 1 }));
@@ -128,9 +127,7 @@ export class CabinSequence
         // ③ the overlay pass
         const Stages = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT;
         this.OverlayLayout = Exchange.ConstructDescriptorLayout(CabinOverlayBindings, Stages, "Cabin overlay");
-        this.OverlayGroup = Exchange.ConstructDescriptorGroup(this.OverlayLayout,
-            [FrameRecords, OccupantRecords, this.OverlayUniform, EffectRecords, VehicleRecords, this.TabletTexture.createView(), this.ClusterTexture.createView(),
-             this.PreviewTexture.createView(), this.MirrorTexture.createView({ dimension: "2d-array" }), this.LinearSampler, Atmosphere.SkyView, Atmosphere.SkySampler, AdaptationRecords]);
+        this.OverlayGroup = this.ConstructOverlayGroup(FrameRecords, AdaptationRecords, this.PreviewTexture.createView());
         this.OverlayProgram = await this.Shaders.ConstructRasterProgram("CabinOverlay.wgsl", {
             VertexEntry: "OverlayVertex", FragmentEntry: "OverlayFragment",
             VertexLayouts: [{ arrayStride: OverlayFloats * 4, attributes: [
@@ -150,7 +147,7 @@ export class CabinSequence
         this.ForwardLayout = Exchange.ConstructDescriptorLayout(["Uniform", "UniformDynamic", "StorageRead", "StorageRead", "StorageRead", "Uniform",
                                                                  "TextureDepth2DLayered", "SamplerComparison", "Uniform", "Texture2D", "Sampler"], Stages, "Forward views");
         this.ForwardGroup = Exchange.ConstructDescriptorGroup(this.ForwardLayout,
-            [FrameRecords, { buffer: this.ViewRecords, offset: 0, size: 128 }, OccupantRecords, MaterialRecords, VehicleRecords, EffectRecords,
+            [FrameRecords, { buffer: this.ViewRecords, offset: 0, size: 80 }, OccupantRecords, MaterialRecords, VehicleRecords, EffectRecords,
              Shadow.LayeredView, Shadow.ComparisonSampler, Shadow.ReceiverRecords, Atmosphere.SkyView, Atmosphere.SkySampler]);
         const ForwardDescriptor = (Format) => ({
             VertexEntry: "ForwardVertex", FragmentEntry: "ForwardFragment",
@@ -164,7 +161,6 @@ export class CabinSequence
             Targets: [{ format: Format }]
         });
         this.MirrorProgram  = await this.Shaders.ConstructRasterProgram("ForwardRaster.wgsl", ForwardDescriptor("rgba16float"), [this.ForwardLayout]);
-        this.PreviewProgram = await this.Shaders.ConstructRasterProgram("ForwardRaster.wgsl", ForwardDescriptor("rgba8unorm-srgb"), [this.ForwardLayout]);
 
         // ⑤ the HMI itself, when this host can draw 2D canvases (the headless harness cannot)
         this.ConstructHmi().catch((Failure) => { this.Metrics.Hmi = `unavailable: ${Failure && Failure.message ? Failure.message : Failure}`; });
@@ -281,7 +277,7 @@ export class CabinSequence
         this.Screen.Dirty = true;
     }
 
-    // 📝 Mirrors and the studio preview. BodyTransform: the car's local → world; Visible: whether mirrors can be seen.
+    // 📝 The mirrors. BodyTransform: the car's local → world; Visible: whether mirrors can be seen.
     RecordViews(Encoder, Scene, VertexRecords, BodyTransform, MirrorsVisible)
     {
         if (!this.MirrorProgram)
@@ -299,21 +295,13 @@ export class CabinSequence
         }
         else
             this.MirrorsRendered = 0;
-        if (this.Screen && this.Settings.Screens && this.Screen.Application === "garage")
-            this.RecordPreview(Encoder, Scene, VertexRecords, BodyTransform);
     }
 
-    WriteView(Slot, ViewProjection, Camera, Mode, Lights = null)
+    WriteView(Slot, ViewProjection, Camera)
     {
-        const Scalars = new Float32Array(32);
+        const Scalars = new Float32Array(20);
         Scalars.set(ViewProjection, 0);
-        Scalars.set([...Camera, Mode], 16);
-        if (Lights)
-        {
-            Scalars.set(Lights[0], 20);
-            Scalars.set(Lights[1], 24);
-            Scalars.set(Lights[2], 28);
-        }
+        Scalars.set([...Camera, 0.0], 16);
         this.Exchange.Device.queue.writeBuffer(this.ViewRecords, Slot * ViewStride, Scalars);
     }
 
@@ -356,7 +344,7 @@ export class CabinSequence
         const W = 0.5 * Mirror.Width, H = 0.5 * Mirror.Height;
         const Corner = (X, Y) => AddVector(AddVector(Centre, ScaleVector(Right, X * W)), ScaleVector(Up, Y * H));
         const ViewProjection = CabinSequence.ResolveOffAxis(Virtual, Corner(1, -1), Corner(-1, -1), Corner(1, 1), 600.0);
-        this.WriteView(Index, ViewProjection, Virtual, 0.0);
+        this.WriteView(Index, ViewProjection, Virtual);
         const Pass = Encoder.beginRenderPass({
             label: `Mirror ${Index}`,
             colorAttachments: [{ view: this.MirrorLayers[Index], clearValue: [0.3, 0.4, 0.55, 1], loadOp: "clear", storeOp: "store" }],
@@ -374,42 +362,49 @@ export class CabinSequence
         this.Metrics.MirrorPasses++;
     }
 
-    // 📝 The Garage's studio: the car alone on its turntable, its own camera and three lights.
-    RecordPreview(Encoder, Scene, VertexRecords, BodyTransform)
+    // 📝 The overlay's bindings for one view: its frame record and exposure, the preview well's texture.
+    ConstructOverlayGroup(FrameRecords, AdaptationRecords, PreviewView)
     {
-        const Centre = TransformPoint(BodyTransform, [0.0, 0.0, 0.15]);
-        const Heading = Math.atan2(BodyTransform[1], BodyTransform[0]);
-        const Yaw = Heading + Math.PI + this.Preview.Yaw, Pitch = this.Preview.Pitch, Distance = 8.2;
-        const Eye = [Centre[0] + Distance * Math.cos(Pitch) * Math.cos(Yaw), Centre[1] + Distance * Math.cos(Pitch) * Math.sin(Yaw),
-                     Centre[2] + Distance * Math.sin(Pitch)];
-        const View = ConstructViewTransform(Eye, Centre);
-        const Aspect = PreviewExtent[0] / PreviewExtent[1], Fov = 30.0 * Math.PI / 180.0, Near = 0.1, Far = 60.0;
-        const F = 1.0 / Math.tan(0.5 * Fov);
-        const Projection = new Float32Array([F / Aspect, 0, 0, 0, 0, F, 0, 0, 0, 0, Far / (Near - Far), -1, 0, 0, Near * Far / (Near - Far), 0]);
-        const Back = NormalizeVector(SubtractVector(Eye, Centre));
-        const Side = NormalizeVector(CrossVector([0.0, 0.0, 1.0], Back));
-        const Key = NormalizeVector(AddVector(AddVector(ScaleVector(Side, 0.55), [0.0, 0.0, 0.8]), ScaleVector(Back, 0.45)));
-        const Fill = NormalizeVector(AddVector(AddVector(ScaleVector(Side, -0.8), [0.0, 0.0, 0.3]), ScaleVector(Back, 0.5)));
-        const Rim = NormalizeVector(AddVector(ScaleVector(Back, -0.9), [0.0, 0.0, 0.55]));
-        this.PreviewInverse = InvertTransform(MultiplyTransform(Projection, View));
-        this.WriteView(3, MultiplyTransform(Projection, View), Eye, 1.0 + (this.Appearance?.View || 0), [[...Key, 3.2], [...Fill, 1.0], [...Rim, 2.4]]);
-        const Pass = Encoder.beginRenderPass({
-            label: "Garage preview",
-            colorAttachments: [{ view: this.PreviewTexture.createView(), clearValue: [0.012, 0.022, 0.025, 1], loadOp: "clear", storeOp: "store" }],
-            depthStencilAttachment: { view: this.PreviewDepth.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "discard" }
-        });
-        Pass.setPipeline(this.PreviewProgram);
-        Pass.setBindGroup(0, this.ForwardGroup, [3 * ViewStride]);
-        Pass.setVertexBuffer(0, VertexRecords);
-        for (const Run of Scene.DrawRuns)
+        const Inputs = this.OverlayInputs;
+        return this.Exchange.ConstructDescriptorGroup(this.OverlayLayout,
+            [FrameRecords, Inputs.OccupantRecords, this.OverlayUniform, Inputs.EffectRecords, Inputs.VehicleRecords, this.TabletTexture.createView(),
+             this.ClusterTexture.createView(), PreviewView, this.MirrorTexture.createView({ dimension: "2d-array" }), this.LinearSampler,
+             Inputs.Atmosphere.SkyView, Inputs.Atmosphere.SkySampler, AdaptationRecords]);
+    }
+
+    // 📝 The Garage's view arrives: its texture fills the preview well, and it is what the panel's Garage application drives.
+    AssignPreview(PreviewView, Garage)
+    {
+        const Inputs = this.OverlayInputs;
+        this.OverlayGroup = this.ConstructOverlayGroup(Inputs.FrameRecords, Inputs.AdaptationRecords, PreviewView);
+        this.Preview = Garage;
+        if (this.Screen)
+            this.Screen.Preview = Garage;
+        this.Garage = Garage;
+    }
+
+    // 📝 The glass alone, over a view's recombined radiance: the draws of the overlay that come first in its vertices, bound to that view's own
+    //    frame record (its camera, its exposure). The tablet, the cluster and the mirrors are the studio camera's.
+    RecordGlass(Encoder, TargetView, DepthView, FrameRecords, AdaptationRecords)
+    {
+        if (!this.OverlayProgram || this.GlassVertexCount === 0)
+            return;
+        let Group = this.GlassGroups.get(FrameRecords);
+        if (!Group)
         {
-            if (Run.First >= 5)
-                continue;
-            const Set = Scene.FacetSets[Run.FacetSet];
-            Pass.draw(Set.VertexCount, Run.Count, Set.FirstVertex, Run.First);
+            Group = this.ConstructOverlayGroup(FrameRecords, AdaptationRecords, this.PreviewTexture.createView());
+            this.GlassGroups.set(FrameRecords, Group);
         }
+        const Pass = Encoder.beginRenderPass({
+            label: "Cabin glass",
+            colorAttachments: [{ view: TargetView, loadOp: "load", storeOp: "store" }],
+            depthStencilAttachment: { view: DepthView, depthReadOnly: true }
+        });
+        Pass.setPipeline(this.OverlayProgram);
+        Pass.setBindGroup(0, Group);
+        Pass.setVertexBuffer(0, this.OverlayRecords);
+        Pass.draw(this.GlassVertexCount);
         Pass.end();
-        this.Metrics.PreviewPasses++;
     }
 
     // 📝 Over the recombined radiance, before the antialiasing; the surface depth read only.
@@ -484,7 +479,7 @@ export class CabinSequence
         const Screen = this.Screen;
         return [`HMI ${this.Metrics.Hmi}${Screen ? ` · ${Screen.Design}${Screen.Application ? ` › ${Screen.Application}` : ""}` : ""}`
                 + ` · tablet uploads ${this.Metrics.TabletUploads} · cluster ${this.Metrics.ClusterUploads}`,
-                `mirror passes ${this.Metrics.MirrorPasses} · garage previews ${this.Metrics.PreviewPasses} · glass ${this.Settings.SeeThroughGlass ? "see-through" : "opaque"}`];
+                `mirror passes ${this.Metrics.MirrorPasses} · garage frames ${this.Garage?.Metrics.Recorded ?? 0} · glass ${this.Settings.SeeThroughGlass ? "see-through" : "opaque"}`];
     }
 }
 
