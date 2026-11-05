@@ -190,6 +190,26 @@ bool SliderRow::Construct(ControlColumn& Column, const char* Id, const char* Lab
     return Moved;
 }
 
+bool SliderRow::ConstructCaptioned(ControlColumn& Column, const char* Id, const char* Label, float& Quantity, float Minimum, float Maximum, float Step,
+                                   const char* Unit, const char* LowCaption, const char* HighCaption, float DisplayScale, bool Enabled, const char* Tooltip)
+{
+    const bool Moved = Construct(Column, Id, Label, Quantity, Minimum, Maximum, Step, Unit, DisplayScale, Enabled, Tooltip);
+    if (LowCaption == nullptr && HighCaption == nullptr) return Moved;
+    // 📝 .range-labels: 9 px, space-between, in the unit's grey; a 12 px line.
+    const EditorTypefaces& Faces = Column.QueryFaces();
+    const float            S     = Column.QueryScale();
+    const ImVec2           Top   = Column.Space(12.0f, 0.0f, 3.0f);
+    const ImU32            Ink   = FadeColour(Column.QueryTheme().SliderUnit, Enabled ? 1.0f : 0.45f);
+    const ImVec2           Base(Top.x, Top.y + GlyphRun::EmAscent * 9.0f * S);
+    if (LowCaption != nullptr) (void)GlyphRun::Construct(Column, Faces.Regular, 9.0f * S, Base, Ink, LowCaption);
+    if (HighCaption != nullptr)
+    {
+        const float Wide = GlyphRun::Measure(Column, Faces.Regular, 9.0f * S, HighCaption);
+        (void)GlyphRun::Construct(Column, Faces.Regular, 9.0f * S, ImVec2(Top.x + Column.QueryWidth() - Wide, Base.y), Ink, HighCaption);
+    }
+    return Moved;
+}
+
 bool SliderRow::ConstructInteger(ControlColumn& Column, const char* Id, const char* Label, uint32_t& Quantity, uint32_t Minimum,
                                  uint32_t Maximum, const char* Unit, bool Enabled, const char* Tooltip)
 {

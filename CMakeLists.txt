@@ -159,6 +159,7 @@ add_library(FrontierSceneEditorUI STATIC
     Frontier/Engine/Interface/DiagramControls.cpp
     Frontier/Engine/Interface/FractureEditor.cpp
     Frontier/Engine/Interface/FluidPlumeEditor.cpp
+    Frontier/Engine/Interface/FluidPlumeEditor/FluidPlumePages.cpp
     Frontier/Engine/Interface/ParticleEditor.cpp
     Frontier/Engine/Interface/ParticleEditor/ParticleFieldOverlay.cpp
     Frontier/Engine/Interface/ParticleEditor/ParticleEditorPages.cpp
@@ -907,6 +908,19 @@ if(BUILD_TESTING)
         Engine/Render/StbImageWriteImplementation.cpp)
     target_include_directories(ParticleEditorCapture PRIVATE "${CMAKE_SOURCE_DIR}/ExternalPackages/stb")
     target_link_libraries(ParticleEditorCapture PRIVATE EverestProjectEditor)
+
+    # 📝 The Smoke & fire editor: the FluidPlume record and its TOML, every card driven by native input, and the window opened in the Everest workspace,
+    #    driven and captured with the readout of the C++ plume's own CPU half — Exhibits/FluidPlumeEditor/README.md.
+    add_executable(FluidPlumeEditorValidation
+        Exhibits/FluidPlumeEditor/Code/FluidPlumeEditorValidation.cpp
+        Engine/Render/StbImageWriteImplementation.cpp)
+    target_include_directories(FluidPlumeEditorValidation PRIVATE "${CMAKE_SOURCE_DIR}/ExternalPackages/stb")
+    target_link_libraries(FluidPlumeEditorValidation PRIVATE EverestProjectEditor FrontierPlumeSimulation)
+    add_test(NAME FluidPlumeEditorValidation COMMAND FluidPlumeEditorValidation
+        "${CMAKE_SOURCE_DIR}/EngineContent"
+        "${CMAKE_SOURCE_DIR}/Projects/Everest"
+        "${CMAKE_BINARY_DIR}/fluid-plume-editor-evidence")
+    set_tests_properties(FluidPlumeEditorValidation PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
 
     # 📝 The scene objects in the workspace: the geometry groups, five geometry inspector pages, the viewport before and after edits.
     add_executable(SceneGeometryCapture

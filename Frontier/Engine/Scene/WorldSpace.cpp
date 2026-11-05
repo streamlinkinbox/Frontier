@@ -93,6 +93,22 @@ double ReadDouble(const toml::table& Table, std::string_view Key, double Fallbac
     return Fallback;
 }
 
+// 📝 A catalogue key as the project file spells it, Pascal case to snake case: "TreadEjection" is tread_ejection.
+std::string NameGasKey(std::string_view Key)
+{
+    std::string Name;
+    for (const char Letter : Key)
+    {
+        if (Letter >= 'A' && Letter <= 'Z')
+        {
+            if (!Name.empty()) Name.push_back('_');
+            Name.push_back(static_cast<char>(Letter - 'A' + 'a'));
+        }
+        else Name.push_back(Letter);
+    }
+    return Name;
+}
+
 void ReadDoubles(const toml::table& Table, std::string_view Key, double* OutValues, size_t Count)
 {
     if (const toml::array* Array = Table[Key].as_array())
@@ -1221,18 +1237,20 @@ template <>
 void FluidPlumeRecord::SerializeConfiguration(toml::table& OutTable) const
 {
     OutTable.insert_or_assign("enabled", Parameters.Enabled);
-    OutTable.insert_or_assign("buoyancy_lift", static_cast<double>(Parameters.BuoyancyLift));
-    OutTable.insert_or_assign("vorticity", static_cast<double>(Parameters.VorticityConfinement));
-    OutTable.insert_or_assign("blackbody_k", static_cast<double>(Parameters.BlackbodyCoreKelvin));
+    for (const FluidDynamics::GasParameterEntry& Entry : FluidDynamics::QueryGasParameterCatalogue())
+        OutTable.insert_or_assign(NameGasKey(Entry.Key), Parameters.Gas.*(Entry.Field));
 }
 
+// 📝 Every reading keeps its default when the file lacks it, and is held to its catalogue range when it has it (the editor's sliders end there).
 template <>
 void FluidPlumeRecord::DeserializeConfiguration(const toml::table& InTable)
 {
-    Parameters.Enabled              = ReadBool(InTable, "enabled", Parameters.Enabled);
-    Parameters.BuoyancyLift         = ReadFloat(InTable, "buoyancy_lift", Parameters.BuoyancyLift);
-    Parameters.VorticityConfinement = ReadFloat(InTable, "vorticity", Parameters.VorticityConfinement);
-    Parameters.BlackbodyCoreKelvin  = ReadFloat(InTable, "blackbody_k", Parameters.BlackbodyCoreKelvin);
+    Parameters.Enabled = ReadBool(InTable, "enabled", Parameters.Enabled);
+    for (const FluidDynamics::GasParameterEntry& Entry : FluidDynamics::QueryGasParameterCatalogue())
+    {
+        double& Reading = Parameters.Gas.*(Entry.Field);
+        Reading         = std::clamp(ReadDouble(InTable, NameGasKey(Entry.Key), Reading), Entry.Minimum, Entry.Maximum);
+    }
     Parameters.AdvanceRevision();
 }
 

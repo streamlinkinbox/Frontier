@@ -1,7 +1,7 @@
 /*==========================================================================================================================================
                                                            FLUIDPLUMEINSPECTOR.H
 ==========================================================================================================================================*/
-// 🧩 FluidPlumeConfiguration: the Eulerian plume, with its FluidPlumeEditor.
+// 🧩 FluidPlumeConfiguration: the tyre smoke and fire plume, with its Smoke & fire editor.
 
 #pragma once
 
@@ -24,7 +24,7 @@ class FluidPlumeInspector final : public RecordInspector
     explicit FluidPlumeInspector(FluidPlumeConfiguration& InParameters) noexcept : Parameters(InParameters) {}
 
     [[nodiscard]] const char* QueryEyebrowText() const noexcept override { return "SOLVER · FLUID PLUME"; }
-    [[nodiscard]] const char* QuerySectionNote() const noexcept override { return "128x64x128 Eulerian"; }
+    [[nodiscard]] const char* QuerySectionNote() const noexcept override;
     [[nodiscard]] const char* QueryEditorButtonLabel() const noexcept override { return "Plume Editor"; }
     void                      ConstructEditor(RecordToken Token) override;
     [[nodiscard]] bool        QueryToggleSupported() const noexcept override { return true; }

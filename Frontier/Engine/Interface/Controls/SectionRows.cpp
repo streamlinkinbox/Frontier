@@ -86,6 +86,18 @@ bool Measure(ControlColumn& Page, const char* Id, const char* Label, double& Set
     return true;
 }
 
+bool MeasureCaptioned(ControlColumn& Page, const char* Id, const char* Label, double& Setting, double Minimum, double Maximum, double Step,
+                      const char* Unit, const char* LowCaption, const char* HighCaption, const char* Unavailable, const char* Tooltip)
+{
+    float Proxy = static_cast<float>(std::clamp(Setting, Minimum, Maximum));
+    if (!SliderRow::ConstructCaptioned(Page, Id, Label, Proxy, static_cast<float>(Minimum), static_cast<float>(Maximum), static_cast<float>(Step),
+                                       Unit != nullptr ? Unit : "", LowCaption, HighCaption, 1.0f, Unavailable == nullptr,
+                                       Unavailable != nullptr ? Unavailable : Tooltip))
+        return false;
+    Setting = static_cast<double>(Proxy);
+    return true;
+}
+
 bool Distance(ControlColumn& Page, const char* Id, const char* Label, double& Metres, double Minimum, double Maximum, double Step,
               const char* Unavailable, const char* Tooltip)
 {

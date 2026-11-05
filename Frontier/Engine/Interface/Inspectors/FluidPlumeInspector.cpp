@@ -1,20 +1,20 @@
 /*==========================================================================================================================================
                                                           FLUIDPLUMEINSPECTOR.CPP
 ==========================================================================================================================================*/
-// 🧩 FluidPlumeConfiguration: the Eulerian plume, with its FluidPlumeEditor.
+// 🧩 FluidPlumeConfiguration: the plume's figures at a glance, and the Smoke & fire editor that edits them.
 
 #include "Engine/Interface/Inspectors/FluidPlumeInspector.h"
 
 #if FRONTIER_EDITOR && defined(FRONTIER_WITH_INTERFACE_SDK)
 
-#include "Engine/Interface/DiagramControls.h"
-#include "Engine/Interface/InspectorControls.h"
 #include "Engine/Interface/FluidPlumeEditor.h"
+#include "Engine/Interface/FluidPlumeEditor/FluidPlumePages.h"
+#include "Engine/Interface/InspectorControls.h"
 
-#include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstdio>
+#include <iterator>
+#include <string>
 
 #endif
 
@@ -23,50 +23,49 @@ namespace Frontier
 
 #if FRONTIER_EDITOR && defined(FRONTIER_WITH_INTERFACE_SDK)
 
-void FluidPlumeInspector::ConstructEditor(RecordToken Token)
+const char* FluidPlumeInspector::QuerySectionNote() const noexcept
 {
-    FluidPlumeEditor::ConstructInterface(Token, *this);
+    // 📝 "128×128×32 Eulerian": the fine lattice of the grade the host builds the plume at (High without a host).
+    static std::string Note;
+    const FluidPlumeReadout* Readout = FluidPlumeEditor::QueryReadout();
+    Note = FluidPlumePages::FormatLatticeExtent(Readout != nullptr ? Readout->Grade : 2u) + " Eulerian";
+    return Note.c_str();
 }
 
-void FluidPlumeInspector::EnumerateSwitches(std::vector<InspectorSwitchEntry>& OutSwitches)
+void FluidPlumeInspector::ConstructEditor(RecordToken Token)
 {
-    OutSwitches.push_back({"Combustion", "Blackbody core", &Parameters.CombustionEnabled});
-    OutSwitches.push_back({"Self-Shadow", "Beer-Lambert", &Parameters.SelfShadowing});
+    FluidPlumeEditor::ConstructInterface(Token, Parameters);
 }
+
+void FluidPlumeInspector::EnumerateSwitches(std::vector<InspectorSwitchEntry>&) {}
 
 void FluidPlumeInspector::ConstructInspector()
 {
     const InspectorPalette Palette = InspectorPalette::Resolve();
     const EditorTypefaces  Faces   = EditorTypefaces::Resolve();
+    const FluidDynamics::GasParameters& Gas = Parameters.Gas;
 
-    const std::array<ImU32, 5> BlackbodyStops = {{
-        ParseHexSpectrum("#2a120a", Palette.InsetFieldBg),
-        ParseHexSpectrum("#8f2412", Palette.WarmAmber),
-        ParseHexSpectrum("#e86820", Palette.WarmAmber),
-        ParseHexSpectrum("#ffbe44", Palette.WarmAmber),
-        ParseHexSpectrum("#fff7df", Palette.TextPrimary),
-    }};
-    const float CoreFraction = std::clamp((Parameters.BlackbodyCoreKelvin - 800.0f) / (3200.0f - 800.0f), 0.0f, 1.0f);
-    char        CoreHeader[64]{};
-    std::snprintf(CoreHeader, sizeof(CoreHeader), "BLACKBODY EMISSION · %.0f K", Parameters.BlackbodyCoreKelvin);
-    DiagramControls::ConstructSpectrumBar(Palette, Faces, CoreHeader,
-                                          BlackbodyStops.data(), BlackbodyStops.size(), CoreFraction);
-
-    bool Changed = false;
-    Changed |= InspectorControls::ConstructSliderRow(Palette, Faces, "##PlmBuoy", "Buoyancy Lift", Parameters.BuoyancyLift, 0.0f, 6.0f, "%.2f");
-    Changed |= InspectorControls::ConstructSliderRow(Palette, Faces, "##PlmVort", "Vorticity Confinement", Parameters.VorticityConfinement, 0.0f, 5.0f, "%.2f");
-    Changed |= InspectorControls::ConstructSliderRow(Palette, Faces, "##PlmDiss", "Dissipation", Parameters.DissipationRate, 0.01f, 1.0f, "%.2f");
-    Changed |= InspectorControls::ConstructSliderRow(Palette, Faces, "##PlmFuel", "Fuel Injection", Parameters.FuelInjectionRate, 0.0f, 4.0f, "%.2f");
-    Changed |= InspectorControls::ConstructSliderRow(Palette, Faces, "##PlmKelvin", "Blackbody Core", Parameters.BlackbodyCoreKelvin, 800.0f, 3200.0f, "%.0f K");
-    Changed |= InspectorControls::ConstructSliderRow(Palette, Faces, "##PlmSoot", "Soot Extinction", Parameters.SootExtinction, 0.0f, 4.0f, "%.2f");
-    if (Changed)
-    {
-        Parameters.AdvanceRevision();
-    }
+    // 📝 The record's figures: the lattice it is solved on, the wind, the flame's core and what the host's solver is doing.
+    const FluidPlumeReadout* Readout = FluidPlumeEditor::QueryReadout();
+    const std::string        Lattice = FluidPlumePages::FormatLatticeExtent(Readout != nullptr ? Readout->Grade : 2u);
+    char                     Wind[48], Flame[48];
+    std::snprintf(Wind, sizeof(Wind), "%.1f m/s \xC2\xB7 %.0f\xC2\xB0", Gas.WindSpeed, Gas.WindHeading);
+    std::snprintf(Flame, sizeof(Flame), "%.0f K", std::floor(Gas.FlameCore * Gas.FlameTemperature + 0.5));
+    const InspectorReadoutCell Cells[] = {
+        { "Lattice", Lattice.c_str() },
+        { "Wind", Wind },
+        { "Flame core", Flame },
+        { "Solver", Readout == nullptr ? "none" : Readout->Resident ? "resident" : "idle" },
+    };
+    InspectorControls::ConstructReadoutStrip(Palette, Faces, Cells, std::size(Cells));
+    InspectorControls::ConstructMutedNote(Palette, Faces,
+                                          "The tyres' smoke and fire, solved on a lattice that follows the car. Edit the source, simulation, appearance, "
+                                          "flame and presets in the Plume Editor.");
 }
 
 #elif FRONTIER_EDITOR
 
+const char* FluidPlumeInspector::QuerySectionNote() const noexcept { return ""; }
 void FluidPlumeInspector::ConstructEditor(RecordToken) {}
 void FluidPlumeInspector::EnumerateSwitches(std::vector<InspectorSwitchEntry>&) {}
 void FluidPlumeInspector::ConstructInspector() {}

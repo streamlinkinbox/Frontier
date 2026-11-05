@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "Engine/PhysicalDynamics/FluidDynamics/GasParameterCatalogue.h"
 #include "Engine/PhysicalDynamics/Vehicle/VehicleSpecification.h"
 
 #include <algorithm>
@@ -637,21 +638,14 @@ struct ForceSourceConfiguration : RevisionCounter
 //                                                    CONTINUUM & PARTICLE SOLVERS
 //------------------------------------------------------------------------------------------------------------------------
 
+// 📝 The Smoke & fire record (levelspace type "FluidPlume"): the 33 readings of the Smoke & fire editor's Source, Simulation, Appearance and Fire
+//    cards (GasParameterCatalogue), at the HMI prototype's defaults. The plume's lattice grade is not here: as in the prototype it follows the Render
+//    settings' quality tier. TestEmitter is the editor's own preview emitter, 3 m ahead of the car, and is not saved.
 struct FluidPlumeConfiguration : RevisionCounter
 {
-    bool     Enabled              = true;
-    uint32_t LatticeResolutionX   = 128;
-    uint32_t LatticeResolutionY   = 64;
-    uint32_t LatticeResolutionZ   = 128;
-    float    BuoyancyLift         = 2.15f;
-    float    VorticityConfinement = 1.85f;
-    float    DissipationRate      = 0.22f;
-    float    FuelInjectionRate    = 1.40f;
-    float    FlameIntensity       = 1.65f;
-    float    SootExtinction       = 1.10f;
-    float    BlackbodyCoreKelvin  = 1850.0f;
-    bool     CombustionEnabled    = true;
-    bool     SelfShadowing        = true;
+    bool                         Enabled     = true;
+    FluidDynamics::GasParameters Gas{};              // [-] one reading per catalogue entry
+    uint32_t                     TestEmitter = 0;    // [-] 0 off, 1 smoke plume, 2 fire. Not saved.
 };
 
 struct FractureConfiguration : RevisionCounter

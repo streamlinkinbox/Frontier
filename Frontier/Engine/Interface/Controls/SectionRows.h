@@ -31,6 +31,9 @@ bool Amount(ControlColumn& Page, const char* Id, const char* Label, float& Setti
 // 📝 A double setting on the linear slider (the force records keep doubles).
 bool Measure(ControlColumn& Page, const char* Id, const char* Label, double& Setting, double Minimum, double Maximum, double Step,
              const char* Unit, const char* Unavailable = nullptr, const char* Tooltip = nullptr);
+// 📝 The same, with captions at the two ends of the track (the prototype's range labels, "Slow motion" and "Fast").
+bool MeasureCaptioned(ControlColumn& Page, const char* Id, const char* Label, double& Setting, double Minimum, double Maximum, double Step,
+                      const char* Unit, const char* LowCaption, const char* HighCaption, const char* Unavailable = nullptr, const char* Tooltip = nullptr);
 // 📝 A distance on a logarithmic track, read in m below a kilometre and in km above (2 m to 40 km on one slider).
 bool Distance(ControlColumn& Page, const char* Id, const char* Label, double& Metres, double Minimum, double Maximum, double Step = 0.0,
               const char* Unavailable = nullptr, const char* Tooltip = nullptr);

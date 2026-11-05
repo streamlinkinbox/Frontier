@@ -23,6 +23,10 @@ class SliderRow
   public:
     static bool Construct(ControlColumn& Column, const char* Id, const char* Label, float& Quantity, float Minimum, float Maximum, float Step,
                           const char* Unit, float DisplayScale = 1.0f, bool Enabled = true, const char* Tooltip = nullptr);
+    // 📝 The slider with .range-labels under its track: two 9 px captions, one at each end ("Still" and "Gale"). Null captions leave the block out.
+    static bool ConstructCaptioned(ControlColumn& Column, const char* Id, const char* Label, float& Quantity, float Minimum, float Maximum, float Step,
+                                   const char* Unit, const char* LowCaption, const char* HighCaption, float DisplayScale = 1.0f, bool Enabled = true,
+                                   const char* Tooltip = nullptr);
     static bool ConstructInteger(ControlColumn& Column, const char* Id, const char* Label, uint32_t& Quantity, uint32_t Minimum,
                                  uint32_t Maximum, const char* Unit, bool Enabled = true, const char* Tooltip = nullptr);
     // 📝 A distance on a logarithmic track (InspectorControls.js Scale: 'Logarithmic'): equal travel per decade, the figure
