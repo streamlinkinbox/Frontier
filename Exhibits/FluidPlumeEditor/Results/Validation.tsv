@@ -1,0 +1,334 @@
+PASS	A new FluidPlume record is enabled with the test emitter off
+PASS	A new record holds the catalogue's defaults, all 33 readings
+PASS	The file format names every one of the 33 catalogue readings
+PASS	A FluidPlume record is constructed by the world
+PASS	The constructed record holds the defaults
+PASS	The authored readings differ from the defaults
+PASS	The file carries emission as a floating point number
+PASS	The file carries heat as a floating point number
+PASS	The file carries expansion as a floating point number
+PASS	The file carries soot as a floating point number
+PASS	The file carries momentum as a floating point number
+PASS	The file carries tread_ejection as a floating point number
+PASS	The file carries buoyancy as a floating point number
+PASS	The file carries dissipation as a floating point number
+PASS	The file carries cooling as a floating point number
+PASS	The file carries vorticity as a floating point number
+PASS	The file carries turbulence as a floating point number
+PASS	The file carries turbulence_scale as a floating point number
+PASS	The file carries wind_speed as a floating point number
+PASS	The file carries wind_heading as a floating point number
+PASS	The file carries time_scale as a floating point number
+PASS	The file carries pressure_sweeps as a floating point number
+PASS	The file carries density as a floating point number
+PASS	The file carries albedo as a floating point number
+PASS	The file carries phase as a floating point number
+PASS	The file carries multi_scatter as a floating point number
+PASS	The file carries ambient as a floating point number
+PASS	The file carries detail as a floating point number
+PASS	The file carries detail_scale as a floating point number
+PASS	The file carries erosion as a floating point number
+PASS	The file carries warp as a floating point number
+PASS	The file carries powder as a floating point number
+PASS	The file carries flame_intensity as a floating point number
+PASS	The file carries flame_temperature as a floating point number
+PASS	The file carries flame_core as a floating point number
+PASS	The file carries flame_tip as a floating point number
+PASS	The file carries flame_flicker as a floating point number
+PASS	The file carries flame_loss as a floating point number
+PASS	The file carries fire_light as a floating point number
+PASS	Every key holds its reading exactly
+PASS	The file is `enabled` and the 33 readings, nothing else
+PASS	The test emitter and the lattice grade are not saved
+PASS	The level saves: 
+PASS	The level reloads: 
+PASS	The reloaded level has its FluidPlume record
+PASS	A save and reload returns all 33 readings bit for bit
+PASS	Disabled survives the file; the test emitter does not
+PASS	Loading advances the record's revision
+PASS	Emission above its range is held to its maximum
+PASS	Dissipation below its range is held to its minimum
+PASS	A NaN wind heading keeps the prior reading
+PASS	An infinite soot keeps the prior reading
+PASS	An integer in the file reads as a number
+PASS	The flame's core and tip are held to the ends of their ranges
+PASS	A string where a number belongs keeps the prior reading
+PASS	Only the five readings the file named moved (emission, dissipation, pressure sweeps, flame core and tip)
+PASS	A file without `enabled` leaves the record enabled
+PASS	The Simulation fixture loads: 
+PASS	The Simulation fixture's FluidPlume record is read
+PASS	Its vorticity (1.85) is read as the catalogue's Vorticity
+PASS	Its other keys (buoyancy_lift, blackbody_k) leave every other reading at the default
+PASS	Its enabled flag is read
+PASS	Low reads 64 × 64 × 20
+PASS	Medium reads 96 × 96 × 24
+PASS	High reads 128 × 128 × 32
+PASS	The Low description line
+PASS	The Medium description line
+PASS	The High description line
+PASS	Without a host the counters read `no solver attached`
+PASS	A resident readout reads `sources 6 · steps 177 · resident`
+PASS	An idle readout reads `… · idle`
+PASS	Domain with Source column is 872.000000 px at scale 1, within TallestColumnHeight
+PASS	Simulation column is 1023.000000 px at scale 1, within TallestColumnHeight
+PASS	Appearance column is 659.000000 px at scale 1, within TallestColumnHeight
+PASS	Fire with Presets column is 956.000000 px at scale 1, within TallestColumnHeight
+PASS	Simulation is the tallest column, and TallestColumnHeight is tight to it
+PASS	The catalogue has Emission
+PASS	Emission: Right moves one step to the decimal the figure shows
+PASS	Emission: only its own reading moved, and the record's revision advanced
+PASS	Emission: Left returns to the default exactly
+PASS	Emission: Shift-Right moves ten steps
+PASS	Emission: End reaches the maximum (4.000000)
+PASS	Emission: Home reaches the minimum (0.000000)
+PASS	The catalogue has Heat
+PASS	Heat: Right moves one step to the decimal the figure shows
+PASS	Heat: only its own reading moved, and the record's revision advanced
+PASS	Heat: Left returns to the default exactly
+PASS	Heat: Shift-Right moves ten steps
+PASS	Heat: End reaches the maximum (4.000000)
+PASS	Heat: Home reaches the minimum (0.000000)
+PASS	The catalogue has Soot
+PASS	Soot: Right moves one step to the decimal the figure shows
+PASS	Soot: only its own reading moved, and the record's revision advanced
+PASS	Soot: Left returns to the default exactly
+PASS	Soot: Shift-Right moves ten steps
+PASS	Soot: End reaches the maximum (4.000000)
+PASS	Soot: Home reaches the minimum (0.000000)
+PASS	The catalogue has Buoyancy
+PASS	Buoyancy: Right moves one step to the decimal the figure shows
+PASS	Buoyancy: only its own reading moved, and the record's revision advanced
+PASS	Buoyancy: Left returns to the default exactly
+PASS	Buoyancy: Shift-Right moves ten steps
+PASS	Buoyancy: End reaches the maximum (8.000000)
+PASS	Buoyancy: Home reaches the minimum (0.000000)
+PASS	The catalogue has Dissipation
+PASS	Dissipation: Right moves one step to the decimal the figure shows
+PASS	Dissipation: only its own reading moved, and the record's revision advanced
+PASS	Dissipation: Left returns to the default exactly
+PASS	Dissipation: Shift-Right moves ten steps
+PASS	Dissipation: End reaches the maximum (0.900000)
+PASS	Dissipation: Home reaches the minimum (0.000000)
+PASS	The catalogue has Cooling
+PASS	Cooling: Right moves one step to the decimal the figure shows
+PASS	Cooling: only its own reading moved, and the record's revision advanced
+PASS	Cooling: Left returns to the default exactly
+PASS	Cooling: Shift-Right moves ten steps
+PASS	Cooling: End reaches the maximum (0.950000)
+PASS	Cooling: Home reaches the minimum (0.000000)
+PASS	The catalogue has Vorticity
+PASS	Vorticity: Right moves one step to the decimal the figure shows
+PASS	Vorticity: only its own reading moved, and the record's revision advanced
+PASS	Vorticity: Left returns to the default exactly
+PASS	Vorticity: Shift-Right moves ten steps
+PASS	Vorticity: End reaches the maximum (6.000000)
+PASS	Vorticity: Home reaches the minimum (0.000000)
+PASS	The catalogue has Turbulence
+PASS	Turbulence: Right moves one step to the decimal the figure shows
+PASS	Turbulence: only its own reading moved, and the record's revision advanced
+PASS	Turbulence: Left returns to the default exactly
+PASS	Turbulence: Shift-Right moves ten steps
+PASS	Turbulence: End reaches the maximum (2.000000)
+PASS	Turbulence: Home reaches the minimum (0.000000)
+PASS	The catalogue has TurbulenceScale
+PASS	TurbulenceScale: Right moves one step to the decimal the figure shows
+PASS	TurbulenceScale: only its own reading moved, and the record's revision advanced
+PASS	TurbulenceScale: Left returns to the default exactly
+PASS	TurbulenceScale: Shift-Right moves ten steps
+PASS	TurbulenceScale: End reaches the maximum (4.000000)
+PASS	TurbulenceScale: Home reaches the minimum (0.200000)
+PASS	The catalogue has WindSpeed
+PASS	WindSpeed: Right moves one step to the decimal the figure shows
+PASS	WindSpeed: only its own reading moved, and the record's revision advanced
+PASS	WindSpeed: Left returns to the default exactly
+PASS	WindSpeed: Shift-Right moves ten steps
+PASS	WindSpeed: End reaches the maximum (12.000000)
+PASS	WindSpeed: Home reaches the minimum (0.000000)
+PASS	The catalogue has WindHeading
+PASS	WindHeading: Right moves one step to the decimal the figure shows
+PASS	WindHeading: only its own reading moved, and the record's revision advanced
+PASS	WindHeading: Left returns to the default exactly
+PASS	WindHeading: Shift-Right moves ten steps
+PASS	WindHeading: End reaches the maximum (360.000000)
+PASS	WindHeading: Home reaches the minimum (0.000000)
+PASS	The catalogue has TimeScale
+PASS	TimeScale: Right moves one step to the decimal the figure shows
+PASS	TimeScale: only its own reading moved, and the record's revision advanced
+PASS	TimeScale: Left returns to the default exactly
+PASS	TimeScale: Shift-Right moves ten steps
+PASS	TimeScale: End reaches the maximum (2.000000)
+PASS	TimeScale: Home reaches the minimum (0.250000)
+PASS	The catalogue has PressureSweeps
+PASS	PressureSweeps: Right moves one step to the decimal the figure shows
+PASS	PressureSweeps: only its own reading moved, and the record's revision advanced
+PASS	PressureSweeps: Left returns to the default exactly
+PASS	PressureSweeps: Shift-Right moves ten steps
+PASS	PressureSweeps: End reaches the maximum (40.000000)
+PASS	PressureSweeps: Home reaches the minimum (4.000000)
+PASS	The catalogue has Density
+PASS	Density: Right moves one step to the decimal the figure shows
+PASS	Density: only its own reading moved, and the record's revision advanced
+PASS	Density: Left returns to the default exactly
+PASS	Density: Shift-Right moves ten steps
+PASS	Density: End reaches the maximum (3.000000)
+PASS	Density: Home reaches the minimum (0.200000)
+PASS	The catalogue has Albedo
+PASS	Albedo: Right moves one step to the decimal the figure shows
+PASS	Albedo: only its own reading moved, and the record's revision advanced
+PASS	Albedo: Left returns to the default exactly
+PASS	Albedo: Shift-Right moves ten steps
+PASS	Albedo: End reaches the maximum (0.980000)
+PASS	Albedo: Home reaches the minimum (0.200000)
+PASS	The catalogue has Phase
+PASS	Phase: Right moves one step to the decimal the figure shows
+PASS	Phase: only its own reading moved, and the record's revision advanced
+PASS	Phase: Left returns to the default exactly
+PASS	Phase: Shift-Right moves ten steps
+PASS	Phase: End reaches the maximum (0.900000)
+PASS	Phase: Home reaches the minimum (0.000000)
+PASS	The catalogue has MultiScatter
+PASS	MultiScatter: Right moves one step to the decimal the figure shows
+PASS	MultiScatter: only its own reading moved, and the record's revision advanced
+PASS	MultiScatter: Left returns to the default exactly
+PASS	MultiScatter: Shift-Right moves ten steps
+PASS	MultiScatter: End reaches the maximum (1.500000)
+PASS	MultiScatter: Home reaches the minimum (0.000000)
+PASS	The catalogue has Ambient
+PASS	Ambient: Right moves one step to the decimal the figure shows
+PASS	Ambient: only its own reading moved, and the record's revision advanced
+PASS	Ambient: Left returns to the default exactly
+PASS	Ambient: Shift-Right moves ten steps
+PASS	Ambient: End reaches the maximum (3.000000)
+PASS	Ambient: Home reaches the minimum (0.000000)
+PASS	The catalogue has Detail
+PASS	Detail: Right moves one step to the decimal the figure shows
+PASS	Detail: only its own reading moved, and the record's revision advanced
+PASS	Detail: Left returns to the default exactly
+PASS	Detail: Shift-Right moves ten steps
+PASS	Detail: End reaches the maximum (1.000000)
+PASS	Detail: Home reaches the minimum (0.000000)
+PASS	The catalogue has DetailScale
+PASS	DetailScale: Right moves one step to the decimal the figure shows
+PASS	DetailScale: only its own reading moved, and the record's revision advanced
+PASS	DetailScale: Left returns to the default exactly
+PASS	DetailScale: Shift-Right moves ten steps
+PASS	DetailScale: End reaches the maximum (4.000000)
+PASS	DetailScale: Home reaches the minimum (0.200000)
+PASS	The catalogue has FlameIntensity
+PASS	FlameIntensity: Right moves one step to the decimal the figure shows
+PASS	FlameIntensity: only its own reading moved, and the record's revision advanced
+PASS	FlameIntensity: Left returns to the default exactly
+PASS	FlameIntensity: Shift-Right moves ten steps
+PASS	FlameIntensity: End reaches the maximum (4.000000)
+PASS	FlameIntensity: Home reaches the minimum (0.000000)
+PASS	The catalogue has FlameCore
+PASS	FlameCore: Right moves one step to the decimal the figure shows
+PASS	FlameCore: only its own reading moved, and the record's revision advanced
+PASS	FlameCore: Left returns to the default exactly
+PASS	FlameCore: Shift-Right moves ten steps
+PASS	FlameCore: End reaches the maximum (2400.000000)
+PASS	FlameCore: Home reaches the minimum (1300.000000)
+PASS	The catalogue has FlameTip
+PASS	FlameTip: Right moves one step to the decimal the figure shows
+PASS	FlameTip: only its own reading moved, and the record's revision advanced
+PASS	FlameTip: Left returns to the default exactly
+PASS	FlameTip: Shift-Right moves ten steps
+PASS	FlameTip: End reaches the maximum (1600.000000)
+PASS	FlameTip: Home reaches the minimum (900.000000)
+PASS	The catalogue has FlameTemperature
+PASS	FlameTemperature: Right moves one step to the decimal the figure shows
+PASS	FlameTemperature: only its own reading moved, and the record's revision advanced
+PASS	FlameTemperature: Left returns to the default exactly
+PASS	FlameTemperature: Shift-Right moves ten steps
+PASS	FlameTemperature: End reaches the maximum (1.600000)
+PASS	FlameTemperature: Home reaches the minimum (0.700000)
+PASS	The catalogue has FlameLoss
+PASS	FlameLoss: Right moves one step to the decimal the figure shows
+PASS	FlameLoss: only its own reading moved, and the record's revision advanced
+PASS	FlameLoss: Left returns to the default exactly
+PASS	FlameLoss: Shift-Right moves ten steps
+PASS	FlameLoss: End reaches the maximum (0.995000)
+PASS	FlameLoss: Home reaches the minimum (0.500000)
+PASS	The catalogue has FireLight
+PASS	FireLight: Right moves one step to the decimal the figure shows
+PASS	FireLight: only its own reading moved, and the record's revision advanced
+PASS	FireLight: Left returns to the default exactly
+PASS	FireLight: Shift-Right moves ten steps
+PASS	FireLight: End reaches the maximum (4.000000)
+PASS	FireLight: Home reaches the minimum (0.000000)
+PASS	Twenty-six sliders were driven
+PASS	Preset Tyre smoke sets exactly the prototype's gas
+PASS	Preset Tyre smoke advances the record's revision
+PASS	Preset Thick burnout sets exactly the prototype's gas
+PASS	Preset Thick burnout advances the record's revision
+PASS	Preset Light haze sets exactly the prototype's gas
+PASS	Preset Light haze advances the record's revision
+PASS	Preset Inferno sets exactly the prototype's gas
+PASS	Preset Inferno advances the record's revision
+PASS	Preset Crosswind sets exactly the prototype's gas
+PASS	Preset Crosswind advances the record's revision
+PASS	Preset Legacy billows sets exactly the prototype's gas
+PASS	Preset Legacy billows advances the record's revision
+PASS	Defaults restores all 33 readings
+PASS	Defaults raises no host request
+PASS	Clear smoke raises the host's clear-smoke request
+PASS	Clear smoke leaves the readings alone
+PASS	Test emitter: Smoke plume
+PASS	Test emitter: Fire
+PASS	Test emitter: Off
+PASS	The test emitter is not an authored reading: the revision stays
+PASS	The Ignition select is inert: no popup opens, no reading moves
+PASS	The Simulation card submits the decay instrument's grid and both curves, in the prototype's colours and order
+PASS	The Fire card submits the blackbody strip's bands in order across the card
+PASS	The strip is not found for another flame: its colours follow the readings
+PASS	Rendered FluidPlumeInspector-Panel.png
+PASS	The workspace constructs a FluidPlume record
+PASS	The FluidPlume record has an editor
+PASS	The Smoke & fire editor is the active editor
+PASS	The editor is a modal window with four columns on 1920 px
+PASS	The editor as it opens, no solver attached (SmokeAndFireEditor-Opening.png)
+PASS	Opening: the Fire card's blackbody strip is submitted, bands in order
+PASS	Opening: the strip is in view
+PASS	Opening: the Simulation card's decay curves are submitted, grid then density then heat, and in view
+PASS	Opening: column 0 holds its cards without scrolling
+PASS	Opening: column 1 holds its cards without scrolling
+PASS	Opening: column 2 holds its cards without scrolling
+PASS	Opening: column 3 holds its cards without scrolling
+PASS	Opening: no readout is attached, so the cards say `no solver`
+PASS	Opening: the record holds the defaults
+PASS	The plume's CPU half is resident with sources and steps at refresh 230 (resident 1, sources 6, steps 175, relocations 3)
+PASS	The host's readout reaches the editor
+PASS	The Inferno button, pressed in the window, sets the prototype's Inferno gas
+PASS	The Fire segment of the Test emitter, pressed in the window, selects the fire
+PASS	The Inferno preset with the live plume's readout (SmokeAndFireEditor-Inferno-live.png)
+PASS	Inferno: the Fire card's blackbody strip is submitted, bands in order
+PASS	Inferno: the strip is in view
+PASS	Inferno: the Simulation card's decay curves are submitted, grid then density then heat, and in view
+PASS	The Inferno window differs from the opening window
+PASS	Emission, moved one step in the window, commits the decimal the figure shows
+PASS	The Crosswind button sets the prototype's Crosswind gas
+PASS	The Off segment ends the test emitter
+PASS	The Crosswind preset with the live plume's readout (SmokeAndFireEditor-Crosswind-live.png)
+PASS	Crosswind: the Fire card's blackbody strip is submitted, bands in order
+PASS	Crosswind: the strip is in view
+PASS	Crosswind: the Simulation card's decay curves are submitted, grid then density then heat, and in view
+PASS	No request is pending before Clear smoke
+PASS	Clear smoke in the window reaches the host as `clear-smoke`
+PASS	The host takes a request once
+PASS	Defaults, pressed in the window, restores the 33 readings
+PASS	On 1366 px the editor has three columns
+PASS	The editor on a 1366 px window at the Medium grade (SmokeAndFireEditor-Narrow-medium.png)
+PASS	Narrow: the Fire card's blackbody strip is submitted, bands in order
+PASS	Narrow: the strip is below the fold
+PASS	Narrow: the Simulation card's decay curves are submitted, grid then density then heat, and in view
+PASS	Narrow: the third column is taller than its window and rests at its top
+PASS	Narrow: the wheel scrolls it to its end (681.000000 of 681.000000 px)
+PASS	The third column scrolled to its end: the Fire card and Presets (SmokeAndFireEditor-Narrow-medium-scrolled.png)
+PASS	Narrow, scrolled: the Fire card's blackbody strip is submitted, bands in order
+PASS	Narrow, scrolled: the strip is in view
+PASS	Narrow, scrolled: the Simulation card's decay curves are submitted, grid then density then heat, and in view
+PASS	Close Editor returns to the workspace
+PASS	The editor window is gone: no column is submitted and no popup is open
+PASS	The workspace with the FluidPlume record selected: its page (Workspace-FluidPlume-selected.png)
+PASS	The workspace with the record selected differs from the open editor
+SUMMARY	333 assertions	0 failures
