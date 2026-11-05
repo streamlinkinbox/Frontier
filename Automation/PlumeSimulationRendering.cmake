@@ -10,7 +10,8 @@ add_library(FrontierPlumeSimulation STATIC
     Frontier/Engine/PhysicalDynamics/FluidDynamics/PlumeSourceProjection.cpp
     Frontier/Engine/PhysicalDynamics/FluidDynamics/PlumeTelemetryProjection.cpp
     Frontier/Engine/Rendering/PlumeSimulation/PlumeSchedule.cpp
-    Frontier/Engine/Rendering/PlumeSimulation/SmokeSequence.cpp)
+    Frontier/Engine/Rendering/PlumeSimulation/SmokeSequence.cpp
+    Frontier/Engine/Rendering/PlumeSimulation/PlumeSimulationSequence.cpp)
 target_include_directories(FrontierPlumeSimulation PUBLIC "${CMAKE_SOURCE_DIR}")
 target_link_libraries(FrontierPlumeSimulation PUBLIC FrontierGlobalIllumination)
 target_compile_features(FrontierPlumeSimulation PUBLIC cxx_std_20)
@@ -93,4 +94,17 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME PlumeSimulationValidation COMMAND PlumeSimulationValidation "${CMAKE_SOURCE_DIR}")
     set_tests_properties(PlumeSimulationValidation PROPERTIES TIMEOUT 120)
+
+    # 📝 The plume on its own Vulkan device: a capture of the burnout and, against the reference folder PlumeParityGpu.mjs writes from the demo's WGSL on
+    #    Dawn, a parity run (Exhibits/PlumeSimulation/Code/RunPlumeParity.sh). The scene distance field, shadow and sky it binds are stand-ins (see the file).
+    add_executable(PlumeSimulationCapture
+        Exhibits/PlumeSimulation/Code/PlumeSimulationCapture.cpp
+        Engine/Render/StbImageWriteImplementation.cpp)
+    target_include_directories(PlumeSimulationCapture PRIVATE "${CMAKE_SOURCE_DIR}/ExternalPackages/stb" "${CMAKE_SOURCE_DIR}/ExternalPackages/tomlpp/include")
+    target_link_libraries(PlumeSimulationCapture PRIVATE FrontierPlumeSimulation)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(PlumeSimulationCapture PRIVATE -ffp-contract=off)
+    elseif(MSVC)
+        target_compile_options(PlumeSimulationCapture PRIVATE /fp:precise)
+    endif()
 endif()
