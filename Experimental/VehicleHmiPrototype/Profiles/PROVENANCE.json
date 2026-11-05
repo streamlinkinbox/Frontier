@@ -1,0 +1,127 @@
+{
+ "schema": 1,
+ "note": "Roadway, Area, RoofFlood and RoofSpot are real manufacturer / test-lab LM-63 Type C files, copied byte for byte. repositoryLicence is the licence of the repository we took the file from; the files themselves carry no separate licence and are the manufacturer's published photometric data for lighting design. LowBeam, HighBeam and FogBeam are authored demonstration curves (Tools/AuthorLightingProfiles.py): no measured vehicle headlamp file under a permissive licence was found.",
+ "profiles": {
+  "Roadway": {
+   "kind": "measured",
+   "file": "Roadway.ies",
+   "bytes": 560027,
+   "sha256": "7e48d079a784282a5d3fc16ff822d44e7f5565ecd9021ad76fdfce1924fa63c4",
+   "source": {
+    "repository": "https://github.com/wetadigital/physlight",
+    "commit": "9d076d1074aad7257c04c39581a4d21f97fd2527",
+    "path": "docs/tex/figures_src/data/ieslm63/00715027edfa347b29d76898771819c2.ies",
+    "repositoryLicence": "Apache-2.0"
+   },
+   "header": {
+    "TEST": "3828",
+    "MANUFAC": "Lighting Technologies",
+    "LUMINAIRE": "FREGAT LED 110 (W) class II 5000K /E/",
+    "LAMP": "14400 lm,  105 W"
+   },
+   "usedFor": "street lamp poles (light type 1)",
+   "shape": "full cut-off roadway luminaire: peak 69° from nadir along the road (C0/C180), nothing above 80°"
+  },
+  "Area": {
+   "kind": "measured",
+   "file": "Area.ies",
+   "bytes": 553,
+   "sha256": "487def4b098093aa2a8662f6b265c303f2ce826fdddc2e2c626f2c85b7d01844",
+   "source": {
+    "repository": "https://github.com/wetadigital/physlight",
+    "commit": "9d076d1074aad7257c04c39581a4d21f97fd2527",
+    "path": "docs/tex/figures_src/data/ieslm63/009092d67a9e943ba297c29b272a5e15.ies",
+    "repositoryLicence": "Apache-2.0"
+   },
+   "header": {
+    "MANUFAC": "Lighting Technologies",
+    "LUMINAIRE": "ORBIS S 500 WH LED 3000K",
+    "LAMP": "LED"
+   },
+   "usedFor": "wide soft area light (profile slot 2: no light type uses it yet, available to custom lights)",
+   "shape": "rotationally symmetric; 50 % of peak at 60° from the axis, 12-19 % of peak above the horizontal"
+  },
+  "LowBeam": {
+   "kind": "authored",
+   "file": "LowBeam.ies",
+   "bytes": 28337,
+   "sha256": "ea04cf06d1e0a05ec9965c253c043f3840ecf552f0d2d3776a10a2df44fc1e10",
+   "generator": "Tools/AuthorLightingProfiles.py",
+   "usedFor": "vehicle low beam (light type 2)",
+   "shape": "authored demonstration curve (not measured); regenerates byte-identically from the script"
+  },
+  "HighBeam": {
+   "kind": "authored",
+   "file": "HighBeam.ies",
+   "bytes": 28507,
+   "sha256": "e5ac78a80d32a068c376c6d945c74271d41be3a271e61f5460bff114d9f4b952",
+   "generator": "Tools/AuthorLightingProfiles.py",
+   "usedFor": "vehicle high beam (light type 3)",
+   "shape": "authored demonstration curve (not measured); regenerates byte-identically from the script"
+  },
+  "FogBeam": {
+   "kind": "authored",
+   "file": "FogBeam.ies",
+   "bytes": 28271,
+   "sha256": "ecf8909715e0f1d0228ea30a57d0c3c8c6320e44c7152ce3d3b5e5d8e84d5f31",
+   "generator": "Tools/AuthorLightingProfiles.py",
+   "usedFor": "vehicle fog lamps (light type 4)",
+   "shape": "authored demonstration curve (not measured); regenerates byte-identically from the script"
+  },
+  "RoofFlood": {
+   "kind": "measured",
+   "file": "RoofFlood.ies",
+   "bytes": 644,
+   "sha256": "41aed4d00b8a86d00364f0e8c8545ee082afe54a647502d9622cb7e2f9dfeb04",
+   "source": {
+    "repository": "https://github.com/glaretechnologies/glare-core",
+    "commit": "dda018043b541a40da7ca88b90512a81a765ecc1",
+    "path": "testfiles/IES/ERCO_88120000_1xQR-CBC51-RE_50W_60deg.IES",
+    "repositoryLicence": "MIT"
+   },
+   "header": {
+    "TEST": "100115_0",
+    "TESTLAB": "ERCO GmbH",
+    "ISSUEDATE": "10-11-2011",
+    "MANUFAC": "ERCO GmbH",
+    "LUMCAT": "88120000",
+    "LUMINAIRE": "Gimbal Recessed spotlight",
+    "LAMP": "QR-CBC51-RE 50W 60°"
+   },
+   "usedFor": "roof flood pods (light type 5, flood variant)",
+   "shape": "rotationally symmetric flood (60° beam): 50 % of peak at 30° from the axis, nothing beyond 40°; measured to 90°"
+  },
+  "RoofSpot": {
+   "kind": "measured",
+   "file": "RoofSpot.ies",
+   "bytes": 3133,
+   "sha256": "fd68799c7c7fa3277c7b7029d489b4def594a839bfcb0cb610a739bb1a85f0a5",
+   "source": {
+    "repository": "https://github.com/mrdoob/three.js",
+    "commit": "5789a76104d4a9b68fd037a5f9caaeb3eafe82b5",
+    "path": "examples/ies/1a936937a49c63374e6d4fbed9252b29.ies",
+    "repositoryLicence": "MIT"
+   },
+   "header": {
+    "TEST": "LightLab International Test Report No. LL20433-R01-S1",
+    "MANUFAC": "Efficient Lighting Systems,",
+    "LUMINAIRE": "Efficient Lighting Systems LED Display Track Light. Product ID: DT106.XTM10.N.94.61.",
+    "LUMCAT": "DT106.XTM10.N.94.61",
+    "TESTLAB": "LightLab International",
+    "ISSUEDATE": "26/09/2017"
+   },
+   "usedFor": "roof spot pods (light type 5, spot variant)",
+   "shape": "rotationally symmetric LED spot: 50 % of peak at 8° from the axis; measured to 90°"
+  }
+ },
+ "searched": {
+  "date": "2026-10-20",
+  "method": "GitHub REST code search (extension:ies, IESNA), then licence and header review of the candidates in permissively licensed repositories",
+  "automotive": "No measured vehicle headlamp / fog lamp LM-63 file under a permissive licence was found. The one candidate (fglichttechnik/Radiance-RoadLighting-Simulation-Framework RoadRad/examples/HeadLight.ies) is a 12 x 11 table of round numbers with no licence, not a measurement.",
+  "otherCandidatesConsidered": [
+   "BEGA 84659K4 / 84693K4 / 50988.6K3 (physlight, luxtest CC-BY-4.0; BEGA LUMCat copyright line, 84659 marked Preliminary)",
+   "Lithonia / Kurt Versen / ERCO files in glare-core (MIT)",
+   "Lighting Technologies hash-named library in physlight (Apache-2.0)"
+  ]
+ }
+}

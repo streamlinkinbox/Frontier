@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!--
+==============================================================================================================================================
+                                                                  LOBBY.HTML
+==============================================================================================================================================
+ 🧩 The Lobby: the VehicleHMI WebGPU renderer (BVH ReSTIR path tracer, emissive softbox lights, IES clustered
+    lights) showing one parked hero car in an automotive photography studio. There is no UI on this page —
+    no panels, toolbars, HUD or buttons; drag to orbit, scroll to zoom.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontier · Lobby</title>
+<link rel="stylesheet" href="Style/Lobby.css">
+</head>
+<body>
+    <canvas id="viewport"></canvas>
+    <canvas id="capture" class="capture"></canvas>
+    <div id="cinematic-fade"></div>
+    <script type="module" src="Source/IlluminationHost.js"></script>
+</body>
+</html>
