@@ -4,7 +4,7 @@
 #============================================================================================================================================
 # 🧩 Mutation check of the plume parity: each mutation edits a COPY of one Slang unit (the repository is untouched), recompiles every entry that
 #    includes it into a copy of the archive folder, and runs the parity against the reference RunPlumeParity.sh left. A mutant the parity does not
-#    flag as "not bit for bit" survived: it is equivalent in the scenario, or the scenario does not reach it (Results/PlumeShaderMutations.txt says which).
+#    flag as "not bit for bit" survived: it is equivalent in the scenario, or the scenario does not reach it (the README says which).
 #
 #        Exhibits/PlumeSimulation/Code/MutatePlumeShaders.sh <build folder>
 set -u
