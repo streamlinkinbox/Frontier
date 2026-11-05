@@ -1,0 +1,78 @@
+{
+  "Scene": "level",
+  "Query": "?capture=1&quality=low",
+  "Frames": 90,
+  "FreezeAt": 40,
+  "Settings": {
+    "AsItComes": {
+      "FramesCompared": 90,
+      "FramesDiffering": 0,
+      "FirstDifferingFrame": -1,
+      "DistinctTlasStates": 90,
+      "UsedTlasNodes": 995,
+      "TlasBytes": 31840,
+      "ActiveInstances": 498,
+      "SkipOff": {
+        "Rebuilt": 91,
+        "Skipped": 0,
+        "TlasWrites": 91,
+        "TlasBytesWritten": 2897440,
+        "UpdateTlasMeanMs": 1.0864636555555434
+      },
+      "SkipOn": {
+        "Rebuilt": 91,
+        "Skipped": 0,
+        "TlasWrites": 91,
+        "TlasBytesWritten": 2897440,
+        "UpdateTlasMeanMs": 1.1759747444444706
+      }
+    },
+    "VehicleFrozen": {
+      "FramesCompared": 90,
+      "FramesDiffering": 0,
+      "FirstDifferingFrame": -1,
+      "DistinctTlasStates": 40,
+      "UsedTlasNodes": 995,
+      "TlasBytes": 31840,
+      "ActiveInstances": 498,
+      "SkipOff": {
+        "Rebuilt": 91,
+        "Skipped": 0,
+        "TlasWrites": 91,
+        "TlasBytesWritten": 2897440,
+        "UpdateTlasMeanMs": 1.218939655555601
+      },
+      "SkipOn": {
+        "Rebuilt": 41,
+        "Skipped": 50,
+        "TlasWrites": 41,
+        "TlasBytesWritten": 1305440,
+        "UpdateTlasMeanMs": 0.8878891555555685
+      }
+    }
+  },
+  "UpdateTlasCalls": {
+    "Cached": {
+      "Forced": false,
+      "Calls": 300,
+      "MeanMs": 0.2553467633333336,
+      "Skipped": 299,
+      "Rebuilt": 1
+    },
+    "Forced": {
+      "Forced": true,
+      "Calls": 300,
+      "MeanMs": 0.7396742733333334,
+      "Skipped": 0,
+      "Rebuilt": 300
+    },
+    "ByteComparison": {
+      "Bytes": 31840,
+      "Identical": true,
+      "FirstDifferentByte": -1,
+      "UsedTlasNodes": 995,
+      "ActiveInstances": 498
+    },
+    "MeanMsSaved": 0.48432750999999974
+  }
+}

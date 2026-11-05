@@ -20,7 +20,7 @@ export class VehicleAppearance {
         this.Finish = GlossFinish;
         this.DarkWheels = false;
         this.BlueRims = true;
-        this.View = 0; // solid, ghost, wireframe, animated scan; inspection only, never affects physics
+        this.Option = null;   // the paint shelf's choice on show, null until the car has been painted or reset
         // 📝 The configurator's paint transition. The ripple outlives the Garage: closing the panel mid-wave lets it finish on the car.
         this.Ripple = new PaintRipple((Target) => this.Commit(Target));
     }
@@ -39,6 +39,16 @@ export class VehicleAppearance {
         this.Colour = Colour; this.Matte = Matte; this.DarkWheels = DarkWheels;
         for (const Family of [CourseMaterial.BodyCoat, CourseMaterial.Hub])
             this.Upload(Family * MaterialRecordBytes, EncodeMaterialRecords([this.Materials[Family]]));
+    }
+    // 📝 The configurator's opening state: Nebula Silver, gloss — the paint of Truck.tsx's paintMat — on the body at once, no ripple. The wheel
+    //    finish is not part of the paint shelf and stays as asked.
+    Reset({ DarkWheels = this.DarkWheels, BlueRims = this.BlueRims } = {}) {
+        this.Apply({ DarkWheels, BlueRims });
+        this.Option = PaintOptions[0];
+        this.Colour = this.Option.Hex;
+        this.Finish = GlossFinish;
+        this.Matte = false;
+        this.Commit(ResolvePaintTarget(this.Option, this.Finish));
     }
     // 📝 A paint change as the reference does it: the choice shows on the panel at once, the car changes by a ripple from Centre (world, [m]).
     Paint(Option, Finish, Centre) {

@@ -1,0 +1,127 @@
+--- a/Source/RayTracingSpace.js
++++ b/Source/RayTracingSpace.js
+@@ -327,6 +327,15 @@
+         this.TotalTriangles     = 0;
+         this.ActiveInstances    = 0;
+         this.UsedTlasNodes      = 0;
++        // 📝 Static skip (patch 0003). The key is what the last upload was built from; the upload's buffer is the one the GPU has been given it in.
++        this.TlasSkipEnabled    = true;
++        this.TlasForceRebuild   = false;
++        this.TlasSkipCount      = 0;
++        this.TlasRebuildCount   = 0;
++        this.TlasKeyBounds      = null;
++        this.TlasKeyIdentity    = null;
++        this.TlasKeyCount       = -1;
++        this.TlasUploadedBuffer = null;
+         this.NodeBuffer         = null;
+         this.TriangleBuffer     = null;
+         this.TraversalLayout    = null;
+@@ -415,6 +424,8 @@
+                 GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+                 "RayTracing BVH nodes (TLAS + BLAS)"
+             );
++            this.TlasKeyCount       = -1;
++            this.TlasUploadedBuffer = null;
+             this.TriangleBuffer = this.Exchange.ConstructRecordsFrom(
+                 this.AllTriScalars,
+                 GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+@@ -588,6 +599,25 @@
+             CentZ[K]      = 0.5 * (Bounds.Minimum[2] + Bounds.Maximum[2]);
+         }
+ 
++        const HasGround = GroundIdx >= 0 && !Occupants[GroundIdx].Inactive && this.OccupantBlasRoot[GroundIdx] >= 0;
++        this.ActiveInstances = ObjectCount + (HasGround ? 1 : 0);
++
++        // 📝 Static skip. The TLAS is a pure function of its leaves: each one's bounds, occupant and BLAS root, in order. When every one equals what
++        //    the last upload was built from, and that upload went into the buffer the GPU still holds, the TLAS to upload is the TLAS it has: no CPU
++        //    build and no buffer write. Anything else — a leaf moved by a float, one added or gone, a new buffer, the skip off or forced — builds and
++        //    uploads as before, and the key is forgotten whenever a build happens that it does not describe.
++        const SkipAllowed = this.TlasSkipEnabled === true && !this.TlasForceRebuild;
++        const Unchanged   = SkipAllowed && this.TlasInputsMatch(Scene, ObjectCount, HasGround, GroundIdx);
++        if (!SkipAllowed)
++            this.TlasKeyCount = -1;
++        if (Unchanged && this.NodeBuffer !== null && this.TlasUploadedBuffer === this.NodeBuffer)
++        {
++            ++this.TlasSkipCount;
++            return;
++        }
++        ++this.TlasRebuildCount;
++        this.TlasUploadedBuffer = null;   // set again only by an upload that happens: a build that fails half way leaves nothing to skip on
++
+         const NodeScalars  = this.AllNodeScalars;
+         const NodeIntegers = this.AllNodeIntegers;
+ 
+@@ -619,9 +649,6 @@
+             NodeIntegers[Base + 7] = ((TlasLeafBit | OccIdx) >>> 0);
+         };
+ 
+-        const HasGround = GroundIdx >= 0 && !Occupants[GroundIdx].Inactive && this.OccupantBlasRoot[GroundIdx] >= 0;
+-        this.ActiveInstances = ObjectCount + (HasGround ? 1 : 0);
+-
+         if (ObjectCount === 0 && !HasGround)
+         {
+             NodeScalars.fill(0, 0, 8);
+@@ -837,11 +864,63 @@
+         this.UploadTlas();
+     }
+ 
++    // 📝 Packs the leaf inputs (bounds, centroid, occupant index, BLAS root) and compares them with the last build's. Returns true when identical,
++    //    and always stores the new set, so the next frame compares against this one. Leaf K < ObjectCount is a scratch entry; the last, when there
++    //    is ground, is the ground occupant, which the build writes from its bounds alone. The centroid is in the key because the SAH split reads
++    //    it: bounds that agree as floats can still centre either side of a bin edge, and the skip must only ever leave the tree a rebuild would
++    //    have made. Exact equality; a NaN is never equal, so it always builds.
++    TlasInputsMatch(Scene, ObjectCount, HasGround, GroundIdx)
++    {
++        const Count    = ObjectCount + (HasGround ? 1 : 0);
++        const Capacity = this.ScratchOccIdx.length + 1;
++        if (!this.TlasKeyBounds || this.TlasKeyBounds.length < Capacity * 9)
++        {
++            this.TlasKeyBounds   = new Float64Array(Capacity * 9);
++            this.TlasKeyIdentity = new Int32Array(Capacity * 2);
++            this.TlasKeyCount    = -1;
++        }
++        const Bounds   = this.TlasKeyBounds;
++        const Identity = this.TlasKeyIdentity;
++        let Same = this.TlasKeyCount === Count;
++        for (let K = 0; K < Count; ++K)
++        {
++            let Min0, Min1, Min2, Max0, Max1, Max2, Cen0 = 0, Cen1 = 0, Cen2 = 0, Occ;
++            if (K < ObjectCount)
++            {
++                Min0 = this.ScratchMinX[K];  Min1 = this.ScratchMinY[K];  Min2 = this.ScratchMinZ[K];
++                Max0 = this.ScratchMaxX[K];  Max1 = this.ScratchMaxY[K];  Max2 = this.ScratchMaxZ[K];
++                Cen0 = this.ScratchCentX[K]; Cen1 = this.ScratchCentY[K]; Cen2 = this.ScratchCentZ[K];
++                Occ  = this.ScratchOccIdx[K];
++            }
++            else
++            {
++                const Box = Scene.QueryWorldBounds(GroundIdx);
++                Min0 = Box.Minimum[0]; Min1 = Box.Minimum[1]; Min2 = Box.Minimum[2];
++                Max0 = Box.Maximum[0]; Max1 = Box.Maximum[1]; Max2 = Box.Maximum[2];
++                Occ  = GroundIdx;
++            }
++            const Root = this.OccupantBlasRoot[Occ] | 0;
++            const B = K * 9, I = K * 2;
++            if (Same && (Bounds[B] !== Min0 || Bounds[B + 1] !== Min1 || Bounds[B + 2] !== Min2 ||
++                         Bounds[B + 3] !== Max0 || Bounds[B + 4] !== Max1 || Bounds[B + 5] !== Max2 ||
++                         Bounds[B + 6] !== Cen0 || Bounds[B + 7] !== Cen1 || Bounds[B + 8] !== Cen2 ||
++                         Identity[I] !== Occ || Identity[I + 1] !== Root))
++                Same = false;
++            Bounds[B] = Min0; Bounds[B + 1] = Min1; Bounds[B + 2] = Min2;
++            Bounds[B + 3] = Max0; Bounds[B + 4] = Max1; Bounds[B + 5] = Max2;
++            Bounds[B + 6] = Cen0; Bounds[B + 7] = Cen1; Bounds[B + 8] = Cen2;
++            Identity[I] = Occ; Identity[I + 1] = Root;
++        }
++        this.TlasKeyCount = Count;
++        return Same;
++    }
++
+     UploadTlas()
+     {
+         if (this.Exchange && this.Exchange.Device && this.NodeBuffer && this.UsedTlasNodes > 0)
+         {
+             this.Exchange.Device.queue.writeBuffer(this.NodeBuffer, 0, this.AllNodeBytes, 0, this.UsedTlasNodes * 32);
++            this.TlasUploadedBuffer = this.NodeBuffer;
+         }
+     }
+ 

@@ -27,18 +27,22 @@ export function ExtractFeatureEdges(Facets, ThresholdDegrees)
     for (const Facet of Facets)
     {
         const [A, B, C] = Facet.Corners;
-        // 📝 THREE.Triangle.getNormal: (c − b) × (a − b), normalised; a degenerate triangle has none and contributes nothing.
+        // 📝 THREE.Triangle.getNormal: (c − b) × (a − b), normalised; a triangle of no area gets the zero vector, as there.
         const U = [C[0] - B[0], C[1] - B[1], C[2] - B[2]];
         const V = [A[0] - B[0], A[1] - B[1], A[2] - B[2]];
         const Normal = [U[1] * V[2] - U[2] * V[1], U[2] * V[0] - U[0] * V[2], U[0] * V[1] - U[1] * V[0]];
         const Length = Math.hypot(Normal[0], Normal[1], Normal[2]);
-        if (!(Length > 0.0))
+        if (Length > 0.0)
+        {
+            Normal[0] /= Length; Normal[1] /= Length; Normal[2] /= Length;
+        }
+        const Corners = [A, B, C];
+        const Hashes = Corners.map((P) => `${Math.round(P[0] * WeldPrecision)},${Math.round(P[1] * WeldPrecision)},${Math.round(P[2] * WeldPrecision)}`);
+        // 📝 EdgesGeometry: "skip degenerate triangles" — two corners that weld to one point.
+        if (Hashes[0] === Hashes[1] || Hashes[1] === Hashes[2] || Hashes[2] === Hashes[0])
         {
             continue;
         }
-        Normal[0] /= Length; Normal[1] /= Length; Normal[2] /= Length;
-        const Corners = [A, B, C];
-        const Hashes = Corners.map((P) => `${Math.round(P[0] * WeldPrecision)},${Math.round(P[1] * WeldPrecision)},${Math.round(P[2] * WeldPrecision)}`);
         for (let Corner = 0; Corner < 3; ++Corner)
         {
             const Next = (Corner + 1) % 3;

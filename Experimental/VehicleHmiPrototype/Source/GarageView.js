@@ -32,6 +32,8 @@ export const GarageExtent = Object.freeze([640, 400]);   // [px] the reference's
 const FrameRecordExtent   = 640;                         // [B]  FrameRecord in SceneRecords.wgsl
 const ScanRecordExtent    = 192;                         // [B]  ScanRecord in ScanOverlay.wgsl
 const SparkleSeed         = 0x9e3779b9;
+const ReferenceNose       = Object.freeze([2.75, 1.25]);   // [m]  Truck.tsx's default ripple centre: along the car, height in the reference's world
+const ReferenceGround     = 0.62;                          // [m]  its ground lies this far below that world's origin
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        DRAW RUNS
@@ -313,6 +315,19 @@ export class GarageView
     Pick(U, V)
     {
         return this.PickInverse ? PickVehicle(this.Host.Scene, this.PickInverse, U, V) : null;
+    }
+
+    // 📝 Truck.tsx's apply request: a paint ripple begins where the drop's ray meets the car (U, V: the drop on the stage), else at the nose —
+    //    (2.75, 1.25, 0) of the reference's world, whose ground lies 0.62 m below its origin, so 1.87 m above the car's own.
+    ResolveDropCentre(U = null, V = null)
+    {
+        const Hit = U === null || V === null ? null : this.Pick(U, V);
+        if (Hit)
+        {
+            return Hit.Point;
+        }
+        const Frame = this.Stage || ResolveVehicleFrame(this.Host.Vehicle.QueryBodyTransform(), VehicleGeometry.CoMHeight);
+        return AddVector(AddVector(Frame.Origin, ScaleVector(Frame.Forward, ReferenceNose[0])), ScaleVector(Frame.Up, ReferenceNose[1] + ReferenceGround));
     }
 
     //--------------------------------------------------------------------------------------------------------------------

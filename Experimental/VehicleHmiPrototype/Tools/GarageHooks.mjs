@@ -19,6 +19,8 @@ import assert from "node:assert/strict";
 
 const Plan = process.env.GARAGE_PLAN || "orbit";
 const Out  = process.env.GARAGE_OUT || "";
+const SweepStep  = Number(process.env.GARAGE_STEP || 1.0);   // [s] of scan clock between the plan's pictures
+const RippleStep = Number(process.env.GARAGE_STEP || 0.25);  // [s] of paint ripple between the plan's pictures
 let Canvas = null;
 try { Canvas = await import("@napi-rs/canvas"); } catch { console.log("no @napi-rs/canvas: the HUD's text is not drawn"); }
 
@@ -71,6 +73,19 @@ async function Dump(Host, Name)
     return Pixels;
 }
 
+// 📝 The scan clock takes steps of at most 0.05 s (the reference's own clamp), so a long advance is many of them.
+function StepScan(Garage, Seconds)
+{
+    for (let Remaining = Seconds; Remaining > 1.0e-9; Remaining -= 0.05)
+        Garage.Scan.Advance(Math.min(0.05, Remaining));
+}
+
+function StepRipple(Appearance, Seconds)
+{
+    for (let Remaining = Seconds; Remaining > 1.0e-9; Remaining -= 0.05)
+        Appearance.Advance(Math.min(0.05, Remaining));
+}
+
 const Dumps = {};
 export default {
     async BeforeFrame(Host, Frame)
@@ -102,13 +117,13 @@ export default {
                 Appearance.Paint({ Name: "Command Red", Hex: "#8a1a1d", Metallic: true }, "gloss", Pick.Point);
                 console.log("paint drop at", Pick.Point.map((Value) => Value.toFixed(2)).join(", "), "occupant", Pick.Occupant);
             }
-            if (Frame >= 3 && Frame < 8) Appearance.Advance(0.2);
+            if (Frame >= 3 && Frame < 8) StepRipple(Appearance, RippleStep);
             if (Frame >= 3) Dumps[`Ripple${Frame}`] = await Dump(Host, `ripple-${String(Frame).padStart(2, "0")}`);
         }
         else if (Plan === "scan")
         {
             if (Frame === 1) Garage.AssignScan(true);
-            if (Frame >= 1) Garage.Scan.Advance(Frame === 1 ? 0.04 : 0.45);
+            if (Frame >= 1) StepScan(Garage, Frame === 1 ? 0.2 : SweepStep);
             if (Frame >= 2) Dumps[`Scan${Frame}`] = await Dump(Host, `sweep-${String(Frame).padStart(2, "0")}`);
         }
     },

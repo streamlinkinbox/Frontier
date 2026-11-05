@@ -14,6 +14,9 @@ import { Applications, LauncherDesigns, ScreenWidth, ScreenHeight, ResolveApplic
 
 const FontFamily = '"DM Sans", Arial, sans-serif';
 
+// 📝 The Garage's stage on the 1200 × 750 panel: the 640 × 400 picture the host renders, drawn 1:1 (CabinOverlay.wgsl composites it here).
+export const GarageWell = Object.freeze({ Left: 78, Top: 248, Width: 640, Height: 400 });
+
 export class ScreenSequence
 {
     constructor(Canvas, Icons, Announce)
@@ -43,7 +46,6 @@ export class ScreenSequence
         this.MessageDraft = "";
         this.Messages = [{ From: "Amelia", Text: "Same road. New adventure?" }, { From: "You", Text: "See you in the Drive Room." }];
         this.TextTarget = "";
-        this.FinishColour = "#a4d8be";
         this.Notice = "";
         this.Clock = "";
         this.ActiveTextInput = null;
@@ -477,9 +479,11 @@ export class ScreenSequence
         this.RasterText(Application.Name, 273, 136, 35, "#e3eddd", "left", 300);
         this.RasterText(Application.Caption, 274, 164, 15, "#879e89");
         this.RasterText("LOCAL DEMONSTRATION", 1140, 133, 10, "#8ea18c", "right");
-        this.RasterRectangle(48, 209, 1104, 430, 28, "#ffffff06", "#ffffff0b");
+        // The Garage's stage is taller than the other applications' content (400 px of picture), so its frame is too.
+        const Garage = Application.Identifier === "garage";
+        this.RasterRectangle(48, 209, 1104, Garage ? 460 : 430, 28, "#ffffff06", "#ffffff0b");
         this.RasterApplicationContent(Application.Identifier);
-        this.RasterText(this.Notice || (Application.Identifier === "garage" ? "Live vehicle materials · drag a swatch onto the body, or rim material onto a rim" : "Design prototype · online services are not connected"), 64, 665, 12, "#708875");
+        this.RasterText(this.Notice || (Garage ? "Rendered live by the exhibit · drag the picture to orbit, scroll to zoom" : "Design prototype · online services are not connected"), 64, Garage ? 688 : 665, 12, "#708875");
         this.RasterFooter();
     }
 
@@ -633,46 +637,7 @@ export class ScreenSequence
             this.RasterText(Live ? "Live from the ControlVehicle's solver." : "Native vehicle readings will connect in the C++ phase.", 87, 594, 17, "#8aa380");
         }
         else if (Identifier === "garage")
-        {
-            const Preview = this.Preview;
-            // 📝 The preview target is 640 × 400; draw it 1:1 so the car is never squashed into the page layout.
-            if (this.DragMaterial) this.RasterRectangle(74, 244, 648, 408, 24, "#a4d8be");
-            this.RasterRectangle(78, 248, 640, 400, 22, "#0d1416");
-            if (Preview?.External)
-            {
-                // Cabin: the host renders the car into a texture the overlay composites here — leave the well dark.
-                this.RasterText(Preview.Facets.toLocaleString("en-GB") + " facets · ControlVehicle · rendered live by the exhibit", 96, 630, 13, "#8fa89c");
-            }
-            else if (Preview?.Loaded)
-            {
-                const Context = this.Context;
-                Context.save();
-                Context.beginPath(); Context.roundRect(78, 248, 640, 400, 22); Context.clip();
-                // 📝 GL render targets are bottom-up; flip once while compositing so the car sits on its wheels.
-                Context.translate(78, 648); Context.scale(1, -1);
-                Context.drawImage(Preview.Readback, 0, 0, 640, 400);
-                Context.restore();
-                this.RasterText(Preview.Facets.toLocaleString("en-GB") + " facets · ControlVehicle · own camera & lighting", 96, 630, 13, "#8fa89c");
-            }
-            else this.RasterText(Preview?.Failure ? "Preview unavailable: " + Preview.Failure : "Loading your car…", 428, 455, 20, "#7d968b", "center");
-            this.AdmitRegion("preview-orbit", 78, 248, 640, 400, null, { Orbit: true });
-            this.RasterText("YOUR GARAGE", 762, 291, 12, "#98a98f");
-            this.RasterText("ControlVehicle", 760, 349, 39, "#dce8cc", "left", 300);
-            this.RasterText("The car in the well is your car, rendered live — it only", 763, 392, 17, "#849c81");
-            this.RasterText("turns on its turntable. Drag to look around it.", 763, 418, 17, "#849c81");
-            // 📝 Paint is the only vehicle control for now: eight finishes, applied to the live vehicle
-            //    material — the well, the mirrors and the car in the world all wear it at once.
-            this.RasterText("PAINT", 763, 466, 12, "#98a98f");
-            for (const [Index, Paint] of PaintOptions.entries())
-            {
-                const Left = 762 + (Index % 2) * 128, Top = 488 + Math.floor(Index / 2) * 62;
-                this.RasterRectangle(Left, Top, 110, 44, 16, Paint.Hex, this.FinishColour === Paint.Hex ? "#e8e8d5" : null);
-                this.AdmitRegion("colour:" + Index, Left, Top, 110, 44, () => { this.FinishColour = Paint.Hex; this.Appearance?.Apply({ Colour: Paint.Hex }); this.Notice = Paint.Name + " applied to the live vehicle."; this.Dirty = true; }, { Material: { Kind: "paint", Colour: Paint.Hex } });
-            }
-            const Chosen = PaintOptions.find(Paint => Paint.Hex === this.FinishColour);
-            this.RasterText(Chosen ? Chosen.Name : "Custom finish", 763, 488 + 4 * 62 + 16, 19, "#d7e7df");
-            this.RasterText("Click a finish, or drag one onto the car.", 763, 488 + 4 * 62 + 44, 14, "#849c81");
-        }
+            this.RasterGarage();
         else
         {
             this.RasterText("MAKE THIS SCREEN YOURS", 84, 264, 12, "#8da086");
@@ -689,6 +654,127 @@ export class ScreenSequence
                 this.AdmitRegion("design:" + Design.Identifier, Left, Top, 188, 118, () => this.PresentDesign(Design.Identifier));
             }
         }
+    }
+
+    // 📝 The Garage: the configurator's paint tab beside its stage (ConfigPanel.tsx PaintTab, SceneTab's X-ray toggle). The well is the stage:
+    //    the host renders the car live — a ReSTIR view of the demo's own scene through the orbit camera (GarageView.js) — and the cabin overlay
+    //    composites that picture over it. Here are only its frame, its hit region and the controls: paint is the only vehicle control for now.
+    RasterGarage()
+    {
+        const Preview = this.Preview;
+        const Well = GarageWell;
+        if (this.DragMaterial)
+            this.RasterRectangle(Well.Left - 4, Well.Top - 4, Well.Width + 8, Well.Height + 8, 24, "#a4d8be");
+        this.RasterRectangle(Well.Left, Well.Top, Well.Width, Well.Height, 22, "#0d1416");
+        if (!Preview?.Loaded)
+            this.RasterText(Preview?.Failure ? "Preview unavailable: " + Preview.Failure : "Loading your car…", Well.Left + Well.Width / 2, Well.Top + 207, 20, "#7d968b", "center");
+        this.AdmitRegion("preview-orbit", Well.Left, Well.Top, Well.Width, Well.Height, null, { Orbit: true });
+
+        const Option = this.Appearance?.Option || PaintOptions[0];
+        const Finish = this.Appearance?.Finish || "gloss";
+        this.RasterText("EXTERIOR FINISH", 749, 262, 12, "#98a98f");
+        this.RasterText(Option.Name, 747, 301, 31, "#dce8cc", "left", 300);
+        this.RasterText(`${Option.Metallic ? "Metallic" : "Matte"} · Premium ceramic coat`, 749, 324, 13, "#849c81");
+        this.RasterMoveIcon(749, 335, 14, "#8ecfe0");
+        this.RasterText("Drag a finish onto the vehicle — or tap to apply", 769, 347, 13, "#8ecfe0");
+
+        const Card = { Width: 86, Height: 70, Gap: 10 };
+        for (const [Index, Paint] of PaintOptions.entries())
+        {
+            const Left = 748 + (Index % 4) * (Card.Width + Card.Gap), Top = 362 + Math.floor(Index / 4) * (Card.Height + 10);
+            const Active = Paint.Hex === Option.Hex;
+            this.RasterRectangle(Left, Top, Card.Width, Card.Height, 14, Active ? "#ffffff12" : this.Hovered === "colour:" + Index ? "#ffffff0a" : "#ffffff05", Active ? "#ffffff66" : "#ffffff12");
+            this.RasterSwatch(Left + Card.Width / 2, Top + 28, 17, Paint.Hex, Active);
+            this.RasterText(Paint.Name, Left + Card.Width / 2, Top + 61, 10, "#ffffffb3", "center");
+            this.AdmitRegion("colour:" + Index, Left, Top, Card.Width, Card.Height, () => this.ApplyPaint(Paint, Finish),
+                { Material: { Kind: "paint", Colour: Paint.Hex, Option: Paint } });
+        }
+        // Gloss | Matte: choosing one repaints the car from the nose, as the reference does.
+        this.RasterRectangle(748, 524, 374, 40, 14, "#ffffff0a", "#ffffff10");
+        for (const [Index, Name] of ["gloss", "matte"].entries())
+        {
+            const Left = 752 + Index * 184, Chosen = Finish === Name;
+            if (Chosen) this.RasterRectangle(Left, 528, 180, 32, 11, "#f2f4ee");
+            this.RasterText(Name === "gloss" ? "Gloss" : "Matte", Left + 90, 549, 15, Chosen ? "#101414" : "#ffffff8c", "center", 500);
+            this.AdmitRegion("finish:" + Name, Left, 528, 180, 32, () => this.ApplyPaint(Option, Name));
+        }
+        // X-Ray Scan: the scene tab's toggle, the one way to see the scan.
+        const On = Boolean(Preview?.Scan?.Enabled);
+        this.RasterRectangle(748, 580, 374, 46, 16, "#ffffff08", "#ffffff10");
+        this.RasterText("X-Ray Scan", 766, 600, 14, "#ffffffe6", "left", 500);
+        this.RasterText("Front-to-back pulse sweep", 766, 616, 11, "#ffffff73");
+        this.RasterRectangle(1056, 589, 48, 28, 14, On ? "#38bdf8e6" : "#ffffff1f");
+        this.RasterRectangle(On ? 1082 : 1062, 593, 20, 20, 10, "#ffffff");
+        this.AdmitRegion("scan-toggle", 748, 580, 374, 46, () => this.ToggleScan());
+    }
+
+    // 📝 The configurator's paint request: the choice shows on the panel at once, the car changes by a ripple that begins where the drop's ray
+    //    meets it (Across, Down: the panel point released over the well), or at the nose for a tap.
+    ApplyPaint(Option, Finish, Across = null, Down = null)
+    {
+        const Dropped = Across !== null && Down !== null;
+        const Centre = this.Preview?.ResolveDropCentre
+            ? this.Preview.ResolveDropCentre(Dropped ? (Across - GarageWell.Left) / GarageWell.Width : null, Dropped ? (Down - GarageWell.Top) / GarageWell.Height : null)
+            : [0.0, 0.0, 0.0];
+        this.Appearance?.Paint(Option, Finish, Centre);
+        this.Notice = `${Option.Name} · ${Finish === "matte" ? "Matte" : "Gloss"}`;
+        this.Dirty = true;
+    }
+
+    ToggleScan()
+    {
+        const Preview = this.Preview;
+        if (!Preview?.AssignScan)
+            return;
+        const On = !Preview.Scan.Enabled;
+        Preview.AssignScan(On);
+        this.Notice = On ? "X-ray scan running — the front sweeps nose to tail." : "";
+        this.Dirty = true;
+    }
+
+    // 📐 ConfigPanel.tsx's move glyph: four arrowheads on a cross, a 24-unit viewBox at 1.8 units of stroke.
+    RasterMoveIcon(Left, Top, Size, Colour)
+    {
+        const Context = this.Context;
+        const Unit = Size / 24.0;
+        const At = (X, Y) => [Left + X * Unit, Top + Y * Unit];
+        Context.beginPath();
+        for (const Path of [[[5, 9], [2, 12], [5, 15]], [[9, 5], [12, 2], [15, 5]], [[15, 19], [12, 22], [9, 19]], [[19, 9], [22, 12], [19, 15]], [[2, 12], [22, 12]], [[12, 2], [12, 22]]])
+            Path.forEach(([X, Y], Index) => Index === 0 ? Context.moveTo(...At(X, Y)) : Context.lineTo(...At(X, Y)));
+        Context.strokeStyle = Colour;
+        Context.lineWidth = 1.8 * Unit;
+        Context.lineCap = "round";
+        Context.lineJoin = "round";
+        Context.stroke();
+    }
+
+    // 📐 PaintSwatch: radial-gradient(circle at 32% 28%, hex ee, hex 55%, #000 160%) on a 40 px disc, a glow of the colour when it is the chosen one.
+    RasterSwatch(CentreX, CentreY, Radius, Hex, Active)
+    {
+        const Context = this.Context;
+        const Diameter = Radius * 2.0;
+        const OriginX = CentreX - Radius + Diameter * 0.32, OriginY = CentreY - Radius + Diameter * 0.28;
+        const Reach = Math.hypot(Diameter * 0.68, Diameter * 0.72) * 1.6;
+        const Gradient = Context.createRadialGradient(OriginX, OriginY, 0, OriginX, OriginY, Reach);
+        Gradient.addColorStop(0.0, Hex + "ee");
+        Gradient.addColorStop(0.55 / 1.6, Hex);
+        Gradient.addColorStop(1.0, "#000000");
+        Context.save();
+        if (Active)
+        {
+            Context.shadowColor = Hex + "aa";
+            Context.shadowBlur = 16;
+        }
+        Context.beginPath();
+        Context.arc(CentreX, CentreY, Radius, 0.0, Math.PI * 2.0);
+        Context.fillStyle = Gradient;
+        Context.fill();
+        Context.restore();
+        Context.beginPath();
+        Context.arc(CentreX, CentreY, Radius, 0.0, Math.PI * 2.0);
+        Context.strokeStyle = "#00000066";
+        Context.lineWidth = 1;
+        Context.stroke();
     }
 
     RasterDesignSchematic(Identifier, Left, Top, Width, Height, Colour)
@@ -790,15 +876,16 @@ export class ScreenSequence
         {
             const Active = this.Pointer;
             Active.LastAcross = Across;
-            if (Math.hypot(Across - Active.Across, Down - Active.Down) > 9) Active.Moved = true;
+            // useMaterialDrag: past 7 px the swatch is picked up; anything else keeps the panel's own 9 px tap tolerance.
+            if (Math.hypot(Across - Active.Across, Down - Active.Down) > (Active.Contact?.Material ? 7 : 9)) Active.Moved = true;
             if (Active.Contact?.Material && Active.Moved) {
-                if (!this.DragMaterial && this.Preview) { Active.PriorSpin = this.Preview.Spin; this.Preview.Spin = false; }
                 this.DragMaterial = Active.Contact.Material;
-                this.Notice = "Drag onto the matching car surface; release to apply. Outside the car cancels.";
+                this.Notice = "Release over the car to apply; release over the panel to cancel.";
                 this.Dirty = true;
             }
             if (Active.Contact?.Slider) this.AdvanceSlider(Active.Contact, Across);
-            if (Active.Contact?.Orbit && this.Preview) { this.Preview.Orbit((Across - Active.PreviousAcross) * 0.012, (Down - Active.PreviousDown) * 0.008); this.Dirty = true; }
+            // OrbitControls: the picture's own pixels turn the camera; it only orbits.
+            if (Active.Contact?.Orbit && this.Preview?.Rotate) { this.Preview.Rotate(Across - Active.PreviousAcross, Down - Active.PreviousDown); this.Dirty = true; }
             Active.PreviousAcross = Across; Active.PreviousDown = Down;
             return true;
         }
@@ -806,16 +893,11 @@ export class ScreenSequence
         {
             const Active = this.Pointer;
             if (Active.Contact?.Material && Active.Moved) {
-                const Inside = Across >= 78 && Across <= 718 && Down >= 248 && Down <= 648;
-                const Pick = Inside ? this.Preview?.Pick?.((Across-78)/640, (Down-248)/400) : null;
+                // A drop anywhere on the stage applies (the ray that misses the car begins the ripple at the nose); over the panel it cancels.
+                const Inside = Across >= GarageWell.Left && Across <= GarageWell.Left + GarageWell.Width && Down >= GarageWell.Top && Down <= GarageWell.Top + GarageWell.Height;
                 const Material = Active.Contact.Material;
-                const Valid = Material.Kind !== "wheel" ? Pick?.Family === CourseMaterial.BodyCoat
-                    : Pick?.Occupant > 0 && [CourseMaterial.Hub, CourseMaterial.RimBase].includes(Pick?.Family);
-                if (Valid) {
-                    this.Appearance?.Apply(Material.Kind === "paint" ? { Colour: Material.Colour } : Material.Kind === "finish" ? { Matte: Material.Matte } : { DarkWheels: Material.DarkWheels, BlueRims: Material.BlueRims });
-                    if (Material.Colour) this.FinishColour = Material.Colour;
-                    this.Notice = "Material applied to the preview and driven car.";
-                } else this.Notice = Inside ? "Drop paint on the body or rim material on a rim." : "Material drop cancelled.";
+                if (Inside) this.ApplyPaint(Material.Option, this.Appearance?.Finish || "gloss", Across, Down);
+                else this.Notice = "Paint drop cancelled.";
                 this.DragMaterial = null;
             }
             else if (Active.Contact?.Swipe && Active.Moved && Math.abs(Across - Active.Across) > 45)
@@ -824,13 +906,12 @@ export class ScreenSequence
             }
             else if (!Active.Moved && Active.Contact && Contact?.Identifier === Active.Contact.Identifier)
                 Active.Contact.Action?.();
-            if (Active.PriorSpin !== undefined && this.Preview) this.Preview.Spin = Active.PriorSpin;
             this.Pointer = null;
             this.Pressed = "";
             this.Dirty = true;
             return true;
         }
-        if (Phase === "cancel") { if (this.Pointer?.PriorSpin !== undefined && this.Preview) this.Preview.Spin = this.Pointer.PriorSpin; this.DragMaterial = null; this.Pointer = null; this.Pressed = ""; this.Dirty = true; }
+        if (Phase === "cancel") { this.DragMaterial = null; this.Pointer = null; this.Pressed = ""; this.Dirty = true; }
         return false;
     }
 

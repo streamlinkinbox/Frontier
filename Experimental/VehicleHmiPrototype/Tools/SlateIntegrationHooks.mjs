@@ -11,7 +11,6 @@ export default {
             Host.ScriptedInput = { Throttle: 1, Brake: 1, Steer: 0, Handbrake: false };
             Host.Settings.HmiScale = 2;
             Host.AssignCameraMode('HMI');
-            Host.Cabin.Appearance.View = 3;
         }
         SawSources ||= Host.Smoke.Sources.Count > 0;
         SawSteps ||= Host.Smoke.StepsTaken > 0;

@@ -60,7 +60,7 @@ export class CabinSequence
         this.MirrorCursor = 0;
         this.MirrorsRendered = 0;
         // 📝 What the panel's Garage application drives; the host replaces it with the GarageView once that is built (AssignPreview).
-        this.Preview  = { External: true, Loaded: false, Facets: 0, Spin: false, Rotate() {}, Zoom() {}, Pick: () => null };
+        this.Preview  = { External: true, Loaded: false, Rotate() {}, Zoom() {}, Pick: () => null };
         this.GlassGroups = new Map();
         this.Metrics  = { TabletUploads: 0, ClusterUploads: 0, MirrorPasses: 0, Hmi: "starting" };
         this.LiveRevision = -1;
@@ -212,8 +212,6 @@ export class CabinSequence
     Advance(Seconds, Live)
     {
         this.Clock += Seconds;
-        if (this.Preview.Spin)
-            this.Preview.Yaw += 0.35 * Seconds;
         if (!this.Screen || !this.Settings.Screens)
             return null;
         const Device = this.Exchange.Device;
@@ -474,12 +472,22 @@ export class CabinSequence
         return this.Screen.ForwardPointer(Phase, Point.Across, Point.Down);
     }
 
+    // 📝 Is the tablet fraction (Across, Down) on the Garage's stage — the wheel there zooms the picture, not the studio.
+    QueryStageContact(Across, Down)
+    {
+        const Screen = this.Screen;
+        if (!Screen || !this.Settings.Screens || Screen.Application !== "garage")
+            return false;
+        const Point = Screen.QueryPanelPoint(Across, Down);
+        return Boolean(Screen.QueryContact(Point.Across, Point.Down)?.Orbit);
+    }
+
     QueryReadout()
     {
         const Screen = this.Screen;
         return [`HMI ${this.Metrics.Hmi}${Screen ? ` · ${Screen.Design}${Screen.Application ? ` › ${Screen.Application}` : ""}` : ""}`
                 + ` · tablet uploads ${this.Metrics.TabletUploads} · cluster ${this.Metrics.ClusterUploads}`,
-                `mirror passes ${this.Metrics.MirrorPasses} · garage frames ${this.Garage?.Metrics.Recorded ?? 0} · glass ${this.Settings.SeeThroughGlass ? "see-through" : "opaque"}`];
+                `mirror passes ${this.Metrics.MirrorPasses} · garage frames ${this.Preview?.Metrics?.Recorded ?? 0} · glass ${this.Settings.SeeThroughGlass ? "see-through" : "opaque"}`];
     }
 }
 

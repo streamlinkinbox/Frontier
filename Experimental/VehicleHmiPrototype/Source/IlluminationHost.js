@@ -190,6 +190,8 @@ class IlluminationHost
         // 🔍 Diagnostic only: ?capture=1 presents into an offscreen texture read back into a 2D canvas, for hosts
         //    (headless software adapters) whose WebGPU canvas presentation is unavailable.
         this.Capture = Query.get("capture") === "1";
+        // 📝 ?tlasskip=0 turns the TLAS static skip (Renderer/Patches/0003) off, to compare a frame with and without it.
+        this.TlasSkip = Query.get("tlasskip") !== "0";
         // 📝 The Garage's view is 640 × 400, the reference's stage; ?garage=WxH sizes it (the software rasteriser's evidence frames are small).
         const GarageParam = /^(\d{2,4})x(\d{2,4})$/.exec(Query.get("garage") || "");
         this.GarageExtent = GarageParam ? [Number(GarageParam[1]), Number(GarageParam[2])] : GarageExtent.slice();
@@ -299,6 +301,7 @@ class IlluminationHost
         // ③b Two-level BVH acceleration structure (TLAS + Binned-SAH BLAS) for the software BVH ReSTIR GI path tracer
         this.ReportProgress("Constructing TLAS + Binned-SAH BLAS ray-tracing hierarchy", 0.68);
         this.RayTracing = new RayTracingSpace(this.Exchange);
+        this.RayTracing.TlasSkipEnabled = this.TlasSkip;
         this.RayTracing.ConstructResources(this.Scene, this.MaterialRecords, this.LightRecords);
         this.ConstructEmissiveLights();
 
@@ -430,8 +433,8 @@ class IlluminationHost
         this.Orbit = new VehicleOrbitCamera();
         if (this.Lobby)
         {
-            // 📝 Configurator hero: deep graphite clearcoat on dark wheels, framed front-three-quarter.
-            this.Cabin.Appearance.Apply({ Colour: "#33363a", Matte: false, DarkWheels: true, BlueRims: false });
+            // 📝 The configurator's opening state on dark wheels: Nebula Silver gloss, the paint the Garage's shelf shows as chosen.
+            this.Cabin.Appearance.Reset({ DarkWheels: true, BlueRims: false });
             // 📝 Emissive lights on the wheels: the authored rim-accent facets become cool-white running lights,
             //    sampled as real lights by the emissive clusters and mirrored in the glossy floor.
             const Hub = this.Materials[CourseMaterial.Hub];
@@ -989,6 +992,12 @@ class IlluminationHost
                 return;
             }
             if (!this.FreeCamera && this.Settings.CameraMode === "HMI") {
+                // 📝 Over the Garage's stage the wheel is OrbitControls' dolly; anywhere else on the tablet it brings the tablet closer.
+                const Stage = TabletHit(Event);
+                if (Stage && this.Cabin.QueryStageContact(Stage.Across, Stage.Down)) {
+                    this.Garage.Zoom(Event.deltaY);
+                    return;
+                }
                 this.Settings.HmiZoom = Math.max(0.65, Math.min(2, this.Settings.HmiZoom * Math.exp(Event.deltaY * 0.001)));
                 return;
             }
