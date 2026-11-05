@@ -67,6 +67,7 @@ void DeployableUnit::ApplyInputPacket(const InputPacket& Packet, float StepSecon
     if (StepSeconds <= 0.0f)
         return;
     SecondsSinceSpawn += StepSeconds;
+    Inspection.Advance(StepSeconds);
 
     float Throttle = 0.0f, Brake = 0.0f, Handbrake = 0.0f;
     ResolveEffectivePedals(Packet, Throttle, Brake, Handbrake);

@@ -1,6 +1,14 @@
 // Shared vehicle materials: the Garage, mirrors and world all use these records.
 import { CourseMaterial, EncodeMaterialRecords, MaterialRecordBytes } from './MaterialSpecification.js';
-export const PaintColours = ['#a4d8be', '#d4bd88', '#9eb8df', '#e2ada4'];
+// 📝 The paint shelf, from the reference configurator (interactive-vehicle-hmi-configurator):
+//    name + finish. The HMI's only vehicle control for now — everything else about the car is fixed.
+export const PaintOptions = Object.freeze([
+    { Name: 'Nebula Silver', Hex: '#c2c8d0' }, { Name: 'Obsidian Black', Hex: '#17191d' },
+    { Name: 'Command Red', Hex: '#8a1a1d' },   { Name: 'Tactical Blue', Hex: '#1c3f73' },
+    { Name: 'Moab Sand', Hex: '#b2946a' },     { Name: 'Recon Green', Hex: '#33442f' },
+    { Name: 'Arctic White', Hex: '#e7ebef' },  { Name: 'Copper Bronze', Hex: '#8c5a2e' }
+]);
+export const PaintColours = PaintOptions.map(Option => Option.Hex);
 export function LinearColour(Hex) {
     if (!/^#[0-9a-f]{6}$/i.test(Hex)) throw new TypeError('Expected #RRGGBB');
     return [1, 3, 5].map(Start => {

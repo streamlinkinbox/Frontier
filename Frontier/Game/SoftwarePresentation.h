@@ -7,6 +7,7 @@
 //    so the C++ Lobby can be *seen* and regression-checked anywhere; the GLFW/WebGPU front-end replaces
 //    this class, nothing else.
 
+#include "Frontier/Engine/Effects/VehicleInspection.h"
 #include "Frontier/Engine/Scene/FacetArchive.h"
 
 #include <array>
@@ -24,6 +25,7 @@ struct PresentationVehicle
     std::array<float, 3> PositionMetres = { 0.0f, 0.0f, 0.53f };
     float YawDegrees = 0.0f;
     std::array<float, 3> Paint = { 0.20f, 0.21f, 0.23f };   // linear-ish albedo tint
+    VehicleInspection Inspection{};   // visual effect for this presentation of the vehicle
 };
 
 // 📝 Renders one frame of the studio: white cyclorama floor disc, the softbox overhead, and the vehicles.

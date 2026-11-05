@@ -11,7 +11,7 @@
 #include "Frontier/Engine/Input/SyntheticDriver.h"
 #include "Frontier/Engine/Session/LevelTransition.h"
 #include "Frontier/Engine/Session/SessionSpace.h"
-#include "Frontier/Game/LobbyGame.h"
+#include "Frontier/Engine/Session/LobbySession.h"
 #include "Projects/Everest/Source/Session/SessionPolicy.h"
 
 #include <cmath>
@@ -235,7 +235,7 @@ int main()
 
     // --- The Lobby as the game opens it: policy-read limits, one vehicle, empty tablet ---------------
     {
-        LobbyGame Game;
+        LobbySession Game;
         const SessionSpace& Session = Game.QuerySession();
         Check(Game.QueryCurrentLevelPath().find("Lobby") != std::string::npos, "the game opens on the Lobby level");
         Check(Session.QueryPolicy() && Session.QueryPolicy()->QueryPolicyName() == "LobbyPolicy", "the Lobby policy is assigned");
@@ -258,6 +258,24 @@ int main()
         Check(!Game.IsDebugPopupOpen() && Game.QueryCurrentLevelPath().find("ProvingGrounds") != std::string::npos,
               "the popup switches level and closes");
         Check(Game.QuerySession().QueryPlayers().size() == 5, "players are preserved across the debug switch");
+    }
+
+    // --- X-ray scan (visual effect): views, ghosting, the travelling band ----------------------------
+    {
+        VehicleInspection Inspection;
+        Check(Inspection.ResolveFaceOpacity() == 1.0f && !Inspection.ShowsHiddenEdges(), "solid view is opaque, no hidden edges");
+        Inspection.Cycle();
+        Check(Inspection.View == InspectionView::Ghost && Near(Inspection.ResolveFaceOpacity(), 0.45f), "ghost view ghosts faces at 45%");
+        Inspection.Cycle();
+        Check(Inspection.View == InspectionView::Wireframe && Inspection.ResolveFaceOpacity() == 0.0f, "wireframe draws no faces");
+        Inspection.Cycle();
+        Check(Inspection.View == InspectionView::Scan && Inspection.ShowsHiddenEdges(), "scan is an X-ray family view");
+        Inspection.ScanSeconds = 1.6f;
+        Check(Near(Inspection.ResolveScanFraction(), 0.5f, 0.01f), "the scan band sits mid-car half a period in");
+        Inspection.Advance(3.2f);
+        Check(Inspection.ResolveScanFraction() < 0.51f, "the band wraps nose-to-tail");
+        Inspection.Cycle();
+        Check(Inspection.View == InspectionView::Solid, "cycling returns to solid");
     }
 
     std::printf("SessionValidation: %d checks, %d failures\n", Checks, Failures);

@@ -17,7 +17,7 @@ test('paint and rim records update the shared world material buffer only', () =>
     assert.equal(Materials[CourseMaterial.BodyCoat].Roughness, 0.0775);
     assert.throws(() => Appearance.Apply({ Colour: 'bad' }));
 });
-test('Garage controls apply materials and cycle all inspection modes', () => {
+test('Garage controls are paint only: swatches apply named finishes to the live vehicle', () => {
     const Screen = Object.create(ScreenSequence.prototype);
     Object.assign(Screen, { Regions: [], Preview: { External: true, Facets: 2924 },
         Appearance: new VehicleAppearance(ConstructMaterialSpecification(), () => {}) });
@@ -25,60 +25,33 @@ test('Garage controls apply materials and cycle all inspection modes', () => {
     Screen.RasterApplicationContent('garage');
     const Click = Id => Screen.Regions.find(Region => Region.Identifier === Id).Action();
     Click('colour:2');
-    assert.equal(Screen.Appearance.Colour, '#9eb8df');
-    Click('finish'); assert.equal(Screen.Appearance.Matte, true);
-    Click('wheels'); assert.equal(Screen.Appearance.DarkWheels, true);
-    for (const Mode of [1, 2, 3, 0]) { Click('inspection'); assert.equal(Screen.Appearance.View, Mode); }
+    assert.equal(Screen.Appearance.Colour, '#8a1a1d');   // Command Red
+    assert.equal(Screen.FinishColour, '#8a1a1d');
+    for (const Removed of ['finish', 'wheels', 'blue-rims', 'inspection', 'preview-spin'])
+        assert.ok(!Screen.Regions.find(Region => Region.Identifier === Removed), Removed + ' is not a Garage control any more');
+    assert.equal(Screen.Regions.filter(Region => Region.Identifier.startsWith('colour:')).length, 8);
 });
 
-test('material drags only apply on the matching picked car surface and cancel safely', () => {
+test('paint drags only apply on the car body, and cancel safely', () => {
     const Screen = Object.create(ScreenSequence.prototype);
     Object.assign(Screen, { Regions: [], Preview: { External: true, Facets: 2924,
         Pick: () => ({ Occupant: 0, Family: CourseMaterial.BodyCoat }) },
         Appearance: new VehicleAppearance(ConstructMaterialSpecification(), () => {}) });
     for (const Name of ['RasterRectangle', 'RasterText', 'RasterRule']) Screen[Name] = () => {};
     Screen.RasterApplicationContent('garage');
-    Screen.ForwardPointer('down', 790, 480);
+    Screen.ForwardPointer('down', 790, 500);
     Screen.ForwardPointer('move', 400, 450);
     Screen.ForwardPointer('up', 400, 450);
-    assert.equal(Screen.Appearance.Colour, '#a4d8be');
-    Screen.ForwardPointer('down', 920, 480);
-    Screen.ForwardPointer('move', 20, 20);
-    Screen.ForwardPointer('up', 20, 20);
-    assert.equal(Screen.Appearance.Colour, '#a4d8be');
+    assert.equal(Screen.Appearance.Colour, '#c2c8d0');   // Nebula Silver, dragged onto the body
     Screen.Preview.Pick = () => ({ Occupant: 1, Family: CourseMaterial.Hub });
-    Screen.ForwardPointer('down', 920, 620);
+    Screen.ForwardPointer('down', 790, 500);
     Screen.ForwardPointer('move', 400, 450);
     Screen.ForwardPointer('up', 400, 450);
-    assert.equal(Screen.Appearance.DarkWheels, true);
-    Screen.ForwardPointer('down', 790, 480);
+    assert.equal(Screen.Appearance.Colour, '#c2c8d0');   // paint on a wheel is not a paint surface
+    Screen.ForwardPointer('down', 790, 500);
     Screen.ForwardPointer('move', 400, 450);
     Screen.ForwardPointer('cancel', 400, 450);
     assert.equal(Screen.DragMaterial, null);
-});
-
-test('blue emissive rim and matte finishes can be dragged onto their matching surfaces', () => {
-    const Screen = Object.create(ScreenSequence.prototype);
-    const Materials = ConstructMaterialSpecification();
-    Object.assign(Screen, { Regions: [], Preview: { External: true, Facets: 2924, Spin: true,
-        Pick: () => ({ Occupant: 1, Family: CourseMaterial.Hub }) },
-        Appearance: new VehicleAppearance(Materials, () => {}) });
-    for (const Name of ['RasterRectangle', 'RasterText', 'RasterRule']) Screen[Name] = () => {};
-    Screen.Appearance.Apply({ DarkWheels: true });
-    Screen.RasterApplicationContent('garage');
-    Screen.ForwardPointer('down', 1050, 620);
-    Screen.ForwardPointer('move', 400, 450);
-    assert.equal(Screen.Preview.Spin,false);
-    Screen.ForwardPointer('up', 400, 450);
-    assert.equal(Screen.Preview.Spin,true);
-    assert.equal(Screen.Appearance.BlueRims,true);
-    assert.equal(Screen.Appearance.DarkWheels,false);
-    assert.ok(Materials[CourseMaterial.Hub].Emission[2] > 0);
-    Screen.Preview.Pick = () => ({ Occupant: 0, Family: CourseMaterial.BodyCoat });
-    Screen.ForwardPointer('down', 790, 620);
-    Screen.ForwardPointer('move', 400, 450);
-    Screen.ForwardPointer('up', 400, 450);
-    assert.equal(Screen.Appearance.Matte,true);
 });
 
 test('rim finish changes affect selected accent faces, never the black rim base or tyre', () => {

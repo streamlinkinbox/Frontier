@@ -1,13 +1,13 @@
 /*==========================================================================================================================================
-                                                              LOBBYGAME.CPP
+                                                              LOBBYSESSION.CPP
 ==========================================================================================================================================*/
 
-#include "Frontier/Game/LobbyGame.h"
+#include "Frontier/Engine/Session/LobbySession.h"
 
 namespace Frontier
 {
 
-LobbyGame::LobbyGame(SessionConfiguration InitialConfiguration) : Configuration(std::move(InitialConfiguration))
+LobbySession::LobbySession(SessionConfiguration InitialConfiguration) : Configuration(std::move(InitialConfiguration))
 {
     // 📝 The default level is the Lobby: the session opens there, under the policy the configuration names.
     //    Creating the room reads its rules from that policy (capacity five, no respawn, no derez) — nothing
@@ -29,14 +29,14 @@ LobbyGame::LobbyGame(SessionConfiguration InitialConfiguration) : Configuration(
 #endif
 }
 
-void LobbyGame::Step(float StepSeconds)
+void LobbySession::Step(float StepSeconds)
 {
     Session.StepSession(StepSeconds);
     Transition.TryTransition(Session);   // the rules decide; mostly this does nothing
 }
 
 #if FRONTIER_DEBUG_LEVEL_SWITCH
-void LobbyGame::HandleDebugKeys(bool Control, bool Shift, bool KeyL, bool Escape, int Digit)
+void LobbySession::HandleDebugKeys(bool Control, bool Shift, bool KeyL, bool Escape, int Digit)
 {
     const bool ComboDown = Control && Shift && KeyL;
     if (ComboDown && !DebugComboWasDown)
@@ -53,7 +53,7 @@ void LobbyGame::HandleDebugKeys(bool Control, bool Shift, bool KeyL, bool Escape
         SwitchLevelForDebug(static_cast<size_t>(Digit - 1));
 }
 
-bool LobbyGame::SwitchLevelForDebug(size_t Index)
+bool LobbySession::SwitchLevelForDebug(size_t Index)
 {
     if (Index >= DebugLevels.size())
         return false;

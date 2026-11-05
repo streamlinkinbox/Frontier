@@ -1,5 +1,5 @@
 import { CourseMaterial } from "../MaterialSpecification.js";
-import { PaintColours } from "../VehicleAppearance.js";
+import { PaintOptions } from "../VehicleAppearance.js";
 //============================================================================================================================================
 //                                                            SCREENSEQUENCE.JS
 //============================================================================================================================================
@@ -658,30 +658,20 @@ export class ScreenSequence
             this.AdmitRegion("preview-orbit", 78, 248, 640, 400, null, { Orbit: true });
             this.RasterText("YOUR GARAGE", 762, 291, 12, "#98a98f");
             this.RasterText("ControlVehicle", 760, 349, 39, "#dce8cc", "left", 300);
-            this.RasterText("Click a finish or drag paint/rims onto the car.", 763, 392, 17, "#849c81");
-            this.RasterText("Apply body paint · live vehicle material", 763, 440, 15, "#c5d9ba");
-            for (const [Index, Colour] of PaintColours.entries())
+            this.RasterText("The car in the well is your car, rendered live — it only", 763, 392, 17, "#849c81");
+            this.RasterText("turns on its turntable. Drag to look around it.", 763, 418, 17, "#849c81");
+            // 📝 Paint is the only vehicle control for now: eight finishes, applied to the live vehicle
+            //    material — the well, the mirrors and the car in the world all wear it at once.
+            this.RasterText("PAINT", 763, 466, 12, "#98a98f");
+            for (const [Index, Paint] of PaintOptions.entries())
             {
-                const Left = 762 + (Index % 2) * 128, Top = 462 + Math.floor(Index / 2) * 74;
-                this.RasterRectangle(Left, Top, 110, 58, 16, Colour, this.FinishColour === Colour ? "#e8e8d5" : null);
-                this.AdmitRegion("colour:" + Index, Left, Top, 110, 58, () => { this.FinishColour = Colour; this.Appearance?.Apply({ Colour }); this.Notice = "Paint applied to the live vehicle."; this.Dirty = true; }, { Material: { Kind: "paint", Colour } });
+                const Left = 762 + (Index % 2) * 128, Top = 488 + Math.floor(Index / 2) * 62;
+                this.RasterRectangle(Left, Top, 110, 44, 16, Paint.Hex, this.FinishColour === Paint.Hex ? "#e8e8d5" : null);
+                this.AdmitRegion("colour:" + Index, Left, Top, 110, 44, () => { this.FinishColour = Paint.Hex; this.Appearance?.Apply({ Colour: Paint.Hex }); this.Notice = Paint.Name + " applied to the live vehicle."; this.Dirty = true; }, { Material: { Kind: "paint", Colour: Paint.Hex } });
             }
-            this.RasterButton("finish", this.Appearance?.Matte ? "Matte coat" : "Gloss coat", 762, 606, 115, 36,
-                () => { this.Appearance?.Apply({ Matte: !this.Appearance.Matte }); this.Dirty = true; });
-            this.RasterButton("wheels", this.Appearance?.DarkWheels ? "Dark rims" : "Alloy rims", 885, 606, 115, 36,
-                () => { this.Appearance?.Apply({ DarkWheels: !this.Appearance.DarkWheels, BlueRims: false }); this.Dirty = true; });
-            const RimRegion = this.Regions.find(Region => Region.Identifier === "wheels");
-            if (RimRegion) RimRegion.Material = { Kind: "wheel", DarkWheels: !this.Appearance?.DarkWheels, BlueRims: false };
-            this.RasterButton("blue-rims", "Blue accents", 1008, 606, 128, 36,
-                () => { this.Appearance?.Apply({ DarkWheels: false, BlueRims: true }); this.Dirty = true; });
-            const BlueRegion = this.Regions.find(R => R.Identifier === "blue-rims");
-            if (BlueRegion) BlueRegion.Material = { Kind: "wheel", DarkWheels: false, BlueRims: true };
-            const FinishRegion = this.Regions.find(R => R.Identifier === "finish");
-            if (FinishRegion) FinishRegion.Material = { Kind: "finish", Matte: !this.Appearance?.Matte };
-            this.RasterButton("inspection", ["Solid", "Ghost", "Wireframe", "Scan"][this.Appearance?.View || 0], 762, 650, 238, 36,
-                () => { if (this.Appearance) this.Appearance.View = (this.Appearance.View + 1) % 4; this.Dirty = true; });
-            this.RasterButton("preview-spin", Preview?.Spin ? "Pause turntable" : "Resume turntable", 762, 694, 238, 36,
-                () => { if (Preview) { Preview.Spin = !Preview.Spin; Preview.Dirty = true; this.Dirty = true; } }, "#243931", "#acbba8");
+            const Chosen = PaintOptions.find(Paint => Paint.Hex === this.FinishColour);
+            this.RasterText(Chosen ? Chosen.Name : "Custom finish", 763, 488 + 4 * 62 + 16, 19, "#d7e7df");
+            this.RasterText("Click a finish, or drag one onto the car.", 763, 488 + 4 * 62 + 44, 14, "#849c81");
         }
         else
         {

@@ -1,6 +1,6 @@
 #pragma once
 /*==========================================================================================================================================
-                                                               LOBBYGAME.H
+                                                               LOBBYSESSION.H
 ==========================================================================================================================================*/
 // 🧩 The game, at this step: it opens on the Lobby (the car studio) because that is the default level, it
 //    holds one vehicle with a steering wheel and an (empty) tablet, and its room is a SessionSpace whose
@@ -27,10 +27,10 @@ struct GameLevelEntry
     std::string PolicyName;
 };
 
-class LobbyGame
+class LobbySession
 {
   public:
-    explicit LobbyGame(SessionConfiguration Configuration = {});
+    explicit LobbySession(SessionConfiguration Configuration = {});
 
     // 📝 Construction has already opened the Lobby: session begun under the configured lobby policy, local
     //    player joined and deployed, one vehicle standing in the studio.

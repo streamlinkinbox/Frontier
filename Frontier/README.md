@@ -50,7 +50,7 @@ What was not kept, and why:
 
 ## The game (C++ Lobby)
 
-`Frontier/Game/LobbyGame` is the game at this step. It opens on the **Lobby by default**,
+`Frontier/Engine/Session/LobbySession` is the game at this step. It opens on the **Lobby by default**,
 builds its room by reading the assigned policy (`LobbyPolicy`: at most **5 players**, **no
 respawn**, **no derez**, parked spawn), and stands **one vehicle** in the studio — the same
 ControlVehicle, from the same `FCT1` facet archives as the HTML renderer
@@ -61,13 +61,24 @@ normal all-ready transition is a **debug-only popup**: `Ctrl+Shift+L`, then a di
 (`FRONTIER_DEBUG_LEVEL_SWITCH=0` compiles it out).
 
 ```sh
-g++ -std=c++17 -I. Frontier/Game/LobbyGameMain.cpp Frontier/Engine/Input/*.cpp \
+g++ -std=c++17 -I. Frontier/Game/LobbySessionMain.cpp Frontier/Engine/Input/*.cpp \
     Frontier/Engine/Scene/*.cpp Frontier/Engine/Session/*.cpp Frontier/Game/*.cpp \
-    Projects/Everest/Source/Session/*.cpp -o /tmp/LobbyGame
-/tmp/LobbyGame --guests 4 --render /tmp/lobby.ppm   # CPU presentation: Game/SoftwarePresentation
+    Projects/Everest/Source/Session/*.cpp -o /tmp/LobbySession
+/tmp/LobbySession --guests 4 --render /tmp/lobby.ppm   # CPU presentation: Game/SoftwarePresentation
 ```
 
-`Game/LobbyPreview.png` is that render: five cars in the circle, the softbox overhead, the
+`VisualProof/LobbyPreview.png` is that render: five cars in the circle, the softbox overhead, the
 hero's cyan wheel light — the C++ counterpart of the prototype's Lobby, before any GPU
 front-end. A GLFW window (with `FRONTIER_WITH_GLFW`) and the WebGPU presentation replace
 `SoftwarePresentation` without touching the session, policy or vehicle code.
+
+## Where things live
+
+- **Visual effects** (anything that changes how a vehicle is *looked at*, never how it behaves):
+  `Frontier/Engine/Effects/` — first resident is `VehicleInspection` (Solid / Ghost / Wireframe /
+  **X-ray Scan**, the travelling band; `VisualProof/XRayScanPreview.png`, render with
+  `LobbySession --xray`). Presentations read it; physics and the session never do.
+- **Session and its policies**: `Frontier/Engine/Session/` — including `LobbySession`, the game
+  session that opens on the Lobby. (There is deliberately no `LobbyGame`.)
+- **Render proof** belongs in `VisualProof/` at the repository root, as in the editor exhibits —
+  not beside the code that produced it.

@@ -110,6 +110,32 @@ void Triangle(Frame& Target, const Projector& Camera, const Vec3 World[3], const
         }
 }
 
+void Edge(Frame& Target, const Projector& Camera, const Vec3& A, const Vec3& B, const std::array<float, 3>& Colour)
+{
+    float Ax, Ay, Az, Bx, By, Bz;
+    if (!Camera.Project(A, Ax, Ay, Az) || !Camera.Project(B, Bx, By, Bz))
+        return;
+    const float X0 = (Ax * 0.5f + 0.5f) * Target.Width, Y0 = (0.5f - Ay * 0.5f) * Target.Height;
+    const float X1 = (Bx * 0.5f + 0.5f) * Target.Width, Y1 = (0.5f - By * 0.5f) * Target.Height;
+    const int Steps = static_cast<int>(std::max(std::fabs(X1 - X0), std::fabs(Y1 - Y0)));
+    if (Steps <= 0)
+        return;
+    for (int Step = 0; Step <= Steps; ++Step)
+    {
+        const float T = static_cast<float>(Step) / static_cast<float>(Steps);
+        const int X = static_cast<int>(X0 + (X1 - X0) * T), Y = static_cast<int>(Y0 + (Y1 - Y0) * T);
+        if (X < 0 || Y < 0 || X >= Target.Width || Y >= Target.Height)
+            continue;
+        const float Z = 1.0f / ((1.0f - T) / Az + T / Bz);
+        const int Index = Y * Target.Width + X;
+        if (Z < Target.Depth[Index])
+        {
+            Target.Depth[Index] = Z;
+            Target.Colour[Index] = Colour;
+        }
+    }
+}
+
 void Quad(Frame& Target, const Projector& Camera, const Vec3 Corners[4], const std::array<float, 3>& Albedo, float Emission)
 {
     const Vec3 First[3] = { Corners[0], Corners[1], Corners[2] };
@@ -150,23 +176,51 @@ Vec3 Transform(const Vec3& Local, const Vec3& Origin, float CosYaw, float SinYaw
 
 void DrawArchive(Frame& Target, const Projector& Camera, const FacetArchiveData& Archive,
                  const Vec3& Origin, float YawDegrees, float ZRebase, float YSign,
-                 const std::array<float, 3>& Paint)
+                 const std::array<float, 3>& Paint, const VehicleInspection& Inspection = {})
 {
     const float Yaw = YawDegrees * Pi / 180.0f;
     const float Cos = std::cos(Yaw), Sin = std::sin(Yaw);
+    const float Opacity = Inspection.ResolveFaceOpacity();
+    const float Length = std::max(Archive.BoundsMaximum[0] - Archive.BoundsMinimum[0], 1e-4f);
     for (uint32_t Facet = 0; Facet < Archive.FacetCount; ++Facet)
     {
         Vec3 World[3];
+        float CentreX = 0.0f;
         for (int Corner = 0; Corner < 3; ++Corner)
         {
             const uint32_t Vertex = Archive.Facets[Facet * 3 + Corner];
             const Vec3 Local = { Archive.Positions[Vertex * 3], YSign * Archive.Positions[Vertex * 3 + 1],
                                  Archive.Positions[Vertex * 3 + 2] - ZRebase };
+            CentreX += Local.X;
             World[Corner] = Transform(Local, Origin, Cos, Sin);
         }
+        // 📝 The X-ray scan: a bright band travelling nose → tail (fraction of the authored length).
+        const float ScanFraction = (CentreX / 3.0f - Archive.BoundsMinimum[0]) / Length;
+        const bool InBand = Inspection.View == InspectionView::Scan
+            && std::fabs(ScanFraction - Inspection.ResolveScanFraction()) < 0.07f;
+        if (Inspection.View == InspectionView::Wireframe)
+        {
+            Edge(Target, Camera, World[0], World[1], { 0.65f, 0.85f, 0.90f });
+            Edge(Target, Camera, World[1], World[2], { 0.65f, 0.85f, 0.90f });
+            Edge(Target, Camera, World[2], World[0], { 0.65f, 0.85f, 0.90f });
+            continue;
+        }
         float Emission = 0.0f;
-        const auto Albedo = FamilyAlbedo(Archive.Families[Facet], Paint, Emission);
+        auto Albedo = FamilyAlbedo(Archive.Families[Facet], Paint, Emission);
+        if (Opacity < 1.0f)   // ghost toward the studio haze
+        {
+            const std::array<float, 3> Haze = { 0.62f, 0.66f, 0.70f };
+            for (int Channel = 0; Channel < 3; ++Channel)
+                Albedo[Channel] = Albedo[Channel] * Opacity + Haze[Channel] * (1.0f - Opacity);
+        }
+        if (InBand)
+        {
+            Albedo = { 0.35f, 0.85f, 0.95f };
+            Emission += 1.1f;
+        }
         Triangle(Target, Camera, World, Albedo, Emission);
+        if (Inspection.ShowsHiddenEdges() && InBand)
+            Edge(Target, Camera, World[0], World[1], { 0.75f, 0.95f, 1.0f });
     }
 }
 
@@ -220,7 +274,7 @@ bool RenderLobbyPpm(const std::string& Path, const std::vector<PresentationVehic
     {
         const Vec3 Origin = { Vehicle.PositionMetres[0], Vehicle.PositionMetres[1], Vehicle.PositionMetres[2] };
         if (Vehicle.Body && Vehicle.Body->IsValid())
-            DrawArchive(Target, Camera, *Vehicle.Body, Origin, Vehicle.YawDegrees, 0.11285f, 1.0f, Vehicle.Paint);
+            DrawArchive(Target, Camera, *Vehicle.Body, Origin, Vehicle.YawDegrees, 0.11285f, 1.0f, Vehicle.Paint, Vehicle.Inspection);
         if (Vehicle.Tyre && Vehicle.Tyre->IsValid())
         {
             // Hubs at the axle mounts (body frame), mirrored on the right side.

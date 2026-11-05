@@ -22,6 +22,7 @@ add_library(FrontierSession STATIC
     Engine/Session/SessionSpace.cpp
     Engine/Session/TransferConfiguration.cpp
     Engine/Session/LevelTransition.cpp
+    Engine/Session/LobbySession.cpp
     ../Projects/Everest/Source/Session/SessionPolicy.cpp)
 target_include_directories(FrontierSession PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_features(FrontierSession PUBLIC cxx_std_17)
@@ -29,8 +30,8 @@ target_compile_features(FrontierSession PUBLIC cxx_std_17)
 add_executable(SessionValidation ../Validation/SessionValidation.cpp)
 target_link_libraries(SessionValidation PRIVATE FrontierSession)
 
-add_library(FrontierGame STATIC Game/LobbyGame.cpp Game/SoftwarePresentation.cpp)
+add_library(FrontierGame STATIC Game/SoftwarePresentation.cpp)
 target_link_libraries(FrontierGame PUBLIC FrontierSession)
 
-add_executable(LobbyGame Game/LobbyGameMain.cpp)
-target_link_libraries(LobbyGame PRIVATE FrontierGame)
+add_executable(LobbySession Game/LobbySessionMain.cpp)
+target_link_libraries(LobbySession PRIVATE FrontierGame FrontierSession)

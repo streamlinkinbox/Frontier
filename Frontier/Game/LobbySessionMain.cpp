@@ -1,15 +1,15 @@
 /*==========================================================================================================================================
-                                                            LOBBYGAMEMAIN.CPP
+                                                            LOBBYSESSIONMAIN.CPP
 ==========================================================================================================================================*/
 // 🧩 The game, headless: opens on the Lobby (the default level), joins the local player under the Lobby
 //    policy, steps the session, exercises the debug level switch, and — with --render — draws the studio
 //    through the software presentation so the C++ Lobby can be seen without a GPU.
 //
-//      LobbyGame [--archive DIR] [--render out.ppm] [--guests N]
+//      LobbySession [--archive DIR] [--render out.ppm] [--guests N] [--xray]
 //
 //    The facet archives are the vehicle's own (Experimental/VehicleHmiPrototype/Archive by default).
 
-#include "Frontier/Game/LobbyGame.h"
+#include "Frontier/Engine/Session/LobbySession.h"
 #include "Frontier/Game/SoftwarePresentation.h"
 
 #include <cstdio>
@@ -23,17 +23,20 @@ int main(int ArgumentCount, char** Arguments)
     std::string ArchiveDirectory = "Experimental/VehicleHmiPrototype/Archive";
     std::string RenderPath;
     int Guests = 0;
+    bool XRay = false;
     for (int Index = 1; Index < ArgumentCount; ++Index)
     {
         if (std::strcmp(Arguments[Index], "--archive") == 0 && Index + 1 < ArgumentCount)
             ArchiveDirectory = Arguments[++Index];
         else if (std::strcmp(Arguments[Index], "--render") == 0 && Index + 1 < ArgumentCount)
             RenderPath = Arguments[++Index];
+        else if (std::strcmp(Arguments[Index], "--xray") == 0)
+            XRay = true;
         else if (std::strcmp(Arguments[Index], "--guests") == 0 && Index + 1 < ArgumentCount)
             Guests = std::atoi(Arguments[++Index]);
     }
 
-    LobbyGame Game;
+    LobbySession Game;
     const SessionSpace& Session = Game.QuerySession();
     std::printf("level: %s (policy: %s)\n", Game.QueryCurrentLevelPath().c_str(),
                 Session.QueryPolicy() ? Session.QueryPolicy()->QueryPolicyName().data() : "none");
@@ -121,6 +124,11 @@ int main(int ArgumentCount, char** Arguments)
                 Vehicle.PositionMetres = Unit->QueryPositionMetres();
                 Vehicle.YawDegrees = Unit->QueryYawDegrees();
                 Vehicle.Paint = Paints[Index % 5];
+                if (XRay && Index == 0)
+                {
+                    Vehicle.Inspection.View = InspectionView::Scan;
+                    Vehicle.Inspection.ScanSeconds = 1.6f;   // band mid-car for the still
+                }
                 Vehicles.push_back(Vehicle);
             }
             ++Index;
