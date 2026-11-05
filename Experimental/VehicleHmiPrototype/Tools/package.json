@@ -1,0 +1,24 @@
+{
+  "name": "illumination-host-tools",
+  "private": true,
+  "type": "module",
+  "description": "Headless validation and software rendering of the IlluminationHost exhibit through Dawn (webgpu).",
+  "scripts": {
+    "validate": "node HeadlessHarness.mjs .. 12 \"?capture=1\"",
+    "test": "node --test *.test.mjs",
+    "test:stability": "node VehicleStability.mjs ..",
+    "validate:effects": "HOOKS=VehicleEffectsHooks.mjs node HeadlessHarness.mjs .. 36 \"?capture=1\"",
+    "validate:slate": "HOOKS=SlateIntegrationHooks.mjs node HeadlessHarness.mjs .. 48 \"?capture=1\"",
+    "validate:orbit": "HOOKS=VehicleOrbitHooks.mjs node HeadlessHarness.mjs .. 30 \"?capture=1\"",
+    "test:gpu": "RUN_GPU=1 node --test GpuExecuted.test.mjs",
+    "validate:screen": "node HeadlessHarness.mjs .. 12 \"?capture=1&screentraces=1\"",
+    "validate:modes": "node ValidateModes.mjs 8",
+    "validate:emissive": "HOOKS=EmissiveHooks.mjs node HeadlessHarness.mjs .. 6 \"?capture=1\"",
+    "test:gpu:all": "RUN_GPU=1 node --test *.test.mjs",
+    "bench:cpu": "HOOKS=CpuBenchHooks.mjs node HeadlessHarness.mjs .. 3 \"?capture=1\"",
+    "bench": "node RunBenchmark.mjs"
+  },
+  "devDependencies": {
+    "webgpu": "0.6.2"
+  }
+}
