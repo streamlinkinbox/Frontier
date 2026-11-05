@@ -1748,3 +1748,16 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   Surface, Networking (networked switch + role readout), Fracture/Modifiers.
 - **Prototype:** `Exhibits/FormInspector/Prototype/FormInspector.html` (single-file interactive mock,
   no banned vocabulary). Lights explicitly deferred by owner 2026-11-05.
+
+#### Unified editor (2026-11-05, branch `arena/c8d71a98-frontier`)
+
+- **Decision (owner):** no separate editors — one Frontier editor window whose inspector hosts
+  **workspaces** (Form / Light / Fracture / Rig) that follow the selection's `RecordClassification`.
+  Absorbs the Light Studio branch (`Experimental/Editors/LightStudio`, IES + spot photometry) and the
+  Fracture workspace branch (`Experimental/FractureEditor`, runtime BSP + baked Navier-Cauchy) as
+  workspaces, not executables.
+- **Foundations already present:** GPU picking (`SceneViewport::PickOccupants` + `PickProjection` +
+  `SceneViewportPresentation` pick contract), outliner (`SceneDirectoryPanel` + category tabs),
+  `RecordClassification` (Vehicle/Tyre/Geometry/Illumination/...) driving workspace choice.
+- **Prototype:** `Exhibits/UnifiedEditor/Prototype/UnifiedEditor.html` — vehicle example, viewport
+  click-pick + directory selection, per-classification workspaces, no banned vocabulary.

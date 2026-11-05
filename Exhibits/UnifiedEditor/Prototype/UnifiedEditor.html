@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontier — Unified Editor (prototype)</title>
+<style>
+  :root{
+    --bg:#101216; --panel:#1a1d24; --panel2:#22262f; --line:#2c313c;
+    --ink:#d7dbe2; --dim:#8b93a3; --accent:#57c7d4; --amber:#e8a33d;
+    --good:#7fce7f; --warn:#e06c5b;
+  }
+  *{box-sizing:border-box; font-family:"Segoe UI",system-ui,sans-serif;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-size:13px; height:100vh; display:flex; flex-direction:column;}
+  header{display:flex; align-items:center; gap:14px; padding:8px 14px; background:var(--panel); border-bottom:1px solid var(--line);}
+  header .brand{font-weight:700;} header .brand span{color:var(--accent);} header .proj{color:var(--dim);}
+  .quick{margin-left:auto; display:flex; gap:8px; align-items:center;}
+  .quick .lbl{color:var(--dim); font-size:12px;}
+  .qtile{display:flex; align-items:center; gap:7px; background:var(--panel2); border:1px solid var(--line);
+    border-radius:7px; padding:5px 10px; cursor:pointer; user-select:none;}
+  .qtile .disc{width:9px; height:9px; border-radius:50%; background:#4a5160;}
+  .qtile.on{border-color:var(--accent);} .qtile.on .disc{background:var(--accent); box-shadow:0 0 6px var(--accent);}
+  main{flex:1; display:grid; grid-template-columns:270px 1fr 350px; min-height:0;}
+  #dir{background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0;}
+  #dir h2, #insp h2{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--dim); margin:0; padding:10px 12px 4px;}
+  #tabs{display:flex; gap:6px; padding:2px 12px 8px; flex-wrap:wrap;}
+  #tabs .tab{font-size:11px; color:var(--dim); border:1px solid var(--line); border-radius:11px; padding:2px 9px; cursor:pointer;}
+  #tabs .tab.on{color:var(--ink); border-color:var(--accent);}
+  #tree{overflow:auto; padding:0 6px 10px; flex:1;}
+  .row{display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:6px; cursor:pointer; white-space:nowrap;}
+  .row:hover{background:var(--panel2);} .row.sel{background:#2b3a44; outline:1px solid var(--accent);}
+  .row .caret{width:14px; color:var(--dim); font-size:10px;}
+  .row .dot{width:8px; height:8px; border-radius:2px; background:var(--amber); flex:none;}
+  .row .dot.ill{background:var(--accent);} .row .dot.veh{background:#c96f2e;}
+  .row .nm{flex:1; overflow:hidden; text-overflow:ellipsis;}
+  .row .cls{font-size:10px; color:var(--dim);}
+  .kids{margin-left:16px; border-left:1px solid var(--line); padding-left:4px;}
+  #view{position:relative; background:#0b0e13; min-width:0; display:flex; flex-direction:column;}
+  #view svg{flex:1; min-height:0;}
+  #vlabel{position:absolute; top:8px; left:10px; color:var(--dim); font-size:12px; background:#14161cd0; padding:3px 9px; border-radius:6px; border:1px solid var(--line);}
+  #pickflash{position:absolute; border:2px solid var(--accent); border-radius:8px; pointer-events:none; display:none; box-shadow:0 0 12px var(--accent);}
+  #insp{background:var(--panel); border-left:1px solid var(--line); display:flex; flex-direction:column; min-height:0;}
+  #wspills{display:flex; gap:6px; padding:6px 12px 2px;}
+  #wspills .pill{flex:1; text-align:center; font-size:12px; padding:5px 0; border-radius:7px; cursor:pointer;
+    background:var(--panel2); border:1px solid var(--line); color:var(--dim);}
+  #wspills .pill.on{color:var(--ink); border-color:var(--amber); background:#2c2620;}
+  #wspills .pill.na{opacity:.35; cursor:default;}
+  #page{overflow:auto; flex:1;}
+  .sec{border-top:1px solid var(--line); padding:8px 12px 10px;}
+  .sec h3{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--accent); margin:2px 0 8px;}
+  .kv{display:flex; justify-content:space-between; gap:8px; padding:2px 0;}
+  .kv .k{color:var(--dim);} .kv .v{text-align:right;}
+  .mono{font-family:Consolas,monospace; font-size:12px;}
+  select,button{font-size:13px; color:var(--ink); background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:5px 8px;}
+  select{width:100%; margin:2px 0 6px;}
+  button{cursor:pointer;} button:hover{border-color:var(--accent);}
+  .btnrow{display:flex; gap:8px; margin-top:6px;} .btnrow button{flex:1;}
+  .switchrow{display:flex; justify-content:space-between; align-items:center; padding:3px 0;}
+  .sw{width:34px; height:18px; border-radius:10px; background:#4a5160; position:relative; cursor:pointer; flex:none;}
+  .sw::after{content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#cfd4dd; transition:left .12s;}
+  .sw.on{background:var(--accent);} .sw.on::after{left:18px;}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  .note{color:var(--dim); font-size:12px; margin-top:6px; line-height:1.45;}
+  .good{color:var(--good);} .bad{color:var(--warn);}
+  .meter{height:8px; border-radius:4px; background:#2a2f3a; margin:6px 0 2px; overflow:hidden;}
+  .meter i{display:block; height:100%; background:var(--good); border-radius:4px;}
+  canvas.polar{width:100%; height:150px; background:#14161c; border:1px solid var(--line); border-radius:8px;}
+  footer{background:var(--panel); border-top:1px solid var(--line); padding:6px 14px; color:var(--dim);
+    font-family:Consolas,monospace; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  footer b{color:var(--amber); font-weight:600;}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">FRONTIER <span>•</span> Project Everest</div>
+  <div class="proj">Unified editor — one inspector, workspaces follow the selection</div>
+  <div class="quick"><span class="lbl">Quick Actions</span>
+    <div class="qtile on" id="qnet"><span class="disc"></span>Networking</div>
+    <div class="qtile on" id="qcol"><span class="disc"></span>Collision</div>
+  </div>
+</header>
+<main>
+  <div id="dir"><h2>Scene Directory</h2><div id="tabs"></div><div id="tree"></div></div>
+  <div id="view"><div id="vlabel">Viewport — click the vehicle, ramp, or a lamp to pick it</div>
+    <svg id="stage" viewBox="0 0 680 400" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="pickflash"></div>
+  </div>
+  <div id="insp"><h2>Inspector</h2><div id="wspills"></div><div id="page"></div></div>
+</main>
+<footer id="log"><b>ready</b> — pick in the viewport (simulated GPU pick) or the directory; the inspector workspace follows</footer>
+<script>
+"use strict";
+// ---------------------------------------------------------------- records
+// Classification follows RecordClassification (Vehicle, Tyre, Geometry, Illumination, ...).
+// Workspaces: Form (geometry), Light (illumination), Fracture (geometry + fracture rig), Rig (vehicle/tyre).
+const RECORDS = new Map([
+  ["vehicle", {name:"Test Vehicle", cls:"Vehicle", kids:["chassis","wfl","wfr","wrl","wrr","lampl","lampr"], net:true}],
+  ["chassis", {name:"Chassis", cls:"Geometry", kids:[], net:true, src:"ShapeArchive / SaloonBody", facets:"4,860",
+    col:"Hull", phys:"Moving", frac:true, integrity:100, shards:0}],
+  ["wfl", {name:"Wheel FL", cls:"Tyre", kids:[], net:true, src:"ShapeArchive / Wheel", facets:"640", rig:"corner FL · driven"}],
+  ["wfr", {name:"Wheel FR", cls:"Tyre", kids:[], net:true, src:"ShapeArchive / Wheel", facets:"640", rig:"corner FR · driven"}],
+  ["wrl", {name:"Wheel RL", cls:"Tyre", kids:[], net:true, src:"ShapeArchive / Wheel", facets:"640", rig:"corner RL · free"}],
+  ["wrr", {name:"Wheel RR", cls:"Tyre", kids:[], net:true, src:"ShapeArchive / Wheel", facets:"640", rig:"corner RL · free"}],
+  ["lampl", {name:"Headlamp L", cls:"Illumination", kids:[], net:true, kind:"spot", intensity:2400, inner:12, outer:28}],
+  ["lampr", {name:"Headlamp R", cls:"Illumination", kids:[], net:true, kind:"ies", intensity:1500, inner:35, outer:65}],
+  ["ramp", {name:"Access Ramp", cls:"Geometry", kids:[], net:false, src:"ShapeArchive / Wedge", facets:"12",
+    col:"Triangles", phys:"Fixed", frac:false}],
+  ["sun", {name:"Driving Sun", cls:"Illumination", kids:[], net:false, kind:"spot", intensity:9000, inner:4, outer:9}],
+]);
+const ROOTS = ["vehicle","ramp","sun"];
+const PARENT = new Map();
+for (const [id, r] of RECORDS) for (const k of r.kids) PARENT.set(k, id);
+
+let selected = "chassis";
+let workspace = "Form";
+let collisionShown = true, networkingOn = true, tabFilter = "All";
+const folded = new Set();
+
+function queryWorkspaces(id){
+  const r = RECORDS.get(id);
+  if (r.cls === "Geometry") return r.frac ? ["Form","Fracture"] : ["Form"];
+  if (r.cls === "Illumination") return ["Light"];
+  if (r.cls === "Vehicle" || r.cls === "Tyre") return ["Rig"];
+  return ["Form"];
+}
+function assignSelection(id, via){
+  selected = id;
+  const avail = queryWorkspaces(id);
+  if (!avail.includes(workspace)) workspace = avail[0];
+  drawTree(); drawInspector(); drawStage();
+  if (via === "pick") flashPick(id);
+  say(`selected ${RECORDS.get(id).name} (${RECORDS.get(id).cls}) via ${via} — workspace: ${workspace}`);
+}
+
+// ---------------------------------------------------------------- directory
+const tree = document.getElementById("tree");
+const tabsBox = document.getElementById("tabs");
+function drawTabs(){
+  const counts = new Map([["All", RECORDS.size]]);
+  for (const [, r] of RECORDS) counts.set(r.cls, (counts.get(r.cls) || 0) + 1);
+  tabsBox.innerHTML = "";
+  for (const t of ["All","Vehicle","Geometry","Tyre","Illumination"]){
+    const d = document.createElement("div");
+    d.className = "tab" + (tabFilter === t ? " on" : "");
+    d.textContent = `${t} ${counts.get(t) || 0}`;
+    d.addEventListener("click", () => { tabFilter = t; drawTabs(); drawTree(); });
+    tabsBox.appendChild(d);
+  }
+}
+function rowVisible(id){
+  if (tabFilter === "All") return true;
+  const r = RECORDS.get(id);
+  if (r.cls === tabFilter) return true;
+  return r.kids.some(rowVisible);
+}
+function drawTree(){
+  tree.innerHTML = "";
+  const paint = (box, id) => {
+    if (!rowVisible(id)) return;
+    const r = RECORDS.get(id);
+    const row = document.createElement("div");
+    row.className = "row" + (id === selected ? " sel" : "");
+    const dot = r.cls === "Illumination" ? "ill" : (r.cls === "Vehicle" || r.cls === "Tyre") ? "veh" : "";
+    row.innerHTML = `<span class="caret">${r.kids.length ? (folded.has(id) ? "▸" : "▾") : ""}</span>` +
+      `<span class="dot ${dot}"></span><span class="nm">${r.name}</span><span class="cls">${r.cls}</span>`;
+    row.querySelector(".caret").addEventListener("click", (ev) => {
+      ev.stopPropagation(); if (!r.kids.length) return;
+      folded.has(id) ? folded.delete(id) : folded.add(id); drawTree();
+    });
+    row.addEventListener("click", () => assignSelection(id, "directory"));
+    box.appendChild(row);
+    if (r.kids.length && !folded.has(id)){
+      const sub = document.createElement("div"); sub.className = "kids"; box.appendChild(sub);
+      for (const k of r.kids) paint(sub, k);
+    }
+  };
+  for (const r of ROOTS) paint(tree, r);
+}
+
+// ---------------------------------------------------------------- inspector
+const page = document.getElementById("page");
+const pills = document.getElementById("wspills");
+const COLLIDERS = ["None","Bounds","Box","Hull","Triangles"];
+function drawInspector(){
+  const r = RECORDS.get(selected);
+  const avail = queryWorkspaces(selected);
+  const all = ["Form","Light","Fracture","Rig"];
+  pills.innerHTML = "";
+  for (const w of all){
+    const on = avail.includes(w);
+    const d = document.createElement("div");
+    d.className = "pill" + (w === workspace ? " on" : "") + (on ? "" : " na");
+    d.textContent = w;
+    if (on) d.addEventListener("click", () => { workspace = w; drawInspector(); drawStage(); say(`workspace → ${w}`); });
+    pills.appendChild(d);
+  }
+  const parent = PARENT.get(selected);
+  const ident = `<div class="sec"><h3>Identity</h3>
+    <div class="kv"><span class="k">Name</span><span class="v">${r.name}</span></div>
+    <div class="kv"><span class="k">Classification</span><span class="v">${r.cls}</span></div>
+    <div class="kv"><span class="k">Parent</span><span class="v">${parent ? RECORDS.get(parent).name : "— (root)"}</span></div>
+    <div class="kv"><span class="k">Children</span><span class="v">${r.kids.length}</span></div></div>`;
+  if (workspace === "Form") page.innerHTML = ident + formWorkspace(r);
+  else if (workspace === "Light") page.innerHTML = ident + lightWorkspace(r);
+  else if (workspace === "Fracture") page.innerHTML = ident + fractureWorkspace(r);
+  else page.innerHTML = ident + rigWorkspace(r);
+  wireInspector(r);
+}
+function formWorkspace(r){
+  return `<div class="sec"><h3>Geometry</h3>
+    <div class="kv"><span class="k">Source</span><span class="v mono">${r.src || "—"}</span></div>
+    <div class="kv"><span class="k">Facets</span><span class="v mono">${r.facets || "—"}</span></div>
+    <div class="btnrow"><button id="bre">Reimport</button><button id="brep">Replace…</button></div></div>
+  <div class="sec"><h3>Collision</h3>
+    <select id="csel">${COLLIDERS.map(c => `<option${c === r.col ? " selected" : ""}>${c}</option>`).join("")}</select>
+    <div class="kv"><span class="k">Participation</span><span class="v">${r.phys || "—"}</span></div>
+    <div class="note">${r.col === "Triangles" ? "Exact triangle collider — the ramp reads as a slope." :
+      r.col === "Hull" ? "Convex hull — tight for the chassis." :
+      r.col === "Bounds" ? "Legacy box over world bounds." : "No collider."}</div></div>
+  <div class="sec"><h3>Networking</h3>
+    <div class="switchrow"><span>Networked</span><div class="sw${r.net ? " on" : ""}" id="nsw"></div></div>
+    <div class="kv"><span class="k">Role</span><span class="v">${r.net ? (networkingOn ? "host replicates / client absorbs" : "held (session off)") : "local only"}</span></div></div>`;
+}
+function lightWorkspace(r){
+  return `<div class="sec"><h3>Luminaire</h3>
+    <div class="btnrow"><button id="mies" class="${r.kind === "ies" ? "" : ""}">IES profile</button><button id="mspot">Spotlight</button></div>
+    <div class="kv"><span class="k">Distribution</span><span class="v">${r.kind === "ies" ? "IES · Type C" : "Spot · smooth cone"}</span></div>
+    <div class="kv"><span class="k">Peak</span><span class="v mono">${r.intensity} cd</span></div>
+    <canvas class="polar" id="polar" width="600" height="300"></canvas>
+    <div class="note">Lobe from the authored distribution (ported Light Studio photometry).</div></div>
+  <div class="sec"><h3>Levels</h3>
+    <div class="kv"><span class="k">Intensity</span><span class="v mono" id="vint">${r.intensity} cd</span></div>
+    <input type="range" id="rint" min="0" max="10000" step="50" value="${r.intensity}">
+    <div class="kv"><span class="k">Inner half-angle</span><span class="v mono" id="vinn">${r.inner}°</span></div>
+    <input type="range" id="rinn" min="0" max="89" step="1" value="${r.inner}">
+    <div class="kv"><span class="k">Outer half-angle</span><span class="v mono" id="vout">${r.outer}°</span></div>
+    <input type="range" id="rout" min="1" max="90" step="1" value="${r.outer}"></div>
+  <div class="sec"><h3>Library</h3>
+    <div class="btnrow"><button id="bpre1">Narrow</button><button id="bpre2">Wide</button></div>
+    <div class="btnrow"><button id="bimp">Import .ies</button><button id="bexp">Export .ies</button></div>
+    <div class="note">Profiles live on the record — no sidecar library, no second editor.</div></div>`;
+}
+function fractureWorkspace(r){
+  const pct = r.integrity;
+  return `<div class="sec"><h3>Fracture rig</h3>
+    <div class="kv"><span class="k">Pipeline</span><span class="v">Runtime BSP + baked archive</span></div>
+    <div class="kv"><span class="k">Integrity</span><span class="v mono">${pct}%</span></div>
+    <div class="meter"><i id="imeter" style="width:${pct}%; background:${pct > 60 ? "var(--good)" : pct > 25 ? "var(--amber)" : "var(--warn)"}"></i></div>
+    <div class="kv"><span class="k">Loose shards</span><span class="v mono">${r.shards}</span></div>
+    <div class="btnrow"><button id="bstrike">Strike</button><button id="brestore">Restore</button></div>
+    <div class="note">Strike runs the runtime solver at the pick point; Restore re-seats every shard.</div></div>
+  <div class="sec"><h3>Bake</h3>
+    <div class="kv"><span class="k">Archive</span><span class="v mono">chassis.fracture</span></div>
+    <div class="kv"><span class="k">Piece atlas</span><span class="v mono">64³ SDF</span></div>
+    <div class="btnrow"><button id="bbake">Bake archive</button></div></div>`;
+}
+function rigWorkspace(r){
+  const kids = r.kids.length
+    ? `<div class="kv"><span class="k">Corners</span><span class="v">${r.kids.filter(k => RECORDS.get(k).cls === "Tyre").length} tyres · ${r.kids.filter(k => RECORDS.get(k).cls === "Illumination").length} lamps</span></div>`
+    : `<div class="kv"><span class="k">Corner</span><span class="v">${r.rig || "—"}</span></div>`;
+  return `<div class="sec"><h3>Vehicle rig</h3>${kids}
+    <div class="kv"><span class="k">Physics</span><span class="v">Simulation rig (existing)</span></div>
+    <div class="note">Tyres and lamps stay rig-driven; geometry and light workspaces tune their look.</div></div>`;
+}
+function wireInspector(r){
+  const csel = document.getElementById("csel");
+  if (csel) csel.addEventListener("change", (ev) => { r.col = ev.target.value; drawInspector(); drawStage(); say(`${r.name} collider → ${r.col}`); });
+  const nsw = document.getElementById("nsw");
+  if (nsw) nsw.addEventListener("click", () => { r.net = !r.net; drawInspector(); say(`${r.name} ${r.net ? "joins" : "leaves"} replication`); });
+  const bre = document.getElementById("bre");
+  if (bre) bre.addEventListener("click", () => say(`reimported ${r.name} from ${r.src} — facets rebuilt, collider refreshed`));
+  const brep = document.getElementById("brep");
+  if (brep) brep.addEventListener("click", () => say(`Replace… opens the source picker (readers register per format)`));
+  const mies = document.getElementById("mies"), mspot = document.getElementById("mspot");
+  if (mies) mies.addEventListener("click", () => { r.kind = "ies"; drawInspector(); drawStage(); say(`${r.name} → IES profile`); });
+  if (mspot) mspot.addEventListener("click", () => { r.kind = "spot"; drawInspector(); drawStage(); say(`${r.name} → spotlight`); });
+  const bind = (id, vid, fmt, fn) => {
+    const s = document.getElementById(id);
+    if (!s) return;
+    s.addEventListener("input", () => { fn(Number(s.value)); document.getElementById(vid).textContent = fmt(Number(s.value)); drawLobe(r); drawStage(); });
+  };
+  bind("rint", "vint", v => `${v} cd`, v => r.intensity = v);
+  bind("rinn", "vinn", v => `${v}°`, v => { r.inner = Math.min(v, r.outer - 1); });
+  bind("rout", "vout", v => `${v}°`, v => { r.outer = Math.max(v, r.inner + 1); });
+  const pre = (id, vals) => { const b = document.getElementById(id); if (b) b.addEventListener("click", () => {
+    [r.intensity, r.inner, r.outer] = vals; drawInspector(); drawStage(); say(`preset → ${r.intensity} cd · ${r.inner}°/${r.outer}°`); }); };
+  pre("bpre1", [2400, 12, 28]); pre("bpre2", [1500, 35, 65]);
+  const bimp = document.getElementById("bimp");
+  if (bimp) bimp.addEventListener("click", () => { r.kind = "ies"; drawInspector(); say(`imported .ies onto ${r.name} (LM-63 Type C, TILT=NONE)`); });
+  const bexp = document.getElementById("bexp");
+  if (bexp) bexp.addEventListener("click", () => say(`exported ${r.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.ies (absolute photometry, one C-plane)`));
+  const bstrike = document.getElementById("bstrike");
+  if (bstrike) bstrike.addEventListener("click", () => {
+    r.integrity = Math.max(5, r.integrity - 34); r.shards += 3; drawInspector(); drawStage();
+    say(`strike on ${r.name} — integrity ${r.integrity}%, ${r.shards} loose shards`);
+  });
+  const brestore = document.getElementById("brestore");
+  if (brestore) brestore.addEventListener("click", () => { r.integrity = 100; r.shards = 0; drawInspector(); drawStage(); say(`${r.name} restored — every shard re-seated`); });
+  const bbake = document.getElementById("bbake");
+  if (bbake) bbake.addEventListener("click", () => say(`baking chassis.fracture — Navier-Cauchy lattice + 64³ piece atlas (author-time)`));
+  if (workspace === "Light") drawLobe(r);
+}
+function drawLobe(r){
+  const cv = document.getElementById("polar");
+  if (!cv) return;
+  const ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
+  ctx.fillStyle = "#14161c"; ctx.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = 56, maxR = Math.min(W * 0.38, H * 0.6);
+  ctx.strokeStyle = "#ffffff14";
+  for (let i = 1; i <= 4; i++){ ctx.beginPath(); ctx.arc(cx, cy, maxR * i / 4, 0, Math.PI); ctx.stroke(); }
+  const prof = (a) => { // smooth cone between inner/outer half-angles
+    if (a <= r.inner) return 1;
+    if (a >= r.outer) return 0;
+    const t = (a - r.inner) / (r.outer - r.inner);
+    return 0.5 + 0.5 * Math.cos(t * Math.PI);
+  };
+  ctx.beginPath(); ctx.moveTo(cx, cy);
+  for (let a = -90; a <= 90; a += 2){
+    const rad = a * Math.PI / 180, rr = maxR * prof(Math.abs(a));
+    ctx.lineTo(cx + Math.sin(rad) * rr, cy + Math.cos(rad) * rr);
+  }
+  ctx.closePath();
+  const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, maxR);
+  glow.addColorStop(0, "#f5d5a8bb"); glow.addColorStop(0.55, "#d2a27470"); glow.addColorStop(1, "#b6814e18");
+  ctx.fillStyle = glow; ctx.fill();
+  ctx.strokeStyle = "#e4be98"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "#9aa2b1"; ctx.font = "20px sans-serif";
+  ctx.fillText(`${r.intensity} cd · ${r.inner}°/${r.outer}° · ${r.kind === "ies" ? "IES" : "SPOT"}`, 16, H - 16);
+}
+
+// ---------------------------------------------------------------- stage
+const stage = document.getElementById("stage");
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs){
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function drawStage(){
+  stage.innerHTML = "";
+  stage.appendChild(el("rect", {x:0, y:0, width:680, height:400, fill:"#0e1420"}));
+  for (let gx = 0; gx < 680; gx += 40)
+    stage.appendChild(el("line", {x1:gx, y1:0, x2:gx, y2:400, stroke:"#161c29", "stroke-width":1}));
+  // sun
+  const sun = RECORDS.get("sun");
+  const sunG = el("g", {cursor:"pointer"});
+  sunG.appendChild(el("circle", {cx:600, cy:52, r:24, fill:"#e8c33d", opacity:0.9}));
+  sunG.appendChild(el("circle", {cx:600, cy:52, r:34, fill:"none", stroke:"#e8c33d", opacity:0.35}));
+  sunG.addEventListener("click", () => assignSelection("sun", "pick"));
+  if (selected === "sun") sunG.appendChild(el("circle", {cx:600, cy:52, r:40, fill:"none", stroke:"#57c7d4", "stroke-width":2}));
+  stage.appendChild(sunG);
+  // ground + ramp
+  stage.appendChild(el("rect", {x:0, y:320, width:680, height:80, fill:"#232936"}));
+  const rampG = el("g", {cursor:"pointer"});
+  rampG.appendChild(el("polygon", {points:"60,320 260,320 260,262", fill:"#39445c"}));
+  rampG.addEventListener("click", () => assignSelection("ramp", "pick"));
+  if (selected === "ramp") rampG.appendChild(el("polygon", {points:"60,320 260,320 260,262", fill:"none", stroke:"#57c7d4", "stroke-width":2}));
+  stage.appendChild(rampG);
+  // headlamp beams (follow the lamp sliders)
+  for (const id of ["lampl","lampr"]){
+    const L = RECORDS.get(id);
+    const spread = 26 + L.outer * 1.1, len = 150 + L.intensity / 60, op = 0.10 + Math.min(0.30, L.intensity / 30000);
+    const y0 = id === "lampl" ? 272 : 282;
+    stage.appendChild(el("polygon", {points:`470,${y0} 660,${y0 - spread} 660,${y0 + spread}`, fill:"#f5d5a8", opacity:op.toFixed(2)}));
+  }
+  // vehicle body (chassis) with fracture shards
+  const ch = RECORDS.get("chassis");
+  const bodyG = el("g", {cursor:"pointer"});
+  bodyG.appendChild(el("polygon", {points:"300,320 300,282 330,282 345,258 425,258 445,282 470,282 470,320", fill:"#c96f2e"}));
+  bodyG.appendChild(el("polygon", {points:"350,262 420,262 432,278 342,278", fill:"#1a2030"}));
+  if (ch.shards > 0){
+    const cracks = ["360,270 372,292 366,312", "395,266 388,290 398,314", "420,272 430,294 424,316",
+      "345,282 358,300 352,318", "408,280 418,300 412,318", "375,268 380,292 374,316"];
+    for (let i = 0; i < Math.min(ch.shards * 2, cracks.length); i++)
+      bodyG.appendChild(el("polyline", {points:cracks[i], fill:"none", stroke:"#14161c", "stroke-width":2}));
+  }
+  bodyG.addEventListener("click", () => assignSelection("chassis", "pick"));
+  if (selected === "chassis") bodyG.appendChild(el("polygon", {points:"300,320 300,282 330,282 345,258 425,258 445,282 470,282 470,320", fill:"none", stroke:"#57c7d4", "stroke-width":2}));
+  stage.appendChild(bodyG);
+  // wheels
+  const wheels = [["wfl",335,320],["wfr",362,320],["wrl",440,320],["wrr",413,320]];
+  for (const [id, cx, cy] of wheels){
+    const w = el("g", {cursor:"pointer"});
+    w.appendChild(el("circle", {cx, cy, r:20, fill:"#151a24", stroke:"#8b93a3", "stroke-width":4}));
+    w.appendChild(el("circle", {cx, cy, r:6, fill:"#3a4356"}));
+    w.addEventListener("click", (ev) => { ev.stopPropagation(); assignSelection(id, "pick"); });
+    if (selected === id) w.appendChild(el("circle", {cx, cy, r:25, fill:"none", stroke:"#57c7d4", "stroke-width":2}));
+    stage.appendChild(w);
+  }
+  // lamps
+  const lamps = [["lampl",470,272],["lampr",470,282]];
+  for (const [id, cx, cy] of lamps){
+    const L = RECORDS.get(id);
+    const g = el("g", {cursor:"pointer"});
+    g.appendChild(el("rect", {x:cx - 4, y:cy - 5, width:10, height:10, rx:2, fill:"#f5d5a8", opacity:0.95}));
+    g.addEventListener("click", (ev) => { ev.stopPropagation(); assignSelection(id, "pick"); });
+    if (selected === id) g.appendChild(el("rect", {x:cx - 9, y:cy - 10, width:20, height:20, fill:"none", stroke:"#57c7d4", "stroke-width":2}));
+    stage.appendChild(g);
+  }
+  drawOverlay();
+}
+function drawOverlay(){
+  if (!collisionShown) return;
+  const r = RECORDS.get(selected);
+  if (!r.col || r.col === "None") return;
+  const g = el("g", {fill:"none", stroke:"#7fce7f", "stroke-width":2});
+  const dash = r.col === "Bounds" ? {"stroke-dasharray":"7 5", stroke:"#e06c5b"} : {};
+  if (selected === "ramp"){
+    if (r.col === "Bounds") g.appendChild(el("rect", {x:44, y:246, width:232, height:90, ...dash}));
+    else g.appendChild(el("polygon", {points:"60,320 260,320 260,262", ...dash}));
+    if (r.col === "Triangles")
+      for (let i = 1; i < 6; i++){
+        const t = i / 6, x = 60 + 200 * t, y = 320 - 58 * t;
+        g.appendChild(el("line", {x1:x.toFixed(1), y1:y.toFixed(1), x2:x.toFixed(1), y2:320, "stroke-width":1}));
+      }
+  }
+  if (selected === "chassis")
+    g.appendChild(el("polygon", {points:"300,320 300,282 330,282 345,258 425,258 445,282 470,282 470,320", ...dash}));
+  if (g.childNodes.length) stage.appendChild(g);
+}
+// pick flash: brief ring at the picked drawing's bounds
+function flashPick(id){
+  const box = {chassis:[296,254,178,70], ramp:[56,258,208,66], sun:[556,8,88,88],
+    wfl:[310,295,50,50], wfr:[337,295,50,50], wrl:[415,295,50,50], wrr:[388,295,50,50],
+    lampl:[457,258,28,28], lampr:[457,268,28,28]}[id];
+  if (!box) return;
+  const svg = stage.getBoundingClientRect(), f = document.getElementById("pickflash");
+  const sx = svg.width / 680, sy = svg.height / 400;
+  f.style.display = "block";
+  f.style.left = (box[0] * sx) + "px"; f.style.top = (box[1] * sy) + "px";
+  f.style.width = (box[2] * sx) + "px"; f.style.height = (box[3] * sy) + "px";
+  setTimeout(() => f.style.display = "none", 650);
+}
+
+// ---------------------------------------------------------------- chrome
+const log = document.getElementById("log");
+function say(text){ log.innerHTML = `<b>•</b> ${text}`; }
+document.getElementById("qcol").addEventListener("click", (ev) => {
+  collisionShown = !collisionShown;
+  ev.currentTarget.classList.toggle("on", collisionShown);
+  drawStage();
+  say(`collision overlay ${collisionShown ? "shown" : "hidden"}`);
+});
+document.getElementById("qnet").addEventListener("click", (ev) => {
+  networkingOn = !networkingOn;
+  ev.currentTarget.classList.toggle("on", networkingOn);
+  drawInspector();
+  say(`networking ${networkingOn ? "enabled" : "disabled"}`);
+});
+
+drawTabs(); drawTree(); drawInspector(); drawStage();
+</script>
+</body>
+</html>
