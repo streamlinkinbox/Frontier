@@ -20,7 +20,9 @@ import assert from "node:assert/strict";
 const Plan = process.env.GARAGE_PLAN || "orbit";
 const Out  = process.env.GARAGE_OUT || "";
 const SweepStep  = Number(process.env.GARAGE_STEP || 1.0);   // [s] of scan clock between the plan's pictures
-const RippleStep = Number(process.env.GARAGE_STEP || 0.25);  // [s] of paint ripple between the plan's pictures
+// 📝 Paint ripple seconds the plan adds before each picture (frames 3, 4, ...): fine at first, where the wave crosses the car, then to its end.
+//    The host adds up to 0.05 s of its own on every frame; each picture's caption reads the clock it was drawn with.
+const RippleSteps = process.env.GARAGE_STEP ? [Number(process.env.GARAGE_STEP)] : [0.05, 0.1, 0.1, 0.15, 0.2, 0.3, 0.6, 1.0];
 let Canvas = null;
 try { Canvas = await import("@napi-rs/canvas"); } catch { console.log("no @napi-rs/canvas: the HUD's text is not drawn"); }
 
@@ -64,11 +66,14 @@ async function Dump(Host, Name)
         Sum += Luma;
         if (Luma > 60) Bright++;
     }
-    console.log(`garage ${Name}: ${Width}x${Height} mean ${(Sum / (Width * Height * 3)).toFixed(1)} lit ${(100 * Bright / (Width * Height)).toFixed(1)} %`);
+    const Drawn = { Ripple: Host.Garage.Metrics.Ripple, Scan: Host.Garage.Metrics.ScanDrawn };
+    console.log(`garage ${Name}: ${Width}x${Height} mean ${(Sum / (Width * Height * 3)).toFixed(1)} lit ${(100 * Bright / (Width * Height)).toFixed(1)} %`
+              + ` ripple ${Drawn.Ripple.Elapsed.toFixed(3)} s radius ${Drawn.Ripple.Radius.toFixed(2)} m, scan ${Drawn.Scan.Seconds.toFixed(2)} s front ${Drawn.Scan.Front.toFixed(2)} m`);
     if (Out)
     {
         fs.mkdirSync(Out, { recursive: true });
         fs.writeFileSync(path.join(Out, `${Plan}-${Name}.png`), globalThis.EncodePng(Pixels, Width, Height));
+        fs.writeFileSync(path.join(Out, `${Plan}-${Name}.json`), JSON.stringify({ Name, Width, Height, ...Drawn }));
     }
     return Pixels;
 }
@@ -112,13 +117,14 @@ export default {
             const Appearance = Host.Cabin.Appearance;
             if (Frame === 2)
             {
+                Dumps.Before = await Dump(Host, "ripple-00-before");   // the last picture drawn: the car as it opens, before the drop
                 const Pick = Garage.Pick(0.5, 0.55);
                 assert.ok(Pick, "the picture's centre picks the car");
                 Appearance.Paint({ Name: "Command Red", Hex: "#8a1a1d", Metallic: true }, "gloss", Pick.Point);
                 console.log("paint drop at", Pick.Point.map((Value) => Value.toFixed(2)).join(", "), "occupant", Pick.Occupant);
             }
-            if (Frame >= 3 && Frame < 8) StepRipple(Appearance, RippleStep);
-            if (Frame >= 3) Dumps[`Ripple${Frame}`] = await Dump(Host, `ripple-${String(Frame).padStart(2, "0")}`);
+            if (Frame >= 3 && Frame - 3 < RippleSteps.length) StepRipple(Appearance, RippleSteps[Frame - 3]);
+            if (Frame >= 3) Dumps[`Ripple${Frame}`] = await Dump(Host, `ripple-${String(Frame - 2).padStart(2, "0")}`);
         }
         else if (Plan === "scan")
         {

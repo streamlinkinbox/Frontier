@@ -32,6 +32,11 @@ ArchiveSets = {
     'ParticleSimulation': ('Frontier/Engine/Shaders/ParticleSimulation', ['ParticleSimulation', 'WindLattice', 'ParticleRasterization',
                                                                           'LightFibreRasterization', 'LensingRasterization'],
                            ['Frontier/Engine/Shaders/GlobalIllumination']),
+    # 📝 The X-ray scan's overlay unit includes the illumination port's intrinsics, scene layouts and surface raster (it reads the raster's group).
+    'XRayScan': ('Frontier/Engine/Shaders/XRayScan', ['XRayScanOverlay'], ['Frontier/Engine/Shaders/GlobalIllumination']),
+    # 📝 The plume's units include the illumination port's intrinsics, host constants, scene layouts, distance field march, refresh profile and sky projection.
+    'PlumeSimulation': ('Frontier/Engine/Shaders/PlumeSimulation', ['PlumeAdvection', 'PlumeVorticity', 'PlumePressure', 'PlumeMarch'],
+                        ['Frontier/Engine/Shaders/GlobalIllumination']),
     'Environment': ('Frontier/Engine/Shaders', ['AtmosphereScattering', 'AtmosphereProjection', 'VisibilityProjection',
                                                  'PlanetaryProjection', 'CloudShadowProjection', 'VolumetricClouds', 'FogSpace',
                                                  'OpticalLensFlare', 'PreviewRaster']),

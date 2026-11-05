@@ -64,6 +64,13 @@ export function SelectDrawRuns(Runs, Selected)
     return Result;
 }
 
+// 📝 The front's plane in world space: the car's forward axis and the offset that puts the front Front metres along the car from its middle, so
+//    dot(P, xyz) + w is the distance past the front and the sweep follows the car wherever it stands.
+export function ResolveScanPlane(Stage, Front)
+{
+    return [Stage.Forward[0], Stage.Forward[1], Stage.Forward[2], -DotVector(Stage.Origin, Stage.Forward) - Front];
+}
+
 // 📝 128 occupant bits in four words, the layout of FrameRecord.HiddenOccupants and ScannedOccupants.
 export function EncodeOccupantMask(Indices)
 {
@@ -383,7 +390,7 @@ export class GarageView
         this.Active = true;
         const { Frame, Camera } = this.ResolveStage();
         const Scan = this.Scan;
-        const Plane = [Frame.Forward[0], Frame.Forward[1], Frame.Forward[2], -DotVector(Frame.Origin, Frame.Forward) - Scan.Front];
+        const Plane = ResolveScanPlane(Frame, Scan.Front);
         const Composed = Host.ComposeViewRecord({
             Main: false, ScreenExtent: this.Extent, TraceExtent: this.TraceExtent, TraceScaleUsed: this.TraceScaleUsed, Tick: this.Tick,
             PreviousUnjittered: this.PreviousUnjittered, Restart: this.Restart,
@@ -421,6 +428,10 @@ export class GarageView
         this.Restart = false;
         this.Tick++;
         this.Metrics.Recorded++;
+        // 📝 What this picture was drawn with, for the evidence's captions: the ripple's clock and radius, the scan's clock and front.
+        const Ripple = Host.Cabin.Appearance.Ripple;
+        this.Metrics.Ripple = { Elapsed: Ripple.Active ? Ripple.Elapsed : 0.0, Radius: Ripple.Active ? Ripple.Reached : 0.0 };
+        this.Metrics.ScanDrawn = { Seconds: Scan.SweepSeconds, Front: Scan.Front, Amount: Scan.Amount };
         return true;
     }
 

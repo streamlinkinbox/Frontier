@@ -74,10 +74,14 @@ front-end. A GLFW window (with `FRONTIER_WITH_GLFW`) and the WebGPU presentation
 
 ## Where things live
 
-- **Visual effects** (anything that changes how a vehicle is *looked at*, never how it behaves):
-  `Frontier/Engine/Effects/` — first resident is `VehicleInspection` (Solid / Ghost / Wireframe /
-  **X-ray Scan**, the travelling band; `VisualProof/XRayScanPreview.png`, render with
-  `LobbySession --xray`). Presentations read it; physics and the session never do.
+- **Visual effects** (anything that changes how a vehicle is *looked at*, never how it behaves): a rendering
+  effect is an engine rendering system — the **X-ray scan** is `Frontier/Engine/Rendering/XRayScan/`, its Slang units
+  `Frontier/Engine/Shaders/XRayScan/`, its compiled archives `EngineContent/ShaderArchives/XRayScan/` and its evidence
+  `Exhibits/XRayScan/` (ported one to one from the HMI prototype: the clock, the solid fade, the ghost shell, the
+  wireframe, the curtain, the particles). `Frontier/Engine/Effects/VehicleInspection.h` is the older, approximate CPU
+  mirror (Solid / Ghost / Wireframe / a 3.2 s band; `VisualProof/XRayScanPreview.png`, `LobbySession --xray`) that the
+  software presentation still reads; it is superseded and goes when that presentation reads the XRayScan module.
+  Presentations read effects; physics and the session never do.
 - **Session and its policies**: `Frontier/Engine/Session/` — including `LobbySession`, the game
   session that opens on the Lobby. (There is deliberately no `LobbyGame`.)
 - **Render proof** belongs in `VisualProof/` at the repository root, as in the editor exhibits —

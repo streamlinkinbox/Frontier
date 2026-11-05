@@ -31,14 +31,14 @@ fn ScanSparesFamily(Family: u32) -> bool
 // 📐 The scan's solid fade, Truck.tsx makeScannable() verbatim: sd = P.x − uScanX is the distance past the travelling front
 //    (positive where it has already passed), sf = smoothstep(−0.9, −0.05, sd) and the surface keeps 1 − sf · uHoloAmt · 0.965
 //    of its opacity. The plane carries the front in world space, so the sweep follows the car wherever it stands.
-fn ResolveScanPassed(Position: vec3f) -> f32
+fn ResolveFrontDistance(Position: vec3f) -> f32
 {
     return dot(Position, Frame.ScanPlane.xyz) + Frame.ScanPlane.w;
 }
 
 fn ResolveScanOpacity(Position: vec3f) -> f32
 {
-    return 1.0 - smoothstep(-0.9, -0.05, ResolveScanPassed(Position)) * Frame.ScanState.x * 0.965;
+    return 1.0 - smoothstep(-0.9, -0.05, ResolveFrontDistance(Position)) * Frame.ScanState.x * 0.965;
 }
 
 // 📐 The paint ripple, Truck.tsx makeScannable() verbatim: an expanding sphere about RippleCentre turns the body coat's colour,

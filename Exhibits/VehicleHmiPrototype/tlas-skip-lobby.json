@@ -17,14 +17,14 @@
         "Skipped": 0,
         "TlasWrites": 91,
         "TlasBytesWritten": 264992,
-        "UpdateTlasMeanMs": 0.18544513333329934
+        "UpdateTlasMeanMs": 0.22263000000001637
       },
       "SkipOn": {
         "Rebuilt": 1,
         "Skipped": 90,
         "TlasWrites": 1,
         "TlasBytesWritten": 2912,
-        "UpdateTlasMeanMs": 0.07752322222221059
+        "UpdateTlasMeanMs": 0.1531039999999646
       }
     },
     "VehicleFrozen": {
@@ -40,14 +40,14 @@
         "Skipped": 0,
         "TlasWrites": 91,
         "TlasBytesWritten": 264992,
-        "UpdateTlasMeanMs": 0.1797046333333583
+        "UpdateTlasMeanMs": 0.2820959666666416
       },
       "SkipOn": {
         "Rebuilt": 1,
         "Skipped": 90,
         "TlasWrites": 1,
         "TlasBytesWritten": 2912,
-        "UpdateTlasMeanMs": 0.0641464777777906
+        "UpdateTlasMeanMs": 0.11101498888887767
       }
     }
   },
@@ -55,14 +55,14 @@
     "Cached": {
       "Forced": false,
       "Calls": 300,
-      "MeanMs": 0.033729719999999665,
+      "MeanMs": 0.033002643333332644,
       "Skipped": 299,
       "Rebuilt": 1
     },
     "Forced": {
       "Forced": true,
       "Calls": 300,
-      "MeanMs": 0.08342220666666739,
+      "MeanMs": 0.11096315666666669,
       "Skipped": 0,
       "Rebuilt": 300
     },
@@ -73,6 +73,6 @@
       "UsedTlasNodes": 91,
       "ActiveInstances": 46
     },
-    "MeanMsSaved": 0.04969248666666772
+    "MeanMsSaved": 0.07796051333333404
   }
 }

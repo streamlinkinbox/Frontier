@@ -40,6 +40,8 @@ struct WorldBounds
 [[nodiscard]] double  ClampScalar(double Scalar, double Minimum, double Maximum) noexcept;
 [[nodiscard]] Vector3 RotateVector(const Vector4& Quaternion, const Vector3& Vector) noexcept;
 [[nodiscard]] Vector4 ConjugateQuaternion(const Vector4& Quaternion) noexcept;
+[[nodiscard]] Vector4 MultiplyQuaternion(const Vector4& Left, const Vector4& Right) noexcept;
+[[nodiscard]] Vector4 ConstructAxisQuaternion(const Vector3& Axis, double Angle) noexcept;
 
 [[nodiscard]] Transform ConstructIdentityTransform() noexcept;
 [[nodiscard]] Transform MultiplyTransform(const Transform& Left, const Transform& Right) noexcept;

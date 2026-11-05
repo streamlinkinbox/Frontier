@@ -101,7 +101,7 @@ fn GhostFragment(Varying: GhostVarying) -> @location(0) vec4f
     {
         discard;
     }
-    let ScanD  = ResolveScanPassed(Varying.World);
+    let ScanD  = ResolveFrontDistance(Varying.World);
     let Region = smoothstep(-0.9, -0.05, ScanD);
     let Vis    = Region * Frame.ScanState.x;
     if (Vis < 0.003 || ResolveOccluded(Varying.Position))
@@ -113,7 +113,10 @@ fn GhostFragment(Varying: GhostVarying) -> @location(0) vec4f
     let Height = dot(Varying.World - Scan.CarOrigin.xyz, Scan.CarUp.xyz) + Scan.CarOrigin.w;
     let Fres   = pow(1.0 - abs(dot(N, V)), 2.3);
     let Lines  = smoothstep(0.72, 1.0, sin(Height * 85.0) * 0.5 + 0.5);
-    let Edge   = exp(-pow((ScanD + 0.18) * 4.2, 2.0));
+    // 📝 The reference writes this as pow(x, 2.0) with x negative behind the line; GLSL and WGSL leave pow of a negative base undefined, so the
+    //    square is taken as a product, which is the same number wherever pow is defined.
+    let Reach  = (ScanD + 0.18) * 4.2;
+    let Edge   = exp(-(Reach * Reach));
     let Alpha  = (0.028 + Fres * 0.50 + Lines * 0.040 + Edge * 0.30) * Vis;
     let Colour = Scan.GhostColour.rgb + Scan.AccentColour.rgb * Edge * 1.15;
     return vec4f(Colour, Alpha);
@@ -180,7 +183,7 @@ fn EdgeVertex(@builtin(vertex_index) Corner: u32, @builtin(instance_index) Segme
 @fragment
 fn EdgeFragment(Varying: EdgeVarying) -> @location(0) vec4f
 {
-    if (ResolveScanPassed(Varying.World) < 0.05 || ResolveOccluded(Varying.Position))
+    if (ResolveFrontDistance(Varying.World) < 0.05 || ResolveOccluded(Varying.Position))
     {
         discard;
     }

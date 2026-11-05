@@ -127,6 +127,21 @@ Vector4 ConjugateQuaternion(const Vector4& Quaternion) noexcept
     return {-Quaternion[0], -Quaternion[1], -Quaternion[2], Quaternion[3]};
 }
 
+Vector4 MultiplyQuaternion(const Vector4& Left, const Vector4& Right) noexcept
+{
+    return {Left[3] * Right[0] + Left[0] * Right[3] + Left[1] * Right[2] - Left[2] * Right[1],
+            Left[3] * Right[1] - Left[0] * Right[2] + Left[1] * Right[3] + Left[2] * Right[0],
+            Left[3] * Right[2] + Left[0] * Right[1] - Left[1] * Right[0] + Left[2] * Right[3],
+            Left[3] * Right[3] - Left[0] * Right[0] - Left[1] * Right[1] - Left[2] * Right[2]};
+}
+
+Vector4 ConstructAxisQuaternion(const Vector3& Axis, double Angle) noexcept
+{
+    const double Half = 0.5 * Angle;
+    const double Sine = std::sin(Half);
+    return {Axis[0] * Sine, Axis[1] * Sine, Axis[2] * Sine, std::cos(Half)};
+}
+
 Transform ConstructIdentityTransform() noexcept
 {
     Transform Result{};

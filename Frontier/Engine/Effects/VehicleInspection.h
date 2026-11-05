@@ -7,6 +7,12 @@
 //    sweeps the car's length while hidden construction shows through. Physics, session rules and the
 //    packet contract never read this; only presentations do. That is why it lives under Effects/, not
 //    with the unit, the cabin fittings, or the session.
+//
+// ⚠️ Superseded. This is an approximate CPU mirror of the HMI's scan (one 3.2 s band, faces at 45 %), kept only because the software
+//    presentation (Game/SoftwarePresentation) and SessionValidation still read it. The X-ray scan itself — the 6.6 s cycle, the solid
+//    fade, the ghost shell, the feature-edge wireframe, the curtain and the particles — is Frontier/Engine/Rendering/XRayScan, ported
+//    one to one from the HMI prototype and validated against it (Exhibits/XRayScan). Retire this header once DeployableUnit,
+//    SoftwarePresentation and SessionValidation:265 read XRayScanSequence instead (Documentation/Tracker.md).
 
 #include <cstdint>
 
