@@ -1737,3 +1737,14 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
 - **Deviation:** the post-commit sync rule (`SultanAladin/Frontier arena/11f31835-frontier`) conflicts with
   Arena session-branch discipline; all work stays on `arena/c8d71a98-frontier` until the final PR.
 - **Evidence:** `Exhibits/Networking/` (this entry's validation ledger).
+
+#### Form inspector plan (2026-11-05, branch `arena/c8d71a98-frontier`)
+
+- **Name:** the user-facing unit is the **Form** (a placed geometry record with nested child forms).
+  `Object`/`Actor`/`Mesh`/`Asset` stay banned; storage stays `GeometryRecord`/`GeometryConfiguration`,
+  parenting already exists (`QueryParentToken`, `SceneDirectoryPanel` nesting).
+- **Form Inspector sections:** Identity, Transform, Geometry (format-agnostic source readout +
+  Reimport/Replace), Collision (type dropdown None/Bounds/Box/Hull/Triangles + physics switch),
+  Surface, Networking (networked switch + role readout), Fracture/Modifiers.
+- **Prototype:** `Exhibits/FormInspector/Prototype/FormInspector.html` (single-file interactive mock,
+  no banned vocabulary). Lights explicitly deferred by owner 2026-11-05.
