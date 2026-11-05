@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "set": "PlumeSimulation",
+  "compiler": "slangc 2026.14.1",
+  "refresh": "python Automation/StoreShaderArchives.py --build <build> --compiler <slangc or slang-wasm.js> --sets PlumeSimulation",
+  "entries": [
+    {
+      "file": "PlumeAdvection.AdvectThermo.spv",
+      "spirv_sha256": "567f2a1fc3036cac3c3b934322cd0096189827e905a82bf76f97d9b61da86fa0"
+    },
+    {
+      "file": "PlumeAdvection.AdvectVelocity.spv",
+      "spirv_sha256": "1b734f05029b6e9e4c9dae0e7c1ee6012588e04c7dd1ac5c2a09956df0749457"
+    },
+    {
+      "file": "PlumeAdvection.ResolveSunTransmittance.spv",
+      "spirv_sha256": "d215d9e4ac76e5d74885187f2a0addbb94a5ce9ec09d6a068babc32e839ad96f"
+    },
+    {
+      "file": "PlumeMarch.MarchPlume.spv",
+      "spirv_sha256": "ca5a5de18c40a879c528812447e7cc24341bc6bef71363e49c4b3c0a94349c26"
+    },
+    {
+      "file": "PlumePressure.ProjectVelocity.spv",
+      "spirv_sha256": "dd53aacd0ea247836591985eec81b0ddb4f8c694185f45979b056dd0ef5de4df"
+    },
+    {
+      "file": "PlumePressure.RelaxPressure.spv",
+      "spirv_sha256": "3e5bae0e727949b09f1cd24b099fef7c3649c0905b98df9548429be244675451"
+    },
+    {
+      "file": "PlumePressure.ResolveDivergence.spv",
+      "spirv_sha256": "46262bd9347b39b8a02555dbdd9303a445281c279b1d190c7523af4e1fcb5e8d"
+    },
+    {
+      "file": "PlumeVorticity.ConfineVorticity.spv",
+      "spirv_sha256": "f01016f4a8183680b58fb72caf9ced8adb7c6a1f85eceaad9f2fa1e1931ad644"
+    },
+    {
+      "file": "PlumeVorticity.ResolveCurl.spv",
+      "spirv_sha256": "fcdc14492b09244f63ac5d4e0262e936341ee3866f6a413cc62baacf66b34b19"
+    }
+  ],
+  "sources": [
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DistanceLayouts.slang",
+      "sha256": "fff038009ff54b252f26405513978f1c927c5c7e681bd650b3026316dfa8931a"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/DistanceMarch.slang",
+      "sha256": "4003d10d91b98f564d48d2276d23f551933208c7494f25191400343fc1f9b088"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/HostConstants.slang",
+      "sha256": "e7db94f4ed7070df8437a5462c47a95ddabf41c3498825c44675364fd631b3f1"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/IntrinsicParity.slang",
+      "sha256": "8073ff213243e2548ab7d7bc96fda2406ce9931f4e63279f624672beb5ca2c84"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/RefreshDescriptor.slang",
+      "sha256": "6250336931a7ca865cefb85beb450482f57e1d7f6c0b6c110b15008d6da85a5a"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/SceneLayouts.slang",
+      "sha256": "773d4e1b24f6c4256334c63c5cfa7fb77a733a28c0d5926be7e1b27aaaf560e2"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/GlobalIllumination/SkyProjection.slang",
+      "sha256": "d29ff5265079534c7439b1b3074c9bc5d13c03e85d27e914605efb69cbab7465"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/PlumeSimulation/PlumeAdvection.slang",
+      "sha256": "32e5553f473e4fbc7b07f619577c129c90412cecf2fb67e3a9b6c4482133866f"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/PlumeSimulation/PlumeLayouts.slang",
+      "sha256": "8fec8a9e1dad585cacb809ccfd8a0f757c32cf301b487d9340c0b9a3d29be210"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/PlumeSimulation/PlumeMarch.slang",
+      "sha256": "6737ab173cfc07e71d6bbf063c9c34016df66d607227e639565b46702ce52000"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/PlumeSimulation/PlumePressure.slang",
+      "sha256": "2ac22a12b623439852fb0bf7b710ca806175d68ff470c784e0ddfea4c3b01aba"
+    },
+    {
+      "file": "Frontier/Engine/Shaders/PlumeSimulation/PlumeVorticity.slang",
+      "sha256": "0a51ab0290bf6570bacefadc34ece83212403f73ecfb4aa832a33fac98ba5ef1"
+    }
+  ]
+}
