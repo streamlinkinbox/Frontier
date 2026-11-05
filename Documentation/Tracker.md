@@ -1737,3 +1737,69 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
 - **Deviation:** the post-commit sync rule (`SultanAladin/Frontier arena/11f31835-frontier`) conflicts with
   Arena session-branch discipline; all work stays on `arena/c8d71a98-frontier` until the final PR.
 - **Evidence:** `Exhibits/Networking/` (this entry's validation ledger).
+
+## X-ray scan, plume simulation, Smoke & fire editor, TLAS skip and the Garage view (2026-11-05 to 2026-11-06, branch `arena/4356640b-frontier`)
+
+- **Requested:** start from `4183309` (`unassignedinbox/Frontier`, branch `arena/bc01c1ed-frontier`: the HMI demo and the reference
+  configurator, `interactive-vehicle-hmi-configurator.zip`).
+  1. In the demo's Garage the car is drawn live by the demo's own ReSTIR scene: one vehicle, a camera that only orbits, paint controls only, the
+     reference's ripple on every paint change, and the whole X-ray scan.
+  2. Say where the scan's code belongs.
+  3. Port to C++ 1:1, shaders included and nothing approximated: the scan, the fluid / gas / plume editor with its systems, and check whether the
+     particle editor is already ported.
+  4. Skip the TLAS rebuild when nothing moved (`Renderer/Patches/0003-tlas-skip-static.patch`) with the output unchanged.
+- **Starting point:** `c50a7d4` merges the reference into `main` (`4cab913`; unrelated histories). The later commits of that branch (`078881e`,
+  `0abef14`, `b5a7aba`, `523b7ce`) were not used.
+- **Where the scan lives (answer to 2):**
+  - The scan is an engine rendering system, like the particle engine: `Frontier/Engine/Rendering/XRayScan/` (the clock, the feature edges, the particles,
+    the profile records and the overlay on the device exchange), its Slang in `Engine/Shaders/XRayScan/`, the stored SPIR-V in
+    `EngineContent/ShaderArchives/XRayScan/`, its evidence in `Exhibits/XRayScan/`.
+  - What binds it to a vehicle (which occupants it fades, the two lamps it spares) belongs in `Frontier/Extensions/Rendering/`, not yet written. Its HUD
+    and veil are interface (the planned InterfaceSpace); the fluid, gas and plume simulation belongs to the planned SimulationSpace.
+  - `Engine/Effects/VehicleInspection.h`, the approximate CPU mirror of `4183309`, is marked superseded, not removed: `Scene/DeployableUnit.h`,
+    `Game/SoftwarePresentation.{h,cpp}` and `Validation/SessionValidation.cpp` still use it and must move over first.
+- **The demo (HTML only):** the Garage is a second live ReSTIR view of the scene (`GarageView.js`; the other cars are hidden in `ViewWorld.wgsl`), seen
+  through the reference's orbit camera (`GarageOrbit.js`). Its controls are the eight paints, Gloss | Matte and an X-ray toggle. A paint change shows the
+  reference's ripple (`PaintRipple.js`), and the scan is whole: the solid car dissolves behind the front, then the ghost shell, the wireframe, the
+  curtain, the particles and the HUD (`ScanSequence.js`, `VehicleEdges.js`, `ScanOverlay.wgsl`, `ScanHud.js`); `VehiclePicking.js` finds the drop point.
+  To reach it: `Lobby.html?lobby=1`, click the car (`M` for the tablet), the tablet's Home key, Garage. The old Garage render (`RecordPreview`) is gone.
+- **TLAS skip:** `UpdateTlas` skips the CPU build and the buffer write only when every leaf's bounds and centroid, occupant and BLAS root, the leaf
+  count and the node buffer equal the last upload's; it is on by default (`?tlasskip=0` turns it off). Patch 0003 edits only
+  `Source/RayTracingSpace.js`; patches 0001 and 0002 are not in this repository and cannot apply to it, so "after 0001 and 0002" cannot be literal.
+  - Checked: 15 tests in `Tools/TlasSkip.test.mjs`; 32 of 32 one-line mutants of the key and its guards fail them
+    (`Exhibits/VehicleHmiPrototype/MutateTlasSkip.sh`; the first run found six survivors, which were real gaps and became tests); the TLAS bytes of 90 frames
+    are identical with the skip on and off in four settings. Pixels cannot be compared: SwiftShader's are not reproducible even with `DETERMINISTIC=1`.
+  - Measured (null backend, JavaScript CPU time): the level skips 0 of 91 frames as it comes and 50 of 91 with the solver frozen; the lobby skips 90 of 91
+    either way. Per call over a TLAS that does not change: level 0.170 ms skipped against 0.747 ms forced, lobby 0.033 against 0.111 ms.
+  - Differs from the brief: the TLAS is 31,840 B (498 instances) in the level and 2,912 B (46) in the lobby, not 32,544 B and 416 B, and the lobby skip
+    does fire. GPU time cannot be measured under SwiftShader.
+- **C++ ports** (Linux host, SwiftShader; Slang 2026.14.1):
+
+  | Port | What | Check | Result |
+  |---|---|---|---|
+  | X-ray scan | CPU modules, overlay on the device exchange, 8 Slang entries | `XRayScanValidation` against the prototype's values; the hero car's wireframe; one-line mutants; SPIR-V rebuilt | ✔️ 3,157 of 3,157; 1,751 segments with the prototype's hash `ef40c638f66069fe`; 24 of 25 caught (the survivor is equivalent); 8 of 8 byte for byte |
+  | Plume | gas catalogue and presets, tyre telemetry and source projections, schedule, `SmokeSequence`, 9 Slang compute entries | `PlumeSimulationValidation`; the Slang programs on Vulkan against the demo's WGSL on Dawn (Low, 170 refreshes); SPIR-V rebuilt | ✔️ 706 of 706; 9 of 9 captures bit for bit; 9 of 9 byte for byte |
+  | Smoke & fire editor | the `FluidPlume` record (33 readings in TOML), the modal window, the Inspector page | `FluidPlumeEditorValidation`: 26 sliders by keyboard, 6 presets, requests, instruments, a narrow window | ✔️ 333 of 333; 7 captures |
+  | Particle editor | already ported on 2026-11-04 (52 presets) | `ParticleLibraryValidation`; the ParticleSimulation SPIR-V rebuilt | ✔️ 344 of 344; 30 of 30 |
+
+  - `FluidNodeEditor.html` is a shell whose entry script (`./FluidEditorEntry.js`) exists nowhere, so it cannot be ported 1:1: the editor is the demo's own
+    Smoke & fire page (`BuildGas` in `InspectorPages.js`).
+  - The shader and instrument checks are not total: 12 of 15 shader mutants and 52 of 55 instrument mutants differ from the reference; the survivors are
+    explained in `Exhibits/PlumeSimulation/README.md`.
+- **Regression:** `ctest` over the targets the work touched passes for `ControlCentreValidation`, `InterfaceValidation`, `EnvironmentInspectorValidation`,
+  `ForceFieldCatalogueValidation`, `ParticleLibraryValidation`, `ParticleSpaceValidation`, `ProjectSpaceValidation`, `WorkspaceLayoutValidation`,
+  `PanelExpansionValidation`, `SceneGeometryValidation`, `FluidPlumeEditorValidation`, `XRayScanValidation` and `PlumeSimulationValidation`.
+  `SceneViewportPickValidation` passes with SwiftShader's loader on the path (it fails without one). `EverestInterfaceValidation` had failed at its last
+  assertion on `main` already: the workspace has four quick actions since the Networking toggle and the test still expected three; it now expects four.
+  The demo's `npm test`: 159 tests, 150 pass, 0 fail, 9 skipped (the GPU ones, which need `RUN_GPU=1`).
+- **Evidence:** `Exhibits/XRayScan/` (10 captures), `Exhibits/PlumeSimulation/` (9), `Exhibits/FluidPlumeEditor/` (7), `Exhibits/VehicleHmiPrototype/`
+  (the TLAS proof, the Garage's ripple and scan sweep as contact sheets, and the scan at 640 × 400); each README has its code map, results, limits and
+  how to reproduce.
+- **Limits:**
+  - The Garage has not been opened in a WebGPU browser here. Its pictures come from a software rasteriser (192 × 120, and the scan at 640 × 400).
+  - The scan and plume captures draw stand-ins for the ReSTIR picture (a flat solid for the car, no sky, a zero distance field): they prove the overlay and
+    the march, not the look in the host.
+  - The scan's vehicle binding (`Extensions/Rendering`) and the plume's march in the illumination host are not written: the GI port stays 1:1 and untouched.
+  - No Windows binary was built or run (none was requested); everything ran on the Linux host.
+- **Commits:** `1c1ed7f`, `eb6cdfa`, `c039b0e`, `e4dad0a`, `1ef498f`, `b1c9544`, `0d8afbf`, `a8b1d79`, `4cc68b5`, `c9599fc`, `20c674d`, and the
+  commit with this entry.

@@ -188,3 +188,22 @@ by their current directories; CAD editing is a separate workspace launched by th
 - `Frontier/Extensions/Rendering/` replaces `Projects/Everest/Source/EverestSceneViewport.*` and
   `EverestSceneGeometry.*`.
 - The plan is `Documentation/Plans/Ongoing/ExtensionsAndSpaces.md`.
+
+## X-ray scan, plume simulation and the Smoke & fire editor (2026-11-06)
+
+- `Frontier/Engine/Rendering/XRayScan/` and `Frontier/Engine/Shaders/XRayScan/`: the X-ray scan (library `FrontierXRayScan`, archive set `XRayScan`): the
+  clock, the feature edges, the particles, the profile records and the overlay on the device exchange.
+- `Frontier/Engine/PhysicalDynamics/FluidDynamics/`: the gas catalogue with its presets and instruments (library `FrontierGasCatalogue`), and the tyre
+  telemetry and source projections (library `FrontierPlumeSimulation`).
+- `Frontier/Engine/Rendering/PlumeSimulation/` and `Frontier/Engine/Shaders/PlumeSimulation/`: the plume's schedule, its CPU half and its device host, and
+  the five Slang files of its nine compute entries (archive set `PlumeSimulation`).
+- `Frontier/Engine/Interface/FluidPlumeEditor.*`, `FluidPlumeEditor/` and `Inspectors/FluidPlumeInspector.*`: the Smoke & fire editor window, its pages and
+  the record's Inspector page, all behind `FRONTIER_EDITOR`.
+- `Frontier/Engine/Scene/EngineConfigurations.h` and `WorldSpace.cpp`: the `FluidPlume` record, registered as "Solver · Fluid Plume".
+- `EngineContent/ShaderArchives/XRayScan/` and `PlumeSimulation/`: the stored SPIR-V of the two sets. `Automation/XRayScanRendering.cmake` and
+  `PlumeSimulationRendering.cmake` hold their targets and shader compilation.
+- `Exhibits/XRayScan/`, `Exhibits/PlumeSimulation/`, `Exhibits/FluidPlumeEditor/` and `Exhibits/VehicleHmiPrototype/`: validation, captures and READMEs. The
+  last holds the TLAS skip's proof and the Garage view's pictures.
+- Planned homes, not yet written: `Frontier/Extensions/Rendering/` (the scan's vehicle binding), InterfaceSpace (the scan's HUD) and SimulationSpace
+  (fluid, gas and plume).
+- `Frontier/Engine/Effects/VehicleInspection.h` is superseded by `Rendering/XRayScan/` and stays until its users migrate.
