@@ -265,8 +265,8 @@ int main(int ArgumentCount, char** Arguments)
         RenderFrames(36);
         WritePngCapture(OutputDir / "06-EverestControlCentre.png");
 
-        // Exhibit 06b: the workspace has no top toolbar; its Projects and Save level actions are on the Quick Controls page
-        Require(Centre->QueryQuickActionCount() == 3, "EverestWorkspace must place Projects and Save level on Quick Controls.");
+        // Exhibit 06b: the workspace has no top toolbar; its Projects, Render settings, Save level and Networking actions are on the Quick Controls page
+        Require(Centre->QueryQuickActionCount() == 4, "EverestWorkspace must place Projects, Render settings, Save level and Networking on Quick Controls.");
         Centre->ActivateSettingsPage(ControlCentrePageCategory::QuickControls);
         RenderFrames(36);
         WritePngCapture(OutputDir / "06b-EverestQuickControls.png");
