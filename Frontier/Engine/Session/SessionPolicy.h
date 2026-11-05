@@ -73,6 +73,11 @@ class SessionPolicy
     [[nodiscard]] const RespawnPolicy& QueryRespawnPolicy() const noexcept { return RespawnRules; }
     [[nodiscard]] const SpawnPolicy& QuerySpawnPolicy() const noexcept { return SpawnRules; }
 
+    // 📝 Creation reads these from the assigned policy, never from a level script: how many players the
+    //    room holds (0 = the session configuration decides) and whether units may be derezzed/rezzed here.
+    [[nodiscard]] virtual uint32_t QueryMaximumPlayers() const noexcept { return 0; }
+    [[nodiscard]] virtual bool AllowsDerez() const noexcept { return true; }
+
     virtual void OnSessionBegin(SessionSpace& Session);
     virtual void OnPlayerJoined(SessionSpace& Session, PlayerToken Token);
     virtual void OnPlayerLeft(SessionSpace& Session, PlayerToken Token);
@@ -101,6 +106,11 @@ class LobbyPolicy : public SessionPolicy
   public:
     LobbyPolicy();
     [[nodiscard]] std::string_view QueryPolicyName() const noexcept override { return "LobbyPolicy"; }
+
+    // 📝 The studio's own limits: five cars, and no derez/rez — a parked fleet is never dissolved.
+    [[nodiscard]] uint32_t QueryMaximumPlayers() const noexcept override { return LobbyMaximumPlayers; }
+    [[nodiscard]] bool AllowsDerez() const noexcept override { return false; }
+    static constexpr uint32_t LobbyMaximumPlayers = 5;
     void OnSessionStep(SessionSpace& Session, float StepSeconds) override;
     [[nodiscard]] bool ShouldTransitionLevel(const SessionSpace& Session, std::string& OutTargetLevelPath,
                                              std::string& OutTargetPolicyName) const override;

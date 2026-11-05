@@ -8,6 +8,7 @@
 //    (Scene/Agent.h) is the control stand that feeds it packets; the unit never knows who is driving.
 
 #include "Frontier/Engine/Input/InputPacket.h"
+#include "Frontier/Engine/Scene/VehicleCabin.h"
 #include "Frontier/Engine/Session/SpawnPolicy.h"
 
 #include <array>
@@ -48,6 +49,8 @@ class DeployableUnit
     [[nodiscard]] bool IsHandbrakeLatched() const noexcept { return HandbrakeLatched; }
     [[nodiscard]] const VehicleUnitConfiguration& QueryVehicleConfiguration() const noexcept { return VehicleSpec; }
     [[nodiscard]] const InputPacket& QueryLatestInput() const noexcept { return LatestInput; }
+    [[nodiscard]] const VehicleCabin& QueryCabin() const noexcept { return Cabin; }
+    [[nodiscard]] VehicleCabin& AccessCabin() noexcept { return Cabin; }
 
     void AssignVehicleConfiguration(const VehicleUnitConfiguration& Spec) { VehicleSpec = Spec; }
     void AssignSpawnPolicy(const SpawnPolicy& Rules) noexcept { SpawnRules = Rules; }
@@ -84,6 +87,7 @@ class DeployableUnit
     float SecondsSinceSpawn = 0.0f;
     bool HandbrakeLatched = false;
     VehicleUnitConfiguration VehicleSpec{};
+    VehicleCabin Cabin{};   // steering wheel + (empty) tablet, driven by the same packets
     InputPacket LatestInput{};
 };
 

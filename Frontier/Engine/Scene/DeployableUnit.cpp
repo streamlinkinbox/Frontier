@@ -63,6 +63,7 @@ void DeployableUnit::ResolveEffectivePedals(const InputPacket& Packet, float& Ou
 void DeployableUnit::ApplyInputPacket(const InputPacket& Packet, float StepSeconds) noexcept
 {
     LatestInput = Packet;
+    Cabin.ApplyInputPacket(Packet);
     if (StepSeconds <= 0.0f)
         return;
     SecondsSinceSpawn += StepSeconds;

@@ -34,7 +34,9 @@ std::array<float, 3> SessionSpace::ResolveSlotPosition(uint32_t SlotIndex) const
 
 float SessionSpace::ResolveSlotYawDegrees(uint32_t SlotIndex) const noexcept
 {
-    // Nose-in: every guest faces the centre car.
+    // Nose-in: every guest faces the centre car; the host faces +X.
+    if (SlotIndex == 0)
+        return 0.0f;
     const std::array<float, 3> Position = ResolveSlotPosition(SlotIndex);
     return std::atan2(-Position[1], -Position[0]) / RadiansPerDegree;
 }
@@ -42,7 +44,12 @@ float SessionSpace::ResolveSlotYawDegrees(uint32_t SlotIndex) const noexcept
 PlayerToken SessionSpace::AddPlayer(std::string_view NameTag, std::string_view Rank,
                                     std::string_view NetworkEndpoint, bool IsLocalHost)
 {
-    if (QueryConnectedCount() >= Configuration.MaximumPlayers)
+    // 📝 Capacity is the assigned policy's answer first (the Lobby holds five); the configuration is
+    //    only the fallback for policies that do not set one.
+    const uint32_t Capacity = (ActivePolicy && ActivePolicy->QueryMaximumPlayers() > 0)
+                                  ? ActivePolicy->QueryMaximumPlayers()
+                                  : Configuration.MaximumPlayers;
+    if (QueryConnectedCount() >= Capacity)
         return {};
 
     PlayerProfile Profile{};

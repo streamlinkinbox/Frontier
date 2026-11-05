@@ -11,6 +11,7 @@
 #include "Frontier/Engine/Input/SyntheticDriver.h"
 #include "Frontier/Engine/Session/LevelTransition.h"
 #include "Frontier/Engine/Session/SessionSpace.h"
+#include "Frontier/Game/LobbyGame.h"
 #include "Projects/Everest/Source/Session/SessionPolicy.h"
 
 #include <cmath>
@@ -230,6 +231,33 @@ int main()
         Check(Race && Race->QueryTargetLapCount() == 3, "Everest races run three laps");
         Check(Near(Race->QueryRespawnPolicy().RespawnDelaySeconds, 2.0f), "Everest respawn delay is two seconds");
         Check(Everest::ConstructEverestCircuitWaypoints().size() == 6, "Everest circuit has six waypoints");
+    }
+
+    // --- The Lobby as the game opens it: policy-read limits, one vehicle, empty tablet ---------------
+    {
+        LobbyGame Game;
+        const SessionSpace& Session = Game.QuerySession();
+        Check(Game.QueryCurrentLevelPath().find("Lobby") != std::string::npos, "the game opens on the Lobby level");
+        Check(Session.QueryPolicy() && Session.QueryPolicy()->QueryPolicyName() == "LobbyPolicy", "the Lobby policy is assigned");
+        Check(Session.QueryPolicy()->QueryMaximumPlayers() == 5, "lobby policy: five players at most");
+        Check(!Session.QueryPolicy()->AllowsDerez(), "lobby policy: no derez");
+        Check(!Session.QueryPolicy()->QueryRespawnPolicy().IsRespawnAllowed(), "lobby policy: no respawn");
+        Check(Game.QueryLocalVehicle() != nullptr, "one vehicle stands in the lobby");
+        Check(Game.QueryLocalVehicle()->QueryCabin().Tablet.IsEmpty(), "the tablet is empty (no HMI yet)");
+        Check(Game.QueryLocalVehicle()->IsHandbrakeLatched(), "the lobby vehicle is parked");
+
+        for (int Guest = 0; Guest < 4; ++Guest)
+            Game.AccessSession().AddPlayer("GUEST", "BRONZE I");
+        Check(Session.QueryConnectedCount() == 5, "guests fill the studio to the policy's five");
+        Check(!Game.AccessSession().AddPlayer("SIXTH", "BRONZE I").IsValid(), "the sixth join is refused by policy, not by the level");
+
+        // Debug level switch (compiled in for now): Ctrl+Shift+L, then a digit.
+        Game.HandleDebugKeys(true, true, true, false, -1);
+        Check(Game.IsDebugPopupOpen(), "Ctrl+Shift+L opens the debug level popup");
+        Game.HandleDebugKeys(false, false, false, false, 2);
+        Check(!Game.IsDebugPopupOpen() && Game.QueryCurrentLevelPath().find("ProvingGrounds") != std::string::npos,
+              "the popup switches level and closes");
+        Check(Game.QuerySession().QueryPlayers().size() == 5, "players are preserved across the debug switch");
     }
 
     std::printf("SessionValidation: %d checks, %d failures\n", Checks, Failures);

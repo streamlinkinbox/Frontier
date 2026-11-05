@@ -15,6 +15,7 @@ add_library(FrontierSession STATIC
     Engine/Input/InputDriver.cpp
     Engine/Input/SyntheticDriver.cpp
     Engine/Scene/DeployableUnit.cpp
+    Engine/Scene/FacetArchive.cpp
     Engine/Session/SpawnPolicy.cpp
     Engine/Session/SessionConfiguration.cpp
     Engine/Session/SessionPolicy.cpp
@@ -27,3 +28,9 @@ target_compile_features(FrontierSession PUBLIC cxx_std_17)
 
 add_executable(SessionValidation ../Validation/SessionValidation.cpp)
 target_link_libraries(SessionValidation PRIVATE FrontierSession)
+
+add_library(FrontierGame STATIC Game/LobbyGame.cpp Game/SoftwarePresentation.cpp)
+target_link_libraries(FrontierGame PUBLIC FrontierSession)
+
+add_executable(LobbyGame Game/LobbyGameMain.cpp)
+target_link_libraries(LobbyGame PRIVATE FrontierGame)

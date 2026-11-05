@@ -66,6 +66,7 @@ class SessionSpace
     [[nodiscard]] uint32_t QueryConnectedCount() const noexcept;
 
     friend class LevelTransition;
+    friend class LobbyGame;
 
   private:
     std::array<float, 3> ResolveSlotPosition(uint32_t SlotIndex) const noexcept;

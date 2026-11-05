@@ -47,3 +47,27 @@ What was not kept, and why:
 - **`SessionSpace`** is the room: players join/leave, deploy at studio slots (host centre, guests on
   the ring — the Lobby arrangement), ready up, and `LevelTransition` carries their profiles
   (nametag + Rank — the same pair the Lobby's number plates wear) into the next level's policy.
+
+## The game (C++ Lobby)
+
+`Frontier/Game/LobbyGame` is the game at this step. It opens on the **Lobby by default**,
+builds its room by reading the assigned policy (`LobbyPolicy`: at most **5 players**, **no
+respawn**, **no derez**, parked spawn), and stands **one vehicle** in the studio — the same
+ControlVehicle, from the same `FCT1` facet archives as the HTML renderer
+(`Engine/Scene/FacetArchive`), with a steering wheel that follows the steer axis and a
+**tablet that is powered but empty** (no HMI yet). Other policies (ProvingGrounds, Race,
+Elimination, Everest's) plug in through the same creation path. Level switching beyond the
+normal all-ready transition is a **debug-only popup**: `Ctrl+Shift+L`, then a digit
+(`FRONTIER_DEBUG_LEVEL_SWITCH=0` compiles it out).
+
+```sh
+g++ -std=c++17 -I. Frontier/Game/LobbyGameMain.cpp Frontier/Engine/Input/*.cpp \
+    Frontier/Engine/Scene/*.cpp Frontier/Engine/Session/*.cpp Frontier/Game/*.cpp \
+    Projects/Everest/Source/Session/*.cpp -o /tmp/LobbyGame
+/tmp/LobbyGame --guests 4 --render /tmp/lobby.ppm   # CPU presentation: Game/SoftwarePresentation
+```
+
+`Game/LobbyPreview.png` is that render: five cars in the circle, the softbox overhead, the
+hero's cyan wheel light — the C++ counterpart of the prototype's Lobby, before any GPU
+front-end. A GLFW window (with `FRONTIER_WITH_GLFW`) and the WebGPU presentation replace
+`SoftwarePresentation` without touching the session, policy or vehicle code.
