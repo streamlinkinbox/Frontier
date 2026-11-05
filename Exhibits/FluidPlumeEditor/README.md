@@ -38,9 +38,11 @@ shows, as the prototype's range input does.
 
 ![The editor, opened on a new record](Images/SmokeAndFireEditor-Opening.png)
 
-The page needs about 1,030 px of height at scale 1. At 1920 × 1080 it fits on four columns (it shrinks to about 0.93);
-below that it shrinks to 0.82 at most and then scrolls, with a slim thumb on each scrolling column. The columns are four
-from a body of 1,500 px, three from 1,000, otherwise two.
+The page needs about 1,030 px of height at scale 1. At 1920 × 1080 it fits on four columns and is drawn at 0.93: the
+window is the display less a 24 px margin on each side (1,032 px), the body 958 px under the 50 px header and the
+padding, and `(958 − 2) / 1,030 = 0.928` (worked out from the constants in `FluidPlumeEditor.cpp`, not read off a
+capture). Below that it shrinks to 0.82 at most and then scrolls, with a slim thumb on each scrolling column. The
+columns are four from a body of 1,500 px, three from 1,000, otherwise two.
 
 ## The record
 
