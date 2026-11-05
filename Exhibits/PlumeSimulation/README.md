@@ -138,10 +138,19 @@ smoke, and the march costs 0.24 ms.
   ported from the page that does exist, the `BuildGas` page of the demo's `InspectorPages.js`, and the plume's own
   parameters.
 
+## Environment and revision
+
+Linux x86-64 sandbox, two cores, no GPU: GCC 12.2.0, CMake 4.4.4, Ninja 1.13.2, Slang 2026.14.1 (`slangc` from `Automation/PrepareVulkanCompute.py`),
+Vulkan on SwiftShader, Node 22 with Dawn (`webgpu`) and SwiftShader from npm for the parity run. Configured Debug with `-DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON -DGLFW_BUILD_WAYLAND=OFF -DGLFW_BUILD_X11=OFF`
+(the last two because the sandbox has no Wayland or X11 headers).
+
+The results are from the sources of `c9599fc`: nothing under `Frontier/` or this folder's `Code/` has changed since, and the mutation scripts restore what
+they edit. **Not run:** Windows (no Windows binary was built for this exhibit), a GPU, a browser.
+
 ## Reproduce
 
 ```sh
-cmake -S . -B build -G Ninja -DFRONTIER_HOST_VERIFICATION=ON
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON
 ninja -C build PlumeSimulationValidation PlumeSimulationCapture FrontierPlumeSimulationShaders
 build/PlumeSimulationValidation .
 node Exhibits/PlumeSimulation/Code/ExportPlumeReference.mjs        # rewrites Results/PlumeReference.toml from the prototype

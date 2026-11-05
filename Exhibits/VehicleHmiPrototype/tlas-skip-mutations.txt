@@ -1,0 +1,35 @@
+MutateTlasSkip.sh: one edit of the skip's key or its guards at a time, against Tools/TlasSkip.test.mjs
+unmutated: 15 pass, 0 fail
+caught    LowerBoundXDropped 3 test(s) fail, the first: each of a leaf's six bounds is in the key on its own, where the centroid cannot show it move
+caught    LowerBoundYDropped 4 test(s) fail, the first: each of a leaf's six bounds is in the key on its own, where the centroid cannot show it move
+caught    LowerBoundZDropped 3 test(s) fail, the first: each of a leaf's six bounds is in the key on its own, where the centroid cannot show it move
+caught    UpperBoundXDropped 4 test(s) fail, the first: a leaf that moves by one float, or a leaf that appears, rebuilds and uploads
+caught    UpperBoundYDropped 3 test(s) fail, the first: each of a leaf's six bounds is in the key on its own, where the centroid cannot show it move
+caught    UpperBoundZDropped 3 test(s) fail, the first: each of a leaf's six bounds is in the key on its own, where the centroid cannot show it move
+caught    CentroidXDropped 1 test(s) fail, the first: bounds that agree as floats but centre differently still rebuild: the centroid is part of the key, on each axis
+caught    CentroidYDropped 1 test(s) fail, the first: bounds that agree as floats but centre differently still rebuild: the centroid is part of the key, on each axis
+caught    CentroidZDropped 1 test(s) fail, the first: bounds that agree as floats but centre differently still rebuild: the centroid is part of the key, on each axis
+caught    LowerBoundXBlindToNaN 1 test(s) fail, the first: a NaN bound never skips: any one of the six, on an object or on the ground
+caught    LowerBoundYBlindToNaN 1 test(s) fail, the first: a NaN bound never skips: any one of the six, on an object or on the ground
+caught    LowerBoundZBlindToNaN 1 test(s) fail, the first: a NaN bound never skips: any one of the six, on an object or on the ground
+caught    UpperBoundXBlindToNaN 1 test(s) fail, the first: a NaN bound never skips: any one of the six, on an object or on the ground
+caught    UpperBoundYBlindToNaN 1 test(s) fail, the first: a NaN bound never skips: any one of the six, on an object or on the ground
+caught    UpperBoundZBlindToNaN 1 test(s) fail, the first: a NaN bound never skips: any one of the six, on an object or on the ground
+caught    GroundLowerXUnread 2 test(s) fail, the first: the ground leaf: each of its six bounds moved on its own, and its BLAS root changed under the same box, rebuilds
+caught    GroundLowerYUnread 3 test(s) fail, the first: the ground leaf: each of its six bounds moved on its own, and its BLAS root changed under the same box, rebuilds
+caught    GroundLowerZUnread 2 test(s) fail, the first: the ground leaf: each of its six bounds moved on its own, and its BLAS root changed under the same box, rebuilds
+caught    GroundUpperXUnread 2 test(s) fail, the first: the ground leaf: each of its six bounds moved on its own, and its BLAS root changed under the same box, rebuilds
+caught    GroundUpperYUnread 2 test(s) fail, the first: the ground leaf: each of its six bounds moved on its own, and its BLAS root changed under the same box, rebuilds
+caught    GroundUpperZUnread 2 test(s) fail, the first: the ground leaf: each of its six bounds moved on its own, and its BLAS root changed under the same box, rebuilds
+caught    OccupantIndex    1 test(s) fail, the first: the occupant index is in the key: two occupants with one box and one BLAS root, one standing where the other stood, rebuild
+caught    BlasRoot         3 test(s) fail, the first: a BLAS root that changes with the bounds unchanged rebuilds
+caught    GroundIdentity   1 test(s) fail, the first: the ground leaf: each of its six bounds moved on its own, and its BLAS root changed under the same box, rebuilds
+caught    LeafCount        3 test(s) fail, the first: the ground leaf is in the key: it moving, or going away, rebuilds
+caught    BufferIdentity   3 test(s) fail, the first: a new node buffer is uploaded to even when nothing moved, and so is one that never received an upload
+caught    NeverUploaded    1 test(s) fail, the first: a build that fails half way before the node buffer exists leaves nothing to skip on either: the CPU tree is rebuilt
+caught    SkipOffForgets   2 test(s) fail, the first: turning the skip off forgets the key: turning it on again cannot skip against a TLAS the buffer no longer holds
+caught    ForcedRebuild    1 test(s) fail, the first: a forced rebuild builds, uploads the same bytes, and the key stays honest afterwards
+caught    FailedBuildMark  1 test(s) fail, the first: a build that fails half way leaves nothing to skip on
+caught    KeyNeverStored   8 test(s) fail, the first: an unchanged second call skips: no build and no buffer write, and the buffer keeps the TLAS it had
+caught    SkipAlways       13 test(s) fail, the first: a leaf that moves by one float, or a leaf that appears, rebuilds and uploads
+caught 32 of 32

@@ -88,26 +88,107 @@ test('a BLAS root that changes with the bounds unchanged rebuilds', () => {
     const Scene = ConstructWorld(12);
     const Entry = ConstructSpace(Scene, true);
     Entry.Space.UpdateTlas(Scene);
-    Entry.Space.OccupantBlasRoot[4] = -1;
-    Entry.Space.UpdateTlas(Scene);
-    assert.equal(Entry.Space.TlasSkipCount, 0);
+    const First = TlasBytes(Entry);
+    // 📝 To another root that is still a root: the leaf stays, and only its root word changes.
     Entry.Space.OccupantBlasRoot[4] = TlasNodeCapacity + 99;
     Entry.Space.UpdateTlas(Scene);
     assert.equal(Entry.Space.TlasSkipCount, 0);
+    assert.equal(Entry.Writes.length, 2);
+    assert.ok(!SameBytes(TlasBytes(Entry), First), 'the upload carries the new root');
+    // 📝 To no root at all: the occupant leaves the TLAS, and the leaf count changes with it.
+    Entry.Space.OccupantBlasRoot[4] = -1;
+    Entry.Space.UpdateTlas(Scene);
+    assert.equal(Entry.Space.TlasSkipCount, 0);
     assert.equal(Entry.Writes.length, 3);
+    Entry.Space.UpdateTlas(Scene);
+    assert.equal(Entry.Space.TlasSkipCount, 1, 'and holding still skips again');
 });
 
-test('bounds that agree as floats but centre differently still rebuild: the centroid is part of the key', () => {
+test('bounds that agree as floats but centre differently still rebuild: the centroid is part of the key, on each axis', () => {
+    for (const Axis of [0, 1, 2])
+    {
+        const Box = (Lower, Upper) =>
+        {
+            const Minimum = [0, 0, 0], Maximum = [1, 1, 1];
+            Minimum[Axis] = -3.0 + Lower;
+            Maximum[Axis] = 3.0 + Upper;
+            return { Minimum, Maximum };
+        };
+        const Scene = ConstructWorld(12);
+        Scene.Boxes[2] = Box(1.0e-8, 2.0e-8);
+        const Entry = ConstructSpace(Scene, true);
+        Entry.Space.UpdateTlas(Scene);
+        Scene.Boxes[2] = Box(3.0e-8, 5.0e-8);
+        assert.equal(Math.fround(Scene.Boxes[2].Minimum[Axis]), Math.fround(-3.0 + 1.0e-8), `axis ${Axis}: the stored bounds are the same floats`);
+        assert.notEqual(Math.fround(0.5 * (Scene.Boxes[2].Minimum[Axis] + Scene.Boxes[2].Maximum[Axis])), Math.fround(0.5 * (-3.0 + 1.0e-8 + 3.0 + 2.0e-8)), `axis ${Axis}: the centroids are not`);
+        Entry.Space.UpdateTlas(Scene);
+        assert.equal(Entry.Space.TlasSkipCount, 0, `axis ${Axis}`);
+        assert.equal(Entry.Writes.length, 2, `axis ${Axis}`);
+    }
+});
+
+test('each of a leaf\'s six bounds is in the key on its own, where the centroid cannot show it move', () => {
+    // 📝 A box whose far side is a million kilometres off: a few ulps on the near side leave its float centroid where it was, so only the bound itself can tell.
+    for (const Side of ['Minimum', 'Maximum'])
+        for (const Axis of [0, 1, 2])
+        {
+            const Scene = ConstructWorld(12);
+            const Box = Scene.Boxes[2];
+            Box.Minimum[Axis] = Side === 'Minimum' ? 1.0 : -1.0e12;
+            Box.Maximum[Axis] = Side === 'Minimum' ? 1.0e12 : 1.0;
+            const Centre = () => Math.fround(0.5 * (Box.Minimum[Axis] + Box.Maximum[Axis]));
+            const Entry = ConstructSpace(Scene, true);
+            Entry.Space.UpdateTlas(Scene);
+            const First = TlasBytes(Entry);
+            const Before = Centre();
+            Box[Side][Axis] += 3 * 2 ** -23;
+            assert.equal(Centre(), Before, `${Side} ${Axis}: the float centroid has not moved`);
+            Entry.Space.UpdateTlas(Scene);
+            assert.equal(Entry.Space.TlasSkipCount, 0, `${Side} ${Axis}`);
+            assert.equal(Entry.Writes.length, 2, `${Side} ${Axis}`);
+            assert.ok(!SameBytes(TlasBytes(Entry), First), `${Side} ${Axis}: the upload carries the move`);
+        }
+});
+
+test('the ground leaf: each of its six bounds moved on its own, and its BLAS root changed under the same box, rebuilds', () => {
+    for (const Side of ['Minimum', 'Maximum'])
+        for (const Axis of [0, 1, 2])
+        {
+            const Scene = ConstructWorld(12);
+            const Entry = ConstructSpace(Scene, true);
+            Entry.Space.UpdateTlas(Scene);
+            const First = TlasBytes(Entry);
+            Scene.Boxes[11][Side][Axis] += 1.0;
+            Entry.Space.UpdateTlas(Scene);
+            assert.equal(Entry.Space.TlasSkipCount, 0, `ground ${Side} ${Axis}`);
+            assert.equal(Entry.Writes.length, 2, `ground ${Side} ${Axis}`);
+            assert.ok(!SameBytes(TlasBytes(Entry), First), `ground ${Side} ${Axis}: the upload carries the move`);
+        }
     const Scene = ConstructWorld(12);
-    Scene.Boxes[2] = { Minimum: [-3.0 + 1.0e-8, 0, 0], Maximum: [3.0 + 2.0e-8, 1, 1] };
     const Entry = ConstructSpace(Scene, true);
     Entry.Space.UpdateTlas(Scene);
-    Scene.Boxes[2] = { Minimum: [-3.0 + 3.0e-8, 0, 0], Maximum: [3.0 + 5.0e-8, 1, 1] };
-    assert.equal(Math.fround(Scene.Boxes[2].Minimum[0]), Math.fround(-3.0 + 1.0e-8), 'the stored bounds are the same floats');
-    assert.notEqual(Math.fround(0.5 * (Scene.Boxes[2].Minimum[0] + Scene.Boxes[2].Maximum[0])), Math.fround(0.5 * (-3.0 + 1.0e-8 + 3.0 + 2.0e-8)), 'the centroids are not');
+    const First = TlasBytes(Entry);
+    Entry.Space.OccupantBlasRoot[11] = TlasNodeCapacity + 77;
     Entry.Space.UpdateTlas(Scene);
     assert.equal(Entry.Space.TlasSkipCount, 0);
     assert.equal(Entry.Writes.length, 2);
+    assert.ok(!SameBytes(TlasBytes(Entry), First), 'the upload carries the ground\'s new root');
+});
+
+test('the occupant index is in the key: two occupants with one box and one BLAS root, one standing where the other stood, rebuild', () => {
+    const Scene = ConstructWorld(12);
+    Scene.Boxes[8] = { Minimum: [...Scene.Boxes[7].Minimum], Maximum: [...Scene.Boxes[7].Maximum] };
+    Scene.Occupants[8].Inactive = true;
+    const Entry = ConstructSpace(Scene, true);
+    Entry.Space.OccupantBlasRoot[8] = Entry.Space.OccupantBlasRoot[7];
+    Entry.Space.UpdateTlas(Scene);
+    const First = TlasBytes(Entry);
+    Scene.Occupants[7].Inactive = true;
+    Scene.Occupants[8].Inactive = false;
+    Entry.Space.UpdateTlas(Scene);
+    assert.equal(Entry.Space.TlasSkipCount, 0);
+    assert.equal(Entry.Writes.length, 2);
+    assert.ok(!SameBytes(TlasBytes(Entry), First), 'the leaf names the other occupant');
 });
 
 test('the ground leaf is in the key: it moving, or going away, rebuilds', () => {
@@ -125,14 +206,19 @@ test('the ground leaf is in the key: it moving, or going away, rebuilds', () => 
     assert.equal(Entry.Space.TlasSkipCount, 1);
 });
 
-test('a NaN bound never skips', () => {
-    const Scene = ConstructWorld(12);
-    Scene.Boxes[1].Maximum[2] = Number.NaN;
-    const Entry = ConstructSpace(Scene, true);
-    for (let Call = 0; Call < 3; ++Call)
-        Entry.Space.UpdateTlas(Scene);
-    assert.equal(Entry.Space.TlasSkipCount, 0);
-    assert.equal(Entry.Writes.length, 3);
+test('a NaN bound never skips: any one of the six, on an object or on the ground', () => {
+    for (const Leaf of [1, 11])                         // an object leaf, and the ground's
+        for (const Side of ['Minimum', 'Maximum'])
+            for (const Axis of [0, 1, 2])
+            {
+                const Scene = ConstructWorld(12);
+                Scene.Boxes[Leaf][Side][Axis] = Number.NaN;
+                const Entry = ConstructSpace(Scene, true);
+                for (let Call = 0; Call < 3; ++Call)
+                    Entry.Space.UpdateTlas(Scene);
+                assert.equal(Entry.Space.TlasSkipCount, 0, `${Leaf === 11 ? 'ground' : 'object'} ${Side} ${Axis}`);
+                assert.equal(Entry.Writes.length, 3, `${Leaf === 11 ? 'ground' : 'object'} ${Side} ${Axis}`);
+            }
 });
 
 test('a new node buffer is uploaded to even when nothing moved, and so is one that never received an upload', () => {
@@ -216,6 +302,32 @@ test('a build that fails half way leaves nothing to skip on', () => {
     const Reference = ConstructSpace(Scene, false);
     Reference.Space.UpdateTlas(Scene);
     assert.ok(SameBytes(TlasBytes(Entry), TlasBytes(Reference)));
+});
+
+test('a build that fails half way before the node buffer exists leaves nothing to skip on either: the CPU tree is rebuilt', () => {
+    const Scene = ConstructWorld(12);
+    const Entry = ConstructSpace(Scene, true);
+    Entry.Space.NodeBuffer = null;
+    Entry.Space.UpdateTlas(Scene);                  // a good first build: the CPU tree, with no buffer to receive it
+    Scene.Boxes[0].Maximum[0] += 1.0;
+    let Remaining = 2;                              // the key reads the ground once; the build reads it again, and that read throws
+    const Query = Scene.QueryWorldBounds.bind(Scene);
+    Scene.QueryWorldBounds = (Index) =>
+    {
+        if (Index === Scene.GroundOccupant && --Remaining === 0)
+            throw new Error('fails inside the build');
+        return Query(Index);
+    };
+    assert.throws(() => Entry.Space.UpdateTlas(Scene), /fails inside the build/);
+    Scene.QueryWorldBounds = Query;
+    Entry.Space.UpdateTlas(Scene);                  // identical to the failed call's inputs, and still no buffer: it must not skip
+    assert.equal(Entry.Space.TlasSkipCount, 0);
+    assert.equal(Entry.Space.TlasRebuildCount, 3);
+    const Reference = ConstructSpace(Scene, false);
+    Reference.Space.NodeBuffer = null;
+    Reference.Space.UpdateTlas(Scene);
+    const CpuTree = (Space) => new Uint8Array(Space.AllNodeBytes, 0, Space.UsedTlasNodes * 32);
+    assert.ok(SameBytes(CpuTree(Entry.Space), CpuTree(Reference.Space)), 'the CPU tree is the one a build-every-frame renderer holds');
 });
 
 test('over a long random walk the buffer holds, after every step, the TLAS a build-every-frame renderer would have uploaded', () => {

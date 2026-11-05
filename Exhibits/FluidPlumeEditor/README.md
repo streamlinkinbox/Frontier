@@ -129,10 +129,19 @@ the editor, as a host would.
   (`./FluidEditorEntry.js`) exists nowhere in the reference or the repository. This editor is the `BuildGas` page.
 - **CPU raster, not a GPU capture.** The images are the window drawn by Dear ImGui on the CPU.
 
+## Environment and revision
+
+Linux x86-64 sandbox, two cores, no GPU: GCC 12.2.0, CMake 4.4.4, Ninja 1.13.2, Slang 2026.14.1 (`slangc` from `Automation/PrepareVulkanCompute.py`),
+Vulkan on SwiftShader. Configured Debug with `-DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON -DGLFW_BUILD_WAYLAND=OFF -DGLFW_BUILD_X11=OFF`
+(the last two because the sandbox has no Wayland or X11 headers).
+
+The results are from the sources of `20c674d`: nothing under `Frontier/` or this folder's `Code/` has changed since, and the mutation scripts restore what
+they edit. **Not run:** Windows (no Windows binary was built for this exhibit), a GPU, a browser.
+
 ## Reproduce
 
 ```sh
-cmake -S . -B build -G Ninja -DFRONTIER_HOST_VERIFICATION=ON
-ninja -C build FluidPlumeEditorValidation        # builds the whole UI library and Jolt: about 25 minutes on two cores
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON
+ninja -C build FluidPlumeEditorValidation        # the whole UI library and Jolt: 566 steps, 5 min 47 s here with the plume libraries already built
 Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorValidation.sh build
 ```

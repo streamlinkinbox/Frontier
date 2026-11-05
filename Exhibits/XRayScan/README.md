@@ -88,10 +88,19 @@ stipple of the stochastic fade. `Results/Captures.tsv` has the clock, the draws 
 - **The vehicle binding is not written.** The scanned occupants and the spared lamps (families 13 and 14) are inputs
   of `EncodeScanView`; the vehicle extension that supplies them is to come.
 
+## Environment and revision
+
+Linux x86-64 sandbox, two cores, no GPU: GCC 12.2.0, CMake 4.4.4, Ninja 1.13.2, Slang 2026.14.1 (`slangc` from `Automation/PrepareVulkanCompute.py`),
+Vulkan on SwiftShader, Node 22 for the exporter. Configured Debug with `-DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON -DGLFW_BUILD_WAYLAND=OFF -DGLFW_BUILD_X11=OFF`
+(the last two because the sandbox has no Wayland or X11 headers).
+
+The results are from the sources of `4cc68b5`: nothing under `Frontier/` or this folder's `Code/` has changed since, and the mutation scripts restore what
+they edit. **Not run:** Windows (no Windows binary was built for this exhibit), a GPU, a browser.
+
 ## Reproduce
 
 ```sh
-cmake -S . -B build -G Ninja -DFRONTIER_HOST_VERIFICATION=ON
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON
 ninja -C build XRayScanValidation XRayScanCapture XRayScanCaptureShaders
 Exhibits/XRayScan/Code/RunXRayScanCapture.sh build      # validation, the nine shots, the copies into Images/ and Results/
 Exhibits/XRayScan/Code/MutateXRayScan.sh build > Exhibits/XRayScan/Results/ScanMutations.txt

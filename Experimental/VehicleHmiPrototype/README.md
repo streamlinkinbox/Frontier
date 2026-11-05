@@ -85,6 +85,83 @@ The source patch is not retained. Vehicle `.facet` binaries were regenerated wit
 under the included OFL license. The separate reference configurator is preserved
 in `../interactive-vehicle-hmi-configurator`.
 
+## The Garage: the car rendered live by the scene
+
+The tablet's **Garage** is the configurator of `interactive-vehicle-hmi-configurator.zip`: its paint tab beside its stage, and the scene tab's X-ray
+toggle. The stage is this demo's own renderer: the car in it is drawn by the same ReSTIR scene as everything else, through its own camera. It is not a
+separate picture of the car, and the scene is not the HMI.
+
+**To see it** (read from the code; not clicked through in a browser here): open `Lobby.html?lobby=1` in a WebGPU browser, click the car (or press `M` for
+the tablet), press the tablet's Home key and open **Garage**. Drag the picture to orbit; scroll to zoom. Drag a paint onto the car, or tap it. The X-ray
+toggle is the only other control. `?garage=WxH` sizes the picture (default 640 × 400, the reference's stage).
+
+| Part | What it is | Where |
+| --- | --- | --- |
+| The picture | A **second ReSTIR view of the same scene**: the scene, BVH, materials, cards, light and vehicle records the studio camera renders from, with its own camera, surface, resampling, variance and display targets and its own temporal history. The studio's other cars are hidden from it, in the raster and for the rays alike, so it shows one vehicle. | `Source/GarageView.js`, `Shader/ViewWorld.wgsl` |
+| The camera | It only orbits, as the reference's does (`Scene.tsx`): 34°, OrbitControls damping 0.06, polar angle 0.35 … π/2.05, distance 6 … 16 m, no pan; it looks at a point 1.18 m above the ground the car stands on. | `Source/GarageOrbit.js` |
+| The controls | Paint only: the reference's eight paints, **Gloss \| Matte**, and the **X-Ray Scan** toggle. | `Source/Cabin/ScreenSequence.js` (`RasterGarage`), `Source/VehicleAppearance.js` |
+| A paint change | The reference's ripple (`Truck.tsx`), value for value: an expanding sphere about the drop point (1.35 s, 6.4 m, a 0.55 m soft edge) turns the body coat's colour, roughness and metalness from the finish it had into the one chosen, and the finish is committed when the sphere has grown to its full radius. It begins where the ray through the drop meets the car, or at the nose when a tap or a drop misses it. The wave is a field of the view's frame record, so the surface shading, the traced hits and the reflections all show it. | `Source/PaintRipple.js`, `ApplyPaintRipple` in `Shader/ViewWorld.wgsl`, `Source/VehiclePicking.js` |
+| The X-ray scan | In full, with the reference's clock (6.6 s: a front from 3.25 m ahead of the nose to 3.35 m behind the tail in 4.6 s, 1 s of hold, then the fade): the solid car dissolves behind the front (`smoothstep(−0.9, −0.05)`, to 3.5 % — the lamps stay solid), and over the picture come the ghost shell, the wireframe (the car's feature edges, 14° for the body and 28° for the tyres, as `EdgesGeometry` finds them), the curtain riding the front, 130 particles, the four tags, the corner frame, the vignette and the scan line. | `Source/ScanSequence.js`, `Source/VehicleEdges.js`, `Shader/ScanOverlay.wgsl`, `Source/ScanHud.js` |
+
+**What was run.** `npm test` (the scan's clock, the ripple's blend, the edges, the HUD's keyframes, the orbit, the picking and the paint state; the GPU tests
+are skipped without `RUN_GPU=1`), the Dawn null backend (every shader, pipeline and command is validated), and the view itself under SwiftShader, which
+executes the WGSL on the CPU: `Exhibits/VehicleHmiPrototype/RunGarageEvidence.sh` drops Command Red on the car and runs the scan across its sweep, at
+192 × 120, and tiles the pictures:
+
+- `Exhibits/VehicleHmiPrototype/Images/paint-ripple-sheet.png`: the car before the drop, then the wave crossing it until the finish is committed.
+- `Exhibits/VehicleHmiPrototype/Images/scan-sweep-sheet.png`: six pictures across the sweep.
+
+These are software-rasteriser pictures at a thumbnail's size. They show that the view renders the scene and that the layers are where they should be;
+they do not show the tablet, the timing or the look on a GPU, and nobody has yet opened the Garage in a browser with WebGPU.
+
+## TLAS skip when static
+
+`UpdateTlas` in `Source/RayTracingSpace.js` rebuilds the top-level acceleration structure and uploads it only when something it is built from changed.
+`Renderer/Patches/0003-tlas-skip-static.patch` is that change (`git apply --check -R` passes in this folder). It edits one file, so it does not depend on
+patches 0001 and 0002, which this repository does not have. The skip is on by default; `?tlasskip=0` turns it off.
+
+- **The key.** Every leaf's six bounds and three centroid components, its occupant index and its BLAS root; the leaf count; and the node buffer the last
+  upload went into. It skips only on an exact match of all of them (a NaN never matches), and the skipped call does not write the buffer. Anything
+  else — a leaf moved by one float, a leaf added or gone, a re-created buffer, a buffer that never received an upload, the skip off, a forced rebuild, a
+  build that threw — builds and uploads as before, and the key is forgotten whenever a build happens that it does not describe.
+- **Checked.** Not by pixels: SwiftShader's pixels are not reproducible from one run to the next, even with `DETERMINISTIC=1`, so an A/B image is
+  unusable. Instead:
+  - `Tools/TlasSkip.test.mjs`: 15 tests against a fake queue that mirrors every write into a CPU copy of the node buffer, compared with a space that
+    builds every frame, at every step of a 400-step random walk.
+  - `Exhibits/VehicleHmiPrototype/MutateTlasSkip.sh`: 32 one-line edits of the key and its guards, each of which the suite must fail
+    (`tlas-skip-mutations.txt`: 32 of 32).
+  - `Exhibits/VehicleHmiPrototype/ProfileTlasSkip.mjs` (through `Tools/TlasSkipHooks.mjs`): every write the host makes to the node buffer is mirrored and
+    the mirror's TLAS bytes are hashed after each frame; 90 frames in each of four settings (level and lobby, as they come and with the vehicle solver
+    frozen from frame 40), skip on against skip off: 0 frames differ.
+- **Measured here** (Dawn's null backend, so JavaScript CPU time of `UpdateTlas`; 91 frames each, skip on v off; `tlas-skip-level.json` and
+  `tlas-skip-lobby.json`). In all four settings the TLAS bytes of the 90 frames compared are identical, skip on against off:
+
+  | Scene, vehicle | Frames skipped | Buffer writes | TLAS bytes written | `UpdateTlas` mean, on v off |
+  | --- | --- | --- | --- | --- |
+  | Proving grounds, as it comes | 0 of 91 | 91 v 91 | 2,897,440 v 2,897,440 | 1.199 v 1.133 ms |
+  | Proving grounds, solver frozen from frame 40 | 50 of 91 | 41 v 91 | 1,305,440 v 2,897,440 | 0.934 v 1.251 ms |
+  | Lobby, as it comes | 90 of 91 | 1 v 91 | 2,912 v 264,992 | 0.153 v 0.223 ms |
+  | Lobby, solver frozen from frame 40 | 90 of 91 | 1 v 91 | 2,912 v 264,992 | 0.111 v 0.282 ms |
+
+  The level's TLAS is 995 nodes (31,840 B, 498 active instances) and the lobby's 91 (2,912 B, 46). In the first row the skip never fires and its mean is 0.07 ms
+  higher: the cost of comparing the key, plus the noise of a run (its spread was not measured). On 300 consecutive calls over a TLAS that does not change, a call costs 0.170 ms when it skips and 0.747 ms when it is forced
+  to build in the level, 0.033 against 0.111 ms in the lobby, and the two TLASs are byte for byte the same (31,840 B and 2,912 B).
+
+### Not reproduced
+
+Four statements of the brief that these runs do not bear out, so they are not repeated here as results:
+
+- **"Applied after 0001 and 0002."** Neither is in this repository, and neither can apply to it (`ClusteredLights.wgsl` is absent, and three hunks reject).
+  Patch 0003 touches only `Source/RayTracingSpace.js`, so it is independent of both.
+- **The sizes, 32,544 B for the 509-instance level and 416 B for the lobby.** Here the level has 498 active instances and 31,840 B, and the lobby 46 and
+  2,912 B. What was verified is that the skipped TLAS is byte for byte the TLAS a build produces for the same inputs, in each of these scenes.
+- **"It never fires in the lobby."** Here it fires on 90 of 91 frames as the lobby comes: the TLAS has one state in all 90, because the parked vehicle
+  does not move. In the level, as it comes, it never fires (90 different TLASs: the vehicle solver is live), and with the solver frozen from frame 40
+  it fires on 50 of 91.
+- **The saving.** Claimed: about 0.43 ms a frame in the level and 0.004 ms in the lobby. Measured here, per call of `UpdateTlas` in JavaScript on a
+  null-backend host: 0.58 ms saved by a skipped call in the level and 0.08 ms in the lobby. Neither is a frame time, and what the skipped upload saves on
+  a real GPU cannot be measured under SwiftShader.
+
 ## Added Garage functionality
 
 The cockpit/dashboard, steering wheel, integrated hexagonal cluster and centre tablet
@@ -92,15 +169,9 @@ now follow **Slate `3c987f3`**, not the old binnacle design. HUD scale/position 
 resize only the on-screen diagnostic HUD; the physical interior and seated camera do
 not move. See [SLATE_PORT.md](SLATE_PORT.md) for provenance and integration scope.
 
-Open the tablet's **Garage**. Paint, gloss/matte and rim controls update the shared
-GPU materials on the **actual driven car**, mirrors and live preview. Click to apply,
-or drag a paint swatch onto the preview's body / rim material onto a rim. Drops are
-ray-tested against the car's actual facets: background and wrong-material drops are
-rejected. Drag elsewhere in the preview to orbit. Cycle **Solid → Ghost → Wireframe
-→ Scan**; Scan sweeps an animated plane across the mesh. Inspection modes affect only
-the studio preview, not world-car opacity or physics. These are native WebGPU
-implementations of the requested interactions, not a Three.js embed or an exact
-copy of the configurator's animated ripple transition.
+Open the tablet's **Garage**: it is the configurator of `interactive-vehicle-hmi-configurator.zip` (its paint tab, its stage and the scene tab's
+X-ray toggle), with the stage drawn by this demo's own renderer. **[The Garage](#the-garage-the-car-rendered-live-by-the-scene)** below says what it
+does, what was checked and what was not.
 
 Tyre smoke uses the actual Slate plume transport, source projection and march shaders.
 Loose rigid bodies now run **Jolt Physics 1.1.0 in browser JavaScript/WebAssembly**;
@@ -114,7 +185,6 @@ See [PLAN.md](PLAN.md) for earlier physics/VFX changes.
 - Shredding removes only rubber. The rim preserves Project Drive's two authored face slots: 1,296 dark faces and
   272 blue emissive accent faces. The dark finish has its own RimBase identity so
   shredding cannot remove it. Both parts remain visible in shadows/mirrors/Garage.
-  Garage rim-finish changes affect the accent slot only, not the black base.
 - Spark width is bounded to 0.65–1.35 render pixels with a tighter core, preserving
   motion streaks without large close-up particle billboards.
 - Press **M** to toggle **HMI** focus / cockpit, or choose **HMI** in the camera selector
@@ -128,11 +198,9 @@ See [PLAN.md](PLAN.md) for earlier physics/VFX changes.
 
 ## Display colour and material dragging
 
-Open **Garage** on the tablet to drag paint, gloss/matte finishes or rim finishes
-onto the live car preview. A material chip follows your pointer/finger, including
-over the GPU-rendered preview. The turntable pauses during dragging. Release on the
-matching body/rim surface to apply to the actual car; background/wrong-surface drops
-cancel. **Blue accents** restores the original blue metallic/emissive accent slot.
+In the tablet's **Garage**, drag a paint swatch onto the car, or tap it. A material chip follows your pointer/finger, including over the live preview.
+A drop anywhere on the stage applies the paint: the ripple begins where the ray through the drop meets the car, or at the nose when it misses; a release over
+the panel cancels. (The rim finishes and **Blue accents** of the earlier Garage are gone: paint is the only vehicle control for now, besides the X-ray toggle.)
 
 The screen is now display-referred/antiglare rather than HDR sky-reflective glass,
 so scene exposure no longer bleaches its authored colours. Both brightness controls
@@ -145,7 +213,7 @@ The default renderer is **BVH · ReSTIR Path Tracer** (`RayTracing: true`, confi
 
 - **Two-Level BVH Acceleration Structure (`Source/RayTracingSpace.js` & `Shader/RayTraversal.wgsl`)**:
   - **Bottom-Level Acceleration Structure (BLAS)**: Binned-SAH BVH (`LeafCapacity = 4`, 12 SAH bins) built over all 56 `FacetSets` (20,854 static/mesh triangles across `ControlVehicle` body/wheels/cabin/roof fixtures, the 3,664-triangle `Proving ground` course mesh, buildings, cones, breakables, stress objects, and street lamp poles/gantries) plus dynamic per-fragment BLAS leaves registered on the fly when breakable props shatter (`RegisterPropFragments`).
-  - **Top-Level Acceleration Structure (TLAS)**: Rebuilt every frame (`UpdateTlas`) over all active scene occupants using Binned-SAH, transforming rays into each occupant's local space (`WorldToLocal`) for exact Möller–Trumbore ray-triangle intersection, barycentric smooth vertex normal interpolation, transparent `VehicleGlass` pass-through, and shredded-tyre rubber bypass (`RoleShredded`) so rays strike the underlying metal wheel rim.
+  - **Top-Level Acceleration Structure (TLAS)**: Rebuilt (`UpdateTlas`) over all active scene occupants using Binned-SAH — and, since the static skip (below), only when a leaf's bounds, its occupant or its BLAS root changed — transforming rays into each occupant's local space (`WorldToLocal`) for exact Möller–Trumbore ray-triangle intersection, barycentric smooth vertex normal interpolation, transparent `VehicleGlass` pass-through, and shredded-tyre rubber bypass (`RoleShredded`) so rays strike the underlying metal wheel rim.
 - **Full Multi-Bounce Path Tracing (`TraceMultiBouncePath`)**:
   - **Initial Candidate RIS**: Generates $M_{\text{init}}$ (default 2, up to 4) stratified low-discrepancy path candidates per pixel before temporal integration.
   - **Two-Layer PBR BSDF Importance Sampling (`SampleSurfaceBsdf`)**: Importance-samples both the Heitz 2018 GGX Visible Normal Distribution Function (VNDF) specular/clearcoat lobe and the cosine-weighted Lambertian diffuse lobe with exact mixture PDF evaluation.
@@ -388,8 +456,8 @@ turn together with steering ×3. The tablet keeps the reference placement/tilt a
 * **The HMI** is `Experimental/TabletPanel` (arena/215a6f39-frontier) as is — launcher, twelve applications, five
   launcher designs, the hexagon cluster — drawn into its own canvases and uploaded as textures when they redraw. The
   cluster shows the car's speed, revs, gear and tyre pressures; Telemetry and Tyres read the solver; the Tyres slider
-  pumps the tyres; the **Garage shows this car**, rendered live into its preview well by the exhibit's own studio pass
-  (its own camera and three lights, on a turntable you can drag). From the cockpit, click the tablet.
+  pumps the tyres; the **Garage shows this car**, rendered live into its preview well by the demo's own ReSTIR renderer
+  (a second view of the scene through the configurator's orbit camera: see *The Garage*). From the cockpit, click the tablet.
 * **Glass** is see-through: the glazing leaves the opaque raster and the cabin overlay draws it over what is behind —
   the sky's Fresnel reflection, a sun glint, 72 % transmission; it casts no shadow, so the sun reaches the cabin. The
   cabin's traced indirect light is attenuated (`Shader/CabinVolume.wgsl`): its surfaces lie inside the body's
@@ -490,6 +558,8 @@ palette, glow, momentum) and the triggers.
 | `lightgrid=0` | test every light per pixel instead of the world light grid (an exact cull: the picture must not change) |
 | `gridreach=0.05…1` | diagnostic: scale every light's reach in the light grid cull. 1 is exact; below 1 deliberately drops light, so the tests can prove they would notice |
 | `ies=0` | analytic beam shapes instead of the IES photometric profiles |
+| `garage=WxH` | the size of the Garage's picture (default `640x400`, the reference's stage; the software rasteriser's evidence frames use `192x120`) |
+| `tlasskip=0` | rebuild and upload the top-level acceleration structure every frame: the static skip (`Renderer/Patches/0003`) off |
 | `emissive=0` | no emissive-surface light sampling (BVH renderer): emitters are found by BSDF hits only |
 | `tyres=analytic` | the analytic tyre carcass spring instead of the XPBD carcass |
 | `tyresubsteps=8…32` | XPBD substeps per frame (default 32; 16 is not converged) |

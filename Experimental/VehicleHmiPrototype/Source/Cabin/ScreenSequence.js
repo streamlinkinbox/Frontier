@@ -1,4 +1,3 @@
-import { CourseMaterial } from "../MaterialSpecification.js";
 import { PaintOptions } from "../VehicleAppearance.js";
 //============================================================================================================================================
 //                                                            SCREENSEQUENCE.JS
