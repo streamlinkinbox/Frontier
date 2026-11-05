@@ -1801,5 +1801,5 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
     the march, not the look in the host.
   - The scan's vehicle binding (`Extensions/Rendering`) and the plume's march in the illumination host are not written: the GI port stays 1:1 and untouched.
   - No Windows binary was built or run (none was requested); everything ran on the Linux host.
-- **Commits:** `1c1ed7f`, `eb6cdfa`, `c039b0e`, `e4dad0a`, `1ef498f`, `b1c9544`, `0d8afbf`, `a8b1d79`, `4cc68b5`, `c9599fc`, `20c674d`, and the
-  commit with this entry.
+- **Commits:** `1c1ed7f`, `eb6cdfa`, `c039b0e`, `e4dad0a`, `1ef498f`, `b1c9544`, `0d8afbf`, `a8b1d79`, `4cc68b5`, `c9599fc`, `20c674d`, `ff28e4f`,
+  `c564f60`, `a19c90c`, `59e22cd`, and the commit that adds these hashes.
