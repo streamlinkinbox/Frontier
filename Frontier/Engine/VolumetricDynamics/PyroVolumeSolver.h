@@ -65,6 +65,22 @@ struct PyroExternalSource
 class PyroVolumeSolver
 {
   public:
+    // [unit] - a burst waiting for its time: Delay is seconds of simulation left before it fires
+    struct PendingBlastRecord
+    {
+        std::array<float, 3> Center         = { 0.5f, 0.18f, 0.5f };
+        std::array<float, 3> DirectionalVel = { 0.0f, 0.0f, 0.0f };
+        float                Radius         = 0.18f;
+        float                Strength       = 9.0f;
+        float                Temperature    = 5.5f;
+        float                Fuel           = 4.5f;
+        float                Smoke          = 3.5f;
+        int32_t              Lobes          = 5;
+        float                Seed           = 1.0f;
+        float                Delay          = 0.0f;
+        bool                 SpawnShrapnel  = false;
+    };
+
     PyroVolumeSolver() = default;
     ~PyroVolumeSolver() = default;
 
@@ -84,7 +100,9 @@ class PyroVolumeSolver
     void AssignBrush(const std::array<float, 3>& PosUvw, const std::array<float, 3>& VelPyro, bool Active) noexcept;
 
     void TriggerExplosion(const GasSettings& Settings, const PyroExplosionOptions& Options = {});
-    void TriggerBurstSequence(const GasSettings& Settings, const char* PatternName, const std::array<float, 3>* CustomCenter = nullptr);
+    // [unit] - the prototype's burst patterns (single, salvo, collide, mushroom, shrapnel), with its centres, delays and overrides; "mushroom" restarts the lattice first, as it does there
+    void TriggerBurstSequence(VulkanContext& Ctx, const GasSettings& Settings, const char* PatternName, const std::array<float, 3>* CustomCenter = nullptr);
+    [[nodiscard]] const std::vector<PendingBlastRecord>& QueryPendingBlasts() const noexcept { return PendingBlasts; }
 
     void AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settings, float RawDtSeconds);
 
@@ -125,21 +143,6 @@ class PyroVolumeSolver
         float                Age     = 0.0f;
         float                MaxLife = 1.8f;
         float                Radius  = 0.06f;
-    };
-
-    struct PendingBlastRecord
-    {
-        std::array<float, 3> Center         = { 0.5f, 0.18f, 0.5f };
-        std::array<float, 3> DirectionalVel = { 0.0f, 0.0f, 0.0f };
-        float                Radius         = 0.18f;
-        float                Strength       = 9.0f;
-        float                Temperature    = 5.5f;
-        float                Fuel           = 4.5f;
-        float                Smoke          = 3.5f;
-        int32_t              Lobes          = 5;
-        float                Seed           = 1.0f;
-        float                Delay          = 0.0f;
-        bool                 SpawnShrapnel  = false;
     };
 
     bool AllocateLatticeTargets(VulkanContext& Ctx, int32_t NewRes, std::string& OutDiagnostic);

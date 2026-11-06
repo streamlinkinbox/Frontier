@@ -421,55 +421,85 @@ void PyroVolumeSolver::TriggerExplosion(const GasSettings& Settings, const PyroE
     PendingBlasts.push_back(Rec);
 }
 
-void PyroVolumeSolver::TriggerBurstSequence(const GasSettings& Settings, const char* PatternName,
+void PyroVolumeSolver::TriggerBurstSequence(VulkanContext& Ctx, const GasSettings& Settings, const char* PatternName,
                                             const std::array<float, 3>* CustomCenter)
 {
-    const std::array<float, 3> C = CustomCenter ? *CustomCenter : std::array<float, 3>{ 0.5f, 0.20f, 0.5f };
-    const char* Pat = PatternName ? PatternName : "single";
+    // [unit] - FluidPanel.js TriggerBurst, case by case: the centres, delays and overrides below are the prototype's numbers
+    const char* Pattern = PatternName ? PatternName : "single";
 
-    if (std::strcmp(Pat, "salvo") == 0)
+    if (CustomCenter)
     {
-        for (int Idx = 0; Idx < 4; ++Idx)
+        PyroExplosionOptions Click{};
+        Click.CenterUvw = *CustomCenter;
+        TriggerExplosion(Settings, Click);
+        return;
+    }
+
+    if (std::strcmp(Pattern, "salvo") == 0)
+    {
+        static constexpr std::array<std::array<float, 3>, 4> SalvoCentres = { {
+            { 0.32f, 0.16f, 0.34f }, { 0.68f, 0.18f, 0.33f }, { 0.33f, 0.20f, 0.67f }, { 0.66f, 0.22f, 0.66f } } };
+        for (size_t Index = 0u; Index < SalvoCentres.size(); ++Index)
         {
-            const float Angle = static_cast<float>(Idx) * (PiVal * 0.5f);
-            PyroExplosionOptions Opt{};
-            Opt.CenterUvw    = { C[0] + std::cos(Angle) * 0.16f, C[1] + 0.04f * Idx, C[2] + std::sin(Angle) * 0.16f };
-            Opt.DelaySeconds = 0.12f * static_cast<float>(Idx);
-            TriggerExplosion(Settings, Opt);
+            PyroExplosionOptions Round{};
+            Round.CenterUvw        = SalvoCentres[Index];
+            Round.DelaySeconds     = static_cast<float>(Index) * 0.17f;
+            Round.RadiusOverride   = Settings.BlastRadius * 0.85f;
+            Round.StrengthOverride = Settings.BlastStrength * 0.95f;
+            Round.TempOverride     = Settings.BlastTemperature * 1.05f;
+            Round.SmokeOverride    = Settings.BlastSmoke * 1.1f;
+            Round.LobesOverride    = 7;
+            TriggerExplosion(Settings, Round);
         }
     }
-    else if (std::strcmp(Pat, "collide") == 0)
+    else if (std::strcmp(Pattern, "collide") == 0)
     {
-        PyroExplosionOptions Left{}, Right{};
-        Left.CenterUvw       = { 0.24f, 0.34f, 0.50f };
-        Left.DirectionalVel  = {  9.5f, 1.5f,  0.0f  };
-        Right.CenterUvw      = { 0.76f, 0.34f, 0.50f };
-        Right.DirectionalVel = { -9.5f, 1.5f,  0.0f  };
-        TriggerExplosion(Settings, Left);
-        TriggerExplosion(Settings, Right);
+        for (int Index = 0; Index < 2; ++Index)
+        {
+            const float Direction = Index == 0 ? -1.0f : 1.0f;
+            PyroExplosionOptions Jet{};
+            Jet.CenterUvw        = { Direction < 0.0f ? 0.22f : 0.78f, 0.3f, 0.5f };
+            Jet.DirectionalVel   = { -Direction * 14.0f, 1.5f, 0.0f };
+            Jet.DelaySeconds     = static_cast<float>(Index) * 0.03f;
+            Jet.RadiusOverride   = 0.16f;
+            Jet.StrengthOverride = 7.5f;
+            Jet.TempOverride     = 6.2f;
+            Jet.FuelOverride     = 4.8f;
+            Jet.SmokeOverride    = 2.5f;
+            Jet.LobesOverride    = 6;
+            TriggerExplosion(Settings, Jet);
+        }
     }
-    else if (std::strcmp(Pat, "mushroom") == 0)
+    else if (std::strcmp(Pattern, "mushroom") == 0)
     {
-        PyroExplosionOptions Base{}, Stem{};
-        Base.CenterUvw        = { C[0], 0.12f, C[2] };
-        Base.StrengthOverride = Settings.BlastStrength * 1.25f;
-        Stem.CenterUvw        = { C[0], 0.28f, C[2] };
-        Stem.DirectionalVel   = { 0.0f, 11.0f, 0.0f };
-        Stem.DelaySeconds     = 0.09f;
-        TriggerExplosion(Settings, Base);
+        ClearLattice(Ctx);
+
+        PyroExplosionOptions Cap{};
+        Cap.CenterUvw        = { 0.5f, 0.14f, 0.5f };
+        Cap.RadiusOverride   = 0.23f;
+        Cap.StrengthOverride = 12.5f;
+        Cap.TempOverride     = 6.5f;
+        Cap.FuelOverride     = 5.5f;
+        Cap.SmokeOverride    = 3.2f;
+        Cap.LobesOverride    = 8;
+        TriggerExplosion(Settings, Cap);
+
+        PyroExplosionOptions Stem{};
+        Stem.CenterUvw        = { 0.5f, 0.29f, 0.5f };
+        Stem.DelaySeconds     = 0.15f;
+        Stem.RadiusOverride   = 0.19f;
+        Stem.StrengthOverride = 9.5f;
+        Stem.TempOverride     = 6.8f;
+        Stem.FuelOverride     = 4.8f;
+        Stem.SmokeOverride    = 2.4f;
+        Stem.LobesOverride    = 6;
         TriggerExplosion(Settings, Stem);
-    }
-    else if (std::strcmp(Pat, "shrapnel") == 0)
-    {
-        PyroExplosionOptions Air{};
-        Air.CenterUvw        = { C[0], 0.32f, C[2] };
-        Air.ShrapnelOverride = 1;
-        TriggerExplosion(Settings, Air);
     }
     else
     {
+        // [unit] - "single" and "shrapnel" are the one burst at the prototype's default centre; only shrapnel forces the projectiles
         PyroExplosionOptions Single{};
-        Single.CenterUvw = C;
+        Single.ShrapnelOverride = std::strcmp(Pattern, "shrapnel") == 0 ? 1 : -1;
         TriggerExplosion(Settings, Single);
     }
 }
@@ -632,12 +662,11 @@ void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settin
         ++Idx;
     }
 
-    // Pop any due blast record for this frame
+    // [unit] - FluidPanel.js Frame: a burst whose time has come fires before the step that follows (one a step, in the order they were made); every waiting clock then advances by the step
     PendingBlastRecord ActiveBlast{};
     bool FireBlastThisStep = false;
     for (size_t Idx = 0u; Idx < PendingBlasts.size(); ++Idx)
     {
-        PendingBlasts[Idx].Delay -= Dt;
         if (PendingBlasts[Idx].Delay <= 0.0f && !FireBlastThisStep)
         {
             ActiveBlast       = PendingBlasts[Idx];
@@ -660,6 +689,8 @@ void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settin
             break;
         }
     }
+    for (PendingBlastRecord& Waiting : PendingBlasts)
+        Waiting.Delay -= Dt;
 
     // Smoothly surge open-bounds domain volume during energetic blasts / tall plumes
     if (Settings.DynamicBounds)

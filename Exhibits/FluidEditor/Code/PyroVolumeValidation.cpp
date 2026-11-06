@@ -289,10 +289,47 @@ void ValidateSolver(bool RequireVulkan)
         Burst.LatticeResolution  = 32;
         Burst.PressureIterations = 12;
         const PyroBoundsBox Rest = Solver.ComputeBoundsBox(Burst);
-        Solver.TriggerBurstSequence(Burst, "mushroom");
+        Solver.TriggerBurstSequence(Context, Burst, "mushroom");
         for (int Step = 0; Step < 30; ++Step) Solver.AdvanceSimulation(Context, Burst, 1.0f / 30.0f);
         const PyroBoundsBox Surged = Solver.ComputeBoundsBox(Burst);
         Verify(!Burst.DynamicBounds || Surged.EffectiveWidth >= Rest.EffectiveWidth, "a burst leaves the domain no smaller (" + std::to_string(Rest.EffectiveWidth) + " m to " + std::to_string(Surged.EffectiveWidth) + " m)");
+
+        // 📝 The burst patterns are the prototype's (FluidPanel.js TriggerBurst): its centres, delays and overrides, read back from the queue.
+        Burst.TimeScale = 1.0f;
+        const auto Near = [](float Left, float Right) { return std::fabs(Left - Right) < 1.0e-5f; };
+        const auto At   = [&](size_t Index) -> PyroVolumeSolver::PendingBlastRecord { return Solver.QueryPendingBlasts().at(Index); };
+        Solver.ClearLattice(Context);
+        Solver.TriggerBurstSequence(Context, Burst, "salvo");
+        Verify(Solver.QueryPendingBlasts().size() == 4u, "salvo queues four bursts");
+        Verify(Near(At(1).Center[0], 0.68f) && Near(At(1).Center[1], 0.18f) && Near(At(1).Center[2], 0.33f) && Near(At(3).Center[0], 0.66f) && Near(At(3).Center[2], 0.66f), "salvo's centres are the prototype's four");
+        Verify(Near(At(0).Delay, 0.0f) && Near(At(1).Delay, 0.17f) && Near(At(2).Delay, 0.34f) && Near(At(3).Delay, 0.51f), "salvo fires every 0.17 s");
+        Verify(Near(At(2).Radius, Burst.BlastRadius * 0.85f) && Near(At(2).Strength, Burst.BlastStrength * 0.95f) && Near(At(2).Temperature, Burst.BlastTemperature * 1.05f) && Near(At(2).Smoke, Burst.BlastSmoke * 1.1f) && At(2).Lobes == 7, "salvo scales the burst settings by 0.85, 0.95, 1.05 and 1.1 and uses seven lobes");
+        for (int Step = 0; Step < 7; ++Step) Solver.AdvanceSimulation(Context, Burst, 1.0f / 30.0f);
+        Verify(Solver.QueryPendingBlasts().size() == 2u, "after seven steps of 1/30 s the second round has fired (0.17 s had passed before the seventh) and two wait (" + std::to_string(Solver.QueryPendingBlasts().size()) + " do)");
+
+        Solver.ClearLattice(Context);
+        Solver.TriggerBurstSequence(Context, Burst, "collide");
+        Verify(Solver.QueryPendingBlasts().size() == 2u && Near(At(0).Center[0], 0.22f) && Near(At(1).Center[0], 0.78f) && Near(At(0).Center[1], 0.3f) && Near(At(0).DirectionalVel[0], 14.0f) && Near(At(1).DirectionalVel[0], -14.0f) && Near(At(0).DirectionalVel[1], 1.5f), "collide is two jets at 0.22 and 0.78 driven at each other at 14");
+        Verify(Near(At(1).Delay, 0.03f) && Near(At(0).Radius, 0.16f) && Near(At(0).Strength, 7.5f) && Near(At(0).Temperature, 6.2f) && Near(At(0).Fuel, 4.8f) && Near(At(0).Smoke, 2.5f) && At(0).Lobes == 6, "collide's second jet is 0.03 s late; both are radius 0.16, strength 7.5, temperature 6.2, fuel 4.8, smoke 2.5, six lobes");
+
+        Solver.ClearLattice(Context);
+        Solver.TriggerBurstSequence(Context, Burst, "single");
+        Solver.TriggerBurstSequence(Context, Burst, "mushroom");
+        Verify(Solver.QueryPendingBlasts().size() == 2u, "mushroom restarts first: the single burst queued before it is gone");
+        Verify(Near(At(0).Center[1], 0.14f) && Near(At(0).Radius, 0.23f) && Near(At(0).Strength, 12.5f) && Near(At(0).Temperature, 6.5f) && Near(At(0).Fuel, 5.5f) && Near(At(0).Smoke, 3.2f) && At(0).Lobes == 8, "mushroom's cap is at height 0.14: radius 0.23, strength 12.5, temperature 6.5, fuel 5.5, smoke 3.2, eight lobes");
+        Verify(Near(At(1).Delay, 0.15f) && Near(At(1).Center[1], 0.29f) && Near(At(1).Radius, 0.19f) && Near(At(1).Strength, 9.5f) && Near(At(1).Temperature, 6.8f) && Near(At(1).Fuel, 4.8f) && Near(At(1).Smoke, 2.4f) && At(1).Lobes == 6, "mushroom's stem comes 0.15 s later at height 0.29: radius 0.19, strength 9.5, temperature 6.8, fuel 4.8, smoke 2.4, six lobes");
+
+        Solver.ClearLattice(Context);
+        GasSettings Quiet = Burst;
+        Quiet.ShrapnelEnabled = false;
+        Solver.TriggerBurstSequence(Context, Quiet, "single");
+        Solver.TriggerBurstSequence(Context, Quiet, "shrapnel");
+        const std::array<float, 3> Click = { 0.3f, 0.4f, 0.7f };
+        Solver.TriggerBurstSequence(Context, Quiet, "single", &Click);
+        Verify(Solver.QueryPendingBlasts().size() == 3u && Near(At(0).Center[0], 0.5f) && Near(At(0).Center[1], 0.18f) && Near(At(0).Center[2], 0.5f), "single is one burst at the default centre (0.5, 0.18, 0.5)");
+        Verify(!At(0).SpawnShrapnel && At(1).SpawnShrapnel, "shrapnel forces the projectiles; single follows the setting");
+        Verify(Near(At(2).Center[0], 0.3f) && Near(At(2).Center[1], 0.4f) && Near(At(2).Center[2], 0.7f) && Near(At(2).Strength, Quiet.BlastStrength), "a clicked centre is one burst there with the settings' own strength");
+        Solver.ClearLattice(Context);
 
         std::vector<uint8_t> Sheet;
         Verify(Solver.BakeFlipbookSheet(Context, Settings, PyroOrbitCamera{}, 2, 2, 48, 1.0f / 25.0f, Sheet) && Sheet.size() == 96u * 96u * 4u, "a 2 x 2 flipbook of 48 px frames is baked: 96 x 96 RGBA");
