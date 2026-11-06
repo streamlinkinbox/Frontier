@@ -59,8 +59,8 @@ void FluidPlumeInspector::ConstructInspector()
     };
     InspectorControls::ConstructReadoutStrip(Palette, Faces, Cells, std::size(Cells));
     InspectorControls::ConstructMutedNote(Palette, Faces,
-                                          "The tyres' smoke and fire, solved on a lattice that follows the car. Edit the source, simulation, appearance, "
-                                          "flame and presets in the Plume Editor.");
+                                          "The tyres' smoke and fire, solved on a lattice that follows the car. The Plume Editor opens a window with an Outliner of "
+                                          "its parts, the viewport, an Inspector for each part and the libraries of looks and grades.");
 }
 
 #elif FRONTIER_EDITOR

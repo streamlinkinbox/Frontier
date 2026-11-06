@@ -1,23 +1,22 @@
 /*==========================================================================================================================================
                                                        FLUIDPLUMEEDITOR.CPP
 ==========================================================================================================================================*/
-// 🧩 The Smoke & fire editor window: a title bar with the live readout and Close, and the six cards below in columns (four on a wide window, three
-//    and two on narrower ones); each column is one ControlColumn page that scrolls with the wheel when its cards outgrow it.
+// 🧩 The Smoke & fire editor window: a title bar with the live readout and Close, and the editor's workspace below — the Outliner, the viewport,
+//    the Log Stream, the Inspector and the libraries (FluidPlumeEditorWorkspace), as the Particle editor's window lays them out.
 
 #include "Engine/Interface/FluidPlumeEditor.h"
 
 #if FRONTIER_EDITOR && defined(FRONTIER_WITH_INTERFACE_SDK)
 
-#include "Engine/Interface/Controls/ControlColumn.h"
+#include "Engine/Interface/FluidPlumeEditor/FluidPlumeEditorWorkspace.h"
 #include "Engine/Interface/FluidPlumeEditor/FluidPlumePages.h"
 #include "Engine/Interface/InspectorControls.h"
 #include "Engine/Interface/InspectorRuntime.h"
 #include "Engine/Scene/SceneDirectory.h"
 
 #include <algorithm>
-#include <array>
 #include <cstdio>
-#include <optional>
+#include <memory>
 
 namespace Frontier
 {
@@ -25,86 +24,48 @@ namespace Frontier
 namespace
 {
 
-// 📝 What the window keeps between refreshes: the host's readout and the verbs waiting for it.
-struct EditorState
+std::unique_ptr<FluidPlumeEditorWorkspace>& ResolveWorkspace()
 {
-    std::optional<FluidPlumeReadout> Readout;
-    std::vector<std::string>         Requests;
-};
-
-EditorState& ResolveState()
-{
-    static EditorState State;
-    return State;
-}
-
-using CardBuilder = void (*)(ControlColumn&, FluidPlumeContext&);
-
-constexpr float SmallestFit = 0.82f;   // [-] how far the four-column page shrinks to fit a short window
-
-constexpr ImU32 ScrollThumbInk = IM_COL32(255, 255, 255, 56);   // [-] the thumb of a column that scrolls
-
-struct ColumnPlan
-{
-    std::array<CardBuilder, 3> Cards{};   // [-] top to bottom; null ends the column
-};
-
-// 📝 The prototype's order (Domain, Source, Simulation, Appearance, Fire, Presets) flowed into as many columns as the window is wide enough for,
-//    so that every card is in view on the capture's 1920 px window.
-std::array<ColumnPlan, 4> PlanColumns(int Count)
-{
-    using namespace FluidPlumePages;
-    std::array<ColumnPlan, 4> Plan{};
-    if (Count >= 4)
-    {
-        Plan[0].Cards = { ConstructDomainCard, ConstructSourceCard, nullptr };
-        Plan[1].Cards = { ConstructSimulationCard, nullptr, nullptr };
-        Plan[2].Cards = { ConstructAppearanceCard, nullptr, nullptr };
-        Plan[3].Cards = { ConstructFireCard, ConstructPresetsCard, nullptr };
-    }
-    else if (Count == 3)
-    {
-        Plan[0].Cards = { ConstructDomainCard, ConstructSourceCard, ConstructPresetsCard };
-        Plan[1].Cards = { ConstructSimulationCard, nullptr, nullptr };
-        Plan[2].Cards = { ConstructAppearanceCard, ConstructFireCard, nullptr };
-    }
-    else
-    {
-        Plan[0].Cards = { ConstructDomainCard, ConstructSourceCard, ConstructAppearanceCard };
-        Plan[1].Cards = { ConstructSimulationCard, ConstructFireCard, ConstructPresetsCard };
-    }
-    return Plan;
+    static std::unique_ptr<FluidPlumeEditorWorkspace> Workspace;
+    if (!Workspace) Workspace = std::make_unique<FluidPlumeEditorWorkspace>();
+    return Workspace;
 }
 
 } // namespace
 
+FluidPlumeEditorWorkspace* FluidPlumeEditor::AccessWorkspace()
+{
+    return ResolveWorkspace().get();
+}
+
 void FluidPlumeEditor::AssignReadout(const FluidPlumeReadout& Readout)
 {
-    ResolveState().Readout = Readout;
+    ResolveWorkspace()->AssignReadout(Readout);
 }
 
 void FluidPlumeEditor::RevokeReadout() noexcept
 {
-    ResolveState().Readout.reset();
+    ResolveWorkspace()->RevokeReadout();
 }
 
 const FluidPlumeReadout* FluidPlumeEditor::QueryReadout() noexcept
 {
-    const EditorState& State = ResolveState();
-    return State.Readout ? &*State.Readout : nullptr;
+    return ResolveWorkspace()->QueryReadout();
 }
 
 std::vector<std::string> FluidPlumeEditor::TakeRequests()
 {
-    std::vector<std::string> Taken;
-    Taken.swap(ResolveState().Requests);
-    return Taken;
+    return ResolveWorkspace()->TakeHostRequests();
 }
 
 void FluidPlumeEditor::ConstructInterface(RecordToken Token, FluidPlumeConfiguration& Parameters)
 {
-    EditorState&           State   = ResolveState();
-    InspectorRuntime&      Runtime = InspectorRuntime::Instance();
+    FluidPlumeEditorWorkspace& Workspace = *ResolveWorkspace();
+    InspectorRuntime&          Runtime   = InspectorRuntime::Instance();
+    Workspace.Presenter                  = Runtime.QueryPlumeViewportPresenter();
+    const std::string Name               = SceneDirectory::Instance().QueryName(Token);
+    Workspace.AttachRecord(Parameters, Name);
+
     const InspectorPalette Palette = InspectorPalette::Resolve();
     const EditorTypefaces  Faces   = EditorTypefaces::Resolve();
     const float            Scale   = Runtime.ResolveInterfaceScale();
@@ -139,13 +100,12 @@ void FluidPlumeEditor::ConstructInterface(RecordToken Token, FluidPlumeConfigura
     ConstructEditorGlyph(Ink, ImVec2(Position.x + 24.0f * Scale, Position.y + 25.0f * Scale), 8.0f * Scale, Palette.ThemeAccent, "Flame", 1.5f);
     Ink->AddText(Faces.Medium, 14.0f * Scale, ImVec2(Position.x + 42.0f * Scale, Position.y + 16.5f * Scale), Palette.TextPrimary, "Frontier \xC2\xB7 Smoke & fire editor");
 
-    // 📝 The live readout: the record, its lattice and what the host's solver is doing.
-    const FluidPlumeReadout* Readout = State.Readout ? &*State.Readout : nullptr;
-    FluidPlumeContext        Context{ Parameters, Readout, State.Requests };
+    // 📝 The live readout: the record, its lattice and whether a solver stands behind the viewport.
+    const FluidPlumeReadout* Readout = Workspace.QueryReadout();
     char                     Line[256];
-    const std::string        Lattice = FluidPlumePages::FormatLatticeExtent(FluidPlumePages::ResolveGrade(Context));
-    std::snprintf(Line, sizeof(Line), "%s \xC2\xB7 %s \xC2\xB7 %s \xC2\xB7 %s", Readout == nullptr ? "NO SOLVER" : "LIVE", SceneDirectory::Instance().QueryName(Token).c_str(),
-                  Lattice.c_str(), Parameters.Enabled ? "ENABLED" : "DISABLED");
+    const std::string        Lattice = FluidPlumePages::FormatLatticeExtent(Readout != nullptr ? Readout->Grade : 2u);
+    std::snprintf(Line, sizeof(Line), "%s \xC2\xB7 %s \xC2\xB7 %s \xC2\xB7 %s", Readout == nullptr ? "NO SOLVER" : "LIVE", Name.c_str(), Lattice.c_str(),
+                  Parameters.Enabled ? "ENABLED" : "DISABLED");
     Ink->AddText(Faces.Monospace, 10.5f * Scale, ImVec2(Position.x + 300.0f * Scale, Position.y + 19.5f * Scale), Readout == nullptr ? Palette.TextSecondary : Palette.LiveGreen, Line);
 
     const float  CloseW = 108.0f * Scale;
@@ -157,54 +117,13 @@ void FluidPlumeEditor::ConstructInterface(RecordToken Token, FluidPlumeConfigura
     Ink->AddRect(CloseMin, ImVec2(CloseMin.x + CloseW, CloseMin.y + 30.0f * Scale), Palette.InsetFieldBorder, 9.0f * Scale);
     Ink->AddText(Faces.Medium, 11.0f * Scale, ImVec2(CloseMin.x + 18.0f * Scale, CloseMin.y + 8.5f * Scale), Palette.TextPrimary, "Close Editor");
 
-    // 📝 The columns: one ControlColumn page each, in a child that clips and scrolls.
     const ImVec2 BodyMin(Position.x + 12.0f * Scale, Position.y + Header + 12.0f * Scale);
     const ImVec2 BodyMax(Position.x + Size.x - 12.0f * Scale, Position.y + Size.y - 12.0f * Scale);
-    const float  Gap     = 12.0f * Scale;
-    const float  BodyW   = BodyMax.x - BodyMin.x;
-    const int    Count   = BodyW >= 1500.0f * Scale ? 4 : BodyW >= 1000.0f * Scale ? 3 : 2;
-    const float  ColumnW = (BodyW - Gap * static_cast<float>(Count - 1)) / static_cast<float>(Count);
-    const auto   Plan    = PlanColumns(Count);
-    // 📝 Four columns hold every card in view if the window is tall enough for the Simulation column; a little shorter and the page shrinks to fit (down
-    //    to 0.82), shorter still and the columns scroll. Three and two columns always scroll.
-    const float Fit = Count >= 4 ? std::clamp((BodyMax.y - BodyMin.y - 2.0f) / (FluidPlumePages::TallestColumnHeight * Scale), SmallestFit, 1.0f) : 1.0f;
-    for (int Column = 0; Column < Count; ++Column)
-    {
-        const ImVec2 Minimum(BodyMin.x + (ColumnW + Gap) * static_cast<float>(Column), BodyMin.y);
-        const ImVec2 Maximum(Minimum.x + ColumnW, BodyMax.y);
-        Ink->AddRectFilled(Minimum, Maximum, Palette.ColumnBg, 14.0f * Scale);
-        Ink->AddRect(Minimum, Maximum, Palette.EdgeBorder, 14.0f * Scale);
-        ImGui::SetCursorScreenPos(ImVec2(Minimum.x + 1.0f, Minimum.y + 1.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        char Name[40];
-        std::snprintf(Name, sizeof(Name), "##FluidPlumeColumn%d", Column);
-        if (ImGui::BeginChild(Name, ImVec2(ColumnW - 2.0f, Maximum.y - Minimum.y - 2.0f), ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground))
-        {
-            const ControlTheme Theme = ControlTheme::ResolveNative();
-            ControlColumn      Page(Theme, Faces, Scale * Fit);
-            for (const CardBuilder Card : Plan[static_cast<size_t>(Column)].Cards)
-            {
-                if (Card != nullptr) Card(Page, Context);
-            }
-            Page.Finalize();
-            // 📝 A column that scrolls shows where it is: a slim thumb at its right edge (the scrollbar itself is hidden).
-            const float Scrollable = ImGui::GetScrollMaxY();
-            if (Scrollable > 0.0f)
-            {
-                const ImVec2 Origin  = ImGui::GetWindowPos();
-                const ImVec2 Extent  = ImGui::GetWindowSize();
-                const float  Thumb   = std::max(24.0f * Scale, Extent.y * Extent.y / (Extent.y + Scrollable));
-                const float  Top     = Origin.y + (Extent.y - Thumb) * (ImGui::GetScrollY() / Scrollable);
-                ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(Origin.x + Extent.x - 7.0f * Scale, Top), ImVec2(Origin.x + Extent.x - 4.0f * Scale, Top + Thumb),
-                                                          ScrollThumbInk, 2.0f * Scale);
-            }
-        }
-        ImGui::EndChild();
-        ImGui::PopStyleVar();
-    }
-
+    Workspace.Construct(BodyMin, BodyMax, Scale, ImGui::GetIO().DeltaTime);
     if (Closing)
     {
+        // 📝 The test emitter is the editor's own: it stops with the window, so the record leaves as it came.
+        Workspace.DetachRecord();
         ImGui::CloseCurrentPopup();
         Runtime.CloseActiveEditor();
     }
@@ -222,6 +141,7 @@ void FluidPlumeEditor::AssignReadout(const FluidPlumeReadout&) {}
 void FluidPlumeEditor::RevokeReadout() noexcept {}
 const FluidPlumeReadout* FluidPlumeEditor::QueryReadout() noexcept { return nullptr; }
 std::vector<std::string> FluidPlumeEditor::TakeRequests() { return {}; }
+FluidPlumeEditorWorkspace* FluidPlumeEditor::AccessWorkspace() { return nullptr; }
 } // namespace Frontier
 
 #endif

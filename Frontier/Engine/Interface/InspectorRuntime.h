@@ -10,6 +10,7 @@
 #include "Engine/Scene/SceneDirectory.h"
 #include "Engine/Scene/SolarPlacement.h"
 #include "Engine/Interface/EnvironmentEditAccess.h"
+#include "Engine/Interface/FluidPlumeEditor/PlumeViewportPresentation.h"
 #include "Engine/Interface/ParticleEditor/ParticleViewportPresentation.h"
 
 #include <array>
@@ -140,6 +141,10 @@ class InspectorRuntime
     void                                    RegisterParticleViewportPresenter(ParticleViewportPresenter Presenter);
     [[nodiscard]] const ParticleViewportPresenter& QueryParticleViewportPresenter() const noexcept { return ParticlePresenter; }
 
+    // 📝 The Smoke & fire editor's GPU image, registered the same way (the editor application, a capture); without it the window still edits.
+    void                                  RegisterPlumeViewportPresenter(PlumeViewportPresenter Presenter);
+    [[nodiscard]] const PlumeViewportPresenter& QueryPlumeViewportPresenter() const noexcept { return PlumePresenter; }
+
     void RequestSkyFocus(float Azimuth, float Elevation, float Diameter) noexcept { SkyFocus = {Azimuth,Elevation,Diameter}; SkyFocusPending = true; }
     bool ConsumeSkyFocus(std::array<float,3>& Focus) noexcept
     {
@@ -190,6 +195,7 @@ class InspectorRuntime
     RecordToken          InspectedToken{};
     SolarPlacementSolver SolarSolver    = nullptr;
     ParticleViewportPresenter ParticlePresenter;
+    PlumeViewportPresenter    PlumePresenter;
     float                InterfaceScale = 1.0f;
     EnvironmentEditAccess EnvironmentAccess{};
     float                SolarElevation = 38.0f;   // [°]

@@ -159,6 +159,8 @@ add_library(FrontierSceneEditorUI STATIC
     Frontier/Engine/Interface/DiagramControls.cpp
     Frontier/Engine/Interface/FractureEditor.cpp
     Frontier/Engine/Interface/FluidPlumeEditor.cpp
+    Frontier/Engine/Interface/FluidPlumeEditor/FluidPlumeEditorWorkspace.cpp
+    Frontier/Engine/Interface/FluidPlumeEditor/FluidPlumeLibrary.cpp
     Frontier/Engine/Interface/FluidPlumeEditor/FluidPlumePages.cpp
     Frontier/Engine/Interface/ParticleEditor.cpp
     Frontier/Engine/Interface/ParticleEditor/ParticleFieldOverlay.cpp

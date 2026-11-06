@@ -1,15 +1,18 @@
 /*==========================================================================================================================================
                                                         FLUIDPLUMEEDITOR.H
 ==========================================================================================================================================*/
-// 🧩 The Smoke & fire editor window opened from a FluidPlume record's inspector: the HMI prototype's "Smoke & fire" page in C++ — Domain, Source,
-//    Simulation, Appearance, Fire and Presets — editing the record's 33 gas readings (GasParameterCatalogue).
+// 🧩 The Smoke & fire editor window opened from a FluidPlume record's inspector: an Outliner of the record's parts (the domain, the tyre sources,
+//    the test emitter, the gas's simulation, appearance and fire), the viewport on the plume, a Log Stream, an Inspector page for the selected part
+//    and the libraries (the six looks and the four grades) — the Particle editor's window, on the HMI prototype's "Smoke & fire" page: the record's
+//    33 gas readings (GasParameterCatalogue).
 //
-// 📝 The window has no preview viewport yet. The prototype shows the plume in its own scene through the illumination host's march, a composite the
-//    editor application does not host; what the window shows of the running plume is the host's readout (AssignReadout).
+// 📝 The viewport is a GPU image from the host that owns the Vulkan device (RegisterPlumeViewportPresenter); without one the window still edits,
+//    and says why the viewport is empty.
 
 #pragma once
 
 #include "Engine/Diagnostics/BuildConfiguration.h"
+#include "Engine/Interface/FluidPlumeEditor/PlumeViewportPresentation.h"
 #include "Engine/Scene/EngineConfigurations.h"
 #include "Engine/Scene/RecordToken.h"
 
@@ -22,16 +25,7 @@ namespace Frontier
 
 #if FRONTIER_EDITOR
 
-// 📝 What the running plume tells the Domain and Presets cards (the host fills it from its SmokeSequence each refresh). Without one the cards read
-//    "no solver": the editor never shows counters nothing is counting.
-struct FluidPlumeReadout
-{
-    uint32_t Grade       = 2;       // [-] the grade the plume is built at: the Render settings' quality tier (0 low, 1 medium, 2 high)
-    bool     Resident    = false;   // [-] the lattices hold state
-    uint32_t Sources     = 0;       // [-] emitters this refresh
-    uint32_t Ticks       = 0;       // [-] transport steps taken
-    uint32_t Relocations = 0;       // [-] moves of the toroidal window
-};
+class FluidPlumeEditorWorkspace;
 
 class FluidPlumeEditor
 {
@@ -39,13 +33,17 @@ class FluidPlumeEditor
     // 📝 Lays the window (a modal popup, as the Particle editor's is) on the record's readings, for as long as the record's editor is the active one.
     static void ConstructInterface(RecordToken Token, FluidPlumeConfiguration& Parameters);
 
-    // 📝 The host that runs the plume says what it is doing; RevokeReadout says it stopped.
+    // 📝 A host that runs the plume without the viewport's presenter says what it is doing; RevokeReadout says it stopped. The presenter's own
+    //    readout, when the window has one, is the one QueryReadout returns.
     static void AssignReadout(const FluidPlumeReadout& Readout);
     static void RevokeReadout() noexcept;
     [[nodiscard]] static const FluidPlumeReadout* QueryReadout() noexcept;
 
-    // 📝 The verbs the cards raised that only the host can carry out ("clear-smoke": empty the lattices). The call takes them.
+    // 📝 The verbs the window raised that only a host without the presenter can carry out ("clear-smoke": empty the lattices). The call takes them.
     [[nodiscard]] static std::vector<std::string> TakeRequests();
+
+    // 📝 The editor behind the window (created when it first opens); captures and the validation drive it through its verbs.
+    [[nodiscard]] static FluidPlumeEditorWorkspace* AccessWorkspace();
 };
 
 #endif // FRONTIER_EDITOR
