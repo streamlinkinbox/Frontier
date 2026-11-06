@@ -2078,6 +2078,44 @@ bool WorldSpace::SaveLevelSpace(const std::filesystem::path& LevelSpacePath, std
     return Output.good();
 }
 
+bool WorldSpace::LoadLevelFromProject(const std::filesystem::path& ProjectSpacePath, const std::string& LevelIdentity, std::string* OutError)
+{
+    toml::table ProjectDoc;
+    try
+    {
+        ProjectDoc = toml::parse_file(ProjectSpacePath.string());
+    }
+    catch (const toml::parse_error& Error)
+    {
+        if (OutError)
+        {
+            *OutError = std::string("Failed to parse .projectspace: ") + std::string(Error.description());
+        }
+        return false;
+    }
+
+    if (const toml::array* Levels = ProjectDoc["levels"].as_array())
+    {
+        for (const toml::node& Node : *Levels)
+        {
+            const toml::table* LevelEntry = Node.as_table();
+            if (LevelEntry && (*LevelEntry)["identity"].value_or(std::string{}) == LevelIdentity)
+            {
+                const std::string RelPath = (*LevelEntry)["path"].value_or(std::string{});
+                if (!RelPath.empty())
+                {
+                    return LoadLevelSpace(ProjectSpacePath.parent_path() / RelPath, OutError);
+                }
+            }
+        }
+    }
+    if (OutError)
+    {
+        *OutError = "The project has no level '" + LevelIdentity + "': " + ProjectSpacePath.string();
+    }
+    return false;
+}
+
 bool WorldSpace::LoadStartupLevelFromProject(const std::filesystem::path& ProjectSpacePath, std::string* OutError)
 {
     toml::table ProjectDoc;

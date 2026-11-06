@@ -20,7 +20,8 @@ class EverestApplication
     EverestApplication() = default;
     ~EverestApplication() = default;
 
-    bool Initialize(const std::filesystem::path& ProjectSpacePath, std::string* OutDiagnostic = nullptr);
+    // 📝 LevelIdentity names one of the project's levels to open instead of its startup level (empty: the startup level).
+    bool Initialize(const std::filesystem::path& ProjectSpacePath, std::string* OutDiagnostic = nullptr, const std::string& LevelIdentity = {});
     void StepFrame(float DeltaSeconds);
     int  RunMainLoop(uint64_t MaxFrames = 0);
     void Shutdown();

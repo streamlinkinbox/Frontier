@@ -403,7 +403,7 @@ void SceneDirectoryPanel::ConstructInterface()
                     // 📝 The Project Zero editor's row menu: Rename, Hide, Fracture (not yet: no action), Duplicate, Remove.
                     if (DropdownControlSurface::BeginMenu("##RowMenu"))
                     {
-                        if (DropdownControlSurface::Option("Rename        F2")) BeginRename(Row.Token);
+                        if (DropdownControlSurface::Option("Rename  Shift+F2")) BeginRename(Row.Token);
                         if (DropdownControlSurface::Option(On ? "Hide" : "Show"))
                         {
                             if (Switch.Switched) Switch.Inspector->ConfigureToggle(!On);

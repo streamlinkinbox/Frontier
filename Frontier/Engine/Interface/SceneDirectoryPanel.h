@@ -107,7 +107,7 @@ class SceneDirectoryPanel
     [[nodiscard]] std::optional<RecordToken> ConsumeDuplicateRequest();
     void RequestRenameRecord(RecordToken Token, std::string Name);
     [[nodiscard]] std::optional<std::pair<RecordToken, std::string>> ConsumeRenameRequest();
-    void BeginRename(RecordToken Token);   // the row's name turns into a text field (F2, the row menu's Rename)
+    void BeginRename(RecordToken Token);   // the row's name turns into a text field (Shift+F2, the row menu's Rename)
     [[nodiscard]] RecordToken QueryRenaming() const { return Renaming; }
 
     // 📝 With the Construct dialog offered, the '+' button asks the host to open it (the host draws it) instead of the add menu.

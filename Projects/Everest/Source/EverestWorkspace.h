@@ -79,6 +79,10 @@ struct SceneViewportFlight
     [[nodiscard]] double                ResolveFieldOfView() const noexcept;
     // 📝 Unreal's GetCameraSpeed table for settings 1–8 (0.03125 … 32; 1 at the default setting 4).
     [[nodiscard]] static double         ResolveSpeed(int Setting) noexcept;
+    // 📝 The view the Lobby opens with: the hero framing of the VehicleHMI demo's Lobby.html (its VehicleOrbitCamera at the end of the entrance dolly:
+    //    yaw 1.15 rad round from the car's nose, pitch 0.20 rad above the floor, 6.6 m out, 60° vertical field of view, about the car's centre of mass
+    //    raised 0.35 m), with the pivot on the car, so that Alt orbits it. (The default above is the view of the whole Proving Grounds, from far out.)
+    [[nodiscard]] static SceneViewportFlight ConstructLobbyView() noexcept;
 };
 
 // 📝 One interface tick of pointer and keyboard input over the viewport, as the camera reads it (ImGui conventions: y down).
@@ -130,10 +134,12 @@ class EverestWorkspace
 {
   public:
 #if FRONTIER_EDITOR && defined(FRONTIER_WITH_INTERFACE_SDK)
+    // 📝 StartupLevelIdentity names one of the project's levels to open instead of the one its project file starts in (empty: that one).
     explicit EverestWorkspace(Frontier::ControlCentrePanel& ControlCentre,
-                              std::filesystem::path         ProjectRootPath = "Projects/Everest");
+                              std::filesystem::path         ProjectRootPath      = "Projects/Everest",
+                              std::string                   StartupLevelIdentity = {});
 #else
-    explicit EverestWorkspace(std::filesystem::path ProjectRootPath = "Projects/Everest");
+    explicit EverestWorkspace(std::filesystem::path ProjectRootPath = "Projects/Everest", std::string StartupLevelIdentity = {});
 #endif
     ~EverestWorkspace();
 
@@ -197,6 +203,9 @@ class EverestWorkspace
     void                  ToggleSimulation();
     void                  ConfigureSimulationActive(bool Active);
     [[nodiscard]] bool    QuerySimulationActive() const noexcept { return SimulationRunning; }
+    // 📝 While a measurement holds the viewport camera (the F2 test), the chase camera leaves it where the measurement put it.
+    void                  ConfigureViewportCameraHeld(bool Held) noexcept { ViewportCameraHeld = Held; }
+    [[nodiscard]] bool    QueryViewportCameraHeld() const noexcept { return ViewportCameraHeld; }
     // 📝 The Quick Controls "Networking" toggle: enables the session's replication (loopback until a provider links).
     void                  ToggleNetworking();
     [[nodiscard]] bool    QueryNetworkingEnabled() const noexcept;
@@ -212,7 +221,7 @@ class EverestWorkspace
     [[nodiscard]] double                       QueryElapsedSeconds() const noexcept { return ElapsedSeconds; }
 
   private:
-    void InitializeWorld();
+    void InitializeWorld(const std::string& LevelIdentity);
 
 #if FRONTIER_EDITOR && defined(FRONTIER_WITH_INTERFACE_SDK)
     void ServiceDynamicSceneRequests();
@@ -289,6 +298,7 @@ class EverestWorkspace
     std::unordered_map<uint64_t, std::array<float, 3>> PendingAlbedo{};   // [-] constructed shapes waiting for their family
     FieldViewport                                Field{};
     bool                                         SimulationRunning      = false;
+    bool                                         ViewportCameraHeld     = false;   // [-] a measurement holds the camera: no chase camera
     bool                                         NetworkingActive       = false;
     bool                                         PendingVehicleReset    = false;
     Frontier::Vehicle::DriverInputIntegrator     DriverControls{};

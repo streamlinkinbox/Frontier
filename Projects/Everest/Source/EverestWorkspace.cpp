@@ -209,6 +209,25 @@ double SceneViewportFlight::ResolveFieldOfView() const noexcept
     return std::clamp(VerticalFieldOfView / DegreesToRadian + FieldOfViewOffset, 5.0, 140.0) * DegreesToRadian;
 }
 
+SceneViewportFlight SceneViewportFlight::ConstructLobbyView() noexcept
+{
+    // [unit] - the numbers of Lobby.html: LobbyEntry.To = { Yaw: 1.15, Pitch: 0.20, Distance: 6.6 } in IlluminationHost.js, resolved by VehicleOrbitCamera.Resolve about the car's
+    //          position (its centre of mass, 0.53 m above the floor at rest) raised 0.35 m, with the 60° vertical field of view it returns. Its yaw is counter-clockwise from +X, the
+    //          car's nose, as the heading here is, so the eye is where it is in the demo.
+    constexpr double RoundRadians    = 1.15;   // [rad] round the car from its nose (+x), counter-clockwise
+    constexpr double AboveRadians    = 0.20;   // [rad] above the horizon, seen from the car
+    constexpr double OutMetres       = 6.6;    // [m] from the pivot
+    const std::array<double, 3> Pivot = {0.0, 0.0, 0.53 + 0.35};   // [m] the car's centre of mass at its spawn, raised 0.35 m
+    const double                Level = OutMetres * std::cos(AboveRadians);
+    SceneViewportFlight         View{};
+    View.Position      = {Pivot[0] + Level * std::cos(RoundRadians), Pivot[1] + Level * std::sin(RoundRadians), Pivot[2] + OutMetres * std::sin(AboveRadians)};
+    View.Heading       = RoundRadians / DegreesToRadian + 180.0;
+    View.Elevation     = -AboveRadians / DegreesToRadian;
+    View.PivotDistance = OutMetres;
+    View.VerticalFieldOfView = 60.0 * DegreesToRadian;
+    return View;
+}
+
 double SceneViewportFlight::ResolveSpeed(int Setting) noexcept
 {
     constexpr std::array<double, 8> Speeds = {0.03125, 0.09375, 0.33, 1.0, 3.0, 8.0, 16.0, 32.0};
@@ -367,12 +386,13 @@ void IntegrateSceneViewportFlight(SceneViewportFlight& Flight, const SceneViewpo
 #if FRONTIER_EDITOR && defined(FRONTIER_WITH_INTERFACE_SDK)
 
 EverestWorkspace::EverestWorkspace(Frontier::ControlCentrePanel& ControlCentre,
-                                   std::filesystem::path         ProjectRootPath)
+                                   std::filesystem::path         ProjectRootPath,
+                                   std::string                   StartupLevelIdentity)
     : Centre(ControlCentre)
     , InspectorPanel(OutlinerPanel)
     , ProjectRoot(std::move(ProjectRootPath))
 {
-    InitializeWorld();
+    InitializeWorld(StartupLevelIdentity);
 
     // 📝 The scene's entries plus the one Render settings component (the whole renderer, owner's request) and the scene archive's
     //    geometry objects; neither the renderer nor the geometry is constructible (the archive decides what geometry exists). FluidPlume, the Smoke &
@@ -477,10 +497,10 @@ EverestWorkspace::EverestWorkspace(Frontier::ControlCentrePanel& ControlCentre,
 
 #else
 
-EverestWorkspace::EverestWorkspace(std::filesystem::path ProjectRootPath)
+EverestWorkspace::EverestWorkspace(std::filesystem::path ProjectRootPath, std::string StartupLevelIdentity)
     : ProjectRoot(std::move(ProjectRootPath))
 {
-    InitializeWorld();
+    InitializeWorld(StartupLevelIdentity);
 }
 
 #endif
@@ -496,7 +516,7 @@ EverestWorkspace::~EverestWorkspace()
 #endif
 }
 
-void EverestWorkspace::InitializeWorld()
+void EverestWorkspace::InitializeWorld(const std::string& LevelIdentity)
 {
     const uint32_t ProjectCategory = EnsureProjectLogCategory("Everest");
     (void)EnsureProjectLogCategory("Physics");
@@ -504,7 +524,7 @@ void EverestWorkspace::InitializeWorld()
     const std::filesystem::path ProjectSpacePath = ProjectRoot / "Everest.projectspace";
     if (std::filesystem::exists(ProjectSpacePath))
     {
-        if (Application.Initialize(ProjectSpacePath, &Diagnostic))
+        if (Application.Initialize(ProjectSpacePath, &Diagnostic, LevelIdentity))
         {
             ActiveLevelPath = QueryWorldSpace().QueryLoadedLevelPath();
 #if FRONTIER_EDITOR
@@ -903,8 +923,8 @@ Frontier::PlacementView EverestWorkspace::ResolvePlacementView(const ImVec2& Sta
 
 void EverestWorkspace::ServiceSceneObjectKeys()
 {
-    // 📝 The Project Zero editor's keys: Ctrl+A Construct, Ctrl+D duplicate, Del remove, F2 rename; never while a field takes the
-    //    keys, the camera flies or the dialog is up.
+    // 📝 The Project Zero editor's keys: Ctrl+A Construct, Ctrl+D duplicate, Del remove, Shift+F2 rename (plain F2 opens the performance
+    //    window); never while a field takes the keys, the camera flies or the dialog is up.
     const ImGuiIO& IO = ImGui::GetIO();
     // 📝 Nor while a modal editor (the Particle editor) has the keys: Delete there must not remove the record behind it.
     if (IO.WantTextInput || ImGui::IsMouseDown(ImGuiMouseButton_Right) || ConstructDialog.QueryOpen() || ImGui::GetTopMostPopupModal() != nullptr) return;
@@ -914,7 +934,7 @@ void EverestWorkspace::ServiceSceneObjectKeys()
     else if (!IO.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Delete, false) && Selected.IsValid() &&
              Frontier::SceneDirectory::Instance().QueryMetadata(Selected).RemovableInEditor)
         OutlinerPanel.RequestDeleteRecord(Selected);
-    else if (ImGui::IsKeyPressed(ImGuiKey_F2, false) && Selected.IsValid()) OutlinerPanel.BeginRename(Selected);
+    else if (IO.KeyShift && ImGui::IsKeyPressed(ImGuiKey_F2, false) && Selected.IsValid()) OutlinerPanel.BeginRename(Selected);
 }
 
 void EverestWorkspace::ConstructInterface(double DeltaSeconds)
@@ -1640,7 +1660,7 @@ void EverestWorkspace::IntegrateDrivingControls(double DeltaSeconds)
 
 void EverestWorkspace::IntegrateChaseCamera(double DeltaSeconds)
 {
-    if (!SimulationRunning || ImGui::IsMouseDown(ImGuiMouseButton_Right)) return;
+    if (!SimulationRunning || ViewportCameraHeld || ImGui::IsMouseDown(ImGuiMouseButton_Right)) return;
     for (const Frontier::SceneRecordBase* Candidate : QueryWorldSpace().FindAllByType("Vehicle"))
     {
         const auto* VehicleRec = dynamic_cast<const Frontier::VehicleRecord*>(Candidate);

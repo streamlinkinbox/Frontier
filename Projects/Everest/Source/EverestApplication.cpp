@@ -17,11 +17,13 @@ void EverestApplication::RegisterProjectTypes()
     RegisterEverestSimulationTypes(World);
 }
 
-bool EverestApplication::Initialize(const std::filesystem::path& ProjectSpacePath, std::string* OutDiagnostic)
+bool EverestApplication::Initialize(const std::filesystem::path& ProjectSpacePath, std::string* OutDiagnostic, const std::string& LevelIdentity)
 {
     ActiveProjectPath = ProjectSpacePath;
     RegisterProjectTypes();
-    if (!World.LoadStartupLevelFromProject(ProjectSpacePath, OutDiagnostic))
+    const bool Loaded = LevelIdentity.empty() ? World.LoadStartupLevelFromProject(ProjectSpacePath, OutDiagnostic)
+                                              : World.LoadLevelFromProject(ProjectSpacePath, LevelIdentity, OutDiagnostic);
+    if (!Loaded)
     {
         return false;
     }

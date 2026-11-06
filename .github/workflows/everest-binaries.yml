@@ -7,6 +7,15 @@ on:
       - arena/0b4c5376-frontier
       - arena/a0311b9c-frontier
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Which systems to build: all, or windows (the binary to test, without the other two)'
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - windows
 
 permissions:
   contents: read
@@ -17,7 +26,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # A push builds all three; a manual run may ask for Windows alone
+        os: ${{ fromJSON(github.event.inputs.platforms == 'windows' && '["windows-latest"]' || '["ubuntu-latest","windows-latest","macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out source
@@ -37,6 +47,7 @@ jobs:
         run: cmake -S Frontier -B build -DCMAKE_BUILD_TYPE=Release -DFRONTIER_ENABLE_GLFW=ON
 
       - name: Build Everest and validation
+        id: build
         shell: bash
         run: |
           set -o pipefail
@@ -58,12 +69,15 @@ jobs:
             exit 1
           fi
 
+      # The package is staged and uploaded whenever the build itself worked, so that a validation that fails on this machine does not take the binary with it
       - name: Stage standalone test package
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: bash
         run: |
           mkdir -p dist/Everest/Archive
           mkdir -p dist/Everest/EngineContent/Fonts/SunReference
           mkdir -p dist/Everest/Experimental/Fluid/Samples
+          mkdir -p dist/Everest/Projects
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cp build/Release/Everest.exe dist/Everest/Everest.exe
             cp build/Release/EverestWindow.exe dist/Everest/EverestWindow.exe
@@ -77,6 +91,10 @@ jobs:
           cp EngineContent/Fonts/SunReference/DMSans-Light.ttf dist/Everest/EngineContent/Fonts/SunReference/
           cp EngineContent/Fonts/SunReference/DMSans-Regular.ttf dist/Everest/EngineContent/Fonts/SunReference/
           cp Experimental/Fluid/Samples/*.gasscene.toml dist/Everest/Experimental/Fluid/Samples/
+          # The window reads these next to itself: the interface's fonts and icons, and the project with its levels (the Lobby it opens on)
+          cp -R EngineContent/. dist/Everest/EngineContent/
+          cp -R Projects/Everest dist/Everest/Projects/
+          rm -rf dist/Everest/Projects/Everest/Source
           cat > dist/Everest/README.txt <<'EOF'
           Project Everest — Vulkan 1.1 C++ test build (Frontier Editor, Fluid editor, Smoke & fire editor, 3D SDF World & tyre smoke)
 
@@ -84,10 +102,17 @@ jobs:
             Everest --archive Archive --render lobby.ppm
             Everest --archive Archive --navigate proving-grounds --render proving-grounds.ppm
 
-          Interactive Vulkan 1.1 Frontier Editor:
-            EverestWindow --archive Archive --proving-grounds
+          Interactive Vulkan 1.1 Frontier Editor (run it from inside this folder; it reads EngineContent and Projects next to itself):
+            EverestWindow                                opens the Lobby: the studio with one vehicle
+            EverestWindow --proving-grounds              opens the Proving Grounds level
             EverestWindow --archive Archive --fluid-editor [--preset tactical_ordnance]
             EverestWindow --archive Archive --smoke-editor [--preset inferno]
+
+          Performance (F2):
+            F2 opens the performance window: the optimized-execution switch (off until you turn it on), the live figures, and the A/B test
+            ("Run the A/B test": four runs, one to two minutes: leave the window alone). It writes PerformanceLogs/ next to the program: one TOML log per run
+            and <time>_ab-report.txt. "Copy the report" puts the report on the clipboard. Send those files (or the report) to compare.
+            Shift+F2 renames the selected record in the Outliner.
 
           Frontier Editor (3D SDF World):
             - The Outliner lists the world's records. Solvers holds the two fire and smoke solvers: Fluid Volume and Fluid Plume.
@@ -101,6 +126,7 @@ jobs:
           EOF
 
       - name: Upload test binaries
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: Everest-${{ runner.os }}

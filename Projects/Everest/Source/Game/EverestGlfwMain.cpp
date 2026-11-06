@@ -3,14 +3,21 @@
 ==========================================================================================================================================*/
 // 🧩 GLFW + Vulkan 1.1 interactive front-end for Project Everest:
 //    Hosts the authentic Frontier Editor (EverestWorkspace + ControlCentrePanel + Outliner + Inspector + Log Stream + Construct),
-//    the authentic Smoke & fire editor (FluidPlumeEditorWorkspace), 3D GPU SDF Proving Grounds, ControlVehicle driving,
+//    the authentic Smoke & fire editor (FluidPlumeEditorWorkspace), the 3D GPU SDF Lobby and Proving Grounds, ControlVehicle driving,
 //    and continuous toroidal world-grid Pacejka tyre smoke & fire. Zero OpenGL dependencies.
 //
 //      EverestWindow [--archive DIR] [--proving-grounds] [--fluid-editor] [--smoke-editor] [--preset ID] [--frames N] [--capture PATH.png]
+//                    [--optimized | --baseline] [--uncapped] [--perf-window] [--perf-test]
 //
+//      (none)           opens the project's startup level, the Lobby: the studio with one vehicle
+//      --proving-grounds  opens the Proving Grounds level instead
 //      --fluid-editor   opens the Fluid editor (Experimental/Fluid's page: 85 settings, 18 presets) on a Fluid Volume;
 //                       --preset ID is one of the 18 presets (for example tactical_ordnance)
 //      --smoke-editor   opens the Smoke & fire editor on the tyres' plume; --preset ID is one of its looks (for example inferno)
+//
+//    F2 opens the performance window (PerformancePanel): the optimized-execution switch, live figures and the A/B test. The switch is off at the
+//    start unless --optimized (or FRONTIER_OPTIMIZED_EXECUTION=1) turns it on; --baseline says off. --uncapped presents without waiting for the
+//    display; --perf-window opens the window at the start; --perf-test also runs the A/B test once the window is up.
 
 #include "Engine/Interface/FluidEditor/FluidEditorWorkspace.h"
 #include "Engine/Interface/FluidPlumeEditor.h"
@@ -19,6 +26,8 @@
 #include "Engine/Interface/FluidVolumeEditor.h"
 #include "Engine/Interface/InspectorRuntime.h"
 #include "Engine/Lifecycle/ActivationSequence.h"
+#include "Frontier/Engine/Diagnostics/PerformanceLog.h"
+#include "Frontier/Engine/Diagnostics/PerformancePanel.h"
 #include "Frontier/Engine/Rendering/PngImageCodec.h"
 #include "Frontier/Engine/Rendering/VulkanContext.h"
 #include "Frontier/Engine/VolumetricDynamics/FluidPlumeBridge.h"
@@ -94,9 +103,12 @@ int main(int ArgumentCount, char** Arguments)
     std::string ArchiveDirectory = "";
     std::string InitialPresetId  = "";
     std::string CapturePngPath   = "";
-    bool StartInProvingGrounds   = true;
+    bool StartInProvingGrounds   = false;
     bool StartInFluidEditor      = false;
     bool StartInSmokeEditor      = false;
+    bool StartUncapped           = false;
+    bool StartPerformanceWindow  = false;
+    bool StartPerformanceTest    = false;
     int MaxFrames                = 0;
 
     for (int Index = 1; Index < ArgumentCount; ++Index)
@@ -113,6 +125,16 @@ int main(int ArgumentCount, char** Arguments)
             StartInProvingGrounds = true;
         else if (std::strcmp(Arguments[Index], "--lobby") == 0)
             StartInProvingGrounds = false;
+        else if (std::strcmp(Arguments[Index], "--optimized") == 0)
+            OptimizedExecution::Configure(true);
+        else if (std::strcmp(Arguments[Index], "--baseline") == 0)
+            OptimizedExecution::Configure(false);
+        else if (std::strcmp(Arguments[Index], "--uncapped") == 0)
+            StartUncapped = true;
+        else if (std::strcmp(Arguments[Index], "--perf-window") == 0)
+            StartPerformanceWindow = true;
+        else if (std::strcmp(Arguments[Index], "--perf-test") == 0)
+            StartPerformanceWindow = StartPerformanceTest = true;
         else if (std::strcmp(Arguments[Index], "--fluid-editor") == 0)
             StartInFluidEditor = true;
         else if (std::strcmp(Arguments[Index], "--smoke-editor") == 0)
@@ -198,8 +220,14 @@ int main(int ArgumentCount, char** Arguments)
     (void)Centre->Initialize();
     (void)Centre->Activate();
 
-    Everest::EverestWorkspace Workspace(*Centre, EverestRoot);
+    // [unit] - the project starts in the Lobby (its startup_level); --proving-grounds opens the level of the Proving Grounds instead
+    Everest::EverestWorkspace Workspace(*Centre, EverestRoot, StartInProvingGrounds ? std::string("default-level") : std::string());
     WorldSpace& World = Workspace.QueryWorldSpace();
+    // [unit] - the Lobby opens on its one vehicle, in the hero framing of the HTML Lobby (the Proving Grounds keep the view of the whole course)
+    if (!StartInProvingGrounds)
+        Workspace.AccessViewportFlight() = Everest::SceneViewportFlight::ConstructLobbyView();
+    if (StartUncapped)
+        VkCtx.ConfigureUncappedPresent(true);
 
     RecordToken PlumeToken{};
     if (SceneRecordBase* ExistingPlume = World.FindFirstByType("FluidPlume"))
@@ -219,8 +247,35 @@ int main(int ArgumentCount, char** Arguments)
     Workspace.PresentSceneViewport = [&](const SceneViewportRequest& Req) -> SceneViewportImage {
         return PlumeScene.PresentSceneViewport(VkCtx, Workspace.QueryWorldSpace(), Req);
     };
+    // [unit] - the F2 window: while its A/B test runs, the test's scripted drive and fixed step replace what the player asked for
+    Everest::SceneViewportFlight TestFlight{};
+    Everest::SceneViewportFlight SavedFlight{};
+    bool                         CameraHeld = false;
+    PerformancePanel::WorkspaceHooks PanelHooks{};
+    PanelHooks.QuerySimulationActive    = [&]() { return Workspace.QuerySimulationActive(); };
+    PanelHooks.ConfigureSimulationActive = [&](bool Active) { Workspace.ConfigureSimulationActive(Active); };
+    PanelHooks.ConfigureTestCamera      = [&]() {
+        if (!CameraHeld)
+        {
+            SavedFlight = Workspace.AccessViewportFlight();
+            CameraHeld  = true;
+        }
+        Workspace.ConfigureViewportCameraHeld(true);   // [unit] - the Lobby's vehicle has a chase camera: it must not take the view from the test
+        Workspace.AccessViewportFlight() = TestFlight;
+    };
+    PanelHooks.RestoreCamera = [&]() {
+        if (CameraHeld)
+            Workspace.AccessViewportFlight() = SavedFlight;
+        CameraHeld = false;
+        Workspace.ConfigureViewportCameraHeld(false);
+    };
+    PerformancePanel Panel(VkCtx, PlumeScene, PanelHooks);
+    Panel.ConfigureOpen(StartPerformanceWindow);
+
     Workspace.StepSimulationCallback = [&](WorldSpace& W, double DtSec, const Everest::EverestWorkspace::SimulationStepDriver& Drv) {
-        PlumeScene.StepWorldSimulation(VkCtx, W, DtSec, Drv.Throttle, Drv.Brake, Drv.Steer, Drv.Handbrake, Drv.ResetRequested);
+        PerformancePanel::SimulationStep Step{ DtSec, Drv.Throttle, Drv.Brake, Drv.Steer, Drv.Handbrake, Drv.ResetRequested };
+        Panel.ResolveSimulationStep(Step);
+        PlumeScene.StepWorldSimulation(VkCtx, W, Step.DeltaSeconds, Step.Throttle, Step.Brake, Step.Steer, Step.Handbrake > 0.5f, Step.ResetRequested);
     };
     InspectorRuntime::Instance().RegisterPlumeViewportPresenter([&](const PlumeViewportRequest& Req) -> PlumeViewportImage {
         return PlumeScene.PresentPlumeViewport(VkCtx, Req);
@@ -260,9 +315,17 @@ int main(int ArgumentCount, char** Arguments)
 
     while (!glfwWindowShouldClose(Window))
     {
-        glfwPollEvents();
+        // [unit] - a refresh is one pass of this loop; the performance log opens it here and closes it at the next pass
+        Panel.BeginRefresh();
+        if (StartPerformanceTest && FrameCounter == 90)
+            Panel.StartTest();
+        {
+            PerformanceScope PollScope("window.poll_events");
+            glfwPollEvents();
+        }
         const double Now = glfwGetTime();
-        const double Dt  = std::clamp(Now - LastTime, 1.0 / 240.0, 0.05);
+        // [unit] - the A/B test runs at the fixed step of its drive, so that both paths meet the same interface timeline too
+        const double Dt  = Panel.QueryTestRunning() ? 1.0 / 60.0 : std::clamp(Now - LastTime, 1.0 / 240.0, 0.05);
         LastTime         = Now;
 
         int WinW = 1, WinH = 1, FbW = 1, FbH = 1;
@@ -271,31 +334,51 @@ int main(int ArgumentCount, char** Arguments)
         if (FbW <= 0 || FbH <= 0)
             continue;
 
-        Centre->PrepareInterface();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+        {
+            // [unit] - the interface holds the simulation step and the scene's presentation, so those two nest under this one in the log
+            PerformanceScope BuildScope("ui.build");
+            Centre->PrepareInterface();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
 
-        (void)Centre->Integrate(Dt);
-        (void)Workspace.ConfigurePlatform();
-        Workspace.ConstructInterface(Dt);
-        Centre->ConstructInterface();
+            (void)Centre->Integrate(Dt);
+            (void)Workspace.ConfigurePlatform();
+            Workspace.ConstructInterface(Dt);
+            Centre->ConstructInterface();
+            Panel.ConstructInterface();
+        }
 
-        ImGui::Render();
-        GuiPresenter.SyncManagedTextures(VkCtx);
+        {
+            PerformanceScope RenderScope("ui.render");
+            ImGui::Render();
+            GuiPresenter.SyncManagedTextures(VkCtx);
+        }
 
         VkCommandBuffer SwapCmd = VK_NULL_HANDLE;
         VkFramebuffer SwapFbo   = VK_NULL_HANDLE;
         VkExtent2D SwapExtent   = { 0u, 0u };
-        if (VkCtx.BeginSwapchainFrame(FbW, FbH, SwapCmd, SwapFbo, SwapExtent))
+        bool       SwapBegun    = false;
+        {
+            PerformanceScope AcquireScope("swapchain.acquire");
+            SwapBegun = VkCtx.BeginSwapchainFrame(FbW, FbH, SwapCmd, SwapFbo, SwapExtent);
+        }
+        if (SwapBegun)
         {
             const int ExtW = static_cast<int>(SwapExtent.width);
             const int ExtH = static_cast<int>(SwapExtent.height);
-            const std::array<float, 4> ClearCol = { 0.04f, 0.04f, 0.04f, 1.0f };
-            VkCtx.BeginTarget(SwapCmd, VkCtx.QueryTargetSwapchainClear(), SwapFbo, ExtW, ExtH, &ClearCol, false);
-            GuiPresenter.RecordDrawData(VkCtx, SwapCmd, ImGui::GetDrawData(), ExtW, ExtH);
-            VkCtx.EndTarget(SwapCmd);
-            VkCtx.EndAndPresentSwapchainFrame(FbW, FbH);
+            {
+                PerformanceScope RecordScope("ui.record");
+                const std::array<float, 4> ClearCol = { 0.04f, 0.04f, 0.04f, 1.0f };
+                VkCtx.BeginTarget(SwapCmd, VkCtx.QueryTargetSwapchainClear(), SwapFbo, ExtW, ExtH, &ClearCol, false);
+                GuiPresenter.RecordDrawData(VkCtx, SwapCmd, ImGui::GetDrawData(), ExtW, ExtH);
+                VkCtx.EndTarget(SwapCmd);
+            }
+            {
+                PerformanceScope PresentScope("swapchain.present");
+                VkCtx.EndAndPresentSwapchainFrame(FbW, FbH);
+            }
         }
+        Panel.EndRefresh();
 
         if (!CapturePngPath.empty() && MaxFrames > 0 && FrameCounter + 1 >= MaxFrames)
         {
@@ -333,6 +416,8 @@ int main(int ArgumentCount, char** Arguments)
             break;
     }
 
+    Panel.AbortTest();
+    PerformanceLog::Instance().Discard();
     VkCtx.WaitIdle();
     InspectorRuntime::Instance().RegisterPlumeViewportPresenter({});
     InspectorRuntime::Instance().RegisterFluidViewportPresenter({});

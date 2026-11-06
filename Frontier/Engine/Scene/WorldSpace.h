@@ -282,6 +282,8 @@ class WorldSpace
     bool LoadLevelSpace(const std::filesystem::path& LevelSpacePath, std::string* OutError = nullptr);
     bool SaveLevelSpace(const std::filesystem::path& LevelSpacePath, std::string* OutError = nullptr) const;
     bool LoadStartupLevelFromProject(const std::filesystem::path& ProjectSpacePath, std::string* OutError = nullptr);
+    // 📝 The level of the project's `levels` list with this identity (the project's startup level names one of them); false if there is none.
+    bool LoadLevelFromProject(const std::filesystem::path& ProjectSpacePath, const std::string& LevelIdentity, std::string* OutError = nullptr);
 
   private:
     void RegisterNativeEngineTypes();

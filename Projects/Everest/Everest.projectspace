@@ -3,6 +3,7 @@ format = "frontier.projectspace.editor"
 version = 1
 content_roots = ["Content"]
 levels = [
+    { identity = "lobby", path = "Content/Levels/Lobby.levelspace" },
     { identity = "default-level", path = "Content/Levels/Default.levelspace" },
 ]
 catalogue = []
@@ -16,7 +17,7 @@ template_revision = 1
 
 [engine]
 configuration_version = 1
-startup_level = "default-level"
+startup_level = "lobby"
 
 [engine.content_imports]
 entries = [

@@ -339,7 +339,8 @@ int main(int ArgumentCount, char** Arguments)
     Expect(Centre->Initialize() && Centre->Activate(), "ControlCentrePanel initializes TypefaceRegistry + theme + dockspace");
 
     {
-        Everest::EverestWorkspace Workspace(*Centre, EverestRoot);
+        // 📝 The proofs are of the Proving Grounds level (the project itself starts in the Lobby: EverestWindowValidation holds that start).
+        Everest::EverestWorkspace Workspace(*Centre, EverestRoot, "default-level");
 
         WorldSpace& World = Workspace.QueryWorldSpace();
         RecordToken PlumeToken{};

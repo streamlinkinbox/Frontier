@@ -425,6 +425,10 @@ target_link_libraries(WorldGridValidation PRIVATE FrontierVolumetrics)
 add_executable(PerformanceParityValidation ../Validation/PerformanceParityValidation.cpp)
 target_link_libraries(PerformanceParityValidation PRIVATE FrontierVolumetrics)
 
+# What the window shows when it starts (the Lobby with its one vehicle) and the F2 performance window with its A/B test.
+add_executable(EverestWindowValidation ../Validation/EverestWindowValidation.cpp)
+target_link_libraries(EverestWindowValidation PRIVATE FrontierVolumetrics)
+
 add_executable(LobbySession Game/LobbySessionMain.cpp)
 target_link_libraries(LobbySession PRIVATE FrontierGame FrontierSession)
 
@@ -478,5 +482,8 @@ if(BUILD_TESTING)
              WORKING_DIRECTORY "${FRONTIER_ROOT}")
     add_test(NAME PerformanceParityValidation
              COMMAND PerformanceParityValidation
+             WORKING_DIRECTORY "${FRONTIER_ROOT}")
+    add_test(NAME EverestWindowValidation
+             COMMAND EverestWindowValidation
              WORKING_DIRECTORY "${FRONTIER_ROOT}")
 endif()
