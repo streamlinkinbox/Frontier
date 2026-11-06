@@ -161,8 +161,9 @@ The composite is CPU code and needs no device. The program asserts, in 30 checks
   gives black; a premultiplied radiance of 1 with an alpha of 0 gives the sRGB of the exposure (173 against 173.4 from the exact curve); a negative radiance
   and the smallest half (2⁻²⁴) give black; each picture pixel takes the nearest texel, on a 4 × 4 picture of 2 × 2 texels and on a 5 × 3 picture of 3 × 2 (the
   last texel reaches one pixel).
-- **The backdrop.** The top row looks at a blue sky; the bottom row is grey and flips between two greys three times where the two-metre checker changes; every
-  pixel is opaque and the picture is sized to its pixels.
+- **The backdrop.** At 96 × 64 with the camera level 1.5 m up, the row two from the top looks at a blue sky (blue above green above red, a strong blue) and
+  the row two from the bottom at grey ground that flips between two greys where the two-metre checker changes (at least two jumps of eight levels; three
+  were seen); every pixel is opaque and the picture is sized to its pixels.
 
 `Code/MutatePlumeComposite.sh` edits copies of `PlumeComposite.cpp` (the repository is untouched), compiles each with the validation's flags and runs the
 validation against it: the position's three numbers, the forward direction's three, the field of view, the aspect and the size each dropped from the
