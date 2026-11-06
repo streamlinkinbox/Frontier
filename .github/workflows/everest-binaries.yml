@@ -6,6 +6,7 @@ on:
       - main
       - arena/0b4c5376-frontier
       - arena/a0311b9c-frontier
+      - arena/4356640b-frontier
   workflow_dispatch:
     inputs:
       platforms:
@@ -26,8 +27,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # A push builds all three; a manual run may ask for Windows alone
-        os: ${{ fromJSON(github.event.inputs.platforms == 'windows' && '["windows-latest"]' || '["ubuntu-latest","windows-latest","macos-latest"]') }}
+        # A push builds all three, except on arena/4356640b-frontier (the session that tests the Windows window: Windows alone); a manual run may ask for Windows alone
+        os: ${{ fromJSON((github.event.inputs.platforms == 'windows' || github.ref_name == 'arena/4356640b-frontier') && '["windows-latest"]' || '["ubuntu-latest","windows-latest","macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out source
