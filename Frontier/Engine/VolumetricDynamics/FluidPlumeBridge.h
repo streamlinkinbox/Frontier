@@ -61,10 +61,17 @@ class EverestPlumeSceneRuntime
 
     [[nodiscard]] PyroVolumeSolver& AccessWorldSolver() noexcept { return WorldSolver; }
     [[nodiscard]] PyroVolumeSolver& AccessEditorSolver() noexcept { return EditorSolver; }
+    // [unit] - the solver of the Fluid editor's viewport; it exists once the editor has been shown (PresentFluidViewport)
+    [[nodiscard]] PyroVolumeSolver& AccessFluidSolver() noexcept { return FluidSolver; }
+    [[nodiscard]] bool QueryFluidSolverReady() const noexcept { return FluidSolverReady; }
     [[nodiscard]] TyreSmokeIntake& AccessTyreIntake() noexcept { return TyreIntake; }
     [[nodiscard]] DeployableUnit& AccessVehicleUnit() noexcept { return SimVehicle; }
     [[nodiscard]] GasSettings& AccessWorldSettings() noexcept { return WorldSettings; }
-    [[nodiscard]] uint64_t QueryWorldGridRelocations() const noexcept { return WorldGridRelocations; }
+    // [-] - times the world solver's window has been put on a new place since the last reset (the first anchoring is not one)
+    [[nodiscard]] uint64_t QueryWorldGridRelocations() const noexcept { return WorldSolver.QueryWorldGridRelocations(); }
+    // [-] - the window the solid atlas on the device was built for: its origin x and z in cells, and the lattice's edge; the atlas is window-local, so
+    //       it is right only while this equals the solver's own window
+    [[nodiscard]] std::array<int32_t, 3> QuerySolidAtlasWindow() const noexcept { return SolidAtlasWindow; }
 
   private:
     WorldSdfScene          SdfWorld{};
@@ -88,8 +95,7 @@ class EverestPlumeSceneRuntime
     bool                   Initialized          = false;
     uint64_t               WorldTicks           = 0u;
     uint64_t               EditorTicks          = 0u;
-    uint64_t               WorldGridRelocations = 0u;
-    std::array<int32_t, 2> LastWorldGridOrg     = { 0, 0 };
+    std::array<int32_t, 3> SolidAtlasWindow     = { INT32_MIN, INT32_MIN, 0 };
     uint32_t               LastWorldActiveSrcs  = 0u;
 };
 

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 
 namespace Frontier
@@ -367,6 +368,7 @@ void PyroVolumeSolver::ClearLattice(VulkanContext& Ctx)
     WorldGridHasFocus     = false;
     WorldGridPriorOriginX = WorldGridOriginX;
     WorldGridPriorOriginZ = WorldGridOriginZ;
+    WorldGridRelocationCount = 0u;
 }
 
 void PyroVolumeSolver::UploadWorldSdfAtlas(VulkanContext& Ctx, const float* RgbaTexels, size_t FloatCount)
@@ -408,19 +410,18 @@ void PyroVolumeSolver::UpdateWorldGridFocus(float FocusWorldX, float FocusWorldY
         return;
     }
 
-    // Recentre window by integer world cells only when focus exits the inner 50% deadzone (PlumeSpace.js recentreWindow)
-    const int32_t Margin  = std::max<int32_t>(2, N / 4);
-    const int32_t CenterX = WorldGridOriginX + N / 2;
-    const int32_t CenterZ = WorldGridOriginZ + N / 2;
-    if (FocusX < CenterX - Margin)
-        WorldGridOriginX += (FocusX - (CenterX - Margin));
-    else if (FocusX > CenterX + Margin)
-        WorldGridOriginX += (FocusX - (CenterX + Margin));
-
-    if (FocusZ < CenterZ - Margin)
-        WorldGridOriginZ += (FocusZ - (CenterZ - Margin));
-    else if (FocusZ > CenterZ + Margin)
-        WorldGridOriginZ += (FocusZ - (CenterZ + Margin));
+    // [unit] - PlumeSpace.js RecentreWindow: the window moves when the focus is more than a quarter of its width from its middle on either axis, and is
+    //          then put on the focus (both axes), in whole cells. A window that followed the focus a cell at a time would move on every step of a drive.
+    const int32_t Half    = N / 2;
+    const int32_t CenterX = WorldGridOriginX + Half;
+    const int32_t CenterZ = WorldGridOriginZ + Half;
+    const float   Reach   = 0.5f * static_cast<float>(Half);
+    if (static_cast<float>(std::abs(FocusX - CenterX)) > Reach || static_cast<float>(std::abs(FocusZ - CenterZ)) > Reach)
+    {
+        WorldGridOriginX = FocusX - Half;
+        WorldGridOriginZ = FocusZ - Half;
+        ++WorldGridRelocationCount;
+    }
 }
 
 void PyroVolumeSolver::AssignExternalSources(const PyroExternalSource* Sources, int Count) noexcept
@@ -1034,10 +1035,13 @@ bool PyroVolumeSolver::RenderStandaloneViewport(VulkanContext& Ctx, const GasSet
     if (!Initialized || !EnsureViewportTarget(Ctx, Width, Height))
         return false;
 
+    // [unit] - a solver in world-grid mode keeps its smoke by world cell, so the marcher must read it through the window like the course's composite does
+    //          (RecordCompositeIntoWorldTarget): drawn as plain window-local cells, the smoke would be shown wherever its storage slot happens to be
     const PyroBoundsBox Bounds = ComputeBoundsBox(Settings);
     PyroUniformBlock Ubo{};
     PopulateCommonPyroUbo(Ubo, Settings, Bounds, LatticeRes, TilesX, TilesY, 1.0f / 60.0f, SimulationTime, WorldSdfEnabled,
-                          false, 0, 0, 0, 0);
+                          WorldGridEnabled, WorldGridOriginX, WorldGridOriginZ,
+                          WorldGridOriginX, WorldGridOriginZ);
 
     Ubo.DomainBoxMax[3]       = Cam.Aspect;
     Ubo.CamPosAndFov[0]       = Cam.Position[0];

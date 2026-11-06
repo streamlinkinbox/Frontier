@@ -403,6 +403,10 @@ target_link_libraries(VolumetricAndEditorValidation PRIVATE FrontierVolumetrics)
 add_executable(PyroVolumeValidation ../Validation/PyroVolumeValidation.cpp)
 target_link_libraries(PyroVolumeValidation PRIVATE FrontierVolumetrics)
 
+# The driving course's smoke on a grid fixed to the world: the window's rule, the picture under a relocation, and a car that drives away from its own smoke.
+add_executable(WorldGridValidation ../Validation/WorldGridValidation.cpp)
+target_link_libraries(WorldGridValidation PRIVATE FrontierVolumetrics)
+
 add_executable(LobbySession Game/LobbySessionMain.cpp)
 target_link_libraries(LobbySession PRIVATE FrontierGame FrontierSession)
 
@@ -450,5 +454,8 @@ if(BUILD_TESTING)
              WORKING_DIRECTORY "${FRONTIER_ROOT}")
     add_test(NAME PyroVolumeValidation
              COMMAND PyroVolumeValidation
+             WORKING_DIRECTORY "${FRONTIER_ROOT}")
+    add_test(NAME WorldGridValidation
+             COMMAND WorldGridValidation
              WORKING_DIRECTORY "${FRONTIER_ROOT}")
 endif()

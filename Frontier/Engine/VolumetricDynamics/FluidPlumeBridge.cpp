@@ -146,7 +146,6 @@ bool EverestPlumeSceneRuntime::Initialize(VulkanContext& Ctx, const std::filesys
 
     WorldSolver.SetWorldGridMode(true);
     WorldSolver.UpdateWorldGridFocus(0.0f, 0.0f, WorldSettings);
-    LastWorldGridOrg = WorldSolver.QueryWorldGridOrigin();
 
     EditorSettings                   = ConstructPresetSettings("ue5_pyro_default");
     EditorSettings.LatticeResolution = 64;
@@ -200,11 +199,11 @@ void EverestPlumeSceneRuntime::ResetWorldSimulation(VulkanContext& Ctx, WorldSpa
 
     SimVehicle.Place(SpawnPos, SpawnYawDeg);
     TyreIntake.ResetCold();
-    WorldSolver.UpdateWorldGridFocus(SpawnPos[0], SpawnPos[1], WorldSettings);
+    // [unit] - clearing un-anchors the window (and counts none), so the clear comes first: the spawn then anchors the window, and no atlas has been built for it
     WorldSolver.ClearLattice(Ctx);
-    LastWorldGridOrg     = WorldSolver.QueryWorldGridOrigin();
-    WorldGridRelocations = 0u;
-    WorldTicks           = 0u;
+    WorldSolver.UpdateWorldGridFocus(SpawnPos[0], SpawnPos[1], WorldSettings);
+    SolidAtlasWindow = { INT32_MIN, INT32_MIN, 0 };
+    WorldTicks       = 0u;
 }
 
 void EverestPlumeSceneRuntime::StepWorldSimulation(VulkanContext& Ctx, WorldSpace& World, double DtSeconds,
@@ -331,11 +330,6 @@ void EverestPlumeSceneRuntime::StepWorldSimulation(VulkanContext& Ctx, WorldSpac
     WorldSolver.EnsureLatticeResolution(Ctx, WorldSettings.LatticeResolution);
     WorldSolver.UpdateWorldGridFocus(Pos[0], Pos[1], WorldSettings);
     const auto CurOrg = WorldSolver.QueryWorldGridOrigin();
-    if (CurOrg != LastWorldGridOrg)
-    {
-        ++WorldGridRelocations;
-        LastWorldGridOrg = CurOrg;
-    }
 
     const float YawRad = SimVehicle.QueryYawDegrees() * DegToRad;
     WorldVehicleRig CarRig{};
@@ -358,14 +352,21 @@ void EverestPlumeSceneRuntime::StepWorldSimulation(VulkanContext& Ctx, WorldSpac
     const PyroBoundsBox WorldBox = WorldSolver.ComputeBoundsBox(WorldSettings);
     const std::array<float, 3> ZeroOrigin = { 0.0f, 0.0f, 0.0f };
 
-    if ((WorldTicks % 2u) == 0u)
+    // [unit] - the atlas is written window-local, so it is right only for the window it was built for: it is rebuilt on every second tick (the car moves a
+    //          little between ticks) and, whatever the tick, as soon as the window has moved or the lattice has changed; a step on the atlas of another window
+    //          would hold the course's solids where they are not
+    const std::array<int32_t, 3> StepWindow = { CurOrg[0], CurOrg[1], WorldSolver.QueryLatticeResolution() };
+    if ((WorldTicks % 2u) == 0u || StepWindow != SolidAtlasWindow)
     {
         std::vector<float> SdfAtlas;
         SdfWorld.BuildDomainSdfAtlas(ZeroOrigin, WorldBox, WorldSolver.QueryLatticeResolution(),
                                      WorldSolver.QueryTilesX(), WorldSolver.QueryTilesY(),
                                      ProvingGroundsMode, true, Vehicles, SdfAtlas);
         if (!SdfAtlas.empty())
+        {
             WorldSolver.UploadWorldSdfAtlas(Ctx, SdfAtlas.data(), SdfAtlas.size());
+            SolidAtlasWindow = StepWindow;
+        }
     }
 
     PyroExternalSource ExtSources[8]{};
@@ -513,7 +514,7 @@ SceneViewportImage EverestPlumeSceneRuntime::PresentSceneViewport(VulkanContext&
     Readout.Resident    = true;
     Readout.Sources     = LastWorldActiveSrcs;
     Readout.Ticks       = static_cast<uint32_t>(WorldTicks);
-    Readout.Relocations = static_cast<uint32_t>(WorldGridRelocations);
+    Readout.Relocations = static_cast<uint32_t>(WorldSolver.QueryWorldGridRelocations());
     FluidPlumeEditor::AssignReadout(Readout);
 
     return Out;

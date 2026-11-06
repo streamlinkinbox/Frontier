@@ -101,6 +101,8 @@ class PyroVolumeSolver
     [[nodiscard]] bool IsWorldGridMode() const noexcept { return WorldGridEnabled; }
     void UpdateWorldGridFocus(float FocusWorldX, float FocusWorldY, const GasSettings& Settings) noexcept;
     [[nodiscard]] std::array<int32_t, 2> QueryWorldGridOrigin() const noexcept { return { WorldGridOriginX, WorldGridOriginZ }; }
+    // [-] - how many times the window has been put on a new place since the last clear; placing it for the first time is not one
+    [[nodiscard]] uint64_t QueryWorldGridRelocations() const noexcept { return WorldGridRelocationCount; }
 
     void AssignExternalSources(const PyroExternalSource* Sources, int Count) noexcept;
     void AssignBrush(const std::array<float, 3>& PosUvw, const std::array<float, 3>& VelPyro, bool Active) noexcept;
@@ -204,6 +206,7 @@ class PyroVolumeSolver
     bool                           WorldGridHasFocus    = false;
     int32_t                        WorldGridOriginX     = 0;
     int32_t                        WorldGridOriginZ     = 0;
+    uint64_t                       WorldGridRelocationCount = 0u;
     int32_t                        WorldGridPriorOriginX= 0;
     int32_t                        WorldGridPriorOriginZ= 0;
     std::array<PyroExternalSource, 8> ExternalSources{};

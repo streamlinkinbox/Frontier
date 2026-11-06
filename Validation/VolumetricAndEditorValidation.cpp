@@ -6,11 +6,14 @@
 //    2. 3D WorldSdfScene analytic SDF + ControlVehicle aerodynamic wake velocity field.
 //    3. TyreSmokeIntake Pacejka slip -> 3-node thermal conduction -> rubber smoke -> >= 160 C ignition fire + fire light.
 //    4. Headless Vulkan 1.1 PyroVolumeSolver standalone raymarch + transparent RGBA8 flipbook bake.
-//    5. Continuous Toroidal World-Grid driving-course smoke (WorldGridRelocations > 0 across >20 m travel) +
-//       authentic Frontier Editor (EverestWorkspace + ControlCentrePanel + FluidPlumeEditorWorkspace) with 1920x1080 PNG proofs.
+//    5. The driving course's world-grid window relocates for a drive of more than 10 m (WorldGridValidation holds that the smoke stays where it was laid), and
+//       the authentic Frontier Editor (EverestWorkspace + ControlCentrePanel) with BOTH of its fluid windows - the Fluid editor (a FluidVolume record: 85 settings,
+//       18 presets, FluidEditorWorkspace) and Smoke & fire (a FluidPlume record: FluidPlumeEditorWorkspace) - and six 1920x1080 PNG proofs.
 
+#include "Engine/Interface/FluidEditor/FluidEditorWorkspace.h"
 #include "Engine/Interface/FluidPlumeEditor.h"
 #include "Engine/Interface/FluidPlumeEditor/FluidPlumeEditorWorkspace.h"
+#include "Engine/Interface/FluidVolumeEditor.h"
 #include "Engine/Interface/IconPresentation.h"
 #include "Engine/Interface/InspectorRuntime.h"
 #include "Engine/Lifecycle/ActivationSequence.h"
@@ -357,6 +360,9 @@ int main(int ArgumentCount, char** Arguments)
         InspectorRuntime::Instance().RegisterPlumeViewportPresenter([&](const PlumeViewportRequest& Req) -> PlumeViewportImage {
             return PlumeScene.PresentPlumeViewport(VkCtx, Req);
         });
+        InspectorRuntime::Instance().RegisterFluidViewportPresenter([&](const FluidViewportRequest& Req) -> FluidViewportImage {
+            return PlumeScene.PresentFluidViewport(VkCtx, Req);
+        });
 
         auto StepUiFrame = [&](double Dt, std::vector<uint8_t>* OutCapture) -> bool {
             Io.DisplaySize = { static_cast<float>(WinW), static_cast<float>(WinH) };
@@ -381,7 +387,67 @@ int main(int ArgumentCount, char** Arguments)
         for (int Warm = 0; Warm < 3; ++Warm)
             StepUiFrame(1.0 / 30.0, nullptr);
 
-        // Proof 1: Authentic FluidPlumeEditor ("Smoke & fire") with Pyro fire plume + Fire inspector page
+        // Proof 1: the Fluid editor - a FluidVolume record's window (Outliner of the volume's parts, viewport on the Pyro solver, Inspector pages on the real
+        //          controls, Log Stream, preset library) on the Pyro default plume
+        const RecordToken FluidToken = World.ConstructRecord("FluidVolume", "Pyro plume");
+        Expect(FluidToken.IsValid(), "FluidVolume scene record present in Everest WorldSpace");
+        auto* FluidRecord = dynamic_cast<FluidVolumeRecord*>(World.FindRecord(FluidToken));
+        Expect(FluidRecord != nullptr, "the FluidVolume record is a FluidVolumeRecord");
+        // 📝 The proofs are drawn on whatever device the loader offers (SwiftShader here): the preset's own 96 and 128 cells take minutes a refresh there, so the
+        //    lattice, the iterations, the march steps and the render scale are lowered; the window, its controls and the presets are the real ones.
+        const auto LowerForSoftware = [&]() {
+            if (FluidRecord == nullptr) return;
+            GasSettings& Gas      = FluidRecord->AccessConfiguration().Gas;
+            Gas.LatticeResolution  = WriteProofs ? 32 : 24;
+            Gas.PressureIterations = WriteProofs ? 8 : 6;
+            Gas.RaymarchSteps      = WriteProofs ? 32 : 24;
+            Gas.RenderScale        = WriteProofs ? 0.4f : 0.25f;
+        };
+        if (FluidRecord != nullptr)
+        {
+            FluidRecord->AccessConfiguration().Gas    = ConstructPresetSettings("ue5_pyro_default");
+            FluidRecord->AccessConfiguration().Preset = "ue5_pyro_default";
+            LowerForSoftware();
+        }
+        Workspace.QueryOutliner().Select(FluidToken);
+        Expect(InspectorRuntime::Instance().RequestEditorOpen(FluidToken), "Fluid editor opens via InspectorRuntime::RequestEditorOpen");
+        StepUiFrame(1.0 / 30.0, nullptr);
+        FluidEditorWorkspace* FluidEditor = FluidVolumeEditor::AccessWorkspace();
+        Expect(FluidEditor != nullptr && FluidRecord != nullptr && FluidEditor->QueryRecord() == &FluidRecord->AccessConfiguration(),
+               "the Fluid editor window is on the FluidVolume record (the Smoke & fire editor is a different window)");
+        for (int Warm = 0; Warm < (WriteProofs ? 28 : 6); ++Warm)
+            StepUiFrame(1.0 / 30.0, nullptr);
+        std::vector<uint8_t> FrameFluid1;
+        Expect(StepUiFrame(1.0 / 30.0, &FrameFluid1) && HasNonTrivialColorVariance(FrameFluid1),
+               "Fluid editor renders its Outliner, Inspector and the live Pyro plume");
+        Expect(FluidEditor != nullptr && FluidEditor->QueryImage().Failure.empty() && FluidEditor->QueryImage().Solving,
+               "the Fluid editor's viewport is the Pyro solver's picture (no failure reported)");
+        if (WriteProofs)
+            WriteRgbaPngFile(ProofDir + "/01_fluid_editor_pyro_plume.png", FrameFluid1.data(), WinW, WinH);
+
+        // Proof 2: the Fluid editor's preset library sheet over the wide-bounds blast (the prototype's mushroom burst)
+        if (FluidRecord != nullptr && FluidEditor != nullptr)
+        {
+            FluidRecord->AccessConfiguration().Gas    = ConstructPresetSettings("megaton_open_bounds");
+            FluidRecord->AccessConfiguration().Preset = "megaton_open_bounds";
+            LowerForSoftware();
+            FluidEditor->Apply("restart");
+            FluidEditor->Apply("burst:mushroom");
+            for (int Warm = 0; Warm < (WriteProofs ? 24 : 6); ++Warm)
+                StepUiFrame(1.0 / 30.0, nullptr);
+            FluidEditor->Apply("library:on");
+            StepUiFrame(1.0 / 30.0, nullptr);
+        }
+        std::vector<uint8_t> FrameFluid2;
+        Expect(StepUiFrame(1.0 / 30.0, &FrameFluid2) && HasNonTrivialColorVariance(FrameFluid2),
+               "Fluid editor renders its preset library sheet over the live blast");
+        Expect(FluidEditor != nullptr && FluidEditor->QueryLibraryShown() && FluidEditor->QueryLibraryCards() == 18u,
+               "the Fluid editor's library sheet lists the 18 presets");
+        if (WriteProofs)
+            WriteRgbaPngFile(ProofDir + "/02_fluid_editor_nuclear_blast.png", FrameFluid2.data(), WinW, WinH);
+        InspectorRuntime::Instance().CloseActiveEditor();
+
+        // Proof 5: Authentic FluidPlumeEditor ("Smoke & fire") with Pyro fire plume + Fire inspector page
         Workspace.QueryOutliner().Select(PlumeToken);
         Expect(InspectorRuntime::Instance().RequestEditorOpen(PlumeToken), "FluidPlumeEditor opens via InspectorRuntime::RequestEditorOpen");
         StepUiFrame(1.0 / 30.0, nullptr);
@@ -405,9 +471,9 @@ int main(int ArgumentCount, char** Arguments)
         Expect(StepUiFrame(1.0 / 30.0, &Frame1) && HasNonTrivialColorVariance(Frame1),
                "Authentic FluidPlumeEditorWorkspace (Smoke & fire) renders UI + Vulkan 3D Pyro plume");
         if (WriteProofs)
-            WriteRgbaPngFile(ProofDir + "/01_fluid_editor_pyro_plume.png", Frame1.data(), WinW, WinH);
+            WriteRgbaPngFile(ProofDir + "/05_smoke_and_fire_editor.png", Frame1.data(), WinW, WinH);
 
-        // Proof 2: Authentic FluidPlumeEditor Libraries sheet + Thick burnout / mushroom detonation
+        // Proof 6: Authentic FluidPlumeEditor Libraries sheet + Thick burnout / mushroom detonation
         if (FluidPlumeEditorWorkspace* Ed = FluidPlumeEditor::AccessWorkspace())
         {
             Ed->Perform("emitter:fire");
@@ -428,7 +494,7 @@ int main(int ArgumentCount, char** Arguments)
         Expect(StepUiFrame(1.0 / 30.0, &Frame2) && HasNonTrivialColorVariance(Frame2),
                "Authentic FluidPlumeEditorWorkspace renders Libraries sheet + live Vulkan plume");
         if (WriteProofs)
-            WriteRgbaPngFile(ProofDir + "/02_fluid_editor_nuclear_blast.png", Frame2.data(), WinW, WinH);
+            WriteRgbaPngFile(ProofDir + "/06_smoke_and_fire_libraries.png", Frame2.data(), WinW, WinH);
 
         // Proof 3: Authentic EverestWorkspace (Outliner + FluidPlumeInspector + Log Stream + 3D SDF Proving Grounds)
         InspectorRuntime::Instance().CloseActiveEditor();
@@ -473,7 +539,7 @@ int main(int ArgumentCount, char** Arguments)
         }
         // Phase B: Release line-lock & power-drift >10 metres across the Proving Grounds so the toroidal world-grid relocates!
         const auto StartDrivePos = PlumeScene.AccessVehicleUnit().QueryPositionMetres();
-        const int DriveTicks = WriteProofs ? 60 : 28;
+        const int DriveTicks = WriteProofs ? 60 : 48;   // [-] a relocation needs the car 9.6 m from where the window was anchored
         for (int Step = 0; Step < DriveTicks; ++Step)
         {
             // Full throttle, zero brake/handbrake so the vehicle accelerates across the course while spinning hot rear tyres!
@@ -483,8 +549,11 @@ int main(int ArgumentCount, char** Arguments)
         const float DrivenDistMetres = std::hypot(EndDrivePos[0] - StartDrivePos[0], EndDrivePos[1] - StartDrivePos[1]);
         std::printf("  [INFO] Toroidal World-Grid drive distance = %.2f m, voxel relocations = %llu\n",
                     DrivenDistMetres, static_cast<unsigned long long>(PlumeScene.QueryWorldGridRelocations()));
-        Expect(DrivenDistMetres > 4.0f && PlumeScene.QueryWorldGridRelocations() > 0u,
-               "Toroidal World-Grid relocates smoothly across Proving Grounds without resetting smoke trail");
+        // 📝 The window moves only when the car is more than 9.6 m from its middle, and then onto the car: a drive of 11 m or more relocates it once or twice, and
+        //    one of 4 m not at all. That the smoke the car leaves behind stays where it was laid is WorldGridValidation's claim (pictures, from a camera fixed in the world).
+        Expect(DrivenDistMetres >= 11.0f, "the car drove 11 m or more from its burnout");
+        Expect(PlumeScene.QueryWorldGridRelocations() >= 1u && PlumeScene.QueryWorldGridRelocations() <= 3u,
+               "the world-grid window relocated for that drive (1 to 3 times; the first anchoring is not one)");
 
         // Position chase/quarter camera looking across the moving car & its continuous world-grid smoke/fire trail
         Workspace.AccessViewportFlight().Position  = { EndDrivePos[0] - 9.0, EndDrivePos[1] - 9.2, 4.2 };
@@ -497,10 +566,11 @@ int main(int ArgumentCount, char** Arguments)
         if (WriteProofs)
         {
             WriteRgbaPngFile(ProofDir + "/04_vehicle_burnout_smoke_and_fire.png", Frame4.data(), WinW, WinH);
-            std::printf("  [INFO] Wrote 4 1920x1080 Vulkan PNG proofs to %s\n", ProofDir.c_str());
+            std::printf("  [INFO] Wrote 6 1920x1080 Vulkan PNG proofs to %s\n", ProofDir.c_str());
         }
 
         InspectorRuntime::Instance().RegisterPlumeViewportPresenter({});
+        InspectorRuntime::Instance().RegisterFluidViewportPresenter({});
     }
 
     VkCtx.DestroyFramebuffer(ProofFbo);
