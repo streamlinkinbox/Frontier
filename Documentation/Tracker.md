@@ -1784,7 +1784,7 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   | Smoke & fire editor | the `FluidPlume` record (33 readings in TOML); the window (Outliner 292 px, viewport and Log Stream, Inspector 404 px, a Libraries sheet of 6 looks and 4 grades); `PlumeExtension`, which draws the C++ plume in the stage | `FluidPlumeEditorValidation`: 26 sliders by keyboard, the looks, libraries, requests, instruments, three window sizes; `FluidPlumeEditorCapture`: the plume's pixels on SwiftShader against the empty stage | ✔️ 577 of 577; 13 of 13 claims; 14 captures (8 with a stand-in picture, 6 with the plume) |
   | Particle editor | already ported on 2026-11-04 (52 presets) | `ParticleLibraryValidation`; the ParticleSimulation SPIR-V rebuilt | ✔️ 344 of 344; 30 of 30 |
 
-  - `FluidNodeEditor.html` is a different tool (a liquid node graph) whose entry script (`./FluidEditorEntry.js`) is not in the repository, so it cannot be
+  - `FluidNodeEditor.html` is a different tool (a graph editor for liquids) whose entry script (`./FluidEditorEntry.js`) is not in the repository, so it cannot be
     ported 1:1: the editor is the demo's own Smoke & fire page (`BuildGas` in `InspectorPages.js`). The appearance presets of
     `VolumetricFlowSolver.html` are not ported.
   - The shader and instrument checks are not total: 12 of 15 shader mutants and 52 of 55 instrument mutants differ from the reference; the survivors are

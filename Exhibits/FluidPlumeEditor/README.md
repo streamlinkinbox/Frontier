@@ -160,9 +160,9 @@ turns the fire, which shows from any side.
   been seen in the Windows editor, on a GPU or in a browser.
 - **Ignition is shown and inert.** The select is the Vehicle record's setting (its thermal `ignition`, `ignition_k` and `ignition_s`), shown on this page as the
   prototype shows it; here it changes nothing, and its note says to edit it on the Vehicle page.
-- **`FluidNodeEditor.html` is not ported.** It is a different tool (a liquid node graph), and the folder `Documentation/Plans/References/InheritedEngine/
-  Prototypes/FluidNodeEditor/` holds only the HTML: the entry script it loads (`./FluidEditorEntry.js`) is not in the repository. This editor is the
-  prototype's `BuildGas` page.
+- **`FluidNodeEditor.html` is not ported.** It is a different tool (a graph editor for liquids), and its folder under
+  `Documentation/Plans/References/InheritedEngine/Prototypes/FluidNodeEditor/` holds only the HTML: the entry script it loads (`./FluidEditorEntry.js`) is
+  not in the repository. This editor is the prototype's `BuildGas` page.
 - **The appearance presets of `VolumetricFlowSolver.html`** (`AppearancePresets`, its palette selector) **are not ported.** The libraries hold the
   prototype's six gas looks.
 
@@ -176,7 +176,7 @@ loads.
 **Tested revision:** `b0cfd7e` with the files that `6347000` (the plume extension, the capture, its runner, the CMake targets and the images) and `5b7cdf8`
 (`WindowsFrontier.cpp`, which the Linux build does not compile) then committed. They were uncommitted while the results were produced, and nothing under
 `Frontier/`, `CMakeLists.txt` or `Code/` has changed since. The eight UI and plume validations that share this code (`PanelExpansion`,
-`ControlCentre`, `WorkspaceLayout`, `Interface`, `EnvironmentInspector`, `FluidPlumeEditor`, `EverestInterface`, `PlumeSimulation`) pass together under `ctest`
+`ControlCentre`, `WorkspaceLayout`, `Interface`, `EnvironmentInspector`, `FluidPlumeEditor`, `EverestInterface`, `PlumeSimulation`) all succeed under `ctest`
 (8 of 8, 323 s) on that tree, and the nine other programs that link the editor library link.
 
 **Not run:** Windows (no Windows binary was built), a GPU, a browser, the Medium grade of the capture, a Release build.
@@ -184,12 +184,15 @@ loads.
 ## Reproduce
 
 ```sh
+python3 Automation/PrepareVulkanCompute.py    # SwiftShader and slangc, into ExternalPackages/VulkanCompute
+python3 Automation/PrepareUI.py               # the interface's dependencies (Dear ImGui and the rest)
+python3 Automation/PrepareFonts.py            # the interface's typefaces
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON
-python3 Automation/PrepareVulkanCompute.py                      # SwiftShader and slangc
 ninja -C build FluidPlumeEditorValidation FluidPlumeEditorCapture
 Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorValidation.sh build        # the window with a stand-in picture, no GPU: 35 to 41 s
-Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorCapture.sh build [low]     # the plume in the stage: 4 min at High on SwiftShader, about 1.5 min at Low
+Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorCapture.sh build [low]     # the plume in the stage: 4 min at High on SwiftShader, 1 m 43 s at Low
 ```
 
 The capture takes the driver from `FRONTIER_VULKAN_DRIVER` when it is set, else the SwiftShader that `PrepareVulkanCompute.py` fetched. Both scripts copy
-their images and results into this folder only when every check held.
+their images and results into this folder only when every check held, and the capture's images and `LivePlume.tsv` are of the grade it ran at: a run at
+`low` replaces the committed High ones. The raw evidence of a run stays in `build/fluid-plume-editor-evidence` and `build/fluid-plume-live-evidence`.
