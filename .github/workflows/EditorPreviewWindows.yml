@@ -33,11 +33,21 @@ jobs:
           python -m pip install --disable-pip-version-check cmake ninja ziglang==0.13.0 -r Automation/FontRequirements.txt
           python Automation/PrepareUI.py
           python Automation/PrepareFonts.py
-      - name: Build Frontier.exe (no Slang compiler; the stored SPIR-V is used)
+      - name: Build Frontier.exe and TextureWorkspace.exe (no Slang compiler; the stored SPIR-V is used)
         run: |
           cmake -S . -B Build/Windows -G Ninja -DCMAKE_TOOLCHAIN_FILE=Automation/WindowsToolchain.cmake \
               -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
-          cmake --build Build/Windows --target Frontier --parallel
+          mkdir -p Build
+          Log=Build/build.log
+          Status=0
+          cmake --build Build/Windows --target Frontier --parallel 2>&1 | tee "$Log" || Status=$?
+          # 📝 A failed build says why in the run's annotations (the job's log is not always reachable): the compiler's error lines, or the log's tail.
+          if [ "$Status" -ne 0 ]; then
+            Errors=$(tr -d '\r' < "$Log" | grep -E 'error:|error C[0-9]+|error LNK[0-9]+|fatal error|undefined reference|FAILED:' | head -30 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            [ -n "$Errors" ] || Errors=$(tr -d '\r' < "$Log" | tail -n 25 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Build failed with exit code $Status::$Errors"
+            exit "$Status"
+          fi
       - name: Package
         run: |
           python Automation/PackageEditorPreviewWindows.py --executable Build/Windows/Frontier.exe \
@@ -68,7 +78,17 @@ jobs:
       - name: cmake -S . -B Build/Editor -A x64, then the Frontier target
         run: |
           cmake -S . -B Build/Editor -A x64
-          cmake --build Build/Editor --config Release --target Frontier --parallel
+          mkdir -p Build
+          Log=Build/build.log
+          Status=0
+          cmake --build Build/Editor --config Release --target Frontier --parallel 2>&1 | tee "$Log" || Status=$?
+          # 📝 A failed build says why in the run's annotations (the job's log is not always reachable): the compiler's error lines, or the log's tail.
+          if [ "$Status" -ne 0 ]; then
+            Errors=$(tr -d '\r' < "$Log" | grep -E 'error:|error C[0-9]+|error LNK[0-9]+|fatal error|undefined reference|FAILED:' | head -30 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            [ -n "$Errors" ] || Errors=$(tr -d '\r' < "$Log" | tail -n 25 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Build failed with exit code $Status::$Errors"
+            exit "$Status"
+          fi
       - name: Package
         run: |
           python Automation/PackageEditorPreviewWindows.py --executable Build/Editor/Release/Frontier.exe \
