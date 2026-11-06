@@ -49,6 +49,7 @@ struct VulkanFunctionTable
     PFN_vkGetPhysicalDeviceSurfaceSupportKHR GetPhysicalDeviceSurfaceSupportKHR = nullptr;
     PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR GetPhysicalDeviceSurfaceCaps  = nullptr;
     PFN_vkGetPhysicalDeviceSurfaceFormatsKHR GetPhysicalDeviceSurfaceFormatsKHR = nullptr;
+    PFN_vkGetPhysicalDeviceSurfacePresentModesKHR GetPhysicalDeviceSurfacePresentModesKHR = nullptr;
     PFN_vkGetPhysicalDeviceSurfacePresentModesKHR GetPhysicalDevicePresentModes = nullptr;
 
     // Device-level entry points
@@ -121,6 +122,11 @@ struct VulkanFunctionTable
     PFN_vkDestroyFence                       DestroyFence                       = nullptr;
     PFN_vkWaitForFences                      WaitForFences                      = nullptr;
     PFN_vkResetFences                        ResetFences                        = nullptr;
+    PFN_vkCreateQueryPool                    CreateQueryPool                    = nullptr;
+    PFN_vkDestroyQueryPool                   DestroyQueryPool                   = nullptr;
+    PFN_vkCmdResetQueryPool                  CmdResetQueryPool                  = nullptr;
+    PFN_vkCmdWriteTimestamp                  CmdWriteTimestamp                  = nullptr;
+    PFN_vkGetQueryPoolResults                GetQueryPoolResults                = nullptr;
     PFN_vkCreateSemaphore                    CreateSemaphore                    = nullptr;
     PFN_vkDestroySemaphore                   DestroySemaphore                   = nullptr;
 
@@ -235,6 +241,28 @@ class VulkanContext
     VkCommandBuffer BeginFrameCommands();
     bool SubmitAndWaitFrameCommands();
 
+    // The optimized execution path (see PerformanceLog.h): the copy joins the recording that is open, or opens one, and runs with the rest of it; there
+    // is no submission and no wait of its own. The staging bytes are not touched again until the recording has run (a later upload, or a download,
+    // submits it first). The texels are half floats already: what UploadRgba32fImage would have made of them.
+    bool QueueRgba16fImageUpload(VulkanImageTarget& Target, const uint16_t* HalfTexels, size_t HalfCount, std::string& OutDiag);
+
+    // GPU timestamps, for the performance log. Off unless asked for, and only where the queue supports them. A mark names the work that ran on the
+    // device since the mark before it in the same submission.
+    void               ConfigureGpuTimestamps(bool Enabled);
+    [[nodiscard]] bool QueryGpuTimestampsAvailable() const noexcept { return GpuTimestampsAvailable; }
+    [[nodiscard]] bool QueryGpuTimestampsEnabled() const noexcept { return GpuTimestampsEnabled; }
+    void               MarkGpuTimestamp(const char* Label);
+
+    // Present without waiting for the display (immediate, else mailbox, else the FIFO the window always had). For benchmarks: with the display's rate as a
+    // ceiling, a faster run would not show.
+    void                      ConfigureUncappedPresent(bool Enabled);
+    [[nodiscard]] bool        QueryUncappedPresentEnabled() const noexcept { return UncappedPresentEnabled; }
+    [[nodiscard]] const char* QueryPresentModeName() const noexcept;
+
+    [[nodiscard]] const VkPhysicalDeviceProperties& QueryDeviceProperties() const noexcept { return DeviceProps; }
+    [[nodiscard]] bool                              QueryRecordingOpen() const noexcept { return RecordingActive; }
+    [[nodiscard]] uint64_t                          QuerySubmissionCount() const noexcept { return SubmissionCount; }
+
     // Swapchain frame helpers (when initialized with InitializeWithSurface)
     bool BeginSwapchainFrame(int WindowWidth, int WindowHeight, VkCommandBuffer& OutCmd,
                              VkFramebuffer& OutSwapFbo, VkExtent2D& OutExtent);
@@ -282,6 +310,9 @@ class VulkanContext
     void DestroySwapchain() noexcept;
     uint32_t FindMemoryType(uint32_t TypeBits, VkMemoryPropertyFlags RequiredMask) const noexcept;
     void ResetTransientPools() noexcept;
+    void ReportSubmissionToLog();
+    void ReadBackGpuTimestamps();
+    void FlushRecordingBeforeDestroy() noexcept;
 
     void*                            LibraryHandle          = nullptr;
     VulkanFunctionTable              Fn{};
@@ -339,6 +370,23 @@ class VulkanContext
 
     bool                             RecordingActive        = false;
     bool                             Initialized            = false;
+
+    // Performance instrumentation (does not change what is recorded or submitted)
+    static constexpr uint32_t        MaxTimestampsPerSubmission = 64u;
+    VkQueryPool                      TimestampPool          = VK_NULL_HANDLE;
+    const char*                      TimestampLabels[MaxTimestampsPerSubmission] = {};
+    uint32_t                         TimestampCount         = 0u;
+    uint32_t                         TimestampValidBits     = 0u;
+    bool                             GpuTimestampsAvailable = false;
+    bool                             GpuTimestampsEnabled   = false;
+    uint32_t                         DrawsSinceSubmission   = 0u;
+    uint64_t                         SubmissionCount        = 0u;
+
+    // Optimized execution: a copy out of the staging buffer is recorded but has not run, so the staging bytes must stay as they are until it has
+    bool                             StagingReadPendingEnabled = false;
+
+    bool                             UncappedPresentEnabled = false;
+    VkPresentModeKHR                 ActivePresentMode      = VK_PRESENT_MODE_FIFO_KHR;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

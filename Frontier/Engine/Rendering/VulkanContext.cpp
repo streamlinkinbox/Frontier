@@ -6,6 +6,9 @@
 
 #include "Frontier/Engine/Rendering/VulkanContext.h"
 
+#include "Frontier/Engine/Diagnostics/PerformanceLog.h"
+#include "Frontier/Engine/Rendering/HalfFloatConversion.h"
+
 #include <imgui.h>
 
 #include <algorithm>
@@ -269,6 +272,7 @@ bool VulkanContext::InitializeWithSurface(const char* const* InstanceExtensions,
     ResolveInstanceProc(Fn.GetInstanceProcAddr, Instance, "vkGetPhysicalDeviceSurfaceSupportKHR", Fn.GetPhysicalDeviceSurfaceSupportKHR);
     ResolveInstanceProc(Fn.GetInstanceProcAddr, Instance, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR", Fn.GetPhysicalDeviceSurfaceCaps);
     ResolveInstanceProc(Fn.GetInstanceProcAddr, Instance, "vkGetPhysicalDeviceSurfaceFormatsKHR", Fn.GetPhysicalDeviceSurfaceFormatsKHR);
+    ResolveInstanceProc(Fn.GetInstanceProcAddr, Instance, "vkGetPhysicalDeviceSurfacePresentModesKHR", Fn.GetPhysicalDeviceSurfacePresentModesKHR);
     ResolveInstanceProc(Fn.GetInstanceProcAddr, Instance, "vkGetPhysicalDeviceSurfacePresentModesKHR", Fn.GetPhysicalDevicePresentModes);
 
     if (!SurfaceBuilder || !SurfaceBuilder(Instance, UserData, Surface) || Surface == VK_NULL_HANDLE)
@@ -355,6 +359,7 @@ bool VulkanContext::CreateDeviceAndCorePools(bool RequireSwapchain, std::string&
             PhysicalDevice      = Candidate;
             DeviceProps         = Props;
             GraphicsQueueFamily = static_cast<uint32_t>(ChosenFamily);
+            TimestampValidBits  = QFamilies[static_cast<size_t>(ChosenFamily)].timestampValidBits;
         }
     }
 
@@ -484,6 +489,14 @@ bool VulkanContext::CreateDeviceAndCorePools(bool RequireSwapchain, std::string&
     ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkDestroyFence", Fn.DestroyFence);
     ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkWaitForFences", Fn.WaitForFences);
     ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkResetFences", Fn.ResetFences);
+    ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkCreateQueryPool", Fn.CreateQueryPool);
+    ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkDestroyQueryPool", Fn.DestroyQueryPool);
+    ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkCmdResetQueryPool", Fn.CmdResetQueryPool);
+    ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkCmdWriteTimestamp", Fn.CmdWriteTimestamp);
+    ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkGetQueryPoolResults", Fn.GetQueryPoolResults);
+    GpuTimestampsAvailable = TimestampValidBits > 0u && DeviceProps.limits.timestampPeriod > 0.0f && Fn.CreateQueryPool != nullptr &&
+                             Fn.DestroyQueryPool != nullptr && Fn.CmdResetQueryPool != nullptr && Fn.CmdWriteTimestamp != nullptr &&
+                             Fn.GetQueryPoolResults != nullptr;
     ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkCreateSemaphore", Fn.CreateSemaphore);
     ResolveDeviceProc(Fn.GetDeviceProcAddr, Device, "vkDestroySemaphore", Fn.DestroySemaphore);
 
@@ -721,6 +734,12 @@ void VulkanContext::Shutdown() noexcept
     DestroyImageTarget(DummyBlackImage);
     DestroyBuffer(UniformArena);
 
+    if (TimestampPool != VK_NULL_HANDLE && Fn.DestroyQueryPool)
+        Fn.DestroyQueryPool(Device, TimestampPool, nullptr);
+    TimestampPool        = VK_NULL_HANDLE;
+    TimestampCount       = 0u;
+    GpuTimestampsEnabled = false;
+
     auto SafeDestroyRp = [&](VkRenderPass& Rp)
     {
         if (Rp != VK_NULL_HANDLE && Fn.DestroyRenderPass) Fn.DestroyRenderPass(Device, Rp, nullptr);
@@ -858,10 +877,18 @@ bool VulkanContext::CreateHostBuffer(VkDeviceSize ByteSize, VkBufferUsageFlags U
     return true;
 }
 
+void VulkanContext::FlushRecordingBeforeDestroy() noexcept
+{
+    // [unit] - only the optimized path leaves a recording open between calls; what is destroyed must not still be named in it
+    if (RecordingActive && Device != VK_NULL_HANDLE && OptimizedExecution::QueryEnabled())
+        SubmitAndWaitFrameCommands();
+}
+
 void VulkanContext::DestroyBuffer(VulkanBufferResource& Buf) noexcept
 {
     if (Device == VK_NULL_HANDLE)
         return;
+    FlushRecordingBeforeDestroy();
     if (Buf.Mapped && Fn.UnmapMemory)
         Fn.UnmapMemory(Device, Buf.Memory);
     if (Buf.Buffer != VK_NULL_HANDLE && Fn.DestroyBuffer)
@@ -970,6 +997,7 @@ bool VulkanContext::CreateImageTarget(int32_t Width, int32_t Height, VkFormat Fo
 
 void VulkanContext::DestroyImageTarget(VulkanImageTarget& Target) noexcept
 {
+    FlushRecordingBeforeDestroy();
     if (Target.UiToken > 0u && Target.UiToken <= UiTextureRegistry.size())
         UiTextureRegistry[static_cast<size_t>(Target.UiToken - 1u)] = nullptr;
 
@@ -993,29 +1021,12 @@ VulkanImageTarget* VulkanContext::LookupUiTexture(uint64_t UiToken) noexcept
     return Found ? Found : &DummyBlackImage;
 }
 
-namespace
-{
-
-uint16_t Float32ToHalf16(float InputScalar) noexcept
-{
-    uint32_t Bits = 0u;
-    std::memcpy(&Bits, &InputScalar, sizeof(uint32_t));
-    const uint32_t Sign = (Bits >> 16u) & 0x8000u;
-    int32_t Exp         = static_cast<int32_t>((Bits >> 23u) & 0xFFu) - 127 + 15;
-    uint32_t Mantissa   = Bits & 0x007FFFFFu;
-    if (Exp <= 0)
-        return static_cast<uint16_t>(Sign);
-    if (Exp >= 31)
-        return static_cast<uint16_t>(Sign | 0x7C00u);
-    return static_cast<uint16_t>(Sign | (static_cast<uint32_t>(Exp) << 10u) | (Mantissa >> 13u));
-}
-
-} // namespace
-
 bool VulkanContext::UploadRgba8Image(VulkanImageTarget& Target, const uint8_t* Pixels, size_t ByteCount, std::string& OutDiag)
 {
     if (!Pixels || ByteCount == 0u || Target.Image == VK_NULL_HANDLE)
         return false;
+    if (StagingReadPendingEnabled)
+        SubmitAndWaitFrameCommands();   // [unit] - an earlier copy out of the staging buffer is recorded and has not run
     if (StagingBuffer.Size < ByteCount)
     {
         if (!CreateHostBuffer(ByteCount, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -1035,6 +1046,8 @@ bool VulkanContext::UploadRgba8Image(VulkanImageTarget& Target, const uint8_t* P
     Fn.CmdCopyBufferToImage(Cmd, StagingBuffer.Buffer, Target.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1u, &Copy);
     TransitionImage(Cmd, Target, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
+    if (Nested && OptimizedExecution::QueryEnabled())
+        StagingReadPendingEnabled = true;
     return Nested ? true : SubmitAndWaitFrameCommands();
 }
 
@@ -1042,6 +1055,8 @@ bool VulkanContext::UploadRgba32fImage(VulkanImageTarget& Target, const float* F
 {
     if (!FloatTexels || FloatCount == 0u || Target.Image == VK_NULL_HANDLE)
         return false;
+    if (StagingReadPendingEnabled)
+        SubmitAndWaitFrameCommands();   // [unit] - an earlier copy out of the staging buffer is recorded and has not run
 
     // Convert float32 RGBA -> IEEE754 float16 RGBA for VK_FORMAT_R16G16B16A16_SFLOAT targets
     const size_t ByteCount = FloatCount * sizeof(uint16_t);
@@ -1051,9 +1066,12 @@ bool VulkanContext::UploadRgba32fImage(VulkanImageTarget& Target, const float* F
                               StagingBuffer, OutDiag))
             return false;
     }
-    auto* DstHalf = static_cast<uint16_t*>(StagingBuffer.Mapped);
-    for (size_t Idx = 0u; Idx < FloatCount; ++Idx)
-        DstHalf[Idx] = Float32ToHalf16(FloatTexels[Idx]);
+    {
+        PerformanceScope Convert("vk.convert_half");
+        auto* DstHalf = static_cast<uint16_t*>(StagingBuffer.Mapped);
+        for (size_t Idx = 0u; Idx < FloatCount; ++Idx)
+            DstHalf[Idx] = ConvertFloat32ToHalf16(FloatTexels[Idx]);
+    }
 
     if (RecordingActive)
     {
@@ -1079,7 +1097,45 @@ bool VulkanContext::UploadRgba32fImage(VulkanImageTarget& Target, const float* F
         BeginFrameCommands();
         return true;
     }
+    MarkGpuTimestamp("gpu.atlas_copy");
     return SubmitAndWaitFrameCommands();
+}
+
+bool VulkanContext::QueueRgba16fImageUpload(VulkanImageTarget& Target, const uint16_t* HalfTexels, size_t HalfCount, std::string& OutDiag)
+{
+    if (!HalfTexels || HalfCount == 0u || Target.Image == VK_NULL_HANDLE)
+        return false;
+
+    // [unit] - a copy out of the staging buffer that is recorded and has not run still needs the bytes that are there: let it run first
+    if (StagingReadPendingEnabled)
+        SubmitAndWaitFrameCommands();
+
+    const size_t ByteCount = HalfCount * sizeof(uint16_t);
+    if (StagingBuffer.Size < ByteCount)
+    {
+        if (!CreateHostBuffer(ByteCount, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, StagingBuffer, OutDiag))
+            return false;
+    }
+
+    // [unit] - BeginFrameCommands waits for the last submission when no recording is open, so what is written to the staging buffer below cannot be read
+    //          by work that is still running
+    VkCommandBuffer Cmd = BeginFrameCommands();
+    {
+        PerformanceScope Copy("vk.copy_to_staging");
+        std::memcpy(StagingBuffer.Mapped, HalfTexels, ByteCount);
+    }
+
+    TransitionImage(Cmd, Target, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    VkBufferImageCopy Region{};
+    Region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    Region.imageSubresource.layerCount = 1u;
+    Region.imageExtent                 = { static_cast<uint32_t>(Target.Width), static_cast<uint32_t>(Target.Height), 1u };
+    Fn.CmdCopyBufferToImage(Cmd, StagingBuffer.Buffer, Target.Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1u, &Region);
+    TransitionImage(Cmd, Target, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    MarkGpuTimestamp("gpu.atlas_copy");
+    StagingReadPendingEnabled = true;
+    return true;
 }
 
 bool VulkanContext::DownloadRgba8Image(VulkanImageTarget& Target, std::vector<uint8_t>& OutTopDownRgba)
@@ -1145,6 +1201,7 @@ VkFramebuffer VulkanContext::CreateFramebuffer(VkRenderPass TargetFormat, const 
 
 void VulkanContext::DestroyFramebuffer(VkFramebuffer& Fbo) noexcept
 {
+    FlushRecordingBeforeDestroy();
     if (Fbo != VK_NULL_HANDLE && Device != VK_NULL_HANDLE && Fn.DestroyFramebuffer)
         Fn.DestroyFramebuffer(Device, Fbo, nullptr);
     Fbo = VK_NULL_HANDLE;
@@ -1352,7 +1409,88 @@ VkCommandBuffer VulkanContext::BeginFrameCommands()
     BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     Fn.BeginCommandBuffer(WorkCommandBuffer, &BeginInfo);
     RecordingActive = true;
+
+    TimestampCount = 0u;
+    if (GpuTimestampsEnabled && TimestampPool != VK_NULL_HANDLE)
+    {
+        // [unit] - the queries are reset outside any render pass, at the start of the recording; the first timestamp is the start of the submission
+        Fn.CmdResetQueryPool(WorkCommandBuffer, TimestampPool, 0u, MaxTimestampsPerSubmission);
+        Fn.CmdWriteTimestamp(WorkCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, TimestampPool, 0u);
+        TimestampLabels[0] = "begin";
+        TimestampCount     = 1u;
+    }
     return WorkCommandBuffer;
+}
+
+void VulkanContext::ConfigureGpuTimestamps(bool Enabled)
+{
+    if (!Enabled)
+    {
+        GpuTimestampsEnabled = false;
+        return;
+    }
+    if (!GpuTimestampsAvailable || Device == VK_NULL_HANDLE)
+        return;
+    if (TimestampPool == VK_NULL_HANDLE)
+    {
+        VkQueryPoolCreateInfo PoolInfo{};
+        PoolInfo.sType      = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+        PoolInfo.queryType  = VK_QUERY_TYPE_TIMESTAMP;
+        PoolInfo.queryCount = MaxTimestampsPerSubmission;
+        if (Fn.CreateQueryPool(Device, &PoolInfo, nullptr, &TimestampPool) != VK_SUCCESS)
+        {
+            TimestampPool = VK_NULL_HANDLE;
+            return;
+        }
+    }
+    GpuTimestampsEnabled = true;
+}
+
+void VulkanContext::MarkGpuTimestamp(const char* Label)
+{
+    // [unit] - TimestampCount is zero when this recording was opened before timestamps were switched on: its queries were never reset, so it has none
+    if (!GpuTimestampsEnabled || !RecordingActive || TimestampCount == 0u || TimestampCount >= MaxTimestampsPerSubmission)
+        return;
+    Fn.CmdWriteTimestamp(WorkCommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, TimestampPool, TimestampCount);
+    TimestampLabels[TimestampCount] = Label;
+    ++TimestampCount;
+}
+
+void VulkanContext::ReadBackGpuTimestamps()
+{
+    const uint32_t Count = TimestampCount;
+    TimestampCount       = 0u;
+    if (!GpuTimestampsEnabled || Count < 2u || TimestampPool == VK_NULL_HANDLE)
+        return;
+    PerformanceLog& Log = PerformanceLog::Instance();
+    if (!Log.QueryRecordingEnabled())
+        return;
+
+    uint64_t Ticks[MaxTimestampsPerSubmission] = {};
+    if (Fn.GetQueryPoolResults(Device, TimestampPool, 0u, Count, sizeof(Ticks), Ticks, sizeof(uint64_t),
+                               VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT) != VK_SUCCESS)
+        return;
+
+    const uint64_t Mask               = TimestampValidBits >= 64u ? ~0ull : ((1ull << TimestampValidBits) - 1ull);
+    const double   NanosecondsPerTick = static_cast<double>(DeviceProps.limits.timestampPeriod);
+    for (uint32_t Index = 1u; Index < Count; ++Index)
+    {
+        const uint64_t Elapsed = (Ticks[Index] - Ticks[Index - 1u]) & Mask;
+        Log.RegisterGpuSample(TimestampLabels[Index], static_cast<double>(Elapsed) * NanosecondsPerTick * 1.0e-6);
+    }
+}
+
+void VulkanContext::ReportSubmissionToLog()
+{
+    ++SubmissionCount;
+    PerformanceLog& Log = PerformanceLog::Instance();
+    if (Log.QueryRecordingEnabled())
+    {
+        Log.RegisterCount("vk.submits", 1.0);
+        Log.RegisterCount("vk.draws", static_cast<double>(DrawsSinceSubmission));
+    }
+    DrawsSinceSubmission = 0u;
+    ReadBackGpuTimestamps();
 }
 
 bool VulkanContext::SubmitAndWaitFrameCommands()
@@ -1368,9 +1506,16 @@ bool VulkanContext::SubmitAndWaitFrameCommands()
     Submit.commandBufferCount = 1u;
     Submit.pCommandBuffers    = &WorkCommandBuffer;
 
-    if (Fn.QueueSubmit(GraphicsQueue, 1u, &Submit, WorkFence) != VK_SUCCESS)
-        return false;
-    return Fn.WaitForFences(Device, 1u, &WorkFence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
+    bool Done = false;
+    {
+        PerformanceScope Wait("vk.submit_wait");
+        if (Fn.QueueSubmit(GraphicsQueue, 1u, &Submit, WorkFence) != VK_SUCCESS)
+            return false;
+        Done = Fn.WaitForFences(Device, 1u, &WorkFence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
+    }
+    StagingReadPendingEnabled = false;   // [unit] - the device has run what was recorded: the staging bytes are free again
+    ReportSubmissionToLog();
+    return Done;
 }
 
 void VulkanContext::TransitionImage(VkCommandBuffer Cmd, VulkanImageTarget& Target, VkImageLayout NewLayout)
@@ -1443,6 +1588,7 @@ bool VulkanContext::BindPipelineAndDescriptors(VkCommandBuffer Cmd, VkPipeline P
                                                VulkanImageTarget* Tex2, VulkanImageTarget* Tex3,
                                                VulkanImageTarget* Tex4)
 {
+    ++DrawsSinceSubmission;
     if (UniformDrawCursor >= MaxDrawsPerFrame || TransientSetCursor >= MaxDrawsPerFrame)
     {
         // Flush current command buffer if an extraordinary frame exceeds 2560 draws!
@@ -1496,6 +1642,27 @@ bool VulkanContext::BindPipelineAndDescriptors(VkCommandBuffer Cmd, VkPipeline P
     Fn.CmdBindDescriptorSets(Cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, UnifiedPipelineLayout,
                              0u, 1u, &Set, 1u, &DynOffset);
     return true;
+}
+
+void VulkanContext::ConfigureUncappedPresent(bool Enabled)
+{
+    if (UncappedPresentEnabled == Enabled)
+        return;
+    UncappedPresentEnabled = Enabled;
+    // [unit] - the next BeginSwapchainFrame sees an extent that is not the window's and builds the swapchain again, with the other mode
+    SwapchainExtent = { 0u, 0u };
+}
+
+const char* VulkanContext::QueryPresentModeName() const noexcept
+{
+    switch (ActivePresentMode)
+    {
+        case VK_PRESENT_MODE_IMMEDIATE_KHR:    return "IMMEDIATE";
+        case VK_PRESENT_MODE_MAILBOX_KHR:      return "MAILBOX";
+        case VK_PRESENT_MODE_FIFO_KHR:         return "FIFO";
+        case VK_PRESENT_MODE_FIFO_RELAXED_KHR: return "FIFO_RELAXED";
+        default:                               return "other";
+    }
 }
 
 bool VulkanContext::RebuildSwapchain(int Width, int Height, std::string& OutDiagnostic)
@@ -1553,6 +1720,23 @@ bool VulkanContext::RebuildSwapchain(int Width, int Height, std::string& OutDiag
     ScInfo.preTransform     = Caps.currentTransform;
     ScInfo.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     ScInfo.presentMode      = VK_PRESENT_MODE_FIFO_KHR;
+    if (UncappedPresentEnabled && Fn.GetPhysicalDeviceSurfacePresentModesKHR)
+    {
+        uint32_t ModeCount = 0u;
+        Fn.GetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &ModeCount, nullptr);
+        std::vector<VkPresentModeKHR> Modes(ModeCount);
+        if (ModeCount > 0u)
+            Fn.GetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice, Surface, &ModeCount, Modes.data());
+        for (const VkPresentModeKHR Mode : { VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_MAILBOX_KHR })
+        {
+            if (std::find(Modes.begin(), Modes.end(), Mode) != Modes.end())
+            {
+                ScInfo.presentMode = Mode;
+                break;
+            }
+        }
+    }
+    ActivePresentMode = ScInfo.presentMode;
     ScInfo.clipped          = VK_TRUE;
 
     if (Fn.CreateSwapchainKHR(Device, &ScInfo, nullptr, &Swapchain) != VK_SUCCESS)
@@ -1672,6 +1856,7 @@ bool VulkanContext::EndAndPresentSwapchainFrame(int WindowWidth, int WindowHeigh
 {
     if (!RecordingActive)
         return false;
+    MarkGpuTimestamp("gpu.ui_draw");
     Fn.EndCommandBuffer(WorkCommandBuffer);
     RecordingActive = false;
 
@@ -1686,8 +1871,11 @@ bool VulkanContext::EndAndPresentSwapchainFrame(int WindowWidth, int WindowHeigh
     Submit.signalSemaphoreCount = 1u;
     Submit.pSignalSemaphores    = &RenderFinishedSem;
 
-    if (Fn.QueueSubmit(GraphicsQueue, 1u, &Submit, WorkFence) != VK_SUCCESS)
-        return false;
+    {
+        PerformanceScope SubmitScope("vk.queue_submit");
+        if (Fn.QueueSubmit(GraphicsQueue, 1u, &Submit, WorkFence) != VK_SUCCESS)
+            return false;
+    }
 
     VkPresentInfoKHR Present{};
     Present.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1697,8 +1885,17 @@ bool VulkanContext::EndAndPresentSwapchainFrame(int WindowWidth, int WindowHeigh
     Present.pSwapchains        = &Swapchain;
     Present.pImageIndices      = &ActiveSwapImageIndex;
 
-    const VkResult Pres = Fn.QueuePresentKHR(GraphicsQueue, &Present);
-    Fn.WaitForFences(Device, 1u, &WorkFence, VK_TRUE, UINT64_MAX);
+    VkResult Pres = VK_SUCCESS;
+    {
+        PerformanceScope PresentScope("vk.queue_present");
+        Pres = Fn.QueuePresentKHR(GraphicsQueue, &Present);
+    }
+    {
+        PerformanceScope FenceScope("vk.fence_wait");
+        Fn.WaitForFences(Device, 1u, &WorkFence, VK_TRUE, UINT64_MAX);
+    }
+    StagingReadPendingEnabled = false;
+    ReportSubmissionToLog();
 
     if (Pres == VK_ERROR_OUT_OF_DATE_KHR || Pres == VK_SUBOPTIMAL_KHR)
     {

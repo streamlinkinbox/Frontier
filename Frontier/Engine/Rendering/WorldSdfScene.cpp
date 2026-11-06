@@ -5,6 +5,9 @@
 
 #include "Frontier/Engine/Rendering/WorldSdfScene.h"
 
+#include "Frontier/Engine/Diagnostics/PerformanceLog.h"
+#include "Frontier/Engine/Rendering/HalfFloatConversion.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -77,6 +80,79 @@ float SdCylinderZ(float Px, float Py, float Pz, float Radius, float HalfH) noexc
     const float Oy = std::max(Dy, 0.0f);
     return std::min(std::max(Dx, Dy), 0.0f) + std::sqrt(Ox * Ox + Oy * Oy);
 }
+
+// [unit] - the part of the signed distance that belongs to the course itself (ground, kerbs, ramp, obstacles); the part that does not move with the cars.
+//          The baseline evaluation and the retained one both call it, so both run the same code for it
+float EvaluateCourseDistance(float Px, float Py, float Pz, bool ProvingGrounds, bool ObstaclesEnabled) noexcept
+{
+    float Dist = Pz; // Ground plane Z = 0
+
+    if (ProvingGrounds)
+    {
+        Dist = std::min(Dist, SdBox3(Px + 4.0f, std::fabs(Py) - 6.15f, Pz - 0.06f, 48.0f, 0.15f, 0.06f));
+        if ( std::fabs(Px - 25.0f) < 4.5f && std::fabs(Py) < 4.2f)
+        {
+            const float RampTop = std::clamp((Px - 22.0f) / 6.0f, 0.0f, 1.0f) * 1.35f;
+            const float RampD   = std::max(std::max(std::fabs(Px - 25.0f) - 3.0f, std::fabs(Py) - 3.2f),
+                                           std::max(-Pz, Pz - RampTop));
+            Dist = std::min(Dist, RampD);
+        }
+
+        if (ObstaclesEnabled)
+        {
+            const float Dx = Px - 6.2f, Dy = Py + 2.35f, Dz = Pz - 0.82f;
+            Dist = std::min(Dist, std::sqrt(Dx * Dx + Dy * Dy + Dz * Dz) - 0.68f);
+            Dist = std::min(Dist, SdCylinderZ(Px - 9.5f, std::fabs(Py) - 3.15f, Pz - 1.35f, 0.48f, 1.35f));
+
+            const float Leg    = SdBox3(Px - 15.2f, std::fabs(Py) - 4.4f, Pz - 1.9f, 0.42f, 0.42f, 1.9f);
+            const float Lintel = SdBox3(Px - 15.2f, Py, Pz - 3.95f, 0.48f, 4.85f, 0.36f);
+            Dist = std::min(Dist, std::min(Leg, Lintel));
+        }
+    }
+    return Dist;
+}
+
+// [unit] - one car's oriented hull and wake against the running distance and velocity at a point. Cy and Sy are the cosine and sine of the car's yaw and
+//          CarCentreZ is the height of the hull's centre; the baseline computes them for every point, the retained evaluation once for the car
+void ApplyVehicleHull(float Px, float Py, float Pz, const WorldVehicleRig& Car, float Cy, float Sy, float CarCentreZ,
+                      float& Dist, std::array<float, 3>& SolidVelocityWorld) noexcept
+{
+    const float Rx     = Px - Car.Visual.PositionMetres[0];
+    const float Ry     = Py - Car.Visual.PositionMetres[1];
+    const float Rz     = Pz - CarCentreZ;
+
+    const float LocalX =  Rx * Cy + Ry * Sy;
+    const float LocalY = -Rx * Sy + Ry * Cy;
+    const float CarHull= SdBox3(LocalX, LocalY, Rz, 2.32f, 1.02f, 0.56f) - 0.12f;
+
+    if (CarHull < Dist)
+    {
+        Dist = CarHull;
+        SolidVelocityWorld = {
+            Car.VelocityMps[0] - Car.YawRateRad * Ry,
+            Car.VelocityMps[1] + Car.YawRateRad * Rx,
+            Car.VelocityMps[2],
+        };
+    }
+    else if (CarHull < 0.85f)
+    {
+        SolidVelocityWorld = {
+            Car.VelocityMps[0] - Car.YawRateRad * Ry,
+            Car.VelocityMps[1] + Car.YawRateRad * Rx,
+            Car.VelocityMps[2],
+        };
+    }
+}
+
+// [unit] - the coordinate of a voxel's centre along one axis of the domain box
+float ResolveVoxelCentre(float BoxMinComponent, float Span, int32_t Index, int32_t Resolution) noexcept
+{
+    return BoxMinComponent + ((static_cast<float>(Index) + 0.5f) / static_cast<float>(Resolution)) * Span;
+}
+
+// [m] - how far from a car's centre its hull can still reach: the half-diagonal of the box (2.32, 1.02, 0.56) is 2.5955, the hull is grown by 0.12, and
+//       0.064 is left over so that float rounding in the rotation cannot make a voxel look farther than it is
+constexpr float VehicleHullReach = 2.78f;
 
 void BuildVulkanViewProjMatrix(const WorldCameraView& Cam, float NearP, float FarP, float OutColMajor[16]) noexcept
 {
@@ -190,31 +266,8 @@ void WorldSdfScene::EvaluateSdfAndVelocity(const std::array<float, 3>& WorldPoin
     const float Py = WorldPoint[1];
     const float Pz = WorldPoint[2];
 
-    float Dist = Pz; // Ground plane Z = 0
+    float Dist = EvaluateCourseDistance(Px, Py, Pz, ProvingGrounds, ObstaclesEnabled);
     OutSolidVelocityWorld = { 0.0f, 0.0f, 0.0f };
-
-    if (ProvingGrounds)
-    {
-        Dist = std::min(Dist, SdBox3(Px + 4.0f, std::fabs(Py) - 6.15f, Pz - 0.06f, 48.0f, 0.15f, 0.06f));
-        if ( std::fabs(Px - 25.0f) < 4.5f && std::fabs(Py) < 4.2f)
-        {
-            const float RampTop = std::clamp((Px - 22.0f) / 6.0f, 0.0f, 1.0f) * 1.35f;
-            const float RampD   = std::max(std::max(std::fabs(Px - 25.0f) - 3.0f, std::fabs(Py) - 3.2f),
-                                           std::max(-Pz, Pz - RampTop));
-            Dist = std::min(Dist, RampD);
-        }
-
-        if (ObstaclesEnabled)
-        {
-            const float Dx = Px - 6.2f, Dy = Py + 2.35f, Dz = Pz - 0.82f;
-            Dist = std::min(Dist, std::sqrt(Dx * Dx + Dy * Dy + Dz * Dz) - 0.68f);
-            Dist = std::min(Dist, SdCylinderZ(Px - 9.5f, std::fabs(Py) - 3.15f, Pz - 1.35f, 0.48f, 1.35f));
-
-            const float Leg    = SdBox3(Px - 15.2f, std::fabs(Py) - 4.4f, Pz - 1.9f, 0.42f, 0.42f, 1.9f);
-            const float Lintel = SdBox3(Px - 15.2f, Py, Pz - 3.95f, 0.48f, 4.85f, 0.36f);
-            Dist = std::min(Dist, std::min(Leg, Lintel));
-        }
-    }
 
     // Evaluate moving ControlVehicle 3D oriented bounding hull + aerodynamic wake velocity!
     for (const WorldVehicleRig& Car : Vehicles)
@@ -222,31 +275,7 @@ void WorldSdfScene::EvaluateSdfAndVelocity(const std::array<float, 3>& WorldPoin
         const float YawRad = Car.Visual.YawDegrees * Deg2Rad;
         const float Cy     = std::cos(YawRad);
         const float Sy     = std::sin(YawRad);
-        const float Rx     = Px - Car.Visual.PositionMetres[0];
-        const float Ry     = Py - Car.Visual.PositionMetres[1];
-        const float Rz     = Pz - (Car.Visual.PositionMetres[2] + 0.34f);
-
-        const float LocalX =  Rx * Cy + Ry * Sy;
-        const float LocalY = -Rx * Sy + Ry * Cy;
-        const float CarHull= SdBox3(LocalX, LocalY, Rz, 2.32f, 1.02f, 0.56f) - 0.12f;
-
-        if (CarHull < Dist)
-        {
-            Dist = CarHull;
-            OutSolidVelocityWorld = {
-                Car.VelocityMps[0] - Car.YawRateRad * Ry,
-                Car.VelocityMps[1] + Car.YawRateRad * Rx,
-                Car.VelocityMps[2],
-            };
-        }
-        else if (CarHull < 0.85f)
-        {
-            OutSolidVelocityWorld = {
-                Car.VelocityMps[0] - Car.YawRateRad * Ry,
-                Car.VelocityMps[1] + Car.YawRateRad * Rx,
-                Car.VelocityMps[2],
-            };
-        }
+        ApplyVehicleHull(Px, Py, Pz, Car, Cy, Sy, Car.Visual.PositionMetres[2] + 0.34f, Dist, OutSolidVelocityWorld);
     }
 
     OutSignedDistance = Dist;
@@ -270,18 +299,18 @@ void WorldSdfScene::BuildDomainSdfAtlas(const std::array<float, 3>& DomainOrigin
     {
         const int32_t TileX = Vz % TilesX;
         const int32_t TileY = Vz / TilesX;
-        const float PyroZ   = Bounds.BoxMin[2] + ((static_cast<float>(Vz) + 0.5f) / static_cast<float>(LatticeRes)) * SpanZ;
+        const float PyroZ   = ResolveVoxelCentre(Bounds.BoxMin[2], SpanZ, Vz, LatticeRes);
         const float WorldY  = DomainOriginWorld[1] + PyroZ;
 
         for (int32_t Vy = 0; Vy < LatticeRes; ++Vy)
         {
-            const float PyroY  = Bounds.BoxMin[1] + ((static_cast<float>(Vy) + 0.5f) / static_cast<float>(LatticeRes)) * SpanY;
+            const float PyroY  = ResolveVoxelCentre(Bounds.BoxMin[1], SpanY, Vy, LatticeRes);
             const float WorldZ = DomainOriginWorld[2] + PyroY + 0.60f;
             const int32_t Py   = TileY * LatticeRes + Vy;
 
             for (int32_t Vx = 0; Vx < LatticeRes; ++Vx)
             {
-                const float PyroX  = Bounds.BoxMin[0] + ((static_cast<float>(Vx) + 0.5f) / static_cast<float>(LatticeRes)) * SpanX;
+                const float PyroX  = ResolveVoxelCentre(Bounds.BoxMin[0], SpanX, Vx, LatticeRes);
                 const float WorldX = DomainOriginWorld[0] + PyroX;
                 const int32_t Px   = TileX * LatticeRes + Vx;
 
@@ -296,6 +325,205 @@ void WorldSdfScene::BuildDomainSdfAtlas(const std::array<float, 3>& DomainOrigin
                 OutAtlasRgba[Offset + 1u] = VelW[2];
                 OutAtlasRgba[Offset + 2u] = VelW[1];
                 OutAtlasRgba[Offset + 3u] = SignedDist;
+            }
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+//                                    RETAINED COURSE DISTANCES (OPTIMIZED PATH)
+//----------------------------------------------------------------------------------------------------------------------
+
+void WorldSdfScene::RefreshRetainedCourse(const RetainedCourseKey& Key)
+{
+    if (RetainedReady && RetainedKey == Key)
+        return;
+
+    PerformanceScope Scope("atlas.course_rebuild");
+
+    const int32_t N      = Key.LatticeRes;
+    const int32_t AtlasW = N * Key.TilesX;
+    const int32_t AtlasH = N * Key.TilesY;
+    RetainedDistances.assign(static_cast<size_t>(N) * static_cast<size_t>(N) * static_cast<size_t>(N), 0.0f);
+    RetainedHalfStatic.assign(static_cast<size_t>(AtlasW) * static_cast<size_t>(AtlasH) * 4u, 0u);
+
+    const float SpanX = Key.BoxMax[0] - Key.BoxMin[0];
+    const float SpanY = Key.BoxMax[1] - Key.BoxMin[1];
+    const float SpanZ = Key.BoxMax[2] - Key.BoxMin[2];
+
+    for (int32_t Vz = 0; Vz < N; ++Vz)
+    {
+        const int32_t TileX = Vz % Key.TilesX;
+        const int32_t TileY = Vz / Key.TilesX;
+        const float   PyroZ  = ResolveVoxelCentre(Key.BoxMin[2], SpanZ, Vz, N);
+        const float   WorldY = Key.Origin[1] + PyroZ;
+
+        for (int32_t Vy = 0; Vy < N; ++Vy)
+        {
+            const float   PyroY  = ResolveVoxelCentre(Key.BoxMin[1], SpanY, Vy, N);
+            const float   WorldZ = Key.Origin[2] + PyroY + 0.60f;
+            const int32_t Py     = TileY * N + Vy;
+
+            for (int32_t Vx = 0; Vx < N; ++Vx)
+            {
+                const float   PyroX  = ResolveVoxelCentre(Key.BoxMin[0], SpanX, Vx, N);
+                const float   WorldX = Key.Origin[0] + PyroX;
+                const int32_t Px     = TileX * N + Vx;
+
+                const float Course = EvaluateCourseDistance(WorldX, WorldY, WorldZ, Key.ProvingGrounds, Key.ObstaclesEnabled);
+                RetainedDistances[(static_cast<size_t>(Vz) * static_cast<size_t>(N) + static_cast<size_t>(Vy)) * static_cast<size_t>(N) +
+                                  static_cast<size_t>(Vx)] = Course;
+
+                const size_t Offset = (static_cast<size_t>(Py) * static_cast<size_t>(AtlasW) + static_cast<size_t>(Px)) * 4u;
+                RetainedHalfStatic[Offset + 3u] = ConvertFloat32ToHalf16(Course);   // [-] - the velocity texels stay zero: half of 0.0f is 0
+            }
+        }
+    }
+
+    RetainedKey   = Key;
+    RetainedReady = true;
+    ++RetainedRebuildCount;
+}
+
+void WorldSdfScene::BuildDomainSdfAtlasRetained(const std::array<float, 3>& DomainOriginWorld, const PyroBoundsBox& Bounds,
+                                                int32_t LatticeRes, int32_t TilesX, int32_t TilesY,
+                                                bool ProvingGrounds, bool ObstaclesEnabled,
+                                                const std::vector<WorldVehicleRig>& Vehicles,
+                                                std::vector<float>* OutAtlasRgba, std::vector<uint16_t>* OutAtlasHalf)
+{
+    if (LatticeRes <= 0 || TilesX <= 0 || TilesY <= 0)
+    {
+        if (OutAtlasRgba != nullptr)
+            OutAtlasRgba->clear();
+        if (OutAtlasHalf != nullptr)
+            OutAtlasHalf->clear();
+        return;
+    }
+
+    RetainedCourseKey Key{};
+    Key.Origin           = DomainOriginWorld;
+    Key.BoxMin           = Bounds.BoxMin;
+    Key.BoxMax           = Bounds.BoxMax;
+    Key.LatticeRes       = LatticeRes;
+    Key.TilesX           = TilesX;
+    Key.TilesY           = TilesY;
+    Key.ProvingGrounds   = ProvingGrounds;
+    Key.ObstaclesEnabled = ObstaclesEnabled;
+    RefreshRetainedCourse(Key);
+
+    const int32_t N      = LatticeRes;
+    const int32_t AtlasW = N * TilesX;
+    const int32_t AtlasH = N * TilesY;
+    const size_t  Floats = static_cast<size_t>(AtlasW) * static_cast<size_t>(AtlasH) * 4u;
+
+    const float SpanX = Bounds.BoxMax[0] - Bounds.BoxMin[0];
+    const float SpanY = Bounds.BoxMax[1] - Bounds.BoxMin[1];
+    const float SpanZ = Bounds.BoxMax[2] - Bounds.BoxMin[2];
+
+    // [unit] - the output starts as the course alone; only the voxels that a car can reach are written again below
+    if (OutAtlasHalf != nullptr)
+        OutAtlasHalf->assign(RetainedHalfStatic.begin(), RetainedHalfStatic.end());
+    if (OutAtlasRgba != nullptr)
+        OutAtlasRgba->assign(Floats, 0.0f);
+
+    struct CarTerms
+    {
+        const WorldVehicleRig* Car     = nullptr;
+        float                  Cy      = 1.0f;
+        float                  Sy      = 0.0f;
+        float                  CentreZ = 0.0f;
+    };
+    std::vector<CarTerms> Terms;
+    Terms.reserve(Vehicles.size());
+    for (const WorldVehicleRig& Car : Vehicles)
+    {
+        const float YawRad = Car.Visual.YawDegrees * Deg2Rad;
+        Terms.push_back({ &Car, std::cos(YawRad), std::sin(YawRad), Car.Visual.PositionMetres[2] + 0.34f });
+    }
+
+    const bool   SpanUsable = SpanX > 0.0f && std::isfinite(SpanX);
+    const double Scale      = SpanUsable ? static_cast<double>(N) / static_cast<double>(SpanX) : 0.0;
+    const double OriginX    = static_cast<double>(DomainOriginWorld[0]) + static_cast<double>(Bounds.BoxMin[0]);
+
+    for (int32_t Vz = 0; Vz < N; ++Vz)
+    {
+        const int32_t TileX  = Vz % TilesX;
+        const int32_t TileY  = Vz / TilesX;
+        const float   PyroZ  = ResolveVoxelCentre(Bounds.BoxMin[2], SpanZ, Vz, N);
+        const float   WorldY = DomainOriginWorld[1] + PyroZ;
+
+        for (int32_t Vy = 0; Vy < N; ++Vy)
+        {
+            const float   PyroY  = ResolveVoxelCentre(Bounds.BoxMin[1], SpanY, Vy, N);
+            const float   WorldZ = DomainOriginWorld[2] + PyroY + 0.60f;
+            const int32_t Py     = TileY * N + Vy;
+            const size_t  Row    = (static_cast<size_t>(Vz) * static_cast<size_t>(N) + static_cast<size_t>(Vy)) * static_cast<size_t>(N);
+
+            if (OutAtlasRgba != nullptr)
+            {
+                for (int32_t Vx = 0; Vx < N; ++Vx)
+                {
+                    const size_t Offset = (static_cast<size_t>(Py) * static_cast<size_t>(AtlasW) + static_cast<size_t>(TileX * N + Vx)) * 4u;
+                    (*OutAtlasRgba)[Offset + 3u] = RetainedDistances[Row + static_cast<size_t>(Vx)];
+                }
+            }
+
+            // [unit] - the voxels of this row that some car can reach. A car changes a voxel only if its hull is nearer than max(course distance, 0.85), and
+            //          the course distance is never more than the height WorldZ, so no voxel farther from the car's centre than
+            //          max(WorldZ, 0.85) + VehicleHullReach is touched. A car whose numbers are not finite touches nothing, as in the baseline
+            int32_t First = N;
+            int32_t Last  = -1;
+            for (const CarTerms& Term : Terms)
+            {
+                const float Ry    = WorldY - Term.Car->Visual.PositionMetres[1];
+                const float Rz    = WorldZ - Term.CentreZ;
+                const float Limit = std::max(WorldZ, 0.85f) + VehicleHullReach;
+                const float Room  = Limit * Limit - Ry * Ry - Rz * Rz;
+                if (!(Room > 0.0f))
+                    continue;
+                if (!SpanUsable)
+                {
+                    First = 0;
+                    Last  = N - 1;
+                    continue;
+                }
+                const double Half  = std::sqrt(static_cast<double>(Room));
+                const double CarX  = static_cast<double>(Term.Car->Visual.PositionMetres[0]);
+                const double Low   = (CarX - Half - OriginX) * Scale - 0.5;
+                const double High  = (CarX + Half - OriginX) * Scale - 0.5;
+                if (!std::isfinite(Low) || !std::isfinite(High) || High + 1.0 < 0.0 || Low - 1.0 > static_cast<double>(N - 1))
+                    continue;
+                First = std::min(First, static_cast<int32_t>(std::max(0.0, std::floor(Low) - 1.0)));
+                Last  = std::max(Last, static_cast<int32_t>(std::min(static_cast<double>(N - 1), std::ceil(High) + 1.0)));
+            }
+
+            for (int32_t Vx = First; Vx <= Last; ++Vx)
+            {
+                const float WorldX = DomainOriginWorld[0] + ResolveVoxelCentre(Bounds.BoxMin[0], SpanX, Vx, N);
+
+                float                Dist = RetainedDistances[Row + static_cast<size_t>(Vx)];
+                std::array<float, 3> Vel  = { 0.0f, 0.0f, 0.0f };
+                for (const CarTerms& Term : Terms)
+                    ApplyVehicleHull(WorldX, WorldY, WorldZ, *Term.Car, Term.Cy, Term.Sy, Term.CentreZ, Dist, Vel);
+
+                const size_t Offset = (static_cast<size_t>(Py) * static_cast<size_t>(AtlasW) + static_cast<size_t>(TileX * N + Vx)) * 4u;
+                // Convert Frontier Z-up velocity (Vx, Vy, Vz) -> Pyro Y-up velocity (Vx, Vz, Vy)
+                if (OutAtlasHalf != nullptr)
+                {
+                    uint16_t* Texel = OutAtlasHalf->data() + Offset;
+                    Texel[0] = ConvertFloat32ToHalf16(Vel[0]);
+                    Texel[1] = ConvertFloat32ToHalf16(Vel[2]);
+                    Texel[2] = ConvertFloat32ToHalf16(Vel[1]);
+                    Texel[3] = ConvertFloat32ToHalf16(Dist);
+                }
+                if (OutAtlasRgba != nullptr)
+                {
+                    float* Texel = OutAtlasRgba->data() + Offset;
+                    Texel[0] = Vel[0];
+                    Texel[1] = Vel[2];
+                    Texel[2] = Vel[1];
+                    Texel[3] = Dist;
+                }
             }
         }
     }
@@ -532,6 +760,7 @@ bool WorldSdfScene::BeginWorldFrame(VulkanContext& Ctx, int Width, int Height, b
                                     const std::vector<WorldVehicleRig>& Vehicles,
                                     const std::vector<DynamicFireLight>& FireLights)
 {
+    PerformanceScope Scope("scene.world_record");
     if (!Initialized || !EnsureSceneTargets(Ctx, Width, Height))
         return false;
 
@@ -660,6 +889,7 @@ bool WorldSdfScene::BeginWorldFrame(VulkanContext& Ctx, int Width, int Height, b
 
     // Transition SceneDepthImage -> SHADER_READ_ONLY_OPTIMAL so PyroVolumeSolver domains clip against tOpaque!
     Ctx.TransitionImage(ActiveCmd, SceneDepthImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    Ctx.MarkGpuTimestamp("gpu.scene_world");
     return true;
 }
 
@@ -669,6 +899,7 @@ void WorldSdfScene::CompositeDomainIntoWorld(VulkanContext& Ctx, PyroVolumeSolve
     if (!Initialized || ActiveCmd == VK_NULL_HANDLE)
         return;
 
+    PerformanceScope Scope("scene.composite_record");
     Solver.PrepareAtlasesForWorldComposite(Ctx, ActiveCmd);
     Ctx.TransitionImage(ActiveCmd, SceneColorImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
@@ -678,6 +909,7 @@ void WorldSdfScene::CompositeDomainIntoWorld(VulkanContext& Ctx, PyroVolumeSolve
     Solver.RecordCompositeIntoWorldTarget(Ctx, ActiveCmd, Settings, PyroCam,
                                           SceneColorImage.Width, SceneColorImage.Height, SceneDepthImage);
     Ctx.EndTarget(ActiveCmd);
+    Ctx.MarkGpuTimestamp("gpu.plume_composite");
 }
 
 void WorldSdfScene::EndWorldFrame(VulkanContext& Ctx)

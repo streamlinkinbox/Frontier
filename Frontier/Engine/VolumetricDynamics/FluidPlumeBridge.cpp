@@ -3,6 +3,7 @@
 ==========================================================================================================================================*/
 
 #include "Engine/VolumetricDynamics/FluidPlumeBridge.h"
+#include "Engine/Diagnostics/PerformanceLog.h"
 #include "Engine/Interface/FluidPlumeEditor.h"
 #include "Engine/Scene/VehicleReadings.h"
 #include "Engine/VolumetricDynamics/GasPresetLibrary.h"
@@ -213,6 +214,8 @@ void EverestPlumeSceneRuntime::StepWorldSimulation(VulkanContext& Ctx, WorldSpac
     if (!Initialized)
         return;
 
+    PerformanceScope StepScope("sim.step");
+
     if (ForceReset)
     {
         ResetWorldSimulation(Ctx, World);
@@ -356,16 +359,41 @@ void EverestPlumeSceneRuntime::StepWorldSimulation(VulkanContext& Ctx, WorldSpac
     //          little between ticks) and, whatever the tick, as soon as the window has moved or the lattice has changed; a step on the atlas of another window
     //          would hold the course's solids where they are not
     const std::array<int32_t, 3> StepWindow = { CurOrg[0], CurOrg[1], WorldSolver.QueryLatticeResolution() };
+    const bool OptimizedEnabled = OptimizedExecution::QueryEnabled();
     if ((WorldTicks % 2u) == 0u || StepWindow != SolidAtlasWindow)
     {
-        std::vector<float> SdfAtlas;
-        SdfWorld.BuildDomainSdfAtlas(ZeroOrigin, WorldBox, WorldSolver.QueryLatticeResolution(),
-                                     WorldSolver.QueryTilesX(), WorldSolver.QueryTilesY(),
-                                     ProvingGroundsMode, true, Vehicles, SdfAtlas);
-        if (!SdfAtlas.empty())
+        PerformanceLog::Instance().RegisterCount("sim.atlas_builds", 1.0);
+        if (OptimizedEnabled)
         {
-            WorldSolver.UploadWorldSdfAtlas(Ctx, SdfAtlas.data(), SdfAtlas.size());
-            SolidAtlasWindow = StepWindow;
+            // [unit] - the optimized path: the same atlas, built from the course distances that are kept, and its upload recorded to run with the step below
+            {
+                PerformanceScope Build("sim.atlas_build");
+                SdfWorld.BuildDomainSdfAtlasRetained(ZeroOrigin, WorldBox, WorldSolver.QueryLatticeResolution(),
+                                                     WorldSolver.QueryTilesX(), WorldSolver.QueryTilesY(),
+                                                     ProvingGroundsMode, true, Vehicles, nullptr, &AtlasHalfTexels);
+            }
+            if (!AtlasHalfTexels.empty())
+            {
+                PerformanceScope Upload("sim.atlas_upload");
+                WorldSolver.QueueWorldSdfAtlas(Ctx, AtlasHalfTexels.data(), AtlasHalfTexels.size());
+                SolidAtlasWindow = StepWindow;
+            }
+        }
+        else
+        {
+            std::vector<float> SdfAtlas;
+            {
+                PerformanceScope Build("sim.atlas_build");
+                SdfWorld.BuildDomainSdfAtlas(ZeroOrigin, WorldBox, WorldSolver.QueryLatticeResolution(),
+                                             WorldSolver.QueryTilesX(), WorldSolver.QueryTilesY(),
+                                             ProvingGroundsMode, true, Vehicles, SdfAtlas);
+            }
+            if (!SdfAtlas.empty())
+            {
+                PerformanceScope Upload("sim.atlas_upload");
+                WorldSolver.UploadWorldSdfAtlas(Ctx, SdfAtlas.data(), SdfAtlas.size());
+                SolidAtlasWindow = StepWindow;
+            }
         }
     }
 
@@ -393,8 +421,13 @@ void EverestPlumeSceneRuntime::StepWorldSimulation(VulkanContext& Ctx, WorldSpac
 
     LastWorldActiveSrcs = static_cast<uint32_t>(SrcCount);
     WorldSolver.AssignExternalSources(ExtSources, SrcCount);
-    WorldSolver.AdvanceSimulation(Ctx, WorldSettings, Dt);
+    {
+        PerformanceScope Solve("sim.solver");
+        // [unit] - the optimized path leaves the step recorded and not submitted: the scene's submission that follows in the same refresh carries it
+        WorldSolver.AdvanceSimulation(Ctx, WorldSettings, Dt, OptimizedEnabled);
+    }
     ++WorldTicks;
+    PerformanceLog::Instance().RegisterCount("sim.ticks", 1.0);
 }
 
 SceneViewportImage EverestPlumeSceneRuntime::PresentSceneViewport(VulkanContext& Ctx, WorldSpace& World,
@@ -404,6 +437,7 @@ SceneViewportImage EverestPlumeSceneRuntime::PresentSceneViewport(VulkanContext&
     if (!Initialized)
         return Out;
 
+    PerformanceScope PresentScope("scene.present");
     const auto StartClock = std::chrono::steady_clock::now();
     const bool SoftCpu    = IsSoftwareCpuDevice(Ctx);
     const float Density   = std::clamp(Request.PixelDensity * (SoftCpu ? 0.65f : 1.0f), 0.5f, 2.0f);

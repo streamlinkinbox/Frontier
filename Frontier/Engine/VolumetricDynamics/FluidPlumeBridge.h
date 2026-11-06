@@ -72,6 +72,11 @@ class EverestPlumeSceneRuntime
     // [-] - the window the solid atlas on the device was built for: its origin x and z in cells, and the lattice's edge; the atlas is window-local, so
     //       it is right only while this equals the solver's own window
     [[nodiscard]] std::array<int32_t, 3> QuerySolidAtlasWindow() const noexcept { return SolidAtlasWindow; }
+    // [-] - the scene viewport's colour as the last PresentSceneViewport made it, read back to the host (RGBA8, top row first); false until one exists
+    [[nodiscard]] bool ReadSceneColor(VulkanContext& Ctx, std::vector<uint8_t>& OutRgba, int& OutWidth, int& OutHeight)
+    {
+        return SdfWorld.ReadWorldRgba(Ctx, OutRgba, OutWidth, OutHeight);
+    }
 
   private:
     WorldSdfScene          SdfWorld{};
@@ -97,6 +102,7 @@ class EverestPlumeSceneRuntime
     uint64_t               EditorTicks          = 0u;
     std::array<int32_t, 3> SolidAtlasWindow     = { INT32_MIN, INT32_MIN, 0 };
     uint32_t               LastWorldActiveSrcs  = 0u;
+    std::vector<uint16_t>  AtlasHalfTexels{};    // [-] - the optimized path's atlas, kept between ticks so that its storage is reused
 };
 
 } // namespace Frontier

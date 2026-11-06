@@ -81,6 +81,19 @@ class WorldSdfScene
                              const std::vector<WorldVehicleRig>& Vehicles,
                              std::vector<float>& OutAtlasRgba) const;
 
+    // [unit] - the same atlas as BuildDomainSdfAtlas, bit for bit (PerformanceParityValidation compares them), for the optimized execution path. The distance
+    //          to the course (ground, kerbs, ramp, obstacles) does not change while the window, the lattice and the course settings stay as they are,
+    //          so it is kept between calls; each call then looks only at the voxels that a car can reach. Either output may be null; the half-float
+    //          output is what UploadRgba32fImage would have made of the float one (ConvertFloat32ToHalf16) and is what the upload takes.
+    void BuildDomainSdfAtlasRetained(const std::array<float, 3>& DomainOriginWorld, const PyroBoundsBox& Bounds,
+                                     int32_t LatticeRes, int32_t TilesX, int32_t TilesY,
+                                     bool ProvingGrounds, bool ObstaclesEnabled,
+                                     const std::vector<WorldVehicleRig>& Vehicles,
+                                     std::vector<float>* OutAtlasRgba, std::vector<uint16_t>* OutAtlasHalf);
+
+    // [count] - how many times the retained course distances have been computed (a window move or a lattice change makes one)
+    [[nodiscard]] uint64_t QueryRetainedCourseRebuildCount() const noexcept { return RetainedRebuildCount; }
+
     bool BeginWorldFrame(VulkanContext& Ctx, int Width, int Height, bool ProvingGrounds, bool ObstaclesEnabled,
                          const WorldCameraView& Cam, const WorldEnvironmentLight& Env,
                          const std::vector<WorldVehicleRig>& Vehicles,
@@ -110,6 +123,26 @@ class WorldSdfScene
                          VulkanFacetMesh& OutMesh, std::string& OutDiagnostic);
     void DestroyFacetMesh(VulkanContext& Ctx, VulkanFacetMesh& Mesh) noexcept;
     bool EnsureSceneTargets(VulkanContext& Ctx, int Width, int Height);
+
+    struct RetainedCourseKey
+    {
+        std::array<float, 3> Origin{};
+        std::array<float, 3> BoxMin{};
+        std::array<float, 3> BoxMax{};
+        int32_t              LatticeRes       = 0;
+        int32_t              TilesX           = 0;
+        int32_t              TilesY           = 0;
+        bool                 ProvingGrounds   = false;
+        bool                 ObstaclesEnabled = false;
+        [[nodiscard]] bool operator==(const RetainedCourseKey&) const noexcept = default;
+    };
+    void RefreshRetainedCourse(const RetainedCourseKey& Key);
+
+    RetainedCourseKey     RetainedKey{};
+    bool                  RetainedReady        = false;
+    std::vector<float>    RetainedDistances{};     // [m] - course distance of every voxel, in voxel order (x fastest, then y, then z)
+    std::vector<uint16_t> RetainedHalfStatic{};    // [-] - the atlas with no car in it, as half floats, in atlas order
+    uint64_t              RetainedRebuildCount = 0u;
 
     VkPipeline        PipeWorldSdfRaymarch = VK_NULL_HANDLE;
     VkPipeline        PipeVehicleOpaque    = VK_NULL_HANDLE;

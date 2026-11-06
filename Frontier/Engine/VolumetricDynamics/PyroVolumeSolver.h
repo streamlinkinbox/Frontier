@@ -94,6 +94,9 @@ class PyroVolumeSolver
     void ClearLattice(VulkanContext& Ctx);
 
     void UploadWorldSdfAtlas(VulkanContext& Ctx, const float* RgbaTexels, size_t FloatCount);
+    // [unit] - the optimized path's upload: half-float texels (what UploadWorldSdfAtlas converts to), copied by the recording that is open and run
+    //          with it, so the atlas is there for the step that follows in the same submission
+    void QueueWorldSdfAtlas(VulkanContext& Ctx, const uint16_t* HalfTexels, size_t HalfCount);
     void DisableWorldSdf() noexcept { WorldSdfEnabled = false; }
 
     // Continuous toroidal world-grid mode for Proving Grounds driving-course smoke & fire (never attached to vehicle)
@@ -112,7 +115,9 @@ class PyroVolumeSolver
     void TriggerBurstSequence(VulkanContext& Ctx, const GasSettings& Settings, const char* PatternName, const std::array<float, 3>* CustomCenter = nullptr);
     [[nodiscard]] const std::vector<PendingBlastRecord>& QueryPendingBlasts() const noexcept { return PendingBlasts; }
 
-    void AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settings, float RawDtSeconds);
+    // [unit] - with DeferSubmissionEnabled the step is recorded but not submitted: the caller submits it together with the work it records next
+    //          (the optimized execution path); by default the step is submitted and waited for here, as it always was
+    void AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settings, float RawDtSeconds, bool DeferSubmissionEnabled = false);
 
     bool RenderStandaloneViewport(VulkanContext& Ctx, const GasSettings& Settings, const PyroCameraBasis& Cam,
                                   int Width, int Height, bool TransparentExport = false);

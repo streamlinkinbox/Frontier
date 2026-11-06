@@ -21,6 +21,17 @@ endif()
 
 set(FRONTIER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
+# The revision is stamped in every performance log, so that a log can be matched with the build that wrote it.
+execute_process(
+    COMMAND git -C "${FRONTIER_ROOT}" rev-parse --short=12 HEAD
+    OUTPUT_VARIABLE FRONTIER_GIT_REVISION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE FRONTIER_GIT_RESULT)
+if(NOT FRONTIER_GIT_RESULT EQUAL 0 OR "${FRONTIER_GIT_REVISION}" STREQUAL "")
+    set(FRONTIER_GIT_REVISION "unknown")
+endif()
+
 option(FRONTIER_ENABLE_GLFW "Build the interactive GLFW + Vulkan 1.1 Everest window" OFF)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
@@ -370,6 +381,8 @@ add_library(FrontierGame STATIC Game/SoftwarePresentation.cpp)
 target_link_libraries(FrontierGame PUBLIC FrontierSession FrontierCamera)
 
 add_library(FrontierVolumetrics STATIC
+    Engine/Diagnostics/PerformanceLog.cpp
+    Engine/Diagnostics/PerformancePanel.cpp
     Engine/Rendering/VulkanContext.cpp
     Engine/Rendering/WorldSdfScene.cpp
     Engine/VolumetricDynamics/PyroVolumeSolver.cpp
@@ -392,6 +405,7 @@ target_link_libraries(FrontierVolumetrics PUBLIC
     FrontierImGui
     ${CMAKE_DL_LIBS})
 target_compile_features(FrontierVolumetrics PUBLIC cxx_std_20)
+target_compile_definitions(FrontierVolumetrics PRIVATE FRONTIER_BUILD_REVISION="${FRONTIER_GIT_REVISION}")
 
 add_executable(SessionValidation ../Validation/SessionValidation.cpp)
 target_link_libraries(SessionValidation PRIVATE FrontierSession EverestNavigation FrontierCamera)
@@ -406,6 +420,10 @@ target_link_libraries(PyroVolumeValidation PRIVATE FrontierVolumetrics)
 # The driving course's smoke on a grid fixed to the world: the window's rule, the picture under a relocation, and a car that drives away from its own smoke.
 add_executable(WorldGridValidation ../Validation/WorldGridValidation.cpp)
 target_link_libraries(WorldGridValidation PRIVATE FrontierVolumetrics)
+
+# The optimized execution path against the baseline: the log's arithmetic, the atlas bit for bit, and a scripted drive picture for picture.
+add_executable(PerformanceParityValidation ../Validation/PerformanceParityValidation.cpp)
+target_link_libraries(PerformanceParityValidation PRIVATE FrontierVolumetrics)
 
 add_executable(LobbySession Game/LobbySessionMain.cpp)
 target_link_libraries(LobbySession PRIVATE FrontierGame FrontierSession)
@@ -457,5 +475,8 @@ if(BUILD_TESTING)
              WORKING_DIRECTORY "${FRONTIER_ROOT}")
     add_test(NAME WorldGridValidation
              COMMAND WorldGridValidation
+             WORKING_DIRECTORY "${FRONTIER_ROOT}")
+    add_test(NAME PerformanceParityValidation
+             COMMAND PerformanceParityValidation
              WORKING_DIRECTORY "${FRONTIER_ROOT}")
 endif()

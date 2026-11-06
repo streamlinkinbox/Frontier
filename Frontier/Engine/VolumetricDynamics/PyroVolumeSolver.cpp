@@ -5,6 +5,8 @@
 
 #include "Frontier/Engine/VolumetricDynamics/PyroVolumeSolver.h"
 
+#include "Frontier/Engine/Diagnostics/PerformanceLog.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -380,6 +382,15 @@ void PyroVolumeSolver::UploadWorldSdfAtlas(VulkanContext& Ctx, const float* Rgba
         WorldSdfEnabled = true;
 }
 
+void PyroVolumeSolver::QueueWorldSdfAtlas(VulkanContext& Ctx, const uint16_t* HalfTexels, size_t HalfCount)
+{
+    if (!Initialized || !HalfTexels || HalfCount < static_cast<size_t>(AtlasWidth * AtlasHeight * 4))
+        return;
+    std::string Diag;
+    if (Ctx.QueueRgba16fImageUpload(WorldSdfImg, HalfTexels, static_cast<size_t>(AtlasWidth * AtlasHeight * 4), Diag))
+        WorldSdfEnabled = true;
+}
+
 void PyroVolumeSolver::SetWorldGridMode(bool Enabled) noexcept
 {
     if (WorldGridEnabled != Enabled)
@@ -709,10 +720,12 @@ void PopulateCommonPyroUbo(PyroUniformBlock& Ubo, const GasSettings& S, const Py
 
 } // namespace
 
-void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settings, float RawDtSeconds)
+void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settings, float RawDtSeconds, bool DeferSubmissionEnabled)
 {
     if (!Initialized)
         return;
+
+    PerformanceScope Scope("pyro.advance");
 
     EnsureLatticeResolution(Ctx, Settings.LatticeResolution);
 
@@ -994,7 +1007,9 @@ void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settin
     Ctx.TransitionImage(Cmd, CurlImg,               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     ReadSlotIdx = Nxt;
-    Ctx.SubmitAndWaitFrameCommands();
+    Ctx.MarkGpuTimestamp("gpu.solver_step");
+    if (!DeferSubmissionEnabled)
+        Ctx.SubmitAndWaitFrameCommands();
     WorldGridPriorOriginX = WorldGridOriginX;
     WorldGridPriorOriginZ = WorldGridOriginZ;
 }
