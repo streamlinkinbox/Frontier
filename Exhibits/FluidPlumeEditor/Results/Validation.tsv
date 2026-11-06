@@ -586,4 +586,36 @@ PASS	The edits stay: the gas is still Inferno with the Fire light moved
 PASS	With the window closed, a verb that edits the record is refused and the stage's own verbs still answer
 PASS	The workspace with the FluidPlume record selected: its row in the Outliner and its page (Workspace-FluidPlume-selected.png)
 PASS	The workspace with the record selected differs from the open editor
-SUMMARY	588 assertions	0 failures
+PASS	Fluid Volume: the level holds no FluidVolume record to begin with
+PASS	Fluid Volume: the Construct dialog's tile is a record type of the Weather group with the Blast glyph (Fluid Volume, Weather, Blast)
+PASS	Fluid Volume: the Construct dialog offers one to add
+PASS	Fluid Volume: the Construct dialog is shut
+PASS	Fluid Volume: Ctrl+A opens the Construct dialog
+PASS	Fluid Volume: the dialog lays out its matrix of tiles
+PASS	The Construct dialog with `fluid volume` in its search: the Fluid Volume tile (FluidVolume-Construct.png)
+PASS	Fluid Volume: Add to scene closes the dialog
+PASS	Fluid Volume: Add to scene adds a FluidVolume record to the level
+PASS	Fluid Volume: the record is named Fluid Volume, enabled, with no preset and all 82 controls at the prototype's opening settings (0 differ)
+PASS	Fluid Volume: the Outliner selects the new record
+PASS	Fluid Volume: the Outliner lists the new record
+PASS	The workspace with the FluidVolume record selected: its row in the Outliner and its Inspector, with the Fluid Editor button (FluidVolume-Inspector.png)
+PASS	Fluid Volume: the Inspector's button is labelled Fluid Editor
+PASS	Fluid Volume: the record has an editor
+PASS	Fluid Volume: the Fluid editor is the active editor
+PASS	Fluid Volume: the window's workspace edits the record's own configuration, not a copy
+PASS	Fluid Volume: the editor is a modal window
+PASS	Fluid Volume: the window lays out `row:Domain`
+PASS	Fluid Volume: the window lays out `row:Emitter`
+PASS	Fluid Volume: the window lays out `row:Sun`
+PASS	Fluid Volume: the window lays out `eye:Domain`
+PASS	Fluid Volume: the window lays out `eye:Emitter`
+PASS	Fluid Volume: the window lays out `eye:Sun`
+PASS	Fluid Volume: the window lays out `library`
+PASS	Fluid Volume: the window lays out `restart`
+PASS	Fluid Volume: the window lays out `play`
+PASS	Fluid Volume: the window lays out `step`
+PASS	Fluid Volume: no presenter is registered, so the window opens as it does without a device
+PASS	The Fluid editor opened from the new record's Inspector, with no solver behind its viewport (FluidVolume-Window.png)
+PASS	Fluid Volume: Close Editor returns to the workspace
+PASS	Fluid Volume: the window lets the record go and no popup is open
+SUMMARY	620 assertions	0 failures

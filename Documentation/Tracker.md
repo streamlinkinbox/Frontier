@@ -1850,15 +1850,18 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   the Frontier editor exists. Then: run GitHub Actions to build Frontier and Project Everest so the work can be tested (approved for this).
 - **Found** (details, file lines and what was and was not brought: `Exhibits/FluidEditor/README.md`):
   - The Fluid editor and the second editor are drawn by hand (57 and 32 `Draw->Add*` calls, no ImGui widget) and make their own `VulkanContext`, intake and world.
-    Not brought. The Fluid editor is now a window of this editor on `Interface/Controls/*` (`FluidVolume` record, Inspector, `FluidVolumeExtension`, the presenter
-    registered in `WindowsFrontier.cpp`), reached in Everest through Construct (+) → Fluid Volume → Fluid Editor.
+    Not brought. The Fluid editor is now a window of this editor (`FluidVolume` record, Inspector, `FluidVolumeExtension`, the presenter registered in
+    `WindowsFrontier.cpp`), reached in Everest through Construct (+) → Fluid Volume → Fluid Editor. Its Inspector is the editor's own `Controls/*` (no direct draw call in
+    `FluidEditorPages.cpp`); its frame, Outliner, viewport bar and Log Stream are drawn directly (57 `Add*` calls, the same count as the other agent's editor, but chrome
+    only), as the Particle editor's (44) and the Smoke & fire window's (49) are.
   - The tyre smoke follows the car because `FrontierEditorWorkspace.cpp:429` sets the domain's origin to the car every frame and the solver has no relocation. The
     world-grid behaviour is the plume ported from `PlumeSpace.js` (`Exhibits/PlumeSimulation`); the Fluid editor's volumes are fixed in the world.
   - The solver was not 1:1. Fixed and proved against the prototype's own modules: burst patterns and delay clocks, the opening settings and `voxelQuantization`
     (18 presets × 85 settings), the orbit camera and pointer modes (180 scripted steps). Open: the time step, the surge's dynamics, the bounds box, shrapnel, the
     shockwave shell, the floor grid and voxel lines.
 - **Checks** (Linux host, SwiftShader, Debug, `e19671c`): `PyroVolumeValidation --require-vulkan` 56 of 56; `MutateGasCatalogue.sh` 3 of 3 and `MutateCamera.sh`
-  10 of 10 mutants stopped; `FluidEditorCapture` 28 claims, 0 failed (8 captures); `FluidPlumeEditorValidation` 588 of 588; the three generators `--check` match;
+  10 of 10 mutants stopped; `FluidEditorCapture` 28 claims, 0 failed (8 captures); `FluidPlumeEditorValidation` 620 of 620 on a clean tree at `864fd47` (the plume's 588 and 32 for the Fluid Volume's way
+  in from Everest's Construct dialog to the open and closed window, section ⑨); the three generators `--check` match;
   `VerifyWindowsRegistration.sh` type-checks the Particle, Smoke & fire and Fluid registrations and rejects 6 broken copies.
 - **GitHub Actions** (workflow "Editor preview (Windows)", all on this branch unless said):
 
@@ -1867,18 +1870,23 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   | `42005185832` (`main`, before this work) | `4cab913` | 🔴 the packager wanted `TextureWorkspace.exe` | 🔴 reason not visible (the annotation held only an exit code) | not run | none |
   | `42202642917` | `d3c48f9` | 🔴 built, then the packager expected six shader sets and the repository stores eight | 🔴 `ProjectContent.h` (C2440) and an ICE in `SolidArcDocument.cpp` | skipped | none |
   | `42210475527` | `e19671c` | 🟢 | 🔴 the same ICE (C1001), now at the first `case` of the new switch | 🟢 Project Browser and Everest Scene Viewport reached | 🟢 `editor-preview-e19671c2` |
+  | `42213143205` | `e3df7bb` | 🟢 10 min 43 s | 🔴 the same ICE (C1001), at (3233,40) | 🟢 Project Browser and Everest Scene Viewport reached (4 min 30 s) | 🟢 `editor-preview-e3df7bbf` |
 
   The faults found by the runs and fixed: `add_dependencies(Frontier TextureStudio)`; the packager's list of shader sets (now with `PlumeSimulation` and `XRayScan`;
   reproduced in a second with stand-in executables); `ProjectContent.h` asking the library for `char8_t` instead of `__cplusplus`. The workflow now puts the compiler's
-  and the packager's error lines in the run's annotations, since the job logs cannot be fetched from here.
+  and the packager's error lines in the run's annotations, since the job logs cannot be fetched from here (the compiler's own file and line for an internal error were added
+  to the cross-build's step by mistake in `e3df7bb`, and are in the MSVC job's since `864fd47`).
 - **Limits:**
-  - The MSVC build still fails on an internal compiler error in `SolidArcDocument.cpp` that was in `main` already; its cause is not known and MSVC cannot be run here.
-    The change tried for it (a switch, a plain `std::set`) is behaviour-preserving as far as `SolidArcDocumentValidation` shows (864 rows green; two red timing gates,
-    W72 and W94, in a Debug build that shared the CPU, not compared with `main`), and did not remove the error.
+  - The MSVC build failed in all three runs on an internal compiler error (C1001) in `UI/SolidArc/Document/SolidArcDocument.cpp`, reported at (3223,99), (3232,40) and
+    (3233,40) as the code there was edited. The file and the 56 headers it includes are not touched by this branch, so the Fluid work did not cause it; the two edits tried
+    for it did not remove it and are reverted (`UI/` has no difference from `main`). Whether `main`'s own run fails the same way is not visible. MSVC cannot be run here, the
+    job's log cannot be read, and the projects that wait for the failed one were never built, so MSVC's verdict on the Fluid files is not established.
   - Windows ran only the package of the Zig build, with a software Vulkan driver, to the Project Browser and the Scene Viewport. The Fluid editor itself was never
     opened on Windows or on a GPU; its window and solver ran under SwiftShader on Linux. Its timings are not figures for a GPU.
   - The solver's GLSL was not rebuilt from its generator (no `glslang` here), and it runs on its own Vulkan context, not as Slang on `DeviceExchange`.
   - A Fluid volume is drawn in its editor's viewport only, not in the Scene viewport's render.
 - **Commits:** `694134d` (the camera moved out of the solver, generators patched), `c3b2698` (burst patterns and clocks), `a7a286e` (catalogue fixes),
   `1c55e81` (the camera port), `415c312` (the window, record, inspector, host extension, Windows registration, the Everest entry), `d3c48f9` (workflow
-  annotations), `6b821ce` (packager's shader sets), `004dadb` (the capture program), `e19671c` (the MSVC fixes), and the commit that adds this entry.
+  annotations), `6b821ce` (packager's shader sets), `004dadb` (the capture program), `e19671c` (the MSVC fixes: the `ProjectContent.h` one stays, the SolidArc one is reverted),
+  `ad725e7` (README, pictures, scripts), `e3df7bb` (the SolidArc signs as bytes: reverted; its workflow change landed in the wrong job), `864fd47` (the Fluid Volume's way in tested; SolidArc
+  back to `main`'s; the C1001 context in the MSVC job), `f3f1a9c` (the MSVC job's 64-bit host tools, a guess being tested), and the commit that adds this entry.

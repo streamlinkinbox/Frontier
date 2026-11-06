@@ -105,12 +105,15 @@ after the emitter or the look changed and the smoke was cleared):
 | `SmokeAndFireEditor-Construct.png` | The Construct dialog (Ctrl+A) with `plume` in its search: the one tile, *Fluid Plume*, Weather group, flame glyph |
 | `Workspace-FluidPlume-selected.png` | The Everest workspace after *Add to scene*: the record under *Solvers* in the Outliner, selected, with its page in the Inspector and the Plume Editor button |
 | `FluidPlumeInspector-Panel.png` | The record's compact page |
+| `FluidVolume-Construct.png` | The Construct dialog with `fluid volume` in its search: the one tile, *Fluid Volume*, Weather group, Blast glyph (section ⑨) |
+| `FluidVolume-Inspector.png` | The Everest workspace after *Add to scene*: the record under *Solvers*, selected, with its page in the Inspector and the Fluid Editor button (section ⑨) |
+| `FluidVolume-Window.png` | The Fluid editor opened from that button with no solver: the window of `Exhibits/FluidEditor` (section ⑨) |
 
 ## Results
 
 | Check | Program | Result |
 |---|---|---|
-| The record, the libraries, every card driven by input, the window in the workspace | `FluidPlumeEditorValidation` (`Code/RunFluidPlumeEditorValidation.sh`) | 🟢 588 assertions, 0 failures (`Results/Validation.tsv`), 40 to 50 s |
+| The record, the libraries, every card driven by input, the window in the workspace | `FluidPlumeEditorValidation` (`Code/RunFluidPlumeEditorValidation.sh`) | 🟢 620 assertions, 0 failures (`Results/Validation.tsv`), about a minute: the plume's 588 and, since the Fluid editor, 32 for the Fluid Volume's way in (section ⑨) |
 | The plume in the stage | `FluidPlumeEditorCapture` (`Code/RunFluidPlumeEditorCapture.sh`) | 🟢 13 claims, 0 failed (`Results/LivePlume.tsv`), 3 min 26 s on SwiftShader at High (4 min before the composite kept its backdrop) |
 | The plume in the stage at the Medium grade | `FluidPlumeEditorCapture … medium`, run directly with its output in a scratch folder (nothing of it is kept here) | 🟢 13 claims, 0 failed, 2 min 28 s on SwiftShader, and again after the composite kept its backdrop: 13 claims, 0 failed, 2 min 2 s, the same figures; the HUD reads `Medium · 96×96×24 @ 30 cm · 12 sweeps · 40 samples · RESIDENT`; Tyre smoke 4.16 %, Inferno 27.66 %, the orbit 74.3 %, Crosswind 2.98 % changed and 3.98 % unlike Tyre smoke, the 1080p steps 311 → 317, Clear smoke 0 pixels |
 | The composite against the one it replaced (commit `2f66b41`), byte for byte, and what each costs | `Code/RunPlumeCompositeComparison.sh` | 🟢 72 comparisons, 0 differ; at 554 × 438, 18 ms before, 4.6 ms after with the camera at rest, 12 ms while it turns (`-O2`, one core, one run) |
@@ -145,6 +148,13 @@ It runs on a real Dear ImGui context and asserts:
   and the camera; it is given no seconds while the stage is paused; *Clear smoke* reaches it exactly once, and nothing is left queued for a host to take
   twice. Without a presenter *Clear smoke* is a request that a host takes once (`FluidPlumeEditor::TakeRequests`). With the window closed, a verb that edits
   the record is refused.
+- **The Fluid Volume's way in** (section ⑨, added with the Fluid editor of `Exhibits/FluidEditor`; the Fluid editor's own checks are that exhibit's). The same steps as the
+  plume's, after its window has closed: the level holds no FluidVolume record and the Construct dialog offers one tile for it (*Fluid Volume*, Weather group, Blast glyph); Ctrl+A
+  opens the dialog, the search emptied as a person empties it and `fluid volume` typed leaves the tile, and picking the tile and pressing *Add to scene* adds an enabled
+  record named *Fluid Volume* with no preset and all 82 controls at the prototype's opening settings, closes the dialog, selects the record and lists it in the Outliner. The
+  Inspector's button is labelled *Fluid Editor*; `RequestEditorOpen` opens the modal window on the record's own configuration (not a copy), with no presenter
+  registered; the window lays out the Outliner's rows and eyes for the domain, the emitter and the light, the library and the transport's restart, play and step; *Close Editor*
+  returns to the workspace, lets the record go and leaves no popup open. Three pictures: `FluidVolume-Construct.png`, `FluidVolume-Inspector.png`, `FluidVolume-Window.png`.
 
 ### `PlumeCompositeValidation`
 
@@ -245,6 +255,8 @@ targets and the images) and `5b7cdf8` (`WindowsFrontier.cpp`, which the Linux bu
 that `5146961` (the commit adding `PlumeComposite`) then committed (uncommitted while it ran): the same 13 claims with the same figures each time. The committed pictures and
 `LivePlume.tsv` are of that last High run. The validation (588 assertions, its nine pictures) ran on a tree with the files `d5c6acc` then committed
 (`EverestWorkspace.cpp`, the validation's way in and a stale constant in `CelestialWorkspaceValidation`); the window's code has not changed since.
+Section ⑨ (the Fluid Volume's way in) and the ledger of 620 assertions ran on a clean tree at `864fd47` (0 failures); only the ledger and the three `FluidVolume-*` pictures were copied from that run: the other pictures
+carry the Log Stream's clock, so a fresh copy would differ from the committed ones in bytes only by it.
 `PlumeCompositeValidation` and its mutants ran on the tree of the last High run. Together, on the tree of the validation run:
 
 - `ctest` of `EnvironmentInspectorValidation`, `ForceFieldCatalogueValidation`, `EverestInterfaceValidation`, `SceneGeometryValidation`,
