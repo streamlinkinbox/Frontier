@@ -3220,10 +3220,27 @@ SolidArcEdgePath SolidArcEdgePathBetween(const SolidArcDocument& Document, const
     return Path;
 }
 
+namespace
+{
+
+// 📝 The sign a combination's caption joins its bodies with. A switch rather than a conditional over three literals: MSVC (windows-2022) stopped with an internal compiler
+//    error, C1001, at CombineSolidArcBodies in the editor-preview run 42202642917; that this was the construct is not established (see Documentation/Tracker.md).
+[[nodiscard]] const char* ResolveCombinationSign(FeatureCombination Combination)
+{
+    switch (Combination)
+    {
+    case FeatureCombination::Difference:   return " − ";
+    case FeatureCombination::Intersection: return " ∩ ";
+    default:                               return " ∪ ";
+    }
+}
+
+} // namespace
+
 SolidArcCommandOutcome CombineSolidArcBodies(SolidArcDocument& Document, const std::string& Target, const std::vector<std::string>& Tools, FeatureCombination Combination)
 {
     std::string Operands = SolidArcBodyCaption(Document, Target);
-    const char* Sign = Combination == FeatureCombination::Difference ? " − " : Combination == FeatureCombination::Intersection ? " ∩ " : " ∪ ";
+    const char* Sign = ResolveCombinationSign(Combination);
     for (const std::string& Tool : Tools) Operands += Sign + SolidArcBodyCaption(Document, Tool);
     const std::string Label = std::string("Combine · ") + FeatureCombinationLabel(Combination) + " (" + Operands + ")";
     return RunCommand(Document, Label, false, [&]() -> std::string
@@ -3232,7 +3249,8 @@ SolidArcCommandOutcome CombineSolidArcBodies(SolidArcDocument& Document, const s
             return "choose Union, Difference or Intersection";
         if (Tools.empty()) return "select two or more bodies (the first is the target)";
         if (!FindRegeneratedBody(Document, Target)) return "no body named " + Target;
-        std::set<std::string> Seen{ Target };
+        std::set<std::string> Seen;
+        Seen.insert(Target);
         for (const std::string& Tool : Tools)
         {
             if (!FindRegeneratedBody(Document, Tool)) return "no body named " + Tool;
@@ -4183,7 +4201,7 @@ SolidArcCommandOutcome KnifeSolidArcBodies(SolidArcDocument& Document, const std
     const std::string Cut = Target;                                                          // Target may live in the selection this command clears
     const std::string Caption = NextCaption(Document, "Knife");
     std::string Operands = SolidArcBodyCaption(Document, Cut);
-    const char* Sign = Combination == FeatureCombination::Difference ? " − " : Combination == FeatureCombination::Intersection ? " ∩ " : " ∪ ";
+    const char* Sign = ResolveCombinationSign(Combination);
     for (const std::string& Tool : Tools) Operands += Sign + SolidArcBodyCaption(Document, Tool);
     const std::string Label = Caption + " · " + FeatureCombinationLabel(Combination) + " (" + Operands + ")" + (KeepCondition ? " · cutters kept" : "");
     return RunCommand(Document, Label, false, [&]() -> std::string
@@ -4235,7 +4253,7 @@ SolidArcCommandOutcome KnifeSolidArcPlacedBody(SolidArcDocument& Document, const
     const std::string Cut     = Target;                                                      // Both may live in the selection this command clears
     const std::string Moved   = Tool;
     const std::string Caption = NextCaption(Document, "Knife");
-    const char*       Sign    = Combination == FeatureCombination::Difference ? " − " : Combination == FeatureCombination::Intersection ? " ∩ " : " ∪ ";
+    const char*       Sign    = ResolveCombinationSign(Combination);
     const std::string Label   = Caption + " · " + FeatureCombinationLabel(Combination) + " (" + SolidArcBodyCaption(Document, Cut) + Sign + SolidArcBodyCaption(Document, Moved) +
                                 " placed)" + (KeepCondition ? " · cutter kept" : "");
     return RunCommand(Document, Label, false, [&]() -> std::string
