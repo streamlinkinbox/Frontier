@@ -290,6 +290,19 @@ add_library(FrontierPlumeExtension STATIC
     Frontier/Extensions/Plume/PlumeComposite.cpp
     Frontier/Extensions/Plume/PlumeExtension.cpp)
 target_link_libraries(FrontierPlumeExtension PUBLIC FrontierSceneEditorUI FrontierPlumeSimulation)
+# 📝 The Fluid volume (the Fluid editor's Pyro solver, Experimental/Fluid): the orbit camera (plain arithmetic, so the interface can use it) and the Vulkan 1.1 solver
+#    with its own context, imported from c7egoist/Frontier d7ac487 — GLSL 450 programs compiled to SPIR-V by Automation/GenerateVulkanShaders.py, not yet the
+#    engine's Slang programs on DeviceExchange (Exhibits/FluidEditor/README.md says what is open).
+add_library(FrontierPyroCamera STATIC Frontier/Engine/VolumetricDynamics/PyroCamera.cpp)
+target_include_directories(FrontierPyroCamera PUBLIC "${CMAKE_SOURCE_DIR}")
+target_compile_features(FrontierPyroCamera PUBLIC cxx_std_20)
+add_library(FrontierPyroVolumetrics STATIC
+    Frontier/Engine/Rendering/VulkanContext.cpp
+    Frontier/Engine/VolumetricDynamics/PyroVolumeSolver.cpp)
+target_include_directories(FrontierPyroVolumetrics PUBLIC "${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/ExternalPackages/vulkan-headers/include"
+    "${CMAKE_SOURCE_DIR}/ExternalPackages/tomlpp/include" "${IMGUI_ROOT}")
+target_link_libraries(FrontierPyroVolumetrics PUBLIC FrontierPyroCamera FrontierImGui ${CMAKE_DL_LIBS})
+target_compile_features(FrontierPyroVolumetrics PUBLIC cxx_std_20)
 # 📝 Networking providers: the EOS and Photon SDKs stay optional; without them the adapters compile as honest stubs.
 option(FRONTIER_EOS_SDK "Link the Epic Online Services SDK behind EosAdapter" OFF)
 option(FRONTIER_PHOTON_SDK "Link the Photon Realtime SDK behind PhotonAdapter" OFF)
@@ -927,6 +940,13 @@ if(BUILD_TESTING)
         "${CMAKE_SOURCE_DIR}/Projects/Everest"
         "${CMAKE_BINARY_DIR}/fluid-plume-editor-evidence")
     set_tests_properties(FluidPlumeEditorValidation PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
+
+    # 📝 The Fluid editor's catalogue (18 presets, 82 controls, the scene codec against Experimental/Fluid), the orbit camera and the Pyro solver on a Vulkan
+    #    device — Exhibits/FluidEditor/README.md.
+    add_executable(PyroVolumeValidation Exhibits/FluidEditor/Code/PyroVolumeValidation.cpp)
+    target_link_libraries(PyroVolumeValidation PRIVATE FrontierPyroVolumetrics)
+    add_test(NAME PyroVolumeValidation COMMAND PyroVolumeValidation --require-vulkan)
+    set_tests_properties(PyroVolumeValidation PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600)
 
     # 📝 The plume picture's composite: the backdrop kept between refreshes against the same composite resolved afresh, every key it depends on changed in
     #    turn, the march's non-finite and out-of-range texels — Exhibits/FluidPlumeEditor/README.md.
