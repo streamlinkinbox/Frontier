@@ -5,8 +5,19 @@ The fluid, gas and plume editor of the HTML prototype (the **Smoke & fire** page
 the **viewport** and the **Log Stream** in the middle, an **Inspector** on the right, and the **Libraries** as a sheet over the window. It edits the 33
 readings of the plume that `Exhibits/PlumeSimulation` ports, on a **FluidPlume** record of the level, and its stage draws that plume.
 
-It opens from a **Solver · Fluid Plume** record (`FluidPlume` in a levelspace): the record's page in the workspace's Inspector has a **Plume Editor** button
-(the way the Particle editor's record has its own), and *Close Editor* returns to the scene. The editor is guarded by `FRONTIER_EDITOR`.
+It opens from a **Fluid Plume** record (`FluidPlume` in a levelspace, *Solver · Fluid Plume*). In the Everest workspace a person adds one as anything is
+added: the Outliner's **+** or **Ctrl+A** opens the *Construct* dialog, a search for `plume` leaves one tile (*Fluid Plume*, in the Weather group), and
+*Add to scene* adds the record under **Solvers** and selects it. The **Plume Editor** button at the top of its Inspector page opens this window, and *Close
+Editor* returns to the scene. The editor is guarded by `FRONTIER_EDITOR`.
+
+![The Construct dialog with `plume` in its search](Images/SmokeAndFireEditor-Construct.png)
+
+![The new record in the Outliner under Solvers, selected, with its Inspector page and the Plume Editor button](Images/Workspace-FluidPlume-selected.png)
+
+**Changed outside the editor, to make that reachable:** `Projects/Everest/Source/EverestWorkspace.cpp` now lists `FluidPlume` among the types the workspace
+shows and offers. The Outliner hid every record type outside a fixed list, and the Construct dialog is built from the same list, so a person could neither
+add nor see the record and the Plume Editor button could not be pressed (`FluidPlumeEditorValidation` failed its two checks for this before the change).
+`Particles` and `Fracture`, the other solver records, are outside that list too; I have not changed them.
 
 An earlier version of this editor was one modal of six cards with no Outliner, no Inspector and no libraries. It was rejected and is replaced by this
 window; none of its layout is left.
@@ -86,14 +97,15 @@ after the emitter or the look changed and the smoke was cleared):
 | `SmokeAndFireEditor-Live-standin.png` | A 1920 × 1080 window with a presenter registered, Inferno applied and the fire emitter on: the Fire page (the blackbody strip, Ignition, six sliders) beside a stage that holds the stand-in's blue gradient and grid (not a plume) and the readout of 6 sources and 175 steps |
 | `SmokeAndFireEditor-Narrow-medium.png` | A 1366 × 800 window at the Medium grade |
 | `SmokeAndFireEditor-Smallest.png` | A 1156 × 720 window |
-| `Workspace-FluidPlume-selected.png` | The Everest workspace with the record selected: its page in the Inspector, with the Plume Editor button |
+| `SmokeAndFireEditor-Construct.png` | The Construct dialog (Ctrl+A) with `plume` in its search: the one tile, *Fluid Plume*, Weather group, flame glyph |
+| `Workspace-FluidPlume-selected.png` | The Everest workspace after *Add to scene*: the record under *Solvers* in the Outliner, selected, with its page in the Inspector and the Plume Editor button |
 | `FluidPlumeInspector-Panel.png` | The record's compact page |
 
 ## Results
 
 | Check | Program | Result |
 |---|---|---|
-| The record, the libraries, every card driven by input, the window in the workspace | `FluidPlumeEditorValidation` (`Code/RunFluidPlumeEditorValidation.sh`) | 🟢 577 assertions, 0 failures (`Results/Validation.tsv`), 35 to 41 s |
+| The record, the libraries, every card driven by input, the window in the workspace | `FluidPlumeEditorValidation` (`Code/RunFluidPlumeEditorValidation.sh`) | 🟢 588 assertions, 0 failures (`Results/Validation.tsv`), 40 to 50 s |
 | The plume in the stage | `FluidPlumeEditorCapture` (`Code/RunFluidPlumeEditorCapture.sh`) | 🟢 13 claims, 0 failed (`Results/LivePlume.tsv`), 4 min on SwiftShader at High |
 | The plume's programs, re-run after their stand-ins moved into the engine | `RunPlumeParity.sh` and `PlumeSimulationValidation` | 🟢 9 of 9 captures bit for bit, 0 claims failed; 706 assertions, 0 failures |
 
@@ -101,6 +113,10 @@ after the emitter or the look changed and the smoke was cleared):
 
 It runs on a real Dear ImGui context and asserts:
 
+- **The way in.** The level holds no FluidPlume record and the Construct dialog offers one tile for it (*Fluid Plume*, Weather group, Flame glyph). Ctrl+A
+  opens the dialog, `plume` in its search leaves the tile, and picking the tile and pressing *Add to scene* (both by the dialog's own input) adds an enabled
+  record named *Fluid Plume* with every reading at its default, closes the dialog, selects the record and lists it in the Outliner; the record has an editor to
+  open.
 - **The record.** A new record is enabled with the test emitter off and holds the catalogue's defaults, all 33 readings. The file format names every one of
   them as a snake_case key. A save and reload returns all 33 bit for bit. A reading outside its range is held to the range; a NaN, an infinity and a string keep the
   reading they would replace; a file without `enabled` leaves the record enabled. The legacy block of `Exhibits/EverestInterface/Content/Simulation.levelspace` moves one reading (`vorticity`).
@@ -155,6 +171,8 @@ turns the fire, which shows from any side.
 - **The HUD's RATE is an artefact.** It is 1/dt smoothed, and the capture's dt is a fixed 1/30 s, so it settles on 30 fps (the first capture, after one
   tick, still reads 48). The *REFRESH* figure is the presenter's wall time here: medians of 634 to 712 ms at 554 × 438 and 934 ms at 1108 × 718 (the empty
   stage, which marches nothing, 65 ms), on SwiftShader in a Debug build. Neither is a figure for a GPU or for a Release build.
+- **The way in is driven by input events, not by a window on a display.** Ctrl+A, the search, the tile and *Add to scene* are ImGui key, character and
+  pointer events fed to the workspace, and the pictures are its CPU raster. A person at the Windows application has not been through it.
 - **The native application is not verified.** `Experimental/Frontier/Native/WindowsFrontier.cpp` registers the presenter as it registers the Particle
   editor's, but it cannot be compiled or run on this Linux host: the edit is unbuilt and unrun. The window has been drawn only by the CPU raster; it has not
   been seen in the Windows editor, on a GPU or in a browser.
@@ -173,11 +191,19 @@ on SwiftShader. Configured Debug with `-DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFI
 because the sandbox has no Wayland or X11 headers). The stored shader archives of `EngineContent/ShaderArchives/PlumeSimulation` are the ones the capture
 loads.
 
-**Tested revision:** `b0cfd7e` with the files that `6347000` (the plume extension, the capture, its runner, the CMake targets and the images) and `5b7cdf8`
-(`WindowsFrontier.cpp`, which the Linux build does not compile) then committed. They were uncommitted while the results were produced, and nothing under
-`Frontier/`, `CMakeLists.txt` or `Code/` has changed since. The eight UI and plume validations that share this code (`PanelExpansion`,
-`ControlCentre`, `WorkspaceLayout`, `Interface`, `EnvironmentInspector`, `FluidPlumeEditor`, `EverestInterface`, `PlumeSimulation`) all succeed under `ctest`
-(8 of 8, 323 s) on that tree, and the nine other programs that link the editor library link.
+**Tested revision.** The live capture (`LivePlume.tsv` and the six `Live-*` pictures that show the plume) ran on `b0cfd7e` with the files that `6347000` (the
+plume extension, the capture, its runner, the CMake targets and the images) and `5b7cdf8` (`WindowsFrontier.cpp`, which the Linux build does not compile) then
+committed; they were uncommitted while it ran, and the plume's code has not changed since. The validation (588 assertions, its nine pictures) ran on that tree
+with the files `d5c6acc` then committed (`EverestWorkspace.cpp`, the validation's way in and a stale constant in `CelestialWorkspaceValidation`); the capture
+was not run again after that change, and does not use the workspace's list of types. Together, on that tree:
+
+- `ctest` of `EnvironmentInspectorValidation`, `ForceFieldCatalogueValidation`, `EverestInterfaceValidation`, `SceneGeometryValidation`,
+  `FluidPlumeEditorValidation`, `EverestShippingValidation` and `PlumeSimulationValidation` all succeed (7 of 7, 323 s).
+- `SceneViewportPickValidation`, `SceneViewportFlightValidation` and `SceneMediaValidation` succeed with SwiftShader's loader on the path; they cannot start without it.
+- `CelestialWorkspaceValidation` failed once, on SwiftShader, at a constant of its own: it expected three Control Centre quick actions and the workspace has
+  registered four since the Networking toggle (the stale constant `EverestInterfaceValidation` had). With four it succeeds (179 s).
+- The earlier eight UI and plume validations (`PanelExpansion`, `ControlCentre`, `WorkspaceLayout`, `Interface`, `EnvironmentInspector`, `FluidPlumeEditor`,
+  `EverestInterface`, `PlumeSimulation`) all succeeded on the tree before `d5c6acc` (8 of 8, 323 s). The nine other programs that link the editor library link.
 
 **Not run:** Windows (no Windows binary was built), a GPU, a browser, the Medium grade of the capture, a Release build.
 
@@ -189,7 +215,7 @@ python3 Automation/PrepareUI.py               # the interface's dependencies (De
 python3 Automation/PrepareFonts.py            # the interface's typefaces
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON
 ninja -C build FluidPlumeEditorValidation FluidPlumeEditorCapture
-Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorValidation.sh build        # the window with a stand-in picture, no GPU: 35 to 41 s
+Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorValidation.sh build        # the window with a stand-in picture, no GPU: 40 to 50 s
 Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorCapture.sh build [low]     # the plume in the stage: 4 min at High on SwiftShader, 1 m 43 s at Low
 ```
 

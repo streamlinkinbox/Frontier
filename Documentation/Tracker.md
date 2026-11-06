@@ -1781,9 +1781,14 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   |---|---|---|---|
   | X-ray scan | CPU modules, overlay on the device exchange, 8 Slang entries | `XRayScanValidation` against the prototype's values; the hero car's wireframe; one-line mutants; SPIR-V rebuilt | ✔️ 3,157 of 3,157; 1,751 segments with the prototype's hash `ef40c638f66069fe`; 24 of 25 caught (the survivor is equivalent); 8 of 8 byte for byte |
   | Plume | gas catalogue and presets, tyre telemetry and source projections, schedule, `SmokeSequence`, 9 Slang compute entries | `PlumeSimulationValidation`; the Slang programs on Vulkan against the demo's WGSL on Dawn (Low, 170 refreshes); SPIR-V rebuilt | ✔️ 706 of 706; 9 of 9 captures bit for bit; 9 of 9 byte for byte |
-  | Smoke & fire editor | the `FluidPlume` record (33 readings in TOML); the window (Outliner 292 px, viewport and Log Stream, Inspector 404 px, a Libraries sheet of 6 looks and 4 grades); `PlumeExtension`, which draws the C++ plume in the stage | `FluidPlumeEditorValidation`: 26 sliders by keyboard, the looks, libraries, requests, instruments, three window sizes; `FluidPlumeEditorCapture`: the plume's pixels on SwiftShader against the empty stage | ✔️ 577 of 577; 13 of 13 claims; 14 captures (8 with a stand-in picture, 6 with the plume) |
+  | Smoke & fire editor | the `FluidPlume` record (33 readings in TOML); the window (Outliner 292 px, viewport and Log Stream, Inspector 404 px, a Libraries sheet of 6 looks and 4 grades); `PlumeExtension`, which draws the C++ plume in the stage | `FluidPlumeEditorValidation`: 26 sliders by keyboard, the looks, libraries, requests, instruments, three window sizes; `FluidPlumeEditorCapture`: the plume's pixels on SwiftShader against the empty stage | ✔️ 588 of 588; 13 of 13 claims; 15 captures (9 with a stand-in picture, 6 with the plume) |
   | Particle editor | already ported on 2026-11-04 (52 presets) | `ParticleLibraryValidation`; the ParticleSimulation SPIR-V rebuilt | ✔️ 344 of 344; 30 of 30 |
 
+  - **The way into the Smoke & fire editor was missing, and is added.** The Everest workspace listed and offered only the types in a fixed list
+    (`EverestWorkspace.cpp`), `FluidPlume` not among them: a person could neither add nor see the record, so the Plume Editor button could not be pressed.
+    `FluidPlume` is now in the list (Weather group of the Construct dialog, *Solvers* in the Outliner), and `FluidPlumeEditorValidation` takes the whole way
+    with Ctrl+A, the search, the tile and *Add to scene*. `Particles` and `Fracture` are outside the same list; they were not changed (the Particle editor's
+    README still says *Construct → Solver · GPU Particles*).
   - `FluidNodeEditor.html` is a different tool (a graph editor for liquids) whose entry script (`./FluidEditorEntry.js`) is not in the repository, so it cannot be
     ported 1:1: the editor is the demo's own Smoke & fire page (`BuildGas` in `InspectorPages.js`). The appearance presets of
     `VolumetricFlowSolver.html` are not ported.
@@ -1798,7 +1803,12 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   After the window and the plume extension (`6347000`): `ctest` of `PanelExpansionValidation`, `ControlCentreValidation`, `WorkspaceLayoutValidation`,
   `InterfaceValidation`, `EnvironmentInspectorValidation`, `FluidPlumeEditorValidation`, `EverestInterfaceValidation` and `PlumeSimulationValidation`: 8 of 8
   (323 s); the nine other programs that link `EverestProjectEditor` link. `ParticleEditorCapture` was relinked and not re-run.
-- **Evidence:** `Exhibits/XRayScan/` (10 captures), `Exhibits/PlumeSimulation/` (9), `Exhibits/FluidPlumeEditor/` (14), `Exhibits/VehicleHmiPrototype/`
+  After the Everest workspace listed `FluidPlume` (`d5c6acc`): `ctest` of `EnvironmentInspectorValidation`, `ForceFieldCatalogueValidation`,
+  `EverestInterfaceValidation`, `SceneGeometryValidation`, `FluidPlumeEditorValidation`, `EverestShippingValidation` and `PlumeSimulationValidation`: 7 of 7
+  (323 s); `SceneViewportPickValidation`, `SceneViewportFlightValidation` and `SceneMediaValidation` pass with SwiftShader's loader on the path.
+  `CelestialWorkspaceValidation` failed on its own stale constant (three quick actions expected, four registered since the Networking toggle, as
+  `EverestInterfaceValidation` had) and passes with four (179 s). `FluidPlumeEditorCapture` was not re-run after that change.
+- **Evidence:** `Exhibits/XRayScan/` (10 captures), `Exhibits/PlumeSimulation/` (9), `Exhibits/FluidPlumeEditor/` (15), `Exhibits/VehicleHmiPrototype/`
   (the TLAS proof, the Garage's ripple and scan sweep as contact sheets, and the scan at 640 × 400); each README has its code map, results, limits and
   how to reproduce.
 - **Limits:**
@@ -1815,4 +1825,5 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   - No Windows binary was built or run (none was requested); everything ran on the Linux host.
 - **Commits:** `1c1ed7f`, `eb6cdfa`, `c039b0e`, `e4dad0a`, `1ef498f`, `b1c9544`, `0d8afbf`, `a8b1d79`, `4cc68b5`, `c9599fc`, `20c674d`, `ff28e4f`,
   `c564f60`, `a19c90c`, `59e22cd`, `31a4ad1` (the window), `bb7308e` (its validation and layout fixes), `b0cfd7e` (the plume's stand-ins move into the engine),
-  `6347000` (`PlumeExtension` and the live capture), `5b7cdf8` (the native registration, not compiled), and the commit that adds these hashes.
+  `6347000` (`PlumeExtension` and the live capture), `5b7cdf8` (the native registration, not compiled), `e95d298` and `08976f0` (README, Tracker),
+  `d5c6acc` (the workspace lists and offers the Fluid Plume; the validation takes the way in), and the commit that adds these hashes.
