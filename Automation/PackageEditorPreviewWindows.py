@@ -79,10 +79,11 @@ def VerifyShaderSets(Installation):
         for Entry in Entries:
             VerifySpirv(Installation / 'EngineContent/ShaderArchives' / Manifest.parent.name / Entry['file'])
         Counts[Manifest.parent.name] = len(Entries)
-    if set(Counts) != {'GlobalIllumination', 'Environment', 'VirtualizedGeometry', 'AnalyticIllumination', 'ParticleSimulation', 'Surface'}:
-        raise RuntimeError('Expected the GlobalIllumination, Environment, VirtualizedGeometry, AnalyticIllumination, ParticleSimulation and '
-                           'Surface shader sets, found ' +
-                           ', '.join(sorted(Counts)))
+    # 📝 The sets Automation/StoreShaderArchives.py stores: the plume's (PlumeSimulation) and the X-ray scan's (XRayScan) came after the other six, and the
+    #    editor-preview run 42202642917 stopped here, in the package, until they were listed.
+    Expected = {'GlobalIllumination', 'Environment', 'VirtualizedGeometry', 'AnalyticIllumination', 'ParticleSimulation', 'Surface', 'PlumeSimulation', 'XRayScan'}
+    if set(Counts) != Expected:
+        raise RuntimeError('Expected the shader sets ' + ', '.join(sorted(Expected)) + ', found ' + ', '.join(sorted(Counts)))
     return Counts
 
 

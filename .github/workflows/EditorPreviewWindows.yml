@@ -50,9 +50,16 @@ jobs:
           fi
       - name: Package
         run: |
+          Status=0
           python Automation/PackageEditorPreviewWindows.py --executable Build/Windows/Frontier.exe \
               --toolchain "Zig 0.13.0 x86_64-windows-gnu (Automation/WindowsToolchain.cmake), GitHub ubuntu-24.04" \
-              --omit-material-archives --output Binaries/FrontierSceneViewport-Windows-x64.zip
+              --omit-material-archives --output Binaries/FrontierSceneViewport-Windows-x64.zip 2>&1 | tee Build/package.log || Status=$?
+          # 📝 The packager's refusals are RuntimeError messages built from parts, which the Python problem matcher does not annotate: say them here.
+          if [ "$Status" -ne 0 ]; then
+            Errors=$(tr -d '\r' < Build/package.log | tail -n 12 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Package failed with exit code $Status::$Errors"
+            exit "$Status"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: CrossBuildPackage
@@ -91,9 +98,15 @@ jobs:
           fi
       - name: Package
         run: |
+          Status=0
           python Automation/PackageEditorPreviewWindows.py --executable Build/Editor/Release/Frontier.exe \
               --toolchain "MSVC, Visual Studio 2022 (GitHub windows-2022)" \
-              --omit-material-archives --output Binaries/FrontierSceneViewport-Windows-x64-MSVC.zip
+              --omit-material-archives --output Binaries/FrontierSceneViewport-Windows-x64-MSVC.zip 2>&1 | tee Build/package.log || Status=$?
+          if [ "$Status" -ne 0 ]; then
+            Errors=$(tr -d '\r' < Build/package.log | tail -n 12 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Package failed with exit code $Status::$Errors"
+            exit "$Status"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: MsvcPackage
