@@ -57,21 +57,36 @@ struct Look
     }
 };
 
-// 📝 A rounded pill button that remembers where it lay; true when pressed.
+// 📝 What a pill is wide: its words and, with a glyph, the glyph's room; a compact pill is the glyph alone.
+float MeasurePillWidth(const Look& Style, const char* Label, bool WithGlyph, bool Compact)
+{
+    if (Compact && WithGlyph) return 36.0f * Style.Scale;
+    return Style.Measure(Style.Faces.Medium, 11.0f, Label) + (WithGlyph ? 34.0f : 22.0f) * Style.Scale;
+}
+
+// 📝 A rounded pill button that remembers where it lay; true when pressed. A compact pill shows its glyph alone and names itself in a tooltip.
 bool ConstructPillButton(const Look& Style, ImDrawList* Ink, std::vector<FluidPlumeControlRectangle>& Registry, const char* Name, ImVec2 At, const char* Label,
-                         bool Active, const char* Glyph = nullptr, float* OutWidth = nullptr)
+                         bool Active, const char* Glyph = nullptr, float* OutWidth = nullptr, bool Compact = false)
 {
     const float Height = 30.0f * Style.Scale;
-    const float Width  = Style.Measure(Style.Faces.Medium, 11.0f, Label) + (Glyph ? 34.0f : 22.0f) * Style.Scale;
+    const float Width  = MeasurePillWidth(Style, Label, Glyph != nullptr, Compact);
     ImGui::SetCursorScreenPos(At);
     char Id[96];
     std::snprintf(Id, sizeof(Id), "##Plume%s", Name);
     const bool Pressed = ImGui::InvisibleButton(Id, ImVec2(Width, Height));
     const bool Hovered = ImGui::IsItemHovered();
+    if (Compact && Glyph != nullptr && Hovered) ImGui::SetTooltip("%s", Label);
     Registry.push_back({ Name, At, ImVec2(At.x + Width, At.y + Height) });
     Ink->AddRectFilled(At, ImVec2(At.x + Width, At.y + Height), Active ? Style.Palette.SegmentedActiveBg : Hovered ? Style.Palette.RowHoverBg : Style.Palette.CountCardBg,
                        9.0f * Style.Scale);
     Ink->AddRect(At, ImVec2(At.x + Width, At.y + Height), Style.Palette.InsetFieldBorder, 9.0f * Style.Scale);
+    if (Compact && Glyph != nullptr)
+    {
+        GlyphSymbol::Construct(Ink, Glyph, ImVec2(At.x + 11.0f * Style.Scale, At.y + 8.0f * Style.Scale), 14.0f * Style.Scale, 1.4f,
+                               Active ? Style.Palette.TextPrimary : Style.Palette.TextSecondary);
+        if (OutWidth) *OutWidth = Width;
+        return Pressed;
+    }
     float Left = At.x + 11.0f * Style.Scale;
     if (Glyph)
     {
@@ -101,6 +116,19 @@ std::string Lowered(std::string Text)
 {
     std::transform(Text.begin(), Text.end(), Text.begin(), [](unsigned char Letter) { return static_cast<char>(std::tolower(Letter)); });
     return Text;
+}
+
+// 📝 Words cut to a width: the longest start that fits with "..." after it (whole UTF-8 characters), or the words whole when they fit.
+std::string FitText(const Look& Style, ImFont* Font, float Size, std::string Words, float Room)
+{
+    if (Style.Measure(Font, Size, Words.c_str()) <= Room) return Words;
+    while (!Words.empty() && Style.Measure(Font, Size, (Words + "...").c_str()) > Room)
+    {
+        Words.pop_back();
+        while (!Words.empty() && (static_cast<unsigned char>(Words.back()) & 0xC0u) == 0x80u) Words.pop_back();   // [-] a continuation byte belongs to the character before it
+        if (!Words.empty() && static_cast<unsigned char>(Words.back()) >= 0xC0u) Words.pop_back();
+    }
+    return Words + "...";
 }
 
 const char* ResolveGroupGlyph(const std::string& Group)
@@ -310,9 +338,13 @@ bool FluidPlumeEditorWorkspace::Perform(std::string_view Action)
     }
     if (Verb == "clear-smoke")
     {
+        // 📝 A presenter carries the clear on its next refresh; a host without one takes it from TakeHostRequests.
         ClearPending = true;
-        HostRequests.push_back("clear-smoke");
-        if (HostRequests.size() > 16) HostRequests.erase(HostRequests.begin());
+        if (!Presenter)
+        {
+            HostRequests.push_back("clear-smoke");
+            if (HostRequests.size() > 16) HostRequests.erase(HostRequests.begin());
+        }
         AppendLog("SOLVER", "Smoke cleared", ResolveReadout() == nullptr ? "no solver is attached" : "the lattices were emptied", true);
         return true;
     }
@@ -361,6 +393,7 @@ void FluidPlumeEditorWorkspace::Present(uint32_t Width, uint32_t Height, double 
     StageSeconds += Elapsed;
     if (!Presenter)
     {
+        ClearPending  = false;   // [-] a clear with nobody to carry it out is for the host to take, not for a presenter that comes later
         Image.Failure = "The plume viewport needs the editor's Vulkan device.";
         return;
     }
@@ -577,26 +610,49 @@ void FluidPlumeEditorWorkspace::ConstructViewport(ImDrawList* Ink, ImVec2 Minimu
     Ink->AddRectFilled(Minimum, Maximum, P.ColumnBg, 14.0f * Scale);
     Ink->AddRect(Minimum, Maximum, P.EdgeBorder, 14.0f * Scale);
 
-    // 📝 The bar: the title, the live pill, Pause and Clear smoke, and the test emitter's three states.
-    const float Left = Minimum.x + 14.0f * Scale;
-    const float BarY = Minimum.y + 12.0f * Scale;
+    // 📝 The bar: the title, the live pill, Pause and Clear smoke, and the test emitter's three states. It is planned from the widths it needs: where the
+    //    column is narrower than the whole bar it gives up, in turn, the title's second line (1), the words of Pause and Clear smoke (2), the pill's
+    //    words and the title's text (3) and the words of the Smoke and Fire pills (4).
+    const float  Left       = Minimum.x + 14.0f * Scale;
+    const float  BarY       = Minimum.y + 12.0f * Scale;
+    const bool   Live       = Image.Texture != 0;
+    const char*  Subtitle   = "Eulerian smoke \xC2\xB7 combustion \xC2\xB7 tyre sources";
+    const char*  Pill       = Live ? "VULKAN \xC2\xB7 LIVE" : "NO DEVICE";
+    const char*  PauseLabel = Playing ? "Pause" : "Play";
+    const float  TitleText  = Style.Measure(Style.Faces.Medium, 13.0f, "Smoke & fire");
+    const float  SubText    = Style.Measure(Style.Faces.Regular, 10.0f, Subtitle);
+    const float  PillText   = Style.Measure(Style.Faces.Medium, 10.0f, Pill) + 30.0f * Scale;
+    const auto   Needed     = [&](int Squeeze) {
+        const float Title = Squeeze >= 3 ? 40.0f * Scale : 40.0f * Scale + (Squeeze >= 1 ? TitleText : std::max(TitleText, SubText));
+        const float Dot   = Squeeze >= 3 ? 22.0f * Scale : PillText;
+        return Title + 12.0f * Scale + Dot + 12.0f * Scale + MeasurePillWidth(Style, PauseLabel, true, Squeeze >= 2) + 6.0f * Scale +
+               MeasurePillWidth(Style, "Clear smoke", true, Squeeze >= 2) + 14.0f * Scale + MeasurePillWidth(Style, "Off", false, false) + 3.0f * Scale +
+               MeasurePillWidth(Style, "Smoke", true, Squeeze >= 4) + 3.0f * Scale + MeasurePillWidth(Style, "Fire", true, Squeeze >= 4);
+    };
+    const float Available = Maximum.x - 14.0f * Scale - Left;
+    int         Squeeze     = 0;
+    while (Squeeze < 4 && Needed(Squeeze) > Available) ++Squeeze;
     Ink->AddRectFilled(ImVec2(Left, BarY), ImVec2(Left + 30.0f * Scale, BarY + 30.0f * Scale), P.CountCardBg, 8.0f * Scale);
     GlyphSymbol::Construct(Ink, "Flame", ImVec2(Left + 7.0f * Scale, BarY + 7.0f * Scale), 16.0f * Scale, 1.4f, FireTint);
-    Style.Text(Ink, Style.Faces.Medium, 13.0f, ImVec2(Left + 40.0f * Scale, BarY + 1.0f * Scale), P.TextPrimary, "Smoke & fire");
-    Style.Text(Ink, Style.Faces.Regular, 10.0f, ImVec2(Left + 40.0f * Scale, BarY + 18.0f * Scale), P.TextSecondary, "Eulerian smoke \xC2\xB7 combustion \xC2\xB7 tyre sources");
-    float       Cursor = Left + 250.0f * Scale;
-    const bool  Live   = Image.Texture != 0;
-    const char* Pill   = Live ? "VULKAN \xC2\xB7 LIVE" : "NO DEVICE";
-    const float PillW  = Style.Measure(Style.Faces.Medium, 10.0f, Pill) + 30.0f * Scale;
+    float Cursor = Left + 40.0f * Scale;
+    if (Squeeze < 3)
+    {
+        Style.Text(Ink, Style.Faces.Medium, 13.0f, ImVec2(Cursor, BarY + (Squeeze >= 1 ? 7.0f : 1.0f) * Scale), P.TextPrimary, "Smoke & fire");
+        if (Squeeze < 1) Style.Text(Ink, Style.Faces.Regular, 10.0f, ImVec2(Cursor, BarY + 18.0f * Scale), P.TextSecondary, Subtitle);
+        Cursor += (Squeeze >= 1 ? TitleText : std::max(TitleText, SubText)) + 12.0f * Scale;
+    }
+    else
+        Cursor += 12.0f * Scale;
+    const float PillW = Squeeze >= 3 ? 22.0f * Scale : PillText;
     Ink->AddRectFilled(ImVec2(Cursor, BarY + 3.0f * Scale), ImVec2(Cursor + PillW, BarY + 27.0f * Scale), IM_COL32(18, 40, 28, 255), 12.0f * Scale);
-    Ink->AddCircleFilled(ImVec2(Cursor + 12.0f * Scale, BarY + 15.0f * Scale), 3.5f * Scale, Live ? P.LiveGreen : P.WarmAmber);
-    Style.Text(Ink, Style.Faces.Medium, 10.0f, ImVec2(Cursor + 21.0f * Scale, BarY + 8.5f * Scale), Live ? P.LiveGreen : P.WarmAmber, Pill);
+    Ink->AddCircleFilled(ImVec2(Cursor + 11.0f * Scale + (Squeeze >= 3 ? 0.0f : 1.0f * Scale), BarY + 15.0f * Scale), 3.5f * Scale, Live ? P.LiveGreen : P.WarmAmber);
+    if (Squeeze < 3) Style.Text(Ink, Style.Faces.Medium, 10.0f, ImVec2(Cursor + 21.0f * Scale, BarY + 8.5f * Scale), Live ? P.LiveGreen : P.WarmAmber, Pill);
     Cursor += PillW + 12.0f * Scale;
     float Width = 0.0f;
-    if (ConstructPillButton(Style, Ink, Controls, "pause", ImVec2(Cursor, BarY), Playing ? "Pause" : "Play", !Playing, Playing ? "Pause" : "Play", &Width))
+    if (ConstructPillButton(Style, Ink, Controls, "pause", ImVec2(Cursor, BarY), PauseLabel, !Playing, Playing ? "Pause" : "Play", &Width, Squeeze >= 2))
         Requests.push_back(Playing ? "pause" : "play");
     Cursor += Width + 6.0f * Scale;
-    if (ConstructPillButton(Style, Ink, Controls, "clear", ImVec2(Cursor, BarY), "Clear smoke", false, "RotateCcw", &Width)) Requests.push_back("clear-smoke");
+    if (ConstructPillButton(Style, Ink, Controls, "clear", ImVec2(Cursor, BarY), "Clear smoke", false, "RotateCcw", &Width, Squeeze >= 2)) Requests.push_back("clear-smoke");
     Cursor += Width + 14.0f * Scale;
     constexpr const char* Emitters[3] = { "Off", "Smoke", "Fire" };
     constexpr const char* Verbs[3]    = { "emitter:off", "emitter:smoke", "emitter:fire" };
@@ -605,7 +661,7 @@ void FluidPlumeEditorWorkspace::ConstructViewport(ImDrawList* Ink, ImVec2 Minimu
         char Name[24];
         std::snprintf(Name, sizeof(Name), "emitter:%u", Emitter);
         if (ConstructPillButton(Style, Ink, Controls, Name, ImVec2(Cursor, BarY), Emitters[Emitter], Record->TestEmitter == Emitter, Emitter == 1 ? "Puff" : Emitter == 2 ? "Flame" : nullptr,
-                                &Width))
+                                &Width, Squeeze >= 4))
             Requests.push_back(Verbs[Emitter]);
         Cursor += Width + 3.0f * Scale;
     }
@@ -620,10 +676,16 @@ void FluidPlumeEditorWorkspace::ConstructViewport(ImDrawList* Ink, ImVec2 Minimu
     }
     else
     {
-        const char* Reason = !Image.Failure.empty() ? Image.Failure.c_str() : "Starting the plume\xE2\x80\xA6";
-        Style.Text(Ink, Style.Faces.Medium, 12.0f, ImVec2(StageMin.x + 24.0f * Scale, StageMin.y + 24.0f * Scale), P.WarmAmber, Reason);
-        Style.Text(Ink, Style.Faces.Regular, 11.0f, ImVec2(StageMin.x + 24.0f * Scale, StageMin.y + 46.0f * Scale), P.TextSecondary,
-                   "The record is still edited here: the Outliner, the Inspector and the libraries work without it.");
+        // 📝 Where there is no picture the stage says why, in its middle; the Outliner, the Inspector and the libraries go on working.
+        const char*  Reason = !Image.Failure.empty() ? Image.Failure.c_str() : "Starting the plume\xE2\x80\xA6";
+        const float  Middle = (StageMin.x + StageMax.x) * 0.5f;
+        const float  Centre = (StageMin.y + StageMax.y) * 0.5f;
+        GlyphSymbol::Construct(Ink, "Flame", ImVec2(Middle - 14.0f * Scale, Centre - 58.0f * Scale), 28.0f * Scale, 1.3f, IM_COL32(120, 90, 62, 255));
+        Style.Text(Ink, Style.Faces.Medium, 13.0f, ImVec2(Middle - Style.Measure(Style.Faces.Medium, 13.0f, Reason) * 0.5f, Centre - 14.0f * Scale), P.WarmAmber, Reason);
+        const char* First  = "The record is still edited here.";
+        const char* Second = "The Outliner, the Inspector and the libraries work without it.";
+        Style.Text(Ink, Style.Faces.Regular, 11.0f, ImVec2(Middle - Style.Measure(Style.Faces.Regular, 11.0f, First) * 0.5f, Centre + 10.0f * Scale), P.TextSecondary, First);
+        Style.Text(Ink, Style.Faces.Regular, 11.0f, ImVec2(Middle - Style.Measure(Style.Faces.Regular, 11.0f, Second) * 0.5f, Centre + 28.0f * Scale), P.TextSecondary, Second);
     }
     Ink->PushClipRect(StageMin, StageMax, true);
 
@@ -639,31 +701,35 @@ void FluidPlumeEditorWorkspace::ConstructViewport(ImDrawList* Ink, ImVec2 Minimu
     }
     if (ImGui::IsItemHovered() && ImGui::GetIO().MouseWheel != 0.0f) Distance = std::clamp(Distance * std::exp(-ImGui::GetIO().MouseWheel * 0.1), 3.0, 40.0);
 
-    // 📝 The HUD: what the solver is doing, then the lattice it is doing it on.
+    // 📝 The HUD: what the solver is doing, then the lattice it is doing it on. It is shown with a picture or with a host's readout; a stage that has
+    //    neither says so in its middle and carries no figures. RATE is the interface's own smoothed rate; REFRESH is the presenter's last refresh.
     const FluidPlumeReadout* Readout = ResolveReadout();
-    char                     Sources[16], Ticks[16], Hud[200];
-    if (Readout != nullptr)
+    if (Live || Readout != nullptr)
     {
-        std::snprintf(Sources, sizeof(Sources), "%u", Readout->Sources);
-        std::snprintf(Ticks, sizeof(Ticks), "%u", Readout->Ticks);
-    }
-    else
-    {
-        std::snprintf(Sources, sizeof(Sources), "\xE2\x80\x93");
-        std::snprintf(Ticks, sizeof(Ticks), "\xE2\x80\x93");
-    }
-    std::snprintf(Hud, sizeof(Hud), "SOURCES %s   STEPS %s   RATE %.0f fps   REFRESH %.1f ms   t %.1f s", Sources, Ticks, RefreshRate, Image.RefreshMilliseconds, StageSeconds);
-    const ImVec2 HudAt(StageMin.x + 12.0f * Scale, StageMin.y + 12.0f * Scale);
-    const float  HudW = Style.Measure(Style.Faces.Monospace, 10.5f, Hud) + 20.0f * Scale;
-    Ink->AddRectFilled(HudAt, ImVec2(HudAt.x + HudW, HudAt.y + 26.0f * Scale), IM_COL32(12, 13, 17, 215), 7.0f * Scale);
-    Style.Text(Ink, Style.Faces.Monospace, 10.5f, ImVec2(HudAt.x + 10.0f * Scale, HudAt.y + 6.5f * Scale), P.TextPrimary, Hud);
-    if (Readout != nullptr || Live)
-    {
-        const uint32_t Grade = Readout != nullptr ? Readout->Grade : 2u;
-        const PlumeGrade& Level = QueryPlumeGrades()[std::min<size_t>(Grade, 3u)];
-        char Lattice[160];
+        char Sources[16], Ticks[16], Hud[200];
+        if (Readout != nullptr)
+        {
+            std::snprintf(Sources, sizeof(Sources), "%u", Readout->Sources);
+            std::snprintf(Ticks, sizeof(Ticks), "%u", Readout->Ticks);
+        }
+        else
+        {
+            std::snprintf(Sources, sizeof(Sources), "\xE2\x80\x93");
+            std::snprintf(Ticks, sizeof(Ticks), "\xE2\x80\x93");
+        }
+        if (Live)
+            std::snprintf(Hud, sizeof(Hud), "SOURCES %s   STEPS %s   RATE %.0f fps   REFRESH %.1f ms   t %.1f s", Sources, Ticks, RefreshRate, Image.RefreshMilliseconds, StageSeconds);
+        else
+            std::snprintf(Hud, sizeof(Hud), "SOURCES %s   STEPS %s", Sources, Ticks);
+        const ImVec2 HudAt(StageMin.x + 12.0f * Scale, StageMin.y + 12.0f * Scale);
+        const float  HudW = Style.Measure(Style.Faces.Monospace, 10.5f, Hud) + 20.0f * Scale;
+        Ink->AddRectFilled(HudAt, ImVec2(HudAt.x + HudW, HudAt.y + 26.0f * Scale), IM_COL32(12, 13, 17, 215), 7.0f * Scale);
+        Style.Text(Ink, Style.Faces.Monospace, 10.5f, ImVec2(HudAt.x + 10.0f * Scale, HudAt.y + 6.5f * Scale), P.TextPrimary, Hud);
+        const uint32_t    Grade = Readout != nullptr ? Readout->Grade : 2u;
+        const PlumeGrade& Tier = QueryPlumeGrades()[std::min<size_t>(Grade, 3u)];
+        char              Lattice[160];
         std::snprintf(Lattice, sizeof(Lattice), "%s \xC2\xB7 %s @ %.0f cm \xC2\xB7 %u sweeps \xC2\xB7 %u samples \xC2\xB7 %s", ResolveGradeName(Grade).c_str(), FluidPlumePages::FormatLatticeExtent(Grade).c_str(),
-                      Level.CellExtent * 100.0, Level.PressureSweeps, Level.MarchSamples, Readout == nullptr ? "NO SOLVER" : Readout->Resident ? "RESIDENT" : "IDLE");
+                      Tier.CellExtent * 100.0, Tier.PressureSweeps, Tier.MarchSamples, Readout == nullptr ? "NO SOLVER" : Readout->Resident ? "RESIDENT" : "IDLE");
         const ImVec2 LatticeAt(HudAt.x, HudAt.y + 34.0f * Scale);
         const float  LatticeW = Style.Measure(Style.Faces.Monospace, 10.0f, Lattice) + 20.0f * Scale;
         Ink->AddRectFilled(LatticeAt, ImVec2(LatticeAt.x + LatticeW, LatticeAt.y + 24.0f * Scale), IM_COL32(12, 13, 17, 215), 7.0f * Scale);
@@ -674,11 +740,14 @@ void FluidPlumeEditorWorkspace::ConstructViewport(ImDrawList* Ink, ImVec2 Minimu
     Style.Text(Ink, Style.Faces.Regular, 10.0f, ImVec2(StageMax.x - HintW - 14.0f * Scale, StageMax.y - 20.0f * Scale), IM_COL32(200, 205, 214, 170), Hint);
     Ink->PopClipRect();
 
-    char Footer[160];
-    std::snprintf(Footer, sizeof(Footer), "VULKAN   ADAPTER %s", Image.Adapter.empty() ? "\xE2\x80\x94" : Image.Adapter.c_str());
-    Style.Text(Ink, Style.Faces.Monospace, 9.5f, ImVec2(StageMin.x + 6.0f * Scale, Maximum.y - 19.0f * Scale), P.TextMuted, Footer);
-    std::snprintf(Footer, sizeof(Footer), "STAGE %u \xC3\x97 %u \xC2\xB7 %s \xC2\xB7 %s", Image.Extent[0], Image.Extent[1], Playing ? "RUNNING" : "PAUSED", Record->Enabled ? "ENABLED" : "DISABLED");
-    Style.Text(Ink, Style.Faces.Monospace, 9.5f, ImVec2(StageMax.x - Style.Measure(Style.Faces.Monospace, 9.5f, Footer) - 6.0f * Scale, Maximum.y - 19.0f * Scale), P.TextMuted, Footer);
+    // 📝 The footer: the adapter on the left, the stage's size and state on the right; where they do not both fit the adapter is cut short.
+    char Right[160];
+    std::snprintf(Right, sizeof(Right), "STAGE %.0f \xC3\x97 %.0f \xC2\xB7 %s \xC2\xB7 %s", StageMax.x - StageMin.x, StageMax.y - StageMin.y, Playing ? "RUNNING" : "PAUSED", Record->Enabled ? "ENABLED" : "DISABLED");
+    const float       RightW = Style.Measure(Style.Faces.Monospace, 9.5f, Right);
+    const std::string AdapterLine  = std::string("VULKAN   ADAPTER ") + (Image.Adapter.empty() ? "\xE2\x80\x94" : Image.Adapter);
+    const std::string Fitted = FitText(Style, Style.Faces.Monospace, 9.5f, AdapterLine, (StageMax.x - StageMin.x) - RightW - 24.0f * Scale);
+    Style.Text(Ink, Style.Faces.Monospace, 9.5f, ImVec2(StageMin.x + 6.0f * Scale, Maximum.y - 19.0f * Scale), P.TextMuted, Fitted.c_str());
+    Style.Text(Ink, Style.Faces.Monospace, 9.5f, ImVec2(StageMax.x - RightW - 6.0f * Scale, Maximum.y - 19.0f * Scale), P.TextMuted, Right);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -712,13 +781,16 @@ void FluidPlumeEditorWorkspace::ConstructLogStream(ImDrawList* Ink, ImVec2 Minim
         const ImVec2 Chip(Left + 86.0f * Scale, Top);
         Ink->AddRect(Chip, ImVec2(Chip.x + CategoryW, Chip.y + 17.0f * Scale), P.InsetFieldBorder, 8.0f * Scale);
         Style.Text(Ink, Style.Faces.Medium, 8.5f, ImVec2(Chip.x + 8.0f * Scale, Chip.y + 3.5f * Scale), P.TextSecondary, Line.Category.c_str());
-        const float TextX = Chip.x + std::max(CategoryW, 84.0f * Scale) + 12.0f * Scale;
-        Style.Text(Ink, Style.Faces.Medium, 11.0f, ImVec2(TextX, Top + 1.5f * Scale), P.TextPrimary, Line.Text.c_str());
-        if (!Line.Detail.empty())
+        // 📝 The message and its detail are cut to the card: in a narrow column the detail goes first.
+        const float       TextX   = Chip.x + std::max(CategoryW, 84.0f * Scale) + 12.0f * Scale;
+        const float       Room    = Maximum.x - 14.0f * Scale - TextX;
+        const std::string Message = FitText(Style, Style.Faces.Medium, 11.0f, Line.Text, Room);
+        Style.Text(Ink, Style.Faces.Medium, 11.0f, ImVec2(TextX, Top + 1.5f * Scale), P.TextPrimary, Message.c_str());
+        const float MessageW = Style.Measure(Style.Faces.Medium, 11.0f, Message.c_str());
+        if (!Line.Detail.empty() && Message == Line.Text && Room - MessageW - 8.0f * Scale > 60.0f * Scale)
         {
-            const std::string Detail = "\xC2\xB7 " + Line.Detail;
-            Style.Text(Ink, Style.Faces.Regular, 10.5f, ImVec2(TextX + Style.Measure(Style.Faces.Medium, 11.0f, Line.Text.c_str()) + 8.0f * Scale, Top + 2.0f * Scale), P.TextSecondary,
-                       Detail.c_str());
+            const std::string Detail = FitText(Style, Style.Faces.Regular, 10.5f, "\xC2\xB7 " + Line.Detail, Room - MessageW - 8.0f * Scale);
+            Style.Text(Ink, Style.Faces.Regular, 10.5f, ImVec2(TextX + MessageW + 8.0f * Scale, Top + 2.0f * Scale), P.TextSecondary, Detail.c_str());
         }
         Top += 24.0f * Scale;
     }
@@ -772,7 +844,14 @@ void FluidPlumeEditorWorkspace::ConstructLibrarySheet(ImVec2 Minimum, ImVec2 Max
     const auto& P = Style.Palette;
     LibraryCards  = 0;
     LibraryMarked.clear();
-    // 📝 A child over the whole editor, created last so it draws above the columns and takes the pointer from them.
+    // 📝 The mark on a card, a green dot and its words at the card's right edge (the dot is drawn: DM Sans has no ●).
+    const auto ConstructMark = [&](ImDrawList* Sheet, ImVec2 Corner, const char* Words) {
+        const float Right = Corner.x - 12.0f * Scale;
+        const float Wide  = Style.Measure(Style.Faces.Medium, 9.5f, Words);
+        Sheet->AddCircleFilled(ImVec2(Right - Wide - 8.0f * Scale, Corner.y + 6.0f * Scale), 3.0f * Scale, P.LiveGreen);
+        Style.Text(Sheet, Style.Faces.Medium, 9.5f, ImVec2(Right - Wide, Corner.y), P.LiveGreen, Words);
+    };
+    // A child over the whole editor, created last so it draws above the columns and takes the pointer from them.
     ImGui::SetCursorScreenPos(Minimum);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     if (ImGui::BeginChild("##PlumeLibraryVeil", ImVec2(Maximum.x - Minimum.x, Maximum.y - Minimum.y), ImGuiChildFlags_None,
@@ -781,7 +860,10 @@ void FluidPlumeEditorWorkspace::ConstructLibrarySheet(ImVec2 Minimum, ImVec2 Max
         ImDrawList* Ink = ImGui::GetWindowDrawList();
         Ink->AddRectFilled(Minimum, Maximum, IM_COL32(4, 5, 8, 175), 14.0f * Scale);
         const float  SheetW = std::min(980.0f * Scale, Maximum.x - Minimum.x - 80.0f * Scale);
-        const float  SheetH = std::min(680.0f * Scale, Maximum.y - Minimum.y - 60.0f * Scale);
+        // 📝 The sheet is as tall as its taller tab needs (two rows of looks or of grades) up to 680 px, so the same size holds whatever the filter shows.
+        const size_t Rows   = std::max((FluidPlumeLibrary::QueryLooks().size() + 2) / 3, (QueryPlumeGrades().size() + 2) / 3);
+        const float  Wanted = 156.0f + static_cast<float>(Rows) * (128.0f + 10.0f) - 10.0f + 16.0f + 12.0f;
+        const float  SheetH = std::min({ Wanted * Scale, 680.0f * Scale, Maximum.y - Minimum.y - 60.0f * Scale });
         const ImVec2 SheetMin((Minimum.x + Maximum.x - SheetW) / 2.0f, (Minimum.y + Maximum.y - SheetH) / 2.0f);
         const ImVec2 SheetMax(SheetMin.x + SheetW, SheetMin.y + SheetH);
         // 📝 A click on the veil outside the sheet closes the libraries. The button lies under every control of the sheet, which are submitted after
@@ -905,9 +987,8 @@ void FluidPlumeEditorWorkspace::ConstructLibrarySheet(ImVec2 Minimum, ImVec2 Max
                     Style.Text(Sheet, Style.Faces.Regular, 10.0f, ImVec2(CardMin.x + 48.0f * Scale, CardMin.y + 28.0f * Scale), P.TextSecondary, Facts);
                     if (Held == &Look)
                     {
-                        LibraryMarked    = Look.Identifier;
-                        const char* Mark = "\xE2\x97\x8F Applied";
-                        Style.Text(Sheet, Style.Faces.Medium, 9.5f, ImVec2(CardMax.x - Style.Measure(Style.Faces.Medium, 9.5f, Mark) - 12.0f * Scale, CardMin.y + 14.0f * Scale), P.LiveGreen, Mark);
+                        LibraryMarked = Look.Identifier;
+                        ConstructMark(Sheet, ImVec2(CardMax.x, CardMin.y + 14.0f * Scale), "Applied");
                     }
                     const std::string Blurb = Look.Changes.empty() ? Look.Lead : Look.Lead + " " + Look.Changes;
                     Sheet->PushClipRect(ImVec2(CardMin.x + 12.0f * Scale, CardMin.y + 46.0f * Scale), ImVec2(CardMax.x - 10.0f * Scale, CardMax.y - 8.0f * Scale), true);
@@ -947,9 +1028,8 @@ void FluidPlumeEditorWorkspace::ConstructLibrarySheet(ImVec2 Minimum, ImVec2 Max
                     Style.Text(Sheet, Style.Faces.Regular, 10.0f, ImVec2(CardMin.x + 12.0f * Scale, CardMin.y + 56.0f * Scale), P.TextMuted, Work);
                     if (Readout != nullptr && Readout->Grade == Index)
                     {
-                        LibraryMarked    = std::string(Grade.Name);
-                        const char* Mark = "\xE2\x97\x8F In use";
-                        Style.Text(Sheet, Style.Faces.Medium, 9.5f, ImVec2(CardMax.x - Style.Measure(Style.Faces.Medium, 9.5f, Mark) - 12.0f * Scale, CardMin.y + 14.0f * Scale), P.LiveGreen, Mark);
+                        LibraryMarked = std::string(Grade.Name);
+                        ConstructMark(Sheet, ImVec2(CardMax.x, CardMin.y + 14.0f * Scale), "In use");
                     }
                     ++Shown;
                 }

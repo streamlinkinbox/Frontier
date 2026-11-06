@@ -4,19 +4,25 @@
 // 🧩 The Smoke & fire editor, checked as a user meets it:
 //      ① the FluidPlume record: its defaults, the 33 snake_case keys of its TOML, a save and reload bit for bit, range clamping, non-finite and missing
 //        readings, and the legacy block of Simulation.levelspace;
-//      ② every card driven through native input on a real ImGui context: each of the 26 sliders by arrow, Shift-arrow, Home and End, the six presets,
-//        Defaults, Clear smoke and the Test emitter — each must change exactly the readings it names, to the decimal the prototype's range input commits;
-//      ③ the window in the Everest workspace, opened from a FluidPlume record the way the Inspector's button opens it and driven there too (a preset,
-//        the test emitter, a slider, Clear smoke, Defaults, Close), with the host's readout taken from the C++ plume's own CPU half (SmokeSequence on
-//        the burnout script), captured at 1920 × 1080 and on a narrower window. The two instruments are looked for in what the window submits.
+//      ② the libraries (the six looks and what each changes, the groups, which look a gas holds) and every card driven through native input on a real
+//        ImGui context: each of the 26 sliders by arrow, Shift-arrow, Home and End, the six looks, Defaults, Clear smoke, the Test emitter and the way
+//        to the libraries — each must change exactly the readings it names, to the decimal the prototype's range input commits;
+//      ③ the window in the Everest workspace, opened from a FluidPlume record the way the Inspector's button opens it and driven there with the
+//        pointer and the keyboard: the Outliner's six rows and its eyes, the Inspector page each row shows, the library sheet (tabs, chips, search,
+//        a look applied, Escape, a click outside), the viewport's bar and its orbit, and what the editor asks of a host's presenter (the gas by
+//        pointer, the emitter, the camera, the clear, the stage's pixels). The host's readout comes from the C++ plume's own CPU half (SmokeSequence on
+//        the burnout script). Captured at 1920 × 1080 and on a 1366 × 800 window; the two instruments are looked for in what the window submits.
 //
 //        FluidPlumeEditorValidation <EngineContent> <Projects/Everest> <output folder>
 //
-// 📝 Run from the repository root: the legacy fixture is Exhibits/EverestInterface/Content/Simulation.levelspace.
+// 📝 Run from the repository root: the legacy fixture is Exhibits/EverestInterface/Content/Simulation.levelspace. The presenter here is a stand-in
+//    that returns a flat picture: the plume's own pixels come from the editor application's presenter (Exhibits/FluidPlumeEditor/Code/FluidPlumeEditorCapture.cpp).
 
 #include "Engine/Interface/Controls/ControlColumn.h"
 #include "Engine/Interface/Controls/ControlTheme.h"
 #include "Engine/Interface/FluidPlumeEditor.h"
+#include "Engine/Interface/FluidPlumeEditor/FluidPlumeEditorWorkspace.h"
+#include "Engine/Interface/FluidPlumeEditor/FluidPlumeLibrary.h"
 #include "Engine/Interface/FluidPlumeEditor/FluidPlumePages.h"
 #include "Engine/Interface/IconPresentation.h"
 #include "Engine/Interface/InspectorControls.h"
@@ -39,6 +45,7 @@
 #include <algorithm>
 #include <array>
 #include <cfloat>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -462,6 +469,66 @@ void ValidateReadouts()
     Verify(FluidPlumePages::FormatPlumeCounters(&Readout) == "sources 6 \xC2\xB7 steps 177 \xC2\xB7 idle", "An idle readout reads `… · idle`");
 }
 
+// 📝 The libraries as the window's sheet lists them. The expected figures are written out here from the prototype's GasPresets, not derived from the
+//    code under test: a look's readings are its overrides, less any that equal the default.
+void ValidateLibrary()
+{
+    const GasParameters Defaults = ConstructGasParameters();
+    const auto&         Looks    = FluidPlumeLibrary::QueryLooks();
+    Verify(Looks.size() == 6, "The library lists the prototype's six looks");
+
+    struct Expected
+    {
+        const char* Name;
+        const char* Identifier;
+        const char* Group;
+        uint32_t    Differences;   // [-] readings that differ from the defaults
+    };
+    const std::array<Expected, 6> Table = {{ { "Tyre smoke", "tyre-smoke", "Smoke", 0 },
+                                             { "Thick burnout", "thick-burnout", "Smoke", 7 },
+                                             { "Light haze", "light-haze", "Smoke", 6 },
+                                             { "Inferno", "inferno", "Fire", 7 },
+                                             { "Crosswind", "crosswind", "Wind", 4 },
+                                             { "Legacy billows", "legacy-billows", "Smoke", 13 } }};
+    for (size_t Index = 0; Index < Table.size() && Index < Looks.size(); ++Index)
+    {
+        const FluidPlumeLook& Look = Looks[Index];
+        const std::string     Name = Table[Index].Name;
+        Verify(Look.Name == Name && Look.Identifier == Table[Index].Identifier, Name + ": the prototype's key and the verb's identifier `" + Table[Index].Identifier + "`");
+        Verify(Look.Group == Table[Index].Group, Name + ": it lies in the " + Table[Index].Group + " group");
+        Verify(Flatten(Look.Values) == Flatten(ApplyGasPreset(PresetNamed(Name))), Name + ": the values are the prototype's, applied over the defaults");
+        Verify(Look.Differences == Table[Index].Differences, Name + ": " + std::to_string(Table[Index].Differences) + " readings differ from the defaults (observed " + std::to_string(Look.Differences) + ")");
+        Verify(Look.Differences == CountDifferences(Flatten(Look.Values), Flatten(Defaults)), Name + ": its count agrees with a comparison of the 33 readings");
+        Verify(Look.Changes.empty() == (Look.Differences == 0), Name + ": it lists what it changes exactly when it changes something");
+        Verify(!Look.Lead.empty() && FluidPlumeLibrary::FindLook(Table[Index].Identifier) == &Look, Name + ": it has its first sentence and is found by its identifier");
+        Verify(FluidPlumeLibrary::MatchLook(Look.Values) == &Look, Name + ": a gas holding its readings matches it");
+    }
+    Verify(FluidPlumeLibrary::QueryGroups() == std::vector<std::string>({ "Smoke", "Fire", "Wind" }), "The groups, in order of first appearance, are Smoke, Fire, Wind");
+    Verify(FluidPlumeLibrary::FindLook("no-such-look") == nullptr, "An unknown identifier finds no look");
+    Verify(Looks.size() >= 5 && Looks[4].Changes == "Dissipation 0.28 1/s \xC2\xB7 Turbulence 0.70 m/s \xC2\xB7 Wind speed 5.5 m/s \xC2\xB7 Wind heading 95\xC2\xB0",
+           "Crosswind lists its four readings in the catalogue's order, as their sliders show them");
+    Verify(Looks.size() >= 2 && Looks[1].Changes.rfind("Emission rate 2.20 \xC3\x97 \xC2\xB7 Volume expansion 1.40 \xC3\x97", 0) == 0,
+           "Thick burnout lists its readings by their catalogue labels, the multipliers with their sign");
+
+    // 📝 Which look a gas holds: the defaults hold Tyre smoke, and a gas with any one reading moved by a step holds none.
+    Verify(FluidPlumeLibrary::MatchLook(Defaults) == &Looks[0], "The defaults hold the Tyre smoke look");
+    GasParameters Moved = ApplyGasPreset(PresetNamed("Inferno"));
+    Moved.FireLight += 0.05;
+    Verify(FluidPlumeLibrary::MatchLook(Moved) == nullptr, "Inferno with one reading moved by one step holds no look");
+    Verify(FluidPlumeLibrary::CountDifferences(Moved, ApplyGasPreset(PresetNamed("Inferno"))) == 1, "That gas differs from Inferno in exactly one of the 33 readings");
+    Verify(FluidPlumeLibrary::MatchLook(ApplyGasPreset(PresetNamed("Inferno"))) != nullptr, "Inferno held again, bit for bit, is matched");
+
+    // 📝 One reading as its slider shows it.
+    const auto Reading = [](const char* Key, double Value) { return FluidPlumeLibrary::FormatReading(*FindGasParameter(Key), Value); };
+    Verify(Reading("Emission", 2.2) == "2.20 \xC3\x97", "Emission 2.2 reads `2.20 ×`");
+    Verify(Reading("WindSpeed", 5.5) == "5.5 m/s", "Wind speed 5.5 reads `5.5 m/s`");
+    Verify(Reading("WindHeading", 95.0) == "95\xC2\xB0", "Wind heading 95 reads `95°`");
+    Verify(Reading("PressureSweeps", 16.0) == "16", "Pressure iterations, which have no unit, read `16`");
+    Verify(Reading("FlameCore", 1800.0) == "1800 K", "Flame core 1800 reads `1800 K`");
+    Verify(Reading("FlameLoss", 0.96) == "0.960 1/s", "Flame decay, whose step is 0.005, reads three decimals: `0.960 1/s`");
+    std::printf("[FluidPlumeEditorValidation] library: %zu looks, %zu groups\n", Looks.size(), FluidPlumeLibrary::QueryGroups().size());
+}
+
 void ValidateCards(InterfaceSession& Session)
 {
     const GasParameters      Defaults = ConstructGasParameters();
@@ -480,37 +547,46 @@ void ValidateCards(InterfaceSession& Session)
     for (int Tick = 0; Tick < 3; ++Tick) Session.Construct(PageOf(FluidPlumePages::ConstructSourceCard));
 
     {
-        // 📝 The layout the window plans on: the four columns of the plan at scale 1 on a 449 px column (one of four on 1920 px), their whole height
-        //    with the page's spacing. Simulation, alone, is the tallest and sets TallestColumnHeight, which the window fits its page to.
-        struct Column
+        // 📝 The six pages as the Inspector lays them: a column 402 px wide at scale 1 (the window's 404 px less its border). None is empty, and the Titled
+        //    flag leaves a card's own heading out where the page's heading already names it.
+        Session.Width = 402;
+        for (size_t Index = 0; Index < FluidPlumePageCount; ++Index)
         {
-            const char*              Name;
-            std::vector<CardBuilder> Cards;
-        };
-        const std::array<Column, 4> Plan = {{ { "Domain with Source", { FluidPlumePages::ConstructDomainCard, FluidPlumePages::ConstructSourceCard } },
-                                              { "Simulation", { FluidPlumePages::ConstructSimulationCard } },
-                                              { "Appearance", { FluidPlumePages::ConstructAppearanceCard } },
-                                              { "Fire with Presets", { FluidPlumePages::ConstructFireCard, FluidPlumePages::ConstructPresetsCard } } }};
-        float                       Heights[4] = {};
-        Session.Width                          = 449;
-        for (size_t Index = 0; Index < Plan.size(); ++Index)
-        {
-            const auto Page = [&] {
+            const FluidPlumePage Which = static_cast<FluidPlumePage>(Index);
+            const auto           Page  = [&] {
                 const ControlTheme    Theme = ControlTheme::ResolveNative();
                 const EditorTypefaces Faces = EditorTypefaces::Resolve();
-                ControlColumn         Page(Theme, Faces, 1.0f);
-                for (const CardBuilder Card : Plan[Index].Cards) Card(Page, Context);
-                Page.Finalize();
+                ControlColumn         Column(Theme, Faces, 1.0f);
+                FluidPlumeContext     PageContext{ Plume, nullptr, Requests };
+                FluidPlumePages::ConstructWindowPage(Column, PageContext, Which);
+                Verify(PageContext.Titled, std::string(FluidPlumePages::ResolveToken(Which)) + ": the page leaves the context's Titled flag as it found it");
+                Column.Finalize();
             };
             Session.Construct(Page);
             Session.Construct(Page);
-            Heights[Index] = Session.ContentHeight;
-            Verify(Heights[Index] > 400.0f && Heights[Index] <= FluidPlumePages::TallestColumnHeight,
-                   std::string(Plan[Index].Name) + " column is " + std::to_string(Heights[Index]) + " px at scale 1, within TallestColumnHeight");
+            Verify(Session.ContentHeight > 200.0f, std::string(FluidPlumePages::ResolveToken(Which)) + " page is " + std::to_string(Session.ContentHeight) + " px tall at scale 1");
+            FluidPlumePage Round = FluidPlumePage::Fire;
+            Verify(FluidPlumePages::ResolvePage(FluidPlumePages::ResolveToken(Which), Round) && Round == Which, std::string(FluidPlumePages::ResolveToken(Which)) + ": its token names it");
         }
+        FluidPlumePage Unknown = FluidPlumePage::Domain;
+        Verify(!FluidPlumePages::ResolvePage("Nothing", Unknown), "A token that names no page resolves to none");
+        const auto Height = [&](bool Titled) {
+            const auto Page = [&] {
+                const ControlTheme    Theme = ControlTheme::ResolveNative();
+                const EditorTypefaces Faces = EditorTypefaces::Resolve();
+                ControlColumn         Column(Theme, Faces, 1.0f);
+                FluidPlumeContext     PageContext{ Plume, nullptr, Requests };
+                PageContext.Titled = Titled;
+                FluidPlumePages::ConstructSourceCard(Column, PageContext);
+                Column.Finalize();
+            };
+            Session.Construct(Page);
+            Session.Construct(Page);
+            return Session.ContentHeight;
+        };
+        const float Titled = Height(true), Untitled = Height(false);
+        Verify(Titled > Untitled + 18.0f, "The Source card is " + std::to_string(Titled - Untitled) + " px taller with its own heading than without it");
         Session.Width = 440;
-        Verify(Heights[1] >= FluidPlumePages::TallestColumnHeight - 16.0f && Heights[1] == *std::max_element(Heights, Heights + 4),
-               "Simulation is the tallest column, and TallestColumnHeight is tight to it");
     }
 
     // 📝 Every slider: Right moves one step, Left returns, Shift-Right moves ten, End reaches the maximum and Home the minimum — each to the decimal the
@@ -556,38 +632,81 @@ void ValidateCards(InterfaceSession& Session)
     }
     Verify(Sliders == 26, "Twenty-six sliders were driven");
 
-    // 📝 The presets, Defaults and Clear smoke. Every reading is first set to its maximum, so that a preset's readings that are not overrides must
-    //    come back to the defaults (the prototype assigns over ConstructGasParameters()).
-    const auto&                 Presets = QueryGasPresets();
-    const std::function<void()> DomainPage = PageOf(FluidPlumePages::ConstructDomainCard), PresetPage = PageOf(FluidPlumePages::ConstructPresetsCard);
+    // 📝 The looks, Defaults, Clear smoke, the Test emitter and the way to the libraries. Every reading is first set to its maximum, so that a look's
+    //    readings that are not overrides must come back to the defaults (the prototype assigns over ConstructGasParameters()). Each edit leaves its notice
+    //    for the Log Stream.
+    const auto&                 Presets    = QueryGasPresets();
+    const std::function<void()> DomainPage = PageOf(FluidPlumePages::ConstructDomainCard), LooksPage = PageOf(FluidPlumePages::ConstructLooksCard),
+                                EmitterPage = PageOf(FluidPlumePages::ConstructEmitterCard);
     for (size_t Index = 0; Index < Presets.size(); ++Index)
     {
         for (const GasParameterEntry& Entry : QueryGasParameterCatalogue()) Plume.Gas.*(Entry.Field) = Entry.Maximum;
-        Session.Construct(PresetPage);
+        Session.Construct(LooksPage);
+        Requests.clear();
         const uint64_t    Revision = Plume.Revision;
         const std::string Button   = "PlumePreset" + std::to_string(Index);
-        Session.Activate(PresetPage, Session.ResolveId({ Button.c_str() }));
-        Verify(Flatten(Plume.Gas) == Flatten(ApplyGasPreset(Presets[Index])), "Preset " + std::string(Presets[Index].Name) + " sets exactly the prototype's gas");
-        Verify(Plume.Revision > Revision, "Preset " + std::string(Presets[Index].Name) + " advances the record's revision");
+        Session.Activate(LooksPage, Session.ResolveId({ Button.c_str() }));
+        Verify(Flatten(Plume.Gas) == Flatten(ApplyGasPreset(Presets[Index])), "Look " + std::string(Presets[Index].Name) + " sets exactly the prototype's gas");
+        Verify(Plume.Revision > Revision, "Look " + std::string(Presets[Index].Name) + " advances the record's revision");
+        Verify(Requests.size() == 1 && Requests[0] == "noted:look:" + FluidPlumeLibrary::QueryLooks()[Index].Identifier,
+               "Look " + std::string(Presets[Index].Name) + " leaves its notice `noted:look:" + FluidPlumeLibrary::QueryLooks()[Index].Identifier + "`");
+        Verify(FluidPlumeLibrary::MatchLook(Plume.Gas) == &FluidPlumeLibrary::QueryLooks()[Index], "Look " + std::string(Presets[Index].Name) + " is the look the gas holds afterwards");
     }
     {
+        Requests.clear();
+        Session.Construct(LooksPage);
+        Session.Activate(LooksPage, Session.ResolveId({ "PlumeOpenLibraries" }));
+        Verify(Requests.size() == 1 && Requests[0] == "library:on", "Open the libraries raises `library:on`");
+
         for (const GasParameterEntry& Entry : QueryGasParameterCatalogue()) Plume.Gas.*(Entry.Field) = Entry.Minimum;
+        Requests.clear();
         Session.Construct(DomainPage);
         Session.Activate(DomainPage, Session.ResolveId({ "PlumeDefaults" }));
         Verify(Flatten(Plume.Gas) == Flatten(Defaults), "Defaults restores all 33 readings");
-        Verify(Requests.empty(), "Defaults raises no host request");
+        Verify(Requests.size() == 1 && Requests[0] == "noted:defaults", "Defaults leaves its notice and raises no host request");
+        Requests.clear();
         Session.Activate(DomainPage, Session.ResolveId({ "PlumeClearSmoke" }));
         Verify(Requests.size() == 1 && Requests[0] == "clear-smoke", "Clear smoke raises the host's clear-smoke request");
         Verify(Flatten(Plume.Gas) == Flatten(Defaults), "Clear smoke leaves the readings alone");
 
         const uint64_t Revision = Plume.Revision;
-        Session.Activate(DomainPage, Session.ResolveSegment("PlumeTestEmitter", 1));
-        Verify(Plume.TestEmitter == 1, "Test emitter: Smoke plume");
-        Session.Activate(DomainPage, Session.ResolveSegment("PlumeTestEmitter", 2));
-        Verify(Plume.TestEmitter == 2, "Test emitter: Fire");
-        Session.Activate(DomainPage, Session.ResolveSegment("PlumeTestEmitter", 0));
-        Verify(Plume.TestEmitter == 0, "Test emitter: Off");
+        for (uint32_t Emitter : { 1u, 2u, 0u })
+        {
+            Requests.clear();
+            Session.Activate(EmitterPage, Session.ResolveSegment("PlumeTestEmitter", static_cast<int>(Emitter)));
+            Verify(Plume.TestEmitter == Emitter, std::string("Test emitter: ") + (Emitter == 0 ? "Off" : Emitter == 1 ? "Smoke plume" : "Fire"));
+            Verify(Requests.size() == 1 && Requests[0] == "noted:emitter:" + std::to_string(Emitter), "The Test emitter's choice leaves its notice");
+        }
         Verify(Plume.Revision == Revision, "The test emitter is not an authored reading: the revision stays");
+    }
+    {
+        // 📝 The heading's switch on the Domain page turns the plume off and on, and the Test emitter page's turns the emitter; each also leaves a notice.
+        const auto DomainWindow = [&] {
+            const ControlTheme    Theme = ControlTheme::ResolveNative();
+            const EditorTypefaces Faces = EditorTypefaces::Resolve();
+            ControlColumn         Column(Theme, Faces, 1.0f);
+            FluidPlumePages::ConstructWindowPage(Column, Context, FluidPlumePage::Domain);
+            Column.Finalize();
+        };
+        const auto EmitterWindow = [&] {
+            const ControlTheme    Theme = ControlTheme::ResolveNative();
+            const EditorTypefaces Faces = EditorTypefaces::Resolve();
+            ControlColumn         Column(Theme, Faces, 1.0f);
+            FluidPlumePages::ConstructWindowPage(Column, Context, FluidPlumePage::Emitter);
+            Column.Finalize();
+        };
+        Session.Construct(DomainWindow);
+        Requests.clear();
+        const uint64_t Revision = Plume.Revision;
+        Session.Activate(DomainWindow, Session.ResolveId({ "PlumeDomainHeading", "##TitleAction" }));
+        Verify(!Plume.Enabled && Plume.Revision > Revision && Requests.size() == 1 && Requests[0] == "noted:enabled:off", "The Domain page's switch disables the plume, advancing the revision");
+        Session.Activate(DomainWindow, Session.ResolveId({ "PlumeDomainHeading", "##TitleAction" }));
+        Verify(Plume.Enabled && Requests.back() == "noted:enabled:on", "The Domain page's switch enables it again");
+        Session.Construct(EmitterWindow);
+        Session.Activate(EmitterWindow, Session.ResolveId({ "PlumeEmitterHeading", "##TitleAction" }));
+        Verify(Plume.TestEmitter == 1 && Requests.back() == "noted:emitter:1", "The Test emitter page's switch starts the smoke plume");
+        Session.Activate(EmitterWindow, Session.ResolveId({ "PlumeEmitterHeading", "##TitleAction" }));
+        Verify(Plume.TestEmitter == 0 && Requests.back() == "noted:emitter:0", "and stops it");
     }
     {
         // 📝 The Ignition row belongs to the Vehicle record; here it is shown disabled and must not open or change anything.
@@ -609,7 +728,7 @@ void ValidateCards(InterfaceSession& Session)
     Plume.Gas = Defaults;
     Session.Construct(PageOf(FluidPlumePages::ConstructFireCard));
     Verify(!FindStrip(ImGui::GetDrawData(), ApplyGasPreset(PresetNamed("Inferno"))).Found, "The strip is not found for another flame: its colours follow the readings");
-    std::printf("[FluidPlumeEditorValidation] cards: %zu sliders, %zu presets, Defaults, Clear smoke, Test emitter, Ignition, both instruments\n", Sliders, Presets.size());
+    std::printf("[FluidPlumeEditorValidation] cards: %zu sliders, %zu looks, Defaults, Clear smoke, Test emitter, the libraries' button, both heading switches, Ignition, both instruments\n", Sliders, Presets.size());
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -648,14 +767,66 @@ FluidPlumeReadout ReadSolver(int Refreshes, const char* Grade, uint32_t GradeInd
     return Readout;
 }
 
+// 📝 The picture the stand-in presenter returns: a flat dark gradient with a faint grid. It is not a plume and is not meant to look like one; the
+//    plume's own pixels come from the editor application's presenter.
+constexpr uint64_t StandInTexture = 0x5EED0001u;
+constexpr int      StandInWidth   = 480;
+constexpr int      StandInHeight  = 270;
+
+std::vector<unsigned char> ConstructStandIn()
+{
+    std::vector<unsigned char> Pixels(static_cast<size_t>(StandInWidth) * StandInHeight * 4u);
+    for (int Y = 0; Y < StandInHeight; ++Y)
+    {
+        for (int X = 0; X < StandInWidth; ++X)
+        {
+            const float         T    = static_cast<float>(Y) / static_cast<float>(StandInHeight);
+            const int           Grid = (X % 40 == 0 || Y % 40 == 0) ? 12 : 0;
+            unsigned char*      Texel = &Pixels[(static_cast<size_t>(Y) * StandInWidth + X) * 4u];
+            Texel[0] = static_cast<unsigned char>(22.0f + 30.0f * T + Grid);
+            Texel[1] = static_cast<unsigned char>(26.0f + 34.0f * T + Grid);
+            Texel[2] = static_cast<unsigned char>(38.0f + 40.0f * T + Grid);
+            Texel[3] = 255;
+        }
+    }
+    return Pixels;
+}
+
+// 📝 What a host's presenter does, as far as the editor can tell: it records every request it is given, advances its clock by the seconds the request
+//    carries and answers with an image, an adapter and the readout of the C++ plume's CPU half.
+struct StandInPresenter
+{
+    std::vector<PlumeViewportRequest> Requests;
+    FluidPlumeReadout                 Readout;
+    double                            Clock  = 0.0;   // [s] the interface seconds it was given
+    uint32_t                          Clears = 0;     // [-] requests that asked to empty the lattices
+
+    PlumeViewportImage operator()(const PlumeViewportRequest& Request)
+    {
+        const auto Begin = std::chrono::steady_clock::now();
+        Requests.push_back(Request);
+        Clock += Request.Seconds;
+        if (Request.Clear) ++Clears;
+        PlumeViewportImage Image;
+        Image.Texture             = StandInTexture;
+        Image.Extent              = Request.Extent;
+        Image.Adapter             = "Validation stand-in presenter";
+        Image.Readout             = Readout;
+        Image.Solving             = true;
+        Image.RefreshMilliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - Begin).count();
+        return Image;
+    }
+};
+
 struct WindowSession
 {
-    ControlCentrePanel*        Centre    = nullptr;
-    Everest::EverestWorkspace* Workspace = nullptr;
-    int                        Width     = 1920;
-    int                        Height    = 1080;
-    std::function<void()>      AfterNewFrame;   // [-] the keyboard's part of a refresh, between NewFrame and the workspace
-    ImVec2                     Pointer{ -FLT_MAX, -FLT_MAX };   // [px] where the pointer rests; off the window unless a wheel turns
+    ControlCentrePanel*               Centre    = nullptr;
+    Everest::EverestWorkspace*        Workspace = nullptr;
+    int                               Width     = 1920;
+    int                               Height    = 1080;
+    std::function<void()>             AfterNewFrame;                      // [-] the keyboard's part of a refresh, between NewFrame and the workspace
+    ImVec2                            Pointer{ -FLT_MAX, -FLT_MAX };      // [px] where the pointer rests; off the window unless it is being used
+    const std::vector<unsigned char>* StandIn = nullptr;                  // [-] the pixels the stand-in presenter's texture stands for
 
     void Step()
     {
@@ -678,11 +849,9 @@ struct WindowSession
         for (int Index = 0; Index < Count; ++Index) Step();
     }
 
-    // 📝 ImGui names a column's child "<popup>/<name>_<id>"; its id roots the ids of the controls inside.
-    [[nodiscard]] ImGuiWindow* FindColumn(int Column) const
+    // 📝 ImGui names a child "<popup>/<name>_<id>"; its id roots the ids of the controls inside.
+    [[nodiscard]] ImGuiWindow* FindChild(const char* Prefix) const
     {
-        char Prefix[96];
-        std::snprintf(Prefix, sizeof(Prefix), "##FluidPlumeEditorWindow/##FluidPlumeColumn%d_", Column);
         for (ImGuiWindow* Window : GImGui->Windows)
         {
             if ((Window->Active || Window->WasActive) && std::strncmp(Window->Name, Prefix, std::strlen(Prefix)) == 0) return Window;
@@ -690,33 +859,35 @@ struct WindowSession
         return nullptr;
     }
 
-    [[nodiscard]] ImGuiID ResolveItem(int Column, std::initializer_list<const char*> Parts) const
+    [[nodiscard]] ImGuiWindow* FindInspector() const { return FindChild("##FluidPlumeEditorWindow/##PlumeInspector_"); }
+
+    [[nodiscard]] ImGuiID ResolveItem(std::initializer_list<const char*> Parts) const
     {
-        ImGuiWindow* Owner = FindColumn(Column);
-        if (Owner == nullptr) throw std::runtime_error("the editor has no column " + std::to_string(Column));
+        ImGuiWindow* Owner = FindInspector();
+        if (Owner == nullptr) throw std::runtime_error("the editor has no Inspector");
         ImGuiID Id = Owner->ID;
         for (const char* Part : Parts) Id = ImHashStr(Part, 0, Id);
         return Id;
     }
 
-    [[nodiscard]] ImGuiID ResolveSegment(int Column, const char* Row, int Segment) const
+    [[nodiscard]] ImGuiID ResolveSegment(const char* Row, int Segment) const
     {
-        ImGuiWindow* Owner = FindColumn(Column);
-        if (Owner == nullptr) throw std::runtime_error("the editor has no column " + std::to_string(Column));
+        ImGuiWindow* Owner = FindInspector();
+        if (Owner == nullptr) throw std::runtime_error("the editor has no Inspector");
         ImGuiID Id = ImHashStr(Row, 0, Owner->ID);
         Id         = ImHashData(&Segment, sizeof(Segment), Id);
         return ImHashStr("##Choice", 0, Id);
     }
 
-    // 📝 A control used as the keyboard would use it, inside the open window: focused on a refresh in which its key is held (or, for a button, its
-    //    activation), released on the next, then a refresh to settle.
-    void Use(int Column, ImGuiID Item, ImGuiKey Key = ImGuiKey_None)
+    // 📝 A control of the Inspector used as the keyboard would use it: focused on a refresh in which its key is held (or, for a button, its activation),
+    //    released on the next, then a refresh to settle.
+    void Use(ImGuiID Item, ImGuiKey Key = ImGuiKey_None)
     {
         for (int Phase = 0; Phase < 3; ++Phase)
         {
             if (Key != ImGuiKey_None && Phase < 2) ImGui::GetIO().AddKeyEvent(Key, Phase == 0);
-            AfterNewFrame = [this, Column, Item, Key, Phase] {
-                ImGuiWindow* Owner = FindColumn(Column);
+            AfterNewFrame = [this, Item, Key, Phase] {
+                ImGuiWindow* Owner = FindInspector();
                 if (Owner == nullptr || Phase == 2) return;
                 ImGui::FocusWindow(Owner);
                 ImGui::SetFocusID(Item, Owner);
@@ -731,32 +902,77 @@ struct WindowSession
         AfterNewFrame = nullptr;
     }
 
-    // 📝 The wheel turned Notches clicks over a column: the pointer rests on it, the column scrolls, the pointer leaves again.
-    void Scroll(int Column, int Notches)
+    // 📝 The pointer used on the window: it arrives and hovers (a refresh), presses (a refresh), releases (a refresh) and leaves.
+    void Click(ImVec2 At)
     {
-        ImGuiWindow* Owner = FindColumn(Column);
-        if (Owner == nullptr) throw std::runtime_error("the editor has no column " + std::to_string(Column));
-        Pointer = ImVec2(Owner->Pos.x + 0.5f * Owner->Size.x, Owner->Pos.y + 0.5f * Owner->Size.y);
+        Pointer = At;
         Step();
-        for (int Index = 0; Index < Notches; ++Index)
+        ImGui::GetIO().AddMouseButtonEvent(0, true);
+        Step();
+        ImGui::GetIO().AddMouseButtonEvent(0, false);
+        Step();
+        Pointer = ImVec2(-FLT_MAX, -FLT_MAX);
+        Step();
+    }
+
+    [[nodiscard]] static ImVec2 ResolveMiddle(const FluidPlumeControlRectangle& Control)
+    {
+        return ImVec2((Control.Minimum.x + Control.Maximum.x) * 0.5f, (Control.Minimum.y + Control.Maximum.y) * 0.5f);
+    }
+
+    // 📝 A control the editor laid out, pressed where it lies on the screen.
+    void Click(std::string_view Name)
+    {
+        const FluidPlumeControlRectangle* Control = FluidPlumeEditor::AccessWorkspace()->FindControl(Name);
+        if (Control == nullptr) throw std::runtime_error("the editor has no control `" + std::string(Name) + "`");
+        Click(ResolveMiddle(*Control));
+    }
+
+    // 📝 The pointer pressed at From, moved by Delta while held, and released.
+    void Drag(ImVec2 From, ImVec2 Delta)
+    {
+        Pointer = From;
+        Step();
+        ImGui::GetIO().AddMouseButtonEvent(0, true);
+        Step();
+        Pointer = ImVec2(From.x + Delta.x, From.y + Delta.y);
+        Step();
+        ImGui::GetIO().AddMouseButtonEvent(0, false);
+        Step();
+        Pointer = ImVec2(-FLT_MAX, -FLT_MAX);
+        Step();
+    }
+
+    // 📝 The wheel turned Notches clicks (positive: away from the user) with the pointer resting at At.
+    void Wheel(ImVec2 At, int Notches)
+    {
+        Pointer = At;
+        Step();
+        for (int Index = 0; Index < std::abs(Notches); ++Index)
         {
-            ImGui::GetIO().AddMouseWheelEvent(0.0f, Notches > 0 ? -1.0f : 1.0f);
+            ImGui::GetIO().AddMouseWheelEvent(0.0f, Notches > 0 ? 1.0f : -1.0f);
             Step();
         }
         Pointer = ImVec2(-FLT_MAX, -FLT_MAX);
-        Tick(14);   // [-] the column eases its offset back to its own end after the last click
+        Step();
     }
 
-    // 📝 Whether an instrument lies wholly inside one column's visible rectangle, as a user would see it.
-    [[nodiscard]] bool QueryVisible(const InkReading& Ink) const
+    // 📝 A key pressed and released, with Control held when asked.
+    void Key(ImGuiKey Pressed, bool Control = false)
     {
-        for (int Column = 0; Column < 4; ++Column)
-        {
-            const ImGuiWindow* Owner = FindColumn(Column);
-            if (Owner == nullptr) continue;
-            if (Ink.Left >= Owner->Pos.x && Ink.Right <= Owner->Pos.x + Owner->Size.x && Ink.Top >= Owner->Pos.y && Ink.Bottom <= Owner->Pos.y + Owner->Size.y) return true;
-        }
-        return false;
+        if (Control) ImGui::GetIO().AddKeyEvent(ImGuiMod_Ctrl, true);
+        ImGui::GetIO().AddKeyEvent(Pressed, true);
+        Step();
+        ImGui::GetIO().AddKeyEvent(Pressed, false);
+        if (Control) ImGui::GetIO().AddKeyEvent(ImGuiMod_Ctrl, false);
+        Step();
+    }
+
+    void Type(const char* Text)
+    {
+        ImGui::GetIO().AddInputCharactersUTF8(Text);
+        Step();
+        Step();
     }
 
     // 📝 A capture is of the window at rest: the keyboard focus ring of the last control used is hidden, as a mouse click hides it.
@@ -775,7 +991,7 @@ struct WindowSession
         const ImGuiID Item = ImHashStr(Name, 0, Popup->ID);
         for (int Phase = 0; Phase < 2; ++Phase)
         {
-            AfterNewFrame = [this, Popup, Item, Phase] {
+            AfterNewFrame = [Popup, Item, Phase] {
                 if (Phase != 0) return;
                 ImGui::FocusWindow(Popup);
                 ImGui::SetFocusID(Item, Popup);
@@ -789,6 +1005,10 @@ struct WindowSession
 
     [[nodiscard]] std::vector<unsigned char> Rasterize() const
     {
+        const std::function<FrontierExhibit::Image(ImTextureID)> Textures = [this](ImTextureID Id) -> FrontierExhibit::Image {
+            if (Id == StandInTexture && StandIn != nullptr) return { StandIn->data(), StandInWidth, StandInHeight, 4 };
+            return {};
+        };
         const ImDrawData*          Submitted = ImGui::GetDrawData();
         std::vector<unsigned char> Pixels(static_cast<size_t>(Width) * Height * 3u, 14u);
         for (const ImDrawList* List : Submitted->CmdLists)
@@ -797,7 +1017,7 @@ struct WindowSession
             {
                 if (!std::isfinite(Vertex.pos.x) || !std::isfinite(Vertex.pos.y)) throw std::runtime_error("a non-finite UI vertex");
             }
-            FrontierExhibit::RasterizeCommands(List, Pixels.data(), Width, Height, Submitted->DisplayPos, Submitted->FramebufferScale);
+            FrontierExhibit::RasterizeCommands(List, Pixels.data(), Width, Height, Submitted->DisplayPos, Submitted->FramebufferScale, nullptr, &Textures);
         }
         return Pixels;
     }
@@ -809,18 +1029,26 @@ void ValidateWindow(ControlCentrePanel& Centre, const std::filesystem::path& Eve
     WindowSession             Session;
     Session.Centre    = &Centre;
     Session.Workspace = &Workspace;
+    const std::vector<unsigned char> StandIn = ConstructStandIn();
+    Session.StandIn                          = &StandIn;
+    InspectorRuntime& Runtime                = InspectorRuntime::Instance();
+    Runtime.RegisterPlumeViewportPresenter({});
+    FluidPlumeEditor::RevokeReadout();
 
-    // 📝 A FluidPlume record as the Construct dialog adds one, selected, and its editor opened as the Inspector's Plume Editor button opens it.
+    // 📝 A FluidPlume record as the Construct dialog adds one, selected, and its editor opened as the Inspector's Plume Editor button opens it. No
+    //    presenter is registered yet: the window opens as it does where there is no Vulkan device.
     WorldSpace&       World = Workspace.QueryWorldSpace();
     const RecordToken Token = World.ConstructRecord("FluidPlume", "Smoke and fire");
     Verify(Token.IsValid(), "The workspace constructs a FluidPlume record");
     Workspace.QueryOutliner().Select(Token);
     FluidPlumeConfiguration& Plume = AccessPlume(World, Token).AccessConfiguration();
-    FluidPlumeEditor::RevokeReadout();
-    Verify(InspectorRuntime::Instance().RequestEditorOpen(Token), "The FluidPlume record has an editor");
-    Session.Tick(3);
-    Verify(InspectorRuntime::Instance().QueryActiveEditorToken() == Token, "The Smoke & fire editor is the active editor");
-    Verify(ImGui::FindWindowByName("##FluidPlumeEditorWindow") != nullptr && Session.FindColumn(3) != nullptr, "The editor is a modal window with four columns on 1920 px");
+    Verify(Runtime.RequestEditorOpen(Token), "The FluidPlume record has an editor");
+    Session.Tick(4);
+    Verify(Runtime.QueryActiveEditorToken() == Token, "The Smoke & fire editor is the active editor");
+    FluidPlumeEditorWorkspace* Editor = FluidPlumeEditor::AccessWorkspace();
+    Verify(Editor != nullptr && Editor->QueryRecord() == &Plume, "The window's workspace edits the record's own configuration, not a copy");
+    if (Editor == nullptr) throw std::runtime_error("the Smoke & fire editor has no workspace");
+    const float Scale = Runtime.ResolveInterfaceScale();
 
     const auto WriteWindow = [&](const std::string& Name, const char* Claim) {
         Session.Settle();
@@ -829,103 +1057,430 @@ void ValidateWindow(ControlCentrePanel& Centre, const std::filesystem::path& Eve
         Verify(stbi_write_png(Target.string().c_str(), Session.Width, Session.Height, 3, Pixels.data(), Session.Width * 3) != 0, std::string(Claim) + " (" + Target.filename().string() + ")");
         return Pixels;
     };
-    // 📝 Both instruments in what the window submits, bands and strokes in order; Visible says whether each must lie within a column's visible rectangle
-    //    (on the wide window every card is in view; on the narrow one the Fire card is below the fold until the column is scrolled).
-    const auto ExpectInstruments = [&](const std::string& Name, bool StripVisible = true) {
-        const InkReading Strip  = FindStrip(ImGui::GetDrawData(), Plume.Gas);
+    const auto LogHas = [&](std::string_view Category, std::string_view Words) {
+        for (const FluidPlumeLogLine& Line : Editor->QueryLog())
+        {
+            if (Line.Category == Category && (Line.Text + " " + Line.Detail).find(Words) != std::string::npos) return true;
+        }
+        return false;
+    };
+    // 📝 The instruments in what the window submits, bands and strokes in order, each within the Inspector's visible rectangle: the decay curves belong to
+    //    the Simulation page and the blackbody strip to the Fire page.
+    const auto InsideInspector = [&](const InkReading& Ink) {
+        const ImGuiWindow* Inspector = Session.FindInspector();
+        return Inspector != nullptr && Ink.Left >= Inspector->Pos.x && Ink.Right <= Inspector->Pos.x + Inspector->Size.x && Ink.Top >= Inspector->Pos.y && Ink.Bottom <= Inspector->Pos.y + Inspector->Size.y;
+    };
+    const auto ExpectCurves = [&](const std::string& Name) {
         const InkReading Curves = FindCurves(ImGui::GetDrawData(), Plume.Gas);
-        Verify(Strip.Found && Strip.Right - Strip.Left > 250.0f, Name + ": the Fire card's blackbody strip is submitted, bands in order");
-        Verify(Strip.Found && Session.QueryVisible(Strip) == StripVisible, Name + ": the strip is " + (StripVisible ? "in view" : "below the fold"));
-        Verify(Curves.Found && Session.QueryVisible(Curves), Name + ": the Simulation card's decay curves are submitted, grid then density then heat, and in view");
+        Verify(Curves.Found && InsideInspector(Curves), Name + ": the Simulation page's decay curves are submitted, grid then density then heat, in view");
+    };
+    const auto ExpectStrip = [&](const std::string& Name) {
+        const InkReading Strip = FindStrip(ImGui::GetDrawData(), Plume.Gas);
+        Verify(Strip.Found && Strip.Right - Strip.Left > 250.0f && InsideInspector(Strip), Name + ": the Fire page's blackbody strip is submitted, bands in order, in view");
     };
 
-    // ① The window as it opens: the defaults, no solver attached; four columns on 1920 px.
-    Session.Tick(3);
-    const std::vector<unsigned char> Opening = WriteWindow("SmokeAndFireEditor-Opening", "The editor as it opens, no solver attached");
-    ExpectInstruments("Opening");
-    for (int Column = 0; Column < 4; ++Column)
-        Verify(Session.FindColumn(Column) != nullptr && Session.FindColumn(Column)->ScrollMax.y <= 0.5f, "Opening: column " + std::to_string(Column) + " holds its cards without scrolling");
-    Verify(FluidPlumeEditor::QueryReadout() == nullptr, "Opening: no readout is attached, so the cards say `no solver`");
+    // ① The window as it opens: Domain selected, the defaults, no solver and no device.
+    constexpr const char* Tokens[FluidPlumePageCount] = { "Domain", "Sources", "Emitter", "Simulation", "Appearance", "Fire" };
+    Verify(Runtime.QueryPlumeViewportPresenter() == nullptr, "Opening: no presenter is registered");
+    ImGuiWindow* Popup = ImGui::FindWindowByName("##FluidPlumeEditorWindow");
+    Verify(Popup != nullptr && Session.FindInspector() != nullptr && Session.FindChild("##FluidPlumeEditorWindow/##PlumeOutlinerList_") != nullptr,
+           "Opening: the editor is a modal window with an Outliner list and an Inspector child");
+    for (const char* Row : Tokens) Verify(Editor->FindControl(std::string("row:") + Row) != nullptr, std::string("Opening: the Outliner lists ") + Row);
+    for (const char* Name : { "library", "library-add", "pause", "clear", "emitter:0", "emitter:1", "emitter:2", "orbit", "eye:Domain", "eye:Emitter" })
+        Verify(Editor->FindControl(Name) != nullptr, std::string("Opening: the window lays out `") + Name + "`");
+    Verify(Editor->QuerySelected() == "Domain" && Editor->QueryLibraryShown() == false, "Opening: the Domain is selected and the libraries are shut");
+    {
+        // 📝 The Particle editor's proportions: the Outliner 292 px, the Inspector 404 px, the stage between them.
+        const FluidPlumeControlRectangle* Row       = Editor->FindControl("row:Domain");
+        const ImGuiWindow*                Inspector = Session.FindInspector();
+        const auto                        Stage     = Editor->QueryStage();
+        Verify(Row != nullptr && std::fabs((Row->Maximum.x - Row->Minimum.x) - 268.0f * Scale) < 2.0f, "Opening: an Outliner row is the 292 px column less its margins, 268 px");
+        Verify(Inspector != nullptr && std::fabs(Inspector->Size.x - (404.0f * Scale - 2.0f)) < 1.5f, "Opening: the Inspector is 404 px wide (within its border)");
+        Verify(Row != nullptr && Inspector != nullptr && Stage[0].x > Row->Maximum.x && Stage[1].x < Inspector->Pos.x, "Opening: the stage lies between the Outliner and the Inspector");
+        Verify(Stage[1].x - Stage[0].x > 500.0f * Scale && Stage[1].y - Stage[0].y > 400.0f * Scale, "Opening: the stage is " + std::to_string(Stage[1].x - Stage[0].x) + " × " + std::to_string(Stage[1].y - Stage[0].y) + " px");
+    }
+    Verify(Editor->QueryImage().Texture == 0 && Editor->QueryImage().Failure == "The plume viewport needs the editor's Vulkan device.", "Opening: with no presenter the stage says why it is empty");
+    Verify(Plume.TestEmitter == 0 && FluidPlumeEditor::QueryReadout() == nullptr, "Opening: with no presenter the emitter stays off and no solver is claimed");
+    Verify(LogHas("PLUME", "Smoke & fire editor") && LogHas("RECORD", "Editing Smoke and fire"), "Opening: the Log Stream opens with the editor and the record it edits");
     Verify(Flatten(Plume.Gas) == Flatten(ConstructGasParameters()), "Opening: the record holds the defaults");
+    const std::vector<unsigned char> Opening = WriteWindow("SmokeAndFireEditor-Opening", "The editor as it opens, no device and no solver");
 
-    // ② The Inferno preset by its button inside the window, the Fire test emitter by its segment, and the live plume's readout (the C++ plume's CPU
-    //    half at refresh 230 of the burnout, the Inferno burst).
+    // ② The Outliner drives the Inspector: each row, pressed with the pointer, shows its page, and a control only that page has answers there and not
+    //    on another page.
+    const GasParameterEntry& Emission = *FindGasParameter("Emission");
+    const auto               Step1    = [&](const char* Key, ImGuiKey Arrow) {
+        const GasParameterEntry& Entry = *FindGasParameter(Key);
+        const double             Was   = Plume.Gas.*(Entry.Field);
+        const std::string        Id    = std::string("PlumeGas") + Key;
+        Session.Use(Session.ResolveItem({ Id.c_str(), "##Track" }), Arrow);
+        return std::pair<double, double>(Was, Plume.Gas.*(Entry.Field));
+    };
+    Session.Click("row:Sources");
+    Verify(Editor->QuerySelected() == "Sources", "Sources row: pressed, it is the selected record");
+    {
+        const auto [Was, Now] = Step1("Emission", ImGuiKey_RightArrow);
+        Verify(Now == Committed(std::min(Was + Emission.Step, Emission.Maximum), Emission) && Now != Was, "Sources page: Emission, moved one step in the window, commits the decimal its figure shows");
+        const auto [FireWas, FireNow] = Step1("FlameIntensity", ImGuiKey_RightArrow);
+        Verify(FireNow == FireWas, "Sources page: a Fire slider is not on it, so the key moves nothing");
+        Plume.Gas = ConstructGasParameters();
+    }
+    Session.Click("row:Emitter");
+    Verify(Editor->QuerySelected() == "Emitter", "Test emitter row: pressed, it is the selected record");
+    Session.Use(Session.ResolveSegment("PlumeTestEmitter", 1));
+    Verify(Plume.TestEmitter == 1, "Test emitter page: the Smoke plume segment, pressed in the window, starts the smoke");
+    Session.Use(Session.ResolveSegment("PlumeTestEmitter", 0));
+    Verify(Plume.TestEmitter == 0, "Test emitter page: Off stops it");
+    Session.Click("row:Simulation");
+    Verify(Editor->QuerySelected() == "Simulation", "Simulation row: pressed, it is the selected record");
+    {
+        const auto [Was, Now] = Step1("Buoyancy", ImGuiKey_RightArrow);
+        Verify(Now > Was, "Simulation page: Buoyancy moves up by a step");
+        const auto [EmissionWas, EmissionNow] = Step1("Emission", ImGuiKey_RightArrow);
+        Verify(EmissionNow == EmissionWas, "Simulation page: Emission is not on it, so the key moves nothing");
+        Plume.Gas = ConstructGasParameters();
+    }
+    Session.Settle();
+    ExpectCurves("Simulation");
+    Session.Click("row:Appearance");
+    Verify(Editor->QuerySelected() == "Appearance", "Appearance row: pressed, it is the selected record");
+    {
+        const auto [Was, Now] = Step1("Density", ImGuiKey_RightArrow);
+        Verify(Now > Was, "Appearance page: Density moves up by a step");
+        Plume.Gas = ConstructGasParameters();
+    }
+    Session.Click("row:Fire");
+    Verify(Editor->QuerySelected() == "Fire", "Fire row: pressed, it is the selected record");
+    {
+        const auto [Was, Now] = Step1("FlameIntensity", ImGuiKey_RightArrow);
+        Verify(Now > Was, "Fire page: Flame intensity moves up by a step");
+        const auto [BuoyancyWas, BuoyancyNow] = Step1("Buoyancy", ImGuiKey_RightArrow);
+        Verify(BuoyancyNow == BuoyancyWas, "Fire page: a Simulation slider is not on it, so the key moves nothing");
+        Plume.Gas = ConstructGasParameters();
+    }
+    ExpectStrip("Fire page");
+    Session.Click("row:Domain");
+    Verify(Editor->QuerySelected() == "Domain", "Domain row: pressed, it is the selected record");
+    Plume.Gas = ApplyGasPreset(PresetNamed("Crosswind"));
+    Session.Tick(2);
+    Session.Use(Session.ResolveItem({ "PlumeDefaults" }));
+    Verify(Flatten(Plume.Gas) == Flatten(ConstructGasParameters()), "Domain page: Defaults, pressed in the window, restores the 33 readings");
+    Verify(LogHas("RECORD", "Defaults restored"), "Domain page: Defaults is in the Log Stream");
+    Verify(!Editor->Perform("select:Nothing") && Editor->QuerySelected() == "Domain", "A verb that names no record is refused and the selection stays");
+
+    // ③ The eyes in the Outliner: the plume's, and the test emitter's.
+    {
+        const uint64_t Revision = Plume.Revision;
+        Session.Click("eye:Domain");
+        Verify(!Plume.Enabled && Plume.Revision > Revision, "Domain eye: pressed, the plume is disabled and the record's revision advances");
+        Verify(LogHas("RECORD", "Plume disabled"), "Domain eye: the Log Stream says so");
+        Session.Click("eye:Domain");
+        Verify(Plume.Enabled, "Domain eye: pressed again, the plume is enabled");
+        Session.Click("eye:Emitter");
+        Verify(Plume.TestEmitter == 1, "Test emitter eye: pressed, the smoke plume starts");
+        Session.Click("eye:Emitter");
+        Verify(Plume.TestEmitter == 0, "Test emitter eye: pressed again, it stops");
+    }
+
+    // ④ The libraries, with the pointer: opened from the Outliner's pill, from the card on the Domain page and from the Outliner's last row; the Looks
+    //    tab with its chips and search; a look applied by its card; Escape and a click outside.
+    const auto& Looks = FluidPlumeLibrary::QueryLooks();
+    Session.Click("library");
+    Verify(Editor->QueryLibraryShown() && Editor->QueryLibraryTab() == "looks" && Editor->QueryLibraryCards() == 6, "Libraries pill: the sheet opens on the Looks tab with six cards");
+    for (const char* Name : { "library-sheet", "library-close", "library-tab:looks", "library-tab:grades", "library-group:All", "library-group:Smoke", "library-group:Fire", "library-group:Wind", "library-search" })
+        Verify(Editor->FindControl(Name) != nullptr, std::string("Libraries: the sheet lays out `") + Name + "`");
+    for (const FluidPlumeLook& Look : Looks) Verify(Editor->FindControl("library-card:" + Look.Identifier) != nullptr, "Libraries: " + Look.Name + " has its card");
+    Verify(Editor->QueryLibraryMarked() == "tyre-smoke", "Libraries: with the defaults held, the Tyre smoke card is the one marked Applied");
+    Session.Click("library-group:Fire");
+    Verify(Editor->QueryLibraryGroup() == "Fire" && Editor->QueryLibraryCards() == 1 && Editor->FindControl("library-card:inferno") != nullptr, "Fire chip: one card, Inferno");
+    Session.Click("library-group:Wind");
+    Verify(Editor->QueryLibraryGroup() == "Wind" && Editor->QueryLibraryCards() == 1 && Editor->FindControl("library-card:crosswind") != nullptr, "Wind chip: one card, Crosswind");
+    Session.Click("library-group:Smoke");
+    Verify(Editor->QueryLibraryCards() == 4, "Smoke chip: four cards");
+    Session.Click("library-group:All");
+    Verify(Editor->QueryLibraryCards() == 6, "All chip: six cards again");
+    Session.Click("library-search");
+    Session.Type("haze");
+    Verify(Editor->QueryLibraryCards() == 1 && Editor->FindControl("library-card:light-haze") != nullptr, "Search `haze`, typed into the field: one card, Light haze");
+    Session.Key(ImGuiKey_A, true);
+    Session.Key(ImGuiKey_Backspace);
+    Verify(Editor->QueryLibraryCards() == 6, "Search emptied with Control-A and Backspace: six cards again");
+    Session.Type("wind");
+    Verify(Editor->QueryLibraryCards() == 2 && Editor->FindControl("library-card:crosswind") != nullptr && Editor->FindControl("library-card:legacy-billows") != nullptr,
+           "Search `wind` finds Crosswind by its name and Legacy billows by the wind speed it lists (" + std::to_string(Editor->QueryLibraryCards()) + " cards)");
+    Session.Type("zz");
+    Verify(Editor->QueryLibraryCards() == 0, "Search `windzz` finds nothing");
+    Session.Key(ImGuiKey_A, true);
+    Session.Key(ImGuiKey_Backspace);
+    Verify(Editor->QueryLibraryCards() == 6, "Search emptied again: six cards");
+    Session.Key(ImGuiKey_Escape);   // [-] the first Escape leaves the field
+    Verify(Editor->QueryLibraryShown(), "Escape in the search field leaves the field and keeps the sheet");
+    {
+        // 📝 A click inside the sheet but on no control changes nothing; a click on the veil outside the sheet closes it.
+        const FluidPlumeControlRectangle* Sheet = Editor->FindControl("library-sheet");
+        Session.Click(ImVec2(Sheet->Minimum.x + 8.0f, Sheet->Minimum.y + 8.0f));
+        Verify(Editor->QueryLibraryShown(), "A click inside the sheet, on no control, keeps it open");
+        const FluidPlumeControlRectangle* Veil = Editor->FindControl("library-veil");
+        Session.Click(ImVec2(Veil->Minimum.x + 6.0f, Veil->Maximum.y - 6.0f));
+        Verify(!Editor->QueryLibraryShown(), "A click on the veil outside the sheet closes it");
+    }
+    Session.Click("library-add");
+    Verify(Editor->QueryLibraryShown(), "The Outliner's `Apply a look from the library` row opens the sheet");
+    Session.Click("library-close");
+    Verify(!Editor->QueryLibraryShown(), "Close (Esc) closes the sheet");
+    Session.Use(Session.ResolveItem({ "PlumeOpenLibraries" }));
+    Verify(Editor->QueryLibraryShown(), "The Domain page's `Open the libraries` opens the sheet");
+    {
+        const uint64_t Revision = Plume.Revision;
+        Session.Click("library-card:inferno");
+        Verify(Flatten(Plume.Gas) == Flatten(ApplyGasPreset(PresetNamed("Inferno"))), "Inferno's card, pressed, sets the prototype's Inferno gas");
+        Verify(Plume.Revision > Revision && !Editor->QueryLibraryShown(), "The look advances the record's revision and the sheet closes");
+        Verify(LogHas("LOOK", "Applied Inferno"), "The Log Stream says `Applied Inferno`");
+    }
+    Session.Key(ImGuiKey_L);
+    Verify(Editor->QueryLibraryShown() && Editor->QueryLibraryMarked() == "inferno", "L opens the sheet again, and the card marked Applied is Inferno's");
+    Session.Click("library-tab:grades");
+    Verify(Editor->QueryLibraryTab() == "grades" && Editor->QueryLibraryCards() == 4, "Grades tab: four cards");
+    for (const char* Grade : { "Low", "Medium", "High", "Ultra" }) Verify(Editor->FindControl(std::string("library-grade:") + Grade) != nullptr, std::string("Grades: ") + Grade + " has its card");
+    Verify(Editor->QueryLibraryMarked().empty(), "Grades: with no solver attached, no grade is marked in use");
+    {
+        const std::vector<double> Before = Flatten(Plume.Gas);
+        Session.Click("library-grade:Low");
+        Verify(Editor->QueryLibraryShown() && Editor->QueryLibraryTab() == "grades" && Flatten(Plume.Gas) == Before, "A grade card is read-only: the sheet stays and no reading moves");
+    }
     const FluidPlumeReadout Inferno = ReadSolver(230, "high", 2);
     Verify(Inferno.Resident && Inferno.Sources > 0 && Inferno.Ticks > 0,
            "The plume's CPU half is resident with sources and steps at refresh 230 (resident " + std::to_string(Inferno.Resident) + ", sources " + std::to_string(Inferno.Sources) +
                ", steps " + std::to_string(Inferno.Ticks) + ", relocations " + std::to_string(Inferno.Relocations) + ")");
     FluidPlumeEditor::AssignReadout(Inferno);
-    Verify(FluidPlumeEditor::QueryReadout() != nullptr && FluidPlumeEditor::QueryReadout()->Ticks == Inferno.Ticks, "The host's readout reaches the editor");
-    Session.Use(3, Session.ResolveItem(3, { "PlumePreset3" }));
-    Verify(Flatten(Plume.Gas) == Flatten(ApplyGasPreset(PresetNamed("Inferno"))), "The Inferno button, pressed in the window, sets the prototype's Inferno gas");
-    Session.Use(0, Session.ResolveSegment(0, "PlumeTestEmitter", 2));
-    Verify(Plume.TestEmitter == 2, "The Fire segment of the Test emitter, pressed in the window, selects the fire");
-    Session.Tick(3);
-    const std::vector<unsigned char> InfernoWindow = WriteWindow("SmokeAndFireEditor-Inferno-live", "The Inferno preset with the live plume's readout");
-    ExpectInstruments("Inferno");
-    Verify(InfernoWindow != Opening, "The Inferno window differs from the opening window");
+    Session.Tick(2);
+    Verify(FluidPlumeEditor::QueryReadout() != nullptr && FluidPlumeEditor::QueryReadout()->Ticks == Inferno.Ticks, "A host's readout, assigned without a presenter, reaches the editor");
+    Verify(Editor->QueryLibraryMarked() == "High", "Grades: with the readout at grade 2, the High card is marked in use");
+    Session.Click("library-search");
+    Session.Type("ultra");
+    Verify(Editor->QueryLibraryCards() == 1 && Editor->FindControl("library-grade:Ultra") != nullptr, "Search `ultra` on the Grades tab: one card");
+    Session.Key(ImGuiKey_A, true);
+    Session.Key(ImGuiKey_Backspace);
+    Session.Key(ImGuiKey_Escape);
+    Verify(Editor->QueryLibraryCards() == 4, "Search emptied: four grade cards");
+    const std::vector<unsigned char> GradesSheet = WriteWindow("SmokeAndFireEditor-Libraries-grades", "The libraries, Grades tab, with a host's readout: High marked in use");
+    Session.Click("library-tab:looks");
+    Verify(Editor->QueryLibraryTab() == "looks" && Editor->QueryLibraryCards() == 6 && Editor->QueryLibraryMarked() == "inferno", "Looks tab again: six cards, Inferno marked");
+    const std::vector<unsigned char> LooksSheet = WriteWindow("SmokeAndFireEditor-Libraries-looks", "The libraries, Looks tab, with Inferno applied");
+    Verify(LooksSheet != GradesSheet && LooksSheet != Opening, "The two sheets differ from each other and from the opening window");
+    Session.Key(ImGuiKey_Escape);
+    Verify(!Editor->QueryLibraryShown(), "Escape closes the sheet");
+    Verify(Editor->Perform("library:on") && Editor->QueryLibraryShown() && Editor->Perform("library:off") && !Editor->QueryLibraryShown(), "The library verbs open and shut the sheet");
+    Verify(!Editor->Perform("library-tab:nothing") && !Editor->Perform("look:nothing") && !Editor->Perform("nonsense"), "Verbs that name nothing are refused");
 
-    // ③ A slider in the window: Emission, one step right, to the decimal the figure shows.
-    const GasParameterEntry& Emission = *FindGasParameter("Emission");
-    const double             Before   = Plume.Gas.Emission;
-    Session.Use(0, Session.ResolveItem(0, { "PlumeGasEmission", "##Track" }), ImGuiKey_RightArrow);
-    Verify(Plume.Gas.Emission == Committed(std::min(Before + Emission.Step, Emission.Maximum), Emission) && Plume.Gas.Emission != Before,
-           "Emission, moved one step in the window, commits the decimal the figure shows");
-
-    // ④ The Crosswind preset on the readout of refresh 300.
-    FluidPlumeEditor::AssignReadout(ReadSolver(300, "high", 2));
-    Session.Use(3, Session.ResolveItem(3, { "PlumePreset4" }));
-    Verify(Flatten(Plume.Gas) == Flatten(ApplyGasPreset(PresetNamed("Crosswind"))), "The Crosswind button sets the prototype's Crosswind gas");
-    Session.Use(0, Session.ResolveSegment(0, "PlumeTestEmitter", 0));
-    Verify(Plume.TestEmitter == 0, "The Off segment ends the test emitter");
-    Session.Tick(3);
-    WriteWindow("SmokeAndFireEditor-Crosswind-live", "The Crosswind preset with the live plume's readout");
-    ExpectInstruments("Crosswind");
-
-    // ⑤ Clear smoke reaches the host as a request, once.
-    Verify(FluidPlumeEditor::TakeRequests().empty(), "No request is pending before Clear smoke");
-    Session.Use(0, Session.ResolveItem(0, { "PlumeClearSmoke" }));
-    const std::vector<std::string> Requests = FluidPlumeEditor::TakeRequests();
-    Verify(Requests.size() == 1 && Requests[0] == "clear-smoke", "Clear smoke in the window reaches the host as `clear-smoke`");
-    Verify(FluidPlumeEditor::TakeRequests().empty(), "The host takes a request once");
-
-    // ⑥ Defaults, then a narrower window (three columns) on the Medium grade: every card still has its place.
-    Session.Use(0, Session.ResolveItem(0, { "PlumeDefaults" }));
-    Verify(Flatten(Plume.Gas) == Flatten(ConstructGasParameters()), "Defaults, pressed in the window, restores the 33 readings");
-    FluidPlumeEditor::AssignReadout(ReadSolver(120, "medium", 1));
-    Session.Width  = 1366;
-    Session.Height = 800;
-    Session.Tick(4);
-    Verify(Session.FindColumn(2) != nullptr && Session.FindColumn(3) == nullptr, "On 1366 px the editor has three columns");
-    WriteWindow("SmokeAndFireEditor-Narrow-medium", "The editor on a 1366 px window at the Medium grade");
-    ExpectInstruments("Narrow", false);
-
-    // 📝 The third column (Appearance, then Fire) outgrows its window: it starts at the top and the wheel scrolls it to the end, which brings the Fire
-    //    card and its strip into view.
+    // ⑤ The keyboard on the window.
+    Session.Click("row:Fire");
+    Plume.TestEmitter = 0;
+    Session.Key(ImGuiKey_E);
+    Verify(Plume.TestEmitter == 1, "E turns the test emitter on (smoke)");
+    Session.Key(ImGuiKey_E);
+    Verify(Plume.TestEmitter == 2, "E again: fire");
+    Session.Key(ImGuiKey_E);
+    Verify(Plume.TestEmitter == 0, "E again: off");
+    Verify(LogHas("EMITTER", "Test emitter: Fire"), "The Log Stream names the emitter's states");
+    Session.Key(ImGuiKey_Space);
+    Verify(!Editor->QueryPlaying(), "Space pauses the stage");
+    Session.Key(ImGuiKey_Space);
+    Verify(Editor->QueryPlaying(), "Space plays it again");
     {
-        const ImGuiWindow* Last = Session.FindColumn(2);
-        Verify(Last != nullptr && Last->ScrollMax.y > 100.0f && Last->Scroll.y == 0.0f, "Narrow: the third column is taller than its window and rests at its top");
-        Session.Scroll(2, 60);
-        Last = Session.FindColumn(2);
-        Verify(Last != nullptr && Last->Scroll.y > 100.0f && Last->Scroll.y >= Last->ScrollMax.y - 1.0f,
-               "Narrow: the wheel scrolls it to its end (" + std::to_string(Last != nullptr ? Last->Scroll.y : -1.0f) + " of " + std::to_string(Last != nullptr ? Last->ScrollMax.y : -1.0f) + " px)");
-        WriteWindow("SmokeAndFireEditor-Narrow-medium-scrolled", "The third column scrolled to its end: the Fire card and Presets");
-        ExpectInstruments("Narrow, scrolled");
+        Verify(FluidPlumeEditor::TakeRequests().empty(), "No request is pending before Clear smoke");
+        Session.Key(ImGuiKey_C);
+        const std::vector<std::string> Taken = FluidPlumeEditor::TakeRequests();
+        Verify(Taken.size() == 1 && Taken[0] == "clear-smoke", "C raises `clear-smoke` for a host without a presenter");
+        Verify(FluidPlumeEditor::TakeRequests().empty(), "The host takes a request once");
+        Session.Click("clear");
+        Verify(FluidPlumeEditor::TakeRequests().size() == 1 && LogHas("SOLVER", "Smoke cleared"), "The bar's Clear smoke does the same, and the Log Stream says so");
     }
 
-    // ⑦ Close Editor returns to the workspace, which shows the record's own page.
-    Session.Width  = 1920;
-    Session.Height = 1080;
-    Plume.Gas      = ApplyGasPreset(PresetNamed("Inferno"));
-    Plume.AdvanceRevision();
-    FluidPlumeEditor::AssignReadout(Inferno);
-    Session.Tick(2);
+    // ⑥ A presenter: the stand-in is registered, the window closed and opened again. The editor passes it the record's own gas, the emitter, the
+    //    camera and the stage's pixels, and shows what it returns.
+    const uint32_t EmitterBefore = Plume.TestEmitter;
     Session.UseWindowControl("##CloseFluidPlumeEditor");
     Session.Tick(2);
-    Verify(!InspectorRuntime::Instance().QueryActiveEditorToken().IsValid(), "Close Editor returns to the workspace");
-    Verify(Session.FindColumn(0) == nullptr && GImGui->OpenPopupStack.Size == 0, "The editor window is gone: no column is submitted and no popup is open");
+    Verify(!Runtime.QueryActiveEditorToken().IsValid() && Editor->QueryRecord() == nullptr, "Close Editor closes the window and lets the record go");
+    Verify(Plume.TestEmitter == EmitterBefore, "The record leaves as it came: the test emitter is what it was when the window opened");
+    StandInPresenter Presenter;
+    Presenter.Readout = Inferno;
+    Runtime.RegisterPlumeViewportPresenter([&Presenter](const PlumeViewportRequest& Request) { return Presenter(Request); });
+    FluidPlumeEditor::RevokeReadout();
+    Verify(Runtime.RequestEditorOpen(Token), "The editor opens again");
+    Session.Tick(4);
+    Verify(Editor->QueryRecord() == &Plume && Plume.TestEmitter == 1, "With a presenter the window opens with the smoke plume running, so the readings can be judged as they are edited");
+    Verify(LogHas("EMITTER", "on while the editor is open"), "The Log Stream says the emitter was switched on for the window");
+    Verify(Presenter.Requests.size() >= 3, "The presenter is asked on every refresh (" + std::to_string(Presenter.Requests.size()) + " requests in four refreshes)");
+    {
+        const PlumeViewportRequest& Last  = Presenter.Requests.back();
+        const auto                  Stage = Editor->QueryStage();
+        Verify(Last.Gas == &Plume.Gas, "The request carries the record's own gas, by pointer: an edit reaches the host on the next refresh");
+        Verify(Last.Enabled == Plume.Enabled && Last.TestEmitter == 1, "The request carries the plume's switch and the emitter");
+        Verify(std::fabs(static_cast<double>(Last.Extent[0]) - (Stage[1].x - Stage[0].x)) <= 1.0 && std::fabs(static_cast<double>(Last.Extent[1]) - (Stage[1].y - Stage[0].y)) <= 1.0,
+               "The request asks for the stage's pixels: " + std::to_string(Last.Extent[0]) + " × " + std::to_string(Last.Extent[1]));
+        Verify(std::fabs(Last.Seconds - 1.0 / 30.0) < 1.0e-6 && !Last.Clear, "The request carries the interface's 1/30 s (ImGui's float delta, " + std::to_string(Last.Seconds) + ") and no clear");
+        const auto Camera = Editor->QueryCamera();
+        Verify(Last.Yaw == Camera[0] && Last.Pitch == Camera[1] && Last.Distance == Camera[2], "The request carries the camera");
+        Verify(Editor->QueryImage().Texture == StandInTexture && Editor->QueryImage().Adapter == "Validation stand-in presenter", "The window shows the presenter's image and names its adapter");
+        Verify(FluidPlumeEditor::QueryReadout() != nullptr && FluidPlumeEditor::QueryReadout()->Ticks == Inferno.Ticks && FluidPlumeEditor::QueryReadout()->Sources == Inferno.Sources,
+               "The presenter's readout is the editor's readout: the Outliner, the HUD and the header read the solver it names");
+        Verify(LogHas("PLUME", "Vulkan ready"), "The Log Stream says the device is ready, once");
+    }
+    {
+        // 📝 Pause: the presenter is still asked (the picture follows the camera and the readings) but is given no time. Play gives it time again.
+        const double Before = Presenter.Clock;
+        Session.Click("pause");
+        Verify(!Editor->QueryPlaying(), "Pause: the stage is paused");
+        Session.Tick(3);
+        Verify(Presenter.Requests.back().Seconds == 0.0 && Presenter.Clock >= Before, "Paused: the request carries no seconds");
+        const double Held = Presenter.Clock;
+        Session.Tick(3);
+        Verify(Presenter.Clock == Held, "Paused: the presenter's clock stands still over three refreshes");
+        Session.Click("pause");
+        Verify(Editor->QueryPlaying(), "Play: the stage runs");
+        Session.Tick(3);
+        Verify(Presenter.Clock > Held + 0.05, "Playing: the presenter's clock advances again");
+    }
+    {
+        // 📝 Clear smoke reaches the presenter exactly once, on the next refresh, and does not queue for a host without one.
+        const uint32_t Before = Presenter.Clears;
+        const size_t   Asked  = Presenter.Requests.size();
+        Session.Click("clear");
+        Session.Tick(3);
+        Verify(Presenter.Clears == Before + 1, "Clear smoke: the presenter is asked to clear once (" + std::to_string(Presenter.Clears - Before) + ")");
+        size_t Cleared = 0;
+        for (size_t Index = Asked; Index < Presenter.Requests.size(); ++Index) Cleared += Presenter.Requests[Index].Clear ? 1u : 0u;
+        Verify(Cleared == 1 && !Presenter.Requests.back().Clear, "Clear smoke: exactly one request carries the clear, and later refreshes do not clear again");
+        Session.Key(ImGuiKey_C);
+        Session.Tick(2);
+        Verify(Presenter.Clears == Before + 2, "C clears through the presenter too");
+        Verify(FluidPlumeEditor::TakeRequests().empty(), "With a presenter the clear goes through it: nothing is queued for a host to take twice");
+    }
+    {
+        // 📝 The bar's emitter pills and the eye reach the next request.
+        Session.Click("emitter:2");
+        Session.Tick(2);
+        Verify(Plume.TestEmitter == 2 && Presenter.Requests.back().TestEmitter == 2, "The Fire pill: the record and the next request say fire");
+        Session.Click("emitter:0");
+        Session.Tick(2);
+        Verify(Plume.TestEmitter == 0 && Presenter.Requests.back().TestEmitter == 0, "The Off pill: the record and the next request say off");
+        Session.Click("emitter:1");
+        Session.Tick(2);
+        Verify(Plume.TestEmitter == 1 && Presenter.Requests.back().TestEmitter == 1, "The Smoke pill: the record and the next request say smoke");
+        Session.Click("eye:Domain");
+        Session.Tick(2);
+        Verify(!Plume.Enabled && !Presenter.Requests.back().Enabled, "The Domain eye: the next request says the plume is disabled");
+        Session.Click("eye:Domain");
+        Session.Tick(2);
+        Verify(Plume.Enabled && Presenter.Requests.back().Enabled, "The Domain eye: and enabled again");
+    }
+    {
+        // 📝 Orbit and zoom: a drag over the stage turns the camera (yaw 0.006 rad per pixel, pitch likewise), the wheel zooms by a tenth per notch.
+        const auto   Start  = Editor->QueryCamera();
+        const auto   Stage  = Editor->QueryStage();
+        const ImVec2 Middle((Stage[0].x + Stage[1].x) * 0.5f, (Stage[0].y + Stage[1].y) * 0.5f);
+        Session.Drag(Middle, ImVec2(60.0f, 20.0f));
+        const auto Turned = Editor->QueryCamera();
+        Verify(std::fabs((Turned[0] - Start[0]) - (-60.0 * 0.006)) < 1.0e-6 && std::fabs((Turned[1] - Start[1]) - (20.0 * 0.006)) < 1.0e-6,
+               "Drag by (60, 20) px: yaw " + std::to_string(Turned[0] - Start[0]) + " rad and pitch " + std::to_string(Turned[1] - Start[1]) + " rad, as the bar's hint says");
+        Verify(Turned[2] == Start[2], "Drag: the distance is unchanged");
+        Session.Tick(1);
+        Verify(Presenter.Requests.back().Yaw == Turned[0] && Presenter.Requests.back().Pitch == Turned[1], "The next request carries the turned camera");
+        Session.Wheel(Middle, 3);
+        const auto Zoomed = Editor->QueryCamera();
+        Verify(std::fabs(Zoomed[2] - Turned[2] * std::exp(-0.3)) < 1.0e-6, "Three wheel notches: the distance is " + std::to_string(Zoomed[2]) + " m (" + std::to_string(Turned[2]) + " × e^-0.3)");
+        Verify(Editor->Perform("camera:0.5,0.3,20") && Editor->QueryCamera()[0] == 0.5 && Editor->QueryCamera()[1] == 0.3 && Editor->QueryCamera()[2] == 20.0, "The camera verb sets yaw, pitch and distance");
+        Verify(Editor->Perform("camera:0,5,500") && Editor->QueryCamera()[1] == 1.5 && Editor->QueryCamera()[2] == 40.0, "The camera verb clamps pitch to 1.5 rad and distance to 40 m");
+        Verify(Editor->Perform("camera:0.3,0.22,11"), "The camera returns to its opening view");
+    }
+    {
+        // 📝 An edit made in the window reaches the host on the next refresh without any copying: Inferno, by its card, then a slider.
+        Session.Click("library");
+        Session.Click("library-card:inferno");
+        Session.Tick(2);
+        Verify(Presenter.Requests.back().Gas == &Plume.Gas && Flatten(*Presenter.Requests.back().Gas) == Flatten(ApplyGasPreset(PresetNamed("Inferno"))), "Inferno applied: the next request's gas is the Inferno gas");
+        Session.Click("row:Fire");
+        const auto [Was, Now] = Step1("FireLight", ImGuiKey_RightArrow);
+        Session.Tick(1);
+        Verify(Now > Was && Presenter.Requests.back().Gas->FireLight == Now, "A Fire slider moved in the window: the next request reads the new Fire light");
+    }
+    Session.Click("emitter:2");
+    Session.Click("row:Fire");
+    Session.Tick(3);
+    ExpectStrip("Live");
+    const std::vector<unsigned char> Live = WriteWindow("SmokeAndFireEditor-Live-standin", "The editor with a presenter, Inferno applied and the fire emitter: a stand-in picture on the stage");
+    Verify(Live != Opening, "The live window differs from the opening window");
+
+    // ⑦ A 1366 × 800 window at the Medium grade: the same layout, the stage smaller, everything inside the window.
+    FluidPlumeEditor::RevokeReadout();
+    Presenter.Readout = ReadSolver(120, "medium", 1);
+    Session.Width     = 1366;
+    Session.Height    = 800;
+    Session.Tick(4);
+    Session.Click("row:Simulation");
+    Session.Tick(3);
+    {
+        const auto         Stage     = Editor->QueryStage();
+        const ImGuiWindow* Inspector = Session.FindInspector();
+        const FluidPlumeControlRectangle* Last = Editor->FindControl("row:Fire");
+        Verify(Inspector != nullptr && Inspector->Pos.x + Inspector->Size.x <= 1366.0f && Stage[1].x < Inspector->Pos.x && Stage[1].y - Stage[0].y > 300.0f,
+               "1366 px: the Inspector is inside the window and the stage keeps " + std::to_string(Stage[1].x - Stage[0].x) + " × " + std::to_string(Stage[1].y - Stage[0].y) + " px");
+        Verify(Last != nullptr && Last->Maximum.y < 800.0f, "1366 px: the Outliner's last row is inside the window");
+        const PlumeViewportRequest& Request = Presenter.Requests.back();
+        Verify(std::fabs(static_cast<double>(Request.Extent[0]) - (Stage[1].x - Stage[0].x)) <= 1.0, "1366 px: the request follows the stage's new width");
+        Verify(Editor->QueryReadout() != nullptr && Editor->QueryReadout()->Grade == 1, "1366 px: the readout is the Medium grade's");
+    }
+    ExpectCurves("Narrow");
+    {
+        // 📝 The bar's controls all lie inside the viewport's column: where it is narrow the bar gives up its words (Pause, Clear smoke, the pill, the title).
+        const auto Stage = Editor->QueryStage();
+        for (const char* Name : { "pause", "clear", "emitter:0", "emitter:1", "emitter:2" })
+        {
+            const FluidPlumeControlRectangle* Control = Editor->FindControl(Name);
+            Verify(Control != nullptr && Control->Minimum.x >= Stage[0].x - 8.0f && Control->Maximum.x <= Stage[1].x, std::string("1366 px: the bar's `") + Name + "` lies inside the viewport's column");
+        }
+    }
+    WriteWindow("SmokeAndFireEditor-Narrow-medium", "The editor on a 1366 px window at the Medium grade, Simulation selected");
+
+    // 📝 The smallest window the editor's own minimum (1100 × 640) allows on a display of 1156 × 720: the centre column is 360 px wide and the bar is all icons.
+    Session.Width  = 1156;
+    Session.Height = 720;
+    Session.Tick(4);
+    {
+        const auto         Stage     = Editor->QueryStage();
+        const ImGuiWindow* Inspector = Session.FindInspector();
+        Verify(Inspector != nullptr && Stage[1].x < Inspector->Pos.x && Stage[1].x - Stage[0].x > 300.0f && Stage[1].x - Stage[0].x < 400.0f,
+               "1156 px: the stage keeps " + std::to_string(Stage[1].x - Stage[0].x) + " × " + std::to_string(Stage[1].y - Stage[0].y) + " px between the Outliner and the Inspector");
+        for (const char* Name : { "pause", "clear", "emitter:0", "emitter:1", "emitter:2" })
+        {
+            const FluidPlumeControlRectangle* Control = Editor->FindControl(Name);
+            Verify(Control != nullptr && Control->Minimum.x >= Stage[0].x - 8.0f && Control->Maximum.x <= Stage[1].x, std::string("1156 px: the bar's `") + Name + "` lies inside the viewport's column");
+        }
+        const FluidPlumeControlRectangle* Last = Editor->FindControl("row:Fire");
+        const ImGuiWindow*                List = Session.FindChild("##FluidPlumeEditorWindow/##PlumeOutlinerList_");
+        Verify(Last != nullptr && List != nullptr && (Last->Maximum.y < 720.0f || List->ScrollMax.y > 0.0f), "1156 px: the Outliner's last row is inside the window, or its list scrolls to it");
+    }
+    WriteWindow("SmokeAndFireEditor-Smallest", "The editor on the smallest window its minimum allows: 1156 × 720, the bar all icons");
+
+    // ⑧ Close Editor returns to the workspace, which shows the record's own page; the record leaves as it came.
+    Session.Width  = 1920;
+    Session.Height = 1080;
+    Presenter.Readout = Inferno;
+    Session.Tick(2);
+    const uint32_t EmitterOpen = Plume.TestEmitter;
+    Verify(EmitterOpen == 2, "Before closing, the emitter is the fire the pills chose");
+    Session.UseWindowControl("##CloseFluidPlumeEditor");
+    Session.Tick(2);
+    Verify(!Runtime.QueryActiveEditorToken().IsValid(), "Close Editor returns to the workspace");
+    Verify(Session.FindInspector() == nullptr && GImGui->OpenPopupStack.Size == 0, "The editor window is gone: no Inspector is submitted and no popup is open");
+    Verify(Plume.TestEmitter == 0, "The record leaves as it came: the test emitter, which the editor turned on when it opened, is off again");
+    Verify(Flatten(Plume.Gas) != Flatten(ConstructGasParameters()), "The edits stay: the gas is still Inferno with the Fire light moved");
+    Verify(!Editor->Perform("defaults") && !Editor->Perform("emitter:fire") && Editor->Perform("pause") && Editor->QueryRecord() == nullptr,
+           "With the window closed, a verb that edits the record is refused and the stage's own verbs still answer");
     const std::vector<unsigned char> Workspace1080 = WriteWindow("Workspace-FluidPlume-selected", "The workspace with the FluidPlume record selected: its page");
     Verify(Workspace1080 != Opening, "The workspace with the record selected differs from the open editor");
+    Runtime.RegisterPlumeViewportPresenter({});
     FluidPlumeEditor::RevokeReadout();
 }
 
@@ -948,6 +1503,7 @@ int main(int ArgumentCount, char** Arguments)
 
         ValidateRecord(Scratch, Fixture);
         ValidateReadouts();
+        ValidateLibrary();
 
         ImGui::CreateContext();
         ImGuiIO& Io    = ImGui::GetIO();
