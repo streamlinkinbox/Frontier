@@ -20,14 +20,18 @@
 
 #include "Engine/Interface/Controls/ControlColumn.h"
 #include "Engine/Interface/Controls/ControlTheme.h"
+#include "Engine/Interface/FluidEditor/FluidEditorControls.h"
+#include "Engine/Interface/FluidEditor/FluidEditorWorkspace.h"
 #include "Engine/Interface/FluidPlumeEditor.h"
 #include "Engine/Interface/FluidPlumeEditor/FluidPlumeEditorWorkspace.h"
 #include "Engine/Interface/FluidPlumeEditor/FluidPlumeLibrary.h"
 #include "Engine/Interface/FluidPlumeEditor/FluidPlumePages.h"
+#include "Engine/Interface/FluidVolumeEditor.h"
 #include "Engine/Interface/IconPresentation.h"
 #include "Engine/Interface/InspectorControls.h"
 #include "Engine/Interface/InspectorRuntime.h"
 #include "Engine/Interface/Inspectors/FluidPlumeInspector.h"
+#include "Engine/Interface/Inspectors/FluidVolumeInspector.h"
 #include "Engine/Interface/SceneDirectoryPanel.h"
 #include "Engine/PhysicalDynamics/FluidDynamics/GasInstrumentProjection.h"
 #include "Engine/PhysicalDynamics/FluidDynamics/GasParameterCatalogue.h"
@@ -1524,6 +1528,90 @@ void ValidateWindow(ControlCentrePanel& Centre, const std::filesystem::path& Eve
     Verify(Workspace1080 != Opening, "The workspace with the record selected differs from the open editor");
     Runtime.RegisterPlumeViewportPresenter({});
     FluidPlumeEditor::RevokeReadout();
+
+    // ⑨ The Fluid editor's way in, taken as the plume's was and with nothing of this test's own: Ctrl+A, a search that leaves one tile, the tile and "Add to scene", the Outliner
+    //    listing the new record selected, and the window its Inspector's button opens (the Fluid editor's own checks are Exhibits/FluidEditor/Code/FluidEditorCapture.cpp). No presenter
+    //    is registered: the window opens as it does where there is no Vulkan device.
+    {
+        Runtime.RegisterFluidViewportPresenter({});
+        FluidVolumeEditor::RevokeReadout();
+        Session.Width  = 1920;
+        Session.Height = 1080;
+        Session.Tick(3);
+        Verify(World.FindFirstByType("FluidVolume") == nullptr, "Fluid Volume: the level holds no FluidVolume record to begin with");
+        size_t Tiles = 0;
+        for (const ConstructCatalogueEntry& Entry : Dialog.QueryCatalogue())
+        {
+            if (Entry.Identifier != "FluidVolume") continue;
+            ++Tiles;
+            Verify(Entry.Caption == "Fluid Volume" && Entry.Group == "Weather" && Entry.Glyph == "Blast" && !Entry.Shape,
+                   "Fluid Volume: the Construct dialog's tile is a record type of the Weather group with the Blast glyph (" + Entry.Caption + ", " + Entry.Group + ", " + Entry.Glyph + ")");
+        }
+        Verify(Tiles == 1, "Fluid Volume: the Construct dialog offers one to add");
+        Verify(!Dialog.QueryOpen(), "Fluid Volume: the Construct dialog is shut");
+        Session.Key(ImGuiKey_A, true);
+        Session.Tick(3);
+        Verify(Dialog.QueryOpen(), "Fluid Volume: Ctrl+A opens the Construct dialog");
+        // 📝 The dialog keeps its search between openings: the field is emptied the way a person empties it, then the words go in.
+        Session.Key(ImGuiKey_A, true);
+        Session.Key(ImGuiKey_Backspace);
+        Session.Type("fluid volume");
+        Session.Tick(2);
+        const ImGuiWindow* VolumeMatrix = Session.FindChild("##ConstructDialog/##ConstructResults");
+        Verify(VolumeMatrix != nullptr, "Fluid Volume: the dialog lays out its matrix of tiles");
+        if (VolumeMatrix == nullptr) throw std::runtime_error("the Construct dialog has no matrix");
+        WriteWindow("FluidVolume-Construct", "The Construct dialog with `fluid volume` in its search: the Fluid Volume tile");
+        Session.Click(ImVec2(VolumeMatrix->Pos.x + 40.0f * Scale, VolumeMatrix->Pos.y + 40.0f * Scale));
+        Session.Tick(2);
+        Session.UseWindowControl("##ConstructAdd", "##ConstructDialog");
+        Session.Tick(4);
+        Verify(!Dialog.QueryOpen(), "Fluid Volume: Add to scene closes the dialog");
+        auto* MadeVolume = dynamic_cast<FluidVolumeRecord*>(World.FindFirstByType("FluidVolume"));
+        Verify(MadeVolume != nullptr, "Fluid Volume: Add to scene adds a FluidVolume record to the level");
+        if (MadeVolume == nullptr) throw std::runtime_error("no FluidVolume record was added");
+        const RecordToken        VolumeToken   = MadeVolume->QueryToken();
+        FluidVolumeConfiguration& Volume       = MadeVolume->AccessConfiguration();
+        int                       Differ       = 0;
+        const FluidEditor::ControlRow* Rail    = FluidEditor::FluidControls();
+        for (uint32_t Index = 0; Index < FluidEditor::FluidControlCount; ++Index)
+        {
+            float Held = 0.0f, Prototype = 0.0f;
+            if (!FluidEditor::ReadSetting(Volume.Gas, Rail[Index].Key, Held) || !FluidEditor::ReadSetting(GasSettings{}, Rail[Index].Key, Prototype) || Held != Prototype) ++Differ;
+        }
+        Verify(MadeVolume->QueryRecordName() == "Fluid Volume" && Volume.Enabled && Volume.Preset.empty() && Differ == 0,
+               "Fluid Volume: the record is named Fluid Volume, enabled, with no preset and all 82 controls at the prototype's opening settings (" + std::to_string(Differ) + " differ)");
+        Verify(Workspace.QueryOutliner().QuerySelected() == VolumeToken, "Fluid Volume: the Outliner selects the new record");
+        {
+            bool Listed = false;
+            for (const auto& Row : Workspace.QueryOutliner().QueryRows()) Listed = Listed || Row.Token == VolumeToken;
+            Verify(Listed, "Fluid Volume: the Outliner lists the new record");
+        }
+        // 📝 The Outliner lists the new record last: scrolled to the end of its list the row shows, selected.
+        Session.Wheel(ImVec2(180.0f * Scale, 600.0f * Scale), -40);
+        Session.Tick(3);
+        WriteWindow("FluidVolume-Inspector", "The workspace with the FluidVolume record selected: its row in the Outliner and its Inspector, with the Fluid Editor button");
+        {
+            FluidVolumeConfiguration Probe;
+            FluidVolumeInspector     Inspector(Probe);
+            Verify(std::string(Inspector.QueryEditorButtonLabel()) == "Fluid Editor", "Fluid Volume: the Inspector's button is labelled Fluid Editor");
+        }
+        // 📝 The Inspector's Fluid Editor button is `RequestEditorOpen` on the selected record (InspectorRuntime.cpp), which refuses a record without an editor.
+        Verify(Runtime.RequestEditorOpen(VolumeToken), "Fluid Volume: the record has an editor");
+        Session.Tick(4);
+        Verify(Runtime.QueryActiveEditorToken() == VolumeToken, "Fluid Volume: the Fluid editor is the active editor");
+        FluidEditorWorkspace* FluidWindow = FluidVolumeEditor::AccessWorkspace();
+        Verify(FluidWindow != nullptr && FluidWindow->QueryRecord() == &Volume, "Fluid Volume: the window's workspace edits the record's own configuration, not a copy");
+        if (FluidWindow == nullptr) throw std::runtime_error("the Fluid editor has no workspace");
+        Verify(ImGui::FindWindowByName("##FluidEditorWindow") != nullptr, "Fluid Volume: the editor is a modal window");
+        for (const char* Name : { "row:Domain", "row:Emitter", "row:Sun", "eye:Domain", "eye:Emitter", "eye:Sun", "library", "restart", "play", "step" })
+            Verify(FluidWindow->FindControl(Name) != nullptr, std::string("Fluid Volume: the window lays out `") + Name + "`");
+        Verify(Runtime.QueryFluidViewportPresenter() == nullptr, "Fluid Volume: no presenter is registered, so the window opens as it does without a device");
+        WriteWindow("FluidVolume-Window", "The Fluid editor opened from the new record's Inspector, with no solver behind its viewport");
+        Session.UseWindowControl("##CloseFluidEditor", "##FluidEditorWindow");
+        Session.Tick(2);
+        Verify(!Runtime.QueryActiveEditorToken().IsValid(), "Fluid Volume: Close Editor returns to the workspace");
+        Verify(FluidWindow->QueryRecord() == nullptr && GImGui->OpenPopupStack.Size == 0, "Fluid Volume: the window lets the record go and no popup is open");
+    }
 }
 
 } // namespace
