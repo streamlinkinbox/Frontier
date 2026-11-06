@@ -193,7 +193,7 @@ int main(int Count, char **Arguments)
             Require(Workspace.QueryOutliner().QueryTotal() == 67,
                     "Outliner lists the fifteen rendered scene entries, the one Render settings component, the 37 scene objects and "
                     "the 14 localized forces under the Force Field");
-            Require(Centre.QueryQuickActionCount() == 3, "Render settings remain available from the Control Centre too");
+            Require(Centre.QueryQuickActionCount() == 4, "Render settings remain available from the Control Centre too (with Projects, Save level and Networking: four quick actions)");
             int RenderSettingsRows = 0;
             for (const auto &Row : Workspace.QueryOutliner().QueryRows())
             {

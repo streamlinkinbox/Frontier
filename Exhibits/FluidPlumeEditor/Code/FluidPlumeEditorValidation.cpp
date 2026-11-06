@@ -983,11 +983,11 @@ struct WindowSession
         AfterNewFrame = nullptr;
     }
 
-    // 📝 The popup's own button (Close Editor).
-    void UseWindowControl(const char* Name)
+    // 📝 A popup's own button as the keyboard uses it: the editor window's Close Editor, or the Construct dialog's Add to scene.
+    void UseWindowControl(const char* Name, const char* PopupName = "##FluidPlumeEditorWindow")
     {
-        ImGuiWindow* Popup = ImGui::FindWindowByName("##FluidPlumeEditorWindow");
-        if (Popup == nullptr) throw std::runtime_error("the editor window is not open");
+        ImGuiWindow* Popup = ImGui::FindWindowByName(PopupName);
+        if (Popup == nullptr) throw std::runtime_error(std::string("the popup ") + PopupName + " is not open");
         const ImGuiID Item = ImHashStr(Name, 0, Popup->ID);
         for (int Phase = 0; Phase < 2; ++Phase)
         {
@@ -1035,21 +1035,6 @@ void ValidateWindow(ControlCentrePanel& Centre, const std::filesystem::path& Eve
     Runtime.RegisterPlumeViewportPresenter({});
     FluidPlumeEditor::RevokeReadout();
 
-    // 📝 A FluidPlume record as the Construct dialog adds one, selected, and its editor opened as the Inspector's Plume Editor button opens it. No
-    //    presenter is registered yet: the window opens as it does where there is no Vulkan device.
-    WorldSpace&       World = Workspace.QueryWorldSpace();
-    const RecordToken Token = World.ConstructRecord("FluidPlume", "Smoke and fire");
-    Verify(Token.IsValid(), "The workspace constructs a FluidPlume record");
-    Workspace.QueryOutliner().Select(Token);
-    FluidPlumeConfiguration& Plume = AccessPlume(World, Token).AccessConfiguration();
-    Verify(Runtime.RequestEditorOpen(Token), "The FluidPlume record has an editor");
-    Session.Tick(4);
-    Verify(Runtime.QueryActiveEditorToken() == Token, "The Smoke & fire editor is the active editor");
-    FluidPlumeEditorWorkspace* Editor = FluidPlumeEditor::AccessWorkspace();
-    Verify(Editor != nullptr && Editor->QueryRecord() == &Plume, "The window's workspace edits the record's own configuration, not a copy");
-    if (Editor == nullptr) throw std::runtime_error("the Smoke & fire editor has no workspace");
-    const float Scale = Runtime.ResolveInterfaceScale();
-
     const auto WriteWindow = [&](const std::string& Name, const char* Claim) {
         Session.Settle();
         const std::vector<unsigned char> Pixels = Session.Rasterize();
@@ -1057,6 +1042,60 @@ void ValidateWindow(ControlCentrePanel& Centre, const std::filesystem::path& Eve
         Verify(stbi_write_png(Target.string().c_str(), Session.Width, Session.Height, 3, Pixels.data(), Session.Width * 3) != 0, std::string(Claim) + " (" + Target.filename().string() + ")");
         return Pixels;
     };
+
+    // 📝 The way in, taken as a person takes it and with nothing of this test's own: the level holds no FluidPlume, Ctrl+A opens the Construct dialog, the
+    //    search for "plume" leaves one tile, the tile and "Add to scene" add the record, and the Outliner lists it, selected. Without this the Plume Editor
+    //    button could never be pressed. No presenter is registered yet: the window opens as it does where there is no Vulkan device.
+    WorldSpace&     World  = Workspace.QueryWorldSpace();
+    ConstructPanel& Dialog = Workspace.QueryConstructDialog();
+    const float     Scale  = Runtime.ResolveInterfaceScale();
+    Session.Tick(3);
+    Verify(World.FindFirstByType("FluidPlume") == nullptr, "The level holds no FluidPlume record to begin with");
+    {
+        size_t Tiles = 0;
+        for (const ConstructCatalogueEntry& Entry : Dialog.QueryCatalogue())
+        {
+            if (Entry.Identifier != "FluidPlume") continue;
+            ++Tiles;
+            Verify(Entry.Caption == "Fluid Plume" && Entry.Group == "Weather" && Entry.Glyph == "Flame" && !Entry.Shape, "The Construct dialog's tile: Fluid Plume, a record type of the Weather group with the Flame glyph");
+        }
+        Verify(Tiles == 1, "The Construct dialog offers a Fluid Plume to add, once");
+    }
+    Verify(!Dialog.QueryOpen(), "The Construct dialog is shut");
+    Session.Key(ImGuiKey_A, true);
+    Session.Tick(3);
+    Verify(Dialog.QueryOpen(), "Ctrl+A opens the Construct dialog");
+    Session.Type("plume");
+    Session.Tick(2);
+    const ImGuiWindow* Matrix = Session.FindChild("##ConstructDialog/##ConstructResults");
+    Verify(Matrix != nullptr, "The dialog lays out its matrix of tiles");
+    if (Matrix == nullptr) throw std::runtime_error("the Construct dialog has no matrix");
+    WriteWindow("SmokeAndFireEditor-Construct", "The Construct dialog with `plume` in its search: the Fluid Plume tile");
+    Session.Click(ImVec2(Matrix->Pos.x + 40.0f * Scale, Matrix->Pos.y + 40.0f * Scale));
+    Session.Tick(2);
+    Session.UseWindowControl("##ConstructAdd", "##ConstructDialog");
+    Session.Tick(4);
+    Verify(!Dialog.QueryOpen(), "Add to scene closes the dialog");
+    auto* Made = dynamic_cast<FluidPlumeRecord*>(World.FindFirstByType("FluidPlume"));
+    Verify(Made != nullptr, "Add to scene adds a FluidPlume record to the level");
+    if (Made == nullptr) throw std::runtime_error("no FluidPlume record was added");
+    const RecordToken Token = Made->QueryToken();
+    Verify(Made->QueryRecordName() == "Fluid Plume" && Made->QueryConfiguration().Enabled && Flatten(Made->QueryConfiguration().Gas) == Flatten(ConstructGasParameters()),
+           "The record is named Fluid Plume, enabled, with every reading at its default");
+    Verify(Workspace.QueryOutliner().QuerySelected() == Token, "The Outliner selects the new record");
+    {
+        bool Listed = false;
+        for (const auto& Row : Workspace.QueryOutliner().QueryRows()) Listed = Listed || Row.Token == Token;
+        Verify(Listed, "The Outliner lists the new record");
+    }
+    FluidPlumeConfiguration& Plume = AccessPlume(World, Token).AccessConfiguration();
+    // 📝 The Inspector's Plume Editor button is `RequestEditorOpen` on the selected record (InspectorRuntime.cpp), which refuses a record without an editor.
+    Verify(Runtime.RequestEditorOpen(Token), "The FluidPlume record has an editor");
+    Session.Tick(4);
+    Verify(Runtime.QueryActiveEditorToken() == Token, "The Smoke & fire editor is the active editor");
+    FluidPlumeEditorWorkspace* Editor = FluidPlumeEditor::AccessWorkspace();
+    Verify(Editor != nullptr && Editor->QueryRecord() == &Plume, "The window's workspace edits the record's own configuration, not a copy");
+    if (Editor == nullptr) throw std::runtime_error("the Smoke & fire editor has no workspace");
     const auto LogHas = [&](std::string_view Category, std::string_view Words) {
         for (const FluidPlumeLogLine& Line : Editor->QueryLog())
         {
@@ -1101,7 +1140,7 @@ void ValidateWindow(ControlCentrePanel& Centre, const std::filesystem::path& Eve
     }
     Verify(Editor->QueryImage().Texture == 0 && Editor->QueryImage().Failure == "The plume viewport needs the editor's Vulkan device.", "Opening: with no presenter the stage says why it is empty");
     Verify(Plume.TestEmitter == 0 && FluidPlumeEditor::QueryReadout() == nullptr, "Opening: with no presenter the emitter stays off and no solver is claimed");
-    Verify(LogHas("PLUME", "Smoke & fire editor") && LogHas("RECORD", "Editing Smoke and fire"), "Opening: the Log Stream opens with the editor and the record it edits");
+    Verify(LogHas("PLUME", "Smoke & fire editor") && LogHas("RECORD", "Editing Fluid Plume"), "Opening: the Log Stream opens with the editor and the record it edits");
     Verify(Flatten(Plume.Gas) == Flatten(ConstructGasParameters()), "Opening: the record holds the defaults");
     const std::vector<unsigned char> Opening = WriteWindow("SmokeAndFireEditor-Opening", "The editor as it opens, no device and no solver");
 
@@ -1478,7 +1517,10 @@ void ValidateWindow(ControlCentrePanel& Centre, const std::filesystem::path& Eve
     Verify(Flatten(Plume.Gas) != Flatten(ConstructGasParameters()), "The edits stay: the gas is still Inferno with the Fire light moved");
     Verify(!Editor->Perform("defaults") && !Editor->Perform("emitter:fire") && Editor->Perform("pause") && Editor->QueryRecord() == nullptr,
            "With the window closed, a verb that edits the record is refused and the stage's own verbs still answer");
-    const std::vector<unsigned char> Workspace1080 = WriteWindow("Workspace-FluidPlume-selected", "The workspace with the FluidPlume record selected: its page");
+    // 📝 The Outliner lists the new record last: scrolled to the end of its list the row shows, selected.
+    Session.Wheel(ImVec2(180.0f * Scale, 600.0f * Scale), -40);
+    Session.Tick(2);
+    const std::vector<unsigned char> Workspace1080 = WriteWindow("Workspace-FluidPlume-selected", "The workspace with the FluidPlume record selected: its row in the Outliner and its page");
     Verify(Workspace1080 != Opening, "The workspace with the record selected differs from the open editor");
     Runtime.RegisterPlumeViewportPresenter({});
     FluidPlumeEditor::RevokeReadout();

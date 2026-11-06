@@ -337,9 +337,10 @@ EverestWorkspace::EverestWorkspace(Frontier::ControlCentrePanel& ControlCentre,
     InitializeWorld();
 
     // 📝 The scene's entries plus the one Render settings component (the whole renderer, owner's request) and the scene archive's
-    //    geometry objects; neither the renderer nor the geometry is constructible (the archive decides what geometry exists).
+    //    geometry objects; neither the renderer nor the geometry is constructible (the archive decides what geometry exists). FluidPlume, the Smoke &
+    //    fire solver, is listed and constructible so that its record, and with it the Plume Editor button, can be reached from the workspace.
     const std::vector<std::string> SceneTypes = {"RenderPipeline","Solar","OpticalFlare","Atmosphere","Clouds","Fog","Stars","Moons","Planet","ForceField","Wind",
-                                                 "ForceSource","Geometry","Vehicle","Tyre"};
+                                                 "ForceSource","Geometry","Vehicle","Tyre","FluidPlume"};
     OutlinerPanel.ConfigureVisibleTypes(SceneTypes);
     auto Types = QueryWorldSpace().EnumerateRegisteredTypes();
     std::erase_if(Types,[&](const auto& Entry)
@@ -641,7 +642,7 @@ void EverestWorkspace::ConfigureConstructCatalogue()
         {"Stars", "Environment", "Sparkles"}, {"Moons", "Environment", "Moon"},          {"Planet", "Environment", "Orbit"},
         {"Clouds", "Weather", "CloudFog"},    {"LocalCloud", "Weather", "CloudFog"},     {"Fog", "Weather", "Droplets"},
         {"LocalFog", "Weather", "Droplets"},  {"Wind", "Weather", "Wind"},               {"ForceField", "Weather", "Waves"},
-        {"Vehicle", "Geometry", "Car"},       {"Tyre", "Geometry", "CircleDot"},
+        {"Vehicle", "Geometry", "Car"},       {"Tyre", "Geometry", "CircleDot"},   {"FluidPlume", "Weather", "Flame"},
     };
     for (const auto& [Type, Label] : OutlinerPanel.QueryConstructibleTypes())
     {

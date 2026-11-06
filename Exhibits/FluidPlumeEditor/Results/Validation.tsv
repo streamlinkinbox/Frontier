@@ -386,7 +386,18 @@ PASS	The Simulation card submits the decay instrument's grid and both curves, in
 PASS	The Fire card submits the blackbody strip's bands in order across the card
 PASS	The strip is not found for another flame: its colours follow the readings
 PASS	Rendered FluidPlumeInspector-Panel.png
-PASS	The workspace constructs a FluidPlume record
+PASS	The level holds no FluidPlume record to begin with
+PASS	The Construct dialog's tile: Fluid Plume, a record type of the Weather group with the Flame glyph
+PASS	The Construct dialog offers a Fluid Plume to add, once
+PASS	The Construct dialog is shut
+PASS	Ctrl+A opens the Construct dialog
+PASS	The dialog lays out its matrix of tiles
+PASS	The Construct dialog with `plume` in its search: the Fluid Plume tile (SmokeAndFireEditor-Construct.png)
+PASS	Add to scene closes the dialog
+PASS	Add to scene adds a FluidPlume record to the level
+PASS	The record is named Fluid Plume, enabled, with every reading at its default
+PASS	The Outliner selects the new record
+PASS	The Outliner lists the new record
 PASS	The FluidPlume record has an editor
 PASS	The Smoke & fire editor is the active editor
 PASS	The window's workspace edits the record's own configuration, not a copy
@@ -573,6 +584,6 @@ PASS	The editor window is gone: no Inspector is submitted and no popup is open
 PASS	The record leaves as it came: the test emitter, which the editor turned on when it opened, is off again
 PASS	The edits stay: the gas is still Inferno with the Fire light moved
 PASS	With the window closed, a verb that edits the record is refused and the stage's own verbs still answer
-PASS	The workspace with the FluidPlume record selected: its page (Workspace-FluidPlume-selected.png)
+PASS	The workspace with the FluidPlume record selected: its row in the Outliner and its page (Workspace-FluidPlume-selected.png)
 PASS	The workspace with the record selected differs from the open editor
-SUMMARY	577 assertions	0 failures
+SUMMARY	588 assertions	0 failures
