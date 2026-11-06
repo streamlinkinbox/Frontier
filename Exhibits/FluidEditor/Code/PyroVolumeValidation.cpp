@@ -14,6 +14,8 @@
 #include "Frontier/Engine/VolumetricDynamics/PyroCamera.h"
 #include "Frontier/Engine/VolumetricDynamics/PyroVolumeSolver.h"
 
+#include <toml++/toml.hpp>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -224,44 +226,195 @@ float Dot(const std::array<float, 3>& A, const std::array<float, 3>& B)
     return A[0] * B[0] + A[1] * B[1] + A[2] * B[2];
 }
 
+// 📝 The nth reading of a TOML array of numbers (integers and decimals alike).
+std::vector<double> ReadNumbers(const toml::table& Table, const char* Key)
+{
+    std::vector<double> Readings;
+    if (const toml::array* Array = Table[Key].as_array())
+    {
+        for (const toml::node& Entry : *Array)
+        {
+            if (const auto Decimal = Entry.value<double>()) Readings.push_back(*Decimal);
+            else if (const auto Whole = Entry.value<int64_t>()) Readings.push_back(static_cast<double>(*Whole));
+        }
+    }
+    return Readings;
+}
+
+double ReadNumber(const toml::table& Table, const char* Key)
+{
+    return Table[Key].value_or(0.0);
+}
+
+bool Near(double Native, double Prototype, double Tolerance)
+{
+    return std::fabs(Native - Prototype) <= Tolerance * std::max(1.0, std::fabs(Prototype));
+}
+
+bool NearAll(const std::array<float, 3>& Native, const std::vector<double>& Prototype, double Tolerance)
+{
+    if (Prototype.size() != 3) return false;
+    for (size_t Axis = 0; Axis < 3; ++Axis)
+    {
+        if (!Near(Native[Axis], Prototype[Axis], Tolerance)) return false;
+    }
+    return true;
+}
+
+// 📝 Reference/CameraTrace.toml is the prototype's OrbitCamera driven through a script by its own code (Code/DumpCameraTrace.mjs). The native camera is driven
+//    through the same script and held to every number it wrote down: the eye, the frame, the view and the aim after each step, the ray hits and the projected
+//    bounds.
+void ValidateCameraAgainstPrototype()
+{
+    toml::table Trace;
+    try
+    {
+        Trace = toml::parse(ReadWhole("Exhibits/FluidEditor/Reference/CameraTrace.toml"));
+    }
+    catch (const toml::parse_error&)
+    {
+        Verify(false, "Exhibits/FluidEditor/Reference/CameraTrace.toml is readable (run from the repository root)");
+        return;
+    }
+    const toml::array* Steps = Trace["step"].as_array();
+    Verify(Steps != nullptr && Steps->size() > 100, "the camera trace holds the prototype's steps (" + std::to_string(Steps != nullptr ? Steps->size() : 0) + ")");
+    if (Steps == nullptr) return;
+
+    PyroOrbitCamera Camera;
+    size_t          Compared = 0, Hits = 0, Misses = 0, Projections = 0, Mismatched = 0;
+    std::string     FirstMismatch;
+    const auto      Note = [&](size_t Index, const std::string& Op, const char* What)
+    {
+        ++Mismatched;
+        if (FirstMismatch.empty()) FirstMismatch = "step " + std::to_string(Index) + " (" + Op + "): " + What;
+    };
+    for (size_t Index = 0; Index < Steps->size(); ++Index)
+    {
+        const toml::table* Step = (*Steps)[Index].as_table();
+        if (Step == nullptr) continue;
+        const std::string         Op        = std::string(Step->at("op").value_or(std::string_view{}));
+        const std::vector<double> Arguments = ReadNumbers(*Step, "arguments");
+        const auto                Argument  = [&](size_t At) { return At < Arguments.size() ? static_cast<float>(Arguments[At]) : 0.0f; };
+        std::vector<double>       Hit       = ReadNumbers(*Step, "hit");
+        bool                      Ray       = false;
+        std::array<float, 3>      Uvw{};
+        bool                      Landed    = false;
+        std::vector<std::array<float, 4>> Segments;
+        if (Op == "orbit") Camera.OrbitByPixels(Argument(0), Argument(1));
+        else if (Op == "pan") Camera.PanByPixels(Argument(0), Argument(1));
+        else if (Op == "zoom") Camera.ZoomByWheel(Argument(0));
+        else if (Op == "update") Camera.Advance(Argument(0));
+        else if (Op == "reset") Camera.Reset();
+        else if (Op == "aim")
+        {
+            Camera.TargetTheta = Argument(0);
+            Camera.TargetPhi   = Argument(1);
+        }
+        else if (Op == "focus") Camera.FocusVolume(Argument(0), Argument(1));
+        else if (Op == "place")
+        {
+            Camera.Target         = { Argument(0), Argument(1), Argument(2) };
+            Camera.TargetCentre   = Camera.Target;
+            Camera.Distance       = Argument(3);
+            Camera.TargetDistance = Argument(3);
+            Camera.Snap();
+        }
+        else if (Op == "ray")
+        {
+            Ray    = true;
+            Landed = Camera.RaycastVolumeUvw(Argument(0), Argument(1), { Argument(2), Argument(3), Argument(4) }, { Argument(5), Argument(6), Argument(7) }, Uvw);
+        }
+        else if (Op == "project")
+        {
+            Camera.Aspect = 16.0f / 9.0f;
+            ProjectBounds(Camera.ComputeBasis(), { Argument(2), Argument(3), Argument(4) }, { Argument(5), Argument(6), Argument(7) }, Argument(0), Argument(1), Segments);
+        }
+        else if (Op != "start") Note(Index, Op, "an operation the native camera has no counterpart for");
+
+        const PyroCameraBasis Basis = Camera.ComputeBasis();
+        const double          Tight = 2.0e-4;
+        bool                  Same  = Near(Camera.Theta, ReadNumber(*Step, "theta"), Tight) && Near(Camera.Phi, ReadNumber(*Step, "phi"), Tight) &&
+                     Near(Camera.Distance, ReadNumber(*Step, "distance"), Tight) && NearAll(Camera.Target, ReadNumbers(*Step, "target"), Tight) &&
+                     Near(Camera.TargetTheta, ReadNumber(*Step, "aim_theta"), Tight) && Near(Camera.TargetPhi, ReadNumber(*Step, "aim_phi"), Tight) &&
+                     Near(Camera.TargetDistance, ReadNumber(*Step, "aim_distance"), Tight) && NearAll(Camera.TargetCentre, ReadNumbers(*Step, "aim_centre"), Tight);
+        if (!Same) Note(Index, Op, "the view or the aim differs from the prototype's");
+        if (!NearAll(Basis.Position, ReadNumbers(*Step, "position"), Tight) || !NearAll(Basis.Forward, ReadNumbers(*Step, "forward"), Tight) ||
+            !NearAll(Basis.Right, ReadNumbers(*Step, "right"), Tight) || !NearAll(Basis.Up, ReadNumbers(*Step, "up"), Tight))
+            Note(Index, Op, "the eye or the basis differs from the prototype's");
+        if (Ray)
+        {
+            if (Landed != (Hit.size() == 3)) Note(Index, Op, "the ray hit or missed where the prototype's did not");
+            else if (Landed && !NearAll(Uvw, Hit, Tight)) Note(Index, Op, "the point the ray lands on differs");
+            (Landed ? Hits : Misses) += 1;
+        }
+        if (Op == "project")
+        {
+            ++Projections;
+            const toml::array* Expected = Step->at("segments").as_array();
+            bool               Match    = Expected != nullptr && Expected->size() == Segments.size();
+            for (size_t Line = 0; Match && Line < Segments.size(); ++Line)
+            {
+                const toml::array* Pair = (*Expected)[Line].as_array();
+                if (Pair == nullptr || Pair->size() != 4) { Match = false; break; }
+                for (size_t Coordinate = 0; Coordinate < 4; ++Coordinate)
+                    Match = Match && Near(Segments[Line][Coordinate], (*Pair)[Coordinate].value_or(0.0), 1.0e-3);
+            }
+            if (!Match) Note(Index, Op, "the projected bounds differ from the prototype's");
+        }
+        ++Compared;
+    }
+    Verify(Mismatched == 0, "the native camera follows the prototype's through all " + std::to_string(Compared) + " scripted steps" +
+                                (FirstMismatch.empty() ? std::string{} : " (first difference: " + FirstMismatch + ")"));
+    Verify(Hits >= 6 && Misses >= 3 && Projections == 3, "the script exercises hits (" + std::to_string(Hits) + "), misses (" + std::to_string(Misses) + ") and clipped projections (" +
+                                                              std::to_string(Projections) + ")");
+}
+
 void ValidateCamera()
 {
     PyroOrbitCamera Camera;
-    const PyroCameraFrame Frame = Camera.ComputeFrame();
-    Verify(std::fabs(Dot(Frame.Forward, Frame.Forward) - 1.0f) < 1.0e-5f && std::fabs(Dot(Frame.Right, Frame.Right) - 1.0f) < 1.0e-5f && std::fabs(Dot(Frame.Up, Frame.Up) - 1.0f) < 1.0e-5f &&
-               std::fabs(Dot(Frame.Forward, Frame.Right)) < 1.0e-5f && std::fabs(Dot(Frame.Forward, Frame.Up)) < 1.0e-5f && std::fabs(Dot(Frame.Right, Frame.Up)) < 1.0e-5f,
-           "the frame's forward, right and up are unit vectors at right angles");
-    const float Away = std::sqrt(Dot({ Frame.Position[0] - Camera.Target[0], Frame.Position[1] - Camera.Target[1], Frame.Position[2] - Camera.Target[2] },
-                                     { Frame.Position[0] - Camera.Target[0], Frame.Position[1] - Camera.Target[1], Frame.Position[2] - Camera.Target[2] }));
+    const PyroCameraBasis Basis = Camera.ComputeBasis();
+    Verify(std::fabs(Dot(Basis.Forward, Basis.Forward) - 1.0f) < 1.0e-5f && std::fabs(Dot(Basis.Right, Basis.Right) - 1.0f) < 1.0e-5f && std::fabs(Dot(Basis.Up, Basis.Up) - 1.0f) < 1.0e-5f &&
+               std::fabs(Dot(Basis.Forward, Basis.Right)) < 1.0e-5f && std::fabs(Dot(Basis.Forward, Basis.Up)) < 1.0e-5f && std::fabs(Dot(Basis.Right, Basis.Up)) < 1.0e-5f,
+           "the basis forward, right and up are unit vectors at right angles");
+    const float Away = std::sqrt(Dot({ Basis.Position[0] - Camera.Target[0], Basis.Position[1] - Camera.Target[1], Basis.Position[2] - Camera.Target[2] },
+                                     { Basis.Position[0] - Camera.Target[0], Basis.Position[1] - Camera.Target[1], Basis.Position[2] - Camera.Target[2] }));
     Verify(std::fabs(Away - Camera.Distance) < 1.0e-4f, "the eye lies one orbit distance from the target");
 
-    const float Before = Camera.Theta;
-    Camera.OrbitByPixels(100.0f, 0.0f);
-    Verify(std::fabs((Before - Camera.Theta) - 0.65f) < 1.0e-5f, "a drag of 100 px turns the camera 0.65 rad (0.0065 rad a pixel)");
-    Camera.OrbitByPixels(0.0f, -100000.0f);
-    Verify(Camera.Phi <= 3.14159265f - 0.08f + 1.0e-6f, "the orbit stops short of the pole");
-    Camera.OrbitByPixels(0.0f, 100000.0f);
-    Verify(Camera.Phi >= 0.08f - 1.0e-6f, "and of the other pole");
-
+    // 📝 What the prototype's camera starts as, and what a drag, the wheel and a pan are worth (camera.js).
+    Verify(Camera.Theta == 0.62f && Camera.Phi == 1.26f && Camera.Distance == 3.35f && Camera.Target[1] == 0.22f, "the camera opens where the prototype's does");
+    PyroOrbitCamera Dragged;
+    Dragged.OrbitByPixels(100.0f, 0.0f);
+    Verify(std::fabs((Dragged.TargetTheta - 0.62f) + 0.75f) < 1.0e-5f && Dragged.Theta == 0.62f, "a drag of 100 px aims the camera 0.75 rad round (0.0075 rad a pixel); the view eases after it");
+    Dragged.OrbitByPixels(0.0f, -100000.0f);
+    Verify(Dragged.TargetPhi <= 3.14159265f - 0.08f + 1.0e-6f, "the orbit stops short of the pole");
+    Dragged.OrbitByPixels(0.0f, 100000.0f);
+    Verify(Dragged.TargetPhi >= 0.12f - 1.0e-6f, "and of the other pole");
     PyroOrbitCamera Zoomed;
-    for (int Notch = 0; Notch < 200; ++Notch) Zoomed.ZoomByWheel(1.0f);
-    const float Nearest = Zoomed.Distance;
-    for (int Notch = 0; Notch < 400; ++Notch) Zoomed.ZoomByWheel(-1.0f);
-    Verify(std::fabs(Nearest - 0.85f) < 1.0e-5f && std::fabs(Zoomed.Distance - 12.0f) < 1.0e-5f, "the wheel zooms between 0.85 and 12 domain units");
+    for (int Notch = 0; Notch < 100; ++Notch) Zoomed.ZoomByWheel(100.0f);
+    const float Farthest = Zoomed.TargetDistance;
+    for (int Notch = 0; Notch < 200; ++Notch) Zoomed.ZoomByWheel(-100.0f);
+    Verify(std::fabs(Farthest - 9.5f) < 1.0e-5f && std::fabs(Zoomed.TargetDistance - 0.85f) < 1.0e-5f, "the wheel zooms between 0.85 and 9.5 domain units");
+    PyroOrbitCamera Eased;
+    Eased.OrbitByPixels(100.0f, 0.0f);
+    Eased.Advance(1.0f / 60.0f);
+    Verify(Eased.Theta < 0.62f && Eased.Theta > Eased.TargetTheta, "the view eases toward the aim and does not jump");
+    Eased.Advance(1.0f);
+    Verify(std::fabs(Eased.Theta - Eased.TargetTheta) < 1.0e-6f, "and arrives when a long refresh has passed");
 
-    PyroOrbitCamera Pan;
-    const std::array<float, 3> From = Pan.Target;
-    Pan.PanByPixels(40.0f, 0.0f);
-    Verify(std::fabs(Pan.Target[0] - From[0]) + std::fabs(Pan.Target[1] - From[1]) + std::fabs(Pan.Target[2] - From[2]) > 1.0e-3f, "a pan moves the target");
-
-    PyroOrbitCamera Aimed;
-    std::array<float, 3> Point{};
-    Verify(Aimed.RaycastBrushPoint(0.0f, 0.0f, Point) && std::fabs(Point[0] - Aimed.Target[0]) + std::fabs(Point[1] - Aimed.Target[1]) + std::fabs(Point[2] - Aimed.Target[2]) < 1.0e-3f,
-           "the ray through the middle of the view meets the target's plane at the target");
-
+    // 📝 The camera-view select: Front, Side and Top turn the aim; Perspective is Focus volume, which stands back 2.3 widths (or heights), at most 9.5.
     PyroOrbitCamera Views[4];
-    for (int View = 0; View < 4; ++View) Views[View].ApplyPresetView(View);
-    Verify(Views[0].Theta == PyroOrbitCamera{}.Theta && Views[1].Theta == 0.0f && std::fabs(Views[2].Theta - 1.57079633f) < 1.0e-5f && Views[3].Phi < 0.2f, "the four views: perspective, front, side, top");
+    for (int View = 0; View < 4; ++View) Views[View].ApplyPresetView(View, 1.85f, 2.1f);
+    Verify(Views[1].TargetTheta == 0.0f && std::fabs(Views[1].TargetPhi - 1.57079633f) < 1.0e-6f && std::fabs(Views[2].TargetTheta - 1.57079633f) < 1.0e-6f &&
+               std::fabs(Views[3].TargetPhi - 0.03f) < 1.0e-6f && std::fabs(Views[0].TargetDistance - 2.1f * 2.3f) < 1.0e-5f,
+           "the four views: perspective (focus), front, side, top");
+    PyroOrbitCamera Wide;
+    Wide.FocusVolume(8.0f, 3.0f);
+    Verify(Wide.TargetDistance == 9.5f, "Focus volume stands back at most 9.5");
+    PyroOrbitCamera Turntable;
+    Turntable.AdvanceTurntable(1.0f);
+    Verify(std::fabs(Turntable.TargetTheta - (0.62f + 0.05f * 0.35f)) < 1.0e-6f, "the turntable turns 0.35 rad a second, a long refresh counted as 0.05 s");
+
+    ValidateCameraAgainstPrototype();
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -294,7 +447,7 @@ bool Render(VulkanContext& Context, PyroVolumeSolver& Solver, const GasSettings&
 {
     PyroOrbitCamera Camera;
     int             Width = 0, Height = 0;
-    return Solver.RenderStandaloneViewport(Context, Settings, Camera.ComputeFrame(16.0f / 9.0f), 320, 180, false) && Solver.ReadViewportRgba(Context, Rgba, Width, Height) && Width == 320 && Height == 180;
+    return Solver.RenderStandaloneViewport(Context, Settings, Camera.ComputeBasis(16.0f / 9.0f), 320, 180, false) && Solver.ReadViewportRgba(Context, Rgba, Width, Height) && Width == 320 && Height == 180;
 }
 
 void ValidateSolver(bool RequireVulkan)

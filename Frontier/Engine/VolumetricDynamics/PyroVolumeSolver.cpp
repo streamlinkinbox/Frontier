@@ -948,7 +948,7 @@ bool PyroVolumeSolver::EnsureViewportTarget(VulkanContext& Ctx, int Width, int H
 }
 
 bool PyroVolumeSolver::RenderStandaloneViewport(VulkanContext& Ctx, const GasSettings& Settings,
-                                                const PyroCameraFrame& Cam, int Width, int Height,
+                                                const PyroCameraBasis& Cam, int Width, int Height,
                                                 bool TransparentExport)
 {
     if (!Initialized || !EnsureViewportTarget(Ctx, Width, Height))
@@ -1015,7 +1015,7 @@ void PyroVolumeSolver::PrepareAtlasesForWorldComposite(VulkanContext& Ctx, VkCom
 }
 
 void PyroVolumeSolver::RecordCompositeIntoWorldTarget(VulkanContext& Ctx, VkCommandBuffer Cmd,
-                                                      const GasSettings& Settings, const PyroCameraFrame& Cam,
+                                                      const GasSettings& Settings, const PyroCameraBasis& Cam,
                                                       int TargetWidth, int TargetHeight,
                                                       VulkanImageTarget& SceneLinearDepthImage)
 {
@@ -1084,7 +1084,7 @@ bool PyroVolumeSolver::BakeFlipbookSheet(VulkanContext& Ctx, GasSettings Setting
 
     Settings.TileSheetOverviewShown = false;
     Settings.BoundingBoxShown       = false;
-    const PyroCameraFrame Frame     = Cam.ComputeFrame(1.0f);
+    const PyroCameraBasis Frame     = Cam.ComputeBasis(1.0f);
 
     std::vector<uint8_t> TileRgba;
     int Tw = 0, Th = 0;

@@ -106,12 +106,12 @@ class PyroVolumeSolver
 
     void AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settings, float RawDtSeconds);
 
-    bool RenderStandaloneViewport(VulkanContext& Ctx, const GasSettings& Settings, const PyroCameraFrame& Cam,
+    bool RenderStandaloneViewport(VulkanContext& Ctx, const GasSettings& Settings, const PyroCameraBasis& Cam,
                                   int Width, int Height, bool TransparentExport = false);
 
     // Records premultiplied Beer-Lambert + blackbody volume composite + embers directly into an active World MRT RenderPass!
     void RecordCompositeIntoWorldTarget(VulkanContext& Ctx, VkCommandBuffer Cmd, const GasSettings& Settings,
-                                        const PyroCameraFrame& Cam, int TargetWidth, int TargetHeight,
+                                        const PyroCameraBasis& Cam, int TargetWidth, int TargetHeight,
                                         VulkanImageTarget& SceneLinearDepthImage);
 
     // Ensures internal volume atlases are in SHADER_READ_ONLY_OPTIMAL before beginning a World MRT RenderPass
