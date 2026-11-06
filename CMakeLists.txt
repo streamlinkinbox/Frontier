@@ -286,6 +286,9 @@ target_link_libraries(FrontierRenderingExtension PUBLIC FrontierSceneEditorUI Fr
 add_library(FrontierParticleExtension STATIC
     Frontier/Extensions/Particle/ParticleExtension.cpp)
 target_link_libraries(FrontierParticleExtension PUBLIC FrontierSceneEditorUI FrontierParticleSimulation)
+add_library(FrontierPlumeExtension STATIC
+    Frontier/Extensions/Plume/PlumeExtension.cpp)
+target_link_libraries(FrontierPlumeExtension PUBLIC FrontierSceneEditorUI FrontierPlumeSimulation)
 # 📝 Networking providers: the EOS and Photon SDKs stay optional; without them the adapters compile as honest stubs.
 option(FRONTIER_EOS_SDK "Link the Epic Online Services SDK behind EosAdapter" OFF)
 option(FRONTIER_PHOTON_SDK "Link the Photon Realtime SDK behind PhotonAdapter" OFF)
@@ -331,7 +334,7 @@ target_include_directories(EverestProjectEditor PUBLIC
     "${CMAKE_SOURCE_DIR}/Frontier"
     "${CMAKE_SOURCE_DIR}/Projects/Everest/Source")
 target_compile_definitions(EverestProjectEditor PUBLIC FRONTIER_WITH_INTERFACE_SDK=1 FRONTIER_EDITOR_PROFILE=1 FRONTIER_EDITOR=1)
-target_link_libraries(EverestProjectEditor PUBLIC FrontierSceneEditorUI FrontierRenderingExtension FrontierParticleExtension FrontierPhysicsExtension FrontierNetworkingExtension)
+target_link_libraries(EverestProjectEditor PUBLIC FrontierSceneEditorUI FrontierRenderingExtension FrontierParticleExtension FrontierPlumeExtension FrontierPhysicsExtension FrontierNetworkingExtension)
 frontier_stage_project_content(EverestProjectEditor
     "${CMAKE_SOURCE_DIR}/Projects/Everest/Everest.projectspace"
     "${CMAKE_SOURCE_DIR}/EngineContent"
@@ -923,6 +926,14 @@ if(BUILD_TESTING)
         "${CMAKE_SOURCE_DIR}/Projects/Everest"
         "${CMAKE_BINARY_DIR}/fluid-plume-editor-evidence")
     set_tests_properties(FluidPlumeEditorValidation PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
+
+    # 📝 The same window with the plume's own picture in its stage: PlumeExtension (the editor application's presenter) on an own Vulkan device, the plume's
+    #    pixels counted against the empty stage — Exhibits/FluidPlumeEditor/README.md.
+    add_executable(FluidPlumeEditorCapture
+        Exhibits/FluidPlumeEditor/Code/FluidPlumeEditorCapture.cpp
+        Engine/Render/StbImageWriteImplementation.cpp)
+    target_include_directories(FluidPlumeEditorCapture PRIVATE "${CMAKE_SOURCE_DIR}/ExternalPackages/stb")
+    target_link_libraries(FluidPlumeEditorCapture PRIVATE EverestProjectEditor FrontierPlumeExtension)
 
     # 📝 The scene objects in the workspace: the geometry groups, five geometry inspector pages, the viewport before and after edits.
     add_executable(SceneGeometryCapture
