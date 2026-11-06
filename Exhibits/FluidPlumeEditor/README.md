@@ -110,6 +110,7 @@ after the emitter or the look changed and the smoke was cleared):
 |---|---|---|
 | The record, the libraries, every card driven by input, the window in the workspace | `FluidPlumeEditorValidation` (`Code/RunFluidPlumeEditorValidation.sh`) | 🟢 588 assertions, 0 failures (`Results/Validation.tsv`), 40 to 50 s |
 | The plume in the stage | `FluidPlumeEditorCapture` (`Code/RunFluidPlumeEditorCapture.sh`) | 🟢 13 claims, 0 failed (`Results/LivePlume.tsv`), 4 min on SwiftShader at High |
+| The plume in the stage at the Medium grade | `FluidPlumeEditorCapture … medium`, run directly with its output in a scratch folder (nothing of it is kept here) | 🟢 13 claims, 0 failed, 2 min 28 s on SwiftShader; the HUD reads `Medium · 96×96×24 @ 30 cm · 12 sweeps · 40 samples · RESIDENT`; Tyre smoke 4.16 %, Inferno 27.66 %, the orbit 74.3 %, Crosswind 2.98 % changed and 3.98 % unlike Tyre smoke, the 1080p steps 311 → 317, Clear smoke 0 pixels |
 | The plume's programs, re-run after their stand-ins moved into the engine | `RunPlumeParity.sh` and `PlumeSimulationValidation` | 🟢 9 of 9 captures bit for bit, 0 claims failed; 706 assertions, 0 failures |
 
 ### `FluidPlumeEditorValidation`
@@ -208,7 +209,7 @@ was not run again after that change, and does not use the workspace's list of ty
 - The earlier eight UI and plume validations (`PanelExpansion`, `ControlCentre`, `WorkspaceLayout`, `Interface`, `EnvironmentInspector`, `FluidPlumeEditor`,
   `EverestInterface`, `PlumeSimulation`) all succeeded on the tree before `d5c6acc` (8 of 8, 323 s). The nine other programs that link the editor library link.
 
-**Not run:** Windows (no Windows binary was built), a GPU, a browser, the Medium grade of the capture, a Release build.
+**Not run:** Windows (no Windows binary was built), a GPU, a browser, a Release build. The Ultra grade is not offered by the render settings' tiers, so no capture asks for it.
 
 ## Reproduce
 

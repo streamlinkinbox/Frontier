@@ -1817,7 +1817,7 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
     the march, not the look in the host.
   - The scan's vehicle binding (`Extensions/Rendering`) is not written, and the plume is not drawn into the Scene viewport's own render: only the Smoke &
     fire editor's stage shows it, over a flat backdrop with no car, no ReSTIR lighting and no scene shadows. The GI port stays 1:1 and untouched.
-  - The Smoke & fire editor's live captures ran on SwiftShader (CPU, Debug), at the High grade (Low ran once with an earlier Crosswind claim; Medium never).
+  - The Smoke & fire editor's live captures ran on SwiftShader (CPU, Debug), at the High grade (Low ran once with an earlier Crosswind claim, 13 of 13; Medium ran once with the final claims, 13 of 13 in 2 min 28 s, its pictures not kept).
     Their refresh times and the HUD's rate (a fixed 1/30 s) are not performance figures. The Crosswind claim only proves the picture differs from the
     Tyre smoke one. Ignition is shown and inert.
   - The plume's presenter is registered in `Experimental/Frontier/Native/WindowsFrontier.cpp` (`5b7cdf8`), which cannot be compiled here: that edit is
