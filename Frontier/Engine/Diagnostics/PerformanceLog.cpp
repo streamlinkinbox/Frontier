@@ -12,6 +12,7 @@
 #include <atomic>
 #include <cctype>
 #include <cmath>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -19,7 +20,9 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <system_error>
 #include <thread>
+#include <utility>
 
 #if defined(_MSC_VER)
     #include <intrin.h>

@@ -19,6 +19,8 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <system_error>
+#include <utility>
 
 namespace Frontier
 {

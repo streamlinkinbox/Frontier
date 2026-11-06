@@ -44,6 +44,7 @@
 #include <filesystem>
 #include <limits>
 #include <string>
+#include <system_error>
 #include <vector>
 
 namespace
