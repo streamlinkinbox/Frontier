@@ -27,7 +27,7 @@ Frontier/
 │   │   ├── Interface/         # ViewportTexture, GizmoSpace, GizmoRasterization
 │   │   ├── Rendering/         # RenderingExtension, SceneGeometryOccupancy
 │   │   ├── Particle/          # ParticleExtension
-│   │   ├── Plume/             # PlumeExtension
+│   │   ├── Plume/             # PlumeExtension, PlumeComposite
 │   │   ├── Physics/           # PhysicsExtension, JoltExtension, PhysicsSpace
 │   │   └── Networking/        # NetworkingExtension, NetworkingSpace (EOSExtension / EpicAdapter later)
 │   └── Engine/                # Multi-realm PlanetaryAtmosphere, GeometricRaster, DeviceExchange, Rendering & Shaders
@@ -201,8 +201,9 @@ by their current directories; CAD editing is a separate workspace launched by th
 - `Frontier/Engine/Interface/FluidPlumeEditor.*`, `FluidPlumeEditor/` and `Inspectors/FluidPlumeInspector.*`: the Smoke & fire editor window (Outliner, viewport
   and Log Stream, Inspector, the Libraries sheet: `FluidPlumeEditorWorkspace`, `FluidPlumePages`, `FluidPlumeLibrary`, `PlumeViewportPresentation.h`) and the
   record's Inspector page, all behind `FRONTIER_EDITOR`.
-- `Frontier/Extensions/Plume/PlumeExtension.*`: the editor application's presenter, which draws the plume in the editor's stage on the editor's device (as
-  `Extensions/Particle` does for the Particle editor); the native application registers it in `Experimental/Frontier/Native/WindowsFrontier.cpp`.
+- `Frontier/Extensions/Plume/PlumeExtension.*` and `PlumeComposite.*`: the editor application's presenter, which draws the plume in the editor's stage on the
+  editor's device (as `Extensions/Particle` does for the Particle editor), and the composite of its picture (the march over a backdrop kept per camera and
+  size); the native application registers the presenter in `Experimental/Frontier/Native/WindowsFrontier.cpp`.
 - `Frontier/Engine/Scene/EngineConfigurations.h` and `WorldSpace.cpp`: the `FluidPlume` record, registered as "Solver · Fluid Plume".
 - `EngineContent/ShaderArchives/XRayScan/` and `PlumeSimulation/`: the stored SPIR-V of the two sets. `Automation/XRayScanRendering.cmake` and
   `PlumeSimulationRendering.cmake` hold their targets and shader compilation.

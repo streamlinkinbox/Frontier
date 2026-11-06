@@ -12,6 +12,7 @@
 #include "Frontier/Engine/Rendering/GlobalIllumination/RefreshEncoding.h"
 #include "Frontier/Engine/Rendering/PlumeSimulation/PlumeStandIns.h"
 #include "Frontier/Engine/Rendering/PlumeSimulation/SmokeSequence.h"
+#include "Frontier/Extensions/Plume/PlumeComposite.h"
 
 #include <array>
 #include <cstdint>
@@ -85,6 +86,7 @@ class PlumeExtension
 
     std::vector<uint8_t> Radiance_{};        // [-] the march's rgba16float, read back
     std::vector<uint8_t> Pixels_{};          // [-] the picture, rgba8
+    PlumeBackdropPicture Backdrop_{};        // [-] the composite's backdrop and texels, kept between refreshes
 };
 
 } // namespace Frontier

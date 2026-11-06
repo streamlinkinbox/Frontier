@@ -287,6 +287,7 @@ add_library(FrontierParticleExtension STATIC
     Frontier/Extensions/Particle/ParticleExtension.cpp)
 target_link_libraries(FrontierParticleExtension PUBLIC FrontierSceneEditorUI FrontierParticleSimulation)
 add_library(FrontierPlumeExtension STATIC
+    Frontier/Extensions/Plume/PlumeComposite.cpp
     Frontier/Extensions/Plume/PlumeExtension.cpp)
 target_link_libraries(FrontierPlumeExtension PUBLIC FrontierSceneEditorUI FrontierPlumeSimulation)
 # 📝 Networking providers: the EOS and Photon SDKs stay optional; without them the adapters compile as honest stubs.
@@ -926,6 +927,13 @@ if(BUILD_TESTING)
         "${CMAKE_SOURCE_DIR}/Projects/Everest"
         "${CMAKE_BINARY_DIR}/fluid-plume-editor-evidence")
     set_tests_properties(FluidPlumeEditorValidation PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
+
+    # 📝 The plume picture's composite: the backdrop kept between refreshes against the same composite resolved afresh, every key it depends on changed in
+    #    turn, the march's non-finite and out-of-range texels — Exhibits/FluidPlumeEditor/README.md.
+    add_executable(PlumeCompositeValidation Exhibits/FluidPlumeEditor/Code/PlumeCompositeValidation.cpp)
+    target_link_libraries(PlumeCompositeValidation PRIVATE FrontierPlumeExtension)
+    add_test(NAME PlumeCompositeValidation COMMAND PlumeCompositeValidation)
+    set_tests_properties(PlumeCompositeValidation PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
 
     # 📝 The same window with the plume's own picture in its stage: PlumeExtension (the editor application's presenter) on an own Vulkan device, the plume's
     #    pixels counted against the empty stage — Exhibits/FluidPlumeEditor/README.md.

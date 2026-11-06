@@ -28,93 +28,12 @@ namespace
 constexpr FluidDynamics::Vector3 StageLight  = { 0.3, 0.2, 0.9327379053088815 };   // [-]  the sun's direction: the plume exhibit's
 constexpr double                 CarHeight   = 0.55;                                // [m]  the parked car's reference point above the ground
 constexpr double                 RaysPerRefresh = 250000.0;                         // [-]  march rays a refresh may spend
-constexpr float                  Exposure    = 0.42f;                               // [-]  the march's radiance as the picture shows it (the plume exhibit's)
 
 // 📝 ceil(sqrt(pixels / rays)) picture pixels to a trace texel, two at least.
 uint32_t ResolveTraceScale(std::array<uint32_t, 2> Extent)
 {
     const double Scale = std::ceil(std::sqrt(static_cast<double>(Extent[0]) * static_cast<double>(Extent[1]) / RaysPerRefresh));
     return std::max(2u, static_cast<uint32_t>(Scale));
-}
-
-float HalfToFloat(uint16_t Half)
-{
-    const uint32_t Sign = (Half >> 15) & 1u, Exponent = (Half >> 10) & 31u, Mantissa = Half & 1023u;
-    float          Value;
-    if (Exponent == 0) { Value = std::ldexp(static_cast<float>(Mantissa), -24); }
-    else if (Exponent == 31) { Value = Mantissa ? std::nanf("") : INFINITY; }
-    else { Value = std::ldexp(static_cast<float>(Mantissa | 1024u), static_cast<int>(Exponent) - 25); }
-    return Sign ? -Value : Value;
-}
-
-// 📐 The sRGB encoding of a linear value in [0, 1], as a byte: a table of 4097 entries (the slope at black is 12.92, so the table's step is finer than a byte).
-uint8_t EncodeSrgb(float Linear)
-{
-    static const std::array<uint8_t, 4097> Table = [] {
-        std::array<uint8_t, 4097> Bytes{};
-        for (size_t Index = 0; Index < Bytes.size(); ++Index)
-        {
-            const double Value = static_cast<double>(Index) / 4096.0;
-            const double Coded = Value <= 0.0031308 ? 12.92 * Value : 1.055 * std::pow(Value, 1.0 / 2.4) - 0.055;
-            Bytes[Index]       = static_cast<uint8_t>(std::lround(std::clamp(Coded, 0.0, 1.0) * 255.0));
-        }
-        return Bytes;
-    }();
-    if (!(Linear > 0.0f)) return 0;
-    return Table[static_cast<size_t>(std::min(Linear, 1.0f) * 4096.0f + 0.5f)];
-}
-
-// 📝 The flat backdrop the march's radiance is composited over: a sky that pales toward the horizon, a two-metre checker for the ground.
-std::array<float, 3> ResolveBackdrop(const Vector3& Origin, const Vector3& Direction)
-{
-    if (Direction[2] >= -1.0e-4)
-    {
-        const float T = static_cast<float>(std::min(1.0, std::max(0.0, Direction[2] * 2.2)));
-        return { 0.62f + (0.16f - 0.62f) * T, 0.74f + (0.30f - 0.74f) * T, 0.88f + (0.55f - 0.88f) * T };
-    }
-    const double Travel = -Origin[2] / Direction[2];
-    const double X = Origin[0] + Direction[0] * Travel, Y = Origin[1] + Direction[1] * Travel;
-    const bool   Dark = (static_cast<long>(std::floor(X / 2.0)) + static_cast<long>(std::floor(Y / 2.0))) % 2 == 0;
-    const float  Fade = static_cast<float>(std::min(1.0, Travel / 90.0));
-    const float  Base = Dark ? 0.16f : 0.21f;
-    return { Base + (0.62f - Base) * Fade, Base + (0.74f - Base) * Fade, Base + (0.88f - Base) * Fade };
-}
-
-// 📝 Premultiplied radiance plus transmittance times the backdrop, the march's own texel nearest each picture pixel. A plume that is not resident records
-//    no march at all: the picture then holds the backdrop alone, as a host's composite would without a plume.
-void CompositePicture(const std::vector<uint8_t>& Radiance, bool Idle, const CameraPose& Camera, std::array<uint32_t, 2> Picture, std::array<uint32_t, 2> Trace,
-                      uint32_t Scale, std::vector<uint8_t>& Pixels)
-{
-    const Vector3 Right = NormalizeVector(CrossVector(Camera.Forward, { 0.0, 0.0, 1.0 }));
-    const Vector3 Up    = CrossVector(Right, Camera.Forward);
-    const double  Half  = std::tan(Camera.VerticalFieldOfView * 0.5);
-    Pixels.resize(static_cast<size_t>(Picture[0]) * Picture[1] * 4u);
-    for (uint32_t Y = 0; Y < Picture[1]; ++Y)
-    {
-        const double V = (1.0 - (Y + 0.5) / Picture[1] * 2.0) * Half;
-        for (uint32_t X = 0; X < Picture[0]; ++X)
-        {
-            const double  U         = ((X + 0.5) / Picture[0] * 2.0 - 1.0) * Half * Camera.Aspect;
-            const Vector3 Direction = NormalizeVector(AddVector(Camera.Forward, AddVector(ScaleVector(Right, U), ScaleVector(Up, V))));
-            const auto    Backdrop  = ResolveBackdrop(Camera.Position, Direction);
-            float         Channels[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-            if (!Idle)
-            {
-                const size_t Texel = (static_cast<size_t>(std::min(Y / Scale, Trace[1] - 1u)) * Trace[0] + std::min(X / Scale, Trace[0] - 1u)) * 4u;
-                for (int Channel = 0; Channel < 4; ++Channel)
-                {
-                    uint16_t Half16;
-                    std::memcpy(&Half16, &Radiance[(Texel + Channel) * 2], 2);
-                    const float Value = HalfToFloat(Half16);
-                    Channels[Channel] = std::isfinite(Value) ? Value : (Channel == 3 ? 1.0f : 0.0f);
-                }
-                Channels[3] = std::clamp(Channels[3], 0.0f, 1.0f);
-            }
-            uint8_t* Out = &Pixels[(static_cast<size_t>(Y) * Picture[0] + X) * 4u];
-            for (int Channel = 0; Channel < 3; ++Channel) Out[Channel] = EncodeSrgb(Channels[Channel] * Exposure + Channels[3] * Backdrop[Channel]);
-            Out[3] = 255;
-        }
-    }
 }
 
 } // namespace
@@ -320,7 +239,7 @@ PlumeViewportOutcome PlumeExtension::Render(const PlumeViewportRequest& Request,
             return Outcome;
         }
     }
-    CompositePicture(Radiance_, Idle, Camera, Picture_, Trace_, TraceScale_, Pixels_);
+    ResolvePlumePicture(Radiance_, Idle, Camera, Picture_, Trace_, TraceScale_, Backdrop_, Pixels_);
     Exchange_->WriteTexture(Presented_, 0, Pixels_.data(), Pixels_.size(), Picture_[0], Picture_[1]);
     CommandSequence Landing = Exchange_->BeginSequence();   // 📝 an empty sequence: the queued write lands before the next submission, and the submission waits
     if (!Exchange_->Submit(Landing, &Diagnostic))

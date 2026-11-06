@@ -1781,7 +1781,7 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   |---|---|---|---|
   | X-ray scan | CPU modules, overlay on the device exchange, 8 Slang entries | `XRayScanValidation` against the prototype's values; the hero car's wireframe; one-line mutants; SPIR-V rebuilt | ✔️ 3,157 of 3,157; 1,751 segments with the prototype's hash `ef40c638f66069fe`; 24 of 25 caught (the survivor is equivalent); 8 of 8 byte for byte |
   | Plume | gas catalogue and presets, tyre telemetry and source projections, schedule, `SmokeSequence`, 9 Slang compute entries | `PlumeSimulationValidation`; the Slang programs on Vulkan against the demo's WGSL on Dawn (Low, 170 refreshes); SPIR-V rebuilt | ✔️ 706 of 706; 9 of 9 captures bit for bit; 9 of 9 byte for byte |
-  | Smoke & fire editor | the `FluidPlume` record (33 readings in TOML); the window (Outliner 292 px, viewport and Log Stream, Inspector 404 px, a Libraries sheet of 6 looks and 4 grades); `PlumeExtension`, which draws the C++ plume in the stage | `FluidPlumeEditorValidation`: 26 sliders by keyboard, the looks, libraries, requests, instruments, three window sizes; `FluidPlumeEditorCapture`: the plume's pixels on SwiftShader against the empty stage | ✔️ 588 of 588; 13 of 13 claims; 15 captures (9 with a stand-in picture, 6 with the plume) |
+  | Smoke & fire editor | the `FluidPlume` record (33 readings in TOML); the window (Outliner 292 px, viewport and Log Stream, Inspector 404 px, a Libraries sheet of 6 looks and 4 grades); `PlumeExtension` and `PlumeComposite`, which draw the C++ plume in the stage | `FluidPlumeEditorValidation`: 26 sliders by keyboard, the looks, libraries, requests, instruments, three window sizes; `FluidPlumeEditorCapture`: the plume's pixels on SwiftShader against the empty stage; `PlumeCompositeValidation`: the kept backdrop against one resolved afresh, the march's texels, the backdrop, with 19 mutants | ✔️ 588 of 588; 13 of 13 claims; 15 captures (9 with a stand-in picture, 6 with the plume); 30 of 30, 19 of 19 mutants stopped |
   | Particle editor | already ported on 2026-11-04 (52 presets) | `ParticleLibraryValidation`; the ParticleSimulation SPIR-V rebuilt | ✔️ 344 of 344; 30 of 30 |
 
   - **The way into the Smoke & fire editor was missing, and is added.** The Everest workspace listed and offered only the types in a fixed list
@@ -1789,6 +1789,14 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
     `FluidPlume` is now in the list (Weather group of the Construct dialog, *Solvers* in the Outliner), and `FluidPlumeEditorValidation` takes the whole way
     with Ctrl+A, the search, the tile and *Add to scene*. `Particles` and `Fracture` are outside the same list; they were not changed (the Particle editor's
     README still says *Construct → Solver · GPU Particles*).
+  - **The stage's picture took long to composite on the CPU, and takes less.** Each refresh composited the march's picture on the CPU, with a backdrop
+    resolved for every pixel and a half-float conversion for every pixel. `Exhibits/FluidPlumeEditor/Code/RunPlumeCompositeComparison.sh` builds the
+    earlier composite (cut out of commit `2f66b41`) beside the new one at `-O2` and times the composite alone on one core of the sandbox's CPU: 18, 67 and
+    131 ms for stages of 554 × 438, 1108 × 718 and 1840 × 960. The backdrop does not depend on the plume, so it is now kept per camera and size
+    (`Extensions/Plume/PlumeComposite`) and the texels are converted once each: 4.6, 15 and 25 ms with the camera at rest, 12, 39 and 77 ms while it turns.
+    The bytes are the same (72 comparisons, none differs, and the script fails on a one-level change; the captures give the same figures, and inside the
+    stage every pixel of the six pictures is as before except the HUD's digits and six pixels of one letter of the key hint). `PlumeCompositeValidation`
+    (30 assertions) and its 19 mutants, all stopped, guard the kept backdrop. Not a figure for the Windows machine, where nothing was timed.
   - `FluidNodeEditor.html` is a different tool (a graph editor for liquids) whose entry script (`./FluidEditorEntry.js`) is not in the repository, so it cannot be
     ported 1:1: the editor is the demo's own Smoke & fire page (`BuildGas` in `InspectorPages.js`). The appearance presets of
     `VolumetricFlowSolver.html` are not ported.
@@ -1807,7 +1815,7 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   `EverestInterfaceValidation`, `SceneGeometryValidation`, `FluidPlumeEditorValidation`, `EverestShippingValidation` and `PlumeSimulationValidation`: 7 of 7
   (323 s); `SceneViewportPickValidation`, `SceneViewportFlightValidation` and `SceneMediaValidation` pass with SwiftShader's loader on the path.
   `CelestialWorkspaceValidation` failed on its own stale constant (three quick actions expected, four registered since the Networking toggle, as
-  `EverestInterfaceValidation` had) and passes with four (179 s). `FluidPlumeEditorCapture` was not re-run after that change.
+  `EverestInterfaceValidation` had) and passes with four (179 s). `FluidPlumeEditorCapture` was re-run after that change, and again after the composite kept its backdrop: High, Medium and Low, 13 of 13 each.
 - **Evidence:** `Exhibits/XRayScan/` (10 captures), `Exhibits/PlumeSimulation/` (9), `Exhibits/FluidPlumeEditor/` (15), `Exhibits/VehicleHmiPrototype/`
   (the TLAS proof, the Garage's ripple and scan sweep as contact sheets, and the scan at 640 × 400); each README has its code map, results, limits and
   how to reproduce.
@@ -1817,9 +1825,11 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
     the march, not the look in the host.
   - The scan's vehicle binding (`Extensions/Rendering`) is not written, and the plume is not drawn into the Scene viewport's own render: only the Smoke &
     fire editor's stage shows it, over a flat backdrop with no car, no ReSTIR lighting and no scene shadows. The GI port stays 1:1 and untouched.
-  - The Smoke & fire editor's live captures ran on SwiftShader (CPU, Debug), at the High grade (Low ran once with an earlier Crosswind claim, 13 of 13; Medium ran once with the final claims, 13 of 13 in 2 min 28 s, its pictures not kept).
-    Their refresh times and the HUD's rate (a fixed 1/30 s) are not performance figures. The Crosswind claim only proves the picture differs from the
+  - The Smoke & fire editor's live captures ran on SwiftShader (CPU, Debug), at the High grade (Low and Medium ran with their pictures not kept: Low 13 of 13 in 1 min 17 s on the final code, Medium 13 of 13 twice, 2 min 28 s before the composite
+    kept its backdrop and 2 min 2 s after). Their refresh times and the HUD's rate (a fixed 1/30 s) are not performance figures. The Crosswind claim only proves the picture differs from the
     Tyre smoke one. Ignition is shown and inert.
+  - The composite's cost (18, 67 and 131 ms before, 4.6, 15 and 25 ms after, at three stage sizes) is one run of `RunPlumeCompositeComparison.sh` on one core of the
+    sandbox's CPU: it is not a figure for the Windows machine, and the march and the transport were never timed on a GPU.
   - The plume's presenter is registered in `Experimental/Frontier/Native/WindowsFrontier.cpp` (`5b7cdf8`), which cannot be compiled here: that edit is
     **not compiled and not run**. Its registration lines are type-checked against the real headers (`Exhibits/FluidPlumeEditor/Code/VerifyWindowsRegistration.sh`,
     `-fsyntax-only`; three broken variants are rejected), which is not a build of the application. The window was never seen in the Windows editor, on a GPU or

@@ -66,7 +66,9 @@ The presenter is `Frontier/Extensions/Plume/PlumeExtension` (the editor applicat
   march from the editor's camera, an orbit about the emitter. The march's resolution is the stage's divided by `max(2, ceil(sqrt(pixels / 250,000)))`.
 - **The picture.** The march's radiance is composited on the CPU over a flat backdrop (a sky that pales toward the horizon and a two-metre checker for the
   ground), encoded as sRGB and written to an RGBA8 image the interface samples in `GENERAL` layout, as the Particle editor's. A plume that is not
-  resident records no march: the stage shows the backdrop alone.
+  resident records no march: the stage shows the backdrop alone. The composite is `Frontier/Extensions/Plume/PlumeComposite`: the backdrop does not
+  depend on the plume, so it is resolved again only when the camera or the stage's size is not the last one's (a refresh with the camera at rest takes it
+  as it was), and the march's half floats are converted once a texel, not once a pixel. `PlumeCompositeValidation` checks it.
 - **Stand-ins.** There is no scene behind the stage, so the programs bind `Frontier/Engine/Rendering/PlumeSimulation/PlumeStandIns` (a distance field of
   zero cascades, a surface with no depth, a shadow with no cascade, a one-texel sky). They are `PlumeSimulationCapture`'s stand-ins, moved into the engine.
 
@@ -109,8 +111,10 @@ after the emitter or the look changed and the smoke was cleared):
 | Check | Program | Result |
 |---|---|---|
 | The record, the libraries, every card driven by input, the window in the workspace | `FluidPlumeEditorValidation` (`Code/RunFluidPlumeEditorValidation.sh`) | 🟢 588 assertions, 0 failures (`Results/Validation.tsv`), 40 to 50 s |
-| The plume in the stage | `FluidPlumeEditorCapture` (`Code/RunFluidPlumeEditorCapture.sh`) | 🟢 13 claims, 0 failed (`Results/LivePlume.tsv`), 4 min on SwiftShader at High |
-| The plume in the stage at the Medium grade | `FluidPlumeEditorCapture … medium`, run directly with its output in a scratch folder (nothing of it is kept here) | 🟢 13 claims, 0 failed, 2 min 28 s on SwiftShader; the HUD reads `Medium · 96×96×24 @ 30 cm · 12 sweeps · 40 samples · RESIDENT`; Tyre smoke 4.16 %, Inferno 27.66 %, the orbit 74.3 %, Crosswind 2.98 % changed and 3.98 % unlike Tyre smoke, the 1080p steps 311 → 317, Clear smoke 0 pixels |
+| The plume in the stage | `FluidPlumeEditorCapture` (`Code/RunFluidPlumeEditorCapture.sh`) | 🟢 13 claims, 0 failed (`Results/LivePlume.tsv`), 3 min 26 s on SwiftShader at High (4 min before the composite kept its backdrop) |
+| The plume in the stage at the Medium grade | `FluidPlumeEditorCapture … medium`, run directly with its output in a scratch folder (nothing of it is kept here) | 🟢 13 claims, 0 failed, 2 min 28 s on SwiftShader, and again after the composite kept its backdrop: 13 claims, 0 failed, 2 min 2 s, the same figures; the HUD reads `Medium · 96×96×24 @ 30 cm · 12 sweeps · 40 samples · RESIDENT`; Tyre smoke 4.16 %, Inferno 27.66 %, the orbit 74.3 %, Crosswind 2.98 % changed and 3.98 % unlike Tyre smoke, the 1080p steps 311 → 317, Clear smoke 0 pixels |
+| The composite against the one it replaced (commit `2f66b41`), byte for byte, and what each costs | `Code/RunPlumeCompositeComparison.sh` | 🟢 72 comparisons, 0 differ; at 554 × 438, 18 ms before, 4.6 ms after with the camera at rest, 12 ms while it turns (`-O2`, one core, one run) |
+| The picture's composite: the kept backdrop against one resolved afresh, the march's texels, the backdrop | `PlumeCompositeValidation` (`ctest`), and `Code/MutatePlumeComposite.sh` for its mutants | 🟢 30 assertions, 0 failures, 6 s in Debug; 19 of 19 mutants caught (the unmutated copy passes) |
 | The plume's programs, re-run after their stand-ins moved into the engine | `RunPlumeParity.sh` and `PlumeSimulationValidation` | 🟢 9 of 9 captures bit for bit, 0 claims failed; 706 assertions, 0 failures |
 
 ### `FluidPlumeEditorValidation`
@@ -142,6 +146,31 @@ It runs on a real Dear ImGui context and asserts:
   twice. Without a presenter *Clear smoke* is a request that a host takes once (`FluidPlumeEditor::TakeRequests`). With the window closed, a verb that edits
   the record is refused.
 
+### `PlumeCompositeValidation`
+
+The composite is CPU code and needs no device. The program asserts, in 30 checks:
+
+- **Kept against afresh.** A run of 13 calls (a first camera; the same camera again; each of the eight numbers the backdrop depends on changed alone, the
+  position's three, the forward direction's three by a sign flip so that it stays a unit vector, the field of view and the aspect; the first camera again; a
+  new size; the new size again), each with a march and without one, at 97 × 61, 330 × 200 and 554 × 438. Every picture equals the one a composite with
+  nothing kept makes, byte for byte (26 composites a size). The march's texels are random half floats, three in ten of them any bit pattern at all (NaN,
+  infinity, denormals, negatives, huge values).
+- **Really kept.** A poisoned backdrop (9.0 everywhere) comes out white while the camera and the size are the last ones', twice in turn, and is dropped by each
+  of the nine changes (the eight numbers and the size).
+- **The texels.** A NaN or an infinity in every channel, an alpha of 2, and no radiance with an opaque alpha give the backdrop alone, bit for bit; an alpha of −1
+  gives black; a premultiplied radiance of 1 with an alpha of 0 gives the sRGB of the exposure (173 against 173.4 from the exact curve); a negative radiance
+  and the smallest half (2⁻²⁴) give black; each picture pixel takes the nearest texel, on a 4 × 4 picture of 2 × 2 texels and on a 5 × 3 picture of 3 × 2 (the
+  last texel reaches one pixel).
+- **The backdrop.** The top row looks at a blue sky; the bottom row is grey and flips between two greys three times where the two-metre checker changes; every
+  pixel is opaque and the picture is sized to its pixels.
+
+`Code/MutatePlumeComposite.sh` edits copies of `PlumeComposite.cpp` (the repository is untouched), compiles each with the validation's flags and runs the
+validation against it: the position's three numbers, the forward direction's three, the field of view, the aspect and the size each dropped from the
+backdrop's key; the kept backdrop never reused; the alpha clamp, the finite test, the texel row stride, the pixel-to-texel scale, the exposure, the sRGB
+exponent, the opaque alpha, the checker and the sky's blue changed. All 19 are stopped (2 to 32 assertions fail in each), and the unmutated copy
+passes (2 min 25 s). A first version of the run let the forward direction's z through: its step changed the direction by renormalising, which moved the
+other two components too; the step now flips the sign of one component, and the mutant is stopped.
+
 ### `FluidPlumeEditorCapture`: expected against observed
 
 Each capture is checked against what it should show; the plume's pixels are counted against the empty stage's (a pixel counts when a colour channel differs
@@ -172,9 +201,20 @@ turns the fire, which shows from any side.
   no car (the stand-in car only anchors the sources and is not drawn), no ReSTIR lighting, no shadows from the scene and a one-texel sky: the plume is lit by
   its own sun term and its fire lights. The plume is not drawn into the Scene viewport's own render (the ReSTIR renderer): only this editor's stage shows it, and the GI port is untouched.
 - **A device is needed.** The captures ran on SwiftShader, on the CPU of a Linux sandbox. Nothing here measures how long a refresh takes on a GPU.
+- **The composite takes the editor's own thread.** Each refresh composites the stage's picture on the CPU, on the thread that draws the editor.
+  `Code/RunPlumeCompositeComparison.sh` cuts the earlier composite (commit `2f66b41`) out of `PlumeExtension.cpp` byte for byte, builds it beside the present
+  one at `-O2`, compares the bytes of their pictures and times both on random half-float texels: the composite alone, not the march, the transport, the
+  read-back or the upload. For stages of 554 × 438, 1108 × 718 and 1840 × 960 one run, on one core of this sandbox's CPU, gave 18, 67 and 131 ms before the
+  backdrop was kept, and 4.6, 15 and 25 ms after, with the camera at rest (12, 39 and 77 ms while it turns, when the backdrop is resolved again). The two
+  composites gave the same bytes in all 72 comparisons (six sizes, six camera placements with repeats, a march and none), and the script fails when they do
+  not: a change of one level to the opaque alpha, made as a trial, makes all 72 differ. In the pictures that replace the earlier ones every pixel inside the
+  stage is the same as before except the HUD's refresh-time digits and six pixels of one letter of the key hint (the same six differ between the earlier
+  pictures and a Medium run made before the change, so they are not the composite's). `PlumeCompositeValidation` prints the current composite's time for
+  the build at hand (Debug, the camera at rest: 18 to 20 ms at 554 × 438). None of this is a figure for the Windows machine; the march and the transport were never timed on a GPU.
 - **The HUD's RATE is an artefact.** It is 1/dt smoothed, and the capture's dt is a fixed 1/30 s, so it settles on 30 fps (the first capture, after one
-  tick, still reads 48). The *REFRESH* figure is the presenter's wall time here: medians of 634 to 712 ms at 554 × 438 and 934 ms at 1108 × 718 (the empty
-  stage, which marches nothing, 65 ms), on SwiftShader in a Debug build. Neither is a figure for a GPU or for a Release build.
+  tick, still reads 48). The *REFRESH* figure is the presenter's wall time here: medians of 530 to 693 ms at 554 × 438 and 689 ms at 1108 × 718 (the empty
+  stage, which marches nothing, 8 ms; before the composite kept its backdrop: 634 to 712 ms, 934 ms and 65 ms), on SwiftShader in a Debug build. Neither is a
+  figure for a GPU or for a Release build.
 - **The way in is driven by input events, not by a window on a display.** Ctrl+A, the search, the tile and *Add to scene* are ImGui key, character and
   pointer events fed to the workspace, and the pictures are its CPU raster. A person at the Windows application has not been through it.
 - **The native application is not verified.** `Experimental/Frontier/Native/WindowsFrontier.cpp` registers the presenter as it registers the Particle
@@ -198,11 +238,13 @@ on SwiftShader. Configured Debug with `-DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFI
 because the sandbox has no Wayland or X11 headers). The stored shader archives of `EngineContent/ShaderArchives/PlumeSimulation` are the ones the capture
 loads.
 
-**Tested revision.** The live capture (`LivePlume.tsv` and the six `Live-*` pictures that show the plume) ran on `b0cfd7e` with the files that `6347000` (the
-plume extension, the capture, its runner, the CMake targets and the images) and `5b7cdf8` (`WindowsFrontier.cpp`, which the Linux build does not compile) then
-committed; they were uncommitted while it ran, and the plume's code has not changed since. The validation (588 assertions, its nine pictures) ran on that tree
-with the files `d5c6acc` then committed (`EverestWorkspace.cpp`, the validation's way in and a stale constant in `CelestialWorkspaceValidation`); the capture
-was not run again after that change, and does not use the workspace's list of types. Together, on that tree:
+**Tested revision.** The live capture was first run on `b0cfd7e` with the files that `6347000` (the plume extension, the capture, its runner, the CMake
+targets and the images) and `5b7cdf8` (`WindowsFrontier.cpp`, which the Linux build does not compile) then committed. It was run again, High (from
+`Code/RunFluidPlumeEditorCapture.sh`) and Medium (directly), after the Everest workspace listed the Fluid Plume (`d5c6acc`), and then High once more on the tree
+that the commit adding `PlumeComposite` then committed (uncommitted while it ran): the same 13 claims with the same figures each time. The committed pictures and
+`LivePlume.tsv` are of that last High run. The validation (588 assertions, its nine pictures) ran on a tree with the files `d5c6acc` then committed
+(`EverestWorkspace.cpp`, the validation's way in and a stale constant in `CelestialWorkspaceValidation`); the window's code has not changed since.
+`PlumeCompositeValidation` and its mutants ran on the tree of the last High run. Together, on the tree of the validation run:
 
 - `ctest` of `EnvironmentInspectorValidation`, `ForceFieldCatalogueValidation`, `EverestInterfaceValidation`, `SceneGeometryValidation`,
   `FluidPlumeEditorValidation`, `EverestShippingValidation` and `PlumeSimulationValidation` all succeed (7 of 7, 323 s).
@@ -221,10 +263,13 @@ python3 Automation/PrepareVulkanCompute.py    # SwiftShader and slangc, into Ext
 python3 Automation/PrepareUI.py               # the interface's dependencies (Dear ImGui and the rest)
 python3 Automation/PrepareFonts.py            # the interface's typefaces
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON
-ninja -C build FluidPlumeEditorValidation FluidPlumeEditorCapture
+ninja -C build FluidPlumeEditorValidation FluidPlumeEditorCapture PlumeCompositeValidation
 Exhibits/FluidPlumeEditor/Code/VerifyWindowsRegistration.sh build              # the native application's registration lines, type-checked only: a few seconds
 Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorValidation.sh build        # the window with a stand-in picture, no GPU: 40 to 50 s
-Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorCapture.sh build [low]     # the plume in the stage: 4 min at High on SwiftShader, 1 m 43 s at Low
+ctest --test-dir build -R PlumeCompositeValidation                           # the picture's composite, no device: 6 s in Debug
+Exhibits/FluidPlumeEditor/Code/MutatePlumeComposite.sh build                 # its 19 mutants, on copies: 2 min 25 s
+Exhibits/FluidPlumeEditor/Code/RunPlumeCompositeComparison.sh build          # the composite against the earlier commit's, byte for byte, and the time of each: 12 s
+Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorCapture.sh build [low]     # the plume in the stage: 3 m 26 s at High on SwiftShader, 1 m 17 s at Low
 ```
 
 The capture takes the driver from `FRONTIER_VULKAN_DRIVER` when it is set, else the SwiftShader that `PrepareVulkanCompute.py` fetched. Both scripts copy
