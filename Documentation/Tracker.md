@@ -1838,4 +1838,6 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
 - **Commits:** `1c1ed7f`, `eb6cdfa`, `c039b0e`, `e4dad0a`, `1ef498f`, `b1c9544`, `0d8afbf`, `a8b1d79`, `4cc68b5`, `c9599fc`, `20c674d`, `ff28e4f`,
   `c564f60`, `a19c90c`, `59e22cd`, `31a4ad1` (the window), `bb7308e` (its validation and layout fixes), `b0cfd7e` (the plume's stand-ins move into the engine),
   `6347000` (`PlumeExtension` and the live capture), `5b7cdf8` (the native registration, not compiled), `e95d298` and `08976f0` (README, Tracker),
-  `d5c6acc` (the workspace lists and offers the Fluid Plume; the validation takes the way in), and the commit that adds these hashes.
+  `d5c6acc` (the workspace lists and offers the Fluid Plume; the validation takes the way in), `3416e0c` (README claims corrected), `d5ffcd0` (the Medium
+  capture), `2f66b41` (the native registration type-checked), `753a003` (that check renamed, with its three broken copies), `5146961` (the plume picture's
+  backdrop kept between refreshes: unrequested, output unchanged, separate so it can be dropped), and the commit that adds these hashes.

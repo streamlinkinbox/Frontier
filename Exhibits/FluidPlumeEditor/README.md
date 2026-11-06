@@ -241,7 +241,7 @@ loads.
 **Tested revision.** The live capture was first run on `b0cfd7e` with the files that `6347000` (the plume extension, the capture, its runner, the CMake
 targets and the images) and `5b7cdf8` (`WindowsFrontier.cpp`, which the Linux build does not compile) then committed. It was run again, High (from
 `Code/RunFluidPlumeEditorCapture.sh`) and Medium (directly), after the Everest workspace listed the Fluid Plume (`d5c6acc`), and then High once more on the tree
-that the commit adding `PlumeComposite` then committed (uncommitted while it ran): the same 13 claims with the same figures each time. The committed pictures and
+that `5146961` (the commit adding `PlumeComposite`) then committed (uncommitted while it ran): the same 13 claims with the same figures each time. The committed pictures and
 `LivePlume.tsv` are of that last High run. The validation (588 assertions, its nine pictures) ran on a tree with the files `d5c6acc` then committed
 (`EverestWorkspace.cpp`, the validation's way in and a stale constant in `CelestialWorkspaceValidation`); the window's code has not changed since.
 `PlumeCompositeValidation` and its mutants ran on the tree of the last High run. Together, on the tree of the validation run:
