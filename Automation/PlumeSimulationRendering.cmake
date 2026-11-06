@@ -18,7 +18,8 @@ add_library(FrontierPlumeSimulation STATIC
     Frontier/Engine/PhysicalDynamics/FluidDynamics/PlumeTelemetryProjection.cpp
     Frontier/Engine/Rendering/PlumeSimulation/PlumeSchedule.cpp
     Frontier/Engine/Rendering/PlumeSimulation/SmokeSequence.cpp
-    Frontier/Engine/Rendering/PlumeSimulation/PlumeSimulationSequence.cpp)
+    Frontier/Engine/Rendering/PlumeSimulation/PlumeSimulationSequence.cpp
+    Frontier/Engine/Rendering/PlumeSimulation/PlumeStandIns.cpp)
 target_include_directories(FrontierPlumeSimulation PUBLIC "${CMAKE_SOURCE_DIR}")
 target_link_libraries(FrontierPlumeSimulation PUBLIC FrontierGlobalIllumination FrontierGasCatalogue)
 target_compile_features(FrontierPlumeSimulation PUBLIC cxx_std_20)

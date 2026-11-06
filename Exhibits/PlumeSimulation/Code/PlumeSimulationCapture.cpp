@@ -22,6 +22,7 @@
 #include "Frontier/Engine/Rendering/GlobalIllumination/RefreshEncoding.h"
 #include "Frontier/Engine/Rendering/GlobalIllumination/ShaderInterchange.h"
 #include "Frontier/Engine/Rendering/PlumeSimulation/PlumeSimulationSequence.h"
+#include "Frontier/Engine/Rendering/PlumeSimulation/PlumeStandIns.h"
 
 #include <stb_image_write.h>
 #include <toml++/toml.hpp>
@@ -91,94 +92,13 @@ float ProjectSrgb(float Linear)
 //                                                   THE STAND-INS
 //------------------------------------------------------------------------------------------------------------------------
 
-struct PlumeStage
-{
-    std::shared_ptr<DescriptorLayout>  DistanceLayout{};
-    std::shared_ptr<DescriptorGroup>   DistanceGroup{};
-    std::shared_ptr<DeviceRegion>      Occupants{};
-    std::shared_ptr<DeviceRegion>      Refresh{};
-    std::shared_ptr<DeviceTexture>     DepthTexture{};
-    std::shared_ptr<DeviceTextureView> DepthView{};
-    PlumeMarchInputs                   March{};
-};
+// 📝 The resources are the engine's own (PlumeStandIns): the Smoke & fire editor's viewport binds the same ones. PlumeParityGpu.mjs builds the same
+//    resources in the same order, sizes and contents.
+using PlumeStage = PlumeStandIns;
 
-std::shared_ptr<DeviceTextureView> ConstructViewOf(DeviceExchange& Exchange, const std::shared_ptr<DeviceTexture>& Texture, ViewDimension Dimension)
-{
-    TextureViewSpecification Specification;
-    Specification.Dimension    = Dimension;
-    Specification.DimensionSet = true;
-    return Exchange.ConstructView(Texture, Specification);
-}
-
-// 📝 PlumeParityGpu.mjs builds the same resources in the same order, sizes and contents.
 bool ConstructStage(DeviceExchange& Exchange, std::array<uint32_t, 2> Screen, PlumeStage& Stage, std::string& Diagnostic)
 {
-    using D = DescriptorCode;
-    // ① the scene distance field's group: zero cascades, the ground plane at z = 0
-    auto DistanceRecords = Exchange.ConstructRegion(160, "Distance record");
-    std::array<std::shared_ptr<DeviceTextureView>, 4> ClipViews{};
-    for (uint32_t Level = 0; Level < 4; ++Level)
-    {
-        TextureSpecification Clip;
-        Clip.Label         = "Clip " + std::to_string(Level);
-        Clip.Dimension     = TextureDimension::Volumetric;
-        Clip.Format        = TextureFormat::Rgba16Float;
-        Clip.Usage         = TextureUsage::Sampled;
-        ClipViews[Level]   = ConstructViewOf(Exchange, Exchange.ConstructTexture(Clip), ViewDimension::Volumetric);
-    }
-    SamplerSpecification Cascade;
-    Cascade.MagFilter = Cascade.MinFilter = FilterMode::Linear;
-    Cascade.AddressU  = Cascade.AddressV = Cascade.AddressW = AddressMode::Repeat;
-    auto CascadeSampler = Exchange.ConstructSampler(Cascade);
-    auto EpochRegion    = Exchange.ConstructRegion(16, "Brick stamps");
-    Stage.DistanceLayout = Exchange.ConstructDescriptorLayout(
-        std::vector<DescriptorSlot>{{D::Uniform}, {D::Texture3D}, {D::Texture3D}, {D::Texture3D}, {D::Texture3D}, {D::Sampler}, {D::StorageRead}}, "Distance traversal");
-    Stage.DistanceGroup = Exchange.ConstructDescriptorGroup(Stage.DistanceLayout, {DistanceRecords, ClipViews[0], ClipViews[1], ClipViews[2], ClipViews[3], CascadeSampler, EpochRegion});
-    Stage.Occupants     = Exchange.ConstructRegion(336 * 4, "Occupants");
-
-    // ② what the march reads beside the plume: the refresh constants, a surface with no depth, a shadow with no cascade, a one-texel sky
-    Stage.Refresh = Exchange.ConstructRegion(1072, "Refresh constants");
-    TextureSpecification Depth;
-    Depth.Label  = "Surface depth";
-    Depth.Width  = Screen[0];
-    Depth.Height = Screen[1];
-    Depth.Format = TextureFormat::Depth32Float;
-    Depth.Usage  = TextureUsage::Sampled | TextureUsage::RenderAttachment;
-    Stage.DepthTexture = Exchange.ConstructTexture(Depth);
-    Stage.DepthView    = Exchange.ConstructView(Stage.DepthTexture);
-    // 📝 Depth images are not zero-filled by the exchange: an empty raster scope clears it to the reversed far plane — nothing stored, nothing occludes.
-    {
-        CommandSequence       Sequence = Exchange.BeginSequence();
-        const DepthAttachment Cleared{Stage.DepthView, LoadOperation::Clear, 0.0f};
-        Sequence.BeginRaster({}, &Cleared, "Surface depth");
-        Sequence.EndRaster();
-        if (!Exchange.Submit(Sequence, &Diagnostic)) return false;
-    }
-    TextureSpecification Shadow;
-    Shadow.Label  = "Shadow depth";
-    Shadow.Format = TextureFormat::Depth32Float;
-    Shadow.Usage  = TextureUsage::Sampled;
-    auto ShadowTexture = Exchange.ConstructTexture(Shadow);
-    SamplerSpecification Comparison;
-    Comparison.MagFilter = Comparison.MinFilter = FilterMode::Linear;
-    Comparison.Compare   = CompareFunction::Less;
-    TextureSpecification Sky;
-    Sky.Label  = "Sky view";
-    Sky.Format = TextureFormat::Rgba8Unorm;
-    Sky.Usage  = TextureUsage::Sampled | TextureUsage::CopyTarget;
-    auto SkyTexture = Exchange.ConstructTexture(Sky);
-    const std::array<uint8_t, 4> SkyTexel = {115, 158, 230, 255};
-    Exchange.WriteTexture(SkyTexture, 0, SkyTexel.data(), SkyTexel.size(), 1, 1);
-    SamplerSpecification SkySampling;
-    SkySampling.MagFilter = SkySampling.MinFilter = FilterMode::Linear;
-    Stage.March.Refresh          = Stage.Refresh;
-    Stage.March.SurfaceDepth     = Stage.DepthView;
-    Stage.March.ShadowLayered    = ConstructViewOf(Exchange, ShadowTexture, ViewDimension::PlanarLayered);
-    Stage.March.ShadowComparison = Exchange.ConstructSampler(Comparison);
-    Stage.March.ShadowReceiver   = Exchange.ConstructRegion(224, "Cascade receiver");
-    Stage.March.SkyView          = Exchange.ConstructView(SkyTexture);
-    Stage.March.SkySampler       = Exchange.ConstructSampler(SkySampling);
-    return true;
+    return ConstructPlumeStandIns(Exchange, Screen, Stage, Diagnostic);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
