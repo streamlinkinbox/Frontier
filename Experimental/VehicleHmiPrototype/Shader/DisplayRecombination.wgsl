@@ -10,7 +10,6 @@
 //    reflects the same radiance with its own response and attenuates the layer beneath by its Fresnel transmittance.
 
 //! include "FrameDescriptor.wgsl"
-//! include "ViewWorld.wgsl"
 //! include "SurfaceReflectance.wgsl"
 //! include "PackingCodec.wgsl"
 //! include "CabinVolume.wgsl"
@@ -66,9 +65,8 @@ fn ResolveDiffuseExitance(Pixel: vec2i, Depth: f32, Visibility: f32) -> vec3f
     }
     let Attributes = textureLoad(SurfaceAttributes, Pixel, 0);
     let Normal = DecodeOctahedral(Attributes.xy);
-    let Family = u32(Attributes.z + 0.5);
+    let Surface = ProjectSurfaceSample(Materials[u32(Attributes.z + 0.5)]);
     let Position = ReconstructWorldPosition(vec2f(Pixel) + 0.5, Depth);
-    let Surface = ProjectSurfaceSample(ApplyPaintRipple(Materials[Family], Family, Position));
     let Enclosure = mix(1.0, CabinIndirectShare, ResolveCabinShare((Occupants[0].WorldToLocal * vec4f(Position, 1.0)).xyz));
     var Irradiance = Frame.SunIlluminance * Visibility * max(dot(Normal, Frame.SunDirection), 0.0);
     Irradiance += textureLoad(DirectIrradiance, Pixel, 0).rgb;
@@ -120,15 +118,39 @@ fn ResolveRecombination(@builtin(global_invocation_id) Invocation: vec3u)
     }
     let Attributes = textureLoad(SurfaceAttributes, Pixel, 0);
     let Normal = DecodeOctahedral(Attributes.xy);
-    let Family = u32(Attributes.z + 0.5);
+    let FamilyIndex = u32(Attributes.z + 0.5);
+    var Surface = ProjectSurfaceSample(Materials[FamilyIndex]);
     let Position = ReconstructWorldPosition(vec2f(Pixel) + 0.5, Depth);
-    let Surface = ProjectSurfaceSample(ApplyPaintRipple(Materials[Family], Family, Position));
+    let BodyLocal = (Occupants[0].WorldToLocal * vec4f(Position, 1.0)).xyz;
+    var WaveSheen = vec3f(0.0);
+    if (FamilyIndex == BodyCoatFamilyIndex && arrayLength(&Materials) > BodyCoatWaveControlIndex)
+    {
+        let Control = Materials[BodyCoatWaveControlIndex];
+        if (Control.Metalness > 0.5)
+        {
+            let CentreAndMetric = vec4f(Control.Albedo, Control.Roughness);
+            let Coverage = ResolvePaintWaveCoverage(BodyLocal, CentreAndMetric, Control.Metalness);
+            let TargetSurface = ProjectSurfaceSample(Materials[BodyCoatWaveTargetIndex]);
+            Surface = BlendSurfaceSample(Surface, TargetSurface, Coverage);
+            let Band = ResolvePaintWaveBand(BodyLocal, CentreAndMetric, Control.Metalness);
+            WaveSheen = mix(TargetSurface.Albedo, vec3f(0.65, 0.88, 1.0), 0.55) * Band * 0.42;
+        }
+    }
+    else if (FamilyIndex == HubFamilyIndex && arrayLength(&Materials) > WheelWaveControlIndex)
+    {
+        let Control = Materials[WheelWaveControlIndex];
+        if (Control.Metalness > 0.5)
+        {
+            let Coverage = ResolveWheelWaveCoverage(BodyLocal, vec4f(Control.Albedo, Control.Roughness));
+            Surface = BlendSurfaceSample(Surface, ProjectSurfaceSample(Materials[WheelWaveTargetIndex]), Coverage);
+        }
+    }
     let View = normalize(Frame.CameraPosition - Position);
     let NdotV = max(dot(Normal, View), 1.0e-3);
 
     // 📝 Inside the car's cabin: SDF volumes need 0.05 to counter self-hit, whereas the BVH tracer traces through real window openings.
     let TargetCabinShare = select(CabinIndirectShare, 0.45, FeatureEnabled(Frame, FeatureRayTracing));
-    let Enclosure = mix(1.0, TargetCabinShare, ResolveCabinShare((Occupants[0].WorldToLocal * vec4f(Position, 1.0)).xyz));
+    let Enclosure = mix(1.0, TargetCabinShare, ResolveCabinShare(BodyLocal));
     var Irradiance = vec3f(0.0);
     if (FeatureEnabled(Frame, FeatureIndirect))
     {
@@ -159,7 +181,7 @@ fn ResolveRecombination(@builtin(global_invocation_id) Invocation: vec3u)
         Specular = Specular * (1.0 - CoatReflectance) + Glossy * CoatReflectance;
     }
     // 📝 Attributes.w carries 1 + glow: a derezzing car's cells and cubes glow in their own facet's colour.
-    let Emission = (Surface.Emission + Surface.Albedo * max(Attributes.w - 1.0, 0.0)) * Frame.EmissionScale;
+    let Emission = (Surface.Emission + Surface.Albedo * max(Attributes.w - 1.0, 0.0)) * Frame.EmissionScale + WaveSheen;
 
     var Colour = Direct.rgb + Indirect + Emission;
     switch (Frame.InspectionMode)

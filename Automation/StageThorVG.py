@@ -10,11 +10,11 @@ void operator delete(void* ptr) noexcept {
     tvg::free(ptr);
 }'''
 def stage(source:Path,destination:Path):
-    original=(source/'src/renderer/tvgInitializer.cpp').read_text()
+    original=(source/'src/renderer/tvgInitializer.cpp').read_text(encoding='utf-8').replace('\r\n', '\n')
     if not original.endswith(TAIL):
         raise RuntimeError('ThorVG initializer differs from the reviewed 1.0.0 pin; re-review the allocation patch.')
     destination.parent.mkdir(parents=True,exist_ok=True)
-    destination.write_text(original[:-len(TAIL)]+'// Frontier: retain the standard C++ allocation functions.\n')
+    destination.write_text(original[:-len(TAIL)]+'// Frontier: retain the standard C++ allocation functions.\n', encoding='utf-8')
     return destination
 if __name__=='__main__':
     import argparse

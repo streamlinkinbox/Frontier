@@ -40,7 +40,8 @@ class InputDriver
     //    can replicate or record exactly what was applied.
     InputPacket DriveFromState(const RawInputState& State, float StepSeconds) noexcept;
 #if defined(FRONTIER_WITH_GLFW)
-    InputPacket DriveFromWindow(GLFWwindow* Window, float StepSeconds) noexcept;
+    InputPacket DriveFromWindow(GLFWwindow* Window, float StepSeconds,
+                                 InputControlMode Mode = InputControlMode::Driving) noexcept;
 #endif
     // 📝 Applies an already-encoded packet (remote peer, replay, script).
     void DriveFromPacket(const InputPacket& Packet, float StepSeconds) noexcept;

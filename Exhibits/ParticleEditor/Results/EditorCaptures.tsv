@@ -1,9 +1,0 @@
-capture	selected	effects	alive	fields	overlay	lattice	mean_ms	extent
-EditorOpening	Field	4	2267	4	on	read	208.377	1124x744
-EffectPage	fx_1	4	2280	4	on	read	199.363	1124x744
-WindPage	Wind	4	2288	4	on	read	197.935	1124x744
-AttractorPage	force:4	4	2303	5	on	read	193.167	1124x744
-LightningPage	Lightning	4	2312	5	on	read	189.444	1124x744
-PresetLibrary	Lightning	4	2313	5	on	read	191.816	1124x744
-TornadoPreset	fx_5	5	2639	5	on	read	215.556	1124x744
-WindArrows	Wind	5	2709	5	off	read	269.596	1124x744

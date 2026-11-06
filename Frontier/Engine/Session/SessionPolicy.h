@@ -10,6 +10,7 @@
 //    Engine provides the defaults below. A project keeps its own in Projects/<Name>/Source/Session and hands
 //    SessionSpace a factory — subclassing or replacing any of these without touching engine code.
 
+#include "Frontier/Engine/Input/InputPacket.h"
 #include "Frontier/Engine/Session/PlayerToken.h"
 #include "Frontier/Engine/Session/SpawnPolicy.h"
 
@@ -37,6 +38,24 @@ struct NetPolicy
     bool AllowJoinInProgress = true;
     bool AllowSyntheticBackfill = true;
     float ReplicationHz = 60.0f;
+};
+
+// 📝 The active level tells the GLFW/input router what the controls mean. Input is still one InputPacket;
+//    policies only whitelist the channels that make sense here.
+struct InputRoutingPolicy
+{
+    InputControlMode Mode = InputControlMode::Driving;
+    bool AllowDriving = true;
+    bool AllowCameraLook = true;
+    bool AllowCameraCycle = true;
+    bool AllowLevelNavigation = true;
+    bool AllowReady = false;
+    bool AllowRespawn = true;
+    bool AllowBoost = true;
+    bool AllowLights = true;
+    std::string_view ControlsHint = "WASD drive; mouse camera; Esc navigation";
+
+    [[nodiscard]] InputPacket Route(const InputPacket& Packet) const noexcept;
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -72,6 +91,7 @@ class SessionPolicy
     [[nodiscard]] const NetPolicy& QueryNetPolicy() const noexcept { return NetRules; }
     [[nodiscard]] const RespawnPolicy& QueryRespawnPolicy() const noexcept { return RespawnRules; }
     [[nodiscard]] const SpawnPolicy& QuerySpawnPolicy() const noexcept { return SpawnRules; }
+    [[nodiscard]] virtual const InputRoutingPolicy& QueryInputRoutingPolicy() const noexcept;
 
     // 📝 Creation reads these from the assigned policy, never from a level script: how many players the
     //    room holds (0 = the session configuration decides) and whether units may be derezzed/rezzed here.
@@ -114,6 +134,7 @@ class LobbyPolicy : public SessionPolicy
     void OnSessionStep(SessionSpace& Session, float StepSeconds) override;
     [[nodiscard]] bool ShouldTransitionLevel(const SessionSpace& Session, std::string& OutTargetLevelPath,
                                              std::string& OutTargetPolicyName) const override;
+    [[nodiscard]] const InputRoutingPolicy& QueryInputRoutingPolicy() const noexcept override;
 
     void SelectNextMatchPolicy(std::string PolicyName) { NextMatchPolicyName = std::move(PolicyName); }
     void SelectTargetLevelPath(std::string LevelPath) { TargetLevelPath = std::move(LevelPath); }
@@ -134,6 +155,7 @@ class ProvingGroundsPolicy : public SessionPolicy
   public:
     ProvingGroundsPolicy();
     [[nodiscard]] std::string_view QueryPolicyName() const noexcept override { return "ProvingGroundsPolicy"; }
+    [[nodiscard]] const InputRoutingPolicy& QueryInputRoutingPolicy() const noexcept override;
 };
 
 //------------------------------------------------------------------------------------------------------------------------

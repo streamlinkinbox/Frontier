@@ -15,6 +15,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -360,11 +361,17 @@ class VulkanImGuiPresenter
     void RecordDrawData(VulkanContext& Ctx, VkCommandBuffer Cmd, ImDrawData* DrawData, int Width, int Height);
 
   private:
-    VkPipeline           GuiPipeline  = VK_NULL_HANDLE;
-    VulkanImageTarget    FontAtlasImg{};
-    VulkanBufferResource VertexBuffer{};
-    VulkanBufferResource IndexBuffer{};
-    bool                 Initialized  = false;
+    struct ManagedImGuiTexture
+    {
+        int               UniqueId = -1;
+        VulkanImageTarget Image{};
+    };
+
+    VkPipeline                                        GuiPipeline = VK_NULL_HANDLE;
+    std::vector<std::unique_ptr<ManagedImGuiTexture>> ManagedTextures{};
+    VulkanBufferResource                              VertexBuffer{};
+    VulkanBufferResource             IndexBuffer{};
+    bool                             Initialized = false;
 };
 
 } // namespace Frontier

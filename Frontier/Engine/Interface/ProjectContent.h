@@ -17,8 +17,7 @@ namespace Frontier
 
 inline std::string EncodeUtf8Path(const std::filesystem::path& Path)
 {
-    // 📝 Asks the library, not __cplusplus: MSVC keeps that at 199711L without /Zc:__cplusplus, took the other branch and failed (C2440) in the editor-preview run 42202642917.
-#if defined(__cpp_lib_char8_t)
+#if __cplusplus >= 202002L || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
     const std::u8string Utf8 = Path.u8string();
     return std::string(reinterpret_cast<const char*>(Utf8.data()), Utf8.size());
 #else

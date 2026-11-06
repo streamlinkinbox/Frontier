@@ -2,10 +2,9 @@
 /*==========================================================================================================================================
                                                                LOBBYSESSION.H
 ==========================================================================================================================================*/
-// 🧩 The game, at this step: it opens on the Lobby (the car studio) because that is the default level, it
-//    holds one vehicle with a steering wheel and an (empty) tablet, and its room is a SessionSpace whose
-//    LobbyPolicy answers everything — five players at most, no respawning, no derez. Changing levels is a
-//    DEBUG-ONLY popup on a key combination; shipping builds compile it out with FRONTIER_DEBUG_LEVEL_SWITCH=0.
+// 🧩 The session/game harness opens on the Lobby by default, creates a vehicle for every player, and
+//    applies the active level's policy. Project Everest supplies a normal two-way Navigation app through
+//    NavigateToLevel; the generic debug popup remains optional and can be compiled out.
 
 #include "Frontier/Engine/Session/LevelTransition.h"
 #include "Frontier/Engine/Session/SessionSpace.h"
@@ -30,7 +29,7 @@ struct GameLevelEntry
 class LobbySession
 {
   public:
-    explicit LobbySession(SessionConfiguration Configuration = {});
+    explicit LobbySession(SessionConfiguration Configuration = {}, LevelTransition::PolicyFactory PolicyFactory = {});
 
     // 📝 Construction has already opened the Lobby: session begun under the configured lobby policy, local
     //    player joined and deployed, one vehicle standing in the studio.
@@ -43,6 +42,10 @@ class LobbySession
     // 📝 One step of the game: drivers drive, the policy's rules run, and a finished lobby countdown (or a
     //    finished match) performs its level transition through the normal rules.
     void Step(float StepSeconds);
+
+    // 📝 Navigation-app route: rebuild the current room at the selected level with the selected policy,
+    //    preserving player profiles and deploying a fresh vehicle for every player.
+    bool NavigateToLevel(const std::string& LevelPath, const std::string& PolicyName);
 
     // 📝 The local player's driving input, as a packet (whatever encoded it — GLFW, a test, a replay).
     void SubmitLocalInput(const InputPacket& Packet) { Session.SubmitPlayerInput(LocalPlayer, Packet); }
@@ -59,9 +62,12 @@ class LobbySession
 
   private:
     SessionConfiguration Configuration{};
+    LevelTransition::PolicyFactory PolicyFactory{};
     SessionSpace Session;
     LevelTransition Transition;
     PlayerToken LocalPlayer{};
+
+    void RefreshLocalPlayerToken();
 
 #if FRONTIER_DEBUG_LEVEL_SWITCH
     bool DebugPopupOpen = false;

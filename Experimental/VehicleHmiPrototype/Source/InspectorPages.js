@@ -583,7 +583,7 @@ function BuildGas(Host, C, Body)
 }
 
 // 📐 Survival of density and heat after emission: (1 − loss)^t, with the rise of a warm parcel under the buoyancy.
-export function DrawDecay(Context, Width, Height, Gas)
+function DrawDecay(Context, Width, Height, Gas)
 {
     const Left = 18, Right = Width - 18, Top = 18, Bottom = Height - 26;
     Context.strokeStyle = "#2c2c2c";
@@ -638,7 +638,7 @@ export function ResolveBlackbody(Kelvin)
 }
 
 // 📐 Helland's blackbody fit (the march's ResolveBlackbodyColour), linear.
-export function ResolveHelland(Kelvin)
+function ResolveHelland(Kelvin)
 {
     const Hecto = Math.max(1000.0, Math.min(6600.0, Kelvin)) / 100.0;
     const Green = Math.min(1.0, Math.max(0.0, (99.4708025861 * Math.log(Hecto) - 161.1195681661) / 255.0));
@@ -646,7 +646,7 @@ export function ResolveHelland(Kelvin)
     return [1.0, Math.pow(Green, 2.2), Math.pow(Blue, 2.2)];
 }
 
-export function DrawBlackbody(Context, Width, Height, Gas)
+function DrawBlackbody(Context, Width, Height, Gas)
 {
     const Left = 18, Right = Width - 18;
     const Tip = Gas.FlameTip * Gas.FlameTemperature, Core = Gas.FlameCore * Gas.FlameTemperature;

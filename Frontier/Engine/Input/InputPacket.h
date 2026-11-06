@@ -21,7 +21,18 @@ enum InputActionBit : uint32_t
     InputActionReady       = 1u << 3,   // [-] lobby: this player is ready to leave for the next level
     InputActionResetUnit   = 1u << 4,   // [-] ask the session's RespawnPolicy to stand the unit back up
     InputActionCycleCamera = 1u << 5,
-    InputActionLights      = 1u << 6
+    InputActionLights       = 1u << 6,
+    InputActionMenu         = 1u << 7,   // [-] open/close the level navigation menu
+    InputActionNavigatePrev = 1u << 8,   // [-] previous menu destination
+    InputActionNavigateNext = 1u << 9,   // [-] next menu destination
+    InputActionConfirm      = 1u << 10,  // [-] select the current menu destination
+    InputActionBack         = 1u << 11   // [-] close the menu / cancel a selection
+};
+
+enum class InputControlMode : uint8_t
+{
+    Driving = 0,
+    Navigation = 1
 };
 
 struct InputPacket

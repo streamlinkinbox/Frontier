@@ -57,8 +57,10 @@ struct alignas(16) PyroUniformBlock
     float SliceAndPipParams[4];    // x=sliceAxis, y=slicePos, z=showAtlasPip, w=atlasPipField
     float EmberAndActiveParams[4]; // x=showActiveCells, y=emberSize, z=emberIntensity, w=emberLifetime
     float EmberExtraParams[4];     // x=emberAshiness, y=viewportHeightPx, z=nearPlane, w=farPlane
+    float WorldGridOrigin[4];      // x=originX, y=originZ, z=priorOriginX, w=priorOriginZ
+    float WorldGridFlags[4];       // x=worldGridEnabled, y=cellSizeXZ, z=cellSizeY, w=floorWorldZ
 };
-static_assert(sizeof(PyroUniformBlock) == 68u * 16u, "PyroUniformBlock std140 size mismatch");
+static_assert(sizeof(PyroUniformBlock) == 70u * 16u, "PyroUniformBlock std140 size mismatch");
 
 void ResolveTileLayout(int32_t RequestedRes, int32_t& OutRes, int32_t& OutTx, int32_t& OutTy) noexcept
 {
@@ -96,7 +98,107 @@ std::array<float, 3> Normalize3(const std::array<float, 3>& V) noexcept
     return { V[0] / L, V[1] / L, V[2] / L };
 }
 
+std::array<float, 3> Cross3(const std::array<float, 3>& A, const std::array<float, 3>& B) noexcept
+{
+    return {
+        A[1] * B[2] - A[2] * B[1],
+        A[2] * B[0] - A[0] * B[2],
+        A[0] * B[1] - A[1] * B[0],
+    };
+}
+
 } // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+//                                                PYRO ORBIT CAMERA
+//----------------------------------------------------------------------------------------------------------------------
+
+void PyroOrbitCamera::Reset() noexcept
+{
+    Theta      = 0.62f;
+    Phi        = 1.18f;
+    Distance   = 3.15f;
+    Target     = { 0.0f, 0.35f, 0.0f };
+    FovDegrees = 46.0f;
+}
+
+void PyroOrbitCamera::ApplyPresetView(int ViewOrdinal) noexcept
+{
+    if (ViewOrdinal == 1)      { Theta = 0.0f;           Phi = PiVal * 0.48f; Distance = 3.2f; } // Front
+    else if (ViewOrdinal == 2) { Theta = PiVal * 0.5f;   Phi = PiVal * 0.48f; Distance = 3.2f; } // Side
+    else if (ViewOrdinal == 3) { Theta = 0.0f;           Phi = 0.14f;         Distance = 3.5f; } // Top
+    else                       { Reset(); }
+}
+
+void PyroOrbitCamera::OrbitByPixels(float DeltaX, float DeltaY) noexcept
+{
+    Theta -= DeltaX * 0.0065f;
+    Phi    = std::clamp(Phi - DeltaY * 0.0065f, 0.08f, PiVal - 0.08f);
+}
+
+void PyroOrbitCamera::PanByPixels(float DeltaX, float DeltaY) noexcept
+{
+    const PyroCameraFrame Frame = ComputeFrame();
+    const float Scale           = Distance * 0.0014f;
+    for (int C = 0; C < 3; ++C)
+        Target[static_cast<size_t>(C)] += (-DeltaX * Frame.Right[static_cast<size_t>(C)] + DeltaY * Frame.Up[static_cast<size_t>(C)]) * Scale;
+}
+
+void PyroOrbitCamera::ZoomByWheel(float WheelSteps) noexcept
+{
+    Distance = std::clamp(Distance * std::pow(0.88f, WheelSteps), 0.85f, 12.0f);
+}
+
+void PyroOrbitCamera::AdvanceTurntable(float DtSeconds) noexcept
+{
+    if (AutoRotate)
+        Theta += DtSeconds * 0.38f;
+}
+
+PyroCameraFrame PyroOrbitCamera::ComputeFrame(float AspectOverride) const noexcept
+{
+    PyroCameraFrame Frame{};
+    Frame.Aspect     = (AspectOverride > 0.05f) ? AspectOverride : Aspect;
+    Frame.FovRadians = FovDegrees * Deg2Rad;
+
+    const float SinPhi = std::sin(Phi);
+    Frame.Position = {
+        Target[0] + Distance * SinPhi * std::sin(Theta),
+        Target[1] + Distance * std::cos(Phi),
+        Target[2] + Distance * SinPhi * std::cos(Theta),
+    };
+    Frame.Forward = Normalize3({
+        Target[0] - Frame.Position[0],
+        Target[1] - Frame.Position[1],
+        Target[2] - Frame.Position[2],
+    });
+    Frame.Right = Normalize3(Cross3(Frame.Forward, { 0.0f, 1.0f, 0.0f }));
+    Frame.Up    = Normalize3(Cross3(Frame.Right, Frame.Forward));
+    return Frame;
+}
+
+bool PyroOrbitCamera::RaycastBrushPoint(float NdcX, float NdcY, std::array<float, 3>& OutWorldPoint) const noexcept
+{
+    const PyroCameraFrame F = ComputeFrame();
+    const float TanHalf     = std::tan(F.FovRadians * 0.5f);
+    const std::array<float, 3> Dir = Normalize3({
+        F.Forward[0] + NdcX * F.Aspect * TanHalf * F.Right[0] + NdcY * TanHalf * F.Up[0],
+        F.Forward[1] + NdcX * F.Aspect * TanHalf * F.Right[1] + NdcY * TanHalf * F.Up[1],
+        F.Forward[2] + NdcX * F.Aspect * TanHalf * F.Right[2] + NdcY * TanHalf * F.Up[2],
+    });
+    // Intersect camera-facing plane passing through Target
+    const float Denom = Dir[0] * F.Forward[0] + Dir[1] * F.Forward[1] + Dir[2] * F.Forward[2];
+    if (std::fabs(Denom) < 1.0e-4f)
+        return false;
+    const float Numer = (Target[0] - F.Position[0]) * F.Forward[0]
+                      + (Target[1] - F.Position[1]) * F.Forward[1]
+                      + (Target[2] - F.Position[2]) * F.Forward[2];
+    const float T = Numer / Denom;
+    if (T <= 0.05f)
+        return false;
+    OutWorldPoint = { F.Position[0] + Dir[0] * T, F.Position[1] + Dir[1] * T, F.Position[2] + Dir[2] * T };
+    return true;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 //                                         INITIALIZATION & LATTICE TARGETS
@@ -357,11 +459,14 @@ void PyroVolumeSolver::ClearLattice(VulkanContext& Ctx)
 
     PendingBlasts.clear();
     Projectiles.clear();
-    DynamicSurge   = 1.0f;
-    SimulationTime = 0.0f;
-    StepCounter    = 0u;
-    ReadSlotIdx    = 0;
-    ReadPresIdx    = 0;
+    DynamicSurge          = 1.0f;
+    SimulationTime        = 0.0f;
+    StepCounter           = 0u;
+    ReadSlotIdx           = 0;
+    ReadPresIdx           = 0;
+    WorldGridHasFocus     = false;
+    WorldGridPriorOriginX = WorldGridOriginX;
+    WorldGridPriorOriginZ = WorldGridOriginZ;
 }
 
 void PyroVolumeSolver::UploadWorldSdfAtlas(VulkanContext& Ctx, const float* RgbaTexels, size_t FloatCount)
@@ -371,6 +476,51 @@ void PyroVolumeSolver::UploadWorldSdfAtlas(VulkanContext& Ctx, const float* Rgba
     std::string Diag;
     if (Ctx.UploadRgba32fImage(WorldSdfImg, RgbaTexels, static_cast<size_t>(AtlasWidth * AtlasHeight * 4), Diag))
         WorldSdfEnabled = true;
+}
+
+void PyroVolumeSolver::SetWorldGridMode(bool Enabled) noexcept
+{
+    if (WorldGridEnabled != Enabled)
+    {
+        WorldGridEnabled  = Enabled;
+        WorldGridHasFocus = false;
+    }
+}
+
+void PyroVolumeSolver::UpdateWorldGridFocus(float FocusWorldX, float FocusWorldY, const GasSettings& Settings) noexcept
+{
+    if (!WorldGridEnabled)
+        return;
+
+    const int32_t N        = std::max<int32_t>(16, LatticeRes > 0 ? LatticeRes : Settings.LatticeResolution);
+    const float   SpanXZ   = std::max(4.0f, Settings.BoundsWidth);
+    const float   CellXZ   = SpanXZ / static_cast<float>(N);
+    const int32_t FocusX   = static_cast<int32_t>(std::floor(FocusWorldX / CellXZ));
+    const int32_t FocusZ   = static_cast<int32_t>(std::floor(FocusWorldY / CellXZ));
+
+    if (!WorldGridHasFocus)
+    {
+        WorldGridOriginX      = FocusX - N / 2;
+        WorldGridOriginZ      = FocusZ - N / 2;
+        WorldGridPriorOriginX = WorldGridOriginX;
+        WorldGridPriorOriginZ = WorldGridOriginZ;
+        WorldGridHasFocus     = true;
+        return;
+    }
+
+    // Recentre window by integer world cells only when focus exits the inner 50% deadzone (PlumeSpace.js recentreWindow)
+    const int32_t Margin  = std::max<int32_t>(2, N / 4);
+    const int32_t CenterX = WorldGridOriginX + N / 2;
+    const int32_t CenterZ = WorldGridOriginZ + N / 2;
+    if (FocusX < CenterX - Margin)
+        WorldGridOriginX += (FocusX - (CenterX - Margin));
+    else if (FocusX > CenterX + Margin)
+        WorldGridOriginX += (FocusX - (CenterX + Margin));
+
+    if (FocusZ < CenterZ - Margin)
+        WorldGridOriginZ += (FocusZ - (CenterZ - Margin));
+    else if (FocusZ > CenterZ + Margin)
+        WorldGridOriginZ += (FocusZ - (CenterZ + Margin));
 }
 
 void PyroVolumeSolver::AssignExternalSources(const PyroExternalSource* Sources, int Count) noexcept
@@ -390,6 +540,21 @@ void PyroVolumeSolver::AssignBrush(const std::array<float, 3>& PosUvw, const std
 PyroBoundsBox PyroVolumeSolver::ComputeBoundsBox(const GasSettings& Settings) const noexcept
 {
     PyroBoundsBox Box{};
+    if (WorldGridEnabled)
+    {
+        const int32_t N    = std::max<int32_t>(16, LatticeRes > 0 ? LatticeRes : Settings.LatticeResolution);
+        Box.SurgeMultiplier= 1.0f;
+        Box.EffectiveWidth = std::max(4.0f, Settings.BoundsWidth);
+        Box.EffectiveHeight= std::max(2.0f, Settings.BoundsHeight);
+        const float CellXZ = Box.EffectiveWidth / static_cast<float>(N);
+        const float MinX   = static_cast<float>(WorldGridOriginX) * CellXZ;
+        const float MinZ   = static_cast<float>(WorldGridOriginZ) * CellXZ;
+        Box.BoxMin         = { MinX, -0.60f, MinZ };
+        Box.BoxMax         = { MinX + Box.EffectiveWidth, -0.60f + Box.EffectiveHeight, MinZ + Box.EffectiveWidth };
+        Box.DomainScale    = { Box.EffectiveWidth, Box.EffectiveHeight, Box.EffectiveWidth };
+        return Box;
+    }
+
     const float Mult    = Settings.DynamicBounds ? std::clamp(DynamicSurge, 1.0f, std::max(1.0f, Settings.DynamicBoundsMax)) : 1.0f;
     Box.SurgeMultiplier = Mult;
     Box.EffectiveWidth  = std::max(0.4f, Settings.BoundsWidth * Mult);
@@ -421,85 +586,55 @@ void PyroVolumeSolver::TriggerExplosion(const GasSettings& Settings, const PyroE
     PendingBlasts.push_back(Rec);
 }
 
-void PyroVolumeSolver::TriggerBurstSequence(VulkanContext& Ctx, const GasSettings& Settings, const char* PatternName,
+void PyroVolumeSolver::TriggerBurstSequence(const GasSettings& Settings, const char* PatternName,
                                             const std::array<float, 3>* CustomCenter)
 {
-    // [unit] - FluidPanel.js TriggerBurst, case by case: the centres, delays and overrides below are the prototype's numbers
-    const char* Pattern = PatternName ? PatternName : "single";
+    const std::array<float, 3> C = CustomCenter ? *CustomCenter : std::array<float, 3>{ 0.5f, 0.20f, 0.5f };
+    const char* Pat = PatternName ? PatternName : "single";
 
-    if (CustomCenter)
+    if (std::strcmp(Pat, "salvo") == 0)
     {
-        PyroExplosionOptions Click{};
-        Click.CenterUvw = *CustomCenter;
-        TriggerExplosion(Settings, Click);
-        return;
-    }
-
-    if (std::strcmp(Pattern, "salvo") == 0)
-    {
-        static constexpr std::array<std::array<float, 3>, 4> SalvoCentres = { {
-            { 0.32f, 0.16f, 0.34f }, { 0.68f, 0.18f, 0.33f }, { 0.33f, 0.20f, 0.67f }, { 0.66f, 0.22f, 0.66f } } };
-        for (size_t Index = 0u; Index < SalvoCentres.size(); ++Index)
+        for (int Idx = 0; Idx < 4; ++Idx)
         {
-            PyroExplosionOptions Round{};
-            Round.CenterUvw        = SalvoCentres[Index];
-            Round.DelaySeconds     = static_cast<float>(Index) * 0.17f;
-            Round.RadiusOverride   = Settings.BlastRadius * 0.85f;
-            Round.StrengthOverride = Settings.BlastStrength * 0.95f;
-            Round.TempOverride     = Settings.BlastTemperature * 1.05f;
-            Round.SmokeOverride    = Settings.BlastSmoke * 1.1f;
-            Round.LobesOverride    = 7;
-            TriggerExplosion(Settings, Round);
+            const float Angle = static_cast<float>(Idx) * (PiVal * 0.5f);
+            PyroExplosionOptions Opt{};
+            Opt.CenterUvw    = { C[0] + std::cos(Angle) * 0.16f, C[1] + 0.04f * Idx, C[2] + std::sin(Angle) * 0.16f };
+            Opt.DelaySeconds = 0.12f * static_cast<float>(Idx);
+            TriggerExplosion(Settings, Opt);
         }
     }
-    else if (std::strcmp(Pattern, "collide") == 0)
+    else if (std::strcmp(Pat, "collide") == 0)
     {
-        for (int Index = 0; Index < 2; ++Index)
-        {
-            const float Direction = Index == 0 ? -1.0f : 1.0f;
-            PyroExplosionOptions Jet{};
-            Jet.CenterUvw        = { Direction < 0.0f ? 0.22f : 0.78f, 0.3f, 0.5f };
-            Jet.DirectionalVel   = { -Direction * 14.0f, 1.5f, 0.0f };
-            Jet.DelaySeconds     = static_cast<float>(Index) * 0.03f;
-            Jet.RadiusOverride   = 0.16f;
-            Jet.StrengthOverride = 7.5f;
-            Jet.TempOverride     = 6.2f;
-            Jet.FuelOverride     = 4.8f;
-            Jet.SmokeOverride    = 2.5f;
-            Jet.LobesOverride    = 6;
-            TriggerExplosion(Settings, Jet);
-        }
+        PyroExplosionOptions Left{}, Right{};
+        Left.CenterUvw       = { 0.24f, 0.34f, 0.50f };
+        Left.DirectionalVel  = {  9.5f, 1.5f,  0.0f  };
+        Right.CenterUvw      = { 0.76f, 0.34f, 0.50f };
+        Right.DirectionalVel = { -9.5f, 1.5f,  0.0f  };
+        TriggerExplosion(Settings, Left);
+        TriggerExplosion(Settings, Right);
     }
-    else if (std::strcmp(Pattern, "mushroom") == 0)
+    else if (std::strcmp(Pat, "mushroom") == 0)
     {
-        ClearLattice(Ctx);
-
-        PyroExplosionOptions Cap{};
-        Cap.CenterUvw        = { 0.5f, 0.14f, 0.5f };
-        Cap.RadiusOverride   = 0.23f;
-        Cap.StrengthOverride = 12.5f;
-        Cap.TempOverride     = 6.5f;
-        Cap.FuelOverride     = 5.5f;
-        Cap.SmokeOverride    = 3.2f;
-        Cap.LobesOverride    = 8;
-        TriggerExplosion(Settings, Cap);
-
-        PyroExplosionOptions Stem{};
-        Stem.CenterUvw        = { 0.5f, 0.29f, 0.5f };
-        Stem.DelaySeconds     = 0.15f;
-        Stem.RadiusOverride   = 0.19f;
-        Stem.StrengthOverride = 9.5f;
-        Stem.TempOverride     = 6.8f;
-        Stem.FuelOverride     = 4.8f;
-        Stem.SmokeOverride    = 2.4f;
-        Stem.LobesOverride    = 6;
+        PyroExplosionOptions Base{}, Stem{};
+        Base.CenterUvw        = { C[0], 0.12f, C[2] };
+        Base.StrengthOverride = Settings.BlastStrength * 1.25f;
+        Stem.CenterUvw        = { C[0], 0.28f, C[2] };
+        Stem.DirectionalVel   = { 0.0f, 11.0f, 0.0f };
+        Stem.DelaySeconds     = 0.09f;
+        TriggerExplosion(Settings, Base);
         TriggerExplosion(Settings, Stem);
+    }
+    else if (std::strcmp(Pat, "shrapnel") == 0)
+    {
+        PyroExplosionOptions Air{};
+        Air.CenterUvw        = { C[0], 0.32f, C[2] };
+        Air.ShrapnelOverride = 1;
+        TriggerExplosion(Settings, Air);
     }
     else
     {
-        // [unit] - "single" and "shrapnel" are the one burst at the prototype's default centre; only shrapnel forces the projectiles
         PyroExplosionOptions Single{};
-        Single.ShrapnelOverride = std::strcmp(Pattern, "shrapnel") == 0 ? 1 : -1;
+        Single.CenterUvw = C;
         TriggerExplosion(Settings, Single);
     }
 }
@@ -512,12 +647,23 @@ namespace
 {
 
 void PopulateCommonPyroUbo(PyroUniformBlock& Ubo, const GasSettings& S, const PyroBoundsBox& Bounds,
-                           int32_t Res, int32_t Tx, int32_t Ty, float Dt, float SimTime, bool WorldSdfOn) noexcept
+                           int32_t Res, int32_t Tx, int32_t Ty, float Dt, float SimTime, bool WorldSdfOn,
+                           bool WorldGridOn, int32_t WGOriginX, int32_t WGOriginZ,
+                           int32_t WGPriorOriginX, int32_t WGPriorOriginZ) noexcept
 {
     Ubo.GridParams[0]   = static_cast<float>(Res);
     Ubo.GridParams[1]   = static_cast<float>(Tx);
     Ubo.GridParams[2]   = static_cast<float>(Ty);
     Ubo.GridParams[3]   = Dt;
+
+    Ubo.WorldGridOrigin[0] = static_cast<float>(WGOriginX);
+    Ubo.WorldGridOrigin[1] = static_cast<float>(WGOriginZ);
+    Ubo.WorldGridOrigin[2] = static_cast<float>(WGPriorOriginX);
+    Ubo.WorldGridOrigin[3] = static_cast<float>(WGPriorOriginZ);
+    Ubo.WorldGridFlags[0]  = WorldGridOn ? 1.0f : 0.0f;
+    Ubo.WorldGridFlags[1]  = Bounds.EffectiveWidth  / static_cast<float>(std::max<int32_t>(1, Res));
+    Ubo.WorldGridFlags[2]  = Bounds.EffectiveHeight / static_cast<float>(std::max<int32_t>(1, Res));
+    Ubo.WorldGridFlags[3]  = 0.0f;
 
     Ubo.TimeAndSwitches[0] = SimTime;
     Ubo.TimeAndSwitches[1] = (S.VorticityConfinement > 0.001f) ? 1.0f : 0.0f;
@@ -662,11 +808,12 @@ void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settin
         ++Idx;
     }
 
-    // [unit] - FluidPanel.js Frame: a burst whose time has come fires before the step that follows (one a step, in the order they were made); every waiting clock then advances by the step
+    // Pop any due blast record for this frame
     PendingBlastRecord ActiveBlast{};
     bool FireBlastThisStep = false;
     for (size_t Idx = 0u; Idx < PendingBlasts.size(); ++Idx)
     {
+        PendingBlasts[Idx].Delay -= Dt;
         if (PendingBlasts[Idx].Delay <= 0.0f && !FireBlastThisStep)
         {
             ActiveBlast       = PendingBlasts[Idx];
@@ -689,8 +836,6 @@ void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settin
             break;
         }
     }
-    for (PendingBlastRecord& Waiting : PendingBlasts)
-        Waiting.Delay -= Dt;
 
     // Smoothly surge open-bounds domain volume during energetic blasts / tall plumes
     if (Settings.DynamicBounds)
@@ -707,7 +852,9 @@ void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settin
 
     const PyroBoundsBox Bounds = ComputeBoundsBox(Settings);
     PyroUniformBlock Ubo{};
-    PopulateCommonPyroUbo(Ubo, Settings, Bounds, LatticeRes, TilesX, TilesY, Dt, SimulationTime, WorldSdfEnabled);
+    PopulateCommonPyroUbo(Ubo, Settings, Bounds, LatticeRes, TilesX, TilesY, Dt, SimulationTime, WorldSdfEnabled,
+                          WorldGridEnabled, WorldGridOriginX, WorldGridOriginZ,
+                          WorldGridPriorOriginX, WorldGridPriorOriginZ);
 
     if (BrushActive)
     {
@@ -916,6 +1063,8 @@ void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settin
 
     ReadSlotIdx = Nxt;
     Ctx.SubmitAndWaitFrameCommands();
+    WorldGridPriorOriginX = WorldGridOriginX;
+    WorldGridPriorOriginZ = WorldGridOriginZ;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -948,7 +1097,7 @@ bool PyroVolumeSolver::EnsureViewportTarget(VulkanContext& Ctx, int Width, int H
 }
 
 bool PyroVolumeSolver::RenderStandaloneViewport(VulkanContext& Ctx, const GasSettings& Settings,
-                                                const PyroCameraBasis& Cam, int Width, int Height,
+                                                const PyroCameraFrame& Cam, int Width, int Height,
                                                 bool TransparentExport)
 {
     if (!Initialized || !EnsureViewportTarget(Ctx, Width, Height))
@@ -956,7 +1105,8 @@ bool PyroVolumeSolver::RenderStandaloneViewport(VulkanContext& Ctx, const GasSet
 
     const PyroBoundsBox Bounds = ComputeBoundsBox(Settings);
     PyroUniformBlock Ubo{};
-    PopulateCommonPyroUbo(Ubo, Settings, Bounds, LatticeRes, TilesX, TilesY, 1.0f / 60.0f, SimulationTime, WorldSdfEnabled);
+    PopulateCommonPyroUbo(Ubo, Settings, Bounds, LatticeRes, TilesX, TilesY, 1.0f / 60.0f, SimulationTime, WorldSdfEnabled,
+                          false, 0, 0, 0, 0);
 
     Ubo.DomainBoxMax[3]       = Cam.Aspect;
     Ubo.CamPosAndFov[0]       = Cam.Position[0];
@@ -1015,7 +1165,7 @@ void PyroVolumeSolver::PrepareAtlasesForWorldComposite(VulkanContext& Ctx, VkCom
 }
 
 void PyroVolumeSolver::RecordCompositeIntoWorldTarget(VulkanContext& Ctx, VkCommandBuffer Cmd,
-                                                      const GasSettings& Settings, const PyroCameraBasis& Cam,
+                                                      const GasSettings& Settings, const PyroCameraFrame& Cam,
                                                       int TargetWidth, int TargetHeight,
                                                       VulkanImageTarget& SceneLinearDepthImage)
 {
@@ -1024,7 +1174,9 @@ void PyroVolumeSolver::RecordCompositeIntoWorldTarget(VulkanContext& Ctx, VkComm
 
     const PyroBoundsBox Bounds = ComputeBoundsBox(Settings);
     PyroUniformBlock Ubo{};
-    PopulateCommonPyroUbo(Ubo, Settings, Bounds, LatticeRes, TilesX, TilesY, 1.0f / 60.0f, SimulationTime, WorldSdfEnabled);
+    PopulateCommonPyroUbo(Ubo, Settings, Bounds, LatticeRes, TilesX, TilesY, 1.0f / 60.0f, SimulationTime, WorldSdfEnabled,
+                          WorldGridEnabled, WorldGridOriginX, WorldGridOriginZ,
+                          WorldGridOriginX, WorldGridOriginZ);
 
     Ubo.DomainBoxMax[3]       = Cam.Aspect;
     Ubo.CamPosAndFov[0]       = Cam.Position[0];
@@ -1084,7 +1236,7 @@ bool PyroVolumeSolver::BakeFlipbookSheet(VulkanContext& Ctx, GasSettings Setting
 
     Settings.TileSheetOverviewShown = false;
     Settings.BoundingBoxShown       = false;
-    const PyroCameraBasis Frame     = Cam.ComputeBasis(1.0f);
+    const PyroCameraFrame Frame     = Cam.ComputeFrame(1.0f);
 
     std::vector<uint8_t> TileRgba;
     int Tw = 0, Th = 0;

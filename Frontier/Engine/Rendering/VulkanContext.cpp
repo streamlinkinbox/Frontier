@@ -1742,7 +1742,12 @@ void VulkanImGuiPresenter::Shutdown(VulkanContext& Ctx) noexcept
 {
     Ctx.DestroyBuffer(VertexBuffer);
     Ctx.DestroyBuffer(IndexBuffer);
-    Ctx.DestroyImageTarget(FontAtlasImg);
+    for (std::unique_ptr<ManagedImGuiTexture>& Entry : ManagedTextures)
+    {
+        if (Entry)
+            Ctx.DestroyImageTarget(Entry->Image);
+    }
+    ManagedTextures.clear();
     Ctx.DestroyPipeline(GuiPipeline);
     Initialized = false;
 }
@@ -1755,25 +1760,61 @@ void VulkanImGuiPresenter::SyncManagedTextures(VulkanContext& Ctx)
     {
         if (!Tex || Tex->Status == ImTextureStatus_OK)
             continue;
+
+        auto FindEntry = [&](int Id) -> ManagedImGuiTexture* {
+            for (std::unique_ptr<ManagedImGuiTexture>& Item : ManagedTextures)
+                if (Item && Item->UniqueId == Id)
+                    return Item.get();
+            return nullptr;
+        };
+
         if (Tex->Status == ImTextureStatus_WantCreate || Tex->Status == ImTextureStatus_WantUpdates)
         {
             const auto* Pixels = static_cast<const unsigned char*>(Tex->GetPixels());
             if (Pixels && Tex->Width > 0 && Tex->Height > 0)
             {
-                if (FontAtlasImg.Width != Tex->Width || FontAtlasImg.Height != Tex->Height)
+                ManagedImGuiTexture* Entry = FindEntry(Tex->UniqueID);
+                if (!Entry)
                 {
-                    Ctx.CreateImageTarget(Tex->Width, Tex->Height, VK_FORMAT_R8G8B8A8_UNORM,
-                                          0u, true, FontAtlasImg, Diag);
+                    auto Created    = std::make_unique<ManagedImGuiTexture>();
+                    Created->UniqueId = Tex->UniqueID;
+                    Entry           = Created.get();
+                    ManagedTextures.push_back(std::move(Created));
                 }
-                const size_t ByteTotal = static_cast<size_t>(Tex->Width) * static_cast<size_t>(Tex->Height) * 4u;
-                Ctx.UploadRgba8Image(FontAtlasImg, Pixels, ByteTotal, Diag);
-                Tex->SetTexID(static_cast<ImTextureID>(FontAtlasImg.UiToken));
+                if (Entry->Image.Width != Tex->Width || Entry->Image.Height != Tex->Height)
+                {
+                    if (Entry->Image.Image != VK_NULL_HANDLE)
+                        Ctx.DestroyImageTarget(Entry->Image);
+                    Ctx.CreateImageTarget(Tex->Width, Tex->Height, VK_FORMAT_R8G8B8A8_UNORM,
+                                          0u, true, Entry->Image, Diag);
+                }
+                const size_t TexelCount = static_cast<size_t>(Tex->Width) * static_cast<size_t>(Tex->Height);
+                if (Tex->BytesPerPixel == 1)
+                {
+                    std::vector<uint8_t> Expanded(TexelCount * 4u, 255u);
+                    for (size_t Idx = 0u; Idx < TexelCount; ++Idx)
+                        Expanded[Idx * 4u + 3u] = Pixels[Idx];
+                    Ctx.UploadRgba8Image(Entry->Image, Expanded.data(), Expanded.size(), Diag);
+                }
+                else
+                {
+                    Ctx.UploadRgba8Image(Entry->Image, Pixels, TexelCount * 4u, Diag);
+                }
+                Tex->SetTexID(static_cast<ImTextureID>(Entry->Image.UiToken));
                 Tex->SetStatus(ImTextureStatus_OK);
             }
         }
         else if (Tex->Status == ImTextureStatus_WantDestroy)
         {
-            Ctx.DestroyImageTarget(FontAtlasImg);
+            for (size_t Idx = 0u; Idx < ManagedTextures.size(); ++Idx)
+            {
+                if (ManagedTextures[Idx] && ManagedTextures[Idx]->UniqueId == Tex->UniqueID)
+                {
+                    Ctx.DestroyImageTarget(ManagedTextures[Idx]->Image);
+                    ManagedTextures.erase(ManagedTextures.begin() + static_cast<ptrdiff_t>(Idx));
+                    break;
+                }
+            }
             Tex->SetTexID(ImTextureID_Invalid);
             Tex->SetStatus(ImTextureStatus_Destroyed);
         }
@@ -1784,18 +1825,6 @@ void VulkanImGuiPresenter::RecordDrawData(VulkanContext& Ctx, VkCommandBuffer Cm
 {
     if (!Initialized || !DrawData || DrawData->TotalVtxCount <= 0 || Width <= 0 || Height <= 0)
         return;
-
-    if (DrawData->Textures != nullptr)
-    {
-        for (ImTextureData* Tex : *DrawData->Textures)
-        {
-            if (Tex && Tex->Status != ImTextureStatus_OK)
-            {
-                SyncManagedTextures(Ctx);
-                break;
-            }
-        }
-    }
 
     const VkDeviceSize VtxBytes = static_cast<VkDeviceSize>(DrawData->TotalVtxCount) * sizeof(ImDrawVert);
     const VkDeviceSize IdxBytes = static_cast<VkDeviceSize>(DrawData->TotalIdxCount) * sizeof(ImDrawIdx);

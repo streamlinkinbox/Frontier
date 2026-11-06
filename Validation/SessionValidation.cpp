@@ -12,6 +12,8 @@
 #include "Frontier/Engine/Session/LevelTransition.h"
 #include "Frontier/Engine/Session/SessionSpace.h"
 #include "Frontier/Engine/Session/LobbySession.h"
+#include "Frontier/Game/CameraController.h"
+#include "Projects/Everest/Source/Navigation/NavigationApp.h"
 #include "Projects/Everest/Source/Session/SessionPolicy.h"
 
 #include <cmath>
@@ -73,6 +75,43 @@ int main()
         State.KeyEnter = true;
         Encoder.EncodeState(State, 1.0f / 60.0f);
         Check(Encoder.WasActionPressed(InputActionReady), "Enter raises Ready as a pressed edge");
+    }
+
+    // --- Context-sensitive GLFW encoding: Lobby navigation emits no driving axes ----------------------
+    {
+        InputEncoder Encoder;
+        RawInputState State{};
+        State.KeyW = true; State.KeyA = true; State.KeyDown = true; State.KeyEnter = true;
+        State.CursorDeltaX = 20.0f;
+        const InputPacket Packet = Encoder.EncodeState(State, 1.0f / 60.0f, InputControlMode::Navigation);
+        Check(Packet.ThrottleAxis == 0.0f && Packet.BrakeAxis == 0.0f && Packet.SteerAxis == 0.0f,
+              "Lobby navigation mode ignores WASD and driving arrows");
+        Check(Packet.HasAction(InputActionNavigateNext) && Packet.HasAction(InputActionConfirm),
+              "Lobby arrows select a destination and Enter confirms");
+        Check(Packet.LookYawDelta != 0.0f, "mouse remains routed to the Lobby orbit camera");
+    }
+
+    // --- Policy-aware camera controller: Lobby orbit and driving chase/cycle ---------------------------
+    {
+        LobbyPolicy LobbyRules;
+        ProvingGroundsPolicy TrackRules;
+        CameraController Camera;
+        DeployableUnit Vehicle;
+        InputPacket Look{};
+        Look.LookYawDelta = 0.10f;
+        Look.LookPitchDelta = -0.05f;
+        Camera.Step(Look, LobbyRules.QueryInputRoutingPolicy(), nullptr);
+        const PresentationCamera LobbyView = Camera.Resolve(LobbyRules.QueryInputRoutingPolicy(), nullptr);
+        Check(!Camera.IsChaseView() && LobbyView.YawDegrees > 38.0f && LobbyView.FocusMetres[2] == 0.55f,
+              "Lobby camera orbits its studio focus from mouse input");
+        Camera.Step(InputPacket{}, TrackRules.QueryInputRoutingPolicy(), &Vehicle);
+        Check(Camera.IsChaseView() && Camera.Resolve(TrackRules.QueryInputRoutingPolicy(), &Vehicle).DistanceMetres == 13.5f,
+              "driving levels start in vehicle chase view");
+        InputPacket Cycle{};
+        Cycle.ActionBits = InputActionCycleCamera;
+        Camera.Step(Cycle, TrackRules.QueryInputRoutingPolicy(), &Vehicle);
+        Check(!Camera.IsChaseView() && Camera.Resolve(TrackRules.QueryInputRoutingPolicy(), &Vehicle).DistanceMetres == 16.5f,
+              "policy-authorized camera cycle switches to orbit view");
     }
 
     // --- Deployment: the same stand regardless of slope --------------------------------------------
@@ -231,6 +270,49 @@ int main()
         Check(Race && Race->QueryTargetLapCount() == 3, "Everest races run three laps");
         Check(Near(Race->QueryRespawnPolicy().RespawnDelaySeconds, 2.0f), "Everest respawn delay is two seconds");
         Check(Everest::ConstructEverestCircuitWaypoints().size() == 6, "Everest circuit has six waypoints");
+    }
+
+    // --- Project Everest navigation menu: Lobby ↔ Proving Grounds, vehicles survive both routes --------
+    {
+        SessionConfiguration Configuration{};
+        LobbySession Game(Configuration, Everest::ConstructEverestSessionPolicy);
+        Everest::NavigationApp Navigation(Configuration);
+        Check(Navigation.QueryDestinations().size() == 2, "Everest navigation menu has exactly the two playable levels");
+        Check(Navigation.IsCurrent(Game, Navigation.QueryDestinations()[0]), "the Lobby is the default menu destination");
+        Check(Game.QuerySession().QueryPolicy()->QueryPolicyName() == "EverestLobbyPolicy", "Everest starts under its project Lobby policy");
+        Check(Game.QueryLocalVehicle() != nullptr, "the default Lobby has its local vehicle");
+        const InputRoutingPolicy& LobbyInput = Game.QuerySession().QueryPolicy()->QueryInputRoutingPolicy();
+        Check(!LobbyInput.AllowDriving && LobbyInput.Mode == InputControlMode::Navigation && !LobbyInput.ControlsHint.empty(),
+              "Lobby policy publishes navigation-only controls and a readable control hint");
+        InputPacket LobbyDrive{};
+        LobbyDrive.ThrottleAxis = 1.0f; LobbyDrive.SteerAxis = 1.0f; LobbyDrive.ActionBits = InputActionResetUnit;
+        Game.SubmitLocalInput(LobbyDrive);
+        Game.Step(0.25f);
+        Check(Game.QueryLocalVehicle()->IsHandbrakeLatched() && Game.QueryLocalVehicle()->QueryForwardSpeedMps() == 0.0f,
+              "Lobby policy strips drive and respawn input before the vehicle sees it");
+        Check(Navigation.Navigate(Game, "proving-grounds"), "the menu routes Lobby to Proving Grounds");
+        Check(Game.QueryCurrentLevelPath() == Configuration.MatchLevelPath, "forward navigation changes the active level path");
+        Check(Game.QuerySession().QueryPolicy()->QueryPolicyName() == "EverestProvingGroundsPolicy", "forward navigation applies Everest's proving-grounds policy");
+        Check(Game.QueryLocalVehicle() != nullptr, "Proving Grounds receives a newly deployed local vehicle");
+        const InputRoutingPolicy& TrackInput = Game.QuerySession().QueryPolicy()->QueryInputRoutingPolicy();
+        Check(TrackInput.AllowDriving && TrackInput.Mode == InputControlMode::Driving && !TrackInput.ControlsHint.empty(),
+              "Proving Grounds policy publishes full driving controls and a control hint");
+        InputPacket TrackDrive{};
+        TrackDrive.ThrottleAxis = 1.0f; TrackDrive.SteerAxis = 0.5f;
+        Game.SubmitLocalInput(TrackDrive);
+        Game.Step(0.5f);
+        Check(Game.QueryLocalVehicle()->QueryForwardSpeedMps() > 0.0f
+                  && Game.QueryLocalVehicle()->QueryCabin().Wheel.AngleDegrees > 0.0f,
+              "Proving Grounds routes throttle and steering to the vehicle");
+        Check(Navigation.Navigate(Game, "lobby"), "the menu routes Proving Grounds back to Lobby");
+        Check(Game.QueryCurrentLevelPath() == Configuration.LobbyLevelPath, "reverse navigation restores the Lobby level path");
+        Check(Game.QuerySession().QueryPolicy()->QueryPolicyName() == "EverestLobbyPolicy", "reverse navigation restores Everest's Lobby policy");
+        Check(Game.QueryLocalVehicle() != nullptr && Game.QueryLocalVehicle()->IsHandbrakeLatched(), "the Lobby redeploys a parked local vehicle");
+        Check(!Navigation.Navigate(Game, "missing-level"), "unknown navigation choices are rejected");
+        Check(!Game.NavigateToLevel("Content/Levels/nowhere.levelspace", "UnknownPolicy"), "unknown route policies are rejected before rebuilding the room");
+        Check(Game.QueryLocalVehicle() != nullptr && Game.QueryCurrentLevelPath() == Configuration.LobbyLevelPath,
+              "a rejected route leaves the Lobby and its vehicle intact");
+        Check(!Navigation.Navigate(Game, size_t{ 0 }), "navigation menu indices are one-based");
     }
 
     // --- The Lobby as the game opens it: policy-read limits, one vehicle, empty tablet ---------------

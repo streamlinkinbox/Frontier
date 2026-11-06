@@ -6,7 +6,6 @@
 //    Multiple Importance Sampling (MIS), Russian Roulette, and Multi-Bounce Path Tracing for ReSTIR GI.
 
 //! include "CardSampling.wgsl"
-//! include "ViewWorld.wgsl"
 //! include "SurfaceReflectance.wgsl"
 //! include "PackingCodec.wgsl"
 //! include "DiscrepancySequence.wgsl"
@@ -104,8 +103,6 @@ fn TraceSceneRay(Origin: vec3f, Direction: vec3f, MinimumTravel: f32, MaximumTra
 
     var CurrentOcc  = 0xFFFFFFFFu;
     var OccRoles    = 0u;
-    var OccScanned  = false;
-    var ScanToWorld : mat4x4f;
     var LocalOrigin = Origin;
     var LocalDir    = Direction;
     var LocalRecip  = WorldRecip;
@@ -130,15 +127,8 @@ fn TraceSceneRay(Origin: vec3f, Direction: vec3f, MinimumTravel: f32, MaximumTra
             if ((Node.Count & TlasLeafBit) != 0u)
             {
                 CurrentOcc  = Node.Count & TlasIndexMask;
-                // 📝 An occupant this view hides is no part of its world: its BLAS is never entered (ViewWorld.wgsl).
-                if (OccupantHidden(CurrentOcc))
-                {
-                    continue;
-                }
                 let Occ     = Occupants[CurrentOcc];
                 OccRoles    = Occ.Roles;
-                OccScanned  = OccupantScanned(CurrentOcc);
-                ScanToWorld = Occ.LocalToWorld;
                 LocalOrigin = (Occ.WorldToLocal * vec4f(Origin, 1.0)).xyz;
                 LocalDir    = (Occ.WorldToLocal * vec4f(Direction, 0.0)).xyz;
                 LocalRecip  = SafeReciprocal(LocalDir);
@@ -192,11 +182,6 @@ fn TraceSceneRay(Origin: vec3f, Direction: vec3f, MinimumTravel: f32, MaximumTra
                     }
                     let E1  = BvhTriangles[Base + 1u].xyz;
                     let E2  = BvhTriangles[Base + 2u].xyz;
-                    // 📝 The scan's swept shell: rays pass through a scanned facet the front has left more than half transparent.
-                    if (OccScanned && !ScanSparesFamily(RawFamily) && ResolveScanOpacity((ScanToWorld * vec4f(T0.xyz + (E1 + E2) * 0.3333333, 1.0)).xyz) < 0.5)
-                    {
-                        continue;
-                    }
                     let P   = cross(LocalDir, E2);
                     let Det = dot(E1, P);
                     if (abs(Det) < 1.0e-9)
@@ -329,8 +314,6 @@ fn TraceSceneVisibility(Origin: vec3f, Direction: vec3f, MinimumTravel: f32, Max
     var Steps      = 0u;
 
     var OccRoles    = 0u;
-    var OccScanned  = false;
-    var ScanToWorld : mat4x4f;
     var LocalOrigin = Origin;
     var LocalDir    = Direction;
     var LocalRecip  = WorldRecip;
@@ -355,14 +338,8 @@ fn TraceSceneVisibility(Origin: vec3f, Direction: vec3f, MinimumTravel: f32, Max
             if ((Node.Count & TlasLeafBit) != 0u)
             {
                 let OccIdx  = Node.Count & TlasIndexMask;
-                if (OccupantHidden(OccIdx))
-                {
-                    continue;
-                }
                 let Occ     = Occupants[OccIdx];
                 OccRoles    = Occ.Roles;
-                OccScanned  = OccupantScanned(OccIdx);
-                ScanToWorld = Occ.LocalToWorld;
                 LocalOrigin = (Occ.WorldToLocal * vec4f(Origin, 1.0)).xyz;
                 LocalDir    = (Occ.WorldToLocal * vec4f(Direction, 0.0)).xyz;
                 LocalRecip  = SafeReciprocal(LocalDir);
@@ -416,10 +393,6 @@ fn TraceSceneVisibility(Origin: vec3f, Direction: vec3f, MinimumTravel: f32, Max
                     }
                     let E1  = BvhTriangles[Base + 1u].xyz;
                     let E2  = BvhTriangles[Base + 2u].xyz;
-                    if (OccScanned && !ScanSparesFamily(RawFamily) && ResolveScanOpacity((ScanToWorld * vec4f(T0.xyz + (E1 + E2) * 0.3333333, 1.0)).xyz) < 0.5)
-                    {
-                        continue;
-                    }
                     let P   = cross(LocalDir, E2);
                     let Det = dot(E1, P);
                     if (abs(Det) < 1.0e-9)
@@ -949,6 +922,35 @@ fn EvaluateDirectNextEvent(
 //                                           MULTI-BOUNCE PATH TRACER
 //------------------------------------------------------------------------------------------------------------------------
 
+fn ResolveRayHitSurface(Hit: RayHit) -> SurfaceSample
+{
+    var Surface = ProjectSurfaceSample(RayMaterials[Hit.Family]);
+    if (Hit.Identity < 5u)
+    {
+        if (Hit.Family == BodyCoatFamilyIndex && arrayLength(&RayMaterials) > BodyCoatWaveControlIndex)
+        {
+            let Control = RayMaterials[BodyCoatWaveControlIndex];
+            if (Control.Metalness > 0.5)
+            {
+                let BodyLocal = (Occupants[0].WorldToLocal * vec4f(Hit.Position, 1.0)).xyz;
+                let Coverage  = ResolvePaintWaveCoverage(BodyLocal, vec4f(Control.Albedo, Control.Roughness), Control.Metalness);
+                Surface       = BlendSurfaceSample(Surface, ProjectSurfaceSample(RayMaterials[BodyCoatWaveTargetIndex]), Coverage);
+            }
+        }
+        else if (Hit.Family == HubFamilyIndex && arrayLength(&RayMaterials) > WheelWaveControlIndex)
+        {
+            let Control = RayMaterials[WheelWaveControlIndex];
+            if (Control.Metalness > 0.5)
+            {
+                let BodyLocal = (Occupants[0].WorldToLocal * vec4f(Hit.Position, 1.0)).xyz;
+                let Coverage  = ResolveWheelWaveCoverage(BodyLocal, vec4f(Control.Albedo, Control.Roughness));
+                Surface       = BlendSurfaceSample(Surface, ProjectSurfaceSample(RayMaterials[WheelWaveTargetIndex]), Coverage);
+            }
+        }
+    }
+    return Surface;
+}
+
 // 📐 Traces a full multi-bounce path starting along (Origin, FirstDirection), returning the first bounce surface vertex
 //    x_s and the complete multi-bounce incoming radiance L_s gathered along the path for ReSTIR GI resampling.
 fn TraceMultiBouncePath(Origin: vec3f, PrimaryNormal: vec3f, FirstDirection: vec3f, Seed: ptr<function, u32>) -> ReservoirSample
@@ -964,8 +966,7 @@ fn TraceMultiBouncePath(Origin: vec3f, PrimaryNormal: vec3f, FirstDirection: vec
         return SkySample;
     }
 
-    let Mat1  = ApplyPaintRipple(RayMaterials[Hit1.Family], Hit1.Family, Hit1.Position);
-    let Surf1 = ProjectSurfaceSample(Mat1);
+    let Surf1 = ResolveRayHitSurface(Hit1);
 
     // Bounce 1 direct emission + Next-Event Estimation. The primary vertex x_v is where the cosine-sampled candidate starts: when the emitter structure covers it
     // (DirectRadiance adds the light technique there) the emission this candidate finds at its first hit takes the BSDF technique's share of the partition, w_b with the
@@ -1023,8 +1024,7 @@ fn TraceMultiBouncePath(Origin: vec3f, PrimaryNormal: vec3f, FirstDirection: vec
             break;
         }
 
-        let MatB  = ApplyPaintRipple(RayMaterials[HitB.Family], HitB.Family, HitB.Position);
-        let SurfB = ProjectSurfaceSample(MatB);
+        let SurfB = ResolveRayHitSurface(HitB);
 
         // MIS weight on secondary emissive hits. Legacy (emissive lights off): the renderer's heuristic, which had no light technique to balance and lost energy. Emissive lights on:
         // a table emitter seen from a vertex that sampled the emitters takes w_b (the light technique has 1 − w_b); everything else counts in full.
@@ -1124,7 +1124,7 @@ fn TraceMultiBounceReflection(
             break;
         }
 
-        let HitSurf     = ProjectSurfaceSample(ApplyPaintRipple(RayMaterials[Hit.Family], Hit.Family, Hit.Position));
+        let HitSurf     = ResolveRayHitSurface(Hit);
         let ViewDir     = -RayDir;
         var HitRadiance = HitSurf.Emission * Frame.EmissionScale;
 

@@ -16,9 +16,9 @@ InputPacket InputDriver::DriveFromState(const RawInputState& State, float StepSe
 }
 
 #if defined(FRONTIER_WITH_GLFW)
-InputPacket InputDriver::DriveFromWindow(GLFWwindow* Window, float StepSeconds) noexcept
+InputPacket InputDriver::DriveFromWindow(GLFWwindow* Window, float StepSeconds, InputControlMode Mode) noexcept
 {
-    const InputPacket Packet = Encoder.SampleGlfwWindow(Window, StepSeconds);
+    const InputPacket Packet = Encoder.SampleGlfwWindow(Window, StepSeconds, Mode);
     if (BoundAgent)
         BoundAgent->ApplyInputPacket(Packet, StepSeconds);
     return Packet;

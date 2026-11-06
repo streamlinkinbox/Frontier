@@ -24,7 +24,6 @@ export class DeviceExchange
         this.TimestampEnabled = false;
         this.ReportedErrors   = [];
         this.ErrorListeners   = [];
-        this.LayoutRegistry   = new Map();
     }
 
     async ConstructDevice()
@@ -78,19 +77,10 @@ export class DeviceExchange
 
     // 📝 A layout is declared as an ordered list of resource codes; the descriptor slot is the position in the list.
     //    Explicit layouts keep a slot valid even when one entry point of a module leaves it unreferenced.
-    // 📝 One layout object per distinct (codes, visibility): a second view's stack (GarageView) declares the very layouts the
-    //    main view declared and receives the same objects, so ShaderInterchange recognises its programs as already built.
-    //    The first caller's label stays on the object.
     ConstructDescriptorLayout(ResourceCodes, Visibility = GPUShaderStage.COMPUTE, Label = "")
     {
-        const Key = `${Visibility}|${ResourceCodes.join(",")}`;
-        const Existing = this.LayoutRegistry.get(Key);
-        if (Existing)
-            return Existing;
         const Entries = ResourceCodes.map((Code, Index) => ProjectLayoutEntry(Code, Index, Visibility));
-        const Layout = this.Device.createBindGroupLayout({ label: Label, entries: Entries });
-        this.LayoutRegistry.set(Key, Layout);
-        return Layout;
+        return this.Device.createBindGroupLayout({ label: Label, entries: Entries });
     }
 
     ConstructDescriptorGroup(Layout, Resources, Label = "")

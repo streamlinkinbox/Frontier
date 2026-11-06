@@ -127,7 +127,13 @@ export const CourseMaterial = Object.freeze({
     RankBronze:      103,
     RankSilver:      104,
     RankGold:        105,
-    RankDiamond:     106
+    RankDiamond:     106,
+    // 📝 Live configurator paint-wave & wheel-wave carrier records + smoked studio headlight lens.
+    BodyCoatWaveTarget:  107,
+    BodyCoatWaveControl: 108,
+    WheelWaveTarget:     109,
+    WheelWaveControl:    110,
+    StudioHeadlight:     111
 });
 
 export const MarkedFamilyFirst = CourseMaterial.Asphalt;   // [-]
@@ -408,6 +414,14 @@ export function ConstructMaterialSpecification()
     const RimScrape = Dielectric(0.16, 0.17, 0.18, 0.46);
     RimScrape.Metalness = 0.25;
     Materials[CourseMaterial.RimScrape] = RimScrape;
+    Materials[CourseMaterial.BodyCoatWaveTarget]  = structuredClone(Materials[CourseMaterial.BodyCoat]);
+    Materials[CourseMaterial.BodyCoatWaveControl] = Dielectric(0.0, 0.0, 0.0, 0.0);
+    Materials[CourseMaterial.WheelWaveTarget]     = structuredClone(Materials[CourseMaterial.Hub]);
+    Materials[CourseMaterial.WheelWaveControl]    = Dielectric(0.0, 0.0, 0.0, 0.0);
+    const StudioHeadlight = Dielectric(0.05, 0.055, 0.06, 0.08);
+    StudioHeadlight.CoatWeight = 1.0;
+    StudioHeadlight.CoatRoughness = 0.02;
+    Materials[CourseMaterial.StudioHeadlight]     = StudioHeadlight;
     return Materials;
 }
 

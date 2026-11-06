@@ -39,9 +39,7 @@ fn TraverseReflection(@builtin(global_invocation_id) Invocation: vec3u)
         return;
     }
     let Attributes = textureLoad(SurfaceAttributes, ScreenPixel, 0);
-    let Family = u32(Attributes.z + 0.5);
-    let Position = ReconstructWorldPosition(vec2f(ScreenPixel) + 0.5, Depth);
-    let Surface = ProjectSurfaceSample(ApplyPaintRipple(Materials[Family], Family, Position));
+    let Surface = ProjectSurfaceSample(Materials[u32(Attributes.z + 0.5)]);
     let Roughness = select(Surface.Roughness, Surface.CoatRoughness, Surface.CoatWeight > 0.0);
     let UseRtReflections = FeatureEnabled(Frame, FeatureRayTracing) && FeatureEnabled(Frame, FeatureRayTracedReflections);
     let Cutoff = select(RoughnessCutoff, ResolveReflectionRoughness(Frame), UseRtReflections);
@@ -50,6 +48,7 @@ fn TraverseReflection(@builtin(global_invocation_id) Invocation: vec3u)
         textureStore(ReflectionTarget, vec2i(TracePixel), vec4f(0.0));
         return;
     }
+    let Position = ReconstructWorldPosition(vec2f(ScreenPixel) + 0.5, Depth);
     let Normal = DecodeOctahedral(Attributes.xy);
     let View = normalize(Frame.CameraPosition - Position);
     let Frame3 = ConstructTangentFrame(Normal);

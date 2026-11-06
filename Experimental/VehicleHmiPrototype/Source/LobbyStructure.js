@@ -104,7 +104,7 @@ export function ResolveLobbyPlacements()
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📝 Dark charcoal surround, a glossy white studio floor disc under the cove, and the turntable disc with its seam.
-export function EmitLobbyGroundFacets()
+export function EmitLobbyGroundFacets({ Guests = true } = {})
 {
     const Facets = [];
     const Cell = 20.0;
@@ -129,7 +129,7 @@ export function EmitLobbyGroundFacets()
     Disc(0.0, 0.0, 17.6, 0.0, CourseMaterial.StudioFloor);
 
     // A turntable disc under every car, each with its hairline seam.
-    const Turntables = [[0.0, 0.0, 4.65], ...LobbyVehiclePlacements.map((Car) => [...Car.Position, 4.30])];
+    const Turntables = [[0.0, 0.0, 4.65], ...(Guests ? LobbyVehiclePlacements.map((Car) => [...Car.Position, 4.30]) : [])];
     for (const [CentreX, CentreY, Radius] of Turntables)
     {
         Disc(CentreX, CentreY, Radius, 0.006, CourseMaterial.StudioTurntable);

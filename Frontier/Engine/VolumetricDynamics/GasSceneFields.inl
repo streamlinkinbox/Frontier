@@ -3,7 +3,7 @@
 ==========================================================================================================================================*/
 // 🧩 GENERATED. Crosses the 85 settings between TOML and GasSettings; edit presets.js, never this file.
 //
-// 🔴 DO NOT EDIT. Automation/GenerateGasSceneCodec.py writes this from presets.js, and --check
+// 🔴 DO NOT EDIT. Tools/Build/GenerateGasSceneCodec.py writes this from presets.js, and --check
 //    fails the build when the two disagree. Included by GasSceneCodec.h inside namespace Frontier.
 
 // clang-format off
@@ -57,7 +57,7 @@ inline Crossing CrossSetting(GasSettings& Target, std::string_view Key, const to
     else if (Key == "enclosedBox")
         return ReadSwitch(Node, Target.EnclosedBox) ? Crossing::Read : Crossing::WrongType;
     else if (Key == "voxelQuantization")
-        return ReadFloat(Node, Target.VoxelQuantization) ? Crossing::Read : Crossing::WrongType;
+        return ReadCount(Node, Target.VoxelQuantization) ? Crossing::Read : Crossing::WrongType;
     else if (Key == "autoGpuGovernor")
         return ReadSwitch(Node, Target.AutoGpuGovernor) ? Crossing::Read : Crossing::WrongType;
     else if (Key == "boundsWidth")
@@ -305,7 +305,7 @@ inline void SpellSettings(const GasSettings& Settings, std::string& Out) noexcep
     Out += "turbulenceStrength = " + SpellFloat(Settings.TurbulenceStrength) + "\n";
     Out += "velocityDamping = " + SpellFloat(Settings.VelocityDamping) + "\n";
     Out += "vorticityConfinement = " + SpellFloat(Settings.VorticityConfinement) + "\n";
-    Out += "voxelQuantization = " + SpellFloat(Settings.VoxelQuantization) + "\n";
+    Out += "voxelQuantization = " + SpellCount(Settings.VoxelQuantization) + "\n";
     Out += "windX = " + SpellFloat(Settings.WindX) + "\n";
     Out += "windZ = " + SpellFloat(Settings.WindZ) + "\n";
 }

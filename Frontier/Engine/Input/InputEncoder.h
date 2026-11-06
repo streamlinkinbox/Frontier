@@ -21,8 +21,12 @@ struct RawInputState
 {
     bool  KeyW = false, KeyS = false, KeyA = false, KeyD = false;
     bool  KeyUp = false, KeyDown = false, KeyLeft = false, KeyRight = false;
-    bool  KeySpace = false, KeyShift = false, KeyEnter = false;
+    bool  KeySpace = false, KeyShift = false, KeyEnter = false, KeyEscape = false;
     bool  KeyR = false, KeyC = false, KeyL = false;
+    bool  GamepadNavigatePrev = false, GamepadNavigateNext = false;
+    bool  GamepadConfirm = false, GamepadBack = false, GamepadReady = false;
+    bool  GamepadHandbrake = false, GamepadBoost = false, GamepadReset = false;
+    bool  GamepadCycleCamera = false, GamepadMenu = false;
     float GamepadSteer = 0.0f;    // [-1..1] left stick X
     float GamepadThrottle = 0.0f; // [0..1]  right trigger
     float GamepadBrake = 0.0f;    // [0..1]  left trigger
@@ -50,12 +54,14 @@ class InputEncoder
     [[nodiscard]] const InputEncoderSettings& QuerySettings() const noexcept { return Settings; }
 
     // 📝 Encodes one raw sample, advancing the ramps by StepSeconds.
-    InputPacket EncodeState(const RawInputState& State, float StepSeconds) noexcept;
+    InputPacket EncodeState(const RawInputState& State, float StepSeconds,
+                            InputControlMode Mode = InputControlMode::Driving) noexcept;
 
 #if defined(FRONTIER_WITH_GLFW)
     // 📝 Polls a live GLFW window (keyboard + cursor + gamepad 0) and encodes the sample. Only compiled when
     //    the engine is built against GLFW; everything else in this file is device-free.
-    InputPacket SampleGlfwWindow(GLFWwindow* Window, float StepSeconds) noexcept;
+    InputPacket SampleGlfwWindow(GLFWwindow* Window, float StepSeconds,
+                                 InputControlMode Mode = InputControlMode::Driving) noexcept;
 #endif
 
     void Reset() noexcept;

@@ -1,31 +1,38 @@
 // CPU picking against the same vehicle facets and occupant poses as the Garage renderer.
-import { InvertTransform, TransformPoint, TransformDirection, SubtractVector, AddVector, ScaleVector, CrossVector, DotVector, NormalizeVector } from './TransformProjection.js';
+import { InvertTransform, TransformPoint, TransformDirection, SubtractVector, CrossVector, DotVector, NormalizeVector } from './TransformProjection.js';
+
 export function IntersectVehicleFacet(Origin, Direction, Corners) {
-    const [A,B,C] = Corners, E1 = SubtractVector(B,A), E2 = SubtractVector(C,A);
-    const P = CrossVector(Direction,E2), D = DotVector(E1,P);
+    const [A, B, C] = Corners, E1 = SubtractVector(B, A), E2 = SubtractVector(C, A);
+    const P = CrossVector(Direction, E2), D = DotVector(E1, P);
     if (Math.abs(D) < 1e-9) return Infinity;
-    const T = SubtractVector(Origin,A), U = DotVector(T,P) / D;
+    const T = SubtractVector(Origin, A), U = DotVector(T, P) / D;
     if (U < 0 || U > 1) return Infinity;
-    const Q = CrossVector(T,E1), V = DotVector(Direction,Q) / D;
-    if (V < 0 || U+V > 1) return Infinity;
-    const Distance = DotVector(E2,Q) / D;
+    const Q = CrossVector(T, E1), V = DotVector(Direction, Q) / D;
+    if (V < 0 || U + V > 1) return Infinity;
+    const Distance = DotVector(E2, Q) / D;
     return Distance > 0 ? Distance : Infinity;
 }
-// 📝 What is under a view point (U, V ∈ [0, 1], V down): the occupant (0 body, 1–4 wheels), the material family of the facet, and the hit's world
-//    Point — where the paint ripple of the HMI's drop begins. Distance is along the occupant-local ray.
+
 export function PickVehicle(Scene, InverseView, U, V) {
     if (!InverseView || U < 0 || U > 1 || V < 0 || V > 1) return null;
-    const From = TransformPoint(InverseView, [U*2-1, 1-V*2, 0]);
-    const To = TransformPoint(InverseView, [U*2-1, 1-V*2, 1]);
-    const Ray = NormalizeVector(SubtractVector(To,From));
+    const From = TransformPoint(InverseView, [U * 2 - 1, 1 - V * 2, 0]);
+    const To = TransformPoint(InverseView, [U * 2 - 1, 1 - V * 2, 1]);
+    const Ray = NormalizeVector(SubtractVector(To, From));
+    const BodyInverse = Scene.Occupants?.[0]?.Transform ? InvertTransform(Scene.Occupants[0].Transform) : null;
     let Best = null;
     for (let Index = 0; Index < 5; ++Index) {
-        const Occupant = Scene.Occupants[Index], Inverse = InvertTransform(Occupant.Transform);
+        const Occupant = Scene.Occupants[Index];
+        if (!Occupant) continue;
+        const Inverse = InvertTransform(Occupant.Transform);
         const Origin = TransformPoint(Inverse, From), Direction = TransformDirection(Inverse, Ray);
         for (const Facet of Scene.FacetSets[Occupant.FacetSet].Facets) {
             const Distance = IntersectVehicleFacet(Origin, Direction, Facet.Corners);
-            if (Number.isFinite(Distance) && (!Best || Distance < Best.Distance))
-                Best = { Occupant: Index, Family: Facet.Family, Distance, Point: TransformPoint(Occupant.Transform, AddVector(Origin, ScaleVector(Direction, Distance))) };
+            if (Number.isFinite(Distance) && (!Best || Distance < Best.Distance)) {
+                const Point = [Origin[0] + Direction[0] * Distance, Origin[1] + Direction[1] * Distance, Origin[2] + Direction[2] * Distance];
+                const WorldPoint = TransformPoint(Occupant.Transform, Point);
+                const BodyPoint = BodyInverse ? TransformPoint(BodyInverse, WorldPoint) : Point;
+                Best = { Occupant: Index, Family: Facet.Family, Distance, Point, WorldPoint, BodyPoint };
+            }
         }
     }
     return Best;

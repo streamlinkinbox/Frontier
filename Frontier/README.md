@@ -2,13 +2,16 @@
 
 The Session/game-mechanics slice, redesigned and verified standalone. It has **no engine, renderer or
 GLFW dependency**: everything builds with any C++17 compiler, and `Validation/SessionValidation.cpp`
-exercises the whole contract (42 checks) without a window.
+exercises the session and Everest navigation contract (78 checks) without a window.
 
 ```sh
 g++ -std=c++17 -I. Validation/SessionValidation.cpp Frontier/Engine/Input/*.cpp \
     Frontier/Engine/Scene/*.cpp Frontier/Engine/Session/*.cpp \
-    Projects/Everest/Source/Session/*.cpp -o /tmp/SessionValidation && /tmp/SessionValidation
+    Projects/Everest/Source/Session/*.cpp Projects/Everest/Source/Navigation/*.cpp \
+    -o /tmp/SessionValidation && /tmp/SessionValidation
 # or: cmake -S Frontier -B /tmp/frontier-build && cmake --build /tmp/frontier-build
+/tmp/frontier-build/Everest --render /tmp/lobby.ppm
+/tmp/frontier-build/Everest --navigate proving-grounds --render /tmp/proving-grounds.ppm
 ```
 
 ## How we got here (audit of `SultanAladin/Frontier` @ `bd738ed`)
@@ -56,9 +59,11 @@ respawn**, **no derez**, parked spawn), and stands **one vehicle** in the studio
 ControlVehicle, from the same `FCT1` facet archives as the HTML renderer
 (`Engine/Scene/FacetArchive`), with a steering wheel that follows the steer axis and a
 **tablet that is powered but empty** (no HMI yet). Other policies (ProvingGrounds, Race,
-Elimination, Everest's) plug in through the same creation path. Level switching beyond the
-normal all-ready transition is a **debug-only popup**: `Ctrl+Shift+L`, then a digit
-(`FRONTIER_DEBUG_LEVEL_SWITCH=0` compiles it out).
+Elimination, Everest's) plug in through the same creation path. The generic `LobbySession` sample also
+retains a debug popup (`Ctrl+Shift+L`, then a digit; `FRONTIER_DEBUG_LEVEL_SWITCH=0` compiles it out).
+The Project Everest executable instead uses its C++ Navigation app to route normally between the Lobby
+and Proving Grounds in both directions, preserving profiles and deploying their vehicles under the new
+level policy.
 
 ```sh
 g++ -std=c++17 -I. Frontier/Game/LobbySessionMain.cpp Frontier/Engine/Input/*.cpp \
@@ -74,14 +79,10 @@ front-end. A GLFW window (with `FRONTIER_WITH_GLFW`) and the WebGPU presentation
 
 ## Where things live
 
-- **Visual effects** (anything that changes how a vehicle is *looked at*, never how it behaves): a rendering
-  effect is an engine rendering system — the **X-ray scan** is `Frontier/Engine/Rendering/XRayScan/`, its Slang units
-  `Frontier/Engine/Shaders/XRayScan/`, its compiled archives `EngineContent/ShaderArchives/XRayScan/` and its evidence
-  `Exhibits/XRayScan/` (ported one to one from the HMI prototype: the clock, the solid fade, the ghost shell, the
-  wireframe, the curtain, the particles). `Frontier/Engine/Effects/VehicleInspection.h` is the older, approximate CPU
-  mirror (Solid / Ghost / Wireframe / a 3.2 s band; `VisualProof/XRayScanPreview.png`, `LobbySession --xray`) that the
-  software presentation still reads; it is superseded and goes when that presentation reads the XRayScan module.
-  Presentations read effects; physics and the session never do.
+- **Visual effects** (anything that changes how a vehicle is *looked at*, never how it behaves):
+  `Frontier/Engine/Effects/` — first resident is `VehicleInspection` (Solid / Ghost / Wireframe /
+  **X-ray Scan**, the travelling band; `VisualProof/XRayScanPreview.png`, render with
+  `LobbySession --xray`). Presentations read it; physics and the session never do.
 - **Session and its policies**: `Frontier/Engine/Session/` — including `LobbySession`, the game
   session that opens on the Lobby. (There is deliberately no `LobbyGame`.)
 - **Render proof** belongs in `VisualProof/` at the repository root, as in the editor exhibits —

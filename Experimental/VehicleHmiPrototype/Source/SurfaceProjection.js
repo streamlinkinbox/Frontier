@@ -76,8 +76,7 @@ export class SurfaceProjection
              Shadow.ReceiverRecords, Atmosphere.SkyView, Atmosphere.SkySampler, this.Views.Direct, this.Views.DirectIrradiance]);
     }
 
-    // 📝 Runs: the draw runs to rasterise, the scene's own unless a view leaves some occupants out (the Garage preview hides the studio's other cars).
-    RecordSurface(Encoder, Scene, VertexRecords, TimestampWrites, Runs = Scene.DrawRuns)
+    RecordSurface(Encoder, Scene, VertexRecords, TimestampWrites)
     {
         const Pass = Encoder.beginRenderPass({
             label: "Surface projection",
@@ -91,7 +90,7 @@ export class SurfaceProjection
         Pass.setPipeline(this.RasterProgram);
         Pass.setBindGroup(0, this.RasterGroup);
         Pass.setVertexBuffer(0, VertexRecords);
-        for (const Run of Runs)
+        for (const Run of Scene.DrawRuns)
         {
             const Set = Scene.FacetSets[Run.FacetSet];
             Pass.draw(Set.VertexCount, Run.Count, Set.FirstVertex, Run.First);

@@ -12,7 +12,7 @@ export class DisplayProjection
     }
 
     // 📝 OccupantRecords: the recombination finds the car's cabin through the body's world → local transform.
-    async ConstructPrograms(FrameRecords, MaterialRecords, DistanceLayout, SamplingLayout, OccupantRecords, RayTracingLayout)
+    async ConstructPrograms(FrameRecords, MaterialRecords, DistanceLayout, SamplingLayout, OccupantRecords, RayTracingLayout, PresentFormat = null)
     {
         this.FrameRecords    = FrameRecords;
         this.MaterialRecords = MaterialRecords;
@@ -38,7 +38,7 @@ export class DisplayProjection
         this.PresentProgram = await this.Shaders.ConstructRasterProgram("DisplayPresent.wgsl", {
             VertexEntry: "PresentVertex", FragmentEntry: "PresentFragment",
             Primitive: { topology: "triangle-list" },
-            Targets: [{ format: `${this.Exchange.CanvasFormat}-srgb` }]
+            Targets: [{ format: PresentFormat || `${this.Exchange.CanvasFormat}-srgb` }]
         }, [this.PresentLayout, DistanceLayout]);
         this.LinearClamp = this.Exchange.ConstructSampler({ magFilter: "linear", minFilter: "linear" });
         this.AdaptationRecords = this.Exchange.ConstructRecords(16, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,

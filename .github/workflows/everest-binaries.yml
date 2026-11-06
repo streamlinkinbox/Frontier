@@ -1,0 +1,105 @@
+name: Everest C++ binaries
+
+on:
+  push:
+    branches:
+      - main
+      - arena/0b4c5376-frontier
+      - arena/a0311b9c-frontier
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install GLFW & Vulkan runtime dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxkbcommon-dev libvulkan1 mesa-vulkan-drivers
+
+      - name: Install MoltenVK & Vulkan loader (macOS)
+        if: runner.os == 'macOS'
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install vulkan-loader molten-vk
+
+      - name: Configure CMake
+        run: cmake -S Frontier -B build -DCMAKE_BUILD_TYPE=Release -DFRONTIER_ENABLE_GLFW=ON
+
+      - name: Build Everest and validation
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! cmake --build build --config Release --parallel 2 2>&1 | tee build.log; then
+            grep -E "error |Error |ERROR|fatal |FAILED|LNK[0-9]+" build.log | head -n 25 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
+
+      - name: Run C++ & Vulkan validation
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! ctest --test-dir build -C Release --output-on-failure 2>&1 | tee ctest.log; then
+            grep -E "FAIL|Error|Failed|Exception" ctest.log | head -n 25 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
+
+      - name: Stage standalone test package
+        shell: bash
+        run: |
+          mkdir -p dist/Everest/Archive
+          mkdir -p dist/Everest/EngineContent/Fonts/SunReference
+          mkdir -p dist/Everest/Experimental/Fluid/Samples
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cp build/Release/Everest.exe dist/Everest/Everest.exe
+            cp build/Release/EverestWindow.exe dist/Everest/EverestWindow.exe
+          else
+            cp build/Everest dist/Everest/Everest
+            cp build/EverestWindow dist/Everest/EverestWindow
+          fi
+          cp Experimental/VehicleHmiPrototype/Archive/ControlVehicleBody.facet dist/Everest/Archive/
+          cp Experimental/VehicleHmiPrototype/Archive/ControlVehicleTyre.facet dist/Everest/Archive/
+          cp Experimental/VehicleHmiPrototype/Archive/ControlVehicleRim.facet dist/Everest/Archive/
+          cp EngineContent/Fonts/SunReference/DMSans-Light.ttf dist/Everest/EngineContent/Fonts/SunReference/
+          cp EngineContent/Fonts/SunReference/DMSans-Regular.ttf dist/Everest/EngineContent/Fonts/SunReference/
+          cp Experimental/Fluid/Samples/*.gasscene.toml dist/Everest/Experimental/Fluid/Samples/
+          cat > dist/Everest/README.txt <<'EOF'
+          Project Everest — Vulkan 1.1 C++ test build (Frontier Editor, FluidEditor, 3D SDF World & Tyre Smoke)
+
+          Headless CLI & PPM snapshot tool:
+            Everest --archive Archive --render lobby.ppm
+            Everest --archive Archive --navigate proving-grounds --render proving-grounds.ppm
+
+          Interactive Vulkan 1.1 Frontier Editor & FluidEditor:
+            EverestWindow --archive Archive --proving-grounds
+            EverestWindow --archive Archive --fluid-editor
+
+          Frontier Editor (3D SDF World):
+            - Outliner switches between Lobby and Proving Grounds, toggles Environment / Vehicle / Effects / SDF Course,
+              and spawns or selects world Pyro plumes and the ControlVehicle Tyre Smoke & Fire domain.
+            - Selecting any plume opens the GasCardSurface Inspector with 18 presets, tyre thermal telemetry, and
+              "Open FluidEditor ->" (or press Tab / double-click in Outliner) to open the 1:1 C++ FluidEditor.
+            - Driving: WASD drive, Space handbrake, B Burnout Line-Lock, Shift boost, C cycle camera, P toggle panels.
+          EOF
+
+      - name: Upload test binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: Everest-${{ runner.os }}
+          path: dist/Everest/
+          if-no-files-found: error
+          retention-days: 30

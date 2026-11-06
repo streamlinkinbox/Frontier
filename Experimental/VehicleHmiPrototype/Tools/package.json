@@ -19,7 +19,6 @@
     "bench": "node RunBenchmark.mjs"
   },
   "devDependencies": {
-    "@napi-rs/canvas": "^1.1.0",
     "webgpu": "0.6.2"
   }
 }

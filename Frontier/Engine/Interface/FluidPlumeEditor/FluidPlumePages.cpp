@@ -317,9 +317,9 @@ void FluidPlumePages::ConstructLooksCard(ControlColumn& Page, FluidPlumeContext&
                        FluidPlumeLibrary::CountDifferences(Context.Plume.Gas, ConstructGasParameters()), GasParameterCount);
     CaptionText::Construct(Page, Now, 0.0f, 8.0f);
     const auto&                             Presets = QueryGasPresets();
-    std::array<ActionEntry, FluidDynamics::GasPresetCount> Actions{};
-    std::array<std::string, FluidDynamics::GasPresetCount> Ids{};
-    std::array<std::string, FluidDynamics::GasPresetCount> Captions{};
+    std::array<ActionEntry, GasPresetCount> Actions{};
+    std::array<std::string, GasPresetCount> Ids{};
+    std::array<std::string, GasPresetCount> Captions{};
     for (size_t Index = 0; Index < Presets.size(); ++Index)
     {
         Ids[Index]      = "PlumePreset" + std::to_string(Index);

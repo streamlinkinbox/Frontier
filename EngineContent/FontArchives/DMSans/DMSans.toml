@@ -1,0 +1,12 @@
+[font_archive]
+category = 'SansSerif'
+description = 'Auto-discovered'
+family = 'DMSans'
+format = 'StaticOpenType'
+
+[variants]
+300 = 'DMSans-Light.ttf'
+400 = 'DMSans-Regular.ttf'
+500 = 'DMSans-Medium.ttf'
+600 = 'DMSans-SemiBold.ttf'
+700 = 'DMSans-Bold.ttf'

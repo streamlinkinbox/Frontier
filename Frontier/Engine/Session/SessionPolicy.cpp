@@ -17,6 +17,42 @@ namespace Frontier
 //                                                         BASE POLICY
 //------------------------------------------------------------------------------------------------------------------------
 
+InputPacket InputRoutingPolicy::Route(const InputPacket& Packet) const noexcept
+{
+    InputPacket Routed{};
+    Routed.SequenceIndex = Packet.SequenceIndex;
+    if (AllowDriving)
+    {
+        Routed.ThrottleAxis = Packet.ThrottleAxis;
+        Routed.BrakeAxis = Packet.BrakeAxis;
+        Routed.SteerAxis = Packet.SteerAxis;
+        Routed.HandbrakeAxis = Packet.HandbrakeAxis;
+    }
+    if (AllowCameraLook)
+    {
+        Routed.LookYawDelta = Packet.LookYawDelta;
+        Routed.LookPitchDelta = Packet.LookPitchDelta;
+    }
+
+    const uint32_t NavigationActions = InputActionMenu | InputActionNavigatePrev | InputActionNavigateNext
+                                     | InputActionConfirm | InputActionBack;
+    uint32_t Allowed = AllowLevelNavigation ? NavigationActions : 0u;
+    if (AllowDriving) Allowed |= InputActionHandbrake | InputActionReverse;
+    if (AllowBoost) Allowed |= InputActionBoost;
+    if (AllowReady) Allowed |= InputActionReady;
+    if (AllowRespawn) Allowed |= InputActionResetUnit;
+    if (AllowCameraCycle) Allowed |= InputActionCycleCamera;
+    if (AllowLights) Allowed |= InputActionLights;
+    Routed.ActionBits = Packet.ActionBits & Allowed;
+    return Routed;
+}
+
+const InputRoutingPolicy& SessionPolicy::QueryInputRoutingPolicy() const noexcept
+{
+    static const InputRoutingPolicy Driving{};
+    return Driving;
+}
+
 void SessionPolicy::OnSessionBegin(SessionSpace&) {}
 void SessionPolicy::OnPlayerJoined(SessionSpace&, PlayerToken) {}
 void SessionPolicy::OnPlayerLeft(SessionSpace&, PlayerToken) {}
@@ -49,6 +85,15 @@ LobbyPolicy::LobbyPolicy()
     RespawnRules.RespawnDelaySeconds = 0.0f;
     SpawnRules = SpawnPolicy::StudioParked();               // parked on the handbrake, on a level pad
     NetRules.AllowJoinInProgress = true;                    // the studio door is open
+}
+
+const InputRoutingPolicy& LobbyPolicy::QueryInputRoutingPolicy() const noexcept
+{
+    static const InputRoutingPolicy Navigation{
+        InputControlMode::Navigation, false, true, false, true, true, false, false, false,
+        "Arrows/D-pad choose; Enter selects; Space readies; A selects/readies; Esc/B backs; mouse orbits the parked car"
+    };
+    return Navigation;
 }
 
 void LobbyPolicy::OnSessionStep(SessionSpace& Session, float StepSeconds)
@@ -91,6 +136,15 @@ ProvingGroundsPolicy::ProvingGroundsPolicy()
     RespawnRules.RespawnDelaySeconds = 0.0f;
     SpawnRules = SpawnPolicy::GridRelease();                // surveyed stand, live handover
     NetRules.AllowJoinInProgress = false;
+}
+
+const InputRoutingPolicy& ProvingGroundsPolicy::QueryInputRoutingPolicy() const noexcept
+{
+    static const InputRoutingPolicy Driving{
+        InputControlMode::Driving, true, true, true, true, false, true, true, true,
+        "WASD or left stick drive; triggers throttle/brake; Space/X handbrake; Shift/Y boost; mouse camera; C/RB camera; R/Back reset; Esc/Start routes"
+    };
+    return Driving;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -8,7 +8,6 @@
 
 #include "Engine/Scene/SceneDirectory.h"
 #include "Engine/PhysicalDynamics/ForceSourceCatalogue.h"
-#include "Engine/VolumetricDynamics/GasSceneCodec.h"
 
 #include <toml++/toml.hpp>
 
@@ -1255,32 +1254,6 @@ void FluidPlumeRecord::DeserializeConfiguration(const toml::table& InTable)
     Parameters.AdvanceRevision();
 }
 
-// 📝 The volume is its enabled switch, the preset it came from and the Fluid editor's own scene settings, spelled as the editor's .gasscene.toml spells
-//    them (GasSceneCodec: camelCase keys, shortest numbers) in a table of their own.
-template <>
-void FluidVolumeRecord::SerializeConfiguration(toml::table& OutTable) const
-{
-    OutTable.insert_or_assign("enabled", Parameters.Enabled);
-    OutTable.insert_or_assign("preset", Parameters.Preset);
-    std::string Spelled;
-    GasSceneDetail::SpellSettings(Parameters.Gas, Spelled);
-    OutTable.insert_or_assign("settings", toml::parse(Spelled));
-}
-
-// 📝 A setting the file lacks keeps its default; one the file spells wrongly or this build does not know is left as it was. The editor holds the readings to
-//    their ranges when it opens the record (the ranges are the editor's).
-template <>
-void FluidVolumeRecord::DeserializeConfiguration(const toml::table& InTable)
-{
-    Parameters.Enabled = ReadBool(InTable, "enabled", Parameters.Enabled);
-    if (const auto Name = InTable["preset"].value<std::string>()) Parameters.Preset = *Name;
-    if (const toml::table* Settings = InTable["settings"].as_table())
-    {
-        for (const auto& [Key, Entry] : *Settings) (void)GasSceneDetail::CrossSetting(Parameters.Gas, Key.str(), Entry);
-    }
-    Parameters.AdvanceRevision();
-}
-
 template <>
 void FractureRecord::SerializeConfiguration(toml::table& OutTable) const
 {
@@ -1795,7 +1768,6 @@ void WorldSpace::RegisterNativeEngineTypes()
             return Entry;
         }});
     RegisterSimple.operator()<FluidPlumeRecord>("FluidPlume", "Solver · Fluid Plume", RecordClassification::Physics, "Flame", "Solvers", "#e8833a");
-    RegisterSimple.operator()<FluidVolumeRecord>("FluidVolume", "Solver · Fluid Volume", RecordClassification::Physics, "Blast", "Solvers", "#f0a35e");
     RegisterSimple.operator()<FractureRecord>("Fracture", "Solver · Voronoi Fracture", RecordClassification::Physics, "Hammer", "Solvers", "#8fb3a4");
     RegisterSimple.operator()<ParticleRecord>("Particles", "Solver · GPU Particles", RecordClassification::Physics, "Sparkles", "Solvers", "#b494f4");
     // 📝 Vehicles (Project Drive on Jolt) and the tyres they enclose.

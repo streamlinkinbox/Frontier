@@ -1,0 +1,10 @@
+[font_archive]
+category = 'SansSerif'
+description = 'Auto-discovered'
+family = 'Inter'
+format = 'StaticOpenType'
+
+[variants]
+400 = 'Inter-Regular.otf'
+500 = 'Inter-Medium.otf'
+600 = 'Inter-SemiBold.otf'

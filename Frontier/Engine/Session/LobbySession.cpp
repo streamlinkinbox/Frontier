@@ -7,13 +7,15 @@
 namespace Frontier
 {
 
-LobbySession::LobbySession(SessionConfiguration InitialConfiguration) : Configuration(std::move(InitialConfiguration))
+LobbySession::LobbySession(SessionConfiguration InitialConfiguration, LevelTransition::PolicyFactory InitialPolicyFactory)
+    : Configuration(std::move(InitialConfiguration)), PolicyFactory(std::move(InitialPolicyFactory)), Transition(PolicyFactory)
 {
     // 📝 The default level is the Lobby: the session opens there, under the policy the configuration names.
     //    Creating the room reads its rules from that policy (capacity five, no respawn, no derez) — nothing
-    //    about the lobby is hard-coded here.
+    //    about the lobby is hard-coded here. Projects such as Everest can inject their policy factory.
     Session.ConfigureActiveLevelPath(Configuration.LobbyLevelPath);
-    Session.BeginPolicy(MakeSessionPolicy(Configuration.LobbyPolicyName));
+    std::unique_ptr<SessionPolicy> LobbyRules = PolicyFactory ? PolicyFactory(Configuration.LobbyPolicyName) : nullptr;
+    Session.BeginPolicy(LobbyRules ? std::move(LobbyRules) : MakeSessionPolicy(Configuration.LobbyPolicyName));
 
     // One vehicle for now, and its driver: the local player, deployed at the centre stand by the policy's
     // SpawnPolicy (StudioParked under LobbyPolicy: level pad, handbrake latched).
@@ -32,7 +34,29 @@ LobbySession::LobbySession(SessionConfiguration InitialConfiguration) : Configur
 void LobbySession::Step(float StepSeconds)
 {
     Session.StepSession(StepSeconds);
-    Transition.TryTransition(Session);   // the rules decide; mostly this does nothing
+    const uint64_t PriorEpoch = Session.QueryTransitionEpoch();
+    if (Transition.TryTransition(Session) && Session.QueryTransitionEpoch() != PriorEpoch)
+        RefreshLocalPlayerToken();
+}
+
+bool LobbySession::NavigateToLevel(const std::string& LevelPath, const std::string& PolicyName)
+{
+    if (!Transition.TryTransitionTo(Session, LevelPath, PolicyName))
+        return false;
+    RefreshLocalPlayerToken();
+    return true;
+}
+
+void LobbySession::RefreshLocalPlayerToken()
+{
+    for (const PlayerProfile& Profile : Session.QueryPlayers())
+        if (Profile.IsLocalHost)
+        {
+            LocalPlayer = Profile.Token;
+            return;
+        }
+    if (!Session.QueryPlayers().empty())
+        LocalPlayer = Session.QueryPlayers().front().Token;
 }
 
 #if FRONTIER_DEBUG_LEVEL_SWITCH
@@ -58,40 +82,9 @@ bool LobbySession::SwitchLevelForDebug(size_t Index)
     if (Index >= DebugLevels.size())
         return false;
     const GameLevelEntry& Target = DebugLevels[Index];
-
-    // Preserve the room's players exactly as a real transition would, then rebuild under the target rules.
-    TransferConfiguration Transfer{};
-    Transfer.SourceLevelPath = Session.QueryActiveLevelPath();
-    Transfer.TargetLevelPath = Target.LevelPath;
-    Transfer.TargetPolicyName = Target.PolicyName;
-    Transfer.TransitionEpoch = Session.QueryTransitionEpoch() + 1;
-    Transfer.PreservedProfiles = Session.QueryPlayers();
-
-    Session.Players.clear();
-    Session.Units.clear();
-    Session.Agents.clear();
-    Session.HumanDrivers.clear();
-    Session.SyntheticDrivers.clear();
-    Session.ConfigureActiveLevelPath(Target.LevelPath);
-    Session.TransitionEpoch = Transfer.TransitionEpoch;
-    Session.BeginPolicy(MakeSessionPolicy(Target.PolicyName));
-    for (const PlayerProfile& Profile : Transfer.PreservedProfiles)
-    {
-        const PlayerToken Token = Profile.SyntheticAi
-            ? Session.AddSyntheticPlayer(Profile.NameTag, Profile.Rank)
-            : Session.AddPlayer(Profile.NameTag, Profile.Rank, Profile.NetworkEndpoint, Profile.IsLocalHost);
-        if (PlayerProfile* Restored = Session.FindPlayer(Token))
-        {
-            Restored->VehicleSpec = Profile.VehicleSpec;
-            Restored->Score = Profile.Score;
-        }
-        if (DeployableUnit* Unit = Session.FindUnit(Token))
-            Unit->AssignVehicleConfiguration(Profile.VehicleSpec);
-        if (Profile.IsLocalHost)
-            LocalPlayer = Token;
-    }
+    const bool Switched = NavigateToLevel(Target.LevelPath, Target.PolicyName);
     DebugPopupOpen = false;
-    return true;
+    return Switched;
 }
 #endif
 

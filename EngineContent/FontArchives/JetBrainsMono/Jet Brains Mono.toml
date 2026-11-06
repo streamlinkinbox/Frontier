@@ -1,0 +1,9 @@
+[font_archive]
+category = 'Monospace'
+description = 'Auto-discovered'
+family = 'Jet Brains Mono'
+format = 'StaticOpenType'
+
+[variants]
+400 = 'JetBrainsMono-Regular.ttf'
+500 = 'JetBrainsMono-Medium.ttf'

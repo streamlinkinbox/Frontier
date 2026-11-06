@@ -12,6 +12,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <string_view>
 
 namespace Frontier
@@ -29,6 +30,10 @@ class LevelTransition
     // 📝 If the active policy's rules say the session may leave now, performs the transition and returns
     //    true. The transfer is kept either way it was last captured, for inspection and replication.
     bool TryTransition(SessionSpace& Session);
+
+    // 📝 A deliberate navigation-menu route. It uses the same profile-preserving rebuild as a policy-driven
+    //    transition, but the destination is selected by the app rather than the active policy countdown.
+    bool TryTransitionTo(SessionSpace& Session, std::string TargetLevelPath, std::string TargetPolicyName);
 
     [[nodiscard]] const TransferConfiguration& QueryLastTransfer() const noexcept { return LastTransfer; }
 

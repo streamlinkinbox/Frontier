@@ -4,6 +4,8 @@
 
 #include "Frontier/Engine/Session/LevelTransition.h"
 
+#include <utility>
+
 namespace Frontier
 {
 
@@ -16,11 +18,28 @@ bool LevelTransition::TryTransition(SessionSpace& Session)
     std::string TargetLevelPath, TargetPolicyName;
     if (!Policy->ShouldTransitionLevel(Session, TargetLevelPath, TargetPolicyName))
         return false;   // the rules say stay: not everyone ready, or the match is not over
+    return TryTransitionTo(Session, std::move(TargetLevelPath), std::move(TargetPolicyName));
+}
 
-    // Capture who is coming: profiles preserved verbatim except readiness, which a new level re-earns.
+bool LevelTransition::TryTransitionTo(SessionSpace& Session, std::string TargetLevelPath, std::string TargetPolicyName)
+{
+    if (TargetLevelPath.empty() || TargetPolicyName.empty())
+        return false;
+    const SessionPolicy* CurrentPolicy = Session.QueryPolicy();
+    if (Session.QueryActiveLevelPath() == TargetLevelPath && CurrentPolicy
+        && CurrentPolicy->QueryPolicyName() == TargetPolicyName)
+        return false;
+
+    std::unique_ptr<SessionPolicy> NewPolicy = Factory ? Factory(TargetPolicyName) : nullptr;
+    if (!NewPolicy)
+        NewPolicy = MakeSessionPolicy(TargetPolicyName);
+    if (!NewPolicy)
+        return false;
+
+    // Capture who is coming: profiles are preserved except readiness, which a new level re-earns.
     LastTransfer.SourceLevelPath = Session.QueryActiveLevelPath();
-    LastTransfer.TargetLevelPath = TargetLevelPath;
-    LastTransfer.TargetPolicyName = TargetPolicyName;
+    LastTransfer.TargetLevelPath = std::move(TargetLevelPath);
+    LastTransfer.TargetPolicyName = std::move(TargetPolicyName);
     LastTransfer.TransitionEpoch = Session.QueryTransitionEpoch() + 1;
     LastTransfer.PreservedProfiles = Session.QueryPlayers();
     for (PlayerProfile& Profile : LastTransfer.PreservedProfiles)
@@ -35,10 +54,9 @@ bool LevelTransition::TryTransition(SessionSpace& Session)
     Session.Agents.clear();
     Session.HumanDrivers.clear();
     Session.SyntheticDrivers.clear();
-    Session.ConfigureActiveLevelPath(TargetLevelPath);
+    Session.ConfigureActiveLevelPath(LastTransfer.TargetLevelPath);
     Session.TransitionEpoch = LastTransfer.TransitionEpoch;
 
-    std::unique_ptr<SessionPolicy> NewPolicy = Factory ? Factory(TargetPolicyName) : MakeSessionPolicy(TargetPolicyName);
     Session.BeginPolicy(std::move(NewPolicy));
     for (const PlayerProfile& Profile : Profiles)
     {

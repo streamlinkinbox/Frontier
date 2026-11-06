@@ -4,7 +4,6 @@
 // 🧩 Direct sun radiance, tyre-fire and light-grid arrivals at every primary surface, cascaded shadow depth, and sky background.
 
 //! include "FrameDescriptor.wgsl"
-//! include "ViewWorld.wgsl"
 //! include "SurfaceReflectance.wgsl"
 //! include "PackingCodec.wgsl"
 //! include "SkyProjection.wgsl"
@@ -100,8 +99,28 @@ fn IntegrateDirectRadiance(@builtin(global_invocation_id) Invocation: vec3u)
     let Position     = ReconstructWorldPosition(Centre, Depth);
     let Attributes   = textureLoad(SurfaceAttributes, vec2i(Pixel), 0);
     let Normal       = DecodeOctahedral(Attributes.xy);
-    let Family       = u32(Attributes.z + 0.5);
-    let Surface      = ProjectSurfaceSample(ApplyPaintRipple(Materials[Family], Family, Position));
+    let FamilyIndex  = u32(Attributes.z + 0.5);
+    var Surface      = ProjectSurfaceSample(Materials[FamilyIndex]);
+    if (FamilyIndex == BodyCoatFamilyIndex && arrayLength(&Materials) > BodyCoatWaveControlIndex)
+    {
+        let Control = Materials[BodyCoatWaveControlIndex];
+        if (Control.Metalness > 0.5)
+        {
+            let BodyLocal = (Occupants[0].WorldToLocal * vec4f(Position, 1.0)).xyz;
+            let Coverage  = ResolvePaintWaveCoverage(BodyLocal, vec4f(Control.Albedo, Control.Roughness), Control.Metalness);
+            Surface       = BlendSurfaceSample(Surface, ProjectSurfaceSample(Materials[BodyCoatWaveTargetIndex]), Coverage);
+        }
+    }
+    else if (FamilyIndex == HubFamilyIndex && arrayLength(&Materials) > WheelWaveControlIndex)
+    {
+        let Control = Materials[WheelWaveControlIndex];
+        if (Control.Metalness > 0.5)
+        {
+            let BodyLocal = (Occupants[0].WorldToLocal * vec4f(Position, 1.0)).xyz;
+            let Coverage  = ResolveWheelWaveCoverage(BodyLocal, vec4f(Control.Albedo, Control.Roughness));
+            Surface       = BlendSurfaceSample(Surface, ProjectSurfaceSample(Materials[WheelWaveTargetIndex]), Coverage);
+        }
+    }
     let View         = normalize(Frame.CameraPosition - Position);
     let UseRtShadows = FeatureEnabled(Frame, FeatureRayTracing) && FeatureEnabled(Frame, FeatureRayTracedShadows);
     let RayOrigin    = Position + Normal * RayEpsilon;

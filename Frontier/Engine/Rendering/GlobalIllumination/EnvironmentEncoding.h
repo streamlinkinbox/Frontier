@@ -6,15 +6,62 @@
 
 #pragma once
 
-#include "AtmosphereIntegrator.h"
-
 #include <array>
+#include <cmath>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
 namespace Frontier::GlobalIllumination
 {
+
+using Vector3 = std::array<double, 3>;
+
+[[nodiscard]] inline double ComputeHypot(double X, double Y) noexcept { return std::hypot(X, Y); }
+[[nodiscard]] inline double StoreSingle(double Value) noexcept { return static_cast<double>(static_cast<float>(Value)); }
+
+struct AtmosphereSettings
+{
+    bool    AirMass            = true;
+    double  SunTemperature     = 5778.0;
+    bool    SunColourIsRgb     = false;
+    Vector3 SunTint{ 1.0, 1.0, 1.0 };
+    bool    SunEnabled         = true;
+    double  MoonElevation      = 38.0;
+    double  MoonAzimuth        = 0.0;
+    bool    MoonLightEnabled   = true;
+    double  MoonLightIntensity = 1.0;
+    bool    MoonEnabled        = true;
+    double  MoonBrightness     = 1.0;
+    double  MoonPhase          = 14.765;
+    double  Rayleigh           = 1.0;
+    double  Mie                = 1.0;
+    double  Ozone              = 1.0;
+    double  MieG               = 0.8;
+    double  RayleighHeight     = 8000.0;
+    double  MieHeight          = 1200.0;
+    Vector3 GroundAlbedo{ 0.3, 0.3, 0.3 };
+    Vector3 SkyTint{ 1.0, 1.0, 1.0 };
+    double  HorizonGlow        = 1.0;
+    bool    MultipleScattering = true;
+    bool    AtmosphereEnabled  = true;
+    double  TierSamples        = 40.0;
+    bool    UseBakedAtmosphere = true;
+};
+
+[[nodiscard]] inline Vector3 ResolveSunTransmittance(const Vector3& Direction, const AtmosphereSettings& Settings) noexcept
+{
+    if (!Settings.AtmosphereEnabled || !Settings.AirMass)
+        return { 1.0, 1.0, 1.0 };
+    const double SinEl = std::max(0.02, Direction[2]);
+    const double Am    = 1.0 / (SinEl + 0.15 * std::pow(std::max(1.0, 93.885 - std::acos(std::min(1.0, SinEl)) * 57.2957795), -1.253));
+    return {
+        std::exp(-Am * (0.058 * Settings.Rayleigh + 0.042 * Settings.Mie + 0.012 * Settings.Ozone)),
+        std::exp(-Am * (0.135 * Settings.Rayleigh + 0.042 * Settings.Mie + 0.018 * Settings.Ozone)),
+        std::exp(-Am * (0.331 * Settings.Rayleigh + 0.042 * Settings.Mie + 0.002 * Settings.Ozone)),
+    };
+}
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   MOON ROSTER

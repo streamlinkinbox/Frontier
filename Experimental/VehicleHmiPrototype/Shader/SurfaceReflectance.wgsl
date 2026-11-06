@@ -108,3 +108,78 @@ fn ResolveDirectReflectance(Surface: SurfaceSample, Normal: vec3f, View: vec3f, 
     }
     return Layer;
 }
+
+const BodyCoatFamilyIndex      : u32 = 6u;
+const HubFamilyIndex           : u32 = 10u;
+const BodyCoatWaveTargetIndex  : u32 = 107u;
+const BodyCoatWaveControlIndex : u32 = 108u;
+const WheelWaveTargetIndex     : u32 = 109u;
+const WheelWaveControlIndex    : u32 = 110u;
+
+fn ResolveWheelWaveCoverage(BodyLocal: vec3f, CentreAndRadius: vec4f) -> f32
+{
+    if (CentreAndRadius.w <= 0.001)
+    {
+        return 0.0;
+    }
+    let Distance = distance(BodyLocal, CentreAndRadius.xyz);
+    return 1.0 - smoothstep(CentreAndRadius.w - 0.45, CentreAndRadius.w, Distance);
+}
+
+// 📐 Paint application wave coverage:
+//    Mode 1 = side-to-side sweep across the vehicle (SweepFront travels +3.30 m → −3.85 m);
+//    Mode 2 = radial outward 3D sphere from the exact dropped point on the vehicle.
+fn ResolvePaintWaveCoverage(BodyLocal: vec3f, CentreAndMetric: vec4f, Mode: f32) -> f32
+{
+    if (Mode < 0.5)
+    {
+        return 0.0;
+    }
+    if (Mode < 1.5)
+    {
+        let Signed = (BodyLocal.x - 0.08 * abs(BodyLocal.y)) - CentreAndMetric.w;
+        return smoothstep(-0.55, 0.0, Signed);
+    }
+    if (CentreAndMetric.w <= 0.001)
+    {
+        return 0.0;
+    }
+    let Distance = distance(BodyLocal, CentreAndMetric.xyz);
+    return 1.0 - smoothstep(CentreAndMetric.w - 0.55, CentreAndMetric.w, Distance);
+}
+
+fn ResolvePaintWaveBand(BodyLocal: vec3f, CentreAndMetric: vec4f, Mode: f32) -> f32
+{
+    if (Mode < 0.5)
+    {
+        return 0.0;
+    }
+    if (Mode < 1.5)
+    {
+        let Signed = (BodyLocal.x - 0.08 * abs(BodyLocal.y)) - CentreAndMetric.w;
+        return exp(-pow((Signed + 0.16) * 5.2, 2.0));
+    }
+    if (CentreAndMetric.w <= 0.001)
+    {
+        return 0.0;
+    }
+    let Distance = distance(BodyLocal, CentreAndMetric.xyz);
+    return exp(-pow((Distance - (CentreAndMetric.w - 0.18)) * 5.2, 2.0));
+}
+
+fn BlendSurfaceSample(Base: SurfaceSample, Target: SurfaceSample, Coverage: f32) -> SurfaceSample
+{
+    if (Coverage <= 0.0)
+    {
+        return Base;
+    }
+    var Blended = Base;
+    Blended.Albedo        = mix(Base.Albedo, Target.Albedo, Coverage);
+    Blended.Roughness     = mix(Base.Roughness, Target.Roughness, Coverage);
+    Blended.Metalness     = mix(Base.Metalness, Target.Metalness, Coverage);
+    Blended.CoatWeight    = mix(Base.CoatWeight, Target.CoatWeight, Coverage);
+    Blended.CoatRoughness = mix(Base.CoatRoughness, Target.CoatRoughness, Coverage);
+    Blended.Emission      = mix(Base.Emission, Target.Emission, Coverage);
+    return Blended;
+}
+

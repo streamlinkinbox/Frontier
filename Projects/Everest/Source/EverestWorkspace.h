@@ -24,8 +24,6 @@ struct ImVec2;
 namespace Frontier
 {
 class ForceFieldVisualization;
-class NetworkingSession;
-class PhysicsExtension;
 }
 #endif
 
@@ -185,12 +183,23 @@ class EverestWorkspace
     //    record type; and duplicates a scene object (its copies from the reserve). The dialog and the keys call these too.
     void                  ServiceConstructOrder(const Frontier::ConstructOrder& Order);
     Frontier::RecordToken DuplicateGeometryRecord(Frontier::RecordToken Token);
+    struct SimulationStepDriver
+    {
+        float Throttle       = 0.0f;
+        float Brake          = 0.0f;
+        float Steer          = 0.0f;
+        float Handbrake      = 0.0f;
+        bool  ResetRequested = false;
+    };
+
+    std::function<void(Frontier::WorldSpace&, double, const SimulationStepDriver&)> StepSimulationCallback;
+
     void                  ToggleSimulation();
+    void                  ConfigureSimulationActive(bool Active);
+    [[nodiscard]] bool    QuerySimulationActive() const noexcept { return SimulationRunning; }
     // 📝 The Quick Controls "Networking" toggle: enables the session's replication (loopback until a provider links).
     void                  ToggleNetworking();
     [[nodiscard]] bool    QueryNetworkingEnabled() const noexcept;
-    [[nodiscard]] Frontier::PhysicsExtension* AccessPhysics() noexcept { return Physics.get(); }
-    [[nodiscard]] Frontier::NetworkingSession* AccessNetworking() noexcept { return Network.get(); }
 #endif
 
     [[nodiscard]] EverestApplication&          AccessApplication() noexcept { return Application; }
@@ -279,8 +288,9 @@ class EverestWorkspace
     bool                          GizmoPress             = false;     // [-] that press began on a handle
     std::unordered_map<uint64_t, std::array<float, 3>> PendingAlbedo{};   // [-] constructed shapes waiting for their family
     FieldViewport                                Field{};
-    std::unique_ptr<Frontier::PhysicsExtension>  Physics;
-    std::unique_ptr<Frontier::NetworkingSession> Network;   // [-] - the replication session the Networking toggle drives
+    bool                                         SimulationRunning      = false;
+    bool                                         NetworkingActive       = false;
+    bool                                         PendingVehicleReset    = false;
     Frontier::Vehicle::DriverInputIntegrator     DriverControls{};
 #endif
 

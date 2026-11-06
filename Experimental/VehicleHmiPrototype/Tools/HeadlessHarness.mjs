@@ -45,7 +45,6 @@ function EncodePng(Rgba, Width, Height)
     const Header = Buffer.alloc(13); Header.writeUInt32BE(Width, 0); Header.writeUInt32BE(Height, 4); Header[8] = 8; Header[9] = 6; Header[10] = 0; Header[11] = 0; Header[12] = 0;
     return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), Chunk("IHDR", Header), Chunk("IDAT", zlib.deflateSync(Raw)), Chunk("IEND", Buffer.alloc(0))]);
 }
-globalThis.EncodePng = EncodePng;   // for hooks that read other textures back (GarageHooks.mjs)
 globalThis.SaveCapture = (Name) => { const Last = Captures[Captures.length - 1]; if (Last) { fs.writeFileSync(Name, EncodePng(Last.data, Last.width, Last.height)); console.log("saved", Name, Last.width + "x" + Last.height); } };
 Object.defineProperty(globalThis, "navigator", { value: { gpu: Gpu, userAgent: "node" }, configurable: true, writable: true });
 
@@ -142,27 +141,7 @@ globalThis.fetch = async (Location) =>
              arrayBuffer: async () => Bytes.buffer.slice(Bytes.byteOffset, Bytes.byteOffset + Bytes.byteLength), json: async () => JSON.parse(Bytes.toString("utf8")) };
 };
 
-// 📝 DETERMINISTIC=1: the host puts wall-clock time into its constants (FrameRecord scalar 87, the idle timers) and seeds one effect with
-//    Math.random, so two runs of one build differ by noise on a software rasteriser. Both become functions of the frame number: two runs of
-//    one build are then byte-identical, and a run of two builds differs only by what the builds change (the TLAS skip's A/B).
-const RealNow = performance.now.bind(performance);
-const Deterministic = Boolean(process.env.DETERMINISTIC);
-let ClockMilliseconds = 0.0;
-if (Deterministic)
-{
-    let State = 0x9E3779B9;
-    Math.random = () =>
-    {
-        State = (State + 0x6D2B79F5) >>> 0;
-        let T = State;
-        T = Math.imul(T ^ (T >>> 15), T | 1);
-        T ^= T + Math.imul(T ^ (T >>> 7), T | 61);
-        return ((T ^ (T >>> 14)) >>> 0) / 4294967296;
-    };
-    performance.now = () => ClockMilliseconds;
-}
-const Started = Deterministic ? 0.0 : RealNow();
-const RealStarted = RealNow();
+const Started = performance.now();
 if (process.env.HOOKS)
     globalThis.HarnessHooks = (await import(pathToFileURL(path.resolve(process.env.HOOKS)).href)).default;
 await import(pathToFileURL(path.join(Root, "Source/IlluminationHost.js")).href);
@@ -174,7 +153,7 @@ let ClockAligned = false;
 while (FramesRun < FrameLimit)
 {
     await new Promise((Resolve) => setTimeout(Resolve, 5));
-    if ((RealNow() - RealStarted) > Number(process.env.HARNESS_TIMEOUT || 240000))
+    if ((performance.now() - Started) > Number(process.env.HARNESS_TIMEOUT || 240000))
     {
         Errors.push("harness timeout");
         break;
@@ -185,11 +164,6 @@ while (FramesRun < FrameLimit)
     {
         Simulated += 16.6667;
         const Host = globalThis.IlluminationExhibit;
-        // 📝 Callbacks that arrive while the host is still starting do not count in a deterministic run: how many there are depends on how long
-        //    bring-up takes, and the clock of the first real frame must not.
-        if (Deterministic && !(Host && Host.Ready))
-            Simulated = 0.0;
-        ClockMilliseconds = Started + Simulated;
         if (Host && Host.Ready && Hooks.BeforeFrame)
             await Hooks.BeforeFrame(Host, FramesRun);   // awaited: a hook may read the GPU back before the next frame is recorded
         // 📝 The host stamps LastTime with performance.now() when it is constructed, long after the harness started (shader compilation on
@@ -201,13 +175,11 @@ while (FramesRun < FrameLimit)
             ClockAligned = true;
         }
         const Executed = Host && Host.Ready ? Host.FrameIndex : -1;
-        ClockMilliseconds = Started + Simulated;
         Callback(Started + Simulated);
         // 📝 A callback the host skips (two frames already in flight) must not advance the app's clock, or a slow adapter would run
         //    seconds of simulated time between frames and the images would depend on how the frames happened to pipeline.
         if (Host && Host.Ready && Host.FrameIndex === Executed)
             Simulated -= 16.6667;
-        ClockMilliseconds = Started + Simulated;
         if (globalThis.IlluminationExhibit && globalThis.IlluminationExhibit.Ready)
             FramesRun = globalThis.IlluminationExhibit.FrameIndex;
     }
@@ -220,7 +192,7 @@ if (Host && Host.Exchange && Host.Exchange.Device)
     await Host.Exchange.Device.queue.onSubmittedWorkDone();
 await new Promise((Resolve) => setTimeout(Resolve, 50));
 const Failure = document.getElementById("failure");
-console.log(`\n=== harness: ${FramesRun} frames, ${Errors.length} errors, ${Warnings.length} warnings, ${((RealNow() - RealStarted) / 1000).toFixed(1)} s`);
+console.log(`\n=== harness: ${FramesRun} frames, ${Errors.length} errors, ${Warnings.length} warnings, ${((performance.now() - Started) / 1000).toFixed(1)} s`);
 if (Hooks.Report && Host)
     await Hooks.Report(Host);
 if (Failure.children.length)

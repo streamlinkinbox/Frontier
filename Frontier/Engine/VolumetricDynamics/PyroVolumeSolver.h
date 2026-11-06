@@ -8,7 +8,6 @@
 
 #include "Frontier/Engine/Rendering/VulkanContext.h"
 #include "Frontier/Engine/VolumetricDynamics/GasPresetLibrary.h"
-#include "Frontier/Engine/VolumetricDynamics/PyroCamera.h"
 
 #include <array>
 #include <cstdint>
@@ -17,6 +16,42 @@
 
 namespace Frontier
 {
+
+//----------------------------------------------------------------------------------------------------------------------
+//                                                   ORBIT CAMERA
+//----------------------------------------------------------------------------------------------------------------------
+
+struct PyroCameraFrame
+{
+    std::array<float, 3> Position   = { 0.0f, 1.2f, 3.0f };
+    std::array<float, 3> Forward    = { 0.0f, 0.0f, -1.0f };
+    std::array<float, 3> Right      = { 1.0f, 0.0f, 0.0f };
+    std::array<float, 3> Up         = { 0.0f, 1.0f, 0.0f };
+    float                FovRadians = 0.80285146f;   // [rad] - 46 deg
+    float                Aspect     = 1.7777778f;    // [-]
+};
+
+class PyroOrbitCamera
+{
+  public:
+    float                Theta      = 0.62f;                    // [rad]
+    float                Phi        = 1.18f;                    // [rad]
+    float                Distance   = 3.15f;                    // [m]
+    std::array<float, 3> Target     = { 0.0f, 0.35f, 0.0f };    // [m]
+    float                FovDegrees = 46.0f;                    // [deg]
+    float                Aspect     = 16.0f / 9.0f;             // [-]
+    bool                 AutoRotate = false;                    // [-]
+
+    void Reset() noexcept;
+    void ApplyPresetView(int ViewOrdinal) noexcept;
+    void OrbitByPixels(float DeltaX, float DeltaY) noexcept;
+    void PanByPixels(float DeltaX, float DeltaY) noexcept;
+    void ZoomByWheel(float WheelSteps) noexcept;
+    void AdvanceTurntable(float DtSeconds) noexcept;
+
+    [[nodiscard]] PyroCameraFrame ComputeFrame(float AspectOverride = 0.0f) const noexcept;
+    [[nodiscard]] bool RaycastBrushPoint(float NdcX, float NdcY, std::array<float, 3>& OutWorldPoint) const noexcept;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 //                                               DOMAIN & SOURCE RECORDS
@@ -65,22 +100,6 @@ struct PyroExternalSource
 class PyroVolumeSolver
 {
   public:
-    // [unit] - a burst waiting for its time: Delay is seconds of simulation left before it fires
-    struct PendingBlastRecord
-    {
-        std::array<float, 3> Center         = { 0.5f, 0.18f, 0.5f };
-        std::array<float, 3> DirectionalVel = { 0.0f, 0.0f, 0.0f };
-        float                Radius         = 0.18f;
-        float                Strength       = 9.0f;
-        float                Temperature    = 5.5f;
-        float                Fuel           = 4.5f;
-        float                Smoke          = 3.5f;
-        int32_t              Lobes          = 5;
-        float                Seed           = 1.0f;
-        float                Delay          = 0.0f;
-        bool                 SpawnShrapnel  = false;
-    };
-
     PyroVolumeSolver() = default;
     ~PyroVolumeSolver() = default;
 
@@ -96,22 +115,26 @@ class PyroVolumeSolver
     void UploadWorldSdfAtlas(VulkanContext& Ctx, const float* RgbaTexels, size_t FloatCount);
     void DisableWorldSdf() noexcept { WorldSdfEnabled = false; }
 
+    // Continuous toroidal world-grid mode for Proving Grounds driving-course smoke & fire (never attached to vehicle)
+    void SetWorldGridMode(bool Enabled) noexcept;
+    [[nodiscard]] bool IsWorldGridMode() const noexcept { return WorldGridEnabled; }
+    void UpdateWorldGridFocus(float FocusWorldX, float FocusWorldY, const GasSettings& Settings) noexcept;
+    [[nodiscard]] std::array<int32_t, 2> QueryWorldGridOrigin() const noexcept { return { WorldGridOriginX, WorldGridOriginZ }; }
+
     void AssignExternalSources(const PyroExternalSource* Sources, int Count) noexcept;
     void AssignBrush(const std::array<float, 3>& PosUvw, const std::array<float, 3>& VelPyro, bool Active) noexcept;
 
     void TriggerExplosion(const GasSettings& Settings, const PyroExplosionOptions& Options = {});
-    // [unit] - the prototype's burst patterns (single, salvo, collide, mushroom, shrapnel), with its centres, delays and overrides; "mushroom" restarts the lattice first, as it does there
-    void TriggerBurstSequence(VulkanContext& Ctx, const GasSettings& Settings, const char* PatternName, const std::array<float, 3>* CustomCenter = nullptr);
-    [[nodiscard]] const std::vector<PendingBlastRecord>& QueryPendingBlasts() const noexcept { return PendingBlasts; }
+    void TriggerBurstSequence(const GasSettings& Settings, const char* PatternName, const std::array<float, 3>* CustomCenter = nullptr);
 
     void AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settings, float RawDtSeconds);
 
-    bool RenderStandaloneViewport(VulkanContext& Ctx, const GasSettings& Settings, const PyroCameraBasis& Cam,
+    bool RenderStandaloneViewport(VulkanContext& Ctx, const GasSettings& Settings, const PyroCameraFrame& Cam,
                                   int Width, int Height, bool TransparentExport = false);
 
     // Records premultiplied Beer-Lambert + blackbody volume composite + embers directly into an active World MRT RenderPass!
     void RecordCompositeIntoWorldTarget(VulkanContext& Ctx, VkCommandBuffer Cmd, const GasSettings& Settings,
-                                        const PyroCameraBasis& Cam, int TargetWidth, int TargetHeight,
+                                        const PyroCameraFrame& Cam, int TargetWidth, int TargetHeight,
                                         VulkanImageTarget& SceneLinearDepthImage);
 
     // Ensures internal volume atlases are in SHADER_READ_ONLY_OPTIMAL before beginning a World MRT RenderPass
@@ -143,6 +166,21 @@ class PyroVolumeSolver
         float                Age     = 0.0f;
         float                MaxLife = 1.8f;
         float                Radius  = 0.06f;
+    };
+
+    struct PendingBlastRecord
+    {
+        std::array<float, 3> Center         = { 0.5f, 0.18f, 0.5f };
+        std::array<float, 3> DirectionalVel = { 0.0f, 0.0f, 0.0f };
+        float                Radius         = 0.18f;
+        float                Strength       = 9.0f;
+        float                Temperature    = 5.5f;
+        float                Fuel           = 4.5f;
+        float                Smoke          = 3.5f;
+        int32_t              Lobes          = 5;
+        float                Seed           = 1.0f;
+        float                Delay          = 0.0f;
+        bool                 SpawnShrapnel  = false;
     };
 
     bool AllocateLatticeTargets(VulkanContext& Ctx, int32_t NewRes, std::string& OutDiagnostic);
@@ -194,6 +232,12 @@ class PyroVolumeSolver
     VkFramebuffer                  ViewportFboLoad      = VK_NULL_HANDLE;
 
     bool                           WorldSdfEnabled      = false;
+    bool                           WorldGridEnabled     = false;
+    bool                           WorldGridHasFocus    = false;
+    int32_t                        WorldGridOriginX     = 0;
+    int32_t                        WorldGridOriginZ     = 0;
+    int32_t                        WorldGridPriorOriginX= 0;
+    int32_t                        WorldGridPriorOriginZ= 0;
     std::array<PyroExternalSource, 8> ExternalSources{};
     int                            ExternalSourceCount  = 0;
 

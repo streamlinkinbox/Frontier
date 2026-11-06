@@ -134,12 +134,13 @@ void SessionSpace::SetPlayerReady(PlayerToken Token, bool Ready)
 
 void SessionSpace::SubmitPlayerInput(PlayerToken Token, const InputPacket& Packet)
 {
+    const InputPacket Routed = ActivePolicy ? ActivePolicy->QueryInputRoutingPolicy().Route(Packet) : Packet;
     if (PlayerProfile* Profile = FindPlayer(Token))
-        Profile->LatestInput = Packet;
-    // A Ready action is session input, not driving: it readies the player wherever it arrives.
-    if (Packet.HasAction(InputActionReady))
+        Profile->LatestInput = Routed;
+    // Ready/reset are session actions, but only survive the active level's input-routing policy.
+    if (Routed.HasAction(InputActionReady))
         SetPlayerReady(Token, true);
-    if (Packet.HasAction(InputActionResetUnit))
+    if (Routed.HasAction(InputActionResetUnit))
         RequestAgentRespawn(Token);
 }
 
