@@ -78,21 +78,25 @@ jobs:
           cp EngineContent/Fonts/SunReference/DMSans-Regular.ttf dist/Everest/EngineContent/Fonts/SunReference/
           cp Experimental/Fluid/Samples/*.gasscene.toml dist/Everest/Experimental/Fluid/Samples/
           cat > dist/Everest/README.txt <<'EOF'
-          Project Everest — Vulkan 1.1 C++ test build (Frontier Editor, FluidEditor, 3D SDF World & Tyre Smoke)
+          Project Everest — Vulkan 1.1 C++ test build (Frontier Editor, Fluid editor, Smoke & fire editor, 3D SDF World & tyre smoke)
 
           Headless CLI & PPM snapshot tool:
             Everest --archive Archive --render lobby.ppm
             Everest --archive Archive --navigate proving-grounds --render proving-grounds.ppm
 
-          Interactive Vulkan 1.1 Frontier Editor & FluidEditor:
+          Interactive Vulkan 1.1 Frontier Editor:
             EverestWindow --archive Archive --proving-grounds
-            EverestWindow --archive Archive --fluid-editor
+            EverestWindow --archive Archive --fluid-editor [--preset tactical_ordnance]
+            EverestWindow --archive Archive --smoke-editor [--preset inferno]
 
           Frontier Editor (3D SDF World):
-            - Outliner switches between Lobby and Proving Grounds, toggles Environment / Vehicle / Effects / SDF Course,
-              and spawns or selects world Pyro plumes and the ControlVehicle Tyre Smoke & Fire domain.
-            - Selecting any plume opens the GasCardSurface Inspector with 18 presets, tyre thermal telemetry, and
-              "Open FluidEditor ->" (or press Tab / double-click in Outliner) to open the 1:1 C++ FluidEditor.
+            - The Outliner lists the world's records. Solvers holds the two fire and smoke solvers: Fluid Volume and Fluid Plume.
+            - Fluid editor (Fluid Volume): select the record, then the Inspector's Fluid Editor button or a double-click on its row. The window
+              has the Outliner of its parts, the Pyro solver's own picture, an Inspector with the settings in three tabs (Source, Simulation, Rendering), the burst tools and
+              the library of 18 presets. --fluid-editor opens it; --preset takes one of the 18 identities.
+            - Smoke & fire editor (Fluid Plume): the tyres' plume of the ControlVehicle. --smoke-editor opens it; --preset takes one of its looks.
+            - The tyres' smoke and fire are solved on a grid fixed to the world: the grid re-centres as the car drives and the smoke stays
+              where the tyres laid it.
             - Driving: WASD drive, Space handbrake, B Burnout Line-Lock, Shift boost, C cycle camera, P toggle panels.
           EOF
 

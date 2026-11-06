@@ -152,6 +152,12 @@ target_include_directories(FrontierVehicleDynamics PUBLIC
     "${FRONTIER_ROOT}"
     "${FRONTIER_ROOT}/Frontier")
 
+# The Fluid volume's orbit camera (camera.js of Experimental/Fluid, number for number): plain arithmetic, so the editor's interface can use it without
+# seeing the Vulkan layer, and the Pyro solver shares the one definition.
+add_library(FrontierPyroCamera STATIC Engine/VolumetricDynamics/PyroCamera.cpp)
+target_include_directories(FrontierPyroCamera PUBLIC "${FRONTIER_ROOT}" "${FRONTIER_ROOT}/Frontier")
+target_compile_features(FrontierPyroCamera PUBLIC cxx_std_20)
+
 add_library(FrontierSceneEditorUI STATIC
     "${FRONTIER_ROOT}/Engine/Render/StbImageImplementation.cpp"
     "${FRONTIER_ROOT}/Engine/ContentInterchange/VolumeDistanceField.cpp"
@@ -199,6 +205,10 @@ add_library(FrontierSceneEditorUI STATIC
     Engine/Interface/FluidPlumeEditor/FluidPlumeEditorWorkspace.cpp
     Engine/Interface/FluidPlumeEditor/FluidPlumeLibrary.cpp
     Engine/Interface/FluidPlumeEditor/FluidPlumePages.cpp
+    Engine/Interface/FluidVolumeEditor.cpp
+    Engine/Interface/FluidEditor/FluidEditorPages.cpp
+    Engine/Interface/FluidEditor/FluidEditorViewport.cpp
+    Engine/Interface/FluidEditor/FluidEditorWorkspace.cpp
     Engine/Interface/ParticleEditor.cpp
     Engine/Interface/ParticleEditor/ParticleFieldOverlay.cpp
     Engine/Interface/ParticleEditor/ParticleEditorPages.cpp
@@ -294,6 +304,7 @@ add_library(FrontierSceneEditorUI STATIC
     Engine/Interface/Inspectors/ForceField/WindEddySection.cpp
     Engine/Interface/Inspectors/ForceField/WindMesoscaleSection.cpp
     Engine/Interface/Inspectors/FluidPlumeInspector.cpp
+    Engine/Interface/Inspectors/FluidVolumeInspector.cpp
     Engine/Interface/Inspectors/FractureInspector.cpp
     Engine/Interface/Inspectors/ParticleInspector.cpp
     Engine/Interface/Inspectors/GeometryInspector.cpp
@@ -318,6 +329,7 @@ target_link_libraries(FrontierSceneEditorUI PUBLIC
     FrontierEditorUI
     FrontierInterfaceExtension
     FrontierVehicleDynamics
+    FrontierPyroCamera
     Threads::Threads)
 
 add_library(FrontierEverestWorkspace STATIC

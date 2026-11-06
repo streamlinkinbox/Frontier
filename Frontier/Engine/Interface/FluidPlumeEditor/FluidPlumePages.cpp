@@ -317,9 +317,9 @@ void FluidPlumePages::ConstructLooksCard(ControlColumn& Page, FluidPlumeContext&
                        FluidPlumeLibrary::CountDifferences(Context.Plume.Gas, ConstructGasParameters()), GasParameterCount);
     CaptionText::Construct(Page, Now, 0.0f, 8.0f);
     const auto&                             Presets = QueryGasPresets();
-    std::array<ActionEntry, GasPresetCount> Actions{};
-    std::array<std::string, GasPresetCount> Ids{};
-    std::array<std::string, GasPresetCount> Captions{};
+    std::array<ActionEntry, FluidDynamics::GasPresetCount> Actions{};
+    std::array<std::string, FluidDynamics::GasPresetCount> Ids{};
+    std::array<std::string, FluidDynamics::GasPresetCount> Captions{};
     for (size_t Index = 0; Index < Presets.size(); ++Index)
     {
         Ids[Index]      = "PlumePreset" + std::to_string(Index);
@@ -383,7 +383,7 @@ void FluidPlumePages::ConstructWindowPage(ControlColumn& Page, FluidPlumeContext
         Title    = "Smoke & fire";
         Action   = Context.Plume.Enabled ? "\xE2\x97\x8F Enabled" : "\xE2\x97\x8B Disabled";
         Tooltip  = "Switch the plume on or off";
-        Subtitle = "Eulerian smoke, combustion and tyre sources on a lattice that follows the car.";
+        Subtitle = "Eulerian smoke, combustion and tyre sources on a grid fixed to the world.";
         break;
     case FluidPlumePage::Sources:
         Eyebrow  = "SOURCES";

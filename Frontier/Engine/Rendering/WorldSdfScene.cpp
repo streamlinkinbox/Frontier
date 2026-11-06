@@ -147,11 +147,11 @@ WorldCameraView BuildWorldCameraFromPresentation(const PresentationCamera& Orbit
     return View;
 }
 
-PyroCameraFrame TransformWorldCameraToPyroDomain(const WorldCameraView& WorldCam,
+PyroCameraBasis TransformWorldCameraToPyroDomain(const WorldCameraView& WorldCam,
                                                  const std::array<float, 3>& DomainOriginWorld) noexcept
 {
     // Frontier Z-up (X fwd, Y left, Z up, ground Z=0) -> Pyro Y-up (x=Wx-Ox, y=Wz-Oz-0.6, z=Wy-Oy)
-    PyroCameraFrame Pyro{};
+    PyroCameraBasis Pyro{};
     Pyro.Position = {
         WorldCam.Eye[0] - DomainOriginWorld[0],
         WorldCam.Eye[2] - DomainOriginWorld[2] - 0.60f,
@@ -672,7 +672,7 @@ void WorldSdfScene::CompositeDomainIntoWorld(VulkanContext& Ctx, PyroVolumeSolve
     Solver.PrepareAtlasesForWorldComposite(Ctx, ActiveCmd);
     Ctx.TransitionImage(ActiveCmd, SceneColorImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-    const PyroCameraFrame PyroCam = TransformWorldCameraToPyroDomain(Cam, DomainOriginWorld);
+    const PyroCameraBasis PyroCam = TransformWorldCameraToPyroDomain(Cam, DomainOriginWorld);
     Ctx.BeginTarget(ActiveCmd, Ctx.QueryTargetSingleRgba8Load(), SceneColorLoadFbo,
                     SceneColorImage.Width, SceneColorImage.Height, nullptr, false);
     Solver.RecordCompositeIntoWorldTarget(Ctx, ActiveCmd, Settings, PyroCam,

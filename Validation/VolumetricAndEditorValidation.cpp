@@ -274,7 +274,7 @@ int main(int ArgumentCount, char** Arguments)
         for (int Step = 0; Step < 20; ++Step)
             StandaloneSolver.AdvanceSimulation(VkCtx, StandaloneSettings, 1.0f / 30.0f);
 
-        Expect(StandaloneSolver.RenderStandaloneViewport(VkCtx, StandaloneSettings, OrbitCam.ComputeFrame(16.0f / 9.0f), 320, 180, false),
+        Expect(StandaloneSolver.RenderStandaloneViewport(VkCtx, StandaloneSettings, OrbitCam.ComputeBasis(16.0f / 9.0f), 320, 180, false),
                "PyroVolumeSolver renders Vulkan volumetric viewport");
 
         std::vector<uint8_t> StandalonePixels;
@@ -395,7 +395,7 @@ int main(int ArgumentCount, char** Arguments)
         {
             GasSettings WarmFire       = ConstructPresetSettings("ue5_pyro_default");
             WarmFire.LatticeResolution = PlumeScene.AccessEditorSolver().QueryLatticeResolution();
-            PlumeScene.AccessEditorSolver().TriggerBurstSequence(WarmFire, "single");
+            PlumeScene.AccessEditorSolver().TriggerBurstSequence(VkCtx, WarmFire, "single");
             const int WarmSteps = WriteProofs ? 28 : 8;
             for (int Warm = 0; Warm < WarmSteps; ++Warm)
                 PlumeScene.AccessEditorSolver().AdvanceSimulation(VkCtx, WarmFire, 1.0f / 30.0f);
@@ -418,7 +418,7 @@ int main(int ArgumentCount, char** Arguments)
         {
             GasSettings WarmBlast       = ConstructPresetSettings("megaton_open_bounds");
             WarmBlast.LatticeResolution = PlumeScene.AccessEditorSolver().QueryLatticeResolution();
-            PlumeScene.AccessEditorSolver().TriggerBurstSequence(WarmBlast, "mushroom");
+            PlumeScene.AccessEditorSolver().TriggerBurstSequence(VkCtx, WarmBlast, "mushroom");
             const int WarmSteps = WriteProofs ? 24 : 8;
             for (int Warm = 0; Warm < WarmSteps; ++Warm)
                 PlumeScene.AccessEditorSolver().AdvanceSimulation(VkCtx, WarmBlast, 1.0f / 30.0f);

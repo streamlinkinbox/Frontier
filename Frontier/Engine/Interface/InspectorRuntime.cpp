@@ -294,6 +294,11 @@ void InspectorRuntime::RegisterPlumeViewportPresenter(PlumeViewportPresenter Pre
     PlumePresenter = std::move(Presenter);
 }
 
+void InspectorRuntime::RegisterFluidViewportPresenter(FluidViewportPresenter Presenter)
+{
+    FluidPresenter = std::move(Presenter);
+}
+
 void InspectorRuntime::InspectRecord([[maybe_unused]] RecordToken Token, bool& OutDeleteRequested)
 {
     OutDeleteRequested = false;

@@ -10,6 +10,7 @@
 
 #if FRONTIER_EDITOR && defined(FRONTIER_WITH_INTERFACE_SDK)
 
+#include "Engine/Interface/Controls/WindowControls.h"
 #include "Engine/Interface/FluidPlumeEditor/FluidPlumeLibrary.h"
 #include "Engine/Interface/FluidPlumeEditor/FluidPlumePages.h"
 #include "Engine/Interface/FluidPlumeEditor/PlumeViewportPresentation.h"
@@ -34,13 +35,9 @@ struct FluidPlumeLogLine
     bool        Warm = false;
 };
 
-// 📝 Where a control of the window lay at its last layout, in screen pixels: what a capture or a validation needs to press it with the pointer.
-struct FluidPlumeControlRectangle
-{
-    std::string Name;   // "row:Fire", "eye:Domain", "library", "library-card:inferno", "library-tab:grades", "pause", "emitter:2", …
-    ImVec2      Minimum{};
-    ImVec2      Maximum{};
-};
+// 📝 Where a control of the window lay at its last layout (names like "row:Fire", "eye:Domain", "library", "library-card:inferno", "library-tab:grades",
+//    "pause", "emitter:2", …): the rectangle the editor's windows share.
+using FluidPlumeControlRectangle = EditorControlRectangle;
 
 class FluidPlumeEditorWorkspace
 {

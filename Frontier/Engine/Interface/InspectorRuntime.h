@@ -10,6 +10,7 @@
 #include "Engine/Scene/SceneDirectory.h"
 #include "Engine/Scene/SolarPlacement.h"
 #include "Engine/Interface/EnvironmentEditAccess.h"
+#include "Engine/Interface/FluidEditor/FluidViewportPresentation.h"
 #include "Engine/Interface/FluidPlumeEditor/PlumeViewportPresentation.h"
 #include "Engine/Interface/ParticleEditor/ParticleViewportPresentation.h"
 
@@ -145,6 +146,10 @@ class InspectorRuntime
     void                                  RegisterPlumeViewportPresenter(PlumeViewportPresenter Presenter);
     [[nodiscard]] const PlumeViewportPresenter& QueryPlumeViewportPresenter() const noexcept { return PlumePresenter; }
 
+    // 📝 The Fluid editor's GPU image: the Pyro solver the host runs for the volume's settings, registered the same way; without it the window still edits.
+    void                                   RegisterFluidViewportPresenter(FluidViewportPresenter Presenter);
+    [[nodiscard]] const FluidViewportPresenter& QueryFluidViewportPresenter() const noexcept { return FluidPresenter; }
+
     void RequestSkyFocus(float Azimuth, float Elevation, float Diameter) noexcept { SkyFocus = {Azimuth,Elevation,Diameter}; SkyFocusPending = true; }
     bool ConsumeSkyFocus(std::array<float,3>& Focus) noexcept
     {
@@ -196,6 +201,7 @@ class InspectorRuntime
     SolarPlacementSolver SolarSolver    = nullptr;
     ParticleViewportPresenter ParticlePresenter;
     PlumeViewportPresenter    PlumePresenter;
+    FluidViewportPresenter    FluidPresenter;
     float                InterfaceScale = 1.0f;
     EnvironmentEditAccess EnvironmentAccess{};
     float                SolarElevation = 38.0f;   // [°]

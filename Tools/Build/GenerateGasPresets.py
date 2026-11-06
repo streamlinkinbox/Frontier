@@ -12,6 +12,7 @@ from pathlib import Path
 
 Root = Path(__file__).resolve().parents[2]
 Source = Root / 'Experimental/Fluid/src/presets.js'
+Specification = Root / 'Experimental/Fluid/src/SceneSpecification.js'
 Target = Root / 'Frontier/Engine/VolumetricDynamics/GasPresetLibrary.h'
 
 Renamed = {
@@ -79,6 +80,26 @@ def ReadBlock(Text, Name):
     raise SystemExit('unterminated %s block in %s' % (Name, Source))
 
 
+def ReadInitialOverrides(Text):
+    """What the editor starts from is not DEFAULT_PARAMS: SceneSpecification.js InitialParameters = { ...DEFAULT_PARAMS, <overrides> }.
+
+    Every scene file and every preset is read on top of InitialParameters (ConstructPresetParameters, the scene reader), so those readings are the
+    settings' defaults. Returns the overrides, in the order the file spells them."""
+    Marker = 'export const InitialParameters = {'
+    Start = Text.index(Marker) + len(Marker)
+    End = Text.index('};', Start)
+    Overrides = {}
+    for Line in Text[Start:End].splitlines():
+        Line = Line.strip()
+        if not Line or Line == '...DEFAULT_PARAMS,':
+            continue
+        Match = re.match(r'^([A-Za-z0-9_]+):\s*(.+?),?$', Line)
+        if not Match:
+            raise SystemExit('InitialParameters line not understood: %r' % Line)
+        Overrides[Match.group(1)] = json.loads(Match.group(2))
+    return Overrides
+
+
 def Spell(Reading, Declared):
     if Declared == 'bool':
         return 'true' if Reading else 'false'
@@ -92,7 +113,7 @@ def Spell(Reading, Declared):
 
 Counted = {
     'LatticeResolution', 'PressureIterations', 'BlastLobes', 'RaymarchSteps', 'ShadowSteps', 'EmberCount',
-    'SliceAxis', 'ObstacleType', 'RenderChannel', 'ColorPalette', 'VoxelQuantization',
+    'SliceAxis', 'ObstacleType', 'RenderChannel', 'ColorPalette',
     'TileSheetOverviewReading',
 }
 
@@ -112,6 +133,12 @@ def Escape(Text):
 def Compose():
     Text = Source.read_text(encoding='utf-8')
     Defaults = ReadBlock(Text, 'DEFAULT_PARAMS')
+    Overridden = 0
+    for Key, Reading in ReadInitialOverrides(Specification.read_text(encoding='utf-8')).items():
+        if Key not in Defaults:
+            raise SystemExit('InitialParameters sets %s, which is not a declared setting' % Key)
+        Defaults[Key] = Reading
+        Overridden += 1
     Presets = ReadBlock(Text, 'PRESETS')
 
     Seen = {Key: [Reading] for Key, Reading in Defaults.items()}
@@ -122,6 +149,11 @@ def Compose():
             Seen[Key].append(Reading)
 
     Declared = {Key: Declare(Identifier(Key), Readings) for Key, Readings in Seen.items()}
+    # A setting declared a count must never be read as a fraction: the "Voxel fire" preset reads voxelQuantization as 0.88, which an int32_t silently made 0.
+    for Key, Readings in Seen.items():
+        Fractional = [Reading for Reading in Readings if isinstance(Reading, float) and not Reading.is_integer()]
+        if Declared[Key] == 'int32_t' and Fractional:
+            raise SystemExit('%s is declared a count, but a preset or the defaults read it as %s' % (Key, Fractional[0]))
     Fields = [(Identifier(Key), Key, Reading, Declared[Key]) for Key, Reading in Defaults.items()]
     NameWidth = max(len(Name) for Name, _, _, _ in Fields)
     TypeWidth = max(len(Type) for _, _, _, Type in Fields)
@@ -139,7 +171,10 @@ def Compose():
         'edit presets.js, never this file.' % (len(Fields), len(Presets)))
     Add('//')
     Add('// \U0001f534 DO NOT EDIT. Tools/Build/GenerateGasPresets.py writes this file from')
-    Add('//    Experimental/Fluid/src/presets.js, and --check fails the build when the two disagree.')
+    Add('//    Experimental/Fluid/src/presets.js and SceneSpecification.js, and --check fails the build when they disagree.')
+    Add('//')
+    Add('// \U0001f4dd A setting\'s default is the editor\'s InitialParameters (SceneSpecification.js: DEFAULT_PARAMS with %d readings overridden): the readings every scene file' % Overridden)
+    Add('//    and every preset is read on top of. It is not DEFAULT_PARAMS alone, which would open each preset on a different grid, quality and overlay.')
     Add('//')
     Add('// \u26a0\ufe0f Settings marked [-] normalised are fractions of the domain, not world measurements.')
     Add('')

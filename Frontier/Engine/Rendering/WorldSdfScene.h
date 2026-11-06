@@ -53,7 +53,7 @@ struct WorldCameraView
 };
 
 WorldCameraView BuildWorldCameraFromPresentation(const PresentationCamera& Orbit, float Aspect) noexcept;
-PyroCameraFrame TransformWorldCameraToPyroDomain(const WorldCameraView& WorldCam,
+PyroCameraBasis TransformWorldCameraToPyroDomain(const WorldCameraView& WorldCam,
                                                  const std::array<float, 3>& DomainOriginWorld) noexcept;
 
 class WorldSdfScene

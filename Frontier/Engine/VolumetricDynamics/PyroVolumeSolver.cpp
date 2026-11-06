@@ -98,107 +98,7 @@ std::array<float, 3> Normalize3(const std::array<float, 3>& V) noexcept
     return { V[0] / L, V[1] / L, V[2] / L };
 }
 
-std::array<float, 3> Cross3(const std::array<float, 3>& A, const std::array<float, 3>& B) noexcept
-{
-    return {
-        A[1] * B[2] - A[2] * B[1],
-        A[2] * B[0] - A[0] * B[2],
-        A[0] * B[1] - A[1] * B[0],
-    };
-}
-
 } // namespace
-
-//----------------------------------------------------------------------------------------------------------------------
-//                                                PYRO ORBIT CAMERA
-//----------------------------------------------------------------------------------------------------------------------
-
-void PyroOrbitCamera::Reset() noexcept
-{
-    Theta      = 0.62f;
-    Phi        = 1.18f;
-    Distance   = 3.15f;
-    Target     = { 0.0f, 0.35f, 0.0f };
-    FovDegrees = 46.0f;
-}
-
-void PyroOrbitCamera::ApplyPresetView(int ViewOrdinal) noexcept
-{
-    if (ViewOrdinal == 1)      { Theta = 0.0f;           Phi = PiVal * 0.48f; Distance = 3.2f; } // Front
-    else if (ViewOrdinal == 2) { Theta = PiVal * 0.5f;   Phi = PiVal * 0.48f; Distance = 3.2f; } // Side
-    else if (ViewOrdinal == 3) { Theta = 0.0f;           Phi = 0.14f;         Distance = 3.5f; } // Top
-    else                       { Reset(); }
-}
-
-void PyroOrbitCamera::OrbitByPixels(float DeltaX, float DeltaY) noexcept
-{
-    Theta -= DeltaX * 0.0065f;
-    Phi    = std::clamp(Phi - DeltaY * 0.0065f, 0.08f, PiVal - 0.08f);
-}
-
-void PyroOrbitCamera::PanByPixels(float DeltaX, float DeltaY) noexcept
-{
-    const PyroCameraFrame Frame = ComputeFrame();
-    const float Scale           = Distance * 0.0014f;
-    for (int C = 0; C < 3; ++C)
-        Target[static_cast<size_t>(C)] += (-DeltaX * Frame.Right[static_cast<size_t>(C)] + DeltaY * Frame.Up[static_cast<size_t>(C)]) * Scale;
-}
-
-void PyroOrbitCamera::ZoomByWheel(float WheelSteps) noexcept
-{
-    Distance = std::clamp(Distance * std::pow(0.88f, WheelSteps), 0.85f, 12.0f);
-}
-
-void PyroOrbitCamera::AdvanceTurntable(float DtSeconds) noexcept
-{
-    if (AutoRotate)
-        Theta += DtSeconds * 0.38f;
-}
-
-PyroCameraFrame PyroOrbitCamera::ComputeFrame(float AspectOverride) const noexcept
-{
-    PyroCameraFrame Frame{};
-    Frame.Aspect     = (AspectOverride > 0.05f) ? AspectOverride : Aspect;
-    Frame.FovRadians = FovDegrees * Deg2Rad;
-
-    const float SinPhi = std::sin(Phi);
-    Frame.Position = {
-        Target[0] + Distance * SinPhi * std::sin(Theta),
-        Target[1] + Distance * std::cos(Phi),
-        Target[2] + Distance * SinPhi * std::cos(Theta),
-    };
-    Frame.Forward = Normalize3({
-        Target[0] - Frame.Position[0],
-        Target[1] - Frame.Position[1],
-        Target[2] - Frame.Position[2],
-    });
-    Frame.Right = Normalize3(Cross3(Frame.Forward, { 0.0f, 1.0f, 0.0f }));
-    Frame.Up    = Normalize3(Cross3(Frame.Right, Frame.Forward));
-    return Frame;
-}
-
-bool PyroOrbitCamera::RaycastBrushPoint(float NdcX, float NdcY, std::array<float, 3>& OutWorldPoint) const noexcept
-{
-    const PyroCameraFrame F = ComputeFrame();
-    const float TanHalf     = std::tan(F.FovRadians * 0.5f);
-    const std::array<float, 3> Dir = Normalize3({
-        F.Forward[0] + NdcX * F.Aspect * TanHalf * F.Right[0] + NdcY * TanHalf * F.Up[0],
-        F.Forward[1] + NdcX * F.Aspect * TanHalf * F.Right[1] + NdcY * TanHalf * F.Up[1],
-        F.Forward[2] + NdcX * F.Aspect * TanHalf * F.Right[2] + NdcY * TanHalf * F.Up[2],
-    });
-    // Intersect camera-facing plane passing through Target
-    const float Denom = Dir[0] * F.Forward[0] + Dir[1] * F.Forward[1] + Dir[2] * F.Forward[2];
-    if (std::fabs(Denom) < 1.0e-4f)
-        return false;
-    const float Numer = (Target[0] - F.Position[0]) * F.Forward[0]
-                      + (Target[1] - F.Position[1]) * F.Forward[1]
-                      + (Target[2] - F.Position[2]) * F.Forward[2];
-    const float T = Numer / Denom;
-    if (T <= 0.05f)
-        return false;
-    OutWorldPoint = { F.Position[0] + Dir[0] * T, F.Position[1] + Dir[1] * T, F.Position[2] + Dir[2] * T };
-    return true;
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 //                                         INITIALIZATION & LATTICE TARGETS
@@ -586,55 +486,85 @@ void PyroVolumeSolver::TriggerExplosion(const GasSettings& Settings, const PyroE
     PendingBlasts.push_back(Rec);
 }
 
-void PyroVolumeSolver::TriggerBurstSequence(const GasSettings& Settings, const char* PatternName,
+void PyroVolumeSolver::TriggerBurstSequence(VulkanContext& Ctx, const GasSettings& Settings, const char* PatternName,
                                             const std::array<float, 3>* CustomCenter)
 {
-    const std::array<float, 3> C = CustomCenter ? *CustomCenter : std::array<float, 3>{ 0.5f, 0.20f, 0.5f };
-    const char* Pat = PatternName ? PatternName : "single";
+    // [unit] - FluidPanel.js TriggerBurst, case by case: the centres, delays and overrides below are the prototype's numbers
+    const char* Pattern = PatternName ? PatternName : "single";
 
-    if (std::strcmp(Pat, "salvo") == 0)
+    if (CustomCenter)
     {
-        for (int Idx = 0; Idx < 4; ++Idx)
+        PyroExplosionOptions Click{};
+        Click.CenterUvw = *CustomCenter;
+        TriggerExplosion(Settings, Click);
+        return;
+    }
+
+    if (std::strcmp(Pattern, "salvo") == 0)
+    {
+        static constexpr std::array<std::array<float, 3>, 4> SalvoCentres = { {
+            { 0.32f, 0.16f, 0.34f }, { 0.68f, 0.18f, 0.33f }, { 0.33f, 0.20f, 0.67f }, { 0.66f, 0.22f, 0.66f } } };
+        for (size_t Index = 0u; Index < SalvoCentres.size(); ++Index)
         {
-            const float Angle = static_cast<float>(Idx) * (PiVal * 0.5f);
-            PyroExplosionOptions Opt{};
-            Opt.CenterUvw    = { C[0] + std::cos(Angle) * 0.16f, C[1] + 0.04f * Idx, C[2] + std::sin(Angle) * 0.16f };
-            Opt.DelaySeconds = 0.12f * static_cast<float>(Idx);
-            TriggerExplosion(Settings, Opt);
+            PyroExplosionOptions Round{};
+            Round.CenterUvw        = SalvoCentres[Index];
+            Round.DelaySeconds     = static_cast<float>(Index) * 0.17f;
+            Round.RadiusOverride   = Settings.BlastRadius * 0.85f;
+            Round.StrengthOverride = Settings.BlastStrength * 0.95f;
+            Round.TempOverride     = Settings.BlastTemperature * 1.05f;
+            Round.SmokeOverride    = Settings.BlastSmoke * 1.1f;
+            Round.LobesOverride    = 7;
+            TriggerExplosion(Settings, Round);
         }
     }
-    else if (std::strcmp(Pat, "collide") == 0)
+    else if (std::strcmp(Pattern, "collide") == 0)
     {
-        PyroExplosionOptions Left{}, Right{};
-        Left.CenterUvw       = { 0.24f, 0.34f, 0.50f };
-        Left.DirectionalVel  = {  9.5f, 1.5f,  0.0f  };
-        Right.CenterUvw      = { 0.76f, 0.34f, 0.50f };
-        Right.DirectionalVel = { -9.5f, 1.5f,  0.0f  };
-        TriggerExplosion(Settings, Left);
-        TriggerExplosion(Settings, Right);
+        for (int Index = 0; Index < 2; ++Index)
+        {
+            const float Direction = Index == 0 ? -1.0f : 1.0f;
+            PyroExplosionOptions Jet{};
+            Jet.CenterUvw        = { Direction < 0.0f ? 0.22f : 0.78f, 0.3f, 0.5f };
+            Jet.DirectionalVel   = { -Direction * 14.0f, 1.5f, 0.0f };
+            Jet.DelaySeconds     = static_cast<float>(Index) * 0.03f;
+            Jet.RadiusOverride   = 0.16f;
+            Jet.StrengthOverride = 7.5f;
+            Jet.TempOverride     = 6.2f;
+            Jet.FuelOverride     = 4.8f;
+            Jet.SmokeOverride    = 2.5f;
+            Jet.LobesOverride    = 6;
+            TriggerExplosion(Settings, Jet);
+        }
     }
-    else if (std::strcmp(Pat, "mushroom") == 0)
+    else if (std::strcmp(Pattern, "mushroom") == 0)
     {
-        PyroExplosionOptions Base{}, Stem{};
-        Base.CenterUvw        = { C[0], 0.12f, C[2] };
-        Base.StrengthOverride = Settings.BlastStrength * 1.25f;
-        Stem.CenterUvw        = { C[0], 0.28f, C[2] };
-        Stem.DirectionalVel   = { 0.0f, 11.0f, 0.0f };
-        Stem.DelaySeconds     = 0.09f;
-        TriggerExplosion(Settings, Base);
+        ClearLattice(Ctx);
+
+        PyroExplosionOptions Cap{};
+        Cap.CenterUvw        = { 0.5f, 0.14f, 0.5f };
+        Cap.RadiusOverride   = 0.23f;
+        Cap.StrengthOverride = 12.5f;
+        Cap.TempOverride     = 6.5f;
+        Cap.FuelOverride     = 5.5f;
+        Cap.SmokeOverride    = 3.2f;
+        Cap.LobesOverride    = 8;
+        TriggerExplosion(Settings, Cap);
+
+        PyroExplosionOptions Stem{};
+        Stem.CenterUvw        = { 0.5f, 0.29f, 0.5f };
+        Stem.DelaySeconds     = 0.15f;
+        Stem.RadiusOverride   = 0.19f;
+        Stem.StrengthOverride = 9.5f;
+        Stem.TempOverride     = 6.8f;
+        Stem.FuelOverride     = 4.8f;
+        Stem.SmokeOverride    = 2.4f;
+        Stem.LobesOverride    = 6;
         TriggerExplosion(Settings, Stem);
-    }
-    else if (std::strcmp(Pat, "shrapnel") == 0)
-    {
-        PyroExplosionOptions Air{};
-        Air.CenterUvw        = { C[0], 0.32f, C[2] };
-        Air.ShrapnelOverride = 1;
-        TriggerExplosion(Settings, Air);
     }
     else
     {
+        // [unit] - "single" and "shrapnel" are the one burst at the prototype's default centre; only shrapnel forces the projectiles
         PyroExplosionOptions Single{};
-        Single.CenterUvw = C;
+        Single.ShrapnelOverride = std::strcmp(Pattern, "shrapnel") == 0 ? 1 : -1;
         TriggerExplosion(Settings, Single);
     }
 }
@@ -808,12 +738,11 @@ void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settin
         ++Idx;
     }
 
-    // Pop any due blast record for this frame
+    // [unit] - FluidPanel.js Frame: a burst whose time has come fires before the step that follows (one a step, in the order they were made); every waiting clock then advances by the step
     PendingBlastRecord ActiveBlast{};
     bool FireBlastThisStep = false;
     for (size_t Idx = 0u; Idx < PendingBlasts.size(); ++Idx)
     {
-        PendingBlasts[Idx].Delay -= Dt;
         if (PendingBlasts[Idx].Delay <= 0.0f && !FireBlastThisStep)
         {
             ActiveBlast       = PendingBlasts[Idx];
@@ -836,6 +765,8 @@ void PyroVolumeSolver::AdvanceSimulation(VulkanContext& Ctx, GasSettings& Settin
             break;
         }
     }
+    for (PendingBlastRecord& Waiting : PendingBlasts)
+        Waiting.Delay -= Dt;
 
     // Smoothly surge open-bounds domain volume during energetic blasts / tall plumes
     if (Settings.DynamicBounds)
@@ -1097,7 +1028,7 @@ bool PyroVolumeSolver::EnsureViewportTarget(VulkanContext& Ctx, int Width, int H
 }
 
 bool PyroVolumeSolver::RenderStandaloneViewport(VulkanContext& Ctx, const GasSettings& Settings,
-                                                const PyroCameraFrame& Cam, int Width, int Height,
+                                                const PyroCameraBasis& Cam, int Width, int Height,
                                                 bool TransparentExport)
 {
     if (!Initialized || !EnsureViewportTarget(Ctx, Width, Height))
@@ -1165,7 +1096,7 @@ void PyroVolumeSolver::PrepareAtlasesForWorldComposite(VulkanContext& Ctx, VkCom
 }
 
 void PyroVolumeSolver::RecordCompositeIntoWorldTarget(VulkanContext& Ctx, VkCommandBuffer Cmd,
-                                                      const GasSettings& Settings, const PyroCameraFrame& Cam,
+                                                      const GasSettings& Settings, const PyroCameraBasis& Cam,
                                                       int TargetWidth, int TargetHeight,
                                                       VulkanImageTarget& SceneLinearDepthImage)
 {
@@ -1236,7 +1167,7 @@ bool PyroVolumeSolver::BakeFlipbookSheet(VulkanContext& Ctx, GasSettings Setting
 
     Settings.TileSheetOverviewShown = false;
     Settings.BoundingBoxShown       = false;
-    const PyroCameraFrame Frame     = Cam.ComputeFrame(1.0f);
+    const PyroCameraBasis Frame     = Cam.ComputeBasis(1.0f);
 
     std::vector<uint8_t> TileRgba;
     int Tw = 0, Th = 0;

@@ -6,11 +6,17 @@
 //    the authentic Smoke & fire editor (FluidPlumeEditorWorkspace), 3D GPU SDF Proving Grounds, ControlVehicle driving,
 //    and continuous toroidal world-grid Pacejka tyre smoke & fire. Zero OpenGL dependencies.
 //
-//      EverestWindow [--archive DIR] [--proving-grounds] [--fluid-editor] [--preset ID] [--frames N] [--capture PATH.png]
+//      EverestWindow [--archive DIR] [--proving-grounds] [--fluid-editor] [--smoke-editor] [--preset ID] [--frames N] [--capture PATH.png]
+//
+//      --fluid-editor   opens the Fluid editor (Experimental/Fluid's page: 85 settings, 18 presets) on a Fluid Volume;
+//                       --preset ID is one of the 18 presets (for example tactical_ordnance)
+//      --smoke-editor   opens the Smoke & fire editor on the tyres' plume; --preset ID is one of its looks (for example inferno)
 
+#include "Engine/Interface/FluidEditor/FluidEditorWorkspace.h"
 #include "Engine/Interface/FluidPlumeEditor.h"
 #include "Engine/Interface/FluidPlumeEditor/FluidPlumeEditorWorkspace.h"
 #include "Engine/Interface/IconPresentation.h"
+#include "Engine/Interface/FluidVolumeEditor.h"
 #include "Engine/Interface/InspectorRuntime.h"
 #include "Engine/Lifecycle/ActivationSequence.h"
 #include "Frontier/Engine/Rendering/PngImageCodec.h"
@@ -90,6 +96,7 @@ int main(int ArgumentCount, char** Arguments)
     std::string CapturePngPath   = "";
     bool StartInProvingGrounds   = true;
     bool StartInFluidEditor      = false;
+    bool StartInSmokeEditor      = false;
     int MaxFrames                = 0;
 
     for (int Index = 1; Index < ArgumentCount; ++Index)
@@ -108,6 +115,8 @@ int main(int ArgumentCount, char** Arguments)
             StartInProvingGrounds = false;
         else if (std::strcmp(Arguments[Index], "--fluid-editor") == 0)
             StartInFluidEditor = true;
+        else if (std::strcmp(Arguments[Index], "--smoke-editor") == 0)
+            StartInSmokeEditor = true;
     }
 
     if (!glfwInit())
@@ -198,6 +207,13 @@ int main(int ArgumentCount, char** Arguments)
     else
         PlumeToken = World.ConstructRecord("FluidPlume", "Fluid Plume");
 
+    // The Fluid editor opens from a Fluid Volume (Outliner > Solvers); the level carries none, so the window makes one the way Construct does.
+    RecordToken FluidToken{};
+    if (SceneRecordBase* ExistingFluid = World.FindFirstByType("FluidVolume"))
+        FluidToken = ExistingFluid->QueryToken();
+    else
+        FluidToken = World.ConstructRecord("FluidVolume", "Fluid Volume");
+
     PlumeScene.ResetWorldSimulation(VkCtx, World);
 
     Workspace.PresentSceneViewport = [&](const SceneViewportRequest& Req) -> SceneViewportImage {
@@ -209,8 +225,21 @@ int main(int ArgumentCount, char** Arguments)
     InspectorRuntime::Instance().RegisterPlumeViewportPresenter([&](const PlumeViewportRequest& Req) -> PlumeViewportImage {
         return PlumeScene.PresentPlumeViewport(VkCtx, Req);
     });
+    InspectorRuntime::Instance().RegisterFluidViewportPresenter([&](const FluidViewportRequest& Req) -> FluidViewportImage {
+        return PlumeScene.PresentFluidViewport(VkCtx, Req);
+    });
 
-    if (StartInFluidEditor && PlumeToken.IsValid())
+    if (StartInFluidEditor && FluidToken.IsValid())
+    {
+        Workspace.QueryOutliner().Select(FluidToken);
+        InspectorRuntime::Instance().RequestEditorOpen(FluidToken);
+        if (FluidEditorWorkspace* Ed = FluidVolumeEditor::AccessWorkspace())
+        {
+            if (!InitialPresetId.empty())
+                (void)Ed->Apply("preset:" + InitialPresetId);
+        }
+    }
+    else if (StartInSmokeEditor && PlumeToken.IsValid())
     {
         Workspace.QueryOutliner().Select(PlumeToken);
         InspectorRuntime::Instance().RequestEditorOpen(PlumeToken);
@@ -306,6 +335,7 @@ int main(int ArgumentCount, char** Arguments)
 
     VkCtx.WaitIdle();
     InspectorRuntime::Instance().RegisterPlumeViewportPresenter({});
+    InspectorRuntime::Instance().RegisterFluidViewportPresenter({});
     Ownership.reset();
     PlumeScene.Shutdown(VkCtx);
     GuiPresenter.Shutdown(VkCtx);

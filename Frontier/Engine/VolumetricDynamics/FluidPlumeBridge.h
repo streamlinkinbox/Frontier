@@ -55,6 +55,10 @@ class EverestPlumeSceneRuntime
     PlumeViewportImage PresentPlumeViewport(VulkanContext& Ctx,
                                             const PlumeViewportRequest& Request);
 
+    // [unit] - the Fluid editor's viewport (Experimental/Fluid's page): one refresh of the record's settings on a solver of its own, drawn from the editor's
+    //          camera; the picture is a texture of this device, so the window samples it with no copy
+    FluidViewportImage PresentFluidViewport(VulkanContext& Ctx, const FluidViewportRequest& Request);
+
     [[nodiscard]] PyroVolumeSolver& AccessWorldSolver() noexcept { return WorldSolver; }
     [[nodiscard]] PyroVolumeSolver& AccessEditorSolver() noexcept { return EditorSolver; }
     [[nodiscard]] TyreSmokeIntake& AccessTyreIntake() noexcept { return TyreIntake; }
@@ -72,6 +76,10 @@ class EverestPlumeSceneRuntime
     GasSettings            WorldSettings{};
     PyroVolumeSolver       EditorSolver{};
     GasSettings            EditorSettings{};
+
+    PyroVolumeSolver       FluidSolver{};
+    bool                   FluidSolverReady     = false;
+    std::string            FluidSolverFailure{};
 
     DeployableUnit         SimVehicle{ UnitCategory::Vehicle };
     TyreSmokeIntake        TyreIntake{};

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Transcribe the Fluid app's control specification and preset rail into the editor header, or verify it.
 
-    python3 Tools/Build/GenerateFluidEditorControls.py            # write Frontier/Engine/Editor/FluidEditorControls.h
+    python3 Tools/Build/GenerateFluidEditorControls.py            # write Frontier/Engine/Interface/FluidEditor/FluidEditorControls.h
     python3 Tools/Build/GenerateFluidEditorControls.py --check    # exit 1 if the written header is stale
 """
 import argparse
@@ -13,7 +13,7 @@ from pathlib import Path
 
 Root = Path(__file__).resolve().parents[2]
 App = Root / 'Experimental/Fluid'
-Target = Root / 'Frontier/Engine/Editor/FluidEditorControls.h'
+Target = Root / 'Frontier/Engine/Interface/FluidEditor/FluidEditorControls.h'
 Tuning = Root / 'Frontier/Engine/VolumetricDynamics/GasPresetLibrary.h'
 
 Units = {

@@ -165,6 +165,9 @@ void EverestPlumeSceneRuntime::Shutdown(VulkanContext& Ctx) noexcept
 {
     if (!Initialized)
         return;
+    if (FluidSolverReady)
+        FluidSolver.Shutdown(Ctx);
+    FluidSolverReady = false;
     EditorSolver.Shutdown(Ctx);
     WorldSolver.Shutdown(Ctx);
     SdfWorld.Shutdown(Ctx);
@@ -584,7 +587,7 @@ PlumeViewportImage EverestPlumeSceneRuntime::PresentPlumeViewport(VulkanContext&
     Orbit.FovDegrees = 48.0f;
 
     const float Aspect = static_cast<float>(W) / static_cast<float>(std::max(H, 1));
-    const PyroCameraFrame Cam = Orbit.ComputeFrame(Aspect);
+    const PyroCameraBasis Cam = Orbit.ComputeBasis(Aspect);
     EditorSolver.RenderStandaloneViewport(Ctx, EditorSettings, Cam, W, H, false);
 
     const uint64_t UiTok = EditorSolver.QueryViewportUiToken();
@@ -606,6 +609,83 @@ PlumeViewportImage EverestPlumeSceneRuntime::PresentPlumeViewport(VulkanContext&
     Out.Readout.Relocations = 0u;
     FluidPlumeEditor::AssignReadout(Out.Readout);
 
+    return Out;
+}
+
+FluidViewportImage EverestPlumeSceneRuntime::PresentFluidViewport(VulkanContext& Ctx, const FluidViewportRequest& Request)
+{
+    FluidViewportImage Out{};
+    if (!Initialized)
+    {
+        Out.Failure = "The Vulkan scene runtime is not running.";
+        return Out;
+    }
+    if (Request.Settings == nullptr || Request.Extent[0] < 32u || Request.Extent[1] < 32u)
+    {
+        Out.Failure = "There is no picture to draw.";
+        return Out;
+    }
+    if (!FluidSolverFailure.empty())
+    {
+        Out.Failure = FluidSolverFailure;
+        return Out;
+    }
+
+    const auto Begun = std::chrono::steady_clock::now();
+
+    // 📝 The settings are the record's; the solver may adjust the copy it steps, and the record is left as the person set it.
+    GasSettings Working = *Request.Settings;
+    std::string Diagnostic;
+    if (!FluidSolverReady)
+    {
+        if (!FluidSolver.Initialize(Ctx, Working, Diagnostic))
+        {
+            FluidSolverFailure = "The Fluid solver could not start: " + Diagnostic;
+            Out.Failure        = FluidSolverFailure;
+            return Out;
+        }
+        FluidSolverReady = true;
+    }
+
+    // 📝 A new grid rebuilds the lattice and restarts the simulation (the prototype's "Grid rebuilt at N³. Simulation restarted.").
+    FluidSolver.EnsureLatticeResolution(Ctx, Working.LatticeResolution);
+    if (Request.Clear)
+        FluidSolver.ClearLattice(Ctx);
+    FluidSolver.AssignBrush(Request.Brush.PositionUvw, Request.Brush.Velocity, Request.Brush.Held);
+    for (const FluidBurstRequest& Burst : Request.Bursts)
+        FluidSolver.TriggerBurstSequence(Ctx, Working, Burst.Pattern.c_str(), Burst.AtPoint ? &Burst.PointUvw : nullptr);
+    if (Request.Enabled)
+    {
+        for (uint32_t Step = 0u; Step < Request.Steps; ++Step)
+            FluidSolver.AdvanceSimulation(Ctx, Working, 1.0f / 60.0f);
+        if (Request.Seconds > 0.0)
+            FluidSolver.AdvanceSimulation(Ctx, Working, static_cast<float>(Request.Seconds));
+    }
+
+    // 📝 The canvas is the viewport at the grade's render scale (renderScale), the camera's aspect the viewport's.
+    const float Scale  = std::clamp(Working.RenderScale, 0.25f, 2.0f);
+    const int   Width  = std::max(64, static_cast<int>(std::lround(static_cast<double>(Request.Extent[0]) * Scale)));
+    const int   Height = std::max(64, static_cast<int>(std::lround(static_cast<double>(Request.Extent[1]) * Scale)));
+    PyroOrbitCamera Camera = Request.Camera;
+    Camera.Aspect          = static_cast<float>(Request.Extent[0]) / static_cast<float>(Request.Extent[1]);
+    if (!FluidSolver.RenderStandaloneViewport(Ctx, Working, Camera.ComputeBasis(), Width, Height, false))
+    {
+        Out.Failure = "The Fluid picture could not be drawn.";
+        return Out;
+    }
+
+    const PyroBoundsBox Bounds = FluidSolver.ComputeBoundsBox(Working);
+    Out.Texture                = FluidSolver.QueryViewportUiToken();
+    Out.Extent                 = { static_cast<uint32_t>(FluidSolver.QueryViewportWidth()), static_cast<uint32_t>(FluidSolver.QueryViewportHeight()) };
+    Out.Adapter                = Ctx.QueryDeviceSummary();
+    Out.Solving                = true;
+    Out.Readout.Resolution        = static_cast<uint32_t>(std::max(0, FluidSolver.QueryLatticeResolution()));
+    Out.Readout.Steps             = FluidSolver.QueryStepCount();
+    Out.Readout.SimulationSeconds = static_cast<double>(FluidSolver.QuerySimulationSeconds());
+    Out.Readout.BoundsWidth       = Bounds.EffectiveWidth;
+    Out.Readout.BoundsHeight      = Bounds.EffectiveHeight;
+    Out.Readout.PendingBursts     = static_cast<uint32_t>(FluidSolver.QueryPendingBlasts().size());
+    Out.RefreshMilliseconds       = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - Begun).count();
     return Out;
 }
 
