@@ -30,7 +30,7 @@ float DecodeHalf(uint16_t Half)
     return Sign ? -Magnitude : Magnitude;
 }
 
-// 📐 The sRGB encoding of a linear value in [0, 1], as a byte: a table of 4097 entries (the slope at black is 12.92, so the table's step is finer than a byte).
+// 📝 The sRGB encoding of a linear value in [0, 1], as a byte: a table of 4097 entries (the slope at black is 12.92, so the table's step is finer than a byte).
 uint8_t EncodeSrgb(float Linear)
 {
     static const std::array<uint8_t, 4097> Table = [] {
