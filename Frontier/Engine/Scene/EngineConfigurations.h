@@ -7,6 +7,7 @@
 
 #include "Engine/PhysicalDynamics/FluidDynamics/GasParameterCatalogue.h"
 #include "Engine/PhysicalDynamics/Vehicle/VehicleSpecification.h"
+#include "Engine/VolumetricDynamics/GasPresetLibrary.h"
 
 #include <algorithm>
 #include <array>
@@ -646,6 +647,16 @@ struct FluidPlumeConfiguration : RevisionCounter
     bool                         Enabled     = true;
     FluidDynamics::GasParameters Gas{};              // [-] one reading per catalogue entry
     uint32_t                     TestEmitter = 0;    // [-] 0 off, 1 smoke plume, 2 fire. Not saved.
+};
+
+// 📝 The Fluid volume record (levelspace type "FluidVolume"): one Eulerian pyro volume with its source, burst generator, collider and light: the 85
+//    settings of the Fluid editor (GasSettings), which open on the editor's own InitialParameters. Preset names the preset the settings were last taken
+//    from (empty: none yet); it labels the record in the editor and is not a setting.
+struct FluidVolumeConfiguration : RevisionCounter
+{
+    bool        Enabled = true;
+    GasSettings Gas{};     // [-] one reading per setting of the prototype
+    std::string Preset{};  // [-] a GasPresetLibrary identity, or empty
 };
 
 struct FractureConfiguration : RevisionCounter

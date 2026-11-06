@@ -21,6 +21,7 @@
 #include "EverestWorkspace.h"
 #include "Frontier/Extensions/Rendering/RenderingExtension.h"
 #include "Frontier/Extensions/Particle/ParticleExtension.h"
+#include "Frontier/Extensions/Fluid/FluidVolumeExtension.h"
 #include "Frontier/Extensions/Plume/PlumeExtension.h"
 #include "Frontier/Extensions/Interface/ViewportTexture.h"
 #include "Engine/Interface/InspectorRuntime.h"
@@ -237,6 +238,10 @@ int main()
     std::unique_ptr<Frontier::PlumeExtension> PlumeView;
     Frontier::ViewportTexture PlumeViewTexture;
     int PlumeViewJournalEntries = 0;
+    // 📝 The Fluid editor's viewport: the Pyro solver (on its own Vulkan device), its picture written to this device and sampled in GENERAL layout.
+    std::unique_ptr<Frontier::FluidVolumeExtension> FluidView;
+    Frontier::ViewportTexture FluidViewTexture;
+    int FluidViewJournalEntries = 0;
     const auto RetireSceneView = [&]()
     {
         SceneView.reset(); // 📝 Waits for the device before releasing anything the interface could still sample.
@@ -247,6 +252,9 @@ int main()
         Frontier::InspectorRuntime::Instance().RegisterPlumeViewportPresenter({});
         PlumeView.reset(); // 📝 Drains the queue as the scene viewport does.
         PlumeViewTexture.Retire();
+        Frontier::InspectorRuntime::Instance().RegisterFluidViewportPresenter({});
+        FluidView.reset(); // 📝 Drains the queue as the scene viewport does.
+        FluidViewTexture.Retire();
     };
     const auto ResolveBesideExecutable = [](const std::filesystem::path &Relative)
     {
@@ -568,6 +576,34 @@ int main()
                     {
                         Image.Failure = std::string("Plume viewport failed: ") + Failure.what();
                         Frontier::DiagnosticJournal::Append("PlumeViewportRefused", Failure.what());
+                    }
+                    return Image;
+                });
+            Frontier::InspectorRuntime::Instance().RegisterFluidViewportPresenter(
+                [&](const Frontier::FluidViewportRequest &Request)
+                {
+                    Frontier::FluidViewportImage Image;
+                    try
+                    {
+                        if (!FluidView)
+                        {
+                            const Frontier::VulkanDeviceAccess Device = Presentation ? Presentation->QueryDeviceAccess() : Frontier::VulkanDeviceAccess{};
+                            FluidView = std::make_unique<Frontier::FluidVolumeExtension>(&Device);
+                        }
+                        Frontier::FluidViewportOutcome Outcome = FluidView->Render(Request);
+                        Image = std::move(Outcome.Image);
+                        if ((FluidViewTexture.QueryChanged(Outcome.View) || !Image.Failure.empty()) && FluidViewJournalEntries < 16)
+                        {
+                            Frontier::DiagnosticJournal::Append("FluidViewport", Outcome.View ? "image on " + Image.Adapter : "no image: " + Image.Failure);
+                            ++FluidViewJournalEntries;
+                        }
+                        // 📝 The extension drained the queue before replacing its picture: the previous registration is no longer sampled.
+                        Image.Texture = FluidViewTexture.Resolve(Outcome.View);
+                    }
+                    catch (const std::exception &Failure)
+                    {
+                        Image.Failure = std::string("Fluid viewport failed: ") + Failure.what();
+                        Frontier::DiagnosticJournal::Append("FluidViewportRefused", Failure.what());
                     }
                     return Image;
                 });

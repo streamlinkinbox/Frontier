@@ -162,6 +162,10 @@ add_library(FrontierSceneEditorUI STATIC
     Frontier/Engine/Interface/FluidPlumeEditor/FluidPlumeEditorWorkspace.cpp
     Frontier/Engine/Interface/FluidPlumeEditor/FluidPlumeLibrary.cpp
     Frontier/Engine/Interface/FluidPlumeEditor/FluidPlumePages.cpp
+    Frontier/Engine/Interface/FluidVolumeEditor.cpp
+    Frontier/Engine/Interface/FluidEditor/FluidEditorPages.cpp
+    Frontier/Engine/Interface/FluidEditor/FluidEditorViewport.cpp
+    Frontier/Engine/Interface/FluidEditor/FluidEditorWorkspace.cpp
     Frontier/Engine/Interface/ParticleEditor.cpp
     Frontier/Engine/Interface/ParticleEditor/ParticleFieldOverlay.cpp
     Frontier/Engine/Interface/ParticleEditor/ParticleEditorPages.cpp
@@ -257,6 +261,7 @@ add_library(FrontierSceneEditorUI STATIC
     Frontier/Engine/Interface/Inspectors/ForceField/WindEddySection.cpp
     Frontier/Engine/Interface/Inspectors/ForceField/WindMesoscaleSection.cpp
     Frontier/Engine/Interface/Inspectors/FluidPlumeInspector.cpp
+    Frontier/Engine/Interface/Inspectors/FluidVolumeInspector.cpp
     Frontier/Engine/Interface/Inspectors/FractureInspector.cpp
     Frontier/Engine/Interface/Inspectors/ParticleInspector.cpp
     Frontier/Engine/Interface/Inspectors/GeometryInspector.cpp
@@ -274,7 +279,7 @@ target_include_directories(FrontierSceneEditorUI PUBLIC
     "${CMAKE_SOURCE_DIR}/Frontier")
 target_compile_definitions(FrontierSceneEditorUI PUBLIC FRONTIER_WITH_INTERFACE_SDK=1 FRONTIER_EDITOR_PROFILE=1 FRONTIER_EDITOR=1)
 target_include_directories(FrontierSceneEditorUI PRIVATE "${CMAKE_SOURCE_DIR}/ExternalPackages/stb")
-target_link_libraries(FrontierSceneEditorUI PUBLIC FrontierEditorUI FrontierInterfaceExtension FrontierVehicleDynamics Threads::Threads PRIVATE FrontierSurfaceRasterization FrontierEnvironmentRendering)
+target_link_libraries(FrontierSceneEditorUI PUBLIC FrontierEditorUI FrontierInterfaceExtension FrontierVehicleDynamics FrontierPyroCamera Threads::Threads PRIVATE FrontierSurfaceRasterization FrontierEnvironmentRendering)
 
 include(Automation/StageProjectContent.cmake)
 
@@ -290,6 +295,11 @@ add_library(FrontierPlumeExtension STATIC
     Frontier/Extensions/Plume/PlumeComposite.cpp
     Frontier/Extensions/Plume/PlumeExtension.cpp)
 target_link_libraries(FrontierPlumeExtension PUBLIC FrontierSceneEditorUI FrontierPlumeSimulation)
+# 📝 The Fluid editor's bridge: the Pyro solver on its own Vulkan device, its picture written to a texture on the application's device.
+add_library(FrontierFluidExtension STATIC
+    Frontier/Extensions/Fluid/PyroSolverSession.cpp
+    Frontier/Extensions/Fluid/FluidVolumeExtension.cpp)
+target_link_libraries(FrontierFluidExtension PUBLIC FrontierSceneEditorUI FrontierPyroVolumetrics)
 # 📝 The Fluid volume (the Fluid editor's Pyro solver, Experimental/Fluid): the orbit camera (plain arithmetic, so the interface can use it) and the Vulkan 1.1 solver
 #    with its own context, imported from c7egoist/Frontier d7ac487 — GLSL 450 programs compiled to SPIR-V by Automation/GenerateVulkanShaders.py, not yet the
 #    engine's Slang programs on DeviceExchange (Exhibits/FluidEditor/README.md says what is open).
@@ -348,7 +358,7 @@ target_include_directories(EverestProjectEditor PUBLIC
     "${CMAKE_SOURCE_DIR}/Frontier"
     "${CMAKE_SOURCE_DIR}/Projects/Everest/Source")
 target_compile_definitions(EverestProjectEditor PUBLIC FRONTIER_WITH_INTERFACE_SDK=1 FRONTIER_EDITOR_PROFILE=1 FRONTIER_EDITOR=1)
-target_link_libraries(EverestProjectEditor PUBLIC FrontierSceneEditorUI FrontierRenderingExtension FrontierParticleExtension FrontierPlumeExtension FrontierPhysicsExtension FrontierNetworkingExtension)
+target_link_libraries(EverestProjectEditor PUBLIC FrontierSceneEditorUI FrontierRenderingExtension FrontierParticleExtension FrontierPlumeExtension FrontierFluidExtension FrontierPhysicsExtension FrontierNetworkingExtension)
 frontier_stage_project_content(EverestProjectEditor
     "${CMAKE_SOURCE_DIR}/Projects/Everest/Everest.projectspace"
     "${CMAKE_SOURCE_DIR}/EngineContent"
@@ -450,6 +460,9 @@ if(WIN32)
     target_compile_definitions(Frontier PRIVATE FRONTIER_UI_VULKAN=1 VK_NO_PROTOTYPES GLFW_INCLUDE_NONE
         FRONTIER_BUILD_COMMIT=\"${FRONTIER_BUILD_COMMIT}\")
     target_link_libraries(Frontier PRIVATE FrontierEditorUI EverestProjectEditor FrontierSurfaceRasterization glfw ole32)
+    # 📝 The browser's New dialog starts TextureWorkspace.exe beside Frontier.exe, and Automation/PackageEditorPreviewWindows.py refuses a Frontier.exe without it
+    #    ("build the TextureStudio target beside it", the editor-preview run 42005185832): building Frontier builds it, so a single target builds what the package needs.
+    add_dependencies(Frontier TextureStudio)
     if(MSVC)
         enable_language(RC)
         foreach(WORKSPACE_TARGET Frontier TextureStudio)

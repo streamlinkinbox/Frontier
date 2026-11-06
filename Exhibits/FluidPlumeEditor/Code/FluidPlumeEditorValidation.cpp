@@ -129,9 +129,9 @@ size_t CountDifferences(const std::vector<double>& A, const std::vector<double>&
     return Count;
 }
 
-const GasPreset& PresetNamed(std::string_view Name)
+const FluidDynamics::GasPreset& PresetNamed(std::string_view Name)
 {
-    for (const GasPreset& Preset : QueryGasPresets())
+    for (const FluidDynamics::GasPreset& Preset : QueryGasPresets())
     {
         if (Preset.Name == Name) return Preset;
     }
