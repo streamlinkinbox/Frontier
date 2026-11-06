@@ -1748,6 +1748,8 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   3. Port to C++ 1:1, shaders included and nothing approximated: the scan, the fluid / gas / plume editor with its systems, and check whether the
      particle editor is already ported.
   4. Skip the TLAS rebuild when nothing moved (`Renderer/Patches/0003-tlas-skip-static.patch`) with the output unchanged.
+  5. (A later message.) The Smoke & fire editor must open as a proper window with an Outliner, an Inspector and the libraries shown, as the Particle
+     editor's does. The first port was one modal of six cards, and was rejected.
 - **Starting point:** `c50a7d4` merges the reference into `main` (`4cab913`; unrelated histories). The later commits of that branch (`078881e`,
   `0abef14`, `b5a7aba`, `523b7ce`) were not used.
 - **Where the scan lives (answer to 2):**
@@ -1779,11 +1781,12 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   |---|---|---|---|
   | X-ray scan | CPU modules, overlay on the device exchange, 8 Slang entries | `XRayScanValidation` against the prototype's values; the hero car's wireframe; one-line mutants; SPIR-V rebuilt | ✔️ 3,157 of 3,157; 1,751 segments with the prototype's hash `ef40c638f66069fe`; 24 of 25 caught (the survivor is equivalent); 8 of 8 byte for byte |
   | Plume | gas catalogue and presets, tyre telemetry and source projections, schedule, `SmokeSequence`, 9 Slang compute entries | `PlumeSimulationValidation`; the Slang programs on Vulkan against the demo's WGSL on Dawn (Low, 170 refreshes); SPIR-V rebuilt | ✔️ 706 of 706; 9 of 9 captures bit for bit; 9 of 9 byte for byte |
-  | Smoke & fire editor | the `FluidPlume` record (33 readings in TOML), the modal window, the Inspector page | `FluidPlumeEditorValidation`: 26 sliders by keyboard, 6 presets, requests, instruments, a narrow window | ✔️ 333 of 333; 7 captures |
+  | Smoke & fire editor | the `FluidPlume` record (33 readings in TOML); the window (Outliner 292 px, viewport and Log Stream, Inspector 404 px, a Libraries sheet of 6 looks and 4 grades); `PlumeExtension`, which draws the C++ plume in the stage | `FluidPlumeEditorValidation`: 26 sliders by keyboard, the looks, libraries, requests, instruments, three window sizes; `FluidPlumeEditorCapture`: the plume's pixels on SwiftShader against the empty stage | ✔️ 577 of 577; 13 of 13 claims; 14 captures (8 with a stand-in picture, 6 with the plume) |
   | Particle editor | already ported on 2026-11-04 (52 presets) | `ParticleLibraryValidation`; the ParticleSimulation SPIR-V rebuilt | ✔️ 344 of 344; 30 of 30 |
 
-  - `FluidNodeEditor.html` is a shell whose entry script (`./FluidEditorEntry.js`) exists nowhere, so it cannot be ported 1:1: the editor is the demo's own
-    Smoke & fire page (`BuildGas` in `InspectorPages.js`).
+  - `FluidNodeEditor.html` is a different tool (a liquid node graph) whose entry script (`./FluidEditorEntry.js`) is not in the repository, so it cannot be
+    ported 1:1: the editor is the demo's own Smoke & fire page (`BuildGas` in `InspectorPages.js`). The appearance presets of
+    `VolumetricFlowSolver.html` are not ported.
   - The shader and instrument checks are not total: 12 of 15 shader mutants and 52 of 55 instrument mutants differ from the reference; the survivors are
     explained in `Exhibits/PlumeSimulation/README.md`.
 - **Regression:** `ctest` over the targets the work touched passes for `ControlCentreValidation`, `InterfaceValidation`, `EnvironmentInspectorValidation`,
@@ -1792,14 +1795,24 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   `SceneViewportPickValidation` passes with SwiftShader's loader on the path (it fails without one). `EverestInterfaceValidation` had failed at its last
   assertion on `main` already: the workspace has four quick actions since the Networking toggle and the test still expected three; it now expects four.
   The demo's `npm test`: 159 tests, 150 pass, 0 fail, 9 skipped (the GPU ones, which need `RUN_GPU=1`).
-- **Evidence:** `Exhibits/XRayScan/` (10 captures), `Exhibits/PlumeSimulation/` (9), `Exhibits/FluidPlumeEditor/` (7), `Exhibits/VehicleHmiPrototype/`
+  After the window and the plume extension (`6347000`): `ctest` of `PanelExpansionValidation`, `ControlCentreValidation`, `WorkspaceLayoutValidation`,
+  `InterfaceValidation`, `EnvironmentInspectorValidation`, `FluidPlumeEditorValidation`, `EverestInterfaceValidation` and `PlumeSimulationValidation`: 8 of 8
+  (323 s); the nine other programs that link `EverestProjectEditor` link. `ParticleEditorCapture` was relinked and not re-run.
+- **Evidence:** `Exhibits/XRayScan/` (10 captures), `Exhibits/PlumeSimulation/` (9), `Exhibits/FluidPlumeEditor/` (14), `Exhibits/VehicleHmiPrototype/`
   (the TLAS proof, the Garage's ripple and scan sweep as contact sheets, and the scan at 640 × 400); each README has its code map, results, limits and
   how to reproduce.
 - **Limits:**
   - The Garage has not been opened in a WebGPU browser here. Its pictures come from a software rasteriser (192 × 120, and the scan at 640 × 400).
   - The scan and plume captures draw stand-ins for the ReSTIR picture (a flat solid for the car, no sky, a zero distance field): they prove the overlay and
     the march, not the look in the host.
-  - The scan's vehicle binding (`Extensions/Rendering`) and the plume's march in the illumination host are not written: the GI port stays 1:1 and untouched.
+  - The scan's vehicle binding (`Extensions/Rendering`) is not written, and the plume is not drawn into the Scene viewport's own render: only the Smoke &
+    fire editor's stage shows it, over a flat backdrop with no car, no ReSTIR lighting and no scene shadows. The GI port stays 1:1 and untouched.
+  - The Smoke & fire editor's live captures ran on SwiftShader (CPU, Debug), at the High grade (Low ran once with an earlier Crosswind claim; Medium never).
+    Their refresh times and the HUD's rate (a fixed 1/30 s) are not performance figures. The Crosswind claim only proves the picture differs from the
+    Tyre smoke one. Ignition is shown and inert.
+  - The plume's presenter is registered in `Experimental/Frontier/Native/WindowsFrontier.cpp` (`5b7cdf8`), which cannot be compiled here: that edit is
+    **not compiled and not run**. The window was never seen in the Windows editor, on a GPU or in a browser.
   - No Windows binary was built or run (none was requested); everything ran on the Linux host.
 - **Commits:** `1c1ed7f`, `eb6cdfa`, `c039b0e`, `e4dad0a`, `1ef498f`, `b1c9544`, `0d8afbf`, `a8b1d79`, `4cc68b5`, `c9599fc`, `20c674d`, `ff28e4f`,
-  `c564f60`, `a19c90c`, `59e22cd`, and the commit that adds these hashes.
+  `c564f60`, `a19c90c`, `59e22cd`, `31a4ad1` (the window), `bb7308e` (its validation and layout fixes), `b0cfd7e` (the plume's stand-ins move into the engine),
+  `6347000` (`PlumeExtension` and the live capture), `5b7cdf8` (the native registration, not compiled), and the commit that adds these hashes.

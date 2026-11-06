@@ -27,6 +27,7 @@ Frontier/
 │   │   ├── Interface/         # ViewportTexture, GizmoSpace, GizmoRasterization
 │   │   ├── Rendering/         # RenderingExtension, SceneGeometryOccupancy
 │   │   ├── Particle/          # ParticleExtension
+│   │   ├── Plume/             # PlumeExtension
 │   │   ├── Physics/           # PhysicsExtension, JoltExtension, PhysicsSpace
 │   │   └── Networking/        # NetworkingExtension, NetworkingSpace (EOSExtension / EpicAdapter later)
 │   └── Engine/                # Multi-realm PlanetaryAtmosphere, GeometricRaster, DeviceExchange, Rendering & Shaders
@@ -195,10 +196,13 @@ by their current directories; CAD editing is a separate workspace launched by th
   clock, the feature edges, the particles, the profile records and the overlay on the device exchange.
 - `Frontier/Engine/PhysicalDynamics/FluidDynamics/`: the gas catalogue with its presets and instruments (library `FrontierGasCatalogue`), and the tyre
   telemetry and source projections (library `FrontierPlumeSimulation`).
-- `Frontier/Engine/Rendering/PlumeSimulation/` and `Frontier/Engine/Shaders/PlumeSimulation/`: the plume's schedule, its CPU half and its device host, and
-  the five Slang files of its nine compute entries (archive set `PlumeSimulation`).
-- `Frontier/Engine/Interface/FluidPlumeEditor.*`, `FluidPlumeEditor/` and `Inspectors/FluidPlumeInspector.*`: the Smoke & fire editor window, its pages and
-  the record's Inspector page, all behind `FRONTIER_EDITOR`.
+- `Frontier/Engine/Rendering/PlumeSimulation/` and `Frontier/Engine/Shaders/PlumeSimulation/`: the plume's schedule, its CPU half and its device host, the
+  stand-ins it binds when no scene stands behind it (`PlumeStandIns`), and the five Slang files of its nine compute entries (archive set `PlumeSimulation`).
+- `Frontier/Engine/Interface/FluidPlumeEditor.*`, `FluidPlumeEditor/` and `Inspectors/FluidPlumeInspector.*`: the Smoke & fire editor window (Outliner, viewport
+  and Log Stream, Inspector, the Libraries sheet: `FluidPlumeEditorWorkspace`, `FluidPlumePages`, `FluidPlumeLibrary`, `PlumeViewportPresentation.h`) and the
+  record's Inspector page, all behind `FRONTIER_EDITOR`.
+- `Frontier/Extensions/Plume/PlumeExtension.*`: the editor application's presenter, which draws the plume in the editor's stage on the editor's device (as
+  `Extensions/Particle` does for the Particle editor); the native application registers it in `Experimental/Frontier/Native/WindowsFrontier.cpp`.
 - `Frontier/Engine/Scene/EngineConfigurations.h` and `WorldSpace.cpp`: the `FluidPlume` record, registered as "Solver · Fluid Plume".
 - `EngineContent/ShaderArchives/XRayScan/` and `PlumeSimulation/`: the stored SPIR-V of the two sets. `Automation/XRayScanRendering.cmake` and
   `PlumeSimulationRendering.cmake` hold their targets and shader compilation.
