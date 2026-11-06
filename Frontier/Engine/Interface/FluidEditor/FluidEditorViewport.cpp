@@ -40,11 +40,6 @@ const char* ResolveViewLabel(const std::string& View)
     return View == "front" ? "Front" : View == "side" ? "Side" : View == "top" ? "Top" : "Perspective";
 }
 
-const char* ResolveBurstLabel(const std::string& Kind)
-{
-    return Kind == "shrapnel" ? "Shrapnel" : Kind == "salvo" ? "Cluster salvo" : Kind == "collide" ? "Colliding waves" : Kind == "mushroom" ? "Mushroom cloud" : "Single burst";
-}
-
 const char* ResolveNextBurst(const std::string& Kind)
 {
     return Kind == "burst" ? "shrapnel" : Kind == "shrapnel" ? "salvo" : Kind == "salvo" ? "collide" : Kind == "collide" ? "mushroom" : "burst";
@@ -412,7 +407,7 @@ void FluidEditorWorkspace::ConstructTransport(ImDrawList* Ink, ImVec2 Minimum, I
     Cursor += 12.0f * Scale;
 
     // The burst controls are right-aligned; the speed and the live label take what room is left of them.
-    const std::string BurstLabel   = ResolveBurstLabel(BurstKind);
+    const std::string BurstLabel   = FluidEditorPages::ResolveBurstLabel(BurstKind);
     const float       TriggerWidth = MeasurePillWidth(Style, "Trigger  D", true, false);
     const float       KindWidth    = MeasurePillWidth(Style, BurstLabel.c_str(), false, false);
     float             RightEdge    = Maximum.x - TriggerWidth;

@@ -117,6 +117,9 @@ void ConstructWindowPage(ControlColumn& Page, FluidEditorContext& Context, Fluid
 [[nodiscard]] const char* ResolveColliderLabel(int32_t ObstacleType) noexcept;
 // 📝 "00:03.250": the simulated time as the prototype's timecode writes it.
 [[nodiscard]] std::string FormatTimecode(double Seconds);
+// 📝 What the prototype's burst select calls a pattern: burst "Single burst", shrapnel "Shrapnel", salvo "Cluster salvo", collide "Colliding waves", mushroom
+//    "Mushroom cloud".
+[[nodiscard]] const char* ResolveBurstLabel(std::string_view Pattern) noexcept;
 
 } // namespace FluidEditorPages
 

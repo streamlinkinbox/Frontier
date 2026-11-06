@@ -961,6 +961,14 @@ if(BUILD_TESTING)
     add_test(NAME PyroVolumeValidation COMMAND PyroVolumeValidation --require-vulkan)
     set_tests_properties(PyroVolumeValidation PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600)
 
+    # 📝 The Fluid editor window in the Everest workspace, driven by the pointer and the keys, with the Pyro solver's own picture in its viewport: each step's
+    #    expected and observed behaviour written to FluidEditor.tsv beside the captures — Exhibits/FluidEditor/README.md.
+    add_executable(FluidEditorCapture
+        Exhibits/FluidEditor/Code/FluidEditorCapture.cpp
+        Engine/Render/StbImageWriteImplementation.cpp)
+    target_include_directories(FluidEditorCapture PRIVATE "${CMAKE_SOURCE_DIR}/ExternalPackages/stb")
+    target_link_libraries(FluidEditorCapture PRIVATE EverestProjectEditor FrontierFluidExtension)
+
     # 📝 The plume picture's composite: the backdrop kept between refreshes against the same composite resolved afresh, every key it depends on changed in
     #    turn, the march's non-finite and out-of-range texels — Exhibits/FluidPlumeEditor/README.md.
     add_executable(PlumeCompositeValidation Exhibits/FluidPlumeEditor/Code/PlumeCompositeValidation.cpp)

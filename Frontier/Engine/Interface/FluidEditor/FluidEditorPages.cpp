@@ -324,6 +324,15 @@ std::string FluidEditorPages::FormatVoxels(int32_t Resolution)
     return Spelt;
 }
 
+const char* FluidEditorPages::ResolveBurstLabel(std::string_view Pattern) noexcept
+{
+    if (Pattern == "shrapnel") return "Shrapnel";
+    if (Pattern == "salvo") return "Cluster salvo";
+    if (Pattern == "collide") return "Colliding waves";
+    if (Pattern == "mushroom") return "Mushroom cloud";
+    return "Single burst";
+}
+
 std::string FluidEditorPages::FormatTimecode(double Seconds)
 {
     const long long Milliseconds = static_cast<long long>(std::floor(std::max(0.0, Seconds) * 1000.0 + 0.5));

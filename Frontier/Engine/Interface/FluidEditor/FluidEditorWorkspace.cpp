@@ -323,7 +323,7 @@ bool FluidEditorWorkspace::Apply(std::string_view Action)
         else
             Burst.Pattern = Argument.empty() ? BurstKind : std::string(Argument);
         if (Gas.Paused) AppendLog("BURST", "Burst queued", "press Space or step once to simulate", true);
-        else AppendLog("BURST", "Burst " + Burst.Pattern, Burst.AtPoint ? "at the pointer" : "the pattern's own places");
+        else AppendLog("BURST", FluidEditorPages::ResolveBurstLabel(Burst.Pattern), Burst.AtPoint ? "at the pointer" : "the pattern's own places");
         if (!Presenter) HostRequests.push_back(Verb == "burst-at" ? "burst-at:" + std::string(Argument) : "burst:" + Burst.Pattern);
         PendingBursts.push_back(std::move(Burst));
         return true;
@@ -658,7 +658,7 @@ void FluidEditorWorkspace::ConstructOutliner(ImDrawList* Ink, ImVec2 Minimum, Im
         Top += 22.0f * Scale;
     };
     const ImVec2 ListMin(Minimum.x + 2.0f * Scale, Top);
-    const ImVec2 ListMax(Maximum.x - 2.0f * Scale, Maximum.y - 40.0f * Scale);
+    const ImVec2 ListMax(Maximum.x - 2.0f * Scale, Maximum.y - 48.0f * Scale);
     ImGui::SetCursorScreenPos(ListMin);
     ImGui::BeginChild("##FluidOutlinerList", ImVec2(ListMax.x - ListMin.x, ListMax.y - ListMin.y), ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
     Ink = ImGui::GetWindowDrawList();
@@ -707,7 +707,9 @@ void FluidEditorWorkspace::ConstructOutliner(ImDrawList* Ink, ImVec2 Minimum, Im
     ImGui::EndChild();
 
     Ink = ImGui::GetWindowDrawList();
-    Style.Text(Ink, Style.Faces.Monospace, 9.5f, ImVec2(Left, Maximum.y - 26.0f * Scale), P.TextMuted, "EDITING LIVE SIMULATION   \xC2\xB7   ONE DOMAIN \xC2\xB7 ONE SOURCE \xC2\xB7 ONE COLLIDER");
+    // 📝 The prototype's two footnotes, one under the other: they are longer than the column together.
+    Style.Text(Ink, Style.Faces.Monospace, 9.0f, ImVec2(Left, Maximum.y - 38.0f * Scale), P.TextMuted, "EDITING LIVE SIMULATION");
+    Style.Text(Ink, Style.Faces.Monospace, 9.0f, ImVec2(Left, Maximum.y - 24.0f * Scale), P.TextMuted, "ONE DOMAIN \xC2\xB7 ONE SOURCE \xC2\xB7 ONE COLLIDER");
 }
 
 //------------------------------------------------------------------------------------------------------------------------
