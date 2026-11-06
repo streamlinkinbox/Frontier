@@ -1841,3 +1841,44 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
   `d5c6acc` (the workspace lists and offers the Fluid Plume; the validation takes the way in), `3416e0c` (README claims corrected), `d5ffcd0` (the Medium
   capture), `2f66b41` (the native registration type-checked), `753a003` (that check renamed, with its three broken copies), `5146961` (the plume picture's
   backdrop kept between refreshes: unrequested, output unchanged, separate so it can be dropped), and the commit that adds these hashes.
+
+## Fluid editor in the Frontier editor; the c7egoist port fixed; a Windows build to test (2026-11-06, branch `arena/4356640b-frontier`)
+
+- **Requested:** from `c7egoist/Frontier`, branch `arena/a0311b9c-frontier` (cloned and read; it is read-only here, so the fixes live in this repository and nothing
+  of it was changed, cleared or pushed): (1) the UI "looks very wrong", reuse the code, especially the sliders and panels (this branch's UI may be used, UI only);
+  (2) the smoke in the HTML (VehicleHMI) is grid-based, a world grid, so smoke is continuous and not attached to the vehicle; (4) it may have made its own editor while
+  the Frontier editor exists. Then: run GitHub Actions to build Frontier and Project Everest so the work can be tested (approved for this).
+- **Found** (details, file lines and what was and was not brought: `Exhibits/FluidEditor/README.md`):
+  - The Fluid editor and the second editor are drawn by hand (57 and 32 `Draw->Add*` calls, no ImGui widget) and make their own `VulkanContext`, intake and world.
+    Not brought. The Fluid editor is now a window of this editor on `Interface/Controls/*` (`FluidVolume` record, Inspector, `FluidVolumeExtension`, the presenter
+    registered in `WindowsFrontier.cpp`), reached in Everest through Construct (+) → Fluid Volume → Fluid Editor.
+  - The tyre smoke follows the car because `FrontierEditorWorkspace.cpp:429` sets the domain's origin to the car every frame and the solver has no relocation. The
+    world-grid behaviour is the plume ported from `PlumeSpace.js` (`Exhibits/PlumeSimulation`); the Fluid editor's volumes are fixed in the world.
+  - The solver was not 1:1. Fixed and proved against the prototype's own modules: burst patterns and delay clocks, the opening settings and `voxelQuantization`
+    (18 presets × 85 settings), the orbit camera and pointer modes (180 scripted steps). Open: the time step, the surge's dynamics, the bounds box, shrapnel, the
+    shockwave shell, the floor grid and voxel lines.
+- **Checks** (Linux host, SwiftShader, Debug, `e19671c`): `PyroVolumeValidation --require-vulkan` 56 of 56; `MutateGasCatalogue.sh` 3 of 3 and `MutateCamera.sh`
+  10 of 10 mutants stopped; `FluidEditorCapture` 28 claims, 0 failed (8 captures); `FluidPlumeEditorValidation` 588 of 588; the three generators `--check` match;
+  `VerifyWindowsRegistration.sh` type-checks the Particle, Smoke & fire and Fluid registrations and rejects 6 broken copies.
+- **GitHub Actions** (workflow "Editor preview (Windows)", all on this branch unless said):
+
+  | Run | Head | Zig cross-build + package | MSVC | Launch (software Vulkan) | Pre-release |
+  |---|---|---|---|---|---|
+  | `42005185832` (`main`, before this work) | `4cab913` | 🔴 the packager wanted `TextureWorkspace.exe` | 🔴 reason not visible (the annotation held only an exit code) | not run | none |
+  | `42202642917` | `d3c48f9` | 🔴 built, then the packager expected six shader sets and the repository stores eight | 🔴 `ProjectContent.h` (C2440) and an ICE in `SolidArcDocument.cpp` | skipped | none |
+  | `42210475527` | `e19671c` | 🟢 | 🔴 the same ICE (C1001), now at the first `case` of the new switch | 🟢 Project Browser and Everest Scene Viewport reached | 🟢 `editor-preview-e19671c2` |
+
+  The faults found by the runs and fixed: `add_dependencies(Frontier TextureStudio)`; the packager's list of shader sets (now with `PlumeSimulation` and `XRayScan`;
+  reproduced in a second with stand-in executables); `ProjectContent.h` asking the library for `char8_t` instead of `__cplusplus`. The workflow now puts the compiler's
+  and the packager's error lines in the run's annotations, since the job logs cannot be fetched from here.
+- **Limits:**
+  - The MSVC build still fails on an internal compiler error in `SolidArcDocument.cpp` that was in `main` already; its cause is not known and MSVC cannot be run here.
+    The change tried for it (a switch, a plain `std::set`) is behaviour-preserving as far as `SolidArcDocumentValidation` shows (864 rows green; two red timing gates,
+    W72 and W94, in a Debug build that shared the CPU, not compared with `main`), and did not remove the error.
+  - Windows ran only the package of the Zig build, with a software Vulkan driver, to the Project Browser and the Scene Viewport. The Fluid editor itself was never
+    opened on Windows or on a GPU; its window and solver ran under SwiftShader on Linux. Its timings are not figures for a GPU.
+  - The solver's GLSL was not rebuilt from its generator (no `glslang` here), and it runs on its own Vulkan context, not as Slang on `DeviceExchange`.
+  - A Fluid volume is drawn in its editor's viewport only, not in the Scene viewport's render.
+- **Commits:** `694134d` (the camera moved out of the solver, generators patched), `c3b2698` (burst patterns and clocks), `a7a286e` (catalogue fixes),
+  `1c55e81` (the camera port), `415c312` (the window, record, inspector, host extension, Windows registration, the Everest entry), `d3c48f9` (workflow
+  annotations), `6b821ce` (packager's shader sets), `004dadb` (the capture program), `e19671c` (the MSVC fixes), and the commit that adds this entry.
