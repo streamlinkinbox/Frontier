@@ -3223,15 +3223,16 @@ SolidArcEdgePath SolidArcEdgePathBetween(const SolidArcDocument& Document, const
 namespace
 {
 
-// 📝 The sign a combination's caption joins its bodies with. A switch rather than a conditional over three literals: MSVC (windows-2022) stopped with an internal compiler
-//    error, C1001, at CombineSolidArcBodies in the editor-preview run 42202642917; that this was the construct is not established (see Documentation/Tracker.md).
+// 📝 The sign a combination's caption joins its bodies with: U+2212 (minus), U+2229 (intersection) and U+222A (union), spelled as their UTF-8 bytes. MSVC (windows-2022) stopped with
+//    an internal compiler error, C1001, at the first place this file held the last two as characters (editor-preview runs 42202642917 and 42210475527); that they were the
+//    cause is not established (see Documentation/Tracker.md). The bytes are the same ones the characters were.
 [[nodiscard]] const char* ResolveCombinationSign(FeatureCombination Combination)
 {
     switch (Combination)
     {
-    case FeatureCombination::Difference:   return " − ";
-    case FeatureCombination::Intersection: return " ∩ ";
-    default:                               return " ∪ ";
+    case FeatureCombination::Difference:   return " \xE2\x88\x92 ";
+    case FeatureCombination::Intersection: return " \xE2\x88\xA9 ";
+    default:                               return " \xE2\x88\xAA ";
     }
 }
 

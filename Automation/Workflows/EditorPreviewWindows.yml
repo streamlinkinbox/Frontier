@@ -58,6 +58,9 @@ jobs:
           if [ "$Status" -ne 0 ]; then
             Errors=$(tr -d '\r' < "$Log" | grep -E 'error:|error C[0-9]+|error LNK[0-9]+|fatal error|undefined reference|FAILED:' | head -30 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
             [ -n "$Errors" ] || Errors=$(tr -d '\r' < "$Log" | tail -n 25 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            # 📝 A compiler's internal error (C1001) names the compiler's own file and line on the lines after it: those say which part of the compiler failed.
+            Internal=$(tr -d '\r' < "$Log" | grep -E -A3 'C1001' | head -12 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            [ -z "$Internal" ] || Errors="$Errors%0A--- around C1001:%0A$Internal"
             echo "::error title=Build failed with exit code $Status::$Errors"
             exit "$Status"
           fi
