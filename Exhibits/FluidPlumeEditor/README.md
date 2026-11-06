@@ -16,7 +16,8 @@ Editor* returns to the scene. The editor is guarded by `FRONTIER_EDITOR`.
 
 **Changed outside the editor, to make that reachable:** `Projects/Everest/Source/EverestWorkspace.cpp` now lists `FluidPlume` among the types the workspace
 shows and offers. The Outliner hid every record type outside a fixed list, and the Construct dialog is built from the same list, so a person could neither
-add nor see the record and the Plume Editor button could not be pressed (`FluidPlumeEditorValidation` failed its two checks for this before the change).
+add nor see the record and the Plume Editor button could not be pressed (a probe of the validation, run on the unchanged code, failed two checks: the
+Outliner did not list the record and the dialog did not offer it).
 `Particles` and `Fracture`, the other solver records, are outside that list too; I have not changed them.
 
 An earlier version of this editor was one modal of six cards with no Outliner, no Inspector and no libraries. It was rejected and is replaced by this
@@ -36,7 +37,9 @@ window; none of its layout is left.
 flicker) are set by the looks only.
 
 At the three window sizes that were tried (1920 × 1080, 1366 × 800 and 1156 × 720) the Outliner and the Inspector keep their widths and the stage takes what
-is left. Where the stage is narrow the bar gives up its words and keeps its icons, and a line that is longer than its column ends in an ellipsis.
+is left. Where the stage is narrow the bar gives up, in turn, the title's second line, the words of Pause and Clear smoke, the status pill's words and the
+title, and the words of Smoke and Fire (their icons stay and name themselves in a tooltip). The Log Stream's lines and the HUD's adapter line end in `...`
+when they are longer than their room; an Outliner row and a library card clip their text at the edge.
 
 ![The window as it opens, with no Vulkan device](Images/SmokeAndFireEditor-Opening.png)
 
