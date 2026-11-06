@@ -21,6 +21,7 @@
 #include "EverestWorkspace.h"
 #include "Frontier/Extensions/Rendering/RenderingExtension.h"
 #include "Frontier/Extensions/Particle/ParticleExtension.h"
+#include "Frontier/Extensions/Plume/PlumeExtension.h"
 #include "Frontier/Extensions/Interface/ViewportTexture.h"
 #include "Engine/Interface/InspectorRuntime.h"
 #ifdef FRONTIER_SOLIDARC_ENABLED
@@ -232,6 +233,10 @@ int main()
     std::unique_ptr<Frontier::ParticleExtension> ParticleView;
     Frontier::ViewportTexture ParticleViewTexture;
     int ParticleViewJournalEntries = 0;
+    // 📝 The Smoke & fire editor's viewport: the C++ plume (sources, transport, march) on the same device, its picture sampled in GENERAL layout.
+    std::unique_ptr<Frontier::PlumeExtension> PlumeView;
+    Frontier::ViewportTexture PlumeViewTexture;
+    int PlumeViewJournalEntries = 0;
     const auto RetireSceneView = [&]()
     {
         SceneView.reset(); // 📝 Waits for the device before releasing anything the interface could still sample.
@@ -239,6 +244,9 @@ int main()
         Frontier::InspectorRuntime::Instance().RegisterParticleViewportPresenter({});
         ParticleView.reset(); // 📝 Drains the queue as the scene viewport does.
         ParticleViewTexture.Retire();
+        Frontier::InspectorRuntime::Instance().RegisterPlumeViewportPresenter({});
+        PlumeView.reset(); // 📝 Drains the queue as the scene viewport does.
+        PlumeViewTexture.Retire();
     };
     const auto ResolveBesideExecutable = [](const std::filesystem::path &Relative)
     {
@@ -531,6 +539,35 @@ int main()
                     {
                         Image.Failure = std::string("Particle viewport failed: ") + Failure.what();
                         Frontier::DiagnosticJournal::Append("ParticleViewportRefused", Failure.what());
+                    }
+                    return Image;
+                });
+            Frontier::InspectorRuntime::Instance().RegisterPlumeViewportPresenter(
+                [&](const Frontier::PlumeViewportRequest &Request)
+                {
+                    Frontier::PlumeViewportImage Image;
+                    try
+                    {
+                        if (!PlumeView)
+                        {
+                            const Frontier::VulkanDeviceAccess Device = Presentation ? Presentation->QueryDeviceAccess() : Frontier::VulkanDeviceAccess{};
+                            PlumeView = std::make_unique<Frontier::PlumeExtension>(ResolveBesideExecutable("EngineContent/ShaderArchives"), &Device);
+                        }
+                        // 📝 The level's Render settings quality tier chooses the lattice; the extension reads it from the world.
+                        Frontier::PlumeViewportOutcome Outcome = PlumeView->Render(Request, EverestSpace->QueryWorldSpace());
+                        Image = std::move(Outcome.Image);
+                        if ((PlumeViewTexture.QueryChanged(Outcome.View) || !Image.Failure.empty()) && PlumeViewJournalEntries < 16)
+                        {
+                            Frontier::DiagnosticJournal::Append("PlumeViewport", Outcome.View ? "image on " + Image.Adapter : "no image: " + Image.Failure);
+                            ++PlumeViewJournalEntries;
+                        }
+                        // 📝 The engine drained the queue before replacing its targets: the previous registration is no longer sampled.
+                        Image.Texture = PlumeViewTexture.Resolve(Outcome.View);
+                    }
+                    catch (const std::exception &Failure)
+                    {
+                        Image.Failure = std::string("Plume viewport failed: ") + Failure.what();
+                        Frontier::DiagnosticJournal::Append("PlumeViewportRefused", Failure.what());
                     }
                     return Image;
                 });
