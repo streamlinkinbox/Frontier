@@ -178,8 +178,11 @@ turns the fire, which shows from any side.
 - **The way in is driven by input events, not by a window on a display.** Ctrl+A, the search, the tile and *Add to scene* are ImGui key, character and
   pointer events fed to the workspace, and the pictures are its CPU raster. A person at the Windows application has not been through it.
 - **The native application is not verified.** `Experimental/Frontier/Native/WindowsFrontier.cpp` registers the presenter as it registers the Particle
-  editor's, but it cannot be compiled or run on this Linux host: the edit is unbuilt and unrun. The window has been drawn only by the CPU raster; it has not
-  been seen in the Windows editor, on a GPU or in a browser.
+  editor's, but it cannot be compiled or run on this Linux host: the edit is unbuilt and unrun. What was done instead is a type-check of its lines
+  (`Code/CheckWindowsRegistration.sh`): the declarations they use, the retire lambda and both registrations, copied byte for byte into a scratch file that
+  includes the same engine headers, pass `-fsyntax-only` (and three deliberately broken variants, a wrong `Render` signature, a wrong member name and a wrong
+  image type, are rejected). That covers the plume lines' use of the engine's API; it is not a build of the application, and the Windows-only code around
+  them is not covered. The window has been drawn only by the CPU raster; it has not been seen in the Windows editor, on a GPU or in a browser.
 - **Ignition is shown and inert.** The select is the Vehicle record's setting (its thermal `ignition`, `ignition_k` and `ignition_s`), shown on this page as the
   prototype shows it; here it changes nothing, and its note says to edit it on the Vehicle page.
 - **`FluidNodeEditor.html` is not ported.** It is a different tool (a graph editor for liquids), and its folder under
@@ -219,6 +222,7 @@ python3 Automation/PrepareUI.py               # the interface's dependencies (De
 python3 Automation/PrepareFonts.py            # the interface's typefaces
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DFRONTIER_HOST_VERIFICATION=ON
 ninja -C build FluidPlumeEditorValidation FluidPlumeEditorCapture
+Exhibits/FluidPlumeEditor/Code/CheckWindowsRegistration.sh build              # the native application's registration lines, type-checked only: a few seconds
 Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorValidation.sh build        # the window with a stand-in picture, no GPU: 40 to 50 s
 Exhibits/FluidPlumeEditor/Code/RunFluidPlumeEditorCapture.sh build [low]     # the plume in the stage: 4 min at High on SwiftShader, 1 m 43 s at Low
 ```

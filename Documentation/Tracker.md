@@ -1821,7 +1821,9 @@ the 5ec53579 line already in the tree; the owner chose it over porting the demo'
     Their refresh times and the HUD's rate (a fixed 1/30 s) are not performance figures. The Crosswind claim only proves the picture differs from the
     Tyre smoke one. Ignition is shown and inert.
   - The plume's presenter is registered in `Experimental/Frontier/Native/WindowsFrontier.cpp` (`5b7cdf8`), which cannot be compiled here: that edit is
-    **not compiled and not run**. The window was never seen in the Windows editor, on a GPU or in a browser.
+    **not compiled and not run**. Its registration lines are type-checked against the real headers (`Exhibits/FluidPlumeEditor/Code/CheckWindowsRegistration.sh`,
+    `-fsyntax-only`; three broken variants are rejected), which is not a build of the application. The window was never seen in the Windows editor, on a GPU or
+    in a browser.
   - No Windows binary was built or run (none was requested); everything ran on the Linux host.
 - **Commits:** `1c1ed7f`, `eb6cdfa`, `c039b0e`, `e4dad0a`, `1ef498f`, `b1c9544`, `0d8afbf`, `a8b1d79`, `4cc68b5`, `c9599fc`, `20c674d`, `ff28e4f`,
   `c564f60`, `a19c90c`, `59e22cd`, `31a4ad1` (the window), `bb7308e` (its validation and layout fixes), `b0cfd7e` (the plume's stand-ins move into the engine),
