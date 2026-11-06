@@ -5,7 +5,10 @@
 // 🧩 GENERATED. The browser simulator's 85 settings and 18 presets, transcribed for the engine; edit presets.js, never this file.
 //
 // 🔴 DO NOT EDIT. Automation/GenerateGasPresets.py writes this file from
-//    Experimental/Fluid/src/presets.js, and --check fails the build when the two disagree.
+//    Experimental/Fluid/src/presets.js and SceneSpecification.js, and --check fails the build when they disagree.
+//
+// 📝 A setting's default is the editor's InitialParameters (SceneSpecification.js: DEFAULT_PARAMS with 7 readings overridden): the readings every scene file
+//    and every preset is read on top of. It is not DEFAULT_PARAMS alone, which would open each preset on a different grid, quality and overlay.
 //
 // ⚠️ Settings marked [-] normalised are fractions of the domain, not world measurements.
 
@@ -21,13 +24,13 @@ namespace Frontier
 
 struct GasSettings
 {
-    int32_t     LatticeResolution        = 64;        // [voxels]  - gridResolution
+    int32_t     LatticeResolution        = 48;        // [voxels]  - gridResolution
     int32_t     PressureIterations       = 22;        // [-]       - pressureIterations
     float       TimeScale                = 1.0f;      // [-]       - timeScale
     bool        Paused                   = false;     // [-]       - paused
     bool        MacCormackAdvection      = true;      // [-]       - macCormackAdvection
     bool        EnclosedBox              = false;     // [-]       - enclosedBox
-    int32_t     VoxelQuantization        = 0;         // [-]       - voxelQuantization
+    float       VoxelQuantization        = 0.0f;      // [-]       - voxelQuantization
     bool        AutoGpuGovernor          = false;     // [-]       - autoGpuGovernor
     float       BoundsWidth              = 1.85f;     // [m]       - boundsWidth
     float       BoundsHeight             = 2.1f;      // [m]       - boundsHeight
@@ -67,8 +70,8 @@ struct GasSettings
     bool        ShrapnelEnabled          = true;      // [-]       - shrapnelEnabled
     int32_t     RenderChannel            = 0;         // [-]       - renderChannel
     int32_t     ColorPalette             = 0;         // [-]       - colorPalette
-    float       RenderScale              = 1.0f;      // [-]       - renderScale
-    int32_t     RaymarchSteps            = 96;        // [-]       - raymarchSteps
+    float       RenderScale              = 0.8f;      // [-]       - renderScale
+    int32_t     RaymarchSteps            = 72;        // [-]       - raymarchSteps
     int32_t     ShadowSteps              = 6;         // [-]       - shadowSteps
     float       DensityExtinction        = 18.5f;     // [1/m]     - densityExtinction
     float       SmokeAlbedo              = 0.22f;     // [-]       - smokeAlbedo
@@ -92,10 +95,10 @@ struct GasSettings
     float       ObstacleY                = 0.26f;     // [-]       - normalised fraction of the domain
     float       ObstacleZ                = 0.5f;      // [-]       - normalised fraction of the domain
     float       ObstacleRadius           = 0.16f;     // [-]       - normalised fraction of the domain
-    bool        ColliderAutoMove         = true;      // [-]       - colliderAutoMove
+    bool        ColliderAutoMove         = false;     // [-]       - colliderAutoMove
     float       ColliderSpeed            = 1.25f;     // [m/s]     - colliderSpeed
-    bool        BoundingBoxShown         = true;      // [-]       - showBoundingBox
-    bool        VoxelLatticeLinesShown   = true;      // [-]       - showVoxelGridLines
+    bool        BoundingBoxShown         = false;     // [-]       - showBoundingBox
+    bool        VoxelLatticeLinesShown   = false;     // [-]       - showVoxelGridLines
     bool        ActiveVoxelCellsShown    = false;     // [-]       - showActiveVoxelCells
     bool        FloorLatticeShown        = true;      // [-]       - showFloorGrid
     bool        EmbersShown              = true;      // [-]       - showEmbers
@@ -104,7 +107,7 @@ struct GasSettings
     float       EmberIntensity           = 1.4f;      // [-]       - emberIntensity
     float       EmberLifetime            = 1.0f;      // [s]       - emberLifetime
     float       EmberAshiness            = 0.0f;      // [-]       - emberAshiness
-    bool        TileSheetOverviewShown   = true;      // [-]       - showAtlasMinimap
+    bool        TileSheetOverviewShown   = false;     // [-]       - showAtlasMinimap
     int32_t     TileSheetOverviewReading = 0;         // [-]       - atlasMinimapField
 };
 
@@ -204,7 +207,7 @@ inline GasSettings ConstructPresetSettings(const char* Identity) noexcept
         Resolved.DynamicBounds = true;
         Resolved.DynamicBoundsMax = 1.2f;
         Resolved.ShrapnelEnabled = true;
-        Resolved.VoxelQuantization = 0;
+        Resolved.VoxelQuantization = 0.0f;
         Resolved.RaymarchSteps = 120;
         Resolved.RenderChannel = 0;
         Resolved.ColorPalette = 0;
@@ -264,7 +267,7 @@ inline GasSettings ConstructPresetSettings(const char* Identity) noexcept
         Resolved.DynamicBounds = true;
         Resolved.DynamicBoundsMax = 1.2f;
         Resolved.ShrapnelEnabled = true;
-        Resolved.VoxelQuantization = 0;
+        Resolved.VoxelQuantization = 0.0f;
         Resolved.RaymarchSteps = 120;
         Resolved.RenderChannel = 0;
         Resolved.ColorPalette = 0;
@@ -302,7 +305,7 @@ inline GasSettings ConstructPresetSettings(const char* Identity) noexcept
         Resolved.RaymarchSteps = 56;
         Resolved.ShadowSteps = 4;
         Resolved.RenderScale = 0.85f;
-        Resolved.VoxelQuantization = 0;
+        Resolved.VoxelQuantization = 0.0f;
         Resolved.RenderChannel = 0;
         Resolved.VorticityConfinement = 8.5f;
         Resolved.Buoyancy = 6.0f;
@@ -316,7 +319,7 @@ inline GasSettings ConstructPresetSettings(const char* Identity) noexcept
         Resolved.DynamicBounds = true;
         Resolved.DynamicBoundsMax = 1.2f;
         Resolved.ShrapnelEnabled = true;
-        Resolved.VoxelQuantization = 0;
+        Resolved.VoxelQuantization = 0.0f;
         Resolved.RaymarchSteps = 120;
         Resolved.RenderChannel = 0;
         Resolved.ColorPalette = 2;
@@ -349,7 +352,7 @@ inline GasSettings ConstructPresetSettings(const char* Identity) noexcept
         Resolved.BoundsWidth = 1.9f;
         Resolved.BoundsHeight = 2.4f;
         Resolved.DynamicBounds = true;
-        Resolved.VoxelQuantization = 0;
+        Resolved.VoxelQuantization = 0.0f;
         Resolved.RenderChannel = 0;
         Resolved.ColorPalette = 1;
         Resolved.VorticityConfinement = 8.8f;
@@ -443,7 +446,7 @@ inline GasSettings ConstructPresetSettings(const char* Identity) noexcept
     }
     else if (std::strcmp(Identity, "voxelized_stylized") == 0)
     {
-        Resolved.VoxelQuantization = 0;
+        Resolved.VoxelQuantization = 0.88f;
         Resolved.RenderChannel = 1;
         Resolved.VorticityConfinement = 8.0f;
         Resolved.ActiveVoxelCellsShown = true;

@@ -60,6 +60,60 @@ size_t CountLines(const std::string& Text)
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                          ⓪ THE SETTINGS AGAINST THE PROTOTYPE'S OWN ARITHMETIC
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 Reference/PresetParameters.toml is ConstructPresetParameters(identity) of each preset, and InitialParameters, as the prototype's own code computes
+//    them (Code/DumpPresetParameters.mjs). The native presets are built from the generated header: a default that was taken from the wrong place would
+//    open every preset on another grid, quality and overlay, which no round trip through the file format can show.
+void ValidatePresetsAgainstPrototype()
+{
+    toml::table Reference;
+    try
+    {
+        Reference = toml::parse(ReadWhole("Exhibits/FluidEditor/Reference/PresetParameters.toml"));
+    }
+    catch (const toml::parse_error&)
+    {
+        Verify(false, "Exhibits/FluidEditor/Reference/PresetParameters.toml is readable (run from the repository root)");
+        return;
+    }
+    const auto Expect = [&](const char* Title, GasSettings& Expected, int& Read, int& Unread) {
+        const toml::table* Table = Reference[Title].as_table();
+        if (Table == nullptr) { ++Unread; return; }
+        for (const auto& [Key, Entry] : *Table)
+        {
+            if (GasSceneDetail::CrossSetting(Expected, Key.str(), Entry) == GasSceneDetail::Crossing::Read) ++Read;
+            else ++Unread;
+        }
+    };
+    int         Read = 0, Unread = 0, Differing = 0;
+    std::string First;
+    GasSettings Initial{};
+    int         InitialRead = 0, InitialUnread = 0;
+    Expect("initial", Initial, InitialRead, InitialUnread);
+    GasSettings Native{};
+    // 📝 The defaults of the struct are the editor's InitialParameters, in all 85 settings.
+    Verify(InitialRead == 85 && InitialUnread == 0 && SpellAll(Native) == SpellAll(Initial),
+           "GasSettings' defaults equal the prototype's InitialParameters in all 85 settings (grid " + std::to_string(Native.LatticeResolution) + ", " +
+               std::to_string(Native.RaymarchSteps) + " march steps, no minimap, no grid lines, no bounding box, no collider motion)");
+    for (uint32_t Slot = 0; Slot < GasPresetCount; ++Slot)
+    {
+        const char* Identity = GasPresetLibrary()[Slot].Identity;
+        GasSettings Expected{};
+        Expect(Identity, Expected, Read, Unread);
+        if (SpellAll(ConstructPresetSettings(Identity)) != SpellAll(Expected))
+        {
+            ++Differing;
+            if (First.empty()) First = Identity;
+        }
+    }
+    Verify(Read == static_cast<int>(GasPresetCount * GasSettingCount) && Unread == 0,
+           "the reference holds all 18 presets with all 85 settings each, every one read by the codec");
+    Verify(Differing == 0, "all 18 presets built natively equal the prototype's ConstructPresetParameters in all 85 settings" + (First.empty() ? std::string() : " (first to differ: " + First + ")"));
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                    ① THE CATALOGUE
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -355,6 +409,7 @@ int main(int ArgumentCount, char** Arguments)
     for (int At = 1; At < ArgumentCount; ++At)
         if (std::strcmp(Arguments[At], "--require-vulkan") == 0) RequireVulkan = true;
 
+    ValidatePresetsAgainstPrototype();
     ValidateCatalogue();
     ValidateCamera();
     ValidateSolver(RequireVulkan);

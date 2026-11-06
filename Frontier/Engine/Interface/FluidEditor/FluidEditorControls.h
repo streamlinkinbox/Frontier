@@ -451,7 +451,7 @@ inline bool WriteSetting(GasSettings& Settings, const char* Key, float Reading) 
     if (std::strcmp(Key, "boundsHeight") == 0) { Settings.BoundsHeight = std::clamp(Reading, 1.2f, 4.0f); return true; }
     if (std::strcmp(Key, "dynamicBoundsMax") == 0) { Settings.DynamicBoundsMax = std::clamp(Reading, 1.1f, 2.2f); return true; }
     if (std::strcmp(Key, "gridResolution") == 0) { Settings.LatticeResolution = int32_t(std::lround(Reading)); return true; }
-    if (std::strcmp(Key, "voxelQuantization") == 0) { Settings.VoxelQuantization = int32_t(std::lround(std::clamp(Reading, 0.0f, 1.0f))); return true; }
+    if (std::strcmp(Key, "voxelQuantization") == 0) { Settings.VoxelQuantization = std::clamp(Reading, 0.0f, 1.0f); return true; }
     if (std::strcmp(Key, "autoGpuGovernor") == 0) { Settings.AutoGpuGovernor = (Reading >= 0.5f); return true; }
     if (std::strcmp(Key, "showActiveVoxelCells") == 0) { Settings.ActiveVoxelCellsShown = (Reading >= 0.5f); return true; }
     if (std::strcmp(Key, "showAtlasMinimap") == 0) { Settings.TileSheetOverviewShown = (Reading >= 0.5f); return true; }
