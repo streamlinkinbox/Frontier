@@ -399,6 +399,10 @@ target_link_libraries(SessionValidation PRIVATE FrontierSession EverestNavigatio
 add_executable(VolumetricAndEditorValidation ../Validation/VolumetricAndEditorValidation.cpp)
 target_link_libraries(VolumetricAndEditorValidation PRIVATE FrontierVolumetrics)
 
+# The Fluid editor's footing: the catalogue, the orbit camera and the Pyro solver against the prototype's own arithmetic.
+add_executable(PyroVolumeValidation ../Validation/PyroVolumeValidation.cpp)
+target_link_libraries(PyroVolumeValidation PRIVATE FrontierVolumetrics)
+
 add_executable(LobbySession Game/LobbySessionMain.cpp)
 target_link_libraries(LobbySession PRIVATE FrontierGame FrontierSession)
 
@@ -443,5 +447,8 @@ if(BUILD_TESTING)
              WORKING_DIRECTORY "${FRONTIER_ROOT}")
     add_test(NAME VolumetricAndEditorValidation
              COMMAND VolumetricAndEditorValidation
+             WORKING_DIRECTORY "${FRONTIER_ROOT}")
+    add_test(NAME PyroVolumeValidation
+             COMMAND PyroVolumeValidation
              WORKING_DIRECTORY "${FRONTIER_ROOT}")
 endif()
