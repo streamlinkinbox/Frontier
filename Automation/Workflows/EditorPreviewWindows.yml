@@ -95,9 +95,22 @@ jobs:
           python -m pip install --disable-pip-version-check -r Automation/FontRequirements.txt
           python Automation/PrepareUI.py
           python Automation/PrepareFonts.py
-      - name: cmake -S . -B Build/Editor -A x64, then the Frontier target
+      - name: Which cl.exe the generator picks (its default host tools, and with -T host=x64)
         run: |
-          cmake -S . -B Build/Editor -A x64
+          # 📝 A guess being tested: that the generator runs the 32-bit compiler unless it is told `host=x64` (this step reports which one this runner gets), and that a 32-bit cl.exe
+          #    runs out of address space in a translation unit as large as SolidArcDocument.cpp, which would explain an internal compiler error (C1001) that moves with the edits.
+          mkdir -p Build/Probe
+          printf 'cmake_minimum_required(VERSION 3.20)\nproject(Probe CXX)\n' > Build/Probe/CMakeLists.txt
+          cmake -S Build/Probe -B Build/Probe/Default -A x64 > /dev/null
+          cmake -S Build/Probe -B Build/Probe/Host64 -A x64 -T host=x64 > /dev/null
+          for Dir in Default Host64; do
+            Compiler=$(grep -h -m1 'set(CMAKE_CXX_COMPILER ' Build/Probe/$Dir/CMakeFiles/*/CMakeCXXCompiler.cmake | head -1 | sed 's/%/%25/g')
+            echo "::notice title=cl.exe, $Dir::$Compiler"
+          done
+      - name: cmake -S . -B Build/Editor -A x64 -T host=x64, then the Frontier target
+        run: |
+          # 📝 -T host=x64: the 64-bit compiler (see the step above); the build is otherwise the one Exhibits/SceneViewport/README.md tells a Windows checkout to make.
+          cmake -S . -B Build/Editor -A x64 -T host=x64
           mkdir -p Build
           Log=Build/build.log
           Status=0
