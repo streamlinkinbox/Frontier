@@ -40,6 +40,8 @@ struct Sys {
   mol3: vec4f,     // x reaction radius, y damping, z -, w -
   emit: vec4f,     // x head, y seed base, z shape (0 streak,1 sphere,2 leaf,3 soft), w leaf mode
   misc: vec4f,     // x size scale
+  colorCfg: vec4f, // x stopCount, y colorBy, z colorMin, w colorMax
+  colorCfg2: vec4f,// x repeat, y wrapMode (0 clamp, 1 repeat, 2 mirror), z phase, w interp (0 linear, 1 smooth, 2 stepped)
 };
 
 struct Part {
@@ -91,6 +93,116 @@ fn rotAxis(v: vec3f, k: vec3f, a: f32) -> vec3f {
 }
 `;
 
+  const RAMP_WGSL = /* wgsl */ `
+fn rampHash3(ix: i32, iy: i32, iz: i32) -> f32 {
+  var h = bitcast<u32>(ix) * 374761393u + bitcast<u32>(iy) * 668265263u + bitcast<u32>(iz) * 2147483647u;
+  h = (h ^ (h >> 13u)) * 1274126177u;
+  h = h ^ (h >> 16u);
+  return f32(h) / 4294967296.0;
+}
+
+fn rampVNoise3(p: vec3f) -> f32 {
+  let fl = floor(p);
+  let ix = i32(fl.x);
+  let iy = i32(fl.y);
+  let iz = i32(fl.z);
+  let f = p - fl;
+  let u = f * f * (3.0 - 2.0 * f);
+  let c000 = rampHash3(ix, iy, iz);         let c100 = rampHash3(ix + 1, iy, iz);
+  let c010 = rampHash3(ix, iy + 1, iz);     let c110 = rampHash3(ix + 1, iy + 1, iz);
+  let c001 = rampHash3(ix, iy, iz + 1);     let c101 = rampHash3(ix + 1, iy, iz + 1);
+  let c011 = rampHash3(ix, iy + 1, iz + 1); let c111 = rampHash3(ix + 1, iy + 1, iz + 1);
+  let x00 = mix(c000, c100, u.x); let x10 = mix(c010, c110, u.x);
+  let x01 = mix(c001, c101, u.x); let x11 = mix(c011, c111, u.x);
+  return mix(mix(x00, x10, u.y), mix(x01, x11, u.y), u.z);
+}
+
+fn wrapRampT(tIn: f32) -> f32 {
+  let rep = max(0.05, S.colorCfg2.x);
+  let phase = S.colorCfg2.z;
+  let u = tIn * rep + phase;
+  let wrapM = u32(S.colorCfg2.y + 0.5);
+  if (wrapM == 1u) { return u - floor(u); }
+  if (wrapM == 2u) {
+    let m2 = u - 2.0 * floor(u * 0.5);
+    return select(2.0 - m2, m2, m2 <= 1.0);
+  }
+  return clamp(u, 0.0, 1.0);
+}
+
+fn evalColorRamp(tRaw: f32) -> vec4f {
+  let nStops = u32(max(1.0, S.colorCfg.x + 0.5));
+  if (nStops <= 1u) { return rampStops[0]; }
+  let t = wrapRampT(tRaw);
+  let interp = u32(S.colorCfg2.w + 0.5);
+  if (t <= rampStops[1].x) { return rampStops[0]; }
+  let lastIdx = nStops - 1u;
+  if (t >= rampStops[lastIdx * 2u + 1u].x) { return rampStops[lastIdx * 2u]; }
+  var lo = 0u;
+  var hi = lastIdx;
+  for (var step = 0u; step < 16u; step++) {
+    if (lo + 1u >= hi) { break; }
+    let mid = (lo + hi) >> 1u;
+    if (rampStops[mid * 2u + 1u].x <= t) { lo = mid; } else { hi = mid; }
+  }
+  let p0 = rampStops[lo * 2u + 1u].x;
+  let p1 = rampStops[(lo + 1u) * 2u + 1u].x;
+  var frac = clamp((t - p0) / max(1e-5, p1 - p0), 0.0, 1.0);
+  if (interp == 1u) { frac = frac * frac * (3.0 - 2.0 * frac); }
+  else if (interp == 2u) { frac = 0.0; }
+  return mix(rampStops[lo * 2u], rampStops[(lo + 1u) * 2u], frac);
+}
+
+fn evalAttrScalar(modeDefaultT: f32, pos: vec3f, vel: vec3f, age: f32, life: f32, size: f32, ang: f32, seed: f32) -> f32 {
+  let by = u32(S.colorCfg.y + 0.5);
+  if (by == 0u) { return clamp(modeDefaultT, 0.0, 1.0); }
+  var raw = modeDefaultT;
+  let lo = S.colorCfg.z;
+  let hi = S.colorCfg.w;
+  let invSpan = 1.0 / max(1e-4, abs(hi - lo));
+  let signSpan = select(-1.0, 1.0, hi >= lo);
+  if (by == 1u) {
+    let safeL = select(max(0.05, life), 3.0, life > 1.0e6);
+    raw = age / safeL;
+  } else if (by == 2u) {
+    raw = age;
+  } else if (by == 3u) {
+    raw = length(vel);
+  } else if (by == 4u) {
+    raw = vel.y;
+  } else if (by == 5u) {
+    let d = pos - S.origin.xyz;
+    raw = (atan2(d.z, d.x) + 3.14159265) * 0.15915494;
+  } else if (by == 6u) {
+    raw = (atan2(vel.z, vel.x) + 3.14159265) * 0.15915494;
+  } else if (by == 7u) {
+    raw = length(pos - S.origin.xyz);
+  } else if (by == 8u) {
+    raw = pos.y;
+  } else if (by == 9u) {
+    raw = rampVNoise3(pos * max(0.25, S.mol.y) + vec3f(0.0, S.phys.y * 0.18, 0.0));
+  } else if (by == 10u) {
+    raw = hashF(seed, 99u);
+  } else if (by == 11u) {
+    let aNorm = ang * 0.15915494;
+    raw = aNorm - floor(aNorm);
+  } else if (by == 12u) {
+    raw = length(pos - G.camPos.xyz);
+  } else if (by == 13u) {
+    raw = size;
+  } else if (by == 14u) {
+    raw = select(life, 3.0, life > 1.0e6);
+  }
+  let s = (raw - lo) * invSpan * signSpan;
+  let wrapM = u32(S.colorCfg2.y + 0.5);
+  return select(s, clamp(s, 0.0, 1.0), wrapM == 0u);
+}
+
+fn evalAttrColor(modeDefaultT: f32, pos: vec3f, vel: vec3f, age: f32, life: f32, size: f32, ang: f32, seed: f32) -> vec4f {
+  return evalColorRamp(evalAttrScalar(modeDefaultT, pos, vel, age, life, size, ang, seed));
+}
+`;
+
   // ---------------------------------------------------------------- simulation
   const SIM = /* wgsl */ `
 @group(0) @binding(0) var<uniform> G: Glob;
@@ -104,6 +216,8 @@ fn rotAxis(v: vec3f, k: vec3f, a: f32) -> vec3f {
 @group(1) @binding(5) var<storage, read> snap: array<Part>;
 @group(1) @binding(6) var<storage, read> fields: array<vec4f>;
 @group(1) @binding(7) var<storage, read_write> trailBuf: array<vec4f>;
+@group(1) @binding(8) var<storage, read> rampStops: array<vec4f>;
+${RAMP_WGSL}
 
 // 📝 Force fields, packed by ForceFieldCatalogue (fields[0] = (count, time, 0, 0)). Field k uses 4 vec4 slots 1+4k..4+4k:
 //   a = (centre.xyz, radius), b = (type 0 Attract / 1 Repel / 2 Lift / 3 Magnetic / 4 Orbit / 5 Gravity / 6 Drag, strength*env, swirl_or_guide, swallow),
@@ -681,7 +795,7 @@ fn evalDynStrand(slot: u32, cap: u32, dynMode: u32, windTime: f32) -> DynStrandO
       let pA = vec3f(mastX, yRow, org.z);
       let pB = pA + fDir * fLen;
       let stripW = (fH / f32(nRows)) * 0.64;
-      return DynStrandOut(pA, pB, 0.04, stripW, v, 0.0, 0.0, 1.15, 0.85, 1.0);
+      return DynStrandOut(pA, pB, max(0.02, dynSag * 0.28), stripW, v, 0.0, 0.0, 1.15, 0.85, 1.0);
     }
     let sH = max(0.8, ext.y * 1.85);
     let yTop = org.y + dynH;
@@ -695,6 +809,8 @@ fn evalDynStrand(slot: u32, cap: u32, dynMode: u32, windTime: f32) -> DynStrandO
   }
   if (dynMode == 4u) {
     // Grass & Golden Wheat Field
+    let nBlades = clamp(rows * 6u, 24u, cap);
+    if (slot >= nBlades) { return DynStrandOut(org, org, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.8, 0.0); }
     let rx = (hashF(sd, 1u) * 2.0 - 1.0) * ext.x;
     let rz = (hashF(sd, 2u) * 2.0 - 1.0) * ext.z;
     let pA = vec3f(org.x + rx, 0.0, org.z + rz);
@@ -702,10 +818,12 @@ fn evalDynStrand(slot: u32, cap: u32, dynMode: u32, windTime: f32) -> DynStrandO
     let leanA = hashF(sd, 4u) * 6.2831853;
     let pB = pA + vec3f(cos(leanA) * 0.14 * hStalk, hStalk, sin(leanA) * 0.14 * hStalk);
     let hasWheat = select(0.0, 0.125, dynSub > 0u && (slot % 3u) == 0u);
-    return DynStrandOut(pA, pB, -0.06 * hStalk, baseW, hashF(sd, 5u), 0.0, hasWheat, 1.20, 0.96, 1.0);
+    return DynStrandOut(pA, pB, -max(0.03, dynSag * 0.35) * hStalk, baseW, hashF(sd, 5u), 0.0, hasWheat, 1.20, 0.96, 1.0);
   }
   if (dynMode == 5u) {
     // Tall Lakeside Reeds with brown velvet cattail spikes
+    let nReeds = clamp(rows * 5u, 20u, cap);
+    if (slot >= nReeds) { return DynStrandOut(org, org, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.8, 0.0); }
     let clumpId = slot % 6u;
     let cSeed = f32(clumpId) * 23.0 + 7.0;
     let cx = (hashF(cSeed, 1u) * 2.0 - 1.0) * ext.x * 0.72;
@@ -717,7 +835,7 @@ fn evalDynStrand(slot: u32, cap: u32, dynMode: u32, windTime: f32) -> DynStrandO
     let archDir = vec2f(cos(ang), sin(ang)) * (0.28 + 0.25 * hashF(sd, 4u));
     let pB = pA + vec3f(archDir.x * hReed, hReed * 0.92, archDir.y * hReed);
     let hasCattail = select(0.0, 0.095, (slot % 3u) == 0u);
-    return DynStrandOut(pA, pB, -0.14 * hReed, baseW, hashF(sd, 5u), 0.0, hasCattail, 1.10, 0.84, 1.0);
+    return DynStrandOut(pA, pB, -max(0.08, dynSag * 0.40) * hReed, baseW, hashF(sd, 5u), 0.0, hasCattail, 1.10, 0.84, 1.0);
   }
   if (dynMode == 6u) {
     // Lush Woodland Broad Fern Plant (compound feathered arching fronds!)
@@ -734,26 +852,29 @@ fn evalDynStrand(slot: u32, cap: u32, dynMode: u32, windTime: f32) -> DynStrandO
     let frondW = max(0.16, baseW * mix(0.78, 1.15, tierFrac));
     return DynStrandOut(pA, pB, arch, frondW, tierFrac, 0.0, 0.0, 1.0, 0.8, 1.0);
   }
-  // dynMode == 7u: Articulated Swaying Canopy Tree (0: trunk, 1..nLimbs: boughs, nLimbs+1..cap-1: canopy leaves!)
-  let nLimbs = clamp(rows, 12u, 28u);
-  if (slot == 0u) {
-    let pA = vec3f(org.x, 0.0, org.z);
-    let pB = vec3f(org.x, dynH * 0.64, org.z);
-    return DynStrandOut(pA, pB, 0.0, max(0.10, dynH * 0.065), 0.0, 0.0, 0.0, 0.32, 0.8, 1.0);
-  }
-  if (slot <= nLimbs) {
-    let lIdx = slot - 1u;
-    let uTr = mix(0.42, 0.96, f32(lIdx) / max(1.0, f32(nLimbs - 1u)));
-    let attachK = clamp(u32(uTr * 19.0 + 0.5), 6u, 18u);
-    let trunkEntry = trailBuf[attachK];
-    let trunkPt = trunkEntry.xyz;
-    let pA = select(mix(vec3f(org.x, 0.0, org.z), vec3f(org.x, dynH * 0.64, org.z), uTr), trunkPt, trunkEntry.w > 0.5 && length(trunkPt - org) > 0.05 && S.phys.y > 0.05);
-    let az = f32(lIdx) * 2.3999632 + (hashF(sd, 1u) - 0.5) * 0.25;
-    let reach = dynH * mix(0.50, 0.24, uTr) * mix(0.85, 1.20, hashF(sd, 2u));
-    let lift = dynH * mix(0.32, 0.42, uTr) * mix(0.82, 1.18, hashF(sd, 3u));
-    let pB = pA + vec3f(cos(az) * reach, lift, sin(az) * reach);
-    let bWidth = max(0.025, dynH * mix(0.036, 0.015, uTr));
-    return DynStrandOut(pA, pB, -0.08 * reach, bWidth, 0.12, 0.0, 0.0, 0.72, 0.8, 1.0);
+  if (dynMode == 7u) {
+    // dynMode == 7u: Articulated Swaying Canopy Tree (0: trunk, 1..nLimbs: boughs, nLimbs+1..cap-1: canopy leaves!)
+    let nLimbs = clamp(rows, 12u, 28u);
+    if (slot == 0u) {
+      let pA = vec3f(org.x, 0.0, org.z);
+      let pB = vec3f(org.x, dynH * 0.64, org.z);
+      return DynStrandOut(pA, pB, 0.0, max(0.10, dynH * 0.065), 0.0, 0.0, 0.0, 0.32, 0.8, 1.0);
+    }
+    if (slot <= nLimbs) {
+      let lIdx = slot - 1u;
+      let uTr = mix(0.42, 0.96, f32(lIdx) / max(1.0, f32(nLimbs - 1u)));
+      let attachK = clamp(u32(uTr * 19.0 + 0.5), 6u, 18u);
+      let trunkEntry = trailBuf[attachK];
+      let trunkPt = trunkEntry.xyz;
+      let pA = select(mix(vec3f(org.x, 0.0, org.z), vec3f(org.x, dynH * 0.64, org.z), uTr), trunkPt, trunkEntry.w > 0.5 && length(trunkPt - org) > 0.05 && S.phys.y > 0.05);
+      let az = f32(lIdx) * 2.3999632 + (hashF(sd, 1u) - 0.5) * 0.25;
+      let reach = dynH * mix(0.50, 0.24, uTr) * mix(0.85, 1.20, hashF(sd, 2u));
+      let lift = dynH * mix(0.32, 0.42, uTr) * mix(0.82, 1.18, hashF(sd, 3u));
+      let pB = pA + vec3f(cos(az) * reach, lift, sin(az) * reach);
+      let bWidth = max(0.025, dynH * mix(0.036, 0.015, uTr));
+      return DynStrandOut(pA, pB, -max(0.04, dynSag * 0.35) * reach, bWidth, 0.12, 0.0, 0.0, 0.72, 0.8, 1.0);
+    }
+    return DynStrandOut(org, org, 0.0, 0.0, 0.78, 0.0, max(0.16, baseW * 1.1), 1.35, 0.9, 1.0);
   }
   if (dynMode == 8u) {
     // dynMode == 8u: Underwater Giant Kelp Forest (stipes + gas-bladder side fronds waving in water current)
@@ -782,6 +903,8 @@ fn evalDynStrand(slot: u32, cap: u32, dynMode: u32, windTime: f32) -> DynStrandO
   }
   if (dynMode == 9u) {
     // dynMode == 9u: Bioluminescent Sea Anemone Tentacle Clusters on a coral dome
+    let nAnem = clamp(rows * 3u, 18u, cap);
+    if (slot >= nAnem) { return DynStrandOut(org, org, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.8, 0.0); }
     let clusterIdx = slot % 3u;
     let cPhi = f32(clusterIdx) * 2.0943951 + 0.4;
     let cRad = select(0.55 * max(0.4, S.origin.w), 0.0, clusterIdx == 0u);
@@ -890,13 +1013,12 @@ fn evalCrackParticle(idx: u32, cap: u32, age: f32) -> Part {
     let tiltAng = crackAmt * (0.28 + 0.48 * faultProx + shock * 0.35) * asym;
     let slabY = max(0.015, org.y + ext.y * 0.38 + heaveY);
     let slabW = max(cellW, cellD) * 0.52;
-    var sc = mix(S.colA, S.colC, clamp(faultProx * 0.75 + shock * 0.6, 0.0, 1.0));
-    if (crackAmt > 0.12 && faultProx > 0.45) {
-      sc = mix(sc, S.colB, clamp((faultProx - 0.4) * 1.2 + shock * 0.75, 0.0, 1.0));
-    }
     let stressGlow = clamp(crackAmt * (0.35 + 0.75 * faultProx + shock * 0.8), 0.0, 1.0);
     let sepPull = normalize(vec2f(-relHit.y, relHit.x) * asym + relHit * 0.35 + vec2f(1e-4, 0.0)) * (crackAmt * cDepth * 0.24 * faultProx);
-    return Part(vec4f(wx + sepPull.x, slabY, wz + sepPull.y, age), vec4f(relHit.x, 0.0, relHit.y, 1.0e9), sc,
+    let slabPos = vec3f(wx + sepPull.x, slabY, wz + sepPull.y);
+    let scT = clamp(faultProx * 0.48 + shock * 0.42 + select(0.0, 0.25, crackAmt > 0.12 && faultProx > 0.45), 0.0, 1.0);
+    let sc = evalAttrColor(scT, slabPos, vec3f(0.0), S.phys.y, 1.0e9, slabW, tiltAng, sd);
+    return Part(vec4f(slabPos, age), vec4f(relHit.x, 0.0, relHit.y, 1.0e9), sc,
                 vec4f(slabW, tiltAng, stressGlow, sd), vec4f(0.0, 1.0, f32(crackMode), 1.0));
   }
   // Slots slabCap .. cap-1: Flying crack-front frost vapor / ice splinters / basalt embers along jagged seams!
@@ -919,20 +1041,24 @@ fn evalCrackParticle(idx: u32, cap: u32, age: f32) -> Part {
   let grav = select(5.2, 6.8, crackMode == 2u);
   var dPos = vec3f(spawnXZ.x, org.y + 0.14, spawnXZ.y) + v0 * locAge + vec3f(0.0, -0.5 * grav * locAge * locAge, 0.0);
   dPos.y = max(org.y + 0.04, dPos.y);
-  let dSize = max(0.035, S.life.z * mix(0.28, 0.65, hashF(sdD, 10u))) * (1.0 - 0.45 * t01);
-  var dc = mix(S.colC, S.colB, smoothstep(0.0, 0.6, hashF(sdD, 11u)));
-  dc.a = clamp(smoothstep(0.0, 0.12, t01) * (1.0 - smoothstep(0.55, 1.0, t01)) * 0.95, 0.0, 1.0);
+  let dSize = max(0.025, S.life.z * S.misc.x * mix(0.28, 0.65, hashF(sdD, 10u))) * (1.0 - 0.45 * t01);
+  var dc = evalAttrColor(0.50 + 0.45 * smoothstep(0.0, 0.6, hashF(sdD, 11u)), dPos, v0, locAge, cycleD, dSize, locAge * 4.5, sdD);
+  dc.a = clamp(dc.a * smoothstep(0.0, 0.12, t01) * (1.0 - smoothstep(0.55, 1.0, t01)) * 0.95, 0.0, 1.0);
   return Part(vec4f(dPos, age), vec4f(v0, 1.0e9), dc, vec4f(dSize, locAge * 4.5, 1.0, sdD), vec4f(0.0, 0.0, f32(crackMode), 0.0));
 }
 
 fn evalFerroParticle(idx: u32, cap: u32, age: f32) -> Part {
   let ferroMode = clamp(u32(S.mol2.x + 0.5), 1u, 2u);
+  let nSpikes = clamp(u32(S.mol2.y + 0.5), 16u, max(16u, cap));
+  if (idx >= nSpikes) {
+    return Part(vec4f(S.origin.xyz, age), vec4f(0.0, 0.0, 0.0, -1.0), vec4f(0.0), vec4f(0.0, 0.0, 0.0, f32(idx)), vec4f(0.0));
+  }
   let poolR = max(0.45, S.mol2.w);
   let magSpd = S.mol.w;
   let freq = max(0.2, S.mol.y);
   let amp = max(0.1, S.mol.z);
-  let baseH = max(0.25, S.mol3.x);
-  let anc = evalFerroAnchor(idx, cap, ferroMode, S.origin.xyz, poolR, baseH);
+  let baseH = max(0.20, S.mol3.x);
+  let anc = evalFerroAnchor(idx, nSpikes, ferroMode, S.origin.xyz, poolR, baseH);
   let mPos = evalFerroMagnet(S.phys.y, S.origin.xyz, poolR, magSpd, ferroMode);
   var B = mPos - anc.pos;
   let dMag = max(0.22, length(B));
@@ -956,7 +1082,8 @@ fn evalFerroParticle(idx: u32, cap: u32, age: f32) -> Part {
   let hexA = sin(anc.pos.x * (6.2 * freq) + S.phys.y * 0.4) * sin(anc.pos.z * (6.2 * freq) - S.phys.y * 0.35);
   let hexB = cos((anc.pos.x * 0.5 + anc.pos.z * 0.866) * (6.8 * freq));
   let crest = pow(clamp(0.48 + 0.36 * hexA + 0.28 * hexB, 0.0, 1.0), 1.35);
-  let hSpike = clamp((0.12 + 0.88 * bStrength * amp * 0.42) * crest, 0.04, 0.95);
+  let hScale = clamp(baseH / 1.05, 0.18, 2.2);
+  let hSpike = clamp((0.12 + 0.88 * bStrength * amp * 0.42) * crest * hScale, 0.03, 1.85);
   let leanDir = normalize(mix(anc.norm, pullDir, clamp(bStrength * 0.58, 0.0, 0.78)));
   let tipPos = anc.pos + leanDir * hSpike;
   let midPos = mix(anc.pos, tipPos, 0.52) + anc.norm * (hSpike * 0.12);
@@ -968,7 +1095,7 @@ fn evalFerroParticle(idx: u32, cap: u32, age: f32) -> Part {
     trailBuf[base + k] = vec4f(pt, clamp(bStrength, 0.1, 1.2));
   }
   let wBase = max(0.012, S.life.z * S.misc.x * (0.48 + 0.68 * crest));
-  let fc = mix(S.colA, S.colC, smoothstep(0.2, 0.9, bStrength * 0.7));
+  let fc = evalAttrColor(clamp(bStrength * 0.55, 0.0, 1.0), anc.pos, vec3f(0.0), S.phys.y, 1.0e9, wBase, 0.0, f32(idx));
   return Part(vec4f(anc.pos, age), vec4f(leanDir, 1.0e9), fc, vec4f(wBase, bStrength, hSpike, f32(idx)), vec4f(anc.norm, 1.0));
 }
 
@@ -1070,7 +1197,7 @@ fn evalBeadParticle(idx: u32, cap: u32, age: f32, dt: f32) -> Part {
     trailBuf[base + k] = vec4f(curN[k], tipU);
   }
   let glintPos = mix(curN[5], curN[16], fract(t * 0.42 + rest.phase * 0.159));
-  let colMix = mix(S.colC, S.colB, clamp(impactFlash * 0.65, 0.0, 1.0));
+  let colMix = evalAttrColor(clamp(0.48 + impactFlash * 0.45, 0.0, 1.0), glintPos, vec3f(0.0), S.phys.y, 1.0e9, rest.wSize, 0.0, q.m.w);
   return Part(vec4f(glintPos, age), vec4f(0.0, 0.0, 0.0, 1.0e9), colMix,
               vec4f(rest.wSize, impactFlash, rest.isSail, q.m.w), vec4f(impactFlash, 0.0, f32(bMode), 1.0));
 }
@@ -1123,8 +1250,8 @@ fn evalSeedHeadParticle(idx: u32, cap: u32, age: f32, dt: f32) -> Part {
       let pt = rPos * (iuu * iuu) + mid * (2.0 * iuu * uu) + tip * (uu * uu);
       trailBuf[base + k] = vec4f(pt, 1.0);
     }
-    let stemCol = mix(S.colA, S.colC, select(0.15, 0.08, sMode == 2u));
     let wStem = select(0.026, 0.055, sMode == 2u) * S.misc.x;
+    let stemCol = evalAttrColor(select(0.15, 0.08, sMode == 2u), tip, vec3f(0.0), S.phys.y, 1.0e9, wStem, 0.0, q.m.w);
     return Part(vec4f(tip, age), vec4f(0.0, 0.0, 0.0, 1.0e9), stemCol, vec4f(wStem, 0.0, 0.0, q.m.w), vec4f(1.0, 0.0, f32(sMode), 1.0));
   }
   // Seed pappus florets & orchard blossoms attached to parent stem nodes, detaching in gusts or ball brushes
@@ -1171,7 +1298,7 @@ fn evalSeedHeadParticle(idx: u32, cap: u32, age: f32, dt: f32) -> Part {
       let fRes = evalFields(pos, vel);
       vel += fRes.xyz * dt;
     }
-    vel += simCurl(pos * 0.9 + vec3f(t * 0.35)) * (0.75 * dt);
+    vel += simCurl(pos * 0.9 + vec3f(t * 0.35)) * ((0.35 + S.phys2.w * 0.85) * dt);
     vel.y += (-S.speed.w * 9.81 + S.phys2.z * 9.81) * dt;
     if (G.ballPos.w > 0.04) {
       let bd = pos - G.ballPos.xyz;
@@ -1193,9 +1320,10 @@ fn evalSeedHeadParticle(idx: u32, cap: u32, age: f32, dt: f32) -> Part {
   trailBuf[base + 1u] = vec4f(pos, -1.0);
   let spin = q.m.y + dt * select(1.4, 3.2, detAge > 0.05) * (0.5 + hashF(sd, 9u));
   let life01 = clamp(detAge / 12.5, 0.0, 1.0);
-  var col = select(mix(S.colC, S.colB, hashF(sd, 10u)), mix(S.colB, S.colC, life01), detAge > 0.05);
-  col.a = clamp(1.0 - smoothstep(0.75, 1.0, life01), 0.0, 1.0);
   let sz = S.life.z * S.misc.x * (0.85 + 0.32 * hashF(sd, 11u));
+  let seedT = select(0.45 + 0.50 * hashF(sd, 10u), 1.0 - 0.55 * life01, detAge > 0.05);
+  var col = evalAttrColor(seedT, pos, vel, detAge, 12.5, sz, spin, sd);
+  col.a = clamp(col.a * (1.0 - smoothstep(0.75, 1.0, life01)), 0.0, 1.0);
   return Part(vec4f(pos, age), vec4f(vel, 1.0e9), col, vec4f(sz, spin, detAge, sd), vec4f(0.0, detAge, f32(sMode), 1.0));
 }
 
@@ -1213,7 +1341,7 @@ fn evalJellyParticle(idx: u32, cap: u32, age: f32) -> Part {
   let impactSq = exp(-pow(min(cyc, 1.0 - cyc) * 14.0, 2.0));
   let squashY = clamp(1.0 - 0.34 * impactSq + 0.09 * sin(t * jFreq), 0.62, 1.32);
   let expXZ = 1.0 / sqrt(max(0.4, squashY));
-  let windJ = sampleWind(org);
+  let windJ = sampleWind(org) * S.phys2.x;
   var fJ = vec3f(0.0);
   if (fields[0].x > 0.0) { fJ = evalFields(org, vec3f(0.0)).xyz; }
   let bodyCom = vec3f(org.x + clamp((windJ.x + fJ.x * 0.25) * 0.08, -0.8, 0.8),
@@ -1256,8 +1384,8 @@ fn evalJellyParticle(idx: u32, cap: u32, age: f32) -> Part {
     wp.y = max(0.05, wp.y);
     trailBuf[base] = vec4f(wp, -1.0);
     trailBuf[base + 1u] = vec4f(wp, -1.0);
-    let colJ = mix(S.colA, S.colC, clamp(0.35 + 0.55 * rShell + 0.25 * impactSq, 0.0, 1.0));
     let szJ = S.life.z * S.misc.x * (0.9 + 0.5 * rShell);
+    let colJ = evalAttrColor(clamp(0.28 + 0.48 * rShell + 0.22 * impactSq, 0.0, 1.0), wp, vec3f(0.0), S.phys.y, 1.0e9, szJ, 0.0, sd);
     return Part(vec4f(wp, age), vec4f(0.0, 0.0, 0.0, 1.0e9), colJ, vec4f(szJ, 0.0, 0.0, sd), vec4f(1.0, 0.0, f32(jMode), 1.0));
   }
   // Elastic sticky tendrils reaching toward ball, floor bounce puddle, or active fields
@@ -1288,8 +1416,8 @@ fn evalJellyParticle(idx: u32, cap: u32, age: f32) -> Part {
     let pt = anchor * (iuu * iuu) + midT * (2.0 * iuu * uu) + target * (uu * uu);
     trailBuf[base + k] = vec4f(pt, stretch);
   }
-  let colT = mix(S.colC, S.colB, stretch * 0.65);
   let wT = max(0.015, S.life.z * S.misc.x * 0.42);
+  let colT = evalAttrColor(clamp(0.45 + stretch * 0.48, 0.0, 1.0), target, vec3f(0.0), S.phys.y, 1.0e9, wT, 0.0, sd);
   return Part(vec4f(target, age), vec4f(0.0, 0.0, 0.0, 1.0e9), colT, vec4f(wT, stretch, 1.0, sd), vec4f(0.0, 1.0, f32(jMode), 1.0));
 }
 
@@ -1499,9 +1627,8 @@ fn evalGridParticle(idx: u32, cap: u32, age: f32) -> Part {
       cubeH = 0.0;
     }
   }
-  var gc = mix(S.colA, S.colC, smoothstep(0.06, 0.56, w));
-  gc = mix(gc, S.colB, smoothstep(0.56, 1.0, w));
-  gc.a = S.colA.a * mix(0.45, 1.0, smoothstep(0.0, 0.22, w));
+  var gc = evalAttrColor(w, gp.pos, vec3f(0.0), S.phys.y, 1.0e9, latSize, 0.0, f32(idx));
+  gc.a *= mix(0.45, 1.0, smoothstep(0.0, 0.22, w));
   return Part(vec4f(gp.pos, age), vec4f(0.0, 0.0, 0.0, 1.0e9), gc, vec4f(latSize, f32(gShape), w, f32(idx)), vec4f(gp.norm, cubeH));
 }
 
@@ -1687,11 +1814,14 @@ fn emitParticles(@builtin(global_invocation_id) gid: vec3u) {
     for (var k = 0u; k < 20u; k++) {
       trailBuf[idx * 20u + k] = vec4f(pos, 0.8);
     }
+    let sdM = f32(st & 0xffffffu);
+    let szM = S.life.z * S.misc.x;
+    let angM = r0 * 6.2831853;
     var qM: Part;
     qM.p = vec4f(pos, 0.0);
     qM.v = vec4f(vel, life);
-    qM.c = select(S.colA, S.colC, r5 > 0.45);
-    qM.m = vec4f(S.life.z * S.misc.x, r0 * 6.2831853, (r1 - 0.5) * 4.0, f32(st & 0xffffffu));
+    qM.c = evalAttrColor(select(0.15, 0.55, r5 > 0.45), pos, vel, 0.0, life, szM, angM, sdM);
+    qM.m = vec4f(szM, angM, (r1 - 0.5) * 4.0, sdM);
     qM.e = vec4f(mudRole, 0.0, eZ, eW);
     parts[idx] = qM;
     return;
@@ -1826,16 +1956,19 @@ fn emitParticles(@builtin(global_invocation_id) gid: vec3u) {
     let jDir = randSphere(r0, r1);
     let sSpd = mix(S.speed.x, S.speed.y, r6);
     if (arcKind >= 3u) {
+      let extA = max(S.phys4.xyz, vec3f(0.25));
+      let cageX = select(radA * 0.85, extA.x * 0.92, arcKind == 4u);
+      let cageZ = select(radA * 0.85, extA.z * 0.92, arcKind == 4u);
       let bR = G.ballPos.w;
       let toBall = length(G.ballPos.xyz - posA);
-      let ballCapture = bR > 0.04 && toBall < radA + 2.6;
+      let ballCapture = bR > 0.04 && toBall < max(radA, extA.x) + 2.6;
       if (ballCapture && r2 < 0.42) {
         pos = G.ballPos.xyz + jDir * (bR * 1.04);
         vel = normalize(jDir + vec3f(0.0, 0.35, 0.0)) * (sSpd * 1.15);
       } else {
         let ringAng = floor(r0 * 8.0) * 0.785398 + S.phys.y * 0.18;
-        let yBand = select(0.0, (r3 - 0.5) * radA * 0.9, arcKind == 4u);
-        let ringNode = posA + vec3f(cos(ringAng) * radA * 0.85, yBand, sin(ringAng) * radA * 0.85);
+        let yBand = select(0.0, (r3 - 0.5) * extA.y * 1.85, arcKind == 4u);
+        let ringNode = posA + vec3f(cos(ringAng) * cageX, yBand, sin(ringAng) * cageZ);
         let nodePt = select(posA, ringNode, r4 < 0.75);
         pos = nodePt + jDir * 0.08;
         vel = jDir * (sSpd * 0.85);
@@ -1861,18 +1994,20 @@ fn emitParticles(@builtin(global_invocation_id) gid: vec3u) {
   if (beamKind > 0u) {
     let posA = S.origin.xyz;
     let posB = S.mol3.xyz;
+    let radA = max(0.04, S.origin.w);
+    let radB = max(0.04, S.mol2.w);
     let toB = normalize(posB - posA + vec3f(1e-4, 0.0, 0.0));
     let jDir = randSphere(r0, r1);
     let sSpd = mix(S.speed.x, S.speed.y, r6);
     if (r2 < 0.48) {
       // Surface impact sparks spraying radially & backward off target impact point
       let surfB = normalize(-toB * 0.78 + jDir * 0.62);
-      pos = posB + surfB * 0.04;
+      pos = posB + surfB * (radB * 0.35 + 0.04);
       vel = surfB * sSpd;
     } else if (r2 < 0.74) {
       // Muzzle plasma corona flare sparks around beam emitter
       let mDir = normalize(toB * 0.68 + jDir * 0.72);
-      pos = posA + mDir * 0.04;
+      pos = posA + mDir * (radA * 0.25 + 0.04);
       vel = mDir * (sSpd * 0.72);
       life *= 0.65;
     } else {
@@ -1887,12 +2022,14 @@ fn emitParticles(@builtin(global_invocation_id) gid: vec3u) {
       trailBuf[idx * 20u + k] = vec4f(pos, 1.0);
     }
   }
+  let szInit = S.life.z * S.misc.x;
+  let angInit = select(r0 * 6.2831853, 0.0, trans);
+  let sdInit = select(f32(st & 0xffffffu), species, molecular);
   var q: Part;
   q.p = vec4f(pos, initAge);
   q.v = vec4f(vel, life);
-  q.c = S.colA;
-  q.m = vec4f(S.life.z * S.misc.x, select(r0 * 6.2831853, 0.0, trans), (r1 - 0.5) * 4.0,
-              select(f32(st & 0xffffffu), species, molecular));
+  q.c = evalAttrColor(0.0, pos, vel, initAge, life, szInit, angInit, sdInit);
+  q.m = vec4f(szInit, angInit, (r1 - 0.5) * 4.0, sdInit);
   q.e = vec4f(hold, 0.0, eZ, eW);
   parts[idx] = q;
 }
@@ -1960,8 +2097,8 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
     let mudRole = q.e.x;
     if (isRipple) {
       let rSize = max(0.12, q.e.w) * (0.65 + t01 * 2.4) * S.misc.x;
-      var rc = mix(S.colC, S.colB, smoothstep(0.05, 0.7, t01));
-      rc.a = clamp(smoothstep(0.0, 0.10, t01) * (1.0 - smoothstep(0.36, 1.0, t01)) * 0.55, 0.0, 1.0);
+      var rc = evalAttrColor(0.35 + 0.65 * t01, mPos, vec3f(0.0), age, life, rSize, q.m.y, seed);
+      rc.a = rc.a * smoothstep(0.0, 0.10, t01) * (1.0 - smoothstep(0.36, 1.0, t01)) * 0.55;
       parts[i] = Part(vec4f(mPos.x, 0.020, mPos.z, age), vec4f(0.0, 0.0, 0.0, life), rc,
                       vec4f(rSize, q.m.y, 0.0, seed), q.e);
       return;
@@ -1972,7 +2109,11 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
       let isClod = mudRole > 0.5 && mudRole <= 1.5;
       let windM = sampleWind(mPos);
       mVel += (windM - mVel) * min(S.phys2.x * select(1.0, 2.2, isMist) * dt, 1.0);
-      mVel.y += -S.speed.w * 9.81 * select(select(1.0, 1.25, isClod), 0.38, isMist) * dt;
+      mVel.y += (-S.speed.w * 9.81 * select(select(1.0, 1.25, isClod), 0.38, isMist) + S.phys2.z * select(0.25, 1.0, isMist)) * dt;
+      if (S.phys2.w > 0.0) {
+        let phM = age * 3.1 + seed * 0.017;
+        mVel += vec3f(sin(phM), 0.30 * cos(phM * 1.3), cos(phM * 0.8 + 1.0)) * (S.phys2.w * select(0.55, 1.15, isMist) * dt);
+      }
       if (fields[0].x > 0.0) {
         let fResM = evalFields(mPos, mVel);
         mVel += fResM.xyz * dt;
@@ -2009,8 +2150,7 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
     }
     let roleScale = select(select(1.0, 1.18, mudRole > 0.5 && mudRole <= 1.5), 1.45, mudRole > 1.5);
     let szM = mix(S.life.z, S.life.w, t01) * S.misc.x * roleScale * select(1.0, 0.78, mFlattened > 0.5);
-    var mc = mix(S.colA, S.colC, smoothstep(0.0, 0.48, t01));
-    mc = mix(mc, S.colB, smoothstep(0.48, 1.0, t01));
+    var mc = evalAttrColor(t01, mPos, mVel, age, life, szM, q.m.y, seed);
     let baseAlpha = select(0.92, 0.28, mudRole > 1.5);
     mc.a = mc.a * baseAlpha * smoothstep(0.0, 0.06, t01) * (1.0 - smoothstep(0.62, 1.0, t01));
     parts[i] = Part(vec4f(mPos, age), vec4f(mVel, life), mc, vec4f(szM, q.m.y, q.m.z, seed), vec4f(mudRole, mFlattened, q.e.z, q.e.w));
@@ -2072,11 +2212,9 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
       v = mix(v, cv, min(6.5 * dt, 1.0)) * exp(-extraDamp * dt);
       pos += v * dt;
       pos.y = max(0.04, pos.y);
-      let crest = clamp(length(v) / max(cSpd * 1.45, 0.2) + max(0.0, v.y) * 0.18 + (simVNoise(pos * freq * 1.3) - 0.5) * 0.28, 0.0, 1.0);
-      var cc = mix(S.colA, S.colC, smoothstep(0.15, 0.58, crest));
-      cc = mix(cc, S.colB, smoothstep(0.55, 0.96, crest));
-      cc.a *= smoothstep(0.0, 0.12, t01) * (1.0 - smoothstep(0.72, 1.0, t01));
       let sz = mix(S.life.z, S.life.w, t01) * S.misc.x * (0.75 + 0.55 * crest);
+      var cc = evalAttrColor(crest, pos, v, age, life, sz, q.m.y, seed);
+      cc.a *= smoothstep(0.0, 0.12, t01) * (1.0 - smoothstep(0.72, 1.0, t01));
       parts[i] = Part(vec4f(pos, age), vec4f(v, life), cc, vec4f(sz, q.m.y, q.m.z, seed), q.e);
       return;
     } else if (curlMode == 2u) {
@@ -2094,10 +2232,9 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
       let bre = sin(newVec.x * freq * 2.1 + S.phys.y * 1.4) * 0.035;
       pos = S.origin.xyz + (newVec / newLen) * mix(newLen, shellR * (1.0 + bre), min(14.0 * dt, 0.92));
       let speedN = clamp(length(v) / max(cSpd * 1.35, 0.2), 0.0, 1.0);
-      var cc = mix(S.colA, S.colC, smoothstep(0.15, 0.55, speedN));
-      cc = mix(cc, S.colB, smoothstep(0.52, 0.92, speedN));
-      cc.a *= smoothstep(0.0, 0.10, t01) * (1.0 - smoothstep(0.70, 1.0, t01));
       let sz = mix(S.life.z, S.life.w, t01) * S.misc.x * (0.72 + 0.55 * speedN);
+      var cc = evalAttrColor(speedN, pos, v, age, life, sz, q.m.y, seed);
+      cc.a *= smoothstep(0.0, 0.10, t01) * (1.0 - smoothstep(0.70, 1.0, t01));
       parts[i] = Part(vec4f(pos, age), vec4f(v, life), cc, vec4f(sz, q.m.y, q.m.z, seed), q.e);
       return;
     } else if (curlMode == 3u) {
@@ -2138,10 +2275,9 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
         }
         let edgeFade = smoothstep(0.0, 0.08, uSurf) * (1.0 - smoothstep(0.84, 1.0, uSurf));
         let crest = clamp(length(v) / max(cSpd * 1.25, 0.2), 0.0, 1.0);
-        var cc = mix(S.colA, S.colC, smoothstep(0.10, 0.55, crest * 0.5 + pulseBoost * 0.5));
-        cc = mix(cc, S.colB, smoothstep(0.55, 0.96, crest * 0.4 + pulseBoost * 0.65));
-        cc.a *= edgeFade * clamp(0.22 + 0.88 * pulseBoost, 0.0, 1.1) * (1.0 - smoothstep(0.86, 1.0, t01));
         let sz = mix(S.life.z, S.life.w, t01) * S.misc.x * (0.72 + 0.52 * pulseBoost);
+        var cc = evalAttrColor(clamp(crest * 0.45 + pulseBoost * 0.55, 0.0, 1.0), pos, v, age, life, sz, q.m.y, seed);
+        cc.a *= edgeFade * clamp(0.22 + 0.88 * pulseBoost, 0.0, 1.1) * (1.0 - smoothstep(0.86, 1.0, t01));
         let kLerp = min(1.0, 24.0 * dt);
         let base = i * 20u;
         for (var k = 19u; k >= 1u; k--) {
@@ -2164,9 +2300,9 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
       pos.y = max(0.08, pos.y);
       let crest = clamp(length(v) / max(cSpd * 1.45, 0.2), 0.0, 1.0);
       let env = smoothstep(0.0, 0.12, t01) * (1.0 - smoothstep(0.76, 1.0, t01));
-      var cc = mix(S.colC, S.colB, smoothstep(0.28, 0.88, crest));
-      cc.a *= env;
       let sz = mix(S.life.z, S.life.w, t01) * S.misc.x * (0.78 + 0.52 * crest);
+      var cc = evalAttrColor(0.45 + 0.55 * crest, pos, v, age, life, sz, q.m.y, seed);
+      cc.a *= env;
       let kLerp = min(1.0, 22.0 * dt);
       let base = i * 20u;
       for (var k = 19u; k >= 1u; k--) {
@@ -2285,12 +2421,11 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
         }
         trailBuf[base + k] = vec4f(curN[k], wMeta);
       }
-      var wc = mix(S.colA, S.colC, smoothstep(0.10, 0.58, stWeb.roleCol));
-      wc = mix(wc, S.colB, smoothstep(0.55, 0.98, stWeb.roleCol));
-      wc.a *= clamp(0.72 + 0.28 * stWeb.grow, 0.0, 1.0);
       let sz = max(0.004, S.life.z * S.misc.x);
       let beadPt = select(curN[9], stWeb.tip, stWeb.grow < 0.99);
       let showBead = select(stWeb.bead, 0.0, snapU > 0.05 && stWeb.grow >= 0.99);
+      var wc = evalAttrColor(stWeb.roleCol, beadPt, flexDisp, age, life, sz, q.m.y, seed);
+      wc.a *= clamp(0.72 + 0.28 * stWeb.grow, 0.0, 1.0);
       parts[i] = Part(vec4f(beadPt, age), vec4f(flexDisp, life), wc, vec4f(sz, q.m.y, q.m.z, seed), vec4f(showBead, snapU, f32(slotIdx), stWeb.grow));
       return;
     } else {
@@ -2320,7 +2455,6 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
           isTreeLeaf
         );
         let anchorW = trailBuf[pSlot * 20u + pNode].xyz;
-        var leafCol = mix(S.colC, S.colB, hashF(seed, 5u));
         let leafSz = max(0.08, S.life.z * S.misc.x * mix(0.68, 1.28, hashF(seed, 6u)));
         var fallen = q.e.y;
         var lPos = pos;
@@ -2358,6 +2492,7 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
             }
           }
         }
+        let leafCol = evalAttrColor(0.50 + 0.48 * hashF(seed, 5u), lPos, lVel, age, life, leafSz, lAng, seed);
         parts[i] = Part(vec4f(lPos, age), vec4f(lVel, life), leafCol, vec4f(leafSz, lAng, q.m.z, seed), vec4f(1.0, fallen, f32(slotIdx), 1.0));
         return;
       }
@@ -2492,11 +2627,10 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
         trailBuf[base + k] = vec4f(curN[k], wMeta);
       }
 
-      var dc = mix(S.colA, S.colC, smoothstep(0.05, 0.55, stD.colMix));
-      dc = mix(dc, S.colB, smoothstep(0.55, 1.0, stD.colMix));
       let tipK = clamp(u32(stD.leafOnU * 19.0 + 0.5), 1u, 19u);
       let headPt = curN[tipK];
       let headTan = normalize(curN[tipK] - curN[tipK - 1u] + vec3f(0.0, 0.01, 0.0));
+      let dc = evalAttrColor(stD.colMix, headPt, headTan, age, life, stD.width, q.m.y, seed);
       parts[i] = Part(vec4f(headPt, age), vec4f(headTan, life), dc, vec4f(stD.width, q.m.y, q.m.z, seed), vec4f(stD.leafSz, snapU, f32(slotIdx), 1.0));
       return;
     }
@@ -2570,7 +2704,7 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
     if (sh == 14u && S.phys2.y < 0.08) {
       // Viscous splatter puddle flattens onto the floor and holds smoothly until fadeout
       let spSize = mix(S.life.z, S.life.w, t01) * S.misc.x * (0.9 + 0.7 * fract(seed * 0.618034));
-      var sc = mix(S.colA, S.colB, t01);
+      var sc = evalAttrColor(t01, vec3f(pos.x, 0.018, pos.z), vec3f(0.0), age, life, spSize, q.m.y, seed);
       sc.a = sc.a * (1.0 - smoothstep(0.75, 1.0, t01));
       parts[i] = Part(vec4f(pos.x, 0.018, pos.z, age), vec4f(0.0, 0.0, 0.0, life), sc,
                       vec4f(spSize, q.m.y, 0.0, seed), vec4f(q.e.x, 1.0, q.e.z, q.e.w));
@@ -2627,10 +2761,7 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
   let ang = q.m.y + spin * dt;
   let sizeBase = mix(S.life.z, S.life.w, t01) * S.misc.x;
   let size = select(sizeBase * (0.7 + 0.6 * fract(seed * 0.618034)), sizeBase, sh == 10u || sh == 11u || sh == 15u || sh == 16u || sh == 17u);
-  var c = mix(S.colA, S.colB, t01);
-  if (S.colC.a > 0.01 && (sh == 10u || sh == 11u || sh == 12u || sh == 0u || sh == 14u || sh == 15u || sh == 16u || sh == 17u)) {
-    c = select(mix(S.colC, S.colB, smoothstep(0.38, 1.0, t01)), mix(S.colA, S.colC, smoothstep(0.0, 0.38, t01)), t01 < 0.38);
-  }
+  var c = evalAttrColor(t01, pos, v, age, life, size, ang, seed);
   c.a = c.a * smoothstep(0.0, 0.08, t01) * (1.0 - smoothstep(0.7, 1.0, t01));
   parts[i] = Part(vec4f(pos, age), vec4f(v, life), c, vec4f(size, ang, spin, seed), eOut);
 }
@@ -2773,12 +2904,9 @@ fn swarmStep(@builtin(global_invocation_id) gid: vec3u) {
   let t01 = age / life;
   let size = mix(S.life.z, S.life.w, t01) * S.misc.x * (0.78 + 0.44 * fract(seed * 0.618034));
   let pulse = 1.0 - S.mol3.w + S.mol3.w * (0.5 + 0.5 * sin(S.phys.y * S.mol3.z * 6.2831853 + seed * 6.2831853));
-  var c = mix(S.colA, S.colB, t01);
-  if (S.colC.a > 0.01) {
-    c = select(mix(S.colC, S.colB, smoothstep(0.45, 1.0, t01)), mix(S.colA, S.colC, smoothstep(0.0, 0.45, t01)), t01 < 0.45);
-  }
-  c.a = c.a * pulse * smoothstep(0.0, 0.08, t01) * (1.0 - smoothstep(0.75, 1.0, t01));
   let heading = atan2(v.x, v.z);
+  var c = evalAttrColor(t01, pos, v, age, life, size, heading, seed);
+  c.a = c.a * pulse * smoothstep(0.0, 0.08, t01) * (1.0 - smoothstep(0.75, 1.0, t01));
   parts[i] = Part(vec4f(pos, age), vec4f(v, life), c, vec4f(size, heading, me.m.z, seed), vec4f(0.0));
 }
 
@@ -2864,14 +2992,11 @@ fn molStep(@builtin(global_invocation_id) gid: vec3u) {
   let wz = wallFix(local.z, v.z, Bh);
   local = vec3f(wx.x, wy.x, wz.x);
   v = vec3f(wx.y, wy.y, wz.y);
-  var outC: vec4f;
-  if (kind == 3u) {
-    outC = mix(S.colA, S.colB, clamp(length(v) / 1.2, 0.0, 1.0));
-  } else {
-    outC = select(select(S.colA, S.colB, sp > 0.5), S.colC, sp > 1.5);
-  }
+  let wPosMol = S.origin.xyz + local;
   let sz = sig * S.misc.x;
-  parts[i] = Part(vec4f(S.origin.xyz + local, me.p.w + dt), vec4f(v, me.v.w), outC,
+  let molT = select(select(select(0.0, 1.0, sp > 0.5), 0.5, sp > 1.5), clamp(length(v) / 1.2, 0.0, 1.0), kind == 3u);
+  let outC = evalAttrColor(molT, wPosMol, v, me.p.w + dt, me.v.w, sz, me.m.y, sp);
+  parts[i] = Part(vec4f(wPosMol, me.p.w + dt), vec4f(v, me.v.w), outC,
                   vec4f(sz, me.m.y, me.m.z, sp), vec4f(0.0));
 }
 `;
@@ -2988,6 +3113,8 @@ fn buildWind(@builtin(global_invocation_id) id: vec3u) {
 @group(1) @binding(0) var<uniform> S: Sys;
 @group(1) @binding(1) var<storage, read> parts: array<Part>;
 @group(1) @binding(2) var<storage, read> segs: array<vec4f>;
+@group(1) @binding(3) var<storage, read> rampStops: array<vec4f>;
+${RAMP_WGSL}
 
 struct VO {
   @builtin(position) pos: vec4f,
@@ -3854,8 +3981,13 @@ fn fsPart(i: VO) -> @location(0) vec4f {
     let impact = rip0 + rip1 + ballImpact;
     let cellBoost = patWire * (0.30 + 0.52 * fres + 1.15 * impact) * cellShimmer;
     a = clamp(fres * 0.42 + rimGlow * 0.78 + cellBoost + impact * 0.55 + (flash0 + flash1) * 0.95, 0.0, 1.0);
-    rgb = mix(rgb, S.colC.rgb, clamp(impact * 0.72, 0.0, 0.85));
-    rgb = mix(rgb, S.colB.rgb, clamp(patWire * 0.35 + fres * 0.25, 0.0, 0.75));
+    if (S.colorCfg.x > 3.5 || S.colorCfg.y > 0.5) {
+      let shRamp = evalColorRamp(clamp(patWire * 0.45 + fres * 0.35 + impact * 0.55, 0.0, 1.0)).rgb;
+      rgb = mix(rgb, shRamp, clamp(patWire * 0.45 + impact * 0.65 + fres * 0.30, 0.0, 0.85));
+    } else {
+      rgb = mix(rgb, S.colC.rgb, clamp(impact * 0.72, 0.0, 0.85));
+      rgb = mix(rgb, S.colB.rgb, clamp(patWire * 0.35 + fres * 0.25, 0.0, 0.75));
+    }
     rgb = mix(rgb, vec3f(0.95, 1.0, 1.0), clamp(rimGlow * 0.65 + (flash0 + flash1 + ballImpact) * 0.9 + impact * patWire * 0.85, 0.0, 0.95));
   } else if (shape == 17u) {
     // Aurora Borealis Volumetric Ribbon Curtain
@@ -3874,8 +4006,14 @@ fn fsPart(i: VO) -> @location(0) vec4f {
     let rayB = 0.62 + 0.38 * sin(i.uv.x * (31.0 * aurFreq) - t * (aurRate * 2.2115) + sd * 0.19);
     let nTex = 0.65 + 0.55 * vnoise2(vec2f(i.uv.x * (3.8 * aurFreq) + t * (aurRate * 0.2692) + sd * 0.01, v01 * 1.8 - t * (aurRate * 0.4231)));
     a = clamp(botEdge * topFade * sideFade * rayA * rayB * nTex * 0.92, 0.0, 1.0);
-    var aurCol = mix(S.colA.rgb, S.colC.rgb, smoothstep(0.12, 0.52, vWave));
-    aurCol = mix(aurCol, S.colB.rgb, smoothstep(0.46, 0.90, vWave));
+    let rampAur = evalColorRamp(clamp(vWave, 0.0, 1.0)).rgb;
+    var aurCol = rampAur;
+    if (S.colorCfg.y > 0.5) {
+      aurCol = mix(rampAur, i.col.rgb, 0.72);
+    } else if (S.colorCfg.x <= 3.5) {
+      aurCol = mix(S.colA.rgb, S.colC.rgb, smoothstep(0.12, 0.52, vWave));
+      aurCol = mix(aurCol, S.colB.rgb, smoothstep(0.46, 0.90, vWave));
+    }
     rgb = mix(aurCol, vec3f(0.88, 1.0, 0.94), smoothstep(0.24, 0.12, vWave) * botEdge * 0.42);
     if (a < 0.008) { discard; }
   } else if (shape == 14u) {
@@ -4115,6 +4253,21 @@ fn vsRibbon(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) ->
     exParam = q.m.x;
   }
   let headEnv = q.c.a;
+  let rawSegV = (s1.xyz - s0.xyz) / max(S.phys.x, 1e-4);
+  let segVel = select(q.v.xyz, rawSegV, length(rawSegV) > 1e-3);
+  if (S.colorCfg.y > 0.5) {
+    rc = evalAttrColor(uLen, wp, segVel, q.p.w, q.v.w, mix(w0, w1, isEnd), uLen * 6.2831853, q.m.w).rgb;
+    if (isDyn && dynMode >= 3u && dynMode != 7u) {
+      let dTanR = normalize(mix(d0, d1, isEnd));
+      rc *= (0.72 + 0.42 * dot(dTanR, normalize(vec3f(0.45, 0.55, 0.70))));
+    }
+  } else if (S.colorCfg.x > 3.5) {
+    rc = evalColorRamp(uLen).rgb;
+    if (isDyn && dynMode >= 3u && dynMode != 7u) {
+      let dTanR = normalize(mix(d0, d1, isEnd));
+      rc *= (0.72 + 0.42 * dot(dTanR, normalize(vec3f(0.45, 0.55, 0.70))));
+    }
+  }
   o.col = vec4f(rc, select(headEnv * (0.48 + 0.52 * spd), headEnv * (0.78 + 0.22 * spd), isWebOnly || isDyn || isFerro || isBead || isSeed || isJelly));
   if (isDyn || isFerro || isBead || isSeed || isJelly) { o.col.a = headEnv; }
   o.ex = vec4f(uLen, q.m.w, styleTag, exParam);
@@ -4347,7 +4500,7 @@ fn vsCube(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> C
     if (q.e.y < 0.5) { return o; }
     let sd = q.m.w;
     let wXZ = q.m.x;
-    let slabH = max(0.055, S.phys4.y);
+    let slabH = max(0.055, S.phys4.y) * clamp(S.misc.x, 0.35, 2.2);
     let corAng = atan2(cv.p.z, cv.p.x);
     let vorJ = 0.88 + 0.26 * sin(corAng * 3.0 + sd * 0.7) + 0.14 * cos(corAng * 2.0 - sd * 1.1);
     let bev = select(0.92, 1.02, cv.p.y < 0.0);
@@ -4466,7 +4619,8 @@ fn vsFly(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO
   o.pos = G.viewProj * vec4f(wp, 1.0);
   o.uv = c;
   o.ex = vec4f(wingW, flap, 0.0, 0.0);
-  o.col = vec4f(mix(S.colA.rgb, S.colB.rgb, hashF(sd, 8u)), q.c.a);
+  let flyCol = select(evalColorRamp(hashF(sd, 8u)).rgb, q.c.rgb, S.colorCfg.y > 0.5);
+  o.col = vec4f(flyCol, q.c.a);
   return o;
 }
 

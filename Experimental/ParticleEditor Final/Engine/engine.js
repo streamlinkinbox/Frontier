@@ -8,6 +8,7 @@ import { PE } from "./pe.js";
   PE.SYS_SLOT = {
     origin: 0, dir: 1, speed: 2, life: 3, colA: 4, colB: 5, colC: 6, phys: 7,
     phys2: 8, phys3: 9, phys4: 10, mol: 11, mol2: 12, mol3: 13, emit: 14, misc: 15,
+    colorCfg: 16, colorCfg2: 17,
   };
   // Offsets (floats) into the Glob uniform (240 bytes).
   PE.GLOB_OFF = {
@@ -46,13 +47,36 @@ import { PE } from "./pe.js";
       this.trail = this.isRibbon ? d.createBuffer({ size: this.cap * TRAIL_SEGS * 16, usage: U.STORAGE | U.COPY_DST }) : null;
       this.stats = d.createBuffer({ size: 32, usage: U.STORAGE | U.COPY_SRC });
       this.statStage = d.createBuffer({ size: 32, usage: U.MAP_READ | U.COPY_DST });
-      this.uniform = d.createBuffer({ size: 256, usage: U.UNIFORM | U.COPY_DST });
+      this.uniform = d.createBuffer({ size: 288, usage: U.UNIFORM | U.COPY_DST });
       this.cellCount = engine.vacantCellCount;
       this.cellSlots = engine.vacantCellSlots;
       this.latticeBytes = 0;
-      const trailRes = this.trail || this.engine.dummySegs;
+      this.trailRes = this.trail || this.engine.dummySegs;
+      this.rampCap = 0;
+      this.ramp = null;
+      this.simBG = null;
+      this.renderBG = null;
+      this.ensureRamp(16);
+      this.cpu = new Float32Array(72);
+      this.statPending = false;
+      this.gone = false;
+      this.stats_ = null;       // latest decoded readback
+      this.readbackMs = 0;
+      this.readbackCount = 0;
+      this.lastReadAt = 0;
+    }
+    ensureRamp(stopCount) {
+      const need = Math.max(16, Math.ceil(stopCount || 1));
+      if (this.ramp && need <= this.rampCap) return;
+      let next = Math.max(16, this.rampCap || 16);
+      while (next < need) next *= 2;
+      const d = this.engine.device;
+      const old = this.ramp;
+      this.ramp = d.createBuffer({ size: next * 32, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+      this.rampCap = next;
+      if (old) old.destroy();
       this.simBG = d.createBindGroup({
-        layout: engine.gl1Sim,
+        layout: this.engine.gl1Sim,
         entries: [
           { binding: 0, resource: { buffer: this.uniform } },
           { binding: 1, resource: { buffer: this.parts } },
@@ -61,28 +85,23 @@ import { PE } from "./pe.js";
           { binding: 4, resource: { buffer: this.cellSlots } },
           { binding: 5, resource: { buffer: this.snap } },
           { binding: 6, resource: { buffer: this.engine.fieldBuf } },
-          { binding: 7, resource: { buffer: trailRes } },
+          { binding: 7, resource: { buffer: this.trailRes } },
+          { binding: 8, resource: { buffer: this.ramp } },
         ],
       });
       this.renderBG = d.createBindGroup({
-        layout: engine.gl1Render,
+        layout: this.engine.gl1Render,
         entries: [
           { binding: 0, resource: { buffer: this.uniform } },
           { binding: 1, resource: { buffer: this.parts } },
-          { binding: 2, resource: { buffer: trailRes } },
+          { binding: 2, resource: { buffer: this.trailRes } },
+          { binding: 3, resource: { buffer: this.ramp } },
         ],
       });
-      this.cpu = new Float32Array(64);
-      this.statPending = false;
-      this.gone = false;
-      this.stats_ = null;       // latest decoded readback
-      this.readbackMs = 0;
-      this.readbackCount = 0;
-      this.lastReadAt = 0;
     }
     destroy() {
       this.gone = true;
-      for (const b of [this.parts, this.snap, this.trail, this.stats, this.statStage, this.uniform]) {
+      for (const b of [this.parts, this.snap, this.trail, this.stats, this.statStage, this.uniform, this.ramp]) {
         if (b) b.destroy();
       }
     }
@@ -131,7 +150,8 @@ import { PE } from "./pe.js";
       this.meshes = d.createBuffer({ size: MAX_MESH_VERTS * MESH_BYTES, usage: U.VERTEX | U.COPY_DST });
       this.arcs = d.createBuffer({ size: MAX_ARC_VERTS * ARC_BYTES, usage: U.VERTEX | U.COPY_DST });
       this.arcScratch = new Float32Array(MAX_ARC_VERTS * 11);
-      this.dummySys = d.createBuffer({ size: 256, usage: U.UNIFORM | U.COPY_DST });
+      this.dummySys = d.createBuffer({ size: 288, usage: U.UNIFORM | U.COPY_DST });
+      this.dummyRamp = d.createBuffer({ size: 64, usage: U.STORAGE | U.COPY_DST });
       this.dummyParts = d.createBuffer({ size: PART_BYTES, usage: U.STORAGE });
       this.probeBuf = d.createBuffer({ size: 256, usage: U.COPY_DST | U.MAP_READ });
 
@@ -170,6 +190,7 @@ import { PE } from "./pe.js";
           { binding: 5, visibility: C, buffer: { type: "read-only-storage" } },
           { binding: 6, visibility: C, buffer: { type: "read-only-storage" } },
           { binding: 7, visibility: C, buffer: { type: "storage" } },
+          { binding: 8, visibility: C, buffer: { type: "read-only-storage" } },
         ],
       });
       // 📝 Force fields, written each frame (1040 bytes: count/time vec4 + 16 fields of 4 vec4).
@@ -184,6 +205,7 @@ import { PE } from "./pe.js";
           { binding: 0, visibility: VF, buffer: { type: "uniform" } },
           { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: "read-only-storage" } },
           { binding: 2, visibility: GPUShaderStage.VERTEX, buffer: { type: "read-only-storage" } },
+          { binding: 3, visibility: VF, buffer: { type: "read-only-storage" } },
         ],
       });
       this.glWind = d.createBindGroupLayout({
@@ -216,6 +238,7 @@ import { PE } from "./pe.js";
           { binding: 0, resource: { buffer: this.dummySys } },
           { binding: 1, resource: { buffer: this.dummyParts } },
           { binding: 2, resource: { buffer: this.dummySegs } },
+          { binding: 3, resource: { buffer: this.dummyRamp } },
         ],
       });
 
@@ -411,7 +434,13 @@ import { PE } from "./pe.js";
         if (arcVerts) q.writeBuffer(this.arcs, 0, scratch, 0, arcVerts * 11);
       }
       for (const job of frame.jobs) {
-        if (job.draw) q.writeBuffer(job.gpu.uniform, 0, job.cpu);
+        if (job.draw) {
+          q.writeBuffer(job.gpu.uniform, 0, job.cpu);
+          if (job.rampData && job.rampCount > 0) {
+            job.gpu.ensureRamp(job.rampCount);
+            q.writeBuffer(job.gpu.ramp, 0, job.rampData);
+          }
+        }
       }
 
       const enc = d.createCommandEncoder({ label: "ParticleEditor frame" });
@@ -663,9 +692,14 @@ import { PE } from "./pe.js";
     set("dir", dl[0] / dlen, dl[1] / dlen, dl[2] / dlen, p.spread);
     set("speed", p.speedMin, p.speedMax, p.drag, p.gravity);
     set("life", p.lifeMin, p.lifeMax, p.sizeStart, p.sizeEnd);
-    set("colA", ...p.colA);
-    set("colB", ...p.colB);
-    set("colC", ...p.colC);
+    const ramp = PE.packColorRamp(p);
+    const stops = ramp.stops;
+    const cA = stops[0].color;
+    const cB = stops[stops.length - 1].color;
+    const cC = stops.length >= 3 ? stops[Math.floor((stops.length - 1) / 2)].color : (p.colC || cB);
+    set("colA", ...cA);
+    set("colB", ...cB);
+    set("colC", ...cC);
     set("phys", o.dt, o.time, o.frame, p.kind);
     set("phys2", p.windCoupling, p.bounce, p.buoyancy, p.flutter);
     set("phys3", o.cap, p.emitShape, 0.5, o.emitN);
@@ -711,7 +745,7 @@ import { PE } from "./pe.js";
       set("mol3", o.crackHit ? o.crackHit.t : -1.0, p.showObject !== false ? 1 : 0, 0, o.preseedCurtain ? 1 : 0);
     } else if (ferroMode > 0) {
       set("mol2", ferroMode, p.ferroSpikes ?? 520, 1, p.radius ?? 2.0);
-      set("mol3", p.boxHalf?.[1] ?? 1.05, p.streakThin ?? 1.0, 0, o.preseedCurtain ? 1 : 0);
+      set("mol3", (Array.isArray(p.boxHalf) ? p.boxHalf[1] : Number(p.boxHalf)) || 1.05, p.streakThin ?? 1.0, 0, o.preseedCurtain ? 1 : 0);
     } else if (mudMode > 0) {
       set("mol2", mudMode, p.carTrackRadius ?? 3.15, p.showObject !== false ? 1 : 0, p.sizeScale ?? 1.0);
       set("mol3", p.bounce ?? 0.04, p.radius ?? 1.8, o.crackHit ? o.crackHit.x : o.origin[0], o.preseedCurtain ? 1 : 0);
@@ -739,4 +773,7 @@ import { PE } from "./pe.js";
     }
     set("emit", o.head, o.seed, p.shape, p.leafMode);
     set("misc", p.sizeScale, gridMode > 0 ? (p.gridBillboard ? 1.0 : 0.0) : (p.streakThin ?? 1.0), hasArc ? (p.arcMode + 1) : 0, isTrans ? (p.transition.shell ?? 3.0) : (hasBeam ? (p.beamMode || 1) : 0));
+    set("colorCfg", ramp.count, ramp.byCode, ramp.min, ramp.max);
+    set("colorCfg2", ramp.repeat, ramp.wrapCode, ramp.phase, ramp.interpCode);
+    o._ramp = ramp;
   };

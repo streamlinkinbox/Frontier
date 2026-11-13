@@ -30,7 +30,15 @@ import { PE } from "./pe.js";
       sizeScale: 1,
       colA: [1, 1, 1, 1],
       colB: [1, 1, 1, 0],
-      colC: [1, 1, 0.3, 1],
+      colC: [1, 1, 0.3, 0],
+      colorStops: null,     // optional arbitrary-length array of RGBA stops or { color:[r,g,b,a], pos:0..1 }
+      colorBy: "modeDefault", // modeDefault | lifetime | age | speed | velY | angle | velAngle | distOrigin | height | noise3D | random | spinAngle | distCamera | particleSize | lifeDuration
+      colorMin: 0,
+      colorMax: 1,
+      colorRepeat: 1,
+      colorWrap: "clamp",   // "clamp" | "repeat" | "mirror"
+      colorPhase: 0,
+      colorInterp: "linear", // "linear" | "smooth" | "stepped"
       windCoupling: 0,      // 1/s, how quickly the particle follows the wind
       bounce: 0,
       buoyancy: 0,          // m/s^2 upward
@@ -163,7 +171,7 @@ import { PE } from "./pe.js";
         emitShape: 0, origin: [-3, 0.4, 0], dir: [0, 1, 0], spread: 0.6,
         speedMin: 2, speedMax: 6, drag: 0.5, gravity: 1, lifeMin: 0.6, lifeMax: 1.6,
         sizeStart: 0.035, sizeEnd: 0.01,
-        colA: [1, 0.92, 0.55, 1], colB: [1, 0.35, 0.05, 0],
+        colA: [1, 0.92, 0.55, 1], colC: [1, 1, 0.3, 1], colB: [1, 0.35, 0.05, 0],
         windCoupling: 0.25, bounce: 0.35,
       }),
     },
@@ -455,7 +463,7 @@ import { PE } from "./pe.js";
         kind: 5, shape: 0, blend: "add", capacity: 3000, rate: 0,
         emitShape: 1, radius: 0.1, origin: [0, 6, 0], dir: [0, 1, 0], spread: 3.14159,
         speedMin: 4, speedMax: 9, drag: 1.8, gravity: 0.8, lifeMin: 1.2, lifeMax: 2.4,
-        sizeStart: 0.06, sizeEnd: 0.02, colA: [1, 0.9, 0.6, 1], colB: [1, 0.35, 0.1, 0],
+        sizeStart: 0.06, sizeEnd: 0.02, colA: [1, 0.9, 0.6, 1], colC: [1, 1, 0.3, 1], colB: [1, 0.35, 0.1, 0],
         windCoupling: 0.4, burstEvery: 2.6, burstCount: 180,
       }),
     },
@@ -1461,6 +1469,230 @@ import { PE } from "./pe.js";
   }
 
   PE.presetById = (id) => PE.Presets.find((preset) => preset.id === id);
+
+  // Arbitrary-length colour ramp & attribute-driven colouring helpers.
+  PE.COLOR_BY_MODES = [
+    { id: "modeDefault",  code: 0,  label: "Mode default (lifetime / geometry)", defaultMin: 0,    defaultMax: 1,    unit: "" },
+    { id: "lifetime",     code: 1,  label: "Normalised lifetime (age / life)",   defaultMin: 0,    defaultMax: 1,    unit: "0–1" },
+    { id: "age",          code: 2,  label: "Particle age (s)",                   defaultMin: 0,    defaultMax: 3,    unit: "s" },
+    { id: "speed",        code: 3,  label: "Velocity speed |v| (m/s)",           defaultMin: 0,    defaultMax: 8,    unit: "m/s" },
+    { id: "velY",         code: 4,  label: "Vertical velocity vy (m/s)",         defaultMin: -6,   defaultMax: 6,    unit: "m/s" },
+    { id: "angle",        code: 5,  label: "Position angle around origin (°)",   defaultMin: 0,    defaultMax: 1,    unit: "turn" },
+    { id: "velAngle",     code: 6,  label: "Velocity heading angle (°)",         defaultMin: 0,    defaultMax: 1,    unit: "turn" },
+    { id: "distOrigin",   code: 7,  label: "Distance from origin (m)",           defaultMin: 0,    defaultMax: 4,    unit: "m" },
+    { id: "height",       code: 8,  label: "World height Y (m)",                 defaultMin: 0,    defaultMax: 4,    unit: "m" },
+    { id: "noise3D",      code: 9,  label: "3D spatial noise",                   defaultMin: 0,    defaultMax: 1,    unit: "" },
+    { id: "random",       code: 10, label: "Per-particle random seed",           defaultMin: 0,    defaultMax: 1,    unit: "" },
+    { id: "spinAngle",    code: 11, label: "Spin / orientation angle",           defaultMin: 0,    defaultMax: 1,    unit: "turn" },
+    { id: "distCamera",   code: 12, label: "Distance to camera (m)",             defaultMin: 2,    defaultMax: 16,   unit: "m" },
+    { id: "particleSize", code: 13, label: "Particle size (m)",                  defaultMin: 0.02, defaultMax: 0.45, unit: "m" },
+    { id: "lifeDuration", code: 14, label: "Assigned total lifespan (s)",        defaultMin: 0.2,  defaultMax: 6,    unit: "s" },
+  ];
+  PE.COLOR_BY_CODE = Object.fromEntries(PE.COLOR_BY_MODES.map((m) => [m.id, m.code]));
+  PE.COLOR_WRAP_MODES = [["Clamp", "clamp"], ["Repeat", "repeat"], ["Mirror", "mirror"]];
+  PE.COLOR_INTERP_MODES = [["Linear", "linear"], ["Smooth", "smooth"], ["Stepped", "stepped"]];
+  PE.COLOR_PALETTES = [
+    { id: "rainbow", label: "Spectrum (7 stops)", colors: ["#ff3355", "#ff8822", "#ffe033", "#38e86b", "#22ccff", "#5566ff", "#d44cff"] },
+    { id: "thermal", label: "Blackbody (6 stops)", colors: ["#140505", "#961408", "#f05a14", "#ffbe38", "#fff6c8", "#9be2ff"] },
+    { id: "aurora",  label: "Aurora (5 stops)",   colors: ["#1a1464", "#10b981", "#38f2d6", "#a3ff4d", "#a855f7"] },
+    { id: "plasma",  label: "Plasma (6 stops)",   colors: ["#0d0887", "#6a00a8", "#b12a90", "#e16462", "#fca636", "#f0f921"] },
+    { id: "ocean",   label: "Ocean (5 stops)",    colors: ["#071e3d", "#134e6f", "#1e96a8", "#7be3d0", "#eefbff"] },
+    { id: "sunset",  label: "Sunset Neon (6 stops)", colors: ["#2b1055", "#9d1763", "#f0544f", "#ffad42", "#ffd57e", "#3b82f6"] },
+  ];
+
+  PE.usesMidStop = function usesMidStop(p) {
+    if (!p) return false;
+    const isTrans = !!p.transition;
+    const sh = p.shape ?? 3;
+    return !isTrans && (
+      (p.curlMode || 0) > 0 || (p.webMode || 0) > 0 || (p.dynMode || 0) > 0 ||
+      (p.gridMode || 0) > 0 || (p.ferroMode || 0) > 0 || (p.crackMode || 0) > 0 ||
+      (p.mudSplashMode || 0) > 0 || (p.beadsMode || 0) > 0 || (p.seedHeadMode || 0) > 0 ||
+      (p.jellyMode || 0) > 0 || (p.trailMode || 0) > 0 || p.kind === 6 ||
+      (p.beamMode || 0) > 0 || sh === 0 || sh >= 10
+    );
+  };
+
+  function normRgba(raw, fallbackAlpha = 1) {
+    if (typeof raw === "string") return PE.hexLinear(raw, fallbackAlpha);
+    if (Array.isArray(raw) && raw.length >= 3) {
+      return [
+        Math.max(0, Math.min(4, Number(raw[0]) || 0)),
+        Math.max(0, Math.min(4, Number(raw[1]) || 0)),
+        Math.max(0, Math.min(4, Number(raw[2]) || 0)),
+        raw.length > 3 && Number.isFinite(Number(raw[3])) ? Math.max(0, Math.min(1, Number(raw[3]))) : fallbackAlpha,
+      ];
+    }
+    return [1, 1, 1, fallbackAlpha];
+  }
+
+  PE.getColorStops = function getColorStops(p) {
+    if (!p) return [{ color: [1, 1, 1, 1], pos: 0 }, { color: [1, 1, 1, 0], pos: 1 }];
+    if (Array.isArray(p.colorStops) && p.colorStops.length >= 1) {
+      const n = p.colorStops.length;
+      const out = p.colorStops.map((entry, idx) => {
+        if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+          const pos = Number.isFinite(Number(entry.pos)) ? Math.max(0, Math.min(1, Number(entry.pos))) : (n > 1 ? idx / (n - 1) : 0);
+          return { color: normRgba(entry.color ?? entry.rgba ?? entry, 1), pos };
+        }
+        return { color: normRgba(entry, 1), pos: n > 1 ? idx / (n - 1) : 0 };
+      });
+      out.sort((a, b) => a.pos - b.pos);
+      return out;
+    }
+    const isAssembly = !!(p.transition && (p.transition.assemble | 0) > 0);
+    const cA = normRgba(p.colA, 1);
+    if (isAssembly) return [{ color: cA, pos: 0 }];
+    const cB = normRgba(p.colB, 0);
+    const hasC = p.colC && (p.colC[3] ?? 0) > 0.01 && PE.usesMidStop(p);
+    if (hasC) {
+      const sh = p.shape ?? 3;
+      const midPos = p.kind === 4 ? 0.5 : (((p.curlMode || 0) === 0 && (sh === 0 || sh >= 10) && !(p.gridMode || p.ferroMode || p.crackMode || p.beadsMode || p.seedHeadMode || p.jellyMode || p.webMode || p.dynMode || p.mudSplashMode || p.kind === 6))
+        ? 0.38 : 0.48);
+      return [{ color: cA, pos: 0 }, { color: normRgba(p.colC, 1), pos: midPos }, { color: cB, pos: 1 }];
+    }
+    return [{ color: cA, pos: 0 }, { color: cB, pos: 1 }];
+  };
+
+  PE.syncColorStops = function syncColorStops(p, stops, keepOrder = false) {
+    if (!p || !Array.isArray(stops) || stops.length === 0) return [];
+    const n = stops.length;
+    const norm = stops.map((entry, idx) => {
+      if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+        const pos = Number.isFinite(Number(entry.pos)) ? Math.max(0, Math.min(1, Number(entry.pos))) : (n > 1 ? idx / (n - 1) : 0);
+        return { color: normRgba(entry.color ?? entry.rgba ?? entry, 1), pos };
+      }
+      return { color: normRgba(entry, 1), pos: n > 1 ? idx / (n - 1) : 0 };
+    });
+    if (!keepOrder) norm.sort((a, b) => a.pos - b.pos);
+    p.colorStops = norm.map((s) => ({ color: [...s.color], pos: s.pos }));
+    p.colA = [...norm[0].color];
+    p.colB = [...norm[norm.length - 1].color];
+    if (norm.length >= 3) {
+      const mid = norm[Math.floor((norm.length - 1) / 2)];
+      p.colC = [...mid.color];
+    } else if (!p.colC) {
+      p.colC = [...p.colB];
+    }
+    return p.colorStops;
+  };
+
+  PE.packColorRamp = function packColorRamp(p) {
+    const stops = PE.getColorStops(p);
+    const floats = new Float32Array(stops.length * 8);
+    for (let i = 0; i < stops.length; i++) {
+      const c = stops[i].color;
+      const o = i * 8;
+      floats[o] = c[0]; floats[o + 1] = c[1]; floats[o + 2] = c[2]; floats[o + 3] = c[3];
+      floats[o + 4] = stops[i].pos;
+    }
+    const byCode = PE.COLOR_BY_CODE[p?.colorBy || "modeDefault"] ?? 0;
+    const wrapCode = p?.colorWrap === "repeat" ? 1 : p?.colorWrap === "mirror" ? 2 : 0;
+    const interpCode = p?.colorInterp === "smooth" ? 1 : p?.colorInterp === "stepped" ? 2 : 0;
+    const min = Number.isFinite(Number(p?.colorMin)) ? Number(p.colorMin) : 0;
+    const max = Number.isFinite(Number(p?.colorMax)) ? Number(p.colorMax) : 1;
+    const repeat = Math.max(0.05, Number.isFinite(Number(p?.colorRepeat)) ? Number(p.colorRepeat) : 1);
+    const phase = Number.isFinite(Number(p?.colorPhase)) ? Number(p.colorPhase) : 0;
+    return { stops, floats, count: stops.length, byCode, min, max, repeat, wrapCode, phase, interpCode };
+  };
+
+  function hash3u(ix, iy, iz) {
+    let h = (Math.imul(ix | 0, 374761393) + Math.imul(iy | 0, 668265263) + Math.imul(iz | 0, 2147483647)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+
+  PE.rampVNoise3 = function rampVNoise3(x, y, z) {
+    const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+    const fx = x - ix, fy = y - iy, fz = z - iz;
+    const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy), uz = fz * fz * (3 - 2 * fz);
+    const c000 = hash3u(ix, iy, iz),         c100 = hash3u(ix + 1, iy, iz);
+    const c010 = hash3u(ix, iy + 1, iz),     c110 = hash3u(ix + 1, iy + 1, iz);
+    const c001 = hash3u(ix, iy, iz + 1),     c101 = hash3u(ix + 1, iy, iz + 1);
+    const c011 = hash3u(ix, iy + 1, iz + 1), c111 = hash3u(ix + 1, iy + 1, iz + 1);
+    const x00 = c000 + (c100 - c000) * ux, x10 = c010 + (c110 - c010) * ux;
+    const x01 = c001 + (c101 - c001) * ux, x11 = c011 + (c111 - c011) * ux;
+    const y0 = x00 + (x10 - x00) * uy, y1 = x01 + (x11 - x01) * uy;
+    return y0 + (y1 - y0) * uz;
+  };
+
+  function hashFJs(seed, k) {
+    let x = ((Math.floor(Math.max(0, seed)) * 31 + k * 977 + 17) >>> 0);
+    x ^= x >>> 16; x = Math.imul(x, 0x7feb352d) >>> 0;
+    x ^= x >>> 15; x = Math.imul(x, 0x846ca68b) >>> 0;
+    x ^= x >>> 16;
+    return (x & 0xffffff) / 16777216;
+  }
+
+  PE.evalColorRampAt = function evalColorRampAt(stops, tRaw, p) {
+    if (!stops || stops.length === 0) return [1, 1, 1, 1];
+    if (stops.length === 1) return [...stops[0].color];
+    const rep = Math.max(0.05, Number.isFinite(Number(p?.colorRepeat)) ? Number(p.colorRepeat) : 1);
+    const phase = Number.isFinite(Number(p?.colorPhase)) ? Number(p.colorPhase) : 0;
+    const u = tRaw * rep + phase;
+    let t;
+    if (p?.colorWrap === "repeat") t = u - Math.floor(u);
+    else if (p?.colorWrap === "mirror") {
+      const m2 = u - 2 * Math.floor(u * 0.5);
+      t = m2 <= 1 ? m2 : 2 - m2;
+    } else {
+      t = Math.max(0, Math.min(1, u));
+    }
+    if (t <= stops[0].pos) return [...stops[0].color];
+    const last = stops.length - 1;
+    if (t >= stops[last].pos) return [...stops[last].color];
+    let lo = 0, hi = last;
+    while (lo + 1 < hi) {
+      const mid = (lo + hi) >> 1;
+      if (stops[mid].pos <= t) lo = mid;
+      else hi = mid;
+    }
+    const a = stops[lo], b = stops[lo + 1];
+    let frac = Math.max(0, Math.min(1, (t - a.pos) / Math.max(1e-5, b.pos - a.pos)));
+    if (p?.colorInterp === "smooth") frac = frac * frac * (3 - 2 * frac);
+    else if (p?.colorInterp === "stepped") frac = 0;
+    return [
+      a.color[0] + (b.color[0] - a.color[0]) * frac,
+      a.color[1] + (b.color[1] - a.color[1]) * frac,
+      a.color[2] + (b.color[2] - a.color[2]) * frac,
+      a.color[3] + (b.color[3] - a.color[3]) * frac,
+    ];
+  };
+
+  PE.evalParticleColorCPU = function evalParticleColorCPU(p, defaultT, px, py, pz, vx, vy, vz, age, life, size, ang, seed, camX, camY, camZ, time) {
+    const stops = PE.getColorStops(p);
+    const byCode = PE.COLOR_BY_CODE[p?.colorBy || "modeDefault"] ?? 0;
+    let scalar = defaultT;
+    if (byCode !== 0) {
+      const lo = Number.isFinite(Number(p?.colorMin)) ? Number(p.colorMin) : 0;
+      const hi = Number.isFinite(Number(p?.colorMax)) ? Number(p.colorMax) : 1;
+      const invSpan = 1 / Math.max(1e-4, Math.abs(hi - lo));
+      const signSpan = hi >= lo ? 1 : -1;
+      const org = p?.origin || [0, 0, 0];
+      let raw = defaultT;
+      if (byCode === 1) raw = age / (life > 1e6 ? 3 : Math.max(0.05, life));
+      else if (byCode === 2) raw = age;
+      else if (byCode === 3) raw = Math.hypot(vx, vy, vz);
+      else if (byCode === 4) raw = vy;
+      else if (byCode === 5) raw = (Math.atan2(pz - org[2], px - org[0]) + Math.PI) / (Math.PI * 2);
+      else if (byCode === 6) raw = (Math.atan2(vz, vx) + Math.PI) / (Math.PI * 2);
+      else if (byCode === 7) raw = Math.hypot(px - org[0], py - org[1], pz - org[2]);
+      else if (byCode === 8) raw = py;
+      else if (byCode === 9) {
+        const fq = Math.max(0.25, p?.curlFreq ?? 0.85);
+        raw = PE.rampVNoise3(px * fq, py * fq + (time || 0) * 0.18, pz * fq);
+      } else if (byCode === 10) raw = hashFJs(seed || 0, 99);
+      else if (byCode === 11) {
+        const an = (ang || 0) / (Math.PI * 2);
+        raw = an - Math.floor(an);
+      } else if (byCode === 12) raw = Math.hypot(px - camX, py - camY, pz - camZ);
+      else if (byCode === 13) raw = size || 0;
+      else if (byCode === 14) raw = life > 1e6 ? 3 : life;
+      scalar = (raw - lo) * invSpan * signSpan;
+      if (p?.colorWrap === "clamp" || !p?.colorWrap) scalar = Math.max(0, Math.min(1, scalar));
+    }
+    return PE.evalColorRampAt(stops, scalar, p);
+  };
 
   // Wind field components. Type codes match the WGSL wind kernel:
   // 0 directional, 1 gust bands, 2 tornado, 3 radial (negative strength = suction).

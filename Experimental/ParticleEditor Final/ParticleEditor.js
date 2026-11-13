@@ -99,6 +99,32 @@ const ParameterBounds = (P, FieldScene) =>
 
 const DisplayColour = Linear =>
     '#' + [0, 1, 2].map(Ch => Math.round(Clamp(C.LinearToDisplay(Clamp(Linear[Ch], 0, 1)), 0, 1) * 255).toString(16).padStart(2, '0')).join('');
+const DisplayColourA = Linear =>
+{
+    const A = Linear && Linear.length > 3 ? Clamp(Number(Linear[3]), 0, 1) : 1;
+    return `rgba(${[0, 1, 2].map(Ch => Math.round(Clamp(C.LinearToDisplay(Clamp(Linear[Ch], 0, 1)), 0, 1) * 255)).join(', ')}, ${A.toFixed(3)})`;
+};
+const RampStopsOf = P => (PE.getColorStops ? PE.getColorStops(P) : [{ color: [...(P.colA || [1, 1, 1, 1])], pos: 0 }, { color: [...(P.colB || [1, 1, 1, 0])], pos: 1 }]);
+const RampCss = P =>
+{
+    const Stops = RampStopsOf(P);
+    if (!Stops.length) return DisplayColour(P.colA || [1, 1, 1, 1]);
+    if (Stops.length === 1) return DisplayColourA(Stops[0].color);
+    const Stepped = P.colorInterp === 'stepped';
+    const Parts = [];
+    for (let I = 0; I < Stops.length; I++)
+    {
+        const C = DisplayColourA(Stops[I].color);
+        const Pos = (Stops[I].pos * 100).toFixed(2) + '%';
+        if (Stepped && I > 0)
+        {
+            Parts.push(`${DisplayColourA(Stops[I - 1].color)} ${Pos}`);
+            Parts.push(`${C} ${Pos}`);
+        }
+        else Parts.push(`${C} ${Pos}`);
+    }
+    return `linear-gradient(90deg, ${Parts.join(', ')})`;
+};
 
 // Curated scene presets for the slanted Fluid document dock
 const SceneTabs = [
@@ -1003,7 +1029,7 @@ function ConstructGeometry()
         const [SideU, UpPerp] = Orthonormal(Dir);
         const BeamW = Math.max(0.012, P.beamWidth ?? 0.048);
         const PulseSpd = P.beamPulse ?? 6.0;
-        const ColCore = P.colC || [0.35, 0.92, 1.0, 1.0];
+        const ColCore = (PE.evalColorRampAt && PE.getColorStops) ? PE.evalColorRampAt(PE.getColorStops(P), 0.5, P) : (P.colC || [0.35, 0.92, 1.0, 1.0]);
         const ChosenFx = Selected === E.Token;
 
         if (P.showElectrodes !== false)
@@ -2269,11 +2295,13 @@ function Advance(Now)
             seed: (Scene.Step * 7919 + E.Number * 104729) >>> 0, preseedCurtain: PreseedCurtain, crackHit: E.CrackHit || null
         });
         const GShape = (P.gridMode || 0) > 0 ? Math.round(P.gridShape ?? 0) : -1;
+        const Ramp = PE.packColorRamp ? PE.packColorRamp(P) : null;
         Jobs.push({
             gpu: Gpu, cpu: Gpu.cpu, origin: Origin, simulate: Simulate, emitN: Release, preseedCurtain: PreseedCurtain,
             kind: P.kind, readStats: Simulate && (SeedNow || Scene.Step % 3 === 0), draw: true, alpha: P.blend === 'alpha',
             cube: P.shape === 4 || GShape === 1 || GShape === 2 || (P.crackMode || 0) > 0, dualPrim: GShape === 6 || (P.crackMode || 0) > 0,
-            shatter: !!(P.transition && P.transition.fragment), fly: !!(P.transition && P.transition.after === 'butterfly')
+            shatter: !!(P.transition && P.transition.fragment), fly: !!(P.transition && P.transition.after === 'butterfly'),
+            rampData: Ramp ? Ramp.floats : null, rampCount: Ramp ? Ramp.count : 0
         });
     }
 
@@ -3229,6 +3257,7 @@ function ClassifyEffect(P)
     const UsesSizeEnd = !IsAssembly && !IsWeb && !IsDyn && !IsGrid && !IsFerro && !IsCrack && !IsBeads && !IsSeedHead && !IsJelly;
     const UsesColB = !IsAssembly;
     const UsesColC = IsCurl || IsWeb || IsDyn || IsGrid || IsFerro || IsCrack || IsMud || IsBeads || IsSeedHead || IsJelly || (P.trailMode || 0) > 0 || IsBoids || IsBeam || Shape === 0 || Shape >= 10;
+    const UsesColorRamp = !IsAssembly;
     const UsesTrailMode = !IsCurl && !IsWeb && !IsDyn && !IsGrid && !IsFerro && !IsCrack && !IsMud && !IsBeads && !IsSeedHead && !IsJelly && !IsTransition && !IsBoids && !IsArc && !IsBeam && (Shape < 10 || Shape === 14);
     const UsesWind = !IsAssembly && !IsGrid && !IsFerro && !IsCrack && !(Shape === 16 || (Shape === 15 && (P.leafMode || 0) === 0));
     const UsesDynamics = !IsAssembly && !IsGrid && !IsFerro && !IsCrack && !(Shape === 16 || (Shape === 15 && (P.leafMode || 0) === 0));
@@ -3255,7 +3284,7 @@ function ClassifyEffect(P)
         IsDiscPlane, IsSteadyOverlay, IsExpandingWave,
         UsesRate, UsesEmitVolume, UsesRadius, UsesBoxHalf,
         UsesDirVector, UsesSpread, UsesSpeed, UsesLife,
-        UsesSizeEnd, UsesColB, UsesColC, UsesTrailMode,
+        UsesSizeEnd, UsesColB, UsesColC, UsesColorRamp, UsesTrailMode,
         UsesWind, UsesDynamics, UsesLaunchCone, BounceBlockReason
     };
 }
@@ -3264,8 +3293,252 @@ function SpectrumGradient(P, Cls)
 {
     const C = Cls || ClassifyEffect(P);
     if (!C.UsesColB) return DisplayColour(P.colA);
-    if (C.UsesColC) return `linear-gradient(90deg, ${DisplayColour(P.colA)}, ${DisplayColour(P.colC || P.colB)}, ${DisplayColour(P.colB)})`;
-    return `linear-gradient(90deg, ${DisplayColour(P.colA)}, ${DisplayColour(P.colB)})`;
+    return RampCss(P);
+}
+
+function AddColorRampEditor(Host, Effect, P, Cls)
+{
+    const MAX_STOPS = 16;
+    let SelectedIdx = 0;
+    const CommitStops = Stops =>
+    {
+        PE.syncColorStops(P, Stops);
+        SelectedIdx = Clamp(SelectedIdx, 0, Math.max(0, Stops.length - 1));
+        PE.Edits.Announce('Colour ramp', `${Stops.length} stop${Stops.length === 1 ? '' : 's'}`);
+        AppendLog('PARTICLES', `${Effect.Name}: Colour ramp`, `${Stops.length} stops`, 'live');
+        C.Broadcast();
+    };
+    const ClampPos = (Stops, Idx, Pos) =>
+    {
+        const Lo = Idx > 0 ? Stops[Idx - 1].pos + 0.001 : 0;
+        const Hi = Idx < Stops.length - 1 ? Stops[Idx + 1].pos - 0.001 : 1;
+        return Clamp(Pos, Math.min(Lo, Hi), Math.max(Lo, Hi));
+    };
+
+    const Wrap = C.Construct('div', 'ramp-editor');
+    Host.append(Wrap);
+
+    const Track = C.Construct('div', 'ramp-track');
+    const Fill = C.Construct('div', 'ramp-track-fill');
+    Track.append(Fill);
+    Wrap.append(Track);
+
+    const Handles = [];
+    let Dragging = false;
+    const RenderHandles = () =>
+    {
+        if (Dragging) return;
+        for (const H of Handles) H.remove();
+        Handles.length = 0;
+        const Stops = RampStopsOf(P);
+        SelectedIdx = Clamp(SelectedIdx, 0, Math.max(0, Stops.length - 1));
+        Stops.forEach((Stop, Idx) =>
+        {
+            const Handle = C.Construct('button', 'ramp-stop' + (Idx === SelectedIdx ? ' selected' : ''));
+            Handle.type = 'button';
+            Handle.style.left = (Stop.pos * 100).toFixed(2) + '%';
+            Handle.style.background = DisplayColourA(Stop.color);
+            Handle.title = `Stop ${Idx + 1} · ${(Stop.pos * 100).toFixed(0)}% — drag to move, click to select`;
+            Handle.setAttribute('aria-label', `Colour stop ${Idx + 1} at ${(Stop.pos * 100).toFixed(0)} percent`);
+            Handle.addEventListener('pointerdown', Event =>
+            {
+                Event.preventDefault();
+                Event.stopPropagation();
+                SelectedIdx = Idx;
+                for (const H of Handles) H.classList.remove('selected');
+                Handle.classList.add('selected');
+                Dragging = true;
+                Handle.setPointerCapture(Event.pointerId);
+                const Rect = Track.getBoundingClientRect();
+                const Move = MoveEvent =>
+                {
+                    const Fresh = RampStopsOf(P);
+                    const Pos = Clamp((MoveEvent.clientX - Rect.left) / Math.max(1, Rect.width), 0, 1);
+                    Fresh[Idx].pos = ClampPos(Fresh, Idx, Pos);
+                    PE.syncColorStops(P, Fresh);
+                    Handle.style.left = (Fresh[Idx].pos * 100).toFixed(2) + '%';
+                    Fill.style.background = RampCss(P);
+                    C.Broadcast();
+                };
+                const Up = () =>
+                {
+                    Handle.removeEventListener('pointermove', Move);
+                    Handle.removeEventListener('pointerup', Up);
+                    Handle.removeEventListener('pointercancel', Up);
+                    Dragging = false;
+                    RenderHandles();
+                    C.Broadcast();
+                };
+                Handle.addEventListener('pointermove', Move);
+                Handle.addEventListener('pointerup', Up);
+                Handle.addEventListener('pointercancel', Up);
+            });
+            Track.append(Handle);
+            Handles.push(Handle);
+        });
+        Fill.style.background = RampCss(P);
+    };
+    Track.addEventListener('pointerdown', Event =>
+    {
+        if (Event.target !== Track && Event.target !== Fill) return;
+        const Stops = RampStopsOf(P);
+        if (Stops.length >= MAX_STOPS) return;
+        const Rect = Track.getBoundingClientRect();
+        const Pos = Clamp((Event.clientX - Rect.left) / Math.max(1, Rect.width), 0, 1);
+        const Sample = PE.evalColorRampAt ? PE.evalColorRampAt(Stops, Pos, P) : [...Stops[0].color];
+        Stops.push({ color: [...Sample], pos: Pos });
+        Stops.sort((A, B) => A.pos - B.pos);
+        SelectedIdx = Stops.findIndex(S => Math.abs(S.pos - Pos) < 1e-6);
+        CommitStops(Stops);
+        RenderHandles();
+    });
+    C.Register(() => RenderHandles());
+
+    const Meta = C.Construct('p', 'property-hint ramp-meta');
+    Wrap.append(Meta);
+    C.Register(() =>
+    {
+        const Stops = RampStopsOf(P);
+        const Mode = (PE.COLOR_BY_MODES || []).find(M => M.id === (P.colorBy || 'modeDefault'));
+        Meta.textContent = `${Stops.length} stop${Stops.length === 1 ? '' : 's'} · ${Mode ? Mode.label : 'Mode default'} · click the track to add a stop, drag handles to move them.`;
+    });
+
+    const StopTools = C.Construct('div', 'ramp-tools');
+    Wrap.append(StopTools);
+    const AddBtn = C.Construct('button', 'chip-add-btn', '+ Add stop');
+    AddBtn.type = 'button';
+    AddBtn.addEventListener('click', () =>
+    {
+        const Stops = RampStopsOf(P);
+        if (Stops.length >= MAX_STOPS) return;
+        const At = Stops.length > 1 ? 0.5 : 0.5;
+        const Sample = PE.evalColorRampAt ? PE.evalColorRampAt(Stops, At, P) : [...Stops[0].color];
+        Stops.push({ color: [...Sample], pos: At });
+        Stops.sort((A, B) => A.pos - B.pos);
+        SelectedIdx = Stops.findIndex(S => Math.abs(S.pos - At) < 1e-6);
+        CommitStops(Stops);
+        RenderHandles();
+    });
+    const RemoveBtn = C.Construct('button', 'chip-add-btn', '− Remove stop');
+    RemoveBtn.type = 'button';
+    RemoveBtn.addEventListener('click', () =>
+    {
+        const Stops = RampStopsOf(P);
+        if (Stops.length <= 2) return;
+        Stops.splice(SelectedIdx, 1);
+        SelectedIdx = Clamp(SelectedIdx, 0, Stops.length - 1);
+        CommitStops(Stops);
+        RenderHandles();
+    });
+    const ResetBtn = C.Construct('button', 'chip-add-btn', 'Preset colours');
+    ResetBtn.type = 'button';
+    ResetBtn.title = 'Discard custom stops and restore the preset base / mid / crest colours';
+    ResetBtn.addEventListener('click', () =>
+    {
+        const Preset = PE.presetById(Effect.PresetId);
+        if (Preset && Preset.p)
+        {
+            P.colA = [...Preset.p.colA];
+            P.colB = [...(Preset.p.colB || Preset.p.colA)];
+            P.colC = [...(Preset.p.colC || Preset.p.colB || Preset.p.colA)];
+        }
+        P.colorStops = null;
+        SelectedIdx = 0;
+        PE.Edits.Announce('Colour ramp', 'preset colours');
+        AppendLog('PARTICLES', `${Effect.Name}: Colour ramp`, 'preset colours', 'live');
+        C.Broadcast();
+        RenderHandles();
+    });
+    StopTools.append(AddBtn, RemoveBtn, ResetBtn);
+    C.Register(() =>
+    {
+        const N = RampStopsOf(P).length;
+        AddBtn.disabled = N >= MAX_STOPS;
+        RemoveBtn.disabled = N <= 2;
+    });
+
+    const SelLabel = C.Construct('span', 'property-label ramp-sel-label');
+    Wrap.append(SelLabel);
+    C.Register(() =>
+    {
+        const Stops = RampStopsOf(P);
+        const S = Stops[SelectedIdx];
+        SelLabel.textContent = S ? `Stop ${SelectedIdx + 1} of ${Stops.length} · ${(S.pos * 100).toFixed(0)}%` : '';
+    });
+    C.ColourRow(Wrap, {
+        Label: 'Selected stop colour',
+        Alpha: true,
+        Read: () => { const S = RampStopsOf(P)[SelectedIdx]; return S ? [...S.color] : [1, 1, 1, 1]; },
+        Write: Col =>
+        {
+            const Stops = RampStopsOf(P);
+            if (!Stops[SelectedIdx]) return;
+            Stops[SelectedIdx].color = [...Col];
+            CommitStops(Stops);
+            RenderHandles();
+        }
+    });
+    Range(Wrap, {
+        Label: 'Selected stop position',
+        Read: () => { const S = RampStopsOf(P)[SelectedIdx]; return S ? S.pos : 0; },
+        Write: V =>
+        {
+            const Stops = RampStopsOf(P);
+            if (!Stops[SelectedIdx]) return;
+            Stops[SelectedIdx].pos = ClampPos(Stops, SelectedIdx, Number(V));
+            CommitStops(Stops);
+            RenderHandles();
+        }
+    }, 0, 1, 0.01, 2, '');
+
+    const PalLabel = C.Construct('span', 'property-label ramp-pal-label', 'Palette presets');
+    Wrap.append(PalLabel);
+    const PalRow = C.Construct('div', 'ramp-palettes');
+    Wrap.append(PalRow);
+    for (const Pal of (PE.COLOR_PALETTES || []))
+    {
+        const Btn = C.Construct('button', 'ramp-palette-btn');
+        Btn.type = 'button';
+        Btn.title = Pal.label;
+        Btn.setAttribute('aria-label', `Apply palette: ${Pal.label}`);
+        Btn.style.background = `linear-gradient(90deg, ${Pal.colors.join(', ')})`;
+        Btn.addEventListener('click', () =>
+        {
+            const N = Pal.colors.length;
+            const Stops = Pal.colors.map((Hex, I) => ({ color: PE.hexLinear(Hex, 1), pos: N > 1 ? I / (N - 1) : 0 }));
+            SelectedIdx = 0;
+            CommitStops(Stops);
+            RenderHandles();
+        });
+        PalRow.append(Btn);
+    }
+
+    const Mode = (PE.COLOR_BY_MODES || []).find(M => M.id === (P.colorBy || 'modeDefault')) || (PE.COLOR_BY_MODES || [])[0];
+    const ByBinding = {
+        Label: 'Colour driven by',
+        Options: (PE.COLOR_BY_MODES || []).map(M => [M.label, M.id]),
+        Read: () => P.colorBy || 'modeDefault',
+        Write: V =>
+        {
+            P.colorBy = V;
+            const Next = (PE.COLOR_BY_MODES || []).find(M => M.id === V);
+            if (Next) { P.colorMin = Next.defaultMin; P.colorMax = Next.defaultMax; }
+            PE.Edits.Announce('Colour driven by', V);
+            AppendLog('PARTICLES', `${Effect.Name}: Colour driven by`, String(V), 'live');
+            ConstructInspectorPage();
+        }
+    };
+    C.SelectRow(Wrap, ByBinding);
+    const Span = Math.max(1e-3, (Mode ? Mode.defaultMax : 1) - (Mode ? Mode.defaultMin : 0));
+    const Lo = (Mode ? Mode.defaultMin : 0) - Span;
+    const Hi = (Mode ? Mode.defaultMax : 1) + Span;
+    const Step = Span / 100;
+    Range(Wrap, BindEffect(Effect, P, 'colorMin', { Label: `Ramp input minimum${Mode && Mode.unit ? ` (${Mode.unit})` : ''}` }), Lo, Hi, Step, 2, Mode && Mode.unit ? Mode.unit : '');
+    Range(Wrap, BindEffect(Effect, P, 'colorMax', { Label: `Ramp input maximum${Mode && Mode.unit ? ` (${Mode.unit})` : ''}` }), Lo, Hi, Step, 2, Mode && Mode.unit ? Mode.unit : '');
+    Range(Wrap, BindEffect(Effect, P, 'colorRepeat', { Label: 'Ramp repeat count' }), 0.05, 8, 0.05, 2, '×');
+    C.SelectRow(Wrap, BindEffect(Effect, P, 'colorWrap', { Label: 'Ramp wrap mode', Options: PE.COLOR_WRAP_MODES || [['Clamp', 'clamp'], ['Repeat', 'repeat'], ['Mirror', 'mirror']] }));
+    Range(Wrap, BindEffect(Effect, P, 'colorPhase', { Label: 'Ramp phase offset' }), -1, 1, 0.01, 2, '');
+    C.SegmentedRow(Wrap, BindEffect(Effect, P, 'colorInterp', { Label: 'Ramp interpolation', Options: PE.COLOR_INTERP_MODES || [['Linear', 'linear'], ['Smooth', 'smooth'], ['Stepped', 'stepped']] }));
 }
 
 function ConstructEffectInspector(Page, Effect)
@@ -3951,11 +4224,10 @@ function ConstructEffectInspector(Page, Effect)
         if (Cls.UsesSizeEnd)
             Range(Look, BindEffect(Effect, P, 'sizeEnd', { Label: 'Size at death' }), 0.002, 18, 0.01, 3, 'm');
         Range(Look, BindEffect(Effect, P, 'sizeScale', { Label: 'Size multiplier' }), 0.1, 4, 0.02, 2, '×');
-        C.ColourRow(Look, BindEffect(Effect, P, 'colA', { Label: Cls.IsAssembly ? 'Base surface colour' : 'Trough / base colour', Alpha: true }));
-        if (Cls.UsesColC)
-            C.ColourRow(Look, BindEffect(Effect, P, 'colC', { Label: 'Mid-stream / accent colour', Alpha: true }));
-        if (Cls.UsesColB)
-            C.ColourRow(Look, BindEffect(Effect, P, 'colB', { Label: 'Crest / death colour', Alpha: true }));
+        if (Cls.UsesColorRamp)
+            AddColorRampEditor(Look, Effect, P, Cls);
+        else
+            C.ColourRow(Look, BindEffect(Effect, P, 'colA', { Label: 'Base surface colour', Alpha: true }));
         if (P.shape === 0 && !Cls.IsCurl && !(P.trailMode > 0))
             Range(Look, BindEffect(Effect, P, 'streakThin', { Label: 'Streak thinness' }), 0.1, 2.0, 0.02, 2, '×');
         if (P.shape === 2)
@@ -4921,8 +5193,15 @@ function EncodeEffect(Effect)
             Lines.push(`${PascalKey} = ${JSON.stringify(V)}`);
             continue;
         }
+        if (Array.isArray(V) && V.some(Item => Item && typeof Item === 'object'))
+        {
+            if (JSON.stringify(V) === JSON.stringify(Preset.p[K])) continue;
+            const PascalKey = K.charAt(0).toUpperCase() + K.slice(1);
+            Lines.push(`${PascalKey} = ${JSON.stringify(V)}`);
+            continue;
+        }
         if (JSON.stringify(V) === JSON.stringify(Preset.p[K])) continue;
-        const Fmt = Array.isArray(V) ? `[${V.map(N => Number(N.toFixed(3))).join(', ')}]` : typeof V === 'string' ? `"${V}"` : String(Number(V.toFixed(4)));
+        const Fmt = Array.isArray(V) ? `[${V.map(N => Number(N.toFixed(3))).join(', ')}]` : typeof V === 'string' ? `"${V}"` : typeof V === 'boolean' ? String(V) : String(Number(V.toFixed(4)));
         const PascalKey = K.charAt(0).toUpperCase() + K.slice(1);
         Lines.push(`${PascalKey} = ${Fmt}`);
     }
