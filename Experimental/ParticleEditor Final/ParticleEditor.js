@@ -103,12 +103,12 @@ const DisplayColour = Linear =>
 // Curated scene presets for the slanted Fluid document dock
 const SceneTabs = [
     { Id: 'default', Name: 'Studio Default', Presets: null, Scenario: 'lab' },
-    { Id: 'effector_grids', Name: 'Effector Grids & Halftones', Presets: ['effector-grid-cubes', 'effector-sphere-dots', 'effector-hand-halftone'], Scenario: 'lab' },
+    { Id: 'effector_grids', Name: 'Effector Grids & Halftones', Presets: ['effector-grid-cubes', 'effector-sphere-dots', 'effector-hand-halftone', 'effector-torus-hex'], Scenario: 'lab' },
     { Id: 'rigging_cloth', Name: 'Cloth, Sails, Cables & Vines', Presets: ['flag-banner', 'ship-sail', 'cables-chains', 'vines-ropes'], Scenario: 'lab' },
     { Id: 'beads_chimes', Name: 'Bead Curtains, Chimes & Drapes', Presets: ['beaded-door-curtain', 'bamboo-wind-chimes', 'velvet-theater-drapes'], Scenario: 'lab' },
     { Id: 'foliage', Name: 'Grass, Reeds, Ferns & Tree', Presets: ['grass-wheat-field', 'tall-reeds', 'interactive-fern', 'interactive-tree'], Scenario: 'lab' },
     { Id: 'dandelions_blossoms', Name: 'Dandelions & Cherry Blossoms', Presets: ['dandelion-puff', 'blossom-branch-detach'], Scenario: 'lab' },
-    { Id: 'underwater_reef', Name: 'Underwater Kelp & Anemones', Presets: ['kelp-forest', 'sea-anemone', 'bubbles'], Scenario: 'lab' },
+    { Id: 'underwater_reef', Name: 'Underwater Kelp & Anemones', Presets: ['kelp-forest', 'sea-anemone', 'boids-fish-school', 'bubbles'], Scenario: 'lab' },
     { Id: 'mud_car', Name: 'Mud, Car Puddles & Ripples', Presets: ['car-puddle-splash', 'puddle-ripple-splash', 'mud-splatter-heavy'], Scenario: 'lab' },
     { Id: 'softbody_jelly', Name: 'Soft-Body Jelly & Slime Tendrils', Presets: ['jelly-slime-blob', 'slime-tendril-cluster'], Scenario: 'lab' },
     { Id: 'ferrofluid', Name: 'Magnetic Ferrofluid', Presets: ['ferrofluid-spikes', 'ferrofluid-orb'], Scenario: 'lab' },

@@ -192,7 +192,7 @@ import { PE } from "./pe.js";
       }),
     },
     {
-      id: "leaves", name: "Leaves", group: "Wind-blown",
+      id: "leaves", name: "Leaves", group: "Wind-Blown",
       blurb: "Leaves released from a canopy; they flutter, tumble and follow the wind field.",
       p: P({
         kind: 1, shape: 2, leafMode: 0, blend: "alpha", capacity: 1200, rate: 20,
@@ -204,7 +204,7 @@ import { PE } from "./pe.js";
       }),
     },
     {
-      id: "paper", name: "Paper & debris", group: "Wind-blown",
+      id: "paper", name: "Paper & debris", group: "Wind-Blown",
       blurb: "Light paper sheets: high wind coupling and strong sway.",
       p: P({
         kind: 1, shape: 2, leafMode: 1, blend: "alpha", capacity: 600, rate: 8,
@@ -296,7 +296,7 @@ import { PE } from "./pe.js";
       }),
     },
     {
-      id: "petals", name: "Cherry petals", group: "Wind-blown",
+      id: "petals", name: "Cherry petals", group: "Wind-Blown",
       blurb: "Petals drifting off a canopy; they tumble and follow the wind closely.",
       p: P({
         kind: 1, shape: 2, leafMode: 0, blend: "alpha", capacity: 700, rate: 14,
@@ -405,7 +405,7 @@ import { PE } from "./pe.js";
       }),
     },
     {
-      id: "seeds", name: "Dandelion seeds", group: "Wind-blown",
+      id: "seeds", name: "Dandelion seeds", group: "Wind-Blown",
       blurb: "Very light seeds that float and flutter; the wind carries them.",
       p: P({
         kind: 1, shape: 3, blend: "alpha", capacity: 400, rate: 15,
@@ -416,7 +416,7 @@ import { PE } from "./pe.js";
       }),
     },
     {
-      id: "feathers", name: "Feathers", group: "Wind-blown",
+      id: "feathers", name: "Feathers", group: "Wind-Blown",
       blurb: "Light feathers that drift, spin and sway in the wind.",
       p: P({
         kind: 1, shape: 2, leafMode: 0, blend: "alpha", capacity: 300, rate: 6,
@@ -427,7 +427,7 @@ import { PE } from "./pe.js";
       }),
     },
     {
-      id: "confetti", name: "Confetti & streamers", group: "Wind-blown",
+      id: "confetti", name: "Confetti & streamers", group: "Wind-Blown",
       blurb: "Paper pieces that tumble and flutter; strong wind coupling.",
       p: P({
         kind: 1, shape: 2, leafMode: 1, blend: "alpha", capacity: 1200, rate: 25,
@@ -688,6 +688,19 @@ import { PE } from "./pe.js";
         colA: hex("#ff9e44"), colC: hex("#ffe082"), colB: hex("#5ef0ff"),
         windCoupling: 1.0, flutter: 2.1, pulseHz: 1.25, pulseDepth: 0.42, swarmRadius: 1.35,
         boidsCohere: 0.95, boidsAlign: 1.2, boidsSeparate: 2.5, boidsSpeed: 2.3,
+      }),
+    },
+    {
+      id: "boids-fish-school", name: "Bioluminescent Fish School", group: "Wind-Blown",
+      blurb: "Iridescent cyan & reef-coral schooling fish undulating with side-to-side tail propulsion and scattering around thrown spheres.",
+      p: P({
+        kind: 6, shape: 13, leafMode: 2, blend: "alpha", capacity: 260, rate: 64,
+        emitShape: 1, radius: 1.75, origin: [0.2, 2.35, -0.1],
+        dir: [1, 0.06, 0.2], spread: 3.14, speedMin: 2.1, speedMax: 3.4, drag: 0.06, gravity: 0,
+        lifeMin: 14, lifeMax: 22, sizeStart: 0.22, sizeEnd: 0.21, sizeScale: 1.0,
+        colA: hex("#1a8cff"), colC: hex("#3cf5ff"), colB: hex("#ff8f5c"),
+        windCoupling: 0.85, flutter: 1.6, swarmRadius: 1.45,
+        boidsCohere: 1.35, boidsAlign: 2.1, boidsSeparate: 2.8, boidsSpeed: 3.2,
       }),
     },
     {
@@ -1068,6 +1081,20 @@ import { PE } from "./pe.js";
         colA: hex("#1c1d22"), colC: hex("#ff1b2d"), colB: hex("#ff4a6e"),
       }),
     },
+    {
+      id: "effector-torus-hex", name: "Kinetic Hex Torus Matrix", group: "Motion & Grids",
+      blurb: "Revolving torus lattice tiled with crisp hexagonal effector plates that ripple in radial waves and flare along passing Force Fields & balls.",
+      p: P({
+        kind: 5, shape: 1, blend: "alpha", capacity: 760, rate: 0,
+        emitShape: 1, radius: 1.35, boxHalf: [1.35, 1.35, 1.35], origin: [0.0, 2.15, -3.25], dir: [0, 1, 0], spread: 0.0,
+        speedMin: 0, speedMax: 0, drag: 0, gravity: 0, buoyancy: 0,
+        lifeMin: 9999, lifeMax: 9999, sizeStart: 0.072, sizeEnd: 0.072, sizeScale: 1.0,
+        gridMode: 1, gridSurface: 4, gridShape: 5, gridCols: 38, gridRows: 20,
+        gridEffector: 3, gridMinScale: 0.14, gridMaxHeight: 0.22, gridContrast: 1.55, gridBillboard: 0,
+        curlFreq: 1.25, curlAmp: 0.72, windCoupling: 0, bounce: 0, showObject: true,
+        colA: hex("#15192a"), colC: hex("#49d2ff"), colB: hex("#ffe066"),
+      }),
+    },
     // Priority 1A: Fluid-Coupled Mud, Car Puddle Rooster-Tails & Crown Splashes (compact particle budget, realistic micro-droplets & ligaments)
     {
       id: "car-puddle-splash", name: "Car Puddle & Mud Splash", group: "Pyro & Water",
@@ -1362,7 +1389,7 @@ import { PE } from "./pe.js";
     if (p.shape === 17 || id === "fireworks" || id === "flares" || id === "pollen") return "Atmosphere & Sky";
     if (p.curlMode > 0 || p.webMode > 0 || (p.arcMode ?? -1) >= 2 || g === "Silk & Curl") return "Silk & Curl";
     if (g === "Weather" || g === "Storms" || g === "Ground" || id === "ash") return "Storms & Weather";
-    if (g === "Wind-blown" || g === "Ambient" || p.kind === 1 || p.kind === 6) return "Wind-Blown";
+    if (g === "Wind-Blown" || g === "Wind-blown" || g === "Ambient" || p.kind === 1 || p.kind === 6) return "Wind-Blown";
     if (g === "Water" || g === "Pyro & Water" || p.shape === 14 || (g === "VFX" && p.shape !== 0 && p.shape !== 5)) return "Pyro & Water";
     return "Ballistics & Sparks";
   };
