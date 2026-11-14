@@ -527,6 +527,14 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/ColourSpace/ColourCodex.cpp
     Engine/ColourSpace/ColourDocument.cpp
     Engine/ColourSpace/ColourExtension.cpp
+    Engine/ParticleSpace/ParticleTintDriver.cpp
+    Engine/ParticleSpace/ParticleRig.cpp
+    Engine/ParticleSpace/ParticleDocument.cpp
+    Engine/ParticleSpace/ParticleExtension.cpp
+    Engine/ParticleSpace/Origins/AnalyticOrigins.cpp
+    Engine/ParticleSpace/Origins/StructuralOrigins.cpp
+    Engine/ParticleSpace/Origins/SurfaceAnchorSampler.cpp
+    Engine/ParticleSpace/Origins/FireworkPatternSampler.cpp
     Engine/Interchange/ColourInterchange.cpp
     Engine/Interchange/GeometryInterchange.cpp
     Engine/Editor/Viewports/TransformGizmo.cpp
@@ -782,6 +790,7 @@ if(BUILD_TESTING)
     frontier_register_exhibit(ColourSpaceValidation          Exhibits/ColourSpaceValidation.cpp)
     frontier_register_exhibit(ColourCodecInterchangeValidation Exhibits/ColourCodecInterchangeValidation.cpp)
     frontier_register_exhibit(ColourComponentsValidation     Exhibits/ColourComponentsValidation.cpp)
+    frontier_register_exhibit(ParticleFoundationValidation   Exhibits/ParticleFoundationValidation.cpp)
     frontier_register_exhibit(GeometryNetworkValidation      Exhibits/GeometryNetworkValidation.cpp)
     frontier_register_exhibit(GeometryCompletionValidation   Exhibits/GeometryCompletionValidation.cpp)
     frontier_register_exhibit(MaterialScatteringValidation   Exhibits/MaterialScatteringValidation.cpp)
