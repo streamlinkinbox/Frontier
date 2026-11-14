@@ -531,10 +531,27 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/ParticleSpace/ParticleRig.cpp
     Engine/ParticleSpace/ParticleDocument.cpp
     Engine/ParticleSpace/ParticleExtension.cpp
+    Engine/ParticleSpace/ParticleSoftwareExecutor.cpp
     Engine/ParticleSpace/Origins/AnalyticOrigins.cpp
     Engine/ParticleSpace/Origins/StructuralOrigins.cpp
     Engine/ParticleSpace/Origins/SurfaceAnchorSampler.cpp
     Engine/ParticleSpace/Origins/FireworkPatternSampler.cpp
+    Engine/ParticleSpace/Dynamics/BallisticMotion.cpp
+    Engine/ParticleSpace/Dynamics/ForceFieldCoupling.cpp
+    Engine/ParticleSpace/Dynamics/InteractiveCollider.cpp
+    Engine/ParticleSpace/Dynamics/CurlManifold.cpp
+    Engine/ParticleSpace/Dynamics/StrandConstraint.cpp
+    Engine/ParticleSpace/Dynamics/BotanicalSway.cpp
+    Engine/ParticleSpace/Dynamics/SpiderwebWeave.cpp
+    Engine/ParticleSpace/Dynamics/FerrofluidMeniscus.cpp
+    Engine/ParticleSpace/Dynamics/FractureFissure.cpp
+    Engine/ParticleSpace/Dynamics/ShallowWaterSplash.cpp
+    Engine/ParticleSpace/Dynamics/EffectorLattice.cpp
+    Engine/ParticleSpace/Dynamics/FlockBoids.cpp
+    Engine/ParticleSpace/Dynamics/MolecularKinetics.cpp
+    Engine/ParticleSpace/Dynamics/TransitionDerez.cpp
+    Engine/ParticleSpace/Dynamics/ShieldBarrier.cpp
+    Engine/ParticleSpace/Dynamics/PyroSpectacle.cpp
     Engine/Interchange/ColourInterchange.cpp
     Engine/Interchange/GeometryInterchange.cpp
     Engine/Interchange/ParticleInterchange.cpp
@@ -794,6 +811,7 @@ if(BUILD_TESTING)
     frontier_register_exhibit(ColourComponentsValidation     Exhibits/ColourComponentsValidation.cpp)
     frontier_register_exhibit(ParticleFoundationValidation      Exhibits/ParticleFoundationValidation.cpp)
     frontier_register_exhibit(ParticleCodecInterchangeValidation Exhibits/ParticleCodecInterchangeValidation.cpp)
+    frontier_register_exhibit(ParticleDynamicsValidation        Exhibits/ParticleDynamicsValidation.cpp)
     frontier_register_exhibit(GeometryNetworkValidation      Exhibits/GeometryNetworkValidation.cpp)
     frontier_register_exhibit(GeometryCompletionValidation   Exhibits/GeometryCompletionValidation.cpp)
     frontier_register_exhibit(MaterialScatteringValidation   Exhibits/MaterialScatteringValidation.cpp)
