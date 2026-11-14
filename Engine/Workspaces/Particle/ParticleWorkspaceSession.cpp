@@ -393,7 +393,48 @@ void ParticleWorkspaceSession::RebuildEffectSimulation(uint32_t EffectToken)
         return;
     }
 
-    LiveSimulations[EffectToken] = std::make_unique<ParticleSimulation>(std::move(*Compiled));
+    auto SimPtr = std::make_unique<ParticleSimulation>(std::move(*Compiled));
+    if (GpuExecutor && GpuExecutor->QueryDeviceReady())
+    {
+        SimPtr->AttachVulkanExecutor(GpuExecutor.get(), true);
+    }
+    LiveSimulations[EffectToken] = std::move(SimPtr);
+}
+
+bool ParticleWorkspaceSession::InitializeVulkanCompute(
+    const std::filesystem::path& ShaderBinaryDir,
+    const std::filesystem::path& SwiftShaderIcdDir,
+    std::string&                 OutDiagnostic)
+{
+    auto Candidate = std::make_unique<SimulationSpace::Particles::ParticleVulkanExecutor>();
+    if (!Candidate->Initialize(ShaderBinaryDir, SwiftShaderIcdDir, OutDiagnostic))
+    {
+        return false;
+    }
+    GpuExecutor = std::move(Candidate);
+    for (auto& Pair : LiveSimulations)
+    {
+        if (Pair.second)
+        {
+            Pair.second->AttachVulkanExecutor(GpuExecutor.get(), true);
+        }
+    }
+    return true;
+}
+
+bool ParticleWorkspaceSession::QueryVulkanComputeActive() const noexcept
+{
+    return GpuExecutor && GpuExecutor->QueryDeviceReady();
+}
+
+SimulationSpace::Particles::ParticleVulkanExecutor* ParticleWorkspaceSession::AccessVulkanExecutor() noexcept
+{
+    return GpuExecutor.get();
+}
+
+const SimulationSpace::Particles::ParticleVulkanExecutor* ParticleWorkspaceSession::QueryVulkanExecutor() const noexcept
+{
+    return GpuExecutor.get();
 }
 
 void ParticleWorkspaceSession::RebuildAllSimulations()

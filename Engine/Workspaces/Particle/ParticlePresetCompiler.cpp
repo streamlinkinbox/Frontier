@@ -249,6 +249,12 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectDescripto
             Flock.CruiseSpeedMs    = std::clamp(Effect.BoidsCruiseSpeedMs, 0.8f, 9.0f);
             Flock.CreatureVariant  = Effect.BoidsCreatureVariant;
             Flock.FlockCount       = std::clamp(SafeCapacity, 24u, 360u);
+            const auto Ca          = DecodeLinearRgba(Effect.ColorA);
+            const auto Cb          = DecodeLinearRgba(Effect.ColorB);
+            const auto Cc          = DecodeLinearRgba(Effect.ColorC);
+            const bool DarkBase    = (Ca[0] + Ca[1] + Ca[2]) < 0.28f;
+            Flock.PrimaryColor     = DarkBase ? Cb : Ca;
+            Flock.SecondaryColor   = DarkBase ? Cc : Cb;
 
             return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(Flock.FlockCount, ChannelStoragePolicy::FixedSlotOrder)
@@ -292,6 +298,12 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectDescripto
             Grid.FalloffMeters     = std::clamp(Effect.EffectorFalloffMeters, 0.5f, 6.0f);
             Grid.ExtrusionMeters   = std::clamp(Effect.EffectorExtrusionMeters, 0.2f, 4.0f);
             Grid.EnableDerezLaunch = (Effect.AuthoringDomain == ParticleAuthoringDomain::TransitionDerez);
+            const auto Ca          = DecodeLinearRgba(Effect.ColorA);
+            const auto Cb          = DecodeLinearRgba(Effect.ColorB);
+            const auto Cc          = DecodeLinearRgba(Effect.ColorC);
+            const bool DarkBase    = (Ca[0] + Ca[1] + Ca[2]) < 0.28f;
+            Grid.PrimaryColor      = DarkBase ? Cb : Ca;
+            Grid.AccentColor       = DarkBase ? Cc : Cc;
 
             return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(Side * Side, ChannelStoragePolicy::FixedSlotOrder)

@@ -1,7 +1,7 @@
 /*============================================================================================================================================
                                                       PARTICLEADVECTCOMPUTE.SLANG
 ============================================================================================================================================*/
-// 🧩 Vulkan 1.3 Compute shader advancing modular particles with live ForceFieldEvaluationShared.slang coupling, curl, colliders & curves
+// 🧩 Vulkan 1.3 Compute shader advancing modular particles with live ForceFieldEvaluationLayouts.slang coupling, curl, colliders & curves
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        INCLUDES
@@ -72,7 +72,7 @@ void ComputeParticleAdvect(uint3 DispatchThreadID : SV_DispatchThreadID)
             Vel *= exp(-EffectiveDrag * Dt);
         }
 
-        // 2. Direct ForceFields coupling via shared ForceFieldEvaluationShared.slang (matches ForceFieldCouplingSolver)
+        // 2. Direct ForceFields coupling via shared ForceFieldEvaluationLayouts.slang (matches ForceFieldCouplingSolver)
         float CouplingGain = Uniforms.ForceCoupling.x;
         float AccelScale   = Uniforms.ForceCoupling.y;
         float FieldDragMul = Uniforms.ForceCoupling.z;
@@ -179,11 +179,14 @@ void ComputeParticleAdvect(uint3 DispatchThreadID : SV_DispatchThreadID)
         RawCoord = float(Life.SeedUint32 & 0xFFFFu) * (1.0 / 65536.0);
     }
 
-    float RampCoord = ParticleEvaluateRampWrap(RawCoord + Uniforms.ColorDriverNorm.z, Uniforms.ColorDriverMode.y);
-    Appear.ColorRgba       = ParticleSampleColorRamp(Uniforms.ColorStopA, Uniforms.ColorStopC, Uniforms.ColorStopB, RampCoord);
-    Appear.VisualMetrics.x = lerp(Uniforms.SizeSpinMetrics.x, Uniforms.SizeSpinMetrics.y, LifeRatio) * Uniforms.SizeSpinMetrics.z;
+    if (Uniforms.SizeSpinMetrics.z > 0.0)
+    {
+        float RampCoord = ParticleEvaluateRampWrap(RawCoord + Uniforms.ColorDriverNorm.z, Uniforms.ColorDriverMode.y);
+        Appear.ColorRgba       = ParticleSampleColorRamp(Uniforms.ColorStopA, Uniforms.ColorStopC, Uniforms.ColorStopB, RampCoord);
+        Appear.VisualMetrics.x = lerp(Uniforms.SizeSpinMetrics.x, Uniforms.SizeSpinMetrics.y, LifeRatio) * Uniforms.SizeSpinMetrics.z;
+        Appear.VisualMetrics.w = RampCoord;
+    }
     Appear.VisualMetrics.y += Appear.VisualMetrics.z * Dt;
-    Appear.VisualMetrics.w = RampCoord;
 
     Life.AgeSeconds += Dt;
     if (Life.MaxLifeSeconds > 0.0 && Life.AgeSeconds >= Life.MaxLifeSeconds)

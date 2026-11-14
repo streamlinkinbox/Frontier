@@ -90,6 +90,7 @@ public:
     void FinalizeTick(ParticleChannelBank& Bank, const SimulationTickInputs& Inputs, ParticleRandomGenerator& Generator) override;
 
     XpbdStrandSolverParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const XpbdStrandSolverParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     XpbdStrandSolverParameters Settings{};
@@ -149,6 +150,7 @@ public:
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     FerrofluidParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const FerrofluidParameters& QueryParameters() const noexcept { return Settings; }
     [[nodiscard]] ForceFields::SpatialVector3 QueryEvaluatedPoleMeters() const noexcept { return EvaluatedPoleMeters; }
 
 private:
@@ -180,6 +182,7 @@ public:
     }
 
     [[nodiscard]] const char* QueryDebugName() const noexcept override { return "PyroVolleySource"; }
+    [[nodiscard]] bool        QueryGpuComputeSupported() const noexcept override { return true; }
 
     void     DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     uint32_t ReleaseParticles(ParticleChannelBank& Bank, const SimulationTickInputs& Inputs, ParticleRandomGenerator& Generator) override;
@@ -202,12 +205,14 @@ public:
     }
 
     [[nodiscard]] const char* QueryDebugName() const noexcept override { return "PyroVolleyBurstSolver"; }
+    [[nodiscard]] bool        QueryGpuComputeSupported() const noexcept override { return true; }
 
     void DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
     void FinalizeTick(ParticleChannelBank& Bank, const SimulationTickInputs& Inputs, ParticleRandomGenerator& Generator) override;
 
     PyroVolleyParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const PyroVolleyParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     PyroVolleyParameters Settings{};
@@ -227,6 +232,8 @@ struct BoidsFlockParameters
     float                       MaxSteerAccelMs2 = 9.5f;               // [m/s2] - Steering maneuver authority
     uint8_t                     CreatureVariant  = 0u;                 // [0..2] - 0=Birds, 1=Butterflies, 2=Fish
     uint32_t                    FlockCount       = 180u;               // [cnt]  - Initial flock size
+    std::array<float, 4u>       PrimaryColor     { 0.78f, 0.88f, 0.80f, 1.0f }; // [rgba] - Start tint across flock
+    std::array<float, 4u>       SecondaryColor   { 0.45f, 0.72f, 0.94f, 1.0f }; // [rgba] - Accent tint across flock
 };
 
 class BoidsFlockSource final : public ParticleSource
@@ -238,6 +245,7 @@ public:
     }
 
     [[nodiscard]] const char* QueryDebugName() const noexcept override { return "BoidsFlockSource"; }
+    [[nodiscard]] bool        QueryGpuComputeSupported() const noexcept override { return true; }
 
     void     DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     uint32_t ReleaseParticles(ParticleChannelBank& Bank, const SimulationTickInputs& Inputs, ParticleRandomGenerator& Generator) override;
@@ -258,12 +266,14 @@ public:
     }
 
     [[nodiscard]] const char* QueryDebugName() const noexcept override { return "BoidsFlockSolver"; }
+    [[nodiscard]] bool        QueryGpuComputeSupported() const noexcept override { return true; }
 
     void DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     void InitializeTick(ParticleChannelBank& Bank, const SimulationTickInputs& Inputs) override;
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     BoidsFlockParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const BoidsFlockParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     struct BoidKinematicSnapshot
@@ -303,6 +313,7 @@ public:
     }
 
     [[nodiscard]] const char* QueryDebugName() const noexcept override { return "FractureSurfaceSource"; }
+    [[nodiscard]] bool        QueryGpuComputeSupported() const noexcept override { return true; }
 
     void     DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     uint32_t ReleaseParticles(ParticleChannelBank& Bank, const SimulationTickInputs& Inputs, ParticleRandomGenerator& Generator) override;
@@ -323,11 +334,13 @@ public:
     }
 
     [[nodiscard]] const char* QueryDebugName() const noexcept override { return "FractureCrackSolver"; }
+    [[nodiscard]] bool        QueryGpuComputeSupported() const noexcept override { return true; }
 
     void DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     FractureCrackParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const FractureCrackParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     FractureCrackParameters Settings{};
@@ -347,6 +360,8 @@ struct MoGraphEffectorParameters
     float                       ExtrusionMeters   = 1.4f;               // [m]   - Peak +Z height modulation
     float                       WaveFrequencyHz   = 0.85f;              // [Hz]  - Effector sweep speed
     bool                        EnableDerezLaunch = false;              // [-]   - Launch specimens ballistically when wave crests
+    std::array<float, 4u>       PrimaryColor      { 0.94f, 0.46f, 0.40f, 1.0f }; // [rgba] - Base tile tint
+    std::array<float, 4u>       AccentColor       { 0.98f, 0.82f, 0.34f, 1.0f }; // [rgba] - Wave-crest / accent tint
 };
 
 class LatticeGridSource final : public ParticleSource
@@ -385,6 +400,7 @@ public:
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     MoGraphEffectorParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const MoGraphEffectorParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     MoGraphEffectorParameters Settings{};
@@ -412,6 +428,7 @@ public:
     }
 
     [[nodiscard]] const char* QueryDebugName() const noexcept override { return "ShieldBarrierSource"; }
+    [[nodiscard]] bool        QueryGpuComputeSupported() const noexcept override { return true; }
 
     void     DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     uint32_t ReleaseParticles(ParticleChannelBank& Bank, const SimulationTickInputs& Inputs, ParticleRandomGenerator& Generator) override;
@@ -432,12 +449,16 @@ public:
     }
 
     [[nodiscard]] const char* QueryDebugName() const noexcept override { return "EnergyShieldRippleSolver"; }
+    [[nodiscard]] bool        QueryGpuComputeSupported() const noexcept override { return true; }
 
     void DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     void InitializeTick(ParticleChannelBank& Bank, const SimulationTickInputs& Inputs) override;
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     EnergyShieldParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const EnergyShieldParameters& QueryParameters() const noexcept { return Settings; }
+    [[nodiscard]] ForceFields::SpatialVector3   QueryLastImpactPoint() const noexcept { return LastImpactPoint; }
+    [[nodiscard]] double                        QueryLastImpactTimeSec() const noexcept { return LastImpactTimeSec; }
 
 private:
     EnergyShieldParameters      Settings          {};
@@ -466,6 +487,8 @@ public:
 
     void DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
+
+    [[nodiscard]] const SpaceRefractionParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     SpaceRefractionParameters Settings{};

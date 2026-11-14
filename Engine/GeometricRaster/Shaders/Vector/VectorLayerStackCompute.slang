@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // Compute blending of per-layer RGBA16F + Pick + procedural Mask + BevelEdgeWear into StackedColor & 4x RGBA16F OpenPBR surface packs.
 
-#include "VectorSharedLayouts.slang"
+#include "VectorLayerLayouts.slang"
 
 [[vk::binding(0, 0)]] ConstantBuffer<VectorLayerUniforms> LayerUniforms;
 [[vk::binding(1, 0)]] [format("rgba16f")] RWTexture2D<float4> LayerCoverColor;

@@ -1,5 +1,5 @@
 //============================================================================================================================================
-//                                                           VECTORSHAREDLAYOUTS.SLANG
+//                                                           VECTORLAYERLAYOUTS.SLANG
 //============================================================================================================================================
 // Shared GPU structures and procedural math for Frontier's Vulkan VectorGraphics & OpenPBR rasterization shaders.
 

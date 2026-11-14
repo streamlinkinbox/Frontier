@@ -51,20 +51,33 @@ public:
 
     void RegisterDockPanes(Components::HeadlessWorkspaceDockContainer& DockContainer);
 
+    // Initializes live Vulkan 1.3 compute + GPU viewport rasterization (auto-resolves repo shader & ICD dirs)
+    bool InitializeLiveGpuSuite(const std::filesystem::path& RepoRootOverride = {});
+
+    // Renders full 3-pane standalone Particle Studio ImGui layout (Outliner + Live 3D GPU Viewport + Inspector)
+    void PresentImGuiWorkspaceLayout(
+        Rectangle2D FrameBounds,
+        double      DeltaSeconds,
+        float       ScaleFactor = 1.0f);
+
     [[nodiscard]] ParticleWorkspaceSession&       AccessSession() noexcept      { return Session; }
     [[nodiscard]] const ParticleWorkspaceSession& InspectSession() const noexcept { return Session; }
     [[nodiscard]] ParticleOutlinerPanel&          AccessOutliner() noexcept     { return Outliner; }
     [[nodiscard]] ParticleViewportHost&           AccessViewportHost() noexcept { return ViewportHost; }
     [[nodiscard]] ParticleInspectorPanel&         AccessInspector() noexcept    { return Inspector; }
+    [[nodiscard]] ParticleViewportRasterization&  AccessGpuRasterizer() noexcept { return GpuRasterizer; }
+    [[nodiscard]] bool                            QueryLiveGpuActive() const noexcept { return Session.QueryVulkanComputeActive() && GpuRasterizer.QueryReady(); }
     [[nodiscard]] uint32_t                        QueryRegisteredTabCount() const noexcept { return RegisteredTabCount; }
 
 private:
     Configuration::EngineConfiguration ActiveEngineConfig {};
     ParticleWorkspaceSession           Session            {};
+    ParticleViewportRasterization      GpuRasterizer      {};
     ParticleOutlinerPanel              Outliner           {};
     ParticleViewportHost               ViewportHost       {};
     ParticleInspectorPanel             Inspector          {};
     uint32_t                           RegisteredTabCount = 0u;
+    std::string                        GpuInitDiagnostic  {};
     ContentBrowserPanel*               BoundBrowserPanel  = nullptr;
 #if FRONTIER_EDITOR_ENABLED
     Editor::Explorer::ContentBrowser*  BoundBrowser       = nullptr;

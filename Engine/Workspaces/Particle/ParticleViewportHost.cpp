@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <imgui.h>
 
 namespace Frontier::Workspaces
@@ -43,17 +44,264 @@ namespace ViewportSurfaceColors
     return ColorRgba{ Color.Red, Color.Green, Color.Blue, Color.Alpha };
 }
 
+void UploadViewportTexturePixels(
+    ImTextureData& TargetTex,
+    const uint8_t* RgbaPixels,
+    uint32_t       WidthPx,
+    uint32_t       HeightPx) noexcept
+{
+    if (RgbaPixels == nullptr || WidthPx == 0u || HeightPx == 0u)
+    {
+        return;
+    }
+    const bool NeedsCreate =
+        TargetTex.Width != static_cast<int>(WidthPx) ||
+        TargetTex.Height != static_cast<int>(HeightPx) ||
+        TargetTex.Pixels == nullptr;
+    if (NeedsCreate)
+    {
+        TargetTex.DestroyPixels();
+        TargetTex.SetStatus(ImTextureStatus_Destroyed);
+        TargetTex.Create(ImTextureFormat_RGBA32, static_cast<int>(WidthPx), static_cast<int>(HeightPx));
+    }
+    std::memcpy(TargetTex.Pixels, RgbaPixels, static_cast<std::size_t>(WidthPx) * HeightPx * 4u);
+    if (!NeedsCreate && TargetTex.Status == ImTextureStatus_OK)
+    {
+        TargetTex.UpdateRect = { 0u, 0u, static_cast<unsigned short>(WidthPx), static_cast<unsigned short>(HeightPx) };
+        TargetTex.SetStatus(ImTextureStatus_WantUpdates);
+    }
+}
+
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                LIFECYCLE & RENDERING
 //------------------------------------------------------------------------------------------------------------------------
 
-ParticleViewportHost::~ParticleViewportHost() noexcept = default;
+ParticleViewportHost::~ParticleViewportHost() noexcept
+{
+    GpuViewportTexture.DestroyPixels();
+}
 
 void ParticleViewportHost::AttachSession(ParticleWorkspaceSession* TargetSession) noexcept
 {
     Session = TargetSession;
+}
+
+ParticleViewportRenderRequest ParticleViewportHost::BuildGpuRenderRequestForEffect(
+    const ParticleEffectDescriptor&                       Effect,
+    const SimulationSpace::Particles::ParticleSimulation& Simulation,
+    const ParticleCameraRig&                              Camera,
+    uint32_t                                              WidthPx,
+    uint32_t                                              HeightPx,
+    float                                                 TimeSeconds,
+    bool                                                  ShowFloorGrid) noexcept
+{
+    ParticleViewportRenderRequest Req{};
+    Req.WidthPx       = std::clamp(WidthPx, 128u, 1920u);
+    Req.HeightPx      = std::clamp(HeightPx, 128u, 1080u);
+    Req.Camera        = Camera;
+    Req.TimeSeconds   = TimeSeconds;
+    Req.ActiveCount   = Simulation.QueryActiveCount();
+    Req.ShowFloorGrid = ShowFloorGrid;
+    Req.SizeScale     = 1.15f;
+    Req.EmissiveBoost = 1.25f;
+
+    const bool Additive = (Effect.BlendCategory == ParticleBlendCategory::AdditiveGlow);
+    Req.BlendMode       = Additive ? ParticleGpuBlendMode::Additive : ParticleGpuBlendMode::Alpha;
+
+    // Select 3D Oriented Solid profile, Strand Ribbons, or Billboard Silhouette by authoring domain
+    switch (Effect.AuthoringDomain)
+    {
+        case ParticleAuthoringDomain::StrandBotanical:
+            Req.RenderStrands        = true;
+            Req.RenderBillboards     = true;
+            Req.RenderOrientedSolids = false;
+            Req.Silhouette           = ParticleGpuSilhouette::SoftDisc;
+            Req.RibbonWidthMeters    = std::max(0.025f, Effect.SizeStartMeters * 0.45f);
+            break;
+
+        case ParticleAuthoringDomain::FerrofluidFlux:
+            Req.RenderOrientedSolids = true;
+            Req.SolidProfile         = ParticleSolidProfile::Spike;
+            Req.RenderBillboards     = false;
+            Req.SizeScale            = 1.35f;
+            break;
+
+        case ParticleAuthoringDomain::BoidsFlock:
+            Req.RenderOrientedSolids = true;
+            Req.SolidProfile         = ParticleSolidProfile::WingedBoid;
+            Req.RenderBillboards     = false;
+            Req.SizeScale            = 1.45f;
+            break;
+
+        case ParticleAuthoringDomain::FractureSeismic:
+            Req.RenderOrientedSolids = true;
+            Req.SolidProfile         = ParticleSolidProfile::Shard;
+            Req.RenderBillboards     = false;
+            Req.SizeScale            = 1.25f;
+            break;
+
+        case ParticleAuthoringDomain::MoGraphEffector:
+            Req.RenderOrientedSolids = true;
+            Req.SolidProfile         = ParticleSolidProfile::Cube;
+            Req.RenderBillboards     = false;
+            Req.SizeScale            = 1.15f;
+            break;
+
+        case ParticleAuthoringDomain::EnergyShield:
+            Req.RenderOrientedSolids = true;
+            Req.SolidProfile         = ParticleSolidProfile::CoinDisc;
+            Req.RenderBillboards     = true;
+            Req.Silhouette           = ParticleGpuSilhouette::GlowOrb;
+            Req.BlendMode            = ParticleGpuBlendMode::Additive;
+            Req.EmissiveBoost        = 1.40f;
+            break;
+
+        case ParticleAuthoringDomain::FireworksSpectacle:
+        case ParticleAuthoringDomain::SpaceDistortion:
+            Req.RenderBillboards     = true;
+            Req.Silhouette           = ParticleGpuSilhouette::GlowOrb;
+            Req.BlendMode            = ParticleGpuBlendMode::Additive;
+            Req.EmissiveBoost        = 1.45f;
+            break;
+
+        case ParticleAuthoringDomain::TransitionDerez:
+            Req.RenderOrientedSolids = true;
+            Req.SolidProfile         = ParticleSolidProfile::Shard;
+            Req.RenderBillboards     = false;
+            Req.BlendMode            = ParticleGpuBlendMode::Alpha;
+            Req.SizeScale            = 1.30f;
+            break;
+
+        case ParticleAuthoringDomain::GeneralParticle:
+        default:
+            if (Effect.Silhouette == ParticleVisualSilhouette::CoinDisc || Effect.Silhouette == ParticleVisualSilhouette::LeafOrPaper)
+            {
+                Req.RenderOrientedSolids = true;
+                Req.SolidProfile         = ParticleSolidProfile::CoinDisc;
+                Req.RenderBillboards     = false;
+                Req.SizeScale            = 1.35f;
+            }
+            else if (Effect.Silhouette == ParticleVisualSilhouette::CubeShard || Effect.Silhouette == ParticleVisualSilhouette::HailstonePellet)
+            {
+                Req.RenderOrientedSolids = true;
+                Req.SolidProfile         = (Effect.Silhouette == ParticleVisualSilhouette::CubeShard)
+                    ? ParticleSolidProfile::Cube
+                    : ParticleSolidProfile::Shard;
+                Req.RenderBillboards     = false;
+                Req.SizeScale            = 1.25f;
+            }
+            else if (Effect.Silhouette == ParticleVisualSilhouette::ShockwaveRing ||
+                     Effect.Silhouette == ParticleVisualSilhouette::EmpPulseDome ||
+                     Effect.Silhouette == ParticleVisualSilhouette::RadarOrSonarSweep)
+            {
+                Req.RenderBillboards = true;
+                Req.Silhouette       = ParticleGpuSilhouette::ShockRing;
+                Req.BlendMode        = ParticleGpuBlendMode::Additive;
+                Req.EmissiveBoost    = 1.15f;
+            }
+            else if (Effect.Silhouette == ParticleVisualSilhouette::AuroraCurtain)
+            {
+                Req.RenderBillboards = true;
+                Req.Silhouette       = ParticleGpuSilhouette::SparkStreak;
+                Req.BlendMode        = ParticleGpuBlendMode::Additive;
+                Req.EmissiveBoost    = 0.95f;
+            }
+            else if (Effect.Silhouette == ParticleVisualSilhouette::VolumetricWaterMist)
+            {
+                Req.RenderBillboards = true;
+                Req.Silhouette       = ParticleGpuSilhouette::SoftDisc;
+                Req.BlendMode        = ParticleGpuBlendMode::Alpha;
+                Req.EmissiveBoost    = 0.85f;
+            }
+            else if (Effect.Silhouette == ParticleVisualSilhouette::Streak || Effect.Silhouette == ParticleVisualSilhouette::HologramScanline)
+            {
+                Req.RenderBillboards     = true;
+                Req.Silhouette           = ParticleGpuSilhouette::SparkStreak;
+            }
+            else
+            {
+                Req.RenderBillboards     = true;
+                Req.Silhouette           = Additive ? ParticleGpuSilhouette::GlowOrb : ParticleGpuSilhouette::SoftDisc;
+            }
+            break;
+    }
+
+    return Req;
+}
+
+bool ParticleViewportHost::RenderLiveVulkanViewport(
+    PixelSpace& Surface,
+    Rectangle2D Bounds,
+    bool        ShowFloorGrid) noexcept
+{
+    if (Session == nullptr || GpuRasterizer == nullptr || !GpuRasterizer->QueryReady())
+    {
+        return false;
+    }
+    auto* Executor = Session->AccessVulkanExecutor();
+    if (Executor == nullptr || !Executor->QueryDeviceReady())
+    {
+        return false;
+    }
+
+    // Prefer selected visible effect; fallback to first visible effect
+    const ParticleEffectDescriptor* TargetEffect = Session->QuerySelectedEffect();
+    if (TargetEffect == nullptr || !TargetEffect->Visible)
+    {
+        TargetEffect = nullptr;
+        for (const ParticleEffectDescriptor& Entry : Session->QueryEffects())
+        {
+            if (Entry.Visible)
+            {
+                TargetEffect = &Entry;
+                break;
+            }
+        }
+    }
+    if (TargetEffect == nullptr)
+    {
+        return false;
+    }
+
+    const auto* Sim = Session->QueryEffectSimulation(TargetEffect->UniqueToken);
+    if (Sim == nullptr)
+    {
+        return false;
+    }
+
+    // Ensure target effect channels reside on GPU before rasterizing
+    if (!Executor->UploadChannelBank(Sim->QueryChannelBank(), LastGpuDiagnostic))
+    {
+        return false;
+    }
+
+    const uint32_t RenderW = std::clamp(static_cast<uint32_t>(std::round(Bounds.Width)), 160u, 1280u);
+    const uint32_t RenderH = std::clamp(static_cast<uint32_t>(std::round(Bounds.Height)), 120u, 960u);
+    const ParticleViewportRenderRequest Req = BuildGpuRenderRequestForEffect(
+        *TargetEffect,
+        *Sim,
+        Interactor.InspectCameraRig(),
+        RenderW,
+        RenderH,
+        static_cast<float>(Session->QuerySimulationTimeSec()),
+        ShowFloorGrid);
+
+    if (!GpuRasterizer->RenderOffscreen(Req, LastGpuDiagnostic))
+    {
+        return false;
+    }
+
+    const auto Pixels = GpuRasterizer->QueryColorRgbaPixels();
+    if (Pixels.empty())
+    {
+        return false;
+    }
+
+    UploadViewportTexturePixels(GpuViewportTexture, Pixels.data(), GpuRasterizer->QueryWidthPx(), GpuRasterizer->QueryHeightPx());
+    Surface.FillTexturedRectangle(Bounds, &GpuViewportTexture, { 0.0f, 0.0f }, { 1.0f, 1.0f }, 0.0f);
+    return true;
 }
 
 void ParticleViewportHost::Render(
@@ -90,15 +338,20 @@ void ParticleViewportHost::Render(
 
     (void)Interactor.ApplyPointerInput(InteractiveCanvas, Input);
 
-    if (Prefs.FloorGridEnabled)
+    LastFrameUsedGpuRaster = RenderLiveVulkanViewport(Surface, Bounds, Prefs.FloorGridEnabled);
+    if (!LastFrameUsedGpuRaster)
     {
-        RenderFloorGrid(Surface, Bounds);
+        if (Prefs.FloorGridEnabled)
+        {
+            RenderFloorGrid(Surface, Bounds);
+        }
+        RenderParticleSimulations(Surface, Bounds);
     }
+
     if (Prefs.ForceVectorsEnabled)
     {
         RenderForceFieldGizmos(Surface, Bounds);
     }
-    RenderParticleSimulations(Surface, Bounds);
     RenderTopHudBar(Surface, Bounds, Input);
 
     if (Prefs.PlaybackScrubberVisible)

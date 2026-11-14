@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/VectorField/VectorFieldRenderingShared.slang"
+#include "Engine/Shaders/VectorField/VectorFieldRenderingLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOURCES

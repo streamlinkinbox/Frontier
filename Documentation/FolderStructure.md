@@ -402,16 +402,24 @@ Frontier/
     │   │   ├── MicrofacetShading.slang            // Physical microfacet PBR shader
     │   │   └── DepthPreRaster.slang               // Early-Z depth pre-rasterization shader
     │   ├── Compute/                               // General GPU compute shaders
-    │   │   ├── ForceFieldEvaluationShared.slang   // Shared 19-ForceModel analytical evaluation
+    │   │   ├── ForceFieldEvaluationLayouts.slang   // Shared 19-ForceModel analytical evaluation
     │   │   └── FieldLatticeCompute.slang          // Cascaded 3D ForceField clipmap lattice compute
     │   ├── Particles/                             // Vulkan 1.3 .slang modular particle compute & viewport raster shaders
-    │   │   ├── ParticleChannelLayouts.slang       // 16B-aligned mirror of ParticleChannelLayouts.h + ForceFields reuse
+    │   │   ├── ParticleChannelLayouts.slang       // 16B-aligned mirror of ParticleChannelLayouts.h (11 channels + ForceFields)
     │   │   ├── ParticleReleaseCompute.slang       // Volume/lattice/arc GPU particle release compute
     │   │   ├── ParticleAdvectCompute.slang        // Gravity, ForceFields, curl, colliders & curves compute
     │   │   ├── ParticleStrandConstraintCompute.slang // Parallel XPBD/Verlet strand & cloth relaxation compute
     │   │   ├── ParticleReductionCompute.slang     // Parallel workgroup reduction -> 32 B ParticleReadbackSummary
+    │   │   ├── ParticleFerrofluidCompute.slang    // GPU Rosensweig ferrofluid magnetic cusp & dipole spike compute
+    │   │   ├── ParticlePyroVolleyCompute.slang    // GPU firework shell launch, burst detonation & 2026 sky-text compute
+    │   │   ├── ParticleBoidsFlockCompute.slang    // GPU Reynolds flocking, predator scatter & quaternion bank compute
+    │   │   ├── ParticleFractureCompute.slang      // GPU Voronoi seismic crack propagation & shard detachment compute
+    │   │   ├── ParticleLatticeEffectorCompute.slang // GPU MoGraph wave/plain/radial/shader lattice extrusion compute
+    │   │   ├── ParticleShieldRefractionCompute.slang // GPU hex/geodesic energy shield ripple & spacetime lensing compute
+    │   │   ├── ParticleSdfColliderCompute.slang   // GPU sparse 8x8x8 brick SignedDistanceVolume 3D SDF collision compute
     │   │   ├── ParticleBillboardRasterization.slang // GPU billboard, spark streak, glow orb & shard rasterizer
     │   │   ├── ParticleRibbonRasterization.slang  // GPU live StrandConnectivity ribbon & cloth rasterizer
+    │   │   ├── ParticleOrientedSolidRasterization.slang // GPU quaternion-oriented 3D solid (cube/shard/spike/boid/coin) rasterizer
     │   │   └── ParticleGridBackdropRasterization.slang // GPU dark OLED backdrop & 3D perspective floor grid rasterizer
     │   └── ImageOperations/                       // Post-process image filter shaders
     │       ├── DisplayToneTransfer.slang

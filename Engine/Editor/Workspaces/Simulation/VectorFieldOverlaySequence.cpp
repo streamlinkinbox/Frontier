@@ -1180,7 +1180,7 @@ bool VectorFieldOverlaySequence::Initialize(
         !CreateOverlayPipeline("InfluenceEnvelopeRasterization",  VertexLayoutKind::PositionNormal, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,  true,  false, VK_CULL_MODE_NONE,     Impl->EnvelopePipe) ||
         !CreateOverlayPipeline("VectorArrowRasterization",        VertexLayoutKind::PositionNormal, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,  true,  true,  VK_CULL_MODE_BACK_BIT, Impl->ArrowPipe) ||
         !CreateOverlayPipeline("StreamlineRasterization",         VertexLayoutKind::None,           VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, true,  false, VK_CULL_MODE_NONE,     Impl->StreamlinePipe) ||
-        !CreateOverlayPipeline("ForcePathAndBeaconRasterization", VertexLayoutKind::LitBeacon,      VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,  true,  true,  VK_CULL_MODE_BACK_BIT, Impl->BeaconPipe))
+        !CreateOverlayPipeline("ForcePathBeaconRasterization", VertexLayoutKind::LitBeacon,      VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,  true,  true,  VK_CULL_MODE_BACK_BIT, Impl->BeaconPipe))
     {
         Finalize();
         return false;

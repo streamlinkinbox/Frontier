@@ -23,6 +23,7 @@
 #include "Engine/Input/ImGuiInputAdapter.h"
 #include "Engine/Input/InputExtension.h"
 #include "Engine/Windowing/PlatformWindow.h"
+#include "Engine/Workspaces/Particle/ParticleWorkspaceHost.h"
 #include "Engine/Workspaces/Texturing/BakingWorkspaceHost.h"
 #include "Engine/Workspaces/Texturing/PatternStampWorkspaceHost.h"
 #include "Engine/Workspaces/UV/UVWorkspaceHost.h"
@@ -334,6 +335,12 @@ int LaunchDesktopWorkspace(
             InitialOptions.OpenProjectBrowser = false;
             InitialOptions.WindowTitle        = "Frontier Baking";
         }
+        else if (Arg == "--standalone-particles" || Arg == "--standalone=particles" || Arg == "--workspace=particles" || Arg == "--workspace=particle" || Arg == "--particles" || Arg == "--particle")
+        {
+            InitialOptions.OpenWorldEditor    = false;
+            InitialOptions.OpenProjectBrowser = false;
+            InitialOptions.WindowTitle        = "Frontier Particles";
+        }
         else if (Arg == "--project-browser")
         {
             InitialOptions.OpenProjectBrowser = true;
@@ -374,12 +381,13 @@ int LaunchDesktopWorkspace(
 #if FRONTIER_EDITOR_ENABLED
     enum class ActiveHostSurface : uint8_t
     {
-        ProjectBrowserSurface   = 0u,
-        WorldEditorSurface      = 1u,
-        UvWorkspaceSurface      = 2u,
-        PatternWorkspaceSurface = 3u,
-        StampWorkspaceSurface   = 4u,
-        BakingWorkspaceSurface  = 5u,
+        ProjectBrowserSurface    = 0u,
+        WorldEditorSurface       = 1u,
+        UvWorkspaceSurface       = 2u,
+        PatternWorkspaceSurface  = 3u,
+        StampWorkspaceSurface    = 4u,
+        BakingWorkspaceSurface   = 5u,
+        ParticleWorkspaceSurface = 6u,
     };
 
     const bool StandaloneVectorLaunch =
@@ -388,6 +396,10 @@ int LaunchDesktopWorkspace(
         !InitialOptions.OpenProjectBrowser;
     const bool StandaloneBakingLaunch =
         (EngineConfig.QueryWorkspaceCategory() == WorkspaceCategory::Baking) &&
+        !InitialOptions.OpenWorldEditor &&
+        !InitialOptions.OpenProjectBrowser;
+    const bool StandaloneParticleLaunch =
+        (EngineConfig.QueryWorkspaceCategory() == WorkspaceCategory::Particle) &&
         !InitialOptions.OpenWorldEditor &&
         !InitialOptions.OpenProjectBrowser;
     const bool StandaloneUVLaunch =
@@ -400,6 +412,10 @@ int LaunchDesktopWorkspace(
     if (InitialOptions.OpenProjectBrowser)
     {
         CurrentSurface = ActiveHostSurface::ProjectBrowserSurface;
+    }
+    else if (StandaloneParticleLaunch)
+    {
+        CurrentSurface = ActiveHostSurface::ParticleWorkspaceSurface;
     }
     else if (StandaloneBakingLaunch)
     {
@@ -416,9 +432,10 @@ int LaunchDesktopWorkspace(
         CurrentSurface = ActiveHostSurface::UvWorkspaceSurface;
     }
 #else
-    const bool StandaloneVectorLaunch = (EngineConfig.QueryWorkspaceCategory() == WorkspaceCategory::Vector);
-    const bool StandaloneBakingLaunch = (EngineConfig.QueryWorkspaceCategory() == WorkspaceCategory::Baking);
-    const bool StandaloneUVLaunch     = !StandaloneVectorLaunch && !StandaloneBakingLaunch;
+    const bool StandaloneVectorLaunch   = (EngineConfig.QueryWorkspaceCategory() == WorkspaceCategory::Vector);
+    const bool StandaloneBakingLaunch   = (EngineConfig.QueryWorkspaceCategory() == WorkspaceCategory::Baking);
+    const bool StandaloneParticleLaunch = (EngineConfig.QueryWorkspaceCategory() == WorkspaceCategory::Particle);
+    const bool StandaloneUVLaunch       = !StandaloneVectorLaunch && !StandaloneBakingLaunch && !StandaloneParticleLaunch;
 #endif
 
     GeometricRaster::UVWorkspaceRasterizer UVRasterizer {};
@@ -519,11 +536,13 @@ int LaunchDesktopWorkspace(
     Workspaces::PatternStampWorkspaceHost PatternHost(Workspaces::PatternStampWorkspaceMode::Pattern);
     Workspaces::PatternStampWorkspaceHost StampHost(Workspaces::PatternStampWorkspaceMode::Stamp);
     Workspaces::BakingWorkspaceHost       BakingHost {};
+    Workspaces::ParticleWorkspaceHost     ParticleHost {};
 
     Components::HeadlessWorkspaceDockContainer StandaloneDock {};
     Components::HeadlessWorkspaceDockContainer PatternDock {};
     Components::HeadlessWorkspaceDockContainer StampDock {};
     Components::HeadlessWorkspaceDockContainer BakingDock {};
+    Components::HeadlessWorkspaceDockContainer ParticleDock {};
     ControlCentrePanel                         StandaloneControlCentre {};
     Input::InputExtension                      InputCoordinator {};
     InputCoordinator.Initialize();
@@ -534,12 +553,14 @@ int LaunchDesktopWorkspace(
     Editor::Explorer::ContentBrowser PatternBrowser {};
     Editor::Explorer::ContentBrowser StampBrowser {};
     Editor::Explorer::ContentBrowser BakingBrowser {};
+    Editor::Explorer::ContentBrowser ParticleBrowser {};
     Editor::Explorer::ProjectBrowser HostProjectBrowser {};
-    bool                             EditorStackReady = false;
-    bool                             UvHostReady      = false;
-    bool                             PatternHostReady = false;
-    bool                             StampHostReady   = false;
-    bool                             BakingHostReady  = false;
+    bool                             EditorStackReady  = false;
+    bool                             UvHostReady       = false;
+    bool                             PatternHostReady  = false;
+    bool                             StampHostReady    = false;
+    bool                             BakingHostReady   = false;
+    bool                             ParticleHostReady = false;
     bool                             ProjectBrowserInitialized = false;
     bool                             SharedThemeInitialized    = false;
 
@@ -778,10 +799,50 @@ int LaunchDesktopWorkspace(
         return true;
     };
 
+    auto EnsureParticleHostReady = [&](const std::filesystem::path& SpacePath) -> bool
+    {
+        EnsureSharedControlCentreReady();
+        if (!ParticleHostReady)
+        {
+            ParticleHost.ConfigureLaunchPolicy(EngineConfig);
+            (void)ParticleHost.InitializeLiveGpuSuite(RepositoryRootPath);
+
+            ThemeRepository ThemeRepo {};
+            (void)ParticleDock.Initialize(
+                Windowing::WindowConfigurationDescriptor::ConstructApplicationWindow(
+                    "Frontier Particles", InitialOptions.InitialWidthPx, InitialOptions.InitialHeightPx));
+            Components::ConfigureImGuiWorkspaceStyle(ParticleDock.ActiveTabMetrics());
+            Components::ConfigureImGuiWorkspaceTheme(ParticleDock.ActiveTabMetrics(), ThemeRepo);
+
+            ParticleBrowser.AttachThemeRepository(&StandaloneControlCentre.QueryThemeRepository());
+            ParticleHost.AttachContentBrowser(&ParticleBrowser);
+            ParticleBrowser.AccessPanel().ConfigureShelfExtent(
+                InitialOptions.OpenContentBrowser ? ContentShelfExtent::SplitHalf : ContentShelfExtent::Closed,
+                true);
+            (void)ParticleBrowser.AccessPanel().ActivateCategory(ContentCategory::Colours);
+            ParticleHost.RegisterDockPanes(ParticleDock);
+            ParticleHostReady = true;
+        }
+        const std::filesystem::path PathToLoad = SpacePath.empty() ? InitialOptions.StartupImportPath : SpacePath;
+        if (!PathToLoad.empty() && std::filesystem::exists(PathToLoad))
+        {
+            std::string ImportDiag {};
+            (void)ParticleHost.IntakeExternalFileDrop(PathToLoad, ImportDiag);
+        }
+        return true;
+    };
+
     HostProjectBrowser.AssignLaunchWorkspaceCallback(
         [&](const Editor::Explorer::BrowserWorkspaceLaunchDirective& Directive)
         {
-            if (Directive.TargetWorkspace == Workspaces::HostWorkspaceTarget::BakingWorkspace)
+            if (Directive.TargetWorkspace == Workspaces::HostWorkspaceTarget::ParticleWorkspace)
+            {
+                if (EnsureParticleHostReady(Directive.SelectedFilePath))
+                {
+                    CurrentSurface = ActiveHostSurface::ParticleWorkspaceSurface;
+                }
+            }
+            else if (Directive.TargetWorkspace == Workspaces::HostWorkspaceTarget::BakingWorkspace)
             {
                 if (EnsureBakingHostReady(Directive.SelectedFilePath))
                 {
@@ -825,6 +886,14 @@ int LaunchDesktopWorkspace(
     else if (CurrentSurface == ActiveHostSurface::WorldEditorSurface)
     {
         if (!EnsureEditorLifecycleReady(InitialOptions.StartupProjectSpacePath, {}))
+        {
+            ImGui::DestroyContext(GuiCtx);
+            return 1;
+        }
+    }
+    else if (CurrentSurface == ActiveHostSurface::ParticleWorkspaceSurface)
+    {
+        if (!EnsureParticleHostReady(InitialOptions.StartupImportPath))
         {
             ImGui::DestroyContext(GuiCtx);
             return 1;
@@ -878,7 +947,23 @@ int LaunchDesktopWorkspace(
 
     Workspaces::PatternStampWorkspaceHost& ActiveDevVectorHost =
         (RequestedVectorMode == Workspaces::PatternStampWorkspaceMode::Stamp) ? StampHost : PatternHost;
-    if (StandaloneBakingLaunch)
+    if (StandaloneParticleLaunch)
+    {
+        ParticleHost.ConfigureLaunchPolicy(EngineConfig);
+        (void)ParticleHost.InitializeLiveGpuSuite(RepositoryRootPath);
+        if (!InitialOptions.StartupImportPath.empty())
+        {
+            std::string ImportDiag {};
+            (void)ParticleHost.IntakeExternalFileDrop(InitialOptions.StartupImportPath, ImportDiag);
+        }
+        ParticleHost.AttachContentBrowserPanel(&StandaloneBrowserPanel);
+        StandaloneBrowserPanel.ConfigureShelfExtent(
+            InitialOptions.OpenContentBrowser ? ContentShelfExtent::SplitHalf : ContentShelfExtent::Closed,
+            true);
+        (void)StandaloneBrowserPanel.ActivateCategory(ContentCategory::Colours);
+        ParticleHost.RegisterDockPanes(StandaloneDock);
+    }
+    else if (StandaloneBakingLaunch)
     {
         BakingHost.ConfigureLaunchPolicy(EngineConfig);
         BakingHost.AttachVulkanDevice(&DeviceInterchange, CompiledShaderDir);
@@ -1040,6 +1125,14 @@ int LaunchDesktopWorkspace(
                 (void)HostProjectBrowser.RegisterDiskPathInCollection(std::filesystem::path(DropFile), true);
             }
         }
+        else if (CurrentSurface == ActiveHostSurface::ParticleWorkspaceSurface && ParticleHostReady)
+        {
+            for (const std::string& DropFile : DroppedPaths)
+            {
+                std::string DropDiag {};
+                (void)ParticleHost.IntakeExternalFileDrop(std::filesystem::path(DropFile), DropDiag);
+            }
+        }
         else if (CurrentSurface == ActiveHostSurface::BakingWorkspaceSurface && BakingHostReady)
         {
             for (const std::string& DropFile : DroppedPaths)
@@ -1077,7 +1170,11 @@ int LaunchDesktopWorkspace(
         for (const std::string& DropFile : DroppedPaths)
         {
             std::string DropDiag {};
-            if (StandaloneBakingLaunch)
+            if (StandaloneParticleLaunch)
+            {
+                (void)ParticleHost.IntakeExternalFileDrop(std::filesystem::path(DropFile), DropDiag);
+            }
+            else if (StandaloneBakingLaunch)
             {
                 (void)BakingHost.IntakeExternalFileDrop(DropFile, Io.KeyShift, DropDiag);
             }
@@ -1113,13 +1210,15 @@ int LaunchDesktopWorkspace(
         else
         {
             Components::HeadlessWorkspaceDockContainer& ActiveDock =
-                (CurrentSurface == ActiveHostSurface::BakingWorkspaceSurface) ? BakingDock :
+                (CurrentSurface == ActiveHostSurface::ParticleWorkspaceSurface) ? ParticleDock :
+                ((CurrentSurface == ActiveHostSurface::BakingWorkspaceSurface) ? BakingDock :
                 ((CurrentSurface == ActiveHostSurface::PatternWorkspaceSurface) ? PatternDock :
-                ((CurrentSurface == ActiveHostSurface::StampWorkspaceSurface) ? StampDock : StandaloneDock));
+                ((CurrentSurface == ActiveHostSurface::StampWorkspaceSurface) ? StampDock : StandaloneDock)));
             Editor::Explorer::ContentBrowser& ActiveBrowser =
-                (CurrentSurface == ActiveHostSurface::BakingWorkspaceSurface) ? BakingBrowser :
+                (CurrentSurface == ActiveHostSurface::ParticleWorkspaceSurface) ? ParticleBrowser :
+                ((CurrentSurface == ActiveHostSurface::BakingWorkspaceSurface) ? BakingBrowser :
                 ((CurrentSurface == ActiveHostSurface::PatternWorkspaceSurface) ? PatternBrowser :
-                ((CurrentSurface == ActiveHostSurface::StampWorkspaceSurface) ? StampBrowser : StandaloneBrowser));
+                ((CurrentSurface == ActiveHostSurface::StampWorkspaceSurface) ? StampBrowser : StandaloneBrowser)));
 
             const float HostUiScale = std::clamp(StandaloneControlCentre.QueryInterfaceScaleFactor(), 0.75f, 2.0f);
             Components::ConfigureImGuiWorkspaceTheme(
@@ -1148,7 +1247,18 @@ int LaunchDesktopWorkspace(
                 const Point2D MouseLogical = TopOverlay.QueryMousePosition();
                 ControlPointer Ptr { MouseLogical.X, MouseLogical.Y, TopOverlay.QueryMouseDown(0), TopOverlay.QueryMouseClicked(0), TopOverlay.QueryMouseReleased(0) };
                 const float LogicalW = FullBounds.Width / HostUiScale;
-                float PillX = std::max(320.0f, LogicalW * 0.5f + 46.0f);
+                float PillX = std::max(280.0f, LogicalW * 0.5f - 28.0f);
+
+                const ButtonTone PartTone = (CurrentSurface == ActiveHostSurface::ParticleWorkspaceSurface) ? ButtonTone::Primary : ButtonTone::Secondary;
+                if (CapsuleButton::Construct(TopOverlay, { PillX, 3.0f, 76.0f, 23.0f }, ButtonDescriptor{ "Particles", PartTone, 10.2f, 11.5f }, Ptr).Pressed &&
+                    CurrentSurface != ActiveHostSurface::ParticleWorkspaceSurface)
+                {
+                    if (EnsureParticleHostReady({}))
+                    {
+                        CurrentSurface = ActiveHostSurface::ParticleWorkspaceSurface;
+                    }
+                }
+                PillX += 82.0f;
 
                 const ButtonTone BakeTone = (CurrentSurface == ActiveHostSurface::BakingWorkspaceSurface) ? ButtonTone::Primary : ButtonTone::Secondary;
                 if (CapsuleButton::Construct(TopOverlay, { PillX, 3.0f, 56.0f, 23.0f }, ButtonDescriptor{ "Bake", BakeTone, 10.2f, 11.5f }, Ptr).Pressed &&

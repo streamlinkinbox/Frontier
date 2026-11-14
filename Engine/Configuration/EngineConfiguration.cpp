@@ -94,6 +94,12 @@ void EngineConfiguration::ConfigureFromCommandLine(std::span<const std::string_v
             Modified.ActiveWorkspace  = WorkspaceCategory::Baking;
             Modified.ApplicationTitle = "Frontier Baking";
         }
+        else if (Argument == "--standalone-particles" || Argument == "--standalone=particles" || Argument == "--workspace=particles" || Argument == "--workspace=particle" || Argument == "--particles" || Argument == "--particle")
+        {
+            Modified.LaunchMode       = HostLaunchMode::StandaloneWorkspace;
+            Modified.ActiveWorkspace  = WorkspaceCategory::Particle;
+            Modified.ApplicationTitle = "Frontier Particles";
+        }
         else if (Argument == "--feature-set" || Argument == "--workspace=all")
         {
             Modified.LaunchMode       = HostLaunchMode::FeatureSet;

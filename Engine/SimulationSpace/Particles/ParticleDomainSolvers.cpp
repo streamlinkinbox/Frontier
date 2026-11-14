@@ -898,10 +898,11 @@ uint32_t BoidsFlockSource::ReleaseParticles(
         Flock[Slot].WingPhaseRad   = Generator.NextRange(0.0f, Constants::TauFloat);
         Flock[Slot].SpeciesVariant = Settings.CreatureVariant;
 
-        Appear[Slot].RadiusMeters = 0.08f;
-        Appear[Slot].ColorR       = 0.78f;
-        Appear[Slot].ColorG       = 0.88f;
-        Appear[Slot].ColorB       = 0.80f;
+        const float MixT = Generator.NextUnitFloat();
+        Appear[Slot].RadiusMeters = 0.085f;
+        Appear[Slot].ColorR       = Settings.PrimaryColor[0] + (Settings.SecondaryColor[0] - Settings.PrimaryColor[0]) * MixT;
+        Appear[Slot].ColorG       = Settings.PrimaryColor[1] + (Settings.SecondaryColor[1] - Settings.PrimaryColor[1]) * MixT;
+        Appear[Slot].ColorB       = Settings.PrimaryColor[2] + (Settings.SecondaryColor[2] - Settings.PrimaryColor[2]) * MixT;
         Appear[Slot].ColorA       = 1.0f;
     }
 
@@ -1241,10 +1242,11 @@ uint32_t LatticeGridSource::ReleaseParticles(
         Grid[Slot].GridCoordZ      = 0u;
         Grid[Slot].WavePhase       = static_cast<float>(Cx + Cy) * 0.25f;
 
+        const float DiagT = static_cast<float>(Cx + Cy) / static_cast<float>(std::max(1u, Gx + Gy - 2u));
         Appear[Slot].RadiusMeters = Settings.SpacingMeters * 0.42f;
-        Appear[Slot].ColorR       = 0.94f;
-        Appear[Slot].ColorG       = 0.46f;
-        Appear[Slot].ColorB       = 0.40f;
+        Appear[Slot].ColorR       = Settings.PrimaryColor[0] + (Settings.AccentColor[0] - Settings.PrimaryColor[0]) * DiagT;
+        Appear[Slot].ColorG       = Settings.PrimaryColor[1] + (Settings.AccentColor[1] - Settings.PrimaryColor[1]) * DiagT;
+        Appear[Slot].ColorB       = Settings.PrimaryColor[2] + (Settings.AccentColor[2] - Settings.PrimaryColor[2]) * DiagT;
         Appear[Slot].ColorA       = 1.0f;
     }
 

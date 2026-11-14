@@ -71,7 +71,8 @@ BillboardVaryings ParticleBillboardVertex(
 
     float3 WorldCenter = Kin.PositionInvMass.xyz;
     float3 Velocity    = Kin.VelocityDrag.xyz;
-    float  RadiusM     = max(0.012, Appear.VisualMetrics.x * Viewport.CameraRightScale.w);
+    float  RawRadiusM  = max(0.012, Appear.VisualMetrics.x * Viewport.CameraRightScale.w);
+    float  RadiusM     = (Out.Silhouette == ParticleSilhouetteShockRing) ? min(RawRadiusM, 2.25) : min(RawRadiusM, 1.35);
     float  RollRad     = Appear.VisualMetrics.y;
 
     float3 CamRight = Viewport.CameraRightScale.xyz;
@@ -108,8 +109,11 @@ BillboardVaryings ParticleBillboardVertex(
     float3 WorldPos = WorldCenter + AxisX * (Out.LocalQuadUv.x * ExtentX) + AxisY * (Out.LocalQuadUv.y * ExtentY);
     Out.ClipPosition = ParticleProjectWorldClip(Viewport, WorldPos);
 
+    float VolAtten = (Out.Silhouette == ParticleSilhouetteShockRing)
+        ? 1.0
+        : clamp(0.32 / max(RawRadiusM, 0.32), 0.16, 1.0);
     float Boost = max(0.5, Viewport.CameraUpBoost.w);
-    Out.TintRgba = float4(Appear.ColorRgba.rgb * Boost, saturate(Appear.ColorRgba.a));
+    Out.TintRgba = float4(Appear.ColorRgba.rgb * Boost, saturate(Appear.ColorRgba.a * VolAtten));
     return Out;
 }
 
@@ -147,6 +151,23 @@ float4 ParticleBillboardFragment(BillboardVaryings In) : SV_Target0
         float StreakCenter = exp(-Uv.x * Uv.x * 7.5 - Uv.y * Uv.y * 2.2);
         Color = lerp(Color, float3(1.0, 0.97, 0.88), StreakCenter * 0.6);
         Alpha = In.TintRgba.a * saturate(pow(saturate(1.0 - Radial), 1.35) + StreakCenter * 0.5);
+    }
+    else if (In.Silhouette == ParticleSilhouetteShockRing)
+    {
+        if (Dist >= 1.0)
+        {
+            discard;
+        }
+        float OuterRing = exp(-pow((Dist - 0.84) / 0.075, 2.0));
+        float InnerEcho = 0.42 * exp(-pow((Dist - 0.58) / 0.065, 2.0));
+        float CenterSheen = 0.05 * smoothstep(0.0, 0.85, Dist) * (1.0 - smoothstep(0.85, 1.0, Dist));
+        float RingWeight = saturate(OuterRing + InnerEcho + CenterSheen);
+        if (RingWeight <= 0.01)
+        {
+            discard;
+        }
+        Color = lerp(Color, float3(1.0, 0.98, 0.96), OuterRing * 0.45);
+        Alpha = In.TintRgba.a * RingWeight * 0.65;
     }
     else if (In.Silhouette == ParticleSilhouetteShardQuad)
     {

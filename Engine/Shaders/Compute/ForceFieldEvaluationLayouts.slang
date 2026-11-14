@@ -1,5 +1,5 @@
 /*============================================================================================================================================
-                                                    FORCEFIELDEVALUATIONSHARED.SLANG
+                                                    FORCEFIELDEVALUATIONLAYOUTS.SLANG
 ============================================================================================================================================*/
 // 🧩 Shared +Z Up Slang GPU analytical evaluation of 19 ForceModel laws, reach bounds, CurlNoise, FlowStream, and spline curves
 

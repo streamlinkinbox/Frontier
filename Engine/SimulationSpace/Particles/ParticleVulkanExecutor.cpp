@@ -57,13 +57,25 @@ uint32_t    ParticleVulkanExecutor::QueryAllocatedCapacity() const noexcept { re
 void*       ParticleVulkanExecutor::QueryKinematicsBufferHandle() const noexcept { return nullptr; }
 void*       ParticleVulkanExecutor::QueryLifespanBufferHandle() const noexcept { return nullptr; }
 void*       ParticleVulkanExecutor::QueryAppearanceBufferHandle() const noexcept { return nullptr; }
+void*       ParticleVulkanExecutor::QueryOrientationBufferHandle() const noexcept { return nullptr; }
 void*       ParticleVulkanExecutor::QueryStrandLinkBufferHandle() const noexcept { return nullptr; }
 uint64_t    ParticleVulkanExecutor::QueryKinematicsByteSize() const noexcept { return 0u; }
 uint64_t    ParticleVulkanExecutor::QueryLifespanByteSize() const noexcept { return 0u; }
 uint64_t    ParticleVulkanExecutor::QueryAppearanceByteSize() const noexcept { return 0u; }
+uint64_t    ParticleVulkanExecutor::QueryOrientationByteSize() const noexcept { return 0u; }
 uint64_t    ParticleVulkanExecutor::QueryStrandLinkByteSize() const noexcept { return 0u; }
+uint32_t    ParticleVulkanExecutor::QueryLastPyroAllocatedSlots() const noexcept { return 0u; }
+bool        ParticleVulkanExecutor::QueryDomainShadersLoaded() const noexcept { return false; }
 
 bool ParticleVulkanExecutor::EnsureChannelCapacity(uint32_t, bool, std::string& OutDiagnostic) noexcept
+{
+    OutDiagnostic = "Vulkan compute disabled in this headless build profile.";
+    return false;
+}
+
+bool ParticleVulkanExecutor::UploadSignedDistanceVolume(
+    const DistanceFieldSpace::SignedDistanceVolume&,
+    std::string& OutDiagnostic) noexcept
 {
     OutDiagnostic = "Vulkan compute disabled in this headless build profile.";
     return false;
@@ -153,22 +165,55 @@ struct ParticleVulkanExecutor::DeviceImplementation
     ComputeExecutableUnit ReductionBoundsUnit  {};
     ComputeExecutableUnit ReductionFinalUnit   {};
 
-    HostMappedBuffer UniformBuffer     {};
-    HostMappedBuffer StrandUniformBuf  {};
-    HostMappedBuffer StrandVelUniform  {};
-    HostMappedBuffer KinematicsBuffer  {};
-    HostMappedBuffer LifespanBuffer    {};
-    HostMappedBuffer AppearanceBuffer  {};
-    HostMappedBuffer StrandAnchorBuf   {};
-    HostMappedBuffer StrandLinkBuf     {};
-    HostMappedBuffer ForceSourceBuffer {};
-    HostMappedBuffer WaypointBuffer    {};
-    HostMappedBuffer ScratchBuffer     {};
-    HostMappedBuffer SummaryBuffer     {};
+    // Unified 16-binding specialized domain compute suite (all 7 domain shaders + GPU SDF collider)
+    VkDescriptorSetLayout DomainDescriptorLayout = VK_NULL_HANDLE;
+    VkPipelineLayout      DomainLayout           = VK_NULL_HANDLE;
+    VkDescriptorSet       DomainDescriptorSlot   = VK_NULL_HANDLE;
+    VkPipeline            FerrofluidExecutable   = VK_NULL_HANDLE;
+    VkPipeline            PyroVolleyExecutable   = VK_NULL_HANDLE;
+    VkPipeline            BoidsFlockExecutable   = VK_NULL_HANDLE;
+    VkPipeline            FractureExecutable     = VK_NULL_HANDLE;
+    VkPipeline            LatticeExecutable      = VK_NULL_HANDLE;
+    VkPipeline            ShieldRefractExecutable= VK_NULL_HANDLE;
+    VkPipeline            SdfColliderExecutable  = VK_NULL_HANDLE;
+    bool                  DomainShadersReady     = false;
 
-    uint32_t         SlotCapacity      = 0u;
-    bool             Initialized       = false;
-    std::string      DeviceLabel       {};
+    HostMappedBuffer UniformBuffer        {};
+    HostMappedBuffer DomainUniformBuffer  {};
+    HostMappedBuffer StrandUniformBuf     {};
+    HostMappedBuffer StrandVelUniform     {};
+    HostMappedBuffer KinematicsBuffer     {};
+    HostMappedBuffer LifespanBuffer       {};
+    HostMappedBuffer AppearanceBuffer     {};
+    HostMappedBuffer OrientationBuffer    {};
+    HostMappedBuffer StrandAnchorBuf      {};
+    HostMappedBuffer StrandLinkBuf        {};
+    HostMappedBuffer FlockSteeringBuffer  {};
+    HostMappedBuffer MagneticCuspBuffer   {};
+    HostMappedBuffer PyroVolleyBuffer     {};
+    HostMappedBuffer FractureStressBuffer {};
+    HostMappedBuffer LatticeGridBuffer    {};
+    HostMappedBuffer ForceSourceBuffer    {};
+    HostMappedBuffer WaypointBuffer       {};
+    HostMappedBuffer SdfIndirectionBuf    {};
+    HostMappedBuffer SdfCoarseDistBuf     {};
+    HostMappedBuffer SdfBrickDataBuf      {};
+    HostMappedBuffer PyroAllocCounterBuf  {};
+    HostMappedBuffer ScratchBuffer        {};
+    HostMappedBuffer SummaryBuffer        {};
+
+    // Uploaded SignedDistanceVolume spatial metadata
+    std::array<float, 3u>    SdfBoundsMin     { 0.0f, 0.0f, 0.0f };
+    std::array<float, 3u>    SdfBoundsMax     { 0.0f, 0.0f, 0.0f };
+    float                    SdfVoxelSpacing  = 0.1f;
+    float                    SdfNarrowBand    = 0.8f;
+    std::array<uint32_t, 3u> SdfBrickDims     { 0u, 0u, 0u };
+    bool                     SdfVolumeUploaded= false;
+
+    uint32_t         SlotCapacity        = 0u;
+    uint32_t         LastPyroSlots       = 0u;
+    bool             Initialized         = false;
+    std::string      DeviceLabel         {};
 
 #if defined(__linux__)
     void*            LoaderLibrary      = nullptr;
@@ -399,6 +444,112 @@ struct ParticleVulkanExecutor::DeviceImplementation
         vkUpdateDescriptorSets(Device, static_cast<uint32_t>(Writes.size()), Writes.data(), 0u, nullptr);
     }
 
+    bool CreateSingleDomainExecutable(
+        const std::filesystem::path& SpirvPath,
+        const char*                  EntryName,
+        VkPipeline&                  OutExecutable,
+        std::string&                 OutDiagnostic) noexcept
+    {
+        std::vector<uint32_t> SpirvWords;
+        if (!ReadSpirvWords(SpirvPath, SpirvWords))
+        {
+            OutDiagnostic = "Missing domain SPIR-V compute binary: " + SpirvPath.string();
+            return false;
+        }
+        VkShaderModuleCreateInfo SpirvSpec{};
+        SpirvSpec.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        SpirvSpec.codeSize = SpirvWords.size() * sizeof(uint32_t);
+        SpirvSpec.pCode    = SpirvWords.data();
+        VkShaderModule SpirvHandle = VK_NULL_HANDLE;
+        if (vkCreateShaderModule(Device, &SpirvSpec, nullptr, &SpirvHandle) != VK_SUCCESS)
+        {
+            OutDiagnostic = "Failed to construct domain shader binary: " + SpirvPath.string();
+            return false;
+        }
+        VkComputePipelineCreateInfo ComputeSpec{};
+        ComputeSpec.sType        = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        ComputeSpec.stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        ComputeSpec.stage.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
+        ComputeSpec.stage.module = SpirvHandle;
+        ComputeSpec.stage.pName  = EntryName;
+        ComputeSpec.layout       = DomainLayout;
+        const VkResult Res = vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1u, &ComputeSpec, nullptr, &OutExecutable);
+        vkDestroyShaderModule(Device, SpirvHandle, nullptr);
+        if (Res != VK_SUCCESS)
+        {
+            OutDiagnostic = "Failed to build specialized domain compute executable: " + SpirvPath.string();
+            return false;
+        }
+        return true;
+    }
+
+    bool InitializeDomainComputeSuite(
+        const std::filesystem::path& ShaderBinaryDir,
+        std::string&                 OutDiagnostic) noexcept
+    {
+        std::array<VkDescriptorSetLayoutBinding, 16u> Slots{};
+        for (uint32_t Idx = 0u; Idx < 16u; ++Idx)
+        {
+            Slots[Idx].binding         = Idx;
+            Slots[Idx].descriptorType  = (Idx == 0u) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            Slots[Idx].descriptorCount = 1u;
+            Slots[Idx].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
+        }
+
+        VkDescriptorSetLayoutCreateInfo DescLayoutSpec{};
+        DescLayoutSpec.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        DescLayoutSpec.bindingCount = static_cast<uint32_t>(Slots.size());
+        DescLayoutSpec.pBindings    = Slots.data();
+        if (vkCreateDescriptorSetLayout(Device, &DescLayoutSpec, nullptr, &DomainDescriptorLayout) != VK_SUCCESS)
+        {
+            OutDiagnostic = "Failed to create unified domain descriptor layout.";
+            return false;
+        }
+
+        VkPipelineLayoutCreateInfo ExecLayoutSpec{};
+        ExecLayoutSpec.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        ExecLayoutSpec.setLayoutCount = 1u;
+        ExecLayoutSpec.pSetLayouts    = &DomainDescriptorLayout;
+        if (vkCreatePipelineLayout(Device, &ExecLayoutSpec, nullptr, &DomainLayout) != VK_SUCCESS)
+        {
+            OutDiagnostic = "Failed to create unified domain layout.";
+            return false;
+        }
+
+        VkDescriptorSetAllocateInfo AllocDesc{};
+        AllocDesc.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        AllocDesc.descriptorPool     = DescriptorBank;
+        AllocDesc.descriptorSetCount = 1u;
+        AllocDesc.pSetLayouts        = &DomainDescriptorLayout;
+        if (vkAllocateDescriptorSets(Device, &AllocDesc, &DomainDescriptorSlot) != VK_SUCCESS)
+        {
+            OutDiagnostic = "Failed to allocate domain descriptor slot.";
+            return false;
+        }
+
+        // Load all 7 specialized domain shaders when present in ShaderBinaryDir
+        const std::filesystem::path FerroSpv = ShaderBinaryDir / "ParticleFerrofluidCompute.spv";
+        if (!std::filesystem::exists(FerroSpv))
+        {
+            DomainShadersReady = false;
+            return true;
+        }
+
+        if (!CreateSingleDomainExecutable(FerroSpv, "EvaluateFerrofluidMain", FerrofluidExecutable, OutDiagnostic) ||
+            !CreateSingleDomainExecutable(ShaderBinaryDir / "ParticlePyroVolleyCompute.spv", "EvaluatePyroVolleyMain", PyroVolleyExecutable, OutDiagnostic) ||
+            !CreateSingleDomainExecutable(ShaderBinaryDir / "ParticleBoidsFlockCompute.spv", "EvaluateBoidsFlockMain", BoidsFlockExecutable, OutDiagnostic) ||
+            !CreateSingleDomainExecutable(ShaderBinaryDir / "ParticleFractureCompute.spv", "EvaluateFractureMain", FractureExecutable, OutDiagnostic) ||
+            !CreateSingleDomainExecutable(ShaderBinaryDir / "ParticleLatticeEffectorCompute.spv", "EvaluateLatticeEffectorMain", LatticeExecutable, OutDiagnostic) ||
+            !CreateSingleDomainExecutable(ShaderBinaryDir / "ParticleShieldRefractionCompute.spv", "EvaluateShieldRefractionMain", ShieldRefractExecutable, OutDiagnostic) ||
+            !CreateSingleDomainExecutable(ShaderBinaryDir / "ParticleSdfColliderCompute.spv", "CollideSignedDistanceMain", SdfColliderExecutable, OutDiagnostic))
+        {
+            return false;
+        }
+
+        DomainShadersReady = true;
+        return true;
+    }
+
     void RefreshAllDescriptorSlots(const HostMappedBuffer& ActiveStrandUniform) noexcept
     {
         const std::array<std::pair<VkDescriptorType, const HostMappedBuffer*>, 4u> ReleaseDesc = {{
@@ -437,6 +588,29 @@ struct ParticleVulkanExecutor::DeviceImplementation
         WriteDescriptorSlots(ReductionAccumUnit.DescriptorSlot, ReduceDesc);
         WriteDescriptorSlots(ReductionBoundsUnit.DescriptorSlot, ReduceDesc);
         WriteDescriptorSlots(ReductionFinalUnit.DescriptorSlot, ReduceDesc);
+
+        if (DomainDescriptorSlot != VK_NULL_HANDLE && OrientationBuffer.Handle != VK_NULL_HANDLE)
+        {
+            const std::array<std::pair<VkDescriptorType, const HostMappedBuffer*>, 16u> DomainDesc = {{
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &DomainUniformBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &KinematicsBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &LifespanBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &AppearanceBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &OrientationBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &MagneticCuspBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &PyroVolleyBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &FlockSteeringBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &FractureStressBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &LatticeGridBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &ForceSourceBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &WaypointBuffer },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &SdfIndirectionBuf },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &SdfCoarseDistBuf },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &SdfBrickDataBuf },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &PyroAllocCounterBuf },
+            }};
+            WriteDescriptorSlots(DomainDescriptorSlot, DomainDesc);
+        }
     }
 
     void InsertComputeBarrier(VkCommandBuffer Cmd) const noexcept
@@ -464,15 +638,26 @@ struct ParticleVulkanExecutor::DeviceImplementation
         {
             vkDeviceWaitIdle(Device);
             DestroyBuffer(UniformBuffer);
+            DestroyBuffer(DomainUniformBuffer);
             DestroyBuffer(StrandUniformBuf);
             DestroyBuffer(StrandVelUniform);
             DestroyBuffer(KinematicsBuffer);
             DestroyBuffer(LifespanBuffer);
             DestroyBuffer(AppearanceBuffer);
+            DestroyBuffer(OrientationBuffer);
             DestroyBuffer(StrandAnchorBuf);
             DestroyBuffer(StrandLinkBuf);
+            DestroyBuffer(FlockSteeringBuffer);
+            DestroyBuffer(MagneticCuspBuffer);
+            DestroyBuffer(PyroVolleyBuffer);
+            DestroyBuffer(FractureStressBuffer);
+            DestroyBuffer(LatticeGridBuffer);
             DestroyBuffer(ForceSourceBuffer);
             DestroyBuffer(WaypointBuffer);
+            DestroyBuffer(SdfIndirectionBuf);
+            DestroyBuffer(SdfCoarseDistBuf);
+            DestroyBuffer(SdfBrickDataBuf);
+            DestroyBuffer(PyroAllocCounterBuf);
             DestroyBuffer(ScratchBuffer);
             DestroyBuffer(SummaryBuffer);
 
@@ -482,6 +667,28 @@ struct ParticleVulkanExecutor::DeviceImplementation
             DestroyComputeUnit(ReductionAccumUnit);
             DestroyComputeUnit(ReductionBoundsUnit);
             DestroyComputeUnit(ReductionFinalUnit);
+
+            if (FerrofluidExecutable != VK_NULL_HANDLE)    { vkDestroyPipeline(Device, FerrofluidExecutable, nullptr); }
+            if (PyroVolleyExecutable != VK_NULL_HANDLE)    { vkDestroyPipeline(Device, PyroVolleyExecutable, nullptr); }
+            if (BoidsFlockExecutable != VK_NULL_HANDLE)    { vkDestroyPipeline(Device, BoidsFlockExecutable, nullptr); }
+            if (FractureExecutable != VK_NULL_HANDLE)      { vkDestroyPipeline(Device, FractureExecutable, nullptr); }
+            if (LatticeExecutable != VK_NULL_HANDLE)       { vkDestroyPipeline(Device, LatticeExecutable, nullptr); }
+            if (ShieldRefractExecutable != VK_NULL_HANDLE) { vkDestroyPipeline(Device, ShieldRefractExecutable, nullptr); }
+            if (SdfColliderExecutable != VK_NULL_HANDLE)   { vkDestroyPipeline(Device, SdfColliderExecutable, nullptr); }
+            if (DomainLayout != VK_NULL_HANDLE)            { vkDestroyPipelineLayout(Device, DomainLayout, nullptr); }
+            if (DomainDescriptorLayout != VK_NULL_HANDLE)  { vkDestroyDescriptorSetLayout(Device, DomainDescriptorLayout, nullptr); }
+            FerrofluidExecutable    = VK_NULL_HANDLE;
+            PyroVolleyExecutable    = VK_NULL_HANDLE;
+            BoidsFlockExecutable    = VK_NULL_HANDLE;
+            FractureExecutable      = VK_NULL_HANDLE;
+            LatticeExecutable       = VK_NULL_HANDLE;
+            ShieldRefractExecutable = VK_NULL_HANDLE;
+            SdfColliderExecutable   = VK_NULL_HANDLE;
+            DomainLayout            = VK_NULL_HANDLE;
+            DomainDescriptorLayout  = VK_NULL_HANDLE;
+            DomainDescriptorSlot    = VK_NULL_HANDLE;
+            DomainShadersReady      = false;
+            SdfVolumeUploaded       = false;
 
             if (CompletionSignal != VK_NULL_HANDLE) { vkDestroyFence(Device, CompletionSignal, nullptr); }
             if (CommandBank != VK_NULL_HANDLE)      { vkDestroyCommandPool(Device, CommandBank, nullptr); }
@@ -660,14 +867,14 @@ bool ParticleVulkanExecutor::Initialize(
     volkLoadDevice(DeviceHandle->Device);
     vkGetDeviceQueue(DeviceHandle->Device, ChosenFamily, 0u, &DeviceHandle->ComputeQueue);
 
-    // Descriptor bank sized for 6 compute units
+    // Descriptor bank sized for 6 base compute units + unified 16-binding specialized domain suite
     const std::array<VkDescriptorPoolSize, 2u> DescSizes = {{
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 12u },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 36u },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 24u },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 72u },
     }};
     VkDescriptorPoolCreateInfo DescBankSpec{};
     DescBankSpec.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    DescBankSpec.maxSets       = 12u;
+    DescBankSpec.maxSets       = 16u;
     DescBankSpec.poolSizeCount = static_cast<uint32_t>(DescSizes.size());
     DescBankSpec.pPoolSizes    = DescSizes.data();
     if (vkCreateDescriptorPool(DeviceHandle->Device, &DescBankSpec, nullptr, &DeviceHandle->DescriptorBank) != VK_SUCCESS)
@@ -734,7 +941,8 @@ bool ParticleVulkanExecutor::Initialize(
         !DeviceHandle->CreateComputeUnit(ShaderBinaryDir / "ParticleStrandConstraintCompute.spv", "ComputeStrandConstraint", StrandTypes, DeviceHandle->StrandUnit, OutDiagnostic) ||
         !DeviceHandle->CreateComputeUnit(ShaderBinaryDir / "ParticleReductionAccumulate.spv", "ComputeParticleReductionAccumulate", ReduceTypes, DeviceHandle->ReductionAccumUnit, OutDiagnostic) ||
         !DeviceHandle->CreateComputeUnit(ShaderBinaryDir / "ParticleReductionBounds.spv", "ComputeParticleReductionBounds", ReduceTypes, DeviceHandle->ReductionBoundsUnit, OutDiagnostic) ||
-        !DeviceHandle->CreateComputeUnit(ShaderBinaryDir / "ParticleReductionFinalize.spv", "ComputeParticleReductionFinalize", ReduceTypes, DeviceHandle->ReductionFinalUnit, OutDiagnostic))
+        !DeviceHandle->CreateComputeUnit(ShaderBinaryDir / "ParticleReductionFinalize.spv", "ComputeParticleReductionFinalize", ReduceTypes, DeviceHandle->ReductionFinalUnit, OutDiagnostic) ||
+        !DeviceHandle->InitializeDomainComputeSuite(ShaderBinaryDir, OutDiagnostic))
     {
         Finalize();
         return false;
@@ -744,14 +952,19 @@ bool ParticleVulkanExecutor::Initialize(
     const VkBufferUsageFlags UboUsage  = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     const VkBufferUsageFlags SsboUsage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     if (!DeviceHandle->EnsureBuffer(DeviceHandle->UniformBuffer, sizeof(ParticleGpuUniformBlock), UboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->DomainUniformBuffer, sizeof(ParticleDomainUniformBlock), UboUsage) ||
         !DeviceHandle->EnsureBuffer(DeviceHandle->StrandUniformBuf, sizeof(ParticleGpuUniformBlock), UboUsage) ||
         !DeviceHandle->EnsureBuffer(DeviceHandle->StrandVelUniform, sizeof(ParticleGpuUniformBlock), UboUsage) ||
         !DeviceHandle->EnsureBuffer(DeviceHandle->ForceSourceBuffer, sizeof(ForceFields::ForceSourceShaderEntry) * 64u, SsboUsage) ||
         !DeviceHandle->EnsureBuffer(DeviceHandle->WaypointBuffer, sizeof(float) * 4u * 256u, SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->SdfIndirectionBuf, 256u, SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->SdfCoarseDistBuf, 256u, SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->SdfBrickDataBuf, 1024u, SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->PyroAllocCounterBuf, 256u, SsboUsage) ||
         !DeviceHandle->EnsureBuffer(DeviceHandle->ScratchBuffer, 64u, SsboUsage) ||
         !DeviceHandle->EnsureBuffer(DeviceHandle->SummaryBuffer, sizeof(ParticleReadbackSummary), SsboUsage))
     {
-        OutDiagnostic = "Failed to allocate base Vulkan uniform/staging buffers.";
+        OutDiagnostic = "Failed to allocate primary Vulkan uniform/staging buffers.";
         Finalize();
         return false;
     }
@@ -829,6 +1042,11 @@ void* ParticleVulkanExecutor::QueryAppearanceBufferHandle() const noexcept
     return DeviceHandle ? static_cast<void*>(DeviceHandle->AppearanceBuffer.Handle) : nullptr;
 }
 
+void* ParticleVulkanExecutor::QueryOrientationBufferHandle() const noexcept
+{
+    return DeviceHandle ? static_cast<void*>(DeviceHandle->OrientationBuffer.Handle) : nullptr;
+}
+
 void* ParticleVulkanExecutor::QueryStrandLinkBufferHandle() const noexcept
 {
     return DeviceHandle ? static_cast<void*>(DeviceHandle->StrandLinkBuf.Handle) : nullptr;
@@ -849,9 +1067,24 @@ uint64_t ParticleVulkanExecutor::QueryAppearanceByteSize() const noexcept
     return DeviceHandle ? static_cast<uint64_t>(DeviceHandle->AppearanceBuffer.Capacity) : 0u;
 }
 
+uint64_t ParticleVulkanExecutor::QueryOrientationByteSize() const noexcept
+{
+    return DeviceHandle ? static_cast<uint64_t>(DeviceHandle->OrientationBuffer.Capacity) : 0u;
+}
+
 uint64_t ParticleVulkanExecutor::QueryStrandLinkByteSize() const noexcept
 {
     return DeviceHandle ? static_cast<uint64_t>(DeviceHandle->StrandLinkBuf.Capacity) : 0u;
+}
+
+uint32_t ParticleVulkanExecutor::QueryLastPyroAllocatedSlots() const noexcept
+{
+    return DeviceHandle ? DeviceHandle->LastPyroSlots : 0u;
+}
+
+bool ParticleVulkanExecutor::QueryDomainShadersLoaded() const noexcept
+{
+    return DeviceHandle && DeviceHandle->DomainShadersReady;
 }
 
 bool ParticleVulkanExecutor::EnsureChannelCapacity(
@@ -871,9 +1104,15 @@ bool ParticleVulkanExecutor::EnsureChannelCapacity(
 
     if (!DeviceHandle->EnsureBuffer(DeviceHandle->KinematicsBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(KinematicsChannel), SsboUsage) ||
         !DeviceHandle->EnsureBuffer(DeviceHandle->LifespanBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(LifespanChannel), SsboUsage) ||
-        !DeviceHandle->EnsureBuffer(DeviceHandle->AppearanceBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(AppearanceChannel), SsboUsage))
+        !DeviceHandle->EnsureBuffer(DeviceHandle->AppearanceBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(AppearanceChannel), SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->OrientationBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(OrientationChannel), SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->FlockSteeringBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(FlockSteeringChannel), SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->MagneticCuspBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(MagneticCuspChannel), SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->PyroVolleyBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(PyroVolleyChannel), SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->FractureStressBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(FractureStressChannel), SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->LatticeGridBuffer, static_cast<VkDeviceSize>(SafeSlots) * sizeof(LatticeGridChannel), SsboUsage))
     {
-        OutDiagnostic = "Failed to allocate primary particle channel SSBOs.";
+        OutDiagnostic = "Failed to allocate modular particle channel SSBOs.";
         return false;
     }
 
@@ -886,6 +1125,56 @@ bool ParticleVulkanExecutor::EnsureChannelCapacity(
     }
 
     DeviceHandle->SlotCapacity = std::max(DeviceHandle->SlotCapacity, SafeSlots);
+    DeviceHandle->RefreshAllDescriptorSlots(DeviceHandle->StrandUniformBuf);
+    return true;
+}
+
+bool ParticleVulkanExecutor::UploadSignedDistanceVolume(
+    const DistanceFieldSpace::SignedDistanceVolume& Volume,
+    std::string&                                    OutDiagnostic) noexcept
+{
+    if (!QueryDeviceReady())
+    {
+        OutDiagnostic = "ParticleVulkanExecutor is not initialized.";
+        return false;
+    }
+    if (Volume.BrickCountX == 0u || Volume.BrickIndirection.empty())
+    {
+        DeviceHandle->SdfVolumeUploaded = false;
+        return true;
+    }
+
+    const VkBufferUsageFlags SsboUsage =
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+    const VkDeviceSize IndirBytes  = Volume.BrickIndirection.size() * sizeof(uint32_t);
+    const VkDeviceSize CoarseBytes = Volume.CoarseBrickCenterDistance.size() * sizeof(float);
+    const VkDeviceSize BrickBytes  = std::max<VkDeviceSize>(256u, Volume.AllocatedBricks.size() * sizeof(DistanceFieldSpace::SparseDistanceBrick));
+
+    if (!DeviceHandle->EnsureBuffer(DeviceHandle->SdfIndirectionBuf, IndirBytes, SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->SdfCoarseDistBuf, CoarseBytes, SsboUsage) ||
+        !DeviceHandle->EnsureBuffer(DeviceHandle->SdfBrickDataBuf, BrickBytes, SsboUsage))
+    {
+        OutDiagnostic = "Failed to allocate GPU 3D SignedDistanceVolume SSBOs.";
+        return false;
+    }
+
+    std::memcpy(DeviceHandle->SdfIndirectionBuf.Mapped, Volume.BrickIndirection.data(), static_cast<std::size_t>(IndirBytes));
+    std::memcpy(DeviceHandle->SdfCoarseDistBuf.Mapped, Volume.CoarseBrickCenterDistance.data(), static_cast<std::size_t>(CoarseBytes));
+    if (!Volume.AllocatedBricks.empty())
+    {
+        std::memcpy(
+            DeviceHandle->SdfBrickDataBuf.Mapped,
+            Volume.AllocatedBricks.data(),
+            Volume.AllocatedBricks.size() * sizeof(DistanceFieldSpace::SparseDistanceBrick));
+    }
+
+    DeviceHandle->SdfBoundsMin      = { Volume.VolumeBoundsMin.X, Volume.VolumeBoundsMin.Y, Volume.VolumeBoundsMin.Z };
+    DeviceHandle->SdfBoundsMax      = { Volume.VolumeBoundsMax.X, Volume.VolumeBoundsMax.Y, Volume.VolumeBoundsMax.Z };
+    DeviceHandle->SdfVoxelSpacing   = Volume.VoxelSpacingMeters;
+    DeviceHandle->SdfNarrowBand     = Volume.NarrowBandMeters;
+    DeviceHandle->SdfBrickDims      = { Volume.BrickCountX, Volume.BrickCountY, Volume.BrickCountZ };
+    DeviceHandle->SdfVolumeUploaded = true;
     DeviceHandle->RefreshAllDescriptorSlots(DeviceHandle->StrandUniformBuf);
     return true;
 }
@@ -903,16 +1192,22 @@ bool ParticleVulkanExecutor::UploadChannelBank(
     const uint32_t Count          = std::max(SourceBank.QueryActiveCount(), SourceBank.QueryCapacity());
     const auto     StrandAnchors  = SourceBank.QueryChannel(ChannelLayouts::StrandAnchor);
     const auto     StrandLinks    = SourceBank.QueryChannel(ChannelLayouts::StrandConnectivity);
-    const bool     StrandsPresent     = !StrandAnchors.empty() && !StrandLinks.empty();
+    const bool     StrandsPresent = !StrandAnchors.empty() && !StrandLinks.empty();
 
     if (!EnsureChannelCapacity(Count, StrandsPresent, OutDiagnostic))
     {
         return false;
     }
 
-    const auto Kin    = SourceBank.QueryChannel(ChannelLayouts::Kinematics);
-    const auto Life   = SourceBank.QueryChannel(ChannelLayouts::Lifespan);
-    const auto Appear = SourceBank.QueryChannel(ChannelLayouts::Appearance);
+    const auto Kin      = SourceBank.QueryChannel(ChannelLayouts::Kinematics);
+    const auto Life     = SourceBank.QueryChannel(ChannelLayouts::Lifespan);
+    const auto Appear   = SourceBank.QueryChannel(ChannelLayouts::Appearance);
+    const auto Orient   = SourceBank.QueryChannel(ChannelLayouts::Orientation);
+    const auto Flock    = SourceBank.QueryChannel(ChannelLayouts::FlockSteering);
+    const auto Cusp     = SourceBank.QueryChannel(ChannelLayouts::MagneticCusp);
+    const auto Pyro     = SourceBank.QueryChannel(ChannelLayouts::PyroVolley);
+    const auto Fracture = SourceBank.QueryChannel(ChannelLayouts::FractureStress);
+    const auto Lattice  = SourceBank.QueryChannel(ChannelLayouts::LatticeGrid);
 
     if (!Kin.empty())
     {
@@ -924,7 +1219,6 @@ bool ParticleVulkanExecutor::UploadChannelBank(
     }
     else
     {
-        // Ensure active slots carry LivenessMask = 1 when Lifespan channel is optional (e.g., immortal strands)
         auto* DstLife = reinterpret_cast<LifespanChannel*>(DeviceHandle->LifespanBuffer.Mapped);
         for (uint32_t Idx = 0u; Idx < Count; ++Idx)
         {
@@ -935,10 +1229,42 @@ bool ParticleVulkanExecutor::UploadChannelBank(
     {
         std::memcpy(DeviceHandle->AppearanceBuffer.Mapped, Appear.data(), Appear.size() * sizeof(AppearanceChannel));
     }
+    if (!Orient.empty())
+    {
+        std::memcpy(DeviceHandle->OrientationBuffer.Mapped, Orient.data(), Orient.size() * sizeof(OrientationChannel));
+    }
+    else
+    {
+        auto* DstOrient = reinterpret_cast<OrientationChannel*>(DeviceHandle->OrientationBuffer.Mapped);
+        for (uint32_t Idx = 0u; Idx < Count; ++Idx)
+        {
+            DstOrient[Idx] = OrientationChannel{};
+        }
+    }
     if (StrandsPresent)
     {
         std::memcpy(DeviceHandle->StrandAnchorBuf.Mapped, StrandAnchors.data(), StrandAnchors.size() * sizeof(StrandAnchorChannel));
         std::memcpy(DeviceHandle->StrandLinkBuf.Mapped, StrandLinks.data(), StrandLinks.size() * sizeof(StrandConnectivityChannel));
+    }
+    if (!Flock.empty())
+    {
+        std::memcpy(DeviceHandle->FlockSteeringBuffer.Mapped, Flock.data(), Flock.size() * sizeof(FlockSteeringChannel));
+    }
+    if (!Cusp.empty())
+    {
+        std::memcpy(DeviceHandle->MagneticCuspBuffer.Mapped, Cusp.data(), Cusp.size() * sizeof(MagneticCuspChannel));
+    }
+    if (!Pyro.empty())
+    {
+        std::memcpy(DeviceHandle->PyroVolleyBuffer.Mapped, Pyro.data(), Pyro.size() * sizeof(PyroVolleyChannel));
+    }
+    if (!Fracture.empty())
+    {
+        std::memcpy(DeviceHandle->FractureStressBuffer.Mapped, Fracture.data(), Fracture.size() * sizeof(FractureStressChannel));
+    }
+    if (!Lattice.empty())
+    {
+        std::memcpy(DeviceHandle->LatticeGridBuffer.Mapped, Lattice.data(), Lattice.size() * sizeof(LatticeGridChannel));
     }
     return true;
 }
@@ -953,31 +1279,29 @@ bool ParticleVulkanExecutor::DownloadChannelBank(
         return false;
     }
 
-    auto Kin    = TargetBank.AccessChannel(ChannelLayouts::Kinematics);
-    auto Life   = TargetBank.AccessChannel(ChannelLayouts::Lifespan);
-    auto Appear = TargetBank.AccessChannel(ChannelLayouts::Appearance);
-    auto Anchor = TargetBank.AccessChannel(ChannelLayouts::StrandAnchor);
+    auto CopyOut = [](auto SpanView, const HostMappedBuffer& SrcBuf)
+    {
+        if (!SpanView.empty() && SrcBuf.Mapped != nullptr)
+        {
+            using ElemType = typename decltype(SpanView)::value_type;
+            const std::size_t CopyBytes = std::min<std::size_t>(
+                SpanView.size() * sizeof(ElemType),
+                static_cast<std::size_t>(SrcBuf.Capacity));
+            std::memcpy(SpanView.data(), SrcBuf.Mapped, CopyBytes);
+        }
+    };
 
-    if (!Kin.empty())
-    {
-        const std::size_t CopyBytes = std::min<std::size_t>(Kin.size() * sizeof(KinematicsChannel), static_cast<std::size_t>(DeviceHandle->KinematicsBuffer.Capacity));
-        std::memcpy(Kin.data(), DeviceHandle->KinematicsBuffer.Mapped, CopyBytes);
-    }
-    if (!Life.empty())
-    {
-        const std::size_t CopyBytes = std::min<std::size_t>(Life.size() * sizeof(LifespanChannel), static_cast<std::size_t>(DeviceHandle->LifespanBuffer.Capacity));
-        std::memcpy(Life.data(), DeviceHandle->LifespanBuffer.Mapped, CopyBytes);
-    }
-    if (!Appear.empty())
-    {
-        const std::size_t CopyBytes = std::min<std::size_t>(Appear.size() * sizeof(AppearanceChannel), static_cast<std::size_t>(DeviceHandle->AppearanceBuffer.Capacity));
-        std::memcpy(Appear.data(), DeviceHandle->AppearanceBuffer.Mapped, CopyBytes);
-    }
-    if (!Anchor.empty())
-    {
-        const std::size_t CopyBytes = std::min<std::size_t>(Anchor.size() * sizeof(StrandAnchorChannel), static_cast<std::size_t>(DeviceHandle->StrandAnchorBuf.Capacity));
-        std::memcpy(Anchor.data(), DeviceHandle->StrandAnchorBuf.Mapped, CopyBytes);
-    }
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::Kinematics),         DeviceHandle->KinematicsBuffer);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::Lifespan),           DeviceHandle->LifespanBuffer);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::Appearance),         DeviceHandle->AppearanceBuffer);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::Orientation),        DeviceHandle->OrientationBuffer);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::StrandAnchor),       DeviceHandle->StrandAnchorBuf);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::StrandConnectivity), DeviceHandle->StrandLinkBuf);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::FlockSteering),      DeviceHandle->FlockSteeringBuffer);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::MagneticCusp),       DeviceHandle->MagneticCuspBuffer);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::PyroVolley),         DeviceHandle->PyroVolleyBuffer);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::FractureStress),     DeviceHandle->FractureStressBuffer);
+    CopyOut(TargetBank.AccessChannel(ChannelLayouts::LatticeGrid),        DeviceHandle->LatticeGridBuffer);
     return true;
 }
 
@@ -1040,6 +1364,64 @@ bool ParticleVulkanExecutor::DispatchStep(
     StepUniform.Capacity    = DeviceHandle->SlotCapacity;
     StepUniform.SourceCount = static_cast<uint32_t>(Request.PackedForceSources.size());
     std::memcpy(DeviceHandle->UniformBuffer.Mapped, &StepUniform, sizeof(ParticleGpuUniformBlock));
+
+    // Populate specialized domain uniform block + uploaded SDF spatial metadata
+    ParticleDomainUniformBlock DomainUniform = Request.DomainUniforms;
+    DomainUniform.TimingCounts[0]  = StepUniform.DeltaTimeSec;
+    DomainUniform.TimingCounts[1]  = StepUniform.TimeSeconds;
+    DomainUniform.DomainControl[0] = StepUniform.ActiveCount;
+    DomainUniform.DomainControl[1] = StepUniform.Capacity;
+    if (Request.DomainPass == SpecializedDomainPass::Ferrofluid)
+    {
+        DomainUniform.DomainControl[2] = StepUniform.SourceCount;
+    }
+    if (DeviceHandle->SdfVolumeUploaded)
+    {
+        DomainUniform.SdfBoundsMinVox = {
+            DeviceHandle->SdfBoundsMin[0],
+            DeviceHandle->SdfBoundsMin[1],
+            DeviceHandle->SdfBoundsMin[2],
+            DeviceHandle->SdfVoxelSpacing,
+        };
+        DomainUniform.ScalarPackD[0] = DeviceHandle->SdfBoundsMax[0];
+        DomainUniform.ScalarPackD[1] = DeviceHandle->SdfBoundsMax[1];
+        DomainUniform.ScalarPackD[2] = DeviceHandle->SdfBoundsMax[2];
+        uint32_t NarrowBits = 0u;
+        std::memcpy(&NarrowBits, &DeviceHandle->SdfNarrowBand, sizeof(uint32_t));
+        DomainUniform.SdfBrickDims = {
+            DeviceHandle->SdfBrickDims[0],
+            DeviceHandle->SdfBrickDims[1],
+            DeviceHandle->SdfBrickDims[2],
+            NarrowBits,
+        };
+    }
+    std::memcpy(DeviceHandle->DomainUniformBuffer.Mapped, &DomainUniform, sizeof(ParticleDomainUniformBlock));
+
+    // Seed Pyro atomic allocator at current active count before PyroVolley compute pass
+    const uint32_t InitialActive = StepUniform.ActiveCount;
+    std::memcpy(DeviceHandle->PyroAllocCounterBuf.Mapped, &InitialActive, sizeof(uint32_t));
+    DeviceHandle->LastPyroSlots = InitialActive;
+
+    // Select specialized domain compute executable if requested & loaded
+    VkPipeline ActiveDomainExec = VK_NULL_HANDLE;
+    if (DeviceHandle->DomainShadersReady)
+    {
+        switch (Request.DomainPass)
+        {
+            case SpecializedDomainPass::Ferrofluid:      ActiveDomainExec = DeviceHandle->FerrofluidExecutable; break;
+            case SpecializedDomainPass::PyroVolley:      ActiveDomainExec = DeviceHandle->PyroVolleyExecutable; break;
+            case SpecializedDomainPass::BoidsFlock:      ActiveDomainExec = DeviceHandle->BoidsFlockExecutable; break;
+            case SpecializedDomainPass::Fracture:        ActiveDomainExec = DeviceHandle->FractureExecutable; break;
+            case SpecializedDomainPass::LatticeEffector: ActiveDomainExec = DeviceHandle->LatticeExecutable; break;
+            case SpecializedDomainPass::ShieldRipple:
+            case SpecializedDomainPass::SpaceRefraction: ActiveDomainExec = DeviceHandle->ShieldRefractExecutable; break;
+            case SpecializedDomainPass::None:            break;
+        }
+    }
+    const bool RunSdfCollider = Request.ApplySdfCollider
+                             && DeviceHandle->DomainShadersReady
+                             && DeviceHandle->SdfVolumeUploaded
+                             && DeviceHandle->SdfColliderExecutable != VK_NULL_HANDLE;
 
     // Helper lambdas to submit command buffer batches cleanly (necessary when Strand sub-mode uniform swaps)
     auto SubmitCommands = [&](const auto& RecordFn) -> bool
@@ -1111,10 +1493,26 @@ bool ParticleVulkanExecutor::DispatchStep(
 
             if (StepUniform.ActiveCount > 0u)
             {
+                if (ActiveDomainExec != VK_NULL_HANDLE)
+                {
+                    vkCmdBindPipeline(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, ActiveDomainExec);
+                    vkCmdBindDescriptorSets(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, DeviceHandle->DomainLayout, 0u, 1u, &DeviceHandle->DomainDescriptorSlot, 0u, nullptr);
+                    vkCmdDispatch(Cmd, ActiveGroups, 1u, 1u);
+                    DeviceHandle->InsertComputeBarrier(Cmd);
+                }
+
                 vkCmdBindPipeline(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, DeviceHandle->AdvectUnit.Executable);
                 vkCmdBindDescriptorSets(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, DeviceHandle->AdvectUnit.Layout, 0u, 1u, &DeviceHandle->AdvectUnit.DescriptorSlot, 0u, nullptr);
                 vkCmdDispatch(Cmd, ActiveGroups, 1u, 1u);
                 DeviceHandle->InsertComputeBarrier(Cmd);
+
+                if (RunSdfCollider)
+                {
+                    vkCmdBindPipeline(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, DeviceHandle->SdfColliderExecutable);
+                    vkCmdBindDescriptorSets(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, DeviceHandle->DomainLayout, 0u, 1u, &DeviceHandle->DomainDescriptorSlot, 0u, nullptr);
+                    vkCmdDispatch(Cmd, ActiveGroups, 1u, 1u);
+                    DeviceHandle->InsertComputeBarrier(Cmd);
+                }
 
                 if (Request.StrandRelaxIterations > 0u)
                 {
@@ -1132,6 +1530,20 @@ bool ParticleVulkanExecutor::DispatchStep(
         OutDiagnostic = "Vulkan particle release/advect compute dispatch failed.";
         return false;
     }
+
+    if (Request.DomainPass == SpecializedDomainPass::PyroVolley)
+    {
+        uint32_t PostPyroCount = InitialActive;
+        std::memcpy(&PostPyroCount, DeviceHandle->PyroAllocCounterBuf.Mapped, sizeof(uint32_t));
+        DeviceHandle->LastPyroSlots = std::min(PostPyroCount, DeviceHandle->SlotCapacity);
+        if (DeviceHandle->LastPyroSlots > StepUniform.ActiveCount)
+        {
+            StepUniform.ActiveCount = DeviceHandle->LastPyroSlots;
+            std::memcpy(DeviceHandle->UniformBuffer.Mapped, &StepUniform, sizeof(ParticleGpuUniformBlock));
+        }
+    }
+
+    const uint32_t FinalActiveGroups = std::max(1u, (StepUniform.ActiveCount + WorkgroupWidth - 1u) / WorkgroupWidth);
 
     // Phase C: Optional Strand Velocity Derivation + 32-Byte Reduction Readback
     if (Request.StrandRelaxIterations > 0u && StepUniform.ActiveCount > 0u)
@@ -1159,12 +1571,12 @@ bool ParticleVulkanExecutor::DispatchStep(
             {
                 vkCmdBindPipeline(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, DeviceHandle->ReductionAccumUnit.Executable);
                 vkCmdBindDescriptorSets(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, DeviceHandle->ReductionAccumUnit.Layout, 0u, 1u, &DeviceHandle->ReductionAccumUnit.DescriptorSlot, 0u, nullptr);
-                vkCmdDispatch(Cmd, ActiveGroups, 1u, 1u);
+                vkCmdDispatch(Cmd, FinalActiveGroups, 1u, 1u);
                 DeviceHandle->InsertComputeBarrier(Cmd);
 
                 vkCmdBindPipeline(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, DeviceHandle->ReductionBoundsUnit.Executable);
                 vkCmdBindDescriptorSets(Cmd, VK_PIPELINE_BIND_POINT_COMPUTE, DeviceHandle->ReductionBoundsUnit.Layout, 0u, 1u, &DeviceHandle->ReductionBoundsUnit.DescriptorSlot, 0u, nullptr);
-                vkCmdDispatch(Cmd, ActiveGroups, 1u, 1u);
+                vkCmdDispatch(Cmd, FinalActiveGroups, 1u, 1u);
                 DeviceHandle->InsertComputeBarrier(Cmd);
             }
 

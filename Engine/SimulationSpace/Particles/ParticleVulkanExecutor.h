@@ -9,6 +9,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
+#include "Engine/DistanceFieldSpace/SignedDistanceVolume.h"
 #include "Engine/SimulationSpace/ForceFields/ForceFieldDescriptors.h"
 #include "Engine/SimulationSpace/Particles/ParticleChannelBank.h"
 #include "Engine/SimulationSpace/Particles/ParticleChannelLayouts.h"
@@ -23,6 +24,41 @@
 
 namespace Frontier::SimulationSpace::Particles
 {
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                             SPECIALIZED DOMAIN PASS SELECTOR
+//------------------------------------------------------------------------------------------------------------------------
+
+enum class SpecializedDomainPass : uint8_t
+{
+    None            = 0u,
+    Ferrofluid      = 1u,
+    PyroVolley      = 2u,
+    BoidsFlock      = 3u,
+    Fracture        = 4u,
+    LatticeEffector = 5u,
+    ShieldRipple    = 6u,
+    SpaceRefraction = 7u,
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                         SPECIALIZED DOMAIN UNIFORM BLOCK (128 B)
+//------------------------------------------------------------------------------------------------------------------------
+
+// Byte-exact mirror of GpuDomainUniforms in Engine/Shaders/Particles/ParticleChannelLayouts.slang
+struct alignas(16) ParticleDomainUniformBlock
+{
+    std::array<float, 4u>    OriginScalarA    { 0.0f, 0.0f, 0.0f, 1.0f };
+    std::array<float, 4u>    AuxVectorScalarB { 0.0f, 0.0f, 1.0f, 4.0f };
+    std::array<float, 4u>    ScalarPackC      { 1.0f, 1.0f, 1.0f, 1.0f };
+    std::array<float, 4u>    ScalarPackD      { 1.0f, 1.0f, 1.0f, 0.15f };
+    std::array<float, 4u>    TimingCounts     { 1.0f / 60.0f, 0.0f, 0.0f, 0.45f };
+    std::array<uint32_t, 4u> DomainControl    { 0u, 0u, 0u, 0u };
+    std::array<float, 4u>    SdfBoundsMinVox  { 0.0f, 0.0f, 0.0f, 0.1f };
+    std::array<uint32_t, 4u> SdfBrickDims     { 0u, 0u, 0u, 0x3F4CCCCDu };
+};
+
+static_assert(sizeof(ParticleDomainUniformBlock) == 128u, "ParticleDomainUniformBlock must remain exactly 128 bytes.");
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                               GPU UNIFORM LAYOUT (288 B)
@@ -73,6 +109,9 @@ struct ParticleGpuStepRequest
     std::span<const ForceFields::ForceSourceShaderEntry>          PackedForceSources    {};
     std::span<const ForceFields::SpatialVector3>                  PackedForceWaypoints  {};
     uint32_t                                                      StrandRelaxIterations = 0u; // [iter] - 0 disables strand pass
+    SpecializedDomainPass                                         DomainPass            = SpecializedDomainPass::None;
+    ParticleDomainUniformBlock                                    DomainUniforms        {};
+    bool                                                          ApplySdfCollider      = false;
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -107,16 +146,24 @@ public:
     [[nodiscard]] void*       QueryKinematicsBufferHandle() const noexcept;
     [[nodiscard]] void*       QueryLifespanBufferHandle() const noexcept;
     [[nodiscard]] void*       QueryAppearanceBufferHandle() const noexcept;
+    [[nodiscard]] void*       QueryOrientationBufferHandle() const noexcept;
     [[nodiscard]] void*       QueryStrandLinkBufferHandle() const noexcept;
     [[nodiscard]] uint64_t    QueryKinematicsByteSize() const noexcept;
     [[nodiscard]] uint64_t    QueryLifespanByteSize() const noexcept;
     [[nodiscard]] uint64_t    QueryAppearanceByteSize() const noexcept;
+    [[nodiscard]] uint64_t    QueryOrientationByteSize() const noexcept;
     [[nodiscard]] uint64_t    QueryStrandLinkByteSize() const noexcept;
+    [[nodiscard]] uint32_t    QueryLastPyroAllocatedSlots() const noexcept;
+    [[nodiscard]] bool        QueryDomainShadersLoaded() const noexcept;
 
     [[nodiscard]] bool EnsureChannelCapacity(
         uint32_t     SlotCapacity,
         bool         IncludeStrandChannels,
         std::string& OutDiagnostic) noexcept;
+
+    [[nodiscard]] bool UploadSignedDistanceVolume(
+        const DistanceFieldSpace::SignedDistanceVolume& Volume,
+        std::string&                                    OutDiagnostic) noexcept;
 
     [[nodiscard]] bool UploadChannelBank(
         const ParticleChannelBank& SourceBank,

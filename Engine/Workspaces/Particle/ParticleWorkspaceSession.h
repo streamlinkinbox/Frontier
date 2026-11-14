@@ -71,6 +71,15 @@ public:
     void AdvanceSimulationClock(double DeltaSeconds);
     void AdvanceForceFieldsClock(double DeltaSeconds);
 
+    // Optional live Vulkan 1.3 GPU compute acceleration attached automatically to compiled simulations
+    [[nodiscard]] bool InitializeVulkanCompute(
+        const std::filesystem::path& ShaderBinaryDir,
+        const std::filesystem::path& SwiftShaderIcdDir,
+        std::string&                 OutDiagnostic);
+    [[nodiscard]] bool QueryVulkanComputeActive() const noexcept;
+    [[nodiscard]] SimulationSpace::Particles::ParticleVulkanExecutor*       AccessVulkanExecutor() noexcept;
+    [[nodiscard]] const SimulationSpace::Particles::ParticleVulkanExecutor* QueryVulkanExecutor() const noexcept;
+
     [[nodiscard]] const SimulationSpace::Particles::ParticleSimulation* QueryEffectSimulation(uint32_t EffectToken) const noexcept;
     [[nodiscard]] SimulationSpace::Particles::ParticleSimulation*       AccessEffectSimulation(uint32_t EffectToken) noexcept;
     [[nodiscard]] uint32_t                                              QueryTotalAliveParticles() const noexcept;
@@ -164,6 +173,7 @@ private:
     Configuration::WorkspaceConfiguration                               WorkspaceConfig        {};
     std::vector<ParticleEffectDescriptor>                               Effects                {};
     std::unordered_map<uint32_t, std::unique_ptr<SimulationSpace::Particles::ParticleSimulation>> LiveSimulations {};
+    std::unique_ptr<SimulationSpace::Particles::ParticleVulkanExecutor> GpuExecutor            {};
     std::vector<SimulationSpace::ForceFields::ForceSourceRecordEntry>   ForceSources           {};
     std::vector<std::string>                                            LinkedVectorFields     {};
     SimulationSpace::ForceFields::ForceFieldAccumulator                 ForceAccumulator       {};

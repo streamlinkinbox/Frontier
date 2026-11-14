@@ -349,8 +349,8 @@ function(frontier_compile_vectorfield_slang_stage SLANG_REL_PATH ENTRY_NAME STAG
             -o "${OUT_SPV}"
         DEPENDS
             "${IN_SLANG}"
-            "${CMAKE_SOURCE_DIR}/Engine/Shaders/Compute/ForceFieldEvaluationShared.slang"
-            "${CMAKE_SOURCE_DIR}/Engine/Shaders/VectorField/VectorFieldRenderingShared.slang"
+            "${CMAKE_SOURCE_DIR}/Engine/Shaders/Compute/ForceFieldEvaluationLayouts.slang"
+            "${CMAKE_SOURCE_DIR}/Engine/Shaders/VectorField/VectorFieldRenderingLayouts.slang"
         COMMENT "[Slang] Compiling ${SLANG_REL_PATH} (${STAGE_KIND}:${ENTRY_NAME}) -> ${OUT_SPV_NAME}"
         VERBATIM
     )
@@ -382,7 +382,7 @@ function(frontier_compile_particle_slang_unit SLANG_REL_PATH ENTRY_NAME SHADER_U
             -o "${OUT_SPV}"
         DEPENDS
             "${IN_SLANG}"
-            "${CMAKE_SOURCE_DIR}/Engine/Shaders/Compute/ForceFieldEvaluationShared.slang"
+            "${CMAKE_SOURCE_DIR}/Engine/Shaders/Compute/ForceFieldEvaluationLayouts.slang"
             "${CMAKE_SOURCE_DIR}/Engine/Shaders/Particles/ParticleChannelLayouts.slang"
         COMMENT "[Slang] Compiling ${SLANG_REL_PATH} (${SHADER_UNIT}:${ENTRY_NAME}) -> ${OUT_SPV_NAME}"
         VERBATIM
@@ -404,6 +404,15 @@ frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleGridBackd
 frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleGridBackdropRasterization.slang" "ParticleBackdropFragment"           "fragment" "ParticleBackdropRasterization.frag.spv")
 frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleGridBackdropRasterization.slang" "ParticleFloorGridVertex"            "vertex"   "ParticleFloorGridRasterization.vert.spv")
 frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleGridBackdropRasterization.slang" "ParticleFloorGridFragment"          "fragment" "ParticleFloorGridRasterization.frag.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleFerrofluidCompute.slang"         "EvaluateFerrofluidMain"             "compute"  "ParticleFerrofluidCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticlePyroVolleyCompute.slang"         "EvaluatePyroVolleyMain"             "compute"  "ParticlePyroVolleyCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleBoidsFlockCompute.slang"         "EvaluateBoidsFlockMain"             "compute"  "ParticleBoidsFlockCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleFractureCompute.slang"           "EvaluateFractureMain"               "compute"  "ParticleFractureCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleLatticeEffectorCompute.slang"    "EvaluateLatticeEffectorMain"        "compute"  "ParticleLatticeEffectorCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleShieldRefractionCompute.slang"   "EvaluateShieldRefractionMain"       "compute"  "ParticleShieldRefractionCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleSdfColliderCompute.slang"        "CollideSignedDistanceMain"          "compute"  "ParticleSdfColliderCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleOrientedSolidRasterization.slang" "VertexMain"                        "vertex"   "ParticleOrientedSolidRasterization.vert.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleOrientedSolidRasterization.slang" "FragmentMain"                      "fragment" "ParticleOrientedSolidRasterization.frag.spv")
 
 function(frontier_compile_vector_slang_shader SLANG_REL_PATH ENTRY_NAME STAGE_KIND OUT_SPV_NAME)
     set(IN_SLANG "${FRONTIER_SHADER_SRC_DIR}/Vector/${SLANG_REL_PATH}")
@@ -425,7 +434,7 @@ function(frontier_compile_vector_slang_shader SLANG_REL_PATH ENTRY_NAME STAGE_KI
             -o "${OUT_SPV}"
         DEPENDS
             "${IN_SLANG}"
-            "${FRONTIER_SHADER_SRC_DIR}/Vector/VectorSharedLayouts.slang"
+            "${FRONTIER_SHADER_SRC_DIR}/Vector/VectorLayerLayouts.slang"
         COMMENT "[Slang] Compiling Vector/${SLANG_REL_PATH} (${STAGE_KIND}:${ENTRY_NAME}) -> ${OUT_SPV_NAME}"
         VERBATIM
     )
@@ -508,7 +517,7 @@ if(FRONTIER_PROFILE STREQUAL "Editor")
         InfluenceEnvelopeRasterization
         VectorArrowRasterization
         StreamlineRasterization
-        ForcePathAndBeaconRasterization)
+        ForcePathBeaconRasterization)
         frontier_compile_vectorfield_slang_stage(
             "Engine/Shaders/VectorField/${VF_SHADER_STEM}.slang"
             "VertexMain"
@@ -840,6 +849,7 @@ if(BUILD_TESTING)
     frontier_register_exhibit(ParticleWorkspaceUIValidation     Exhibits/ParticleWorkspaceUIValidation.cpp)
     frontier_register_exhibit(ParticleSimulationValidation      Exhibits/ParticleSimulationValidation.cpp)
     frontier_register_exhibit(ParticleVulkanGpuValidation       Exhibits/ParticleVulkanGpuValidation.cpp)
+    frontier_register_exhibit(ParticleAll93GpuVerification      Exhibits/ParticleAll93GpuVerification.cpp)
     frontier_register_exhibit(ProjectBrowserValidation          Exhibits/ProjectBrowserValidation.cpp)
     frontier_register_exhibit(VectorGraphicsGPUValidation       Exhibits/VectorGraphicsGPUValidation.cpp)
     frontier_register_exhibit(BakingGPUValidation               Exhibits/BakingGPUValidation.cpp)
@@ -866,6 +876,10 @@ if(BUILD_TESTING)
             add_test(
                 NAME FrontierBakingExecutableSmoke
                 COMMAND FrontierEditor --workspace=baking --frames=3 --open-browser "--capture-png=${CMAKE_SOURCE_DIR}/Exhibits/Images/Texturing/FrontierBaking_DesktopExecutable.png"
+            )
+            add_test(
+                NAME FrontierParticlesExecutableSmoke
+                COMMAND FrontierEditor --workspace=particles --frames=3 --open-browser "--capture-png=${CMAKE_SOURCE_DIR}/Exhibits/Images/Particles/FrontierParticles_DesktopExecutable.png"
             )
         endif()
     endif()

@@ -4,7 +4,7 @@
 // GPU Compute expansion of all 8 non-destructive layer modifiers into VectorInstanceEntry[] + atomic summary KPI metrics.
 // Uses OutInstances[0..255] as scratch ping-pong (layer slots start at 1) to keep shader stack footprint near zero.
 
-#include "VectorSharedLayouts.slang"
+#include "VectorLayerLayouts.slang"
 
 [[vk::binding(0, 0)]] ConstantBuffer<VectorModifierDispatchParams> DispatchParams;
 [[vk::binding(1, 0)]] StructuredBuffer<VectorModifierEntry>          Modifiers;

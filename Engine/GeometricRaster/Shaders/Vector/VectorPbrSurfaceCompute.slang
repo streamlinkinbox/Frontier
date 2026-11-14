@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // Evaluates VectorSVG, Seamless2x2, StackedPbrTile (OpenPBR direct+IBL+height normals), or any of 22 diagnostic PBR channels into SurfacePreviewImage.
 
-#include "VectorSharedLayouts.slang"
+#include "VectorLayerLayouts.slang"
 
 struct VectorSurfaceEvalParams
 {

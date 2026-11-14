@@ -1,7 +1,7 @@
 /*============================================================================================================================================
                                                       PARTICLECHANNELLAYOUTS.SLANG
 ============================================================================================================================================*/
-// 🧩 16B-aligned GPU mirror of ParticleChannelLayouts.h + direct ForceFieldEvaluationShared.slang reuse (+Z Up Right-Hand world space)
+// 🧩 16B-aligned GPU mirror of ParticleChannelLayouts.h + direct ForceFieldEvaluationLayouts.slang reuse (+Z Up Right-Hand world space)
 
 #pragma once
 
@@ -9,7 +9,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/Compute/ForceFieldEvaluationShared.slang"
+#include "Engine/Shaders/Compute/ForceFieldEvaluationLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       CONSTANTS
@@ -45,6 +45,7 @@ static const uint ParticleSilhouetteSoftDisc    = 0u;
 static const uint ParticleSilhouetteSparkStreak = 1u;
 static const uint ParticleSilhouetteGlowOrb     = 2u;
 static const uint ParticleSilhouetteShardQuad   = 3u;
+static const uint ParticleSilhouetteShockRing   = 4u;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                NATIVE MODULAR CHANNEL MIRRORS
@@ -88,6 +89,76 @@ struct GpuStrandLinkSlot
     uint LinkPrevSlot;  // [idx] - Upstream slot index (0xFFFFFFFFu = root)
     uint LinkCrossSlot; // [idx] - Lateral cloth / web neighbor slot (0xFFFFFFFFu = none)
 };
+
+// Matches C++ OrientationChannel (exact 32 B = 2x float4)
+struct GpuOrientationSlot
+{
+    float4 QuaternionXyzw; // xyzw = Unit quaternion orientation
+    float4 AngVelInertia;  // xyz  = Angular velocity [rad/s], w = InertiaScalar [x]
+};
+
+// Matches C++ FlockSteeringChannel (exact 32 B = 2x float4)
+struct GpuFlockSteeringSlot
+{
+    float4 HeadingWingPhase; // xyz = Unit forward heading, w = WingPhaseRad [rad]
+    float4 SteerSpecies;     // xyz = Steering acceleration [m/s2], w = asfloat(SpeciesVariant)
+};
+
+// Matches C++ MagneticCuspChannel (exact 32 B = 2x float4)
+struct GpuMagneticCuspSlot
+{
+    float4 DishAnchorHeight; // xyz = Equilibrium dish anchor [m], w = CuspHeightMeters [m]
+    float4 NormalSuscept;    // xyz = Outward surface normal,      w = Susceptibility [x]
+};
+
+// Matches C++ PyroVolleyChannel (exact 32 B = 2x float4)
+struct GpuPyroVolleySlot
+{
+    uint   TierIndex;         // [idx] - 0=Ascent rocket, 1=Primary star, 2=Consumed
+    float  DetonationTimeSec; // [s]   - Scheduled burst timestamp
+    uint   SubBurstCount;     // [cnt] - Secondary stars released at detonation
+    uint   PatternCode;       // [idx] - Firework pattern code
+    float4 TargetTrailGain;   // xyz = Sky-text target offset [m], w = TrailGain [x]
+};
+
+// Matches C++ FractureStressChannel (exact 32 B = 2x float4)
+struct GpuFractureStressSlot
+{
+    float4 CellOriginCrackDepth; // xyz = Intact cell origin [m], w = CrackDepthMeters [m]
+    float  AccumulatedStress;    // [0-1] - Normalized fracture stress progress
+    uint   BranchId;             // [idx] - Fracture propagation branch identifier
+    uint   DetachedBit;          // [0|1] - 1 once shard detaches into ballistic fall
+    float  ShardScale;           // [x]   - Fragment scale factor
+};
+
+// Matches C++ LatticeGridChannel (exact 32 B = 2x float4)
+struct GpuLatticeGridSlot
+{
+    float4 RestGridExtrusion; // xyz = Rest lattice coordinate [m], w = ExtrusionMeters [m]
+    uint   GridCoordX;        // [idx] - Integer grid column X
+    uint   GridCoordY;        // [idx] - Integer grid row Y
+    uint   GridCoordZ;        // [idx] - Integer grid layer Z
+    float  WavePhase;         // [rad] - Travelling wave / derez phase
+};
+
+// Specialized domain compute uniform block (exact 128 B = 8x float4)
+struct GpuDomainUniforms
+{
+    float4 OriginScalarA;   // xyz = Domain origin/pole/impact [m], w = Primary radius / amplitude [m]
+    float4 AuxVectorScalarB;// xyz = Pole / predator / velocity [m], w = Secondary frequency / speed
+    float4 ScalarPackC;     // x = Param0, y = Param1, z = Param2, w = Param3
+    float4 ScalarPackD;     // x = Param4, y = Param5, z = Param6, w = Param7
+    float4 TimingCounts;    // x = DeltaTimeSec, y = TimeSeconds, z = ImpactTimeSec, w = Restitution
+    uint4  DomainControl;   // x = ActiveCount, y = Capacity, z = ModeCode, w = VariantFlags
+    float4 SdfBoundsMinVox; // xyz = SDF VolumeBoundsMin [m], w = VoxelSpacingMeters [m]
+    uint4  SdfBrickDims;    // x = BrickCountX, y = BrickCountY, z = BrickCountZ, w = NarrowBandBits
+};
+
+static const uint SolidProfileCube       = 0u;
+static const uint SolidProfileShard      = 1u;
+static const uint SolidProfileSpike      = 2u;
+static const uint SolidProfileWingedBoid = 3u;
+static const uint SolidProfileCoinDisc   = 4u;
 
 // Matches C++ ParticleReadbackSummary (exact 32 B = 8x 32-bit words)
 struct GpuReadbackSummary
@@ -253,4 +324,76 @@ float4 ParticleProjectWorldClip(GpuParticleViewportUniforms U, float3 WorldPos)
 uint ParticleFloatToOrderedUint(float NonNegativeFloat)
 {
     return asuint(max(0.0, NonNegativeFloat));
+}
+
+float4 ParticleNormalizeQuat(float4 Quat)
+{
+    float LenSq = dot(Quat, Quat);
+    if (LenSq <= 1.0e-10)
+    {
+        return float4(0.0, 0.0, 0.0, 1.0);
+    }
+    return Quat * rsqrt(LenSq);
+}
+
+float3 ParticleRotateByQuat(float4 Quat, float3 Vec)
+{
+    float3 Qv = Quat.xyz;
+    float3 T  = 2.0 * cross(Qv, Vec);
+    return Vec + Quat.w * T + cross(Qv, T);
+}
+
+float4 ParticleIntegrateQuat(float4 Quat, float3 AngVel, float DeltaTimeSec)
+{
+    float4 Omega = float4(AngVel, 0.0);
+    float4 Deriv = float4(
+        0.5 * ( Omega.x * Quat.w + Omega.y * Quat.z - Omega.z * Quat.y),
+        0.5 * (-Omega.x * Quat.z + Omega.y * Quat.w + Omega.z * Quat.x),
+        0.5 * ( Omega.x * Quat.y - Omega.y * Quat.x + Omega.z * Quat.w),
+        0.5 * (-Omega.x * Quat.x - Omega.y * Quat.y - Omega.z * Quat.z));
+    return ParticleNormalizeQuat(Quat + Deriv * DeltaTimeSec);
+}
+
+float4 ParticleQuatFromBasis(float3 RightAxis, float3 ForwardAxis, float3 UpAxis)
+{
+    // Converts orthonormal columns (Right=+X, Forward=+Y, Up=+Z) into a unit quaternion
+    float Trace = RightAxis.x + ForwardAxis.y + UpAxis.z;
+    float4 Quat = float4(0.0, 0.0, 0.0, 1.0);
+    if (Trace > 0.0)
+    {
+        float S = sqrt(Trace + 1.0) * 2.0;
+        Quat = float4(
+            (ForwardAxis.z - UpAxis.y) / S,
+            (UpAxis.x - RightAxis.z) / S,
+            (RightAxis.y - ForwardAxis.x) / S,
+            0.25 * S);
+    }
+    else if (RightAxis.x > ForwardAxis.y && RightAxis.x > UpAxis.z)
+    {
+        float S = sqrt(max(1.0e-6, 1.0 + RightAxis.x - ForwardAxis.y - UpAxis.z)) * 2.0;
+        Quat = float4(
+            0.25 * S,
+            (RightAxis.y + ForwardAxis.x) / S,
+            (UpAxis.x + RightAxis.z) / S,
+            (ForwardAxis.z - UpAxis.y) / S);
+    }
+    else if (ForwardAxis.y > UpAxis.z)
+    {
+        float S = sqrt(max(1.0e-6, 1.0 + ForwardAxis.y - RightAxis.x - UpAxis.z)) * 2.0;
+        Quat = float4(
+            (RightAxis.y + ForwardAxis.x) / S,
+            0.25 * S,
+            (ForwardAxis.z + UpAxis.y) / S,
+            (UpAxis.x - RightAxis.z) / S);
+    }
+    else
+    {
+        float S = sqrt(max(1.0e-6, 1.0 + UpAxis.z - RightAxis.x - ForwardAxis.y)) * 2.0;
+        Quat = float4(
+            (UpAxis.x + RightAxis.z) / S,
+            (ForwardAxis.z + UpAxis.y) / S,
+            0.25 * S,
+            (RightAxis.y - ForwardAxis.x) / S);
+    }
+    return ParticleNormalizeQuat(Quat);
 }

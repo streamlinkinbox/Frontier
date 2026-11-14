@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // Stencil-cover & stroke fragment rasterizer writing RGBA16F LayerCoverColor + RGBA32UI LayerPickTarget (Solid/Linear/Radial/12-Pin PointField).
 
-#include "VectorSharedLayouts.slang"
+#include "VectorLayerLayouts.slang"
 
 [[vk::push_constant]] VectorRasterPushConstants PushArgs;
 [[vk::binding(0, 0)]] ConstantBuffer<VectorLayerUniforms> LayerUniforms;

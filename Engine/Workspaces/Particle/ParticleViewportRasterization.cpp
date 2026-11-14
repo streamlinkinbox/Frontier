@@ -231,9 +231,18 @@ struct ParticleViewportRasterization::RasterImplementation
     VkDescriptorSet       BillboardDescriptorSlot  = VK_NULL_HANDLE;
     VkDescriptorSet       RibbonDescriptorSlot     = VK_NULL_HANDLE;
 
-    VkBuffer         UniformBuffer    = VK_NULL_HANDLE;
-    VkDeviceMemory   UniformMemory    = VK_NULL_HANDLE;
-    void*            UniformMapped    = nullptr;
+    VkDescriptorSetLayout SolidDescLayout          = VK_NULL_HANDLE;
+    VkPipelineLayout      SolidLayout              = VK_NULL_HANDLE;
+    VkPipeline            SolidExecutable          = VK_NULL_HANDLE;
+    VkDescriptorSet       SolidDescriptorSlot      = VK_NULL_HANDLE;
+
+    VkBuffer         UniformBuffer       = VK_NULL_HANDLE;
+    VkDeviceMemory   UniformMemory       = VK_NULL_HANDLE;
+    void*            UniformMapped       = nullptr;
+
+    VkBuffer         SolidUniformBuffer  = VK_NULL_HANDLE;
+    VkDeviceMemory   SolidUniformMemory  = VK_NULL_HANDLE;
+    void*            SolidUniformMapped  = nullptr;
 
     VkImage          ColorImage       = VK_NULL_HANDLE;
     VkDeviceMemory   ColorMemory      = VK_NULL_HANDLE;
@@ -627,6 +636,31 @@ struct ParticleViewportRasterization::RasterImplementation
             RibWrites[Idx].pBufferInfo     = RibBinds[Idx].second;
         }
         vkUpdateDescriptorSets(Device, 4u, RibWrites.data(), 0u, nullptr);
+
+        // Slot 3: Oriented 3D Solid (Solid UBO + Kinematics + Lifespan + Appearance + Orientation!)
+        if (SolidDescriptorSlot != VK_NULL_HANDLE && Executor->QueryOrientationBufferHandle() != nullptr)
+        {
+            VkDescriptorBufferInfo SolidUboDesc{ SolidUniformBuffer, 0u, sizeof(ViewportGpuUniformBlock) };
+            VkDescriptorBufferInfo OrientationDesc{ static_cast<VkBuffer>(Executor->QueryOrientationBufferHandle()), 0u, Executor->QueryOrientationByteSize() };
+            std::array<VkWriteDescriptorSet, 5u> SolidWrites{};
+            const std::array<std::pair<VkDescriptorType, const VkDescriptorBufferInfo*>, 5u> SolidBinds = {{
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &SolidUboDesc },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &KinematicsDesc },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &LifespanDesc },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &AppearanceDesc },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &OrientationDesc },
+            }};
+            for (uint32_t Idx = 0u; Idx < 5u; ++Idx)
+            {
+                SolidWrites[Idx].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                SolidWrites[Idx].dstSet          = SolidDescriptorSlot;
+                SolidWrites[Idx].dstBinding      = Idx;
+                SolidWrites[Idx].descriptorCount = 1u;
+                SolidWrites[Idx].descriptorType  = SolidBinds[Idx].first;
+                SolidWrites[Idx].pBufferInfo     = SolidBinds[Idx].second;
+            }
+            vkUpdateDescriptorSets(Device, 5u, SolidWrites.data(), 0u, nullptr);
+        }
     }
 
     void Cleanup() noexcept
@@ -640,17 +674,27 @@ struct ParticleViewportRasterization::RasterImplementation
                 vkUnmapMemory(Device, UniformMemory);
                 UniformMapped = nullptr;
             }
+            if (SolidUniformMapped != nullptr && SolidUniformMemory != VK_NULL_HANDLE)
+            {
+                vkUnmapMemory(Device, SolidUniformMemory);
+                SolidUniformMapped = nullptr;
+            }
             if (UniformBuffer != VK_NULL_HANDLE)          { vkDestroyBuffer(Device, UniformBuffer, nullptr); }
             if (UniformMemory != VK_NULL_HANDLE)          { vkFreeMemory(Device, UniformMemory, nullptr); }
+            if (SolidUniformBuffer != VK_NULL_HANDLE)     { vkDestroyBuffer(Device, SolidUniformBuffer, nullptr); }
+            if (SolidUniformMemory != VK_NULL_HANDLE)     { vkFreeMemory(Device, SolidUniformMemory, nullptr); }
             if (BackdropExecutable != VK_NULL_HANDLE)     { vkDestroyPipeline(Device, BackdropExecutable, nullptr); }
             if (FloorGridExecutable != VK_NULL_HANDLE)    { vkDestroyPipeline(Device, FloorGridExecutable, nullptr); }
             if (BillboardAlphaExec != VK_NULL_HANDLE)     { vkDestroyPipeline(Device, BillboardAlphaExec, nullptr); }
             if (BillboardAdditiveExec != VK_NULL_HANDLE)  { vkDestroyPipeline(Device, BillboardAdditiveExec, nullptr); }
             if (RibbonAlphaExec != VK_NULL_HANDLE)        { vkDestroyPipeline(Device, RibbonAlphaExec, nullptr); }
+            if (SolidExecutable != VK_NULL_HANDLE)        { vkDestroyPipeline(Device, SolidExecutable, nullptr); }
             if (GridLayout != VK_NULL_HANDLE)             { vkDestroyPipelineLayout(Device, GridLayout, nullptr); }
             if (GridDescLayout != VK_NULL_HANDLE)         { vkDestroyDescriptorSetLayout(Device, GridDescLayout, nullptr); }
             if (ParticleLayout != VK_NULL_HANDLE)         { vkDestroyPipelineLayout(Device, ParticleLayout, nullptr); }
             if (ParticleDescLayout != VK_NULL_HANDLE)     { vkDestroyDescriptorSetLayout(Device, ParticleDescLayout, nullptr); }
+            if (SolidLayout != VK_NULL_HANDLE)            { vkDestroyPipelineLayout(Device, SolidLayout, nullptr); }
+            if (SolidDescLayout != VK_NULL_HANDLE)        { vkDestroyDescriptorSetLayout(Device, SolidDescLayout, nullptr); }
             if (CompletionSignal != VK_NULL_HANDLE)       { vkDestroyFence(Device, CompletionSignal, nullptr); }
             if (CommandBank != VK_NULL_HANDLE)            { vkDestroyCommandPool(Device, CommandBank, nullptr); }
             if (DescriptorBank != VK_NULL_HANDLE)         { vkDestroyDescriptorPool(Device, DescriptorBank, nullptr); }
@@ -750,12 +794,12 @@ bool ParticleViewportRasterization::Initialize(
 
     // Descriptor bank, command bank, completion fence, UBO
     const std::array<VkDescriptorPoolSize, 2u> BankCounts = {{
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4u },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 12u },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6u },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 20u },
     }};
     VkDescriptorPoolCreateInfo DescBankSpec{};
     DescBankSpec.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    DescBankSpec.maxSets       = 4u;
+    DescBankSpec.maxSets       = 6u;
     DescBankSpec.poolSizeCount = static_cast<uint32_t>(BankCounts.size());
     DescBankSpec.pPoolSizes    = BankCounts.data();
     if (vkCreateDescriptorPool(Handle->Device, &DescBankSpec, nullptr, &Handle->DescriptorBank) != VK_SUCCESS)
@@ -802,9 +846,15 @@ bool ParticleViewportRasterization::Initialize(
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             Handle->UniformBuffer,
             Handle->UniformMemory,
-            Handle->UniformMapped))
+            Handle->UniformMapped) ||
+        !Handle->CreateHostBuffer(
+            sizeof(ViewportGpuUniformBlock),
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            Handle->SolidUniformBuffer,
+            Handle->SolidUniformMemory,
+            Handle->SolidUniformMapped))
     {
-        OutDiagnostic = "Failed to allocate viewport uniform buffer.";
+        OutDiagnostic = "Failed to allocate viewport uniform buffers.";
         Finalize();
         return false;
     }
@@ -847,12 +897,34 @@ bool ParticleViewportRasterization::Initialize(
         return false;
     }
 
+    // Layout C: Oriented 3D Solids (1 UBO + 4 SSBOs: Kinematics, Lifespan, Appearance, Orientation)
+    std::array<VkDescriptorSetLayoutBinding, 5u> SolidBinds{};
+    SolidBinds[0] = { 0u, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr };
+    SolidBinds[1] = { 1u, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
+    SolidBinds[2] = { 2u, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
+    SolidBinds[3] = { 3u, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
+    SolidBinds[4] = { 4u, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
+    VkDescriptorSetLayoutCreateInfo SolidDescSpec{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0u, 5u, SolidBinds.data() };
+    if (vkCreateDescriptorSetLayout(Handle->Device, &SolidDescSpec, nullptr, &Handle->SolidDescLayout) != VK_SUCCESS)
+    {
+        OutDiagnostic = "Failed to construct oriented solid descriptor layout.";
+        Finalize();
+        return false;
+    }
+    VkPipelineLayoutCreateInfo SolidExecSpec{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, 0u, 1u, &Handle->SolidDescLayout, 0u, nullptr };
+    if (vkCreatePipelineLayout(Handle->Device, &SolidExecSpec, nullptr, &Handle->SolidLayout) != VK_SUCCESS)
+    {
+        OutDiagnostic = "Failed to construct oriented solid raster layout.";
+        Finalize();
+        return false;
+    }
+
     // Allocate descriptor slots
-    const std::array<VkDescriptorSetLayout, 3u> Layouts = {
-        Handle->GridDescLayout, Handle->ParticleDescLayout, Handle->ParticleDescLayout
+    const std::array<VkDescriptorSetLayout, 4u> Layouts = {
+        Handle->GridDescLayout, Handle->ParticleDescLayout, Handle->ParticleDescLayout, Handle->SolidDescLayout
     };
-    std::array<VkDescriptorSet, 3u> Slots{};
-    VkDescriptorSetAllocateInfo AllocSets{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, Handle->DescriptorBank, 3u, Layouts.data() };
+    std::array<VkDescriptorSet, 4u> Slots{};
+    VkDescriptorSetAllocateInfo AllocSets{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, Handle->DescriptorBank, 4u, Layouts.data() };
     if (vkAllocateDescriptorSets(Handle->Device, &AllocSets, Slots.data()) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to allocate rasterization descriptor slots.";
@@ -862,8 +934,9 @@ bool ParticleViewportRasterization::Initialize(
     Handle->GridDescriptorSlot      = Slots[0];
     Handle->BillboardDescriptorSlot = Slots[1];
     Handle->RibbonDescriptorSlot    = Slots[2];
+    Handle->SolidDescriptorSlot     = Slots[3];
 
-    // Construct all 5 graphics executables from compiled Slang SPIR-V 1.3 modules
+    // Construct graphics executables from compiled Slang SPIR-V 1.3 modules
     if (!Handle->CreateGraphicsExecutable(
             ShaderBinaryDir / "ParticleBackdropRasterization.vert.spv", "ParticleBackdropVertex",
             ShaderBinaryDir / "ParticleBackdropRasterization.frag.spv", "ParticleBackdropFragment",
@@ -887,6 +960,20 @@ bool ParticleViewportRasterization::Initialize(
     {
         Finalize();
         return false;
+    }
+
+    const std::filesystem::path SolidVertSpv = ShaderBinaryDir / "ParticleOrientedSolidRasterization.vert.spv";
+    const std::filesystem::path SolidFragSpv = ShaderBinaryDir / "ParticleOrientedSolidRasterization.frag.spv";
+    if (std::filesystem::exists(SolidVertSpv) && std::filesystem::exists(SolidFragSpv))
+    {
+        if (!Handle->CreateGraphicsExecutable(
+                SolidVertSpv, "VertexMain",
+                SolidFragSpv, "FragmentMain",
+                Handle->SolidLayout, true, true, true, false, Handle->SolidExecutable, OutDiagnostic))
+        {
+            Finalize();
+            return false;
+        }
     }
 
     Handle->Ready = true;
@@ -928,6 +1015,10 @@ bool ParticleViewportRasterization::RenderOffscreen(
     AssembleReverseZCameraUniforms(Request.Camera, Aspect, Request, Ubo);
     std::memcpy(Handle->UniformMapped, &Ubo, sizeof(ViewportGpuUniformBlock));
 
+    ViewportGpuUniformBlock SolidUbo = Ubo;
+    SolidUbo.ViewportControl[1]      = static_cast<uint32_t>(Request.SolidProfile);
+    std::memcpy(Handle->SolidUniformMapped, &SolidUbo, sizeof(ViewportGpuUniformBlock));
+
     // Bind live GPU SSBOs straight from ParticleVulkanExecutor (zero CPU copy!)
     Handle->UpdateDescriptorSlots();
 
@@ -956,7 +1047,9 @@ bool ParticleViewportRasterization::RenderOffscreen(
         0u, nullptr);
 
     std::array<VkClearValue, 2u> ClearVals{};
-    ClearVals[0].color        = { { 0.015f, 0.017f, 0.022f, 1.0f } };
+    ClearVals[0].color = Request.TransparentBackdrop
+        ? VkClearColorValue{ { 0.0f, 0.0f, 0.0f, 0.0f } }
+        : VkClearColorValue{ { 0.015f, 0.017f, 0.022f, 1.0f } };
     ClearVals[1].depthStencil = { 0.0f, 0u }; // Reverse-Z far clear
 
     VkRenderPassBeginInfo RpBegin{};
@@ -975,10 +1068,13 @@ bool ParticleViewportRasterization::RenderOffscreen(
     vkCmdSetViewport(Handle->CommandRecorder, 0u, 1u, &Vp);
     vkCmdSetScissor(Handle->CommandRecorder, 0u, 1u, &Sc);
 
-    // 1. Studio dark OLED radial backdrop
-    vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->BackdropExecutable);
-    vkCmdBindDescriptorSets(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->GridLayout, 0u, 1u, &Handle->GridDescriptorSlot, 0u, nullptr);
-    vkCmdDraw(Handle->CommandRecorder, 3u, 1u, 0u, 0u);
+    // 1. Studio dark OLED radial backdrop (skipped in transparent world-overlay mode)
+    if (!Request.TransparentBackdrop)
+    {
+        vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->BackdropExecutable);
+        vkCmdBindDescriptorSets(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->GridLayout, 0u, 1u, &Handle->GridDescriptorSlot, 0u, nullptr);
+        vkCmdDraw(Handle->CommandRecorder, 3u, 1u, 0u, 0u);
+    }
 
     // 2. GPU 3D perspective floor grid & +X/+Y axes
     if (Request.ShowFloorGrid)
@@ -988,7 +1084,15 @@ bool ParticleViewportRasterization::RenderOffscreen(
         vkCmdDraw(Handle->CommandRecorder, 6u, 1u, 0u, 0u);
     }
 
-    // 3. GPU live strand / cloth ribbons directly from StrandConnectivity SSBO
+    // 3. GPU instanced 3D quaternion-oriented solids (Cubes, Shards, Ferrofluid Spikes, Winged Boids, Coins)
+    if (Request.RenderOrientedSolids && Request.ActiveCount > 0u && Handle->SolidExecutable != VK_NULL_HANDLE)
+    {
+        vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->SolidExecutable);
+        vkCmdBindDescriptorSets(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->SolidLayout, 0u, 1u, &Handle->SolidDescriptorSlot, 0u, nullptr);
+        vkCmdDraw(Handle->CommandRecorder, 36u, Request.ActiveCount, 0u, 0u);
+    }
+
+    // 4. GPU live strand / cloth ribbons directly from StrandConnectivity SSBO
     if (Request.RenderStrands && Request.ActiveCount > 0u)
     {
         vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->RibbonAlphaExec);
@@ -996,7 +1100,7 @@ bool ParticleViewportRasterization::RenderOffscreen(
         vkCmdDraw(Handle->CommandRecorder, 12u, Request.ActiveCount, 0u, 0u);
     }
 
-    // 4. GPU instanced billboards / velocity sparks / glow orbs directly from Kinematics & Appearance SSBOs
+    // 5. GPU instanced billboards / velocity sparks / glow orbs directly from Kinematics & Appearance SSBOs
     if (Request.RenderBillboards && Request.ActiveCount > 0u)
     {
         const VkPipeline BillExec = (Request.BlendMode == ParticleGpuBlendMode::Additive)

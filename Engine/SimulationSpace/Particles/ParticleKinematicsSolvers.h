@@ -124,6 +124,7 @@ public:
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     GravityBuoyancyParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const GravityBuoyancyParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     GravityBuoyancyParameters Settings{};
@@ -154,6 +155,7 @@ public:
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     ForceFieldCouplingParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const ForceFieldCouplingParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     ForceFieldCouplingParameters Settings{};
@@ -181,6 +183,7 @@ public:
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     CurlTurbulenceParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const CurlTurbulenceParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     CurlTurbulenceParameters Settings{};
@@ -243,6 +246,7 @@ public:
     void EvaluateRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     AppearanceCurveParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const AppearanceCurveParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     AppearanceCurveParameters Settings{};
@@ -274,6 +278,7 @@ public:
     void EnforceRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
 
     GroundPlaneParameters& AccessParameters() noexcept { return Settings; }
+    [[nodiscard]] const GroundPlaneParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     GroundPlaneParameters Settings{};
@@ -318,6 +323,8 @@ public:
 
     void DeclareRequiredChannels(ParticleChannelBank& Bank) const override;
     void EnforceRange(ParticleChannelBank& Bank, uint32_t BeginSlot, uint32_t EndSlot, const SimulationTickInputs& Inputs) const override;
+
+    [[nodiscard]] const SignedDistanceColliderParameters& QueryParameters() const noexcept { return Settings; }
 
 private:
     SignedDistanceColliderParameters Settings{};

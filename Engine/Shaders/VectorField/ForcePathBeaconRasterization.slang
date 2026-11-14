@@ -1,5 +1,5 @@
 /*============================================================================================================================================
-                                                  FORCEPATHANDBEACONRASTERIZATION.SLANG
+                                                  FORCEPATHBEACONRASTERIZATION.SLANG
 ============================================================================================================================================*/
 // 🧩 Editor-only Lit-visible 3D motion paths (A->P->B curves/orbits), clickable Waypoint markers, Force circles & Anemometer cursor
 
@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/VectorField/VectorFieldRenderingShared.slang"
+#include "Engine/Shaders/VectorField/VectorFieldRenderingLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOURCES

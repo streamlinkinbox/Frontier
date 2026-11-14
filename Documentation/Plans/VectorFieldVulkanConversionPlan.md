@@ -265,7 +265,7 @@ Compiled **exclusively when `FRONTIER_EDITOR_ENABLED == 1`**. Executes on GPU vi
 3. **`SliceHeatmapRasterization.slang`**: Orthogonal `XY` / `XZ` / `YZ` cross-section heatmaps (`Speed`, `Accel`, `Curl`, `Divergence`, `Pressure`) + analytical isoline contours.
 4. **`VectorArrowRasterization.slang`**: Instanced 3D directional arrows colored by LUT & culled smoothly by quiet threshold.
 5. **`StreamlineRasterization.slang`**: GPU RK4 volumetric 3D advection ribbons with `FieldPalette` / `CyanSingle (#68dcff)` / `CustomSingle` / `Elevation` color modes, instant `RibbonThickness`, `EmissiveBoost`, `RibbonOpacity` uniforms, and phase pulse sparks (zero white washout).
-6. **`ForcePathAndBeaconRasterization.slang`**: Renders 3D motion paths (`A->B` lines, Catmull-Rom curves, orbits), clickable `A/P1/B` waypoint spheres, and selectable Force Circles writing directly to `PickIDs` (`R32G32B32A32_UINT`) so clicking any circle or waypoint in the viewport triggers `ViewportPickQuery` -> attaches **`Frontier::Editor::TransformGizmo`** (`GizmoRasterization.slang`).
+6. **`ForcePathBeaconRasterization.slang`**: Renders 3D motion paths (`A->B` lines, Catmull-Rom curves, orbits), clickable `A/P1/B` waypoint spheres, and selectable Force Circles writing directly to `PickIDs` (`R32G32B32A32_UINT`) so clicking any circle or waypoint in the viewport triggers `ViewportPickQuery` -> attaches **`Frontier::Editor::TransformGizmo`** (`GizmoRasterization.slang`).
 
 ---
 
@@ -294,7 +294,7 @@ Engine/
 │       ├── SliceHeatmapRasterization.slang
 │       ├── VectorArrowRasterization.slang
 │       ├── StreamlineRasterization.slang
-│       └── ForcePathAndBeaconRasterization.slang
+│       └── ForcePathBeaconRasterization.slang
 ├── Components/Panes/
 │   ├── WorkspaceAppearance.{h,cpp}             // + ConstructSlotCategory::ForceField icon glyph
 │   ├── OutlinerPanel.{h,cpp}                   // Shared Outliner mounting ForceSource entries & Construct templates

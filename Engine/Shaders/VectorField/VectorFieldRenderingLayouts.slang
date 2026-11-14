@@ -1,5 +1,5 @@
 /*============================================================================================================================================
-                                                    VECTORFIELDRENDERINGSHARED.SLANG
+                                                    VECTORFIELDRENDERINGLAYOUTS.SLANG
 ============================================================================================================================================*/
 // 🧩 Shared Editor-only uniforms, Reverse-Z +Z Up projections, and PickID constants for VectorField .slang rasterization
 
@@ -9,7 +9,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/Compute/ForceFieldEvaluationShared.slang"
+#include "Engine/Shaders/Compute/ForceFieldEvaluationLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       CONSTANTS

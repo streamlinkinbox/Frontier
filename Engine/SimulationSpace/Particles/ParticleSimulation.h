@@ -12,6 +12,7 @@
 #include "Engine/SimulationSpace/Particles/ParticleChannelBank.h"
 #include "Engine/SimulationSpace/Particles/ParticleDynamics.h"
 #include "Engine/SimulationSpace/Particles/ParticleKinematicsSolvers.h"
+#include "Engine/SimulationSpace/Particles/ParticleVulkanExecutor.h"
 
 #include <concepts>
 #include <cstdint>
@@ -53,6 +54,8 @@ public:
     void ConfigureCapacity(uint32_t MaxCapacity, ChannelStoragePolicy Policy = ChannelStoragePolicy::DenseSwapRemove);
     void AssignDeterministicSeed(uint32_t Seed) noexcept;
     void AssignExecutionTarget(ExecutionTarget Target) noexcept { RequestedTarget = Target; }
+    void AttachVulkanExecutor(ParticleVulkanExecutor* Executor, bool SyncChannelsFromGpu = true) noexcept;
+    void DetachVulkanExecutor() noexcept;
 
     void AttachSource(std::unique_ptr<ParticleSource> Source);
     void AttachMotionSolver(std::unique_ptr<ParticleMotionSolver> Solver);
@@ -94,21 +97,31 @@ public:
     [[nodiscard]] uint32_t                       QueryDeterministicSeed() const noexcept { return MasterSeed; }
     [[nodiscard]] ExecutionTarget                QueryExecutionTarget() const noexcept { return RequestedTarget; }
     [[nodiscard]] bool                           QueryGpuComputeEligible() const noexcept;
+    [[nodiscard]] bool                           QueryLastTickExecutedOnGpu() const noexcept { return LastTickExecutedOnGpu; }
+    [[nodiscard]] ParticleVulkanExecutor*        QueryAttachedVulkanExecutor() const noexcept { return AttachedExecutor; }
+    [[nodiscard]] const std::string&             QueryLastGpuDiagnostic() const noexcept { return LastGpuDiagnostic; }
 
 private:
+    bool TryExecuteTickOnVulkanGpu(const SimulationTickInputs& SafeInputs, uint32_t ReleasedSlotsThisTick);
     void ReclaimExpiredLifespans(float DeltaTimeSeconds) noexcept;
     void ComputeReadbackSummary(double TickStartMicros) noexcept;
 
-    std::string                                        Label           {};
-    ParticleChannelBank                                Channels        {};
-    std::vector<std::unique_ptr<ParticleSource>>       Sources         {};
-    std::vector<std::unique_ptr<ParticleMotionSolver>> MotionSolvers   {};
-    std::vector<std::unique_ptr<ParticleCollider>>     Colliders       {};
-    std::unique_ptr<ParticleIntegrator>                Integrator      {};
-    ParticleRandomGenerator                            RandomGenerator {};
-    uint32_t                                           MasterSeed      = 1337u;
-    ExecutionTarget                                    RequestedTarget = ExecutionTarget::AutoSelect;
-    ParticleReadbackSummary                            ReadbackSummary {};
+    std::string                                        Label                 {};
+    ParticleChannelBank                                Channels              {};
+    std::vector<std::unique_ptr<ParticleSource>>       Sources               {};
+    std::vector<std::unique_ptr<ParticleMotionSolver>> MotionSolvers         {};
+    std::vector<std::unique_ptr<ParticleCollider>>     Colliders             {};
+    std::unique_ptr<ParticleIntegrator>                Integrator            {};
+    ParticleRandomGenerator                            RandomGenerator       {};
+    uint32_t                                           MasterSeed            = 1337u;
+    ExecutionTarget                                    RequestedTarget       = ExecutionTarget::AutoSelect;
+    ParticleReadbackSummary                            ReadbackSummary       {};
+    ParticleVulkanExecutor*                            AttachedExecutor      = nullptr;
+    bool                                               SyncChannelsFromGpu   = true;
+    bool                                               GpuStateSynchronized  = false;
+    bool                                               LastTickExecutedOnGpu = false;
+    const DistanceFieldSpace::SignedDistanceVolume*    LastUploadedSdf       = nullptr;
+    std::string                                        LastGpuDiagnostic     {};
 };
 
 //------------------------------------------------------------------------------------------------------------------------

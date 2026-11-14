@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // Stencil winding/even-odd triangle fan rasterizer supporting per-instance transform, domain warp, and seamless tile wrapping.
 
-#include "VectorSharedLayouts.slang"
+#include "VectorLayerLayouts.slang"
 
 [[vk::push_constant]] VectorRasterPushConstants PushArgs;
 [[vk::binding(0, 0)]] ConstantBuffer<VectorLayerUniforms> LayerUniforms;
