@@ -192,6 +192,7 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Workspaces/Particles/ParticleWorkspaceSession.cpp
     Engine/Workspaces/Particles/ParticleOutlinerPanel.cpp
     Engine/Workspaces/Particles/ParticleInspectorPanel.cpp
+    Engine/SimulationSpace/Particles/ParticleRecipeCompiler.cpp
     Engine/GeometricRaster/Rasterization/ImGuiOverlayRasterization.cpp
     Engine/GeometricRaster/GlobalIllumination/ShowcaseGalleryScene.cpp
     Engine/Input/ImGuiInputAdapter.cpp
@@ -451,6 +452,10 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/SimulationSpace/ForceFields/ForceFieldAccumulator.cpp
     Engine/SimulationSpace/ForceFields/FieldLatticeCascade.cpp
     Engine/SimulationSpace/ForceFields/FieldLatticeVulkanExecutor.cpp
+    Engine/SimulationSpace/Particles/ParticleChannelBank.cpp
+    Engine/SimulationSpace/Particles/ParticleBuiltInLaws.cpp
+    Engine/SimulationSpace/Particles/ParticleDomainSolvers.cpp
+    Engine/SimulationSpace/Particles/ParticleSimulation.cpp
     Engine/NetworkingSpace/PacketSerializer.cpp
     Engine/NetworkingSpace/NetworkEndpointRegister.cpp
     Engine/NetworkingSpace/DifferentialWorldEncoder.cpp
@@ -597,6 +602,7 @@ if(BUILD_TESTING)
     frontier_register_exhibit(NetworkingSpaceValidation         Exhibits/NetworkingSpaceValidation.cpp)
     frontier_register_exhibit(VectorFieldValidation             Exhibits/VectorFieldValidation.cpp)
     frontier_register_exhibit(ParticleWorkspaceUIValidation     Exhibits/ParticleWorkspaceUIValidation.cpp)
+    frontier_register_exhibit(ParticleSimulationValidation      Exhibits/ParticleSimulationValidation.cpp)
 
     if(NOT ANDROID AND NOT FRONTIER_PROFILE STREQUAL "Shipping")
         add_test(
