@@ -359,6 +359,60 @@ frontier_compile_vectorfield_slang_stage(
     "FieldLatticeCompute.spv"
 )
 
+function(frontier_compile_particle_slang_shader SLANG_FILE ENTRY_NAME SHADER_UNIT OUT_SPV_NAME)
+    set(OUT_SPV "${FRONTIER_COMPILED_SHADER_DIR}/${OUT_SPV_NAME}")
+    file(GLOB PARTICLE_SLANG_DEPS
+        "${FRONTIER_MODULAR_SHADER_DIR}/Particles/*.slang"
+        "${FRONTIER_MODULAR_SHADER_DIR}/Colour/*.slang"
+        "${FRONTIER_MODULAR_SHADER_DIR}/Compute/*.slang"
+    )
+    add_custom_command(
+        OUTPUT "${OUT_SPV}"
+        COMMAND "${FRONTIER_SLANGC_BIN}"
+            "${FRONTIER_MODULAR_SHADER_DIR}/Particles/${SLANG_FILE}"
+            -I "${FRONTIER_MODULAR_SHADER_DIR}/Particles"
+            -I "${FRONTIER_MODULAR_SHADER_DIR}/Colour"
+            -I "${FRONTIER_MODULAR_SHADER_DIR}/Compute"
+            -I "${FRONTIER_MODULAR_SHADER_DIR}"
+            -target spirv
+            -profile spirv_1_3
+            -emit-spirv-directly
+            -fvk-use-entrypoint-name
+            -matrix-layout-row-major
+            -O0
+            -entry "${ENTRY_NAME}"
+            -stage "${SHADER_UNIT}"
+            -o "${OUT_SPV}"
+        DEPENDS
+            "${FRONTIER_MODULAR_SHADER_DIR}/Particles/${SLANG_FILE}"
+            ${PARTICLE_SLANG_DEPS}
+        COMMENT "[Slang] Compiling Particles/${SLANG_FILE} (${SHADER_UNIT}) -> ${OUT_SPV_NAME}"
+        VERBATIM
+    )
+    set(FRONTIER_SPV_OUTPUTS ${FRONTIER_SPV_OUTPUTS} "${OUT_SPV}" PARENT_SCOPE)
+endfunction()
+
+frontier_compile_particle_slang_shader(ParticleReleaseCompute.slang            ComputeEntry  compute  ParticleReleaseCompute.comp.spv)
+frontier_compile_particle_slang_shader(ParticleAdvectCompute.slang             ComputeEntry  compute  ParticleAdvectCompute.comp.spv)
+frontier_compile_particle_slang_shader(ParticleSpatialGridCompute.slang        ComputeEntry  compute  ParticleSpatialGridCompute.comp.spv)
+frontier_compile_particle_slang_shader(ParticleReductionCompute.slang          ComputeEntry  compute  ParticleReductionCompute.comp.spv)
+frontier_compile_particle_slang_shader(ParticleBillboardRasterization.slang    VertexEntry   vertex   ParticleBillboardRasterization.vert.spv)
+frontier_compile_particle_slang_shader(ParticleBillboardRasterization.slang    FragmentEntry fragment ParticleBillboardRasterization.frag.spv)
+frontier_compile_particle_slang_shader(ParticleRibbonRasterization.slang       VertexEntry   vertex   ParticleRibbonRasterization.vert.spv)
+frontier_compile_particle_slang_shader(ParticleRibbonRasterization.slang       FragmentEntry fragment ParticleRibbonRasterization.frag.spv)
+frontier_compile_particle_slang_shader(ParticleSolidRasterization.slang        VertexEntry   vertex   ParticleSolidRasterization.vert.spv)
+frontier_compile_particle_slang_shader(ParticleSolidRasterization.slang        FragmentEntry fragment ParticleSolidRasterization.frag.spv)
+frontier_compile_particle_slang_shader(ParticleWingedRasterization.slang       VertexEntry   vertex   ParticleWingedRasterization.vert.spv)
+frontier_compile_particle_slang_shader(ParticleWingedRasterization.slang       FragmentEntry fragment ParticleWingedRasterization.frag.spv)
+frontier_compile_particle_slang_shader(ParticleLineArcRasterization.slang      VertexEntry   vertex   ParticleLineArcRasterization.vert.spv)
+frontier_compile_particle_slang_shader(ParticleLineArcRasterization.slang      FragmentEntry fragment ParticleLineArcRasterization.frag.spv)
+frontier_compile_particle_slang_shader(ParticleLensRasterization.slang         VertexEntry   vertex   ParticleLensRasterization.vert.spv)
+frontier_compile_particle_slang_shader(ParticleLensRasterization.slang         FragmentEntry fragment ParticleLensRasterization.frag.spv)
+frontier_compile_particle_slang_shader(ParticleSurfaceBackingRasterization.slang VertexEntry   vertex ParticleSurfaceBackingRasterization.vert.spv)
+frontier_compile_particle_slang_shader(ParticleSurfaceBackingRasterization.slang FragmentEntry fragment ParticleSurfaceBackingRasterization.frag.spv)
+frontier_compile_particle_slang_shader(ParticleOverlayRasterization.slang      VertexEntry   vertex   ParticleOverlayRasterization.vert.spv)
+frontier_compile_particle_slang_shader(ParticleOverlayRasterization.slang      FragmentEntry fragment ParticleOverlayRasterization.frag.spv)
+
 function(frontier_compile_vector_slang_shader SLANG_REL_PATH ENTRY_NAME STAGE_KIND OUT_SPV_NAME)
     set(IN_SLANG "${FRONTIER_SHADER_SRC_DIR}/Vector/${SLANG_REL_PATH}")
     set(OUT_SPV "${FRONTIER_COMPILED_SHADER_DIR}/${OUT_SPV_NAME}")
@@ -532,6 +586,8 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/ParticleSpace/ParticleDocument.cpp
     Engine/ParticleSpace/ParticleExtension.cpp
     Engine/ParticleSpace/ParticleSoftwareExecutor.cpp
+    Engine/ParticleSpace/Execution/ParticleMetricsCollector.cpp
+    Engine/ParticleSpace/Execution/ParticleVulkanExecutor.cpp
     Engine/ParticleSpace/Origins/AnalyticOrigins.cpp
     Engine/ParticleSpace/Origins/StructuralOrigins.cpp
     Engine/ParticleSpace/Origins/SurfaceAnchorSampler.cpp
@@ -812,6 +868,7 @@ if(BUILD_TESTING)
     frontier_register_exhibit(ParticleFoundationValidation      Exhibits/ParticleFoundationValidation.cpp)
     frontier_register_exhibit(ParticleCodecInterchangeValidation Exhibits/ParticleCodecInterchangeValidation.cpp)
     frontier_register_exhibit(ParticleDynamicsValidation        Exhibits/ParticleDynamicsValidation.cpp)
+    frontier_register_exhibit(ParticleVulkanValidation          Exhibits/ParticleVulkanValidation.cpp)
     frontier_register_exhibit(GeometryNetworkValidation      Exhibits/GeometryNetworkValidation.cpp)
     frontier_register_exhibit(GeometryCompletionValidation   Exhibits/GeometryCompletionValidation.cpp)
     frontier_register_exhibit(MaterialScatteringValidation   Exhibits/MaterialScatteringValidation.cpp)
