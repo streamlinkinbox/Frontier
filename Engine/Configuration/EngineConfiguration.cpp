@@ -70,6 +70,30 @@ void EngineConfiguration::ConfigureFromCommandLine(std::span<const std::string_v
             Modified.ActiveWorkspace  = WorkspaceCategory::UV;
             Modified.ApplicationTitle = "Frontier UV";
         }
+        else if (Argument == "--standalone-pattern" || Argument == "--standalone=pattern" || Argument == "--workspace=pattern" || Argument == "--mode=pattern")
+        {
+            Modified.LaunchMode       = HostLaunchMode::StandaloneWorkspace;
+            Modified.ActiveWorkspace  = WorkspaceCategory::Vector;
+            Modified.ApplicationTitle = "Frontier Pattern";
+        }
+        else if (Argument == "--standalone-stamp" || Argument == "--standalone=stamp" || Argument == "--workspace=stamp" || Argument == "--mode=stamp")
+        {
+            Modified.LaunchMode       = HostLaunchMode::StandaloneWorkspace;
+            Modified.ActiveWorkspace  = WorkspaceCategory::Vector;
+            Modified.ApplicationTitle = "Frontier Stamp";
+        }
+        else if (Argument == "--standalone-vector" || Argument == "--standalone=vector" || Argument == "--workspace=vector")
+        {
+            Modified.LaunchMode       = HostLaunchMode::StandaloneWorkspace;
+            Modified.ActiveWorkspace  = WorkspaceCategory::Vector;
+            Modified.ApplicationTitle = "Frontier Vector";
+        }
+        else if (Argument == "--standalone-baking" || Argument == "--standalone=baking" || Argument == "--workspace=baking" || Argument == "--baking")
+        {
+            Modified.LaunchMode       = HostLaunchMode::StandaloneWorkspace;
+            Modified.ActiveWorkspace  = WorkspaceCategory::Baking;
+            Modified.ApplicationTitle = "Frontier Baking";
+        }
         else if (Argument == "--feature-set" || Argument == "--workspace=all")
         {
             Modified.LaunchMode       = HostLaunchMode::FeatureSet;
@@ -135,6 +159,15 @@ EngineConfigurationDescriptor EngineConfiguration::ConstructStandaloneUVDefault(
     Result.LaunchMode       = BuildConfiguration::EditorIncluded ? HostLaunchMode::StandaloneWorkspace : HostLaunchMode::HeadlessBatch;
     Result.ActiveWorkspace  = WorkspaceCategory::UV;
     Result.ApplicationTitle = "Frontier UV";
+    return Result;
+}
+
+EngineConfigurationDescriptor EngineConfiguration::ConstructStandaloneVectorDefault() noexcept
+{
+    EngineConfigurationDescriptor Result {};
+    Result.LaunchMode       = BuildConfiguration::EditorIncluded ? HostLaunchMode::StandaloneWorkspace : HostLaunchMode::HeadlessBatch;
+    Result.ActiveWorkspace  = WorkspaceCategory::Vector;
+    Result.ApplicationTitle = "Frontier Pattern";
     return Result;
 }
 

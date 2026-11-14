@@ -1,77 +1,210 @@
 /*==========================================================================================================================================
                                                             ASSETBROWSER.JS
 ==========================================================================================================================================*/
-/* Floating Pull-Up Asset Browser Overlay for Frontier Texture Studio:
-   - Anchored as a bottom pull-up overlay above .status-bar so opening/resizing NEVER shrinks the workspace viewport
-   - 3-Pane architecture:
-       [Left: Hierarchical TreeView Categories / Folders / Attribute Filters]
-       [Center: Grid / List Switchable Assets — 1:1 square cards with NO thumbnail background box, transparent baked icon + name below]
-       [Right: Tile-Based Asset Inspector matching Material Inspector MetricTrio tiles]
-   - Pre-baked transparent 3D PBR Material Sphere PNGs via MaterialIconBaker.js
-   - Workspace-aware automatic category switching unless pinned by user */
+/* Project Zero Notch ContentBrowser for Frontier Texture Studio (matched 1:1 to
+   Experimental/ProjectZeroEditor arena/429d7dc7-frontier):
+   - Bottom DrawerPanel shell with centered slanted SVG trapezoid notch ("ContentBrowser")
+   - 3-stop drag/snap gesture (closed / half 0.46 split / full 1.0) + horizontal notch repositioning + page grip
+   - Header: CONTENT / LIBRARY · ContentBrowser {N} items · Auto/Pinned sync · + Material · + Colour · Import · Split/Full · Close
+   - Tools: Origin tabs (All | Project | Imported | Engine) · Search pill · View switch (Grid | List, or Grid | Vertical | Horizontal for Colours)
+   - Dedicated filter bar: ColourCodex hue filters + sort on Colours, Family & Attribute filters on Materials/Patterns/Stamps/Meshes
+   - 3-Pane Body: Left category rail (All, Materials, Patterns, Stamps, Meshes, Colours, Images) | Center catalogue | Right CONTENT DETAILS aside
+   - Full ColourCodex TOML import/export + drag-to-slot + double-click apply, baked transparent 3D PBR Material spheres, vector SVG artwork previews */
 
-import { Construct, ConstructGlyph, Toast } from "./StudioControls.js";
+import * as THREE from "three";
+import { OBJLoader } from "./Vendor/addons/OBJLoader.js";
+import { STLLoader } from "./Vendor/addons/STLLoader.js";
+import { Construct, Toast } from "./StudioControls.js";
 import { materials } from "./Engine/Materials/materials.js";
 import { getBakedMaterialIcon } from "./MaterialIconBaker.js";
+import { getBakedGeometryIcon } from "./GeometryIconBaker.js";
+import { BAKE_STUDY_SHAPES } from "./Engine/BakingEngine.js";
 import {
   listPatternStarterCatalog,
   listStampStarterCatalog,
   getArtworkPreviewSvg,
 } from "./Engine/Patterns/StarterCatalogBridge.js";
+import {
+  ApplyToActiveColourSlot,
+  BuiltInColourCodex,
+  ChooseCardInk,
+  ColourFilterCategories,
+  ColourSortModes,
+  GetActiveColourSlot,
+  MatchesColourFilter,
+  NormalizeHex,
+  PackColourDragData,
+  ParseColourCodexToml,
+  ResolveColourEntry,
+  SerializeColourCodexToml,
+  SortColourAssets,
+  SplitCardHeading,
+} from "./ColourCodex.js";
 
-const WORKSPACE_TO_CATEGORY = {
-  material: "materials",
-  pattern: "patterns",
-  stamp: "stamps",
-  paint: "stamps",
-  bake: "meshes",
-};
+const STORAGE_KEY = "Frontier.TextureStudio.ContentBrowser.v1";
+const IDB_NAME = "Frontier.TextureStudio.Assets";
+const SVG_NS = "http://www.w3.org/2000/svg";
 
-const MESH_PRESETS = [
-  { id: "teapot", name: "Studio Teapot", family: "Standard Study", desc: "Classic curved bevel & spout normals", topo: "High-Poly Tri", complexity: "6.4k tris", role: "Curvature & AO" },
-  { id: "chamfer", name: "Hard-Surface Bevel", family: "Hard Surface", desc: "Machined chamfer plates & crisp edges", topo: "Bevel Quad/Tri", complexity: "3.2k tris", role: "Edge Wear" },
-  { id: "helmet", name: "Visor Armor Study", family: "Hard Surface", desc: "Compound dome visor & neck flange", topo: "Sub-D Hull", complexity: "8.1k tris", role: "Anisotropic Spec" },
-  { id: "torus", name: "Torus Knot Study", family: "Organic", desc: "Continuous braided curvature study", topo: "Procedural Loop", complexity: "5.8k tris", role: "Thin-Film & Sheen" },
-  { id: "shaderball", name: "Frontier Shader Orb", family: "Standard Study", desc: "Nested cutaway studio orb", topo: "Cutaway Multi", complexity: "7.2k tris", role: "SSS & Clearcoat" },
+const CATEGORY_ORDER = [
+  "All",
+  "Materials",
+  "Patterns",
+  "Stamps",
+  "Meshes",
+  "Colours",
+  "Images",
 ];
 
-const CATEGORY_LABELS = {
-  materials: "Materials",
-  patterns: "Patterns",
-  stamps: "Decal Stamps",
-  meshes: "3D Meshes",
+const WORKSPACE_TO_KIND = {
+  material: "Materials",
+  pattern: "Patterns",
+  stamp: "Stamps",
+  paint: "Stamps",
+  bake: "Meshes",
 };
 
-const CATEGORY_FILTERS = {
-  materials: [
-    { id: "metallic", label: "Metallic", test: (it) => (it.raw.metalness ?? 0) >= 0.45 },
-    { id: "clearcoat", label: "Clearcoat", test: (it) => (it.raw.coat ?? 0) >= 0.15 },
-    { id: "emissive", label: "Emissive", test: (it) => (it.raw.emissionStrength ?? 0) > 0.05 },
-    { id: "iridescent", label: "Iridescent", test: (it) => (it.raw.iridescence ?? 0) > 0.05 },
+const CATEGORY_ALIASES = {
+  all: "All",
+  materials: "Materials",
+  material: "Materials",
+  patterns: "Patterns",
+  pattern: "Patterns",
+  stamps: "Stamps",
+  stamp: "Stamps",
+  meshes: "Meshes",
+  mesh: "Meshes",
+  models: "Meshes",
+  colours: "Colours",
+  colors: "Colours",
+  colour: "Colours",
+  images: "Images",
+  image: "Images",
+};
+
+const MESH_PRESETS = BAKE_STUDY_SHAPES.map((s) => ({
+  id: s.id,
+  name: s.name || s.label,
+  family: s.family || "Standard Study",
+  desc: s.desc || s.label,
+  topo: s.topo || "Sub-D Tri",
+  complexity: s.complexity || "5k tris",
+  role: s.role || "Surface Bake",
+}));
+
+const ATTRIBUTE_FILTERS = {
+  Materials: [
+    { id: "metallic", label: "Metallic", test: (it) => (it.raw?.metalness ?? 0) >= 0.45 },
+    { id: "clearcoat", label: "Clearcoat", test: (it) => (it.raw?.coat ?? 0) >= 0.15 },
+    { id: "emissive", label: "Emissive", test: (it) => (it.raw?.emissionStrength ?? 0) > 0.05 },
+    { id: "iridescent", label: "Iridescent", test: (it) => (it.raw?.iridescence ?? 0) > 0.05 },
   ],
-  patterns: [
-    { id: "noise", label: "Tileable Noise", test: (it) => it.id.startsWith("noise-") },
+  Patterns: [
+    { id: "noise", label: "Tileable Noise", test: (it) => String(it.id).startsWith("noise-") },
     { id: "african", label: "African Heritage", test: (it) => it.family === "African Patterns" },
     { id: "multilayer", label: "Multi-Layer", test: (it) => (it.meta?.layers || 1) >= 2 },
   ],
-  stamps: [
+  Stamps: [
     { id: "hardsurface", label: "Hard Surface", test: (it) => it.family === "Hard Surface" },
     { id: "metallic-finish", label: "Metallic Foil", test: (it) => (it.meta?.finishes || []).includes("foil") },
     { id: "stencil-text", label: "Stencil Text", test: (it) => Boolean(it.meta?.hasText) },
   ],
-  meshes: [
+  Meshes: [
     { id: "hard-surface-mesh", label: "Hard Surface", test: (it) => it.family === "Hard Surface" },
     { id: "organic-mesh", label: "Organic & Study", test: (it) => it.family !== "Hard Surface" },
   ],
 };
 
-function makeMatIconSvg(item, size = 64) {
-  const m = item.raw;
-  const col = m.color || "#888";
-  const sec = m.secondaryColor || m.colors?.[0] || "#ffffff";
-  const rough = Math.max(0.06, m.roughness ?? 0.4);
-  const metal = m.metalness ?? 0;
-  const uid = `mat-${String(item.id || "x").replace(/[^a-zA-Z0-9_-]/g, "")}`;
+function makeUuid() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeKindName(raw) {
+  if (!raw) return "Materials";
+  if (CATEGORY_ORDER.includes(raw)) return raw;
+  return CATEGORY_ALIASES[String(raw).trim().toLowerCase()] || "Materials";
+}
+
+function closestInteractive(target, selectors) {
+  let cur = target;
+  while (cur && typeof cur === "object") {
+    const tag = String(cur.tagName || "").toLowerCase();
+    for (const sel of selectors) {
+      if (sel.startsWith(".")) {
+        if (cur.classList?.contains?.(sel.slice(1))) return cur;
+      } else if (sel.startsWith("[")) {
+        const attrSpec = sel.slice(1, -1);
+        const [attrName, attrVal] = attrSpec.split("=");
+        const val = cur.getAttribute?.(attrName);
+        if (attrVal !== undefined) {
+          if (String(val) === attrVal) return cur;
+        } else if (cur.hasAttribute?.(attrName) || val != null) {
+          return cur;
+        }
+      } else if (tag === sel) {
+        return cur;
+      }
+    }
+    cur = cur.parentNode;
+  }
+  return null;
+}
+
+function createSvgElement(tag, attrs = {}) {
+  const el =
+    typeof document.createElementNS === "function"
+      ? document.createElementNS(SVG_NS, tag)
+      : document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    el.setAttribute?.(k, String(v));
+  }
+  return el;
+}
+
+function createBrowserIconSvg(name) {
+  const svg = createSvgElement("svg", {
+    viewBox: "0 0 24 24",
+    width: "14",
+    height: "14",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+    "aria-hidden": "true",
+  });
+  const addPath = (d) => svg.append(createSvgElement("path", { d }));
+  const addRect = (x, y, w, h, rx) =>
+    svg.append(createSvgElement("rect", { x, y, width: w, height: h, rx }));
+
+  if (name === "search") {
+    svg.append(createSvgElement("circle", { cx: 11, cy: 11, r: 7 }));
+    addPath("m21 21-4.35-4.35");
+  } else if (name === "grid") {
+    addRect(3, 3, 7, 7, 1.4);
+    addRect(14, 3, 7, 7, 1.4);
+    addRect(3, 14, 7, 7, 1.4);
+    addRect(14, 14, 7, 7, 1.4);
+  } else if (name === "list") {
+    addPath("M4 6h.01M9 6h11M4 12h.01M9 12h11M4 18h.01M9 18h11");
+  } else if (name === "vertical") {
+    addRect(3, 4, 18, 16, 2);
+    addPath("M9.5 4v16M14.5 4v16");
+  } else if (name === "horizontal") {
+    addRect(3, 4, 18, 16, 2);
+    addPath("M3 9.5h18M3 14.5h18");
+  }
+  return svg;
+}
+
+function makeMatIconSvg(mat, size = 64) {
+  const col = mat?.color || "#888";
+  const sec = mat?.secondaryColor || mat?.colors?.[0] || "#ffffff";
+  const rough = Math.max(0.06, mat?.roughness ?? 0.4);
+  const metal = mat?.metalness ?? 0;
+  const uid = `mat-${String(mat?.id || "x").replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const specAlpha = (0.28 + (1 - rough) * 0.55).toFixed(2);
   const rimAlpha = (0.18 + metal * 0.35).toFixed(2);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 64 64">
@@ -94,7 +227,7 @@ function makeMatIconSvg(item, size = 64) {
 }
 
 function makeMeshIconSvg(meshId, size = 64) {
-  const accent = "#eff4cf";
+  const accent = "#d3c5b2";
   const stroke = "#b7c1cf";
   if (meshId === "torus") {
     return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none"><ellipse cx="32" cy="32" rx="22" ry="12" stroke="${stroke}" stroke-width="4" transform="rotate(-25 32 32)"/><ellipse cx="32" cy="32" rx="22" ry="12" stroke="${accent}" stroke-width="2.5" transform="rotate(28 32 32)"/><circle cx="32" cy="32" r="5.5" stroke="${stroke}" stroke-width="2"/></svg>`;
@@ -103,7 +236,7 @@ function makeMeshIconSvg(meshId, size = 64) {
     return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none"><path d="M18 12h28l6 6v28l-6 6H18l-6-6V18z" fill="rgba(255,255,255,0.06)" stroke="${stroke}" stroke-width="2.6"/><path d="M22 22h20v20H22z" stroke="${accent}" stroke-width="1.8" opacity="0.85"/><path d="M12 18l10 4M52 18l-10 4M12 46l10-4M52 46l-10-4" stroke="${stroke}" stroke-width="1.4" opacity="0.5"/></svg>`;
   }
   if (meshId === "helmet") {
-    return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none"><path d="M16 33c0-10.5 7-18 16-18s16 7.5 16 18v12l-6 4H22l-6-4V33z" fill="rgba(255,255,255,0.06)" stroke="${stroke}" stroke-width="2.4"/><path d="M21 29h22l-3 9H24z" fill="rgba(239,244,207,0.22)" stroke="${accent}" stroke-width="1.8"/></svg>`;
+    return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none"><path d="M16 33c0-10.5 7-18 16-18s16 7.5 16 18v12l-6 4H22l-6-4V33z" fill="rgba(255,255,255,0.06)" stroke="${stroke}" stroke-width="2.4"/><path d="M21 29h22l-3 9H24z" fill="rgba(211,197,178,0.22)" stroke="${accent}" stroke-width="1.8"/></svg>`;
   }
   if (meshId === "shaderball") {
     return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="20" fill="rgba(255,255,255,0.06)" stroke="${stroke}" stroke-width="2.4"/><path d="M22 22a14 14 0 0 1 20 0v20a14 14 0 0 1-20 0z" stroke="${accent}" stroke-width="1.6" opacity="0.85"/><ellipse cx="32" cy="32" rx="20" ry="7" stroke="${stroke}" stroke-width="1.4" opacity="0.5"/></svg>`;
@@ -114,7 +247,7 @@ function makeMeshIconSvg(meshId, size = 64) {
 function summarizeArtworkEntry(entry) {
   let doc = null;
   try {
-    doc = typeof entry.build === "function" ? entry.build() : null;
+    doc = typeof entry?.build === "function" ? entry.build() : entry?.doc || null;
   } catch {}
   const layers = doc?.layers || [];
   const finishes = [...new Set(layers.map((l) => l.surface?.finish).filter(Boolean))];
@@ -133,41 +266,273 @@ function summarizeArtworkEntry(entry) {
   };
 }
 
+async function assetBlobStore(id, value, remove = false) {
+  if (typeof indexedDB === "undefined") return undefined;
+  return new Promise((resolve, reject) => {
+    try {
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains("Files")) {
+          req.result.createObjectStore("Files");
+        }
+      };
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction("Files", value || remove ? "readwrite" : "readonly");
+        const store = tx.objectStore("Files");
+        const op = remove ? store.delete(id) : value ? store.put(value, id) : store.get(id);
+        let result;
+        op.onsuccess = () => { result = op.result; };
+        tx.oncomplete = () => { db.close(); resolve(result); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+      };
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
+
+function loadSavedRecords() {
+  try {
+    if (typeof localStorage === "undefined") return [];
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.slice(0, 256).filter((it) => it && typeof it.id === "string" && it.id.startsWith("asset-"));
+  } catch {
+    return [];
+  }
+}
+
+function persistSavedRecords(records) {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const serializable = records.slice(0, 256).map((r) => {
+      const copy = { ...r };
+      if (copy.assetKind === "mesh" && copy.raw?.transfer) {
+        copy.raw = { ...copy.raw, transfer: undefined };
+      }
+      return copy;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+  } catch {}
+}
+
+function triggerBlobDownload(blob, filename) {
+  if (typeof document === "undefined" || typeof URL === "undefined" || typeof URL.createObjectURL !== "function") return;
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = filename;
+  link.click?.();
+  setTimeout(() => URL.revokeObjectURL?.(url), 1000);
+}
+
+function buildGeometryTransferFromThreeGeometry(geo, name = "Imported Mesh") {
+  if (!geo) return null;
+  const working = geo.index ? geo.toNonIndexed() : geo.clone();
+  if (!working.attributes.normal) working.computeVertexNormals();
+  const posAttr = working.attributes.position;
+  const normAttr = working.attributes.normal;
+  const uvAttr = working.attributes.uv;
+  if (!posAttr || posAttr.count < 3) return null;
+
+  const triCount = Math.floor(posAttr.count / 3);
+  const positions = new Float32Array(posAttr.array.slice(0, triCount * 9));
+  const normals = normAttr
+    ? new Float32Array(normAttr.array.slice(0, triCount * 9))
+    : new Float32Array(triCount * 9);
+  const uvs = new Float32Array(triCount * 6);
+  const surfacePart = new Float32Array(triCount * 3);
+
+  for (let i = 0; i < triCount * 3; i++) {
+    if (uvAttr) {
+      uvs[i * 2] = uvAttr.getX(i);
+      uvs[i * 2 + 1] = uvAttr.getY(i);
+    } else {
+      const px = positions[i * 3];
+      const py = positions[i * 3 + 1];
+      const pz = positions[i * 3 + 2];
+      uvs[i * 2] = 0.5 + 0.35 * px;
+      uvs[i * 2 + 1] = 0.5 + 0.35 * (py + pz * 0.35);
+    }
+  }
+
+  working.computeBoundingBox();
+  const box = working.boundingBox || new THREE.Box3();
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const radius = Math.max(0.25, 0.5 * size.length());
+  working.dispose();
+
+  return {
+    version: 1,
+    source: "content-browser",
+    name,
+    triCount,
+    partNames: [name],
+    positions,
+    normals,
+    uvs,
+    surfacePart,
+    bounds: {
+      min: [box.min.x, box.min.y, box.min.z],
+      max: [box.max.x, box.max.y, box.max.z],
+      center: [center.x, center.y, center.z],
+      radius,
+    },
+    udimTiles: [{ id: 1001, label: "Tile 1001", resolution: 2048 }],
+    importanceGroups: [],
+    timestamp: Date.now(),
+  };
+}
+
 export function createAssetBrowser(hostOrOpts, maybeBridge) {
   const hostEl = hostOrOpts && typeof hostOrOpts.append === "function" ? hostOrOpts : null;
   const appBridge = maybeBridge || (!hostEl ? hostOrOpts?.appBridge : null);
   const onSelectAsset = !hostEl ? hostOrOpts?.onSelectAsset : null;
   const onWorkspaceRoute = !hostEl ? hostOrOpts?.onWorkspaceRoute : null;
 
-  const root = Construct("aside", "asset-browser");
-  root.setAttribute("role", "region");
-  root.setAttribute("aria-label", "Asset Browser");
-  if (hostEl) hostEl.append(root);
+  // ------------------------------------------------------------------ BUILT-IN ENGINE CATALOGS
+  const engineMaterials = materials.map((m) => ({
+    id: m.id,
+    name: m.name,
+    Kind: "Materials",
+    Origin: "Engine",
+    family: m.category || "Materials",
+    assetKind: "material",
+    raw: m,
+    detail: m.description || "Built-in procedural PBR material preset.",
+  }));
+
+  const enginePatterns = listPatternStarterCatalog().map((p) => ({
+    id: p.id,
+    name: p.name,
+    Kind: "Patterns",
+    Origin: "Engine",
+    family: p.group || "Patterns",
+    assetKind: "pattern",
+    raw: p,
+    meta: summarizeArtworkEntry(p),
+    detail: "Procedural / SVG tileable pattern preset.",
+  }));
+
+  const engineStamps = listStampStarterCatalog().map((s) => ({
+    id: s.id,
+    name: s.name,
+    Kind: "Stamps",
+    Origin: "Engine",
+    family: s.group || "Technical Decals",
+    assetKind: "stamp",
+    raw: s,
+    meta: summarizeArtworkEntry(s),
+    detail: "Vector decal stamp preset ready for Stamp Studio or 3D Paint.",
+  }));
+
+  const engineMeshes = MESH_PRESETS.map((m) => ({
+    id: m.id,
+    name: m.name,
+    Kind: "Meshes",
+    Origin: "Engine",
+    family: m.family,
+    assetKind: "mesh",
+    raw: m,
+    detail: m.desc,
+  }));
+
+  const engineColours = BuiltInColourCodex.map((colour, index) => ({
+    id: "engine-colour-" + index,
+    name: colour.Name,
+    Kind: "Colours",
+    Origin: "Engine",
+    family: colour.Family || colour.FilterGroup,
+    assetKind: "colour",
+    Colour: colour,
+    detail: "ColourCodex alias · drag onto any colour swatch or double-click to apply.",
+  }));
+
+  const engineLibrary = [
+    ...engineMaterials,
+    ...enginePatterns,
+    ...engineStamps,
+    ...engineMeshes,
+    ...engineColours,
+  ];
+
+  let userAssets = loadSavedRecords();
+  const runtimeBlobUrls = new Map();
+  const runtimeMeshTransfers = new Map();
+
+  function getLibrary() {
+    return [...userAssets, ...engineLibrary];
+  }
+
+  function findItemById(id, preferredKind = null) {
+    const lib = getLibrary();
+    if (preferredKind && preferredKind !== "All") {
+      const exact = lib.find((it) => it.id === id && it.Kind === preferredKind);
+      if (exact) return exact;
+    }
+    return lib.find((it) => it.id === id) || null;
+  }
 
   function toPayload(item) {
     if (!item) return null;
+    if (item.assetKind === "mesh" && runtimeMeshTransfers.has(item.id)) {
+      return {
+        assetKind: "mesh",
+        id: item.id,
+        name: item.name,
+        family: item.family,
+        raw: { ...item.raw, transfer: runtimeMeshTransfers.get(item.id) },
+      };
+    }
     return {
-      assetKind: item.kind,
+      assetKind: item.assetKind,
       id: item.id,
       name: item.name,
       family: item.family,
-      raw: item.raw,
+      raw: item.raw || item.Colour || item,
+      thumbnail: item.Thumbnail || item.Data || null,
     };
   }
 
   function dispatchApplyItem(item, opts = {}) {
     if (!item) return false;
+    if (item.Kind === "Colours" && item.Colour) {
+      const label = ApplyToActiveColourSlot(item.Colour);
+      if (label) {
+        setStatus(`Applied ${item.Colour.Name} (${item.Colour.Hex}) -> ${label}`);
+        Toast(`Applied ${item.Colour.Name} -> ${label}`);
+        return true;
+      }
+      setStatus("Click or focus any colour slot to apply this ColourCodex alias.");
+      Toast("No active colour slot in current workspace.");
+      return false;
+    }
+    if (item.Kind === "Meshes" && runtimeMeshTransfers.has(item.id)) {
+      const transfer = runtimeMeshTransfers.get(item.id);
+      const targetWs = opts.targetWorkspace || (state.activeWorkspace === "bake" ? "bake" : state.activeWorkspace === "material" ? "material" : "paint");
+      const applied = appBridge?.applyImportedMesh?.(transfer, targetWs);
+      if (applied) {
+        setStatus(`Loaded mesh "${item.name}" into ${targetWs} stage.`);
+        Toast(`Loaded mesh "${item.name}"`);
+        return true;
+      }
+    }
     if (opts.targetWorkspace === "paint") {
-      if (item.kind === "stamp" && appBridge?.openStampAssetInPaint) {
+      if (item.assetKind === "stamp" && appBridge?.openStampAssetInPaint) {
         appBridge.openStampAssetInPaint(item.raw);
         return true;
       }
-      if (item.kind === "pattern" && appBridge?.openPatternAssetInPaint) {
+      if (item.assetKind === "pattern" && appBridge?.openPatternAssetInPaint) {
         appBridge.openPatternAssetInPaint(item.raw);
         return true;
       }
     }
-    if (opts.targetWorkspace === "material" && item.kind === "pattern" && appBridge?.sendPatternToMaterial) {
+    if (opts.targetWorkspace === "material" && item.assetKind === "pattern" && appBridge?.sendPatternToMaterial) {
       appBridge.sendPatternToMaterial(item.raw);
       return true;
     }
@@ -175,387 +540,851 @@ export function createAssetBrowser(hostOrOpts, maybeBridge) {
       onSelectAsset(item, opts);
       return true;
     }
-    return Boolean(appBridge?.applyAssetToActiveWorkspace?.(toPayload(item)));
+    const ok = Boolean(appBridge?.applyAssetToActiveWorkspace?.(toPayload(item)));
+    if (ok) {
+      setStatus(`Applied ${item.name} (${item.Kind}) to active stage.`);
+    }
+    return ok;
   }
 
-  const patternCatalog = listPatternStarterCatalog().map((p) => ({
-    id: p.id,
-    name: p.name,
-    family: p.group || "Patterns",
-    kind: "pattern",
-    raw: p,
-    meta: summarizeArtworkEntry(p),
-  }));
-  const stampCatalog = listStampStarterCatalog().map((s) => ({
-    id: s.id,
-    name: s.name,
-    family: s.group || "Technical Decals",
-    kind: "stamp",
-    raw: s,
-    meta: summarizeArtworkEntry(s),
-  }));
-  const materialCatalog = materials.map((m) => ({
-    id: m.id,
-    name: m.name,
-    family: m.category || "Materials",
-    kind: "material",
-    raw: m,
-  }));
-  const meshCatalog = MESH_PRESETS.map((m) => ({
-    id: m.id,
-    name: m.name,
-    family: m.family,
-    kind: "mesh",
-    raw: m,
-  }));
-
+  // ------------------------------------------------------------------ DRAWER + CONTENTBROWSER STATE
   const state = {
-    activeCategory: "materials",
+    open: false,
+    progress: 0, // 0 = closed, 0.46 / 0.5 = half/split, 1 = full
+    rest: 0,
+    offsetPx: 0,
+    dragging: false,
+    origin: "All", // All | Project | Imported | Engine
+    activeKind: "Materials", // All | Materials | Patterns | Stamps | Meshes | Colours | Images
     activeFamily: "All",
     activeFilter: null,
     search: "",
-    viewMode: "grid",
+    viewMode: "grid", // grid | list
+    colourView: "grid", // grid | list-vertical | list-horizontal
+    colourFilter: "All",
+    colourSort: "spectrum",
     userSpecifiedCategory: false,
     activeWorkspace: "material",
-    collapsed: false,
-    heightPx: 356,
-    inspectorItemId: materialCatalog[0]?.id || null,
-    expandedCats: new Set(["materials"]),
+    inspectorItemId: engineMaterials[0]?.id || null,
+    statusMessage: "",
+    renameDraft: "",
+    hexDraft: "#3B1F3A",
+    busy: false,
   };
 
-  function getItems(cat = state.activeCategory) {
-    if (cat === "materials") return materialCatalog;
-    if (cat === "patterns") return patternCatalog;
-    if (cat === "stamps") return stampCatalog;
-    if (cat === "meshes") return meshCatalog;
-    return materialCatalog;
+  // Compatibility accessors mapped onto state cleanly
+  Object.defineProperties(state, {
+    activeCategory: {
+      enumerable: true,
+      get: () => state.activeKind.toLowerCase(),
+      set: (v) => { state.activeKind = normalizeKindName(v); },
+    },
+    collapsed: {
+      enumerable: true,
+      get: () => !state.open,
+      set: (v) => {
+        if (v) closeDrawer();
+        else openDrawer(1);
+      },
+    },
+    stage: {
+      enumerable: true,
+      get: () => (state.progress === 0 ? "closed" : state.progress >= 0.99 ? "full" : "half"),
+    },
+  });
+
+  // ------------------------------------------------------------------ DRAWER SHELL + SVG NOTCH DOM
+  const drawerShell = Construct("section", "drawer-shell bottom asset-drawer");
+  drawerShell.setAttribute("data-drawer", "bottom");
+  drawerShell.setAttribute("data-stage", "closed");
+
+  const drawerSurface = Construct("div", "drawer-surface");
+  drawerSurface.setAttribute("role", "dialog");
+  drawerSurface.setAttribute("aria-label", "ContentBrowser drawer");
+  drawerSurface.setAttribute("aria-hidden", "true");
+  drawerSurface.setAttribute("inert", "");
+
+  const browserRoot = Construct("aside", "asset-browser");
+  browserRoot.setAttribute("aria-label", "ContentBrowser");
+
+  const pageGrip = Construct("button", "drawer-page-grip");
+  pageGrip.type = "button";
+  pageGrip.setAttribute("aria-label", "Close ContentBrowser using page grip");
+  pageGrip.append(Construct("i"), Construct("span", null, "Drag the page or handle to close"));
+
+  const notchHandle = Construct("button", "drawer-handle asset-notch-handle");
+  notchHandle.type = "button";
+  notchHandle.setAttribute("aria-label", "ContentBrowser notch");
+  notchHandle.setAttribute("aria-expanded", "false");
+  notchHandle.title = "ContentBrowser · drag to open/close · drag sideways to reposition";
+
+  const notchSvg = createSvgElement("svg", {
+    viewBox: "0 0 400 36",
+    preserveAspectRatio: "none",
+    "aria-hidden": "true",
+  });
+  notchSvg.append(
+    createSvgElement("path", {
+      d: "M0 0C15 0 20 6 25 15L35 28C40 34 45 36 52 36H348C355 36 360 34 365 28L375 15C380 6 385 0 400 0Z",
+    }),
+  );
+  const notchLabel = Construct("span", null, "ContentBrowser");
+  notchHandle.append(notchSvg, notchLabel);
+
+  drawerSurface.append(browserRoot, pageGrip);
+  drawerShell.append(drawerSurface, notchHandle);
+  if (hostEl) hostEl.append(drawerShell);
+
+  // ------------------------------------------------------------------ CONTENTBROWSER INTERIOR DOM
+  // 1. Header
+  const headerEl = Construct("header", "asset-browser-header drawer-drag-zone");
+  const headTitleBox = Construct("div");
+  const eyebrowEl = Construct("span", "asset-eyebrow", "CONTENT / LIBRARY");
+  const titleHeading = Construct("h1");
+  const titleCountSmall = Construct("small", null, `${getLibrary().length} items`);
+  titleHeading.append("ContentBrowser ", titleCountSmall);
+  headTitleBox.append(eyebrowEl, titleHeading);
+
+  const headActionsEl = Construct("div", "asset-header-actions");
+  const autoFollowBtn = Construct("button", "asset-auto-pill");
+  autoFollowBtn.type = "button";
+  autoFollowBtn.title = "Follow active Texture Studio workspace automatically, or reset pin";
+
+  const addMatBtn = Construct("button", null, "+ Material");
+  addMatBtn.type = "button";
+  const addColourBtn = Construct("button", null, "+ Colour");
+  addColourBtn.type = "button";
+  const exportTomlBtn = Construct("button", null, "Export .toml");
+  exportTomlBtn.type = "button";
+
+  const importBtn = Construct("button", "primary", "Import files");
+  importBtn.type = "button";
+
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.multiple = true;
+  fileInput.hidden = true;
+  fileInput.accept = ".png,.jpg,.jpeg,.webp,.svg,.obj,.stl,.json,.material.json,.toml";
+  fileInput.setAttribute("aria-label", "Import assets");
+
+  const splitToggleBtn = Construct("button", "asset-split-toggle");
+  splitToggleBtn.type = "button";
+  splitToggleBtn.setAttribute("aria-label", "Toggle split content shelf");
+  splitToggleBtn.setAttribute("aria-pressed", "false");
+  splitToggleBtn.title = "Dock ContentBrowser to bottom half so the 3D/2D studio stage stays visible above";
+
+  const closeBtn = Construct("button", null, "×");
+  closeBtn.type = "button";
+  closeBtn.setAttribute("aria-label", "Close ContentBrowser");
+
+  headActionsEl.append(
+    autoFollowBtn,
+    addMatBtn,
+    addColourBtn,
+    exportTomlBtn,
+    importBtn,
+    fileInput,
+    splitToggleBtn,
+    closeBtn,
+  );
+  headerEl.append(headTitleBox, headActionsEl);
+
+  // 2. Tools Bar (Origin Tabs | Search | View Switch)
+  const toolsEl = Construct("div", "asset-browser-tools");
+  const originTabsEl = Construct("div", "asset-origin-tabs");
+  originTabsEl.setAttribute("role", "group");
+  originTabsEl.setAttribute("aria-label", "Asset origin");
+  const originBtns = new Map();
+  for (const originName of ["All", "Project", "Imported", "Engine"]) {
+    const btn = Construct("button", null, originName);
+    btn.type = "button";
+    btn.dataset.origin = originName;
+    btn.setAttribute("aria-pressed", String(originName === state.origin));
+    btn.addEventListener("click", () => {
+      state.origin = originName;
+      renderAll();
+    });
+    originBtns.set(originName, btn);
+    originTabsEl.append(btn);
   }
 
-  function getFamiliesFor(cat) {
-    const items = getItems(cat);
+  const searchWrap = Construct("div", "asset-search-wrap");
+  searchWrap.append(createBrowserIconSvg("search"));
+  const searchInput = document.createElement("input");
+  searchInput.type = "search";
+  searchInput.setAttribute("aria-label", "Search assets");
+  searchInput.placeholder = "Search ContentBrowser…";
+  const searchClearBtn = Construct("button", "asset-search-clear", "×");
+  searchClearBtn.type = "button";
+  searchClearBtn.setAttribute("aria-label", "Clear search");
+  searchClearBtn.hidden = true;
+  searchInput.addEventListener("input", () => {
+    state.search = searchInput.value;
+    searchClearBtn.hidden = !state.search;
+    renderResultsAndPreview();
+  });
+  searchClearBtn.addEventListener("click", () => {
+    state.search = "";
+    searchInput.value = "";
+    searchClearBtn.hidden = true;
+    renderResultsAndPreview();
+  });
+  searchWrap.append(searchInput, searchClearBtn);
+
+  const viewSwitchEl = Construct("div", "asset-view-switch");
+  viewSwitchEl.setAttribute("role", "group");
+  viewSwitchEl.setAttribute("aria-label", "Content layout");
+
+  toolsEl.append(originTabsEl, searchWrap, viewSwitchEl);
+
+  // 3. Dedicated Filter Bar (.colour-filters-bar)
+  const filterBarEl = Construct("div", "colour-filters-bar");
+  filterBarEl.setAttribute("role", "region");
+  filterBarEl.setAttribute("aria-label", "Content Filters");
+
+  // 4. 3-Column Body
+  const bodyEl = Construct("div", "asset-browser-body");
+
+  const railNav = Construct("nav", "asset-category-rail");
+  railNav.setAttribute("aria-label", "Asset categories");
+  railNav.setAttribute("data-drawer-scroll", "");
+
+  const resultsSec = Construct("section", "asset-results");
+  const resultsHeader = Construct("header", "drawer-drag-zone");
+  const resultsHeading = Construct("h2", null, "Materials");
+  const resultsCount = Construct("span", null, "0 results");
+  resultsHeader.append(resultsHeading, resultsCount);
+  const catalogueDiv = Construct("div", "asset-catalogue grid");
+  catalogueDiv.setAttribute("data-drawer-scroll", "");
+  resultsSec.append(resultsHeader, catalogueDiv);
+
+  const previewAside = Construct("aside", "asset-preview");
+  previewAside.setAttribute("data-drawer-scroll", "");
+
+  bodyEl.append(railNav, resultsSec, previewAside);
+
+  // 5. Footer
+  const footerEl = Construct("footer", "asset-browser-footer");
+  const statusSpan = Construct("span");
+  statusSpan.setAttribute("role", "status");
+  const brandFootSpan = Construct("span", null, "CONTENTBROWSER · TEXTURE STUDIO");
+  footerEl.append(statusSpan, brandFootSpan);
+
+  browserRoot.append(headerEl, toolsEl, filterBarEl, bodyEl, footerEl);
+
+  // ------------------------------------------------------------------ DRAWER GEOMETRY & 3-STOP DRAG GESTURE
+  function getHeaderBottom() { return 90; }
+  function getFooterHeight() { return 25; }
+  function getExtent() {
+    const h = Number(typeof window !== "undefined" ? window.innerHeight : 900) || 900;
+    return Math.max(320, h - getHeaderBottom() - getFooterHeight());
+  }
+
+  function applyDrawerGeometry() {
+    const extent = getExtent();
+    const prog = Math.max(0, Math.min(1, state.progress));
+    const stage = prog === 0 ? "closed" : prog >= 0.99 ? "full" : "half";
+    const isOpen = state.open || prog > 0;
+    const visiblePx = Math.max(0, extent * prog);
+
+    drawerShell.classList.toggle("open", isOpen);
+    drawerShell.classList.toggle("dragging", state.dragging);
+    drawerShell.setAttribute("data-stage", stage);
+    drawerShell.style.setProperty("--drawer-visible", `${visiblePx.toFixed(1)}px`);
+    drawerShell.style.transform = `translateY(${(extent * (1 - prog)).toFixed(1)}px)`;
+
+    notchHandle.setAttribute("aria-expanded", String(state.open));
+    notchHandle.style.left = `calc(50% - 110px + ${state.offsetPx}px)`;
+
+    if (!state.open && prog === 0) {
+      drawerSurface.setAttribute("aria-hidden", "true");
+      drawerSurface.setAttribute("inert", "");
+      drawerSurface.removeAttribute("aria-modal");
+    } else {
+      drawerSurface.removeAttribute("aria-hidden");
+      drawerSurface.removeAttribute("inert");
+      if (stage === "full") drawerSurface.setAttribute("aria-modal", "true");
+      else drawerSurface.removeAttribute("aria-modal");
+    }
+
+    splitToggleBtn.setAttribute("aria-pressed", String(stage === "half"));
+    splitToggleBtn.textContent = stage === "half" ? "⬜ Full" : "⬒ Split";
+  }
+
+  function settleDrawer(nextProgress) {
+    const clamped = Math.max(0, Math.min(1, nextProgress));
+    state.rest = clamped;
+    state.progress = clamped;
+    state.open = clamped > 0;
+    state.dragging = false;
+    applyDrawerGeometry();
+  }
+
+  function openDrawer(targetProgress = 1) {
+    settleDrawer(targetProgress > 0 ? targetProgress : 1);
+    notchHandle.focus?.({ preventScroll: true });
+  }
+
+  function closeDrawer() {
+    settleDrawer(0);
+  }
+
+  // Notch + Drawer gesture state matching DrawerPanel.jsx
+  let gesture = null;
+  let suppressGripClick = false;
+  let settledByKeydown = false;
+
+  function beginGesture(e, fromHandle = false) {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (gesture) return;
+    settledByKeydown = false;
+    if (
+      !fromHandle &&
+      (!state.open ||
+        (closestInteractive(e.target, [
+          "button",
+          "input",
+          "select",
+          "textarea",
+          "a",
+          "[contenteditable=true]",
+          "[data-drawer-scroll]",
+          "[draggable=true]",
+        ]) &&
+          !closestInteractive(e.target, [".drawer-page-grip"])))
+    ) {
+      return;
+    }
+    gesture = {
+      id: e.pointerId ?? 1,
+      x: e.clientX ?? 0,
+      y: e.clientY ?? 0,
+      start: state.rest,
+      offset: state.offsetPx,
+      axis: null,
+      fromHandle,
+      samples: [[performance.now?.() || Date.now(), e.clientY ?? 0]],
+      current: state.rest,
+    };
+    if (fromHandle && e.pointerId != null) {
+      try { drawerShell.setPointerCapture?.(e.pointerId); } catch {}
+    }
+  }
+
+  function moveGesture(e) {
+    if (!gesture || (e.pointerId != null && gesture.id !== e.pointerId)) return;
+    const cx = e.clientX ?? 0;
+    const cy = e.clientY ?? 0;
+    const dx = cx - gesture.x;
+    const dy = cy - gesture.y;
+    if (!gesture.axis && Math.hypot(dx, dy) > 7) {
+      gesture.axis = Math.abs(dy) > Math.abs(dx) ? "Y" : "X";
+      if (gesture.axis === "Y" && e.pointerId != null) {
+        try { drawerShell.setPointerCapture?.(e.pointerId); } catch {}
+      }
+    }
+    if (gesture.axis === "X" && gesture.fromHandle) {
+      const w = Number(typeof window !== "undefined" ? window.innerWidth : 1440) || 1440;
+      const maxShift = Math.max(0, (w - 220) / 2);
+      state.offsetPx = Math.max(-maxShift, Math.min(maxShift, gesture.offset + dx));
+      state.dragging = true;
+      applyDrawerGeometry();
+    }
+    if (gesture.axis === "Y") {
+      e.preventDefault?.();
+      const extent = getExtent();
+      const next = Math.max(0, Math.min(1, gesture.start + (-dy) / extent));
+      gesture.current = next;
+      state.progress = next;
+      state.dragging = true;
+      applyDrawerGeometry();
+      const now = performance.now?.() || Date.now();
+      gesture.samples.push([now, cy]);
+      while (gesture.samples.length > 2 && now - gesture.samples[0][0] > 120) {
+        gesture.samples.shift();
+      }
+    }
+  }
+
+  function endGesture(e, cancelled = false) {
+    if (!gesture || (e?.pointerId != null && gesture.id !== e.pointerId)) return;
+    let next = gesture.start;
+    if (!cancelled && gesture.axis === "Y") {
+      const first = gesture.samples[0];
+      const last = gesture.samples[gesture.samples.length - 1];
+      const now = performance.now?.() || Date.now();
+      const idle = now - last[0];
+      const vel =
+        idle < 120
+          ? ((-1 * (last[1] - first[1])) / Math.max(16, last[0] - first[0])) * 1000
+          : 0;
+      next = gesture.current < 0.25 ? 0 : gesture.current > 0.75 ? 1 : 0.5;
+      if (Math.abs((e?.clientY ?? gesture.y) - gesture.y) > 12 && Math.abs(vel) > 300) {
+        next =
+          Math.abs(vel) > 1000
+            ? vel > 0
+              ? 1
+              : 0
+            : Math.max(0, Math.min(1, gesture.start + (vel > 0 ? 0.5 : -0.5)));
+      }
+    } else if (!cancelled && !gesture.axis && gesture.fromHandle) {
+      next = state.open ? 0 : 1;
+    }
+    suppressGripClick = Boolean(gesture.axis) && closestInteractive(e?.target, [".drawer-page-grip"]) != null;
+    gesture = null;
+    settleDrawer(next);
+  }
+
+  drawerShell.addEventListener("pointerdown", (e) => beginGesture(e, false));
+  drawerShell.addEventListener("pointermove", moveGesture);
+  drawerShell.addEventListener("pointerup", (e) => endGesture(e, false));
+  drawerShell.addEventListener("pointercancel", (e) => endGesture(e, true));
+  drawerShell.addEventListener("lostpointercapture", (e) => {
+    if (gesture && e.target === drawerShell) endGesture(e, true);
+  });
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("pointermove", moveGesture);
+    window.addEventListener("pointerup", (e) => endGesture(e, false));
+    window.addEventListener("resize", () => {
+      gesture = null;
+      const w = Number(window.innerWidth) || 1440;
+      const maxShift = Math.max(0, (w - 220) / 2);
+      state.offsetPx = Math.max(-maxShift, Math.min(maxShift, state.offsetPx));
+      applyDrawerGeometry();
+    });
+    window.addEventListener("frontier:colour-applied", (ev) => {
+      const detail = ev?.detail;
+      if (detail?.Colour && detail?.TargetLabel) {
+        setStatus(`Applied ${detail.Colour.Name} (${detail.Colour.Hex}) -> ${detail.TargetLabel}`);
+      }
+    });
+  }
+
+  notchHandle.addEventListener("pointerdown", (e) => {
+    e.stopPropagation?.();
+    beginGesture(e, true);
+  });
+  notchHandle.addEventListener("click", (e) => {
+    if (settledByKeydown) {
+      settledByKeydown = false;
+      return;
+    }
+    if (!e?.detail) {
+      settleDrawer(state.open ? 0 : 1);
+    }
+  });
+  notchHandle.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault?.();
+      settledByKeydown = true;
+      settleDrawer(state.open ? 0 : 1);
+    }
+  });
+
+  pageGrip.addEventListener("click", () => {
+    if (!suppressGripClick) closeDrawer();
+    suppressGripClick = false;
+  });
+
+  drawerShell.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && state.open) {
+      e.stopPropagation?.();
+      closeDrawer();
+    }
+  });
+
+  // ------------------------------------------------------------------ FILTERING & DATA HELPERS
+  function setStatus(msg) {
+    state.statusMessage = msg;
+    updateFooter();
+  }
+
+  function updateFooter() {
+    if (state.statusMessage) {
+      statusSpan.textContent = state.statusMessage;
+    } else if (state.activeKind === "Colours") {
+      statusSpan.textContent = "Drag any colour swatch/strip onto a colour slot or double-click to apply";
+    } else {
+      statusSpan.textContent = "Drag assets onto the 3D/2D studio stage · double-click to apply · drag header or notch to resize";
+    }
+  }
+
+  function getItemsForKind(kind = state.activeKind) {
+    const lib = getLibrary();
+    return lib.filter(
+      (it) =>
+        (state.origin === "All" || it.Origin === state.origin) &&
+        (kind === "All" || it.Kind === kind),
+    );
+  }
+
+  function getFamiliesForKind(kind) {
+    const items = getItemsForKind(kind);
     const counts = new Map();
     for (const it of items) {
-      counts.set(it.family, (counts.get(it.family) || 0) + 1);
+      const fam = it.family || it.Kind;
+      counts.set(fam, (counts.get(fam) || 0) + 1);
     }
     return [...counts.entries()].map(([name, count]) => ({ name, count }));
   }
 
   function getFilteredItems() {
-    const items = getItems();
+    const lib = getLibrary();
     const q = state.search.trim().toLowerCase();
-    const activeFilterDef = (CATEGORY_FILTERS[state.activeCategory] || []).find((f) => f.id === state.activeFilter);
-    return items.filter((it) => {
+    if (state.activeKind === "Colours") {
+      const base = lib.filter(
+        (it) =>
+          it.Kind === "Colours" &&
+          (state.origin === "All" || it.Origin === state.origin) &&
+          (`${it.name} ${it.Colour?.Hex || ""} ${it.family || ""}`).toLowerCase().includes(q) &&
+          MatchesColourFilter(it.Colour, state.colourFilter),
+      );
+      return SortColourAssets(base, state.colourSort);
+    }
+
+    const activeAttrDef = (ATTRIBUTE_FILTERS[state.activeKind] || []).find((f) => f.id === state.activeFilter);
+    return lib.filter((it) => {
+      if (state.origin !== "All" && it.Origin !== state.origin) return false;
+      if (state.activeKind !== "All" && it.Kind !== state.activeKind) return false;
       if (state.activeFamily !== "All" && it.family !== state.activeFamily) return false;
-      if (activeFilterDef && !activeFilterDef.test(it)) return false;
-      if (q && !it.name.toLowerCase().includes(q) && !it.family.toLowerCase().includes(q)) return false;
+      if (activeAttrDef && !activeAttrDef.test(it)) return false;
+      if (q) {
+        const hay = `${it.name} ${it.family || ""} ${it.Kind} ${it.Colour?.Hex || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
   }
 
-  function findItemById(id, cat = state.activeCategory) {
-    return getItems(cat).find((it) => it.id === id)
-      || [...materialCatalog, ...patternCatalog, ...stampCatalog, ...meshCatalog].find((it) => it.id === id)
-      || null;
-  }
+  // ------------------------------------------------------------------ PROJECT ASSET AUTHORING & IMPORT
+  function createProjectMaterial() {
+    if (userAssets.length >= 256) {
+      setStatus("Library limit reached (256 user assets). Remove an item first.");
+      return null;
+    }
+    const baseRaw = appBridge?.getActiveMaterialParams?.() || materials[0];
+    const names = new Set(getLibrary().map((a) => a.name));
+    const baseName = baseRaw?.name ? `${baseRaw.name} Copy` : "Untitled Material";
+    let unique = baseName;
+    let idx = 2;
+    while (names.has(unique)) unique = `${baseName} ${idx++}`;
 
-  // ---- Top Resize Drag Handle ----
-  const resizeNotch = Construct("div", "cb-resize");
-  resizeNotch.title = "Drag to resize Asset Browser overlay · Double-click to collapse/expand";
-  const notchPill = Construct("span", "cb-resize-pill");
-  resizeNotch.append(notchPill);
-
-  // ---- Header Bar ----
-  const header = Construct("div", "cb-head");
-  const headLeft = Construct("div", "cb-head-left");
-  const titleWrap = Construct("div", "cb-title-wrap");
-  titleWrap.append(ConstructGlyph("Folder", "glyph cb-head-glyph"), Construct("span", "cb-title", "Asset Browser"));
-  const autoBadge = Construct("button", "cb-auto-pill");
-  autoBadge.type = "button";
-  const countBadge = Construct("span", "cb-count-badge", "0");
-  headLeft.append(titleWrap, autoBadge);
-
-  const catTabsWrap = Construct("div", "cb-cat-tabs");
-  const catDefs = [
-    { id: "materials", label: "Materials", glyph: "Material" },
-    { id: "patterns", label: "Patterns", glyph: "Pattern" },
-    { id: "stamps", label: "Decal Stamps", glyph: "Stamp" },
-    { id: "meshes", label: "3D Meshes", glyph: "Cube" },
-  ];
-  const catBtnMap = new Map();
-  for (const c of catDefs) {
-    const btn = Construct("button", "cb-cat-tab");
-    btn.type = "button";
-    btn.dataset.category = c.id;
-    btn.setAttribute("data-category", c.id);
-    btn.append(ConstructGlyph(c.glyph, "glyph"), Construct("span", null, c.label));
-    btn.addEventListener("click", () => {
-      state.activeCategory = c.id;
-      state.activeFamily = "All";
-      state.activeFilter = null;
-      state.userSpecifiedCategory = true;
-      state.expandedCats = new Set([c.id]);
-      if (state.collapsed) {
-        state.collapsed = false;
-        applyHeight();
-      }
-      render();
-    });
-    catBtnMap.set(c.id, btn);
-    catTabsWrap.append(btn);
-  }
-
-  const headRight = Construct("div", "cb-head-right");
-  const searchWrap = Construct("div", "cb-search-wrap");
-  searchWrap.append(ConstructGlyph("Search", "glyph cb-search-icon"));
-  const searchInp = Construct("input", "cb-search");
-  searchInp.type = "search";
-  searchInp.placeholder = "Search materials...";
-  searchInp.addEventListener("input", () => {
-    state.search = searchInp.value;
-    renderCenterAndInspector();
-  });
-  searchWrap.append(searchInp);
-
-  // Grid / List View Switcher
-  const viewToggle = Construct("div", "cb-view-toggle");
-  viewToggle.setAttribute("role", "group");
-  viewToggle.setAttribute("aria-label", "Asset View Mode");
-  const gridViewBtn = Construct("button", "cb-view-btn");
-  gridViewBtn.type = "button";
-  gridViewBtn.dataset.view = "grid";
-  gridViewBtn.setAttribute("data-view", "grid");
-  gridViewBtn.title = "Square Grid View";
-  gridViewBtn.append(ConstructGlyph("Grid", "glyph"), Construct("span", null, "Grid"));
-  const listViewBtn = Construct("button", "cb-view-btn");
-  listViewBtn.type = "button";
-  listViewBtn.dataset.view = "list";
-  listViewBtn.setAttribute("data-view", "list");
-  listViewBtn.title = "Compact List View";
-  listViewBtn.append(ConstructGlyph("List", "glyph"), Construct("span", null, "List"));
-
-  gridViewBtn.addEventListener("click", () => {
-    state.viewMode = "grid";
-    renderViewButtons();
-    renderGrid();
-  });
-  listViewBtn.addEventListener("click", () => {
-    state.viewMode = "list";
-    renderViewButtons();
-    renderGrid();
-  });
-  viewToggle.append(gridViewBtn, listViewBtn);
-
-  const collapseBtn = Construct("button", "cb-collapse-btn");
-  collapseBtn.type = "button";
-  collapseBtn.title = "Collapse / Expand Asset Browser Overlay";
-  collapseBtn.append(ConstructGlyph("ChevronDown", "glyph"));
-  collapseBtn.addEventListener("click", () => {
-    state.collapsed = !state.collapsed;
-    applyHeight();
-  });
-
-  headRight.append(searchWrap, viewToggle, collapseBtn);
-  header.append(headLeft, catTabsWrap, headRight);
-
-  autoBadge.addEventListener("click", () => {
-    state.userSpecifiedCategory = false;
-    state.activeCategory = WORKSPACE_TO_CATEGORY[state.activeWorkspace] || "materials";
+    const matCopy = {
+      ...structuredClone(baseRaw),
+      id: `asset-mat-${makeUuid().slice(0, 8)}`,
+      name: unique,
+      category: "Project",
+      description: "Browser-authored material snapshot from Texture Studio.",
+    };
+    const record = {
+      id: "asset-" + makeUuid(),
+      name: unique,
+      Kind: "Materials",
+      Origin: "Project",
+      family: "Project",
+      assetKind: "material",
+      raw: matCopy,
+      detail: "Browser-authored material preset stored in this browser.",
+    };
+    userAssets = [record, ...userAssets];
+    persistSavedRecords(userAssets);
+    state.origin = "Project";
+    state.activeKind = "Materials";
     state.activeFamily = "All";
     state.activeFilter = null;
-    state.expandedCats = new Set([state.activeCategory]);
-    render();
-  });
-
-  // ---- Body: 3 Panes [Left TreeView/Folders/Filters | Center Square Grid/List | Right Tile Inspector] ----
-  const body = Construct("div", "cb-body");
-  const treePane = Construct("aside", "cb-tree-pane");
-  const centerPane = Construct("div", "cb-center-pane");
-  const familyPillsStrip = Construct("div", "cb-family-pills");
-  const collectionBar = Construct("div", "cb-collection-bar");
-  const collectionTitle = Construct("span", "cb-collection-title", "THE ESSENTIAL COLLECTION");
-  const collectionCount = Construct("span", "cb-collection-count", "0");
-  collectionBar.append(collectionTitle, collectionCount);
-  const gridScroll = Construct("div", "cb-grid-scroll");
-  const grid = Construct("div", "cb-grid");
-  gridScroll.append(grid);
-  centerPane.append(familyPillsStrip, collectionBar, gridScroll);
-  const inspectorPane = Construct("aside", "cb-inspector");
-  body.append(treePane, centerPane, inspectorPane);
-  root.append(resizeNotch, header, body);
-
-  const clearNode = (el, ...nodes) => {
-    el.innerHTML = "";
-    if (nodes.length) el.append(...nodes);
-  };
-
-  function applyHeight() {
-    const h = state.collapsed ? 38 : state.heightPx;
-    root.style.height = `${h}px`;
-    root.classList.toggle("collapsed", state.collapsed);
-    clearNode(collapseBtn, ConstructGlyph(state.collapsed ? "ChevronUp" : "ChevronDown", "glyph"));
-    // Intentionally does NOT call window.resize or touch .studio-main so the viewport never resizes.
+    state.search = "";
+    searchInput.value = "";
+    state.inspectorItemId = record.id;
+    setStatus(`Saved "${unique}" to Project Materials`);
+    renderAll();
+    return record;
   }
 
-  let dragStartY = 0;
-  let dragStartH = 326;
-  let dragging = false;
-  const onPointerMove = (e) => {
-    if (!dragging) return;
-    const dy = dragStartY - e.clientY;
-    const maxH = typeof window !== "undefined" && window.innerHeight ? Math.min(680, Math.floor(window.innerHeight * 0.72)) : 560;
-    state.heightPx = Math.max(196, Math.min(maxH, Math.round(dragStartH + dy)));
-    if (state.collapsed && state.heightPx > 120) state.collapsed = false;
-    applyHeight();
-  };
-  const onPointerUp = () => {
-    if (!dragging) return;
-    dragging = false;
-    root.classList.remove("resizing");
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", onPointerUp);
-  };
-  resizeNotch.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    dragging = true;
-    dragStartY = e.clientY;
-    dragStartH = state.collapsed ? 38 : state.heightPx;
-    root.classList.add("resizing");
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-  });
-  resizeNotch.addEventListener("dblclick", () => {
-    state.collapsed = !state.collapsed;
-    applyHeight();
-  });
-
-  function renderViewButtons() {
-    gridViewBtn.classList.toggle("active", state.viewMode === "grid");
-    gridViewBtn.setAttribute("aria-pressed", state.viewMode === "grid" ? "true" : "false");
-    listViewBtn.classList.toggle("active", state.viewMode === "list");
-    listViewBtn.setAttribute("aria-pressed", state.viewMode === "list" ? "true" : "false");
+  function createProjectColour(initialHex = null, baseName = "Untitled Colour") {
+    if (userAssets.length >= 256) {
+      setStatus("Library limit reached (256 user assets). Remove an item first.");
+      return null;
+    }
+    const presets = ["#3B1F3A", "#F6B800", "#2454FF", "#E63956", "#10B981"];
+    const names = new Set(getLibrary().map((a) => a.name));
+    let unique = baseName;
+    let idx = 2;
+    while (names.has(unique)) unique = `${baseName} ${idx++}`;
+    const existingCount = userAssets.filter((a) => a.Kind === "Colours").length;
+    const colour = ResolveColourEntry({
+      Name: unique,
+      Hex: initialHex || presets[existingCount % presets.length],
+      Family: "Project",
+    });
+    const record = {
+      id: "asset-" + makeUuid(),
+      name: unique,
+      Kind: "Colours",
+      Origin: "Project",
+      family: "Project",
+      assetKind: "colour",
+      Colour: colour,
+      detail: "Browser-authored ColourCodex alias · drag onto any colour slot or double-click to apply.",
+    };
+    userAssets = [record, ...userAssets];
+    persistSavedRecords(userAssets);
+    state.origin = "Project";
+    state.activeKind = "Colours";
+    state.colourFilter = "All";
+    state.search = "";
+    searchInput.value = "";
+    state.inspectorItemId = record.id;
+    setStatus(`Created ${unique} (${colour.Hex})`);
+    renderAll();
+    return record;
   }
 
-  function renderTreePane() {
-    clearNode(treePane);
+  async function importFiles(filesList) {
+    const files = [...(filesList || [])];
+    if (!files.length || state.busy) return;
+    state.busy = true;
+    importBtn.disabled = true;
+    importBtn.textContent = "Importing…";
 
-    const treeSectionTitle = Construct("div", "cb-tree-section-head");
-    treeSectionTitle.append(ConstructGlyph("Layers", "glyph"), Construct("span", null, "Library Tree"));
-    treePane.append(treeSectionTitle);
+    const added = [];
+    const errors = [];
+    const cap = Math.max(0, 256 - userAssets.length);
 
-    const treeList = Construct("div", "cb-tree-list");
-    for (const cat of catDefs) {
-      const catItems = getItems(cat.id);
-      const isActiveCat = state.activeCategory === cat.id;
-      const isExpanded = state.expandedCats.has(cat.id);
-
-      const branch = Construct("div", `cb-tree-branch${isActiveCat ? " active-branch" : ""}`);
-      const branchHead = Construct("div", `cb-tree-cat-row${isActiveCat ? " active" : ""}`);
-
-      const caretBtn = Construct("button", "cb-tree-caret");
-      caretBtn.type = "button";
-      caretBtn.title = isExpanded ? "Collapse folder group" : "Expand folder group";
-      caretBtn.append(ConstructGlyph(isExpanded ? "ChevronDown" : "ChevronRight", "glyph"));
-      caretBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (state.expandedCats.has(cat.id)) state.expandedCats.delete(cat.id);
-        else state.expandedCats.add(cat.id);
-        renderTreePane();
-      });
-
-      const catSelectBtn = Construct("button", "cb-tree-cat-btn");
-      catSelectBtn.type = "button";
-      catSelectBtn.append(
-        ConstructGlyph(cat.glyph, "glyph cb-tree-cat-glyph"),
-        Construct("span", "cb-tree-label", cat.label),
-        Construct("span", "cb-tree-count", String(catItems.length)),
-      );
-      catSelectBtn.addEventListener("click", () => {
-        state.activeCategory = cat.id;
-        state.activeFamily = "All";
-        state.activeFilter = null;
-        state.userSpecifiedCategory = true;
-        state.expandedCats.add(cat.id);
-        render();
-      });
-
-      branchHead.append(caretBtn, catSelectBtn);
-      branch.append(branchHead);
-
-      if (isExpanded) {
-        const subTree = Construct("div", "cb-tree-children");
-        const families = getFamiliesFor(cat.id);
-        const allFolders = [{ name: "All", count: catItems.length }, ...families];
-        for (const fam of allFolders) {
-          const isFamActive = isActiveCat && state.activeFamily === fam.name;
-          const famBtn = Construct("button", `cb-family-btn cb-tree-node${isFamActive ? " active" : ""}`);
-          famBtn.type = "button";
-          famBtn.dataset.family = fam.name;
-          famBtn.setAttribute("data-family", fam.name);
-          famBtn.append(
-            ConstructGlyph(fam.name === "All" ? "Layers" : "Folder", "glyph cb-tree-folder-glyph"),
-            Construct("span", "cb-tree-label", fam.name === "All" ? `All ${cat.label}` : fam.name),
-            Construct("span", "cb-tree-count", String(fam.count)),
-          );
-          famBtn.addEventListener("click", () => {
-            state.activeCategory = cat.id;
-            state.activeFamily = fam.name;
-            state.userSpecifiedCategory = cat.id !== (WORKSPACE_TO_CATEGORY[state.activeWorkspace] || "materials")
-              ? true
-              : state.userSpecifiedCategory;
-            render();
-          });
-          subTree.append(famBtn);
+    for (const file of files.slice(0, Math.min(32, cap))) {
+      try {
+        if (file.size > 16 * 1024 * 1024) {
+          throw new Error(`${file.name}: maximum file size is 16 MB.`);
         }
-        branch.append(subTree);
-      }
-      treeList.append(branch);
-    }
-    treePane.append(treeList);
+        const lower = file.name.toLowerCase();
+        if (lower.endsWith(".toml")) {
+          const parsed = ParseColourCodexToml(await file.text());
+          if (!parsed.length) throw new Error(`${file.name}: no valid ColourCodex entries found.`);
+          for (const col of parsed.slice(0, Math.max(1, cap - added.length))) {
+            added.push({
+              id: "asset-" + makeUuid(),
+              name: col.Name,
+              Kind: "Colours",
+              Origin: "Imported",
+              family: col.Family || "Imported",
+              assetKind: "colour",
+              Size: file.size,
+              Colour: col,
+              detail: `Imported from ${file.name} · drag onto any colour slot or double-click to apply.`,
+            });
+          }
+          continue;
+        }
 
-    // Quick Attribute Filters for active category
-    const filterDefs = CATEGORY_FILTERS[state.activeCategory] || [];
-    if (filterDefs.length) {
-      const filterHead = Construct("div", "cb-tree-section-head cb-tree-filter-head");
-      filterHead.append(ConstructGlyph("Filter", "glyph"), Construct("span", null, "Quick Filters"));
-      if (state.activeFilter) {
-        const clearBtn = Construct("button", "cb-filter-clear", "Reset");
-        clearBtn.type = "button";
-        clearBtn.addEventListener("click", () => {
-          state.activeFilter = null;
-          render();
-        });
-        filterHead.append(clearBtn);
-      }
-      treePane.append(filterHead);
+        if (lower.endsWith(".material.json") || lower.endsWith(".json")) {
+          const text = await file.text();
+          const json = JSON.parse(text);
+          const rawMat = json.material || json.Material || json;
+          if (!rawMat || typeof rawMat !== "object") {
+            throw new Error(`${file.name}: invalid material JSON.`);
+          }
+          const matId = `imp-mat-${makeUuid().slice(0, 8)}`;
+          const rec = {
+            id: "asset-" + makeUuid(),
+            name: rawMat.name || rawMat.Name || file.name.replace(/(\.material)?\.json$/i, ""),
+            Kind: "Materials",
+            Origin: "Imported",
+            family: rawMat.category || "Imported",
+            assetKind: "material",
+            Size: file.size,
+            raw: { ...rawMat, id: matId },
+            detail: `Imported material definition (${file.name}).`,
+          };
+          await assetBlobStore(rec.id, file);
+          added.push(rec);
+          continue;
+        }
 
-      const filterList = Construct("div", "cb-tree-filters");
-      const basePool = getItems().filter((it) => state.activeFamily === "All" || it.family === state.activeFamily);
-      for (const f of filterDefs) {
-        const matchCount = basePool.filter(f.test).length;
-        const active = state.activeFilter === f.id;
-        const pill = Construct("button", `cb-filter-pill${active ? " active" : ""}`);
-        pill.type = "button";
-        pill.dataset.filter = f.id;
-        pill.append(
-          Construct("span", "cb-filter-dot"),
-          Construct("span", "cb-filter-name", f.label),
-          Construct("span", "cb-tree-count", String(matchCount)),
-        );
-        pill.addEventListener("click", () => {
-          state.activeFilter = active ? null : f.id;
-          renderTreePane();
-          renderCenterAndInspector();
-        });
-        filterList.append(pill);
+        const ext = lower.split(".").pop();
+        if (ext === "obj" || ext === "stl") {
+          let threeGeo = null;
+          if (ext === "obj") {
+            const grp = new OBJLoader().parse(await file.text());
+            grp.traverse((ch) => { if (ch.isMesh && !threeGeo) threeGeo = ch.geometry.clone(); });
+          } else {
+            threeGeo = new STLLoader().parse(await file.arrayBuffer());
+          }
+          if (!threeGeo) throw new Error(`${file.name}: could not extract mesh geometry.`);
+          threeGeo.center();
+          threeGeo.computeBoundingSphere();
+          const normScale = 1.45 / Math.max(0.01, threeGeo.boundingSphere?.radius || 1);
+          threeGeo.scale(normScale, normScale, normScale);
+          const meshName = file.name.replace(/\.(obj|stl)$/i, "");
+          const transfer = buildGeometryTransferFromThreeGeometry(threeGeo, meshName);
+          threeGeo.dispose();
+          const meshRecId = "asset-" + makeUuid();
+          if (transfer) runtimeMeshTransfers.set(meshRecId, transfer);
+          const rec = {
+            id: meshRecId,
+            name: meshName,
+            Kind: "Meshes",
+            Origin: "Imported",
+            family: "Imported",
+            assetKind: "mesh",
+            Size: file.size,
+            raw: {
+              id: meshRecId,
+              name: meshName,
+              family: "Imported",
+              topo: ext.toUpperCase(),
+              complexity: transfer ? `${(transfer.triCount / 1000).toFixed(1)}k tris` : "Mesh",
+              role: "Imported Mesh",
+              desc: `Imported ${ext.toUpperCase()} mesh (${transfer ? transfer.triCount.toLocaleString() : "?"} tris).`,
+            },
+            detail: `Imported ${ext.toUpperCase()} geometry (${transfer ? transfer.triCount.toLocaleString() : "?"} tris).`,
+          };
+          await assetBlobStore(rec.id, file);
+          added.push(rec);
+          continue;
+        }
+
+        if (["png", "jpg", "jpeg", "webp", "svg"].includes(ext)) {
+          const recId = "asset-" + makeUuid();
+          let dataUrl = "";
+          let width = 0;
+          let height = 0;
+          if (typeof URL !== "undefined" && typeof URL.createObjectURL === "function" && typeof Image !== "undefined") {
+            const objUrl = URL.createObjectURL(file);
+            runtimeBlobUrls.set(recId, objUrl);
+            try {
+              const img = new Image();
+              img.src = objUrl;
+              await img.decode?.();
+              width = img.naturalWidth || img.width || 0;
+              height = img.naturalHeight || img.height || 0;
+              if (width > 0 && height > 0) {
+                const c = document.createElement("canvas");
+                const ratio = Math.min(1, 128 / Math.max(width, height));
+                c.width = Math.max(1, Math.round(width * ratio));
+                c.height = Math.max(1, Math.round(height * ratio));
+                c.getContext?.("2d")?.drawImage?.(img, 0, 0, c.width, c.height);
+                dataUrl = c.toDataURL?.("image/png") || "";
+              }
+            } catch {}
+          }
+          const rec = {
+            id: recId,
+            name: file.name,
+            Kind: "Images",
+            Origin: "Imported",
+            family: ext.toUpperCase(),
+            assetKind: "image",
+            Size: file.size,
+            Width: width,
+            Height: height,
+            Thumbnail: dataUrl || undefined,
+            Data: runtimeBlobUrls.get(recId) || dataUrl || undefined,
+            raw: {
+              id: recId,
+              name: file.name,
+              dataUrl: runtimeBlobUrls.get(recId) || dataUrl,
+              width,
+              height,
+            },
+            detail: `Imported ${ext.toUpperCase()} image${width ? ` (${width} × ${height})` : ""}.`,
+          };
+          await assetBlobStore(rec.id, file);
+          added.push(rec);
+          continue;
+        }
+
+        throw new Error(`${file.name}: unsupported extension.`);
+      } catch (err) {
+        errors.push(err?.message || String(err));
       }
-      treePane.append(filterList);
     }
+
+    if (added.length) {
+      userAssets = [...added, ...userAssets];
+      persistSavedRecords(userAssets);
+      state.origin = "Imported";
+      state.activeKind = added.every((a) => a.Kind === added[0].Kind) ? added[0].Kind : "All";
+      state.activeFamily = "All";
+      state.activeFilter = null;
+      state.colourFilter = "All";
+      state.search = "";
+      searchInput.value = "";
+      state.inspectorItemId = added[0].id;
+    }
+
+    setStatus(
+      `${added.length} imported${errors.length ? " · " + errors.join(" · ") : " · ready in ContentBrowser"}`,
+    );
+    state.busy = false;
+    importBtn.disabled = false;
+    importBtn.textContent = "Import files";
+    renderAll();
   }
 
-  function createAssetIconElement(item, size = 64) {
-    const wrap = Construct("div", "cb-asset-icon");
-    if (item.kind === "material") {
+  async function removeAsset(item) {
+    if (!item || item.Origin === "Engine") return;
+    await assetBlobStore(item.id, undefined, true);
+    userAssets = userAssets.filter((a) => a.id !== item.id);
+    runtimeMeshTransfers.delete(item.id);
+    if (runtimeBlobUrls.has(item.id)) {
+      URL.revokeObjectURL?.(runtimeBlobUrls.get(item.id));
+      runtimeBlobUrls.delete(item.id);
+    }
+    persistSavedRecords(userAssets);
+    if (state.inspectorItemId === item.id) state.inspectorItemId = null;
+    setStatus(`Removed "${item.name}" from browser library.`);
+    renderAll();
+  }
+
+  async function downloadAssetItem(item) {
+    if (!item) return;
+    if (item.Kind === "Colours" && item.Colour) {
+      const toml = SerializeColourCodexToml([item.Colour]);
+      triggerBlobDownload(
+        new Blob([toml], { type: "application/toml;charset=utf-8" }),
+        `${item.name.replace(/\s+/g, "")}.toml`,
+      );
+      setStatus(`Downloaded ${item.name}.toml`);
+      return;
+    }
+    if (item.Kind === "Materials") {
+      const json = JSON.stringify({ Format: "FrontierTextureMaterial.v1", Material: item.raw }, null, 2);
+      triggerBlobDownload(
+        new Blob([json], { type: "application/json" }),
+        `${item.name.replace(/\s+/g, "_")}.material.json`,
+      );
+      setStatus(`Downloaded ${item.name}.material.json`);
+      return;
+    }
+    if (item.Kind === "Patterns" || item.Kind === "Stamps") {
+      const kindArg = item.Kind === "Patterns" ? "pattern" : "stamp";
+      const svg = getArtworkPreviewSvg(item.raw, kindArg, 512);
+      triggerBlobDownload(
+        new Blob([svg], { type: "image/svg+xml;charset=utf-8" }),
+        `${item.name.replace(/\s+/g, "_")}.svg`,
+      );
+      setStatus(`Downloaded ${item.name}.svg`);
+      return;
+    }
+    const stored = await assetBlobStore(item.id);
+    if (stored) {
+      triggerBlobDownload(stored, item.name);
+      setStatus(`Downloaded ${item.name}`);
+      return;
+    }
+    setStatus("Download exported summary for engine preset.");
+  }
+
+  // ------------------------------------------------------------------ VISUAL ICON BUILDER (NO THUMB BOXES)
+  function createAssetThumbnailNode(item, size = 70) {
+    const thumb = Construct("span", "asset-thumbnail");
+    if (item.Kind === "Colours" && item.Colour) {
+      const circle = Construct("span", "asset-colour-circle");
+      circle.style.backgroundColor = item.Colour.Hex;
+      thumb.append(circle);
+      return thumb;
+    }
+    if (item.Kind === "Materials") {
       const img = document.createElement("img");
       img.className = "cb-mat-baked-img";
       img.alt = item.name;
@@ -565,337 +1394,940 @@ export function createAssetBrowser(hostOrOpts, maybeBridge) {
       });
       if (bakedUrl) {
         img.src = bakedUrl;
-        wrap.append(img);
+        thumb.append(img);
       } else {
-        // Headless fallback (no 2D canvas pixel API): transparent circular inline SVG PBR orb (no box)
-        wrap.innerHTML = makeMatIconSvg(item, size);
+        thumb.innerHTML = makeMatIconSvg(item.raw, size);
       }
-    } else if (item.kind === "pattern") {
-      wrap.classList.add("cb-icon-pattern");
-      wrap.innerHTML = getArtworkPreviewSvg(item.raw, "pattern", size);
-    } else if (item.kind === "stamp") {
-      wrap.classList.add("cb-icon-stamp");
-      wrap.innerHTML = getArtworkPreviewSvg(item.raw, "stamp", size);
-    } else {
-      wrap.classList.add("cb-icon-mesh");
-      wrap.innerHTML = makeMeshIconSvg(item.id, size);
+      return thumb;
     }
-    return wrap;
+    if (item.Kind === "Patterns") {
+      thumb.classList.add("cb-icon-pattern");
+      thumb.innerHTML = getArtworkPreviewSvg(item.raw, "pattern", size);
+      return thumb;
+    }
+    if (item.Kind === "Stamps") {
+      thumb.classList.add("cb-icon-stamp");
+      thumb.innerHTML = getArtworkPreviewSvg(item.raw, "stamp", size);
+      return thumb;
+    }
+    if (item.Kind === "Meshes") {
+      thumb.classList.add("cb-icon-mesh");
+      const bakedUrl = getBakedGeometryIcon(item.raw?.id || item.id, Math.max(88, Math.min(128, size * 2)));
+      if (bakedUrl) {
+        const img = document.createElement("img");
+        img.className = "cb-mat-baked-img";
+        img.alt = item.name;
+        img.draggable = false;
+        img.src = bakedUrl;
+        thumb.append(img);
+      } else {
+        thumb.innerHTML = makeMeshIconSvg(item.raw?.id || item.id, size);
+      }
+      return thumb;
+    }
+    if (item.Kind === "Images") {
+      const src = item.Data || item.Thumbnail;
+      if (src) {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = item.name;
+        img.loading = "lazy";
+        thumb.append(img);
+      } else {
+        thumb.append(Construct("span", "asset-kind-icon", "▤"));
+      }
+      return thumb;
+    }
+    thumb.append(Construct("span", "asset-kind-icon", "◇"));
+    return thumb;
   }
 
-  function buildInspectorTile(label, value, sub = "", highlight = false) {
-    const tile = Construct("div", `kpi-card cb-insp-prop${highlight ? " highlight" : ""}`);
-    tile.append(
-      Construct("div", "kpi-label", label),
-      Construct("div", "kpi-val", value),
-      Construct("div", "kpi-sub", sub),
+  // ------------------------------------------------------------------ RENDERING: HEADER, TOOLBAR, RAIL, CATALOGUE, DETAILS
+  function renderHeaderControls() {
+    const lib = getLibrary();
+    titleCountSmall.textContent = `${lib.length} items`;
+
+    autoFollowBtn.textContent = state.userSpecifiedCategory
+      ? "Pinned · Reset"
+      : `Auto · ${state.activeWorkspace}`;
+    autoFollowBtn.classList.toggle("pinned", state.userSpecifiedCategory);
+
+    exportTomlBtn.hidden = state.activeKind !== "Colours";
+
+    for (const [originName, btn] of originBtns.entries()) {
+      btn.setAttribute("aria-pressed", String(originName === state.origin));
+    }
+
+    // View switch (2-way Grid/List or 3-way Grid/Vertical/Horizontal for Colours)
+    viewSwitchEl.innerHTML = "";
+    if (state.activeKind === "Colours") {
+      viewSwitchEl.className = "asset-view-switch colour-view-switch";
+      viewSwitchEl.setAttribute("aria-label", "Colour layout");
+      const modes = [
+        { id: "grid", label: "Grid", icon: "grid", aria: "grid asset view" },
+        { id: "list-vertical", label: "Vertical", icon: "vertical", aria: "vertical list colour view" },
+        { id: "list-horizontal", label: "Horizontal", icon: "horizontal", aria: "horizontal list colour view" },
+      ];
+      for (const m of modes) {
+        const btn = Construct("button");
+        btn.type = "button";
+        btn.dataset.view = m.id;
+        btn.setAttribute("aria-label", m.aria);
+        btn.setAttribute("aria-pressed", String(state.colourView === m.id));
+        btn.append(createBrowserIconSvg(m.icon), Construct("span", null, m.label));
+        btn.addEventListener("click", () => {
+          state.colourView = m.id;
+          renderHeaderControls();
+          renderResults();
+        });
+        viewSwitchEl.append(btn);
+      }
+    } else {
+      viewSwitchEl.className = "asset-view-switch";
+      viewSwitchEl.setAttribute("aria-label", "Content layout");
+      for (const m of [
+        { id: "grid", label: "Grid", aria: "grid asset view" },
+        { id: "list", label: "List", aria: "list asset view" },
+      ]) {
+        const btn = Construct("button");
+        btn.type = "button";
+        btn.dataset.view = m.id;
+        btn.setAttribute("aria-label", m.aria);
+        btn.setAttribute("aria-pressed", String(state.viewMode === m.id));
+        btn.append(createBrowserIconSvg(m.id), Construct("span", null, m.label));
+        btn.addEventListener("click", () => {
+          state.viewMode = m.id;
+          renderHeaderControls();
+          renderResults();
+        });
+        viewSwitchEl.append(btn);
+      }
+    }
+  }
+
+  function renderFilterBar() {
+    filterBarEl.innerHTML = "";
+    const lib = getLibrary();
+
+    if (state.activeKind === "Colours") {
+      filterBarEl.hidden = false;
+      const q = state.search.trim().toLowerCase();
+      const pool = lib.filter(
+        (it) =>
+          it.Kind === "Colours" &&
+          (state.origin === "All" || it.Origin === state.origin) &&
+          (`${it.name} ${it.Colour?.Hex || ""} ${it.family || ""}`).toLowerCase().includes(q),
+      );
+      filterBarEl.append(Construct("span", "colour-filters-title", "Colour Filters"));
+      const chipsWrap = Construct("div", "colour-filter-chips");
+      chipsWrap.setAttribute("role", "group");
+      chipsWrap.setAttribute("aria-label", "Colour filter family");
+      for (const cat of ColourFilterCategories) {
+        const count = pool.filter((a) => MatchesColourFilter(a.Colour, cat)).length;
+        const btn = Construct("button");
+        btn.type = "button";
+        btn.setAttribute("aria-pressed", String(state.colourFilter === cat));
+        btn.append(Construct("span", null, cat), Construct("small", null, String(count)));
+        btn.addEventListener("click", () => {
+          state.colourFilter = cat;
+          renderFilterBar();
+          renderResultsAndPreview();
+        });
+        chipsWrap.append(btn);
+      }
+      const sortLabel = Construct("label", "colour-sort-select");
+      sortLabel.append("Sort ");
+      const sortSel = document.createElement("select");
+      sortSel.setAttribute("aria-label", "Sort colours");
+      for (const m of ColourSortModes) {
+        const opt = document.createElement("option");
+        opt.value = m.Id;
+        opt.textContent = m.Label;
+        opt.selected = state.colourSort === m.Id;
+        sortSel.append(opt);
+      }
+      sortSel.addEventListener("change", () => {
+        state.colourSort = sortSel.value;
+        renderResultsAndPreview();
+      });
+      sortLabel.append(sortSel);
+      filterBarEl.append(chipsWrap, sortLabel);
+      return;
+    }
+
+    const families = getFamiliesForKind(state.activeKind);
+    const attrs = ATTRIBUTE_FILTERS[state.activeKind] || [];
+    if (state.activeKind === "All" || (families.length <= 1 && !attrs.length)) {
+      filterBarEl.hidden = true;
+      return;
+    }
+
+    filterBarEl.hidden = false;
+    filterBarEl.append(Construct("span", "colour-filters-title", "Collection"));
+    const chipsWrap = Construct("div", "colour-filter-chips");
+    chipsWrap.setAttribute("role", "group");
+    chipsWrap.setAttribute("aria-label", `${state.activeKind} filters`);
+
+    const totalInKind = getItemsForKind(state.activeKind).length;
+    const allChip = Construct("button");
+    allChip.type = "button";
+    allChip.dataset.family = "All";
+    allChip.setAttribute("aria-pressed", String(state.activeFamily === "All" && !state.activeFilter));
+    allChip.append(Construct("span", null, "All"), Construct("small", null, String(totalInKind)));
+    allChip.addEventListener("click", () => {
+      state.activeFamily = "All";
+      state.activeFilter = null;
+      renderFilterBar();
+      renderResultsAndPreview();
+    });
+    chipsWrap.append(allChip);
+
+    for (const fam of families) {
+      const btn = Construct("button");
+      btn.type = "button";
+      btn.dataset.family = fam.name;
+      btn.setAttribute("aria-pressed", String(state.activeFamily === fam.name));
+      btn.append(Construct("span", null, fam.name), Construct("small", null, String(fam.count)));
+      btn.addEventListener("click", () => {
+        state.activeFamily = state.activeFamily === fam.name ? "All" : fam.name;
+        renderFilterBar();
+        renderResultsAndPreview();
+      });
+      chipsWrap.append(btn);
+    }
+
+    if (attrs.length) {
+      const basePool = getItemsForKind(state.activeKind).filter(
+        (it) => state.activeFamily === "All" || it.family === state.activeFamily,
+      );
+      for (const f of attrs) {
+        const count = basePool.filter(f.test).length;
+        const btn = Construct("button", "attr-filter-chip");
+        btn.type = "button";
+        btn.dataset.filter = f.id;
+        btn.setAttribute("aria-pressed", String(state.activeFilter === f.id));
+        btn.append(Construct("span", null, f.label), Construct("small", null, String(count)));
+        btn.addEventListener("click", () => {
+          state.activeFilter = state.activeFilter === f.id ? null : f.id;
+          renderFilterBar();
+          renderResultsAndPreview();
+        });
+        chipsWrap.append(btn);
+      }
+    }
+
+    filterBarEl.append(chipsWrap);
+  }
+
+  function renderCategoryRail() {
+    railNav.innerHTML = "";
+    const lib = getLibrary();
+    for (const catName of CATEGORY_ORDER) {
+      const count = lib.filter(
+        (a) =>
+          (catName === "All" || a.Kind === catName) &&
+          (state.origin === "All" || a.Origin === state.origin),
+      ).length;
+      const btn = Construct("button");
+      btn.type = "button";
+      btn.dataset.category = catName.toLowerCase();
+      btn.setAttribute("aria-pressed", String(catName === state.activeKind));
+      btn.append(Construct("span", null, catName), Construct("small", null, String(count)));
+      btn.addEventListener("click", () => {
+        state.activeKind = catName;
+        state.activeFamily = "All";
+        state.activeFilter = null;
+        state.userSpecifiedCategory = true;
+        renderAll();
+      });
+      railNav.append(btn);
+    }
+    const note = Construct("p");
+    note.innerHTML = "Engine files are read-only.<br>Project and imported items stay in this browser.";
+    railNav.append(note);
+  }
+
+  function beginAssetDrag(e, item) {
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "copy";
+      if (item.Kind === "Colours" && item.Colour) {
+        PackColourDragData(e, item.Colour);
+      } else {
+        e.dataTransfer.setData(
+          "application/x-frontier-asset",
+          JSON.stringify({ assetKind: item.assetKind, id: item.id, name: item.name }),
+        );
+        e.dataTransfer.setData("text/plain", item.name);
+      }
+    }
+    if (appBridge) appBridge.activeDragAsset = toPayload(item);
+    if (item.Kind === "Colours") {
+      document.body?.classList?.add("dragging-codex-colour");
+    }
+    // Dock from full -> split half shelf cleanly on the next frame so the drag ghost captures before sliding down
+    if (state.progress > 0.75) {
+      const snap = () => {
+        if (state.progress > 0.75) settleDrawer(0.46);
+      };
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(snap);
+      else snap();
+    }
+  }
+
+  function endAssetDrag() {
+    if (appBridge) appBridge.activeDragAsset = null;
+    document.body?.classList?.remove("dragging-codex-colour");
+  }
+
+  function renderResults() {
+    const visible = getFilteredItems();
+    const headingText =
+      state.activeKind === "All"
+        ? "All content"
+        : state.activeKind === "Colours" && state.colourFilter !== "All"
+          ? `Colours · ${state.colourFilter}`
+          : state.activeFamily !== "All"
+            ? `${state.activeKind} · ${state.activeFamily}`
+            : state.activeKind;
+    resultsHeading.textContent = headingText;
+    resultsCount.textContent = `${visible.length} ${visible.length === 1 ? "result" : "results"}`;
+
+    catalogueDiv.innerHTML = "";
+    const activeLayout = state.activeKind === "Colours" ? state.colourView : state.viewMode;
+
+    // ColourCodex Vertical & Horizontal Spectrum Strips
+    if (state.activeKind === "Colours" && (activeLayout === "list-vertical" || activeLayout === "list-horizontal")) {
+      catalogueDiv.className = `asset-catalogue colour-strip-deck ${activeLayout}`;
+      catalogueDiv.setAttribute(
+        "aria-label",
+        activeLayout === "list-vertical" ? "Vertical colour strip list" : "Horizontal colour strip list",
+      );
+
+      if (!visible.length) {
+        catalogueDiv.append(buildEmptyState("No colours match filter", "Choose another Colour Filter or clear search."));
+        return;
+      }
+
+      if (activeLayout === "list-vertical" && visible[0]?.Colour) {
+        const ink = ChooseCardInk(visible[0].Colour.Hex);
+        const banner = Construct(
+          "span",
+          "colour-strip-banner",
+          state.colourFilter === "All" ? "ColourCodex Spectrum" : state.colourFilter,
+        );
+        banner.style.color = ink.text;
+        catalogueDiv.append(banner);
+      }
+
+      for (const item of visible) {
+        const ink = ChooseCardInk(item.Colour.Hex);
+        const isSel = state.inspectorItemId === item.id;
+        const band = Construct("button", `colour-strip-band${isSel ? " selected" : ""}`);
+        band.type = "button";
+        band.dataset.assetId = item.id;
+        band.dataset.assetKind = item.assetKind;
+        band.setAttribute("aria-label", `Select asset ${item.name}`);
+        band.setAttribute("aria-pressed", String(isSel));
+        band.draggable = true;
+        band.style.backgroundColor = item.Colour.Hex;
+        band.style.color = ink.text;
+        band.title = `${item.name} · ${item.Colour.Hex} (Drag to colour slot or double-click)`;
+
+        if (activeLayout === "list-vertical") {
+          band.append(Construct("span", "colour-strip-vertical-hex", item.Colour.CompactHex));
+        } else {
+          const metaSpan = Construct("span", "colour-strip-horizontal-meta");
+          const smallRgb = Construct("small", null, `RGB ${item.Colour.RGB.join(", ")}`);
+          smallRgb.style.color = ink.muted;
+          metaSpan.append(Construct("b", null, item.Colour.CompactHex), smallRgb);
+          band.append(Construct("strong", "colour-strip-horizontal-name", item.name), metaSpan);
+        }
+
+        band.addEventListener("dragstart", (e) => beginAssetDrag(e, item));
+        band.addEventListener("dragend", endAssetDrag);
+        band.addEventListener("click", () => {
+          state.inspectorItemId = item.id;
+          state.renameDraft = "";
+          renderResultsAndPreview();
+        });
+        band.addEventListener("dblclick", () => {
+          state.inspectorItemId = item.id;
+          dispatchApplyItem(item);
+          renderResultsAndPreview();
+        });
+        catalogueDiv.append(band);
+      }
+      return;
+    }
+
+    // Standard Project Zero Grid / List Catalogue
+    catalogueDiv.className = `asset-catalogue ${activeLayout === "list" ? "list" : "grid"}`;
+    catalogueDiv.removeAttribute("aria-label");
+
+    if (!visible.length) {
+      catalogueDiv.append(
+        buildEmptyState("No content found", "Change filters, switch origin tab, or import files into ContentBrowser."),
+      );
+      return;
+    }
+
+    const displayList = visible.slice(0, 180);
+    const current = getSelectedItem(visible);
+
+    for (const item of displayList) {
+      const isSel = current?.id === item.id;
+      const cell = Construct(
+        "button",
+        `asset-cell${isSel ? " selected" : ""}${item.Kind === "Colours" ? " colour-asset-cell" : ""}`,
+      );
+      cell.type = "button";
+      cell.dataset.assetId = item.id;
+      cell.dataset.assetKind = item.assetKind;
+      cell.setAttribute("data-asset-id", item.id);
+      cell.setAttribute("data-asset-kind", item.assetKind);
+      cell.setAttribute("aria-label", `Select asset ${item.name}`);
+      cell.setAttribute("aria-pressed", String(isSel));
+      cell.draggable = true;
+      cell.title = `${item.name} (${item.family || item.Kind}) · Click to inspect · Double-click or drag to Stage`;
+
+      const thumb = createAssetThumbnailNode(item, activeLayout === "list" ? 37 : 70);
+      const nameWrap = Construct("span", "asset-cell-name");
+      nameWrap.append(item.name);
+      const subText =
+        item.Kind === "Colours"
+          ? `${item.Colour.Hex} · ${item.Origin}`
+          : `${item.family || item.Kind} · ${item.Origin}`;
+      nameWrap.append(Construct("small", null, subText));
+
+      cell.append(thumb, nameWrap);
+
+      cell.addEventListener("dragstart", (e) => {
+        cell.classList.add("dragging");
+        beginAssetDrag(e, item);
+      });
+      cell.addEventListener("dragend", () => {
+        cell.classList.remove("dragging");
+        endAssetDrag();
+      });
+      cell.addEventListener("click", () => {
+        state.inspectorItemId = item.id;
+        state.renameDraft = "";
+        for (const el of catalogueDiv.querySelectorAll(".asset-cell")) {
+          if (el.classList.contains("selected")) {
+            el.classList.remove("selected");
+            el.setAttribute("aria-pressed", "false");
+          }
+        }
+        cell.classList.add("selected");
+        cell.setAttribute("aria-pressed", "true");
+        renderPreviewAside();
+      });
+      cell.addEventListener("dblclick", () => {
+        state.inspectorItemId = item.id;
+        dispatchApplyItem(item);
+        renderPreviewAside();
+      });
+
+      catalogueDiv.append(cell);
+    }
+  }
+
+  function buildEmptyState(title, copy) {
+    const empty = Construct("div", "asset-empty");
+    const resetBtn = Construct("button", null, "Clear filters");
+    resetBtn.type = "button";
+    resetBtn.addEventListener("click", () => {
+      state.search = "";
+      searchInput.value = "";
+      searchClearBtn.hidden = true;
+      state.origin = "All";
+      state.activeFamily = "All";
+      state.activeFilter = null;
+      state.colourFilter = "All";
+      renderAll();
+    });
+    empty.append(Construct("h3", null, title), Construct("p", null, copy), resetBtn);
+    return empty;
+  }
+
+  function getSelectedItem(visible = getFilteredItems()) {
+    const lib = getLibrary();
+    return (
+      lib.find((it) => it.id === state.inspectorItemId) ||
+      visible[0] ||
+      getItemsForKind(state.activeKind)[0] ||
+      null
     );
-    return tile;
   }
 
-  function getInspectorTileSpecs(item) {
-    if (item.kind === "material") {
-      const m = item.raw;
+  function buildMetadataPairs(item) {
+    if (item.Kind === "Colours" && item.Colour) {
+      const slot = GetActiveColourSlot();
+      return [
+        ["Type", "ColourCodex"],
+        ["Filter", item.Colour.FilterGroup],
+        ["Target slot", slot?.Label || "Primary colour"],
+      ];
+    }
+    if (item.Kind === "Materials") {
+      const m = item.raw || {};
       const rough = Number(m.roughness ?? 0.45);
       const metal = Number(m.metalness ?? 0);
       const coat = Number(m.coat ?? 0);
-      const tiles = [
-        { label: "Roughness", val: rough.toFixed(2), sub: rough < 0.25 ? "Glossy Mirror" : rough > 0.7 ? "Matte Diffuse" : "Satin Sheen", highlight: true },
-        { label: "Metalness", val: `${Math.round(metal * 100)}%`, sub: metal >= 0.7 ? "Conductor" : metal > 0.1 ? "Composite" : "Dielectric" },
-        { label: "Clearcoat", val: coat > 0.01 ? coat.toFixed(2) : "None", sub: coat > 0.01 ? `Rough ${(m.coatRoughness ?? 0.1).toFixed(2)}` : `IOR ${(m.ior ?? 1.5).toFixed(2)}` },
-        { label: "Scale", val: `${Number(m.detailScale || 1).toFixed(1)}x`, sub: m.shaderFamily || m.category || "PBR Kernel" },
+      return [
+        ["Type", "PBR Material"],
+        ["Collection", m.category || item.family],
+        ["Roughness", rough.toFixed(2)],
+        ["Metalness", `${Math.round(metal * 100)}%`],
+        ["Clearcoat", coat > 0.01 ? coat.toFixed(2) : "None"],
+        ["Kernel", m.shaderFamily || "Alloy PBR"],
+        ["Owner", item.Origin === "Engine" ? "Engine library" : "Browser project"],
       ];
-      if ((m.emissionStrength ?? 0) > 0.01) {
-        tiles.push({ label: "Emission", val: `${Number(m.emissionStrength).toFixed(1)}x`, sub: m.emissionColor || "Self-Lit" });
-      }
-      if ((m.iridescence ?? 0) > 0.01) {
-        tiles.push({ label: "Thin Film", val: Number(m.iridescence).toFixed(2), sub: "Iridescent" });
-      }
-      return tiles;
     }
-    if (item.kind === "pattern" || item.kind === "stamp") {
+    if (item.Kind === "Patterns" || item.Kind === "Stamps") {
       const meta = item.meta || summarizeArtworkEntry(item.raw);
       return [
-        { label: "Layers", val: String(meta.layers), sub: meta.layers > 1 ? "Vector Stack" : "Single Motif", highlight: true },
-        { label: "Canvas", val: `${meta.width}px`, sub: "Vector Alpha" },
-        { label: "Finish", val: meta.primaryFinish.toUpperCase(), sub: meta.finishes.length > 1 ? `${meta.finishes.length} Finishes` : "Surface Tag" },
-        { label: "Modifiers", val: String(meta.modifiers), sub: meta.hasText ? "Includes Text" : "Procedural" },
+        ["Type", item.Kind === "Patterns" ? "Vector Pattern" : "Decal Stamp"],
+        ["Collection", item.family],
+        ["Layers", String(meta.layers)],
+        ["Canvas", `${meta.width} × ${meta.height}`],
+        ["Finish", meta.primaryFinish.toUpperCase()],
+        ["Modifiers", String(meta.modifiers)],
+        ["Owner", item.Origin === "Engine" ? "Engine library" : "Browser project"],
       ];
     }
-    const mesh = item.raw;
-    return [
-      { label: "Geometry", val: mesh.name.split(" ")[0], sub: mesh.family, highlight: true },
-      { label: "Topology", val: mesh.topo, sub: mesh.complexity },
-      { label: "Bake Focus", val: mesh.role, sub: "Tangent Space" },
-      { label: "UV Set", val: "0–1", sub: "Packed Studio" },
+    if (item.Kind === "Meshes") {
+      const mesh = item.raw || {};
+      return [
+        ["Type", "3D Study Mesh"],
+        ["Collection", mesh.family || item.family],
+        ["Topology", mesh.topo || "Tri/Quad"],
+        ["Triangles", mesh.complexity || "—"],
+        ["Bake Focus", mesh.role || "Tangent Space"],
+        ["Owner", item.Origin === "Engine" ? "Engine library" : "Browser project"],
+      ];
+    }
+    const pairs = [
+      ["Type", item.Kind],
+      ["Owner", item.Origin === "Engine" ? "Engine library" : "Browser project"],
     ];
+    if (item.Width && item.Height) pairs.push(["Dimensions", `${item.Width} × ${item.Height}`]);
+    if (item.Size !== undefined) pairs.push(["File size", `${(item.Size / 1024).toFixed(1)} KiB`]);
+    return pairs;
   }
 
-  function renderInspector() {
-    clearNode(inspectorPane);
-    const inspHead = Construct("div", "cb-insp-head");
-    inspHead.append(
-      Construct("span", "cb-insp-heading", "Asset Inspector"),
-      Construct("span", "cb-insp-cat-pill", CATEGORY_LABELS[state.activeCategory] || "Assets"),
-    );
-    inspectorPane.append(inspHead);
-
-    const item = findItemById(state.inspectorItemId, state.activeCategory) || getFilteredItems()[0] || getItems()[0];
-    if (!item) {
-      inspectorPane.append(Construct("div", "cb-empty", "Select any asset card to inspect parameters & PBR tiles."));
+  function renderPreviewAside() {
+    previewAside.innerHTML = "";
+    const current = getSelectedItem();
+    if (!current) {
+      const empty = Construct("div", "asset-empty");
+      empty.append(Construct("h3", null, "Select content"), Construct("p", null, "Inspect its source and preview here."));
+      previewAside.append(empty);
       return;
     }
-    state.inspectorItemId = item.id;
+    state.inspectorItemId = current.id;
 
-    // Hero Preview Card: large centerpiece showcase icon + title/family/desc above property tiles
-    const heroCard = Construct("div", "cb-insp-hero");
-    const heroStage = Construct("div", "cb-insp-hero-stage");
-    heroStage.append(createAssetIconElement(item, 136));
-
-    const metaCol = Construct("div", "cb-insp-meta");
-    metaCol.append(
-      Construct("div", "cb-insp-title", item.name),
-      Construct("div", "cb-insp-sub", `${item.family} · ${item.kind.toUpperCase()}`),
+    const heading = Construct("div", "asset-preview-heading");
+    heading.append(
+      Construct("span", "asset-eyebrow", "CONTENT DETAILS"),
+      Construct("span", "asset-origin-label", current.Origin),
     );
-    const desc = item.raw?.description || item.raw?.desc || "";
-    if (desc) metaCol.append(Construct("div", "cb-insp-desc", desc));
-    heroCard.append(heroStage, metaCol);
-    inspectorPane.append(heroCard);
+    previewAside.append(heading);
 
-    // MetricTrio-style Tile Grid (.kpi-trio.cb-insp-tiles -> .kpi-card.cb-insp-prop) below the hero card
-    const tileSpecs = getInspectorTileSpecs(item);
-    const tilesGrid = Construct("div", "kpi-trio cb-insp-tiles");
-    for (const t of tileSpecs) {
-      tilesGrid.append(buildInspectorTile(t.label, t.val, t.sub, Boolean(t.highlight)));
-    }
-    inspectorPane.append(tilesGrid);
+    if (current.Kind === "Colours" && current.Colour) {
+      const ink = ChooseCardInk(current.Colour.Hex);
+      state.hexDraft = current.Colour.Hex;
+      const swatchCard = Construct("div", "codex-swatch-card");
+      swatchCard.setAttribute("data-contrast", ink.contrastLabel);
+      swatchCard.draggable = true;
+      swatchCard.style.backgroundColor = current.Colour.Hex;
+      swatchCard.style.color = ink.text;
+      swatchCard.style.borderColor = ink.border;
+      swatchCard.title = "Drag onto any colour slot or double-click to apply";
 
-    // Action Buttons
-    const actions = Construct("div", "cb-insp-actions");
-    const applyBtn = Construct("button", "cb-insp-btn primary", "Apply to Stage");
-    applyBtn.type = "button";
-    applyBtn.addEventListener("click", () => {
-      dispatchApplyItem(item);
-      if (onWorkspaceRoute) {
-        if (item.kind === "material") onWorkspaceRoute("material");
-        else if (item.kind === "pattern") onWorkspaceRoute("pattern");
-        else if (item.kind === "stamp") onWorkspaceRoute("stamp");
-        else if (item.kind === "mesh") onWorkspaceRoute("bake");
+      const titleDiv = Construct("div", "codex-card-title");
+      for (const line of SplitCardHeading(current.name)) {
+        titleDiv.append(Construct("span", null, line));
       }
-    });
-    actions.append(applyBtn);
-
-    if (item.kind === "stamp" || item.kind === "pattern") {
-      const paintBtn = Construct("button", "cb-insp-btn", "Send to Paint");
-      paintBtn.type = "button";
-      paintBtn.addEventListener("click", () => {
-        if (onWorkspaceRoute) onWorkspaceRoute("paint");
-        dispatchApplyItem(item, { targetWorkspace: "paint" });
-        Toast(`${item.name} sent to Texture Paint`);
-      });
-      actions.append(paintBtn);
-    }
-    if (item.kind === "pattern") {
-      const tileMatBtn = Construct("button", "cb-insp-btn", "Tile on Material");
-      tileMatBtn.type = "button";
-      tileMatBtn.addEventListener("click", () => {
-        if (onWorkspaceRoute) onWorkspaceRoute("material");
-        dispatchApplyItem(item, { targetWorkspace: "material" });
-        Toast(`Tiled ${item.name} onto active Material`);
-      });
-      actions.append(tileMatBtn);
-    }
-    inspectorPane.append(actions);
-  }
-
-  function renderGrid() {
-    clearNode(grid);
-    clearNode(familyPillsStrip);
-    grid.className = state.viewMode === "list" ? "cb-list" : "cb-grid";
-
-    const searchPlaceholders = {
-      materials: "Search materials...",
-      patterns: "Search patterns...",
-      stamps: "Search stamps...",
-      meshes: "Search meshes...",
-    };
-    searchInp.placeholder = searchPlaceholders[state.activeCategory] || "Search assets...";
-
-    const allPillsLabel = {
-      materials: "All materials",
-      patterns: "All patterns",
-      stamps: "All stamps",
-      meshes: "All meshes",
-    };
-    const fams = ["All", ...getFamiliesFor(state.activeCategory).map((f) => f.name)];
-    for (const fam of fams) {
-      const chip = Construct(
-        "button",
-        `cb-family-chip${state.activeFamily === fam ? " active" : ""}`,
-        fam === "All" ? (allPillsLabel[state.activeCategory] || "All") : fam,
+      const specsDiv = Construct("div", "codex-card-specs");
+      specsDiv.style.color = ink.muted;
+      const makeSpecRow = (k, v) => {
+        const d = Construct("div");
+        const b = Construct("b", null, k);
+        b.style.color = ink.text;
+        d.append(b, " ", v);
+        return d;
+      };
+      specsDiv.append(
+        makeSpecRow("HEX:", current.Colour.Hex),
+        makeSpecRow("RGB:", current.Colour.RGB.join(", ")),
+        makeSpecRow("CMYK:", current.Colour.CMYK.join(", ")),
       );
-      chip.type = "button";
-      chip.dataset.family = fam;
-      chip.addEventListener("click", () => {
-        state.activeFamily = fam;
-        renderTreePane();
-        renderCenterAndInspector();
+      swatchCard.append(titleDiv, specsDiv);
+
+      swatchCard.addEventListener("dragstart", (e) => beginAssetDrag(e, current));
+      swatchCard.addEventListener("dragend", endAssetDrag);
+      swatchCard.addEventListener("dblclick", () => dispatchApplyItem(current));
+      previewAside.append(swatchCard);
+    } else {
+      previewAside.append(Construct("h2", null, current.name));
+      const previewBox = Construct("div", "asset-file-preview");
+      const thumbNode = createAssetThumbnailNode(current, 128);
+      thumbNode.classList.add("asset-preview-hero-thumb");
+      previewBox.append(thumbNode);
+      previewAside.append(previewBox);
+    }
+
+    if (current.detail) {
+      previewAside.append(Construct("p", null, current.detail));
+    }
+
+    const dl = Construct("dl");
+    for (const [dtText, ddText] of buildMetadataPairs(current)) {
+      dl.append(Construct("dt", null, dtText), Construct("dd", null, ddText));
+    }
+    previewAside.append(dl);
+
+    // Editable colour hex controls for Project/Imported colours
+    if (current.Kind === "Colours" && current.Origin !== "Engine") {
+      const hexEditWrap = Construct("div", "codex-hex-edit");
+      const lbl = Construct("label", null, "Edit colour");
+      const ctrlRow = Construct("div", "codex-hex-controls");
+
+      const colorInp = document.createElement("input");
+      colorInp.type = "color";
+      colorInp.setAttribute("aria-label", "Edit codex colour picker");
+      colorInp.value = current.Colour.Hex.toLowerCase();
+
+      const hexInp = document.createElement("input");
+      hexInp.type = "text";
+      hexInp.maxLength = 7;
+      hexInp.setAttribute("aria-label", "Edit codex colour hex");
+      hexInp.value = current.Colour.Hex;
+
+      const updateHex = (rawHex) => {
+        const clean = NormalizeHex(rawHex, current.Colour.Hex);
+        const nextColour = ResolveColourEntry({ ...current.Colour, Name: current.name, Hex: clean });
+        userAssets = userAssets.map((a) => (a.id === current.id ? { ...a, Colour: nextColour } : a));
+        persistSavedRecords(userAssets);
+        renderAll();
+      };
+      colorInp.addEventListener("change", () => updateHex(colorInp.value));
+      hexInp.addEventListener("blur", () => updateHex(hexInp.value));
+      hexInp.addEventListener("keydown", (e) => { if (e.key === "Enter") hexInp.blur?.(); });
+
+      ctrlRow.append(colorInp, hexInp);
+      lbl.append(ctrlRow);
+      hexEditWrap.append(lbl);
+      previewAside.append(hexEditWrap);
+    }
+
+    // Primary & contextual action buttons
+    const matActions = Construct("div", "asset-material-actions");
+    if (current.Kind === "Colours") {
+      const slot = GetActiveColourSlot();
+      const applyColBtn = Construct(
+        "button",
+        "primary",
+        `Apply to ${slot?.Label || "colour slot"}`,
+      );
+      applyColBtn.type = "button";
+      applyColBtn.setAttribute("aria-label", "Apply colour to active slot");
+      applyColBtn.addEventListener("click", () => dispatchApplyItem(current));
+
+      const exportAllBtn = Construct("button", null, "Export ColourCodex.toml");
+      exportAllBtn.type = "button";
+      exportAllBtn.addEventListener("click", () => {
+        const allCols = getLibrary().filter((a) => a.Kind === "Colours");
+        triggerBlobDownload(
+          new Blob([SerializeColourCodexToml(allCols.map((c) => c.Colour))], {
+            type: "application/toml;charset=utf-8",
+          }),
+          "ColourCodex.toml",
+        );
+        setStatus(`Exported ${allCols.length} colours to ColourCodex.toml`);
       });
-      familyPillsStrip.append(chip);
-    }
+      matActions.append(applyColBtn, exportAllBtn);
+    } else {
+      const applyBtn = Construct("button", "primary", "Apply to Stage");
+      applyBtn.type = "button";
+      applyBtn.addEventListener("click", () => {
+        dispatchApplyItem(current);
+        if (onWorkspaceRoute) {
+          if (current.assetKind === "material") onWorkspaceRoute("material");
+          else if (current.assetKind === "pattern") onWorkspaceRoute("pattern");
+          else if (current.assetKind === "stamp") onWorkspaceRoute("stamp");
+          else if (current.assetKind === "mesh") onWorkspaceRoute("bake");
+        }
+      });
+      matActions.append(applyBtn);
 
-    const filtered = getFilteredItems();
-    const total = getItems().length;
-    countBadge.textContent = filtered.length === total ? `${total}` : `${filtered.length}/${total}`;
-
-    const collectionLabels = {
-      materials: state.activeFamily === "All" ? "THE ESSENTIAL COLLECTION" : `${state.activeFamily.toUpperCase()} COLLECTION`,
-      patterns: state.activeFamily === "All" ? "PATTERN LIBRARY" : `${state.activeFamily.toUpperCase()} PATTERNS`,
-      stamps: state.activeFamily === "All" ? "DECAL STAMPS COLLECTION" : `${state.activeFamily.toUpperCase()} STAMPS`,
-      meshes: state.activeFamily === "All" ? "LOOK-DEV STUDY MESHES" : `${state.activeFamily.toUpperCase()} MESHES`,
-    };
-    collectionTitle.textContent = collectionLabels[state.activeCategory] || "ASSET COLLECTION";
-    collectionCount.textContent = String(filtered.length);
-
-    const visible = filtered.slice(0, 140);
-    if (!visible.length) {
-      grid.append(Construct("div", "cb-empty", "No assets match your current folder, filter, or search."));
-      return;
-    }
-
-    for (const item of visible) {
-      const isSelected = state.inspectorItemId === item.id;
-      const isList = state.viewMode === "list";
-      const card = Construct("div", `cb-card${isList ? " cb-card-list" : ""}${isSelected ? " selected active" : ""}`);
-      card.draggable = true;
-      card.dataset.assetKind = item.kind;
-      card.dataset.assetId = item.id;
-      card.setAttribute("data-asset-kind", item.kind);
-      card.setAttribute("data-asset-id", item.id);
-      card.title = `${item.name} (${item.family}) — Click to inspect · Double-click or drag to Stage`;
-
-      const iconEl = createAssetIconElement(item, isList ? 34 : 76);
-      const labelEl = Construct("div", "cb-card-name", item.name);
-
-      if (isList) {
-        const textCol = Construct("div", "cb-list-text");
-        textCol.append(labelEl, Construct("div", "cb-list-sub", item.family));
-        const metricText = item.kind === "material"
-          ? `R ${(item.raw.roughness ?? 0.45).toFixed(2)} · M ${Math.round((item.raw.metalness ?? 0) * 100)}%`
-          : item.kind === "mesh"
-            ? (item.raw.complexity || "Study")
-            : `${item.meta?.layers || 1} ${(item.meta?.layers || 1) === 1 ? "layer" : "layers"}`;
-        const metricEl = Construct("span", "cb-list-metric", metricText);
-        card.append(iconEl, textCol, metricEl);
-      } else {
-        const checkBadge = Construct("span", "cb-card-check", ConstructGlyph("Check", "glyph"));
-        const cardFooter = Construct("div", "cb-card-footer", [
-          labelEl,
-          Construct("div", "cb-card-sub", item.family),
-        ]);
-        card.append(checkBadge, iconEl, cardFooter);
+      if (current.Kind === "Patterns") {
+        const tileBtn = Construct("button", null, "Tile on Material");
+        tileBtn.type = "button";
+        tileBtn.addEventListener("click", () => {
+          onWorkspaceRoute?.("material");
+          dispatchApplyItem(current, { targetWorkspace: "material" });
+          Toast(`Tiled ${current.name} onto Material`);
+        });
+        matActions.append(tileBtn);
       }
+      if (current.Kind === "Stamps" || current.Kind === "Patterns") {
+        const paintBtn = Construct("button", null, "Send to Paint");
+        paintBtn.type = "button";
+        paintBtn.addEventListener("click", () => {
+          onWorkspaceRoute?.("paint");
+          dispatchApplyItem(current, { targetWorkspace: "paint" });
+          Toast(`${current.name} sent to Texture Paint`);
+        });
+        matActions.append(paintBtn);
+      }
+      if (current.Kind === "Images") {
+        const tileImgBtn = Construct("button", null, "Tile on Material");
+        tileImgBtn.type = "button";
+        tileImgBtn.addEventListener("click", () => {
+          appBridge?.applyAssetToActiveWorkspace?.(toPayload(current), { role: "tile" });
+        });
+        matActions.append(tileImgBtn);
+      }
+    }
+    previewAside.append(matActions);
 
-      card.addEventListener("dragstart", (e) => {
-        if (e.dataTransfer) {
-          e.dataTransfer.effectAllowed = "copy";
-          e.dataTransfer.setData(
-            "application/x-frontier-asset",
-            JSON.stringify({ assetKind: item.kind, id: item.id, name: item.name }),
-          );
-          e.dataTransfer.setData("text/plain", item.name);
-        }
-        card.classList.add("dragging");
+    // File actions (Download + Copy to Project / Remove)
+    const fileActions = Construct("div", "asset-file-actions");
+    const dlBtn = Construct(
+      "button",
+      null,
+      current.Kind === "Colours"
+        ? "Download .toml"
+        : current.Kind === "Materials"
+          ? "Download material"
+          : "Download file",
+    );
+    dlBtn.type = "button";
+    dlBtn.addEventListener("click", () => downloadAssetItem(current));
+    fileActions.append(dlBtn);
+
+    if (current.Kind === "Colours" && current.Origin === "Engine") {
+      const copyColBtn = Construct("button", null, "Copy to Project");
+      copyColBtn.type = "button";
+      copyColBtn.addEventListener("click", () =>
+        createProjectColour(current.Colour.Hex, `${current.name} copy`),
+      );
+      fileActions.append(copyColBtn);
+    } else if (current.Kind === "Materials" && current.Origin === "Engine") {
+      const copyMatBtn = Construct("button", null, "Copy to Project");
+      copyMatBtn.type = "button";
+      copyMatBtn.addEventListener("click", () => {
+        if (userAssets.length >= 256) return;
+        const copyRec = {
+          id: "asset-" + makeUuid(),
+          name: `${current.name} copy`,
+          Kind: "Materials",
+          Origin: "Project",
+          family: "Project",
+          assetKind: "material",
+          raw: { ...structuredClone(current.raw), id: `proj-${makeUuid().slice(0, 8)}`, name: `${current.name} copy`, category: "Project" },
+          detail: "Project copy of engine material preset.",
+        };
+        userAssets = [copyRec, ...userAssets];
+        persistSavedRecords(userAssets);
+        state.origin = "Project";
+        state.inspectorItemId = copyRec.id;
+        setStatus(`Copied "${current.name}" to Project`);
+        renderAll();
       });
-      card.addEventListener("dragend", () => card.classList.remove("dragging"));
+      fileActions.append(copyMatBtn);
+    } else if (current.Origin !== "Engine") {
+      const remBtn = Construct("button", null, "Remove asset");
+      remBtn.type = "button";
+      remBtn.addEventListener("click", () => removeAsset(current));
+      fileActions.append(remBtn);
+    }
+    previewAside.append(fileActions);
 
-      card.addEventListener("click", () => {
-        state.inspectorItemId = item.id;
-        for (const el of grid.querySelectorAll(".cb-card.selected")) {
-          el.classList.remove("selected");
-          el.classList.remove("active");
-        }
-        card.classList.add("selected");
-        card.classList.add("active");
-        renderInspector();
+    // Rename form for Project/Imported assets
+    if (current.Origin !== "Engine") {
+      const form = document.createElement("form");
+      form.className = "asset-rename";
+      const rInp = document.createElement("input");
+      rInp.type = "text";
+      rInp.maxLength = 100;
+      rInp.setAttribute("aria-label", "Asset name");
+      rInp.placeholder = current.name;
+      rInp.value = state.renameDraft;
+      const rBtn = Construct("button", null, "Rename");
+      rBtn.type = "submit";
+      rBtn.disabled = !state.renameDraft.trim();
+      rInp.addEventListener("input", () => {
+        state.renameDraft = rInp.value;
+        rBtn.disabled = !state.renameDraft.trim();
       });
-
-      card.addEventListener("dblclick", () => {
-        state.inspectorItemId = item.id;
-        dispatchApplyItem(item);
-        renderInspector();
-        Toast(`Applied ${item.name}`);
+      form.addEventListener("submit", (e) => {
+        e.preventDefault?.();
+        const nextName = state.renameDraft.trim();
+        if (!nextName) return;
+        userAssets = userAssets.map((a) => {
+          if (a.id !== current.id) return a;
+          return {
+            ...a,
+            name: nextName,
+            ...(a.raw ? { raw: { ...a.raw, name: nextName } } : {}),
+            ...(a.Colour ? { Colour: ResolveColourEntry({ ...a.Colour, Name: nextName }) } : {}),
+          };
+        });
+        persistSavedRecords(userAssets);
+        state.renameDraft = "";
+        setStatus(`Renamed to "${nextName}"`);
+        renderAll();
       });
-
-      grid.append(card);
+      form.append(rInp, rBtn);
+      previewAside.append(form);
     }
   }
 
-  function renderCenterAndInspector() {
-    renderGrid();
-    renderInspector();
+  function renderResultsAndPreview() {
+    renderResults();
+    renderPreviewAside();
   }
 
-  function render() {
-    for (const [id, btn] of catBtnMap.entries()) {
-      btn.classList.toggle("active", state.activeCategory === id);
-    }
-    autoBadge.textContent = state.userSpecifiedCategory
-      ? "Pinned · Reset"
-      : `Auto · ${state.activeWorkspace}`;
-    autoBadge.classList.toggle("pinned", state.userSpecifiedCategory);
-    renderViewButtons();
-    renderTreePane();
-    renderCenterAndInspector();
+  function renderAll() {
+    renderHeaderControls();
+    renderFilterBar();
+    renderCategoryRail();
+    renderResultsAndPreview();
+    updateFooter();
   }
+
+  // Wire header controls
+  autoFollowBtn.addEventListener("click", () => {
+    state.userSpecifiedCategory = false;
+    state.activeKind = WORKSPACE_TO_KIND[state.activeWorkspace] || "Materials";
+    state.activeFamily = "All";
+    state.activeFilter = null;
+    renderAll();
+  });
+  addMatBtn.addEventListener("click", () => createProjectMaterial());
+  addColourBtn.addEventListener("click", () => createProjectColour());
+  exportTomlBtn.addEventListener("click", () => {
+    const allCols = getLibrary().filter((a) => a.Kind === "Colours");
+    triggerBlobDownload(
+      new Blob([SerializeColourCodexToml(allCols.map((c) => c.Colour))], {
+        type: "application/toml;charset=utf-8",
+      }),
+      "ColourCodex.toml",
+    );
+    setStatus(`Exported ${allCols.length} colours to ColourCodex.toml`);
+  });
+  importBtn.addEventListener("click", () => fileInput.click?.());
+  fileInput.addEventListener("change", () => {
+    const chosen = [...(fileInput.files || [])];
+    fileInput.value = "";
+    importFiles(chosen);
+  });
+  splitToggleBtn.addEventListener("click", () => {
+    const isHalf = state.progress > 0 && state.progress < 0.99;
+    settleDrawer(isHalf ? 1 : 0.46);
+  });
+  closeBtn.addEventListener("click", () => closeDrawer());
+
+  // Initial draw (starts cleanly closed with the centered ContentBrowser notch visible)
+  applyDrawerGeometry();
+  renderAll();
 
   function syncWorkspace(wsId) {
     state.activeWorkspace = wsId;
     if (!state.userSpecifiedCategory) {
-      const nextCat = WORKSPACE_TO_CATEGORY[wsId] || "materials";
-      if (nextCat !== state.activeCategory) {
-        state.activeCategory = nextCat;
+      const nextKind = WORKSPACE_TO_KIND[wsId] || "Materials";
+      if (nextKind !== state.activeKind) {
+        state.activeKind = nextKind;
         state.activeFamily = "All";
         state.activeFilter = null;
-        state.expandedCats = new Set([nextCat]);
       }
     }
-    render();
+    renderAll();
   }
 
-  applyHeight();
-  render();
-
   return {
-    element: root,
+    element: drawerShell,
+    browserRoot,
+    notchHandle,
     syncWorkspace,
     setActiveWorkspace: syncWorkspace,
+    open(stageOrProgress = 1) {
+      openDrawer(stageOrProgress === "half" ? 0.46 : Number(stageOrProgress) || 1);
+    },
+    close() {
+      closeDrawer();
+    },
+    setStage(stageName) {
+      if (stageName === "closed") closeDrawer();
+      else if (stageName === "half") openDrawer(0.46);
+      else openDrawer(1);
+    },
     getAssetPayload(kind, id) {
-      const catMap = { material: "materials", pattern: "patterns", stamp: "stamps", mesh: "meshes" };
-      const item = findItemById(id, catMap[kind] || state.activeCategory);
+      const mappedKind = kind ? normalizeKindName(kind) : state.activeKind;
+      const item = findItemById(id, mappedKind);
       return toPayload(item);
     },
-    setCategory(catId, { userPinned = true } = {}) {
-      if (!WORKSPACE_TO_CATEGORY[catId] && !catBtnMap.has(catId)) return;
-      state.activeCategory = catId;
-      state.activeFamily = "All";
+    setCategory(catId, opts = {}) {
+      const userPinned = opts.userPinned !== undefined ? opts.userPinned : (opts.userSpecified ?? true);
+      state.activeKind = normalizeKindName(catId);
+      state.activeFamily = opts.family || "All";
       state.activeFilter = null;
-      state.userSpecifiedCategory = userPinned;
-      state.expandedCats = new Set([catId]);
-      render();
+      state.userSpecifiedCategory = Boolean(userPinned);
+      if (opts.open !== false && !state.open) {
+        openDrawer(0.46);
+      }
+      renderAll();
+    },
+    selectAsset(kind, id) {
+      const mappedKind = kind ? normalizeKindName(kind) : state.activeKind;
+      const item = findItemById(id, mappedKind);
+      if (!item) return null;
+      state.activeKind = item.Kind;
+      state.activeFamily = "All";
+      state.inspectorItemId = item.id;
+      if (!state.open) openDrawer(0.46);
+      renderAll();
+      return item;
     },
     setViewMode(mode) {
-      if (mode !== "grid" && mode !== "list") return;
-      state.viewMode = mode;
-      renderViewButtons();
-      renderGrid();
+      if (state.activeKind === "Colours" && ["grid", "list-vertical", "list-horizontal"].includes(mode)) {
+        state.colourView = mode;
+      } else if (mode === "grid" || mode === "list") {
+        state.viewMode = mode;
+      }
+      renderHeaderControls();
+      renderResults();
     },
     getState() {
-      return { ...state, expandedCats: [...state.expandedCats] };
+      return {
+        open: state.open,
+        stage: state.progress === 0 ? "closed" : state.progress >= 0.99 ? "full" : "half",
+        progress: state.progress,
+        offsetPx: state.offsetPx,
+        origin: state.origin,
+        activeKind: state.activeKind,
+        activeCategory: state.activeKind.toLowerCase(),
+        activeFamily: state.activeFamily,
+        activeFilter: state.activeFilter,
+        search: state.search,
+        viewMode: state.viewMode,
+        colourView: state.colourView,
+        colourFilter: state.colourFilter,
+        userSpecifiedCategory: state.userSpecifiedCategory,
+        activeWorkspace: state.activeWorkspace,
+        collapsed: !state.open,
+        inspectorItemId: state.inspectorItemId,
+      };
     },
     setCollapsed(v) {
-      state.collapsed = Boolean(v);
-      applyHeight();
+      if (v) closeDrawer();
+      else openDrawer(1);
     },
+    importFiles,
+    createProjectColour,
+    createProjectMaterial,
   };
 }

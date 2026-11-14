@@ -94,8 +94,8 @@ ViewportPanel::ViewportPanel() noexcept
 
 ViewportPanel::~ViewportPanel() noexcept
 {
-    WorkspaceAppearance::ReleasePanePointerOwnership(this);
     CanvasRasterTexture.DestroyPixels();
+    WorkspaceAppearance::ReleasePanePointerOwnership(this);
 }
 
 void ViewportPanel::AssignCanvasRasterImage(const uint8_t* RgbaPixels, uint32_t WidthPx, uint32_t HeightPx)

@@ -34,6 +34,8 @@ public struct GpuRayHitSummary
     public float2 BarycentricsUV;
     public uint   MaterialOrdinal;
     public float3 GeometricNormal;
+    public uint   SourceFaceIndex;
+    public bool   HitFrontFace;
 };
 
 public float IntersectTriangleMollerTrumbore(
@@ -100,6 +102,8 @@ public GpuRayHitSummary TraceWideBoundingTreeClosest(
     Result.BarycentricsUV    = float2(0.0);
     Result.MaterialOrdinal   = 0u;
     Result.GeometricNormal   = float3(0.0, 0.0, 1.0);
+    Result.SourceFaceIndex   = 0xFFFFFFFFu;
+    Result.HitFrontFace      = true;
 
     if (EntryCount == 0u) return Result;
 
@@ -134,11 +138,16 @@ public GpuRayHitSummary TraceWideBoundingTreeClosest(
                     float HitT = IntersectTriangleMollerTrumbore(Origin, UnitDir, MinT, Result.HitDistanceMeters, Prim, HitUV);
                     if (HitT > 0.0)
                     {
+                        float3 RawCross = cross(Prim.Edge01, Prim.Edge02);
+                        float  CrossLen = length(RawCross);
+                        float3 GeomN    = (CrossLen > 1.0e-12) ? (RawCross / CrossLen) : float3(0.0, 0.0, 1.0);
                         Result.HitConfirmed      = true;
                         Result.HitDistanceMeters = HitT;
                         Result.BarycentricsUV    = HitUV;
                         Result.MaterialOrdinal   = Prim.PackedMaterialAndOpaque & 0xFFFFu;
-                        Result.GeometricNormal   = normalize(cross(Prim.Edge01, Prim.Edge02));
+                        Result.GeometricNormal   = GeomN;
+                        Result.SourceFaceIndex   = Prim.SourceFaceIndex;
+                        Result.HitFrontFace      = (dot(UnitDir, GeomN) < 0.0);
                     }
                 }
             }
@@ -150,4 +159,60 @@ public GpuRayHitSummary TraceWideBoundingTreeClosest(
     }
 
     return Result;
+}
+
+public bool TraceWideBoundingTreeAnyHit(
+    StructuredBuffer<GpuWideTreeEntry128>        WideEntries,
+    StructuredBuffer<GpuRayTrianglePrimitive48>  Primitives,
+    uint                                         EntryCount,
+    float3                                       Origin,
+    float3                                       UnitDir,
+    float                                        MinT,
+    float                                        MaxT)
+{
+    if (EntryCount == 0u) return false;
+
+    float3 InvDir = 1.0 / select(abs(UnitDir) > float3(1.0e-8), UnitDir, float3(1.0e-8));
+    uint   Stack[32];
+    int    StackTop = 0;
+    Stack[0] = 0u;
+
+    while (StackTop >= 0)
+    {
+        uint CurrentIdx = Stack[StackTop--];
+        if (CurrentIdx >= EntryCount) continue;
+
+        GpuWideTreeEntry128 Entry = WideEntries[CurrentIdx];
+        float4 BoxHits = IntersectFourBoxesSlab(Origin, InvDir, MinT, MaxT, Entry);
+
+        [unroll]
+        for (int Lane = 0; Lane < 4; ++Lane)
+        {
+            uint Ref = Entry.BranchReference[Lane];
+            if (Ref == 0xFFFFFFFFu || BoxHits[Lane] > MaxT) continue;
+
+            if ((Ref & 0x80000000u) != 0u)
+            {
+                uint Start = Ref & 0x7FFFFFFFu;
+                uint Count = Entry.BranchPrimitiveCount[Lane];
+                for (uint PIdx = 0u; PIdx < Count; ++PIdx)
+                {
+                    GpuRayTrianglePrimitive48 Prim = Primitives[Start + PIdx];
+                    if ((Prim.PackedMaterialAndOpaque >> 16u) == 0u) continue;
+                    float2 HitUV;
+                    float HitT = IntersectTriangleMollerTrumbore(Origin, UnitDir, MinT, MaxT, Prim, HitUV);
+                    if (HitT > 0.0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            else if (StackTop < 30)
+            {
+                Stack[++StackTop] = Ref;
+            }
+        }
+    }
+
+    return false;
 }

@@ -97,7 +97,43 @@ enum class ControlIcon : uint8_t
     LayoutList           = 47, // [-] - Bulleted horizontal row list view icon
     LayoutColumns        = 48, // [-] - Vertical colour-strip columns view icon
     LayoutRows           = 49, // [-] - Horizontal colour-strip rows view icon
-    Count                = 50, // [count] - Total control icons
+    MaterialSphere       = 50, // [-] - PBR material shader preview sphere icon (HTML Material)
+    PatternTile          = 51, // [-] - Seamless tileable pattern grid icon (HTML Pattern)
+    StampTool            = 52, // [-] - Decal stamp silhouette icon (HTML Stamp)
+    BrushTool            = 53, // [-] - Surface paint brush icon (HTML Brush)
+    ModifierStar         = 54, // [-] - Non-destructive modifier icon (HTML Modifier)
+    NoiseWave            = 55, // [-] - Noise modulation wave icon (HTML Noise)
+    FolderPlus           = 56, // [-] - Construct nested folder icon (HTML FolderPlus)
+    MaskCutout           = 57, // [-] - Layer mask cutout icon (HTML Mask)
+    CopyDuplicate        = 58, // [-] - Duplicate layer icon (HTML Copy)
+    DragGrip             = 59, // [-] - Six-dot drag reorder grip icon (HTML Grip)
+    VectorPointer        = 60, // [-] - Vector cursor selection arrow icon (HTML Pointer)
+    VectorCurve          = 61, // [-] - Smooth cubic spline curve icon (HTML Curve)
+    VectorPen            = 62, // [-] - Bezier pen nib vector tool icon (HTML Pen)
+    EditFocus            = 63, // [-] - Vertex edit focus reticle icon (HTML Focus)
+    PointGradient        = 64, // [-] - Multi-point gradient field icon (HTML Gradient)
+    ShapeSquare          = 65, // [-] - Square/rectangle motif icon (HTML Square)
+    ShapeCircle          = 66, // [-] - Circle motif icon (HTML Circle)
+    ShapeDiamond         = 67, // [-] - Diamond motif icon (HTML Diamond)
+    ShapeTriangle        = 68, // [-] - Triangle motif icon (HTML Triangle)
+    ShapeStar            = 69, // [-] - Five-point star motif icon (HTML Star)
+    ShapeHexagon         = 70, // [-] - Hexagon motif icon (HTML Hexagon)
+    ShapeStripe          = 71, // [-] - Horizontal stripe motif icon (HTML Stripe)
+    TextType             = 72, // [-] - Typography T motif icon (HTML Type)
+    HandPan              = 73, // [-] - Viewport canvas pan hand icon (HTML Hand)
+    ImageTile            = 74, // [-] - Image tile upload/preview icon (HTML Image)
+    UndoArrow            = 75, // [-] - Step backward undo icon (HTML Undo)
+    RedoArrow            = 76, // [-] - Step forward redo icon (HTML Redo)
+    DownloadExport       = 77, // [-] - Export / download tray arrow icon (HTML Download)
+    EraserTool           = 78, // [-] - Paint eraser tool icon (HTML Eraser)
+    FillBucket           = 79, // [-] - Flood fill bucket tool icon (HTML Fill)
+    PipetteDropper       = 80, // [-] - Colour sample pipette tool icon (HTML Pipette)
+    MoveArrows           = 81, // [-] - 4-way transform/move tool icon (HTML Move)
+    UploadImport         = 82, // [-] - Upload / import asset arrow icon (HTML Upload)
+    BakeBox              = 83, // [-] - High/low baker isometric cube icon (HTML Bake)
+    VolumeBoxes          = 84, // [-] - Stacked 3D volume grid icon (HTML Volume)
+    PinAnchor            = 85, // [-] - Surface anchor pin icon (HTML Pin)
+    Count                = 86, // [count] - Total control icons
 };
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -692,10 +692,8 @@ export function mountMaterialWorkspace(root, appBridge) {
       tileAxes: curPat?.tileAxes ?? "xy",
     });
     if (!patDoc) return false;
-    state.params = {
-      ...state.params,
-      pattern: patDoc,
-      patternChannelMask: state.params.patternChannelMask || {
+    const patMask = {
+      ...(state.params.patternChannelMask || {
         albedo: true,
         roughness: true,
         metalness: true,
@@ -704,7 +702,16 @@ export function mountMaterialWorkspace(root, appBridge) {
         occlusion: true,
         coat: true,
         sheen: true,
-      },
+      }),
+    };
+    if (Array.isArray(patDoc.activeChannels)) {
+      const chBridge = { ao: "occlusion", clearcoat: "coat", specularColor: "specularColour", sheenColor: "sheenColour", attenuationColor: "attenuationColour" };
+      for (const k of patDoc.activeChannels) patMask[chBridge[k] || k] = true;
+    }
+    state.params = {
+      ...state.params,
+      pattern: patDoc,
+      patternChannelMask: patMask,
     };
     if (inputOrEntry?.id) state.selectedPatternCatalogId = inputOrEntry.id;
     state.selectedLayerId = "__pattern__";
@@ -1240,6 +1247,9 @@ export function mountMaterialWorkspace(root, appBridge) {
       return applyTileablePatternToMaterial(entry);
     }
     if (payload.assetKind === "mesh") {
+      if (payload.raw?.transfer) {
+        return applyImportedMesh(payload.raw.transfer);
+      }
       const mId = payload.id;
       const mapped = shapeOptions.some(([, id]) => id === mId) ? mId : "shaderball";
       state.shape = mapped;
@@ -1247,6 +1257,66 @@ export function mountMaterialWorkspace(root, appBridge) {
       rebuildMeshAndMaterial();
       renderLeftOutliner();
       Toast(`Previewing ${mapped} geometry`);
+      return true;
+    }
+    if (payload.assetKind === "image") {
+      const srcUrl = payload.thumbnail || payload.raw?.dataUrl || payload.raw?.url;
+      if (!srcUrl || typeof Image === "undefined") return false;
+      const img = new Image();
+      img.onload = () => {
+        const size = 512;
+        const c = document.createElement("canvas");
+        c.width = size;
+        c.height = size;
+        const ctx = c.getContext?.("2d");
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, size, size);
+        const rgba = ctx.getImageData(0, 0, size, size).data;
+        const rough = new Uint8ClampedArray(rgba.length);
+        const metal = new Uint8ClampedArray(rgba.length);
+        const height = new Uint8ClampedArray(rgba.length);
+        const norm = new Uint8ClampedArray(rgba.length);
+        for (let i = 0; i < rgba.length; i += 4) {
+          const luma = Math.round(0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2]);
+          const rVal = Math.round(60 + (255 - luma) * 0.65);
+          rough[i] = rough[i + 1] = rough[i + 2] = rVal; rough[i + 3] = 255;
+          metal[i] = metal[i + 1] = metal[i + 2] = 0; metal[i + 3] = 255;
+          height[i] = height[i + 1] = height[i + 2] = luma; height[i + 3] = 255;
+        }
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            const xm = (x - 1 + size) % size;
+            const xp = (x + 1) % size;
+            const ym = (y - 1 + size) % size;
+            const yp = (y + 1) % size;
+            const dx = (height[(y * size + xm) * 4] - height[(y * size + xp) * 4]) / 128;
+            const dy = (height[(ym * size + x) * 4] - height[(yp * size + x) * 4]) / 128;
+            const len = Math.hypot(dx, dy, 1);
+            const idx = (y * size + x) * 4;
+            norm[idx] = Math.round(((dx / len) * 0.5 + 0.5) * 255);
+            norm[idx + 1] = Math.round(((dy / len) * 0.5 + 0.5) * 255);
+            norm[idx + 2] = Math.round(((1 / len) * 0.5 + 0.5) * 255);
+            norm[idx + 3] = 255;
+          }
+        }
+        applyTileablePatternToMaterial(
+          {
+            schema: "frontier.pattern-surface.v1",
+            sourceId: `image:${payload.id}:${Date.now()}`,
+            name: payload.name || "Imported Image",
+            width: size,
+            height: size,
+            albedo: rgba,
+            roughness: rough,
+            metalness: metal,
+            heightMap: height,
+            normal: norm,
+            version: Date.now(),
+          },
+          `Tiled image "${payload.name}" onto Material Stage`,
+        );
+      };
+      img.src = srcUrl;
       return true;
     }
     return false;
@@ -2082,9 +2152,10 @@ export function mountMaterialWorkspace(root, appBridge) {
   rafId = requestAnimationFrame(tick);
 
   return {
-      name: "Material",
+    name: "Material",
     applyAsset,
     applyImportedMesh,
+    getParams: () => state.params,
     getSnapshot: () => ({
       id: state.params.id,
       name: state.params.name,

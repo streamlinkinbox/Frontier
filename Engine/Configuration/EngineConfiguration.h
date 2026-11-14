@@ -36,6 +36,7 @@ enum class WorkspaceCategory : uint8_t
     Simulation   = 7u, // [-] - Physics, fluid, fracture & force-field workspace
     Particle     = 8u, // [-] - Particulate & fibre studio workspace
     Audio        = 9u, // [-] - Spatial acoustic studio workspace
+    Baking       = 10u, // [-] - High-to-low surface & 3D volume SDF GPU baking studio
 };
 
 } // namespace Frontier
@@ -81,6 +82,7 @@ public:
 
     [[nodiscard]] static EngineConfigurationDescriptor ConstructFeatureSetDefault() noexcept;
     [[nodiscard]] static EngineConfigurationDescriptor ConstructStandaloneUVDefault() noexcept;
+    [[nodiscard]] static EngineConfigurationDescriptor ConstructStandaloneVectorDefault() noexcept;
     [[nodiscard]] static EngineConfigurationDescriptor ConstructHeadlessBatchDefault(
         WorkspaceCategory TargetWorkspace = WorkspaceCategory::UV) noexcept;
 

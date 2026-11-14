@@ -9,6 +9,7 @@ import {
   ShowcaseInitialRows,
   ShowcaseInitialValues,
 } from "./ShowcaseGalleryScene.js";
+import { BuildDefaultDiagnosticForceRig } from "./ForceFieldCatalog.js";
 import {
   BuildCylinderConeMaterial,
   BuildTrafficConeMaterial,
@@ -505,6 +506,14 @@ export const LEVEL_TEMPLATES = Object.freeze([
     Subtitle: "Canonical colour-bleed enclosure with chrome, gold plinth & crown glass",
   },
   {
+    Id: "force-lab",
+    Category: "Simulation",
+    Badge: "VECTORFIELD LAB",
+    Spec: "3 forces · Wind + Vortex + Curl",
+    Title: "Wind & Vortex ForceField Lab",
+    Subtitle: "Cornell-Studio stage pre-wired with Linear Wind, Cyclonic Vortex & Curl Turbulence",
+  },
+  {
     Id: "slalom",
     Category: "Automotive",
     Badge: "CAR CHICANE",
@@ -518,7 +527,7 @@ export const LEVEL_TEMPLATES = Object.freeze([
     Badge: "MATERIAL LAB",
     Spec: "12 entities · Cyclorama + Plinth",
     Title: "Look-Dev Plinth Studio",
-    Subtitle: "Infinite cyclorama stage with Clear-Coat, Fabric & Subsurface spheres",
+    Subtitle: "Infinite cyclorama stage with Clear-Coat, Charlie Velvet & Subsurface spheres",
   },
   {
     Id: "empty",
@@ -537,6 +546,49 @@ export const LEVEL_TEMPLATES = Object.freeze([
     Subtitle: "Clone all entities, transforms, forces & 20-channel materials from active level",
   },
 ]);
+
+function BuildForceFieldLabLevel(NewId, CleanName, Notes = "") {
+  const Rows = Clone(ShowcaseInitialRows);
+  const Values = Clone(ShowcaseInitialValues);
+  Rows.push({
+    Id: "forces",
+    Name: "Forces",
+    Panel: "group",
+    Icon: "folder-world",
+    Parent: null,
+    Description: "19-Law VectorField SimulationSpace",
+  });
+  const Rig = BuildDefaultDiagnosticForceRig();
+  for (const Node of Rig) {
+    Rows.push({
+      Id: Node.Id,
+      Name: Node.Name,
+      Panel: "force",
+      ForceModel: Node.Force.Model,
+      Icon: `force-model:${Node.Force.Model}`,
+      Parent: "forces",
+      Preview: true,
+      Description: `${Node.Force.Model} · R=${Node.Force.Radius}m`,
+    });
+    Values[Node.Id] = {
+      Powered: true,
+      Position: [...Node.Position],
+      Rotation: [...Node.Rotation],
+      Scale: [1, 1, 1],
+      Force: Clone(Node.Force),
+    };
+  }
+  return {
+    Id: NewId,
+    Name: CleanName,
+    Notes: Notes || "VectorField Studio Wind + Cyclonic Vortex + Curl Turbulence stage.",
+    Rows,
+    Values,
+    Hidden: {},
+    Collapsed: {},
+    Selected: Rig[1]?.Id || Rig[0]?.Id,
+  };
+}
 
 export function CreateNewLevelRecord({ Name, TemplateId, Notes = "", CurrentLevel }) {
   const CleanName = String(Name || "").trim() || "Untitled Level";
@@ -566,6 +618,10 @@ export function CreateNewLevelRecord({ Name, TemplateId, Notes = "", CurrentLeve
       Collapsed: {},
       Selected: "chrome-sphere",
     };
+  }
+
+  if (TemplateId === "force-lab") {
+    return BuildForceFieldLabLevel(NewId, CleanName, Notes);
   }
 
   if (TemplateId === "slalom") {

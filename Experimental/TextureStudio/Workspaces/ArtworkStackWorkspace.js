@@ -9,6 +9,9 @@
 import {
   ARTWORK_SIZE,
   ARTWORK_FINISHES,
+  ARTWORK_PBR_CHANNELS,
+  ARTWORK_PBR_CHANNEL_ROWS,
+  ARTWORK_PBR_CHANNEL_MAP,
   MOTIF_TYPES,
   MODIFIER_DEFINITIONS,
   artworkDocumentBackgroundSvg,
@@ -18,12 +21,18 @@ import {
   createArtworkLayer,
   createDefaultModifier,
   createDefaultPointGradient2D,
+  ensureArtworkLayerSurface,
   evaluateArtworkDocument,
+  formatArtworkChannelValue,
+  getArtworkChannelValue,
+  getArtworkLayerPbrMask,
   normalizeGradientStops,
   normalizePointGradient2D,
   nodesToNormalizedCurveData,
   normalizedCurveToCanvasNodes,
   pathNodesToSvgD,
+  setArtworkChannelValue,
+  setArtworkLayerPbrMask,
 } from "../Engine/Patterns/ArtworkStackEngine.js";
 import {
   listPatternStarterCatalog,
@@ -40,6 +49,7 @@ import {
   SwitchRow,
   SelectRow,
   SegmentedRow,
+  ChannelMaskRow,
   ColorRow,
   TextRow,
   ActionRow,
@@ -233,6 +243,7 @@ export function mountArtworkStackWorkspace(root, appBridge, { mode = "pattern" }
     ["Metalness", "metalness"],
     ["Height", "height"],
     ["Normal", "normal"],
+    ...ARTWORK_PBR_CHANNELS.filter((c) => c.extended && c.key !== "normal").map((c) => [c.label, c.key]),
   ];
 
   const loadJsonInp = document.createElement("input");
@@ -411,17 +422,24 @@ export function mountArtworkStackWorkspace(root, appBridge, { mode = "pattern" }
       },
       {
         id: "pbr",
-        label: "Export PBR Maps (4×)",
+        label: "Export PBR Maps",
         meta: `${Math.min(2048, state.resolution)}px`,
         onClick() {
           const sz = Math.min(2048, state.resolution);
           const ev = evaluateArtworkDocument(state.doc, sz);
           const slug = (state.doc.name || mode).toLowerCase().replace(/[^a-z0-9]+/g, "-");
-          exportRgbaBufferPng(ev.albedo, ev.width, ev.heightPx || ev.width, `${slug}-albedo-${sz}.png`);
-          exportRgbaBufferPng(ev.roughness, ev.width, ev.heightPx || ev.width, `${slug}-roughness-${sz}.png`);
-          exportRgbaBufferPng(ev.metalness, ev.width, ev.heightPx || ev.width, `${slug}-metalness-${sz}.png`);
-          exportRgbaBufferPng(ev.normal, ev.width, ev.heightPx || ev.width, `${slug}-normal-${sz}.png`);
-          Toast(`Exported 4 PBR maps @ ${sz}×${sz}px`);
+          const w = ev.width, h = ev.heightPx || ev.width;
+          exportRgbaBufferPng(ev.albedo, w, h, `${slug}-albedo-${sz}.png`);
+          exportRgbaBufferPng(ev.roughness, w, h, `${slug}-roughness-${sz}.png`);
+          exportRgbaBufferPng(ev.metalness, w, h, `${slug}-metalness-${sz}.png`);
+          exportRgbaBufferPng(ev.normal, w, h, `${slug}-normal-${sz}.png`);
+          let count = 4;
+          for (const [extKey, extBuf] of Object.entries(ev.extraChannels || {})) {
+            if (!extBuf || extKey === "normal") continue;
+            exportRgbaBufferPng(extBuf, w, h, `${slug}-${extKey}-${sz}.png`);
+            count++;
+          }
+          Toast(`Exported ${count} PBR maps @ ${sz}×${sz}px`);
         },
       },
       { id: "open", label: "Open Project File…", meta: ".json", onClick: () => loadJsonInp.click() },
@@ -1017,9 +1035,11 @@ export function mountArtworkStackWorkspace(root, appBridge, { mode = "pattern" }
               ? ev.metalness
               : state.viewChannel === "height"
                 ? ev.height
-                : ev.normal;
+                : state.viewChannel === "normal"
+                  ? ev.normal
+                  : (ev.extraChannels?.[state.viewChannel] || ev.albedo);
       const repeat = state.viewChannel === "tile2x2" ? 2 : 1;
-      const checker = state.viewChannel === "composite" || state.viewChannel === "tile2x2" || state.viewChannel === "albedo";
+      const checker = state.viewChannel === "composite" || state.viewChannel === "tile2x2" || state.viewChannel === "albedo" || state.viewChannel === "opacity";
       drawImageDataToCanvas(mainCanvas, chanData, w, h, checker, repeat);
     }
   }
@@ -1032,18 +1052,39 @@ export function mountArtworkStackWorkspace(root, appBridge, { mode = "pattern" }
     rulerCorner.hidden = !isVector;
     rulerXWrap.hidden = !isVector;
     rulerYWrap.hidden = !isVector;
-    if (isVector) renderVectorSvgCanvas();
-    else updatePbrPreviews();
+    if (isVector) {
+      renderVectorSvgCanvas();
+    } else {
+      const isExtKey = !!ARTWORK_PBR_CHANNEL_MAP[state.viewChannel]?.extended && state.viewChannel !== "normal";
+      if (isExtKey && !state.lastEval?.extraChannels?.[state.viewChannel]) {
+        evaluateAndRender(false);
+      } else {
+        updatePbrPreviews();
+      }
+    }
   }
 
   function evaluateAndRender(reRenderLeft = false, { skipPbr = false } = {}) {
     if (disposed) return;
     if (state.viewChannel === "vector") renderVectorSvgCanvas();
     if (!skipPbr) {
-      const ev = evaluateArtworkDocument(state.doc, 384);
+      const isExtKey = !!ARTWORK_PBR_CHANNEL_MAP[state.viewChannel]?.extended && state.viewChannel !== "normal";
+      const ev = evaluateArtworkDocument(state.doc, 384, isExtKey ? { extraChannels: [state.viewChannel] } : {});
       state.lastEval = ev;
       state.lastStats = ev.stats;
       updatePbrPreviews();
+    }
+    const sel = getSelectedLayer();
+    if (sel && sel.kind !== "folder") {
+      for (const card of rightInner.querySelectorAll(".pbr-channel-card")) {
+        const k = card.dataset?.pbrChannel;
+        if (!k) continue;
+        const val = getArtworkChannelValue(sel, k);
+        const pill = card.querySelector(".pbr-card-val");
+        if (pill) pill.textContent = formatArtworkChannelValue(k, val);
+        const dot = card.querySelector(".pbr-card-dot");
+        if (dot && ARTWORK_PBR_CHANNEL_MAP[k]?.isColor) dot.style.background = String(val);
+      }
     }
     headerUI.setName(state.doc.name || (isPattern ? "Pattern" : "Stamp"));
     headerUI.setResolution(state.resolution);
@@ -1154,17 +1195,12 @@ export function mountArtworkStackWorkspace(root, appBridge, { mode = "pattern" }
       },
       renderExpanded(layer, expEl) {
         const pills = Construct("div", "tp-exp-pills");
-        const chDefs = [
-          ["COL", layer.surface?.enableAlbedo !== false, "#9ea2aa"],
-          ["RGH", layer.surface?.enableRoughness !== false, "#9ea2aa"],
-          ["MET", layer.surface?.enableMetalness !== false, "#9ea2aa"],
-          ["HGT", layer.surface?.enableHeight !== false, "#9ea2aa"],
-        ];
-        for (const [short, on, col] of chDefs) {
-          if (!on) continue;
+        const pbrMask = getArtworkLayerPbrMask(layer);
+        for (const chDef of ARTWORK_PBR_CHANNELS) {
+          if (!pbrMask[chDef.key]) continue;
           const dot = document.createElement("i");
-          dot.style.setProperty("--pill-color", col);
-          pills.append(Construct("span", "tp-exp-pill", [dot, Construct("span", null, short)]));
+          dot.style.setProperty("--pill-color", chDef.isColor ? String(getArtworkChannelValue(layer, chDef.key)) : "#9ea2aa");
+          pills.append(Construct("span", "tp-exp-pill", [dot, Construct("span", null, chDef.short.toUpperCase())]));
         }
         for (const mod of (layer.modifiers || []).filter((m) => m.enabled !== false)) {
           const dot = document.createElement("i");
@@ -1719,28 +1755,128 @@ export function mountArtworkStackWorkspace(root, appBridge, { mode = "pattern" }
       });
     }
 
-    // Surface Finish
+    // Full PBR Surface Channels (+ Channel dropdown & per-added-channel cards)
     if (layer.kind !== "folder") {
-      const sSec = SectionCard(rightInner, { Title: "PBR Surface Channels", Glyph: "Material" });
+      ensureArtworkLayerSurface(layer);
+      const pbrMask = getArtworkLayerPbrMask(layer);
+      const activePbrDefs = ARTWORK_PBR_CHANNELS.filter((c) => pbrMask[c.key] === true);
+      const sSec = SectionCard(rightInner, {
+        Title: "PBR Surface Channels",
+        Glyph: "Material",
+        Badge: `${activePbrDefs.length} ACTIVE`,
+      });
       SelectRow(sSec.Inner, {
         Label: "Surface Finish",
-        Options: Object.entries(ARTWORK_FINISHES).map(([k, v]) => [v.label, k]),
+        Options: Object.entries(ARTWORK_FINISHES).map(([k, v]) => [v.label || v.name, k]),
         Read: () => layer.surface.finish,
         Write: (v) => {
           const preset = ARTWORK_FINISHES[v];
+          pushUndo();
           layer.surface.finish = v;
           if (preset) {
             layer.surface.roughness = preset.roughness;
             layer.surface.metalness = preset.metalness;
             layer.surface.height = preset.height;
           }
-          evaluateAndRender();
-          Broadcast();
+          evaluateAndRender(true);
+          rebuildInspector();
         },
       });
-      SliderRow(sSec.Inner, { Label: "Roughness", Minimum: 0.04, Maximum: 1, Step: 0.02, Read: () => layer.surface.roughness, Write: (v) => { layer.surface.roughness = v; evaluateAndRender(); } });
-      SliderRow(sSec.Inner, { Label: "Metalness", Minimum: 0, Maximum: 1, Step: 0.02, Read: () => layer.surface.metalness, Write: (v) => { layer.surface.metalness = v; evaluateAndRender(); } });
-      SliderRow(sSec.Inner, { Label: "Relief Height", Minimum: -1, Maximum: 1, Step: 0.02, Read: () => layer.surface.height, Write: (v) => { layer.surface.height = v; evaluateAndRender(); } });
+
+      ChannelMaskRow(sSec.Inner, {
+        Label: "Active PBR Channels",
+        AddLabel: "Channel",
+        Channels: ARTWORK_PBR_CHANNEL_ROWS,
+        StrictPresence: true,
+        Read: () => getArtworkLayerPbrMask(layer),
+        Write: (nextMap) => {
+          pushUndo();
+          setArtworkLayerPbrMask(layer, nextMap);
+          evaluateAndRender(true);
+          rebuildInspector();
+        },
+      });
+
+      const cardsWrap = Construct("div", "pbr-channel-cards");
+      if (!activePbrDefs.length) {
+        cardsWrap.append(
+          Construct("div", "property-hint pbr-cards-empty", "No PBR channels active — add channels from the + Channel dropdown above."),
+        );
+      }
+      for (const chDef of activePbrDefs) {
+        const card = Construct("div", "pbr-channel-card");
+        card.dataset.pbrChannel = chDef.key;
+
+        const curVal = getArtworkChannelValue(layer, chDef.key);
+        const valPill = Construct("span", "pbr-card-val tabular", formatArtworkChannelValue(chDef.key, curVal));
+        const dot = Construct("i", "pbr-card-dot");
+        dot.style.background = chDef.isColor ? String(curVal || chDef.defaultVal || "#e8c27a") : "#9ea2aa";
+
+        const eyeBtn = Construct(
+          "button",
+          "stack-mini-btn" + (state.viewChannel === chDef.key ? " on" : ""),
+          ConstructGlyph("Eye"),
+        );
+        eyeBtn.type = "button";
+        eyeBtn.title = `Solo ${chDef.label} map in viewport`;
+        eyeBtn.addEventListener("click", () => {
+          state.viewChannel = state.viewChannel === chDef.key ? "vector" : chDef.key;
+          headerUI.setView(state.viewChannel);
+          syncViewDisplay();
+          rebuildInspector();
+        });
+
+        const rmBtn = Construct("button", "stack-mini-btn pbr-card-remove", ConstructGlyph("Close"));
+        rmBtn.type = "button";
+        rmBtn.title = `Remove ${chDef.label} channel`;
+        rmBtn.addEventListener("click", () => {
+          pushUndo();
+          const nextMask = { ...getArtworkLayerPbrMask(layer), [chDef.key]: false };
+          setArtworkLayerPbrMask(layer, nextMask);
+          evaluateAndRender(true);
+          rebuildInspector();
+        });
+
+        const head = Construct("div", "pbr-channel-card-head", [
+          dot,
+          Construct("strong", null, chDef.label),
+          Construct("span", "modifier-type-pill", chDef.sub || (chDef.isColor ? "Colour" : "Scalar")),
+          valPill,
+          eyeBtn,
+          rmBtn,
+        ]);
+        card.append(head);
+
+        if (chDef.isColor) {
+          ColorRow(card, {
+            Label: `${chDef.label} Value`,
+            SlotLabel: `${layer.name} · ${chDef.label}`,
+            Read: () => String(getArtworkChannelValue(layer, chDef.key) || chDef.defaultVal || "#ffffff"),
+            Write: (v) => {
+              const saved = setArtworkChannelValue(layer, chDef.key, v);
+              valPill.textContent = formatArtworkChannelValue(chDef.key, saved);
+              dot.style.background = String(saved);
+              evaluateAndRender(chDef.key === "albedo");
+            },
+          });
+        } else {
+          SliderRow(card, {
+            Label: `${chDef.label} Value`,
+            Minimum: chDef.min ?? 0,
+            Maximum: chDef.max ?? 1,
+            Step: chDef.step ?? 0.01,
+            Read: () => Number(getArtworkChannelValue(layer, chDef.key)),
+            Write: (v) => {
+              const saved = setArtworkChannelValue(layer, chDef.key, v);
+              valPill.textContent = formatArtworkChannelValue(chDef.key, saved);
+              evaluateAndRender(false);
+            },
+          });
+        }
+
+        cardsWrap.append(card);
+      }
+      sSec.Inner.append(cardsWrap);
     }
 
     // Per-Layer Mask
@@ -2421,9 +2557,35 @@ export function mountArtworkStackWorkspace(root, appBridge, { mode = "pattern" }
       const sel = getSelectedLayer();
       if (sel && sel.kind !== "folder") {
         pushUndo();
-        sel.shape.color = mat.color || sel.shape.color;
-        sel.surface.roughness = mat.roughness ?? sel.surface.roughness;
-        sel.surface.metalness = mat.metalness ?? sel.surface.metalness;
+        ensureArtworkLayerSurface(sel);
+        if (mat.color) setArtworkChannelValue(sel, "albedo", mat.color);
+        if (mat.roughness != null) setArtworkChannelValue(sel, "roughness", mat.roughness);
+        if (mat.metalness != null) setArtworkChannelValue(sel, "metalness", mat.metalness);
+        const mask = getArtworkLayerPbrMask(sel);
+        const applyExtMat = (key, val) => {
+          mask[key] = true;
+          setArtworkChannelValue(sel, key, val);
+        };
+        if ((mat.coat ?? 0) > 0.01) {
+          applyExtMat("clearcoat", mat.coat);
+          if (mat.coatRoughness != null) applyExtMat("coatRoughness", mat.coatRoughness);
+        }
+        if ((mat.sheen ?? 0) > 0.01) {
+          applyExtMat("sheen", mat.sheen);
+          if (mat.sheenRoughness != null) applyExtMat("sheenRoughness", mat.sheenRoughness);
+          if (mat.sheenColor) applyExtMat("sheenColor", mat.sheenColor);
+        }
+        if ((mat.iridescence ?? 0) > 0.01) {
+          applyExtMat("iridescence", mat.iridescence);
+          if (mat.filmThickness != null) applyExtMat("iridescenceThickness", Math.min(1, Number(mat.filmThickness) / 1200));
+        }
+        if ((mat.anisotropy ?? 0) > 0.01) applyExtMat("anisotropy", mat.anisotropy);
+        if ((mat.translucency ?? 0) > 0.01) applyExtMat("transmission", mat.translucency);
+        if ((mat.emissionStrength ?? 0) > 0.01 && mat.emissionColor) {
+          applyExtMat("emissive", mat.emissionColor);
+          applyExtMat("emissiveIntensity", mat.emissionStrength);
+        }
+        setArtworkLayerPbrMask(sel, mask);
         evaluateAndRender(true);
         rebuildInspector();
         Toast(`Applied "${mat.name}" PBR look to layer "${sel.name}"`);

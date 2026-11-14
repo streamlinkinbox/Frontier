@@ -16,7 +16,7 @@ before writing code or documentation.
 
 🔴 A blacklist tells you what a name must **NOT** be; this procedure builds what it **IS**. Never
 reach for a familiar generic word under pressure — construct from the physical/memory mechanism first,
-then run the 6-gate rejection check.
+then run the 7-gate rejection check.
 
 1. **State the mechanism in one plain sentence** — what it physically does in memory, math, or GPU silicon.
    *"Recycles preallocated indexed instance slots." "Encodes batched indirect draw arguments."*
@@ -26,13 +26,14 @@ then run the 6-gate rejection check.
 3. **Avoid discouraged words** even though they are not hard-banned: avoid `Substrate`, `Atlas`, and
    `Slice` whenever a direct mechanical name (`DeviceInterchange`, `HardwareOutput`, `ChartPacker`,
    `PackedBits`, `BitRange`) exists.
-4. **6-Gate Reject Test** — INVALID (restart at Step 1) if the candidate hits ANY gate:
+4. **7-Gate Reject Test** — INVALID (restart at Step 1) if the candidate hits ANY gate:
    - ① Appears in `Documentation/BannedWordsVocabulary.md` or is a direct synonym (`adjacency`, `arena`, `binding`, `bloom`, `context`, `coverage`, `hub`, `interpolant`, `mesh`, `pass`, `pool`, `predicate`, `reclamation`, `reservoir`, `stage`, `store`, `submission`, `vacancy`, …).
    - ② Sci-fi / center-of-universe / mythology (`Apex`, `Nexus`, `Core`, `Matrix`, `Vortex`, `Horizon`, `Sentinel`, …).
    - ③ Framework / web jargon (`SceneGraph`, `ECS`, `Backend`, `Actor`, `Shell`, `Popover`, `Widget`, `Kit`).
    - ④ Generic OO / AI trope (`Manager`, `Service`, `Controller`, `Handler`, `Dispatcher`, `Processor`, `Helper`, `Utility`).
    - ⑤ Human job title or kinship term (`Worker`, `Provider`, `Listener` / `Parent`, `Child`, `Sibling`, `Orphan`).
    - ⑥ Empty placeholder (`Data`, `Info`, `Object`, `Item`, `Element`, `Thing`, `Common`, `Base`, `flag`, `state`, `value`).
+   - ⑦ **Conjunction `And` in filenames or identifiers** (`GpuTextureAndSdfBaker`, `BuildAndUploadStudy`, `CameraEyeAndMode`, `MasksAndIds`) — **STRICTLY FORBIDDEN**. Split into single-responsibility types/files (`TextureBaker` + `SdfBaker`) or name the single concrete mechanism cleanly.
 5. **Name the REALITY, not the CATEGORY.** If the name could apply to an enterprise web backend, discard it.
 
 ---

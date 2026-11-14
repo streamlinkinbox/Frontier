@@ -38,6 +38,7 @@ import {
   Broadcast,
   Toast,
 } from "../StudioControls.js";
+import { createViewportHeader } from "./ViewportHeaderKit.js";
 
 function downloadUrl(url, filename) {
   const a = document.createElement("a");
@@ -97,6 +98,7 @@ function renderVolumeSdfSliceToCanvas(canvas, sdf, axis = "z", sliceNorm = 0.5) 
 export function mountBakingWorkspace(root, appBridge) {
   let state = {
     studyId: "teapot",
+    studyTitle: "Utah Teapot Study",
     viewMode: "3d", // "3d" (default) | "2d" | "split"
     selectedChannels: new Set(["normalTangent", "ao", "curvature", "height", "volumeSdf"]),
     inspectChannel: "normalTangent",
@@ -116,7 +118,7 @@ export function mountBakingWorkspace(root, appBridge) {
     sdfSlicePos: 0.5,
     baking: false,
     deviceMode: "auto", // "auto" | "gpu" | "cpu"
-    lastDevice: "Detecting GPU…",
+    lastDevice: "Probing GPU…",
     lastElapsedMs: 0,
     progress: 0,
     progressText: "Ready to bake",
@@ -129,6 +131,22 @@ export function mountBakingWorkspace(root, appBridge) {
   let rafId = 0;
   let disposed = false;
   let activePopup = null;
+  const undoStack = [];
+  const redoStack = [];
+
+  const captureParamSnapshot = () => ({
+    studyId: state.studyId,
+    resolution: state.resolution,
+    samples: state.samples,
+    frontDistance: state.frontDistance,
+    rearDistance: state.rearDistance,
+    aoDistance: state.aoDistance,
+    padding: state.padding,
+    normalY: state.normalY,
+    sdfRes: state.sdfRes,
+    sdfPadding: state.sdfPadding,
+    selectedChannels: [...state.selectedChannels],
+  });
 
   // ----------------------------------------------------------------- LAYOUT
   const grid = Construct("div", "studio-grid");
@@ -137,8 +155,8 @@ export function mountBakingWorkspace(root, appBridge) {
   const leftCol = Construct("aside", "studio-column");
   leftCol.append(
     Construct("div", "panel-heading", [
-      Construct("h2", null, "Bake Map Targets"),
-      Construct("span", "panel-heading-meta", `${BAKE_MAP_CATALOG.length} MAPS`),
+      Construct("h2", null, "Bake Targets"),
+      Construct("span", "panel-heading-meta", `${BAKE_MAP_CATALOG.length} TARGETS`),
     ]),
   );
   const leftScroll = Construct("div", "panel-scroll");
@@ -152,9 +170,8 @@ export function mountBakingWorkspace(root, appBridge) {
     ]),
   );
 
-  // CENTER: TOOLBAR + 3D PREVIEW + 2D INSPECTOR
+  // CENTER: UNIFIED 2-TIER VIEWPORT HEADER + 3D PREVIEW + 2D INSPECTOR
   const centerCol = Construct("main", "studio-column viewport-column");
-  const toolbar = Construct("div", "viewport-toolbar");
 
   const studySelect = Construct("select", "se-header-select");
   for (const s of BAKE_STUDY_SHAPES) {
@@ -167,64 +184,149 @@ export function mountBakingWorkspace(root, appBridge) {
     Construct("span", "pill-caret-divider", ConstructGlyph("ChevronDown", "glyph chev")),
   ]);
 
-  const viewSelect = Construct("select", "se-header-select vp-bake-view-select");
-  viewSelect.setAttribute("aria-label", "Bake Viewport View");
-  viewSelect.title = "Switch Baking Viewport View";
-  for (const [label, val] of [
-    ["3D Mesh Only", "3d"],
-    ["2D Map Only", "2d"],
-    ["3D + 2D Split", "split"],
-  ]) {
-    const o = Construct("option", null, label);
-    o.value = val;
-    viewSelect.append(o);
-  }
-  viewSelect.value = state.viewMode;
-  const viewWrap = Construct("div", "select-pill-wrap vp-compact-select", [
-    viewSelect,
-    Construct("span", "pill-caret-divider", ConstructGlyph("ChevronDown", "glyph chev")),
-  ]);
-
   const lowInp = document.createElement("input");
   lowInp.type = "file"; lowInp.accept = ".obj,.stl"; lowInp.hidden = true;
   const highInp = document.createElement("input");
   highInp.type = "file"; highInp.accept = ".obj,.stl"; highInp.hidden = true;
 
-  const btnLoadLow = Construct("button", "pill-btn", [ConstructGlyph("Upload"), Construct("span", null, "Low Mesh")]);
+  const btnLoadLow = Construct("button", "pill-btn", [ConstructGlyph("Upload"), Construct("span", null, "Low Target")]);
   btnLoadLow.type = "button";
   btnLoadLow.addEventListener("click", () => lowInp.click());
 
-  const btnLoadHigh = Construct("button", "pill-btn", [ConstructGlyph("Upload"), Construct("span", null, "High Mesh")]);
+  const btnLoadHigh = Construct("button", "pill-btn", [ConstructGlyph("Upload"), Construct("span", null, "High Source")]);
   btnLoadHigh.type = "button";
   btnLoadHigh.addEventListener("click", () => highInp.click());
 
-  const btnBakeNow = Construct("button", "pill-btn accent", [ConstructGlyph("Bake"), Construct("span", null, "Bake Selected Maps")]);
+  const btnBakeNow = Construct("button", "pill-btn accent", [ConstructGlyph("Bake"), Construct("span", null, "Bake Targets")]);
   btnBakeNow.type = "button";
 
   const btnSendToPaint = Construct("button", "pill-btn warm", [ConstructGlyph("Brush"), Construct("span", null, "Send to Paint")]);
   btnSendToPaint.type = "button";
 
-  const gpuPill = Construct("span", "gpu-badge", [document.createElement("i"), Construct("span", null, "GPU Baker Ready")]);
+  const btnOpenCompiler = Construct("button", "pill-btn", [ConstructGlyph("Volume"), Construct("span", null, "GeometryCompiler")]);
+  btnOpenCompiler.type = "button";
+  btnOpenCompiler.title = "Open Frontier standalone GeometryCompiler workspace for full 3D SDF, Dual-Contour & Glass-Safe Cluster LOD";
+  btnOpenCompiler.addEventListener("click", () => {
+    const url = `/Experimental/GeometryCompiler/?specimen=${encodeURIComponent(state.studyId)}`;
+    if (typeof window !== "undefined" && typeof window.open === "function") {
+      window.open(url, "_blank", "noopener");
+    }
+    Toast("Opening GeometryCompiler workspace…");
+  });
 
-  toolbar.append(
-    studyWrap,
-    viewWrap,
-    btnLoadLow, lowInp,
-    btnLoadHigh, highInp,
-    gpuPill,
-    Construct("div", "toolbar-spacer"),
-    btnSendToPaint,
-    btnBakeNow,
-  );
+  const gpuPill = Construct("span", "gpu-badge", [document.createElement("i"), Construct("span", null, "GPU Ready")]);
+
+  const pushUndoState = () => {
+    undoStack.push(captureParamSnapshot());
+    if (undoStack.length > 32) undoStack.shift();
+    redoStack.length = 0;
+    header?.setUndoRedoState(undoStack.length > 0, redoStack.length > 0);
+  };
+
+  const restoreParamSnapshot = (snap) => {
+    if (!snap) return;
+    state.resolution = snap.resolution;
+    state.samples = snap.samples;
+    state.frontDistance = snap.frontDistance;
+    state.rearDistance = snap.rearDistance;
+    state.aoDistance = snap.aoDistance;
+    state.padding = snap.padding;
+    state.normalY = snap.normalY;
+    state.sdfRes = snap.sdfRes;
+    state.sdfPadding = snap.sdfPadding;
+    state.selectedChannels = new Set(snap.selectedChannels);
+    header.setResolution(state.resolution);
+    renderLeftColumn();
+    rebuildInspector();
+  };
+
+  const header = createViewportHeader(centerCol, {
+    workspace: "baking",
+    badgeText: "BAKING",
+    eyebrowText: "SURFACE RAY BAKER",
+    draftText: "Ready",
+    iconGlyph: "Bake",
+    canvasName: state.studyTitle,
+    onRename: (next) => { state.studyTitle = next; },
+    resolutions: [256, 512, 1024, 2048],
+    resolution: state.resolution,
+    onResolutionChange: (nextRes) => {
+      pushUndoState();
+      state.resolution = nextRes;
+      rebuildInspector();
+    },
+    viewOptions: [
+      ["3D Target Only", "3d"],
+      ["2D Map Only", "2d"],
+      ["3D + 2D Split", "split"],
+    ],
+    viewValue: state.viewMode,
+    viewAriaLabel: "Bake Viewport View",
+    onViewChange: (mode) => {
+      state.viewMode = mode || "3d";
+      syncBakeViewportLayout();
+    },
+    onUndo: () => {
+      if (!undoStack.length) return;
+      redoStack.push(captureParamSnapshot());
+      restoreParamSnapshot(undoStack.pop());
+      header.setUndoRedoState(undoStack.length > 0, redoStack.length > 0);
+    },
+    onRedo: () => {
+      if (!redoStack.length) return;
+      undoStack.push(captureParamSnapshot());
+      restoreParamSnapshot(redoStack.pop());
+      header.setUndoRedoState(undoStack.length > 0, redoStack.length > 0);
+    },
+    saveItems: [
+      {
+        label: "Export Current Map PNG",
+        glyph: "Download",
+        onClick: () => {
+          downloadUrl(canvas2D.toDataURL("image/png"), `${state.studyId}-${state.inspectChannel}.png`);
+          Toast(`Exported ${state.inspectChannel}.png`);
+        },
+      },
+      {
+        label: "Export .fvol Volume SDF",
+        glyph: "Volume",
+        onClick: () => {
+          if (!state.bakedSdf) { Toast("Bake Volume SDF first"); return; }
+          const sdf = state.bakedSdf;
+          const payload = JSON.stringify({
+            schema: "frontier.volume-sdf.v1",
+            dims: sdf.dims,
+            boundsMin: sdf.min,
+            boundsMax: sdf.max,
+            signed: sdf.signed,
+            minDistance: sdf.minVal,
+            maxDistance: sdf.maxVal,
+            values: Array.from(sdf.values, (v) => Number(v.toFixed(5))),
+          });
+          const blob = new Blob([payload], { type: "application/json" });
+          const u = URL.createObjectURL(blob);
+          downloadUrl(u, `${state.studyId}-volume.fvol`);
+          setTimeout(() => URL.revokeObjectURL(u), 1000);
+          Toast("Exported Frontier .fvol Signed Volume SDF");
+        },
+      },
+    ],
+    primaryActions: [btnOpenCompiler, btnSendToPaint, btnBakeNow],
+    toolTrailing: [],
+  });
+  header.toolGroup.append(studyWrap, btnLoadLow, lowInp, btnLoadHigh, highInp, gpuPill);
+  header.setUndoRedoState(false, false);
+  const viewSelect = header.viewSelect;
+  viewSelect?.classList.add("vp-bake-view-select");
 
   const stage = Construct("div", "viewport-stage");
   const split = Construct("div", "viewport-split-2d");
   const pane3D = Construct("div", "viewport-split-pane");
-  pane3D.append(Construct("span", "pane-badge", "3D Low-Poly + Baked Map"));
+  pane3D.append(Construct("span", "pane-badge", "3D Low Target + Baked Channel"));
 
   const pane2D = Construct("div", "viewport-split-pane");
   pane2D.style.cssText = "display:flex;align-items:center;justify-content:center;padding:18px;background:#0c0d10;";
-  const mapBadge2D = Construct("span", "pane-badge", "2D Baked Map / Volume SDF Slice");
+  const mapBadge2D = Construct("span", "pane-badge", "2D Baked Channel / Volume SDF Slice");
   const canvas2D = document.createElement("canvas");
   canvas2D.width = 512;
   canvas2D.height = 512;
@@ -232,9 +334,9 @@ export function mountBakingWorkspace(root, appBridge) {
   pane2D.append(mapBadge2D, canvas2D);
 
   split.append(pane3D, pane2D);
-  const hudHelp = Construct("div", "viewport-hud-bottom", "Click any map on the left to inspect · Volume SDF exports binary/JSON .fvol + live slices");
+  const hudHelp = Construct("div", "viewport-hud-bottom", "Click any target on the left to inspect · Open GeometryCompiler for full 3D SDF, Dual-Contour & Glass-Safe Cluster LOD");
   stage.append(split, hudHelp);
-  centerCol.append(toolbar, stage);
+  centerCol.append(stage);
 
   // RIGHT: BAKE SETTINGS + SDF SETTINGS + EXPORT
   const rightCol = Construct("aside", "studio-column");
@@ -643,18 +745,18 @@ export function mountBakingWorkspace(root, appBridge) {
     updateProgressUi();
 
     // 1. Surface Baker Settings
-    const sSec = SectionCard(rightInner, { Title: "GPU Device & Surface Ray Settings", Glyph: "Sliders" });
+    const sSec = SectionCard(rightInner, { Title: "Ray Execution & Surface Settings", Glyph: "Sliders" });
     SegmentedRow(sSec.Inner, {
-      Label: "Compute Backend",
+      Label: "Ray Execution Tier",
       Options: [["Auto GPU", "auto"], ["WebGL2 / WebGPU", "gpu"], ["CPU Ref", "cpu"]],
       Read: () => state.deviceMode,
-      Write: (v) => { state.deviceMode = v; },
+      Write: (v) => { pushUndoState(); state.deviceMode = v; },
     });
     SegmentedRow(sSec.Inner, {
-      Label: "Map Resolution",
+      Label: "Target Resolution",
       Options: [["256", 256], ["512", 512], ["1024", 1024], ["2048", 2048]],
       Read: () => state.resolution,
-      Write: (v) => { state.resolution = v; },
+      Write: (v) => { pushUndoState(); state.resolution = v; header.setResolution(v); },
     });
     SegmentedRow(sSec.Inner, {
       Label: "Tangent Normal Convention",
@@ -833,7 +935,7 @@ export function mountBakingWorkspace(root, appBridge) {
     resizeRenderer3D();
   };
 
-  viewSelect.addEventListener("change", () => {
+  viewSelect?.addEventListener("change", () => {
     state.viewMode = viewSelect.value || "3d";
     syncBakeViewportLayout();
   });
@@ -867,7 +969,7 @@ export function mountBakingWorkspace(root, appBridge) {
     pop.append(
       Construct("div", "tool-popup-head", [
         ConstructGlyph("Bake"),
-        Construct("strong", null, "Baking Quick Menu"),
+        Construct("strong", null, "Baking Quick Strip"),
         Construct("small", null, state.lastDevice),
         closeBtn,
       ]),
@@ -976,6 +1078,9 @@ export function mountBakingWorkspace(root, appBridge) {
   function applyAsset(payload) {
     if (!payload) return false;
     if (payload.assetKind === "mesh") {
+      if (payload.raw?.transfer) {
+        return applyImportedMesh(payload.raw.transfer);
+      }
       const mId = payload.raw?.bakeId || payload.id;
       if (BAKE_STUDY_SHAPES.some((s) => s.id === mId)) {
         state.studyId = mId;
@@ -1034,6 +1139,7 @@ export function mountBakingWorkspace(root, appBridge) {
       closeBakePopup();
       window.removeEventListener("keydown", onBakeKeyDown);
       ro.disconnect();
+      header.dispose();
       if (inspectorScope) ReleaseScope(inspectorScope);
       orbit.dispose();
       gpuBaker.dispose();

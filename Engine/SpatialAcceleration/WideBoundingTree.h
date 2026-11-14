@@ -93,6 +93,7 @@ public:
     void Reset() noexcept;
 
     bool BuildFromPolygonNetwork(const GeometrySpace::PolygonNetwork& Network);
+    bool BuildFromTrianglePrimitives(std::span<const RayTrianglePrimitive> InputPrimitives);
 
     // Deterministic front-to-back ordered 4-wide closest-hit query.
     [[nodiscard]] RayIntersectionResult TraceClosestRay(

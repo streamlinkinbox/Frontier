@@ -8,7 +8,7 @@
    - GPU-resident Undo/Redo target snapshots (readPixels runs ONLY on PNG Export or Eyedropper sample). */
 
 import * as THREE from "three";
-import { sampleCurveLut, getToolChannels, EXTENDED_PBR_KEYS, defaultByteForExtChannel, encodeScalarChannelByte, resolveMaterialLayerSpec } from "./TexturePaintEngine.js";
+import { sampleCurveLut, getToolChannels, getStampAspectMultipliers, EXTENDED_PBR_KEYS, defaultByteForExtChannel, encodeScalarChannelByte, resolveMaterialLayerSpec } from "./TexturePaintEngine.js";
 
 function hexToRgb(hex) {
   const s = String(hex || "#ffffff").replace(/^#/, "");
@@ -1821,7 +1821,7 @@ export class GpuPaintSession {
   ensureLayerTargets(layer) {
     if (!layer._gpu) {
       const opts = this._rtOpts();
-      const isPaint = layer.kind === "paint" || layer.kind === "decal";
+      const isPaint = layer.kind === "paint" || layer.kind === "decal" || layer.kind === "text";
       layer._gpu = {
         albedoRT: isPaint ? new THREE.WebGLRenderTarget(this.res, this.res, opts) : null,
         ormhRT: isPaint ? new THREE.WebGLRenderTarget(this.res, this.res, opts) : null,
@@ -2299,7 +2299,7 @@ export class GpuPaintSession {
       u.uParentMask.value = pMask?.rt?.texture || this.dummyTex;
       u.uLayerChanMask.value.set(lCh.albedo ? 1 : 0, lCh.roughness ? 1 : 0, lCh.metalness ? 1 : 0, lCh.height ? 1 : 0);
 
-      if (layer.kind === "paint" || layer.kind === "decal") {
+      if (layer.kind === "paint" || layer.kind === "decal" || layer.kind === "text") {
         u.uLayerKind.value = 0;
         u.uLayerAlbedo.value = gpu.albedoRT?.texture || this.dummyTex;
         u.uLayerOrmh.value = gpu.ormhRT?.texture || this.dummyTex;
@@ -2458,8 +2458,9 @@ export class GpuPaintSession {
         du.uHasStampOrmh.value = stPair.ormhTex ? 1 : 0;
         du.uStampProj.value = stmp.projection === "3d" ? 1 : 0;
         du.uStampUv.value.set(stmp.u ?? 0.5, stmp.v ?? 0.5);
-        const sx = Math.max(0.015, (stmp.scale ?? 0.28) * (stmp.scaleX ?? 1.0));
-        const sy = Math.max(0.015, (stmp.scale ?? 0.28) * (stmp.scaleY ?? 1.0));
+        const { ax, ay } = getStampAspectMultipliers(stData);
+        const sx = Math.max(0.015, (stmp.scale ?? 0.28) * (stmp.scaleX ?? 1.0) * ax);
+        const sy = Math.max(0.015, (stmp.scale ?? 0.28) * (stmp.scaleY ?? 1.0) * ay);
         du.uStampScale.value.set(sx, sy);
         du.uStampRot.value = ((stmp.rotation || 0) * Math.PI) / 180;
         const ap = stmp.anchorPos || [0, 0, 1];

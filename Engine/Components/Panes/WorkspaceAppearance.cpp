@@ -107,6 +107,39 @@ void ConstructHierarchySubIcon(
         StrokeWidth);
 }
 
+struct PointerOwnershipRegister
+{
+    const void* ActiveOwnerPane         = nullptr;
+    bool        ExternalDragSuppression = false;
+    uint32_t    OwnerStaleEnforceTicks  = 0u;
+    Rectangle2D PrimaryOverlayShield    {};
+    Rectangle2D SecondaryOverlayShield  {};
+};
+
+[[nodiscard]] PointerOwnershipRegister& AccessPointerOwnershipRegister() noexcept
+{
+    static PointerOwnershipRegister CoordinatorRegister{};
+    return CoordinatorRegister;
+}
+
+[[nodiscard]] bool QueryOverlayShieldContains(Point2D PhysicalCursor) noexcept
+{
+    const auto& Reg = AccessPointerOwnershipRegister();
+    if (Reg.PrimaryOverlayShield.Width > 0.5f &&
+        Reg.PrimaryOverlayShield.Height > 0.5f &&
+        Reg.PrimaryOverlayShield.Contains(PhysicalCursor))
+    {
+        return true;
+    }
+    if (Reg.SecondaryOverlayShield.Width > 0.5f &&
+        Reg.SecondaryOverlayShield.Height > 0.5f &&
+        Reg.SecondaryOverlayShield.Contains(PhysicalCursor))
+    {
+        return true;
+    }
+    return false;
+}
+
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -185,26 +218,17 @@ PaneInputReading CaptureImGuiPaneInput(Rectangle2D ScreenBounds, float ScaleFact
         EncodeUtf8Codepoint(Codepoint, Reading.TypedUtf8);
     }
 
+    const auto& Reg = AccessPointerOwnershipRegister();
+    if (Reg.ActiveOwnerPane == nullptr &&
+        !Reg.ExternalDragSuppression &&
+        Snapshot.PointerSeeded &&
+        QueryOverlayShieldContains(ScreenCursor))
+    {
+        SuppressPanePointerInput(Reading);
+    }
+
     return Reading;
 }
-
-namespace
-{
-
-struct PointerOwnershipRegister
-{
-    const void* ActiveOwnerPane         = nullptr;
-    bool        ExternalDragSuppression = false;
-    uint32_t    OwnerStaleEnforceTicks  = 0u;
-};
-
-[[nodiscard]] PointerOwnershipRegister& AccessPointerOwnershipRegister() noexcept
-{
-    static PointerOwnershipRegister CoordinatorRegister{};
-    return CoordinatorRegister;
-}
-
-} // namespace
 
 void SuppressPanePointerInput(PaneInputReading& InOutInput) noexcept
 {
@@ -238,6 +262,20 @@ bool QueryPointerBlockedForPane(const void* PaneIdentity) noexcept
 void AssignExternalDragSuppression(bool ExternalDragActive) noexcept
 {
     AccessPointerOwnershipRegister().ExternalDragSuppression = ExternalDragActive;
+}
+
+void AssignOverlayPointerShield(Rectangle2D PrimaryPhysicalBounds, Rectangle2D SecondaryPhysicalBounds) noexcept
+{
+    auto& Reg                  = AccessPointerOwnershipRegister();
+    Reg.PrimaryOverlayShield   = PrimaryPhysicalBounds;
+    Reg.SecondaryOverlayShield = SecondaryPhysicalBounds;
+}
+
+void ClearOverlayPointerShield() noexcept
+{
+    auto& Reg                  = AccessPointerOwnershipRegister();
+    Reg.PrimaryOverlayShield   = {};
+    Reg.SecondaryOverlayShield = {};
 }
 
 void EnforcePanePointerOwnership(const void* PaneIdentity, PaneInputReading& InOutInput) noexcept

@@ -27,10 +27,14 @@ namespace Frontier::GeometricRaster
 
 struct ComputeSlotDescriptor
 {
-    uint32_t         SlotIndex   = 0u;                                    // [idx]  - [[vk::binding(N, 0)]] slot
-    VkDescriptorType SlotCategory = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;     // [-]    - UNIFORM_BUFFER or STORAGE_BUFFER
-    VkBuffer         BufferHandle   = VK_NULL_HANDLE;                        // [-]    - Bound device or host-visible buffer
-    uint64_t         ByteRange      = VK_WHOLE_SIZE;                         // [B]    - Bound byte range
+    uint32_t         SlotIndex       = 0u;                                    // [idx] - [[vk::binding(N, 0)]] slot
+    VkDescriptorType SlotCategory    = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;     // [-]   - Buffer or storage/sampled image descriptor category
+    VkBuffer         BufferHandle    = VK_NULL_HANDLE;                        // [-]   - Bound device or host-visible buffer
+    uint64_t         ByteRange       = VK_WHOLE_SIZE;                         // [B]   - Bound byte range
+    uint64_t         OffsetBytes     = 0ull;                                  // [B]   - Byte offset into BufferHandle
+    VkImageView      ImageViewHandle = VK_NULL_HANDLE;                        // [-]   - Bound image view for storage/sampled image descriptors
+    VkSampler        SamplerHandle   = VK_NULL_HANDLE;                        // [-]   - Bound sampler for combined image samplers
+    VkImageLayout    ImageLayout     = VK_IMAGE_LAYOUT_GENERAL;               // [-]   - Image layout at compute dispatch
 };
 
 struct RegisteredComputeProgram

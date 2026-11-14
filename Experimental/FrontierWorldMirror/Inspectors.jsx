@@ -504,6 +504,7 @@ export function Inspector({
   OpenWind,
   OpenWindField,
   WindFields = [],
+  AllRows = [],
   AllValues = {},
   AllHidden = {},
   ReferenceCards = null,
@@ -512,6 +513,7 @@ export function Inspector({
   ForceOverlaySettings = null,
   OnChangeForceOverlay = null,
   OnSaveForcePreset = null,
+  OnDeleteSubject = null,
 }) {
   const Sheet = Panels[Subject.Panel] || Panels.geometry;
   const [MoonSlot, SelectMoon] = useState(0);
@@ -1845,9 +1847,13 @@ export function Inspector({
         Subject={Subject}
         Values={Values}
         Change={Change}
+        AllRows={AllRows}
+        AllValues={AllValues}
+        AllHidden={AllHidden}
         OverlaySettings={ForceOverlaySettings}
         OnChangeOverlay={OnChangeForceOverlay}
         OnSavePreset={OnSaveForcePreset}
+        OnDeleteSubject={OnDeleteSubject}
       />
     );
   } else Content = Generic();

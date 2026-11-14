@@ -66,7 +66,7 @@ jobs:
       - name: Build Windows x64 applications and boundary checks
         shell: pwsh
         run: |
-          $Output = & cmake --build Build/Windows --config Release --parallel 4 --target FrontierUV FrontierEditor UVBoundaryValidation 2>&1
+          $Output = & cmake --build Build/Windows --config Release --parallel 4 --target Frontier FrontierUV FrontierEditor FrontierEngineRuntimeDll FrontierWorkspaceUiDll UVBoundaryValidation ProjectBrowserValidation 2>&1
           $Result = $LASTEXITCODE
           $Output | ForEach-Object { Write-Output "$_" }
           if ($Result -ne 0) {
@@ -77,28 +77,30 @@ jobs:
             exit $Result
           }
 
-      - name: Run Windows hostile-input and UV chart checks
+      - name: Run Windows hostile-input, UV chart, and Project Browser checks
         shell: pwsh
         run: |
-          ctest --test-dir Build/Windows -C Release --output-on-failure -R '^UVBoundaryValidation$'
+          ctest --test-dir Build/Windows -C Release --output-on-failure -R '^(UVBoundaryValidation|ProjectBrowserValidation)$'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
       - name: Assemble portable folder
         shell: pwsh
         run: |
           $Payload = Join-Path $env:RUNNER_TEMP 'Frontier-UV-Windows-x64'
-          New-Item -ItemType Directory -Force "$Payload/CompiledShaders", "$Payload/EngineContent" | Out-Null
+          New-Item -ItemType Directory -Force "$Payload/CompiledShaders", "$Payload/EngineContent", "$Payload/Binaries/Win64" | Out-Null
+          Copy-Item 'Build/Windows/Release/Frontier.exe' "$Payload/"
           Copy-Item 'Build/Windows/Release/FrontierUV.exe' "$Payload/"
           Copy-Item 'Build/Windows/Release/FrontierEditor.exe' "$Payload/"
+          Copy-Item 'Build/Windows/Binaries/Win64/*' "$Payload/Binaries/Win64/" -Recurse -Force
           Copy-Item 'Build/Windows/CompiledShaders/*' "$Payload/CompiledShaders/" -Recurse -Force
           Copy-Item 'EngineContent/*' "$Payload/EngineContent/" -Recurse -Force
           @'
-          Frontier UV Workspace for Windows x64
+          Frontier Workspace Suite for Windows x64
 
-          Run FrontierUV.exe for the standalone UV workspace or FrontierEditor.exe for the multi-workspace editor.
-          Keep the CompiledShaders and EngineContent folders beside both executables.
+          Run Frontier.exe for the Project Browser (with Open with Frontier and Open with UVWorkspace),
+          FrontierEditor.exe for direct World Editor launch, or FrontierUV.exe for standalone UV authoring.
+          Keep CompiledShaders, EngineContent, and Binaries/Win64 beside the executables.
           A Windows Vulkan 1.2 graphics driver is required.
-          The bundled Controlled Integrator geometry is the default sample asset.
           '@ | Set-Content "$Payload/README.txt" -Encoding utf8
           Compress-Archive -Path "$Payload/*" -DestinationPath 'Build/Frontier-UV-Windows-x64.zip' -CompressionLevel Optimal
 

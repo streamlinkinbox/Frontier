@@ -19,6 +19,12 @@ import {
   RowEffectivelyVisible,
 } from "./ShowcaseGalleryScene.js";
 import {
+  BuildForceOverlayGeometry,
+  COLORMAP_CSS_GRADIENTS,
+  DEFAULT_FORCE_OVERLAY,
+  EvaluateSceneCompositeTelemetry,
+} from "./ForceFieldCatalog.js";
+import {
   EndWorldActorDrag,
   GetActiveWorldDrag,
   ReadWorldActorDropData,
@@ -1757,6 +1763,7 @@ export default function GtxWorldViewport({
   ShowGrid,
   ShowGizmo = true,
   ForceOverlaySettings,
+  OnChangeForceOverlay,
   UpdateEditorCamera,
   OnSelectEntity,
   OnUpdateCamera,
@@ -1834,17 +1841,135 @@ export default function GtxWorldViewport({
   );
   const EffectiveSelected = LiveDragPreview?.HighlightId || Selected;
   const [FanSpinDeg, SetFanSpinDeg] = useState(0);
+  const ForceTimeRef = useRef(0);
+  const [HudTick, SetHudTick] = useState(0);
+
+  const EffectiveForceOverlay = useMemo(() => {
+    const Base = { ...DEFAULT_FORCE_OVERLAY, ...(ForceOverlaySettings || {}) };
+    if (Debug === 16) {
+      return {
+        ...Base,
+        Enabled: true,
+        ForcePreviewRig: true,
+        ShowHeatmap: true,
+        ShowStreamlines: true,
+        ShowBokehRibbons: false,
+        ShowVelocityArrows: true,
+        ShowEnvelopes: true,
+        Quantity: "Speed",
+        Colormap: Base.Colormap || "Engineering",
+      };
+    }
+    if (Debug === 17) {
+      return {
+        ...Base,
+        Enabled: true,
+        ForcePreviewRig: true,
+        ShowHeatmap: true,
+        ShowStreamlines: false,
+        ShowBokehRibbons: true,
+        ShowVelocityArrows: false,
+        ShowEnvelopes: true,
+        Quantity: "Speed",
+        Colormap: Base.Colormap || "Engineering",
+      };
+    }
+    if (Debug === 18) {
+      return {
+        ...Base,
+        Enabled: true,
+        ForcePreviewRig: true,
+        ShowHeatmap: true,
+        ShowStreamlines: true,
+        ShowBokehRibbons: false,
+        ShowVelocityArrows: true,
+        ShowEnvelopes: false,
+        Quantity: "Curl",
+        Colormap: "Plasma",
+      };
+    }
+    if (Debug === 19) {
+      return {
+        ...Base,
+        Enabled: true,
+        ForcePreviewRig: true,
+        ShowHeatmap: true,
+        ShowStreamlines: true,
+        ShowBokehRibbons: false,
+        ShowVelocityArrows: true,
+        ShowEnvelopes: false,
+        Quantity: "Divergence",
+        Colormap: "Diverging",
+      };
+    }
+    return Base;
+  }, [ForceOverlaySettings, Debug]);
 
   const CompiledScene = useMemo(
     () =>
       CompileLiveGtxScene(EffectiveRows, EffectiveValues, Hidden, EffectiveProjection, {
-        ForceOverlaySettings,
+        ForceOverlaySettings: EffectiveForceOverlay,
         SelectedId: EffectiveSelected,
         FanSpinDeg,
+        TimeSec: ForceTimeRef.current,
+        CameraOrigin: LiveCamRef.current?.Position,
       }),
-    [EffectiveRows, EffectiveValues, Hidden, EffectiveProjection, ForceOverlaySettings, EffectiveSelected, FanSpinDeg],
+    [EffectiveRows, EffectiveValues, Hidden, EffectiveProjection, EffectiveForceOverlay, EffectiveSelected, FanSpinDeg],
   );
   CompiledSceneRef.current = CompiledScene;
+
+  // Animate Pass-3A ForceField streamlines, Bokeh wakes, comet sparks & moving force sources without resetting Pass-1 GI!
+  useEffect(() => {
+    if (
+      !CompiledScene.HasAnimatedForces ||
+      EffectiveForceOverlay?.Enabled === false ||
+      EffectiveForceOverlay?.SimPlaying === false
+    ) {
+      return undefined;
+    }
+    let RafId = 0;
+    let LastMs = typeof performance !== "undefined" ? performance.now() : 0;
+    let LastHudMs = LastMs;
+    const IntervalMs = RenderBackend === "cpu-gtx" ? 90 : 33;
+    const Tick = (NowMs) => {
+      if (NowMs - LastMs >= IntervalMs) {
+        const Dt = Math.min(0.08, Math.max(0.001, (NowMs - LastMs) * 0.001));
+        LastMs = NowMs;
+        ForceTimeRef.current += Dt;
+        const CurScene = CompiledSceneRef.current;
+        if (CurScene && CurScene.ForceNodes?.length > 0) {
+          const ActiveCamPos =
+            EffectiveProjection === "PERSP" && LiveCamRef.current
+              ? LiveCamRef.current.Position
+              : CurScene.CameraOrigin;
+          CompiledSceneRef.current = {
+            ...CurScene,
+            ForceOverlay: BuildForceOverlayGeometry(
+              CurScene.ForceNodes,
+              EffectiveForceOverlay,
+              EffectiveSelected,
+              ForceTimeRef.current,
+              ActiveCamPos,
+            ),
+          };
+          RequestRedrawRef.current?.(false);
+        }
+        if (NowMs - LastHudMs >= 220) {
+          LastHudMs = NowMs;
+          SetHudTick((N) => (N + 1) % 10000);
+        }
+      }
+      RafId = requestAnimationFrame(Tick);
+    };
+    RafId = requestAnimationFrame(Tick);
+    return () => cancelAnimationFrame(RafId);
+  }, [
+    CompiledScene.HasAnimatedForces,
+    EffectiveForceOverlay,
+    EffectiveSelected,
+    EffectiveProjection,
+    RenderBackend,
+  ]);
 
   useEffect(() => {
     if (!CompiledScene.HasSpinningFans || RenderBackend === "cpu-gtx") return undefined;
@@ -3460,11 +3585,27 @@ export default function GtxWorldViewport({
       const Rect = CanvasRef.current.getBoundingClientRect();
       const U = (Event.clientX - Rect.left) / Math.max(1, Rect.width);
       const V = (Event.clientY - Rect.top) / Math.max(1, Rect.height);
+      const Aspect = Rect.width / Math.max(1, Rect.height);
+      if (
+        Event.shiftKey &&
+        EffectiveForceOverlay?.Enabled !== false &&
+        CompiledSceneRef.current?.ForceNodes?.length > 0 &&
+        typeof OnChangeForceOverlay === "function"
+      ) {
+        const Hit = RaycastWorldPlacementAtUv(GetActiveScene(), U, V, Aspect);
+        if (Hit && Array.isArray(Hit.Position)) {
+          OnChangeForceOverlay({
+            ...(ForceOverlaySettings || DEFAULT_FORCE_OVERLAY),
+            ProbePosition: Hit.Position.map((C) => Number(C.toFixed(2))),
+          });
+          return;
+        }
+      }
       const HitId = PickSceneEntityAtUv(
         GetActiveScene(),
         U,
         V,
-        Rect.width / Math.max(1, Rect.height),
+        Aspect,
       );
       if (HitId && SelectCallback) SelectCallback(HitId);
     }
@@ -3648,6 +3789,46 @@ export default function GtxWorldViewport({
         ? "grab"
         : "crosshair";
 
+  const ForceHudTelemetry = useMemo(() => {
+    void HudTick;
+    if (
+      !CompiledScene.ForceNodes?.length ||
+      EffectiveForceOverlay?.Enabled === false ||
+      EffectiveForceOverlay?.ShowProbeHud === false
+    ) {
+      return null;
+    }
+    const Probe = Array.isArray(EffectiveForceOverlay.ProbePosition)
+      ? EffectiveForceOverlay.ProbePosition
+      : [0.65, 0.25, 0.45];
+    const Sample = EvaluateSceneCompositeTelemetry(
+      CompiledScene.ForceNodes,
+      Probe[0],
+      Probe[1],
+      Probe[2],
+      ForceTimeRef.current,
+      0.08,
+    );
+    const Quantity = EffectiveForceOverlay.Quantity || "Speed";
+    const RampName = EffectiveForceOverlay.Colormap || EffectiveForceOverlay.ColorRamp || "Engineering";
+    const GradientCss =
+      COLORMAP_CSS_GRADIENTS[RampName] || COLORMAP_CSS_GRADIENTS.Engineering;
+    const Ceil = EffectiveForceOverlay.FixedMax || 24;
+    const MinLabel =
+      Quantity === "Divergence" || Quantity === "Pressure" ? `${(-Ceil * 0.5).toFixed(0)}` : "0";
+    const MaxLabel =
+      Quantity === "Divergence" || Quantity === "Pressure" ? `+${(Ceil * 0.5).toFixed(0)}` : `${Ceil}`;
+    const UnitLabel =
+      Quantity === "Acceleration"
+        ? "m/s²"
+        : Quantity === "Curl" || Quantity === "Divergence"
+          ? "/s"
+          : Quantity === "Pressure"
+            ? "Pa"
+            : "m/s";
+    return { Probe, Sample, Quantity, GradientCss, MinLabel, MaxLabel, UnitLabel };
+  }, [CompiledScene.ForceNodes, EffectiveForceOverlay, HudTick]);
+
   return (
     <div
       className={"gtx-world-stage" + (LiveDragPreview ? " world-drag-active" : "")}
@@ -3700,6 +3881,114 @@ export default function GtxWorldViewport({
       {ShaderError && (
         <div className="gtx-shader-error" role="alert">
           GTX Shader Error: {ShaderError}
+        </div>
+      )}
+      {ForceHudTelemetry && (
+        <div
+          className="vf-viewport-hud-bar"
+          style={{
+            position: "absolute",
+            left: 14,
+            bottom: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            pointerEvents: "none",
+            zIndex: 8,
+          }}
+        >
+          {/* Colorbar Scale Legend matching VectorField Studio */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "5px 10px",
+              borderRadius: 999,
+              background: "rgba(15, 17, 21, 0.84)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(10px)",
+              fontSize: 10.5,
+              color: "#dbe4ee",
+            }}
+          >
+            <strong style={{ fontSize: 10, letterSpacing: 0.4, textTransform: "uppercase", color: "#9ecbff" }}>
+              {ForceHudTelemetry.Quantity}
+            </strong>
+            <span style={{ opacity: 0.68 }}>{ForceHudTelemetry.MinLabel}</span>
+            <span
+              style={{
+                width: 82,
+                height: 7,
+                borderRadius: 999,
+                background: ForceHudTelemetry.GradientCss,
+                border: "1px solid rgba(255,255,255,0.16)",
+              }}
+            />
+            <span style={{ opacity: 0.85 }}>
+              {ForceHudTelemetry.MaxLabel} {ForceHudTelemetry.UnitLabel}
+            </span>
+          </div>
+
+          {/* 3D Probe Differential Telemetry Pill matching VectorField Studio */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "5px 11px",
+              borderRadius: 999,
+              background: "rgba(15, 17, 21, 0.84)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(10px)",
+              fontSize: 10.5,
+              color: "#eef2f6",
+              pointerEvents: "auto",
+            }}
+            title="Shift+Click anywhere in the 3D viewport to move the ForceField Probe"
+          >
+            <span style={{ color: "#7ef2c2", fontWeight: 600 }}>
+              PROBE ({ForceHudTelemetry.Probe[0].toFixed(1)}, {ForceHudTelemetry.Probe[1].toFixed(1)}, {ForceHudTelemetry.Probe[2].toFixed(1)})
+            </span>
+            <span style={{ opacity: 0.35 }}>|</span>
+            <span>
+              <b>{ForceHudTelemetry.Sample.Speed.toFixed(1)}</b> m/s · <b>{ForceHudTelemetry.Sample.AccelMag.toFixed(1)}</b> m/s²
+            </span>
+            <span style={{ opacity: 0.35 }}>|</span>
+            <span style={{ color: "#cfe0f5" }}>
+              Curl <b>{ForceHudTelemetry.Sample.CurlMag.toFixed(2)}</b> /s · Div{" "}
+              <b>
+                {ForceHudTelemetry.Sample.Divergence >= 0 ? "+" : ""}
+                {ForceHudTelemetry.Sample.Divergence.toFixed(2)}
+              </b>{" "}
+              /s
+            </span>
+            {typeof OnChangeForceOverlay === "function" && (
+              <button
+                type="button"
+                onClick={() =>
+                  OnChangeForceOverlay({
+                    ...(ForceOverlaySettings || DEFAULT_FORCE_OVERLAY),
+                    SimPlaying: EffectiveForceOverlay.SimPlaying === false,
+                  })
+                }
+                style={{
+                  marginLeft: 2,
+                  padding: "2px 8px",
+                  borderRadius: 999,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  border: "1px solid rgba(255,255,255,0.16)",
+                  background: EffectiveForceOverlay.SimPlaying === false ? "rgba(255,180,84,0.18)" : "rgba(58,214,156,0.16)",
+                  color: EffectiveForceOverlay.SimPlaying === false ? "#ffd480" : "#7ef2c2",
+                  cursor: "pointer",
+                }}
+              >
+                {EffectiveForceOverlay.SimPlaying === false ? "Paused" : "Live"}
+              </button>
+            )}
+          </div>
         </div>
       )}
       {RenderBackend === "webgpu" || RenderBackend === "webgl2" ? (

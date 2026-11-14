@@ -198,8 +198,14 @@ bool VulkanInterchange::InitializeInterchange(
     std::vector<VkExtensionProperties> DeviceExts(DeviceExtCount);
     vkEnumerateDeviceExtensionProperties(PhysicalAdapter, nullptr, &DeviceExtCount, DeviceExts.data());
 
-    bool SupportsTimelineExt  = false;
-    bool SupportsSwapchainExt = false;
+    bool SupportsTimelineExt       = false;
+    bool SupportsSwapchainExt      = false;
+    bool SupportsAccelStructExt    = false;
+    bool SupportsRayQueryExt       = false;
+    bool SupportsDeferredHostExt   = false;
+    bool SupportsSpirv14Ext        = false;
+    bool SupportsFloatControlsExt  = false;
+    bool SupportsBufferAddressExt  = false;
     for (const VkExtensionProperties& Ext : DeviceExts)
     {
         if (std::strcmp(Ext.extensionName, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME) == 0)
@@ -209,6 +215,30 @@ bool VulkanInterchange::InitializeInterchange(
         else if (std::strcmp(Ext.extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
         {
             SupportsSwapchainExt = true;
+        }
+        else if (std::strcmp(Ext.extensionName, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) == 0)
+        {
+            SupportsAccelStructExt = true;
+        }
+        else if (std::strcmp(Ext.extensionName, VK_KHR_RAY_QUERY_EXTENSION_NAME) == 0)
+        {
+            SupportsRayQueryExt = true;
+        }
+        else if (std::strcmp(Ext.extensionName, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) == 0)
+        {
+            SupportsDeferredHostExt = true;
+        }
+        else if (std::strcmp(Ext.extensionName, VK_KHR_SPIRV_1_4_EXTENSION_NAME) == 0)
+        {
+            SupportsSpirv14Ext = true;
+        }
+        else if (std::strcmp(Ext.extensionName, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME) == 0)
+        {
+            SupportsFloatControlsExt = true;
+        }
+        else if (std::strcmp(Ext.extensionName, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) == 0)
+        {
+            SupportsBufferAddressExt = true;
         }
     }
 
@@ -230,6 +260,80 @@ bool VulkanInterchange::InitializeInterchange(
     VkPhysicalDeviceTimelineSemaphoreFeatures TimelineFeatures {};
     TimelineFeatures.sType             = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
     TimelineFeatures.timelineSemaphore = VK_TRUE;
+
+    // Probe optional hardware VK_KHR_ray_query + VK_KHR_acceleration_structure capability chain (RTX / RDNA2+ / Arc)
+    HardwareRayQuerySupported    = false;
+    AccelerationScratchAlignment = 256u;
+    VkPhysicalDeviceBufferDeviceAddressFeatures DeviceAddressFeatures {};
+    DeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR AccelFeatures {};
+    AccelFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    VkPhysicalDeviceRayQueryFeaturesKHR RayQueryFeatures {};
+    RayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+
+    const bool CanProbeHardwareRayQuery =
+        SupportsAccelStructExt &&
+        SupportsRayQueryExt &&
+        SupportsDeferredHostExt &&
+        (SelectedProps.apiVersion >= VK_API_VERSION_1_2 || SupportsBufferAddressExt) &&
+        (vkGetPhysicalDeviceFeatures2 != nullptr);
+
+    if (CanProbeHardwareRayQuery)
+    {
+        RayQueryFeatures.pNext     = nullptr;
+        AccelFeatures.pNext        = &RayQueryFeatures;
+        DeviceAddressFeatures.pNext = &AccelFeatures;
+
+        VkPhysicalDeviceFeatures2 Features2 {};
+        Features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        Features2.pNext = &DeviceAddressFeatures;
+        vkGetPhysicalDeviceFeatures2(PhysicalAdapter, &Features2);
+
+        if (DeviceAddressFeatures.bufferDeviceAddress == VK_TRUE &&
+            AccelFeatures.accelerationStructure == VK_TRUE &&
+            RayQueryFeatures.rayQuery == VK_TRUE)
+        {
+            HardwareRayQuerySupported = true;
+            EnabledDeviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+            EnabledDeviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+            EnabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+            if (SupportsSpirv14Ext)
+            {
+                EnabledDeviceExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
+            }
+            if (SupportsFloatControlsExt)
+            {
+                EnabledDeviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+            }
+            if (SelectedProps.apiVersion < VK_API_VERSION_1_2 && SupportsBufferAddressExt)
+            {
+                EnabledDeviceExtensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+            }
+
+            // Trim to minimal required flags and chain after TimelineFeatures
+            DeviceAddressFeatures.bufferDeviceAddressCaptureReplay = VK_FALSE;
+            DeviceAddressFeatures.bufferDeviceAddressMultiDevice   = VK_FALSE;
+            AccelFeatures.accelerationStructureCaptureReplay       = VK_FALSE;
+            AccelFeatures.accelerationStructureIndirectBuild       = VK_FALSE;
+            AccelFeatures.accelerationStructureHostCommands        = VK_FALSE;
+            AccelFeatures.descriptorBindingAccelerationStructureUpdateAfterBind = VK_FALSE;
+            TimelineFeatures.pNext = &DeviceAddressFeatures;
+
+            if (vkGetPhysicalDeviceProperties2 != nullptr)
+            {
+                VkPhysicalDeviceAccelerationStructurePropertiesKHR AccelProps {};
+                AccelProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR;
+                VkPhysicalDeviceProperties2 Props2 {};
+                Props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+                Props2.pNext = &AccelProps;
+                vkGetPhysicalDeviceProperties2(PhysicalAdapter, &Props2);
+                if (AccelProps.minAccelerationStructureScratchOffsetAlignment > 0u)
+                {
+                    AccelerationScratchAlignment = AccelProps.minAccelerationStructureScratchOffsetAlignment;
+                }
+            }
+        }
+    }
 
     const float QueuePriority = 1.0f;
     VkDeviceQueueCreateInfo QueueCreate {};
@@ -344,11 +448,32 @@ uint32_t VulkanInterchange::SelectMemoryTypeIndex(
     return UINT32_MAX;
 }
 
+uint64_t VulkanInterchange::QueryBufferDeviceAddress(VkBuffer BufferHandle) const noexcept
+{
+    if (LogicalDevice == VK_NULL_HANDLE || BufferHandle == VK_NULL_HANDLE)
+    {
+        return 0ull;
+    }
+    VkBufferDeviceAddressInfo AddressQuery {};
+    AddressQuery.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    AddressQuery.buffer = BufferHandle;
+    if (vkGetBufferDeviceAddress != nullptr)
+    {
+        return static_cast<uint64_t>(vkGetBufferDeviceAddress(LogicalDevice, &AddressQuery));
+    }
+    if (vkGetBufferDeviceAddressKHR != nullptr)
+    {
+        return static_cast<uint64_t>(vkGetBufferDeviceAddressKHR(LogicalDevice, &AddressQuery));
+    }
+    return 0ull;
+}
+
 DeviceBufferResource VulkanInterchange::AllocateBuffer(
     uint64_t              ByteSize,
     VkBufferUsageFlags    UsageMask,
     VkMemoryPropertyFlags RequiredProperties,
-    VkMemoryPropertyFlags PreferredProperties) const
+    VkMemoryPropertyFlags PreferredProperties,
+    uint64_t              MinimumAlignment) const
 {
     DeviceBufferResource Result {};
     if (LogicalDevice == VK_NULL_HANDLE || ByteSize == 0ull)
@@ -369,6 +494,8 @@ DeviceBufferResource VulkanInterchange::AllocateBuffer(
 
     VkMemoryRequirements MemReq {};
     vkGetBufferMemoryRequirements(LogicalDevice, Result.BufferHandle, &MemReq);
+    const uint64_t EffectiveAlign  = (MinimumAlignment > 0ull) ? MinimumAlignment : 1ull;
+    const uint64_t AllocSizeBytes  = std::max(static_cast<uint64_t>(MemReq.size), ByteSize + EffectiveAlign);
 
     uint32_t MemIndex = UINT32_MAX;
     if (PreferredProperties != 0u)
@@ -386,10 +513,18 @@ DeviceBufferResource VulkanInterchange::AllocateBuffer(
         return Result;
     }
 
+    VkMemoryAllocateFlagsInfo AddrFlagsInfo {};
+    AddrFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+    AddrFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+
     VkMemoryAllocateInfo AllocSpec {};
     AllocSpec.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    AllocSpec.allocationSize  = MemReq.size;
+    AllocSpec.allocationSize  = AllocSizeBytes;
     AllocSpec.memoryTypeIndex = MemIndex;
+    if ((UsageMask & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) != 0u)
+    {
+        AllocSpec.pNext = &AddrFlagsInfo;
+    }
 
     if (vkAllocateMemory(LogicalDevice, &AllocSpec, nullptr, &Result.MemoryHandle) != VK_SUCCESS)
     {
@@ -507,6 +642,87 @@ DeviceImageResource VulkanInterchange::AllocateImage2D(
     Result.ImageFormat = Format;
     Result.WidthPx     = WidthPx;
     Result.HeightPx    = HeightPx;
+    Result.DepthPx     = 1u;
+    return Result;
+}
+
+DeviceImageResource VulkanInterchange::AllocateImage3D(
+    uint32_t           WidthPx,
+    uint32_t           HeightPx,
+    uint32_t           DepthPx,
+    VkFormat           Format,
+    VkImageUsageFlags  UsageMask,
+    VkImageAspectFlags AspectMask) const
+{
+    DeviceImageResource Result {};
+    if (LogicalDevice == VK_NULL_HANDLE || WidthPx == 0u || HeightPx == 0u || DepthPx == 0u)
+    {
+        return Result;
+    }
+
+    VkImageCreateInfo ImgSpec {};
+    ImgSpec.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    ImgSpec.imageType     = VK_IMAGE_TYPE_3D;
+    ImgSpec.format        = Format;
+    ImgSpec.extent        = { WidthPx, HeightPx, DepthPx };
+    ImgSpec.mipLevels     = 1u;
+    ImgSpec.arrayLayers   = 1u;
+    ImgSpec.samples       = VK_SAMPLE_COUNT_1_BIT;
+    ImgSpec.tiling        = VK_IMAGE_TILING_OPTIMAL;
+    ImgSpec.usage         = UsageMask;
+    ImgSpec.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+    ImgSpec.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if (vkCreateImage(LogicalDevice, &ImgSpec, nullptr, &Result.ImageHandle) != VK_SUCCESS)
+    {
+        return Result;
+    }
+
+    VkMemoryRequirements MemReq {};
+    vkGetImageMemoryRequirements(LogicalDevice, Result.ImageHandle, &MemReq);
+
+    const uint32_t MemIndex = SelectMemoryTypeIndex(MemReq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (MemIndex == UINT32_MAX)
+    {
+        vkDestroyImage(LogicalDevice, Result.ImageHandle, nullptr);
+        Result.ImageHandle = VK_NULL_HANDLE;
+        return Result;
+    }
+
+    VkMemoryAllocateInfo AllocSpec {};
+    AllocSpec.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    AllocSpec.allocationSize  = MemReq.size;
+    AllocSpec.memoryTypeIndex = MemIndex;
+    if (vkAllocateMemory(LogicalDevice, &AllocSpec, nullptr, &Result.MemoryHandle) != VK_SUCCESS)
+    {
+        vkDestroyImage(LogicalDevice, Result.ImageHandle, nullptr);
+        Result.ImageHandle = VK_NULL_HANDLE;
+        return Result;
+    }
+
+    vkBindImageMemory(LogicalDevice, Result.ImageHandle, Result.MemoryHandle, 0u);
+
+    VkImageViewCreateInfo ViewSpec {};
+    ViewSpec.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    ViewSpec.image                           = Result.ImageHandle;
+    ViewSpec.viewType                        = VK_IMAGE_VIEW_TYPE_3D;
+    ViewSpec.format                          = Format;
+    ViewSpec.subresourceRange.aspectMask     = AspectMask;
+    ViewSpec.subresourceRange.baseMipLevel   = 0u;
+    ViewSpec.subresourceRange.levelCount     = 1u;
+    ViewSpec.subresourceRange.baseArrayLayer = 0u;
+    ViewSpec.subresourceRange.layerCount     = 1u;
+
+    if (vkCreateImageView(LogicalDevice, &ViewSpec, nullptr, &Result.ViewHandle) != VK_SUCCESS)
+    {
+        ReleaseImage2D(Result);
+        return Result;
+    }
+
+    Result.ImageFormat = Format;
+    Result.WidthPx     = WidthPx;
+    Result.HeightPx    = HeightPx;
+    Result.DepthPx     = DepthPx;
     return Result;
 }
 
@@ -533,6 +749,7 @@ void VulkanInterchange::ReleaseImage2D(DeviceImageResource& Resource) const noex
     }
     Resource.WidthPx  = 0u;
     Resource.HeightPx = 0u;
+    Resource.DepthPx  = 1u;
 }
 
 VkShaderModule VulkanInterchange::LoadShaderBinary(const std::filesystem::path& SpirvFilePath) const
@@ -590,6 +807,14 @@ VkCommandBuffer VulkanInterchange::BeginSingleTimeCommands() const
     BeginSpec.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(CmdBuffer, &BeginSpec);
     return CmdBuffer;
+}
+
+void VulkanInterchange::FreeCommandBuffer(VkCommandBuffer CmdBuffer) const noexcept
+{
+    if (LogicalDevice != VK_NULL_HANDLE && PrimaryCommandAllocator != VK_NULL_HANDLE && CmdBuffer != VK_NULL_HANDLE)
+    {
+        vkFreeCommandBuffers(LogicalDevice, PrimaryCommandAllocator, 1u, &CmdBuffer);
+    }
 }
 
 uint64_t VulkanInterchange::DispatchCommandBufferAsync(VkCommandBuffer CmdBuffer)

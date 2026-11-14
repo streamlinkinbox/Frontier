@@ -36,7 +36,7 @@ enum class SpaceExtensionCategory : uint8_t
     TextureSpace    = 4,  // [-] - .TextureSpace GPU-ready tiled texel channels & mip chains
     MaterialSpace   = 5,  // [-] - .MaterialSpace physically based shading parameters
     ImageSpace      = 6,  // [-] - .ImageSpace layered linear-light image canvas
-    VectorSpace     = 7,  // [-] - .VectorSpace resolution-independent Bezier/spline artwork
+    VectorSpace     = 7,  // [-] - .VectorSpace resolution-independent Bezier/spline vector graphics
     SimulationSpace = 8,  // [-] - .SimulationSpace deterministic physics/solver setup
     VolumetricSpace = 9,  // [-] - .VolumetricSpace sparse density/temperature fields
     ParticleSpace   = 10, // [-] - .ParticleSpace procedural particle dynamics

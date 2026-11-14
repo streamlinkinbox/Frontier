@@ -178,6 +178,17 @@ public:
         ColorRgba                    PreviewTint,
         std::span<const uint8_t>     StudioAtlasRgba);
 
+    bool UpdateEntryThumbnailRgba(
+        std::size_t                  EntryIndex,
+        std::span<const uint8_t>     TileRgba128x128);
+
+    std::size_t RegisterOrUpdateProjectEntry(
+        std::string_view             DisplayTitle,
+        ContentCategory              Category,
+        ColorRgba                    PreviewTint,
+        const std::filesystem::path& DiskPath,
+        std::span<const uint8_t>     OptionalTileRgba128x128 = {});
+
     [[nodiscard]] bool SaveBinaryIndexAndSheets(
         const std::filesystem::path& IndexFilePath,
         const std::filesystem::path& SheetFilePath,

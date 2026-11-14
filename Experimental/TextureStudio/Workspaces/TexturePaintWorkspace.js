@@ -31,6 +31,11 @@ import {
   createMaterialLayerOverridesFromPreset,
   resolveMaterialLayerSpec,
   createStampInstance,
+  getStampAspectMultipliers,
+  PAINT_TEXT_FONTS,
+  normalizePaintTextSpec,
+  rasterizeTextStampMaps,
+  syncTextLayerStamp,
   generateProceduralMask,
   featherMaskPixels,
   lookupSurfaceAtUv,
@@ -359,14 +364,15 @@ function drawStampOntoThumbCtx(ctx, st, sz) {
   const sh = sd?.heightPx || sw;
   if (!srcAlb || !sw || !sh) return;
   const stampCv = downsampleRgbaToCanvas(srcAlb, sw, sh, Math.min(48, sw));
+  const { ax, ay } = getStampAspectMultipliers(sd);
   ctx.save();
   ctx.globalAlpha = Math.max(0.15, Math.min(1, st.opacity ?? 1));
   const cx = (st.u ?? 0.5) * sz;
   const cy = (1 - (st.v ?? 0.5)) * sz;
   ctx.translate(cx, cy);
   ctx.rotate((-(st.rotation || 0) * Math.PI) / 180);
-  const drawW = Math.max(16, (st.scale ?? 0.28) * (st.scaleX ?? 1) * sz * 1.45);
-  const drawH = Math.max(16, (st.scale ?? 0.28) * (st.scaleY ?? 1) * sz * 1.45);
+  const drawW = Math.max(12, (st.scale ?? 0.28) * (st.scaleX ?? 1) * ax * sz * 1.45);
+  const drawH = Math.max(10, (st.scale ?? 0.28) * (st.scaleY ?? 1) * ay * sz * 1.45);
   ctx.drawImage(stampCv, -drawW * 0.5, -drawH * 0.5, drawW, drawH);
   ctx.restore();
 }
@@ -556,6 +562,7 @@ const TOOL_LABELS = {
   fill: "Fill",
   gradient: "3D Gradient",
   stamp: "Stamp",
+  text: "Text",
   eyedropper: "Sample",
   move: "Transform Stamp",
 };
@@ -587,6 +594,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     popupSubTab: "main", // "main" | "dynamics" | "curves"
     activeCurveKey: "falloff", // "falloff" | "sizeOverStroke" | "opacityOverStroke" | "hueOverStroke"
     stampPlaceMode: "subcomponent", // "subcomponent" | "layer"
+    textPlaceMode: "layer", // "layer" | "subcomponent"
     surfaceCurvePoints: [], // [{ pos: [x,y,z], normal: [nx,ny,nz], uv: {u,v} }]
     surfaceCurveClosed: false,
     surfaceCurveTension: 0.5,
@@ -594,7 +602,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     selectedGradientPointId: "gp_1",
     gradientLiveUpdate: true,
     brush: {
-      tool: "paint", // "paint" | "erase" | "curve" | "fill" | "gradient" | "stamp" | "eyedropper" | "move"
+      tool: "paint", // "paint" | "erase" | "curve" | "fill" | "gradient" | "stamp" | "text" | "eyedropper" | "move"
       tip: "round", // "round" | "chisel" | "chalk" | "splatter" | "sponge" | "custom"
       color: "#e8c27a",
       roughness: 0.34,
@@ -614,6 +622,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       eraseChannels: defaultChannels(),
       fillChannels: defaultChannels(),
       gradientChannels: defaultChannels(),
+      textChannels: defaultChannels(),
       extValues: createDefaultExtendedValues(),
       jitter: {
         size: 0.0,
@@ -651,6 +660,24 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       stampOpacity: 1.0,
       stampHeightStrength: 0.5,
       stampTint: "#ffffff",
+      textContent: "FRONTIER",
+      textFontFamily: "DM Sans",
+      textFontWeight: 700,
+      textItalic: false,
+      textPixelSize: 72,
+      textLetterSpacing: 2,
+      textLineHeight: 1.15,
+      textAlign: "center",
+      textColor: "#eff4cf",
+      textRoughness: 0.32,
+      textMetalness: 0.14,
+      textHeight: 0.38,
+      textOutlineWidth: 0,
+      textOutlineColor: "#141619",
+      textScale: 0.34,
+      textRotation: 0,
+      textOpacity: 1.0,
+      textHeightStrength: 0.65,
       customTipName: "",
       customTipData: null,
     },
@@ -940,6 +967,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       { id: "fill", label: "Fill", glyph: "Fill", kbd: "G", title: TOOL_LABELS.fill, active: state.brush.tool === "fill", buttonClass: "pill-btn" },
       { id: "gradient", label: "3D Gradient", glyph: "Gradient", kbd: "D", title: TOOL_LABELS.gradient, active: state.brush.tool === "gradient", buttonClass: "pill-btn" },
       { id: "stamp", label: "Stamp", glyph: "Stamp", kbd: "S", title: TOOL_LABELS.stamp, active: state.brush.tool === "stamp", buttonClass: "pill-btn" },
+      { id: "text", label: "Text", glyph: "Type", kbd: "T", title: TOOL_LABELS.text, active: state.brush.tool === "text", buttonClass: "pill-btn" },
       { id: "eyedropper", label: "Sample", glyph: "Pipette", kbd: "I", title: TOOL_LABELS.eyedropper, active: state.brush.tool === "eyedropper", buttonClass: "pill-btn" },
       { id: "move", label: "Move", glyph: "Move", kbd: "V", title: TOOL_LABELS.move, active: state.brush.tool === "move", buttonClass: "pill-btn" },
     ],
@@ -971,7 +999,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
   const paintStageHints = Construct(
     "span",
     "se-stage-hints",
-    "Drag paint · Hold Shift straight line · U 3D Curve · D 3D Gradient · Right-click or Q Inspector",
+    "Drag paint · Hold Shift straight line · U 3D Curve · D 3D Gradient · T Text · Right-click or Q Inspector",
   );
   const paintToolReadout = Construct(
     "span",
@@ -1481,10 +1509,11 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     const qRot = new THREE.Quaternion().setFromAxisAngle(n, -rotRad);
     stampGizmo3D.position.copy(p).addScaledVector(n, 0.01);
     stampGizmo3D.quaternion.setFromRotationMatrix(basis).premultiply(qRot);
-    const sx = Math.max(0.02, (st.scale ?? 0.28) * (st.scaleX ?? 1));
-    const sy = Math.max(0.02, (st.scale ?? 0.28) * (st.scaleY ?? 1));
+    const { ax, ay } = getStampAspectMultipliers(st.stampData);
+    const sx = Math.max(0.02, (st.scale ?? 0.28) * (st.scaleX ?? 1) * ax);
+    const sy = Math.max(0.02, (st.scale ?? 0.28) * (st.scaleY ?? 1) * ay);
     stampGizmo3D.scale.set(sx, sy, 1);
-    stampGizmo3D.visible = state.brush.tool === "move" || found.layer.kind === "decal";
+    stampGizmo3D.visible = state.brush.tool === "move" || found.layer.kind === "decal" || found.layer.kind === "text";
   }
 
   let activeGizmoDrag = null;
@@ -1504,8 +1533,9 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     const v = st.v ?? 0.5;
     const xPx = cxPane + (u - 0.5) * 2 * halfSide;
     const yPx = cyPane + (0.5 - v) * 2 * halfSide;
-    const wPx = Math.max(18, (st.scale ?? 0.28) * (st.scaleX ?? 1) * 2 * halfSide * 2);
-    const hPx = Math.max(18, (st.scale ?? 0.28) * (st.scaleY ?? 1) * 2 * halfSide * 2);
+    const { ax, ay } = getStampAspectMultipliers(st.stampData);
+    const wPx = Math.max(18, (st.scale ?? 0.28) * (st.scaleX ?? 1) * ax * 2 * halfSide * 2);
+    const hPx = Math.max(14, (st.scale ?? 0.28) * (st.scaleY ?? 1) * ay * 2 * halfSide * 2);
 
     const box = Construct("div", "uv-stamp-box");
     box.style.width = `${wPx}px`;
@@ -1959,7 +1989,15 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     brushRing.visible = true;
     brushRing.position.copy(hit.point).addScaledVector(n, 0.008);
     brushRing.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
-    brushRing.scale.setScalar(state.brush.tool === "stamp" ? state.brush.stampScale : state.brush.tool === "gradient" ? 0.14 : state.brush.size);
+    brushRing.scale.setScalar(
+      state.brush.tool === "stamp"
+        ? state.brush.stampScale
+        : state.brush.tool === "text"
+          ? (state.brush.textScale ?? 0.34)
+          : state.brush.tool === "gradient"
+            ? 0.14
+            : state.brush.size,
+    );
 
     if (shiftActive && (state.brush.tool === "paint" || state.brush.tool === "erase") && lastPainted3D?.pos) {
       const a = lastPainted3D.pos.clone().addScaledVector(lastPainted3D.normal || n, 0.012);
@@ -2033,6 +2071,107 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     rebuildInspector();
     refreshComposite();
     return { layer: targetLayer, stamp: inst };
+  }
+
+  function buildCurrentBrushTextSpec() {
+    return normalizePaintTextSpec({
+      content: state.brush.textContent,
+      fontFamily: state.brush.textFontFamily,
+      fontWeight: state.brush.textFontWeight,
+      italic: state.brush.textItalic,
+      fontSize: state.brush.textPixelSize,
+      letterSpacing: state.brush.textLetterSpacing,
+      lineHeight: state.brush.textLineHeight,
+      align: state.brush.textAlign,
+      color: state.brush.textColor || state.brush.color,
+      roughness: state.brush.textRoughness ?? state.brush.roughness,
+      metalness: state.brush.textMetalness ?? state.brush.metalness,
+      height: state.brush.textHeight ?? state.brush.height,
+      outlineWidth: state.brush.textOutlineWidth ?? 0,
+      outlineColor: state.brush.textOutlineColor || "#141619",
+    });
+  }
+
+  function placeTextStamp({ projection = "3d", hit = null, uv = null, targetLayer = null } = {}) {
+    const textSpec = buildCurrentBrushTextSpec();
+    const surf = projection === "3d" && hit
+      ? {
+          pos: [hit.point.x, hit.point.y, hit.point.z],
+          normal: hit.face
+            ? (() => { const n = hit.face.normal.clone().transformDirection(paintMesh.matrixWorld).normalize(); return [n.x, n.y, n.z]; })()
+            : [0, 0, 1],
+        }
+      : (meshCues && uv ? lookupSurfaceAtUv(meshCues, uv.u, uv.v) : null);
+
+    const uPos = uv?.u ?? hit?.uv?.x ?? 0.5;
+    const vPos = uv?.v ?? hit?.uv?.y ?? 0.5;
+    const aPos = surf?.pos || [0, 0.2, 1.0];
+    const aNorm = surf?.normal || [0, 0, 1];
+    const channels = { ...getToolChannels(state.brush, "text") };
+    const extValues = { ...state.brush.extValues };
+
+    let layer = targetLayer;
+    if (!layer && state.textPlaceMode === "subcomponent") {
+      const cur = getActiveLayer();
+      if (cur && cur.kind === "text" && !cur.locked) layer = cur;
+    }
+
+    if (layer) {
+      if (layer.locked) { Toast("Target layer is locked"); return null; }
+      if (!layer.stamps) layer.stamps = [];
+      const stampMaps = rasterizeTextStampMaps(textSpec);
+      const inst = createStampInstance({
+        name: String(textSpec.content || "Text").replace(/\s+/g, " ").trim().slice(0, 24) || "Text",
+        projection,
+        u: uPos,
+        v: vPos,
+        anchorPos: aPos,
+        anchorNormal: aNorm,
+        scale: state.brush.textScale ?? 0.34,
+        rotation: state.brush.textRotation ?? 0,
+        opacity: state.brush.textOpacity ?? 1.0,
+        heightStrength: state.brush.textHeightStrength ?? 0.65,
+        tint: "#ffffff",
+        roughness: textSpec.roughness,
+        metalness: textSpec.metalness,
+        stampData: stampMaps,
+        text: textSpec,
+        channels,
+        extValues,
+      });
+      layer.stamps.push(inst);
+      layer.selectedStampId = inst.id;
+    } else {
+      layer = createPaintLayer("text", {
+        res,
+        channels,
+        extValues,
+        text: textSpec,
+        stamp: {
+          projection,
+          u: uPos,
+          v: vPos,
+          anchorPos: aPos,
+          anchorNormal: aNorm,
+          scale: state.brush.textScale ?? 0.34,
+          rotation: state.brush.textRotation ?? 0,
+          opacity: state.brush.textOpacity ?? 1.0,
+          heightStrength: state.brush.textHeightStrength ?? 0.65,
+          channels,
+          extValues,
+        },
+      });
+      state.doc.layers.push(layer);
+    }
+
+    state.doc.selectedLayerId = layer.id;
+    state.doc.editingMask = false;
+    const inst = layer.stamps.find((s) => s.id === layer.selectedStampId) || layer.stamps[layer.stamps.length - 1];
+    invalidateLayerThumb(layer.id);
+    renderLeftColumn();
+    rebuildInspector();
+    refreshComposite();
+    return { layer, stamp: inst };
   }
 
   function dabAlongSegment3D(pStart, pEnd, normal) {
@@ -2443,6 +2582,18 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       return;
     }
 
+    // Text tool stamps a live editable Text Layer directly onto the 3D surface!
+    if (state.brush.tool === "text") {
+      orbit.enabled = false;
+      const placed = placeTextStamp({ projection: "3d", hit });
+      if (placed) {
+        activeStamp3DDrag = { layer: placed.layer, stamp: placed.stamp, mode: "move", startX: e.clientX, startY: e.clientY };
+        pane3D.setPointerCapture(e.pointerId);
+        Toast(`Stamped text "${placed.layer.text?.content || placed.stamp.name}" · drag to position or edit live in Inspector`);
+      }
+      return;
+    }
+
     const layer = getTargetPaintableLayer(true);
     if (!layer || layer.locked) return;
 
@@ -2698,6 +2849,16 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       return;
     }
 
+    if (state.brush.tool === "text") {
+      const placed = placeTextStamp({ projection: "uv", uv: { u, v } });
+      if (placed) {
+        activeStamp2DDrag = { layer: placed.layer, stamp: placed.stamp };
+        pane2D.setPointerCapture(e.pointerId);
+        Toast(`Stamped text in UV · edit live in Inspector or drag gizmo handles`);
+      }
+      return;
+    }
+
     const layer = getTargetPaintableLayer(true);
     if (!layer || layer.locked) return;
     if (state.brush.tool === "fill") { performFillAtUv(layer, uClamped, vClamped); return; }
@@ -2829,6 +2990,24 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     parent.append(wrap);
   }
 
+  function createLiveTextArea(parent, label, readVal, onLiveInput) {
+    const wrap = Construct("div", "property-row text-row tp-text-editor-row");
+    const lbl = Construct("label", "property-label", label);
+    const ta = document.createElement("textarea");
+    ta.className = "pill-text-input tp-text-area";
+    ta.rows = 2;
+    ta.placeholder = "Type text to stamp (Enter = newline)…";
+    ta.setAttribute("aria-label", label);
+    ta.dataset.textEditor = "true";
+    ta.value = String(readVal() ?? "");
+    ta.addEventListener("input", () => {
+      onLiveInput(ta.value);
+    });
+    wrap.append(lbl, ta);
+    parent.append(wrap);
+    return ta;
+  }
+
   function openToolPopup(clientX = null, clientY = null, forceRefresh = false) {
     if (activeToolPopup && !forceRefresh) {
       closeToolPopup();
@@ -2856,9 +3035,10 @@ export function mountTexturePaintWorkspace(root, appBridge) {
           state.brush.tool === "erase" ? "Eraser"
             : state.brush.tool === "fill" ? "Fill"
               : state.brush.tool === "stamp" ? "Stamp"
-                : state.brush.tool === "move" ? "Move"
-                  : state.brush.tool === "eyedropper" ? "Pipette"
-                    : "Brush",
+                : state.brush.tool === "text" ? "Type"
+                  : state.brush.tool === "move" ? "Move"
+                    : state.brush.tool === "eyedropper" ? "Pipette"
+                      : "Brush",
         ),
         Construct("strong", null, `${TOOL_LABELS[state.brush.tool] || "Active"} Inspector`),
         Construct("small", null, "Right-Click / Q / Esc"),
@@ -2866,7 +3046,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       ]),
     );
 
-    // Quick tool switcher tabs (indices [0..4] preserved; Move appended at [5])
+    // Quick tool switcher tabs (indices [0..4] preserved; Move at [5]; Text at [6])
     const tabs = Construct("div", "tool-popup-tabs");
     for (const [id, label, glyph] of [
       ["paint", "Brush", "Brush"],
@@ -2875,6 +3055,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       ["stamp", "Stamp", "Stamp"],
       ["eyedropper", "Pick", "Pipette"],
       ["move", "Move", "Move"],
+      ["text", "Text", "Type"],
     ]) {
       const tb = Construct("button", "tool-popup-tab" + (state.brush.tool === id ? " active" : ""), [
         ConstructGlyph(glyph),
@@ -3362,6 +3543,93 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       applyBtn.style.width = "100%";
       applyBtn.addEventListener("click", () => applyPointGradient3D({ pushUndo: true }));
       pop.append(applyBtn);
+    } else if (tool === "text") {
+      pop.append(Construct("p", "property-hint", "Click on the 3D mesh or 2D UV canvas to stamp editable PBR text."));
+      const placeModeRow = Construct("div", "chip-strip");
+      for (const [mLbl, mKey] of [["New Text Layer", "layer"], ["Add to Active Text", "subcomponent"]]) {
+        const mb = Construct("button", "chip-btn" + (state.textPlaceMode === mKey ? " active" : ""), mLbl);
+        mb.type = "button";
+        mb.addEventListener("click", () => { state.textPlaceMode = mKey; openToolPopup(null, null, true); });
+        placeModeRow.append(mb);
+      }
+      pop.append(Construct("div", "property-label", "Placement Mode"), placeModeRow);
+
+      createLiveTextArea(pop, "Text Content", () => state.brush.textContent, (val) => {
+        state.brush.textContent = val;
+        Broadcast();
+      });
+
+      const fontRow = Construct("div", "property-row");
+      fontRow.append(Construct("span", "property-label", "Font Family"));
+      const fontSel = document.createElement("select");
+      fontSel.className = "pill-select";
+      fontSel.style.width = "100%";
+      for (const f of PAINT_TEXT_FONTS) {
+        const opt = document.createElement("option");
+        opt.value = f.value;
+        opt.textContent = f.label;
+        opt.selected = state.brush.textFontFamily === f.value;
+        fontSel.append(opt);
+      }
+      fontSel.addEventListener("change", () => { state.brush.textFontFamily = fontSel.value; Broadcast(); });
+      fontRow.append(fontSel);
+      pop.append(fontRow);
+
+      const styleRow = Construct("div", "chip-strip");
+      for (const [sLbl, sW, sI] of [["Regular", 400, false], ["Medium", 500, false], ["Bold", 700, false], ["Italic", 400, true], ["Bold Italic", 700, true]]) {
+        const active = (state.brush.textFontWeight || 700) === sW && !!state.brush.textItalic === sI;
+        const sb = Construct("button", "chip-btn" + (active ? " active" : ""), sLbl);
+        sb.type = "button";
+        sb.addEventListener("click", () => {
+          state.brush.textFontWeight = sW;
+          state.brush.textItalic = sI;
+          openToolPopup(null, null, true);
+        });
+        styleRow.append(sb);
+      }
+      pop.append(Construct("div", "property-label", "Weight & Style"), styleRow);
+
+      const alignRow = Construct("div", "chip-strip");
+      for (const [aLbl, aKey] of [["Left", "left"], ["Center", "center"], ["Right", "right"]]) {
+        const ab = Construct("button", "chip-btn" + (state.brush.textAlign === aKey ? " active" : ""), aLbl);
+        ab.type = "button";
+        ab.addEventListener("click", () => { state.brush.textAlign = aKey; openToolPopup(null, null, true); });
+        alignRow.append(ab);
+      }
+      pop.append(Construct("div", "property-label", "Alignment"), alignRow);
+
+      ChannelMaskRow(pop, {
+        Label: "Text PBR Channels",
+        AddLabel: "Channel",
+        Channels: ALL_PAINT_CHANNEL_ROWS,
+        StrictPresence: true,
+        Transient: true,
+        Read: () => state.brush.textChannels,
+        Write: (next) => { state.brush.textChannels = next; Broadcast(); rebuildInspector(); openToolPopup(null, null, true); },
+      });
+      ColorRow(pop, { Label: "Text Color", Transient: true, Read: () => state.brush.textColor, Write: (v) => { state.brush.textColor = v; Broadcast(); } });
+      makePopupSlider(pop, "Text Scale", 0.05, 1.2, 0.01, "", () => state.brush.textScale, (v) => { state.brush.textScale = v; });
+      makePopupSlider(pop, "Rotation", -180, 180, 1, "°", () => state.brush.textRotation, (v) => { state.brush.textRotation = v; });
+      makePopupSlider(pop, "Font Size", 18, 160, 2, "px", () => state.brush.textPixelSize, (v) => { state.brush.textPixelSize = v; });
+      makePopupSlider(pop, "Letter Spacing", -6, 36, 0.5, "px", () => state.brush.textLetterSpacing, (v) => { state.brush.textLetterSpacing = v; });
+      makePopupSlider(pop, "Line Height", 0.75, 2.2, 0.05, "x", () => state.brush.textLineHeight, (v) => { state.brush.textLineHeight = v; });
+      makePopupSlider(pop, "Roughness", 0, 1, 0.01, "", () => state.brush.textRoughness, (v) => { state.brush.textRoughness = v; });
+      makePopupSlider(pop, "Metalness", 0, 1, 0.01, "", () => state.brush.textMetalness, (v) => { state.brush.textMetalness = v; });
+      makePopupSlider(pop, "Relief Height", -1, 1, 0.02, "", () => state.brush.textHeightStrength, (v) => { state.brush.textHeightStrength = v; });
+      makePopupSlider(pop, "Outline Width", 0, 18, 1, "px", () => state.brush.textOutlineWidth, (v) => { state.brush.textOutlineWidth = v; });
+      if ((state.brush.textOutlineWidth || 0) > 0) {
+        ColorRow(pop, { Label: "Outline Color", Transient: true, Read: () => state.brush.textOutlineColor, Write: (v) => { state.brush.textOutlineColor = v; Broadcast(); } });
+      }
+      appendExtendedBrushChannelSliders(pop, state.brush.textChannels, state.brush.extValues);
+
+      const stampBtn = Construct("button", "action-button accent", [ConstructGlyph("Type"), Construct("span", null, "+ Stamp Text at UV Center")]);
+      stampBtn.type = "button";
+      stampBtn.style.width = "100%";
+      stampBtn.addEventListener("click", () => {
+        placeTextStamp({ projection: "uv", uv: { u: 0.5, v: 0.5 } });
+        Toast("Stamped text layer at UV center");
+      });
+      pop.append(stampBtn);
     } else if (tool === "eyedropper") {
       const sampleCard = Construct("div", "object-heading");
       const dot = Construct("div", "object-symbol");
@@ -3455,6 +3723,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     { kind: "fill", label: "+ Fill", glyph: "Fill", hint: "Solid color or tileable PBR pattern" },
     { kind: "material", label: "+ Material", glyph: "Cube", hint: "Full procedural Frontier material" },
     { kind: "decal", label: "+ Stamp", glyph: "Stamp", hint: "Movable, scalable & rotatable decals" },
+    { kind: "text", label: "+ Text", glyph: "Type", hint: "Live editable PBR text decal layer" },
     { kind: "generator", label: "+ Wear Gen", glyph: "Sparkles", hint: "Edge wear, crevice dirt, dust & grunge" },
     { kind: "folder", label: "+ Folder", glyph: "Folder", hint: "Group & mask nested layers" },
   ];
@@ -3494,6 +3763,27 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     if (kind === "material") {
       const defMat = MATERIAL_CATALOG.find((m) => m.id === "racing-green") || MATERIAL_CATALOG[0];
       l = createPaintLayer("material", createMaterialLayerOverridesFromPreset(defMat, res));
+    } else if (kind === "text") {
+      const textSpec = buildCurrentBrushTextSpec();
+      const channels = { ...getToolChannels(state.brush, "text") };
+      const extValues = { ...state.brush.extValues };
+      l = createPaintLayer("text", {
+        res,
+        channels,
+        extValues,
+        text: textSpec,
+        stamp: {
+          projection: "uv",
+          u: 0.5,
+          v: 0.5,
+          scale: state.brush.textScale ?? 0.34,
+          rotation: state.brush.textRotation ?? 0,
+          opacity: state.brush.textOpacity ?? 1.0,
+          heightStrength: state.brush.textHeightStrength ?? 0.65,
+          channels,
+          extValues,
+        },
+      });
     } else {
       l = createPaintLayer(kind, {
         res,
@@ -3543,12 +3833,15 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       fill: src.fill ? { ...src.fill } : undefined,
       material: src.material ? { ...src.material } : undefined,
       generator: src.generator ? { ...src.generator } : undefined,
+      text: src.text ? { ...src.text } : undefined,
+      skipDefaultStamp: src.kind === "text" && !!(src.stamps?.length),
     });
     if (src.pixels) copy.pixels = clonePixels(src.pixels);
     if (src.stamps?.length) {
       copy.stamps = src.stamps.map((s) => ({
         ...s,
         id: `stp_${Math.random().toString(36).slice(2, 9)}`,
+        text: s.text ? { ...s.text } : undefined,
         u: Math.min(0.95, (s.u ?? 0.5) + 0.04),
         v: Math.max(0.05, (s.v ?? 0.5) - 0.04),
       }));
@@ -3631,7 +3924,8 @@ export function mountTexturePaintWorkspace(root, appBridge) {
         const enabledCount = layer.channels ? Object.values(layer.channels).filter(Boolean).length : 4;
         const chTag = layer.kind !== "folder" && enabledCount !== 4 ? ` · ${enabledCount}/${ALL_PAINT_CHANNEL_ROWS.length} ch` : "";
         const stpTag = layer.stamps?.length ? ` · ${layer.stamps.length} stp` : "";
-        return `${layer.kind.toUpperCase()} · ${layer.blend} · ${partTag}${chTag}${stpTag}`;
+        const kindTag = layer.kind === "text" ? `TEXT (${layer.text?.fontFamily || "DM Sans"})` : layer.kind.toUpperCase();
+        return `${kindTag} · ${layer.blend} · ${partTag}${chTag}${stpTag}`;
       },
       getMaskSubrow(layer) {
         if (!layer.mask) return null;
@@ -3859,8 +4153,9 @@ export function mountTexturePaintWorkspace(root, appBridge) {
             : state.brush.tool === "fill" ? `${state.fillScope} fill`
               : state.brush.tool === "gradient" ? `${state.pointGradient3D.points.length} 3D pts`
                 : state.brush.tool === "stamp" ? (state.brush.stampName || "Stamp")
-                  : state.brush.tool === "move" ? (activeStampInfo ? `${activeStampInfo.stamp.name}` : "Drag Stamp")
-                    : "Sample surface";
+                  : state.brush.tool === "text" ? `"${String(state.brush.textContent || "Text").replace(/\s+/g, " ").slice(0, 18)}"`
+                    : state.brush.tool === "move" ? (activeStampInfo ? `${activeStampInfo.stamp.name}` : "Drag Stamp")
+                      : "Sample surface";
     const toolMetaCopy = Construct("div", null, [
       Construct("strong", null, `${activeToolLabel} Active`),
       Construct("div", null, `Right-click or Q for Brush Inspector · ${activeSubMeta}`),
@@ -4036,6 +4331,79 @@ export function mountTexturePaintWorkspace(root, appBridge) {
           },
         },
       ]);
+    } else if (state.brush.tool === "text") {
+      const tSec = SectionCard(rightInner, { Title: "Text Brush Tool (T)", Glyph: "Type", Badge: state.brush.textFontFamily || "DM Sans", Open: true });
+      tSec.Inner.append(Construct("p", "property-hint", "Click on the 3D mesh or 2D UV canvas to stamp live editable PBR text onto the surface."));
+      SegmentedRow(tSec.Inner, {
+        Label: "Placement Mode",
+        Options: [["New Layer", "layer"], ["Add to Text Layer", "subcomponent"]],
+        Read: () => state.textPlaceMode,
+        Write: (v) => { state.textPlaceMode = v; },
+      });
+      createLiveTextArea(tSec.Inner, "Text to Stamp", () => state.brush.textContent, (val) => {
+        state.brush.textContent = val;
+      });
+      SelectRow(tSec.Inner, {
+        Label: "Font Family",
+        Options: PAINT_TEXT_FONTS.map((f) => [f.label, f.value]),
+        Read: () => state.brush.textFontFamily,
+        Write: (v) => { state.brush.textFontFamily = v; rebuildInspector(); },
+      });
+      SegmentedRow(tSec.Inner, {
+        Label: "Weight",
+        Options: [["Regular", "400"], ["Medium", "500"], ["Bold", "700"], ["Black", "900"]],
+        Read: () => String(state.brush.textFontWeight || 700),
+        Write: (v) => { state.brush.textFontWeight = Number(v); },
+      });
+      SwitchRow(tSec.Inner, { Label: "Italic Style", Read: () => !!state.brush.textItalic, Write: (v) => { state.brush.textItalic = !!v; } });
+      SegmentedRow(tSec.Inner, {
+        Label: "Text Align",
+        Options: [["Left", "left"], ["Center", "center"], ["Right", "right"]],
+        Read: () => state.brush.textAlign || "center",
+        Write: (v) => { state.brush.textAlign = v; },
+      });
+      ChannelMaskRow(tSec.Inner, {
+        Label: "Text PBR Channels",
+        AddLabel: "Channel",
+        Channels: ALL_PAINT_CHANNEL_ROWS,
+        StrictPresence: true,
+        Read: () => state.brush.textChannels,
+        Write: (next) => { state.brush.textChannels = next; Broadcast(); rebuildInspector(); },
+      });
+      ColorRow(tSec.Inner, { Label: "Text Color", Read: () => state.brush.textColor, Write: (v) => { state.brush.textColor = v; } });
+      SliderRow(tSec.Inner, { Label: "Stamp Scale", Minimum: 0.05, Maximum: 1.2, Step: 0.01, Read: () => state.brush.textScale ?? 0.34, Write: (v) => { state.brush.textScale = v; } });
+      SliderRow(tSec.Inner, { Label: "Rotation", Minimum: -180, Maximum: 180, Step: 1, Unit: "°", Read: () => state.brush.textRotation ?? 0, Write: (v) => { state.brush.textRotation = v; } });
+      SliderRow(tSec.Inner, { Label: "Font Size (px)", Minimum: 18, Maximum: 160, Step: 2, Read: () => state.brush.textPixelSize ?? 72, Write: (v) => { state.brush.textPixelSize = v; } });
+      SliderRow(tSec.Inner, { Label: "Letter Spacing", Minimum: -6, Maximum: 36, Step: 0.5, Unit: "px", Read: () => state.brush.textLetterSpacing ?? 2, Write: (v) => { state.brush.textLetterSpacing = v; } });
+      SliderRow(tSec.Inner, { Label: "Line Height", Minimum: 0.75, Maximum: 2.2, Step: 0.05, Unit: "x", Read: () => state.brush.textLineHeight ?? 1.15, Write: (v) => { state.brush.textLineHeight = v; } });
+      SliderRow(tSec.Inner, { Label: "Roughness", Minimum: 0.02, Maximum: 1, Step: 0.01, Read: () => state.brush.textRoughness ?? 0.32, Write: (v) => { state.brush.textRoughness = v; } });
+      SliderRow(tSec.Inner, { Label: "Metalness", Minimum: 0, Maximum: 1, Step: 0.01, Read: () => state.brush.textMetalness ?? 0.14, Write: (v) => { state.brush.textMetalness = v; } });
+      SliderRow(tSec.Inner, { Label: "Relief Height", Minimum: -1, Maximum: 1, Step: 0.02, Read: () => state.brush.textHeightStrength ?? 0.65, Write: (v) => { state.brush.textHeightStrength = v; } });
+      SliderRow(tSec.Inner, { Label: "Outline Width", Minimum: 0, Maximum: 18, Step: 1, Unit: "px", Read: () => state.brush.textOutlineWidth ?? 0, Write: (v) => { state.brush.textOutlineWidth = v; rebuildInspector(); } });
+      if ((state.brush.textOutlineWidth || 0) > 0) {
+        ColorRow(tSec.Inner, { Label: "Outline Color", Read: () => state.brush.textOutlineColor || "#141619", Write: (v) => { state.brush.textOutlineColor = v; } });
+      }
+      ActionRow(tSec.Inner, [
+        {
+          Label: "+ Stamp at UV Center",
+          Glyph: "Type",
+          Tone: "accent",
+          Act: () => { placeTextStamp({ projection: "uv", uv: { u: 0.5, v: 0.5 } }); selectTool("move"); },
+        },
+        ...(layer?.kind === "text" && layer.text ? [{
+          Label: "Apply to Active Text",
+          Glyph: "Check",
+          Act: () => {
+            const activeSt = getSelectedStamp(layer, false)?.stamp;
+            syncTextLayerStamp(layer, activeSt, buildCurrentBrushTextSpec());
+            invalidateLayerThumb(layer.id);
+            renderLeftColumn();
+            rebuildInspector();
+            refreshComposite();
+            Toast("Updated active Text layer from brush settings");
+          },
+        }] : []),
+      ]);
     }
 
     if (layer) {
@@ -4165,7 +4533,14 @@ export function mountTexturePaintWorkspace(root, appBridge) {
         });
 
         const getExtObj = () => {
-          const target = layer.kind === "fill" ? layer.fill : layer.kind === "material" ? layer.material : layer.generator;
+          if (layer.kind === "text") {
+            const activeSt = getSelectedStamp(layer, false)?.stamp;
+            if (activeSt) {
+              if (!activeSt.extValues) activeSt.extValues = { ...(layer.extValues || {}) };
+              return activeSt.extValues;
+            }
+          }
+          const target = layer.kind === "fill" ? layer.fill : layer.kind === "material" ? layer.material : layer.kind === "generator" ? layer.generator : layer;
           if (!target.extValues) target.extValues = {};
           return target.extValues;
         };
@@ -4178,14 +4553,18 @@ export function mountTexturePaintWorkspace(root, appBridge) {
               Maximum: 2.5,
               Step: 0.05,
               Read: () => (getExtObj().normal ?? 1.0),
-              Write: (v) => { getExtObj().normal = v; refreshComposite(); },
+              Write: (v) => { getExtObj().normal = v; if (layer.kind === "text") { layer.extValues = { ...(layer.extValues || {}), normal: v }; } refreshComposite(); },
             });
-          } else if (layer.kind === "fill" || layer.kind === "material" || layer.kind === "generator") {
+          } else if (layer.kind === "fill" || layer.kind === "material" || layer.kind === "generator" || layer.kind === "text") {
             if (chDef.isColor) {
               ColorRow(lSec.Inner, {
                 Label: `${chTitle} Color`,
                 Read: () => getExtObj()[ch] ?? chDef.defaultVal,
-                Write: (v) => { getExtObj()[ch] = v; refreshComposite(); },
+                Write: (v) => {
+                  getExtObj()[ch] = v;
+                  if (layer.kind === "text") layer.extValues = { ...(layer.extValues || {}), [ch]: v };
+                  refreshComposite();
+                },
               });
             } else {
               SliderRow(lSec.Inner, {
@@ -4194,7 +4573,11 @@ export function mountTexturePaintWorkspace(root, appBridge) {
                 Maximum: chDef.max ?? 1,
                 Step: chDef.step ?? 0.01,
                 Read: () => getExtObj()[ch] ?? chDef.defaultVal,
-                Write: (v) => { getExtObj()[ch] = v; refreshComposite(); },
+                Write: (v) => {
+                  getExtObj()[ch] = v;
+                  if (layer.kind === "text") layer.extValues = { ...(layer.extValues || {}), [ch]: v };
+                  refreshComposite();
+                },
               });
             }
           } else {
@@ -4253,6 +4636,37 @@ export function mountTexturePaintWorkspace(root, appBridge) {
             SliderRow(lSec.Inner, { Label: "Generator Metalness", Minimum: 0, Maximum: 1, Step: 0.01, Read: () => layer.generator.metalness, Write: (v) => { layer.generator.metalness = v; refreshComposite(); } });
           } else if (ch === "height") {
             SliderRow(lSec.Inner, { Label: "Generator Height Relief", Minimum: -1, Maximum: 1, Step: 0.02, Read: () => layer.generator.height ?? 0.1, Write: (v) => { layer.generator.height = v; refreshComposite(); } });
+          }
+        } else if (layer.kind === "text") {
+          const activeSt = getSelectedStamp(layer, false)?.stamp;
+          const curSpec = activeSt?.text || layer.text || normalizePaintTextSpec();
+          if (ch === "albedo") {
+            ColorRow(lSec.Inner, {
+              Label: "Text Base Color",
+              Read: () => curSpec.color,
+              Write: (v) => { syncTextLayerStamp(layer, activeSt, { color: v }); invalidateLayerThumb(layer.id); refreshComposite(); renderLeftColumn(); },
+            });
+          } else if (ch === "roughness") {
+            SliderRow(lSec.Inner, {
+              Label: "Text Roughness",
+              Minimum: 0.02, Maximum: 1, Step: 0.01,
+              Read: () => curSpec.roughness ?? 0.32,
+              Write: (v) => { syncTextLayerStamp(layer, activeSt, { roughness: v }); invalidateLayerThumb(layer.id); refreshComposite(); },
+            });
+          } else if (ch === "metalness") {
+            SliderRow(lSec.Inner, {
+              Label: "Text Metalness",
+              Minimum: 0, Maximum: 1, Step: 0.01,
+              Read: () => curSpec.metalness ?? 0.14,
+              Write: (v) => { syncTextLayerStamp(layer, activeSt, { metalness: v }); invalidateLayerThumb(layer.id); refreshComposite(); },
+            });
+          } else if (ch === "height") {
+            SliderRow(lSec.Inner, {
+              Label: "Text Height Relief",
+              Minimum: -1, Maximum: 1, Step: 0.02,
+              Read: () => curSpec.height ?? 0.38,
+              Write: (v) => { syncTextLayerStamp(layer, activeSt, { height: v }); refreshComposite(); },
+            });
           }
         } else if (layer.kind === "paint" || layer.kind === "decal") {
           ActionRow(lSec.Inner, [
@@ -4336,6 +4750,138 @@ export function mountTexturePaintWorkspace(root, appBridge) {
           },
           { Label: "Clear Layer", Glyph: "Trash", Act: clearPaintLayerBuffers },
         ]);
+      } else if (layer.kind === "text") {
+        const activeSt = getSelectedStamp(layer, false)?.stamp;
+        const textSpec = normalizePaintTextSpec(activeSt?.text || layer.text);
+        if (!layer.text) layer.text = { ...textSpec };
+        const applyTextPatch = (patch, { rebuildUi = false } = {}) => {
+          syncTextLayerStamp(layer, activeSt, patch);
+          const headingStrong = rightInner.querySelector(".object-heading-copy strong");
+          if (headingStrong) headingStrong.textContent = layer.name;
+          const layerNameInput = lSec.Inner.querySelector("input.pill-text-input");
+          if (layerNameInput && document.activeElement !== layerNameInput) layerNameInput.value = layer.name;
+          invalidateLayerThumb(layer.id);
+          renderLeftColumn();
+          refreshComposite();
+          if (rebuildUi) rebuildInspector();
+        };
+
+        const kSec = SectionCard(rightInner, { Title: "Text Typography & Style", Glyph: "Type", Badge: textSpec.fontFamily || "DM Sans", Open: true });
+        createLiveTextArea(kSec.Inner, "Text Content", () => (activeSt?.text || layer.text)?.content ?? "FRONTIER", (val) => {
+          applyTextPatch({ content: val });
+        });
+        SelectRow(kSec.Inner, {
+          Label: "Font Family",
+          Options: PAINT_TEXT_FONTS.map((f) => [f.label, f.value]),
+          Read: () => (activeSt?.text || layer.text)?.fontFamily || "DM Sans",
+          Write: (v) => applyTextPatch({ fontFamily: v }, { rebuildUi: true }),
+        });
+        SegmentedRow(kSec.Inner, {
+          Label: "Font Weight",
+          Options: [["Regular", "400"], ["Medium", "500"], ["Bold", "700"], ["Black", "900"]],
+          Read: () => String((activeSt?.text || layer.text)?.fontWeight || 700),
+          Write: (v) => applyTextPatch({ fontWeight: Number(v) }),
+        });
+        SwitchRow(kSec.Inner, {
+          Label: "Italic Style",
+          Read: () => !!(activeSt?.text || layer.text)?.italic,
+          Write: (v) => applyTextPatch({ italic: !!v }),
+        });
+        SegmentedRow(kSec.Inner, {
+          Label: "Text Align",
+          Options: [["Left", "left"], ["Center", "center"], ["Right", "right"]],
+          Read: () => (activeSt?.text || layer.text)?.align || "center",
+          Write: (v) => applyTextPatch({ align: v }),
+        });
+        ColorRow(kSec.Inner, {
+          Label: "Text Color",
+          Read: () => (activeSt?.text || layer.text)?.color || "#eff4cf",
+          Write: (v) => applyTextPatch({ color: v }),
+        });
+        SliderRow(kSec.Inner, {
+          Label: "Roughness",
+          Minimum: 0.02, Maximum: 1, Step: 0.01,
+          Read: () => (activeSt?.text || layer.text)?.roughness ?? 0.32,
+          Write: (v) => applyTextPatch({ roughness: v }),
+        });
+        SliderRow(kSec.Inner, {
+          Label: "Metalness",
+          Minimum: 0, Maximum: 1, Step: 0.01,
+          Read: () => (activeSt?.text || layer.text)?.metalness ?? 0.14,
+          Write: (v) => applyTextPatch({ metalness: v }),
+        });
+        SliderRow(kSec.Inner, {
+          Label: "Height Relief",
+          Minimum: -1, Maximum: 1, Step: 0.02,
+          Read: () => (activeSt?.text || layer.text)?.height ?? 0.38,
+          Write: (v) => applyTextPatch({ height: v }),
+        });
+        SliderRow(kSec.Inner, {
+          Label: "Font Size (px)",
+          Minimum: 18, Maximum: 160, Step: 2,
+          Read: () => (activeSt?.text || layer.text)?.fontSize ?? 72,
+          Write: (v) => applyTextPatch({ fontSize: v }),
+        });
+        SliderRow(kSec.Inner, {
+          Label: "Letter Spacing",
+          Minimum: -6, Maximum: 36, Step: 0.5, Unit: "px",
+          Read: () => (activeSt?.text || layer.text)?.letterSpacing ?? 2,
+          Write: (v) => applyTextPatch({ letterSpacing: v }),
+        });
+        SliderRow(kSec.Inner, {
+          Label: "Line Height",
+          Minimum: 0.75, Maximum: 2.2, Step: 0.05, Unit: "x",
+          Read: () => (activeSt?.text || layer.text)?.lineHeight ?? 1.15,
+          Write: (v) => applyTextPatch({ lineHeight: v }),
+        });
+        SliderRow(kSec.Inner, {
+          Label: "Outline Width",
+          Minimum: 0, Maximum: 18, Step: 1, Unit: "px",
+          Read: () => (activeSt?.text || layer.text)?.outlineWidth ?? 0,
+          Write: (v) => applyTextPatch({ outlineWidth: v }, { rebuildUi: true }),
+        });
+        if (((activeSt?.text || layer.text)?.outlineWidth || 0) > 0) {
+          ColorRow(kSec.Inner, {
+            Label: "Outline Color",
+            Read: () => (activeSt?.text || layer.text)?.outlineColor || "#141619",
+            Write: (v) => applyTextPatch({ outlineColor: v }),
+          });
+        }
+        ActionRow(kSec.Inner, [
+          {
+            Label: "Transform Text (V)",
+            Glyph: "Move",
+            Tone: "accent",
+            Act: () => selectTool("move"),
+          },
+          {
+            Label: "+ Add Text Stamp",
+            Glyph: "Type",
+            Act: () => { placeTextStamp({ projection: "uv", uv: { u: 0.5, v: 0.5 }, targetLayer: layer }); selectTool("move"); },
+          },
+          {
+            Label: "Use as Tool Style",
+            Glyph: "Pipette",
+            Act: () => {
+              const s = normalizePaintTextSpec(activeSt?.text || layer.text);
+              state.brush.textContent = s.content;
+              state.brush.textFontFamily = s.fontFamily;
+              state.brush.textFontWeight = s.fontWeight;
+              state.brush.textItalic = s.italic;
+              state.brush.textPixelSize = s.fontSize;
+              state.brush.textLetterSpacing = s.letterSpacing;
+              state.brush.textLineHeight = s.lineHeight;
+              state.brush.textAlign = s.align;
+              state.brush.textColor = s.color;
+              state.brush.textRoughness = s.roughness;
+              state.brush.textMetalness = s.metalness;
+              state.brush.textHeight = s.height;
+              state.brush.textOutlineWidth = s.outlineWidth;
+              state.brush.textOutlineColor = s.outlineColor;
+              Toast("Copied text styling into Text Brush Tool");
+            },
+          },
+        ]);
       } else if (layer.kind === "fill") {
         const kSec = SectionCard(rightInner, { Title: "Fill & Pattern Properties", Glyph: "Fill", Open: true });
         ColorRow(kSec.Inner, { Label: "Fill Color", Read: () => layer.fill.color, Write: (v) => { layer.fill.color = v; invalidateLayerThumb(layer.id); refreshComposite(); renderLeftColumn(); } });
@@ -4347,7 +4893,22 @@ export function mountTexturePaintWorkspace(root, appBridge) {
           ...(appBridge?.shared?.patternData ? [{
             Label: "Apply Pattern Tile",
             Glyph: "Pattern",
-            Act: () => { layer.fill.patternData = appBridge.shared.patternData; invalidateLayerThumb(layer.id); rebuildInspector(); refreshComposite(); renderLeftColumn(); Toast("Applied Pattern Studio tile to Fill layer"); },
+            Act: () => {
+              const pat = appBridge.shared.patternData;
+              layer.fill.patternData = pat;
+              if (Array.isArray(pat?.activeChannels)) {
+                layer.channels = layer.channels || {};
+                for (const k of pat.activeChannels) layer.channels[k] = true;
+              }
+              if (pat?.surfaceSummary?.values) {
+                layer.fill.extValues = { ...(layer.fill.extValues || {}), ...pat.surfaceSummary.values };
+              }
+              invalidateLayerThumb(layer.id);
+              rebuildInspector();
+              refreshComposite();
+              renderLeftColumn();
+              Toast("Applied Pattern Studio tile to Fill layer");
+            },
           }] : []),
         ]);
         if (layer.fill.patternData) {
@@ -4410,11 +4971,11 @@ export function mountTexturePaintWorkspace(root, appBridge) {
         SwitchRow(kSec.Inner, { Label: "Invert Generator Mask", Read: () => !!layer.generator.invert, Write: (v) => { layer.generator.invert = !!v; refreshComposite(); } });
       }
 
-      // Layer Stamps Subcomponents Inspector (when layer has stamps or is decal layer)
-      if (layer.kind !== "folder" && ((layer.stamps && layer.stamps.length > 0) || layer.kind === "decal")) {
+      // Layer Stamps Subcomponents Inspector (when layer has stamps or is decal/text layer)
+      if (layer.kind !== "folder" && ((layer.stamps && layer.stamps.length > 0) || layer.kind === "decal" || layer.kind === "text")) {
         const stSec = SectionCard(rightInner, {
-          Title: "Layer Stamps",
-          Glyph: "Stamp",
+          Title: layer.kind === "text" ? "Text Placement & Stamps" : "Layer Stamps",
+          Glyph: layer.kind === "text" ? "Type" : "Stamp",
           Badge: String(layer.stamps?.length || 0),
           Open: true,
         });
@@ -4438,7 +4999,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
           });
           const lbl = Construct("span", null, `${st.name} (${st.projection.toUpperCase()})`);
           lbl.style.cssText = "flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
-          item.append(ConstructGlyph("Stamp"), lbl, vis, del);
+          item.append(ConstructGlyph(st.text || layer.kind === "text" ? "Type" : "Stamp"), lbl, vis, del);
           item.addEventListener("click", () => {
             layer.selectedStampId = st.id;
             renderLeftColumn();
@@ -4472,9 +5033,16 @@ export function mountTexturePaintWorkspace(root, appBridge) {
             Act: () => selectTool("move"),
           },
           {
-            Label: "+ Add Stamp Here",
-            Glyph: "Plus",
-            Act: () => { placeMovableStamp({ projection: "uv", uv: { u: 0.5, v: 0.5 } }); selectTool("move"); },
+            Label: layer.kind === "text" ? "+ Add Text Stamp" : "+ Add Stamp Here",
+            Glyph: layer.kind === "text" ? "Type" : "Plus",
+            Act: () => {
+              if (layer.kind === "text") {
+                placeTextStamp({ projection: "uv", uv: { u: 0.5, v: 0.5 }, targetLayer: layer });
+              } else {
+                placeMovableStamp({ projection: "uv", uv: { u: 0.5, v: 0.5 } });
+              }
+              selectTool("move");
+            },
           },
         ]);
       }
@@ -4836,6 +5404,13 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       const nextLiveRes = Math.min(2048, targetExport);
 
       state.doc = docData;
+      for (const l of state.doc.layers) {
+        if (l?.kind === "text" && Array.isArray(l.stamps)) {
+          for (const st of l.stamps) {
+            if (st && !st.stampData) st.stampData = rasterizeTextStampMaps(st.text || l.text);
+          }
+        }
+      }
       if (!state.doc.name) state.doc.name = file.name.replace(/\.(paint\.)?json$/i, "") || "Paint Project";
       if (parsed.meshId && PAINT_MESH_LIST.some((m) => m.id === parsed.meshId)) {
         state.meshId = parsed.meshId;
@@ -4967,6 +5542,7 @@ export function mountTexturePaintWorkspace(root, appBridge) {
     else if (e.key.toLowerCase() === "g") selectTool("fill");
     else if (e.key.toLowerCase() === "d") selectTool("gradient");
     else if (e.key.toLowerCase() === "s") selectTool("stamp");
+    else if (e.key.toLowerCase() === "t") selectTool("text");
     else if (e.key.toLowerCase() === "i") selectTool("eyedropper");
     else if (e.key.toLowerCase() === "v") selectTool("move");
     else if (e.key === "[" || e.key === "]") {
@@ -4974,6 +5550,8 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       if (state.brush.tool === "move") {
         const found = getSelectedStamp(getActiveLayer(), true);
         if (found) { found.stamp.scale = Math.max(0.025, Math.min(1.6, (found.stamp.scale ?? 0.28) * mul)); refreshComposite(); }
+      } else if (state.brush.tool === "text") {
+        state.brush.textScale = Math.max(0.05, Math.min(1.2, (state.brush.textScale ?? 0.34) * mul));
       } else {
         state.brush.size = Math.max(0.03, Math.min(0.9, state.brush.size * mul));
         state.brush.pixelRadius = Math.round(state.brush.size * 110);
@@ -5053,6 +5631,23 @@ export function mountTexturePaintWorkspace(root, appBridge) {
 
   function applyAsset(payload, dropInfo = {}) {
     if (!payload) return false;
+    if (payload.assetKind === "colour") {
+      const hex = payload.raw?.hex || payload.hex || "#eff4cf";
+      state.brush.color = hex;
+      state.brush.textColor = hex;
+      const activeLayer = getActiveLayer();
+      if (activeLayer?.kind === "text" && (dropInfo.source === "drop" || state.brush.tool === "text")) {
+        const activeSt = getSelectedStamp(activeLayer, false)?.stamp;
+        syncTextLayerStamp(activeLayer, activeSt, { color: hex });
+        invalidateLayerThumb(activeLayer.id);
+        renderLeftColumn();
+        refreshComposite();
+      }
+      Broadcast();
+      rebuildInspector();
+      Toast(`Applied Colour "${payload.name || hex}"`);
+      return true;
+    }
     if (payload.assetKind === "material") {
       const m = payload.raw;
       const l = createPaintLayer("material", createMaterialLayerOverridesFromPreset(m, res));
@@ -5128,6 +5723,9 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       return true;
     }
     if (payload.assetKind === "mesh") {
+      if (payload.raw?.transfer) {
+        return applyImportedMesh(payload.raw.transfer);
+      }
       const mId = payload.raw?.paintId || payload.id;
       if (PAINT_MESH_LIST.some((p) => p.id === mId)) {
         state.meshId = mId;
@@ -5137,6 +5735,41 @@ export function mountTexturePaintWorkspace(root, appBridge) {
         Toast(`Switched paint mesh to "${payload.name}"`);
         return true;
       }
+    }
+    if (payload.assetKind === "image") {
+      const srcUrl = payload.thumbnail || payload.raw?.dataUrl || payload.raw?.url;
+      if (!srcUrl || typeof Image === "undefined") return false;
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 256;
+        const scale = Math.min(1, maxDim / Math.max(1, img.width, img.height));
+        const w = Math.max(8, Math.round(img.width * scale));
+        const h = Math.max(8, Math.round(img.height * scale));
+        const cv = document.createElement("canvas");
+        cv.width = w;
+        cv.height = h;
+        const cx = cv.getContext?.("2d", { willReadFrequently: true });
+        if (!cx) return;
+        cx.drawImage(img, 0, 0, w, h);
+        const rgba = cx.getImageData(0, 0, w, h).data;
+        const previewDataUrl = cv.toDataURL("image/png");
+        const cleanName = payload.name || "Imported Image";
+        const evaluated = rgbaPixelsToSurfaceMaps(rgba, w, h, { name: cleanName, previewDataUrl });
+        const targetFill = createPaintLayer("fill", {
+          res,
+          name: `${cleanName} Fill`,
+          fill: { color: "#ffffff", roughness: state.brush.roughness, metalness: state.brush.metalness, height: 0, patternRepeats: 2, patternData: evaluated },
+        });
+        state.doc.layers.push(targetFill);
+        state.doc.selectedLayerId = targetFill.id;
+        invalidateLayerThumb(targetFill.id);
+        renderLeftColumn();
+        rebuildInspector();
+        refreshComposite();
+        Toast(`Applied "${cleanName}" to Paint Fill Layer`);
+      };
+      img.src = srcUrl;
+      return true;
     }
     return false;
   }
@@ -5176,10 +5809,25 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       Toast(`Added "${matParams.name}" Material (${Object.values(l.channels).filter(Boolean).length} PBR channels)`);
     },
     applyBridgedPattern(patternEval) {
+      const hasCustomActive = Array.isArray(patternEval.activeChannels);
+      const channels = createDefaultChannelMap(false, hasCustomActive
+        ? { albedo: false, roughness: false, metalness: false, height: false }
+        : {});
+      for (const k of patternEval.activeChannels || []) channels[k] = true;
+      const extValues = { ...createDefaultExtendedValues(), ...(patternEval.surfaceSummary?.values || {}) };
       const l = createPaintLayer("fill", {
         res,
         name: patternEval.name || "Pattern Fill",
-        fill: { color: "#ffffff", roughness: 0.45, metalness: 0.1, height: 0, patternRepeats: 3, patternData: patternEval },
+        channels,
+        fill: {
+          color: "#ffffff",
+          roughness: 0.45,
+          metalness: 0.1,
+          height: 0,
+          extValues,
+          patternRepeats: 3,
+          patternData: patternEval,
+        },
       });
       state.doc.layers.push(l);
       state.doc.selectedLayerId = l.id;
@@ -5201,6 +5849,14 @@ export function mountTexturePaintWorkspace(root, appBridge) {
       }
       state.brush.stampData = stampEval;
       state.brush.stampName = name;
+      if (Array.isArray(stampEval.activeChannels)) {
+        const nextCh = createDefaultChannelMap(false, { albedo: false, roughness: false, metalness: false, height: false });
+        for (const k of stampEval.activeChannels) nextCh[k] = true;
+        state.brush.paintChannels = nextCh;
+      }
+      if (stampEval.surfaceSummary?.values) {
+        state.brush.extValues = { ...createDefaultExtendedValues(), ...stampEval.surfaceSummary.values };
+      }
       if (gpuPaint.isActive) gpuPaint.ensureStampTexture(stampEval);
       selectTool("stamp");
       rebuildInspector();

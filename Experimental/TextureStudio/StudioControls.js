@@ -5,6 +5,15 @@
 //   SectionCard, SliderRow (scrubbable black value-pill + 26px track), SwitchRow, SelectRow, SegmentedRow,
 //   ColorRow, TextRow, ActionRow, MetricTrio, SmoothScroll, Scope lifecycle, Toast.
 
+import {
+    GetFallbackColourSlot,
+    HasColourDragData,
+    NotifyColourApplied,
+    ReadColourDragData,
+    SetActiveColourSlot,
+    SetFallbackColourSlot
+} from './ColourCodex.js';
+
 const SvgNamespace = 'http://www.w3.org/2000/svg';
 const Refreshers = new Set();
 const ScopeStack = [];
@@ -324,13 +333,77 @@ export function ColorRow(Parent, Binding)
             Broadcast();
         }
     };
+    const SlotLabel = Binding.SlotLabel || Binding.Label || 'Colour slot';
+    const AssignSlotHex = (NextHex) =>
+    {
+        const Clean = String(NextHex || '').trim().toLowerCase();
+        if (!/^#[0-9a-f]{6}$/.test(Clean)) return;
+        Picker.value = Clean;
+        Hex.value = Clean;
+        SwatchShell.style.background = Clean;
+        Binding.Write(Clean);
+        Broadcast();
+    };
+    const RememberSlot = () =>
+    {
+        SetActiveColourSlot({
+            Key: SlotLabel,
+            Label: SlotLabel,
+            AssignHex: AssignSlotHex,
+            Element: Row
+        });
+    };
+    if (!GetFallbackColourSlot()) {
+        SetFallbackColourSlot({
+            Key: SlotLabel,
+            Label: SlotLabel,
+            AssignHex: AssignSlotHex,
+            Element: Row
+        });
+    }
+
+    Row.setAttribute('data-colour-slot', SlotLabel);
+    Row.addEventListener('mousedown', RememberSlot);
+    Picker.addEventListener('focus', RememberSlot);
+    Hex.addEventListener('focus', RememberSlot);
+
+    Row.addEventListener('dragenter', (E) => {
+        if (!HasColourDragData(E)) return;
+        E.preventDefault();
+        E.stopPropagation();
+        Row.setAttribute('data-colour-drop-over', 'true');
+    });
+    Row.addEventListener('dragover', (E) => {
+        if (!HasColourDragData(E)) return;
+        E.preventDefault();
+        E.stopPropagation();
+        if (E.dataTransfer) E.dataTransfer.dropEffect = 'copy';
+        Row.setAttribute('data-colour-drop-over', 'true');
+    });
+    Row.addEventListener('dragleave', (E) => {
+        if (E.relatedTarget && Row.contains?.(E.relatedTarget)) return;
+        Row.removeAttribute('data-colour-drop-over');
+    });
+    Row.addEventListener('drop', (E) => {
+        Row.removeAttribute('data-colour-drop-over');
+        const Dropped = ReadColourDragData(E);
+        if (!Dropped) return;
+        E.preventDefault();
+        E.stopPropagation();
+        AssignSlotHex(Dropped.Hex);
+        RememberSlot();
+        NotifyColourApplied(Dropped, SlotLabel);
+        Toast(`Applied ${Dropped.Name} (${Dropped.Hex}) -> ${SlotLabel}`);
+    });
+
     Picker.addEventListener('input', () => {
         const val = Picker.value.toLowerCase();
         SwatchShell.style.background = val;
         Binding.Write(val);
+        RememberSlot();
         Broadcast();
     });
-    Hex.addEventListener('change', () => CommitHex(Hex.value));
+    Hex.addEventListener('change', () => { CommitHex(Hex.value); RememberSlot(); });
 
     Register(() =>
     {

@@ -13,6 +13,7 @@ import { mountStampWorkspace } from "./Workspaces/StampWorkspace.js";
 import { mountTexturePaintWorkspace } from "./Workspaces/TexturePaintWorkspace.js";
 import { mountBakingWorkspace } from "./Workspaces/BakingWorkspace.js";
 import { Toast } from "./StudioControls.js";
+import { SetActiveColourSlot, SetFallbackColourSlot } from "./ColourCodex.js";
 import { LoadUvBridgeTransfer } from "../Shared/UvTextureBridge.js";
 
 const WORKSPACES = [
@@ -64,9 +65,25 @@ const appBridge = {
   inspectAsset(kind, id) {
     assetBrowser?.selectAsset?.(kind, id);
   },
+  getActiveMaterialParams() {
+    return activeWorkspace?.getParams?.() || appBridge.shared.material || null;
+  },
   openPatternAssetInMaterial(patternEntry) {
     appBridge.shared.patternData = patternEntry;
     activateWorkspace("material");
+    requestAnimationFrame(() => {
+      activeWorkspace?.applyAsset?.({
+        assetKind: "pattern",
+        id: patternEntry.id,
+        name: patternEntry.name,
+        family: patternEntry.group || patternEntry.family,
+        raw: patternEntry,
+      });
+    });
+  },
+  openPatternAssetInPaint(patternEntry) {
+    appBridge.shared.patternData = patternEntry;
+    activateWorkspace("paint");
     requestAnimationFrame(() => {
       activeWorkspace?.applyAsset?.({
         assetKind: "pattern",
@@ -109,6 +126,12 @@ const appBridge = {
       requestAnimationFrame(() => activeWorkspace?.applyAsset?.(payload, dropInfo));
       return true;
     }
+    if (payload.assetKind === "image") {
+      const targetWs = dropInfo?.role === "tile" ? "material" : "paint";
+      activateWorkspace(targetWs);
+      requestAnimationFrame(() => activeWorkspace?.applyAsset?.(payload, dropInfo));
+      return true;
+    }
     if (payload.assetKind === "mesh") {
       activateWorkspace("bake");
       requestAnimationFrame(() => activeWorkspace?.applyAsset?.(payload, dropInfo));
@@ -131,35 +154,27 @@ const appBridge = {
   sendPatternToPaint(patternEval) {
     appBridge.shared.patternData = patternEval;
     activateWorkspace("paint");
-    requestAnimationFrame(() => {
-      activeWorkspace?.applyBridgedPattern?.(patternEval);
-    });
+    activeWorkspace?.applyBridgedPattern?.(patternEval);
   },
   sendPatternToMaterial(patternEval) {
     appBridge.shared.patternData = patternEval;
     activateWorkspace("material");
-    requestAnimationFrame(() => {
-      activeWorkspace?.applyAsset?.({
-        assetKind: "pattern",
-        id: patternEval.id || patternEval.name || "live-pattern",
-        name: patternEval.name || "Pattern Texture",
-        raw: patternEval,
-      });
+    activeWorkspace?.applyAsset?.({
+      assetKind: "pattern",
+      id: patternEval.id || patternEval.name || "live-pattern",
+      name: patternEval.name || "Pattern Texture",
+      raw: patternEval,
     });
   },
   sendStampToPaint(stampEval) {
     appBridge.shared.stampData = stampEval;
     activateWorkspace("paint");
-    requestAnimationFrame(() => {
-      activeWorkspace?.applyBridgedStamp?.(stampEval);
-    });
+    activeWorkspace?.applyBridgedStamp?.(stampEval);
   },
   sendBakedMapsToPaint(bridgeData) {
     appBridge.shared.bakedMaps = bridgeData;
     activateWorkspace("paint");
-    requestAnimationFrame(() => {
-      activeWorkspace?.applyBakedMaps?.(bridgeData);
-    });
+    activeWorkspace?.applyBakedMaps?.(bridgeData);
   },
 };
 
@@ -187,6 +202,8 @@ function activateWorkspace(id) {
     btn.classList.toggle("active", btn.dataset.ws === target.id);
   }
 
+  SetActiveColourSlot(null);
+  SetFallbackColourSlot(null);
   mainMount.innerHTML = "";
   try {
     activeWorkspace = target.mount(mainMount, appBridge);
@@ -220,6 +237,7 @@ window.__frontierTextureStudio = {
   getActiveId: () => activeId,
   getSnapshot: () => activeWorkspace?.getSnapshot?.() || null,
   getAssetBrowser: () => assetBrowser?.getState?.() || null,
+  getAssetBrowserController: () => assetBrowser,
   applyAsset: (kind, id) => appBridge.applyAssetToActiveWorkspace(assetBrowser?.getAssetPayload(kind, id)),
   applyImportedMesh: (transfer, targetWs) => appBridge.applyImportedMesh(transfer, targetWs),
   sendPatternToMaterial: (pat) => appBridge.sendPatternToMaterial(pat),

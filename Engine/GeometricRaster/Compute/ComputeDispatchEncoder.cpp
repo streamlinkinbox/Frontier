@@ -34,9 +34,11 @@ bool ComputeDispatchEncoder::InitializeEncoder(VulkanInterchange* BoundDevice, u
 
     DeviceInterchange = BoundDevice;
     MaxDispatchesPerAllocator = std::clamp(MaxDispatchesPerAllocator, 1u, 4096u);
-    const std::array<VkDescriptorPoolSize, 2u> AllocatorCapacities {{
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MaxDispatchesPerAllocator * 2u },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MaxDispatchesPerAllocator * 6u },
+    const std::array<VkDescriptorPoolSize, 4u> AllocatorCapacities {{
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         MaxDispatchesPerAllocator * 2u },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         MaxDispatchesPerAllocator * 6u },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          MaxDispatchesPerAllocator * 8u },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MaxDispatchesPerAllocator * 4u },
     }};
 
     VkDescriptorPoolCreateInfo AllocatorSpec {};
@@ -225,9 +227,11 @@ bool ComputeDispatchEncoder::EncodeComputeDispatch(
         {
             return false;
         }
-        const std::array<VkDescriptorPoolSize, 2u> AllocatorSizes {{
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MaxDispatchesPerAllocator * 2u },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MaxDispatchesPerAllocator * 6u },
+        const std::array<VkDescriptorPoolSize, 4u> AllocatorSizes {{
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         MaxDispatchesPerAllocator * 2u },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         MaxDispatchesPerAllocator * 6u },
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          MaxDispatchesPerAllocator * 8u },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MaxDispatchesPerAllocator * 4u },
         }};
         VkDescriptorPoolCreateInfo AllocatorSpecNew {};
         AllocatorSpecNew.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -249,19 +253,32 @@ bool ComputeDispatchEncoder::EncodeComputeDispatch(
     }
 
     std::vector<VkDescriptorBufferInfo> BufInfos(Slots.size());
+    std::vector<VkDescriptorImageInfo>  ImgInfos(Slots.size());
     std::vector<VkWriteDescriptorSet>   Writes(Slots.size());
     for (std::size_t Idx = 0u; Idx < Slots.size(); ++Idx)
     {
-        BufInfos[Idx].buffer = Slots[Idx].BufferHandle;
-        BufInfos[Idx].offset = 0u;
-        BufInfos[Idx].range  = Slots[Idx].ByteRange;
-
         Writes[Idx].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         Writes[Idx].dstSet          = DescSet;
         Writes[Idx].dstBinding      = Slots[Idx].SlotIndex;
         Writes[Idx].descriptorCount = 1u;
         Writes[Idx].descriptorType  = Slots[Idx].SlotCategory;
-        Writes[Idx].pBufferInfo     = &BufInfos[Idx];
+
+        if (Slots[Idx].SlotCategory == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+            Slots[Idx].SlotCategory == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+            Slots[Idx].SlotCategory == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)
+        {
+            ImgInfos[Idx].sampler     = Slots[Idx].SamplerHandle;
+            ImgInfos[Idx].imageView   = Slots[Idx].ImageViewHandle;
+            ImgInfos[Idx].imageLayout = Slots[Idx].ImageLayout;
+            Writes[Idx].pImageInfo    = &ImgInfos[Idx];
+        }
+        else
+        {
+            BufInfos[Idx].buffer   = Slots[Idx].BufferHandle;
+            BufInfos[Idx].offset   = Slots[Idx].OffsetBytes;
+            BufInfos[Idx].range    = Slots[Idx].ByteRange;
+            Writes[Idx].pBufferInfo = &BufInfos[Idx];
+        }
     }
 
     vkUpdateDescriptorSets(DeviceHandle, static_cast<uint32_t>(Writes.size()), Writes.data(), 0u, nullptr);

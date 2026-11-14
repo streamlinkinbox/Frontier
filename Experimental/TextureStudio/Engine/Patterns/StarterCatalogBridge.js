@@ -13,6 +13,7 @@ import {
   createArtworkDocument,
   createArtworkLayer,
   createDefaultModifier,
+  ensureArtworkLayerSurface,
   evaluateArtworkDocument,
 } from "./ArtworkStackEngine.js";
 
@@ -1567,6 +1568,7 @@ export function loadStarterAsArtworkDocument(entry) {
       },
     });
   });
+  for (const lyr of doc.layers) ensureArtworkLayerSurface(lyr);
   return doc;
 }
 
@@ -1619,6 +1621,10 @@ export function buildMaterialPatternDocument(input, overrides = {}) {
       metalness: input.metalness,
       heightMap: input.height,
       normal: input.normal,
+      coverage: input.coverage || null,
+      extraChannels: input.extraChannels || null,
+      activeChannels: input.activeChannels || null,
+      surfaceSummary: input.surfaceSummary || null,
       version: input.version || Date.now(),
     };
   }
@@ -1667,6 +1673,10 @@ export function buildMaterialPatternDocument(input, overrides = {}) {
     metalness: ev.metalness,
     heightMap: ev.height,
     normal: ev.normal,
+    coverage: ev.coverage || null,
+    extraChannels: ev.extraChannels || null,
+    activeChannels: ev.activeChannels || null,
+    surfaceSummary: ev.surfaceSummary || null,
     version: Date.now(),
   };
 }

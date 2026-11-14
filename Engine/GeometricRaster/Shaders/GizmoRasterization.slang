@@ -36,7 +36,7 @@ struct GizmoFSOutput
 };
 
 [shader("vertex")]
-GizmoVSOutput VertexEntry(uint VertexID : SV_VertexID)
+GizmoVSOutput VertexEntry(uint VertexID : SV_VulkanVertexID)
 {
     GizmoVertexRecord Rec = GizmoVertices[VertexID];
     GizmoVSOutput     Out;

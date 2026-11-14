@@ -349,11 +349,12 @@ const baseUrl = process.argv[2];
 if (baseUrl) {
   await suite(`6. Live HTTP Endpoints (${baseUrl})`, async () => {
     const paths = [
-      "/Experimental/",
       "/Experimental/TextureStudio/",
       "/Experimental/TextureStudio/TextureStudio.css",
       "/Experimental/TextureStudio/TextureStudio.js",
       "/Experimental/TextureStudio/AssetBrowser.js",
+      "/Experimental/TextureStudio/ColourCodex.js",
+      "/Experimental/TextureStudio/GeometryIconBaker.js",
       "/Experimental/TextureStudio/StudioControls.js",
       "/Experimental/TextureStudio/Workspaces/MaterialWorkspace.js",
       "/Experimental/TextureStudio/Workspaces/LayerStackKit.js",
@@ -365,6 +366,7 @@ if (baseUrl) {
       "/Experimental/TextureStudio/Workspaces/BakingWorkspace.js",
       "/Experimental/TextureStudio/Engine/NoiseField.js",
       "/Experimental/TextureStudio/Engine/WebGpuCompute.js",
+      "/Experimental/TextureStudio/Engine/PbrChannelDefinitions.js",
       "/Experimental/TextureStudio/Engine/TexturePaintEngine.js",
       "/Experimental/TextureStudio/Engine/BakingEngine.js",
       "/Experimental/TextureStudio/Engine/Patterns/ArtworkStackEngine.js",
@@ -855,33 +857,53 @@ await suite("10. Interactive SVG Vector Canvas, Bottom Resizable Asset Browser &
   api.switchWorkspace("bake");
   assert.equal(api.getAssetBrowser().activeCategory, "meshes");
 
-  // User manually selects Patterns tab while on Bake -> should stay pinned when switching workspaces!
-  const patCatBtn = globalThis.document.querySelectorAll(".cb-cat-tab").find((b) => b.dataset.category === "patterns");
-  assert(patCatBtn, "Missing Patterns tab in Asset Browser");
+  // User manually selects Patterns category in left rail while on Bake -> should stay pinned when switching workspaces!
+  const patCatBtn = [...globalThis.document.querySelectorAll(".asset-category-rail button")].find((b) => b.dataset.category === "patterns");
+  assert(patCatBtn, "Missing Patterns category button in ContentBrowser rail");
   patCatBtn.click();
   assert.equal(api.getAssetBrowser().userSpecifiedCategory, true);
   api.switchWorkspace("material");
   assert.equal(api.getAssetBrowser().activeCategory, "patterns", "User-specified category should remain pinned across workspace switches");
 
   // Clicking Auto Reset button restores automatic category matching
-  const autoResetBtn = globalThis.document.querySelector(".cb-auto-pill");
+  const autoResetBtn = globalThis.document.querySelector(".asset-auto-pill");
   assert(autoResetBtn, "Missing Auto/Pinned toggle pill");
   autoResetBtn.click();
   assert.equal(api.getAssetBrowser().userSpecifiedCategory, false);
   assert.equal(api.getAssetBrowser().activeCategory, "materials");
 
-  // 10c. Verify draggable notch resize + collapse/expand
-  const notch = globalThis.document.querySelector(".cb-resize");
-  assert(notch, "Missing Asset Browser resize notch (.cb-resize)");
-  const initialH = api.getAssetBrowser().heightPx;
-  notch.dispatchEvent({ type: "pointerdown", button: 0, clientY: 600 });
-  globalThis.window.dispatchEvent({ type: "pointermove", clientY: 480 }); // drag UP +120px
-  globalThis.window.dispatchEvent({ type: "pointerup" });
-  assert(api.getAssetBrowser().heightPx > initialH + 60, `Expected drawer height increase after dragging notch up, got ${api.getAssetBrowser().heightPx}`);
-  notch.dispatchEvent({ type: "dblclick" });
-  assert.equal(api.getAssetBrowser().collapsed, true, "Double-click on notch should collapse Asset Browser");
-  notch.dispatchEvent({ type: "dblclick" });
-  assert.equal(api.getAssetBrowser().collapsed, false, "Second double-click should expand Asset Browser");
+  // 10c. Verify Project Zero bottom SVG trapezoid notch open/close, 3-stop vertical drag & horizontal offset
+  const drawerShell = globalThis.document.querySelector(".drawer-shell");
+  const notch = globalThis.document.querySelector(".asset-notch-handle");
+  assert(drawerShell && notch, "Missing Project Zero ContentBrowser drawer shell & .asset-notch-handle");
+  assert.equal(api.getAssetBrowser().open, false, "ContentBrowser drawer must start cleanly closed showing only the bottom notch");
+  assert.equal(notch.getAttribute("aria-expanded"), "false");
+
+  // Drag handle horizontally + vertically to open half/full
+  notch.dispatchEvent({ type: "pointerdown", button: 0, pointerId: 1, clientX: 720, clientY: 850 });
+  globalThis.window.dispatchEvent({ type: "pointermove", pointerId: 1, clientX: 840, clientY: 850 }); // drag right +120px
+  globalThis.window.dispatchEvent({ type: "pointerup", pointerId: 1, clientX: 840, clientY: 850 });
+  assert(api.getAssetBrowser().offsetPx > 80, `Horizontal handle drag should reposition notch offsetPx, got ${api.getAssetBrowser().offsetPx}`);
+
+  notch.dispatchEvent({ type: "pointerdown", button: 0, pointerId: 2, clientX: 840, clientY: 850 });
+  globalThis.window.dispatchEvent({ type: "pointermove", pointerId: 2, clientX: 840, clientY: 450 }); // drag up into half stop
+  globalThis.window.dispatchEvent({ type: "pointerup", pointerId: 2, clientX: 840, clientY: 450 });
+  assert.equal(api.getAssetBrowser().open, true, "Dragging bottom notch upward should open ContentBrowser");
+  assert(["half", "full"].includes(api.getAssetBrowser().stage), `Expected half or full drawer stop after drag, got ${api.getAssetBrowser().stage}`);
+
+  // Split toggle button switches cleanly between half and full; notch click / page grip closes drawer
+  const splitBtn = globalThis.document.querySelector(".asset-split-toggle");
+  assert(splitBtn, "Missing Split/Full dock toggle button");
+  if (api.getAssetBrowser().stage !== "half") splitBtn.click();
+  assert.equal(api.getAssetBrowser().stage, "half");
+  splitBtn.click();
+  assert.equal(api.getAssetBrowser().stage, "full");
+  notch.click();
+  assert.equal(api.getAssetBrowser().collapsed, true, "Clicking open notch handle should close ContentBrowser");
+  notch.click();
+  assert.equal(api.getAssetBrowser().collapsed, false, "Clicking closed notch handle should reopen ContentBrowser");
+  globalThis.document.querySelector(".drawer-page-grip")?.click();
+  assert.equal(api.getAssetBrowser().collapsed, true, "Clicking .drawer-page-grip should close ContentBrowser");
 
   // 10d. Interactive SVG Vector Canvas + Toolbar + Direct Move / Resize / Rotate + Draw Tool in Pattern & Stamp Studio
   api.switchWorkspace("pattern");
@@ -1263,39 +1285,38 @@ await suite("13. Engineering Materials, Removal Check, Preview Plane, Basic Stam
     assert.equal(evalOut.width, 128);
   }
 
-  // 13e. Verify Right-Side Asset Inspector inside Bottom Asset Browser Drawer
-  const insp = globalThis.document.querySelector(".cb-inspector");
-  assert(insp, "Missing right-side .cb-inspector pane in AssetBrowser");
-  assert(insp.textContent.includes("Asset Inspector"), "Right-side Asset Inspector heading missing");
+  // 13e. Verify Right-Side Content Details Aside inside ContentBrowser Drawer
+  const insp = globalThis.document.querySelector(".asset-preview");
+  assert(insp, "Missing right-side .asset-preview aside in ContentBrowser");
+  assert(insp.textContent.includes("CONTENT DETAILS"), "Right-side CONTENT DETAILS heading missing");
 
   // Select a specific Engineering Material card and verify inspector updates
-  const pcbCard = [...globalThis.document.querySelectorAll(".cb-card")].find((c) => c.dataset.assetId === "emerald-pcb-copper-circuit");
+  const pcbCard = [...globalThis.document.querySelectorAll(".asset-cell")].find((c) => c.dataset.assetId === "emerald-pcb-copper-circuit");
   if (!pcbCard) {
-    // Switch family or search if grid capped at 120 items
-    const techBtn = [...globalThis.document.querySelectorAll(".cb-family-btn")].find((b) => b.dataset.family === "Technical");
-    assert(techBtn, "Missing Technical family button in AssetBrowser");
+    const techBtn = [...globalThis.document.querySelectorAll(".colour-filter-chips button")].find((b) => b.dataset.family === "Technical");
+    assert(techBtn, "Missing Technical family filter chip in ContentBrowser");
     techBtn.click();
   }
-  const targetPcbCard = [...globalThis.document.querySelectorAll(".cb-card")].find((c) => c.dataset.assetId === "emerald-pcb-copper-circuit");
-  assert(targetPcbCard, "Missing Emerald PCB Copper Circuit card in AssetBrowser");
+  const targetPcbCard = [...globalThis.document.querySelectorAll(".asset-cell")].find((c) => c.dataset.assetId === "emerald-pcb-copper-circuit");
+  assert(targetPcbCard, "Missing Emerald PCB Copper Circuit card in ContentBrowser");
   targetPcbCard.click();
   assert.equal(api.getAssetBrowser().inspectorItemId, "emerald-pcb-copper-circuit");
-  assert(globalThis.document.querySelector(".cb-insp-title")?.textContent.includes("Emerald PCB Copper Circuit"), "Inspector must display clicked Material title");
-  assert(globalThis.document.querySelectorAll(".cb-insp-prop").length >= 4, "Inspector must render material PBR property cards");
+  assert(globalThis.document.querySelector(".asset-preview h2")?.textContent.includes("Emerald PCB Copper Circuit"), "Content Details must display clicked Material title");
+  assert(globalThis.document.querySelectorAll(".asset-preview dt").length >= 4, "Content Details must render material PBR spec pairs");
 
-  // Switch to Stamps tab in AssetBrowser, click a Basic Stamp, and confirm Inspector updates!
-  const stampTab = [...globalThis.document.querySelectorAll(".cb-cat-tab")].find((t) => t.dataset.category === "stamps");
-  assert(stampTab, "Missing Stamps tab in AssetBrowser");
+  // Switch to Stamps category in rail, click a Basic Stamp, and confirm Content Details updates!
+  const stampTab = [...globalThis.document.querySelectorAll(".asset-category-rail button")].find((t) => t.dataset.category === "stamps");
+  assert(stampTab, "Missing Stamps category in ContentBrowser rail");
   stampTab.click();
-  const starStampCard = [...globalThis.document.querySelectorAll(".cb-card")].find((c) => c.dataset.assetId === "stamp-basic-star");
-  assert(starStampCard, "Missing stamp-basic-star card in AssetBrowser");
+  const starStampCard = [...globalThis.document.querySelectorAll(".asset-cell")].find((c) => c.dataset.assetId === "stamp-basic-star");
+  assert(starStampCard, "Missing stamp-basic-star card in ContentBrowser");
   starStampCard.click();
   assert.equal(api.getAssetBrowser().inspectorItemId, "stamp-basic-star");
-  assert(globalThis.document.querySelector(".cb-insp-title")?.textContent.includes("Five-Point Badge Star"), "Inspector must update to clicked Basic Stamp");
-  const applyAction = [...globalThis.document.querySelectorAll(".cb-insp-btn")].find((b) => b.textContent === "Apply to Stage");
-  assert(applyAction, "Inspector must show Apply to Stage action button");
+  assert(globalThis.document.querySelector(".asset-preview h2")?.textContent.includes("Five-Point Badge Star"), "Content Details must update to clicked Basic Stamp");
+  const applyAction = [...globalThis.document.querySelectorAll(".asset-material-actions button")].find((b) => b.textContent === "Apply to Stage");
+  assert(applyAction, "Content Details must show Apply to Stage action button");
   applyAction.click();
-  assert.equal(api.getActiveId(), "stamp", "Clicking Apply to Stage on stamp in inspector should route to Stamp Studio cleanly");
+  assert.equal(api.getActiveId(), "stamp", "Clicking Apply to Stage on stamp in Content Details should route to Stamp Studio cleanly");
 });
 
 await suite("14. Texture Paint Clean Layer Inspector, Right-Click Tool-Specific Brush Inspector & Per-Channel Mixing", async () => {
@@ -1669,12 +1690,13 @@ await suite("15. Full 19-Channel PBR, Folder & Procedural Masks, Movable/Scalabl
   const roughInspectBtn = [...rightAside15.querySelectorAll(".segmented-track button")].find((b) => /Rough/i.test(b.textContent || ""));
   assert(roughInspectBtn, "Inspect Channel SegmentedRow must retain Rough tab");
 
-  // Confirm Right-click popup also exposes Move tab at [5] and Stamp tab at [3]
+  // Confirm Right-click popup also exposes Move tab at [5], Text tab at [6], and Stamp tab at [3]
   globalThis.window.dispatchEvent({ type: "keydown", key: "q" });
   const popTabs15 = globalThis.document.body.querySelectorAll(".tool-popup-menu .tool-popup-tab");
-  assert.equal(popTabs15.length, 6, "Right-click/Q popup must offer all 6 tools including Move");
+  assert.equal(popTabs15.length, 7, "Right-click/Q popup must offer all 7 tools including Move and Text");
   assert(/Stamp/i.test(popTabs15[3].textContent || ""), "Right-click popup tab[3] must remain Stamp");
   assert(/Move/i.test(popTabs15[5].textContent || ""), "Right-click popup tab[5] must be Move");
+  assert(/Text/i.test(popTabs15[6].textContent || ""), "Right-click popup tab[6] must be Text");
   globalThis.window.dispatchEvent({ type: "keydown", key: "Escape" });
 
   geo.dispose();
@@ -1813,7 +1835,7 @@ await suite("16. Unified AlloyStudio Viewport Header ([Canvas; Size; View; Undo/
   paintSaveBtn.click();
 
   const paintToolCaps = paintToolsBar.querySelector(".tp-tool-group");
-  assert(paintToolCaps && paintToolCaps.querySelectorAll(".pill-btn").length === 8, "Texture Paint Band 2 .tp-tool-group must house the 8 paint tool pills (incl. 3D Curve & 3D Gradient)");
+  assert(paintToolCaps && paintToolCaps.querySelectorAll(".pill-btn").length === 9, "Texture Paint Band 2 .tp-tool-group must house the 9 paint tool pills (incl. 3D Curve, 3D Gradient & Text)");
   assert(paintToolsBar.querySelector(".gpu-badge"), "Texture Paint Band 2 trailing strip must keep GPU status badge");
 
   const paintDock = globalThis.document.querySelector(".tp-layer-dock");
@@ -1923,72 +1945,70 @@ await suite("17. Hard-Surface Decal Stamps, Baked Transparent Material Icons & F
   const bakedUrl = getBakedMaterialIcon(testMat);
   assert(typeof bakedUrl === "string" && bakedUrl.startsWith("data:image/png"), "getBakedMaterialIcon must return PNG data URL");
 
-  // 17c. Verify Floating 3-Pane Asset Browser Structure, Square No-Box Cards, Grid/List Toggle & Tile Inspector
+  // 17c. Verify Project Zero ContentBrowser Drawer Structure, Transparent Thumbnail Icons, Grid/List Toggle & Content Details Aside
   api.switchWorkspace("material");
   const drawer = globalThis.document.querySelector(".asset-browser");
-  assert(drawer, "Missing .asset-browser element");
+  const drawerShell = globalThis.document.querySelector(".drawer-shell");
+  assert(drawer && drawerShell, "Missing .drawer-shell and .asset-browser element");
   if (api.getAssetBrowser().userSpecifiedCategory) {
-    drawer.querySelector(".cb-auto-pill")?.click();
+    drawer.querySelector(".asset-auto-pill")?.click();
   }
   assert.equal(api.getAssetBrowser().activeCategory, "materials", "Materials category should be active after switching to Material workspace");
 
-  // Left Pane: TreeView with expandable branches, folder buttons (.cb-family-btn) & attribute quick filters
-  const treePane = drawer.querySelector(".cb-tree-pane");
-  assert(treePane, "Missing left .cb-tree-pane TreeView");
-  assert(treePane.querySelectorAll(".cb-tree-branch").length >= 4, "TreeView must display category branches");
-  assert(treePane.querySelectorAll(".cb-family-btn").length >= 5, "TreeView must render nested category folders");
-  const filterPills = treePane.querySelectorAll(".cb-filter-pill");
-  assert(filterPills.length >= 3, "TreeView must provide Quick Attribute Filters");
+  // Origin Tabs (All | Project | Imported | Engine) + Category Rail
+  const originBtns = drawer.querySelectorAll(".asset-origin-tabs button");
+  assert.equal(originBtns.length, 4, "ContentBrowser must provide All | Project | Imported | Engine origin tabs");
+  const railPane = drawer.querySelector(".asset-category-rail");
+  assert(railPane, "Missing left .asset-category-rail");
+  assert(railPane.querySelectorAll("button").length === 7, "Category rail must show All, Materials, Patterns, Stamps, Meshes, Colours, Images");
+  const filterChips = drawer.querySelectorAll(".colour-filter-chips button");
+  assert(filterChips.length >= 4, "Filter bar must provide Collection & attribute quick filter chips");
 
-  // Center Pane: Grid Cards must have .cb-asset-icon (NO .cb-thumb box) and .cb-card-name
+  // Center Pane: Catalogue Grid Cards have transparent .asset-thumbnail + .asset-cell-name
   assert.equal(drawer.querySelectorAll(".cb-thumb").length, 0, "Grid cards must NOT have thumbnail background boxes (.cb-thumb)");
-  const gridEl = drawer.querySelector(".cb-grid");
-  assert(gridEl, "Asset Browser must open in .cb-grid view mode");
-  const firstMatCard = gridEl.querySelector(".cb-card");
-  assert(firstMatCard && firstMatCard.querySelector(".cb-asset-icon") && firstMatCard.querySelector(".cb-card-name"), "Grid card must render transparent .cb-asset-icon + .cb-card-name");
+  const catEl = drawer.querySelector(".asset-catalogue");
+  assert(catEl && catEl.classList.contains("grid"), "ContentBrowser must open in .asset-catalogue.grid view mode");
+  const firstMatCard = catEl.querySelector(".asset-cell");
+  assert(firstMatCard && firstMatCard.querySelector(".asset-thumbnail") && firstMatCard.querySelector(".asset-cell-name"), "Grid card must render transparent .asset-thumbnail + .asset-cell-name");
   const matImgEl = firstMatCard.querySelector(".cb-mat-baked-img");
   assert(matImgEl && String(matImgEl.tagName).toLowerCase() === "img", "Material grid card must render baked <img> sphere icon");
 
   // Toggle List <-> Grid View
-  const viewBtns = [...drawer.querySelectorAll(".cb-view-btn")];
+  const viewBtns = [...drawer.querySelectorAll(".asset-view-switch button")];
   const listBtn = viewBtns.find((b) => b.dataset.view === "list");
   const gridBtn = viewBtns.find((b) => b.dataset.view === "grid");
   assert(listBtn && gridBtn, "Missing Grid/List view toggle buttons");
   listBtn.click();
-  assert(drawer.querySelector(".cb-list"), "Clicking List toggle must switch center pane to .cb-list");
+  assert(drawer.querySelector(".asset-catalogue")?.classList.contains("list"), "Clicking List toggle must switch catalogue to .list");
   assert.equal(api.getAssetBrowser().viewMode, "list");
   gridBtn.click();
-  assert(drawer.querySelector(".cb-grid"), "Clicking Grid toggle must restore .cb-grid");
+  assert(drawer.querySelector(".asset-catalogue")?.classList.contains("grid"), "Clicking Grid toggle must restore .grid");
   assert.equal(api.getAssetBrowser().viewMode, "grid");
 
-  // Right Pane: MetricTrio-style value tiles (.cb-inspector .cb-insp-tiles -> .cb-insp-prop)
-  const inspTiles = drawer.querySelector(".cb-inspector .cb-insp-tiles");
-  assert(inspTiles, "Asset Inspector must render Material-style .kpi-trio.cb-insp-tiles");
-  const propTiles = inspTiles.querySelectorAll(".cb-insp-prop");
-  assert(propTiles.length >= 4, "Asset Inspector must render >=4 MetricTrio-style value tiles");
-  assert(propTiles[0].className.includes("kpi-card"), "Asset Inspector tiles must share .kpi-card styling");
-  assert(propTiles[0].querySelector(".kpi-label") && propTiles[0].querySelector(".kpi-val") && propTiles[0].querySelector(".kpi-sub"),
-    "Each Asset Inspector tile must render .kpi-label, .kpi-val & .kpi-sub matching Material Inspector");
+  // Right Pane: Content Details Aside with Hero Stage + Spec List
+  const inspAside = drawer.querySelector(".asset-preview");
+  assert(inspAside && inspAside.querySelector(".asset-file-preview") && inspAside.querySelector("dl"), "Content Details must render .asset-file-preview and <dl> metadata");
+  assert(inspAside.querySelectorAll("dt").length >= 4, "Content Details must render >=4 specification rows");
 
-  // Filter Stamps -> Hard Surface folder via TreeView & inspect a Hard Surface Decal Stamp
-  const stampCatBtn = [...drawer.querySelectorAll(".cb-cat-tab")].find((b) => b.dataset.category === "stamps");
-  assert(stampCatBtn, "Missing stamps category tab");
+  // Filter Stamps -> Hard Surface collection via Rail + Filter Chip & inspect Hex Bolt stamp
+  const stampCatBtn = [...railPane.querySelectorAll("button")].find((b) => b.dataset.category === "stamps");
+  assert(stampCatBtn, "Missing stamps category rail button");
   stampCatBtn.click();
-  const hardFolderBtn = [...drawer.querySelectorAll(".cb-family-btn")].find((b) => b.dataset.family === "Hard Surface");
-  assert(hardFolderBtn, "TreeView must include Hard Surface folder under Decal Stamps");
+  const hardFolderBtn = [...drawer.querySelectorAll(".colour-filter-chips button")].find((b) => b.dataset.family === "Hard Surface");
+  assert(hardFolderBtn, "Filter chips must include Hard Surface collection under Stamps");
   hardFolderBtn.click();
-  const visibleStampCards = drawer.querySelectorAll(".cb-grid .cb-card");
-  assert.equal(visibleStampCards.length, 12, `Selecting Hard Surface folder should show 12 stamps, got ${visibleStampCards.length}`);
+  const visibleStampCards = drawer.querySelectorAll(".asset-cell");
+  assert.equal(visibleStampCards.length, 12, `Selecting Hard Surface filter should show 12 stamps, got ${visibleStampCards.length}`);
   const boltCard = [...visibleStampCards].find((c) => c.dataset.assetId === "stamp-hs-hex-bolt");
-  assert(boltCard, "Hex Bolt stamp card missing from Hard Surface folder");
+  assert(boltCard, "Hex Bolt stamp card missing from Hard Surface collection");
   boltCard.click();
-  assert(drawer.querySelector(".cb-insp-title")?.textContent.includes("Hex Bolt & Machined Washer"), "Inspector must display clicked Hard Surface stamp");
+  assert(inspAside.querySelector("h2")?.textContent.includes("Hex Bolt & Machined Washer"), "Content Details must display clicked Hard Surface stamp");
 
-  // 17d. Verify CSS Floating Overlay + Square Card rules in TextureStudio.css
+  // 17d. Verify Project Zero Drawer + Bottom SVG Trapezoid Notch CSS rules in TextureStudio.css
   const cssText = fs.readFileSync(new URL("./TextureStudio.css", import.meta.url), "utf8");
-  assert(cssText.includes("position: fixed;") && cssText.includes(".asset-browser"), "CSS must position .asset-browser as a fixed floating pull-up overlay");
-  assert(cssText.includes("aspect-ratio: 1 / 1;"), "CSS must keep .cb-card 1:1 square");
-  assert(cssText.includes(".cb-asset-icon") && cssText.includes("background: transparent;"), "CSS must keep .cb-asset-icon transparent with no box behind icon");
+  assert(cssText.includes(".drawer-shell.bottom") && cssText.includes("top: 90px;") && cssText.includes("bottom: 25px;"), "CSS must position .drawer-shell.bottom cleanly between app-header+notch and status-bar");
+  assert(cssText.includes(".drawer-shell.bottom .drawer-handle svg") && cssText.includes("transform: rotate(180deg);"), "CSS must flip bottom SVG trapezoid notch cleanly upward");
+  assert(cssText.includes(".asset-thumbnail") && cssText.includes("background: transparent;"), "CSS must keep .asset-thumbnail transparent with no box behind icon");
 });
 
 await suite("18. Reference UI Alignment: Material Look-Dev Stage, Shader Ball Pedestal Icons & Circular Olive Studio", async () => {
@@ -2029,15 +2049,15 @@ await suite("18. Reference UI Alignment: Material Look-Dev Stage, Shader Ball Pe
   const pedCenterAlpha = px.data[(pedRow * 88 + 44) * 4 + 3];
   assert(pedCenterAlpha > 200, "Analytical Shader Ball baker must render beveled pedestal silhouette beneath sphere");
 
-  // 18b. Asset Browser Filter Chips, Collection Bar & Shader Ball Check Cards (Image 2 / image-4.png)
+  // 18b. ContentBrowser Filter Chips, Results Header & Selected Material Cell
   const drawer = globalThis.document.querySelector(".asset-browser");
-  if (api.getAssetBrowser().userSpecifiedCategory) drawer.querySelector(".cb-auto-pill")?.click();
-  const famStrip = drawer.querySelector(".cb-family-pills");
-  assert(famStrip && famStrip.querySelectorAll(".cb-family-chip").length >= 4, "Asset Browser must render rounded family filter pills strip");
-  const colBar = drawer.querySelector(".cb-collection-bar");
-  assert(colBar?.querySelector(".cb-collection-title")?.textContent === "THE ESSENTIAL COLLECTION", "Asset Browser must show THE ESSENTIAL COLLECTION header");
-  const matCard = drawer.querySelector(".cb-grid .cb-card");
-  assert(matCard?.querySelector(".cb-card-check") && matCard?.querySelector(".cb-card-sub"), "Material card must render selection check badge and category subtitle");
+  if (api.getAssetBrowser().userSpecifiedCategory) drawer.querySelector(".asset-auto-pill")?.click();
+  const famStrip = drawer.querySelector(".colour-filter-chips");
+  assert(famStrip && famStrip.querySelectorAll("button").length >= 4, "ContentBrowser must render rounded collection filter chips strip");
+  const resHead = drawer.querySelector(".asset-results header");
+  assert(resHead?.querySelector("h2")?.textContent === "Materials", "ContentBrowser results header must show active Materials collection title");
+  const matCard = drawer.querySelector(".asset-catalogue .asset-cell");
+  assert(matCard && matCard.querySelector(".asset-cell-name"), "Material cell must render .asset-cell-name and origin subtitle");
 
   // 18c. Pattern, Stamp & Texture Paint Circular Tool Dock, Clean Header (No Clutter Text) & Floating Viewport Zoom
   for (const ws of ["pattern", "stamp", "paint"]) {
@@ -2062,9 +2082,9 @@ await suite("18. Reference UI Alignment: Material Look-Dev Stage, Shader Ball Pe
     }
   }
 
-  // Verify viewport + circular tool + look-dev stage CSS selectors exist
+  // Verify viewport + circular tool + look-dev stage + ContentBrowser CSS selectors exist
   const cssText = fs.readFileSync(new URL("./TextureStudio.css", import.meta.url), "utf8");
-  for (const token of [".mw-stage", ".mw-bottom-dock", ".vp-tool-circle", ".vp-more-tools-btn", ".se-view-controls", ".se-stage-footer", ".cb-family-pills", ".cb-collection-bar"]) {
+  for (const token of [".mw-stage", ".mw-bottom-dock", ".vp-tool-circle", ".vp-more-tools-btn", ".se-view-controls", ".se-stage-footer", ".colour-filters-bar", ".asset-browser", ".drawer-handle"]) {
     assert(cssText.includes(token), `TextureStudio.css missing required selector ${token}`);
   }
 });
@@ -2112,16 +2132,16 @@ await suite("19. Look-Dev Polish: Right-Tabbed Strata, Seated Cloth/Pedestal + G
   selectPills[0].value = "shaderball";
   selectPills[0].dispatchEvent({ type: "change" });
 
-  // 19b. Asset Browser Inspector: NO color palette swatches + Large Hero Preview Card above tiles
+  // 19b. ContentBrowser Details Aside: Hero Preview Box above <dl> Specification Grid
   const drawer = globalThis.document.querySelector(".asset-browser");
-  const insp = drawer?.querySelector(".cb-inspector");
-  assert(insp, "Asset Browser must render right-hand .cb-inspector");
-  assert(!insp.querySelector(".cb-insp-swatches"), "Asset Browser Inspector must NOT render .cb-insp-swatches color palette section");
-  const heroCard = insp.querySelector(".cb-insp-hero");
-  const heroStage = heroCard?.querySelector(".cb-insp-hero-stage");
-  assert(heroCard && heroStage, "Asset Browser Inspector must render large .cb-insp-hero showcase card");
-  const tiles = insp.querySelector(".cb-insp-tiles");
-  assert(tiles && insp.children.indexOf(heroCard) < insp.children.indexOf(tiles), "Hero preview card must sit directly above .cb-insp-tiles");
+  const insp = drawer?.querySelector(".asset-preview");
+  assert(insp, "ContentBrowser must render right-hand .asset-preview");
+  assert(!insp.querySelector(".cb-insp-swatches"), "ContentBrowser details must NOT render legacy .cb-insp-swatches");
+  const heroCard = insp.querySelector(".asset-file-preview");
+  const heroStage = heroCard?.querySelector(".asset-preview-hero-thumb");
+  assert(heroCard && heroStage, "ContentBrowser details must render .asset-file-preview hero card");
+  const specList = insp.querySelector("dl");
+  assert(specList && insp.children.indexOf(heroCard) < insp.children.indexOf(specList), "Hero preview card must sit directly above <dl> specification list");
 
   // 19c. Sharp Square Layer Stacks + Exact Unmodified AlloyStudio 3-part Pedestal, Support Ball & Grey Fading Floor checks
   const mwSrc = fs.readFileSync(new URL("./Workspaces/MaterialWorkspace.js", import.meta.url), "utf8");
@@ -2587,11 +2607,11 @@ await suite("22. UI & Theme Polish: Material Fullscreen, Bigger Hero, Neutral PB
   assert.notEqual(prevPressed, nextPressed, "Clicking .bk-map-check must toggle bake channel inclusion");
   findCurvCheck().click();
 
-  // Decluttered Asset Browser: compact header without redundant count badge & single-line non-wrapping family pills
+  // Project Zero ContentBrowser: clean CONTENT / LIBRARY heading + single-line non-wrapping filter bar
   const drawer = globalThis.document.querySelector(".asset-browser");
-  assert(drawer && !drawer.querySelector(".cb-head .cb-count-badge"), "Asset Browser header must not duplicate count badge (.cb-count-badge)");
-  const assetState = studio.getAssetBrowser();
-  assert(Array.isArray(assetState.expandedCats) && assetState.expandedCats.length === 1, "Asset Browser library tree must start with only active category expanded to avoid vertical clutter");
+  assert(drawer && !drawer.querySelector(".cb-head"), "ContentBrowser must replace legacy .cb-head");
+  assert(drawer.querySelector(".asset-browser-header h1 small")?.textContent.includes("items"), "ContentBrowser heading must show subtle item count");
+  assert(drawer.querySelector(".asset-category-rail"), "ContentBrowser must render flat left category rail");
 
   // 22c. Neutral PBR Channel Colors (no messy rainbow per-channel colors) & Theme Black Color B / Backgrounds
   assert(PAINT_PBR_CHANNELS.every((ch) => ch.dot === "#9ea2aa"), "All PBR channel specs must use unified neutral theme dot color (#9ea2aa)");
@@ -2615,9 +2635,9 @@ await suite("22. UI & Theme Polish: Material Fullscreen, Bigger Hero, Neutral PB
   assert(cssText.includes(".object-heading-copy strong {\n    display: block;\n    font-size: 22px;"), "Inspector .object-heading title must be enlarged to 22px");
   assert(cssText.includes(".object-heading {\n    margin: 2px 0 12px;") && cssText.includes("background: transparent;\n    border: 0;\n    border-bottom: 1px solid var(--line);"), "Inspector .object-heading must not render inside a card box");
   assert(cssText.includes(".bk-map-grid") && cssText.includes(".bk-map-tile") && cssText.includes(".bk-map-swatch"), "TextureStudio.css must style Alloy Studio bake map icon swatches");
-  const famRuleStart = cssText.indexOf(".cb-family-pills {");
+  const famRuleStart = cssText.indexOf(".colour-filters-bar {");
   const famRuleBlock = cssText.slice(famRuleStart, cssText.indexOf("}", famRuleStart) + 1);
-  assert(famRuleBlock.includes("flex-wrap: nowrap;"), "Asset Browser .cb-family-pills must stay on a clean single non-wrapping row");
+  assert(famRuleBlock.includes("flex-wrap: nowrap;"), "ContentBrowser .colour-filters-bar must stay on a clean single non-wrapping row");
 });
 
 await suite("23. UV Studio <-> Texture Studio Bridge (Controlled Integrator Roundtrip across Paint, Bake & Material)", async () => {
@@ -2790,6 +2810,431 @@ await suite("25. Texture Paint Procedural Material Shader Parity (Flakes, Depth 
     if (g > maxR) maxR = g;
   }
   assert(maxR > minR && minR < 100, `CPU Racing Green composite must show deep absorption + flake contrast (min=${minR}, max=${maxR})`);
+});
+
+await suite("26. Project Zero ContentBrowser Notch, ColourCodex TOML, Strips & Slot Drag-Drop", async () => {
+  const {
+    BuiltInColourCodex,
+    ParseColourCodexToml,
+    SerializeColourCodexToml,
+    MatchesColourFilter,
+    SortColourAssets,
+    ChooseCardInk,
+    FrontierColourMime,
+  } = await import("./ColourCodex.js");
+
+  // 26a. ColourCodex TOML roundtrip, spectrum classification & high-contrast ink checks
+  assert(BuiltInColourCodex.length >= 38, `Expected >= 38 built-in ColourCodex entries, got ${BuiltInColourCodex.length}`);
+  const augustBeige = BuiltInColourCodex.filter((c) => MatchesColourFilter(c, "August Beige & Brown"));
+  assert(augustBeige.length >= 10, `Expected August Beige & Brown spectrum entries, got ${augustBeige.length}`);
+  const tomlOut = SerializeColourCodexToml(BuiltInColourCodex.slice(0, 6));
+  const tomlParsed = ParseColourCodexToml(tomlOut);
+  assert.equal(tomlParsed.length, 6, "TOML serialize/parse roundtrip must preserve all entries");
+  assert.equal(tomlParsed[0].Hex, BuiltInColourCodex[0].Hex, "TOML parse must preserve normalized hex");
+  assert.equal(ChooseCardInk("#FFFFFF").contrastLabel, "Black ink", "White swatch must select Black ink");
+  assert.equal(ChooseCardInk("#0F0F12").contrastLabel, "White ink", "Near-black swatch must select White ink");
+  const wrappedCols = BuiltInColourCodex.slice(0, 8).map((c) => ({ Kind: "Colours", name: c.Name, Colour: c }));
+  const sortedByName = SortColourAssets(wrappedCols, "name");
+  assert(sortedByName[0].name <= sortedByName[1].name, "SortColourAssets(..., 'name') must order alphabetically");
+
+  // 26b. Switch ContentBrowser to Colours -> verify Grid, Vertical Strip & Horizontal Strip modes + ColourCard
+  const studio = globalThis.window.__frontierTextureStudio;
+  const ctrl = studio.getAssetBrowserController();
+  studio.switchWorkspace("material");
+  ctrl.setCategory("colours", { open: true, userPinned: true });
+  assert.equal(studio.getAssetBrowser().activeKind, "Colours", "ContentBrowser must activate Colours category");
+
+  const drawer = globalThis.document.querySelector(".asset-browser");
+  const colCount = drawer.querySelectorAll(".colour-asset-cell").length;
+  assert(colCount >= 38, `Colours grid should display >= 38 swatches, got ${colCount}`);
+
+  ctrl.setViewMode("list-vertical");
+  const stripDeck = drawer.querySelector(".colour-strip-deck");
+  assert(stripDeck && stripDeck.classList.contains("list-vertical"), "Colours vertical strip toggle must render .colour-strip-deck.list-vertical");
+  assert(stripDeck.querySelector(".colour-strip-vertical-hex"), "Vertical strip bands must render compact rotated hex readout");
+
+  ctrl.setViewMode("list-horizontal");
+  assert(drawer.querySelector(".colour-strip-deck")?.classList.contains("list-horizontal"), "Colours horizontal strip toggle must render .colour-strip-deck.list-horizontal");
+  ctrl.setViewMode("grid");
+
+  // 26c. ColourCodex Drag-Drop & Apply onto Material ColorRow Slot + Project Origin Creation
+  const colourSlots = globalThis.document.querySelectorAll("[data-colour-slot]");
+  assert(colourSlots.length >= 1, "Material Workspace must expose at least one [data-colour-slot] via ColorRow");
+  const targetSlot = colourSlots[0];
+  targetSlot.dispatchEvent({
+    type: "drop",
+    dataTransfer: {
+      types: [FrontierColourMime],
+      getData: (t) => (t === FrontierColourMime ? JSON.stringify({ Name: "Oceanic Signal", Hex: "#1B85B8" }) : ""),
+    },
+  });
+  const colInput = targetSlot.querySelector("input");
+  assert(String(colInput?.value || "").toLowerCase() === "#1b85b8", `Dropping ColourCodex swatch onto [data-colour-slot] must set #1b85b8, got ${colInput?.value}`);
+
+  // Clicking Apply button inside Content Details aside applies selected colour onto active slot
+  const swatchCard = [...drawer.querySelectorAll(".colour-asset-cell")].find((el) => el.dataset.assetId !== "");
+  swatchCard?.click();
+  assert(drawer.querySelector(".codex-swatch-card"), "Selected colour in Content Details must render .codex-swatch-card");
+  const applyColBtn = [...drawer.querySelectorAll(".asset-material-actions button")].find((b) =>
+    b.getAttribute("aria-label") === "Apply colour to active slot",
+  );
+  assert(applyColBtn, "Content Details must render 'Apply colour to active slot' button for Colours");
+  applyColBtn.click();
+
+  // Creating custom Project Colour & custom Project Material updates Project origin tab
+  const createdCol = ctrl.createProjectColour("#D94E41", "Studio Vermilion");
+  assert.equal(createdCol.Origin, "Project");
+  const createdMat = ctrl.createProjectMaterial("Studio Gold");
+  assert.equal(createdMat.Origin, "Project");
+
+  const projectTab = [...drawer.querySelectorAll(".asset-origin-tabs button")].find((b) => b.dataset.origin === "Project");
+  assert(projectTab, "Missing Project origin tab");
+  projectTab.click();
+  assert.equal(studio.getAssetBrowser().origin, "Project", "Origin tab must filter strictly to Project items");
+  const projItems = drawer.querySelectorAll(".asset-cell");
+  assert(projItems.length >= 1, "Project origin tab must show newly created Project material/colour");
+  const allOriginTab = [...drawer.querySelectorAll(".asset-origin-tabs button")].find((b) => b.dataset.origin === "All");
+  allOriginTab?.click();
+  ctrl.close();
+  assert.equal(studio.getAssetBrowser().open, false, "Closing ContentBrowser controller must return drawer to closed notch state");
+});
+
+await suite("27. Pattern & Stamp Studio Full PBR Channels (+ Channel Dropdown, Per-Channel Cards, Evaluation & Bridge)", async () => {
+  const studio = globalThis.window.__frontierTextureStudio;
+
+  // 27a. Pattern Studio: + Channel dropdown & per-added-channel cards
+  studio.switchWorkspace("pattern");
+  assert.equal(globalThis.document.querySelectorAll(".pbr-chan-pill").length, 4, "Pattern Studio starts with 4 active PBR pills");
+  assert.equal(globalThis.document.querySelectorAll(".pbr-channel-card").length, 4, "Pattern Studio starts with 4 PBR channel cards matching active channels");
+
+  const patAddBtn = globalThis.document.querySelector(".pbr-add-trigger");
+  assert(patAddBtn, "Pattern Studio must render Layer-Inspector style + Channel dropdown trigger");
+  patAddBtn.click();
+  const patMenuItems = globalThis.document.querySelectorAll(".pbr-chan-menu .menu-item");
+  assert.equal(patMenuItems.length, 18, `Pattern Studio + Channel dropdown must offer all 18 extended PBR channels, got ${patMenuItems.length}`);
+
+  const patSearch = globalThis.document.querySelector(".pbr-chan-menu .pill-menu-search-input");
+  patSearch.value = "clearcoat";
+  patSearch.dispatchEvent({ type: "input" });
+  const coatOpt = globalThis.document.querySelectorAll(".pbr-chan-menu .menu-item").find((m) => m.dataset.channel === "clearcoat");
+  assert(coatOpt, "Searching 'clearcoat' in Pattern + Channel dropdown must find clearcoat");
+  coatOpt.click();
+
+  assert.equal(globalThis.document.querySelectorAll(".pbr-chan-pill").length, 5, "Adding clearcoat must add a 5th pill");
+  assert.equal(globalThis.document.querySelectorAll(".pbr-channel-card").length, 5, "Adding clearcoat must add a dedicated Clearcoat card");
+  const coatCard = globalThis.document.querySelectorAll(".pbr-channel-card").find((c) => c.dataset.pbrChannel === "clearcoat");
+  assert(coatCard, "Expected clearcoat card in Pattern Studio panel");
+  const coatRange = coatCard.querySelectorAll("input").find((i) => i.type === "range");
+  assert(coatRange, "Clearcoat card must render an interactive slider");
+  coatRange.value = "0.92";
+  coatRange.dispatchEvent({ type: "input" });
+  assert.equal(coatCard.querySelector(".pbr-card-val")?.textContent, "0.92", "Editing Clearcoat card slider must update value pill to 0.92");
+
+  // Add Emissive color channel via dropdown & assign hex value inside its card
+  globalThis.document.querySelector(".pbr-add-trigger")?.click();
+  const patEmOpt = [...globalThis.document.querySelectorAll(".pbr-chan-menu .menu-item")].find((m) => m.dataset.channel === "emissive");
+  assert(patEmOpt, "Expected Emissive option in Pattern + Channel dropdown");
+  patEmOpt.click();
+  const patEmCard = globalThis.document.querySelectorAll(".pbr-channel-card").find((c) => c.dataset.pbrChannel === "emissive");
+  assert(patEmCard && patEmCard.querySelector("[data-colour-slot]"), "Adding Emissive must render an Emissive card with ColorRow");
+  const patEmHex = patEmCard.querySelector(".color-hex");
+  patEmHex.value = "#22ee99";
+  patEmHex.dispatchEvent({ type: "change" });
+  assert.equal(patEmCard.querySelector(".pbr-card-val")?.textContent, "#22EE99", "Updating Emissive card hex must update value badge");
+
+  // Remove Metalness via card remove button -> moves back into dropdown
+  const patMetCard = globalThis.document.querySelectorAll(".pbr-channel-card").find((c) => c.dataset.pbrChannel === "metalness");
+  patMetCard.querySelector(".pbr-card-remove").click();
+  assert(!globalThis.document.querySelectorAll(".pbr-channel-card").find((c) => c.dataset.pbrChannel === "metalness"), "Removing card must remove Metalness card from panel");
+  globalThis.document.querySelector(".pbr-add-trigger")?.click();
+  const patMetReturned = [...globalThis.document.querySelectorAll(".pbr-chan-menu .menu-item")].find((m) => m.dataset.channel === "metalness");
+  assert(patMetReturned, "Removed Metalness channel must return to + Channel dropdown");
+  patMetReturned.click();
+
+  // Switch Pattern View dropdown to solo extended PBR channel (Clearcoat)
+  const patViewSel = globalThis.document.querySelector(".vp-view-select");
+  assert(patViewSel, "Expected viewport View select in Pattern Studio");
+  patViewSel.value = "clearcoat";
+  patViewSel.dispatchEvent({ type: "change" });
+  assert.equal(studio.getSnapshot().viewChannel, "clearcoat", "Pattern View select must solo extended clearcoat channel");
+  patViewSel.value = "vector";
+  patViewSel.dispatchEvent({ type: "change" });
+
+  // Bridge current Pattern (carrying clearcoat + emissive) to Texture Paint via "Use in Paint" button!
+  const useInPaintBtn = [...globalThis.document.querySelectorAll("button")].find((b) => b.textContent.includes("Use in Paint"));
+  assert(useInPaintBtn, "Pattern Studio must expose 'Use in Paint' bridge button");
+  useInPaintBtn.click();
+  await new Promise((r) => setTimeout(r, 40));
+  assert.equal(studio.getActiveId(), "paint", "Clicking 'Use in Paint' must switch to Texture Paint workspace");
+  const bridgedPaintPills = [...globalThis.document.querySelectorAll(".pbr-chan-pill")].map((p) => p.dataset.channel);
+  assert(bridgedPaintPills.includes("clearcoat") && bridgedPaintPills.includes("emissive"), `Bridged Pattern Fill layer in Texture Paint must carry Full PBR channels, got ${bridgedPaintPills.join(",")}`);
+
+  // 27b. Stamp Studio: + Channel dropdown & per-added-channel cards
+  studio.switchWorkspace("stamp");
+  assert.equal(globalThis.document.querySelectorAll(".pbr-chan-pill").length, 4, "Stamp Studio starts with 4 active PBR pills");
+  assert.equal(globalThis.document.querySelectorAll(".pbr-channel-card").length, 4, "Stamp Studio starts with 4 PBR channel cards");
+
+  globalThis.document.querySelector(".pbr-add-trigger")?.click();
+  const stampIridOpt = [...globalThis.document.querySelectorAll(".pbr-chan-menu .menu-item")].find((m) => m.dataset.channel === "iridescence");
+  assert(stampIridOpt, "Stamp Studio + Channel dropdown must offer Iridescence");
+  stampIridOpt.click();
+
+  globalThis.document.querySelector(".pbr-add-trigger")?.click();
+  const stampSheenColOpt = [...globalThis.document.querySelectorAll(".pbr-chan-menu .menu-item")].find((m) => m.dataset.channel === "sheenColor");
+  assert(stampSheenColOpt, "Stamp Studio + Channel dropdown must offer Sheen Colour");
+  stampSheenColOpt.click();
+
+  const iridCard = globalThis.document.querySelectorAll(".pbr-channel-card").find((c) => c.dataset.pbrChannel === "iridescence");
+  const sheenColCard = globalThis.document.querySelectorAll(".pbr-channel-card").find((c) => c.dataset.pbrChannel === "sheenColor");
+  assert(iridCard && sheenColCard, "Adding channels in Stamp Studio must add dedicated Iridescence & Sheen Colour cards");
+  const iridSlider = iridCard.querySelectorAll("input").find((i) => i.type === "range");
+  iridSlider.value = "0.77";
+  iridSlider.dispatchEvent({ type: "input" });
+  assert.equal(iridCard.querySelector(".pbr-card-val")?.textContent, "0.77", "Stamp Iridescence slider must update card readout");
+
+  // 27c. Full PBR Artwork Evaluation + Material / Paint Bridge
+  const {
+    createArtworkDocument,
+    evaluateArtworkDocument,
+    setArtworkLayerPbrMask,
+    setArtworkChannelValue,
+    getArtworkLayerPbrMask,
+  } = await import("./Engine/Patterns/ArtworkStackEngine.js");
+  const { buildMaterialPatternDocument } = await import("./Engine/Patterns/StarterCatalogBridge.js");
+
+  const pbrDoc = createArtworkDocument("pattern");
+  const lyr0 = pbrDoc.layers[0];
+  const mask0 = getArtworkLayerPbrMask(lyr0);
+  mask0.clearcoat = true;
+  mask0.emissive = true;
+  mask0.emissiveIntensity = true;
+  mask0.iridescence = true;
+  mask0.specularColor = true;
+  mask0.opacity = true;
+  setArtworkLayerPbrMask(lyr0, mask0);
+  setArtworkChannelValue(lyr0, "clearcoat", 0.88);
+  setArtworkChannelValue(lyr0, "emissive", "#11cc88");
+  setArtworkChannelValue(lyr0, "emissiveIntensity", 2.2);
+  setArtworkChannelValue(lyr0, "iridescence", 0.65);
+  setArtworkChannelValue(lyr0, "specularColor", "#ffd090");
+  setArtworkChannelValue(lyr0, "opacity", 0.8);
+
+  const evPbr = evaluateArtworkDocument(pbrDoc, 64, { headless: true });
+  assert(evPbr.extraChannels?.clearcoat && evPbr.extraChannels?.emissive && evPbr.extraChannels?.specularColor, "evaluateArtworkDocument must generate extraChannels buffers for all active PBR channels");
+  assert(evPbr.activeChannels.includes("clearcoat") && evPbr.activeChannels.includes("emissive") && evPbr.activeChannels.includes("specularColor"), "activeChannels must include added extended channels");
+  assert.equal(evPbr.surfaceSummary.values.clearcoat, 0.88, "surfaceSummary must retain authored clearcoat value");
+  assert.equal(evPbr.surfaceSummary.values.emissive, "#11cc88", "surfaceSummary must retain authored emissive hex");
+  let maxCoat = 0;
+  for (let i = 0; i < evPbr.extraChannels.clearcoat.length; i += 4) maxCoat = Math.max(maxCoat, evPbr.extraChannels.clearcoat[i]);
+  assert(maxCoat >= 140, `Expected rasterized clearcoat values on layer motifs, got max=${maxCoat}`);
+
+  // Verify Canvas2D render path allocates extraCanvases for all added extended PBR channels too
+  const { renderArtworkDocument } = await import("./Engine/Patterns/ArtworkStackEngine.js");
+  const renderedDoc = renderArtworkDocument(pbrDoc, 64);
+  assert(renderedDoc.extraCanvases?.clearcoat && renderedDoc.extraCanvases?.emissive && renderedDoc.extraCanvases?.specularColor, "renderArtworkDocument must produce extraCanvases for added PBR channels");
+
+  // Verify Pattern -> Texture Paint Fill composite propagates per-pixel extended PBR channels!
+  const {
+    buildPaintTargetGeometry,
+    buildMeshPaintIndex,
+    buildDefaultMeshCues,
+    createPaintDocument,
+    createPaintLayer,
+    compositePaintDocument,
+    createDefaultChannelMap,
+  } = await import("./Engine/TexturePaintEngine.js");
+  const testGeo = buildPaintTargetGeometry("box");
+  const testIdx = buildMeshPaintIndex(testGeo);
+  const testCues = buildDefaultMeshCues(testGeo, testIdx, 64);
+  const paintDoc = createPaintDocument(64);
+  const bridgedCh = createDefaultChannelMap(false);
+  for (const k of evPbr.activeChannels) bridgedCh[k] = true;
+  paintDoc.layers.push(createPaintLayer("fill", {
+    res: 64,
+    name: "Full PBR Pattern Fill",
+    channels: bridgedCh,
+    fill: { color: "#111111", roughness: 0.5, metalness: 0, height: 0, patternRepeats: 2, patternData: evPbr, extValues: evPbr.surfaceSummary.values },
+  }));
+  const compPbr = compositePaintDocument(paintDoc, testCues);
+  let maxCompCoat = 0;
+  for (let i = 0; i < compPbr.clearcoat.length; i++) maxCompCoat = Math.max(maxCompCoat, compPbr.clearcoat[i]);
+  assert(maxCompCoat >= 140, `Composited Texture Paint Fill layer must sample pattern's clearcoat channel, got max=${maxCompCoat}`);
+  testGeo.dispose();
+
+  const matPat = buildMaterialPatternDocument(evPbr);
+  assert(matPat.extraChannels?.clearcoat && matPat.activeChannels?.includes("emissive"), "buildMaterialPatternDocument must forward Full PBR extraChannels & activeChannels");
+});
+
+// ----------------------------------------------------------------- 28. TEXTURE PAINT TEXT TOOL & EDITABLE TEXT LAYER
+await suite("28. Texture Paint Text Tool (T), Dedicated Text Layer, Bitmap Rasterization, Multi-Channel Compositing & UI Integration", async () => {
+  const {
+    PAINT_TEXT_FONTS,
+    normalizePaintTextSpec,
+    formatTextLayerName,
+    getStampAspectMultipliers,
+    rasterizeTextStampMaps,
+    syncTextLayerStamp,
+    buildPaintTargetGeometry,
+    buildMeshPaintIndex,
+    buildDefaultMeshCues,
+    createPaintDocument,
+    createPaintLayer,
+    createDefaultChannelMap,
+    compositePaintDocument,
+    getToolChannels,
+  } = await import("./Engine/TexturePaintEngine.js");
+
+  // 28a. Font catalog, spec normalization & non-zero bitmap/canvas rasterization
+  assert(Array.isArray(PAINT_TEXT_FONTS) && PAINT_TEXT_FONTS.length >= 6, "PAINT_TEXT_FONTS must expose font presets");
+  assert(PAINT_TEXT_FONTS.some((f) => f.value === "DM Sans"), "PAINT_TEXT_FONTS must include DM Sans");
+
+  const spec = normalizePaintTextSpec({
+    content: "FRONTIER\n07",
+    color: "#ff5522",
+    roughness: 0.22,
+    metalness: 0.85,
+    height: 0.72,
+    outlineWidth: 3,
+    outlineColor: "#101214",
+    fontWeight: 800,
+    align: "center",
+  });
+  assert.equal(spec.content, "FRONTIER\n07");
+  assert.equal(spec.metalness, 0.85);
+  assert(formatTextLayerName(spec.content).startsWith("Text: FRONTIER"), "formatTextLayerName must format concise text layer name");
+
+  const stampMaps = rasterizeTextStampMaps(spec, { headless: true });
+  assert(stampMaps.width >= 64 && stampMaps.heightPx >= 64, "rasterizeTextStampMaps must return valid map dimensions");
+  assert(stampMaps.albedo instanceof Uint8ClampedArray && stampMaps.albedo.length === stampMaps.width * stampMaps.heightPx * 4);
+  assert(stampMaps.roughness instanceof Uint8ClampedArray && stampMaps.metalness instanceof Uint8ClampedArray && stampMaps.height instanceof Uint8ClampedArray);
+
+  let nonZeroAlpha = 0;
+  let maxRed = 0;
+  for (let i = 0; i < stampMaps.albedo.length; i += 4) {
+    if (stampMaps.albedo[i + 3] > 24) {
+      nonZeroAlpha++;
+      if (stampMaps.albedo[i] > maxRed) maxRed = stampMaps.albedo[i];
+    }
+  }
+  assert(nonZeroAlpha > 40, `Expected visible glyph pixels in text stamp, got ${nonZeroAlpha}`);
+  assert(maxRed >= 200, `Expected warm orange/red #ff5522 glyph color, got R=${maxRed}`);
+
+  const wideMaps = rasterizeTextStampMaps({ content: "WIDE TEXT STAMP", fontSize: 64 }, { headless: true });
+  const mult = getStampAspectMultipliers(wideMaps);
+  assert.equal(mult.ax, 1, "Wide text stamp should preserve ax=1 on major axis");
+  assert(mult.ay > 0.05 && mult.ay < 1, `Wide text stamp should scale ay < 1 to match text aspect, got ay=${mult.ay}`);
+
+  // 28b. Text layer creation, live text sync & Full PBR multi-channel compositing
+  const chMap = createDefaultChannelMap(false);
+  chMap.emissive = true;
+  chMap.clearcoat = true;
+  const textLayer = createPaintLayer("text", {
+    res: 64,
+    channels: chMap,
+    extValues: { emissive: "#33ffcc", emissiveIntensity: 2.0, clearcoat: 0.9 },
+    text: { content: "APEX", color: "#ffee44", roughness: 0.18, metalness: 0.92, height: 0.65 },
+    stamp: { projection: "uv", u: 0.5, v: 0.5, scale: 0.72, heightStrength: 0.8 },
+  });
+  assert.equal(textLayer.kind, "text");
+  assert.equal(textLayer.stamps.length, 1, "Text layer must initialize with a movable text stamp");
+  assert.equal(textLayer.name, "Text: APEX");
+
+  const updatedMaps = syncTextLayerStamp(textLayer, textLayer.stamps[0], { content: "AERO", color: "#22aaff" }, { headless: true });
+  assert(updatedMaps?.albedo instanceof Uint8ClampedArray && updatedMaps.width > 0, "syncTextLayerStamp must return re-rasterized stamp maps");
+  assert.equal(textLayer.text.content, "AERO");
+  assert.equal(textLayer.name, "Text: AERO");
+  assert.equal(textLayer.stamps[0].text.color, "#22aaff");
+
+  const geo = buildPaintTargetGeometry("plane");
+  const idx = buildMeshPaintIndex(geo);
+  const cues = buildDefaultMeshCues(geo, idx, 64);
+  const doc = createPaintDocument(64);
+  doc.layers.push(textLayer);
+  const comp = compositePaintDocument(doc, cues);
+  let hitBlue = 0;
+  let maxEmissiveG = 0;
+  let maxCoat = 0;
+  for (let p = 0; p < 64 * 64; p++) {
+    if (comp.albedo[p * 4 + 2] > 180 && comp.albedo[p * 4 + 0] < 120) hitBlue++;
+    if (comp.emissive[p * 3 + 1] > maxEmissiveG) maxEmissiveG = comp.emissive[p * 3 + 1];
+    if (comp.clearcoat[p] > maxCoat) maxCoat = comp.clearcoat[p];
+  }
+  assert(hitBlue > 15, `Composited text layer should draw #22aaff pixels onto UV surface, got ${hitBlue}`);
+  assert(maxEmissiveG >= 100 && maxCoat >= 100, `Text layer should composite extended emissive (${maxEmissiveG}) and clearcoat (${maxCoat}) channels`);
+  geo.dispose();
+
+  const textToolCh = getToolChannels({ tool: "text", textChannels: chMap, paintChannels: createDefaultChannelMap(false) });
+  assert.equal(textToolCh.emissive, true, "getToolChannels must route text tool to brush.textChannels");
+
+  // 28c. Live UI Integration in Texture Paint Workspace: + Text layer, Text tool (T), Q popup & live textarea typing
+  const studio = globalThis.window.__frontierTextureStudio;
+  studio.switchWorkspace("paint");
+  await new Promise((r) => setTimeout(r, 40));
+
+  const dock = globalThis.document.querySelector(".tp-layer-dock");
+  const addTextBtn = [...dock.querySelectorAll(".chip-btn")].find((b) => /\+ Text/i.test(b.textContent || ""));
+  assert(addTextBtn, "Layer Stack must expose + Text add option");
+  addTextBtn.click();
+
+  const cols28 = [...globalThis.document.querySelectorAll(".studio-column")];
+  const rightAside = cols28[cols28.length - 1];
+  assert(rightAside, "Expected right inspector .studio-column");
+  const titlesAfterAdd = [...rightAside.querySelectorAll(".section-title")].map((s) => s.textContent);
+  assert(titlesAfterAdd.some((t) => /Text Typography/i.test(t)), "Selecting a Text layer must open Text Typography & Style section");
+  assert(titlesAfterAdd.some((t) => /Text Placement & Stamps/i.test(t)), "Selecting a Text layer must open Text Placement & Stamps section");
+
+  const taBefore = rightAside.querySelector(".tp-text-area");
+  assert(taBefore, "Text Layer Inspector must render .tp-text-area live text input");
+  taBefore.value = "NITRO 99";
+  taBefore.dispatchEvent({ type: "input" });
+  const taAfter = rightAside.querySelector(".tp-text-area");
+  assert.equal(taBefore, taAfter, "Live typing into Text Content textarea must preserve DOM node / focus without rebuilding inspector");
+  assert(rightAside.querySelector(".object-heading-copy strong")?.textContent?.includes("NITRO 99"), "Typing into text layer must live-update layer heading to 'Text: NITRO 99'");
+
+  // Activate Text Tool via keyboard 't', confirm Band 2 active pill & Text Brush Tool card + Q popup UV stamp placement
+  globalThis.window.dispatchEvent({ type: "keydown", key: "t" });
+  assert.equal(studio.getSnapshot().tool, "text", "Pressing 'T' in Texture Paint must activate Text tool");
+  const textToolPill = [...globalThis.document.querySelectorAll(".tp-tool-group .pill-btn")].find((b) => /Text/i.test(b.textContent || ""));
+  assert(textToolPill && textToolPill.classList.contains("active"), "Band 2 Text pill must become active");
+  const titlesTool = [...rightAside.querySelectorAll(".section-title")].map((s) => s.textContent);
+  assert(titlesTool.some((t) => /Text Brush Tool/i.test(t)), "Activating Text tool must surface Text Brush Tool (T) inspector");
+
+  const layerCountBeforeStamp = studio.getSnapshot().layers;
+  globalThis.window.dispatchEvent({ type: "keydown", key: "q" });
+  const pop = globalThis.document.body.querySelector(".tool-popup-menu");
+  assert(pop, "Pressing Q while Text tool active must open Text Tool Inspector popup");
+  const popTa = pop.querySelector(".tp-text-area");
+  assert(popTa, "Text Tool popup must include text textarea");
+  popTa.value = "TURBO";
+  popTa.dispatchEvent({ type: "input" });
+  const stampCenterBtn = [...pop.querySelectorAll("button")].find((b) => /Stamp Text at UV Center/i.test(b.textContent || ""));
+  assert(stampCenterBtn, "Text Tool popup must offer + Stamp Text at UV Center button");
+  stampCenterBtn.click();
+  globalThis.window.dispatchEvent({ type: "keydown", key: "Escape" });
+
+  assert.equal(studio.getSnapshot().layers, layerCountBeforeStamp + 1, "Stamping text in New Layer mode must add a new text layer");
+  assert(rightAside.querySelector(".object-heading-copy strong")?.textContent?.includes("TURBO"), "Newly stamped Text layer must reflect typed text 'TURBO'");
+});
+
+await suite("28. Baking Unified 2-Tier Header, GeometryIconBaker & Coherence Guards", async () => {
+  const { readFileSync } = await import("node:fs");
+  const serveText = readFileSync(resolve(HERE, "Serve.py"), "utf8");
+  assert(serveText.includes("/Experimental/TextureStudio/"), "Serve.py must redirect to /Experimental/TextureStudio/");
+  assert(!serveText.includes("Experimental%20Remastered"), "Serve.py must not reference deleted Experimental Remastered folder");
+
+  const { renderSpecimenIconPixels } = await import("./GeometryIconBaker.js");
+  const iconRgba = renderSpecimenIconPixels("teapot", 64);
+  assert.equal(iconRgba.length, 64 * 64 * 4);
+  assert.equal(iconRgba[3], 0, "Corner pixel of 3D specimen icon must stay transparent");
+  let opaqueCount = 0;
+  for (let i = 3; i < iconRgba.length; i += 4) if (iconRgba[i] === 255) opaqueCount++;
+  assert(opaqueCount > 400 && opaqueCount < 64 * 64 * 0.9, `Expected centered 3D silhouette pixels, got ${opaqueCount}`);
+
+  const bakingSrc = readFileSync(resolve(HERE, "Workspaces/BakingWorkspace.js"), "utf8");
+  assert(bakingSrc.includes("createViewportHeader"), "BakingWorkspace must use unified ViewportHeaderKit");
+  assert(!bakingSrc.includes("Compute Backend"), "BakingWorkspace must scrub banned label 'Compute Backend'");
+  assert(!bakingSrc.includes("Baking Quick Menu"), "BakingWorkspace must scrub banned label 'Baking Quick Menu'");
+  assert(bakingSrc.includes("GeometryCompiler"), "BakingWorkspace must expose GeometryCompiler handoff");
 });
 
 console.log(`\nALL ${results.length} VALIDATION SUITES PASSED CLEANLY`);

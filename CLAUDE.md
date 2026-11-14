@@ -11,7 +11,7 @@ code, shaders, build scripts, or documentation.
 | ----- | -------- | ----- |
 | ① | `Documentation/AgenticInstructions/SKILL-CompactOutputProtocol.md` | Skimmer-first output, mandatory decision tables before choices |
 | ② | `Documentation/AgenticInstructions/SKILL-Emoji.md` | Sole authority on permitted emojis (`🌟`/`✨` forbidden) |
-| ③ | `Documentation/AgenticInstructions/SKILL-Naming.md` | Mechanism-first PascalCase construction & 6-gate test |
+| ③ | `Documentation/AgenticInstructions/SKILL-Naming.md` | Mechanism-first PascalCase construction & 7-gate test |
 | ④ | `Documentation/AgenticInstructions/SKILL-Formatting.md` | 140-col file banners, 120-col sections, Allman braces, unit tags |
 | ⑤ | `Documentation/BannedWordsVocabulary.md` | Canonical blacklisted terminology across code, files, folders, comments |
 | ⑥ | `Documentation/CodingStandards.md` | ISO C++20 baseline, explicit function prototypes, `concept` templates |
@@ -44,7 +44,11 @@ code, shaders, build scripts, or documentation.
 ### 🔴 2.5 ImGui 8-Patch Stack, `Experimental/` HTML Reference & Visual Proofs in `Exhibits/`
 - Third-party packages live in `ExternalPackages/` (git-ignored) and are fetched + SHA-256 verified via `python3 Automation/PrepareDependencies.py`.
 - `ExternalPackages/imgui` (`3bae66c`) **requires all 8 stacked patches (`PatchA`–`PatchH`)** applied in order via `Automation/ApplyImGuiPatches.py` and compiled with `ImDrawIdx=unsigned int`.
-- **`Experimental/` Prototypes Are HTML/JS Only (No C++)**: All reference studios and editor UIs under `Experimental/` (`ProjectZeroEditor`, `FrontierEditor`, `FluidEditor`, `FractureEditor`, `ParticleEditor`, `PhotometricEditor`, `ForceFieldEditor`, `VehicleLab`, `UVEditor`, `TextureStudio`) are strictly HTML/JS/CSS prototypes. **`Experimental/ProjectZeroEditor/`** is the primary UI design reference for shared C++20 components (`Engine/Components/`, `Engine/Workspaces/`, `Engine/Editor/`).
+- **`Experimental/` Prototypes Are HTML/JS Only (No C++)**: All reference studios and editor UIs under `Experimental/` (`ProjectZeroEditor`, `FrontierEditor`, `FrontierWorldMirror`, `ProjectBrowser`, `FluidEditor`, `FractureEditor`, `ParticleEditor`, `PhotometricEditor`, `ForceFieldEditor`, `VehicleLab`, `UVEditor`, `TextureStudio`) are strictly HTML/JS/CSS prototypes. **`Experimental/ProjectZeroEditor/`**, **`Experimental/FrontierWorldMirror/`**, and **`Experimental/ProjectBrowser/`** are the primary UI design references for shared C++20 components (`Engine/Components/`, `Engine/Workspaces/`, `Engine/Editor/`).
+- **Mandatory HTML-to-C++ UI Conversion Procedure (Zero UI Invention / Zero Agent Drift)**:
+  1. **Render & Screenshot HTML Ground Truth First**: Before writing or modifying any C++ UI or workspace code, render/capture visual screenshots of the target HTML mirror (`Experimental/*`) and inspect existing `Exhibits/Images/*` `.png` proofs side-by-side so exact panel proportions, entries, icons, headers, and controls are verified visually first.
+  2. **Reuse Existing `Engine/Components/` & `Engine/Editor/` Kit**: Always compose UI out of existing `PixelSpace`, `WorkspaceDockContainer`, `ControlCentrePanel`, `ContentBrowser`, `OutlinerPanel`, `ViewportPanel`, `InspectorPanel`, `CapsuleButton`, `ExclusiveSelector`, `DropdownSelector`, `ScalarSlider`, `TextInputField`, `ConfirmationDialogue`, `ThemeRepository`, and `TypographyRepository` units — **NEVER** invent ad-hoc raw `ImDrawList` / unstyled `ImGui::*` substitute layouts or replacement renderers (`TieredWorldRenderSequence` + `ShowcaseGalleryScene` is the canonical World renderer).
+  3. **Verify 1:1 Visual Parity via C++ Offscreen `.png` Capture**: After wiring C++, capture deterministic `.png` screenshots from the C++ executable (`--frames=4 --capture-png=...`) and visually verify 1:1 panel, entry, and renderer parity against the HTML capture before finalizing.
 - **Mandatory Visual Proofs for Every `Exhibits/` Target (`Exhibits/Images/<Domain>/`)**:
   - Every validation executable in `Exhibits/` **MUST** render deterministic `.png` visual proof images into `Exhibits/Images/<Domain>/` via a CPU software rasterizer, SwiftShader offscreen Vulkan, or rendered diagnostic/comparison charts showing what the user would see when running the feature.
   - **Zero Excuses Rule**: Never claim a visual proof cannot be shown because the sandbox runs Linux instead of Windows or lacks a physical GPU — always synthesize and present the CPU/offscreen `.png` visual proof!
@@ -53,6 +57,11 @@ code, shaders, build scripts, or documentation.
 - **NEVER** dump architectural plans, decision tables, implementation reports, or multi-section explanations into chat messages.
 - Write all plans, architectural decisions, and turn reports into **`Documentation/Plans/*.md`** (and/or **`Documentation/Plans/SessionNotes.md`**), rebuild **`Documentation/Plans/MarkdownStudioViewer.html`** via `python3 Automation/BuildMarkdownViewer.py`, keep `Automation/ServeMarkdownStudio.py` live on `0.0.0.0:8080`, and open the primary deliverable `.md` or `.png` file in the viewer.
 - Keep chat replies strictly to **1–3 short lines** pointing to the updated Markdown Studio document path and verification status.
+
+### 🔴 2.7 Zero-`And` Conjunction Ban (Single-Responsibility Filenames & Identifiers)
+- **NEVER** use the conjunction **`And`** inside any filename, class, struct, enum, function, variable, shader, or documentation plan name (e.g. **`GpuTextureAndSdfBaker.h`**, **`BuildAndUploadStudy`**, **`CameraEyeAndMode`**, **`VolumeAndDistance`** are **STRICTLY FORBIDDEN**).
+- Conjunction names signal conflated responsibilities. Either split into focused single-responsibility units (e.g. `TextureBaker.{h,cpp}` + `SdfBaker.{h,cpp}`) or choose one precise domain noun covering the unified mechanism (`SurfaceUpload`, `CameraOpticsHeader`, `VolumetricDistance`).
+- Applies to all new and refactored `.h`, `.cpp`, `.slang`, `.js`, `.jsx`, and `.md` files across the entire repository; also enforced in `Documentation/AgenticInstructions/SKILL-Naming.md` and `Documentation/BannedWordsVocabulary.md`.
 
 ---
 

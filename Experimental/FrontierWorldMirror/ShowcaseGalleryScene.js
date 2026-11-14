@@ -6,6 +6,7 @@
 
 import { ResolveMaterial } from "./MaterialSpecification.js";
 import {
+  BuildDefaultDiagnosticForceRig,
   BuildForceOverlayGeometry,
   DEFAULT_FORCE_OVERLAY,
   FORCE_MODELS,
@@ -816,21 +817,46 @@ export function CompileLiveGtxScene(
 
   const OverlayCfg = ExtraOptions?.ForceOverlaySettings || DEFAULT_FORCE_OVERLAY;
   const SelectedId = ExtraOptions?.SelectedId || null;
+  const EffectiveForceNodes =
+    ForceNodes.length > 0
+      ? ForceNodes
+      : OverlayCfg?.ForcePreviewRig
+        ? BuildDefaultDiagnosticForceRig()
+        : [];
+  const ActiveCameraOrigin = Array.isArray(ExtraOptions?.CameraOrigin)
+    ? ExtraOptions.CameraOrigin
+    : CameraOrigin;
+  const HasAnimatedForces =
+    EffectiveForceNodes.length > 0 &&
+    (OverlayCfg?.ShowStreamlines !== false ||
+      Boolean(OverlayCfg?.ShowBokehRibbons) ||
+      EffectiveForceNodes.some(
+        (N) =>
+          (N.Force?.MotionTopology && N.Force.MotionTopology !== "Static") ||
+          (N.Force?.Duration && N.Force.Duration !== "Continuous"),
+      ));
   const ForceOverlay =
-    ForceNodes.length > 0 && OverlayCfg?.Enabled !== false
-      ? BuildForceOverlayGeometry(ForceNodes, OverlayCfg, SelectedId, ExtraOptions?.TimeSec || 0)
+    EffectiveForceNodes.length > 0 && OverlayCfg?.Enabled !== false
+      ? BuildForceOverlayGeometry(
+          EffectiveForceNodes,
+          OverlayCfg,
+          SelectedId,
+          ExtraOptions?.TimeSec || 0,
+          ActiveCameraOrigin,
+        )
       : null;
   const ForceSignature =
-    ForceNodes.length === 0
+    EffectiveForceNodes.length === 0
       ? ""
-      : `${OverlayCfg?.Enabled !== false ? 1 : 0}:${OverlayCfg?.ShowEnvelopes ? 1 : 0}:${OverlayCfg?.ShowVelocityArrows ? 1 : 0}:${OverlayCfg?.ShowStreamlines ? 1 : 0}:${OverlayCfg?.ArrowDensity || 3}:${OverlayCfg?.VectorScale || 0.24}:${OverlayCfg?.ColorRamp || "Beaufort"}:${SelectedId || ""}|` +
-        ForceNodes.map(
+      : `${OverlayCfg?.Enabled !== false ? 1 : 0}:${OverlayCfg?.ShowHeatmap !== false ? 1 : 0}:${OverlayCfg?.ShowEnvelopes ? 1 : 0}:${OverlayCfg?.ShowVelocityArrows ? 1 : 0}:${OverlayCfg?.ShowStreamlines ? 1 : 0}:${OverlayCfg?.ShowBokehRibbons ? 1 : 0}:${OverlayCfg?.Quantity || "Speed"}:${OverlayCfg?.Colormap || OverlayCfg?.ColorRamp || "Engineering"}:${OverlayCfg?.SliceAxis || "XY"}:${OverlayCfg?.SliceOffset || 0}:${OverlayCfg?.FixedMax || 24}:${OverlayCfg?.ArrowDensity || 4}:${OverlayCfg?.HeatmapOpacity ?? 0.62}:${OverlayCfg?.VolumeLayers || 1}:${OverlayCfg?.StreamColorMode || "CyanSingle"}:${OverlayCfg?.StreamSingleColor || "#68dcff"}:${OverlayCfg?.StreamThickness ?? 0.78}:${OverlayCfg?.StreamEmissive ?? 1.05}:${OverlayCfg?.StreamOpacity ?? 0.92}:${OverlayCfg?.StreamResolution ?? 28}:${OverlayCfg?.StreamLineCount ?? 96}:${OverlayCfg?.BokehPalette || "BokehTeal"}:${OverlayCfg?.BokehSpeed ?? 0.55}:${OverlayCfg?.BokehCount ?? 120}:${OverlayCfg?.BokehThickness ?? 1.0}:${OverlayCfg?.BokehEmissive ?? 1.05}:${(OverlayCfg?.ProbePosition || []).join(",")}:${SelectedId || ""}|` +
+        EffectiveForceNodes.map(
           (N) =>
-            `${N.Id}:${N.Position.join(",")}:${N.Rotation.join(",")}:${N.Force.Model}:${N.Force.Enabled ? 1 : 0}:${N.Force.Strength}:${N.Force.Radius}:${N.Force.CoreRadius}:${N.Force.FalloffExponent}:${N.Force.Reach}:${N.Force.Attenuation}:${N.Force.SwirlRatio}:${N.Force.TurbulenceScale}:${N.Force.YawDeg}:${N.Force.FormulaEnabled ? 1 : 0}:${N.Force.FormulaCode?.length || 0}`,
+            `${N.Id}:${N.Position.join(",")}:${N.Rotation.join(",")}:${N.Force.Model}:${N.Force.Enabled ? 1 : 0}:${N.Force.Strength}:${N.Force.Radius}:${N.Force.CoreRadius}:${N.Force.FalloffExponent}:${N.Force.Reach}:${N.Force.Attenuation}:${N.Force.Duration}:${N.Force.SwirlRatio}:${N.Force.TurbulenceScale}:${N.Force.Octaves}:${N.Force.Frequency}:${N.Force.YawDeg}:${N.Force.MotionTopology}:${N.Force.MotionLoopMode}:${N.Force.MotionSpeedHz}:${N.Force.MotionAmplitude}:${JSON.stringify(N.Force.MotionWaypoints || [])}:${N.Force.FormulaEnabled ? 1 : 0}:${N.Force.FormulaCode?.length || 0}`,
         ).join(";");
 
   return {
     HasSpinningFans,
+    HasAnimatedForces,
     CameraOrigin,
     CameraTarget,
     WorldUp,
@@ -843,7 +869,7 @@ export function CompileLiveGtxScene(
     SkyRadiance,
     AreaLights,
     Primitives,
-    ForceNodes,
+    ForceNodes: EffectiveForceNodes,
     ForceOverlay,
     ForceSignature,
   };

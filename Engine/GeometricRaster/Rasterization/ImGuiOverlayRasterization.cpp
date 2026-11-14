@@ -945,19 +945,33 @@ bool ImGuiOverlayRasterization::PresentImGuiBatches(
     // Texture uploads submit their own short-lived transfer command buffer.  Complete those
     // requests before acquiring an image or beginning the render pass: doing it inside the
     // old custom command decoder allowed a texture upload to race the frame being presented.
+    auto SynchronizeApplicationTexture = [&](ImTextureData* Texture) -> uint32_t
+    {
+        if (Texture == nullptr || Texture->Status == ImTextureStatus_OK)
+        {
+            return 0u;
+        }
+        if (Texture->Status == ImTextureStatus_WantCreate &&
+            (Texture->BackendUserData != nullptr || Texture->GetTexID() != ImTextureID_Invalid))
+        {
+            vkDeviceWaitIdle(BoundDevice->AccessDevice());
+            Texture->SetStatus(ImTextureStatus_WantDestroy);
+            Texture->UnusedFrames = 64;
+            ImGui_ImplVulkan_UpdateTexture(Texture);
+            Texture->SetStatus(ImTextureStatus_WantCreate);
+        }
+        const bool UploadRequested =
+            Texture->Status == ImTextureStatus_WantCreate || Texture->Status == ImTextureStatus_WantUpdates;
+        ImGui_ImplVulkan_UpdateTexture(Texture);
+        return UploadRequested ? 1u : 0u;
+    };
+
     uint32_t TextureRequests = 0u;
     if (OverlayGeometry != nullptr && OverlayGeometry->Textures != nullptr)
     {
         for (ImTextureData* RequestedTexture : *OverlayGeometry->Textures)
         {
-            if (RequestedTexture != nullptr && RequestedTexture->Status != ImTextureStatus_OK)
-            {
-                const bool IsUploadRequest =
-                    RequestedTexture->Status == ImTextureStatus_WantCreate ||
-                    RequestedTexture->Status == ImTextureStatus_WantUpdates;
-                ImGui_ImplVulkan_UpdateTexture(RequestedTexture);
-                TextureRequests += IsUploadRequest ? 1u : 0u;
-            }
+            TextureRequests += SynchronizeApplicationTexture(RequestedTexture);
         }
     }
 
@@ -986,10 +1000,7 @@ bool ImGuiOverlayRasterization::PresentImGuiBatches(
                 if (Texture->Status == ImTextureStatus_WantCreate || Texture->Status == ImTextureStatus_WantUpdates ||
                     Texture->Status == ImTextureStatus_WantDestroy)
                 {
-                    const bool IsUploadRequest =
-                        Texture->Status == ImTextureStatus_WantCreate || Texture->Status == ImTextureStatus_WantUpdates;
-                    ImGui_ImplVulkan_UpdateTexture(Texture);
-                    TextureRequests += IsUploadRequest ? 1u : 0u;
+                    TextureRequests += SynchronizeApplicationTexture(Texture);
                 }
                 if (Texture->GetTexID() == ImTextureID_Invalid)
                 {

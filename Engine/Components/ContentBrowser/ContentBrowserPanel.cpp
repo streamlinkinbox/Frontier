@@ -508,6 +508,18 @@ void ContentBrowserPanel::FocusColourSlot(std::string_view SlotIdentifier) noexc
     FocusedSlotId = std::string(SlotIdentifier);
 }
 
+void ContentBrowserPanel::UpdateColourSlotBounds(std::string_view SlotIdentifier, Rectangle2D UpdatedScreenBounds) noexcept
+{
+    for (ColourSlotRegistration& Existing : RegisteredSlots)
+    {
+        if (Existing.SlotIdentifier == SlotIdentifier)
+        {
+            Existing.ScreenBounds = UpdatedScreenBounds;
+            return;
+        }
+    }
+}
+
 void ContentBrowserPanel::ClearMatCapSlots() noexcept
 {
     RegisteredMatCapSlots.clear();
@@ -524,6 +536,36 @@ void ContentBrowserPanel::RegisterMatCapSlot(const MatCapSlotRegistration& Regis
         }
     }
     RegisteredMatCapSlots.push_back(Registration);
+}
+
+void ContentBrowserPanel::ClearContentDropZones() noexcept
+{
+    RegisteredDropZones.clear();
+}
+
+void ContentBrowserPanel::RegisterContentDropZone(const ContentDropZoneRegistration& Registration)
+{
+    for (ContentDropZoneRegistration& Existing : RegisteredDropZones)
+    {
+        if (Existing.SlotIdentifier == Registration.SlotIdentifier)
+        {
+            Existing = Registration;
+            return;
+        }
+    }
+    RegisteredDropZones.push_back(Registration);
+}
+
+void ContentBrowserPanel::UpdateContentDropZoneBounds(std::string_view SlotIdentifier, Rectangle2D UpdatedScreenBounds) noexcept
+{
+    for (ContentDropZoneRegistration& Existing : RegisteredDropZones)
+    {
+        if (Existing.SlotIdentifier == SlotIdentifier)
+        {
+            Existing.ScreenBounds = UpdatedScreenBounds;
+            return;
+        }
+    }
 }
 
 void ContentBrowserPanel::AttachOutlinerFallback(OutlinerPanel* TargetOutliner) noexcept
@@ -580,7 +622,10 @@ bool ContentBrowserPanel::ApplySelectedColourToActiveSlot()
     return ApplyColourIndexToSlot(SelectedColourIndex, FocusedSlotId);
 }
 
-bool ContentBrowserPanel::ApplyColourIndexToSlot(std::size_t ColourIndex, std::string_view TargetSlotIdentifier)
+bool ContentBrowserPanel::ApplyColourIndexToSlot(
+    std::size_t      ColourIndex,
+    std::string_view TargetSlotIdentifier,
+    Point2D          DropLogicalPos)
 {
     const ColourCodexEntry* Entry = CodexLibrary.QueryEntryAt(ColourIndex);
     if (Entry == nullptr)
@@ -622,7 +667,11 @@ bool ContentBrowserPanel::ApplyColourIndexToSlot(std::size_t ColourIndex, std::s
         {
             *ChosenSlot->TargetColour = Entry->FillColour;
         }
-        if (ChosenSlot->NotifyColourAssigned)
+        if (ChosenSlot->NotifyColourAssignedAt)
+        {
+            ChosenSlot->NotifyColourAssignedAt(Entry->FillColour, *Entry, DropLogicalPos);
+        }
+        else if (ChosenSlot->NotifyColourAssigned)
         {
             ChosenSlot->NotifyColourAssigned(Entry->FillColour, *Entry);
         }
@@ -688,6 +737,43 @@ bool ContentBrowserPanel::ApplyMatCapEntryToSlot(std::size_t EntryIndex, std::st
     return false;
 }
 
+bool ContentBrowserPanel::ApplyContentEntryToDropZone(
+    std::size_t      EntryIndex,
+    std::string_view TargetSlotIdentifier,
+    Point2D          DropLogicalPos)
+{
+    const ContentRepositoryEntry* Entry = ThumbnailRepository.QueryEntryAt(EntryIndex);
+    if (Entry == nullptr)
+    {
+        return false;
+    }
+    const auto EntryCat = static_cast<ContentCategory>(Entry->IndexHeader.CategoryCode);
+
+    const ContentDropZoneRegistration* ChosenZone = nullptr;
+    for (const ContentDropZoneRegistration& Zone : RegisteredDropZones)
+    {
+        const bool CategoryAccepted =
+            (Zone.AcceptedCategory == ContentCategory::All) || (Zone.AcceptedCategory == EntryCat);
+        if (!CategoryAccepted)
+        {
+            continue;
+        }
+        if (TargetSlotIdentifier.empty() || Zone.SlotIdentifier == TargetSlotIdentifier)
+        {
+            ChosenZone = &Zone;
+            break;
+        }
+    }
+
+    if (ChosenZone != nullptr && ChosenZone->NotifyContentDropped)
+    {
+        ChosenZone->NotifyContentDropped(*Entry, DropLogicalPos);
+        StatusMessage = "Dropped " + Entry->DisplayTitle + " -> " + ChosenZone->DisplayTitle;
+        return true;
+    }
+    return false;
+}
+
 ContentBrowserReading ContentBrowserPanel::InspectReading() const noexcept
 {
     uint32_t PermittedCount = 0u;
@@ -731,12 +817,59 @@ bool ContentBrowserPanel::QueryOpen() const noexcept
 
 bool ContentBrowserPanel::QueryBlocksUnderlyingWorkspace() const noexcept
 {
-    return TargetExtent == ContentShelfExtent::FullHeight && !DraggingColour && !DraggingMatCap;
+    return TargetExtent == ContentShelfExtent::FullHeight && !DraggingColour && !DraggingMatCap && !DraggingContentEntry;
 }
 
 float ContentBrowserPanel::QueryVisibleDrawerHeightRatio() const noexcept
 {
     return std::clamp(static_cast<float>(ShelfSpring.Axis(ShelfAxis).Current), 0.0f, 1.0f);
+}
+
+void ContentBrowserPanel::SynchronizeHostBounds(Rectangle2D HostBoundsPhysical, float ScaleFactor) noexcept
+{
+    LastHostBoundsPhysical = HostBoundsPhysical;
+    LastSafeScale          = std::clamp(ScaleFactor, 0.75f, 2.0f);
+}
+
+Rectangle2D ContentBrowserPanel::QueryDrawerPhysicalBounds() const noexcept
+{
+    const float SafeScale      = std::max(0.25f, LastSafeScale);
+    const float LogicalHeight  = LastHostBoundsPhysical.Height / SafeScale;
+    const float Progress       = QueryVisibleDrawerHeightRatio();
+    const float DrawerHLogical = (Progress > 0.005f) ? std::round(LogicalHeight * Progress) : 0.0f;
+    if (DrawerHLogical <= 2.0f)
+    {
+        return {};
+    }
+    const float DrawerHPhys = DrawerHLogical * SafeScale;
+    return {
+        LastHostBoundsPhysical.X,
+        LastHostBoundsPhysical.Bottom() - DrawerHPhys,
+        LastHostBoundsPhysical.Width,
+        DrawerHPhys,
+    };
+}
+
+Rectangle2D ContentBrowserPanel::QueryNotchPhysicalBounds() const noexcept
+{
+    if (DraggingColour || DraggingMatCap)
+    {
+        return {};
+    }
+    const float SafeScale = std::max(0.25f, LastSafeScale);
+    const Rectangle2D LogicalViewport{
+        0.0f,
+        0.0f,
+        LastHostBoundsPhysical.Width / SafeScale,
+        LastHostBoundsPhysical.Height / SafeScale,
+    };
+    const Rectangle2D LogicalNotch = QueryNotchTabBounds(LogicalViewport);
+    return {
+        LastHostBoundsPhysical.X + LogicalNotch.X * SafeScale,
+        LastHostBoundsPhysical.Y + LogicalNotch.Y * SafeScale,
+        LogicalNotch.Width * SafeScale,
+        LogicalNotch.Height * SafeScale,
+    };
 }
 
 float ContentBrowserPanel::QueryDrawerTopPhysicalY() const noexcept
@@ -787,7 +920,7 @@ bool ContentBrowserPanel::QueryBlocksPointerAt(Point2D PhysicalCursor) const noe
             return true;
         }
     }
-    if (!DraggingColour && !DraggingMatCap && QueryNotchTabBounds(LogicalViewport).Contains(LogicalCursor))
+    if (!DraggingColour && !DraggingMatCap && !DraggingContentEntry && QueryNotchTabBounds(LogicalViewport).Contains(LogicalCursor))
     {
         return true;
     }
@@ -970,6 +1103,53 @@ void ContentBrowserPanel::RenderMatCapSlotHighlights(
             continue;
         }
         Rectangle2D ClippedBounds = Slot.ScreenBounds;
+        if (ClippedBounds.Bottom() > VisibleBottomY)
+        {
+            ClippedBounds.Height = std::max(0.0f, VisibleBottomY - ClippedBounds.Y);
+        }
+        if (ClippedBounds.Height <= 2.0f)
+        {
+            continue;
+        }
+        const bool Hovered = ClippedBounds.Contains(Cursor);
+        Canvas.StrokeRectangle(
+            ClippedBounds.Inset(-3.0f),
+            Hovered ? ActiveRing : IdleRing,
+            8.0f,
+            Hovered ? 2.2f : 1.35f);
+    }
+}
+
+void ContentBrowserPanel::RenderContentDropZoneHighlights(
+    PixelSpace&            Canvas,
+    Point2D                Cursor,
+    float                  VisibleBottomY,
+    const ControlColorSet& AppearanceColors) const noexcept
+{
+    if (!DraggingContentEntry)
+    {
+        return;
+    }
+    const ContentRepositoryEntry* Entry = ThumbnailRepository.QueryEntryAt(DraggedContentIndex);
+    if (Entry == nullptr)
+    {
+        return;
+    }
+    const auto DragCat = static_cast<ContentCategory>(Entry->IndexHeader.CategoryCode);
+
+    const ColorRgba ActiveRing = AppearanceColors.Accent.ToRgba8();
+    const ColorRgba IdleRing   = AppearanceColors.Accent.Faded(0.68f).ToRgba8();
+    for (const ContentDropZoneRegistration& Zone : RegisteredDropZones)
+    {
+        if (Zone.AcceptedCategory != ContentCategory::All && Zone.AcceptedCategory != DragCat)
+        {
+            continue;
+        }
+        if (Zone.ScreenBounds.Width <= 1.0f || Zone.ScreenBounds.Height <= 1.0f || Zone.ScreenBounds.Y >= VisibleBottomY)
+        {
+            continue;
+        }
+        Rectangle2D ClippedBounds = Zone.ScreenBounds;
         if (ClippedBounds.Bottom() > VisibleBottomY)
         {
             ClippedBounds.Height = std::max(0.0f, VisibleBottomY - ClippedBounds.Y);
@@ -1336,6 +1516,12 @@ void ContentBrowserPanel::RenderNonColoursRepository(
                         DraggedMatCapIndex  = EntryIdx;
                         DragPressOrigin     = Cursor;
                     }
+                    else
+                    {
+                        PotentialContentDrag = true;
+                        DraggedContentIndex  = EntryIdx;
+                        DragPressOrigin      = Cursor;
+                    }
                 }
             }
         }
@@ -1422,6 +1608,12 @@ void ContentBrowserPanel::RenderNonColoursRepository(
                         PotentialMatCapDrag = true;
                         DraggedMatCapIndex  = EntryIdx;
                         DragPressOrigin     = Cursor;
+                    }
+                    else
+                    {
+                        PotentialContentDrag = true;
+                        DraggedContentIndex  = EntryIdx;
+                        DragPressOrigin      = Cursor;
                     }
                 }
             }
@@ -1552,17 +1744,33 @@ void ContentBrowserPanel::RenderContentDetailsSidebar(
             }
 
             const Point2D Cursor{ PointerInput.CursorX, PointerInput.CursorY };
-            if (IsMatCap && PreviewBox.Contains(Cursor))
+            if (PreviewBox.Contains(Cursor))
             {
-                if (PointerInput.DoubleClicked)
+                if (IsMatCap)
                 {
-                    (void)ApplyMatCapEntryToSlot(SelectedContentIndex);
+                    if (PointerInput.DoubleClicked)
+                    {
+                        (void)ApplyMatCapEntryToSlot(SelectedContentIndex);
+                    }
+                    else if (PointerInput.Pressed)
+                    {
+                        PotentialMatCapDrag = true;
+                        DraggedMatCapIndex  = SelectedContentIndex;
+                        DragPressOrigin     = Cursor;
+                    }
                 }
-                else if (PointerInput.Pressed)
+                else
                 {
-                    PotentialMatCapDrag = true;
-                    DraggedMatCapIndex  = SelectedContentIndex;
-                    DragPressOrigin     = Cursor;
+                    if (PointerInput.DoubleClicked)
+                    {
+                        (void)ActivateContentEntryAt(SelectedContentIndex);
+                    }
+                    else if (PointerInput.Pressed)
+                    {
+                        PotentialContentDrag = true;
+                        DraggedContentIndex  = SelectedContentIndex;
+                        DragPressOrigin      = Cursor;
+                    }
                 }
             }
 
@@ -1669,6 +1877,20 @@ void ContentBrowserPanel::RenderWithInput(
         }
     }
 
+    if (PotentialContentDrag && PointerInput.HeldDown && !DraggingContentEntry)
+    {
+        const float Dx = Cursor.X - DragPressOrigin.X;
+        const float Dy = Cursor.Y - DragPressOrigin.Y;
+        if (std::hypot(Dx, Dy) > 5.0f)
+        {
+            DraggingContentEntry = true;
+            if (TargetExtent == ContentShelfExtent::FullHeight)
+            {
+                ConfigureShelfExtent(ContentShelfExtent::SplitHalf, false);
+            }
+        }
+    }
+
     if (PointerInput.Released)
     {
         if (DraggingColour && Cursor.Y < VisibleBottomY)
@@ -1680,7 +1902,7 @@ void ContentBrowserPanel::RenderWithInput(
                     Slot.ScreenBounds.Y < VisibleBottomY &&
                     Slot.ScreenBounds.Contains(Cursor))
                 {
-                    (void)ApplyColourIndexToSlot(DraggedColourIndex, Slot.SlotIdentifier);
+                    (void)ApplyColourIndexToSlot(DraggedColourIndex, Slot.SlotIdentifier, Cursor);
                     break;
                 }
             }
@@ -1699,10 +1921,33 @@ void ContentBrowserPanel::RenderWithInput(
                 }
             }
         }
-        PotentialColourDrag = false;
-        DraggingColour      = false;
-        PotentialMatCapDrag = false;
-        DraggingMatCap      = false;
+        if (DraggingContentEntry && Cursor.Y < VisibleBottomY)
+        {
+            if (const ContentRepositoryEntry* Dragged = ThumbnailRepository.QueryEntryAt(DraggedContentIndex))
+            {
+                const auto DragCat = static_cast<ContentCategory>(Dragged->IndexHeader.CategoryCode);
+                for (const ContentDropZoneRegistration& Zone : RegisteredDropZones)
+                {
+                    const bool Accepted =
+                        (Zone.AcceptedCategory == ContentCategory::All) || (Zone.AcceptedCategory == DragCat);
+                    if (Accepted &&
+                        Zone.ScreenBounds.Width > 1.0f &&
+                        Zone.ScreenBounds.Height > 1.0f &&
+                        Zone.ScreenBounds.Y < VisibleBottomY &&
+                        Zone.ScreenBounds.Contains(Cursor))
+                    {
+                        (void)ApplyContentEntryToDropZone(DraggedContentIndex, Zone.SlotIdentifier, Cursor);
+                        break;
+                    }
+                }
+            }
+        }
+        PotentialColourDrag  = false;
+        DraggingColour       = false;
+        PotentialMatCapDrag  = false;
+        DraggingMatCap       = false;
+        PotentialContentDrag = false;
+        DraggingContentEntry = false;
     }
 
     if (PointerInput.Pressed && !QueryBlocksUnderlyingWorkspace() && Cursor.Y < VisibleBottomY)
@@ -1722,6 +1967,7 @@ void ContentBrowserPanel::RenderWithInput(
 
     RenderColourSlotHighlights(Canvas, Cursor, VisibleBottomY, AppearanceColors);
     RenderMatCapSlotHighlights(Canvas, Cursor, VisibleBottomY, AppearanceColors);
+    RenderContentDropZoneHighlights(Canvas, Cursor, VisibleBottomY, AppearanceColors);
 
     const Rectangle2D NotchBounds = QueryNotchTabBounds(ViewportLogicalBounds);
     const bool        NotchHover  = NotchBounds.Contains(Cursor);
@@ -1755,6 +2001,21 @@ void ContentBrowserPanel::RenderWithInput(
             {
                 Canvas.FillTexturedRectangle({ Cursor.X - 18.0f, Cursor.Y - 18.0f, 36.0f, 36.0f }, DragUv.TexturePointer, DragUv.UvMin, DragUv.UvMax, 18.0f);
                 Canvas.StrokeCircle(Cursor, 18.5f, AppearanceColors.Accent.ToRgba8(), 2.0f);
+            }
+        }
+        if (DraggingContentEntry)
+        {
+            if (const ContentRepositoryEntry* Dragged = ThumbnailRepository.QueryEntryAt(DraggedContentIndex))
+            {
+                const Rectangle2D TagRect{ Cursor.X - 18.0f, Cursor.Y - 18.0f, 152.0f, 36.0f };
+                Canvas.FillRectangle(TagRect, AppearanceColors.Raised.ToRgba8(), 10.0f);
+                Canvas.StrokeRectangle(TagRect, AppearanceColors.Accent.ToRgba8(), 10.0f, 1.8f);
+                const ThumbnailUvQuad DragUv = ThumbnailRepository.QueryTileUv(DraggedContentIndex);
+                if (DragUv.Valid)
+                {
+                    Canvas.FillTexturedRectangle({ TagRect.X + 4.0f, TagRect.Y + 4.0f, 28.0f, 28.0f }, DragUv.TexturePointer, DragUv.UvMin, DragUv.UvMax, 6.0f);
+                }
+                Canvas.Text({ TagRect.X + 38.0f, TagRect.Y + 11.0f }, 9.8f, AppearanceColors.Text.ToRgba8(), Dragged->DisplayTitle.c_str());
             }
         }
         return;
@@ -2292,6 +2553,21 @@ void ContentBrowserPanel::RenderWithInput(
             Canvas.StrokeCircle(Cursor, 18.5f, AppearanceColors.Accent.ToRgba8(), 2.0f);
         }
     }
+    if (DraggingContentEntry)
+    {
+        if (const ContentRepositoryEntry* Dragged = ThumbnailRepository.QueryEntryAt(DraggedContentIndex))
+        {
+            const Rectangle2D TagRect{ Cursor.X - 18.0f, Cursor.Y - 18.0f, 152.0f, 36.0f };
+            Canvas.FillRectangle(TagRect, AppearanceColors.Raised.ToRgba8(), 10.0f);
+            Canvas.StrokeRectangle(TagRect, AppearanceColors.Accent.ToRgba8(), 10.0f, 1.8f);
+            const ThumbnailUvQuad DragUv = ThumbnailRepository.QueryTileUv(DraggedContentIndex);
+            if (DragUv.Valid)
+            {
+                Canvas.FillTexturedRectangle({ TagRect.X + 4.0f, TagRect.Y + 4.0f, 28.0f, 28.0f }, DragUv.TexturePointer, DragUv.UvMin, DragUv.UvMax, 6.0f);
+            }
+            Canvas.Text({ TagRect.X + 38.0f, TagRect.Y + 11.0f }, 9.8f, AppearanceColors.Text.ToRgba8(), Dragged->DisplayTitle.c_str());
+        }
+    }
 }
 
 void ContentBrowserPanel::Render(Rectangle2D HostBoundsPhysical, double DeltaSeconds, float ScaleFactor)
@@ -2314,6 +2590,13 @@ void ContentBrowserPanel::Render(Rectangle2D HostBoundsPhysical, double DeltaSec
     };
 
     const auto& Snapshot = Input::InputExtension::InspectActiveEditorSnapshot();
+    if (Snapshot.ControlHeld && Snapshot.QueryKeyPressed(Input::InputLogicalKey::Space, false))
+    {
+        ConfigureShelfExtent(
+            TargetExtent == ContentShelfExtent::Closed ? ContentShelfExtent::SplitHalf : ContentShelfExtent::Closed,
+            false);
+    }
+
     if (QueryOpen())
     {
         if (Snapshot.ControlHeld && Snapshot.QueryKeyPressed(Input::InputLogicalKey::F, false))
@@ -2322,6 +2605,10 @@ void ContentBrowserPanel::Render(Rectangle2D HostBoundsPhysical, double DeltaSec
             SearchEditor.Active     = true;
             SearchEditor.BlinkPhase = 0.0f;
             SearchEditor.SelectAll();
+        }
+        else if (!SearchEditor.Active && Snapshot.QueryKeyPressed(Input::InputLogicalKey::Escape, false))
+        {
+            ConfigureShelfExtent(ContentShelfExtent::Closed, false);
         }
 
         if (SearchEditor.Active)
@@ -2378,7 +2665,13 @@ void ContentBrowserPanel::Render(Rectangle2D HostBoundsPhysical, double DeltaSec
     }
 
     ContentBrowserPointerInput Pointer{};
-    const bool                 BlockedByOtherPane = WorkspaceAppearance::QueryPointerBlockedForPane(this);
+    const Point2D              PhysicalCursor{ Snapshot.PositionX, Snapshot.PositionY };
+    const bool                 CursorOnDrawerOrNotch = Snapshot.PointerSeeded && QueryBlocksPointerAt(PhysicalCursor);
+    if (CursorOnDrawerOrNotch && Snapshot.QueryButtonPressed(0u))
+    {
+        WorkspaceAppearance::ResetAllPanePointerOwnership();
+    }
+    const bool BlockedByOtherPane = !CursorOnDrawerOrNotch && WorkspaceAppearance::QueryPointerBlockedForPane(this);
     if (!BlockedByOtherPane)
     {
         Pointer.CursorX       = (Snapshot.PositionX - HostBoundsPhysical.X) / SafeScale;
@@ -2391,7 +2684,7 @@ void ContentBrowserPanel::Render(Rectangle2D HostBoundsPhysical, double DeltaSec
     }
 
     RenderWithInput(Canvas, LogicalBounds, Pointer, DeltaSeconds);
-    WorkspaceAppearance::AssignExternalDragSuppression(DraggingColour || DraggingMatCap);
+    WorkspaceAppearance::AssignExternalDragSuppression(DraggingColour || DraggingMatCap || DraggingContentEntry);
 }
 
 } // namespace Frontier

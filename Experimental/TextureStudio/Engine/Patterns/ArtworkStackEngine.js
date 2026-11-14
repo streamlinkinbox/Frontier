@@ -4,16 +4,34 @@
 /* Unified non-destructive Layer-Stack + Modifier-Stack authoring and multi-channel PBR evaluator for Pattern Studio & Stamp Studio. */
 
 import { evaluateTileNoise } from "../NoiseField.js";
+import {
+  ALL_PAINT_CHANNELS,
+  ALL_PAINT_CHANNEL_ROWS,
+  ALL_PAINT_CHANNEL_MAP,
+  ALL_EXTENDED_PBR_KEYS,
+  isRgbChannelKey,
+  createDefaultChannelMap,
+  createDefaultExtendedValues,
+  encodeScalarChannelByte,
+  defaultByteForExtChannel,
+} from "../PbrChannelDefinitions.js";
+
+export {
+  ALL_PAINT_CHANNELS as ARTWORK_PBR_CHANNELS,
+  ALL_PAINT_CHANNEL_ROWS as ARTWORK_PBR_CHANNEL_ROWS,
+  ALL_PAINT_CHANNEL_MAP as ARTWORK_PBR_CHANNEL_MAP,
+  ALL_EXTENDED_PBR_KEYS as ARTWORK_EXTENDED_PBR_KEYS,
+};
 
 export const ARTWORK_SIZE = 512;
 
 export const ARTWORK_FINISHES = {
-  ink: { name: "Printed Dye", roughness: 0.62, metalness: 0.0, height: 0.02 },
-  cotton: { name: "Woven Cotton", roughness: 0.84, metalness: 0.0, height: 0.14 },
-  wool: { name: "Cut-Pile Wool", roughness: 0.94, metalness: 0.0, height: 0.55 },
-  ceramic: { name: "Glazed Ceramic", roughness: 0.18, metalness: 0.0, height: 0.24 },
-  foil: { name: "Metal Inlay", roughness: 0.24, metalness: 1.0, height: 0.10 },
-  rubber: { name: "Embossed Rubber", roughness: 0.78, metalness: 0.0, height: 0.36 },
+  ink: { name: "Printed Dye", label: "Printed Dye", roughness: 0.62, metalness: 0.0, height: 0.02 },
+  cotton: { name: "Woven Cotton", label: "Woven Cotton", roughness: 0.84, metalness: 0.0, height: 0.14 },
+  wool: { name: "Cut-Pile Wool", label: "Cut-Pile Wool", roughness: 0.94, metalness: 0.0, height: 0.55 },
+  ceramic: { name: "Glazed Ceramic", label: "Glazed Ceramic", roughness: 0.18, metalness: 0.0, height: 0.24 },
+  foil: { name: "Metal Inlay", label: "Metal Inlay", roughness: 0.24, metalness: 1.0, height: 0.10 },
+  rubber: { name: "Embossed Rubber", label: "Embossed Rubber", roughness: 0.78, metalness: 0.0, height: 0.36 },
 };
 
 export const MOTIF_TYPES = [
@@ -362,6 +380,206 @@ export function createDefaultModifier(type = "noise-scale") {
   }
 }
 
+export function normalizeSurfaceState(raw) {
+  const s = raw && typeof raw === "object" ? { ...raw } : {};
+  s.finish = s.finish || "ink";
+  s.roughness = clamp(Number(s.roughness ?? 0.55), 0.02, 1);
+  s.metalness = clamp(Number(s.metalness ?? 0.0), 0, 1);
+  s.height = clamp(Number(s.height ?? 0.18), -1, 1);
+
+  const rawCh = s.channels && typeof s.channels === "object" ? s.channels : null;
+  const baseDefaults = createDefaultChannelMap(false, {
+    albedo: s.enableAlbedo !== false,
+    roughness: s.enableRoughness !== false,
+    metalness: s.enableMetalness !== false,
+    height: s.enableHeight !== false,
+  });
+  const channels = {};
+  for (const chDef of ALL_PAINT_CHANNELS) {
+    const k = chDef.key;
+    if (rawCh && Object.hasOwn(rawCh, k)) {
+      channels[k] = rawCh[k] === true;
+    } else {
+      channels[k] = !!baseDefaults[k];
+    }
+  }
+  s.channels = channels;
+  s.enableAlbedo = channels.albedo;
+  s.enableRoughness = channels.roughness;
+  s.enableMetalness = channels.metalness;
+  s.enableHeight = channels.height;
+
+  const baseVals = createDefaultExtendedValues();
+  const prevVals = s.values && typeof s.values === "object" ? s.values : {};
+  const values = { ...baseVals, ...prevVals };
+  for (const chDef of ALL_PAINT_CHANNELS) {
+    if (!chDef.extended) continue;
+    const k = chDef.key;
+    if (chDef.isColor) {
+      const hex = values[k];
+      values[k] = typeof hex === "string" && /^#[0-9a-f]{6}$/i.test(hex) ? hex.toLowerCase() : (chDef.defaultVal || chDef.default);
+    } else if (channels[k] && values[k] == null) {
+      values[k] = chDef.defaultVal ?? chDef.default ?? 0;
+    } else if (values[k] == null) {
+      values[k] = baseVals[k] ?? chDef.defaultVal ?? 0;
+    } else {
+      values[k] = clamp(Number(values[k]), chDef.min ?? 0, chDef.max ?? 1);
+    }
+  }
+  s.values = values;
+  if (s._edited && typeof s._edited === "object") s._edited = { ...s._edited };
+  return s;
+}
+
+export function ensureArtworkLayerSurface(layer) {
+  if (!layer || layer.kind === "folder") return null;
+  layer.surface = normalizeSurfaceState(layer.surface);
+  return layer.surface;
+}
+
+export function getArtworkLayerPbrMask(layer) {
+  const s = ensureArtworkLayerSurface(layer);
+  if (!s) return createDefaultChannelMap(false);
+  return { ...s.channels };
+}
+
+export function setArtworkLayerPbrMask(layer, nextMap) {
+  const s = ensureArtworkLayerSurface(layer);
+  if (!s) return createDefaultChannelMap(false);
+  const prev = { ...s.channels };
+  const normalized = {};
+  for (const chDef of ALL_PAINT_CHANNELS) {
+    const k = chDef.key;
+    const on = nextMap?.[k] === true;
+    normalized[k] = on;
+    if (on && !prev[k] && chDef.extended) {
+      if (!s._edited?.[k]) {
+        s.values[k] = chDef.defaultVal ?? chDef.default ?? s.values[k];
+      }
+    }
+  }
+  s.channels = normalized;
+  s.enableAlbedo = normalized.albedo;
+  s.enableRoughness = normalized.roughness;
+  s.enableMetalness = normalized.metalness;
+  s.enableHeight = normalized.height;
+  return { ...s.channels };
+}
+
+export function getArtworkChannelValue(layer, key) {
+  const s = ensureArtworkLayerSurface(layer);
+  if (key === "albedo") return layer?.shape?.color || "#e8c27a";
+  if (key === "roughness") return s?.roughness ?? 0.55;
+  if (key === "metalness") return s?.metalness ?? 0.0;
+  if (key === "height") return s?.height ?? 0.18;
+  const chDef = ALL_PAINT_CHANNEL_MAP[key];
+  if (!s) return chDef?.defaultVal ?? chDef?.default ?? 0;
+  return s.values?.[key] ?? chDef?.defaultVal ?? chDef?.default ?? 0;
+}
+
+export function setArtworkChannelValue(layer, key, val) {
+  const s = ensureArtworkLayerSurface(layer);
+  if (!layer || !s) return;
+  s._edited = s._edited || {};
+  if (key === "albedo") {
+    const hex = typeof val === "string" && /^#[0-9a-f]{6}$/i.test(val) ? val : "#e8c27a";
+    if (!layer.shape) layer.shape = {};
+    layer.shape.color = hex;
+    if (!Array.isArray(layer.shape.fillStops) || !layer.shape.fillStops.length) {
+      layer.shape.fillStops = [{ color: hex, offset: 0 }, { color: layer.shape.colorB || "#5a7692", offset: 1 }];
+    } else {
+      layer.shape.fillStops[0] = { ...layer.shape.fillStops[0], color: hex };
+    }
+    s._edited.albedo = true;
+    return hex;
+  }
+  if (key === "roughness") {
+    s.roughness = clamp(Number(val ?? 0.55), 0.02, 1);
+    s._edited.roughness = true;
+    return s.roughness;
+  }
+  if (key === "metalness") {
+    s.metalness = clamp(Number(val ?? 0), 0, 1);
+    s._edited.metalness = true;
+    return s.metalness;
+  }
+  if (key === "height") {
+    s.height = clamp(Number(val ?? 0), -1, 1);
+    s._edited.height = true;
+    return s.height;
+  }
+  const chDef = ALL_PAINT_CHANNEL_MAP[key];
+  if (chDef?.isColor || isRgbChannelKey(key)) {
+    const hex = typeof val === "string" && /^#[0-9a-f]{6}$/i.test(val) ? val.toLowerCase() : (chDef?.defaultVal || "#ffffff");
+    s.values[key] = hex;
+    s._edited[key] = true;
+    return hex;
+  }
+  const num = clamp(Number(val ?? chDef?.defaultVal ?? 0), chDef?.min ?? 0, chDef?.max ?? 1);
+  s.values[key] = num;
+  s._edited[key] = true;
+  return num;
+}
+
+export function formatArtworkChannelValue(key, val) {
+  const chDef = ALL_PAINT_CHANNEL_MAP[key];
+  if (chDef?.isColor || isRgbChannelKey(key)) {
+    return String(val || "#FFFFFF").toUpperCase();
+  }
+  const n = Number(val ?? 0);
+  if (key === "emissiveIntensity") return `${n.toFixed(2)}×`;
+  return n.toFixed(2);
+}
+
+export function collectDocumentSurfaceInfo(doc, requestedExtra = []) {
+  const layers = doc?.layers || [];
+  const folderMap = new Map(layers.filter((l) => l.kind === "folder").map((f) => [f.id, f]));
+  const isVisible = (lyr) => {
+    if (!lyr.visible) return false;
+    if (lyr.parentId && folderMap.has(lyr.parentId)) return isVisible(folderMap.get(lyr.parentId));
+    return true;
+  };
+  const mergedChannels = createDefaultChannelMap(false, {
+    albedo: false,
+    roughness: false,
+    metalness: false,
+    height: false,
+  });
+  const mergedValues = createDefaultExtendedValues();
+  let normalSum = 0;
+  let normalCount = 0;
+
+  for (const lyr of layers) {
+    if (lyr.kind === "folder" || !isVisible(lyr)) continue;
+    const s = ensureArtworkLayerSurface(lyr);
+    for (const chDef of ALL_PAINT_CHANNELS) {
+      const k = chDef.key;
+      if (s.channels[k]) {
+        mergedChannels[k] = true;
+        if (chDef.extended) mergedValues[k] = s.values[k];
+      }
+    }
+    if (s.channels.normal) {
+      normalSum += Number(s.values.normal ?? 1.0);
+      normalCount++;
+    }
+  }
+  const extSet = new Set(ALL_EXTENDED_PBR_KEYS.filter((k) => mergedChannels[k]));
+  for (const rk of requestedExtra || []) {
+    if (ALL_EXTENDED_PBR_KEYS.includes(rk)) extSet.add(rk);
+  }
+  const activeChannels = ALL_PAINT_CHANNELS.map((c) => c.key).filter((k) => mergedChannels[k]);
+  return {
+    activeExtKeys: [...extSet],
+    activeChannels,
+    normalGain: normalCount > 0 ? Math.max(0, normalSum / normalCount) : 1.0,
+    surfaceSummary: {
+      channels: mergedChannels,
+      values: mergedValues,
+    },
+  };
+}
+
 export function createArtworkLayer(kind = "motif", overrides = {}) {
   const id = overrides.id || nextArtworkId("lyr");
   const isFolder = kind === "folder";
@@ -439,17 +657,20 @@ export function createArtworkLayer(kind = "motif", overrides = {}) {
       imageUrl: "",
       ...(overrides.media || {}),
     },
-    surface: {
-      finish: "ink",
-      roughness: 0.55,
-      metalness: 0.0,
-      height: 0.18,
-      enableAlbedo: true,
-      enableRoughness: true,
-      enableMetalness: true,
-      enableHeight: true,
-      ...(overrides.surface || {}),
-    },
+    surface: (() => {
+      const s = {
+        finish: "ink",
+        roughness: 0.55,
+        metalness: 0.0,
+        height: 0.18,
+        enableAlbedo: true,
+        enableRoughness: true,
+        enableMetalness: true,
+        enableHeight: true,
+        ...(overrides.surface || {}),
+      };
+      return normalizeSurfaceState(s);
+    })(),
     mask: {
       enabled: false,
       invert: false,
@@ -1190,19 +1411,34 @@ function makeScratchCanvas(size) {
  * Render an entire layer stack + modifier stack + masks + tiling into 4 PBR canvases:
  * { albedo, roughness, metalness, height, normalData } (and single-layer preview if desired).
  */
-export function renderArtworkDocument(doc, targetSize = 512, { tileMode = "single", channel = "composite" } = {}) {
+export function renderArtworkDocument(doc, targetSize = 512, { tileMode = "single", channel = "composite", extraChannels = [] } = {}) {
   const size = doc.size || ARTWORK_SIZE;
   const scale = targetSize / size;
+  const surfInfo = collectDocumentSurfaceInfo(doc, extraChannels);
+  const activeExtKeys = surfInfo.activeExtKeys;
 
   const albedo = makeScratchCanvas(targetSize);
   const roughness = makeScratchCanvas(targetSize);
   const metalness = makeScratchCanvas(targetSize);
   const height = makeScratchCanvas(targetSize);
+  const coverageCanvas = makeScratchCanvas(targetSize);
 
   const aCtx = albedo.getContext("2d", { willReadFrequently: true });
   const rCtx = roughness.getContext("2d", { willReadFrequently: true });
   const mCtx = metalness.getContext("2d", { willReadFrequently: true });
   const hCtx = height.getContext("2d", { willReadFrequently: true });
+  const covCtx = coverageCanvas.getContext("2d", { willReadFrequently: true });
+
+  const extTargets = {};
+  const extScratches = {};
+  const extCtxs = {};
+  const extScratchCtxs = {};
+  for (const k of activeExtKeys) {
+    extTargets[k] = makeScratchCanvas(targetSize);
+    extScratches[k] = makeScratchCanvas(targetSize);
+    extCtxs[k] = extTargets[k].getContext("2d", { willReadFrequently: true });
+    extScratchCtxs[k] = extScratches[k].getContext("2d", { willReadFrequently: true });
+  }
 
   const bg = doc.background || {};
   if (bg.enabled) {
@@ -1239,6 +1475,12 @@ export function renderArtworkDocument(doc, targetSize = 512, { tileMode = "singl
     }
     aCtx.restore();
 
+    covCtx.save();
+    covCtx.globalAlpha = clamp(bg.opacity ?? 1, 0, 1);
+    covCtx.fillStyle = "#ffffff";
+    covCtx.fillRect(0, 0, targetSize, targetSize);
+    covCtx.restore();
+
     const rV = Math.round(clamp(bg.roughness ?? 0.85, 0, 1) * 255);
     const mV = Math.round(clamp(bg.metalness ?? 0, 0, 1) * 255);
     const hV = Math.round(clamp((bg.height ?? 0) * 0.5 + 0.5, 0, 1) * 255);
@@ -1258,17 +1500,35 @@ export function renderArtworkDocument(doc, targetSize = 512, { tileMode = "singl
     hCtx.fillRect(0, 0, targetSize, targetSize);
   }
 
+  for (const k of activeExtKeys) {
+    const c = extCtxs[k];
+    if (isRgbChannelKey(k)) {
+      const bgHex = bg.surfaceValues?.[k] || (k === "emissive" ? "#000000" : "#ffffff");
+      c.fillStyle = bgHex;
+      c.fillRect(0, 0, targetSize, targetSize);
+    } else {
+      let b = bg.surfaceValues?.[k] != null
+        ? encodeScalarChannelByte(k, Number(bg.surfaceValues[k]))
+        : (k === "emissiveIntensity" ? 0 : defaultByteForExtChannel(k));
+      if (!bg.enabled && k === "opacity") b = 0;
+      c.fillStyle = `rgb(${b},${b},${b})`;
+      c.fillRect(0, 0, targetSize, targetSize);
+    }
+  }
+
   // Evaluate layers bottom-to-top
   const layerScratchA = makeScratchCanvas(targetSize);
   const layerScratchR = makeScratchCanvas(targetSize);
   const layerScratchM = makeScratchCanvas(targetSize);
   const layerScratchH = makeScratchCanvas(targetSize);
+  const layerScratchCov = makeScratchCanvas(targetSize);
   const maskScratch = makeScratchCanvas(targetSize);
 
   const lACtx = layerScratchA.getContext("2d", { willReadFrequently: true });
   const lRCtx = layerScratchR.getContext("2d", { willReadFrequently: true });
   const lMCtx = layerScratchM.getContext("2d", { willReadFrequently: true });
   const lHCtx = layerScratchH.getContext("2d", { willReadFrequently: true });
+  const lCovCtx = layerScratchCov.getContext("2d", { willReadFrequently: true });
 
   const folderMap = new Map(doc.layers.filter((l) => l.kind === "folder").map((f) => [f.id, f]));
   const isEffectiveVisible = (lyr) => {
@@ -1279,11 +1539,15 @@ export function renderArtworkDocument(doc, targetSize = 512, { tileMode = "singl
 
   for (const layer of doc.layers) {
     if (layer.kind === "folder" || !isEffectiveVisible(layer)) continue;
+    const surf = ensureArtworkLayerSurface(layer);
+    const layerExtKeys = activeExtKeys.filter((k) => surf.channels[k]);
 
     lACtx.clearRect(0, 0, targetSize, targetSize);
     lRCtx.clearRect(0, 0, targetSize, targetSize);
     lMCtx.clearRect(0, 0, targetSize, targetSize);
     lHCtx.clearRect(0, 0, targetSize, targetSize);
+    lCovCtx.clearRect(0, 0, targetSize, targetSize);
+    for (const k of layerExtKeys) extScratchCtxs[k].clearRect(0, 0, targetSize, targetSize);
 
     const instances = layer.kind === "gradient"
       ? [{
@@ -1419,12 +1683,24 @@ export function renderArtworkDocument(doc, targetSize = 512, { tileMode = "singl
           ctx.restore();
         };
 
-        if (layer.surface.enableAlbedo !== false) drawToChannel(lACtx, resolveFillStyle(lACtx, inst), true);
-        if (layer.surface.enableRoughness !== false) drawToChannel(lRCtx, rCol);
-        if (layer.surface.enableMetalness !== false) drawToChannel(lMCtx, mCol);
-        if (layer.surface.enableHeight !== false) drawToChannel(lHCtx, hCol);
+        if (surf.channels.albedo) drawToChannel(lACtx, resolveFillStyle(lACtx, inst), true);
+        if (surf.channels.roughness) drawToChannel(lRCtx, rCol);
+        if (surf.channels.metalness) drawToChannel(lMCtx, mCol);
+        if (surf.channels.height) drawToChannel(lHCtx, hCol);
+        drawToChannel(lCovCtx, "#ffffff");
+        for (const k of layerExtKeys) {
+          const extCol = isRgbChannelKey(k)
+            ? (surf.values[k] || (k === "emissive" ? "#ff7a3b" : "#ffffff"))
+            : (() => {
+                const b = encodeScalarChannelByte(k, Number(surf.values[k] ?? (ALL_PAINT_CHANNEL_MAP[k]?.defaultVal ?? 0)));
+                return `rgb(${b},${b},${b})`;
+              })();
+          drawToChannel(extScratchCtxs[k], extCol);
+        }
       }
     }
+
+    const activeLayerExtCtxs = layerExtKeys.map((k) => extScratchCtxs[k]);
 
     // Apply optional Edge Wear chipping if any modifier requested chipAmount > 0
     const maxChip = instances.reduce((m, i) => Math.max(m, i.chipAmount || 0), 0);
@@ -1437,53 +1713,79 @@ export function renderArtworkDocument(doc, targetSize = 512, { tileMode = "singl
         seed: chipRef?.chipSeed || 707,
         seamless: doc.mode === "pattern",
         invert: true,
-      });
+      }, [lCovCtx, ...activeLayerExtCtxs]);
     }
 
     // Apply per-layer Mask if enabled
     if (layer.mask?.enabled) {
-      applyLayerMask(lACtx, lRCtx, lMCtx, lHCtx, maskScratch, targetSize, layer.mask, doc.mode === "pattern");
+      applyLayerMask(lACtx, lRCtx, lMCtx, lHCtx, maskScratch, targetSize, layer.mask, doc.mode === "pattern", [lCovCtx, ...activeLayerExtCtxs]);
     }
 
     // Composite layer onto target channels
-    const op = clamp(layer.opacity ?? 1, 0, 1);
+    const opChanMul = surf.channels.opacity ? clamp(surf.values.opacity ?? 1, 0, 1) : 1;
+    const op = clamp((layer.opacity ?? 1) * opChanMul, 0, 1);
     const blend = canvasBlendOp(layer.blend);
 
-    if (layer.surface.enableAlbedo !== false) {
+    covCtx.save();
+    covCtx.globalAlpha = op;
+    covCtx.drawImage(layerScratchCov, 0, 0);
+    covCtx.restore();
+
+    if (surf.channels.albedo) {
       aCtx.save();
       aCtx.globalAlpha = op;
       aCtx.globalCompositeOperation = blend;
       aCtx.drawImage(layerScratchA, 0, 0);
       aCtx.restore();
     }
-    if (layer.surface.enableRoughness !== false) {
+    if (surf.channels.roughness) {
       rCtx.save();
       rCtx.globalAlpha = op;
       rCtx.drawImage(layerScratchR, 0, 0);
       rCtx.restore();
     }
-    if (layer.surface.enableMetalness !== false) {
+    if (surf.channels.metalness) {
       mCtx.save();
       mCtx.globalAlpha = op;
       mCtx.drawImage(layerScratchM, 0, 0);
       mCtx.restore();
     }
-    if (layer.surface.enableHeight !== false) {
+    if (surf.channels.height) {
       hCtx.save();
       hCtx.globalAlpha = op;
       hCtx.drawImage(layerScratchH, 0, 0);
       hCtx.restore();
     }
+    for (const k of layerExtKeys) {
+      const dstCtx = extCtxs[k];
+      dstCtx.save();
+      dstCtx.globalAlpha = op;
+      dstCtx.drawImage(extScratches[k], 0, 0);
+      dstCtx.restore();
+    }
   }
 
-  return { albedo, roughness, metalness, height, width: targetSize, heightPx: targetSize };
+  return {
+    albedo,
+    roughness,
+    metalness,
+    height,
+    coverageCanvas,
+    extraCanvases: extTargets,
+    normalGain: surfInfo.normalGain,
+    activeChannels: surfInfo.activeChannels,
+    surfaceSummary: surfInfo.surfaceSummary,
+    width: targetSize,
+    heightPx: targetSize,
+  };
 }
 
-function applyNoiseMaskCutout(aCtx, rCtx, mCtx, hCtx, size, opts) {
+function applyNoiseMaskCutout(aCtx, rCtx, mCtx, hCtx, size, opts, extraCtxs = []) {
   const img = aCtx.getImageData(0, 0, size, size);
   const rImg = rCtx.getImageData(0, 0, size, size);
   const mImg = mCtx.getImageData(0, 0, size, size);
   const hImg = hCtx.getImageData(0, 0, size, size);
+  const extImgs = extraCtxs.map((ctx) => ctx.getImageData(0, 0, size, size));
   const d = img.data;
   const rd = rImg.data;
   const md = mImg.data;
@@ -1493,7 +1795,7 @@ function applyNoiseMaskCutout(aCtx, rCtx, mCtx, hCtx, size, opts) {
   for (let y = 0; y < size; y += step) {
     for (let x = 0; x < size; x += step) {
       const idx0 = (y * size + x) * 4;
-      if (d[idx0 + 3] === 0) continue;
+      if (d[idx0 + 3] === 0 && hd[idx0 + 3] === 0 && !extImgs.some((ei) => ei.data[idx0 + 3] > 0)) continue;
       const n = evaluateTileNoise(x / size, y / size, {
         noiseType: "fbm",
         frequency: opts.frequency || 10,
@@ -1509,6 +1811,7 @@ function applyNoiseMaskCutout(aCtx, rCtx, mCtx, hCtx, size, opts) {
           rd[k] = Math.round(rd[k] * keep);
           md[k] = Math.round(md[k] * keep);
           hd[k] = Math.round(hd[k] * keep);
+          for (const ei of extImgs) ei.data[k] = Math.round(ei.data[k] * keep);
         }
       }
     }
@@ -1517,13 +1820,15 @@ function applyNoiseMaskCutout(aCtx, rCtx, mCtx, hCtx, size, opts) {
   rCtx.putImageData(rImg, 0, 0);
   mCtx.putImageData(mImg, 0, 0);
   hCtx.putImageData(hImg, 0, 0);
+  for (let i = 0; i < extraCtxs.length; i++) extraCtxs[i].putImageData(extImgs[i], 0, 0);
 }
 
-function applyLayerMask(aCtx, rCtx, mCtx, hCtx, maskCanvas, size, mask, seamless) {
+function applyLayerMask(aCtx, rCtx, mCtx, hCtx, maskCanvas, size, mask, seamless, extraCtxs = []) {
   const img = aCtx.getImageData(0, 0, size, size);
   const rImg = rCtx.getImageData(0, 0, size, size);
   const mImg = mCtx.getImageData(0, 0, size, size);
   const hImg = hCtx.getImageData(0, 0, size, size);
+  const extImgs = extraCtxs.map((ctx) => ctx.getImageData(0, 0, size, size));
   const d = img.data, rd = rImg.data, md = mImg.data, hd = hImg.data;
   const freq = mask.frequency ?? 4;
   const thr = clamp(mask.threshold ?? 0.45, 0, 1);
@@ -1533,7 +1838,7 @@ function applyLayerMask(aCtx, rCtx, mCtx, hCtx, maskCanvas, size, mask, seamless
     const v = y / size;
     for (let x = 0; x < size; x++) {
       const k = (y * size + x) * 4 + 3;
-      if (d[k] === 0 && hd[k] === 0) continue;
+      if (d[k] === 0 && hd[k] === 0 && !extImgs.some((ei) => ei.data[k] > 0)) continue;
       const u = x / size;
       let val = 1;
       if (mask.mode === "radial") {
@@ -1555,12 +1860,14 @@ function applyLayerMask(aCtx, rCtx, mCtx, hCtx, maskCanvas, size, mask, seamless
       rd[k] = Math.round(rd[k] * alpha);
       md[k] = Math.round(md[k] * alpha);
       hd[k] = Math.round(hd[k] * alpha);
+      for (const ei of extImgs) ei.data[k] = Math.round(ei.data[k] * alpha);
     }
   }
   aCtx.putImageData(img, 0, 0);
   rCtx.putImageData(rImg, 0, 0);
   mCtx.putImageData(mImg, 0, 0);
   hCtx.putImageData(hImg, 0, 0);
+  for (let i = 0; i < extraCtxs.length; i++) extraCtxs[i].putImageData(extImgs[i], 0, 0);
 }
 
 /**
@@ -1607,8 +1914,9 @@ export function buildNormalFromHeightCanvas(heightCanvas, strength = 2.6) {
 /**
  * Evaluate document into flat Uint8ClampedArray PBR buffers + instance stats (browser Canvas OR pure-JS Node fallback).
  */
-export function evaluateArtworkDocument(doc, targetSize = 384) {
+export function evaluateArtworkDocument(doc, targetSize = 384, opts = {}) {
   const docSize = doc.size || ARTWORK_SIZE;
+  const surfInfo = collectDocumentSurfaceInfo(doc, opts.extraChannels || []);
   let totalInstances = 0;
   let minScale = Infinity;
   let maxScale = -Infinity;
@@ -1626,18 +1934,28 @@ export function evaluateArtworkDocument(doc, targetSize = 384) {
   }
   if (!Number.isFinite(minScale)) { minScale = 1; maxScale = 1; }
 
-  const canCanvas = typeof document !== "undefined" || typeof OffscreenCanvas !== "undefined";
+  const canCanvas = !opts.headless && (typeof document !== "undefined" || typeof OffscreenCanvas !== "undefined");
   if (canCanvas) {
-    const rendered = renderArtworkDocument(doc, targetSize);
-    const normCanvas = buildNormalFromHeightCanvas(rendered.height, 2.6);
+    const rendered = renderArtworkDocument(doc, targetSize, { extraChannels: surfInfo.activeExtKeys });
+    const normCanvas = buildNormalFromHeightCanvas(rendered.height, 2.6 * (rendered.normalGain ?? 1.0));
     const albedo = rendered.albedo.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, targetSize, targetSize).data;
     const roughness = rendered.roughness.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, targetSize, targetSize).data;
     const metalness = rendered.metalness.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, targetSize, targetSize).data;
     const height = rendered.height.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, targetSize, targetSize).data;
     const normal = normCanvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, targetSize, targetSize).data;
+    const covRgba = rendered.coverageCanvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, targetSize, targetSize).data;
+    const n = targetSize * targetSize;
+    const coverage = new Uint8ClampedArray(n);
+    for (let i = 0; i < n; i++) coverage[i] = covRgba[i * 4 + 3];
+
+    const extraChannels = {};
+    for (const k of surfInfo.activeExtKeys) {
+      const c = rendered.extraCanvases?.[k];
+      if (c) extraChannels[k] = c.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, targetSize, targetSize).data;
+    }
 
     let opaque = 0;
-    for (let i = 3; i < albedo.length; i += 4) if (albedo[i] > 18) opaque++;
+    for (let i = 0; i < n; i++) if (Math.max(albedo[i * 4 + 3], coverage[i]) > 18) opaque++;
     return {
       width: targetSize,
       heightPx: targetSize,
@@ -1646,11 +1964,15 @@ export function evaluateArtworkDocument(doc, targetSize = 384) {
       metalness,
       height,
       normal,
+      coverage,
+      extraChannels,
+      activeChannels: surfInfo.activeChannels,
+      surfaceSummary: surfInfo.surfaceSummary,
       stats: {
         instances: totalInstances,
         minScale,
         maxScale,
-        coveragePct: (opaque / (targetSize * targetSize)) * 100,
+        coveragePct: (opaque / n) * 100,
       },
     };
   }
@@ -1662,6 +1984,8 @@ export function evaluateArtworkDocument(doc, targetSize = 384) {
   const metalness = new Uint8ClampedArray(n * 4);
   const height = new Uint8ClampedArray(n * 4);
   const normal = new Uint8ClampedArray(n * 4);
+  const coverage = new Uint8ClampedArray(n);
+  const extraChannels = {};
 
   const bg = doc.background || {};
   const [bgr, bgg, bgb] = bg.enabled ? hexToRgb(bg.color || "#171a1f") : [0, 0, 0];
@@ -1672,17 +1996,62 @@ export function evaluateArtworkDocument(doc, targetSize = 384) {
   for (let i = 0; i < n; i++) {
     const i4 = i * 4;
     albedo[i4] = bgr; albedo[i4 + 1] = bgg; albedo[i4 + 2] = bgb; albedo[i4 + 3] = bga;
+    coverage[i] = bga;
     roughness[i4] = roughness[i4 + 1] = roughness[i4 + 2] = bgrV; roughness[i4 + 3] = 255;
     metalness[i4] = metalness[i4 + 1] = metalness[i4 + 2] = bgmV; metalness[i4 + 3] = 255;
     height[i4] = height[i4 + 1] = height[i4 + 2] = bghV; height[i4 + 3] = 255;
     normal[i4] = 128; normal[i4 + 1] = 128; normal[i4 + 2] = 255; normal[i4 + 3] = 255;
   }
 
+  for (const k of surfInfo.activeExtKeys) {
+    const buf = new Uint8ClampedArray(n * 4);
+    if (isRgbChannelKey(k)) {
+      const [er, eg, eb] = hexToRgb(bg.surfaceValues?.[k] || (k === "emissive" ? "#000000" : "#ffffff"));
+      for (let i = 0; i < n; i++) {
+        const i4 = i * 4;
+        buf[i4] = er; buf[i4 + 1] = eg; buf[i4 + 2] = eb; buf[i4 + 3] = 255;
+      }
+    } else {
+      let b = bg.surfaceValues?.[k] != null
+        ? encodeScalarChannelByte(k, Number(bg.surfaceValues[k]))
+        : (k === "emissiveIntensity" ? 0 : defaultByteForExtChannel(k));
+      const ba = !bg.enabled && k === "opacity" ? 0 : 255;
+      if (!bg.enabled && k === "opacity") b = 0;
+      for (let i = 0; i < n; i++) {
+        const i4 = i * 4;
+        buf[i4] = buf[i4 + 1] = buf[i4 + 2] = b; buf[i4 + 3] = ba;
+      }
+    }
+    extraChannels[k] = buf;
+  }
+
   const scale = targetSize / docSize;
+  const folderMapH = new Map((doc.layers || []).filter((l) => l.kind === "folder").map((f) => [f.id, f]));
+  const isVisH = (lyr) => {
+    if (!lyr.visible) return false;
+    if (lyr.parentId && folderMapH.has(lyr.parentId)) return isVisH(folderMapH.get(lyr.parentId));
+    return true;
+  };
   for (const layer of doc.layers || []) {
-    if (!layer.visible || layer.kind === "folder") continue;
-    const insts = evaluateLayerInstances(layer, docSize, doc.mode);
-    const lOp = clamp(layer.opacity ?? 1, 0, 1);
+    if (layer.kind === "folder" || !isVisH(layer)) continue;
+    const surf = ensureArtworkLayerSurface(layer);
+    const layerExtKeys = surfInfo.activeExtKeys.filter((k) => surf.channels[k]);
+    const layerExtSamples = layerExtKeys.map((k) => {
+      const buf = extraChannels[k];
+      if (isRgbChannelKey(k)) {
+        const [er, eg, eb] = hexToRgb(surf.values[k] || (k === "emissive" ? "#ff7a3b" : "#ffffff"));
+        return { buf, r: er, g: eg, b: eb };
+      }
+      const bv = encodeScalarChannelByte(k, Number(surf.values[k] ?? (ALL_PAINT_CHANNEL_MAP[k]?.defaultVal ?? 0)));
+      return { buf, r: bv, g: bv, b: bv };
+    });
+
+    const insts = layer.kind === "gradient"
+      ? [{ x: docSize * 0.5, y: docSize * 0.5, width: docSize, height: docSize, color: layer.shape?.color || "#e8c27a", roughness: surf.roughness, metalness: surf.metalness, heightValue: surf.height, opacity: 1 }]
+      : evaluateLayerInstances(layer, docSize, doc.mode);
+    const opChanMul = surf.channels.opacity ? clamp(surf.values.opacity ?? 1, 0, 1) : 1;
+    const lOp = clamp((layer.opacity ?? 1) * opChanMul, 0, 1);
+
     for (const inst of insts) {
       const [cr, cg, cb] = hexToRgb(inst.color || "#e8c27a");
       const rV = Math.round(clamp(inst.roughness ?? 0.5, 0, 1) * 255);
@@ -1693,25 +2062,66 @@ export function evaluateArtworkDocument(doc, targetSize = 384) {
       const ry = Math.max(1, inst.height * scale * 0.5);
       const x0 = Math.max(0, Math.floor(cx - rx)), x1 = Math.min(targetSize - 1, Math.ceil(cx + rx));
       const y0 = Math.max(0, Math.floor(cy - ry)), y1 = Math.min(targetSize - 1, Math.ceil(cy + ry));
-      const a = clamp(inst.opacity * lOp, 0, 1);
+      const a = clamp((inst.opacity ?? 1) * lOp, 0, 1);
       for (let py = y0; py <= y1; py++) {
         for (let px = x0; px <= x1; px++) {
-          const dx = (px - cx) / rx, dy = (py - cy) / ry;
-          if (dx * dx + dy * dy > 1.0) continue;
-          const i4 = (py * targetSize + px) * 4;
-          albedo[i4] = Math.round(albedo[i4] * (1 - a) + cr * a);
-          albedo[i4 + 1] = Math.round(albedo[i4 + 1] * (1 - a) + cg * a);
-          albedo[i4 + 2] = Math.round(albedo[i4 + 2] * (1 - a) + cb * a);
-          albedo[i4 + 3] = Math.min(255, Math.round(albedo[i4 + 3] + (255 - albedo[i4 + 3]) * a));
-          roughness[i4] = roughness[i4 + 1] = roughness[i4 + 2] = rV;
-          metalness[i4] = metalness[i4 + 1] = metalness[i4 + 2] = mV;
-          height[i4] = height[i4 + 1] = height[i4 + 2] = hV;
+          if (layer.kind !== "gradient") {
+            const dx = (px - cx) / rx, dy = (py - cy) / ry;
+            if (dx * dx + dy * dy > 1.0) continue;
+          }
+          const idx = py * targetSize + px;
+          const i4 = idx * 4;
+          coverage[idx] = Math.min(255, Math.round(coverage[idx] + (255 - coverage[idx]) * a));
+          if (surf.channels.albedo) {
+            albedo[i4] = Math.round(albedo[i4] * (1 - a) + cr * a);
+            albedo[i4 + 1] = Math.round(albedo[i4 + 1] * (1 - a) + cg * a);
+            albedo[i4 + 2] = Math.round(albedo[i4 + 2] * (1 - a) + cb * a);
+            albedo[i4 + 3] = Math.min(255, Math.round(albedo[i4 + 3] + (255 - albedo[i4 + 3]) * a));
+          }
+          if (surf.channels.roughness) {
+            const nr = Math.round(roughness[i4] * (1 - a) + rV * a);
+            roughness[i4] = roughness[i4 + 1] = roughness[i4 + 2] = nr;
+          }
+          if (surf.channels.metalness) {
+            const nm = Math.round(metalness[i4] * (1 - a) + mV * a);
+            metalness[i4] = metalness[i4 + 1] = metalness[i4 + 2] = nm;
+          }
+          if (surf.channels.height) {
+            const nh = Math.round(height[i4] * (1 - a) + hV * a);
+            height[i4] = height[i4 + 1] = height[i4 + 2] = nh;
+          }
+          for (const es of layerExtSamples) {
+            es.buf[i4] = Math.round(es.buf[i4] * (1 - a) + es.r * a);
+            es.buf[i4 + 1] = Math.round(es.buf[i4 + 1] * (1 - a) + es.g * a);
+            es.buf[i4 + 2] = Math.round(es.buf[i4 + 2] * (1 - a) + es.b * a);
+            es.buf[i4 + 3] = Math.min(255, Math.round(es.buf[i4 + 3] + (255 - es.buf[i4 + 3]) * a));
+          }
         }
       }
     }
   }
+  const nStrength = 2.6 * surfInfo.normalGain;
+  const sampleH = (x, y) => {
+    const px = ((x % targetSize) + targetSize) % targetSize;
+    const py = ((y % targetSize) + targetSize) % targetSize;
+    return height[(py * targetSize + px) * 4] / 255;
+  };
+  for (let y = 0; y < targetSize; y++) {
+    for (let x = 0; x < targetSize; x++) {
+      const dx = (sampleH(x + 1, y) - sampleH(x - 1, y)) * 2.0;
+      const dy = (sampleH(x, y + 1) - sampleH(x, y - 1)) * 2.0;
+      let nx = -dx * nStrength, ny = -dy * nStrength, nz = 1.0;
+      const len = Math.hypot(nx, ny, nz);
+      nx /= len; ny /= len; nz /= len;
+      const i4 = (y * targetSize + x) * 4;
+      normal[i4] = Math.round((nx * 0.5 + 0.5) * 255);
+      normal[i4 + 1] = Math.round((ny * 0.5 + 0.5) * 255);
+      normal[i4 + 2] = Math.round((nz * 0.5 + 0.5) * 255);
+      normal[i4 + 3] = 255;
+    }
+  }
   let opaque = 0;
-  for (let i = 3; i < albedo.length; i += 4) if (albedo[i] > 18) opaque++;
+  for (let i = 0; i < n; i++) if (Math.max(albedo[i * 4 + 3], coverage[i]) > 18) opaque++;
   return {
     width: targetSize,
     heightPx: targetSize,
@@ -1720,6 +2130,10 @@ export function evaluateArtworkDocument(doc, targetSize = 384) {
     metalness,
     height,
     normal,
+    coverage,
+    extraChannels,
+    activeChannels: surfInfo.activeChannels,
+    surfaceSummary: surfInfo.surfaceSummary,
     stats: {
       instances: totalInstances,
       minScale,

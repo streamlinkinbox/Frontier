@@ -64,7 +64,10 @@ import {
   ShowcaseInitialValues,
 } from "./ShowcaseGalleryScene.js";
 import {
+  BuildDefaultDiagnosticForceRig,
   DEFAULT_FORCE_OVERLAY,
+  EvaluatedQuantities,
+  FieldColormaps,
   GetForceModelMeta,
   ResolveForceValues,
 } from "./ForceFieldCatalog.js";
@@ -304,6 +307,10 @@ const DebugViews = [
   "Reservoir Age",
   "Patch Tiles",
   "Tiles + Wireframe",
+  "ForceField · Streams + Heatmap",
+  "ForceField · Bokeh + Heatmap",
+  "ForceField · Vorticity |∇×F|",
+  "ForceField · Divergence ∇·F",
 ];
 const StorageKey = "Frontier.WorldMirrorGtx.v3";
 function Restore() {
@@ -739,7 +746,8 @@ function App() {
     [DraggingColour, SetDraggingColour] = useState(false),
     [DraggingWorldActor, SetDraggingWorldActor] = useState(false),
     [FocusedColourLabel, SetFocusedColourLabel] = useState(""),
-    [ViewportSettings, ShowViewportSettings] = useState(false);
+    [ViewportSettings, ShowViewportSettings] = useState(false),
+    [ForceVizOpen, SetForceVizOpen] = useState(false);
   useEffect(() => SubscribeWorldDrag((Active) => SetDraggingWorldActor(Boolean(Active))), []);
   useEffect(() => {
     const ClearStaleDrag = () => EndWorldActorDrag();
@@ -1637,6 +1645,81 @@ function App() {
       true,
     );
   };
+  const SpawnDiagnosticForceRig = () => {
+    const Rig = BuildDefaultDiagnosticForceRig();
+    const Stamp = Date.now().toString(36).slice(-4);
+    const SpawnedIds = Rig.map((Node, Idx) => `${Node.Id}-${Stamp}-${Idx}`);
+    const FocusId = SpawnedIds[0];
+    AssignRows((Prev) => {
+      const Next = Prev.some((R) => R.Id === "forces")
+        ? [...Prev]
+        : [
+            ...Prev,
+            {
+              Id: "forces",
+              Name: "Forces",
+              Panel: "group",
+              Icon: "folder-world",
+              Parent: null,
+              Description: "19-Law VectorField SimulationSpace",
+            },
+          ];
+      Rig.forEach((Node, Idx) => {
+        Next.push({
+          Id: SpawnedIds[Idx],
+          Name: Node.Name,
+          Panel: "force",
+          ForceModel: Node.Force.Model,
+          Icon: `force-model:${Node.Force.Model}`,
+          Parent: "forces",
+          Preview: true,
+          Description: `${Node.Force.Model} · R=${Node.Force.Radius}m`,
+        });
+      });
+      return Next;
+    });
+    AssignValues((Prev) => {
+      const Next = { ...Prev };
+      Rig.forEach((Node, Idx) => {
+        Next[SpawnedIds[Idx]] = {
+          Powered: true,
+          Position: [...Node.Position],
+          Rotation: [...Node.Rotation],
+          Scale: [1, 1, 1],
+          Force: { ...Node.Force },
+        };
+      });
+      return Next;
+    });
+    SetForceOverlaySettings((Prev) => ({
+      ...Prev,
+      Enabled: true,
+      ShowHeatmap: true,
+      ShowStreamlines: true,
+      ShowVelocityArrows: true,
+    }));
+    if (FocusId) Select(FocusId);
+    SetForceVizOpen(false);
+    Toast("Spawned 3-Source Wind + Cyclonic Vortex + Curl Turbulence Rig");
+  };
+  const RemoveSelectedRow = () => {
+    if (!Subject || IsEditorCamera(Subject) || Subject.Panel === "group") return;
+    AssignRows((Previous) => {
+      const Removed = new Set([Selected]);
+      let Changed = true;
+      while (Changed) {
+        Changed = false;
+        for (const Row of Previous) {
+          if (Removed.has(Row.Parent) && !Removed.has(Row.Id)) {
+            Removed.add(Row.Id);
+            Changed = true;
+          }
+        }
+      }
+      return Previous.filter((Row) => !Removed.has(Row.Id));
+    });
+    Select("showcase");
+  };
   const SpawnModelFromAsset = (Asset) => {
     const Payload = BuildActorPayloadFromAsset(Asset);
     if (!Payload?.Template) return;
@@ -2253,11 +2336,7 @@ function App() {
               className="viewport-icon-button gizmo-pill"
               aria-label="Toggle 3D ForceField overlay"
               aria-pressed={ForceOverlaySettings.Enabled !== false}
-              title={
-                ForceOverlaySettings.Enabled !== false
-                  ? "Hide 3D ForceField & VectorField viewport overlay"
-                  : "Show 3D ForceField & VectorField viewport overlay"
-              }
+              title="Toggle 3D ForceField Streamlines + GPU Slice Heatmap overlay"
               onClick={() =>
                 SetForceOverlaySettings((Prev) => ({
                   ...Prev,
@@ -2266,6 +2345,18 @@ function App() {
               }
             >
               FORCES
+            </button>
+            <button
+              className="viewport-icon-button gizmo-pill"
+              aria-label="ForceField visualization layers"
+              aria-expanded={ForceVizOpen}
+              title="VectorField Studio Streamlines, Heatmap, Bokeh & Rig controls"
+              onClick={() => {
+                ShowViewportSettings(false);
+                SetForceVizOpen((Prev) => !Prev);
+              }}
+            >
+              FORCE VIZ ▾
             </button>
             <button
               className="viewport-icon-button"
@@ -2297,6 +2388,163 @@ function App() {
           </div>
         </div>
       </div>
+      {ForceVizOpen && (
+        <section
+          className="viewport-settings"
+          role="dialog"
+          aria-label="ForceField visualization layers"
+          style={{ width: 296, right: 54 }}
+          onKeyDown={(Event) => {
+            if (Event.key === "Escape") {
+              Event.stopPropagation();
+              SetForceVizOpen(false);
+            }
+          }}
+        >
+          <header>
+            VectorField Studio · Force Viz
+            <button
+              aria-label="Close ForceField visualization settings"
+              onClick={() => SetForceVizOpen(false)}
+            >
+              ×
+            </button>
+          </header>
+          <button
+            type="button"
+            onClick={SpawnDiagnosticForceRig}
+            style={{
+              width: "100%",
+              padding: "7px 10px",
+              borderRadius: 7,
+              border: "1px solid rgba(74, 168, 255, 0.48)",
+              background: "rgba(74, 168, 255, 0.16)",
+              color: "#eef6ff",
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            + Spawn Wind + Vortex + Curl Rig
+          </button>
+          <label className="viewport-setting-toggle">
+            ForceField Overlay Enabled
+            <input
+              type="checkbox"
+              checked={ForceOverlaySettings.Enabled !== false}
+              onChange={(Ev) =>
+                SetForceOverlaySettings((P) => ({ ...P, Enabled: Ev.target.checked }))
+              }
+            />
+          </label>
+          <label className="viewport-setting-toggle">
+            GPU Slice Heatmap + Iso-Lines
+            <input
+              type="checkbox"
+              checked={ForceOverlaySettings.ShowHeatmap !== false}
+              onChange={(Ev) =>
+                SetForceOverlaySettings((P) => ({
+                  ...P,
+                  ShowHeatmap: Ev.target.checked,
+                  SliceEnabled: Ev.target.checked,
+                }))
+              }
+            />
+          </label>
+          <label className="viewport-setting-toggle">
+            RK4 Streamlines + Comet Sparks
+            <input
+              type="checkbox"
+              checked={ForceOverlaySettings.ShowStreamlines !== false}
+              onChange={(Ev) =>
+                SetForceOverlaySettings((P) => ({ ...P, ShowStreamlines: Ev.target.checked }))
+              }
+            />
+          </label>
+          <label className="viewport-setting-toggle">
+            Bokeh DOF Stream Ribbons
+            <input
+              type="checkbox"
+              checked={Boolean(ForceOverlaySettings.ShowBokehRibbons)}
+              onChange={(Ev) =>
+                SetForceOverlaySettings((P) => ({ ...P, ShowBokehRibbons: Ev.target.checked }))
+              }
+            />
+          </label>
+          <label className="viewport-setting-toggle">
+            3D GPU Velocity Arrows
+            <input
+              type="checkbox"
+              checked={ForceOverlaySettings.ShowVelocityArrows !== false}
+              onChange={(Ev) =>
+                SetForceOverlaySettings((P) => ({ ...P, ShowVelocityArrows: Ev.target.checked }))
+              }
+            />
+          </label>
+          <label className="viewport-setting-toggle">
+            Fresnel Reach Bounds
+            <input
+              type="checkbox"
+              checked={ForceOverlaySettings.ShowEnvelopes !== false}
+              onChange={(Ev) =>
+                SetForceOverlaySettings((P) => ({ ...P, ShowEnvelopes: Ev.target.checked }))
+              }
+            />
+          </label>
+          <label>
+            Evaluated Quantity
+            <select
+              value={ForceOverlaySettings.Quantity || "Speed"}
+              onChange={(Ev) =>
+                SetForceOverlaySettings((P) => ({ ...P, Quantity: Ev.target.value }))
+              }
+            >
+              {EvaluatedQuantities.map((Q) => (
+                <option key={Q} value={Q}>{Q}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Color Ramp
+            <select
+              value={
+                FieldColormaps.includes(ForceOverlaySettings.Colormap)
+                  ? ForceOverlaySettings.Colormap
+                  : "Engineering"
+              }
+              onChange={(Ev) =>
+                SetForceOverlaySettings((P) => ({
+                  ...P,
+                  Colormap: Ev.target.value,
+                  ColorRamp: Ev.target.value,
+                }))
+              }
+            >
+              {FieldColormaps.map((C) => (
+                <option key={C} value={C}>{C}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Slice Plane Axis
+            <select
+              value={ForceOverlaySettings.SliceAxis || "XY"}
+              onChange={(Ev) =>
+                SetForceOverlaySettings((P) => ({ ...P, SliceAxis: Ev.target.value }))
+              }
+            >
+              <option value="XY">XY Horizontal</option>
+              <option value="XZ">XZ Front</option>
+              <option value="YZ">YZ Side</option>
+              <option value="ALL">All 3 Orthogonal Slices</option>
+            </select>
+          </label>
+          <p>
+            Select any Force in Outliner for the full 4-tab VectorField Studio inspector
+            (Anemometer, Probe Curl/Div, Symbolic Formula, Bokeh &amp; RK4 Streamlines, Cascade Cache).
+          </p>
+        </section>
+      )}
       {ViewportSettings && (
         <section
           className="viewport-settings"
@@ -2385,6 +2633,7 @@ function App() {
           Settings={Settings}
           ShowGizmo={ShowGizmo}
           ForceOverlaySettings={ForceOverlaySettings}
+          OnChangeForceOverlay={SetForceOverlaySettings}
           UpdateEditorCamera={UpdateEditorCamera}
           OnTransformEntity={HandleGizmoTransformEntity}
           OnDropWorldActor={HandleDropWorldActor}
@@ -2404,6 +2653,7 @@ function App() {
             Settings={Settings}
             ShowGizmo={ShowGizmo}
             ForceOverlaySettings={ForceOverlaySettings}
+            OnChangeForceOverlay={SetForceOverlaySettings}
             UpdateEditorCamera={UpdateEditorCamera}
             OnTransformEntity={HandleGizmoTransformEntity}
             OnDropWorldActor={HandleDropWorldActor}
@@ -2582,11 +2832,13 @@ function App() {
                 EditWind(Id);
               }}
               WindFields={WindFields}
+              AllRows={Rows}
               AllValues={Values}
               AllHidden={Hidden}
               ForceOverlaySettings={ForceOverlaySettings}
               OnChangeForceOverlay={SetForceOverlaySettings}
               OnSaveForcePreset={SaveForcePresetToAssetBrowser}
+              OnDeleteSubject={RemoveSelectedRow}
               ReferenceDetailCards={
                 Subject.Panel === "light" && !Subject.ReferenceOnly
                   ? ReferenceCards("details")

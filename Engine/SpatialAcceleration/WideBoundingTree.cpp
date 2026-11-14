@@ -529,6 +529,57 @@ bool WideBoundingTree::BuildFromPolygonNetwork(const GeometrySpace::PolygonNetwo
     return !WideEntries.empty();
 }
 
+bool WideBoundingTree::BuildFromTrianglePrimitives(std::span<const RayTrianglePrimitive> InputPrimitives)
+{
+    Reset();
+    if (InputPrimitives.empty())
+    {
+        return false;
+    }
+
+    std::vector<BuildPrimitiveEntry> WorkPrimitives;
+    WorkPrimitives.reserve(InputPrimitives.size());
+
+    for (const RayTrianglePrimitive& Src : InputPrimitives)
+    {
+        const Mathematics::Axis3D P0 = Src.Corner0;
+        const Mathematics::Axis3D P1 = P0 + Src.Edge01;
+        const Mathematics::Axis3D P2 = P0 + Src.Edge02;
+
+        BuildPrimitiveEntry Rec {};
+        Rec.Primitive = Src;
+        Rec.Bounds.ExpandPoint(P0);
+        Rec.Bounds.ExpandPoint(P1);
+        Rec.Bounds.ExpandPoint(P2);
+        Rec.Bounds.Min = Rec.Bounds.Min - Mathematics::Axis3D{ 1.0e-6f, 1.0e-6f, 1.0e-6f };
+        Rec.Bounds.Max = Rec.Bounds.Max + Mathematics::Axis3D{ 1.0e-6f, 1.0e-6f, 1.0e-6f };
+        Rec.Centroid   = (P0 + P1 + P2) * (1.0f / 3.0f);
+        WorkPrimitives.push_back(Rec);
+    }
+
+    std::vector<BinaryBuildSlot> BinarySlots;
+    BinarySlots.reserve(WorkPrimitives.size() * 2u);
+    const uint32_t BinaryRoot = BuildBinarySahSubtree(
+        BinarySlots,
+        WorkPrimitives,
+        0u,
+        static_cast<uint32_t>(WorkPrimitives.size()));
+
+    RootBoundsMin = BinarySlots[BinaryRoot].Bounds.Min;
+    RootBoundsMax = BinarySlots[BinaryRoot].Bounds.Max;
+
+    Primitives.resize(WorkPrimitives.size());
+    for (std::size_t Idx = 0u; Idx < WorkPrimitives.size(); ++Idx)
+    {
+        Primitives[Idx] = WorkPrimitives[Idx].Primitive;
+    }
+
+    WideEntries.reserve(BinarySlots.size() / 2u + 4u);
+    MaxTreeDepth = 0u;
+    (void)CollapseBinaryToWide4(BinarySlots, BinaryRoot, WideEntries, 1u, MaxTreeDepth);
+    return !WideEntries.empty();
+}
+
 RayIntersectionResult WideBoundingTree::TraceClosestRay(
     const RaySegmentQuery& Ray,
     bool                   CullBackfaces) const noexcept

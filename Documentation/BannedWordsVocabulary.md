@@ -15,8 +15,10 @@ Related governance documents: [FolderStructure.md](FolderStructure.md) · [Codin
 - `action`
 - `adjacency`
 - `affinity`
+- `and` *(conjunction inside any filename, class, struct, enum, function, variable, or shader identifier — e.g. `GpuTextureAndSdfBaker`, `BuildAndUpload`, `MasksAndIds` — split into focused single-responsibility units or name one concrete mechanism)*
 - `archive` / `archives` *(use `Repository` or `Registry`; narrow directory exemption for `EngineContent/FontsArchives/`)*
 - `arena`
+- `artwork` *(use concrete domain nouns such as `PatternStamp`, `VectorGraphic`, `MotifLayer`, `Stencil`, or `Decal`)*
 - `assembly`
 - `badge`
 - `binding`
@@ -130,7 +132,7 @@ Use the following distinct visual nouns according to their exact structural role
 | Approved Term | Exact Role & Usage |
 | :--- | :--- |
 | **`Icon`** | Concrete graphical icon representing a category, folder, tool, or capability (`ConstructShowcaseFolderIcon`, `ConstructSlotCategoryIcon`, `ControlIcon`). |
-| **`VectorGraphic`** | Multi-contour vector artwork authored in normalized `ViewBox` coordinates (`VectorGraphic`, `ConstructVectorGraphic`). |
+| **`VectorGraphic`** | Multi-contour vector graphics authored in normalized `ViewBox` coordinates (`VectorGraphic`, `ConstructVectorGraphic`). |
 | **`VisualToken`** | Structured geometric color token (`struct VisualToken`: shape such as circle, square, or rounded square paired with fill/stroke color and extent) used for category color dots, folder tint swatches, and status discs (`ConstructVisualToken`). |
 | **`Indicator`** | Live operational, visibility, selection, or scroll position indicator (`ConstructVisibilityIndicator`, `ConstructScrollIndicator`). |
 | **`Sign`** | Semantic warning, caution, alert, or spatial orientation sign (`ConstructCautionSign`, `ConstructOrientationSign`, `ConstructToastSeveritySign`). |
@@ -171,6 +173,7 @@ Use the following distinct visual nouns according to their exact structural role
 - **2026-07-25**: Barred `backend` (web "layer beneath" jargon).
 - **2026-07-26**: Barred `Pass` (borrowed from `VkRenderPass`; revokes the old `stage` → `Pass` ruling) and `Emission` / `Emit` (AI-default) → a GPU render unit takes a mechanism suffix.
 - **2026-08-02**: Barred `Inscription` (was the approved `Pass` replacement for composite-onto-target units; now barred outright) → a GPU render unit that composites onto an existing target takes `…Rasterization`. New code never uses `Inscription`.
+- **2026-11-09**: Barred `artwork` everywhere (filenames, identifiers, comments) → use concrete structural/domain names such as `PatternStamp`, `VectorGraphic`, `MotifLayer`, `Stencil`, or `Decal`.
 - **2026-11-10**:
   - Barred `bloom` (→ optical glare / luminance scatter such as `VeilingGlareFilter`, `LuminanceGlareDownsample`) and re-affirmed `Hub` barred (`AnnotationHub` → `AnnotationExtension`).
   - Barred `coverage`, `submission`, `adjacency`, `vacancy`, `store` (revoking `RecordStore`), `reclamation`, `predicate`, and `interpolant`.
@@ -178,6 +181,7 @@ Use the following distinct visual nouns according to their exact structural role
   - Marked `substrate`, `atlas`, and `slice` as **discouraged (avoid)**.
 - **2026-11-14**:
   - Barred `Builder` / `Builders` (use `Specification` / `Descriptor` + `Construct()`), `Law` / `Laws` (use `Solver` / `Constraint` / `Collider` / `Integrator`, or `ForceModel` for ForceFields), `Recipe` / `Recipes` (use `Preset` / `Specification`), `Interface` / `Interfaces` (name the concrete domain directly or use `Interchange` / `Exchange` at boundaries), and `BuiltIn` (plus prepositions `In`, `From`, `To`, `For`, `With`, `By`, `Into`, `On`, `Of` embedded inside compound identifiers).
+  - Barred the conjunction `And` inside any filename, class, struct, enum, function, variable, shader, or plan document name (`GpuTextureAndSdfBaker`, `BuildAndUploadStudy`, `CameraEyeAndMode`, `MasksAndIds`) — enforced in `CLAUDE.md` §2.7 and `SKILL-Naming.md` Gate ⑦.
   - Scoped exception recorded: `Model` remains banned everywhere **except** `ForceModel` / `ForceModel*` (e.g., `QueryForceModelTint`, `ConstructForceModelIcon`, `ForceModelOrdinal`, `ForceModelSelector`).
 
 ---
@@ -186,7 +190,7 @@ Use the following distinct visual nouns according to their exact structural role
 
 Use this combined index to audit identifiers, filenames, directory names, and comments prior to finalizing changes:
 
-- **A**: `action`, `adjacency`, `Aether`, `affinity`, `Ancestor`, `Apex`, `archive` / `archives`, `arena`, `Assembly` / `assembly` *(avoid: `atlas`)*
+- **A**: `action`, `adjacency`, `Aether`, `affinity`, `Ancestor`, `And` *(conjunction in filenames/identifiers)*, `Apex`, `archive` / `archives`, `arena`, `artwork`, `Assembly` / `assembly` *(avoid: `atlas`)*
 - **B**: `backend`, `badge`, `Base`, `binding`, `bloom`, `BooleanSwitch` *(renamed to `ExclusiveSelector`)*, `Builder` / `builder`, `BuiltIn` / `builtin`
 - **C**: `cadence`, `card`, `carousel`, `catalog` / `catalogue`, `Catalyst`, `Child`, `Children`, `classification`, `Commit`, `Common`, `Complex` / `complex`, `Compose` / `compose`, `concurrence` / `concurrency` / `concurrent`, `Conductor`, `context`, `continuum`, `contract`, `Controller`, `Core`, `coverage`
 - **D**: `Data`, `Descendant`, `Designation`, `dev`, `Director`, `Dispatcher`, `Draw` / `draw`

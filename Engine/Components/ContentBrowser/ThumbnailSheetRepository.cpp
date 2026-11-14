@@ -430,6 +430,7 @@ uint32_t ThumbnailSheetRepository::QueryAllowedCategoryMask(WorkspaceCategory Wo
                    CategoryBit(ContentCategory::Shaders);
 
         case WorkspaceCategory::TexturePaint:
+        case WorkspaceCategory::Baking:
             return CategoryBit(ContentCategory::All) |
                    CategoryBit(ContentCategory::Colours) |
                    CategoryBit(ContentCategory::Geometry) |
@@ -451,6 +452,8 @@ uint32_t ThumbnailSheetRepository::QueryAllowedCategoryMask(WorkspaceCategory Wo
         case WorkspaceCategory::Vector:
             return CategoryBit(ContentCategory::All) |
                    CategoryBit(ContentCategory::Colours) |
+                   CategoryBit(ContentCategory::Materials) |
+                   CategoryBit(ContentCategory::Textures) |
                    CategoryBit(ContentCategory::Images) |
                    CategoryBit(ContentCategory::Vectors) |
                    CategoryBit(ContentCategory::Fonts);
@@ -564,6 +567,7 @@ const char* ThumbnailSheetRepository::QueryWorkspaceTitle(WorkspaceCategory Work
         case WorkspaceCategory::Simulation:   return "Simulation";
         case WorkspaceCategory::Particle:     return "Particle";
         case WorkspaceCategory::Audio:        return "Audio";
+        case WorkspaceCategory::Baking:       return "Baking";
     }
     return "Scene";
 }
@@ -788,6 +792,65 @@ std::size_t ThumbnailSheetRepository::RegisterPrebakedEntry(
     return Entries.size() - 1u;
 }
 
+bool ThumbnailSheetRepository::UpdateEntryThumbnailRgba(
+    std::size_t              EntryIndex,
+    std::span<const uint8_t> TileRgba128x128)
+{
+    const std::size_t ExpectedBytes = static_cast<std::size_t>(TileDimensionPixels) * TileDimensionPixels * 4u;
+    if (EntryIndex >= Entries.size() || TileRgba128x128.size() < ExpectedBytes)
+    {
+        return false;
+    }
+    ContentRepositoryEntry& Entry = Entries[EntryIndex];
+    CopyTileBytesIntoPage(Entry.IndexHeader, TileRgba128x128.subspan(0u, ExpectedBytes));
+    Entry.TileResident = true;
+    return true;
+}
+
+std::size_t ThumbnailSheetRepository::RegisterOrUpdateProjectEntry(
+    std::string_view             DisplayTitle,
+    ContentCategory              Category,
+    ColorRgba                    PreviewTint,
+    const std::filesystem::path& DiskPath,
+    std::span<const uint8_t>     OptionalTileRgba128x128)
+{
+    const std::string GenericDisk = DiskPath.generic_string();
+    for (std::size_t Idx = 0u; Idx < Entries.size(); ++Idx)
+    {
+        if (Entries[Idx].DisplayTitle == DisplayTitle &&
+            static_cast<ContentCategory>(Entries[Idx].IndexHeader.CategoryCode) == Category)
+        {
+            if (!DiskPath.empty())
+            {
+                Entries[Idx].DiskPath = DiskPath;
+                Entries[Idx].IndexHeader.ContentHash64 = ComputeFnv1a64(GenericDisk + "#" + std::string(DisplayTitle));
+            }
+            Entries[Idx].IndexHeader.OriginCode = static_cast<uint8_t>(ContentOriginFilter::Project);
+            Entries[Idx].IndexHeader.TintRed    = PreviewTint.Red;
+            Entries[Idx].IndexHeader.TintGreen  = PreviewTint.Green;
+            Entries[Idx].IndexHeader.TintBlue   = PreviewTint.Blue;
+            if (!OptionalTileRgba128x128.empty())
+            {
+                (void)UpdateEntryThumbnailRgba(Idx, OptionalTileRgba128x128);
+            }
+            return Idx;
+        }
+    }
+
+    const std::size_t NewIdx = RegisterPrebakedEntry(
+        DisplayTitle,
+        Category,
+        ContentOriginFilter::Project,
+        PreviewTint,
+        DiskPath,
+        OptionalTileRgba128x128.empty());
+    if (!OptionalTileRgba128x128.empty())
+    {
+        (void)UpdateEntryThumbnailRgba(NewIdx, OptionalTileRgba128x128);
+    }
+    return NewIdx;
+}
+
 std::size_t ThumbnailSheetRepository::RegisterStudioMatCapEntry(
     uint8_t                  MatCapSlot,
     std::string_view         DisplayTitle,
@@ -951,9 +1014,10 @@ void ThumbnailSheetRepository::PopulateDefaultEngineAndProjectEntries()
         ContentOriginFilter Origin;
         ColorRgba           Tint;
         const char*         CustomExtension = nullptr;
+        const char*         RelativePath    = nullptr;
     };
 
-    constexpr std::array<SeedEntry, 37> StockEntries = {{
+    constexpr std::array<SeedEntry, 40> StockEntries = {{
         // Materials (EngineContent/Materials/)
         { "Standard Preset",      ContentCategory::Materials,   ContentOriginFilter::Engine,  { 199u, 173u, 160u, 255u } },
         { "Dielectric Glass",     ContentCategory::Materials,   ContentOriginFilter::Engine,  { 176u, 222u, 242u, 255u } },
@@ -980,8 +1044,11 @@ void ThumbnailSheetRepository::PopulateDefaultEngineAndProjectEntries()
         { "ColorChecker Chart",   ContentCategory::Images,      ContentOriginFilter::Engine,  { 126u, 186u, 232u, 255u } },
         // Vectors & Fonts
         { "UI Contour Stencil",   ContentCategory::Vectors,     ContentOriginFilter::Engine,  { 226u, 198u, 146u, 255u } },
-        { "Space Grotesk Face",   ContentCategory::Fonts,       ContentOriginFilter::Engine,  { 232u, 224u, 210u, 255u } },
-        { "JetBrains Mono Face",  ContentCategory::Fonts,       ContentOriginFilter::Engine,  { 168u, 206u, 238u, 255u } },
+        { "Space Grotesk Face",   ContentCategory::Fonts,       ContentOriginFilter::Engine,  { 232u, 224u, 210u, 255u }, ".ttf", "FontsArchives/SpaceGrotesk/SpaceGrotesk-Bold.ttf" },
+        { "JetBrains Mono Face",  ContentCategory::Fonts,       ContentOriginFilter::Engine,  { 168u, 206u, 238u, 255u }, ".ttf", "FontsArchives/JetBrainsMono/JetBrainsMono-Regular.ttf" },
+        { "Archivo Bold Face",    ContentCategory::Fonts,       ContentOriginFilter::Engine,  { 239u, 244u, 207u, 255u }, ".ttf", "FontsArchives/Archivo/Archivo-Bold.ttf" },
+        { "DM Sans Face",         ContentCategory::Fonts,       ContentOriginFilter::Engine,  { 196u, 218u, 242u, 255u }, ".ttf", "FontsArchives/DMSans/DMSans-Regular.ttf" },
+        { "Inter Regular Face",   ContentCategory::Fonts,       ContentOriginFilter::Engine,  { 218u, 224u, 234u, 255u }, ".otf", "FontsArchives/Inter/Inter-Regular.otf" },
         // ForceFields, VectorFields & Simulations (.ForceModel / .VectorFieldSpace / .SimulationSpace)
         { "Turbulent Wind Field", ContentCategory::Simulations, ContentOriginFilter::Engine,  { 102u, 208u, 196u, 255u }, ".VectorFieldSpace" },
         { "Coastal Crosswind",    ContentCategory::Simulations, ContentOriginFilter::Engine,  { 110u, 174u, 240u, 255u }, ".ForceModel" },
@@ -1008,8 +1075,9 @@ void ThumbnailSheetRepository::PopulateDefaultEngineAndProjectEntries()
             (Seed.Origin == ContentOriginFilter::Engine)
                 ? ImportPolicy.EngineContentRoot
                 : (ImportPolicy.ActiveProjectRoot.empty() ? std::filesystem::path("Projects/SampleProject/Content") : (ImportPolicy.ActiveProjectRoot / "Content"));
-        const std::filesystem::path EntryPath =
-            RootDir / QueryCategoryTitle(Seed.Category) / (std::string(Seed.Title) + Ext);
+        const std::filesystem::path EntryPath = (Seed.RelativePath != nullptr)
+            ? (RootDir / Seed.RelativePath)
+            : (RootDir / QueryCategoryTitle(Seed.Category) / (std::string(Seed.Title) + Ext));
         const std::size_t Idx = RegisterPrebakedEntry(Seed.Title, Seed.Category, Seed.Origin, Seed.Tint, EntryPath, true);
         if (Seed.CustomExtension != nullptr && Idx < Entries.size())
         {

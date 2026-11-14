@@ -44,9 +44,11 @@ import {
   SolveGizmoDrag,
 } from "./TransformGizmo3D.js";
 import {
+  BuildDefaultDiagnosticForceRig,
   BuildForceOverlayGeometry,
   DEFAULT_FORCE_OVERLAY,
   ENGINE_FORCE_PRESETS,
+  EvaluateSceneCompositeTelemetry,
   EvaluateSceneForceFieldAt,
   FORCE_MODELS,
   ParseForceModelToml,
@@ -54,6 +56,7 @@ import {
   ResolveForceValues,
   SampleCurlNoise3D,
   SerializeForceModelToml,
+  SerializeSimulationSpaceToml,
 } from "./ForceFieldCatalog.js";
 import { CompileFieldProgram, DEFAULT_FORMULA_CODE } from "./VectorFieldLang.js";
 import { CreateWebgpuGtxRenderer, GTX_WGSL_SCENE_SHADER } from "./WebgpuGtxRenderer.js";
@@ -968,6 +971,93 @@ assert.ok(
   );
 }
 
+// 14. VectorField Studio 1:1 Inspector Cards + Streamlines/Heatmap/Bokeh/Curl/Div Debug Views
+{
+  const PanelSrc = fs.readFileSync(path.join(Folder, "ForceFieldPanel.jsx"), "utf8");
+  const EditorSrc = fs.readFileSync(path.join(Folder, "Editor.jsx"), "utf8");
+  const ViewportSrc14 = fs.readFileSync(path.join(Folder, "GtxWorldViewport.jsx"), "utf8");
+
+  for (const RequiredCard of [
+    "ANEMOMETER · PROBE WIND",
+    "Probe Sample",
+    "VORTICITY |∇×F|",
+    "DIVERGENCE ∇·F",
+    "Curve & Path Animation",
+    "Symbolic GPU Language",
+    "GPU Slice & Colorimetry",
+    "Bokeh & RK4 Streamlines",
+    "4-Tier Cascade Clipmap",
+    "SimulationSpace TOML",
+  ]) {
+    assert.ok(
+      PanelSrc.includes(RequiredCard),
+      `ForceFieldPanel implements original VectorField Studio card: ${RequiredCard}`,
+    );
+  }
+
+  for (const ForceDbgView of [
+    "ForceField · Streams + Heatmap",
+    "ForceField · Bokeh + Heatmap",
+    "ForceField · Vorticity |∇×F|",
+    "ForceField · Divergence ∇·F",
+  ]) {
+    assert.ok(
+      EditorSrc.includes(ForceDbgView),
+      `Editor DebugViews includes ${ForceDbgView}`,
+    );
+  }
+  assert.ok(
+    ViewportSrc14.includes("vf-viewport-hud-bar") &&
+      ViewportSrc14.includes("EvaluateSceneCompositeTelemetry"),
+    "GtxWorldViewport renders live VectorField Colorbar + 3D Probe Differential Telemetry HUD",
+  );
+
+  const Rig = BuildDefaultDiagnosticForceRig();
+  assert.equal(Rig.length, 3, "Diagnostic Wind + Cyclonic Vortex + Curl Turbulence rig has 3 sources");
+  const Tel = EvaluateSceneCompositeTelemetry(Rig, 0.35, 0.15, 0.45, 0.5, 0.08);
+  assert.ok(
+    Tel.Speed > 0.5 && Tel.CurlMag > 0.05 && Tel.ContributingCount >= 2 && Tel.Beaufort.Number >= 1,
+    "Composite differential telemetry computes live Speed, Vorticity |∇×F|, Divergence ∇·F, and Beaufort scale",
+  );
+
+  const BokehOverlay = BuildForceOverlayGeometry(
+    Rig,
+    {
+      ...DEFAULT_FORCE_OVERLAY,
+      ShowHeatmap: true,
+      ShowStreamlines: true,
+      ShowBokehRibbons: true,
+      Quantity: "Curl",
+      Colormap: "Plasma",
+      SliceAxis: "ALL",
+    },
+    Rig[1].Id,
+    0.75,
+    [0, -3.55, 0.42],
+  );
+  assert.ok(
+    BokehOverlay.OpaqueVertexCount > 300 && BokehOverlay.TranslucentVertexCount > 4000,
+    "Streamlines + All-3 Slice Heatmap + Bokeh Stream Ribbons generate rich camera-facing 3D geometry",
+  );
+
+  const SpaceToml = SerializeSimulationSpaceToml(Rig, "TunnelLab");
+  assert.ok(
+    SpaceToml.includes("[VectorFieldSpace]") &&
+      (SpaceToml.match(/\[\[ForceSources\]\]/g) || []).length === 3,
+    "SerializeSimulationSpaceToml encodes all 3 scene ForceSources cleanly",
+  );
+
+  const ForceLabLevel = CreateNewLevelRecord({
+    Name: "Aero Tunnel",
+    TemplateId: "force-lab",
+  });
+  assert.equal(
+    ForceLabLevel.Rows.filter((R) => R.Panel === "force").length,
+    3,
+    "Wind & Vortex ForceField Lab template populates 3 editable ForceField rows",
+  );
+}
+
 console.log(
-  "[WorldMirrorValidation] ALL 13 SUITES PASSED: 24 Studio Cameras/Lights/Props, Transparent Auto-Framed 3D Thumbnails, Per-Face Colours, 15 Debug Views, Decoupled Diagnostics, and ProjectBrowser verified!",
+  "[WorldMirrorValidation] ALL 14 SUITES PASSED: 24 Studio Cameras/Lights/Props, VectorField Studio 4-Tab Inspector + Streamlines/Heatmap/Bokeh Debug Views, 3D Thumbnails, Per-Face Colours, 19 Debug Views, and ProjectBrowser verified!",
 );
