@@ -60,7 +60,8 @@ import { PE } from "./pe.js";
       dynStiff: 1.25,       // elastic spring recovery rate (1/s multiplier)
       dynTearThresh: 0.0,   // projectile speed threshold for strand tearing or leaf detachment (m/s, 0 = unbreakable)
       dynRows: 28,          // cloth strip rows / cable spans / fern fronds / canopy branches
-      dynSegs: 20,          // strand resolution: nodes per cable/vine/blade curve (4..20), scales with strand size
+      dynSegs: 16,          // curve resolution: subdivided segments per cable/vine/kelp/anemone curve (2..32)
+      dynCurveDebug: false, // true: show curve control vertices & segment boundaries debug wireframe
       dynAnemThick: 1.0,    // sea anemone tentacle thickness multiplier (dynMode 9)
       dynHeight: 2.4,       // vertical elevation / mast / stalk / canopy height (m)
       dynSag: 0.35,         // gravity catenary droop or frond arch curvature (m)
@@ -71,6 +72,7 @@ import { PE } from "./pe.js";
       ferroMode: 0,         // 0 off, 1 Rosensweig petri-dish pool + magnet, 2 3D levitated ferrofluid crown
       ferroSpikes: 520,     // magnetic Rosensweig spike count across fluid meniscus
       ferroMagnetSpeed: 1.35, // orbiting neodymium magnet angular velocity (rad/s)
+      ferroMagnetFree: false, // true: magnet sits at effPos and is freely draggable in 3D viewport
       crackMode: 0,         // 0 off, 1 movie cracked glacial ice, 2 earthquake stone ground fracture
       crackSpeed: 2.6,      // fracture front propagation speed (m/s)
       crackDepth: 0.44,     // fissure heave / abyss tilt amplitude (m)
@@ -102,7 +104,7 @@ import { PE } from "./pe.js";
       shieldMask: 1,        // Bitmask of layered shield patterns: 1 Hex, 2 Circles, 4 Triangles, 8 Squares, 16 Diamonds, 32 Voronoi Cracks, 64 Stars
       shieldSpin: 0.20,     // Pattern rotation / drift rate
       gridMode: 0,          // 0 off, 1 motion-graphics effector particle grid / halftone lattice
-      gridSurface: 0,       // 0 Plane XZ, 1 Wall XY, 2 Sphere Shell, 3 Sculpted Hand & Orb, 4 Torus Ring, 5 3D Volume Matrix
+      gridSurface: 0,       // 0 Plane XZ, 1 Wall XY, 2 Sphere, 3 Hand & Orb, 4 Torus, 5 3D Volume, 6..15 Built-in 3D Objects, 16 Custom Imported Mesh
       gridShape: 2,         // 0 Circles, 1 Boxes (Uniform Scale), 2 Cubes (Height Up/Down), 3 Flat Tiles, 4 Triangles, 5 Hexagons, 6 Auto (Dots + Upper Cubes)
       gridCols: 24,         // lattice columns / angular divisions
       gridRows: 24,         // lattice rows
@@ -113,6 +115,12 @@ import { PE } from "./pe.js";
       effPos2: [2.5, 1.5, 0], // placeable effector B centre (m, drag in viewport)
       effShape2: 0,         // placeable effector B shape
       effSize2: 0,          // placeable effector B size (0 = off)
+      effBlend: false,      // true: also blend placeable effectors A/B on top of procedural effector waves
+      objRot: [0, 0, 0],    // 3D object Euler rotation in degrees [rx, ry, rz] for gridSurface >= 6
+      objStyle: 0,          // 3D backing style: 0 Obsidian Dark, 1 Brushed Chrome, 2 Ghost Wireframe, 3 Hidden
+      objSampleMode: 0,     // 3D anchor sampling: 0 Even Surface, 1 Surface + Volume, 2 Ridge & Crease Accent
+      customMeshId: "",     // runtime registry ID for user-imported OBJ/STL/JSON/Facet mesh (gridSurface === 16)
+      customMeshName: "",   // display filename for user-imported 3D mesh
       headStyle: 0,         // bokeh head style: 0 Mixed (per-particle), 1 Sharp core, 2 Creamy disc, 3 Rim ring
       headScale: 1,         // bokeh head size multiplier
       gridMinScale: 0.10,   // idle scale / height fraction outside effector zone
@@ -122,6 +130,11 @@ import { PE } from "./pe.js";
       burstEvery: 0,        // timed bursts in seconds (fireworks); 0 = off
       burstCount: 120,      // particles per timed burst
       burstAtOrigin: false, // true: timed bursts fire from the emitter origin, not random sky points
+      flareMode: 0,         // 0 off, 1 military IR countermeasure decoy flare V-salvo with billowing smoke ribbons
+      fireworkMode: 0,      // 0 off, 1 multi-stage pyro shells, 2 New Year's Text & Object spectacle shells
+      fireworkShape: 0,     // 0 Bouquet, 1 Sky Text, 2 Heart, 3 Star, 4 Smiley, 5 Saturn, 6 Crown, 7 Butterfly, 8 Spiral, 9 Grand Finale
+      fireworkText: "2026", // custom sky-writing text for fireworkShape === 1 or 9
+      fireworkScale: 2.6,   // sky pattern radius in meters
       visible: true,
     };
   };
@@ -359,13 +372,14 @@ import { PE } from "./pe.js";
     },
     {
       id: "flares", name: "Countermeasure flares", group: "Aircraft",
-      blurb: "IR decoy flares dispensed by a jet to break missile lock: a white-hot burst that falls behind the aircraft and burns out.",
+      blurb: "Military aircraft IR decoy flare salvo ('Angel of Death'): alternating twin-pod V-bursts of blinding white-hot magnesium flares trailing thick billowing curling smoke plumes and molten sparks.",
       p: P({
-        kind: 5, shape: 3, blend: "add", capacity: 600, rate: 0,
-        emitShape: 1, radius: 0.3, origin: [4.5, 4.5, -4], dir: [-1, -0.25, 0], spread: 0.35,
-        speedMin: 4, speedMax: 7, drag: 1.4, buoyancy: 0, gravity: 1.0, lifeMin: 4, lifeMax: 7,
-        sizeStart: 0.45, sizeEnd: 0.12, colA: [1, 0.98, 0.85, 1], colB: [1, 0.42, 0.1, 0],
-        windCoupling: 0.5, burstEvery: 0.9, burstCount: 14, burstAtOrigin: true,
+        kind: 5, shape: 3, blend: "alpha", capacity: 480, rate: 0,
+        emitShape: 1, radius: 0.25, origin: [0, 4.6, 0], dir: [-0.85, -0.35, 0], spread: 0.42,
+        speedMin: 8.5, speedMax: 13.5, drag: 1.55, buoyancy: 0.35, gravity: 0.68, lifeMin: 3.4, lifeMax: 5.2,
+        sizeStart: 0.34, sizeEnd: 0.14, colA: [1.0, 0.99, 0.92, 1], colC: [1.0, 0.66, 0.20, 1], colB: [0.84, 0.88, 0.94, 0],
+        windCoupling: 0.85, bounce: 0.25, burstEvery: 2.2, burstCount: 16, burstAtOrigin: true,
+        flareMode: 1, showObject: true,
       }),
     },
     {
@@ -381,13 +395,13 @@ import { PE } from "./pe.js";
     },
     {
       id: "watermist", name: "Water mist", group: "Water",
-      blurb: "Fine droplets blown off a waterfall or spray: short life and high drag.",
+      blurb: "Volumetric sunlit water mist billowing from a high-pressure spray bar: multi-lobe turbulent vapor plumes, subtle prismatic rainbow refraction, and glittering micro-droplet aerosol shimmer.",
       p: P({
-        kind: 5, shape: 3, blend: "alpha", capacity: 2500, rate: 200,
-        emitShape: 2, radius: 0.5, origin: [5, 3, 0], dir: [-1, 0, 0], spread: 0.9,
-        speedMin: 0.4, speedMax: 1.2, drag: 2.5, gravity: 0.15, lifeMin: 1.2, lifeMax: 2.2,
-        sizeStart: 0.06, sizeEnd: 0.5, colA: [0.85, 0.92, 1, 0.35], colB: [0.9, 0.95, 1, 0],
-        windCoupling: 1.0,
+        kind: 5, shape: 19, blend: "alpha", capacity: 1800, rate: 220,
+        emitShape: 2, radius: 0.95, origin: [2.6, 2.35, 0], dir: [-0.95, -0.18, 0], spread: 0.82,
+        speedMin: 0.9, speedMax: 2.6, drag: 1.9, buoyancy: 0.22, gravity: 0.08, lifeMin: 1.9, lifeMax: 3.8,
+        sizeStart: 0.30, sizeEnd: 1.55, colA: [0.90, 0.97, 1.0, 0.32], colC: [0.76, 0.92, 1.0, 0.22], colB: [0.88, 0.96, 1.0, 0],
+        windCoupling: 1.35, flutter: 0.90, showObject: true,
       }),
     },
     {
@@ -402,13 +416,13 @@ import { PE } from "./pe.js";
     },
     {
       id: "glass", name: "Glass shards", group: "Effects",
-      blurb: "Sharp bright fragments blown from a broken window. They bounce and glint, unlike debris.",
+      blurb: "Real 3D faceted glass shard meshes blown from a broken window, tumbling in 3D, bouncing, and catching specular glints.",
       p: P({
-        kind: 0, shape: 0, blend: "add", capacity: 800, rate: 30,
-        emitShape: 1, radius: 0.4, origin: [3, 2.5, -3], dir: [0, 0, 1], spread: 1.0,
-        speedMin: 2, speedMax: 5, drag: 0.15, gravity: 1, lifeMin: 2, lifeMax: 3.5,
-        sizeStart: 0.04, sizeEnd: 0.02, colA: [0.8, 0.95, 1, 1], colB: [0.6, 0.8, 1, 0],
-        windCoupling: 0.4, bounce: 0.3,
+        kind: 0, shape: 18, blend: "alpha", capacity: 420, rate: 26,
+        emitShape: 1, radius: 0.42, origin: [3, 2.5, -3], dir: [0, 0, 1], spread: 1.0,
+        speedMin: 2.2, speedMax: 5.4, drag: 0.14, gravity: 1.0, lifeMin: 2.2, lifeMax: 3.8,
+        sizeStart: 0.24, sizeEnd: 0.16, colA: [0.80, 0.94, 1.0, 0.84], colB: [0.56, 0.84, 0.98, 0.0],
+        windCoupling: 0.4, bounce: 0.42,
       }),
     },
     {
@@ -468,13 +482,26 @@ import { PE } from "./pe.js";
     },
     {
       id: "fireworks", name: "Fireworks", group: "VFX",
-      blurb: "Timed shells: each burst fires from a random point in the sky, with streaked trails.",
+      blurb: "Choreographed multi-stage Hanabi fireworks: ascending golden mortar rockets bursting into Chrysanthemum, Golden Willow, Brocade Palm, and Crossette shells with drooping ember trails and instant impact pop-vanish.",
       p: P({
-        kind: 5, shape: 0, blend: "add", capacity: 3000, rate: 0,
-        emitShape: 1, radius: 0.1, origin: [0, 6, 0], dir: [0, 1, 0], spread: 3.14159,
-        speedMin: 4, speedMax: 9, drag: 1.8, gravity: 0.8, lifeMin: 1.2, lifeMax: 2.4,
-        sizeStart: 0.06, sizeEnd: 0.02, colA: [1, 0.9, 0.6, 1], colC: [1, 1, 0.3, 1], colB: [1, 0.35, 0.1, 0],
-        windCoupling: 0.4, burstEvery: 2.6, burstCount: 180,
+        kind: 5, shape: 0, blend: "add", capacity: 1200, rate: 0,
+        emitShape: 1, radius: 0.15, origin: [0, 0.05, 0], dir: [0, 1, 0], spread: 3.14159,
+        speedMin: 4, speedMax: 9, drag: 1.45, gravity: 0.42, lifeMin: 1.8, lifeMax: 2.9,
+        sizeStart: 0.15, sizeEnd: 0.035, colA: [1, 0.94, 0.65, 1], colC: [1, 0.48, 0.22, 1], colB: [1, 0.22, 0.14, 0],
+        windCoupling: 0.45, burstEvery: 3.1, burstCount: 240,
+        fireworkMode: 1, fireworkShape: 0, fireworkText: "2026", fireworkScale: 2.55, showObject: true,
+      }),
+    },
+    {
+      id: "fireworks-spectacle", name: "New Year's Text & Shape Fireworks", group: "VFX",
+      blurb: "Grand New Year's spectacle shells bursting into luminous 3D sky text (customizable: '2026', 'HAPPY NEW YEAR', etc.) plus Heart, Saturn, Star, Smiley, Crown, and Butterfly pyro formations with impact pop-vanish.",
+      p: P({
+        kind: 5, shape: 0, blend: "add", capacity: 1400, rate: 0,
+        emitShape: 1, radius: 0.15, origin: [0, 0.05, 0], dir: [0, 1, 0], spread: 3.14159,
+        speedMin: 4, speedMax: 9, drag: 1.65, gravity: 0.32, lifeMin: 2.0, lifeMax: 3.2,
+        sizeStart: 0.16, sizeEnd: 0.04, colA: [1, 0.92, 0.42, 1], colC: [0.32, 0.92, 1.0, 1], colB: [1, 0.24, 0.64, 0],
+        windCoupling: 0.35, burstEvery: 3.5, burstCount: 280,
+        fireworkMode: 2, fireworkShape: 9, fireworkText: "2026", fireworkScale: 2.85, showObject: true,
       }),
     },
     {
@@ -1087,14 +1114,15 @@ import { PE } from "./pe.js";
     },
     {
       id: "effector-hand-halftone", name: "Obsidian Hand · Halftone & Tiles", group: "Motion & Grids",
-      blurb: "Sculpted obsidian hand holding a chrome sphere, wrapped in wave-modulated halftone dots on palm/thumb and raised square tiles up the forearm.",
+      blurb: "Sculpted obsidian hand holding a chrome sphere—swappable to any 3D object or imported OBJ/STL mesh—wrapped in wave- and effector-modulated halftone dots & raised tiles.",
       p: P({
         kind: 5, shape: 1, blend: "alpha", capacity: 1200, rate: 0,
         emitShape: 1, radius: 1.35, boxHalf: [1.35, 1.35, 1.35], origin: [0.0, 2.05, 0.1], dir: [0, 1, 0], spread: 0.0,
         speedMin: 0, speedMax: 0, drag: 0, gravity: 0, buoyancy: 0,
         lifeMin: 9999, lifeMax: 9999, sizeStart: 0.068, sizeEnd: 0.068, sizeScale: 1.0,
         gridMode: 1, gridSurface: 3, gridShape: 6, gridCols: 34, gridRows: 35,
-        gridEffector: 0, gridMinScale: 0.10, gridMaxHeight: 0.16, gridContrast: 1.75, gridBillboard: 0,
+        gridEffector: 0, effPos: [0.45, 2.35, 0.45], effSize: 1.1, effPos2: [-0.65, 1.75, 0.3], effSize2: 0,
+        gridMinScale: 0.10, gridMaxHeight: 0.16, gridContrast: 1.75, gridBillboard: 0,
         curlFreq: 1.45, curlAmp: 0.58, windCoupling: 0, bounce: 0, showObject: true,
         colA: hex("#1c1d22"), colC: hex("#ff1b2d"), colB: hex("#ff4a6e"),
       }),
@@ -1111,6 +1139,23 @@ import { PE } from "./pe.js";
         gridEffector: 3, gridMinScale: 0.14, gridMaxHeight: 0.22, gridContrast: 1.55, gridBillboard: 0,
         curlFreq: 1.25, curlAmp: 0.72, windCoupling: 0, bounce: 0, showObject: true,
         colA: hex("#15192a"), colC: hex("#49d2ff"), colB: hex("#ffe066"),
+      }),
+    },
+    {
+      id: "effector-object-placer", name: "Placeable 3D Object · MoGraph & Effectors", group: "Motion & Grids",
+      blurb: "Place any 3D object from the built-in library or import any custom OBJ / STL / JSON mesh, transform it in 3D, and sculpt its particle surface with draggable Effectors A & B.",
+      p: P({
+        kind: 5, shape: 1, blend: "alpha", capacity: 1400, rate: 0,
+        emitShape: 1, radius: 1.55, boxHalf: [1.55, 1.55, 1.55], origin: [0.0, 1.85, 0.0], dir: [0, 1, 0], spread: 0.0,
+        speedMin: 0, speedMax: 0, drag: 0, gravity: 0, buoyancy: 0,
+        lifeMin: 9999, lifeMax: 9999, sizeStart: 0.068, sizeEnd: 0.068, sizeScale: 1.0,
+        gridMode: 1, gridSurface: 6, gridShape: 6, gridCols: 36, gridRows: 36,
+        gridEffector: 5, effPos: [0.85, 2.25, 0.55], effShape: 0, effSize: 1.15,
+        effPos2: [-0.95, 1.55, 0.45], effShape2: 1, effSize2: 0.95, effBlend: false,
+        objRot: [0, -28, 0], objStyle: 0, objSampleMode: 0,
+        gridMinScale: 0.16, gridMaxHeight: 0.24, gridContrast: 1.55, gridBillboard: 0,
+        curlFreq: 1.35, curlAmp: 0.65, windCoupling: 0, bounce: 0, showObject: true,
+        colA: hex("#181c28"), colC: hex("#3ec46d"), colB: hex("#f0d878"),
       }),
     },
     // Priority 1A: Fluid-Coupled Mud, Car Puddle Rooster-Tails & Crown Splashes (compact particle budget, realistic micro-droplets & ligaments)
@@ -1154,58 +1199,58 @@ import { PE } from "./pe.js";
         windCoupling: 0.18, bounce: 0.02, flutter: 0.01, showObject: true,
       }),
     },
-    // Priority 1B: Magnetic Ferrofluid Spikes (Rosensweig Instability)
+    // Priority 1B: Liquid-Chrome Particle Ferrofluid (Sculpted 3D Rosensweig Metallic Cones + Swarming Chrome Beads)
     {
       id: "ferrofluid-spikes", name: "Magnetic Ferrofluid Dish", group: "Ferrofluid & Fields",
-      blurb: "Black liquid-chrome ferrofluid pool erupting into sharp hexagonal Rosensweig spikes drawn toward an orbiting magnet, thrown ball, and active Force Fields.",
+      blurb: "Glossy wet jet-black obsidian ferrofluid pool swelling into smooth concave hexagonal Rosensweig cusps with crisp studio softbox reflections pulled by an orbiting neodymium magnet.",
       p: P({
-        kind: 5, shape: 1, blend: "alpha", capacity: 560, rate: 0,
+        kind: 5, shape: 1, blend: "alpha", capacity: 220, rate: 0,
         emitShape: 2, radius: 2.05, boxHalf: [2.05, 1.05, 2.05], origin: [-1.95, 0.04, 0.25], dir: [0, 1, 0], spread: 0.0,
         speedMin: 0, speedMax: 0, drag: 0, gravity: 0, buoyancy: 0,
-        lifeMin: 9999, lifeMax: 9999, sizeStart: 0.088, sizeEnd: 0.015, sizeScale: 1.0,
-        ferroMode: 1, ferroSpikes: 560, ferroMagnetSpeed: 1.35, curlFreq: 1.25, curlAmp: 1.2, streakThin: 1.0,
+        lifeMin: 9999, lifeMax: 9999, sizeStart: 0.235, sizeEnd: 0.045, sizeScale: 1.0,
+        ferroMode: 1, ferroSpikes: 135, ferroMagnetSpeed: 1.25, curlFreq: 1.15, curlAmp: 1.35, streakThin: 1.0,
         windCoupling: 0.15, bounce: 0, showObject: true,
-        colA: hex("#06080d"), colC: hex("#1d2b44"), colB: hex("#a8d4ff"),
+        colA: hex("#030407"), colC: hex("#2d4363"), colB: hex("#f4faff"),
       }),
     },
     {
       id: "ferrofluid-orb", name: "Levitated Ferrofluid Crown", group: "Ferrofluid & Fields",
-      blurb: "Free-floating 3D sphere of liquid ferrofluid bristling with metallic Rosensweig spikes following magnetic poles in zero gravity.",
+      blurb: "Free-floating 3D glossy wet-black obsidian ferrofluid sphere bristling with smooth concave Rosensweig liquid peaks and razor-sharp studio highlights.",
       p: P({
-        kind: 5, shape: 1, blend: "alpha", capacity: 560, rate: 0,
-        emitShape: 1, radius: 1.15, boxHalf: [1.15, 0.92, 1.15], origin: [2.45, 2.05, -0.2], dir: [0, 1, 0], spread: 0.0,
+        kind: 5, shape: 1, blend: "alpha", capacity: 220, rate: 0,
+        emitShape: 1, radius: 1.22, boxHalf: [1.22, 0.98, 1.22], origin: [2.45, 2.05, -0.2], dir: [0, 1, 0], spread: 0.0,
         speedMin: 0, speedMax: 0, drag: 0, gravity: 0, buoyancy: 0,
-        lifeMin: 9999, lifeMax: 9999, sizeStart: 0.072, sizeEnd: 0.012, sizeScale: 1.0,
-        ferroMode: 2, ferroSpikes: 560, ferroMagnetSpeed: 1.55, curlFreq: 1.35, curlAmp: 1.05, streakThin: 0.95,
+        lifeMin: 9999, lifeMax: 9999, sizeStart: 0.205, sizeEnd: 0.038, sizeScale: 1.0,
+        ferroMode: 2, ferroSpikes: 110, ferroMagnetSpeed: 1.45, curlFreq: 1.20, curlAmp: 1.25, streakThin: 1.0,
         windCoupling: 0.15, bounce: 0, showObject: true,
-        colA: hex("#05060b"), colC: hex("#263252"), colB: hex("#72e5ff"),
+        colA: hex("#030407"), colC: hex("#2c4568"), colB: hex("#e8f7ff"),
       }),
     },
-    // Priority 1C: Movie-Style Cracked Ice & Ground Fracture Propagation
+    // Priority 1C: Real Branching Ice Crack & Tectonic Fracture Propagation with 3D Shard Particles
     {
       id: "cracked-ice-sheet", name: "Movie Cracked Glacial Ice", group: "Fracture & Cracks",
-      blurb: "Branching lightning-fast glacial crack propagation splitting a thick frozen sheet into tilting Voronoi ice plates, frost vapor, and deep arctic water.",
+      blurb: "Real branching glacial ice cracks racing outward with 3D internal cleavage depth, sparkling frost bursts, and tumbling 3D ice shard meshes erupting from advancing crack tips.",
       p: P({
-        kind: 5, shape: 4, blend: "alpha", capacity: 580, rate: 0,
-        emitShape: 3, boxHalf: [2.1, 0.14, 2.1], origin: [-2.35, 0.02, 0.2], dir: [0, 1, 0], spread: 0.45,
-        speedMin: 1.2, speedMax: 3.4, drag: 1.2, gravity: 0.85, lifeMin: 0.65, lifeMax: 1.45,
-        sizeStart: 0.23, sizeEnd: 0.12, sizeScale: 1.0,
-        crackMode: 1, crackSpeed: 2.6, crackDepth: 0.44, curlFreq: 1.15, curlAmp: 1.0,
-        windCoupling: 0.35, bounce: 0.2, showObject: true,
-        colA: hex("#8be4ff"), colC: hex("#c9f4ff"), colB: hex("#ffffff"),
+        kind: 5, shape: 18, blend: "alpha", capacity: 640, rate: 0,
+        emitShape: 3, boxHalf: [2.35, 0.14, 2.35], origin: [-2.45, 0.02, 0.2], dir: [0, 1, 0], spread: 0.45,
+        speedMin: 1.4, speedMax: 3.8, drag: 0.85, gravity: 0.95, lifeMin: 0.65, lifeMax: 1.65,
+        sizeStart: 0.155, sizeEnd: 0.09, sizeScale: 1.0,
+        crackMode: 1, crackSpeed: 2.8, crackDepth: 0.55, curlFreq: 1.15, curlAmp: 1.0,
+        windCoupling: 0.30, bounce: 0.38, showObject: true,
+        colA: hex("#a8eeff"), colC: hex("#dff8ff"), colB: hex("#ffffff"),
       }),
     },
     {
       id: "ground-crack-quake", name: "Seismic Ground Crack Fissure", group: "Fracture & Cracks",
-      blurb: "Rippling tectonic ground fracture throwing tilted basalt slabs apart over an incandescent fault chasm as ball impacts or seismic waves travel outward.",
+      blurb: "Branching tectonic ground chasm splitting dark basalt rock open over incandescent molten lava fissures with flying 3D basalt rock shards and rising fissure embers.",
       p: P({
-        kind: 5, shape: 4, blend: "alpha", capacity: 580, rate: 0,
-        emitShape: 3, boxHalf: [2.1, 0.16, 2.1], origin: [2.35, 0.02, -0.2], dir: [0, 1, 0], spread: 0.55,
-        speedMin: 1.5, speedMax: 4.2, drag: 1.0, gravity: 1.05, lifeMin: 0.7, lifeMax: 1.55,
-        sizeStart: 0.23, sizeEnd: 0.10, sizeScale: 1.0,
-        crackMode: 2, crackSpeed: 2.8, crackDepth: 0.48, curlFreq: 1.25, curlAmp: 1.15,
-        windCoupling: 0.25, bounce: 0.25, showObject: true,
-        colA: hex("#2b2623"), colC: hex("#ff5a1f"), colB: hex("#ffd166"),
+        kind: 5, shape: 18, blend: "alpha", capacity: 640, rate: 0,
+        emitShape: 3, boxHalf: [2.35, 0.16, 2.35], origin: [2.45, 0.02, -0.2], dir: [0, 1, 0], spread: 0.55,
+        speedMin: 1.8, speedMax: 4.5, drag: 0.75, gravity: 1.05, lifeMin: 0.7, lifeMax: 1.65,
+        sizeStart: 0.165, sizeEnd: 0.09, sizeScale: 1.0,
+        crackMode: 2, crackSpeed: 3.0, crackDepth: 0.60, curlFreq: 1.25, curlAmp: 1.15,
+        windCoupling: 0.25, bounce: 0.32, showObject: true,
+        colA: hex("#3b3430"), colC: hex("#ff5a1f"), colB: hex("#ffd166"),
       }),
     },
     // Priority 2: #9 Dynamic Lightning Webs / Plasma Cage Arcs
@@ -1372,9 +1417,25 @@ import { PE } from "./pe.js";
     },
   ];
 
+  PE.QUARANTINE_IDS = new Set([
+    "blossom-branch-detach",
+    "jelly-slime-blob",
+    "slime-tendril-cluster",
+    "splatter-burst",
+    "impact-dust-ring",
+    "splash",
+    "puddle-ripple-splash",
+    "car-puddle-splash",
+    "mud-splatter-heavy",
+  ]);
+  PE.isQuarantined = (presetOrId) => {
+    const id = typeof presetOrId === "string" ? presetOrId : presetOrId?.id;
+    return !!id && PE.QUARANTINE_IDS.has(id);
+  };
+
   PE.VFX_CATEGORIES = [
     { id: "Cloth & Rigging", label: "Cloth & Rigging", badge: "CLOTH", blurb: "Ball-interactive wind flags, ship sails, hanging bead curtains, wind chimes, doorway drapes, cables & vines" },
-    { id: "Foliage & Flora", label: "Foliage & Flora", badge: "FLORA", blurb: "Interactive grass & wheat, reeds, ferns, trees, kelp, anemones, dandelion seed heads & orchard blossoms" },
+    { id: "Foliage & Flora", label: "Foliage & Flora", badge: "FLORA", blurb: "Interactive grass & wheat, reeds, ferns, trees, kelp, anemones & dandelion seed heads" },
     { id: "Ferrofluid & Fields", label: "Ferrofluid & Fields", badge: "FERRO", blurb: "Black liquid-chrome Rosensweig ferrofluid spike pools and 3D levitated crowns tracking magnets & Force Fields" },
     { id: "Fracture & Cracks", label: "Fracture & Cracks", badge: "CRACK", blurb: "Movie-style glacial ice cracking & earthquake Voronoi basalt ground fracture propagation with fissure debris" },
     { id: "Motion & Grids", label: "Motion & Grids", badge: "MOGRAPH", blurb: "Effector-driven halftone dot/box/triangle grids, height-extruded cube matrices, and obsidian surface lattices" },
@@ -1383,10 +1444,11 @@ import { PE } from "./pe.js";
     { id: "Space & Distortion", label: "Space & Distortion", badge: "LENS", blurb: "Black hole accretion spiral with relativistic gravitational lensing & rising heat shimmer refraction" },
     { id: "Shields & Tech", label: "Shields & Tech", badge: "TECH", blurb: "Multi-shape energy shield barriers with hex/circle/triangle/diamond/Voronoi cracks, radar sweeps, sonar & EMP domes" },
     { id: "Atmosphere & Sky", label: "Atmosphere & Sky", badge: "SKY", blurb: "Volumetric aurora borealis curtains, fireworks bursts, flares & floating atmospheric dust motes" },
-    { id: "Ballistics & Sparks", label: "Ballistics & Sparks", badge: "BALLISTIC", blurb: "Shockwaves, beams, tracers, strike sparks, welding spray & high-velocity impact ballistics" },
-    { id: "Pyro & Water", label: "Pyro & Water", badge: "VFX", blurb: "Fire, smoke, embers, soft-body jelly/slime tendrils, car mud & puddle splashes, ripples & bubbles" },
+    { id: "Ballistics & Sparks", label: "Ballistics & Sparks", badge: "BALLISTIC", blurb: "Shockwaves, beams, tracers, strike sparks, 3D glass shards, welding spray & high-velocity impact ballistics" },
+    { id: "Pyro & Water", label: "Pyro & Water", badge: "VFX", blurb: "Fire, smoke, embers, steam, mist, bubbles & foam" },
     { id: "Wind-Blown", label: "Wind-Blown", badge: "WIND", blurb: "Leaves, petals, seeds, starling murmurations & butterfly boids driven by Force Fields & predator balls" },
     { id: "Storms & Weather", label: "Storms & Weather", badge: "WEATHER", blurb: "Rain, snow, hail, sandstorms, tornado debris, ash & sand" },
+    { id: "Quarantine", label: "Quarantine", badge: "HOLD", blurb: "Shelved presets kept out of active shelves (blossom detachment, slime/jelly, dust rings, splashes & mud)" },
   ];
 
   PE.vfxCategoryOf = (paramsOrPreset, maybePreset = null) => {
@@ -1395,6 +1457,7 @@ import { PE } from "./pe.js";
     if (!p) return "Ballistics & Sparks";
     const g = preset?.group || "";
     const id = preset?.id || "";
+    if (PE.QUARANTINE_IDS.has(id)) return "Quarantine";
     if ((p.ferroMode || 0) > 0 || g === "Ferrofluid & Fields") return "Ferrofluid & Fields";
     if ((p.crackMode || 0) > 0 || g === "Fracture & Cracks") return "Fracture & Cracks";
     if ((p.gridMode || 0) > 0 || g === "Motion & Grids") return "Motion & Grids";
@@ -1404,17 +1467,21 @@ import { PE } from "./pe.js";
     if (p.transition || g === "Transitions") return "Transitions";
     if (p.blackHole || p.heatShimmer || g === "Space") return "Space & Distortion";
     if (p.shape === 11 || p.shape === 12 || p.shape === 15 || p.shape === 16) return "Shields & Tech";
-    if (p.shape === 17 || id === "fireworks" || id === "flares" || id === "pollen") return "Atmosphere & Sky";
+    if (p.shape === 17 || (p.fireworkMode || 0) > 0 || (p.flareMode || 0) > 0 || id === "fireworks" || id === "fireworks-spectacle" || id === "flares" || id === "pollen") return "Atmosphere & Sky";
     if (p.curlMode > 0 || p.webMode > 0 || (p.arcMode ?? -1) >= 2 || g === "Silk & Curl") return "Silk & Curl";
     if (g === "Weather" || g === "Storms" || g === "Ground" || id === "ash") return "Storms & Weather";
     if (g === "Wind-Blown" || g === "Wind-blown" || g === "Ambient" || p.kind === 1 || p.kind === 6) return "Wind-Blown";
-    if (g === "Water" || g === "Pyro & Water" || p.shape === 14 || (g === "VFX" && p.shape !== 0 && p.shape !== 5)) return "Pyro & Water";
+    if (g === "Water" || g === "Pyro & Water" || p.shape === 14 || p.shape === 19 || (g === "VFX" && p.shape !== 0 && p.shape !== 5)) return "Pyro & Water";
     return "Ballistics & Sparks";
   };
 
   PE.vfxSublabelOf = (paramsOrPreset) => {
     const p = paramsOrPreset?.p || paramsOrPreset;
     if (!p) return "Particles";
+    if ((p.flareMode || 0) > 0) return "IR Countermeasure Flares";
+    if ((p.fireworkMode || 0) === 2) return "New Year's Pyro Spectacle";
+    if ((p.fireworkMode || 0) === 1) return "Multi-Stage Fireworks";
+    if (p.shape === 19) return "Volumetric Water Mist";
     if (p.arcMode === 0) return "Tesla Lightning";
     if (p.arcMode === 1) return "Static Shock";
     if (p.arcMode === 2) return "Plasma Cage";
@@ -1470,7 +1537,7 @@ import { PE } from "./pe.js";
     if ((p.trailMode || 0) > 0) return p.shape === 14 ? "Viscous Drip" : "Projectile Trail";
     if (p.magneticField) return "Dipole Guided";
     if (p.kind === 1) return "Wind-driven";
-    return ["Streak", "Sphere", "Leaf", "Pyro / Glow", "Cube", "Coin", "Bubble", "Snowflake", "Ice Hail", "Bokeh Bead", (p.leafMode ? "Dust Shockwave" : "Mach Shockwave"), "EMP Pulse Dome", "Holo Glitch", "Winged Boid", "Viscous Drop", (p.leafMode ? "Sonar Ping" : "Radar Sweep"), ((p.shieldMask ?? 1) !== 1 || (p.shieldForm ?? 0) > 0 ? "Multi-Shape Shield" : "Hex Energy Shield"), "Aurora Curtain"][p.shape] || "Ballistic";
+    return ["Streak", "Sphere", "Leaf", "Pyro / Glow", "Cube", "Coin", "Bubble", "Snowflake", "Ice Hail", "Bokeh Bead", (p.leafMode ? "Dust Shockwave" : "Mach Shockwave"), "EMP Pulse Dome", "Holo Glitch", "Winged Boid", "Viscous Drop", (p.leafMode ? "Sonar Ping" : "Radar Sweep"), ((p.shieldMask ?? 1) !== 1 || (p.shieldForm ?? 0) > 0 ? "Multi-Shape Shield" : "Hex Energy Shield"), "Aurora Curtain", "3D Glass Shard"][p.shape] || "Ballistic";
   };
 
   for (const preset of PE.Presets) {
@@ -1712,10 +1779,10 @@ import { PE } from "./pe.js";
       windScale: 1,
       turbulence: 0.35,
       arrowRef: 6,
-      showArrows: true,
+      showArrows: false,
       arrowStride: 3,
       showFloor: true,
-      showDomain: true,
+      showDomain: false,
       // 🔴 KEPT ON PURPOSE, AND NO LONGER READ BY THE EDITOR. These four are what the wind panel shipped
       //    with before wind and force fields became one list. PE.Forces.DefaultForces() has to reproduce
       //    them exactly, and CheckForceFields.mjs asserts that against THIS array rather than against a

@@ -979,6 +979,22 @@ svg.glyph.rich-icon { stroke: none; fill: none; stroke-width: initial; stroke-li
     border: 1px solid rgba(255, 255, 255, 0.045);
     padding: 8px 10px 4px;
 }
+.diagram-wrap.infographic-wrap {
+    padding: 6px 6px 6px;
+    transition: border-color 140ms ease, background 140ms ease;
+}
+.diagram-wrap.infographic-wrap:hover {
+    border-color: rgba(255, 255, 255, 0.11);
+    background: rgba(14, 14, 16, 0.72);
+}
+.infographic-canvas {
+    border-radius: 10px;
+    display: block;
+}
+.infographic-caption {
+    padding: 4px 4px 1px;
+    line-height: 1.35;
+}
 .diagram-wrap svg.diagram { width: 100%; display: block; overflow: visible; }
 .plot-caption { font-size: 10px; color: #757575; margin: 4px 0 4px; }
 

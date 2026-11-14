@@ -1,7 +1,7 @@
 /*============================================================================================================================================
                                                                 SCALARSLIDER.H
 ============================================================================================================================================*/
-// 🧩 Reusable scalar slider and split readout capsule ("[ 100 | % ]" / "[ 16 | px ]")
+// 🧩 Reusable scalar slider, split readout capsule ("[ 100 | % ]" / "[ 16 | px ]"), and labeled inspector slider row
 
 #pragma once
 
@@ -10,6 +10,8 @@
 //------------------------------------------------------------------------------------------------------------------------
 
 #include "Engine/Components/Controls/ControlAppearance.h"
+
+#include <cstdint>
 
 namespace Frontier
 {
@@ -45,6 +47,14 @@ void ConstructReadoutCapsule(
     float       TotalWidth    = ControlMetrics::ReadoutCapsuleWidth,
     float       UnitCellWidth = ControlMetrics::ReadoutUnitWidth) noexcept;
 
+void ConstructCompactReadoutCapsule(
+    PixelSpace& Surface,
+    Rectangle2D Bounds,
+    const char* NumberText,
+    const char* UnitText,
+    float       Opacity       = 1.0f,
+    float       UnitCellWidth = 30.0f) noexcept;
+
 [[nodiscard]] ControlContact ConstructWithReadout(
     PixelSpace&            Surface,
     Rectangle2D            RowBounds,
@@ -58,6 +68,23 @@ void ConstructReadoutCapsule(
     float&                 UpdatedPosition,
     float                  Opacity = 1.0f,
     const OptionalTooltip& Tooltip = {}) noexcept;
+
+[[nodiscard]] bool ConstructLabeledInspectorRow(
+    PixelSpace&            Surface,
+    Rectangle2D            RowBounds,
+    int32_t                SliderId,
+    const char*            Label,
+    float                  Minimum,
+    float                  Maximum,
+    float&                 InOutScalar,
+    const char*            UnitSuffix,
+    int32_t                DecimalDigits,
+    const ControlPointer&  Pointer,
+    int32_t&               ActiveSliderId,
+    float                  Opacity      = 1.0f,
+    float                  RailHeight   = 16.0f,
+    float                  KnobDiameter = 16.0f,
+    const OptionalTooltip& Tooltip      = {}) noexcept;
 
 } // namespace ScalarSlider
 

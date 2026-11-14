@@ -163,6 +163,7 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Components/Controls/ControlAppearance.cpp
     Engine/Components/Controls/ControlTooltip.cpp
     Engine/Components/Controls/ScalarSlider.cpp
+    Engine/Components/Controls/PlaybackScrubber.cpp
     Engine/Components/Controls/ExclusiveSelector.cpp
     Engine/Components/Controls/CapsuleButton.cpp
     Engine/Components/Controls/ThemePreviewTile.cpp
@@ -186,6 +187,11 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Workspaces/UV/UVViewportInteractor.cpp
     Engine/Workspaces/UV/UVViewportHost.cpp
     Engine/Workspaces/UV/UVWorkspaceHost.cpp
+    Engine/Editor/Workspaces/Simulation/ForceInspectorView.cpp
+    Engine/Workspaces/Particles/ParticlePresetRegistry.cpp
+    Engine/Workspaces/Particles/ParticleWorkspaceSession.cpp
+    Engine/Workspaces/Particles/ParticleOutlinerPanel.cpp
+    Engine/Workspaces/Particles/ParticleInspectorPanel.cpp
     Engine/GeometricRaster/Rasterization/ImGuiOverlayRasterization.cpp
     Engine/GeometricRaster/GlobalIllumination/ShowcaseGalleryScene.cpp
     Engine/Input/ImGuiInputAdapter.cpp
@@ -493,7 +499,6 @@ if(FRONTIER_PROFILE STREQUAL "Editor")
     list(APPEND FRONTIER_ENGINE_SOURCES
         Engine/Editor/Explorer/ContentBrowser.cpp
         Engine/Editor/Workspaces/Simulation/ForcePresetBrowserPanel.cpp
-        Engine/Editor/Workspaces/Simulation/ForceInspectorView.cpp
         Engine/Editor/Workspaces/Simulation/VectorFieldOverlaySequence.cpp
         Engine/Editor/Workspaces/Simulation/VectorFieldViewportCoordinator.cpp
         Engine/Lifecycle/EditorLifecycle.cpp
@@ -591,6 +596,7 @@ if(BUILD_TESTING)
     frontier_register_exhibit(UVAuthoringChaosValidation        Exhibits/UVAuthoringChaosValidation.cpp)
     frontier_register_exhibit(NetworkingSpaceValidation         Exhibits/NetworkingSpaceValidation.cpp)
     frontier_register_exhibit(VectorFieldValidation             Exhibits/VectorFieldValidation.cpp)
+    frontier_register_exhibit(ParticleWorkspaceUIValidation     Exhibits/ParticleWorkspaceUIValidation.cpp)
 
     if(NOT ANDROID AND NOT FRONTIER_PROFILE STREQUAL "Shipping")
         add_test(

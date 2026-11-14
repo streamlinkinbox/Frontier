@@ -41,7 +41,7 @@ import { PE } from "./pe.js";
       const U = GPUBufferUsage;
       this.engine = engine;
       this.cap = Math.max(64, Math.floor(params.capacity));
-      this.isRibbon = !params.transition && ((params.curlMode || 0) === 3 || (params.trailMode || 0) > 0 || (params.webMode || 0) > 0 || (params.dynMode || 0) > 0 || (params.mudSplashMode || 0) > 0 || (params.ferroMode || 0) > 0 || (params.beadsMode || 0) > 0 || (params.seedHeadMode || 0) > 0 || (params.jellyMode || 0) > 0);
+      this.isRibbon = !params.transition && ((params.curlMode || 0) === 3 || (params.trailMode || 0) > 0 || (params.webMode || 0) > 0 || (params.dynMode || 0) > 0 || (params.mudSplashMode || 0) > 0 || (params.beadsMode || 0) > 0 || (params.seedHeadMode || 0) > 0 || (params.jellyMode || 0) > 0 || (params.flareMode || 0) > 0 || (params.fireworkMode || 0) > 0);
       this.parts = d.createBuffer({ size: this.cap * PART_BYTES, usage: U.STORAGE | U.COPY_SRC | U.COPY_DST });
       this.snap = d.createBuffer({ size: this.cap * PART_BYTES, usage: U.STORAGE | U.COPY_DST });
       this.trail = this.isRibbon ? d.createBuffer({ size: this.cap * TRAIL_SEGS * 16, usage: U.STORAGE | U.COPY_DST }) : null;
@@ -292,7 +292,6 @@ import { PE } from "./pe.js";
       });
       this.lensUniform = d.createBuffer({ size: 128, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
       this.lensSampler = d.createSampler({ magFilter: "linear", minFilter: "linear", addressModeU: "clamp-to-edge", addressModeV: "clamp-to-edge" });
-      this.pipe.partAlpha = mkR("vsPart", "fsPart", OVER);
       this.pipe.ribbonAdd = mkR("vsRibbon", "fsRibbon", ADD);
       this.pipe.ribbonAlpha = mkR("vsRibbon", "fsRibbon", OVER);
       this.pipe.arrow = mkR("vsArrow", "fsArrow", OVER, { depth: { depthWriteEnabled: true } });
@@ -440,6 +439,12 @@ import { PE } from "./pe.js";
             job.gpu.ensureRamp(job.rampCount);
             q.writeBuffer(job.gpu.ramp, 0, job.rampData);
           }
+          if (job.anchorSnapData && job.anchorSnapKey && job.gpu._lastAnchorKey !== job.anchorSnapKey) {
+            if (job.anchorSnapData.byteLength <= job.gpu.cap * PART_BYTES) {
+              q.writeBuffer(job.gpu.snap, 0, job.anchorSnapData);
+            }
+            job.gpu._lastAnchorKey = job.anchorSnapKey;
+          }
         }
       }
 
@@ -554,7 +559,8 @@ import { PE } from "./pe.js";
         if (job.gpu.isRibbon) {
           rp.setPipeline(job.alpha ? this.pipe.ribbonAlpha : this.pipe.ribbonAdd);
           rp.setBindGroup(1, job.gpu.renderBG);
-          rp.draw((TRAIL_SEGS - 1) * 6, job.gpu.cap);
+          const drawSegs = Math.max(TRAIL_SEGS - 1, Math.min(32, Math.round(job.curveSegs || (TRAIL_SEGS - 1))));
+          rp.draw(drawSegs * 6, job.gpu.cap);
         }
         if (job.cube) {
           rp.setPipeline(this.pipe.cube);
@@ -660,7 +666,8 @@ import { PE } from "./pe.js";
       stage.unmap();
       stage.destroy();
       let alive = 0;
-      for (let i = 0; i < gpu.cap; i++) if (data[i * 16 + 3] < data[i * 16 + 7]) alive++;
+      const stride = PART_BYTES / 4; // 20 floats (80 bytes) per Part
+      for (let i = 0; i < gpu.cap; i++) if (data[i * stride + 3] < data[i * stride + 7]) alive++;
       return { bytes: size, ms: t1 - t0, alive, mbPerSecond: size / 1048576 / ((t1 - t0) / 1000) };
     }
 
@@ -703,33 +710,42 @@ import { PE } from "./pe.js";
     set("phys", o.dt, o.time, o.frame, p.kind);
     set("phys2", p.windCoupling, p.bounce, p.buoyancy, p.flutter);
     set("phys3", o.cap, p.emitShape, 0.5, o.emitN);
-    set("phys4", p.boxHalf[0], p.boxHalf[1], p.boxHalf[2], o.head);
+    const bh = Array.isArray(p.boxHalf) ? p.boxHalf : [Number(p.boxHalf) || 0.6, Number(p.boxHalf) || 0.6, Number(p.boxHalf) || 0.6];
+    set("phys4", bh[0] ?? 0.6, bh[1] ?? 0.6, bh[2] ?? 0.6, o.head);
     const hasArc = p.arcMode === 0 || p.arcMode === 1 || p.arcMode === 2 || p.arcMode === 3;
     const hasBeam = (p.beamMode || 0) > 0;
     const isBoid = p.kind === 6;
     const isTrans = p.kind === 5 && !!p.transition;
-    const crackMode = !isTrans && !hasArc && !hasBeam && !isBoid ? Math.max(0, Math.min(2, p.crackMode | 0)) : 0;
-    const ferroMode = !isTrans && !hasArc && !hasBeam && !isBoid && !crackMode ? Math.max(0, Math.min(2, p.ferroMode | 0)) : 0;
-    const mudMode = !isTrans && !hasArc && !hasBeam && !isBoid && !crackMode && !ferroMode ? Math.max(0, Math.min(3, p.mudSplashMode | 0)) : 0;
-    const beadsMode = !isTrans && !hasArc && !hasBeam && !isBoid && !crackMode && !ferroMode && !mudMode ? Math.max(0, Math.min(3, p.beadsMode | 0)) : 0;
-    const seedHeadMode = !isTrans && !hasArc && !hasBeam && !isBoid && !crackMode && !ferroMode && !mudMode && !beadsMode ? Math.max(0, Math.min(2, p.seedHeadMode | 0)) : 0;
-    const jellyMode = !isTrans && !hasArc && !hasBeam && !isBoid && !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode ? Math.max(0, Math.min(2, p.jellyMode | 0)) : 0;
-    const webMode = !isTrans && !hasArc && !hasBeam && !isBoid && !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode && !jellyMode ? Math.max(0, Math.min(2, p.webMode | 0)) : 0;
-    const dynMode = !isTrans && !hasArc && !hasBeam && !isBoid && !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode && !jellyMode && !webMode ? Math.max(0, Math.min(9, p.dynMode | 0)) : 0;
-    const gridMode = !isTrans && !hasArc && !hasBeam && !isBoid && !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode && !jellyMode && !webMode && !dynMode ? Math.max(0, Math.min(2, p.gridMode | 0)) : 0;
-    const isRibbon = !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode && !jellyMode && !webMode && !dynMode && !gridMode && (p.curlMode || 0) === 3;
+    const fireworkMode = !isTrans && !hasArc && !hasBeam && !isBoid ? Math.max(0, Math.min(2, p.fireworkMode | 0)) : 0;
+    const flareMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode ? Math.max(0, Math.min(2, p.flareMode | 0)) : 0;
+    const crackMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode && !flareMode ? Math.max(0, Math.min(2, p.crackMode | 0)) : 0;
+    const ferroMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode && !flareMode && !crackMode ? Math.max(0, Math.min(2, p.ferroMode | 0)) : 0;
+    const mudMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode && !flareMode && !crackMode && !ferroMode ? Math.max(0, Math.min(3, p.mudSplashMode | 0)) : 0;
+    const beadsMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode && !flareMode && !crackMode && !ferroMode && !mudMode ? Math.max(0, Math.min(3, p.beadsMode | 0)) : 0;
+    const seedHeadMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode && !flareMode && !crackMode && !ferroMode && !mudMode && !beadsMode ? Math.max(0, Math.min(2, p.seedHeadMode | 0)) : 0;
+    const jellyMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode && !flareMode && !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode ? Math.max(0, Math.min(2, p.jellyMode | 0)) : 0;
+    const webMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode && !flareMode && !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode && !jellyMode ? Math.max(0, Math.min(2, p.webMode | 0)) : 0;
+    const dynMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode && !flareMode && !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode && !jellyMode && !webMode ? Math.max(0, Math.min(9, p.dynMode | 0)) : 0;
+    const gridMode = !isTrans && !hasArc && !hasBeam && !isBoid && !fireworkMode && !flareMode && !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode && !jellyMode && !webMode && !dynMode ? Math.max(0, Math.min(2, p.gridMode | 0)) : 0;
+    const isRibbon = !fireworkMode && !flareMode && !crackMode && !ferroMode && !mudMode && !beadsMode && !seedHeadMode && !jellyMode && !webMode && !dynMode && !gridMode && (p.curlMode || 0) === 3;
     const tp = p.targetPos || [o.origin[0] + 4, o.origin[1], o.origin[2]];
     const packedDyn = dynMode > 0 ? (dynMode <= 7 ? 5 + dynMode : 6 + dynMode) : 0;
-    const packedCurlMode = jellyMode > 0 ? 21 : (seedHeadMode > 0 ? 20 : (beadsMode > 0 ? 19 : (crackMode > 0 ? 18 : (ferroMode > 0 ? 17 : (mudMode > 0 ? 16 : (webMode > 0 ? (3 + webMode) : (dynMode > 0 ? packedDyn : (gridMode > 0 ? 13 : (p.curlMode || 0)))))))));
-    const packedRate = (jellyMode > 0 || seedHeadMode > 0 || beadsMode > 0) ? (p.dynStiff ?? 1.25) : (crackMode > 0 ? (p.curlFreq ?? 1.15) : (ferroMode > 0 ? (p.ferroMagnetSpeed ?? 1.35) : (mudMode > 0 ? (p.carSpeed ?? 4.2) : (webMode > 0 ? (p.webSpinRate ?? 1.0) : (dynMode > 0 ? (p.dynStiff ?? 1.0) : (gridMode > 0 ? (p.gridContrast ?? 1.85) : (p.curlRate ?? 0.24)))))));
-    const packedFreq = crackMode > 0 ? (p.crackSpeed ?? 2.6) : (p.curlFreq ?? 0.85);
-    const packedAmp = crackMode > 0 ? (p.crackDepth ?? 0.44) : (p.curlAmp ?? 2.2);
+    const packedCurlMode = fireworkMode > 0 ? 23 : (flareMode > 0 ? 22 : (jellyMode > 0 ? 21 : (seedHeadMode > 0 ? 20 : (beadsMode > 0 ? 19 : (crackMode > 0 ? 18 : (ferroMode > 0 ? 17 : (mudMode > 0 ? 16 : (webMode > 0 ? (3 + webMode) : (dynMode > 0 ? packedDyn : (gridMode > 0 ? 13 : (p.curlMode || 0)))))))))));
+    const packedRate = fireworkMode > 0 ? (p.burstEvery ?? 3.1) : (flareMode > 0 ? (p.burstEvery ?? 2.2) : ((jellyMode > 0 || seedHeadMode > 0 || beadsMode > 0) ? (p.dynStiff ?? 1.25) : (crackMode > 0 ? (p.curlFreq ?? 1.15) : (ferroMode > 0 ? (p.ferroMagnetSpeed ?? 1.35) : (mudMode > 0 ? (p.carSpeed ?? 4.2) : (webMode > 0 ? (p.webSpinRate ?? 1.0) : (dynMode > 0 ? (p.dynStiff ?? 1.0) : (gridMode > 0 ? (p.gridContrast ?? 1.85) : (p.curlRate ?? 0.24)))))))));
+    const packedFreq = fireworkMode > 0 ? (p.fireworkScale ?? 2.6) : (flareMode > 0 ? (p.gravity ?? 0.68) : (crackMode > 0 ? (p.crackSpeed ?? 2.6) : (p.curlFreq ?? 0.85)));
+    const packedAmp = fireworkMode > 0 ? (p.gravity ?? 0.38) : (flareMode > 0 ? (p.drag ?? 1.55) : (crackMode > 0 ? (p.crackDepth ?? 0.44) : (p.curlAmp ?? 2.2)));
     set("mol", packedCurlMode, packedFreq, packedAmp, packedRate);
     if (isTrans) {
       const tr = p.transition;
       const waveId = tr.wave === "melt" ? 1 : tr.wave === "glitch" ? 2 : 0;
       set("mol2", waveId, tr.after === "butterfly" ? 1 : 0, tr.assemble | 0, tr.fragment ? 1 : 0);
       set("mol3", tr.holdBase ?? 0.5, tr.holdSpread ?? 1.5, tr.burstShare ?? 0.5, tr.childLife ?? 1.2);
+    } else if (fireworkMode > 0) {
+      set("mol2", fireworkMode, p.fireworkShape ?? 0, o.fireworkShellIdx ?? 0, p.drag ?? 1.55);
+      set("mol3", p.windCoupling ?? 0.42, p.showObject !== false ? 1 : 0, o.fireworkBurstX ?? o.origin[0], o.fireworkBurstZ ?? o.origin[2]);
+    } else if (flareMode > 0) {
+      set("mol2", flareMode, p.burstCount ?? 16, p.buoyancy ?? 0.35, p.bounce ?? 0.25);
+      set("mol3", p.windCoupling ?? 0.85, p.showObject !== false ? 1 : 0, 0, o.preseedCurtain ? 1 : 0);
     } else if (jellyMode > 0) {
       set("mol2", jellyMode, p.radius ?? 1.1, p.dynSag ?? 0.3, p.dynWaveSpeed ?? 4.5);
       set("mol3", p.dynTearThresh ?? 5.2, p.bounce ?? 0.65, p.windCoupling ?? 0.9, o.preseedCurtain ? 1 : 0);
@@ -775,11 +791,15 @@ import { PE } from "./pe.js";
     set("misc", p.sizeScale, gridMode > 0 ? (p.gridBillboard ? 1.0 : 0.0) : (p.streakThin ?? 1.0), hasArc ? (p.arcMode + 1) : 0, isTrans ? (p.transition.shell ?? 3.0) : (hasBeam ? (p.beamMode || 1) : 0));
     set("colorCfg", ramp.count, ramp.byCode, ramp.min, ramp.max);
     set("colorCfg2", ramp.repeat, ramp.wrapCode, ramp.phase, ramp.interpCode);
-    set("extra0", Math.max(4, Math.min(20, Math.round(p.dynSegs ?? 20))), Math.max(0.1, p.headScale ?? 1), Math.max(0, Math.min(3, Math.round(p.headStyle ?? 0))), p.blend === "add" ? 1 : 0);
+    set("extra0", Math.max(2, Math.min(32, Math.round(p.dynSegs ?? 16))), Math.max(0.1, p.headScale ?? 1), dynMode > 0 ? (p.dynCurveDebug ? 1.0 : 0.0) : Math.max(0, Math.min(3, Math.round(p.headStyle ?? 0))), p.blend === "add" ? 1 : 0);
     const effA = Array.isArray(p.effPos) ? p.effPos : [0, 1.5, 0];
     const effB = Array.isArray(p.effPos2) ? p.effPos2 : [2.5, 1.5, 0];
-    set("extra1", effA[0], effA[1], effA[2], Math.max(0, p.effSize ?? 0));
+    if (ferroMode > 0) {
+      set("extra1", effA[0], effA[1], effA[2], p.ferroMagnetFree ? 1.0 : 0.0);
+    } else {
+      set("extra1", effA[0], effA[1], effA[2], Math.max(0, p.effSize ?? 0));
+    }
     set("extra2", effB[0], effB[1], effB[2], Math.max(0, p.effSize2 ?? 0));
-    set("extra3", Math.max(0, Math.min(4, Math.round(p.effShape ?? 0))), Math.max(0, Math.min(4, Math.round(p.effShape2 ?? 0))), Math.max(0.1, p.dynAnemThick ?? 1.0), 0);
+    set("extra3", Math.max(0, Math.min(4, Math.round(p.effShape ?? 0))), Math.max(0, Math.min(4, Math.round(p.effShape2 ?? 0))), Math.max(0.1, p.dynAnemThick ?? 1.0), p.effBlend ? 1.0 : 0.0);
     o._ramp = ramp;
   };
