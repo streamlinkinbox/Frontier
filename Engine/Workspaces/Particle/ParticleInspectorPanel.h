@@ -10,6 +10,7 @@
 //------------------------------------------------------------------------------------------------------------------------
 
 #include "Engine/Components/Controls/TextInputField.h"
+#include "Engine/Components/Panes/OutlinerPanel.h"
 #include "Engine/Components/Panes/WorkspaceAppearance.h"
 #include "Engine/Editor/Workspaces/Simulation/ForceInspectorView.h"
 #include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
@@ -67,7 +68,7 @@ private:
         None                = 0u,
         ReleaseVolume       = 1u,
         Silhouette          = 2u,
-        ColorBy             = 3u,
+        ColorDriver         = 3u,
         RampWrap            = 4u,
         FireworkPattern     = 5u,
         RiggingArchitecture = 6u,
@@ -83,53 +84,59 @@ private:
         Rectangle2D          TriggerBounds {};
     };
 
+    void SyncForceOutlinerMirror();
+    [[nodiscard]] OutlinerRecordEntry* AccessActiveForceOutlinerEntry() noexcept;
+
     float RenderOverviewTab(
-        PixelSpace&                Surface,
-        Rectangle2D                ScrollViewport,
-        float                      LeftX,
-        float                      TopY,
-        float                      InnerW,
-        ParticleEffectRecordEntry& Effect,
-        const PaneInputReading&    Input,
-        double                     Δt,
-        DeferredDropdownSheet&     OutOverlay);
+        PixelSpace&               Surface,
+        Rectangle2D               ScrollViewport,
+        float                     LeftX,
+        float                     TopY,
+        float                     InnerW,
+        ParticleEffectDescriptor& Effect,
+        const PaneInputReading&   Input,
+        double                    Δt,
+        DeferredDropdownSheet&    OutOverlay);
 
     float RenderSourceTab(
-        PixelSpace&                Surface,
-        Rectangle2D                ScrollViewport,
-        float                      LeftX,
-        float                      TopY,
-        float                      InnerW,
-        ParticleEffectRecordEntry& Effect,
-        const PaneInputReading&    Input,
-        DeferredDropdownSheet&     OutOverlay);
+        PixelSpace&               Surface,
+        Rectangle2D               ScrollViewport,
+        float                     LeftX,
+        float                     TopY,
+        float                     InnerW,
+        ParticleEffectDescriptor& Effect,
+        const PaneInputReading&   Input,
+        DeferredDropdownSheet&    OutOverlay);
 
     float RenderMotionAndFxTab(
-        PixelSpace&                Surface,
-        Rectangle2D                ScrollViewport,
-        float                      LeftX,
-        float                      TopY,
-        float                      InnerW,
-        ParticleEffectRecordEntry& Effect,
-        const PaneInputReading&    Input,
-        DeferredDropdownSheet&     OutOverlay);
+        PixelSpace&               Surface,
+        Rectangle2D               ScrollViewport,
+        float                     LeftX,
+        float                     TopY,
+        float                     InnerW,
+        ParticleEffectDescriptor& Effect,
+        const PaneInputReading&   Input,
+        DeferredDropdownSheet&    OutOverlay);
 
     float RenderSpecAndExportTab(
-        PixelSpace&                      Surface,
-        float                            LeftX,
-        float                            TopY,
-        float                            InnerW,
-        const ParticleEffectRecordEntry& Effect);
+        PixelSpace&                     Surface,
+        float                           LeftX,
+        float                           TopY,
+        float                           InnerW,
+        const ParticleEffectDescriptor& Effect);
 
     void RenderDeferredDropdown(
-        PixelSpace&                Surface,
-        Rectangle2D                PaneBounds,
+        PixelSpace&                  Surface,
+        Rectangle2D                  PaneBounds,
         const DeferredDropdownSheet& Overlay,
-        ParticleEffectRecordEntry& Effect,
-        const PaneInputReading&    Input);
+        ParticleEffectDescriptor&    Effect,
+        const PaneInputReading&      Input);
 
     // Direct reuse of Frontier's existing C++ ForceFields Inspector when ForceField / Wind / Source selected
-    Editor::Simulation::ForceInspectorView ForceView            {};
+    Editor::Simulation::ForceInspectorView ForceView                 {};
+    OutlinerPanel                          ForceOutlinerMirror       {};
+    std::vector<OutlinerSlotToken>         ForceOutlinerTokens       {};
+    uint64_t                               SyncedForceMirrorRevision = 0u;
 
     ParticleWorkspaceSession*              Session              = nullptr;
     ParticleInspectorTab                   ActiveTab            = ParticleInspectorTab::Overview;

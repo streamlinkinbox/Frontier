@@ -1,6 +1,6 @@
 # Frontier C++20 Modular Particle Simulation Architecture Plan
 
-> **Status:** 🟢 Step 2A & Step 2B Implemented & Verified (`ParticleSimulationValidation` PASS · Shipping `-Werror` Clean · 0 Banned Words) · Step 2C (Vulkan 1.3 `.slang` Compute) Next
+> **Status:** 🟢 Step 2A, Step 2B & Architecture Remediation (Phases 1–4 + `ForceModel` Rename) Implemented & Verified (`ParticleSimulationValidation` PASS · `ParticleWorkspaceUIValidation` PASS · Pure Headless Shipping `-Werror` Clean · 0 Banned Words) · Step 2C (Vulkan 1.3 `.slang` Compute) Next
 > **Scope:** Native ISO C++20 modular particle movement, modular typed SoA channels, composable motion & constraint solvers, direct `SimulationSpace::ForceFields` + `DistanceFieldSpace::SignedDistanceVolume` reuse, and dual CPU / Vulkan 1.3 `.slang` execution.
 > **Supersedes:** Earlier removed draft `CxxParticleFoundationPlan.md` (which previously lived inside `Engine/SimulationSpace/Particles/` and used a fixed `80 B` monolithic struct with pre-governance naming).
 
@@ -284,36 +284,50 @@ Every `ParticleAuthoringDomain` from Step 1's `ParticlePresetRegistry` compiles 
   - Runs workgroup parallel reduction into a **`32 B` host-visible staging buffer** (`AliveCount`, `PeakSpeedMs`, `BoundsMinMax`, `RevisionCounter`) for zero-stall Inspector readback!
 - **`ExecutionTarget::AutoSelect`** *(default)*: Runs on Vulkan GPU when eligible, automatically falls back to `CpuParallel` whenever a user attaches a custom C++ lambda solver or CPU-only custom channel — **zero code changes required by the caller**.
 
-### 6.2 Live Connection to Step 1 Outliner, Inspector & PlaybackScrubber
-- `ParticleWorkspaceSession` owns a **`ParticleSimulationRegistry`** holding one live `ParticleSimulation` per `ParticleEffectRecordEntry`.
-- Parameter sliders in `ParticleInspectorPanel` push incremental uniform updates without reallocating channels (rebuilding only on `Capacity` or `AuthoringDomain` change).
-- **`PlaybackScrubber`** (`Play`, `Pause`, `Step`, `Reset`, `Speed`, `Scrub`) drives deterministic fixed-step ticking (`1 / 60 s` accumulator) and optional ring-buffer channel snapshots for instant ring-buffered timeline scrubbing!
+### 6.2 Live Connection to Particle Workspace Session, Outliner, Inspector & 3D Viewport
+- `ParticleWorkspaceSession` (100% headless in `FRONTIER_ENGINE_SOURCES`) owns live `ParticleSimulation` instances per `ParticleEffectDescriptor`, wired directly to `WorkspaceDocument` and `RevisionTracker` undo/redo (`Undo()` / `Redo()` / `CommitHistorySnapshot()`).
+- Parameter edits in `ParticleInspectorPanel` immediately rebuild affected simulations via `Session->RebuildEffectSimulation(...)` and bump revision state.
+- **`ParticleViewportHost`** + **`ParticleViewportInteractor`** + **`PlaybackScrubber`** drive deterministic fixed-step ticking (`1 / 60 s`), live 3D orbit/pan/zoom camera projection of active particles & coupled `ForceFields`, and full `SpaceExtensionCategory::ParticleSpace` Two-Tier Hybrid `.ParticleSpace` persistence via `Engine/Codecs/ParticleCodec.{h,cpp}`.
 
 ---
 
-## 7. Proposed Repository File Layout (100% Banned-Word Clean)
+## 7. Implemented Repository File Layout (100% Banned-Word Clean & Layer-Verified)
 
 ```text
 Engine/
+  Codecs/
+    ParticleCodec.h / .cpp               # ParticleEncoder / ParticleDecoder (.ParticleSpace Two-Tier Hybrid + RevisionCodec)
+  Configuration/
+    WorkspaceConfiguration.h / .cpp      # Stores ParticleWorkspacePreferences alongside UVWorkspacePreferences & GizmoSnapSettings
   SimulationSpace/
-    Particles/
-      ParticleChannelBank.h / .cpp        # Typed SoA channel storage, ChannelTag<T>, DenseSwapRemove & FixedSlotOrder
-      ParticleChannelLayouts.h          # 16B-aligned native channels (Kinematics, Lifespan, Appearance, Strand, Flock, Ferrofluid, Pyro, Fracture, Lattice)
-      ParticleDynamics.h             # ParticleSource, ParticleMotionSolver, ParticleCollider, ParticleIntegrator, SimulationTickInputs
-      ParticleKinematicsSolvers.h / .cpp  # Modular native solvers: GravityBuoyancySolver, ForceFieldCouplingSolver, Curl, Flutter, AppearanceCurve, Colliders (Ground/Sphere/SDF)
-      ParticleDomainSolvers.h / .cpp      # Specialized solvers: XpbdStrandSolver, RosensweigFerrofluidSolver, PyroVolley, BoidsFlock, FractureCrackSolver, MoGraphEffector, ShieldRipple, SpaceRefractionSolver
-      ParticleSimulation.h / .cpp         # Composable ParticleSimulation, ParticleSimulationSpecification, ParticleSimulationRegistry & ReadbackSummary
-      ParticlePresetCompiler.h / .cpp     # Compiles all 93 ParticlePresetRegistry entries & ParticleEffectRecordEntry live edits into ParticleSimulations
-      ParticleVulkanExecutor.h / .cpp     # Vulkan 1.3 compute executor + 32 B async reduction readback (Hardware ICD + SwiftShader fallback)
+    Particles/                           # Pure headless C++20 particle domain (ZERO Workspaces/ or UI includes)
+      ParticleChannelBank.h / .cpp       # Typed SoA channel storage, ChannelTag<T>, DenseSwapRemove & FixedSlotOrder
+      ParticleChannelLayouts.h           # 16B-aligned native channels (Kinematics, Lifespan, Appearance, Strand, Flock, Ferrofluid, Pyro, Fracture, Lattice)
+      ParticleDynamics.h                 # ParticleSource, ParticleMotionSolver, ParticleCollider, ParticleIntegrator, SimulationTickInputs
+      ParticleKinematicsSolvers.h / .cpp # Modular native solvers: GravityBuoyancySolver, ForceFieldCouplingSolver, Curl, Flutter, AppearanceCurve, Colliders (Ground/Sphere/SDF)
+      ParticleDomainSolvers.h / .cpp     # Specialized solvers: XpbdStrandSolver, RosensweigFerrofluidSolver, PyroVolley, BoidsFlock, FractureCrackSolver, MoGraphEffector, ShieldRipple, SpaceRefractionSolver
+      ParticleSimulation.h / .cpp        # Composable ParticleSimulation, ParticleSimulationSpecification, ParticleSimulationRegistry & ReadbackSummary
+      ParticleVulkanExecutor.h / .cpp    # [Step 2C] Vulkan 1.3 compute executor + 32 B async reduction readback
+  Workspaces/
+    Particle/                            # Singular Particle Workspace (dual-deployment: headless engine + Editor UI)
+      ParticlePresetRegistry.h / .cpp    # [Headless] 93 active non-quarantined presets, ParticleRgba8, ParticlePlaybackClock
+      ParticlePresetCompiler.h / .cpp    # [Headless] Compiles ParticlePresetEntry / ParticleEffectDescriptor into ParticleSimulationSpecification
+      ParticleWorkspaceSession.h / .cpp  # [Headless] Owns live ParticleSimulations, ForceFieldAccumulator, WorkspaceDocument, RevisionTracker & ParticleCodec I/O
+      ParticleOutlinerPanel.h / .cpp     # [Editor] Outliner pane + ForceModels / Presets Construct sheet
+      ParticleInspectorPanel.h / .cpp    # [Editor] Dual-mode Inspector delegating ForceFields to ForceInspectorView
+      ParticleViewportInteractor.h / .cpp# [Editor] Orbit/pan/zoom camera rig & perspective projection
+      ParticleViewportHost.h / .cpp      # [Editor] Live 3D particle + ForceFields viewport & PlaybackScrubber transport dock
+      ParticleWorkspaceHost.h / .cpp     # [Editor] Full 3-pane WorkspaceDockContainer host + ContentBrowser integration
   Shaders/
-    Particles/
-      ParticleChannelShared.slang         # Exact 16B-aligned mirror of ParticleChannelLayouts.h + imports ForceFieldEvaluationShared.slang
-      ParticleReleaseCompute.slang        # Modular volume/lattice/strand/volley spawn compute
-      ParticleAdvectCompute.slang         # Modular ballistic, ForceFields, curl, boids, ferrofluid, effector & collider compute
-      ParticleStrandConstraintCompute.slang # Multi-iteration XPBD distance/bend/pin/tear & sphere push-out compute
-      ParticleReductionCompute.slang      # Workgroup reduction -> 32 B staging readback (Alive, PeakSpeed, BoundsR)
+    Particles/                           # [Step 2C] Vulkan 1.3 .slang compute & render shaders
+      ParticleChannelShared.slang
+      ParticleReleaseCompute.slang
+      ParticleAdvectCompute.slang
+      ParticleStrandConstraintCompute.slang
+      ParticleReductionCompute.slang
 Exhibits/
-  ParticleSimulationValidation.cpp        # Headless C++20 validation + visual trajectory/motion PNG proofs
+  ParticleSimulationValidation.cpp       # Headless C++20 simulation + .ParticleSpace codec + RevisionTracker validation
+  ParticleWorkspaceUIValidation.cpp      # 3-pane ParticleWorkspaceHost, Outliner, Inspector, ForceInspectorView & 3D Viewport validation
 ```
 
 ---
@@ -322,9 +336,10 @@ Exhibits/
 
 | Milestone | Status | Deliverable | Verification Proof |
 | :--- | :---: | :--- | :--- |
-| **Step 2A — Modular C++ Foundation & ForceFields/SDF Coupling** | 🟢 **Completed** | `ParticleChannelBank`, `ParticleChannelLayouts` (11 × 16B-aligned channels), `ParticleDynamics`, `ParticleKinematicsSolvers` (Gravity/Buoyancy, `ForceFieldCouplingSolver`, Curl, Flutter, Curves, Ground/Sphere/`SignedDistanceVolumeCollider`, SemiImplicitEuler / XpbdVerlet / MidpointRk2), `ParticleSimulation` + `Specification` + `Registry`. | Pure headless Shipping build (`-O2 -Wall -Wextra -Wpedantic -Werror`, zero UI/ImGui headers) + `ParticleSimulationValidation` PASS (custom `UserIonChargeAttribute` + `CustomParticleSolver` + synchronized swap-remove, `ForceFieldAccumulator` + `FieldLatticeCascade` determinism, analytic `SignedDistanceVolume` SDF bounce). |
-| **Step 2B — All 10 Domain Solvers & 93-Preset Specification Compiler** | 🟢 **Completed** | `ParticleDomainSolvers` (XPBD Strands/Cloth/Flora/Trees, Rosensweig Ferrofluid, Multi-Tier Fireworks + Sky Text, Boids Flock, Fracture Cracks, MoGraph Effectors, Shield Ripples, Space Refraction) + `ParticlePresetCompiler` wired cleanly in `CMakeLists.txt`. | All **93/93** active non-quarantined presets compile & tick 75 steps with **0 NaN/Inf**, all **9/9** retired Quarantine slugs strictly rejected, `0` banned-word hits across all 12 new C++ files, and 4-panel visual proof rendered & inspected. |
-| **Step 2C — Vulkan 1.3 `.slang` Compute & Viewport Rasterization** | 🟡 **Next** | `ParticleVulkanExecutor` + 5 `.slang` compute shaders importing `ForceFieldEvaluationShared.slang` + modular billboard/ribbon/shard `.slang` rasterizers inside the Particle Workspace viewport + live `ParticleWorkspaceSession` runtime integration. | CPU-vs-GPU numerical parity validation + Vulkan/SwiftShader rendered viewport PNG exhibits in `Exhibits/Images/Particles/`. |
+| **Step 2A — Modular C++ Foundation & ForceFields/SDF Coupling** | 🟢 **Completed** | `ParticleChannelBank`, `ParticleChannelLayouts` (11 × 16B-aligned channels), `ParticleDynamics`, `ParticleKinematicsSolvers`, `ParticleSimulation` + `Specification` + `Registry`. | Pure headless Shipping build (`-O2 -Wall -Wextra -Wpedantic -Werror`, zero UI/ImGui headers) + `ParticleSimulationValidation` PASS. |
+| **Step 2B — All 10 Domain Solvers & 93-Preset Specification Compiler** | 🟢 **Completed** | `ParticleDomainSolvers` (all 10 domains) + `ParticlePresetCompiler` relocated cleanly into `Engine/Workspaces/Particle/`. | All **93/93** active non-quarantined presets compile & tick 75 steps with **0 NaN/Inf**, all **9/9** retired Quarantine slugs strictly rejected. |
+| **Architecture & Naming Remediation (Phases 1–4 + `ForceModel`)** | 🟢 **Completed** | Renamed all `ForceLaw*` → `ForceModel*` across 15 upstream files; decoupled headless Particle session/registry/compiler from UI headers and promoted into `FRONTIER_ENGINE_SOURCES`; implemented `ParticleCodec.{h,cpp}` (`.ParticleSpace` Two-Tier Hybrid), `WorkspaceDocument` + `RevisionTracker` undo/redo, `ParticleWorkspacePreferences`, and `ParticleViewportInteractor` / `ParticleViewportHost` / `ParticleWorkspaceHost`. | **9/9** headless units compile cleanly in `Shipping` (`-Wall -Wextra -Wpedantic -Werror`), **0 banned words**, `ParticleSimulationValidation` TEST 5 (`.ParticleSpace` round-trip + undo/redo) PASS, `ParticleWorkspaceUIValidation` Proof 6 (3-pane `ParticleWorkspaceHost` + live 3D particle viewport) PASS. |
+| **Step 2C — Vulkan 1.3 `.slang` Compute & GPU Rasterization** | 🟡 **Next** | `ParticleVulkanExecutor` + 5 `.slang` compute shaders importing `ForceFieldEvaluationShared.slang` + modular billboard/ribbon/shard `.slang` rasterizers inside `ParticleViewportHost`. | CPU-vs-GPU numerical parity validation + Vulkan/SwiftShader rendered viewport PNG exhibits in `Exhibits/Images/Particles/`. |
 
 ### Verified Visual Proof (Step 2A + Step 2B)
 

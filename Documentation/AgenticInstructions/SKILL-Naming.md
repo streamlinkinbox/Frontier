@@ -51,7 +51,7 @@ then run the 6-gate rejection check.
   `Entity`, `evaluator`, `Facet`/`Facets` (→ `Face`/`Faces`), `fence`, `flag`, `floating`, `flow`, `Frame`, `glyph`, `Graph`,
   `harness`/`Trial` (→ `…Validation`), `Hierarchy`, `hook`, `Hub`, `Info`, `Inscription`
   (→ `…Rasterization`), `Interface`/`Interfaces` (name the domain directly or use `Interchange`/`Exchange`), `interpolant`, `Item`, `Kernel`, `Kind` (→ `…Category`), `Law`/`Laws` (→ `Solver`/`Constraint`/`Collider`/`Integrator`), `Listener`, `map`,
-  `Matrix`, `member`, `menu`, `mesh` (→ `PolygonNetwork`), `Model`, `Module`,
+  `Matrix`, `member`, `menu`, `mesh` (→ `PolygonNetwork`), `Model` *(allowed ONLY for `ForceModel` / `ForceModel*`)*, `Module`,
   `mutation`, `Nexus`, `Node`, `Object`, `occupant`, `palette`, `Pass`, `pill`, `pipeline`, `pool`,
   `popup`/`popover`, `predicate`, `probe`, `Recipe`/`Recipes` (→ `Preset`/`Specification`), `reclamation`, `Record` *(bare & `RecordStore` barred; only `RecordEntry`/`RecordToken` approved)*,
   `reservoir`, `Role`, `shell`, `stage`, `state`, `store`, `submission`, `Subsystem`/`system`, `table`,

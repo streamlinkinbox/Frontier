@@ -27,6 +27,12 @@ namespace Frontier::Workspaces
 namespace
 {
 
+[[nodiscard]] constexpr ColorRgba ConvertRgba(ParticleRgba8 Color) noexcept
+{
+    return ColorRgba{ Color.Red, Color.Green, Color.Blue, Color.Alpha };
+}
+
+
 using namespace SimulationSpace::ForceFields;
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -95,7 +101,7 @@ using namespace SimulationSpace::ForceFields;
     return std::string(Buffer);
 }
 
-[[nodiscard]] std::string FormatEffectRowSummary(const ParticleEffectRecordEntry& Entry)
+[[nodiscard]] std::string FormatEffectRowSummary(const ParticleEffectDescriptor& Entry)
 {
     char Buffer[96]{};
     if (Entry.BirthRatePerSec > 0.05f)
@@ -351,8 +357,8 @@ void ParticleOutlinerPanel::Render(
     const Rectangle2D VisibleTile{ InnerX, CursorY, StatW, StatH };
     const Rectangle2D HiddenTile{ InnerX + StatW + StatGap, CursorY, StatW, StatH };
 
-    const uint32_t VisibleCount = Session != nullptr ? Session->QueryVisibleRecordCount() : 0u;
-    const uint32_t HiddenCount  = Session != nullptr ? Session->QueryHiddenRecordCount() : 0u;
+    const uint32_t VisibleCount = Session != nullptr ? Session->QueryVisibleCount() : 0u;
+    const uint32_t HiddenCount  = Session != nullptr ? Session->QueryHiddenCount() : 0u;
 
     auto RenderStatTile = [&](Rectangle2D Rect, const char* Label, uint32_t Count, bool IsVisibleTile)
     {
@@ -527,9 +533,9 @@ void ParticleOutlinerPanel::Render(
     {
         const bool CatActive = (FilterMode == ParticleOutlinerFilterMode::SingleDomain && FilteredCategory == Cat.Category);
         RenderFilterButton(
-            Cat.ShortChip,
+            Cat.ShortLabel,
             CatActive,
-            Cat.AccentTint,
+            ConvertRgba(Cat.AccentTint),
             [&, CategoryCode = Cat.Category]() { ConfigureFilterCategory(CategoryCode); });
     }
 
@@ -620,7 +626,7 @@ void ParticleOutlinerPanel::Render(
         bool               Selected,
         bool               Visible,
         bool               Nested,
-        uint32_t           ForceLawOrdinal,
+        uint32_t           ForceModelOrdinal,
         const char*        /*StatusTag*/,
         auto&&             SelectCallback,
         auto&&             VisibilityCallback)
@@ -658,7 +664,7 @@ void ParticleOutlinerPanel::Render(
             const float ContentAlpha = Visible ? 1.0f : 0.45f;
             const float LeftPad      = Nested ? 22.0f : 10.0f;
 
-            // 24x24px soft-tinted 8px-radius icon well (reuses Frontier ForceLawIcon for C++ ForceFields)
+            // 24x24px soft-tinted 8px-radius icon well (reuses Frontier ForceModelIcon for C++ ForceFields)
             const float IconBoxSize = CompactMode ? 18.0f : 24.0f;
             const Rectangle2D IconBox{
                 RowRect.X + LeftPad,
@@ -667,11 +673,11 @@ void ParticleOutlinerPanel::Render(
                 IconBoxSize,
             };
             Surface.FillRectangle(IconBox, ColorRgba{ 255u, 255u, 255u, 11u }, 8.0f);
-            if (ForceLawOrdinal < static_cast<uint32_t>(ForceModel::Count))
+            if (ForceModelOrdinal < static_cast<uint32_t>(ForceModel::Count))
             {
-                WorkspaceAppearance::ConstructForceLawIcon(
+                WorkspaceAppearance::ConstructForceModelIcon(
                     Surface,
-                    ForceLawOrdinal,
+                    ForceModelOrdinal,
                     { IconBox.X + 4.5f, IconBox.Y + 4.5f },
                     IconBoxSize - 9.0f,
                     Accent,
@@ -885,7 +891,7 @@ void ParticleOutlinerPanel::Render(
                         RenderTreeRow(
                             Source.Label,
                             FormatForceRowSummary(Source),
-                            WorkspaceAppearance::QueryForceLawTint(LawOrd),
+                            WorkspaceAppearance::QueryForceModelTint(LawOrd),
                             Selected,
                             Source.Enabled && Source.Visible,
                             true,
@@ -920,7 +926,7 @@ void ParticleOutlinerPanel::Render(
                         RenderTreeRow(
                             Source.Label,
                             FormatForceRowSummary(Source),
-                            WorkspaceAppearance::QueryForceLawTint(LawOrd),
+                            WorkspaceAppearance::QueryForceModelTint(LawOrd),
                             Selected,
                             Source.Enabled && Source.Visible,
                             true,
@@ -950,7 +956,7 @@ void ParticleOutlinerPanel::Render(
         {
             auto EffectsSpan = Session->AccessEffects();
             uint32_t MatchedEffectCount = 0u;
-            for (const ParticleEffectRecordEntry& Effect : EffectsSpan)
+            for (const ParticleEffectDescriptor& Effect : EffectsSpan)
             {
                 if (FilterMode == ParticleOutlinerFilterMode::SingleDomain && Effect.Category != FilteredCategory)
                 {
@@ -976,7 +982,7 @@ void ParticleOutlinerPanel::Render(
                     }
 
                     uint32_t CatCount = 0u;
-                    for (const ParticleEffectRecordEntry& Effect : EffectsSpan)
+                    for (const ParticleEffectDescriptor& Effect : EffectsSpan)
                     {
                         if (Effect.Category == Category.Category)
                         {
@@ -989,7 +995,7 @@ void ParticleOutlinerPanel::Render(
                     }
 
                     RenderSubgroupLabel(std::string(Category.FullTitle) + " (" + std::to_string(CatCount) + ")");
-                    for (ParticleEffectRecordEntry& Effect : EffectsSpan)
+                    for (ParticleEffectDescriptor& Effect : EffectsSpan)
                     {
                         if (Effect.Category != Category.Category)
                         {
@@ -997,7 +1003,7 @@ void ParticleOutlinerPanel::Render(
                         }
                         const bool Selected = (Session->QuerySelectionDomain() == ParticleSelectionDomain::ParticleEffect
                                                && Session->QuerySelectedToken() == Effect.UniqueToken);
-                        const ColorRgba Swatch = (Effect.ColorA.Luminance() < 0.08f) ? Category.AccentTint : Effect.ColorA;
+                        const ColorRgba Swatch = (ConvertRgba(Effect.ColorA).Luminance() < 0.08f) ? ConvertRgba(Category.AccentTint) : ConvertRgba(Effect.ColorA);
                         RenderTreeRow(
                             Effect.Title,
                             FormatEffectRowSummary(Effect),
@@ -1010,7 +1016,7 @@ void ParticleOutlinerPanel::Render(
                             [&, Token = Effect.UniqueToken]() { Session->SelectParticleEffect(Token); },
                             [&, Token = Effect.UniqueToken]()
                             {
-                                if (ParticleEffectRecordEntry* Target = Session->AccessEffect(Token))
+                                if (ParticleEffectDescriptor* Target = Session->AccessEffect(Token))
                                 {
                                     Target->Visible = !Target->Visible;
                                     Session->IncrementRevision();
@@ -1062,7 +1068,7 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
 {
     const float SheetW = std::min(316.0f, PaneBounds.Width - 16.0f);
     const uint32_t VisibleEntryCount = (ActiveConstructPage == ConstructSheetPage::ParticlePresets)
-        ? ParticlePresetRegistry::CountPresetsInCategory(ConstructCategory)
+        ? ParticlePresetRegistry::CountCategoryPresets(ConstructCategory)
         : static_cast<uint32_t>(ForceModel::Count);
     const float HeaderAllowance = (ActiveConstructPage == ConstructSheetPage::ParticlePresets) ? 106.0f : 56.0f;
     const float RowPitch        = (ActiveConstructPage == ConstructSheetPage::ParticlePresets) ? 37.0f : 35.0f;
@@ -1122,7 +1128,7 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
         float CatY = Y;
         for (const ParticleCategoryDescriptor& Cat : ParticlePresetRegistry::QueryActiveCategories())
         {
-            const float BtnW = WorkspaceAppearance::MeasureWeightedTextWidth(Surface, FontWeightClass::Medium, 9.5f, Cat.ShortChip) + 12.0f;
+            const float BtnW = WorkspaceAppearance::MeasureWeightedTextWidth(Surface, FontWeightClass::Medium, 9.5f, Cat.ShortLabel) + 12.0f;
             if (CatX + BtnW > InnerX + InnerW + 0.5f && CatX > InnerX + 1.0f)
             {
                 CatX = InnerX;
@@ -1148,7 +1154,7 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
                 { CatBtn.X + 6.0f, CatBtn.Y + 3.5f },
                 9.5f,
                 Active ? ColorRgba{ 246u, 224u, 180u, 255u } : ColorRgba{ 166u, 166u, 166u, 255u },
-                Cat.ShortChip);
+                Cat.ShortLabel);
             if (Clicked && Hovered)
             {
                 ConstructCategory  = Cat.Category;
@@ -1187,9 +1193,9 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
                 Surface.StrokeRectangle(EntryRect, ColorRgba{ 232u, 194u, 122u, 120u }, 10.0f, 1.0f);
             }
 
-            const ColorRgba DotColor = (Preset.ColorA.Luminance() < 0.08f)
-                ? ParticlePresetRegistry::QueryCategoryDescriptor(Preset.Category).AccentTint
-                : Preset.ColorA;
+            const ColorRgba DotColor = (ConvertRgba(Preset.ColorA).Luminance() < 0.08f)
+                ? ConvertRgba(ParticlePresetRegistry::QueryCategoryDescriptor(Preset.Category).AccentTint)
+                : ConvertRgba(Preset.ColorA);
             Surface.FillRectangle({ EntryRect.X + 6.0f, EntryRect.Y + 6.5f, 22.0f, 22.0f }, ColorRgba{ DotColor.Red, DotColor.Green, DotColor.Blue, 32u }, 7.0f);
             Surface.FillCircle({ EntryRect.X + 17.0f, EntryRect.Y + 17.5f }, 4.5f, DotColor);
             WorkspaceAppearance::ConstructTruncatedText(
@@ -1213,7 +1219,7 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
 
             if (Clicked && Hovered && Session != nullptr)
             {
-                (void)Session->AddEffectFromPreset(Preset.Identifier);
+                (void)Session->AddPresetEffect(Preset.Identifier);
                 ConstructSheetOpen = false;
             }
             EntryY += 38.0f;
@@ -1224,7 +1230,7 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
         for (uint32_t ModelOrd = 0u; ModelOrd < static_cast<uint32_t>(ForceModel::Count); ++ModelOrd)
         {
             const ForceModel Model = static_cast<ForceModel>(ModelOrd);
-            const ColorRgba Tint = WorkspaceAppearance::QueryForceLawTint(ModelOrd);
+            const ColorRgba Tint = WorkspaceAppearance::QueryForceModelTint(ModelOrd);
             const Rectangle2D EntryRect{ ListViewport.X, EntryY, ListViewport.Width, 34.0f };
             const bool Hovered = Input.PrimaryPointer.Enabled && ListViewport.Contains(Cursor) && EntryRect.Contains(Cursor);
             Surface.FillRectangle(
@@ -1236,7 +1242,7 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
                 Surface.StrokeRectangle(EntryRect, ColorRgba{ Tint.Red, Tint.Green, Tint.Blue, 130u }, 10.0f, 1.0f);
             }
 
-            WorkspaceAppearance::ConstructForceLawIcon(
+            WorkspaceAppearance::ConstructForceModelIcon(
                 Surface,
                 ModelOrd,
                 { EntryRect.X + 8.0f, EntryRect.Y + 9.0f },

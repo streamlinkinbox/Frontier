@@ -24,7 +24,7 @@ namespace
 {
 
 [[nodiscard]] SimulationSpace::ForceFields::ForceSourceRecordEntry BuildPresetForTemplateEntry(
-    uint32_t         ForceLawOrdinal,
+    uint32_t         ForceModelOrdinal,
     std::string_view Title)
 {
     using namespace SimulationSpace::ForceFields;
@@ -36,9 +36,9 @@ namespace
     Desc.EvaluatedCentreMeters = Desc.CentreMeters;
     Desc.Label             = std::string(Title);
 
-    if (ForceLawOrdinal < static_cast<uint32_t>(ForceModel::Count))
+    if (ForceModelOrdinal < static_cast<uint32_t>(ForceModel::Count))
     {
-        Desc.Model = static_cast<ForceModel>(ForceLawOrdinal);
+        Desc.Model = static_cast<ForceModel>(ForceModelOrdinal);
     }
     else if (Title.find("Radial") != std::string_view::npos || Title.find("Burst") != std::string_view::npos)
     {
@@ -391,7 +391,7 @@ OutlinerSlotToken VectorFieldViewportCoordinator::AddForceSourceEntry(
         Created->Category             = ConstructSlotCategory::ForceField;
         Created->Title                = Descriptor.Label;
         Created->CategoryLabel        = SimulationSpace::ForceFields::QueryForceModelDisplayName(Descriptor.Model);
-        Created->ForceLawOrdinal      = static_cast<uint32_t>(Descriptor.Model);
+        Created->ForceModelOrdinal      = static_cast<uint32_t>(Descriptor.Model);
         Created->ForceFormulaOverride = Descriptor.FormulaEnabled;
         char SubBuf[96]{};
         std::snprintf(SubBuf, sizeof(SubBuf), "r %.0f m  |  %.1f m/s", Descriptor.RadiusMeters, Descriptor.Strength);
@@ -442,7 +442,7 @@ void VectorFieldViewportCoordinator::SynchronizeOutlinerAndAccumulator()
 
         if (It == AuthoredSources.end())
         {
-            auto Desc            = BuildPresetForTemplateEntry(Entry.ForceLawOrdinal, Entry.Title);
+            auto Desc            = BuildPresetForTemplateEntry(Entry.ForceModelOrdinal, Entry.Title);
             Desc.UniqueToken     = NextForceToken++;
             Desc.OutlinerTokenId = Entry.Token.Identifier;
             Desc.CentreMeters    = { Entry.PositionX, Entry.PositionY, Entry.PositionZ };
@@ -452,7 +452,7 @@ void VectorFieldViewportCoordinator::SynchronizeOutlinerAndAccumulator()
             if (OutlinerRecordEntry* Mut = BoundOutliner->AccessEntry(Entry.Token))
             {
                 Mut->CategoryLabel        = SimulationSpace::ForceFields::QueryForceModelDisplayName(Desc.Model);
-                Mut->ForceLawOrdinal      = static_cast<uint32_t>(Desc.Model);
+                Mut->ForceModelOrdinal      = static_cast<uint32_t>(Desc.Model);
                 Mut->ForceFormulaOverride = Desc.FormulaEnabled;
                 char SubBuf[96]{};
                 std::snprintf(SubBuf, sizeof(SubBuf), "r %.0f m  |  %.1f m/s", Desc.RadiusMeters, Desc.Strength);
@@ -475,7 +475,7 @@ void VectorFieldViewportCoordinator::SynchronizeOutlinerAndAccumulator()
                 Mut->PositionX            = It->EvaluatedCentreMeters.X;
                 Mut->PositionY            = It->EvaluatedCentreMeters.Y;
                 Mut->PositionZ            = It->EvaluatedCentreMeters.Z;
-                Mut->ForceLawOrdinal      = static_cast<uint32_t>(It->Model);
+                Mut->ForceModelOrdinal      = static_cast<uint32_t>(It->Model);
                 Mut->ForceFormulaOverride = It->FormulaEnabled;
             }
         }
@@ -717,7 +717,7 @@ bool VectorFieldViewportCoordinator::RenderFullForceInspector(
 
     if (ActiveSource != nullptr && PrimaryEntry != nullptr)
     {
-        PrimaryEntry->ForceLawOrdinal      = static_cast<uint32_t>(ActiveSource->Model);
+        PrimaryEntry->ForceModelOrdinal      = static_cast<uint32_t>(ActiveSource->Model);
         PrimaryEntry->ForceFormulaOverride = ActiveSource->FormulaEnabled;
         char SubBuf[96]{};
         std::snprintf(SubBuf, sizeof(SubBuf), "r %.0f m  |  %.1f m/s", ActiveSource->RadiusMeters, ActiveSource->Strength);

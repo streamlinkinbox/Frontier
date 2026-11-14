@@ -155,7 +155,7 @@ struct ForceParameterDescriptor
     uint32_t        DecimalDigits;
 };
 
-struct ForceLawDescriptor
+struct ForceModelDescriptor
 {
     const char*                              DisplayTitle;
     const char*                              SystemCaption;
@@ -165,7 +165,7 @@ struct ForceLawDescriptor
     std::array<ForceParameterDescriptor, 6>  Params;
 };
 
-constexpr std::array<ForceLawDescriptor, 19> ForceLawRepository = {{
+constexpr std::array<ForceModelDescriptor, 19> ForceModelRepository = {{
     // 0: LinearWind
     {
         "Linear Wind", "VectorField", "Flow", "v = v0*(1 + s*z)*d_hat + Gust(x,t)", 5u,
@@ -396,10 +396,10 @@ constexpr std::array<ForceLawDescriptor, 19> ForceLawRepository = {{
     },
 }};
 
-[[nodiscard]] const ForceLawDescriptor& QueryLawDescriptor(SimulationSpace::ForceFields::ForceModel Model) noexcept
+[[nodiscard]] const ForceModelDescriptor& QueryForceModelDescriptor(SimulationSpace::ForceFields::ForceModel Model) noexcept
 {
     const auto Ordinal = static_cast<std::size_t>(Model);
-    return (Ordinal < ForceLawRepository.size()) ? ForceLawRepository[Ordinal] : ForceLawRepository[0];
+    return (Ordinal < ForceModelRepository.size()) ? ForceModelRepository[Ordinal] : ForceModelRepository[0];
 }
 
 [[nodiscard]] float ReadScalarSlot(const SimulationSpace::ForceFields::ForceSourceRecordEntry& Src, ForceScalarSlot Slot) noexcept
@@ -1190,8 +1190,8 @@ bool ForceInspectorView::Render(
         const uint32_t  LawOrd = static_cast<uint32_t>(Targets.ActiveForce->Model);
         const ColorRgba LawInk = Targets.ActiveForce->FormulaEnabled
             ? InspectorSurfaceColors::AmberAccent
-            : WorkspaceAppearance::QueryForceLawTint(LawOrd);
-        WorkspaceAppearance::ConstructForceLawIcon(
+            : WorkspaceAppearance::QueryForceModelTint(LawOrd);
+        WorkspaceAppearance::ConstructForceModelIcon(
             Surface,
             LawOrd,
             { IconStartX, HeaderBounds.Center().Y - 9.0f },
@@ -1337,9 +1337,9 @@ bool ForceInspectorView::Render(
         std::vector<const char*> Options;
         uint32_t                 CurrentIdx = 0u;
 
-        if (OpenDropdown == OpenDropdownKind::ForceLawSelector && Targets.ActiveForce != nullptr)
+        if (OpenDropdown == OpenDropdownKind::ForceModelSelector && Targets.ActiveForce != nullptr)
         {
-            for (const auto& Law : ForceLawRepository)
+            for (const auto& Law : ForceModelRepository)
             {
                 Options.push_back(Law.DisplayTitle);
             }
@@ -1412,14 +1412,14 @@ bool ForceInspectorView::Render(
                     Input.PrimaryPointer,
                     ChosenIdx).Clicked)
             {
-                if (OpenDropdown == OpenDropdownKind::ForceLawSelector && Targets.ActiveForce != nullptr)
+                if (OpenDropdown == OpenDropdownKind::ForceModelSelector && Targets.ActiveForce != nullptr)
                 {
                     Targets.ActiveForce->Model  = static_cast<SimulationSpace::ForceFields::ForceModel>(ChosenIdx);
                     Targets.ActiveForce->Domain = SimulationSpace::ForceFields::QueryDomainForModel(Targets.ActiveForce->Model);
                     if (Targets.OutlinerEntry != nullptr)
                     {
-                        Targets.OutlinerEntry->ForceLawOrdinal = ChosenIdx;
-                        Targets.OutlinerEntry->CategoryLabel   = QueryLawDescriptor(Targets.ActiveForce->Model).DisplayTitle;
+                        Targets.OutlinerEntry->ForceModelOrdinal = ChosenIdx;
+                        Targets.OutlinerEntry->CategoryLabel   = QueryForceModelDescriptor(Targets.ActiveForce->Model).DisplayTitle;
                     }
                 }
                 else if (OpenDropdown == OpenDropdownKind::ReachShape && Targets.ActiveForce != nullptr)
@@ -1785,10 +1785,10 @@ float ForceInspectorView::RenderFieldTab(
     }
 
     auto& Src = *Targets.ActiveForce;
-    const ForceLawDescriptor& Law = QueryLawDescriptor(Src.Model);
+    const ForceModelDescriptor& Law = QueryForceModelDescriptor(Src.Model);
     const ColorRgba LawAccent = Src.FormulaEnabled
         ? InspectorSurfaceColors::AmberAccent
-        : WorkspaceAppearance::QueryForceLawTint(static_cast<uint32_t>(Src.Model));
+        : WorkspaceAppearance::QueryForceModelTint(static_cast<uint32_t>(Src.Model));
 
     const bool  StreamProfileActive = (Src.Model == SimulationSpace::ForceFields::ForceModel::FlowStream);
     const bool  MotionPathActive    = (Src.Motion.Topology != SimulationSpace::ForceFields::MotionPathTopology::Static);
@@ -1818,7 +1818,7 @@ float ForceInspectorView::RenderFieldTab(
     float           Y    = SelBox.Y + 14.0f;
 
     // Header row: ForceIcon + Model Switcher Title + System · Channel
-    WorkspaceAppearance::ConstructForceLawIcon(Surface, static_cast<uint32_t>(Src.Model), { ColX, Y + 1.0f }, 16.0f, LawAccent);
+    WorkspaceAppearance::ConstructForceModelIcon(Surface, static_cast<uint32_t>(Src.Model), { ColX, Y + 1.0f }, 16.0f, LawAccent);
     const Rectangle2D LawPickerBtn{ ColX + 22.0f, Y - 2.0f, std::min(168.0f, ColW * 0.56f), 22.0f };
     if (LawPickerBtn.Contains(Cursor) && Interactive)
     {
@@ -1831,7 +1831,7 @@ float ForceInspectorView::RenderFieldTab(
         VectorIconPlacement{ LawPickerBtn.Right() - 15.0f, Y + 3.0f, 11.0f, InspectorSurfaceColors::InkMuted, 1.5f });
     if (Interactive && LawPickerBtn.Contains(Cursor) && Input.PrimaryPointer.Pressed)
     {
-        OpenDropdown    = OpenDropdownKind::ForceLawSelector;
+        OpenDropdown    = OpenDropdownKind::ForceModelSelector;
         OpenTriggerRect = LawPickerBtn;
     }
 

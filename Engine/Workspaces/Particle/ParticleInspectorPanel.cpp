@@ -31,6 +31,12 @@ namespace Frontier::Workspaces
 namespace
 {
 
+[[nodiscard]] constexpr ColorRgba ConvertRgba(ParticleRgba8 Color) noexcept
+{
+    return ColorRgba{ Color.Red, Color.Green, Color.Blue, Color.Alpha };
+}
+
+
 using namespace SimulationSpace::ForceFields;
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -108,7 +114,7 @@ inline constexpr ColorRgba FooterBg        { 18u,  18u,  18u,  255u };
 void ConstructHeroSolverInfographic(
     PixelSpace&                      Surface,
     Rectangle2D                      DiagramRect,
-    const ParticleEffectRecordEntry& Effect,
+    const ParticleEffectDescriptor& Effect,
     float                            CoupledWindMs) noexcept
 {
     Surface.FillRectangle(DiagramRect, ColorRgba{ 11u, 11u, 13u, 220u }, 14.0f);
@@ -263,7 +269,7 @@ void ConstructHeroSolverInfographic(
 //------------------------------------------------------------------------------------------------------------------------
 
 [[nodiscard]] ColorRgba EvaluateColorRamp(
-    const ParticleEffectRecordEntry& Effect,
+    const ParticleEffectDescriptor& Effect,
     float                            NormalizedT) noexcept
 {
     float U = NormalizedT + Effect.RampPhaseOffset;
@@ -293,15 +299,15 @@ void ConstructHeroSolverInfographic(
 
     if (U < 0.5f)
     {
-        return ColorRgba::Blend(Effect.ColorA, Effect.ColorC, U * 2.0f);
+        return ColorRgba::Blend(ConvertRgba(Effect.ColorA), ConvertRgba(Effect.ColorC), U * 2.0f);
     }
-    return ColorRgba::Blend(Effect.ColorC, Effect.ColorB, (U - 0.5f) * 2.0f);
+    return ColorRgba::Blend(ConvertRgba(Effect.ColorC), ConvertRgba(Effect.ColorB), (U - 0.5f) * 2.0f);
 }
 
 void ConstructSpectrumRibbon(
     PixelSpace&                      Surface,
     Rectangle2D                      Rect,
-    const ParticleEffectRecordEntry& Effect,
+    const ParticleEffectDescriptor& Effect,
     bool                             ShowStopHandles = false) noexcept
 {
     const float Radius = Rect.Height * 0.5f;
@@ -327,9 +333,9 @@ void ConstructSpectrumRibbon(
     {
         const float MidY = Rect.Y + Rect.Height * 0.5f;
         const std::array<std::pair<float, ColorRgba>, 3u> Stops = {{
-            { 0.08f, Effect.ColorA.WithAlpha(255u) },
-            { 0.50f, Effect.ColorC.WithAlpha(255u) },
-            { 0.92f, Effect.ColorB.WithAlpha(255u) },
+            { 0.08f, ConvertRgba(Effect.ColorA).WithAlpha(255u) },
+            { 0.50f, ConvertRgba(Effect.ColorC).WithAlpha(255u) },
+            { 0.92f, ConvertRgba(Effect.ColorB).WithAlpha(255u) },
         }};
         for (std::size_t Idx = 0u; Idx < Stops.size(); ++Idx)
         {
@@ -646,6 +652,63 @@ float ParticleInspectorPanel::QueryScrollOffset() const noexcept
 //                                             PRIMARY INSPECTOR RENDERER
 //------------------------------------------------------------------------------------------------------------------------
 
+void ParticleInspectorPanel::SyncForceOutlinerMirror()
+{
+    if (Session == nullptr)
+    {
+        return;
+    }
+    if (SyncedForceMirrorRevision == Session->QueryRevision())
+    {
+        return;
+    }
+    SyncedForceMirrorRevision = Session->QueryRevision();
+    ForceOutlinerMirror.ClearAll();
+    ForceOutlinerTokens.clear();
+
+    OutlinerConstructTemplate Tpl{};
+    Tpl.Category        = ConstructSlotCategory::ForceField;
+    Tpl.DropdownLabel   = "Force Source";
+    Tpl.CategoryTitle   = "ForceFields";
+    Tpl.DefaultTitle    = "Force Source";
+    Tpl.ForceModelOrdinal = 0u;
+    ForceOutlinerMirror.ConfigureConstructTemplates(std::span<const OutlinerConstructTemplate>(&Tpl, 1u));
+
+    for (const SimulationSpace::ForceFields::ForceSourceRecordEntry& Source : Session->QueryForceSources())
+    {
+        const OutlinerSlotToken Slot = ForceOutlinerMirror.ConstructFromTemplate(0u, {});
+        ForceOutlinerTokens.push_back(Slot);
+        if (OutlinerRecordEntry* Row = ForceOutlinerMirror.AccessEntry(Slot))
+        {
+            Row->Title             = Source.Label;
+            Row->ForceModelOrdinal = static_cast<uint32_t>(Source.Model);
+            Row->VisibilityEnabled = Source.Visible && Source.Enabled;
+        }
+    }
+}
+
+OutlinerRecordEntry* ParticleInspectorPanel::AccessActiveForceOutlinerEntry() noexcept
+{
+    if (Session == nullptr)
+    {
+        return nullptr;
+    }
+    const auto Sources = Session->QueryForceSources();
+    const auto* Active = Session->AccessActiveForceInspectorSource();
+    if (Active == nullptr)
+    {
+        return nullptr;
+    }
+    for (std::size_t Idx = 0u; Idx < Sources.size() && Idx < ForceOutlinerTokens.size(); ++Idx)
+    {
+        if (Sources[Idx].UniqueToken == Active->UniqueToken)
+        {
+            return ForceOutlinerMirror.AccessEntry(ForceOutlinerTokens[Idx]);
+        }
+    }
+    return nullptr;
+}
+
 void ParticleInspectorPanel::Render(
     PixelSpace&             Surface,
     Rectangle2D             Bounds,
@@ -671,11 +734,12 @@ void ParticleInspectorPanel::Render(
     if (QueryForceInspectorDelegated())
     {
         Editor::Simulation::ForceInspectorViewTargets Targets{};
-        Targets.Outliner          = &Session->AccessForceOutlinerMirror();
-        Targets.OutlinerEntry     = Session->AccessActiveForceOutlinerEntry();
+        SyncForceOutlinerMirror();
+        Targets.Outliner          = &ForceOutlinerMirror;
+        Targets.OutlinerEntry     = AccessActiveForceOutlinerEntry();
         Targets.Accumulator       = &Session->AccessForceAccumulator();
         Targets.LatticeCascade    = &Session->AccessLatticeCascade();
-        Targets.ActiveForce       = Session->AccessActiveForceForInspector();
+        Targets.ActiveForce       = Session->AccessActiveForceInspectorSource();
         Targets.OverlaySettings   = &Session->AccessForceOverlay();
         Targets.AnemometerSamples = Session->QueryAnemometerSamples();
         Targets.SimulationTimeSec = Session->QuerySimulationTimeSec();
@@ -689,7 +753,7 @@ void ParticleInspectorPanel::Render(
         return;
     }
 
-    ParticleEffectRecordEntry* Effect = Session->AccessSelectedEffect();
+    ParticleEffectDescriptor* Effect = Session->AccessSelectedEffect();
     if (Effect == nullptr)
     {
         Session->SelectEnvironmentField();
@@ -697,7 +761,7 @@ void ParticleInspectorPanel::Render(
     }
 
     const ParticleCategoryDescriptor& CategoryDesc = ParticlePresetRegistry::QueryCategoryDescriptor(Effect->Category);
-    const ColorRgba Accent = (Effect->ColorA.Luminance() < 0.08f) ? CategoryDesc.AccentTint : Effect->ColorA;
+    const ColorRgba Accent = (ConvertRgba(Effect->ColorA).Luminance() < 0.08f) ? ConvertRgba(CategoryDesc.AccentTint) : ConvertRgba(Effect->ColorA);
 
     Surface.PushClip(Bounds);
     Surface.FillRectangle(Bounds, ParticleInspectorColors::RootBg, 0.0f);
@@ -753,7 +817,7 @@ void ParticleInspectorPanel::Render(
         1.3f);
     if (ChromeEnabled && Input.PrimaryPointer.Pressed && ResetHover)
     {
-        (void)Session->ResetEffectToPreset(Effect->UniqueToken);
+        (void)Session->ResetEffectPreset(Effect->UniqueToken);
         SyncedTitleToken   = 0u;
         SyncedSkyTextToken = 0u;
     }
@@ -983,7 +1047,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
     float                      LeftX,
     float                      TopY,
     float                      InnerW,
-    ParticleEffectRecordEntry& Effect,
+    ParticleEffectDescriptor& Effect,
     const PaneInputReading&    Input,
     double                     Δt,
     DeferredDropdownSheet&     OutOverlay)
@@ -995,7 +1059,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
     float Y = TopY;
     bool  Modified = false;
 
-    const SpatialForceSample CoupledSample = Session->SampleCoupledForceAt(Effect.OriginMeters);
+    const SpatialForceSample CoupledSample = Session->SampleCoupledForce(Effect.OriginMeters);
     const float CoupledWindMs              = VectorLength(CoupledSample.AdvectionVelocity);
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -1354,7 +1418,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
     }
 
     RenderActionButton({ LeftX, Y, ActW, ActH }, PrimaryActionLabel, 1, [&]() { Session->TriggerEffectBurst(Effect.UniqueToken); });
-    RenderActionButton({ LeftX + ActW + ActGap, Y, ActW, ActH }, "Clear", 0, [&]() { (void)Session->ResetEffectToPreset(Effect.UniqueToken); });
+    RenderActionButton({ LeftX + ActW + ActGap, Y, ActW, ActH }, "Clear", 0, [&]() { (void)Session->ResetEffectPreset(Effect.UniqueToken); });
     RenderActionButton({ LeftX + (ActW + ActGap) * 2.0f, Y, ActW, ActH }, "Duplicate", 0, [&]() { (void)Session->DuplicateEffect(Effect.UniqueToken); });
     RenderActionButton({ LeftX + (ActW + ActGap) * 3.0f, Y, ActW, ActH }, "Delete", 2, [&]() { (void)Session->RemoveEffect(Effect.UniqueToken); });
 
@@ -1621,6 +1685,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
 
     if (Modified)
     {
+        Session->RebuildEffectSimulation(Effect.UniqueToken);
         Session->IncrementRevision();
     }
     return Y;
@@ -1636,7 +1701,7 @@ float ParticleInspectorPanel::RenderSourceTab(
     float                      LeftX,
     float                      TopY,
     float                      InnerW,
-    ParticleEffectRecordEntry& Effect,
+    ParticleEffectDescriptor& Effect,
     const PaneInputReading&    Input,
     DeferredDropdownSheet&     OutOverlay)
 {
@@ -1739,11 +1804,12 @@ float ParticleInspectorPanel::RenderSourceTab(
     }
     Sy += 52.0f;
 
-    Modified |= RenderSwitchRow(Surface, ContentX, Sy, ContentW, "Release bursts at local origin", Effect.BurstAtOrigin, Pointer);
+    Modified |= RenderSwitchRow(Surface, ContentX, Sy, ContentW, "Release bursts at local origin", Effect.BurstOriginAnchored, Pointer);
     Y += Sec3H + 10.0f;
 
     if (Modified)
     {
+        Session->RebuildEffectSimulation(Effect.UniqueToken);
         Session->IncrementRevision();
     }
     return Y;
@@ -1759,7 +1825,7 @@ float ParticleInspectorPanel::RenderMotionAndFxTab(
     float                      LeftX,
     float                      TopY,
     float                      InnerW,
-    ParticleEffectRecordEntry& Effect,
+    ParticleEffectDescriptor& Effect,
     const PaneInputReading&    Input,
     DeferredDropdownSheet&     OutOverlay)
 {
@@ -1824,7 +1890,7 @@ float ParticleInspectorPanel::RenderMotionAndFxTab(
     Sy = BeginSectionBox(Surface, LeftX, Y, InnerW, Sec2H, "Physics & ForceFields coupling", "02 / FORCEFIELDS", ParticleInspectorColors::EmeraldSoft);
 
     // Live coupled ForceFieldAccumulator reading at Effect.OriginMeters
-    const SpatialForceSample Sample = Session->SampleCoupledForceAt(Effect.OriginMeters);
+    const SpatialForceSample Sample = Session->SampleCoupledForce(Effect.OriginMeters);
     const float AdvSpeed            = VectorLength(Sample.AdvectionVelocity);
     const float AccelMag            = VectorLength(Sample.LinearAcceleration);
     char AdvBuf[48]{};
@@ -1863,6 +1929,7 @@ float ParticleInspectorPanel::RenderMotionAndFxTab(
 
     if (Modified)
     {
+        Session->RebuildEffectSimulation(Effect.UniqueToken);
         Session->IncrementRevision();
     }
     return Y;
@@ -1877,7 +1944,7 @@ float ParticleInspectorPanel::RenderSpecAndExportTab(
     float                            LeftX,
     float                            TopY,
     float                            InnerW,
-    const ParticleEffectRecordEntry& Effect)
+    const ParticleEffectDescriptor& Effect)
 {
     const float ContentX = LeftX + 18.0f;
     const float ContentW = InnerW - 36.0f;
@@ -1907,7 +1974,7 @@ float ParticleInspectorPanel::RenderSpecAndExportTab(
     {
         const Rectangle2D RowRect{ ContentX, Sy, ContentW, 22.0f };
         Surface.FillRectangle(RowRect, ParticleInspectorColors::SurfaceDark, 11.0f);
-        const ColorRgba Tint = WorkspaceAppearance::QueryForceLawTint(static_cast<uint32_t>(Force.Model));
+        const ColorRgba Tint = WorkspaceAppearance::QueryForceModelTint(static_cast<uint32_t>(Force.Model));
         Surface.FillCircle({ RowRect.X + 10.0f, RowRect.Y + 11.0f }, 3.5f, Force.Enabled ? Tint : ParticleInspectorColors::InkDim);
         WorkspaceAppearance::ConstructTruncatedText(
             Surface,
@@ -2018,7 +2085,7 @@ void ParticleInspectorPanel::RenderDeferredDropdown(
     PixelSpace&                  Surface,
     Rectangle2D                  PaneBounds,
     const DeferredDropdownSheet& Overlay,
-    ParticleEffectRecordEntry&   Effect,
+    ParticleEffectDescriptor&   Effect,
     const PaneInputReading&      Input)
 {
     std::vector<const char*> Options{};
@@ -2042,12 +2109,12 @@ void ParticleInspectorPanel::RenderDeferredDropdown(
             SelectedIndex = static_cast<uint32_t>(Effect.Silhouette);
             break;
 
-        case OpenDropdownCategory::ColorBy:
-            for (uint32_t Ord = 0u; Ord < static_cast<uint32_t>(ParticleColorByCategory::Count); ++Ord)
+        case OpenDropdownCategory::ColorDriver:
+            for (uint32_t Ord = 0u; Ord < static_cast<uint32_t>(ParticleColorDriver::Count); ++Ord)
             {
-                Options.push_back(ParticlePresetRegistry::QueryColorByLabel(static_cast<ParticleColorByCategory>(Ord)));
+                Options.push_back(ParticlePresetRegistry::QueryColorDriverLabel(static_cast<ParticleColorDriver>(Ord)));
             }
-            SelectedIndex = static_cast<uint32_t>(Effect.ColorBy);
+            SelectedIndex = static_cast<uint32_t>(Effect.ColorDriver);
             break;
 
         case OpenDropdownCategory::RampWrap:
@@ -2130,8 +2197,8 @@ void ParticleInspectorPanel::RenderDeferredDropdown(
             case OpenDropdownCategory::Silhouette:
                 Effect.Silhouette = static_cast<ParticleVisualSilhouette>(ChosenIndex);
                 break;
-            case OpenDropdownCategory::ColorBy:
-                Effect.ColorBy = static_cast<ParticleColorByCategory>(ChosenIndex);
+            case OpenDropdownCategory::ColorDriver:
+                Effect.ColorDriver = static_cast<ParticleColorDriver>(ChosenIndex);
                 break;
             case OpenDropdownCategory::RampWrap:
                 Effect.RampWrap = static_cast<ParticleRampWrapCategory>(ChosenIndex);
@@ -2157,6 +2224,7 @@ void ParticleInspectorPanel::RenderDeferredDropdown(
             default:
                 break;
         }
+        Session->RebuildEffectSimulation(Effect.UniqueToken);
         Session->IncrementRevision();
         OpenDropdown = OpenDropdownCategory::None;
     }

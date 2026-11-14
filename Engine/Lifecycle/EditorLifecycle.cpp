@@ -34,7 +34,7 @@ namespace
 }
 
 [[nodiscard]] SimulationSpace::ForceFields::ForceSourceRecordEntry BuildEditorForcePreset(
-    uint32_t         ForceLawOrdinal,
+    uint32_t         ForceModelOrdinal,
     std::string_view Title)
 {
     using namespace SimulationSpace::ForceFields;
@@ -46,9 +46,9 @@ namespace
     Desc.EvaluatedCentreMeters = Desc.CentreMeters;
     Desc.Label                 = std::string(Title);
 
-    if (ForceLawOrdinal < static_cast<uint32_t>(ForceModel::Count))
+    if (ForceModelOrdinal < static_cast<uint32_t>(ForceModel::Count))
     {
-        Desc.Model = static_cast<ForceModel>(ForceLawOrdinal);
+        Desc.Model = static_cast<ForceModel>(ForceModelOrdinal);
     }
     else if (Title.find("Thermal") != std::string_view::npos || Title.find("Updraft") != std::string_view::npos)
     {
@@ -355,7 +355,7 @@ void EditorLifecycle::AttachForceFieldAuthoringToActivePanes()
             {
                 MappedEditorForceSource Synthesized{};
                 Synthesized.OutlinerSlot       = PrimaryEntry->Token;
-                Synthesized.Source             = BuildEditorForcePreset(PrimaryEntry->ForceLawOrdinal, PrimaryEntry->Title);
+                Synthesized.Source             = BuildEditorForcePreset(PrimaryEntry->ForceModelOrdinal, PrimaryEntry->Title);
                 Synthesized.Source.UniqueToken = NextForceToken++;
                 AuthoredForces.push_back(std::move(Synthesized));
                 ActiveForce = &AuthoredForces.back().Source;
@@ -375,7 +375,7 @@ void EditorLifecycle::AttachForceFieldAuthoringToActivePanes()
             const bool Changed = ForceInspector.Render(Surface, Bounds, Targets, Input, Δt);
             if (Changed)
             {
-                PrimaryEntry->ForceLawOrdinal      = static_cast<uint32_t>(ActiveForce->Model);
+                PrimaryEntry->ForceModelOrdinal      = static_cast<uint32_t>(ActiveForce->Model);
                 PrimaryEntry->ForceFormulaOverride = ActiveForce->FormulaEnabled;
                 PrimaryEntry->CategoryLabel        = SimulationSpace::ForceFields::QueryForceModelDisplayName(ActiveForce->Model);
                 char SubBuf[96]{};
@@ -442,7 +442,7 @@ OutlinerSlotToken EditorLifecycle::SpawnForceFieldEntry(
         Record->Category             = ConstructSlotCategory::ForceField;
         Record->Title                = Instance.Label;
         Record->CategoryLabel        = SimulationSpace::ForceFields::QueryForceModelDisplayName(Instance.Model);
-        Record->ForceLawOrdinal      = static_cast<uint32_t>(Instance.Model);
+        Record->ForceModelOrdinal      = static_cast<uint32_t>(Instance.Model);
         Record->ForceFormulaOverride = Instance.FormulaEnabled;
         char SubBuf[96]{};
         std::snprintf(SubBuf, sizeof(SubBuf), "r %.0f m  |  %.1f m/s", Instance.RadiusMeters, Instance.Strength);
@@ -494,7 +494,7 @@ void EditorLifecycle::SynchronizeForceFieldsWithOutliner(double Δt)
         {
             MappedEditorForceSource NewItem{};
             NewItem.OutlinerSlot           = Entry.Token;
-            NewItem.Source                 = BuildEditorForcePreset(Entry.ForceLawOrdinal, Entry.Title);
+            NewItem.Source                 = BuildEditorForcePreset(Entry.ForceModelOrdinal, Entry.Title);
             NewItem.Source.UniqueToken     = NextForceToken++;
             NewItem.Source.OutlinerTokenId = Entry.Token.Identifier;
             AuthoredForces.push_back(std::move(NewItem));

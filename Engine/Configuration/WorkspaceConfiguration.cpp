@@ -29,6 +29,15 @@ void WorkspaceConfiguration::ConfigureUVPreferences(const UVWorkspacePreferences
     UVPreferences.TargetTexelDensity      = std::clamp(UVPreferences.TargetTexelDensity, 1.0f, 16384.0f);
 }
 
+void WorkspaceConfiguration::ConfigureParticlePreferences(const ParticleWorkspacePreferences& Preferences) noexcept
+{
+    ParticlePreferences = Preferences;
+    ParticlePreferences.LeftOutlinerWidthPx      = std::clamp(ParticlePreferences.LeftOutlinerWidthPx, 220.0f, 560.0f);
+    ParticlePreferences.RightInspectorWidthPx    = std::clamp(ParticlePreferences.RightInspectorWidthPx, 240.0f, 620.0f);
+    ParticlePreferences.DefaultEffectCapacity    = std::clamp(ParticlePreferences.DefaultEffectCapacity, 64u, 262144u);
+    ParticlePreferences.LatticeCascadeResolution = std::clamp(ParticlePreferences.LatticeCascadeResolution, 8u, 64u);
+}
+
 void WorkspaceConfiguration::ConfigureGizmoSnap(const GizmoSnapSettings& SnapSettings) noexcept
 {
     GizmoSnap = SnapSettings;
@@ -40,8 +49,9 @@ void WorkspaceConfiguration::ConfigureGizmoSnap(const GizmoSnapSettings& SnapSet
 
 void WorkspaceConfiguration::ResetDefaults() noexcept
 {
-    UVPreferences = UVWorkspacePreferences{};
-    GizmoSnap     = GizmoSnapSettings{};
+    UVPreferences       = UVWorkspacePreferences{};
+    ParticlePreferences = ParticleWorkspacePreferences{};
+    GizmoSnap           = GizmoSnapSettings{};
 }
 
 const UVWorkspacePreferences& WorkspaceConfiguration::InspectUVPreferences() const noexcept
@@ -52,6 +62,16 @@ const UVWorkspacePreferences& WorkspaceConfiguration::InspectUVPreferences() con
 UVWorkspacePreferences& WorkspaceConfiguration::AccessUVPreferences() noexcept
 {
     return UVPreferences;
+}
+
+const ParticleWorkspacePreferences& WorkspaceConfiguration::InspectParticlePreferences() const noexcept
+{
+    return ParticlePreferences;
+}
+
+ParticleWorkspacePreferences& WorkspaceConfiguration::AccessParticlePreferences() noexcept
+{
+    return ParticlePreferences;
 }
 
 const GizmoSnapSettings& WorkspaceConfiguration::InspectGizmoSnap() const noexcept

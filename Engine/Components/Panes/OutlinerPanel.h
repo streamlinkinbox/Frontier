@@ -87,7 +87,7 @@ struct OutlinerConstructTemplate
     std::string          CategoryTitle {};                                           // [-] - Inspector breadcrumb category label
     std::string          DefaultDetail {};                                           // [-] - Secondary row summary caption
     ConstructSlotCategory Category      = ConstructSlotCategory::CategoryOne;   // [-] - Visual icon and filter category
-    uint32_t             ForceLawOrdinal = 0xFFFFFFFFu;                              // [id]- Optional ForceModel icon ordinal [0..18]
+    uint32_t             ForceModelOrdinal = 0xFFFFFFFFu;                              // [id]- Optional ForceModel icon ordinal [0..18]
 };
 
 struct OutlinerRecordEntry
@@ -114,7 +114,7 @@ struct OutlinerRecordEntry
     bool                 Locked            = false;                                    // [-]  - Transform edit lock switch
     bool                 DynamicMotion     = false;                                    // [-]  - Dynamic simulation switch
     bool                 CastShadows       = true;                                     // [-]  - Shadow caster capability switch
-    uint32_t             ForceLawOrdinal   = 0xFFFFFFFFu;                              // [id] - Bespoke ForceIcons SVG index [0..18]
+    uint32_t             ForceModelOrdinal   = 0xFFFFFFFFu;                              // [id] - Bespoke ForceIcons SVG index [0..18]
     bool                 ForceFormulaOverride = false;                                 // [-]  - Formula override tint/tag switch
     std::string          MotionTagText     {};                                         // [-]  - Optional compact motion indicator
 };

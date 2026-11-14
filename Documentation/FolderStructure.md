@@ -416,11 +416,19 @@ Frontier/
     │   │   ├── ConstraintSolver.{h,cpp}           // Projected Gauss-Seidel iterative velocity solver
     │   │   ├── BroadphaseSolver.{h,cpp}           // Sweep-and-prune dynamic bounding query
     │   │   └── CollisionDetection.{h,cpp}         // GJK narrow-phase & EPA contact extraction
-    │   ├── ParticleSimulation/                    // High-density particulate dynamics
-    │   │   ├── ParticleSpawner.{h,cpp}            // Point, volume, and boundary particle spawning
-    │   │   ├── ParticleField.{h,cpp}              // Curl noise, rotational, and gravitational vector fields
-    │   │   ├── ParticleIntegrator.{h,cpp}         // High-performance Euler and Verlet particle solvers
-    │   │   └── ComputeParticleBuffer.{h,cpp}      // GPU-side direct compute buffer synchronization
+    │   ├── ForceFields/                           // Coupled spatial Vector, Flow & Turbulence fields
+    │   │   ├── ForceFieldDescriptors.{h,cpp}      // 19 ForceModel descriptors, envelopes & GPU layouts
+    │   │   ├── ForceFieldAccumulator.{h,cpp}      // Multi-source spatial field evaluation & anemometer
+    │   │   ├── FieldLatticeCascade.{h,cpp}        // 4-tier clipmap 3D force lattice cascade
+    │   │   ├── FieldFormulaCompiler.{h,cpp}       // VectorFieldLang symbolic formula compiler
+    │   │   └── FieldLatticeVulkanExecutor.{h,cpp} // GPU Vulkan 1.3 .slang compute dispatch
+    │   ├── Particles/                             // Modular typed-SoA particulate dynamics
+    │   │   ├── ParticleChannelLayouts.h           // 16B-aligned typed SoA channel schemas
+    │   │   ├── ParticleChannelBank.{h,cpp}        // Dynamic channel registration & swap-remove slots
+    │   │   ├── ParticleDynamics.h                 // Composable source, motion, collider & integrator types
+    │   │   ├── ParticleKinematicsSolvers.{h,cpp}  // ForceFields coupling, curl, SDF/plane colliders, RK2/XPBD
+    │   │   ├── ParticleDomainSolvers.{h,cpp}      // Strands, ferrofluid, fireworks, fracture, boids & fields
+    │   │   └── ParticleSimulation.{h,cpp}         // Simulation runner, specification & async 32B readback
     │   ├── FluidSimulation/                       // Multiphase liquids and gases
     │   │   ├── LiquidSolver.{h,cpp}               // Incompressible SPH liquid solver
     │   │   ├── GasDynamics.{h,cpp}                // Eulerian grid smoke, fire, and atmosphere solver
@@ -506,7 +514,15 @@ Frontier/
     │   ├── Vector/                                // Headless VectorSpace authoring runtime & operations
     │   ├── Simulation/                            // Headless SimulationSpace authoring runtime & operations
     │   ├── Volumetric/                            // Headless VolumetricSpace authoring runtime & operations
-    │   └── Particle/                              // Headless ParticleSpace authoring runtime & operations
+    │   └── Particle/                              // Dual-deployment ParticleSpace workspace (headless session + UI hosts)
+    │       ├── ParticlePresetRegistry.{h,cpp}     // Headless 93-preset registry, silhouettes & effect descriptors
+    │       ├── ParticlePresetCompiler.{h,cpp}     // Compiles presets & descriptors into ParticleSimulation
+    │       ├── ParticleWorkspaceSession.{h,cpp}   // Headless session binding simulations, ForceFields, Codec & Revisions
+    │       ├── ParticleOutlinerPanel.{h,cpp}      // Native PixelSpace Outliner & Construct preset sheet
+    │       ├── ParticleInspectorPanel.{h,cpp}     // 4-tab Particle Inspector + ForceInspectorView delegation
+    │       ├── ParticleViewportInteractor.{h,cpp} // Z-Up 3D orbit/pan/dolly camera rig
+    │       ├── ParticleViewportHost.{h,cpp}       // 3D viewport canvas, ForceFields gizmos & PlaybackScrubber
+    │       └── ParticleWorkspaceHost.{h,cpp}      // Standalone / Editor dock registration & external file drop
     │
     ├── Editor/                                    // Tooling, Viewports & Modular UI ONLY (Excluded from Shipping)
     │   ├── Viewports/                             // Shared general-purpose 3D & 2D viewports

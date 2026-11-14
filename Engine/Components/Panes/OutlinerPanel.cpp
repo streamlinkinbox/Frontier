@@ -168,7 +168,7 @@ OutlinerSlotToken OutlinerPanel::ConstructFromTemplate(uint32_t TemplateIndex, O
     Created.Subtitle          = Preset.DefaultDetail;
     Created.VisibilityEnabled = true;
     Created.Expanded          = true;
-    Created.ForceLawOrdinal   = Preset.ForceLawOrdinal;
+    Created.ForceModelOrdinal   = Preset.ForceModelOrdinal;
 
     if (OutlinerRecordEntry* EnclosureEntry = AccessEntry(Created.EnclosingToken))
     {
@@ -1365,16 +1365,16 @@ void OutlinerPanel::Render(
                 }
             }
 
-            // 24px Showcase folder or category icon (exact 19 bespoke ForceModel icons when ForceLawOrdinal < 19)
+            // 24px Showcase folder or category icon (exact 19 bespoke ForceModel icons when ForceModelOrdinal < 19)
             const Point2D IconOrigin{ DisclosureRect.Right() + 4.0f, RowRect.Y + 7.5f };
-            if (Entry->Category == ConstructSlotCategory::ForceField && Entry->ForceLawOrdinal < 19u)
+            if (Entry->Category == ConstructSlotCategory::ForceField && Entry->ForceModelOrdinal < 19u)
             {
                 const ColorRgba LawInk = Entry->ForceFormulaOverride
                     ? WorkspaceSurfaceColors::SelectionAmber
-                    : WorkspaceAppearance::QueryForceLawTint(Entry->ForceLawOrdinal);
-                WorkspaceAppearance::ConstructForceLawIcon(
+                    : WorkspaceAppearance::QueryForceModelTint(Entry->ForceModelOrdinal);
+                WorkspaceAppearance::ConstructForceModelIcon(
                     Surface,
-                    Entry->ForceLawOrdinal,
+                    Entry->ForceModelOrdinal,
                     { IconOrigin.X + 2.0f, IconOrigin.Y + 2.0f },
                     20.0f,
                     LawInk,

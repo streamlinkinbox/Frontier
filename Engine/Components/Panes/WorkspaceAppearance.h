@@ -269,11 +269,11 @@ void ConstructSlotCategoryIcon(
     ColorRgba             FolderTint = WorkspaceSurfaceColors::SageCollection,
     float                 Opacity    = 1.0f) noexcept;
 
-[[nodiscard]] ColorRgba QueryForceLawTint(uint32_t LawOrdinal) noexcept;
+[[nodiscard]] ColorRgba QueryForceModelTint(uint32_t ModelOrdinal) noexcept;
 
-void ConstructForceLawIcon(
+void ConstructForceModelIcon(
     PixelSpace& Surface,
-    uint32_t    LawOrdinal,
+    uint32_t    ModelOrdinal,
     Point2D     TopLeft,
     float       Extent,
     ColorRgba   AccentInk,

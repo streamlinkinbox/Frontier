@@ -70,23 +70,39 @@ struct UVWorkspacePreferences
     bool                    EqualizeIntraLayerScale = true;                                     // [-]    - Normalize texel scale per layer
 };
 
+struct ParticleWorkspacePreferences
+{
+    float    LeftOutlinerWidthPx      = 304.0f; // [px]    - Particle Outliner pane width
+    float    RightInspectorWidthPx    = 360.0f; // [px]    - Particle Inspector pane width
+    uint32_t DefaultEffectCapacity    = 2048u;  // [count] - Default particle allocation budget
+    uint32_t LatticeCascadeResolution = 16u;    // [idx]   - Default coupled ForceField clipmap resolution
+    bool     FloorGridEnabled         = true;   // [-]     - 3D Z-Up floor grid overlay visibility
+    bool     ForceVectorsEnabled      = true;   // [-]     - Coupled ForceField vector & gizmo overlay
+    bool     BoundsOverlayEnabled     = false;  // [-]     - Simulation bounding sphere telemetry overlay
+    bool     PlaybackScrubberVisible  = true;   // [-]     - Bottom viewport timeline transport bar visibility
+};
+
 class WorkspaceConfiguration
 {
 public:
     WorkspaceConfiguration() noexcept = default;
 
     void ConfigureUVPreferences(const UVWorkspacePreferences& Preferences) noexcept;
+    void ConfigureParticlePreferences(const ParticleWorkspacePreferences& Preferences) noexcept;
     void ConfigureGizmoSnap(const GizmoSnapSettings& SnapSettings) noexcept;
     void ResetDefaults() noexcept;
 
-    [[nodiscard]] const UVWorkspacePreferences& InspectUVPreferences() const noexcept;
-    [[nodiscard]] UVWorkspacePreferences&       AccessUVPreferences() noexcept;
-    [[nodiscard]] const GizmoSnapSettings&      InspectGizmoSnap() const noexcept;
-    [[nodiscard]] GizmoSnapSettings&            AccessGizmoSnap() noexcept;
+    [[nodiscard]] const UVWorkspacePreferences&       InspectUVPreferences() const noexcept;
+    [[nodiscard]] UVWorkspacePreferences&             AccessUVPreferences() noexcept;
+    [[nodiscard]] const ParticleWorkspacePreferences& InspectParticlePreferences() const noexcept;
+    [[nodiscard]] ParticleWorkspacePreferences&       AccessParticlePreferences() noexcept;
+    [[nodiscard]] const GizmoSnapSettings&            InspectGizmoSnap() const noexcept;
+    [[nodiscard]] GizmoSnapSettings&                  AccessGizmoSnap() noexcept;
 
 private:
-    UVWorkspacePreferences UVPreferences {}; // [-] - UV workspace layout, solver & overlay defaults
-    GizmoSnapSettings      GizmoSnap     {}; // [-] - Shared 3D/2D TransformGizmo snap steps
+    UVWorkspacePreferences       UVPreferences       {}; // [-] - UV workspace layout, solver & overlay defaults
+    ParticleWorkspacePreferences ParticlePreferences {}; // [-] - Particle workspace layout, budget & viewport defaults
+    GizmoSnapSettings            GizmoSnap           {}; // [-] - Shared 3D/2D TransformGizmo snap steps
 };
 
 } // namespace Frontier::Configuration

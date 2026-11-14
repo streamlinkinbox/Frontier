@@ -1,7 +1,7 @@
 /*============================================================================================================================================
                                                           FORCEINSPECTORVIEW.H
 ============================================================================================================================================*/
-// 🧩 Full 1:1 ForceFields Inspector renderer: 4 tabs (Field / Formula / Layers / Cache), 19 ForceModel law schemas,
+// 🧩 Full 1:1 ForceFields Inspector renderer: 4 tabs (Field / Formula / Layers / Cache), 19 ForceModel schemas,
 //    Beaufort Anemometer telemetry plot, radial envelope f(r), motion path waypoints, VectorFieldLang compiler & GPU layers
 
 #pragma once
@@ -78,7 +78,7 @@ private:
     enum class OpenDropdownKind : uint8_t
     {
         None             = 0u,
-        ForceLawSelector = 1u,
+        ForceModelSelector = 1u,
         ReachShape       = 2u,
         Attenuation      = 3u,
         DurationMode     = 4u,

@@ -1,19 +1,21 @@
 /*============================================================================================================================================
                                                        PARTICLEPRESETCOMPILER.CPP
 ============================================================================================================================================*/
-// 🧩 Compiles all 93 non-quarantined presets and live ParticleEffectRecordEntry configurations into modular C++20 ParticleSimulations
+// 🧩 Compiles all 93 non-quarantined presets and live ParticleEffectDescriptor configurations into modular C++20 ParticleSimulations
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/SimulationSpace/Particles/ParticlePresetCompiler.h"
+#include "Engine/Workspaces/Particle/ParticlePresetCompiler.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace Frontier::SimulationSpace::Particles
+namespace Frontier::Workspaces
 {
+
+using namespace Frontier::SimulationSpace::Particles;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     INTERNAL ROUTINES
@@ -22,7 +24,7 @@ namespace Frontier::SimulationSpace::Particles
 namespace
 {
 
-[[nodiscard]] std::array<float, 4u> DecodeLinearRgba(ColorRgba Color) noexcept
+[[nodiscard]] std::array<float, 4u> DecodeLinearRgba(ParticleRgba8 Color) noexcept
 {
     return {{
         static_cast<float>(Color.Red) / 255.0f,
@@ -32,15 +34,15 @@ namespace
     }};
 }
 
-[[nodiscard]] VolumeShapeCategory ResolveReleaseVolume(Workspaces::ParticleReleaseVolume Volume) noexcept
+[[nodiscard]] VolumeShapeCategory ResolveReleaseVolume(ParticleReleaseVolume Volume) noexcept
 {
     switch (Volume)
     {
-        case Workspaces::ParticleReleaseVolume::PointOrigin:   return VolumeShapeCategory::PointOrigin;
-        case Workspaces::ParticleReleaseVolume::SphereVolume:  return VolumeShapeCategory::SphereVolume;
-        case Workspaces::ParticleReleaseVolume::DiscPlane:     return VolumeShapeCategory::DiscVolume;
-        case Workspaces::ParticleReleaseVolume::BoxVolume:     return VolumeShapeCategory::BoxVolume;
-        case Workspaces::ParticleReleaseVolume::SurfaceSample: return VolumeShapeCategory::BoxSurfaceLattice;
+        case ParticleReleaseVolume::PointOrigin:   return VolumeShapeCategory::PointOrigin;
+        case ParticleReleaseVolume::SphereVolume:  return VolumeShapeCategory::SphereVolume;
+        case ParticleReleaseVolume::DiscPlane:     return VolumeShapeCategory::DiscVolume;
+        case ParticleReleaseVolume::BoxVolume:     return VolumeShapeCategory::BoxVolume;
+        case ParticleReleaseVolume::SurfaceSample: return VolumeShapeCategory::BoxSurfaceLattice;
         default:                                               return VolumeShapeCategory::SphereVolume;
     }
 }
@@ -76,19 +78,19 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompilePresetSlug(
     std::string_view PresetSlug,
     uint32_t         DeterministicSeed)
 {
-    if (Workspaces::ParticlePresetRegistry::VerifySlugExcludedFromRegistry(PresetSlug))
+    if (ParticlePresetRegistry::VerifySlugRetired(PresetSlug))
     {
         return std::nullopt;
     }
 
-    const Workspaces::ParticlePresetDescriptor* Preset =
-        Workspaces::ParticlePresetRegistry::FindPresetByIdentifier(PresetSlug);
+    const ParticlePresetDescriptor* Preset =
+        ParticlePresetRegistry::FindPreset(PresetSlug);
     if (Preset == nullptr)
     {
         return std::nullopt;
     }
 
-    Workspaces::ParticleEffectRecordEntry Entry{};
+    ParticleEffectDescriptor Entry{};
     Entry.PresetIdentifier        = Preset->Identifier;
     Entry.Title                   = Preset->DisplayName;
     Entry.Sublabel                = Preset->Sublabel;
@@ -120,18 +122,18 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompilePresetSlug(
     Entry.FerrofluidVessel        = Preset->FerrofluidVessel;
     Entry.FracturePattern         = Preset->FracturePattern;
     Entry.EffectorArchitecture    = Preset->EffectorArchitecture;
-    Entry.FireworkPattern         = static_cast<Workspaces::FireworkPatternCategory>(
-        std::min<uint8_t>(Preset->FireworkPattern, static_cast<uint8_t>(Workspaces::FireworkPatternCategory::GrandFinale)));
+    Entry.FireworkPattern         = static_cast<FireworkPatternCategory>(
+        std::min<uint8_t>(Preset->FireworkPattern, static_cast<uint8_t>(FireworkPatternCategory::GrandFinale)));
     Entry.DeterministicSeed       = DeterministicSeed;
 
-    return CompileEffectEntry(Entry);
+    return CompileEffectDescriptor(Entry);
 }
 
-std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
-    const Workspaces::ParticleEffectRecordEntry& Effect)
+std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectDescriptor(
+    const ParticleEffectDescriptor& Effect)
 {
     if (!Effect.PresetIdentifier.empty()
-        && Workspaces::ParticlePresetRegistry::VerifySlugExcludedFromRegistry(Effect.PresetIdentifier))
+        && ParticlePresetRegistry::VerifySlugRetired(Effect.PresetIdentifier))
     {
         return std::nullopt;
     }
@@ -149,7 +151,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
 
     switch (Effect.AuthoringDomain)
     {
-        case Workspaces::ParticleAuthoringDomain::RiggingAndFlora:
+        case ParticleAuthoringDomain::RiggingAndFlora:
         {
             StrandGridParameters Grid{};
             Grid.Pattern            = SelectStrandPattern(Effect.RiggingArchitecture, Effect.PresetIdentifier);
@@ -195,7 +197,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
                 .Construct();
         }
 
-        case Workspaces::ParticleAuthoringDomain::FerrofluidFlux:
+        case ParticleAuthoringDomain::FerrofluidFlux:
         {
             FerrofluidParameters Ferro{};
             Ferro.OriginMeters        = Effect.OriginMeters;
@@ -215,7 +217,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
                 .Construct();
         }
 
-        case Workspaces::ParticleAuthoringDomain::FireworksSpectacle:
+        case ParticleAuthoringDomain::FireworksSpectacle:
         {
             PyroVolleyParameters Pyro{};
             Pyro.LaunchOriginMeters = { Effect.OriginMeters.X, Effect.OriginMeters.Y, 0.25f };
@@ -239,7 +241,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
                 .Construct();
         }
 
-        case Workspaces::ParticleAuthoringDomain::BoidsFlock:
+        case ParticleAuthoringDomain::BoidsFlock:
         {
             BoidsFlockParameters Flock{};
             Flock.HomeOriginMeters = { Effect.OriginMeters.X, Effect.OriginMeters.Y, std::max(1.8f, Effect.OriginMeters.Z) };
@@ -259,7 +261,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
                 .Construct();
         }
 
-        case Workspaces::ParticleAuthoringDomain::FractureAndCracks:
+        case ParticleAuthoringDomain::FractureAndCracks:
         {
             FractureCrackParameters Frac{};
             Frac.OriginMeters        = { Effect.OriginMeters.X, Effect.OriginMeters.Y, 0.12f };
@@ -279,8 +281,8 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
                 .Construct();
         }
 
-        case Workspaces::ParticleAuthoringDomain::MoGraphEffector:
-        case Workspaces::ParticleAuthoringDomain::TransitionDerez:
+        case ParticleAuthoringDomain::MoGraphEffector:
+        case ParticleAuthoringDomain::TransitionDerez:
         {
             const uint32_t Side = std::clamp(static_cast<uint32_t>(std::sqrt(static_cast<double>(SafeCapacity))), 6u, 28u);
             MoGraphEffectorParameters Grid{};
@@ -289,7 +291,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
             Grid.GridY             = Side;
             Grid.FalloffMeters     = std::clamp(Effect.EffectorFalloffMeters, 0.5f, 6.0f);
             Grid.ExtrusionMeters   = std::clamp(Effect.EffectorExtrusionMeters, 0.2f, 4.0f);
-            Grid.EnableDerezLaunch = (Effect.AuthoringDomain == Workspaces::ParticleAuthoringDomain::TransitionDerez);
+            Grid.EnableDerezLaunch = (Effect.AuthoringDomain == ParticleAuthoringDomain::TransitionDerez);
 
             return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(Side * Side, ChannelStoragePolicy::FixedSlotOrder)
@@ -302,7 +304,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
                 .Construct();
         }
 
-        case Workspaces::ParticleAuthoringDomain::EnergyShield:
+        case ParticleAuthoringDomain::EnergyShield:
         {
             EnergyShieldParameters Shield{};
             Shield.CentreMeters    = Effect.OriginMeters;
@@ -319,7 +321,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
                 .Construct();
         }
 
-        case Workspaces::ParticleAuthoringDomain::SpaceDistortion:
+        case ParticleAuthoringDomain::SpaceDistortion:
         {
             VolumeSourceParameters Source{};
             Source.Shape             = VolumeShapeCategory::DiscVolume;
@@ -351,7 +353,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
                 .Construct();
         }
 
-        case Workspaces::ParticleAuthoringDomain::GeneralParticle:
+        case ParticleAuthoringDomain::GeneralParticle:
         default:
         {
             VolumeSourceParameters Source{};
@@ -370,10 +372,10 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
             Source.LifeMaxSec          = std::max(Source.LifeMinSec, Effect.LifeMaxSec);
             Source.SizeStartMeters     = std::max(0.01f, Effect.SizeStartMeters);
             Source.SpinRateRadSec      = Effect.SpinRateRadSec;
-            Source.AllocateOrientation = (Effect.Silhouette == Workspaces::ParticleVisualSilhouette::ChipCube
-                                          || Effect.Silhouette == Workspaces::ParticleVisualSilhouette::GlassShard
-                                          || Effect.Silhouette == Workspaces::ParticleVisualSilhouette::LeafOrPaper
-                                          || Effect.Silhouette == Workspaces::ParticleVisualSilhouette::CoinDisc);
+            Source.AllocateOrientation = (Effect.Silhouette == ParticleVisualSilhouette::CubeShard
+                                          || Effect.Silhouette == ParticleVisualSilhouette::GlassShard
+                                          || Effect.Silhouette == ParticleVisualSilhouette::LeafOrPaper
+                                          || Effect.Silhouette == ParticleVisualSilhouette::CoinDisc);
 
             ParticleSimulationSpecification Specification(Effect.Title);
             Specification
@@ -410,4 +412,4 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
     }
 }
 
-} // namespace Frontier::SimulationSpace::Particles
+} // namespace Frontier::Workspaces

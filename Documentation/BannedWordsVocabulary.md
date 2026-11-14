@@ -177,7 +177,8 @@ Use the following distinct visual nouns according to their exact structural role
   - Barred `facet` / `facets` (use `Face` / `Faces`), `complex`, `topology`, and `assembly` (use `PolygonNetwork` for connected polygon structures).
   - Marked `substrate`, `atlas`, and `slice` as **discouraged (avoid)**.
 - **2026-11-14**:
-  - Barred `Builder` / `Builders` (use `Specification` / `Descriptor` + `Construct()`), `Law` / `Laws` (use `Solver` / `Constraint` / `Collider` / `Integrator`), `Recipe` / `Recipes` (use `Preset` / `Specification`), `Interface` / `Interfaces` (name the concrete domain directly or use `Interchange` / `Exchange` at boundaries), and `BuiltIn` (plus prepositions `In`, `From`, `To`, `For`, `With`, `By`, `Into`, `On`, `Of` embedded inside compound identifiers).
+  - Barred `Builder` / `Builders` (use `Specification` / `Descriptor` + `Construct()`), `Law` / `Laws` (use `Solver` / `Constraint` / `Collider` / `Integrator`, or `ForceModel` for ForceFields), `Recipe` / `Recipes` (use `Preset` / `Specification`), `Interface` / `Interfaces` (name the concrete domain directly or use `Interchange` / `Exchange` at boundaries), and `BuiltIn` (plus prepositions `In`, `From`, `To`, `For`, `With`, `By`, `Into`, `On`, `Of` embedded inside compound identifiers).
+  - Scoped exception recorded: `Model` remains banned everywhere **except** `ForceModel` / `ForceModel*` (e.g., `QueryForceModelTint`, `ConstructForceModelIcon`, `ForceModelOrdinal`, `ForceModelSelector`).
 
 ---
 

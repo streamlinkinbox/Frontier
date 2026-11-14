@@ -16,10 +16,11 @@
 #include "Engine/SimulationSpace/Particles/ParticleKinematicsSolvers.h"
 #include "Engine/SimulationSpace/Particles/ParticleChannelBank.h"
 #include "Engine/SimulationSpace/Particles/ParticleDomainSolvers.h"
-#include "Engine/SimulationSpace/Particles/ParticlePresetCompiler.h"
 #include "Engine/SimulationSpace/Particles/ParticleSimulation.h"
 #include "Engine/SimulationSpace/Particles/ParticleChannelLayouts.h"
+#include "Engine/Workspaces/Particle/ParticlePresetCompiler.h"
 #include "Engine/Workspaces/Particle/ParticlePresetRegistry.h"
+#include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
 #include "Exhibits/SoftwareCanvasRasterizer.h"
 
 #include <imgui.h>
@@ -601,6 +602,65 @@ int main()
             AllPassed = false;
         }
         ++VerifiedPresets;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // TEST 5: Headless ParticleWorkspaceSession + ParticleCodec (.ParticleSpace) Round-Trip + RevisionTracker Undo/Redo
+    // -----------------------------------------------------------------------------------------------------------------
+    {
+        ParticleWorkspaceSession HeadlessSession{};
+        AllPassed &= VerifyAssertion(
+            HeadlessSession.QueryTotalAliveParticles() > 0u,
+            "ParticleWorkspaceSession owns and steps live compiled ParticleSimulations");
+
+        ParticleEffectDescriptor* ActiveEffect = HeadlessSession.AccessSelectedEffect();
+        AllPassed &= VerifyAssertion(ActiveEffect != nullptr, "Default session selects an active ParticleEffectDescriptor");
+        if (ActiveEffect != nullptr)
+        {
+            const uint32_t OriginalCapacity = ActiveEffect->Capacity;
+            ActiveEffect->Capacity          = OriginalCapacity + 512u;
+            HeadlessSession.RebuildEffectSimulation(ActiveEffect->UniqueToken);
+            HeadlessSession.CommitRevision("IncreaseCapacity");
+
+            AllPassed &= VerifyAssertion(HeadlessSession.QueryUndoAvailable(), "RevisionTracker reports undo available after CommitRevision");
+            AllPassed &= VerifyAssertion(HeadlessSession.QueryModifiedSinceSave(), "RevisionTracker marks document modified since save");
+            AllPassed &= VerifyAssertion(HeadlessSession.UndoRevision(), "RevisionTracker UndoRevision succeeds");
+            AllPassed &= VerifyAssertion(
+                HeadlessSession.QuerySelectedEffect() != nullptr && HeadlessSession.QuerySelectedEffect()->Capacity == OriginalCapacity,
+                "UndoRevision restores original ParticleEffectDescriptor capacity");
+            AllPassed &= VerifyAssertion(HeadlessSession.RedoRevision(), "RevisionTracker RedoRevision succeeds");
+            AllPassed &= VerifyAssertion(
+                HeadlessSession.QuerySelectedEffect() != nullptr && HeadlessSession.QuerySelectedEffect()->Capacity == OriginalCapacity + 512u,
+                "RedoRevision reapplies updated ParticleEffectDescriptor capacity");
+
+            const std::filesystem::path TempSpacePath = std::filesystem::temp_directory_path() / "FrontierParticleValidationRoundTrip.ParticleSpace";
+            std::string SaveDiag;
+            AllPassed &= VerifyAssertion(
+                HeadlessSession.SaveParticleSpace(TempSpacePath, SaveDiag, true),
+                "ParticleCodec SaveParticleSpace writes Two-Tier Hybrid .ParticleSpace container");
+            AllPassed &= VerifyAssertion(!HeadlessSession.QueryModifiedSinceSave(), "SaveParticleSpace clears modified state");
+
+            ParticleWorkspaceSession ReloadedSession{};
+            ReloadedSession.ClearAllEntries();
+            std::string LoadDiag;
+            AllPassed &= VerifyAssertion(
+                ReloadedSession.LoadParticleSpace(TempSpacePath, LoadDiag),
+                "ParticleCodec LoadParticleSpace decodes .ParticleSpace container cleanly");
+            AllPassed &= VerifyAssertion(
+                ReloadedSession.QueryEffects().size() == HeadlessSession.QueryEffects().size()
+                    && ReloadedSession.QueryForceSources().size() == HeadlessSession.QueryForceSources().size(),
+                "Loaded .ParticleSpace preserves all ParticleEffects and coupled ForceSources");
+            AllPassed &= VerifyAssertion(
+                ReloadedSession.QuerySelectedEffect() != nullptr && ReloadedSession.QuerySelectedEffect()->Capacity == OriginalCapacity + 512u,
+                "Loaded .ParticleSpace preserves authored parameters");
+            AllPassed &= VerifyAssertion(
+                ReloadedSession.UndoRevision()
+                    && ReloadedSession.QuerySelectedEffect() != nullptr
+                    && ReloadedSession.QuerySelectedEffect()->Capacity == OriginalCapacity,
+                "Loaded .ParticleSpace restores embedded RevisionTracker undo history");
+            std::error_code RmErr;
+            std::filesystem::remove(TempSpacePath, RmErr);
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------

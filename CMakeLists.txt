@@ -188,11 +188,11 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Workspaces/UV/UVViewportHost.cpp
     Engine/Workspaces/UV/UVWorkspaceHost.cpp
     Engine/Editor/Workspaces/Simulation/ForceInspectorView.cpp
-    Engine/Workspaces/Particle/ParticlePresetRegistry.cpp
-    Engine/Workspaces/Particle/ParticleWorkspaceSession.cpp
     Engine/Workspaces/Particle/ParticleOutlinerPanel.cpp
     Engine/Workspaces/Particle/ParticleInspectorPanel.cpp
-    Engine/SimulationSpace/Particles/ParticlePresetCompiler.cpp
+    Engine/Workspaces/Particle/ParticleViewportInteractor.cpp
+    Engine/Workspaces/Particle/ParticleViewportHost.cpp
+    Engine/Workspaces/Particle/ParticleWorkspaceHost.cpp
     Engine/GeometricRaster/Rasterization/ImGuiOverlayRasterization.cpp
     Engine/GeometricRaster/GlobalIllumination/ShowcaseGalleryScene.cpp
     Engine/Input/ImGuiInputAdapter.cpp
@@ -444,6 +444,7 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/Codecs/NetworkCodec.cpp
     Engine/Codecs/VectorFieldCodec.cpp
     Engine/Codecs/ForceModelPresetCodec.cpp
+    Engine/Codecs/ParticleCodec.cpp
     Engine/SimulationSpace/ForceFields/ForceMotionPath.cpp
     Engine/SimulationSpace/ForceFields/VectorField.cpp
     Engine/SimulationSpace/ForceFields/FlowField.cpp
@@ -486,6 +487,9 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/Workspaces/UV/Solvers/UVProjectionSolvers.cpp
     Engine/Workspaces/UV/Solvers/UVIslandLayoutOperations.cpp
     Engine/Workspaces/UV/UVWorkspaceSession.cpp
+    Engine/Workspaces/Particle/ParticlePresetRegistry.cpp
+    Engine/Workspaces/Particle/ParticlePresetCompiler.cpp
+    Engine/Workspaces/Particle/ParticleWorkspaceSession.cpp
 )
 if(NOT ANDROID)
     list(APPEND FRONTIER_ENGINE_SOURCES Engine/Windowing/PlatformWindowDesktop.cpp)

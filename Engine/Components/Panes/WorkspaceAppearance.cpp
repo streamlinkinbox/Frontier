@@ -1509,9 +1509,9 @@ void ConstructResetSymbol(
     Surface.StrokePolyline(Head, Ink, Thickness, false);
 }
 
-ColorRgba QueryForceLawTint(uint32_t LawOrdinal) noexcept
+ColorRgba QueryForceModelTint(uint32_t ModelOrdinal) noexcept
 {
-    static constexpr std::array<ColorRgba, 19> LawTints = {{
+    static constexpr std::array<ColorRgba, 19> ModelTints = {{
         { 137, 224, 196, 255 }, // 0 LinearWind
         { 112, 207, 151, 255 }, // 1 Buoyancy
         { 224, 131, 104, 255 }, // 2 RadialBurst
@@ -1532,12 +1532,12 @@ ColorRgba QueryForceLawTint(uint32_t LawOrdinal) noexcept
         { 157, 180, 226, 255 }, // 17 SplineForce
         { 142, 199, 158, 255 }, // 18 BoundaryAdhesion
     }};
-    return (LawOrdinal < LawTints.size()) ? LawTints[LawOrdinal] : LawTints[0];
+    return (ModelOrdinal < ModelTints.size()) ? ModelTints[ModelOrdinal] : ModelTints[0];
 }
 
-void ConstructForceLawIcon(
+void ConstructForceModelIcon(
     PixelSpace& Surface,
-    uint32_t    LawOrdinal,
+    uint32_t    ModelOrdinal,
     Point2D     TopLeft,
     float       Extent,
     ColorRgba   AccentInk,
@@ -1576,7 +1576,7 @@ void ConstructForceLawIcon(
         }
     };
 
-    switch (LawOrdinal)
+    switch (ModelOrdinal)
     {
         case 0u:
             StrokeSvg16("M2 6h8.5a2 2 0 1 0-1.9-2.6M2 10h11a1.8 1.8 0 1 1-1.6 2.5M2 13h6.5a1.5 1.5 0 1 1-1.3 2.2");

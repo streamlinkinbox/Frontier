@@ -12,10 +12,13 @@
 #include "Engine/Components/Controls/PlaybackScrubber.h"
 #include "Engine/Components/Controls/ScalarSlider.h"
 #include "Engine/Components/Panes/WorkspaceAppearance.h"
+#include "Engine/Components/Docking/WorkspaceDockContainer.h"
 #include "Engine/SimulationSpace/ForceFields/ForceFieldDescriptors.h"
 #include "Engine/Workspaces/Particle/ParticleInspectorPanel.h"
 #include "Engine/Workspaces/Particle/ParticleOutlinerPanel.h"
 #include "Engine/Workspaces/Particle/ParticlePresetRegistry.h"
+#include "Engine/Workspaces/Particle/ParticleViewportHost.h"
+#include "Engine/Workspaces/Particle/ParticleWorkspaceHost.h"
 #include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
 #include "Exhibits/SoftwareCanvasRasterizer.h"
 
@@ -109,7 +112,7 @@ bool ValidatePresetRegistryAndQuarantineExclusion()
     uint32_t CategorySum = 0u;
     for (const ParticleCategoryDescriptor& Cat : Categories)
     {
-        const uint32_t CatCount = ParticlePresetRegistry::CountPresetsInCategory(Cat.Category);
+        const uint32_t CatCount = ParticlePresetRegistry::CountCategoryPresets(Cat.Category);
         if (!VerifyAssertion(CatCount > 0u, "Every active category contains at least 1 preset"))
         {
             return false;
@@ -138,13 +141,13 @@ bool ValidatePresetRegistryAndQuarantineExclusion()
     for (const char* Slug : RetiredQuarantineSlugs)
     {
         if (!VerifyAssertion(
-                ParticlePresetRegistry::VerifySlugExcludedFromRegistry(Slug),
+                ParticlePresetRegistry::VerifySlugRetired(Slug),
                 "Quarantined preset slug strictly excluded from C++ ParticlePresetRegistry"))
         {
             return false;
         }
         if (!VerifyAssertion(
-                GuardSession.AddEffectFromPreset(Slug) == 0u,
+                GuardSession.AddPresetEffect(Slug) == 0u,
                 "ParticleWorkspaceSession refuses retired Quarantine preset slug"))
         {
             return false;
@@ -194,7 +197,7 @@ bool ValidateForceFieldsReuseAndSession()
         return false;
     }
 
-    const uint32_t FireworksToken = Session.AddEffectFromPreset("fireworks");
+    const uint32_t FireworksToken = Session.AddPresetEffect("fireworks");
     if (!VerifyAssertion(FireworksToken != 0u && !Inspector.QueryForceInspectorDelegated(), "Selecting ParticleEffect activates 4-tab Particle Inspector"))
     {
         return false;
@@ -234,14 +237,52 @@ bool ValidatePlaybackScrubberControl(ImGuiIO& Io)
     }
 
     ParticleWorkspaceSession Session{};
+    Session.AccessPlaybackClock().DurationSeconds = 30.0f;
     Session.SeekPlaybackSeconds(6.0f);
     if (!VerifyAssertion(
-            std::fabs(Session.QueryPlaybackClock().ElapsedSeconds - 6.0f) < 1.0e-3f
+            std::fabs(Session.QueryPlaybackClock().CurrentSeconds - 6.0f) < 1.0e-3f
                 && std::fabs(Session.QuerySimulationTimeSec() - 6.0) < 1.0e-3,
             "ParticleWorkspaceSession::SeekPlaybackSeconds synchronizes ForceFields clock"))
     {
         return false;
     }
+
+    auto SyncScrubberClock = [](const ParticlePlaybackClock& Clock) -> PlaybackClockParameters
+    {
+        PlaybackClockParameters Out{};
+        Out.ElapsedSeconds      = Clock.CurrentSeconds;
+        Out.LoopDurationSeconds = Clock.DurationSeconds;
+        Out.FrameRateHz         = Clock.FixedStepHz;
+        Out.SpeedMultiplier     = Clock.PlaybackRate;
+        Out.Playing             = Clock.Playing;
+        return Out;
+    };
+
+    auto ApplyScrubberInteraction = [](ParticleWorkspaceSession& TargetSession, const PlaybackScrubberInteraction& Interaction)
+    {
+        ParticlePlaybackClock& Clock = TargetSession.AccessPlaybackClock();
+        TargetSession.ConfigureScrubbingPlayhead(Interaction.DraggingPlayhead);
+        if (Interaction.PlayPauseToggled)
+        {
+            Clock.Playing = !Clock.Playing;
+        }
+        if (Interaction.SpeedCycled)
+        {
+            Clock.PlaybackRate = Interaction.UpdatedSpeedMultiplier;
+        }
+        if (Interaction.ResetTriggered)
+        {
+            TargetSession.ResetPlaybackClock();
+        }
+        else if (Interaction.Scrubbed)
+        {
+            TargetSession.SeekPlaybackSeconds(Interaction.UpdatedSeconds);
+        }
+        else if (Interaction.StepForwardTriggered)
+        {
+            TargetSession.AdvanceSimulationClock(1.0 / static_cast<double>(std::max(1.0f, Clock.FixedStepHz)));
+        }
+    };
 
     const Rectangle2D ControlBounds{ 20.0f, 20.0f, 820.0f, FullTransportHeight };
     auto ExercisePointer = [&](const ControlPointer& Ptr, bool Dragging) -> PlaybackScrubberInteraction
@@ -252,7 +293,7 @@ bool ValidatePlaybackScrubberControl(ImGuiIO& Io)
         ImDrawList* DrawList = ImGui::GetBackgroundDrawList();
         PixelSpace  Surface(DrawList, { 0.0f, 0.0f }, 1.0f);
         const PlaybackScrubberInteraction Interaction = ConstructFullTransport(
-            Surface, ControlBounds, Session.QueryPlaybackClock(), Dragging, Ptr, 1.0f);
+            Surface, ControlBounds, SyncScrubberClock(Session.QueryPlaybackClock()), Dragging, Ptr, 1.0f);
         ImGui::Render();
         return Interaction;
     };
@@ -264,7 +305,7 @@ bool ValidatePlaybackScrubberControl(ImGuiIO& Io)
     {
         return false;
     }
-    Session.ApplyPlaybackInteraction(PlayResult);
+    ApplyScrubberInteraction(Session, PlayResult);
     if (!VerifyAssertion(!Session.QueryPlaybackClock().Playing, "Session pauses after Play/Pause toggle"))
     {
         return false;
@@ -277,8 +318,8 @@ bool ValidatePlaybackScrubberControl(ImGuiIO& Io)
     {
         return false;
     }
-    Session.ApplyPlaybackInteraction(StepResult);
-    if (!VerifyAssertion(Session.QueryPlaybackClock().ElapsedSeconds > 6.01f, "Single-frame step advances playhead by 1/60s"))
+    ApplyScrubberInteraction(Session, StepResult);
+    if (!VerifyAssertion(Session.QueryPlaybackClock().CurrentSeconds > 6.01f, "Single-frame step advances playhead by 1/60s"))
     {
         return false;
     }
@@ -292,9 +333,9 @@ bool ValidatePlaybackScrubberControl(ImGuiIO& Io)
     {
         return false;
     }
-    Session.ApplyPlaybackInteraction(ScrubResult);
+    ApplyScrubberInteraction(Session, ScrubResult);
     if (!VerifyAssertion(
-            Session.QueryScrubbingPlayhead() && std::fabs(Session.QueryPlaybackClock().ElapsedSeconds - 15.0f) < 0.35f,
+            Session.QueryScrubbingPlayhead() && std::fabs(Session.QueryPlaybackClock().CurrentSeconds - 15.0f) < 0.35f,
             "Session applies animation play slider scrub position"))
     {
         return false;
@@ -303,9 +344,9 @@ bool ValidatePlaybackScrubberControl(ImGuiIO& Io)
     // Click Reset button (X = 20 + 16 + 15 = 51, Y = 46)
     const ControlPointer ResetClick{ 51.0f, 46.0f, false, false, true, true };
     const PlaybackScrubberInteraction ResetResult = ExercisePointer(ResetClick, false);
-    Session.ApplyPlaybackInteraction(ResetResult);
+    ApplyScrubberInteraction(Session, ResetResult);
     if (!VerifyAssertion(
-            ResetResult.ResetTriggered && std::fabs(Session.QueryPlaybackClock().ElapsedSeconds) < 1.0e-4f,
+            ResetResult.ResetTriggered && std::fabs(Session.QueryPlaybackClock().CurrentSeconds) < 1.0e-4f,
             "PlaybackScrubber Reset button rewinds clock to 0.0s"))
     {
         return false;
@@ -631,8 +672,67 @@ int main()
         }
     }
 
+    // --------------------------------------------------------------------------------------------------------------------
+    // Proof 6: Dual-Deployment ParticleWorkspaceHost (Dock Registration + File Drop + Full 3-Pane Studio 1600x900 PNG)
+    // --------------------------------------------------------------------------------------------------------------------
+    {
+        ParticleWorkspaceHost StudioHost{};
+        Components::HeadlessWorkspaceDockContainer DockContainer{};
+        StudioHost.RegisterDockPanes(DockContainer);
+        if (!VerifyAssertion(StudioHost.QueryRegisteredTabCount() == 3u, "ParticleWorkspaceHost registers 3 dock panes (Outliner, Viewport, Inspector)"))
+        {
+            ImGui::DestroyContext(GuiCtx);
+            return 1;
+        }
+
+        // Verify .ParticleSpace round-trip through ParticleWorkspaceHost::IntakeExternalFileDrop
+        const std::filesystem::path DropPath = std::filesystem::temp_directory_path() / "FrontierParticleHostDrop.ParticleSpace";
+        std::string SaveDiag;
+        if (!VerifyAssertion(StudioHost.AccessSession().SaveParticleSpace(DropPath, SaveDiag, true), "ParticleWorkspaceHost saves .ParticleSpace for drop intake"))
+        {
+            ImGui::DestroyContext(GuiCtx);
+            return 1;
+        }
+        StudioHost.AccessSession().ClearAllEntries();
+        std::string DropDiag;
+        if (!VerifyAssertion(StudioHost.IntakeExternalFileDrop(DropPath, DropDiag), "ParticleWorkspaceHost IntakeExternalFileDrop loads .ParticleSpace"))
+        {
+            ImGui::DestroyContext(GuiCtx);
+            return 1;
+        }
+        std::error_code RmErr;
+        std::filesystem::remove(DropPath, RmErr);
+
+        // Advance simulation so live particles fill the 3D viewport clearly
+        for (uint32_t Tick = 0u; Tick < 45u; ++Tick)
+        {
+            StudioHost.AccessSession().AdvanceSimulationClock(1.0 / 60.0);
+        }
+        StudioHost.AccessSession().AccessWorkspaceConfiguration().AccessParticlePreferences().BoundsOverlayEnabled = true;
+
+        const bool Ok = CaptureTwoPanePng(
+            Io,
+            1600u,
+            900u,
+            ImageDir / "ParticleWorkspace_FullStudio_3Pane_Viewport.png",
+            [&](PixelSpace& Surface)
+            {
+                const PaneInputReading NeutralInput{};
+                StudioHost.AccessOutliner().Render(Surface, { 0.0f, 0.0f, 304.0f, 900.0f }, NeutralInput, 1.0 / 60.0);
+                Surface.StrokeLine({ 304.5f, 0.0f }, { 304.5f, 900.0f }, ColorRgba{ 255u, 255u, 255u, 22u }, 1.0f);
+                StudioHost.AccessViewportHost().Render(Surface, { 305.0f, 0.0f, 934.0f, 900.0f }, NeutralInput, 0.0);
+                Surface.StrokeLine({ 1239.5f, 0.0f }, { 1239.5f, 900.0f }, ColorRgba{ 255u, 255u, 255u, 22u }, 1.0f);
+                StudioHost.AccessInspector().Render(Surface, { 1240.0f, 0.0f, 360.0f, 900.0f }, NeutralInput, 1.0 / 60.0);
+            });
+        if (!Ok)
+        {
+            ImGui::DestroyContext(GuiCtx);
+            return 1;
+        }
+    }
+
     ImGui::DestroyContext(GuiCtx);
     std::printf(
-        "[ParticleWorkspaceUIValidation] PASS — 93 active presets, 0 quarantined slugs, C++ ForceFields & ForceInspectorView reused, PlaybackScrubber verified, 5 PNG proofs written.\n");
+        "[ParticleWorkspaceUIValidation] PASS — 93 active presets, 0 quarantined slugs, C++ ForceFields & ForceInspectorView reused, PlaybackScrubber, ParticleWorkspaceHost & 3D Viewport verified, 6 PNG proofs written.\n");
     return 0;
 }

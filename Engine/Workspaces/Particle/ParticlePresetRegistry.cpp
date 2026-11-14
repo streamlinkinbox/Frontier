@@ -173,7 +173,7 @@ constexpr std::array<const char*, static_cast<std::size_t>(ParticleReleaseVolume
     "Surface Sample",
 }};
 
-constexpr std::array<const char*, static_cast<std::size_t>(ParticleColorByCategory::Count)> ColorByLabels = {{
+constexpr std::array<const char*, static_cast<std::size_t>(ParticleColorDriver::Count)> ColorDriverLabels = {{
     "Preset Default",
     "Lifetime Ratio",
     "Elapsed Age",
@@ -254,7 +254,7 @@ std::span<const ParticlePresetDescriptor> QueryActivePresets() noexcept
     return ActivePresets;
 }
 
-const ParticlePresetDescriptor* FindPresetByIdentifier(std::string_view Identifier) noexcept
+const ParticlePresetDescriptor* FindPreset(std::string_view Identifier) noexcept
 {
     for (const ParticlePresetDescriptor& Descriptor : ActivePresets)
     {
@@ -266,7 +266,7 @@ const ParticlePresetDescriptor* FindPresetByIdentifier(std::string_view Identifi
     return nullptr;
 }
 
-uint32_t CountPresetsInCategory(ParticleEffectCategory Category) noexcept
+uint32_t CountCategoryPresets(ParticleEffectCategory Category) noexcept
 {
     uint32_t Total = 0u;
     for (const ParticlePresetDescriptor& Descriptor : ActivePresets)
@@ -279,9 +279,9 @@ uint32_t CountPresetsInCategory(ParticleEffectCategory Category) noexcept
     return Total;
 }
 
-bool VerifySlugExcludedFromRegistry(std::string_view RetiredSlug) noexcept
+bool VerifySlugRetired(std::string_view RetiredSlug) noexcept
 {
-    return FindPresetByIdentifier(RetiredSlug) == nullptr;
+    return FindPreset(RetiredSlug) == nullptr;
 }
 
 const char* QuerySilhouetteLabel(ParticleVisualSilhouette Silhouette) noexcept
@@ -296,10 +296,10 @@ const char* QueryReleaseVolumeLabel(ParticleReleaseVolume Volume) noexcept
     return ReleaseVolumeLabels[Ordinal < ReleaseVolumeLabels.size() ? Ordinal : 0u];
 }
 
-const char* QueryColorByLabel(ParticleColorByCategory ColorBy) noexcept
+const char* QueryColorDriverLabel(ParticleColorDriver Driver) noexcept
 {
-    const auto Ordinal = static_cast<std::size_t>(ColorBy);
-    return ColorByLabels[Ordinal < ColorByLabels.size() ? Ordinal : 0u];
+    const auto Ordinal = static_cast<std::size_t>(Driver);
+    return ColorDriverLabels[Ordinal < ColorDriverLabels.size() ? Ordinal : 0u];
 }
 
 const char* QueryRampWrapLabel(ParticleRampWrapCategory Wrap) noexcept

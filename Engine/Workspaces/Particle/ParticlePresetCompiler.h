@@ -1,7 +1,7 @@
 /*============================================================================================================================================
                                                         PARTICLEPRESETCOMPILER.H
 ============================================================================================================================================*/
-// 🧩 Compiles any of the 93 active non-quarantined ParticlePresetRegistry entries or live ParticleEffectRecordEntry entries into ParticleSimulations
+// 🧩 Headless compiler translating any of the 93 active ParticlePresetRegistry entries or ParticleEffectDescriptor entries into ParticleSimulations
 
 #pragma once
 
@@ -12,12 +12,11 @@
 #include "Engine/SimulationSpace/Particles/ParticleDomainSolvers.h"
 #include "Engine/SimulationSpace/Particles/ParticleSimulation.h"
 #include "Engine/Workspaces/Particle/ParticlePresetRegistry.h"
-#include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
 
 #include <optional>
 #include <string_view>
 
-namespace Frontier::SimulationSpace::Particles
+namespace Frontier::Workspaces
 {
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -29,13 +28,13 @@ class ParticlePresetCompiler
 public:
     // Compiles any active non-quarantined preset slug into a ready-to-tick modular ParticleSimulation.
     // Returns std::nullopt for retired Quarantine slugs or unknown identifiers.
-    [[nodiscard]] static std::optional<ParticleSimulation> CompilePresetSlug(
+    [[nodiscard]] static std::optional<SimulationSpace::Particles::ParticleSimulation> CompilePresetSlug(
         std::string_view PresetSlug,
         uint32_t         DeterministicSeed = 1337u);
 
-    // Compiles a live authored ParticleEffectRecordEntry from ParticleWorkspaceSession / Inspector into a ParticleSimulation.
-    [[nodiscard]] static std::optional<ParticleSimulation> CompileEffectEntry(
-        const Workspaces::ParticleEffectRecordEntry& EffectEntry);
+    // Compiles a live authored ParticleEffectDescriptor from ParticleWorkspaceSession / ParticleCodec into a ParticleSimulation.
+    [[nodiscard]] static std::optional<SimulationSpace::Particles::ParticleSimulation> CompileEffectDescriptor(
+        const ParticleEffectDescriptor& EffectDescriptor);
 };
 
-} // namespace Frontier::SimulationSpace::Particles
+} // namespace Frontier::Workspaces
