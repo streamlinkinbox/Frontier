@@ -82,8 +82,8 @@ void ConstructCompactReadoutCapsule(
     const ControlPointer&  Pointer,
     int32_t&               ActiveSliderId,
     float                  Opacity      = 1.0f,
-    float                  RailHeight   = 16.0f,
-    float                  KnobDiameter = 16.0f,
+    float                  RailHeight   = 26.0f,
+    float                  KnobDiameter = 24.0f,
     const OptionalTooltip& Tooltip      = {}) noexcept;
 
 } // namespace ScalarSlider

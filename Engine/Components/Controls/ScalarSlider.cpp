@@ -109,8 +109,8 @@ void ConstructCompactReadoutCapsule(
     const ControlColorSet& Colors = ControlAppearance::Colors();
     const float            Height = std::max(Bounds.Height, 16.0f);
     const float            Width  = std::max(Bounds.Width, 32.0f);
-    UnitCellWidth                 = std::clamp(UnitCellWidth, 12.0f, std::max(Width - 20.0f, 12.0f));
-    const float Radius            = std::min(Height * 0.5f, 10.0f);
+    UnitCellWidth                 = std::clamp(UnitCellWidth, 12.0f, std::max(Width - 24.0f, 12.0f));
+    const float Radius            = Height * 0.5f;
     const float EffectiveUnitW    = (UnitText != nullptr && UnitText[0] != '\0') ? UnitCellWidth : 0.0f;
     const float SeamX             = Bounds.X + Width - EffectiveUnitW;
 
@@ -118,22 +118,34 @@ void ConstructCompactReadoutCapsule(
     const Rectangle2D NumberCell{ Bounds.X, Bounds.Y, std::max(Width - EffectiveUnitW, 1.0f), Height };
     const Rectangle2D UnitCell{ SeamX, Bounds.Y, EffectiveUnitW, Height };
 
-    Surface.FillRectangle(Whole, Colors.Inset.Faded(Opacity).ToRgba8(), Radius);
-    Surface.FillRectangle(NumberCell, Colors.Field.Faded(Opacity).ToRgba8(), Radius);
+    const ColorQuad UnitBg = Colors.LightSurface
+        ? ColorQuad::FromHex(0xE8E9ECu)
+        : ColorQuad::FromHex(0x171717u);
+    const ColorQuad NumBg = Colors.LightSurface
+        ? ColorQuad::FromHex(0xFFFFFFu)
+        : ColorQuad::FromHex(0x060606u);
+
+    Surface.FillRectangle(Whole, UnitBg.Faded(Opacity).ToRgba8(), Radius);
+    Surface.FillRectangle(NumberCell, NumBg.Faded(Opacity).ToRgba8(), Radius);
     if (EffectiveUnitW > 0.0f && NumberCell.Width > Radius)
     {
         Surface.FillRectangle({ Bounds.X + Radius, Bounds.Y, NumberCell.Width - Radius, Height },
-                              Colors.Field.Faded(Opacity).ToRgba8(), 0.0f);
-        Surface.FillRectangle({ SeamX, Bounds.Y, 1.0f, Height }, Colors.Stroke.Faded(Opacity).ToRgba8(), 0.0f);
+                              NumBg.Faded(Opacity).ToRgba8(), 0.0f);
+        Surface.FillRectangle({ SeamX, Bounds.Y + 1.0f, 1.0f, Height - 2.0f },
+                              ColorQuad(1.0f, 1.0f, 1.0f, Colors.LightSurface ? 0.14f : 0.08f).Faded(Opacity).ToRgba8(), 0.0f);
     }
 
-    const float NumberFontSize = (Height >= 34.0f) ? 13.5f : 11.0f;
+    const float NumberFontSize = (Height >= 34.0f) ? 13.5f : 11.5f;
     const float UnitFontSize   = (Height >= 34.0f) ? 11.5f : 9.5f;
-    ControlAppearance::ConstructRoundedOutline(Surface, Whole, Colors.Stroke.Faded(Opacity), Radius);
-    ControlAppearance::TextCentered(Surface, NumberCell, Colors.Text.Faded(Opacity), NumberText != nullptr ? NumberText : "", NumberFontSize);
+    ControlAppearance::ConstructRoundedOutline(
+        Surface,
+        Whole,
+        ColorQuad(1.0f, 1.0f, 1.0f, Colors.LightSurface ? 0.16f : 0.09f).Faded(Opacity),
+        Radius);
+    ControlAppearance::TextCentered(Surface, NumberCell, Colors.Text.Faded(Opacity * 0.96f), NumberText != nullptr ? NumberText : "", NumberFontSize);
     if (EffectiveUnitW > 0.0f)
     {
-        ControlAppearance::TextCentered(Surface, UnitCell, Colors.TextFaint.Faded(Opacity), UnitText, UnitFontSize);
+        ControlAppearance::TextCentered(Surface, UnitCell, Colors.TextDim.Faded(Opacity * 1.15f), UnitText, UnitFontSize);
     }
 }
 
@@ -181,33 +193,46 @@ bool ConstructLabeledInspectorRow(
     const OptionalTooltip& Tooltip) noexcept
 {
     const ControlColorSet& Colors   = ControlAppearance::Colors();
-    const ColorRgba        LabelInk   = Colors.Text.Faded(Opacity * 0.80f).ToRgba8();
-    const ColorRgba        ReadoutInk = Colors.Text.Faded(Opacity * 0.96f).ToRgba8();
+    const ColorRgba        LabelInk = Colors.Text.Faded(Opacity * 0.72f).ToRgba8();
 
     if (Label != nullptr && Label[0] != '\0')
     {
-        Surface.Text({ RowBounds.X, RowBounds.Y }, 11.0f, LabelInk, Label);
+        Surface.Text({ RowBounds.X, RowBounds.Y }, 11.5f, LabelInk, Label);
     }
 
-    char FormattedBuf[64]{};
+    // Trim any leading whitespace on unit suffix for the split readout cell
+    const char* CleanUnit = (UnitSuffix != nullptr) ? UnitSuffix : "";
+    while (*CleanUnit == ' ')
+    {
+        ++CleanUnit;
+    }
+
+    char NumberBuf[32]{};
     if (DecimalDigits <= 0)
     {
-        std::snprintf(FormattedBuf, sizeof(FormattedBuf), "%.0f%s",
-                      std::round(InOutScalar),
-                      (UnitSuffix != nullptr) ? UnitSuffix : "");
+        std::snprintf(NumberBuf, sizeof(NumberBuf), "%.0f", std::round(InOutScalar));
     }
     else
     {
-        std::snprintf(FormattedBuf, sizeof(FormattedBuf), "%.*f%s",
-                      static_cast<int>(DecimalDigits),
-                      InOutScalar,
-                      (UnitSuffix != nullptr) ? UnitSuffix : "");
+        std::snprintf(NumberBuf, sizeof(NumberBuf), "%.*f", static_cast<int>(DecimalDigits), InOutScalar);
     }
-    const float ReadoutW = Surface.MeasureTextWidth(11.0f, FormattedBuf);
-    Surface.Text({ RowBounds.Right() - ReadoutW, RowBounds.Y }, 11.0f, ReadoutInk, FormattedBuf);
 
-    const float       TrackHeight = std::max(RailHeight, 12.0f);
-    const Rectangle2D TrackRect{ RowBounds.X, RowBounds.Y + 18.0f, RowBounds.Width, TrackHeight };
+    const float       ControlY      = RowBounds.Y + 19.0f;
+    const float       ControlH      = std::max(RailHeight, 24.0f);
+    constexpr float   CapsuleW      = 92.0f;
+    constexpr float   ControlGap    = 10.0f;
+    const float       UnitW         = (CleanUnit[0] != '\0') ? 34.0f : 0.0f;
+
+    ConstructCompactReadoutCapsule(
+        Surface,
+        { RowBounds.X, ControlY, CapsuleW, ControlH },
+        NumberBuf,
+        CleanUnit,
+        Opacity,
+        UnitW > 0.0f ? UnitW : 12.0f);
+
+    const float       SliderLeft = RowBounds.X + CapsuleW + ControlGap;
+    const Rectangle2D TrackRect{ SliderLeft, ControlY, std::max(40.0f, RowBounds.Right() - SliderLeft), ControlH };
     float             Updated = InOutScalar;
     const ControlContact Contact = Construct(
         Surface,
@@ -219,8 +244,8 @@ bool ConstructLabeledInspectorRow(
         Pointer,
         Updated,
         Opacity,
-        RailHeight,
-        KnobDiameter,
+        std::min(RailHeight, ControlH),
+        std::min(KnobDiameter, ControlH - 2.0f),
         Tooltip);
 
     bool Changed = false;

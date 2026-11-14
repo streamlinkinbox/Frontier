@@ -230,7 +230,7 @@ void ParticleOutlinerPanel::Render(
     const PaneInputReading& Input,
     double                  Δt)
 {
-    const ColorRgba Background = WorkspaceAppearance::QueryDockedPaneBackground();
+    const ColorRgba Background{ 18u, 18u, 18u, 255u };
     Surface.PushClip(Bounds);
     Surface.FillRectangle(Bounds, Background, 0.0f);
 
@@ -252,7 +252,7 @@ void ParticleOutlinerPanel::Render(
 
     float CursorY = Bounds.Y + 12.0f;
 
-    // 1. Header Row: Outliner heading, record census subtitle, Compact toggle, and '+' Construct button
+    // 1. Header Row: Outliner heading, scene subtitle, circular Compact toggle & warm-gold '+' Construct button
     const float AddBtnSize     = 28.0f;
     const float CompactBtnSize = 28.0f;
     const Rectangle2D AddBtnRect{
@@ -270,36 +270,33 @@ void ParticleOutlinerPanel::Render(
 
     WorkspaceAppearance::ConstructWeightedText(
         Surface,
-        FontWeightClass::SemiBold,
+        FontWeightClass::Medium,
         { InnerX, CursorY },
-        17.0f,
-        WorkspaceSurfaceColors::PrimaryInk,
+        20.0f,
+        ColorRgba{ 239u, 239u, 239u, 255u },
         "Outliner");
 
-    char SubtitleBuf[96]{};
-    const uint32_t TotalRecords = Session != nullptr ? Session->QueryTotalRecordCount() : 0u;
-    std::snprintf(SubtitleBuf, sizeof(SubtitleBuf), "Particle & force scene · %u records", TotalRecords);
     WorkspaceAppearance::ConstructTruncatedText(
         Surface,
         FontWeightClass::Regular,
-        { InnerX, CursorY + 21.0f },
+        { InnerX, CursorY + 23.0f },
         std::max(40.0f, CompactBtnRect.X - InnerX - 8.0f),
         11.0f,
-        WorkspaceSurfaceColors::MutedInk,
-        SubtitleBuf);
+        ColorRgba{ 118u, 118u, 118u, 255u },
+        "Force field & particle scene");
 
-    // Compact rows button
+    // Circular Compact rows button (radius = 14px)
     const bool CompactHover = Input.PrimaryPointer.Enabled && CompactBtnRect.Contains(Cursor);
     Surface.FillRectangle(
         CompactBtnRect,
         CompactMode
-            ? ColorRgba{ 48u, 48u, 48u, 255u }
-            : (CompactHover ? WorkspaceSurfaceColors::RowHover : WorkspaceSurfaceColors::ControlWell),
-        7.0f);
+            ? ColorRgba{ 255u, 255u, 255u, 24u }
+            : (CompactHover ? ColorRgba{ 255u, 255u, 255u, 14u } : ColorRgba{ 255u, 255u, 255u, 8u }),
+        14.0f);
     Surface.StrokeRectangle(
         CompactBtnRect,
-        CompactMode ? WorkspaceSurfaceColors::SelectionAmber : WorkspaceSurfaceColors::ControlWellBorder,
-        7.0f,
+        CompactMode ? ColorRgba{ 232u, 194u, 122u, 180u } : ColorRgba{ 255u, 255u, 255u, 22u },
+        14.0f,
         1.0f);
     VectorIconRepository::ConstructControl(
         Surface,
@@ -308,7 +305,7 @@ void ParticleOutlinerPanel::Render(
             CompactBtnRect.X + 7.0f,
             CompactBtnRect.Y + 7.0f,
             14.0f,
-            CompactMode ? WorkspaceSurfaceColors::SelectionAmber : WorkspaceSurfaceColors::SecondaryInk,
+            CompactMode ? ColorRgba{ 232u, 194u, 122u, 255u } : ColorRgba{ 188u, 188u, 188u, 255u },
             1.7f,
         });
     if (Input.PrimaryPointer.Enabled && Input.PrimaryPointer.Pressed && CompactHover && !ConstructSheetOpen)
@@ -316,14 +313,19 @@ void ParticleOutlinerPanel::Render(
         CompactMode = !CompactMode;
     }
 
-    // Cream '+' Construct button (opens 93-preset + 19-ForceModel sheet)
+    // Circular warm-gold '+' Construct button (opens 93-preset + 19-ForceModel sheet)
     const bool AddHover = Input.PrimaryPointer.Enabled && AddBtnRect.Contains(Cursor);
     Surface.FillRectangle(
         AddBtnRect,
         ConstructSheetOpen
-            ? WorkspaceSurfaceColors::SelectionAmber
-            : (AddHover ? ColorRgba{ 240u, 240u, 236u, 255u } : WorkspaceSurfaceColors::ConstructCream),
-        7.0f);
+            ? ColorRgba{ 232u, 194u, 122u, 255u }
+            : (AddHover ? ColorRgba{ 232u, 194u, 122u, 64u } : ColorRgba{ 232u, 194u, 122u, 36u }),
+        14.0f);
+    Surface.StrokeRectangle(
+        AddBtnRect,
+        ColorRgba{ 232u, 194u, 122u, 110u },
+        14.0f,
+        1.0f);
     VectorIconRepository::ConstructControl(
         Surface,
         ControlIcon::PlusAdd,
@@ -331,7 +333,7 @@ void ParticleOutlinerPanel::Render(
             AddBtnRect.X + 7.0f,
             AddBtnRect.Y + 7.0f,
             14.0f,
-            WorkspaceSurfaceColors::ConstructDarkInk,
+            ConstructSheetOpen ? ColorRgba{ 18u, 18u, 18u, 255u } : ColorRgba{ 246u, 220u, 176u, 255u },
             2.1f,
         });
     if (Input.PrimaryPointer.Enabled && Input.PrimaryPointer.Pressed && AddHover)
@@ -340,51 +342,68 @@ void ParticleOutlinerPanel::Render(
         SheetScrollOffsetY = 0.0f;
     }
 
-    CursorY += 42.0f;
+    CursorY += 44.0f;
 
-    // 2. Visible / Hidden Census Tiles
+    // 2. Project Zero / HTML 64px Census Tiles (Visible / Hidden with 22px symbol circle + 28px right count)
     const float StatGap = 8.0f;
     const float StatW   = (InnerW - StatGap) * 0.5f;
-    const float StatH   = 34.0f;
+    const float StatH   = 64.0f;
     const Rectangle2D VisibleTile{ InnerX, CursorY, StatW, StatH };
     const Rectangle2D HiddenTile{ InnerX + StatW + StatGap, CursorY, StatW, StatH };
 
     const uint32_t VisibleCount = Session != nullptr ? Session->QueryVisibleRecordCount() : 0u;
     const uint32_t HiddenCount  = Session != nullptr ? Session->QueryHiddenRecordCount() : 0u;
 
-    auto RenderStatTile = [&](Rectangle2D Rect, const char* Label, uint32_t Count, ColorRgba DotColor, bool ActiveFilter)
+    auto RenderStatTile = [&](Rectangle2D Rect, const char* Label, uint32_t Count, bool IsVisibleTile)
     {
-        Surface.FillRectangle(Rect, WorkspaceSurfaceColors::ControlWell, 8.0f);
-        Surface.StrokeRectangle(
-            Rect,
-            ActiveFilter ? WorkspaceSurfaceColors::SelectionAmber : WorkspaceSurfaceColors::ControlWellBorder,
-            8.0f,
-            1.0f);
-        Surface.FillCircle({ Rect.X + 14.0f, Rect.Y + Rect.Height * 0.5f }, 4.0f, DotColor);
+        Surface.FillRectangle(Rect, ColorRgba{ 255u, 255u, 255u, 9u }, 18.0f);
+        Surface.StrokeRectangle(Rect, ColorRgba{ 255u, 255u, 255u, 18u }, 18.0f, 1.0f);
+
+        const Point2D SymCenter{ Rect.X + 24.0f, Rect.Y + 21.0f };
+        if (IsVisibleTile)
+        {
+            Surface.FillCircle(SymCenter, 11.0f, ColorRgba{ 52u, 199u, 89u, 255u });
+            const Point2D CheckPts[3] = {
+                { SymCenter.X - 4.2f, SymCenter.Y + 0.3f },
+                { SymCenter.X - 1.2f, SymCenter.Y + 3.4f },
+                { SymCenter.X + 4.6f, SymCenter.Y - 3.2f },
+            };
+            Surface.StrokePolyline(CheckPts, ColorRgba{ 10u, 27u, 16u, 255u }, 1.9f, false);
+        }
+        else
+        {
+            Surface.FillCircle(SymCenter, 11.0f, ColorRgba{ 255u, 255u, 255u, 18u });
+            VectorIconRepository::ConstructControl(
+                Surface,
+                ControlIcon::EyeHidden,
+                { SymCenter.X - 6.0f, SymCenter.Y - 6.0f, 12.0f, ColorRgba{ 146u, 146u, 150u, 255u }, 1.5f });
+        }
+
         WorkspaceAppearance::ConstructWeightedText(
             Surface,
-            FontWeightClass::Medium,
-            { Rect.X + 24.0f, Rect.Y + 10.0f },
-            11.5f,
-            WorkspaceSurfaceColors::SecondaryInk,
+            FontWeightClass::Regular,
+            { Rect.X + 13.0f, Rect.Y + 39.0f },
+            11.0f,
+            ColorRgba{ 150u, 150u, 150u, 255u },
             Label);
+
         char NumBuf[16]{};
         std::snprintf(NumBuf, sizeof(NumBuf), "%u", Count);
         WorkspaceAppearance::ConstructRightAlignedText(
             Surface,
-            FontWeightClass::SemiBold,
-            { Rect.Right() - 10.0f, Rect.Y + 9.0f },
-            13.0f,
-            WorkspaceSurfaceColors::PrimaryInk,
+            FontWeightClass::Light,
+            { Rect.Right() - 14.0f, Rect.Bottom() - 34.0f },
+            28.0f,
+            ColorRgba{ 237u, 237u, 237u, 255u },
             NumBuf,
             true);
     };
 
-    RenderStatTile(VisibleTile, "Visible", VisibleCount, WorkspaceSurfaceColors::StatusGreen, false);
-    RenderStatTile(HiddenTile, "Hidden", HiddenCount, WorkspaceSurfaceColors::FaintInk, false);
+    RenderStatTile(VisibleTile, "Visible", VisibleCount, true);
+    RenderStatTile(HiddenTile, "Hidden", HiddenCount, false);
     CursorY += StatH + 10.0f;
 
-    // 3. Search Field (with Ctrl+F shortcut focus)
+    // 3. Capsule Search Field (36px tall, 18px radius, Ctrl F keycap)
     if (Input.ShortcutFind && !ConstructSheetOpen)
     {
         SearchBuffer.Active = true;
@@ -394,28 +413,28 @@ void ParticleOutlinerPanel::Render(
         WorkspaceAppearance::ForwardInputToTextBuffer(SearchBuffer, Input, Δt);
     }
 
-    const Rectangle2D SearchRect{ InnerX, CursorY, InnerW, 30.0f };
-    Surface.FillRectangle(SearchRect, WorkspaceSurfaceColors::DeepRecess, 8.0f);
+    const Rectangle2D SearchRect{ InnerX, CursorY, InnerW, 36.0f };
+    Surface.FillRectangle(SearchRect, ColorRgba{ 255u, 255u, 255u, 12u }, 18.0f);
     Surface.StrokeRectangle(
         SearchRect,
-        SearchBuffer.Active ? WorkspaceSurfaceColors::SelectionAmber : WorkspaceSurfaceColors::ControlWellBorder,
-        8.0f,
+        SearchBuffer.Active ? ColorRgba{ 232u, 194u, 122u, 160u } : ColorRgba{ 255u, 255u, 255u, 18u },
+        18.0f,
         1.0f);
     VectorIconRepository::ConstructControl(
         Surface,
         ControlIcon::SearchGlass,
-        { SearchRect.X + 9.0f, SearchRect.Y + 8.0f, 13.5f, WorkspaceSurfaceColors::MutedInk, 1.7f });
+        { SearchRect.X + 13.0f, SearchRect.Y + 11.0f, 14.0f, ColorRgba{ 124u, 124u, 124u, 255u }, 1.6f });
 
-    const Rectangle2D TextFieldRect{ SearchRect.X + 26.0f, SearchRect.Y + 1.0f, std::max(40.0f, SearchRect.Width - 78.0f), 28.0f };
+    const Rectangle2D TextFieldRect{ SearchRect.X + 33.0f, SearchRect.Y + 4.0f, std::max(40.0f, SearchRect.Width - 82.0f), 28.0f };
     if (SearchBuffer.Length == 0u && !SearchBuffer.Active)
     {
         WorkspaceAppearance::ConstructTruncatedText(
             Surface,
             FontWeightClass::Regular,
-            { TextFieldRect.X + 2.0f, SearchRect.Y + 8.0f },
+            { TextFieldRect.X, SearchRect.Y + 11.0f },
             TextFieldRect.Width,
             12.0f,
-            WorkspaceSurfaceColors::FaintInk,
+            ColorRgba{ 103u, 103u, 103u, 255u },
             "Search scene...");
     }
     else
@@ -432,50 +451,57 @@ void ParticleOutlinerPanel::Render(
         SearchBuffer.Active = false;
     }
 
-    // Trailing "Ctrl F" shortcut hint tag
-    const Rectangle2D KbdRect{ SearchRect.Right() - 46.0f, SearchRect.Y + 6.0f, 40.0f, 18.0f };
-    Surface.FillRectangle(KbdRect, WorkspaceSurfaceColors::ControlWell, 4.0f);
-    Surface.StrokeRectangle(KbdRect, WorkspaceSurfaceColors::ControlWellBorder, 4.0f, 1.0f);
+    const Rectangle2D KbdRect{ SearchRect.Right() - 48.0f, SearchRect.Y + 9.0f, 38.0f, 18.0f };
+    Surface.FillRectangle(KbdRect, ColorRgba{ 21u, 21u, 21u, 255u }, 5.0f);
+    Surface.StrokeRectangle(KbdRect, ColorRgba{ 255u, 255u, 255u, 20u }, 5.0f, 1.0f);
+    const float KbdTextW = WorkspaceAppearance::MeasureWeightedTextWidth(Surface, FontWeightClass::Regular, 9.0f, "Ctrl F", true);
     WorkspaceAppearance::ConstructWeightedText(
         Surface,
-        FontWeightClass::Medium,
-        { KbdRect.X + 5.0f, KbdRect.Y + 3.0f },
-        9.5f,
-        WorkspaceSurfaceColors::MutedInk,
+        FontWeightClass::Regular,
+        { KbdRect.X + (KbdRect.Width - KbdTextW) * 0.5f, KbdRect.Y + 4.5f },
+        9.0f,
+        ColorRgba{ 142u, 142u, 142u, 255u },
         "Ctrl F",
         true);
 
-    CursorY += 38.0f;
+    CursorY += 44.0f;
 
-    // 4. Category Filter Strip: All, Effects, Forces + 14 Active Non-Quarantined Categories (Zero Quarantine!)
-    const float ChipH   = 21.0f;
-    const float ChipGap = 4.0f;
-    float ChipX         = InnerX;
-    float ChipY         = CursorY;
+    // 4. Capsule Category Filter Strip: All, Effects, 14 Active Non-Quarantined Categories, Forces (Zero Quarantine!)
+    const float FilterH   = 22.0f;
+    const float FilterGap = 5.0f;
+    float FilterX         = InnerX;
+    float FilterY         = CursorY;
 
-    auto RenderFilterButton = [&](const char* Label, bool Active, ColorRgba Accent, auto&& SelectCallback)
+    auto RenderFilterButton = [&](const char* Label, bool Active, ColorRgba /*Accent*/, auto&& SelectCallback)
     {
-        const float TextW = WorkspaceAppearance::MeasureWeightedTextWidth(Surface, FontWeightClass::Medium, 10.5f, Label);
-        const float BtnW  = TextW + 14.0f;
-        if (ChipX + BtnW > InnerX + InnerW + 0.5f && ChipX > InnerX + 1.0f)
+        const float TextW = WorkspaceAppearance::MeasureWeightedTextWidth(Surface, FontWeightClass::Regular, 10.5f, Label);
+        const float BtnW  = TextW + 17.0f;
+        if (FilterX + BtnW > InnerX + InnerW + 0.5f && FilterX > InnerX + 1.0f)
         {
-            ChipX = InnerX;
-            ChipY += ChipH + ChipGap;
+            FilterX = InnerX;
+            FilterY += FilterH + FilterGap;
         }
-        const Rectangle2D ChipRect{ ChipX, ChipY, BtnW, ChipH };
-        const bool Hovered = PointerEnabled && ChipRect.Contains(Cursor);
+        const Rectangle2D FilterRect{ FilterX, FilterY, BtnW, FilterH };
+        const bool Hovered = PointerEnabled && FilterRect.Contains(Cursor);
         const ColorRgba Fill = Active
-            ? ColorRgba{ Accent.Red, Accent.Green, Accent.Blue, 36u }
-            : (Hovered ? WorkspaceSurfaceColors::RowHover : WorkspaceSurfaceColors::ControlWell);
-        const ColorRgba Border = Active ? Accent : WorkspaceSurfaceColors::ControlWellBorder;
-        const ColorRgba Ink    = Active ? Accent : WorkspaceSurfaceColors::SecondaryInk;
+            ? ColorRgba{ 255u, 255u, 255u, 24u }
+            : (Hovered ? ColorRgba{ 255u, 255u, 255u, 10u } : ColorRgba{ 255u, 255u, 255u, 0u });
+        const ColorRgba Border = Active
+            ? ColorRgba{ 255u, 255u, 255u, 42u }
+            : ColorRgba{ 255u, 255u, 255u, 18u };
+        const ColorRgba Ink = Active
+            ? ColorRgba{ 242u, 242u, 242u, 255u }
+            : (Hovered ? ColorRgba{ 226u, 226u, 226u, 255u } : ColorRgba{ 143u, 143u, 143u, 255u });
 
-        Surface.FillRectangle(ChipRect, Fill, 6.0f);
-        Surface.StrokeRectangle(ChipRect, Border, 6.0f, 1.0f);
+        if (Fill.Alpha > 0u)
+        {
+            Surface.FillRectangle(FilterRect, Fill, FilterH * 0.5f);
+        }
+        Surface.StrokeRectangle(FilterRect, Border, FilterH * 0.5f, 1.0f);
         WorkspaceAppearance::ConstructWeightedText(
             Surface,
-            Active ? FontWeightClass::SemiBold : FontWeightClass::Medium,
-            { ChipRect.X + 7.0f, ChipRect.Y + 4.0f },
+            Active ? FontWeightClass::Medium : FontWeightClass::Regular,
+            { FilterRect.X + 8.5f, FilterRect.Y + 4.5f },
             10.5f,
             Ink,
             Label);
@@ -483,7 +509,7 @@ void ParticleOutlinerPanel::Render(
         {
             SelectCallback();
         }
-        ChipX += BtnW + ChipGap;
+        FilterX += BtnW + FilterGap;
     };
 
     RenderFilterButton(
@@ -496,11 +522,6 @@ void ParticleOutlinerPanel::Render(
         FilterMode == ParticleOutlinerFilterMode::EffectsOnly,
         WorkspaceSurfaceColors::SelectionAmber,
         [&]() { ConfigureFilterEffects(); });
-    RenderFilterButton(
-        "Forces",
-        FilterMode == ParticleOutlinerFilterMode::ForcesOnly,
-        ColorRgba{ 143u, 211u, 196u, 255u },
-        [&]() { ConfigureFilterForces(); });
 
     for (const ParticleCategoryDescriptor& Cat : ParticlePresetRegistry::QueryActiveCategories())
     {
@@ -512,14 +533,16 @@ void ParticleOutlinerPanel::Render(
             [&, CategoryCode = Cat.Category]() { ConfigureFilterCategory(CategoryCode); });
     }
 
-    CursorY = ChipY + ChipH + 10.0f;
+    RenderFilterButton(
+        "Forces",
+        FilterMode == ParticleOutlinerFilterMode::ForcesOnly,
+        ColorRgba{ 143u, 211u, 196u, 255u },
+        [&]() { ConfigureFilterForces(); });
 
-    // Subtle divider separating filters from scrollable tree
-    Surface.FillRectangle({ Bounds.X, CursorY, Bounds.Width, 1.0f }, WorkspaceSurfaceColors::HairlineLight, 0.0f);
-    CursorY += 6.0f;
+    CursorY = FilterY + FilterH + 10.0f;
 
     // 5. Scrollable Outliner Tree Viewport
-    const float FooterH = 26.0f;
+    const float FooterH = 30.0f;
     const Rectangle2D TreeViewport{
         Bounds.X,
         CursorY,
@@ -535,59 +558,59 @@ void ParticleOutlinerPanel::Render(
     ScrollOffsetY         = std::clamp(ScrollOffsetY, 0.0f, MaxScroll);
 
     Surface.PushClip(TreeViewport);
-    float RowY = TreeViewport.Y + 4.0f - ScrollOffsetY;
-    const float RowH = CompactMode ? 28.0f : 42.0f;
+    float RowY = TreeViewport.Y + 2.0f - ScrollOffsetY;
+    const float RowH = CompactMode ? 28.0f : 38.0f;
     const std::string_view SearchText(SearchBuffer.Text, SearchBuffer.Length);
 
     auto RenderGroupHeader = [&](const char* Title, uint32_t Count, bool& Expanded)
     {
-        const Rectangle2D HeaderRect{ InnerX, RowY, InnerW, 24.0f };
+        const Rectangle2D HeaderRect{ InnerX, RowY, InnerW, 22.0f };
         const bool Hovered = PointerEnabled && TreeViewport.Contains(Cursor) && HeaderRect.Contains(Cursor);
         if (Hovered)
         {
-            Surface.FillRectangle(HeaderRect, WorkspaceSurfaceColors::RowHover, 5.0f);
+            Surface.FillRectangle(HeaderRect, ColorRgba{ 255u, 255u, 255u, 8u }, 6.0f);
         }
         WorkspaceAppearance::ConstructChevronSymbol(
             Surface,
-            { HeaderRect.X + 8.0f, HeaderRect.Y + 12.0f },
-            8.0f,
+            { HeaderRect.X + 7.0f, HeaderRect.Y + 11.0f },
+            7.0f,
             Expanded,
-            WorkspaceSurfaceColors::MutedInk);
+            ColorRgba{ 104u, 104u, 104u, 255u });
         WorkspaceAppearance::ConstructWeightedText(
             Surface,
-            FontWeightClass::SemiBold,
-            { HeaderRect.X + 20.0f, HeaderRect.Y + 5.0f },
-            11.0f,
-            WorkspaceSurfaceColors::SecondaryInk,
+            FontWeightClass::Medium,
+            { HeaderRect.X + 18.0f, HeaderRect.Y + 5.0f },
+            9.5f,
+            ColorRgba{ 118u, 118u, 118u, 255u },
             Title);
         char CountBuf[16]{};
         std::snprintf(CountBuf, sizeof(CountBuf), "%u", Count);
         WorkspaceAppearance::ConstructRightAlignedText(
             Surface,
-            FontWeightClass::Medium,
+            FontWeightClass::Regular,
             { HeaderRect.Right() - 6.0f, HeaderRect.Y + 5.0f },
-            10.5f,
-            WorkspaceSurfaceColors::FaintInk,
+            10.0f,
+            ColorRgba{ 92u, 92u, 92u, 255u },
             CountBuf,
             true);
         if (PrimaryClick && Hovered)
         {
             Expanded = !Expanded;
         }
-        RowY += 26.0f;
+        RowY += 24.0f;
     };
 
     auto RenderSubgroupLabel = [&](const std::string& Caption)
     {
         WorkspaceAppearance::ConstructTruncatedText(
             Surface,
-            FontWeightClass::SemiBold,
-            { InnerX + 10.0f, RowY + 3.0f },
+            FontWeightClass::Regular,
+            { InnerX + 10.0f, RowY + 4.0f },
             InnerW - 14.0f,
-            10.0f,
-            WorkspaceSurfaceColors::FaintInk,
+            9.5f,
+            ColorRgba{ 98u, 98u, 98u, 255u },
             Caption);
-        RowY += 19.0f;
+        RowY += 18.0f;
     };
 
     auto RenderTreeRow = [&](
@@ -598,7 +621,7 @@ void ParticleOutlinerPanel::Render(
         bool               Visible,
         bool               Nested,
         uint32_t           ForceLawOrdinal,
-        const char*        StatusTag,
+        const char*        /*StatusTag*/,
         auto&&             SelectCallback,
         auto&&             VisibilityCallback)
     {
@@ -609,119 +632,113 @@ void ParticleOutlinerPanel::Render(
             return;
         }
 
-        const float Indent = Nested ? 10.0f : 0.0f;
-        const Rectangle2D RowRect{ InnerX + Indent, RowY, InnerW - Indent, RowH };
+        const Rectangle2D RowRect{ InnerX, RowY, InnerW, RowH };
         const bool RowVisibleOnScreen = (RowRect.Bottom() >= TreeViewport.Y - 4.0f) && (RowRect.Y <= TreeViewport.Bottom() + 4.0f);
 
         if (RowVisibleOnScreen)
         {
             const bool RowHover = PointerEnabled && TreeViewport.Contains(Cursor) && RowRect.Contains(Cursor);
-            const ColorRgba RowFill = Selected
-                ? WorkspaceSurfaceColors::RowSelected
-                : (RowHover ? WorkspaceSurfaceColors::RowHover : ColorRgba{ 22u, 22u, 23u, 255u });
 
-            Surface.FillRectangle(RowRect, RowFill, 7.0f);
-            Surface.StrokeRectangle(
-                RowRect,
-                Selected ? WorkspaceSurfaceColors::RowSelectedBorder : WorkspaceSurfaceColors::HairlineLight,
-                7.0f,
-                1.0f);
+            // Borderless slim HTML tree row: transparent at rest, subtle wash on hover, crisp highlight on selection
+            if (Selected)
+            {
+                Surface.FillRectangle(RowRect, ColorRgba{ 255u, 255u, 255u, 23u }, 11.0f);
+                Surface.StrokeRectangle(RowRect, ColorRgba{ 255u, 255u, 255u, 36u }, 11.0f, 1.0f);
+                // Exact HTML .tree-row.selected::before 2.5px vertical accent indicator
+                Surface.FillRectangle(
+                    { RowRect.X + 2.0f, RowRect.Y + 9.0f, 2.5f, std::max(10.0f, RowRect.Height - 18.0f) },
+                    Accent,
+                    1.5f);
+            }
+            else if (RowHover)
+            {
+                Surface.FillRectangle(RowRect, ColorRgba{ 255u, 255u, 255u, 10u }, 11.0f);
+            }
 
-            // 3px leading accent / selection rail
-            Surface.FillRectangle(
-                { RowRect.X, RowRect.Y + 4.0f, 3.0f, RowRect.Height - 8.0f },
-                Selected ? WorkspaceSurfaceColors::SelectionAmber : Accent.ScaledAlpha(Visible ? 0.90f : 0.30f),
-                1.5f);
+            const float ContentAlpha = Visible ? 1.0f : 0.45f;
+            const float LeftPad      = Nested ? 22.0f : 10.0f;
 
-            // Leading icon well (reuses Frontier ForceLawIcon when ForceLawOrdinal < 19)
+            // 24x24px soft-tinted 8px-radius icon well (reuses Frontier ForceLawIcon for C++ ForceFields)
             const float IconBoxSize = CompactMode ? 18.0f : 24.0f;
             const Rectangle2D IconBox{
-                RowRect.X + 9.0f,
+                RowRect.X + LeftPad,
                 RowRect.Y + (RowRect.Height - IconBoxSize) * 0.5f,
                 IconBoxSize,
                 IconBoxSize,
             };
-            Surface.FillRectangle(IconBox, ColorRgba{ Accent.Red, Accent.Green, Accent.Blue, 28u }, 5.0f);
+            Surface.FillRectangle(IconBox, ColorRgba{ 255u, 255u, 255u, 11u }, 8.0f);
             if (ForceLawOrdinal < static_cast<uint32_t>(ForceModel::Count))
             {
                 WorkspaceAppearance::ConstructForceLawIcon(
                     Surface,
                     ForceLawOrdinal,
-                    { IconBox.X + 4.0f, IconBox.Y + 4.0f },
-                    IconBoxSize - 8.0f,
+                    { IconBox.X + 4.5f, IconBox.Y + 4.5f },
+                    IconBoxSize - 9.0f,
                     Accent,
-                    Visible ? 1.0f : 0.45f);
+                    ContentAlpha);
             }
             else
             {
                 Surface.FillCircle(
                     IconBox.Center(),
-                    CompactMode ? 4.0f : 5.2f,
-                    Accent.ScaledAlpha(Visible ? 1.0f : 0.35f));
+                    CompactMode ? 3.8f : 4.8f,
+                    Accent.ScaledAlpha(ContentAlpha));
                 Surface.StrokeCircle(
                     IconBox.Center(),
-                    CompactMode ? 6.0f : 7.8f,
-                    Accent.ScaledAlpha(Visible ? 0.40f : 0.15f),
+                    CompactMode ? 5.8f : 7.4f,
+                    Accent.ScaledAlpha(0.35f * ContentAlpha),
                     1.0f);
             }
 
-            // Right-hand visibility eye button & status dot
-            const Rectangle2D EyeRect{ RowRect.Right() - 26.0f, RowRect.Y + (RowRect.Height - 22.0f) * 0.5f, 22.0f, 22.0f };
+            // Right-hand eye toggle (shown on hover, selected, or when hidden in soft red #D96B6B) + live status dot
+            const Rectangle2D EyeRect{ RowRect.Right() - 28.0f, RowRect.Y + (RowRect.Height - 24.0f) * 0.5f, 24.0f, 24.0f };
             const bool EyeHover = PointerEnabled && TreeViewport.Contains(Cursor) && EyeRect.Contains(Cursor);
-            if (EyeHover)
+            const bool ShowEye  = RowHover || Selected || !Visible;
+            if (ShowEye)
             {
-                Surface.FillRectangle(EyeRect, ColorRgba{ 255u, 255u, 255u, 18u }, 5.0f);
-            }
-            VectorIconRepository::ConstructControl(
-                Surface,
-                Visible ? ControlIcon::EyeVisible : ControlIcon::EyeHidden,
+                if (EyeHover)
                 {
-                    EyeRect.X + 4.0f,
-                    EyeRect.Y + 4.0f,
-                    14.0f,
-                    Visible ? WorkspaceSurfaceColors::SecondaryInk : WorkspaceSurfaceColors::FaintInk,
-                    1.6f,
-                });
-
-            const Point2D LiveDotCenter{ EyeRect.X - 8.0f, RowRect.Y + RowRect.Height * 0.5f };
-            Surface.FillCircle(
-                LiveDotCenter,
-                3.0f,
-                Visible ? WorkspaceSurfaceColors::StatusGreen : WorkspaceSurfaceColors::FaintInk);
-
-            float CopyRightEdge = LiveDotCenter.X - 10.0f;
-            if (StatusTag != nullptr && StatusTag[0] != '\0')
-            {
-                const float TagW = WorkspaceAppearance::MeasureWeightedTextWidth(Surface, FontWeightClass::Medium, 9.5f, StatusTag) + 10.0f;
-                const Rectangle2D TagRect{
-                    CopyRightEdge - TagW,
-                    RowRect.Y + (RowRect.Height - 16.0f) * 0.5f,
-                    TagW,
-                    16.0f,
-                };
-                const ColorRgba TagTint = Visible
-                    ? ColorRgba{ 88u, 186u, 140u, 36u }
-                    : ColorRgba{ 120u, 120u, 126u, 28u };
-                Surface.FillRectangle(TagRect, TagTint, 4.0f);
-                WorkspaceAppearance::ConstructWeightedText(
+                    Surface.FillRectangle(EyeRect, ColorRgba{ 255u, 255u, 255u, 16u }, 12.0f);
+                }
+                VectorIconRepository::ConstructControl(
                     Surface,
-                    FontWeightClass::Medium,
-                    { TagRect.X + 5.0f, TagRect.Y + 2.5f },
-                    9.5f,
-                    Visible ? ColorRgba{ 148u, 222u, 188u, 255u } : WorkspaceSurfaceColors::MutedInk,
-                    StatusTag);
-                CopyRightEdge = TagRect.X - 6.0f;
+                    Visible ? ControlIcon::EyeVisible : ControlIcon::EyeHidden,
+                    {
+                        EyeRect.X + 5.5f,
+                        EyeRect.Y + 5.5f,
+                        13.0f,
+                        Visible ? ColorRgba{ 130u, 130u, 134u, 255u } : ColorRgba{ 217u, 107u, 107u, 255u },
+                        1.55f,
+                    });
+            }
+
+            const Point2D LiveDotCenter{
+                (ShowEye ? EyeRect.X - 6.0f : RowRect.Right() - 12.0f),
+                RowRect.Y + RowRect.Height * 0.5f,
+            };
+            if (Visible)
+            {
+                Surface.FillCircle(LiveDotCenter, 5.2f, ColorRgba{ 62u, 196u, 109u, 36u });
+                Surface.FillCircle(LiveDotCenter, 3.0f, ColorRgba{ 62u, 196u, 109u, 255u });
+            }
+            else
+            {
+                Surface.FillCircle(LiveDotCenter, 3.0f, ColorRgba{ 61u, 61u, 61u, 255u });
             }
 
             const float CopyX = IconBox.Right() + 9.0f;
-            const float CopyW = std::max(30.0f, CopyRightEdge - CopyX);
-            const ColorRgba TitleInk = Visible ? WorkspaceSurfaceColors::PrimaryInk : WorkspaceSurfaceColors::MutedInk;
+            const float CopyW = std::max(30.0f, LiveDotCenter.X - 10.0f - CopyX);
+            const ColorRgba TitleInk = Selected
+                ? ColorRgba{ 255u, 255u, 255u, 255u }
+                : ColorRgba{ 220u, 220u, 220u, static_cast<uint8_t>(255.0f * ContentAlpha) };
+            const ColorRgba MetaInk  = ColorRgba{ 110u, 110u, 110u, static_cast<uint8_t>(255.0f * ContentAlpha) };
+
             if (CompactMode)
             {
                 WorkspaceAppearance::ConstructTruncatedText(
                     Surface,
-                    Selected ? FontWeightClass::SemiBold : FontWeightClass::Medium,
-                    { CopyX, RowRect.Y + 7.0f },
+                    FontWeightClass::Regular,
+                    { CopyX, RowRect.Y + 7.5f },
                     CopyW,
                     11.5f,
                     TitleInk,
@@ -731,8 +748,8 @@ void ParticleOutlinerPanel::Render(
             {
                 WorkspaceAppearance::ConstructTruncatedText(
                     Surface,
-                    Selected ? FontWeightClass::SemiBold : FontWeightClass::Medium,
-                    { CopyX, RowRect.Y + 6.0f },
+                    Selected ? FontWeightClass::Medium : FontWeightClass::Regular,
+                    { CopyX, RowRect.Y + 5.5f },
                     CopyW,
                     12.0f,
                     TitleInk,
@@ -740,16 +757,16 @@ void ParticleOutlinerPanel::Render(
                 WorkspaceAppearance::ConstructTruncatedText(
                     Surface,
                     FontWeightClass::Regular,
-                    { CopyX, RowRect.Y + 23.0f },
+                    { CopyX, RowRect.Y + 21.0f },
                     CopyW,
-                    10.2f,
-                    WorkspaceSurfaceColors::MutedInk,
+                    10.0f,
+                    MetaInk,
                     Summary);
             }
 
             if (PrimaryClick && RowHover)
             {
-                if (EyeHover)
+                if (EyeHover && ShowEye)
                 {
                     VisibilityCallback();
                 }
@@ -760,7 +777,7 @@ void ParticleOutlinerPanel::Render(
             }
         }
 
-        RowY += RowH + 4.0f;
+        RowY += RowH + 2.0f;
     };
 
     if (Session != nullptr)
@@ -771,7 +788,7 @@ void ParticleOutlinerPanel::Render(
         if (ShowEnvironment)
         {
             auto ForceSpan = Session->AccessForceSources();
-            RenderGroupHeader("Environment (C++ ForceFields)", static_cast<uint32_t>(ForceSpan.size() + 2u), EnvironmentExpanded);
+            RenderGroupHeader("ENVIRONMENT · C++ FORCEFIELDS", static_cast<uint32_t>(ForceSpan.size() + 2u), EnvironmentExpanded);
 
             if (EnvironmentExpanded)
             {
@@ -942,7 +959,7 @@ void ParticleOutlinerPanel::Render(
                 ++MatchedEffectCount;
             }
 
-            std::string EffectsHeading = "Particle Effects";
+            std::string EffectsHeading = "PARTICLE EFFECTS";
             if (FilterMode == ParticleOutlinerFilterMode::SingleDomain)
             {
                 EffectsHeading = std::string("VFX · ") + ParticlePresetRegistry::QueryCategoryDescriptor(FilteredCategory).FullTitle;
@@ -1098,44 +1115,48 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
     }
     Y += 34.0f;
 
-    // Preset category shelf strip when browsing presets
+    // Preset category shelf strip when browsing presets (matches Outliner capsule grammar)
     if (ActiveConstructPage == ConstructSheetPage::ParticlePresets)
     {
         float CatX = InnerX;
         float CatY = Y;
         for (const ParticleCategoryDescriptor& Cat : ParticlePresetRegistry::QueryActiveCategories())
         {
-            const float BtnW = WorkspaceAppearance::MeasureWeightedTextWidth(Surface, FontWeightClass::Medium, 9.5f, Cat.ShortChip) + 10.0f;
+            const float BtnW = WorkspaceAppearance::MeasureWeightedTextWidth(Surface, FontWeightClass::Medium, 9.5f, Cat.ShortChip) + 12.0f;
             if (CatX + BtnW > InnerX + InnerW + 0.5f && CatX > InnerX + 1.0f)
             {
                 CatX = InnerX;
-                CatY += 20.0f;
+                CatY += 22.0f;
             }
-            const Rectangle2D CatBtn{ CatX, CatY, BtnW, 18.0f };
+            const Rectangle2D CatBtn{ CatX, CatY, BtnW, 19.0f };
             const bool Active  = (ConstructCategory == Cat.Category);
             const bool Hovered = Input.PrimaryPointer.Enabled && CatBtn.Contains(Cursor);
             Surface.FillRectangle(
                 CatBtn,
                 Active
-                    ? ColorRgba{ Cat.AccentTint.Red, Cat.AccentTint.Green, Cat.AccentTint.Blue, 42u }
-                    : (Hovered ? WorkspaceSurfaceColors::RowHover : WorkspaceSurfaceColors::ControlWell),
-                5.0f);
-            Surface.StrokeRectangle(CatBtn, Active ? Cat.AccentTint : WorkspaceSurfaceColors::ControlWellBorder, 5.0f, 1.0f);
+                    ? ColorRgba{ 232u, 194u, 122u, 36u }
+                    : (Hovered ? ColorRgba{ 255u, 255u, 255u, 14u } : ColorRgba{ 255u, 255u, 255u, 6u }),
+                9.5f);
+            Surface.StrokeRectangle(
+                CatBtn,
+                Active ? ColorRgba{ 232u, 194u, 122u, 170u } : ColorRgba{ 255u, 255u, 255u, 18u },
+                9.5f,
+                1.0f);
             WorkspaceAppearance::ConstructWeightedText(
                 Surface,
-                Active ? FontWeightClass::SemiBold : FontWeightClass::Regular,
-                { CatBtn.X + 5.0f, CatBtn.Y + 3.0f },
+                Active ? FontWeightClass::Medium : FontWeightClass::Regular,
+                { CatBtn.X + 6.0f, CatBtn.Y + 3.5f },
                 9.5f,
-                Active ? Cat.AccentTint : WorkspaceSurfaceColors::SecondaryInk,
+                Active ? ColorRgba{ 246u, 224u, 180u, 255u } : ColorRgba{ 166u, 166u, 166u, 255u },
                 Cat.ShortChip);
             if (Clicked && Hovered)
             {
                 ConstructCategory  = Cat.Category;
                 SheetScrollOffsetY = 0.0f;
             }
-            CatX += BtnW + 3.0f;
+            CatX += BtnW + 4.0f;
         }
-        Y = CatY + 24.0f;
+        Y = CatY + 26.0f;
     }
 
     const Rectangle2D ListViewport{ InnerX, Y, InnerW, std::max(60.0f, SheetRect.Bottom() - Y - 10.0f) };
@@ -1155,32 +1176,39 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
             {
                 continue;
             }
-            const Rectangle2D EntryRect{ ListViewport.X, EntryY, ListViewport.Width, 34.0f };
+            const Rectangle2D EntryRect{ ListViewport.X, EntryY, ListViewport.Width, 35.0f };
             const bool Hovered = Input.PrimaryPointer.Enabled && ListViewport.Contains(Cursor) && EntryRect.Contains(Cursor);
-            Surface.FillRectangle(EntryRect, Hovered ? WorkspaceSurfaceColors::RowSelected : WorkspaceSurfaceColors::ControlWell, 6.0f);
-            Surface.StrokeRectangle(EntryRect, Hovered ? WorkspaceSurfaceColors::SelectionAmber : WorkspaceSurfaceColors::HairlineLight, 6.0f, 1.0f);
+            Surface.FillRectangle(
+                EntryRect,
+                Hovered ? ColorRgba{ 255u, 255u, 255u, 18u } : ColorRgba{ 255u, 255u, 255u, 6u },
+                10.0f);
+            if (Hovered)
+            {
+                Surface.StrokeRectangle(EntryRect, ColorRgba{ 232u, 194u, 122u, 120u }, 10.0f, 1.0f);
+            }
 
             const ColorRgba DotColor = (Preset.ColorA.Luminance() < 0.08f)
                 ? ParticlePresetRegistry::QueryCategoryDescriptor(Preset.Category).AccentTint
                 : Preset.ColorA;
-            Surface.FillCircle({ EntryRect.X + 12.0f, EntryRect.Y + 17.0f }, 4.5f, DotColor);
+            Surface.FillRectangle({ EntryRect.X + 6.0f, EntryRect.Y + 6.5f, 22.0f, 22.0f }, ColorRgba{ DotColor.Red, DotColor.Green, DotColor.Blue, 32u }, 7.0f);
+            Surface.FillCircle({ EntryRect.X + 17.0f, EntryRect.Y + 17.5f }, 4.5f, DotColor);
             WorkspaceAppearance::ConstructTruncatedText(
                 Surface,
-                FontWeightClass::Medium,
-                { EntryRect.X + 24.0f, EntryRect.Y + 4.0f },
-                EntryRect.Width - 32.0f,
+                FontWeightClass::Regular,
+                { EntryRect.X + 35.0f, EntryRect.Y + 5.0f },
+                EntryRect.Width - 44.0f,
                 11.0f,
-                WorkspaceSurfaceColors::PrimaryInk,
+                ColorRgba{ 236u, 236u, 236u, 255u },
                 Preset.DisplayName);
             char MetaBuf[64]{};
             std::snprintf(MetaBuf, sizeof(MetaBuf), "%s · %u slots", Preset.Sublabel, Preset.Capacity);
             WorkspaceAppearance::ConstructTruncatedText(
                 Surface,
                 FontWeightClass::Regular,
-                { EntryRect.X + 24.0f, EntryRect.Y + 18.0f },
-                EntryRect.Width - 32.0f,
+                { EntryRect.X + 35.0f, EntryRect.Y + 19.0f },
+                EntryRect.Width - 44.0f,
                 9.5f,
-                WorkspaceSurfaceColors::MutedInk,
+                ColorRgba{ 126u, 126u, 126u, 255u },
                 MetaBuf);
 
             if (Clicked && Hovered && Session != nullptr)
@@ -1188,7 +1216,7 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
                 (void)Session->AddEffectFromPreset(Preset.Identifier);
                 ConstructSheetOpen = false;
             }
-            EntryY += 37.0f;
+            EntryY += 38.0f;
         }
     }
     else
@@ -1197,15 +1225,21 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
         {
             const ForceModel Law = static_cast<ForceModel>(LawOrd);
             const ColorRgba Tint = WorkspaceAppearance::QueryForceLawTint(LawOrd);
-            const Rectangle2D EntryRect{ ListViewport.X, EntryY, ListViewport.Width, 32.0f };
+            const Rectangle2D EntryRect{ ListViewport.X, EntryY, ListViewport.Width, 34.0f };
             const bool Hovered = Input.PrimaryPointer.Enabled && ListViewport.Contains(Cursor) && EntryRect.Contains(Cursor);
-            Surface.FillRectangle(EntryRect, Hovered ? WorkspaceSurfaceColors::RowSelected : WorkspaceSurfaceColors::ControlWell, 6.0f);
-            Surface.StrokeRectangle(EntryRect, Hovered ? Tint : WorkspaceSurfaceColors::HairlineLight, 6.0f, 1.0f);
+            Surface.FillRectangle(
+                EntryRect,
+                Hovered ? ColorRgba{ 255u, 255u, 255u, 18u } : ColorRgba{ 255u, 255u, 255u, 6u },
+                10.0f);
+            if (Hovered)
+            {
+                Surface.StrokeRectangle(EntryRect, ColorRgba{ Tint.Red, Tint.Green, Tint.Blue, 130u }, 10.0f, 1.0f);
+            }
 
             WorkspaceAppearance::ConstructForceLawIcon(
                 Surface,
                 LawOrd,
-                { EntryRect.X + 8.0f, EntryRect.Y + 8.0f },
+                { EntryRect.X + 8.0f, EntryRect.Y + 9.0f },
                 16.0f,
                 Tint);
             WorkspaceAppearance::ConstructTruncatedText(
