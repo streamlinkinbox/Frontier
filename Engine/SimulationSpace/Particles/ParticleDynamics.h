@@ -1,7 +1,7 @@
 /*============================================================================================================================================
-                                                      PARTICLEDYNAMICSINTERFACES.H
+                                                           PARTICLEDYNAMICS.H
 ============================================================================================================================================*/
-// 🧩 Modular particle dynamics interfaces: sources, motion solvers, colliders, integrators, custom lambdas, and ForceFields/SDF tick inputs
+// 🧩 Modular particle dynamics primitives: sources, motion solvers, colliders, integrators, custom lambdas, and ForceFields/SDF tick inputs
 
 #pragma once
 
@@ -184,7 +184,7 @@ struct SimulationTickInputs
 };
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                            COMPOSABLE PARTICLE DYNAMICS INTERFACES
+//                                            COMPOSABLE PARTICLE DYNAMICS PRIMITIVES
 //------------------------------------------------------------------------------------------------------------------------
 
 class ParticleSource

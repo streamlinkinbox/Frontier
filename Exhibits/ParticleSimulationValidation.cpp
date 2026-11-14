@@ -19,7 +19,7 @@
 #include "Engine/SimulationSpace/Particles/ParticlePresetCompiler.h"
 #include "Engine/SimulationSpace/Particles/ParticleSimulation.h"
 #include "Engine/SimulationSpace/Particles/ParticleChannelLayouts.h"
-#include "Engine/Workspaces/Particles/ParticlePresetRegistry.h"
+#include "Engine/Workspaces/Particle/ParticlePresetRegistry.h"
 #include "Exhibits/SoftwareCanvasRasterizer.h"
 
 #include <imgui.h>

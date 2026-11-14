@@ -11,8 +11,8 @@
 
 #include "Engine/SimulationSpace/Particles/ParticleDomainSolvers.h"
 #include "Engine/SimulationSpace/Particles/ParticleSimulation.h"
-#include "Engine/Workspaces/Particles/ParticlePresetRegistry.h"
-#include "Engine/Workspaces/Particles/ParticleWorkspaceSession.h"
+#include "Engine/Workspaces/Particle/ParticlePresetRegistry.h"
+#include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
 
 #include <optional>
 #include <string_view>

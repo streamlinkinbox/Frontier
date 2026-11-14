@@ -9,7 +9,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/SimulationSpace/Particles/ParticleDynamicsInterfaces.h"
+#include "Engine/SimulationSpace/Particles/ParticleDynamics.h"
 
 #include <array>
 #include <cstdint>

@@ -2,7 +2,7 @@
 
 > **Status:** 🟢 Step 2A & Step 2B Implemented & Verified (`ParticleSimulationValidation` PASS · Shipping `-Werror` Clean · 0 Banned Words) · Step 2C (Vulkan 1.3 `.slang` Compute) Next
 > **Scope:** Native ISO C++20 modular particle movement, modular typed SoA channels, composable motion & constraint solvers, direct `SimulationSpace::ForceFields` + `DistanceFieldSpace::SignedDistanceVolume` reuse, and dual CPU / Vulkan 1.3 `.slang` execution.
-> **Supersedes:** Earlier draft `Engine/SimulationSpace/Particles/CxxParticleFoundationPlan.md` (which used a fixed `80 B` monolithic struct and pre-governance naming).
+> **Supersedes:** Earlier removed draft `CxxParticleFoundationPlan.md` (which previously lived inside `Engine/SimulationSpace/Particles/` and used a fixed `80 B` monolithic struct with pre-governance naming).
 
 ---
 
@@ -299,7 +299,7 @@ Engine/
     Particles/
       ParticleChannelBank.h / .cpp        # Typed SoA channel storage, ChannelTag<T>, DenseSwapRemove & FixedSlotOrder
       ParticleChannelLayouts.h          # 16B-aligned native channels (Kinematics, Lifespan, Appearance, Strand, Flock, Ferrofluid, Pyro, Fracture, Lattice)
-      ParticleDynamicsInterfaces.h             # ParticleSource, ParticleMotionSolver, ParticleCollider, ParticleIntegrator, SimulationTickInputs
+      ParticleDynamics.h             # ParticleSource, ParticleMotionSolver, ParticleCollider, ParticleIntegrator, SimulationTickInputs
       ParticleKinematicsSolvers.h / .cpp  # Modular native solvers: GravityBuoyancySolver, ForceFieldCouplingSolver, Curl, Flutter, AppearanceCurve, Colliders (Ground/Sphere/SDF)
       ParticleDomainSolvers.h / .cpp      # Specialized solvers: XpbdStrandSolver, RosensweigFerrofluidSolver, PyroVolley, BoidsFlock, FractureCrackSolver, MoGraphEffector, ShieldRipple, SpaceRefractionSolver
       ParticleSimulation.h / .cpp         # Composable ParticleSimulation, ParticleSimulationSpecification, ParticleSimulationRegistry & ReadbackSummary
@@ -322,7 +322,7 @@ Exhibits/
 
 | Milestone | Status | Deliverable | Verification Proof |
 | :--- | :---: | :--- | :--- |
-| **Step 2A — Modular C++ Foundation & ForceFields/SDF Coupling** | 🟢 **Completed** | `ParticleChannelBank`, `ParticleChannelLayouts` (11 × 16B-aligned channels), `ParticleDynamicsInterfaces`, `ParticleKinematicsSolvers` (Gravity/Buoyancy, `ForceFieldCouplingSolver`, Curl, Flutter, Curves, Ground/Sphere/`SignedDistanceVolumeCollider`, SemiImplicitEuler / XpbdVerlet / MidpointRk2), `ParticleSimulation` + `Specification` + `Registry`. | Pure headless Shipping build (`-O2 -Wall -Wextra -Wpedantic -Werror`, zero UI/ImGui headers) + `ParticleSimulationValidation` PASS (custom `UserIonChargeAttribute` + `CustomParticleSolver` + synchronized swap-remove, `ForceFieldAccumulator` + `FieldLatticeCascade` determinism, analytic `SignedDistanceVolume` SDF bounce). |
+| **Step 2A — Modular C++ Foundation & ForceFields/SDF Coupling** | 🟢 **Completed** | `ParticleChannelBank`, `ParticleChannelLayouts` (11 × 16B-aligned channels), `ParticleDynamics`, `ParticleKinematicsSolvers` (Gravity/Buoyancy, `ForceFieldCouplingSolver`, Curl, Flutter, Curves, Ground/Sphere/`SignedDistanceVolumeCollider`, SemiImplicitEuler / XpbdVerlet / MidpointRk2), `ParticleSimulation` + `Specification` + `Registry`. | Pure headless Shipping build (`-O2 -Wall -Wextra -Wpedantic -Werror`, zero UI/ImGui headers) + `ParticleSimulationValidation` PASS (custom `UserIonChargeAttribute` + `CustomParticleSolver` + synchronized swap-remove, `ForceFieldAccumulator` + `FieldLatticeCascade` determinism, analytic `SignedDistanceVolume` SDF bounce). |
 | **Step 2B — All 10 Domain Solvers & 93-Preset Specification Compiler** | 🟢 **Completed** | `ParticleDomainSolvers` (XPBD Strands/Cloth/Flora/Trees, Rosensweig Ferrofluid, Multi-Tier Fireworks + Sky Text, Boids Flock, Fracture Cracks, MoGraph Effectors, Shield Ripples, Space Refraction) + `ParticlePresetCompiler` wired cleanly in `CMakeLists.txt`. | All **93/93** active non-quarantined presets compile & tick 75 steps with **0 NaN/Inf**, all **9/9** retired Quarantine slugs strictly rejected, `0` banned-word hits across all 12 new C++ files, and 4-panel visual proof rendered & inspected. |
 | **Step 2C — Vulkan 1.3 `.slang` Compute & Viewport Rasterization** | 🟡 **Next** | `ParticleVulkanExecutor` + 5 `.slang` compute shaders importing `ForceFieldEvaluationShared.slang` + modular billboard/ribbon/shard `.slang` rasterizers inside the Particle Workspace viewport + live `ParticleWorkspaceSession` runtime integration. | CPU-vs-GPU numerical parity validation + Vulkan/SwiftShader rendered viewport PNG exhibits in `Exhibits/Images/Particles/`. |
 

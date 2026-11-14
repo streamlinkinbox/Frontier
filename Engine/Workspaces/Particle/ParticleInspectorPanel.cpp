@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Workspaces/Particles/ParticleInspectorPanel.h"
+#include "Engine/Workspaces/Particle/ParticleInspectorPanel.h"
 
 #include "Engine/Components/Controls/CapsuleButton.h"
 #include "Engine/Components/Controls/ControlTooltip.h"
@@ -218,7 +218,7 @@ void ConstructHeroSolverInfographic(
             { DiagramRect.X + 12.0f, DiagramRect.Y + 9.0f },
             9.5f,
             ParticleInspectorColors::InkMuted,
-            "Hanabi burst envelope · live shell cadence");
+            "Hanabi burst envelope · live volley interval");
     }
     else
     {
@@ -1346,7 +1346,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
     }
     else if (Effect.AuthoringDomain == ParticleAuthoringDomain::FireworksSpectacle)
     {
-        PrimaryActionLabel = "Next Shell";
+        PrimaryActionLabel = "Next Volley";
     }
     else if (Effect.AuthoringDomain == ParticleAuthoringDomain::FractureAndCracks)
     {
@@ -1402,9 +1402,9 @@ float ParticleInspectorPanel::RenderOverviewTab(
     else if (Effect.AuthoringDomain == ParticleAuthoringDomain::FireworksSpectacle)
     {
         const float Sec3H = 264.0f;
-        Sy = BeginSectionBox(Surface, LeftX, Y, InnerW, Sec3H, "Fireworks shells & sky text", "02 / PYROTECHNICS", ParticleInspectorColors::WarmGold);
+        Sy = BeginSectionBox(Surface, LeftX, Y, InnerW, Sec3H, "Fireworks volleys & sky text", "02 / PYROTECHNICS", ParticleInspectorColors::WarmGold);
 
-        WorkspaceAppearance::ConstructWeightedText(Surface, FontWeightClass::Regular, { ContentX, Sy + 7.0f }, 11.2f, ParticleInspectorColors::InkLabel, "Shell pattern");
+        WorkspaceAppearance::ConstructWeightedText(Surface, FontWeightClass::Regular, { ContentX, Sy + 7.0f }, 11.2f, ParticleInspectorColors::InkLabel, "Burst pattern");
         const Rectangle2D PatRect{ ContentX + 94.0f, Sy, ContentW - 94.0f, 30.0f };
         if (DropdownSelector::ConstructButton(
                 Surface,
@@ -1537,7 +1537,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
         const float Sec3H = 204.0f;
         Sy = BeginSectionBox(Surface, LeftX, Y, InnerW, Sec3H, "Glacial & seismic fracture", "02 / CRACKS", ColorRgba{ 126u, 206u, 240u, 255u });
 
-        WorkspaceAppearance::ConstructWeightedText(Surface, FontWeightClass::Regular, { ContentX, Sy + 7.0f }, 11.2f, ParticleInspectorColors::InkLabel, "Fracture law");
+        WorkspaceAppearance::ConstructWeightedText(Surface, FontWeightClass::Regular, { ContentX, Sy + 7.0f }, 11.2f, ParticleInspectorColors::InkLabel, "Fracture mode");
         const Rectangle2D FracRect{ ContentX + 94.0f, Sy, ContentW - 94.0f, 30.0f };
         const char* FracLabel = (Effect.FracturePattern == 2u) ? "Seismic Basalt Quake" : "Glacial Ice Sheet";
         if (DropdownSelector::ConstructButton(Surface, FracRect, FracLabel, OpenDropdown == OpenDropdownCategory::FracturePattern, Pointer).Clicked)
@@ -1724,9 +1724,9 @@ float ParticleInspectorPanel::RenderSourceTab(
     }
     Y += Sec2H + 10.0f;
 
-    // Section 03: Timed Burst Cadence
+    // Section 03: Timed Burst Interval
     const float Sec3H = 194.0f;
-    Sy = BeginSectionBox(Surface, LeftX, Y, InnerW, Sec3H, "Timed burst cadence", "03 / BURSTS", ParticleInspectorColors::WarmGold);
+    Sy = BeginSectionBox(Surface, LeftX, Y, InnerW, Sec3H, "Timed burst interval", "03 / BURSTS", ParticleInspectorColors::WarmGold);
 
     Modified |= RenderLabeledSliderRow(Surface, ContentX, Sy, ContentW, 240, "Burst interval (0 = off)", 0.0f, 12.0f, Effect.BurstIntervalSec, "s", 1, Pointer, ActiveSliderId);
     Sy += 52.0f;
@@ -1899,7 +1899,7 @@ float ParticleInspectorPanel::RenderSpecAndExportTab(
     std::snprintf(SeedBuf, sizeof(SeedBuf), "#%u", Effect.DeterministicSeed);
 
     RenderMetricTile(Surface, { ContentX, Sy, TileW, 46.0f }, "BUFFER SIZE", MemBuf, ParticleInspectorColors::InkPrimary);
-    RenderMetricTile(Surface, { ContentX + TileW + TileGap, Sy, TileW, 46.0f }, "FORCE LAWS", FrcBuf, ParticleInspectorColors::EmeraldSoft);
+    RenderMetricTile(Surface, { ContentX + TileW + TileGap, Sy, TileW, 46.0f }, "FORCE MODELS", FrcBuf, ParticleInspectorColors::EmeraldSoft);
     RenderMetricTile(Surface, { ContentX + (TileW + TileGap) * 2.0f, Sy, TileW, 46.0f }, "RNG SEED", SeedBuf, ParticleInspectorColors::WarmGold);
     Sy += 58.0f;
 

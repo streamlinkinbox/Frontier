@@ -13,10 +13,10 @@
 #include "Engine/Components/Controls/ScalarSlider.h"
 #include "Engine/Components/Panes/WorkspaceAppearance.h"
 #include "Engine/SimulationSpace/ForceFields/ForceFieldDescriptors.h"
-#include "Engine/Workspaces/Particles/ParticleInspectorPanel.h"
-#include "Engine/Workspaces/Particles/ParticleOutlinerPanel.h"
-#include "Engine/Workspaces/Particles/ParticlePresetRegistry.h"
-#include "Engine/Workspaces/Particles/ParticleWorkspaceSession.h"
+#include "Engine/Workspaces/Particle/ParticleInspectorPanel.h"
+#include "Engine/Workspaces/Particle/ParticleOutlinerPanel.h"
+#include "Engine/Workspaces/Particle/ParticlePresetRegistry.h"
+#include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
 #include "Exhibits/SoftwareCanvasRasterizer.h"
 
 #include <imgui.h>

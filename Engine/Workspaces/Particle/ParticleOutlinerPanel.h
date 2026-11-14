@@ -11,7 +11,7 @@
 
 #include "Engine/Components/Controls/TextInputField.h"
 #include "Engine/Components/Panes/WorkspaceAppearance.h"
-#include "Engine/Workspaces/Particles/ParticleWorkspaceSession.h"
+#include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
 
 #include <cstdint>
 #include <string_view>
@@ -34,7 +34,7 @@ enum class ParticleOutlinerFilterMode : uint8_t
 enum class ConstructSheetPage : uint8_t
 {
     ParticlePresets = 0u, // [-] - Browse and construct from the 93 non-quarantined particle presets
-    ForceFieldLaws  = 1u, // [-] - Browse and construct from Frontier's 19 C++ ForceModel laws
+    ForceFieldModels = 1u, // [-] - Browse and construct from Frontier's 19 C++ ForceModel entries
 };
 
 //------------------------------------------------------------------------------------------------------------------------

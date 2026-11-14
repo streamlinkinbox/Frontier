@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------------------------------------------------
 
 #include "Engine/SimulationSpace/Particles/ParticleChannelBank.h"
-#include "Engine/SimulationSpace/Particles/ParticleDynamicsInterfaces.h"
+#include "Engine/SimulationSpace/Particles/ParticleDynamics.h"
 #include "Engine/SimulationSpace/Particles/ParticleKinematicsSolvers.h"
 
 #include <concepts>

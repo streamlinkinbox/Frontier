@@ -24,7 +24,7 @@ then run the 6-gate rejection check.
    `RegionAllocator`, `IndexedSlotRecycler`, `TokenIssuer`, `PolygonNetwork`, `IndirectDrawEncoder`,
    `PacketSerializer`.
 3. **Avoid discouraged words** even though they are not hard-banned: avoid `Substrate`, `Atlas`, and
-   `Slice` whenever a direct mechanical name (`DeviceInterface`, `HardwareOutput`, `ChartPacker`,
+   `Slice` whenever a direct mechanical name (`DeviceInterchange`, `HardwareOutput`, `ChartPacker`,
    `PackedBits`, `BitRange`) exists.
 4. **6-Gate Reject Test** — INVALID (restart at Step 1) if the candidate hits ANY gate:
    - ① Appears in `Documentation/BannedWordsVocabulary.md` or is a direct synonym (`adjacency`, `arena`, `binding`, `bloom`, `context`, `coverage`, `hub`, `interpolant`, `mesh`, `pass`, `pool`, `predicate`, `reclamation`, `reservoir`, `stage`, `store`, `submission`, `vacancy`, …).
@@ -50,7 +50,7 @@ then run the 6-gate rejection check.
   `coverage`, `Data`, `Designation` (→ `…Token`), `dev`, `Director`, `Element`, `Emission`/`Emit`/`emitter`,
   `Entity`, `evaluator`, `Facet`/`Facets` (→ `Face`/`Faces`), `fence`, `flag`, `floating`, `flow`, `Frame`, `glyph`, `Graph`,
   `harness`/`Trial` (→ `…Validation`), `Hierarchy`, `hook`, `Hub`, `Info`, `Inscription`
-  (→ `…Rasterization`), `interpolant`, `Item`, `Kernel`, `Kind` (→ `…Category`), `Law`/`Laws` (→ `Solver`/`Constraint`/`Collider`/`Integrator`), `Listener`, `map`,
+  (→ `…Rasterization`), `Interface`/`Interfaces` (name the domain directly or use `Interchange`/`Exchange`), `interpolant`, `Item`, `Kernel`, `Kind` (→ `…Category`), `Law`/`Laws` (→ `Solver`/`Constraint`/`Collider`/`Integrator`), `Listener`, `map`,
   `Matrix`, `member`, `menu`, `mesh` (→ `PolygonNetwork`), `Model`, `Module`,
   `mutation`, `Nexus`, `Node`, `Object`, `occupant`, `palette`, `Pass`, `pill`, `pipeline`, `pool`,
   `popup`/`popover`, `predicate`, `probe`, `Recipe`/`Recipes` (→ `Preset`/`Specification`), `reclamation`, `Record` *(bare & `RecordStore` barred; only `RecordEntry`/`RecordToken` approved)*,

@@ -15,7 +15,7 @@
 #include "Engine/SimulationSpace/ForceFields/FieldLatticeCascade.h"
 #include "Engine/SimulationSpace/ForceFields/ForceFieldAccumulator.h"
 #include "Engine/SimulationSpace/ForceFields/ForceFieldDescriptors.h"
-#include "Engine/Workspaces/Particles/ParticlePresetRegistry.h"
+#include "Engine/Workspaces/Particle/ParticlePresetRegistry.h"
 
 #include <array>
 #include <cstdint>
@@ -65,13 +65,13 @@ struct ParticleEffectRecordEntry
     float                      SpeedMaxMs            = 4.2f;                                        // [m/s]   - Maximum launch speed
     float                      LifeMinSec            = 1.2f;                                        // [s]     - Minimum particle lifespan
     float                      LifeMaxSec            = 2.6f;                                        // [s]     - Maximum particle lifespan
-    float                      BurstIntervalSec      = 0.0f;                                        // [s]     - Periodic burst cadence (0 = off)
+    float                      BurstIntervalSec      = 0.0f;                                        // [s]     - Periodic burst interval (0 = off)
     uint32_t                   BurstCount            = 96u;                                         // [count] - Particles per burst pulse
     bool                       BurstAtOrigin         = true;                                        // [-]     - Release bursts at local origin
 
     // Shading, Silhouette & Color Ramp
     ParticleVisualSilhouette   Silhouette            = ParticleVisualSilhouette::Streak;            // [-]     - Rendered particle silhouette
-    ParticleBlendCategory      BlendCategory         = ParticleBlendCategory::AdditiveGlow;         // [-]     - Optical compositing law
+    ParticleBlendCategory      BlendCategory         = ParticleBlendCategory::AdditiveGlow;         // [-]     - Optical compositing mode
     float                      SizeStartMeters       = 0.08f;                                       // [m]     - Initial diameter
     float                      SizeEndMeters         = 0.03f;                                       // [m]     - Final diameter
     float                      SizeMultiplier        = 1.0f;                                        // [x]     - Global visual scale gain
@@ -111,7 +111,7 @@ struct ParticleEffectRecordEntry
     float                      MaxSpikeHeightMeters  = 0.92f;                                       // [m]     - Peak cusp elevation
     bool                       ManualMagnetPole      = false;                                       // [-]     - Manual pole positioning switch
 
-    FireworkPatternCategory    FireworkPattern       = FireworkPatternCategory::GrandFinale;        // [-]     - Pyrotechnic shell pattern
+    FireworkPatternCategory    FireworkPattern       = FireworkPatternCategory::GrandFinale;        // [-]     - Pyrotechnic burst pattern
     std::string                FireworkSkyText       { "2026" };                                    // [-]     - Custom sky-writing firework text
 
     uint8_t                    FracturePattern       = 0u;                                          // [1..2]  - 1=Glacial Ice, 2=Ground Quake
@@ -159,7 +159,7 @@ public:
     void     TriggerEffectBurst(uint32_t EffectToken) noexcept;
 
     // Directly reused C++ ForceFields lifecycle (SimulationSpace::ForceFields)
-    uint32_t AddForceSource(SimulationSpace::ForceFields::ForceModel Law);
+    uint32_t AddForceSource(SimulationSpace::ForceFields::ForceModel Model);
     bool     RemoveForceSource(uint32_t ForceToken) noexcept;
     void     SynchronizeForceFieldsAccumulator();
     void     AdvanceForceFieldsClock(double DeltaSeconds);

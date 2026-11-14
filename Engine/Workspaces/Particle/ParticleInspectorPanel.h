@@ -12,7 +12,7 @@
 #include "Engine/Components/Controls/TextInputField.h"
 #include "Engine/Components/Panes/WorkspaceAppearance.h"
 #include "Engine/Editor/Workspaces/Simulation/ForceInspectorView.h"
-#include "Engine/Workspaces/Particles/ParticleWorkspaceSession.h"
+#include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
 
 #include <cstdint>
 #include <string>

@@ -188,10 +188,10 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Workspaces/UV/UVViewportHost.cpp
     Engine/Workspaces/UV/UVWorkspaceHost.cpp
     Engine/Editor/Workspaces/Simulation/ForceInspectorView.cpp
-    Engine/Workspaces/Particles/ParticlePresetRegistry.cpp
-    Engine/Workspaces/Particles/ParticleWorkspaceSession.cpp
-    Engine/Workspaces/Particles/ParticleOutlinerPanel.cpp
-    Engine/Workspaces/Particles/ParticleInspectorPanel.cpp
+    Engine/Workspaces/Particle/ParticlePresetRegistry.cpp
+    Engine/Workspaces/Particle/ParticleWorkspaceSession.cpp
+    Engine/Workspaces/Particle/ParticleOutlinerPanel.cpp
+    Engine/Workspaces/Particle/ParticleInspectorPanel.cpp
     Engine/SimulationSpace/Particles/ParticlePresetCompiler.cpp
     Engine/GeometricRaster/Rasterization/ImGuiOverlayRasterization.cpp
     Engine/GeometricRaster/GlobalIllumination/ShowcaseGalleryScene.cpp

@@ -51,6 +51,7 @@ Related governance documents: [FolderStructure.md](FolderStructure.md) · [Codin
 - `hook`
 - `hub`
 - `inscription`
+- `interface` / `interfaces` *(generic OO jargon; name the concrete domain directly such as `ParticleDynamics`, or use `Interchange` / `Exchange` at hardware & external boundaries)*
 - `interpolant`
 - `item`
 - `law` / `laws` *(use concrete mechanical noun such as `Solver`, `Constraint`, `Collider`, or `Integrator`)*
@@ -115,7 +116,7 @@ When replacing or avoiding a banned concept, name the **concrete layout, index l
 | `Parent` / `Child` / `Sibling` / `Orphan` / kinship | Technical memory/index link terminology (`EnclosingIndex`, `FirstNestedIndex`, `NextPeerIndex`, `DepthLevel`) |
 | `flag`, `state`, `value` | Concrete domain name describing the exact condition, quantity, or payload held |
 | `harness`, `Trial`, `Trials` | `…Validation` (test scaffolds are validations, never harnesses or courtroom metaphors) |
-| `backend` | Concrete hardware/OS interface name (`RenderDeviceInterface`, `AudioHardwareOutput`, `PlatformWindow*`) |
+| `backend` | Concrete hardware/OS boundary name (`RenderDeviceInterchange`, `AudioHardwareOutput`, `PlatformWindow*`) |
 | `stage`, `Pass`, `Emission`, `Emit`, `submission` | Mechanism-specific GPU render-unit suffix (`…Rasterization`, `…Sequence`, `…Encoder`) |
 | `Inscription` (composite-onto-target GPU unit) | `…Rasterization` (rasterizes geometry/decals/overlays into the target) |
 | `bloom` | Physical optical glare / luminance scatter terminology (`VeilingGlareFilter`, `LuminanceGlareDownsample`) |
@@ -158,7 +159,7 @@ Use the following distinct visual nouns according to their exact structural role
 | :--- | :--- |
 | `atlas` | `ChartPacker`, `Sheet`, `Grid`, `Layout` (e.g., `UVChartPacker`) |
 | `slice` | `PackedBits`, `BitRange`, `Subrange`, `std::span` |
-| `substrate` | `DeviceInterface`, `HardwareOutput`, `PlatformWindow`, `Exchange` |
+| `substrate` | `DeviceInterchange`, `HardwareOutput`, `PlatformWindow`, `Exchange` |
 
 ---
 
@@ -176,7 +177,7 @@ Use the following distinct visual nouns according to their exact structural role
   - Barred `facet` / `facets` (use `Face` / `Faces`), `complex`, `topology`, and `assembly` (use `PolygonNetwork` for connected polygon structures).
   - Marked `substrate`, `atlas`, and `slice` as **discouraged (avoid)**.
 - **2026-11-14**:
-  - Barred `Builder` / `Builders` (use `Specification` / `Descriptor` + `Construct()`), `Law` / `Laws` (use `Solver` / `Constraint` / `Collider` / `Integrator`), `Recipe` / `Recipes` (use `Preset` / `Specification`), and `BuiltIn` (plus prepositions `In`, `From`, `To`, `For`, `With`, `By`, `Into`, `On`, `Of` embedded inside compound identifiers).
+  - Barred `Builder` / `Builders` (use `Specification` / `Descriptor` + `Construct()`), `Law` / `Laws` (use `Solver` / `Constraint` / `Collider` / `Integrator`), `Recipe` / `Recipes` (use `Preset` / `Specification`), `Interface` / `Interfaces` (name the concrete domain directly or use `Interchange` / `Exchange` at boundaries), and `BuiltIn` (plus prepositions `In`, `From`, `To`, `For`, `With`, `By`, `Into`, `On`, `Of` embedded inside compound identifiers).
 
 ---
 
@@ -192,7 +193,7 @@ Use this combined index to audit identifiers, filenames, directory names, and co
 - **F**: `Facet` / `facet` / `Facets` / `facets`, `family`, `fence`, `flag`, `floating`, `flow`, `Frame` / `frame`
 - **G**: `Genesis`, `glide`, `glyph`, `Goliath`, `Graph` / `graph`
 - **H**: `Handler`, `harness`, `Helios`, `Helper`, `Hierarchy`, `hook`, `Horizon`, `Hub` / `hub`
-- **I**: `Info`, `Inscription` / `inscription`, `interpolant`, `Item` / `item`
+- **I**: `Info`, `Inscription` / `inscription`, `Interface` / `interface` / `Interfaces`, `interpolant`, `Item` / `item`
 - **K**: `Kernel`, `kin`, `Kind`, `Kronos`
 - **L**: `Law` / `law` / `Laws`, `lineage`, `Listener` / `listener`
 - **M**: `Maestro`, `Manager`, `map`, `Matrix`, `member`, `menu`, `Mesh` / `mesh`, `Module`, `mutation`

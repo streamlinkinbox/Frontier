@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Workspaces/Particles/ParticleWorkspaceSession.h"
+#include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
 
 #include "Engine/SimulationSpace/ForceFields/ForceMotionPath.h"
 
@@ -42,7 +42,7 @@ void ParticleWorkspaceSession::PopulateDefaultStudioScene()
 {
     ClearAllEntries();
 
-    // Reused C++ ForceFields environment sources (Ambient Wind + Curl Swirl + Vortex Column + Attractor)
+    // Reused C++ ForceFields environment sources (Ambient Wind + Curl Swirl + Helical Column + Attractor)
     const uint32_t WindToken = AddForceSource(ForceModel::LinearWind);
     if (ForceSourceRecordEntry* Wind = FindForceSource(WindToken))
     {
@@ -74,14 +74,14 @@ void ParticleWorkspaceSession::PopulateDefaultStudioScene()
         Curl->CentreMeters          = { 0.0f, 0.0f, 3.0f };
     }
 
-    const uint32_t VortexToken = AddForceSource(ForceModel::RotationalColumn);
-    if (ForceSourceRecordEntry* Vortex = FindForceSource(VortexToken))
+    const uint32_t HelicalToken = AddForceSource(ForceModel::RotationalColumn);
+    if (ForceSourceRecordEntry* Helical = FindForceSource(HelicalToken))
     {
-        Vortex->Label        = "Helical Column";
-        Vortex->Strength     = 11.2f;
-        Vortex->RadiusMeters = 18.0f;
-        Vortex->SwirlRatio   = 0.72f;
-        Vortex->CentreMeters = { 3.5f, -2.0f, 3.0f };
+        Helical->Label        = "Helical Column";
+        Helical->Strength     = 11.2f;
+        Helical->RadiusMeters = 18.0f;
+        Helical->SwirlRatio   = 0.72f;
+        Helical->CentreMeters = { 3.5f, -2.0f, 3.0f };
     }
 
     const uint32_t MagnetToken = AddForceSource(ForceModel::MagneticDipole);
@@ -345,13 +345,13 @@ void ParticleWorkspaceSession::TriggerEffectBurst(uint32_t EffectToken) noexcept
 //                                       REUSED C++ FORCEFIELDS OPERATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-uint32_t ParticleWorkspaceSession::AddForceSource(ForceModel Law)
+uint32_t ParticleWorkspaceSession::AddForceSource(ForceModel Model)
 {
     ForceSourceRecordEntry Entry{};
     Entry.UniqueToken  = NextForceToken++;
-    Entry.Model        = Law;
-    Entry.Domain       = QueryDomainForModel(Law);
-    Entry.Label        = QueryForceModelDisplayName(Law);
+    Entry.Model        = Model;
+    Entry.Domain       = QueryDomainForModel(Model);
+    Entry.Label        = QueryForceModelDisplayName(Model);
     Entry.CentreMeters = { 0.0f, 0.0f, 3.0f };
     Entry.RadiusMeters = 24.0f;
     Entry.Strength     = 12.0f;
@@ -359,12 +359,12 @@ uint32_t ParticleWorkspaceSession::AddForceSource(ForceModel Law)
     Entry.Enabled      = true;
     Entry.Visible      = true;
 
-    if (Law == ForceModel::SplineForce)
+    if (Model == ForceModel::SplineForce)
     {
         AssignPresetMotionPath(Entry, MotionPathTopology::CatmullSpline);
         Entry.DynamicMotion = true;
     }
-    else if (Law == ForceModel::FlowStream)
+    else if (Model == ForceModel::FlowStream)
     {
         Entry.StreamProfile = FlowStreamProfile::ThermalUpdraft;
     }

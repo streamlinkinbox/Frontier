@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Workspaces/Particles/ParticleOutlinerPanel.h"
+#include "Engine/Workspaces/Particle/ParticleOutlinerPanel.h"
 
 #include "Engine/Components/Controls/CapsuleButton.h"
 #include "Engine/Components/Controls/ControlTooltip.h"
@@ -1040,7 +1040,7 @@ void ParticleOutlinerPanel::Render(
         WorkspaceSurfaceColors::MutedInk,
         "Frontier C++20 · ForceFields Coupled · 93 Active Presets");
 
-    // 7. Interactive '+' Construct Overlay Sheet (93 Non-Quarantined Presets + 19 C++ ForceModel Laws)
+    // 7. Interactive '+' Construct Overlay Sheet (93 Non-Quarantined Presets + 19 C++ ForceModel Entries)
     if (ConstructSheetOpen)
     {
         RenderConstructOverlay(Surface, Bounds, AddBtnRect, Input);
@@ -1097,8 +1097,8 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
     const float InnerX = SheetRect.X + 10.0f;
     const float InnerW = SheetRect.Width - 20.0f;
 
-    // Top mode segmented tabs: Particle Presets (93) | Force Laws (19)
-    const char* PageLabels[2] = { "Presets (93)", "Force Laws (19)" };
+    // Top mode segmented tabs: Particle Presets (93) | Force Models (19)
+    const char* PageLabels[2] = { "Presets (93)", "Force Models (19)" };
     uint32_t SelectedPageIdx  = static_cast<uint32_t>(ActiveConstructPage);
     const ControlContact SegContact = CapsuleButton::ConstructSegmented(
         Surface,
@@ -1221,10 +1221,10 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
     }
     else
     {
-        for (uint32_t LawOrd = 0u; LawOrd < static_cast<uint32_t>(ForceModel::Count); ++LawOrd)
+        for (uint32_t ModelOrd = 0u; ModelOrd < static_cast<uint32_t>(ForceModel::Count); ++ModelOrd)
         {
-            const ForceModel Law = static_cast<ForceModel>(LawOrd);
-            const ColorRgba Tint = WorkspaceAppearance::QueryForceLawTint(LawOrd);
+            const ForceModel Model = static_cast<ForceModel>(ModelOrd);
+            const ColorRgba Tint = WorkspaceAppearance::QueryForceLawTint(ModelOrd);
             const Rectangle2D EntryRect{ ListViewport.X, EntryY, ListViewport.Width, 34.0f };
             const bool Hovered = Input.PrimaryPointer.Enabled && ListViewport.Contains(Cursor) && EntryRect.Contains(Cursor);
             Surface.FillRectangle(
@@ -1238,7 +1238,7 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
 
             WorkspaceAppearance::ConstructForceLawIcon(
                 Surface,
-                LawOrd,
+                ModelOrd,
                 { EntryRect.X + 8.0f, EntryRect.Y + 9.0f },
                 16.0f,
                 Tint);
@@ -1249,11 +1249,11 @@ void ParticleOutlinerPanel::RenderConstructOverlay(
                 EntryRect.Width - 38.0f,
                 11.2f,
                 WorkspaceSurfaceColors::PrimaryInk,
-                QueryForceModelDisplayName(Law));
+                QueryForceModelDisplayName(Model));
 
             if (Clicked && Hovered && Session != nullptr)
             {
-                (void)Session->AddForceSource(Law);
+                (void)Session->AddForceSource(Model);
                 ConstructSheetOpen = false;
             }
             EntryY += 35.0f;

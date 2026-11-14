@@ -46,7 +46,7 @@ enum class ParticleAuthoringDomain : uint8_t
     GeneralParticle    = 0u, // [-] - Standard ballistic, pyro, atmospheric, or wind-driven particles
     RiggingAndFlora    = 1u, // [-] - Curve-driven cloth strips, hanging chains, vines, grass, kelp & anemones
     FerrofluidFlux     = 2u, // [-] - Rosensweig magnetic dish spikes & levitated ferrofluid crowns
-    FireworksSpectacle = 3u, // [-] - Multi-shell pyrotechnic patterns & sky-writing custom text
+    FireworksSpectacle = 3u, // [-] - Multi-volley pyrotechnic patterns & sky-writing custom text
     FractureAndCracks  = 4u, // [-] - Glacial ice & seismic Voronoi ground crack propagation
     MoGraphEffector    = 5u, // [-] - Effector-modulated matrix lattices & halftone dot/tile surfaces
     EnergyShield       = 6u, // [-] - Multi-shape protective barriers with impact ripples
@@ -68,7 +68,7 @@ enum class ParticleVisualSilhouette : uint8_t
     HailstonePellet     = 8u,  // [-] - Faceted ice hailstone
     BokehBead           = 9u,  // [-] - Soft circular optical bokeh bead
     ShockwaveRing       = 10u, // [-] - Expanding Mach shockwave ring
-    EmpPulseDome        = 11u, // [-] - Expanding electromagnetic pulse shell
+    EmpPulseDome        = 11u, // [-] - Expanding electromagnetic pulse dome
     HologramScanline    = 12u, // [-] - Segmented digital scanline slice
     WingedBoid          = 13u, // [-] - Articulated bird, butterfly, or fish silhouette
     ViscousDroplet      = 14u, // [-] - Stretched viscous drip filament
@@ -89,7 +89,7 @@ enum class ParticleBlendCategory : uint8_t
 enum class ParticleReleaseVolume : uint8_t
 {
     PointOrigin   = 0u, // [-] - Single spatial coordinate source
-    SphereVolume  = 1u, // [-] - Isotropic spherical volume or shell
+    SphereVolume  = 1u, // [-] - Isotropic spherical volume or surface
     DiscPlane     = 2u, // [-] - Planar circular disc source
     BoxVolume     = 3u, // [-] - Axis-aligned rectangular box extent
     SurfaceSample = 4u, // [-] - Sampled geometric surface positions
@@ -134,11 +134,11 @@ enum class FireworkPatternCategory : uint8_t
 {
     ClassicPeony    = 0u, // [-] - Spherical chrysanthemum / peony burst
     SkyText         = 1u, // [-] - Custom sky-writing alphanumeric text
-    HeartShape      = 2u, // [-] - Parametric 3D heart shell
-    SaturnRings     = 3u, // [-] - Core sphere with tilted orbital ring
+    HeartShape      = 2u, // [-] - Parametric 3D heart burst
+    SaturnRings     = 3u, // [-] - Central sphere with tilted orbital ring
     FivePointStar   = 4u, // [-] - Crisp five-point pyrotechnic star
-    SmileyFace      = 5u, // [-] - Classic smiley pyrotechnic shell
-    RoyalCrown      = 6u, // [-] - Multi-spire gold crown shell
+    SmileyFace      = 5u, // [-] - Classic smiley pyrotechnic burst
+    RoyalCrown      = 6u, // [-] - Multi-spire gold crown burst
     ButterflyWings  = 7u, // [-] - Twin swept wing bursts
     DoubleRingWillow = 8u,// [-] - Concentric double ring & weeping willow
     GrandFinale     = 9u, // [-] - Synchronized multi-pattern & sky-text barrage
@@ -166,7 +166,7 @@ struct ParticlePresetDescriptor
     ParticleEffectCategory   Category           = ParticleEffectCategory::BallisticsAndSparks; // [-]       - Active non-quarantined category
     ParticleAuthoringDomain  AuthoringDomain    = ParticleAuthoringDomain::GeneralParticle;    // [-]       - Specialized inspector section
     ParticleVisualSilhouette Silhouette         = ParticleVisualSilhouette::Streak;            // [-]       - Primary particle silhouette
-    ParticleBlendCategory    BlendCategory      = ParticleBlendCategory::AdditiveGlow;         // [-]       - Compositing blend law
+    ParticleBlendCategory    BlendCategory      = ParticleBlendCategory::AdditiveGlow;         // [-]       - Compositing blend mode
     ParticleReleaseVolume    ReleaseVolume      = ParticleReleaseVolume::PointOrigin;          // [-]       - Spatial birth volume
     uint32_t                 Capacity           = 1024u;                                       // [count]   - Allocated particle slots
     float                    BirthRatePerSec    = 60.0f;                                       // [1/s]     - Continuous birth rate
@@ -183,7 +183,7 @@ struct ParticlePresetDescriptor
     uint8_t                  FerrofluidVessel   = 0u;                                          // [0..2]    - 1=Dish Spikes, 2=Orb Crown
     uint8_t                  FracturePattern    = 0u;                                          // [0..2]    - 1=Glacial Ice, 2=Ground Quake
     uint8_t                  EffectorArchitecture = 0u;                                        // [0..5]    - MoGraph effector grid mode
-    uint8_t                  FireworkPattern    = 0u;                                          // [0..9]    - Pyrotechnic shell pattern
+    uint8_t                  FireworkPattern    = 0u;                                          // [0..9]    - Pyrotechnic burst pattern
     ColorRgba                ColorA             { 255u, 255u, 255u, 255u };                    // [-]       - Ramp start RGBA color
     ColorRgba                ColorB             { 255u, 180u, 84u,  255u };                    // [-]       - Ramp end/secondary RGBA color
     ColorRgba                ColorC             { 255u, 235u, 140u, 255u };                    // [-]       - Ramp highlight/mid RGBA color
