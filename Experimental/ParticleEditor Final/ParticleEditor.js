@@ -3704,6 +3704,10 @@ function ConstructEffectInspector(Page, Effect)
         {
             Range(Sec, BindEffect(Effect, P, 'dynSegs', { Label: 'Cable / rope resolution (nodes per strand)' }), 4, 20, 1, 0, 'nodes');
         }
+        if (Cls.DynMode === 9)
+        {
+            Range(Sec, BindEffect(Effect, P, 'dynAnemThick', { Label: 'Anemone tentacle thickness' }), 0.2, 3.0, 0.05, 2, '×');
+        }
         Range(Sec, BindEffect(Effect, P, 'dynHeight', { Label: Cls.DynMode <= 3 ? 'Cloth height / drop span' : 'Foliage / frond height' }), 0.4, 5.5, 0.05, 2, 'm');
         Range(Sec, BindEffect(Effect, P, 'dynSag', { Label: Cls.DynMode === 6 ? 'Frond tip arch sag' : 'Gravity catenary sag' }), 0.0, 1.4, 0.02, 2, 'm');
         Range(Sec, BindEffect(Effect, P, 'dynStiff', { Label: 'Elastic stiffness' }), 0.2, 3.0, 0.05, 2, '×');

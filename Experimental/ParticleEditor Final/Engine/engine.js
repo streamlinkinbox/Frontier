@@ -780,6 +780,6 @@ import { PE } from "./pe.js";
     const effB = Array.isArray(p.effPos2) ? p.effPos2 : [2.5, 1.5, 0];
     set("extra1", effA[0], effA[1], effA[2], Math.max(0, p.effSize ?? 0));
     set("extra2", effB[0], effB[1], effB[2], Math.max(0, p.effSize2 ?? 0));
-    set("extra3", Math.max(0, Math.min(4, Math.round(p.effShape ?? 0))), Math.max(0, Math.min(4, Math.round(p.effShape2 ?? 0))), 0, 0);
+    set("extra3", Math.max(0, Math.min(4, Math.round(p.effShape ?? 0))), Math.max(0, Math.min(4, Math.round(p.effShape2 ?? 0))), Math.max(0.1, p.dynAnemThick ?? 1.0), 0);
     o._ramp = ramp;
   };

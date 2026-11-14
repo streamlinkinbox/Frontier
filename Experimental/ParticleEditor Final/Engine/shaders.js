@@ -927,7 +927,8 @@ fn evalDynStrand(slot: u32, cap: u32, dynMode: u32, windTime: f32) -> DynStrandO
     let flare = ringR * 1.45 + 0.42 * tLen;
     let pA = mound + vec3f(cos(az) * ringR, 0.06 + (0.28 - min(ringR, 0.25)) * 0.5, sin(az) * ringR);
     let pB = mound + vec3f(cos(az) * flare, tLen, sin(az) * flare);
-    return DynStrandOut(pA, pB, -max(0.14, dynSag * 0.65), baseW * 0.92, 0.68 + 0.32 * hashF(sd, 4u), 0.0, baseW * 0.65, 1.32, 0.95, 1.0);
+    let anemThick = S.extra3.z;
+    return DynStrandOut(pA, pB, -max(0.14, dynSag * 0.65), baseW * 0.92 * anemThick, 0.68 + 0.32 * hashF(sd, 4u), 0.0, baseW * 0.65 * anemThick, 1.32, 0.95, 1.0);
   }
   return DynStrandOut(org, org, 0.0, 0.0, 0.78, 0.0, max(0.16, baseW * 1.1), 1.35, 0.9, 1.0);
 }
@@ -4175,7 +4176,10 @@ fn vsRibbon(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) ->
   let dynMode = select(u32(max(0.0, S.mol.x - 5.0) + 0.5), u32(max(0.0, S.mol.x - 6.0) + 0.5), S.mol.x >= 13.5);
   let maxSeg = select(select(2.5, 0.34, isMud), 6.5, isWebOnly || isDyn || isFerro || isBead || isSeed || isJelly);
   if (segLen < 1e-4 || segLen > maxSeg) { return o; }
-  if (isDyn && seg >= clamp(u32(S.extra0.x + 0.5), 4u, 20u) - 1u) { return o; }
+  // Cable / rope resolution scales with strand size (dynHeight): longer cables get more curve segments.
+  let segScale = clamp(S.mol2.y / 3.0, 0.5, 2.0);             // 3.0 m reference height
+  let effectiveSegs = clamp(u32(S.extra0.x + 0.5) * segScale, 4u, 20u);
+  if (isDyn && seg >= effectiveSegs - 1u) { return o; }
   if (isMud && (q.e.z > 0.5 || q.e.y > 0.5 || q.e.x > 0.5 || seg > 7u)) { return o; }
   let pPrev = segs[base + select(seg - 1u, 0u, seg == 0u)].xyz;
   let pNext = segs[base + min(seg + 2u, 19u)].xyz;

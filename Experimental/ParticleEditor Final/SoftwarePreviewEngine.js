@@ -581,7 +581,7 @@ function EvalDynStrandCPU(P, Slot, Cap, DynMode, Time, WindT, FieldScene, Prepar
         const PA = [MX + Math.cos(Az) * RingR, MY + 0.06 + (0.28 - Math.min(RingR, 0.25)) * 0.5, MZ + Math.sin(Az) * RingR];
         const Wg = SwayFn([MX + Math.cos(Az) * Flare, MY + TLen, MZ + Math.sin(Az) * Flare], 0.95 / Stiff, Amp, Freq);
         const PB = [MX + Math.cos(Az) * Flare + Wg[0] * 0.45, MY + TLen, MZ + Math.sin(Az) * Flare + Wg[2] * 0.45];
-        return { visible: true, kind: 9, pA: PA, pB: PB, sag: -Math.max(0.14, Sag * 0.65), windScale: 1.0 / Stiff, radius: (P.sizeStart || 0.07) * 0.92, hasBioTip: true };
+        return { visible: true, kind: 9, pA: PA, pB: PB, sag: -Math.max(0.14, Sag * 0.65), windScale: 1.0 / Stiff, radius: (P.sizeStart || 0.07) * 0.92 * Math.max(0.1, P.dynAnemThick ?? 1.0), hasBioTip: true };
     }
     const NLimbs = Math.max(8, Math.min(28, Rows));
     const TrunkBase = [Org[0], Math.max(0, Org[1]), Org[2]];
@@ -3998,15 +3998,16 @@ export class SoftwarePreviewEngine
                             }
                         };
 
+                        // Cable / rope resolution scales with strand size (dynHeight): longer cables get more curve segments.
+                        const SegScale = Math.max(0.5, Math.min(2.0, (P.dynHeight ?? 2.4) / 3.0));
+                        const CableSegs = (DynMode === 1 || DynMode === 2) ? Math.max(1, Math.min(19, Math.round((P.dynSegs ?? 20) * SegScale) - 1)) : 19;
                         if (Pt.tearPt >= 1 && Pt.tearPt <= 18)
                         {
-                            const CableSegs = (DynMode === 1 || DynMode === 2) ? Math.max(1, Math.min(19, Math.round(P.dynSegs ?? 20) - 1)) : 19;
                             DrawChainRange(0, Pt.tearPt - 1, CableSegs);
                             DrawChainRange(Pt.tearPt, 19, CableSegs);
                         }
                         else
                         {
-                            const CableSegs = (DynMode === 1 || DynMode === 2) ? Math.max(1, Math.min(19, Math.round(P.dynSegs ?? 20) - 1)) : 19;
                             DrawChainRange(0, 19, CableSegs);
                         }
                     }

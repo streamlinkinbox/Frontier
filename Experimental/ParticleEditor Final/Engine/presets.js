@@ -60,7 +60,8 @@ import { PE } from "./pe.js";
       dynStiff: 1.25,       // elastic spring recovery rate (1/s multiplier)
       dynTearThresh: 0.0,   // projectile speed threshold for strand tearing or leaf detachment (m/s, 0 = unbreakable)
       dynRows: 28,          // cloth strip rows / cable spans / fern fronds / canopy branches
-      dynSegs: 20,          // strand resolution: nodes per cable/vine/blade curve (4..20)
+      dynSegs: 20,          // strand resolution: nodes per cable/vine/blade curve (4..20), scales with strand size
+      dynAnemThick: 1.0,    // sea anemone tentacle thickness multiplier (dynMode 9)
       dynHeight: 2.4,       // vertical elevation / mast / stalk / canopy height (m)
       dynSag: 0.35,         // gravity catenary droop or frond arch curvature (m)
       dynWaveSpeed: 2.2,    // travelling flutter / stadium wind wave speed (Hz/rad)
