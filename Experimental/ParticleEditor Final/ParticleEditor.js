@@ -2018,6 +2018,38 @@ function HitTestArcSphere(Cam, ClientX, ClientY, Canvas)
     return Best;
 }
 
+function HitTestEffector(Cam, ClientX, ClientY, Canvas)
+{
+    if (!Cam || !Canvas) return null;
+    const Rect = Canvas.getBoundingClientRect();
+    const Mx = ClientX - Rect.left, My = ClientY - Rect.top;
+    let Best = null, BestD = Infinity;
+    for (const E of Scene.Effects)
+    {
+        const P = E.P;
+        if (!P.visible || (P.gridMode || 0) <= 0 || (P.gridEffector || 0) !== 5) continue;
+        const Pairs = [
+            { Which: 'effPos', Label: 'Effector A', Pos: P.effPos, Rad: Math.max(0.15, P.effSize || 1.2) },
+            { Which: 'effPos2', Label: 'Effector B', Pos: P.effPos2, Rad: Math.max(0.15, P.effSize2 || 1.2) }
+        ];
+        for (const Item of Pairs)
+        {
+            if (!Item.Pos || Item.Pos[3] === 0) continue; // size 0 = off
+            const C2 = ProjectWorldToCss(Cam.ViewProjection, Item.Pos[0], Item.Pos[1], Item.Pos[2], Rect.width, Rect.height);
+            if (!C2) continue;
+            const E2 = ProjectWorldToCss(Cam.ViewProjection, Item.Pos[0] + Item.Rad, Item.Pos[1], Item.Pos[2], Rect.width, Rect.height);
+            const HitR = Math.max(22, (E2 ? Math.hypot(E2.X - C2.X, E2.Y - C2.Y) : 22) + 8);
+            const Dist = Math.hypot(Mx - C2.X, My - C2.Y);
+            if (Dist <= HitR && Dist < BestD)
+            {
+                BestD = Dist;
+                Best = { EffectToken: E.Token, Effect: E, Which: Item.Which, Label: Item.Label };
+            }
+        }
+    }
+    return Best;
+}
+
 function HitTestAnemometer(Cam, ClientX, ClientY, Canvas)
 {
     if (!Scene.ProbeEnabled || !Cam || !Canvas) return false;
@@ -2503,6 +2535,96 @@ function RenderAnemometerPin(Camera, Canvas)
     Ctx.restore();
 }
 
+function RenderEffectorGizmos(Camera, Canvas)
+{
+    if (!Camera || !Canvas) return;
+    const CssW = Canvas.clientWidth || Canvas.width, CssH = Canvas.clientHeight || Canvas.height;
+    if (CssW < 8 || CssH < 8) return;
+    const RatioX = Canvas.width / CssW, RatioY = Canvas.height / CssH;
+    const Ctx = Canvas.getContext('2d');
+    Ctx.save();
+    Ctx.setTransform(RatioX, 0, 0, RatioY, 0, 0);
+    Ctx.shadowBlur = 0;
+    Ctx.lineCap = 'round';
+    Ctx.lineJoin = 'round';
+
+    const HoverTok = Scene.EffHover ? Scene.EffHover.EffectToken : null;
+    const HoverWhich = Scene.EffHover ? Scene.EffHover.Which : null;
+
+    for (const E of Scene.Effects)
+    {
+        const P = E.P;
+        if (!P.visible || (P.gridMode || 0) <= 0 || (P.gridEffector || 0) !== 5) continue;
+        const Effs = [
+            { Which: 'effPos', Pos: P.effPos, Size: Math.max(0.15, P.effSize || 1.2), Shape: P.effShape || 0 },
+            { Which: 'effPos2', Pos: P.effPos2, Size: Math.max(0.15, P.effSize2 || 1.2), Shape: P.effShape2 || 0 }
+        ];
+        for (const Item of Effs)
+        {
+            if (!Item.Pos || Item.Size <= 0) continue;
+            const IsSel = Scene.EffDragging && Scene.EffDragEffect === E && Scene.EffDragWhich === Item.Which;
+            const IsHover = HoverTok === E.Token && HoverWhich === Item.Which;
+            const Pt = ProjectWorldToCss(Camera.ViewProjection, Item.Pos[0], Item.Pos[1], Item.Pos[2], CssW, CssH);
+            if (!Pt) continue;
+            const R2 = ProjectWorldToCss(Camera.ViewProjection, Item.Pos[0] + Item.Size, Item.Pos[1], Item.Pos[2], CssW, CssH);
+            const ScreenR = Math.max(10, (R2 ? Math.hypot(R2.X - Pt.X, R2.Y - Pt.Y) : 16));
+            const Col = IsSel ? '#ffd166' : (IsHover ? '#06d6a0' : 'rgba(200, 220, 240, 0.55)');
+            Ctx.strokeStyle = Col;
+            Ctx.fillStyle = Col;
+            Ctx.lineWidth = IsSel ? 2.5 : (IsHover ? 2.0 : 1.2);
+            const Shape = Item.Shape | 0;
+            const Steps = 24;
+            if (Shape === 1 || Shape === 4) {
+                // Box / Cone: draw as a square outline
+                Ctx.beginPath();
+                Ctx.rect(Pt.X - ScreenR, Pt.Y - ScreenR, ScreenR * 2, ScreenR * 2);
+                Ctx.stroke();
+                if (Shape === 4) {
+                    Ctx.beginPath();
+                    Ctx.moveTo(Pt.X, Pt.Y - ScreenR);
+                    Ctx.lineTo(Pt.X, Pt.Y + ScreenR * 0.55);
+                    Ctx.stroke();
+                }
+            } else if (Shape === 2) {
+                // Torus: two concentric circles
+                Ctx.beginPath();
+                Ctx.arc(Pt.X, Pt.Y, ScreenR, 0, Math.PI * 2);
+                Ctx.stroke();
+                Ctx.beginPath();
+                Ctx.arc(Pt.X, Pt.Y, ScreenR * 0.45, 0, Math.PI * 2);
+                Ctx.stroke();
+                Ctx.beginPath();
+                Ctx.moveTo(Pt.X - ScreenR, Pt.Y);
+                Ctx.lineTo(Pt.X - ScreenR * 0.45, Pt.Y);
+                Ctx.moveTo(Pt.X + ScreenR, Pt.Y);
+                Ctx.lineTo(Pt.X + ScreenR * 0.45, Pt.Y);
+                Ctx.stroke();
+            } else if (Shape === 3) {
+                // Disc: circle with cross
+                Ctx.beginPath();
+                Ctx.arc(Pt.X, Pt.Y, ScreenR, 0, Math.PI * 2);
+                Ctx.stroke();
+                Ctx.beginPath();
+                Ctx.moveTo(Pt.X - ScreenR, Pt.Y);
+                Ctx.lineTo(Pt.X + ScreenR, Pt.Y);
+                Ctx.moveTo(Pt.X, Pt.Y - ScreenR);
+                Ctx.lineTo(Pt.X, Pt.Y + ScreenR);
+                Ctx.stroke();
+            } else {
+                // Sphere (default): circle
+                Ctx.beginPath();
+                Ctx.arc(Pt.X, Pt.Y, ScreenR, 0, Math.PI * 2);
+                Ctx.stroke();
+            }
+            // Dot at centre
+            Ctx.beginPath();
+            Ctx.arc(Pt.X, Pt.Y, 3.5, 0, Math.PI * 2);
+            Ctx.fill();
+        }
+    }
+    Ctx.restore();
+}
+
 function RenderSourceDebugMarkers(Camera, Canvas)
 {
     if (!Camera || !Canvas) return;
@@ -2582,6 +2704,7 @@ function RenderOverlay(Camera)
     }
     RenderSourceDebugMarkers(Camera, Canvas);
     RenderAnemometerPin(Camera, Canvas);
+    RenderEffectorGizmos(Camera, Canvas);
 
     if (InspectorViz && InspectorDebugCanvas && document.body.contains(InspectorDebugCanvas))
         RenderInspectorViz();
@@ -3577,6 +3700,10 @@ function ConstructEffectInspector(Page, Effect)
             C.SelectRow(Sec, BindEffect(Effect, P, 'dynSub', { Label: 'Style variant', Options: SubLabels }));
         }
         Range(Sec, BindEffect(Effect, P, 'dynRows', { Label: Cls.DynMode === 3 ? 'Cloth vertical strips' : (Cls.DynMode === 7 ? 'Woody canopy limbs' : (Cls.DynMode === 8 ? 'Kelp stipes' : (Cls.DynMode === 9 ? 'Anemone tentacles' : 'Strands / fronds count'))) }), 4, 48, 1, 0, '');
+        if (Cls.DynMode === 1 || Cls.DynMode === 2)
+        {
+            Range(Sec, BindEffect(Effect, P, 'dynSegs', { Label: 'Cable / rope resolution (nodes per strand)' }), 4, 20, 1, 0, 'nodes');
+        }
         Range(Sec, BindEffect(Effect, P, 'dynHeight', { Label: Cls.DynMode <= 3 ? 'Cloth height / drop span' : 'Foliage / frond height' }), 0.4, 5.5, 0.05, 2, 'm');
         Range(Sec, BindEffect(Effect, P, 'dynSag', { Label: Cls.DynMode === 6 ? 'Frond tip arch sag' : 'Gravity catenary sag' }), 0.0, 1.4, 0.02, 2, 'm');
         Range(Sec, BindEffect(Effect, P, 'dynStiff', { Label: 'Elastic stiffness' }), 0.2, 3.0, 0.05, 2, '×');
@@ -3774,7 +3901,7 @@ function ConstructEffectInspector(Page, Effect)
         C.SelectRow(Sec, ShapeB);
         C.SelectRow(Sec, BindEffect(Effect, P, 'gridEffector', {
             Label: 'Effector driver',
-            Options: [['Fluid Simplex Wave', 0], ['Orbiting Dual Effectors', 1], ['Animated Curl Islands', 2], ['Expanding Pulse Ring', 3], ['Ball & ForceFields Only', 4]]
+            Options: [['Fluid Simplex Wave', 0], ['Orbiting Dual Effectors', 1], ['Animated Curl Islands', 2], ['Expanding Pulse Ring', 3], ['Ball & ForceFields Only', 4], ['Placeable Effectors (drag in 3D)', 5]]
         }));
         Range(Sec, BindEffect(Effect, P, 'gridCols', { Label: 'Grid columns (planar/torus)' }), 4, 64, 1, 0, '');
         Range(Sec, BindEffect(Effect, P, 'gridRows', { Label: 'Grid rows (planar)' }), 4, 64, 1, 0, '');
@@ -3791,6 +3918,16 @@ function ConstructEffectInspector(Page, Effect)
             Read: () => (P.gridBillboard || 0) > 0,
             Write: PE.Edits.Through('Billboard dots', On => { P.gridBillboard = On ? 1 : 0; })
         });
+        if ((P.gridEffector || 0) === 5)
+        {
+            const EffLabels = [['Sphere', 0], ['Box', 1], ['Torus', 2], ['Disc', 3], ['Cone', 4]];
+            C.VectorRow(Sec, BindEffect(Effect, P, 'effPos', { Label: 'Effector A position (drag gizmo)', Step: 0.05, Digits: 2, Minimum: -8, Maximum: 8 }));
+            C.SelectRow(Sec, BindEffect(Effect, P, 'effShape', { Label: 'Effector A shape', Options: EffLabels }));
+            Range(Sec, BindEffect(Effect, P, 'effSize', { Label: 'Effector A size (m)' }), 0.2, 4.0, 0.05, 2, 'm');
+            C.VectorRow(Sec, BindEffect(Effect, P, 'effPos2', { Label: 'Effector B position (drag gizmo)', Step: 0.05, Digits: 2, Minimum: -8, Maximum: 8 }));
+            C.SelectRow(Sec, BindEffect(Effect, P, 'effShape2', { Label: 'Effector B shape', Options: EffLabels }));
+            Range(Sec, BindEffect(Effect, P, 'effSize2', { Label: 'Effector B size (m)' }), 0.0, 4.0, 0.05, 2, 'm');
+        }
     };
 
     const ShieldFormLabels = ['Sphere Dome', 'Circle Disc', 'Triangle Aegis', 'Square Pane', 'Hexagon Wall', 'Diamond Barrier'];
@@ -4373,6 +4510,8 @@ function ConstructEffectInspector(Page, Effect)
                     CurlSec.append(ObjGrid);
                     C.ToggleTile(ObjGrid, BindEffect(Effect, P, 'showObject', { Label: 'Show inner 3D object', Glyph: 'Layers' }));
                 }
+                Range(CurlSec, BindEffect(Effect, P, 'headStyle', { Label: 'Bokeh head style', Options: [['Mixed (per particle)', 0], ['Sharp core', 1], ['Creamy disc', 2], ['Rim ring', 3]] }));
+                Range(CurlSec, BindEffect(Effect, P, 'headScale', { Label: 'Bokeh head size' }), 0.1, 3.0, 0.05, 2, '×');
             }
         }
         if (Cls.UsesDynamics)
@@ -5722,6 +5861,22 @@ function AttachOrbit()
             if (BannerText) BannerText.textContent = `Dragging ${ArcHit.Label} · move horizontally · hold Shift for altitude Y`;
             return;
         }
+        const EffHit = (E.button === 0 && Cam) ? HitTestEffector(Cam, E.clientX, E.clientY, Canvas) : null;
+        if (EffHit)
+        {
+            SelectNode(EffHit.Effect.Token);
+            Scene.EffDragging = true;
+            Scene.EffDragEffect = EffHit.Effect;
+            Scene.EffDragWhich = EffHit.Which;
+            Drag = { Mode: 'effector', Effect: EffHit.Effect, Which: EffHit.Which, Label: EffHit.Label, X: E.clientX, Y: E.clientY, StartX: E.clientX, StartY: E.clientY, ShiftAlt: E.shiftKey || E.altKey };
+            Canvas.setPointerCapture(E.pointerId);
+            const Surface = document.getElementById('ViewportSurface');
+            if (Surface) Surface.style.cursor = 'grabbing';
+            const Banner = document.getElementById('ViewportPlaceBanner'), BannerText = document.getElementById('ViewportPlaceText');
+            if (Banner) Banner.classList.add('shown');
+            if (BannerText) BannerText.textContent = `Dragging ${EffHit.Label} · move horizontally · hold Shift for altitude Y`;
+            return;
+        }
         Drag = { Mode: (E.button === 2 || E.shiftKey || E.button === 1) ? 'pan' : 'orbit', X: E.clientX, Y: E.clientY, StartX: E.clientX, StartY: E.clientY };
         Canvas.setPointerCapture(E.pointerId);
     });
@@ -5736,9 +5891,11 @@ function AttachOrbit()
                 SyncAnemometerToolState();
             }
             const AH = (!Hover && !Scene.AnemometerPlacing && Scene.LastCamera) ? HitTestArcSphere(Scene.LastCamera, E.clientX, E.clientY, Canvas) : null;
+            const EH = (!AH && !Hover && !Scene.AnemometerPlacing && Scene.LastCamera) ? HitTestEffector(Scene.LastCamera, E.clientX, E.clientY, Canvas) : null;
             Scene.ArcHover = AH ? { EffectToken: AH.EffectToken, Which: AH.Which } : null;
+            Scene.EffHover = EH ? { EffectToken: EH.EffectToken, Which: EH.Which } : null;
             const Surface = document.getElementById('ViewportSurface');
-            if (Surface && !Scene.AnemometerPlacing && !Hover) Surface.style.cursor = AH ? 'grab' : '';
+            if (Surface && !Scene.AnemometerPlacing && !Hover) Surface.style.cursor = AH || EH ? 'grab' : '';
             return;
         }
         const Dx = E.clientX - Drag.X, Dy = E.clientY - Drag.Y;
@@ -5785,6 +5942,28 @@ function AttachOrbit()
             C.Broadcast();
             return;
         }
+        if (Drag.Mode === 'effector')
+        {
+            const Pos = Drag.Effect.P[Drag.Which] || (Drag.Effect.P[Drag.Which] = [0, 1.5, 0]);
+            if (E.shiftKey || E.altKey || Drag.ShiftAlt)
+            {
+                Pos[1] = Clamp(Pos[1] - Dy * 0.025, 0.05, 8.0);
+            }
+            else
+            {
+                const Pt = ScreenToWorldPlane(Scene.LastCamera, E.clientX, E.clientY, Canvas, Pos[1]);
+                if (Pt)
+                {
+                    Pos[0] = Clamp(Pt[0], -12, 12);
+                    Pos[2] = Clamp(Pt[2], -12, 12);
+                }
+            }
+            const BannerText = document.getElementById('ViewportPlaceText');
+            if (BannerText) BannerText.textContent = `${Drag.Label}: (${Pos.map(V => V.toFixed(2)).join(', ')}) m · Hold Shift for altitude Y`;
+            RefreshLive();
+            C.Broadcast();
+            return;
+        }
         const Cam = Scene.Camera;
         if (Drag.Mode === 'pan')
         {
@@ -5809,6 +5988,20 @@ function AttachOrbit()
             if (Surface) Surface.style.cursor = '';
             document.getElementById('ViewportPlaceBanner')?.classList.remove('shown');
             TriggerArcStrike(Drag.Effect, Scene.Time);
+            PE.Edits.Announce(Drag.Label, Pos);
+            AppendLog('PARTICLES', `${Drag.Effect.Name}: ${Drag.Label}`, `(${Pos.map(V => V.toFixed(2)).join(', ')}) m`, 'live');
+            ConstructInspectorPage();
+            C.Broadcast();
+        }
+        if (Drag?.Mode === 'effector')
+        {
+            const Pos = Drag.Effect.P[Drag.Which];
+            const Surface = document.getElementById('ViewportSurface');
+            if (Surface) Surface.style.cursor = '';
+            document.getElementById('ViewportPlaceBanner')?.classList.remove('shown');
+            Scene.EffDragging = false;
+            Scene.EffDragEffect = null;
+            Scene.EffDragWhich = null;
             PE.Edits.Announce(Drag.Label, Pos);
             AppendLog('PARTICLES', `${Drag.Effect.Name}: ${Drag.Label}`, `(${Pos.map(V => V.toFixed(2)).join(', ')}) m`, 'live');
             ConstructInspectorPage();

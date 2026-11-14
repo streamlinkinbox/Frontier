@@ -60,6 +60,7 @@ import { PE } from "./pe.js";
       dynStiff: 1.25,       // elastic spring recovery rate (1/s multiplier)
       dynTearThresh: 0.0,   // projectile speed threshold for strand tearing or leaf detachment (m/s, 0 = unbreakable)
       dynRows: 28,          // cloth strip rows / cable spans / fern fronds / canopy branches
+      dynSegs: 20,          // strand resolution: nodes per cable/vine/blade curve (4..20)
       dynHeight: 2.4,       // vertical elevation / mast / stalk / canopy height (m)
       dynSag: 0.35,         // gravity catenary droop or frond arch curvature (m)
       dynWaveSpeed: 2.2,    // travelling flutter / stadium wind wave speed (Hz/rad)
@@ -104,7 +105,15 @@ import { PE } from "./pe.js";
       gridShape: 2,         // 0 Circles, 1 Boxes (Uniform Scale), 2 Cubes (Height Up/Down), 3 Flat Tiles, 4 Triangles, 5 Hexagons, 6 Auto (Dots + Upper Cubes)
       gridCols: 24,         // lattice columns / angular divisions
       gridRows: 24,         // lattice rows
-      gridEffector: 0,      // 0 Organic Sweep Patches, 1 Twin Orbiting Effectors, 2 Curl Islands, 3 Radial Ripple, 4 Force Fields & Ball Only
+      gridEffector: 0,      // 0 Organic Sweep Patches, 1 Twin Orbiting Effectors, 2 Curl Islands, 3 Radial Ripple, 4 Force Fields & Ball Only, 5 Placeable Effectors (drag in 3D)
+      effPos: [0, 1.5, 0],  // placeable effector A centre (m, drag in viewport)
+      effShape: 0,          // placeable effector A shape: 0 Sphere, 1 Box, 2 Torus, 3 Disc, 4 Cone
+      effSize: 1.2,         // placeable effector A radius/size (m)
+      effPos2: [2.5, 1.5, 0], // placeable effector B centre (m, drag in viewport)
+      effShape2: 0,         // placeable effector B shape
+      effSize2: 0,          // placeable effector B size (0 = off)
+      headStyle: 0,         // bokeh head style: 0 Mixed (per-particle), 1 Sharp core, 2 Creamy disc, 3 Rim ring
+      headScale: 1,         // bokeh head size multiplier
       gridMinScale: 0.10,   // idle scale / height fraction outside effector zone
       gridMaxHeight: 0.95,  // max height (m) for height-extruded cubes or max scale boost
       gridContrast: 1.85,   // falloff contrast exponent

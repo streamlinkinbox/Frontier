@@ -564,7 +564,7 @@ function EvalDynStrandCPU(P, Slot, Cap, DynMode, Time, WindT, FieldScene, Prepar
         const FLen = 0.34 + 0.36 * WebHash(Slot * 23, 9);
         const PA = [Org[0] + Gx, Math.max(0.08, Org[1] + KelpH * HU), Org[2] + Gz];
         const PB = [PA[0] + Math.cos(FAz) * FLen, PA[1] + FLen * 0.4, PA[2] + Math.sin(FAz) * FLen];
-        return { visible: true, kind: 8, role: 'kelpFrond', pA: PA, pB: PB, sag: -0.06, windScale: 1.05 / Stiff, radius: (P.sizeStart || 0.16) * 0.95 };
+        return { visible: true, kind: 8, role: 'kelpFrond', pA: PA, pB: PB, sag: -0.06, windScale: 1.05 / Stiff, radius: (P.sizeStart || 0.16) * 0.95, stalkIdx: StalkIdx, anchorHU: HU };
     }
     if (DynMode === 9)
     {
@@ -707,7 +707,7 @@ function EvalGridAnchorCPU(P, Slot, Cap)
 function EvalGridParticleCPU(P, Slot, Cap, T, BallX, BallY, BallZ, BallR, FieldScene, Prepared, Solo)
 {
     const Gp = EvalGridAnchorCPU(P, Slot, Cap);
-    const Eff = Math.max(0, Math.min(4, Math.round(P.gridEffector ?? 0)));
+    const Eff = Math.max(0, Math.min(5, Math.round(P.gridEffector ?? 0)));
     const Freq = Math.max(0.15, P.curlFreq ?? 1.25);
     const Speed = Math.max(0, P.curlAmp ?? 0.65);
     const Org = P.origin || [0, 2, 0];
@@ -744,6 +744,48 @@ function EvalGridParticleCPU(P, Slot, Cap, T, BallX, BallY, BallZ, BallR, FieldS
         const Dist = Math.hypot(Gp.pos[0] - Org[0], Gp.pos[1] - Org[1], Gp.pos[2] - Org[2]);
         const Ph = Dist * Freq * 3.6 - T * Speed * 3.2;
         W = Math.pow(Math.max(0, 0.5 + 0.5 * Math.sin(Ph)), 1.4);
+    }
+    else if (Eff === 5)
+    {
+        const EffSdf = (Pos, Shape, Size) =>
+        {
+            if (!Pos || Size <= 0.01) return 0;
+            const S = Math.max(0.05, Size);
+            let Dx = Gp.pos[0] - Pos[0], Dy = Gp.pos[1] - Pos[1], Dz = Gp.pos[2] - Pos[2];
+            if (Shape === 1) {
+                const Qx = Math.abs(Dx) - S, Qy = Math.abs(Dy) - S, Qz = Math.abs(Dz) - S;
+                return Math.max(0, Math.max(Qx, Qy, Qz)) + Math.min(0, Math.max(Qx, Math.max(Qy, Qz)));
+            }
+            if (Shape === 2) {
+                const Ring = Math.hypot(Math.hypot(Dx, Dz) - S, Dy) - S * 0.32;
+                return Ring;
+            }
+            if (Shape === 3) {
+                const H = S * 0.12;
+                const Qx = Math.hypot(Dx, Dz) - S, Qy = Math.abs(Dy) - H;
+                return Math.max(0, Math.max(Qx, Qy)) + Math.min(0, Math.max(Qx, Qy));
+            }
+            if (Shape === 4) {
+                const R = Math.hypot(Dx, Dz);
+                const Hh = Math.max(0.001, (Dy + S) / (2 * S));
+                const Hc = Math.min(1, Math.max(0, Hh));
+                const Rad = S * (1 - Hc);
+                const Side = (R - Rad) * 0.86;
+                const Cap = Math.max(Dy - S, -Dy - S);
+                return Math.max(Side, Cap);
+            }
+            return Math.hypot(Dx, Dy, Dz) - S;
+        };
+        let WA = 0, WB = 0;
+        if (P.effSize && P.effSize > 0.01) {
+            const SdfA = EffSdf(P.effPos, P.effShape || 0, P.effSize);
+            WA = Math.max(0, Math.min(1, 1 - (SdfA / Math.max(0.35, (P.effSize || 1.2) * 0.55))));
+        }
+        if (P.effSize2 && P.effSize2 > 0.01) {
+            const SdfB = EffSdf(P.effPos2, P.effShape2 || 0, P.effSize2);
+            WB = Math.max(0, Math.min(1, 1 - (SdfB / Math.max(0.35, (P.effSize2 || 1.2) * 0.55))));
+        }
+        W = Math.max(WA, WB);
     }
     else W = 0.02;
 
@@ -2532,6 +2574,18 @@ export class SoftwarePreviewEngine
                                     TrunkShake = Math.max(TrunkShake, Math.hypot(Dx, Dy, Dz));
                                 }
                             }
+                            if (DynMode === 8 && St.role === 'kelpFrond' && St.stalkIdx != null)
+                            {
+                                const Stalk = Sys.particles[St.stalkIdx];
+                                if (Stalk && Stalk.trail)
+                                {
+                                    const KNode = Math.min(19, Math.max(0, Math.round(St.anchorHU * 19)));
+                                    const SkNode = Stalk.trail[KNode];
+                                    const Dx = SkNode[0] - St.pA[0], Dy = SkNode[1] - St.pA[1], Dz = SkNode[2] - St.pA[2];
+                                    AnchorA = [SkNode[0], SkNode[1], SkNode[2]];
+                                    AnchorB = [St.pB[0] + Dx, St.pB[1] + Dy, St.pB[2] + Dz];
+                                }
+                            }
 
                             const NodeStiff = Stiff * (DynMode === 7 && St.role === 'trunk' ? 2.8 : 1.0);
                             const SpringK = Math.min(1, (DynMode === 7 ? 11.0 : (DynMode === 3 ? 9.5 : 7.5)) * NodeStiff * Dt);
@@ -3805,9 +3859,10 @@ export class SoftwarePreviewEngine
                         }
 
                         if (!Pt.trail || Pt.trail.length < 2) continue;
-                        const DrawChainRange = (FromK, ToK) => {
+                        const DrawChainRange = (FromK, ToK, MaxK = 19) => {
+                            const EndK = Math.min(ToK, MaxK);
                             const Pts2 = [];
-                            for (let K = FromK; K <= ToK; K++)
+                            for (let K = FromK; K <= EndK; K++)
                             {
                                 const Wp = Pt.trail[K];
                                 const Pr = ProjectPoint(VP, Wp[0], Wp[1], Wp[2], W, H);
@@ -3945,10 +4000,15 @@ export class SoftwarePreviewEngine
 
                         if (Pt.tearPt >= 1 && Pt.tearPt <= 18)
                         {
-                            DrawChainRange(0, Pt.tearPt - 1);
-                            DrawChainRange(Pt.tearPt, 19);
+                            const CableSegs = (DynMode === 1 || DynMode === 2) ? Math.max(1, Math.min(19, Math.round(P.dynSegs ?? 20) - 1)) : 19;
+                            DrawChainRange(0, Pt.tearPt - 1, CableSegs);
+                            DrawChainRange(Pt.tearPt, 19, CableSegs);
                         }
-                        else DrawChainRange(0, 19);
+                        else
+                        {
+                            const CableSegs = (DynMode === 1 || DynMode === 2) ? Math.max(1, Math.min(19, Math.round(P.dynSegs ?? 20) - 1)) : 19;
+                            DrawChainRange(0, 19, CableSegs);
+                        }
                     }
                     continue;
                 }

@@ -8,7 +8,7 @@ import { PE } from "./pe.js";
   PE.SYS_SLOT = {
     origin: 0, dir: 1, speed: 2, life: 3, colA: 4, colB: 5, colC: 6, phys: 7,
     phys2: 8, phys3: 9, phys4: 10, mol: 11, mol2: 12, mol3: 13, emit: 14, misc: 15,
-    colorCfg: 16, colorCfg2: 17,
+    colorCfg: 16, colorCfg2: 17, extra0: 18, extra1: 19, extra2: 20, extra3: 21,
   };
   // Offsets (floats) into the Glob uniform (240 bytes).
   PE.GLOB_OFF = {
@@ -47,7 +47,7 @@ import { PE } from "./pe.js";
       this.trail = this.isRibbon ? d.createBuffer({ size: this.cap * TRAIL_SEGS * 16, usage: U.STORAGE | U.COPY_DST }) : null;
       this.stats = d.createBuffer({ size: 32, usage: U.STORAGE | U.COPY_SRC });
       this.statStage = d.createBuffer({ size: 32, usage: U.MAP_READ | U.COPY_DST });
-      this.uniform = d.createBuffer({ size: 288, usage: U.UNIFORM | U.COPY_DST });
+      this.uniform = d.createBuffer({ size: 352, usage: U.UNIFORM | U.COPY_DST });
       this.cellCount = engine.vacantCellCount;
       this.cellSlots = engine.vacantCellSlots;
       this.latticeBytes = 0;
@@ -57,7 +57,7 @@ import { PE } from "./pe.js";
       this.simBG = null;
       this.renderBG = null;
       this.ensureRamp(16);
-      this.cpu = new Float32Array(72);
+      this.cpu = new Float32Array(88);
       this.statPending = false;
       this.gone = false;
       this.stats_ = null;       // latest decoded readback
@@ -150,7 +150,7 @@ import { PE } from "./pe.js";
       this.meshes = d.createBuffer({ size: MAX_MESH_VERTS * MESH_BYTES, usage: U.VERTEX | U.COPY_DST });
       this.arcs = d.createBuffer({ size: MAX_ARC_VERTS * ARC_BYTES, usage: U.VERTEX | U.COPY_DST });
       this.arcScratch = new Float32Array(MAX_ARC_VERTS * 11);
-      this.dummySys = d.createBuffer({ size: 288, usage: U.UNIFORM | U.COPY_DST });
+      this.dummySys = d.createBuffer({ size: 352, usage: U.UNIFORM | U.COPY_DST });
       this.dummyRamp = d.createBuffer({ size: 64, usage: U.STORAGE | U.COPY_DST });
       this.dummyParts = d.createBuffer({ size: PART_BYTES, usage: U.STORAGE });
       this.probeBuf = d.createBuffer({ size: 256, usage: U.COPY_DST | U.MAP_READ });
@@ -775,5 +775,11 @@ import { PE } from "./pe.js";
     set("misc", p.sizeScale, gridMode > 0 ? (p.gridBillboard ? 1.0 : 0.0) : (p.streakThin ?? 1.0), hasArc ? (p.arcMode + 1) : 0, isTrans ? (p.transition.shell ?? 3.0) : (hasBeam ? (p.beamMode || 1) : 0));
     set("colorCfg", ramp.count, ramp.byCode, ramp.min, ramp.max);
     set("colorCfg2", ramp.repeat, ramp.wrapCode, ramp.phase, ramp.interpCode);
+    set("extra0", Math.max(4, Math.min(20, Math.round(p.dynSegs ?? 20))), Math.max(0.1, p.headScale ?? 1), Math.max(0, Math.min(3, Math.round(p.headStyle ?? 0))), p.blend === "add" ? 1 : 0);
+    const effA = Array.isArray(p.effPos) ? p.effPos : [0, 1.5, 0];
+    const effB = Array.isArray(p.effPos2) ? p.effPos2 : [2.5, 1.5, 0];
+    set("extra1", effA[0], effA[1], effA[2], Math.max(0, p.effSize ?? 0));
+    set("extra2", effB[0], effB[1], effB[2], Math.max(0, p.effSize2 ?? 0));
+    set("extra3", Math.max(0, Math.min(4, Math.round(p.effShape ?? 0))), Math.max(0, Math.min(4, Math.round(p.effShape2 ?? 0))), 0, 0);
     o._ramp = ramp;
   };

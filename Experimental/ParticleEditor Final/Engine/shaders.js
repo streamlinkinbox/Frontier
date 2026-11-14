@@ -42,6 +42,10 @@ struct Sys {
   misc: vec4f,     // x size scale
   colorCfg: vec4f, // x stopCount, y colorBy, z colorMin, w colorMax
   colorCfg2: vec4f,// x repeat, y wrapMode (0 clamp, 1 repeat, 2 mirror), z phase, w interp (0 linear, 1 smooth, 2 stepped)
+  extra0: vec4f,   // x dynSegs (strand nodes 4..20), y headScale, z headStyle (0 mixed,1 sharp,2 creamy,3 rim), w blendAdd (0 alpha, 1 additive)
+  extra1: vec4f,   // placeable effector A: xyz centre, w size
+  extra2: vec4f,   // placeable effector B: xyz centre, w size (0 = off)
+  extra3: vec4f,   // x effector A shape (0 sphere,1 box,2 torus,3 disc,4 cone), y effector B shape, zw spare
 };
 
 struct Part {
@@ -897,7 +901,15 @@ fn evalDynStrand(slot: u32, cap: u32, dynMode: u32, windTime: f32) -> DynStrandO
     let hU = mix(0.24, 0.94, fract(frondTier * 1.37 + hashF(sd, 7u)));
     let fAz = hashF(sd, 8u) * 6.2831853;
     let fLen = mix(0.32, 0.68, hashF(sd, 9u));
-    let pA = vec3f(org.x + gx, kelpH * hU, org.z + gz);
+    // Anchor the frond base to a node on its own stalk at height fraction hU so it follows stalk sway.
+    let frondStalkIdx = slot % nStalks;
+    let frondSd = f32(frondStalkIdx) * 41.0 + 19.0;
+    let frondGx = (hashF(frondSd, 1u) * 2.0 - 1.0) * ext.x;
+    let frondGz = (hashF(frondSd, 2u) * 2.0 - 1.0) * ext.z;
+    let frondNode = clamp(u32(hU * 19.0 + 0.5), 0u, 19u);
+    let stalkNode = trailBuf[frondStalkIdx * 20u + frondNode];
+    let stalkAtHU = vec3f(org.x + frondGx, 0.02 + kelpH * hU, org.z + frondGz);
+    let pA = select(stalkAtHU, stalkNode.xyz, stalkNode.w > 0.5 && length(stalkNode.xyz - org) > 0.05);
     let pB = pA + vec3f(cos(fAz) * fLen, fLen * mix(0.25, 0.55, hashF(sd, 10u)), sin(fAz) * fLen);
     return DynStrandOut(pA, pB, -0.06, baseW * 0.95, 0.55 + 0.42 * hU, 0.0, 0.0, 1.45, 0.9, 1.0);
   }
@@ -1555,6 +1567,39 @@ fn evalGridAnchor(idx: u32, cap: u32, surf: u32, colsIn: u32, rowsIn: u32) -> Gr
   return GridPtOut(wp, vec3f(0.0, 1.0, 0.0), 0.0, pitch);
 }
 
+fn effShapeSdf(d: vec3f, shape: u32, size: f32) -> f32 {
+  // Signed distance (metres) to a placeable effector volume; negative inside.
+  let s = max(size, 0.05);
+  if (shape == 1u) {
+    // Box (half-extent = size)
+    let q = abs(d) - vec3f(s);
+    return length(max(q, vec3f(0.0))) + min(max(q.x, max(q.y, q.z)), 0.0);
+  }
+  if (shape == 2u) {
+    // Torus (ring radius = size, tube = 0.32 * size)
+    let ring = length(vec2f(length(d.xz) - s, d.y)) - s * 0.32;
+    return ring;
+  }
+  if (shape == 3u) {
+    // Disc / flat cylinder (radius = size, half-height = 0.12 * size)
+    let h = s * 0.12;
+    let q = vec2f(length(d.xz) - s, abs(d.y) - h);
+    return length(max(q, vec2f(0.0))) + min(max(q.x, q.y), 0.0);
+  }
+  if (shape == 4u) {
+    // Cone (base radius = size at y=-size, apex at y=+size)
+    let r = length(d.xz);
+    let h = s;
+    let hh = clamp((d.y + h) / max(2.0 * h, 1e-4), 0.0, 1.0);
+    let rad = mix(s, 0.0, hh);
+    let side = (r - rad) * 0.86;
+    let cap = max(d.y - h, -d.y - h);
+    return max(side, cap);
+  }
+  // Sphere (default)
+  return length(d) - s;
+}
+
 fn evalGridEffector(pos: vec3f, effMode: u32, freq: f32, speed: f32, contrast: f32, time: f32) -> f32 {
   let org = S.origin.xyz;
   let extSpan = max(max(S.origin.w, S.phys4.x), 1.0);
@@ -1585,6 +1630,19 @@ fn evalGridEffector(pos: vec3f, effMode: u32, freq: f32, speed: f32, contrast: f
     let dist = length(pos - org);
     let ph = dist * freq * 3.6 - time * speed * 3.2;
     w = clamp(pow(max(0.0, 0.5 + 0.5 * sin(ph)), 1.4), 0.0, 1.0);
+  } else if (effMode == 5u) {
+    // Placeable effectors (drag in viewport): smooth SDF falloff inside each volume.
+    let wA = 0.0;
+    if (S.extra1.w > 0.01) {
+      let sdfA = effShapeSdf(pos - S.extra1.xyz, u32(S.extra3.x + 0.5), S.extra1.w);
+      wA = clamp(1.0 - smoothstep(0.0, max(0.35, S.extra1.w * 0.55), sdfA), 0.0, 1.0);
+    }
+    let wB = 0.0;
+    if (S.extra2.w > 0.01) {
+      let sdfB = effShapeSdf(pos - S.extra2.xyz, u32(S.extra3.y + 0.5), S.extra2.w);
+      wB = clamp(1.0 - smoothstep(0.0, max(0.35, S.extra2.w * 0.55), sdfB), 0.0, 1.0);
+    }
+    w = max(wA, wB);
   } else {
     w = 0.02;
   }
@@ -2663,6 +2721,7 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
     v += vec3f(sin(ph), 0.25 * cos(ph * 1.3), cos(ph * 0.8 + 1.0)) * S.phys2.w * dt;
   }
   pos += v * dt;
+  var snowLanded = 0.0;
   let vScale = G.windMin.w;
   if (vScale > 0.01 && kind == 0u) {
     let invSc = 1.0 / vScale;
@@ -2684,6 +2743,7 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
           } else {
             let slip = select(0.80, 0.96, forceMag >= 0.35);
             v = vec3f(v.x * slip, 0.0, v.z * slip);
+            snowLanded = 1.0;
           }
         } else {
           let nx = clamp((vehicleRoofY(lx - 0.12, lz) - vehicleRoofY(lx + 0.12, lz)) * 3.5, -0.55, 0.55);
@@ -2718,6 +2778,7 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
       } else {
         let slip = select(0.80, 0.96, forceMag >= 0.35);
         v = vec3f(v.x * slip, 0.0, v.z * slip);
+        snowLanded = 1.0;
       }
     } else if (kind == 1u) {
       v = vec3f(v.x * 0.55, 0.0, v.z * 0.55);
@@ -2734,6 +2795,14 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
     }
   }
   var eOut = q.e;
+  // Landed snow (floor or vehicle roof) settles and melts over ~3 minutes instead of vanishing.
+  if (sh == 7u && snowLanded > 0.5) {
+    if (eOut.y <= 0.0) { eOut.y = age; }
+    life = max(life, 180.0);
+    t01 = age / life;
+    v.x *= exp(-2.5 * dt);
+    v.z *= exp(-2.5 * dt);
+  }
   if (sh == 14u && eOut.y > 0.5) {
     pos.y = 0.018;
     v = vec3f(0.0);
@@ -2758,11 +2827,17 @@ fn updateParticles(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   let spin = q.m.z;
-  let ang = q.m.y + spin * dt;
+  var ang = q.m.y + spin * dt;
   let sizeBase = mix(S.life.z, S.life.w, t01) * S.misc.x;
-  let size = select(sizeBase * (0.7 + 0.6 * fract(seed * 0.618034)), sizeBase, sh == 10u || sh == 11u || sh == 15u || sh == 16u || sh == 17u);
+  var size = select(sizeBase * (0.7 + 0.6 * fract(seed * 0.618034)), sizeBase, sh == 10u || sh == 11u || sh == 15u || sh == 16u || sh == 17u);
+  var meltK = 0.0;
+  if (sh == 7u && eOut.y > 0.0) {
+    meltK = clamp((age - eOut.y) / 180.0, 0.0, 1.0);
+    ang = q.m.y;
+    size *= pow(max(0.0, 1.0 - meltK), 0.6);
+  }
   var c = evalAttrColor(t01, pos, v, age, life, size, ang, seed);
-  c.a = c.a * smoothstep(0.0, 0.08, t01) * (1.0 - smoothstep(0.7, 1.0, t01));
+  c.a = c.a * smoothstep(0.0, 0.08, t01) * (1.0 - smoothstep(0.7, 1.0, t01)) * (1.0 - meltK);
   parts[i] = Part(vec4f(pos, age), vec4f(v, life), c, vec4f(size, ang, spin, seed), eOut);
 }
 
@@ -3404,8 +3479,13 @@ fn vsPart(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> V
     wp = q.p.xyz + G.camRight.xyz * (rc.x * sz * 0.52) + G.camUp.xyz * (rc.y * sz * 0.52);
   } else if (shape == 9u) {
     // Bokeh glow bead: sharp focal core for some beads, luminous creamy bokeh aperture discs for others
-    let dof = hashF(q.m.w, 11u);
-    let bSize = sz * mix(0.85, 3.1, pow(max(dof, 1e-4), 2.35));
+    // headStyle: 0 mixed (per-particle random), 1 sharp core, 2 creamy disc, 3 rim ring; headScale sizes the head.
+    let dofRand = hashF(q.m.w, 11u);
+    let headStyle = u32(S.extra0.z + 0.5);
+    let dof = select(dofRand, 0.0, headStyle == 1u);
+    dof = select(dof, 1.0, headStyle == 2u);
+    dof = select(dof, 0.74, headStyle == 3u);
+    let bSize = sz * mix(0.85, 3.1, pow(max(dof, 1e-4), 2.35)) * max(0.1, S.extra0.y);
     wp = q.p.xyz + G.camRight.xyz * (c.x * bSize) + G.camUp.xyz * (c.y * bSize);
     o.pos = G.viewProj * vec4f(wp, 1.0);
     o.uv = c;
@@ -3643,7 +3723,7 @@ fn fsPart(i: VO) -> @location(0) vec4f {
       if (r2 > 1.0) { discard; }
       let z = sqrt(1.0 - r2);
       let nd = max(dot(vec3f(i.uv, z), normalize(vec3f(-0.35, 0.55, 0.75))), 0.0);
-      let ka = clamp(smoothstep(1.0, 0.76, sqrt(r2)) * i.col.a, 0.0, 1.0);
+      let ka = clamp(smoothstep(1.0, 0.76, sqrt(r2)) * i.col.a, 0.0, 1.0) * mix(1.0, 0.35, S.extra0.w);
       let kCol = S.colB.rgb * (0.55 + 0.65 * nd) + vec3f(0.4) * pow(nd, 18.0);
       return vec4f(kCol * ka, ka);
     }
@@ -4095,6 +4175,7 @@ fn vsRibbon(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) ->
   let dynMode = select(u32(max(0.0, S.mol.x - 5.0) + 0.5), u32(max(0.0, S.mol.x - 6.0) + 0.5), S.mol.x >= 13.5);
   let maxSeg = select(select(2.5, 0.34, isMud), 6.5, isWebOnly || isDyn || isFerro || isBead || isSeed || isJelly);
   if (segLen < 1e-4 || segLen > maxSeg) { return o; }
+  if (isDyn && seg >= clamp(u32(S.extra0.x + 0.5), 4u, 20u) - 1u) { return o; }
   if (isMud && (q.e.z > 0.5 || q.e.y > 0.5 || q.e.x > 0.5 || seg > 7u)) { return o; }
   let pPrev = segs[base + select(seg - 1u, 0u, seg == 0u)].xyz;
   let pNext = segs[base + min(seg + 2u, 19u)].xyz;
@@ -4372,7 +4453,8 @@ fn fsRibbon(i: VO) -> @location(0) vec4f {
     let edgeSoft = smoothstep(ruffle, max(0.0, ruffle - 0.14), side);
     let vein = exp(-side * side * 32.0);
     let kelpRgb = mix(i.col.rgb * (0.78 + 0.26 * vein) * clamp(i.ex.w, 0.65, 1.25), S.colB.rgb, vein * 0.35);
-    let a = clamp(edgeSoft * i.col.a * 0.94, 0.0, 1.0);
+    // Additive glow would sum hundreds of overlapping fronds to white; soften accumulation.
+    let a = clamp(edgeSoft * i.col.a * 0.94, 0.0, 1.0) * mix(1.0, 0.35, S.extra0.w);
     if (a < 0.004) { discard; }
     return vec4f(kelpRgb * a, a);
   }
