@@ -95,7 +95,8 @@ ParticleViewportRenderRequest ParticleViewportHost::BuildGpuRenderRequestForEffe
     uint32_t                                              WidthPx,
     uint32_t                                              HeightPx,
     float                                                 TimeSeconds,
-    bool                                                  ShowFloorGrid) noexcept
+    bool                                                  ShowFloorGrid,
+    const ParticleReferenceGeometryStorage*               ReferenceGeometry) noexcept
 {
     ParticleViewportRenderRequest Req{};
     Req.WidthPx       = std::clamp(WidthPx, 128u, 1920u);
@@ -228,6 +229,21 @@ ParticleViewportRenderRequest ParticleViewportHost::BuildGpuRenderRequestForEffe
             break;
     }
 
+    // Reference stage geometry & authoring character override the generic per-domain defaults
+    if (ReferenceGeometry != nullptr)
+    {
+        Req.ReferenceGeometry    = ReferenceGeometry->ViewBatch();
+        Req.RenderBillboards     = ReferenceGeometry->RenderLiveBillboards;
+        Req.RenderOrientedSolids = ReferenceGeometry->RenderLiveOrientedSolids;
+        Req.RenderStrands        = ReferenceGeometry->RenderLiveStrands;
+        Req.Silhouette           = ReferenceGeometry->Silhouette;
+        Req.BlendMode            = ReferenceGeometry->BlendMode;
+        Req.SolidProfile         = ReferenceGeometry->SolidProfile;
+        Req.SizeScale            = ReferenceGeometry->SizeScale;
+        Req.EmissiveBoost        = ReferenceGeometry->EmissiveBoost;
+        Req.RibbonWidthMeters    = ReferenceGeometry->RibbonWidthMeters;
+    }
+
     return Req;
 }
 
@@ -279,14 +295,21 @@ bool ParticleViewportHost::RenderLiveVulkanViewport(
 
     const uint32_t RenderW = std::clamp(static_cast<uint32_t>(std::round(Bounds.Width)), 160u, 1280u);
     const uint32_t RenderH = std::clamp(static_cast<uint32_t>(std::round(Bounds.Height)), 120u, 960u);
+    const float    RenderTime = static_cast<float>(Session->QuerySimulationTimeSec());
+
+    // Rebuild the authoritative reference stage for the active preset (silk webs, rigging, arcs, shields, props)
+    BuildParticleReferenceGeometry(TargetEffect->PresetIdentifier, *TargetEffect, RenderTime, ReferenceGeometry);
+    Interactor.ConfigureCamera(ReferenceGeometry.Camera);
+
     const ParticleViewportRenderRequest Req = BuildGpuRenderRequestForEffect(
         *TargetEffect,
         *Sim,
         Interactor.InspectCameraRig(),
         RenderW,
         RenderH,
-        static_cast<float>(Session->QuerySimulationTimeSec()),
-        ShowFloorGrid);
+        RenderTime,
+        ShowFloorGrid,
+        &ReferenceGeometry);
 
     if (!GpuRasterizer->RenderOffscreen(Req, LastGpuDiagnostic))
     {

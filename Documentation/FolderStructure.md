@@ -420,6 +420,8 @@ Frontier/
     │   │   ├── ParticleBillboardRasterization.slang // GPU billboard, spark streak, glow orb & shard rasterizer
     │   │   ├── ParticleRibbonRasterization.slang  // GPU live StrandConnectivity ribbon & cloth rasterizer
     │   │   ├── ParticleOrientedSolidRasterization.slang // GPU quaternion-oriented 3D solid (cube/shard/spike/boid/coin) rasterizer
+    │   │   ├── ParticleLineArcRasterization.slang // GPU camera-facing 3D line/arc ribbon rasterizer for silk, cables & plasma
+    │   │   ├── ParticleSurfaceRasterization.slang  // GPU studio-lit 3D surface rasterizer for props, cloth, shields & slabs
     │   │   └── ParticleGridBackdropRasterization.slang // GPU dark OLED backdrop & 3D perspective floor grid rasterizer
     │   └── ImageOperations/                       // Post-process image filter shaders
     │       ├── DisplayToneTransfer.slang
@@ -538,7 +540,8 @@ Frontier/
     │       ├── ParticleOutlinerPanel.{h,cpp}      // Native PixelSpace Outliner & Construct preset sheet
     │       ├── ParticleInspectorPanel.{h,cpp}     // 4-tab Particle Inspector + ForceInspectorView delegation
     │       ├── ParticleViewportInteractor.{h,cpp} // Z-Up 3D orbit/pan/dolly camera rig
-    │       ├── ParticleViewportRasterization.{h,cpp} // Vulkan 1.3 .slang GPU particle/strand/grid rasterizer
+    │       ├── ParticleReferenceGeometry.{h,cpp}  // 93-preset reference silk/rigging/arc/prop/specimen surfaces
+    │       ├── ParticleViewportRasterization.{h,cpp} // Vulkan 1.3 .slang GPU particle/strand/grid/surface rasterizer
     │       ├── ParticleViewportHost.{h,cpp}       // 3D viewport canvas, ForceFields gizmos & PlaybackScrubber
     │       └── ParticleWorkspaceHost.{h,cpp}      // Standalone / Editor dock registration & external file drop
     │

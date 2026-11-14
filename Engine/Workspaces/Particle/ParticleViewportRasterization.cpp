@@ -121,9 +121,10 @@ void AssembleReverseZCameraUniforms(
         FwdZ = 0.0f;
     }
 
-    // Right = normalize(cross(Forward, +Z))
-    float RightX = FwdY;
-    float RightY = -FwdX;
+    // Right = normalize(cross(+Z, Forward)) — the reference camera's ConstructLookAt uses cross(Forward, +Y),
+    // which converts to cross(+Z, Forward) in Frontier's Z-Up frame. The opposite sign would mirror the world.
+    float RightX = -FwdY;
+    float RightY = FwdX;
     float RightZ = 0.0f;
     const float RightLen = std::sqrt(RightX * RightX + RightY * RightY);
     if (RightLen > 1.0e-5f)
@@ -236,6 +237,15 @@ struct ParticleViewportRasterization::RasterImplementation
     VkPipeline            SolidExecutable          = VK_NULL_HANDLE;
     VkDescriptorSet       SolidDescriptorSlot      = VK_NULL_HANDLE;
 
+    VkDescriptorSetLayout ReferenceDescLayout      = VK_NULL_HANDLE;
+    VkPipelineLayout      ReferenceLayout          = VK_NULL_HANDLE;
+    VkPipeline            LineArcAlphaExec         = VK_NULL_HANDLE;
+    VkPipeline            LineArcAddExec           = VK_NULL_HANDLE;
+    VkPipeline            SurfaceOpaqueExec        = VK_NULL_HANDLE;
+    VkPipeline            SurfaceAlphaExec         = VK_NULL_HANDLE;
+    VkPipeline            SurfaceAddExec           = VK_NULL_HANDLE;
+    std::array<VkDescriptorSet, 5u> RefDescriptorSlots{}; // 0=SegAlpha, 1=SegAdd, 2=SurfOpaque, 3=SurfAlpha, 4=SurfAdd
+
     VkBuffer         UniformBuffer       = VK_NULL_HANDLE;
     VkDeviceMemory   UniformMemory       = VK_NULL_HANDLE;
     void*            UniformMapped       = nullptr;
@@ -243,6 +253,20 @@ struct ParticleViewportRasterization::RasterImplementation
     VkBuffer         SolidUniformBuffer  = VK_NULL_HANDLE;
     VkDeviceMemory   SolidUniformMemory  = VK_NULL_HANDLE;
     void*            SolidUniformMapped  = nullptr;
+
+    VkBuffer         RefUniformBuffer    = VK_NULL_HANDLE;
+    VkDeviceMemory   RefUniformMemory    = VK_NULL_HANDLE;
+    void*            RefUniformMapped    = nullptr;
+
+    static constexpr uint32_t MaxRefSegmentsPerPass = 16384u;
+    static constexpr uint32_t MaxRefOpaqueVerts     = 49152u;
+    static constexpr uint32_t MaxRefBlendVerts      = 16384u;
+    static constexpr VkDeviceSize RefUboStride      = 256u;
+
+    std::array<VkBuffer, 5u>       RefGeomBuffers{};
+    std::array<VkDeviceMemory, 5u> RefGeomMemories{};
+    std::array<void*, 5u>          RefGeomMapped{};
+    std::array<VkDeviceSize, 5u>   RefGeomCapacities{};
 
     VkImage          ColorImage       = VK_NULL_HANDLE;
     VkDeviceMemory   ColorMemory      = VK_NULL_HANDLE;
@@ -661,6 +685,32 @@ struct ParticleViewportRasterization::RasterImplementation
             }
             vkUpdateDescriptorSets(Device, 5u, SolidWrites.data(), 0u, nullptr);
         }
+
+        // Slots 4..8: Reference Geometry (UBO slice + host-visible SSBO per pass)
+        for (uint32_t SlotIdx = 0u; SlotIdx < 5u; ++SlotIdx)
+        {
+            if (RefDescriptorSlots[SlotIdx] == VK_NULL_HANDLE || RefGeomBuffers[SlotIdx] == VK_NULL_HANDLE)
+            {
+                continue;
+            }
+            VkDescriptorBufferInfo RefUboDesc{ RefUniformBuffer, SlotIdx * RefUboStride, sizeof(ViewportGpuUniformBlock) };
+            VkDescriptorBufferInfo RefBufDesc{ RefGeomBuffers[SlotIdx], 0u, RefGeomCapacities[SlotIdx] };
+            std::array<VkWriteDescriptorSet, 2u> RefWrites{};
+            RefWrites[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            RefWrites[0].dstSet          = RefDescriptorSlots[SlotIdx];
+            RefWrites[0].dstBinding      = 0u;
+            RefWrites[0].descriptorCount = 1u;
+            RefWrites[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            RefWrites[0].pBufferInfo     = &RefUboDesc;
+
+            RefWrites[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            RefWrites[1].dstSet          = RefDescriptorSlots[SlotIdx];
+            RefWrites[1].dstBinding      = 1u;
+            RefWrites[1].descriptorCount = 1u;
+            RefWrites[1].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            RefWrites[1].pBufferInfo     = &RefBufDesc;
+            vkUpdateDescriptorSets(Device, 2u, RefWrites.data(), 0u, nullptr);
+        }
     }
 
     void Cleanup() noexcept
@@ -679,22 +729,46 @@ struct ParticleViewportRasterization::RasterImplementation
                 vkUnmapMemory(Device, SolidUniformMemory);
                 SolidUniformMapped = nullptr;
             }
+            if (RefUniformMapped != nullptr && RefUniformMemory != VK_NULL_HANDLE)
+            {
+                vkUnmapMemory(Device, RefUniformMemory);
+                RefUniformMapped = nullptr;
+            }
+            for (uint32_t SlotIdx = 0u; SlotIdx < 5u; ++SlotIdx)
+            {
+                if (RefGeomMapped[SlotIdx] != nullptr && RefGeomMemories[SlotIdx] != VK_NULL_HANDLE)
+                {
+                    vkUnmapMemory(Device, RefGeomMemories[SlotIdx]);
+                    RefGeomMapped[SlotIdx] = nullptr;
+                }
+                if (RefGeomBuffers[SlotIdx] != VK_NULL_HANDLE)  { vkDestroyBuffer(Device, RefGeomBuffers[SlotIdx], nullptr); }
+                if (RefGeomMemories[SlotIdx] != VK_NULL_HANDLE) { vkFreeMemory(Device, RefGeomMemories[SlotIdx], nullptr); }
+            }
             if (UniformBuffer != VK_NULL_HANDLE)          { vkDestroyBuffer(Device, UniformBuffer, nullptr); }
             if (UniformMemory != VK_NULL_HANDLE)          { vkFreeMemory(Device, UniformMemory, nullptr); }
             if (SolidUniformBuffer != VK_NULL_HANDLE)     { vkDestroyBuffer(Device, SolidUniformBuffer, nullptr); }
             if (SolidUniformMemory != VK_NULL_HANDLE)     { vkFreeMemory(Device, SolidUniformMemory, nullptr); }
+            if (RefUniformBuffer != VK_NULL_HANDLE)       { vkDestroyBuffer(Device, RefUniformBuffer, nullptr); }
+            if (RefUniformMemory != VK_NULL_HANDLE)       { vkFreeMemory(Device, RefUniformMemory, nullptr); }
             if (BackdropExecutable != VK_NULL_HANDLE)     { vkDestroyPipeline(Device, BackdropExecutable, nullptr); }
             if (FloorGridExecutable != VK_NULL_HANDLE)    { vkDestroyPipeline(Device, FloorGridExecutable, nullptr); }
             if (BillboardAlphaExec != VK_NULL_HANDLE)     { vkDestroyPipeline(Device, BillboardAlphaExec, nullptr); }
             if (BillboardAdditiveExec != VK_NULL_HANDLE)  { vkDestroyPipeline(Device, BillboardAdditiveExec, nullptr); }
             if (RibbonAlphaExec != VK_NULL_HANDLE)        { vkDestroyPipeline(Device, RibbonAlphaExec, nullptr); }
             if (SolidExecutable != VK_NULL_HANDLE)        { vkDestroyPipeline(Device, SolidExecutable, nullptr); }
+            if (LineArcAlphaExec != VK_NULL_HANDLE)       { vkDestroyPipeline(Device, LineArcAlphaExec, nullptr); }
+            if (LineArcAddExec != VK_NULL_HANDLE)         { vkDestroyPipeline(Device, LineArcAddExec, nullptr); }
+            if (SurfaceOpaqueExec != VK_NULL_HANDLE)      { vkDestroyPipeline(Device, SurfaceOpaqueExec, nullptr); }
+            if (SurfaceAlphaExec != VK_NULL_HANDLE)       { vkDestroyPipeline(Device, SurfaceAlphaExec, nullptr); }
+            if (SurfaceAddExec != VK_NULL_HANDLE)         { vkDestroyPipeline(Device, SurfaceAddExec, nullptr); }
             if (GridLayout != VK_NULL_HANDLE)             { vkDestroyPipelineLayout(Device, GridLayout, nullptr); }
             if (GridDescLayout != VK_NULL_HANDLE)         { vkDestroyDescriptorSetLayout(Device, GridDescLayout, nullptr); }
             if (ParticleLayout != VK_NULL_HANDLE)         { vkDestroyPipelineLayout(Device, ParticleLayout, nullptr); }
             if (ParticleDescLayout != VK_NULL_HANDLE)     { vkDestroyDescriptorSetLayout(Device, ParticleDescLayout, nullptr); }
             if (SolidLayout != VK_NULL_HANDLE)            { vkDestroyPipelineLayout(Device, SolidLayout, nullptr); }
             if (SolidDescLayout != VK_NULL_HANDLE)        { vkDestroyDescriptorSetLayout(Device, SolidDescLayout, nullptr); }
+            if (ReferenceLayout != VK_NULL_HANDLE)        { vkDestroyPipelineLayout(Device, ReferenceLayout, nullptr); }
+            if (ReferenceDescLayout != VK_NULL_HANDLE)    { vkDestroyDescriptorSetLayout(Device, ReferenceDescLayout, nullptr); }
             if (CompletionSignal != VK_NULL_HANDLE)       { vkDestroyFence(Device, CompletionSignal, nullptr); }
             if (CommandBank != VK_NULL_HANDLE)            { vkDestroyCommandPool(Device, CommandBank, nullptr); }
             if (DescriptorBank != VK_NULL_HANDLE)         { vkDestroyDescriptorPool(Device, DescriptorBank, nullptr); }
@@ -794,12 +868,12 @@ bool ParticleViewportRasterization::Initialize(
 
     // Descriptor bank, command bank, completion fence, UBO
     const std::array<VkDescriptorPoolSize, 2u> BankCounts = {{
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6u },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 20u },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 12u },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32u },
     }};
     VkDescriptorPoolCreateInfo DescBankSpec{};
     DescBankSpec.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    DescBankSpec.maxSets       = 6u;
+    DescBankSpec.maxSets       = 12u;
     DescBankSpec.poolSizeCount = static_cast<uint32_t>(BankCounts.size());
     DescBankSpec.pPoolSizes    = BankCounts.data();
     if (vkCreateDescriptorPool(Handle->Device, &DescBankSpec, nullptr, &Handle->DescriptorBank) != VK_SUCCESS)
@@ -852,11 +926,40 @@ bool ParticleViewportRasterization::Initialize(
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             Handle->SolidUniformBuffer,
             Handle->SolidUniformMemory,
-            Handle->SolidUniformMapped))
+            Handle->SolidUniformMapped) ||
+        !Handle->CreateHostBuffer(
+            RasterImplementation::RefUboStride * 5u,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            Handle->RefUniformBuffer,
+            Handle->RefUniformMemory,
+            Handle->RefUniformMapped))
     {
         OutDiagnostic = "Failed to allocate viewport uniform buffers.";
         Finalize();
         return false;
+    }
+
+    const std::array<VkDeviceSize, 5u> RefByteSizes = {
+        static_cast<VkDeviceSize>(RasterImplementation::MaxRefSegmentsPerPass) * sizeof(ParticleGpuSegmentPrimitive),
+        static_cast<VkDeviceSize>(RasterImplementation::MaxRefSegmentsPerPass) * sizeof(ParticleGpuSegmentPrimitive),
+        static_cast<VkDeviceSize>(RasterImplementation::MaxRefOpaqueVerts)     * sizeof(ParticleGpuSurfaceVertex),
+        static_cast<VkDeviceSize>(RasterImplementation::MaxRefBlendVerts)      * sizeof(ParticleGpuSurfaceVertex),
+        static_cast<VkDeviceSize>(RasterImplementation::MaxRefBlendVerts)      * sizeof(ParticleGpuSurfaceVertex),
+    };
+    for (uint32_t SlotIdx = 0u; SlotIdx < 5u; ++SlotIdx)
+    {
+        Handle->RefGeomCapacities[SlotIdx] = RefByteSizes[SlotIdx];
+        if (!Handle->CreateHostBuffer(
+                RefByteSizes[SlotIdx],
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                Handle->RefGeomBuffers[SlotIdx],
+                Handle->RefGeomMemories[SlotIdx],
+                Handle->RefGeomMapped[SlotIdx]))
+        {
+            OutDiagnostic = "Failed to allocate reference geometry storage buffers.";
+            Finalize();
+            return false;
+        }
     }
 
     // Layout A: Grid/Backdrop (1 UBO)
@@ -919,12 +1022,39 @@ bool ParticleViewportRasterization::Initialize(
         return false;
     }
 
+    // Layout D: Reference Geometry (1 UBO + 1 SSBO: Segment or Surface vertex array)
+    std::array<VkDescriptorSetLayoutBinding, 2u> RefBinds{};
+    RefBinds[0] = { 0u, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr };
+    RefBinds[1] = { 1u, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
+    VkDescriptorSetLayoutCreateInfo RefDescSpec{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0u, 2u, RefBinds.data() };
+    if (vkCreateDescriptorSetLayout(Handle->Device, &RefDescSpec, nullptr, &Handle->ReferenceDescLayout) != VK_SUCCESS)
+    {
+        OutDiagnostic = "Failed to construct reference geometry descriptor layout.";
+        Finalize();
+        return false;
+    }
+    VkPipelineLayoutCreateInfo RefExecSpec{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, 0u, 1u, &Handle->ReferenceDescLayout, 0u, nullptr };
+    if (vkCreatePipelineLayout(Handle->Device, &RefExecSpec, nullptr, &Handle->ReferenceLayout) != VK_SUCCESS)
+    {
+        OutDiagnostic = "Failed to construct reference geometry pipeline layout.";
+        Finalize();
+        return false;
+    }
+
     // Allocate descriptor slots
-    const std::array<VkDescriptorSetLayout, 4u> Layouts = {
-        Handle->GridDescLayout, Handle->ParticleDescLayout, Handle->ParticleDescLayout, Handle->SolidDescLayout
+    const std::array<VkDescriptorSetLayout, 9u> Layouts = {
+        Handle->GridDescLayout,
+        Handle->ParticleDescLayout,
+        Handle->ParticleDescLayout,
+        Handle->SolidDescLayout,
+        Handle->ReferenceDescLayout,
+        Handle->ReferenceDescLayout,
+        Handle->ReferenceDescLayout,
+        Handle->ReferenceDescLayout,
+        Handle->ReferenceDescLayout,
     };
-    std::array<VkDescriptorSet, 4u> Slots{};
-    VkDescriptorSetAllocateInfo AllocSets{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, Handle->DescriptorBank, 4u, Layouts.data() };
+    std::array<VkDescriptorSet, 9u> Slots{};
+    VkDescriptorSetAllocateInfo AllocSets{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, Handle->DescriptorBank, 9u, Layouts.data() };
     if (vkAllocateDescriptorSets(Handle->Device, &AllocSets, Slots.data()) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to allocate rasterization descriptor slots.";
@@ -935,6 +1065,10 @@ bool ParticleViewportRasterization::Initialize(
     Handle->BillboardDescriptorSlot = Slots[1];
     Handle->RibbonDescriptorSlot    = Slots[2];
     Handle->SolidDescriptorSlot     = Slots[3];
+    for (uint32_t SlotIdx = 0u; SlotIdx < 5u; ++SlotIdx)
+    {
+        Handle->RefDescriptorSlots[SlotIdx] = Slots[4u + SlotIdx];
+    }
 
     // Construct graphics executables from compiled Slang SPIR-V 1.3 modules
     if (!Handle->CreateGraphicsExecutable(
@@ -970,6 +1104,46 @@ bool ParticleViewportRasterization::Initialize(
                 SolidVertSpv, "VertexMain",
                 SolidFragSpv, "FragmentMain",
                 Handle->SolidLayout, true, true, true, false, Handle->SolidExecutable, OutDiagnostic))
+        {
+            Finalize();
+            return false;
+        }
+    }
+
+    const std::filesystem::path LineVertSpv = ShaderBinaryDir / "ParticleLineArcRasterization.vert.spv";
+    const std::filesystem::path LineFragSpv = ShaderBinaryDir / "ParticleLineArcRasterization.frag.spv";
+    if (std::filesystem::exists(LineVertSpv) && std::filesystem::exists(LineFragSpv))
+    {
+        if (!Handle->CreateGraphicsExecutable(
+                LineVertSpv, "ParticleLineArcVertex",
+                LineFragSpv, "ParticleLineArcFragment",
+                Handle->ReferenceLayout, true, false, true, false, Handle->LineArcAlphaExec, OutDiagnostic) ||
+            !Handle->CreateGraphicsExecutable(
+                LineVertSpv, "ParticleLineArcVertex",
+                LineFragSpv, "ParticleLineArcFragment",
+                Handle->ReferenceLayout, true, false, true, true, Handle->LineArcAddExec, OutDiagnostic))
+        {
+            Finalize();
+            return false;
+        }
+    }
+
+    const std::filesystem::path SurfVertSpv = ShaderBinaryDir / "ParticleSurfaceRasterization.vert.spv";
+    const std::filesystem::path SurfFragSpv = ShaderBinaryDir / "ParticleSurfaceRasterization.frag.spv";
+    if (std::filesystem::exists(SurfVertSpv) && std::filesystem::exists(SurfFragSpv))
+    {
+        if (!Handle->CreateGraphicsExecutable(
+                SurfVertSpv, "ParticleSurfaceVertex",
+                SurfFragSpv, "ParticleSurfaceFragment",
+                Handle->ReferenceLayout, true, true, false, false, Handle->SurfaceOpaqueExec, OutDiagnostic) ||
+            !Handle->CreateGraphicsExecutable(
+                SurfVertSpv, "ParticleSurfaceVertex",
+                SurfFragSpv, "ParticleSurfaceFragment",
+                Handle->ReferenceLayout, true, false, true, false, Handle->SurfaceAlphaExec, OutDiagnostic) ||
+            !Handle->CreateGraphicsExecutable(
+                SurfVertSpv, "ParticleSurfaceVertex",
+                SurfFragSpv, "ParticleSurfaceFragment",
+                Handle->ReferenceLayout, true, false, true, true, Handle->SurfaceAddExec, OutDiagnostic))
         {
             Finalize();
             return false;
@@ -1018,6 +1192,33 @@ bool ParticleViewportRasterization::RenderOffscreen(
     ViewportGpuUniformBlock SolidUbo = Ubo;
     SolidUbo.ViewportControl[1]      = static_cast<uint32_t>(Request.SolidProfile);
     std::memcpy(Handle->SolidUniformMapped, &SolidUbo, sizeof(ViewportGpuUniformBlock));
+
+    // Upload reference geometry buffers (Segments + Opaque/Translucent/Additive 3D Surfaces) directly to Vulkan SSBOs
+    const auto& RefGeo       = Request.ReferenceGeometry;
+    const uint32_t SegAlphaN = static_cast<uint32_t>(std::min<std::size_t>(RefGeo.AlphaSegments.size(), RasterImplementation::MaxRefSegmentsPerPass));
+    const uint32_t SegAddN   = static_cast<uint32_t>(std::min<std::size_t>(RefGeo.AdditiveSegments.size(), RasterImplementation::MaxRefSegmentsPerPass));
+    const uint32_t SurfOpqN  = static_cast<uint32_t>(std::min<std::size_t>(RefGeo.OpaqueSurfaceVertices.size(), RasterImplementation::MaxRefOpaqueVerts));
+    const uint32_t SurfAlpN  = static_cast<uint32_t>(std::min<std::size_t>(RefGeo.TranslucentSurfaceVertices.size(), RasterImplementation::MaxRefBlendVerts));
+    const uint32_t SurfAddN  = static_cast<uint32_t>(std::min<std::size_t>(RefGeo.AdditiveSurfaceVertices.size(), RasterImplementation::MaxRefBlendVerts));
+
+    if (SegAlphaN > 0u) { std::memcpy(Handle->RefGeomMapped[0], RefGeo.AlphaSegments.data(), SegAlphaN * sizeof(ParticleGpuSegmentPrimitive)); }
+    if (SegAddN   > 0u) { std::memcpy(Handle->RefGeomMapped[1], RefGeo.AdditiveSegments.data(), SegAddN * sizeof(ParticleGpuSegmentPrimitive)); }
+    if (SurfOpqN  > 0u) { std::memcpy(Handle->RefGeomMapped[2], RefGeo.OpaqueSurfaceVertices.data(), SurfOpqN * sizeof(ParticleGpuSurfaceVertex)); }
+    if (SurfAlpN  > 0u) { std::memcpy(Handle->RefGeomMapped[3], RefGeo.TranslucentSurfaceVertices.data(), SurfAlpN * sizeof(ParticleGpuSurfaceVertex)); }
+    if (SurfAddN  > 0u) { std::memcpy(Handle->RefGeomMapped[4], RefGeo.AdditiveSurfaceVertices.data(), SurfAddN * sizeof(ParticleGpuSurfaceVertex)); }
+
+    const std::array<uint32_t, 5u> RefCounts = { SegAlphaN, SegAddN, SurfOpqN, SurfAlpN, SurfAddN };
+    const std::array<uint32_t, 5u> RefBlends = { 0u, 1u, 0u, 0u, 1u };
+    for (uint32_t SlotIdx = 0u; SlotIdx < 5u; ++SlotIdx)
+    {
+        ViewportGpuUniformBlock RefUbo = Ubo;
+        RefUbo.ViewportControl[0]      = RefCounts[SlotIdx];
+        RefUbo.ViewportControl[2]      = RefBlends[SlotIdx];
+        std::memcpy(
+            static_cast<uint8_t*>(Handle->RefUniformMapped) + SlotIdx * RasterImplementation::RefUboStride,
+            &RefUbo,
+            sizeof(ViewportGpuUniformBlock));
+    }
 
     // Bind live GPU SSBOs straight from ParticleVulkanExecutor (zero CPU copy!)
     Handle->UpdateDescriptorSlots();
@@ -1084,6 +1285,30 @@ bool ParticleViewportRasterization::RenderOffscreen(
         vkCmdDraw(Handle->CommandRecorder, 6u, 1u, 0u, 0u);
     }
 
+    // 2b. Opaque 3D studio-lit surface meshes (writes Reverse-Z depth before particles/arcs!)
+    if (SurfOpqN > 0u && Handle->SurfaceOpaqueExec != VK_NULL_HANDLE)
+    {
+        vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->SurfaceOpaqueExec);
+        vkCmdBindDescriptorSets(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->ReferenceLayout, 0u, 1u, &Handle->RefDescriptorSlots[2], 0u, nullptr);
+        vkCmdDraw(Handle->CommandRecorder, SurfOpqN, 1u, 0u, 0u);
+    }
+
+    // 2c. Alpha-blended 3D strands / webs / stalks / cables / branches
+    if (SegAlphaN > 0u && Handle->LineArcAlphaExec != VK_NULL_HANDLE)
+    {
+        vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->LineArcAlphaExec);
+        vkCmdBindDescriptorSets(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->ReferenceLayout, 0u, 1u, &Handle->RefDescriptorSlots[0], 0u, nullptr);
+        vkCmdDraw(Handle->CommandRecorder, 6u, SegAlphaN, 0u, 0u);
+    }
+
+    // 2d. Alpha-blended 3D translucent surfaces
+    if (SurfAlpN > 0u && Handle->SurfaceAlphaExec != VK_NULL_HANDLE)
+    {
+        vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->SurfaceAlphaExec);
+        vkCmdBindDescriptorSets(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->ReferenceLayout, 0u, 1u, &Handle->RefDescriptorSlots[3], 0u, nullptr);
+        vkCmdDraw(Handle->CommandRecorder, SurfAlpN, 1u, 0u, 0u);
+    }
+
     // 3. GPU instanced 3D quaternion-oriented solids (Cubes, Shards, Ferrofluid Spikes, Winged Boids, Coins)
     if (Request.RenderOrientedSolids && Request.ActiveCount > 0u && Handle->SolidExecutable != VK_NULL_HANDLE)
     {
@@ -1109,6 +1334,22 @@ bool ParticleViewportRasterization::RenderOffscreen(
         vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, BillExec);
         vkCmdBindDescriptorSets(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->ParticleLayout, 0u, 1u, &Handle->BillboardDescriptorSlot, 0u, nullptr);
         vkCmdDraw(Handle->CommandRecorder, 6u, Request.ActiveCount, 0u, 0u);
+    }
+
+    // 6. Additive 3D luminous surfaces (hex/prism shields, EMP dome, aurora curtain, Einstein ring)
+    if (SurfAddN > 0u && Handle->SurfaceAddExec != VK_NULL_HANDLE)
+    {
+        vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->SurfaceAddExec);
+        vkCmdBindDescriptorSets(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->ReferenceLayout, 0u, 1u, &Handle->RefDescriptorSlots[4], 0u, nullptr);
+        vkCmdDraw(Handle->CommandRecorder, SurfAddN, 1u, 0u, 0u);
+    }
+
+    // 7. Additive 3D lightning arcs, laser beams, shock/radar/sonar floor rings, flare/bokeh/firework streaks
+    if (SegAddN > 0u && Handle->LineArcAddExec != VK_NULL_HANDLE)
+    {
+        vkCmdBindPipeline(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->LineArcAddExec);
+        vkCmdBindDescriptorSets(Handle->CommandRecorder, VK_PIPELINE_BIND_POINT_GRAPHICS, Handle->ReferenceLayout, 0u, 1u, &Handle->RefDescriptorSlots[1], 0u, nullptr);
+        vkCmdDraw(Handle->CommandRecorder, 6u, SegAddN, 0u, 0u);
     }
 
     vkCmdEndRenderPass(Handle->CommandRecorder);

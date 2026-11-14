@@ -82,7 +82,7 @@ float4 ParticleFloorGridFragment(GridBackdropVaryings In) : SV_Target0
 {
     float2 Coord  = In.WorldPoint.xy;
     float  DistM  = length(Coord);
-    float  Fade   = 1.0 - smoothstep(4.0, 17.5, DistM);
+    float  Fade   = 1.0 - smoothstep(3.0, 13.5, DistM);
     if (Fade <= 0.004)
     {
         discard;
@@ -98,25 +98,25 @@ float4 ParticleFloorGridFragment(GridBackdropVaryings In) : SV_Target0
     float2 MajorCell  = abs(frac(MajorCoord - 0.5) - 0.5) / MajorDeriv;
     float  MajorLine  = 1.0 - min(min(MajorCell.x, MajorCell.y), 1.0);
 
-    // Axis highlight lines (+X coral red, +Y emerald green)
-    float AxisXLine = 1.0 - saturate(abs(Coord.y) / max(MinorDeriv.y * 1.4, 0.015));
-    float AxisYLine = 1.0 - saturate(abs(Coord.x) / max(MinorDeriv.x * 1.4, 0.015));
+    // Soft survey axes: the reference studio floor tints them only faintly, so they read as guides
+    float AxisXLine = 0.34 * (1.0 - saturate(abs(Coord.y) / max(MinorDeriv.y * 1.4, 0.015)));
+    float AxisYLine = 0.34 * (1.0 - saturate(abs(Coord.x) / max(MinorDeriv.x * 1.4, 0.015)));
 
     float3 LineColor = float3(0.18, 0.20, 0.24);
-    float  Alpha     = MinorLine * 0.24 + MajorLine * 0.34;
+    float  Alpha     = MinorLine * 0.10 + MajorLine * 0.15;
     if (MajorLine > MinorLine * 0.5)
     {
         LineColor = float3(0.28, 0.31, 0.36);
     }
     if (AxisXLine > 0.2)
     {
-        LineColor = lerp(LineColor, float3(0.84, 0.34, 0.32), AxisXLine);
-        Alpha     = max(Alpha, AxisXLine * 0.72);
+        LineColor = lerp(LineColor, float3(0.72, 0.36, 0.34), AxisXLine);
+        Alpha     = max(Alpha, AxisXLine * 0.20);
     }
     if (AxisYLine > 0.2)
     {
-        LineColor = lerp(LineColor, float3(0.32, 0.78, 0.48), AxisYLine);
-        Alpha     = max(Alpha, AxisYLine * 0.72);
+        LineColor = lerp(LineColor, float3(0.36, 0.66, 0.46), AxisYLine);
+        Alpha     = max(Alpha, AxisYLine * 0.20);
     }
 
     Alpha *= Fade;

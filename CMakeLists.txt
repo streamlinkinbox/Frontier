@@ -192,6 +192,7 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Workspaces/Particle/ParticleOutlinerPanel.cpp
     Engine/Workspaces/Particle/ParticleInspectorPanel.cpp
     Engine/Workspaces/Particle/ParticleViewportInteractor.cpp
+    Engine/Workspaces/Particle/ParticleReferenceGeometry.cpp
     Engine/Workspaces/Particle/ParticleViewportRasterization.cpp
     Engine/Workspaces/Particle/ParticleViewportHost.cpp
     Engine/Workspaces/Particle/ParticleWorkspaceHost.cpp
@@ -413,6 +414,10 @@ frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleShieldRef
 frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleSdfColliderCompute.slang"        "CollideSignedDistanceMain"          "compute"  "ParticleSdfColliderCompute.spv")
 frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleOrientedSolidRasterization.slang" "VertexMain"                        "vertex"   "ParticleOrientedSolidRasterization.vert.spv")
 frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleOrientedSolidRasterization.slang" "FragmentMain"                      "fragment" "ParticleOrientedSolidRasterization.frag.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleLineArcRasterization.slang"      "ParticleLineArcVertex"              "vertex"   "ParticleLineArcRasterization.vert.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleLineArcRasterization.slang"      "ParticleLineArcFragment"            "fragment" "ParticleLineArcRasterization.frag.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleSurfaceRasterization.slang"      "ParticleSurfaceVertex"              "vertex"   "ParticleSurfaceRasterization.vert.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleSurfaceRasterization.slang"      "ParticleSurfaceFragment"            "fragment" "ParticleSurfaceRasterization.frag.spv")
 
 function(frontier_compile_vector_slang_shader SLANG_REL_PATH ENTRY_NAME STAGE_KIND OUT_SPV_NAME)
     set(IN_SLANG "${FRONTIER_SHADER_SRC_DIR}/Vector/${SLANG_REL_PATH}")

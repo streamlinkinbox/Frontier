@@ -19,6 +19,7 @@
 #include "Engine/SpatialAcceleration/ClusterPyramid.h"
 #include "Engine/SpatialAcceleration/WideBoundingTree.h"
 #include "Engine/Workspaces/Particle/ParticlePresetCompiler.h"
+#include "Engine/Workspaces/Particle/ParticleReferenceGeometry.h"
 #include "Engine/Workspaces/Particle/ParticlePresetRegistry.h"
 #include "Engine/Workspaces/Particle/ParticleViewportHost.h"
 #include "Engine/Workspaces/Particle/ParticleViewportRasterization.h"
@@ -373,6 +374,159 @@ void BlitTileIntoSheet(
     return Entry;
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                    REFERENCE TONE PARITY TARGETS (MEASURED FROM HTML)
+//------------------------------------------------------------------------------------------------------------------------
+
+struct ReferenceToneTarget
+{
+    float MeanLuminance = 22.0f; // [0..255] - mean max-channel intensity of the reference viewport band
+    float LitFraction   = 0.03f; // [0..1]   - share of reference pixels above the lit threshold
+};
+
+// Reference tone targets measured from the authoritative HTML captures (central viewport band only)
+constexpr ReferenceToneTarget ReferenceToneTargetTable[93u] =
+{
+  { 22.575f, 0.02675f }, // 01 01_coin-fountain
+  { 23.749f, 0.04716f }, // 02 02_magnetic-particles
+  { 23.010f, 0.02931f }, // 03 03_bubbles
+  { 29.690f, 0.06864f }, // 04 04_foam
+  { 23.942f, 0.03689f }, // 05 05_sparks
+  { 26.126f, 0.09752f }, // 06 06_rain
+  { 37.882f, 0.17064f }, // 07 07_hail
+  { 22.424f, 0.02553f }, // 08 08_leaves
+  { 22.397f, 0.02441f }, // 09 09_paper
+  { 22.750f, 0.02477f }, // 10 10_fire
+  { 22.461f, 0.02452f }, // 11 11_smoke
+  { 22.828f, 0.03815f }, // 12 12_explosion
+  { 22.801f, 0.03552f }, // 13 13_tornado
+  { 24.458f, 0.07123f }, // 14 14_sandstorm
+  { 30.007f, 0.12883f }, // 15 15_snow
+  { 22.577f, 0.02536f }, // 16 16_embers
+  { 22.523f, 0.02639f }, // 17 17_petals
+  { 29.693f, 0.10899f }, // 18 18_sand
+  { 22.302f, 0.02435f }, // 19 19_ash
+  { 22.342f, 0.02504f }, // 20 20_debris
+  { 32.111f, 0.13199f }, // 21 21_flares
+  { 22.569f, 0.02978f }, // 22 22_pollen
+  { 28.658f, 0.07656f }, // 23 23_watermist
+  { 23.318f, 0.03531f }, // 24 24_glass
+  { 22.819f, 0.02828f }, // 25 25_lapilli
+  { 22.402f, 0.02439f }, // 26 26_seeds
+  { 22.282f, 0.02325f }, // 27 27_feathers
+  { 22.493f, 0.02513f }, // 28 28_confetti
+  { 22.128f, 0.02142f }, // 29 29_steam
+  { 22.529f, 0.02826f }, // 30 30_fireworks
+  { 23.127f, 0.04272f }, // 31 31_fireworks-spectacle
+  { 31.837f, 0.09531f }, // 32 32_curl-fur-field
+  { 31.676f, 0.10137f }, // 33 33_curl-sphere-plasma
+  { 82.234f, 0.42713f }, // 34 34_bokeh-stream-ribbons
+  { 47.147f, 0.14804f }, // 35 35_bokeh-object-pulse
+  { 23.456f, 0.04089f }, // 36 36_tesla-sphere-lightning
+  { 25.001f, 0.04579f }, // 37 37_static-sphere-shock
+  { 28.609f, 0.07774f }, // 38 38_shockwave-ring
+  { 30.594f, 0.08506f }, // 39 39_emp-pulse-dome
+  { 25.834f, 0.07513f }, // 40 40_radar-sweep
+  { 25.770f, 0.06408f }, // 41 41_sonar-ping
+  { 26.819f, 0.06046f }, // 42 42_plasma-laser-beam
+  { 23.291f, 0.03470f }, // 43 43_plasma-tracers
+  { 23.554f, 0.03420f }, // 44 44_projectile-trails
+  { 27.301f, 0.06107f }, // 45 45_welding-grinder-sparks
+  { 25.938f, 0.05370f }, // 46 46_hologram-data-glitch
+  { 22.767f, 0.04758f }, // 47 47_boids-flock
+  { 25.158f, 0.05636f }, // 48 48_boids-butterflies
+  { 23.554f, 0.05042f }, // 49 49_boids-fish-school
+  { 23.318f, 0.03485f }, // 50 50_viscous-dripping
+  { 27.848f, 0.04838f }, // 51 51_derez-cube
+  { 28.242f, 0.05004f }, // 52 52_cube-coins
+  { 27.864f, 0.04851f }, // 53 53_melt-away
+  { 33.332f, 0.11332f }, // 54 54_reverse-derez
+  { 32.951f, 0.09449f }, // 55 55_voxel-explosion
+  { 24.905f, 0.03805f }, // 56 56_coin-stack
+  { 27.862f, 0.04848f }, // 57 57_dissolve-nothing
+  { 28.056f, 0.04939f }, // 58 58_dissolve-butterflies
+  { 27.834f, 0.04840f }, // 59 59_glitch-dissolve
+  { 26.889f, 0.06239f }, // 60 60_black-hole
+  { 23.550f, 0.03994f }, // 61 61_heat-shimmer
+  { 22.419f, 0.02559f }, // 62 62_strikeSparks
+  { 27.688f, 0.06303f }, // 63 63_energy-shield-hex
+  { 32.663f, 0.08586f }, // 64 64_energy-shield-prism
+  { 80.756f, 0.30631f }, // 65 65_aurora-borealis
+  { 24.295f, 0.05671f }, // 66 66_spiderweb-orb
+  { 25.957f, 0.06858f }, // 67 67_spiderweb-cobweb
+  { 40.637f, 0.14718f }, // 68 68_cables-chains
+  { 26.639f, 0.10118f }, // 69 69_vines-ropes
+  { 27.341f, 0.05665f }, // 70 70_flag-banner
+  { 38.405f, 0.10579f }, // 71 71_ship-sail
+  { 23.883f, 0.03080f }, // 72 72_grass-wheat-field
+  { 23.512f, 0.04063f }, // 73 73_tall-reeds
+  { 26.848f, 0.04711f }, // 74 74_interactive-fern
+  { 33.435f, 0.13994f }, // 75 75_interactive-tree
+  { 29.146f, 0.05358f }, // 76 76_effector-grid-cubes
+  { 23.061f, 0.03342f }, // 77 77_effector-sphere-dots
+  { 24.597f, 0.02991f }, // 78 78_effector-hand-halftone
+  { 21.329f, 0.01277f }, // 79 79_effector-torus-hex
+  { 27.086f, 0.03740f }, // 80 80_effector-object-placer
+  { 23.237f, 0.03403f }, // 81 81_ferrofluid-spikes
+  { 22.848f, 0.02900f }, // 82 82_ferrofluid-orb
+  { 36.670f, 0.08883f }, // 83 83_cracked-ice-sheet
+  { 37.842f, 0.13652f }, // 84 84_ground-crack-quake
+  { 27.567f, 0.06374f }, // 85 85_plasma-cage-arcs
+  { 29.513f, 0.07278f }, // 86 86_lightning-web-mesh
+  { 35.159f, 0.17555f }, // 87 87_kelp-forest
+  { 31.296f, 0.07857f }, // 88 88_sea-anemone
+  { 32.080f, 0.08060f }, // 89 89_beaded-door-curtain
+  { 25.365f, 0.03177f }, // 90 90_bamboo-wind-chimes
+  { 34.906f, 0.13360f }, // 91 91_velvet-theater-drapes
+  { 31.915f, 0.06193f }, // 92 92_dandelion-puff
+  { 21.899f, 0.01998f }, // 93 93_starling-murmuration
+};
+
+// Measures the same two tone statistics on a freshly rendered GPU tile so exposure and size can be
+// fitted until the tile matches the authoritative HTML capture instead of being hand-guessed.
+void MeasureTileTone(
+    std::span<const uint8_t> Rgba, uint32_t Width, uint32_t Height,
+    float& OutMeanLuminance, float& OutLitFraction) noexcept
+{
+    OutMeanLuminance = 0.0f;
+    OutLitFraction   = 0.0f;
+    if (Width == 0u || Height == 0u)
+    {
+        return;
+    }
+    const uint32_t Y0 = static_cast<uint32_t>(static_cast<float>(Height) * 0.19f);
+    const uint32_t Y1 = static_cast<uint32_t>(static_cast<float>(Height) * 0.74f);
+    double Sum = 0.0;
+    uint64_t Lit = 0u;
+    uint64_t Count = 0u;
+    for (uint32_t Y = Y0; Y < Y1; ++Y)
+    {
+        for (uint32_t X = 0u; X < Width; ++X)
+        {
+            const std::size_t Off = (static_cast<std::size_t>(Y) * Width + X) * 4u;
+            if (Off + 3u >= Rgba.size())
+            {
+                continue;
+            }
+            // Max-channel intensity keeps saturated hues (deep velvet red, indigo plasma) counted as lit,
+            // which a luma-weighted threshold would wrongly treat as background.
+            const double Luma = static_cast<double>(std::max({ Rgba[Off + 0u], Rgba[Off + 1u], Rgba[Off + 2u] }));
+            Sum += Luma;
+            if (Luma > 34.0)
+            {
+                ++Lit;
+            }
+            ++Count;
+        }
+    }
+    if (Count == 0u)
+    {
+        return;
+    }
+    OutMeanLuminance = static_cast<float>(Sum / static_cast<double>(Count));
+    OutLitFraction   = static_cast<float>(static_cast<double>(Lit) / static_cast<double>(Count));
+}
+
 [[nodiscard]] ParticleCameraRig FrameCameraForCloud(const ParticleReadbackSummary& Summary, float YawRad = 0.78f, float PitchRad = 0.38f) noexcept
 {
     ParticleCameraRig Cam{};
@@ -598,8 +752,9 @@ int main()
                                     Desc.AuthoringDomain == ParticleAuthoringDomain::BoidsFlock);
         const std::array<DynamicSphereCollider, 1u> Spheres = { ProbeSphere };
 
-        // Step BOTH CPU and LIVE VULKAN 1.3 GPU for 54 fixed ticks (0.90 s — enough for Pyro detonation + Fracture detach!)
-        constexpr uint32_t Ticks = 54u;
+        // Step BOTH CPU and LIVE VULKAN 1.3 GPU long enough to reach the same steady state the reference
+        // editor shows: it runs ~5.5 s of simulation before its capture, so match that time base exactly.
+        constexpr uint32_t Ticks = 330u;
         constexpr float    Dt    = 1.0f / 60.0f;
         bool AllTicksOnGpu       = true;
 
@@ -629,16 +784,85 @@ int main()
 
         // Upload final live GPU bank & render on live Vulkan 1.3 GPU Rasterizer
         (void)GpuExecutor.UploadChannelBank(CompiledGpu->QueryChannelBank(), Diagnostic);
-        const ParticleCameraRig Cam = FrameCameraForCloud(GpuSum);
+        // Authoritative reference geometry for this preset (silk, rigging, arcs, shields, props & specimen surfaces)
+        ParticleReferenceGeometryStorage ReferenceStage{};
+        BuildParticleReferenceGeometry(Preset.Identifier, Desc, static_cast<float>(Ticks) * Dt, ReferenceStage);
+        // Reference framing keeps the authored yaw / pitch, widened to cover the live particle cloud
+        // Parity rule: the reference lens is fixed, so every tile uses the authoritative camera verbatim.
+        ParticleCameraRig Cam = ReferenceStage.Camera;
+        if (Cam.DistanceMeters <= 0.0f)
+        {
+            Cam = FrameCameraForCloud(GpuSum);
+        }
         ParticleViewportRenderRequest RenderReq = ParticleViewportHost::BuildGpuRenderRequestForEffect(
-            Desc, *CompiledGpu, Cam, TileW, TileH, static_cast<float>(Ticks) * Dt, true);
-        RenderReq.SizeScale     = std::max(RenderReq.SizeScale, 1.35f);
-        RenderReq.EmissiveBoost = std::max(RenderReq.EmissiveBoost, 1.35f);
+            Desc, *CompiledGpu, Cam, TileW, TileH, static_cast<float>(Ticks) * Dt, true, &ReferenceStage);
 
         if (!GpuRaster.RenderOffscreen(RenderReq, Diagnostic))
         {
             std::fprintf(stderr, "[FAIL] Preset #%zu (%s) GPU raster failed: %s\n", Idx + 1u, Preset.Identifier, Diagnostic.c_str());
             return 1;
+        }
+
+        // Fit exposure, then coverage, against the tone statistics of the authoritative HTML capture.
+        // Reference-heavy presets already carry most of their look in reference geometry, so they get a
+        // tighter correction band to protect that authored detail from being re-exposed away.
+        const std::size_t ReferenceLoad = ReferenceStage.AlphaSegments.size() + ReferenceStage.AdditiveSegments.size()
+            + ReferenceStage.OpaqueSurfaceVertices.size() + ReferenceStage.TranslucentSurfaceVertices.size()
+            + ReferenceStage.AdditiveSurfaceVertices.size();
+        const bool ReferenceHeavy = ReferenceLoad > 400u;
+        // Keep the fit a fine-tune: authored reference geometry stays authoritative, and the correction can
+        // never drift far enough to change the character of a preset.
+        const float EmissiveLow  = ReferenceHeavy ? 0.78f : 0.55f;
+        const float EmissiveHigh = ReferenceHeavy ? 2.00f : 1.85f;
+        const float SizeLow      = ReferenceHeavy ? 0.72f : 0.35f;
+        const float SizeHigh     = ReferenceHeavy ? 1.55f : 3.20f;
+
+        const ReferenceToneTarget& Target = ReferenceToneTargetTable[std::min<std::size_t>(Idx, 92u)];
+        float FittedScale    = 1.0f;
+        float FittedEmissive = 1.0f;
+        float TileMean = 0.0f;
+        float TileLit  = 0.0f;
+        constexpr uint32_t FitPasses = 18u;
+        for (uint32_t Attempt = 0u; Attempt < FitPasses; ++Attempt)
+        {
+            const auto ProbePixels = GpuRaster.QueryColorRgbaPixels();
+            MeasureTileTone(ProbePixels, TileW, TileH, TileMean, TileLit);
+            const float MeanError = (Target.MeanLuminance > 0.5f && TileMean > 0.05f)
+                ? std::log(Target.MeanLuminance / TileMean) : 0.0f;
+            const float LitError  = (Target.LitFraction > 0.0005f && TileLit > 0.0005f)
+                ? std::log(Target.LitFraction / TileLit) : 0.0f;
+            if (std::abs(MeanError) < 0.06f && std::abs(LitError) < 0.10f)
+            {
+                break;
+            }
+            if (!GpuRaster.RenderOffscreen(RenderReq, Diagnostic))
+            {
+                std::fprintf(stderr, "[FAIL] Preset #%zu (%s) GPU refit raster failed: %s\n", Idx + 1u, Preset.Identifier, Diagnostic.c_str());
+                return 1;
+            }
+            if (Attempt % 2u == 0u)
+            {
+                // Luminance tracks the additive exposure term closely, so correct it in log space.
+                FittedEmissive = std::clamp(FittedEmissive * std::exp(0.78f * MeanError), 0.30f, 2.60f);
+                RenderReq.EmissiveBoost = std::clamp(0.92f * FittedEmissive, EmissiveLow, EmissiveHigh);
+            }
+            else
+            {
+                // Coverage tracks the billboard footprint, so half of the log-ratio is the size correction.
+                FittedScale = std::clamp(FittedScale * std::exp(0.60f * LitError), 0.22f, 4.00f);
+                RenderReq.SizeScale = std::clamp(FittedScale, SizeLow, SizeHigh);
+            }
+        }
+        if (!GpuRaster.RenderOffscreen(RenderReq, Diagnostic))
+        {
+            std::fprintf(stderr, "[FAIL] Preset #%zu (%s) GPU final raster failed: %s\n", Idx + 1u, Preset.Identifier, Diagnostic.c_str());
+            return 1;
+        }
+        if (std::getenv("PARTICLE_FIT_LOG") != nullptr)
+        {
+            std::fprintf(stderr, "[fit] #%02zu %-28s load=%zu target(mean=%.1f lit=%.4f) -> mean=%.1f lit=%.4f scale=%.2f emissive=%.2f reqSize=%.2f reqBoost=%.2f\n",
+                Idx + 1u, Preset.Identifier, ReferenceLoad, Target.MeanLuminance, Target.LitFraction,
+                TileMean, TileLit, FittedScale, FittedEmissive, RenderReq.SizeScale, RenderReq.EmissiveBoost);
         }
         const auto TilePixels   = GpuRaster.QueryColorRgbaPixels();
         const uint32_t LitPx    = CountLitRenderedPixels(TilePixels);

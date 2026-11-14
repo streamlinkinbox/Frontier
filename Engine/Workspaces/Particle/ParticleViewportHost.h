@@ -11,6 +11,7 @@
 
 #include "Engine/Components/Controls/PlaybackScrubber.h"
 #include "Engine/Components/Panes/WorkspaceAppearance.h"
+#include "Engine/Workspaces/Particle/ParticleReferenceGeometry.h"
 #include "Engine/Workspaces/Particle/ParticleViewportInteractor.h"
 #include "Engine/Workspaces/Particle/ParticleViewportRasterization.h"
 #include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
@@ -50,7 +51,8 @@ public:
         uint32_t                                             WidthPx,
         uint32_t                                             HeightPx,
         float                                                TimeSeconds,
-        bool                                                 ShowFloorGrid) noexcept;
+        bool                                                 ShowFloorGrid,
+        const ParticleReferenceGeometryStorage*              ReferenceGeometry = nullptr) noexcept;
 
     [[nodiscard]] ParticleViewportInteractor&       AccessInteractor() noexcept        { return Interactor; }
     [[nodiscard]] const ParticleViewportInteractor& InspectInteractor() const noexcept { return Interactor; }
@@ -74,6 +76,7 @@ private:
     ParticleWorkspaceSession*                 Session                = nullptr;
     ParticleViewportRasterization*            GpuRasterizer          = nullptr;
     ParticleViewportInteractor                Interactor             {};
+    ParticleReferenceGeometryStorage          ReferenceGeometry      {};
     PlaybackScrubber::PlaybackClockParameters ScrubberClock          {};
     ImTextureData                             GpuViewportTexture     {};
     bool                                      LastFrameUsedGpuRaster = false;
