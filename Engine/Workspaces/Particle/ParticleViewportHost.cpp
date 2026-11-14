@@ -307,11 +307,12 @@ void ParticleViewportHost::RenderTopHudBar(
 
     Surface.FillCircle({ Bar.X + 16.0f, Bar.Center().Y }, 4.0f, ViewportSurfaceColors::AccentGreen);
 
-    char Telemetry[144]{};
+    char Telemetry[160]{};
     std::snprintf(
         Telemetry,
         sizeof(Telemetry),
-        "3D Particle Viewport  ·  %u alive  ·  %.1f m/s peak  ·  %zu forces",
+        "%s  ·  %u alive  ·  %.1f m/s peak  ·  %zu forces",
+        QueryGpuRasterizerReady() ? "Vulkan 1.3 .slang Viewport" : "3D Particle Viewport",
         Session->QueryTotalAliveParticles(),
         Session->QueryPeakParticleSpeedMs(),
         Session->QueryForceSources().size());

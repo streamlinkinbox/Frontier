@@ -402,9 +402,17 @@ Frontier/
     │   │   ├── MicrofacetShading.slang            // Physical microfacet PBR shader
     │   │   └── DepthPreRaster.slang               // Early-Z depth pre-rasterization shader
     │   ├── Compute/                               // General GPU compute shaders
-    │   │   ├── ParticleIntegration.slang
-    │   │   ├── FluidAdvection.slang
-    │   │   └── VoxelDistanceSweep.slang
+    │   │   ├── ForceFieldEvaluationShared.slang   // Shared 19-ForceModel analytical evaluation
+    │   │   └── FieldLatticeCompute.slang          // Cascaded 3D ForceField clipmap lattice compute
+    │   ├── Particles/                             // Vulkan 1.3 .slang modular particle compute & viewport raster shaders
+    │   │   ├── ParticleChannelShared.slang        // 16B-aligned mirror of ParticleChannelLayouts.h + ForceFields reuse
+    │   │   ├── ParticleReleaseCompute.slang       // Volume/lattice/arc GPU particle release compute
+    │   │   ├── ParticleAdvectCompute.slang        // Gravity, ForceFields, curl, colliders & curves compute
+    │   │   ├── ParticleStrandConstraintCompute.slang // Parallel XPBD/Verlet strand & cloth relaxation compute
+    │   │   ├── ParticleReductionCompute.slang     // Parallel workgroup reduction -> 32 B ParticleReadbackSummary
+    │   │   ├── ParticleBillboardRasterization.slang // GPU billboard, spark streak, glow orb & shard rasterizer
+    │   │   ├── ParticleRibbonRasterization.slang  // GPU live StrandConnectivity ribbon & cloth rasterizer
+    │   │   └── ParticleGridBackdropRasterization.slang // GPU dark OLED backdrop & 3D perspective floor grid rasterizer
     │   └── ImageOperations/                       // Post-process image filter shaders
     │       ├── DisplayToneTransfer.slang
     │       └── LuminanceGlareDownsample.slang
@@ -428,7 +436,8 @@ Frontier/
     │   │   ├── ParticleDynamics.h                 // Composable source, motion, collider & integrator types
     │   │   ├── ParticleKinematicsSolvers.{h,cpp}  // ForceFields coupling, curl, SDF/plane colliders, RK2/XPBD
     │   │   ├── ParticleDomainSolvers.{h,cpp}      // Strands, ferrofluid, fireworks, fracture, boids & fields
-    │   │   └── ParticleSimulation.{h,cpp}         // Simulation runner, specification & async 32B readback
+    │   │   ├── ParticleSimulation.{h,cpp}         // Simulation runner, specification & async 32B readback
+    │   │   └── ParticleVulkanExecutor.{h,cpp}     // Headless Vulkan 1.3 compute executor & 32B reduction readback
     │   ├── FluidSimulation/                       // Multiphase liquids and gases
     │   │   ├── LiquidSolver.{h,cpp}               // Incompressible SPH liquid solver
     │   │   ├── GasDynamics.{h,cpp}                // Eulerian grid smoke, fire, and atmosphere solver
@@ -521,6 +530,7 @@ Frontier/
     │       ├── ParticleOutlinerPanel.{h,cpp}      // Native PixelSpace Outliner & Construct preset sheet
     │       ├── ParticleInspectorPanel.{h,cpp}     // 4-tab Particle Inspector + ForceInspectorView delegation
     │       ├── ParticleViewportInteractor.{h,cpp} // Z-Up 3D orbit/pan/dolly camera rig
+    │       ├── ParticleViewportRasterization.{h,cpp} // Vulkan 1.3 .slang GPU particle/strand/grid rasterizer
     │       ├── ParticleViewportHost.{h,cpp}       // 3D viewport canvas, ForceFields gizmos & PlaybackScrubber
     │       └── ParticleWorkspaceHost.{h,cpp}      // Standalone / Editor dock registration & external file drop
     │

@@ -1,6 +1,6 @@
 # Frontier C++20 Modular Particle Simulation Architecture Plan
 
-> **Status:** 🟢 Step 2A, Step 2B & Architecture Remediation (Phases 1–4 + `ForceModel` Rename) Implemented & Verified (`ParticleSimulationValidation` PASS · `ParticleWorkspaceUIValidation` PASS · Pure Headless Shipping `-Werror` Clean · 0 Banned Words) · Step 2C (Vulkan 1.3 `.slang` Compute) Next
+> **Status:** 🟢 Step 2A, Step 2B, Architecture Remediation (Phases 1–4 + `ForceModel` Rename) & **Step 2C (Vulkan 1.3 `.slang` Compute + GPU Rasterization)** Implemented & Verified (`ParticleVulkanGpuValidation` PASS · `ParticleSimulationValidation` PASS · `ParticleWorkspaceUIValidation` PASS · Pure Headless Shipping `-Wpedantic -Werror` Clean · 0 Banned Words / 0 `And` Violations)
 > **Scope:** Native ISO C++20 modular particle movement, modular typed SoA channels, composable motion & constraint solvers, direct `SimulationSpace::ForceFields` + `DistanceFieldSpace::SignedDistanceVolume` reuse, and dual CPU / Vulkan 1.3 `.slang` execution.
 > **Supersedes:** Earlier removed draft `CxxParticleFoundationPlan.md` (which previously lived inside `Engine/SimulationSpace/Particles/` and used a fixed `80 B` monolithic struct with pre-governance naming).
 
@@ -307,7 +307,7 @@ Engine/
       ParticleKinematicsSolvers.h / .cpp # Modular native solvers: GravityBuoyancySolver, ForceFieldCouplingSolver, Curl, Flutter, AppearanceCurve, Colliders (Ground/Sphere/SDF)
       ParticleDomainSolvers.h / .cpp     # Specialized solvers: XpbdStrandSolver, RosensweigFerrofluidSolver, PyroVolley, BoidsFlock, FractureCrackSolver, MoGraphEffector, ShieldRipple, SpaceRefractionSolver
       ParticleSimulation.h / .cpp        # Composable ParticleSimulation, ParticleSimulationSpecification, ParticleSimulationRegistry & ReadbackSummary
-      ParticleVulkanExecutor.h / .cpp    # [Step 2C] Vulkan 1.3 compute executor + 32 B async reduction readback
+      ParticleVulkanExecutor.h / .cpp    # [Step 2C] Vulkan 1.3 compute executor + 32 B async reduction readback (pure headless Shipping stub when Vulkan disabled)
   Workspaces/
     Particle/                            # Singular Particle Workspace (dual-deployment: headless engine + Editor UI)
       ParticlePresetRegistry.h / .cpp    # [Headless] 93 active non-quarantined presets, ParticleRgba8, ParticlePlaybackClock
@@ -316,18 +316,23 @@ Engine/
       ParticleOutlinerPanel.h / .cpp     # [Editor] Outliner pane + ForceModels / Presets Construct sheet
       ParticleInspectorPanel.h / .cpp    # [Editor] Dual-mode Inspector delegating ForceFields to ForceInspectorView
       ParticleViewportInteractor.h / .cpp# [Editor] Orbit/pan/zoom camera rig & perspective projection
-      ParticleViewportHost.h / .cpp      # [Editor] Live 3D particle + ForceFields viewport & PlaybackScrubber transport dock
+      ParticleViewportRasterization.h/.cpp# [Step 2C] Vulkan 1.3 offscreen Reverse-Z +Z Up GPU viewport rasterizer (backdrop, 3D floor grid, ribbons, billboards)
+      ParticleViewportHost.h / .cpp      # [Editor] Live 3D particle + ForceFields viewport (GPU rasterization + headless fallback) & PlaybackScrubber dock
       ParticleWorkspaceHost.h / .cpp     # [Editor] Full 3-pane WorkspaceDockContainer host + ContentBrowser integration
   Shaders/
-    Particles/                           # [Step 2C] Vulkan 1.3 .slang compute & render shaders
+    Particles/                           # [Step 2C] Vulkan 1.3 .slang compute & rasterization suite (14 compiled SPIR-V 1.3 entrypoints)
       ParticleChannelShared.slang
       ParticleReleaseCompute.slang
       ParticleAdvectCompute.slang
       ParticleStrandConstraintCompute.slang
       ParticleReductionCompute.slang
+      ParticleBillboardRasterization.slang
+      ParticleRibbonRasterization.slang
+      ParticleGridBackdropRasterization.slang
 Exhibits/
   ParticleSimulationValidation.cpp       # Headless C++20 simulation + .ParticleSpace codec + RevisionTracker validation
   ParticleWorkspaceUIValidation.cpp      # 3-pane ParticleWorkspaceHost, Outliner, Inspector, ForceInspectorView & 3D Viewport validation
+  ParticleVulkanGpuValidation.cpp        # [Step 2C] Live Vulkan 1.3 .slang CPU-vs-GPU parity, 8192-slot GPU release/reduction & XPBD cloth + 2 GPU PNG proofs
 ```
 
 ---
@@ -339,7 +344,17 @@ Exhibits/
 | **Step 2A — Modular C++ Foundation & ForceFields/SDF Coupling** | 🟢 **Completed** | `ParticleChannelBank`, `ParticleChannelLayouts` (11 × 16B-aligned channels), `ParticleDynamics`, `ParticleKinematicsSolvers`, `ParticleSimulation` + `Specification` + `Registry`. | Pure headless Shipping build (`-O2 -Wall -Wextra -Wpedantic -Werror`, zero UI/ImGui headers) + `ParticleSimulationValidation` PASS. |
 | **Step 2B — All 10 Domain Solvers & 93-Preset Specification Compiler** | 🟢 **Completed** | `ParticleDomainSolvers` (all 10 domains) + `ParticlePresetCompiler` relocated cleanly into `Engine/Workspaces/Particle/`. | All **93/93** active non-quarantined presets compile & tick 75 steps with **0 NaN/Inf**, all **9/9** retired Quarantine slugs strictly rejected. |
 | **Architecture & Naming Remediation (Phases 1–4 + `ForceModel`)** | 🟢 **Completed** | Renamed all `ForceLaw*` → `ForceModel*` across 15 upstream files; decoupled headless Particle session/registry/compiler from UI headers and promoted into `FRONTIER_ENGINE_SOURCES`; implemented `ParticleCodec.{h,cpp}` (`.ParticleSpace` Two-Tier Hybrid), `WorkspaceDocument` + `RevisionTracker` undo/redo, `ParticleWorkspacePreferences`, and `ParticleViewportInteractor` / `ParticleViewportHost` / `ParticleWorkspaceHost`. | **9/9** headless units compile cleanly in `Shipping` (`-Wall -Wextra -Wpedantic -Werror`), **0 banned words**, `ParticleSimulationValidation` TEST 5 (`.ParticleSpace` round-trip + undo/redo) PASS, `ParticleWorkspaceUIValidation` Proof 6 (3-pane `ParticleWorkspaceHost` + live 3D particle viewport) PASS. |
-| **Step 2C — Vulkan 1.3 `.slang` Compute & GPU Rasterization** | 🟡 **Next** | `ParticleVulkanExecutor` + 5 `.slang` compute shaders importing `ForceFieldEvaluationShared.slang` + modular billboard/ribbon/shard `.slang` rasterizers inside `ParticleViewportHost`. | CPU-vs-GPU numerical parity validation + Vulkan/SwiftShader rendered viewport PNG exhibits in `Exhibits/Images/Particles/`. |
+| **Step 2C — Vulkan 1.3 `.slang` Compute & GPU Rasterization** | 🟢 **Completed** | `ParticleVulkanExecutor.{h,cpp}`, `ParticleViewportRasterization.{h,cpp}`, `ParticleViewportHost` GPU presentation path, 8 `.slang` shaders (14 SPIR-V 1.3 entrypoints) importing `ForceFieldEvaluationShared.slang`, `CMakeLists.txt` Slang build rules, and `Exhibits/ParticleVulkanGpuValidation.cpp`. | **14/14** SPIR-V 1.3 modules compiled cleanly via `slangc` (`0` warnings, `Caps=[1]` with `SV_VulkanVertexID`/`SV_VulkanInstanceID`); live SwiftShader Vulkan 1.3 `ParticleVulkanGpuValidation` PASS (**0.042 mm median / 0.177 mm max** CPU-vs-GPU parity across 553 particles × 60 nonlinear ticks, **8,160-slot** pure-GPU vortex + 32 B reduction, **252-vert** GPU XPBD woven cloth with `0.0000 m` mast drift); **0** stderr warnings; **9/9** pure headless Shipping `-Wpedantic -Werror` PASS; **0** banned words / Gate ⑦ `And` violations. |
+
+### Verified Visual Proofs (Step 2C — Live Vulkan 1.3 `.slang` Compute + GPU Rasterization)
+
+![Vulkan 1.3 GPU Coupled ForceFields Vortex (8,160 Slots)](../../Exhibits/Images/Particles/ParticleGpu_VulkanCompute_CoupledForceFields.png)
+
+- **GPU Proof 01 (`ParticleGpu_VulkanCompute_CoupledForceFields.png`)**: 8,160 particles released and advected 100% on GPU (`ParticleReleaseCompute.slang` + `ParticleAdvectCompute.slang` importing `ForceFieldEvaluationShared.slang` with `RotationalColumn + ThermalUpdraft + CurlNoise`), reduced via 3-stage atomic `ParticleReductionCompute.slang` (`32 B` `ParticleReadbackSummary`: `Alive=8160`, `PeakSpeed=12.92 m/s`, `BoundsR=8.21 m`), and rasterized directly from live SSBOs with zero CPU copy via `ParticleBillboardRasterization.slang` (`SparkStreak`, Additive) + `ParticleGridBackdropRasterization.slang` (Reverse-Z +Z Up floor grid).
+
+![Vulkan 1.3 GPU XPBD Woven Cloth Ribbons](../../Exhibits/Images/Particles/ParticleGpu_VulkanCompute_XpbdClothRibbons.png)
+
+- **GPU Proof 02 (`ParticleGpu_VulkanCompute_XpbdClothRibbons.png`)**: `18 × 14` (252-vertex) woven cloth banner simulated 100% on GPU via 6-iteration XPBD `ParticleStrandConstraintCompute.slang` under live `LinearWind` + `AtmosphericGust` ForceModels and dynamic `0.68 m` `SphereContactCollider` (`MaxPinDrift=0.0000 m`, `MaxSegRatio=1.38x`, `TipWindDeflectionY=-1.03 m`), rendered directly from live `Kinematics`, `Appearance`, and `StrandConnectivity` SSBOs via `ParticleRibbonRasterization.slang` + `ParticleBillboardRasterization.slang`.
 
 ### Verified Visual Proof (Step 2A + Step 2B)
 

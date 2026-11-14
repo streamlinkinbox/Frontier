@@ -192,6 +192,7 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Workspaces/Particle/ParticleOutlinerPanel.cpp
     Engine/Workspaces/Particle/ParticleInspectorPanel.cpp
     Engine/Workspaces/Particle/ParticleViewportInteractor.cpp
+    Engine/Workspaces/Particle/ParticleViewportRasterization.cpp
     Engine/Workspaces/Particle/ParticleViewportHost.cpp
     Engine/Workspaces/Particle/ParticleWorkspaceHost.cpp
     Engine/Workspaces/Texturing/PatternStampLayerStackPane.cpp
@@ -362,6 +363,47 @@ frontier_compile_vectorfield_slang_stage(
     "compute"
     "FieldLatticeCompute.spv"
 )
+
+function(frontier_compile_particle_slang_unit SLANG_REL_PATH ENTRY_NAME SHADER_UNIT OUT_SPV_NAME)
+    set(IN_SLANG "${CMAKE_SOURCE_DIR}/${SLANG_REL_PATH}")
+    set(OUT_SPV "${FRONTIER_COMPILED_SHADER_DIR}/${OUT_SPV_NAME}")
+    add_custom_command(
+        OUTPUT "${OUT_SPV}"
+        COMMAND "${FRONTIER_SLANGC_BIN}"
+            "${IN_SLANG}"
+            -I "${CMAKE_SOURCE_DIR}"
+            -target spirv
+            -profile spirv_1_3
+            -emit-spirv-directly
+            -fvk-use-entrypoint-name
+            -O0
+            -entry "${ENTRY_NAME}"
+            -stage "${SHADER_UNIT}"
+            -o "${OUT_SPV}"
+        DEPENDS
+            "${IN_SLANG}"
+            "${CMAKE_SOURCE_DIR}/Engine/Shaders/Compute/ForceFieldEvaluationShared.slang"
+            "${CMAKE_SOURCE_DIR}/Engine/Shaders/Particles/ParticleChannelShared.slang"
+        COMMENT "[Slang] Compiling ${SLANG_REL_PATH} (${SHADER_UNIT}:${ENTRY_NAME}) -> ${OUT_SPV_NAME}"
+        VERBATIM
+    )
+    set(FRONTIER_SPV_OUTPUTS ${FRONTIER_SPV_OUTPUTS} "${OUT_SPV}" PARENT_SCOPE)
+endfunction()
+
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleReleaseCompute.slang"            "ComputeParticleRelease"             "compute"  "ParticleReleaseCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleAdvectCompute.slang"             "ComputeParticleAdvect"              "compute"  "ParticleAdvectCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleStrandConstraintCompute.slang"   "ComputeStrandConstraint"            "compute"  "ParticleStrandConstraintCompute.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleReductionCompute.slang"          "ComputeParticleReductionAccumulate" "compute"  "ParticleReductionAccumulate.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleReductionCompute.slang"          "ComputeParticleReductionBounds"     "compute"  "ParticleReductionBounds.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleReductionCompute.slang"          "ComputeParticleReductionFinalize"   "compute"  "ParticleReductionFinalize.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleBillboardRasterization.slang"    "ParticleBillboardVertex"            "vertex"   "ParticleBillboardRasterization.vert.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleBillboardRasterization.slang"    "ParticleBillboardFragment"          "fragment" "ParticleBillboardRasterization.frag.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleRibbonRasterization.slang"       "ParticleRibbonVertex"               "vertex"   "ParticleRibbonRasterization.vert.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleRibbonRasterization.slang"       "ParticleRibbonFragment"             "fragment" "ParticleRibbonRasterization.frag.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleGridBackdropRasterization.slang" "ParticleBackdropVertex"             "vertex"   "ParticleBackdropRasterization.vert.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleGridBackdropRasterization.slang" "ParticleBackdropFragment"           "fragment" "ParticleBackdropRasterization.frag.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleGridBackdropRasterization.slang" "ParticleFloorGridVertex"            "vertex"   "ParticleFloorGridRasterization.vert.spv")
+frontier_compile_particle_slang_unit("Engine/Shaders/Particles/ParticleGridBackdropRasterization.slang" "ParticleFloorGridFragment"          "fragment" "ParticleFloorGridRasterization.frag.spv")
 
 function(frontier_compile_vector_slang_shader SLANG_REL_PATH ENTRY_NAME STAGE_KIND OUT_SPV_NAME)
     set(IN_SLANG "${FRONTIER_SHADER_SRC_DIR}/Vector/${SLANG_REL_PATH}")
@@ -577,6 +619,7 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/SimulationSpace/Particles/ParticleKinematicsSolvers.cpp
     Engine/SimulationSpace/Particles/ParticleDomainSolvers.cpp
     Engine/SimulationSpace/Particles/ParticleSimulation.cpp
+    Engine/SimulationSpace/Particles/ParticleVulkanExecutor.cpp
     Engine/NetworkingSpace/PacketSerializer.cpp
     Engine/NetworkingSpace/NetworkEndpointRegister.cpp
     Engine/NetworkingSpace/DifferentialWorldEncoder.cpp
@@ -796,6 +839,7 @@ if(BUILD_TESTING)
     frontier_register_exhibit(VectorFieldValidation             Exhibits/VectorFieldValidation.cpp)
     frontier_register_exhibit(ParticleWorkspaceUIValidation     Exhibits/ParticleWorkspaceUIValidation.cpp)
     frontier_register_exhibit(ParticleSimulationValidation      Exhibits/ParticleSimulationValidation.cpp)
+    frontier_register_exhibit(ParticleVulkanGpuValidation       Exhibits/ParticleVulkanGpuValidation.cpp)
     frontier_register_exhibit(ProjectBrowserValidation          Exhibits/ProjectBrowserValidation.cpp)
     frontier_register_exhibit(VectorGraphicsGPUValidation       Exhibits/VectorGraphicsGPUValidation.cpp)
     frontier_register_exhibit(BakingGPUValidation               Exhibits/BakingGPUValidation.cpp)

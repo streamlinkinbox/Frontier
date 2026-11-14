@@ -12,6 +12,7 @@
 #include "Engine/Components/Controls/PlaybackScrubber.h"
 #include "Engine/Components/Panes/WorkspaceAppearance.h"
 #include "Engine/Workspaces/Particle/ParticleViewportInteractor.h"
+#include "Engine/Workspaces/Particle/ParticleViewportRasterization.h"
 #include "Engine/Workspaces/Particle/ParticleWorkspaceSession.h"
 
 namespace Frontier::Workspaces
@@ -31,6 +32,12 @@ public:
     ParticleViewportHost& operator=(const ParticleViewportHost&) = delete;
 
     void AttachSession(ParticleWorkspaceSession* TargetSession) noexcept;
+    void AttachGpuRasterizer(ParticleViewportRasterization* TargetRasterizer) noexcept { GpuRasterizer = TargetRasterizer; }
+
+    [[nodiscard]] bool QueryGpuRasterizerReady() const noexcept
+    {
+        return GpuRasterizer != nullptr && GpuRasterizer->QueryReady();
+    }
 
     [[nodiscard]] ParticleViewportInteractor&       AccessInteractor() noexcept        { return Interactor; }
     [[nodiscard]] const ParticleViewportInteractor& InspectInteractor() const noexcept { return Interactor; }
@@ -51,6 +58,7 @@ private:
     void RenderBottomScrubber(PixelSpace& Surface, Rectangle2D Bounds, const PaneInputReading& Input, double Δt) noexcept;
 
     ParticleWorkspaceSession*                 Session       = nullptr;
+    ParticleViewportRasterization*            GpuRasterizer = nullptr;
     ParticleViewportInteractor                Interactor    {};
     PlaybackScrubber::PlaybackClockParameters ScrubberClock {};
 };
