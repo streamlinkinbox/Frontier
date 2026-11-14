@@ -1,7 +1,7 @@
 /*============================================================================================================================================
                                                          PARTICLECHANNELBANK.CPP
 ============================================================================================================================================*/
-// 🧩 Implementation of modular 64-byte-aligned Structure-of-Arrays ParticleChannelBank with synchronized channel spawning & retirement
+// 🧩 Implementation of modular 64-byte-aligned Structure-of-Arrays ParticleChannelBank with synchronized slot acquisition & reclamation
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        INCLUDES
@@ -17,13 +17,13 @@ namespace Frontier::SimulationSpace::Particles
 {
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                     INTERNAL HELPERS
+//                                                     INTERNAL ROUTINES
 //------------------------------------------------------------------------------------------------------------------------
 
 namespace
 {
 
-inline constexpr std::size_t MinimumColumnAlignmentBytes = 64u; // [B] - Cache-line alignment for SIMD & GPU staging
+inline constexpr std::size_t MinimumColumnAlignmentBytes = 64u; // [B] - 64-byte alignment for SIMD & GPU staging
 
 [[nodiscard]] std::size_t ComputeEffectiveAlignment(uint32_t RequestedAlign) noexcept
 {
@@ -141,7 +141,7 @@ void ParticleChannelBank::ResetAllChannels() noexcept
     ActiveCount = 0u;
 }
 
-uint32_t ParticleChannelBank::SpawnSlots(uint32_t RequestedCount, uint32_t& OutBeginSlot) noexcept
+uint32_t ParticleChannelBank::AcquireSlots(uint32_t RequestedCount, uint32_t& OutBeginSlot) noexcept
 {
     OutBeginSlot = ActiveCount;
     if (RequestedCount == 0u || ActiveCount >= Capacity)
@@ -149,8 +149,8 @@ uint32_t ParticleChannelBank::SpawnSlots(uint32_t RequestedCount, uint32_t& OutB
         return 0u;
     }
 
-    const uint32_t Available = Capacity - ActiveCount;
-    const uint32_t Spawned   = std::min(RequestedCount, Available);
+    const uint32_t Available     = Capacity - ActiveCount;
+    const uint32_t AcquiredCount = std::min(RequestedCount, Available);
 
     for (ChannelColumn& Column : Columns)
     {
@@ -158,7 +158,7 @@ uint32_t ParticleChannelBank::SpawnSlots(uint32_t RequestedCount, uint32_t& OutB
         {
             continue;
         }
-        for (uint32_t Offset = 0u; Offset < Spawned; ++Offset)
+        for (uint32_t Offset = 0u; Offset < AcquiredCount; ++Offset)
         {
             const std::size_t ByteOffset = static_cast<std::size_t>(OutBeginSlot + Offset) * Column.StrideBytes;
             if (Column.ResetSlot != nullptr)
@@ -172,11 +172,11 @@ uint32_t ParticleChannelBank::SpawnSlots(uint32_t RequestedCount, uint32_t& OutB
         }
     }
 
-    ActiveCount += Spawned;
-    return Spawned;
+    ActiveCount += AcquiredCount;
+    return AcquiredCount;
 }
 
-void ParticleChannelBank::RetireSlot(uint32_t SlotIndex) noexcept
+void ParticleChannelBank::ReclaimSlot(uint32_t SlotIndex) noexcept
 {
     if (SlotIndex >= ActiveCount)
     {
@@ -213,9 +213,9 @@ void ParticleChannelBank::RetireSlot(uint32_t SlotIndex) noexcept
             {
                 continue;
             }
-            std::byte* Dst       = Column.AlignedBytes + static_cast<std::size_t>(SlotIndex) * Column.StrideBytes;
-            const std::byte* Src = Column.AlignedBytes + static_cast<std::size_t>(LastSlot) * Column.StrideBytes;
-            std::memcpy(Dst, Src, Column.StrideBytes);
+            std::byte*       DestinationBytes = Column.AlignedBytes + static_cast<std::size_t>(SlotIndex) * Column.StrideBytes;
+            const std::byte* SourceBytes      = Column.AlignedBytes + static_cast<std::size_t>(LastSlot) * Column.StrideBytes;
+            std::memcpy(DestinationBytes, SourceBytes, Column.StrideBytes);
         }
     }
     --ActiveCount;
@@ -281,7 +281,7 @@ std::size_t ParticleChannelBank::QueryOccupiedMemoryBytes() const noexcept
     return TotalBytes;
 }
 
-bool ParticleChannelBank::QueryAllChannelsGpuResident() const noexcept
+bool ParticleChannelBank::QueryChannelsGpuResident() const noexcept
 {
     for (const ChannelColumn& Column : Columns)
     {
@@ -294,16 +294,16 @@ bool ParticleChannelBank::QueryAllChannelsGpuResident() const noexcept
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                  INTERNAL COLUMN MANAGEMENT
+//                                                  INTERNAL COLUMN ALLOCATION
 //------------------------------------------------------------------------------------------------------------------------
 
 ParticleChannelBank::ChannelColumn& ParticleChannelBank::RequireRawColumn(
-    uint64_t         SignatureHash,
-    const char*      DebugLabel,
-    uint32_t         StrideBytes,
-    uint32_t         AlignBytes,
-    ChannelResidency Residency,
-    ResetSlotFn      ResetCallback)
+    uint64_t          SignatureHash,
+    const char*       DebugLabel,
+    uint32_t          StrideBytes,
+    uint32_t          AlignBytes,
+    ChannelResidency  Residency,
+    ResetSlotCallback ResetCallback)
 {
     const int32_t Existing = FindColumnIndex(SignatureHash, StrideBytes);
     if (Existing >= 0)

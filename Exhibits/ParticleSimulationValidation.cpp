@@ -13,12 +13,12 @@
 #include "Engine/DistanceFieldSpace/SignedDistanceVolume.h"
 #include "Engine/SimulationSpace/ForceFields/FieldLatticeCascade.h"
 #include "Engine/SimulationSpace/ForceFields/ForceFieldAccumulator.h"
-#include "Engine/SimulationSpace/Particles/ParticleBuiltInLaws.h"
+#include "Engine/SimulationSpace/Particles/ParticleKinematicsSolvers.h"
 #include "Engine/SimulationSpace/Particles/ParticleChannelBank.h"
 #include "Engine/SimulationSpace/Particles/ParticleDomainSolvers.h"
-#include "Engine/SimulationSpace/Particles/ParticleRecipeCompiler.h"
+#include "Engine/SimulationSpace/Particles/ParticlePresetCompiler.h"
 #include "Engine/SimulationSpace/Particles/ParticleSimulation.h"
-#include "Engine/SimulationSpace/Particles/ParticleStandardChannels.h"
+#include "Engine/SimulationSpace/Particles/ParticleChannelLayouts.h"
 #include "Engine/Workspaces/Particles/ParticlePresetRegistry.h"
 #include "Exhibits/SoftwareCanvasRasterizer.h"
 
@@ -79,7 +79,7 @@ inline constexpr ChannelTag<UserIonChargeAttribute> UserIonChargeChannel{
 [[nodiscard]] bool VerifyAllParticlesFinite(const ParticleSimulation& Sim) noexcept
 {
     const uint32_t Active = Sim.QueryActiveCount();
-    const auto Kin        = Sim.QueryChannel(StandardChannels::Kinematics);
+    const auto Kin        = Sim.QueryChannel(ChannelLayouts::Kinematics);
     for (uint32_t Slot = 0u; Slot < Active; ++Slot)
     {
         if (!std::isfinite(Kin[Slot].PosX) || !std::isfinite(Kin[Slot].PosY) || !std::isfinite(Kin[Slot].PosZ)
@@ -204,10 +204,10 @@ inline constexpr ChannelTag<UserIonChargeAttribute> UserIonChargeChannel{
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                              3D ISOMETRIC PROJECTION HELPER
+//                                              3D ISOMETRIC PROJECTION ROUTINE
 //------------------------------------------------------------------------------------------------------------------------
 
-[[nodiscard]] Point2D ProjectWorldToPanel(
+[[nodiscard]] Point2D ProjectWorldPanel(
     const Rectangle2D& Rect,
     float              WorldX,
     float              WorldY,
@@ -243,10 +243,10 @@ void RenderPanelContainer(
     for (int32_t G = -3; G <= 3; ++G)
     {
         const float Coord = static_cast<float>(G) * 0.9f;
-        const Point2D A   = ProjectWorldToPanel(PlotRect, Coord, -2.7f, 0.0f, 48.0f, 1.2f);
-        const Point2D B   = ProjectWorldToPanel(PlotRect, Coord,  2.7f, 0.0f, 48.0f, 1.2f);
-        const Point2D C   = ProjectWorldToPanel(PlotRect, -2.7f, Coord, 0.0f, 48.0f, 1.2f);
-        const Point2D D   = ProjectWorldToPanel(PlotRect,  2.7f, Coord, 0.0f, 48.0f, 1.2f);
+        const Point2D A   = ProjectWorldPanel(PlotRect, Coord, -2.7f, 0.0f, 48.0f, 1.2f);
+        const Point2D B   = ProjectWorldPanel(PlotRect, Coord,  2.7f, 0.0f, 48.0f, 1.2f);
+        const Point2D C   = ProjectWorldPanel(PlotRect, -2.7f, Coord, 0.0f, 48.0f, 1.2f);
+        const Point2D D   = ProjectWorldPanel(PlotRect,  2.7f, Coord, 0.0f, 48.0f, 1.2f);
         Surface.StrokeLine(A, B, ColorRgba{ 255u, 255u, 255u, 9u }, 1.0f);
         Surface.StrokeLine(C, D, ColorRgba{ 255u, 255u, 255u, 9u }, 1.0f);
     }
@@ -290,7 +290,7 @@ void RenderPanelContainer(
         Rb.BoundsRadiusMeters,
         Sim.QueryChannelBank().QueryRegisteredChannelCount(),
         std::max<std::size_t>(1u, Sim.QueryChannelBank().QueryOccupiedMemoryBytes() / 1024u),
-        Sim.QueryEligibleForGpuCompute() ? "CPU + GPU .SLANG READY" : "CUSTOM C++ CPU PATH");
+        Sim.QueryGpuComputeEligible() ? "CPU + GPU .SLANG READY" : "CUSTOM C++ CPU PATH");
     WorkspaceAppearance::ConstructTruncatedText(
         Surface,
         FontWeightClass::Regular,
@@ -313,47 +313,47 @@ int main()
     bool AllPassed = true;
 
     // -----------------------------------------------------------------------------------------------------------------
-    // TEST 1: Modular Custom C++ Particle Type + Custom Lambda Law + Synchronized Swap-Remove
+    // TEST 1: Modular Custom C++ Particle Type + Custom Lambda Solver + Synchronized Swap-Remove
     // -----------------------------------------------------------------------------------------------------------------
-    ParticleSimulation IonSwarm = ParticleSimulationBuilder("CustomIonSwarm")
+    ParticleSimulation IonSwarm = ParticleSimulationSpecification("CustomIonSwarm")
         .ConfigureCapacity(256u, ChannelStoragePolicy::DenseSwapRemove)
-        .WithDeterministicSeed(4042u)
+        .AssignDeterministicSeed(4042u)
         .RequireCustomChannel(UserIonChargeChannel)
-        .WithCustomRelease(
+        .AttachCustomSource(
             "IonRingSeed",
             [](ParticleChannelBank& Bank) {
-                (void)Bank.RequireChannel(StandardChannels::Kinematics);
-                (void)Bank.RequireChannel(StandardChannels::Lifespan);
-                (void)Bank.RequireChannel(StandardChannels::Appearance);
+                (void)Bank.RequireChannel(ChannelLayouts::Kinematics);
+                (void)Bank.RequireChannel(ChannelLayouts::Lifespan);
+                (void)Bank.RequireChannel(ChannelLayouts::Appearance);
                 (void)Bank.RequireChannel(UserIonChargeChannel);
             },
-            [](ParticleChannelBank& Bank, const SimulationStepInputs& In, ParticleRng& Rng) -> uint32_t {
+            [](ParticleChannelBank& Bank, const SimulationTickInputs& In, ParticleRandomGenerator& Generator) -> uint32_t {
                 if (In.TickIndex > 0u)
                 {
                     return 0u;
                 }
                 uint32_t Begin = 0u;
-                const uint32_t Count = Bank.SpawnSlots(120u, Begin);
-                auto Kin    = Bank.AccessChannel(StandardChannels::Kinematics);
-                auto Life   = Bank.AccessChannel(StandardChannels::Lifespan);
-                auto Appear = Bank.AccessChannel(StandardChannels::Appearance);
+                const uint32_t Count = Bank.AcquireSlots(120u, Begin);
+                auto Kin    = Bank.AccessChannel(ChannelLayouts::Kinematics);
+                auto Life   = Bank.AccessChannel(ChannelLayouts::Lifespan);
+                auto Appear = Bank.AccessChannel(ChannelLayouts::Appearance);
                 auto Ions   = Bank.AccessChannel(UserIonChargeChannel);
                 for (uint32_t I = 0u; I < Count; ++I)
                 {
                     const uint32_t Slot = Begin + I;
                     const float Ang     = (static_cast<float>(I) / static_cast<float>(Count)) * Constants::TauFloat;
-                    const float Rad     = 0.85f + 0.55f * Rng.NextUnitFloat();
+                    const float Rad     = 0.85f + 0.55f * Generator.NextUnitFloat();
                     Kin[Slot].PosX        = std::cos(Ang) * Rad;
                     Kin[Slot].PosY        = std::sin(Ang) * Rad;
-                    Kin[Slot].PosZ        = 1.2f + Rng.NextRange(-0.25f, 0.25f);
+                    Kin[Slot].PosZ        = 1.2f + Generator.NextRange(-0.25f, 0.25f);
                     Kin[Slot].VelX        = -std::sin(Ang) * 2.2f;
                     Kin[Slot].VelY        =  std::cos(Ang) * 2.2f;
-                    Kin[Slot].VelZ        =  Rng.NextRange(-0.35f, 0.35f);
+                    Kin[Slot].VelZ        =  Generator.NextRange(-0.35f, 0.35f);
                     Kin[Slot].InverseMass = 1.0f;
 
                     Life[Slot].AgeSeconds     = 0.0f;
                     Life[Slot].MaxLifeSeconds = (I < 20u) ? 0.25f : 6.0f; // First 20 expire early to prove custom-channel swap-remove
-                    Life[Slot].SeedUint32     = Rng.NextUint32();
+                    Life[Slot].SeedUint32     = Generator.NextUint32();
 
                     Ions[Slot].ChargeCoulombs = 1.6f;
                     Ions[Slot].DecayHalfLife  = 2.4f;
@@ -368,14 +368,14 @@ int main()
                 }
                 return Count;
             })
-        .WithCustomLaw(
+        .AttachCustomMotionSolver(
             "UserLorentzSwirl",
             [](ParticleChannelBank& Bank) {
-                (void)Bank.RequireChannel(StandardChannels::Kinematics);
+                (void)Bank.RequireChannel(ChannelLayouts::Kinematics);
                 (void)Bank.RequireChannel(UserIonChargeChannel);
             },
-            [](ParticleChannelBank& Bank, uint32_t Begin, uint32_t End, const SimulationStepInputs& In) {
-                auto Kin  = Bank.AccessChannel(StandardChannels::Kinematics);
+            [](ParticleChannelBank& Bank, uint32_t Begin, uint32_t End, const SimulationTickInputs& In) {
+                auto Kin  = Bank.AccessChannel(ChannelLayouts::Kinematics);
                 auto Ions = Bank.AccessChannel(UserIonChargeChannel);
                 const float Dt = In.DeltaTimeSeconds;
                 for (uint32_t Slot = Begin; Slot < End; ++Slot)
@@ -390,15 +390,15 @@ int main()
                     Ions[Slot].ChargeCoulombs *= std::exp(-Dt / std::max(0.1f, Ions[Slot].DecayHalfLife));
                 }
             })
-        .WithIntegrator<SemiImplicitEulerIntegrator>()
+        .AssignIntegrator<SemiImplicitEulerIntegrator>()
         .Construct();
 
-    AllPassed &= VerifyAssertion(!IonSwarm.QueryEligibleForGpuCompute(), "CPU-only custom channel + lambda correctly routes to CPU path");
+    AllPassed &= VerifyAssertion(!IonSwarm.QueryGpuComputeEligible(), "CPU-only custom channel + lambda correctly routes to CPU path");
     AllPassed &= VerifyAssertion(IonSwarm.QueryChannelBank().VerifyChannelPresent(UserIonChargeChannel), "Custom C++ UserIonChargeChannel registered");
 
     for (uint64_t Tick = 0u; Tick < 45u; ++Tick)
     {
-        IonSwarm.Step({
+        IonSwarm.Tick({
             .TimeSeconds      = static_cast<double>(Tick) / 60.0,
             .DeltaTimeSeconds = 1.0f / 60.0f,
             .TickIndex        = Tick,
@@ -429,7 +429,7 @@ int main()
 
     auto MakeForceCoupledSparks = []() -> ParticleSimulation
     {
-        VolumeReleaseParameters Rel{};
+        VolumeSourceParameters Rel{};
         Rel.Shape             = VolumeShapeCategory::SphereVolume;
         Rel.OriginMeters      = { -1.2f, 0.0f, 1.4f };
         Rel.LaunchDirection   = { 0.4f, 0.0f, 1.0f };
@@ -443,40 +443,40 @@ int main()
         Rel.LifeMaxSec        = 3.0f;
         Rel.AllocateOrientation = true;
 
-        return ParticleSimulationBuilder("ForceCoupledSparks")
+        return ParticleSimulationSpecification("ForceCoupledSparks")
             .ConfigureCapacity(640u, ChannelStoragePolicy::DenseSwapRemove)
-            .WithDeterministicSeed(9001u)
-            .WithReleaseRule<VolumeReleaseRule>(Rel)
-            .WithMotionLaw<GravityAndBuoyancyLaw>(GravityAndBuoyancyParameters{ .GravityScale = 0.85f, .DragCoefficient = 0.25f })
-            .WithMotionLaw<ForceFieldCouplingLaw>(ForceFieldCouplingParameters{ .CouplingGain = 1.25f, .TorqueScale = 0.5f })
-            .WithMotionLaw<LocalCurlTurbulenceLaw>(LocalCurlTurbulenceParameters{ .AmplitudeMs = 0.65f, .FrequencyPerM = 0.9f })
-            .WithMotionLaw<FlutterAndTumbleLaw>()
-            .WithMotionLaw<ColorAndSizeCurveLaw>()
-            .WithCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.0f, .Restitution = 0.52f })
-            .WithIntegrator<SemiImplicitEulerIntegrator>()
+            .AssignDeterministicSeed(9001u)
+            .AttachSource<VolumeParticleSource>(Rel)
+            .AttachMotionSolver<GravityBuoyancySolver>(GravityBuoyancyParameters{ .GravityScale = 0.85f, .DragCoefficient = 0.25f })
+            .AttachMotionSolver<ForceFieldCouplingSolver>(ForceFieldCouplingParameters{ .CouplingGain = 1.25f, .TorqueScale = 0.5f })
+            .AttachMotionSolver<CurlTurbulenceSolver>(CurlTurbulenceParameters{ .AmplitudeMs = 0.65f, .FrequencyPerM = 0.9f })
+            .AttachMotionSolver<AeroFlutterSolver>()
+            .AttachMotionSolver<AppearanceCurveSolver>()
+            .AttachCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.0f, .Restitution = 0.52f })
+            .AssignIntegrator<SemiImplicitEulerIntegrator>()
             .Construct();
     };
 
     ParticleSimulation SparksA = MakeForceCoupledSparks();
     ParticleSimulation SparksB = MakeForceCoupledSparks();
-    AllPassed &= VerifyAssertion(SparksA.QueryEligibleForGpuCompute(), "Built-in GPU channels + laws report GPU compute eligibility");
+        AllPassed &= VerifyAssertion(SparksA.QueryGpuComputeEligible(), "Native GPU channels + solvers report GPU compute eligibility");
 
     // Capture multi-step trajectory trails for visual proof
     std::vector<std::array<Point2D, 2u>> SparkTrails{};
     for (uint64_t Tick = 0u; Tick < 60u; ++Tick)
     {
-        const SimulationStepInputs StepIn{
+        const SimulationTickInputs StepIn{
             .TimeSeconds      = static_cast<double>(Tick) / 60.0,
             .DeltaTimeSeconds = 1.0f / 60.0f,
             .ForceAccumulator = &Forces,
             .ForceLattice     = &Lattice,
             .TickIndex        = Tick,
         };
-        SparksA.Step(StepIn);
-        SparksB.Step(StepIn);
+        SparksA.Tick(StepIn);
+        SparksB.Tick(StepIn);
     }
 
-    AllPassed &= VerifyAssertion(SparksA.QueryActiveCount() > 150u, "ForceCoupledSparks spawned & sustained active cloud");
+        AllPassed &= VerifyAssertion(SparksA.QueryActiveCount() > 150u, "ForceCoupledSparks released & sustained active cloud");
     AllPassed &= VerifyAssertion(SparksA.QueryReadbackSummary().BoundsCenterX > -0.6f, "LinearWind + HelicalColumn ForceField advected particles along +X");
     AllPassed &= VerifyAssertion(
         SparksA.QueryActiveCount() == SparksB.QueryActiveCount()
@@ -486,14 +486,14 @@ int main()
 
     // Verify trilinear FieldLatticeCascade mode works seamlessly too
     {
-        ParticleSimulation LatticeSim = ParticleSimulationBuilder("LatticeTest")
+        ParticleSimulation LatticeSim = ParticleSimulationSpecification("LatticeTest")
             .ConfigureCapacity(64u)
-            .WithReleaseRule<VolumeReleaseRule>(VolumeReleaseParameters{ .BirthRatePerSec = 0.0f, .InitialBurstCount = 32u })
-            .WithMotionLaw<ForceFieldCouplingLaw>(ForceFieldCouplingParameters{ .CouplingGain = 1.5f, .PreferLatticeLookup = true, .LatticeTierIndex = 1u })
+            .AttachSource<VolumeParticleSource>(VolumeSourceParameters{ .BirthRatePerSec = 0.0f, .InitialBurstCount = 32u })
+            .AttachMotionSolver<ForceFieldCouplingSolver>(ForceFieldCouplingParameters{ .CouplingGain = 1.5f, .PreferLatticeLookup = true, .LatticeTierIndex = 1u })
             .Construct();
         for (uint64_t Tick = 0u; Tick < 20u; ++Tick)
         {
-            LatticeSim.Step({ .TimeSeconds = static_cast<double>(Tick) / 60.0, .DeltaTimeSeconds = 1.0f / 60.0f, .ForceLattice = &Lattice, .TickIndex = Tick });
+            LatticeSim.Tick({ .TimeSeconds = static_cast<double>(Tick) / 60.0, .DeltaTimeSeconds = 1.0f / 60.0f, .ForceLattice = &Lattice, .TickIndex = Tick });
         }
         AllPassed &= VerifyAssertion(VerifyAllParticlesFinite(LatticeSim) && LatticeSim.QueryReadbackSummary().PeakSpeedMs > 0.5f,
                                      "FieldLatticeCascade trilinear coupling advects particles cleanly");
@@ -506,9 +506,9 @@ int main()
     const float               ObstacleRadius = 0.75f;
     const DistanceFieldSpace::SignedDistanceVolume WorldSdf = ConstructAnalyticSphereSdfVolume(ObstacleCentre, ObstacleRadius);
 
-    ParticleSimulation SdfDrop = ParticleSimulationBuilder("SdfBounce")
+    ParticleSimulation SdfDrop = ParticleSimulationSpecification("SdfBounce")
         .ConfigureCapacity(64u)
-        .WithReleaseRule<VolumeReleaseRule>(VolumeReleaseParameters{
+        .AttachSource<VolumeParticleSource>(VolumeSourceParameters{
             .Shape             = VolumeShapeCategory::DiscVolume,
             .OriginMeters      = { 0.0f, 0.0f, 2.25f },
             .LaunchDirection   = { 0.0f, 0.0f, -1.0f },
@@ -521,13 +521,13 @@ int main()
             .LifeMinSec        = 5.0f,
             .LifeMaxSec        = 5.0f,
         })
-        .WithMotionLaw<GravityAndBuoyancyLaw>(GravityAndBuoyancyParameters{ .GravityScale = 1.0f, .DragCoefficient = 0.05f })
-        .WithCollider<SignedDistanceVolumeCollider>(SignedDistanceColliderParameters{ .ContactMarginMeters = 0.04f, .Restitution = 0.7f })
+        .AttachMotionSolver<GravityBuoyancySolver>(GravityBuoyancyParameters{ .GravityScale = 1.0f, .DragCoefficient = 0.05f })
+        .AttachCollider<SignedDistanceVolumeCollider>(SignedDistanceColliderParameters{ .ContactMarginMeters = 0.04f, .Restitution = 0.7f })
         .Construct();
 
     for (uint64_t Tick = 0u; Tick < 50u; ++Tick)
     {
-        SdfDrop.Step({
+        SdfDrop.Tick({
             .TimeSeconds        = static_cast<double>(Tick) / 60.0,
             .DeltaTimeSeconds   = 1.0f / 60.0f,
             .WorldDistanceField = &WorldSdf,
@@ -535,7 +535,7 @@ int main()
         });
     }
     {
-        const auto Kin  = SdfDrop.QueryChannel(StandardChannels::Kinematics);
+        const auto Kin  = SdfDrop.QueryChannel(ChannelLayouts::Kinematics);
         bool NoDeepClip = true;
         for (uint32_t I = 0u; I < SdfDrop.QueryActiveCount(); ++I)
         {
@@ -551,7 +551,7 @@ int main()
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    // TEST 4: Compile & Step ALL 93 Active Presets (0 Quarantine) via ParticleRecipeCompiler
+    // TEST 4: Compile & Step ALL 93 Active Presets (0 Quarantine) via ParticlePresetCompiler
     // -----------------------------------------------------------------------------------------------------------------
     static constexpr std::array<const char*, 9u> QuarantinedSlugs = {{
         "blossom-branch-detach", "jelly-slime-blob", "slime-tendril-cluster",
@@ -561,8 +561,8 @@ int main()
     for (const char* RetiredSlug : QuarantinedSlugs)
     {
         AllPassed &= VerifyAssertion(
-            !ParticleRecipeCompiler::ConstructFromPresetSlug(RetiredSlug).has_value(),
-            "ParticleRecipeCompiler strictly rejects quarantined slug");
+            !ParticlePresetCompiler::CompilePresetSlug(RetiredSlug).has_value(),
+            "ParticlePresetCompiler strictly rejects quarantined slug");
     }
 
     DynamicSphereCollider ThrownBall{};
@@ -578,7 +578,7 @@ int main()
     uint32_t VerifiedPresets = 0u;
     for (const ParticlePresetDescriptor& Preset : ActivePresets)
     {
-        std::optional<ParticleSimulation> MaybeSim = ParticleRecipeCompiler::ConstructFromPresetSlug(Preset.Identifier, 2026u + VerifiedPresets);
+        std::optional<ParticleSimulation> MaybeSim = ParticlePresetCompiler::CompilePresetSlug(Preset.Identifier, 2026u + VerifiedPresets);
         if (!VerifyAssertion(MaybeSim.has_value(), Preset.Identifier))
         {
             AllPassed = false;
@@ -587,7 +587,7 @@ int main()
         ParticleSimulation& Sim = *MaybeSim;
         for (uint64_t Tick = 0u; Tick < 75u; ++Tick)
         {
-            Sim.Step({
+            Sim.Tick({
                 .TimeSeconds      = static_cast<double>(Tick) / 60.0,
                 .DeltaTimeSeconds = 1.0f / 60.0f,
                 .ForceAccumulator = &Forces,
@@ -606,13 +606,13 @@ int main()
     // -----------------------------------------------------------------------------------------------------------------
     // VISUAL PNG PROOF: 4-Panel Live Simulated C++ Movement Showcase
     // -----------------------------------------------------------------------------------------------------------------
-    // Prepare dedicated showcase simulations with ParticleSimulationDirector
-    ParticleSimulationDirector Director{};
+    // Prepare dedicated showcase simulations with ParticleSimulationRegistry
+    ParticleSimulationRegistry Registry{};
 
-    auto ClothOpt = ParticleRecipeCompiler::ConstructFromPresetSlug("flag-banner", 3001u);
-    auto FerroOpt = ParticleRecipeCompiler::ConstructFromPresetSlug("ferrofluid-spikes", 3002u);
-    auto PyroOpt  = ParticleRecipeCompiler::ConstructFromPresetSlug("fireworks-spectacle", 3003u);
-    auto BoidsOpt = ParticleRecipeCompiler::ConstructFromPresetSlug("boids-flock", 3004u);
+    auto ClothOpt = ParticlePresetCompiler::CompilePresetSlug("flag-banner", 3001u);
+    auto FerroOpt = ParticlePresetCompiler::CompilePresetSlug("ferrofluid-spikes", 3002u);
+    auto PyroOpt  = ParticlePresetCompiler::CompilePresetSlug("fireworks-spectacle", 3003u);
+    auto BoidsOpt = ParticlePresetCompiler::CompilePresetSlug("boids-flock", 3004u);
 
     AllPassed &= VerifyAssertion(ClothOpt && FerroOpt && PyroOpt && BoidsOpt, "Showcase domain presets compiled");
 
@@ -643,17 +643,17 @@ int main()
     const double FinalShowcaseTime = 84.0 / 60.0;
     if (ClothOpt && FerroOpt && PyroOpt && BoidsOpt)
     {
-        Director.RegisterSimulation(1u, std::move(*ClothOpt));
-        Director.RegisterSimulation(2u, std::move(*FerroOpt));
-        Director.RegisterSimulation(3u, std::move(*PyroOpt));
-        Director.RegisterSimulation(4u, std::move(*BoidsOpt));
+        Registry.RegisterSimulation(1u, std::move(*ClothOpt));
+        Registry.RegisterSimulation(2u, std::move(*FerroOpt));
+        Registry.RegisterSimulation(3u, std::move(*PyroOpt));
+        Registry.RegisterSimulation(4u, std::move(*BoidsOpt));
 
         for (uint64_t Tick = 0u; Tick < 85u; ++Tick)
         {
             const double T = static_cast<double>(Tick) / 60.0;
-            if (ParticleSimulation* Cloth = Director.FindSimulation(1u))
+            if (ParticleSimulation* Cloth = Registry.FindSimulation(1u))
             {
-                Cloth->Step({
+                Cloth->Tick({
                     .TimeSeconds      = T,
                     .DeltaTimeSeconds = 1.0f / 60.0f,
                     .ForceAccumulator = &ClothWind,
@@ -661,27 +661,27 @@ int main()
                     .TickIndex        = Tick,
                 });
             }
-            if (ParticleSimulation* Ferro = Director.FindSimulation(2u))
+            if (ParticleSimulation* Ferro = Registry.FindSimulation(2u))
             {
-                Ferro->Step({
+                Ferro->Tick({
                     .TimeSeconds      = T,
                     .DeltaTimeSeconds = 1.0f / 60.0f,
                     .ForceAccumulator = nullptr,
                     .TickIndex        = Tick,
                 });
             }
-            if (ParticleSimulation* Pyro = Director.FindSimulation(3u))
+            if (ParticleSimulation* Pyro = Registry.FindSimulation(3u))
             {
-                Pyro->Step({
+                Pyro->Tick({
                     .TimeSeconds      = T,
                     .DeltaTimeSeconds = 1.0f / 60.0f,
                     .ForceAccumulator = &Forces,
                     .TickIndex        = Tick,
                 });
             }
-            if (ParticleSimulation* Boids = Director.FindSimulation(4u))
+            if (ParticleSimulation* Boids = Registry.FindSimulation(4u))
             {
-                Boids->Step({
+                Boids->Tick({
                     .TimeSeconds      = T,
                     .DeltaTimeSeconds = 1.0f / 60.0f,
                     .ForceAccumulator = &Forces,
@@ -768,12 +768,12 @@ int main()
     {
         const Rectangle2D Plot{ Panel1.X + 14.0f, Panel1.Y + 54.0f, Panel1.Width - 28.0f, Panel1.Height - 96.0f };
         Surface.PushClip(Plot);
-        const auto Kin    = SparksA.QueryChannel(StandardChannels::Kinematics);
-        const auto Appear = SparksA.QueryChannel(StandardChannels::Appearance);
+        const auto Kin    = SparksA.QueryChannel(ChannelLayouts::Kinematics);
+        const auto Appear = SparksA.QueryChannel(ChannelLayouts::Appearance);
         for (uint32_t I = 0u; I < SparksA.QueryActiveCount(); ++I)
         {
-            const Point2D Head = ProjectWorldToPanel(Plot, Kin[I].PosX, Kin[I].PosY, Kin[I].PosZ, 56.0f, 1.4f);
-            const Point2D Tail = ProjectWorldToPanel(
+            const Point2D Head = ProjectWorldPanel(Plot, Kin[I].PosX, Kin[I].PosY, Kin[I].PosZ, 56.0f, 1.4f);
+            const Point2D Tail = ProjectWorldPanel(
                 Plot,
                 Kin[I].PosX - Kin[I].VelX * 0.045f,
                 Kin[I].PosY - Kin[I].VelY * 0.045f,
@@ -793,7 +793,7 @@ int main()
     }
 
     // PANEL 2: XPBD Interactive Cloth Strands + Thrown DynamicSphereCollider
-    if (const ParticleSimulation* ClothSim = Director.FindSimulation(1u))
+    if (const ParticleSimulation* ClothSim = Registry.FindSimulation(1u))
     {
         RenderPanelContainer(Surface, Panel2, "02 / XPBD VERLET STRANDS", "Interactive Cloth Banner + Dynamic Sphere Collider",
                          "FixedSlotOrder StrandAnchor + StrandConnectivity + Wind Wave + Tear & Sphere Push-Out", *ClothSim, ColorRgba{ 126u, 198u, 118u, 255u });
@@ -801,29 +801,29 @@ int main()
         Surface.PushClip(Plot);
 
         // Vertical metallic mast anchored from floor to banner top
-        const Point2D MastBase = ProjectWorldToPanel(Plot, -1.15f, 0.0f, 0.0f, 82.0f, 1.25f);
-        const Point2D MastTop  = ProjectWorldToPanel(Plot, -1.15f, 0.0f, 2.25f, 82.0f, 1.25f);
+        const Point2D MastBase = ProjectWorldPanel(Plot, -1.15f, 0.0f, 0.0f, 82.0f, 1.25f);
+        const Point2D MastTop  = ProjectWorldPanel(Plot, -1.15f, 0.0f, 2.25f, 82.0f, 1.25f);
         Surface.StrokeLine(MastBase, MastTop, ColorRgba{ 160u, 164u, 174u, 220u }, 3.0f);
         Surface.FillCircle(MastTop, 4.0f, ColorRgba{ 232u, 194u, 122u, 255u });
 
-        const Point2D BallPt = ProjectWorldToPanel(Plot, ClothSphere.CentreMeters.X, ClothSphere.CentreMeters.Y, ClothSphere.CentreMeters.Z, 82.0f, 1.25f);
+        const Point2D BallPt = ProjectWorldPanel(Plot, ClothSphere.CentreMeters.X, ClothSphere.CentreMeters.Y, ClothSphere.CentreMeters.Z, 82.0f, 1.25f);
         Surface.FillCircle(BallPt, ClothSphere.RadiusMeters * 82.0f, ColorRgba{ 232u, 194u, 122u, 38u });
         Surface.StrokeCircle(BallPt, ClothSphere.RadiusMeters * 82.0f, ColorRgba{ 232u, 194u, 122u, 200u }, 1.6f);
 
-        const auto Kin  = ClothSim->QueryChannel(StandardChannels::Kinematics);
-        const auto Conn = ClothSim->QueryChannel(StandardChannels::StrandConnectivity);
+        const auto Kin  = ClothSim->QueryChannel(ChannelLayouts::Kinematics);
+        const auto Conn = ClothSim->QueryChannel(ChannelLayouts::StrandConnectivity);
         const uint32_t Active = ClothSim->QueryActiveCount();
         for (uint32_t I = 0u; I < Active; ++I)
         {
-            const Point2D Pt = ProjectWorldToPanel(Plot, Kin[I].PosX, Kin[I].PosY, Kin[I].PosZ, 82.0f, 1.25f);
+            const Point2D Pt = ProjectWorldPanel(Plot, Kin[I].PosX, Kin[I].PosY, Kin[I].PosZ, 82.0f, 1.25f);
             if (Conn[I].LinkPrevSlot < Active)
             {
-                const Point2D Prev = ProjectWorldToPanel(Plot, Kin[Conn[I].LinkPrevSlot].PosX, Kin[Conn[I].LinkPrevSlot].PosY, Kin[Conn[I].LinkPrevSlot].PosZ, 82.0f, 1.25f);
+                const Point2D Prev = ProjectWorldPanel(Plot, Kin[Conn[I].LinkPrevSlot].PosX, Kin[Conn[I].LinkPrevSlot].PosY, Kin[Conn[I].LinkPrevSlot].PosZ, 82.0f, 1.25f);
                 Surface.StrokeLine(Prev, Pt, ColorRgba{ 118u, 206u, 152u, 200u }, 1.6f);
             }
             if (Conn[I].LinkCrossSlot < Active)
             {
-                const Point2D Cross = ProjectWorldToPanel(Plot, Kin[Conn[I].LinkCrossSlot].PosX, Kin[Conn[I].LinkCrossSlot].PosY, Kin[Conn[I].LinkCrossSlot].PosZ, 82.0f, 1.25f);
+                const Point2D Cross = ProjectWorldPanel(Plot, Kin[Conn[I].LinkCrossSlot].PosX, Kin[Conn[I].LinkCrossSlot].PosY, Kin[Conn[I].LinkCrossSlot].PosZ, 82.0f, 1.25f);
                 Surface.StrokeLine(Cross, Pt, ColorRgba{ 92u, 178u, 134u, 155u }, 1.2f);
             }
             Surface.FillCircle(Pt, (Kin[I].InverseMass <= 0.0f) ? 3.2f : 1.9f,
@@ -833,16 +833,16 @@ int main()
     }
 
     // PANEL 3: Rosensweig Magnetic Ferrofluid Cusps
-    if (const ParticleSimulation* FerroSim = Director.FindSimulation(2u))
+    if (const ParticleSimulation* FerroSim = Registry.FindSimulation(2u))
     {
         RenderPanelContainer(Surface, Panel3, "03 / ROSENSWEIG FERROFLUID", "Magnetic Ferrofluid Dish + Orbiting Dipole",
                          "MagneticCuspChannel + Normal Flux Instability Peaks + MidpointRk2Integrator", *FerroSim, ColorRgba{ 158u, 192u, 224u, 255u });
         const Rectangle2D Plot{ Panel3.X + 14.0f, Panel3.Y + 54.0f, Panel3.Width - 28.0f, Panel3.Height - 96.0f };
         Surface.PushClip(Plot);
 
-        const auto Kin    = FerroSim->QueryChannel(StandardChannels::Kinematics);
-        const auto Cusp   = FerroSim->QueryChannel(StandardChannels::MagneticCusp);
-        const auto Appear = FerroSim->QueryChannel(StandardChannels::Appearance);
+        const auto Kin    = FerroSim->QueryChannel(ChannelLayouts::Kinematics);
+        const auto Cusp   = FerroSim->QueryChannel(ChannelLayouts::MagneticCusp);
+        const auto Appear = FerroSim->QueryChannel(ChannelLayouts::Appearance);
         const float DishZ = (FerroSim->QueryActiveCount() > 0u) ? Cusp[0u].DishAnchorZ : 0.0f;
 
         // Obsidian petri dish rim aligned to exact DishAnchorZ
@@ -851,15 +851,15 @@ int main()
         {
             const float A0 = (static_cast<float>(S) / static_cast<float>(RimSteps)) * 6.2831853f;
             const float A1 = (static_cast<float>(S + 1u) / static_cast<float>(RimSteps)) * 6.2831853f;
-            const Point2D P0 = ProjectWorldToPanel(Plot, std::cos(A0) * 1.20f, std::sin(A0) * 1.20f, DishZ, 125.0f, DishZ + 0.35f);
-            const Point2D P1 = ProjectWorldToPanel(Plot, std::cos(A1) * 1.20f, std::sin(A1) * 1.20f, DishZ, 125.0f, DishZ + 0.35f);
+            const Point2D P0 = ProjectWorldPanel(Plot, std::cos(A0) * 1.20f, std::sin(A0) * 1.20f, DishZ, 125.0f, DishZ + 0.35f);
+            const Point2D P1 = ProjectWorldPanel(Plot, std::cos(A1) * 1.20f, std::sin(A1) * 1.20f, DishZ, 125.0f, DishZ + 0.35f);
             Surface.StrokeLine(P0, P1, ColorRgba{ 130u, 158u, 198u, 115u }, 1.6f);
         }
 
         for (uint32_t I = 0u; I < FerroSim->QueryActiveCount(); ++I)
         {
-            const Point2D Base = ProjectWorldToPanel(Plot, Cusp[I].DishAnchorX, Cusp[I].DishAnchorY, Cusp[I].DishAnchorZ, 125.0f, DishZ + 0.35f);
-            const Point2D Tip  = ProjectWorldToPanel(Plot, Kin[I].PosX, Kin[I].PosY, Kin[I].PosZ, 125.0f, DishZ + 0.35f);
+            const Point2D Base = ProjectWorldPanel(Plot, Cusp[I].DishAnchorX, Cusp[I].DishAnchorY, Cusp[I].DishAnchorZ, 125.0f, DishZ + 0.35f);
+            const Point2D Tip  = ProjectWorldPanel(Plot, Kin[I].PosX, Kin[I].PosY, Kin[I].PosZ, 125.0f, DishZ + 0.35f);
             const uint8_t Spec = static_cast<uint8_t>(std::clamp(88.0f + Appear[I].ColorRampT * 167.0f, 65.0f, 255.0f));
             Surface.FillCircle(Base, 2.5f, ColorRgba{ 30u, 36u, 48u, 220u });
             Surface.StrokeLine(Base, Tip, ColorRgba{ static_cast<uint8_t>(Spec * 0.72f), static_cast<uint8_t>(Spec * 0.85f), Spec, 235u }, 2.5f);
@@ -871,7 +871,7 @@ int main()
         const float PoleX   = std::cos(PoleAng) * (1.15f * 0.62f);
         const float PoleY   = std::sin(PoleAng) * (1.15f * 0.62f);
         const float PoleZ   = DishZ + 0.85f * 1.15f + 0.25f * std::sin(PoleAng * 2.0f);
-        const Point2D PolePt = ProjectWorldToPanel(Plot, PoleX, PoleY, PoleZ, 125.0f, DishZ + 0.35f);
+        const Point2D PolePt = ProjectWorldPanel(Plot, PoleX, PoleY, PoleZ, 125.0f, DishZ + 0.35f);
         Surface.FillCircle(PolePt, 14.0f, ColorRgba{ 138u, 212u, 255u, 42u });
         Surface.StrokeCircle(PolePt, 14.0f, ColorRgba{ 160u, 224u, 255u, 220u }, 1.6f);
         Surface.FillCircle(PolePt, 5.0f, ColorRgba{ 230u, 248u, 255u, 255u });
@@ -880,19 +880,19 @@ int main()
 
     // PANEL 4: Custom User C++ Channel Type (UserIonChargeAttribute) + Hanabi Fireworks
     RenderPanelContainer(Surface, Panel4, "04 / CUSTOM C++ TYPE & LAMBDA", "UserIonChargeAttribute Swirl + Hanabi Burst",
-                     "User-defined struct outside engine headers + CustomLambdaMotionLaw + Synchronized Swap-Remove", IonSwarm, ColorRgba{ 98u, 212u, 244u, 255u });
+                     "User-defined struct outside engine headers + CustomParticleSolver + Synchronized Swap-Remove", IonSwarm, ColorRgba{ 98u, 212u, 244u, 255u });
     {
         const Rectangle2D Plot{ Panel4.X + 14.0f, Panel4.Y + 54.0f, Panel4.Width - 28.0f, Panel4.Height - 96.0f };
         Surface.PushClip(Plot);
 
         // Overlay Fireworks stars subtly in background
-        if (const ParticleSimulation* PyroSim = Director.FindSimulation(3u))
+        if (const ParticleSimulation* PyroSim = Registry.FindSimulation(3u))
         {
-            const auto Pk = PyroSim->QueryChannel(StandardChannels::Kinematics);
-            const auto Pa = PyroSim->QueryChannel(StandardChannels::Appearance);
+            const auto Pk = PyroSim->QueryChannel(ChannelLayouts::Kinematics);
+            const auto Pa = PyroSim->QueryChannel(ChannelLayouts::Appearance);
             for (uint32_t I = 0u; I < PyroSim->QueryActiveCount(); ++I)
             {
-                const Point2D Pt = ProjectWorldToPanel(Plot, Pk[I].PosX * 0.35f, Pk[I].PosY * 0.35f, Pk[I].PosZ * 0.25f + 0.4f, 82.0f, 1.2f);
+                const Point2D Pt = ProjectWorldPanel(Plot, Pk[I].PosX * 0.35f, Pk[I].PosY * 0.35f, Pk[I].PosZ * 0.25f + 0.4f, 82.0f, 1.2f);
                 Surface.FillCircle(
                     Pt,
                     2.0f,
@@ -906,12 +906,12 @@ int main()
         }
 
         // Foreground custom user IonChargeChannel orbital particles
-        const auto Kin    = IonSwarm.QueryChannel(StandardChannels::Kinematics);
-        const auto Appear = IonSwarm.QueryChannel(StandardChannels::Appearance);
+        const auto Kin    = IonSwarm.QueryChannel(ChannelLayouts::Kinematics);
+        const auto Appear = IonSwarm.QueryChannel(ChannelLayouts::Appearance);
         for (uint32_t I = 0u; I < IonSwarm.QueryActiveCount(); ++I)
         {
-            const Point2D Head = ProjectWorldToPanel(Plot, Kin[I].PosX, Kin[I].PosY, Kin[I].PosZ, 95.0f, 1.2f);
-            const Point2D Tail = ProjectWorldToPanel(
+            const Point2D Head = ProjectWorldPanel(Plot, Kin[I].PosX, Kin[I].PosY, Kin[I].PosZ, 95.0f, 1.2f);
+            const Point2D Tail = ProjectWorldPanel(
                 Plot,
                 Kin[I].PosX - Kin[I].VelX * 0.05f,
                 Kin[I].PosY - Kin[I].VelY * 0.05f,

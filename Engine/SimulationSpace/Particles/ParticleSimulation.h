@@ -1,7 +1,7 @@
 /*============================================================================================================================================
                                                           PARTICLESIMULATION.H
 ============================================================================================================================================*/
-// 🧩 Composable ParticleSimulation, fluent ParticleSimulationBuilder (built-in + custom C++ types & lambdas), and ParticleSimulationDirector
+// 🧩 Composable ParticleSimulation, fluent ParticleSimulationSpecification (native + custom C++ types & lambdas), and ParticleSimulationRegistry
 
 #pragma once
 
@@ -9,10 +9,11 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/SimulationSpace/Particles/ParticleBuiltInLaws.h"
 #include "Engine/SimulationSpace/Particles/ParticleChannelBank.h"
-#include "Engine/SimulationSpace/Particles/ParticleLawInterfaces.h"
+#include "Engine/SimulationSpace/Particles/ParticleDynamicsInterfaces.h"
+#include "Engine/SimulationSpace/Particles/ParticleKinematicsSolvers.h"
 
+#include <concepts>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -32,7 +33,7 @@ enum class ExecutionTarget : uint8_t
 {
     AutoSelect    = 0u, // [-] - Select Vulkan compute when eligible; seamlessly run CPU otherwise
     CpuParallel   = 1u, // [-] - Explicit multi-threaded / serial C++ CPU execution
-    VulkanCompute = 2u, // [-] - Request GPU compute execution when all channels & laws support it
+    VulkanCompute = 2u, // [-] - Request GPU compute execution when all channels & solvers support it
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -42,21 +43,21 @@ enum class ExecutionTarget : uint8_t
 class ParticleSimulation
 {
 public:
-    explicit ParticleSimulation(std::string InLabel = "ParticleSimulation");
+    explicit ParticleSimulation(std::string SimulationLabel = "ParticleSimulation");
 
-    ParticleSimulation(const ParticleSimulation&)            = delete;
-    ParticleSimulation& operator=(const ParticleSimulation&) = delete;
-    ParticleSimulation(ParticleSimulation&&) noexcept        = default;
+    ParticleSimulation(const ParticleSimulation&)                = delete;
+    ParticleSimulation& operator=(const ParticleSimulation&)     = delete;
+    ParticleSimulation(ParticleSimulation&&) noexcept            = default;
     ParticleSimulation& operator=(ParticleSimulation&&) noexcept = default;
 
     void ConfigureCapacity(uint32_t MaxCapacity, ChannelStoragePolicy Policy = ChannelStoragePolicy::DenseSwapRemove);
     void AssignDeterministicSeed(uint32_t Seed) noexcept;
     void AssignExecutionTarget(ExecutionTarget Target) noexcept { RequestedTarget = Target; }
 
-    void AttachReleaseRule(std::unique_ptr<IParticleReleaseRule> Rule);
-    void AttachMotionLaw(std::unique_ptr<IParticleMotionLaw> Law);
-    void AttachCollisionRule(std::unique_ptr<IParticleCollisionRule> Collider);
-    void AssignIntegrator(std::unique_ptr<IParticleIntegrator> InIntegrator);
+    void AttachSource(std::unique_ptr<ParticleSource> Source);
+    void AttachMotionSolver(std::unique_ptr<ParticleMotionSolver> Solver);
+    void AttachCollider(std::unique_ptr<ParticleCollider> Collider);
+    void AssignIntegrator(std::unique_ptr<ParticleIntegrator> StepIntegrator);
 
     template <typename AttributeT>
         requires std::is_trivially_copyable_v<AttributeT> && std::is_default_constructible_v<AttributeT>
@@ -79,8 +80,8 @@ public:
         return Channels.QueryChannel(Tag);
     }
 
-    // Executes one fixed movement tick: Release -> Prepare -> Motion Laws -> Integrate -> Colliders -> Finalize -> Age/Retire -> 32 B Telemetry
-    void Step(const SimulationStepInputs& Inputs);
+    // Executes one fixed movement tick: Release -> Initialize -> Motion Solvers -> Integrate -> Colliders -> Finalize -> Reclaim -> 32 B Telemetry
+    void Tick(const SimulationTickInputs& Inputs);
     void TriggerBurst(uint32_t OverrideCount = 0u) noexcept;
     void Reset(uint32_t OverrideSeed = 0u) noexcept;
 
@@ -92,112 +93,112 @@ public:
     [[nodiscard]] uint32_t                       QueryCapacity() const noexcept { return Channels.QueryCapacity(); }
     [[nodiscard]] uint32_t                       QueryDeterministicSeed() const noexcept { return MasterSeed; }
     [[nodiscard]] ExecutionTarget                QueryExecutionTarget() const noexcept { return RequestedTarget; }
-    [[nodiscard]] bool                           QueryEligibleForGpuCompute() const noexcept;
+    [[nodiscard]] bool                           QueryGpuComputeEligible() const noexcept;
 
 private:
-    void AdvanceLifespansAndRetire(float DeltaTimeSeconds) noexcept;
-    void ComputeReadbackSummary(double StepStartMicros) noexcept;
+    void ReclaimExpiredLifespans(float DeltaTimeSeconds) noexcept;
+    void ComputeReadbackSummary(double TickStartMicros) noexcept;
 
-    std::string                                           Label           {};
-    ParticleChannelBank                                   Channels        {};
-    std::vector<std::unique_ptr<IParticleReleaseRule>>    ReleaseRules    {};
-    std::vector<std::unique_ptr<IParticleMotionLaw>>      MotionLaws      {};
-    std::vector<std::unique_ptr<IParticleCollisionRule>>  CollisionRules  {};
-    std::unique_ptr<IParticleIntegrator>                  Integrator      {};
-    ParticleRng                                           Rng             {};
-    uint32_t                                              MasterSeed      = 1337u;
-    ExecutionTarget                                       RequestedTarget = ExecutionTarget::AutoSelect;
-    ParticleReadbackSummary                               ReadbackSummary {};
+    std::string                                        Label           {};
+    ParticleChannelBank                                Channels        {};
+    std::vector<std::unique_ptr<ParticleSource>>       Sources         {};
+    std::vector<std::unique_ptr<ParticleMotionSolver>> MotionSolvers   {};
+    std::vector<std::unique_ptr<ParticleCollider>>     Colliders       {};
+    std::unique_ptr<ParticleIntegrator>                Integrator      {};
+    ParticleRandomGenerator                            RandomGenerator {};
+    uint32_t                                           MasterSeed      = 1337u;
+    ExecutionTarget                                    RequestedTarget = ExecutionTarget::AutoSelect;
+    ParticleReadbackSummary                            ReadbackSummary {};
 };
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                               FLUENT C++20 SIMULATION BUILDER
+//                                           FLUENT C++20 SIMULATION SPECIFICATION
 //------------------------------------------------------------------------------------------------------------------------
 
-class ParticleSimulationBuilder
+class ParticleSimulationSpecification
 {
 public:
-    explicit ParticleSimulationBuilder(std::string InLabel = "ParticleSimulation");
+    explicit ParticleSimulationSpecification(std::string SimulationLabel = "ParticleSimulation");
 
-    ParticleSimulationBuilder& ConfigureCapacity(
+    ParticleSimulationSpecification& ConfigureCapacity(
         uint32_t             MaxCapacity,
         ChannelStoragePolicy Policy = ChannelStoragePolicy::DenseSwapRemove);
 
-    ParticleSimulationBuilder& WithDeterministicSeed(uint32_t Seed) noexcept;
-    ParticleSimulationBuilder& WithExecutionTarget(ExecutionTarget Target) noexcept;
+    ParticleSimulationSpecification& AssignDeterministicSeed(uint32_t Seed) noexcept;
+    ParticleSimulationSpecification& AssignExecutionTarget(ExecutionTarget Target) noexcept;
 
     template <typename AttributeT>
         requires std::is_trivially_copyable_v<AttributeT> && std::is_default_constructible_v<AttributeT>
-    ParticleSimulationBuilder& RequireCustomChannel(const ChannelTag<AttributeT>& Tag)
+    ParticleSimulationSpecification& RequireCustomChannel(const ChannelTag<AttributeT>& Tag)
     {
-        (void)BuiltSimulation.RequireChannel(Tag);
+        (void)AssembledSimulation.RequireChannel(Tag);
         return *this;
     }
 
-    template <typename RuleT, typename... ArgsT>
-        requires std::derived_from<RuleT, IParticleReleaseRule>
-    ParticleSimulationBuilder& WithReleaseRule(ArgsT&&... Args)
+    template <typename SourceT, typename... ArgsT>
+        requires std::derived_from<SourceT, ParticleSource>
+    ParticleSimulationSpecification& AttachSource(ArgsT&&... Args)
     {
-        BuiltSimulation.AttachReleaseRule(std::make_unique<RuleT>(std::forward<ArgsT>(Args)...));
+        AssembledSimulation.AttachSource(std::make_unique<SourceT>(std::forward<ArgsT>(Args)...));
         return *this;
     }
 
-    template <typename LawT, typename... ArgsT>
-        requires std::derived_from<LawT, IParticleMotionLaw>
-    ParticleSimulationBuilder& WithMotionLaw(ArgsT&&... Args)
+    template <typename SolverT, typename... ArgsT>
+        requires std::derived_from<SolverT, ParticleMotionSolver>
+    ParticleSimulationSpecification& AttachMotionSolver(ArgsT&&... Args)
     {
-        BuiltSimulation.AttachMotionLaw(std::make_unique<LawT>(std::forward<ArgsT>(Args)...));
+        AssembledSimulation.AttachMotionSolver(std::make_unique<SolverT>(std::forward<ArgsT>(Args)...));
         return *this;
     }
 
     template <typename ColliderT, typename... ArgsT>
-        requires std::derived_from<ColliderT, IParticleCollisionRule>
-    ParticleSimulationBuilder& WithCollider(ArgsT&&... Args)
+        requires std::derived_from<ColliderT, ParticleCollider>
+    ParticleSimulationSpecification& AttachCollider(ArgsT&&... Args)
     {
-        BuiltSimulation.AttachCollisionRule(std::make_unique<ColliderT>(std::forward<ArgsT>(Args)...));
+        AssembledSimulation.AttachCollider(std::make_unique<ColliderT>(std::forward<ArgsT>(Args)...));
         return *this;
     }
 
     template <typename IntegratorT, typename... ArgsT>
-        requires std::derived_from<IntegratorT, IParticleIntegrator>
-    ParticleSimulationBuilder& WithIntegrator(ArgsT&&... Args)
+        requires std::derived_from<IntegratorT, ParticleIntegrator>
+    ParticleSimulationSpecification& AssignIntegrator(ArgsT&&... Args)
     {
-        BuiltSimulation.AssignIntegrator(std::make_unique<IntegratorT>(std::forward<ArgsT>(Args)...));
+        AssembledSimulation.AssignIntegrator(std::make_unique<IntegratorT>(std::forward<ArgsT>(Args)...));
         return *this;
     }
 
-    ParticleSimulationBuilder& WithCustomRelease(
-        std::string                        RuleLabel,
-        CustomLambdaReleaseRule::DeclareFn DeclareCallback,
-        CustomLambdaReleaseRule::ExecuteFn ExecuteCallback);
+    ParticleSimulationSpecification& AttachCustomSource(
+        std::string                           SourceLabel,
+        CustomParticleSource::ChannelCallback DeclareCallback,
+        CustomParticleSource::ReleaseCallback ReleaseCallback);
 
-    ParticleSimulationBuilder& WithCustomLaw(
-        std::string                      LawLabel,
-        CustomLambdaMotionLaw::DeclareFn DeclareCallback,
-        CustomLambdaMotionLaw::ApplyFn   ApplyCallback);
+    ParticleSimulationSpecification& AttachCustomMotionSolver(
+        std::string                            SolverLabel,
+        CustomParticleSolver::ChannelCallback  DeclareCallback,
+        CustomParticleSolver::EvaluateCallback EvaluateCallback);
 
     [[nodiscard]] ParticleSimulation Construct();
 
 private:
-    ParticleSimulation BuiltSimulation;
+    ParticleSimulation AssembledSimulation;
 };
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                              PARTICLE SIMULATION DIRECTOR
+//                                              PARTICLE SIMULATION REGISTRY
 //------------------------------------------------------------------------------------------------------------------------
 
-class ParticleSimulationDirector
+class ParticleSimulationRegistry
 {
 public:
-    ParticleSimulationDirector() = default;
+    ParticleSimulationRegistry() = default;
 
-    void     RegisterSimulation(uint32_t UniqueToken, ParticleSimulation Simulation);
-    bool     RemoveSimulation(uint32_t UniqueToken) noexcept;
-    void     ClearAllSimulations() noexcept;
+    void RegisterSimulation(uint32_t UniqueToken, ParticleSimulation Simulation);
+    bool RemoveSimulation(uint32_t UniqueToken) noexcept;
+    void ClearAllSimulations() noexcept;
 
-    void     StepAll(const SimulationStepInputs& Inputs);
-    void     ResetAll() noexcept;
-    void     TriggerBurst(uint32_t UniqueToken, uint32_t OverrideCount = 0u) noexcept;
+    void TickAll(const SimulationTickInputs& Inputs);
+    void ResetAll() noexcept;
+    void TriggerBurst(uint32_t UniqueToken, uint32_t OverrideCount = 0u) noexcept;
 
     [[nodiscard]] ParticleSimulation*       FindSimulation(uint32_t UniqueToken) noexcept;
     [[nodiscard]] const ParticleSimulation* FindSimulation(uint32_t UniqueToken) const noexcept;

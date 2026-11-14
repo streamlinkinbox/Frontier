@@ -21,6 +21,8 @@ Related governance documents: [FolderStructure.md](FolderStructure.md) · [Codin
 - `badge`
 - `binding`
 - `bloom`
+- `builder` / `builders` *(use concrete declarative noun such as `Specification` or `Descriptor` with `Construct()`)*
+- `builtin` / `built-in` *(preposition `In` barred inside compound identifiers; name the concrete domain such as `Kinematics`, `Default`, or `Native`)*
 - `cadence`
 - `card`
 - `carousel`
@@ -51,6 +53,7 @@ Related governance documents: [FolderStructure.md](FolderStructure.md) · [Codin
 - `inscription`
 - `interpolant`
 - `item`
+- `law` / `laws` *(use concrete mechanical noun such as `Solver`, `Constraint`, `Collider`, or `Integrator`)*
 - `listener`
 - `make` *(verb/prefix barred: use `Construct`)*
 - `map`
@@ -68,6 +71,7 @@ Related governance documents: [FolderStructure.md](FolderStructure.md) · [Codin
 - `popup` / `popups`
 - `predicate`
 - `probe`
+- `recipe` / `recipes` *(use concrete artifact noun such as `Preset`, `Specification`, or `Descriptor`)*
 - `reclamation`
 - `reservoir`
 - `stage`
@@ -89,6 +93,7 @@ Related governance documents: [FolderStructure.md](FolderStructure.md) · [Codin
 | **Kinship / Family** *(whole category barred)* | `Parent`, `Child`, `Children`, `Sibling`, `Ancestor`, `Descendant`, `lineage`, `family`, `kin`, `Orphan` | **Entire category barred.** Name tree/graph links by concrete memory/index direction (`EnclosingIndex`, `FirstNestedIndex`, `NextPeerIndex`, `DepthLevel`). |
 | **State-change & factory verbs** | `Commit`, `Compose` *(verb AND noun)*, `Make`, `Accept` | `Commit` → `Finalize` / `Enforce` / `Align` / `Resolve`.<br>`Compose` (verb and noun) → `Stack` / `Order`.<br>`Make` → `Construct` (`ConstructSplashWindow`, `ConstructApplicationWindow`).<br>`Accept` → `Intake` / `Enable` (`IntakeSignalPacket`, `EnableExternalDrop`). |
 | **Boolean & bitmask prefixes** | `Is*`, `Has*`, `Was*`, `Can*`, `Should*`, `On*`, `*On*` *(e.g. `CenteredOnMonitor`, `FocusOnShow`)* | Name bitmask options with imperative directives **`Enable*`**, **`Toggle*`**, or **`Assign*`** (`EnableBorderDecoration`, `AssignMonitorCenter`, `AssignInitialFocus`, `TogglePanelVisibility`). Name booleans directly (`VisibilityEnabled`, `Minimized`, `Maximized`). |
+| **Prepositions in compound identifiers** | `*In*` (`BuiltIn`), `*From*`, `*To*`, `*For*`, `*With*`, `*By*`, `*Into*`, `*On*`, `*Of*` | Fuse concrete domain verb + noun directly without filler prepositions (`ParticleKinematicsSolvers`, `CompilePresetSlug`, `EvaluateRange`, `AttachMotionSolver`, `QueryGpuComputeEligible`). |
 | **Banned variable words** | `flag`, `flags`, `state`, `value` | Describe what the variable actually holds (`WindowAttributeMask`, `AttributeMask`, `PresentationMode`, `ScalarReading`). |
 
 *\* `Traversal` is exempt **only** at `GeometrySpace/Selection/SelectionTraversal.{h,cpp}` (explicit user direction).*
@@ -170,6 +175,8 @@ Use the following distinct visual nouns according to their exact structural role
   - Barred `coverage`, `submission`, `adjacency`, `vacancy`, `store` (revoking `RecordStore`), `reclamation`, `predicate`, and `interpolant`.
   - Barred `facet` / `facets` (use `Face` / `Faces`), `complex`, `topology`, and `assembly` (use `PolygonNetwork` for connected polygon structures).
   - Marked `substrate`, `atlas`, and `slice` as **discouraged (avoid)**.
+- **2026-11-14**:
+  - Barred `Builder` / `Builders` (use `Specification` / `Descriptor` + `Construct()`), `Law` / `Laws` (use `Solver` / `Constraint` / `Collider` / `Integrator`), `Recipe` / `Recipes` (use `Preset` / `Specification`), and `BuiltIn` (plus prepositions `In`, `From`, `To`, `For`, `With`, `By`, `Into`, `On`, `Of` embedded inside compound identifiers).
 
 ---
 
@@ -178,21 +185,21 @@ Use the following distinct visual nouns according to their exact structural role
 Use this combined index to audit identifiers, filenames, directory names, and comments prior to finalizing changes:
 
 - **A**: `action`, `adjacency`, `Aether`, `affinity`, `Ancestor`, `Apex`, `archive` / `archives`, `arena`, `Assembly` / `assembly` *(avoid: `atlas`)*
-- **B**: `backend`, `badge`, `Base`, `binding`, `bloom`, `BooleanSwitch` *(renamed to `ExclusiveSelector`)*
+- **B**: `backend`, `badge`, `Base`, `binding`, `bloom`, `BooleanSwitch` *(renamed to `ExclusiveSelector`)*, `Builder` / `builder`, `BuiltIn` / `builtin`
 - **C**: `cadence`, `card`, `carousel`, `catalog` / `catalogue`, `Catalyst`, `Child`, `Children`, `classification`, `Commit`, `Common`, `Complex` / `complex`, `Compose` / `compose`, `concurrence` / `concurrency` / `concurrent`, `Conductor`, `context`, `continuum`, `contract`, `Controller`, `Core`, `coverage`
-- **D**: `Data`, `Descendant`, `Designation`, `dev`, `Dispatcher`, `Draw` / `draw`
+- **D**: `Data`, `Descendant`, `Designation`, `dev`, `Director`, `Dispatcher`, `Draw` / `draw`
 - **E**: `Element` / `element`, `emblem` / `Emblem`, `Emission` / `Emit` / `emitter`, `Entity`, `evaluator`, `extension` *(restricted — §3.1)*
 - **F**: `Facet` / `facet` / `Facets` / `facets`, `family`, `fence`, `flag`, `floating`, `flow`, `Frame` / `frame`
 - **G**: `Genesis`, `glide`, `glyph`, `Goliath`, `Graph` / `graph`
 - **H**: `Handler`, `harness`, `Helios`, `Helper`, `Hierarchy`, `hook`, `Horizon`, `Hub` / `hub`
 - **I**: `Info`, `Inscription` / `inscription`, `interpolant`, `Item` / `item`
 - **K**: `Kernel`, `kin`, `Kind`, `Kronos`
-- **L**: `lineage`, `Listener` / `listener`
+- **L**: `Law` / `law` / `Laws`, `lineage`, `Listener` / `listener`
 - **M**: `Maestro`, `Manager`, `map`, `Matrix`, `member`, `menu`, `Mesh` / `mesh`, `Module`, `mutation`
 - **N**: `Nexus` / `nexus`, `Node`, `Nova`
 - **O**: `Object`, `Observer` *(restricted — §3.1)*, `occupant`, `Odyssey`, `Oracle`, `Orion`, `Orphan`
 - **P**: `palette`, `Parent`, `Pass` / `pass`, `pill`, `pipeline`, `pool`, `popover`, `popup` / `popups`, `predicate`, `probe`, `Processor`, `proof`, `Provider`
-- **R**: `reclamation`, `Record` *(bare & `RecordStore` barred — §3.1)*, `Representation`, `reservoir`, `Role`
+- **R**: `Recipe` / `recipe` / `Recipes`, `reclamation`, `Record` *(bare & `RecordStore` barred — §3.1)*, `Representation`, `reservoir`, `Role`
 - **S**: `Sentinel`, `Service`, `shell`, `Sibling`, `stage`, `state`, `store`, `Stuff`, `submission`, `Subsystem`, `system` *(avoid: `slice`, `substrate`)*
 - **T**: `table`, `Thing`, `Titan`, `Topology` / `topology`, `Traversal` *(exempt only at `SelectionTraversal` — §3.1)*, `Trial` / `Trials`, `Tween`
 - **U**: `Utility`

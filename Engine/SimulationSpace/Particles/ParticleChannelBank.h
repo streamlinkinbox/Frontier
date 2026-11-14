@@ -1,7 +1,7 @@
 /*============================================================================================================================================
                                                           PARTICLECHANNELBANK.H
 ============================================================================================================================================*/
-// 🧩 Modular typed Structure-of-Arrays (SoA) particle channel bank supporting built-in 16B GPU channels and custom user C++ attribute types
+// 🧩 Modular typed Structure-of-Arrays (SoA) particle channel bank supporting native 16B GPU channels and custom user C++ attribute types
 
 #pragma once
 
@@ -72,7 +72,7 @@ struct ChannelDescriptorSummary
     std::string      DebugLabel    {};                           // [-]     - Channel label
     uint32_t         StrideBytes   = 0u;                         // [B]     - Per-particle attribute stride
     uint32_t         AlignBytes    = 0u;                         // [B]     - Required alignment
-    ChannelResidency Residency     = ChannelResidency::CpuOnly;  // [-]     - Residency classification
+    ChannelResidency Residency     = ChannelResidency::CpuOnly;  // [-]     - Residency policy
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -95,15 +95,15 @@ public:
     void ResetAllChannels() noexcept;
 
     // Allocates `RequestedCount` slots; returns actual count allocated and writes starting index to `OutBeginSlot`.
-    [[nodiscard]] uint32_t SpawnSlots(uint32_t RequestedCount, uint32_t& OutBeginSlot) noexcept;
+    [[nodiscard]] uint32_t AcquireSlots(uint32_t RequestedCount, uint32_t& OutBeginSlot) noexcept;
 
-    // Retires `SlotIndex`. Under DenseSwapRemove, swaps last active slot into `SlotIndex` across ALL channels.
-    void RetireSlot(uint32_t SlotIndex) noexcept;
+    // Reclaims `SlotIndex`. Under DenseSwapRemove, swaps last active slot into `SlotIndex` across ALL channels.
+    void ReclaimSlot(uint32_t SlotIndex) noexcept;
 
     // Sets ActiveCount explicitly (useful for FixedSlotOrder deterministic grids & strands).
     void AssignActiveCount(uint32_t Count) noexcept;
 
-    // Idempotently registers & allocates a typed channel (built-in or user-defined C++ struct).
+    // Idempotently registers & allocates a typed channel (native or user-defined C++ struct).
     template <typename AttributeT>
         requires std::is_trivially_copyable_v<AttributeT> && std::is_default_constructible_v<AttributeT>
     std::span<AttributeT> RequireChannel(const ChannelTag<AttributeT>& Tag)
@@ -158,42 +158,42 @@ public:
     [[nodiscard]] ChannelStoragePolicy QueryStoragePolicy() const noexcept { return StoragePolicy; }
     [[nodiscard]] uint32_t             QueryRegisteredChannelCount() const noexcept { return static_cast<uint32_t>(Columns.size()); }
     [[nodiscard]] std::size_t          QueryOccupiedMemoryBytes() const noexcept;
-    [[nodiscard]] bool                 QueryAllChannelsGpuResident() const noexcept;
+    [[nodiscard]] bool                 QueryChannelsGpuResident() const noexcept;
 
 private:
-    using ResetSlotFn = void (*)(std::byte* SlotAddress) noexcept;
+    using ResetSlotCallback = void (*)(std::byte* SlotAddress) noexcept;
 
     struct ChannelColumn
     {
-        uint64_t         SignatureHash = 0u;
-        std::string      DebugLabel    {};
-        uint32_t         StrideBytes   = 0u;
-        uint32_t         AlignBytes    = 16u;
-        ChannelResidency Residency     = ChannelResidency::CpuOnly;
-        ResetSlotFn      ResetSlot     = nullptr;
-        std::byte*       AlignedBytes  = nullptr;
-        std::size_t      AllocatedBytes = 0u;
+        uint64_t          SignatureHash  = 0u;
+        std::string       DebugLabel     {};
+        uint32_t          StrideBytes    = 0u;
+        uint32_t          AlignBytes     = 16u;
+        ChannelResidency  Residency      = ChannelResidency::CpuOnly;
+        ResetSlotCallback ResetSlot      = nullptr;
+        std::byte*        AlignedBytes   = nullptr;
+        std::size_t       AllocatedBytes = 0u;
     };
 
     template <typename AttributeT>
     static void DefaultConstructSlot(std::byte* SlotAddress) noexcept
     {
         const AttributeT DefaultSample{};
-        std::byte* Dst = SlotAddress;
-        const std::byte* Src = reinterpret_cast<const std::byte*>(&DefaultSample);
-        for (std::size_t ByteIdx = 0u; ByteIdx < sizeof(AttributeT); ++ByteIdx)
+        std::byte*       DestinationBytes = SlotAddress;
+        const std::byte* SourceBytes      = reinterpret_cast<const std::byte*>(&DefaultSample);
+        for (std::size_t ByteOffset = 0u; ByteOffset < sizeof(AttributeT); ++ByteOffset)
         {
-            Dst[ByteIdx] = Src[ByteIdx];
+            DestinationBytes[ByteOffset] = SourceBytes[ByteOffset];
         }
     }
 
     ChannelColumn& RequireRawColumn(
-        uint64_t         SignatureHash,
-        const char*      DebugLabel,
-        uint32_t         StrideBytes,
-        uint32_t         AlignBytes,
-        ChannelResidency Residency,
-        ResetSlotFn      ResetCallback);
+        uint64_t          SignatureHash,
+        const char*       DebugLabel,
+        uint32_t          StrideBytes,
+        uint32_t          AlignBytes,
+        ChannelResidency  Residency,
+        ResetSlotCallback ResetCallback);
 
     [[nodiscard]] int32_t FindColumnIndex(uint64_t SignatureHash, uint32_t ExpectedStrideBytes) const noexcept;
     void                  AllocateColumnStorage(ChannelColumn& Column, uint32_t SlotCapacity);

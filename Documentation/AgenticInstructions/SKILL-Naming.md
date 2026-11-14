@@ -43,16 +43,17 @@ then run the 6-gate rejection check.
 `.h`/`.cpp`/`.slang` files, folders, and comments:
 
 - **Hard-Banned Highlights:** `action`, `adjacency`, `affinity`, `arena`, `Assembly`, `backend`, `badge`, `Base`,
-  `binding`, `bloom` (→ `VeilingGlareFilter` / `LuminanceGlareDownsample`), `Cache`, `card`, `carousel`,
+  `binding`, `bloom` (→ `VeilingGlareFilter` / `LuminanceGlareDownsample`), `Builder` (→ `Specification` + `Construct()`),
+  `BuiltIn` (no prepositions like `In`/`From`/`To`/`For`/`With`/`By` inside identifiers), `Cache`, `card`, `carousel`,
   `classification`, `Commit` (→ `Finalize`/`Enforce`/`Align`/`Resolve`), `Common`, `Complex`, `Compose`/`Composite`
   (→ `Stack`/`Order`), `concurrency`/`concurrent`, `context`, `continuum`, `contract`, `Core`,
-  `coverage`, `Data`, `Designation` (→ `…Token`), `dev`, `Element`, `Emission`/`Emit`/`emitter`,
+  `coverage`, `Data`, `Designation` (→ `…Token`), `dev`, `Director`, `Element`, `Emission`/`Emit`/`emitter`,
   `Entity`, `evaluator`, `Facet`/`Facets` (→ `Face`/`Faces`), `fence`, `flag`, `floating`, `flow`, `Frame`, `glyph`, `Graph`,
   `harness`/`Trial` (→ `…Validation`), `Hierarchy`, `hook`, `Hub`, `Info`, `Inscription`
-  (→ `…Rasterization`), `interpolant`, `Item`, `Kernel`, `Kind` (→ `…Category`), `Listener`, `map`,
+  (→ `…Rasterization`), `interpolant`, `Item`, `Kernel`, `Kind` (→ `…Category`), `Law`/`Laws` (→ `Solver`/`Constraint`/`Collider`/`Integrator`), `Listener`, `map`,
   `Matrix`, `member`, `menu`, `mesh` (→ `PolygonNetwork`), `Model`, `Module`,
   `mutation`, `Nexus`, `Node`, `Object`, `occupant`, `palette`, `Pass`, `pill`, `pipeline`, `pool`,
-  `popup`/`popover`, `predicate`, `probe`, `reclamation`, `Record` *(bare & `RecordStore` barred; only `RecordEntry`/`RecordToken` approved)*,
+  `popup`/`popover`, `predicate`, `probe`, `Recipe`/`Recipes` (→ `Preset`/`Specification`), `reclamation`, `Record` *(bare & `RecordStore` barred; only `RecordEntry`/`RecordToken` approved)*,
   `reservoir`, `Role`, `shell`, `stage`, `state`, `store`, `submission`, `Subsystem`/`system`, `table`,
   `Topology`, `Traversal` *(exempt only at `GeometrySpace/Selection/SelectionTraversal.{h,cpp}`)*, `Tween`, `Utility`,
   `vacancy`, `value`, `Widget`.

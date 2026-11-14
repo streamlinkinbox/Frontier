@@ -192,7 +192,7 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Workspaces/Particles/ParticleWorkspaceSession.cpp
     Engine/Workspaces/Particles/ParticleOutlinerPanel.cpp
     Engine/Workspaces/Particles/ParticleInspectorPanel.cpp
-    Engine/SimulationSpace/Particles/ParticleRecipeCompiler.cpp
+    Engine/SimulationSpace/Particles/ParticlePresetCompiler.cpp
     Engine/GeometricRaster/Rasterization/ImGuiOverlayRasterization.cpp
     Engine/GeometricRaster/GlobalIllumination/ShowcaseGalleryScene.cpp
     Engine/Input/ImGuiInputAdapter.cpp
@@ -453,7 +453,7 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/SimulationSpace/ForceFields/FieldLatticeCascade.cpp
     Engine/SimulationSpace/ForceFields/FieldLatticeVulkanExecutor.cpp
     Engine/SimulationSpace/Particles/ParticleChannelBank.cpp
-    Engine/SimulationSpace/Particles/ParticleBuiltInLaws.cpp
+    Engine/SimulationSpace/Particles/ParticleKinematicsSolvers.cpp
     Engine/SimulationSpace/Particles/ParticleDomainSolvers.cpp
     Engine/SimulationSpace/Particles/ParticleSimulation.cpp
     Engine/NetworkingSpace/PacketSerializer.cpp

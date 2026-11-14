@@ -1,7 +1,7 @@
 /*============================================================================================================================================
-                                                        PARTICLERECIPECOMPILER.H
+                                                        PARTICLEPRESETCOMPILER.H
 ============================================================================================================================================*/
-// 🧩 Compiles any of the 93 active non-quarantined ParticlePresetRegistry entries or live ParticleEffectRecordEntry configs into ParticleSimulations
+// 🧩 Compiles any of the 93 active non-quarantined ParticlePresetRegistry entries or live ParticleEffectRecordEntry entries into ParticleSimulations
 
 #pragma once
 
@@ -21,20 +21,20 @@ namespace Frontier::SimulationSpace::Particles
 {
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                  PARTICLE RECIPE COMPILER
+//                                                  PARTICLE PRESET COMPILER
 //------------------------------------------------------------------------------------------------------------------------
 
-class ParticleRecipeCompiler
+class ParticlePresetCompiler
 {
 public:
-    // Compiles any active non-quarantined preset slug into a ready-to-step modular ParticleSimulation.
+    // Compiles any active non-quarantined preset slug into a ready-to-tick modular ParticleSimulation.
     // Returns std::nullopt for retired Quarantine slugs or unknown identifiers.
-    [[nodiscard]] static std::optional<ParticleSimulation> ConstructFromPresetSlug(
+    [[nodiscard]] static std::optional<ParticleSimulation> CompilePresetSlug(
         std::string_view PresetSlug,
         uint32_t         DeterministicSeed = 1337u);
 
     // Compiles a live authored ParticleEffectRecordEntry from ParticleWorkspaceSession / Inspector into a ParticleSimulation.
-    [[nodiscard]] static std::optional<ParticleSimulation> ConstructFromRecordEntry(
+    [[nodiscard]] static std::optional<ParticleSimulation> CompileEffectEntry(
         const Workspaces::ParticleEffectRecordEntry& EffectEntry);
 };
 

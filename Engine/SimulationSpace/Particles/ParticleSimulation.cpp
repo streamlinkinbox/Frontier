@@ -1,7 +1,7 @@
 /*============================================================================================================================================
                                                          PARTICLESIMULATION.CPP
 ============================================================================================================================================*/
-// 🧩 Implementation of ParticleSimulation fixed-step runner, fluent ParticleSimulationBuilder, 32 B telemetry reduction, and ParticleSimulationDirector
+// 🧩 Composable ParticleSimulation tick execution, 32-byte telemetry summary, fluent specification & multi-simulation registry
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        INCLUDES
@@ -17,142 +17,162 @@ namespace Frontier::SimulationSpace::Particles
 {
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                     INTERNAL ROUTINES
+//------------------------------------------------------------------------------------------------------------------------
+
+namespace
+{
+
+constexpr uint32_t RangeTileSlots = 256u; // [slots] - Contiguous 64B-aligned SoA tile granularity
+
+[[nodiscard]] double QueryClockMicros() noexcept
+{
+    const auto Now = std::chrono::steady_clock::now().time_since_epoch();
+    return std::chrono::duration<double, std::micro>(Now).count();
+}
+
+} // namespace
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                      PARTICLE SIMULATION
 //------------------------------------------------------------------------------------------------------------------------
 
-ParticleSimulation::ParticleSimulation(std::string InLabel)
-    : Label(std::move(InLabel))
+ParticleSimulation::ParticleSimulation(std::string SimulationLabel)
+    : Label(std::move(SimulationLabel))
     , Integrator(std::make_unique<SemiImplicitEulerIntegrator>())
-    , Rng(MasterSeed)
+    , RandomGenerator(1337u)
 {
+    Channels.ConfigureCapacity(256u, ChannelStoragePolicy::DenseSwapRemove);
 }
 
 void ParticleSimulation::ConfigureCapacity(uint32_t MaxCapacity, ChannelStoragePolicy Policy)
 {
-    Channels.ConfigureCapacity(MaxCapacity, Policy);
+    Channels.ConfigureCapacity(std::max(1u, MaxCapacity), Policy);
 }
 
 void ParticleSimulation::AssignDeterministicSeed(uint32_t Seed) noexcept
 {
     MasterSeed = (Seed != 0u) ? Seed : 1337u;
-    Rng        = ParticleRng(MasterSeed);
+    RandomGenerator.AssignSeed(MasterSeed);
 }
 
-void ParticleSimulation::AttachReleaseRule(std::unique_ptr<IParticleReleaseRule> Rule)
+void ParticleSimulation::AttachSource(std::unique_ptr<ParticleSource> Source)
 {
-    if (!Rule)
+    if (!Source)
     {
         return;
     }
-    Rule->DeclareRequiredChannels(Channels);
-    ReleaseRules.push_back(std::move(Rule));
+    Source->DeclareRequiredChannels(Channels);
+    Sources.push_back(std::move(Source));
 }
 
-void ParticleSimulation::AttachMotionLaw(std::unique_ptr<IParticleMotionLaw> Law)
+void ParticleSimulation::AttachMotionSolver(std::unique_ptr<ParticleMotionSolver> Solver)
 {
-    if (!Law)
+    if (!Solver)
     {
         return;
     }
-    Law->DeclareRequiredChannels(Channels);
-    MotionLaws.push_back(std::move(Law));
+    Solver->DeclareRequiredChannels(Channels);
+    MotionSolvers.push_back(std::move(Solver));
 }
 
-void ParticleSimulation::AttachCollisionRule(std::unique_ptr<IParticleCollisionRule> Collider)
+void ParticleSimulation::AttachCollider(std::unique_ptr<ParticleCollider> Collider)
 {
     if (!Collider)
     {
         return;
     }
     Collider->DeclareRequiredChannels(Channels);
-    CollisionRules.push_back(std::move(Collider));
+    Colliders.push_back(std::move(Collider));
 }
 
-void ParticleSimulation::AssignIntegrator(std::unique_ptr<IParticleIntegrator> InIntegrator)
+void ParticleSimulation::AssignIntegrator(std::unique_ptr<ParticleIntegrator> StepIntegrator)
 {
-    if (!InIntegrator)
+    if (!StepIntegrator)
     {
         return;
     }
-    InIntegrator->DeclareRequiredChannels(Channels);
-    Integrator = std::move(InIntegrator);
+    StepIntegrator->DeclareRequiredChannels(Channels);
+    Integrator = std::move(StepIntegrator);
 }
 
-void ParticleSimulation::Step(const SimulationStepInputs& Inputs)
+void ParticleSimulation::Tick(const SimulationTickInputs& Inputs)
 {
-    const auto StartClock = std::chrono::steady_clock::now();
-
-    SimulationStepInputs EffectiveInputs = Inputs;
-    EffectiveInputs.DeltaTimeSeconds     = std::clamp(Inputs.DeltaTimeSeconds, 1.0e-5f, 0.1f);
-
-    // 1. Release / Spawn phase
-    for (std::unique_ptr<IParticleReleaseRule>& Rule : ReleaseRules)
+    const double StartMicros = QueryClockMicros();
+    const float  Dt          = std::clamp(Inputs.DeltaTimeSeconds, 0.0f, 0.1f);
+    if (Dt <= 0.0f)
     {
-        const uint32_t Spawned = Rule->ExecuteRelease(Channels, EffectiveInputs, Rng);
-        ReadbackSummary.TotalSpawnedCount += Spawned;
+        ComputeReadbackSummary(StartMicros);
+        return;
     }
 
-    const uint32_t ActiveBefore = Channels.QueryActiveCount();
-    if (ActiveBefore > 0u)
+    SimulationTickInputs SafeInputs = Inputs;
+    SafeInputs.DeltaTimeSeconds     = Dt;
+
+    // 1. Release new particle slots via attached sources
+    for (std::unique_ptr<ParticleSource>& Source : Sources)
     {
-        // 2. Single-threaded PrepareTick phase (e.g. spatial snapshots, orbiting dipole update, impact detection)
-        for (std::unique_ptr<IParticleMotionLaw>& Law : MotionLaws)
+        (void)Source->ReleaseParticles(Channels, SafeInputs, RandomGenerator);
+    }
+
+    const uint32_t ActiveCount = Channels.QueryActiveCount();
+    if (ActiveCount > 0u)
+    {
+        // 2. Per-tick initialization (e.g. orbiting magnet pole, boids snapshot)
+        for (std::unique_ptr<ParticleMotionSolver>& Solver : MotionSolvers)
         {
-            Law->PrepareTick(Channels, EffectiveInputs);
+            Solver->InitializeTick(Channels, SafeInputs);
         }
 
-        // 3. Disjoint-range Motion Law evaluation (partitioned in 256-slot cache-friendly tiles)
-        constexpr uint32_t TileSlots = 256u;
-        for (std::unique_ptr<IParticleMotionLaw>& Law : MotionLaws)
+        // 3. Evaluate modular motion solvers in contiguous SoA tiles
+        for (uint32_t TileBegin = 0u; TileBegin < ActiveCount; TileBegin += RangeTileSlots)
         {
-            for (uint32_t Begin = 0u; Begin < ActiveBefore; Begin += TileSlots)
+            const uint32_t TileEnd = std::min(ActiveCount, TileBegin + RangeTileSlots);
+            for (const std::unique_ptr<ParticleMotionSolver>& Solver : MotionSolvers)
             {
-                const uint32_t End = std::min(ActiveBefore, Begin + TileSlots);
-                Law->ApplyToRange(Channels, Begin, End, EffectiveInputs);
+                Solver->EvaluateRange(Channels, TileBegin, TileEnd, SafeInputs);
             }
         }
 
-        // 4. Time Integration phase
+        // 4. Advance positions via active integrator
         if (Integrator)
         {
-            for (uint32_t Begin = 0u; Begin < ActiveBefore; Begin += TileSlots)
+            for (uint32_t TileBegin = 0u; TileBegin < ActiveCount; TileBegin += RangeTileSlots)
             {
-                const uint32_t End = std::min(ActiveBefore, Begin + TileSlots);
-                Integrator->IntegrateRange(Channels, Begin, End, EffectiveInputs);
+                const uint32_t TileEnd = std::min(ActiveCount, TileBegin + RangeTileSlots);
+                Integrator->AdvanceRange(Channels, TileBegin, TileEnd, SafeInputs);
             }
         }
 
-        // 5. Post-integration structural/constraint FinalizeTick phase (XPBD projections, sub-burst spawns)
-        for (std::unique_ptr<IParticleMotionLaw>& Law : MotionLaws)
+        // 5. Enforce modular colliders (GroundPlane, SphereContact, SignedDistanceVolume)
+        for (uint32_t TileBegin = 0u; TileBegin < ActiveCount; TileBegin += RangeTileSlots)
         {
-            Law->FinalizeTick(Channels, EffectiveInputs, Rng);
-        }
-
-        // 6. Collision resolution over current active range (including any newly spawned sub-bursts)
-        const uint32_t ActiveAfterFinalize = Channels.QueryActiveCount();
-        for (std::unique_ptr<IParticleCollisionRule>& Collider : CollisionRules)
-        {
-            for (uint32_t Begin = 0u; Begin < ActiveAfterFinalize; Begin += TileSlots)
+            const uint32_t TileEnd = std::min(ActiveCount, TileBegin + RangeTileSlots);
+            for (const std::unique_ptr<ParticleCollider>& Collider : Colliders)
             {
-                const uint32_t End = std::min(ActiveAfterFinalize, Begin + TileSlots);
-                Collider->ResolveRange(Channels, Begin, End, EffectiveInputs);
+                Collider->EnforceRange(Channels, TileBegin, TileEnd, SafeInputs);
             }
         }
 
-        // 7. Lifespan aging & synchronized channel retirement
-        AdvanceLifespansAndRetire(EffectiveInputs.DeltaTimeSeconds);
+        // 6. Post-range structural finalization (XPBD constraints, pyro sub-bursts)
+        for (std::unique_ptr<ParticleMotionSolver>& Solver : MotionSolvers)
+        {
+            Solver->FinalizeTick(Channels, SafeInputs, RandomGenerator);
+        }
+
+        // 7. Advance lifespans & reclaim expired slots synchronously across ALL channels (including custom user types)
+        ReclaimExpiredLifespans(Dt);
     }
 
-    const auto EndClock      = std::chrono::steady_clock::now();
-    const double ElapsedUs   = std::chrono::duration<double, std::micro>(EndClock - StartClock).count();
-    ComputeReadbackSummary(ElapsedUs);
+    ReadbackSummary.RevisionCounter += 1u;
+    ComputeReadbackSummary(StartMicros);
 }
 
 void ParticleSimulation::TriggerBurst(uint32_t OverrideCount) noexcept
 {
-    for (std::unique_ptr<IParticleReleaseRule>& Rule : ReleaseRules)
+    for (std::unique_ptr<ParticleSource>& Source : Sources)
     {
-        Rule->TriggerImmediateBurst(OverrideCount);
+        Source->TriggerImmediateBurst(OverrideCount);
     }
 }
 
@@ -162,49 +182,59 @@ void ParticleSimulation::Reset(uint32_t OverrideSeed) noexcept
     {
         MasterSeed = OverrideSeed;
     }
-    Rng = ParticleRng(MasterSeed);
+    RandomGenerator.AssignSeed(MasterSeed);
     Channels.ResetAllChannels();
-    for (std::unique_ptr<IParticleReleaseRule>& Rule : ReleaseRules)
+
+    for (std::unique_ptr<ParticleSource>& Source : Sources)
     {
-        Rule->ResetReleaseClock();
+        Source->ResetSource();
     }
+    for (std::unique_ptr<ParticleMotionSolver>& Solver : MotionSolvers)
+    {
+        Solver->ResetSolver();
+    }
+
     ReadbackSummary = ParticleReadbackSummary{};
 }
 
-bool ParticleSimulation::QueryEligibleForGpuCompute() const noexcept
+bool ParticleSimulation::QueryGpuComputeEligible() const noexcept
 {
-    if (!Channels.QueryAllChannelsGpuResident())
+    if (!Channels.QueryChannelsGpuResident())
     {
         return false;
     }
-    for (const std::unique_ptr<IParticleReleaseRule>& Rule : ReleaseRules)
+    for (const std::unique_ptr<ParticleSource>& Source : Sources)
     {
-        if (!Rule->SupportsGpuCompute())
+        if (!Source->QueryGpuComputeSupported())
         {
             return false;
         }
     }
-    for (const std::unique_ptr<IParticleMotionLaw>& Law : MotionLaws)
+    for (const std::unique_ptr<ParticleMotionSolver>& Solver : MotionSolvers)
     {
-        if (!Law->SupportsGpuCompute())
+        if (!Solver->QueryGpuComputeSupported())
         {
             return false;
         }
     }
-    for (const std::unique_ptr<IParticleCollisionRule>& Collider : CollisionRules)
+    for (const std::unique_ptr<ParticleCollider>& Collider : Colliders)
     {
-        if (!Collider->SupportsGpuCompute())
+        if (!Collider->QueryGpuComputeSupported())
         {
             return false;
         }
     }
-    return Integrator ? Integrator->SupportsGpuCompute() : true;
+    if (Integrator && !Integrator->QueryGpuComputeSupported())
+    {
+        return false;
+    }
+    return true;
 }
 
-void ParticleSimulation::AdvanceLifespansAndRetire(float DeltaTimeSeconds) noexcept
+void ParticleSimulation::ReclaimExpiredLifespans(float DeltaTimeSeconds) noexcept
 {
-    auto Life = Channels.AccessChannel(StandardChannels::Lifespan);
-    if (Life.empty())
+    auto Lifespans = Channels.AccessChannel(ChannelLayouts::Lifespan);
+    if (Lifespans.empty())
     {
         return;
     }
@@ -212,136 +242,142 @@ void ParticleSimulation::AdvanceLifespansAndRetire(float DeltaTimeSeconds) noexc
     uint32_t Slot = 0u;
     while (Slot < Channels.QueryActiveCount())
     {
-        LifespanChannel& Entry = Life[Slot];
-        Entry.AgeSeconds      += DeltaTimeSeconds;
-        if (Entry.MaxLifeSeconds > 0.0f && Entry.AgeSeconds >= Entry.MaxLifeSeconds)
+        LifespanChannel& Life = Lifespans[Slot];
+        Life.AgeSeconds += DeltaTimeSeconds;
+        if (Life.MaxLifeSeconds > 0.0f && Life.AgeSeconds >= Life.MaxLifeSeconds)
         {
-            Channels.RetireSlot(Slot);
-            if (Channels.QueryStoragePolicy() == ChannelStoragePolicy::FixedSlotOrder)
+            if (Channels.QueryStoragePolicy() == ChannelStoragePolicy::DenseSwapRemove)
             {
-                ++Slot;
+                Channels.ReclaimSlot(Slot);
+                // Re-inspect same Slot because last active slot was swapped here
+                continue;
             }
-            continue;
+            Life.LivenessMask = 0u;
         }
         ++Slot;
     }
 }
 
-void ParticleSimulation::ComputeReadbackSummary(double ElapsedMicros) noexcept
+void ParticleSimulation::ComputeReadbackSummary(double TickStartMicros) noexcept
 {
     const uint32_t Active = Channels.QueryActiveCount();
-    ReadbackSummary.AliveCount     = Active;
-    ReadbackSummary.StepDurationUs = static_cast<float>(ElapsedMicros);
+    auto Kin              = Channels.QueryChannel(ChannelLayouts::Kinematics);
 
-    const auto Kin = Channels.QueryChannel(StandardChannels::Kinematics);
-    if (Active == 0u || Kin.empty())
+    float PeakSpeedSq = 0.0f;
+    float SumX        = 0.0f;
+    float SumY        = 0.0f;
+    float SumZ        = 0.0f;
+    if (!Kin.empty() && Active > 0u)
     {
-        ReadbackSummary.PeakSpeedMs        = 0.0f;
-        ReadbackSummary.BoundsRadiusMeters = 0.0f;
-        ReadbackSummary.BoundsCenterX      = 0.0f;
-        ReadbackSummary.BoundsCenterY      = 0.0f;
-        ReadbackSummary.BoundsCenterZ      = 0.0f;
-        return;
+        for (uint32_t Slot = 0u; Slot < Active; ++Slot)
+        {
+            const KinematicsChannel& Body = Kin[Slot];
+            const float SpeedSq           = Body.VelX * Body.VelX + Body.VelY * Body.VelY + Body.VelZ * Body.VelZ;
+            if (std::isfinite(SpeedSq) && SpeedSq > PeakSpeedSq)
+            {
+                PeakSpeedSq = SpeedSq;
+            }
+            SumX += Body.PosX;
+            SumY += Body.PosY;
+            SumZ += Body.PosZ;
+        }
     }
 
-    double SumX   = 0.0;
-    double SumY   = 0.0;
-    double SumZ   = 0.0;
-    float  PeakSq = 0.0f;
-    for (uint32_t Slot = 0u; Slot < Active; ++Slot)
-    {
-        SumX += static_cast<double>(Kin[Slot].PosX);
-        SumY += static_cast<double>(Kin[Slot].PosY);
-        SumZ += static_cast<double>(Kin[Slot].PosZ);
+    const float InvActive = (Active > 0u) ? (1.0f / static_cast<float>(Active)) : 0.0f;
+    const float CenterX   = SumX * InvActive;
+    const float CenterY   = SumY * InvActive;
+    const float CenterZ   = SumZ * InvActive;
 
-        const float SpdSq = Kin[Slot].VelX * Kin[Slot].VelX
-                          + Kin[Slot].VelY * Kin[Slot].VelY
-                          + Kin[Slot].VelZ * Kin[Slot].VelZ;
-        PeakSq = std::max(PeakSq, SpdSq);
+    float MaxRadiusSq = 0.0f;
+    if (!Kin.empty() && Active > 0u)
+    {
+        for (uint32_t Slot = 0u; Slot < Active; ++Slot)
+        {
+            const float Dx  = Kin[Slot].PosX - CenterX;
+            const float Dy  = Kin[Slot].PosY - CenterY;
+            const float Dz  = Kin[Slot].PosZ - CenterZ;
+            const float RSq = Dx * Dx + Dy * Dy + Dz * Dz;
+            if (std::isfinite(RSq) && RSq > MaxRadiusSq)
+            {
+                MaxRadiusSq = RSq;
+            }
+        }
     }
 
-    const float InvN = 1.0f / static_cast<float>(Active);
-    const float Cx   = static_cast<float>(SumX) * InvN;
-    const float Cy   = static_cast<float>(SumY) * InvN;
-    const float Cz   = static_cast<float>(SumZ) * InvN;
-
-    float MaxDistSq = 0.0f;
-    for (uint32_t Slot = 0u; Slot < Active; ++Slot)
-    {
-        const float Dx = Kin[Slot].PosX - Cx;
-        const float Dy = Kin[Slot].PosY - Cy;
-        const float Dz = Kin[Slot].PosZ - Cz;
-        MaxDistSq      = std::max(MaxDistSq, Dx * Dx + Dy * Dy + Dz * Dz);
-    }
-
-    ReadbackSummary.PeakSpeedMs        = std::sqrt(PeakSq);
-    ReadbackSummary.BoundsCenterX      = Cx;
-    ReadbackSummary.BoundsCenterY      = Cy;
-    ReadbackSummary.BoundsCenterZ      = Cz;
-    ReadbackSummary.BoundsRadiusMeters = std::sqrt(MaxDistSq);
+    ReadbackSummary.AliveCount         = Active;
+    ReadbackSummary.PeakSpeedMs        = std::sqrt(PeakSpeedSq);
+    ReadbackSummary.BoundsRadiusMeters = std::sqrt(MaxRadiusSq);
+    ReadbackSummary.TickDurationUs     = static_cast<float>(std::max(0.0, QueryClockMicros() - TickStartMicros));
+    ReadbackSummary.BoundsCenterX      = CenterX;
+    ReadbackSummary.BoundsCenterY      = CenterY;
+    ReadbackSummary.BoundsCenterZ      = CenterZ;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                               FLUENT C++20 SIMULATION BUILDER
+//                                           FLUENT C++20 SIMULATION SPECIFICATION
 //------------------------------------------------------------------------------------------------------------------------
 
-ParticleSimulationBuilder::ParticleSimulationBuilder(std::string InLabel)
-    : BuiltSimulation(std::move(InLabel))
+ParticleSimulationSpecification::ParticleSimulationSpecification(std::string SimulationLabel)
+    : AssembledSimulation(std::move(SimulationLabel))
 {
 }
 
-ParticleSimulationBuilder& ParticleSimulationBuilder::ConfigureCapacity(uint32_t MaxCapacity, ChannelStoragePolicy Policy)
+ParticleSimulationSpecification& ParticleSimulationSpecification::ConfigureCapacity(
+    uint32_t             MaxCapacity,
+    ChannelStoragePolicy Policy)
 {
-    BuiltSimulation.ConfigureCapacity(MaxCapacity, Policy);
+    AssembledSimulation.ConfigureCapacity(MaxCapacity, Policy);
     return *this;
 }
 
-ParticleSimulationBuilder& ParticleSimulationBuilder::WithDeterministicSeed(uint32_t Seed) noexcept
+ParticleSimulationSpecification& ParticleSimulationSpecification::AssignDeterministicSeed(uint32_t Seed) noexcept
 {
-    BuiltSimulation.AssignDeterministicSeed(Seed);
+    AssembledSimulation.AssignDeterministicSeed(Seed);
     return *this;
 }
 
-ParticleSimulationBuilder& ParticleSimulationBuilder::WithExecutionTarget(ExecutionTarget Target) noexcept
+ParticleSimulationSpecification& ParticleSimulationSpecification::AssignExecutionTarget(ExecutionTarget Target) noexcept
 {
-    BuiltSimulation.AssignExecutionTarget(Target);
+    AssembledSimulation.AssignExecutionTarget(Target);
     return *this;
 }
 
-ParticleSimulationBuilder& ParticleSimulationBuilder::WithCustomRelease(
-    std::string                        RuleLabel,
-    CustomLambdaReleaseRule::DeclareFn DeclareCallback,
-    CustomLambdaReleaseRule::ExecuteFn ExecuteCallback)
+ParticleSimulationSpecification& ParticleSimulationSpecification::AttachCustomSource(
+    std::string                           SourceLabel,
+    CustomParticleSource::ChannelCallback DeclareCallback,
+    CustomParticleSource::ReleaseCallback ReleaseCallback)
 {
-    BuiltSimulation.AttachReleaseRule(std::make_unique<CustomLambdaReleaseRule>(
-        std::move(RuleLabel),
-        std::move(DeclareCallback),
-        std::move(ExecuteCallback)));
+    AssembledSimulation.AttachSource(
+        std::make_unique<CustomParticleSource>(
+            std::move(SourceLabel),
+            std::move(DeclareCallback),
+            std::move(ReleaseCallback)));
     return *this;
 }
 
-ParticleSimulationBuilder& ParticleSimulationBuilder::WithCustomLaw(
-    std::string                      LawLabel,
-    CustomLambdaMotionLaw::DeclareFn DeclareCallback,
-    CustomLambdaMotionLaw::ApplyFn   ApplyCallback)
+ParticleSimulationSpecification& ParticleSimulationSpecification::AttachCustomMotionSolver(
+    std::string                            SolverLabel,
+    CustomParticleSolver::ChannelCallback  DeclareCallback,
+    CustomParticleSolver::EvaluateCallback EvaluateCallback)
 {
-    BuiltSimulation.AttachMotionLaw(std::make_unique<CustomLambdaMotionLaw>(
-        std::move(LawLabel),
-        std::move(DeclareCallback),
-        std::move(ApplyCallback)));
+    AssembledSimulation.AttachMotionSolver(
+        std::make_unique<CustomParticleSolver>(
+            std::move(SolverLabel),
+            std::move(DeclareCallback),
+            std::move(EvaluateCallback)));
     return *this;
 }
 
-ParticleSimulation ParticleSimulationBuilder::Construct()
+ParticleSimulation ParticleSimulationSpecification::Construct()
 {
-    return std::move(BuiltSimulation);
+    return std::move(AssembledSimulation);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                              PARTICLE SIMULATION DIRECTOR
+//                                              PARTICLE SIMULATION REGISTRY
 //------------------------------------------------------------------------------------------------------------------------
 
-void ParticleSimulationDirector::RegisterSimulation(uint32_t UniqueToken, ParticleSimulation Simulation)
+void ParticleSimulationRegistry::RegisterSimulation(uint32_t UniqueToken, ParticleSimulation Simulation)
 {
     for (TokenizedEntry& Entry : Entries)
     {
@@ -354,7 +390,7 @@ void ParticleSimulationDirector::RegisterSimulation(uint32_t UniqueToken, Partic
     Entries.push_back(TokenizedEntry{ UniqueToken, std::move(Simulation) });
 }
 
-bool ParticleSimulationDirector::RemoveSimulation(uint32_t UniqueToken) noexcept
+bool ParticleSimulationRegistry::RemoveSimulation(uint32_t UniqueToken) noexcept
 {
     for (std::size_t Index = 0u; Index < Entries.size(); ++Index)
     {
@@ -367,20 +403,20 @@ bool ParticleSimulationDirector::RemoveSimulation(uint32_t UniqueToken) noexcept
     return false;
 }
 
-void ParticleSimulationDirector::ClearAllSimulations() noexcept
+void ParticleSimulationRegistry::ClearAllSimulations() noexcept
 {
     Entries.clear();
 }
 
-void ParticleSimulationDirector::StepAll(const SimulationStepInputs& Inputs)
+void ParticleSimulationRegistry::TickAll(const SimulationTickInputs& Inputs)
 {
     for (TokenizedEntry& Entry : Entries)
     {
-        Entry.Simulation.Step(Inputs);
+        Entry.Simulation.Tick(Inputs);
     }
 }
 
-void ParticleSimulationDirector::ResetAll() noexcept
+void ParticleSimulationRegistry::ResetAll() noexcept
 {
     for (TokenizedEntry& Entry : Entries)
     {
@@ -388,7 +424,7 @@ void ParticleSimulationDirector::ResetAll() noexcept
     }
 }
 
-void ParticleSimulationDirector::TriggerBurst(uint32_t UniqueToken, uint32_t OverrideCount) noexcept
+void ParticleSimulationRegistry::TriggerBurst(uint32_t UniqueToken, uint32_t OverrideCount) noexcept
 {
     if (ParticleSimulation* Sim = FindSimulation(UniqueToken))
     {
@@ -396,7 +432,7 @@ void ParticleSimulationDirector::TriggerBurst(uint32_t UniqueToken, uint32_t Ove
     }
 }
 
-ParticleSimulation* ParticleSimulationDirector::FindSimulation(uint32_t UniqueToken) noexcept
+ParticleSimulation* ParticleSimulationRegistry::FindSimulation(uint32_t UniqueToken) noexcept
 {
     for (TokenizedEntry& Entry : Entries)
     {
@@ -408,7 +444,7 @@ ParticleSimulation* ParticleSimulationDirector::FindSimulation(uint32_t UniqueTo
     return nullptr;
 }
 
-const ParticleSimulation* ParticleSimulationDirector::FindSimulation(uint32_t UniqueToken) const noexcept
+const ParticleSimulation* ParticleSimulationRegistry::FindSimulation(uint32_t UniqueToken) const noexcept
 {
     for (const TokenizedEntry& Entry : Entries)
     {
@@ -420,14 +456,14 @@ const ParticleSimulation* ParticleSimulationDirector::FindSimulation(uint32_t Un
     return nullptr;
 }
 
-uint32_t ParticleSimulationDirector::QueryTotalAliveParticles() const noexcept
+uint32_t ParticleSimulationRegistry::QueryTotalAliveParticles() const noexcept
 {
-    uint32_t Total = 0u;
+    uint32_t TotalAlive = 0u;
     for (const TokenizedEntry& Entry : Entries)
     {
-        Total += Entry.Simulation.QueryActiveCount();
+        TotalAlive += Entry.Simulation.QueryActiveCount();
     }
-    return Total;
+    return TotalAlive;
 }
 
 } // namespace Frontier::SimulationSpace::Particles

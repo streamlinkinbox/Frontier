@@ -1,5 +1,5 @@
 /*============================================================================================================================================
-                                                       PARTICLERECIPECOMPILER.CPP
+                                                       PARTICLEPRESETCOMPILER.CPP
 ============================================================================================================================================*/
 // 🧩 Compiles all 93 non-quarantined presets and live ParticleEffectRecordEntry configurations into modular C++20 ParticleSimulations
 
@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/SimulationSpace/Particles/ParticleRecipeCompiler.h"
+#include "Engine/SimulationSpace/Particles/ParticlePresetCompiler.h"
 
 #include <algorithm>
 #include <cmath>
@@ -16,13 +16,13 @@ namespace Frontier::SimulationSpace::Particles
 {
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                     INTERNAL HELPERS
+//                                                     INTERNAL ROUTINES
 //------------------------------------------------------------------------------------------------------------------------
 
 namespace
 {
 
-[[nodiscard]] std::array<float, 4u> ConvertSrgbToLinearRgba(ColorRgba Color) noexcept
+[[nodiscard]] std::array<float, 4u> DecodeLinearRgba(ColorRgba Color) noexcept
 {
     return {{
         static_cast<float>(Color.Red) / 255.0f,
@@ -32,7 +32,7 @@ namespace
     }};
 }
 
-[[nodiscard]] VolumeShapeCategory ConvertReleaseVolume(Workspaces::ParticleReleaseVolume Volume) noexcept
+[[nodiscard]] VolumeShapeCategory ResolveReleaseVolume(Workspaces::ParticleReleaseVolume Volume) noexcept
 {
     switch (Volume)
     {
@@ -55,24 +55,24 @@ namespace
     {
         case 1u:
         case 2u: return StrandLayoutPattern::HangingCurtain;
-        case 3u: return StrandLayoutPattern::ClothFlagGrid;
+        case 3u: return StrandLayoutPattern::ClothBannerGrid;
         case 4u:
         case 5u:
         case 6u:
         case 8u:
         case 9u: return StrandLayoutPattern::UpwardFloraField;
         case 7u: return StrandLayoutPattern::CanopyTree;
-        default: return StrandLayoutPattern::ClothFlagGrid;
+        default: return StrandLayoutPattern::ClothBannerGrid;
     }
 }
 
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                  PARTICLE RECIPE COMPILER
+//                                                  PARTICLE PRESET COMPILER
 //------------------------------------------------------------------------------------------------------------------------
 
-std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromPresetSlug(
+std::optional<ParticleSimulation> ParticlePresetCompiler::CompilePresetSlug(
     std::string_view PresetSlug,
     uint32_t         DeterministicSeed)
 {
@@ -124,10 +124,10 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromPresetSlu
         std::min<uint8_t>(Preset->FireworkPattern, static_cast<uint8_t>(Workspaces::FireworkPatternCategory::GrandFinale)));
     Entry.DeterministicSeed       = DeterministicSeed;
 
-    return ConstructFromRecordEntry(Entry);
+    return CompileEffectEntry(Entry);
 }
 
-std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEntry(
+std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectEntry(
     const Workspaces::ParticleEffectRecordEntry& Effect)
 {
     if (!Effect.PresetIdentifier.empty()
@@ -139,13 +139,13 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEnt
     const uint32_t SafeCapacity = std::clamp(Effect.Capacity, 32u, 65536u);
     const uint32_t Seed         = (Effect.DeterministicSeed != 0u) ? Effect.DeterministicSeed : 1337u;
 
-    ColorAndSizeCurveParameters CurveParams{};
-    CurveParams.ColorA          = ConvertSrgbToLinearRgba(Effect.ColorA);
-    CurveParams.ColorC          = ConvertSrgbToLinearRgba(Effect.ColorC);
-    CurveParams.ColorB          = ConvertSrgbToLinearRgba(Effect.ColorB);
-    CurveParams.SizeStartMeters = std::max(0.005f, Effect.SizeStartMeters);
-    CurveParams.SizeEndMeters   = std::max(0.002f, Effect.SizeEndMeters);
-    CurveParams.SizeMultiplier  = std::max(0.1f, Effect.SizeMultiplier);
+    AppearanceCurveParameters CurveSettings{};
+    CurveSettings.ColorA          = DecodeLinearRgba(Effect.ColorA);
+    CurveSettings.ColorC          = DecodeLinearRgba(Effect.ColorC);
+    CurveSettings.ColorB          = DecodeLinearRgba(Effect.ColorB);
+    CurveSettings.SizeStartMeters = std::max(0.005f, Effect.SizeStartMeters);
+    CurveSettings.SizeEndMeters   = std::max(0.002f, Effect.SizeEndMeters);
+    CurveSettings.SizeMultiplier  = std::max(0.1f, Effect.SizeMultiplier);
 
     switch (Effect.AuthoringDomain)
     {
@@ -160,7 +160,7 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEnt
             Grid.StrandLengthMeters = std::clamp(Effect.StrandHeightMeters, 0.4f, 6.0f);
             Grid.CatenarySagMeters  = Effect.CatenarySagMeters;
 
-            if (Grid.Pattern == StrandLayoutPattern::ClothFlagGrid)
+            if (Grid.Pattern == StrandLayoutPattern::ClothBannerGrid)
             {
                 Grid.OriginMeters.X = (Effect.OriginMeters.X == 0.0f) ? -1.15f : Effect.OriginMeters.X;
                 Grid.OriginMeters.Z = std::max(Effect.OriginMeters.Z, 1.45f);
@@ -178,20 +178,20 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEnt
             Xpbd.TearSpeedMs      = Effect.TearSpeedMs;
             Xpbd.SubIterations    = 5u;
 
-            return ParticleSimulationBuilder(Effect.Title)
+            return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(Needed, ChannelStoragePolicy::FixedSlotOrder)
-                .WithDeterministicSeed(Seed)
-                .WithReleaseRule<StrandGridReleaseRule>(Grid)
-                .WithMotionLaw<GravityAndBuoyancyLaw>(GravityAndBuoyancyParameters{
+                .AssignDeterministicSeed(Seed)
+                .AttachSource<StrandGridSource>(Grid)
+                .AttachMotionSolver<GravityBuoyancySolver>(GravityBuoyancyParameters{
                     .GravityScale     = Effect.GravityMultiplier * 0.45f,
                     .BuoyancyAccelMs2 = 0.0f,
                     .DragCoefficient  = std::max(0.15f, Effect.DragCoefficient),
                 })
-                .WithMotionLaw<ForceFieldCouplingLaw>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain })
-                .WithMotionLaw<XpbdStrandSolverLaw>(Xpbd)
-                .WithCollider<DynamicSphereColliderRule>(1.0f)
-                .WithCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.0f, .Restitution = 0.15f })
-                .WithIntegrator<XpbdVerletIntegrator>()
+                .AttachMotionSolver<ForceFieldCouplingSolver>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain })
+                .AttachMotionSolver<XpbdStrandSolver>(Xpbd)
+                .AttachCollider<SphereContactCollider>(1.0f)
+                .AttachCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.0f, .Restitution = 0.15f })
+                .AssignIntegrator<XpbdVerletIntegrator>()
                 .Construct();
         }
 
@@ -205,13 +205,13 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEnt
             Ferro.MaxCuspHeightMeters = std::clamp(Effect.MaxSpikeHeightMeters, 0.15f, 2.2f);
             Ferro.ManualMagnetPole    = Effect.ManualMagnetPole;
 
-            return ParticleSimulationBuilder(Effect.Title)
+            return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(std::max(SafeCapacity, Ferro.SpikeCount), ChannelStoragePolicy::FixedSlotOrder)
-                .WithDeterministicSeed(Seed)
-                .WithReleaseRule<FerrofluidSurfaceReleaseRule>(Ferro)
-                .WithMotionLaw<RosensweigFerrofluidLaw>(Ferro)
-                .WithCollider<DynamicSphereColliderRule>(0.65f)
-                .WithIntegrator<MidpointRk2Integrator>()
+                .AssignDeterministicSeed(Seed)
+                .AttachSource<FerrofluidSurfaceSource>(Ferro)
+                .AttachMotionSolver<RosensweigFerrofluidSolver>(Ferro)
+                .AttachCollider<SphereContactCollider>(0.65f)
+                .AssignIntegrator<MidpointRk2Integrator>()
                 .Construct();
         }
 
@@ -223,19 +223,19 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEnt
             Pyro.SkyText            = Effect.FireworkSkyText.empty() ? "2026" : Effect.FireworkSkyText;
             Pyro.StarsPerBurst      = std::clamp(SafeCapacity / 8u, 36u, 140u);
 
-            return ParticleSimulationBuilder(Effect.Title)
+            return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(SafeCapacity, ChannelStoragePolicy::DenseSwapRemove)
-                .WithDeterministicSeed(Seed)
-                .WithReleaseRule<PyroVolleyReleaseRule>(Pyro)
-                .WithMotionLaw<GravityAndBuoyancyLaw>(GravityAndBuoyancyParameters{
+                .AssignDeterministicSeed(Seed)
+                .AttachSource<PyroVolleySource>(Pyro)
+                .AttachMotionSolver<GravityBuoyancySolver>(GravityBuoyancyParameters{
                     .GravityScale     = std::max(0.25f, Effect.GravityMultiplier),
                     .BuoyancyAccelMs2 = 0.0f,
                     .DragCoefficient  = 0.22f,
                 })
-                .WithMotionLaw<ForceFieldCouplingLaw>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain * 0.45f })
-                .WithMotionLaw<PyroVolleyBurstLaw>(Pyro)
-                .WithCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.0f, .Restitution = 0.2f })
-                .WithIntegrator<SemiImplicitEulerIntegrator>()
+                .AttachMotionSolver<ForceFieldCouplingSolver>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain * 0.45f })
+                .AttachMotionSolver<PyroVolleyBurstSolver>(Pyro)
+                .AttachCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.0f, .Restitution = 0.2f })
+                .AssignIntegrator<SemiImplicitEulerIntegrator>()
                 .Construct();
         }
 
@@ -248,14 +248,14 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEnt
             Flock.CreatureVariant  = Effect.BoidsCreatureVariant;
             Flock.FlockCount       = std::clamp(SafeCapacity, 24u, 360u);
 
-            return ParticleSimulationBuilder(Effect.Title)
+            return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(Flock.FlockCount, ChannelStoragePolicy::FixedSlotOrder)
-                .WithDeterministicSeed(Seed)
-                .WithReleaseRule<BoidsFlockReleaseRule>(Flock)
-                .WithMotionLaw<BoidsFlockLaw>(Flock)
-                .WithMotionLaw<ForceFieldCouplingLaw>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain * 0.35f })
-                .WithCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.25f, .Restitution = 0.4f })
-                .WithIntegrator<SemiImplicitEulerIntegrator>()
+                .AssignDeterministicSeed(Seed)
+                .AttachSource<BoidsFlockSource>(Flock)
+                .AttachMotionSolver<BoidsFlockSolver>(Flock)
+                .AttachMotionSolver<ForceFieldCouplingSolver>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain * 0.35f })
+                .AttachCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.25f, .Restitution = 0.4f })
+                .AssignIntegrator<SemiImplicitEulerIntegrator>()
                 .Construct();
         }
 
@@ -268,14 +268,14 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEnt
             Frac.Pattern             = (Effect.FracturePattern == 2u) ? 2u : 1u;
             Frac.CellCount           = std::clamp(SafeCapacity, 64u, 512u);
 
-            return ParticleSimulationBuilder(Effect.Title)
+            return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(Frac.CellCount, ChannelStoragePolicy::FixedSlotOrder)
-                .WithDeterministicSeed(Seed)
-                .WithReleaseRule<FractureSurfaceReleaseRule>(Frac)
-                .WithMotionLaw<FractureCrackLaw>(Frac)
-                .WithMotionLaw<GravityAndBuoyancyLaw>(GravityAndBuoyancyParameters{ .GravityScale = 1.0f, .DragCoefficient = 0.18f })
-                .WithCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.0f, .Restitution = 0.3f })
-                .WithIntegrator<SemiImplicitEulerIntegrator>()
+                .AssignDeterministicSeed(Seed)
+                .AttachSource<FractureSurfaceSource>(Frac)
+                .AttachMotionSolver<FractureCrackSolver>(Frac)
+                .AttachMotionSolver<GravityBuoyancySolver>(GravityBuoyancyParameters{ .GravityScale = 1.0f, .DragCoefficient = 0.18f })
+                .AttachCollider<GroundPlaneCollider>(GroundPlaneParameters{ .FloorZMeters = 0.0f, .Restitution = 0.3f })
+                .AssignIntegrator<SemiImplicitEulerIntegrator>()
                 .Construct();
         }
 
@@ -291,14 +291,14 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEnt
             Grid.ExtrusionMeters   = std::clamp(Effect.EffectorExtrusionMeters, 0.2f, 4.0f);
             Grid.EnableDerezLaunch = (Effect.AuthoringDomain == Workspaces::ParticleAuthoringDomain::TransitionDerez);
 
-            return ParticleSimulationBuilder(Effect.Title)
+            return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(Side * Side, ChannelStoragePolicy::FixedSlotOrder)
-                .WithDeterministicSeed(Seed)
-                .WithReleaseRule<LatticeGridReleaseRule>(Grid)
-                .WithMotionLaw<MoGraphEffectorLaw>(Grid)
-                .WithMotionLaw<ForceFieldCouplingLaw>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain * 0.4f })
-                .WithCollider<DynamicSphereColliderRule>(0.85f)
-                .WithIntegrator<SemiImplicitEulerIntegrator>()
+                .AssignDeterministicSeed(Seed)
+                .AttachSource<LatticeGridSource>(Grid)
+                .AttachMotionSolver<MoGraphEffectorSolver>(Grid)
+                .AttachMotionSolver<ForceFieldCouplingSolver>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain * 0.4f })
+                .AttachCollider<SphereContactCollider>(0.85f)
+                .AssignIntegrator<SemiImplicitEulerIntegrator>()
                 .Construct();
         }
 
@@ -310,102 +310,102 @@ std::optional<ParticleSimulation> ParticleRecipeCompiler::ConstructFromRecordEnt
             Shield.GeometryVariant = Effect.ShieldGeometry;
             Shield.CellCount       = std::clamp(SafeCapacity, 64u, 420u);
 
-            return ParticleSimulationBuilder(Effect.Title)
+            return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(Shield.CellCount, ChannelStoragePolicy::FixedSlotOrder)
-                .WithDeterministicSeed(Seed)
-                .WithReleaseRule<ShieldBarrierReleaseRule>(Shield)
-                .WithMotionLaw<EnergyShieldRippleLaw>(Shield)
-                .WithIntegrator<SemiImplicitEulerIntegrator>()
+                .AssignDeterministicSeed(Seed)
+                .AttachSource<ShieldBarrierSource>(Shield)
+                .AttachMotionSolver<EnergyShieldRippleSolver>(Shield)
+                .AssignIntegrator<SemiImplicitEulerIntegrator>()
                 .Construct();
         }
 
         case Workspaces::ParticleAuthoringDomain::SpaceDistortion:
         {
-            VolumeReleaseParameters Rel{};
-            Rel.Shape             = VolumeShapeCategory::DiscVolume;
-            Rel.OriginMeters      = { Effect.OriginMeters.X, Effect.OriginMeters.Y, 1.6f };
-            Rel.RadiusMeters      = 1.85f;
-            Rel.BirthRatePerSec   = std::max(60.0f, Effect.BirthRatePerSec);
-            Rel.InitialBurstCount = std::min(SafeCapacity / 2u, 220u);
-            Rel.SpeedMinMs        = 1.2f;
-            Rel.SpeedMaxMs        = 2.6f;
-            Rel.LifeMinSec        = 2.5f;
-            Rel.LifeMaxSec        = 4.5f;
+            VolumeSourceParameters Source{};
+            Source.Shape             = VolumeShapeCategory::DiscVolume;
+            Source.OriginMeters      = { Effect.OriginMeters.X, Effect.OriginMeters.Y, 1.6f };
+            Source.RadiusMeters      = 1.85f;
+            Source.BirthRatePerSec   = std::max(60.0f, Effect.BirthRatePerSec);
+            Source.InitialBurstCount = std::min(SafeCapacity / 2u, 220u);
+            Source.SpeedMinMs        = 1.2f;
+            Source.SpeedMaxMs        = 2.6f;
+            Source.LifeMinSec        = 2.5f;
+            Source.LifeMaxSec        = 4.5f;
 
-            const bool IsHeatShimmer = (Effect.PresetIdentifier.find("heat") != std::string::npos
-                                        || Effect.PresetIdentifier.find("shimmer") != std::string::npos);
+            const bool HeatShimmerPreset = (Effect.PresetIdentifier.find("heat") != std::string::npos
+                                            || Effect.PresetIdentifier.find("shimmer") != std::string::npos);
 
             SpaceRefractionParameters Space{};
-            Space.SingularityMeters = Rel.OriginMeters;
-            Space.OrbitalStrength   = IsHeatShimmer ? 0.0f : 7.5f;
-            Space.ThermalRiseMs     = IsHeatShimmer ? 2.4f : 0.0f;
+            Space.SingularityMeters = Source.OriginMeters;
+            Space.OrbitalStrength   = HeatShimmerPreset ? 0.0f : 7.5f;
+            Space.ThermalRiseMs     = HeatShimmerPreset ? 2.4f : 0.0f;
 
-            return ParticleSimulationBuilder(Effect.Title)
+            return ParticleSimulationSpecification(Effect.Title)
                 .ConfigureCapacity(SafeCapacity, ChannelStoragePolicy::DenseSwapRemove)
-                .WithDeterministicSeed(Seed)
-                .WithReleaseRule<VolumeReleaseRule>(Rel)
-                .WithMotionLaw<SpaceRefractionLaw>(Space)
-                .WithMotionLaw<ForceFieldCouplingLaw>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain * 0.45f })
-                .WithMotionLaw<ColorAndSizeCurveLaw>(CurveParams)
-                .WithIntegrator<MidpointRk2Integrator>()
+                .AssignDeterministicSeed(Seed)
+                .AttachSource<VolumeParticleSource>(Source)
+                .AttachMotionSolver<SpaceRefractionSolver>(Space)
+                .AttachMotionSolver<ForceFieldCouplingSolver>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain * 0.45f })
+                .AttachMotionSolver<AppearanceCurveSolver>(CurveSettings)
+                .AssignIntegrator<MidpointRk2Integrator>()
                 .Construct();
         }
 
         case Workspaces::ParticleAuthoringDomain::GeneralParticle:
         default:
         {
-            VolumeReleaseParameters Rel{};
-            Rel.Shape               = ConvertReleaseVolume(Effect.ReleaseVolume);
-            Rel.OriginMeters        = Effect.OriginMeters;
-            Rel.LaunchDirection     = Effect.LaunchDirection;
-            Rel.RadiusMeters        = std::max(0.05f, Effect.RadiusMeters);
-            Rel.ConeSpreadRad       = Effect.ConeSpreadRad;
-            Rel.BirthRatePerSec     = (Effect.BirthRatePerSec > 0.1f) ? Effect.BirthRatePerSec : 85.0f;
-            Rel.InitialBurstCount   = std::min(SafeCapacity / 3u, std::max(32u, Effect.BurstCount));
-            Rel.BurstCount          = std::max(16u, Effect.BurstCount);
-            Rel.BurstIntervalSec    = Effect.BurstIntervalSec;
-            Rel.SpeedMinMs          = std::max(0.1f, Effect.SpeedMinMs);
-            Rel.SpeedMaxMs          = std::max(Rel.SpeedMinMs, Effect.SpeedMaxMs);
-            Rel.LifeMinSec          = std::max(0.25f, Effect.LifeMinSec);
-            Rel.LifeMaxSec          = std::max(Rel.LifeMinSec, Effect.LifeMaxSec);
-            Rel.SizeStartMeters     = std::max(0.01f, Effect.SizeStartMeters);
-            Rel.SpinRateRadSec      = Effect.SpinRateRadSec;
-            Rel.AllocateOrientation = (Effect.Silhouette == Workspaces::ParticleVisualSilhouette::ChipCube
-                                       || Effect.Silhouette == Workspaces::ParticleVisualSilhouette::GlassShard
-                                       || Effect.Silhouette == Workspaces::ParticleVisualSilhouette::LeafOrPaper
-                                       || Effect.Silhouette == Workspaces::ParticleVisualSilhouette::CoinDisc);
+            VolumeSourceParameters Source{};
+            Source.Shape               = ResolveReleaseVolume(Effect.ReleaseVolume);
+            Source.OriginMeters        = Effect.OriginMeters;
+            Source.LaunchDirection     = Effect.LaunchDirection;
+            Source.RadiusMeters        = std::max(0.05f, Effect.RadiusMeters);
+            Source.ConeSpreadRad       = Effect.ConeSpreadRad;
+            Source.BirthRatePerSec     = (Effect.BirthRatePerSec > 0.1f) ? Effect.BirthRatePerSec : 85.0f;
+            Source.InitialBurstCount   = std::min(SafeCapacity / 3u, std::max(32u, Effect.BurstCount));
+            Source.BurstCount          = std::max(16u, Effect.BurstCount);
+            Source.BurstIntervalSec    = Effect.BurstIntervalSec;
+            Source.SpeedMinMs          = std::max(0.1f, Effect.SpeedMinMs);
+            Source.SpeedMaxMs          = std::max(Source.SpeedMinMs, Effect.SpeedMaxMs);
+            Source.LifeMinSec          = std::max(0.25f, Effect.LifeMinSec);
+            Source.LifeMaxSec          = std::max(Source.LifeMinSec, Effect.LifeMaxSec);
+            Source.SizeStartMeters     = std::max(0.01f, Effect.SizeStartMeters);
+            Source.SpinRateRadSec      = Effect.SpinRateRadSec;
+            Source.AllocateOrientation = (Effect.Silhouette == Workspaces::ParticleVisualSilhouette::ChipCube
+                                          || Effect.Silhouette == Workspaces::ParticleVisualSilhouette::GlassShard
+                                          || Effect.Silhouette == Workspaces::ParticleVisualSilhouette::LeafOrPaper
+                                          || Effect.Silhouette == Workspaces::ParticleVisualSilhouette::CoinDisc);
 
-            ParticleSimulationBuilder Builder(Effect.Title);
-            Builder
+            ParticleSimulationSpecification Specification(Effect.Title);
+            Specification
                 .ConfigureCapacity(SafeCapacity, ChannelStoragePolicy::DenseSwapRemove)
-                .WithDeterministicSeed(Seed)
-                .WithReleaseRule<VolumeReleaseRule>(Rel)
-                .WithMotionLaw<GravityAndBuoyancyLaw>(GravityAndBuoyancyParameters{
+                .AssignDeterministicSeed(Seed)
+                .AttachSource<VolumeParticleSource>(Source)
+                .AttachMotionSolver<GravityBuoyancySolver>(GravityBuoyancyParameters{
                     .GravityScale     = Effect.GravityMultiplier,
                     .BuoyancyAccelMs2 = (Effect.GravityMultiplier < 0.0f) ? (-Effect.GravityMultiplier * 4.5f) : 0.0f,
                     .DragCoefficient  = std::max(0.02f, Effect.DragCoefficient),
                 })
-                .WithMotionLaw<ForceFieldCouplingLaw>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain })
-                .WithMotionLaw<LocalCurlTurbulenceLaw>(LocalCurlTurbulenceParameters{
+                .AttachMotionSolver<ForceFieldCouplingSolver>(ForceFieldCouplingParameters{ .CouplingGain = Effect.ForceCouplingGain })
+                .AttachMotionSolver<CurlTurbulenceSolver>(CurlTurbulenceParameters{
                     .AmplitudeMs   = Effect.CurlAmplitude,
                     .FrequencyPerM = Effect.CurlFrequency,
                 })
-                .WithMotionLaw<FlutterAndTumbleLaw>(FlutterAndTumbleParameters{
+                .AttachMotionSolver<AeroFlutterSolver>(AeroFlutterParameters{
                     .FlutterAmplitudeMs2 = (Effect.Category == Workspaces::ParticleEffectCategory::WindBlown) ? 1.45f : 0.22f,
                 })
-                .WithMotionLaw<ColorAndSizeCurveLaw>(CurveParams)
-                .WithCollider<GroundPlaneCollider>(GroundPlaneParameters{
+                .AttachMotionSolver<AppearanceCurveSolver>(CurveSettings)
+                .AttachCollider<GroundPlaneCollider>(GroundPlaneParameters{
                     .FloorZMeters = 0.0f,
                     .Restitution  = std::clamp(Effect.FloorRestitution, 0.0f, 0.95f),
                 })
-                .WithCollider<SignedDistanceVolumeCollider>()
-                .WithIntegrator<SemiImplicitEulerIntegrator>();
+                .AttachCollider<SignedDistanceVolumeCollider>()
+                .AssignIntegrator<SemiImplicitEulerIntegrator>();
 
             if (Effect.BallInteractionEnabled)
             {
-                Builder.WithCollider<DynamicSphereColliderRule>(1.0f);
+                Specification.AttachCollider<SphereContactCollider>(1.0f);
             }
-            return Builder.Construct();
+            return Specification.Construct();
         }
     }
 }

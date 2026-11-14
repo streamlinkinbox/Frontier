@@ -1,7 +1,7 @@
 /*============================================================================================================================================
-                                                        PARTICLESTANDARDCHANNELS.H
+                                                         PARTICLECHANNELLAYOUTS.H
 ============================================================================================================================================*/
-// 🧩 Built-in 16B-aligned GPU-ready modular particle channels and ChannelTag<T> declarations (+Z Up Right-Hand world space)
+// 🧩 Native 16B-aligned GPU-ready modular particle channel layouts and ChannelTag<T> declarations (+Z Up Right-Hand world space)
 
 #pragma once
 
@@ -17,10 +17,10 @@ namespace Frontier::SimulationSpace::Particles
 {
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                              BUILT-IN MODULAR CHANNEL ATTRIBUTES
+//                                                NATIVE MODULAR CHANNEL LAYOUTS
 //------------------------------------------------------------------------------------------------------------------------
 
-// Core translation kinematics (32 B = 2x float4)
+// Primary translation kinematics (32 B = 2x float4)
 struct alignas(16) KinematicsChannel
 {
     float PosX        = 0.0f; // [m]    - Right-Hand +X Forward
@@ -177,10 +177,10 @@ static_assert(sizeof(FractureStressChannel)     == 32u, "FractureStressChannel m
 static_assert(sizeof(LatticeGridChannel)        == 32u, "LatticeGridChannel must remain 32 bytes.");
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                STANDARD CHANNEL TAGS
+//                                                  NATIVE CHANNEL TAGS
 //------------------------------------------------------------------------------------------------------------------------
 
-namespace StandardChannels
+namespace ChannelLayouts
 {
 inline constexpr ChannelTag<KinematicsChannel> Kinematics{
     HashChannelSignature("Frontier::Particles::Kinematics"), "Kinematics", ChannelResidency::CpuAndGpu
@@ -215,6 +215,6 @@ inline constexpr ChannelTag<FractureStressChannel> FractureStress{
 inline constexpr ChannelTag<LatticeGridChannel> LatticeGrid{
     HashChannelSignature("Frontier::Particles::LatticeGrid"), "LatticeGrid", ChannelResidency::CpuAndGpu
 };
-} // namespace StandardChannels
+} // namespace ChannelLayouts
 
 } // namespace Frontier::SimulationSpace::Particles
