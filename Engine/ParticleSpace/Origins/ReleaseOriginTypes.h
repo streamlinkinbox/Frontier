@@ -122,9 +122,12 @@ struct SurfaceLatticeOriginSpec
 
 struct DualElectrodeOriginSpec
 {
-    Mathematics::Axis3D CathodeMeters { -2.0f, 0.0f, 1.2f }; // [m] - Start terminal
-    Mathematics::Axis3D AnodeMeters   {  2.0f, 0.0f, 1.2f }; // [m] - Target terminal
-    float               SpreadRadius  = 0.08f;              // [m] - Electrode jitter radius
+    Mathematics::Axis3D CathodeMeters  { -2.0f, 0.0f, 1.2f }; // [m] - Start terminal
+    Mathematics::Axis3D AnodeMeters    {  2.0f, 0.0f, 1.2f }; // [m] - Target terminal
+    float               SpreadRadius   = 0.08f;              // [m] - Cathode jitter radius
+    float               TargetRadius   = 0.25f;              // [m] - Anode / target sphere radius
+    uint32_t            ArcMode        = 0u;                 // [-] - 0 off, 1 lightning arc, 2 plasma cage, 3 web
+    bool                ShowElectrodes = false;              // [-] - Render cathode/anode spheres
 };
 
 struct SpiderwebOriginSpec

@@ -278,8 +278,41 @@ struct MolecularKineticsSpec
 struct TransitionDerezSpec
 {
     TransitionDerezMode Mode             = TransitionDerezMode::Off;
-    float               HoldDurationSec  = 1.2f; // [s]
+    float               HoldBaseSec      = 0.2f; // [s]   - Initial hold before wave release
+    float               HoldDurationSec  = 1.2f; // [s]   - Hold spread across lattice
+    float               BurstShare       = 0.5f; // [0-1] - Fraction bursting outward vs falling
+    bool                FragmentOnFloor  = false;// [-]   - True to shatter into 8 sub-cubes on floor hit
+    float               ChildLifeSec     = 0.0f; // [s]   - Shatter child lifespan
+    uint32_t            WavePattern      = 0u;   // [-]   - 0 corner, 1 melt, 2 glitch
+    uint32_t            AssembleMode     = 0u;   // [-]   - 0 dissolve, 1 reverse assemble, 2 coin stack
+    float               ShellRadiusMeters = 0.0f;// [m]   - Outer assembly shell radius
+    uint32_t            AfterTransform   = 0u;   // [-]   - 0 default, 1 vanish, 2 butterfly morph
     float               GlitchRateHz     = 14.0f;// [Hz]
+};
+
+struct LocalAttractorSpec
+{
+    bool  Enabled       = false; // [-]     - Inline vortex/gravity well (e.g. black-hole accretion)
+    float Strength      = 7.0f;  // [m/s^2]
+    float RadiusMeters  = 16.0f; // [m]
+    float SwirlSpeed    = 3.5f;  // [rad/s]
+    float SwallowRadius = 0.45f; // [m]     - Absorption / event-horizon swallow radius
+};
+
+struct LocalHeatShimmerSpec
+{
+    bool  Enabled      = false; // [-] - Thermal refractive distortion plume
+    float RadiusMeters = 1.6f;  // [m]
+    float Strength     = 0.03f; // [-]
+    float SpatialFreq  = 14.0f; // [1/m]
+    float DriftRate    = 1.5f;  // [1/s]
+};
+
+struct LocalBlackHoleSpec
+{
+    bool  Enabled       = false; // [-] - Relativistic Einstein ring lensing
+    float HorizonRadius = 0.45f; // [m]
+    float EinsteinGain  = 3.0f;  // [-]
 };
 
 struct ShieldBarrierSpec
@@ -315,6 +348,9 @@ struct SimulationDynamicsProfile
     FlockBoidsSpec           Boids          {};
     MolecularKineticsSpec    Molecular      {};
     TransitionDerezSpec      Transition     {};
+    LocalAttractorSpec       LocalAttractor {};
+    LocalHeatShimmerSpec     HeatShimmer    {};
+    LocalBlackHoleSpec       BlackHole      {};
     ShieldBarrierSpec        Shield         {};
     PyroSpectacleSpec        Pyro           {};
 };
