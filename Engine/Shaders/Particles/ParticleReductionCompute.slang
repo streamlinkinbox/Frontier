@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/Particles/ParticleChannelShared.slang"
+#include "Engine/Shaders/Particles/ParticleChannelLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOURCES
@@ -29,14 +29,14 @@ RWStructuredBuffer<GpuReductionScratch> ScratchBuffer;
 RWStructuredBuffer<GpuReadbackSummary> ReadbackSummaryBuffer;
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                   WORKGROUP SHARED MEMORY
+//                                                  WORKGROUP LOCAL MEMORY
 //------------------------------------------------------------------------------------------------------------------------
 
-groupshared uint  SharedAlive[64];
-groupshared float SharedPeakSpeed[64];
-groupshared float SharedSumX[64];
-groupshared float SharedSumY[64];
-groupshared float SharedSumZ[64];
+groupshared uint  GroupAlive[64];
+groupshared float GroupPeakSpeed[64];
+groupshared float GroupSumX[64];
+groupshared float GroupSumY[64];
+groupshared float GroupSumZ[64];
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ENTRY POINTS
@@ -72,35 +72,35 @@ void ComputeParticleReductionAccumulate(
         }
     }
 
-    SharedAlive[Lane]     = LocalAlive;
-    SharedPeakSpeed[Lane] = LocalSpeed;
-    SharedSumX[Lane]      = LocalPosX;
-    SharedSumY[Lane]      = LocalPosY;
-    SharedSumZ[Lane]      = LocalPosZ;
+    GroupAlive[Lane]     = LocalAlive;
+    GroupPeakSpeed[Lane] = LocalSpeed;
+    GroupSumX[Lane]      = LocalPosX;
+    GroupSumY[Lane]      = LocalPosY;
+    GroupSumZ[Lane]      = LocalPosZ;
     GroupMemoryBarrierWithGroupSync();
 
     for (uint Stride = 32u; Stride > 0u; Stride >>= 1u)
     {
         if (Lane < Stride)
         {
-            SharedAlive[Lane]     += SharedAlive[Lane + Stride];
-            SharedPeakSpeed[Lane]  = max(SharedPeakSpeed[Lane], SharedPeakSpeed[Lane + Stride]);
-            SharedSumX[Lane]      += SharedSumX[Lane + Stride];
-            SharedSumY[Lane]      += SharedSumY[Lane + Stride];
-            SharedSumZ[Lane]      += SharedSumZ[Lane + Stride];
+            GroupAlive[Lane]     += GroupAlive[Lane + Stride];
+            GroupPeakSpeed[Lane]  = max(GroupPeakSpeed[Lane], GroupPeakSpeed[Lane + Stride]);
+            GroupSumX[Lane]      += GroupSumX[Lane + Stride];
+            GroupSumY[Lane]      += GroupSumY[Lane + Stride];
+            GroupSumZ[Lane]      += GroupSumZ[Lane + Stride];
         }
         GroupMemoryBarrierWithGroupSync();
     }
 
-    if (Lane == 0u && SharedAlive[0] > 0u)
+    if (Lane == 0u && GroupAlive[0] > 0u)
     {
         uint PrevVal;
-        InterlockedAdd(ScratchBuffer[0].AliveSum, SharedAlive[0], PrevVal);
-        InterlockedMax(ScratchBuffer[0].PeakSpeedOrdered, ParticleFloatToOrderedUint(SharedPeakSpeed[0]), PrevVal);
+        InterlockedAdd(ScratchBuffer[0].AliveSum, GroupAlive[0], PrevVal);
+        InterlockedMax(ScratchBuffer[0].PeakSpeedOrdered, ParticleFloatToOrderedUint(GroupPeakSpeed[0]), PrevVal);
 
-        int FixedX = int(clamp(SharedSumX[0] * 1000.0, -2.0e9, 2.0e9));
-        int FixedY = int(clamp(SharedSumY[0] * 1000.0, -2.0e9, 2.0e9));
-        int FixedZ = int(clamp(SharedSumZ[0] * 1000.0, -2.0e9, 2.0e9));
+        int FixedX = int(clamp(GroupSumX[0] * 1000.0, -2.0e9, 2.0e9));
+        int FixedY = int(clamp(GroupSumY[0] * 1000.0, -2.0e9, 2.0e9));
+        int FixedZ = int(clamp(GroupSumZ[0] * 1000.0, -2.0e9, 2.0e9));
         int PrevInt;
         InterlockedAdd(ScratchBuffer[0].SumPosXFixed, FixedX, PrevInt);
         InterlockedAdd(ScratchBuffer[0].SumPosYFixed, FixedY, PrevInt);
@@ -135,22 +135,22 @@ void ComputeParticleReductionBounds(
         }
     }
 
-    SharedPeakSpeed[Lane] = LocalDistSq;
+    GroupPeakSpeed[Lane] = LocalDistSq;
     GroupMemoryBarrierWithGroupSync();
 
     for (uint Stride = 32u; Stride > 0u; Stride >>= 1u)
     {
         if (Lane < Stride)
         {
-            SharedPeakSpeed[Lane] = max(SharedPeakSpeed[Lane], SharedPeakSpeed[Lane + Stride]);
+            GroupPeakSpeed[Lane] = max(GroupPeakSpeed[Lane], GroupPeakSpeed[Lane + Stride]);
         }
         GroupMemoryBarrierWithGroupSync();
     }
 
-    if (Lane == 0u && SharedPeakSpeed[0] > 0.0)
+    if (Lane == 0u && GroupPeakSpeed[0] > 0.0)
     {
         uint PrevVal;
-        InterlockedMax(ScratchBuffer[0].MaxDistSqOrdered, ParticleFloatToOrderedUint(SharedPeakSpeed[0]), PrevVal);
+        InterlockedMax(ScratchBuffer[0].MaxDistSqOrdered, ParticleFloatToOrderedUint(GroupPeakSpeed[0]), PrevVal);
     }
 }
 
@@ -168,7 +168,7 @@ void ComputeParticleReductionFinalize(uint3 DispatchThreadID : SV_DispatchThread
     Out.AliveCount      = Alive;
     Out.PeakSpeedMs     = (Alive > 0u) ? asfloat(ScratchBuffer[0].PeakSpeedOrdered) : 0.0;
     Out.TickDurationUs  = 0.0;
-    Out.RevisionCounter = Uniforms.ColliderFlags.w;
+    Out.RevisionCounter = Uniforms.ColliderControl.w;
 
     if (Alive > 0u)
     {

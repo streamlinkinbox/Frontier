@@ -28,7 +28,7 @@ namespace Frontier::SimulationSpace::Particles
 //                                               GPU UNIFORM LAYOUT (288 B)
 //------------------------------------------------------------------------------------------------------------------------
 
-// Byte-exact mirror of GpuParticleUniforms in Engine/Shaders/Particles/ParticleChannelShared.slang
+// Byte-exact mirror of GpuParticleUniforms in Engine/Shaders/Particles/ParticleChannelLayouts.slang
 struct alignas(16) ParticleGpuUniformBlock
 {
     float    DeltaTimeSec     = 1.0f / 60.0f; // [s]   - Fixed simulation substep
@@ -46,7 +46,7 @@ struct alignas(16) ParticleGpuUniformBlock
     std::array<float, 4u>    ForceCoupling      { 1.0f, 1.0f, 1.0f, 0.15f };       // Gain, AccelScale, DragScale, FloorFriction
     std::array<float, 4u>    SphereCenterRadius { 0.0f, 0.0f, 1.0f, 0.45f };       // xyz = Center [m], w = Radius [m]
     std::array<float, 4u>    SphereVelBounce    { 0.0f, 0.0f, 0.0f, 0.45f };       // xyz = Vel [m/s], w = Restitution
-    std::array<uint32_t, 4u> ColliderFlags      { 1u, 0u, 0u, 0u };                // FloorOn, SphereOn, StrandMode, TickIndex
+    std::array<uint32_t, 4u> ColliderControl      { 1u, 0u, 0u, 0u };                // FloorOn, SphereOn, StrandMode, TickIndex
 
     std::array<float, 4u>    ColorStopA         { 1.0f, 0.85f, 0.42f, 1.0f };      // Ramp stop 0.0
     std::array<float, 4u>    ColorStopC         { 0.96f, 0.48f, 0.22f, 0.92f };    // Ramp stop 0.5

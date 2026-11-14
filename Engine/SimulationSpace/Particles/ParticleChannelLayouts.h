@@ -183,37 +183,37 @@ static_assert(sizeof(LatticeGridChannel)        == 32u, "LatticeGridChannel must
 namespace ChannelLayouts
 {
 inline constexpr ChannelTag<KinematicsChannel> Kinematics{
-    HashChannelSignature("Frontier::Particles::Kinematics"), "Kinematics", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::Kinematics"), "Kinematics", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<LifespanChannel> Lifespan{
-    HashChannelSignature("Frontier::Particles::Lifespan"), "Lifespan", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::Lifespan"), "Lifespan", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<AppearanceChannel> Appearance{
-    HashChannelSignature("Frontier::Particles::Appearance"), "Appearance", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::Appearance"), "Appearance", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<OrientationChannel> Orientation{
-    HashChannelSignature("Frontier::Particles::Orientation"), "Orientation", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::Orientation"), "Orientation", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<StrandAnchorChannel> StrandAnchor{
-    HashChannelSignature("Frontier::Particles::StrandAnchor"), "StrandAnchor", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::StrandAnchor"), "StrandAnchor", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<StrandConnectivityChannel> StrandConnectivity{
-    HashChannelSignature("Frontier::Particles::StrandConnectivity"), "StrandConnectivity", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::StrandConnectivity"), "StrandConnectivity", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<FlockSteeringChannel> FlockSteering{
-    HashChannelSignature("Frontier::Particles::FlockSteering"), "FlockSteering", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::FlockSteering"), "FlockSteering", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<MagneticCuspChannel> MagneticCusp{
-    HashChannelSignature("Frontier::Particles::MagneticCusp"), "MagneticCusp", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::MagneticCusp"), "MagneticCusp", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<PyroVolleyChannel> PyroVolley{
-    HashChannelSignature("Frontier::Particles::PyroVolley"), "PyroVolley", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::PyroVolley"), "PyroVolley", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<FractureStressChannel> FractureStress{
-    HashChannelSignature("Frontier::Particles::FractureStress"), "FractureStress", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::FractureStress"), "FractureStress", ChannelResidency::DeviceMirrored
 };
 inline constexpr ChannelTag<LatticeGridChannel> LatticeGrid{
-    HashChannelSignature("Frontier::Particles::LatticeGrid"), "LatticeGrid", ChannelResidency::CpuAndGpu
+    HashChannelSignature("Frontier::Particles::LatticeGrid"), "LatticeGrid", ChannelResidency::DeviceMirrored
 };
 } // namespace ChannelLayouts
 

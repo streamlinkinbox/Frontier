@@ -25,30 +25,30 @@ namespace Frontier::Workspaces
 
 enum class ParticleEffectCategory : uint8_t
 {
-    ClothAndRigging     = 0u,  // [-] - Ball-interactive banners, sails, curtains, chimes, drapes, cables & vines
-    FoliageAndFlora     = 1u,  // [-] - Interactive grass, wheat, reeds, ferns, trees, kelp, anemones & seeds
-    FerrofluidAndFields = 2u,  // [-] - Magnetic Rosensweig liquid-obsidian spikes & levitated crowns
-    FractureAndCracks   = 3u,  // [-] - Glacial ice crack propagation & seismic basalt ground fissures
-    MotionAndGrids      = 4u,  // [-] - Effector halftone grids, extruded cube lattices & surface patterns
-    SilkAndCurl         = 5u,  // [-] - 3D curl waves, plasma spheres, bokeh ribbons, arcs & spiderwebs
-    TransitionsAndDerez = 6u,  // [-] - Surface lattice derez, floor shatter, coin stacks & dissolves
-    SpaceAndDistortion  = 7u,  // [-] - Black hole accretion lensing & rising heat shimmer refraction
-    ShieldsAndTech      = 8u,  // [-] - Multi-shape hex/prism shields, radar sweeps, sonar & EMP domes
-    AtmosphereAndSky    = 9u,  // [-] - Aurora curtains, fireworks spectacles, countermeasure flares & motes
-    BallisticsAndSparks = 10u, // [-] - Shockwaves, beams, tracers, strike sparks, 3D glass shards & arcs
-    PyroAndWater        = 11u, // [-] - Fire, smoke, embers, steam, volumetric water mist, bubbles & foam
+    ClothRigging     = 0u,  // [-] - Ball-interactive banners, sails, curtains, chimes, drapes, cables & vines
+    BotanicalFlora     = 1u,  // [-] - Interactive grass, wheat, reeds, ferns, trees, kelp, anemones & seeds
+    FerrofluidFields = 2u,  // [-] - Magnetic Rosensweig liquid-obsidian spikes & levitated crowns
+    FractureSeismic   = 3u,  // [-] - Glacial ice crack propagation & seismic basalt ground fissures
+    MotionLattice      = 4u,  // [-] - Effector halftone grids, extruded cube lattices & surface patterns
+    CurlFilaments         = 5u,  // [-] - 3D curl waves, plasma spheres, bokeh ribbons, arcs & spiderwebs
+    DerezTransitions = 6u,  // [-] - Surface lattice derez, floor shatter, coin stacks & dissolves
+    SpaceDistortion  = 7u,  // [-] - Black hole accretion lensing & rising heat shimmer refraction
+    ShieldTech      = 8u,  // [-] - Multi-shape hex/prism shields, radar sweeps, sonar & EMP domes
+    AtmosphericSky    = 9u,  // [-] - Aurora curtains, fireworks spectacles, countermeasure flares & motes
+    BallisticSparks = 10u, // [-] - Shockwaves, beams, tracers, strike sparks, 3D glass shards & arcs
+    PyroFluid        = 11u, // [-] - Fire, smoke, embers, steam, volumetric water mist, bubbles & foam
     WindBlown           = 12u, // [-] - Leaves, petals, seeds, starling murmurations & butterfly boids
-    StormsAndWeather    = 13u, // [-] - Rain, snow, hail, sandstorms, tornado debris, ash & sand
+    StormWeather    = 13u, // [-] - Rain, snow, hail, sandstorms, tornado debris, ash & sand
     Count               = 14u, // [count] - Active non-quarantined categories (Quarantine excluded)
 };
 
 enum class ParticleAuthoringDomain : uint8_t
 {
     GeneralParticle    = 0u, // [-] - Standard ballistic, pyro, atmospheric, or wind-driven particles
-    RiggingAndFlora    = 1u, // [-] - Curve-driven cloth strips, hanging chains, vines, grass, kelp & anemones
+    StrandBotanical    = 1u, // [-] - Curve-driven cloth strips, hanging chains, vines, grass, kelp & anemones
     FerrofluidFlux     = 2u, // [-] - Rosensweig magnetic dish spikes & levitated ferrofluid crowns
     FireworksSpectacle = 3u, // [-] - Multi-volley pyrotechnic patterns & sky-writing custom text
-    FractureAndCracks  = 4u, // [-] - Glacial ice & seismic Voronoi ground crack propagation
+    FractureSeismic  = 4u, // [-] - Glacial ice & seismic Voronoi ground crack propagation
     MoGraphEffector    = 5u, // [-] - Effector-modulated grids & halftone dot/tile surfaces
     EnergyShield       = 6u, // [-] - Multi-shape protective barriers with impact ripples
     BoidsFlock         = 7u, // [-] - Flocking murmurations, butterfly swarms & fish schools
@@ -176,7 +176,7 @@ struct ParticlePlaybackClock
 
 struct ParticleCategoryDescriptor
 {
-    ParticleEffectCategory Category   = ParticleEffectCategory::ClothAndRigging; // [-] - Category enumeration code
+    ParticleEffectCategory Category   = ParticleEffectCategory::ClothRigging; // [-] - Category enumeration code
     const char*            FullTitle  = "";                                      // [-] - Full Outliner subgroup heading
     const char*            ShortLabel = "";                                      // [-] - Compact Outliner filter label
     const char*            TagCode    = "";                                      // [-] - Uppercase compact section tag
@@ -188,7 +188,7 @@ struct ParticlePresetDescriptor
     const char*              Identifier           = "";                                          // [-]     - Stable slug identifier
     const char*              DisplayName          = "";                                          // [-]     - Human-readable preset title
     const char*              Sublabel             = "";                                          // [-]     - Secondary row summary label
-    ParticleEffectCategory   Category             = ParticleEffectCategory::BallisticsAndSparks; // [-]     - Active non-quarantined category
+    ParticleEffectCategory   Category             = ParticleEffectCategory::BallisticSparks; // [-]     - Active non-quarantined category
     ParticleAuthoringDomain  AuthoringDomain      = ParticleAuthoringDomain::GeneralParticle;    // [-]     - Specialized inspector section
     ParticleVisualSilhouette Silhouette           = ParticleVisualSilhouette::Streak;            // [-]     - Primary particle silhouette
     ParticleBlendCategory    BlendCategory        = ParticleBlendCategory::AdditiveGlow;         // [-]     - Compositing blend mode
@@ -221,7 +221,7 @@ struct ParticleEffectDescriptor
     std::string                PresetIdentifier      {};                                            // [-]     - Source non-quarantined preset slug
     std::string                Title                 {};                                            // [-]     - Editable Outliner & Inspector heading
     std::string                Sublabel              {};                                            // [-]     - Secondary row summary text
-    ParticleEffectCategory     Category              = ParticleEffectCategory::BallisticsAndSparks; // [-]     - Active domain category
+    ParticleEffectCategory     Category              = ParticleEffectCategory::BallisticSparks; // [-]     - Active domain category
     ParticleAuthoringDomain    AuthoringDomain       = ParticleAuthoringDomain::GeneralParticle;    // [-]     - Specialized Inspector section
     bool                       Visible               = true;                                        // [-]     - Visibility / active switch
 

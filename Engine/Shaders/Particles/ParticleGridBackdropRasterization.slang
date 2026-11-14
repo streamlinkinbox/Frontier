@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/Particles/ParticleChannelShared.slang"
+#include "Engine/Shaders/Particles/ParticleChannelLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOURCES
@@ -18,10 +18,10 @@ ConstantBuffer<GpuParticleViewportUniforms> Viewport;
 
 struct GridBackdropVaryings
 {
-    float4 ClipPosition : SV_Position;
-    float2 ScreenNdc    : TEXCOORD0;
-    float3 WorldPoint   : TEXCOORD1;
-    uint   DrawKind     : TEXCOORD2;
+    float4 ClipPosition    : SV_Position;
+    float2 ScreenNdc       : TEXCOORD0;
+    float3 WorldPoint      : TEXCOORD1;
+    uint   SurfaceCategory : TEXCOORD2;
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -37,10 +37,10 @@ GridBackdropVaryings ParticleBackdropVertex(uint VertexId : SV_VulkanVertexID)
         float2(-1.0,  3.0)
     };
     GridBackdropVaryings Out;
-    Out.ScreenNdc    = TriPos[VertexId % 3u];
-    Out.ClipPosition = float4(Out.ScreenNdc, 0.0, 1.0); // Reverse-Z far plane (0.0)
-    Out.WorldPoint   = float3(0.0, 0.0, 0.0);
-    Out.DrawKind     = 0u;
+    Out.ScreenNdc       = TriPos[VertexId % 3u];
+    Out.ClipPosition    = float4(Out.ScreenNdc, 0.0, 1.0); // Reverse-Z far plane (0.0)
+    Out.WorldPoint      = float3(0.0, 0.0, 0.0);
+    Out.SurfaceCategory = 0u;
     return Out;
 }
 
@@ -70,10 +70,10 @@ GridBackdropVaryings ParticleFloorGridVertex(uint VertexId : SV_VulkanVertexID)
     float3 WorldPos   = float3(LocalXy.x, LocalXy.y, 0.0);
 
     GridBackdropVaryings Out;
-    Out.WorldPoint   = WorldPos;
-    Out.ScreenNdc    = PlaneQuad[VertexId % 6u];
-    Out.ClipPosition = ParticleProjectWorldClip(Viewport, WorldPos);
-    Out.DrawKind     = 1u;
+    Out.WorldPoint      = WorldPos;
+    Out.ScreenNdc       = PlaneQuad[VertexId % 6u];
+    Out.ClipPosition    = ParticleProjectWorldClip(Viewport, WorldPos);
+    Out.SurfaceCategory = 1u;
     return Out;
 }
 

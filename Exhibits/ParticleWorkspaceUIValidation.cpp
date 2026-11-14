@@ -95,7 +95,7 @@ using Frontier::Exhibits::SoftwareRasterCanvas;
 //                                           1. REGISTRY & QUARANTINE EXCLUSION
 //------------------------------------------------------------------------------------------------------------------------
 
-bool ValidatePresetRegistryAndQuarantineExclusion()
+bool ValidatePresetRegistryQuarantine()
 {
     const auto Categories = ParticlePresetRegistry::QueryActiveCategories();
     const auto Presets    = ParticlePresetRegistry::QueryActivePresets();
@@ -161,7 +161,7 @@ bool ValidatePresetRegistryAndQuarantineExclusion()
 //                                       2. REUSED C++ FORCEFIELDS & SESSION LOGIC
 //------------------------------------------------------------------------------------------------------------------------
 
-bool ValidateForceFieldsReuseAndSession()
+bool ValidateForceFieldsSession()
 {
     ParticleWorkspaceSession Session{};
     if (!VerifyAssertion(Session.QueryForceSources().size() == 5u, "Default scene seeds 5 C++ ForceSourceRecordEntry laws"))
@@ -363,11 +363,11 @@ bool ValidatePlaybackScrubberControl(ImGuiIO& Io)
 
 int main()
 {
-    if (!ValidatePresetRegistryAndQuarantineExclusion())
+    if (!ValidatePresetRegistryQuarantine())
     {
         return 1;
     }
-    if (!ValidateForceFieldsReuseAndSession())
+    if (!ValidateForceFieldsSession())
     {
         return 1;
     }
@@ -424,7 +424,7 @@ int main()
             Io,
             880u,
             920u,
-            ImageDir / "ParticleWorkspace_Outliner_And_EffectInspector_Overview.png",
+            ImageDir / "ParticleWorkspace_Outliner_EffectInspector_Overview.png",
             [&](PixelSpace& Surface)
             {
                 Outliner.Render(Surface, { 12.0f, 12.0f, 360.0f, 896.0f }, IdleInput, 1.0 / 60.0);
@@ -450,13 +450,13 @@ int main()
         SourceView.AttachSession(&Session);
         MotionView.AttachSession(&Session);
         SourceView.ConfigureActiveTab(ParticleInspectorTab::Source);
-        MotionView.ConfigureActiveTab(ParticleInspectorTab::MotionAndFx);
+        MotionView.ConfigureActiveTab(ParticleInspectorTab::MotionDynamics);
 
         const bool Ok = CaptureTwoPanePng(
             Io,
             980u,
             920u,
-            ImageDir / "ParticleWorkspace_EffectInspector_Source_And_Motion.png",
+            ImageDir / "ParticleWorkspace_EffectInspector_SourceMotion.png",
             [&](PixelSpace& Surface)
             {
                 SourceView.Render(Surface, { 12.0f, 12.0f, 472.0f, 896.0f }, IdleInput, 1.0 / 60.0);
@@ -505,13 +505,13 @@ int main()
         Session.SelectParticleEffect(FireworksToken);
         Outliner.ConfigureFilterAll();
         Outliner.OpenConstructSheet(ConstructSheetPage::ParticlePresets);
-        Inspector.ConfigureActiveTab(ParticleInspectorTab::SpecAndExport);
+        Inspector.ConfigureActiveTab(ParticleInspectorTab::SpecificationExport);
 
         const bool Ok = CaptureTwoPanePng(
             Io,
             880u,
             920u,
-            ImageDir / "ParticleWorkspace_Outliner_ConstructSheet_And_SpecExport.png",
+            ImageDir / "ParticleWorkspace_Outliner_ConstructSheet_SpecExport.png",
             [&](PixelSpace& Surface)
             {
                 Outliner.Render(Surface, { 12.0f, 12.0f, 360.0f, 896.0f }, IdleInput, 1.0 / 60.0);

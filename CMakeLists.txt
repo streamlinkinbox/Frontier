@@ -383,7 +383,7 @@ function(frontier_compile_particle_slang_unit SLANG_REL_PATH ENTRY_NAME SHADER_U
         DEPENDS
             "${IN_SLANG}"
             "${CMAKE_SOURCE_DIR}/Engine/Shaders/Compute/ForceFieldEvaluationShared.slang"
-            "${CMAKE_SOURCE_DIR}/Engine/Shaders/Particles/ParticleChannelShared.slang"
+            "${CMAKE_SOURCE_DIR}/Engine/Shaders/Particles/ParticleChannelLayouts.slang"
         COMMENT "[Slang] Compiling ${SLANG_REL_PATH} (${SHADER_UNIT}:${ENTRY_NAME}) -> ${OUT_SPV_NAME}"
         VERBATIM
     )

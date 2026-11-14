@@ -151,7 +151,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectDescripto
 
     switch (Effect.AuthoringDomain)
     {
-        case ParticleAuthoringDomain::RiggingAndFlora:
+        case ParticleAuthoringDomain::StrandBotanical:
         {
             StrandGridParameters Grid{};
             Grid.Pattern            = SelectStrandPattern(Effect.RiggingArchitecture, Effect.PresetIdentifier);
@@ -261,7 +261,7 @@ std::optional<ParticleSimulation> ParticlePresetCompiler::CompileEffectDescripto
                 .Construct();
         }
 
-        case ParticleAuthoringDomain::FractureAndCracks:
+        case ParticleAuthoringDomain::FractureSeismic:
         {
             FractureCrackParameters Frac{};
             Frac.OriginMeters        = { Effect.OriginMeters.X, Effect.OriginMeters.Y, 0.12f };

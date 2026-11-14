@@ -205,7 +205,7 @@ ParticleEffectDescriptor ParticleWorkspaceSession::ConstructEffectDescriptor(
         Preset.FireworkPattern < static_cast<uint8_t>(FireworkPatternCategory::Count) ? Preset.FireworkPattern : 0u);
     Entry.DeterministicSeed   = 2026u + AssignedToken * 37u;
 
-    if (Entry.AuthoringDomain == ParticleAuthoringDomain::RiggingAndFlora)
+    if (Entry.AuthoringDomain == ParticleAuthoringDomain::StrandBotanical)
     {
         Entry.OriginMeters       = { 0.0f, 0.0f, 0.0f };
         Entry.StrandRows         = (Entry.RiggingArchitecture == 3u) ? 24u : 18u;
@@ -228,7 +228,7 @@ ParticleEffectDescriptor ParticleWorkspaceSession::ConstructEffectDescriptor(
         Entry.BurstCount       = 240u;
         Entry.FireworkSkyText  = "2026";
     }
-    else if (Entry.AuthoringDomain == ParticleAuthoringDomain::FractureAndCracks)
+    else if (Entry.AuthoringDomain == ParticleAuthoringDomain::FractureSeismic)
     {
         Entry.OriginMeters        = { 0.0f, 0.0f, 0.02f };
         Entry.FractureDepthMeters = (Entry.FracturePattern == 2u) ? 0.85f : 0.38f;

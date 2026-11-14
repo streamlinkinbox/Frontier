@@ -46,10 +46,10 @@
 - **HTML Reference Parity Verification:** Audited directly against every CSS token, spacing rule, border radius, and component layout in `Experimental/ParticleEditor Final/{index.html,ParticleEditor.css,ParticleEditor.js}` plus Frontier's native reference renders (`Experimental/ProjectZeroEditor/Images/ProjectZeroEditorOverview.png` and `Exhibits/Images/VectorField/01-ForceFieldLitPbrAndOverlay.png`).
 
 ### Rendered PNG Visual Proofs (`Exhibits/Images/Particles/`)
-1. `Exhibits/Images/Particles/ParticleWorkspace_Outliner_And_EffectInspector_Overview.png` — Side-by-side HTML-parity Outliner and Effect Inspector `Overview` tab (`Magnetic Ferrofluid Dish`).
-2. `Exhibits/Images/Particles/ParticleWorkspace_EffectInspector_Source_And_Motion.png` — Side-by-side Effect Inspector `Source` and `Motion & FX` tabs (`New Year's Text & Shape Fireworks`).
+1. `Exhibits/Images/Particles/ParticleWorkspace_Outliner_EffectInspector_Overview.png` — Side-by-side HTML-parity Outliner and Effect Inspector `Overview` tab (`Magnetic Ferrofluid Dish`).
+2. `Exhibits/Images/Particles/ParticleWorkspace_EffectInspector_SourceMotion.png` — Side-by-side Effect Inspector `Source` and `Motion & FX` tabs (`New Year's Text & Shape Fireworks`).
 3. `Exhibits/Images/Particles/ParticleWorkspace_ReusedForceFields_Inspector.png` — Outliner filtered to `Forces` delegating directly to Frontier's existing C++ `ForceInspectorView` (`Helical Column`).
-4. `Exhibits/Images/Particles/ParticleWorkspace_Outliner_ConstructSheet_And_SpecExport.png` — Outliner `+` Construct sheet (`Presets (93)` / `Force Models (19)`) alongside Effect Inspector `Spec & Export` tab.
+4. `Exhibits/Images/Particles/ParticleWorkspace_Outliner_ConstructSheet_SpecExport.png` — Outliner `+` Construct sheet (`Presets (93)` / `Force Models (19)`) alongside Effect Inspector `Spec & Export` tab.
 5. `Exhibits/Images/Particles/ParticleWorkspace_PlaybackScrubber_Control.png` — Dedicated Frontier UI Control showcase for **`Engine/Components/Controls/PlaybackScrubber`** (`ConstructFullTransport` + Dark/Light `ConstructScrubberRail`).
 6. `Exhibits/Images/Particles/ParticleWorkspace_FullStudio_3Pane_Viewport.png` — Full 3-pane `ParticleWorkspaceHost` studio (`ParticleOutlinerPanel` | live 3D `ParticleViewportHost` showing 3,547 simulated particles + 5 coupled `ForceFields` + `PlaybackScrubber` transport dock | `ParticleInspectorPanel`).
 
@@ -57,6 +57,7 @@
 
 ---
 
-## 4. Next Staged Step (Ready for Step 2C)
+## 4. Step 2C Status & Remaining Integration Roadmap
 
-- **Step 2C — Vulkan 1.3 `.slang` Compute & GPU Viewport Rasterization:** Author `ParticleVulkanExecutor.{h,cpp}` and modular `.slang` compute & raster shaders (`Engine/Shaders/Particles/`) importing `ForceFieldEvaluationShared.slang`, with CPU-vs-GPU numerical parity validation inside `ParticleViewportHost`.
+- **Step 2C — Vulkan 1.3 `.slang` Compute & GPU Viewport Rasterization (Completed):** Authored `ParticleVulkanExecutor.{h,cpp}`, `ParticleViewportRasterization.{h,cpp}`, and 8 modular `.slang` shaders (`ParticleChannelLayouts.slang`, `ParticleReleaseCompute.slang`, `ParticleAdvectCompute.slang`, `ParticleStrandConstraintCompute.slang`, `ParticleReductionCompute.slang`, `ParticleBillboardRasterization.slang`, `ParticleRibbonRasterization.slang`, `ParticleGridBackdropRasterization.slang`), verified live on Vulkan 1.3 via `Exhibits/ParticleVulkanGpuValidation.cpp` with `0.042 mm` median / `0.177 mm` max CPU-vs-GPU parity and GPU PNG proofs (`ParticleGpu_VulkanCompute_CoupledForceFields.png`, `ParticleGpu_VulkanCompute_XpbdClothRibbons.png`).
+- **Remaining Integration Work:** See Step 3/4 checklist (live desktop `EditorLifecycle` / `ProjectBrowser` launch routing, `ParticleSimulation::Tick` auto-delegation to `ParticleVulkanExecutor` + live ImGui texture bridge in `ParticleViewportHost`, remaining GPU compute domain kernels for Ferrofluid / Pyro / Boids / MoGraph / Fracture / Shield / Refraction, and full CMake CTest integration).

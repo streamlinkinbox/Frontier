@@ -405,7 +405,7 @@ Frontier/
     │   │   ├── ForceFieldEvaluationShared.slang   // Shared 19-ForceModel analytical evaluation
     │   │   └── FieldLatticeCompute.slang          // Cascaded 3D ForceField clipmap lattice compute
     │   ├── Particles/                             // Vulkan 1.3 .slang modular particle compute & viewport raster shaders
-    │   │   ├── ParticleChannelShared.slang        // 16B-aligned mirror of ParticleChannelLayouts.h + ForceFields reuse
+    │   │   ├── ParticleChannelLayouts.slang       // 16B-aligned mirror of ParticleChannelLayouts.h + ForceFields reuse
     │   │   ├── ParticleReleaseCompute.slang       // Volume/lattice/arc GPU particle release compute
     │   │   ├── ParticleAdvectCompute.slang        // Gravity, ForceFields, curl, colliders & curves compute
     │   │   ├── ParticleStrandConstraintCompute.slang // Parallel XPBD/Verlet strand & cloth relaxation compute

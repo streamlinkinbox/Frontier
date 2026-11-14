@@ -41,7 +41,7 @@ enum class ChannelStoragePolicy : uint8_t
 enum class ChannelResidency : uint8_t
 {
     CpuOnly     = 0u, // Pure C++ gameplay/custom struct channel
-    CpuAndGpu   = 1u, // 16B-aligned trivially-copyable channel mirrored to Vulkan SSBO
+    DeviceMirrored   = 1u, // 16B-aligned trivially-copyable channel mirrored to Vulkan SSBO
 };
 
 template <typename AttributeT>
@@ -51,7 +51,7 @@ struct ChannelTag
     using AttributeType = AttributeT;
     uint64_t         SignatureHash = 0u;
     const char*      DebugLabel    = "";
-    ChannelResidency Residency     = ChannelResidency::CpuAndGpu;
+    ChannelResidency Residency     = ChannelResidency::DeviceMirrored;
 };
 
 } // namespace Frontier::SimulationSpace::Particles
@@ -257,10 +257,10 @@ Every `ParticleAuthoringDomain` from Step 1's `ParticlePresetRegistry` compiles 
 | Authoring Domain (Step 1) | Channels Allocated | Composed Solvers & Integrator | GPU Compute Ready |
 | :--- | :--- | :--- | :--- |
 | **`GeneralParticle`** *(Pyro, Weather, Sparks, Wind, Atmosphere)* | `Kinematics`, `Lifespan`, `Appearance` (+ optional `Orientation`) | `GravityBuoyancySolver` + `ForceFieldCouplingSolver` + `CurlTurbulenceSolver` + `AeroFlutterSolver` + `AppearanceCurveSolver` + `SemiImplicitEuler` | 🟢 Full `.slang` |
-| **`RiggingAndFlora`** *(Cloth, Cables, Vines, Grass, Ferns, Kelp, Trees, Webs)* | `Kinematics`, `Appearance`, `StrandAnchor`, `StrandConnectivity` | `ForceFieldCouplingSolver` + `XpbdStrandSolver` + `SphereContactCollider` + `XpbdVerlet` | 🟢 Full `.slang` |
+| **`StrandBotanical`** *(Cloth, Cables, Vines, Grass, Ferns, Kelp, Trees, Webs)* | `Kinematics`, `Appearance`, `StrandAnchor`, `StrandConnectivity` | `ForceFieldCouplingSolver` + `XpbdStrandSolver` + `SphereContactCollider` + `XpbdVerlet` | 🟢 Full `.slang` |
 | **`FerrofluidFlux`** *(Petri Dish & Levitated Rosensweig Crown)* | `Kinematics`, `Appearance`, `MagneticCusp` | `RosensweigFerrofluidSolver` + `ForceFieldCouplingSolver` (`MagneticDipole`) + `SphereContactCollider` + `MidpointRk2` | 🟢 Full `.slang` |
 | **`FireworksSpectacle`** *(Hanabi Patterns & Sky Text)* | `Kinematics`, `Lifespan`, `Appearance`, `PyroVolley` | `PyroVolleyBurstSolver` + `GravityBuoyancySolver` + `ForceFieldCouplingSolver` + `AppearanceCurveSolver` + `SemiImplicitEuler` | 🟢 Full `.slang` |
-| **`FractureAndCracks`** *(Glacial Ice & Seismic Basalt)* | `Kinematics`, `Lifespan`, `Appearance`, `Orientation`, `FractureStress` | `FractureCrackSolver` + `GravityBuoyancySolver` + `GroundPlaneCollider` + `SemiImplicitEuler` | 🟢 Full `.slang` |
+| **`FractureSeismic`** *(Glacial Ice & Seismic Basalt)* | `Kinematics`, `Lifespan`, `Appearance`, `Orientation`, `FractureStress` | `FractureCrackSolver` + `GravityBuoyancySolver` + `GroundPlaneCollider` + `SemiImplicitEuler` | 🟢 Full `.slang` |
 | **`MoGraphEffector`** *(Halftone Grids & Extruded Cube Matrices)* | `Kinematics`, `Appearance`, `LatticeGrid` | `MoGraphEffector` + `ForceFieldCouplingSolver` + `SphereContactCollider` + `SemiImplicitEuler` | 🟢 Full `.slang` |
 | **`EnergyShield`** *(Sphere / Hex Dome / Prism / Cylinder)* | `Kinematics`, `Appearance`, `Orientation` | `EnergyShieldRippleSolver` + `SphereContactCollider` + `SemiImplicitEuler` | 🟢 Full `.slang` |
 | **`BoidsFlock`** *(Birds, Butterflies, Fish)* | `Kinematics`, `Appearance`, `Orientation`, `FlockSteering` | `BoidsFlock` + `ForceFieldCouplingSolver` + `SphereContactCollider` + `SemiImplicitEuler` | 🟢 Full `.slang` |
@@ -277,7 +277,7 @@ Every `ParticleAuthoringDomain` from Step 1's `ParticlePresetRegistry` compiles 
 - **`ExecutionTarget::CpuParallel`** *(always available, zero GPU dependency)*:
   - Executes solvers across `ParticleChannelBank` in 64B-aligned SoA blocks via `Engine/Threading/Tasks/TaskScheduler`.
   - Computes exact `ParticleReadbackSummary` (`AliveCount`, `PeakSpeedMs`, `BoundsRadiusMeters`, `TickDurationUs`) — directly feeding the Inspector's `01 / LIVE SOLVER` hero metric and `32 B READ` async readback tiles!
-- **`ExecutionTarget::VulkanCompute`** *(automatic when all attached channels are `CpuAndGpu` and all attached solvers report `QueryGpuComputeSupported() == true`)*:
+- **`ExecutionTarget::VulkanCompute`** *(automatic when all attached channels are `DeviceMirrored` and all attached solvers report `QueryGpuComputeSupported() == true`)*:
   - Packs native SoA channel buffers into aligned Vulkan 1.3 SSBOs (`ParticleVulkanExecutor`).
   - Dispatches modular `.slang` compute files (`ParticleReleaseCompute.slang`, `ParticleAdvectCompute.slang`, `ParticleStrandConstraintCompute.slang`, `ParticleReductionCompute.slang`).
   - Directly imports `Engine/Shaders/Compute/ForceFieldEvaluationShared.slang` and binds the live `FieldLatticeCascade` descriptors from `FieldLatticeVulkanExecutor`.
@@ -321,7 +321,7 @@ Engine/
       ParticleWorkspaceHost.h / .cpp     # [Editor] Full 3-pane WorkspaceDockContainer host + ContentBrowser integration
   Shaders/
     Particles/                           # [Step 2C] Vulkan 1.3 .slang compute & rasterization suite (14 compiled SPIR-V 1.3 entrypoints)
-      ParticleChannelShared.slang
+      ParticleChannelLayouts.slang
       ParticleReleaseCompute.slang
       ParticleAdvectCompute.slang
       ParticleStrandConstraintCompute.slang

@@ -115,8 +115,8 @@ void ParticleViewportHost::RenderFloorGrid(PixelSpace& Surface, Rectangle2D Canv
     for (int32_t Coord = -HalfSpan; Coord <= HalfSpan; ++Coord)
     {
         const float     Pos     = static_cast<float>(Coord);
-        const bool      IsMajor = (Coord % 4 == 0);
-        const ColorRgba Stroke  = IsMajor ? ViewportSurfaceColors::GridMajor : ViewportSurfaceColors::GridMinor;
+        const bool      MajorAxisLine = (Coord % 4 == 0);
+        const ColorRgba Stroke  = MajorAxisLine ? ViewportSurfaceColors::GridMajor : ViewportSurfaceColors::GridMinor;
 
         Point2D A{}, B{};
         float   Da = 0.0f, Db = 0.0f;
@@ -218,7 +218,7 @@ void ParticleViewportHost::RenderParticleSimulations(PixelSpace& Surface, Rectan
         }
 
         const ColorRgba FallbackColor = ConvertRgba(Effect.ColorA);
-        const bool      IsStreak      = (Effect.Silhouette == ParticleVisualSilhouette::Streak);
+        const bool      StreakSilhouette      = (Effect.Silhouette == ParticleVisualSilhouette::Streak);
 
         for (uint32_t Idx = 0u; Idx < Alive; ++Idx)
         {
@@ -234,12 +234,12 @@ void ParticleViewportHost::RenderParticleSimulations(PixelSpace& Surface, Rectan
                 continue;
             }
 
-            ColorRgba BaseColor = FallbackColor;
+            ColorRgba LinearTint = FallbackColor;
             float     WorldSize = Effect.SizeStartMeters;
             if (Idx < Appearance.size())
             {
                 const auto& A = Appearance[Idx];
-                BaseColor = ColorRgba{
+                LinearTint = ColorRgba{
                     static_cast<uint8_t>(std::clamp(A.ColorR * 255.0f, 20.0f, 255.0f)),
                     static_cast<uint8_t>(std::clamp(A.ColorG * 255.0f, 20.0f, 255.0f)),
                     static_cast<uint8_t>(std::clamp(A.ColorB * 255.0f, 20.0f, 255.0f)),
@@ -253,7 +253,7 @@ void ParticleViewportHost::RenderParticleSimulations(PixelSpace& Surface, Rectan
 
             const float ScreenRadius = std::clamp((WorldSize * 210.0f) / std::max(0.5f, Depth), 1.4f, 10.5f);
 
-            if (IsStreak)
+            if (StreakSilhouette)
             {
                 const Mathematics::Axis3D TailWorld{
                     K.PosX - K.VelX * 0.04f,
@@ -264,15 +264,15 @@ void ParticleViewportHost::RenderParticleSimulations(PixelSpace& Surface, Rectan
                 float   TailDepth = 0.0f;
                 if (Interactor.ProjectWorldPoint(TailWorld, CanvasBounds, TailPt, TailDepth))
                 {
-                    Surface.StrokeLine(TailPt, ScreenPt, BaseColor.ScaledAlpha(0.75f), std::max(1.2f, ScreenRadius * 0.65f));
+                    Surface.StrokeLine(TailPt, ScreenPt, LinearTint.ScaledAlpha(0.75f), std::max(1.2f, ScreenRadius * 0.65f));
                 }
             }
 
             if (Effect.BlendCategory == ParticleBlendCategory::AdditiveGlow)
             {
-                Surface.FillCircle(ScreenPt, ScreenRadius * 1.9f, BaseColor.ScaledAlpha(0.16f));
+                Surface.FillCircle(ScreenPt, ScreenRadius * 1.9f, LinearTint.ScaledAlpha(0.16f));
             }
-            Surface.FillCircle(ScreenPt, ScreenRadius, BaseColor.ScaledAlpha(0.88f));
+            Surface.FillCircle(ScreenPt, ScreenRadius, LinearTint.ScaledAlpha(0.88f));
         }
 
         if (ShowBounds)
@@ -329,7 +329,7 @@ void ParticleViewportHost::RenderTopHudBar(
     const Point2D Cursor{ Input.PrimaryPointer.X, Input.PrimaryPointer.Y };
     const bool Click = Input.PrimaryPointer.Enabled && Input.PrimaryPointer.Pressed;
 
-    auto DrawToggleCapsule = [&](float RightX, float Width, const char* Label, bool Active) -> bool
+    auto ConstructToggleCapsule = [&](float RightX, float Width, const char* Label, bool Active) -> bool
     {
         const Rectangle2D Capsule{ RightX - Width, Bar.Y + 5.0f, Width, 24.0f };
         const bool Hover = Input.PrimaryPointer.Enabled && Capsule.Contains(Cursor);
@@ -351,22 +351,22 @@ void ParticleViewportHost::RenderTopHudBar(
     };
 
     float CursorRight = Bar.Right() - 8.0f;
-    if (DrawToggleCapsule(CursorRight, 56.0f, "Reset", false))
+    if (ConstructToggleCapsule(CursorRight, 56.0f, "Reset", false))
     {
         Interactor.ResetCamera();
     }
     CursorRight -= 62.0f;
-    if (DrawToggleCapsule(CursorRight, 60.0f, "Bounds", Prefs.BoundsOverlayEnabled))
+    if (ConstructToggleCapsule(CursorRight, 60.0f, "Bounds", Prefs.BoundsOverlayEnabled))
     {
         Prefs.BoundsOverlayEnabled = !Prefs.BoundsOverlayEnabled;
     }
     CursorRight -= 66.0f;
-    if (DrawToggleCapsule(CursorRight, 62.0f, "Forces", Prefs.ForceVectorsEnabled))
+    if (ConstructToggleCapsule(CursorRight, 62.0f, "Forces", Prefs.ForceVectorsEnabled))
     {
         Prefs.ForceVectorsEnabled = !Prefs.ForceVectorsEnabled;
     }
     CursorRight -= 68.0f;
-    if (DrawToggleCapsule(CursorRight, 48.0f, "Grid", Prefs.FloorGridEnabled))
+    if (ConstructToggleCapsule(CursorRight, 48.0f, "Grid", Prefs.FloorGridEnabled))
     {
         Prefs.FloorGridEnabled = !Prefs.FloorGridEnabled;
     }

@@ -171,7 +171,7 @@ struct ParticleVulkanExecutor::DeviceImplementation
     std::string      DeviceLabel       {};
 
 #if defined(__linux__)
-    void*            LoaderModule      = nullptr;
+    void*            LoaderLibrary      = nullptr;
 #endif
 
     [[nodiscard]] uint32_t FindHostVisibleMemory(uint32_t TypeBits) const noexcept
@@ -227,12 +227,12 @@ struct ParticleVulkanExecutor::DeviceImplementation
         }
         DestroyBuffer(Buf);
 
-        VkBufferCreateInfo CreateInfo{};
-        CreateInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        CreateInfo.size        = SafeBytes;
-        CreateInfo.usage       = UsageBits;
-        CreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateBuffer(Device, &CreateInfo, nullptr, &Buf.Handle) != VK_SUCCESS)
+        VkBufferCreateInfo BufferSpec{};
+        BufferSpec.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        BufferSpec.size        = SafeBytes;
+        BufferSpec.usage       = UsageBits;
+        BufferSpec.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateBuffer(Device, &BufferSpec, nullptr, &Buf.Handle) != VK_SUCCESS)
         {
             return false;
         }
@@ -246,11 +246,11 @@ struct ParticleVulkanExecutor::DeviceImplementation
             return false;
         }
 
-        VkMemoryAllocateInfo AllocInfo{};
-        AllocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        AllocInfo.allocationSize  = MemReq.size;
-        AllocInfo.memoryTypeIndex = MemType;
-        if (vkAllocateMemory(Device, &AllocInfo, nullptr, &Buf.Memory) != VK_SUCCESS)
+        VkMemoryAllocateInfo MemorySpec{};
+        MemorySpec.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        MemorySpec.allocationSize  = MemReq.size;
+        MemorySpec.memoryTypeIndex = MemType;
+        if (vkAllocateMemory(Device, &MemorySpec, nullptr, &Buf.Memory) != VK_SUCCESS)
         {
             DestroyBuffer(Buf);
             return false;
@@ -293,47 +293,47 @@ struct ParticleVulkanExecutor::DeviceImplementation
             Slots[Idx].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
         }
 
-        VkDescriptorSetLayoutCreateInfo SetInfo{};
-        SetInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        SetInfo.bindingCount = static_cast<uint32_t>(Slots.size());
-        SetInfo.pBindings    = Slots.data();
-        if (vkCreateDescriptorSetLayout(Device, &SetInfo, nullptr, &OutUnit.DescriptorLayout) != VK_SUCCESS)
+        VkDescriptorSetLayoutCreateInfo DescLayoutSpec{};
+        DescLayoutSpec.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        DescLayoutSpec.bindingCount = static_cast<uint32_t>(Slots.size());
+        DescLayoutSpec.pBindings    = Slots.data();
+        if (vkCreateDescriptorSetLayout(Device, &DescLayoutSpec, nullptr, &OutUnit.DescriptorLayout) != VK_SUCCESS)
         {
             OutDiagnostic = "Failed to create particle descriptor set layout.";
             return false;
         }
 
-        VkPipelineLayoutCreateInfo LayoutInfo{};
-        LayoutInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        LayoutInfo.setLayoutCount = 1u;
-        LayoutInfo.pSetLayouts    = &OutUnit.DescriptorLayout;
-        if (vkCreatePipelineLayout(Device, &LayoutInfo, nullptr, &OutUnit.Layout) != VK_SUCCESS)
+        VkPipelineLayoutCreateInfo ExecLayoutSpec{};
+        ExecLayoutSpec.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        ExecLayoutSpec.setLayoutCount = 1u;
+        ExecLayoutSpec.pSetLayouts    = &OutUnit.DescriptorLayout;
+        if (vkCreatePipelineLayout(Device, &ExecLayoutSpec, nullptr, &OutUnit.Layout) != VK_SUCCESS)
         {
             OutDiagnostic = "Failed to create particle compute layout.";
             return false;
         }
 
-        VkShaderModuleCreateInfo ModuleInfo{};
-        ModuleInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        ModuleInfo.codeSize = SpirvWords.size() * sizeof(uint32_t);
-        ModuleInfo.pCode    = SpirvWords.data();
-        VkShaderModule ShaderModule = VK_NULL_HANDLE;
-        if (vkCreateShaderModule(Device, &ModuleInfo, nullptr, &ShaderModule) != VK_SUCCESS)
+        VkShaderModuleCreateInfo SpirvSpec{};
+        SpirvSpec.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        SpirvSpec.codeSize = SpirvWords.size() * sizeof(uint32_t);
+        SpirvSpec.pCode    = SpirvWords.data();
+        VkShaderModule SpirvHandle = VK_NULL_HANDLE;
+        if (vkCreateShaderModule(Device, &SpirvSpec, nullptr, &SpirvHandle) != VK_SUCCESS)
         {
             OutDiagnostic = "Failed to create SPIR-V shader module: " + SpirvPath.string();
             return false;
         }
 
-        VkComputePipelineCreateInfo PipeInfo{};
-        PipeInfo.sType        = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        PipeInfo.stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        PipeInfo.stage.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
-        PipeInfo.stage.module = ShaderModule;
-        PipeInfo.stage.pName  = EntryName;
-        PipeInfo.layout       = OutUnit.Layout;
+        VkComputePipelineCreateInfo ComputeSpec{};
+        ComputeSpec.sType        = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        ComputeSpec.stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        ComputeSpec.stage.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
+        ComputeSpec.stage.module = SpirvHandle;
+        ComputeSpec.stage.pName  = EntryName;
+        ComputeSpec.layout       = OutUnit.Layout;
 
-        const VkResult Res = vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1u, &PipeInfo, nullptr, &OutUnit.Executable);
-        vkDestroyShaderModule(Device, ShaderModule, nullptr);
+        const VkResult Res = vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1u, &ComputeSpec, nullptr, &OutUnit.Executable);
+        vkDestroyShaderModule(Device, SpirvHandle, nullptr);
         if (Res != VK_SUCCESS)
         {
             OutDiagnostic = "Failed to construct Vulkan compute executable: " + SpirvPath.string();
@@ -493,10 +493,10 @@ struct ParticleVulkanExecutor::DeviceImplementation
             vkDestroyInstance(Instance, nullptr);
         }
 #if defined(__linux__)
-        if (LoaderModule != nullptr)
+        if (LoaderLibrary != nullptr)
         {
-            dlclose(LoaderModule);
-            LoaderModule = nullptr;
+            dlclose(LoaderLibrary);
+            LoaderLibrary = nullptr;
         }
 #endif
         Instance         = VK_NULL_HANDLE;
@@ -550,11 +550,11 @@ bool ParticleVulkanExecutor::Initialize(
         if (std::filesystem::exists(LoaderSo))
         {
             const std::string LoaderPath = std::filesystem::weakly_canonical(LoaderSo).string();
-            DeviceHandle->LoaderModule   = dlopen(LoaderPath.c_str(), RTLD_NOW | RTLD_LOCAL);
-            if (DeviceHandle->LoaderModule != nullptr)
+            DeviceHandle->LoaderLibrary   = dlopen(LoaderPath.c_str(), RTLD_NOW | RTLD_LOCAL);
+            if (DeviceHandle->LoaderLibrary != nullptr)
             {
                 auto GetInstProc = reinterpret_cast<PFN_vkGetInstanceProcAddr>(
-                    dlsym(DeviceHandle->LoaderModule, "vkGetInstanceProcAddr"));
+                    dlsym(DeviceHandle->LoaderLibrary, "vkGetInstanceProcAddr"));
                 if (GetInstProc != nullptr)
                 {
                     volkInitializeCustom(GetInstProc);
@@ -571,18 +571,18 @@ bool ParticleVulkanExecutor::Initialize(
         return false;
     }
 
-    VkApplicationInfo AppInfo{};
-    AppInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    AppInfo.pApplicationName   = "FrontierParticleCompute";
-    AppInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    AppInfo.pEngineName        = "Frontier";
-    AppInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
-    AppInfo.apiVersion         = VK_API_VERSION_1_3;
+    VkApplicationInfo ClientSpec{};
+    ClientSpec.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    ClientSpec.pApplicationName   = "FrontierParticleCompute";
+    ClientSpec.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    ClientSpec.pEngineName        = "Frontier";
+    ClientSpec.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
+    ClientSpec.apiVersion         = VK_API_VERSION_1_3;
 
-    VkInstanceCreateInfo InstInfo{};
-    InstInfo.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    InstInfo.pApplicationInfo = &AppInfo;
-    if (vkCreateInstance(&InstInfo, nullptr, &DeviceHandle->Instance) != VK_SUCCESS)
+    VkInstanceCreateInfo InstanceSpec{};
+    InstanceSpec.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    InstanceSpec.pApplicationInfo = &ClientSpec;
+    if (vkCreateInstance(&InstanceSpec, nullptr, &DeviceHandle->Instance) != VK_SUCCESS)
     {
         OutDiagnostic = "vkCreateInstance failed for ParticleVulkanExecutor.";
         Finalize();
@@ -641,17 +641,17 @@ bool ParticleVulkanExecutor::Initialize(
     DeviceHandle->QueueFamilyIndex = ChosenFamily;
 
     const float QueuePriority = 1.0f;
-    VkDeviceQueueCreateInfo QueueInfo{};
-    QueueInfo.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    QueueInfo.queueFamilyIndex = ChosenFamily;
-    QueueInfo.queueCount       = 1u;
-    QueueInfo.pQueuePriorities = &QueuePriority;
+    VkDeviceQueueCreateInfo QueueSpec{};
+    QueueSpec.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    QueueSpec.queueFamilyIndex = ChosenFamily;
+    QueueSpec.queueCount       = 1u;
+    QueueSpec.pQueuePriorities = &QueuePriority;
 
-    VkDeviceCreateInfo DevInfo{};
-    DevInfo.sType                = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    DevInfo.queueCreateInfoCount = 1u;
-    DevInfo.pQueueCreateInfos    = &QueueInfo;
-    if (vkCreateDevice(DeviceHandle->PhysicalDevice, &DevInfo, nullptr, &DeviceHandle->Device) != VK_SUCCESS)
+    VkDeviceCreateInfo LogicalDeviceSpec{};
+    LogicalDeviceSpec.sType                = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    LogicalDeviceSpec.queueCreateInfoCount = 1u;
+    LogicalDeviceSpec.pQueueCreateInfos    = &QueueSpec;
+    if (vkCreateDevice(DeviceHandle->PhysicalDevice, &LogicalDeviceSpec, nullptr, &DeviceHandle->Device) != VK_SUCCESS)
     {
         OutDiagnostic = "vkCreateDevice failed for ParticleVulkanExecutor.";
         Finalize();
@@ -665,23 +665,23 @@ bool ParticleVulkanExecutor::Initialize(
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 12u },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 36u },
     }};
-    VkDescriptorPoolCreateInfo BankInfo{};
-    BankInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    BankInfo.maxSets       = 12u;
-    BankInfo.poolSizeCount = static_cast<uint32_t>(DescSizes.size());
-    BankInfo.pPoolSizes    = DescSizes.data();
-    if (vkCreateDescriptorPool(DeviceHandle->Device, &BankInfo, nullptr, &DeviceHandle->DescriptorBank) != VK_SUCCESS)
+    VkDescriptorPoolCreateInfo DescBankSpec{};
+    DescBankSpec.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    DescBankSpec.maxSets       = 12u;
+    DescBankSpec.poolSizeCount = static_cast<uint32_t>(DescSizes.size());
+    DescBankSpec.pPoolSizes    = DescSizes.data();
+    if (vkCreateDescriptorPool(DeviceHandle->Device, &DescBankSpec, nullptr, &DeviceHandle->DescriptorBank) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to create particle descriptor bank.";
         Finalize();
         return false;
     }
 
-    VkCommandPoolCreateInfo CmdBankInfo{};
-    CmdBankInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    CmdBankInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    CmdBankInfo.queueFamilyIndex = ChosenFamily;
-    if (vkCreateCommandPool(DeviceHandle->Device, &CmdBankInfo, nullptr, &DeviceHandle->CommandBank) != VK_SUCCESS)
+    VkCommandPoolCreateInfo CmdBankSpec{};
+    CmdBankSpec.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    CmdBankSpec.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    CmdBankSpec.queueFamilyIndex = ChosenFamily;
+    if (vkCreateCommandPool(DeviceHandle->Device, &CmdBankSpec, nullptr, &DeviceHandle->CommandBank) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to create particle command bank.";
         Finalize();
@@ -700,9 +700,9 @@ bool ParticleVulkanExecutor::Initialize(
         return false;
     }
 
-    VkFenceCreateInfo SignalInfo{};
-    SignalInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    if (vkCreateFence(DeviceHandle->Device, &SignalInfo, nullptr, &DeviceHandle->CompletionSignal) != VK_SUCCESS)
+    VkFenceCreateInfo SyncSpec{};
+    SyncSpec.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    if (vkCreateFence(DeviceHandle->Device, &SyncSpec, nullptr, &DeviceHandle->CompletionSignal) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to create particle completion signal.";
         Finalize();
@@ -903,9 +903,9 @@ bool ParticleVulkanExecutor::UploadChannelBank(
     const uint32_t Count          = std::max(SourceBank.QueryActiveCount(), SourceBank.QueryCapacity());
     const auto     StrandAnchors  = SourceBank.QueryChannel(ChannelLayouts::StrandAnchor);
     const auto     StrandLinks    = SourceBank.QueryChannel(ChannelLayouts::StrandConnectivity);
-    const bool     HasStrands     = !StrandAnchors.empty() && !StrandLinks.empty();
+    const bool     StrandsPresent     = !StrandAnchors.empty() && !StrandLinks.empty();
 
-    if (!EnsureChannelCapacity(Count, HasStrands, OutDiagnostic))
+    if (!EnsureChannelCapacity(Count, StrandsPresent, OutDiagnostic))
     {
         return false;
     }
@@ -935,7 +935,7 @@ bool ParticleVulkanExecutor::UploadChannelBank(
     {
         std::memcpy(DeviceHandle->AppearanceBuffer.Mapped, Appear.data(), Appear.size() * sizeof(AppearanceChannel));
     }
-    if (HasStrands)
+    if (StrandsPresent)
     {
         std::memcpy(DeviceHandle->StrandAnchorBuf.Mapped, StrandAnchors.data(), StrandAnchors.size() * sizeof(StrandAnchorChannel));
         std::memcpy(DeviceHandle->StrandLinkBuf.Mapped, StrandLinks.data(), StrandLinks.size() * sizeof(StrandConnectivityChannel));
@@ -1045,10 +1045,10 @@ bool ParticleVulkanExecutor::DispatchStep(
     auto SubmitCommands = [&](const auto& RecordFn) -> bool
     {
         vkResetCommandBuffer(DeviceHandle->CommandRecorder, 0u);
-        VkCommandBufferBeginInfo BeginInfo{};
-        BeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        if (vkBeginCommandBuffer(DeviceHandle->CommandRecorder, &BeginInfo) != VK_SUCCESS)
+        VkCommandBufferBeginInfo RecordSpec{};
+        RecordSpec.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        RecordSpec.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        if (vkBeginCommandBuffer(DeviceHandle->CommandRecorder, &RecordSpec) != VK_SUCCESS)
         {
             return false;
         }
@@ -1061,11 +1061,11 @@ bool ParticleVulkanExecutor::DispatchStep(
         }
 
         vkResetFences(DeviceHandle->Device, 1u, &DeviceHandle->CompletionSignal);
-        VkSubmitInfo SubInfo{};
-        SubInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        SubInfo.commandBufferCount = 1u;
-        SubInfo.pCommandBuffers    = &DeviceHandle->CommandRecorder;
-        if (vkQueueSubmit(DeviceHandle->ComputeQueue, 1u, &SubInfo, DeviceHandle->CompletionSignal) != VK_SUCCESS)
+        VkSubmitInfo DispatchSpec{};
+        DispatchSpec.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        DispatchSpec.commandBufferCount = 1u;
+        DispatchSpec.pCommandBuffers    = &DeviceHandle->CommandRecorder;
+        if (vkQueueSubmit(DeviceHandle->ComputeQueue, 1u, &DispatchSpec, DeviceHandle->CompletionSignal) != VK_SUCCESS)
         {
             return false;
         }
@@ -1078,7 +1078,7 @@ bool ParticleVulkanExecutor::DispatchStep(
     if (Request.StrandRelaxIterations > 0u && StepUniform.ActiveCount > 0u)
     {
         ParticleGpuUniformBlock SetupUniform = StepUniform;
-        SetupUniform.ColliderFlags[2]        = 1u; // StrandModeVerletSetup
+        SetupUniform.ColliderControl[2]        = 1u; // StrandModeVerletSetup
         std::memcpy(DeviceHandle->StrandUniformBuf.Mapped, &SetupUniform, sizeof(ParticleGpuUniformBlock));
         DeviceHandle->RefreshAllDescriptorSlots(DeviceHandle->StrandUniformBuf);
 
@@ -1095,7 +1095,7 @@ bool ParticleVulkanExecutor::DispatchStep(
 
     // Phase B: Optional Release -> Advect -> Optional Strand Relax (single batch!)
     ParticleGpuUniformBlock RelaxUniform = StepUniform;
-    RelaxUniform.ColliderFlags[2]        = 2u; // StrandModeRelax
+    RelaxUniform.ColliderControl[2]        = 2u; // StrandModeRelax
     std::memcpy(DeviceHandle->StrandUniformBuf.Mapped, &RelaxUniform, sizeof(ParticleGpuUniformBlock));
     DeviceHandle->RefreshAllDescriptorSlots(DeviceHandle->StrandUniformBuf);
 
@@ -1137,7 +1137,7 @@ bool ParticleVulkanExecutor::DispatchStep(
     if (Request.StrandRelaxIterations > 0u && StepUniform.ActiveCount > 0u)
     {
         ParticleGpuUniformBlock DeriveUniform = StepUniform;
-        DeriveUniform.ColliderFlags[2]        = 3u; // StrandModeDeriveVel
+        DeriveUniform.ColliderControl[2]        = 3u; // StrandModeDeriveVel
         std::memcpy(DeviceHandle->StrandVelUniform.Mapped, &DeriveUniform, sizeof(ParticleGpuUniformBlock));
         DeviceHandle->RefreshAllDescriptorSlots(DeviceHandle->StrandVelUniform);
     }

@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/Particles/ParticleChannelShared.slang"
+#include "Engine/Shaders/Particles/ParticleChannelLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOURCES
@@ -61,8 +61,8 @@ RibbonVaryings ParticleRibbonVertex(
     }
 
     GpuStrandLinkSlot Link = StrandLinkBuffer[InstanceId];
-    bool IsCrossLink       = (VertexId >= 6u);
-    uint NeighborSlot      = IsCrossLink ? Link.LinkCrossSlot : Link.LinkPrevSlot;
+    bool CrossWeaveEdge    = (VertexId >= 6u);
+    uint NeighborSlot      = CrossWeaveEdge ? Link.LinkCrossSlot : Link.LinkPrevSlot;
 
     if (NeighborSlot >= ActiveCount)
     {
@@ -91,12 +91,12 @@ RibbonVaryings ParticleRibbonVertex(
     GpuAppearanceSlot AppA = AppearanceBuffer[InstanceId];
     GpuAppearanceSlot AppB = AppearanceBuffer[NeighborSlot];
 
-    float BaseWidth = max(0.008, asfloat(Viewport.ViewportControl.w));
-    float WidthA    = max(BaseWidth, AppA.VisualMetrics.x * 0.65);
-    float WidthB    = max(BaseWidth, AppB.VisualMetrics.x * 0.65);
+    float MinRibbonWidth = max(0.008, asfloat(Viewport.ViewportControl.w));
+    float WidthA         = max(MinRibbonWidth, AppA.VisualMetrics.x * 0.65);
+    float WidthB         = max(MinRibbonWidth, AppB.VisualMetrics.x * 0.65);
 
     float  AlongT    = Out.RibbonUv.x;
-    float  HalfW     = lerp(WidthA, WidthB, AlongT) * (IsCrossLink ? 0.85 : 1.0);
+    float  HalfW     = lerp(WidthA, WidthB, AlongT) * (CrossWeaveEdge ? 0.85 : 1.0);
     float3 AnchorPos = lerp(PosA, PosB, AlongT);
     float3 WorldPos  = AnchorPos + SideVec * (Out.RibbonUv.y * HalfW);
 

@@ -1,5 +1,5 @@
 /*============================================================================================================================================
-                                                      PARTICLECHANNELSHARED.SLANG
+                                                      PARTICLECHANNELLAYOUTS.SLANG
 ============================================================================================================================================*/
 // 🧩 16B-aligned GPU mirror of ParticleChannelLayouts.h + direct ForceFieldEvaluationShared.slang reuse (+Z Up Right-Hand world space)
 
@@ -143,7 +143,7 @@ struct GpuParticleUniforms
     // Dynamic sphere collider
     float4 SphereCenterRadius; // xyz = CentreMeters [m], w = RadiusMeters [m]
     float4 SphereVelBounce;    // xyz = VelocityMs [m/s], w = Restitution [0..1]
-    uint4  ColliderFlags;      // x = FloorEnabled (0/1), y = SphereActive (0/1), z = StrandSubMode, w = TickIndex
+    uint4  ColliderControl;    // x = FloorEnabled (0/1), y = SphereActive (0/1), z = StrandSubMode, w = TickIndex
 
     // Appearance curve & 3-stop linear color ramp
     float4 ColorStopA;      // rgba = Ramp stop 0.0
@@ -174,7 +174,7 @@ struct GpuParticleViewportUniforms
 };
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                               SHARED MATH & PRNG HELPERS
+//                                                 MATH & PRNG HELPERS
 //------------------------------------------------------------------------------------------------------------------------
 
 uint ParticleXorshift32(inout uint SeedBits)

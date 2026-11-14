@@ -77,6 +77,7 @@ Related governance documents: [FolderStructure.md](FolderStructure.md) · [Codin
 - `recipe` / `recipes` *(use concrete artifact noun such as `Preset`, `Specification`, or `Descriptor`)*
 - `reclamation`
 - `reservoir`
+- `shared` *(use concrete layout/declaration noun such as `Layouts`, `Definitions`, `Declarations`, `Primitives`, or `GroupLocal`)*
 - `stage`
 - `store`
 - `submission`
@@ -117,6 +118,7 @@ When replacing or avoiding a banned concept, name the **concrete layout, index l
 | `Compose` / `Composite` (verb or noun) | `Stack` or `Order` (e.g., `RadiometricToneStack`) |
 | `Parent` / `Child` / `Sibling` / `Orphan` / kinship | Technical memory/index link terminology (`EnclosingIndex`, `FirstNestedIndex`, `NextPeerIndex`, `DepthLevel`) |
 | `flag`, `state`, `value` | Concrete domain name describing the exact condition, quantity, or payload held |
+| `shared` | Concrete layout or scope noun (`Layouts`, `Definitions`, `Declarations`, `Primitives`, `GroupLocal`) |
 | `harness`, `Trial`, `Trials` | `…Validation` (test scaffolds are validations, never harnesses or courtroom metaphors) |
 | `backend` | Concrete hardware/OS boundary name (`RenderDeviceInterchange`, `AudioHardwareOutput`, `PlatformWindow*`) |
 | `stage`, `Pass`, `Emission`, `Emit`, `submission` | Mechanism-specific GPU render-unit suffix (`…Rasterization`, `…Sequence`, `…Encoder`) |

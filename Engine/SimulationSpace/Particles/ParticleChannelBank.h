@@ -33,7 +33,7 @@ enum class ChannelStoragePolicy : uint8_t
 enum class ChannelResidency : uint8_t
 {
     CpuOnly   = 0u, // [-] - Pure C++ gameplay or custom user attribute channel
-    CpuAndGpu = 1u, // [-] - 16B-aligned trivially-copyable channel eligible for Vulkan SSBO mirroring
+    DeviceMirrored = 1u, // [-] - 16B-aligned trivially-copyable channel eligible for Vulkan SSBO mirroring
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ struct ChannelTag
 
     uint64_t         SignatureHash = 0u;                          // [hash] - Unique FNV-1a 64-bit channel signature
     const char*      DebugLabel    = "";                          // [-]    - Human-readable channel name
-    ChannelResidency Residency     = ChannelResidency::CpuAndGpu; // [-]    - CPU-only or GPU-mirrorable residency
+    ChannelResidency Residency     = ChannelResidency::DeviceMirrored; // [-]    - CPU-only or GPU-mirrorable residency
 };
 
 struct ChannelDescriptorSummary

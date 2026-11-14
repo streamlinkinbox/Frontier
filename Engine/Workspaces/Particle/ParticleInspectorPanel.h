@@ -29,8 +29,8 @@ enum class ParticleInspectorTab : uint8_t
 {
     Overview      = 0u, // [-] - Effect summary, actions, color ramp, and domain-specific controls
     Source        = 1u, // [-] - Release volume, origin XYZ, capacity, birth rate, kinematics & bursts
-    MotionAndFx   = 2u, // [-] - Silhouette, compositing blend, sizing, physics & coupled ForceFields gain
-    SpecAndExport = 3u, // [-] - Memory budget, coupled C++ ForceSources census & .ParticleSpace TOML preview
+    MotionDynamics   = 2u, // [-] - Silhouette, compositing blend, sizing, physics & coupled ForceFields gain
+    SpecificationExport = 3u, // [-] - Memory budget, coupled C++ ForceSources census & .ParticleSpace TOML preview
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ private:
         const PaneInputReading&   Input,
         DeferredDropdownSheet&    OutOverlay);
 
-    float RenderMotionAndFxTab(
+    float RenderMotionDynamicsTab(
         PixelSpace&               Surface,
         Rectangle2D               ScrollViewport,
         float                     LeftX,
@@ -118,7 +118,7 @@ private:
         const PaneInputReading&   Input,
         DeferredDropdownSheet&    OutOverlay);
 
-    float RenderSpecAndExportTab(
+    float RenderSpecificationExportTab(
         PixelSpace&                     Surface,
         float                           LeftX,
         float                           TopY,

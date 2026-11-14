@@ -83,13 +83,13 @@ private:
     ParticleWorkspaceSession*  Session               = nullptr;                                       // [-]  - Attached authoring session
     TextEditBuffer             SearchBuffer          {};                                              // [-]  - Live Outliner search filter
     ParticleOutlinerFilterMode FilterMode            = ParticleOutlinerFilterMode::AllEntries;        // [-]  - Active top filter scope
-    ParticleEffectCategory     FilteredCategory      = ParticleEffectCategory::FerrofluidAndFields;   // [-]  - Active category when SingleDomain
+    ParticleEffectCategory     FilteredCategory      = ParticleEffectCategory::FerrofluidFields;   // [-]  - Active category when SingleDomain
     bool                       CompactMode           = false;                                         // [-]  - Compact single-line row toggle
     bool                       EnvironmentExpanded   = true;                                          // [-]  - Environment group disclosure
     bool                       EffectsExpanded       = true;                                          // [-]  - Particle Effects group disclosure
     bool                       ConstructSheetOpen    = false;                                         // [-]  - "+" construct dropdown visibility
     ConstructSheetPage         ActiveConstructPage   = ConstructSheetPage::ParticlePresets;           // [-]  - Active construct sheet page
-    ParticleEffectCategory     ConstructCategory     = ParticleEffectCategory::SilkAndCurl;           // [-]  - Selected preset shelf in sheet
+    ParticleEffectCategory     ConstructCategory     = ParticleEffectCategory::CurlFilaments;           // [-]  - Selected preset shelf in sheet
     float                      ScrollOffsetY         = 0.0f;                                          // [px] - Vertical tree scroll offset
     float                      LastTreeContentH      = 0.0f;                                          // [px] - Measured scroll content extent
     float                      SheetScrollOffsetY    = 0.0f;                                          // [px] - Construct sheet scroll offset

@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/Particles/ParticleChannelShared.slang"
+#include "Engine/Shaders/Particles/ParticleChannelLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOURCES
@@ -39,7 +39,7 @@ void ComputeStrandConstraint(uint3 DispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    uint SubMode = Uniforms.ColliderFlags.z;
+    uint SubMode = Uniforms.ColliderControl.z;
     GpuKinematicsSlot   Kin    = KinematicsBuffer[Slot];
     GpuStrandAnchorSlot Anchor = StrandAnchorBuffer[Slot];
     GpuStrandLinkSlot   Link   = StrandLinkBuffer[Slot];
@@ -110,7 +110,7 @@ void ComputeStrandConstraint(uint3 DispatchThreadID : SV_DispatchThreadID)
         }
 
         // Dynamic sphere push-out inside XPBD relaxation
-        if (Uniforms.ColliderFlags.y != 0u)
+        if (Uniforms.ColliderControl.y != 0u)
         {
             float3 Center = Uniforms.SphereCenterRadius.xyz;
             float  Radius = max(0.05, Uniforms.SphereCenterRadius.w);

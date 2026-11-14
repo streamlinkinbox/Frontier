@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/Particles/ParticleChannelShared.slang"
+#include "Engine/Shaders/Particles/ParticleChannelLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOURCES
@@ -114,7 +114,7 @@ void ComputeParticleAdvect(uint3 DispatchThreadID : SV_DispatchThreadID)
         Pos += Vel * Dt;
 
         // 5. Ground plane collider (matches GroundPlaneCollider)
-        if (Uniforms.ColliderFlags.x != 0u)
+        if (Uniforms.ColliderControl.x != 0u)
         {
             float FloorZ = Uniforms.CurlTimingBounds.z;
             if (Pos.z < FloorZ)
@@ -135,7 +135,7 @@ void ComputeParticleAdvect(uint3 DispatchThreadID : SV_DispatchThreadID)
         }
 
         // 6. Dynamic sphere contact collider (matches SphereContactCollider bit-for-bit)
-        if (Uniforms.ColliderFlags.y != 0u)
+        if (Uniforms.ColliderControl.y != 0u)
         {
             float3 Center = Uniforms.SphereCenterRadius.xyz;
             float  Radius = max(1.0e-4, Uniforms.SphereCenterRadius.w);

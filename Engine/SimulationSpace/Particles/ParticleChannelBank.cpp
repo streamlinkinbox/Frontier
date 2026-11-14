@@ -285,7 +285,7 @@ bool ParticleChannelBank::QueryChannelsGpuResident() const noexcept
 {
     for (const ChannelColumn& Column : Columns)
     {
-        if (Column.Residency != ChannelResidency::CpuAndGpu)
+        if (Column.Residency != ChannelResidency::DeviceMirrored)
         {
             return false;
         }

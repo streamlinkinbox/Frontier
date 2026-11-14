@@ -310,7 +310,7 @@ int main(int Argc, char** Argv)
             GpuReq.Uniforms.ForceCoupling      = { ForceCfg.CouplingGain, ForceCfg.AccelScale, ForceCfg.DragScale, GroundCfg.SlidingFriction };
             GpuReq.Uniforms.SphereCenterRadius = { TestSphere.CentreMeters.X, TestSphere.CentreMeters.Y, TestSphere.CentreMeters.Z, TestSphere.RadiusMeters };
             GpuReq.Uniforms.SphereVelBounce    = { TestSphere.VelocityMs.X, TestSphere.VelocityMs.Y, TestSphere.VelocityMs.Z, TestSphere.Restitution };
-            GpuReq.Uniforms.ColliderFlags      = { 1u, 1u, 0u, Step + 1u };
+            GpuReq.Uniforms.ColliderControl      = { 1u, 1u, 0u, Step + 1u };
             GpuReq.Uniforms.ColorStopA         = AppCfg.ColorA;
             GpuReq.Uniforms.ColorStopC         = AppCfg.ColorC;
             GpuReq.Uniforms.ColorStopB         = AppCfg.ColorB;
@@ -450,7 +450,7 @@ int main(int Argc, char** Argv)
         constexpr uint32_t SimTicks      = 68u;
         constexpr float    FixedDt       = 1.0f / 60.0f;
 
-        ForceFieldAccumulator VortexScene;
+        ForceFieldAccumulator HelicalColumnScene;
         {
             ForceSourceRecordEntry Column{};
             Column.UniqueToken           = 10u;
@@ -484,7 +484,7 @@ int main(int Argc, char** Argv)
             Curl.EvaluatedCentreMeters = Curl.CentreMeters;
 
             const std::array<ForceSourceRecordEntry, 3u> Rig = { Column, Updraft, Curl };
-            VortexScene.AssignSources(Rig);
+            HelicalColumnScene.AssignSources(Rig);
         }
 
         if (!Require(Executor.EnsureChannelCapacity(CloudCapacity, false, Diagnostic),
@@ -502,8 +502,8 @@ int main(int Argc, char** Argv)
         {
             const uint32_t BatchSize = std::min<uint32_t>(120u, CloudCapacity - ReleasedCursor);
             const double   SimTime   = static_cast<double>(Tick) * FixedDt;
-            VortexScene.StepAnimation(SimTime, false);
-            GpuForcePacker.PackGpuSourceBuffers(VortexScene, SimTime, PackedSources, PackedWaypoints);
+            HelicalColumnScene.StepAnimation(SimTime, false);
+            GpuForcePacker.PackGpuSourceBuffers(HelicalColumnScene, SimTime, PackedSources, PackedWaypoints);
 
             ParticleGpuStepRequest Req{};
             Req.PackedForceSources           = PackedSources;
@@ -518,7 +518,7 @@ int main(int Argc, char** Argv)
             Req.Uniforms.GravityDragCurl     = { 0.16f, 0.45f, 0.22f, 1.35f };
             Req.Uniforms.CurlTimingBounds    = { 0.65f, 0.85f, 0.02f, 0.52f };
             Req.Uniforms.ForceCoupling       = { 1.35f, 0.85f, 0.4f, 0.12f };
-            Req.Uniforms.ColliderFlags       = { 1u, 0u, 0u, Tick + 1u };
+            Req.Uniforms.ColliderControl       = { 1u, 0u, 0u, Tick + 1u };
             Req.Uniforms.ColorStopA          = { 0.16f, 0.72f, 1.00f, 0.34f };
             Req.Uniforms.ColorStopC          = { 0.98f, 0.68f, 0.22f, 0.28f };
             Req.Uniforms.ColorStopB          = { 1.00f, 0.24f, 0.12f, 0.22f };
@@ -718,7 +718,7 @@ int main(int Argc, char** Argv)
             Req.Uniforms.ForceCoupling      = { 1.85f, 1.0f, 0.35f, 0.15f };
             Req.Uniforms.SphereCenterRadius = { 0.35f, 0.35f, 2.25f, 0.68f };
             Req.Uniforms.SphereVelBounce    = { 0.0f, 0.0f, 0.0f, 0.25f };
-            Req.Uniforms.ColliderFlags      = { 1u, 1u, 0u, Tick + 1u };
+            Req.Uniforms.ColliderControl      = { 1u, 1u, 0u, Tick + 1u };
             Req.Uniforms.ColorStopA         = { 0.94f, 0.72f, 0.34f, 0.98f };
             Req.Uniforms.ColorStopC         = { 0.46f, 0.78f, 0.88f, 0.96f };
             Req.Uniforms.ColorStopB         = { 0.24f, 0.42f, 0.88f, 0.95f };

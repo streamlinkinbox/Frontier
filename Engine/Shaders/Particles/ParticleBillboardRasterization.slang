@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/Particles/ParticleChannelShared.slang"
+#include "Engine/Shaders/Particles/ParticleChannelLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOURCES
@@ -144,9 +144,9 @@ float4 ParticleBillboardFragment(BillboardVaryings In) : SV_Target0
         {
             discard;
         }
-        float Core = exp(-Uv.x * Uv.x * 7.5 - Uv.y * Uv.y * 2.2);
-        Color = lerp(Color, float3(1.0, 0.97, 0.88), Core * 0.6);
-        Alpha = In.TintRgba.a * saturate(pow(saturate(1.0 - Radial), 1.35) + Core * 0.5);
+        float StreakCenter = exp(-Uv.x * Uv.x * 7.5 - Uv.y * Uv.y * 2.2);
+        Color = lerp(Color, float3(1.0, 0.97, 0.88), StreakCenter * 0.6);
+        Alpha = In.TintRgba.a * saturate(pow(saturate(1.0 - Radial), 1.35) + StreakCenter * 0.5);
     }
     else if (In.Silhouette == ParticleSilhouetteShardQuad)
     {

@@ -7,7 +7,7 @@
 //                                                        INCLUDES
 //------------------------------------------------------------------------------------------------------------------------
 
-#include "Engine/Shaders/Particles/ParticleChannelShared.slang"
+#include "Engine/Shaders/Particles/ParticleChannelLayouts.slang"
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOURCES
@@ -70,7 +70,7 @@ void ComputeParticleRelease(uint3 DispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    uint RngWord = (Uniforms.MasterSeed ^ ((Slot + 1u) * 747796405u) ^ ((Uniforms.ColliderFlags.w + 1u) * 2891336453u)) | 1u;
+    uint RngWord = (Uniforms.MasterSeed ^ ((Slot + 1u) * 747796405u) ^ ((Uniforms.ColliderControl.w + 1u) * 2891336453u)) | 1u;
     ParticleXorshift32(RngWord);
 
     float3 ReleasePos = Uniforms.ReleaseOriginRadius.xyz;

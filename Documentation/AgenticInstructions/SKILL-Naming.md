@@ -55,7 +55,7 @@ then run the 7-gate rejection check.
   `Matrix`, `member`, `menu`, `mesh` (→ `PolygonNetwork`), `Model` *(allowed ONLY for `ForceModel` / `ForceModel*`)*, `Module`,
   `mutation`, `Nexus`, `Node`, `Object`, `occupant`, `palette`, `Pass`, `pill`, `pipeline`, `pool`,
   `popup`/`popover`, `predicate`, `probe`, `Recipe`/`Recipes` (→ `Preset`/`Specification`), `reclamation`, `Record` *(bare & `RecordStore` barred; only `RecordEntry`/`RecordToken` approved)*,
-  `reservoir`, `Role`, `shell`, `stage`, `state`, `store`, `submission`, `Subsystem`/`system`, `table`,
+  `reservoir`, `Role`, `Shared` (→ `Layouts`/`Definitions`/`GroupLocal`), `shell`, `stage`, `state`, `store`, `submission`, `Subsystem`/`system`, `table`,
   `Topology`, `Traversal` *(exempt only at `GeometrySpace/Selection/SelectionTraversal.{h,cpp}`)*, `Tween`, `Utility`,
   `vacancy`, `value`, `Widget`.
 - **Discouraged (Avoid):** `atlas`, `slice`, `substrate`.

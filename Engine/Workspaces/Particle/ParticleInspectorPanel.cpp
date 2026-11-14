@@ -993,11 +993,11 @@ void ParticleInspectorPanel::Render(
         case ParticleInspectorTab::Source:
             EndY = RenderSourceTab(Surface, ScrollViewport, InnerX, StartY, InnerW, *Effect, BodyInput, DeferredOverlay);
             break;
-        case ParticleInspectorTab::MotionAndFx:
-            EndY = RenderMotionAndFxTab(Surface, ScrollViewport, InnerX, StartY, InnerW, *Effect, BodyInput, DeferredOverlay);
+        case ParticleInspectorTab::MotionDynamics:
+            EndY = RenderMotionDynamicsTab(Surface, ScrollViewport, InnerX, StartY, InnerW, *Effect, BodyInput, DeferredOverlay);
             break;
-        case ParticleInspectorTab::SpecAndExport:
-            EndY = RenderSpecAndExportTab(Surface, InnerX, StartY, InnerW, *Effect);
+        case ParticleInspectorTab::SpecificationExport:
+            EndY = RenderSpecificationExportTab(Surface, InnerX, StartY, InnerW, *Effect);
             break;
     }
 
@@ -1403,7 +1403,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
 
     const char* PrimaryActionLabel = "Burst";
     if (Effect.AuthoringDomain == ParticleAuthoringDomain::FerrofluidFlux
-        || Effect.AuthoringDomain == ParticleAuthoringDomain::RiggingAndFlora
+        || Effect.AuthoringDomain == ParticleAuthoringDomain::StrandBotanical
         || Effect.AuthoringDomain == ParticleAuthoringDomain::MoGraphEffector)
     {
         PrimaryActionLabel = "Throw Ball";
@@ -1412,7 +1412,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
     {
         PrimaryActionLabel = "Next Volley";
     }
-    else if (Effect.AuthoringDomain == ParticleAuthoringDomain::FractureAndCracks)
+    else if (Effect.AuthoringDomain == ParticleAuthoringDomain::FractureSeismic)
     {
         PrimaryActionLabel = "Fracture";
     }
@@ -1548,7 +1548,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
         Modified |= RenderLabeledSliderRow(Surface, ContentX, Sy, ContentW, 120, "Burst interval", 0.2f, 8.0f, Effect.BurstIntervalSec, "s", 1, Pointer, ActiveSliderId);
         Y += Sec3H + 10.0f;
     }
-    else if (Effect.AuthoringDomain == ParticleAuthoringDomain::RiggingAndFlora)
+    else if (Effect.AuthoringDomain == ParticleAuthoringDomain::StrandBotanical)
     {
         const float Sec3H = 342.0f;
         Sy = BeginSectionBox(Surface, LeftX, Y, InnerW, Sec3H, "Dynamic rigging & flora curves", "02 / RIGGING", ColorRgba{ 126u, 198u, 118u, 255u });
@@ -1596,7 +1596,7 @@ float ParticleInspectorPanel::RenderOverviewTab(
         Modified |= RenderSwitchRow(Surface, ContentX, Sy, ContentW, "Show curve segment debug", Effect.CurveDebugEnabled, Pointer);
         Y += Sec3H + 10.0f;
     }
-    else if (Effect.AuthoringDomain == ParticleAuthoringDomain::FractureAndCracks)
+    else if (Effect.AuthoringDomain == ParticleAuthoringDomain::FractureSeismic)
     {
         const float Sec3H = 204.0f;
         Sy = BeginSectionBox(Surface, LeftX, Y, InnerW, Sec3H, "Glacial & seismic fracture", "02 / CRACKS", ColorRgba{ 126u, 206u, 240u, 255u });
@@ -1819,7 +1819,7 @@ float ParticleInspectorPanel::RenderSourceTab(
 //                                            TAB 2 — MOTION & FX
 //------------------------------------------------------------------------------------------------------------------------
 
-float ParticleInspectorPanel::RenderMotionAndFxTab(
+float ParticleInspectorPanel::RenderMotionDynamicsTab(
     PixelSpace&                Surface,
     Rectangle2D                ScrollViewport,
     float                      LeftX,
@@ -1939,7 +1939,7 @@ float ParticleInspectorPanel::RenderMotionAndFxTab(
 //                                           TAB 3 — SPEC & EXPORT
 //------------------------------------------------------------------------------------------------------------------------
 
-float ParticleInspectorPanel::RenderSpecAndExportTab(
+float ParticleInspectorPanel::RenderSpecificationExportTab(
     PixelSpace&                      Surface,
     float                            LeftX,
     float                            TopY,

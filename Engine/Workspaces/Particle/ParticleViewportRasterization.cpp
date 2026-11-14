@@ -255,14 +255,14 @@ struct ParticleViewportRasterization::RasterImplementation
     std::vector<uint8_t> CpuRgbaPixels  {};
     bool                 Ready          = false;
 
-    [[nodiscard]] uint32_t FindMemoryType(uint32_t TypeMask, VkMemoryPropertyFlags RequiredFlags) const noexcept
+    [[nodiscard]] uint32_t FindMemoryType(uint32_t TypeMask, VkMemoryPropertyFlags RequiredMask) const noexcept
     {
         VkPhysicalDeviceMemoryProperties Props{};
         vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &Props);
         for (uint32_t Idx = 0u; Idx < Props.memoryTypeCount; ++Idx)
         {
             if ((TypeMask & (1u << Idx)) != 0u &&
-                (Props.memoryTypes[Idx].propertyFlags & RequiredFlags) == RequiredFlags)
+                (Props.memoryTypes[Idx].propertyFlags & RequiredMask) == RequiredMask)
             {
                 return Idx;
             }
@@ -277,12 +277,12 @@ struct ParticleViewportRasterization::RasterImplementation
         VkDeviceMemory&    OutMem,
         void*&             OutMapped) noexcept
     {
-        VkBufferCreateInfo BufInfo{};
-        BufInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        BufInfo.size        = ByteSize;
-        BufInfo.usage       = UsageBits;
-        BufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateBuffer(Device, &BufInfo, nullptr, &OutBuf) != VK_SUCCESS)
+        VkBufferCreateInfo BufferSpec{};
+        BufferSpec.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        BufferSpec.size        = ByteSize;
+        BufferSpec.usage       = UsageBits;
+        BufferSpec.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateBuffer(Device, &BufferSpec, nullptr, &OutBuf) != VK_SUCCESS)
         {
             return false;
         }
@@ -335,17 +335,17 @@ struct ParticleViewportRasterization::RasterImplementation
 
         VkShaderModule VertMod = VK_NULL_HANDLE;
         VkShaderModule FragMod = VK_NULL_HANDLE;
-        VkShaderModuleCreateInfo VmInfo{};
-        VmInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        VmInfo.codeSize = VertWords.size() * sizeof(uint32_t);
-        VmInfo.pCode    = VertWords.data();
-        VkShaderModuleCreateInfo FmInfo{};
-        FmInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        FmInfo.codeSize = FragWords.size() * sizeof(uint32_t);
-        FmInfo.pCode    = FragWords.data();
+        VkShaderModuleCreateInfo VertSpirvSpec{};
+        VertSpirvSpec.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        VertSpirvSpec.codeSize = VertWords.size() * sizeof(uint32_t);
+        VertSpirvSpec.pCode    = VertWords.data();
+        VkShaderModuleCreateInfo FragSpirvSpec{};
+        FragSpirvSpec.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        FragSpirvSpec.codeSize = FragWords.size() * sizeof(uint32_t);
+        FragSpirvSpec.pCode    = FragWords.data();
 
-        if (vkCreateShaderModule(Device, &VmInfo, nullptr, &VertMod) != VK_SUCCESS ||
-            vkCreateShaderModule(Device, &FmInfo, nullptr, &FragMod) != VK_SUCCESS)
+        if (vkCreateShaderModule(Device, &VertSpirvSpec, nullptr, &VertMod) != VK_SUCCESS ||
+            vkCreateShaderModule(Device, &FragSpirvSpec, nullptr, &FragMod) != VK_SUCCESS)
         {
             if (VertMod != VK_NULL_HANDLE) { vkDestroyShaderModule(Device, VertMod, nullptr); }
             if (FragMod != VK_NULL_HANDLE) { vkDestroyShaderModule(Device, FragMod, nullptr); }
@@ -413,23 +413,23 @@ struct ParticleViewportRasterization::RasterImplementation
         DynCfg.dynamicStateCount = static_cast<uint32_t>(DynStates.size());
         DynCfg.pDynamicStates    = DynStates.data();
 
-        VkGraphicsPipelineCreateInfo PipeInfo{};
-        PipeInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        PipeInfo.stageCount          = static_cast<uint32_t>(ShaderSteps.size());
-        PipeInfo.pStages             = ShaderSteps.data();
-        PipeInfo.pVertexInputState   = &VertInput;
-        PipeInfo.pInputAssemblyState = &InputShape;
-        PipeInfo.pViewportState      = &ViewportConfig;
-        PipeInfo.pRasterizationState = &Raster;
-        PipeInfo.pMultisampleState   = &MultiSample;
-        PipeInfo.pDepthStencilState  = &DepthCfg;
-        PipeInfo.pColorBlendState    = &BlendConfig;
-        PipeInfo.pDynamicState       = &DynCfg;
-        PipeInfo.layout              = Layout;
-        PipeInfo.renderPass          = TargetRenderStep;
-        PipeInfo.subpass             = 0u;
+        VkGraphicsPipelineCreateInfo RasterSpec{};
+        RasterSpec.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        RasterSpec.stageCount          = static_cast<uint32_t>(ShaderSteps.size());
+        RasterSpec.pStages             = ShaderSteps.data();
+        RasterSpec.pVertexInputState   = &VertInput;
+        RasterSpec.pInputAssemblyState = &InputShape;
+        RasterSpec.pViewportState      = &ViewportConfig;
+        RasterSpec.pRasterizationState = &Raster;
+        RasterSpec.pMultisampleState   = &MultiSample;
+        RasterSpec.pDepthStencilState  = &DepthCfg;
+        RasterSpec.pColorBlendState    = &BlendConfig;
+        RasterSpec.pDynamicState       = &DynCfg;
+        RasterSpec.layout              = Layout;
+        RasterSpec.renderPass          = TargetRenderStep;
+        RasterSpec.subpass             = 0u;
 
-        const VkResult Res = vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1u, &PipeInfo, nullptr, &OutExecutable);
+        const VkResult Res = vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1u, &RasterSpec, nullptr, &OutExecutable);
         vkDestroyShaderModule(Device, VertMod, nullptr);
         vkDestroyShaderModule(Device, FragMod, nullptr);
         if (Res != VK_SUCCESS)
@@ -514,15 +514,15 @@ struct ParticleViewportRasterization::RasterImplementation
             {
                 return false;
             }
-            VkImageViewCreateInfo ViewInfo{};
-            ViewInfo.sType                       = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            ViewInfo.image                       = Img;
-            ViewInfo.viewType                    = VK_IMAGE_VIEW_TYPE_2D;
-            ViewInfo.format                      = Fmt;
-            ViewInfo.subresourceRange.aspectMask = Aspect;
-            ViewInfo.subresourceRange.levelCount = 1u;
-            ViewInfo.subresourceRange.layerCount = 1u;
-            return vkCreateImageView(Device, &ViewInfo, nullptr, &View) == VK_SUCCESS;
+            VkImageViewCreateInfo ImageViewSpec{};
+            ImageViewSpec.sType                       = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            ImageViewSpec.image                       = Img;
+            ImageViewSpec.viewType                    = VK_IMAGE_VIEW_TYPE_2D;
+            ImageViewSpec.format                      = Fmt;
+            ImageViewSpec.subresourceRange.aspectMask = Aspect;
+            ImageViewSpec.subresourceRange.levelCount = 1u;
+            ImageViewSpec.subresourceRange.layerCount = 1u;
+            return vkCreateImageView(Device, &ImageViewSpec, nullptr, &View) == VK_SUCCESS;
         };
 
         if (!CreateAttachment(
@@ -545,15 +545,15 @@ struct ParticleViewportRasterization::RasterImplementation
         }
 
         const std::array<VkImageView, 2u> Views = { ColorView, DepthView };
-        VkFramebufferCreateInfo FbInfo{};
-        FbInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        FbInfo.renderPass      = TargetRenderStep;
-        FbInfo.attachmentCount = static_cast<uint32_t>(Views.size());
-        FbInfo.pAttachments    = Views.data();
-        FbInfo.width           = SafeW;
-        FbInfo.height          = SafeH;
-        FbInfo.layers          = 1u;
-        if (vkCreateFramebuffer(Device, &FbInfo, nullptr, &TargetBuffer) != VK_SUCCESS)
+        VkFramebufferCreateInfo TargetSpec{};
+        TargetSpec.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        TargetSpec.renderPass      = TargetRenderStep;
+        TargetSpec.attachmentCount = static_cast<uint32_t>(Views.size());
+        TargetSpec.pAttachments    = Views.data();
+        TargetSpec.width           = SafeW;
+        TargetSpec.height          = SafeH;
+        TargetSpec.layers          = 1u;
+        if (vkCreateFramebuffer(Device, &TargetSpec, nullptr, &TargetBuffer) != VK_SUCCESS)
         {
             DestroyOffscreenTargets();
             return false;
@@ -575,28 +575,28 @@ struct ParticleViewportRasterization::RasterImplementation
     void UpdateDescriptorSlots() noexcept
     {
         // Slot 0: Grid/Backdrop UBO only
-        VkDescriptorBufferInfo UboInfo{ UniformBuffer, 0u, sizeof(ViewportGpuUniformBlock) };
+        VkDescriptorBufferInfo UniformDesc{ UniformBuffer, 0u, sizeof(ViewportGpuUniformBlock) };
         VkWriteDescriptorSet GridWrite{};
         GridWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         GridWrite.dstSet          = GridDescriptorSlot;
         GridWrite.dstBinding      = 0u;
         GridWrite.descriptorCount = 1u;
         GridWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        GridWrite.pBufferInfo     = &UboInfo;
+        GridWrite.pBufferInfo     = &UniformDesc;
         vkUpdateDescriptorSets(Device, 1u, &GridWrite, 0u, nullptr);
 
         // Slot 1: Billboard (UBO + Kinematics + Lifespan + Appearance directly from ParticleVulkanExecutor!)
-        VkDescriptorBufferInfo KinInfo{ static_cast<VkBuffer>(Executor->QueryKinematicsBufferHandle()), 0u, Executor->QueryKinematicsByteSize() };
-        VkDescriptorBufferInfo LifeInfo{ static_cast<VkBuffer>(Executor->QueryLifespanBufferHandle()), 0u, Executor->QueryLifespanByteSize() };
-        VkDescriptorBufferInfo AppInfo{ static_cast<VkBuffer>(Executor->QueryAppearanceBufferHandle()), 0u, Executor->QueryAppearanceByteSize() };
-        VkDescriptorBufferInfo LinkInfo{ static_cast<VkBuffer>(Executor->QueryStrandLinkBufferHandle()), 0u, Executor->QueryStrandLinkByteSize() };
+        VkDescriptorBufferInfo KinematicsDesc{ static_cast<VkBuffer>(Executor->QueryKinematicsBufferHandle()), 0u, Executor->QueryKinematicsByteSize() };
+        VkDescriptorBufferInfo LifespanDesc{ static_cast<VkBuffer>(Executor->QueryLifespanBufferHandle()), 0u, Executor->QueryLifespanByteSize() };
+        VkDescriptorBufferInfo AppearanceDesc{ static_cast<VkBuffer>(Executor->QueryAppearanceBufferHandle()), 0u, Executor->QueryAppearanceByteSize() };
+        VkDescriptorBufferInfo StrandLinkDesc{ static_cast<VkBuffer>(Executor->QueryStrandLinkBufferHandle()), 0u, Executor->QueryStrandLinkByteSize() };
 
         std::array<VkWriteDescriptorSet, 4u> BillWrites{};
         const std::array<std::pair<VkDescriptorType, const VkDescriptorBufferInfo*>, 4u> BillBinds = {{
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &UboInfo },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &KinInfo },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &LifeInfo },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &AppInfo },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &UniformDesc },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &KinematicsDesc },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &LifespanDesc },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &AppearanceDesc },
         }};
         for (uint32_t Idx = 0u; Idx < 4u; ++Idx)
         {
@@ -612,10 +612,10 @@ struct ParticleViewportRasterization::RasterImplementation
         // Slot 2: Ribbon (UBO + Kinematics + Appearance + StrandLink directly from ParticleVulkanExecutor!)
         std::array<VkWriteDescriptorSet, 4u> RibWrites{};
         const std::array<std::pair<VkDescriptorType, const VkDescriptorBufferInfo*>, 4u> RibBinds = {{
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &UboInfo },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &KinInfo },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &AppInfo },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &LinkInfo },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &UniformDesc },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &KinematicsDesc },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &AppearanceDesc },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &StrandLinkDesc },
         }};
         for (uint32_t Idx = 0u; Idx < 4u; ++Idx)
         {
@@ -733,15 +733,15 @@ bool ParticleViewportRasterization::Initialize(
     Deps[1].srcAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     Deps[1].dstAccessMask   = VK_ACCESS_TRANSFER_READ_BIT;
 
-    VkRenderPassCreateInfo RpInfo{};
-    RpInfo.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    RpInfo.attachmentCount = static_cast<uint32_t>(Attachments.size());
-    RpInfo.pAttachments    = Attachments.data();
-    RpInfo.subpassCount    = 1u;
-    RpInfo.pSubpasses      = &Sub;
-    RpInfo.dependencyCount = static_cast<uint32_t>(Deps.size());
-    RpInfo.pDependencies   = Deps.data();
-    if (vkCreateRenderPass(Handle->Device, &RpInfo, nullptr, &Handle->TargetRenderStep) != VK_SUCCESS)
+    VkRenderPassCreateInfo RenderStepSpec{};
+    RenderStepSpec.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    RenderStepSpec.attachmentCount = static_cast<uint32_t>(Attachments.size());
+    RenderStepSpec.pAttachments    = Attachments.data();
+    RenderStepSpec.subpassCount    = 1u;
+    RenderStepSpec.pSubpasses      = &Sub;
+    RenderStepSpec.dependencyCount = static_cast<uint32_t>(Deps.size());
+    RenderStepSpec.pDependencies   = Deps.data();
+    if (vkCreateRenderPass(Handle->Device, &RenderStepSpec, nullptr, &Handle->TargetRenderStep) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to construct offscreen Vulkan render step.";
         Finalize();
@@ -753,44 +753,44 @@ bool ParticleViewportRasterization::Initialize(
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4u },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 12u },
     }};
-    VkDescriptorPoolCreateInfo DpInfo{};
-    DpInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    DpInfo.maxSets       = 4u;
-    DpInfo.poolSizeCount = static_cast<uint32_t>(BankCounts.size());
-    DpInfo.pPoolSizes    = BankCounts.data();
-    if (vkCreateDescriptorPool(Handle->Device, &DpInfo, nullptr, &Handle->DescriptorBank) != VK_SUCCESS)
+    VkDescriptorPoolCreateInfo DescBankSpec{};
+    DescBankSpec.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    DescBankSpec.maxSets       = 4u;
+    DescBankSpec.poolSizeCount = static_cast<uint32_t>(BankCounts.size());
+    DescBankSpec.pPoolSizes    = BankCounts.data();
+    if (vkCreateDescriptorPool(Handle->Device, &DescBankSpec, nullptr, &Handle->DescriptorBank) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to construct rasterization descriptor bank.";
         Finalize();
         return false;
     }
 
-    VkCommandPoolCreateInfo CpInfo{};
-    CpInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    CpInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    CpInfo.queueFamilyIndex = Handle->QueueFamily;
-    if (vkCreateCommandPool(Handle->Device, &CpInfo, nullptr, &Handle->CommandBank) != VK_SUCCESS)
+    VkCommandPoolCreateInfo CmdBankSpec{};
+    CmdBankSpec.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    CmdBankSpec.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    CmdBankSpec.queueFamilyIndex = Handle->QueueFamily;
+    if (vkCreateCommandPool(Handle->Device, &CmdBankSpec, nullptr, &Handle->CommandBank) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to construct rasterization command bank.";
         Finalize();
         return false;
     }
 
-    VkCommandBufferAllocateInfo CbInfo{};
-    CbInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    CbInfo.commandPool        = Handle->CommandBank;
-    CbInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    CbInfo.commandBufferCount = 1u;
-    if (vkAllocateCommandBuffers(Handle->Device, &CbInfo, &Handle->CommandRecorder) != VK_SUCCESS)
+    VkCommandBufferAllocateInfo CmdAllocSpec{};
+    CmdAllocSpec.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    CmdAllocSpec.commandPool        = Handle->CommandBank;
+    CmdAllocSpec.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    CmdAllocSpec.commandBufferCount = 1u;
+    if (vkAllocateCommandBuffers(Handle->Device, &CmdAllocSpec, &Handle->CommandRecorder) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to allocate rasterization command buffer.";
         Finalize();
         return false;
     }
 
-    VkFenceCreateInfo FenceInfo{};
-    FenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    if (vkCreateFence(Handle->Device, &FenceInfo, nullptr, &Handle->CompletionSignal) != VK_SUCCESS)
+    VkFenceCreateInfo SignalSpec{};
+    SignalSpec.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    if (vkCreateFence(Handle->Device, &SignalSpec, nullptr, &Handle->CompletionSignal) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to construct rasterization completion fence.";
         Finalize();
@@ -811,15 +811,15 @@ bool ParticleViewportRasterization::Initialize(
 
     // Layout A: Grid/Backdrop (1 UBO)
     VkDescriptorSetLayoutBinding GridBind{ 0u, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr };
-    VkDescriptorSetLayoutCreateInfo GridSetInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0u, 1u, &GridBind };
-    if (vkCreateDescriptorSetLayout(Handle->Device, &GridSetInfo, nullptr, &Handle->GridDescLayout) != VK_SUCCESS)
+    VkDescriptorSetLayoutCreateInfo GridDescSpec{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0u, 1u, &GridBind };
+    if (vkCreateDescriptorSetLayout(Handle->Device, &GridDescSpec, nullptr, &Handle->GridDescLayout) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to construct grid descriptor layout.";
         Finalize();
         return false;
     }
-    VkPipelineLayoutCreateInfo GridPlInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, 0u, 1u, &Handle->GridDescLayout, 0u, nullptr };
-    if (vkCreatePipelineLayout(Handle->Device, &GridPlInfo, nullptr, &Handle->GridLayout) != VK_SUCCESS)
+    VkPipelineLayoutCreateInfo GridExecSpec{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, 0u, 1u, &Handle->GridDescLayout, 0u, nullptr };
+    if (vkCreatePipelineLayout(Handle->Device, &GridExecSpec, nullptr, &Handle->GridLayout) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to construct grid pipeline layout.";
         Finalize();
@@ -832,15 +832,15 @@ bool ParticleViewportRasterization::Initialize(
     PartBinds[1] = { 1u, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
     PartBinds[2] = { 2u, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
     PartBinds[3] = { 3u, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1u, VK_SHADER_STAGE_VERTEX_BIT, nullptr };
-    VkDescriptorSetLayoutCreateInfo PartSetInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0u, 4u, PartBinds.data() };
-    if (vkCreateDescriptorSetLayout(Handle->Device, &PartSetInfo, nullptr, &Handle->ParticleDescLayout) != VK_SUCCESS)
+    VkDescriptorSetLayoutCreateInfo ParticleDescSpec{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0u, 4u, PartBinds.data() };
+    if (vkCreateDescriptorSetLayout(Handle->Device, &ParticleDescSpec, nullptr, &Handle->ParticleDescLayout) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to construct particle descriptor layout.";
         Finalize();
         return false;
     }
-    VkPipelineLayoutCreateInfo PartPlInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, 0u, 1u, &Handle->ParticleDescLayout, 0u, nullptr };
-    if (vkCreatePipelineLayout(Handle->Device, &PartPlInfo, nullptr, &Handle->ParticleLayout) != VK_SUCCESS)
+    VkPipelineLayoutCreateInfo ParticleExecSpec{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, 0u, 1u, &Handle->ParticleDescLayout, 0u, nullptr };
+    if (vkCreatePipelineLayout(Handle->Device, &ParticleExecSpec, nullptr, &Handle->ParticleLayout) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to construct particle raster layout.";
         Finalize();
@@ -932,10 +932,10 @@ bool ParticleViewportRasterization::RenderOffscreen(
     Handle->UpdateDescriptorSlots();
 
     vkResetCommandBuffer(Handle->CommandRecorder, 0u);
-    VkCommandBufferBeginInfo BeginInfo{};
-    BeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    if (vkBeginCommandBuffer(Handle->CommandRecorder, &BeginInfo) != VK_SUCCESS)
+    VkCommandBufferBeginInfo RecordSpec{};
+    RecordSpec.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    RecordSpec.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    if (vkBeginCommandBuffer(Handle->CommandRecorder, &RecordSpec) != VK_SUCCESS)
     {
         OutDiagnostic = "Failed to begin Vulkan rasterization command buffer.";
         return false;
@@ -1042,11 +1042,11 @@ bool ParticleViewportRasterization::RenderOffscreen(
     }
 
     vkResetFences(Handle->Device, 1u, &Handle->CompletionSignal);
-    VkSubmitInfo SubInfo{};
-    SubInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    SubInfo.commandBufferCount = 1u;
-    SubInfo.pCommandBuffers    = &Handle->CommandRecorder;
-    if (vkQueueSubmit(Handle->GraphicsQueue, 1u, &SubInfo, Handle->CompletionSignal) != VK_SUCCESS ||
+    VkSubmitInfo RasterSubmitSpec{};
+    RasterSubmitSpec.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    RasterSubmitSpec.commandBufferCount = 1u;
+    RasterSubmitSpec.pCommandBuffers    = &Handle->CommandRecorder;
+    if (vkQueueSubmit(Handle->GraphicsQueue, 1u, &RasterSubmitSpec, Handle->CompletionSignal) != VK_SUCCESS ||
         vkWaitForFences(Handle->Device, 1u, &Handle->CompletionSignal, VK_TRUE, 15'000'000'000ull) != VK_SUCCESS)
     {
         OutDiagnostic = "Vulkan particle viewport rasterization execution failed.";
