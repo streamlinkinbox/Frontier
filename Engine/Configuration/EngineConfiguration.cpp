@@ -94,6 +94,12 @@ void EngineConfiguration::ConfigureFromCommandLine(std::span<const std::string_v
             Modified.ActiveWorkspace  = WorkspaceCategory::Baking;
             Modified.ApplicationTitle = "Frontier Baking";
         }
+        else if (Argument == "--standalone-particle" || Argument == "--standalone=particle" || Argument == "--workspace=particle" || Argument == "--particle")
+        {
+            Modified.LaunchMode       = HostLaunchMode::StandaloneWorkspace;
+            Modified.ActiveWorkspace  = WorkspaceCategory::Particle;
+            Modified.ApplicationTitle = "Frontier Particle";
+        }
         else if (Argument == "--feature-set" || Argument == "--workspace=all")
         {
             Modified.LaunchMode       = HostLaunchMode::FeatureSet;
@@ -168,6 +174,15 @@ EngineConfigurationDescriptor EngineConfiguration::ConstructStandaloneVectorDefa
     Result.LaunchMode       = BuildConfiguration::EditorIncluded ? HostLaunchMode::StandaloneWorkspace : HostLaunchMode::HeadlessBatch;
     Result.ActiveWorkspace  = WorkspaceCategory::Vector;
     Result.ApplicationTitle = "Frontier Pattern";
+    return Result;
+}
+
+EngineConfigurationDescriptor EngineConfiguration::ConstructStandaloneParticleDefault() noexcept
+{
+    EngineConfigurationDescriptor Result {};
+    Result.LaunchMode       = BuildConfiguration::EditorIncluded ? HostLaunchMode::StandaloneWorkspace : HostLaunchMode::HeadlessBatch;
+    Result.ActiveWorkspace  = WorkspaceCategory::Particle;
+    Result.ApplicationTitle = "Frontier Particle";
     return Result;
 }
 

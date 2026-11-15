@@ -133,7 +133,21 @@ enum class ControlIcon : uint8_t
     BakeBox              = 83, // [-] - High/low baker isometric cube icon (HTML Bake)
     VolumeBoxes          = 84, // [-] - Stacked 3D volume grid icon (HTML Volume)
     PinAnchor            = 85, // [-] - Surface anchor pin icon (HTML Pin)
-    Count                = 86, // [count] - Total control icons
+    ParticlePlay         = 86, // [-] - Simulation playback play triangle (StudioIconSet particle-play)
+    ParticlePause        = 87, // [-] - Simulation playback pause bars (StudioIconSet particle-pause)
+    ParticleRestart      = 88, // [-] - Simulation restart rewind icon (StudioIconSet particle-restart)
+    ParticleLoop         = 89, // [-] - Simulation loop cycle arrows (StudioIconSet particle-loop)
+    ParticleStep         = 90, // [-] - Single step advance icon (StudioIconSet particle-step)
+    ParticleBurst        = 91, // [-] - Instant radial burst icon (StudioIconSet particle-burst)
+    ParticleOrigin       = 92, // [-] - Point origin radial rays (StudioIconSet particle-emit-point)
+    ParticleSparkles     = 93, // [-] - Studio particle burst emblem (StudioIconSet studio-particle-editor)
+    ForceWind            = 94, // [-] - Directional wind lines (StudioIconSet force-wind)
+    ForceAttract         = 95, // [-] - Inward radial attractor arrows (StudioIconSet force-attract)
+    ForceRepel           = 96, // [-] - Outward radial repulsor arrows (StudioIconSet force-repel)
+    ForceVortex          = 97, // [-] - Swirl vortex orbit arcs (StudioIconSet force-vortex)
+    ForceTurbulence      = 98, // [-] - Curl turbulence waves (StudioIconSet force-turbulence)
+    ForceMagnetic        = 99, // [-] - Dipole magnetic field loops (StudioIconSet force-magnetic)
+    Count                = 100,// [count] - Total control icons
 };
 
 //------------------------------------------------------------------------------------------------------------------------

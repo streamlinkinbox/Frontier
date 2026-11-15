@@ -71,6 +71,13 @@ WorkspaceCapabilityRegister::WorkspaceCapabilityRegister()
         "Baking Studio · Pure-GPU GTX BVH4 & RTX RayQuery 18-target PBR & 3D Volume SDF baker",
         true,
     });
+    RegisteredEntries.push_back({
+        HostWorkspaceTarget::ParticleWorkspace,
+        "ParticleWorkspace",
+        "Open with Particle Studio",
+        "Particle Studio · Vulkan 1.3 particle rigs, strands, ColourSpace ramps & Vector Field coupling",
+        true,
+    });
 }
 
 std::span<const WorkspaceCapabilityEntry> WorkspaceCapabilityRegister::QueryAllCapabilities() const noexcept
@@ -82,6 +89,19 @@ std::vector<WorkspaceCapabilityEntry> WorkspaceCapabilityRegister::QueryPermitte
 {
     const std::string Ext = LowercaseAscii(FilePath.extension().string());
     std::vector<WorkspaceCapabilityEntry> Permitted {};
+
+    if (Ext == ".particlespace")
+    {
+        if (const auto* Part = FindByTarget(HostWorkspaceTarget::ParticleWorkspace))
+        {
+            Permitted.push_back(*Part);
+        }
+        if (const auto* World = FindByTarget(HostWorkspaceTarget::FrontierWorld))
+        {
+            Permitted.push_back(*World);
+        }
+        return Permitted;
+    }
 
     if (Ext == ".stl")
     {

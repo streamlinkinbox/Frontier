@@ -166,6 +166,9 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Components/Controls/ScalarSlider.cpp
     Engine/Components/Controls/ColourRampEditor.cpp
     Engine/Components/Controls/ColourSwatchPicker.cpp
+    Engine/Components/Controls/ScalarCurveEditor.cpp
+    Engine/Components/Controls/SimulationPlaybackControls.cpp
+    Engine/Components/Controls/SimulationTimeRuler.cpp
     Engine/Components/Controls/ExclusiveSelector.cpp
     Engine/Components/Controls/CapsuleButton.cpp
     Engine/Components/Controls/ThemePreviewTile.cpp
@@ -173,6 +176,8 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Components/Controls/TextInputField.cpp
     Engine/Components/Controls/ConfirmationDialogue.cpp
     Engine/Components/Controls/NotificationSequence.cpp
+    Engine/Components/Diagnostics/DiagnosticInfographicCanvas.cpp
+    Engine/Components/Diagnostics/LogStreamDrawer.cpp
     Engine/Components/Docking/WorkspaceTabStrip.cpp
     Engine/Components/Docking/WorkspaceDockContainer.cpp
     Engine/Components/Panes/WorkspaceAppearance.cpp
@@ -189,6 +194,12 @@ set(FRONTIER_UI_COMPONENT_SOURCES
     Engine/Workspaces/UV/UVViewportInteractor.cpp
     Engine/Workspaces/UV/UVViewportHost.cpp
     Engine/Workspaces/UV/UVWorkspaceHost.cpp
+    Engine/Workspaces/Particle/ParticleWorkspaceSession.cpp
+    Engine/Workspaces/Particle/ParticleOutlinerPanel.cpp
+    Engine/Workspaces/Particle/ParticleInspectorPanel.cpp
+    Engine/Workspaces/Particle/ParticleViewportInteractor.cpp
+    Engine/Workspaces/Particle/ParticleViewportHost.cpp
+    Engine/Workspaces/Particle/ParticleWorkspaceHost.cpp
     Engine/Workspaces/Texturing/PatternStampLayerStackPane.cpp
     Engine/Workspaces/Texturing/PatternStampToolHeaderPane.cpp
     Engine/Workspaces/Texturing/PatternStampInspectorPane.cpp
@@ -692,6 +703,7 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/Workspaces/UV/Solvers/UVProjectionSolvers.cpp
     Engine/Workspaces/UV/Solvers/UVIslandLayoutOperations.cpp
     Engine/Workspaces/UV/UVWorkspaceSession.cpp
+    Engine/Workspaces/Particle/ParticleAuthoringOperations.cpp
 )
 if(NOT ANDROID)
     list(APPEND FRONTIER_ENGINE_SOURCES Engine/Windowing/PlatformWindowDesktop.cpp)
@@ -869,6 +881,7 @@ if(BUILD_TESTING)
     frontier_register_exhibit(ParticleCodecInterchangeValidation Exhibits/ParticleCodecInterchangeValidation.cpp)
     frontier_register_exhibit(ParticleDynamicsValidation        Exhibits/ParticleDynamicsValidation.cpp)
     frontier_register_exhibit(ParticleVulkanValidation          Exhibits/ParticleVulkanValidation.cpp)
+    frontier_register_exhibit(ParticleWorkspaceUIValidation     Exhibits/ParticleWorkspaceUIValidation.cpp)
     frontier_register_exhibit(GeometryNetworkValidation      Exhibits/GeometryNetworkValidation.cpp)
     frontier_register_exhibit(GeometryCompletionValidation   Exhibits/GeometryCompletionValidation.cpp)
     frontier_register_exhibit(MaterialScatteringValidation   Exhibits/MaterialScatteringValidation.cpp)

@@ -83,6 +83,7 @@ public:
     [[nodiscard]] static EngineConfigurationDescriptor ConstructFeatureSetDefault() noexcept;
     [[nodiscard]] static EngineConfigurationDescriptor ConstructStandaloneUVDefault() noexcept;
     [[nodiscard]] static EngineConfigurationDescriptor ConstructStandaloneVectorDefault() noexcept;
+    [[nodiscard]] static EngineConfigurationDescriptor ConstructStandaloneParticleDefault() noexcept;
     [[nodiscard]] static EngineConfigurationDescriptor ConstructHeadlessBatchDefault(
         WorkspaceCategory TargetWorkspace = WorkspaceCategory::UV) noexcept;
 

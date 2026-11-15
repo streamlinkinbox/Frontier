@@ -29,7 +29,8 @@ enum class HostWorkspaceTarget : uint8_t
     UVWorkspace      = 1u, // [-] - Open with UVWorkspace (UVWorkspaceHost dual 2D UV + 3D Surface viewports)
     PatternWorkspace = 2u, // [-] - Open with Pattern Studio (PatternStampWorkspaceHost seamless 2D vector & OpenPBR tile)
     StampWorkspace   = 3u, // [-] - Open with Stamp Studio (PatternStampWorkspaceHost alpha cutout vector stamp)
-    BakingWorkspace  = 4u, // [-] - Open with Baking Studio (BakingWorkspaceHost pure-GPU GTX BVH4 + RTX RayQuery baker)
+    BakingWorkspace   = 4u, // [-] - Open with Baking Studio (BakingWorkspaceHost pure-GPU GTX BVH4 + RTX RayQuery baker)
+    ParticleWorkspace = 5u, // [-] - Open with Particle Studio (ParticleWorkspaceHost Vulkan 1.3 particle & force authoring)
 };
 
 //------------------------------------------------------------------------------------------------------------------------
