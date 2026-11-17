@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "three": "0.180.0"
+  },
+  "name": "frontier-import-dialogue",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node Build.mjs",
+    "test": "node --test GeometryCompile.test.mjs SdfBake.test.mjs",
+    "verify": "node Verify.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}
