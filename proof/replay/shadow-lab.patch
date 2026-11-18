@@ -1,0 +1,212 @@
+--- a/Experimental/ShadowAlgorithmLab/ShadowLabEngine.js
++++ b/Experimental/ShadowAlgorithmLab/ShadowLabEngine.js
+@@ -545,0 +546,18 @@
++  // Validation only: freeze one fully bound pass for native GLES parity tests.
++  const meta=new WeakMap();for(const d of [2,3]){const k=`texImage${d}D`,orig=gl[k].bind(gl);gl[k]=(...args)=>{orig(...args);const [target,,internal,w,h]=args;meta.set(gl.getParameter(d===2?gl.TEXTURE_BINDING_2D:gl.TEXTURE_BINDING_3D),[target,internal,w,h,d===3?args[5]:1]);};}
++  let writes=[];
++  function snapshot(program){
++    const old=gl.getParameter(gl.FRAMEBUFFER_BINDING),active=gl.getParameter(gl.ACTIVE_TEXTURE),fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
++    const save=(name,blob)=>{writes.push((async()=>{const bytes=new Uint8Array(await new Response(new Blob([blob]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());let str='';for(let i=0;i<bytes.length;i+=8192)str+=String.fromCharCode(...bytes.subarray(i,i+8192));await window.saveSnapshot(name,btoa(str));})());};
++    for(const shader of gl.getAttachedShaders(program))save(gl.getShaderParameter(shader,gl.SHADER_TYPE)===gl.VERTEX_SHADER?'pass.vert':'pass.frag',gl.getShaderSource(shader));
++    const lines=[];
++    for(let i=0;i<gl.getProgramParameter(program,gl.ACTIVE_UNIFORMS);++i){const u=gl.getActiveUniform(program,i);for(let j=0;j<u.size;j++){
++      const name=u.name.replace('[0]',`[${j}]`),loc=gl.getUniformLocation(program,name),v=gl.getUniform(program,loc);
++      if(u.type===gl.SAMPLER_2D||u.type===gl.SAMPLER_3D){gl.activeTexture(gl.TEXTURE0+v);const three=u.type===gl.SAMPLER_3D,tex=gl.getParameter(three?gl.TEXTURE_BINDING_3D:gl.TEXTURE_BINDING_2D);const [target,internal,w,h,d]=meta.get(tex);const fmt=[gl.R16F,gl.R32F].includes(internal)?gl.RED:gl.RGBA,channels=fmt===gl.RED?1:4;
++        const filter=gl.getTexParameter(target,gl.TEXTURE_MIN_FILTER),data=new Float32Array(w*h*d*channels),plane=new Float32Array(w*h*4);
++        for(let z=0;z<d;z++){if(three)gl.framebufferTextureLayer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,tex,0,z);else gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,target,tex,0);if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw Error('readback fbo '+name);gl.readPixels(0,0,w,h,gl.RGBA,gl.FLOAT,plane);if(channels===4)data.set(plane,z*w*h*4);else for(let px=0;px<w*h;px++)data[z*w*h+px]=plane[px*4];}
++        save(name+'.f32',data);lines.push(`T ${name} ${v} ${target} ${internal} ${w} ${h} ${d} ${fmt} ${filter}`);
++      }else{const values=ArrayBuffer.isView(v)?[...v]:[v];lines.push(`U ${name} ${u.type} ${values.join(' ')}`);}
++    }}save('bindings',lines.join('\n')+'\n');gl.deleteFramebuffer(fb);gl.bindFramebuffer(gl.FRAMEBUFFER,old);gl.activeTexture(active);
++  }
++
+@@ -802,0 +821,4 @@
++  const payload=await (await fetch('Assets/body.r8')).arrayBuffer(); const ids=gl.createTexture();gl.bindTexture(gl.TEXTURE_3D,ids);
++  const dims=sdfVolumes[0];if(payload.byteLength!==dims.nx*dims.ny*dims.nz)throw Error('material cache extent');
++  gl.texImage3D(gl.TEXTURE_3D,0,gl.R8UI,dims.nx,dims.ny,dims.nz,0,gl.RED_INTEGER,gl.UNSIGNED_BYTE,new Uint8Array(payload));
++  gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+@@ -994,2 +1016,2 @@
+-    const w = Math.max(640, Math.floor(window.innerWidth * dpr));
+-    const h = Math.max(360, Math.floor(window.innerHeight * dpr));
++    const w = 480;
++    const h = 270;
+@@ -999,2 +1021,2 @@
+-    const gw = Math.max(320, Math.floor(w * 0.5));
+-    const gh = Math.max(180, Math.floor(h * 0.5));
++    const gw = w;
++    const gh = h;
+@@ -1447 +1469 @@
+-    const sig = `${state.lightCount}|${state.lightType}|${azKey}|${Math.round(state.lightElevationDeg * 2)}|${state.lightIntensity.toFixed(2)}|${state.lightKelvin}|${state.paintIdx}`;
++    const sig = `${state.sources}|${state.lightCount}|${state.lightType}|${azKey}|${Math.round(state.lightElevationDeg * 2)}|${state.lightIntensity.toFixed(2)}|${state.lightKelvin}|${state.paintIdx}`;
+@@ -1473,0 +1496 @@
++    gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_3D,ids);
+@@ -1610 +1633 @@
+-    const shouldFilter = state.planeFilter && (algo === "pcss" || algo === "contact_pcss" || algo === "smrt" || algo === "hybrid" || algo === "bvh");
++    const shouldFilter = false && (algo === "pcss" || algo === "contact_pcss" || algo === "smrt" || algo === "hybrid" || algo === "bvh");
+@@ -1677,0 +1701 @@
++    if(state.dump==='shadow')snapshot(prog);
+@@ -1711 +1735 @@
+-    const shouldFilter = state.planeFilter && (algo !== "pcf" && algo !== "sdf");
++    const shouldFilter = false && (algo !== "pcf" && algo !== "sdf");
+@@ -1804 +1828 @@
+-    gl.bindFramebuffer(gl.FRAMEBUFFER, giRawFbo);
++    gl.bindFramebuffer(gl.FRAMEBUFFER, outFbo);
+@@ -1815,0 +1840 @@
++      if(state.dump==='gi')snapshot(progGiSdf);
+@@ -1836,17 +1860,0 @@
+-    // 3-Pass Plane-Aware Variance-Clamped GI Denoiser
+-    gl.useProgram(progGiBilateral);
+-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gPosTex);
+-    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, gNormTex);
+-    gl.uniform1i(gl.getUniformLocation(progGiBilateral, "uGiIn"), 0);
+-    gl.uniform1i(gl.getUniformLocation(progGiBilateral, "uGPosRough"), 1);
+-    gl.uniform1i(gl.getUniformLocation(progGiBilateral, "uGNormMat"), 2);
+-    gl.uniform2f(gl.getUniformLocation(progGiBilateral, "uTexelSize"), 1.0 / giTraceW, 1.0 / giTraceH);
+-    const stepLoc = gl.getUniformLocation(progGiBilateral, "uStepPx");
+-
+-    gl.bindFramebuffer(gl.FRAMEBUFFER, giPingAFbo);
+-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, giRawTex);
+-    gl.uniform1i(stepLoc, 1); gl.drawArrays(gl.TRIANGLES, 0, 3);
+-
+-    gl.bindFramebuffer(gl.FRAMEBUFFER, giPingBFbo);
+-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, giPingATex);
+-    gl.uniform1i(stepLoc, 2); gl.drawArrays(gl.TRIANGLES, 0, 3);
+@@ -1854,3 +1861,0 @@
+-    gl.bindFramebuffer(gl.FRAMEBUFFER, outFbo);
+-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, giPingBTex);
+-    gl.uniform1i(stepLoc, 4); gl.drawArrays(gl.TRIANGLES, 0, 3);
+@@ -2181,0 +2187,2 @@
++    for(const p of [progSdfUnion,progStaticShade,progGiSdf]){gl.useProgram(p);gl.uniform1i(gl.getUniformLocation(p,'uSources'),state.sources);}
++    gl.useProgram(progSdfUnion);gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_3D,ids);gl.uniform1i(gl.getUniformLocation(progSdfUnion,'uBodyIds'),6);gl.uniform1i(gl.getUniformLocation(progSdfUnion,'uMeshCache'),state.meshCache?1:0);
+@@ -2195 +2202 @@
+-    const target = [state.carX, state.carY, 0.72];
++    const target = [0, 0, 0.72];
+@@ -2361 +2368 @@
+-    requestAnimationFrame(renderFrame);
++
+@@ -2364 +2371,14 @@
+-  requestAnimationFrame(renderFrame);
++  Object.assign(state,{sources:-1,meshCache:true,steerAngle:0,driveMode:'manual',carYaw:0.16,carX:0,carY:0,viewLayout:'single',reflA:'env',giA:'off',emissiveOn:false,lightCount:1,showLouvers:false,planeFilter:false,qualityIdx:4,camYaw:0.82,camPitch:0.30,camDist:8.3});
++  window.capture=async(params,what)=>{
++    Object.assign(state,params); const begin=performance.now(); renderFrame(prevTime+16); gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(4));const ms=performance.now()-begin;
++    await Promise.all(writes);writes=[];let raw=null;
++    if(what){let fbo=what==='gi'?giSdfFinalFbo:what==='shadow'?shadowFinalAFbo:null;
++      let w=480,h=270;
++      if(what==='slice'){fbo=sdfSliceFbo;w=clip0Vol.nx;h=clip0Vol.nz; // gather x-z along middle y
++        raw=new Float32Array(w*h*4);gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
++        for(let z=0;z<h;z++){gl.framebufferTextureLayer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,clip0Pair.texB,0,z);gl.readPixels(0,Math.floor(clip0Vol.ny/2),w,1,gl.RGBA,gl.FLOAT,raw.subarray(z*w*4,(z+1)*w*4));}
++      }else{gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);raw=new Float32Array(w*h*4);gl.readPixels(0,0,w,h,gl.RGBA,gl.FLOAT,raw);}
++      const bytes=new Uint8Array(raw.buffer); let data='';for(let i=0;i<bytes.length;i+=8192)data+=String.fromCharCode(...bytes.subarray(i,i+8192));return {data:btoa(data),w,h,ms,error:gl.getError()};
++    }
++    return {png:canvas.toDataURL('image/png').split(',')[1],ms,error:gl.getError()};
++  };
+--- a/Experimental/ShadowAlgorithmLab/ShadowLabShaders.js
++++ b/Experimental/ShadowAlgorithmLab/ShadowLabShaders.js
+@@ -1394,0 +1395 @@
++vec2 sobol2(uint index){uint g=index^(index>>1u),x=0u,y=0u,v=0x80000000u;for(uint j=0u;j<16u;j++){if((g & (1u<<j))!=0u){x^=0x80000000u>>j;y^=v;}v^=v>>1u;}return (vec2(x,y)+vec2(65536.0))*2.3283064365386963e-10;}
+@@ -1418,2 +1419 @@
+-      float rad = rFrac * lRad;
+-      rayDir = normalize(toLight + lTan * (rad * cos(ang)) + lBit * (rad * sin(ang)));
++      vec2 q=sobol2(uint(s));float c=mix(1.,inversesqrt(1.+lRad*lRad),q.x);float a=6.283185307*q.y;rayDir=c*toLight+sqrt(max(0.,1.-c*c))*(lTan*cos(a)+lBit*sin(a));
+@@ -1827,0 +1828,17 @@
++uniform int uSources;
++// Irradiance at a diffuse cache texel. 1=authored vehicle emission, 2=sun,
++// 4=point radiant intensity, 8=one-sided rectangular radiance (4-point rule).
++float cacheVisibility(vec3 p, vec3 n, vec3 l, float endT){
++  float t=0.12; for(int i=0;i<40;i++){
++    if(t>=endT)break;float d=sampleStaticCascade(p+n*0.12+t*l);
++    if(d<0.02)return 0.;t+=max(0.035,0.8*d);
++  }return 1.;
++}
++vec3 cacheLight(vec3 p,vec3 n,int id,SurfaceMat m){
++ vec3 E=vec3(0);if((uSources&2)!=0){vec3 l=uLightDir[0];E+=vec3(3.1)*max(dot(n,l),0.)*cacheVisibility(p,n,l,48.);}
++ if((uSources&4)!=0){vec3 d=vec3(3.,2.,3.5)-p;float r=length(d);vec3 l=d/max(0.001,r);E+=vec3(64.,42.,20.)*max(dot(n,l),0.)*cacheVisibility(p,n,l,r)/max(0.0001,r*r);}
++ if((uSources&8)!=0){vec3 c=vec3(-0.25,-3.45,1.32),N=normalize(vec3(0.,1.1,0.45)-c),X=normalize(cross(N,vec3(0,0,1))),Y=cross(X,N);
++ for(int i=0;i<4;i++){vec3 d=c+0.03*N+X*((i%2==0)?-0.625:0.625)+Y*((i<2)?-0.15:0.15)-p;float r=length(d);vec3 l=d/max(0.001,r);
++ E+=vec3(11,26,42)*(1.5/4.)*max(dot(n,l),0.)*max(dot(-l,N),0.)*cacheVisibility(p,n,l,r)/max(0.0001,r*r);}}
++ return E*(m.albedo*(1.-m.metalness)/3.14159265)+(((uSources&1)!=0 && id>=12 && id<=14)?m.emissive:vec3(0));
++}
+@@ -1862 +1879 @@
+-  vec3 rad = min(evalMultiLightBounceRadiance(wp, nrm, matId, sm, sv, true), vec3(24.0));
++  vec3 rad = uSources<0 ? min(evalMultiLightBounceRadiance(wp,nrm,matId,sm,sv,true),vec3(24)) : cacheLight(wp,nrm,matId,sm);
+@@ -1947 +1964 @@
+-        float occ = smoothstep(coneR, -vox * 0.2, sv.a);
++        float occ = (1.-smoothstep(-vox*0.2,coneR,sv.a));
+@@ -2000,0 +2018,21 @@
++uniform highp usampler3D uBodyIds;
++uniform bool uMeshCache;
++float probeDistance(vec3 p){vec3 uv=(p-uClip0Min)/(uClip0Max-uClip0Min);if(any(lessThan(uv,vec3(0)))||any(greaterThan(uv,vec3(1))))return 100.;
++ vec3 bl=(uBodyWorldToLocal*vec4(p,1)).xyz;return min(texture(uStaticClip0,uv).a,samplePartSdf(uBodySdf,bl,uBodySdfMin,uBodySdfInvSpan));}
++uniform int uSources;
++// Irradiance at a diffuse cache texel. 1=authored vehicle emission, 2=sun,
++// 4=point radiant intensity, 8=one-sided rectangular radiance (4-point rule).
++float cacheVisibility(vec3 p, vec3 n, vec3 l, float endT){
++  float t=0.12; for(int i=0;i<40;i++){
++    if(t>=endT)break;float d=probeDistance(p+n*0.12+t*l);
++    if(d<0.02)return 0.;t+=max(0.035,0.8*d);
++  }return 1.;
++}
++vec3 cacheLight(vec3 p,vec3 n,int id,SurfaceMat m){
++ vec3 E=vec3(0);if((uSources&2)!=0){vec3 l=uLightDir[0];E+=vec3(3.1)*max(dot(n,l),0.)*cacheVisibility(p,n,l,48.);}
++ if((uSources&4)!=0){vec3 d=vec3(3.,2.,3.5)-p;float r=length(d);vec3 l=d/max(0.001,r);E+=vec3(64.,42.,20.)*max(dot(n,l),0.)*cacheVisibility(p,n,l,r)/max(0.0001,r*r);}
++ if((uSources&8)!=0){vec3 c=vec3(-0.25,-3.45,1.32),N=normalize(vec3(0.,1.1,0.45)-c),X=normalize(cross(N,vec3(0,0,1))),Y=cross(X,N);
++ for(int i=0;i<4;i++){vec3 d=c+0.03*N+X*((i%2==0)?-0.625:0.625)+Y*((i<2)?-0.15:0.15)-p;float r=length(d);vec3 l=d/max(0.001,r);
++ E+=vec3(11,26,42)*(1.5/4.)*max(dot(n,l),0.)*max(dot(-l,N),0.)*cacheVisibility(p,n,l,r)/max(0.0001,r*r);}}
++ return E*(m.albedo*(1.-m.metalness)/3.14159265)+(((uSources&1)!=0 && id>=12 && id<=14)?m.emissive:vec3(0));
++}
+@@ -2020,0 +2059 @@
++      if(uMeshCache)hitMat=int(texture(uBodyIds,(bl-uBodySdfMin)*uBodySdfInvSpan).r);
+@@ -2044 +2083 @@
+-    finalRad = evalMultiLightBounceRadiance(worldPos, worldN, hitMat, m, 1.0, true);
++    finalRad = uSources>=0 ? cacheLight(worldPos,worldN,hitMat,m) : evalMultiLightBounceRadiance(worldPos, worldN, hitMat, m, 1.0, true);
+@@ -2084,0 +2124 @@
++uniform int uSources;
+@@ -2124 +2164 @@
+-        float occ = smoothstep(coneR, -vox * 0.16, cd);
++        float occ = (1.-smoothstep(-vox*0.16,coneR,cd));
+@@ -2137 +2177 @@
+-    giIrr += (cCol + skyAmb * (1.0 - cAlpha)) * invCones;
++    giIrr += (cCol + (uSources<0?skyAmb:vec3(0)) * (1.0 - cAlpha)) * invCones;
+@@ -2571,21 +2611,2 @@
+-vec3 sampleJointBilateralRgb(sampler2D srcTex, vec2 uv, vec3 fullPos, vec3 fullNrm) {
+-  vec2 baseUv = (floor(uv / uTraceTexelSize - 0.5) + 0.5) * uTraceTexelSize;
+-  vec2 f = fract(uv / uTraceTexelSize - 0.5);
+-  vec3 sum = vec3(0.0); float wSum = 0.0;
+-  for (int dy = 0; dy <= 1; dy++) {
+-    for (int dx = 0; dx <= 1; dx++) {
+-      vec2 qUv = clamp(baseUv + vec2(float(dx), float(dy)) * uTraceTexelSize, vec2(0.001), vec2(0.999));
+-      float wBilin = ((dx == 0) ? (1.0 - f.x) : f.x) * ((dy == 0) ? (1.0 - f.y) : f.y);
+-      vec4 nQ = texture(uGNormMat, qUv);
+-      vec3 pQ = texture(uGPosRough, qUv).xyz;
+-      float wGeo = (nQ.w > 0.5)
+-        ? pow(max(dot(fullNrm, normalize(nQ.xyz)), 1e-4), 24.0) * exp(-abs(dot(fullNrm, pQ - fullPos)) * 35.0)
+-        : 0.0;
+-      float w = max(wBilin * wGeo, 1e-5);
+-      sum += texture(srcTex, qUv).rgb * w;
+-      wSum += w;
+-    }
+-  }
+-  return sum / wSum;
+-}
+-
++vec3 fullResGi(sampler2D srcTex, vec2 uv){return texelFetch(srcTex,ivec2(gl_FragCoord.xy),0).rgb;}
++vec3 displaySrgb(vec3 x){x=clamp(x,0.,1.);return mix(1.055*pow(x,vec3(1./2.4))-.055,12.92*x,lessThanEqual(x,vec3(.0031308)));}
+@@ -2703 +2724 @@
+-    outColor = vec4(pow(max(acesFilm(gizmo.rgb), vec3(1e-5)), vec3(1.0 / 2.2)), 1.0);
++    outColor = vec4(displaySrgb(acesFilm(gizmo.rgb)), 1.0);
+@@ -2710 +2731 @@
+-    outColor = vec4(pow(max(acesFilm(sky * 0.84), vec3(1e-5)), vec3(1.0 / 2.2)), 1.0);
++    outColor = vec4(displaySrgb(acesFilm(sky * 0.84)), 1.0);
+@@ -2722,2 +2743,2 @@
+-    vec3 giA = (uGiModeA > 0) ? sampleJointBilateralRgb(uGiA, vUv, pos, nrm) : vec3(0.0);
+-    vec3 giB = (uGiModeB > 0) ? sampleJointBilateralRgb(uGiB, vUv, pos, nrm) : vec3(0.0);
++    vec3 giA = (uGiModeA > 0) ? fullResGi(uGiA,vUv) : vec3(0.0);
++    vec3 giB = (uGiModeB > 0) ? fullResGi(uGiB,vUv) : vec3(0.0);
+@@ -2730 +2751 @@
+-    outColor = vec4(pow(clamp(max(diff, vec3(baseGeo)), 0.0, 1.0), vec3(1.0 / 2.2)), 1.0);
++    outColor = vec4(displaySrgb(max(diff,vec3(baseGeo))), 1.0);
+@@ -2760 +2781 @@
+-  vec3 giRgb = (giM == 0) ? vec3(0.0) : (useLeft ? sampleJointBilateralRgb(uGiA, vUv, pos, nrm) : sampleJointBilateralRgb(uGiB, vUv, pos, nrm));
++  vec3 giRgb = (giM == 0) ? vec3(0.0) : (useLeft ? fullResGi(uGiA,vUv) : fullResGi(uGiB,vUv));
+@@ -2764 +2785 @@
+-  outColor = vec4(pow(max(acesFilm(hdr), vec3(1e-5)), vec3(1.0 / 2.2)), 1.0);
++  outColor = vec4(displaySrgb(acesFilm(hdr)), 1.0);

@@ -1,0 +1,31 @@
+{
+  "emission": {
+    "linear_max": 0.015997404232621193,
+    "nonzero_pixels": 37260
+  },
+  "point": {
+    "linear_max": 0.3206740617752075,
+    "nonzero_pixels": 37257
+  },
+  "sun": {
+    "linear_max": 0.18009302020072937,
+    "nonzero_pixels": 37322
+  },
+  "area": {
+    "linear_max": 0.1824091225862503,
+    "nonzero_pixels": 30811
+  },
+  "all": {
+    "linear_max": 0.4582158625125885,
+    "nonzero_pixels": 37337
+  },
+  "off": {
+    "linear_max": 0.0,
+    "nonzero_pixels": 0
+  },
+  "combined_linearity_max_abs": 1.1324882507324219e-06,
+  "cache_seconds": 5.423178753999991,
+  "gather_seconds": 7.022895105999851,
+  "samples": 1024,
+  "receiver_count": 42658
+}

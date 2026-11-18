@@ -1,0 +1,16 @@
+[
+  ["combined-view", {"algoA": "sdf", "sdfMode": "clip", "giA": "sdf"}, null],
+  ["repeat-view", {}, null],
+  ["move00", {"carX": -1.2, "carY": -0.192, "wheelSpin": -2.359649985252188, "sources": -1}, null],
+  ["move01", {"carX": -0.98, "carY": -0.1568, "wheelSpin": -1.9270474879559534, "sources": -1}, null],
+  ["move02", {"carX": -0.76, "carY": -0.1216, "wheelSpin": -1.494444990659719, "sources": -1}, null],
+  ["move03", {"carX": -0.5399999999999999, "carY": -0.08639999999999999, "wheelSpin": -1.0618424933634845, "sources": -1}, null],
+  ["move04", {"carX": -0.31999999999999995, "carY": -0.051199999999999996, "wheelSpin": -0.62923999606725, "sources": -1}, null],
+  ["move05", {"carX": -0.09999999999999987, "carY": -0.01599999999999998, "wheelSpin": -0.19663749877101538, "sources": -1}, null],
+  ["move06", {"carX": 0.1200000000000001, "carY": 0.01920000000000002, "wheelSpin": 0.235964998525219, "sources": -1}, null],
+  ["move07", {"carX": 0.3400000000000001, "carY": 0.05440000000000001, "wheelSpin": 0.6685674958214534, "sources": -1}, null],
+  ["move08", {"carX": 0.56, "carY": 0.08960000000000001, "wheelSpin": 1.1011699931176877, "sources": -1}, null],
+  ["move09", {"carX": 0.78, "carY": 0.12480000000000001, "wheelSpin": 1.533772490413922, "sources": -1}, null],
+  ["move10", {"carX": 1.0000000000000002, "carY": 0.16000000000000003, "wheelSpin": 1.966374987710157, "sources": -1}, null],
+  ["move11", {"carX": 1.22, "carY": 0.1952, "wheelSpin": 2.398977485006391, "sources": -1}, null]
+]

@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>ControlVehicle | Lighting evidence</title
+  ><style>
+    :root {
+      color-scheme: dark;
+      --bg: #101419;
+      --tile: #171e24;
+      --edge: #34404a;
+      --muted: #b3bfc7;
+      --mint: #8be0bf;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: #e9eff0;
+      font:
+        16px/1.55 system-ui,
+        sans-serif;
+    }
+    main,
+    header,
+    nav {
+      max-width: 1110px;
+      margin: auto;
+      padding: 18px 26px;
+    }
+    header {
+      padding-top: 55px;
+    }
+    .tag,
+    small {
+      font:
+        600 12px/1.5 ui-monospace,
+        monospace;
+      letter-spacing: 0.11em;
+      color: var(--mint);
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 6vw, 4.2rem);
+      line-height: 1.04;
+      letter-spacing: -0.055em;
+      margin: 12px 0 18px;
+    }
+    h2 {
+      font-size: clamp(1.65rem, 3vw, 2.45rem);
+      letter-spacing: -0.035em;
+      margin: 0.2em 0;
+    }
+    p {
+      color: var(--muted);
+      max-width: 85ch;
+    }
+    nav {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--edge);
+      border-bottom: 1px solid var(--edge);
+    }
+    a {
+      color: var(--mint);
+    }
+    section {
+      padding: 28px 0;
+      border-bottom: 1px solid var(--edge);
+      scroll-margin: 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
+      gap: 10px;
+    }
+    figure {
+      margin: 0;
+      background: var(--tile);
+      border: 1px solid var(--edge);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    figure img,
+    canvas {
+      width: 100%;
+      display: block;
+      height: auto;
+      aspect-ratio: 16/9;
+      object-fit: contain;
+      background: #0c1014;
+    }
+    figcaption {
+      padding: 9px 12px;
+      color: #dae2e5;
+      font-size: 14px;
+    }
+    .note {
+      background: #27231e;
+      border-left: 3px solid #e4b46c;
+      padding: 10px 16px;
+      color: #f3d2a5;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 12px 0;
+    }
+    button,
+    select {
+      font: inherit;
+      background: #25333b;
+      color: white;
+      border: 1px solid #52636e;
+      border-radius: 5px;
+      padding: 7px 12px;
+    }
+    button {
+      cursor: pointer;
+      background: #285141;
+    }
+    #gpu-status {
+      overflow-wrap: anywhere;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    td,
+    th {
+      text-align: left;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--edge);
+    }
+    code {
+      font-size: 0.88em;
+    }
+    footer {
+      padding: 30px 0;
+    }
+    canvas {
+      max-width: 480px;
+    }
+    .columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 650px) {
+      .columns {
+        grid-template-columns: 1fr;
+      }
+      main,
+      header,
+      nav {
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+    }
+  </style>
+  <header>
+    <div class="tag">
+      FRONTIER / RENDER VALIDATION &nbsp; · &nbsp; 480 × 270
+    </div>
+    <h1>ControlVehicle lighting evidence</h1>
+    <p>
+      Same authored triangles. Same receiver buffers. No denoiser. This is a lab
+      decision record, not a release of the engine renderer.
+    </p>
+  </header>
+  <nav>
+    <a href="#motion">Motion</a><a href="#cache">Surface cache</a
+    ><a href="#shadow">Shadows</a><a href="#gi">Source isolation</a
+    ><a href="#pt">Path tracing</a><a href="#gpu">Run a pass</a
+    ><a href="AUDIT.md">Audit</a>
+  </nav>
+  <main>
+    <section id="motion">
+      <small>01 / geometry</small>
+      <h2>Moving mesh, moving distance field</h2>
+      <p>
+        Fixed camera. The body moves 2.42 m along world X between the endpoints;
+        the wheels turn. All three animations follow the same 12 poses. The
+        second panel is an XZ section read from the near world volume, not an
+        outline drawn from the mesh. Orange = negative distance, cream = near
+        zero, blue = positive. Playback time is illustrative, not frame latency.
+      </p>
+      <div class="grid">
+        <figure>
+          <a href="frames/drive.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/drive.png"
+              alt="Composite · lossless APNG"
+          /></a>
+          <figcaption>Composite · lossless APNG</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/signed-field.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/signed-field.png"
+              alt="Near cascade · XZ through y ≈ 0.063 m"
+          /></a>
+          <figcaption>Near cascade · XZ through y ≈ 0.063 m</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/emissive-motion.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/emissive-motion.png"
+              alt="Only the vehicle mesh emits as the body and wheels move"
+          /></a>
+          <figcaption>
+            Vehicle emission only · raw cone transfer ×4, same poses
+          </figcaption>
+        </figure>
+      </div>
+      <p>
+        <a href="frames/drive.gif">GIF version</a> (palette quantized). The PNG
+        animation is the colour reference.
+      </p>
+      <p class="note">
+        Not production-ready: the raw GI visibly stipples the floor and body.
+        The white front light panel loses detail. No clean-frame or photorealism
+        claim.
+      </p>
+    </section>
+    <section id="cache">
+      <small>02 / representation</small>
+      <h2>Baked distances and surface identity</h2>
+      <p>
+        R16F object-space distance textures stay fixed. The C++ baker stores the
+        nearest authored body-triangle material in a separate R8UI texture. The
+        moving union shader reads that ID instead of guessing glass, paint and
+        lamps from XYZ. These flat ID views are diagnostics, not shaded renders.
+      </p>
+      <div class="grid">
+        <figure>
+          <a href="frames/rule-ids.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/rule-ids.png"
+              alt="Previous · coordinate rule"
+          /></a>
+          <figcaption>Previous · coordinate rule</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/cache-ids.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/cache-ids.png"
+              alt="Candidate · mesh-derived voxel ID"
+          /></a>
+          <figcaption>Candidate · mesh-derived voxel ID</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/triangle-ids.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/triangle-ids.png"
+              alt="Reference · actual triangle ID"
+          /></a>
+          <figcaption>Reference · actual triangle ID</figcaption>
+        </figure>
+      </div>
+      <p>
+        Area-weighted material disagreement: <b>81.57% → 7.29%</b>.
+        Lamp/non-lamp disagreement: <b>2.39% → 0.38%</b>. Thin boundaries are
+        still quantized. The cache is not a full Unreal-style surface-card
+        system.
+      </p>
+      <div class="grid">
+        <figure>
+          <a href="frames/body-xz.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/body-xz.png"
+              alt="Body · 88 × 64 × 36"
+          /></a>
+          <figcaption>Body · 88 × 64 × 36</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/rim-xz.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/rim-xz.png"
+              alt="Rim · 28 × 40 × 40"
+          /></a>
+          <figcaption>Rim · 28 × 40 × 40</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/tyre-xz.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/tyre-xz.png"
+              alt="Tyre · 32 × 44 × 44"
+          /></a>
+          <figcaption>Tyre · 32 × 44 × 44</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/arena-near-xz.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/arena-near-xz.png"
+              alt="Static near · 144 × 128 × 64"
+          /></a>
+          <figcaption>Static near · 144 × 128 × 64</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/arena-far-xz.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/arena-far-xz.png"
+              alt="Static far · 128 × 96 × 48"
+          /></a>
+          <figcaption>Static far · 128 × 96 × 48</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/clip-xz.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/clip-xz.png"
+              alt="Near + dynamic union · central pose"
+          /></a>
+          <figcaption>Near + dynamic union · central pose</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section id="shadow">
+      <small>03 / visibility</small>
+      <h2>One sun, nine visibility estimates</h2>
+      <p>
+        White is fully visible, black is occluded or back-facing. These are the
+        unfiltered red channels of the shadow targets, not recoloured beauty
+        images. The independent reference casts 512 triangle rays per eligible
+        receiver over the same 2.4° solar cap. It is a numerical reference, not
+        a photograph.
+      </p>
+      <div class="grid">
+        <figure>
+          <a href="frames/pcf.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/pcf.png"
+              alt="Shadow map · PCF"
+          /></a>
+          <figcaption>Shadow map · PCF</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/pcss.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/pcss.png"
+              alt="Shadow map · PCSS"
+          /></a>
+          <figcaption>Shadow map · PCSS</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/contact_pcss.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/contact_pcss.png"
+              alt="Contact + PCSS"
+          /></a>
+          <figcaption>Contact + PCSS</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/smrt.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/smrt.png"
+              alt="SMRT"
+          /></a>
+          <figcaption>SMRT</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/sdf.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/sdf.png"
+              alt="Local baked voxel SDF"
+          /></a>
+          <figcaption>Local baked voxel SDF</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/clip-shadow.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/clip-shadow.png"
+              alt="Near/far voxel SDF penumbra"
+          /></a>
+          <figcaption>Near/far voxel SDF penumbra</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/hybrid.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/hybrid.png"
+              alt="Hybrid contact + local SDF"
+          /></a>
+          <figcaption>Hybrid contact + local SDF</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/native-cap.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/native-cap.png"
+              alt="Sobol spherical cap · 16 separate traversals"
+          /></a>
+          <figcaption>Sobol spherical cap · 16 separate traversals</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/packet.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/packet.png"
+              alt="Sobol spherical cap · 32 rays, shared traversal"
+          /></a>
+          <figcaption>
+            Sobol spherical cap · 32 rays, shared traversal
+          </figcaption>
+        </figure>
+        <figure>
+          <a href="frames/sun-reference.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/sun-reference.png"
+              alt="Embree · 512 independent directions"
+          /></a>
+          <figcaption>Embree · 512 independent directions</figcaption>
+        </figure>
+      </div>
+      <p>
+        On 13,594 partial-visibility pixels, the packet reduces visibility RMSE
+        from <b>0.05033 to 0.02020</b> versus the 16-ray scalar cap. At equal
+        sample count, packet and scalar RGBA match bit-for-bit. See
+        <a href="benchmark.json">measured warm draw times</a>; these exclude the
+        rest of the frame.
+      </p>
+    </section>
+    <section id="gi">
+      <small>04 / radiance</small>
+      <h2>Which source lights the cache?</h2>
+      <p>
+        Full-resolution unfiltered cone gather (incident diffuse irradiance
+        divided by π, approximated by the lab). No camera-visible emission,
+        direct BRDF, background, portal or sky fill in these AOVs. Same exposure
+        throughout this row set: Reinhard then exact sRGB transfer. Geometry and
+        material colour stay present in every case.
+      </p>
+      <div class="grid">
+        <figure>
+          <a href="frames/null.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/null.png"
+              alt="Negative control · no source (must be black)"
+          /></a>
+          <figcaption>Negative control · no source (must be black)</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/emission.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/emission.png"
+              alt="Vehicle emitters only · families 12, 13, 14"
+          /></a>
+          <figcaption>Vehicle emitters only · families 12, 13, 14</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/point.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/point.png"
+              alt="Point only · inverse square"
+          /></a>
+          <figcaption>Point only · inverse square</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/sun.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/sun.png"
+              alt="Sun only · directional"
+          /></a>
+          <figcaption>Sun only · directional</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/area.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/area.png"
+              alt="Rectangle only · 4 area samples"
+          /></a>
+          <figcaption>Rectangle only · 4 area samples</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/all.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/all.png"
+              alt="All four sources"
+          /></a>
+          <figcaption>All four sources</figcaption>
+        </figure>
+      </div>
+      <p class="note">
+        Deterministic is not noise-free. The 14-cone screen-space rotation
+        leaves a visible sampling pattern. A denoiser would conceal it, not
+        validate it.
+      </p>
+    </section>
+    <section id="indirect">
+      <small>04b / indirect only</small>
+      <h2>What bounced off the ground?</h2>
+      <p>
+        Separate CPU path integral: source → diffuse floor → visible receiver.
+        No direct illumination, self-emission, sky or other bounce types. Black
+        ground is intentional: a planar floor cannot illuminate itself. Each
+        receiver gathers 1,024 deterministic cosine directions from a 257 × 193
+        world-space floor radiance cache. Same ×8 display exposure for all six.
+        This bounded 16 × 12 m floor is not the entire scene and is not DDGI.
+      </p>
+      <div class="grid">
+        <figure>
+          <a href="frames/bounce-off.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/bounce-off.png"
+              alt="No source · negative control"
+          /></a>
+          <figcaption>No source · negative control</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/bounce-emission.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/bounce-emission.png"
+              alt="Vehicle lamps → floor → receiver"
+          /></a>
+          <figcaption>Vehicle lamps → floor → receiver</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/bounce-point.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/bounce-point.png"
+              alt="Point → floor → receiver"
+          /></a>
+          <figcaption>Point → floor → receiver</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/bounce-sun.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/bounce-sun.png"
+              alt="Sun → floor → receiver"
+          /></a>
+          <figcaption>Sun → floor → receiver</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/bounce-area.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/bounce-area.png"
+              alt="Area → floor → receiver"
+          /></a>
+          <figcaption>Area → floor → receiver</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/bounce-all.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/bounce-all.png"
+              alt="All sources → floor → receiver"
+          /></a>
+          <figcaption>All sources → floor → receiver</figcaption>
+        </figure>
+      </div>
+      <p>
+        <a href="floor-bounce.json">Linear energy and cache/gather timings</a>.
+        The white and red contributions on opposite sides in the emission test
+        originate from the actual headlamp and taillamp triangles.
+      </p>
+    </section>
+    <section id="emitter">
+      <small>05 / cross-check</small>
+      <h2>Emission: guessed versus measured</h2>
+      <p>
+        Matched exposure ×4 for every image below. The last two integrate the
+        mesh emitter → receiver segment for a unit diffuse receiver: this is
+        direct illumination from emissive geometry, not proof of a second
+        diffuse bounce. The reference uses 64 samples on each authored emitting
+        triangle with Embree visibility.
+      </p>
+      <div class="grid">
+        <figure>
+          <a href="frames/emission-old-transfer.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/emission-old-transfer.png"
+              alt="Guessed lamp IDs → cone gather"
+          /></a>
+          <figcaption>Guessed lamp IDs → cone gather</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/emission-transfer.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/emission-transfer.png"
+              alt="Baked lamp IDs → same cone gather"
+          /></a>
+          <figcaption>Baked lamp IDs → same cone gather</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/lamps-fast-transfer.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/lamps-fast-transfer.png"
+              alt="C++ / GLES · mesh-emitter quadrature"
+          /></a>
+          <figcaption>C++ / GLES · mesh-emitter quadrature</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/lamp64-transfer.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/lamp64-transfer.png"
+              alt="CPU reference · 64 samples/triangle"
+          /></a>
+          <figcaption>CPU reference · 64 samples/triangle</figcaption>
+        </figure>
+      </div>
+      <p>
+        The sharp silhouette in the reference is expected: the AOV does not add
+        camera-visible lamp emission. Centroid quadrature greatly reduces the
+        floor error, but still misses some near-field occlusion.
+      </p>
+    </section>
+    <section id="pt">
+      <small>06 / independent studio</small>
+      <h2>Deterministic HTML path tracer</h2>
+      <p>
+        The supplied WebGPU tracer renders a different studio, not the
+        shadow-lab scene. No reconstruction, history or reduced trace
+        resolution. The 1- and 16-spp linear digests matched a second launch. At
+        64 spp the dark floor still shows structured reflection error. This is
+        not the reference for the GI error numbers.
+      </p>
+      <div class="grid">
+        <figure>
+          <a href="frames/pt1.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/pt1.png"
+              alt="1 spp · shared Sobol sequence"
+          /></a>
+          <figcaption>1 spp · shared Sobol sequence</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/pt16.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/pt16.png"
+              alt="16 spp · same camera"
+          /></a>
+          <figcaption>16 spp · same camera</figcaption>
+        </figure>
+        <figure>
+          <a href="frames/pt64.png"
+            ><img
+              loading="lazy"
+              width="480"
+              height="270"
+              src="frames/pt64.png"
+              alt="64 spp · same camera"
+          /></a>
+          <figcaption>64 spp · same camera</figcaption>
+        </figure>
+      </div>
+      <p>
+        <a
+          href="path-tracer/?width=480&amp;height=270&amp;trace=1&amp;denoise=0&amp;reproject=0&amp;integrator=megakernel&amp;target=64"
+          >Launch the WebGPU path tracer on your device →</a
+        >
+      </p>
+    </section>
+    <section id="gpu">
+      <small>07 / reproduce</small>
+      <h2>Run a shader on your device</h2>
+      <p>
+        This loads frozen input textures and uniforms, compiles the same shader
+        as the native C++ runner, and executes a fresh draw. No output image is
+        used as input. This verifies a pass at one pose, not an interactive
+        native engine port.
+      </p>
+      <div class="controls">
+        <select id="pass" aria-label="Shader pass">
+          <option value="packet">32-ray packet sun</option>
+          <option value="native-cap">16-ray scalar sun</option>
+          <option value="native-local">Local SDF penumbra</option>
+          <option value="native-clip">Clipmap penumbra</option>
+          <option value="native-hybrid">Hybrid shadow</option>
+          <option value="native-gi">Emissive cone GI ×4</option>
+          <option value="lamps-fast">Mesh-emitter transfer ×4</option></select
+        ><button id="execute">Execute WebGL pass</button>
+      </div>
+      <canvas
+        id="device"
+        width="480"
+        height="270"
+        aria-label="Device output"
+      ></canvas>
+      <p id="gpu-status" role="status">
+        Not run. Requires WebGL 2 and floating-point render targets.
+      </p>
+    </section>
+    <footer>
+      <a href="AUDIT.md">Method, limits &amp; integration decision</a> ·
+      <a href="replay/README.md">Reproduction commands</a> ·
+      <a href="checks.json">Linear buffer checks</a> ·
+      <a href="material.json">Material error</a> ·
+      <a href="benchmark.json">Pass timing samples</a>
+    </footer>
+  </main>
+  <script src="device.js"></script>
+</html>

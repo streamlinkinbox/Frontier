@@ -1,0 +1,10 @@
+{
+  "coordinate_rule": {
+    "wrong_material_fraction": 0.8156924524983071,
+    "wrong_lamp_fraction": 0.02388805465740106
+  },
+  "mesh_r8ui": {
+    "wrong_material_fraction": 0.07286153776717844,
+    "wrong_lamp_fraction": 0.0037735377588266105
+  }
+}

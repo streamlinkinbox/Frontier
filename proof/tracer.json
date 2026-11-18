@@ -1,0 +1,14 @@
+{
+  "backend": "WebGPU / SwiftShader / Chromium 143.0.4 package",
+  "integrator": "megakernel",
+  "width": 480,
+  "height": 270,
+  "trace_scale": 1,
+  "denoise": false,
+  "reprojection": false,
+  "captures": [
+    {"spp": 1, "nonfinite_accumulation_components": 0, "digest": "785f46d6", "independent_repeat_digest": "785f46d6"},
+    {"spp": 16, "nonfinite_accumulation_components": 0, "digest": "3fdb0e98", "independent_repeat_digest": "3fdb0e98"},
+    {"spp": 64, "nonfinite_accumulation_components": 0, "digest": "378a54f3"}
+  ]
+}

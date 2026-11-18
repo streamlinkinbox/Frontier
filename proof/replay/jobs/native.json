@@ -1,0 +1,7 @@
+[
+  ["native-gi", {"algoA": "sdf", "giA": "sdf", "sources": 1, "dump": "gi", "sdfMode": "clip"}, "gi"],
+  ["native-local", {"dump": "shadow", "sdfMode": "local", "giA": "off"}, "shadow"],
+  ["native-clip", {"sdfMode": "clip"}, "shadow"],
+  ["native-hybrid", {"algoA": "hybrid"}, "shadow"],
+  ["native-cap", {"algoA": "bvh"}, "shadow"]
+]
