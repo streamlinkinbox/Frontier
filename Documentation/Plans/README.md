@@ -8,6 +8,7 @@
 
 | Plan Document | Domain |
 | :--- | :--- |
+| [WorldGiShadowPathTracerPlan.md](WorldGiShadowPathTracerPlan.md) | Real-mesh GTX GI, shadow selection and shared GTX/RTX path tracer |
 | [GameEngineBringupPlan.md](GameEngineBringupPlan.md) | Overall engine bringup roadmap & subsystem ordering |
 | [ThreadingArchitecturePlan.md](ThreadingArchitecturePlan.md) | Priority-budgeted `ExecutionChannels`, `TaskScheduler` & `WorkspaceThread` |
 | [DocumentFormatsInstancePlan.md](DocumentFormatsInstancePlan.md) | Two-Tier Hybrid `.Space` codec registry & non-kinship instances |
