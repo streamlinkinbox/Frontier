@@ -79,6 +79,9 @@ public:
         GpuViewportOverlayResult&        OutResult);
 
     [[nodiscard]] Editor::GizmoHandleOrdinal QueryLastGpuPickAtPixel(uint32_t PixelX, uint32_t PixelY) const noexcept;
+    [[nodiscard]] Editor::GizmoHandleOrdinal QueryGpuPickAtPixelNow(uint32_t PixelX, uint32_t PixelY);
+    [[nodiscard]] uint32_t QueryTargetWidthPx() const noexcept { return TargetWidthPx; }
+    [[nodiscard]] uint32_t QueryTargetHeightPx() const noexcept { return TargetHeightPx; }
 
 private:
     struct GraphicsProgramUnit
@@ -132,6 +135,9 @@ private:
     uint32_t              CachedPickPatchY0           = 0u;
     uint32_t              CachedPickPatchW            = 0u;
     uint32_t              CachedPickPatchH            = 0u;
+    uint32_t              CachedPickCenterX           = 0u;
+    uint32_t              CachedPickCenterY           = 0u;
+    bool                  CachedPickPatchValid        = false;
     bool                  Ready                       = false;
 };
 

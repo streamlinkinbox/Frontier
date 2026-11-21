@@ -286,8 +286,11 @@ void WorldGizmoOverlayRasterization::TeardownOverlay()
 {
     Ready = false;
     CachedPickOrdinals.clear();
-    CachedPickPatchW = 0u;
-    CachedPickPatchH = 0u;
+    CachedPickPatchW     = 0u;
+    CachedPickPatchH     = 0u;
+    CachedPickCenterX    = 0u;
+    CachedPickCenterY    = 0u;
+    CachedPickPatchValid = false;
     if (DeviceInterchange != nullptr && DeviceInterchange->Ready())
     {
         VkDevice DeviceHandle = DeviceInterchange->AccessDevice();
@@ -346,8 +349,12 @@ void WorldGizmoOverlayRasterization::ReleaseRenderTargets()
     DeviceInterchange->ReleaseImage2D(ColorAttachment);
     DeviceInterchange->ReleaseImage2D(PickAttachment);
     DeviceInterchange->ReleaseImage2D(DepthAttachment);
-    TargetWidthPx  = 0u;
-    TargetHeightPx = 0u;
+    TargetWidthPx        = 0u;
+    TargetHeightPx       = 0u;
+    CachedPickPatchW     = 0u;
+    CachedPickPatchH     = 0u;
+    CachedPickPatchValid = false;
+    CachedPickOrdinals.clear();
 }
 
 bool WorldGizmoOverlayRasterization::EnsureRenderTargets(uint32_t WidthPx, uint32_t HeightPx)
@@ -899,8 +906,9 @@ bool WorldGizmoOverlayRasterization::RasterizeGizmoOntoWorldBuffer(
 
     std::memcpy(InOutDisplayRgba8.data(), UploadReadbackRgbaBuffer.HostAddress, PixelCount * 4u);
 
-    CachedPickPatchW = 0u;
-    CachedPickPatchH = 0u;
+    CachedPickPatchW     = 0u;
+    CachedPickPatchH     = 0u;
+    CachedPickPatchValid = false;
     CachedPickOrdinals.resize(PixelCount);
     const auto* RawPickWords = static_cast<const uint32_t*>(ReadbackPickBuffer.HostAddress);
     for (std::size_t Idx = 0u; Idx < PixelCount; ++Idx)
@@ -1127,10 +1135,13 @@ bool WorldGizmoOverlayRasterization::CompositeOntoGpuViewport(
         (void)DeviceInterchange->AwaitTimelineTick(Signal);
         DeviceInterchange->FreeCommandBuffer(Cmd);
 
-        CachedPickPatchX0 = static_cast<uint32_t>(PatchX0);
-        CachedPickPatchY0 = static_cast<uint32_t>(PatchY0);
-        CachedPickPatchW  = PatchW;
-        CachedPickPatchH  = PatchH;
+        CachedPickPatchX0    = static_cast<uint32_t>(PatchX0);
+        CachedPickPatchY0    = static_cast<uint32_t>(PatchY0);
+        CachedPickPatchW     = PatchW;
+        CachedPickPatchH     = PatchH;
+        CachedPickCenterX    = static_cast<uint32_t>(Cx);
+        CachedPickCenterY    = static_cast<uint32_t>(Cy);
+        CachedPickPatchValid = true;
         const std::size_t PatchPixels = static_cast<std::size_t>(PatchW) * PatchH;
         CachedPickOrdinals.resize(PatchPixels);
         const auto* RawPickWords = static_cast<const uint32_t*>(ReadbackPickPatchBuffer.HostAddress);
@@ -1141,6 +1152,7 @@ bool WorldGizmoOverlayRasterization::CompositeOntoGpuViewport(
     }
     else
     {
+        CachedPickPatchValid = false;
         if (!Request.DrawGizmo || OrderedVertices.empty())
         {
             CachedPickPatchW = 0u;
@@ -1158,6 +1170,83 @@ bool WorldGizmoOverlayRasterization::CompositeOntoGpuViewport(
     return true;
 }
 
+Editor::GizmoHandleOrdinal WorldGizmoOverlayRasterization::QueryGpuPickAtPixelNow(uint32_t PixelX, uint32_t PixelY)
+{
+    if (!Ready || TargetWidthPx == 0u || TargetHeightPx == 0u)
+    {
+        return Editor::GizmoHandleOrdinal::None;
+    }
+    const uint32_t ClampedX = std::min(PixelX, TargetWidthPx - 1u);
+    const uint32_t ClampedY = std::min(PixelY, TargetHeightPx - 1u);
+
+    if (CachedPickOrdinals.size() >= static_cast<std::size_t>(TargetWidthPx) * TargetHeightPx)
+    {
+        return QueryLastGpuPickAtPixel(ClampedX, ClampedY);
+    }
+
+    if (CachedPickPatchValid && CachedPickPatchW > 0u && CachedPickPatchH > 0u &&
+        ClampedX == CachedPickCenterX && ClampedY == CachedPickCenterY)
+    {
+        return QueryLastGpuPickAtPixel(ClampedX, ClampedY);
+    }
+
+    if (DeviceInterchange == nullptr || !DeviceInterchange->Ready() ||
+        PickAttachment.ImageHandle == VK_NULL_HANDLE || ReadbackPickPatchBuffer.HostAddress == nullptr)
+    {
+        return Editor::GizmoHandleOrdinal::None;
+    }
+
+    FlushPreviousCompositeCmd();
+
+    VkCommandBuffer Cmd = DeviceInterchange->BeginSingleTimeCommands();
+    if (Cmd == VK_NULL_HANDLE)
+    {
+        return Editor::GizmoHandleOrdinal::None;
+    }
+
+    const int32_t  Cx      = static_cast<int32_t>(ClampedX);
+    const int32_t  Cy      = static_cast<int32_t>(ClampedY);
+    const int32_t  PatchX0 = std::max(0, Cx - 2);
+    const int32_t  PatchY0 = std::max(0, Cy - 2);
+    const int32_t  PatchX1 = std::min(static_cast<int32_t>(TargetWidthPx) - 1, Cx + 2);
+    const int32_t  PatchY1 = std::min(static_cast<int32_t>(TargetHeightPx) - 1, Cy + 2);
+    const uint32_t PatchW  = static_cast<uint32_t>(PatchX1 - PatchX0 + 1);
+    const uint32_t PatchH  = static_cast<uint32_t>(PatchY1 - PatchY0 + 1);
+
+    VkBufferImageCopy PatchCopy {};
+    PatchCopy.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0u, 0u, 1u };
+    PatchCopy.imageOffset      = { PatchX0, PatchY0, 0 };
+    PatchCopy.imageExtent      = { PatchW, PatchH, 1u };
+    vkCmdCopyImageToBuffer(
+        Cmd,
+        PickAttachment.ImageHandle,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        ReadbackPickPatchBuffer.BufferHandle,
+        1u,
+        &PatchCopy);
+
+    const uint64_t Signal = DeviceInterchange->DispatchCommandBufferAsync(Cmd);
+    (void)DeviceInterchange->AwaitTimelineTick(Signal);
+    DeviceInterchange->FreeCommandBuffer(Cmd);
+
+    CachedPickPatchX0    = static_cast<uint32_t>(PatchX0);
+    CachedPickPatchY0    = static_cast<uint32_t>(PatchY0);
+    CachedPickPatchW     = PatchW;
+    CachedPickPatchH     = PatchH;
+    CachedPickCenterX    = ClampedX;
+    CachedPickCenterY    = ClampedY;
+    CachedPickPatchValid = true;
+    const std::size_t PatchPixels = static_cast<std::size_t>(PatchW) * PatchH;
+    CachedPickOrdinals.resize(PatchPixels);
+    const auto* RawPickWords = static_cast<const uint32_t*>(ReadbackPickPatchBuffer.HostAddress);
+    for (std::size_t Idx = 0u; Idx < PatchPixels; ++Idx)
+    {
+        CachedPickOrdinals[Idx] = RawPickWords[Idx * 4u + 3u];
+    }
+
+    return QueryLastGpuPickAtPixel(ClampedX, ClampedY);
+}
+
 Editor::GizmoHandleOrdinal WorldGizmoOverlayRasterization::QueryLastGpuPickAtPixel(uint32_t PixelX, uint32_t PixelY) const noexcept
 {
     if (TargetWidthPx == 0u || TargetHeightPx == 0u)
@@ -1171,19 +1260,20 @@ Editor::GizmoHandleOrdinal WorldGizmoOverlayRasterization::QueryLastGpuPickAtPix
     int32_t  BestDist = 9999;
 
     if (CachedPickPatchW > 0u && CachedPickPatchH > 0u &&
-        CachedPickOrdinals.size() >= static_cast<std::size_t>(CachedPickPatchW) * CachedPickPatchH)
+        CachedPickOrdinals.size() >= static_cast<std::size_t>(CachedPickPatchW) * CachedPickPatchH &&
+        CachedPickOrdinals.size() < static_cast<std::size_t>(TargetWidthPx) * TargetHeightPx)
     {
         for (uint32_t Py = 0u; Py < CachedPickPatchH; ++Py)
         {
-            const int32_t Sy = CachedPickPatchY0 + static_cast<int32_t>(Py);
+            const int32_t Sy = static_cast<int32_t>(CachedPickPatchY0) + static_cast<int32_t>(Py);
             const int32_t Dy = Sy - static_cast<int32_t>(ClampedY);
             for (uint32_t Px = 0u; Px < CachedPickPatchW; ++Px)
             {
-                const int32_t Sx = CachedPickPatchX0 + static_cast<int32_t>(Px);
+                const int32_t Sx = static_cast<int32_t>(CachedPickPatchX0) + static_cast<int32_t>(Px);
                 const int32_t Dx = Sx - static_cast<int32_t>(ClampedX);
                 const uint32_t Ord = CachedPickOrdinals[static_cast<std::size_t>(Py) * CachedPickPatchW + static_cast<std::size_t>(Px)];
                 const int32_t Dist = Dx * Dx + Dy * Dy;
-                if (Ord != 0u && Ord <= static_cast<uint32_t>(Editor::GizmoHandleOrdinal::CenterRing) && Dist < BestDist)
+                if (Dist <= 8 && Ord != 0u && Ord <= static_cast<uint32_t>(Editor::GizmoHandleOrdinal::CenterRing) && Dist < BestDist)
                 {
                     BestOrd  = Ord;
                     BestDist = Dist;

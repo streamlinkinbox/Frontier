@@ -99,6 +99,12 @@ public:
         Mathematics::Axis3D CameraUp      = { 0.0f, 1.0f, 0.0f },
         Mathematics::Axis3D CameraForward = { 0.0f, 0.0f, -1.0f }) const;
 
+    [[nodiscard]] GizmoHandleOrdinal SelectHandleByRay(
+        const ViewportRay3D& Ray,
+        Mathematics::Axis3D  CameraRight   = { 1.0f, 0.0f, 0.0f },
+        Mathematics::Axis3D  CameraUp      = { 0.0f, 1.0f, 0.0f },
+        Mathematics::Axis3D  CameraForward = { 0.0f, 0.0f, -1.0f }) const;
+
     bool BeginDragInteraction(
         GizmoHandleOrdinal                  PickedHandle,
         const ViewportRay3D&                InitialRay,

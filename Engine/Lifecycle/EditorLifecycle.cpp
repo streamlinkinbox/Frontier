@@ -694,7 +694,9 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
     const float UiScale = std::clamp(ControlCentre.QueryInterfaceScaleFactor(), 0.75f, 2.0f);
     float       DeltaX  = RawCursorDeltaX;
     float       DeltaY  = RawCursorDeltaY;
-    if (const auto* ActiveExt = Input::InputExtension::QueryActiveExtension())
+    const auto* ActiveExt        = Input::InputExtension::QueryActiveExtension();
+    const bool  ExtensionPresent = (ActiveExt != nullptr);
+    if (ExtensionPresent)
     {
         const auto& Snapshot = ActiveExt->InspectEditorSnapshot();
         if (std::fabs(Snapshot.TickDeltaX) > 0.0f || std::fabs(Snapshot.TickDeltaY) > 0.0f)
@@ -702,7 +704,7 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
             DeltaX = Snapshot.TickDeltaX / UiScale;
             DeltaY = Snapshot.TickDeltaY / UiScale;
         }
-        else if (RightMouseFlyActive && std::fabs(Io.MouseDelta.x) > 0.0f)
+        else if (RightMouseFlyActive && (std::fabs(Io.MouseDelta.x) > 0.0f || std::fabs(Io.MouseDelta.y) > 0.0f))
         {
             DeltaX = Io.MouseDelta.x / UiScale;
             DeltaY = Io.MouseDelta.y / UiScale;
@@ -723,32 +725,35 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
     Mathematics::Axis3D Up    = Mathematics::NormalizeAxis(Mathematics::EvaluateCross(Right, Fwd), { 0.0f, 0.0f, 1.0f });
 
     // 1. Modifier & Mouse Button State (Unreal Engine Z-Up Viewport Controls)
-    const bool RightHeld  = ImGui::IsMouseDown(ImGuiMouseButton_Right);
-    const bool MiddleHeld = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
-    const bool LeftHeld   = ImGui::IsMouseDown(ImGuiMouseButton_Left) || Input.PrimaryPointer.Down;
-    const bool ShiftHeld  = Io.KeyShift || ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
-    const bool CtrlHeld   = Io.KeyCtrl  || ImGui::IsKeyDown(ImGuiKey_LeftCtrl)  || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
-    const bool AltHeld    = Io.KeyAlt   || ImGui::IsKeyDown(ImGuiKey_LeftAlt)   || ImGui::IsKeyDown(ImGuiKey_RightAlt);
+    const bool RightHeld   = (ExtensionPresent && ActiveExt->InspectEditorSnapshot().QueryButtonDown(1u)) ||
+                             ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    const bool MiddleHeld  = (ExtensionPresent && ActiveExt->InspectEditorSnapshot().QueryButtonDown(2u)) ||
+                             ImGui::IsMouseDown(ImGuiMouseButton_Middle);
+    const bool LeftHeld    = Input.PrimaryPointer.Down || ImGui::IsMouseDown(ImGuiMouseButton_Left);
+    const bool LeftPressed = Input.PrimaryPointer.Pressed || ImGui::IsMouseClicked(ImGuiMouseButton_Left, false);
+    const bool ShiftHeld   = Input.ShiftHeld || Io.KeyShift || ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
+    const bool CtrlHeld    = Input.ControlHeld || Io.KeyCtrl  || ImGui::IsKeyDown(ImGuiKey_LeftCtrl)  || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+    const bool AltHeld     = Input.AltHeld || Io.KeyAlt   || ImGui::IsKeyDown(ImGuiKey_LeftAlt)   || ImGui::IsKeyDown(ImGuiKey_RightAlt);
 
     const bool WantCursorLock =
         RightHeld && !AltHeld && !LeftHeld && !MiddleHeld && !WorldTransformGizmo.QueryDragging();
     if (WantCursorLock != RightMouseFlyActive)
     {
         RightMouseFlyActive = WantCursorLock;
-        if (auto* ActiveExt = Input::InputExtension::QueryActiveExtension())
+        if (auto* MutableExt = Input::InputExtension::QueryActiveExtension())
         {
-            ActiveExt->RequestCursorConfinement(
+            MutableExt->RequestCursorConfinement(
                 WantCursorLock ? Input::CursorConfinementMode::LockedRelativeHidden
                                : Input::CursorConfinementMode::FreeVisible);
         }
     }
 
-    const bool AnyNavButtonHeld = RightHeld || MiddleHeld || LeftHeld;
+    const bool AnyNavButtonHeld = RightHeld || MiddleHeld || (AltHeld && LeftHeld);
     const float NavDeltaX       = NavigationDragWasActive ? DeltaX : 0.0f;
     const float NavDeltaY       = NavigationDragWasActive ? DeltaY : 0.0f;
     NavigationDragWasActive     = AnyNavButtonHeld;
 
-    // 2. GPU Gizmo Hover / Drag & 3D Ray Picking (evaluated first so Gizmo handles preempt LMB camera walk)
+    // 2. GPU Gizmo Hover / Drag & 3D Ray Picking (LMB without Alt is dedicated to Gizmo & Selection)
     const float Aspect  = static_cast<float>(std::max(1u, Cam.ViewportWidthPx)) / static_cast<float>(std::max(1u, Cam.ViewportHeightPx));
     const float TanHalf = std::tan(std::clamp(Cam.VerticalFovRadians, 0.10f, 2.60f) * 0.5f);
     const float NdcX    = (NormU * 2.0f - 1.0f) * Aspect * TanHalf;
@@ -771,10 +776,12 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
                     SelectedEntry->PositionX = GizmoActiveTransform.Position.X;
                     SelectedEntry->PositionY = GizmoActiveTransform.Position.Y;
                     SelectedEntry->PositionZ = GizmoActiveTransform.Position.Z;
+                    SelectedEntry->RotationX = GizmoActiveTransform.Rotation.X;
+                    SelectedEntry->RotationY = GizmoActiveTransform.Rotation.Y;
+                    SelectedEntry->RotationZ = GizmoActiveTransform.Rotation.Z;
                     SelectedEntry->ScaleX    = std::max(0.08f, GizmoActiveTransform.Scale.X);
                     SelectedEntry->ScaleY    = std::max(0.08f, GizmoActiveTransform.Scale.Y);
                     SelectedEntry->ScaleZ    = std::max(0.08f, GizmoActiveTransform.Scale.Z);
-                    SelectedEntry->RotationZ += Delta.RotationDegrees.Z;
                     WorldTransformGizmo.ConfigureAnchor(GizmoActiveTransform.Position, WorldTransformGizmo.QueryWorldRadius());
                     SceneChanged = true;
                 }
@@ -791,11 +798,19 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
     else if (!AltHeld && !RightHeld && !MiddleHeld)
     {
         Editor::GizmoHandleOrdinal Hovered = Editor::GizmoHandleOrdinal::None;
-        if (WorldGizmoRasterizer != nullptr && WorldGizmoRasterizer->QueryReady() && LastGizmoSlot.Valid())
+        if (LastGizmoSlot.Valid())
         {
-            const uint32_t PixX = static_cast<uint32_t>(NormU * static_cast<float>(std::max(1u, Cam.ViewportWidthPx) - 1u));
-            const uint32_t PixY = static_cast<uint32_t>(NormV * static_cast<float>(std::max(1u, Cam.ViewportHeightPx) - 1u));
-            Hovered             = WorldGizmoRasterizer->QueryLastGpuPickAtPixel(PixX, PixY);
+            if (WorldGizmoRasterizer != nullptr && WorldGizmoRasterizer->QueryReady() &&
+                WorldGizmoRasterizer->QueryTargetWidthPx() > 0u && WorldGizmoRasterizer->QueryTargetHeightPx() > 0u)
+            {
+                const uint32_t PixX = static_cast<uint32_t>(NormU * static_cast<float>(WorldGizmoRasterizer->QueryTargetWidthPx() - 1u));
+                const uint32_t PixY = static_cast<uint32_t>(NormV * static_cast<float>(WorldGizmoRasterizer->QueryTargetHeightPx() - 1u));
+                Hovered             = WorldGizmoRasterizer->QueryGpuPickAtPixelNow(PixX, PixY);
+            }
+            else
+            {
+                Hovered = WorldTransformGizmo.SelectHandleByRay(CursorRay, Right, Up, Fwd);
+            }
         }
         if (Hovered != WorldTransformGizmo.QueryHoveredHandle())
         {
@@ -803,7 +818,7 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
             GizmoOverlayOnly = true;
         }
 
-        if (Input.PrimaryPointer.Pressed)
+        if (LeftPressed)
         {
             if (Hovered != Editor::GizmoHandleOrdinal::None && LastGizmoSlot.Valid())
             {
@@ -811,10 +826,13 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
                 {
                     GizmoActiveTransform          = {};
                     GizmoActiveTransform.Position = { SelectedEntry->PositionX, SelectedEntry->PositionY, SelectedEntry->PositionZ };
+                    GizmoActiveTransform.Rotation = { SelectedEntry->RotationX, SelectedEntry->RotationY, SelectedEntry->RotationZ };
                     GizmoActiveTransform.Scale    = { SelectedEntry->ScaleX, SelectedEntry->ScaleY, SelectedEntry->ScaleZ };
-                    (void)WorldTransformGizmo.BeginDragInteraction(Hovered, CursorRay, GizmoActiveTransform, Right, Up);
-                    CameraInteractiveDrag = true;
-                    GizmoOverlayOnly      = true;
+                    if (WorldTransformGizmo.BeginDragInteraction(Hovered, CursorRay, GizmoActiveTransform, Right, Up))
+                    {
+                        CameraInteractiveDrag = true;
+                        GizmoOverlayOnly      = true;
+                    }
                 }
             }
             else
@@ -834,16 +852,15 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
         }
     }
 
-    // 3. Unreal Engine Camera Navigation:
-    //    - RMB: 6-DOF Mouse-Look + WASD + Q (Down) + E (Up) + Shift (3x Sprint)
-    //    - LMB (when not dragging Gizmo): Drag Yaw/Horizontal-Walk + WASD + Q/E + Shift
+    // 3. Single Unreal Engine Camera Navigation Model:
+    //    - RMB: 6-DOF Mouse-Look + WASD + Q (Down) + E (Up) + Shift (3x Sprint) + Ctrl (0.3x Slow)
     //    - MMB or LMB+RMB: Truck / Pedestal Pan
     //    - Alt+LMB: Orbit around Target, Alt+RMB: Smooth Dolly, Alt+MMB: Pan
-    //    - Wheel (with or without RMB): Fly-Speed Adjustment (never Dolly-Zoom; Dolly stays on Alt+RMB & +/- capsule)
-    //    - Shift is a Sprint modifier only: it must never switch RMB Mouse-Look into Pan or stop Fly keys
+    //    - Wheel (with or without RMB): Fly-Speed Adjustment (Dolly stays on Alt+RMB & +/- capsule)
+    //    - LMB (without Alt): Reserved strictly for Gizmo manipulation and object picking (never camera walk/fly)
     //    - Arrow Keys + PageUp/PageDown: Keyboard Fly
-    const bool GizmoBusy = WorldTransformGizmo.QueryDragging();
-    const bool FlyKeysPossible = !Io.WantTextInput && !GizmoBusy && (RightHeld || (LeftHeld && !AltHeld && !MiddleHeld));
+    const bool GizmoBusy       = WorldTransformGizmo.QueryDragging();
+    const bool FlyKeysPossible = !Io.WantTextInput && !GizmoBusy && RightHeld && !AltHeld && !MiddleHeld;
 
     // Wheel source: InputExtension snapshot and ImGui carry the same packet in the desktop host;
     // take the larger magnitude so neither path is double-counted and headless ImGui-only frames still work.
@@ -939,28 +956,6 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
                 CameraMoved      = true;
             }
         }
-        else if (LeftHeld && !RightHeld && !MiddleHeld && !AltHeld && !Input.PrimaryPointer.Pressed)
-        {
-            // Unreal Engine LMB viewport drag: Yaw turn + horizontal ground-plane walk
-            if (std::fabs(NavDeltaX) > 0.05f || std::fabs(NavDeltaY) > 0.05f)
-            {
-                const Mathematics::Axis3D ToTarget = Cam.TargetPoint - Cam.CameraOrigin;
-                const float Dist  = std::max(0.35f, std::sqrt(Mathematics::EvaluateDot(ToTarget, ToTarget)));
-                const float Yaw   = std::atan2(Fwd.X, Fwd.Y) + NavDeltaX * 0.0040f;
-                const float Pitch = std::asin(std::clamp(Fwd.Z, -0.995f, 0.995f));
-                const float CosP  = std::cos(Pitch);
-                Fwd               = Mathematics::NormalizeAxis({ std::sin(Yaw) * CosP, std::cos(Yaw) * CosP, std::sin(Pitch) }, Fwd);
-                Right             = Mathematics::NormalizeAxis(Mathematics::EvaluateCross(Fwd, Cam.WorldUpAxis), Right);
-                Up                = Mathematics::NormalizeAxis(Mathematics::EvaluateCross(Right, Fwd), Up);
-
-                const Mathematics::Axis3D GroundFwd = Mathematics::NormalizeAxis({ Fwd.X, Fwd.Y, 0.0f }, { std::sin(Yaw), std::cos(Yaw), 0.0f });
-                const float WalkScale = 0.018f * CameraFlySpeedScalar * (ShiftHeld ? 3.0f : 1.0f);
-                const Mathematics::Axis3D WalkOffset = GroundFwd * (-NavDeltaY * WalkScale);
-                Cam.CameraOrigin = Cam.CameraOrigin + WalkOffset;
-                Cam.TargetPoint  = Cam.CameraOrigin + Fwd * Dist;
-                CameraMoved      = true;
-            }
-        }
 
         if (FlyKeysPossible)
         {
@@ -1010,7 +1005,6 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
                 CameraMoved      = true;
             }
         }
-
     }
 
     {
@@ -1024,7 +1018,9 @@ void EditorLifecycle::ProcessShowcaseViewportInteraction(
         Panes->Viewport.ConfigureProbeReadoutText(SpeedReadout);
     }
 
-    CameraInteractiveDrag = RightHeld || MiddleHeld || (AltHeld && LeftHeld) || WorldTransformGizmo.QueryDragging() || CameraMoved;
+    CameraInteractiveDrag =
+        RightHeld || MiddleHeld || (AltHeld && LeftHeld) || (AltHeld && RightHeld) ||
+        WorldTransformGizmo.QueryDragging() || CameraMoved;
 
     // 4. Gizmo & Frame-Selection Keyboard Shortcuts (when not flying RMB/LMB and not typing in text fields)
     if (!RightHeld && !LeftHeld && !Io.WantTextInput && !CtrlHeld && !AltHeld)
@@ -2465,13 +2461,17 @@ void EditorLifecycle::PresentPrimaryEditorImGui(double Δt)
 
     DockContainer.PresentWindowImGuiPanes(Components::HostWindowToken{ 0u });
     WorkspaceAppearance::ClearOverlayPointerShield();
-    if (RightMouseFlyActive && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
+    const auto* RmbCheckExt = Input::InputExtension::QueryActiveExtension();
+    const bool  RmbStillDown =
+        ImGui::IsMouseDown(ImGuiMouseButton_Right) ||
+        (RmbCheckExt != nullptr && RmbCheckExt->InspectEditorSnapshot().QueryButtonDown(1u));
+    if (RightMouseFlyActive && !RmbStillDown)
     {
         RightMouseFlyActive     = false;
         NavigationDragWasActive = false;
-        if (auto* ActiveExt = Input::InputExtension::QueryActiveExtension())
+        if (auto* MutableExt = Input::InputExtension::QueryActiveExtension())
         {
-            ActiveExt->RequestCursorConfinement(Input::CursorConfinementMode::FreeVisible);
+            MutableExt->RequestCursorConfinement(Input::CursorConfinementMode::FreeVisible);
         }
     }
 

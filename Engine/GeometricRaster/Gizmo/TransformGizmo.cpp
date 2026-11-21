@@ -389,6 +389,59 @@ std::vector<GizmoGPUVertex> TransformGizmo::BuildTriangleStream(
     return Stream;
 }
 
+GizmoHandleOrdinal TransformGizmo::SelectHandleByRay(
+    const ViewportRay3D& Ray,
+    Mathematics::Axis3D  CameraRight,
+    Mathematics::Axis3D  CameraUp,
+    Mathematics::Axis3D  CameraForward) const
+{
+    const std::vector<GizmoGPUVertex> Stream = BuildTriangleStream(CameraRight, CameraUp, CameraForward);
+    float                             BestT  = 1.0e9f;
+    GizmoHandleOrdinal                Best   = GizmoHandleOrdinal::None;
+
+    for (std::size_t Idx = 0u; Idx + 2u < Stream.size(); Idx += 3u)
+    {
+        const uint32_t OrdInt = static_cast<uint32_t>(Stream[Idx].NormalHandlePacked.W + 0.5f);
+        if (OrdInt == 0u || OrdInt > static_cast<uint32_t>(GizmoHandleOrdinal::CenterRing))
+        {
+            continue;
+        }
+        const Mathematics::Axis3D V0 { Stream[Idx].PositionAlpha.X,      Stream[Idx].PositionAlpha.Y,      Stream[Idx].PositionAlpha.Z };
+        const Mathematics::Axis3D V1 { Stream[Idx + 1u].PositionAlpha.X, Stream[Idx + 1u].PositionAlpha.Y, Stream[Idx + 1u].PositionAlpha.Z };
+        const Mathematics::Axis3D V2 { Stream[Idx + 2u].PositionAlpha.X, Stream[Idx + 2u].PositionAlpha.Y, Stream[Idx + 2u].PositionAlpha.Z };
+
+        const Mathematics::Axis3D Edge1 = V1 - V0;
+        const Mathematics::Axis3D Edge2 = V2 - V0;
+        const Mathematics::Axis3D PVec  = Mathematics::EvaluateCross(Ray.Direction, Edge2);
+        const float               Det   = Mathematics::EvaluateDot(Edge1, PVec);
+        if (std::fabs(Det) < 1.0e-7f)
+        {
+            continue;
+        }
+        const float               InvDet = 1.0f / Det;
+        const Mathematics::Axis3D TVec   = Ray.Origin - V0;
+        const float               U      = Mathematics::EvaluateDot(TVec, PVec) * InvDet;
+        if (U < 0.0f || U > 1.0f)
+        {
+            continue;
+        }
+        const Mathematics::Axis3D QVec = Mathematics::EvaluateCross(TVec, Edge1);
+        const float               V    = Mathematics::EvaluateDot(Ray.Direction, QVec) * InvDet;
+        if (V < 0.0f || U + V > 1.0f)
+        {
+            continue;
+        }
+        const float T = Mathematics::EvaluateDot(Edge2, QVec) * InvDet;
+        if (T > 0.001f && T < BestT)
+        {
+            BestT = T;
+            Best  = static_cast<GizmoHandleOrdinal>(OrdInt);
+        }
+    }
+
+    return Best;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                              RAY-AXIS & RAY-PLANE DRAG SOLVER
 //------------------------------------------------------------------------------------------------------------------------

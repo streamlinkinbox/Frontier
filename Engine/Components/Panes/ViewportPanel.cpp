@@ -461,16 +461,25 @@ void ViewportPanel::RenderCanvasPane(
         }
     }
 
+    const bool NavCapsulePresent =
+        PaneBounds.Width >= 140.0f && PaneBounds.Height >= 186.0f &&
+        (!SplitViewportEnabled || ActivePaneIndex == PaneIndex);
+    const bool NavCapsuleHovered =
+        NavCapsulePresent &&
+        CapsuleButton::QueryViewportNavigationCapsuleBounds(PaneBounds, 12.0f, 68.0f).Contains(Cursor);
+
     const bool ImGuiMouseActive =
         (ImGui::GetCurrentContext() != nullptr) &&
         (ImGui::IsMouseDown(ImGuiMouseButton_Left) ||
          ImGui::IsMouseDown(ImGuiMouseButton_Right) ||
          ImGui::IsMouseDown(ImGuiMouseButton_Middle));
-    const bool AnyMouseHeld = ImGuiMouseActive || Input.PrimaryPointer.Down;
+    const bool AnyMouseHeld =
+        ImGuiMouseActive || Input.PrimaryPointer.Down || Input.SecondaryDown || Input.MiddleDown;
 
     if (CapturedInteractionPaneIndex < 0 &&
         !OverlayCoversCanvas &&
         !ProjectionChipConsumed &&
+        !NavCapsuleHovered &&
         PaneBounds.Contains(Cursor) &&
         AnyMouseHeld)
     {
@@ -480,7 +489,7 @@ void ViewportPanel::RenderCanvasPane(
 
     const bool CapturedHere = (CapturedInteractionPaneIndex == static_cast<int32_t>(PaneIndex));
     if (InteractionCallback &&
-        ((!OverlayCoversCanvas && !ProjectionChipConsumed && PaneBounds.Contains(Cursor)) || CapturedHere))
+        ((!OverlayCoversCanvas && !ProjectionChipConsumed && !NavCapsuleHovered && PaneBounds.Contains(Cursor)) || CapturedHere))
     {
         InteractionCallback(PaneIndex, PaneBounds, Input);
     }

@@ -6,6 +6,8 @@
 #include "Engine/Codecs/WorldSpaceCodec.h"
 #include "Engine/Configuration/ProjectGenerator.h"
 #include "Engine/Configuration/ProjectSpaceRepository.h"
+#include "Engine/GeometricRaster/Gizmo/TransformGizmo.h"
+#include "Engine/GeometricRaster/Gizmo/WorldGizmoOverlayRasterization.h"
 #include "Engine/GeometricRaster/GlobalIllumination/ShowcaseGalleryScene.h"
 #include "Engine/GeometricRaster/GlobalIllumination/VulkanWorldRenderSequence.h"
 #include "Engine/GeometricRaster/VulkanInterchange.h"
@@ -597,6 +599,136 @@ int main()
             return 1;
         }
 
+        // LMB drag + WASD without Alt MUST NOT drive a second camera model
+        const Mathematics::Axis3D OriginBeforeLmb = LiveBundle->EditorCamera.CameraOrigin;
+        const Mathematics::Axis3D TargetBeforeLmb = LiveBundle->EditorCamera.TargetPoint;
+        Io.AddMousePosEvent(960.0f, 420.0f);
+        Io.AddMouseButtonEvent(ImGuiMouseButton_Left, true);
+        Io.AddKeyEvent(ImGuiKey_W, true);
+        ImGui::NewFrame();
+        EditorSession.PresentPrimaryEditorImGui(0.050);
+        ImGui::Render();
+        Io.AddMousePosEvent(1040.0f, 380.0f);
+        ImGui::NewFrame();
+        EditorSession.PresentPrimaryEditorImGui(0.050);
+        ImGui::Render();
+        Io.AddKeyEvent(ImGuiKey_W, false);
+        Io.AddMouseButtonEvent(ImGuiMouseButton_Left, false);
+        ImGui::NewFrame();
+        EditorSession.PresentPrimaryEditorImGui(1.0 / 60.0);
+        ImGui::Render();
+
+        const float LmbOriginDriftSq = Mathematics::EvaluateDot(
+            LiveBundle->EditorCamera.CameraOrigin - OriginBeforeLmb,
+            LiveBundle->EditorCamera.CameraOrigin - OriginBeforeLmb);
+        const float LmbTargetDriftSq = Mathematics::EvaluateDot(
+            LiveBundle->EditorCamera.TargetPoint - TargetBeforeLmb,
+            LiveBundle->EditorCamera.TargetPoint - TargetBeforeLmb);
+        if (LmbOriginDriftSq > 1.0e-6f || LmbTargetDriftSq > 1.0e-6f)
+        {
+            std::fprintf(
+                stderr,
+                "[FAIL] LMB drag/WASD erroneously moved the camera (OriginDriftSq=%.6f, TargetDriftSq=%.6f).\n",
+                LmbOriginDriftSq,
+                LmbTargetDriftSq);
+            EditorSession.Finalize();
+            ImGui::DestroyContext(Ctx);
+            return 1;
+        }
+
+        // LMB hover, click & drag on TransformGizmo handle must transform the selected entity without moving camera
+        auto* ActivePanes = EditorSession.AccessWorkspaces().AccessActivePanes();
+        if (ActivePanes == nullptr || !LiveBundle->ControlVehicleToken.Valid())
+        {
+            std::fprintf(stderr, "[FAIL] Missing active panes or control vehicle token for gizmo test.\n");
+            EditorSession.Finalize();
+            ImGui::DestroyContext(Ctx);
+            return 1;
+        }
+        ActivePanes->Outliner.SelectSingle(LiveBundle->ControlVehicleToken);
+        const OutlinerRecordEntry* InitialVehicle = ActivePanes->Outliner.FindEntry(LiveBundle->ControlVehicleToken);
+        if (InitialVehicle == nullptr)
+        {
+            std::fprintf(stderr, "[FAIL] Control vehicle outliner record missing.\n");
+            EditorSession.Finalize();
+            ImGui::DestroyContext(Ctx);
+            return 1;
+        }
+        const Mathematics::Axis3D VehicleStartPos {
+            InitialVehicle->PositionX,
+            InitialVehicle->PositionY,
+            InitialVehicle->PositionZ
+        };
+        // Step one frame so gizmo anchor syncs to the selected vehicle
+        ImGui::NewFrame();
+        EditorSession.PresentPrimaryEditorImGui(1.0 / 60.0);
+        ImGui::Render();
+
+        const auto&         CamAfterSync = LiveBundle->EditorCamera;
+        const Rectangle2D   VpBounds     = ActivePanes->Viewport.QueryLastCanvasPaneBounds();
+        const float         GzRadius     = EditorSession.AccessTransformGizmo().QueryWorldRadius();
+        const Mathematics::Axis3D HandleTipWorld =
+            EditorSession.AccessTransformGizmo().QueryPivotOrigin() + Mathematics::Axis3D{ 0.82f * GzRadius, 0.0f, 0.0f };
+        const Mathematics::Axis3D CamFwd   = Mathematics::NormalizeAxis(CamAfterSync.TargetPoint - CamAfterSync.CameraOrigin, { 0.0f, 1.0f, 0.0f });
+        const Mathematics::Axis3D CamRight = Mathematics::NormalizeAxis(Mathematics::EvaluateCross(CamFwd, CamAfterSync.WorldUpAxis), { 1.0f, 0.0f, 0.0f });
+        const Mathematics::Axis3D CamUp    = Mathematics::NormalizeAxis(Mathematics::EvaluateCross(CamRight, CamFwd), { 0.0f, 0.0f, 1.0f });
+        const Mathematics::Axis3D RelTip   = HandleTipWorld - CamAfterSync.CameraOrigin;
+        const float               DepthFwd = Mathematics::EvaluateDot(RelTip, CamFwd);
+        const float               VpAspect = static_cast<float>(std::max(1u, CamAfterSync.ViewportWidthPx)) /
+                                             static_cast<float>(std::max(1u, CamAfterSync.ViewportHeightPx));
+        const float               VpTan    = std::tan(std::clamp(CamAfterSync.VerticalFovRadians, 0.10f, 2.60f) * 0.5f);
+        const float               TipU     = 0.5f + 0.5f * (Mathematics::EvaluateDot(RelTip, CamRight) / (DepthFwd * VpAspect * VpTan));
+        const float               TipV     = 0.5f - 0.5f * (Mathematics::EvaluateDot(RelTip, CamUp) / (DepthFwd * VpTan));
+        const ImVec2              TipPx    { VpBounds.X + TipU * VpBounds.Width, VpBounds.Y + TipV * VpBounds.Height };
+
+        const Mathematics::Axis3D OriginBeforeGizmo = CamAfterSync.CameraOrigin;
+        Io.AddMousePosEvent(TipPx.x, TipPx.y);
+        ImGui::NewFrame();
+        EditorSession.PresentPrimaryEditorImGui(1.0 / 60.0);
+        ImGui::Render();
+        const Editor::GizmoHandleOrdinal HoveredHandle = EditorSession.AccessTransformGizmo().QueryHoveredHandle();
+
+        Io.AddMouseButtonEvent(ImGuiMouseButton_Left, true);
+        ImGui::NewFrame();
+        EditorSession.PresentPrimaryEditorImGui(1.0 / 60.0);
+        ImGui::Render();
+        const bool DragStarted = EditorSession.AccessTransformGizmo().QueryDragging();
+
+        Io.AddMousePosEvent(TipPx.x + 60.0f, TipPx.y);
+        ImGui::NewFrame();
+        EditorSession.PresentPrimaryEditorImGui(1.0 / 60.0);
+        ImGui::Render();
+
+        Io.AddMouseButtonEvent(ImGuiMouseButton_Left, false);
+        ImGui::NewFrame();
+        EditorSession.PresentPrimaryEditorImGui(1.0 / 60.0);
+        ImGui::Render();
+
+        const OutlinerRecordEntry* MovedVehicle = ActivePanes->Outliner.FindEntry(LiveBundle->ControlVehicleToken);
+        const float VehicleDeltaX = (MovedVehicle != nullptr) ? std::fabs(MovedVehicle->PositionX - VehicleStartPos.X) : 0.0f;
+        const float GizmoCamDriftSq = Mathematics::EvaluateDot(
+            LiveBundle->EditorCamera.CameraOrigin - OriginBeforeGizmo,
+            LiveBundle->EditorCamera.CameraOrigin - OriginBeforeGizmo);
+
+        if (HoveredHandle != Editor::GizmoHandleOrdinal::TranslateX ||
+            !DragStarted ||
+            VehicleDeltaX < 0.05f ||
+            GizmoCamDriftSq > 1.0e-6f)
+        {
+            std::fprintf(
+                stderr,
+                "[FAIL] Gizmo LMB interaction validation failed (Hovered=%u, DragStarted=%d, VehicleDeltaX=%.4f, GizmoCamDriftSq=%.6f, TipUV=%.3f/%.3f).\n",
+                static_cast<unsigned>(HoveredHandle),
+                DragStarted ? 1 : 0,
+                VehicleDeltaX,
+                GizmoCamDriftSq,
+                TipU,
+                TipV);
+            EditorSession.Finalize();
+            ImGui::DestroyContext(Ctx);
+            return 1;
+        }
+
         EditorSession.Finalize();
         ImGui::DestroyContext(Ctx);
     }
@@ -691,6 +823,96 @@ int main()
                 return 1;
             }
 
+            // Verify GPU gizmo CompositeOntoGpuViewport + on-demand QueryGpuPickAtPixelNow on SwiftShader
+            GpuGallery.EditorCamera.ViewportWidthPx  = 320u;
+            GpuGallery.EditorCamera.ViewportHeightPx = 192u;
+            GeometricRaster::WorldRenderConfiguration GpuCompositeCfg {};
+            VkImageView WorldView = VK_NULL_HANDLE;
+            uint32_t    WorldW    = 0u;
+            uint32_t    WorldH    = 0u;
+            if (!GpuWorldSeq.RenderWorldViewportToGpuImage(
+                    GpuCompositeCfg,
+                    0u,
+                    GpuGallery.EditorCamera,
+                    GpuGallery.Scene,
+                    WorldView,
+                    WorldW,
+                    WorldH) ||
+                WorldView == VK_NULL_HANDLE)
+            {
+                std::fprintf(stderr, "[FAIL] RenderWorldViewportToGpuImage failed for GPU gizmo pick test.\n");
+                GpuWorldSeq.TeardownSequence();
+                VkDevice.TeardownInterchange();
+                return 1;
+            }
+
+            GeometricRaster::WorldGizmoOverlayRasterization GpuGizmo {};
+            if (!GpuGizmo.InitializeOverlay(&VkDevice, CompiledShaderDir))
+            {
+                std::fprintf(stderr, "[FAIL] WorldGizmoOverlayRasterization InitializeOverlay failed.\n");
+                GpuWorldSeq.TeardownSequence();
+                VkDevice.TeardownInterchange();
+                return 1;
+            }
+
+            Editor::TransformGizmo TestGizmo {};
+            TestGizmo.ConfigureAnchor(GpuGallery.EditorCamera.TargetPoint, 1.5f);
+            TestGizmo.ConfigureDimensionMode(Editor::GizmoDimensionMode::Spatial3D);
+            TestGizmo.ConfigureHandleFilter(Editor::GizmoHandleFilter::Universal);
+
+            GeometricRaster::WorldGizmoOverlayRasterization::GpuViewportOverlayRequest OverlayReq {};
+            OverlayReq.WorldSourceView  = WorldView;
+            OverlayReq.TargetWidthPx    = WorldW;
+            OverlayReq.TargetHeightPx   = WorldH;
+            OverlayReq.Camera           = GpuGallery.EditorCamera;
+            OverlayReq.Gizmo3D          = &TestGizmo;
+            OverlayReq.DrawGizmo        = true;
+            OverlayReq.RequestPickPatch = false;
+
+            GeometricRaster::WorldGizmoOverlayRasterization::GpuViewportOverlayResult OverlayRes {};
+            if (!GpuGizmo.CompositeOntoGpuViewport(OverlayReq, OverlayRes) ||
+                OverlayRes.ColorImageView == VK_NULL_HANDLE)
+            {
+                std::fprintf(stderr, "[FAIL] CompositeOntoGpuViewport failed.\n");
+                GpuGizmo.TeardownOverlay();
+                GpuWorldSeq.TeardownSequence();
+                VkDevice.TeardownInterchange();
+                return 1;
+            }
+
+            const auto& CamGpu = GpuGallery.EditorCamera;
+            const Mathematics::Axis3D FwdG   = Mathematics::NormalizeAxis(CamGpu.TargetPoint - CamGpu.CameraOrigin, { 0.0f, 1.0f, 0.0f });
+            const Mathematics::Axis3D RightG = Mathematics::NormalizeAxis(Mathematics::EvaluateCross(FwdG, CamGpu.WorldUpAxis), { 1.0f, 0.0f, 0.0f });
+            const Mathematics::Axis3D UpG    = Mathematics::NormalizeAxis(Mathematics::EvaluateCross(RightG, FwdG), { 0.0f, 0.0f, 1.0f });
+            const Mathematics::Axis3D TipG   = TestGizmo.QueryPivotOrigin() + Mathematics::Axis3D{ 0.82f * TestGizmo.QueryWorldRadius(), 0.0f, 0.0f };
+            const Mathematics::Axis3D RelG   = TipG - CamGpu.CameraOrigin;
+            const float               DepthG = Mathematics::EvaluateDot(RelG, FwdG);
+            const float               AspG   = static_cast<float>(WorldW) / static_cast<float>(WorldH);
+            const float               TanG   = std::tan(std::clamp(CamGpu.VerticalFovRadians, 0.10f, 2.60f) * 0.5f);
+            const float               TipUG  = std::clamp(0.5f + 0.5f * (Mathematics::EvaluateDot(RelG, RightG) / (DepthG * AspG * TanG)), 0.0f, 1.0f);
+            const float               TipVG  = std::clamp(0.5f - 0.5f * (Mathematics::EvaluateDot(RelG, UpG) / (DepthG * TanG)), 0.0f, 1.0f);
+            const uint32_t            PixXG  = static_cast<uint32_t>(TipUG * static_cast<float>(WorldW - 1u));
+            const uint32_t            PixYG  = static_cast<uint32_t>(TipVG * static_cast<float>(WorldH - 1u));
+
+            const Editor::GizmoHandleOrdinal GpuSkyPick = GpuGizmo.QueryGpuPickAtPixelNow(8u, 8u);
+            const Editor::GizmoHandleOrdinal GpuTipPick = GpuGizmo.QueryGpuPickAtPixelNow(PixXG, PixYG);
+            if (GpuSkyPick != Editor::GizmoHandleOrdinal::None ||
+                GpuTipPick != Editor::GizmoHandleOrdinal::TranslateX)
+            {
+                std::fprintf(
+                    stderr,
+                    "[FAIL] GPU gizmo QueryGpuPickAtPixelNow failed (SkyPick=%u, TipPick=%u at %u,%u).\n",
+                    static_cast<unsigned>(GpuSkyPick),
+                    static_cast<unsigned>(GpuTipPick),
+                    PixXG,
+                    PixYG);
+                GpuGizmo.TeardownOverlay();
+                GpuWorldSeq.TeardownSequence();
+                VkDevice.TeardownInterchange();
+                return 1;
+            }
+
+            GpuGizmo.TeardownOverlay();
             GpuWorldSeq.TeardownSequence();
             VkDevice.TeardownInterchange();
         }
