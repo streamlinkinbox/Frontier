@@ -1,0 +1,386 @@
+import { UnrealObserverCamera } from '../camera/unrealCamera';
+import { VehicleRigidBody } from '../physics/vehiclePhysics';
+import { VEHICLE_DESIGNS, VehicleDesignId } from '../vehicle/vehicleConfigs';
+import { VineEcosystem } from '../vines/vineSystem';
+import { BIOME_SPECS, BiomeId, TrailCorridorWorld } from '../world/trailCorridor';
+
+export type ExploreMode = 'UNREAL_CAMERA' | 'PEACEFUL_DRIVE';
+
+export interface HudCallbacks {
+  onSelectBiome: (biome: BiomeId) => void;
+  onCycleNextBiome: () => void;
+  onJumpCourseZ: (targetZ: number, label: string) => void;
+  onJumpForwardDelta: (deltaMeters: number) => void;
+  onSummonVehicleHere: () => void;
+  onToggleExploreMode: () => ExploreMode;
+  onSelectVehicle: (id: VehicleDesignId) => void;
+  onToggleAudio: () => boolean;
+  onChangeFlySpeed: (speedMps: number) => void;
+}
+
+export class ExpeditionHud {
+  private portalFlashEl!: HTMLElement;
+  private biomeSubEl!: HTMLElement;
+  private coordsEl!: HTMLElement;
+  private surfaceEl!: HTMLElement;
+  private flySpeedEl!: HTMLElement;
+  private portalDistEl!: HTMLElement;
+
+  private modeBtn!: HTMLButtonElement;
+  private audioBtn!: HTMLButtonElement;
+  private labBtn!: HTMLButtonElement;
+  private labDrawer!: HTMLElement;
+  private bannerEl!: HTMLElement;
+  private controlsStripEl!: HTMLElement;
+  private flySpeedSlider!: HTMLInputElement;
+  private flySpeedSliderVal!: HTMLElement;
+
+  private levelChipEls = new Map<BiomeId, HTMLButtonElement>();
+  private vehicleChipEls = new Map<VehicleDesignId, HTMLButtonElement>();
+
+  private bannerTimeout = 0;
+  private isLabOpen = false;
+
+  constructor(
+    container: HTMLElement,
+    vines: VineEcosystem,
+    callbacks: HudCallbacks
+  ) {
+    const flash = document.createElement('div');
+    flash.className = 'portal-flash';
+    container.appendChild(flash);
+    this.portalFlashEl = flash;
+
+    const levels: Array<{ id: BiomeId; key: string; name: string; sub: string }> = [
+      {
+        id: 'FOREST',
+        key: '1',
+        name: 'FOREST LEVEL',
+        sub: 'Giant Trees · Vines · Logs · Mudslides',
+      },
+      {
+        id: 'SWAMP',
+        key: '2',
+        name: 'SWAMP LEVEL',
+        sub: 'Crisscross Roots · Mosquitos · Robo-Ticks',
+      },
+      {
+        id: 'DESERT',
+        key: '3',
+        name: 'DESERT LEVEL',
+        sub: 'Sand Dunes · Red-Rock Arches · Dust Devils',
+      },
+    ];
+
+    const levelChipsHtml = levels
+      .map(
+        (lv, idx) => `
+      <button class="level-chip ${idx === 0 ? 'selected' : ''}" data-biome="${lv.id}">
+        <span class="level-chip-name">[${lv.key}] ${lv.name}</span>
+        <span class="level-chip-sub">${lv.sub}</span>
+      </button>
+    `
+      )
+      .join('');
+
+    const vehChipsHtml = VEHICLE_DESIGNS.map(
+      (d, idx) => `
+      <button class="veh-chip ${idx === 0 ? 'selected' : ''}" data-veh="${d.id}">
+        <span class="veh-chip-name">${d.name}</span>
+        <span class="veh-chip-sub">${d.subtitle}</span>
+      </button>
+    `
+    ).join('');
+
+    const root = document.createElement('div');
+    root.className = 'hud-layer';
+    root.innerHTML = `
+      <div class="hud-top">
+        <div class="top-left-stack">
+          <div class="expedition-stats">
+            <div class="brand-tag">
+              <span class="brand-title">FRONTIER · LEVEL OBSERVER</span>
+              <span class="brand-sub" id="hud-biome-sub">PRIMEVAL TITAN FOREST · PASSIVE SANDBOX</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-label">COURSE POS</span>
+              <span class="stat-val" id="hud-coords">0 m</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-label">ZONE / FEATURE</span>
+              <span class="stat-val" id="hud-surface" style="color:var(--hud-amber)">FOREST CLEARING</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-label">FLY SPEED</span>
+              <span class="stat-val" id="hud-fly-speed" style="color:var(--hud-cyan)">44 m/s</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-label">END PORTAL</span>
+              <span class="stat-val" id="hud-portal-dist">860 m</span>
+            </div>
+          </div>
+
+          <div class="level-switcher-row">
+            ${levelChipsHtml}
+            <button class="hud-btn mode-btn" id="btn-next-level">[P] NEXT LEVEL PORTAL</button>
+          </div>
+
+          <div class="landmark-row">
+            <button class="jump-btn" data-jumpz="-8" data-label="COURSE START (0m)">START (0m)</button>
+            <button class="jump-btn" data-jumpz="-175" data-label="SET-PIECE ZONE (-175m)">ZONE A (-175m)</button>
+            <button class="jump-btn" data-jumpz="-380" data-label="MID-COURSE SET-PIECE (-380m)">MID-COURSE (-380m)</button>
+            <button class="jump-btn" data-jumpz="-620" data-label="DEEP CANYON / SWAMP (-620m)">DEEP ZONE (-620m)</button>
+            <button class="jump-btn" data-jumpz="-835" data-label="END PORTAL GATE (-835m)">PORTAL GATE (-835m)</button>
+            <button class="jump-btn" id="btn-jump-fwd">[J] SKIP +200m AHEAD</button>
+          </div>
+        </div>
+
+        <div class="top-right-stack">
+          <div class="hud-actions">
+            <button class="hud-btn mode-btn" id="btn-mode">[V] MODE: UNREAL FREE-CAM</button>
+            <button class="hud-btn" id="btn-summon-car">[T] PLACE CAR HERE</button>
+            <button class="hud-btn" id="btn-audio">[M] AUDIO: OFF</button>
+            <button class="hud-btn" id="btn-lab">[TAB] SETTINGS</button>
+          </div>
+
+          <div class="vehicle-selector">
+            ${vehChipsHtml}
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-banner-wrap">
+        <div class="tactical-callout" id="hud-banner">UNREAL WASD CAMERA READY · DRAG MOUSE TO LOOK</div>
+      </div>
+
+      <div class="lab-drawer" id="hud-lab-drawer">
+        <div class="lab-title">
+          <span>OBSERVER &amp; WORLD SETTINGS</span>
+          <span style="color:var(--hud-muted)">PASSIVE</span>
+        </div>
+
+        <div class="lab-slider-row">
+          <div class="lab-slider-head"><span>Unreal Camera Speed</span><span id="val-fly">44 m/s</span></div>
+          <input type="range" id="rng-fly" min="6" max="240" step="2" value="44" />
+        </div>
+        <div class="lab-slider-row">
+          <div class="lab-slider-head"><span>Ambient Vine Growth Speed</span><span id="val-grow">1.00x</span></div>
+          <input type="range" id="rng-grow" min="0.2" max="2.5" step="0.05" value="1.0" />
+        </div>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="controls-strip" id="hud-controls-strip">
+          <span><kbd>RMB / LMB DRAG</kbd> Look</span>
+          <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Fly Course</span>
+          <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
+          <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
+          <span><kbd>SCROLL</kbd> Cam Speed</span>
+          <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Switch Level</span>
+          <span><kbd>T</kbd> Place Car Here</span>
+          <span><kbd>V</kbd> Peaceful Drive</span>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(root);
+
+    this.biomeSubEl = root.querySelector('#hud-biome-sub')!;
+    this.coordsEl = root.querySelector('#hud-coords')!;
+    this.surfaceEl = root.querySelector('#hud-surface')!;
+    this.flySpeedEl = root.querySelector('#hud-fly-speed')!;
+    this.portalDistEl = root.querySelector('#hud-portal-dist')!;
+
+    this.modeBtn = root.querySelector('#btn-mode')!;
+    this.audioBtn = root.querySelector('#btn-audio')!;
+    this.labBtn = root.querySelector('#btn-lab')!;
+    this.labDrawer = root.querySelector('#hud-lab-drawer')!;
+    this.bannerEl = root.querySelector('#hud-banner')!;
+    this.controlsStripEl = root.querySelector('#hud-controls-strip')!;
+    this.flySpeedSlider = root.querySelector('#rng-fly') as HTMLInputElement;
+    this.flySpeedSliderVal = root.querySelector('#val-fly')!;
+
+    root.querySelectorAll<HTMLButtonElement>('.level-chip').forEach((btn) => {
+      const biome = btn.dataset.biome as BiomeId;
+      this.levelChipEls.set(biome, btn);
+      btn.addEventListener('click', () => {
+        callbacks.onSelectBiome(biome);
+        btn.blur();
+      });
+    });
+
+    root.querySelector('#btn-next-level')!.addEventListener('click', (e) => {
+      callbacks.onCycleNextBiome();
+      (e.currentTarget as HTMLButtonElement).blur();
+    });
+
+    root.querySelectorAll<HTMLButtonElement>('.jump-btn[data-jumpz]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const z = parseFloat(btn.dataset.jumpz || '-8');
+        const label = btn.dataset.label || 'LANDMARK';
+        callbacks.onJumpCourseZ(z, label);
+        btn.blur();
+      });
+    });
+
+    root.querySelector('#btn-jump-fwd')!.addEventListener('click', (e) => {
+      callbacks.onJumpForwardDelta(200);
+      (e.currentTarget as HTMLButtonElement).blur();
+    });
+
+    root.querySelector('#btn-summon-car')!.addEventListener('click', (e) => {
+      callbacks.onSummonVehicleHere();
+      (e.currentTarget as HTMLButtonElement).blur();
+    });
+
+    this.modeBtn.addEventListener('click', () => {
+      const mode = callbacks.onToggleExploreMode();
+      this.setExploreModeLabel(mode);
+      this.modeBtn.blur();
+    });
+
+    this.audioBtn.addEventListener('click', () => {
+      const muted = callbacks.onToggleAudio();
+      this.setAudioLabel(muted);
+      this.audioBtn.blur();
+    });
+
+    this.labBtn.addEventListener('click', () => {
+      this.toggleLab();
+      this.labBtn.blur();
+    });
+
+    root.querySelectorAll<HTMLButtonElement>('.veh-chip').forEach((btn) => {
+      const id = btn.dataset.veh as VehicleDesignId;
+      this.vehicleChipEls.set(id, btn);
+      btn.addEventListener('click', () => {
+        callbacks.onSelectVehicle(id);
+        btn.blur();
+      });
+    });
+
+    this.flySpeedSlider.addEventListener('input', () => {
+      const v = parseFloat(this.flySpeedSlider.value);
+      this.flySpeedSliderVal.textContent = `${Math.round(v)} m/s`;
+      callbacks.onChangeFlySpeed(v);
+    });
+
+    const growInput = root.querySelector('#rng-grow') as HTMLInputElement;
+    const growVal = root.querySelector('#val-grow')!;
+    growInput.addEventListener('input', () => {
+      const v = parseFloat(growInput.value);
+      growVal.textContent = `${v.toFixed(2)}x`;
+      vines.params.growthSpeedScale = v;
+    });
+  }
+
+  public syncFlySpeedUI(speedMps: number): void {
+    this.flySpeedSlider.value = `${Math.round(speedMps)}`;
+    this.flySpeedSliderVal.textContent = `${Math.round(speedMps)} m/s`;
+  }
+
+  public flashPortalWarp(): void {
+    this.portalFlashEl.classList.add('active');
+    window.setTimeout(() => {
+      this.portalFlashEl.classList.remove('active');
+    }, 60);
+  }
+
+  public highlightSelectedBiome(biome: BiomeId): void {
+    for (const [b, btn] of this.levelChipEls.entries()) {
+      btn.classList.toggle('selected', b === biome);
+    }
+    const spec = BIOME_SPECS[biome];
+    this.biomeSubEl.textContent = `${spec.title} · PASSIVE OBSERVER`;
+  }
+
+  public highlightSelectedVehicle(id: VehicleDesignId): void {
+    for (const [vid, btn] of this.vehicleChipEls.entries()) {
+      btn.classList.toggle('selected', vid === id);
+    }
+  }
+
+  public setExploreModeLabel(mode: ExploreMode): void {
+    if (mode === 'UNREAL_CAMERA') {
+      this.modeBtn.textContent = '[V] MODE: UNREAL FREE-CAM';
+      this.controlsStripEl.innerHTML = `
+        <span><kbd>RMB / LMB DRAG</kbd> Look</span>
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Fly Course</span>
+        <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
+        <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
+        <span><kbd>SCROLL</kbd> Cam Speed</span>
+        <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Switch Level</span>
+        <span><kbd>T</kbd> Place Car Here</span>
+        <span><kbd>V</kbd> Peaceful Drive</span>
+      `;
+    } else {
+      this.modeBtn.textContent = '[V] MODE: PEACEFUL DRIVE';
+      this.controlsStripEl.innerHTML = `
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Drive Course (No Attacks)</span>
+        <span><kbd>SHIFT</kbd> Boost</span>
+        <span><kbd>SPACE</kbd> Handbrake</span>
+        <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Switch Level</span>
+        <span><kbd>P</kbd> Next Portal</span>
+        <span><kbd>V</kbd> Back to Unreal Camera</span>
+      `;
+    }
+  }
+
+  public setAudioLabel(muted: boolean): void {
+    this.audioBtn.textContent = `[M] AUDIO: ${muted ? 'OFF' : 'ON'}`;
+  }
+
+  public toggleLab(): void {
+    this.isLabOpen = !this.isLabOpen;
+    this.labDrawer.classList.toggle('open', this.isLabOpen);
+    this.labBtn.classList.toggle('active', this.isLabOpen);
+  }
+
+  public showCallout(text: string): void {
+    this.bannerEl.textContent = text;
+    this.bannerEl.classList.add('visible');
+    window.clearTimeout(this.bannerTimeout);
+    this.bannerTimeout = window.setTimeout(() => {
+      this.bannerEl.classList.remove('visible');
+    }, 2600);
+  }
+
+  public update(
+    exploreMode: ExploreMode,
+    unrealCam: UnrealObserverCamera,
+    vehicle: VehicleRigidBody,
+    world: TrailCorridorWorld
+  ): void {
+    const focusPos = exploreMode === 'UNREAL_CAMERA' ? unrealCam.position : vehicle.position;
+    const distAlongCourse = Math.max(0, Math.round(-focusPos.z));
+    this.coordsEl.textContent = `${distAlongCourse.toLocaleString()} m (Y:${Math.round(focusPos.y)}m)`;
+
+    if (exploreMode === 'UNREAL_CAMERA') {
+      this.flySpeedEl.textContent = `${Math.round(unrealCam.baseSpeedMps)} m/s`;
+    } else {
+      this.flySpeedEl.textContent = `${Math.round(vehicle.speedKmh)} km/h`;
+    }
+
+    const portalZ = world.activePortal ? world.activePortal.z : -860;
+    const remPortal = Math.max(0, Math.round(focusPos.z - portalZ));
+    this.portalDistEl.textContent = `${remPortal} m`;
+
+    const spec = world.getTrailSpec(focusPos.z);
+    const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
+    let zoneName =
+      world.currentBiome === 'SWAMP'
+        ? 'SWAMP MEGAROOTS'
+        : world.currentBiome === 'DESERT'
+        ? 'SANDSTONE CANYON'
+        : 'GIANT FOREST';
+
+    if (spec.mudslideFactor > 0.35) {
+      zoneName = world.currentBiome === 'DESERT' ? 'CANYON ROCKFALL' : 'MUDSLIDE & BOULDERS';
+    } else if (spec.splitFactor > 0.3) {
+      zoneName = 'SPLIT ROAD / LOG';
+    } else if (sample.waterDepth > 0.04) {
+      zoneName = 'WATER LAGOON';
+    }
+    this.surfaceEl.textContent = zoneName;
+  }
+}

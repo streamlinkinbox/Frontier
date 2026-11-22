@@ -1,0 +1,573 @@
+import './style.css';
+import * as THREE from 'three';
+import { clamp, lerp } from './math/noise';
+import { createProceduralTextureLibrary } from './graphics/proceduralTextures';
+import {
+  BIOME_SPECS,
+  BiomeId,
+  CrisscrossRootBridge,
+  HollowLogTunnel,
+  TrailCorridorWorld,
+  WorldObstacle,
+} from './world/trailCorridor';
+import { VehicleControls, VehicleRigidBody } from './physics/vehiclePhysics';
+import { VEHICLE_DESIGNS, VehicleDesignId } from './vehicle/vehicleConfigs';
+import { VineEcosystem } from './vines/vineSystem';
+import { BiomeCreatureSystem } from './creatures/swampHazardSystem';
+import { FrontierBuggyVisual } from './vehicle/buggyMesh';
+import { OffroadParticleSystem, RallyVineAudioEngine } from './graphics/particlesAndAudio';
+import { UnrealObserverCamera } from './camera/unrealCamera';
+import { ExploreMode, ExpeditionHud } from './ui/hud';
+
+const BIOME_ORDER: BiomeId[] = ['FOREST', 'SWAMP', 'DESERT'];
+const LEVEL_PORTAL_Z = -860;
+
+class FrontierSimulationApp {
+  private renderer: THREE.WebGLRenderer;
+  private scene: THREE.Scene;
+  private camera: THREE.PerspectiveCamera;
+  private hemiLight: THREE.HemisphereLight;
+  private sunLight: THREE.DirectionalLight;
+  private sunTarget: THREE.Object3D;
+  private skyDome: THREE.Mesh;
+  private skyMat: THREE.ShaderMaterial;
+
+  private world: TrailCorridorWorld;
+  private vehicle: VehicleRigidBody;
+  private vines: VineEcosystem;
+  private creatures: BiomeCreatureSystem;
+  private buggyVisual: FrontierBuggyVisual;
+  private particles: OffroadParticleSystem;
+  private audio: RallyVineAudioEngine;
+  private unrealCam: UnrealObserverCamera;
+  private hud: ExpeditionHud;
+
+  private exploreMode: ExploreMode = 'UNREAL_CAMERA';
+  private keys = new Set<string>();
+  private controls: VehicleControls = {
+    throttle: 0,
+    brake: 0,
+    steer: 0,
+    handbrake: false,
+    boost: false,
+  };
+
+  private camCurrentPos = new THREE.Vector3(0, 4.5, 7.5);
+  private camCurrentLook = new THREE.Vector3(0, 1.5, -10);
+
+  private physicsAccumulator = 0;
+  private elapsedTime = 0;
+  private lastFrameTime = performance.now();
+  private portalWarpCooldown = 0;
+
+  private nearbyObstaclesCache: WorldObstacle[] = [];
+  private nearbyHollowLogsCache: HollowLogTunnel[] = [];
+  private nearbyRootBridgesCache: CrisscrossRootBridge[] = [];
+
+  constructor() {
+    const appEl = document.getElementById('app')!;
+    const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      powerPreference: 'high-performance',
+    });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.1;
+
+    this.scene = new THREE.Scene();
+    const textures = createProceduralTextureLibrary();
+    this.scene.environment = textures.skyEnvMap;
+    this.scene.environmentIntensity = 0.72;
+    this.scene.fog = new THREE.FogExp2(0xc5bf9e, 0.0034);
+
+    const skyGeo = new THREE.SphereGeometry(720, 24, 16);
+    this.skyMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        uSunDir: { value: new THREE.Vector3(-0.42, 0.68, -0.6).normalize() },
+        uHorizon: { value: new THREE.Color(0.82, 0.78, 0.64) },
+        uZenith: { value: new THREE.Color(0.27, 0.49, 0.62) },
+      },
+      vertexShader: `
+        varying vec3 vWorldDir;
+        void main() {
+          vWorldDir = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vWorldDir;
+        uniform vec3 uSunDir;
+        uniform vec3 uHorizon;
+        uniform vec3 uZenith;
+        void main() {
+          vec3 d = normalize(vWorldDir);
+          float h = clamp(d.y, 0.0, 1.0);
+          vec3 col = mix(uHorizon, uZenith, pow(h, 0.56));
+          float sunAmt = max(dot(d, uSunDir), 0.0);
+          col += vec3(1.0, 0.87, 0.58) * (pow(sunAmt, 24.0) * 0.78 + pow(sunAmt, 4.0) * 0.22);
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `,
+    });
+    this.skyDome = new THREE.Mesh(skyGeo, this.skyMat);
+    this.scene.add(this.skyDome);
+
+    this.camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.25, 820);
+
+    this.hemiLight = new THREE.HemisphereLight(0xdce8dc, 0x3e3b26, 0.94);
+    this.scene.add(this.hemiLight);
+
+    this.sunLight = new THREE.DirectionalLight(0xfff0cc, 3.0);
+    this.sunTarget = new THREE.Object3D();
+    this.scene.add(this.sunLight);
+    this.scene.add(this.sunTarget);
+    this.sunLight.target = this.sunTarget;
+
+    this.sunLight.castShadow = true;
+    this.sunLight.shadow.mapSize.set(2048, 2048);
+    this.sunLight.shadow.camera.near = 6;
+    this.sunLight.shadow.camera.far = 225;
+    const shadowHalf = 82;
+    this.sunLight.shadow.camera.left = -shadowHalf;
+    this.sunLight.shadow.camera.right = shadowHalf;
+    this.sunLight.shadow.camera.top = shadowHalf;
+    this.sunLight.shadow.camera.bottom = -shadowHalf;
+    this.sunLight.shadow.bias = -0.0005;
+    this.sunLight.shadow.normalBias = 0.04;
+
+    this.world = new TrailCorridorWorld(textures);
+    this.scene.add(this.world.group);
+
+    this.vehicle = new VehicleRigidBody();
+    // Strictly protect the player's vehicle from rolling rocks, mudslides & dust devils!
+    this.vehicle.passiveObserverProtection = true;
+
+    this.vines = new VineEcosystem(textures);
+    this.scene.add(this.vines.group);
+
+    this.creatures = new BiomeCreatureSystem();
+    this.scene.add(this.creatures.group);
+
+    this.world.onChunkSpawned((chunkIndex, anchors, rootAnchors, creatureNodes) => {
+      this.vines.spawnForChunk(chunkIndex, anchors, rootAnchors, this.world);
+      this.creatures.spawnForChunk(creatureNodes);
+    });
+    this.world.onChunkRemoved((chunkIndex) => {
+      this.vines.removeChunkVines(chunkIndex);
+      this.creatures.removeChunkCreatures(chunkIndex);
+    });
+
+    this.buggyVisual = new FrontierBuggyVisual(textures, this.vines.chassisCreepGroup);
+    this.scene.add(this.buggyVisual.root);
+
+    this.particles = new OffroadParticleSystem(textures);
+    this.scene.add(this.particles.points);
+    this.scene.add(this.particles.pollenPoints);
+
+    this.audio = new RallyVineAudioEngine();
+    // Start muted in Observer Mode so inspecting levels is peaceful unless toggled ON
+    this.audio.toggleMute();
+
+    this.unrealCam = new UnrealObserverCamera(canvas, () => this.exploreMode === 'UNREAL_CAMERA');
+
+    this.hud = new ExpeditionHud(appEl, this.vines, {
+      onSelectBiome: (biome) => this.loadBiomeLevel(biome),
+      onCycleNextBiome: () => this.cycleNextBiomeLevel(),
+      onJumpCourseZ: (targetZ, label) => this.jumpObserverToCourseZ(targetZ, label),
+      onJumpForwardDelta: (deltaM) => {
+        const curZ =
+          this.exploreMode === 'UNREAL_CAMERA' ? this.unrealCam.position.z : this.vehicle.position.z;
+        this.jumpObserverToCourseZ(curZ - deltaM, `JUMPED +${deltaM}m DOWN COURSE`);
+      },
+      onSummonVehicleHere: () => this.placeVehicleInFrontOfObserver(),
+      onToggleExploreMode: () => this.toggleExploreMode(),
+      onSelectVehicle: (id) => this.selectVehicleDesign(id),
+      onToggleAudio: () => {
+        this.audio.unlock();
+        return this.audio.toggleMute();
+      },
+      onChangeFlySpeed: (spd) => {
+        this.unrealCam.baseSpeedMps = spd;
+      },
+    });
+
+    this.unrealCam.onSpeedChanged = (spd) => {
+      this.hud.syncFlySpeedUI(spd);
+    };
+
+    // Ambient World Visual FX (Falling Trees still animate as scenery ahead of camera!)
+    this.world.onTreeStartFalling = (basePos) => {
+      this.particles.emitImpactDust(basePos, 1.0);
+      this.audio.playTimberCrackSound();
+    };
+    this.world.onTreeSlamImpact = (impactPos) => {
+      this.particles.emitTimberSlamShockwave(impactPos);
+      this.audio.playTimberSlamSound();
+    };
+
+    // Initialize in Forest Level with Unreal Free-Fly Camera overlooking the parked showcase car!
+    this.loadBiomeLevel('FOREST', true);
+
+    this.bindInputEvents();
+    window.addEventListener('resize', () => this.onResize());
+
+    requestAnimationFrame((t) => this.animate(t));
+  }
+
+  private applyBiomeAtmosphere(biome: BiomeId): void {
+    const spec = BIOME_SPECS[biome];
+    const fog = this.scene.fog as THREE.FogExp2;
+    fog.color.setHex(spec.fogColorHex);
+    fog.density = spec.fogDensity;
+
+    this.sunLight.color.setHex(spec.sunColorHex);
+    this.sunLight.intensity = spec.sunIntensity;
+    this.hemiLight.color.setHex(spec.hemiSkyHex);
+    this.hemiLight.groundColor.setHex(spec.hemiGroundHex);
+    this.skyMat.uniforms.uHorizon.value.setRGB(
+      spec.skyHorizonRGB[0],
+      spec.skyHorizonRGB[1],
+      spec.skyHorizonRGB[2]
+    );
+    this.skyMat.uniforms.uZenith.value.setRGB(
+      spec.skyZenithRGB[0],
+      spec.skyZenithRGB[1],
+      spec.skyZenithRGB[2]
+    );
+  }
+
+  private loadBiomeLevel(biome: BiomeId, initialBoot = false): void {
+    this.vines.resetAll();
+    this.creatures.clearAll();
+    this.applyBiomeAtmosphere(biome);
+
+    this.world.setBiomeAndRebuild(biome, -8);
+    this.world.setPortalGateAt(LEVEL_PORTAL_Z, false);
+
+    // Park showcase vehicle peacefully just ahead of the camera so you can see scale & lighting!
+    this.vehicle.resetAt(this.world, -14);
+    this.vehicle.linearVelocity.set(0, 0, 0);
+    this.vehicle.angularVelocity.set(0, 0, 0);
+
+    // Position Unreal Camera slightly behind & above the showcase car looking down the new level!
+    this.unrealCam.placeAtCourseZ(this.world, -3, 6.2);
+    this.snapDriveCameraImmediate();
+    this.portalWarpCooldown = 1.5;
+
+    this.hud.highlightSelectedBiome(biome);
+    if (!initialBoot) {
+      this.hud.flashPortalWarp();
+      this.audio.playPortalWarpSound();
+      this.hud.showCallout(`LOADED LEVEL: ${BIOME_SPECS[biome].title}`);
+    }
+  }
+
+  private cycleNextBiomeLevel(): void {
+    const curIdx = BIOME_ORDER.indexOf(this.world.currentBiome);
+    const nextBiome = BIOME_ORDER[(curIdx + 1) % BIOME_ORDER.length];
+    this.loadBiomeLevel(nextBiome);
+  }
+
+  private jumpObserverToCourseZ(targetZ: number, label: string): void {
+    this.portalWarpCooldown = 1.5;
+    this.world.updateStreaming(new THREE.Vector3(0, 0, targetZ), new THREE.Vector3(), this.elapsedTime, 0);
+
+    if (this.exploreMode === 'UNREAL_CAMERA') {
+      this.unrealCam.placeAtCourseZ(this.world, targetZ, 8.5);
+    } else {
+      this.vehicle.resetAt(this.world, targetZ);
+      this.snapDriveCameraImmediate();
+    }
+    this.hud.showCallout(label);
+  }
+
+  private placeVehicleInFrontOfObserver(): void {
+    const fwd = this.unrealCam.getForwardVector();
+    const horizFwd = new THREE.Vector3(fwd.x, 0, fwd.z);
+    if (horizFwd.lengthSq() < 1e-4) horizFwd.set(0, 0, -1);
+    horizFwd.normalize();
+
+    const targetX = this.unrealCam.position.x + horizFwd.x * 11.0;
+    const targetZ = this.unrealCam.position.z + horizFwd.z * 11.0;
+
+    this.world.getNearbyRootBridges(targetZ - 35, targetZ + 35, this.nearbyRootBridgesCache);
+    let groundY = this.world.sampleHeightRaw(targetX, targetZ).height;
+    const rootY = this.world.sampleCrisscrossRootDeck(
+      targetX,
+      targetZ,
+      this.unrealCam.position.y + 4.0,
+      this.nearbyRootBridgesCache,
+      new THREE.Vector3()
+    );
+    if (rootY !== null && rootY > groundY) {
+      groundY = rootY;
+    }
+
+    this.vehicle.position.set(targetX, groundY + 0.85, targetZ);
+    const yaw = Math.atan2(-horizFwd.x, -horizFwd.z);
+    this.vehicle.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    this.vehicle.linearVelocity.set(0, 0, 0);
+    this.vehicle.angularVelocity.set(0, 0, 0);
+    this.hud.showCallout('PLACED SHOWCASE VEHICLE AHEAD OF CAMERA');
+  }
+
+  private toggleExploreMode(): ExploreMode {
+    if (this.exploreMode === 'UNREAL_CAMERA') {
+      this.placeVehicleInFrontOfObserver();
+      this.exploreMode = 'PEACEFUL_DRIVE';
+      this.camera.fov = 66;
+      this.camera.updateProjectionMatrix();
+      this.snapDriveCameraImmediate();
+      this.hud.showCallout('PEACEFUL DRIVE MODE · ANIMALS, ROCKS & VINES WILL NOT ATTACK');
+    } else {
+      this.exploreMode = 'UNREAL_CAMERA';
+      this.unrealCam.position.copy(this.camera.position);
+      this.unrealCam.velocity.set(0, 0, 0);
+      const fwd = new THREE.Vector3();
+      this.camera.getWorldDirection(fwd);
+      this.unrealCam.yaw = Math.atan2(-fwd.x, -fwd.z);
+      this.unrealCam.pitch = clamp(Math.asin(clamp(fwd.y, -1, 1)), -1.45, 1.45);
+      this.camera.fov = 68;
+      this.camera.updateProjectionMatrix();
+      this.hud.showCallout('UNREAL WASD FREE-CAM · DRAG MOUSE TO LOOK, WASD TO FLY');
+    }
+    return this.exploreMode;
+  }
+
+  private selectVehicleDesign(id: VehicleDesignId): void {
+    const preset = VEHICLE_DESIGNS.find((d) => d.id === id);
+    if (!preset) return;
+    this.vehicle.applyPreset(preset);
+    this.buggyVisual.setVehicleDesign(preset);
+    this.hud.highlightSelectedVehicle(id);
+    this.hud.showCallout(`VEHICLE MODEL: ${preset.name} (${preset.subtitle})`);
+  }
+
+  private bindInputEvents(): void {
+    window.addEventListener('keydown', (e) => {
+      const code = e.code;
+      this.keys.add(code);
+
+      if (code === 'Tab') {
+        e.preventDefault();
+        this.hud.toggleLab();
+      } else if (code === 'Digit1') {
+        this.loadBiomeLevel('FOREST');
+      } else if (code === 'Digit2') {
+        this.loadBiomeLevel('SWAMP');
+      } else if (code === 'Digit3') {
+        this.loadBiomeLevel('DESERT');
+      } else if (code === 'KeyP') {
+        this.cycleNextBiomeLevel();
+      } else if (code === 'KeyJ') {
+        const curZ =
+          this.exploreMode === 'UNREAL_CAMERA' ? this.unrealCam.position.z : this.vehicle.position.z;
+        this.jumpObserverToCourseZ(curZ - 200, 'JUMPED +200m DOWN COURSE');
+      } else if (code === 'KeyT') {
+        this.placeVehicleInFrontOfObserver();
+      } else if (code === 'KeyV') {
+        const mode = this.toggleExploreMode();
+        this.hud.setExploreModeLabel(mode);
+      } else if (code === 'KeyM') {
+        this.audio.unlock();
+        const muted = this.audio.toggleMute();
+        this.hud.setAudioLabel(muted);
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+    });
+
+    window.addEventListener('blur', () => {
+      this.keys.clear();
+    });
+  }
+
+  private pollDriveControls(dt: number): void {
+    if (this.exploreMode !== 'PEACEFUL_DRIVE') {
+      this.controls.throttle = 0;
+      this.controls.brake = 1.0; // Keep parked showcase vehicle stationary on slopes!
+      this.controls.steer = 0;
+      this.controls.handbrake = true;
+      this.controls.boost = false;
+      return;
+    }
+
+    const accelPressed = this.keys.has('KeyW') || this.keys.has('ArrowUp');
+    const brakePressed = this.keys.has('KeyS') || this.keys.has('ArrowDown');
+    const leftPressed = this.keys.has('KeyA') || this.keys.has('ArrowLeft');
+    const rightPressed = this.keys.has('KeyD') || this.keys.has('ArrowRight');
+
+    this.controls.throttle = lerp(this.controls.throttle, accelPressed ? 1 : 0, clamp(14 * dt, 0, 1));
+    this.controls.brake = lerp(this.controls.brake, brakePressed ? 1 : 0, clamp(16 * dt, 0, 1));
+
+    const rawSteer = (rightPressed ? 1 : 0) - (leftPressed ? 1 : 0);
+    this.controls.steer = lerp(this.controls.steer, rawSteer, clamp(14 * dt, 0, 1));
+    this.controls.handbrake = this.keys.has('Space');
+    this.controls.boost = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
+  }
+
+  private snapDriveCameraImmediate(): void {
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.vehicle.quaternion);
+    this.camCurrentPos
+      .copy(this.vehicle.position)
+      .addScaledVector(fwd, -7.8)
+      .add(new THREE.Vector3(0, 2.9, 0));
+    this.camCurrentLook
+      .copy(this.vehicle.position)
+      .addScaledVector(fwd, 11.0)
+      .add(new THREE.Vector3(0, 1.9, 0));
+  }
+
+  private _camFwd = new THREE.Vector3();
+  private _camVelDir = new THREE.Vector3();
+  private _desiredCamPos = new THREE.Vector3();
+  private _desiredLookAt = new THREE.Vector3();
+
+  private updateCameraAndEnvironment(dt: number): void {
+    if (this.exploreMode === 'UNREAL_CAMERA') {
+      this.unrealCam.step(dt, this.keys, this.camera, this.world);
+    } else {
+      this._camFwd.set(0, 0, -1).applyQuaternion(this.vehicle.quaternion);
+      this._camFwd.y = clamp(this._camFwd.y, -0.35, 0.35);
+      this._camFwd.normalize();
+
+      if (this.vehicle.linearVelocity.lengthSq() > 9.0 && this.vehicle.forwardSpeedMps > 1.5) {
+        this._camVelDir.copy(this.vehicle.linearVelocity).normalize();
+        this._camFwd.lerp(this._camVelDir, 0.38).normalize();
+      }
+
+      const inLog = this.vehicle.isInsideHollowLog;
+      const distBack = inLog ? 5.8 : 7.9;
+      const heightUp = inLog ? 1.85 : 2.85;
+
+      this._desiredCamPos.copy(this.vehicle.position).addScaledVector(this._camFwd, -distBack);
+      this._desiredCamPos.y = this.vehicle.position.y + heightUp;
+
+      const camGround = this.world.sampleHeightRaw(
+        this._desiredCamPos.x,
+        this._desiredCamPos.z
+      ).height;
+      this._desiredCamPos.y = Math.max(this._desiredCamPos.y, camGround + 1.45);
+
+      this._desiredLookAt.copy(this.vehicle.position).addScaledVector(this._camFwd, 11.5);
+      this._desiredLookAt.y = this.vehicle.position.y + (inLog ? 1.15 : 1.95);
+
+      this.camCurrentPos.lerp(this._desiredCamPos, clamp(10.5 * dt, 0, 1));
+      this.camCurrentLook.lerp(this._desiredLookAt, clamp(13.0 * dt, 0, 1));
+
+      this.camera.position.copy(this.camCurrentPos);
+      this.camera.lookAt(this.camCurrentLook);
+    }
+
+    // Center SkyDome, Shadow Frustum & Ambient Pollen around active observer viewpoint!
+    const focus = this.camera.position;
+    this.skyDome.position.copy(focus);
+
+    const snap = 3.0;
+    const focusX = Math.round(focus.x / snap) * snap;
+    const focusZ = Math.round((focus.z - 24) / snap) * snap;
+    const focusY = Math.round(this.world.sampleHeightRaw(focus.x, focus.z).height / snap) * snap;
+
+    this.sunTarget.position.set(focusX, focusY, focusZ);
+    this.sunLight.position.set(focusX - 42, focusY + 78, focusZ - 34);
+  }
+
+  private onResize(): void {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  private animate(nowMs: number): void {
+    requestAnimationFrame((t) => this.animate(t));
+
+    const frameDt = Math.min((nowMs - this.lastFrameTime) / 1000, 0.05);
+    this.lastFrameTime = nowMs;
+    this.elapsedTime += frameDt;
+    this.portalWarpCooldown = Math.max(0, this.portalWarpCooldown - frameDt);
+
+    this.pollDriveControls(frameDt);
+    this.updateCameraAndEnvironment(frameDt);
+
+    const activeFocusPos =
+      this.exploreMode === 'UNREAL_CAMERA' ? this.unrealCam.position : this.vehicle.position;
+    const activeFocusVel =
+      this.exploreMode === 'UNREAL_CAMERA' ? this.unrealCam.velocity : this.vehicle.linearVelocity;
+
+    // Stream chunks & animate ambient level set-pieces around the Unreal Camera!
+    this.world.updateStreaming(activeFocusPos, activeFocusVel, this.elapsedTime, frameDt);
+
+    // Fly or drive through the Portal Gate at the end of a course to warp to the next biome!
+    if (this.portalWarpCooldown <= 0 && this.world.activePortal) {
+      const pPos = this.world.activePortal.group.position;
+      const distToPortal = Math.hypot(activeFocusPos.x - pPos.x, activeFocusPos.z - pPos.z);
+      if (distToPortal < 16.5 && Math.abs(activeFocusPos.y - pPos.y) < 18.0) {
+        this.cycleNextBiomeLevel();
+      }
+    }
+
+    this.world.getNearbyObstacles(
+      this.vehicle.position.z - 40,
+      this.vehicle.position.z + 28,
+      this.nearbyObstaclesCache
+    );
+    this.world.getNearbyHollowLogs(
+      this.vehicle.position.z - 40,
+      this.vehicle.position.z + 28,
+      this.nearbyHollowLogsCache
+    );
+    this.world.getNearbyRootBridges(
+      this.vehicle.position.z - 40,
+      this.vehicle.position.z + 28,
+      this.nearbyRootBridgesCache
+    );
+
+    const fixedDt = 1 / 240;
+    this.physicsAccumulator = Math.min(this.physicsAccumulator + frameDt, fixedDt * 8);
+
+    while (this.physicsAccumulator >= fixedDt) {
+      // Vines wake, grow & sway around the observer camera, with allowVehicleAttack = FALSE!
+      this.vines.stepPhysicsSubstep(
+        fixedDt,
+        this.elapsedTime,
+        this.vehicle,
+        this.world,
+        this.nearbyObstaclesCache,
+        activeFocusPos,
+        false
+      );
+      this.vehicle.stepPhysics(
+        fixedDt,
+        this.controls,
+        this.world,
+        this.nearbyObstaclesCache,
+        this.nearbyHollowLogsCache,
+        this.nearbyRootBridgesCache
+      );
+      this.physicsAccumulator -= fixedDt;
+    }
+
+    // Swamp & Desert creatures animate/patrol peacefully with allowVehicleAttack = FALSE!
+    this.creatures.update(frameDt, this.elapsedTime, this.vehicle, false);
+
+    this.buggyVisual.syncWithPhysics(this.vehicle, frameDt, false);
+    this.vines.updateVisualGeometry();
+    this.particles.update(frameDt, this.vehicle, this.elapsedTime, activeFocusPos);
+    this.audio.updateContinuous(this.vehicle, 0);
+    this.hud.update(this.exploreMode, this.unrealCam, this.vehicle, this.world);
+
+    this.renderer.render(this.scene, this.camera);
+  }
+}
+
+new FrontierSimulationApp();
