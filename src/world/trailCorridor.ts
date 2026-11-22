@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { clamp, fbm2D, lerp, mulberry32, noise2D, ridge2D, smoothstep } from '../math/noise';
 import { ProceduralTextureLibrary } from '../graphics/proceduralTextures';
+import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
+import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
 
-export type BiomeId = 'FOREST' | 'SWAMP' | 'DESERT';
+export type BiomeId = 'FOREST' | 'SWAMP' | 'DESERT' | 'DEADWOOD';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -45,29 +47,42 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
   },
   SWAMP: {
     id: 'SWAMP',
-    title: 'BAYOU MEGAROOT SWAMP',
-    subtitle: 'CRISSCROSSING GIANT ROOTS · SIPHON MOSQUITOS · ROBO-TICKS',
-    fogColorHex: 0x6f8b74,
-    fogDensity: 0.0044,
-    skyHorizonRGB: [0.50, 0.64, 0.52],
-    skyZenithRGB: [0.14, 0.28, 0.27],
-    sunColorHex: 0xdff7b5,
-    sunIntensity: 2.35,
-    hemiSkyHex: 0xaad4b8,
-    hemiGroundHex: 0x223022,
+    title: 'GOTHIC MANGROVE BAYOU',
+    subtitle: 'WEAVE-THROUGH STILT ROOTS · BLACKWATER LAGOONS',
+    fogColorHex: 0x67796a,
+    fogDensity: 0.0038,
+    skyHorizonRGB: [0.54, 0.64, 0.56],
+    skyZenithRGB: [0.18, 0.31, 0.30],
+    sunColorHex: 0xefeac4,
+    sunIntensity: 2.6,
+    hemiSkyHex: 0xbfd4c4,
+    hemiGroundHex: 0x242e22,
   },
   DESERT: {
     id: 'DESERT',
-    title: 'SCORCHED SCORPION CANYON',
-    subtitle: 'SWEEPING SAND DUNES · DUST DEVILS · RED ROCK ARCHES',
-    fogColorHex: 0xe2b382,
-    fogDensity: 0.0031,
-    skyHorizonRGB: [0.95, 0.73, 0.49],
-    skyZenithRGB: [0.22, 0.46, 0.74],
-    sunColorHex: 0xffe4ad,
-    sunIntensity: 3.45,
-    hemiSkyHex: 0xffe6c4,
-    hemiGroundHex: 0x6e4326,
+    title: 'BADLANDS SHACK VILLAGE',
+    subtitle: 'RALLY SHANTYTOWN · COLLAPSING TOWERS · ROLLING BARRELS',
+    fogColorHex: 0xdcb486,
+    fogDensity: 0.0026,
+    skyHorizonRGB: [0.90, 0.72, 0.50],
+    skyZenithRGB: [0.24, 0.48, 0.74],
+    sunColorHex: 0xffe4b5,
+    sunIntensity: 3.35,
+    hemiSkyHex: 0xffe6c8,
+    hemiGroundHex: 0x6e472b,
+  },
+  DEADWOOD: {
+    id: 'DEADWOOD',
+    title: 'ASHEN DEADWOOD HOLLOW',
+    subtitle: 'DEAD TIMBERLAND · ERUPTING LIVE ROOTS · GROUND HEAVE',
+    fogColorHex: 0x8e9993,
+    fogDensity: 0.0046,
+    skyHorizonRGB: [0.60, 0.65, 0.62],
+    skyZenithRGB: [0.36, 0.41, 0.40],
+    sunColorHex: 0xfff0d3,
+    sunIntensity: 2.85,
+    hemiSkyHex: 0xd5ddd7,
+    hemiGroundHex: 0x333a2e,
   },
 };
 
@@ -234,13 +249,6 @@ export interface RootAnchor {
   reachTargetPos: THREE.Vector3;
 }
 
-export interface CreatureSpawnNode {
-  chunkIndex: number;
-  biome: BiomeId;
-  kind: 'SIPHON_MOSQUITO' | 'ROBO_TICK';
-  position: THREE.Vector3;
-}
-
 interface ChunkRecord {
   group: THREE.Group;
   terrainGeo: THREE.BufferGeometry;
@@ -254,7 +262,8 @@ interface ChunkRecord {
   fuelPickups: FuelPickup[];
   anchors: CanopyAnchor[];
   rootAnchors: RootAnchor[];
-  creatureSpawns: CreatureSpawnNode[];
+  deadwoodData?: DeadwoodChunkData;
+  desertVillageData?: DesertVillageChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -285,13 +294,19 @@ export class TrailCorridorWorld {
   private nextBridgeId = 1;
   private nextPickupId = 1;
 
+  private deadwoodBuilder: DeadwoodBuilder;
+  private desertVillageBuilder: DesertVillageBuilder;
+
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
   private desertRockMat: THREE.MeshStandardMaterial;
   private shearRockMat: THREE.MeshStandardMaterial;
   private barkMat: THREE.MeshStandardMaterial;
+  private mangroveBarkMat: THREE.MeshStandardMaterial;
+  private bioFungiMat: THREE.MeshStandardMaterial;
   private swampRootBridgeMat: THREE.MeshStandardMaterial;
   private hollowLogMat: THREE.MeshStandardMaterial;
+  private swampBlackwaterMat: THREE.ShaderMaterial;
   private fernMat: THREE.MeshStandardMaterial;
   private broadleafMat: THREE.MeshStandardMaterial;
   private canopyLeafMat: THREE.MeshStandardMaterial;
@@ -302,7 +317,6 @@ export class TrailCorridorWorld {
   private mudslideFlowMat: THREE.ShaderMaterial;
   private dustDevilMat: THREE.ShaderMaterial;
   private fuelCellMat: THREE.MeshStandardMaterial;
-  private portalSwirlMat: THREE.ShaderMaterial;
 
   private boulderGeos: THREE.BufferGeometry[] = [];
   private shearSpireGeo!: THREE.BufferGeometry;
@@ -323,16 +337,14 @@ export class TrailCorridorWorld {
   private fuelCanisterGeo!: THREE.BufferGeometry;
 
   private onChunkSpawnedCallbacks: Array<
-    (
-      chunkIndex: number,
-      anchors: CanopyAnchor[],
-      rootAnchors: RootAnchor[],
-      creatureSpawns: CreatureSpawnNode[]
-    ) => void
+    (chunkIndex: number, anchors: CanopyAnchor[], rootAnchors: RootAnchor[]) => void
   > = [];
   private onChunkRemovedCallbacks: Array<(chunkIndex: number) => void> = [];
 
   constructor(private textures: ProceduralTextureLibrary) {
+    this.deadwoodBuilder = new DeadwoodBuilder(textures);
+    this.desertVillageBuilder = new DesertVillageBuilder(textures);
+
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
       normalMap: textures.terrainDetail.normalMap,
@@ -397,6 +409,57 @@ export class TrailCorridorWorld {
       metalness: 0.02,
     });
 
+    // Weathered Gothic Mangrove Bark (vertex-colored pale silvery-ash upper arches -> wet moss & peat at waterline)
+    this.mangroveBarkMat = new THREE.MeshStandardMaterial({
+      map: textures.bark.map,
+      normalMap: textures.bark.normalMap,
+      normalScale: new THREE.Vector2(1.85, 1.85),
+      vertexColors: true,
+      roughness: 0.84,
+      metalness: 0.02,
+    });
+
+    // Natural warm woodland ochre shelf polypore bracket fungi (zero glowing neon!)
+    this.bioFungiMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(0xb0844c),
+      roughness: 0.86,
+      metalness: 0.01,
+    });
+
+    this.swampBlackwaterMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: { uTime: this.timeUniform },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vWorldPos;
+        void main() {
+          vUv = uv;
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: `
+        varying vec2 vUv;
+        varying vec3 vWorldPos;
+        uniform float uTime;
+        void main() {
+          float radial = length((vUv - 0.5) * 2.0);
+          float edgeAlpha = smoothstep(1.0, 0.52, radial);
+          if (edgeAlpha < 0.01) discard;
+          float ripple = sin(vWorldPos.x * 2.2 + uTime * 1.4) * cos(vWorldPos.z * 2.0 - uTime * 1.1) * 0.08;
+          vec3 viewDir = normalize(cameraPosition - vWorldPos);
+          vec3 norm = normalize(vec3(ripple, 1.0, ripple));
+          float fresnel = pow(1.0 - clamp(dot(viewDir, norm), 0.0, 1.0), 2.2);
+          vec3 blackPeat = vec3(0.04, 0.08, 0.07);
+          vec3 mistReflect = vec3(0.44, 0.58, 0.53);
+          vec3 col = mix(blackPeat, mistReflect, clamp(0.22 + fresnel * 0.78, 0.0, 0.92));
+          gl_FragColor = vec4(col, edgeAlpha * 0.88);
+        }
+      `,
+    });
+
     this.fernMat = this.createInteractiveFoliageMaterial(textures.fernAtlas, 0.9, 1.25);
     this.broadleafMat = this.createInteractiveFoliageMaterial(textures.broadleafAtlas, 0.82, 1.15);
 
@@ -419,17 +482,13 @@ export class TrailCorridorWorld {
     this.highLianaMat = new THREE.MeshStandardMaterial({
       map: textures.vineStem.map,
       color: new THREE.Color(0x6e9d40),
-      emissive: new THREE.Color(0x1b2c0a),
-      emissiveIntensity: 0.35,
-      roughness: 0.65,
+      roughness: 0.72,
     });
 
     this.fuelCellMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0xffb830),
-      emissive: new THREE.Color(0xff7b00),
-      emissiveIntensity: 1.85,
-      roughness: 0.25,
-      metalness: 0.4,
+      color: new THREE.Color(0x9b3626),
+      roughness: 0.58,
+      metalness: 0.42,
     });
 
     this.sunShaftMat = new THREE.ShaderMaterial({
@@ -561,46 +620,11 @@ export class TrailCorridorWorld {
       `,
     });
 
-    // Glowing Teleport Portal Swirl Shader!
-    this.portalSwirlMat = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
-      uniforms: { uTime: this.timeUniform },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        varying vec2 vUv;
-        uniform float uTime;
-        void main() {
-          vec2 p = (vUv - 0.5) * 2.0;
-          float r = length(p);
-          if (r > 1.0) discard;
-          float ang = atan(p.y, p.x);
-          float spiral = sin(ang * 5.0 + r * 10.0 - uTime * 5.5);
-          float ring = smoothstep(0.98, 0.72, r) * (0.38 + 0.35 * spiral) + smoothstep(0.65, 0.96, r) * smoothstep(1.0, 0.92, r) * 1.3;
-          vec3 col = mix(vec3(0.15, 0.92, 0.85), vec3(1.0, 0.78, 0.28), r * 0.75 + 0.25 * spiral);
-          gl_FragColor = vec4(col, clamp(ring, 0.0, 0.92));
-        }
-      `,
-    });
-
     this.buildAssetGeometries();
   }
 
   public onChunkSpawned(
-    cb: (
-      chunkIndex: number,
-      anchors: CanopyAnchor[],
-      rootAnchors: RootAnchor[],
-      creatureSpawns: CreatureSpawnNode[]
-    ) => void
+    cb: (chunkIndex: number, anchors: CanopyAnchor[], rootAnchors: RootAnchor[]) => void
   ): void {
     this.onChunkSpawnedCallbacks.push(cb);
   }
@@ -618,7 +642,7 @@ export class TrailCorridorWorld {
   }
 
   /**
-   * Spawns or updates the glowing Region Teleport Portal Gate (or Final Showdown Finish Gate) at portalZ!
+   * Spawns a Grounded Weathered Stone & Timber Pass Gate at the end of the stage!
    */
   public setPortalGateAt(portalZ: number, isFinalFinish: boolean): void {
     if (this.activePortal) {
@@ -628,44 +652,63 @@ export class TrailCorridorWorld {
 
     const spec = this.getTrailSpec(portalZ);
     const groundY = this.sampleHeightRaw(spec.centerX, portalZ).height;
-    const radius = 14.5; // Massive 29-meter wide rally portal gate so whole teams can blitz through!
-    const centerY = groundY + radius * 0.78;
+    const halfSpan = 12.5;
+    const pillarH = 14.5;
 
     const pGroup = new THREE.Group();
-    pGroup.position.set(spec.centerX, centerY, portalZ);
+    pGroup.position.set(spec.centerX, groundY, portalZ);
 
-    const frameMat = new THREE.MeshStandardMaterial({
-      color: isFinalFinish ? 0xffbe3b : 0x36d6c9,
-      emissive: isFinalFinish ? 0xd46b08 : 0x0d6e68,
-      emissiveIntensity: 1.2,
-      roughness: 0.28,
-      metalness: 0.82,
-    });
+    const stoneMat = this.currentBiome === 'DESERT' ? this.desertRockMat : this.rockMat;
 
-    const torus = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.85, 12, 42), frameMat);
-    pGroup.add(torus);
-
-    // Side monolith pylons anchoring the portal into the ground
-    const pylonGeo = new THREE.BoxGeometry(2.4, radius * 1.7, 2.8);
+    // Massive weathered stone piers + stepped plinths on left & right
     for (const side of [-1, 1]) {
-      const pylon = new THREE.Mesh(pylonGeo, this.shearRockMat);
-      pylon.position.set(side * (radius + 0.6), -radius * 0.15, 0);
-      pylon.castShadow = true;
-      pGroup.add(pylon);
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.4, 5.6), stoneMat);
+      plinth.position.set(side * halfSpan, 0.5, 0);
+      plinth.castShadow = true;
+      plinth.receiveShadow = true;
+      pGroup.add(plinth);
+
+      const pier = new THREE.Mesh(new THREE.BoxGeometry(3.6, pillarH, 4.4), stoneMat);
+      pier.position.set(side * halfSpan, pillarH * 0.5, 0);
+      pier.castShadow = true;
+      pier.receiveShadow = true;
+      pGroup.add(pier);
     }
 
-    const disc = new THREE.Mesh(new THREE.PlaneGeometry(radius * 1.95, radius * 1.95), this.portalSwirlMat);
-    pGroup.add(disc);
+    // Heavy stone & timber lintel crossbeam overhead
+    const lintel = new THREE.Mesh(
+      new THREE.BoxGeometry(halfSpan * 2.0 + 5.6, 2.8, 4.8),
+      stoneMat
+    );
+    lintel.position.set(0, pillarH + 1.1, 0);
+    lintel.castShadow = true;
+    lintel.receiveShadow = true;
+    pGroup.add(lintel);
+
+    // Subtle atmospheric mist veil inside the stone pass (no sci-fi neon!)
+    const mistMat = new THREE.MeshBasicMaterial({
+      color: isFinalFinish ? 0xe8d4a2 : 0xd3d5c4,
+      transparent: true,
+      opacity: 0.36,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const veil = new THREE.Mesh(
+      new THREE.PlaneGeometry(halfSpan * 2.0 - 3.4, pillarH - 0.8),
+      mistMat
+    );
+    veil.position.set(0, pillarH * 0.5, 0);
+    pGroup.add(veil);
 
     this.group.add(pGroup);
     this.activePortal = {
       z: portalZ,
       centerX: spec.centerX,
-      centerY,
-      radius,
+      centerY: groundY + pillarH * 0.5,
+      radius: halfSpan,
       isFinalFinish,
       group: pGroup,
-      ringMesh: torus,
+      ringMesh: veil,
     };
   }
 
@@ -1089,6 +1132,317 @@ export class TrailCorridorWorld {
     };
   }
 
+  /**
+   * Builds an organic, gnarled, longitudinally-fluted cylindrical tree root tube
+   * (modeled after real Rhizophora mangrove stilt roots & banyan buttresses!).
+   */
+  private buildOrganicMangroveTube(
+    curve: THREE.CatmullRomCurve3,
+    radStart: number,
+    radEnd: number,
+    lengthSegs: number,
+    radialSegs: number,
+    waterLevelY: number,
+    seed: number
+  ): THREE.BufferGeometry {
+    const pts = curve.getPoints(lengthSegs);
+    const positions: number[] = [];
+    const colors: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+
+    const up = new THREE.Vector3(0, 1, 0);
+    const tangent = new THREE.Vector3();
+    const right = new THREE.Vector3();
+    const localUp = new THREE.Vector3();
+
+    for (let i = 0; i <= lengthSegs; i++) {
+      const t = i / lengthSegs;
+      const p = pts[i];
+      if (i < lengthSegs) tangent.subVectors(pts[i + 1], p).normalize();
+      else tangent.subVectors(p, pts[i - 1]).normalize();
+
+      if (Math.abs(tangent.y) > 0.96) {
+        right.set(1, 0, 0);
+      } else {
+        right.crossVectors(tangent, up).normalize();
+      }
+      localUp.crossVectors(right, tangent).normalize();
+
+      // Natural organic root flare at collar & slight swelling before mud entry
+      const baseR = lerp(radStart, radEnd, Math.pow(t, 0.72));
+
+      for (let r = 0; r <= radialSegs; r++) {
+        const u = r / radialSegs;
+        const ang = u * Math.PI * 2;
+        // Bark buttress flutes spiraling gently down the cylindrical root
+        const flute =
+          1.0 +
+          0.14 * Math.cos(ang * 5.0 + t * 4.2 + seed) +
+          0.08 * noise2D(ang * 2.5 + seed, t * 7.0);
+        const rad = baseR * flute;
+
+        const rx = Math.cos(ang) * rad;
+        const ry = Math.sin(ang) * rad;
+
+        const wx = p.x + right.x * rx + localUp.x * ry;
+        const wy = p.y + right.y * rx + localUp.y * ry;
+        const wz = p.z + right.z * rx + localUp.z * ry;
+
+        positions.push(wx, wy, wz);
+        uvs.push(u * 2.5, t * 6.0);
+
+        // Pale silvery-taupe bark on high arches -> mossy olive mid-zone -> dark wet peat at waterline!
+        const heightAboveWater = wy - waterLevelY;
+        const wetMask = 1.0 - smoothstep(0.1, 2.2, heightAboveWater);
+        const mossBand = smoothstep(0.4, 2.4, heightAboveWater) * smoothstep(6.8, 2.8, heightAboveWater);
+
+        let cr = lerp(0.64, 0.16, wetMask);
+        let cg = lerp(0.60, 0.17, wetMask);
+        let cb = lerp(0.54, 0.13, wetMask);
+
+        cr = lerp(cr, 0.27, mossBand * 0.68);
+        cg = lerp(cg, 0.44, mossBand * 0.68);
+        cb = lerp(cb, 0.24, mossBand * 0.68);
+
+        colors.push(cr, cg, cb);
+      }
+    }
+
+    const stride = radialSegs + 1;
+    for (let i = 0; i < lengthSegs; i++) {
+      for (let r = 0; r < radialSegs; r++) {
+        const a = i * stride + r;
+        const b = a + 1;
+        const c = a + stride;
+        const d = c + 1;
+        indices.push(a, c, b, b, c, d);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+  }
+
+  /**
+   * Spawns a Colossal Mangrove Stilt-Root Patriarch whose trunk sits suspended 10m-16m in the air
+   * on sprawling, branching cylindrical stilt-root arches (with secondary prop-roots, pneumatophore knees,
+   * bioluminescent shelf fungi & hanging Spanish moss) that players can weave directly THROUGH and UNDER!
+   */
+  private spawnMangroveCathedralTree(
+    chunkGroup: THREE.Group,
+    obstacles: WorldObstacle[],
+    canopyClusters: THREE.Matrix4[],
+    highLianaTransforms: THREE.Matrix4[],
+    chunkIndex: number,
+    centerX: number,
+    centerZ: number,
+    rng: () => number,
+    wideSpanFactor = 1.0
+  ): void {
+    const baseGroundY = this.sampleHeightRaw(centerX, centerZ).height;
+    const collarHeight = lerp(10.5, 15.8, rng()) * wideSpanFactor;
+    const collarY = baseGroundY + collarHeight;
+    const dummy = new THREE.Object3D();
+
+    const subGeos: THREE.BufferGeometry[] = [];
+
+    // 1. Upper Gnarled Cathedral Trunk rising from the suspended root-collar up into the misty canopy!
+    const upperTrunkCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(centerX, collarY - 1.4, centerZ),
+      new THREE.Vector3(
+        centerX + (rng() - 0.5) * 2.4,
+        collarY + 8.5,
+        centerZ + (rng() - 0.5) * 2.4
+      ),
+      new THREE.Vector3(
+        centerX + (rng() - 0.5) * 4.5,
+        collarY + 19.0,
+        centerZ + (rng() - 0.5) * 4.5
+      ),
+      new THREE.Vector3(
+        centerX + (rng() - 0.5) * 6.0,
+        collarY + 29.0,
+        centerZ + (rng() - 0.5) * 6.0
+      ),
+    ]);
+    subGeos.push(
+      this.buildOrganicMangroveTube(
+        upperTrunkCurve,
+        2.15,
+        0.95,
+        14,
+        10,
+        baseGroundY,
+        chunkIndex * 7.1
+      )
+    );
+
+    // Canopy crown & hanging Spanish moss curtains from high boughs
+    const topPt = upperTrunkCurve.getPoint(0.95);
+    for (let c = 0; c < 4; c++) {
+      const ang = (c / 4) * Math.PI * 2 + rng() * 0.5;
+      dummy.position.set(
+        topPt.x + Math.cos(ang) * 7.5,
+        topPt.y - 2.0 + rng() * 3.0,
+        topPt.z + Math.sin(ang) * 7.5
+      );
+      dummy.rotation.set(0, rng() * Math.PI * 2, 0);
+      dummy.scale.setScalar(lerp(2.1, 3.0, rng()));
+      dummy.updateMatrix();
+      canopyClusters.push(dummy.matrix.clone());
+    }
+    dummy.position.set(centerX, collarY + 18.0, centerZ);
+    dummy.rotation.set(0, rng() * Math.PI * 2, 0);
+    dummy.scale.setScalar(1.35);
+    dummy.updateMatrix();
+    highLianaTransforms.push(dummy.matrix.clone());
+
+    // 2. 8 Colossal Radiating Primary Stilt-Root Arches + Bifurcating Secondary Prop-Roots!
+    const primaryCount = 8;
+    for (let i = 0; i < primaryCount; i++) {
+      const azim = (i / primaryCount) * Math.PI * 2 + (rng() - 0.5) * 0.28;
+      const radialSpan = lerp(15.5, 27.5, rng()) * wideSpanFactor;
+      const endX = centerX + Math.cos(azim) * radialSpan;
+      const endZ = centerZ + Math.sin(azim) * radialSpan;
+      const endGroundY = this.sampleHeightRaw(endX, endZ).height;
+
+      // High Gothic shoulder arch so vehicles/cameras easily clear 8m-13m tall vaulted openings!
+      const midR = radialSpan * 0.52;
+      const midLateralBow = (rng() - 0.5) * 3.6;
+      const perpX = -Math.sin(azim);
+      const perpZ = Math.cos(azim);
+
+      const p0 = new THREE.Vector3(
+        centerX + Math.cos(azim) * 1.1,
+        collarY + lerp(-0.8, 1.8, rng()),
+        centerZ + Math.sin(azim) * 1.1
+      );
+      const p1 = new THREE.Vector3(
+        centerX + Math.cos(azim) * (radialSpan * 0.28) + perpX * midLateralBow * 0.5,
+        collarY + lerp(0.5, 2.4, rng()), // Sweeps UP slightly from collar like Gothic mangrove vaults!
+        centerZ + Math.sin(azim) * (radialSpan * 0.28) + perpZ * midLateralBow * 0.5
+      );
+      const p2 = new THREE.Vector3(
+        centerX + Math.cos(azim) * midR + perpX * midLateralBow,
+        lerp(endGroundY, collarY, 0.66),
+        centerZ + Math.sin(azim) * midR + perpZ * midLateralBow
+      );
+      const p3 = new THREE.Vector3(endX, endGroundY - 1.2, endZ);
+
+      const rootCurve = new THREE.CatmullRomCurve3([p0, p1, p2, p3]);
+      subGeos.push(
+        this.buildOrganicMangroveTube(
+          rootCurve,
+          lerp(1.05, 1.38, rng()),
+          lerp(0.52, 0.72, rng()),
+          18,
+          9,
+          baseGroundY,
+          i * 3.7 + chunkIndex
+        )
+      );
+
+      // Physical collision pillar where the giant stilt root plunges into the mud/water!
+      obstacles.push({
+        id: this.nextObstacleId++,
+        chunkIndex,
+        kind: 'buttress_tree',
+        position: new THREE.Vector3(endX, endGroundY, endZ),
+        radius: 0.82,
+        height: 6.5,
+        canShearVine: true,
+      });
+
+      // Secondary Bifurcating Prop-Root branching off mid-arch (like real mangrove stilt tangles!)
+      if (i % 2 === 0 || rng() < 0.65) {
+        const branchOrigin = rootCurve.getPoint(lerp(0.42, 0.58, rng()));
+        const subAngle = azim + (rng() < 0.5 ? -1 : 1) * lerp(0.22, 0.42, rng());
+        const subDist = radialSpan * lerp(0.76, 1.15, rng());
+        const sx = centerX + Math.cos(subAngle) * subDist;
+        const sz = centerZ + Math.sin(subAngle) * subDist;
+        const sy = this.sampleHeightRaw(sx, sz).height;
+
+        const propCurve = new THREE.CatmullRomCurve3([
+          branchOrigin,
+          new THREE.Vector3(
+            lerp(branchOrigin.x, sx, 0.48),
+            lerp(sy, branchOrigin.y, 0.68),
+            lerp(branchOrigin.z, sz, 0.48)
+          ),
+          new THREE.Vector3(sx, sy - 1.0, sz),
+        ]);
+        subGeos.push(
+          this.buildOrganicMangroveTube(
+            propCurve,
+            0.62,
+            0.36,
+            12,
+            7,
+            baseGroundY,
+            i * 9.1
+          )
+        );
+
+        obstacles.push({
+          id: this.nextObstacleId++,
+          chunkIndex,
+          kind: 'buttress_tree',
+          position: new THREE.Vector3(sx, sy, sz),
+          radius: 0.55,
+          height: 5.0,
+          canShearVine: true,
+        });
+      }
+
+      // Glowing Bioluminescent Shelf Fungi cluster on damp lower stilt-root knee!
+      if (i % 3 === 0) {
+        const fungiPt = rootCurve.getPoint(0.78);
+        const shelf = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.65, 0.35, 0.14, 9),
+          this.bioFungiMat
+        );
+        shelf.position.set(fungiPt.x, fungiPt.y + 0.2, fungiPt.z);
+        chunkGroup.add(shelf);
+      }
+    }
+
+    // 3. Vertical Pneumatophore Breathing Root Spikes poking up from muddy bayou floor!
+    for (let k = 0; k < 14; k++) {
+      const ka = rng() * Math.PI * 2;
+      const kr = lerp(4.0, 24.0, rng());
+      const kx = centerX + Math.cos(ka) * kr;
+      const kz = centerZ + Math.sin(ka) * kr;
+      const ky = this.sampleHeightRaw(kx, kz).height;
+      const kh = lerp(0.85, 2.15, rng());
+      const kneeGeo = new THREE.ConeGeometry(lerp(0.14, 0.26, rng()), kh, 6);
+      kneeGeo.translate(kx, ky + kh * 0.42, kz);
+      const vCount = kneeGeo.attributes.position.count;
+      const kCols = new Float32Array(vCount * 3);
+      for (let v = 0; v < vCount; v++) {
+        kCols[v * 3] = 0.26;
+        kCols[v * 3 + 1] = 0.28;
+        kCols[v * 3 + 2] = 0.20;
+      }
+      kneeGeo.setAttribute('color', new THREE.BufferAttribute(kCols, 3));
+      subGeos.push(kneeGeo);
+    }
+
+    const mergedMangroveGeo = this.mergeGeometriesSimple(subGeos);
+    subGeos.forEach((g) => g.dispose());
+
+    const mangroveMesh = new THREE.Mesh(mergedMangroveGeo, this.mangroveBarkMat);
+    mangroveMesh.castShadow = true;
+    mangroveMesh.receiveShadow = true;
+    mangroveMesh.userData.uniqueGeo = true;
+    chunkGroup.add(mangroveMesh);
+  }
+
   private createHollowLogGeometry(
     halfLen: number,
     innerR: number,
@@ -1333,7 +1687,10 @@ export class TrailCorridorWorld {
 
     // Periodic Split-Road Fork (~every 336m)
     let splitFactor = 0;
-    if (distForward > 95) {
+    if (
+      distForward > 95 &&
+      (this.currentBiome === 'FOREST' || this.currentBiome === 'SWAMP')
+    ) {
       const period = 336;
       const phase = ((distForward - 95) % period) / period;
       splitFactor = smoothstep(0.05, 0.16, phase) * smoothstep(0.48, 0.36, phase);
@@ -1343,16 +1700,24 @@ export class TrailCorridorWorld {
     // Periodic Flash-Flood Hillside Mudslide Zone (occurs in non-split stretches in FOREST & SWAMP!)
     let mudslideFactor = 0;
     let mudslideDirX = 1;
-    if (this.currentBiome !== 'DESERT' && distForward > 160) {
+    if (
+      (this.currentBiome === 'FOREST' || this.currentBiome === 'SWAMP') &&
+      distForward > 160
+    ) {
       const period = 336;
       const phase = ((distForward - 95) % period) / period;
       mudslideFactor = smoothstep(0.56, 0.66, phase) * smoothstep(0.92, 0.82, phase);
       mudslideDirX = Math.floor((distForward - 95) / period) % 2 === 0 ? 1 : -1;
     }
 
-    // VAST, SPACIOUS HALF-WIDTH: 35m to 52m (70m to 104m wide open driving clearing!)
+    // VAST, SPACIOUS HALF-WIDTH
     const widthWave = Math.sin(z * 0.022 + 0.7) * 6.5 + noise2D(z * 0.018, 41.2) * 5.0;
-    const baseHalfWidth = clamp(38.0 + widthWave * introFade, 33.0, 48.0);
+    const baseHalfWidth =
+      this.currentBiome === 'DEADWOOD'
+        ? clamp(21.0 + widthWave * 0.45 * introFade, 18.0, 26.0)
+        : this.currentBiome === 'DESERT'
+        ? clamp(28.0 + widthWave * 0.45 * introFade, 24.0, 34.0)
+        : clamp(38.0 + widthWave * introFade, 33.0, 48.0);
     const halfWidth = baseHalfWidth + splitOffset * 0.65;
 
     const mudNoise = fbm2D(z * 0.032, 7.2, 3) * 0.5 + 0.5;
@@ -1465,6 +1830,9 @@ export class TrailCorridorWorld {
     for (let ci = cIdx - 1; ci <= cIdx + 1; ci++) {
       const rec = this.activeChunks.get(ci);
       if (!rec) continue;
+      if (rec.deadwoodData) {
+        height += this.deadwoodBuilder.sampleGroundHeaveHeight(rec.deadwoodData, x, z);
+      }
       for (const p of rec.puddles) {
         const nx = (x - p.x) / p.radiusX;
         const nz = (z - p.z) / p.radiusZ;
@@ -1624,14 +1992,18 @@ export class TrailCorridorWorld {
     playerPos: THREE.Vector3,
     playerVel: THREE.Vector3,
     elapsedTime: number,
-    dt = 1 / 60
+    dt = 1 / 60,
+    vehiclePos: THREE.Vector3 = playerPos,
+    vehicleSpeedMps = 0,
+    passiveObserver = false
   ): void {
     this.playerPosUniform.value.copy(playerPos);
     this.playerVelUniform.value.copy(playerVel);
     this.timeUniform.value = elapsedTime;
 
     if (this.activePortal) {
-      this.activePortal.ringMesh.rotation.z = elapsedTime * 0.85;
+      const mat = this.activePortal.ringMesh.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.32 + Math.sin(elapsedTime * 1.1) * 0.08;
     }
 
     const currentChunk = Math.floor(-playerPos.z / CHUNK_LENGTH);
@@ -1658,14 +2030,25 @@ export class TrailCorridorWorld {
       }
     }
 
-    this.stepDynamicSetPieces(playerPos, playerVel, elapsedTime, dt);
+    this.stepDynamicSetPieces(
+      playerPos,
+      playerVel,
+      elapsedTime,
+      dt,
+      vehiclePos,
+      vehicleSpeedMps,
+      passiveObserver
+    );
   }
 
   private stepDynamicSetPieces(
     playerPos: THREE.Vector3,
     playerVel: THREE.Vector3,
     elapsedTime: number,
-    dt: number
+    dt: number,
+    vehiclePos: THREE.Vector3,
+    vehicleSpeedMps: number,
+    passiveObserver: boolean
   ): void {
     const forwardSpeed = Math.max(0, -playerVel.z);
 
@@ -1734,15 +2117,37 @@ export class TrailCorridorWorld {
         dd.mesh.rotation.y = elapsedTime * 4.5;
       }
 
-      // 4. Spinning Bio-Fuel Pickups!
+      // 4. Fuel Jerrycan Pickups
       for (const fp of rec.fuelPickups) {
         if (fp.collectedCooldown > 0) {
           fp.collectedCooldown = Math.max(0, fp.collectedCooldown - dt);
           fp.mesh.visible = fp.collectedCooldown <= 0;
-        } else {
-          fp.mesh.rotation.y = elapsedTime * 2.4;
-          fp.mesh.position.y = fp.position.y + Math.sin(elapsedTime * 3.2 + fp.id) * 0.22;
         }
+      }
+
+      // 5. DEADWOOD: Live Subterranean Erupting Roots, Ground-Heave Ridges & Uprooted Dead Snags!
+      if (rec.deadwoodData) {
+        this.deadwoodBuilder.stepChunkHazards(
+          rec.group,
+          rec.deadwoodData,
+          dt,
+          playerPos,
+          vehiclePos,
+          vehicleSpeedMps,
+          passiveObserver
+        );
+      }
+
+      // 6. DESERT SHACK VILLAGE: Spinning Wind-Pumps, Collapsing Water Towers, Rolling Oil Drums & Swinging Gates!
+      if (rec.desertVillageData) {
+        this.desertVillageBuilder.stepChunkHazards(
+          rec.desertVillageData,
+          dt,
+          elapsedTime,
+          playerPos,
+          vehiclePos,
+          (x, z) => this.sampleHeightRaw(x, z).height
+        );
       }
     }
   }
@@ -1885,9 +2290,9 @@ export class TrailCorridorWorld {
     const fuelPickups: FuelPickup[] = [];
     const anchors: CanopyAnchor[] = [];
     const rootAnchors: RootAnchor[] = [];
-    const creatureSpawns: CreatureSpawnNode[] = [];
 
-    const biomeSalt = biome === 'SWAMP' ? 7719 : biome === 'DESERT' ? 31337 : 0;
+    const biomeSalt =
+      biome === 'SWAMP' ? 7719 : biome === 'DESERT' ? 31337 : biome === 'DEADWOOD' ? 18443 : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
 
@@ -1904,23 +2309,22 @@ export class TrailCorridorWorld {
       fuelPickups,
       anchors,
       rootAnchors,
-      creatureSpawns,
     };
     this.activeChunks.set(chunkIndex, chunkRecord);
 
-    // A. WATER PUDDLES / SWAMP LAGOONS / DESERT OASES!
-    if (chunkIndex >= 0) {
-      const puddleCount = biome === 'SWAMP' ? 6 : biome === 'FOREST' ? 3 : 1;
+    // A. NATURAL WATER PUDDLES / BLACKWATER BAYOU LAGOONS / DEADWOOD MUD HOLLOWS
+    if (chunkIndex >= 0 && biome !== 'DESERT') {
+      const puddleCount = biome === 'SWAMP' ? 8 : biome === 'DEADWOOD' ? 2 : 3;
       for (let p = 0; p < puddleCount; p++) {
-        const zPud = zStart - ((p + 0.3 + rng() * 0.4) / puddleCount) * CHUNK_LENGTH;
+        const zPud = zStart - ((p + 0.25 + rng() * 0.45) / puddleCount) * CHUNK_LENGTH;
         if (isSafeZone(zPud)) continue;
 
         const spec = this.getTrailSpec(zPud);
-        const xPud = spec.centerX + (rng() - 0.5) * (spec.halfWidth * 1.25);
+        const xPud = spec.centerX + (rng() - 0.5) * (spec.halfWidth * (biome === 'SWAMP' ? 1.45 : 0.85));
         const baseSample = this.sampleHeightRaw(xPud, zPud);
-        const rx = biome === 'SWAMP' ? lerp(9.0, 18.0, rng()) : lerp(6.0, 11.5, rng());
-        const rz = biome === 'SWAMP' ? lerp(11.0, 22.0, rng()) : lerp(7.0, 13.5, rng());
-        const maxDepth = biome === 'SWAMP' ? lerp(0.26, 0.38, rng()) : lerp(0.22, 0.30, rng());
+        const rx = biome === 'SWAMP' ? lerp(14.0, 28.0, rng()) : lerp(6.0, 11.5, rng());
+        const rz = biome === 'SWAMP' ? lerp(16.0, 32.0, rng()) : lerp(8.0, 15.5, rng());
+        const maxDepth = biome === 'SWAMP' ? lerp(0.28, 0.42, rng()) : lerp(0.18, 0.28, rng());
         const waterY = baseSample.height - 0.03;
 
         puddles.push({
@@ -1932,7 +2336,8 @@ export class TrailCorridorWorld {
           maxDepth,
         });
 
-        const waterMesh = new THREE.Mesh(this.puddleDiscGeo, this.waterMat);
+        const wMat = biome === 'SWAMP' || biome === 'DEADWOOD' ? this.swampBlackwaterMat : this.waterMat;
+        const waterMesh = new THREE.Mesh(this.puddleDiscGeo, wMat);
         waterMesh.position.set(xPud, waterY, zPud);
         waterMesh.scale.set(rx, 1, rz);
         waterMesh.renderOrder = 2;
@@ -1940,7 +2345,7 @@ export class TrailCorridorWorld {
       }
     }
 
-    // 1. VAST 320m-WIDE SPACIOUS TERRAIN MESH (Biome-Colored!)
+    // 1. VAST 320m-WIDE SPACIOUS TERRAIN MESH (Grounded Natural Palettes!)
     const cols = CHUNK_X_SEGMENTS + 1;
     const rows = CHUNK_Z_SEGMENTS + 1;
     const vertCount = cols * rows;
@@ -1951,33 +2356,43 @@ export class TrailCorridorWorld {
 
     const colDirt =
       biome === 'DESERT'
-        ? new THREE.Color(0xd89455)
+        ? new THREE.Color(0xdca86e) // Sun-baked golden desert sand & packed caliche street
         : biome === 'SWAMP'
-        ? new THREE.Color(0x524c36)
+        ? new THREE.Color(0x3a3b2c) // Damp dark bayou silt
+        : biome === 'DEADWOOD'
+        ? new THREE.Color(0x838476) // Weathered grey-olive Deadwood track (#838476)
         : new THREE.Color(0x8b6745);
     const colRut =
       biome === 'DESERT'
-        ? new THREE.Color(0xc2783e)
+        ? new THREE.Color(0xbd7d46) // Dusty terracotta tire ruts
         : biome === 'SWAMP'
-        ? new THREE.Color(0x3a3726)
+        ? new THREE.Color(0x282b20)
+        : biome === 'DEADWOOD'
+        ? new THREE.Color(0x636558)
         : new THREE.Color(0x6d4b2f);
     const colMud =
       biome === 'DESERT'
-        ? new THREE.Color(0xa65c32)
+        ? new THREE.Color(0x9e6336) // Sun-cracked dry red clay
         : biome === 'SWAMP'
-        ? new THREE.Color(0x252d1f)
+        ? new THREE.Color(0x161d17) // Blackwater peat
+        : biome === 'DEADWOOD'
+        ? new THREE.Color(0x383a2c) // Deadwood dark mud hollow (#383a2c)
         : new THREE.Color(0x362518);
     const colVerge =
       biome === 'DESERT'
-        ? new THREE.Color(0xe3a868)
+        ? new THREE.Color(0xc27b47) // Warm red-ochre canyon talus
         : biome === 'SWAMP'
-        ? new THREE.Color(0x35522c)
+        ? new THREE.Color(0x2b4528)
+        : biome === 'DEADWOOD'
+        ? new THREE.Color(0x55594c) // Deadwood ashen olive earth (#55594c)
         : new THREE.Color(0x3d5c28);
     const colOuter =
       biome === 'DESERT'
-        ? new THREE.Color(0xb85d34)
+        ? new THREE.Color(0xa85832) // Terracotta red-rock canyon wall
         : biome === 'SWAMP'
-        ? new THREE.Color(0x1f3320)
+        ? new THREE.Color(0x18291b)
+        : biome === 'DEADWOOD'
+        ? new THREE.Color(0x41453b)
         : new THREE.Color(0x273c1d);
     const tmpColor = new THREE.Color();
 
@@ -2053,10 +2468,14 @@ export class TrailCorridorWorld {
     terrainMesh.receiveShadow = true;
     chunkGroup.add(terrainMesh);
 
-    // B. FLASH-FLOOD HILLSIDE MUDSLIDE & ROLLING BOULDER CHASE ZONES!
+    // B. FLASH-FLOOD HILLSIDE MUDSLIDE & CANYON ROCKSLIDE BOULDER ZONES!
     const midZ = zStart - CHUNK_LENGTH * 0.5;
     const midSpec = this.getTrailSpec(midZ);
-    if (chunkIndex >= 0 && (midSpec.mudslideFactor > 0.2 || (biome === 'DESERT' && chunkIndex % 2 === 1))) {
+    if (
+      chunkIndex >= 0 &&
+      biome !== 'DEADWOOD' &&
+      (midSpec.mudslideFactor > 0.2 || (biome === 'DESERT' && chunkIndex % 2 === 1))
+    ) {
       const dirX = midSpec.mudslideDirX;
       if (biome !== 'DESERT') {
         const slideSheet = new THREE.Mesh(this.mudslideSheetGeo, this.mudslideFlowMat);
@@ -2068,12 +2487,12 @@ export class TrailCorridorWorld {
         chunkGroup.add(slideSheet);
       }
 
-      // Spawn 3 Dynamic Tumbling Hillside Boulders rolling across the wide slope!
-      for (let b = 0; b < 3; b++) {
+      const boulderCount = biome === 'DESERT' ? 2 : 3;
+      for (let b = 0; b < boulderCount; b++) {
         const bz = zStart - (0.22 + b * 0.27) * CHUNK_LENGTH;
         const bSpec = this.getTrailSpec(bz);
         const spawnX = bSpec.centerX - dirX * (bSpec.halfWidth + 8.0 + b * 9.0);
-        const rad = lerp(1.65, 2.55, rng());
+        const rad = lerp(1.65, 2.45, rng());
         const bMat = biome === 'DESERT' ? this.desertRockMat : this.rockMat;
         const bMesh = new THREE.Mesh(this.boulderGeos[b % 3], bMat);
         bMesh.scale.setScalar(rad);
@@ -2109,30 +2528,54 @@ export class TrailCorridorWorld {
       }
     }
 
-    // C. STATIC CRISSCROSSING GIANT ROOTS COMING OUT OF THE GROUND!
-    // Signature centerpiece in SWAMP (3 interwoven crisscrossing root skyways per chunk!) + 1 in FOREST!
-    if (chunkIndex >= 0 && biome !== 'DESERT') {
-      const rootBridgeCount = biome === 'SWAMP' ? 3 : chunkIndex % 2 === 1 ? 2 : 0;
-      for (let rb = 0; rb < rootBridgeCount; rb++) {
-        const zEntry = zStart - (0.08 + rb * 0.24) * CHUNK_LENGTH;
-        const zExit = zEntry - lerp(56.0, 74.0, rng());
-        if (zEntry > -26) continue;
+    const boulderTransforms: Array<{ geoIdx: number; matrix: THREE.Matrix4 }> = [];
+    const shearTransforms: THREE.Matrix4[] = [];
+    const cactusTransforms: THREE.Matrix4[] = [];
+    const midTreeTransforms: THREE.Matrix4[] = [];
+    const titanTreeTransforms: THREE.Matrix4[] = [];
+    const titanCrownTransforms: THREE.Matrix4[] = [];
+    const highLianaTransforms: THREE.Matrix4[] = [];
+    const canopyClusters: THREE.Matrix4[] = [];
+    const sunShaftTransforms: THREE.Matrix4[] = [];
+    const dummy = new THREE.Object3D();
 
+    // C. BIOME SIGNATURE ARCHITECTURES!
+    //    - SWAMP: Colossal Gothic Mangrove Stilt-Root Cathedrals (weave-through arched roots, zero bugs!)
+    //    - FOREST: Giant Ground Root Bridges
+    //    - DEADWOOD: Dead Timberland + Live Subterranean Erupting Roots, Ground-Heaves & Uprooted Snags!
+    //    - DESERT: Gritty Badlands Shack Village + Collapsing Water Towers, Rolling Oil Drums & Swinging Gates!
+    if (biome === 'SWAMP' && chunkIndex >= 0) {
+      const lateralSlots = [-19.0, 17.5, -6.5, 22.0];
+      for (let m = 0; m < 4; m++) {
+        const mz = zStart - (0.14 + m * 0.23) * CHUNK_LENGTH;
+        if (mz > -24) continue;
+        const mSpec = this.getTrailSpec(mz);
+        const mx = mSpec.centerX + lateralSlots[(m + chunkIndex) % lateralSlots.length] + (rng() - 0.5) * 6.0;
+        this.spawnMangroveCathedralTree(
+          chunkGroup,
+          obstacles,
+          canopyClusters,
+          highLianaTransforms,
+          chunkIndex,
+          mx,
+          mz,
+          rng,
+          lerp(0.95, 1.22, rng())
+        );
+      }
+    } else if (biome === 'FOREST' && chunkIndex >= 0 && chunkIndex % 2 === 1) {
+      const zEntry = zStart - 0.22 * CHUNK_LENGTH;
+      const zExit = zEntry - 62.0;
+      if (zEntry < -30) {
         const s0 = this.getTrailSpec(zEntry);
         const sMid = this.getTrailSpec((zEntry + zExit) * 0.5);
         const s1 = this.getTrailSpec(zExit);
-
-        // Crisscross diagonally from one side of the wide arena to the opposite side!
-        const startSide = rb % 2 === 0 ? -1 : 1;
-        const x0 = s0.centerX + startSide * lerp(8.0, 24.0, rng());
-        const xMid = sMid.centerX - startSide * lerp(0.0, 12.0, rng());
-        const x1 = s1.centerX - startSide * lerp(10.0, 26.0, rng());
-
+        const x0 = s0.centerX - 18.0;
+        const xMid = sMid.centerX;
+        const x1 = s1.centerX + 18.0;
         const y0 = this.sampleHeightRaw(x0, zEntry).height - 0.35;
         const y1 = this.sampleHeightRaw(x1, zExit).height - 0.35;
-        const archPeakY =
-          this.sampleHeightRaw(xMid, (zEntry + zExit) * 0.5).height +
-          (rb === 1 ? lerp(4.2, 5.8, rng()) : lerp(2.2, 3.6, rng())); // Upper root crosses OVER lower root!
+        const archPeakY = this.sampleHeightRaw(xMid, (zEntry + zExit) * 0.5).height + 3.4;
 
         const curve = new THREE.CatmullRomCurve3([
           new THREE.Vector3(x0, y0, zEntry),
@@ -2141,103 +2584,70 @@ export class TrailCorridorWorld {
           new THREE.Vector3(lerp(xMid, x1, 0.5), lerp(archPeakY, y1, 0.32), lerp(zEntry, zExit, 0.75)),
           new THREE.Vector3(x1, y1, zExit),
         ]);
-
-        const built = this.buildCrisscrossRootBridge(chunkIndex, curve, 2.35); // 4.7m wide drivable root!
+        const built = this.buildCrisscrossRootBridge(chunkIndex, curve, 2.2);
         chunkGroup.add(built.mesh);
         rootBridges.push(built.bridge);
+      }
+    } else if (biome === 'DEADWOOD') {
+      chunkRecord.deadwoodData = this.deadwoodBuilder.populateDeadwoodChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        CORRIDOR_HALF_SPAN,
+        rng,
+        (x, z) => this.sampleHeightRaw(x, z).height,
+        (z) => {
+          const sp = this.getTrailSpec(z);
+          return { centerX: sp.centerX, halfWidth: sp.halfWidth };
+        },
+        obstacles,
+        rootBridges,
+        () => this.nextObstacleId++,
+        () => this.nextBridgeId++
+      );
+    } else if (biome === 'DESERT') {
+      chunkRecord.desertVillageData = this.desertVillageBuilder.populateDesertVillageChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        rng,
+        (x, z) => this.sampleHeightRaw(x, z).height,
+        (z) => {
+          const sp = this.getTrailSpec(z);
+          return { centerX: sp.centerX, halfWidth: sp.halfWidth, slopeX: sp.slopeX };
+        },
+        obstacles,
+        rootBridges,
+        () => this.nextObstacleId++,
+        () => this.nextBridgeId++
+      );
 
-        // Place a rewarding Bio-Fuel Cell right atop the apex of the giant root bridge!
-        const apexPt = curve.getPoint(0.5);
-        const fMesh = new THREE.Mesh(this.fuelCanisterGeo, this.fuelCellMat);
-        fMesh.position.set(apexPt.x, apexPt.y + 1.35, apexPt.z);
-        chunkGroup.add(fMesh);
-        fuelPickups.push({
-          id: this.nextPickupId++,
-          chunkIndex,
-          position: fMesh.position.clone(),
-          mesh: fMesh,
-          collectedCooldown: 0,
-        });
+      if (chunkIndex >= 0) {
+        // Natural dusty desert whirlwinds along canyon outskirts
+        for (let d = 0; d < 2; d++) {
+          const dz = zStart - (0.28 + d * 0.45) * CHUNK_LENGTH;
+          const ds = this.getTrailSpec(dz);
+          const dx = ds.centerX + (rng() - 0.5) * (ds.halfWidth * 0.85);
+          const dy = this.sampleHeightRaw(dx, dz).height;
+          const dMesh = new THREE.Mesh(this.dustDevilGeo, this.dustDevilMat);
+          dMesh.position.set(dx, dy, dz);
+          chunkGroup.add(dMesh);
+          dustDevils.push({
+            mesh: dMesh,
+            position: new THREE.Vector3(dx, dy, dz),
+            baseX: dx,
+            baseZ: dz,
+            radius: 9.5,
+            phase: rng() * Math.PI * 2,
+          });
+        }
       }
     }
 
-    // Ground-level Bio-Fuel Pickups so every biome has accessible fuel cells!
-    if (chunkIndex >= 0) {
-      for (let f = 0; f < 2; f++) {
-        const fz = zStart - (0.32 + f * 0.45) * CHUNK_LENGTH;
-        if (isSafeZone(fz)) continue;
-        const fSpec = this.getTrailSpec(fz);
-        const fx = fSpec.centerX + (rng() - 0.5) * (fSpec.halfWidth * 0.9);
-        const fy = this.sampleHeightRaw(fx, fz).height + 1.2;
-        const fMesh = new THREE.Mesh(this.fuelCanisterGeo, this.fuelCellMat);
-        fMesh.position.set(fx, fy, fz);
-        chunkGroup.add(fMesh);
-        fuelPickups.push({
-          id: this.nextPickupId++,
-          chunkIndex,
-          position: new THREE.Vector3(fx, fy, fz),
-          mesh: fMesh,
-          collectedCooldown: 0,
-        });
-      }
-    }
-
-    // D. SWAMP SIPHON MOSQUITOS & ROBOTIC TICKS SPAWN NODES!
-    if (chunkIndex >= 0 && (biome === 'SWAMP' || biome === 'DESERT' || chunkIndex >= 1)) {
-      const mosquitoCount = biome === 'SWAMP' ? 5 : biome === 'FOREST' ? 2 : 0;
-      for (let m = 0; m < mosquitoCount; m++) {
-        const mz = zStart - (0.15 + m * 0.18 + rng() * 0.08) * CHUNK_LENGTH;
-        if (isSafeZone(mz)) continue;
-        const ms = this.getTrailSpec(mz);
-        const mx = ms.centerX + (rng() - 0.5) * (ms.halfWidth * 1.1);
-        const my = this.sampleHeightRaw(mx, mz).height + lerp(2.6, 5.2, rng());
-        creatureSpawns.push({
-          chunkIndex,
-          biome,
-          kind: 'SIPHON_MOSQUITO',
-          position: new THREE.Vector3(mx, my, mz),
-        });
-      }
-
-      const tickCount = biome === 'SWAMP' ? 4 : biome === 'DESERT' ? 4 : 1;
-      for (let t = 0; t < tickCount; t++) {
-        const tz = zStart - (0.22 + t * 0.21 + rng() * 0.08) * CHUNK_LENGTH;
-        if (isSafeZone(tz)) continue;
-        const ts = this.getTrailSpec(tz);
-        const tx = ts.centerX + (rng() - 0.5) * (ts.halfWidth * 1.0);
-        const ty = this.sampleHeightRaw(tx, tz).height + 0.35;
-        creatureSpawns.push({
-          chunkIndex,
-          biome,
-          kind: 'ROBO_TICK',
-          position: new THREE.Vector3(tx, ty, tz),
-        });
-      }
-    }
-
-    // E. DESERT DUST DEVILS & RED SANDSTONE CANYON ARCHES!
-    if (biome === 'DESERT' && chunkIndex >= 0) {
-      for (let d = 0; d < 2; d++) {
-        const dz = zStart - (0.28 + d * 0.45) * CHUNK_LENGTH;
-        const ds = this.getTrailSpec(dz);
-        const dx = ds.centerX + (rng() - 0.5) * (ds.halfWidth * 0.9);
-        const dy = this.sampleHeightRaw(dx, dz).height;
-        const dMesh = new THREE.Mesh(this.dustDevilGeo, this.dustDevilMat);
-        dMesh.position.set(dx, dy, dz);
-        chunkGroup.add(dMesh);
-        dustDevils.push({
-          mesh: dMesh,
-          position: new THREE.Vector3(dx, dy, dz),
-          baseX: dx,
-          baseZ: dz,
-          radius: 9.5,
-          phase: rng() * Math.PI * 2,
-        });
-      }
-    }
-
-    // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest & Swamp!)
-    if (chunkIndex >= 0 && biome !== 'DESERT') {
+    // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
+    if (chunkIndex >= 0 && biome === 'FOREST') {
       const zLog = zStart - (0.5 + (rng() - 0.5) * 0.16) * CHUNK_LENGTH;
       if (zLog < -48) {
         const spec = this.getTrailSpec(zLog);
@@ -2247,7 +2657,7 @@ export class TrailCorridorWorld {
             : spec.centerX + (chunkIndex % 2 === 0 ? -9.0 : 9.0);
         const yaw = Math.atan2(-spec.slopeX, 1.0);
         const halfLen = lerp(13.0, 16.0, rng());
-        const innerR = 3.55; // Wider 7.1m hollow log tunnel!
+        const innerR = 3.55;
         const outerR = 4.18;
         const groundAtMid = this.sampleHeightRaw(xLog, zLog).height;
         const centerY = groundAtMid + innerR - 0.22;
@@ -2288,8 +2698,8 @@ export class TrailCorridorWorld {
       return false;
     };
 
-    // G. DYNAMIC FALLING TREES (Forest & Swamp!)
-    if (chunkIndex >= 0 && biome !== 'DESERT') {
+    // G. DYNAMIC FALLING TREES (Forest!)
+    if (chunkIndex >= 0 && biome === 'FOREST') {
       const zTree = zStart - (0.68 + rng() * 0.14) * CHUNK_LENGTH;
       if (zTree < -55) {
         const spec = this.getTrailSpec(zTree);
@@ -2307,10 +2717,7 @@ export class TrailCorridorWorld {
         trunkMesh.castShadow = true;
         pivotGroup.add(trunkMesh);
 
-        const crownMesh = new THREE.Mesh(
-          this.canopyClusterGeo,
-          biome === 'SWAMP' ? this.swampCanopyMat : this.canopyLeafMat
-        );
+        const crownMesh = new THREE.Mesh(this.canopyClusterGeo, this.canopyLeafMat);
         crownMesh.position.set(0, 23.5, 0);
         crownMesh.scale.setScalar(1.7);
         pivotGroup.add(crownMesh);
@@ -2345,41 +2752,31 @@ export class TrailCorridorWorld {
       }
     }
 
-    const boulderTransforms: Array<{ geoIdx: number; matrix: THREE.Matrix4 }> = [];
-    const shearTransforms: THREE.Matrix4[] = [];
-    const cactusTransforms: THREE.Matrix4[] = [];
-    const midTreeTransforms: THREE.Matrix4[] = [];
-    const titanTreeTransforms: THREE.Matrix4[] = [];
-    const titanCrownTransforms: THREE.Matrix4[] = [];
-    const highLianaTransforms: THREE.Matrix4[] = [];
-    const canopyClusters: THREE.Matrix4[] = [];
-    const sunShaftTransforms: THREE.Matrix4[] = [];
-    const dummy = new THREE.Object3D();
-
-    // H. SPACIOUSLY BORDERED PERIMETER TITAN TREES / RED-ROCK BUTTES (Keeping the 80m center arena WIDE OPEN!)
-    const perimeterCount = biome === 'DESERT' ? 22 : 30;
+    // H. SPACIOUSLY BORDERED PERIMETER TREES / RED-SANDSTONE CANYON MESAS!
+    const perimeterCount =
+      biome === 'DEADWOOD' ? 0 : biome === 'DESERT' ? 22 : biome === 'SWAMP' ? 22 : 30;
     for (let i = 0; i < perimeterCount; i++) {
       const z = zStart - rng() * CHUNK_LENGTH;
       const spec = this.getTrailSpec(z);
       const side = i % 2 === 0 ? -1 : 1;
 
       let x: number;
-      if (i === 0 && spec.splitFactor > 0.6) {
-        x = spec.centerX + (rng() - 0.5) * 3.0; // Split-road island landmark!
-      } else if (i < 10) {
-        x = spec.centerX + side * lerp(spec.halfWidth + 5.0, spec.halfWidth + 22.0, rng());
+      if (i === 0 && spec.splitFactor > 0.6 && biome === 'FOREST') {
+        x = spec.centerX + (rng() - 0.5) * 3.0;
+      } else if (i < 8) {
+        x = spec.centerX + side * lerp(spec.halfWidth + 10.0, spec.halfWidth + 28.0, rng());
       } else {
-        x = spec.centerX + side * lerp(spec.halfWidth + 22.0, CORRIDOR_HALF_SPAN - 12.0, rng());
+        x = spec.centerX + side * lerp(spec.halfWidth + 28.0, CORRIDOR_HALF_SPAN - 12.0, rng());
       }
 
       if (isSafeZone(z) && Math.abs(x - spec.centerX) < 28) continue;
       const ground = this.sampleHeightRaw(x, z);
 
       if (biome === 'DESERT') {
-        // Towering Red Sandstone Canyon Buttes along the flanks!
-        const rad = lerp(5.5, 13.5, rng());
-        const hScale = lerp(1.8, 3.8, rng());
-        dummy.position.set(x, ground.height + rad * 0.4, z);
+        // Towering Natural Red-Sandstone Canyon Mesas & Buttes framing the village valley!
+        const rad = lerp(6.0, 14.0, rng());
+        const hScale = lerp(1.7, 3.6, rng());
+        dummy.position.set(x, ground.height + rad * 0.38, z);
         dummy.rotation.set(0, rng() * Math.PI * 2, 0);
         dummy.scale.set(rad, rad * hScale, rad);
         dummy.updateMatrix();
@@ -2432,18 +2829,21 @@ export class TrailCorridorWorld {
       }
     }
 
-    // I. WELL-SPACED TACTICAL SHEAR SPIRES & BOULDERS (Generous 18m+ spacing so corridor stays SPACIOUS!)
-    const sparseCount = 8;
+    // I. WELL-SPACED ROADSIDE BOULDERS & SLATE ROCKS
+    const sparseCount = biome === 'DESERT' ? 3 : biome === 'SWAMP' ? 4 : biome === 'DEADWOOD' ? 6 : 7;
     for (let i = 0; i < sparseCount; i++) {
       const z = zStart - ((i + 0.3 + rng() * 0.4) / sparseCount) * CHUNK_LENGTH;
       if (isSafeZone(z)) continue;
       const spec = this.getTrailSpec(z);
-      const x = spec.centerX + (rng() - 0.5) * 2 * (spec.halfWidth * 0.85);
+      const x =
+        biome === 'DESERT'
+          ? spec.centerX + (i % 2 === 0 ? -1 : 1) * lerp(spec.halfWidth * 0.72, spec.halfWidth * 1.1, rng())
+          : spec.centerX + (rng() - 0.5) * 2 * (spec.halfWidth * 0.85);
       if (isInsideHollowLog(x, z, 7.0)) continue;
 
       let tooClose = false;
       for (const prev of obstacles) {
-        if (Math.hypot(prev.position.x - x, prev.position.z - z) < prev.radius + 15.0) {
+        if (Math.hypot(prev.position.x - x, prev.position.z - z) < prev.radius + 16.0) {
           tooClose = true;
           break;
         }
@@ -2453,8 +2853,8 @@ export class TrailCorridorWorld {
       const ground = this.sampleHeightRaw(x, z);
       if (ground.waterDepth > 0.08) continue;
 
-      const rad = lerp(1.1, 1.8, rng());
-      const hScale = lerp(1.15, 1.8, rng());
+      const rad = lerp(1.1, 1.85, rng());
+      const hScale = lerp(1.05, 1.75, rng());
       dummy.position.set(x, ground.height - 0.2, z);
       dummy.rotation.set(0, rng() * Math.PI * 2, 0);
       dummy.scale.set(rad, hScale, rad);
@@ -2472,25 +2872,25 @@ export class TrailCorridorWorld {
       });
     }
 
-    // Desert Cacti / Sandstone Spires along outer dunes
+    // Natural Desert Saguaro Cacti dotting the outer canyon slopes behind the shacks!
     if (biome === 'DESERT') {
-      for (let c = 0; c < 26; c++) {
+      for (let c = 0; c < 24; c++) {
         const z = zStart - rng() * CHUNK_LENGTH;
         const spec = this.getTrailSpec(z);
         const side = rng() < 0.5 ? -1 : 1;
-        const x = spec.centerX + side * lerp(spec.halfWidth * 0.65, CORRIDOR_HALF_SPAN - 25, rng());
+        const x = spec.centerX + side * lerp(spec.halfWidth * 0.88, CORRIDOR_HALF_SPAN - 22, rng());
         const gy = this.sampleHeightRaw(x, z).height;
         dummy.position.set(x, gy - 0.2, z);
         dummy.rotation.set(0, rng() * Math.PI * 2, 0);
-        dummy.scale.setScalar(lerp(0.85, 1.45, rng()));
+        dummy.scale.setScalar(lerp(0.85, 1.4, rng()));
         dummy.updateMatrix();
         cactusTransforms.push(dummy.matrix.clone());
       }
     }
 
-    // J. WIDE OVERARCHING CANOPY BOUGHS & RED-ROCK ARCHES + LUSH HANGING VINES!
-    if (chunkIndex >= 0) {
-      const archCount = biome === 'DESERT' ? 2 : 6;
+    // J. OVERARCHING CANOPY BOUGHS & HANGING VINES (Forest & Swamp only!)
+    if (chunkIndex >= 0 && (biome === 'FOREST' || biome === 'SWAMP')) {
+      const archCount = biome === 'SWAMP' ? 4 : 6;
       for (let a = 0; a < archCount; a++) {
         const zArch = zStart - ((a + 0.22 + rng() * 0.45) / archCount) * CHUNK_LENGTH;
         if (zArch > -16) continue;
@@ -2499,62 +2899,59 @@ export class TrailCorridorWorld {
         const spanHalf = spec.halfWidth + 8.0;
         const leftGround = this.sampleHeightRaw(spec.centerX - spanHalf, zArch).height;
         const rightGround = this.sampleHeightRaw(spec.centerX + spanHalf, zArch).height;
-        const crownHeight = spec.baseY + (biome === 'DESERT' ? 16.5 : lerp(9.6, 13.4, rng()));
+        const crownHeight = spec.baseY + (biome === 'SWAMP' ? lerp(13.5, 17.5, rng()) : lerp(9.6, 13.4, rng()));
         const skewZ = (rng() - 0.5) * 9.0;
 
-        const p0 = new THREE.Vector3(spec.centerX - spanHalf, leftGround + (biome === 'DESERT' ? -1 : 7.5), zArch - skewZ);
+        const p0 = new THREE.Vector3(spec.centerX - spanHalf, leftGround + 7.5, zArch - skewZ);
         const p1 = new THREE.Vector3(spec.centerX - spanHalf * 0.4, crownHeight, zArch - skewZ * 0.35);
         const p2 = new THREE.Vector3(spec.centerX + spanHalf * 0.4, crownHeight, zArch + skewZ * 0.35);
-        const p3 = new THREE.Vector3(spec.centerX + spanHalf, rightGround + (biome === 'DESERT' ? -1 : 7.5), zArch + skewZ);
+        const p3 = new THREE.Vector3(spec.centerX + spanHalf, rightGround + 7.5, zArch + skewZ);
 
         const curve = new THREE.CatmullRomCurve3([p0, p1, p2, p3]);
-        const boughRadius = biome === 'DESERT' ? 2.1 : lerp(0.82, 1.15, rng());
+        const boughRadius = lerp(0.82, 1.15, rng());
         const boughGeo = new THREE.TubeGeometry(curve, 22, boughRadius, 8, false);
         const boughMesh = new THREE.Mesh(
           boughGeo,
-          biome === 'DESERT' ? this.desertRockMat : this.barkMat
+          biome === 'SWAMP' ? this.mangroveBarkMat : this.barkMat
         );
         boughMesh.castShadow = true;
         boughMesh.userData.uniqueGeo = true;
         chunkGroup.add(boughMesh);
 
-        if (biome !== 'DESERT') {
-          for (const tLeaf of [0.2, 0.4, 0.6, 0.8]) {
-            const pt = curve.getPoint(tLeaf);
-            dummy.position.set(pt.x, pt.y + 1.1, pt.z);
-            dummy.rotation.set(0, rng() * Math.PI * 2, 0);
-            dummy.scale.setScalar(lerp(1.4, 2.1, rng()));
-            dummy.updateMatrix();
-            canopyClusters.push(dummy.matrix.clone());
-          }
+        for (const tLeaf of [0.2, 0.4, 0.6, 0.8]) {
+          const pt = curve.getPoint(tLeaf);
+          dummy.position.set(pt.x, pt.y + 1.1, pt.z);
+          dummy.rotation.set(0, rng() * Math.PI * 2, 0);
+          dummy.scale.setScalar(lerp(1.4, 2.1, rng()));
+          dummy.updateMatrix();
+          canopyClusters.push(dummy.matrix.clone());
+        }
 
-          // 5 Hanging Vine Anchors distributed across the spacious bough!
-          const anchorSlots = 5;
-          for (let s = 0; s < anchorSlots; s++) {
-            const uBranch = clamp(0.14 + ((s + 0.2 + rng() * 0.6) / anchorSlots) * 0.72, 0.14, 0.86);
-            const anchorPt = curve.getPoint(uBranch);
-            const tangent = curve.getTangent(uBranch);
-            const centerGround = this.sampleHeightRaw(anchorPt.x, anchorPt.z).height;
-            const archRoll = rng();
-            const preferredArchetype: CanopyAnchor['preferredArchetype'] =
-              archRoll < 0.56 ? 'CURTAIN' : archRoll < 0.86 ? 'STRIKER' : 'ARCH_GROWER';
+        const anchorSlots = 5;
+        for (let s = 0; s < anchorSlots; s++) {
+          const uBranch = clamp(0.14 + ((s + 0.2 + rng() * 0.6) / anchorSlots) * 0.72, 0.14, 0.86);
+          const anchorPt = curve.getPoint(uBranch);
+          const tangent = curve.getTangent(uBranch);
+          const centerGround = this.sampleHeightRaw(anchorPt.x, anchorPt.z).height;
+          const archRoll = rng();
+          const preferredArchetype: CanopyAnchor['preferredArchetype'] =
+            archRoll < 0.56 ? 'CURTAIN' : archRoll < 0.86 ? 'STRIKER' : 'ARCH_GROWER';
 
-            anchors.push({
-              id: this.nextAnchorId++,
-              chunkIndex,
-              position: anchorPt.clone().add(new THREE.Vector3(0, -boughRadius * 0.65, 0)),
-              branchTangent: tangent,
-              trailCenterBelow: new THREE.Vector3(anchorPt.x, centerGround, anchorPt.z),
-              trailHalfWidth: spec.halfWidth,
-              preferredArchetype,
-            });
-          }
+          anchors.push({
+            id: this.nextAnchorId++,
+            chunkIndex,
+            position: anchorPt.clone().add(new THREE.Vector3(0, -boughRadius * 0.65, 0)),
+            branchTangent: tangent,
+            trailCenterBelow: new THREE.Vector3(anchorPt.x, centerGround, anchorPt.z),
+            trailHalfWidth: spec.halfWidth,
+            preferredArchetype,
+          });
         }
       }
     }
 
-    // Sunbeams & Undergrowth
-    if (biome !== 'DESERT') {
+    // Sunbeams (Forest & Swamp!)
+    if (biome === 'FOREST' || biome === 'SWAMP') {
       for (let i = 0; i < 5; i++) {
         const z = zStart - ((i + 0.3) / 5) * CHUNK_LENGTH;
         const spec = this.getTrailSpec(z);
@@ -2569,13 +2966,15 @@ export class TrailCorridorWorld {
 
     const fernMatrices: THREE.Matrix4[] = [];
     const broadleafMatrices: THREE.Matrix4[] = [];
-    const floraCount = biome === 'DESERT' ? 24 : 130;
+    const floraCount = biome === 'DESERT' ? 18 : biome === 'DEADWOOD' ? 0 : biome === 'SWAMP' ? 110 : 135;
     for (let i = 0; i < floraCount; i++) {
       const z = zStart - rng() * CHUNK_LENGTH;
       const spec = this.getTrailSpec(z);
       const side = rng() < 0.5 ? -1 : 1;
       const offset =
-        rng() < 0.25
+        biome === 'DESERT'
+          ? side * lerp(spec.halfWidth * 0.82, CORRIDOR_HALF_SPAN - 20, rng())
+          : rng() < 0.25
           ? (rng() - 0.5) * 2 * (spec.halfWidth * 0.92)
           : side * lerp(spec.halfWidth * 0.85, CORRIDOR_HALF_SPAN - 20, rng());
       const x = spec.centerX + offset;
@@ -2612,9 +3011,27 @@ export class TrailCorridorWorld {
       addInstanced(this.boulderGeos[g], mainRockMat, subset, true, true);
     }
 
-    addInstanced(this.shearSpireGeo, this.shearRockMat, shearTransforms, true, true);
-    addInstanced(this.cactusPillarGeo, this.canopyLeafMat, cactusTransforms, true, true);
-    addInstanced(this.titanTrunkGeo, this.barkMat, titanTreeTransforms, true, true);
+    addInstanced(
+      this.shearSpireGeo,
+      biome === 'DESERT' ? this.desertRockMat : this.shearRockMat,
+      shearTransforms,
+      true,
+      true
+    );
+    addInstanced(
+      this.cactusPillarGeo,
+      this.canopyLeafMat,
+      cactusTransforms,
+      true,
+      true
+    );
+    addInstanced(
+      this.titanTrunkGeo,
+      biome === 'SWAMP' ? this.mangroveBarkMat : this.barkMat,
+      titanTreeTransforms,
+      true,
+      true
+    );
     addInstanced(
       this.titanCrownGeo,
       biome === 'SWAMP' ? this.swampCanopyMat : this.canopyLeafMat,
@@ -2638,7 +3055,7 @@ export class TrailCorridorWorld {
     this.group.add(chunkGroup);
 
     for (const cb of this.onChunkSpawnedCallbacks) {
-      cb(chunkIndex, anchors, rootAnchors, creatureSpawns);
+      cb(chunkIndex, anchors, rootAnchors);
     }
   }
 }

@@ -13,13 +13,12 @@ import {
 import { VehicleControls, VehicleRigidBody } from './physics/vehiclePhysics';
 import { VEHICLE_DESIGNS, VehicleDesignId } from './vehicle/vehicleConfigs';
 import { VineEcosystem } from './vines/vineSystem';
-import { BiomeCreatureSystem } from './creatures/swampHazardSystem';
 import { FrontierBuggyVisual } from './vehicle/buggyMesh';
 import { OffroadParticleSystem, RallyVineAudioEngine } from './graphics/particlesAndAudio';
 import { UnrealObserverCamera } from './camera/unrealCamera';
 import { ExploreMode, ExpeditionHud } from './ui/hud';
 
-const BIOME_ORDER: BiomeId[] = ['FOREST', 'SWAMP', 'DESERT'];
+const BIOME_ORDER: BiomeId[] = ['FOREST', 'SWAMP', 'DESERT', 'DEADWOOD'];
 const LEVEL_PORTAL_Z = -860;
 
 class FrontierSimulationApp {
@@ -35,7 +34,6 @@ class FrontierSimulationApp {
   private world: TrailCorridorWorld;
   private vehicle: VehicleRigidBody;
   private vines: VineEcosystem;
-  private creatures: BiomeCreatureSystem;
   private buggyVisual: FrontierBuggyVisual;
   private particles: OffroadParticleSystem;
   private audio: RallyVineAudioEngine;
@@ -147,22 +145,17 @@ class FrontierSimulationApp {
     this.scene.add(this.world.group);
 
     this.vehicle = new VehicleRigidBody();
-    // Strictly protect the player's vehicle from rolling rocks, mudslides & dust devils!
+    // Protect parked showcase car while observing in Unreal Free-Cam
     this.vehicle.passiveObserverProtection = true;
 
     this.vines = new VineEcosystem(textures);
     this.scene.add(this.vines.group);
 
-    this.creatures = new BiomeCreatureSystem();
-    this.scene.add(this.creatures.group);
-
-    this.world.onChunkSpawned((chunkIndex, anchors, rootAnchors, creatureNodes) => {
+    this.world.onChunkSpawned((chunkIndex, anchors, rootAnchors) => {
       this.vines.spawnForChunk(chunkIndex, anchors, rootAnchors, this.world);
-      this.creatures.spawnForChunk(creatureNodes);
     });
     this.world.onChunkRemoved((chunkIndex) => {
       this.vines.removeChunkVines(chunkIndex);
-      this.creatures.removeChunkCreatures(chunkIndex);
     });
 
     this.buggyVisual = new FrontierBuggyVisual(textures, this.vines.chassisCreepGroup);
@@ -246,7 +239,6 @@ class FrontierSimulationApp {
 
   private loadBiomeLevel(biome: BiomeId, initialBoot = false): void {
     this.vines.resetAll();
-    this.creatures.clearAll();
     this.applyBiomeAtmosphere(biome);
 
     this.world.setBiomeAndRebuild(biome, -8);
@@ -278,7 +270,15 @@ class FrontierSimulationApp {
 
   private jumpObserverToCourseZ(targetZ: number, label: string): void {
     this.portalWarpCooldown = 1.5;
-    this.world.updateStreaming(new THREE.Vector3(0, 0, targetZ), new THREE.Vector3(), this.elapsedTime, 0);
+    this.world.updateStreaming(
+      new THREE.Vector3(0, 0, targetZ),
+      new THREE.Vector3(),
+      this.elapsedTime,
+      0,
+      this.vehicle.position,
+      0,
+      this.exploreMode === 'UNREAL_CAMERA'
+    );
 
     if (this.exploreMode === 'UNREAL_CAMERA') {
       this.unrealCam.placeAtCourseZ(this.world, targetZ, 8.5);
@@ -323,12 +323,14 @@ class FrontierSimulationApp {
     if (this.exploreMode === 'UNREAL_CAMERA') {
       this.placeVehicleInFrontOfObserver();
       this.exploreMode = 'PEACEFUL_DRIVE';
+      this.vehicle.passiveObserverProtection = false;
       this.camera.fov = 66;
       this.camera.updateProjectionMatrix();
       this.snapDriveCameraImmediate();
-      this.hud.showCallout('PEACEFUL DRIVE MODE · ANIMALS, ROCKS & VINES WILL NOT ATTACK');
+      this.hud.showCallout('DRIVE MODE · RACE THROUGH VILLAGE SHACKS, LIVE ROOTS & HAZARDS');
     } else {
       this.exploreMode = 'UNREAL_CAMERA';
+      this.vehicle.passiveObserverProtection = true;
       this.unrealCam.position.copy(this.camera.position);
       this.unrealCam.velocity.set(0, 0, 0);
       const fwd = new THREE.Vector3();
@@ -365,8 +367,13 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('SWAMP');
       } else if (code === 'Digit3') {
         this.loadBiomeLevel('DESERT');
+      } else if (code === 'Digit4') {
+        this.loadBiomeLevel('DEADWOOD');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
+      } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
+        this.vehicle.resetAt(this.world, this.vehicle.position.z);
+        this.hud.showCallout('VEHICLE RECOVERED ON ROAD');
       } else if (code === 'KeyJ') {
         const curZ =
           this.exploreMode === 'UNREAL_CAMERA' ? this.unrealCam.position.z : this.vehicle.position.z;
@@ -504,10 +511,18 @@ class FrontierSimulationApp {
     const activeFocusVel =
       this.exploreMode === 'UNREAL_CAMERA' ? this.unrealCam.velocity : this.vehicle.linearVelocity;
 
-    // Stream chunks & animate ambient level set-pieces around the Unreal Camera!
-    this.world.updateStreaming(activeFocusPos, activeFocusVel, this.elapsedTime, frameDt);
+    // Stream chunks & animate ambient level set-pieces around the active focus!
+    this.world.updateStreaming(
+      activeFocusPos,
+      activeFocusVel,
+      this.elapsedTime,
+      frameDt,
+      this.vehicle.position,
+      Math.abs(this.vehicle.forwardSpeedMps),
+      this.exploreMode === 'UNREAL_CAMERA'
+    );
 
-    // Fly or drive through the Portal Gate at the end of a course to warp to the next biome!
+    // Fly or drive through the Stone Pass Gate at the end of a course to warp to the next biome!
     if (this.portalWarpCooldown <= 0 && this.world.activePortal) {
       const pPos = this.world.activePortal.group.position;
       const distToPortal = Math.hypot(activeFocusPos.x - pPos.x, activeFocusPos.z - pPos.z);
@@ -536,7 +551,7 @@ class FrontierSimulationApp {
     this.physicsAccumulator = Math.min(this.physicsAccumulator + frameDt, fixedDt * 8);
 
     while (this.physicsAccumulator >= fixedDt) {
-      // Vines wake, grow & sway around the observer camera, with allowVehicleAttack = FALSE!
+      // Vines wake, grow & sway around the observer camera, with allowVehicleAttack = FALSE in Unreal Cam!
       this.vines.stepPhysicsSubstep(
         fixedDt,
         this.elapsedTime,
@@ -544,7 +559,7 @@ class FrontierSimulationApp {
         this.world,
         this.nearbyObstaclesCache,
         activeFocusPos,
-        false
+        this.exploreMode === 'PEACEFUL_DRIVE'
       );
       this.vehicle.stepPhysics(
         fixedDt,
@@ -556,9 +571,6 @@ class FrontierSimulationApp {
       );
       this.physicsAccumulator -= fixedDt;
     }
-
-    // Swamp & Desert creatures animate/patrol peacefully with allowVehicleAttack = FALSE!
-    this.creatures.update(frameDt, this.elapsedTime, this.vehicle, false);
 
     this.buggyVisual.syncWithPhysics(this.vehicle, frameDt, false);
     this.vines.updateVisualGeometry();

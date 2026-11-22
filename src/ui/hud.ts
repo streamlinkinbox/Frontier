@@ -55,20 +55,26 @@ export class ExpeditionHud {
       {
         id: 'FOREST',
         key: '1',
-        name: 'FOREST LEVEL',
+        name: 'FOREST',
         sub: 'Giant Trees · Vines · Logs · Mudslides',
       },
       {
         id: 'SWAMP',
         key: '2',
-        name: 'SWAMP LEVEL',
-        sub: 'Crisscross Roots · Mosquitos · Robo-Ticks',
+        name: 'SWAMP',
+        sub: 'Mangrove Stilt-Root Cathedrals · Bayou',
       },
       {
         id: 'DESERT',
         key: '3',
-        name: 'DESERT LEVEL',
-        sub: 'Sand Dunes · Red-Rock Arches · Dust Devils',
+        name: 'DESERT VILLAGE',
+        sub: 'Timber Shacks · Water Towers · Rolling Drums',
+      },
+      {
+        id: 'DEADWOOD',
+        key: '4',
+        name: 'DEADWOOD',
+        sub: 'Dead Forest · Live Erupting Road Roots',
       },
     ];
 
@@ -115,22 +121,22 @@ export class ExpeditionHud {
               <span class="stat-val" id="hud-fly-speed" style="color:var(--hud-cyan)">44 m/s</span>
             </div>
             <div class="stat-cell">
-              <span class="stat-label">END PORTAL</span>
+              <span class="stat-label">NEXT PASS</span>
               <span class="stat-val" id="hud-portal-dist">860 m</span>
             </div>
           </div>
 
           <div class="level-switcher-row">
             ${levelChipsHtml}
-            <button class="hud-btn mode-btn" id="btn-next-level">[P] NEXT LEVEL PORTAL</button>
+            <button class="hud-btn mode-btn" id="btn-next-level">[P] NEXT LEVEL</button>
           </div>
 
           <div class="landmark-row">
             <button class="jump-btn" data-jumpz="-8" data-label="COURSE START (0m)">START (0m)</button>
             <button class="jump-btn" data-jumpz="-175" data-label="SET-PIECE ZONE (-175m)">ZONE A (-175m)</button>
             <button class="jump-btn" data-jumpz="-380" data-label="MID-COURSE SET-PIECE (-380m)">MID-COURSE (-380m)</button>
-            <button class="jump-btn" data-jumpz="-620" data-label="DEEP CANYON / SWAMP (-620m)">DEEP ZONE (-620m)</button>
-            <button class="jump-btn" data-jumpz="-835" data-label="END PORTAL GATE (-835m)">PORTAL GATE (-835m)</button>
+            <button class="jump-btn" data-jumpz="-620" data-label="DEEP ZONE (-620m)">DEEP ZONE (-620m)</button>
+            <button class="jump-btn" data-jumpz="-835" data-label="STONE PASS GATE (-835m)">PASS GATE (-835m)</button>
             <button class="jump-btn" id="btn-jump-fwd">[J] SKIP +200m AHEAD</button>
           </div>
         </div>
@@ -176,9 +182,9 @@ export class ExpeditionHud {
           <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
           <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
           <span><kbd>SCROLL</kbd> Cam Speed</span>
-          <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Switch Level</span>
+          <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> Switch Level</span>
           <span><kbd>T</kbd> Place Car Here</span>
-          <span><kbd>V</kbd> Peaceful Drive</span>
+          <span><kbd>V</kbd> Drive Course</span>
         </div>
       </div>
     `;
@@ -291,7 +297,7 @@ export class ExpeditionHud {
       btn.classList.toggle('selected', b === biome);
     }
     const spec = BIOME_SPECS[biome];
-    this.biomeSubEl.textContent = `${spec.title} · PASSIVE OBSERVER`;
+    this.biomeSubEl.textContent = `${spec.title} · ${spec.subtitle}`;
   }
 
   public highlightSelectedVehicle(id: VehicleDesignId): void {
@@ -309,18 +315,19 @@ export class ExpeditionHud {
         <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
         <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
         <span><kbd>SCROLL</kbd> Cam Speed</span>
-        <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Switch Level</span>
+        <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> Switch Level</span>
         <span><kbd>T</kbd> Place Car Here</span>
-        <span><kbd>V</kbd> Peaceful Drive</span>
+        <span><kbd>V</kbd> Drive Course</span>
       `;
     } else {
-      this.modeBtn.textContent = '[V] MODE: PEACEFUL DRIVE';
+      this.modeBtn.textContent = '[V] MODE: DRIVE COURSE';
       this.controlsStripEl.innerHTML = `
-        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Drive Course (No Attacks)</span>
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Drive Course</span>
         <span><kbd>SHIFT</kbd> Boost</span>
         <span><kbd>SPACE</kbd> Handbrake</span>
-        <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Switch Level</span>
-        <span><kbd>P</kbd> Next Portal</span>
+        <span><kbd>R</kbd> Reset Car</span>
+        <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> Switch Level</span>
+        <span><kbd>P</kbd> Next Pass</span>
         <span><kbd>V</kbd> Back to Unreal Camera</span>
       `;
     }
@@ -369,17 +376,31 @@ export class ExpeditionHud {
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
     let zoneName =
       world.currentBiome === 'SWAMP'
-        ? 'SWAMP MEGAROOTS'
+        ? 'MANGROVE ROOT CATHEDRAL'
         : world.currentBiome === 'DESERT'
-        ? 'SANDSTONE CANYON'
+        ? 'BADLANDS SHACK VILLAGE'
+        : world.currentBiome === 'DEADWOOD'
+        ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (spec.mudslideFactor > 0.35) {
-      zoneName = world.currentBiome === 'DESERT' ? 'CANYON ROCKFALL' : 'MUDSLIDE & BOULDERS';
-    } else if (spec.splitFactor > 0.3) {
+    if (world.currentBiome === 'DEADWOOD' && sample.mudiness > 0.35) {
+      zoneName = 'ERUPTING ROOT HOLLOW';
+    } else if (spec.mudslideFactor > 0.35 && world.currentBiome !== 'DEADWOOD') {
+      zoneName =
+        world.currentBiome === 'DESERT'
+          ? 'CANYON ROCKSLIDE'
+          : world.currentBiome === 'SWAMP'
+          ? 'TIDAL PEAT SLIDE'
+          : 'MUDSLIDE & BOULDERS';
+    } else if (spec.splitFactor > 0.3 && world.currentBiome === 'FOREST') {
       zoneName = 'SPLIT ROAD / LOG';
     } else if (sample.waterDepth > 0.04) {
-      zoneName = 'WATER LAGOON';
+      zoneName =
+        world.currentBiome === 'SWAMP'
+          ? 'BLACKWATER ROOT BAYOU'
+          : world.currentBiome === 'DEADWOOD'
+          ? 'RUTTED MUD MIRE'
+          : 'WATER LAGOON';
     }
     this.surfaceEl.textContent = zoneName;
   }

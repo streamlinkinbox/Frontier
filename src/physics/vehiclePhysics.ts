@@ -107,9 +107,7 @@ export class VehicleRigidBody {
   public steerAngleCenter = 0;
   private prevSteerInput = 0;
 
-  public fuel = 100.0; // 0..100% Bio-Fuel Tank (siphoned by Swamp Mosquitos, refilled by Fuel Cells!)
-  public latchedMosquitoCount = 0;
-  public latchedTickCount = 0; // Robotic Ticks clamp onto hull & slow vehicle down!
+  public fuel = 100.0;
 
   public boostCharge = 1.0;
   public isBoosting = false;
@@ -271,8 +269,6 @@ export class VehicleRigidBody {
     this.isOnCrisscrossRoot = false;
     this.isOnMudslide = false;
     this.maxWheelWaterDepth = 0;
-    this.latchedMosquitoCount = 0;
-    this.latchedTickCount = 0;
     this.accumForce.set(0, 0, 0);
     this.accumTorque.set(0, 0, 0);
     this.netVineForceWorld.set(0, 0, 0);
@@ -464,12 +460,6 @@ export class VehicleRigidBody {
       this.accumForce.addScaledVector(this.linearVelocity, -dragMag / speed);
       const downforce = 0.5 * 1.225 * 0.68 * speedSq;
       this.accumForce.addScaledVector(this._upWorld, -downforce);
-
-      // Robotic Parasite Tick Electromagnetic Drag (makes vehicle drive noticeably slower until [E] blast!)
-      if (!this.passiveObserverProtection && this.latchedTickCount > 0) {
-        const tickBrake = this.latchedTickCount * 420 * speed;
-        this.accumForce.addScaledVector(this.linearVelocity, -tickBrake / speed);
-      }
     }
 
     if (!this.passiveObserverProtection && world.sampleDustDevilForce(this.position, this._vortexForce)) {
@@ -666,15 +656,13 @@ export class VehicleRigidBody {
       }
     }
 
-    const fuelPowerMult = this.fuel <= 0.1 ? 0.48 : 1.0; // Sputter limp-mode if fuel completely drained!
-    const tickPowerPenalty = Math.pow(0.76, this.latchedTickCount);
+    const fuelPowerMult = this.fuel <= 0.1 ? 0.48 : 1.0;
     const boostTorqueMult = this.isBoosting ? 1.85 : 1.0;
     const engineTorque =
       this.sampleEngineTorque(this.rpm) *
       activeThrottle *
       boostTorqueMult *
-      fuelPowerMult *
-      tickPowerPenalty;
+      fuelPowerMult;
     const engineBraking = (1 - activeThrottle) * clamp((this.rpm - 1200) / 6000, 0, 1) * 85;
     const totalAxleDriveTorque = (engineTorque - engineBraking) * gearRatio * this.finalDrive * 0.58;
 
