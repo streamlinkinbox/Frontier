@@ -25,6 +25,7 @@ const BIOME_ORDER: BiomeId[] = [
   'DEADWOOD',
   'SINGULARITY',
   'GIANT_LOG',
+  'GLACIAL_ICE',
 ];
 const LEVEL_PORTAL_Z = -860;
 
@@ -414,6 +415,8 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('SINGULARITY');
       } else if (code === 'Digit6') {
         this.loadBiomeLevel('GIANT_LOG');
+      } else if (code === 'Digit7') {
+        this.loadBiomeLevel('GLACIAL_ICE');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {

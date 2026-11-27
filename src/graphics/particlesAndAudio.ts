@@ -238,6 +238,31 @@ export class OffroadParticleSystem {
 
   private _backDir = new THREE.Vector3();
 
+  public emitIceShatterBurst(pos: THREE.Vector3, count = 26): void {
+    for (let i = 0; i < count; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 2.6 + Math.random() * 9.5;
+      const isShard = i % 3 !== 0;
+      this.emit({
+        life: 0.48 + Math.random() * 0.55,
+        x: pos.x + (Math.random() - 0.5) * 1.1,
+        y: pos.y + 0.18 + Math.random() * 0.65,
+        z: pos.z + (Math.random() - 0.5) * 1.1,
+        vx: Math.cos(ang) * spd,
+        vy: (isShard ? 3.5 : 1.6) + Math.random() * 5.2,
+        vz: Math.sin(ang) * spd,
+        gravity: isShard ? -14.5 : -2.2,
+        drag: isShard ? 0.98 : 0.93,
+        sizeStart: isShard ? 0.24 : 0.48,
+        sizeEnd: isShard ? 0.42 : 1.85,
+        r: isShard ? 0.78 : 0.88,
+        g: isShard ? 0.95 : 0.97,
+        b: 1.0,
+        alphaPeak: isShard ? 0.88 : 0.45,
+      });
+    }
+  }
+
   public update(
     dt: number,
     vehicle: VehicleRigidBody,
@@ -285,8 +310,9 @@ export class OffroadParticleSystem {
       if (activity > 0.28 && Math.random() < clamp(activity * 0.75, 0, 0.92)) {
         const isMud = w.surface === 'WET_MUD' || w.mudiness > 0.35;
         const isVerge = w.surface === 'LOOSE_VERGE';
+        const isIce = w.surface === 'GLACIAL_ICE';
 
-        // Roostertail spray kicked backward & upward by spinning mud-terrain lugs!
+        // Roostertail spray kicked backward & upward by spinning mud-terrain lugs / ice-drift shavings!
         const kickSpeed = clamp(wheelTangential * 0.36, 1.5, 9.5);
         this.emit({
           life: isMud ? 0.48 + Math.random() * 0.25 : 0.7 + Math.random() * 0.55,
@@ -294,16 +320,16 @@ export class OffroadParticleSystem {
           y: w.contactPointWorld.y + 0.14,
           z: w.contactPointWorld.z + (Math.random() - 0.5) * 0.25,
           vx: this._backDir.x * kickSpeed + (Math.random() - 0.5) * 2.2 + vehicle.linearVelocity.x * 0.35,
-          vy: (isMud ? 2.4 : 1.1) + Math.random() * 1.9,
+          vy: (isMud ? 2.4 : isIce ? 1.65 : 1.1) + Math.random() * 1.9,
           vz: this._backDir.z * kickSpeed + (Math.random() - 0.5) * 2.2 + vehicle.linearVelocity.z * 0.35,
-          gravity: isMud ? -12.5 : -1.2,
+          gravity: isMud ? -12.5 : isIce ? -4.2 : -1.2,
           drag: isMud ? 0.97 : 0.93,
-          sizeStart: isMud ? 0.28 : 0.45,
-          sizeEnd: isMud ? 0.52 : 2.35 + w.combinedSlip * 0.9,
-          r: isMud ? 0.24 : isVerge ? 0.42 : 0.67,
-          g: isMud ? 0.17 : isVerge ? 0.48 : 0.52,
-          b: isMud ? 0.11 : isVerge ? 0.28 : 0.36,
-          alphaPeak: isMud ? 0.72 : clamp(0.18 + w.combinedSlip * 0.26, 0.16, 0.46),
+          sizeStart: isMud ? 0.28 : isIce ? 0.34 : 0.45,
+          sizeEnd: isMud ? 0.52 : (isIce ? 1.75 : 2.35) + w.combinedSlip * 0.9,
+          r: isMud ? 0.24 : isIce ? 0.82 : isVerge ? 0.42 : 0.67,
+          g: isMud ? 0.17 : isIce ? 0.95 : isVerge ? 0.48 : 0.52,
+          b: isMud ? 0.11 : isIce ? 1.0 : isVerge ? 0.28 : 0.36,
+          alphaPeak: isMud ? 0.72 : clamp((isIce ? 0.28 : 0.18) + w.combinedSlip * 0.26, 0.16, 0.55),
         });
       }
     }
@@ -699,5 +725,72 @@ export class RallyVineAudioEngine {
     boomGain.connect(this.masterGain);
     boomOsc.start(now);
     boomOsc.stop(now + 1.28);
+  }
+
+  /**
+   * Iconic dispersive frozen-lake acoustic fracture ping ("pew-groan") when a traveling ice crack surges!
+   */
+  public playIceFracturePingSound(intensity = 0.85): void {
+    if (!this.initialized || !this.ctx || !this.masterGain || this.muted) return;
+    const now = this.ctx.currentTime;
+
+    const pingOsc = this.ctx.createOscillator();
+    const pingGain = this.ctx.createGain();
+    pingOsc.type = 'sine';
+    pingOsc.frequency.setValueAtTime(1650 + Math.random() * 450, now);
+    pingOsc.frequency.exponentialRampToValueAtTime(135, now + 0.29);
+    pingGain.gain.setValueAtTime(0.22 * intensity, now);
+    pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+    pingOsc.connect(pingGain);
+    pingGain.connect(this.masterGain);
+    pingOsc.start(now);
+    pingOsc.stop(now + 0.34);
+
+    const groanOsc = this.ctx.createOscillator();
+    const groanGain = this.ctx.createGain();
+    groanOsc.type = 'triangle';
+    groanOsc.frequency.setValueAtTime(118, now + 0.02);
+    groanOsc.frequency.exponentialRampToValueAtTime(46, now + 0.42);
+    groanGain.gain.setValueAtTime(0.16 * intensity, now + 0.02);
+    groanGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    groanOsc.connect(groanGain);
+    groanGain.connect(this.masterGain);
+    groanOsc.start(now + 0.02);
+    groanOsc.stop(now + 0.47);
+  }
+
+  /**
+   * Crystalline stalactite shatter + deep sub-glacial thud when a pointy cave icicle impales the floor!
+   */
+  public playIcicleShatterSound(intensity = 1.0): void {
+    if (!this.initialized || !this.ctx || !this.masterGain || this.muted) return;
+    const now = this.ctx.currentTime;
+
+    const freqs = [1920, 2680, 3410];
+    for (let i = 0; i < freqs.length; i++) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = i === 0 ? 'sawtooth' : 'sine';
+      osc.frequency.setValueAtTime(freqs[i] + Math.random() * 180, now + i * 0.018);
+      osc.frequency.exponentialRampToValueAtTime(380 + i * 110, now + 0.22 + i * 0.04);
+      gain.gain.setValueAtTime(0.15 * intensity, now + i * 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26 + i * 0.05);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now + i * 0.018);
+      osc.stop(now + 0.32 + i * 0.05);
+    }
+
+    const thudOsc = this.ctx.createOscillator();
+    const thudGain = this.ctx.createGain();
+    thudOsc.type = 'triangle';
+    thudOsc.frequency.setValueAtTime(110, now);
+    thudOsc.frequency.exponentialRampToValueAtTime(32, now + 0.38);
+    thudGain.gain.setValueAtTime(0.36 * intensity, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+    thudOsc.connect(thudGain);
+    thudGain.connect(this.masterGain);
+    thudOsc.start(now);
+    thudOsc.stop(now + 0.44);
   }
 }

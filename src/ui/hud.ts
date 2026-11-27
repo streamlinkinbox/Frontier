@@ -88,6 +88,12 @@ export class ExpeditionHud {
         name: 'GIANT LOG',
         sub: 'Web Network · Growing Mushrooms · Worms · Godrays',
       },
+      {
+        id: 'GLACIAL_ICE',
+        key: '7',
+        name: 'GLACIAL ICE',
+        sub: 'Slippery Flat Ice · Traveling Cracks · Icicle Cave',
+      },
     ];
 
     const levelChipsHtml = levels
@@ -194,7 +200,7 @@ export class ExpeditionHud {
           <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
           <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
           <span><kbd>SCROLL</kbd> Cam Speed</span>
-          <span><kbd>1</kbd>-<kbd>6</kbd> Switch Level</span>
+          <span><kbd>1</kbd>-<kbd>7</kbd> Switch Level</span>
           <span><kbd>T</kbd> Place Car Here</span>
           <span><kbd>V</kbd> Drive Course</span>
         </div>
@@ -387,7 +393,9 @@ export class ExpeditionHud {
     const spec = world.getTrailSpec(focusPos.z);
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
     let zoneName =
-      world.currentBiome === 'GIANT_LOG'
+      world.currentBiome === 'GLACIAL_ICE'
+        ? 'SLIPPERY ICE FLATS'
+        : world.currentBiome === 'GIANT_LOG'
         ? 'HOLLOW LOG ECOSYSTEM'
         : world.currentBiome === 'SINGULARITY'
         ? 'SINGULARITY CLIFF PLATEAU'
@@ -399,7 +407,11 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'GIANT_LOG') {
+    if (world.currentBiome === 'GLACIAL_ICE') {
+      const chunkIdx = Math.floor(-focusPos.z / 112);
+      const isCave = chunkIdx >= 1 && chunkIdx % 2 === 1;
+      zoneName = isCave ? 'FALLING ICICLE CAVERN' : 'SLIPPERY ICE FLATS';
+    } else if (world.currentBiome === 'GIANT_LOG') {
       if (sample.waterDepth > 0.04) {
         zoneName = 'AMBER SAP HOLLOW';
       } else if (Math.abs(sample.signedOffset) > 16.0) {

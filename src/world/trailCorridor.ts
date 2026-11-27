@@ -4,9 +4,17 @@ import { ProceduralTextureLibrary } from '../graphics/proceduralTextures';
 import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
 import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
 import { GiantHollowLogBuilder, GiantHollowLogChunkData } from './giantHollowLogSystem';
+import { GlacialIceBuilder, GlacialIceChunkData } from './glacialIceSystem';
 import { SingularityChunkData, SingularityDesertBuilder } from './singularityDesertSystem';
 
-export type BiomeId = 'FOREST' | 'SWAMP' | 'DESERT' | 'DEADWOOD' | 'SINGULARITY' | 'GIANT_LOG';
+export type BiomeId =
+  | 'FOREST'
+  | 'SWAMP'
+  | 'DESERT'
+  | 'DEADWOOD'
+  | 'SINGULARITY'
+  | 'GIANT_LOG'
+  | 'GLACIAL_ICE';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -17,7 +25,8 @@ export type SurfaceType =
   | 'SHALLOW_WATER'
   | 'HOLLOW_LOG'
   | 'CRISSCROSS_ROOT'
-  | 'DESERT_SAND';
+  | 'DESERT_SAND'
+  | 'GLACIAL_ICE';
 
 export interface BiomeAtmosphereSpec {
   id: BiomeId;
@@ -111,6 +120,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     sunIntensity: 3.45,
     hemiSkyHex: 0x8ea36d,
     hemiGroundHex: 0x2b1b10,
+  },
+  GLACIAL_ICE: {
+    id: 'GLACIAL_ICE',
+    title: 'SUB-ZERO GLACIAL ICE FLATS & CAVE',
+    subtitle: 'FLAT SLIPPERY ICE · LIVE TRAVELING FRACTURES · FALLING CAVE ICICLES',
+    fogColorHex: 0xb6e2f5,
+    fogDensity: 0.0043,
+    skyHorizonRGB: [0.76, 0.91, 0.98],
+    skyZenithRGB: [0.20, 0.44, 0.68],
+    sunColorHex: 0xeaf8ff,
+    sunIntensity: 3.15,
+    hemiSkyHex: 0xc8efff,
+    hemiGroundHex: 0x244963,
   },
 };
 
@@ -294,6 +316,7 @@ interface ChunkRecord {
   desertVillageData?: DesertVillageChunkData;
   singularityData?: SingularityChunkData;
   giantLogData?: GiantHollowLogChunkData;
+  glacialIceData?: GlacialIceChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -328,6 +351,7 @@ export class TrailCorridorWorld {
   private desertVillageBuilder: DesertVillageBuilder;
   public readonly singularityBuilder: SingularityDesertBuilder;
   public readonly giantLogBuilder: GiantHollowLogBuilder;
+  public readonly glacialIceBuilder: GlacialIceBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -378,6 +402,7 @@ export class TrailCorridorWorld {
     this.desertVillageBuilder = new DesertVillageBuilder(textures);
     this.singularityBuilder = new SingularityDesertBuilder(textures);
     this.giantLogBuilder = new GiantHollowLogBuilder(textures);
+    this.glacialIceBuilder = new GlacialIceBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -659,6 +684,8 @@ export class TrailCorridorWorld {
     this.group.add(this.singularityBuilder.stormFxGroup);
     this.giantLogBuilder.atmosphereFxGroup.visible = false;
     this.group.add(this.giantLogBuilder.atmosphereFxGroup);
+    this.glacialIceBuilder.atmosphereFxGroup.visible = false;
+    this.group.add(this.glacialIceBuilder.atmosphereFxGroup);
   }
 
   public onChunkSpawned(
@@ -679,6 +706,7 @@ export class TrailCorridorWorld {
     this.singularityBuilder.stormFxGroup.visible = biome === 'SINGULARITY';
     this.giantLogBuilder.clearActiveWebSnare();
     this.giantLogBuilder.atmosphereFxGroup.visible = biome === 'GIANT_LOG';
+    this.glacialIceBuilder.atmosphereFxGroup.visible = biome === 'GLACIAL_ICE';
     this.resetAround(startZ);
   }
 
@@ -1722,7 +1750,9 @@ export class TrailCorridorWorld {
     const elevFade = smoothstep(10, 60, distForward);
     const cliffRollerFade = smoothstep(20, 82, distForward);
     const baseY =
-      this.currentBiome === 'SINGULARITY'
+      this.currentBiome === 'GLACIAL_ICE'
+        ? 0 // True flat frozen glacial lake / ice sheet plane!
+        : this.currentBiome === 'SINGULARITY'
         ? 38.0 +
           (Math.sin(z * 0.017) * 14.5 +
             Math.sin(z * 0.039 + 0.9) * 5.2 +
@@ -1767,7 +1797,9 @@ export class TrailCorridorWorld {
     const widthWave = Math.sin(z * 0.022 + 0.7) * 6.5 + noise2D(z * 0.018, 41.2) * 5.0;
     const cliffPinch = Math.pow(Math.sin(z * 0.029 + 0.5) * 0.5 + 0.5, 1.25) * introFade;
     const baseHalfWidth =
-      this.currentBiome === 'GIANT_LOG'
+      this.currentBiome === 'GLACIAL_ICE'
+        ? 32.0
+        : this.currentBiome === 'GIANT_LOG'
         ? 26.5
         : this.currentBiome === 'SINGULARITY'
         ? lerp(22.5, 7.2, cliffPinch)
@@ -1785,7 +1817,9 @@ export class TrailCorridorWorld {
     const mudPatch =
       (this.currentBiome === 'SWAMP'
         ? smoothstep(0.32, 0.68, mudNoise)
-        : this.currentBiome === 'DESERT' || this.currentBiome === 'SINGULARITY'
+        : this.currentBiome === 'DESERT' ||
+          this.currentBiome === 'SINGULARITY' ||
+          this.currentBiome === 'GLACIAL_ICE'
         ? 0
         : smoothstep(0.54, 0.82, mudNoise)) * introFade;
 
@@ -1857,7 +1891,10 @@ export class TrailCorridorWorld {
     }
 
     const bankSlope = clamp(-spec.curvature * 12.0, -0.09, 0.09);
-    const bankHeight = d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
+    const bankHeight =
+      this.currentBiome === 'GLACIAL_ICE'
+        ? 0
+        : d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
 
     // Steep Hillside Cross-Camber during Flash-Flood Mudslide Sections!
     const mudslideCamberSlope = -spec.mudslideDirX * 0.135 * spec.mudslideFactor;
@@ -1877,8 +1914,10 @@ export class TrailCorridorWorld {
         : 0;
 
     const microRough =
-      fbm2D(x * 0.22, z * 0.22, 3) * (this.currentBiome === 'SWAMP' ? 0.1 : 0.14) +
-      noise2D(x * 1.0, z * 1.0) * 0.025;
+      this.currentBiome === 'GLACIAL_ICE'
+        ? fbm2D(x * 0.15, z * 0.15, 2) * 0.015 // Mirror-smooth flat glacial ice sheet!
+        : fbm2D(x * 0.22, z * 0.22, 3) * (this.currentBiome === 'SWAMP' ? 0.1 : 0.14) +
+          noise2D(x * 1.0, z * 1.0) * 0.025;
 
     let cliffRelief = 0;
     let forestFlankBlend = smoothstep(hw * 0.92, hw + 38.0, absD);
@@ -1887,7 +1926,15 @@ export class TrailCorridorWorld {
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
 
-    if (this.currentBiome === 'GIANT_LOG') {
+    if (this.currentBiome === 'GLACIAL_ICE') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+      // Dead-flat frozen lake plane across the entire 68m center, rising into jagged snow-glacier walls outside!
+      const glacierShoulder = smoothstep(34.0, 56.0, absD);
+      cliffRelief =
+        glacierShoulder * (18.5 + ridge2D(x * 0.065, z * 0.065, 3) * 7.5);
+    } else if (this.currentBiome === 'GIANT_LOG') {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
@@ -1971,7 +2018,9 @@ export class TrailCorridorWorld {
     }
 
     let surface: SurfaceType =
-      this.currentBiome === 'GIANT_LOG'
+      this.currentBiome === 'GLACIAL_ICE'
+        ? 'GLACIAL_ICE'
+        : this.currentBiome === 'GIANT_LOG'
         ? 'HOLLOW_LOG'
         : this.currentBiome === 'DESERT' || this.currentBiome === 'SINGULARITY'
         ? 'DESERT_SAND'
@@ -1980,18 +2029,24 @@ export class TrailCorridorWorld {
       surface = 'SHALLOW_WATER';
     } else if (spec.mudslideFactor > 0.25 && absD < hw * 0.9) {
       surface = 'MUDSLIDE';
-    } else if (this.currentBiome !== 'GIANT_LOG' && (absD > hw + 18.0 || medianIslandBump > 0.8)) {
+    } else if (
+      this.currentBiome !== 'GIANT_LOG' &&
+      this.currentBiome !== 'GLACIAL_ICE' &&
+      (absD > hw + 18.0 || medianIslandBump > 0.8)
+    ) {
       surface = 'MOSS_ROCK';
     } else if (
       this.currentBiome !== 'DESERT' &&
       this.currentBiome !== 'SINGULARITY' &&
       this.currentBiome !== 'GIANT_LOG' &&
+      this.currentBiome !== 'GLACIAL_ICE' &&
       localMud > 0.36
     ) {
       surface = 'WET_MUD';
     } else if (
       this.currentBiome !== 'DESERT' &&
       this.currentBiome !== 'GIANT_LOG' &&
+      this.currentBiome !== 'GLACIAL_ICE' &&
       distFromBranch > branchHalfWidth * 0.78
     ) {
       surface = 'LOOSE_VERGE';
@@ -2057,6 +2112,10 @@ export class TrailCorridorWorld {
       case 'DESERT_SAND':
         friction = this.currentBiome === 'SINGULARITY' ? 1.12 : 0.92;
         rollingResistance = this.currentBiome === 'SINGULARITY' ? 0.015 : 0.032;
+        break;
+      case 'GLACIAL_ICE':
+        friction = 0.48; // Slippery glassy black-ice — exhilarating powerslides & drifts!
+        rollingResistance = 0.008; // Ultra-fast glide across the flat frozen lake!
         break;
     }
 
@@ -2329,6 +2388,22 @@ export class TrailCorridorWorld {
           passiveObserver
         );
       }
+
+      // 9. SUB-ZERO GLACIAL ICE: Variable-Rate Traveling Bottom Fractures & Falling Cave Icicles!
+      if (rec.glacialIceData) {
+        this.glacialIceBuilder.stepChunkHazards(
+          rec.group,
+          rec.glacialIceData,
+          elapsedTime,
+          dt,
+          playerPos,
+          vehiclePos,
+          vehicleVel,
+          vehicleSpeedMps,
+          passiveObserver,
+          (x, z) => this.sampleHeightRaw(x, z).height
+        );
+      }
     }
 
     this.singularityBuilder.stepGlobalStormFx(
@@ -2346,6 +2421,11 @@ export class TrailCorridorWorld {
       steerInput,
       isBoosting,
       passiveObserver,
+      dt
+    );
+    this.glacialIceBuilder.stepGlobalIceAtmosphere(
+      this.currentBiome === 'GLACIAL_ICE',
+      playerPos,
       dt
     );
   }
@@ -2508,6 +2588,8 @@ export class TrailCorridorWorld {
         ? 55987
         : biome === 'GIANT_LOG'
         ? 88421
+        : biome === 'GLACIAL_ICE'
+        ? 63913
         : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
@@ -2529,7 +2611,7 @@ export class TrailCorridorWorld {
     this.activeChunks.set(chunkIndex, chunkRecord);
 
     // A. NATURAL WATER PUDDLES / BLACKWATER LAGOONS / GLOWING TURQUOISE SALT-BRINE POOLS!
-    if (chunkIndex >= 0 && biome !== 'DESERT') {
+    if (chunkIndex >= 0 && biome !== 'DESERT' && biome !== 'GLACIAL_ICE') {
       if (biome === 'SINGULARITY') {
         // Glowing turquoise mineral salt-brine pools in wide plateau hollows & deep canyon floor!
         for (let p = 0; p < 3; p++) {
@@ -2616,7 +2698,9 @@ export class TrailCorridorWorld {
     const indices = new Uint32Array(CHUNK_X_SEGMENTS * CHUNK_Z_SEGMENTS * 6);
 
     const colDirt =
-      biome === 'GIANT_LOG'
+      biome === 'GLACIAL_ICE'
+        ? new THREE.Color(0x52a8d6) // Glassy translucent sapphire-cyan flat lake ice!
+        : biome === 'GIANT_LOG'
         ? new THREE.Color(0x7c4829) // Warm ancient redwood/cedar heartwood!
         : biome === 'SINGULARITY'
         ? new THREE.Color(0xefd0ae) // Pearl-champagne rippled silica sand crown!
@@ -2628,7 +2712,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x838476) // Weathered grey-olive Deadwood track (#838476)
         : new THREE.Color(0x8b6745);
     const colRut =
-      biome === 'GIANT_LOG'
+      biome === 'GLACIAL_ICE'
+        ? new THREE.Color(0x8ee0fa) // Frosted pale-turquoise crystal ice veins!
+        : biome === 'GIANT_LOG'
         ? new THREE.Color(0x9f6438) // Fibrous golden sapwood grain!
         : biome === 'SINGULARITY'
         ? new THREE.Color(0xd9875e) // Rose-gold wind-rippled silica dune tracks!
@@ -2640,7 +2726,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x636558)
         : new THREE.Color(0x6d4b2f);
     const colMud =
-      biome === 'GIANT_LOG'
+      biome === 'GLACIAL_ICE'
+        ? new THREE.Color(0x245e85) // Deep sub-surface abyssal blue ice
+        : biome === 'GIANT_LOG'
         ? new THREE.Color(0x344622) // Damp interior emerald moss & rot pockets
         : biome === 'SINGULARITY'
         ? new THREE.Color(0x8a3a24) // Martian iron-oxide rust strata
@@ -2652,7 +2740,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x383a2c) // Deadwood dark mud hollow (#383a2c)
         : new THREE.Color(0x362518);
     const colVerge =
-      biome === 'GIANT_LOG'
+      biome === 'GLACIAL_ICE'
+        ? new THREE.Color(0xdff4fc) // Wind-packed powder snow bordering the flat ice!
+        : biome === 'GIANT_LOG'
         ? new THREE.Color(0x4b3822) // Mossy curved inner sapwood bank!
         : biome === 'SINGULARITY'
         ? new THREE.Color(0x1c1726) // Fractured black volcanic obsidian cliff brink!
@@ -2664,7 +2754,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x55594c) // Deadwood ashen olive earth (#55594c)
         : new THREE.Color(0x3d5c28);
     const colOuter =
-      biome === 'GIANT_LOG'
+      biome === 'GLACIAL_ICE'
+        ? new THREE.Color(0x89cbe8) // Towering turquoise glacier shoulders!
+        : biome === 'GIANT_LOG'
         ? new THREE.Color(0x2c1d13) // Dark ancient outer bark wall!
         : biome === 'SINGULARITY'
         ? new THREE.Color(0x15121d) // Deep volcanic obsidian canyon escarpment!
@@ -3034,6 +3126,21 @@ export class TrailCorridorWorld {
           });
         }
       }
+    } else if (biome === 'GLACIAL_ICE') {
+      chunkRecord.glacialIceData = this.glacialIceBuilder.populateGlacialIceChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        rng,
+        (x, z) => this.sampleHeightRaw(x, z).height,
+        (z) => {
+          const sp = this.getTrailSpec(z);
+          return { centerX: sp.centerX, halfWidth: sp.halfWidth, baseY: sp.baseY };
+        },
+        obstacles,
+        () => this.nextObstacleId++
+      );
     }
 
     // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
@@ -3144,7 +3251,10 @@ export class TrailCorridorWorld {
 
     // H. SPACIOUSLY BORDERED PERIMETER TREES / RED-SANDSTONE CANYON MESAS!
     const perimeterCount =
-      biome === 'DEADWOOD' || biome === 'SINGULARITY' || biome === 'GIANT_LOG'
+      biome === 'DEADWOOD' ||
+      biome === 'SINGULARITY' ||
+      biome === 'GIANT_LOG' ||
+      biome === 'GLACIAL_ICE'
         ? 0
         : biome === 'DESERT'
         ? 22
@@ -3227,7 +3337,7 @@ export class TrailCorridorWorld {
 
     // I. WELL-SPACED ROADSIDE BOULDERS & SLATE ROCKS
     const sparseCount =
-      biome === 'GIANT_LOG'
+      biome === 'GIANT_LOG' || biome === 'GLACIAL_ICE'
         ? 0
         : biome === 'SINGULARITY'
         ? 2
@@ -3378,7 +3488,7 @@ export class TrailCorridorWorld {
         ? 52
         : biome === 'DESERT'
         ? 18
-        : biome === 'DEADWOOD' || biome === 'SINGULARITY'
+        : biome === 'DEADWOOD' || biome === 'SINGULARITY' || biome === 'GLACIAL_ICE'
         ? 0
         : biome === 'SWAMP'
         ? 110

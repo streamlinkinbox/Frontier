@@ -202,7 +202,16 @@ export class TeamEliminationRaceDirector {
     if (this.regionIndex === 3) return 'DEADWOOD';
     if (this.regionIndex === 4) return 'SINGULARITY';
     if (this.regionIndex === 5) return 'GIANT_LOG';
-    const all: BiomeId[] = ['FOREST', 'SWAMP', 'DESERT', 'DEADWOOD', 'SINGULARITY', 'GIANT_LOG'];
+    if (this.regionIndex === 6) return 'GLACIAL_ICE';
+    const all: BiomeId[] = [
+      'FOREST',
+      'SWAMP',
+      'DESERT',
+      'DEADWOOD',
+      'SINGULARITY',
+      'GIANT_LOG',
+      'GLACIAL_ICE',
+    ];
     const candidates = all.filter((b) => b !== this.world.currentBiome);
     return candidates[Math.floor(this.rng() * candidates.length)];
   }
