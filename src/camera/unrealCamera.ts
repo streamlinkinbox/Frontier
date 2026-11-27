@@ -89,7 +89,10 @@ export class UnrealObserverCamera {
     const spec = world.getTrailSpec(z);
     const spawnX =
       spec.splitFactor > 0.25 ? spec.centerX - spec.splitOffset : spec.centerX;
-    const groundY = world.sampleHeightRaw(spawnX, z).height;
+    let groundY = world.sampleHeightRaw(spawnX, z).height;
+    if (world.currentBiome === 'CANYON_BRIDGES') {
+      groundY = Math.max(groundY, 0.0);
+    }
     this.position.set(spawnX, groundY + heightAboveGround, z);
     this.velocity.set(0, 0, 0);
     // Point camera along the natural curve of the trail ahead

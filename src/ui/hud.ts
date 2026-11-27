@@ -106,6 +106,12 @@ export class ExpeditionHud {
         name: 'UNDERGROUND MARKET',
         sub: 'Y-Split Aisles · Curves & Corners · Abandoned Shops & Neon',
       },
+      {
+        id: 'CANYON_BRIDGES',
+        key: '0',
+        name: 'CANYON BRIDGES',
+        sub: 'Swaying Rope Bridges · Snapping Planks · Crisscross Trestles',
+      },
     ];
 
     const levelChipsHtml = levels
@@ -345,7 +351,7 @@ export class ExpeditionHud {
         <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
         <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
         <span><kbd>SCROLL</kbd> Cam Speed</span>
-        <span><kbd>1</kbd>-<kbd>9</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>0</kbd> Switch Level</span>
         <span><kbd>T</kbd> Place Car Here</span>
         <span><kbd>V</kbd> Drive Course</span>
       `;
@@ -357,7 +363,7 @@ export class ExpeditionHud {
         <span><kbd>SHIFT</kbd> Boost</span>
         <span><kbd>SPACE</kbd> Handbrake</span>
         <span><kbd>R</kbd> Reset Car</span>
-        <span><kbd>1</kbd>-<kbd>9</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>0</kbd> Switch Level</span>
         <span><kbd>V</kbd> Back to Unreal Camera</span>
       `;
     }
@@ -405,7 +411,9 @@ export class ExpeditionHud {
     const spec = world.getTrailSpec(focusPos.z);
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
     let zoneName =
-      world.currentBiome === 'UNDERGROUND_MARKET'
+      world.currentBiome === 'CANYON_BRIDGES'
+        ? 'MISTY CHASM PILLAR'
+        : world.currentBiome === 'UNDERGROUND_MARKET'
         ? 'SUBTERRANEAN NEON CONCOURSE'
         : world.currentBiome === 'CARNIVOROUS_BOG'
         ? 'VICTORIA LILY-PAD LAGOON'
@@ -423,7 +431,17 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'UNDERGROUND_MARKET') {
+    if (world.currentBiome === 'CANYON_BRIDGES') {
+      if (focusPos.y > 2.2) {
+        zoneName = 'UPPER TIMBER MINE TRESTLE';
+      } else if (sample.surface === 'ROPE_PLANK') {
+        zoneName = 'SWAYING ROPE SUSPENSION BRIDGE';
+      } else if (sample.height < -8.0) {
+        zoneName = 'MISTY CANYON CHASM ABYSS';
+      } else {
+        zoneName = 'SANDSTONE CHASM PILLAR';
+      }
+    } else if (world.currentBiome === 'UNDERGROUND_MARKET') {
       const uMkt = ((Math.max(0, -focusPos.z) % 112) + 112) % 112;
       if (uMkt >= 58.0 && uMkt <= 67.0 && Math.abs(sample.signedOffset) < 7.5) {
         zoneName = '90° CROSS-CUT SHOP ALLEY';

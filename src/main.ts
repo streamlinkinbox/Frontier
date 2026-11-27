@@ -28,6 +28,7 @@ const BIOME_ORDER: BiomeId[] = [
   'GLACIAL_ICE',
   'CARNIVOROUS_BOG',
   'UNDERGROUND_MARKET',
+  'CANYON_BRIDGES',
 ];
 const LEVEL_PORTAL_Z = -860;
 
@@ -320,9 +321,19 @@ class FrontierSimulationApp {
     this.world.undergroundMarketBuilder.onNeonSparkZap = (zapPos: THREE.Vector3) => {
       this.particles.emitVineSnapBurst(zapPos, true);
     };
+    this.world.canyonBridgeBuilder.onRottenPlankSnap = (snapPos: THREE.Vector3) => {
+      this.particles.emitImpactDust(snapPos, 1.45);
+      this.audio.playTimberCrackSound();
+      if (snapPos.distanceTo(this.camera.position) < 42) {
+        this.hud.showCallout('ROTTEN BRIDGE PLANK SNAPPED · KEEP SPEED UP ACROSS THE GAP!');
+      }
+    };
+    this.world.canyonBridgeBuilder.onBridgeCreak = () => {
+      this.audio.playVineLatchSound();
+    };
 
-    // Boot into Abandoned Underground Neon Market (press [8] anytime to inspect fixed Giant Lily Pads!)
-    this.loadBiomeLevel('UNDERGROUND_MARKET', true);
+    // Boot into Swinging Canyon Rope-Bridges & Timber Mine Trestles with Unreal Free-Fly Camera!
+    this.loadBiomeLevel('CANYON_BRIDGES', true);
 
     this.bindInputEvents();
     window.addEventListener('resize', () => this.onResize());
@@ -503,6 +514,8 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('CARNIVOROUS_BOG');
       } else if (code === 'Digit9') {
         this.loadBiomeLevel('UNDERGROUND_MARKET');
+      } else if (code === 'Digit0') {
+        this.loadBiomeLevel('CANYON_BRIDGES');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
@@ -744,10 +757,10 @@ class FrontierSimulationApp {
       this.physicsAccumulator -= fixedDt;
     }
 
-    // Auto-recover vehicle if it plunges off a sheer -48m cliff precipice in SINGULARITY!
+    // Auto-recover vehicle if it plunges off a sheer -48m cliff/chasm precipice in SINGULARITY or CANYON_BRIDGES!
     if (
       this.exploreMode === 'PEACEFUL_DRIVE' &&
-      this.world.currentBiome === 'SINGULARITY'
+      (this.world.currentBiome === 'SINGULARITY' || this.world.currentBiome === 'CANYON_BRIDGES')
     ) {
       const cliffSpec = this.world.getTrailSpec(this.vehicle.position.z);
       if (this.vehicle.position.y < cliffSpec.baseY - 20.0) {
@@ -755,7 +768,11 @@ class FrontierSimulationApp {
         if (this.cliffFallTimer > 0.85) {
           this.cliffFallTimer = 0;
           this.vehicle.resetAt(this.world, this.vehicle.position.z);
-          this.hud.showCallout('CLIFF ABYSS RESCUE · RETURNED TO RIDGE');
+          this.hud.showCallout(
+            this.world.currentBiome === 'CANYON_BRIDGES'
+              ? 'CANYON CHASM RESCUE · RETURNED TO ROCK PILLAR!'
+              : 'CLIFF ABYSS RESCUE · RETURNED TO RIDGE'
+          );
         }
       } else {
         this.cliffFallTimer = 0;

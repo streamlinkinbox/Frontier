@@ -205,6 +205,7 @@ export class TeamEliminationRaceDirector {
     if (this.regionIndex === 6) return 'GLACIAL_ICE';
     if (this.regionIndex === 7) return 'CARNIVOROUS_BOG';
     if (this.regionIndex === 8) return 'UNDERGROUND_MARKET';
+    if (this.regionIndex === 9) return 'CANYON_BRIDGES';
     const all: BiomeId[] = [
       'FOREST',
       'SWAMP',
@@ -215,6 +216,7 @@ export class TeamEliminationRaceDirector {
       'GLACIAL_ICE',
       'CARNIVOROUS_BOG',
       'UNDERGROUND_MARKET',
+      'CANYON_BRIDGES',
     ];
     const candidates = all.filter((b) => b !== this.world.currentBiome);
     return candidates[Math.floor(this.rng() * candidates.length)];

@@ -248,13 +248,27 @@ export class VehicleRigidBody {
   }
 
   public resetAt(world: TrailCorridorWorld, z: number): void {
-    const spec = world.getTrailSpec(z);
+    let targetZ = z;
+    let spec = world.getTrailSpec(targetZ);
     const branchSide = this.position.x > spec.centerX ? 1 : -1;
-    const spawnX =
+    let spawnX =
       spec.splitFactor > 0.25 ? spec.centerX + branchSide * spec.splitOffset : spec.centerX;
-    const ground = world.sampleTerrain(spawnX, z);
+    let ground = world.sampleTerrain(spawnX, targetZ);
+
+    // In CANYON_BRIDGES, if targetZ falls over open -48m chasm air (e.g. between diagonal bridges),
+    // snap onto the nearest solid flat-topped Rock Pillar!
+    if (world.currentBiome === 'CANYON_BRIDGES' && ground.height < -6.0) {
+      const chunkIdx = Math.max(0, Math.floor(-targetZ / world.chunkLength));
+      const uInChunk = -targetZ - chunkIdx * world.chunkLength;
+      const pillarU = uInChunk < 30 ? 7.0 : uInChunk < 80 ? 53.0 : 104.5;
+      targetZ = -(chunkIdx * world.chunkLength + pillarU);
+      spec = world.getTrailSpec(targetZ);
+      spawnX = spec.centerX;
+      ground = world.sampleTerrain(spawnX, targetZ);
+    }
+
     const eqHeight = this.currentPreset.suspRestLength * 0.62 + this.currentPreset.wheelRadius - 0.14;
-    this.position.set(spawnX, ground.height + eqHeight, z);
+    this.position.set(spawnX, ground.height + eqHeight, targetZ);
 
     const headingYaw = Math.atan2(spec.slopeX, 1.0);
     this.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), headingYaw);

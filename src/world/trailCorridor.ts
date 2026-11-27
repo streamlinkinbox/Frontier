@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { clamp, fbm2D, lerp, mulberry32, noise2D, ridge2D, smoothstep } from '../math/noise';
 import { ProceduralTextureLibrary } from '../graphics/proceduralTextures';
 import { CarnivorousBogBuilder, CarnivorousBogChunkData } from './carnivorousBogSystem';
+import { CanyonBridgeChunkData, CanyonRopeBridgeBuilder } from './canyonRopeBridgeSystem';
 import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
 import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
 import { GiantHollowLogBuilder, GiantHollowLogChunkData } from './giantHollowLogSystem';
@@ -22,7 +23,8 @@ export type BiomeId =
   | 'GIANT_LOG'
   | 'GLACIAL_ICE'
   | 'CARNIVOROUS_BOG'
-  | 'UNDERGROUND_MARKET';
+  | 'UNDERGROUND_MARKET'
+  | 'CANYON_BRIDGES';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -36,7 +38,8 @@ export type SurfaceType =
   | 'DESERT_SAND'
   | 'GLACIAL_ICE'
   | 'LILYPAD_WAX'
-  | 'MARKET_TILE';
+  | 'MARKET_TILE'
+  | 'ROPE_PLANK';
 
 export interface BiomeAtmosphereSpec {
   id: BiomeId;
@@ -169,6 +172,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     sunIntensity: 1.15,
     hemiSkyHex: 0x527499,
     hemiGroundHex: 0x3b262e,
+  },
+  CANYON_BRIDGES: {
+    id: 'CANYON_BRIDGES',
+    title: 'SWINGING CANYON ROPE-BRIDGES & MINE TRESTLES',
+    subtitle: '3D SWAYING & TWISTING ROPE BRIDGES · SNAPPING ROTTEN PLANKS · CRISSCROSS TRESTLES',
+    fogColorHex: 0xc4cfd6,
+    fogDensity: 0.0048,
+    skyHorizonRGB: [0.82, 0.86, 0.89],
+    skyZenithRGB: [0.26, 0.46, 0.66],
+    sunColorHex: 0xffe8c8,
+    sunIntensity: 3.1,
+    hemiSkyHex: 0xd6e6f5,
+    hemiGroundHex: 0x3a2a22,
   },
 };
 
@@ -355,6 +371,7 @@ interface ChunkRecord {
   glacialIceData?: GlacialIceChunkData;
   carnivorousBogData?: CarnivorousBogChunkData;
   undergroundMarketData?: UndergroundMarketChunkData;
+  canyonBridgeData?: CanyonBridgeChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -392,6 +409,7 @@ export class TrailCorridorWorld {
   public readonly glacialIceBuilder: GlacialIceBuilder;
   public readonly carnivorousBogBuilder: CarnivorousBogBuilder;
   public readonly undergroundMarketBuilder: UndergroundMarketBuilder;
+  public readonly canyonBridgeBuilder: CanyonRopeBridgeBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -445,6 +463,7 @@ export class TrailCorridorWorld {
     this.glacialIceBuilder = new GlacialIceBuilder(textures);
     this.carnivorousBogBuilder = new CarnivorousBogBuilder(textures);
     this.undergroundMarketBuilder = new UndergroundMarketBuilder(textures);
+    this.canyonBridgeBuilder = new CanyonRopeBridgeBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -732,6 +751,8 @@ export class TrailCorridorWorld {
     this.group.add(this.carnivorousBogBuilder.atmosphereFxGroup);
     this.undergroundMarketBuilder.atmosphereFxGroup.visible = false;
     this.group.add(this.undergroundMarketBuilder.atmosphereFxGroup);
+    this.canyonBridgeBuilder.atmosphereFxGroup.visible = false;
+    this.group.add(this.canyonBridgeBuilder.atmosphereFxGroup);
   }
 
   public getActiveCarnivorousBogChunks(): CarnivorousBogChunkData[] {
@@ -764,6 +785,7 @@ export class TrailCorridorWorld {
     this.carnivorousBogBuilder.releasePitcherGrapple();
     this.carnivorousBogBuilder.atmosphereFxGroup.visible = biome === 'CARNIVOROUS_BOG';
     this.undergroundMarketBuilder.atmosphereFxGroup.visible = biome === 'UNDERGROUND_MARKET';
+    this.canyonBridgeBuilder.atmosphereFxGroup.visible = biome === 'CANYON_BRIDGES';
     this.resetAround(startZ);
   }
 
@@ -1816,7 +1838,8 @@ export class TrailCorridorWorld {
     const baseY =
       this.currentBiome === 'GLACIAL_ICE' ||
       this.currentBiome === 'CARNIVOROUS_BOG' ||
-      this.currentBiome === 'UNDERGROUND_MARKET'
+      this.currentBiome === 'UNDERGROUND_MARKET' ||
+      this.currentBiome === 'CANYON_BRIDGES'
         ? 0 // Level datum!
         : this.currentBiome === 'SINGULARITY'
         ? 38.0 +
@@ -1874,6 +1897,8 @@ export class TrailCorridorWorld {
     const baseHalfWidth =
       this.currentBiome === 'UNDERGROUND_MARKET'
         ? sampleUndergroundMarketHalfWidth(Math.max(0, -z), CHUNK_LENGTH)
+        : this.currentBiome === 'CANYON_BRIDGES'
+        ? 28.0
         : this.currentBiome === 'GLACIAL_ICE'
         ? 32.0
         : this.currentBiome === 'CARNIVOROUS_BOG'
@@ -1902,7 +1927,8 @@ export class TrailCorridorWorld {
           this.currentBiome === 'SINGULARITY' ||
           this.currentBiome === 'GLACIAL_ICE' ||
           this.currentBiome === 'CARNIVOROUS_BOG' ||
-          this.currentBiome === 'UNDERGROUND_MARKET'
+          this.currentBiome === 'UNDERGROUND_MARKET' ||
+          this.currentBiome === 'CANYON_BRIDGES'
         ? 0
         : smoothstep(0.54, 0.82, mudNoise)) * introFade;
 
@@ -1977,7 +2003,8 @@ export class TrailCorridorWorld {
     const bankHeight =
       this.currentBiome === 'GLACIAL_ICE' ||
       this.currentBiome === 'CARNIVOROUS_BOG' ||
-      this.currentBiome === 'UNDERGROUND_MARKET'
+      this.currentBiome === 'UNDERGROUND_MARKET' ||
+      this.currentBiome === 'CANYON_BRIDGES'
         ? 0
         : d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
 
@@ -2015,7 +2042,14 @@ export class TrailCorridorWorld {
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
 
-    if (this.currentBiome === 'UNDERGROUND_MARKET') {
+    if (this.currentBiome === 'CANYON_BRIDGES') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+      // Sheer -48m deep misty canyon gorge across absD < 38m, framed by towering jagged canyon rim cliffs far outside!
+      const farRimMask = smoothstep(38.0, 74.0, absD);
+      cliffRelief = -48.0 + farRimMask * (82.0 + ridge2D(x * 0.055, z * 0.055, 3) * 14.0);
+    } else if (this.currentBiome === 'UNDERGROUND_MARKET') {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
@@ -2101,6 +2135,7 @@ export class TrailCorridorWorld {
 
     let waterDepth = 0;
     let onBogLilyPad = false;
+    let onRopeBridge = false;
     const cIdx = Math.floor(-z / CHUNK_LENGTH);
     for (let ci = cIdx - 1; ci <= cIdx + 1; ci++) {
       const rec = this.activeChunks.get(ci);
@@ -2131,6 +2166,17 @@ export class TrailCorridorWorld {
           onBogLilyPad = bogSample.onLilyPad;
         }
       }
+      if (rec.canyonBridgeData && absD < 36.0) {
+        const bridgeSample = this.canyonBridgeBuilder.sampleLiveCanyonSurface(
+          rec.canyonBridgeData,
+          x,
+          z
+        );
+        if (bridgeSample.active && bridgeSample.height > height) {
+          height = bridgeSample.height;
+          onRopeBridge = bridgeSample.onRopeBridge;
+        }
+      }
       for (const p of rec.puddles) {
         const nx = (x - p.x) / p.radiusX;
         const nz = (z - p.z) / p.radiusZ;
@@ -2145,7 +2191,11 @@ export class TrailCorridorWorld {
     }
 
     let surface: SurfaceType =
-      this.currentBiome === 'UNDERGROUND_MARKET'
+      this.currentBiome === 'CANYON_BRIDGES'
+        ? onRopeBridge
+          ? 'ROPE_PLANK'
+          : 'MOSS_ROCK'
+        : this.currentBiome === 'UNDERGROUND_MARKET'
         ? 'MARKET_TILE'
         : this.currentBiome === 'CARNIVOROUS_BOG'
         ? onBogLilyPad
@@ -2167,6 +2217,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'GLACIAL_ICE' &&
       this.currentBiome !== 'CARNIVOROUS_BOG' &&
       this.currentBiome !== 'UNDERGROUND_MARKET' &&
+      this.currentBiome !== 'CANYON_BRIDGES' &&
       (absD > hw + 18.0 || medianIslandBump > 0.8)
     ) {
       surface = 'MOSS_ROCK';
@@ -2177,6 +2228,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'GLACIAL_ICE' &&
       this.currentBiome !== 'CARNIVOROUS_BOG' &&
       this.currentBiome !== 'UNDERGROUND_MARKET' &&
+      this.currentBiome !== 'CANYON_BRIDGES' &&
       localMud > 0.36
     ) {
       surface = 'WET_MUD';
@@ -2186,6 +2238,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'GLACIAL_ICE' &&
       this.currentBiome !== 'CARNIVOROUS_BOG' &&
       this.currentBiome !== 'UNDERGROUND_MARKET' &&
+      this.currentBiome !== 'CANYON_BRIDGES' &&
       distFromBranch > branchHalfWidth * 0.78
     ) {
       surface = 'LOOSE_VERGE';
@@ -2208,13 +2261,15 @@ export class TrailCorridorWorld {
   public sampleTerrain(x: number, z: number, outNormal?: THREE.Vector3): TerrainSample {
     const c = this.sampleHeightRaw(x, z);
     const eps = 0.36;
-    const hR = this.sampleHeightRaw(x + eps, z).height;
-    const hL = this.sampleHeightRaw(x - eps, z).height;
-    const hF = this.sampleHeightRaw(x, z + eps).height;
-    const hB = this.sampleHeightRaw(x, z - eps).height;
+    // Clamp finite-difference height step across sheer chasm/bridge brinks so a wheel still on a bridge
+    // deck isn't catapulted sideways by a 48m numerical-derivative spike at the cliff/plank edge!
+    const dhR = clamp(this.sampleHeightRaw(x + eps, z).height - c.height, -1.25, 1.25);
+    const dhL = clamp(this.sampleHeightRaw(x - eps, z).height - c.height, -1.25, 1.25);
+    const dhF = clamp(this.sampleHeightRaw(x, z + eps).height - c.height, -1.25, 1.25);
+    const dhB = clamp(this.sampleHeightRaw(x, z - eps).height - c.height, -1.25, 1.25);
 
     const normal = outNormal ?? this._sampleNorm.clone();
-    normal.set(hL - hR, 2 * eps, hB - hF).normalize();
+    normal.set(dhL - dhR, 2 * eps, dhB - dhF).normalize();
 
     let friction = 1.08;
     let rollingResistance = 0.017;
@@ -2267,6 +2322,10 @@ export class TrailCorridorWorld {
         rollingResistance = 0.012;
         break;
       }
+      case 'ROPE_PLANK':
+        friction = 0.98; // Grippy rough-sawn canyon suspension planks!
+        rollingResistance = 0.017;
+        break;
     }
 
     return {
@@ -2313,20 +2372,26 @@ export class TrailCorridorWorld {
 
         if (latDistSq < hw * hw) {
           const latDist = Math.sqrt(latDistSq);
-          const crownDrop = Math.pow(latDist / hw, 2.2) * 0.28;
+          const isTrestle = this.currentBiome === 'CANYON_BRIDGES';
+          const crownDrop = isTrestle ? 0.0 : Math.pow(latDist / hw, 2.2) * 0.28;
           const deckY = lerp(seg.ay, seg.by, t) + 0.18 - crownDrop;
 
-          // Only snap wheels onto this root deck if the car/wheel is above its underside (allows driving underneath high arches!)
+          // Only snap wheels onto this root/trestle deck if the car/wheel is above its underside (allows driving underneath high arches!)
           if (referenceY >= deckY - seg.thickness && (bestDeckY === null || deckY > bestDeckY)) {
             bestDeckY = deckY;
             const slopeVecY = (seg.by - seg.ay) / Math.sqrt(lenSq);
-            outNormal
-              .set(
-                (dx / (hw + 0.1)) * 0.28,
-                1.0,
-                (dz / (hw + 0.1)) * 0.28 - slopeVecY * 0.4
-              )
-              .normalize();
+            if (isTrestle) {
+              const len = Math.sqrt(lenSq);
+              outNormal.set(-(abx / len) * slopeVecY, 1.0, -(abz / len) * slopeVecY).normalize();
+            } else {
+              outNormal
+                .set(
+                  (dx / (hw + 0.1)) * 0.28,
+                  1.0,
+                  (dz / (hw + 0.1)) * 0.28 - slopeVecY * 0.4
+                )
+                .normalize();
+            }
           }
         }
       }
@@ -2584,6 +2649,17 @@ export class TrailCorridorWorld {
           vehicleVel
         );
       }
+      // 12. CANYON ROPE-BRIDGES & MINE TRESTLES: 3D Swaying/Twisting Bridges & Snapping Rotten Planks!
+      if (rec.canyonBridgeData) {
+        this.canyonBridgeBuilder.stepChunkHazards(
+          rec.canyonBridgeData,
+          dt,
+          elapsedTime,
+          vehiclePos,
+          vehicleSpeedMps,
+          passiveObserver
+        );
+      }
     }
 
     this.singularityBuilder.stepGlobalStormFx(
@@ -2619,6 +2695,12 @@ export class TrailCorridorWorld {
       dt,
       playerPos,
       this.currentBiome === 'UNDERGROUND_MARKET'
+    );
+    this.canyonBridgeBuilder.stepGlobalCanyonAtmosphere(
+      this.currentBiome === 'CANYON_BRIDGES',
+      playerPos,
+      elapsedTime,
+      dt
     );
   }
 
@@ -2786,6 +2868,8 @@ export class TrailCorridorWorld {
         ? 44771
         : biome === 'UNDERGROUND_MARKET'
         ? 91247
+        : biome === 'CANYON_BRIDGES'
+        ? 73819
         : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
@@ -2812,7 +2896,8 @@ export class TrailCorridorWorld {
       biome !== 'DESERT' &&
       biome !== 'GLACIAL_ICE' &&
       biome !== 'CARNIVOROUS_BOG' &&
-      biome !== 'UNDERGROUND_MARKET'
+      biome !== 'UNDERGROUND_MARKET' &&
+      biome !== 'CANYON_BRIDGES'
     ) {
       if (biome === 'SINGULARITY') {
         // Glowing turquoise mineral salt-brine pools in wide plateau hollows & deep canyon floor!
@@ -3018,7 +3103,12 @@ export class TrailCorridorWorld {
         const outerMask = smoothstep(hw + 8.0, hw + 55.0, absD);
         const patchVar = fbm2D(x * 0.08, z * 0.08, 2) * 0.1;
 
-        if (biome === 'UNDERGROUND_MARKET') {
+        if (biome === 'CANYON_BRIDGES') {
+          // Deep shadowed canyon abyss floor rising into warm banded terracotta/granite gorge rim walls!
+          const rimMask = smoothstep(-32.0, 12.0, s.height);
+          tmpColor.setHex(0x1c1817).lerp(new THREE.Color(0x825b42), rimMask);
+          tmpColor.offsetHSL(0, 0, patchVar * 0.5);
+        } else if (biome === 'UNDERGROUND_MARKET') {
           tmpColor.setHex(0x12151c);
         } else if (biome === 'CARNIVOROUS_BOG') {
           // Dark submerged peat bed beneath the acid lagoon, rising into lush sphagnum-moss bog banks!
@@ -3392,6 +3482,18 @@ export class TrailCorridorWorld {
           obstacles,
           () => this.nextObstacleId++
         );
+    } else if (biome === 'CANYON_BRIDGES') {
+      chunkRecord.canyonBridgeData = this.canyonBridgeBuilder.populateCanyonBridgeChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        (z) => this.getTrailSpec(z).centerX,
+        obstacles,
+        rootBridges,
+        () => this.nextObstacleId++,
+        () => this.nextBridgeId++
+      );
     }
 
     // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
@@ -3506,7 +3608,8 @@ export class TrailCorridorWorld {
       biome === 'SINGULARITY' ||
       biome === 'GIANT_LOG' ||
       biome === 'GLACIAL_ICE' ||
-      biome === 'UNDERGROUND_MARKET'
+      biome === 'UNDERGROUND_MARKET' ||
+      biome === 'CANYON_BRIDGES'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 16
@@ -3594,7 +3697,8 @@ export class TrailCorridorWorld {
       biome === 'GIANT_LOG' ||
       biome === 'GLACIAL_ICE' ||
       biome === 'CARNIVOROUS_BOG' ||
-      biome === 'UNDERGROUND_MARKET'
+      biome === 'UNDERGROUND_MARKET' ||
+      biome === 'CANYON_BRIDGES'
         ? 0
         : biome === 'SINGULARITY'
         ? 2
@@ -3748,7 +3852,8 @@ export class TrailCorridorWorld {
         : biome === 'DEADWOOD' ||
           biome === 'SINGULARITY' ||
           biome === 'GLACIAL_ICE' ||
-          biome === 'UNDERGROUND_MARKET'
+          biome === 'UNDERGROUND_MARKET' ||
+          biome === 'CANYON_BRIDGES'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 45
