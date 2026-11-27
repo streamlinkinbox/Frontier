@@ -2004,6 +2004,15 @@ export class TrailCorridorWorld {
       if (rec.deadwoodData) {
         height += this.deadwoodBuilder.sampleGroundHeaveHeight(rec.deadwoodData, x, z);
       }
+      if (rec.glacialIceData && absD < 36.5) {
+        const iceSample = this.glacialIceBuilder.sampleLiveIceSurface(rec.glacialIceData, x, z);
+        if (iceSample.active) {
+          height += iceSample.deltaY;
+          if (iceSample.waterDepth > waterDepth) {
+            waterDepth = iceSample.waterDepth;
+          }
+        }
+      }
       for (const p of rec.puddles) {
         const nx = (x - p.x) / p.radiusX;
         const nz = (z - p.z) / p.radiusZ;
@@ -2025,7 +2034,7 @@ export class TrailCorridorWorld {
         : this.currentBiome === 'DESERT' || this.currentBiome === 'SINGULARITY'
         ? 'DESERT_SAND'
         : 'PACKED_DIRT';
-    if (waterDepth > 0.03) {
+    if (waterDepth > 0.03 && this.currentBiome !== 'GLACIAL_ICE') {
       surface = 'SHALLOW_WATER';
     } else if (spec.mudslideFactor > 0.25 && absD < hw * 0.9) {
       surface = 'MUDSLIDE';
@@ -2785,15 +2794,19 @@ export class TrailCorridorWorld {
         const x = centerSpec.centerX + shapedOffset;
 
         const s = this.sampleHeightRaw(x, z);
+        const absD = Math.abs(s.signedOffset);
+        // In GLACIAL_ICE, carve the raw dirt terrainGeo down into a deep -2.25m sub-glacial lakebed
+        // so our procedural 3D Voronoi ice slabs (y = 0..-0.88m) & sub-glacial water (y = -0.58m) sit cleanly above it!
+        const basinCarve =
+          biome === 'GLACIAL_ICE' ? 2.25 * smoothstep(38.5, 34.0, absD) : 0.0;
         positions[ptr] = x;
-        positions[ptr + 1] = s.height;
+        positions[ptr + 1] = s.height - basinCarve;
         positions[ptr + 2] = z;
 
         uvs[uvPtr] = x * 0.2;
         uvs[uvPtr + 1] = z * 0.2;
         uvPtr += 2;
 
-        const absD = Math.abs(s.signedOffset);
         const hw = centerSpec.halfWidth;
         const branchW = lerp(
           hw,
@@ -2806,7 +2819,13 @@ export class TrailCorridorWorld {
         const outerMask = smoothstep(hw + 8.0, hw + 55.0, absD);
         const patchVar = fbm2D(x * 0.08, z * 0.08, 2) * 0.1;
 
-        if (biome === 'SINGULARITY') {
+        if (biome === 'GLACIAL_ICE') {
+          // Deep abyssal navy lakebed beneath the water, rising into crisp powder snow & turquoise glacier walls!
+          const snowBankMask = smoothstep(33.5, 38.0, absD);
+          tmpColor.setHex(0x061626).lerp(colVerge, snowBankMask);
+          tmpColor.lerp(colOuter, outerMask * 0.68);
+          tmpColor.offsetHSL(0, 0, patchVar * 0.5);
+        } else if (biome === 'SINGULARITY') {
           const elevDiff = s.height - centerSpec.baseY;
           const cliffWallMask = smoothstep(2.4, 9.5, Math.abs(elevDiff));
           const strataBand = Math.sin(s.height * 0.55 + z * 0.04) * 0.5 + 0.5;
