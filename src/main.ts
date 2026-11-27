@@ -18,7 +18,14 @@ import { OffroadParticleSystem, RallyVineAudioEngine } from './graphics/particle
 import { UnrealObserverCamera } from './camera/unrealCamera';
 import { ExploreMode, ExpeditionHud } from './ui/hud';
 
-const BIOME_ORDER: BiomeId[] = ['FOREST', 'SWAMP', 'DESERT', 'DEADWOOD', 'SINGULARITY'];
+const BIOME_ORDER: BiomeId[] = [
+  'FOREST',
+  'SWAMP',
+  'DESERT',
+  'DEADWOOD',
+  'SINGULARITY',
+  'GIANT_LOG',
+];
 const LEVEL_PORTAL_Z = -860;
 
 class FrontierSimulationApp {
@@ -214,9 +221,18 @@ class FrontierSimulationApp {
       this.particles.emitImpactDust(strikePos, 1.45);
       this.audio.playThunderStrikeSound(intensity);
     };
+    this.world.giantLogBuilder.onWormStrikeVehicle = (strikePos: THREE.Vector3) => {
+      this.particles.emitImpactDust(strikePos, 1.15);
+      this.audio.playVineLatchSound();
+      this.hud.showCallout('PARASITE LOG-WORM LATCHED · BOOST [SHIFT] TO BREAK FREE!');
+    };
+    this.world.giantLogBuilder.onCobwebTorn = (tearPos: THREE.Vector3) => {
+      this.particles.emitImpactDust(tearPos, 0.85);
+      this.audio.playVineSnapSound(false);
+    };
 
-    // Boot into Vitrified Singularity Desert with Unreal Free-Fly Camera overlooking the steep cliffs!
-    this.loadBiomeLevel('SINGULARITY', true);
+    // Boot into Colossal Hollow Log Ecosystem with Unreal Free-Fly Camera inside the sunlit cavern!
+    this.loadBiomeLevel('GIANT_LOG', true);
 
     this.bindInputEvents();
     window.addEventListener('resize', () => this.onResize());
@@ -380,6 +396,8 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('DEADWOOD');
       } else if (code === 'Digit5') {
         this.loadBiomeLevel('SINGULARITY');
+      } else if (code === 'Digit6') {
+        this.loadBiomeLevel('GIANT_LOG');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
@@ -530,7 +548,9 @@ class FrontierSimulationApp {
       frameDt,
       this.vehicle.position,
       Math.abs(this.vehicle.forwardSpeedMps),
-      this.exploreMode === 'UNREAL_CAMERA'
+      this.exploreMode === 'UNREAL_CAMERA',
+      this.vehicle.linearVelocity,
+      this.vehicle.isBoosting
     );
 
     // Fly or drive through the Stone Pass Gate at the end of a course to warp to the next biome!

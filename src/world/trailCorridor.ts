@@ -3,9 +3,10 @@ import { clamp, fbm2D, lerp, mulberry32, noise2D, ridge2D, smoothstep } from '..
 import { ProceduralTextureLibrary } from '../graphics/proceduralTextures';
 import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
 import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
+import { GiantHollowLogBuilder, GiantHollowLogChunkData } from './giantHollowLogSystem';
 import { SingularityChunkData, SingularityDesertBuilder } from './singularityDesertSystem';
 
-export type BiomeId = 'FOREST' | 'SWAMP' | 'DESERT' | 'DEADWOOD' | 'SINGULARITY';
+export type BiomeId = 'FOREST' | 'SWAMP' | 'DESERT' | 'DEADWOOD' | 'SINGULARITY' | 'GIANT_LOG';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -97,6 +98,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     sunIntensity: 3.05,
     hemiSkyHex: 0xe88658,
     hemiGroundHex: 0x2a1511,
+  },
+  GIANT_LOG: {
+    id: 'GIANT_LOG',
+    title: 'COLOSSAL HOLLOW LOG ECOSYSTEM',
+    subtitle: 'OUTSIDE GODRAYS · LOG-WALL PARASITE WORMS · MESSY COBWEBS',
+    fogColorHex: 0x2c2216,
+    fogDensity: 0.0052,
+    skyHorizonRGB: [0.86, 0.80, 0.52],
+    skyZenithRGB: [0.40, 0.62, 0.44],
+    sunColorHex: 0xffe49c,
+    sunIntensity: 3.45,
+    hemiSkyHex: 0x8ea36d,
+    hemiGroundHex: 0x2b1b10,
   },
 };
 
@@ -279,6 +293,7 @@ interface ChunkRecord {
   deadwoodData?: DeadwoodChunkData;
   desertVillageData?: DesertVillageChunkData;
   singularityData?: SingularityChunkData;
+  giantLogData?: GiantHollowLogChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -312,6 +327,7 @@ export class TrailCorridorWorld {
   private deadwoodBuilder: DeadwoodBuilder;
   private desertVillageBuilder: DesertVillageBuilder;
   public readonly singularityBuilder: SingularityDesertBuilder;
+  public readonly giantLogBuilder: GiantHollowLogBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -361,6 +377,7 @@ export class TrailCorridorWorld {
     this.deadwoodBuilder = new DeadwoodBuilder(textures);
     this.desertVillageBuilder = new DesertVillageBuilder(textures);
     this.singularityBuilder = new SingularityDesertBuilder(textures);
+    this.giantLogBuilder = new GiantHollowLogBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -640,6 +657,8 @@ export class TrailCorridorWorld {
     this.buildAssetGeometries();
     this.singularityBuilder.stormFxGroup.visible = false;
     this.group.add(this.singularityBuilder.stormFxGroup);
+    this.giantLogBuilder.atmosphereFxGroup.visible = false;
+    this.group.add(this.giantLogBuilder.atmosphereFxGroup);
   }
 
   public onChunkSpawned(
@@ -658,6 +677,7 @@ export class TrailCorridorWorld {
   public setBiomeAndRebuild(biome: BiomeId, startZ: number): void {
     this.currentBiome = biome;
     this.singularityBuilder.stormFxGroup.visible = biome === 'SINGULARITY';
+    this.giantLogBuilder.atmosphereFxGroup.visible = biome === 'GIANT_LOG';
     this.resetAround(startZ);
   }
 
@@ -1746,7 +1766,9 @@ export class TrailCorridorWorld {
     const widthWave = Math.sin(z * 0.022 + 0.7) * 6.5 + noise2D(z * 0.018, 41.2) * 5.0;
     const cliffPinch = Math.pow(Math.sin(z * 0.029 + 0.5) * 0.5 + 0.5, 1.25) * introFade;
     const baseHalfWidth =
-      this.currentBiome === 'SINGULARITY'
+      this.currentBiome === 'GIANT_LOG'
+        ? 26.5
+        : this.currentBiome === 'SINGULARITY'
         ? lerp(22.5, 7.2, cliffPinch)
         : this.currentBiome === 'DEADWOOD'
         ? clamp(21.0 + widthWave * 0.45 * introFade, 18.0, 26.0)
@@ -1864,7 +1886,19 @@ export class TrailCorridorWorld {
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
 
-    if (this.currentBiome === 'SINGULARITY') {
+    if (this.currentBiome === 'GIANT_LOG') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+      // Colossal curved cylindrical heartwood half-pipe floor + longitudinal wood grain & annular ring ribs!
+      const clampedSpan = Math.min(absD, 46.0);
+      const halfPipeBowl = Math.pow(Math.max(0, clampedSpan - 8.0) / 30.0, 2.35) * 16.5;
+      const woodGrain = Math.sin(d * 0.85 + fbm2D(x * 0.12, z * 0.06, 2) * 1.6) * 0.09;
+      const annularRib =
+        Math.pow(Math.sin(z * 0.225) * 0.5 + 0.5, 4.0) * 0.24 * smoothstep(8.0, 28.0, absD);
+      const outerBerm = smoothstep(39.0, 62.0, absD) * 12.0;
+      cliffRelief = halfPipeBowl + woodGrain + annularRib + outerBerm;
+    } else if (this.currentBiome === 'SINGULARITY') {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
@@ -1936,22 +1970,29 @@ export class TrailCorridorWorld {
     }
 
     let surface: SurfaceType =
-      this.currentBiome === 'DESERT' || this.currentBiome === 'SINGULARITY'
+      this.currentBiome === 'GIANT_LOG'
+        ? 'HOLLOW_LOG'
+        : this.currentBiome === 'DESERT' || this.currentBiome === 'SINGULARITY'
         ? 'DESERT_SAND'
         : 'PACKED_DIRT';
     if (waterDepth > 0.03) {
       surface = 'SHALLOW_WATER';
     } else if (spec.mudslideFactor > 0.25 && absD < hw * 0.9) {
       surface = 'MUDSLIDE';
-    } else if (absD > hw + 18.0 || medianIslandBump > 0.8) {
+    } else if (this.currentBiome !== 'GIANT_LOG' && (absD > hw + 18.0 || medianIslandBump > 0.8)) {
       surface = 'MOSS_ROCK';
     } else if (
       this.currentBiome !== 'DESERT' &&
       this.currentBiome !== 'SINGULARITY' &&
+      this.currentBiome !== 'GIANT_LOG' &&
       localMud > 0.36
     ) {
       surface = 'WET_MUD';
-    } else if (this.currentBiome !== 'DESERT' && distFromBranch > branchHalfWidth * 0.78) {
+    } else if (
+      this.currentBiome !== 'DESERT' &&
+      this.currentBiome !== 'GIANT_LOG' &&
+      distFromBranch > branchHalfWidth * 0.78
+    ) {
       surface = 'LOOSE_VERGE';
     }
 
@@ -2091,7 +2132,9 @@ export class TrailCorridorWorld {
     dt = 1 / 60,
     vehiclePos: THREE.Vector3 = playerPos,
     vehicleSpeedMps = 0,
-    passiveObserver = false
+    passiveObserver = false,
+    vehicleVel: THREE.Vector3 = playerVel,
+    isBoosting = false
   ): void {
     this.playerPosUniform.value.copy(playerPos);
     this.playerVelUniform.value.copy(playerVel);
@@ -2133,7 +2176,9 @@ export class TrailCorridorWorld {
       dt,
       vehiclePos,
       vehicleSpeedMps,
-      passiveObserver
+      passiveObserver,
+      vehicleVel,
+      isBoosting
     );
   }
 
@@ -2144,7 +2189,9 @@ export class TrailCorridorWorld {
     dt: number,
     vehiclePos: THREE.Vector3,
     vehicleSpeedMps: number,
-    passiveObserver: boolean
+    passiveObserver: boolean,
+    vehicleVel: THREE.Vector3,
+    isBoosting: boolean
   ): void {
     const forwardSpeed = Math.max(0, -playerVel.z);
 
@@ -2259,6 +2306,20 @@ export class TrailCorridorWorld {
           (x, z) => this.sampleHeightRaw(x, z).height
         );
       }
+
+      // 8. COLOSSAL HOLLOW LOG: Stationary Log-Emerging Parasite Worms & Messy Cobwebs!
+      if (rec.giantLogData) {
+        this.giantLogBuilder.stepChunkHazards(
+          rec.giantLogData,
+          elapsedTime,
+          dt,
+          playerPos,
+          vehiclePos,
+          vehicleVel,
+          isBoosting,
+          passiveObserver
+        );
+      }
     }
 
     this.singularityBuilder.stepGlobalStormFx(
@@ -2266,6 +2327,11 @@ export class TrailCorridorWorld {
       playerPos,
       dt,
       (x, z) => this.sampleHeightRaw(x, z).height
+    );
+    this.giantLogBuilder.stepGlobalLogAtmosphere(
+      this.currentBiome === 'GIANT_LOG',
+      playerPos,
+      dt
     );
   }
 
@@ -2425,6 +2491,8 @@ export class TrailCorridorWorld {
         ? 18443
         : biome === 'SINGULARITY'
         ? 55987
+        : biome === 'GIANT_LOG'
+        ? 88421
         : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
@@ -2509,7 +2577,11 @@ export class TrailCorridorWorld {
           });
 
           const wMat =
-            biome === 'SWAMP' || biome === 'DEADWOOD' ? this.swampBlackwaterMat : this.waterMat;
+            biome === 'GIANT_LOG'
+              ? this.giantLogBuilder.sapAmberWaterMat
+              : biome === 'SWAMP' || biome === 'DEADWOOD'
+              ? this.swampBlackwaterMat
+              : this.waterMat;
           const waterMesh = new THREE.Mesh(this.puddleDiscGeo, wMat);
           waterMesh.position.set(xPud, waterY, zPud);
           waterMesh.scale.set(rx, 1, rz);
@@ -2529,7 +2601,9 @@ export class TrailCorridorWorld {
     const indices = new Uint32Array(CHUNK_X_SEGMENTS * CHUNK_Z_SEGMENTS * 6);
 
     const colDirt =
-      biome === 'SINGULARITY'
+      biome === 'GIANT_LOG'
+        ? new THREE.Color(0x7c4829) // Warm ancient redwood/cedar heartwood!
+        : biome === 'SINGULARITY'
         ? new THREE.Color(0xefd0ae) // Pearl-champagne rippled silica sand crown!
         : biome === 'DESERT'
         ? new THREE.Color(0xdca86e) // Sun-baked golden desert sand & packed caliche street
@@ -2539,7 +2613,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x838476) // Weathered grey-olive Deadwood track (#838476)
         : new THREE.Color(0x8b6745);
     const colRut =
-      biome === 'SINGULARITY'
+      biome === 'GIANT_LOG'
+        ? new THREE.Color(0x9f6438) // Fibrous golden sapwood grain!
+        : biome === 'SINGULARITY'
         ? new THREE.Color(0xd9875e) // Rose-gold wind-rippled silica dune tracks!
         : biome === 'DESERT'
         ? new THREE.Color(0xbd7d46) // Dusty terracotta tire ruts
@@ -2549,7 +2625,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x636558)
         : new THREE.Color(0x6d4b2f);
     const colMud =
-      biome === 'SINGULARITY'
+      biome === 'GIANT_LOG'
+        ? new THREE.Color(0x344622) // Damp interior emerald moss & rot pockets
+        : biome === 'SINGULARITY'
         ? new THREE.Color(0x8a3a24) // Martian iron-oxide rust strata
         : biome === 'DESERT'
         ? new THREE.Color(0x9e6336) // Sun-cracked dry red clay
@@ -2559,7 +2637,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x383a2c) // Deadwood dark mud hollow (#383a2c)
         : new THREE.Color(0x362518);
     const colVerge =
-      biome === 'SINGULARITY'
+      biome === 'GIANT_LOG'
+        ? new THREE.Color(0x4b3822) // Mossy curved inner sapwood bank!
+        : biome === 'SINGULARITY'
         ? new THREE.Color(0x1c1726) // Fractured black volcanic obsidian cliff brink!
         : biome === 'DESERT'
         ? new THREE.Color(0xc27b47) // Warm red-ochre canyon talus
@@ -2569,7 +2649,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x55594c) // Deadwood ashen olive earth (#55594c)
         : new THREE.Color(0x3d5c28);
     const colOuter =
-      biome === 'SINGULARITY'
+      biome === 'GIANT_LOG'
+        ? new THREE.Color(0x2c1d13) // Dark ancient outer bark wall!
+        : biome === 'SINGULARITY'
         ? new THREE.Color(0x15121d) // Deep volcanic obsidian canyon escarpment!
         : biome === 'DESERT'
         ? new THREE.Color(0xa85832) // Terracotta red-rock canyon wall
@@ -2895,6 +2977,46 @@ export class TrailCorridorWorld {
           });
         }
       }
+    } else if (biome === 'GIANT_LOG') {
+      chunkRecord.giantLogData = this.giantLogBuilder.populateGiantLogChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        rng,
+        (x, z) => this.sampleHeightRaw(x, z).height,
+        (z) => {
+          const sp = this.getTrailSpec(z);
+          return {
+            centerX: sp.centerX,
+            halfWidth: sp.halfWidth,
+            baseY: sp.baseY,
+            slopeX: sp.slopeX,
+          };
+        },
+        obstacles,
+        () => this.nextObstacleId++
+      );
+
+      // Hanging ecosystem moss-vines dangling down from the upper hollow-log ribs!
+      if (chunkIndex >= 0) {
+        for (let v = 0; v < 4; v++) {
+          const vz = zStart - ((v + 0.2 + rng() * 0.5) / 4) * CHUNK_LENGTH;
+          if (vz > -18) continue;
+          const sp = this.getTrailSpec(vz);
+          const vx = sp.centerX + (rng() - 0.5) * (sp.halfWidth * 1.1);
+          const floorY = this.sampleHeightRaw(vx, vz).height;
+          anchors.push({
+            id: this.nextAnchorId++,
+            chunkIndex,
+            position: new THREE.Vector3(vx, floorY + lerp(13.5, 17.5, rng()), vz),
+            branchTangent: new THREE.Vector3(1, 0, 0),
+            trailCenterBelow: new THREE.Vector3(vx, floorY, vz),
+            trailHalfWidth: sp.halfWidth,
+            preferredArchetype: 'CURTAIN',
+          });
+        }
+      }
     }
 
     // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
@@ -3005,7 +3127,13 @@ export class TrailCorridorWorld {
 
     // H. SPACIOUSLY BORDERED PERIMETER TREES / RED-SANDSTONE CANYON MESAS!
     const perimeterCount =
-      biome === 'DEADWOOD' ? 0 : biome === 'DESERT' ? 22 : biome === 'SWAMP' ? 22 : 30;
+      biome === 'DEADWOOD' || biome === 'SINGULARITY' || biome === 'GIANT_LOG'
+        ? 0
+        : biome === 'DESERT'
+        ? 22
+        : biome === 'SWAMP'
+        ? 22
+        : 30;
     for (let i = 0; i < perimeterCount; i++) {
       const z = zStart - rng() * CHUNK_LENGTH;
       const spec = this.getTrailSpec(z);
@@ -3081,7 +3209,18 @@ export class TrailCorridorWorld {
     }
 
     // I. WELL-SPACED ROADSIDE BOULDERS & SLATE ROCKS
-    const sparseCount = biome === 'DESERT' ? 3 : biome === 'SWAMP' ? 4 : biome === 'DEADWOOD' ? 6 : 7;
+    const sparseCount =
+      biome === 'GIANT_LOG'
+        ? 0
+        : biome === 'SINGULARITY'
+        ? 2
+        : biome === 'DESERT'
+        ? 3
+        : biome === 'SWAMP'
+        ? 4
+        : biome === 'DEADWOOD'
+        ? 6
+        : 7;
     for (let i = 0; i < sparseCount; i++) {
       const z = zStart - ((i + 0.3 + rng() * 0.4) / sparseCount) * CHUNK_LENGTH;
       if (isSafeZone(z)) continue;
@@ -3218,7 +3357,9 @@ export class TrailCorridorWorld {
     const fernMatrices: THREE.Matrix4[] = [];
     const broadleafMatrices: THREE.Matrix4[] = [];
     const floraCount =
-      biome === 'DESERT'
+      biome === 'GIANT_LOG'
+        ? 52
+        : biome === 'DESERT'
         ? 18
         : biome === 'DEADWOOD' || biome === 'SINGULARITY'
         ? 0
@@ -3230,7 +3371,9 @@ export class TrailCorridorWorld {
       const spec = this.getTrailSpec(z);
       const side = rng() < 0.5 ? -1 : 1;
       const offset =
-        biome === 'DESERT'
+        biome === 'GIANT_LOG'
+          ? side * lerp(spec.halfWidth * 0.45, spec.halfWidth * 1.15, rng())
+          : biome === 'DESERT'
           ? side * lerp(spec.halfWidth * 0.82, CORRIDOR_HALF_SPAN - 20, rng())
           : rng() < 0.25
           ? (rng() - 0.5) * 2 * (spec.halfWidth * 0.92)

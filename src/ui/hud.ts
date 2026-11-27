@@ -82,6 +82,12 @@ export class ExpeditionHud {
         name: 'SINGULARITY',
         sub: 'Steep Split Cliffs · Mars Storm · Lightning & Monoliths',
       },
+      {
+        id: 'GIANT_LOG',
+        key: '6',
+        name: 'GIANT LOG',
+        sub: 'Outside Godrays · Log Parasite Worms · Messy Cobwebs',
+      },
     ];
 
     const levelChipsHtml = levels
@@ -188,7 +194,7 @@ export class ExpeditionHud {
           <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
           <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
           <span><kbd>SCROLL</kbd> Cam Speed</span>
-          <span><kbd>1</kbd>-<kbd>5</kbd> Switch Level</span>
+          <span><kbd>1</kbd>-<kbd>6</kbd> Switch Level</span>
           <span><kbd>T</kbd> Place Car Here</span>
           <span><kbd>V</kbd> Drive Course</span>
         </div>
@@ -321,7 +327,7 @@ export class ExpeditionHud {
         <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
         <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
         <span><kbd>SCROLL</kbd> Cam Speed</span>
-        <span><kbd>1</kbd>-<kbd>5</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>6</kbd> Switch Level</span>
         <span><kbd>T</kbd> Place Car Here</span>
         <span><kbd>V</kbd> Drive Course</span>
       `;
@@ -332,7 +338,7 @@ export class ExpeditionHud {
         <span><kbd>SHIFT</kbd> Boost</span>
         <span><kbd>SPACE</kbd> Handbrake</span>
         <span><kbd>R</kbd> Reset Car</span>
-        <span><kbd>1</kbd>-<kbd>5</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>6</kbd> Switch Level</span>
         <span><kbd>P</kbd> Next Pass</span>
         <span><kbd>V</kbd> Back to Unreal Camera</span>
       `;
@@ -381,7 +387,9 @@ export class ExpeditionHud {
     const spec = world.getTrailSpec(focusPos.z);
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
     let zoneName =
-      world.currentBiome === 'SINGULARITY'
+      world.currentBiome === 'GIANT_LOG'
+        ? 'HOLLOW LOG ECOSYSTEM'
+        : world.currentBiome === 'SINGULARITY'
         ? 'SINGULARITY CLIFF PLATEAU'
         : world.currentBiome === 'SWAMP'
         ? 'MANGROVE ROOT CATHEDRAL'
@@ -391,7 +399,15 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'SINGULARITY') {
+    if (world.currentBiome === 'GIANT_LOG') {
+      if (sample.waterDepth > 0.04) {
+        zoneName = 'AMBER SAP HOLLOW';
+      } else if (Math.abs(sample.signedOffset) > 16.0) {
+        zoneName = 'HEARTWOOD WALL BANK';
+      } else {
+        zoneName = 'COBWEB & WORM CAVERN';
+      }
+    } else if (world.currentBiome === 'SINGULARITY') {
       if (spec.splitFactor > 0.25) {
         zoneName = 'SPLIT CLIFF CHASM';
       } else if (spec.halfWidth < 11.5) {
