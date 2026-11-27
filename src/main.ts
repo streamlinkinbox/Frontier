@@ -226,9 +226,25 @@ class FrontierSimulationApp {
       this.audio.playVineLatchSound();
       this.hud.showCallout('PARASITE LOG-WORM LATCHED · BOOST [SHIFT] TO BREAK FREE!');
     };
-    this.world.giantLogBuilder.onCobwebTorn = (tearPos: THREE.Vector3) => {
-      this.particles.emitImpactDust(tearPos, 0.85);
-      this.audio.playVineSnapSound(false);
+    this.world.giantLogBuilder.onVehicleStuckInWeb = (stuckPos: THREE.Vector3) => {
+      this.particles.emitImpactDust(stuckPos, 1.1);
+      this.audio.playVineLatchSound();
+      this.hud.showCallout('STUCK IN SPIDERWEB NETWORK · MASH [SHIFT] BOOST & [W/A/D] TO RIP FREE!');
+    };
+    this.world.giantLogBuilder.onVehicleBreakFreeWeb = (freePos: THREE.Vector3) => {
+      this.particles.emitImpactDust(freePos, 1.35);
+      this.audio.playVineSnapSound(true);
+      this.hud.showCallout('TORE FREE FROM SPIDERWEB!');
+    };
+    this.world.giantLogBuilder.onMushroomBounce = (mushPos: THREE.Vector3) => {
+      this.particles.emitImpactDust(mushPos, 1.25);
+      this.audio.playFuelPickupSound();
+      this.hud.showCallout('GIANT JELLY-CAP MUSHROOM LAUNCH!');
+    };
+    this.world.giantLogBuilder.onPuffballBurst = (puffPos: THREE.Vector3) => {
+      this.particles.emitTimberSlamShockwave(puffPos);
+      this.audio.playTimberCrackSound();
+      this.hud.showCallout('SPORE PUFFBALL RUPTURED!');
     };
 
     // Boot into Colossal Hollow Log Ecosystem with Unreal Free-Fly Camera inside the sunlit cavern!
@@ -401,6 +417,7 @@ class FrontierSimulationApp {
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
+        this.world.giantLogBuilder.clearActiveWebSnare();
         this.vehicle.resetAt(this.world, this.vehicle.position.z);
         this.hud.showCallout('VEHICLE RECOVERED ON ROAD');
       } else if (code === 'KeyJ') {
@@ -550,7 +567,9 @@ class FrontierSimulationApp {
       Math.abs(this.vehicle.forwardSpeedMps),
       this.exploreMode === 'UNREAL_CAMERA',
       this.vehicle.linearVelocity,
-      this.vehicle.isBoosting
+      this.vehicle.isBoosting,
+      this.controls.throttle,
+      this.controls.steer
     );
 
     // Fly or drive through the Stone Pass Gate at the end of a course to warp to the next biome!

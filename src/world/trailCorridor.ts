@@ -677,6 +677,7 @@ export class TrailCorridorWorld {
   public setBiomeAndRebuild(biome: BiomeId, startZ: number): void {
     this.currentBiome = biome;
     this.singularityBuilder.stormFxGroup.visible = biome === 'SINGULARITY';
+    this.giantLogBuilder.clearActiveWebSnare();
     this.giantLogBuilder.atmosphereFxGroup.visible = biome === 'GIANT_LOG';
     this.resetAround(startZ);
   }
@@ -2134,7 +2135,9 @@ export class TrailCorridorWorld {
     vehicleSpeedMps = 0,
     passiveObserver = false,
     vehicleVel: THREE.Vector3 = playerVel,
-    isBoosting = false
+    isBoosting = false,
+    throttleInput = 0,
+    steerInput = 0
   ): void {
     this.playerPosUniform.value.copy(playerPos);
     this.playerVelUniform.value.copy(playerVel);
@@ -2178,7 +2181,9 @@ export class TrailCorridorWorld {
       vehicleSpeedMps,
       passiveObserver,
       vehicleVel,
-      isBoosting
+      isBoosting,
+      throttleInput,
+      steerInput
     );
   }
 
@@ -2191,7 +2196,9 @@ export class TrailCorridorWorld {
     vehicleSpeedMps: number,
     passiveObserver: boolean,
     vehicleVel: THREE.Vector3,
-    isBoosting: boolean
+    isBoosting: boolean,
+    throttleInput: number,
+    steerInput: number
   ): void {
     const forwardSpeed = Math.max(0, -playerVel.z);
 
@@ -2307,7 +2314,7 @@ export class TrailCorridorWorld {
         );
       }
 
-      // 8. COLOSSAL HOLLOW LOG: Stationary Log-Emerging Parasite Worms & Messy Cobwebs!
+      // 8. COLOSSAL HOLLOW LOG: Worms, Wall-to-Wall Sticky Web Snares, Growing Mushrooms & Sap!
       if (rec.giantLogData) {
         this.giantLogBuilder.stepChunkHazards(
           rec.giantLogData,
@@ -2316,6 +2323,8 @@ export class TrailCorridorWorld {
           playerPos,
           vehiclePos,
           vehicleVel,
+          throttleInput,
+          steerInput,
           isBoosting,
           passiveObserver
         );
@@ -2331,6 +2340,12 @@ export class TrailCorridorWorld {
     this.giantLogBuilder.stepGlobalLogAtmosphere(
       this.currentBiome === 'GIANT_LOG',
       playerPos,
+      vehiclePos,
+      vehicleVel,
+      throttleInput,
+      steerInput,
+      isBoosting,
+      passiveObserver,
       dt
     );
   }
@@ -2995,7 +3010,9 @@ export class TrailCorridorWorld {
           };
         },
         obstacles,
-        () => this.nextObstacleId++
+        rootBridges,
+        () => this.nextObstacleId++,
+        () => this.nextBridgeId++
       );
 
       // Hanging ecosystem moss-vines dangling down from the upper hollow-log ribs!

@@ -86,7 +86,7 @@ export class ExpeditionHud {
         id: 'GIANT_LOG',
         key: '6',
         name: 'GIANT LOG',
-        sub: 'Outside Godrays · Log Parasite Worms · Messy Cobwebs',
+        sub: 'Web Network · Growing Mushrooms · Worms · Godrays',
       },
     ];
 
