@@ -27,6 +27,7 @@ const BIOME_ORDER: BiomeId[] = [
   'GIANT_LOG',
   'GLACIAL_ICE',
   'CARNIVOROUS_BOG',
+  'UNDERGROUND_MARKET',
 ];
 const LEVEL_PORTAL_Z = -860;
 
@@ -312,9 +313,16 @@ class FrontierSimulationApp {
     this.world.carnivorousBogBuilder.onPitcherGrappleRelease = () => {
       this.audio.playVineSnapSound(false);
     };
+    this.world.undergroundMarketBuilder.onCrateSmash = (cratePos: THREE.Vector3) => {
+      this.particles.emitImpactDust(cratePos, 1.15);
+      this.audio.playTimberCrackSound();
+    };
+    this.world.undergroundMarketBuilder.onNeonSparkZap = (zapPos: THREE.Vector3) => {
+      this.particles.emitVineSnapBurst(zapPos, true);
+    };
 
-    // Boot into Giant Lily-Pad & Carnivorous Mega-Flora Bog with Unreal Free-Fly Camera!
-    this.loadBiomeLevel('CARNIVOROUS_BOG', true);
+    // Boot into Abandoned Underground Neon Market (press [8] anytime to inspect fixed Giant Lily Pads!)
+    this.loadBiomeLevel('UNDERGROUND_MARKET', true);
 
     this.bindInputEvents();
     window.addEventListener('resize', () => this.onResize());
@@ -357,7 +365,11 @@ class FrontierSimulationApp {
     this.vehicle.angularVelocity.set(0, 0, 0);
 
     // Position Unreal Camera slightly behind & above the showcase car looking down the new level!
-    this.unrealCam.placeAtCourseZ(this.world, -3, 6.2);
+    this.unrealCam.placeAtCourseZ(
+      this.world,
+      -3,
+      biome === 'UNDERGROUND_MARKET' ? 3.8 : 6.2
+    );
     this.snapDriveCameraImmediate();
     this.portalWarpCooldown = 1.5;
 
@@ -388,7 +400,11 @@ class FrontierSimulationApp {
     );
 
     if (this.exploreMode === 'UNREAL_CAMERA') {
-      this.unrealCam.placeAtCourseZ(this.world, targetZ, 8.5);
+      this.unrealCam.placeAtCourseZ(
+        this.world,
+        targetZ,
+        this.world.currentBiome === 'UNDERGROUND_MARKET' ? 4.0 : 8.5
+      );
     } else {
       this.vehicle.resetAt(this.world, targetZ);
       this.snapDriveCameraImmediate();
@@ -485,6 +501,8 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('GLACIAL_ICE');
       } else if (code === 'Digit8') {
         this.loadBiomeLevel('CARNIVOROUS_BOG');
+      } else if (code === 'Digit9') {
+        this.loadBiomeLevel('UNDERGROUND_MARKET');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
@@ -603,7 +621,11 @@ class FrontierSimulationApp {
         this._desiredCamPos.x,
         this._desiredCamPos.z
       ).height;
-      this._desiredCamPos.y = Math.max(this._desiredCamPos.y, camGround + 1.45);
+      if (this.world.currentBiome === 'UNDERGROUND_MARKET') {
+        this._desiredCamPos.y = clamp(this._desiredCamPos.y, 1.5, 6.9);
+      } else {
+        this._desiredCamPos.y = Math.max(this._desiredCamPos.y, camGround + 1.45);
+      }
 
       this._desiredLookAt.copy(this.vehicle.position).addScaledVector(this._camFwd, 11.5);
       this._desiredLookAt.y = this.vehicle.position.y + (inLog ? 1.15 : 1.95);

@@ -7,6 +7,11 @@ import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
 import { GiantHollowLogBuilder, GiantHollowLogChunkData } from './giantHollowLogSystem';
 import { GlacialIceBuilder, GlacialIceChunkData } from './glacialIceSystem';
 import { SingularityChunkData, SingularityDesertBuilder } from './singularityDesertSystem';
+import {
+  sampleUndergroundMarketHalfWidth,
+  UndergroundMarketBuilder,
+  UndergroundMarketChunkData,
+} from './undergroundMarketSystem';
 
 export type BiomeId =
   | 'FOREST'
@@ -16,7 +21,8 @@ export type BiomeId =
   | 'SINGULARITY'
   | 'GIANT_LOG'
   | 'GLACIAL_ICE'
-  | 'CARNIVOROUS_BOG';
+  | 'CARNIVOROUS_BOG'
+  | 'UNDERGROUND_MARKET';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -29,7 +35,8 @@ export type SurfaceType =
   | 'CRISSCROSS_ROOT'
   | 'DESERT_SAND'
   | 'GLACIAL_ICE'
-  | 'LILYPAD_WAX';
+  | 'LILYPAD_WAX'
+  | 'MARKET_TILE';
 
 export interface BiomeAtmosphereSpec {
   id: BiomeId;
@@ -149,6 +156,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     sunIntensity: 3.1,
     hemiSkyHex: 0x99bd68,
     hemiGroundHex: 0x1a2612,
+  },
+  UNDERGROUND_MARKET: {
+    id: 'UNDERGROUND_MARKET',
+    title: 'ABANDONED UNDERGROUND NEON MARKET',
+    subtitle: 'Y-JUNCTION SPLITTING AISLES · SHUTTERED SHOPS & STALLS · FLICKERING NEON',
+    fogColorHex: 0x0e131d,
+    fogDensity: 0.0082,
+    skyHorizonRGB: [0.06, 0.08, 0.12],
+    skyZenithRGB: [0.03, 0.04, 0.07],
+    sunColorHex: 0xa8d4ff,
+    sunIntensity: 1.15,
+    hemiSkyHex: 0x527499,
+    hemiGroundHex: 0x3b262e,
   },
 };
 
@@ -334,6 +354,7 @@ interface ChunkRecord {
   giantLogData?: GiantHollowLogChunkData;
   glacialIceData?: GlacialIceChunkData;
   carnivorousBogData?: CarnivorousBogChunkData;
+  undergroundMarketData?: UndergroundMarketChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -370,6 +391,7 @@ export class TrailCorridorWorld {
   public readonly giantLogBuilder: GiantHollowLogBuilder;
   public readonly glacialIceBuilder: GlacialIceBuilder;
   public readonly carnivorousBogBuilder: CarnivorousBogBuilder;
+  public readonly undergroundMarketBuilder: UndergroundMarketBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -422,6 +444,7 @@ export class TrailCorridorWorld {
     this.giantLogBuilder = new GiantHollowLogBuilder(textures);
     this.glacialIceBuilder = new GlacialIceBuilder(textures);
     this.carnivorousBogBuilder = new CarnivorousBogBuilder(textures);
+    this.undergroundMarketBuilder = new UndergroundMarketBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -707,6 +730,8 @@ export class TrailCorridorWorld {
     this.group.add(this.glacialIceBuilder.atmosphereFxGroup);
     this.carnivorousBogBuilder.atmosphereFxGroup.visible = false;
     this.group.add(this.carnivorousBogBuilder.atmosphereFxGroup);
+    this.undergroundMarketBuilder.atmosphereFxGroup.visible = false;
+    this.group.add(this.undergroundMarketBuilder.atmosphereFxGroup);
   }
 
   public getActiveCarnivorousBogChunks(): CarnivorousBogChunkData[] {
@@ -738,6 +763,7 @@ export class TrailCorridorWorld {
     this.glacialIceBuilder.atmosphereFxGroup.visible = biome === 'GLACIAL_ICE';
     this.carnivorousBogBuilder.releasePitcherGrapple();
     this.carnivorousBogBuilder.atmosphereFxGroup.visible = biome === 'CARNIVOROUS_BOG';
+    this.undergroundMarketBuilder.atmosphereFxGroup.visible = biome === 'UNDERGROUND_MARKET';
     this.resetAround(startZ);
   }
 
@@ -1763,6 +1789,13 @@ export class TrailCorridorWorld {
     const calcCenter = (zf: number): number => {
       const d = Math.max(0, -zf);
       const fade = smoothstep(8, 55, d);
+      if (this.currentBiome === 'UNDERGROUND_MARKET') {
+        // Winding subterranean bazaar alleys with pronounced S-curves & sharper corner elbows!
+        const bendA = Math.sin(zf * 0.019) * 19.5;
+        const cornerElbow = Math.sin(zf * 0.046 + 1.1) * 7.8;
+        const drift = noise2D(zf * 0.01, 5.2) * 8.5;
+        return (bendA + cornerElbow + drift) * fade;
+      }
       const primary = Math.sin(zf * 0.011) * 24.0;
       const secondary = Math.sin(zf * 0.029 + 1.3) * 8.5;
       const organic = noise2D(zf * 0.008, 3.7) * 11.0;
@@ -1781,8 +1814,10 @@ export class TrailCorridorWorld {
     const elevFade = smoothstep(10, 60, distForward);
     const cliffRollerFade = smoothstep(20, 82, distForward);
     const baseY =
-      this.currentBiome === 'GLACIAL_ICE' || this.currentBiome === 'CARNIVOROUS_BOG'
-        ? 0 // Level water/ice datum!
+      this.currentBiome === 'GLACIAL_ICE' ||
+      this.currentBiome === 'CARNIVOROUS_BOG' ||
+      this.currentBiome === 'UNDERGROUND_MARKET'
+        ? 0 // Level datum!
         : this.currentBiome === 'SINGULARITY'
         ? 38.0 +
           (Math.sin(z * 0.017) * 14.5 +
@@ -1795,9 +1830,12 @@ export class TrailCorridorWorld {
           elevFade *
           elevScale;
 
-    // Periodic Split-Road Fork (~every 336m in Forest/Swamp, ~every 224m dramatic cliff-split in Singularity!)
+    // Periodic Split-Road Fork (~every 336m in Forest/Swamp, ~every 224m cliff-split in Singularity, and Y-Junction Split Aisles in every Underground Market chunk!)
     let splitFactor = 0;
-    if (this.currentBiome === 'SINGULARITY' && distForward > 68) {
+    if (this.currentBiome === 'UNDERGROUND_MARKET') {
+      const uMkt = ((distForward % CHUNK_LENGTH) + CHUNK_LENGTH) % CHUNK_LENGTH;
+      splitFactor = smoothstep(26.0, 36.0, uMkt) * (1.0 - smoothstep(88.0, 96.0, uMkt));
+    } else if (this.currentBiome === 'SINGULARITY' && distForward > 68) {
       const period = 224;
       const phase = ((distForward - 68) % period) / period;
       splitFactor = smoothstep(0.06, 0.18, phase) * smoothstep(0.58, 0.44, phase);
@@ -1809,7 +1847,13 @@ export class TrailCorridorWorld {
       const phase = ((distForward - 95) % period) / period;
       splitFactor = smoothstep(0.05, 0.16, phase) * smoothstep(0.48, 0.36, phase);
     }
-    const splitOffset = splitFactor * (this.currentBiome === 'SINGULARITY' ? 19.0 : 18.5);
+    const splitOffset =
+      splitFactor *
+      (this.currentBiome === 'UNDERGROUND_MARKET'
+        ? 13.8
+        : this.currentBiome === 'SINGULARITY'
+        ? 19.0
+        : 18.5);
 
     // Periodic Flash-Flood Hillside Mudslide Zone (occurs in non-split stretches in FOREST & SWAMP!)
     let mudslideFactor = 0;
@@ -1828,7 +1872,9 @@ export class TrailCorridorWorld {
     const widthWave = Math.sin(z * 0.022 + 0.7) * 6.5 + noise2D(z * 0.018, 41.2) * 5.0;
     const cliffPinch = Math.pow(Math.sin(z * 0.029 + 0.5) * 0.5 + 0.5, 1.25) * introFade;
     const baseHalfWidth =
-      this.currentBiome === 'GLACIAL_ICE'
+      this.currentBiome === 'UNDERGROUND_MARKET'
+        ? sampleUndergroundMarketHalfWidth(Math.max(0, -z), CHUNK_LENGTH)
+        : this.currentBiome === 'GLACIAL_ICE'
         ? 32.0
         : this.currentBiome === 'CARNIVOROUS_BOG'
         ? 30.0
@@ -1842,7 +1888,9 @@ export class TrailCorridorWorld {
         ? clamp(28.0 + widthWave * 0.45 * introFade, 24.0, 34.0)
         : clamp(38.0 + widthWave * introFade, 33.0, 48.0);
     const halfWidth =
-      this.currentBiome === 'SINGULARITY'
+      this.currentBiome === 'UNDERGROUND_MARKET'
+        ? baseHalfWidth // sampleUndergroundMarketHalfWidth already includes the Y-junction flare!
+        : this.currentBiome === 'SINGULARITY'
         ? baseHalfWidth + splitOffset * 0.35
         : baseHalfWidth + splitOffset * 0.65;
 
@@ -1853,7 +1901,8 @@ export class TrailCorridorWorld {
         : this.currentBiome === 'DESERT' ||
           this.currentBiome === 'SINGULARITY' ||
           this.currentBiome === 'GLACIAL_ICE' ||
-          this.currentBiome === 'CARNIVOROUS_BOG'
+          this.currentBiome === 'CARNIVOROUS_BOG' ||
+          this.currentBiome === 'UNDERGROUND_MARKET'
         ? 0
         : smoothstep(0.54, 0.82, mudNoise)) * introFade;
 
@@ -1914,7 +1963,7 @@ export class TrailCorridorWorld {
           medianIslandBump =
             -42.0 * chasmMask + ridge2D(x * 0.14, z * 0.14, 2) * 3.2 * chasmMask;
         }
-      } else {
+      } else if (this.currentBiome !== 'UNDERGROUND_MARKET') {
         const islandHalfW = Math.max(0.5, spec.splitOffset * 0.42);
         if (absD < islandHalfW * 1.4) {
           const islandMask =
@@ -1926,7 +1975,9 @@ export class TrailCorridorWorld {
 
     const bankSlope = clamp(-spec.curvature * 12.0, -0.09, 0.09);
     const bankHeight =
-      this.currentBiome === 'GLACIAL_ICE' || this.currentBiome === 'CARNIVOROUS_BOG'
+      this.currentBiome === 'GLACIAL_ICE' ||
+      this.currentBiome === 'CARNIVOROUS_BOG' ||
+      this.currentBiome === 'UNDERGROUND_MARKET'
         ? 0
         : d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
 
@@ -1948,7 +1999,9 @@ export class TrailCorridorWorld {
         : 0;
 
     const microRough =
-      this.currentBiome === 'GLACIAL_ICE'
+      this.currentBiome === 'UNDERGROUND_MARKET'
+        ? 0.004 // Smooth tiled subterranean concourse floor!
+        : this.currentBiome === 'GLACIAL_ICE'
         ? fbm2D(x * 0.15, z * 0.15, 2) * 0.015 // Mirror-smooth flat glacial ice sheet!
         : this.currentBiome === 'CARNIVOROUS_BOG'
         ? fbm2D(x * 0.18, z * 0.18, 2) * 0.02
@@ -1962,7 +2015,14 @@ export class TrailCorridorWorld {
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
 
-    if (this.currentBiome === 'CARNIVOROUS_BOG') {
+    if (this.currentBiome === 'UNDERGROUND_MARKET') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+      // Flat tiled market concourse inside +/- (hw + 0.8m), solid subterranean concrete wall outside!
+      const wallMask = smoothstep(hw + 0.65, hw + 3.4, absD);
+      cliffRelief = wallMask * 10.5;
+    } else if (this.currentBiome === 'CARNIVOROUS_BOG') {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
@@ -2085,7 +2145,9 @@ export class TrailCorridorWorld {
     }
 
     let surface: SurfaceType =
-      this.currentBiome === 'CARNIVOROUS_BOG'
+      this.currentBiome === 'UNDERGROUND_MARKET'
+        ? 'MARKET_TILE'
+        : this.currentBiome === 'CARNIVOROUS_BOG'
         ? onBogLilyPad
           ? 'LILYPAD_WAX'
           : 'MOSS_ROCK'
@@ -2104,6 +2166,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'GIANT_LOG' &&
       this.currentBiome !== 'GLACIAL_ICE' &&
       this.currentBiome !== 'CARNIVOROUS_BOG' &&
+      this.currentBiome !== 'UNDERGROUND_MARKET' &&
       (absD > hw + 18.0 || medianIslandBump > 0.8)
     ) {
       surface = 'MOSS_ROCK';
@@ -2113,6 +2176,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'GIANT_LOG' &&
       this.currentBiome !== 'GLACIAL_ICE' &&
       this.currentBiome !== 'CARNIVOROUS_BOG' &&
+      this.currentBiome !== 'UNDERGROUND_MARKET' &&
       localMud > 0.36
     ) {
       surface = 'WET_MUD';
@@ -2121,6 +2185,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'GIANT_LOG' &&
       this.currentBiome !== 'GLACIAL_ICE' &&
       this.currentBiome !== 'CARNIVOROUS_BOG' &&
+      this.currentBiome !== 'UNDERGROUND_MARKET' &&
       distFromBranch > branchHalfWidth * 0.78
     ) {
       surface = 'LOOSE_VERGE';
@@ -2195,6 +2260,13 @@ export class TrailCorridorWorld {
         friction = 0.92; // Waxy giant Victoria lily-pad blade — crisp momentum platforming!
         rollingResistance = 0.013;
         break;
+      case 'MARKET_TILE': {
+        // Polished subterranean market tile with slick damp neon-puddle patches for corner drifts!
+        const dampPuddle = smoothstep(0.45, 0.78, fbm2D(x * 0.14, z * 0.14, 2) * 0.5 + 0.5);
+        friction = lerp(0.95, 0.68, dampPuddle);
+        rollingResistance = 0.012;
+        break;
+      }
     }
 
     return {
@@ -2499,6 +2571,19 @@ export class TrailCorridorWorld {
           passiveObserver
         );
       }
+      // 11. ABANDONED UNDERGROUND MARKET: Flickering Neon Signs, Puddle Reflections & Smashable Crates!
+      if (rec.undergroundMarketData) {
+        this.undergroundMarketBuilder.stepChunkHazards(
+          rec.undergroundMarketData,
+          dt,
+          elapsedTime,
+          playerPos,
+          vehiclePos,
+          vehicleSpeedMps,
+          passiveObserver,
+          vehicleVel
+        );
+      }
     }
 
     this.singularityBuilder.stepGlobalStormFx(
@@ -2529,6 +2614,11 @@ export class TrailCorridorWorld {
       vehiclePos,
       elapsedTime,
       dt
+    );
+    this.undergroundMarketBuilder.stepGlobalMarketAtmosphere(
+      dt,
+      playerPos,
+      this.currentBiome === 'UNDERGROUND_MARKET'
     );
   }
 
@@ -2694,6 +2784,8 @@ export class TrailCorridorWorld {
         ? 63913
         : biome === 'CARNIVOROUS_BOG'
         ? 44771
+        : biome === 'UNDERGROUND_MARKET'
+        ? 91247
         : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
@@ -2719,7 +2811,8 @@ export class TrailCorridorWorld {
       chunkIndex >= 0 &&
       biome !== 'DESERT' &&
       biome !== 'GLACIAL_ICE' &&
-      biome !== 'CARNIVOROUS_BOG'
+      biome !== 'CARNIVOROUS_BOG' &&
+      biome !== 'UNDERGROUND_MARKET'
     ) {
       if (biome === 'SINGULARITY') {
         // Glowing turquoise mineral salt-brine pools in wide plateau hollows & deep canyon floor!
@@ -2902,6 +2995,8 @@ export class TrailCorridorWorld {
             ? 2.25 * smoothstep(38.5, 34.0, absD)
             : biome === 'CARNIVOROUS_BOG'
             ? 1.95 * smoothstep(34.5, 28.5, absD)
+            : biome === 'UNDERGROUND_MARKET'
+            ? 0.85 * smoothstep(centerSpec.halfWidth + 4.0, centerSpec.halfWidth + 0.5, absD)
             : 0.0;
         positions[ptr] = x;
         positions[ptr + 1] = s.height - basinCarve;
@@ -2923,7 +3018,9 @@ export class TrailCorridorWorld {
         const outerMask = smoothstep(hw + 8.0, hw + 55.0, absD);
         const patchVar = fbm2D(x * 0.08, z * 0.08, 2) * 0.1;
 
-        if (biome === 'CARNIVOROUS_BOG') {
+        if (biome === 'UNDERGROUND_MARKET') {
+          tmpColor.setHex(0x12151c);
+        } else if (biome === 'CARNIVOROUS_BOG') {
           // Dark submerged peat bed beneath the acid lagoon, rising into lush sphagnum-moss bog banks!
           const mossBankMask = smoothstep(28.0, 35.0, absD);
           tmpColor.setHex(0x0b170b).lerp(new THREE.Color(0x314f20), mossBankMask);
@@ -3284,6 +3381,17 @@ export class TrailCorridorWorld {
         obstacles,
         () => this.nextObstacleId++
       );
+    } else if (biome === 'UNDERGROUND_MARKET') {
+      chunkRecord.undergroundMarketData =
+        this.undergroundMarketBuilder.populateUndergroundMarketChunk(
+          chunkGroup,
+          chunkIndex,
+          zStart,
+          CHUNK_LENGTH,
+          (z) => this.getTrailSpec(z).centerX,
+          obstacles,
+          () => this.nextObstacleId++
+        );
     }
 
     // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
@@ -3397,7 +3505,8 @@ export class TrailCorridorWorld {
       biome === 'DEADWOOD' ||
       biome === 'SINGULARITY' ||
       biome === 'GIANT_LOG' ||
-      biome === 'GLACIAL_ICE'
+      biome === 'GLACIAL_ICE' ||
+      biome === 'UNDERGROUND_MARKET'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 16
@@ -3482,7 +3591,10 @@ export class TrailCorridorWorld {
 
     // I. WELL-SPACED ROADSIDE BOULDERS & SLATE ROCKS
     const sparseCount =
-      biome === 'GIANT_LOG' || biome === 'GLACIAL_ICE' || biome === 'CARNIVOROUS_BOG'
+      biome === 'GIANT_LOG' ||
+      biome === 'GLACIAL_ICE' ||
+      biome === 'CARNIVOROUS_BOG' ||
+      biome === 'UNDERGROUND_MARKET'
         ? 0
         : biome === 'SINGULARITY'
         ? 2
@@ -3633,7 +3745,10 @@ export class TrailCorridorWorld {
         ? 52
         : biome === 'DESERT'
         ? 18
-        : biome === 'DEADWOOD' || biome === 'SINGULARITY' || biome === 'GLACIAL_ICE'
+        : biome === 'DEADWOOD' ||
+          biome === 'SINGULARITY' ||
+          biome === 'GLACIAL_ICE' ||
+          biome === 'UNDERGROUND_MARKET'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 45

@@ -176,10 +176,11 @@ export class CarnivorousBogBuilder {
       color: 0xffffff,
       map: textures.vineStem.map,
       normalMap: textures.vineStem.normalMap,
-      normalScale: new THREE.Vector2(0.55, 0.55),
+      normalScale: new THREE.Vector2(0.65, 0.65),
       roughness: 0.24,
       metalness: 0.06,
       vertexColors: true,
+      side: THREE.DoubleSide,
     });
 
     this.lilyPadUndersideMat = new THREE.MeshStandardMaterial({
@@ -200,6 +201,7 @@ export class CarnivorousBogBuilder {
       roughness: 0.82,
       metalness: 0.02,
       vertexColors: true,
+      side: THREE.DoubleSide,
     });
 
     // 3. Botanical Dionaea Flytrap Materials (Leathery veined outer cuticle + glistening blood-crimson interior!)
@@ -211,6 +213,7 @@ export class CarnivorousBogBuilder {
       roughness: 0.32,
       metalness: 0.05,
       vertexColors: true,
+      side: THREE.DoubleSide,
     });
 
     this.flytrapDigestiveMat = new THREE.MeshStandardMaterial({
@@ -453,10 +456,10 @@ export class CarnivorousBogBuilder {
     const uvs = new Float32Array(cols * rows * 2);
     const indices: number[] = [];
 
-    const colCenter = new THREE.Color(0x315e26);
-    const colBlade = new THREE.Color(0x254b1f);
-    const colVein = new THREE.Color(0x6c8a2b);
-    const colCrimsonLip = new THREE.Color(0x781d26);
+    const colCenter = new THREE.Color(0x3f7a2d);
+    const colBlade = new THREE.Color(0x2d5e23);
+    const colVein = new THREE.Color(0x8cb536);
+    const colCrimsonLip = new THREE.Color(0x87212b);
     const tmp = new THREE.Color();
 
     let pPtr = 0;
@@ -515,8 +518,8 @@ export class CarnivorousBogBuilder {
         const b = a + 1;
         const d = a + cols;
         const e = d + 1;
-        // Ensure upward (+Y) face winding!
-        indices.push(a, e, b, a, d, e);
+        // True counter-clockwise (+Y upward normal!) face winding: (b - a) is +Z, (d - a) is +X -> (+Z) x (+X) = +Y!
+        indices.push(a, b, e, a, e, d);
       }
     }
 
@@ -533,7 +536,7 @@ export class CarnivorousBogBuilder {
     for (let i = 0; i < ribCount; i++) {
       const ang = (i / ribCount) * Math.PI * 2;
       const rib = new THREE.BoxGeometry(0.92, 0.065, 0.032);
-      rib.translate(0.46, -0.042, 0);
+      rib.translate(0.46, -0.058, 0);
       rib.rotateY(ang);
       ribBoxes.push(rib);
     }
@@ -604,7 +607,8 @@ export class CarnivorousBogBuilder {
         const b = a + 1;
         const d = a + cols;
         const e = d + 1;
-        indices.push(a, e, b, a, d, e);
+        // True counter-clockwise (+Y upward / outward normal!) face winding
+        indices.push(a, b, e, a, e, d);
       }
     }
 

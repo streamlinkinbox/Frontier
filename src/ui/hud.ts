@@ -100,6 +100,12 @@ export class ExpeditionHud {
         name: 'CARNIVOROUS BOG',
         sub: 'Sinking Lily Pads · Snapping Flytraps · [LMB] Pitcher Grapple',
       },
+      {
+        id: 'UNDERGROUND_MARKET',
+        key: '9',
+        name: 'UNDERGROUND MARKET',
+        sub: 'Y-Split Aisles · Curves & Corners · Abandoned Shops & Neon',
+      },
     ];
 
     const levelChipsHtml = levels
@@ -339,7 +345,7 @@ export class ExpeditionHud {
         <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
         <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
         <span><kbd>SCROLL</kbd> Cam Speed</span>
-        <span><kbd>1</kbd>-<kbd>8</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>9</kbd> Switch Level</span>
         <span><kbd>T</kbd> Place Car Here</span>
         <span><kbd>V</kbd> Drive Course</span>
       `;
@@ -351,7 +357,7 @@ export class ExpeditionHud {
         <span><kbd>SHIFT</kbd> Boost</span>
         <span><kbd>SPACE</kbd> Handbrake</span>
         <span><kbd>R</kbd> Reset Car</span>
-        <span><kbd>1</kbd>-<kbd>8</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>9</kbd> Switch Level</span>
         <span><kbd>V</kbd> Back to Unreal Camera</span>
       `;
     }
@@ -399,7 +405,9 @@ export class ExpeditionHud {
     const spec = world.getTrailSpec(focusPos.z);
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
     let zoneName =
-      world.currentBiome === 'CARNIVOROUS_BOG'
+      world.currentBiome === 'UNDERGROUND_MARKET'
+        ? 'SUBTERRANEAN NEON CONCOURSE'
+        : world.currentBiome === 'CARNIVOROUS_BOG'
         ? 'VICTORIA LILY-PAD LAGOON'
         : world.currentBiome === 'GLACIAL_ICE'
         ? 'SLIPPERY ICE FLATS'
@@ -415,7 +423,21 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'CARNIVOROUS_BOG') {
+    if (world.currentBiome === 'UNDERGROUND_MARKET') {
+      const uMkt = ((Math.max(0, -focusPos.z) % 112) + 112) % 112;
+      if (uMkt >= 58.0 && uMkt <= 67.0 && Math.abs(sample.signedOffset) < 7.5) {
+        zoneName = '90° CROSS-CUT SHOP ALLEY';
+      } else if (uMkt >= 24.0 && uMkt <= 37.0) {
+        zoneName = 'Y-JUNCTION SPLITTING PROW';
+      } else if (uMkt > 37.0 && uMkt <= 89.0) {
+        zoneName =
+          sample.signedOffset < 0
+            ? 'LEFT NEON ELECTRONICS ARCADE'
+            : 'RIGHT WET-MARKET FOOD ALLEY';
+      } else {
+        zoneName = 'CURVED SUBTERRANEAN BAZAAR';
+      }
+    } else if (world.currentBiome === 'CARNIVOROUS_BOG') {
       if (sample.surface === 'LILYPAD_WAX') {
         zoneName = 'BUOYANT VICTORIA LILY PAD';
       } else if (sample.waterDepth > 0.12) {
