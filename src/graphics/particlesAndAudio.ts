@@ -263,6 +263,31 @@ export class OffroadParticleSystem {
     }
   }
 
+  public emitCarnivorousMistBurst(pos: THREE.Vector3, isCrimson = true, count = 24): void {
+    for (let i = 0; i < count; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 2.0 + Math.random() * 7.8;
+      const drop = i % 2 === 0;
+      this.emit({
+        life: 0.45 + Math.random() * 0.55,
+        x: pos.x + (Math.random() - 0.5) * 1.4,
+        y: pos.y + (Math.random() - 0.5) * 0.8,
+        z: pos.z + (Math.random() - 0.5) * 1.4,
+        vx: Math.cos(ang) * spd,
+        vy: (drop ? 3.2 : 1.4) + Math.random() * 4.2,
+        vz: Math.sin(ang) * spd,
+        gravity: drop ? -12.8 : -1.8,
+        drag: drop ? 0.97 : 0.92,
+        sizeStart: drop ? 0.24 : 0.55,
+        sizeEnd: drop ? 0.38 : 2.1,
+        r: isCrimson ? (drop ? 0.85 : 0.58) : 0.62,
+        g: isCrimson ? (drop ? 0.14 : 0.78) : 0.92,
+        b: 0.16,
+        alphaPeak: drop ? 0.82 : 0.44,
+      });
+    }
+  }
+
   public update(
     dt: number,
     vehicle: VehicleRigidBody,
@@ -792,5 +817,54 @@ export class RallyVineAudioEngine {
     thudGain.connect(this.masterGain);
     thudOsc.start(now);
     thudOsc.stop(now + 0.44);
+  }
+
+  /**
+   * Visceral botanical Dionaea snap-crunch (pressurized hollow cavity thump + fibrous spine snap)!
+   */
+  public playFlytrapSnapSound(intensity = 1.0): void {
+    if (!this.initialized || !this.ctx || !this.masterGain || this.muted) return;
+    const now = this.ctx.currentTime;
+
+    const snapOsc = this.ctx.createOscillator();
+    const snapGain = this.ctx.createGain();
+    snapOsc.type = 'sawtooth';
+    snapOsc.frequency.setValueAtTime(340, now);
+    snapOsc.frequency.exponentialRampToValueAtTime(52, now + 0.11);
+    snapGain.gain.setValueAtTime(0.32 * intensity, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+    snapOsc.connect(snapGain);
+    snapGain.connect(this.masterGain);
+    snapOsc.start(now);
+    snapOsc.stop(now + 0.14);
+
+    const cavityOsc = this.ctx.createOscillator();
+    const cavityGain = this.ctx.createGain();
+    cavityOsc.type = 'triangle';
+    cavityOsc.frequency.setValueAtTime(145, now + 0.01);
+    cavityOsc.frequency.exponentialRampToValueAtTime(38, now + 0.28);
+    cavityGain.gain.setValueAtTime(0.38 * intensity, now + 0.01);
+    cavityGain.gain.exponentialRampToValueAtTime(0.001, now + 0.31);
+    cavityOsc.connect(cavityGain);
+    cavityGain.connect(this.masterGain);
+    cavityOsc.start(now + 0.01);
+    cavityOsc.stop(now + 0.33);
+  }
+
+  public playPitcherGrappleSound(): void {
+    if (!this.initialized || !this.ctx || !this.masterGain || this.muted) return;
+    const now = this.ctx.currentTime;
+
+    const whipOsc = this.ctx.createOscillator();
+    const whipGain = this.ctx.createGain();
+    whipOsc.type = 'sine';
+    whipOsc.frequency.setValueAtTime(220, now);
+    whipOsc.frequency.exponentialRampToValueAtTime(690, now + 0.14);
+    whipGain.gain.setValueAtTime(0.24, now);
+    whipGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    whipOsc.connect(whipGain);
+    whipGain.connect(this.masterGain);
+    whipOsc.start(now);
+    whipOsc.stop(now + 0.2);
   }
 }

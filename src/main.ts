@@ -26,6 +26,7 @@ const BIOME_ORDER: BiomeId[] = [
   'SINGULARITY',
   'GIANT_LOG',
   'GLACIAL_ICE',
+  'CARNIVOROUS_BOG',
 ];
 const LEVEL_PORTAL_Z = -860;
 
@@ -247,9 +248,73 @@ class FrontierSimulationApp {
       this.audio.playTimberCrackSound();
       this.hud.showCallout('SPORE PUFFBALL RUPTURED!');
     };
+    this.world.glacialIceBuilder.onIceFractureBurst = (fracturePos: THREE.Vector3) => {
+      const dist = fracturePos.distanceTo(this.camera.position);
+      if (dist < 115) {
+        this.particles.emitIceShatterBurst(fracturePos, 18);
+        this.audio.playIceFracturePingSound(clamp(1.1 - dist / 115, 0.25, 1.0));
+      }
+    };
+    this.world.glacialIceBuilder.onIcicleShatterSlam = (
+      impactPos: THREE.Vector3,
+      kind: 'POINTY_ICICLE' | 'ICE_BLOCK'
+    ) => {
+      const dist = impactPos.distanceTo(this.camera.position);
+      if (dist < 130) {
+        this.particles.emitIceShatterBurst(impactPos, kind === 'ICE_BLOCK' ? 36 : 26);
+        this.audio.playIcicleShatterSound(clamp(1.2 - dist / 130, 0.3, 1.15));
+      }
+      if (dist < 42 && this.exploreMode === 'PEACEFUL_DRIVE') {
+        this.hud.showCallout(
+          kind === 'POINTY_ICICLE'
+            ? 'FALLING CAVE ICICLE IMPALED ICE FLOOR!'
+            : 'GLACIAL CAVE ICE BLOCK CRASHED DOWN!'
+        );
+      }
+    };
+    this.world.glacialIceBuilder.onVehicleCrossOpenCrack = (joltPos: THREE.Vector3) => {
+      this.particles.emitIceShatterBurst(joltPos, 22);
+      this.audio.playIceFracturePingSound(0.95);
+      this.hud.showCallout('SLIPPERY ICE FRACTURE JOLT · COUNTER-STEER ON BLACK ICE!');
+    };
+    this.world.carnivorousBogBuilder.onFlytrapSnapShut = (
+      snapPos: THREE.Vector3,
+      caughtVehicle: boolean
+    ) => {
+      const dist = snapPos.distanceTo(this.camera.position);
+      if (dist < 115) {
+        this.particles.emitCarnivorousMistBurst(snapPos, true, caughtVehicle ? 34 : 22);
+        this.audio.playFlytrapSnapSound(clamp(1.15 - dist / 115, 0.25, 1.1));
+      }
+      if (caughtVehicle) {
+        this.hud.showCallout('CAUGHT IN COLOSSAL FLYTRAP JAWS · MASH [SHIFT] BOOST TO RIP FREE!');
+      }
+    };
+    this.world.carnivorousBogBuilder.onVehicleBreakFreeFlytrap = (freePos: THREE.Vector3) => {
+      this.particles.emitCarnivorousMistBurst(freePos, false, 28);
+      this.audio.playVineSnapSound(true);
+      this.hud.showCallout('TORE OUT OF INTERLOCKING FLYTRAP SPINES!');
+    };
+    this.world.carnivorousBogBuilder.onSundewMucilageHit = (hitPos: THREE.Vector3) => {
+      this.particles.emitCarnivorousMistBurst(hitPos, true, 20);
+      this.audio.playVineLatchSound();
+      this.hud.showCallout('COATED IN STICKY SUNDEW MUCILAGE · [SHIFT] BOOST THROUGH!');
+    };
+    this.world.carnivorousBogBuilder.onLilyPadSubmerge = (padPos: THREE.Vector3) => {
+      this.particles.emitCarnivorousMistBurst(padPos, false, 24);
+      this.hud.showCallout('VICTORIA LILY PAD SUBMERGED · KEEP MOMENTUM ACROSS PADS!');
+    };
+    this.world.carnivorousBogBuilder.onPitcherGrappleLatch = (anchorPos: THREE.Vector3) => {
+      this.particles.emitCarnivorousMistBurst(anchorPos, false, 18);
+      this.audio.playPitcherGrappleSound();
+      this.hud.showCallout('LATCHED PITCHER-PLANT VINE · HOLD [LMB] TO SWING ACROSS LAGOON!');
+    };
+    this.world.carnivorousBogBuilder.onPitcherGrappleRelease = () => {
+      this.audio.playVineSnapSound(false);
+    };
 
-    // Boot into Colossal Hollow Log Ecosystem with Unreal Free-Fly Camera inside the sunlit cavern!
-    this.loadBiomeLevel('GIANT_LOG', true);
+    // Boot into Giant Lily-Pad & Carnivorous Mega-Flora Bog with Unreal Free-Fly Camera!
+    this.loadBiomeLevel('CARNIVOROUS_BOG', true);
 
     this.bindInputEvents();
     window.addEventListener('resize', () => this.onResize());
@@ -372,6 +437,7 @@ class FrontierSimulationApp {
       this.hud.showCallout('DRIVE MODE · RACE THROUGH VILLAGE SHACKS, LIVE ROOTS & HAZARDS');
     } else {
       this.exploreMode = 'UNREAL_CAMERA';
+      this.world.carnivorousBogBuilder.releasePitcherGrapple();
       this.vehicle.passiveObserverProtection = true;
       this.unrealCam.position.copy(this.camera.position);
       this.unrealCam.velocity.set(0, 0, 0);
@@ -417,10 +483,13 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('GIANT_LOG');
       } else if (code === 'Digit7') {
         this.loadBiomeLevel('GLACIAL_ICE');
+      } else if (code === 'Digit8') {
+        this.loadBiomeLevel('CARNIVOROUS_BOG');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
         this.world.giantLogBuilder.clearActiveWebSnare();
+        this.world.carnivorousBogBuilder.releasePitcherGrapple();
         this.vehicle.resetAt(this.world, this.vehicle.position.z);
         this.hud.showCallout('VEHICLE RECOVERED ON ROAD');
       } else if (code === 'KeyJ') {
@@ -443,8 +512,29 @@ class FrontierSimulationApp {
       this.keys.delete(e.code);
     });
 
+    // [LMB] Pitcher-Plant Vine Grapple-Swing in Drive Mode!
+    window.addEventListener('mousedown', (e) => {
+      if (
+        e.button === 0 &&
+        this.exploreMode === 'PEACEFUL_DRIVE' &&
+        this.world.currentBiome === 'CARNIVOROUS_BOG' &&
+        !(e.target as HTMLElement | null)?.closest('.hud-layer button, .hud-layer input')
+      ) {
+        this.audio.unlock();
+        const chunks = this.world.getActiveCarnivorousBogChunks();
+        this.world.carnivorousBogBuilder.tryLatchPitcherGrapple(chunks, this.vehicle.position);
+      }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 0 && this.world.carnivorousBogBuilder.activeGrappleAnchor) {
+        this.world.carnivorousBogBuilder.releasePitcherGrapple(this.vehicle.linearVelocity);
+      }
+    });
+
     window.addEventListener('blur', () => {
       this.keys.clear();
+      this.world.carnivorousBogBuilder.releasePitcherGrapple();
     });
   }
 
@@ -622,6 +712,13 @@ class FrontierSimulationApp {
         this.nearbyHollowLogsCache,
         this.nearbyRootBridgesCache
       );
+      if (this.exploreMode === 'PEACEFUL_DRIVE' && this.world.currentBiome === 'CARNIVOROUS_BOG') {
+        this.world.carnivorousBogBuilder.stepPitcherGrappleSubstep(
+          fixedDt,
+          this.vehicle.position,
+          this.vehicle.linearVelocity
+        );
+      }
       this.physicsAccumulator -= fixedDt;
     }
 

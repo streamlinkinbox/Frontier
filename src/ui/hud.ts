@@ -94,6 +94,12 @@ export class ExpeditionHud {
         name: 'GLACIAL ICE',
         sub: 'Slippery Flat Ice · Traveling Cracks · Icicle Cave',
       },
+      {
+        id: 'CARNIVOROUS_BOG',
+        key: '8',
+        name: 'CARNIVOROUS BOG',
+        sub: 'Sinking Lily Pads · Snapping Flytraps · [LMB] Pitcher Grapple',
+      },
     ];
 
     const levelChipsHtml = levels
@@ -200,7 +206,7 @@ export class ExpeditionHud {
           <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
           <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
           <span><kbd>SCROLL</kbd> Cam Speed</span>
-          <span><kbd>1</kbd>-<kbd>7</kbd> Switch Level</span>
+          <span><kbd>1</kbd>-<kbd>8</kbd> Switch Level</span>
           <span><kbd>T</kbd> Place Car Here</span>
           <span><kbd>V</kbd> Drive Course</span>
         </div>
@@ -333,7 +339,7 @@ export class ExpeditionHud {
         <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
         <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
         <span><kbd>SCROLL</kbd> Cam Speed</span>
-        <span><kbd>1</kbd>-<kbd>6</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>8</kbd> Switch Level</span>
         <span><kbd>T</kbd> Place Car Here</span>
         <span><kbd>V</kbd> Drive Course</span>
       `;
@@ -341,11 +347,11 @@ export class ExpeditionHud {
       this.modeBtn.textContent = '[V] MODE: DRIVE COURSE';
       this.controlsStripEl.innerHTML = `
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Drive Course</span>
+        <span><kbd>LMB HOLD</kbd> Pitcher Grapple</span>
         <span><kbd>SHIFT</kbd> Boost</span>
         <span><kbd>SPACE</kbd> Handbrake</span>
         <span><kbd>R</kbd> Reset Car</span>
-        <span><kbd>1</kbd>-<kbd>6</kbd> Switch Level</span>
-        <span><kbd>P</kbd> Next Pass</span>
+        <span><kbd>1</kbd>-<kbd>8</kbd> Switch Level</span>
         <span><kbd>V</kbd> Back to Unreal Camera</span>
       `;
     }
@@ -393,7 +399,9 @@ export class ExpeditionHud {
     const spec = world.getTrailSpec(focusPos.z);
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
     let zoneName =
-      world.currentBiome === 'GLACIAL_ICE'
+      world.currentBiome === 'CARNIVOROUS_BOG'
+        ? 'VICTORIA LILY-PAD LAGOON'
+        : world.currentBiome === 'GLACIAL_ICE'
         ? 'SLIPPERY ICE FLATS'
         : world.currentBiome === 'GIANT_LOG'
         ? 'HOLLOW LOG ECOSYSTEM'
@@ -407,7 +415,15 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'GLACIAL_ICE') {
+    if (world.currentBiome === 'CARNIVOROUS_BOG') {
+      if (sample.surface === 'LILYPAD_WAX') {
+        zoneName = 'BUOYANT VICTORIA LILY PAD';
+      } else if (sample.waterDepth > 0.12) {
+        zoneName = 'ACID-GREEN DIGESTIVE LAGOON';
+      } else {
+        zoneName = 'SPHAGNUM FLYTRAP ISLAND';
+      }
+    } else if (world.currentBiome === 'GLACIAL_ICE') {
       const chunkIdx = Math.floor(-focusPos.z / 112);
       const isCave = chunkIdx >= 1 && chunkIdx % 2 === 1;
       zoneName = isCave ? 'FALLING ICICLE CAVERN' : 'SLIPPERY ICE FLATS';

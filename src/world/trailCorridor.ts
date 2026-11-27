@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { clamp, fbm2D, lerp, mulberry32, noise2D, ridge2D, smoothstep } from '../math/noise';
 import { ProceduralTextureLibrary } from '../graphics/proceduralTextures';
+import { CarnivorousBogBuilder, CarnivorousBogChunkData } from './carnivorousBogSystem';
 import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
 import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
 import { GiantHollowLogBuilder, GiantHollowLogChunkData } from './giantHollowLogSystem';
@@ -14,7 +15,8 @@ export type BiomeId =
   | 'DEADWOOD'
   | 'SINGULARITY'
   | 'GIANT_LOG'
-  | 'GLACIAL_ICE';
+  | 'GLACIAL_ICE'
+  | 'CARNIVOROUS_BOG';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -26,7 +28,8 @@ export type SurfaceType =
   | 'HOLLOW_LOG'
   | 'CRISSCROSS_ROOT'
   | 'DESERT_SAND'
-  | 'GLACIAL_ICE';
+  | 'GLACIAL_ICE'
+  | 'LILYPAD_WAX';
 
 export interface BiomeAtmosphereSpec {
   id: BiomeId;
@@ -133,6 +136,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     sunIntensity: 3.15,
     hemiSkyHex: 0xc8efff,
     hemiGroundHex: 0x244963,
+  },
+  CARNIVOROUS_BOG: {
+    id: 'CARNIVOROUS_BOG',
+    title: 'CARNIVOROUS MEGA-FLORA & LILY-PAD BOG',
+    subtitle: 'BUOYANT SINKING LILY PADS · SNAPPING FLYTRAPS · [LMB] PITCHER GRAPPLE',
+    fogColorHex: 0x24381e,
+    fogDensity: 0.0054,
+    skyHorizonRGB: [0.62, 0.78, 0.42],
+    skyZenithRGB: [0.13, 0.29, 0.19],
+    sunColorHex: 0xe8ff9e,
+    sunIntensity: 3.1,
+    hemiSkyHex: 0x99bd68,
+    hemiGroundHex: 0x1a2612,
   },
 };
 
@@ -317,6 +333,7 @@ interface ChunkRecord {
   singularityData?: SingularityChunkData;
   giantLogData?: GiantHollowLogChunkData;
   glacialIceData?: GlacialIceChunkData;
+  carnivorousBogData?: CarnivorousBogChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -352,6 +369,7 @@ export class TrailCorridorWorld {
   public readonly singularityBuilder: SingularityDesertBuilder;
   public readonly giantLogBuilder: GiantHollowLogBuilder;
   public readonly glacialIceBuilder: GlacialIceBuilder;
+  public readonly carnivorousBogBuilder: CarnivorousBogBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -403,6 +421,7 @@ export class TrailCorridorWorld {
     this.singularityBuilder = new SingularityDesertBuilder(textures);
     this.giantLogBuilder = new GiantHollowLogBuilder(textures);
     this.glacialIceBuilder = new GlacialIceBuilder(textures);
+    this.carnivorousBogBuilder = new CarnivorousBogBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -686,6 +705,16 @@ export class TrailCorridorWorld {
     this.group.add(this.giantLogBuilder.atmosphereFxGroup);
     this.glacialIceBuilder.atmosphereFxGroup.visible = false;
     this.group.add(this.glacialIceBuilder.atmosphereFxGroup);
+    this.carnivorousBogBuilder.atmosphereFxGroup.visible = false;
+    this.group.add(this.carnivorousBogBuilder.atmosphereFxGroup);
+  }
+
+  public getActiveCarnivorousBogChunks(): CarnivorousBogChunkData[] {
+    const out: CarnivorousBogChunkData[] = [];
+    for (const rec of this.activeChunks.values()) {
+      if (rec.carnivorousBogData) out.push(rec.carnivorousBogData);
+    }
+    return out;
   }
 
   public onChunkSpawned(
@@ -707,6 +736,8 @@ export class TrailCorridorWorld {
     this.giantLogBuilder.clearActiveWebSnare();
     this.giantLogBuilder.atmosphereFxGroup.visible = biome === 'GIANT_LOG';
     this.glacialIceBuilder.atmosphereFxGroup.visible = biome === 'GLACIAL_ICE';
+    this.carnivorousBogBuilder.releasePitcherGrapple();
+    this.carnivorousBogBuilder.atmosphereFxGroup.visible = biome === 'CARNIVOROUS_BOG';
     this.resetAround(startZ);
   }
 
@@ -1750,8 +1781,8 @@ export class TrailCorridorWorld {
     const elevFade = smoothstep(10, 60, distForward);
     const cliffRollerFade = smoothstep(20, 82, distForward);
     const baseY =
-      this.currentBiome === 'GLACIAL_ICE'
-        ? 0 // True flat frozen glacial lake / ice sheet plane!
+      this.currentBiome === 'GLACIAL_ICE' || this.currentBiome === 'CARNIVOROUS_BOG'
+        ? 0 // Level water/ice datum!
         : this.currentBiome === 'SINGULARITY'
         ? 38.0 +
           (Math.sin(z * 0.017) * 14.5 +
@@ -1799,6 +1830,8 @@ export class TrailCorridorWorld {
     const baseHalfWidth =
       this.currentBiome === 'GLACIAL_ICE'
         ? 32.0
+        : this.currentBiome === 'CARNIVOROUS_BOG'
+        ? 30.0
         : this.currentBiome === 'GIANT_LOG'
         ? 26.5
         : this.currentBiome === 'SINGULARITY'
@@ -1819,7 +1852,8 @@ export class TrailCorridorWorld {
         ? smoothstep(0.32, 0.68, mudNoise)
         : this.currentBiome === 'DESERT' ||
           this.currentBiome === 'SINGULARITY' ||
-          this.currentBiome === 'GLACIAL_ICE'
+          this.currentBiome === 'GLACIAL_ICE' ||
+          this.currentBiome === 'CARNIVOROUS_BOG'
         ? 0
         : smoothstep(0.54, 0.82, mudNoise)) * introFade;
 
@@ -1892,7 +1926,7 @@ export class TrailCorridorWorld {
 
     const bankSlope = clamp(-spec.curvature * 12.0, -0.09, 0.09);
     const bankHeight =
-      this.currentBiome === 'GLACIAL_ICE'
+      this.currentBiome === 'GLACIAL_ICE' || this.currentBiome === 'CARNIVOROUS_BOG'
         ? 0
         : d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
 
@@ -1916,6 +1950,8 @@ export class TrailCorridorWorld {
     const microRough =
       this.currentBiome === 'GLACIAL_ICE'
         ? fbm2D(x * 0.15, z * 0.15, 2) * 0.015 // Mirror-smooth flat glacial ice sheet!
+        : this.currentBiome === 'CARNIVOROUS_BOG'
+        ? fbm2D(x * 0.18, z * 0.18, 2) * 0.02
         : fbm2D(x * 0.22, z * 0.22, 3) * (this.currentBiome === 'SWAMP' ? 0.1 : 0.14) +
           noise2D(x * 1.0, z * 1.0) * 0.025;
 
@@ -1926,7 +1962,14 @@ export class TrailCorridorWorld {
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
 
-    if (this.currentBiome === 'GLACIAL_ICE') {
+    if (this.currentBiome === 'CARNIVOROUS_BOG') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+      // Flat lagoon basin across absD < 30m, rising into gnarled moss-draped bog banks outside!
+      const bogBank = smoothstep(29.0, 52.0, absD);
+      cliffRelief = bogBank * (8.5 + fbm2D(x * 0.055, z * 0.055, 3) * 4.2);
+    } else if (this.currentBiome === 'GLACIAL_ICE') {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
@@ -1997,6 +2040,7 @@ export class TrailCorridorWorld {
       outerHill;
 
     let waterDepth = 0;
+    let onBogLilyPad = false;
     const cIdx = Math.floor(-z / CHUNK_LENGTH);
     for (let ci = cIdx - 1; ci <= cIdx + 1; ci++) {
       const rec = this.activeChunks.get(ci);
@@ -2013,6 +2057,20 @@ export class TrailCorridorWorld {
           }
         }
       }
+      if (rec.carnivorousBogData && absD < 29.5 && ci === cIdx) {
+        const bogSample = this.carnivorousBogBuilder.sampleLiveBogSurface(
+          rec.carnivorousBogData,
+          x,
+          z
+        );
+        if (bogSample.active) {
+          height = bogSample.height;
+          if (bogSample.waterDepth > waterDepth) {
+            waterDepth = bogSample.waterDepth;
+          }
+          onBogLilyPad = bogSample.onLilyPad;
+        }
+      }
       for (const p of rec.puddles) {
         const nx = (x - p.x) / p.radiusX;
         const nz = (z - p.z) / p.radiusZ;
@@ -2027,7 +2085,11 @@ export class TrailCorridorWorld {
     }
 
     let surface: SurfaceType =
-      this.currentBiome === 'GLACIAL_ICE'
+      this.currentBiome === 'CARNIVOROUS_BOG'
+        ? onBogLilyPad
+          ? 'LILYPAD_WAX'
+          : 'MOSS_ROCK'
+        : this.currentBiome === 'GLACIAL_ICE'
         ? 'GLACIAL_ICE'
         : this.currentBiome === 'GIANT_LOG'
         ? 'HOLLOW_LOG'
@@ -2041,6 +2103,7 @@ export class TrailCorridorWorld {
     } else if (
       this.currentBiome !== 'GIANT_LOG' &&
       this.currentBiome !== 'GLACIAL_ICE' &&
+      this.currentBiome !== 'CARNIVOROUS_BOG' &&
       (absD > hw + 18.0 || medianIslandBump > 0.8)
     ) {
       surface = 'MOSS_ROCK';
@@ -2049,6 +2112,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'SINGULARITY' &&
       this.currentBiome !== 'GIANT_LOG' &&
       this.currentBiome !== 'GLACIAL_ICE' &&
+      this.currentBiome !== 'CARNIVOROUS_BOG' &&
       localMud > 0.36
     ) {
       surface = 'WET_MUD';
@@ -2056,6 +2120,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'DESERT' &&
       this.currentBiome !== 'GIANT_LOG' &&
       this.currentBiome !== 'GLACIAL_ICE' &&
+      this.currentBiome !== 'CARNIVOROUS_BOG' &&
       distFromBranch > branchHalfWidth * 0.78
     ) {
       surface = 'LOOSE_VERGE';
@@ -2125,6 +2190,10 @@ export class TrailCorridorWorld {
       case 'GLACIAL_ICE':
         friction = 0.48; // Slippery glassy black-ice — exhilarating powerslides & drifts!
         rollingResistance = 0.008; // Ultra-fast glide across the flat frozen lake!
+        break;
+      case 'LILYPAD_WAX':
+        friction = 0.92; // Waxy giant Victoria lily-pad blade — crisp momentum platforming!
+        rollingResistance = 0.013;
         break;
     }
 
@@ -2413,6 +2482,23 @@ export class TrailCorridorWorld {
           (x, z) => this.sampleHeightRaw(x, z).height
         );
       }
+
+      // 10. CARNIVOROUS MEGA-FLORA BOG: Buoyant Sinking Lily Pads, 5-Stage Flytrap Snaps & Coiling Sundews!
+      if (rec.carnivorousBogData) {
+        this.carnivorousBogBuilder.stepChunkHazards(
+          rec.carnivorousBogData,
+          elapsedTime,
+          dt,
+          playerPos,
+          vehiclePos,
+          vehicleVel,
+          vehicleSpeedMps,
+          throttleInput,
+          steerInput,
+          isBoosting,
+          passiveObserver
+        );
+      }
     }
 
     this.singularityBuilder.stepGlobalStormFx(
@@ -2435,6 +2521,13 @@ export class TrailCorridorWorld {
     this.glacialIceBuilder.stepGlobalIceAtmosphere(
       this.currentBiome === 'GLACIAL_ICE',
       playerPos,
+      dt
+    );
+    this.carnivorousBogBuilder.stepGlobalBogAtmosphere(
+      this.currentBiome === 'CARNIVOROUS_BOG',
+      playerPos,
+      vehiclePos,
+      elapsedTime,
       dt
     );
   }
@@ -2599,6 +2692,8 @@ export class TrailCorridorWorld {
         ? 88421
         : biome === 'GLACIAL_ICE'
         ? 63913
+        : biome === 'CARNIVOROUS_BOG'
+        ? 44771
         : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
@@ -2620,7 +2715,12 @@ export class TrailCorridorWorld {
     this.activeChunks.set(chunkIndex, chunkRecord);
 
     // A. NATURAL WATER PUDDLES / BLACKWATER LAGOONS / GLOWING TURQUOISE SALT-BRINE POOLS!
-    if (chunkIndex >= 0 && biome !== 'DESERT' && biome !== 'GLACIAL_ICE') {
+    if (
+      chunkIndex >= 0 &&
+      biome !== 'DESERT' &&
+      biome !== 'GLACIAL_ICE' &&
+      biome !== 'CARNIVOROUS_BOG'
+    ) {
       if (biome === 'SINGULARITY') {
         // Glowing turquoise mineral salt-brine pools in wide plateau hollows & deep canyon floor!
         for (let p = 0; p < 3; p++) {
@@ -2798,7 +2898,11 @@ export class TrailCorridorWorld {
         // In GLACIAL_ICE, carve the raw dirt terrainGeo down into a deep -2.25m sub-glacial lakebed
         // so our procedural 3D Voronoi ice slabs (y = 0..-0.88m) & sub-glacial water (y = -0.58m) sit cleanly above it!
         const basinCarve =
-          biome === 'GLACIAL_ICE' ? 2.25 * smoothstep(38.5, 34.0, absD) : 0.0;
+          biome === 'GLACIAL_ICE'
+            ? 2.25 * smoothstep(38.5, 34.0, absD)
+            : biome === 'CARNIVOROUS_BOG'
+            ? 1.95 * smoothstep(34.5, 28.5, absD)
+            : 0.0;
         positions[ptr] = x;
         positions[ptr + 1] = s.height - basinCarve;
         positions[ptr + 2] = z;
@@ -2819,7 +2923,13 @@ export class TrailCorridorWorld {
         const outerMask = smoothstep(hw + 8.0, hw + 55.0, absD);
         const patchVar = fbm2D(x * 0.08, z * 0.08, 2) * 0.1;
 
-        if (biome === 'GLACIAL_ICE') {
+        if (biome === 'CARNIVOROUS_BOG') {
+          // Dark submerged peat bed beneath the acid lagoon, rising into lush sphagnum-moss bog banks!
+          const mossBankMask = smoothstep(28.0, 35.0, absD);
+          tmpColor.setHex(0x0b170b).lerp(new THREE.Color(0x314f20), mossBankMask);
+          tmpColor.lerp(new THREE.Color(0x1b2d14), outerMask * 0.75);
+          tmpColor.offsetHSL(0, 0, patchVar * 0.55);
+        } else if (biome === 'GLACIAL_ICE') {
           // Deep abyssal navy lakebed beneath the water, rising into crisp powder snow & turquoise glacier walls!
           const snowBankMask = smoothstep(33.5, 38.0, absD);
           tmpColor.setHex(0x061626).lerp(colVerge, snowBankMask);
@@ -3160,6 +3270,20 @@ export class TrailCorridorWorld {
         obstacles,
         () => this.nextObstacleId++
       );
+    } else if (biome === 'CARNIVOROUS_BOG') {
+      chunkRecord.carnivorousBogData = this.carnivorousBogBuilder.populateCarnivorousBogChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        rng,
+        (z) => {
+          const sp = this.getTrailSpec(z);
+          return { centerX: sp.centerX, halfWidth: sp.halfWidth, baseY: sp.baseY };
+        },
+        obstacles,
+        () => this.nextObstacleId++
+      );
     }
 
     // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
@@ -3275,6 +3399,8 @@ export class TrailCorridorWorld {
       biome === 'GIANT_LOG' ||
       biome === 'GLACIAL_ICE'
         ? 0
+        : biome === 'CARNIVOROUS_BOG'
+        ? 16
         : biome === 'DESERT'
         ? 22
         : biome === 'SWAMP'
@@ -3356,7 +3482,7 @@ export class TrailCorridorWorld {
 
     // I. WELL-SPACED ROADSIDE BOULDERS & SLATE ROCKS
     const sparseCount =
-      biome === 'GIANT_LOG' || biome === 'GLACIAL_ICE'
+      biome === 'GIANT_LOG' || biome === 'GLACIAL_ICE' || biome === 'CARNIVOROUS_BOG'
         ? 0
         : biome === 'SINGULARITY'
         ? 2
@@ -3509,6 +3635,8 @@ export class TrailCorridorWorld {
         ? 18
         : biome === 'DEADWOOD' || biome === 'SINGULARITY' || biome === 'GLACIAL_ICE'
         ? 0
+        : biome === 'CARNIVOROUS_BOG'
+        ? 45
         : biome === 'SWAMP'
         ? 110
         : 135;
@@ -3519,8 +3647,8 @@ export class TrailCorridorWorld {
       const offset =
         biome === 'GIANT_LOG'
           ? side * lerp(spec.halfWidth * 0.45, spec.halfWidth * 1.15, rng())
-          : biome === 'DESERT'
-          ? side * lerp(spec.halfWidth * 0.82, CORRIDOR_HALF_SPAN - 20, rng())
+          : biome === 'DESERT' || biome === 'CARNIVOROUS_BOG'
+          ? side * lerp(spec.halfWidth * 1.05, CORRIDOR_HALF_SPAN - 20, rng())
           : rng() < 0.25
           ? (rng() - 0.5) * 2 * (spec.halfWidth * 0.92)
           : side * lerp(spec.halfWidth * 0.85, CORRIDOR_HALF_SPAN - 20, rng());
