@@ -763,14 +763,14 @@ class FrontierSimulationApp {
       (this.world.currentBiome === 'SINGULARITY' || this.world.currentBiome === 'CANYON_BRIDGES')
     ) {
       const cliffSpec = this.world.getTrailSpec(this.vehicle.position.z);
-      if (this.vehicle.position.y < cliffSpec.baseY - 20.0) {
+      if (this.vehicle.position.y < cliffSpec.baseY - 22.0) {
         this.cliffFallTimer += frameDt;
         if (this.cliffFallTimer > 0.85) {
           this.cliffFallTimer = 0;
           this.vehicle.resetAt(this.world, this.vehicle.position.z);
           this.hud.showCallout(
             this.world.currentBiome === 'CANYON_BRIDGES'
-              ? 'CANYON CHASM RESCUE · RETURNED TO ROCK PILLAR!'
+              ? 'CANYON CHASM RESCUE · RETURNED TO NEAREST SKY-ISLAND!'
               : 'CLIFF ABYSS RESCUE · RETURNED TO RIDGE'
           );
         }

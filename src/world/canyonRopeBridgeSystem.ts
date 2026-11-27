@@ -9,6 +9,8 @@ export interface RockPillarLanding {
   radiusX: number;
   radiusZ: number;
   deckY: number;
+  rowIdx: number;
+  islandIdx: number;
 }
 
 export interface FallingPlankHalf {
@@ -56,6 +58,16 @@ export interface SwayingRopeBridge {
   windPhase: number;
 }
 
+export type CanyonSpanKind = 'ROPE_BRIDGE' | 'TIMBER_TRESTLE' | 'JUMP_RAMP';
+
+export interface CanyonGraphLink {
+  fromIdx: number;
+  toIdx: number;
+  kind: CanyonSpanKind;
+  archBumpY: number;
+  crossClearFrac: number; // -1 if no crossing, else [0..1] along this trestle where a lower bridge passes underneath!
+}
+
 export interface CanyonBridgeChunkData {
   group: THREE.Group;
   pillars: RockPillarLanding[];
@@ -64,37 +76,47 @@ export interface CanyonBridgeChunkData {
   zStart: number;
   zLength: number;
   trestleCreakCooldown: number;
+  rampCount: number;
+  trestleCount: number;
 }
 
 const CABLE_STRANDS_PER_BRIDGE = 4; // Left main catenary, Right main catenary, Left handrail, Right handrail!
 const CABLE_SEGS = 20;
 const CABLE_SIDES = 5;
 
+// 2 full sky-island tiers per 112m chunk -> deterministic multi-island archipelago DAG!
+const ROW_SPACING_Z = 56.0;
+const FIRST_ROW_Z_OFFSET = 10.0;
+// Exact multi-island fan-out & convergence rhythm: 1 -> 5 -> 2 -> 3 -> 4 -> 2 -> 5 -> 3 -> (repeat)!
+const ROW_ISLAND_COUNTS = [1, 5, 2, 3, 4, 2, 5, 3] as const;
+
 /**
- * Builds Level [10] SWINGING CANYON ROPE-BRIDGES & TIMBER MINE TRESTLES ('CANYON_BRIDGES'):
- * - Minimal solid ground: a dizzying -48m deep misty canyon chasm punctuated only by sculpted
- *   flat-topped sandstone/granite Rock Pillars
- * - Physically simulated 3D Swaying & Twisting Wooden Suspension Bridges:
- *     * Coupled catenary flexural wave sag under vehicle weight
- *     * 3D torsional roll/twist when driving off-center near left/right rope railings
- *     * Lateral canyon crosswind sway + live-deforming 3D suspension cables & rope handrails
- *     * Cracked Rotten Planks that creak and physically SNAP in two into tumbling 3D half-planks!
- * - Upper / Lower Crisscrossing Spans: Mid-canyon rock pillars fork into an Elevated Rickety
- *   Timber Mine Railway Trestle (tall X-braced timber bents + clear-span king-post truss +
- *   iron mine rails) crossing diagonally OVER a Low-Slung Swaying Rope-Bridge!
+ * Builds Level [10] MULTI-ISLAND CANYON ROPE-BRIDGES, TIMBER TRESTLES & CHASM JUMP RAMPS ('CANYON_BRIDGES'):
+ * - True Directed-Graph Sky-Island Archipelago (`1 -> 5 -> 2 -> 3 -> 4 -> 2 -> 5 -> 3 ...`):
+ *     * 1 wide Hub Mesa fans out via 5 bridges & stunt ramps to 5 distinct Sky-Islands at varied heights,
+ *       which re-converge onto 2 Confluence Islands, then fan out to 3 Islands, etc.!
+ *     * Every island sits at its own distinct elevation (`y` from `-4.2m` low mist terraces up to `+6.2m`
+ *       high sandstone watchtower pinnacles) above a `-48m` misty canyon abyss.
+ * - Three Distinct Span Types:
+ *     1. Physically Simulated 3D Swaying, Sagging & Twisting Wooden Suspension Rope-Bridges
+ *        with cracking/snapping rotten planks and live 4-strand catenary cables.
+ *     2. Sloped & Arched Rickety Timber Mine Railway Trestles (crossing high OVER lower rope-bridges!).
+ *     3. Cantilevered Canyon Stunt Jump Ramps + Open `-48m` Air Gaps + Wide Sloped Catch Aprons
+ *        lit by glowing amber/cyan lip beacons so drivers can launch across the chasm instead of taking a bridge!
  */
 export class CanyonRopeBridgeBuilder {
   public readonly atmosphereFxGroup = new THREE.Group();
 
   // Materials
   private readonly pillarRockMat: THREE.MeshStandardMaterial;
-  private readonly pillarTopMat: THREE.MeshStandardMaterial;
   private readonly weatheredPlankMat: THREE.MeshStandardMaterial;
   private readonly rottenPlankMat: THREE.MeshStandardMaterial;
   private readonly trestleTimberMat: THREE.MeshStandardMaterial;
   private readonly braidedRopeMat: THREE.MeshStandardMaterial;
   private readonly rustedIronRailMat: THREE.MeshStandardMaterial;
+  private readonly rampChevronMat: THREE.MeshStandardMaterial;
   private readonly lanternGlowMat: THREE.MeshBasicMaterial;
+  private readonly rampBeaconGlowMat: THREE.MeshBasicMaterial;
   private readonly chasmMistSheetMat: THREE.MeshBasicMaterial;
 
   // Shared Geometries
@@ -109,7 +131,7 @@ export class CanyonRopeBridgeBuilder {
 
   // Global Canyon Mist Sheets & Wind Dust Motes
   private readonly mistPlanes: THREE.Mesh[] = [];
-  private readonly windMoteCount = 950;
+  private readonly windMoteCount = 1100;
   private windPoints!: THREE.Points;
   private windPositions!: Float32Array;
   private windVelocities!: Float32Array;
@@ -134,15 +156,6 @@ export class CanyonRopeBridgeBuilder {
       metalness: 0.04,
       vertexColors: true,
       side: THREE.DoubleSide,
-    });
-
-    this.pillarTopMat = new THREE.MeshStandardMaterial({
-      color: 0x9c7a5b,
-      map: textures.terrainDetail.map,
-      normalMap: textures.rock.normalMap,
-      normalScale: new THREE.Vector2(0.85, 0.85),
-      roughness: 0.82,
-      metalness: 0.03,
     });
 
     this.weatheredPlankMat = new THREE.MeshStandardMaterial({
@@ -191,8 +204,22 @@ export class CanyonRopeBridgeBuilder {
       metalness: 0.76,
     });
 
+    // High-visibility weathered gold/amber timber lip planks on Chasm Stunt Jump Ramps!
+    this.rampChevronMat = new THREE.MeshStandardMaterial({
+      color: 0xd99b26,
+      map: textures.bark.map,
+      roughness: 0.62,
+      metalness: 0.12,
+      emissive: new THREE.Color(0x6b3d05),
+      emissiveIntensity: 0.45,
+    });
+
     this.lanternGlowMat = new THREE.MeshBasicMaterial({
       color: 0xffbf54,
+    });
+
+    this.rampBeaconGlowMat = new THREE.MeshBasicMaterial({
+      color: 0x5cf2ff,
     });
 
     const mistTex = this.createSoftCloudMistTexture();
@@ -210,12 +237,12 @@ export class CanyonRopeBridgeBuilder {
     }
 
     this.plankGeo = new THREE.BoxGeometry(1.0, 0.24, 0.96);
-    this.halfPlankGeo = new THREE.BoxGeometry(3.2, 0.22, 0.92);
+    this.halfPlankGeo = new THREE.BoxGeometry(3.1, 0.22, 0.92);
     this.railPostGeo = new THREE.CylinderGeometry(0.075, 0.09, 1.38, 6);
     this.railPostGeo.translate(0, 0.69, 0);
     this.anchorTowerGeo = this.createBridgeAnchorTowerGeo();
     this.unitBoxGeo = new THREE.BoxGeometry(1, 1, 1);
-    this.lanternBulbGeo = new THREE.SphereGeometry(0.22, 8, 6);
+    this.lanternBulbGeo = new THREE.SphereGeometry(0.24, 8, 6);
     this.oreCartGeo = this.createMineOreCartGeo();
 
     this.initChasmMistAndWind();
@@ -239,19 +266,20 @@ export class CanyonRopeBridgeBuilder {
   }
 
   /**
-   * Sculpted towering flat-topped Sandstone / Canyon Granite Spire Pillar (unit radius = 1, height = 52m: y = 0 .. -52m!)
+   * Sculpted towering flat-topped Sandstone / Canyon Granite Spire Pillar
+   * (unit radius = 1, height = 60m: y = 0 .. -60m so even +8m elevated sky-islands plunge below -48m!)
    */
   private createSculptedRockPillarGeo(seed: number): THREE.BufferGeometry {
     const radialSegs = 28;
     const rings = [
       { y: 0.0, r: 0.0, col: 0x9c7b5c }, // Flat crown center!
-      { y: 0.0, r: 0.65, col: 0x967556 },
+      { y: 0.0, r: 0.68, col: 0x967556 },
       { y: -0.04, r: 1.0, col: 0x8a6648 }, // Rim brink
       { y: -2.8, r: 1.04, col: 0x7a5238 }, // Overhanging sandstone caprock ledge!
-      { y: -10.5, r: 0.88, col: 0x694530 },
-      { y: -24.0, r: 0.78, col: 0x4f3528 },
-      { y: -38.0, r: 0.92, col: 0x3b2a24 },
-      { y: -52.0, r: 1.18, col: 0x28201e }, // Flared abyssal base
+      { y: -11.5, r: 0.88, col: 0x694530 },
+      { y: -26.0, r: 0.78, col: 0x4f3528 },
+      { y: -42.0, r: 0.92, col: 0x3b2a24 },
+      { y: -60.0, r: 1.18, col: 0x28201e }, // Deep abyssal base
     ];
     const cols = radialSegs + 1;
     const rows = rings.length;
@@ -270,10 +298,9 @@ export class CanyonRopeBridgeBuilder {
         const theta = (c / radialSegs) * Math.PI * 2;
         const nx = Math.cos(theta);
         const nz = Math.sin(theta);
-        // Keep the top driving rim (r <= 2) close to true ellipse so physics radius matches 3D rim!
         const crag =
           r <= 2
-            ? 1.0 + (r === 2 ? fbm2D(nx * 2.5 + seed, nz * 2.5, 2) * 0.04 : 0)
+            ? 1.0 + (r === 2 ? fbm2D(nx * 2.5 + seed, nz * 2.5, 2) * 0.035 : 0)
             : 0.86 + 0.28 * (fbm2D(nx * 2.4 + seed, sp.y * 0.09 - seed, 3) * 0.5 + 0.5);
         const x = nx * sp.r * crag;
         const z = nz * sp.r * crag;
@@ -299,7 +326,6 @@ export class CanyonRopeBridgeBuilder {
         const b = a + 1;
         const d = a + cols;
         const e = d + 1;
-        // True +Y upward on crown & outward radial normals on cliff walls!
         indices.push(a, b, e, a, e, d);
       }
     }
@@ -313,12 +339,8 @@ export class CanyonRopeBridgeBuilder {
     return geo;
   }
 
-  /**
-   * Heavy Timber A-Frame Suspension Bridge Cable Tower (straddles bridge entrance!)
-   */
   private createBridgeAnchorTowerGeo(): THREE.BufferGeometry {
     const parts: THREE.BufferGeometry[] = [];
-    // Left & Right twin timber A-frame pylons + overhead crossbeam
     for (const sx of [-4.15, 4.15]) {
       const legF = new THREE.BoxGeometry(0.42, 5.4, 0.42);
       legF.rotateX(0.12);
@@ -330,7 +352,6 @@ export class CanyonRopeBridgeBuilder {
       legB.translate(sx, 2.55, 0.32);
       parts.push(legB);
     }
-    // High overhead timber portal crossbeam (y = 5.15m -> plenty of clearance for 4x4!)
     const capBeam = new THREE.BoxGeometry(9.4, 0.48, 0.56);
     capBeam.translate(0, 5.15, 0);
     parts.push(capBeam);
@@ -376,10 +397,10 @@ export class CanyonRopeBridgeBuilder {
   }
 
   private initChasmMistAndWind(): void {
-    // 1. Layered Swirling Canyon Mist Cloud Sheets below the bridges (y = -11m, -21m, -33m)
-    const mistPlaneGeo = new THREE.PlaneGeometry(130, 145);
+    // Wide 190m canyon mist cloud sheets drifting below the sky-island archipelago!
+    const mistPlaneGeo = new THREE.PlaneGeometry(195, 165);
     mistPlaneGeo.rotateX(-Math.PI * 0.5);
-    const mistHeights = [-10.5, -19.5, -31.0];
+    const mistHeights = [-12.0, -21.5, -33.0];
     for (let i = 0; i < mistHeights.length; i++) {
       const m = new THREE.Mesh(mistPlaneGeo, this.chasmMistSheetMat);
       m.position.set(0, mistHeights[i], 0);
@@ -388,17 +409,15 @@ export class CanyonRopeBridgeBuilder {
       this.mistPlanes.push(m);
     }
 
-    // 2. Whipping Canyon Crosswind Dust & Mist Wisps
     this.windPositions = new Float32Array(this.windMoteCount * 3);
     this.windVelocities = new Float32Array(this.windMoteCount * 3);
     const rng = mulberry32(771239);
     for (let i = 0; i < this.windMoteCount; i++) {
       const ix = i * 3;
-      this.windPositions[ix] = (rng() - 0.5) * 120;
-      this.windPositions[ix + 1] = lerp(-24.0, 16.0, rng());
-      this.windPositions[ix + 2] = (rng() - 0.5) * 150;
+      this.windPositions[ix] = (rng() - 0.5) * 165;
+      this.windPositions[ix + 1] = lerp(-24.0, 18.0, rng());
+      this.windPositions[ix + 2] = (rng() - 0.5) * 155;
 
-      // Brisk lateral canyon wind blowing across the chasm (+X)
       this.windVelocities[ix] = lerp(5.5, 12.5, rng());
       this.windVelocities[ix + 1] = (rng() - 0.46) * 1.1;
       this.windVelocities[ix + 2] = (rng() - 0.5) * 2.4;
@@ -417,15 +436,403 @@ export class CanyonRopeBridgeBuilder {
     this.atmosphereFxGroup.add(this.windPoints);
   }
 
+  // ===========================================================================
+  // DETERMINISTIC GLOBAL MULTI-ISLAND GRAPH (`1 -> 5 -> 2 -> 3 -> 4 -> 2 -> 5 -> 3`)
+  // ===========================================================================
+
   /**
-   * Populates a 112m chunk of [10] SWINGING CANYON ROPE-BRIDGES & TIMBER MINE TRESTLES:
-   * - Entry Rock Pillar (u = 0..15m) -> Hero Swaying Rope-Bridge (u = 13..47m)
-   * - Mid-Chasm Split Spire (u = 45..61m) -> Splits into CRISSCROSSING UPPER & LOWER BRIDGES:
-   *     * UPPER HIGH-ROAD: Rickety Ascending Timber Mine Railway Trestle (y = 0 -> +6.2m -> 0,
-   *       diagonal -8.5m -> +8.5m, registered as CrisscrossRootBridge so cars drive ON TOP OR UNDER!)
-   *     * LOWER LOW-ROAD: Low-Slung Twisting Canyon Rope-Bridge (y = 0 -> -2.2m -> 0,
-   *       diagonal +8.5m -> -8.5m passing directly UNDER the clear-span trestle truss at u = 79m!)
-   * - Exit Confluence Rock Pillar (u = 97..112m) connecting seamlessly to next chunk's Entry Pillar!
+   * Pure deterministic generator for Sky-Island Row `rowIdx` so adjacent streamed chunks
+   * agree to 0.000mm on island positions, radii, AND varied elevations!
+   */
+  public getRowIslands(
+    rowIdx: number,
+    sampleCourseX: (z: number) => number
+  ): RockPillarLanding[] {
+    const safeRow = Math.max(0, rowIdx);
+    const zRow = -(FIRST_ROW_Z_OFFSET + safeRow * ROW_SPACING_Z);
+    const centerX = sampleCourseX(zRow);
+    const count = ROW_ISLAND_COUNTS[safeRow % ROW_ISLAND_COUNTS.length];
+    const rng = mulberry32(safeRow * 91813 + 44117);
+
+    const out: RockPillarLanding[] = [];
+
+    if (count === 1) {
+      // Grand Fan-Out Hub Mesa (wide enough to radiate 5 bridges/ramps cleanly across its front rim!)
+      const deckY = safeRow === 0 ? 0.0 : lerp(-1.2, 2.6, rng());
+      out.push({
+        x: centerX,
+        z: zRow,
+        radiusX: 27.5,
+        radiusZ: 13.8,
+        deckY,
+        rowIdx: safeRow,
+        islandIdx: 0,
+      });
+      return out;
+    }
+
+    // Distinct multi-height templates per island count so neighboring islands visibly step up/down in 3D!
+    const heightPresets: Record<number, number[]> = {
+      2: [2.4, -2.2],
+      3: [-2.8, 4.6, 1.0],
+      4: [-3.0, 3.8, -1.2, 4.8],
+      5: [-3.4, 3.0, -0.8, 5.2, 1.5],
+    };
+    const baseHeights = heightPresets[count] ?? [0];
+    const flipSign = Math.floor(safeRow / ROW_ISLAND_COUNTS.length) % 2 === 1 ? -1 : 1;
+
+    // Generous lateral spread across the 148m wide Grand Canyon abyss so all 5 islands have roomy 24.4m x 30m flat decks!
+    const totalSpanX =
+      count === 5 ? 104.0 : count === 4 ? 86.0 : count === 3 ? 70.0 : 46.0;
+    const rx =
+      count === 5 ? 12.2 : count === 4 ? 13.6 : count === 3 ? 16.0 : 21.0;
+    const rz = count === 5 ? 15.0 : 15.2;
+
+    for (let i = 0; i < count; i++) {
+      const frac = i / (count - 1) - 0.5; // -0.5 .. +0.5
+      const xOff = frac * totalSpanX + (rng() - 0.5) * 1.4;
+      const zJitter = (rng() - 0.5) * 2.2;
+      const hIdx = flipSign > 0 ? i : count - 1 - i;
+      const deckY =
+        baseHeights[hIdx] + (safeRow >= 4 ? (rng() - 0.5) * 1.2 : 0.0);
+
+      out.push({
+        x: centerX + xOff,
+        z: zRow + zJitter,
+        radiusX: rx,
+        radiusZ: rz,
+        deckY,
+        rowIdx: safeRow,
+        islandIdx: i,
+      });
+    }
+
+    return out;
+  }
+
+  /**
+   * Builds the Directed Multi-Bridge & Jump-Ramp Graph between `rowA` (`M` islands) and `rowB` (`N` islands):
+   * - Guarantees every island in `rowA` has >= 1 outgoing link AND every island in `rowB` has >= 1 incoming link.
+   * - Adds fan-out / convergence / X-crisscross links (`1 -> 5` = 5 links, `5 -> 2` = 7 links, `2 -> 3` = 5 links, etc.).
+   * - Converts ~25-30% of favorable downhill/level spans into exhilarating Canyon Stunt Jump Ramps!
+   * - Automatically elevates crossing spans into High-Arch Timber Trestles so upper/lower bridges never collide!
+   */
+  public getRowLinks(
+    rowIdx: number,
+    islandsA: RockPillarLanding[],
+    islandsB: RockPillarLanding[]
+  ): CanyonGraphLink[] {
+    const M = islandsA.length;
+    const N = islandsB.length;
+    const rng = mulberry32(rowIdx * 54721 + 8819);
+
+    const pairSet = new Set<string>();
+    const rawPairs: Array<{ fromIdx: number; toIdx: number }> = [];
+    const addPair = (u: number, v: number, isBonus = false) => {
+      if (u < 0 || u >= M || v < 0 || v >= N) return;
+      if (isBonus && Math.abs(islandsB[v].x - islandsA[u].x) > 68.0) return;
+      const key = `${u}_${v}`;
+      if (!pairSet.has(key)) {
+        pairSet.add(key);
+        rawPairs.push({ fromIdx: u, toIdx: v });
+      }
+    };
+
+    // 1. Full surjection + injection coverage across max(M, N) (guarantees 0 disconnected islands & full 1->5 fan-out!)
+    const maxMN = Math.max(M, N);
+    for (let k = 0; k < maxMN; k++) {
+      const u = M === 1 ? 0 : Math.round((k * (M - 1)) / (maxMN - 1));
+      const v = N === 1 ? 0 : Math.round((k * (N - 1)) / (maxMN - 1));
+      addPair(u, v, false);
+    }
+
+    // 2. Rich Multi-Bridge Branching & Crisscrossing Choices!
+    if (M === 5 && N === 2) {
+      addPair(2, 0, true);
+      addPair(2, 1, true);
+      addPair(3, 0, true);
+    } else if (M === 2 && N === 3) {
+      addPair(0, 0, true);
+      addPair(0, 1, true);
+      addPair(1, 1, true);
+      addPair(1, 2, true);
+      addPair(0, 2, true);
+    } else if (M === 3 && N === 4) {
+      addPair(0, 1, true);
+      addPair(1, 1, true);
+      addPair(1, 2, true);
+      addPair(2, 2, true);
+    } else if (M === 4 && N === 2) {
+      addPair(1, 1, true);
+      addPair(2, 0, true);
+    } else if (M === 2 && N === 5) {
+      addPair(0, 0, true);
+      addPair(0, 1, true);
+      addPair(0, 2, true);
+      addPair(1, 2, true);
+      addPair(1, 3, true);
+      addPair(1, 4, true);
+    } else if (M === 5 && N === 3) {
+      addPair(1, 1, true);
+      addPair(3, 1, true);
+      addPair(2, 0, true);
+      addPair(2, 2, true);
+    } else if (M > 1 && N > 1) {
+      addPair(Math.min(M - 1, 1), 0, true);
+      addPair(0, Math.min(N - 1, 1), true);
+    }
+
+    // 3. Assign initial Span Types (Rope-Bridge vs Sloped Timber Trestle vs Stunt Jump Ramp!)
+    const links: CanyonGraphLink[] = rawPairs.map((p, idx) => {
+      const a = islandsA[p.fromIdx];
+      const b = islandsB[p.toIdx];
+      const dy = b.deckY - a.deckY;
+
+      let kind: CanyonSpanKind = 'ROPE_BRIDGE';
+      if (M === 1 && N === 5) {
+        // Signature 5-way Spawn Fan-Out showcasing ALL 3 span types side-by-side!
+        // 0: Stunt Jump Ramp (-3.4m), 1: Sloped Trestle (+3.0m), 2: Center Hero Rope-Bridge (-0.8m),
+        // 3: High Trestle (+5.2m), 4: Outer Swaying Rope-Bridge (+1.5m)
+        kind =
+          p.toIdx === 0
+            ? 'JUMP_RAMP'
+            : p.toIdx === 1 || p.toIdx === 3
+            ? 'TIMBER_TRESTLE'
+            : 'ROPE_BRIDGE';
+      } else if (dy >= 1.2) {
+        kind = 'TIMBER_TRESTLE';
+      } else if (dy <= -1.8 && rawPairs.length >= 3 && (idx === 0 || rng() < 0.55)) {
+        kind = 'JUMP_RAMP';
+      } else if (rng() < 0.28) {
+        kind = 'TIMBER_TRESTLE';
+      }
+
+      return {
+        fromIdx: p.fromIdx,
+        toIdx: p.toIdx,
+        kind,
+        archBumpY: kind === 'TIMBER_TRESTLE' ? 1.4 : 0.0,
+        crossClearFrac: -1,
+      };
+    });
+
+    // Guarantee at least ONE exhilarating Stunt Jump Ramp per multi-bridge layer (as long as >= 3 spans exist
+    // so cautious drivers ALWAYS also have full-deck bridges to choose from!)
+    if (links.length >= 3 && !links.some((l) => l.kind === 'JUMP_RAMP')) {
+      let bestIdx = -1;
+      let bestDrop = Infinity;
+      for (let i = 0; i < links.length; i++) {
+        const dy = islandsB[links[i].toIdx].deckY - islandsA[links[i].fromIdx].deckY;
+        if (dy < bestDrop) {
+          bestDrop = dy;
+          bestIdx = i;
+        }
+      }
+      if (bestIdx >= 0 && bestDrop <= 0.6) {
+        links[bestIdx].kind = 'JUMP_RAMP';
+        links[bestIdx].archBumpY = 0;
+      }
+    }
+
+    // 4. Detect 2D X-Crossovers (`(u1 < u2 && v1 > v2)` or vice-versa) and separate them cleanly in 3D!
+    //    Upper span -> High-Arch Timber Trestle (`archBumpY >= 4.6m`), Lower span -> Low-Belly Rope-Bridge!
+    for (let aIdx = 0; aIdx < links.length; aIdx++) {
+      for (let bIdx = aIdx + 1; bIdx < links.length; bIdx++) {
+        const L1 = links[aIdx];
+        const L2 = links[bIdx];
+        const crosses =
+          (L1.fromIdx < L2.fromIdx && L1.toIdx > L2.toIdx) ||
+          (L1.fromIdx > L2.fromIdx && L1.toIdx < L2.toIdx);
+        if (!crosses) continue;
+
+        const avgY1 =
+          (islandsA[L1.fromIdx].deckY + islandsB[L1.toIdx].deckY) * 0.5;
+        const avgY2 =
+          (islandsA[L2.fromIdx].deckY + islandsB[L2.toIdx].deckY) * 0.5;
+
+        const upper = avgY1 >= avgY2 ? L1 : L2;
+        const lower = avgY1 >= avgY2 ? L2 : L1;
+
+        upper.kind = 'TIMBER_TRESTLE';
+        lower.kind = 'ROPE_BRIDGE';
+
+        // Compute approximate intersection fraction along `upper`
+        const x1a = islandsA[upper.fromIdx].x;
+        const x1b = islandsB[upper.toIdx].x;
+        const x2a = islandsA[lower.fromIdx].x;
+        const x2b = islandsB[lower.toIdx].x;
+        const denom = x1b - x1a - (x2b - x2a);
+        const tCross =
+          Math.abs(denom) > 0.1 ? clamp((x2a - x1a) / denom, 0.25, 0.75) : 0.5;
+
+        const lowerEstY =
+          lerp(islandsA[lower.fromIdx].deckY, islandsB[lower.toIdx].deckY, tCross) - 2.1;
+        const upperBaseY = lerp(
+          islandsA[upper.fromIdx].deckY,
+          islandsB[upper.toIdx].deckY,
+          tCross
+        );
+        const neededArch = clamp(
+          (lowerEstY + 5.8 - upperBaseY) / Math.max(0.55, Math.sin(Math.PI * tCross)),
+          2.2,
+          4.2
+        );
+        upper.archBumpY = Math.max(upper.archBumpY, neededArch);
+        upper.crossClearFrac = tCross;
+      }
+    }
+
+    return links;
+  }
+
+  /**
+   * Finds the closest solid flat-topped Sky-Island to `(x, z)` so `[R]` reset, chasm rescue,
+   * and `[J]` camera jumps always land squarely on a real island at its exact elevation!
+   */
+  public findNearestIslandSpawn(
+    x: number,
+    z: number,
+    sampleCourseX: (z: number) => number
+  ): { x: number; y: number; z: number; yaw: number } {
+    const approxRow = Math.max(0, Math.round((-z - FIRST_ROW_Z_OFFSET) / ROW_SPACING_Z));
+    let bestIsland: RockPillarLanding | null = null;
+    let bestDistSq = Infinity;
+
+    for (let r = Math.max(0, approxRow - 1); r <= approxRow + 1; r++) {
+      const rowIslands = this.getRowIslands(r, sampleCourseX);
+      for (const isl of rowIslands) {
+        const dx = x - isl.x;
+        const dz = z - isl.z;
+        const dSq = dx * dx + dz * dz;
+        if (dSq < bestDistSq) {
+          bestDistSq = dSq;
+          bestIsland = isl;
+        }
+      }
+    }
+
+    if (!bestIsland) {
+      const row0 = this.getRowIslands(0, sampleCourseX)[0];
+      return { x: row0.x, y: row0.deckY, z: row0.z, yaw: 0 };
+    }
+
+    // Aim toward the middle outgoing bridge/ramp of this island!
+    const nextRow = this.getRowIslands(bestIsland.rowIdx + 1, sampleCourseX);
+    const curRow = this.getRowIslands(bestIsland.rowIdx, sampleCourseX);
+    const links = this.getRowLinks(bestIsland.rowIdx, curRow, nextRow).filter(
+      (l) => l.fromIdx === bestIsland!.islandIdx
+    );
+    let yaw = 0;
+    if (links.length > 0) {
+      const midLink = links[Math.floor(links.length * 0.5)];
+      const tgt = nextRow[midLink.toIdx];
+      yaw = Math.atan2(-(tgt.x - bestIsland.x), -(tgt.z - bestIsland.z));
+    }
+
+    return {
+      x: bestIsland.x,
+      y: bestIsland.deckY,
+      z: bestIsland.z,
+      yaw,
+    };
+  }
+
+  /**
+   * Returns exact world-space `startPt`, `endPt`, and `kind` for a specific link `(fromIdx -> toIdx)`
+   * in row `rowIdx`!
+   */
+  public getLinkEndpoints(
+    rowIdx: number,
+    fromIdx: number,
+    toIdx: number,
+    sampleCourseX: (z: number) => number
+  ): {
+    startPt: THREE.Vector3;
+    endPt: THREE.Vector3;
+    kind: CanyonSpanKind;
+    archBumpY: number;
+  } | null {
+    const srcIslands = this.getRowIslands(rowIdx, sampleCourseX);
+    const dstIslands = this.getRowIslands(rowIdx + 1, sampleCourseX);
+    const links = this.getRowLinks(rowIdx, srcIslands, dstIslands);
+    const link = links.find((l) => l.fromIdx === fromIdx && l.toIdx === toIdx);
+    if (!link) return null;
+
+    const outList = links
+      .filter((l) => l.fromIdx === fromIdx)
+      .sort((a, b) => dstIslands[a.toIdx].x - dstIslands[b.toIdx].x);
+    const inList = links
+      .filter((l) => l.toIdx === toIdx)
+      .sort((a, b) => srcIslands[a.fromIdx].x - srcIslands[b.fromIdx].x);
+
+    const halfWidth =
+      link.kind === 'JUMP_RAMP' ? 3.85 : outList.length >= 4 ? 3.45 : 3.75;
+    const inset = link.kind === 'ROPE_BRIDGE' ? 0.86 : 0.74;
+
+    const s = this.computeIslandRimSocket(
+      srcIslands[fromIdx],
+      outList.indexOf(link),
+      outList.length,
+      dstIslands[toIdx].x,
+      true,
+      halfWidth,
+      inset
+    );
+    const e = this.computeIslandRimSocket(
+      dstIslands[toIdx],
+      inList.indexOf(link),
+      inList.length,
+      srcIslands[fromIdx].x,
+      false,
+      halfWidth,
+      inset
+    );
+
+    return {
+      startPt: new THREE.Vector3(s.x, s.y, s.z),
+      endPt: new THREE.Vector3(e.x, e.y, e.z),
+      kind: link.kind,
+      archBumpY: link.archBumpY,
+    };
+  }
+
+  /**
+   * Computes flush rim socket `(sx, sy, sz)` on an elliptical Sky-Island so multiple bridges
+   * radiating from (or converging onto) the same island spread out cleanly with zero overlap
+   * and zero step-wall across the flat `rSq <= 0.94` rock rim!
+   */
+  private computeIslandRimSocket(
+    island: RockPillarLanding,
+    slotIdx: number,
+    slotCount: number,
+    otherX: number,
+    isOutgoing: boolean,
+    deckHalfWidth: number,
+    insetFactor = 0.85
+  ): { x: number; y: number; z: number } {
+    let dx = 0;
+    if (slotCount <= 1) {
+      dx = clamp((otherX - island.x) * 0.18, -island.radiusX * 0.35, island.radiusX * 0.35);
+    } else {
+      const spread = slotCount <= 2 ? 0.44 : slotCount === 3 ? 0.54 : 0.64;
+      const frac = (slotIdx / (slotCount - 1)) * 2.0 - 1.0; // -1 .. +1
+      dx = frac * island.radiusX * spread;
+    }
+
+    const outerNx = Math.min(0.86, (Math.abs(dx) + deckHalfWidth) / island.radiusX);
+    const dzMag =
+      island.radiusZ *
+      Math.sqrt(Math.max(0.12, insetFactor - outerNx * outerNx));
+
+    return {
+      x: island.x + dx,
+      y: island.deckY + 0.03,
+      z: island.z + (isOutgoing ? -dzMag : dzMag),
+    };
+  }
+
+  /**
+   * Populates a 112m chunk (`2` full Sky-Island Rows + `2` full Multi-Bridge/Trestle/Ramp Layers)!
    */
   public populateCanyonBridgeChunk(
     chunkGroup: THREE.Group,
@@ -447,170 +854,200 @@ export class CanyonRopeBridgeBuilder {
     const ropeBridges: SwayingRopeBridge[] = [];
     const timberMats: THREE.Matrix4[] = [];
     const railMats: THREE.Matrix4[] = [];
+    const chevronMats: THREE.Matrix4[] = [];
     const towerMats: THREE.Matrix4[] = [];
     const lanternPositions: THREE.Vector3[] = [];
+    const rampBeaconPositions: THREE.Vector3[] = [];
 
-    const addRockPillar = (
-      x: number,
-      z: number,
-      rx: number,
-      rz: number,
-      deckY: number,
-      variant: number
-    ) => {
-      const geo = this.pillarBodyGeos[variant % this.pillarBodyGeos.length];
-      const mesh = new THREE.Mesh(geo, this.pillarRockMat);
-      mesh.position.set(x, deckY, z);
-      mesh.scale.set(rx, 1.0, rz);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      group.add(mesh);
+    let rampCount = 0;
+    let trestleCount = 0;
 
-      pillars.push({ x, z, radiusX: rx, radiusZ: rz, deckY });
-    };
+    const rowBase = chunkIndex * 2;
+    const row0Islands = this.getRowIslands(rowBase, sampleCourseX);
+    const row1Islands = this.getRowIslands(rowBase + 1, sampleCourseX);
+    const row2Islands = this.getRowIslands(rowBase + 2, sampleCourseX);
 
-    // -------------------------------------------------------------------------
-    // 1. SCULPTED FLAT-TOPPED CANYON ROCK PILLARS (Minimal Solid Ground!)
-    //    Entry & Exit pillars overlap across chunk borders for 0.0mm seamless transitions,
-    //    and every bridge abutment anchors deep inside its pillar's flat rSq <= 0.40 crown!
-    // -------------------------------------------------------------------------
-    const zEntry = zStart - 7.5;
-    const xEntry = sampleCourseX(zEntry);
-    const entryRz = chunkIndex === 0 ? 13.5 : 10.5;
-    addRockPillar(
-      xEntry,
-      zEntry,
-      chunkIndex === 0 ? 18.5 : 17.5,
-      entryRz,
-      0.0,
-      chunkIndex
-    );
+    // Spawn 3D Rock Island Meshes for the 2 rows owned by this chunk (`rowBase` and `rowBase + 1`)
+    for (const rowList of [row0Islands, row1Islands]) {
+      for (const isl of rowList) {
+        const geo =
+          this.pillarBodyGeos[(isl.rowIdx * 3 + isl.islandIdx) % this.pillarBodyGeos.length];
+        const mesh = new THREE.Mesh(geo, this.pillarRockMat);
+        mesh.position.set(isl.x, isl.deckY, isl.z);
+        mesh.scale.set(isl.radiusX, 1.0, isl.radiusZ);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        group.add(mesh);
 
-    const zMid = zStart - 53.0;
-    const xMid = sampleCourseX(zMid);
-    const midRx = 24.5;
-    const midRz = 13.2;
-    // Wide double-branch Mid-Canyon Split Butte!
-    addRockPillar(xMid, zMid, midRx, midRz, 0.0, chunkIndex + 1);
+        pillars.push(isl);
 
-    const zExit = zStart - 104.5;
-    const xExit = sampleCourseX(zExit);
-    const exitRx = 24.5;
-    const exitRz = 13.2;
-    addRockPillar(xExit, zExit, exitRx, exitRz, 0.0, chunkIndex + 2);
+        // Occasional scenic rusted Mine Ore-Cart parked safely near the side edge of wide islands!
+        if (isl.radiusX >= 18.0 && (isl.rowIdx + isl.islandIdx) % 2 === 0) {
+          const side = isl.islandIdx % 2 === 0 ? -1 : 1;
+          const cx = isl.x + side * (isl.radiusX * 0.76);
+          const cz = isl.z + 1.5;
+          const cartMesh = new THREE.Mesh(this.oreCartGeo, this.rustedIronRailMat);
+          cartMesh.position.set(cx, isl.deckY + 0.02, cz);
+          cartMesh.rotation.set(0, 0.45 * side, 0.06);
+          cartMesh.castShadow = true;
+          group.add(cartMesh);
 
-    // Decorative Background Canyon Needle Spires out in the deep mist (pure visual depth!)
+          obstacles.push({
+            id: nextObstacleId(),
+            chunkIndex,
+            kind: 'boulder',
+            position: new THREE.Vector3(cx, isl.deckY, cz),
+            radius: 1.05,
+            height: 1.35,
+            canShearVine: true,
+          });
+        }
+      }
+    }
+
+    // Also include `row2Islands` in physics `pillars` array (visual mesh is spawned by `chunkIndex + 1`)
+    // so `sampleLiveCanyonSurface` has 0.00mm seamless island coverage right across the chunk boundary!
+    for (const isl2 of row2Islands) {
+      pillars.push(isl2);
+    }
+
+    // Decorative Background Canyon Needle Spires out in the far abyssal mist (`|x| > 60m`)
     for (let s = 0; s < 4; s++) {
-      const us = lerp(15.0, 96.0, (s + 0.25 + rng() * 0.5) / 4);
+      const us = lerp(14.0, 98.0, (s + 0.25 + rng() * 0.5) / 4);
       const zs = zStart - us;
       const side = s % 2 === 0 ? -1 : 1;
-      const xs = sampleCourseX(zs) + side * lerp(28.0, 44.0, rng());
+      const xs = sampleCourseX(zs) + side * lerp(60.0, 78.0, rng());
       const spire = new THREE.Mesh(
         this.pillarBodyGeos[(chunkIndex + s) % 3],
         this.pillarRockMat
       );
-      spire.position.set(xs, lerp(-8.0, -2.5, rng()), zs);
-      const sr = lerp(4.2, 7.5, rng());
+      spire.position.set(xs, lerp(-10.0, -1.5, rng()), zs);
+      const sr = lerp(4.8, 8.5, rng());
       spire.scale.set(sr, lerp(0.85, 1.15, rng()), sr);
       group.add(spire);
     }
 
-    // -------------------------------------------------------------------------
-    // 2. SPAN 1: HERO SWAYING WOODEN SUSPENSION BRIDGE (Flush Rim-to-Rim!)
-    // -------------------------------------------------------------------------
-    const zB1Start = zEntry - entryRz * 0.88;
-    const zB1End = zMid + midRz * 0.88;
-    const mainRopeBridge = this.buildSwayingRopeBridge(
-      group,
-      xEntry,
-      0.04,
-      zB1Start,
-      xMid,
-      0.04,
-      zB1End,
-      3.95, // 7.9m wide wooden suspension deck!
-      1.35, // Parabolic catenary sag
-      rng,
-      towerMats,
-      lanternPositions
-    );
-    ropeBridges.push(mainRopeBridge);
+    // Helper to build all Multi-Bridges, Sloped Trestles, & Stunt Jump Ramps between two Island Rows!
+    const buildLayerSpans = (
+      rIdx: number,
+      srcIslands: RockPillarLanding[],
+      dstIslands: RockPillarLanding[]
+    ) => {
+      const links = this.getRowLinks(rIdx, srcIslands, dstIslands);
 
-    // -------------------------------------------------------------------------
-    // 3. SPAN 2A (LOWER CRISSCROSSING SPAN):
-    //    Twisting Low-Slung Rope-Bridge crossing DIAGONALLY (+8.0m -> -8.0m) at y = -2.25m!
-    //    Flush rim-to-rim at rSq = (8/20.5)^2 + (8.4/10.8)^2 = 0.757 (right inside flat rim!)
-    // -------------------------------------------------------------------------
-    const flipCrisscross = chunkIndex % 2 === 0 ? 1 : -1;
-    const zCrossStart = zMid - 11.2;
-    const zCrossEnd = zExit + 11.2;
-    const lowerStartX = xMid + flipCrisscross * 7.6;
-    const lowerEndX = xExit - flipCrisscross * 7.6;
+      // Group outgoing per source island (sorted left-to-right by destination X)
+      const outByIsland = new Map<number, CanyonGraphLink[]>();
+      const inByIsland = new Map<number, CanyonGraphLink[]>();
+      for (const l of links) {
+        if (!outByIsland.has(l.fromIdx)) outByIsland.set(l.fromIdx, []);
+        outByIsland.get(l.fromIdx)!.push(l);
+        if (!inByIsland.has(l.toIdx)) inByIsland.set(l.toIdx, []);
+        inByIsland.get(l.toIdx)!.push(l);
+      }
+      for (const list of outByIsland.values()) {
+        list.sort((a, b) => dstIslands[a.toIdx].x - dstIslands[b.toIdx].x);
+      }
+      for (const list of inByIsland.values()) {
+        list.sort((a, b) => srcIslands[a.fromIdx].x - srcIslands[b.fromIdx].x);
+      }
 
-    const lowerRopeBridge = this.buildSwayingRopeBridge(
-      group,
-      lowerStartX,
-      0.04,
-      zCrossStart,
-      lowerEndX,
-      0.04,
-      zCrossEnd,
-      3.85, // 7.7m wide swaying deck
-      2.35, // Deep catenary belly dipping -2.35m below the Upper Mine Trestle!
-      rng,
-      towerMats,
-      lanternPositions
-    );
-    ropeBridges.push(lowerRopeBridge);
+      for (const link of links) {
+        const src = srcIslands[link.fromIdx];
+        const dst = dstIslands[link.toIdx];
+        const outList = outByIsland.get(link.fromIdx)!;
+        const inList = inByIsland.get(link.toIdx)!;
+        const outSlot = outList.indexOf(link);
+        const inSlot = inList.indexOf(link);
 
-    // -------------------------------------------------------------------------
-    // 4. SPAN 2B (UPPER CRISSCROSSING SPAN):
-    //    Elevated Rickety Timber Mine Railway Trestle climbing to y = +4.65m
-    //    and crossing DIAGONALLY (-7.6m -> +7.6m) DIRECTLY OVER the Lower Rope-Bridge!
-    // -------------------------------------------------------------------------
-    const zTrestleStart = zMid - 6.8;
-    const zTrestleEnd = zExit + 6.8;
-    const upperStartX = xMid - flipCrisscross * 7.6;
-    const upperEndX = xExit + flipCrisscross * 7.6;
+        const halfWidth =
+          link.kind === 'JUMP_RAMP' ? 3.85 : outList.length >= 4 ? 3.45 : 3.75;
+        const inset = link.kind === 'ROPE_BRIDGE' ? 0.86 : 0.74;
 
-    this.buildElevatedTimberMineTrestle(
-      group,
-      upperStartX,
-      zTrestleStart,
-      upperEndX,
-      zTrestleEnd,
-      4.65, // Soars +4.65m above pillars -> 7.0m vertical clearance over Lower Rope-Bridge!
-      4.05, // 8.1m wide timber railway trestle deck!
-      rootBridges,
-      nextBridgeId,
-      chunkIndex,
-      timberMats,
-      railMats,
-      lanternPositions
-    );
+        const startPt = this.computeIslandRimSocket(
+          src,
+          outSlot,
+          outList.length,
+          dst.x,
+          true,
+          halfWidth,
+          inset
+        );
+        const endPt = this.computeIslandRimSocket(
+          dst,
+          inSlot,
+          inList.length,
+          src.x,
+          false,
+          halfWidth,
+          inset
+        );
 
-    // Scenic abandoned iron Mine Ore-Cart parked safely on the Mid-Chasm Split Spire edge!
-    {
-      const cartMesh = new THREE.Mesh(this.oreCartGeo, this.rustedIronRailMat);
-      cartMesh.position.set(xMid + flipCrisscross * 15.2, 0.02, zMid + 2.5);
-      cartMesh.rotation.set(0, 0.42 * flipCrisscross, 0.08);
-      cartMesh.castShadow = true;
-      group.add(cartMesh);
+        if (link.kind === 'ROPE_BRIDGE') {
+          const catenaryDrop = clamp(
+            Math.hypot(endPt.x - startPt.x, endPt.z - startPt.z) * 0.045,
+            1.25,
+            2.25
+          );
+          const rb = this.buildSwayingRopeBridge(
+            group,
+            startPt.x,
+            startPt.y,
+            startPt.z,
+            endPt.x,
+            endPt.y,
+            endPt.z,
+            halfWidth,
+            catenaryDrop,
+            rng,
+            towerMats,
+            lanternPositions
+          );
+          ropeBridges.push(rb);
+        } else if (link.kind === 'TIMBER_TRESTLE') {
+          trestleCount++;
+          this.buildSlopedTimberMineTrestle(
+            startPt.x,
+            startPt.y,
+            startPt.z,
+            endPt.x,
+            endPt.y,
+            endPt.z,
+            link.archBumpY,
+            link.crossClearFrac,
+            halfWidth,
+            rootBridges,
+            nextBridgeId,
+            chunkIndex,
+            timberMats,
+            railMats,
+            lanternPositions
+          );
+        } else {
+          rampCount++;
+          this.buildCanyonJumpRamp(
+            startPt.x,
+            startPt.y,
+            startPt.z,
+            endPt.x,
+            endPt.y,
+            endPt.z,
+            halfWidth,
+            rootBridges,
+            nextBridgeId,
+            chunkIndex,
+            timberMats,
+            railMats,
+            chevronMats,
+            rampBeaconPositions
+          );
+        }
+      }
+    };
 
-      obstacles.push({
-        id: nextObstacleId(),
-        chunkIndex,
-        kind: 'boulder',
-        position: new THREE.Vector3(cartMesh.position.x, 0, cartMesh.position.z),
-        radius: 1.15,
-        height: 1.4,
-        canShearVine: true,
-      });
-    }
+    buildLayerSpans(rowBase, row0Islands, row1Islands);
+    buildLayerSpans(rowBase + 1, row1Islands, row2Islands);
 
-    // -------------------------------------------------------------------------
-    // 5. EMIT BATCHED INSTANCED TIMBER TRESTLE, RAILS, ANCHOR TOWERS & LANTERNS
-    // -------------------------------------------------------------------------
+    // Emit Batched Instanced Meshes for all Trestles, Ramps, Iron Rails, Chevrons, Towers & Beacons!
     const emitInstanced = (
       geo: THREE.BufferGeometry,
       mat: THREE.Material,
@@ -630,6 +1067,7 @@ export class CanyonRopeBridgeBuilder {
 
     emitInstanced(this.unitBoxGeo, this.trestleTimberMat, timberMats, true);
     emitInstanced(this.unitBoxGeo, this.rustedIronRailMat, railMats, false);
+    emitInstanced(this.unitBoxGeo, this.rampChevronMat, chevronMats, false);
     emitInstanced(this.anchorTowerGeo, this.trestleTimberMat, towerMats, true);
 
     if (lanternPositions.length > 0) {
@@ -647,10 +1085,30 @@ export class CanyonRopeBridgeBuilder {
       }
       lanternIm.instanceMatrix.needsUpdate = true;
       group.add(lanternIm);
+    }
 
-      // Warm amber canyon lantern PointLight at the Mid-Chasm Split Spire!
-      const heroLight = new THREE.PointLight(0xffb44c, 16.0, 34.0, 1.5);
-      heroLight.position.set(xMid, 4.2, zMid);
+    if (rampBeaconPositions.length > 0) {
+      const beaconIm = new THREE.InstancedMesh(
+        this.lanternBulbGeo,
+        this.rampBeaconGlowMat,
+        rampBeaconPositions.length
+      );
+      for (let i = 0; i < rampBeaconPositions.length; i++) {
+        this._dummy.position.copy(rampBeaconPositions[i]);
+        this._dummy.rotation.set(0, 0, 0);
+        this._dummy.scale.set(1.45, 1.75, 1.45);
+        this._dummy.updateMatrix();
+        beaconIm.setMatrixAt(i, this._dummy.matrix);
+      }
+      beaconIm.instanceMatrix.needsUpdate = true;
+      group.add(beaconIm);
+    }
+
+    // Warm canyon lantern PointLight over the central island of Row 0
+    if (row0Islands.length > 0) {
+      const midIsl = row0Islands[Math.floor(row0Islands.length * 0.5)];
+      const heroLight = new THREE.PointLight(0xffb44c, 16.0, 42.0, 1.4);
+      heroLight.position.set(midIsl.x, midIsl.deckY + 5.0, midIsl.z);
       group.add(heroLight);
     }
 
@@ -662,12 +1120,15 @@ export class CanyonRopeBridgeBuilder {
       zStart,
       zLength,
       trestleCreakCooldown: 0,
+      rampCount,
+      trestleCount,
     };
   }
 
-  /**
-   * Constructs a physically simulated Swaying & Twisting 3D Wooden Rope-Suspension Bridge!
-   */
+  // ===========================================================================
+  // SPAN TYPE 1: SWAYING, SAGGING & TWISTING 3D WOODEN ROPE-SUSPENSION BRIDGE
+  // ===========================================================================
+
   private buildSwayingRopeBridge(
     group: THREE.Group,
     ax: number,
@@ -687,7 +1148,6 @@ export class CanyonRopeBridgeBuilder {
     const length = Math.hypot(dx, dz);
     const dirX = dx / length;
     const dirZ = dz / length;
-    // Forward bridge direction (dirX, 0, dirZ); yaw aligns local -Z with (dirX, dirZ)
     const yaw = Math.atan2(-dirX, -dirZ);
     const rightX = Math.cos(yaw);
     const rightZ = -Math.sin(yaw);
@@ -696,7 +1156,6 @@ export class CanyonRopeBridgeBuilder {
     const plankCount = Math.max(12, Math.round(length / plankSpacing));
     const actualSpacing = length / (plankCount - 1);
 
-    // Timber A-Frame Suspension Cable Towers at both bridge abutments!
     for (const endPt of [
       { x: ax, y: ay, z: az },
       { x: bx, y: by, z: bz },
@@ -734,11 +1193,11 @@ export class CanyonRopeBridgeBuilder {
     let lastRottenIdx = -10;
     for (let i = 0; i < plankCount; i++) {
       const f = i / (plankCount - 1);
-      // Natural unloaded parabolic catenary curve
-      restY[i] = lerp(ay, by, f) - maxCatenaryDrop * 4.0 * f * (1.0 - f);
+      // Zero-derivative smooth abutment shelf (`sin^1.75`) so bridges meet variable-height rock rims seamlessly!
+      restY[i] =
+        lerp(ay, by, f) - maxCatenaryDrop * Math.pow(Math.sin(Math.PI * f), 1.75);
 
-      // Mark ~16% of interior planks as Rotten (at least 5 planks apart so momentum jumps cleanly!)
-      if (i >= 4 && i <= plankCount - 5 && i - lastRottenIdx >= 5 && rng() < 0.34) {
+      if (i >= 4 && i <= plankCount - 5 && i - lastRottenIdx >= 5 && rng() < 0.32) {
         isRotten[i] = 1;
         lastRottenIdx = i;
       }
@@ -756,27 +1215,30 @@ export class CanyonRopeBridgeBuilder {
     rottenIm.frustumCulled = false;
     group.add(rottenIm);
 
-    const postIm = new THREE.InstancedMesh(this.railPostGeo, this.trestleTimberMat, plankCount * 2);
+    const postIm = new THREE.InstancedMesh(
+      this.railPostGeo,
+      this.trestleTimberMat,
+      plankCount * 2
+    );
     postIm.castShadow = true;
     postIm.frustumCulled = false;
     group.add(postIm);
 
-    // Live-deforming 4-strand Braided Rope Geometry (2 parabolic main cables + 2 handrail ropes!)
     const vertsPerStrand = (CABLE_SEGS + 1) * (CABLE_SIDES + 1);
-    const totalVerts = CABLE_STRANDS_PER_BRIDGE * vertsPerStrand;
-    const cPos = new Float32Array(totalVerts * 3);
-    const cNorm = new Float32Array(totalVerts * 3);
-    const cUv = new Float32Array(totalVerts * 2);
+    const totalCableVerts = CABLE_STRANDS_PER_BRIDGE * vertsPerStrand;
+    const cPos = new Float32Array(totalCableVerts * 3);
+    const cNorm = new Float32Array(totalCableVerts * 3);
+    const cUv = new Float32Array(totalCableVerts * 2);
     const cIdx: number[] = [];
 
-    const ringCols = CABLE_SIDES + 1;
     for (let st = 0; st < CABLE_STRANDS_PER_BRIDGE; st++) {
       const baseV = st * vertsPerStrand;
+      const ringCols = CABLE_SIDES + 1;
       for (let r = 0; r <= CABLE_SEGS; r++) {
         for (let c = 0; c <= CABLE_SIDES; c++) {
           const uvOff = (baseV + r * ringCols + c) * 2;
-          cUv[uvOff] = c / CABLE_SIDES;
-          cUv[uvOff + 1] = r * 0.8;
+          cUv[uvOff] = (r / CABLE_SEGS) * 14.0;
+          cUv[uvOff + 1] = c / CABLE_SIDES;
         }
       }
       for (let r = 0; r < CABLE_SEGS; r++) {
@@ -785,18 +1247,14 @@ export class CanyonRopeBridgeBuilder {
           const b = a + 1;
           const d = a + ringCols;
           const e = d + 1;
-          cIdx.push(a, b, e, a, e, d);
+          cIdx.push(a, d, b, b, d, e);
         }
       }
     }
 
     const cableRopeGeo = new THREE.BufferGeometry();
-    const posAttr = new THREE.BufferAttribute(cPos, 3);
-    posAttr.setUsage(THREE.DynamicDrawUsage);
-    const normAttr = new THREE.BufferAttribute(cNorm, 3);
-    normAttr.setUsage(THREE.DynamicDrawUsage);
-    cableRopeGeo.setAttribute('position', posAttr);
-    cableRopeGeo.setAttribute('normal', normAttr);
+    cableRopeGeo.setAttribute('position', new THREE.BufferAttribute(cPos, 3));
+    cableRopeGeo.setAttribute('normal', new THREE.BufferAttribute(cNorm, 3));
     cableRopeGeo.setAttribute('uv', new THREE.BufferAttribute(cUv, 2));
     cableRopeGeo.setIndex(cIdx);
 
@@ -839,25 +1297,23 @@ export class CanyonRopeBridgeBuilder {
       windPhase: rng() * Math.PI * 2,
     };
 
-    // Initialize visual plank & cable transforms at rest!
     this.syncRopeBridgeMeshes(bridge);
     return bridge;
   }
 
-  /**
-   * Builds the Elevated Rickety Timber Mine Railway Trestle (Upper Crisscrossing Span!):
-   * - Registers smooth multi-segment `CrisscrossRootBridge` so the 4x4 can drive ON TOP OF
-   *   the +5.85m railway deck OR pass cleanly UNDERNEATH it on the Lower Rope-Bridge!
-   * - Features tall X-braced timber bents + a wide Clear-Span King-Post Truss over the midpoint
-   *   so zero timber posts ever block the Lower Rope-Bridge crossing underneath!
-   */
-  private buildElevatedTimberMineTrestle(
-    _group: THREE.Group,
+  // ===========================================================================
+  // SPAN TYPE 2: SLOPED & ARCHED RICKETY TIMBER MINE RAILWAY TRESTLE
+  // ===========================================================================
+
+  private buildSlopedTimberMineTrestle(
     ax: number,
+    ay: number,
     az: number,
     bx: number,
+    by: number,
     bz: number,
-    peakHeightY: number,
+    archBumpY: number,
+    crossClearFrac: number,
     deckHalfWidth: number,
     rootBridges: CrisscrossRootBridge[],
     nextBridgeId: () => number,
@@ -874,11 +1330,11 @@ export class CanyonRopeBridgeBuilder {
     const rightX = Math.cos(yaw);
     const rightZ = -Math.sin(yaw);
 
-    // Smooth arched railway trestle elevation profile (~21° climbable railway grade!):
+    // Smooth S-curve between `ay` and `by` + smooth arch bump over any lower crossing bridge!
     const heightAt = (t: number): number => {
-      const rampUp = smoothstep(0.0, 0.42, t);
-      const rampDown = 1.0 - smoothstep(0.58, 1.0, t);
-      return peakHeightY * rampUp * rampDown;
+      const s = smoothstep(0.0, 1.0, t);
+      const arch = archBumpY * Math.pow(Math.sin(Math.PI * t), 1.35);
+      return lerp(ay, by, s) + arch;
     };
 
     const segments: CrisscrossRootSegment[] = [];
@@ -899,7 +1355,14 @@ export class CanyonRopeBridgeBuilder {
       minZ = Math.min(minZ, z0, z1);
       maxZ = Math.max(maxZ, z0, z1);
 
-      // Note: sampleCrisscrossRootDeck adds +0.18m to lerp(ay, by, t), so store ay = y0 - 0.18!
+      const flare =
+        s === 0 || s === segCount - 1
+          ? 1.45
+          : s === 1 || s === segCount - 2
+          ? 0.7
+          : 0.0;
+      const segHalfW = deckHalfWidth + flare;
+
       segments.push({
         ax: x0,
         ay: y0 - 0.18,
@@ -907,8 +1370,8 @@ export class CanyonRopeBridgeBuilder {
         bx: x1,
         by: y1 - 0.18,
         bz: z1,
-        deckHalfWidth,
-        thickness: 1.35, // Allows vehicles below (deckY - 1.35m) to pass cleanly underneath!
+        deckHalfWidth: segHalfW,
+        thickness: 1.35,
       });
 
       const xm = (x0 + x1) * 0.5;
@@ -917,18 +1380,16 @@ export class CanyonRopeBridgeBuilder {
       const segLen = totalLen / segCount;
       const pitch = Math.atan2(y1 - y0, segLen);
 
-      // 1. Heavy Longitudinal Timber Trestle Stringer Beams (left, center, right)
       for (const latFrac of [-0.72, 0.0, 0.72]) {
         const off = latFrac * deckHalfWidth;
         this._dummy.position.set(xm + rightX * off, ym - 0.36, zm + rightZ * off);
         this._euler.set(pitch, yaw, 0, 'YXZ');
         this._dummy.rotation.copy(this._euler);
-        this._dummy.scale.set(0.42, 0.52, segLen + 0.18);
+        this._dummy.scale.set(0.4, 0.5, segLen + 0.18);
         this._dummy.updateMatrix();
         timberMats.push(this._dummy.matrix.clone());
       }
 
-      // 2. Closely-Spaced Wooden Railway Crossties + Outer Wheel Curb Guard Timbers
       const tieSub = 3;
       for (let k = 0; k < tieSub; k++) {
         const tk = lerp(t0, t1, (k + 0.5) / tieSub);
@@ -938,13 +1399,12 @@ export class CanyonRopeBridgeBuilder {
         this._dummy.position.set(tx, ty - 0.08, tz);
         this._euler.set(pitch, yaw, 0, 'YXZ');
         this._dummy.rotation.copy(this._euler);
-        this._dummy.scale.set(deckHalfWidth * 2.04, 0.16, 0.68);
+        this._dummy.scale.set(segHalfW * 2.04, 0.16, 0.68);
         this._dummy.updateMatrix();
         timberMats.push(this._dummy.matrix.clone());
       }
 
-      // 3. Twin Narrow-Gauge Iron Mine Rails + Low Outer Curb Beams
-      for (const railOff of [-1.25, 1.25]) {
+      for (const railOff of [-1.2, 1.2]) {
         this._dummy.position.set(xm + rightX * railOff, ym + 0.05, zm + rightZ * railOff);
         this._euler.set(pitch, yaw, 0, 'YXZ');
         this._dummy.rotation.copy(this._euler);
@@ -953,7 +1413,7 @@ export class CanyonRopeBridgeBuilder {
         railMats.push(this._dummy.matrix.clone());
       }
       for (const curbSide of [-1, 1]) {
-        const cOff = curbSide * (deckHalfWidth - 0.22);
+        const cOff = curbSide * (deckHalfWidth - 0.2);
         this._dummy.position.set(xm + rightX * cOff, ym + 0.16, zm + rightZ * cOff);
         this._euler.set(pitch, yaw, 0, 'YXZ');
         this._dummy.rotation.copy(this._euler);
@@ -963,28 +1423,26 @@ export class CanyonRopeBridgeBuilder {
       }
     }
 
-    // 4. Tall Tapered X-Braced Timber Trestle Bents Plunging -36m into the Misty Gorge!
-    //    CRITICAL: Skip t in [0.36, 0.64] (where the Lower Rope-Bridge crosses underneath!)
-    //    and build a dramatic overhead King-Post Truss across that central clear span!
-    const bentFracs = [0.14, 0.28, 0.35, 0.65, 0.74, 0.86];
-    for (const bf of bentFracs) {
+    // Tall X-braced timber bents plunging into the gorge (automatically skipping any lower-bridge crossover!)
+    const candidateBents = [0.16, 0.32, 0.5, 0.68, 0.84];
+    for (const bf of candidateBents) {
+      if (crossClearFrac >= 0 && Math.abs(bf - crossClearFrac) < 0.19) continue;
+
       const bxPos = lerp(ax, bx, bf);
       const bzPos = lerp(az, bz, bf);
       const topY = heightAt(bf) - 0.55;
-      const bentH = 34.0 + topY;
+      const bentH = Math.max(12.0, 42.0 + topY);
 
-      // Cap beam
       this._dummy.position.set(bxPos, topY, bzPos);
       this._dummy.rotation.set(0, yaw, 0);
-      this._dummy.scale.set(deckHalfWidth * 2.15, 0.45, 0.48);
+      this._dummy.scale.set(deckHalfWidth * 2.15, 0.44, 0.46);
       this._dummy.updateMatrix();
       timberMats.push(this._dummy.matrix.clone());
 
-      // 4 Battered Vertical/Slanted Timber Trestle Posts
-      for (const pFrac of [-0.88, -0.32, 0.32, 0.88]) {
+      for (const pFrac of [-0.86, 0.86]) {
         const latOff = pFrac * deckHalfWidth;
-        const batterAngle = -pFrac * 0.085;
-        const midOff = latOff + pFrac * 1.45;
+        const batterAngle = -pFrac * 0.08;
+        const midOff = latOff + pFrac * 1.35;
         this._dummy.position.set(
           bxPos + rightX * midOff,
           topY - bentH * 0.5,
@@ -997,56 +1455,36 @@ export class CanyonRopeBridgeBuilder {
         timberMats.push(this._dummy.matrix.clone());
       }
 
-      // Horizontal tier girts + Diagonal X-braces!
-      for (const tierDrop of [5.5, 13.0, 21.5]) {
+      for (const tierDrop of [6.0, 15.0]) {
         const ty = topY - tierDrop;
         this._dummy.position.set(bxPos, ty, bzPos);
         this._dummy.rotation.set(0, yaw, 0);
-        this._dummy.scale.set(deckHalfWidth * 2.4 + tierDrop * 0.14, 0.28, 0.3);
+        this._dummy.scale.set(deckHalfWidth * 2.3 + tierDrop * 0.14, 0.26, 0.28);
         this._dummy.updateMatrix();
         timberMats.push(this._dummy.matrix.clone());
 
         for (const diagSign of [-1, 1]) {
-          this._dummy.position.set(bxPos, ty + 2.8, bzPos);
-          this._euler.set(0, yaw, diagSign * 0.68, 'YXZ');
+          this._dummy.position.set(bxPos, ty + 3.0, bzPos);
+          this._euler.set(0, yaw, diagSign * 0.65, 'YXZ');
           this._dummy.rotation.copy(this._euler);
-          this._dummy.scale.set(0.22, 8.8, 0.22);
+          this._dummy.scale.set(0.22, 8.6, 0.22);
           this._dummy.updateMatrix();
           timberMats.push(this._dummy.matrix.clone());
         }
       }
 
-      // Hanging Mine Lantern Posts on outer trestle bents
-      if (bf === 0.28 || bf === 0.74) {
+      if (bf === 0.32 || bf === 0.68) {
         for (const lSide of [-1, 1]) {
           const lx = bxPos + rightX * lSide * (deckHalfWidth + 0.15);
           const lz = bzPos + rightZ * lSide * (deckHalfWidth + 0.15);
           const ly = heightAt(bf);
-          this._dummy.position.set(lx, ly + 1.35, lz);
+          this._dummy.position.set(lx, ly + 1.3, lz);
           this._dummy.rotation.set(0, yaw, 0);
-          this._dummy.scale.set(0.16, 2.7, 0.16);
+          this._dummy.scale.set(0.16, 2.6, 0.16);
           this._dummy.updateMatrix();
           timberMats.push(this._dummy.matrix.clone());
-          lanternPositions.push(new THREE.Vector3(lx, ly + 2.65, lz));
+          lanternPositions.push(new THREE.Vector3(lx, ly + 2.55, lz));
         }
-      }
-    }
-
-    // Central Clear-Span Side Truss Rails (t = 0.35 .. 0.65) framing the sky-high crossover!
-    {
-      const xm = lerp(ax, bx, 0.5);
-      const zm = lerp(az, bz, 0.5);
-      const ym = heightAt(0.5);
-      const trussLen = totalLen * 0.3;
-      for (const side of [-1, 1]) {
-        const tx = xm + rightX * side * (deckHalfWidth - 0.15);
-        const tz = zm + rightZ * side * (deckHalfWidth - 0.15);
-        // Top truss chord handrail (y + 1.45m)
-        this._dummy.position.set(tx, ym + 1.45, tz);
-        this._dummy.rotation.set(0, yaw, 0);
-        this._dummy.scale.set(0.24, 0.24, trussLen);
-        this._dummy.updateMatrix();
-        timberMats.push(this._dummy.matrix.clone());
       }
     }
 
@@ -1059,10 +1497,245 @@ export class CanyonRopeBridgeBuilder {
     });
   }
 
+  // ===========================================================================
+  // SPAN TYPE 3: CANTILEVERED CANYON STUNT JUMP RAMP + OPEN CHASM GAP + CATCH APRON
+  // ===========================================================================
+
   /**
-   * Updates all 3D plank instances, handrail posts, and 4-strand catenary rope tubes
-   * from the live coupled wave / twist / sway simulation!
+   * Builds a thrilling Cantilevered Timber & Iron Stunt Jump Ramp instead of a full bridge!
+   * - Launch Ramp (`t = 0.0 .. 0.45`): smooth upward ski-jump curve jutting ~16m out over the -48m abyss,
+   *   supported by 45-degree cliff-bolted timber struts and lit by glowing cyan/amber lip beacons.
+   * - Open Chasm Air Gap (`t = 0.45 .. 0.72`): ~10-12m of pure -48m canyon air!
+   * - Wide Sloped Catch-Landing Apron (`t = 0.72 .. 1.0`): 9.4m-wide forgiving landing deck onto the target island!
    */
+  private buildCanyonJumpRamp(
+    ax: number,
+    ay: number,
+    az: number,
+    bx: number,
+    by: number,
+    bz: number,
+    halfWidth: number,
+    rootBridges: CrisscrossRootBridge[],
+    nextBridgeId: () => number,
+    chunkIndex: number,
+    timberMats: THREE.Matrix4[],
+    railMats: THREE.Matrix4[],
+    chevronMats: THREE.Matrix4[],
+    rampBeaconPositions: THREE.Vector3[]
+  ): void {
+    const dx = bx - ax;
+    const dz = bz - az;
+    const totalLen = Math.hypot(dx, dz);
+    const yaw = Math.atan2(-dx, -dz);
+    const rightX = Math.cos(yaw);
+    const rightZ = -Math.sin(yaw);
+
+    const launchEndFrac = 0.46;
+    const catchStartFrac = 0.71;
+    // Calibrated launch rise so any 4x4 at >= 10.5 m/s (~38 km/h) clears the chasm gap cleanly!
+    const rampRise = clamp(2.15 + Math.max(0, by - ay) * 0.35, 1.85, 3.1);
+
+    const launchSegs = 6;
+    const launchSegments: CrisscrossRootSegment[] = [];
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+
+    const launchYAt = (u: number): number => ay + rampRise * Math.pow(u, 1.38);
+
+    for (let s = 0; s < launchSegs; s++) {
+      const u0 = s / launchSegs;
+      const u1 = (s + 1) / launchSegs;
+      const t0 = u0 * launchEndFrac;
+      const t1 = u1 * launchEndFrac;
+
+      const x0 = lerp(ax, bx, t0);
+      const z0 = lerp(az, bz, t0);
+      const y0 = launchYAt(u0);
+
+      const x1 = lerp(ax, bx, t1);
+      const z1 = lerp(az, bz, t1);
+      const y1 = launchYAt(u1);
+
+      minZ = Math.min(minZ, z0, z1);
+      maxZ = Math.max(maxZ, z0, z1);
+
+      launchSegments.push({
+        ax: x0,
+        ay: y0 - 0.18,
+        az: z0,
+        bx: x1,
+        by: y1 - 0.18,
+        bz: z1,
+        deckHalfWidth: halfWidth + 0.25,
+        thickness: 1.35,
+      });
+
+      const xm = (x0 + x1) * 0.5;
+      const ym = (y0 + y1) * 0.5;
+      const zm = (z0 + z1) * 0.5;
+      const segLen = (totalLen * launchEndFrac) / launchSegs;
+      const pitch = Math.atan2(y1 - y0, segLen);
+
+      // Heavy cantilevered timber ramp stringers
+      for (const latFrac of [-0.78, 0.0, 0.78]) {
+        const off = latFrac * halfWidth;
+        this._dummy.position.set(xm + rightX * off, ym - 0.34, zm + rightZ * off);
+        this._euler.set(pitch, yaw, 0, 'YXZ');
+        this._dummy.rotation.copy(this._euler);
+        this._dummy.scale.set(0.44, 0.52, segLen + 0.16);
+        this._dummy.updateMatrix();
+        timberMats.push(this._dummy.matrix.clone());
+      }
+
+      // Solid closely-packed ramp deck planks (bright amber chevron boards on final 2 lip segments!)
+      const isLip = s >= launchSegs - 2;
+      for (let k = 0; k < 3; k++) {
+        const uk = lerp(u0, u1, (k + 0.5) / 3);
+        const tk = uk * launchEndFrac;
+        this._dummy.position.set(lerp(ax, bx, tk), launchYAt(uk) - 0.07, lerp(az, bz, tk));
+        this._euler.set(pitch, yaw, 0, 'YXZ');
+        this._dummy.rotation.copy(this._euler);
+        this._dummy.scale.set(halfWidth * 2.1, 0.16, segLen * 0.31);
+        this._dummy.updateMatrix();
+        if (isLip) {
+          chevronMats.push(this._dummy.matrix.clone());
+        } else {
+          timberMats.push(this._dummy.matrix.clone());
+        }
+      }
+
+      // Twin wide iron wheel-runner launch plates + side guide rails!
+      for (const runnerOff of [-1.25, 1.25]) {
+        this._dummy.position.set(xm + rightX * runnerOff, ym + 0.03, zm + rightZ * runnerOff);
+        this._euler.set(pitch, yaw, 0, 'YXZ');
+        this._dummy.rotation.copy(this._euler);
+        this._dummy.scale.set(0.72, 0.06, segLen + 0.06);
+        this._dummy.updateMatrix();
+        railMats.push(this._dummy.matrix.clone());
+      }
+      for (const side of [-1, 1]) {
+        const cOff = side * (halfWidth + 0.05);
+        this._dummy.position.set(xm + rightX * cOff, ym + 0.22, zm + rightZ * cOff);
+        this._euler.set(pitch, yaw, 0, 'YXZ');
+        this._dummy.rotation.copy(this._euler);
+        this._dummy.scale.set(0.28, 0.36, segLen + 0.06);
+        this._dummy.updateMatrix();
+        timberMats.push(this._dummy.matrix.clone());
+      }
+    }
+
+    // Diagonal 45-degree Cantilever Cliff-Brace Struts kicking back from the ramp lip into Island A's rock face!
+    {
+      const lipX = lerp(ax, bx, launchEndFrac);
+      const lipZ = lerp(az, bz, launchEndFrac);
+      const lipY = launchYAt(1.0);
+      const braceX = lerp(ax, lipX, 0.52);
+      const braceZ = lerp(az, lipZ, 0.52);
+      const braceLen = Math.hypot(lipX - ax, lipZ - az) * 0.95;
+
+      for (const side of [-0.78, 0.0, 0.78]) {
+        const off = side * halfWidth;
+        this._dummy.position.set(braceX + rightX * off, lipY - 4.6, braceZ + rightZ * off);
+        this._euler.set(0.68, yaw, 0, 'YXZ');
+        this._dummy.rotation.copy(this._euler);
+        this._dummy.scale.set(0.42, 0.42, braceLen);
+        this._dummy.updateMatrix();
+        timberMats.push(this._dummy.matrix.clone());
+      }
+
+      // Tall Twin Glowing Cyan Launch-Lip Beacons so players spot Stunt Jump Ramps from 120m away!
+      for (const side of [-1, 1]) {
+        const bxLip = lipX + rightX * side * (halfWidth + 0.22);
+        const bzLip = lipZ + rightZ * side * (halfWidth + 0.22);
+        this._dummy.position.set(bxLip, lipY + 1.15, bzLip);
+        this._dummy.rotation.set(0, yaw, 0);
+        this._dummy.scale.set(0.18, 2.3, 0.18);
+        this._dummy.updateMatrix();
+        chevronMats.push(this._dummy.matrix.clone());
+        rampBeaconPositions.push(new THREE.Vector3(bxLip, lipY + 2.45, bzLip));
+      }
+    }
+
+    // Wide Forgiving Sloped Wooden Catch-Landing Apron (`t = catchStartFrac .. 1.0`) on Target Island B!
+    const catchSegs = 4;
+    const catchHalfWidth = halfWidth + 0.85; // Extra wide 9.4m landing zone!
+    const catchDrop = 0.95;
+    for (let s = 0; s < catchSegs; s++) {
+      const u0 = s / catchSegs;
+      const u1 = (s + 1) / catchSegs;
+      const t0 = lerp(catchStartFrac, 1.0, u0);
+      const t1 = lerp(catchStartFrac, 1.0, u1);
+
+      const x0 = lerp(ax, bx, t0);
+      const z0 = lerp(az, bz, t0);
+      const y0 = lerp(by - catchDrop, by, smoothstep(0, 1, u0));
+
+      const x1 = lerp(ax, bx, t1);
+      const z1 = lerp(az, bz, t1);
+      const y1 = lerp(by - catchDrop, by, smoothstep(0, 1, u1));
+
+      minZ = Math.min(minZ, z0, z1);
+      maxZ = Math.max(maxZ, z0, z1);
+
+      launchSegments.push({
+        ax: x0,
+        ay: y0 - 0.18,
+        az: z0,
+        bx: x1,
+        by: y1 - 0.18,
+        bz: z1,
+        deckHalfWidth: catchHalfWidth,
+        thickness: 1.45,
+      });
+
+      const xm = (x0 + x1) * 0.5;
+      const ym = (y0 + y1) * 0.5;
+      const zm = (z0 + z1) * 0.5;
+      const segLen = (totalLen * (1.0 - catchStartFrac)) / catchSegs;
+      const pitch = Math.atan2(y1 - y0, segLen);
+
+      this._dummy.position.set(xm, ym - 0.12, zm);
+      this._euler.set(pitch, yaw, 0, 'YXZ');
+      this._dummy.rotation.copy(this._euler);
+      this._dummy.scale.set(catchHalfWidth * 2.0, 0.24, segLen + 0.1);
+      this._dummy.updateMatrix();
+      if (s === 0) {
+        chevronMats.push(this._dummy.matrix.clone());
+      } else {
+        timberMats.push(this._dummy.matrix.clone());
+      }
+    }
+
+    // Twin Catch-Apron Entry Beacons on Target Island B!
+    {
+      const cx0 = lerp(ax, bx, catchStartFrac);
+      const cz0 = lerp(az, bz, catchStartFrac);
+      const cy0 = by - catchDrop;
+      for (const side of [-1, 1]) {
+        rampBeaconPositions.push(
+          new THREE.Vector3(
+            cx0 + rightX * side * (catchHalfWidth + 0.15),
+            cy0 + 1.65,
+            cz0 + rightZ * side * (catchHalfWidth + 0.15)
+          )
+        );
+      }
+    }
+
+    rootBridges.push({
+      id: nextBridgeId(),
+      chunkIndex,
+      segments: launchSegments,
+      minZ: minZ - 2.0,
+      maxZ: maxZ + 2.0,
+    });
+  }
+
+  // ===========================================================================
+  // LIVE 3D MESH DEFORMATION, SURFACE SAMPLING & COUPLED WAVE PHYSICS
+  // ===========================================================================
+
   private syncRopeBridgeMeshes(br: SwayingRopeBridge): void {
     const n = br.plankCount;
     const width = br.halfWidth * 2.0;
@@ -1074,7 +1747,6 @@ export class CanyonRopeBridgeBuilder {
       const pz = lerp(br.az, br.bz, f) + br.rightZ * sway;
       const py = br.restY[i] + br.sagY[i];
 
-      // Local longitudinal slope pitch along the sagging catenary!
       const iPrev = Math.max(0, i - 1);
       const iNext = Math.min(n - 1, i + 1);
       const dy =
@@ -1089,7 +1761,6 @@ export class CanyonRopeBridgeBuilder {
       const isMissing = br.snappedCooldown[i] > 0;
       const isRot = br.isRotten[i] === 1;
 
-      // Intact vs Rotten plank visibility via scale (zero draw-call overhead!)
       this._dummy.position.set(px, py - 0.12, pz);
       this._dummy.quaternion.copy(this._quat);
 
@@ -1102,7 +1773,6 @@ export class CanyonRopeBridgeBuilder {
       br.intactPlankIm.setMatrixAt(i, this._dummy.matrix);
 
       if (!isMissing && isRot) {
-        // Slight jitter while cracking!
         const jitter = br.crackTimer[i] > 0 ? Math.sin(br.crackTimer[i] * 90.0) * 0.06 : 0;
         this._dummy.position.set(px, py - 0.13 + jitter, pz);
         this._dummy.scale.set(width * 0.98, 0.92, 0.92);
@@ -1112,7 +1782,6 @@ export class CanyonRopeBridgeBuilder {
       this._dummy.updateMatrix();
       br.rottenPlankIm.setMatrixAt(i, this._dummy.matrix);
 
-      // Left & Right Rope-Handrail Timber Posts on every 2nd plank!
       for (let sideIdx = 0; sideIdx < 2; sideIdx++) {
         const sSign = sideIdx === 0 ? -1 : 1;
         const postSlot = i * 2 + sideIdx;
@@ -1138,7 +1807,6 @@ export class CanyonRopeBridgeBuilder {
     br.rottenPlankIm.instanceMatrix.needsUpdate = true;
     br.postIm.instanceMatrix.needsUpdate = true;
 
-    // Update the 4 live 3D Braided Suspension & Handrail Ropes!
     const posAttr = br.cableRopeGeo.attributes.position as THREE.BufferAttribute;
     const normAttr = br.cableRopeGeo.attributes.normal as THREE.BufferAttribute;
     const pArr = posAttr.array as Float32Array;
@@ -1169,8 +1837,9 @@ export class CanyonRopeBridgeBuilder {
         const cx = lerp(br.ax, br.bx, f) + br.rightX * (sway + sideSign * latDist);
         const cz = lerp(br.az, br.bz, f) + br.rightZ * (sway + sideSign * latDist);
 
-        // Main cables sweep down from 4.85m tower tops to 1.45m at mid-span; handrail ropes follow posts at +1.28m!
-        const towerSweep = isMainCable ? Math.pow(Math.abs(f * 2.0 - 1.0), 2.1) * 3.45 + 1.42 : 1.28;
+        const towerSweep = isMainCable
+          ? Math.pow(Math.abs(f * 2.0 - 1.0), 2.1) * 3.45 + 1.42
+          : 1.28;
         const cy = deckY + edgeDrop + towerSweep;
 
         for (let c = 0; c <= CABLE_SIDES; c++) {
@@ -1197,11 +1866,6 @@ export class CanyonRopeBridgeBuilder {
     normAttr.needsUpdate = true;
   }
 
-  /**
-   * Samples live Canyon Rock Pillars & Swaying/Twisting Suspension Rope-Bridges!
-   * (Note: The Elevated Timber Mine Trestle is sampled via `sampleCrisscrossRootDeck`
-   * using wheel 3D height so cars can BOTH drive on top of the trestle AND pass underneath!)
-   */
   public sampleLiveCanyonSurface(
     data: CanyonBridgeChunkData,
     x: number,
@@ -1211,7 +1875,7 @@ export class CanyonRopeBridgeBuilder {
     let found = false;
     let onRopeBridge = false;
 
-    // 1. Check Sculpted Flat-Topped Rock Pillars
+    // 1. Check Sculpted Flat-Topped Multi-Height Sky-Islands
     let skirtH = -48.0;
     let hasSkirt = false;
     for (let i = 0; i < data.pillars.length; i++) {
@@ -1223,9 +1887,9 @@ export class CanyonRopeBridgeBuilder {
         found = true;
         const micro = fbm2D(x * 0.18, z * 0.18, 2) * 0.04;
         bestH = Math.max(bestH, p.deckY + micro);
-      } else if (rSq < 1.18) {
+      } else if (rSq < 1.16) {
         hasSkirt = true;
-        const drop = smoothstep(0.94, 1.18, rSq);
+        const drop = smoothstep(0.94, 1.16, rSq);
         skirtH = Math.max(skirtH, lerp(p.deckY, -48.0, drop));
       }
     }
@@ -1244,15 +1908,12 @@ export class CanyonRopeBridgeBuilder {
       const i1 = Math.min(br.plankCount - 1, i0 + 1);
       const frac = pFloat - i0;
 
-      // Account for live lateral wind/load sway of the bridge!
       const sway = lerp(br.swayX[i0], br.swayX[i1], frac);
       const rawLat = dx * br.rightX + dz * br.rightZ - sway;
 
-      if (Math.abs(rawLat) <= br.halfWidth + 0.12) {
+      if (Math.abs(rawLat) <= br.halfWidth + 0.14) {
         const nearestIdx = Math.round(pFloat);
         const plankDist = Math.abs(pFloat - nearestIdx);
-        // Snapped rotten plank creates a sharp 0.58m wheel-drop pocket across the 1.18m gap
-        // (avoids a 48m finite-difference wall spike so fast 4x4s skip & thump cleanly across!)
         const snappedDip =
           br.snappedCooldown[nearestIdx] > 0
             ? -0.58 * Math.cos(clamp(plankDist * 2.0, 0, 1) * Math.PI * 0.5)
@@ -1261,11 +1922,13 @@ export class CanyonRopeBridgeBuilder {
         const deckCenterY =
           lerp(br.restY[i0] + br.sagY[i0], br.restY[i1] + br.sagY[i1], frac) + snappedDip;
         const roll = lerp(br.rollZ[i0], br.rollZ[i1], frac);
-        // 3D torsional roll tilts the left vs right side of the plank!
         const rollTiltY = -rawLat * Math.sin(roll);
-        // Subtle plank-to-plank wooden rumble!
-        const plankRumble = Math.abs(Math.sin(pFloat * Math.PI)) * 0.022;
-        const h = deckCenterY + rollTiltY + plankRumble;
+        const outerCurb =
+          Math.abs(rawLat) > br.halfWidth - 0.35
+            ? smoothstep(br.halfWidth - 0.35, br.halfWidth + 0.1, Math.abs(rawLat)) * 0.28
+            : 0.0;
+        const plankRumble = Math.abs(Math.sin(pFloat * Math.PI)) * 0.02;
+        const h = deckCenterY + rollTiltY + outerCurb + plankRumble;
 
         if (h > bestH) {
           bestH = h;
@@ -1283,10 +1946,6 @@ export class CanyonRopeBridgeBuilder {
     return { active: found, height: bestH, onRopeBridge };
   }
 
-  /**
-   * Steps 3D Coupled Suspension-Bridge Wave Physics, Torsional Roll, Wind Sway,
-   * Rotten Plank Cracking/Snapping, and Falling Broken Plank Halves!
-   */
   public stepChunkHazards(
     data: CanyonBridgeChunkData,
     dt: number,
@@ -1302,7 +1961,6 @@ export class CanyonRopeBridgeBuilder {
       const br = data.ropeBridges[b];
       const n = br.plankCount;
 
-      // Check if vehicle is currently riding THIS suspension bridge!
       const dx = vehiclePos.x - br.ax;
       const dz = vehiclePos.z - br.az;
       const along = dx * br.dirX + dz * br.dirZ;
@@ -1310,15 +1968,9 @@ export class CanyonRopeBridgeBuilder {
       let carLat = 0;
 
       if (!passiveProtection && along >= 0 && along <= br.length) {
-        const idxApprox = clamp(
-          Math.round((along / br.length) * (n - 1)),
-          0,
-          n - 1
-        );
+        const idxApprox = clamp(Math.round((along / br.length) * (n - 1)), 0, n - 1);
         const lat = dx * br.rightX + dz * br.rightZ - br.swayX[idxApprox];
         const approxDeckY = br.restY[idxApprox] + br.sagY[idxApprox];
-        // Crucially verify vertical proximity (`|vehiclePos.y - deckY| < 3.2m`) so driving on the
-        // +5.85m Upper Timber Trestle overhead does NOT depress or snap the Lower Rope-Bridge below!
         if (
           Math.abs(lat) <= br.halfWidth + 0.5 &&
           Math.abs(vehiclePos.y - approxDeckY) < 3.2
@@ -1335,18 +1987,15 @@ export class CanyonRopeBridgeBuilder {
         }
       }
 
-      // Apply Vehicle Weight Sag + Torsional Twist Torque + Lateral Sway!
       for (let i = 1; i < n - 1; i++) {
         const f = i / (n - 1);
         const envelope = Math.sin(f * Math.PI);
 
-        // Ambient canyon crosswind sway
         const windTarget =
-          Math.sin(elapsed * 1.45 + br.windPhase + f * 2.6) * 0.36 * envelope +
-          Math.cos(elapsed * 2.9 + br.windPhase * 1.7) * 0.11 * envelope;
+          Math.sin(elapsed * 1.45 + br.windPhase + f * 2.6) * 0.34 * envelope +
+          Math.cos(elapsed * 2.9 + br.windPhase * 1.7) * 0.1 * envelope;
         br.swayX[i] = lerp(br.swayX[i], windTarget, clamp(3.5 * clampedDt, 0, 1));
 
-        // Coupled neighbor cable tension + restoring spring
         const neighborAvgY = (br.sagY[i - 1] + br.sagY[i + 1]) * 0.5;
         let accelY = (neighborAvgY - br.sagY[i]) * 185.0 - br.sagY[i] * 22.0 - br.velY[i] * 5.2;
 
@@ -1358,22 +2007,19 @@ export class CanyonRopeBridgeBuilder {
           const distPlanks = Math.abs(i - carPlankFloat);
           if (distPlanks < 3.2) {
             const wKernel = Math.cos((distPlanks / 3.2) * Math.PI * 0.5);
-            // Heavy 4x4 downward load + dynamic bounce impact!
             accelY -= (26.5 + Math.min(18.0, vehicleSpeed * 0.55)) * wKernel;
-            // Off-center weight twists the bridge in 3D roll toward the loaded side!
             const normLat = clamp(carLat / br.halfWidth, -1, 1);
             accelRoll -= normLat * 14.5 * wKernel;
-            br.swayX[i] += normLat * 0.35 * wKernel * clampedDt;
+            br.swayX[i] += normLat * 0.32 * wKernel * clampedDt;
 
-            // Trigger Rotten Plank Crack -> Snap!
             if (
               distPlanks < 1.05 &&
               br.isRotten[i] === 1 &&
               br.snappedCooldown[i] <= 0 &&
               br.crackTimer[i] <= 0
             ) {
-              br.crackTimer[i] = 0.085; // 85ms sharp crack warning, then SNAP!
-              br.velY[i] -= 2.8;
+              br.crackTimer[i] = 0.34; // 0.34s crack warning so fast 4x4s clear both axles before snap!
+              br.velY[i] -= 2.4;
             }
           }
         }
@@ -1381,12 +2027,11 @@ export class CanyonRopeBridgeBuilder {
         br.velY[i] += accelY * clampedDt;
         br.velRoll[i] += accelRoll * clampedDt;
 
-        // Tick Rotten Plank Cracking & Respawn Timers
         if (br.crackTimer[i] > 0) {
           br.crackTimer[i] -= clampedDt;
           if (br.crackTimer[i] <= 0) {
             br.crackTimer[i] = 0;
-            br.snappedCooldown[i] = 9.5; // Snapped open for 9.5s!
+            br.snappedCooldown[i] = 9.5;
             this.spawnSnappedPlankHalves(data, br, i);
           }
         } else if (br.snappedCooldown[i] > 0) {
@@ -1394,7 +2039,6 @@ export class CanyonRopeBridgeBuilder {
         }
       }
 
-      // Integrate interior plank positions (endpoints 0 and n-1 remain pinned to rock abutments!)
       for (let i = 1; i < n - 1; i++) {
         br.sagY[i] = clamp(br.sagY[i] + br.velY[i] * clampedDt, -0.92, 0.48);
         br.rollZ[i] = clamp(br.rollZ[i] + br.velRoll[i] * clampedDt, -0.13, 0.13);
@@ -1403,7 +2047,6 @@ export class CanyonRopeBridgeBuilder {
       this.syncRopeBridgeMeshes(br);
     }
 
-    // Step Falling Broken 3D Plank Halves tumbling into the -48m Canyon Mist!
     for (let i = data.fallingHalves.length - 1; i >= 0; i--) {
       const fh = data.fallingHalves[i];
       fh.life -= clampedDt;
@@ -1471,7 +2114,6 @@ export class CanyonRopeBridgeBuilder {
     this.atmosphereFxGroup.visible = active;
     if (!active) return;
 
-    // Drift chasm mist sheets smoothly below active viewpoint
     for (let i = 0; i < this.mistPlanes.length; i++) {
       const mp = this.mistPlanes[i];
       const driftX = Math.sin(elapsed * 0.22 + i * 2.1) * 9.5;
@@ -1488,10 +2130,10 @@ export class CanyonRopeBridgeBuilder {
       let y = this.windPositions[ix + 1] + this.windVelocities[ix + 1] * clampedDt;
       let z = this.windPositions[ix + 2] + this.windVelocities[ix + 2] * clampedDt;
 
-      if (x - focusPos.x > 60) x -= 120;
-      if (x - focusPos.x < -60) x += 120;
-      if (y > focusPos.y + 18) y -= 40;
-      if (y < focusPos.y - 24) y += 40;
+      if (x - focusPos.x > 82) x -= 164;
+      if (x - focusPos.x < -82) x += 164;
+      if (y > focusPos.y + 18) y -= 42;
+      if (y < focusPos.y - 24) y += 42;
       if (z - focusPos.z > 75) z -= 150;
       if (z - focusPos.z < -75) z += 150;
 

@@ -175,10 +175,10 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
   },
   CANYON_BRIDGES: {
     id: 'CANYON_BRIDGES',
-    title: 'SWINGING CANYON ROPE-BRIDGES & MINE TRESTLES',
-    subtitle: '3D SWAYING & TWISTING ROPE BRIDGES · SNAPPING ROTTEN PLANKS · CRISSCROSS TRESTLES',
+    title: 'MULTI-ISLAND CANYON BRIDGES, TRESTLES & JUMP RAMPS',
+    subtitle: '1→5→2→3 SKY-ISLAND GRAPH · VARIED HEIGHTS · ROPE BRIDGES · STUNT JUMP RAMPS',
     fogColorHex: 0xc4cfd6,
-    fogDensity: 0.0048,
+    fogDensity: 0.0042,
     skyHorizonRGB: [0.82, 0.86, 0.89],
     skyZenithRGB: [0.26, 0.46, 0.66],
     sunColorHex: 0xffe8c8,
@@ -1898,7 +1898,7 @@ export class TrailCorridorWorld {
       this.currentBiome === 'UNDERGROUND_MARKET'
         ? sampleUndergroundMarketHalfWidth(Math.max(0, -z), CHUNK_LENGTH)
         : this.currentBiome === 'CANYON_BRIDGES'
-        ? 28.0
+        ? 64.0
         : this.currentBiome === 'GLACIAL_ICE'
         ? 32.0
         : this.currentBiome === 'CARNIVOROUS_BOG'
@@ -2046,8 +2046,9 @@ export class TrailCorridorWorld {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
-      // Sheer -48m deep misty canyon gorge across absD < 38m, framed by towering jagged canyon rim cliffs far outside!
-      const farRimMask = smoothstep(38.0, 74.0, absD);
+      // Colossal 148m-wide (-74m .. +74m) sheer -48m misty canyon gorge housing up to 5 sky-islands abreast,
+      // framed by towering jagged canyon rim cliffs far outside!
+      const farRimMask = smoothstep(74.0, 122.0, absD);
       cliffRelief = -48.0 + farRimMask * (82.0 + ridge2D(x * 0.055, z * 0.055, 3) * 14.0);
     } else if (this.currentBiome === 'UNDERGROUND_MARKET') {
       forestFlankBlend = 0;
@@ -2166,7 +2167,7 @@ export class TrailCorridorWorld {
           onBogLilyPad = bogSample.onLilyPad;
         }
       }
-      if (rec.canyonBridgeData && absD < 36.0) {
+      if (rec.canyonBridgeData && absD < 78.0) {
         const bridgeSample = this.canyonBridgeBuilder.sampleLiveCanyonSurface(
           rec.canyonBridgeData,
           x,
@@ -2358,11 +2359,16 @@ export class TrailCorridorWorld {
 
     for (const br of bridges) {
       if (z < br.minZ || z > br.maxZ) continue;
+      const isTrestle = this.currentBiome === 'CANYON_BRIDGES';
       for (const seg of br.segments) {
         const abx = seg.bx - seg.ax;
         const abz = seg.bz - seg.az;
         const lenSq = abx * abx + abz * abz + 1e-6;
-        const t = clamp(((x - seg.ax) * abx + (z - seg.az) * abz) / lenSq, 0, 1);
+        const rawT = ((x - seg.ax) * abx + (z - seg.az) * abz) / lenSq;
+        // Crisp rectangular lip termination on Canyon Trestles & Stunt Jump Ramps so cars launch cleanly!
+        if (isTrestle && (rawT < -0.04 || rawT > 1.04)) continue;
+
+        const t = clamp(rawT, 0, 1);
         const cx = seg.ax + abx * t;
         const cz = seg.az + abz * t;
         const dx = x - cx;
@@ -2372,7 +2378,6 @@ export class TrailCorridorWorld {
 
         if (latDistSq < hw * hw) {
           const latDist = Math.sqrt(latDistSq);
-          const isTrestle = this.currentBiome === 'CANYON_BRIDGES';
           const crownDrop = isTrestle ? 0.0 : Math.pow(latDist / hw, 2.2) * 0.28;
           const deckY = lerp(seg.ay, seg.by, t) + 0.18 - crownDrop;
 

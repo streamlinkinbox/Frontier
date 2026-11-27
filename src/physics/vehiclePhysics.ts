@@ -255,22 +255,33 @@ export class VehicleRigidBody {
       spec.splitFactor > 0.25 ? spec.centerX + branchSide * spec.splitOffset : spec.centerX;
     let ground = world.sampleTerrain(spawnX, targetZ);
 
-    // In CANYON_BRIDGES, if targetZ falls over open -48m chasm air (e.g. between diagonal bridges),
-    // snap onto the nearest solid flat-topped Rock Pillar!
-    if (world.currentBiome === 'CANYON_BRIDGES' && ground.height < -6.0) {
-      const chunkIdx = Math.max(0, Math.floor(-targetZ / world.chunkLength));
-      const uInChunk = -targetZ - chunkIdx * world.chunkLength;
-      const pillarU = uInChunk < 30 ? 7.0 : uInChunk < 80 ? 53.0 : 104.5;
-      targetZ = -(chunkIdx * world.chunkLength + pillarU);
-      spec = world.getTrailSpec(targetZ);
-      spawnX = spec.centerX;
-      ground = world.sampleTerrain(spawnX, targetZ);
+    // In CANYON_BRIDGES, if (spawnX, targetZ) falls over open -48m chasm air (e.g. even-count 2/4 island rows),
+    // snap directly onto the nearest Sky-Island Mesa at its exact elevation facing its outgoing bridges!
+    let customHeadingYaw: number | null = null;
+    if (world.currentBiome === 'CANYON_BRIDGES') {
+      const checkX = Math.abs(this.position.z - z) < 25 ? this.position.x : spawnX;
+      const checkGround = world.sampleTerrain(checkX, targetZ);
+      if (checkGround.height < -12.0) {
+        const isl = world.canyonBridgeBuilder.findNearestIslandSpawn(
+          checkX,
+          targetZ,
+          (sz) => world.getTrailSpec(sz).centerX
+        );
+        spawnX = isl.x;
+        targetZ = isl.z;
+        spec = world.getTrailSpec(targetZ);
+        ground = world.sampleTerrain(spawnX, targetZ);
+        customHeadingYaw = isl.yaw;
+      } else {
+        spawnX = checkX;
+        ground = checkGround;
+      }
     }
 
     const eqHeight = this.currentPreset.suspRestLength * 0.62 + this.currentPreset.wheelRadius - 0.14;
     this.position.set(spawnX, ground.height + eqHeight, targetZ);
 
-    const headingYaw = Math.atan2(spec.slopeX, 1.0);
+    const headingYaw = customHeadingYaw ?? Math.atan2(spec.slopeX, 1.0);
     this.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), headingYaw);
 
     this.linearVelocity.set(0, 0, 0);

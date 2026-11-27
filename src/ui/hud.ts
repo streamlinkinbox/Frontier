@@ -110,7 +110,7 @@ export class ExpeditionHud {
         id: 'CANYON_BRIDGES',
         key: '0',
         name: 'CANYON BRIDGES',
-        sub: 'Swaying Rope Bridges · Snapping Planks · Crisscross Trestles',
+        sub: '1→5→2→3 Sky-Islands · Varied Heights · Bridges & Jump Ramps',
       },
     ];
 
@@ -432,14 +432,14 @@ export class ExpeditionHud {
         : 'GIANT FOREST';
 
     if (world.currentBiome === 'CANYON_BRIDGES') {
-      if (focusPos.y > 2.2) {
-        zoneName = 'UPPER TIMBER MINE TRESTLE';
-      } else if (sample.surface === 'ROPE_PLANK') {
+      if (sample.surface === 'ROPE_PLANK') {
         zoneName = 'SWAYING ROPE SUSPENSION BRIDGE';
-      } else if (sample.height < -8.0) {
+      } else if (sample.height < -12.0 && focusPos.y > -8.0) {
+        zoneName = focusPos.y > 2.5 ? 'HIGH TIMBER TRESTLE / STUNT RAMP' : 'CHASM AIRBORNE / TRESTLE SPAN';
+      } else if (sample.height < -12.0) {
         zoneName = 'MISTY CANYON CHASM ABYSS';
       } else {
-        zoneName = 'SANDSTONE CHASM PILLAR';
+        zoneName = `SKY-ISLAND MESA (${sample.height >= 0 ? '+' : ''}${sample.height.toFixed(1)}m)`;
       }
     } else if (world.currentBiome === 'UNDERGROUND_MARKET') {
       const uMkt = ((Math.max(0, -focusPos.z) % 112) + 112) % 112;

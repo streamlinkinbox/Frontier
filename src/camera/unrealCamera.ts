@@ -87,11 +87,17 @@ export class UnrealObserverCamera {
 
   public placeAtCourseZ(world: TrailCorridorWorld, z: number, heightAboveGround = 7.5): void {
     const spec = world.getTrailSpec(z);
-    const spawnX =
+    let spawnX =
       spec.splitFactor > 0.25 ? spec.centerX - spec.splitOffset : spec.centerX;
     let groundY = world.sampleHeightRaw(spawnX, z).height;
     if (world.currentBiome === 'CANYON_BRIDGES') {
-      groundY = Math.max(groundY, 0.0);
+      const isl = world.canyonBridgeBuilder.findNearestIslandSpawn(
+        spawnX,
+        z,
+        (sz) => world.getTrailSpec(sz).centerX
+      );
+      spawnX = isl.x;
+      groundY = Math.max(isl.y, 0.0) + 3.5;
     }
     this.position.set(spawnX, groundY + heightAboveGround, z);
     this.velocity.set(0, 0, 0);
