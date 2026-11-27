@@ -249,9 +249,12 @@ export class VehicleRigidBody {
 
   public resetAt(world: TrailCorridorWorld, z: number): void {
     const spec = world.getTrailSpec(z);
-    const ground = world.sampleTerrain(spec.centerX, z);
+    const branchSide = this.position.x > spec.centerX ? 1 : -1;
+    const spawnX =
+      spec.splitFactor > 0.25 ? spec.centerX + branchSide * spec.splitOffset : spec.centerX;
+    const ground = world.sampleTerrain(spawnX, z);
     const eqHeight = this.currentPreset.suspRestLength * 0.62 + this.currentPreset.wheelRadius - 0.14;
-    this.position.set(spec.centerX, ground.height + eqHeight, z);
+    this.position.set(spawnX, ground.height + eqHeight, z);
 
     const headingYaw = Math.atan2(spec.slopeX, 1.0);
     this.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), headingYaw);

@@ -87,8 +87,10 @@ export class UnrealObserverCamera {
 
   public placeAtCourseZ(world: TrailCorridorWorld, z: number, heightAboveGround = 7.5): void {
     const spec = world.getTrailSpec(z);
-    const groundY = world.sampleHeightRaw(spec.centerX, z).height;
-    this.position.set(spec.centerX, groundY + heightAboveGround, z);
+    const spawnX =
+      spec.splitFactor > 0.25 ? spec.centerX - spec.splitOffset : spec.centerX;
+    const groundY = world.sampleHeightRaw(spawnX, z).height;
+    this.position.set(spawnX, groundY + heightAboveGround, z);
     this.velocity.set(0, 0, 0);
     // Point camera along the natural curve of the trail ahead
     this.yaw = Math.atan2(spec.slopeX, 1.0);

@@ -76,6 +76,12 @@ export class ExpeditionHud {
         name: 'DEADWOOD',
         sub: 'Dead Forest · Live Erupting Road Roots',
       },
+      {
+        id: 'SINGULARITY',
+        key: '5',
+        name: 'SINGULARITY',
+        sub: 'Steep Split Cliffs · Mars Storm · Lightning & Monoliths',
+      },
     ];
 
     const levelChipsHtml = levels
@@ -182,7 +188,7 @@ export class ExpeditionHud {
           <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
           <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
           <span><kbd>SCROLL</kbd> Cam Speed</span>
-          <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> Switch Level</span>
+          <span><kbd>1</kbd>-<kbd>5</kbd> Switch Level</span>
           <span><kbd>T</kbd> Place Car Here</span>
           <span><kbd>V</kbd> Drive Course</span>
         </div>
@@ -315,7 +321,7 @@ export class ExpeditionHud {
         <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
         <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
         <span><kbd>SCROLL</kbd> Cam Speed</span>
-        <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>5</kbd> Switch Level</span>
         <span><kbd>T</kbd> Place Car Here</span>
         <span><kbd>V</kbd> Drive Course</span>
       `;
@@ -326,7 +332,7 @@ export class ExpeditionHud {
         <span><kbd>SHIFT</kbd> Boost</span>
         <span><kbd>SPACE</kbd> Handbrake</span>
         <span><kbd>R</kbd> Reset Car</span>
-        <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>5</kbd> Switch Level</span>
         <span><kbd>P</kbd> Next Pass</span>
         <span><kbd>V</kbd> Back to Unreal Camera</span>
       `;
@@ -375,7 +381,9 @@ export class ExpeditionHud {
     const spec = world.getTrailSpec(focusPos.z);
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
     let zoneName =
-      world.currentBiome === 'SWAMP'
+      world.currentBiome === 'SINGULARITY'
+        ? 'SINGULARITY CLIFF PLATEAU'
+        : world.currentBiome === 'SWAMP'
         ? 'MANGROVE ROOT CATHEDRAL'
         : world.currentBiome === 'DESERT'
         ? 'BADLANDS SHACK VILLAGE'
@@ -383,7 +391,15 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'DEADWOOD' && sample.mudiness > 0.35) {
+    if (world.currentBiome === 'SINGULARITY') {
+      if (spec.splitFactor > 0.25) {
+        zoneName = 'SPLIT CLIFF CHASM';
+      } else if (spec.halfWidth < 11.5) {
+        zoneName = 'RAZOR CLIFF SPINE';
+      } else if (sample.waterDepth > 0.04) {
+        zoneName = 'TURQUOISE BRINE BASIN';
+      }
+    } else if (world.currentBiome === 'DEADWOOD' && sample.mudiness > 0.35) {
       zoneName = 'ERUPTING ROOT HOLLOW';
     } else if (spec.mudslideFactor > 0.35 && world.currentBiome !== 'DEADWOOD') {
       zoneName =

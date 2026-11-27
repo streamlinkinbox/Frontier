@@ -668,4 +668,36 @@ export class RallyVineAudioEngine {
     osc.start(now);
     osc.stop(now + 0.21);
   }
+
+  public playThunderStrikeSound(intensity = 1.0): void {
+    if (!this.initialized || !this.ctx || !this.masterGain || this.muted) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Sharp high-voltage electric arc crack
+    const crackOsc = this.ctx.createOscillator();
+    const crackGain = this.ctx.createGain();
+    crackOsc.type = 'sawtooth';
+    crackOsc.frequency.setValueAtTime(880, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(64, now + 0.18);
+    crackGain.gain.setValueAtTime(0.28 * intensity, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    crackOsc.connect(crackGain);
+    crackGain.connect(this.masterGain);
+    crackOsc.start(now);
+    crackOsc.stop(now + 0.22);
+
+    // 2. Deep rolling sub-bass thunder boom
+    const boomOsc = this.ctx.createOscillator();
+    const boomGain = this.ctx.createGain();
+    boomOsc.type = 'triangle';
+    boomOsc.frequency.setValueAtTime(92, now + 0.04);
+    boomOsc.frequency.exponentialRampToValueAtTime(28, now + 1.15);
+    boomGain.gain.setValueAtTime(0.001, now);
+    boomGain.gain.linearRampToValueAtTime(0.46 * intensity, now + 0.08);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, now + 1.25);
+    boomOsc.connect(boomGain);
+    boomGain.connect(this.masterGain);
+    boomOsc.start(now);
+    boomOsc.stop(now + 1.28);
+  }
 }

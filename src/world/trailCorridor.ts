@@ -3,8 +3,9 @@ import { clamp, fbm2D, lerp, mulberry32, noise2D, ridge2D, smoothstep } from '..
 import { ProceduralTextureLibrary } from '../graphics/proceduralTextures';
 import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
 import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
+import { SingularityChunkData, SingularityDesertBuilder } from './singularityDesertSystem';
 
-export type BiomeId = 'FOREST' | 'SWAMP' | 'DESERT' | 'DEADWOOD';
+export type BiomeId = 'FOREST' | 'SWAMP' | 'DESERT' | 'DEADWOOD' | 'SINGULARITY';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -83,6 +84,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     sunIntensity: 2.85,
     hemiSkyHex: 0xd5ddd7,
     hemiGroundHex: 0x333a2e,
+  },
+  SINGULARITY: {
+    id: 'SINGULARITY',
+    title: 'VITRIFIED SINGULARITY DESERT',
+    subtitle: 'STEEP SPLIT CLIFFS · MARS SANDSTORM · LIGHTNING & FLYING ROCKS',
+    fogColorHex: 0xb65934,
+    fogDensity: 0.0088, // Thick poor-visibility Mars sandstorm haze!
+    skyHorizonRGB: [0.78, 0.36, 0.19],
+    skyZenithRGB: [0.31, 0.12, 0.10],
+    sunColorHex: 0xffa062,
+    sunIntensity: 3.05,
+    hemiSkyHex: 0xe88658,
+    hemiGroundHex: 0x2a1511,
   },
 };
 
@@ -264,6 +278,7 @@ interface ChunkRecord {
   rootAnchors: RootAnchor[];
   deadwoodData?: DeadwoodChunkData;
   desertVillageData?: DesertVillageChunkData;
+  singularityData?: SingularityChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -296,6 +311,7 @@ export class TrailCorridorWorld {
 
   private deadwoodBuilder: DeadwoodBuilder;
   private desertVillageBuilder: DesertVillageBuilder;
+  public readonly singularityBuilder: SingularityDesertBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -344,6 +360,7 @@ export class TrailCorridorWorld {
   constructor(private textures: ProceduralTextureLibrary) {
     this.deadwoodBuilder = new DeadwoodBuilder(textures);
     this.desertVillageBuilder = new DesertVillageBuilder(textures);
+    this.singularityBuilder = new SingularityDesertBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -621,6 +638,8 @@ export class TrailCorridorWorld {
     });
 
     this.buildAssetGeometries();
+    this.singularityBuilder.stormFxGroup.visible = false;
+    this.group.add(this.singularityBuilder.stormFxGroup);
   }
 
   public onChunkSpawned(
@@ -638,6 +657,7 @@ export class TrailCorridorWorld {
    */
   public setBiomeAndRebuild(biome: BiomeId, startZ: number): void {
     this.currentBiome = biome;
+    this.singularityBuilder.stormFxGroup.visible = biome === 'SINGULARITY';
     this.resetAround(startZ);
   }
 
@@ -1676,18 +1696,30 @@ export class TrailCorridorWorld {
     const slopeX = (cNext - cPrev) / (2 * eps);
     const curvature = (cNext - 2 * c0 + cPrev) / (eps * eps);
 
-    const elevScale = this.currentBiome === 'DESERT' ? 1.65 : this.currentBiome === 'SWAMP' ? 0.55 : 1.0;
+    const elevScale =
+      this.currentBiome === 'DESERT' ? 1.65 : this.currentBiome === 'SWAMP' ? 0.55 : 1.0;
     const elevFade = smoothstep(10, 60, distForward);
+    const cliffRollerFade = smoothstep(20, 82, distForward);
     const baseY =
-      (Math.sin(z * 0.016) * 2.6 +
-        Math.sin(z * 0.041 + 0.8) * 0.75 +
-        noise2D(z * 0.012, 19.4) * 2.0) *
-      elevFade *
-      elevScale;
+      this.currentBiome === 'SINGULARITY'
+        ? 38.0 +
+          (Math.sin(z * 0.017) * 14.5 +
+            Math.sin(z * 0.039 + 0.9) * 5.2 +
+            noise2D(z * 0.012, 19.4) * 8.0) *
+            cliffRollerFade
+        : (Math.sin(z * 0.016) * 2.6 +
+            Math.sin(z * 0.041 + 0.8) * 0.75 +
+            noise2D(z * 0.012, 19.4) * 2.0) *
+          elevFade *
+          elevScale;
 
-    // Periodic Split-Road Fork (~every 336m)
+    // Periodic Split-Road Fork (~every 336m in Forest/Swamp, ~every 224m dramatic cliff-split in Singularity!)
     let splitFactor = 0;
-    if (
+    if (this.currentBiome === 'SINGULARITY' && distForward > 68) {
+      const period = 224;
+      const phase = ((distForward - 68) % period) / period;
+      splitFactor = smoothstep(0.06, 0.18, phase) * smoothstep(0.58, 0.44, phase);
+    } else if (
       distForward > 95 &&
       (this.currentBiome === 'FOREST' || this.currentBiome === 'SWAMP')
     ) {
@@ -1695,7 +1727,7 @@ export class TrailCorridorWorld {
       const phase = ((distForward - 95) % period) / period;
       splitFactor = smoothstep(0.05, 0.16, phase) * smoothstep(0.48, 0.36, phase);
     }
-    const splitOffset = splitFactor * 18.5; // Wide 37-meter fork spread!
+    const splitOffset = splitFactor * (this.currentBiome === 'SINGULARITY' ? 19.0 : 18.5);
 
     // Periodic Flash-Flood Hillside Mudslide Zone (occurs in non-split stretches in FOREST & SWAMP!)
     let mudslideFactor = 0;
@@ -1710,21 +1742,27 @@ export class TrailCorridorWorld {
       mudslideDirX = Math.floor((distForward - 95) / period) % 2 === 0 ? 1 : -1;
     }
 
-    // VAST, SPACIOUS HALF-WIDTH
+    // VAST, SPACIOUS HALF-WIDTH (in SINGULARITY, dynamically pinches from 22.5m plateau down to 7.2m thin cliff spine!)
     const widthWave = Math.sin(z * 0.022 + 0.7) * 6.5 + noise2D(z * 0.018, 41.2) * 5.0;
+    const cliffPinch = Math.pow(Math.sin(z * 0.029 + 0.5) * 0.5 + 0.5, 1.25) * introFade;
     const baseHalfWidth =
-      this.currentBiome === 'DEADWOOD'
+      this.currentBiome === 'SINGULARITY'
+        ? lerp(22.5, 7.2, cliffPinch)
+        : this.currentBiome === 'DEADWOOD'
         ? clamp(21.0 + widthWave * 0.45 * introFade, 18.0, 26.0)
         : this.currentBiome === 'DESERT'
         ? clamp(28.0 + widthWave * 0.45 * introFade, 24.0, 34.0)
         : clamp(38.0 + widthWave * introFade, 33.0, 48.0);
-    const halfWidth = baseHalfWidth + splitOffset * 0.65;
+    const halfWidth =
+      this.currentBiome === 'SINGULARITY'
+        ? baseHalfWidth + splitOffset * 0.35
+        : baseHalfWidth + splitOffset * 0.65;
 
     const mudNoise = fbm2D(z * 0.032, 7.2, 3) * 0.5 + 0.5;
     const mudPatch =
       (this.currentBiome === 'SWAMP'
         ? smoothstep(0.32, 0.68, mudNoise)
-        : this.currentBiome === 'DESERT'
+        : this.currentBiome === 'DESERT' || this.currentBiome === 'SINGULARITY'
         ? 0
         : smoothstep(0.54, 0.82, mudNoise)) * introFade;
 
@@ -1760,26 +1798,45 @@ export class TrailCorridorWorld {
     const absD = Math.abs(d);
     const hw = spec.halfWidth;
 
+    const branchHalfWidth = lerp(
+      hw,
+      this.currentBiome === 'SINGULARITY' ? 7.8 : 16.5,
+      spec.splitFactor
+    );
+
     let distFromBranch = absD;
     let medianIslandBump = 0;
+    let splitElevationBias = 0;
     if (spec.splitFactor > 0.02) {
       const dLeft = Math.abs(d + spec.splitOffset);
       const dRight = Math.abs(d - spec.splitOffset);
       distFromBranch = Math.min(dLeft, dRight);
 
-      const islandHalfW = Math.max(0.5, spec.splitOffset * 0.42);
-      if (absD < islandHalfW * 1.4) {
-        const islandMask = smoothstep(islandHalfW * 1.4, islandHalfW * 0.35, absD) * spec.splitFactor;
-        medianIslandBump = islandMask * (2.1 + 0.55 * ridge2D(x * 0.16, z * 0.16, 2));
+      if (this.currentBiome === 'SINGULARITY') {
+        // High-road vs Low-road split cliff paths separated by a sheer -42m chasm!
+        const sideBlend = clamp(d / Math.max(2.0, spec.splitOffset * 0.45), -1, 1);
+        splitElevationBias = -sideBlend * 2.8 * spec.splitFactor;
+        if (absD < spec.splitOffset && distFromBranch > branchHalfWidth * 0.95) {
+          const chasmMask =
+            smoothstep(branchHalfWidth * 0.95, branchHalfWidth + 3.2, distFromBranch) *
+            spec.splitFactor;
+          medianIslandBump =
+            -42.0 * chasmMask + ridge2D(x * 0.14, z * 0.14, 2) * 3.2 * chasmMask;
+        }
+      } else {
+        const islandHalfW = Math.max(0.5, spec.splitOffset * 0.42);
+        if (absD < islandHalfW * 1.4) {
+          const islandMask =
+            smoothstep(islandHalfW * 1.4, islandHalfW * 0.35, absD) * spec.splitFactor;
+          medianIslandBump = islandMask * (2.1 + 0.55 * ridge2D(x * 0.16, z * 0.16, 2));
+        }
       }
     }
 
-    const branchHalfWidth = lerp(hw, 16.5, spec.splitFactor); // Each split branch is 33m wide!
     const bankSlope = clamp(-spec.curvature * 12.0, -0.09, 0.09);
     const bankHeight = d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
 
     // Steep Hillside Cross-Camber during Flash-Flood Mudslide Sections!
-    // High hillside on -mudslideDirX, sloping down across the road toward +mudslideDirX!
     const mudslideCamberSlope = -spec.mudslideDirX * 0.135 * spec.mudslideFactor;
     const mudslideTiltHeight = clamp(d, -42, 42) * mudslideCamberSlope;
     const mudslidePushX =
@@ -1787,22 +1844,52 @@ export class TrailCorridorWorld {
         ? spec.mudslideDirX * spec.mudslideFactor * 6.8
         : 0;
 
-    // Desert Sweeping Sand Dunes!
+    // Sweeping Sand Dunes!
     const duneWaves =
       this.currentBiome === 'DESERT'
         ? Math.sin(x * 0.065 + z * 0.045) * 1.65 * smoothstep(4, 24, distFromBranch) +
           ridge2D(x * 0.032, z * 0.032, 2) * 1.35
+        : this.currentBiome === 'SINGULARITY'
+        ? Math.sin(x * 0.11 + z * 0.08) * 0.24 * smoothstep(branchHalfWidth, 2.0, distFromBranch)
         : 0;
 
     const microRough =
       fbm2D(x * 0.22, z * 0.22, 3) * (this.currentBiome === 'SWAMP' ? 0.1 : 0.14) +
       noise2D(x * 1.0, z * 1.0) * 0.025;
 
-    const forestFlankBlend = smoothstep(hw * 0.92, hw + 38.0, absD);
-    const outerHill = Math.pow(Math.max(0, absD - (hw + 22.0)) * 0.042, 1.6) * 7.5;
-    const rootMounds =
+    let cliffRelief = 0;
+    let forestFlankBlend = smoothstep(hw * 0.92, hw + 38.0, absD);
+    let outerHill = Math.pow(Math.max(0, absD - (hw + 22.0)) * 0.042, 1.6) * 7.5;
+    let rootMounds =
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
+
+    if (this.currentBiome === 'SINGULARITY') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+
+      const distForward = Math.max(0, -z);
+      const cliffActive = smoothstep(14, 46, distForward);
+      if (absD >= spec.splitOffset * 0.95 && distFromBranch > branchHalfWidth * 0.95) {
+        const brinkBlend =
+          smoothstep(branchHalfWidth * 0.96, branchHalfWidth + 4.8, distFromBranch) * cliffActive;
+        const wallSelector = Math.sin(z * 0.014 + 0.8);
+        const isBenchWall =
+          (wallSelector > 0.36 && d < 0) || (wallSelector < -0.36 && d > 0);
+        const cragDetail =
+          ridge2D(x * 0.085, z * 0.085, 3) * 4.6 + fbm2D(x * 0.18, z * 0.18, 2) * 1.8;
+
+        if (isBenchWall) {
+          // Sheer towering volcanic obsidian cliff wall rising +38m right beside the ledge!
+          cliffRelief = (38.0 + cragDetail) * brinkBlend;
+        } else {
+          // Sheer -48m vertical precipice plunging into the canyon abyss + far canyon rim walls!
+          const farRimRise = smoothstep(78.0, 142.0, absD) * 62.0;
+          cliffRelief = (-48.0 + cragDetail * 0.75) * brinkBlend + farRimRise * cliffActive;
+        }
+      }
+    }
 
     const localMud = clamp(
       spec.mudPatch *
@@ -1815,11 +1902,13 @@ export class TrailCorridorWorld {
 
     let height =
       spec.baseY +
+      splitElevationBias +
       bankHeight +
       mudslideTiltHeight +
       duneWaves -
       localMud * 0.15 +
       medianIslandBump +
+      cliffRelief +
       microRough * lerp(0.65, 1.5, forestFlankBlend) +
       forestFlankBlend * 1.2 +
       rootMounds +
@@ -1846,14 +1935,21 @@ export class TrailCorridorWorld {
       }
     }
 
-    let surface: SurfaceType = this.currentBiome === 'DESERT' ? 'DESERT_SAND' : 'PACKED_DIRT';
+    let surface: SurfaceType =
+      this.currentBiome === 'DESERT' || this.currentBiome === 'SINGULARITY'
+        ? 'DESERT_SAND'
+        : 'PACKED_DIRT';
     if (waterDepth > 0.03) {
       surface = 'SHALLOW_WATER';
     } else if (spec.mudslideFactor > 0.25 && absD < hw * 0.9) {
       surface = 'MUDSLIDE';
     } else if (absD > hw + 18.0 || medianIslandBump > 0.8) {
       surface = 'MOSS_ROCK';
-    } else if (this.currentBiome !== 'DESERT' && localMud > 0.36) {
+    } else if (
+      this.currentBiome !== 'DESERT' &&
+      this.currentBiome !== 'SINGULARITY' &&
+      localMud > 0.36
+    ) {
       surface = 'WET_MUD';
     } else if (this.currentBiome !== 'DESERT' && distFromBranch > branchHalfWidth * 0.78) {
       surface = 'LOOSE_VERGE';
@@ -1917,8 +2013,8 @@ export class TrailCorridorWorld {
         rollingResistance = 0.016;
         break;
       case 'DESERT_SAND':
-        friction = 0.92;
-        rollingResistance = 0.032;
+        friction = this.currentBiome === 'SINGULARITY' ? 1.12 : 0.92;
+        rollingResistance = this.currentBiome === 'SINGULARITY' ? 0.015 : 0.032;
         break;
     }
 
@@ -2149,7 +2245,28 @@ export class TrailCorridorWorld {
           (x, z) => this.sampleHeightRaw(x, z).height
         );
       }
+
+      // 7. VITRIFIED SINGULARITY DESERT: Levitating Obsidian Monoliths, Gyro-Rings & Wind-Hurled Storm Boulders!
+      if (rec.singularityData) {
+        this.singularityBuilder.stepChunkHazards(
+          rec.singularityData,
+          elapsedTime,
+          dt,
+          (z) => {
+            const sp = this.getTrailSpec(z);
+            return { centerX: sp.centerX, halfWidth: sp.halfWidth };
+          },
+          (x, z) => this.sampleHeightRaw(x, z).height
+        );
+      }
     }
+
+    this.singularityBuilder.stepGlobalStormFx(
+      this.currentBiome === 'SINGULARITY',
+      playerPos,
+      dt,
+      (x, z) => this.sampleHeightRaw(x, z).height
+    );
   }
 
   /**
@@ -2174,7 +2291,7 @@ export class TrailCorridorWorld {
    */
   public sampleDustDevilForce(pos: THREE.Vector3, outForce: THREE.Vector3): boolean {
     outForce.set(0, 0, 0);
-    if (this.currentBiome !== 'DESERT') return false;
+    if (this.currentBiome !== 'DESERT' && this.currentBiome !== 'SINGULARITY') return false;
     for (const rec of this.activeChunks.values()) {
       for (const dd of rec.dustDevils) {
         const dx = pos.x - dd.position.x;
@@ -2186,6 +2303,14 @@ export class TrailCorridorWorld {
           outForce.set((-dz / dist) * strength, strength * 0.25, (dx / dist) * strength);
           return true;
         }
+      }
+    }
+    if (this.currentBiome === 'SINGULARITY') {
+      // Rhythmic Martian sandstorm crosswind gusts across exposed cliff ridges!
+      const gustWave = Math.sin(this.timeUniform.value * 1.45 + pos.z * 0.035);
+      if (Math.abs(gustWave) > 0.72) {
+        outForce.set(gustWave * 950, 0, 0);
+        return true;
       }
     }
     return false;
@@ -2292,7 +2417,15 @@ export class TrailCorridorWorld {
     const rootAnchors: RootAnchor[] = [];
 
     const biomeSalt =
-      biome === 'SWAMP' ? 7719 : biome === 'DESERT' ? 31337 : biome === 'DEADWOOD' ? 18443 : 0;
+      biome === 'SWAMP'
+        ? 7719
+        : biome === 'DESERT'
+        ? 31337
+        : biome === 'DEADWOOD'
+        ? 18443
+        : biome === 'SINGULARITY'
+        ? 55987
+        : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
 
@@ -2312,40 +2445,81 @@ export class TrailCorridorWorld {
     };
     this.activeChunks.set(chunkIndex, chunkRecord);
 
-    // A. NATURAL WATER PUDDLES / BLACKWATER BAYOU LAGOONS / DEADWOOD MUD HOLLOWS
+    // A. NATURAL WATER PUDDLES / BLACKWATER LAGOONS / GLOWING TURQUOISE SALT-BRINE POOLS!
     if (chunkIndex >= 0 && biome !== 'DESERT') {
-      const puddleCount = biome === 'SWAMP' ? 8 : biome === 'DEADWOOD' ? 2 : 3;
-      for (let p = 0; p < puddleCount; p++) {
-        const zPud = zStart - ((p + 0.25 + rng() * 0.45) / puddleCount) * CHUNK_LENGTH;
-        if (isSafeZone(zPud)) continue;
+      if (biome === 'SINGULARITY') {
+        // Glowing turquoise mineral salt-brine pools in wide plateau hollows & deep canyon floor!
+        for (let p = 0; p < 3; p++) {
+          const zPud = zStart - ((p + 0.22 + rng() * 0.45) / 3) * CHUNK_LENGTH;
+          if (isSafeZone(zPud)) continue;
+          const spec = this.getTrailSpec(zPud);
+          const onCanyonFloor = p > 0 || spec.halfWidth < 13.5 || spec.splitFactor > 0.2;
+          const side = p % 2 === 0 ? -1 : 1;
+          const xPud = onCanyonFloor
+            ? spec.centerX + side * lerp(spec.halfWidth + 18.0, spec.halfWidth + 46.0, rng())
+            : spec.centerX + (rng() - 0.5) * (spec.halfWidth * 0.55);
+          const baseSample = this.sampleHeightRaw(xPud, zPud);
+          const rx = onCanyonFloor ? lerp(14.0, 26.0, rng()) : lerp(6.5, 10.5, rng());
+          const rz = onCanyonFloor ? lerp(18.0, 34.0, rng()) : lerp(8.0, 13.0, rng());
+          const maxDepth = onCanyonFloor ? 0.35 : 0.16;
+          const waterY = baseSample.height - 0.02;
 
-        const spec = this.getTrailSpec(zPud);
-        const xPud = spec.centerX + (rng() - 0.5) * (spec.halfWidth * (biome === 'SWAMP' ? 1.45 : 0.85));
-        const baseSample = this.sampleHeightRaw(xPud, zPud);
-        const rx = biome === 'SWAMP' ? lerp(14.0, 28.0, rng()) : lerp(6.0, 11.5, rng());
-        const rz = biome === 'SWAMP' ? lerp(16.0, 32.0, rng()) : lerp(8.0, 15.5, rng());
-        const maxDepth = biome === 'SWAMP' ? lerp(0.28, 0.42, rng()) : lerp(0.18, 0.28, rng());
-        const waterY = baseSample.height - 0.03;
+          if (!onCanyonFloor) {
+            puddles.push({
+              x: xPud,
+              z: zPud,
+              radiusX: rx,
+              radiusZ: rz,
+              waterSurfaceY: waterY,
+              maxDepth,
+            });
+          }
 
-        puddles.push({
-          x: xPud,
-          z: zPud,
-          radiusX: rx,
-          radiusZ: rz,
-          waterSurfaceY: waterY,
-          maxDepth,
-        });
+          const brineMesh = new THREE.Mesh(
+            this.puddleDiscGeo,
+            this.singularityBuilder.saltBrineWaterMat
+          );
+          brineMesh.position.set(xPud, waterY, zPud);
+          brineMesh.scale.set(rx, 1, rz);
+          brineMesh.renderOrder = 2;
+          chunkGroup.add(brineMesh);
+        }
+      } else {
+        const puddleCount = biome === 'SWAMP' ? 8 : biome === 'DEADWOOD' ? 2 : 3;
+        for (let p = 0; p < puddleCount; p++) {
+          const zPud = zStart - ((p + 0.25 + rng() * 0.45) / puddleCount) * CHUNK_LENGTH;
+          if (isSafeZone(zPud)) continue;
 
-        const wMat = biome === 'SWAMP' || biome === 'DEADWOOD' ? this.swampBlackwaterMat : this.waterMat;
-        const waterMesh = new THREE.Mesh(this.puddleDiscGeo, wMat);
-        waterMesh.position.set(xPud, waterY, zPud);
-        waterMesh.scale.set(rx, 1, rz);
-        waterMesh.renderOrder = 2;
-        chunkGroup.add(waterMesh);
+          const spec = this.getTrailSpec(zPud);
+          const xPud =
+            spec.centerX + (rng() - 0.5) * (spec.halfWidth * (biome === 'SWAMP' ? 1.45 : 0.85));
+          const baseSample = this.sampleHeightRaw(xPud, zPud);
+          const rx = biome === 'SWAMP' ? lerp(14.0, 28.0, rng()) : lerp(6.0, 11.5, rng());
+          const rz = biome === 'SWAMP' ? lerp(16.0, 32.0, rng()) : lerp(8.0, 15.5, rng());
+          const maxDepth = biome === 'SWAMP' ? lerp(0.28, 0.42, rng()) : lerp(0.18, 0.28, rng());
+          const waterY = baseSample.height - 0.03;
+
+          puddles.push({
+            x: xPud,
+            z: zPud,
+            radiusX: rx,
+            radiusZ: rz,
+            waterSurfaceY: waterY,
+            maxDepth,
+          });
+
+          const wMat =
+            biome === 'SWAMP' || biome === 'DEADWOOD' ? this.swampBlackwaterMat : this.waterMat;
+          const waterMesh = new THREE.Mesh(this.puddleDiscGeo, wMat);
+          waterMesh.position.set(xPud, waterY, zPud);
+          waterMesh.scale.set(rx, 1, rz);
+          waterMesh.renderOrder = 2;
+          chunkGroup.add(waterMesh);
+        }
       }
     }
 
-    // 1. VAST 320m-WIDE SPACIOUS TERRAIN MESH (Grounded Natural Palettes!)
+    // 1. VAST 320m-WIDE SPACIOUS TERRAIN MESH
     const cols = CHUNK_X_SEGMENTS + 1;
     const rows = CHUNK_Z_SEGMENTS + 1;
     const vertCount = cols * rows;
@@ -2355,7 +2529,9 @@ export class TrailCorridorWorld {
     const indices = new Uint32Array(CHUNK_X_SEGMENTS * CHUNK_Z_SEGMENTS * 6);
 
     const colDirt =
-      biome === 'DESERT'
+      biome === 'SINGULARITY'
+        ? new THREE.Color(0xefd0ae) // Pearl-champagne rippled silica sand crown!
+        : biome === 'DESERT'
         ? new THREE.Color(0xdca86e) // Sun-baked golden desert sand & packed caliche street
         : biome === 'SWAMP'
         ? new THREE.Color(0x3a3b2c) // Damp dark bayou silt
@@ -2363,7 +2539,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x838476) // Weathered grey-olive Deadwood track (#838476)
         : new THREE.Color(0x8b6745);
     const colRut =
-      biome === 'DESERT'
+      biome === 'SINGULARITY'
+        ? new THREE.Color(0xd9875e) // Rose-gold wind-rippled silica dune tracks!
+        : biome === 'DESERT'
         ? new THREE.Color(0xbd7d46) // Dusty terracotta tire ruts
         : biome === 'SWAMP'
         ? new THREE.Color(0x282b20)
@@ -2371,7 +2549,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x636558)
         : new THREE.Color(0x6d4b2f);
     const colMud =
-      biome === 'DESERT'
+      biome === 'SINGULARITY'
+        ? new THREE.Color(0x8a3a24) // Martian iron-oxide rust strata
+        : biome === 'DESERT'
         ? new THREE.Color(0x9e6336) // Sun-cracked dry red clay
         : biome === 'SWAMP'
         ? new THREE.Color(0x161d17) // Blackwater peat
@@ -2379,7 +2559,9 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x383a2c) // Deadwood dark mud hollow (#383a2c)
         : new THREE.Color(0x362518);
     const colVerge =
-      biome === 'DESERT'
+      biome === 'SINGULARITY'
+        ? new THREE.Color(0x1c1726) // Fractured black volcanic obsidian cliff brink!
+        : biome === 'DESERT'
         ? new THREE.Color(0xc27b47) // Warm red-ochre canyon talus
         : biome === 'SWAMP'
         ? new THREE.Color(0x2b4528)
@@ -2387,13 +2569,16 @@ export class TrailCorridorWorld {
         ? new THREE.Color(0x55594c) // Deadwood ashen olive earth (#55594c)
         : new THREE.Color(0x3d5c28);
     const colOuter =
-      biome === 'DESERT'
+      biome === 'SINGULARITY'
+        ? new THREE.Color(0x15121d) // Deep volcanic obsidian canyon escarpment!
+        : biome === 'DESERT'
         ? new THREE.Color(0xa85832) // Terracotta red-rock canyon wall
         : biome === 'SWAMP'
         ? new THREE.Color(0x18291b)
         : biome === 'DEADWOOD'
         ? new THREE.Color(0x41453b)
         : new THREE.Color(0x273c1d);
+    const colSaltFloor = new THREE.Color(0xbfd8d4);
     const tmpColor = new THREE.Color();
 
     let ptr = 0;
@@ -2421,18 +2606,40 @@ export class TrailCorridorWorld {
 
         const absD = Math.abs(s.signedOffset);
         const hw = centerSpec.halfWidth;
-        const branchW = lerp(hw, 16.5, centerSpec.splitFactor);
+        const branchW = lerp(
+          hw,
+          biome === 'SINGULARITY' ? 7.8 : 16.5,
+          centerSpec.splitFactor
+        );
         const dBr = s.distFromActiveBranch;
 
-        const vergeMask = smoothstep(branchW * 0.52, branchW * 1.02, dBr);
+        const vergeMask = smoothstep(branchW * 0.72, branchW * 1.06, dBr);
         const outerMask = smoothstep(hw + 8.0, hw + 55.0, absD);
         const patchVar = fbm2D(x * 0.08, z * 0.08, 2) * 0.1;
 
-        tmpColor.copy(colDirt).lerp(colRut, smoothstep(branchW * 0.5, 0, dBr) * 0.45);
-        tmpColor.lerp(colMud, clamp(s.mudiness * 0.88, 0, 1));
-        tmpColor.lerp(colVerge, vergeMask * 0.85);
-        tmpColor.lerp(colOuter, outerMask);
-        tmpColor.offsetHSL(0, 0, patchVar);
+        if (biome === 'SINGULARITY') {
+          const elevDiff = s.height - centerSpec.baseY;
+          const cliffWallMask = smoothstep(2.4, 9.5, Math.abs(elevDiff));
+          const strataBand = Math.sin(s.height * 0.55 + z * 0.04) * 0.5 + 0.5;
+          const duneRipple = Math.sin(x * 0.45 + z * 0.32) * 0.5 + 0.5;
+
+          // Pearl-champagne & rose-gold rippled silica dunes on the cliff crown!
+          tmpColor.copy(colDirt).lerp(colRut, duneRipple * 0.55);
+          // Fractured black volcanic obsidian + Martian iron-rust cliff strata on steep walls!
+          tmpColor.lerp(colVerge, Math.max(vergeMask * 0.92, cliffWallMask));
+          tmpColor.lerp(colMud, cliffWallMask * smoothstep(0.62, 0.92, strataBand) * 0.55);
+          // Bleached turquoise-mineral salt crust down in the deep canyon floor!
+          if (elevDiff < -34.0) {
+            tmpColor.lerp(colSaltFloor, smoothstep(-34.0, -45.0, elevDiff) * 0.58);
+          }
+          tmpColor.offsetHSL(0, 0, patchVar * 0.65);
+        } else {
+          tmpColor.copy(colDirt).lerp(colRut, smoothstep(branchW * 0.5, 0, dBr) * 0.45);
+          tmpColor.lerp(colMud, clamp(s.mudiness * 0.88, 0, 1));
+          tmpColor.lerp(colVerge, vergeMask * 0.85);
+          tmpColor.lerp(colOuter, outerMask);
+          tmpColor.offsetHSL(0, 0, patchVar);
+        }
 
         colors[ptr] = tmpColor.r;
         colors[ptr + 1] = tmpColor.g;
@@ -2640,6 +2847,50 @@ export class TrailCorridorWorld {
             baseX: dx,
             baseZ: dz,
             radius: 9.5,
+            phase: rng() * Math.PI * 2,
+          });
+        }
+      }
+    } else if (biome === 'SINGULARITY') {
+      chunkRecord.singularityData = this.singularityBuilder.populateSingularityChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        rng,
+        (x, z) => this.sampleHeightRaw(x, z).height,
+        (z) => {
+          const sp = this.getTrailSpec(z);
+          return {
+            centerX: sp.centerX,
+            halfWidth: sp.halfWidth,
+            slopeX: sp.slopeX,
+            baseY: sp.baseY,
+            splitFactor: sp.splitFactor,
+            splitOffset: sp.splitOffset,
+          };
+        },
+        obstacles,
+        () => this.nextObstacleId++
+      );
+
+      if (chunkIndex >= 0) {
+        // Whipping Martian Sandstorm Dust Vortices sweeping across the cliff ledges!
+        for (let d = 0; d < 3; d++) {
+          const dz = zStart - (0.2 + d * 0.31) * CHUNK_LENGTH;
+          const ds = this.getTrailSpec(dz);
+          const dx = ds.centerX + (rng() - 0.5) * (ds.halfWidth * 0.82);
+          const dy = this.sampleHeightRaw(dx, dz).height;
+          const dMesh = new THREE.Mesh(this.dustDevilGeo, this.dustDevilMat);
+          dMesh.position.set(dx, dy, dz);
+          dMesh.scale.set(1.35, 1.55, 1.35);
+          chunkGroup.add(dMesh);
+          dustDevils.push({
+            mesh: dMesh,
+            position: new THREE.Vector3(dx, dy, dz),
+            baseX: dx,
+            baseZ: dz,
+            radius: 10.5,
             phase: rng() * Math.PI * 2,
           });
         }
@@ -2966,7 +3217,14 @@ export class TrailCorridorWorld {
 
     const fernMatrices: THREE.Matrix4[] = [];
     const broadleafMatrices: THREE.Matrix4[] = [];
-    const floraCount = biome === 'DESERT' ? 18 : biome === 'DEADWOOD' ? 0 : biome === 'SWAMP' ? 110 : 135;
+    const floraCount =
+      biome === 'DESERT'
+        ? 18
+        : biome === 'DEADWOOD' || biome === 'SINGULARITY'
+        ? 0
+        : biome === 'SWAMP'
+        ? 110
+        : 135;
     for (let i = 0; i < floraCount; i++) {
       const z = zStart - rng() * CHUNK_LENGTH;
       const spec = this.getTrailSpec(z);

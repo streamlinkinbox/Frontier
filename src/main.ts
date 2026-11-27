@@ -18,7 +18,7 @@ import { OffroadParticleSystem, RallyVineAudioEngine } from './graphics/particle
 import { UnrealObserverCamera } from './camera/unrealCamera';
 import { ExploreMode, ExpeditionHud } from './ui/hud';
 
-const BIOME_ORDER: BiomeId[] = ['FOREST', 'SWAMP', 'DESERT', 'DEADWOOD'];
+const BIOME_ORDER: BiomeId[] = ['FOREST', 'SWAMP', 'DESERT', 'DEADWOOD', 'SINGULARITY'];
 const LEVEL_PORTAL_Z = -860;
 
 class FrontierSimulationApp {
@@ -57,6 +57,9 @@ class FrontierSimulationApp {
   private elapsedTime = 0;
   private lastFrameTime = performance.now();
   private portalWarpCooldown = 0;
+  private cliffFallTimer = 0;
+  private _stormFogBase = new THREE.Color();
+  private _lightningTint = new THREE.Color(0xdcf8ff);
 
   private nearbyObstaclesCache: WorldObstacle[] = [];
   private nearbyHollowLogsCache: HollowLogTunnel[] = [];
@@ -196,7 +199,7 @@ class FrontierSimulationApp {
       this.hud.syncFlySpeedUI(spd);
     };
 
-    // Ambient World Visual FX (Falling Trees still animate as scenery ahead of camera!)
+    // Ambient World Visual FX (Falling Trees & Martian Sandstorm Lightning Strikes!)
     this.world.onTreeStartFalling = (basePos) => {
       this.particles.emitImpactDust(basePos, 1.0);
       this.audio.playTimberCrackSound();
@@ -205,9 +208,15 @@ class FrontierSimulationApp {
       this.particles.emitTimberSlamShockwave(impactPos);
       this.audio.playTimberSlamSound();
     };
+    this.world.singularityBuilder.onLightningStrike = (strikePos: THREE.Vector3) => {
+      const dist = strikePos.distanceTo(this.camera.position);
+      const intensity = clamp(1.25 - dist / 140.0, 0.45, 1.25);
+      this.particles.emitImpactDust(strikePos, 1.45);
+      this.audio.playThunderStrikeSound(intensity);
+    };
 
-    // Initialize in Forest Level with Unreal Free-Fly Camera overlooking the parked showcase car!
-    this.loadBiomeLevel('FOREST', true);
+    // Boot into Vitrified Singularity Desert with Unreal Free-Fly Camera overlooking the steep cliffs!
+    this.loadBiomeLevel('SINGULARITY', true);
 
     this.bindInputEvents();
     window.addEventListener('resize', () => this.onResize());
@@ -369,6 +378,8 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('DESERT');
       } else if (code === 'Digit4') {
         this.loadBiomeLevel('DEADWOOD');
+      } else if (code === 'Digit5') {
+        this.loadBiomeLevel('SINGULARITY');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
@@ -570,6 +581,46 @@ class FrontierSimulationApp {
         this.nearbyRootBridgesCache
       );
       this.physicsAccumulator -= fixedDt;
+    }
+
+    // Auto-recover vehicle if it plunges off a sheer -48m cliff precipice in SINGULARITY!
+    if (
+      this.exploreMode === 'PEACEFUL_DRIVE' &&
+      this.world.currentBiome === 'SINGULARITY'
+    ) {
+      const cliffSpec = this.world.getTrailSpec(this.vehicle.position.z);
+      if (this.vehicle.position.y < cliffSpec.baseY - 20.0) {
+        this.cliffFallTimer += frameDt;
+        if (this.cliffFallTimer > 0.85) {
+          this.cliffFallTimer = 0;
+          this.vehicle.resetAt(this.world, this.vehicle.position.z);
+          this.hud.showCallout('CLIFF ABYSS RESCUE · RETURNED TO RIDGE');
+        }
+      } else {
+        this.cliffFallTimer = 0;
+      }
+    } else {
+      this.cliffFallTimer = 0;
+    }
+
+    // Dynamic Martian Sandstorm Lightning Sky/Fog Flash Modulation!
+    if (this.world.currentBiome === 'SINGULARITY') {
+      const spec = BIOME_SPECS.SINGULARITY;
+      const flash = this.world.singularityBuilder.currentLightningFlash;
+      const fog = this.scene.fog as THREE.FogExp2;
+      this._stormFogBase.setHex(spec.fogColorHex);
+      fog.color.copy(this._stormFogBase).lerp(this._lightningTint, flash * 0.62);
+      this.sunLight.intensity = spec.sunIntensity + flash * 4.8;
+      this.skyMat.uniforms.uHorizon.value.setRGB(
+        lerp(spec.skyHorizonRGB[0], 0.88, flash * 0.72),
+        lerp(spec.skyHorizonRGB[1], 0.96, flash * 0.72),
+        lerp(spec.skyHorizonRGB[2], 1.0, flash * 0.72)
+      );
+      this.skyMat.uniforms.uZenith.value.setRGB(
+        lerp(spec.skyZenithRGB[0], 0.55, flash * 0.65),
+        lerp(spec.skyZenithRGB[1], 0.76, flash * 0.65),
+        lerp(spec.skyZenithRGB[2], 0.88, flash * 0.65)
+      );
     }
 
     this.buggyVisual.syncWithPhysics(this.vehicle, frameDt, false);

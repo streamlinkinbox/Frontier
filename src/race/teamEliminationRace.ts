@@ -200,7 +200,8 @@ export class TeamEliminationRaceDirector {
     if (this.regionIndex === 1) return 'SWAMP';
     if (this.regionIndex === 2) return 'DESERT';
     if (this.regionIndex === 3) return 'DEADWOOD';
-    const all: BiomeId[] = ['FOREST', 'SWAMP', 'DESERT', 'DEADWOOD'];
+    if (this.regionIndex === 4) return 'SINGULARITY';
+    const all: BiomeId[] = ['FOREST', 'SWAMP', 'DESERT', 'DEADWOOD', 'SINGULARITY'];
     const candidates = all.filter((b) => b !== this.world.currentBiome);
     return candidates[Math.floor(this.rng() * candidates.length)];
   }
