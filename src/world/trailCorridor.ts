@@ -5,6 +5,7 @@ import { CarnivorousBogBuilder, CarnivorousBogChunkData } from './carnivorousBog
 import { CanyonBridgeChunkData, CanyonRopeBridgeBuilder } from './canyonRopeBridgeSystem';
 import { CargoMegashipBuilder, CargoMegashipChunkData } from './cargoMegashipSystem';
 import { ClockworkChunkData, ClockworkFoundryBuilder } from './clockworkFoundrySystem';
+import { RunawayTrainBuilder, RunawayTrainChunkData } from './runawayTrainSystem';
 import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
 import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
 import { GiantHollowLogBuilder, GiantHollowLogChunkData } from './giantHollowLogSystem';
@@ -28,7 +29,8 @@ export type BiomeId =
   | 'UNDERGROUND_MARKET'
   | 'CANYON_BRIDGES'
   | 'CLOCKWORK_FOUNDRY'
-  | 'CARGO_MEGASHIPS';
+  | 'CARGO_MEGASHIPS'
+  | 'RUNAWAY_TRAINS';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -218,6 +220,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     hemiSkyHex: 0x6f96b8,
     hemiGroundHex: 0x0b1f2e,
   },
+  RUNAWAY_TRAINS: {
+    id: 'RUNAWAY_TRAINS',
+    title: 'RUNAWAY ARMORED FREIGHT TRAINS & COLLAPSING TRESTLE GORGE',
+    subtitle: 'PARALLEL BANKING TRAINS · DYNAMITED TRESTLES · ROCKSLIDE TUNNELS · ROLLING LOGS',
+    fogColorHex: 0x2f2520,
+    fogDensity: 0.0044,
+    skyHorizonRGB: [0.68, 0.41, 0.24],
+    skyZenithRGB: [0.11, 0.14, 0.22],
+    sunColorHex: 0xffcf94,
+    sunIntensity: 2.75,
+    hemiSkyHex: 0xffb878,
+    hemiGroundHex: 0x263238,
+  },
 };
 
 export interface TrailPointSpec {
@@ -406,6 +421,7 @@ interface ChunkRecord {
   canyonBridgeData?: CanyonBridgeChunkData;
   clockworkData?: ClockworkChunkData;
   cargoMegashipData?: CargoMegashipChunkData;
+  runawayTrainData?: RunawayTrainChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -446,6 +462,7 @@ export class TrailCorridorWorld {
   public readonly canyonBridgeBuilder: CanyonRopeBridgeBuilder;
   public readonly clockworkBuilder: ClockworkFoundryBuilder;
   public readonly cargoMegashipBuilder: CargoMegashipBuilder;
+  public readonly runawayTrainBuilder: RunawayTrainBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -502,6 +519,7 @@ export class TrailCorridorWorld {
     this.canyonBridgeBuilder = new CanyonRopeBridgeBuilder(textures);
     this.clockworkBuilder = new ClockworkFoundryBuilder(textures);
     this.cargoMegashipBuilder = new CargoMegashipBuilder(textures);
+    this.runawayTrainBuilder = new RunawayTrainBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -795,6 +813,8 @@ export class TrailCorridorWorld {
     this.group.add(this.clockworkBuilder.atmosphereFxGroup);
     this.cargoMegashipBuilder.atmosphereFxGroup.visible = false;
     this.group.add(this.cargoMegashipBuilder.atmosphereFxGroup);
+    this.runawayTrainBuilder.atmosphereFxGroup.visible = false;
+    this.group.add(this.runawayTrainBuilder.atmosphereFxGroup);
   }
 
   public getActiveCarnivorousBogChunks(): CarnivorousBogChunkData[] {
@@ -830,6 +850,7 @@ export class TrailCorridorWorld {
     this.canyonBridgeBuilder.atmosphereFxGroup.visible = biome === 'CANYON_BRIDGES';
     this.clockworkBuilder.atmosphereFxGroup.visible = biome === 'CLOCKWORK_FOUNDRY';
     this.cargoMegashipBuilder.atmosphereFxGroup.visible = biome === 'CARGO_MEGASHIPS';
+    this.runawayTrainBuilder.atmosphereFxGroup.visible = biome === 'RUNAWAY_TRAINS';
     this.resetAround(startZ);
   }
 
@@ -1885,7 +1906,8 @@ export class TrailCorridorWorld {
       this.currentBiome === 'UNDERGROUND_MARKET' ||
       this.currentBiome === 'CANYON_BRIDGES' ||
       this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
-      this.currentBiome === 'CARGO_MEGASHIPS'
+      this.currentBiome === 'CARGO_MEGASHIPS' ||
+      this.currentBiome === 'RUNAWAY_TRAINS'
         ? 0 // Level datum!
         : this.currentBiome === 'SINGULARITY'
         ? 38.0 +
@@ -1943,6 +1965,8 @@ export class TrailCorridorWorld {
     const baseHalfWidth =
       this.currentBiome === 'UNDERGROUND_MARKET'
         ? sampleUndergroundMarketHalfWidth(Math.max(0, -z), CHUNK_LENGTH)
+        : this.currentBiome === 'RUNAWAY_TRAINS'
+        ? 34.0
         : this.currentBiome === 'CANYON_BRIDGES' ||
           this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
           this.currentBiome === 'CARGO_MEGASHIPS'
@@ -1978,7 +2002,8 @@ export class TrailCorridorWorld {
           this.currentBiome === 'UNDERGROUND_MARKET' ||
           this.currentBiome === 'CANYON_BRIDGES' ||
           this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
-          this.currentBiome === 'CARGO_MEGASHIPS'
+          this.currentBiome === 'CARGO_MEGASHIPS' ||
+          this.currentBiome === 'RUNAWAY_TRAINS'
         ? 0
         : smoothstep(0.54, 0.82, mudNoise)) * introFade;
 
@@ -1998,7 +2023,8 @@ export class TrailCorridorWorld {
 
   public sampleHeightRaw(
     x: number,
-    z: number
+    z: number,
+    referenceY?: number
   ): {
     height: number;
     surface: SurfaceType;
@@ -2056,7 +2082,8 @@ export class TrailCorridorWorld {
       this.currentBiome === 'UNDERGROUND_MARKET' ||
       this.currentBiome === 'CANYON_BRIDGES' ||
       this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
-      this.currentBiome === 'CARGO_MEGASHIPS'
+      this.currentBiome === 'CARGO_MEGASHIPS' ||
+      this.currentBiome === 'RUNAWAY_TRAINS'
         ? 0
         : d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
 
@@ -2078,8 +2105,10 @@ export class TrailCorridorWorld {
         : 0;
 
     const microRough =
-      this.currentBiome === 'CLOCKWORK_FOUNDRY' || this.currentBiome === 'CARGO_MEGASHIPS'
-        ? 0.0 // Precision-machined brass cogwheels & welded steel ship decks!
+      this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
+      this.currentBiome === 'CARGO_MEGASHIPS' ||
+      this.currentBiome === 'RUNAWAY_TRAINS'
+        ? 0.0 // Precision-machined brass cogwheels, welded steel ship decks & armored railcar roofs!
         : this.currentBiome === 'UNDERGROUND_MARKET'
         ? 0.004 // Smooth tiled subterranean concourse floor!
         : this.currentBiome === 'GLACIAL_ICE'
@@ -2096,7 +2125,17 @@ export class TrailCorridorWorld {
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
 
-    if (this.currentBiome === 'CARGO_MEGASHIPS') {
+    if (this.currentBiome === 'RUNAWAY_TRAINS') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+      // Narrow Sheer-Walled Granite Mountain Gorge: -38m canyon riverbed rising steeply into +52m jagged granite cliffs!
+      const gorgeWallMask = smoothstep(26.5, 58.0, absD);
+      cliffRelief =
+        -38.0 +
+        gorgeWallMask *
+          (86.0 + ridge2D(x * 0.048, z * 0.048, 3) * 14.0 + fbm2D(x * 0.03, z * 0.03, 2) * 5.0);
+    } else if (this.currentBiome === 'CARGO_MEGASHIPS') {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
@@ -2266,6 +2305,17 @@ export class TrailCorridorWorld {
           height = shipSample.height;
         }
       }
+      if (rec.runawayTrainData && absD < 32.0) {
+        const trainSample = this.runawayTrainBuilder.sampleLiveTrainSurface(
+          rec.runawayTrainData,
+          x,
+          z,
+          referenceY
+        );
+        if (trainSample.active && trainSample.height > height) {
+          height = trainSample.height;
+        }
+      }
       for (const p of rec.puddles) {
         const nx = (x - p.x) / p.radiusX;
         const nz = (z - p.z) / p.radiusZ;
@@ -2280,7 +2330,7 @@ export class TrailCorridorWorld {
     }
 
     let surface: SurfaceType =
-      this.currentBiome === 'CARGO_MEGASHIPS'
+      this.currentBiome === 'CARGO_MEGASHIPS' || this.currentBiome === 'RUNAWAY_TRAINS'
         ? 'STEEL_DECK'
         : this.currentBiome === 'CLOCKWORK_FOUNDRY'
         ? 'BRASS_GEAR'
@@ -2313,6 +2363,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'CANYON_BRIDGES' &&
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       this.currentBiome !== 'CARGO_MEGASHIPS' &&
+      this.currentBiome !== 'RUNAWAY_TRAINS' &&
       (absD > hw + 18.0 || medianIslandBump > 0.8)
     ) {
       surface = 'MOSS_ROCK';
@@ -2326,6 +2377,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'CANYON_BRIDGES' &&
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       this.currentBiome !== 'CARGO_MEGASHIPS' &&
+      this.currentBiome !== 'RUNAWAY_TRAINS' &&
       localMud > 0.36
     ) {
       surface = 'WET_MUD';
@@ -2338,6 +2390,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'CANYON_BRIDGES' &&
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       this.currentBiome !== 'CARGO_MEGASHIPS' &&
+      this.currentBiome !== 'RUNAWAY_TRAINS' &&
       distFromBranch > branchHalfWidth * 0.78
     ) {
       surface = 'LOOSE_VERGE';
@@ -2357,15 +2410,20 @@ export class TrailCorridorWorld {
 
   private _sampleNorm = new THREE.Vector3();
 
-  public sampleTerrain(x: number, z: number, outNormal?: THREE.Vector3): TerrainSample {
-    const c = this.sampleHeightRaw(x, z);
+  public sampleTerrain(
+    x: number,
+    z: number,
+    outNormal?: THREE.Vector3,
+    referenceY?: number
+  ): TerrainSample {
+    const c = this.sampleHeightRaw(x, z, referenceY);
     const eps = 0.36;
     // Clamp finite-difference height step across sheer chasm/bridge brinks so a wheel still on a bridge
     // deck isn't catapulted sideways by a 48m numerical-derivative spike at the cliff/plank edge!
-    const dhR = clamp(this.sampleHeightRaw(x + eps, z).height - c.height, -1.25, 1.25);
-    const dhL = clamp(this.sampleHeightRaw(x - eps, z).height - c.height, -1.25, 1.25);
-    const dhF = clamp(this.sampleHeightRaw(x, z + eps).height - c.height, -1.25, 1.25);
-    const dhB = clamp(this.sampleHeightRaw(x, z - eps).height - c.height, -1.25, 1.25);
+    const dhR = clamp(this.sampleHeightRaw(x + eps, z, referenceY).height - c.height, -1.25, 1.25);
+    const dhL = clamp(this.sampleHeightRaw(x - eps, z, referenceY).height - c.height, -1.25, 1.25);
+    const dhF = clamp(this.sampleHeightRaw(x, z + eps, referenceY).height - c.height, -1.25, 1.25);
+    const dhB = clamp(this.sampleHeightRaw(x, z - eps, referenceY).height - c.height, -1.25, 1.25);
 
     const normal = outNormal ?? this._sampleNorm.clone();
     normal.set(dhL - dhR, 2 * eps, dhB - dhF).normalize();
@@ -2456,7 +2514,11 @@ export class TrailCorridorWorld {
    */
   public sampleMovingDeckVelocity(x: number, z: number, outVel: THREE.Vector3): boolean {
     outVel.set(0, 0, 0);
-    if (this.currentBiome !== 'CLOCKWORK_FOUNDRY' && this.currentBiome !== 'CARGO_MEGASHIPS') {
+    if (
+      this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
+      this.currentBiome !== 'CARGO_MEGASHIPS' &&
+      this.currentBiome !== 'RUNAWAY_TRAINS'
+    ) {
       return false;
     }
     const cIdx = Math.floor(-z / CHUNK_LENGTH);
@@ -2473,6 +2535,18 @@ export class TrailCorridorWorld {
         if (
           this.cargoMegashipBuilder.sampleSurfaceVelocityInChunk(
             rec.cargoMegashipData,
+            x,
+            z,
+            outVel
+          )
+        ) {
+          return true;
+        }
+      }
+      if (rec?.runawayTrainData) {
+        if (
+          this.runawayTrainBuilder.sampleSurfaceVelocityInChunk(
+            rec.runawayTrainData,
             x,
             z,
             outVel
@@ -2499,7 +2573,9 @@ export class TrailCorridorWorld {
     onImpact?: (intensity: number, worldPoint: THREE.Vector3) => void
   ): void {
     if (
-      (this.currentBiome !== 'CLOCKWORK_FOUNDRY' && this.currentBiome !== 'CARGO_MEGASHIPS') ||
+      (this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
+        this.currentBiome !== 'CARGO_MEGASHIPS' &&
+        this.currentBiome !== 'RUNAWAY_TRAINS') ||
       passiveObserver
     ) {
       return;
@@ -2522,6 +2598,19 @@ export class TrailCorridorWorld {
       if (rec?.cargoMegashipData) {
         this.cargoMegashipBuilder.resolveShipContainerCollisionsInChunk(
           rec.cargoMegashipData,
+          carPos,
+          forwardWorld,
+          rightWorld,
+          linearVel,
+          angularVel,
+          passiveObserver,
+          onImpact
+        );
+      }
+      if (rec?.runawayTrainData) {
+        this.runawayTrainBuilder.resolveTrainCollisionsAndHazardsInChunk(
+          rec.runawayTrainData,
+          1 / 240,
           carPos,
           forwardWorld,
           rightWorld,
@@ -2906,6 +2995,15 @@ export class TrailCorridorWorld {
       if (rec.cargoMegashipData) {
         this.cargoMegashipBuilder.stepChunkHazards(rec.cargoMegashipData, dt, elapsedTime);
       }
+      // 15. RUNAWAY ARMORED FREIGHT TRAINS: Surging/Banking Consists, Dynamited Trestles & Rolling Logs!
+      if (rec.runawayTrainData) {
+        this.runawayTrainBuilder.stepChunkHazards(
+          rec.runawayTrainData,
+          dt,
+          elapsedTime,
+          (z) => this.getTrailSpec(z).centerX
+        );
+      }
     }
 
     this.singularityBuilder.stepGlobalStormFx(
@@ -2956,6 +3054,12 @@ export class TrailCorridorWorld {
     );
     this.cargoMegashipBuilder.stepGlobalStormOceanAtmosphere(
       this.currentBiome === 'CARGO_MEGASHIPS',
+      playerPos,
+      elapsedTime,
+      dt
+    );
+    this.runawayTrainBuilder.stepGlobalGorgeAtmosphere(
+      this.currentBiome === 'RUNAWAY_TRAINS',
       playerPos,
       elapsedTime,
       dt
@@ -3132,6 +3236,8 @@ export class TrailCorridorWorld {
         ? 85411
         : biome === 'CARGO_MEGASHIPS'
         ? 59273
+        : biome === 'RUNAWAY_TRAINS'
+        ? 73189
         : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
@@ -3161,7 +3267,8 @@ export class TrailCorridorWorld {
       biome !== 'UNDERGROUND_MARKET' &&
       biome !== 'CANYON_BRIDGES' &&
       biome !== 'CLOCKWORK_FOUNDRY' &&
-      biome !== 'CARGO_MEGASHIPS'
+      biome !== 'CARGO_MEGASHIPS' &&
+      biome !== 'RUNAWAY_TRAINS'
     ) {
       if (biome === 'SINGULARITY') {
         // Glowing turquoise mineral salt-brine pools in wide plateau hollows & deep canyon floor!
@@ -3367,7 +3474,14 @@ export class TrailCorridorWorld {
         const outerMask = smoothstep(hw + 8.0, hw + 55.0, absD);
         const patchVar = fbm2D(x * 0.08, z * 0.08, 2) * 0.1;
 
-        if (biome === 'CARGO_MEGASHIPS') {
+        if (biome === 'RUNAWAY_TRAINS') {
+          // Deep wet canyon riverbed cobbles rising into warm sunset-lit stratified Sierra granite cliffs & pine rim!
+          const wallBlend = smoothstep(-32.0, 26.0, s.height);
+          const rimPineBlend = smoothstep(36.0, 54.0, s.height);
+          tmpColor.setHex(0x16242b).lerp(new THREE.Color(0x6e5b4e), wallBlend);
+          tmpColor.lerp(new THREE.Color(0x3a4a32), rimPineBlend * 0.65);
+          tmpColor.offsetHSL(0, 0, patchVar * 0.45);
+        } else if (biome === 'CARGO_MEGASHIPS') {
           // Deep abyssal marine seabed rising into wet dark-granite harbor breakwater jetties far outside!
           const jettyMask = smoothstep(-20.0, 4.0, s.height);
           tmpColor.setHex(0x05101a).lerp(new THREE.Color(0x28323b), jettyMask);
@@ -3790,6 +3904,15 @@ export class TrailCorridorWorld {
         (z) => this.getTrailSpec(z).centerX,
         obstacles
       );
+    } else if (biome === 'RUNAWAY_TRAINS') {
+      chunkRecord.runawayTrainData = this.runawayTrainBuilder.populateRunawayTrainChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        (z) => this.getTrailSpec(z).centerX,
+        obstacles
+      );
     }
 
     // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
@@ -3909,6 +4032,8 @@ export class TrailCorridorWorld {
       biome === 'CLOCKWORK_FOUNDRY' ||
       biome === 'CARGO_MEGASHIPS'
         ? 0
+        : biome === 'RUNAWAY_TRAINS'
+        ? 16
         : biome === 'CARNIVOROUS_BOG'
         ? 16
         : biome === 'DESERT'
@@ -3922,7 +4047,10 @@ export class TrailCorridorWorld {
       const side = i % 2 === 0 ? -1 : 1;
 
       let x: number;
-      if (i === 0 && spec.splitFactor > 0.6 && biome === 'FOREST') {
+      if (biome === 'RUNAWAY_TRAINS') {
+        // High canyon-rim pines perched atop the +50m granite gorge cliffs!
+        x = spec.centerX + side * lerp(58.0, CORRIDOR_HALF_SPAN - 12.0, rng());
+      } else if (i === 0 && spec.splitFactor > 0.6 && biome === 'FOREST') {
         x = spec.centerX + (rng() - 0.5) * 3.0;
       } else if (i < 8) {
         x = spec.centerX + side * lerp(spec.halfWidth + 10.0, spec.halfWidth + 28.0, rng());
@@ -3998,7 +4126,8 @@ export class TrailCorridorWorld {
       biome === 'UNDERGROUND_MARKET' ||
       biome === 'CANYON_BRIDGES' ||
       biome === 'CLOCKWORK_FOUNDRY' ||
-      biome === 'CARGO_MEGASHIPS'
+      biome === 'CARGO_MEGASHIPS' ||
+      biome === 'RUNAWAY_TRAINS'
         ? 0
         : biome === 'SINGULARITY'
         ? 2
@@ -4155,7 +4284,8 @@ export class TrailCorridorWorld {
           biome === 'UNDERGROUND_MARKET' ||
           biome === 'CANYON_BRIDGES' ||
           biome === 'CLOCKWORK_FOUNDRY' ||
-          biome === 'CARGO_MEGASHIPS'
+          biome === 'CARGO_MEGASHIPS' ||
+          biome === 'RUNAWAY_TRAINS'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 45

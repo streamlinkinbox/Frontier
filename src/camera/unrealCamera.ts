@@ -114,6 +114,14 @@ export class UnrealObserverCamera {
       );
       spawnX = ship.x;
       groundY = Math.max(ship.y, 1.5) + 4.5;
+    } else if (world.currentBiome === 'RUNAWAY_TRAINS') {
+      const tr = world.runawayTrainBuilder.findNearestTrainSpawn(
+        spawnX,
+        z,
+        (sz) => world.getTrailSpec(sz).centerX
+      );
+      spawnX = tr.x;
+      groundY = Math.max(tr.y, 3.4) + 4.2;
     }
     this.position.set(spawnX, groundY + heightAboveGround, z);
     this.velocity.set(0, 0, 0);

@@ -31,6 +31,7 @@ const BIOME_ORDER: BiomeId[] = [
   'CANYON_BRIDGES',
   'CLOCKWORK_FOUNDRY',
   'CARGO_MEGASHIPS',
+  'RUNAWAY_TRAINS',
 ];
 const LEVEL_PORTAL_Z = -860;
 
@@ -410,9 +411,38 @@ class FrontierSimulationApp {
     this.world.cargoMegashipBuilder.onStormThunder = (intensity: number) => {
       this.audio.playThunderStrikeSound(intensity);
     };
+    this.world.runawayTrainBuilder.onTrestleDynamiteBlast = (blastPos: THREE.Vector3) => {
+      if (blastPos.distanceTo(this.camera.position) < 92) {
+        this.particles.emitTimberSlamShockwave(blastPos);
+        this.particles.emitVineSnapBurst(blastPos, true);
+        this.particles.emitImpactDust(blastPos, 1.65);
+        this.audio.playThunderStrikeSound(0.95);
+        this.audio.playTimberSlamSound();
+      }
+      if (blastPos.distanceTo(this.camera.position) < 56) {
+        this.hud.showCallout(
+          'DYNAMITED TRESTLE COLLAPSING AHEAD · JUMP SIDEWAYS TO PARALLEL TRAIN!'
+        );
+      }
+    };
+    this.world.runawayTrainBuilder.onLogChainSnap = (snapPos: THREE.Vector3) => {
+      if (snapPos.distanceTo(this.camera.position) < 62) {
+        this.particles.emitVineSnapBurst(snapPos, true);
+        this.audio.playTimberCrackSound();
+      }
+    };
+    this.world.runawayTrainBuilder.onLocomotiveSteamBlast = (steamPos: THREE.Vector3) => {
+      if (steamPos.distanceTo(this.camera.position) < 58) {
+        this.particles.emitImpactDust(steamPos, 0.95);
+      }
+    };
+    this.world.runawayTrainBuilder.onSignalBoomImpact = (hitPos: THREE.Vector3) => {
+      this.particles.emitVineSnapBurst(hitPos, true);
+      this.audio.playTimberSlamSound();
+    };
 
-    // Boot into Level [12] Storm-Tossed Cargo Megaships & Gantry Crane Docks with Unreal Free-Fly Camera!
-    this.loadBiomeLevel('CARGO_MEGASHIPS', true);
+    // Boot into Level [13] Runaway Armored Freight Trains & Collapsing Trestle Gorge with Unreal Free-Fly Camera!
+    this.loadBiomeLevel('RUNAWAY_TRAINS', true);
 
     this.bindInputEvents();
     window.addEventListener('resize', () => this.onResize());
@@ -599,6 +629,8 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('CLOCKWORK_FOUNDRY');
       } else if (code === 'Equal' || code === 'NumpadAdd') {
         this.loadBiomeLevel('CARGO_MEGASHIPS');
+      } else if (code === 'Backslash' || code === 'BracketLeft') {
+        this.loadBiomeLevel('RUNAWAY_TRAINS');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
@@ -840,18 +872,21 @@ class FrontierSimulationApp {
       this.physicsAccumulator -= fixedDt;
     }
 
-    // Auto-recover vehicle if it plunges off a sheer precipice or overboard into the storm sea!
+    // Auto-recover vehicle if it plunges off a sheer precipice, overboard into the storm sea, or into the trestle gorge!
     if (
       this.exploreMode === 'PEACEFUL_DRIVE' &&
       (this.world.currentBiome === 'SINGULARITY' ||
         this.world.currentBiome === 'CANYON_BRIDGES' ||
         this.world.currentBiome === 'CLOCKWORK_FOUNDRY' ||
-        this.world.currentBiome === 'CARGO_MEGASHIPS')
+        this.world.currentBiome === 'CARGO_MEGASHIPS' ||
+        this.world.currentBiome === 'RUNAWAY_TRAINS')
     ) {
       const cliffSpec = this.world.getTrailSpec(this.vehicle.position.z);
       const rescueThresholdY =
         this.world.currentBiome === 'CARGO_MEGASHIPS'
           ? -10.5
+          : this.world.currentBiome === 'RUNAWAY_TRAINS'
+          ? -14.0
           : cliffSpec.baseY - 22.0;
       if (this.vehicle.position.y < rescueThresholdY) {
         this.cliffFallTimer += frameDt;
@@ -859,7 +894,9 @@ class FrontierSimulationApp {
           this.cliffFallTimer = 0;
           this.vehicle.resetAt(this.world, this.vehicle.position.z);
           this.hud.showCallout(
-            this.world.currentBiome === 'CARGO_MEGASHIPS'
+            this.world.currentBiome === 'RUNAWAY_TRAINS'
+              ? 'TRESTLE GORGE RESCUE · HOISTED ONTO NEAREST RUNAWAY TRAIN!'
+              : this.world.currentBiome === 'CARGO_MEGASHIPS'
               ? 'MAN OVERBOARD RESCUE · HOISTED BACK ONTO NEAREST MEGASHIP DECK!'
               : this.world.currentBiome === 'CLOCKWORK_FOUNDRY'
               ? 'MOLTEN FOUNDRY RESCUE · RETURNED TO NEAREST BRASS COGWHEEL!'

@@ -126,6 +126,12 @@ export class ExpeditionHud {
         name: 'CARGO MEGASHIPS',
         sub: 'Wave-Rotated Decks · Sliding Cargo · Magnetic & Breaking Cranes',
       },
+      {
+        id: 'RUNAWAY_TRAINS',
+        key: '\\',
+        name: 'RUNAWAY TRAINS',
+        sub: 'Parallel Banking Trains · Dynamited Trestles · Rolling Logs',
+      },
     ];
 
     const levelChipsHtml = levels
@@ -232,7 +238,7 @@ export class ExpeditionHud {
           <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
           <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
           <span><kbd>SCROLL</kbd> Cam Speed</span>
-          <span><kbd>1</kbd>-<kbd>=</kbd> Switch Level</span>
+          <span><kbd>1</kbd>-<kbd>\\</kbd> Switch Level</span>
           <span><kbd>T</kbd> Place Car Here</span>
           <span><kbd>V</kbd> Drive Course</span>
         </div>
@@ -365,7 +371,7 @@ export class ExpeditionHud {
         <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
         <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
         <span><kbd>SCROLL</kbd> Cam Speed</span>
-        <span><kbd>1</kbd>-<kbd>=</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>\\</kbd> Switch Level</span>
         <span><kbd>T</kbd> Place Car Here</span>
         <span><kbd>V</kbd> Drive Course</span>
       `;
@@ -377,7 +383,7 @@ export class ExpeditionHud {
         <span><kbd>SHIFT</kbd> Boost</span>
         <span><kbd>SPACE</kbd> Handbrake</span>
         <span><kbd>R</kbd> Reset Car</span>
-        <span><kbd>1</kbd>-<kbd>=</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>\\</kbd> Switch Level</span>
         <span><kbd>V</kbd> Back to Unreal Camera</span>
       `;
     }
@@ -423,9 +429,11 @@ export class ExpeditionHud {
     this.portalDistEl.textContent = `${remPortal} m`;
 
     const spec = world.getTrailSpec(focusPos.z);
-    const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
+    const sample = world.sampleHeightRaw(focusPos.x, focusPos.z, focusPos.y);
     let zoneName =
-      world.currentBiome === 'CARGO_MEGASHIPS'
+      world.currentBiome === 'RUNAWAY_TRAINS'
+        ? 'RUNAWAY ARMORED FREIGHT TRAIN'
+        : world.currentBiome === 'CARGO_MEGASHIPS'
         ? 'PITCHING CARGO MEGASHIP DECK'
         : world.currentBiome === 'CLOCKWORK_FOUNDRY'
         ? 'BRASS COGWHEEL FOUNDRY'
@@ -449,7 +457,20 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'CARGO_MEGASHIPS') {
+    if (world.currentBiome === 'RUNAWAY_TRAINS') {
+      if (sample.height < -10.0 && focusPos.y > 0.5) {
+        zoneName = 'TRAIN-TO-TRAIN SIDEWAYS GORGE LEAP!';
+      } else if (sample.height < -10.0) {
+        zoneName = 'WHITEWATER TRESTLE GORGE ABYSS';
+      } else if (sample.height > 5.4) {
+        zoneName = `ARMORED BOXCAR ROOFTOP CATWALK (+${sample.height.toFixed(1)}m)`;
+      } else {
+        const dx = focusPos.x - spec.centerX;
+        const trkLabel =
+          dx < -8.0 ? 'WEST TRACK' : dx > 8.0 ? 'EAST TRACK' : 'CENTER MAINLINE';
+        zoneName = `RUNAWAY CONSIST · ${trkLabel} (+${sample.height.toFixed(1)}m)`;
+      }
+    } else if (world.currentBiome === 'CARGO_MEGASHIPS') {
       if (world.cargoMegashipBuilder.activeCapturedCrane) {
         zoneName = 'ELECTROMAGNET CRANE HOISTING! [HOLD SHIFT BOOST TO SNAP FREE]';
       } else if (sample.height < -8.0 && focusPos.y > -4.0) {

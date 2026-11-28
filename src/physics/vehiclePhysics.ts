@@ -265,13 +265,20 @@ export class VehicleRigidBody {
     if (
       world.currentBiome === 'CANYON_BRIDGES' ||
       world.currentBiome === 'CLOCKWORK_FOUNDRY' ||
-      world.currentBiome === 'CARGO_MEGASHIPS'
+      world.currentBiome === 'CARGO_MEGASHIPS' ||
+      world.currentBiome === 'RUNAWAY_TRAINS'
     ) {
       const checkX = Math.abs(this.position.z - z) < 25 ? this.position.x : spawnX;
       const checkGround = world.sampleTerrain(checkX, targetZ);
-      if (checkGround.height < -8.0) {
+      if (checkGround.height < -8.0 || world.currentBiome === 'RUNAWAY_TRAINS') {
         const isl =
-          world.currentBiome === 'CARGO_MEGASHIPS'
+          world.currentBiome === 'RUNAWAY_TRAINS'
+            ? world.runawayTrainBuilder.findNearestTrainSpawn(
+                checkX,
+                targetZ,
+                (sz) => world.getTrailSpec(sz).centerX
+              )
+            : world.currentBiome === 'CARGO_MEGASHIPS'
             ? world.cargoMegashipBuilder.findNearestShipSpawn(
                 checkX,
                 targetZ,
@@ -291,7 +298,7 @@ export class VehicleRigidBody {
         spawnX = isl.x;
         targetZ = isl.z;
         spec = world.getTrailSpec(targetZ);
-        ground = world.sampleTerrain(spawnX, targetZ);
+        ground = world.sampleTerrain(spawnX, targetZ, undefined, isl.y);
         customHeadingYaw = isl.yaw;
       } else {
         spawnX = checkX;
@@ -528,7 +535,12 @@ export class VehicleRigidBody {
 
       const probeX = this._mountWorld.x - this._upWorld.x * w.restLength;
       const probeZ = this._mountWorld.z - this._upWorld.z * w.restLength;
-      const sample = world.sampleTerrain(probeX, probeZ, this._terrainNormal);
+      const sample = world.sampleTerrain(
+        probeX,
+        probeZ,
+        this._terrainNormal,
+        this._mountWorld.y
+      );
 
       let groundY = sample.height;
       let wheelSurf: SurfaceType = sample.surface;
@@ -864,7 +876,12 @@ export class VehicleRigidBody {
     }
 
     // 8. Chassis Belly Clearance & SPACIOUS Wide Excursion Envelope (±90m!)
-    const chassisTerrain = world.sampleTerrain(this.position.x, this.position.z);
+    const chassisTerrain = world.sampleTerrain(
+      this.position.x,
+      this.position.z,
+      undefined,
+      this.position.y
+    );
     const minChassisY = chassisTerrain.height + 0.44;
     if (this.position.y < minChassisY) {
       const pen = minChassisY - this.position.y;
