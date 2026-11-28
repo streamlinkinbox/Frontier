@@ -132,6 +132,12 @@ export class ExpeditionHud {
         name: 'RUNAWAY TRAINS',
         sub: 'Parallel Banking Trains · Dynamited Trestles · Rolling Logs',
       },
+      {
+        id: 'STRIP_MINE',
+        key: ']',
+        name: 'STRIP MINE',
+        sub: '90m Bagger-288 Slewing Booms · ±14 m/s Conveyors · 400t Haul Trucks',
+      },
     ];
 
     const levelChipsHtml = levels
@@ -431,7 +437,9 @@ export class ExpeditionHud {
     const spec = world.getTrailSpec(focusPos.z);
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z, focusPos.y);
     let zoneName =
-      world.currentBiome === 'RUNAWAY_TRAINS'
+      world.currentBiome === 'STRIP_MINE'
+        ? 'OPEN-PIT LIMESTONE STRIP MINE'
+        : world.currentBiome === 'RUNAWAY_TRAINS'
         ? 'RUNAWAY ARMORED FREIGHT TRAIN'
         : world.currentBiome === 'CARGO_MEGASHIPS'
         ? 'PITCHING CARGO MEGASHIP DECK'
@@ -457,7 +465,28 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'RUNAWAY_TRAINS') {
+    if (world.currentBiome === 'STRIP_MINE') {
+      const beltVel = new THREE.Vector3();
+      const onMoving = world.sampleMovingDeckVelocity(focusPos.x, focusPos.z, beltVel);
+      const moveSpeed = beltVel.length();
+      if (sample.height < -10.0 && focusPos.y > 0.0) {
+        zoneName = 'OPEN-PIT QUARRY CHASM JUMP!';
+      } else if (sample.height < -10.0) {
+        zoneName = 'FLOODED TURQUOISE QUARRY PIT SUMP';
+      } else if (onMoving && moveSpeed > 10.0) {
+        zoneName =
+          beltVel.z < 0
+            ? 'DOWNSTREAM ORE CONVEYOR SKYBRIDGE (+14 M/S LAUNCH!)'
+            : 'UPSTREAM COUNTER-FLOW ORE CONVEYOR (-14 M/S · DODGE BOULDERS!)';
+      } else if (sample.height > 3.1 && onMoving) {
+        zoneName = `BAGGER-288 SLEWING BOOM / 400T HAUL TRUCK RAMP (+${sample.height.toFixed(1)}m)`;
+      } else {
+        const dx = focusPos.x - spec.centerX;
+        const benchLbl =
+          dx < -10.0 ? 'WEST HAUL BENCH' : dx > 10.0 ? 'EAST HIGHWALL BENCH' : 'CENTER EXCAVATOR SPINE';
+        zoneName = `TERRACED QUARRY · ${benchLbl} (+${sample.height.toFixed(1)}m)`;
+      }
+    } else if (world.currentBiome === 'RUNAWAY_TRAINS') {
       if (sample.height < -10.0 && focusPos.y > 0.5) {
         zoneName = 'TRAIN-TO-TRAIN SIDEWAYS GORGE LEAP!';
       } else if (sample.height < -10.0) {

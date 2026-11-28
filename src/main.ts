@@ -32,6 +32,7 @@ const BIOME_ORDER: BiomeId[] = [
   'CLOCKWORK_FOUNDRY',
   'CARGO_MEGASHIPS',
   'RUNAWAY_TRAINS',
+  'STRIP_MINE',
 ];
 const LEVEL_PORTAL_Z = -860;
 
@@ -440,9 +441,36 @@ class FrontierSimulationApp {
       this.particles.emitVineSnapBurst(hitPos, true);
       this.audio.playTimberSlamSound();
     };
+    this.world.stripMineBuilder.onBenchDynamiteBlast = (
+      blastPos: THREE.Vector3,
+      chargeIndex: number
+    ) => {
+      if (blastPos.distanceTo(this.camera.position) < 96) {
+        this.particles.emitTimberSlamShockwave(blastPos);
+        this.particles.emitVineSnapBurst(blastPos, true);
+        this.particles.emitImpactDust(blastPos, 1.55);
+        this.audio.playThunderStrikeSound(0.78 + chargeIndex * 0.06);
+        this.audio.playTimberSlamSound();
+      }
+      if (chargeIndex === 3 && blastPos.distanceTo(this.camera.position) < 62) {
+        this.hud.showCallout(
+          'RIPPLING HIGHWALL BLAST DROPPED FRESH LIMESTONE RAMP SHORTCUT!'
+        );
+      }
+    };
+    this.world.stripMineBuilder.onBucketWheelImpact = (hitPos: THREE.Vector3) => {
+      this.particles.emitVineSnapBurst(hitPos, true);
+      this.particles.emitImpactDust(hitPos, 1.35);
+      this.audio.playTimberSlamSound();
+      this.hud.showCallout('GRAZED 20M ROTATING BUCKET WHEEL · EXIT BOOM ON PORT RAMP!');
+    };
+    this.world.stripMineBuilder.onOreBoulderImpact = (hitPos: THREE.Vector3) => {
+      this.particles.emitImpactDust(hitPos, 1.15);
+      this.audio.playTimberCrackSound();
+    };
 
-    // Boot into Level [13] Runaway Armored Freight Trains & Collapsing Trestle Gorge with Unreal Free-Fly Camera!
-    this.loadBiomeLevel('RUNAWAY_TRAINS', true);
+    // Boot into Level [14] Open-Pit Strip Mine & Colossal Bucket-Wheel Excavators with Unreal Free-Fly Camera!
+    this.loadBiomeLevel('STRIP_MINE', true);
 
     this.bindInputEvents();
     window.addEventListener('resize', () => this.onResize());
@@ -631,6 +659,8 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('CARGO_MEGASHIPS');
       } else if (code === 'Backslash' || code === 'BracketLeft') {
         this.loadBiomeLevel('RUNAWAY_TRAINS');
+      } else if (code === 'BracketRight' || code === 'Backquote') {
+        this.loadBiomeLevel('STRIP_MINE');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
@@ -879,13 +909,15 @@ class FrontierSimulationApp {
         this.world.currentBiome === 'CANYON_BRIDGES' ||
         this.world.currentBiome === 'CLOCKWORK_FOUNDRY' ||
         this.world.currentBiome === 'CARGO_MEGASHIPS' ||
-        this.world.currentBiome === 'RUNAWAY_TRAINS')
+        this.world.currentBiome === 'RUNAWAY_TRAINS' ||
+        this.world.currentBiome === 'STRIP_MINE')
     ) {
       const cliffSpec = this.world.getTrailSpec(this.vehicle.position.z);
       const rescueThresholdY =
         this.world.currentBiome === 'CARGO_MEGASHIPS'
           ? -10.5
-          : this.world.currentBiome === 'RUNAWAY_TRAINS'
+          : this.world.currentBiome === 'RUNAWAY_TRAINS' ||
+            this.world.currentBiome === 'STRIP_MINE'
           ? -14.0
           : cliffSpec.baseY - 22.0;
       if (this.vehicle.position.y < rescueThresholdY) {
@@ -894,7 +926,9 @@ class FrontierSimulationApp {
           this.cliffFallTimer = 0;
           this.vehicle.resetAt(this.world, this.vehicle.position.z);
           this.hud.showCallout(
-            this.world.currentBiome === 'RUNAWAY_TRAINS'
+            this.world.currentBiome === 'STRIP_MINE'
+              ? 'OPEN-PIT SUMP RESCUE · HOISTED ONTO NEAREST QUARRY HAUL BENCH!'
+              : this.world.currentBiome === 'RUNAWAY_TRAINS'
               ? 'TRESTLE GORGE RESCUE · HOISTED ONTO NEAREST RUNAWAY TRAIN!'
               : this.world.currentBiome === 'CARGO_MEGASHIPS'
               ? 'MAN OVERBOARD RESCUE · HOISTED BACK ONTO NEAREST MEGASHIP DECK!'

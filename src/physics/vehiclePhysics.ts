@@ -266,13 +266,20 @@ export class VehicleRigidBody {
       world.currentBiome === 'CANYON_BRIDGES' ||
       world.currentBiome === 'CLOCKWORK_FOUNDRY' ||
       world.currentBiome === 'CARGO_MEGASHIPS' ||
-      world.currentBiome === 'RUNAWAY_TRAINS'
+      world.currentBiome === 'RUNAWAY_TRAINS' ||
+      world.currentBiome === 'STRIP_MINE'
     ) {
       const checkX = Math.abs(this.position.z - z) < 25 ? this.position.x : spawnX;
       const checkGround = world.sampleTerrain(checkX, targetZ);
       if (checkGround.height < -8.0 || world.currentBiome === 'RUNAWAY_TRAINS') {
         const isl =
-          world.currentBiome === 'RUNAWAY_TRAINS'
+          world.currentBiome === 'STRIP_MINE'
+            ? world.stripMineBuilder.findNearestQuarrySpawn(
+                checkX,
+                targetZ,
+                (sz) => world.getTrailSpec(sz).centerX
+              )
+            : world.currentBiome === 'RUNAWAY_TRAINS'
             ? world.runawayTrainBuilder.findNearestTrainSpawn(
                 checkX,
                 targetZ,
@@ -775,7 +782,13 @@ export class VehicleRigidBody {
       this._wheelFwd.addScaledVector(w.contactNormalWorld, -nDotF).normalize();
       this._wheelRight.crossVectors(this._wheelFwd, w.contactNormalWorld).normalize();
 
-      const vLong = this._velAtPoint.dot(this._wheelFwd);
+      const deckLong = onMovingDeck ? this._deckVel.dot(this._wheelFwd) : 0;
+      const isCleatedConveyor = onMovingDeck && this._deckVel.lengthSq() > 90.0;
+      // On high-speed cleated mining conveyor belts (±14 m/s), rubber V-cleats physically entrain
+      // the tires while letting drivetrain torque stack ON TOP of the belt's carry velocity!
+      const vLong = isCleatedConveyor
+        ? this._velAtPoint.dot(this._wheelFwd) + deckLong * 0.85
+        : this._velAtPoint.dot(this._wheelFwd);
       const vLat = this._velAtPoint.dot(this._wheelRight);
 
       const surfSample = world.sampleTerrain(w.contactPointWorld.x, w.contactPointWorld.z);
@@ -851,6 +864,19 @@ export class VehicleRigidBody {
       }
       w.angularVel = clamp(w.angularVel, -95, 145);
       w.spinAngle += w.angularVel * dt;
+
+      if (isCleatedConveyor) {
+        const worldLong = this.linearVelocity.dot(this._wheelFwd);
+        const cleatCarry =
+          deckLong >= 0
+            ? clamp(
+                Math.max(0, (deckLong + activeThrottle * 18.5 - worldLong) * 760),
+                0,
+                fMax * 0.82
+              )
+            : clamp((deckLong - worldLong) * 420, -fMax * 0.65, 0);
+        fLong += cleatCarry;
+      }
 
       w.combinedSlip = clamp(Math.hypot(rawSlipRatio * 0.85, rawSlipAngle * 1.35), 0, 1.5);
 

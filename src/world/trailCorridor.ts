@@ -6,6 +6,7 @@ import { CanyonBridgeChunkData, CanyonRopeBridgeBuilder } from './canyonRopeBrid
 import { CargoMegashipBuilder, CargoMegashipChunkData } from './cargoMegashipSystem';
 import { ClockworkChunkData, ClockworkFoundryBuilder } from './clockworkFoundrySystem';
 import { RunawayTrainBuilder, RunawayTrainChunkData } from './runawayTrainSystem';
+import { StripMineBuilder, StripMineChunkData } from './stripMineSystem';
 import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
 import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
 import { GiantHollowLogBuilder, GiantHollowLogChunkData } from './giantHollowLogSystem';
@@ -30,7 +31,8 @@ export type BiomeId =
   | 'CANYON_BRIDGES'
   | 'CLOCKWORK_FOUNDRY'
   | 'CARGO_MEGASHIPS'
-  | 'RUNAWAY_TRAINS';
+  | 'RUNAWAY_TRAINS'
+  | 'STRIP_MINE';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -233,6 +235,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     hemiSkyHex: 0xffb878,
     hemiGroundHex: 0x263238,
   },
+  STRIP_MINE: {
+    id: 'STRIP_MINE',
+    title: 'OPEN-PIT STRIP MINE & COLOSSAL BUCKET-WHEEL EXCAVATORS',
+    subtitle: '90M BAGGER-288 SLEWING BOOMS · ±14 M/S CONVEYOR BELTS · 400-TON HAUL TRUCK RAMPS',
+    fogColorHex: 0xccb894,
+    fogDensity: 0.0034,
+    skyHorizonRGB: [0.84, 0.72, 0.54],
+    skyZenithRGB: [0.22, 0.42, 0.66],
+    sunColorHex: 0xfff0cc,
+    sunIntensity: 3.05,
+    hemiSkyHex: 0xf2dfbe,
+    hemiGroundHex: 0x5c4f3d,
+  },
 };
 
 export interface TrailPointSpec {
@@ -422,6 +437,7 @@ interface ChunkRecord {
   clockworkData?: ClockworkChunkData;
   cargoMegashipData?: CargoMegashipChunkData;
   runawayTrainData?: RunawayTrainChunkData;
+  stripMineData?: StripMineChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -463,6 +479,7 @@ export class TrailCorridorWorld {
   public readonly clockworkBuilder: ClockworkFoundryBuilder;
   public readonly cargoMegashipBuilder: CargoMegashipBuilder;
   public readonly runawayTrainBuilder: RunawayTrainBuilder;
+  public readonly stripMineBuilder: StripMineBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -520,6 +537,7 @@ export class TrailCorridorWorld {
     this.clockworkBuilder = new ClockworkFoundryBuilder(textures);
     this.cargoMegashipBuilder = new CargoMegashipBuilder(textures);
     this.runawayTrainBuilder = new RunawayTrainBuilder(textures);
+    this.stripMineBuilder = new StripMineBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -815,6 +833,8 @@ export class TrailCorridorWorld {
     this.group.add(this.cargoMegashipBuilder.atmosphereFxGroup);
     this.runawayTrainBuilder.atmosphereFxGroup.visible = false;
     this.group.add(this.runawayTrainBuilder.atmosphereFxGroup);
+    this.stripMineBuilder.atmosphereFxGroup.visible = false;
+    this.group.add(this.stripMineBuilder.atmosphereFxGroup);
   }
 
   public getActiveCarnivorousBogChunks(): CarnivorousBogChunkData[] {
@@ -851,6 +871,7 @@ export class TrailCorridorWorld {
     this.clockworkBuilder.atmosphereFxGroup.visible = biome === 'CLOCKWORK_FOUNDRY';
     this.cargoMegashipBuilder.atmosphereFxGroup.visible = biome === 'CARGO_MEGASHIPS';
     this.runawayTrainBuilder.atmosphereFxGroup.visible = biome === 'RUNAWAY_TRAINS';
+    this.stripMineBuilder.atmosphereFxGroup.visible = biome === 'STRIP_MINE';
     this.resetAround(startZ);
   }
 
@@ -1907,7 +1928,8 @@ export class TrailCorridorWorld {
       this.currentBiome === 'CANYON_BRIDGES' ||
       this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
       this.currentBiome === 'CARGO_MEGASHIPS' ||
-      this.currentBiome === 'RUNAWAY_TRAINS'
+      this.currentBiome === 'RUNAWAY_TRAINS' ||
+      this.currentBiome === 'STRIP_MINE'
         ? 0 // Level datum!
         : this.currentBiome === 'SINGULARITY'
         ? 38.0 +
@@ -1967,6 +1989,8 @@ export class TrailCorridorWorld {
         ? sampleUndergroundMarketHalfWidth(Math.max(0, -z), CHUNK_LENGTH)
         : this.currentBiome === 'RUNAWAY_TRAINS'
         ? 34.0
+        : this.currentBiome === 'STRIP_MINE'
+        ? 42.0
         : this.currentBiome === 'CANYON_BRIDGES' ||
           this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
           this.currentBiome === 'CARGO_MEGASHIPS'
@@ -2003,7 +2027,8 @@ export class TrailCorridorWorld {
           this.currentBiome === 'CANYON_BRIDGES' ||
           this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
           this.currentBiome === 'CARGO_MEGASHIPS' ||
-          this.currentBiome === 'RUNAWAY_TRAINS'
+          this.currentBiome === 'RUNAWAY_TRAINS' ||
+          this.currentBiome === 'STRIP_MINE'
         ? 0
         : smoothstep(0.54, 0.82, mudNoise)) * introFade;
 
@@ -2083,7 +2108,8 @@ export class TrailCorridorWorld {
       this.currentBiome === 'CANYON_BRIDGES' ||
       this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
       this.currentBiome === 'CARGO_MEGASHIPS' ||
-      this.currentBiome === 'RUNAWAY_TRAINS'
+      this.currentBiome === 'RUNAWAY_TRAINS' ||
+      this.currentBiome === 'STRIP_MINE'
         ? 0
         : d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
 
@@ -2107,8 +2133,9 @@ export class TrailCorridorWorld {
     const microRough =
       this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
       this.currentBiome === 'CARGO_MEGASHIPS' ||
-      this.currentBiome === 'RUNAWAY_TRAINS'
-        ? 0.0 // Precision-machined brass cogwheels, welded steel ship decks & armored railcar roofs!
+      this.currentBiome === 'RUNAWAY_TRAINS' ||
+      this.currentBiome === 'STRIP_MINE'
+        ? 0.0 // Precision-machined brass cogwheels, welded steel ship decks, railcar roofs & Bagger-288 quarry decks!
         : this.currentBiome === 'UNDERGROUND_MARKET'
         ? 0.004 // Smooth tiled subterranean concourse floor!
         : this.currentBiome === 'GLACIAL_ICE'
@@ -2125,7 +2152,21 @@ export class TrailCorridorWorld {
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
 
-    if (this.currentBiome === 'RUNAWAY_TRAINS') {
+    if (this.currentBiome === 'STRIP_MINE') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+      // Deep -42m Open-Pit Quarry Floor rising into 5 stepped Amphitheater Blast-Cut Limestone Benches (+2m..+61m)!
+      const rawRamp = clamp((absD - 31.0) / 86.0, 0, 1) * 5.2;
+      const stepIdx = Math.floor(rawRamp);
+      const stepFrac = rawRamp - stepIdx;
+      const terracedRise = (stepIdx + smoothstep(0.66, 0.95, stepFrac)) * 11.8;
+      cliffRelief =
+        -42.0 +
+        smoothstep(28.0, 32.0, absD) * 44.0 +
+        terracedRise +
+        ridge2D(x * 0.055, z * 0.055, 2) * 0.75 * smoothstep(31.0, 42.0, absD);
+    } else if (this.currentBiome === 'RUNAWAY_TRAINS') {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
@@ -2316,6 +2357,17 @@ export class TrailCorridorWorld {
           height = trainSample.height;
         }
       }
+      if (rec.stripMineData && absD < 38.0) {
+        const mineSample = this.stripMineBuilder.sampleLiveStripMineSurface(
+          rec.stripMineData,
+          x,
+          z,
+          referenceY
+        );
+        if (mineSample.active && mineSample.height > height) {
+          height = mineSample.height;
+        }
+      }
       for (const p of rec.puddles) {
         const nx = (x - p.x) / p.radiusX;
         const nz = (z - p.z) / p.radiusZ;
@@ -2330,7 +2382,9 @@ export class TrailCorridorWorld {
     }
 
     let surface: SurfaceType =
-      this.currentBiome === 'CARGO_MEGASHIPS' || this.currentBiome === 'RUNAWAY_TRAINS'
+      this.currentBiome === 'CARGO_MEGASHIPS' ||
+      this.currentBiome === 'RUNAWAY_TRAINS' ||
+      this.currentBiome === 'STRIP_MINE'
         ? 'STEEL_DECK'
         : this.currentBiome === 'CLOCKWORK_FOUNDRY'
         ? 'BRASS_GEAR'
@@ -2364,6 +2418,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       this.currentBiome !== 'CARGO_MEGASHIPS' &&
       this.currentBiome !== 'RUNAWAY_TRAINS' &&
+      this.currentBiome !== 'STRIP_MINE' &&
       (absD > hw + 18.0 || medianIslandBump > 0.8)
     ) {
       surface = 'MOSS_ROCK';
@@ -2378,6 +2433,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       this.currentBiome !== 'CARGO_MEGASHIPS' &&
       this.currentBiome !== 'RUNAWAY_TRAINS' &&
+      this.currentBiome !== 'STRIP_MINE' &&
       localMud > 0.36
     ) {
       surface = 'WET_MUD';
@@ -2391,6 +2447,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       this.currentBiome !== 'CARGO_MEGASHIPS' &&
       this.currentBiome !== 'RUNAWAY_TRAINS' &&
+      this.currentBiome !== 'STRIP_MINE' &&
       distFromBranch > branchHalfWidth * 0.78
     ) {
       surface = 'LOOSE_VERGE';
@@ -2517,7 +2574,8 @@ export class TrailCorridorWorld {
     if (
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       this.currentBiome !== 'CARGO_MEGASHIPS' &&
-      this.currentBiome !== 'RUNAWAY_TRAINS'
+      this.currentBiome !== 'RUNAWAY_TRAINS' &&
+      this.currentBiome !== 'STRIP_MINE'
     ) {
       return false;
     }
@@ -2555,6 +2613,18 @@ export class TrailCorridorWorld {
           return true;
         }
       }
+      if (rec?.stripMineData) {
+        if (
+          this.stripMineBuilder.sampleSurfaceVelocityInChunk(
+            rec.stripMineData,
+            x,
+            z,
+            outVel
+          )
+        ) {
+          return true;
+        }
+      }
     }
     return false;
   }
@@ -2575,7 +2645,8 @@ export class TrailCorridorWorld {
     if (
       (this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
         this.currentBiome !== 'CARGO_MEGASHIPS' &&
-        this.currentBiome !== 'RUNAWAY_TRAINS') ||
+        this.currentBiome !== 'RUNAWAY_TRAINS' &&
+        this.currentBiome !== 'STRIP_MINE') ||
       passiveObserver
     ) {
       return;
@@ -2611,6 +2682,18 @@ export class TrailCorridorWorld {
         this.runawayTrainBuilder.resolveTrainCollisionsAndHazardsInChunk(
           rec.runawayTrainData,
           1 / 240,
+          carPos,
+          forwardWorld,
+          rightWorld,
+          linearVel,
+          angularVel,
+          passiveObserver,
+          onImpact
+        );
+      }
+      if (rec?.stripMineData) {
+        this.stripMineBuilder.resolveStripMineCollisionsInChunk(
+          rec.stripMineData,
           carPos,
           forwardWorld,
           rightWorld,
@@ -3004,6 +3087,15 @@ export class TrailCorridorWorld {
           (z) => this.getTrailSpec(z).centerX
         );
       }
+      // 16. OPEN-PIT STRIP MINE: Slewing 90m Bagger-288 Excavators, ±14 m/s Conveyors, 400t Haul Trucks & Rippling Blasts!
+      if (rec.stripMineData) {
+        this.stripMineBuilder.stepChunkHazards(
+          rec.stripMineData,
+          dt,
+          elapsedTime,
+          (z) => this.getTrailSpec(z).centerX
+        );
+      }
     }
 
     this.singularityBuilder.stepGlobalStormFx(
@@ -3060,6 +3152,12 @@ export class TrailCorridorWorld {
     );
     this.runawayTrainBuilder.stepGlobalGorgeAtmosphere(
       this.currentBiome === 'RUNAWAY_TRAINS',
+      playerPos,
+      elapsedTime,
+      dt
+    );
+    this.stripMineBuilder.stepGlobalStripMineAtmosphere(
+      this.currentBiome === 'STRIP_MINE',
       playerPos,
       elapsedTime,
       dt
@@ -3238,6 +3336,8 @@ export class TrailCorridorWorld {
         ? 59273
         : biome === 'RUNAWAY_TRAINS'
         ? 73189
+        : biome === 'STRIP_MINE'
+        ? 84623
         : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
@@ -3268,7 +3368,8 @@ export class TrailCorridorWorld {
       biome !== 'CANYON_BRIDGES' &&
       biome !== 'CLOCKWORK_FOUNDRY' &&
       biome !== 'CARGO_MEGASHIPS' &&
-      biome !== 'RUNAWAY_TRAINS'
+      biome !== 'RUNAWAY_TRAINS' &&
+      biome !== 'STRIP_MINE'
     ) {
       if (biome === 'SINGULARITY') {
         // Glowing turquoise mineral salt-brine pools in wide plateau hollows & deep canyon floor!
@@ -3474,7 +3575,17 @@ export class TrailCorridorWorld {
         const outerMask = smoothstep(hw + 8.0, hw + 55.0, absD);
         const patchVar = fbm2D(x * 0.08, z * 0.08, 2) * 0.1;
 
-        if (biome === 'RUNAWAY_TRAINS') {
+        if (biome === 'STRIP_MINE') {
+          // Mineral turquoise pit-sump floor rising through terraced sun-bleached limestone & ochre bench cuts!
+          const benchMask = smoothstep(-34.0, 2.0, s.height);
+          const strataStep = Math.sin(s.height * 0.53) * 0.5 + 0.5;
+          tmpColor.setHex(0x0b363c).lerp(new THREE.Color(0xcab590), benchMask);
+          tmpColor.lerp(
+            new THREE.Color(0x8c7350),
+            benchMask * smoothstep(0.58, 0.92, strataStep) * 0.52
+          );
+          tmpColor.offsetHSL(0, 0, patchVar * 0.42);
+        } else if (biome === 'RUNAWAY_TRAINS') {
           // Deep wet canyon riverbed cobbles rising into warm sunset-lit stratified Sierra granite cliffs & pine rim!
           const wallBlend = smoothstep(-32.0, 26.0, s.height);
           const rimPineBlend = smoothstep(36.0, 54.0, s.height);
@@ -3913,6 +4024,15 @@ export class TrailCorridorWorld {
         (z) => this.getTrailSpec(z).centerX,
         obstacles
       );
+    } else if (biome === 'STRIP_MINE') {
+      chunkRecord.stripMineData = this.stripMineBuilder.populateStripMineChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        (z) => this.getTrailSpec(z).centerX,
+        obstacles
+      );
     }
 
     // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
@@ -4030,7 +4150,8 @@ export class TrailCorridorWorld {
       biome === 'UNDERGROUND_MARKET' ||
       biome === 'CANYON_BRIDGES' ||
       biome === 'CLOCKWORK_FOUNDRY' ||
-      biome === 'CARGO_MEGASHIPS'
+      biome === 'CARGO_MEGASHIPS' ||
+      biome === 'STRIP_MINE'
         ? 0
         : biome === 'RUNAWAY_TRAINS'
         ? 16
@@ -4127,7 +4248,8 @@ export class TrailCorridorWorld {
       biome === 'CANYON_BRIDGES' ||
       biome === 'CLOCKWORK_FOUNDRY' ||
       biome === 'CARGO_MEGASHIPS' ||
-      biome === 'RUNAWAY_TRAINS'
+      biome === 'RUNAWAY_TRAINS' ||
+      biome === 'STRIP_MINE'
         ? 0
         : biome === 'SINGULARITY'
         ? 2
@@ -4285,7 +4407,8 @@ export class TrailCorridorWorld {
           biome === 'CANYON_BRIDGES' ||
           biome === 'CLOCKWORK_FOUNDRY' ||
           biome === 'CARGO_MEGASHIPS' ||
-          biome === 'RUNAWAY_TRAINS'
+          biome === 'RUNAWAY_TRAINS' ||
+          biome === 'STRIP_MINE'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 45

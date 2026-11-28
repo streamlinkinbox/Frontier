@@ -122,6 +122,14 @@ export class UnrealObserverCamera {
       );
       spawnX = tr.x;
       groundY = Math.max(tr.y, 3.4) + 4.2;
+    } else if (world.currentBiome === 'STRIP_MINE') {
+      const q = world.stripMineBuilder.findNearestQuarrySpawn(
+        spawnX,
+        z,
+        (sz) => world.getTrailSpec(sz).centerX
+      );
+      spawnX = q.x;
+      groundY = Math.max(q.y, 2.8) + 6.5;
     }
     this.position.set(spawnX, groundY + heightAboveGround, z);
     this.velocity.set(0, 0, 0);

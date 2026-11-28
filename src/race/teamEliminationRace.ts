@@ -209,6 +209,7 @@ export class TeamEliminationRaceDirector {
     if (this.regionIndex === 10) return 'CLOCKWORK_FOUNDRY';
     if (this.regionIndex === 11) return 'CARGO_MEGASHIPS';
     if (this.regionIndex === 12) return 'RUNAWAY_TRAINS';
+    if (this.regionIndex === 13) return 'STRIP_MINE';
     const all: BiomeId[] = [
       'FOREST',
       'SWAMP',
@@ -223,6 +224,7 @@ export class TeamEliminationRaceDirector {
       'CLOCKWORK_FOUNDRY',
       'CARGO_MEGASHIPS',
       'RUNAWAY_TRAINS',
+      'STRIP_MINE',
     ];
     const candidates = all.filter((b) => b !== this.world.currentBiome);
     return candidates[Math.floor(this.rng() * candidates.length)];
@@ -383,11 +385,18 @@ export class TeamEliminationRaceDirector {
           this.world.currentBiome === 'CANYON_BRIDGES' ||
           this.world.currentBiome === 'CLOCKWORK_FOUNDRY' ||
           this.world.currentBiome === 'CARGO_MEGASHIPS' ||
-          this.world.currentBiome === 'RUNAWAY_TRAINS'
+          this.world.currentBiome === 'RUNAWAY_TRAINS' ||
+          this.world.currentBiome === 'STRIP_MINE'
         ) {
           const lookZ = r.position.z - 28.0;
           const isl =
-            this.world.currentBiome === 'RUNAWAY_TRAINS'
+            this.world.currentBiome === 'STRIP_MINE'
+              ? this.world.stripMineBuilder.findNearestQuarrySpawn(
+                  r.position.x,
+                  lookZ,
+                  (sz) => this.world.getTrailSpec(sz).centerX
+                )
+              : this.world.currentBiome === 'RUNAWAY_TRAINS'
               ? this.world.runawayTrainBuilder.findNearestTrainSpawn(
                   r.position.x,
                   lookZ,
