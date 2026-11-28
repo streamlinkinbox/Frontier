@@ -158,6 +158,7 @@ export class VehicleRigidBody {
   private _localPt = new THREE.Vector3();
   private _invQuat = new THREE.Quaternion();
   private _contactWorld = new THREE.Vector3();
+  private _deckVel = new THREE.Vector3();
 
   public onChassisImpact?: (intensity: number, worldPoint: THREE.Vector3) => void;
   /** When true (Observer / Peaceful Level Inspection), boulders, mudslides & dust devils never attack/shove the vehicle */
@@ -255,18 +256,25 @@ export class VehicleRigidBody {
       spec.splitFactor > 0.25 ? spec.centerX + branchSide * spec.splitOffset : spec.centerX;
     let ground = world.sampleTerrain(spawnX, targetZ);
 
-    // In CANYON_BRIDGES, if (spawnX, targetZ) falls over open -48m chasm air (e.g. even-count 2/4 island rows),
-    // snap directly onto the nearest Sky-Island Mesa at its exact elevation facing its outgoing bridges!
+    // In CANYON_BRIDGES & CLOCKWORK_FOUNDRY, if (spawnX, targetZ) falls over open chasm/molten air,
+    // snap directly onto the nearest Island / Brass Cogwheel at its exact elevation facing its outgoing spans!
     let customHeadingYaw: number | null = null;
-    if (world.currentBiome === 'CANYON_BRIDGES') {
+    if (world.currentBiome === 'CANYON_BRIDGES' || world.currentBiome === 'CLOCKWORK_FOUNDRY') {
       const checkX = Math.abs(this.position.z - z) < 25 ? this.position.x : spawnX;
       const checkGround = world.sampleTerrain(checkX, targetZ);
       if (checkGround.height < -12.0) {
-        const isl = world.canyonBridgeBuilder.findNearestIslandSpawn(
-          checkX,
-          targetZ,
-          (sz) => world.getTrailSpec(sz).centerX
-        );
+        const isl =
+          world.currentBiome === 'CLOCKWORK_FOUNDRY'
+            ? world.clockworkBuilder.findNearestGearSpawn(
+                checkX,
+                targetZ,
+                (sz) => world.getTrailSpec(sz).centerX
+              )
+            : world.canyonBridgeBuilder.findNearestIslandSpawn(
+                checkX,
+                targetZ,
+                (sz) => world.getTrailSpec(sz).centerX
+              );
         spawnX = isl.x;
         targetZ = isl.z;
         spec = world.getTrailSpec(targetZ);
@@ -724,6 +732,16 @@ export class VehicleRigidBody {
 
       this._rArm.copy(w.contactPointWorld).sub(this.position);
       this._velAtPoint.crossVectors(this.angularVelocity, this._rArm).add(this.linearVelocity);
+      const onMovingDeck =
+        !this.passiveObserverProtection &&
+        world.sampleMovingDeckVelocity(
+          w.contactPointWorld.x,
+          w.contactPointWorld.z,
+          this._deckVel
+        );
+      if (onMovingDeck) {
+        this._velAtPoint.sub(this._deckVel);
+      }
 
       const cosS = Math.cos(w.steerAngle);
       const sinS = Math.sin(w.steerAngle);
@@ -785,8 +803,12 @@ export class VehicleRigidBody {
       const lowSpeedBlend = 1 - clamp(Math.hypot(vLong, vLat) / 2.2, 0, 1);
       if (lowSpeedBlend > 0) {
         fLat = lerp(fLat, clamp(-vLat * 5400, -fMax, fMax), lowSpeedBlend * 0.75);
-        if (activeThrottle < 0.05 && activeBrake > 0.1) {
-          fLong = lerp(fLong, clamp(-vLong * 6200, -fMax, fMax), lowSpeedBlend * 0.85);
+        if (activeThrottle < 0.05 && (activeBrake > 0.1 || onMovingDeck)) {
+          fLong = lerp(
+            fLong,
+            clamp(-vLong * (activeBrake > 0.1 ? 6200 : 4200), -fMax, fMax),
+            lowSpeedBlend * (activeBrake > 0.1 ? 0.85 : 0.65)
+          );
         }
       }
 

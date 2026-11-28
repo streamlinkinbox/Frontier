@@ -29,6 +29,7 @@ const BIOME_ORDER: BiomeId[] = [
   'CARNIVOROUS_BOG',
   'UNDERGROUND_MARKET',
   'CANYON_BRIDGES',
+  'CLOCKWORK_FOUNDRY',
 ];
 const LEVEL_PORTAL_Z = -860;
 
@@ -331,9 +332,21 @@ class FrontierSimulationApp {
     this.world.canyonBridgeBuilder.onBridgeCreak = () => {
       this.audio.playVineLatchSound();
     };
+    this.world.clockworkBuilder.onSeesawAnvilSeat = (seatPos: THREE.Vector3) => {
+      this.particles.emitVineSnapBurst(seatPos, true);
+      this.audio.playTimberSlamSound();
+      if (seatPos.distanceTo(this.camera.position) < 42) {
+        this.hud.showCallout('COUNTERWEIGHT SEESAW BRIDGE SEATED FLUSH ON TARGET COGWHEEL!');
+      }
+    };
+    this.world.clockworkBuilder.onPistonSteamVent = (ventPos: THREE.Vector3) => {
+      if (ventPos.distanceTo(this.camera.position) < 60) {
+        this.particles.emitImpactDust(ventPos, 0.9);
+      }
+    };
 
-    // Boot into Swinging Canyon Rope-Bridges & Timber Mine Trestles with Unreal Free-Fly Camera!
-    this.loadBiomeLevel('CANYON_BRIDGES', true);
+    // Boot into Level [11] Clockwork Gear-Island Foundry & Seesaw Bridges with Unreal Free-Fly Camera!
+    this.loadBiomeLevel('CLOCKWORK_FOUNDRY', true);
 
     this.bindInputEvents();
     window.addEventListener('resize', () => this.onResize());
@@ -516,6 +529,8 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('UNDERGROUND_MARKET');
       } else if (code === 'Digit0') {
         this.loadBiomeLevel('CANYON_BRIDGES');
+      } else if (code === 'Minus' || code === 'NumpadSubtract') {
+        this.loadBiomeLevel('CLOCKWORK_FOUNDRY');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
@@ -757,10 +772,12 @@ class FrontierSimulationApp {
       this.physicsAccumulator -= fixedDt;
     }
 
-    // Auto-recover vehicle if it plunges off a sheer -48m cliff/chasm precipice in SINGULARITY or CANYON_BRIDGES!
+    // Auto-recover vehicle if it plunges off a sheer -48m/-36m precipice in SINGULARITY, CANYON_BRIDGES or CLOCKWORK_FOUNDRY!
     if (
       this.exploreMode === 'PEACEFUL_DRIVE' &&
-      (this.world.currentBiome === 'SINGULARITY' || this.world.currentBiome === 'CANYON_BRIDGES')
+      (this.world.currentBiome === 'SINGULARITY' ||
+        this.world.currentBiome === 'CANYON_BRIDGES' ||
+        this.world.currentBiome === 'CLOCKWORK_FOUNDRY')
     ) {
       const cliffSpec = this.world.getTrailSpec(this.vehicle.position.z);
       if (this.vehicle.position.y < cliffSpec.baseY - 22.0) {
@@ -769,7 +786,9 @@ class FrontierSimulationApp {
           this.cliffFallTimer = 0;
           this.vehicle.resetAt(this.world, this.vehicle.position.z);
           this.hud.showCallout(
-            this.world.currentBiome === 'CANYON_BRIDGES'
+            this.world.currentBiome === 'CLOCKWORK_FOUNDRY'
+              ? 'MOLTEN FOUNDRY RESCUE · RETURNED TO NEAREST BRASS COGWHEEL!'
+              : this.world.currentBiome === 'CANYON_BRIDGES'
               ? 'CANYON CHASM RESCUE · RETURNED TO NEAREST SKY-ISLAND!'
               : 'CLIFF ABYSS RESCUE · RETURNED TO RIDGE'
           );

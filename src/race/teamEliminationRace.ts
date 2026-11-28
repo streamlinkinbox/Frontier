@@ -206,6 +206,7 @@ export class TeamEliminationRaceDirector {
     if (this.regionIndex === 7) return 'CARNIVOROUS_BOG';
     if (this.regionIndex === 8) return 'UNDERGROUND_MARKET';
     if (this.regionIndex === 9) return 'CANYON_BRIDGES';
+    if (this.regionIndex === 10) return 'CLOCKWORK_FOUNDRY';
     const all: BiomeId[] = [
       'FOREST',
       'SWAMP',
@@ -217,6 +218,7 @@ export class TeamEliminationRaceDirector {
       'CARNIVOROUS_BOG',
       'UNDERGROUND_MARKET',
       'CANYON_BRIDGES',
+      'CLOCKWORK_FOUNDRY',
     ];
     const candidates = all.filter((b) => b !== this.world.currentBiome);
     return candidates[Math.floor(this.rng() * candidates.length)];
@@ -373,7 +375,25 @@ export class TeamEliminationRaceDirector {
       const spec = this.world.getTrailSpec(r.position.z);
       if (r.laneTimer <= 0) {
         r.laneTimer = 2.0 + this.rng() * 3.2;
-        if (spec.splitFactor > 0.35) {
+        if (
+          this.world.currentBiome === 'CANYON_BRIDGES' ||
+          this.world.currentBiome === 'CLOCKWORK_FOUNDRY'
+        ) {
+          const lookZ = r.position.z - 28.0;
+          const isl =
+            this.world.currentBiome === 'CLOCKWORK_FOUNDRY'
+              ? this.world.clockworkBuilder.findNearestGearSpawn(
+                  r.position.x,
+                  lookZ,
+                  (sz) => this.world.getTrailSpec(sz).centerX
+                )
+              : this.world.canyonBridgeBuilder.findNearestIslandSpawn(
+                  r.position.x,
+                  lookZ,
+                  (sz) => this.world.getTrailSpec(sz).centerX
+                );
+          r.lateralOffsetTarget = isl.x - spec.centerX;
+        } else if (spec.splitFactor > 0.35) {
           const branchSign = r.id.charCodeAt(0) % 2 === 0 ? -1 : 1;
           r.lateralOffsetTarget = branchSign * spec.splitOffset + (this.rng() - 0.5) * 9.0;
         } else {

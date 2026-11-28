@@ -3,6 +3,7 @@ import { clamp, fbm2D, lerp, mulberry32, noise2D, ridge2D, smoothstep } from '..
 import { ProceduralTextureLibrary } from '../graphics/proceduralTextures';
 import { CarnivorousBogBuilder, CarnivorousBogChunkData } from './carnivorousBogSystem';
 import { CanyonBridgeChunkData, CanyonRopeBridgeBuilder } from './canyonRopeBridgeSystem';
+import { ClockworkChunkData, ClockworkFoundryBuilder } from './clockworkFoundrySystem';
 import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
 import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
 import { GiantHollowLogBuilder, GiantHollowLogChunkData } from './giantHollowLogSystem';
@@ -24,7 +25,8 @@ export type BiomeId =
   | 'GLACIAL_ICE'
   | 'CARNIVOROUS_BOG'
   | 'UNDERGROUND_MARKET'
-  | 'CANYON_BRIDGES';
+  | 'CANYON_BRIDGES'
+  | 'CLOCKWORK_FOUNDRY';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -39,7 +41,8 @@ export type SurfaceType =
   | 'GLACIAL_ICE'
   | 'LILYPAD_WAX'
   | 'MARKET_TILE'
-  | 'ROPE_PLANK';
+  | 'ROPE_PLANK'
+  | 'BRASS_GEAR';
 
 export interface BiomeAtmosphereSpec {
   id: BiomeId;
@@ -185,6 +188,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     sunIntensity: 3.1,
     hemiSkyHex: 0xd6e6f5,
     hemiGroundHex: 0x3a2a22,
+  },
+  CLOCKWORK_FOUNDRY: {
+    id: 'CLOCKWORK_FOUNDRY',
+    title: 'CLOCKWORK GEAR-ISLAND FOUNDRY & SEESAW BRIDGES',
+    subtitle: 'ROTATING BRASS COGWHEELS · WEIGHT-TILTING SEESAWS · STEAM PISTONS · JUMP RAMPS',
+    fogColorHex: 0x2b1810,
+    fogDensity: 0.0052,
+    skyHorizonRGB: [0.46, 0.22, 0.09],
+    skyZenithRGB: [0.09, 0.06, 0.07],
+    sunColorHex: 0xffc88a,
+    sunIntensity: 2.6,
+    hemiSkyHex: 0xffad66,
+    hemiGroundHex: 0xff5a14,
   },
 };
 
@@ -372,6 +388,7 @@ interface ChunkRecord {
   carnivorousBogData?: CarnivorousBogChunkData;
   undergroundMarketData?: UndergroundMarketChunkData;
   canyonBridgeData?: CanyonBridgeChunkData;
+  clockworkData?: ClockworkChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -410,6 +427,7 @@ export class TrailCorridorWorld {
   public readonly carnivorousBogBuilder: CarnivorousBogBuilder;
   public readonly undergroundMarketBuilder: UndergroundMarketBuilder;
   public readonly canyonBridgeBuilder: CanyonRopeBridgeBuilder;
+  public readonly clockworkBuilder: ClockworkFoundryBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -464,6 +482,7 @@ export class TrailCorridorWorld {
     this.carnivorousBogBuilder = new CarnivorousBogBuilder(textures);
     this.undergroundMarketBuilder = new UndergroundMarketBuilder(textures);
     this.canyonBridgeBuilder = new CanyonRopeBridgeBuilder(textures);
+    this.clockworkBuilder = new ClockworkFoundryBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -753,6 +772,8 @@ export class TrailCorridorWorld {
     this.group.add(this.undergroundMarketBuilder.atmosphereFxGroup);
     this.canyonBridgeBuilder.atmosphereFxGroup.visible = false;
     this.group.add(this.canyonBridgeBuilder.atmosphereFxGroup);
+    this.clockworkBuilder.atmosphereFxGroup.visible = false;
+    this.group.add(this.clockworkBuilder.atmosphereFxGroup);
   }
 
   public getActiveCarnivorousBogChunks(): CarnivorousBogChunkData[] {
@@ -786,6 +807,7 @@ export class TrailCorridorWorld {
     this.carnivorousBogBuilder.atmosphereFxGroup.visible = biome === 'CARNIVOROUS_BOG';
     this.undergroundMarketBuilder.atmosphereFxGroup.visible = biome === 'UNDERGROUND_MARKET';
     this.canyonBridgeBuilder.atmosphereFxGroup.visible = biome === 'CANYON_BRIDGES';
+    this.clockworkBuilder.atmosphereFxGroup.visible = biome === 'CLOCKWORK_FOUNDRY';
     this.resetAround(startZ);
   }
 
@@ -1839,7 +1861,8 @@ export class TrailCorridorWorld {
       this.currentBiome === 'GLACIAL_ICE' ||
       this.currentBiome === 'CARNIVOROUS_BOG' ||
       this.currentBiome === 'UNDERGROUND_MARKET' ||
-      this.currentBiome === 'CANYON_BRIDGES'
+      this.currentBiome === 'CANYON_BRIDGES' ||
+      this.currentBiome === 'CLOCKWORK_FOUNDRY'
         ? 0 // Level datum!
         : this.currentBiome === 'SINGULARITY'
         ? 38.0 +
@@ -1897,7 +1920,7 @@ export class TrailCorridorWorld {
     const baseHalfWidth =
       this.currentBiome === 'UNDERGROUND_MARKET'
         ? sampleUndergroundMarketHalfWidth(Math.max(0, -z), CHUNK_LENGTH)
-        : this.currentBiome === 'CANYON_BRIDGES'
+        : this.currentBiome === 'CANYON_BRIDGES' || this.currentBiome === 'CLOCKWORK_FOUNDRY'
         ? 64.0
         : this.currentBiome === 'GLACIAL_ICE'
         ? 32.0
@@ -1928,7 +1951,8 @@ export class TrailCorridorWorld {
           this.currentBiome === 'GLACIAL_ICE' ||
           this.currentBiome === 'CARNIVOROUS_BOG' ||
           this.currentBiome === 'UNDERGROUND_MARKET' ||
-          this.currentBiome === 'CANYON_BRIDGES'
+          this.currentBiome === 'CANYON_BRIDGES' ||
+          this.currentBiome === 'CLOCKWORK_FOUNDRY'
         ? 0
         : smoothstep(0.54, 0.82, mudNoise)) * introFade;
 
@@ -2004,7 +2028,8 @@ export class TrailCorridorWorld {
       this.currentBiome === 'GLACIAL_ICE' ||
       this.currentBiome === 'CARNIVOROUS_BOG' ||
       this.currentBiome === 'UNDERGROUND_MARKET' ||
-      this.currentBiome === 'CANYON_BRIDGES'
+      this.currentBiome === 'CANYON_BRIDGES' ||
+      this.currentBiome === 'CLOCKWORK_FOUNDRY'
         ? 0
         : d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
 
@@ -2026,7 +2051,9 @@ export class TrailCorridorWorld {
         : 0;
 
     const microRough =
-      this.currentBiome === 'UNDERGROUND_MARKET'
+      this.currentBiome === 'CLOCKWORK_FOUNDRY'
+        ? 0.0 // Precision-machined brass cogwheels & riveted iron seesaws!
+        : this.currentBiome === 'UNDERGROUND_MARKET'
         ? 0.004 // Smooth tiled subterranean concourse floor!
         : this.currentBiome === 'GLACIAL_ICE'
         ? fbm2D(x * 0.15, z * 0.15, 2) * 0.015 // Mirror-smooth flat glacial ice sheet!
@@ -2042,7 +2069,14 @@ export class TrailCorridorWorld {
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
 
-    if (this.currentBiome === 'CANYON_BRIDGES') {
+    if (this.currentBiome === 'CLOCKWORK_FOUNDRY') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+      // Colossal 152m-wide (-76m .. +76m) -36m Molten Slag Foundry Crucible framed by towering basalt furnace walls!
+      const wallMask = smoothstep(76.0, 120.0, absD);
+      cliffRelief = -36.0 + wallMask * (76.0 + ridge2D(x * 0.06, z * 0.06, 2) * 10.0);
+    } else if (this.currentBiome === 'CANYON_BRIDGES') {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
@@ -2178,6 +2212,16 @@ export class TrailCorridorWorld {
           onRopeBridge = bridgeSample.onRopeBridge;
         }
       }
+      if (rec.clockworkData && absD < 78.0) {
+        const cwSample = this.clockworkBuilder.sampleLiveClockworkSurface(
+          rec.clockworkData,
+          x,
+          z
+        );
+        if (cwSample.active && cwSample.height > height) {
+          height = cwSample.height;
+        }
+      }
       for (const p of rec.puddles) {
         const nx = (x - p.x) / p.radiusX;
         const nz = (z - p.z) / p.radiusZ;
@@ -2192,7 +2236,9 @@ export class TrailCorridorWorld {
     }
 
     let surface: SurfaceType =
-      this.currentBiome === 'CANYON_BRIDGES'
+      this.currentBiome === 'CLOCKWORK_FOUNDRY'
+        ? 'BRASS_GEAR'
+        : this.currentBiome === 'CANYON_BRIDGES'
         ? onRopeBridge
           ? 'ROPE_PLANK'
           : 'MOSS_ROCK'
@@ -2219,6 +2265,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'CARNIVOROUS_BOG' &&
       this.currentBiome !== 'UNDERGROUND_MARKET' &&
       this.currentBiome !== 'CANYON_BRIDGES' &&
+      this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       (absD > hw + 18.0 || medianIslandBump > 0.8)
     ) {
       surface = 'MOSS_ROCK';
@@ -2230,6 +2277,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'CARNIVOROUS_BOG' &&
       this.currentBiome !== 'UNDERGROUND_MARKET' &&
       this.currentBiome !== 'CANYON_BRIDGES' &&
+      this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       localMud > 0.36
     ) {
       surface = 'WET_MUD';
@@ -2240,6 +2288,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'CARNIVOROUS_BOG' &&
       this.currentBiome !== 'UNDERGROUND_MARKET' &&
       this.currentBiome !== 'CANYON_BRIDGES' &&
+      this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
       distFromBranch > branchHalfWidth * 0.78
     ) {
       surface = 'LOOSE_VERGE';
@@ -2327,6 +2376,10 @@ export class TrailCorridorWorld {
         friction = 0.98; // Grippy rough-sawn canyon suspension planks!
         rollingResistance = 0.017;
         break;
+      case 'BRASS_GEAR':
+        friction = 1.04; // Machined brass cogwheels & riveted iron seesaw decks!
+        rollingResistance = 0.013;
+        break;
     }
 
     return {
@@ -2345,6 +2398,27 @@ export class TrailCorridorWorld {
   }
 
   /**
+   * Samples live horizontal & vertical conveyor velocity `(vx, vy, vz)` of moving mechanical decks
+   * (Rotating Brass Cogwheels & Reciprocating Steam-Pistons in Level [11] CLOCKWORK FOUNDRY)!
+   */
+  public sampleMovingDeckVelocity(x: number, z: number, outVel: THREE.Vector3): boolean {
+    outVel.set(0, 0, 0);
+    if (this.currentBiome !== 'CLOCKWORK_FOUNDRY') return false;
+    const cIdx = Math.floor(-z / CHUNK_LENGTH);
+    for (let ci = cIdx - 1; ci <= cIdx + 1; ci++) {
+      const rec = this.activeChunks.get(ci);
+      if (rec?.clockworkData) {
+        if (
+          this.clockworkBuilder.sampleSurfaceVelocityInChunk(rec.clockworkData, x, z, outVel)
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Samples elevated Static Crisscrossing Giant Root Bridges at (x, z) relative to referenceY!
    * Allows driving smoothly UP ONTO the 4.6m-wide crisscrossing roots AND driving UNDERNEATH elevated spans!
    */
@@ -2359,7 +2433,8 @@ export class TrailCorridorWorld {
 
     for (const br of bridges) {
       if (z < br.minZ || z > br.maxZ) continue;
-      const isTrestle = this.currentBiome === 'CANYON_BRIDGES';
+      const isTrestle =
+        this.currentBiome === 'CANYON_BRIDGES' || this.currentBiome === 'CLOCKWORK_FOUNDRY';
       for (const seg of br.segments) {
         const abx = seg.bx - seg.ax;
         const abz = seg.bz - seg.az;
@@ -2665,6 +2740,16 @@ export class TrailCorridorWorld {
           passiveObserver
         );
       }
+      // 13. CLOCKWORK GEAR-ISLAND FOUNDRY: Rotating Brass Cogwheels, Seesaw Bridges & Steam Pistons!
+      if (rec.clockworkData) {
+        this.clockworkBuilder.stepChunkHazards(
+          rec.clockworkData,
+          dt,
+          elapsedTime,
+          vehiclePos,
+          passiveObserver
+        );
+      }
     }
 
     this.singularityBuilder.stepGlobalStormFx(
@@ -2703,6 +2788,12 @@ export class TrailCorridorWorld {
     );
     this.canyonBridgeBuilder.stepGlobalCanyonAtmosphere(
       this.currentBiome === 'CANYON_BRIDGES',
+      playerPos,
+      elapsedTime,
+      dt
+    );
+    this.clockworkBuilder.stepGlobalFoundryAtmosphere(
+      this.currentBiome === 'CLOCKWORK_FOUNDRY',
       playerPos,
       elapsedTime,
       dt
@@ -2875,6 +2966,8 @@ export class TrailCorridorWorld {
         ? 91247
         : biome === 'CANYON_BRIDGES'
         ? 73819
+        : biome === 'CLOCKWORK_FOUNDRY'
+        ? 85411
         : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
@@ -2902,7 +2995,8 @@ export class TrailCorridorWorld {
       biome !== 'GLACIAL_ICE' &&
       biome !== 'CARNIVOROUS_BOG' &&
       biome !== 'UNDERGROUND_MARKET' &&
-      biome !== 'CANYON_BRIDGES'
+      biome !== 'CANYON_BRIDGES' &&
+      biome !== 'CLOCKWORK_FOUNDRY'
     ) {
       if (biome === 'SINGULARITY') {
         // Glowing turquoise mineral salt-brine pools in wide plateau hollows & deep canyon floor!
@@ -3108,7 +3202,14 @@ export class TrailCorridorWorld {
         const outerMask = smoothstep(hw + 8.0, hw + 55.0, absD);
         const patchVar = fbm2D(x * 0.08, z * 0.08, 2) * 0.1;
 
-        if (biome === 'CANYON_BRIDGES') {
+        if (biome === 'CLOCKWORK_FOUNDRY') {
+          // Glowing incandescent molten slag veins down at -36m rising into soot-darkened basalt foundry walls!
+          const wallMask = smoothstep(-33.5, -14.0, s.height);
+          const slagPulse = smoothstep(0.35, 0.85, fbm2D(x * 0.09, z * 0.09, 2) * 0.5 + 0.5);
+          tmpColor.setHex(0xc93b0a).lerp(new THREE.Color(0xff9b28), slagPulse * (1.0 - wallMask));
+          tmpColor.lerp(new THREE.Color(0x1f1d21), wallMask);
+          tmpColor.offsetHSL(0, 0, patchVar * 0.35);
+        } else if (biome === 'CANYON_BRIDGES') {
           // Deep shadowed canyon abyss floor rising into warm banded terracotta/granite gorge rim walls!
           const rimMask = smoothstep(-32.0, 12.0, s.height);
           tmpColor.setHex(0x1c1817).lerp(new THREE.Color(0x825b42), rimMask);
@@ -3499,6 +3600,17 @@ export class TrailCorridorWorld {
         () => this.nextObstacleId++,
         () => this.nextBridgeId++
       );
+    } else if (biome === 'CLOCKWORK_FOUNDRY') {
+      chunkRecord.clockworkData = this.clockworkBuilder.populateClockworkChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        (z) => this.getTrailSpec(z).centerX,
+        obstacles,
+        rootBridges,
+        () => this.nextBridgeId++
+      );
     }
 
     // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
@@ -3614,7 +3726,8 @@ export class TrailCorridorWorld {
       biome === 'GIANT_LOG' ||
       biome === 'GLACIAL_ICE' ||
       biome === 'UNDERGROUND_MARKET' ||
-      biome === 'CANYON_BRIDGES'
+      biome === 'CANYON_BRIDGES' ||
+      biome === 'CLOCKWORK_FOUNDRY'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 16
@@ -3703,7 +3816,8 @@ export class TrailCorridorWorld {
       biome === 'GLACIAL_ICE' ||
       biome === 'CARNIVOROUS_BOG' ||
       biome === 'UNDERGROUND_MARKET' ||
-      biome === 'CANYON_BRIDGES'
+      biome === 'CANYON_BRIDGES' ||
+      biome === 'CLOCKWORK_FOUNDRY'
         ? 0
         : biome === 'SINGULARITY'
         ? 2
@@ -3858,7 +3972,8 @@ export class TrailCorridorWorld {
           biome === 'SINGULARITY' ||
           biome === 'GLACIAL_ICE' ||
           biome === 'UNDERGROUND_MARKET' ||
-          biome === 'CANYON_BRIDGES'
+          biome === 'CANYON_BRIDGES' ||
+          biome === 'CLOCKWORK_FOUNDRY'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 45

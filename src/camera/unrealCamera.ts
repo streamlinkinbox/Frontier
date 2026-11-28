@@ -98,6 +98,14 @@ export class UnrealObserverCamera {
       );
       spawnX = isl.x;
       groundY = Math.max(isl.y, 0.0) + 3.5;
+    } else if (world.currentBiome === 'CLOCKWORK_FOUNDRY') {
+      const gear = world.clockworkBuilder.findNearestGearSpawn(
+        spawnX,
+        z,
+        (sz) => world.getTrailSpec(sz).centerX
+      );
+      spawnX = gear.x;
+      groundY = Math.max(gear.y, 0.0) + 4.5;
     }
     this.position.set(spawnX, groundY + heightAboveGround, z);
     this.velocity.set(0, 0, 0);

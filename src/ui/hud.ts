@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { UnrealObserverCamera } from '../camera/unrealCamera';
 import { VehicleRigidBody } from '../physics/vehiclePhysics';
 import { VEHICLE_DESIGNS, VehicleDesignId } from '../vehicle/vehicleConfigs';
@@ -19,6 +20,7 @@ export interface HudCallbacks {
 }
 
 export class ExpeditionHud {
+  private readonly _tmpDeckVel = new THREE.Vector3();
   private portalFlashEl!: HTMLElement;
   private biomeSubEl!: HTMLElement;
   private coordsEl!: HTMLElement;
@@ -111,6 +113,12 @@ export class ExpeditionHud {
         key: '0',
         name: 'CANYON BRIDGES',
         sub: '1→5→2→3 Sky-Islands · Varied Heights · Bridges & Jump Ramps',
+      },
+      {
+        id: 'CLOCKWORK_FOUNDRY',
+        key: '-',
+        name: 'CLOCKWORK FOUNDRY',
+        sub: 'Spinning Brass Cogwheels · Seesaw Bridges · Steam Pistons',
       },
     ];
 
@@ -218,7 +226,7 @@ export class ExpeditionHud {
           <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
           <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
           <span><kbd>SCROLL</kbd> Cam Speed</span>
-          <span><kbd>1</kbd>-<kbd>8</kbd> Switch Level</span>
+          <span><kbd>1</kbd>-<kbd>0</kbd>/<kbd>-</kbd> Switch Level</span>
           <span><kbd>T</kbd> Place Car Here</span>
           <span><kbd>V</kbd> Drive Course</span>
         </div>
@@ -351,7 +359,7 @@ export class ExpeditionHud {
         <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
         <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
         <span><kbd>SCROLL</kbd> Cam Speed</span>
-        <span><kbd>1</kbd>-<kbd>0</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>0</kbd>/<kbd>-</kbd> Switch Level</span>
         <span><kbd>T</kbd> Place Car Here</span>
         <span><kbd>V</kbd> Drive Course</span>
       `;
@@ -363,7 +371,7 @@ export class ExpeditionHud {
         <span><kbd>SHIFT</kbd> Boost</span>
         <span><kbd>SPACE</kbd> Handbrake</span>
         <span><kbd>R</kbd> Reset Car</span>
-        <span><kbd>1</kbd>-<kbd>0</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>0</kbd>/<kbd>-</kbd> Switch Level</span>
         <span><kbd>V</kbd> Back to Unreal Camera</span>
       `;
     }
@@ -411,7 +419,9 @@ export class ExpeditionHud {
     const spec = world.getTrailSpec(focusPos.z);
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
     let zoneName =
-      world.currentBiome === 'CANYON_BRIDGES'
+      world.currentBiome === 'CLOCKWORK_FOUNDRY'
+        ? 'BRASS COGWHEEL FOUNDRY'
+        : world.currentBiome === 'CANYON_BRIDGES'
         ? 'MISTY CHASM PILLAR'
         : world.currentBiome === 'UNDERGROUND_MARKET'
         ? 'SUBTERRANEAN NEON CONCOURSE'
@@ -431,7 +441,23 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'CANYON_BRIDGES') {
+    if (world.currentBiome === 'CLOCKWORK_FOUNDRY') {
+      const tmpVel = this._tmpDeckVel;
+      const onMoving = world.sampleMovingDeckVelocity(focusPos.x, focusPos.z, tmpVel);
+      if (sample.height < -12.0 && focusPos.y > -8.0) {
+        zoneName = 'HIGH ARCH CATWALK / FOUNDRY JUMP RAMP';
+      } else if (sample.height < -12.0) {
+        zoneName = 'MOLTEN SLAG FOUNDRY CRUCIBLE';
+      } else if (onMoving && Math.abs(tmpVel.y) > 0.05) {
+        zoneName = `STEAM-PISTON ELEVATOR (${sample.height >= 0 ? '+' : ''}${sample.height.toFixed(1)}m)`;
+      } else if (onMoving && tmpVel.lengthSq() > 0.02) {
+        zoneName = `SPINNING BRASS COGWHEEL (${sample.height >= 0 ? '+' : ''}${sample.height.toFixed(1)}m)`;
+      } else if (onMoving) {
+        zoneName = 'MASTER MAINSPRING HUB CAPSTAN';
+      } else {
+        zoneName = 'COUNTERWEIGHT SEESAW / PISTON GANGWAY';
+      }
+    } else if (world.currentBiome === 'CANYON_BRIDGES') {
       if (sample.surface === 'ROPE_PLANK') {
         zoneName = 'SWAYING ROPE SUSPENSION BRIDGE';
       } else if (sample.height < -12.0 && focusPos.y > -8.0) {
