@@ -118,7 +118,7 @@ export class ExpeditionHud {
         id: 'CLOCKWORK_FOUNDRY',
         key: '-',
         name: 'CLOCKWORK FOUNDRY',
-        sub: 'Spinning Brass Cogwheels · Seesaw Bridges · Steam Pistons',
+        sub: 'Locking Gear Paths · 1-Car Rotating Gear Walls · Seesaws',
       },
     ];
 
@@ -453,9 +453,9 @@ export class ExpeditionHud {
       } else if (onMoving && tmpVel.lengthSq() > 0.02) {
         zoneName = `SPINNING BRASS COGWHEEL (${sample.height >= 0 ? '+' : ''}${sample.height.toFixed(1)}m)`;
       } else if (onMoving) {
-        zoneName = 'MASTER MAINSPRING HUB CAPSTAN';
+        zoneName = 'GENEVA LOCKED GEAR / HUB CAPSTAN';
       } else {
-        zoneName = 'COUNTERWEIGHT SEESAW / PISTON GANGWAY';
+        zoneName = 'ROTATING GEAR-WALL / SEESAW CAUSEWAY';
       }
     } else if (world.currentBiome === 'CANYON_BRIDGES') {
       if (sample.surface === 'ROPE_PLANK') {

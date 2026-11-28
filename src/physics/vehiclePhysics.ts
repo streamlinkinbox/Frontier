@@ -879,9 +879,18 @@ export class VehicleRigidBody {
       }
     }
 
-    // 9. Obstacle & Hollow-Log Shell Collisions
+    // 9. Obstacle, Hollow-Log & Rotating Clockwork Gear-Wall Collisions
     this.resolveObstacleCollisions(nearbyObstacles);
     this.resolveHollowLogWalls(nearbyHollowLogs);
+    world.resolveDynamicMechanicalWalls(
+      this.position,
+      this._forwardWorld,
+      this._rightWorld,
+      this.linearVelocity,
+      this.angularVelocity,
+      this.passiveObserverProtection,
+      this.onChassisImpact
+    );
 
     // 10. Integrate 6-DOF Momentum
     this.linearVelocity.addScaledVector(this.accumForce, this.invMass * dt);

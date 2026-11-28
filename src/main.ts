@@ -339,6 +339,15 @@ class FrontierSimulationApp {
         this.hud.showCallout('COUNTERWEIGHT SEESAW BRIDGE SEATED FLUSH ON TARGET COGWHEEL!');
       }
     };
+    this.world.clockworkBuilder.onGearPathwayLocked = (lockPos: THREE.Vector3) => {
+      if (lockPos.distanceTo(this.camera.position) < 58) {
+        this.particles.emitVineSnapBurst(lockPos, true);
+        this.audio.playTimberSlamSound();
+      }
+      if (lockPos.distanceTo(this.camera.position) < 34) {
+        this.hud.showCallout('GENEVA BRIDGE-GEAR LOCKED · PATHWAY ALIGNED TO CROSS!');
+      }
+    };
     this.world.clockworkBuilder.onPistonSteamVent = (ventPos: THREE.Vector3) => {
       if (ventPos.distanceTo(this.camera.position) < 60) {
         this.particles.emitImpactDust(ventPos, 0.9);

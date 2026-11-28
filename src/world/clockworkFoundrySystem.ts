@@ -25,18 +25,11 @@ export interface ClockworkGearIsland {
   hubCapMesh: THREE.Mesh | null;
 }
 
-export interface IdlerGearVisual {
-  mesh: THREE.Mesh;
+export interface DrivenShaftOrGearVisual {
+  obj: THREE.Object3D;
   omega: number;
   angle: number;
-  axis: 'Y' | 'X';
-}
-
-export interface SwingingPendulumVisual {
-  pivotGroup: THREE.Group;
-  freq: number;
-  phase: number;
-  maxSwingRad: number;
+  axis: 'X' | 'Y' | 'Z';
 }
 
 export interface SeesawBeamBridge {
@@ -90,7 +83,92 @@ export interface ArticulatedPistonGangway {
   bridgeGroup: THREE.Group;
 }
 
+/**
+ * Intermittent Geneva Locking-Gear Pathway:
+ * - One Brass Drive Gear (`driverMesh`) turns NON-STOP (`driverOmega`), driving a giant
+ *   Open-Ring Spoked Bridge-Gear (`lockingGearGroup`)!
+ * - During the LOCKED phase (~62% of cycle), a heavy Cast-Iron Ratchet Pawl locks the
+ *   diametral bridge beam dead-flush between Entry Pier and Exit Pier so cars can cross!
+ * - During the INDEXING phase (~38% of cycle), the pawl lifts and the continuously turning
+ *   Drive Gear rotates the Bridge-Gear by 180° (`PI` rad) across the open molten pit!
+ */
+export interface LockingGearPathway {
+  ax: number;
+  ay: number;
+  az: number;
+  bx: number;
+  by: number;
+  bz: number;
+  midX: number;
+  midY: number;
+  midZ: number;
+  dirX: number;
+  dirZ: number;
+  rightX: number;
+  rightZ: number;
+  baseYaw: number;
+  spanLen: number;
+  approachLen: number;
+  lockR: number;
+  beamHalfWidth: number;
+  period: number;
+  phase: number;
+  /** Current world rotation.y of lockingGearGroup */
+  currentYaw: number;
+  /** Live angular velocity (rad/s) — 0 when mechanically LOCKED! */
+  liveOmega: number;
+  isLocked: boolean;
+  wasLocked: boolean;
+  lockingGearGroup: THREE.Group;
+  driverGroup: THREE.Group;
+  driverOmega: number;
+  driverAngle: number;
+  pawlPivot: THREE.Group;
+  beaconMeshes: THREE.Mesh[];
+}
+
+/**
+ * Colossal Vertical Rotating Slotted Gear-Wall (`27m` diameter!):
+ * - Stands upright like a towering rotating steel/brass wall slicing across a wide riveted
+ *   foundry girder causeway, driven continuously by a meshing side Brass Pinion Gear!
+ * - Cut through the solid cast-iron gear web are `4` narrow single-vehicle passages
+ *   (`~4.8m` wide = room for 1 vehicle at a time!). When a slot sweeps across the road deck,
+ *   1 car can thread through; otherwise the solid iron gear wall blocks passage!
+ */
+export interface VerticalSlottedGearWall {
+  ax: number;
+  ay: number;
+  az: number;
+  bx: number;
+  by: number;
+  bz: number;
+  wallX: number;
+  wallZ: number;
+  deckY: number;
+  axleY: number;
+  dirX: number;
+  dirZ: number;
+  rightX: number;
+  rightZ: number;
+  yaw: number;
+  spanLen: number;
+  causewayHalfWidth: number;
+  outerRadius: number;
+  slotInnerR: number;
+  slotOuterR: number;
+  slotHalfAng: number;
+  halfThick: number;
+  omega: number;
+  angle: number;
+  gearWheelGroup: THREE.Group;
+  pinionMesh: THREE.Mesh;
+  pinionOmega: number;
+  pinionAngle: number;
+}
+
 export type ClockworkSpanKind =
+  | 'LOCKING_GEAR_BRIDGE'
+  | 'GEAR_WALL_CAUSEWAY'
   | 'SEESAW_BRIDGE'
   | 'PISTON_GANGWAY'
   | 'HIGH_ARCH_CATWALK'
@@ -107,53 +185,50 @@ export interface ClockworkChunkData {
   group: THREE.Group;
   islands: ClockworkGearIsland[];
   ownedIslands: ClockworkGearIsland[];
-  idlers: IdlerGearVisual[];
-  pendulums: SwingingPendulumVisual[];
+  drivenVisuals: DrivenShaftOrGearVisual[];
   seesaws: SeesawBeamBridge[];
   gangways: ArticulatedPistonGangway[];
+  lockingPathways: LockingGearPathway[];
+  gearWalls: VerticalSlottedGearWall[];
   zStart: number;
   zLength: number;
 }
 
-const ROW_SPACING_Z = 56.0;
+const ROW_SPACING_Z = 58.0;
 const FIRST_ROW_Z_OFFSET = 12.0;
 // Multi-gear branching & re-convergence rhythm: 1 -> 3 -> 4 -> 2 -> 3 -> 2 -> (repeat)!
 const ROW_GEAR_COUNTS = [1, 3, 4, 2, 3, 2] as const;
 
-/**
- * Builds Level [11] CLOCKWORK GEAR-ISLAND FOUNDRY & SEESAW BRIDGES ('CLOCKWORK_FOUNDRY', hotkey [-]):
- * - Colossal live-rotating interlocking Brass & Cast-Iron Cogwheel Islands (`1 -> 3 -> 4 -> 2 -> 3...`)
- *   at varied heights over a glowing -36m Molten Brass/Slag Foundry Abyss!
- * - Real 240Hz rotational conveyor surface physics: riding a spinning cogwheel physically carries and
- *   rotates your 4x4 around its rim so you can line up with 3-4 branching exits!
- * - Weight-Tilting Counterweight Seesaw Balance-Beam Bridges: entry end waits 0.00mm flush on your gear;
- *   driving past the central bronze trunnion fulcrum tips the bridge smoothly down onto the target gear!
- * - Reciprocating Giant Brass Steam-Piston Elevator Islands + Live-Articulated Locomotive Gangways
- *   that pump up and down in real time with the piston stroke!
- * - Riveted Foundry Stunt Jump Ramps + Giant Swinging Clockwork Escapement Pendulums!
- */
 export class ClockworkFoundryBuilder {
   public readonly atmosphereFxGroup = new THREE.Group();
 
   // Materials
   private readonly brassGearMat: THREE.MeshStandardMaterial;
   private readonly castIronMat: THREE.MeshStandardMaterial;
+  private readonly darkGantryIronMat: THREE.MeshStandardMaterial;
   private readonly copperBoilerMat: THREE.MeshStandardMaterial;
   private readonly seesawDeckMat: THREE.MeshStandardMaterial;
   private readonly rampChevronMat: THREE.MeshStandardMaterial;
   private readonly furnaceCoreGlowMat: THREE.MeshBasicMaterial;
+  private readonly moltenPourMat: THREE.MeshBasicMaterial;
   private readonly rampBeaconGlowMat: THREE.MeshBasicMaterial;
+  private readonly lockReadyGlowMat: THREE.MeshBasicMaterial;
+  private readonly lockTurningGlowMat: THREE.MeshBasicMaterial;
   private readonly moltenSlagSheetMat: THREE.MeshBasicMaterial;
 
   // Shared Geometries
   private readonly cogwheel24Geo: THREE.BufferGeometry;
   private readonly cogwheel16Geo: THREE.BufferGeometry;
+  private readonly openLockingRingGeo: THREE.BufferGeometry;
+  private readonly verticalOuterToothedRingGeo: THREE.BufferGeometry;
+  private readonly verticalSolidWallSectorGeo: THREE.BufferGeometry;
   private readonly pistonIslandGeo: THREE.BufferGeometry;
   private readonly hubMedallionGeo: THREE.CylinderGeometry;
+  private readonly shaftCylGeo: THREE.CylinderGeometry;
   private readonly unitBoxGeo: THREE.BoxGeometry;
   private readonly trunnionCylGeo: THREE.CylinderGeometry;
+  private readonly verticalHubCylGeo: THREE.CylinderGeometry;
   private readonly beaconSphereGeo: THREE.SphereGeometry;
-  private readonly pendulumBobGeo: THREE.CylinderGeometry;
 
   // Global Molten Slag Glow Sheets & Rising Golden Forge Embers
   private readonly slagPlanes: THREE.Mesh[] = [];
@@ -164,10 +239,12 @@ export class ClockworkFoundryBuilder {
 
   // Callbacks
   public onSeesawAnvilSeat: ((pos: THREE.Vector3) => void) | null = null;
+  public onGearPathwayLocked: ((pos: THREE.Vector3) => void) | null = null;
   public onPistonSteamVent: ((pos: THREE.Vector3) => void) | null = null;
 
   private readonly _dummy = new THREE.Object3D();
   private readonly _euler = new THREE.Euler();
+  private readonly _hitContact = new THREE.Vector3();
 
   constructor(textures: ProceduralTextureLibrary) {
     this.atmosphereFxGroup.name = 'ClockworkFoundryAtmosphereFX';
@@ -176,54 +253,73 @@ export class ClockworkFoundryBuilder {
       color: 0xffffff,
       map: textures.rock.map,
       normalMap: textures.rock.normalMap,
-      normalScale: new THREE.Vector2(0.75, 0.75),
-      roughness: 0.34,
-      metalness: 0.78,
+      normalScale: new THREE.Vector2(0.8, 0.8),
+      roughness: 0.32,
+      metalness: 0.82,
       vertexColors: true,
       side: THREE.DoubleSide,
     });
 
     this.castIronMat = new THREE.MeshStandardMaterial({
-      color: 0x454a52,
+      color: 0x3e434b,
       map: textures.rock.map,
       normalMap: textures.rock.normalMap,
-      normalScale: new THREE.Vector2(0.9, 0.9),
-      roughness: 0.46,
-      metalness: 0.74,
+      normalScale: new THREE.Vector2(0.95, 0.95),
+      roughness: 0.44,
+      metalness: 0.78,
+    });
+
+    this.darkGantryIronMat = new THREE.MeshStandardMaterial({
+      color: 0x2a2d33,
+      map: textures.rock.map,
+      roughness: 0.52,
+      metalness: 0.76,
     });
 
     this.copperBoilerMat = new THREE.MeshStandardMaterial({
       color: 0xc46d3b,
       map: textures.rock.map,
-      roughness: 0.35,
-      metalness: 0.78,
+      roughness: 0.34,
+      metalness: 0.8,
       vertexColors: true,
       side: THREE.DoubleSide,
     });
 
     this.seesawDeckMat = new THREE.MeshStandardMaterial({
-      color: 0x6e5b49,
-      map: textures.bark.map,
+      color: 0x5c534b,
+      map: textures.rock.map,
       normalMap: textures.rock.normalMap,
-      roughness: 0.55,
-      metalness: 0.52,
+      roughness: 0.5,
+      metalness: 0.64,
     });
 
     this.rampChevronMat = new THREE.MeshStandardMaterial({
       color: 0xe8a829,
       map: textures.rock.map,
-      roughness: 0.38,
-      metalness: 0.55,
+      roughness: 0.36,
+      metalness: 0.62,
       emissive: new THREE.Color(0x804200),
-      emissiveIntensity: 0.5,
+      emissiveIntensity: 0.55,
     });
 
     this.furnaceCoreGlowMat = new THREE.MeshBasicMaterial({
       color: 0xff7b1c,
     });
 
+    this.moltenPourMat = new THREE.MeshBasicMaterial({
+      color: 0xffa638,
+    });
+
     this.rampBeaconGlowMat = new THREE.MeshBasicMaterial({
       color: 0xffe066,
+    });
+
+    this.lockReadyGlowMat = new THREE.MeshBasicMaterial({
+      color: 0x7dff78, // Crisp emerald-brass "GEAR LOCKED — CLEAR TO CROSS" signal!
+    });
+
+    this.lockTurningGlowMat = new THREE.MeshBasicMaterial({
+      color: 0xff471a, // Fiery furnace-red "GEAR INDEXING / UNLOCKED" warning!
     });
 
     const slagTex = this.createMoltenSlagGlowTexture();
@@ -238,15 +334,36 @@ export class ClockworkFoundryBuilder {
 
     this.cogwheel24Geo = this.createBrassCogwheelGeo(24);
     this.cogwheel16Geo = this.createBrassCogwheelGeo(16);
+    this.openLockingRingGeo = this.createOpenLockingRingGeo(24);
+    this.verticalOuterToothedRingGeo = this.createVerticalOuterToothedRingGeo(
+      11.2,
+      13.6,
+      14.85,
+      1.15,
+      32
+    );
+    this.verticalSolidWallSectorGeo = this.createVerticalWallSectorGeo(
+      4.3,
+      11.3,
+      0.34,
+      Math.PI * 0.5 - 0.34,
+      1.15
+    );
     this.pistonIslandGeo = this.createSteamPistonGeo();
-    this.hubMedallionGeo = new THREE.CylinderGeometry(1.0, 1.04, 0.45, 24);
+
+    this.hubMedallionGeo = new THREE.CylinderGeometry(1.0, 1.04, 0.48, 24);
     this.hubMedallionGeo.translate(0, -0.22, 0);
+
+    this.shaftCylGeo = new THREE.CylinderGeometry(0.42, 0.42, 1.0, 12);
     this.unitBoxGeo = new THREE.BoxGeometry(1, 1, 1);
-    this.trunnionCylGeo = new THREE.CylinderGeometry(0.68, 0.68, 1.0, 14);
+
+    this.trunnionCylGeo = new THREE.CylinderGeometry(0.72, 0.72, 1.0, 16);
     this.trunnionCylGeo.rotateZ(Math.PI * 0.5);
-    this.beaconSphereGeo = new THREE.SphereGeometry(0.28, 8, 6);
-    this.pendulumBobGeo = new THREE.CylinderGeometry(3.4, 3.4, 0.85, 24);
-    this.pendulumBobGeo.rotateX(Math.PI * 0.5);
+
+    this.verticalHubCylGeo = new THREE.CylinderGeometry(4.45, 4.45, 2.65, 28);
+    this.verticalHubCylGeo.rotateX(Math.PI * 0.5);
+
+    this.beaconSphereGeo = new THREE.SphereGeometry(0.3, 8, 6);
 
     this.initMoltenFoundryAtmosphere();
   }
@@ -269,23 +386,21 @@ export class ClockworkFoundryBuilder {
   }
 
   /**
-   * Sculpted 3D Involute Brass & Cast-Iron Cogwheel Geometry (unit deck radius = 1.0, teeth out to 1.11,
-   * deep foundry axle shaft extending down to y = -48m into the molten slag sea!)
+   * Sculpted 3D Involute Brass & Cast-Iron Cogwheel Island Geometry
    */
   private createBrassCogwheelGeo(toothCount: number): THREE.BufferGeometry {
     const segsPerTooth = 4;
     const radialSegs = toothCount * segsPerTooth;
-    // Polar rings from center axle out to involute gear teeth and down the heavy rim & shaft!
     const rings = [
-      { y: 0.0, r: 0.0, toothAmp: 0.0, col: 0x565c66 }, // Hub center
-      { y: 0.0, r: 0.28, toothAmp: 0.0, col: 0xb88435 }, // Inner brass collar
-      { y: 0.0, r: 0.72, toothAmp: 0.0, col: 0x525761 }, // Cast-iron spoked web deck
-      { y: 0.0, r: 0.99, toothAmp: 0.0, col: 0xd9a145 }, // Outer burnished brass driving ring!
-      { y: -0.07, r: 1.0, toothAmp: 0.11, col: 0xe3ac4f }, // Involute gear tooth top face (slightly recessed -7cm so bridges never z-fight!)
-      { y: -1.45, r: 1.0, toothAmp: 0.11, col: 0x9c6c28 }, // Gear tooth bottom face
-      { y: -1.65, r: 0.94, toothAmp: 0.0, col: 0x454952 }, // Under-rim flange
-      { y: -3.2, r: 0.24, toothAmp: 0.0, col: 0x363a42 }, // Conical under-gear spider brace
-      { y: -48.0, r: 0.16, toothAmp: 0.0, col: 0xff6e1a }, // Deep glowing foundry drive-shaft plunging into molten slag!
+      { y: 0.0, r: 0.0, toothAmp: 0.0, col: 0x4b5059 },
+      { y: 0.0, r: 0.28, toothAmp: 0.0, col: 0xc28a38 },
+      { y: 0.0, r: 0.72, toothAmp: 0.0, col: 0x464b54 },
+      { y: 0.0, r: 0.99, toothAmp: 0.0, col: 0xdea447 },
+      { y: -0.07, r: 1.0, toothAmp: 0.11, col: 0xe8b154 },
+      { y: -1.55, r: 1.0, toothAmp: 0.11, col: 0x9c6c28 },
+      { y: -1.78, r: 0.93, toothAmp: 0.0, col: 0x3e424a },
+      { y: -3.4, r: 0.26, toothAmp: 0.0, col: 0x2f333b },
+      { y: -48.0, r: 0.17, toothAmp: 0.0, col: 0xff6e1a },
     ];
 
     const cols = radialSegs + 1;
@@ -304,7 +419,6 @@ export class ClockworkFoundryBuilder {
       for (let c = 0; c < cols; c++) {
         const u = c / radialSegs;
         const theta = u * Math.PI * 2;
-        // Trapezoidal involute tooth profile!
         const toothWave = Math.cos(theta * toothCount);
         const toothOut = sp.toothAmp * smoothstep(-0.25, 0.35, toothWave);
         const rad = sp.r + toothOut;
@@ -318,11 +432,10 @@ export class ClockworkFoundryBuilder {
         uv[uvPtr++] = r <= 4 ? nx * rad * 2.2 : u * toothCount * 0.5;
         uv[uvPtr++] = r <= 4 ? nz * rad * 2.2 : sp.y * 0.25;
 
-        // Paint 6 radial cast-iron spokes + warm furnace-glow rim contrast on the top deck!
         let spokeShade = 1.0;
         if (r === 2) {
-          const spokeCos = Math.abs(Math.cos(theta * 3.0));
-          spokeShade = spokeCos > 0.72 ? 1.35 : 0.76;
+          const spokeCos = Math.abs(Math.cos(theta * 4.0));
+          spokeShade = spokeCos > 0.76 ? 1.38 : 0.72;
         }
         col[pPtr] = clamp(tmp.r * spokeShade, 0, 1);
         col[pPtr + 1] = clamp(tmp.g * spokeShade, 0, 1);
@@ -337,7 +450,6 @@ export class ClockworkFoundryBuilder {
         const b = a + 1;
         const d = a + cols;
         const e = d + 1;
-        // True +Y upward normals on deck & outward radial normals on gear teeth!
         indices.push(a, b, e, a, e, d);
       }
     }
@@ -352,18 +464,275 @@ export class ClockworkFoundryBuilder {
   }
 
   /**
-   * Colossal Reciprocating Copper & Brass Steam-Piston Head + Telescoping Cylinder Rod!
+   * Open-Center Hollow Toothed Brass Gear Ring (`r = 0.85 .. 1.00`, teeth out to `1.11`, open molten void inside!)
+   * Used for Geneva Intermittent Locking-Gear Pathways so only the Diametral Bridge-Beam crosses the center!
    */
+  private createOpenLockingRingGeo(toothCount: number): THREE.BufferGeometry {
+    const radialSegs = toothCount * 4;
+    const rings = [
+      { y: -1.35, r: 0.85, toothAmp: 0.0, col: 0x3b3f47 }, // Inner wall bottom
+      { y: 0.0, r: 0.85, toothAmp: 0.0, col: 0xc9913d }, // Inner top rim
+      { y: 0.0, r: 0.99, toothAmp: 0.0, col: 0xe3ac4f }, // Outer top brass ring (+Y normal!)
+      { y: -0.05, r: 1.0, toothAmp: 0.11, col: 0xebba60 }, // Involute tooth top
+      { y: -1.42, r: 1.0, toothAmp: 0.11, col: 0x996926 }, // Involute tooth bottom
+      { y: -1.52, r: 0.85, toothAmp: 0.0, col: 0x3b3f47 }, // Bottom close
+    ];
+
+    const cols = radialSegs + 1;
+    const rows = rings.length;
+    const pos = new Float32Array(cols * rows * 3);
+    const col = new Float32Array(cols * rows * 3);
+    const uv = new Float32Array(cols * rows * 2);
+    const indices: number[] = [];
+    const tmp = new THREE.Color();
+
+    let pPtr = 0;
+    let uvPtr = 0;
+    for (let r = 0; r < rows; r++) {
+      const sp = rings[r];
+      tmp.setHex(sp.col);
+      for (let c = 0; c < cols; c++) {
+        const u = c / radialSegs;
+        const theta = u * Math.PI * 2;
+        const toothOut = sp.toothAmp * smoothstep(-0.25, 0.35, Math.cos(theta * toothCount));
+        const rad = sp.r + toothOut;
+        const nx = Math.cos(theta);
+        const nz = Math.sin(theta);
+
+        pos[pPtr] = nx * rad;
+        pos[pPtr + 1] = sp.y;
+        pos[pPtr + 2] = nz * rad;
+        uv[uvPtr++] = u * toothCount * 0.5;
+        uv[uvPtr++] = sp.r * 2.0 + sp.y * 0.3;
+        col[pPtr] = tmp.r;
+        col[pPtr + 1] = tmp.g;
+        col[pPtr + 2] = tmp.b;
+        pPtr += 3;
+      }
+    }
+
+    for (let r = 0; r < rows - 1; r++) {
+      for (let c = 0; c < radialSegs; c++) {
+        const a = r * cols + c;
+        const b = a + 1;
+        const d = a + cols;
+        const e = d + 1;
+        indices.push(a, b, e, a, e, d);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+  }
+
+  /**
+   * Continuous Outer Toothed Brass Ring in XY plane (`z in [-halfThick, +halfThick]`)
+   * for the Colossal `27m`-Tall Vertical Rotating Gear-Wall!
+   */
+  private createVerticalOuterToothedRingGeo(
+    innerR: number,
+    outerR: number,
+    toothTipR: number,
+    halfThick: number,
+    toothCount: number
+  ): THREE.BufferGeometry {
+    const segs = toothCount * 4;
+    // Cross-section loop around the ring in (r, z) so front, back, inner arch & outer teeth are 100% solid!
+    const loop = [
+      { r: innerR, z: halfThick, amp: 0, col: 0xc9903b },
+      { r: outerR, z: halfThick, amp: toothTipR - outerR, col: 0xe5ae50 },
+      { r: outerR, z: -halfThick, amp: toothTipR - outerR, col: 0xb88232 },
+      { r: innerR, z: -halfThick, amp: 0, col: 0x996926 },
+      { r: innerR, z: halfThick, amp: 0, col: 0xc9903b },
+    ];
+
+    const cols = segs + 1;
+    const rows = loop.length;
+    const pos = new Float32Array(cols * rows * 3);
+    const col = new Float32Array(cols * rows * 3);
+    const uv = new Float32Array(cols * rows * 2);
+    const indices: number[] = [];
+    const tmp = new THREE.Color();
+
+    let pPtr = 0;
+    let uvPtr = 0;
+    for (let r = 0; r < rows; r++) {
+      const lp = loop[r];
+      tmp.setHex(lp.col);
+      for (let c = 0; c < cols; c++) {
+        const u = c / segs;
+        const theta = u * Math.PI * 2;
+        const tooth = lp.amp * smoothstep(-0.22, 0.34, Math.cos(theta * toothCount));
+        const rad = lp.r + tooth;
+        pos[pPtr] = Math.cos(theta) * rad;
+        pos[pPtr + 1] = Math.sin(theta) * rad;
+        pos[pPtr + 2] = lp.z;
+        uv[uvPtr++] = u * toothCount * 0.5;
+        uv[uvPtr++] = r * 0.5;
+        col[pPtr] = tmp.r;
+        col[pPtr + 1] = tmp.g;
+        col[pPtr + 2] = tmp.b;
+        pPtr += 3;
+      }
+    }
+
+    for (let r = 0; r < rows - 1; r++) {
+      for (let c = 0; c < segs; c++) {
+        const a = r * cols + c;
+        const b = a + 1;
+        const d = a + cols;
+        const e = d + 1;
+        indices.push(a, e, b, a, d, e);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+  }
+
+  /**
+   * Watertight 3D Extruded Annular Sector (`theta in [angStart, angEnd]`, `r in [rInner, rOuter]`, `z in [-halfThick, +halfThick]`)
+   * forming the 4 Solid Cast-Iron Wall Quadrants between the 4 Single-Vehicle Passages!
+   */
+  private createVerticalWallSectorGeo(
+    rInner: number,
+    rOuter: number,
+    angStart: number,
+    angEnd: number,
+    halfThick: number
+  ): THREE.BufferGeometry {
+    const arcSegs = 12;
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+
+    const pushQuad = (
+      ax: number,
+      ay: number,
+      az: number,
+      bx: number,
+      by: number,
+      bz: number,
+      cx: number,
+      cy: number,
+      cz: number,
+      dx: number,
+      dy: number,
+      dz: number
+    ) => {
+      const base = positions.length / 3;
+      positions.push(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz);
+      uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+      indices.push(base, base + 2, base + 1, base, base + 3, base + 2);
+    };
+
+    for (let s = 0; s < arcSegs; s++) {
+      const a0 = lerp(angStart, angEnd, s / arcSegs);
+      const a1 = lerp(angStart, angEnd, (s + 1) / arcSegs);
+      const c0 = Math.cos(a0);
+      const s0 = Math.sin(a0);
+      const c1 = Math.cos(a1);
+      const s1 = Math.sin(a1);
+
+      // Front face (+Z)
+      pushQuad(
+        c0 * rInner,
+        s0 * rInner,
+        halfThick,
+        c1 * rInner,
+        s1 * rInner,
+        halfThick,
+        c1 * rOuter,
+        s1 * rOuter,
+        halfThick,
+        c0 * rOuter,
+        s0 * rOuter,
+        halfThick
+      );
+      // Back face (-Z)
+      pushQuad(
+        c1 * rInner,
+        s1 * rInner,
+        -halfThick,
+        c0 * rInner,
+        s0 * rInner,
+        -halfThick,
+        c0 * rOuter,
+        s0 * rOuter,
+        -halfThick,
+        c1 * rOuter,
+        s1 * rOuter,
+        -halfThick
+      );
+    }
+
+    // Left Slot-Jamb Wall (at angStart — facing into the single-car passage!)
+    {
+      const c = Math.cos(angStart);
+      const s = Math.sin(angStart);
+      pushQuad(
+        c * rInner,
+        s * rInner,
+        -halfThick,
+        c * rInner,
+        s * rInner,
+        halfThick,
+        c * rOuter,
+        s * rOuter,
+        halfThick,
+        c * rOuter,
+        s * rOuter,
+        -halfThick
+      );
+    }
+    // Right Slot-Jamb Wall (at angEnd — facing into the next single-car passage!)
+    {
+      const c = Math.cos(angEnd);
+      const s = Math.sin(angEnd);
+      pushQuad(
+        c * rInner,
+        s * rInner,
+        halfThick,
+        c * rInner,
+        s * rInner,
+        -halfThick,
+        c * rOuter,
+        s * rOuter,
+        -halfThick,
+        c * rOuter,
+        s * rOuter,
+        halfThick
+      );
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+  }
+
   private createSteamPistonGeo(): THREE.BufferGeometry {
     const radialSegs = 28;
     const rings = [
       { y: 0.0, r: 0.0, col: 0xd99b4e },
       { y: 0.0, r: 0.75, col: 0xc7743c },
-      { y: 0.0, r: 1.0, col: 0xe6af55 }, // Polished brass piston crown rim
-      { y: -1.1, r: 1.02, col: 0x8f4d28 }, // Piston compression ring skirt
+      { y: 0.0, r: 1.0, col: 0xe6af55 },
+      { y: -1.1, r: 1.02, col: 0x8f4d28 },
       { y: -2.4, r: 0.98, col: 0xc46d3b },
-      { y: -3.2, r: 0.42, col: 0x5c636e }, // Heavy polished steel piston rod collar
-      { y: -48.0, r: 0.36, col: 0xff7824 }, // Polished hydraulic piston ram plunging into furnace cylinder!
+      { y: -3.2, r: 0.42, col: 0x5c636e },
+      { y: -48.0, r: 0.36, col: 0xff7824 },
     ];
 
     const cols = radialSegs + 1;
@@ -416,7 +785,6 @@ export class ClockworkFoundryBuilder {
   }
 
   private initMoltenFoundryAtmosphere(): void {
-    // Glowing Molten Brass & Slag Crucible Sheets down at y = -28m, -33m, -36m!
     const slagGeo = new THREE.PlaneGeometry(200, 175);
     slagGeo.rotateX(-Math.PI * 0.5);
     const slagHeights = [-27.5, -32.5, -35.8];
@@ -428,7 +796,6 @@ export class ClockworkFoundryBuilder {
       this.slagPlanes.push(m);
     }
 
-    // Rising Incandescent Forge Sparks & Golden Steam Motes!
     this.emberPositions = new Float32Array(this.emberCount * 3);
     this.emberVelocities = new Float32Array(this.emberCount * 3);
     const rng = mulberry32(994127);
@@ -439,7 +806,7 @@ export class ClockworkFoundryBuilder {
       this.emberPositions[ix + 2] = (rng() - 0.5) * 155;
 
       this.emberVelocities[ix] = (rng() - 0.5) * 2.4;
-      this.emberVelocities[ix + 1] = lerp(2.2, 6.4, rng()); // Buoyant upward thermal draft!
+      this.emberVelocities[ix + 1] = lerp(2.2, 6.4, rng());
       this.emberVelocities[ix + 2] = (rng() - 0.5) * 2.4;
     }
 
@@ -484,8 +851,7 @@ export class ClockworkFoundryBuilder {
     const rng = mulberry32(safeRow * 71917 + 31337);
 
     if (count === 1) {
-      // Colossal Master Mainspring Gear Hub (`radius = 23m`) with calm stationary inner capstan (`r <= 6.2m`)!
-      const baseY = safeRow === 0 ? 0.0 : lerp(-1.0, 2.4, rng());
+      const baseY = safeRow === 0 ? 0.0 : lerp(-1.0, 2.2, rng());
       return [
         {
           x: centerX,
@@ -504,22 +870,23 @@ export class ClockworkFoundryBuilder {
     }
 
     const heightPresets: Record<number, number[]> = {
-      2: [-1.4, 3.0],
-      3: [-2.2, -1.0, -1.8], // Middle slot in 3-row is a Rising Steam-Piston (-1.0m .. +3.6m)!
-      4: [2.8, -2.0, 3.8, -2.4],
+      2: [-1.2, 2.6],
+      3: [-1.4, -0.4, -2.0],
+      4: [2.4, -1.6, 1.8, -2.4],
     };
     const heights = heightPresets[count] ?? [0];
     const totalSpanX = count === 4 ? 90.0 : count === 3 ? 72.0 : 46.0;
-    const radius = count === 4 ? 12.8 : count === 3 ? 14.5 : 19.5;
+    const radius = count === 4 ? 12.8 : count === 3 ? 14.8 : 19.5;
 
     const out = [];
     for (let i = 0; i < count; i++) {
       const frac = i / (count - 1) - 0.5;
       const xOff = frac * totalSpanX;
-      // Put a Reciprocating Brass Steam-Piston Elevator in the center of 3-gear rows (and slot 1 of odd 4-gear rows)!
+      // Place Steam-Piston Elevators in Row 2+ (`4`-island slot 1, and `3`-island slot 1 on rows >= 3)
+      // so Row 0 -> Row 1 showcases the 3 hero clockwork bridges cleanly!
       const isPiston =
-        (count === 3 && i === 1) || (count === 4 && i === 1 && safeRow % 2 === 0);
-      const baseY = heights[i] + (safeRow >= 3 ? (rng() - 0.5) * 1.0 : 0.0);
+        (count === 4 && i === 1) || (safeRow >= 3 && count === 3 && i === 1);
+      const baseY = heights[i] + (safeRow >= 3 ? (rng() - 0.5) * 0.9 : 0.0);
       const dirSign = (safeRow + i) % 2 === 0 ? 1 : -1;
       const omega = isPiston ? 0.0 : dirSign * lerp(0.17, 0.25, rng());
 
@@ -531,7 +898,7 @@ export class ClockworkFoundryBuilder {
         omega,
         stationaryInnerRadius: 0.0,
         isPiston,
-        pistonStrokeY: isPiston ? 4.5 : 0.0,
+        pistonStrokeY: isPiston ? 4.4 : 0.0,
         pistonPhase: safeRow * 1.35 + i * 0.9,
         rowIdx: safeRow,
         islandIdx: i,
@@ -546,25 +913,20 @@ export class ClockworkFoundryBuilder {
     phase: number,
     elapsed: number
   ): { y: number; velY: number; atTop: boolean } {
-    // Smooth industrial steam-piston cycle with generous top & bottom dwell plateaus!
     const period = 7.2;
     const cyc = (((elapsed + phase) % period) + period) % period;
-    const u = cyc / period; // 0..1
+    const u = cyc / period;
     let liftFrac = 0;
     let dLiftDu = 0;
     if (u < 0.18) {
-      // Bottom dwell
       liftFrac = 0;
     } else if (u < 0.5) {
-      // Smooth upward power stroke!
       const s = (u - 0.18) / 0.32;
       liftFrac = smoothstep(0, 1, s);
       dLiftDu = (6 * s * (1 - s)) / 0.32;
     } else if (u < 0.68) {
-      // Top dead-center dwell!
       liftFrac = 1.0;
     } else {
-      // Smooth downward exhaust stroke!
       const s = (u - 0.68) / 0.32;
       liftFrac = 1.0 - smoothstep(0, 1, s);
       dLiftDu = (-6 * s * (1 - s)) / 0.32;
@@ -573,6 +935,44 @@ export class ClockworkFoundryBuilder {
       y: baseY + strokeY * liftFrac,
       velY: (strokeY * dLiftDu) / period,
       atTop: u >= 0.5 && u < 0.54,
+    };
+  }
+
+  /**
+   * Computes exact Geneva Intermittent Lock state for a `LOCKING_GEAR_BRIDGE`:
+   * - `u in [0.00, 0.62]` (`62%` of cycle): **MECHANICALLY LOCKED** (`deltaYaw = 0` or `PI`, `liveOmega = 0`)!
+   * - `u in [0.62, 1.00]` (`38%` of cycle): **INDEXING 180°** (`deltaYaw` sweeps `0 -> PI` smoothly)!
+   */
+  public sampleGenevaLockState(
+    period: number,
+    phase: number,
+    elapsed: number
+  ): { deltaYaw: number; liveOmega: number; isLocked: boolean; pawlLift: number } {
+    const halfTurns = Math.floor((elapsed + phase) / period);
+    const cyc = (((elapsed + phase) % period) + period) % period;
+    const u = cyc / period; // 0..1
+    const lockWindow = 0.62;
+    const parityBase = (halfTurns % 2) * Math.PI;
+
+    if (u < lockWindow) {
+      return {
+        deltaYaw: parityBase,
+        liveOmega: 0.0,
+        isLocked: true,
+        pawlLift: 0.0,
+      };
+    }
+
+    const s = (u - lockWindow) / (1.0 - lockWindow); // 0..1
+    const stepFrac = smoothstep(0, 1, s);
+    const dStepDu = (6 * s * (1 - s)) / (1.0 - lockWindow);
+    const pawlLift = Math.sin(Math.PI * clamp(s * 1.1, 0, 1)) * 0.48;
+
+    return {
+      deltaYaw: parityBase + stepFrac * Math.PI,
+      liveOmega: (Math.PI * dStepDu) / period,
+      isLocked: false,
+      pawlLift,
     };
   }
 
@@ -603,7 +1003,6 @@ export class ClockworkFoundryBuilder {
       addPair(u, v, false);
     }
 
-    // Rich branching & convergence across gears!
     if (M === 3 && N === 4) {
       addPair(0, 1, true);
       addPair(1, 1, true);
@@ -620,21 +1019,32 @@ export class ClockworkFoundryBuilder {
       addPair(1, 1, true);
     }
 
-    const links: ClockworkGraphLink[] = rawPairs.map((p) => {
+    const links: ClockworkGraphLink[] = rawPairs.map((p, idx) => {
       const a = specsA[p.fromIdx];
       const b = specsB[p.toIdx];
       const dy = b.baseY - a.baseY;
 
       let kind: ClockworkSpanKind = 'SEESAW_BRIDGE';
       if (a.isPiston || b.isPiston) {
-        // Any span touching a moving Steam-Piston Island is a Live-Articulated Locomotive Gangway!
         kind = 'PISTON_GANGWAY';
       } else if (M === 1 && N === 3) {
-        // Signature Spawn Trio: Left = Seesaw Bridge, Center = Piston Gangway, Right = Foundry Stunt Jump Ramp!
-        kind = p.toIdx === 2 ? 'FOUNDRY_JUMP_RAMP' : 'SEESAW_BRIDGE';
+        // Signature Opening Foundry Showcase from Master Hub (0m):
+        // Left = Geneva Locking-Gear Pathway | Center = Colossal Vertical Rotating Gear-Wall | Right = Counterweight Seesaw!
+        kind =
+          p.toIdx === 0
+            ? 'LOCKING_GEAR_BRIDGE'
+            : p.toIdx === 1
+            ? 'GEAR_WALL_CAUSEWAY'
+            : 'SEESAW_BRIDGE';
+      } else if (p.fromIdx === 0 && p.toIdx === 0) {
+        kind = rowIdx % 2 === 1 ? 'LOCKING_GEAR_BRIDGE' : 'GEAR_WALL_CAUSEWAY';
+      } else if (idx % 4 === 1 && Math.abs(dy) < 3.6) {
+        kind = 'GEAR_WALL_CAUSEWAY';
+      } else if (idx % 4 === 2 && Math.abs(dy) < 3.4) {
+        kind = 'LOCKING_GEAR_BRIDGE';
       } else if (dy <= -1.6 && p.toIdx === N - 1) {
         kind = 'FOUNDRY_JUMP_RAMP';
-      } else if (dy >= 2.4) {
+      } else if (dy >= 2.6) {
         kind = 'HIGH_ARCH_CATWALK';
       }
 
@@ -646,7 +1056,7 @@ export class ClockworkFoundryBuilder {
       };
     });
 
-    // Separate any 2D crossing spans cleanly in 3D: Upper = High-Arch Catwalk, Lower = Seesaw / Gangway!
+    // Separate any 2D X-crossing spans cleanly in 3D: Upper = High-Arch Catwalk!
     for (let i = 0; i < links.length; i++) {
       for (let j = i + 1; j < links.length; j++) {
         const L1 = links[i];
@@ -659,7 +1069,7 @@ export class ClockworkFoundryBuilder {
         const upper = !specsA[L1.fromIdx].isPiston && !specsB[L1.toIdx].isPiston ? L1 : L2;
         const lower = upper === L1 ? L2 : L1;
         upper.kind = 'HIGH_ARCH_CATWALK';
-        upper.archBumpY = 5.4;
+        upper.archBumpY = 5.6;
         if (lower.kind === 'HIGH_ARCH_CATWALK' || lower.kind === 'FOUNDRY_JUMP_RAMP') {
           lower.kind =
             specsA[lower.fromIdx].isPiston || specsB[lower.toIdx].isPiston
@@ -791,7 +1201,7 @@ export class ClockworkFoundryBuilder {
   }
 
   // ===========================================================================
-  // CHUNK POPULATION
+  // CHUNK POPULATION — HEAVY MECHANICAL FOUNDRY HALL & CLOCKWORK MECHANISMS
   // ===========================================================================
 
   public populateClockworkChunk(
@@ -811,12 +1221,14 @@ export class ClockworkFoundryBuilder {
 
     const islands: ClockworkGearIsland[] = [];
     const ownedIslands: ClockworkGearIsland[] = [];
-    const idlers: IdlerGearVisual[] = [];
-    const pendulums: SwingingPendulumVisual[] = [];
+    const drivenVisuals: DrivenShaftOrGearVisual[] = [];
     const seesaws: SeesawBeamBridge[] = [];
     const gangways: ArticulatedPistonGangway[] = [];
+    const lockingPathways: LockingGearPathway[] = [];
+    const gearWalls: VerticalSlottedGearWall[] = [];
 
     const ironMats: THREE.Matrix4[] = [];
+    const gantryMats: THREE.Matrix4[] = [];
     const chevronMats: THREE.Matrix4[] = [];
     const beaconPositions: THREE.Vector3[] = [];
     const furnacePositions: THREE.Vector3[] = [];
@@ -849,7 +1261,13 @@ export class ClockworkFoundryBuilder {
         if (visualOwned) {
           group.add(mesh);
 
-          // Central cast-iron axle capstan medallion (stationary on Row 0 Master Hub!)
+          // Heavy Cast-Iron Pillow-Block Axle Bearing Collar beneath every Cogwheel!
+          this._dummy.position.set(sp.x, sp.baseY - 3.6, sp.z);
+          this._dummy.rotation.set(0, 0, 0);
+          this._dummy.scale.set(sp.radius * 0.42, 1.5, sp.radius * 0.42);
+          this._dummy.updateMatrix();
+          gantryMats.push(this._dummy.matrix.clone());
+
           const capR =
             sp.stationaryInnerRadius > 0 ? sp.stationaryInnerRadius : sp.radius * 0.2;
           hubCapMesh = new THREE.Mesh(this.hubMedallionGeo, this.castIronMat);
@@ -860,21 +1278,39 @@ export class ClockworkFoundryBuilder {
 
           furnacePositions.push(new THREE.Vector3(sp.x, sp.baseY + 0.32, sp.z));
 
-          // Spawn an Interlocking Side-Idler Cogwheel meshing teeth-to-teeth beside outer rotating gears!
+          // Interlocking Brass Drive-Train Pinion + Overhead Vertical Power Drop-Shaft!
           if (!sp.isPiston && (sp.islandIdx === 0 || sp.islandIdx === specList.length - 1)) {
             const outSide = sp.islandIdx === 0 ? -1 : 1;
-            const idlerR = lerp(6.8, 9.2, rng());
+            const idlerR = lerp(6.6, 8.8, rng());
             const meshDist = sp.radius + idlerR + sp.radius * 0.08 + idlerR * 0.08;
+            const ix = sp.x + outSide * meshDist;
+            const iz = sp.z + 2.0;
+
             const idlerMesh = new THREE.Mesh(this.cogwheel16Geo, this.brassGearMat);
-            idlerMesh.position.set(sp.x + outSide * meshDist, sp.baseY - 0.12, sp.z + 2.5);
+            idlerMesh.position.set(ix, sp.baseY - 0.1, iz);
             idlerMesh.scale.set(idlerR, 1.0, idlerR);
             group.add(idlerMesh);
-            idlers.push({
-              mesh: idlerMesh,
-              omega: -sp.omega * (sp.radius / idlerR), // Exact mechanical gear-ratio sync!
+            const idlerOmega = -sp.omega * (sp.radius / idlerR);
+            drivenVisuals.push({
+              obj: idlerMesh,
+              omega: idlerOmega,
               angle: 0.2,
               axis: 'Y',
             });
+
+            // Vertical Overhead Steel Power Drop-Shaft rising from this Drive Pinion up to the +26m Gantry Crane!
+            const dropH = 26.5 - sp.baseY;
+            const dropShaft = new THREE.Mesh(this.shaftCylGeo, this.castIronMat);
+            dropShaft.position.set(ix, sp.baseY + dropH * 0.5, iz);
+            dropShaft.scale.set(1.25, dropH, 1.25);
+            group.add(dropShaft);
+
+            // Pillow-block bearing bracket clamping the drop-shaft!
+            this._dummy.position.set(ix, sp.baseY + 0.35, iz);
+            this._dummy.rotation.set(0, 0, 0);
+            this._dummy.scale.set(2.4, 0.75, 2.4);
+            this._dummy.updateMatrix();
+            gantryMats.push(this._dummy.matrix.clone());
           }
         }
 
@@ -906,58 +1342,102 @@ export class ClockworkFoundryBuilder {
 
     const row0 = spawnIslandList(specs0, true);
     const row1 = spawnIslandList(specs1, true);
-    const row2 = spawnIslandList(specs2, false); // Ghost physics reference for seamless cross-chunk bridges!
+    const row2 = spawnIslandList(specs2, false);
 
-    // Colossal Vertical Escapement Wall-Gears & Overhead Swinging Brass Pendulums framing the cavern!
-    for (let side of [-1, 1]) {
-      const zWall = zStart - (side < 0 ? 34.0 : 82.0);
-      const xWall = sampleCourseX(zWall) + side * 72.0;
-      const wallGear = new THREE.Mesh(this.cogwheel24Geo, this.brassGearMat);
-      wallGear.position.set(xWall, 12.0, zWall);
-      wallGear.rotation.z = side * Math.PI * 0.5;
-      const wgR = lerp(16.0, 22.0, rng());
-      wallGear.scale.set(wgR, 1.0, wgR);
-      group.add(wallGear);
-      idlers.push({
-        mesh: wallGear,
-        omega: side * 0.22,
-        angle: rng() * Math.PI,
-        axis: 'X',
-      });
+    // =========================================================================
+    // GROUNDED INDUSTRIAL FOUNDRY GANTRY ARCHITECTURE (Replaces Floating Pendulums!)
+    // =========================================================================
+    for (let gIdx = 0; gIdx < 2; gIdx++) {
+      const zGantry = zStart - (gIdx === 0 ? 28.0 : 86.0);
+      const cx = sampleCourseX(zGantry);
+      const gantryY = 26.5;
+
+      // 1. Twin Colossal Riveted Cast-Iron Lattice Columns rising out of the -36m Molten Slag Pit!
+      for (const side of [-1, 1]) {
+        const colX = cx + side * 70.0;
+        this._dummy.position.set(colX, -6.0, zGantry);
+        this._dummy.rotation.set(0, 0, 0);
+        this._dummy.scale.set(3.4, 68.0, 3.4);
+        this._dummy.updateMatrix();
+        gantryMats.push(this._dummy.matrix.clone());
+
+        // Diagonal Knee-Brace Strut supporting the overhead gantry bridge!
+        this._dummy.position.set(colX - side * 8.5, gantryY - 5.5, zGantry);
+        this._dummy.rotation.set(0, 0, side * 0.68);
+        this._dummy.scale.set(1.2, 16.5, 1.4);
+        this._dummy.updateMatrix();
+        gantryMats.push(this._dummy.matrix.clone());
+
+        // Vertical Wall-Mounted Gear Train + Bearing Housing bolted directly onto the Lattice Column!
+        const wgR = lerp(13.5, 17.5, rng());
+        const wallGear = new THREE.Mesh(this.cogwheel24Geo, this.brassGearMat);
+        wallGear.position.set(colX - side * 1.8, 11.0, zGantry);
+        wallGear.rotation.z = side * Math.PI * 0.5;
+        wallGear.scale.set(wgR, 1.0, wgR);
+        group.add(wallGear);
+        drivenVisuals.push({
+          obj: wallGear,
+          omega: side * 0.24,
+          angle: rng() * Math.PI,
+          axis: 'X',
+        });
+
+        // Smelting Crucible Ladle + Glowing Vertical Stream of Molten Brass pouring into the -36m Slag Sea!
+        if ((chunkIndex + gIdx + (side > 0 ? 1 : 0)) % 2 === 0) {
+          const ladleX = cx + side * 61.0;
+          const ladleY = 7.5;
+          const ladle = new THREE.Mesh(this.trunnionCylGeo, this.darkGantryIronMat);
+          ladle.position.set(ladleX, ladleY, zGantry + 12.0);
+          ladle.scale.set(3.2, 4.6, 3.2);
+          group.add(ladle);
+
+          const streamH = ladleY - -36.0;
+          const pourStream = new THREE.Mesh(this.shaftCylGeo, this.moltenPourMat);
+          pourStream.position.set(
+            ladleX - side * 1.8,
+            ladleY - streamH * 0.5,
+            zGantry + 12.0
+          );
+          pourStream.scale.set(1.35, streamH, 1.35);
+          group.add(pourStream);
+
+          furnacePositions.push(new THREE.Vector3(ladleX - side * 1.8, -34.8, zGantry + 12.0));
+        }
+      }
+
+      // 2. Full-Span Overhead Riveted Box-Girder Gantry Bridge (`144m` span across the cavern ceiling!)
+      this._dummy.position.set(cx, gantryY, zGantry);
+      this._dummy.rotation.set(0, 0, 0);
+      this._dummy.scale.set(144.0, 2.2, 2.6);
+      this._dummy.updateMatrix();
+      gantryMats.push(this._dummy.matrix.clone());
+
+      // 3. Continuously-Spinning Overhead Horizontal Steel Line-Shaft + Bevel Transfer Gears!
+      const lineShaft = new THREE.Mesh(this.shaftCylGeo, this.castIronMat);
+      lineShaft.position.set(cx, gantryY - 1.9, zGantry);
+      lineShaft.rotation.z = Math.PI * 0.5;
+      lineShaft.scale.set(1.4, 138.0, 1.4);
+      group.add(lineShaft);
+
+      for (const bevelOffX of [-36.0, 0.0, 36.0]) {
+        const bevel = new THREE.Mesh(this.cogwheel16Geo, this.brassGearMat);
+        bevel.position.set(cx + bevelOffX, gantryY - 1.9, zGantry);
+        bevel.rotation.z = Math.PI * 0.5;
+        bevel.scale.set(3.4, 1.0, 3.4);
+        group.add(bevel);
+        drivenVisuals.push({
+          obj: bevel,
+          omega: 0.85,
+          angle: bevelOffX * 0.1,
+          axis: 'X',
+        });
+      }
     }
 
-    // Majestic Overhead Swinging Brass Clockwork Pendulum (`yPivot = +34m`, bob swings at `y = +10m` high overhead!)
-    {
-      const zPend = zStart - 56.0;
-      const xPend = sampleCourseX(zPend);
-      const pivotGroup = new THREE.Group();
-      pivotGroup.position.set(xPend, 35.0, zPend);
-
-      const rodLen = 23.5;
-      const rod = new THREE.Mesh(this.unitBoxGeo, this.castIronMat);
-      rod.position.set(0, -rodLen * 0.5, 0);
-      rod.scale.set(0.36, rodLen, 0.36);
-      pivotGroup.add(rod);
-
-      const bob = new THREE.Mesh(this.pendulumBobGeo, this.copperBoilerMat);
-      bob.position.set(0, -rodLen, 0);
-      pivotGroup.add(bob);
-
-      const core = new THREE.Mesh(this.beaconSphereGeo, this.furnaceCoreGlowMat);
-      core.position.set(0, -rodLen, 0);
-      core.scale.setScalar(3.5);
-      pivotGroup.add(core);
-
-      group.add(pivotGroup);
-      pendulums.push({
-        pivotGroup,
-        freq: 1.15,
-        phase: chunkIndex * 1.9,
-        maxSwingRad: 0.48,
-      });
-    }
-
-    // Build all Seesaw Bridges, Articulated Piston Gangways, High-Arch Catwalks & Foundry Jump Ramps!
+    // =========================================================================
+    // BUILD ALL MECHANICAL SPANS BETWEEN GEAR ROWS
+    // =========================================================================
+    let spanCounter = 0;
     const buildLayerSpans = (
       rIdx: number,
       srcList: ClockworkGearIsland[],
@@ -982,11 +1462,12 @@ export class ClockworkFoundryBuilder {
       }
 
       for (const link of links) {
+        spanCounter++;
         const src = srcList[link.fromIdx];
         const dst = dstList[link.toIdx];
         const outArr = outBy.get(link.fromIdx)!;
         const inArr = inBy.get(link.toIdx)!;
-        const halfWidth = 3.85;
+        const halfWidth = 3.95;
 
         const s = this.computeGearRimSocket(
           srcSpecs[link.fromIdx],
@@ -1005,7 +1486,42 @@ export class ClockworkFoundryBuilder {
           halfWidth
         );
 
-        if (link.kind === 'SEESAW_BRIDGE') {
+        if (link.kind === 'LOCKING_GEAR_BRIDGE') {
+          lockingPathways.push(
+            this.buildLockingGearPathway(
+              group,
+              s.x,
+              s.y,
+              s.z,
+              e.x,
+              e.y,
+              e.z,
+              halfWidth,
+              rIdx * 1.7 + spanCounter * 1.15,
+              gantryMats,
+              ironMats,
+              furnacePositions
+            )
+          );
+        } else if (link.kind === 'GEAR_WALL_CAUSEWAY') {
+          gearWalls.push(
+            this.buildVerticalGearWallCauseway(
+              group,
+              s.x,
+              s.y,
+              s.z,
+              e.x,
+              e.y,
+              e.z,
+              halfWidth + 0.35,
+              (rIdx + spanCounter) % 2 === 0 ? 1 : -1,
+              gantryMats,
+              ironMats,
+              chevronMats,
+              beaconPositions
+            )
+          );
+        } else if (link.kind === 'SEESAW_BRIDGE') {
           seesaws.push(
             this.buildSeesawBeamBridge(
               group,
@@ -1086,6 +1602,7 @@ export class ClockworkFoundryBuilder {
     };
 
     emitInstanced(this.unitBoxGeo, this.castIronMat, ironMats);
+    emitInstanced(this.unitBoxGeo, this.darkGantryIronMat, gantryMats);
     emitInstanced(this.unitBoxGeo, this.rampChevronMat, chevronMats);
 
     if (furnacePositions.length > 0) {
@@ -1122,26 +1639,457 @@ export class ClockworkFoundryBuilder {
       group.add(bIm);
     }
 
-    // Warm molten up-light illuminating the brass undersides of the giant cogwheels!
-    const forgeLight = new THREE.PointLight(0xff7722, 22.0, 56.0, 1.3);
-    forgeLight.position.set(row0[0].x, -10.0, row0[0].z - 28.0);
+    const forgeLight = new THREE.PointLight(0xff7722, 24.0, 62.0, 1.3);
+    forgeLight.position.set(row0[0].x, -9.0, row0[0].z - 28.0);
     group.add(forgeLight);
 
     return {
       group,
       islands,
       ownedIslands,
-      idlers,
-      pendulums,
+      drivenVisuals,
       seesaws,
       gangways,
+      lockingPathways,
+      gearWalls,
       zStart,
       zLength,
     };
   }
 
   // ===========================================================================
-  // SPAN BUILDERS
+  // MECHANISM 1: GENEVA INTERMITTENT LOCKING-GEAR PATHWAY
+  // ===========================================================================
+
+  private buildLockingGearPathway(
+    chunkGroup: THREE.Group,
+    ax: number,
+    ay: number,
+    az: number,
+    bx: number,
+    by: number,
+    bz: number,
+    beamHalfWidth: number,
+    phase: number,
+    gantryMats: THREE.Matrix4[],
+    ironMats: THREE.Matrix4[],
+    furnacePositions: THREE.Vector3[]
+  ): LockingGearPathway {
+    const dx = bx - ax;
+    const dz = bz - az;
+    const spanLen = Math.hypot(dx, dz);
+    const dirX = dx / spanLen;
+    const dirZ = dz / spanLen;
+    const baseYaw = Math.atan2(-dirX, -dirZ);
+    const rightX = Math.cos(baseYaw);
+    const rightZ = -Math.sin(baseYaw);
+
+    const approachLen = clamp((spanLen - 23.0) * 0.5, 2.2, 6.8);
+    const lockR = Math.max(8.5, (spanLen - 2.0 * approachLen) * 0.5);
+    const midX = (ax + bx) * 0.5;
+    const midY = (ay + by) * 0.5;
+    const midZ = (az + bz) * 0.5;
+
+    // 1. Fixed Riveted Approach Piers on Entry (`A`) & Exit (`B`) + Lock-Signal Semaphores!
+    const beaconMeshes: THREE.Mesh[] = [];
+    for (const isStart of [true, false]) {
+      const s0 = isStart ? 0.0 : spanLen - approachLen;
+      const s1 = isStart ? approachLen : spanLen;
+      const y0 = isStart ? ay : midY;
+      const y1 = isStart ? midY : by;
+      const xm = ax + dirX * ((s0 + s1) * 0.5);
+      const zm = az + dirZ * ((s0 + s1) * 0.5);
+      const ym = (y0 + y1) * 0.5;
+      const pitch = Math.atan2(y1 - y0, approachLen);
+
+      this._dummy.position.set(xm, ym - 0.16, zm);
+      this._euler.set(pitch, baseYaw, 0, 'YXZ');
+      this._dummy.rotation.copy(this._euler);
+      this._dummy.scale.set((beamHalfWidth + 0.55) * 2.0, 0.34, approachLen + 0.35);
+      this._dummy.updateMatrix();
+      ironMats.push(this._dummy.matrix.clone());
+
+      // Semaphore Signal Posts showing GREEN ("GEAR LOCKED") vs RED-ORANGE ("ROTATING")!
+      if (isStart) {
+        for (const side of [-1, 1]) {
+          const px = xm + rightX * side * (beamHalfWidth + 0.55);
+          const pz = zm + rightZ * side * (beamHalfWidth + 0.55);
+          this._dummy.position.set(px, ym + 1.25, pz);
+          this._dummy.rotation.set(0, baseYaw, 0);
+          this._dummy.scale.set(0.32, 2.5, 0.32);
+          this._dummy.updateMatrix();
+          gantryMats.push(this._dummy.matrix.clone());
+
+          const sig = new THREE.Mesh(this.beaconSphereGeo, this.lockReadyGlowMat);
+          sig.position.set(px, ym + 2.65, pz);
+          sig.scale.setScalar(1.7);
+          chunkGroup.add(sig);
+          beaconMeshes.push(sig);
+        }
+      }
+    }
+
+    // 2. Giant Open-Ring Locking Bridge-Gear (`lockingGearGroup`)!
+    const lockingGearGroup = new THREE.Group();
+    lockingGearGroup.position.set(midX, midY, midZ);
+    lockingGearGroup.rotation.y = baseYaw;
+
+    // 2a. Hollow Toothed Brass Outer Ring (open -36m molten pit inside!)
+    const ringMesh = new THREE.Mesh(this.openLockingRingGeo, this.brassGearMat);
+    ringMesh.scale.set(lockR, 1.0, lockR);
+    ringMesh.castShadow = true;
+    ringMesh.receiveShadow = true;
+    lockingGearGroup.add(ringMesh);
+
+    // 2b. Single Diametral Riveted Bridge-Beam spanning from `-lockR` to `+lockR`!
+    const beamDeck = new THREE.Mesh(this.unitBoxGeo, this.seesawDeckMat);
+    beamDeck.position.set(0, -0.18, 0);
+    beamDeck.scale.set(beamHalfWidth * 2.0, 0.36, lockR * 2.01);
+    beamDeck.castShadow = true;
+    beamDeck.receiveShadow = true;
+    lockingGearGroup.add(beamDeck);
+
+    // Glowing brass center alignment strip along the locking bridge beam!
+    const alignStripe = new THREE.Mesh(this.unitBoxGeo, this.rampChevronMat);
+    alignStripe.position.set(0, 0.01, 0);
+    alignStripe.scale.set(0.75, 0.05, lockR * 1.94);
+    lockingGearGroup.add(alignStripe);
+
+    // Riveted Cast-Iron Box-Girder Side Curbs along the Diametral Bridge-Beam!
+    for (const side of [-1, 1]) {
+      const curb = new THREE.Mesh(this.unitBoxGeo, this.castIronMat);
+      curb.position.set(side * (beamHalfWidth + 0.1), 0.24, 0);
+      curb.scale.set(0.3, 0.68, lockR * 1.72);
+      lockingGearGroup.add(curb);
+    }
+
+    // Deep Foundry Axle Shaft + Bearing Capstan beneath the Locking Gear!
+    const centerAxle = new THREE.Mesh(this.shaftCylGeo, this.castIronMat);
+    centerAxle.position.set(0, -24.0, 0);
+    centerAxle.scale.set(3.2, 48.0, 3.2);
+    lockingGearGroup.add(centerAxle);
+
+    furnacePositions.push(new THREE.Vector3(midX, midY + 0.22, midZ));
+    chunkGroup.add(lockingGearGroup);
+
+    // 3. Continuously-Spinning Brass Drive Gear (`driverGroup`) + Geneva Striker Pin!
+    const sideSign = midX < 0 ? -1 : 1;
+    const driverR = 6.8;
+    const meshDist = lockR * 1.04 + driverR * 1.04;
+    const drvX = midX + rightX * sideSign * meshDist;
+    const drvZ = midZ + rightZ * sideSign * meshDist;
+
+    const driverGroup = new THREE.Group();
+    driverGroup.position.set(drvX, midY - 0.04, drvZ);
+
+    const driverGearMesh = new THREE.Mesh(this.cogwheel16Geo, this.brassGearMat);
+    driverGearMesh.scale.set(driverR, 1.0, driverR);
+    driverGroup.add(driverGearMesh);
+
+    // Raised Copper Geneva Cam & Striker Pin on top of the continuously turning Drive Gear!
+    const camHalf = new THREE.Mesh(this.hubMedallionGeo, this.copperBoilerMat);
+    camHalf.position.set(0, 0.42, 0);
+    camHalf.scale.set(driverR * 0.48, 1.4, driverR * 0.48);
+    driverGroup.add(camHalf);
+
+    const strikerPin = new THREE.Mesh(this.shaftCylGeo, this.rampChevronMat);
+    strikerPin.position.set(driverR * 0.76, 0.55, 0);
+    strikerPin.scale.set(1.3, 1.2, 1.3);
+    driverGroup.add(strikerPin);
+
+    chunkGroup.add(driverGroup);
+
+    // Overhead vertical power shaft driving the continuously spinning Drive Gear!
+    const drvDropH = 26.5 - midY;
+    const drvDropShaft = new THREE.Mesh(this.shaftCylGeo, this.castIronMat);
+    drvDropShaft.position.set(drvX, midY + drvDropH * 0.5, drvZ);
+    drvDropShaft.scale.set(1.15, drvDropH, 1.15);
+    chunkGroup.add(drvDropShaft);
+
+    // 4. Mechanical Cast-Iron Ratchet Locking Pawl clamping the rim during LOCKED phase!
+    const pawlDist = lockR * 1.06;
+    const pawlPivot = new THREE.Group();
+    pawlPivot.position.set(
+      midX - rightX * sideSign * (pawlDist + 2.2),
+      midY + 0.55,
+      midZ - rightZ * sideSign * (pawlDist + 2.2)
+    );
+    pawlPivot.rotation.y = baseYaw;
+
+    const pawlArm = new THREE.Mesh(this.unitBoxGeo, this.copperBoilerMat);
+    pawlArm.position.set(sideSign * 1.8, -0.15, 0);
+    pawlArm.scale.set(4.2, 0.65, 1.25);
+    pawlPivot.add(pawlArm);
+    chunkGroup.add(pawlPivot);
+
+    // Pedestal under the Locking Pawl
+    this._dummy.position.set(pawlPivot.position.x, midY - 19.0, pawlPivot.position.z);
+    this._dummy.rotation.set(0, baseYaw, 0);
+    this._dummy.scale.set(2.2, 39.5, 2.2);
+    this._dummy.updateMatrix();
+    gantryMats.push(this._dummy.matrix.clone());
+
+    const period = 7.4;
+    const driverOmega = (-sideSign * (Math.PI * 2)) / period; // Exactly 1 full turn per Geneva lock cycle!
+
+    return {
+      ax,
+      ay,
+      az,
+      bx,
+      by,
+      bz,
+      midX,
+      midY,
+      midZ,
+      dirX,
+      dirZ,
+      rightX,
+      rightZ,
+      baseYaw,
+      spanLen,
+      approachLen,
+      lockR,
+      beamHalfWidth,
+      period,
+      phase,
+      currentYaw: baseYaw,
+      liveOmega: 0,
+      isLocked: true,
+      wasLocked: true,
+      lockingGearGroup,
+      driverGroup,
+      driverOmega,
+      driverAngle: 0,
+      pawlPivot,
+      beaconMeshes,
+    };
+  }
+
+  // ===========================================================================
+  // MECHANISM 2: COLOSSAL VERTICAL ROTATING SLOTTED GEAR-WALL (`1 CAR AT A TIME!`)
+  // ===========================================================================
+
+  private buildVerticalGearWallCauseway(
+    chunkGroup: THREE.Group,
+    ax: number,
+    ay: number,
+    az: number,
+    bx: number,
+    by: number,
+    bz: number,
+    causewayHalfWidth: number,
+    spinSign: number,
+    gantryMats: THREE.Matrix4[],
+    ironMats: THREE.Matrix4[],
+    chevronMats: THREE.Matrix4[],
+    beaconPositions: THREE.Vector3[]
+  ): VerticalSlottedGearWall {
+    const dx = bx - ax;
+    const dz = bz - az;
+    const spanLen = Math.hypot(dx, dz);
+    const dirX = dx / spanLen;
+    const dirZ = dz / spanLen;
+    const yaw = Math.atan2(-dirX, -dirZ);
+    const rightX = Math.cos(yaw);
+    const rightZ = -Math.sin(yaw);
+
+    const wallX = (ax + bx) * 0.5;
+    const wallZ = (az + bz) * 0.5;
+    const deckY = (ay + by) * 0.5;
+    const axleY = deckY - 6.8;
+    const outerRadius = 13.6;
+    const slotInnerR = 4.4;
+    const slotOuterR = 11.2;
+    const slotHalfAng = 0.34; // ~4.8m wide passage at road level = 1 vehicle at a time!
+    const halfThick = 1.15;
+
+    // 1. Build Entry & Exit Riveted Foundry Girder Causeway Halves flanking the 2.5m Gear-Slot Trench!
+    const trenchGap = halfThick + 0.22;
+    const halfSpanSegLen = spanLen * 0.5 - trenchGap;
+    for (const isEntry of [true, false]) {
+      const s0 = isEntry ? 0.0 : spanLen * 0.5 + trenchGap;
+      const s1 = isEntry ? spanLen * 0.5 - trenchGap : spanLen;
+      const y0 = isEntry ? ay : deckY;
+      const y1 = isEntry ? deckY : by;
+      const xm = ax + dirX * ((s0 + s1) * 0.5);
+      const zm = az + dirZ * ((s0 + s1) * 0.5);
+      const ym = (y0 + y1) * 0.5;
+      const pitch = Math.atan2(y1 - y0, halfSpanSegLen);
+
+      this._dummy.position.set(xm, ym - 0.18, zm);
+      this._euler.set(pitch, yaw, 0, 'YXZ');
+      this._dummy.rotation.copy(this._euler);
+      this._dummy.scale.set(causewayHalfWidth * 2.04, 0.36, halfSpanSegLen + 0.25);
+      this._dummy.updateMatrix();
+      ironMats.push(this._dummy.matrix.clone());
+
+      // Heavy Riveted Side Box-Girders stopping crisply at the Gear-Wall Portal!
+      for (const side of [-1, 1]) {
+        const rx = xm + rightX * side * (causewayHalfWidth + 0.16);
+        const rz = zm + rightZ * side * (causewayHalfWidth + 0.16);
+        this._dummy.position.set(rx, ym + 0.32, rz);
+        this._euler.set(pitch, yaw, 0, 'YXZ');
+        this._dummy.rotation.copy(this._euler);
+        this._dummy.scale.set(0.36, 0.85, halfSpanSegLen);
+        this._dummy.updateMatrix();
+        ironMats.push(this._dummy.matrix.clone());
+      }
+    }
+
+    // 2. Heavy Riveted Cast-Iron Portal Bearing Frame straddling the Giant Vertical Gear-Wall!
+    const frameGroup = new THREE.Group();
+    frameGroup.position.set(wallX, axleY, wallZ);
+    frameGroup.rotation.y = yaw;
+    chunkGroup.add(frameGroup);
+
+    // Fore & Aft Axle Pillow-Block Bearing Pedestals plunging into the -36m Molten Pit!
+    for (const zSide of [-1, 1]) {
+      this._dummy.position.set(
+        wallX - dirX * zSide * 2.4,
+        axleY - 16.0,
+        wallZ - dirZ * zSide * 2.4
+      );
+      this._dummy.rotation.set(0, yaw, 0);
+      this._dummy.scale.set(5.2, 34.0, 1.8);
+      this._dummy.updateMatrix();
+      gantryMats.push(this._dummy.matrix.clone());
+    }
+
+    // Longitudinal Steel Axle Shaft supporting the 27m Vertical Gear-Wall!
+    const mainAxle = new THREE.Mesh(this.shaftCylGeo, this.castIronMat);
+    mainAxle.rotation.x = Math.PI * 0.5;
+    mainAxle.scale.set(3.4, 8.2, 3.4);
+    frameGroup.add(mainAxle);
+
+    // Side Gantry Bearing Towers + Overhead Crossbeam framing the Giant Gear!
+    for (const side of [-1, 1]) {
+      const towerX = wallX + rightX * side * 16.4;
+      const towerZ = wallZ + rightZ * side * 16.4;
+      this._dummy.position.set(towerX, deckY - 6.0, towerZ);
+      this._dummy.rotation.set(0, yaw, 0);
+      this._dummy.scale.set(2.2, 38.0, 3.8);
+      this._dummy.updateMatrix();
+      gantryMats.push(this._dummy.matrix.clone());
+
+      beaconPositions.push(
+        new THREE.Vector3(
+          wallX + rightX * side * (causewayHalfWidth + 0.5),
+          deckY + 2.4,
+          wallZ + rightZ * side * (causewayHalfWidth + 0.5)
+        )
+      );
+    }
+
+    // 3. The Colossal `27.2m`-Diameter Vertical Rotating Slotted Gear-Wall (`gearWheelGroup`)!
+    const gearWheelGroup = new THREE.Group();
+    frameGroup.add(gearWheelGroup);
+
+    // 3a. Outer Toothed Burnished-Brass Gear Ring (`r = 11.2m .. 14.85m`, 32 involute teeth!)
+    const outerRingMesh = new THREE.Mesh(this.verticalOuterToothedRingGeo, this.brassGearMat);
+    outerRingMesh.castShadow = true;
+    outerRingMesh.receiveShadow = true;
+    gearWheelGroup.add(outerRingMesh);
+
+    // 3b. Inner Cast-Iron Axle Boss (`r = 4.45m`)
+    const innerHubMesh = new THREE.Mesh(this.verticalHubCylGeo, this.castIronMat);
+    gearWheelGroup.add(innerHubMesh);
+
+    // 3c. The `4` Solid Cast-Iron Wall Quadrants + Glowing Brass Jamb Chevrons framing the 4 Single-Car Passages!
+    for (let q = 0; q < 4; q++) {
+      const qRot = q * (Math.PI * 0.5);
+      const sectorMesh = new THREE.Mesh(this.verticalSolidWallSectorGeo, this.castIronMat);
+      sectorMesh.rotation.z = qRot;
+      sectorMesh.castShadow = true;
+      sectorMesh.receiveShadow = true;
+      gearWheelGroup.add(sectorMesh);
+
+      // Raised Brass Stiffener Rib down the middle of each solid iron quadrant!
+      const midAng = qRot + Math.PI * 0.25;
+      const midR = (slotInnerR + slotOuterR) * 0.5;
+      const rib = new THREE.Mesh(this.unitBoxGeo, this.copperBoilerMat);
+      rib.position.set(Math.cos(midAng) * midR, Math.sin(midAng) * midR, 0);
+      rib.rotation.z = midAng;
+      rib.scale.set(slotOuterR - slotInnerR - 0.3, 0.85, halfThick * 2.18);
+      gearWheelGroup.add(rib);
+
+      // Glowing Amber Brass Clearance Trim Bars framing both jambs of each 1-Car Passage!
+      for (const jambSign of [-1, 1]) {
+        const jambAng = qRot + jambSign * (slotHalfAng + 0.035);
+        const trim = new THREE.Mesh(this.unitBoxGeo, this.rampChevronMat);
+        trim.position.set(Math.cos(jambAng) * midR, Math.sin(jambAng) * midR, 0);
+        trim.rotation.z = jambAng;
+        trim.scale.set(slotOuterR - slotInnerR - 0.2, 0.34, halfThick * 2.22);
+        gearWheelGroup.add(trim);
+      }
+    }
+
+    // 4. Meshing Side Brass Drive-Pinion Gear powering the Giant Vertical Gear-Wall!
+    const pinionR = 4.6;
+    const pinionDist = outerRadius + pinionR + 0.95;
+    const pinionMesh = new THREE.Mesh(this.cogwheel16Geo, this.brassGearMat);
+    pinionMesh.position.set(spinSign * pinionDist, 6.8, 0);
+    pinionMesh.rotation.x = Math.PI * 0.5;
+    pinionMesh.scale.set(pinionR, 1.35, pinionR);
+    frameGroup.add(pinionMesh);
+
+    // Horizontal drive shaft into the side Gantry Bearing Tower!
+    const pShaft = new THREE.Mesh(this.shaftCylGeo, this.castIronMat);
+    pShaft.position.set(spinSign * pinionDist, 6.8, 0);
+    pShaft.rotation.x = Math.PI * 0.5;
+    pShaft.scale.set(1.6, 6.5, 1.6);
+    frameGroup.add(pShaft);
+
+    // Chevron guide arrows painted onto the road deck approaching the Gear-Wall!
+    for (const dOff of [-8.5, -4.5]) {
+      this._dummy.position.set(
+        wallX + dirX * dOff,
+        deckY + 0.02,
+        wallZ + dirZ * dOff
+      );
+      this._dummy.rotation.set(0, yaw, 0);
+      this._dummy.scale.set(3.4, 0.05, 1.4);
+      this._dummy.updateMatrix();
+      chevronMats.push(this._dummy.matrix.clone());
+    }
+
+    const omega = spinSign * 0.38;
+    const pinionOmega = -omega * (outerRadius / pinionR);
+
+    return {
+      ax,
+      ay,
+      az,
+      bx,
+      by,
+      bz,
+      wallX,
+      wallZ,
+      deckY,
+      axleY,
+      dirX,
+      dirZ,
+      rightX,
+      rightZ,
+      yaw,
+      spanLen,
+      causewayHalfWidth,
+      outerRadius,
+      slotInnerR,
+      slotOuterR,
+      slotHalfAng,
+      halfThick,
+      omega,
+      angle: 0.0, // Starts with a 1-car slot sweeping right into view at top-dead-center (`theta = PI/2`)!
+      gearWheelGroup,
+      pinionMesh,
+      pinionOmega,
+      pinionAngle: 0,
+    };
+  }
+
+  // ===========================================================================
+  // SEESAW BRIDGES, ARTICULATED PISTON GANGWAYS, CATWALKS & JUMP RAMPS
   // ===========================================================================
 
   private buildSeesawBeamBridge(
@@ -1168,27 +2116,25 @@ export class ClockworkFoundryBuilder {
     const midX = (ax + bx) * 0.5;
     const midZ = (az + bz) * 0.5;
     const midBaseY = (ay + by) * 0.5;
-    const pivotLift = 1.05; // +1.05m trunnion lift -> entry flush on A, exit +2.10m raised until tipped!
+    const pivotLift = 1.05;
     const baseSlope = (by - ay) / length;
     const maxTan = pivotLift / halfLen;
 
-    // Stationary Central Bronze Trunnion Fulcrum Pillar rising from the molten foundry pit!
     const pillarH = 40.0 + midBaseY;
     const fulcrumPost = new THREE.Mesh(this.unitBoxGeo, this.castIronMat);
     fulcrumPost.position.set(midX, midBaseY + pivotLift - pillarH * 0.5 - 0.5, midZ);
     fulcrumPost.rotation.y = yaw;
-    fulcrumPost.scale.set(halfWidth * 2.35, pillarH, 1.45);
+    fulcrumPost.scale.set(halfWidth * 2.35, pillarH, 1.55);
     chunkGroup.add(fulcrumPost);
 
     const trunnionAxle = new THREE.Mesh(this.trunnionCylGeo, this.copperBoilerMat);
     trunnionAxle.position.set(midX, midBaseY + pivotLift - 0.35, midZ);
     trunnionAxle.rotation.y = yaw;
-    trunnionAxle.scale.set(1, halfWidth * 2.6, 1);
+    trunnionAxle.scale.set(1.1, halfWidth * 2.7, 1.1);
     chunkGroup.add(trunnionAxle);
 
     furnacePositions.push(new THREE.Vector3(midX, midBaseY + pivotLift + 0.15, midZ));
 
-    // Pivoting Riveted Iron & Timber Seesaw Beam Group!
     const beamMesh = new THREE.Group();
     beamMesh.position.set(midX, midBaseY + pivotLift, midZ);
 
@@ -1199,7 +2145,6 @@ export class ClockworkFoundryBuilder {
     deck.receiveShadow = true;
     beamMesh.add(deck);
 
-    // Left & Right Riveted Cast-Iron Box-Girder Side Rails
     for (const side of [-1, 1]) {
       const girder = new THREE.Mesh(this.unitBoxGeo, this.castIronMat);
       girder.position.set(side * (halfWidth + 0.12), 0.24, 0);
@@ -1208,10 +2153,9 @@ export class ClockworkFoundryBuilder {
       beamMesh.add(girder);
     }
 
-    // Heavy Copper Counterweight Drum slung beneath the entry (+Z local) half!
     const counterWeight = new THREE.Mesh(this.trunnionCylGeo, this.copperBoilerMat);
-    counterWeight.position.set(0, -1.35, halfLen * 0.48);
-    counterWeight.scale.set(1.8, halfWidth * 1.4, 1.8);
+    counterWeight.position.set(0, -1.45, halfLen * 0.48);
+    counterWeight.scale.set(1.9, halfWidth * 1.45, 1.9);
     beamMesh.add(counterWeight);
 
     chunkGroup.add(beamMesh);
@@ -1236,7 +2180,7 @@ export class ClockworkFoundryBuilder {
       halfLen,
       halfWidth,
       baseSlope,
-      tanTilt: maxTan, // Starts resting flush on entry Gear A!
+      tanTilt: maxTan,
       velTan: 0,
       maxTan,
       seatedExit: false,
@@ -1247,8 +2191,6 @@ export class ClockworkFoundryBuilder {
   }
 
   private syncSeesawMesh(sw: SeesawBeamBridge): void {
-    // Local -Z points along (dirX, dirZ) from A (s = -halfL) to B (s = +halfL):
-    // Positive pitchX lifts local -Z (exit B) and lowers local +Z (entry A)!
     const totalTan = sw.baseSlope + sw.tanTilt;
     const pitchX = Math.atan(totalTan);
     this._euler.set(pitchX, sw.yaw, 0, 'YXZ');
@@ -1286,7 +2228,6 @@ export class ClockworkFoundryBuilder {
     deck.receiveShadow = true;
     bridgeGroup.add(deck);
 
-    // Locomotive Connecting-Rod Brass Side Trusses + Hinge Knuckles!
     for (const side of [-1, 1]) {
       const rod = new THREE.Mesh(this.unitBoxGeo, this.copperBoilerMat);
       rod.position.set(side * (halfWidth + 0.14), 0.28, 0);
@@ -1412,7 +2353,9 @@ export class ClockworkFoundryBuilder {
       }
     }
 
-    beaconPositions.push(new THREE.Vector3(lerp(ax, bx, 0.5), heightAt(0.5) + 1.8, lerp(az, bz, 0.5)));
+    beaconPositions.push(
+      new THREE.Vector3(lerp(ax, bx, 0.5), heightAt(0.5) + 1.8, lerp(az, bz, 0.5))
+    );
 
     rootBridges.push({
       id: nextBridgeId(),
@@ -1499,7 +2442,6 @@ export class ClockworkFoundryBuilder {
       }
     }
 
-    // Twin Launch-Lip Beacons!
     {
       const lipX = lerp(ax, bx, launchEndFrac);
       const lipZ = lerp(az, bz, launchEndFrac);
@@ -1515,7 +2457,6 @@ export class ClockworkFoundryBuilder {
       }
     }
 
-    // Wide Forgiving Sloped Steel Catch-Landing Apron (`t = 0.71 .. 1.0`)!
     const catchSegs = 4;
     const catchHalfW = halfWidth + 0.9;
     const catchDrop = 0.95;
@@ -1572,7 +2513,7 @@ export class ClockworkFoundryBuilder {
   }
 
   // ===========================================================================
-  // LIVE SURFACE HEIGHT, CONVEYOR VELOCITY & SEESAW / GEAR / PISTON SIMULATION
+  // LIVE SURFACE HEIGHT, CONVEYOR VELOCITY & ROTATING GEAR-WALL COLLISION
   // ===========================================================================
 
   public sampleLiveClockworkSurface(
@@ -1583,7 +2524,7 @@ export class ClockworkFoundryBuilder {
     let bestH = -36.0;
     let found = false;
 
-    // 1. Check Rotating Brass Cogwheel Islands & Rising Steam-Piston Islands!
+    // 1. Rotating Brass Cogwheel Islands & Rising Steam-Piston Islands!
     let skirtH = -36.0;
     let hasSkirt = false;
     for (let i = 0; i < data.islands.length; i++) {
@@ -1601,12 +2542,96 @@ export class ClockworkFoundryBuilder {
       }
     }
 
-    // 2. Check Weight-Tilting Counterweight Seesaw Balance-Beam Bridges!
+    // 2. Intermittent Geneva Locking-Gear Pathways (`LOCKING_GEAR_BRIDGE`)!
+    for (let l = 0; l < data.lockingPathways.length; l++) {
+      const lp = data.lockingPathways[l];
+      const dxA = x - lp.ax;
+      const dzA = z - lp.az;
+      const along = dxA * lp.dirX + dzA * lp.dirZ;
+
+      if (along >= -0.65 && along <= lp.spanLen + 0.65) {
+        const lat = dxA * lp.rightX + dzA * lp.rightZ;
+        // 2a. Fixed Entry Pier (`0 .. approachLen`) & Exit Pier (`spanLen - approachLen .. spanLen`)
+        if (along <= lp.approachLen + 0.25 && Math.abs(lat) <= lp.beamHalfWidth + 0.85) {
+          const f = clamp(along / lp.approachLen, 0, 1);
+          bestH = Math.max(bestH, lerp(lp.ay, lp.midY, f));
+          found = true;
+        } else if (
+          along >= lp.spanLen - lp.approachLen - 0.25 &&
+          Math.abs(lat) <= lp.beamHalfWidth + 0.85
+        ) {
+          const f = clamp((along - (lp.spanLen - lp.approachLen)) / lp.approachLen, 0, 1);
+          bestH = Math.max(bestH, lerp(lp.midY, lp.by, f));
+          found = true;
+        }
+      }
+
+      // 2b. Live-Rotated Open-Ring Bridge-Gear!
+      const rx = x - lp.midX;
+      const rz = z - lp.midZ;
+      const rSq = rx * rx + rz * rz;
+      if (rSq <= (lp.lockR + 0.45) * (lp.lockR + 0.45)) {
+        // Transform `(rx, rz)` into `lockingGearGroup`'s live rotated frame (`currentYaw`)!
+        const sinY = Math.sin(lp.currentYaw);
+        const cosY = Math.cos(lp.currentYaw);
+        // Local -Z along (-sinY, -cosY), local +X along (cosY, -sinY)
+        const localAlong = rx * -sinY + rz * -cosY;
+        const localLat = rx * cosY + rz * -sinY;
+
+        const rNorm = Math.sqrt(rSq) / lp.lockR;
+        const onBridgeChord =
+          Math.abs(localAlong) <= lp.lockR + 0.4 &&
+          Math.abs(localLat) <= lp.beamHalfWidth + 0.25;
+        const onOuterRing = rNorm >= 0.85 && rNorm <= 1.0;
+
+        if (onBridgeChord || onOuterRing) {
+          const curbLift =
+            onBridgeChord && Math.abs(localLat) > lp.beamHalfWidth - 0.25
+              ? smoothstep(lp.beamHalfWidth - 0.25, lp.beamHalfWidth + 0.15, Math.abs(localLat)) *
+                0.26
+              : 0.0;
+          bestH = Math.max(bestH, lp.midY + curbLift);
+          found = true;
+        }
+      }
+    }
+
+    // 3. Riveted Causeways under Colossal Vertical Rotating Gear-Walls (`GEAR_WALL_CAUSEWAY`)!
+    for (let w = 0; w < data.gearWalls.length; w++) {
+      const gw = data.gearWalls[w];
+      const dx = x - gw.ax;
+      const dz = z - gw.az;
+      const along = dx * gw.dirX + dz * gw.dirZ;
+      if (along < -0.65 || along > gw.spanLen + 0.65) continue;
+
+      const lat = dx * gw.rightX + dz * gw.rightZ;
+      const flare =
+        along < 4.0
+          ? (1.0 - along / 4.0) * 1.1
+          : along > gw.spanLen - 4.0
+          ? ((along - (gw.spanLen - 4.0)) / 4.0) * 1.1
+          : 0.0;
+      const effW = gw.causewayHalfWidth + flare;
+      if (Math.abs(lat) <= effW) {
+        const f = clamp(along / gw.spanLen, 0, 1);
+        const curbLift =
+          Math.abs(lat) > effW - 0.35
+            ? smoothstep(effW - 0.35, effW, Math.abs(lat)) * 0.28
+            : 0.0;
+        const h = lerp(gw.ay, gw.by, f) + curbLift;
+        if (h > bestH) {
+          bestH = h;
+          found = true;
+        }
+      }
+    }
+
+    // 4. Weight-Tilting Counterweight Seesaw Balance-Beam Bridges!
     for (let s = 0; s < data.seesaws.length; s++) {
       const sw = data.seesaws[s];
       const dx = x - sw.midX;
       const dz = z - sw.midZ;
-      const alongFromMid = dx * sw.dirX + dz * sw.dirZ; // [-halfLen .. +halfLen]
+      const alongFromMid = dx * sw.dirX + dz * sw.dirZ;
       if (Math.abs(alongFromMid) > sw.halfLen + 0.65) continue;
 
       const lat = dx * sw.rightX + dz * sw.rightZ;
@@ -1634,7 +2659,7 @@ export class ClockworkFoundryBuilder {
       }
     }
 
-    // 3. Check Live-Articulated Steam-Piston Locomotive Gangways!
+    // 5. Live-Articulated Steam-Piston Locomotive Gangways!
     for (let g = 0; g < data.gangways.length; g++) {
       const gw = data.gangways[g];
       const dx = x - gw.ax;
@@ -1673,30 +2698,66 @@ export class ClockworkFoundryBuilder {
     return { active: found, height: bestH };
   }
 
-  /**
-   * Computes real horizontal tangential conveyor velocity `(-omega * dz, velY, +omega * dx)`
-   * at wheel contact `(x, z)` so spinning Brass Cogwheels & Rising Steam-Pistons physically
-   * carry and rotate the 4x4 through real tire contact!
-   */
   public sampleSurfaceVelocityInChunk(
     data: ClockworkChunkData,
     x: number,
     z: number,
     outVel: THREE.Vector3
   ): boolean {
-    // Stationary seesaw decks overlap gear rims at their flared sockets — once on a seesaw deck,
-    // tires grip the stationary seesaw beam rather than the gear rotating beneath it!
+    // Stationary approach aprons on Seesaws, Gear-Wall Causeways, and Locking-Gear Approach Piers
     for (let s = 0; s < data.seesaws.length; s++) {
       const sw = data.seesaws[s];
       const dx = x - sw.midX;
       const dz = z - sw.midZ;
-      const along = dx * sw.dirX + dz * sw.dirZ;
-      if (Math.abs(along) <= sw.halfLen + 0.5) {
-        const lat = dx * sw.rightX + dz * sw.rightZ;
-        if (Math.abs(lat) <= sw.halfWidth + 1.1) {
+      if (
+        Math.abs(dx * sw.dirX + dz * sw.dirZ) <= sw.halfLen + 0.5 &&
+        Math.abs(dx * sw.rightX + dz * sw.rightZ) <= sw.halfWidth + 1.1
+      ) {
+        outVel.set(0, 0, 0);
+        return false;
+      }
+    }
+    for (let w = 0; w < data.gearWalls.length; w++) {
+      const gw = data.gearWalls[w];
+      const dx = x - gw.ax;
+      const dz = z - gw.az;
+      const along = dx * gw.dirX + dz * gw.dirZ;
+      if (
+        along >= -0.5 &&
+        along <= gw.spanLen + 0.5 &&
+        Math.abs(dx * gw.rightX + dz * gw.rightZ) <= gw.causewayHalfWidth + 1.0
+      ) {
+        outVel.set(0, 0, 0);
+        return false;
+      }
+    }
+
+    // Live-turning Geneva Locking Bridge-Gear (0 velocity when LOCKED, rotational velocity when INDEXING!)
+    for (let l = 0; l < data.lockingPathways.length; l++) {
+      const lp = data.lockingPathways[l];
+      const dxA = x - lp.ax;
+      const dzA = z - lp.az;
+      const along = dxA * lp.dirX + dzA * lp.dirZ;
+      const lat = dxA * lp.rightX + dzA * lp.rightZ;
+      if (
+        (along >= -0.5 && along <= lp.approachLen + 0.25 && Math.abs(lat) <= lp.beamHalfWidth + 0.9) ||
+        (along >= lp.spanLen - lp.approachLen - 0.25 &&
+          along <= lp.spanLen + 0.5 &&
+          Math.abs(lat) <= lp.beamHalfWidth + 0.9)
+      ) {
+        outVel.set(0, 0, 0);
+        return false;
+      }
+
+      const rx = x - lp.midX;
+      const rz = z - lp.midZ;
+      if (rx * rx + rz * rz <= lp.lockR * lp.lockR) {
+        if (Math.abs(lp.liveOmega) < 1e-4) {
           outVel.set(0, 0, 0);
-          return false;
+          return true;
         }
+        outVel.set(lp.liveOmega * rz, 0, -lp.liveOmega * rx);
+        return true;
       }
     }
 
@@ -1717,14 +2778,131 @@ export class ClockworkFoundryBuilder {
           outVel.set(0, isl.velY, 0);
           return true;
         }
-        // In Three.js, rotation.y += omega * dt maps (x, z) -> (x*cos + z*sin, -x*sin + z*cos):
-        // d/dt (dx, dz) = (+omega * dz, -omega * dx)!
         outVel.set(isl.omega * dz, 0, -isl.omega * dx);
         return true;
       }
     }
     return false;
   }
+
+  /**
+   * 240Hz Collision Solver for the Colossal Vertical Rotating Slotted Gear-Walls!
+   * - Allows 1 vehicle at a time to pass cleanly through any of the `4` rotating `4.8m`-wide slots!
+   * - Blocks longitudinal impact against the solid `2.3m`-thick cast-iron gear wall sectors!
+   * - Gently guides a car laterally if a slot jamb sweeps sideways while the car is mid-passage!
+   */
+  public resolveVerticalGearWallCollisionsInChunk(
+    data: ClockworkChunkData,
+    carPos: THREE.Vector3,
+    forwardWorld: THREE.Vector3,
+    rightWorld: THREE.Vector3,
+    linearVel: THREE.Vector3,
+    angularVel: THREE.Vector3,
+    passiveProtection: boolean,
+    onImpact?: (intensity: number, worldPoint: THREE.Vector3) => void
+  ): void {
+    if (passiveProtection || data.gearWalls.length === 0) return;
+
+    const hullOffsets = [-1.3, 0.0, 1.2];
+    const sphereRad = 0.92;
+    const halfPi = Math.PI * 0.5;
+
+    for (let w = 0; w < data.gearWalls.length; w++) {
+      const gw = data.gearWalls[w];
+      const dCenter =
+        (carPos.x - gw.wallX) * gw.dirX + (carPos.z - gw.wallZ) * gw.dirZ;
+      if (Math.abs(dCenter) > gw.halfThick + 3.2) continue;
+
+      for (let h = 0; h < hullOffsets.length; h++) {
+        const zOff = hullOffsets[h];
+        const sx = carPos.x + forwardWorld.x * -zOff;
+        const sz = carPos.z + forwardWorld.z * -zOff;
+        const sy = carPos.y + 0.35;
+
+        const sAlong = (sx - gw.wallX) * gw.dirX + (sz - gw.wallZ) * gw.dirZ;
+        const maxLong = gw.halfThick + sphereRad;
+        if (Math.abs(sAlong) >= maxLong) continue;
+
+        // Coordinates in `frameGroup` (`lx` = right, `ly` = height above axleY)
+        const lx = (sx - gw.wallX) * gw.rightX + (sz - gw.wallZ) * gw.rightZ;
+        const ly = sy - gw.axleY;
+        const r = Math.hypot(lx, ly);
+        if (r > gw.outerRadius + sphereRad) continue;
+
+        // Exact inverse rotation into `gearWheelGroup` (`rotation.z = gw.angle`)!
+        const cosA = Math.cos(gw.angle);
+        const sinA = Math.sin(gw.angle);
+        const gx = lx * cosA + ly * sinA;
+        const gy = -lx * sinA + ly * cosA;
+
+        const theta = Math.atan2(gy, gx);
+        const nearestSlotIdx = Math.round(theta / halfPi);
+        const dAng = theta - nearestSlotIdx * halfPi; // in [-PI/4 .. +PI/4]
+        const arcDistFromSlotCenter = Math.abs(dAng) * r;
+        const slotHalfWidthAtR = gw.slotHalfAng * r;
+
+        const inRadialWindow =
+          r - sphereRad >= gw.slotInnerR && r + sphereRad <= gw.slotOuterR;
+        const inSlotWidth = arcDistFromSlotCenter + sphereRad <= slotHalfWidthAtR;
+
+        if (inRadialWindow && inSlotWidth) {
+          // Inside the rotating 1-vehicle passage — CLEAR TO PASS THROUGH!
+          continue;
+        }
+
+        if (inRadialWindow && Math.abs(sAlong) < gw.halfThick - 0.1) {
+          // Car is already partway through the passage & touching a rotating brass jamb:
+          // smoothly nudge laterally toward the center of the open 1-car slot!
+          const pushSign = dAng > 0 ? -1 : 1; // in gear tangent direction
+          // At top of wheel (`ly > 0`), +theta tangent points along `-right` (`-lx`), so push toward `dAng = 0`:
+          const slotCenterWorldAng = nearestSlotIdx * halfPi + gw.angle;
+          const targetLx = Math.cos(slotCenterWorldAng) * r;
+          const latErr = targetLx - lx;
+          const nudge = clamp(latErr, -0.35, 0.35) * 0.65;
+          carPos.x += gw.rightX * nudge;
+          carPos.z += gw.rightZ * nudge;
+          const slotVx = -gw.omega * ly;
+          const vLat = linearVel.x * gw.rightX + linearVel.z * gw.rightZ;
+          linearVel.x += gw.rightX * (slotVx - vLat) * 0.35;
+          linearVel.z += gw.rightZ * (slotVx - vLat) * 0.35;
+          continue;
+        }
+
+        // Solid cast-iron gear wall face impact! Push longitudinally out of the rotating wall!
+        const signLong = sAlong >= 0 ? 1 : -1;
+        const overlap = maxLong - Math.abs(sAlong);
+        const nx = gw.dirX * signLong;
+        const nz = gw.dirZ * signLong;
+
+        carPos.x += nx * overlap * 0.92;
+        carPos.z += nz * overlap * 0.92;
+
+        const vn = linearVel.x * nx + linearVel.z * nz;
+        if (vn < 0) {
+          const jMag = -1.28 * vn;
+          linearVel.x += nx * jMag;
+          linearVel.z += nz * jMag;
+
+          // Impart slight tangential friction kick from the spinning iron gear face!
+          const faceTangentialVx = -gw.omega * ly;
+          linearVel.x += gw.rightX * faceTangentialVx * 0.12;
+          linearVel.z += gw.rightZ * faceTangentialVx * 0.12;
+
+          const localHitX = nx * rightWorld.x + nz * rightWorld.z;
+          angularVel.y += clamp(-zOff * localHitX * jMag * 0.08, -1.6, 1.6);
+
+          if (Math.abs(vn) > 2.4 && onImpact) {
+            this._hitContact.set(sx - nx * sphereRad, sy, sz - nz * sphereRad);
+            onImpact(clamp(Math.abs(vn) / 16.0, 0.25, 1.0), this._hitContact);
+          }
+        }
+      }
+    }
+  }
+
+  // ===========================================================================
+  // CHUNK ANIMATION & SIMULATION STEP
+  // ===========================================================================
 
   public stepChunkHazards(
     data: ClockworkChunkData,
@@ -1762,30 +2940,60 @@ export class ClockworkFoundryBuilder {
       }
     }
 
-    // 2. Step Decorative Meshed Idler Gears & Vertical Wall Escapement Gears!
-    for (let i = 0; i < data.idlers.length; i++) {
-      const idl = data.idlers[i];
-      idl.angle += idl.omega * clampedDt;
-      if (idl.axis === 'Y') {
-        idl.mesh.rotation.y = idl.angle;
+    // 2. Step Meshed Idler Gears, Overhead Bevel Transfer Gears & Wall Gears!
+    for (let i = 0; i < data.drivenVisuals.length; i++) {
+      const dv = data.drivenVisuals[i];
+      dv.angle += dv.omega * clampedDt;
+      if (dv.axis === 'Y') {
+        dv.obj.rotation.y = dv.angle;
+      } else if (dv.axis === 'X') {
+        dv.obj.rotation.x = dv.angle;
       } else {
-        idl.mesh.rotation.x = idl.angle;
+        dv.obj.rotation.z = dv.angle;
       }
     }
 
-    // 3. Step Overhead Swinging Brass Clockwork Pendulums!
-    for (let p = 0; p < data.pendulums.length; p++) {
-      const pend = data.pendulums[p];
-      pend.pivotGroup.rotation.z =
-        Math.sin(elapsed * pend.freq + pend.phase) * pend.maxSwingRad;
+    // 3. Step Intermittent Geneva Locking-Gear Pathways!
+    for (let l = 0; l < data.lockingPathways.length; l++) {
+      const lp = data.lockingPathways[l];
+      // Continuously-turning Brass Drive Gear NEVER stops!
+      lp.driverAngle += lp.driverOmega * clampedDt;
+      lp.driverGroup.rotation.y = lp.driverAngle;
+
+      const lockState = this.sampleGenevaLockState(lp.period, lp.phase, elapsed);
+      lp.currentYaw = lp.baseYaw + lockState.deltaYaw;
+      lp.liveOmega = lockState.liveOmega;
+      lp.isLocked = lockState.isLocked;
+      lp.lockingGearGroup.rotation.y = lp.currentYaw;
+      lp.pawlPivot.rotation.z = lockState.pawlLift;
+
+      if (lp.isLocked !== lp.wasLocked) {
+        const sigMat = lp.isLocked ? this.lockReadyGlowMat : this.lockTurningGlowMat;
+        for (let b = 0; b < lp.beaconMeshes.length; b++) {
+          lp.beaconMeshes[b].material = sigMat;
+        }
+        if (lp.isLocked && this.onGearPathwayLocked) {
+          this.onGearPathwayLocked(new THREE.Vector3(lp.midX, lp.midY + 0.4, lp.midZ));
+        }
+        lp.wasLocked = lp.isLocked;
+      }
     }
 
-    // 4. Step Live-Articulated Steam-Piston Gangways!
+    // 4. Step Colossal Vertical Rotating Slotted Gear-Walls + Meshing Side Pinions!
+    for (let w = 0; w < data.gearWalls.length; w++) {
+      const gw = data.gearWalls[w];
+      gw.angle += gw.omega * clampedDt;
+      gw.gearWheelGroup.rotation.z = gw.angle;
+      gw.pinionAngle += gw.pinionOmega * clampedDt;
+      gw.pinionMesh.rotation.z = gw.pinionAngle;
+    }
+
+    // 5. Step Live-Articulated Steam-Piston Gangways!
     for (let g = 0; g < data.gangways.length; g++) {
       this.syncGangwayMesh(data.gangways[g]);
     }
 
-    // 5. Step Torque-Driven Counterweight Seesaw Balance-Beam Bridges!
+    // 6. Step Torque-Driven Counterweight Seesaw Balance-Beam Bridges!
     for (let s = 0; s < data.seesaws.length; s++) {
       const sw = data.seesaws[s];
       const dx = vehiclePos.x - sw.midX;
@@ -1793,7 +3001,6 @@ export class ClockworkFoundryBuilder {
       const alongFromMid = dx * sw.dirX + dz * sw.dirZ;
       const lat = dx * sw.rightX + dz * sw.rightZ;
 
-      // Default copper counterweight gently biases `tanTilt` toward `+maxTan` (entry end flush on Gear A!)
       let targetTan = sw.maxTan;
       let springRate = 4.2;
 
@@ -1805,8 +3012,6 @@ export class ClockworkFoundryBuilder {
         const expectedY =
           sw.midBaseY + sw.pivotLift + alongFromMid * (sw.baseSlope + sw.tanTilt);
         if (Math.abs(vehiclePos.y - expectedY) < 3.4) {
-          // Vehicle weight torque! Approaching & crossing the central bronze trunnion (`s > -3.5m`)
-          // drives targetTan past the anvil stop (`1.28x`) so the beam seats crisply onto exit Gear B!
           const leverFrac = clamp((alongFromMid + 3.5) / (sw.halfLen * 0.32), -1.0, 1.0);
           targetTan = -leverFrac * sw.maxTan * 1.28;
           springRate = 24.0;

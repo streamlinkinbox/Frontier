@@ -191,8 +191,8 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
   },
   CLOCKWORK_FOUNDRY: {
     id: 'CLOCKWORK_FOUNDRY',
-    title: 'CLOCKWORK GEAR-ISLAND FOUNDRY & SEESAW BRIDGES',
-    subtitle: 'ROTATING BRASS COGWHEELS · WEIGHT-TILTING SEESAWS · STEAM PISTONS · JUMP RAMPS',
+    title: 'CLOCKWORK FOUNDRY · LOCKING GEARS & ROTATING GEAR WALLS',
+    subtitle: 'GENEVA LOCKING-GEAR PATHS · 1-CAR ROTATING GEAR WALLS · SEESAWS · PISTONS',
     fogColorHex: 0x2b1810,
     fogDensity: 0.0052,
     skyHorizonRGB: [0.46, 0.22, 0.09],
@@ -2416,6 +2416,38 @@ export class TrailCorridorWorld {
       }
     }
     return false;
+  }
+
+  /**
+   * Resolves 240Hz rigid-body collisions against Colossal Vertical Rotating Slotted Gear-Walls
+   * (allowing 1 vehicle at a time through the rotating 4.8m passages while blocking solid gear sectors)!
+   */
+  public resolveDynamicMechanicalWalls(
+    carPos: THREE.Vector3,
+    forwardWorld: THREE.Vector3,
+    rightWorld: THREE.Vector3,
+    linearVel: THREE.Vector3,
+    angularVel: THREE.Vector3,
+    passiveObserver: boolean,
+    onImpact?: (intensity: number, worldPoint: THREE.Vector3) => void
+  ): void {
+    if (this.currentBiome !== 'CLOCKWORK_FOUNDRY' || passiveObserver) return;
+    const cIdx = Math.floor(-carPos.z / CHUNK_LENGTH);
+    for (let ci = cIdx - 1; ci <= cIdx + 1; ci++) {
+      const rec = this.activeChunks.get(ci);
+      if (rec?.clockworkData) {
+        this.clockworkBuilder.resolveVerticalGearWallCollisionsInChunk(
+          rec.clockworkData,
+          carPos,
+          forwardWorld,
+          rightWorld,
+          linearVel,
+          angularVel,
+          passiveObserver,
+          onImpact
+        );
+      }
+    }
   }
 
   /**
