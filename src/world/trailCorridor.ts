@@ -3,6 +3,7 @@ import { clamp, fbm2D, lerp, mulberry32, noise2D, ridge2D, smoothstep } from '..
 import { ProceduralTextureLibrary } from '../graphics/proceduralTextures';
 import { CarnivorousBogBuilder, CarnivorousBogChunkData } from './carnivorousBogSystem';
 import { CanyonBridgeChunkData, CanyonRopeBridgeBuilder } from './canyonRopeBridgeSystem';
+import { CargoMegashipBuilder, CargoMegashipChunkData } from './cargoMegashipSystem';
 import { ClockworkChunkData, ClockworkFoundryBuilder } from './clockworkFoundrySystem';
 import { DeadwoodBuilder, DeadwoodChunkData } from './deadwoodSystem';
 import { DesertVillageBuilder, DesertVillageChunkData } from './desertVillage';
@@ -26,7 +27,8 @@ export type BiomeId =
   | 'CARNIVOROUS_BOG'
   | 'UNDERGROUND_MARKET'
   | 'CANYON_BRIDGES'
-  | 'CLOCKWORK_FOUNDRY';
+  | 'CLOCKWORK_FOUNDRY'
+  | 'CARGO_MEGASHIPS';
 
 export type SurfaceType =
   | 'PACKED_DIRT'
@@ -42,7 +44,8 @@ export type SurfaceType =
   | 'LILYPAD_WAX'
   | 'MARKET_TILE'
   | 'ROPE_PLANK'
-  | 'BRASS_GEAR';
+  | 'BRASS_GEAR'
+  | 'STEEL_DECK';
 
 export interface BiomeAtmosphereSpec {
   id: BiomeId;
@@ -201,6 +204,19 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
     sunIntensity: 2.6,
     hemiSkyHex: 0xffad66,
     hemiGroundHex: 0xff5a14,
+  },
+  CARGO_MEGASHIPS: {
+    id: 'CARGO_MEGASHIPS',
+    title: 'STORM-TOSSED CARGO MEGASHIPS & GANTRY CRANE DOCKS',
+    subtitle: 'PITCHING SHIP DECKS · CONTAINER MAZE & TUNNELS · LOCKING GANTRY CRANE BRIDGES',
+    fogColorHex: 0x13222e,
+    fogDensity: 0.0046,
+    skyHorizonRGB: [0.14, 0.25, 0.34],
+    skyZenithRGB: [0.04, 0.07, 0.12],
+    sunColorHex: 0xc2daf0,
+    sunIntensity: 2.2,
+    hemiSkyHex: 0x6f96b8,
+    hemiGroundHex: 0x0b1f2e,
   },
 };
 
@@ -389,6 +405,7 @@ interface ChunkRecord {
   undergroundMarketData?: UndergroundMarketChunkData;
   canyonBridgeData?: CanyonBridgeChunkData;
   clockworkData?: ClockworkChunkData;
+  cargoMegashipData?: CargoMegashipChunkData;
 }
 
 // SPACIOUS OPEN-WORLD EXPEDITION DIMENSIONS (320m total width, 72m-108m wide open driving corridor!)
@@ -428,6 +445,7 @@ export class TrailCorridorWorld {
   public readonly undergroundMarketBuilder: UndergroundMarketBuilder;
   public readonly canyonBridgeBuilder: CanyonRopeBridgeBuilder;
   public readonly clockworkBuilder: ClockworkFoundryBuilder;
+  public readonly cargoMegashipBuilder: CargoMegashipBuilder;
 
   private terrainMat: THREE.MeshStandardMaterial;
   private rockMat: THREE.MeshStandardMaterial;
@@ -483,6 +501,7 @@ export class TrailCorridorWorld {
     this.undergroundMarketBuilder = new UndergroundMarketBuilder(textures);
     this.canyonBridgeBuilder = new CanyonRopeBridgeBuilder(textures);
     this.clockworkBuilder = new ClockworkFoundryBuilder(textures);
+    this.cargoMegashipBuilder = new CargoMegashipBuilder(textures);
 
     this.terrainMat = new THREE.MeshStandardMaterial({
       map: textures.terrainDetail.map,
@@ -774,6 +793,8 @@ export class TrailCorridorWorld {
     this.group.add(this.canyonBridgeBuilder.atmosphereFxGroup);
     this.clockworkBuilder.atmosphereFxGroup.visible = false;
     this.group.add(this.clockworkBuilder.atmosphereFxGroup);
+    this.cargoMegashipBuilder.atmosphereFxGroup.visible = false;
+    this.group.add(this.cargoMegashipBuilder.atmosphereFxGroup);
   }
 
   public getActiveCarnivorousBogChunks(): CarnivorousBogChunkData[] {
@@ -808,6 +829,7 @@ export class TrailCorridorWorld {
     this.undergroundMarketBuilder.atmosphereFxGroup.visible = biome === 'UNDERGROUND_MARKET';
     this.canyonBridgeBuilder.atmosphereFxGroup.visible = biome === 'CANYON_BRIDGES';
     this.clockworkBuilder.atmosphereFxGroup.visible = biome === 'CLOCKWORK_FOUNDRY';
+    this.cargoMegashipBuilder.atmosphereFxGroup.visible = biome === 'CARGO_MEGASHIPS';
     this.resetAround(startZ);
   }
 
@@ -1862,7 +1884,8 @@ export class TrailCorridorWorld {
       this.currentBiome === 'CARNIVOROUS_BOG' ||
       this.currentBiome === 'UNDERGROUND_MARKET' ||
       this.currentBiome === 'CANYON_BRIDGES' ||
-      this.currentBiome === 'CLOCKWORK_FOUNDRY'
+      this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
+      this.currentBiome === 'CARGO_MEGASHIPS'
         ? 0 // Level datum!
         : this.currentBiome === 'SINGULARITY'
         ? 38.0 +
@@ -1920,7 +1943,9 @@ export class TrailCorridorWorld {
     const baseHalfWidth =
       this.currentBiome === 'UNDERGROUND_MARKET'
         ? sampleUndergroundMarketHalfWidth(Math.max(0, -z), CHUNK_LENGTH)
-        : this.currentBiome === 'CANYON_BRIDGES' || this.currentBiome === 'CLOCKWORK_FOUNDRY'
+        : this.currentBiome === 'CANYON_BRIDGES' ||
+          this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
+          this.currentBiome === 'CARGO_MEGASHIPS'
         ? 64.0
         : this.currentBiome === 'GLACIAL_ICE'
         ? 32.0
@@ -1952,7 +1977,8 @@ export class TrailCorridorWorld {
           this.currentBiome === 'CARNIVOROUS_BOG' ||
           this.currentBiome === 'UNDERGROUND_MARKET' ||
           this.currentBiome === 'CANYON_BRIDGES' ||
-          this.currentBiome === 'CLOCKWORK_FOUNDRY'
+          this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
+          this.currentBiome === 'CARGO_MEGASHIPS'
         ? 0
         : smoothstep(0.54, 0.82, mudNoise)) * introFade;
 
@@ -2029,7 +2055,8 @@ export class TrailCorridorWorld {
       this.currentBiome === 'CARNIVOROUS_BOG' ||
       this.currentBiome === 'UNDERGROUND_MARKET' ||
       this.currentBiome === 'CANYON_BRIDGES' ||
-      this.currentBiome === 'CLOCKWORK_FOUNDRY'
+      this.currentBiome === 'CLOCKWORK_FOUNDRY' ||
+      this.currentBiome === 'CARGO_MEGASHIPS'
         ? 0
         : d * bankSlope * smoothstep(hw * 1.35, hw * 0.25, absD);
 
@@ -2051,8 +2078,8 @@ export class TrailCorridorWorld {
         : 0;
 
     const microRough =
-      this.currentBiome === 'CLOCKWORK_FOUNDRY'
-        ? 0.0 // Precision-machined brass cogwheels & riveted iron seesaws!
+      this.currentBiome === 'CLOCKWORK_FOUNDRY' || this.currentBiome === 'CARGO_MEGASHIPS'
+        ? 0.0 // Precision-machined brass cogwheels & welded steel ship decks!
         : this.currentBiome === 'UNDERGROUND_MARKET'
         ? 0.004 // Smooth tiled subterranean concourse floor!
         : this.currentBiome === 'GLACIAL_ICE'
@@ -2069,7 +2096,14 @@ export class TrailCorridorWorld {
       fbm2D(x * 0.045, z * 0.045, 3) * (2.4 * forestFlankBlend) +
       ridge2D(x * 0.075, z * 0.075, 2) * (1.4 * forestFlankBlend);
 
-    if (this.currentBiome === 'CLOCKWORK_FOUNDRY') {
+    if (this.currentBiome === 'CARGO_MEGASHIPS') {
+      forestFlankBlend = 0;
+      outerHill = 0;
+      rootMounds = 0;
+      // Deep -24m North-Atlantic seabed beneath the -14.5m storm ocean surface, flanked by distant harbor breakwaters!
+      const breakwaterMask = smoothstep(88.0, 134.0, absD);
+      cliffRelief = -24.0 + breakwaterMask * (36.0 + ridge2D(x * 0.05, z * 0.05, 2) * 6.5);
+    } else if (this.currentBiome === 'CLOCKWORK_FOUNDRY') {
       forestFlankBlend = 0;
       outerHill = 0;
       rootMounds = 0;
@@ -2222,6 +2256,16 @@ export class TrailCorridorWorld {
           height = cwSample.height;
         }
       }
+      if (rec.cargoMegashipData && absD < 78.0) {
+        const shipSample = this.cargoMegashipBuilder.sampleLiveCargoSurface(
+          rec.cargoMegashipData,
+          x,
+          z
+        );
+        if (shipSample.active && shipSample.height > height) {
+          height = shipSample.height;
+        }
+      }
       for (const p of rec.puddles) {
         const nx = (x - p.x) / p.radiusX;
         const nz = (z - p.z) / p.radiusZ;
@@ -2236,7 +2280,9 @@ export class TrailCorridorWorld {
     }
 
     let surface: SurfaceType =
-      this.currentBiome === 'CLOCKWORK_FOUNDRY'
+      this.currentBiome === 'CARGO_MEGASHIPS'
+        ? 'STEEL_DECK'
+        : this.currentBiome === 'CLOCKWORK_FOUNDRY'
         ? 'BRASS_GEAR'
         : this.currentBiome === 'CANYON_BRIDGES'
         ? onRopeBridge
@@ -2266,6 +2312,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'UNDERGROUND_MARKET' &&
       this.currentBiome !== 'CANYON_BRIDGES' &&
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
+      this.currentBiome !== 'CARGO_MEGASHIPS' &&
       (absD > hw + 18.0 || medianIslandBump > 0.8)
     ) {
       surface = 'MOSS_ROCK';
@@ -2278,6 +2325,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'UNDERGROUND_MARKET' &&
       this.currentBiome !== 'CANYON_BRIDGES' &&
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
+      this.currentBiome !== 'CARGO_MEGASHIPS' &&
       localMud > 0.36
     ) {
       surface = 'WET_MUD';
@@ -2289,6 +2337,7 @@ export class TrailCorridorWorld {
       this.currentBiome !== 'UNDERGROUND_MARKET' &&
       this.currentBiome !== 'CANYON_BRIDGES' &&
       this.currentBiome !== 'CLOCKWORK_FOUNDRY' &&
+      this.currentBiome !== 'CARGO_MEGASHIPS' &&
       distFromBranch > branchHalfWidth * 0.78
     ) {
       surface = 'LOOSE_VERGE';
@@ -2380,6 +2429,10 @@ export class TrailCorridorWorld {
         friction = 1.04; // Machined brass cogwheels & riveted iron seesaw decks!
         rollingResistance = 0.013;
         break;
+      case 'STEEL_DECK':
+        friction = 0.91; // Rain-slicked non-skid naval steel deck & corrugated container tops!
+        rollingResistance = 0.014;
+        break;
     }
 
     return {
@@ -2403,7 +2456,9 @@ export class TrailCorridorWorld {
    */
   public sampleMovingDeckVelocity(x: number, z: number, outVel: THREE.Vector3): boolean {
     outVel.set(0, 0, 0);
-    if (this.currentBiome !== 'CLOCKWORK_FOUNDRY') return false;
+    if (this.currentBiome !== 'CLOCKWORK_FOUNDRY' && this.currentBiome !== 'CARGO_MEGASHIPS') {
+      return false;
+    }
     const cIdx = Math.floor(-z / CHUNK_LENGTH);
     for (let ci = cIdx - 1; ci <= cIdx + 1; ci++) {
       const rec = this.activeChunks.get(ci);
@@ -2414,13 +2469,25 @@ export class TrailCorridorWorld {
           return true;
         }
       }
+      if (rec?.cargoMegashipData) {
+        if (
+          this.cargoMegashipBuilder.sampleSurfaceVelocityInChunk(
+            rec.cargoMegashipData,
+            x,
+            z,
+            outVel
+          )
+        ) {
+          return true;
+        }
+      }
     }
     return false;
   }
 
   /**
    * Resolves 240Hz rigid-body collisions against Colossal Vertical Rotating Slotted Gear-Walls
-   * (allowing 1 vehicle at a time through the rotating 4.8m passages while blocking solid gear sectors)!
+   * AND Shipping-Container Stacks / Open-Door Container Tunnels on Pitching Megaships!
    */
   public resolveDynamicMechanicalWalls(
     carPos: THREE.Vector3,
@@ -2431,13 +2498,30 @@ export class TrailCorridorWorld {
     passiveObserver: boolean,
     onImpact?: (intensity: number, worldPoint: THREE.Vector3) => void
   ): void {
-    if (this.currentBiome !== 'CLOCKWORK_FOUNDRY' || passiveObserver) return;
+    if (
+      (this.currentBiome !== 'CLOCKWORK_FOUNDRY' && this.currentBiome !== 'CARGO_MEGASHIPS') ||
+      passiveObserver
+    ) {
+      return;
+    }
     const cIdx = Math.floor(-carPos.z / CHUNK_LENGTH);
     for (let ci = cIdx - 1; ci <= cIdx + 1; ci++) {
       const rec = this.activeChunks.get(ci);
       if (rec?.clockworkData) {
         this.clockworkBuilder.resolveVerticalGearWallCollisionsInChunk(
           rec.clockworkData,
+          carPos,
+          forwardWorld,
+          rightWorld,
+          linearVel,
+          angularVel,
+          passiveObserver,
+          onImpact
+        );
+      }
+      if (rec?.cargoMegashipData) {
+        this.cargoMegashipBuilder.resolveShipContainerCollisionsInChunk(
+          rec.cargoMegashipData,
           carPos,
           forwardWorld,
           rightWorld,
@@ -2782,6 +2866,10 @@ export class TrailCorridorWorld {
           passiveObserver
         );
       }
+      // 14. STORM-TOSSED CARGO MEGASHIPS: Pitching/Rolling Hulls & Sliding Gantry Crane Bridges!
+      if (rec.cargoMegashipData) {
+        this.cargoMegashipBuilder.stepChunkHazards(rec.cargoMegashipData, dt, elapsedTime);
+      }
     }
 
     this.singularityBuilder.stepGlobalStormFx(
@@ -2826,6 +2914,12 @@ export class TrailCorridorWorld {
     );
     this.clockworkBuilder.stepGlobalFoundryAtmosphere(
       this.currentBiome === 'CLOCKWORK_FOUNDRY',
+      playerPos,
+      elapsedTime,
+      dt
+    );
+    this.cargoMegashipBuilder.stepGlobalStormOceanAtmosphere(
+      this.currentBiome === 'CARGO_MEGASHIPS',
       playerPos,
       elapsedTime,
       dt
@@ -3000,6 +3094,8 @@ export class TrailCorridorWorld {
         ? 73819
         : biome === 'CLOCKWORK_FOUNDRY'
         ? 85411
+        : biome === 'CARGO_MEGASHIPS'
+        ? 59273
         : 0;
     const rng = mulberry32(((chunkIndex + 4096 + biomeSalt) * 2654435761) >>> 0);
     const isSafeZone = (z: number) => Math.abs(z) < 28;
@@ -3028,7 +3124,8 @@ export class TrailCorridorWorld {
       biome !== 'CARNIVOROUS_BOG' &&
       biome !== 'UNDERGROUND_MARKET' &&
       biome !== 'CANYON_BRIDGES' &&
-      biome !== 'CLOCKWORK_FOUNDRY'
+      biome !== 'CLOCKWORK_FOUNDRY' &&
+      biome !== 'CARGO_MEGASHIPS'
     ) {
       if (biome === 'SINGULARITY') {
         // Glowing turquoise mineral salt-brine pools in wide plateau hollows & deep canyon floor!
@@ -3234,7 +3331,12 @@ export class TrailCorridorWorld {
         const outerMask = smoothstep(hw + 8.0, hw + 55.0, absD);
         const patchVar = fbm2D(x * 0.08, z * 0.08, 2) * 0.1;
 
-        if (biome === 'CLOCKWORK_FOUNDRY') {
+        if (biome === 'CARGO_MEGASHIPS') {
+          // Deep abyssal marine seabed rising into wet dark-granite harbor breakwater jetties far outside!
+          const jettyMask = smoothstep(-20.0, 4.0, s.height);
+          tmpColor.setHex(0x05101a).lerp(new THREE.Color(0x28323b), jettyMask);
+          tmpColor.offsetHSL(0, 0, patchVar * 0.3);
+        } else if (biome === 'CLOCKWORK_FOUNDRY') {
           // Glowing incandescent molten slag veins down at -36m rising into soot-darkened basalt foundry walls!
           const wallMask = smoothstep(-33.5, -14.0, s.height);
           const slagPulse = smoothstep(0.35, 0.85, fbm2D(x * 0.09, z * 0.09, 2) * 0.5 + 0.5);
@@ -3643,6 +3745,15 @@ export class TrailCorridorWorld {
         rootBridges,
         () => this.nextBridgeId++
       );
+    } else if (biome === 'CARGO_MEGASHIPS') {
+      chunkRecord.cargoMegashipData = this.cargoMegashipBuilder.populateCargoMegashipChunk(
+        chunkGroup,
+        chunkIndex,
+        zStart,
+        CHUNK_LENGTH,
+        (z) => this.getTrailSpec(z).centerX,
+        obstacles
+      );
     }
 
     // F. GIANT DRIVE-THROUGH HOLLOW FALLEN LOG TUNNEL (Forest!)
@@ -3759,7 +3870,8 @@ export class TrailCorridorWorld {
       biome === 'GLACIAL_ICE' ||
       biome === 'UNDERGROUND_MARKET' ||
       biome === 'CANYON_BRIDGES' ||
-      biome === 'CLOCKWORK_FOUNDRY'
+      biome === 'CLOCKWORK_FOUNDRY' ||
+      biome === 'CARGO_MEGASHIPS'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 16
@@ -3849,7 +3961,8 @@ export class TrailCorridorWorld {
       biome === 'CARNIVOROUS_BOG' ||
       biome === 'UNDERGROUND_MARKET' ||
       biome === 'CANYON_BRIDGES' ||
-      biome === 'CLOCKWORK_FOUNDRY'
+      biome === 'CLOCKWORK_FOUNDRY' ||
+      biome === 'CARGO_MEGASHIPS'
         ? 0
         : biome === 'SINGULARITY'
         ? 2
@@ -4005,7 +4118,8 @@ export class TrailCorridorWorld {
           biome === 'GLACIAL_ICE' ||
           biome === 'UNDERGROUND_MARKET' ||
           biome === 'CANYON_BRIDGES' ||
-          biome === 'CLOCKWORK_FOUNDRY'
+          biome === 'CLOCKWORK_FOUNDRY' ||
+          biome === 'CARGO_MEGASHIPS'
         ? 0
         : biome === 'CARNIVOROUS_BOG'
         ? 45

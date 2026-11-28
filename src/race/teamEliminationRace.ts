@@ -207,6 +207,7 @@ export class TeamEliminationRaceDirector {
     if (this.regionIndex === 8) return 'UNDERGROUND_MARKET';
     if (this.regionIndex === 9) return 'CANYON_BRIDGES';
     if (this.regionIndex === 10) return 'CLOCKWORK_FOUNDRY';
+    if (this.regionIndex === 11) return 'CARGO_MEGASHIPS';
     const all: BiomeId[] = [
       'FOREST',
       'SWAMP',
@@ -219,6 +220,7 @@ export class TeamEliminationRaceDirector {
       'UNDERGROUND_MARKET',
       'CANYON_BRIDGES',
       'CLOCKWORK_FOUNDRY',
+      'CARGO_MEGASHIPS',
     ];
     const candidates = all.filter((b) => b !== this.world.currentBiome);
     return candidates[Math.floor(this.rng() * candidates.length)];
@@ -377,11 +379,18 @@ export class TeamEliminationRaceDirector {
         r.laneTimer = 2.0 + this.rng() * 3.2;
         if (
           this.world.currentBiome === 'CANYON_BRIDGES' ||
-          this.world.currentBiome === 'CLOCKWORK_FOUNDRY'
+          this.world.currentBiome === 'CLOCKWORK_FOUNDRY' ||
+          this.world.currentBiome === 'CARGO_MEGASHIPS'
         ) {
           const lookZ = r.position.z - 28.0;
           const isl =
-            this.world.currentBiome === 'CLOCKWORK_FOUNDRY'
+            this.world.currentBiome === 'CARGO_MEGASHIPS'
+              ? this.world.cargoMegashipBuilder.findNearestShipSpawn(
+                  r.position.x,
+                  lookZ,
+                  (sz) => this.world.getTrailSpec(sz).centerX
+                )
+              : this.world.currentBiome === 'CLOCKWORK_FOUNDRY'
               ? this.world.clockworkBuilder.findNearestGearSpawn(
                   r.position.x,
                   lookZ,

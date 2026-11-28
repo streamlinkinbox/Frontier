@@ -120,6 +120,12 @@ export class ExpeditionHud {
         name: 'CLOCKWORK FOUNDRY',
         sub: 'Locking Gear Paths · 1-Car Rotating Gear Walls · Seesaws',
       },
+      {
+        id: 'CARGO_MEGASHIPS',
+        key: '=',
+        name: 'CARGO MEGASHIPS',
+        sub: 'Pitching Ship Decks · Container Tunnels · Gantry Bridges',
+      },
     ];
 
     const levelChipsHtml = levels
@@ -226,7 +232,7 @@ export class ExpeditionHud {
           <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
           <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
           <span><kbd>SCROLL</kbd> Cam Speed</span>
-          <span><kbd>1</kbd>-<kbd>0</kbd>/<kbd>-</kbd> Switch Level</span>
+          <span><kbd>1</kbd>-<kbd>=</kbd> Switch Level</span>
           <span><kbd>T</kbd> Place Car Here</span>
           <span><kbd>V</kbd> Drive Course</span>
         </div>
@@ -359,7 +365,7 @@ export class ExpeditionHud {
         <span><kbd>E</kbd>/<kbd>Q</kbd> Up / Down</span>
         <span><kbd>SHIFT</kbd> 3.2x Fast Fly</span>
         <span><kbd>SCROLL</kbd> Cam Speed</span>
-        <span><kbd>1</kbd>-<kbd>0</kbd>/<kbd>-</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>=</kbd> Switch Level</span>
         <span><kbd>T</kbd> Place Car Here</span>
         <span><kbd>V</kbd> Drive Course</span>
       `;
@@ -371,7 +377,7 @@ export class ExpeditionHud {
         <span><kbd>SHIFT</kbd> Boost</span>
         <span><kbd>SPACE</kbd> Handbrake</span>
         <span><kbd>R</kbd> Reset Car</span>
-        <span><kbd>1</kbd>-<kbd>0</kbd>/<kbd>-</kbd> Switch Level</span>
+        <span><kbd>1</kbd>-<kbd>=</kbd> Switch Level</span>
         <span><kbd>V</kbd> Back to Unreal Camera</span>
       `;
     }
@@ -419,7 +425,9 @@ export class ExpeditionHud {
     const spec = world.getTrailSpec(focusPos.z);
     const sample = world.sampleHeightRaw(focusPos.x, focusPos.z);
     let zoneName =
-      world.currentBiome === 'CLOCKWORK_FOUNDRY'
+      world.currentBiome === 'CARGO_MEGASHIPS'
+        ? 'PITCHING CARGO MEGASHIP DECK'
+        : world.currentBiome === 'CLOCKWORK_FOUNDRY'
         ? 'BRASS COGWHEEL FOUNDRY'
         : world.currentBiome === 'CANYON_BRIDGES'
         ? 'MISTY CHASM PILLAR'
@@ -441,7 +449,21 @@ export class ExpeditionHud {
         ? 'ASHEN DEADWOOD ROAD'
         : 'GIANT FOREST';
 
-    if (world.currentBiome === 'CLOCKWORK_FOUNDRY') {
+    if (world.currentBiome === 'CARGO_MEGASHIPS') {
+      if (sample.height < -8.0 && focusPos.y > -4.0) {
+        zoneName = 'BOW WAVE-JUMP / OVER-OCEAN AIRBORNE';
+      } else if (sample.height < -8.0) {
+        zoneName = 'STORM-TOSSED NORTH ATLANTIC SWELL';
+      } else if (sample.height > 4.2) {
+        zoneName = `40FT CONTAINER ROOFTOP HIGHWAY (+${sample.height.toFixed(1)}m)`;
+      } else {
+        const uShip = ((-focusPos.z % 112) + 112) % 112;
+        zoneName =
+          uShip > 82.0
+            ? 'GANTRY CRANE CONTAINER DRAWBRIDGE'
+            : `PITCHING MEGASHIP HOLD (${sample.height >= 0 ? '+' : ''}${sample.height.toFixed(1)}m)`;
+      }
+    } else if (world.currentBiome === 'CLOCKWORK_FOUNDRY') {
       const tmpVel = this._tmpDeckVel;
       const onMoving = world.sampleMovingDeckVelocity(focusPos.x, focusPos.z, tmpVel);
       if (sample.height < -12.0 && focusPos.y > -8.0) {

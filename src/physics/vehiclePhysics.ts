@@ -256,15 +256,25 @@ export class VehicleRigidBody {
       spec.splitFactor > 0.25 ? spec.centerX + branchSide * spec.splitOffset : spec.centerX;
     let ground = world.sampleTerrain(spawnX, targetZ);
 
-    // In CANYON_BRIDGES & CLOCKWORK_FOUNDRY, if (spawnX, targetZ) falls over open chasm/molten air,
-    // snap directly onto the nearest Island / Brass Cogwheel at its exact elevation facing its outgoing spans!
+    // In CANYON_BRIDGES, CLOCKWORK_FOUNDRY & CARGO_MEGASHIPS, if (spawnX, targetZ) falls over open chasm/molten/ocean air,
+    // snap directly onto the nearest Island / Brass Cogwheel / Cargo Megaship Deck!
     let customHeadingYaw: number | null = null;
-    if (world.currentBiome === 'CANYON_BRIDGES' || world.currentBiome === 'CLOCKWORK_FOUNDRY') {
+    if (
+      world.currentBiome === 'CANYON_BRIDGES' ||
+      world.currentBiome === 'CLOCKWORK_FOUNDRY' ||
+      world.currentBiome === 'CARGO_MEGASHIPS'
+    ) {
       const checkX = Math.abs(this.position.z - z) < 25 ? this.position.x : spawnX;
       const checkGround = world.sampleTerrain(checkX, targetZ);
-      if (checkGround.height < -12.0) {
+      if (checkGround.height < -8.0) {
         const isl =
-          world.currentBiome === 'CLOCKWORK_FOUNDRY'
+          world.currentBiome === 'CARGO_MEGASHIPS'
+            ? world.cargoMegashipBuilder.findNearestShipSpawn(
+                checkX,
+                targetZ,
+                (sz) => world.getTrailSpec(sz).centerX
+              )
+            : world.currentBiome === 'CLOCKWORK_FOUNDRY'
             ? world.clockworkBuilder.findNearestGearSpawn(
                 checkX,
                 targetZ,

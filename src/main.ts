@@ -30,6 +30,7 @@ const BIOME_ORDER: BiomeId[] = [
   'UNDERGROUND_MARKET',
   'CANYON_BRIDGES',
   'CLOCKWORK_FOUNDRY',
+  'CARGO_MEGASHIPS',
 ];
 const LEVEL_PORTAL_Z = -860;
 
@@ -353,9 +354,21 @@ class FrontierSimulationApp {
         this.particles.emitImpactDust(ventPos, 0.9);
       }
     };
+    this.world.cargoMegashipBuilder.onGantryBridgeLocked = (lockPos: THREE.Vector3) => {
+      if (lockPos.distanceTo(this.camera.position) < 62) {
+        this.particles.emitImpactDust(lockPos, 1.25);
+        this.audio.playTimberSlamSound();
+      }
+      if (lockPos.distanceTo(this.camera.position) < 38) {
+        this.hud.showCallout('GANTRY CRANE CONTAINER BRIDGE LOCKED · CLEAR TO CROSS!');
+      }
+    };
+    this.world.cargoMegashipBuilder.onStormThunder = (intensity: number) => {
+      this.audio.playThunderStrikeSound(intensity);
+    };
 
-    // Boot into Level [11] Clockwork Gear-Island Foundry & Seesaw Bridges with Unreal Free-Fly Camera!
-    this.loadBiomeLevel('CLOCKWORK_FOUNDRY', true);
+    // Boot into Level [12] Storm-Tossed Cargo Megaships & Gantry Crane Docks with Unreal Free-Fly Camera!
+    this.loadBiomeLevel('CARGO_MEGASHIPS', true);
 
     this.bindInputEvents();
     window.addEventListener('resize', () => this.onResize());
@@ -540,6 +553,8 @@ class FrontierSimulationApp {
         this.loadBiomeLevel('CANYON_BRIDGES');
       } else if (code === 'Minus' || code === 'NumpadSubtract') {
         this.loadBiomeLevel('CLOCKWORK_FOUNDRY');
+      } else if (code === 'Equal' || code === 'NumpadAdd') {
+        this.loadBiomeLevel('CARGO_MEGASHIPS');
       } else if (code === 'KeyP') {
         this.cycleNextBiomeLevel();
       } else if (code === 'KeyR' && this.exploreMode === 'PEACEFUL_DRIVE') {
@@ -781,21 +796,28 @@ class FrontierSimulationApp {
       this.physicsAccumulator -= fixedDt;
     }
 
-    // Auto-recover vehicle if it plunges off a sheer -48m/-36m precipice in SINGULARITY, CANYON_BRIDGES or CLOCKWORK_FOUNDRY!
+    // Auto-recover vehicle if it plunges off a sheer precipice or overboard into the storm sea!
     if (
       this.exploreMode === 'PEACEFUL_DRIVE' &&
       (this.world.currentBiome === 'SINGULARITY' ||
         this.world.currentBiome === 'CANYON_BRIDGES' ||
-        this.world.currentBiome === 'CLOCKWORK_FOUNDRY')
+        this.world.currentBiome === 'CLOCKWORK_FOUNDRY' ||
+        this.world.currentBiome === 'CARGO_MEGASHIPS')
     ) {
       const cliffSpec = this.world.getTrailSpec(this.vehicle.position.z);
-      if (this.vehicle.position.y < cliffSpec.baseY - 22.0) {
+      const rescueThresholdY =
+        this.world.currentBiome === 'CARGO_MEGASHIPS'
+          ? -10.5
+          : cliffSpec.baseY - 22.0;
+      if (this.vehicle.position.y < rescueThresholdY) {
         this.cliffFallTimer += frameDt;
-        if (this.cliffFallTimer > 0.85) {
+        if (this.cliffFallTimer > 0.75) {
           this.cliffFallTimer = 0;
           this.vehicle.resetAt(this.world, this.vehicle.position.z);
           this.hud.showCallout(
-            this.world.currentBiome === 'CLOCKWORK_FOUNDRY'
+            this.world.currentBiome === 'CARGO_MEGASHIPS'
+              ? 'MAN OVERBOARD RESCUE · HOISTED BACK ONTO NEAREST MEGASHIP DECK!'
+              : this.world.currentBiome === 'CLOCKWORK_FOUNDRY'
               ? 'MOLTEN FOUNDRY RESCUE · RETURNED TO NEAREST BRASS COGWHEEL!'
               : this.world.currentBiome === 'CANYON_BRIDGES'
               ? 'CANYON CHASM RESCUE · RETURNED TO NEAREST SKY-ISLAND!'
@@ -809,10 +831,16 @@ class FrontierSimulationApp {
       this.cliffFallTimer = 0;
     }
 
-    // Dynamic Martian Sandstorm Lightning Sky/Fog Flash Modulation!
-    if (this.world.currentBiome === 'SINGULARITY') {
-      const spec = BIOME_SPECS.SINGULARITY;
-      const flash = this.world.singularityBuilder.currentLightningFlash;
+    // Dynamic Storm Lightning Sky/Fog Flash Modulation (Martian Singularity & Storm-Tossed Cargo Megaships)!
+    if (
+      this.world.currentBiome === 'SINGULARITY' ||
+      this.world.currentBiome === 'CARGO_MEGASHIPS'
+    ) {
+      const spec = BIOME_SPECS[this.world.currentBiome];
+      const flash =
+        this.world.currentBiome === 'CARGO_MEGASHIPS'
+          ? this.world.cargoMegashipBuilder.currentLightningFlash
+          : this.world.singularityBuilder.currentLightningFlash;
       const fog = this.scene.fog as THREE.FogExp2;
       this._stormFogBase.setHex(spec.fogColorHex);
       fog.color.copy(this._stormFogBase).lerp(this._lightningTint, flash * 0.62);
