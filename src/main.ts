@@ -363,6 +363,50 @@ class FrontierSimulationApp {
         this.hud.showCallout('GANTRY CRANE CONTAINER BRIDGE LOCKED · CLEAR TO CROSS!');
       }
     };
+    this.world.cargoMegashipBuilder.onMagnetCapture = (magPos: THREE.Vector3) => {
+      this.particles.emitIceShatterBurst(magPos, 20);
+      this.audio.playPitcherGrappleSound();
+      this.hud.showCallout(
+        'ELECTROMAGNET CRANE LOCKED ON · HOISTING VEHICLE! [HOLD SHIFT BOOST TO SNAP FREE]'
+      );
+    };
+    this.world.cargoMegashipBuilder.onMagnetRelease = (
+      magPos: THREE.Vector3,
+      brokeByBoost: boolean
+    ) => {
+      this.particles.emitVineSnapBurst(magPos, true);
+      this.audio.playVineSnapSound(true);
+      this.hud.showCallout(
+        brokeByBoost
+          ? 'BOOST OVERLOADED ELECTROMAGNET · BROKE FREE MID-AIR!'
+          : 'CRANE COILS SHORTED OUT · DROPPING VEHICLE ONTO DECK!'
+      );
+    };
+    this.world.cargoMegashipBuilder.onCraneBreakSpark = (sparkPos: THREE.Vector3) => {
+      if (sparkPos.distanceTo(this.camera.position) < 75) {
+        this.particles.emitVineSnapBurst(sparkPos, true);
+        this.audio.playTimberCrackSound();
+      }
+    };
+    this.world.cargoMegashipBuilder.onCraneCargoCrash = (crashPos: THREE.Vector3) => {
+      if (crashPos.distanceTo(this.camera.position) < 78) {
+        this.particles.emitTimberSlamShockwave(crashPos);
+        this.particles.emitImpactDust(crashPos, 1.45);
+        this.audio.playTimberSlamSound();
+      }
+      if (
+        this.exploreMode === 'PEACEFUL_DRIVE' &&
+        crashPos.distanceTo(this.vehicle.position) < 28
+      ) {
+        this.hud.showCallout('CRANE CABLE SNAPPED · LOOSE CONTAINER CRASHED ONTO DECK!');
+      }
+    };
+    this.world.cargoMegashipBuilder.onLooseCargoSlam = (slamPos: THREE.Vector3) => {
+      if (slamPos.distanceTo(this.camera.position) < 55) {
+        this.particles.emitVineSnapBurst(slamPos, true);
+        this.audio.playTimberCrackSound();
+      }
+    };
     this.world.cargoMegashipBuilder.onStormThunder = (intensity: number) => {
       this.audio.playThunderStrikeSound(intensity);
     };

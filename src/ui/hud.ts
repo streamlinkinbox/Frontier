@@ -124,7 +124,7 @@ export class ExpeditionHud {
         id: 'CARGO_MEGASHIPS',
         key: '=',
         name: 'CARGO MEGASHIPS',
-        sub: 'Pitching Ship Decks · Container Tunnels · Gantry Bridges',
+        sub: 'Wave-Rotated Decks · Sliding Cargo · Magnetic & Breaking Cranes',
       },
     ];
 
@@ -450,7 +450,9 @@ export class ExpeditionHud {
         : 'GIANT FOREST';
 
     if (world.currentBiome === 'CARGO_MEGASHIPS') {
-      if (sample.height < -8.0 && focusPos.y > -4.0) {
+      if (world.cargoMegashipBuilder.activeCapturedCrane) {
+        zoneName = 'ELECTROMAGNET CRANE HOISTING! [HOLD SHIFT BOOST TO SNAP FREE]';
+      } else if (sample.height < -8.0 && focusPos.y > -4.0) {
         zoneName = 'BOW WAVE-JUMP / OVER-OCEAN AIRBORNE';
       } else if (sample.height < -8.0) {
         zoneName = 'STORM-TOSSED NORTH ATLANTIC SWELL';
@@ -461,7 +463,7 @@ export class ExpeditionHud {
         zoneName =
           uShip > 82.0
             ? 'GANTRY CRANE CONTAINER DRAWBRIDGE'
-            : `PITCHING MEGASHIP HOLD (${sample.height >= 0 ? '+' : ''}${sample.height.toFixed(1)}m)`;
+            : `WAVE-ROTATING MEGASHIP DECK (${sample.height >= 0 ? '+' : ''}${sample.height.toFixed(1)}m)`;
       }
     } else if (world.currentBiome === 'CLOCKWORK_FOUNDRY') {
       const tmpVel = this._tmpDeckVel;

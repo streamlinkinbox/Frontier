@@ -259,6 +259,9 @@ export class VehicleRigidBody {
     // In CANYON_BRIDGES, CLOCKWORK_FOUNDRY & CARGO_MEGASHIPS, if (spawnX, targetZ) falls over open chasm/molten/ocean air,
     // snap directly onto the nearest Island / Brass Cogwheel / Cargo Megaship Deck!
     let customHeadingYaw: number | null = null;
+    if (world.currentBiome === 'CARGO_MEGASHIPS') {
+      world.cargoMegashipBuilder.releaseAnyCapturedCrane();
+    }
     if (
       world.currentBiome === 'CANYON_BRIDGES' ||
       world.currentBiome === 'CLOCKWORK_FOUNDRY' ||
@@ -934,6 +937,16 @@ export class VehicleRigidBody {
       qw + (-wx * qx - wy * qy - wz * qz) * halfDt
     );
     this.quaternion.normalize();
+
+    world.stepMagneticCraneSubstep(
+      dt,
+      this.position,
+      this.quaternion,
+      this.linearVelocity,
+      this.angularVelocity,
+      this.isBoosting,
+      this.passiveObserverProtection
+    );
 
     const newLatSpeed = this.linearVelocity.dot(this._rightWorld);
     this.lateralG = clamp((newLatSpeed - prevLatSpeed) / (dt * 9.81), -3.5, 3.5);

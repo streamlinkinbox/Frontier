@@ -207,8 +207,8 @@ export const BIOME_SPECS: Record<BiomeId, BiomeAtmosphereSpec> = {
   },
   CARGO_MEGASHIPS: {
     id: 'CARGO_MEGASHIPS',
-    title: 'STORM-TOSSED CARGO MEGASHIPS & GANTRY CRANE DOCKS',
-    subtitle: 'PITCHING SHIP DECKS · CONTAINER MAZE & TUNNELS · LOCKING GANTRY CRANE BRIDGES',
+    title: 'STORM-TOSSED CARGO MEGASHIPS & MAGNETIC / BREAKING CRANES',
+    subtitle: 'WAVE-ROTATED SHIP DECKS · SLIDING LOOSE CARGO · MAGNETIC & BREAKING CRANES',
     fogColorHex: 0x13222e,
     fogDensity: 0.0046,
     skyHorizonRGB: [0.14, 0.25, 0.34],
@@ -2529,6 +2529,42 @@ export class TrailCorridorWorld {
           angularVel,
           passiveObserver,
           onImpact
+        );
+      }
+    }
+  }
+
+  /**
+   * 240Hz Substep for Rotating Shipboard Electromagnet Cranes (`MagneticVehicleCrane`)
+   * that pull nearby vehicles inward, hoist & swing them aloft, and release on Boost or overload!
+   */
+  public stepMagneticCraneSubstep(
+    dt: number,
+    carPos: THREE.Vector3,
+    carQuat: THREE.Quaternion,
+    linearVel: THREE.Vector3,
+    angularVel: THREE.Vector3,
+    isBoosting: boolean,
+    passiveObserver: boolean
+  ): void {
+    if (this.currentBiome !== 'CARGO_MEGASHIPS') return;
+    if (passiveObserver) {
+      this.cargoMegashipBuilder.releaseAnyCapturedCrane();
+      return;
+    }
+    const cIdx = Math.floor(-carPos.z / CHUNK_LENGTH);
+    for (let ci = cIdx - 1; ci <= cIdx + 1; ci++) {
+      const rec = this.activeChunks.get(ci);
+      if (rec?.cargoMegashipData) {
+        this.cargoMegashipBuilder.stepMagneticCraneSubstepInChunk(
+          rec.cargoMegashipData,
+          dt,
+          carPos,
+          carQuat,
+          linearVel,
+          angularVel,
+          isBoosting,
+          passiveObserver
         );
       }
     }
